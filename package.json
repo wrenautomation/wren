@@ -1,0 +1,29 @@
+{
+  "name": "wren",
+  "private": true,
+  "packageManager": "pnpm@9.15.0",
+  "engines": {
+    "node": ">=24"
+  },
+  "scripts": {
+    "build": "turbo run build",
+    "lint": "biome check .",
+    "lint:fix": "biome check --write .",
+    "typecheck": "turbo run typecheck",
+    "test": "turbo run test",
+    "test:unit": "turbo run test:unit",
+    "test:integration": "turbo run test:integration",
+    "gates": "./scripts/gates.sh",
+    "db:generate": "pnpm --filter @wren/db generate",
+    "db:migrate": "pnpm --filter @wren/db migrate",
+    "worker": "pnpm --filter @wren/worker dev",
+    "register": "./scripts/register-worker.sh",
+    "wren": "pnpm --filter @wren/cli exec tsx src/main.ts"
+  },
+  "devDependencies": {
+    "@biomejs/biome": "2.5.14",
+    "@types/node": "22.20.3",
+    "turbo": "2.10.13",
+    "typescript": "5.9.3"
+  }
+}

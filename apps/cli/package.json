@@ -1,0 +1,24 @@
+{
+  "name": "@wren/cli",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "bin": {
+    "wren": "./src/main.ts"
+  },
+  "scripts": {
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@restatedev/restate-sdk-clients": "1.17.1",
+    "@wren/channel-linkedin": "workspace:*",
+    "@wren/config": "workspace:*",
+    "@wren/db": "workspace:*",
+    "commander": "15.0.0",
+    "drizzle-orm": "0.45.2",
+    "tsx": "4.23.13"
+  },
+  "devDependencies": {
+    "typescript": "5.9.3"
+  }
+}

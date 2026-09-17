@@ -1,0 +1,28 @@
+services:
+  postgres:
+    image: postgres:17
+    environment:
+      POSTGRES_USER: wren
+      POSTGRES_DB: wren
+      POSTGRES_PASSWORD: ${WREN_DB_PASSWORD:-wren}
+    ports:
+      - "127.0.0.1:5434:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U wren"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+  restate:
+    image: restatedev/restate:1.7.10
+    ports:
+      - "127.0.0.1:8080:8080"   # ingress
+      - "127.0.0.1:9070:9070"   # admin
+    volumes:
+      - restatedata:/restate-data
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+volumes:
+  pgdata:
+  restatedata:

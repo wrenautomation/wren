@@ -1,0 +1,113 @@
+#!/usr/bin/env tsx
+/**
+ * `wren` ops CLI. Reads go straight to Postgres. Writes go through Restate so
+ * they are journaled and single-writer per key.
+ */
+import { readFile } from "node:fs/promises";
+import * as clients from "@restatedev/restate-sdk-clients";
+import {
+  collectStatus,
+  draftCount,
+  draftsOverdue,
+  formatStatusLines,
+  listNotes,
+} from "@wren/channel-linkedin";
+import type { LinkedinInbox } from "@wren/channel-linkedin/restate";
+import { INBOX_KEY } from "@wren/channel-linkedin/restate";
+import { loadEnvFile, loadSettings } from "@wren/config";
+import { createDb } from "@wren/db";
+import { Command } from "commander";
+import { sql } from "drizzle-orm";
+
+const BODY_PREVIEW_CHARS = 60;
+const settings = loadSettings(process.env, { rootDir: loadEnvFile() });
+
+/** Open the pool for one command and always close it. */
+async function withDb<T>(fn: (db: ReturnType<typeof createDb>["db"]) => Promise<T>): Promise<T> {
+  const handle = createDb(settings.databaseUrl, { max: 1 });
+  try {
+    return await fn(handle.db);
+  } finally {
+    await handle.close();
+  }
+}
+
+function inboxClient() {
+  const ingress = clients.connect({ url: settings.restateIngressUrl });
+  return ingress.objectClient<LinkedinInbox>({ name: "LinkedinInbox" }, INBOX_KEY);
+}
+
+const program = new Command("wren").description("Wren automation ops").showHelpAfterError();
+
+program
+  .command("status")
+  .description("Is the week on track? Exit 1 if Thursday+ with no draft.")
+  .option("--today <iso>", "override today (YYYY-MM-DD)")
+  .action(async (opts: { today?: string }) => {
+    const today = opts.today ? new Date(`${opts.today}T00:00:00Z`) : startOfTodayUtc();
+    const report = await withDb((db) => collectStatus(db, today));
+    for (const line of formatStatusLines(report)) console.log(line);
+    if (draftsOverdue(today, draftCount(report))) process.exitCode = 1;
+  });
+
+const db = program.command("db").description("database");
+db.command("check")
+  .description("Print applied migration count")
+  .action(async () => {
+    const n = await withDb(async (d) => {
+      const rows = await d.execute<{ n: number }>(
+        sql`select count(*)::int n from drizzle.__drizzle_migrations`,
+      );
+      return rows[0]?.n ?? 0;
+    });
+    console.log(`migrations applied: ${n}`);
+  });
+
+const notes = program.command("notes").description("raw notes");
+notes
+  .command("add [file]")
+  .description("Add a note from a file, or stdin when omitted or '-'")
+  .action(async (file?: string) => {
+    const body = !file || file === "-" ? await readStdin() : await readFile(file, "utf8");
+    if (body.trim() === "") {
+      console.error("empty note");
+      process.exitCode = 1;
+      return;
+    }
+    const { id } = await inboxClient().add(body);
+    console.log(`added ${id}`);
+  });
+notes
+  .command("ingest")
+  .description("Ingest every note in the inbox dir")
+  .action(async () => {
+    const { ingested } = await inboxClient().ingest();
+    console.log(`ingested ${ingested}`);
+  });
+notes
+  .command("ls")
+  .option("--status <status>", "new | used | archived", "new")
+  .action(async (opts: { status: string }) => {
+    const rows = await withDb((d) => listNotes(d, opts.status));
+    for (const r of rows) {
+      const preview = r.body.replace(/\s+/g, " ").slice(0, BODY_PREVIEW_CHARS);
+      console.log(
+        `${r.id}  ${r.createdAt.toISOString().slice(0, 10)}  ${r.source.padEnd(5)}  ${preview}`,
+      );
+    }
+  });
+
+export function startOfTodayUtc(now = new Date()): Date {
+  return new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()));
+}
+
+async function readStdin(): Promise<string> {
+  const chunks: Buffer[] = [];
+  for await (const c of process.stdin) chunks.push(c as Buffer);
+  return Buffer.concat(chunks).toString("utf8");
+}
+
+program.parseAsync().catch((err: unknown) => {
+  console.error(err instanceof Error ? err.message : String(err));
+  process.exitCode = 1;
+});

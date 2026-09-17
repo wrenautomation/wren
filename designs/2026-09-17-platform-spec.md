@@ -64,7 +64,7 @@ Restate Virtual Objects replace advisory locks and `SKIP LOCKED`:
 ## 6. Environments and secrets
 
 - `.env` (gitignored) read by `packages/config`; `.env.example` committed. Prefix `WREN_`.
-- Dev: `docker compose up` gives Postgres (127.0.0.1:5433) and Restate (ingress 8080, admin 9070). Worker runs on 9080 and self-registers via `pnpm register`.
+- Dev: `docker compose up` gives Postgres (127.0.0.1:5434) and Restate (ingress 8080, admin 9070). Worker runs on 9080 and self-registers via `pnpm register`.
 - Prod: Restate Cloud or one VM with the binary; Postgres managed; worker as a container. Secrets via env only.
 - CI: GitHub Actions, `pnpm turbo lint test`, integration tests use testcontainers.
 

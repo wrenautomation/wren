@@ -1,0 +1,17 @@
+name: ci
+on:
+  push: { branches: [main] }
+  pull_request:
+jobs:
+  gates:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v5
+        with: { node-version-file: .node-version, cache: pnpm }
+      - run: pnpm install --frozen-lockfile
+      - run: ./scripts/gates.sh lint
+      - run: ./scripts/gates.sh unit
+      - run: ./scripts/gates.sh integration
+        env: { TESTCONTAINERS_RYUK_DISABLED: "true" }
