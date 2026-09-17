@@ -4,7 +4,14 @@ import { defineConfig } from "drizzle-kit";
 // Paths, not imports: @wren/db must stay a leaf dependency.
 export default defineConfig({
   dialect: "postgresql",
-  schema: ["../core/src/schema.ts", "../channel-linkedin/src/schema.ts"],
+  schema: [
+    "../core/src/schema.ts",
+    "../core/src/views.ts",
+    "../research/src/schema.ts",
+    "../channel-linkedin/src/schema.ts",
+    "../channel-email/src/schema.ts",
+    "../channel-email/src/views.ts",
+  ],
   out: "./drizzle",
   casing: "snake_case",
   dbCredentials: {

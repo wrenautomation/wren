@@ -20,20 +20,23 @@ beforeAll(async () => {
 afterAll(() => pg.stop());
 
 describe("migrations", () => {
-  it("create every table", async () => {
+  it("create every linkedin table", async () => {
     const rows = await pg.db.execute<{ table_name: string }>(
-      sql`select table_name from information_schema.tables where table_schema='public' order by 1`,
+      sql`select table_name from information_schema.tables where table_schema='public' and table_type='BASE TABLE' order by 1`,
     );
-    expect(rows.map((r) => r.table_name)).toEqual([
-      "competitor_posts",
-      "competitors",
-      "llm_calls",
-      "notes",
-      "post_ideas",
-      "post_metrics",
-      "posts",
-      "research_runs",
-    ]);
+    // Other packages add their own tables; only ours are asserted here.
+    expect(rows.map((r) => r.table_name)).toEqual(
+      expect.arrayContaining([
+        "competitor_posts",
+        "competitors",
+        "llm_calls",
+        "notes",
+        "post_ideas",
+        "post_metrics",
+        "posts",
+        "research_runs",
+      ]),
+    );
   });
   it("index every SET NULL foreign key column", async () => {
     const fks = await pg.db.execute<{ t: string; c: string }>(sql`

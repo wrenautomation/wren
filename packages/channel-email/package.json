@@ -1,0 +1,27 @@
+{
+  "name": "@wren/channel-email",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts",
+    "./schema": "./src/schema.ts",
+    "./views": "./src/views.ts"
+  },
+  "scripts": {
+    "typecheck": "tsc --noEmit",
+    "test:integration": "vitest run test/integration"
+  },
+  "dependencies": {
+    "@wren/core": "workspace:*",
+    "@wren/db": "workspace:*",
+    "@wren/research": "workspace:*",
+    "drizzle-orm": "0.45.2"
+  },
+  "devDependencies": {
+    "@testcontainers/postgresql": "12.1.0",
+    "postgres": "3.4.9",
+    "typescript": "5.9.3",
+    "vitest": "5.0.1"
+  }
+}

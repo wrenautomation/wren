@@ -13,3 +13,13 @@ export function nonNegative(table: string, cols: Record<string, { name: string }
     check(`ck_${table}_${c.name}_non_negative`, sql`${sql.identifier(c.name)} >= 0`),
   );
 }
+
+/**
+ * CHECK (col IN (...)) for a string-enum column, written in Postgres's own canonical
+ * form so the stored definition is byte-identical to the legacy schema.
+ * Pair with `varchar(..., { enum })` so DDL and TS agree.
+ */
+export function oneOf(name: string, col: { name: string }, values: readonly string[]) {
+  const list = values.map((v) => `'${v.replaceAll("'", "''")}'::character varying`).join(", ");
+  return check(name, sql.raw(`("${col.name}")::text = ANY ((ARRAY[${list}])::text[])`));
+}

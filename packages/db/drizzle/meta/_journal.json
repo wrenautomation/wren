@@ -8,6 +8,13 @@
       "when": 1789651849251,
       "tag": "0000_initial_tables",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1789665507994,
+      "tag": "0001_email_channel_tables",
+      "breakpoints": true
     }
   ]
 }

@@ -38,7 +38,7 @@ packages/content        templates as rows (niche, channel, arm, variant) + rende
 packages/llm            provider seam, prompt registry, spend cap
 packages/research       web research + enrichment
 packages/channel-linkedin  notes, ideas, posts, metrics, competitors, OAuth, publish
-packages/channel-email     Resend adapter, sequences, follow-ups, reply parse
+packages/channel-email     Gmail transport, sequences, send pacing, inbox sync, reply parse
 ```
 
 Phase 1 creates: config, db, core (llm_calls only), channel-linkedin, apps/worker, apps/cli. Others appear when first needed.

@@ -35,3 +35,7 @@ See spec §3. Rules: deps point down; channels never import each other; every pa
 ## Schema changes
 
 Edit a package's `src/schema.ts`, then `pnpm db:generate` (writes `packages/db/drizzle/NNNN_*.sql`; review it), then `pnpm db:migrate`. Never edit a committed migration.
+
+## Legacy data
+
+`scripts/import-legacy.sh [db]` copies every row from the emails_gen Postgres into a migrated wren database. Run once, into an empty target. See `designs/2026-09-17-channel-email-port-plan.md`.
