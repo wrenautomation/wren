@@ -329,3 +329,15 @@ export const suppressionEvents = pgTable(
     oneOf("ck_suppression_events_suppressionreason", t.reason, SUPPRESSION_REASONS),
   ],
 );
+
+export type Run = typeof runs.$inferSelect;
+export type ImportBatch = typeof imports.$inferSelect;
+export type ImportError = typeof importErrors.$inferSelect;
+export type Company = typeof companies.$inferSelect;
+export type NewCompany = typeof companies.$inferInsert;
+export type Person = typeof people.$inferSelect;
+export type Sighting = typeof sightings.$inferSelect;
+export type Lead = typeof leads.$inferSelect;
+export type NewLead = typeof leads.$inferInsert;
+export type Suppression = typeof suppressions.$inferSelect;
+export type SuppressionEvent = typeof suppressionEvents.$inferSelect;

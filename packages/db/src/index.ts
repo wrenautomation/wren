@@ -3,6 +3,10 @@ import { migrate as drizzleMigrate } from "drizzle-orm/postgres-js/migrator";
 import postgres from "postgres";
 
 export type Db = ReturnType<typeof drizzle>;
+/** A transaction handle; has the same query API as `Db`. */
+export type Tx = Parameters<Parameters<Db["transaction"]>[0]>[0];
+/** Anything a query can run on. Library code takes this so callers pick the transaction scope. */
+export type Queryable = Db | Tx;
 
 export interface DbHandle {
   db: Db;

@@ -46,7 +46,8 @@ Every CHECK-enumerated column is declared once as a `const` tuple
 |---|---|---|
 | E1 ✅ | schema in core/research/channel-email, migration `0001`, parity test, `scripts/import-legacy.sh` | parity test; live restore |
 | E2 ✅ | domain: state transition tables (lead in core; message/enrollment/candidate in channel-email), email helpers (`core/emails.ts`), pattern vocabulary. jsonb shapes are typed by the stage that writes them (E3–E7), not up front | `domain/` unit tests ported 1:1 (63 tests) |
-| E3 | import, verify, discovery (CSV formats, DoH, MillionVerifier + fake) | same fixtures |
+| E3a ✅ | ingestion: `core/ingest/` (CSV source, edge classification, countries, importer), `core/runs.ts` ledger | `test_ingestion_schema` (unit) + `test_importer` (integration) ported 1:1; run-ledger tests that need enrichment land with E4 |
+| E3b–d | people importer, verify (local, MillionVerifier + fake, service), discovery + DoH | same fixtures |
 | E4 | enrichment: polite fetcher, crawl, render (Playwright), scan, extraction, email pick (typed steps + AI SDK, no LangGraph), resolution; cache key `(subject, kind, model, prompt_version)` kept | same fixtures; fake LLM |
 | E5 | template DSL parser + compose + sequences; DSL text seeded from the `.email` files into `template_versions` | golden-output tests on current templates |
 | E6 | send: policy, deliver, Gmail DWD transport, roster; daemon → `SendScheduler/{sender}` virtual object with durable sleeps; intent-before-act and Message-ID minting kept | console transport; no real sends until cutover |
