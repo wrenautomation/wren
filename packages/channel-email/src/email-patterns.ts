@@ -20,7 +20,8 @@ export type Pattern = (typeof PATTERNS)[number];
 /** A name as it appears in local parts: lowercased, accents folded (Núñez -> nunez), punctuation dropped. */
 export function nameToken(name: string | null | undefined): string | null {
   if (!name) return null;
-  const folded = name.normalize("NFKD").replace(/[^\x00-\x7F]/g, "");
+  // Drop combining marks left by NFKD (accents) and anything else non-ASCII.
+  const folded = name.normalize("NFKD").replace(/[^ -~]/g, "");
   const token = folded.toLowerCase().replace(/[^a-z0-9]+/g, "");
   return token || null;
 }
