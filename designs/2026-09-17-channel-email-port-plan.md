@@ -49,7 +49,7 @@ Every CHECK-enumerated column is declared once as a `const` tuple
 | E3a ✅ | ingestion: `core/ingest/` (CSV source, edge classification, countries, importer), `core/runs.ts` ledger | `test_ingestion_schema` (unit) + `test_importer` (integration) ported 1:1; run-ledger tests that need enrichment land with E4 |
 | E3b ✅ | people: `core/people/` (name parsing, PersonRow, importer) | `test_people_schema` + `test_people_importer` ported 1:1 |
 | E3c ✅ | verify: `core/doh.ts`, `channel-email/verification/` (local checks, fake + MillionVerifier, funnel service) | `test_doh`, `test_local_checks`, `test_verifiers`, `test_verification_service` ported 1:1 |
-| E3d | discovery (candidates, gate, service) | same fixtures |
+| E3d ✅ | discovery: `research/discovery/` (candidates, ownership gate, discovery + verification runs; `fetchHomepage` is an injected seam, the polite-fetcher default lands with E4) | `test_discovery` + `test_discovery_service` ported 1:1 |
 | E4 | enrichment: polite fetcher, crawl, render (Playwright), scan, extraction, email pick (typed steps + AI SDK, no LangGraph), resolution; cache key `(subject, kind, model, prompt_version)` kept | same fixtures; fake LLM |
 | E5 | template DSL parser + compose + sequences; DSL text seeded from the `.email` files into `template_versions` | golden-output tests on current templates |
 | E6 | send: policy, deliver, Gmail DWD transport, roster; daemon → `SendScheduler/{sender}` virtual object with durable sleeps; intent-before-act and Message-ID minting kept | console transport; no real sends until cutover |
