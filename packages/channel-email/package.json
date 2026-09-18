@@ -9,8 +9,9 @@
     "./views": "./src/views.ts"
   },
   "scripts": {
-    "typecheck": "tsc --noEmit",
-    "test:integration": "vitest run test/integration"
+    "test:integration": "vitest run test/integration",
+    "test:unit": "vitest run src",
+    "typecheck": "tsc --noEmit"
   },
   "dependencies": {
     "@wren/core": "workspace:*",

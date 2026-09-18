@@ -45,7 +45,7 @@ Every CHECK-enumerated column is declared once as a `const` tuple
 | # | Scope | Parity proof |
 |---|---|---|
 | E1 ✅ | schema in core/research/channel-email, migration `0001`, parity test, `scripts/import-legacy.sh` | parity test; live restore |
-| E2 | domain: state transition tables, jsonb shapes (`provenance`, `sequence_snapshot`, `classification`, enrichment `output`) as zod schemas + `$type` | port `domain/` unit tests 1:1 |
+| E2 ✅ | domain: state transition tables (lead in core; message/enrollment/candidate in channel-email), email helpers (`core/emails.ts`), pattern vocabulary. jsonb shapes are typed by the stage that writes them (E3–E7), not up front | `domain/` unit tests ported 1:1 (63 tests) |
 | E3 | import, verify, discovery (CSV formats, DoH, MillionVerifier + fake) | same fixtures |
 | E4 | enrichment: polite fetcher, crawl, render (Playwright), scan, extraction, email pick (typed steps + AI SDK, no LangGraph), resolution; cache key `(subject, kind, model, prompt_version)` kept | same fixtures; fake LLM |
 | E5 | template DSL parser + compose + sequences; DSL text seeded from the `.email` files into `template_versions` | golden-output tests on current templates |

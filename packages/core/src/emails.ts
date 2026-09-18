@@ -1,0 +1,204 @@
+/**
+ * Shared email-address knowledge: normalization, pragmatic syntax rules, domain
+ * extraction, freemail / platform / role lists. Ingestion and verification both
+ * need these. Rules are pragmatic, not full RFC 5321: addresses that need quoting
+ * don't survive real B2B mail anyway.
+ */
+
+/** Providers where the email domain identifies a person, not a business. Never keys a company. */
+export const FREEMAIL_DOMAINS: ReadonlySet<string> = new Set([
+  "gmail.com",
+  "googlemail.com",
+  "yahoo.com",
+  "yahoo.co.uk",
+  "ymail.com",
+  "aol.com",
+  "outlook.com",
+  "hotmail.com",
+  "hotmail.co.uk",
+  "live.com",
+  "msn.com",
+  "icloud.com",
+  "me.com",
+  "mac.com",
+  "proton.me",
+  "protonmail.com",
+  "pm.me",
+  "gmx.com",
+  "gmx.net",
+  "mail.com",
+  "zoho.com",
+  "yandex.com",
+  "netscape.net",
+  "juno.com",
+  "netzero.net",
+  // Consumer ISPs, national and regional.
+  "att.net",
+  "bellsouth.net",
+  "centurylink.net",
+  "centurytel.net",
+  "charter.net",
+  "comcast.net",
+  "cox.net",
+  "earthlink.net",
+  "embarqmail.com",
+  "frontier.com",
+  "frontiernet.net",
+  "gpcom.net",
+  "hughes.net",
+  "mchsi.com",
+  "midconetwork.com",
+  "optimum.net",
+  "optonline.net",
+  "ptd.net",
+  "q.com",
+  "roadrunner.com",
+  "rr.com",
+  "sbcglobal.net",
+  "suddenlink.net",
+  "twc.com",
+  "verizon.net",
+  "windstream.net",
+  "wowway.com",
+  "zoominternet.net",
+]);
+
+/**
+ * Platforms whose URLs point at a profile on someone else's service. Suffix-matched
+ * (uk.linkedin.com counts). Where the parent is a real business (apple.com,
+ * spotify.com) only the hosted-content subdomain is listed. Niche-specific listing
+ * hosts (clutch.co) are passed by the caller as `extra`.
+ */
+export const PLATFORM_DOMAINS: ReadonlySet<string> = new Set([
+  "linkedin.com",
+  "facebook.com",
+  "fb.com",
+  "instagram.com",
+  "x.com",
+  "twitter.com",
+  "youtube.com",
+  "youtu.be",
+  "tiktok.com",
+  "threads.net",
+  "pinterest.com",
+  "yelp.com",
+  "medium.com",
+  "substack.com",
+  "linktr.ee",
+  "calendly.com",
+  "crunchbase.com",
+  "google.com",
+  "bit.ly",
+  "goo.gl",
+  "vimeo.com",
+  "open.spotify.com",
+  "podcasts.apple.com",
+  "podbean.com",
+  "soundcloud.com",
+  "anchor.fm",
+  "buzzsprout.com",
+  "libsyn.com",
+  "spreaker.com",
+]);
+
+/** Functional mailboxes (info@, hello@): a role, not a person. One vocabulary for every consumer. */
+export const ROLE_LOCALPARTS: ReadonlySet<string> = new Set([
+  "abuse",
+  "admin",
+  "administrator",
+  "billing",
+  "contact",
+  "help",
+  "hello",
+  "hr",
+  "info",
+  "jobs",
+  "mail",
+  "marketing",
+  "no-reply",
+  "noreply",
+  "office",
+  "postmaster",
+  "privacy",
+  "sales",
+  "security",
+  "support",
+  "team",
+  "webmaster",
+]);
+
+const LOCAL_RE = /^[a-z0-9!#$%&'*+/=?^_`{|}~.-]+$/;
+const LABEL_RE = /^[a-z0-9]([a-z0-9-]*[a-z0-9])?$/;
+// IDN labels arrive punycode-encoded ("xn--mnchen-3ya" = münchen).
+const PUNYCODE_RE = /^xn--[a-z0-9-]+$/;
+
+export function normalizeEmail(raw: string): string {
+  let email = raw.trim().toLowerCase();
+  if (email.startsWith("mailto:")) email = email.slice("mailto:".length);
+  return email.replace(/^[<>]+|[<>]+$/g, "").trim();
+}
+
+/** Reason the (already normalized) address is undeliverable, or null. */
+export function emailSyntaxError(email: string): string | null {
+  const parts = email.split("@");
+  if (parts.length !== 2) return "must contain exactly one @";
+  const [local, domain] = parts as [string, string];
+  if (!local) return "empty local part";
+  if (local.length > 64) return "local part longer than 64 chars";
+  if (email.length > 254) return "address longer than 254 chars";
+  if (local.startsWith(".") || local.endsWith(".") || local.includes("..")) {
+    return "misplaced dot in local part";
+  }
+  if (!LOCAL_RE.test(local)) return "illegal character in local part";
+  if (!validDomain(domain)) return "invalid domain";
+  return null;
+}
+
+export function validDomain(domain: string): boolean {
+  if (!domain || domain.length > 253) return false;
+  const labels = domain.replace(/\.+$/, "").split(".");
+  if (labels.length < 2) return false;
+  if (!labels.every((l) => LABEL_RE.test(l) || PUNYCODE_RE.test(l))) return false;
+  const tld = labels[labels.length - 1] as string;
+  return tld.length >= 2 && (/^[a-z]+$/.test(tld) || PUNYCODE_RE.test(tld));
+}
+
+/** Registrable-ish domain from whatever a scraped "website" column holds, or null. */
+export function extractDomain(raw: string): string | null {
+  let s = raw.trim().toLowerCase();
+  const scheme = s.indexOf("://");
+  if (scheme >= 0) s = s.slice(scheme + 3);
+  for (const sep of ["/", "?", "#", "\\"]) s = s.split(sep, 1)[0] as string;
+  s = s.slice(s.lastIndexOf("@") + 1); // user@host URL forms
+  s = s.split(":", 1)[0] as string; // port
+  if (s.startsWith("www.")) s = s.slice(4);
+  s = s.replace(/[.,;]+$/, ""); // trailing punctuation from glued URL lists
+  return validDomain(s) ? s : null;
+}
+
+export function emailDomain(email: string): string {
+  return email.slice(email.lastIndexOf("@") + 1);
+}
+
+export function isFreemail(domain: string): boolean {
+  return FREEMAIL_DOMAINS.has(domain.toLowerCase());
+}
+
+const suffixMatch = (d: string, set: Iterable<string>) => {
+  for (const p of set) if (d === p || d.endsWith(`.${p}`)) return true;
+  return false;
+};
+
+/** True when the domain identifies a hosting platform, not a business. */
+export function isPlatformDomain(domain: string, extra: Iterable<string> = []): boolean {
+  const d = domain.toLowerCase();
+  return suffixMatch(d, PLATFORM_DOMAINS) || suffixMatch(d, extra);
+}
+
+/** True for a functional mailbox by its local part alone; plus-tags stripped. A bare word is never an address. */
+export function isRoleLocalpart(email: string): boolean {
+  const at = email.indexOf("@");
+  if (at < 0) return false;
+  const local = email.slice(0, at).trim().toLowerCase();
+  return ROLE_LOCALPARTS.has(local.split("+", 1)[0] as string);
+}
