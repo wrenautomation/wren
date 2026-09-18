@@ -8,7 +8,8 @@
     "./discovery": "./src/discovery/index.ts",
     "./fetch": "./src/fetch/index.ts",
     "./schema": "./src/schema.ts",
-    "./enrichment": "./src/enrichment/index.ts"
+    "./enrichment": "./src/enrichment/index.ts",
+    "./restate": "./src/restate/index.ts"
   },
   "scripts": {
     "test:integration": "vitest run test/integration",
@@ -16,6 +17,7 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
+    "@restatedev/restate-sdk": "1.17.1",
     "@wren/core": "workspace:*",
     "@wren/db": "workspace:*",
     "@wren/llm": "workspace:*",
@@ -24,6 +26,8 @@
     "zod": "4.6.5"
   },
   "devDependencies": {
+    "@restatedev/restate-sdk-clients": "1.17.1",
+    "@restatedev/restate-sdk-testcontainers": "1.17.1",
     "@testcontainers/postgresql": "12.1.0",
     "typescript": "5.9.3",
     "vitest": "5.0.1"

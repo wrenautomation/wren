@@ -6,7 +6,8 @@
   "exports": {
     ".": "./src/index.ts",
     "./schema": "./src/schema.ts",
-    "./views": "./src/views.ts"
+    "./views": "./src/views.ts",
+    "./restate": "./src/restate/index.ts"
   },
   "scripts": {
     "test:integration": "vitest run test/integration",
@@ -14,12 +15,15 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
+    "@restatedev/restate-sdk": "1.17.1",
     "@wren/core": "workspace:*",
     "@wren/db": "workspace:*",
     "@wren/research": "workspace:*",
     "drizzle-orm": "0.45.2"
   },
   "devDependencies": {
+    "@restatedev/restate-sdk-clients": "1.17.1",
+    "@restatedev/restate-sdk-testcontainers": "1.17.1",
     "@testcontainers/postgresql": "12.1.0",
     "postgres": "3.4.9",
     "typescript": "5.9.3",

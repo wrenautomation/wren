@@ -240,6 +240,19 @@ export async function selectExtractionTargets(
   };
 }
 
+/** One extraction target by document id (the Restate unit re-reads instead of journaling text). */
+export async function loadExtractionTarget(
+  db: Queryable,
+  id: number,
+): Promise<ExtractionTarget | null> {
+  const [row] = await db
+    .select({ document: documents, companyName: companies.name })
+    .from(documents)
+    .leftJoin(companies, eq(documents.companyId, companies.id))
+    .where(eq(documents.id, id));
+  return row ? { ...row.document, companyName: row.companyName ?? null } : null;
+}
+
 export interface ExtractionUnitOptions {
   runId?: string | null | undefined;
   tracer?: Tracer | null | undefined;

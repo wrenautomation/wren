@@ -320,11 +320,42 @@ export async function queueCandidates(db: Queryable, opts: QueueOptions = {}): P
   return stats;
 }
 
+/** A VALID verdict waiting to become a lead: ids only, so it survives a journal boundary. */
+export interface PromotionRef {
+  candidateId: number;
+  verificationId: number;
+}
+
 interface Promotion {
   candidate: ContactCandidate;
   person: Person;
   company: Company;
   verification: Verification;
+}
+
+async function loadPromotions(db: Queryable, refs: PromotionRef[]): Promise<Promotion[]> {
+  if (!refs.length) return [];
+  const rows = await db
+    .select({
+      candidate: contactCandidates,
+      verification: verifications,
+      person: people,
+      company: companies,
+    })
+    .from(contactCandidates)
+    .innerJoin(verifications, eq(verifications.contactCandidateId, contactCandidates.id))
+    .innerJoin(people, eq(contactCandidates.personId, people.id))
+    .innerJoin(companies, eq(people.companyId, companies.id))
+    .where(
+      inArray(
+        verifications.id,
+        refs.map((r) => r.verificationId),
+      ),
+    );
+  const order = new Map(refs.map((r, i) => [r.verificationId, i]));
+  return rows.sort(
+    (a, b) => (order.get(a.verification.id) ?? 0) - (order.get(b.verification.id) ?? 0),
+  );
 }
 
 /** VALID candidates as an import source: promotion is an ordinary lead import. */
@@ -361,18 +392,11 @@ class PromotedCandidateSource implements LeadSource {
  * verdict but no lead (a crash between a domain's checkpoint and the promotions
  * batch) ride the same promotion path as fresh VALIDs.
  */
-async function strandedPromotions(db: Queryable): Promise<Promotion[]> {
+export async function strandedPromotions(db: Queryable): Promise<PromotionRef[]> {
   const rows = await db
-    .select({
-      candidate: contactCandidates,
-      verification: verifications,
-      person: people,
-      company: companies,
-    })
+    .select({ candidateId: contactCandidates.id, verificationId: verifications.id })
     .from(contactCandidates)
     .innerJoin(verifications, eq(verifications.contactCandidateId, contactCandidates.id))
-    .innerJoin(people, eq(contactCandidates.personId, people.id))
-    .innerJoin(companies, eq(people.companyId, companies.id))
     .where(
       and(
         eq(contactCandidates.state, "verified"),
@@ -383,10 +407,10 @@ async function strandedPromotions(db: Queryable): Promise<Promotion[]> {
     )
     .orderBy(asc(contactCandidates.id));
   const seen = new Set<number>();
-  const out: Promotion[] = [];
+  const out: PromotionRef[] = [];
   for (const row of rows) {
-    if (seen.has(row.candidate.id)) continue;
-    seen.add(row.candidate.id);
+    if (seen.has(row.candidateId)) continue;
+    seen.add(row.candidateId);
     out.push(row);
   }
   return out;
@@ -421,10 +445,10 @@ export interface ResolutionOptions {
   checkpoint?: (domain: string | null) => void | Promise<void>;
 }
 
-/** Shared mutable state of one run: the loop, the per-domain unit and the promotions batch all write it. */
+/** Mutable state of one domain's walk. */
 interface RunContext {
   stats: ResolutionStats;
-  promotions: Promotion[];
+  promotions: PromotionRef[];
   spentThisRun: number;
   creditLimit: number | null;
 }
@@ -442,8 +466,7 @@ async function setState(
   candidate.state = state;
 }
 
-/** Spend the credits one domain's queued candidates are worth. Exported for the Restate unit. */
-export async function resolveDomain(
+async function resolveDomain(
   db: Queryable,
   verifier: EmailVerifier,
   domain: string,
@@ -544,13 +567,7 @@ export async function resolveDomain(
     if (!verifier.authoritative) return;
     if (verification.result === "valid") {
       await setState(db, candidate, "verified");
-      const [row] = await db
-        .select({ person: people, company: companies })
-        .from(people)
-        .innerJoin(companies, eq(people.companyId, companies.id))
-        .where(eq(people.id, candidate.personId));
-      if (row)
-        ctx.promotions.push({ candidate, verification, person: row.person, company: row.company });
+      ctx.promotions.push({ candidateId: candidate.id, verificationId: verification.id });
       stats.promoted += 1;
     } else if (verification.result === "invalid") {
       await setState(db, candidate, "rejected");
@@ -670,7 +687,8 @@ export async function resolveDomain(
 }
 
 /** Mint leads for the run's VALIDs (fresh + repaired) through the ordinary importer and link the verdicts. */
-export async function promoteCandidates(db: Queryable, promotions: Promotion[]): Promise<void> {
+export async function promoteCandidates(db: Queryable, refs: PromotionRef[]): Promise<void> {
+  const promotions = await loadPromotions(db, refs);
   if (!promotions.length) return;
   await runImport(db, new PromotedCandidateSource(promotions), {
     defaults: { source: "resolution" },
@@ -701,26 +719,92 @@ export async function promoteCandidates(db: Queryable, promotions: Promotion[]):
   }
 }
 
-/** Queued candidates grouped by domain, suppressed addresses left queued and counted. */
-export async function selectResolutionTargets(
+/** Queued candidates at one domain in walk order, suppressed addresses left queued and counted. */
+export async function queuedAtDomain(
   db: Queryable,
-): Promise<{ byDomain: Map<string, ContactCandidate[]>; suppressedSkipped: number }> {
+  domain: string,
+): Promise<{ candidates: ContactCandidate[]; suppressedSkipped: number }> {
   const queued = await db
     .select()
     .from(contactCandidates)
-    .where(eq(contactCandidates.state, "queued"))
-    .orderBy(asc(contactCandidates.domain), asc(contactCandidates.rank), asc(contactCandidates.id));
-  const byDomain = new Map<string, ContactCandidate[]>();
+    .where(and(eq(contactCandidates.state, "queued"), eq(contactCandidates.domain, domain)))
+    .orderBy(asc(contactCandidates.rank), asc(contactCandidates.id));
+  const candidates: ContactCandidate[] = [];
   let suppressedSkipped = 0;
   for (const candidate of queued) {
     // A suppression recorded AFTER queueing must not spend a credit either.
-    if ((await activeSuppression(db, candidate.email)) !== null) {
-      suppressedSkipped += 1;
-      continue;
-    }
-    byDomain.set(candidate.domain, [...(byDomain.get(candidate.domain) ?? []), candidate]);
+    if ((await activeSuppression(db, candidate.email)) !== null) suppressedSkipped += 1;
+    else candidates.push(candidate);
   }
-  return { byDomain, suppressedSkipped };
+  return { candidates, suppressedSkipped };
+}
+
+/** Domains with queued candidates, in walk order. */
+export async function selectResolutionTargets(db: Queryable): Promise<string[]> {
+  const rows = await db
+    .selectDistinct({ domain: contactCandidates.domain })
+    .from(contactCandidates)
+    .where(eq(contactCandidates.state, "queued"))
+    .orderBy(asc(contactCandidates.domain));
+  return rows.map((r) => r.domain);
+}
+
+export interface DomainUnitOptions {
+  domainBudget: number;
+  checker: LocalCheckerLike;
+  /** Credits already spent by this run, for the run-wide credit limit. */
+  alreadySpent: number;
+  creditLimit: number | null;
+}
+
+export interface DomainUnitResult {
+  stats: ResolutionStats;
+  promotions: PromotionRef[];
+  spent: number;
+}
+
+/**
+ * One domain's whole walk (the Restate unit): re-reads its queued candidates,
+ * spends under the policy, returns the stats delta and the VALIDs to promote.
+ */
+export async function resolveDomainUnit(
+  db: Queryable,
+  verifier: EmailVerifier,
+  domain: string,
+  opts: DomainUnitOptions,
+): Promise<DomainUnitResult> {
+  const ctx: RunContext = {
+    stats: emptyResolutionStats(),
+    promotions: [],
+    spentThisRun: opts.alreadySpent,
+    creditLimit: opts.creditLimit,
+  };
+  const { candidates, suppressedSkipped } = await queuedAtDomain(db, domain);
+  ctx.stats.suppressed_skipped = suppressedSkipped;
+  if (candidates.length) {
+    await resolveDomain(db, verifier, domain, candidates, ctx, {
+      domainBudget: opts.domainBudget,
+      checker: opts.checker,
+    });
+  }
+  return {
+    stats: ctx.stats,
+    promotions: ctx.promotions,
+    spent: ctx.spentThisRun - opts.alreadySpent,
+  };
+}
+
+export function addResolutionStats(
+  total: ResolutionStats,
+  delta: ResolutionStats,
+): ResolutionStats {
+  const out = { ...total };
+  for (const key of Object.keys(delta) as Array<keyof ResolutionStats>) {
+    if (key === "aborted") continue;
+    out[key] += delta[key];
+  }
+  out.aborted = delta.aborted ?? total.aborted;
+  return out;
 }
 
 export function emptyResolutionStats(): ResolutionStats {
@@ -756,29 +840,33 @@ export async function runResolution(
   verifier: EmailVerifier,
   opts: ResolutionOptions = {},
 ): Promise<ResolutionStats> {
-  const unit = {
-    domainBudget: opts.domainBudget ?? DEFAULT_DOMAIN_BUDGET,
-    checker: opts.checker ?? new LocalChecker(),
-  };
-  const { byDomain, suppressedSkipped } = await selectResolutionTargets(db);
-  const ctx: RunContext = {
-    stats: emptyResolutionStats(),
-    promotions: await strandedPromotions(db),
-    spentThisRun: 0,
-    creditLimit: opts.creditLimit ?? null,
-  };
-  ctx.stats.suppressed_skipped = suppressedSkipped;
-  ctx.stats.stranded_repaired = ctx.promotions.length;
-  for (const [domain, candidates] of byDomain) {
-    if (ctx.stats.aborted) break;
-    await db.transaction((tx) => resolveDomain(tx, verifier, domain, candidates, ctx, unit));
+  const domainBudget = opts.domainBudget ?? DEFAULT_DOMAIN_BUDGET;
+  const checker = opts.checker ?? new LocalChecker();
+  const creditLimit = opts.creditLimit ?? null;
+  let stats = emptyResolutionStats();
+  const promotions = await strandedPromotions(db);
+  stats.stranded_repaired = promotions.length;
+  let spent = 0;
+  for (const domain of await selectResolutionTargets(db)) {
+    const unit = await db.transaction((tx) =>
+      resolveDomainUnit(tx, verifier, domain, {
+        domainBudget,
+        checker,
+        alreadySpent: spent,
+        creditLimit,
+      }),
+    );
+    stats = addResolutionStats(stats, unit.stats);
+    promotions.push(...unit.promotions);
+    spent += unit.spent;
     if (opts.checkpoint) await opts.checkpoint(domain);
+    if (stats.aborted) break;
   }
-  if (ctx.promotions.length) {
-    await db.transaction((tx) => promoteCandidates(tx, ctx.promotions));
+  if (promotions.length) {
+    await db.transaction((tx) => promoteCandidates(tx, promotions));
     if (opts.checkpoint) await opts.checkpoint(null);
   }
-  return ctx.stats;
+  return stats;
 }
 
 export interface Ledger {

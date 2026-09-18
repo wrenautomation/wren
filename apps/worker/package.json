@@ -10,9 +10,12 @@
   },
   "dependencies": {
     "@restatedev/restate-sdk": "1.17.1",
+    "@wren/channel-email": "workspace:*",
     "@wren/channel-linkedin": "workspace:*",
     "@wren/config": "workspace:*",
     "@wren/db": "workspace:*",
+    "@wren/llm": "workspace:*",
+    "@wren/research": "workspace:*",
     "pino": "10.3.1",
     "tsx": "4.23.13"
   },

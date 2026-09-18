@@ -21,6 +21,8 @@ export const settingsSchema = z.object({
   /** Path of the key-fleet env file, relative to the project root. */
   llmEnvPath: z.string().min(1).default("llm.env"),
   tracing: z.enum(["none"]).default("none"),
+  /** Mailbox verifier for resolution: the fake never spends. */
+  verifier: z.enum(["fake", "millionverifier"]).default("fake"),
 });
 export type Settings = z.infer<typeof settingsSchema>;
 
@@ -37,6 +39,7 @@ export const ENV_KEYS = {
   llmModel: "WREN_LLM_MODEL",
   llmEnvPath: "WREN_LLM_ENV_PATH",
   tracing: "WREN_TRACING",
+  verifier: "WREN_VERIFIER",
 } as const satisfies Record<keyof Settings, string>;
 
 export interface LoadOptions {

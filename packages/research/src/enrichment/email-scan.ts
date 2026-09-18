@@ -183,8 +183,8 @@ export interface ScanStats {
 }
 
 export interface ScanSelectOptions {
-  limit?: number;
-  niche?: string | null;
+  limit?: number | undefined;
+  niche?: string | null | undefined;
 }
 
 export type ScanTarget = Document & { companyDomain: string | null };
@@ -220,6 +220,16 @@ export async function selectScanTargets(
     .orderBy(asc(documents.id));
   const rows = opts.limit === undefined ? await q : await q.limit(opts.limit);
   return rows.map((r) => ({ ...r.document, companyDomain: r.companyDomain ?? null }));
+}
+
+/** One scan target by document id (the Restate unit re-reads instead of journaling html). */
+export async function loadScanTarget(db: Queryable, id: number): Promise<ScanTarget | null> {
+  const [row] = await db
+    .select({ document: documents, companyDomain: companies.domain })
+    .from(documents)
+    .leftJoin(companies, eq(documents.companyId, companies.id))
+    .where(eq(documents.id, id));
+  return row ? { ...row.document, companyDomain: row.companyDomain ?? null } : null;
 }
 
 /** One email_scan enrichment for one document. */
