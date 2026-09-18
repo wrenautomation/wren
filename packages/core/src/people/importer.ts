@@ -165,15 +165,13 @@ export async function runPeopleImport(
     counts.rows += 1;
     if (item.kind === "error") {
       counts.errors += 1;
-      await db
-        .insert(importErrors)
-        .values({
-          importId: batch.id,
-          rowNumber,
-          kind: "rejected",
-          reason: item.reason,
-          raw: item.raw,
-        });
+      await db.insert(importErrors).values({
+        importId: batch.id,
+        rowNumber,
+        kind: "rejected",
+        reason: item.reason,
+        raw: item.raw,
+      });
       continue;
     }
     const row = item;

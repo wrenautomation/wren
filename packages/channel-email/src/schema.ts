@@ -461,3 +461,27 @@ export const postmasterDays = pgTable(
     primaryKey({ columns: [t.domain, t.day], name: "pk_postmaster_days" }),
   ],
 );
+
+// Row types
+export type ContactCandidate = typeof contactCandidates.$inferSelect;
+export type NewContactCandidate = typeof contactCandidates.$inferInsert;
+export type Verification = typeof verifications.$inferSelect;
+export type NewVerification = typeof verifications.$inferInsert;
+export type TemplateVersion = typeof templateVersions.$inferSelect;
+export type NewTemplateVersion = typeof templateVersions.$inferInsert;
+export type Enrollment = typeof enrollments.$inferSelect;
+export type NewEnrollment = typeof enrollments.$inferInsert;
+export type Message = typeof messages.$inferSelect;
+export type NewMessage = typeof messages.$inferInsert;
+export type ThreadEvent = typeof threadEvents.$inferSelect;
+export type NewThreadEvent = typeof threadEvents.$inferInsert;
+export type OpenEvent = typeof openEvents.$inferSelect;
+export type NewOpenEvent = typeof openEvents.$inferInsert;
+export type OpenSync = typeof openSyncs.$inferSelect;
+export type NewOpenSync = typeof openSyncs.$inferInsert;
+export type InboxSync = typeof inboxSyncs.$inferSelect;
+export type NewInboxSync = typeof inboxSyncs.$inferInsert;
+export type SenderPause = typeof senderPauses.$inferSelect;
+export type NewSenderPause = typeof senderPauses.$inferInsert;
+export type PostmasterDay = typeof postmasterDays.$inferSelect;
+export type NewPostmasterDay = typeof postmasterDays.$inferInsert;
