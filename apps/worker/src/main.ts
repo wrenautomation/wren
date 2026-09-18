@@ -1,11 +1,25 @@
 /** Restate endpoint. Registers every channel's services on :9080. */
+
+import { resolve } from "node:path";
 import * as restate from "@restatedev/restate-sdk";
-import { makeVerifier } from "@wren/channel-email";
-import { makeResolution } from "@wren/channel-email/restate";
+import {
+  activeSenders,
+  ConsoleTransport,
+  expandHome,
+  GmailClient,
+  GmailTransport,
+  loadRoster,
+  makeVerifier,
+  rosterFleet,
+  SendPolicy,
+  type Transport,
+} from "@wren/channel-email";
+import { makeResolution, makeSendScheduler } from "@wren/channel-email/restate";
 import { makeLinkedinInbox } from "@wren/channel-linkedin/restate";
 import { loadEnvFile, loadSettings } from "@wren/config";
 import { createDb } from "@wren/db";
 import { loadLlmEnv, makeLlm, makeTracer } from "@wren/llm";
+import { LANDERS_BY_NICHE, NICHES } from "@wren/niches";
 import { browserRenderer, PoliteFetcher, userAgent } from "@wren/research";
 import { makeEnrichment } from "@wren/research/restate";
 import pino from "pino";
@@ -26,6 +40,24 @@ const verifier = await makeVerifier(settings.verifier, {
   millionverifierApiKey: process.env.MILLIONVERIFIER_API_KEY ?? null,
 });
 
+// The send loop: console prints until cutover flips WREN_SEND_TRANSPORT=gmail.
+// The roster names the live fleet; without one nothing may send, so a missing
+// file degrades to an empty fleet rather than a worker that will not start.
+const policy = SendPolicy.fromSettings(settings);
+const roster = (() => {
+  try {
+    return loadRoster(resolve(rootDir, settings.sendersFile), new Set(NICHES.map((n) => n.name)));
+  } catch (err) {
+    log.warn({ err: (err as Error).message }, "no sender roster: the send loop sends nothing");
+    return [];
+  }
+})();
+const fleet = rosterFleet(roster, activeSenders(roster), Object.fromEntries(LANDERS_BY_NICHE));
+const transport: Transport =
+  settings.sendTransport === "gmail"
+    ? new GmailTransport(new GmailClient({ keyPath: expandHome(settings.googleServiceAccount) }))
+    : new ConsoleTransport();
+
 restate
   .endpoint()
   .bind(makeLinkedinInbox({ db: handle.db, inboxDir: settings.inboxDir }))
@@ -40,8 +72,29 @@ restate
     }),
   )
   .bind(makeResolution({ db: handle.db, verifier }))
+  .bind(
+    makeSendScheduler({
+      db: handle.db,
+      transport,
+      policy,
+      fleet,
+      pixelBaseUrl: settings.pixelBaseUrl ?? null,
+      tickMs: settings.daemonTickSeconds * 1000,
+    }),
+  )
   .listen(PORT)
-  .then(() => log.info({ port: PORT, llm: llm.name, verifier: verifier.name }, "worker listening"));
+  .then(() =>
+    log.info(
+      {
+        port: PORT,
+        llm: llm.name,
+        verifier: verifier.name,
+        transport: transport.name,
+        senders: fleet.senders.length,
+      },
+      "worker listening",
+    ),
+  );
 
 for (const sig of ["SIGINT", "SIGTERM"] as const) {
   process.once(sig, async () => {

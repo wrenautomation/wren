@@ -3,6 +3,7 @@ export * from "./guards.js";
 export * from "./outreach/index.js";
 export * from "./resolution/index.js";
 export * from "./schema.js";
+export * from "./send/index.js";
 export * from "./state.js";
 export * from "./verification/index.js";
 export * from "./views.js";

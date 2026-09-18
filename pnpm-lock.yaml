@@ -69,6 +69,9 @@ importers:
       '@wren/llm':
         specifier: workspace:*
         version: link:../../packages/llm
+      '@wren/niches':
+        specifier: workspace:*
+        version: link:../../packages/niches
       '@wren/research':
         specifier: workspace:*
         version: link:../../packages/research
@@ -88,6 +91,9 @@ importers:
       '@restatedev/restate-sdk':
         specifier: 1.17.1
         version: 1.17.1
+      '@wren/config':
+        specifier: workspace:*
+        version: link:../config
       '@wren/core':
         specifier: workspace:*
         version: link:../core
@@ -100,6 +106,9 @@ importers:
       drizzle-orm:
         specifier: 0.45.2
         version: 0.45.2(postgres@3.4.9)
+      smol-toml:
+        specifier: 1.8.0
+        version: 1.8.0
     devDependencies:
       '@restatedev/restate-sdk-clients':
         specifier: 1.17.1
@@ -1868,6 +1877,10 @@ packages:
     resolution: {integrity: sha512-bzyZ1e88w9O1iNJbKnOlvYTrWPDl46O1bG0D3XInv+9tkPrxrN8jUUTiFlDkkmKWgn1M6CfIA13SuGqOa9Korw==}
     engines: {node: '>=14'}
 
+  smol-toml@1.8.0:
+    resolution: {integrity: sha512-kCZr2V3ch9i00x8zXRhjUNVcjG9ijES5dDudkXvUVCT5QlJNQWElSJdZqyPemffHoLNUYwOcou0Fy+ojN0uHSQ==}
+    engines: {node: '>= 18'}
+
   sonic-boom@4.2.1:
     resolution: {integrity: sha512-w6AxtubXa2wTXAUsZMMWERrsIRAdrK0Sc+FUytWvYAhBJLyuI4llrMIC1DtlNSdI99EI86KZum2MMq3EAZlF9Q==}
 
@@ -3425,6 +3438,8 @@ snapshots:
   signal-exit@3.0.7: {}
 
   signal-exit@4.1.0: {}
+
+  smol-toml@1.8.0: {}
 
   sonic-boom@4.2.1:
     dependencies:

@@ -108,7 +108,7 @@ describe("Resolution virtual object", () => {
       ["resolve queue", "map"],
       ["resolve run", "map"],
     ]);
-    expect((ledger[2]?.stats as { promoted: number }).promoted).toBe(2);
+    expect((ledger[2]?.stats as { promoted: number } | undefined)?.promoted).toBe(2);
 
     // Nothing left to buy.
     expect((await c.resolve({})).credits_spent).toBe(0);

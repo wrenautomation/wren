@@ -23,6 +23,43 @@ export const settingsSchema = z.object({
   tracing: z.enum(["none"]).default("none"),
   /** Mailbox verifier for resolution: the fake never spends. */
   verifier: z.enum(["fake", "millionverifier"]).default("fake"),
+
+  // ---- send policy (parsed and range-checked by SendPolicy in channel-email) ----
+  /** IANA zone the fleet window is read in. */
+  sendTimezone: z.string().min(1).default("America/Chicago"),
+  /** Comma-separated send days, mon..sun or full names. */
+  sendDays: z.string().min(1).default("mon,tue,wed,thu,fri"),
+  sendWindowStart: z.string().min(1).default("08:00"),
+  sendWindowEnd: z.string().min(1).default("17:00"),
+  /** The lead's own window on the lead's clock. Both or neither. */
+  sendLeadWindowStart: z.string().min(1).optional(),
+  sendLeadWindowEnd: z.string().min(1).optional(),
+  /** Flat daily cap per inbox, or the ceiling a ramp climbs to. */
+  coldSendsPerInboxPerDay: z.coerce.number().int().default(5),
+  /** YYYY-MM-DD the ramp starts; unset = flat cap at the ceiling. */
+  coldSendsRampStart: z.string().min(1).optional(),
+  coldSendsRampFrom: z.coerce.number().int().default(5),
+  coldSendsRampStep: z.coerce.number().int().default(2),
+  coldSendsRampEveryDays: z.coerce.number().int().default(3),
+  sendGapMinMinutes: z.coerce.number().default(8),
+  sendGapMaxMinutes: z.coerce.number().default(20),
+  /** Fleet-wide brake on new conversations per day; unset = unlimited. */
+  newOpenersPerDay: z.coerce.number().int().optional(),
+  resendCooldownDays: z.coerce.number().int().default(30),
+  reconcileGraceMinutes: z.coerce.number().default(10),
+  bouncePauseRate: z.coerce.number().default(0.02),
+  bouncePauseMinBounces: z.coerce.number().int().default(2),
+  healthWindowDays: z.coerce.number().int().default(7),
+  /** https://host of the open-pixel endpoint; unset = no pixel. */
+  pixelBaseUrl: z.string().min(1).optional(),
+  /** Path of the Google service-account key (domain-wide delegation). */
+  googleServiceAccount: z.string().min(1).default("~/.config/wren/wren-sender.json"),
+  /** Path of the sender roster (TOML). */
+  sendersFile: z.string().min(1).default("senders_config.toml"),
+  /** "console" prints; "gmail" sends for real. Console until cutover. */
+  sendTransport: z.enum(["console", "gmail"]).default("console"),
+  daemonTickSeconds: z.coerce.number().int().default(60),
+  daemonSyncSeconds: z.coerce.number().int().default(300),
 });
 export type Settings = z.infer<typeof settingsSchema>;
 
@@ -40,6 +77,31 @@ export const ENV_KEYS = {
   llmEnvPath: "WREN_LLM_ENV_PATH",
   tracing: "WREN_TRACING",
   verifier: "WREN_VERIFIER",
+  sendTimezone: "WREN_SEND_TIMEZONE",
+  sendDays: "WREN_SEND_DAYS",
+  sendWindowStart: "WREN_SEND_WINDOW_START",
+  sendWindowEnd: "WREN_SEND_WINDOW_END",
+  sendLeadWindowStart: "WREN_SEND_LEAD_WINDOW_START",
+  sendLeadWindowEnd: "WREN_SEND_LEAD_WINDOW_END",
+  coldSendsPerInboxPerDay: "WREN_COLD_SENDS_PER_INBOX_PER_DAY",
+  coldSendsRampStart: "WREN_COLD_SENDS_RAMP_START",
+  coldSendsRampFrom: "WREN_COLD_SENDS_RAMP_FROM",
+  coldSendsRampStep: "WREN_COLD_SENDS_RAMP_STEP",
+  coldSendsRampEveryDays: "WREN_COLD_SENDS_RAMP_EVERY_DAYS",
+  sendGapMinMinutes: "WREN_SEND_GAP_MIN_MINUTES",
+  sendGapMaxMinutes: "WREN_SEND_GAP_MAX_MINUTES",
+  newOpenersPerDay: "WREN_NEW_OPENERS_PER_DAY",
+  resendCooldownDays: "WREN_RESEND_COOLDOWN_DAYS",
+  reconcileGraceMinutes: "WREN_RECONCILE_GRACE_MINUTES",
+  bouncePauseRate: "WREN_BOUNCE_PAUSE_RATE",
+  bouncePauseMinBounces: "WREN_BOUNCE_PAUSE_MIN_BOUNCES",
+  healthWindowDays: "WREN_HEALTH_WINDOW_DAYS",
+  pixelBaseUrl: "WREN_PIXEL_BASE_URL",
+  googleServiceAccount: "WREN_GOOGLE_SERVICE_ACCOUNT",
+  sendersFile: "WREN_SENDERS_FILE",
+  sendTransport: "WREN_SEND_TRANSPORT",
+  daemonTickSeconds: "WREN_DAEMON_TICK_SECONDS",
+  daemonSyncSeconds: "WREN_DAEMON_SYNC_SECONDS",
 } as const satisfies Record<keyof Settings, string>;
 
 export interface LoadOptions {
