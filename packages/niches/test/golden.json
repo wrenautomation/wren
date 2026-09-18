@@ -1,0 +1,608 @@
+{
+  "templates": [
+    {
+      "niche": "agencies",
+      "name": "build/followup",
+      "version": "134ceaac7ca7",
+      "source": "Hi {first_name|there},\n\nJust checking you saw my last email. If not, skip it unless the hours on your invoices still come from a timesheet someone fills in on Friday, and the scope still gets typed into the proposal, the SOW and the project tool by hand (if that's you, keep reading).\n\nSomething you can use whether or not we talk more. Claude has connectors for HubSpot, ClickUp and Asana. Log in with your normal accounts and ask it one question: which projects logged hours this month and have nothing invoiced. That list is work you've already done and haven't billed. You could script the check in an afternoon, and the connectors mean nobody has to find the afternoon.\n\nIf you're still open to a call and an audit, I've got room for a few more this month before I'm heads down on builds. Let me know if you're interested, and reply with a few times that work.\n\n[[No worries either way. | If not, no hard feelings.]]\n\nBest,\nWilliam\n",
+      "variant_counts": {
+        "v1": 2
+      },
+      "placeholder": {
+        "subject": null,
+        "body": "Hi «first_name»,\n\nJust checking you saw my last email. If not, skip it unless the hours on your invoices still come from a timesheet someone fills in on Friday, and the scope still gets typed into the proposal, the SOW and the project tool by hand (if that's you, keep reading).\n\nSomething you can use whether or not we talk more. Claude has connectors for HubSpot, ClickUp and Asana. Log in with your normal accounts and ask it one question: which projects logged hours this month and have nothing invoiced. That list is work you've already done and haven't billed. You could script the check in an afternoon, and the connectors mean nobody has to find the afternoon.\n\nIf you're still open to a call and an audit, I've got room for a few more this month before I'm heads down on builds. Let me know if you're interested, and reply with a few times that work.\n\nNo worries either way.\n\nBest,\nWilliam",
+        "provenance": {
+          "template": "build/followup",
+          "version": "134ceaac7ca7",
+          "seed": "person:7",
+          "picks": {
+            "v1": 0
+          },
+          "fields": ["first_name"],
+          "fallbacks": []
+        }
+      },
+      "enumerated": [
+        [
+          {
+            "v1": 0
+          },
+          {
+            "subject": null,
+            "body": "Hi «first_name»,\n\nJust checking you saw my last email. If not, skip it unless the hours on your invoices still come from a timesheet someone fills in on Friday, and the scope still gets typed into the proposal, the SOW and the project tool by hand (if that's you, keep reading).\n\nSomething you can use whether or not we talk more. Claude has connectors for HubSpot, ClickUp and Asana. Log in with your normal accounts and ask it one question: which projects logged hours this month and have nothing invoiced. That list is work you've already done and haven't billed. You could script the check in an afternoon, and the connectors mean nobody has to find the afternoon.\n\nIf you're still open to a call and an audit, I've got room for a few more this month before I'm heads down on builds. Let me know if you're interested, and reply with a few times that work.\n\nNo worries either way.\n\nBest,\nWilliam"
+          }
+        ],
+        [
+          {
+            "v1": 1
+          },
+          {
+            "subject": null,
+            "body": "Hi «first_name»,\n\nJust checking you saw my last email. If not, skip it unless the hours on your invoices still come from a timesheet someone fills in on Friday, and the scope still gets typed into the proposal, the SOW and the project tool by hand (if that's you, keep reading).\n\nSomething you can use whether or not we talk more. Claude has connectors for HubSpot, ClickUp and Asana. Log in with your normal accounts and ask it one question: which projects logged hours this month and have nothing invoiced. That list is work you've already done and haven't billed. You could script the check in an afternoon, and the connectors mean nobody has to find the afternoon.\n\nIf you're still open to a call and an audit, I've got room for a few more this month before I'm heads down on builds. Let me know if you're interested, and reply with a few times that work.\n\nIf not, no hard feelings.\n\nBest,\nWilliam"
+          }
+        ]
+      ]
+    },
+    {
+      "niche": "agencies",
+      "name": "build/opener",
+      "version": "05139b26d484",
+      "source": "subject: [[your invoices, and a guess about where the hours came from | which of your four tools is right about the scope? | the friday timesheet]]\n\nHi {first_name|there},\n\n{first_name|This address} is listed on the {company_name} site((, as {title})).\n\nSomebody at {company_name} typed the same scope into a fourth tool this week. It went into the proposal, then the SOW, then the project tool, then the invoice, and the hours on the invoice came from a timesheet filled in on Friday from memory. Nobody owns the whole chain, so when the scope moves, one of the four stays wrong until the client points it out.\n\nOne new project is four setups and one change order is four edits, and every one of those hours lands on the timesheet as admin, which never reaches an invoice.\n\nThe invoice is the worst of it. The hours on it don't match the timesheet, the timesheet doesn't match the SOW, and whoever notices either eats the difference or has the awkward call with the client. Have fun with the retyping and the \"which one is right\" emails.\n\nYou could build the fix yourselves, and I'll get to why you haven't after a line about who I am.\n\nI'm William, from Wren Automation. I'm a software engineering student at the University of Waterloo, and this is the business I'm building. My work has been data cleaning, pipelines that connect systems, and CRMs. Two things I've built: an internal policy chatbot for the Government of Canada, which 17,000 staff use instead of searching 220+ directives by hand, saving about 6 to 7 hours a week each. And a University of Alberta lab tool that cut 200+ hours of manual lookups across 7,000+ records of messy fuel cell data, terabytes of it, in outdated file types.\n\nThe fix is a quiet week where someone on the team wires it up. You know that, which is why it has been on the list for two years and every quiet week went to a client. At a small scale this might not matter, but with the number of projects you guys run at once it's hours a week per person.\n\nIf you're interested, reply with a few times that work and I'll book it. First step is a free consultation and an audit of where the retyping happens. You get one page back, where the hours go and what to fix first, and it's yours whether or not we build anything.\n\nThanks for reading this far.\n\nBest,\nWilliam\n",
+      "variant_counts": {
+        "v1": 3
+      },
+      "placeholder": {
+        "subject": "your invoices, and a guess about where the hours came from",
+        "body": "Hi «first_name»,\n\n«first_name» is listed on the «company_name» site, as «title».\n\nSomebody at «company_name» typed the same scope into a fourth tool this week. It went into the proposal, then the SOW, then the project tool, then the invoice, and the hours on the invoice came from a timesheet filled in on Friday from memory. Nobody owns the whole chain, so when the scope moves, one of the four stays wrong until the client points it out.\n\nOne new project is four setups and one change order is four edits, and every one of those hours lands on the timesheet as admin, which never reaches an invoice.\n\nThe invoice is the worst of it. The hours on it don't match the timesheet, the timesheet doesn't match the SOW, and whoever notices either eats the difference or has the awkward call with the client. Have fun with the retyping and the \"which one is right\" emails.\n\nYou could build the fix yourselves, and I'll get to why you haven't after a line about who I am.\n\nI'm William, from Wren Automation. I'm a software engineering student at the University of Waterloo, and this is the business I'm building. My work has been data cleaning, pipelines that connect systems, and CRMs. Two things I've built: an internal policy chatbot for the Government of Canada, which 17,000 staff use instead of searching 220+ directives by hand, saving about 6 to 7 hours a week each. And a University of Alberta lab tool that cut 200+ hours of manual lookups across 7,000+ records of messy fuel cell data, terabytes of it, in outdated file types.\n\nThe fix is a quiet week where someone on the team wires it up. You know that, which is why it has been on the list for two years and every quiet week went to a client. At a small scale this might not matter, but with the number of projects you guys run at once it's hours a week per person.\n\nIf you're interested, reply with a few times that work and I'll book it. First step is a free consultation and an audit of where the retyping happens. You get one page back, where the hours go and what to fix first, and it's yours whether or not we build anything.\n\nThanks for reading this far.\n\nBest,\nWilliam",
+        "provenance": {
+          "template": "build/opener",
+          "version": "05139b26d484",
+          "seed": "person:7",
+          "picks": {
+            "v1": 0
+          },
+          "fields": ["company_name", "first_name", "title"],
+          "fallbacks": []
+        }
+      },
+      "enumerated": [
+        [
+          {
+            "v1": 0
+          },
+          {
+            "subject": "your invoices, and a guess about where the hours came from",
+            "body": "Hi «first_name»,\n\n«first_name» is listed on the «company_name» site, as «title».\n\nSomebody at «company_name» typed the same scope into a fourth tool this week. It went into the proposal, then the SOW, then the project tool, then the invoice, and the hours on the invoice came from a timesheet filled in on Friday from memory. Nobody owns the whole chain, so when the scope moves, one of the four stays wrong until the client points it out.\n\nOne new project is four setups and one change order is four edits, and every one of those hours lands on the timesheet as admin, which never reaches an invoice.\n\nThe invoice is the worst of it. The hours on it don't match the timesheet, the timesheet doesn't match the SOW, and whoever notices either eats the difference or has the awkward call with the client. Have fun with the retyping and the \"which one is right\" emails.\n\nYou could build the fix yourselves, and I'll get to why you haven't after a line about who I am.\n\nI'm William, from Wren Automation. I'm a software engineering student at the University of Waterloo, and this is the business I'm building. My work has been data cleaning, pipelines that connect systems, and CRMs. Two things I've built: an internal policy chatbot for the Government of Canada, which 17,000 staff use instead of searching 220+ directives by hand, saving about 6 to 7 hours a week each. And a University of Alberta lab tool that cut 200+ hours of manual lookups across 7,000+ records of messy fuel cell data, terabytes of it, in outdated file types.\n\nThe fix is a quiet week where someone on the team wires it up. You know that, which is why it has been on the list for two years and every quiet week went to a client. At a small scale this might not matter, but with the number of projects you guys run at once it's hours a week per person.\n\nIf you're interested, reply with a few times that work and I'll book it. First step is a free consultation and an audit of where the retyping happens. You get one page back, where the hours go and what to fix first, and it's yours whether or not we build anything.\n\nThanks for reading this far.\n\nBest,\nWilliam"
+          }
+        ],
+        [
+          {
+            "v1": 1
+          },
+          {
+            "subject": "which of your four tools is right about the scope?",
+            "body": "Hi «first_name»,\n\n«first_name» is listed on the «company_name» site, as «title».\n\nSomebody at «company_name» typed the same scope into a fourth tool this week. It went into the proposal, then the SOW, then the project tool, then the invoice, and the hours on the invoice came from a timesheet filled in on Friday from memory. Nobody owns the whole chain, so when the scope moves, one of the four stays wrong until the client points it out.\n\nOne new project is four setups and one change order is four edits, and every one of those hours lands on the timesheet as admin, which never reaches an invoice.\n\nThe invoice is the worst of it. The hours on it don't match the timesheet, the timesheet doesn't match the SOW, and whoever notices either eats the difference or has the awkward call with the client. Have fun with the retyping and the \"which one is right\" emails.\n\nYou could build the fix yourselves, and I'll get to why you haven't after a line about who I am.\n\nI'm William, from Wren Automation. I'm a software engineering student at the University of Waterloo, and this is the business I'm building. My work has been data cleaning, pipelines that connect systems, and CRMs. Two things I've built: an internal policy chatbot for the Government of Canada, which 17,000 staff use instead of searching 220+ directives by hand, saving about 6 to 7 hours a week each. And a University of Alberta lab tool that cut 200+ hours of manual lookups across 7,000+ records of messy fuel cell data, terabytes of it, in outdated file types.\n\nThe fix is a quiet week where someone on the team wires it up. You know that, which is why it has been on the list for two years and every quiet week went to a client. At a small scale this might not matter, but with the number of projects you guys run at once it's hours a week per person.\n\nIf you're interested, reply with a few times that work and I'll book it. First step is a free consultation and an audit of where the retyping happens. You get one page back, where the hours go and what to fix first, and it's yours whether or not we build anything.\n\nThanks for reading this far.\n\nBest,\nWilliam"
+          }
+        ],
+        [
+          {
+            "v1": 2
+          },
+          {
+            "subject": "the friday timesheet",
+            "body": "Hi «first_name»,\n\n«first_name» is listed on the «company_name» site, as «title».\n\nSomebody at «company_name» typed the same scope into a fourth tool this week. It went into the proposal, then the SOW, then the project tool, then the invoice, and the hours on the invoice came from a timesheet filled in on Friday from memory. Nobody owns the whole chain, so when the scope moves, one of the four stays wrong until the client points it out.\n\nOne new project is four setups and one change order is four edits, and every one of those hours lands on the timesheet as admin, which never reaches an invoice.\n\nThe invoice is the worst of it. The hours on it don't match the timesheet, the timesheet doesn't match the SOW, and whoever notices either eats the difference or has the awkward call with the client. Have fun with the retyping and the \"which one is right\" emails.\n\nYou could build the fix yourselves, and I'll get to why you haven't after a line about who I am.\n\nI'm William, from Wren Automation. I'm a software engineering student at the University of Waterloo, and this is the business I'm building. My work has been data cleaning, pipelines that connect systems, and CRMs. Two things I've built: an internal policy chatbot for the Government of Canada, which 17,000 staff use instead of searching 220+ directives by hand, saving about 6 to 7 hours a week each. And a University of Alberta lab tool that cut 200+ hours of manual lookups across 7,000+ records of messy fuel cell data, terabytes of it, in outdated file types.\n\nThe fix is a quiet week where someone on the team wires it up. You know that, which is why it has been on the list for two years and every quiet week went to a client. At a small scale this might not matter, but with the number of projects you guys run at once it's hours a week per person.\n\nIf you're interested, reply with a few times that work and I'll book it. First step is a free consultation and an audit of where the retyping happens. You get one page back, where the hours go and what to fix first, and it's yours whether or not we build anything.\n\nThanks for reading this far.\n\nBest,\nWilliam"
+          }
+        ]
+      ]
+    },
+    {
+      "niche": "agencies",
+      "name": "final_followup",
+      "version": "f64615092365",
+      "source": "Hi {first_name|there},\n\nClosing this out.\n\nIf the guess was wrong, a one-word reply says so and stops the emails. [[If it was right and the timing isn't, that's fine too. | If it landed but it's a next-year problem, that's fine too.]]\n\nThanks for reading this far.\n\nBest,\nWilliam\n",
+      "variant_counts": {
+        "v1": 2
+      },
+      "placeholder": {
+        "subject": null,
+        "body": "Hi «first_name»,\n\nClosing this out.\n\nIf the guess was wrong, a one-word reply says so and stops the emails. If it landed but it's a next-year problem, that's fine too.\n\nThanks for reading this far.\n\nBest,\nWilliam",
+        "provenance": {
+          "template": "final_followup",
+          "version": "f64615092365",
+          "seed": "person:7",
+          "picks": {
+            "v1": 1
+          },
+          "fields": ["first_name"],
+          "fallbacks": []
+        }
+      },
+      "enumerated": [
+        [
+          {
+            "v1": 0
+          },
+          {
+            "subject": null,
+            "body": "Hi «first_name»,\n\nClosing this out.\n\nIf the guess was wrong, a one-word reply says so and stops the emails. If it was right and the timing isn't, that's fine too.\n\nThanks for reading this far.\n\nBest,\nWilliam"
+          }
+        ],
+        [
+          {
+            "v1": 1
+          },
+          {
+            "subject": null,
+            "body": "Hi «first_name»,\n\nClosing this out.\n\nIf the guess was wrong, a one-word reply says so and stops the emails. If it landed but it's a next-year problem, that's fine too.\n\nThanks for reading this far.\n\nBest,\nWilliam"
+          }
+        ]
+      ]
+    },
+    {
+      "niche": "agencies",
+      "name": "marketing/followup",
+      "version": "9ff11fdb31b2",
+      "source": "Hi {first_name|there},\n\nJust checking you saw my last email. If not, skip it unless month end at {company_name} still means a spreadsheet, a deck and one person fixing the numbers by hand (if that's you, keep reading).\n\nSomething you can use whether or not we talk more. Claude has connectors for HubSpot, ClickUp and Asana. Log in with your normal accounts and ask it one question: which projects logged hours this month and have nothing invoiced. It reads across the tools and hands you the list in about a minute. That list is work you've already done and haven't billed, and it's the check nobody at an agency has time to run by hand.\n\nIf you're still open to a call and an audit, I've got room for a few more this month before I'm heads down on builds. Let me know if you're interested, and reply with a few times that work.\n\n[[No worries either way. | If not, no hard feelings.]]\n\nBest,\nWilliam\n",
+      "variant_counts": {
+        "v1": 2
+      },
+      "placeholder": {
+        "subject": null,
+        "body": "Hi «first_name»,\n\nJust checking you saw my last email. If not, skip it unless month end at «company_name» still means a spreadsheet, a deck and one person fixing the numbers by hand (if that's you, keep reading).\n\nSomething you can use whether or not we talk more. Claude has connectors for HubSpot, ClickUp and Asana. Log in with your normal accounts and ask it one question: which projects logged hours this month and have nothing invoiced. It reads across the tools and hands you the list in about a minute. That list is work you've already done and haven't billed, and it's the check nobody at an agency has time to run by hand.\n\nIf you're still open to a call and an audit, I've got room for a few more this month before I'm heads down on builds. Let me know if you're interested, and reply with a few times that work.\n\nIf not, no hard feelings.\n\nBest,\nWilliam",
+        "provenance": {
+          "template": "marketing/followup",
+          "version": "9ff11fdb31b2",
+          "seed": "person:7",
+          "picks": {
+            "v1": 1
+          },
+          "fields": ["company_name", "first_name"],
+          "fallbacks": []
+        }
+      },
+      "enumerated": [
+        [
+          {
+            "v1": 0
+          },
+          {
+            "subject": null,
+            "body": "Hi «first_name»,\n\nJust checking you saw my last email. If not, skip it unless month end at «company_name» still means a spreadsheet, a deck and one person fixing the numbers by hand (if that's you, keep reading).\n\nSomething you can use whether or not we talk more. Claude has connectors for HubSpot, ClickUp and Asana. Log in with your normal accounts and ask it one question: which projects logged hours this month and have nothing invoiced. It reads across the tools and hands you the list in about a minute. That list is work you've already done and haven't billed, and it's the check nobody at an agency has time to run by hand.\n\nIf you're still open to a call and an audit, I've got room for a few more this month before I'm heads down on builds. Let me know if you're interested, and reply with a few times that work.\n\nNo worries either way.\n\nBest,\nWilliam"
+          }
+        ],
+        [
+          {
+            "v1": 1
+          },
+          {
+            "subject": null,
+            "body": "Hi «first_name»,\n\nJust checking you saw my last email. If not, skip it unless month end at «company_name» still means a spreadsheet, a deck and one person fixing the numbers by hand (if that's you, keep reading).\n\nSomething you can use whether or not we talk more. Claude has connectors for HubSpot, ClickUp and Asana. Log in with your normal accounts and ask it one question: which projects logged hours this month and have nothing invoiced. It reads across the tools and hands you the list in about a minute. That list is work you've already done and haven't billed, and it's the check nobody at an agency has time to run by hand.\n\nIf you're still open to a call and an audit, I've got room for a few more this month before I'm heads down on builds. Let me know if you're interested, and reply with a few times that work.\n\nIf not, no hard feelings.\n\nBest,\nWilliam"
+          }
+        ]
+      ]
+    },
+    {
+      "niche": "agencies",
+      "name": "marketing/opener",
+      "version": "d6683622a148",
+      "source": "subject: [[your month end, and a guess about who fixes the numbers | which of your five tools is right about the client? | the friday timesheet]]\n\nHi {first_name|there},\n\n{first_name|This address} is listed on the {company_name} site((, as {title})).\n\nSomebody at {company_name} typed the same client into a fifth tool this week. The deal went into the CRM, the project into the project tool, the hours into a timesheet on Friday from memory, the invoice got built from the timesheet, and the check-in notes went into a doc. Nobody owns the whole chain, so when a contact or the scope changes, one of the five stays wrong until the client points it out.\n\nOne new client is five setups and one scope change is five edits, and every one of those hours lands on the timesheet as admin, which never reaches an invoice.\n\nMonth end is the worst of it. The numbers come out of the ad accounts and the analytics into a spreadsheet, someone fixes them by hand and pastes them into the deck, and one client gets last month's number. The report lands a day late and the first reply is about the wrong number. Have fun with the retyping and the \"which number is right\" emails.\n\nThe zap someone set up didn't fix it either, and I'll say why after a line about who I am.\n\nI'm William, from Wren Automation. I'm a software engineering student at the University of Waterloo, and this is the business I'm building. My work has been data cleaning, pipelines that connect systems, and CRMs. Two things I've built: an internal policy chatbot for the Government of Canada, which 17,000 staff use instead of searching 220+ directives by hand, saving about 6 to 7 hours a week each. And a University of Alberta lab tool that cut 200+ hours of manual lookups across 7,000+ records of messy fuel cell data, terabytes of it, in outdated file types.\n\nThe zap is the usual fix. Someone wired one up between the CRM and the project tool and it worked, until someone renamed a field and it had been failing for three weeks before anyone noticed. Or the person who set it up left. At a small scale this might not matter, but with the number of clients you guys run at once it's hours a week per person.\n\nIf you're interested, reply with a few times that work and I'll book it. First step is a free consultation and an audit of where the retyping happens. You get one page back, where the hours go and what to fix first, and it's yours whether or not we build anything.\n\nThanks for reading this far.\n\nBest,\nWilliam\n",
+      "variant_counts": {
+        "v1": 3
+      },
+      "placeholder": {
+        "subject": "the friday timesheet",
+        "body": "Hi «first_name»,\n\n«first_name» is listed on the «company_name» site, as «title».\n\nSomebody at «company_name» typed the same client into a fifth tool this week. The deal went into the CRM, the project into the project tool, the hours into a timesheet on Friday from memory, the invoice got built from the timesheet, and the check-in notes went into a doc. Nobody owns the whole chain, so when a contact or the scope changes, one of the five stays wrong until the client points it out.\n\nOne new client is five setups and one scope change is five edits, and every one of those hours lands on the timesheet as admin, which never reaches an invoice.\n\nMonth end is the worst of it. The numbers come out of the ad accounts and the analytics into a spreadsheet, someone fixes them by hand and pastes them into the deck, and one client gets last month's number. The report lands a day late and the first reply is about the wrong number. Have fun with the retyping and the \"which number is right\" emails.\n\nThe zap someone set up didn't fix it either, and I'll say why after a line about who I am.\n\nI'm William, from Wren Automation. I'm a software engineering student at the University of Waterloo, and this is the business I'm building. My work has been data cleaning, pipelines that connect systems, and CRMs. Two things I've built: an internal policy chatbot for the Government of Canada, which 17,000 staff use instead of searching 220+ directives by hand, saving about 6 to 7 hours a week each. And a University of Alberta lab tool that cut 200+ hours of manual lookups across 7,000+ records of messy fuel cell data, terabytes of it, in outdated file types.\n\nThe zap is the usual fix. Someone wired one up between the CRM and the project tool and it worked, until someone renamed a field and it had been failing for three weeks before anyone noticed. Or the person who set it up left. At a small scale this might not matter, but with the number of clients you guys run at once it's hours a week per person.\n\nIf you're interested, reply with a few times that work and I'll book it. First step is a free consultation and an audit of where the retyping happens. You get one page back, where the hours go and what to fix first, and it's yours whether or not we build anything.\n\nThanks for reading this far.\n\nBest,\nWilliam",
+        "provenance": {
+          "template": "marketing/opener",
+          "version": "d6683622a148",
+          "seed": "person:7",
+          "picks": {
+            "v1": 2
+          },
+          "fields": ["company_name", "first_name", "title"],
+          "fallbacks": []
+        }
+      },
+      "enumerated": [
+        [
+          {
+            "v1": 0
+          },
+          {
+            "subject": "your month end, and a guess about who fixes the numbers",
+            "body": "Hi «first_name»,\n\n«first_name» is listed on the «company_name» site, as «title».\n\nSomebody at «company_name» typed the same client into a fifth tool this week. The deal went into the CRM, the project into the project tool, the hours into a timesheet on Friday from memory, the invoice got built from the timesheet, and the check-in notes went into a doc. Nobody owns the whole chain, so when a contact or the scope changes, one of the five stays wrong until the client points it out.\n\nOne new client is five setups and one scope change is five edits, and every one of those hours lands on the timesheet as admin, which never reaches an invoice.\n\nMonth end is the worst of it. The numbers come out of the ad accounts and the analytics into a spreadsheet, someone fixes them by hand and pastes them into the deck, and one client gets last month's number. The report lands a day late and the first reply is about the wrong number. Have fun with the retyping and the \"which number is right\" emails.\n\nThe zap someone set up didn't fix it either, and I'll say why after a line about who I am.\n\nI'm William, from Wren Automation. I'm a software engineering student at the University of Waterloo, and this is the business I'm building. My work has been data cleaning, pipelines that connect systems, and CRMs. Two things I've built: an internal policy chatbot for the Government of Canada, which 17,000 staff use instead of searching 220+ directives by hand, saving about 6 to 7 hours a week each. And a University of Alberta lab tool that cut 200+ hours of manual lookups across 7,000+ records of messy fuel cell data, terabytes of it, in outdated file types.\n\nThe zap is the usual fix. Someone wired one up between the CRM and the project tool and it worked, until someone renamed a field and it had been failing for three weeks before anyone noticed. Or the person who set it up left. At a small scale this might not matter, but with the number of clients you guys run at once it's hours a week per person.\n\nIf you're interested, reply with a few times that work and I'll book it. First step is a free consultation and an audit of where the retyping happens. You get one page back, where the hours go and what to fix first, and it's yours whether or not we build anything.\n\nThanks for reading this far.\n\nBest,\nWilliam"
+          }
+        ],
+        [
+          {
+            "v1": 1
+          },
+          {
+            "subject": "which of your five tools is right about the client?",
+            "body": "Hi «first_name»,\n\n«first_name» is listed on the «company_name» site, as «title».\n\nSomebody at «company_name» typed the same client into a fifth tool this week. The deal went into the CRM, the project into the project tool, the hours into a timesheet on Friday from memory, the invoice got built from the timesheet, and the check-in notes went into a doc. Nobody owns the whole chain, so when a contact or the scope changes, one of the five stays wrong until the client points it out.\n\nOne new client is five setups and one scope change is five edits, and every one of those hours lands on the timesheet as admin, which never reaches an invoice.\n\nMonth end is the worst of it. The numbers come out of the ad accounts and the analytics into a spreadsheet, someone fixes them by hand and pastes them into the deck, and one client gets last month's number. The report lands a day late and the first reply is about the wrong number. Have fun with the retyping and the \"which number is right\" emails.\n\nThe zap someone set up didn't fix it either, and I'll say why after a line about who I am.\n\nI'm William, from Wren Automation. I'm a software engineering student at the University of Waterloo, and this is the business I'm building. My work has been data cleaning, pipelines that connect systems, and CRMs. Two things I've built: an internal policy chatbot for the Government of Canada, which 17,000 staff use instead of searching 220+ directives by hand, saving about 6 to 7 hours a week each. And a University of Alberta lab tool that cut 200+ hours of manual lookups across 7,000+ records of messy fuel cell data, terabytes of it, in outdated file types.\n\nThe zap is the usual fix. Someone wired one up between the CRM and the project tool and it worked, until someone renamed a field and it had been failing for three weeks before anyone noticed. Or the person who set it up left. At a small scale this might not matter, but with the number of clients you guys run at once it's hours a week per person.\n\nIf you're interested, reply with a few times that work and I'll book it. First step is a free consultation and an audit of where the retyping happens. You get one page back, where the hours go and what to fix first, and it's yours whether or not we build anything.\n\nThanks for reading this far.\n\nBest,\nWilliam"
+          }
+        ],
+        [
+          {
+            "v1": 2
+          },
+          {
+            "subject": "the friday timesheet",
+            "body": "Hi «first_name»,\n\n«first_name» is listed on the «company_name» site, as «title».\n\nSomebody at «company_name» typed the same client into a fifth tool this week. The deal went into the CRM, the project into the project tool, the hours into a timesheet on Friday from memory, the invoice got built from the timesheet, and the check-in notes went into a doc. Nobody owns the whole chain, so when a contact or the scope changes, one of the five stays wrong until the client points it out.\n\nOne new client is five setups and one scope change is five edits, and every one of those hours lands on the timesheet as admin, which never reaches an invoice.\n\nMonth end is the worst of it. The numbers come out of the ad accounts and the analytics into a spreadsheet, someone fixes them by hand and pastes them into the deck, and one client gets last month's number. The report lands a day late and the first reply is about the wrong number. Have fun with the retyping and the \"which number is right\" emails.\n\nThe zap someone set up didn't fix it either, and I'll say why after a line about who I am.\n\nI'm William, from Wren Automation. I'm a software engineering student at the University of Waterloo, and this is the business I'm building. My work has been data cleaning, pipelines that connect systems, and CRMs. Two things I've built: an internal policy chatbot for the Government of Canada, which 17,000 staff use instead of searching 220+ directives by hand, saving about 6 to 7 hours a week each. And a University of Alberta lab tool that cut 200+ hours of manual lookups across 7,000+ records of messy fuel cell data, terabytes of it, in outdated file types.\n\nThe zap is the usual fix. Someone wired one up between the CRM and the project tool and it worked, until someone renamed a field and it had been failing for three weeks before anyone noticed. Or the person who set it up left. At a small scale this might not matter, but with the number of clients you guys run at once it's hours a week per person.\n\nIf you're interested, reply with a few times that work and I'll book it. First step is a free consultation and an audit of where the retyping happens. You get one page back, where the hours go and what to fix first, and it's yours whether or not we build anything.\n\nThanks for reading this far.\n\nBest,\nWilliam"
+          }
+        ]
+      ]
+    },
+    {
+      "niche": "sec_ria",
+      "name": "documents/followup",
+      "version": "491a275e9913",
+      "source": "Hi {first_name|there},\n\nJust checking you saw my last email. If not, skip it unless you have been having issues keeping track of your documents and data in a clean, principled way (think copy pasting back and forth between 5 different spreadsheets. If that's you, this email should be of interest to you).\n\nSomething you can use whether or not we talk more: Microsoft Document Intelligence. Point it at your Part 1 and your 2A and it reads both into tables. A short script lines the AUM figures up side by side, and any two that don't match show up before the next amendment finds them for you. The free tier covers 500 pages a month.\n\nIf you're still open to a call and an audit, I've got room for a few more this month before I'm heads down on builds. Let me know if you're interested, and reply with a few times that work.\n\n[[No worries either way. | If not, no hard feelings.]]\n\nBest,\nWilliam\n",
+      "variant_counts": {
+        "v1": 2
+      },
+      "placeholder": {
+        "subject": null,
+        "body": "Hi «first_name»,\n\nJust checking you saw my last email. If not, skip it unless you have been having issues keeping track of your documents and data in a clean, principled way (think copy pasting back and forth between 5 different spreadsheets. If that's you, this email should be of interest to you).\n\nSomething you can use whether or not we talk more: Microsoft Document Intelligence. Point it at your Part 1 and your 2A and it reads both into tables. A short script lines the AUM figures up side by side, and any two that don't match show up before the next amendment finds them for you. The free tier covers 500 pages a month.\n\nIf you're still open to a call and an audit, I've got room for a few more this month before I'm heads down on builds. Let me know if you're interested, and reply with a few times that work.\n\nNo worries either way.\n\nBest,\nWilliam",
+        "provenance": {
+          "template": "documents/followup",
+          "version": "491a275e9913",
+          "seed": "person:7",
+          "picks": {
+            "v1": 0
+          },
+          "fields": ["first_name"],
+          "fallbacks": []
+        }
+      },
+      "enumerated": [
+        [
+          {
+            "v1": 0
+          },
+          {
+            "subject": null,
+            "body": "Hi «first_name»,\n\nJust checking you saw my last email. If not, skip it unless you have been having issues keeping track of your documents and data in a clean, principled way (think copy pasting back and forth between 5 different spreadsheets. If that's you, this email should be of interest to you).\n\nSomething you can use whether or not we talk more: Microsoft Document Intelligence. Point it at your Part 1 and your 2A and it reads both into tables. A short script lines the AUM figures up side by side, and any two that don't match show up before the next amendment finds them for you. The free tier covers 500 pages a month.\n\nIf you're still open to a call and an audit, I've got room for a few more this month before I'm heads down on builds. Let me know if you're interested, and reply with a few times that work.\n\nNo worries either way.\n\nBest,\nWilliam"
+          }
+        ],
+        [
+          {
+            "v1": 1
+          },
+          {
+            "subject": null,
+            "body": "Hi «first_name»,\n\nJust checking you saw my last email. If not, skip it unless you have been having issues keeping track of your documents and data in a clean, principled way (think copy pasting back and forth between 5 different spreadsheets. If that's you, this email should be of interest to you).\n\nSomething you can use whether or not we talk more: Microsoft Document Intelligence. Point it at your Part 1 and your 2A and it reads both into tables. A short script lines the AUM figures up side by side, and any two that don't match show up before the next amendment finds them for you. The free tier covers 500 pages a month.\n\nIf you're still open to a call and an audit, I've got room for a few more this month before I'm heads down on builds. Let me know if you're interested, and reply with a few times that work.\n\nIf not, no hard feelings.\n\nBest,\nWilliam"
+          }
+        ]
+      ]
+    },
+    {
+      "niche": "sec_ria",
+      "name": "documents/opener",
+      "version": "65ef922ac96c",
+      "source": "subject: [[read your form adv, one guess about your documents | how many documents hold your aum number? | your documents, and a guess about where they break]]\n\nHi {first_name|there},\n\nYour name is on the Form ADV for {company_name}((, which lists you as {title})).\n\nYou've definitely experienced this: your numbers move between documents by hand. Pulled, pasted into a spreadsheet one person owns, passed on. No version history, and one edit breaks something two tabs over. Every amendment, someone re-reads all of it to check. One example: your AUM figure sits in Part 1, the 2A, the supplements, the CRS and the compliance manual. ((Your last filing says {company.aum}. After the next amendment, all five have to catch up. Have fun with the manual edits and the mental bookkeeping.))\n\nI'm William, from Wren Automation. I'm a software engineering student at the University of Waterloo, and this is the business I'm building. My work has been data cleaning, pipelines that connect systems, and CRMs. Two things I've built: an internal policy chatbot for the Government of Canada, which 17,000 staff use instead of searching 220+ directives by hand, saving about 6 to 7 hours a week each. And   a University of Alberta lab tool that cut 200+ hours of manual lookups across 7,000+ records of messy fuel cell data, terabytes of it, in outdated file types.\n\nThe usual fix is being careful and a checklist. It works until years down the a line a new hire gets complacent, or you do. The compliance platform stores the documents and reminds you what's due, but it doesn't notice when two of them drift apart. At a small scale, this might not matter, but its burning hours of your time every week with the amount of data you guys handle.\n\nIf you're interested, reply with a few times that work and I'll book it. First step is a free consultation and a proper audit of where your numbers move by hand, and we'll go from there.\n\nThanks for reading this far.\n\nBest,\nWilliam\n",
+      "variant_counts": {
+        "v1": 3
+      },
+      "placeholder": {
+        "subject": "read your form adv, one guess about your documents",
+        "body": "Hi «first_name»,\n\nYour name is on the Form ADV for «company_name», which lists you as «title».\n\nYou've definitely experienced this: your numbers move between documents by hand. Pulled, pasted into a spreadsheet one person owns, passed on. No version history, and one edit breaks something two tabs over. Every amendment, someone re-reads all of it to check. One example: your AUM figure sits in Part 1, the 2A, the supplements, the CRS and the compliance manual. Your last filing says «company.aum». After the next amendment, all five have to catch up. Have fun with the manual edits and the mental bookkeeping.\n\nI'm William, from Wren Automation. I'm a software engineering student at the University of Waterloo, and this is the business I'm building. My work has been data cleaning, pipelines that connect systems, and CRMs. Two things I've built: an internal policy chatbot for the Government of Canada, which 17,000 staff use instead of searching 220+ directives by hand, saving about 6 to 7 hours a week each. And a University of Alberta lab tool that cut 200+ hours of manual lookups across 7,000+ records of messy fuel cell data, terabytes of it, in outdated file types.\n\nThe usual fix is being careful and a checklist. It works until years down the a line a new hire gets complacent, or you do. The compliance platform stores the documents and reminds you what's due, but it doesn't notice when two of them drift apart. At a small scale, this might not matter, but its burning hours of your time every week with the amount of data you guys handle.\n\nIf you're interested, reply with a few times that work and I'll book it. First step is a free consultation and a proper audit of where your numbers move by hand, and we'll go from there.\n\nThanks for reading this far.\n\nBest,\nWilliam",
+        "provenance": {
+          "template": "documents/opener",
+          "version": "65ef922ac96c",
+          "seed": "person:7",
+          "picks": {
+            "v1": 0
+          },
+          "fields": ["company.aum", "company_name", "first_name", "title"],
+          "fallbacks": []
+        }
+      },
+      "enumerated": [
+        [
+          {
+            "v1": 0
+          },
+          {
+            "subject": "read your form adv, one guess about your documents",
+            "body": "Hi «first_name»,\n\nYour name is on the Form ADV for «company_name», which lists you as «title».\n\nYou've definitely experienced this: your numbers move between documents by hand. Pulled, pasted into a spreadsheet one person owns, passed on. No version history, and one edit breaks something two tabs over. Every amendment, someone re-reads all of it to check. One example: your AUM figure sits in Part 1, the 2A, the supplements, the CRS and the compliance manual. Your last filing says «company.aum». After the next amendment, all five have to catch up. Have fun with the manual edits and the mental bookkeeping.\n\nI'm William, from Wren Automation. I'm a software engineering student at the University of Waterloo, and this is the business I'm building. My work has been data cleaning, pipelines that connect systems, and CRMs. Two things I've built: an internal policy chatbot for the Government of Canada, which 17,000 staff use instead of searching 220+ directives by hand, saving about 6 to 7 hours a week each. And a University of Alberta lab tool that cut 200+ hours of manual lookups across 7,000+ records of messy fuel cell data, terabytes of it, in outdated file types.\n\nThe usual fix is being careful and a checklist. It works until years down the a line a new hire gets complacent, or you do. The compliance platform stores the documents and reminds you what's due, but it doesn't notice when two of them drift apart. At a small scale, this might not matter, but its burning hours of your time every week with the amount of data you guys handle.\n\nIf you're interested, reply with a few times that work and I'll book it. First step is a free consultation and a proper audit of where your numbers move by hand, and we'll go from there.\n\nThanks for reading this far.\n\nBest,\nWilliam"
+          }
+        ],
+        [
+          {
+            "v1": 1
+          },
+          {
+            "subject": "how many documents hold your aum number?",
+            "body": "Hi «first_name»,\n\nYour name is on the Form ADV for «company_name», which lists you as «title».\n\nYou've definitely experienced this: your numbers move between documents by hand. Pulled, pasted into a spreadsheet one person owns, passed on. No version history, and one edit breaks something two tabs over. Every amendment, someone re-reads all of it to check. One example: your AUM figure sits in Part 1, the 2A, the supplements, the CRS and the compliance manual. Your last filing says «company.aum». After the next amendment, all five have to catch up. Have fun with the manual edits and the mental bookkeeping.\n\nI'm William, from Wren Automation. I'm a software engineering student at the University of Waterloo, and this is the business I'm building. My work has been data cleaning, pipelines that connect systems, and CRMs. Two things I've built: an internal policy chatbot for the Government of Canada, which 17,000 staff use instead of searching 220+ directives by hand, saving about 6 to 7 hours a week each. And a University of Alberta lab tool that cut 200+ hours of manual lookups across 7,000+ records of messy fuel cell data, terabytes of it, in outdated file types.\n\nThe usual fix is being careful and a checklist. It works until years down the a line a new hire gets complacent, or you do. The compliance platform stores the documents and reminds you what's due, but it doesn't notice when two of them drift apart. At a small scale, this might not matter, but its burning hours of your time every week with the amount of data you guys handle.\n\nIf you're interested, reply with a few times that work and I'll book it. First step is a free consultation and a proper audit of where your numbers move by hand, and we'll go from there.\n\nThanks for reading this far.\n\nBest,\nWilliam"
+          }
+        ],
+        [
+          {
+            "v1": 2
+          },
+          {
+            "subject": "your documents, and a guess about where they break",
+            "body": "Hi «first_name»,\n\nYour name is on the Form ADV for «company_name», which lists you as «title».\n\nYou've definitely experienced this: your numbers move between documents by hand. Pulled, pasted into a spreadsheet one person owns, passed on. No version history, and one edit breaks something two tabs over. Every amendment, someone re-reads all of it to check. One example: your AUM figure sits in Part 1, the 2A, the supplements, the CRS and the compliance manual. Your last filing says «company.aum». After the next amendment, all five have to catch up. Have fun with the manual edits and the mental bookkeeping.\n\nI'm William, from Wren Automation. I'm a software engineering student at the University of Waterloo, and this is the business I'm building. My work has been data cleaning, pipelines that connect systems, and CRMs. Two things I've built: an internal policy chatbot for the Government of Canada, which 17,000 staff use instead of searching 220+ directives by hand, saving about 6 to 7 hours a week each. And a University of Alberta lab tool that cut 200+ hours of manual lookups across 7,000+ records of messy fuel cell data, terabytes of it, in outdated file types.\n\nThe usual fix is being careful and a checklist. It works until years down the a line a new hire gets complacent, or you do. The compliance platform stores the documents and reminds you what's due, but it doesn't notice when two of them drift apart. At a small scale, this might not matter, but its burning hours of your time every week with the amount of data you guys handle.\n\nIf you're interested, reply with a few times that work and I'll book it. First step is a free consultation and a proper audit of where your numbers move by hand, and we'll go from there.\n\nThanks for reading this far.\n\nBest,\nWilliam"
+          }
+        ]
+      ]
+    },
+    {
+      "niche": "sec_ria",
+      "name": "final_followup",
+      "version": "f64615092365",
+      "source": "Hi {first_name|there},\n\nClosing this out.\n\nIf the guess was wrong, a one-word reply says so and stops the emails. [[If it was right and the timing isn't, that's fine too. | If it landed but it's a next-year problem, that's fine too.]]\n\nThanks for reading this far.\n\nBest,\nWilliam\n",
+      "variant_counts": {
+        "v1": 2
+      },
+      "placeholder": {
+        "subject": null,
+        "body": "Hi «first_name»,\n\nClosing this out.\n\nIf the guess was wrong, a one-word reply says so and stops the emails. If it landed but it's a next-year problem, that's fine too.\n\nThanks for reading this far.\n\nBest,\nWilliam",
+        "provenance": {
+          "template": "final_followup",
+          "version": "f64615092365",
+          "seed": "person:7",
+          "picks": {
+            "v1": 1
+          },
+          "fields": ["first_name"],
+          "fallbacks": []
+        }
+      },
+      "enumerated": [
+        [
+          {
+            "v1": 0
+          },
+          {
+            "subject": null,
+            "body": "Hi «first_name»,\n\nClosing this out.\n\nIf the guess was wrong, a one-word reply says so and stops the emails. If it was right and the timing isn't, that's fine too.\n\nThanks for reading this far.\n\nBest,\nWilliam"
+          }
+        ],
+        [
+          {
+            "v1": 1
+          },
+          {
+            "subject": null,
+            "body": "Hi «first_name»,\n\nClosing this out.\n\nIf the guess was wrong, a one-word reply says so and stops the emails. If it landed but it's a next-year problem, that's fine too.\n\nThanks for reading this far.\n\nBest,\nWilliam"
+          }
+        ]
+      ]
+    },
+    {
+      "niche": "sec_ria",
+      "name": "operations/followup",
+      "version": "eb59245ed85c",
+      "source": "Hi {first_name|there},\n\nJust checking you saw my last email.\n\nSomething you can use whether or not we talk: Microsoft Document Intelligence. Feed it a signed custodian form or an onboarding packet and it reads the fields into JSON: name, address, date of birth, beneficiaries. A short script pushes that into the CRM and the planning tool. One pass instead of four. The free tier covers 500 pages a month.\n\nIf you're still open to the call and the audit, I've got room for two more this month before I'm heads down on builds. Reply with a few times that work and I'll book it.\n\n[[No worries either way. | If not, no hard feelings.]]\n\nBest,\nWilliam\n",
+      "variant_counts": {
+        "v1": 2
+      },
+      "placeholder": {
+        "subject": null,
+        "body": "Hi «first_name»,\n\nJust checking you saw my last email.\n\nSomething you can use whether or not we talk: Microsoft Document Intelligence. Feed it a signed custodian form or an onboarding packet and it reads the fields into JSON: name, address, date of birth, beneficiaries. A short script pushes that into the CRM and the planning tool. One pass instead of four. The free tier covers 500 pages a month.\n\nIf you're still open to the call and the audit, I've got room for two more this month before I'm heads down on builds. Reply with a few times that work and I'll book it.\n\nIf not, no hard feelings.\n\nBest,\nWilliam",
+        "provenance": {
+          "template": "operations/followup",
+          "version": "eb59245ed85c",
+          "seed": "person:7",
+          "picks": {
+            "v1": 1
+          },
+          "fields": ["first_name"],
+          "fallbacks": []
+        }
+      },
+      "enumerated": [
+        [
+          {
+            "v1": 0
+          },
+          {
+            "subject": null,
+            "body": "Hi «first_name»,\n\nJust checking you saw my last email.\n\nSomething you can use whether or not we talk: Microsoft Document Intelligence. Feed it a signed custodian form or an onboarding packet and it reads the fields into JSON: name, address, date of birth, beneficiaries. A short script pushes that into the CRM and the planning tool. One pass instead of four. The free tier covers 500 pages a month.\n\nIf you're still open to the call and the audit, I've got room for two more this month before I'm heads down on builds. Reply with a few times that work and I'll book it.\n\nNo worries either way.\n\nBest,\nWilliam"
+          }
+        ],
+        [
+          {
+            "v1": 1
+          },
+          {
+            "subject": null,
+            "body": "Hi «first_name»,\n\nJust checking you saw my last email.\n\nSomething you can use whether or not we talk: Microsoft Document Intelligence. Feed it a signed custodian form or an onboarding packet and it reads the fields into JSON: name, address, date of birth, beneficiaries. A short script pushes that into the CRM and the planning tool. One pass instead of four. The free tier covers 500 pages a month.\n\nIf you're still open to the call and the audit, I've got room for two more this month before I'm heads down on builds. Reply with a few times that work and I'll book it.\n\nIf not, no hard feelings.\n\nBest,\nWilliam"
+          }
+        ]
+      ]
+    },
+    {
+      "niche": "sec_ria",
+      "name": "operations/opener",
+      "version": "db12e783415c",
+      "source": "subject: [[read your form adv, one guess about onboarding | same client, typed four times | your form adv, and a guess about where the hours go]]\n\nHi {first_name|there},\n\nYour name is on the Form ADV for {company_name}((, which lists you as {title})).\n\nYou've definitely experienced this: the same client data typed by hand into system after system. Onboarding into the CRM, the custodian forms, the portfolio system, the planning tool. Same name, address, date of birth and beneficiaries, four times. Then the quarterly pull, exported from three of them into one spreadsheet and fixed by hand. ((With {company.ind_clients} clients, that's real hours.)) Have fun with the retyping and the \"which one is right\" emails.\n\nI'm William, of Wren Automation. I'm a software engineering student at the University of Waterloo, and this is the business I'm building. My work has been data cleaning, pipelines that connect systems, and CRMs. Two things I've built: an internal policy chatbot for the Government of Canada, which 17,000 staff use instead of searching 220+ directives by hand, saving about 6 to 7 hours a week each. And a University of Alberta lab tool that cut 200+ hours of manual lookups across 7,000+ records of messy fuel cell data, terabytes of it, in outdated file types.\n\nThe usual fix is a good ops person and a checklist. It works until that person is the bottleneck. The \"integration\" is a nightly CSV that breaks when two fields disagree.\n\nIf you're interested, reply with a few times that work and I'll book it. First step is a free consultation and a proper audit of where the retyping happens. We go from there.\n\nThanks for reading this far.\n\nBest,\nWilliam\n",
+      "variant_counts": {
+        "v1": 3
+      },
+      "placeholder": {
+        "subject": "read your form adv, one guess about onboarding",
+        "body": "Hi «first_name»,\n\nYour name is on the Form ADV for «company_name», which lists you as «title».\n\nYou've definitely experienced this: the same client data typed by hand into system after system. Onboarding into the CRM, the custodian forms, the portfolio system, the planning tool. Same name, address, date of birth and beneficiaries, four times. Then the quarterly pull, exported from three of them into one spreadsheet and fixed by hand. With «company.ind_clients» clients, that's real hours. Have fun with the retyping and the \"which one is right\" emails.\n\nI'm William, of Wren Automation. I'm a software engineering student at the University of Waterloo, and this is the business I'm building. My work has been data cleaning, pipelines that connect systems, and CRMs. Two things I've built: an internal policy chatbot for the Government of Canada, which 17,000 staff use instead of searching 220+ directives by hand, saving about 6 to 7 hours a week each. And a University of Alberta lab tool that cut 200+ hours of manual lookups across 7,000+ records of messy fuel cell data, terabytes of it, in outdated file types.\n\nThe usual fix is a good ops person and a checklist. It works until that person is the bottleneck. The \"integration\" is a nightly CSV that breaks when two fields disagree.\n\nIf you're interested, reply with a few times that work and I'll book it. First step is a free consultation and a proper audit of where the retyping happens. We go from there.\n\nThanks for reading this far.\n\nBest,\nWilliam",
+        "provenance": {
+          "template": "operations/opener",
+          "version": "db12e783415c",
+          "seed": "person:7",
+          "picks": {
+            "v1": 0
+          },
+          "fields": ["company.ind_clients", "company_name", "first_name", "title"],
+          "fallbacks": []
+        }
+      },
+      "enumerated": [
+        [
+          {
+            "v1": 0
+          },
+          {
+            "subject": "read your form adv, one guess about onboarding",
+            "body": "Hi «first_name»,\n\nYour name is on the Form ADV for «company_name», which lists you as «title».\n\nYou've definitely experienced this: the same client data typed by hand into system after system. Onboarding into the CRM, the custodian forms, the portfolio system, the planning tool. Same name, address, date of birth and beneficiaries, four times. Then the quarterly pull, exported from three of them into one spreadsheet and fixed by hand. With «company.ind_clients» clients, that's real hours. Have fun with the retyping and the \"which one is right\" emails.\n\nI'm William, of Wren Automation. I'm a software engineering student at the University of Waterloo, and this is the business I'm building. My work has been data cleaning, pipelines that connect systems, and CRMs. Two things I've built: an internal policy chatbot for the Government of Canada, which 17,000 staff use instead of searching 220+ directives by hand, saving about 6 to 7 hours a week each. And a University of Alberta lab tool that cut 200+ hours of manual lookups across 7,000+ records of messy fuel cell data, terabytes of it, in outdated file types.\n\nThe usual fix is a good ops person and a checklist. It works until that person is the bottleneck. The \"integration\" is a nightly CSV that breaks when two fields disagree.\n\nIf you're interested, reply with a few times that work and I'll book it. First step is a free consultation and a proper audit of where the retyping happens. We go from there.\n\nThanks for reading this far.\n\nBest,\nWilliam"
+          }
+        ],
+        [
+          {
+            "v1": 1
+          },
+          {
+            "subject": "same client, typed four times",
+            "body": "Hi «first_name»,\n\nYour name is on the Form ADV for «company_name», which lists you as «title».\n\nYou've definitely experienced this: the same client data typed by hand into system after system. Onboarding into the CRM, the custodian forms, the portfolio system, the planning tool. Same name, address, date of birth and beneficiaries, four times. Then the quarterly pull, exported from three of them into one spreadsheet and fixed by hand. With «company.ind_clients» clients, that's real hours. Have fun with the retyping and the \"which one is right\" emails.\n\nI'm William, of Wren Automation. I'm a software engineering student at the University of Waterloo, and this is the business I'm building. My work has been data cleaning, pipelines that connect systems, and CRMs. Two things I've built: an internal policy chatbot for the Government of Canada, which 17,000 staff use instead of searching 220+ directives by hand, saving about 6 to 7 hours a week each. And a University of Alberta lab tool that cut 200+ hours of manual lookups across 7,000+ records of messy fuel cell data, terabytes of it, in outdated file types.\n\nThe usual fix is a good ops person and a checklist. It works until that person is the bottleneck. The \"integration\" is a nightly CSV that breaks when two fields disagree.\n\nIf you're interested, reply with a few times that work and I'll book it. First step is a free consultation and a proper audit of where the retyping happens. We go from there.\n\nThanks for reading this far.\n\nBest,\nWilliam"
+          }
+        ],
+        [
+          {
+            "v1": 2
+          },
+          {
+            "subject": "your form adv, and a guess about where the hours go",
+            "body": "Hi «first_name»,\n\nYour name is on the Form ADV for «company_name», which lists you as «title».\n\nYou've definitely experienced this: the same client data typed by hand into system after system. Onboarding into the CRM, the custodian forms, the portfolio system, the planning tool. Same name, address, date of birth and beneficiaries, four times. Then the quarterly pull, exported from three of them into one spreadsheet and fixed by hand. With «company.ind_clients» clients, that's real hours. Have fun with the retyping and the \"which one is right\" emails.\n\nI'm William, of Wren Automation. I'm a software engineering student at the University of Waterloo, and this is the business I'm building. My work has been data cleaning, pipelines that connect systems, and CRMs. Two things I've built: an internal policy chatbot for the Government of Canada, which 17,000 staff use instead of searching 220+ directives by hand, saving about 6 to 7 hours a week each. And a University of Alberta lab tool that cut 200+ hours of manual lookups across 7,000+ records of messy fuel cell data, terabytes of it, in outdated file types.\n\nThe usual fix is a good ops person and a checklist. It works until that person is the bottleneck. The \"integration\" is a nightly CSV that breaks when two fields disagree.\n\nIf you're interested, reply with a few times that work and I'll book it. First step is a free consultation and a proper audit of where the retyping happens. We go from there.\n\nThanks for reading this far.\n\nBest,\nWilliam"
+          }
+        ]
+      ]
+    }
+  ],
+  "sequences": [
+    {
+      "niche": "agencies",
+      "name": "build-days-0-3-7",
+      "arm": "build",
+      "steps": [
+        {
+          "template": "build/opener",
+          "day": 0
+        },
+        {
+          "template": "build/followup",
+          "day": 3
+        },
+        {
+          "template": "final_followup",
+          "day": 7
+        }
+      ]
+    },
+    {
+      "niche": "agencies",
+      "name": "build-days-0-5",
+      "arm": "build",
+      "steps": [
+        {
+          "template": "build/opener",
+          "day": 0
+        },
+        {
+          "template": "build/followup",
+          "day": 5
+        }
+      ]
+    },
+    {
+      "niche": "agencies",
+      "name": "marketing-days-0-3-7",
+      "arm": "marketing",
+      "steps": [
+        {
+          "template": "marketing/opener",
+          "day": 0
+        },
+        {
+          "template": "marketing/followup",
+          "day": 3
+        },
+        {
+          "template": "final_followup",
+          "day": 7
+        }
+      ]
+    },
+    {
+      "niche": "agencies",
+      "name": "marketing-days-0-5",
+      "arm": "marketing",
+      "steps": [
+        {
+          "template": "marketing/opener",
+          "day": 0
+        },
+        {
+          "template": "marketing/followup",
+          "day": 5
+        }
+      ]
+    },
+    {
+      "niche": "sec_ria",
+      "name": "documents-days-0-3-7",
+      "arm": "documents",
+      "steps": [
+        {
+          "template": "documents/opener",
+          "day": 0
+        },
+        {
+          "template": "documents/followup",
+          "day": 3
+        },
+        {
+          "template": "final_followup",
+          "day": 7
+        }
+      ]
+    },
+    {
+      "niche": "sec_ria",
+      "name": "documents-days-0-5",
+      "arm": "documents",
+      "steps": [
+        {
+          "template": "documents/opener",
+          "day": 0
+        },
+        {
+          "template": "documents/followup",
+          "day": 5
+        }
+      ]
+    },
+    {
+      "niche": "sec_ria",
+      "name": "operations-days-0-3-7",
+      "arm": "operations",
+      "steps": [
+        {
+          "template": "operations/opener",
+          "day": 0
+        },
+        {
+          "template": "operations/followup",
+          "day": 3
+        },
+        {
+          "template": "final_followup",
+          "day": 7
+        }
+      ]
+    },
+    {
+      "niche": "sec_ria",
+      "name": "operations-days-0-5",
+      "arm": "operations",
+      "steps": [
+        {
+          "template": "operations/opener",
+          "day": 0
+        },
+        {
+          "template": "operations/followup",
+          "day": 5
+        }
+      ]
+    }
+  ]
+}

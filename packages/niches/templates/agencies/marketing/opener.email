@@ -1,0 +1,24 @@
+subject: [[your month end, and a guess about who fixes the numbers | which of your five tools is right about the client? | the friday timesheet]]
+
+Hi {first_name|there},
+
+{first_name|This address} is listed on the {company_name} site((, as {title})).
+
+Somebody at {company_name} typed the same client into a fifth tool this week. The deal went into the CRM, the project into the project tool, the hours into a timesheet on Friday from memory, the invoice got built from the timesheet, and the check-in notes went into a doc. Nobody owns the whole chain, so when a contact or the scope changes, one of the five stays wrong until the client points it out.
+
+One new client is five setups and one scope change is five edits, and every one of those hours lands on the timesheet as admin, which never reaches an invoice.
+
+Month end is the worst of it. The numbers come out of the ad accounts and the analytics into a spreadsheet, someone fixes them by hand and pastes them into the deck, and one client gets last month's number. The report lands a day late and the first reply is about the wrong number. Have fun with the retyping and the "which number is right" emails.
+
+The zap someone set up didn't fix it either, and I'll say why after a line about who I am.
+
+I'm William, from Wren Automation. I'm a software engineering student at the University of Waterloo, and this is the business I'm building. My work has been data cleaning, pipelines that connect systems, and CRMs. Two things I've built: an internal policy chatbot for the Government of Canada, which 17,000 staff use instead of searching 220+ directives by hand, saving about 6 to 7 hours a week each. And a University of Alberta lab tool that cut 200+ hours of manual lookups across 7,000+ records of messy fuel cell data, terabytes of it, in outdated file types.
+
+The zap is the usual fix. Someone wired one up between the CRM and the project tool and it worked, until someone renamed a field and it had been failing for three weeks before anyone noticed. Or the person who set it up left. At a small scale this might not matter, but with the number of clients you guys run at once it's hours a week per person.
+
+If you're interested, reply with a few times that work and I'll book it. First step is a free consultation and an audit of where the retyping happens. You get one page back, where the hours go and what to fix first, and it's yours whether or not we build anything.
+
+Thanks for reading this far.
+
+Best,
+William

@@ -1,0 +1,27 @@
+## ARM A, the DOCUMENT hook. DRAFT 7 (2026-09-11), William's edit: no
+## "this is a guess" hedge, the pain asserted ("you've definitely
+## experienced this"), who I am before the usual fix, an honest bio, one
+## simple CTA (free consultation + audit). Subject all lowercase, no
+## facts in it. {company.aum} sits in ((…)) so a missing AUM drops the
+## sentence, not the draft. "On the Form ADV", never "on Schedule A"
+## (Item 1J CCOs are not on Schedule A). One arm at a time (P2-D9):
+## operations enrols first.
+
+subject: [[read your form adv, one guess about your documents | how many documents hold your aum number? | your documents, and a guess about where they break]]
+
+Hi {first_name|there},
+
+Your name is on the Form ADV for {company_name}((, which lists you as {title})).
+
+You've definitely experienced this: your numbers move between documents by hand. Pulled, pasted into a spreadsheet one person owns, passed on. No version history, and one edit breaks something two tabs over. Every amendment, someone re-reads all of it to check. One example: your AUM figure sits in Part 1, the 2A, the supplements, the CRS and the compliance manual. ((Your last filing says {company.aum}. After the next amendment, all five have to catch up. Have fun with the manual edits and the mental bookkeeping.))
+
+I'm William, from Wren Automation. I'm a software engineering student at the University of Waterloo, and this is the business I'm building. My work has been data cleaning, pipelines that connect systems, and CRMs. Two things I've built: an internal policy chatbot for the Government of Canada, which 17,000 staff use instead of searching 220+ directives by hand, saving about 6 to 7 hours a week each. And   a University of Alberta lab tool that cut 200+ hours of manual lookups across 7,000+ records of messy fuel cell data, terabytes of it, in outdated file types.
+
+The usual fix is being careful and a checklist. It works until years down the a line a new hire gets complacent, or you do. The compliance platform stores the documents and reminds you what's due, but it doesn't notice when two of them drift apart. At a small scale, this might not matter, but its burning hours of your time every week with the amount of data you guys handle.
+
+If you're interested, reply with a few times that work and I'll book it. First step is a free consultation and a proper audit of where your numbers move by hand, and we'll go from there.
+
+Thanks for reading this far.
+
+Best,
+William

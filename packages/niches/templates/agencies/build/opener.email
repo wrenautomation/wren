@@ -1,0 +1,24 @@
+subject: [[your invoices, and a guess about where the hours came from | which of your four tools is right about the scope? | the friday timesheet]]
+
+Hi {first_name|there},
+
+{first_name|This address} is listed on the {company_name} site((, as {title})).
+
+Somebody at {company_name} typed the same scope into a fourth tool this week. It went into the proposal, then the SOW, then the project tool, then the invoice, and the hours on the invoice came from a timesheet filled in on Friday from memory. Nobody owns the whole chain, so when the scope moves, one of the four stays wrong until the client points it out.
+
+One new project is four setups and one change order is four edits, and every one of those hours lands on the timesheet as admin, which never reaches an invoice.
+
+The invoice is the worst of it. The hours on it don't match the timesheet, the timesheet doesn't match the SOW, and whoever notices either eats the difference or has the awkward call with the client. Have fun with the retyping and the "which one is right" emails.
+
+You could build the fix yourselves, and I'll get to why you haven't after a line about who I am.
+
+I'm William, from Wren Automation. I'm a software engineering student at the University of Waterloo, and this is the business I'm building. My work has been data cleaning, pipelines that connect systems, and CRMs. Two things I've built: an internal policy chatbot for the Government of Canada, which 17,000 staff use instead of searching 220+ directives by hand, saving about 6 to 7 hours a week each. And a University of Alberta lab tool that cut 200+ hours of manual lookups across 7,000+ records of messy fuel cell data, terabytes of it, in outdated file types.
+
+The fix is a quiet week where someone on the team wires it up. You know that, which is why it has been on the list for two years and every quiet week went to a client. At a small scale this might not matter, but with the number of projects you guys run at once it's hours a week per person.
+
+If you're interested, reply with a few times that work and I'll book it. First step is a free consultation and an audit of where the retyping happens. You get one page back, where the hours go and what to fix first, and it's yours whether or not we build anything.
+
+Thanks for reading this far.
+
+Best,
+William

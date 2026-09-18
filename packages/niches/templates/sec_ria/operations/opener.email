@@ -1,0 +1,26 @@
+## ARM B, the OPERATIONS hook. DRAFT 7 (2026-09-11): same shape as ARM A
+## after William's edit: no "this is a guess" hedge, the pain asserted,
+## the family of handoff pains then one example, bio before the usual
+## fix, one simple CTA (free consultation + audit). Subject all
+## lowercase, no facts in it. Counts refuse zero (D39), so the count sits
+## in ((…)). "On the Form ADV", never "on Schedule A": Item 1J CCOs are
+## on the filing but not on Schedule A.
+
+subject: [[read your form adv, one guess about onboarding | same client, typed four times | your form adv, and a guess about where the hours go]]
+
+Hi {first_name|there},
+
+Your name is on the Form ADV for {company_name}((, which lists you as {title})).
+
+You've definitely experienced this: the same client data typed by hand into system after system. Onboarding into the CRM, the custodian forms, the portfolio system, the planning tool. Same name, address, date of birth and beneficiaries, four times. Then the quarterly pull, exported from three of them into one spreadsheet and fixed by hand. ((With {company.ind_clients} clients, that's real hours.)) Have fun with the retyping and the "which one is right" emails.
+
+I'm William, of Wren Automation. I'm a software engineering student at the University of Waterloo, and this is the business I'm building. My work has been data cleaning, pipelines that connect systems, and CRMs. Two things I've built: an internal policy chatbot for the Government of Canada, which 17,000 staff use instead of searching 220+ directives by hand, saving about 6 to 7 hours a week each. And a University of Alberta lab tool that cut 200+ hours of manual lookups across 7,000+ records of messy fuel cell data, terabytes of it, in outdated file types.
+
+The usual fix is a good ops person and a checklist. It works until that person is the bottleneck. The "integration" is a nightly CSV that breaks when two fields disagree.
+
+If you're interested, reply with a few times that work and I'll book it. First step is a free consultation and a proper audit of where the retyping happens. We go from there.
+
+Thanks for reading this far.
+
+Best,
+William
