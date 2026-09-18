@@ -6,6 +6,7 @@
   "exports": {
     ".": "./src/index.ts",
     "./ingest": "./src/ingest/index.ts",
+    "./people": "./src/people/index.ts",
     "./schema": "./src/schema.ts"
   },
   "scripts": {
