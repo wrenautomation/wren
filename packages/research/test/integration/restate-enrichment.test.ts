@@ -150,7 +150,7 @@ describe("Enrichment virtual object", () => {
     expect(ledger.every((r) => r.finishedAt !== null && r.stats !== null)).toBe(true);
     expect(ledger[0]?.niche).toBe("agencies");
     expect(ledger[2]?.model).toBe("fake");
-    expect((ledger[5]?.stats as { picked: number }).picked).toBe(2);
+    expect((ledger[5]?.stats as { picked: number } | undefined)?.picked).toBe(2);
   });
 
   it("the key scopes the population and 'all' spans niches", async () => {
@@ -221,7 +221,7 @@ describe("Enrichment virtual object", () => {
     const pick = await c.pick({});
     expect(pick.no_content).toBe(1);
     const [row] = await db().select().from(enrichments).where(eq(enrichments.kind, "email_pick"));
-    expect((row?.output as { call: unknown }).call).toBeNull();
+    expect((row?.output as { call: unknown } | undefined)?.call).toBeNull();
     expect((await c.backfillCallRecords({})).selected).toBe(0);
   });
 });
