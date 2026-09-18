@@ -10,6 +10,17 @@ export const settingsSchema = z.object({
   inboxDir: z.string().min(1).default("inbox"),
   draftsDir: z.string().min(1).default("drafts"),
   logLevel: z.enum(["trace", "debug", "info", "warn", "error"]).default("info"),
+  /** Contact for the outbound User-Agent (email or URL). Required before any fetch. */
+  fetchContact: z.string().min(1).optional(),
+  /** warn: log robots disallows and fetch anyway (stamped on the row); enforce: skip. */
+  robotsMode: z.enum(["warn", "enforce"]).default("warn"),
+  /** "fake" | "anthropic" | "<provider>[:model]". Never defaults to a paid provider. */
+  llm: z.string().min(1).default("fake"),
+  /** Anthropic model id used when llm is "anthropic". */
+  llmModel: z.string().min(1).default("claude-haiku-4-5-20251001"),
+  /** Path of the key-fleet env file, relative to the project root. */
+  llmEnvPath: z.string().min(1).default("llm.env"),
+  tracing: z.enum(["none"]).default("none"),
 });
 export type Settings = z.infer<typeof settingsSchema>;
 
@@ -20,6 +31,12 @@ export const ENV_KEYS = {
   inboxDir: "WREN_INBOX_DIR",
   draftsDir: "WREN_DRAFTS_DIR",
   logLevel: "WREN_LOG_LEVEL",
+  fetchContact: "WREN_FETCH_CONTACT",
+  robotsMode: "WREN_ROBOTS_MODE",
+  llm: "WREN_LLM",
+  llmModel: "WREN_LLM_MODEL",
+  llmEnvPath: "WREN_LLM_ENV_PATH",
+  tracing: "WREN_TRACING",
 } as const satisfies Record<keyof Settings, string>;
 
 export interface LoadOptions {

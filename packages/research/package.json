@@ -6,6 +6,7 @@
   "exports": {
     ".": "./src/index.ts",
     "./discovery": "./src/discovery/index.ts",
+    "./fetch": "./src/fetch/index.ts",
     "./schema": "./src/schema.ts"
   },
   "scripts": {

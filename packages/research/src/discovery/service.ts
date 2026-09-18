@@ -164,14 +164,12 @@ export async function runDomainDiscovery(
         .where(eq(companies.id, company.id));
       claimed.add(candidate);
       counts.domains_attached += 1;
-      await db
-        .insert(sightings)
-        .values({
-          companyId: company.id,
-          importId: batch.id,
-          rowNumber,
-          raw: { discovered_domain: candidate, evidence },
-        });
+      await db.insert(sightings).values({
+        companyId: company.id,
+        importId: batch.id,
+        rowNumber,
+        raw: { discovered_domain: candidate, evidence },
+      });
       break; // one proven domain per company; stop guessing
     }
   }
@@ -260,14 +258,12 @@ export async function runDomainVerification(
       .set({ domainVerifiedAt: sql`now()` })
       .where(eq(companies.id, company.id));
     counts.domains_verified += 1;
-    await db
-      .insert(sightings)
-      .values({
-        companyId: company.id,
-        importId: batch.id,
-        rowNumber,
-        raw: { verified_domain: domain, evidence },
-      });
+    await db.insert(sightings).values({
+      companyId: company.id,
+      importId: batch.id,
+      rowNumber,
+      raw: { verified_domain: domain, evidence },
+    });
   }
   counts.unverified_preview = unverified.slice(0, 20);
   await db.update(imports).set({ stats: counts }).where(eq(imports.id, batch.id));
