@@ -51,12 +51,14 @@ Every CHECK-enumerated column is declared once as a `const` tuple
 | E3c ✅ | verify: `core/doh.ts`, `channel-email/verification/` (local checks, fake + MillionVerifier, funnel service) | `test_doh`, `test_local_checks`, `test_verifiers`, `test_verification_service` ported 1:1 |
 | E3d ✅ | discovery: `research/discovery/` (candidates, ownership gate, discovery + verification runs; `fetchHomepage` is an injected seam, the polite-fetcher default lands with E4) | `test_discovery` + `test_discovery_service` ported 1:1 |
 | E4 ✅ | enrichment: polite fetcher, crawl, render (Playwright), scan, extraction, email pick (typed steps + AI SDK, no LangGraph), resolution; cache key `(subject, kind, model, prompt_version)` kept. Restate objects `Enrichment` (keyed by niche or `all`) and `Resolution` wrap the per-unit functions, one journaled step per company/document/domain. Niche-specific parts (extraction prompt/version, crawl hints, generic words) are parameters for a later niche registry | same fixtures; fake LLM; fake browser. Not ported: Langfuse adapter (tracer seam kept), CLI ledger printing tests. `readable.py` moves to E5 |
-| E5 | template DSL parser + compose + sequences; DSL text seeded from the `.email` files into `template_versions` | golden-output tests on current templates |
+| E5 ✅ | template DSL parser + compose + sequences (+ `readable.py`, preview/enumerate). `Template.version` hashes the Python repr, so all 10 live template versions match (`packages/niches/test/golden.json`, generated from the Python repo). `.email` files live in `@wren/niches` (typed registry: facts view, lander, crawl hints, generic words, templates, sequences, `companyLocation`) and are seeded into `template_versions` on first compose. Provenance `verified_at` keeps Python's isoformat shape; booleans stringify JS-style. Compose takes a `Queryable` and commits one transaction per company, so it runs stateless on Lambda | golden parity tests; `test_outreach.py` + `test_role_inbox.py` ported as integration suites. Deliver/send tests move to E6 |
 | E6 | send: policy, deliver, Gmail DWD transport, roster; daemon → `SendScheduler/{sender}` virtual object with durable sleeps; intent-before-act and Message-ID minting kept | console transport; no real sends until cutover |
 | E7 | inbox sync, disposition, health, opens, postmaster, suppress, reconcile | `.eml` fixtures |
 | E8 | weekly report: keep `claude -p`, point it at `wren` commands | manual |
 
-## Cutover (after E8)
+| E9 | deploy: Restate Cloud (free tier) → AWS Lambda endpoint for the worker (handlers already stateless per invocation); Postgres in Docker on a small EC2 instance; renderer behind an interface so Browserbase can replace local Playwright. Later: self-hosted Restate on Kubernetes. Wren stays general-purpose: nothing niche- or channel-specific in the deploy layer | smoke invoke through Restate Cloud; migrations run from CI |
+
+## Cutover (after E9)
 
 1. Pause the Python daemon (`docker compose --profile campaign stop app`).
 2. `pnpm db:migrate`, then `scripts/import-legacy.sh` into the wren DB.
