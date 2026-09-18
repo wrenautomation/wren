@@ -107,7 +107,9 @@ describe("runVerification", () => {
 
     const [info] = await verificationsOf(byEmail["info@verifyco.example"]?.id as number);
     expect(info).toMatchObject({ verifier: "fake", email: "info@verifyco.example" });
-    expect((info?.raw as Record<string, unknown>).local_flags).toEqual(["role_account"]);
+    expect((info?.raw as Record<string, unknown> | undefined)?.local_flags).toEqual([
+      "role_account",
+    ]);
 
     // Recipient-provider evidence rides on every local check, not just failures.
     const [alice] = await verificationsOf(byEmail["alice@verifyco.example"]?.id as number);

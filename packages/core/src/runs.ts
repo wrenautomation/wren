@@ -33,11 +33,7 @@ export async function openRun(db: Queryable, opts: RunOptions): Promise<Run> {
 }
 
 /** Close the row with the stage's stats. Idempotent: a second call is a no-op. */
-export async function finishRun(
-  db: Queryable,
-  runId: string,
-  stats: Record<string, unknown> | null,
-): Promise<void> {
+export async function finishRun(db: Queryable, runId: string, stats: object | null): Promise<void> {
   const [row] = await db
     .select({ finishedAt: runs.finishedAt })
     .from(runs)
@@ -50,7 +46,7 @@ export async function finishRun(
  * Open a ledger row, run the body with it, close it. The body returns its stats;
  * a thrown error closes the row with `{ error }` (truncated) and propagates.
  */
-export async function recordedRun<T extends Record<string, unknown> | null>(
+export async function recordedRun<T extends object | null>(
   db: Queryable,
   opts: RunOptions,
   body: (run: Run) => Promise<T>,

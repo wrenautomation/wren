@@ -55,6 +55,8 @@ describe("resolve", () => {
     };
     await resolve("foo.com", "MX", fetchImpl);
     expect(seen?.url).toBe("https://cloudflare-dns.com/dns-query?name=foo.com&type=MX");
-    expect((seen?.init.headers as Record<string, string>).accept).toBe("application/dns-json");
+    expect((seen?.init.headers as Record<string, string> | undefined)?.accept).toBe(
+      "application/dns-json",
+    );
   });
 });

@@ -99,3 +99,8 @@ export const enrichments = pgTable(
     check("ck_enrichments_one_subject", sql`(document_id IS NULL) <> (company_id IS NULL)`),
   ],
 );
+
+export type Document = typeof documents.$inferSelect;
+export type NewDocument = typeof documents.$inferInsert;
+export type Enrichment = typeof enrichments.$inferSelect;
+export type NewEnrichment = typeof enrichments.$inferInsert;

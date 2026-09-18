@@ -7,7 +7,8 @@
     ".": "./src/index.ts",
     "./discovery": "./src/discovery/index.ts",
     "./fetch": "./src/fetch/index.ts",
-    "./schema": "./src/schema.ts"
+    "./schema": "./src/schema.ts",
+    "./enrichment": "./src/enrichment/index.ts"
   },
   "scripts": {
     "test:integration": "vitest run test/integration",
@@ -17,7 +18,10 @@
   "dependencies": {
     "@wren/core": "workspace:*",
     "@wren/db": "workspace:*",
-    "drizzle-orm": "0.45.2"
+    "@wren/llm": "workspace:*",
+    "drizzle-orm": "0.45.2",
+    "playwright": "1.63.0",
+    "zod": "4.6.5"
   },
   "devDependencies": {
     "@testcontainers/postgresql": "12.1.0",

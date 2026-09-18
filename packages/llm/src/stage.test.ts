@@ -146,9 +146,11 @@ describe("completeAndParse tracing", () => {
         tracer,
       }),
     ).rejects.toThrow("provider down");
-    expect(tracer.spans[0]?.outcome).toBeNull();
-    expect(tracer.spans[0]?.error).toBeInstanceOf(LlmError);
-    expect((tracer.spans[0]?.error as LlmError).message).toBe("provider down");
+    const span = tracer.spans[0];
+    if (!span) throw new Error("no span recorded");
+    expect(span.outcome).toBeNull();
+    expect(span.error).toBeInstanceOf(LlmError);
+    expect((span.error as LlmError).message).toBe("provider down");
   });
 });
 
