@@ -9,3 +9,4 @@ drafts/
 reports/
 coverage/
 deploy/prod.env
+deploy/github-secrets.env

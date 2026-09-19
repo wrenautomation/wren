@@ -17,7 +17,11 @@ Region `us-east-1`: Restate Cloud runs there; every journal entry is a round tri
    (region `us-east-1`). Verify: `aws sts get-caller-identity`.
 2. **Restate Cloud.** `restate cloud login`, create an environment in region `us`, then
    `restate cloud env configure`. In the web UI, Developers > Security > AWS Lambda: copy the
-   IAM trust policy and the request-identity public key.
+   IAM trust policy and the request-identity public key. If the UI does not show a trust
+   policy, use the one `@restatedev/restate-cdk` generates (principal account `654654156625`,
+   `aws:PrincipalArn` = `arn:aws:iam::654654156625:role/RestateCloud`, `sts:ExternalId` = your
+   env id, plus an `sts:TagSession` statement for the same account). The identity key is
+   optional on Lambda: IAM already restricts who can invoke.
 3. **Render tier.** Default: browserless chromium on the Postgres box (`browser_token` in
    tfvars; nothing to sign up for). Or Browserbase (an API key and project id; leave
    `browser_token` empty) if the box is too small for a browser.
