@@ -59,8 +59,10 @@ export const settingsSchema = z.object({
    * the domains at postmaster.google.com. Unset = no daily pull.
    */
   postmasterUser: z.string().min(1).optional(),
-  /** Path of the Google service-account key (domain-wide delegation). */
+  /** Path of the Google service-account key (domain-wide delegation), or its JSON inline. */
   googleServiceAccount: z.string().min(1).default("~/.config/wren/wren-sender.json"),
+  /** "local" launches Playwright chromium; "browserbase" connects to a remote one (Lambda). */
+  renderer: z.enum(["local", "browserbase"]).default("local"),
   /** Path of the sender roster (TOML). */
   sendersFile: z.string().min(1).default("senders_config.toml"),
   /** "console" prints; "gmail" sends for real. Console until cutover. */
@@ -107,6 +109,7 @@ export const ENV_KEYS = {
   pixelExportToken: "WREN_PIXEL_EXPORT_TOKEN",
   postmasterUser: "WREN_POSTMASTER_USER",
   googleServiceAccount: "WREN_GOOGLE_SERVICE_ACCOUNT",
+  renderer: "WREN_RENDERER",
   sendersFile: "WREN_SENDERS_FILE",
   sendTransport: "WREN_SEND_TRANSPORT",
   daemonTickSeconds: "WREN_DAEMON_TICK_SECONDS",

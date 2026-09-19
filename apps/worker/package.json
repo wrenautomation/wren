@@ -5,10 +5,13 @@
   "type": "module",
   "scripts": {
     "typecheck": "tsc --noEmit",
+    "test:unit": "vitest run src",
     "dev": "tsx watch src/main.ts",
-    "start": "tsx src/main.ts"
+    "start": "tsx src/main.ts",
+    "build:lambda": "node scripts/build-lambda.mjs"
   },
   "dependencies": {
+    "@aws-sdk/client-ssm": "3.1136.0",
     "@restatedev/restate-sdk": "1.17.1",
     "@wren/channel-email": "workspace:*",
     "@wren/channel-linkedin": "workspace:*",
@@ -21,6 +24,8 @@
     "tsx": "4.23.13"
   },
   "devDependencies": {
-    "typescript": "5.9.3"
+    "esbuild": "0.28.2",
+    "typescript": "5.9.3",
+    "vitest": "5.0.1"
   }
 }

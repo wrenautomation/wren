@@ -50,11 +50,26 @@ export function expandHome(path: string): string {
   return path === "~" || path.startsWith("~/") ? `${homedir()}${path.slice(1)}` : path;
 }
 
-/** Read and check the JSON key file Google Cloud issues for a service account. */
+/**
+ * Read and check the JSON key Google Cloud issues for a service account. `path`
+ * is the key file, or — for hosts with no filesystem to keep one on (Lambda) —
+ * the key's JSON itself. The value is never echoed: an error names the env var.
+ */
 export function loadServiceAccountKey(
   path: string,
   envName = "WREN_GOOGLE_SERVICE_ACCOUNT",
 ): ServiceAccountKey {
+  if (path.trimStart().startsWith("{")) {
+    let raw: unknown;
+    try {
+      raw = JSON.parse(path);
+    } catch (err) {
+      throw new ServiceAccountKeyError(
+        `${envName} holds JSON that does not parse (${(err as Error).message})`,
+      );
+    }
+    return parseServiceAccountKey(raw, envName);
+  }
   const expanded = expandHome(path);
   if (!existsSync(expanded)) {
     throw new ServiceAccountKeyError(

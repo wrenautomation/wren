@@ -23,6 +23,7 @@
     "@wren/llm": "workspace:*",
     "drizzle-orm": "0.45.2",
     "playwright": "1.63.0",
+    "playwright-core": "1.63.0",
     "zod": "4.6.5"
   },
   "devDependencies": {

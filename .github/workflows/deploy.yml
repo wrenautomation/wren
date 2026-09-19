@@ -1,0 +1,53 @@
+# Deploy main to production: migrate the database, ship the worker to Lambda,
+# register the new version with Restate Cloud. Runs after `ci` is green.
+# Secrets (repo settings): AWS_DEPLOY_ROLE_ARN, AWS_INVOKE_ROLE_ARN, LAMBDA_NAME,
+# WREN_DATABASE_URL, RESTATE_HOST, RESTATE_AUTH_TOKEN. See deploy/README.md.
+name: deploy
+on:
+  workflow_run:
+    workflows: [ci]
+    branches: [main]
+    types: [completed]
+  workflow_dispatch:
+concurrency: { group: deploy, cancel-in-progress: false }
+permissions:
+  id-token: write
+  contents: read
+jobs:
+  deploy:
+    if: ${{ github.event_name == 'workflow_dispatch' || github.event.workflow_run.conclusion == 'success' }}
+    runs-on: ubuntu-latest
+    environment: production
+    steps:
+      - uses: actions/checkout@v5
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v5
+        with: { node-version-file: .node-version, cache: pnpm }
+      - run: pnpm install --frozen-lockfile
+      - name: migrate
+        run: pnpm db:migrate
+        env: { WREN_DATABASE_URL: "${{ secrets.WREN_DATABASE_URL }}" }
+      - name: bundle
+        run: pnpm --filter @wren/worker build:lambda
+      - uses: aws-actions/configure-aws-credentials@v5
+        with:
+          role-to-assume: ${{ secrets.AWS_DEPLOY_ROLE_ARN }}
+          aws-region: us-east-1
+      - name: publish lambda version
+        id: publish
+        run: |
+          aws lambda update-function-code --function-name "$LAMBDA_NAME" \
+            --zip-file fileb://apps/worker/dist/lambda.zip --publish --output json > out.json
+          # A versioned ARN, whichever form the response's FunctionArn takes.
+          base="$(jq -r .FunctionArn out.json | sed -E 's/:[0-9]+$//')"
+          echo "arn=$base:$(jq -r .Version out.json)" >> "$GITHUB_OUTPUT"
+        env: { LAMBDA_NAME: "${{ secrets.LAMBDA_NAME }}" }
+      - name: register with restate cloud
+        run: |
+          npx -y @restatedev/restate deployments register -y \
+            "${{ steps.publish.outputs.arn }}" \
+            --assume-role-arn "${{ secrets.AWS_INVOKE_ROLE_ARN }}"
+        env:
+          RESTATE_HOST_SCHEME: https
+          RESTATE_HOST: ${{ secrets.RESTATE_HOST }}
+          RESTATE_AUTH_TOKEN: ${{ secrets.RESTATE_AUTH_TOKEN }}

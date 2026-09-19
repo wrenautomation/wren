@@ -56,7 +56,7 @@ Every CHECK-enumerated column is declared once as a `const` tuple
 | E7 ✅ | inbox: `packages/channel-email/src/inbox/` — dependency-free MIME reader (`rfc822.ts`, Python `email` semantics kept: walk order, `message/*` not descended, delivery-status blocks as header groups), `inbound.ts` classifier (bounce → receipt → auto-reply → unsubscribe → reply, RFC 3464 + heuristic NDR, embedded-original id), `sync.ts` (per-message transaction, `ON CONFLICT DO NOTHING RETURNING` dedupe, cursor floor/overlap, match order in_reply_to → references → thread → embedded original → from, C-D9 mismatch rule), `health.ts` (domain health, kill switches, pause/resume, `send_health`), `opens.ts`, `postmaster.ts` (v2, retry, scope/activation errors), `disposition.ts` (propose → ground gate, `classification` jsonb feeds `email_llm_calls`). Kill switches are now `sendTick`'s default. Restate: `InboxScheduler/{sender}` (sync every `WREN_DAEMON_SYNC_SECONDS`, one tick after a failure, hands replies to `Disposition/fleet` when a real LLM is configured), `PostmasterScheduler/fleet` (daily at local midnight, bound only with `WREN_POSTMASTER_USER`), `OpensScheduler/fleet` (bound only with `WREN_PIXEL_BASE_URL` + `WREN_PIXEL_EXPORT_TOKEN`); all share `restate/loop.ts`. Suppress tests ported too | `.eml` fixtures copied; `inbound.test.ts` (27), `inbox.test.ts` (22), `health.test.ts` (14), `open-tracking.test.ts` (10), `postmaster.test.ts` (11), `disposition.test.ts` (10 unit + 8), `suppress.test.ts` (12 unit + 13), `restate-inbox-scheduler.test.ts` (5) |
 | E8 ⏸ deferred 2026-09-18 | weekly report: keep `claude -p`, point it at `wren` commands. Skipped for now — unload the plist at cutover; re-add if missed. Note: `wren` has no email read commands yet (status/outcomes/health) — psql until then | manual |
 
-| E9 | deploy: Restate Cloud (free tier) → AWS Lambda endpoint for the worker (handlers already stateless per invocation); Postgres in Docker on a small EC2 instance; renderer behind an interface so Browserbase can replace local Playwright. Later: self-hosted Restate on Kubernetes. Wren stays general-purpose: nothing niche- or channel-specific in the deploy layer | smoke invoke through Restate Cloud; migrations run from CI |
+| E9 🔧 code done 2026-09-18, awaiting accounts | deploy: `apps/worker/src/services.ts` builds every service once; `main.ts` serves it on Node, `lambda.ts` on Lambda (`createEndpointHandler`, secrets from one SSM JSON param via `ssm-env.ts`). `scripts/build-lambda.mjs` → `dist/lambda.zip` (esbuild ESM, templates beside it, playwright-core for Browserbase). `browserbaseRenderer` (research) behind the same `BrowserRenderer` interface; `WREN_RENDERER=local\|browserbase`. `loadServiceAccountKey` takes the key JSON inline. `deploy/terraform`: EC2 t4g.small + Docker postgres:17 (TLS-only, scram, own EBS volume, EIP, nightly pg_dump → S3), Lambda + role, Restate invoker role (trust policy from the Cloud UI), GitHub OIDC CI role, SSM params. `deploy/README.md` runbook; `.github/workflows/deploy.yml` migrates, publishes a version, registers it. Verified locally: bundled handler answers `/discover` with every service; `tofu validate` clean. Needs you: AWS account + `aws configure`, Restate Cloud env, Browserbase keys, `deploy/prod.env`, then the runbook's first deploy | smoke invoke through Restate Cloud; migrations run from CI |
 
 ## Cutover (after E9)
 
@@ -66,3 +66,12 @@ Every CHECK-enumerated column is declared once as a `const` tuple
 4. Copy `senders_config.toml` values into `.env`/rows; move the service-account path.
 5. `docker compose --profile campaign down` in emails_gen, `launchctl unload` the
    weekly-report plist, then delete the local Python repos (GitHub copies stay).
+
+## After cutover
+
+- `wren onboard-domain` (asked 2026-09-18): a durable workflow for a new sending domain.
+  API-first — Cloudflare DNS, Workspace user + DKIM via Admin SDK, `gcloud` for keys — with
+  browser steps only where no API exists (Postmaster registration, the DWD grant), run in a
+  persistent logged-in browser profile (Browserbase context or a dedicated Chrome profile),
+  and an approval gate before anything that spends. Credentials stay in vendor sessions and
+  stored payment methods, never in prompts.

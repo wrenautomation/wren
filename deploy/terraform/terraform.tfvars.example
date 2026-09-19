@@ -1,0 +1,6 @@
+# Copy to terraform.tfvars (gitignored). Never commit the real one.
+pg_password          = "<openssl rand -base64 32 | tr -d '/+='>"
+restate_trust_policy = <<EOT
+{ "paste": "the trust policy from Restate Cloud > Developers > Security > AWS Lambda" }
+EOT
+restate_identity_key = "publickeyv1_..."
