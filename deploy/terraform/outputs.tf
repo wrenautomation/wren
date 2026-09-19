@@ -27,7 +27,7 @@ output "lambda_name" {
 
 output "restate_invoker_role_arn" {
   description = "--assume-role-arn for `restate deployments register`"
-  value       = aws_iam_role.restate_invoker.arn
+  value       = one(aws_iam_role.restate_invoker[*].arn)
 }
 
 output "ci_role_arn" {

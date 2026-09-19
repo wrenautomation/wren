@@ -3,6 +3,7 @@
 # this environment's external id).
 
 resource "aws_iam_role" "restate_invoker" {
+  count              = var.restate_trust_policy == "" ? 0 : 1
   name               = "${local.prefix}-restate-invoker"
   assume_role_policy = var.restate_trust_policy
 }
@@ -18,7 +19,8 @@ data "aws_iam_policy_document" "restate_invoker" {
 }
 
 resource "aws_iam_role_policy" "restate_invoker" {
+  count  = var.restate_trust_policy == "" ? 0 : 1
   name   = "invoke-worker"
-  role   = aws_iam_role.restate_invoker.id
+  role   = aws_iam_role.restate_invoker[0].id
   policy = data.aws_iam_policy_document.restate_invoker.json
 }

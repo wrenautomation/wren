@@ -60,8 +60,9 @@ variable "lambda_timeout_s" {
 }
 
 variable "restate_trust_policy" {
-  description = "The IAM trust policy JSON Restate Cloud shows under Developers > Security > AWS Lambda for this environment."
+  description = "The IAM trust policy JSON Restate Cloud shows under Developers > Security > AWS Lambda for this environment. Empty = no invoker role yet."
   type        = string
+  default     = ""
 }
 
 variable "restate_identity_key" {
