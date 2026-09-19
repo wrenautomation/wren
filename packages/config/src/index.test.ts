@@ -57,7 +57,9 @@ describe("loadSettings", () => {
     expect(loadSettings(base).openTracking).toBe(false);
     expect(loadSettings({ ...base, WREN_OPEN_TRACKING: "true" }).openTracking).toBe(true);
     expect(loadSettings({ ...base, WREN_OPEN_TRACKING: "0" }).openTracking).toBe(false);
-    expect(() => loadSettings({ ...base, WREN_OPEN_TRACKING: "yes" })).toThrow(/WREN_OPEN_TRACKING/);
+    expect(() => loadSettings({ ...base, WREN_OPEN_TRACKING: "yes" })).toThrow(
+      /WREN_OPEN_TRACKING/,
+    );
   });
 
   it("treats empty strings as unset", () => {

@@ -43,10 +43,7 @@ export async function loadSsmEnv(name: string | undefined): Promise<string[]> {
  * checkout never has it, so the bundle cannot be the place it lives.
  * Returns the path, or null when no parameter is named.
  */
-export async function loadSsmFile(
-  name: string | undefined,
-  path: string,
-): Promise<string | null> {
+export async function loadSsmFile(name: string | undefined, path: string): Promise<string | null> {
   if (!name) return null;
   await writeFile(path, await readParameter(name), { mode: 0o600 });
   return path;
