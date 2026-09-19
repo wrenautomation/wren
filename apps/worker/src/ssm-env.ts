@@ -5,8 +5,8 @@
  * rewriting the parameter. `deploy/scripts/push-secrets.sh` writes it.
  */
 
-import { GetParameterCommand, SSMClient } from "@aws-sdk/client-ssm";
 import { writeFile } from "node:fs/promises";
+import { GetParameterCommand, SSMClient } from "@aws-sdk/client-ssm";
 
 export function applyEnv(json: string, env: NodeJS.ProcessEnv = process.env): string[] {
   const parsed: unknown = JSON.parse(json);
