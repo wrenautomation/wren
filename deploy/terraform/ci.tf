@@ -28,10 +28,14 @@ data "aws_iam_policy_document" "ci_assume" {
       test     = "StringEquals"
       variable = "token.actions.githubusercontent.com:sub"
       # A job with `environment:` carries the environment subject, not the branch.
-      values = [
-        "repo:${var.github_repo}:ref:refs/heads/main",
-        "repo:${var.github_repo}:environment:production",
-      ]
+      # Newer repos have "immutable subjects": the claim carries owner and repo ids
+      # (repo:owner@id/name@id:…). Trust both spellings.
+      values = flatten([
+        for prefix in distinct(["repo:${var.github_repo}", var.github_sub_prefix]) : [
+          "${prefix}:ref:refs/heads/main",
+          "${prefix}:environment:production",
+        ] if prefix != ""
+      ])
     }
   }
 }

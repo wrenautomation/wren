@@ -67,6 +67,11 @@ Lambda version, register it. Repo secrets, from `tofu output` and the Restate UI
 | `RESTATE_HOST` | `<env id>.env.us.restate.cloud` |
 | `RESTATE_AUTH_TOKEN` | an API key from Developers > API keys |
 
+If the deploy job fails at `configure-aws-credentials` with "Not authorized to perform
+sts:AssumeRoleWithWebIdentity", the repo uses GitHub's immutable OIDC subjects:
+`gh api repos/{owner}/{repo}/actions/oidc/customization/sub` shows `sub_claim_prefix`; put it
+in `terraform.tfvars` as `github_sub_prefix` and `tofu apply`.
+
 Create a `production` environment in the repo settings (the job targets it; add a required
 reviewer there if you want a manual gate).
 

@@ -77,6 +77,12 @@ variable "github_repo" {
   default     = "wrenautomation/wren"
 }
 
+variable "github_sub_prefix" {
+  description = "The repo's OIDC sub prefix when GitHub uses immutable subjects (repo:owner@id/name@id); `gh api repos/{owner}/{repo}/actions/oidc/customization/sub` shows it. Empty = plain repo:owner/name only."
+  type        = string
+  default     = ""
+}
+
 variable "browser_token" {
   description = "Token for the browserless chromium on the Postgres box (WREN_CDP_URL carries it). Generate like pg_password. Empty = no browser container."
   type        = string
