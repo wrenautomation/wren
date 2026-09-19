@@ -8,7 +8,7 @@
 | | |
 |---|---|
 | Restate Cloud | env `wren-automation` (`env_201m2vp6sq3x11xdaatsmjej302`), region `us` |
-| Deployment | `dp_12xEDpaYDDkQBOMUz0r1QEp` → Lambda `wren-prod-worker` version 1, 8 services |
+| Deployment | the latest `restate deployments list` row → Lambda `wren-prod-worker` (CI publishes a new version per push to main), 9 services |
 | Compute | AWS Lambda, us-east-1, Node 22 arm64, 1 GB, 15 min max per invocation |
 | State | Postgres 17 in Docker on EC2 `t4g.small` (`i-04f8cb57c91e84126`), own EBS volume, TLS-only, nightly dump → S3 (30-day expiry) |
 | Browser | browserless Chromium on the same box, token-gated, over CDP (`WREN_RENDERER=cdp`) |
@@ -59,12 +59,13 @@ curl -X POST -H "$H" $U/SendScheduler/alice@example.com/stop
 curl -X POST -H "$H" $U/InboxScheduler/alice@example.com/sync
 curl -X POST -H "$H" $U/PostmasterScheduler/fleet/start
 curl -X POST -H "$H" $U/OpensScheduler/fleet/start
+curl -X POST -H "$H" $U/ReportScheduler/weekly/start   # Friday 19:00 report; /sync mails one now
 ```
 
 ### CLI (already configured for this env)
 
 ```sh
-restate services list                 # the 8 services and revisions
+restate services list                 # the 9 services and revisions
 restate invocations list              # running and sleeping loops, with wake times
 restate invocations describe <id>     # one invocation's journal
 restate services status SendScheduler # per-key state
