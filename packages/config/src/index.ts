@@ -50,8 +50,16 @@ export const settingsSchema = z.object({
   bouncePauseRate: z.coerce.number().default(0.02),
   bouncePauseMinBounces: z.coerce.number().int().default(2),
   healthWindowDays: z.coerce.number().int().default(7),
-  /** https://host of the open-pixel endpoint; unset = no pixel. */
+  /** https://host of the open-pixel endpoint; unset = no pixel host at all. */
   pixelBaseUrl: z.string().min(1).optional(),
+  /**
+   * Put the open pixel into outgoing mail. Off by default: opens still sync
+   * from whatever earlier sends carried, but new mail stays pixel-free.
+   */
+  openTracking: z
+    .enum(["true", "false", "1", "0"])
+    .default("false")
+    .transform((v) => v === "true" || v === "1"),
   /** The pixel host's /export bearer, shared with the worker. A secret: never logged, never in argv. */
   pixelExportToken: z.string().min(1).optional(),
   /**
@@ -108,6 +116,7 @@ export const ENV_KEYS = {
   bouncePauseMinBounces: "WREN_BOUNCE_PAUSE_MIN_BOUNCES",
   healthWindowDays: "WREN_HEALTH_WINDOW_DAYS",
   pixelBaseUrl: "WREN_PIXEL_BASE_URL",
+  openTracking: "WREN_OPEN_TRACKING",
   pixelExportToken: "WREN_PIXEL_EXPORT_TOKEN",
   postmasterUser: "WREN_POSTMASTER_USER",
   googleServiceAccount: "WREN_GOOGLE_SERVICE_ACCOUNT",

@@ -10,3 +10,5 @@ reports/
 coverage/
 deploy/prod.env
 deploy/github-secrets.env
+legacy/
+senders_config.toml

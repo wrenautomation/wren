@@ -147,7 +147,8 @@ export async function buildServices(
       transport,
       policy,
       fleet,
-      pixelBaseUrl: settings.pixelBaseUrl ?? null,
+      // The pixel goes into mail only when asked; the host alone just enables the opens pull.
+      pixelBaseUrl: settings.openTracking ? (settings.pixelBaseUrl ?? null) : null,
       tickMs,
     }),
     makeInboxScheduler({ db, reader, senders: fleet.senders, syncMs, tickMs, classify }),

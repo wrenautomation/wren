@@ -52,6 +52,14 @@ describe("loadSettings", () => {
     expect(bare.pixelExportToken).toBeUndefined();
     expect(bare.daemonSyncSeconds).toBe(300);
   });
+  it("keeps new mail pixel-free unless WREN_OPEN_TRACKING is on", () => {
+    const base = { WREN_DATABASE_URL: "postgresql://u:p@h:1/d", WREN_PIXEL_BASE_URL: "https://t" };
+    expect(loadSettings(base).openTracking).toBe(false);
+    expect(loadSettings({ ...base, WREN_OPEN_TRACKING: "true" }).openTracking).toBe(true);
+    expect(loadSettings({ ...base, WREN_OPEN_TRACKING: "0" }).openTracking).toBe(false);
+    expect(() => loadSettings({ ...base, WREN_OPEN_TRACKING: "yes" })).toThrow(/WREN_OPEN_TRACKING/);
+  });
+
   it("treats empty strings as unset", () => {
     const s = loadSettings({ WREN_DATABASE_URL: "postgresql://u:p@h:1/d", WREN_INBOX_DIR: "" });
     expect(s.inboxDir).toMatch(/\/inbox$/);
