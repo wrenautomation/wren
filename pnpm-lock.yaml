@@ -26,6 +26,9 @@ importers:
       '@restatedev/restate-sdk-clients':
         specifier: 1.17.1
         version: 1.17.1
+      '@wren/channel-email':
+        specifier: workspace:*
+        version: link:../../packages/channel-email
       '@wren/channel-linkedin':
         specifier: workspace:*
         version: link:../../packages/channel-linkedin

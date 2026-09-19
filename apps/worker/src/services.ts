@@ -28,6 +28,7 @@ import {
   makeInboxScheduler,
   makeOpensScheduler,
   makePostmasterScheduler,
+  makeReportScheduler,
   makeResolution,
   makeSendScheduler,
 } from "@wren/channel-email/restate";
@@ -161,6 +162,13 @@ export async function buildServices(
     );
   }
   if (opens) services.push(makeOpensScheduler({ db, ...opens, syncMs, tickMs }));
+  // The Friday report mails from a fleet inbox by default: the one mailbox the
+  // service account is known to be able to impersonate.
+  const reportFrom = settings.reportFrom ?? fleet.senders[0] ?? null;
+  const report =
+    settings.reportTo && reportFrom ? { to: settings.reportTo, from: reportFrom } : null;
+  if (settings.reportTo && !report) log.warn("WREN_REPORT_TO set but no sender to mail from");
+  if (report) services.push(makeReportScheduler({ db, transport, mail: report, policy }));
 
   return {
     services,
@@ -173,6 +181,7 @@ export async function buildServices(
       senders: fleet.senders.length,
       postmaster: postmaster !== null,
       opens: opens !== null,
+      report: report !== null,
     },
     close: () => handle.close(),
   };

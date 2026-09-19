@@ -67,6 +67,10 @@ export const settingsSchema = z.object({
    * the domains at postmaster.google.com. Unset = no daily pull.
    */
   postmasterUser: z.string().min(1).optional(),
+  /** Where the Friday report goes; unset = no ReportScheduler. */
+  reportTo: z.string().email().optional(),
+  /** The mailbox it is sent from (must be one the service account may impersonate); default = the first fleet sender. */
+  reportFrom: z.string().email().optional(),
   /** Path of the Google service-account key (domain-wide delegation), or its JSON inline. */
   googleServiceAccount: z.string().min(1).default("~/.config/wren/wren-sender.json"),
   /** "local" launches Playwright chromium; "cdp" / "browserbase" connect to a remote one (Lambda). */
@@ -119,6 +123,8 @@ export const ENV_KEYS = {
   openTracking: "WREN_OPEN_TRACKING",
   pixelExportToken: "WREN_PIXEL_EXPORT_TOKEN",
   postmasterUser: "WREN_POSTMASTER_USER",
+  reportTo: "WREN_REPORT_TO",
+  reportFrom: "WREN_REPORT_FROM",
   googleServiceAccount: "WREN_GOOGLE_SERVICE_ACCOUNT",
   renderer: "WREN_RENDERER",
   cdpUrl: "WREN_CDP_URL",

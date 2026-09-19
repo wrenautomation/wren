@@ -462,6 +462,37 @@ export const postmasterDays = pgTable(
   ],
 );
 
+export const REPORT_KINDS = ["weekly"] as const;
+
+/**
+ * A generated report (E8): the numbers as data and the text as sent, so the
+ * next one can say what changed and the operator can re-read any week.
+ */
+export const reports = pgTable(
+  "reports",
+  {
+    id: serial("id").notNull(),
+    kind: varchar("kind", { length: 32, enum: REPORT_KINDS }).notNull(),
+    periodStart: timestamp("period_start", { withTimezone: true }).notNull(),
+    periodEnd: timestamp("period_end", { withTimezone: true }).notNull(),
+    stats: jsonb("stats").notNull(),
+    body: text("body").notNull(),
+    /** Where it went, or null when it was only stored. */
+    sentTo: varchar("sent_to", { length: 320 }),
+    createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+    runId: uuid("run_id"),
+  },
+  (t) => [
+    index("ix_reports_kind_period_end").on(t.kind, t.periodEnd),
+    foreignKey({
+      columns: [t.runId],
+      foreignColumns: [runs.id],
+      name: "fk_reports_run_id_runs",
+    }),
+    primaryKey({ columns: [t.id], name: "pk_reports" }),
+  ],
+);
+
 // Row types
 export type ContactCandidate = typeof contactCandidates.$inferSelect;
 export type NewContactCandidate = typeof contactCandidates.$inferInsert;
@@ -485,3 +516,5 @@ export type SenderPause = typeof senderPauses.$inferSelect;
 export type NewSenderPause = typeof senderPauses.$inferInsert;
 export type PostmasterDay = typeof postmasterDays.$inferSelect;
 export type NewPostmasterDay = typeof postmasterDays.$inferInsert;
+export type Report = typeof reports.$inferSelect;
+export type NewReport = typeof reports.$inferInsert;

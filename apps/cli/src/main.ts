@@ -5,6 +5,7 @@
  */
 import { readFile } from "node:fs/promises";
 import * as clients from "@restatedev/restate-sdk-clients";
+import { ConsoleTransport, runWeeklyReport } from "@wren/channel-email";
 import {
   collectStatus,
   draftCount,
@@ -95,6 +96,27 @@ notes
         `${r.id}  ${r.createdAt.toISOString().slice(0, 10)}  ${r.source.padEnd(5)}  ${preview}`,
       );
     }
+  });
+
+const report = program.command("report").description("periodic reports");
+report
+  .command("weekly")
+  .description("Collect this week's numbers, store the report, print it (no mail)")
+  .option("--now <iso>", "period end (default: now)")
+  .option("--days <n>", "period length", "7")
+  .action(async (opts: { now?: string; days: string }) => {
+    const now = opts.now ? new Date(opts.now) : new Date();
+    const out = await withDb((d) =>
+      runWeeklyReport({
+        db: d,
+        transport: new ConsoleTransport(),
+        mail: null,
+        now,
+        days: Number(opts.days),
+      }),
+    );
+    process.stdout.write(out.body);
+    console.error(`stored report ${out.reportId}`);
   });
 
 export function startOfTodayUtc(now = new Date()): Date {
