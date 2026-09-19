@@ -81,10 +81,13 @@ resource "aws_s3_bucket_public_access_block" "backups" {
 
 resource "aws_s3_bucket_lifecycle_configuration" "backups" {
   bucket = aws_s3_bucket.backups.id
+  # Only the nightly dumps expire; `legacy/` (the retired Python repos' data) is kept.
   rule {
-    id     = "expire"
+    id     = "expire-pg-dumps"
     status = "Enabled"
-    filter {}
+    filter {
+      prefix = "pg/"
+    }
     expiration {
       days = var.backup_retention_days
     }
