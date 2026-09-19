@@ -73,7 +73,7 @@ resource "aws_lambda_function" "worker" {
     variables = merge(
       {
         WREN_SSM_ENV_PARAM = aws_ssm_parameter.env.name
-        WREN_RENDERER      = "browserbase"
+        WREN_RENDERER      = var.browser_token == "" ? "browserbase" : "cdp"
         WREN_LOG_LEVEL     = "info"
       },
       var.restate_identity_key == "" ? {} : { WREN_RESTATE_IDENTITY_KEY = var.restate_identity_key },

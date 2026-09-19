@@ -53,6 +53,17 @@ docker run -d --name wren-pg --restart unless-stopped \
   -c shared_buffers=256MB -c max_connections=60
 unset PW
 
+# The render tier: browserless chromium, token-gated, when a token was provisioned.
+if [ -n "${browser_token_param}" ]; then
+  TOKEN="$(aws ssm get-parameter --region "${region}" --name "${browser_token_param}" --with-decryption \
+    --query Parameter.Value --output text)"
+  docker rm -f wren-browser >/dev/null 2>&1 || true
+  docker run -d --name wren-browser --restart unless-stopped \
+    -p 3000:3000 -e TOKEN="$TOKEN" -e CONCURRENT=2 -e TIMEOUT=60000 \
+    --shm-size=512m ghcr.io/browserless/chromium:latest
+  unset TOKEN
+fi
+
 # Nightly dump to S3; the bucket's lifecycle rule expires old ones.
 cat > /usr/local/bin/wren-pg-backup <<'BK'
 #!/bin/bash

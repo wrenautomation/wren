@@ -1,4 +1,6 @@
-# Postgres 17 in Docker on one ARM instance. Reachable from anywhere on 5432 —
+# Postgres 17 in Docker on one ARM instance — plus, when a token is set, a
+# browserless chromium beside it: the worker's render tier over CDP, at no cost
+# beyond the box (Browserbase is the alternative). Reachable from anywhere on 5432 —
 # the Lambda has no fixed address and a NAT gateway costs more than the box —
 # so the listener is TLS-only (hostssl) with scram passwords and a long random
 # secret. Data lives on its own volume; the instance itself is disposable.
@@ -28,6 +30,13 @@ resource "aws_ssm_parameter" "pg_password" {
   value = var.pg_password
 }
 
+resource "aws_ssm_parameter" "browser_token" {
+  count = var.browser_token == "" ? 0 : 1
+  name  = "${local.ssm_root}/browser_token"
+  type  = "SecureString"
+  value = var.browser_token
+}
+
 resource "aws_security_group" "pg" {
   name        = "${local.prefix}-pg"
   description = "Postgres over TLS from anywhere; no SSH (use SSM Session Manager)"
@@ -39,6 +48,16 @@ resource "aws_security_group" "pg" {
     to_port     = 5432
     protocol    = "tcp"
     cidr_blocks = ["0.0.0.0/0"]
+  }
+  dynamic "ingress" {
+    for_each = var.browser_token == "" ? [] : [1]
+    content {
+      description = "browserless CDP (token in the URL)"
+      from_port   = 3000
+      to_port     = 3000
+      protocol    = "tcp"
+      cidr_blocks = ["0.0.0.0/0"]
+    }
   }
   egress {
     from_port   = 0
@@ -98,9 +117,9 @@ data "aws_kms_alias" "ssm" {
 
 data "aws_iam_policy_document" "pg" {
   statement {
-    sid       = "ReadOwnPassword"
+    sid       = "ReadOwnSecrets"
     actions   = ["ssm:GetParameter"]
-    resources = [aws_ssm_parameter.pg_password.arn]
+    resources = concat([aws_ssm_parameter.pg_password.arn], aws_ssm_parameter.browser_token[*].arn)
   }
   statement {
     sid       = "DecryptSsm"
@@ -153,13 +172,14 @@ resource "aws_instance" "pg" {
   }
 
   user_data = templatefile("${path.module}/user-data.sh", {
-    region    = var.region
-    volume_id = aws_ebs_volume.pg_data.id
-    pw_param  = aws_ssm_parameter.pg_password.name
-    backups   = aws_s3_bucket.backups.bucket
-    db_name   = var.name
-    db_user   = var.name
-    pg_image  = "postgres:17"
+    region              = var.region
+    volume_id           = aws_ebs_volume.pg_data.id
+    pw_param            = aws_ssm_parameter.pg_password.name
+    browser_token_param = var.browser_token == "" ? "" : aws_ssm_parameter.browser_token[0].name
+    backups             = aws_s3_bucket.backups.bucket
+    db_name             = var.name
+    db_user             = var.name
+    pg_image            = "postgres:17"
   })
 
   tags = { Name = "${local.prefix}-pg" }

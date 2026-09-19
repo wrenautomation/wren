@@ -1,11 +1,12 @@
 /**
- * The render tier on Browserbase: a remote chromium reached over CDP, for hosts
- * with no browser of their own (Lambda). Same contract as `browserRenderer` —
- * declared User-Agent, images/media/fonts blocked, the words are the payload —
- * with one difference forced by CDP: Browserbase serves one default context per
- * session, so isolation between URLs is a fresh page plus cleared cookies rather
- * than a fresh context. One session per renderer; it ends when the browser
- * disconnects (`close`).
+ * The render tier over CDP: a chromium somewhere else, for hosts with no
+ * browser of their own (Lambda). Two ways to get one — `cdpRenderer` takes a
+ * WebSocket URL (browserless on our own box; the token rides in the URL, so
+ * the URL is a secret), `browserbaseRenderer` opens a Browserbase session
+ * first. Same contract as `browserRenderer`: declared User-Agent,
+ * images/media/fonts blocked, the words are the payload. One difference CDP
+ * forces: a remote browser serves one default context, so isolation between
+ * URLs is a fresh page plus cleared cookies rather than a fresh context.
  */
 import type { BrowserRenderer, RenderedPage, Renderer } from "./render.js";
 import { RenderUnavailable } from "./render.js";
@@ -89,12 +90,26 @@ async function connectOverCdp(connectUrl: string): Promise<CdpBrowser> {
   return (await playwright.chromium.connectOverCDP(connectUrl)) as unknown as CdpBrowser;
 }
 
-export async function browserbaseRenderer(
-  userAgent: string,
-  opts: BrowserbaseOptions,
-): Promise<BrowserRenderer> {
-  const session = await openSession(opts);
-  const browser = await (opts.connect ?? connectOverCdp)(session.connectUrl);
+export interface CdpOptions {
+  /** ws(s):// endpoint of a chromium's DevTools protocol, e.g. browserless with its token. */
+  connectUrl: string;
+  /** Test seam: what `connectOverCDP` returns. */
+  connect?: (connectUrl: string) => Promise<CdpBrowser>;
+}
+
+/** Render through a chromium already running at `connectUrl`. */
+export async function cdpRenderer(userAgent: string, opts: CdpOptions): Promise<BrowserRenderer> {
+  let browser: CdpBrowser;
+  try {
+    browser = await (opts.connect ?? connectOverCdp)(opts.connectUrl);
+  } catch (err) {
+    if (err instanceof RenderUnavailable) throw err;
+    // The URL carries the token: never let it into the message.
+    throw new RenderUnavailable(
+      `could not reach the remote browser (WREN_CDP_URL): ${(err as Error).message}`,
+      { cause: err },
+    );
+  }
   const context = browser.contexts()[0] ?? (await browser.newContext({ userAgent }));
   await context.setExtraHTTPHeaders({ "User-Agent": userAgent });
   await context.route("**/*", (route) =>
@@ -121,4 +136,16 @@ export async function browserbaseRenderer(
     }
   };
   return { render, close: () => browser.close() };
+}
+
+/** Render through a fresh Browserbase session; it ends when the renderer closes. */
+export async function browserbaseRenderer(
+  userAgent: string,
+  opts: BrowserbaseOptions,
+): Promise<BrowserRenderer> {
+  const session = await openSession(opts);
+  return cdpRenderer(userAgent, {
+    connectUrl: session.connectUrl,
+    ...(opts.connect ? { connect: opts.connect } : {}),
+  });
 }

@@ -4,3 +4,5 @@ restate_trust_policy = <<EOT
 { "paste": "the trust policy from Restate Cloud > Developers > Security > AWS Lambda" }
 EOT
 restate_identity_key = "publickeyv1_..."
+# Own render tier on the Postgres box (instead of Browserbase). Empty = off.
+browser_token = "<openssl rand -base64 32 | tr -d '/+='>"

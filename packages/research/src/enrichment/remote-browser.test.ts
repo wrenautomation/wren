@@ -4,8 +4,9 @@ import {
   type CdpBrowser,
   type CdpContext,
   type CdpPage,
+  cdpRenderer,
   openSession,
-} from "./browserbase.js";
+} from "./remote-browser.js";
 import { RenderUnavailable } from "./render.js";
 
 const KEY = "bb_live_secret";
@@ -67,6 +68,21 @@ function fakeBrowser(pages: Record<string, string>) {
   };
   return { browser, log };
 }
+
+describe("cdpRenderer", () => {
+  it("keeps the token-bearing url out of a connection failure", async () => {
+    const err = await cdpRenderer("ua", {
+      connectUrl: "ws://box:3000?token=hunter2",
+      connect: async () => {
+        throw new Error("ECONNREFUSED");
+      },
+    }).catch((e) => e);
+    expect(err).toBeInstanceOf(RenderUnavailable);
+    expect(err.message).toContain("WREN_CDP_URL");
+    expect(err.message).toContain("ECONNREFUSED");
+    expect(err.message).not.toContain("hunter2");
+  });
+});
 
 describe("browserbaseRenderer", () => {
   it("renders in the session's default context, one page per url, cookies cleared after", async () => {

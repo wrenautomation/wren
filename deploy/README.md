@@ -18,7 +18,9 @@ Region `us-east-1`: Restate Cloud runs there; every journal entry is a round tri
 2. **Restate Cloud.** `restate cloud login`, create an environment in region `us`, then
    `restate cloud env configure`. In the web UI, Developers > Security > AWS Lambda: copy the
    IAM trust policy and the request-identity public key.
-3. **Browserbase** (render tier on Lambda): an API key and project id.
+3. **Render tier.** Default: browserless chromium on the Postgres box (`browser_token` in
+   tfvars; nothing to sign up for). Or Browserbase (an API key and project id; leave
+   `browser_token` empty) if the box is too small for a browser.
 4. **Secrets file.** `cp deploy/prod.env.example deploy/prod.env` and fill it (gitignored).
 
 ## First deploy
@@ -89,6 +91,8 @@ later release) so the version still serving does not break.
 - Secrets live in one SSM SecureString the Lambda role alone can read; never in Terraform state
   except `pg_password` (state is local and gitignored).
 - The Restate invoker role can only invoke this function; the CI role can only replace its code.
+- The browser container listens on 3000 behind a token in the URL, over plain `ws://`. It
+  renders public web pages and nothing else; Lambda → EC2 in one region stays on AWS's network.
 
 ## Later
 

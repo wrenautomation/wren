@@ -40,6 +40,7 @@ import {
   type BrowserRenderer,
   browserbaseRenderer,
   browserRenderer,
+  cdpRenderer,
   PoliteFetcher,
   userAgent,
 } from "@wren/research";
@@ -183,6 +184,14 @@ function rendererFor(
   log: Logger,
 ): (() => Promise<BrowserRenderer>) | null {
   if (settings.renderer === "local") return () => browserRenderer(ua);
+  if (settings.renderer === "cdp") {
+    const connectUrl = settings.cdpUrl;
+    if (!connectUrl) {
+      log.warn("WREN_RENDERER=cdp without WREN_CDP_URL: no render tier");
+      return null;
+    }
+    return () => cdpRenderer(ua, { connectUrl });
+  }
   const apiKey = process.env.BROWSERBASE_API_KEY;
   const projectId = process.env.BROWSERBASE_PROJECT_ID;
   if (!apiKey || !projectId) {

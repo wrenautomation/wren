@@ -75,3 +75,10 @@ variable "github_repo" {
   type        = string
   default     = "wrenautomation/wren"
 }
+
+variable "browser_token" {
+  description = "Token for the browserless chromium on the Postgres box (WREN_CDP_URL carries it). Generate like pg_password. Empty = no browser container."
+  type        = string
+  sensitive   = true
+  default     = ""
+}
