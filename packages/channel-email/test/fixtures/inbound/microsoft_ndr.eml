@@ -1,0 +1,27 @@
+Return-Path: <>
+Received: from EX13.example.com (10.20.30.40) by mx.wren-automation.com
+        with Microsoft SMTP Server id 15.20.6178.29; Mon, 7 Sep 2026 16:22:41 +0000
+From: postmaster@example.com
+To: will@wren-automation.com
+Date: Mon, 7 Sep 2026 16:22:41 +0000
+Subject: Undeliverable: Quick question about your agency
+Message-ID: <c9f0a1e2-7b44-4e5a-9c31-2f8d6a1b4c77@EX13.example.com>
+References: <abc@wren-automation.com>
+X-Failed-Recipients: nobody@example.com
+Auto-Submitted: auto-replied
+MIME-Version: 1.0
+Content-Type: text/plain; charset="utf-8"
+Content-Transfer-Encoding: 8bit
+
+Your message to nobody@example.com couldn't be delivered.
+
+nobody wasn't found at example.com.
+
+Remote Server returned '550 5.1.10 RESOLVER.ADR.RecipientNotFound; Recipient
+not found by SMTP address lookup'
+
+Original Message Details
+Created Date:   9/7/2026 4:22:38 PM
+Sender Address: will@wren-automation.com
+Recipient Address:      nobody@example.com
+Subject:        Quick question about your agency

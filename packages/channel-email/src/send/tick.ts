@@ -3,6 +3,7 @@
  * the scheduler and any operator command cannot drift.
  */
 import type { Db } from "@wren/db";
+import { evaluateKillSwitches } from "../inbox/health.js";
 import type { SenderPause } from "../schema.js";
 import { type SendStats, sendDue } from "./deliver.js";
 import type { SendPolicy } from "./policy.js";
@@ -45,12 +46,13 @@ export function rosterFleet(
   };
 }
 
-/** The kill-switch hook (health, E7): pauses a domain whose trailing bounces crossed the line. */
+/** The kill-switch hook: pauses a domain whose trailing bounces crossed the line. */
 export type KillSwitches = (
   db: Db,
   opts: { policy: SendPolicy; now: Date; senders: readonly string[]; runId: string | null },
 ) => Promise<SenderPause[]>;
 
+/** Off, for tests that seed bounce history and want the walk alone. */
 export const noKillSwitches: KillSwitches = async () => [];
 
 export interface TickOptions {
@@ -77,7 +79,7 @@ export interface TickResult {
  * — then one paced walk of the outbox (reconcile first).
  */
 export async function sendTick(db: Db, opts: TickOptions): Promise<TickResult> {
-  const killSwitches = opts.killSwitches ?? noKillSwitches;
+  const killSwitches = opts.killSwitches ?? evaluateKillSwitches;
   const newPauses = await killSwitches(db, {
     policy: opts.policy,
     now: opts.now,

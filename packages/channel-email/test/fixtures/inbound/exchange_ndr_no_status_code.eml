@@ -1,0 +1,26 @@
+Return-Path: <>
+Received: from EX19.example.com (10.20.30.41) by mx.wren-automation.com
+        with Microsoft SMTP Server id 15.20.6178.29; Mon, 7 Sep 2026 17:05:19 +0000
+From: postmaster@example.com
+To: will@wren-automation.com
+Date: Mon, 7 Sep 2026 17:05:19 +0000
+Subject: Undeliverable: Quick question about your agency
+Message-ID: <b3d1f7c8-11aa-4bde-8f02-71c9de44a301@EX19.example.com>
+References: <abc@wren-automation.com>
+Auto-Submitted: auto-replied
+MIME-Version: 1.0
+Content-Type: text/plain; charset="utf-8"
+Content-Transfer-Encoding: 8bit
+
+Delivery has failed to these recipients or groups:
+
+dana@example.com
+
+Your message wasn't delivered. The remote server did not say why, and no
+further information is available.
+
+Original Message Details
+Created Date:   Monday, September 7, 2026
+Sender Address: will@wren-automation.com
+Recipient Address:      dana@example.com
+Subject:        Quick question about your agency

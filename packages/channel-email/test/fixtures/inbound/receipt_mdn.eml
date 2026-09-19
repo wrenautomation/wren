@@ -1,0 +1,25 @@
+Return-Path: <lee@example.com>
+From: Lee Sato <lee@example.com>
+To: will@wren-automation.com
+Date: Mon, 7 Sep 2026 10:05:12 -0700
+Subject: Read: Quick question about your agency
+Message-ID: <mdn-1204@mail.example.com>
+Auto-Submitted: auto-replied
+MIME-Version: 1.0
+Content-Type: multipart/report; report-type=disposition-notification;
+        boundary="mdn-boundary-0091"
+
+--mdn-boundary-0091
+Content-Type: text/plain; charset="utf-8"
+
+Your message was read on Monday, September 7, 2026 10:05:11 AM (GMT-07:00).
+
+--mdn-boundary-0091
+Content-Type: message/disposition-notification
+
+Reporting-UA: mail.example.com; Example Mail 4.2
+Final-Recipient: rfc822; lee@example.com
+Original-Message-ID: <abc@wren-automation.com>
+Disposition: automatic-action/MDN-sent-automatically; displayed
+
+--mdn-boundary-0091--

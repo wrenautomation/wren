@@ -1,0 +1,43 @@
+Return-Path: <>
+Date: Mon, 07 Sep 2026 13:41:19 -0700
+From: Mail Delivery Subsystem <mailer-daemon@googlemail.com>
+To: will@wren-automation.com
+Subject: Delivery Status Notification (Delay)
+Message-ID: <000000000000ff9034@mx.google.com>
+Auto-Submitted: auto-replied
+MIME-Version: 1.0
+Content-Type: multipart/report; report-type=delivery-status;
+        boundary="0000000000009d7e5f"
+
+--0000000000009d7e5f
+Content-Type: text/plain; charset="UTF-8"
+
+** Message delayed **
+
+Your message to slow@example.net has been delayed. Gmail will retry for
+44 more hours; you do not need to resend it.
+
+--0000000000009d7e5f
+Content-Type: message/delivery-status
+
+Reporting-MTA: dns; googlemail.com
+Arrival-Date: Mon, 07 Sep 2026 09:41:12 -0700 (PDT)
+
+Final-Recipient: rfc822; slow@example.net
+Action: delayed
+Status: 4.4.1
+Diagnostic-Code: smtp; 421 4.4.1 Connection timed out while talking to
+ mx.example.net
+Will-Retry-Until: Wed, 09 Sep 2026 09:41:12 -0700 (PDT)
+
+--0000000000009d7e5f
+Content-Type: text/rfc822-headers
+Content-Description: Undelivered Message Headers
+
+Message-ID: <abc@wren-automation.com>
+Date: Mon, 07 Sep 2026 09:41:10 -0700
+Subject: Quick question about your agency
+From: Will Hart <will@wren-automation.com>
+To: slow@example.net
+
+--0000000000009d7e5f--

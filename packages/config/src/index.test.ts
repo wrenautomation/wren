@@ -39,6 +39,19 @@ describe("loadSettings", () => {
     expect(s.inboxDir).toBe("/srv/wren/inbox");
     expect(s.draftsDir).toBe("/srv/wren/drafts");
   });
+  it("reads the inbox-side settings and leaves the secrets unset by default", () => {
+    const s = loadSettings({
+      WREN_DATABASE_URL: "postgresql://u:p@h:1/d",
+      WREN_POSTMASTER_USER: "will@example.com",
+      WREN_PIXEL_EXPORT_TOKEN: "s3cret",
+    });
+    expect(s.postmasterUser).toBe("will@example.com");
+    expect(s.pixelExportToken).toBe("s3cret");
+    const bare = loadSettings({ WREN_DATABASE_URL: "postgresql://u:p@h:1/d" });
+    expect(bare.postmasterUser).toBeUndefined();
+    expect(bare.pixelExportToken).toBeUndefined();
+    expect(bare.daemonSyncSeconds).toBe(300);
+  });
   it("treats empty strings as unset", () => {
     const s = loadSettings({ WREN_DATABASE_URL: "postgresql://u:p@h:1/d", WREN_INBOX_DIR: "" });
     expect(s.inboxDir).toMatch(/\/inbox$/);

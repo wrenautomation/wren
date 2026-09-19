@@ -182,3 +182,31 @@ export function serviceAccountToken(key: ServiceAccountKey, opts: TokenOptions):
     return cached.token;
   };
 }
+
+/**
+ * A Postmaster credential on the narrowest scope the delegation actually
+ * grants. `postmaster.traffic.readonly` is all the harness needs; the broad
+ * `postmaster` also carries domain creation and user management. Which one is
+ * available is a property of the admin console's entry, not of this code, so
+ * try the narrow one and fall back rather than making a console change into a
+ * code change. A refusal is Google declining to mint the token at all.
+ */
+export async function postmasterToken(
+  key: ServiceAccountKey,
+  subject: string,
+  opts: { fetch?: FetchLike; now?: () => Date } = {},
+): Promise<TokenSupplier> {
+  for (const scope of [POSTMASTER_TRAFFIC_SCOPE, POSTMASTER_SCOPE]) {
+    const supplier = serviceAccountToken(key, { scopes: [scope], subject, ...opts });
+    try {
+      await supplier();
+    } catch (err) {
+      if (err instanceof TokenRefreshError) continue;
+      throw err;
+    }
+    return supplier;
+  }
+  throw new ServiceAccountKeyError(
+    `the domain-wide-delegation entry grants neither ${POSTMASTER_TRAFFIC_SCOPE} nor ${POSTMASTER_SCOPE} for ${subject} — add one (the first is narrower and preferred) beside the Gmail scopes in the Workspace admin console`,
+  );
+}

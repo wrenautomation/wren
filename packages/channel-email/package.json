@@ -9,7 +9,8 @@
     "./views": "./src/views.ts",
     "./outreach": "./src/outreach/index.ts",
     "./restate": "./src/restate/index.ts",
-    "./send": "./src/send/index.ts"
+    "./send": "./src/send/index.ts",
+    "./inbox": "./src/inbox/index.ts"
   },
   "scripts": {
     "test:integration": "vitest run test/integration",
@@ -21,9 +22,11 @@
     "@wren/config": "workspace:*",
     "@wren/core": "workspace:*",
     "@wren/db": "workspace:*",
+    "@wren/llm": "workspace:*",
     "@wren/research": "workspace:*",
     "drizzle-orm": "0.45.2",
-    "smol-toml": "1.8.0"
+    "smol-toml": "1.8.0",
+    "zod": "4.6.5"
   },
   "devDependencies": {
     "@restatedev/restate-sdk-clients": "1.17.1",

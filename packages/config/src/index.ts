@@ -52,6 +52,13 @@ export const settingsSchema = z.object({
   healthWindowDays: z.coerce.number().int().default(7),
   /** https://host of the open-pixel endpoint; unset = no pixel. */
   pixelBaseUrl: z.string().min(1).optional(),
+  /** The pixel host's /export bearer, shared with the worker. A secret: never logged, never in argv. */
+  pixelExportToken: z.string().min(1).optional(),
+  /**
+   * The Workspace user Postmaster answers for — the account that registered
+   * the domains at postmaster.google.com. Unset = no daily pull.
+   */
+  postmasterUser: z.string().min(1).optional(),
   /** Path of the Google service-account key (domain-wide delegation). */
   googleServiceAccount: z.string().min(1).default("~/.config/wren/wren-sender.json"),
   /** Path of the sender roster (TOML). */
@@ -97,6 +104,8 @@ export const ENV_KEYS = {
   bouncePauseMinBounces: "WREN_BOUNCE_PAUSE_MIN_BOUNCES",
   healthWindowDays: "WREN_HEALTH_WINDOW_DAYS",
   pixelBaseUrl: "WREN_PIXEL_BASE_URL",
+  pixelExportToken: "WREN_PIXEL_EXPORT_TOKEN",
+  postmasterUser: "WREN_POSTMASTER_USER",
   googleServiceAccount: "WREN_GOOGLE_SERVICE_ACCOUNT",
   sendersFile: "WREN_SENDERS_FILE",
   sendTransport: "WREN_SEND_TRANSPORT",
