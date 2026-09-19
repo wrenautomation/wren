@@ -2,11 +2,14 @@
 # Write the worker's secret env to SSM as one JSON object. Reads:
 #   deploy/prod.env               KEY=VALUE lines (gitignored) — the Lambda's .env + llm.env
 #   $WREN_GOOGLE_SERVICE_ACCOUNT  the key file named in prod.env (path); its JSON goes inline
+#   ../senders_config.toml        the roster (gitignored) → its own parameter, when present
 # Prints the names it wrote, never a value.
 set -euo pipefail
 cd "$(dirname "$0")/.."
 ENV_FILE="${1:-prod.env}"
 PARAM="${WREN_SSM_ENV_PARAM:-/wren/prod/env}"
+ROSTER_PARAM="${WREN_SSM_ROSTER_PARAM:-/wren/prod/senders_config}"
+ROSTER="${WREN_SENDERS_FILE:-../senders_config.toml}"
 [ -f "$ENV_FILE" ] || { echo "no $ENV_FILE — copy prod.env.example and fill it" >&2; exit 1; }
 
 json="$(python3 - "$ENV_FILE" <<'PY'
@@ -32,3 +35,11 @@ aws ssm put-parameter --name "$PARAM" --type SecureString --tier Advanced --over
   --value "$json" >/dev/null
 echo "wrote $PARAM:"
 python3 -c 'import json,sys; print("\n".join("  " + k for k in json.loads(sys.argv[1])))' "$json"
+
+if [ -f "$ROSTER" ]; then
+  aws ssm put-parameter --name "$ROSTER_PARAM" --type SecureString --tier Advanced --overwrite \
+    --value "file://$ROSTER" >/dev/null
+  echo "wrote $ROSTER_PARAM: $(grep -c '^\[\[' "$ROSTER") roster entries"
+else
+  echo "no $ROSTER: roster parameter left as is"
+fi

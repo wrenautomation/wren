@@ -27,7 +27,11 @@ data "aws_iam_policy_document" "ci_assume" {
     condition {
       test     = "StringEquals"
       variable = "token.actions.githubusercontent.com:sub"
-      values   = ["repo:${var.github_repo}:ref:refs/heads/main"]
+      # A job with `environment:` carries the environment subject, not the branch.
+      values = [
+        "repo:${var.github_repo}:ref:refs/heads/main",
+        "repo:${var.github_repo}:environment:production",
+      ]
     }
   }
 }

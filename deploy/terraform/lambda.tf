@@ -13,6 +13,18 @@ resource "aws_ssm_parameter" "env" {
   }
 }
 
+resource "aws_ssm_parameter" "roster" {
+  name        = "${local.ssm_root}/senders_config"
+  description = "senders_config.toml: the sender roster; written by deploy/scripts/push-secrets.sh"
+  type        = "SecureString"
+  tier        = "Advanced" # the roster passes 4 KB
+  value       = "# empty roster: push-secrets.sh fills this\n"
+
+  lifecycle {
+    ignore_changes = [value]
+  }
+}
+
 resource "aws_cloudwatch_log_group" "worker" {
   name              = "/aws/lambda/${local.prefix}-worker"
   retention_in_days = 30
@@ -42,7 +54,7 @@ data "aws_iam_policy_document" "worker" {
   statement {
     sid       = "ReadEnv"
     actions   = ["ssm:GetParameter"]
-    resources = [aws_ssm_parameter.env.arn]
+    resources = [aws_ssm_parameter.env.arn, aws_ssm_parameter.roster.arn]
   }
   statement {
     sid       = "DecryptSsm"
@@ -72,9 +84,10 @@ resource "aws_lambda_function" "worker" {
   environment {
     variables = merge(
       {
-        WREN_SSM_ENV_PARAM = aws_ssm_parameter.env.name
-        WREN_RENDERER      = var.browser_token == "" ? "browserbase" : "cdp"
-        WREN_LOG_LEVEL     = "info"
+        WREN_SSM_ENV_PARAM    = aws_ssm_parameter.env.name
+        WREN_SSM_ROSTER_PARAM = aws_ssm_parameter.roster.name
+        WREN_RENDERER         = var.browser_token == "" ? "browserbase" : "cdp"
+        WREN_LOG_LEVEL        = "info"
       },
       var.restate_identity_key == "" ? {} : { WREN_RESTATE_IDENTITY_KEY = var.restate_identity_key },
     )

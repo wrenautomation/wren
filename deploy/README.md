@@ -36,7 +36,7 @@ cp terraform.tfvars.example terraform.tfvars       # pg_password, restate_trust_
 tofu init && tofu apply                            # ~3 min; the box initialises itself on first boot
 tofu output -raw database_url                      # → WREN_DATABASE_URL in deploy/prod.env
 cd ..
-scripts/push-secrets.sh                            # deploy/prod.env → SSM /wren/prod/env
+scripts/push-secrets.sh                            # deploy/prod.env → SSM /wren/prod/env; roster → /wren/prod/senders_config
 WREN_DATABASE_URL="$(cd terraform && tofu output -raw database_url)" pnpm db:migrate
 ```
 
@@ -79,6 +79,10 @@ later release) so the version still serving does not break.
 - Change a secret: edit `deploy/prod.env`, `scripts/push-secrets.sh`, then
   `aws lambda update-function-configuration --function-name wren-prod-worker --description "$(date)"`
   to force new instances (the env is read at cold start).
+- Change the roster: edit `senders_config.toml` at the repo root (gitignored), run
+  `scripts/push-secrets.sh` (writes SSM `/wren/prod/senders_config`), force new instances as
+  above. The Lambda reads the roster from SSM at cold start; the bundle never carries it, so
+  CI builds (which have no roster) deploy the same fleet.
 - Shell on the box: `aws ssm start-session --target $(cd deploy/terraform && tofu output -raw pg_instance_id)`.
   Postgres is `docker exec -it wren-pg psql -U wren`. First-boot log: `/var/log/wren-user-data.log`.
 - Backups: nightly `pg_dump -Fc` to the `backups_bucket`, 30-day expiry. Restore:

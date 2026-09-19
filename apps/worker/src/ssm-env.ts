@@ -6,6 +6,7 @@
  */
 
 import { GetParameterCommand, SSMClient } from "@aws-sdk/client-ssm";
+import { writeFile } from "node:fs/promises";
 
 export function applyEnv(json: string, env: NodeJS.ProcessEnv = process.env): string[] {
   const parsed: unknown = JSON.parse(json);
@@ -22,12 +23,31 @@ export function applyEnv(json: string, env: NodeJS.ProcessEnv = process.env): st
   return applied;
 }
 
-/** No parameter named = nothing to load (local runs, tests). */
-export async function loadSsmEnv(name: string | undefined): Promise<string[]> {
-  if (!name) return [];
+async function readParameter(name: string): Promise<string> {
   const ssm = new SSMClient({});
   const out = await ssm.send(new GetParameterCommand({ Name: name, WithDecryption: true }));
   const value = out.Parameter?.Value;
   if (!value) throw new Error(`SSM parameter ${name} is empty`);
-  return applyEnv(value);
+  return value;
+}
+
+/** No parameter named = nothing to load (local runs, tests). */
+export async function loadSsmEnv(name: string | undefined): Promise<string[]> {
+  if (!name) return [];
+  return applyEnv(await readParameter(name));
+}
+
+/**
+ * A file-shaped parameter (the sender roster) written to `path` so the code
+ * that reads files reads it unchanged. The roster is config, not code: CI's
+ * checkout never has it, so the bundle cannot be the place it lives.
+ * Returns the path, or null when no parameter is named.
+ */
+export async function loadSsmFile(
+  name: string | undefined,
+  path: string,
+): Promise<string | null> {
+  if (!name) return null;
+  await writeFile(path, await readParameter(name), { mode: 0o600 });
+  return path;
 }

@@ -9,11 +9,14 @@ import { createEndpointHandler } from "@restatedev/restate-sdk/lambda";
 import { loadSettings } from "@wren/config";
 import pino from "pino";
 import { buildServices } from "./services.js";
-import { loadSsmEnv } from "./ssm-env.js";
+import { loadSsmEnv, loadSsmFile } from "./ssm-env.js";
 
 const ROOT = process.env.LAMBDA_TASK_ROOT ?? process.cwd();
 
 await loadSsmEnv(process.env.WREN_SSM_ENV_PARAM);
+// The roster lives in SSM, not the bundle; /tmp is the one writable path on Lambda.
+const roster = await loadSsmFile(process.env.WREN_SSM_ROSTER_PARAM, "/tmp/senders_config.toml");
+if (roster && !process.env.WREN_SENDERS_FILE) process.env.WREN_SENDERS_FILE = roster;
 const settings = loadSettings(process.env, { rootDir: ROOT });
 const log = pino({ level: settings.logLevel });
 const built = await buildServices(settings, log, { rootDir: ROOT, dbPoolMax: 2 });

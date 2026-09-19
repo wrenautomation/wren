@@ -58,7 +58,20 @@ Every CHECK-enumerated column is declared once as a `const` tuple
 
 | E9 ✅ 2026-09-19 | deploy: `apps/worker/src/services.ts` builds every service once; `main.ts` serves it on Node, `lambda.ts` on Lambda (`createEndpointHandler`, secrets from one SSM JSON param via `ssm-env.ts`). `scripts/build-lambda.mjs` → `dist/lambda.zip` (esbuild ESM, templates beside it, playwright-core for Browserbase). `browserbaseRenderer` (research) behind the same `BrowserRenderer` interface; `WREN_RENDERER=local\|browserbase`. `loadServiceAccountKey` takes the key JSON inline. `deploy/terraform`: EC2 t4g.small + Docker postgres:17 (TLS-only, scram, own EBS volume, EIP, nightly pg_dump → S3), Lambda + role, Restate invoker role (trust policy from the Cloud UI), GitHub OIDC CI role, SSM params. `deploy/README.md` runbook; `.github/workflows/deploy.yml` migrates, publishes a version, registers it. Verified locally: bundled handler answers `/discover` with every service; `tofu validate` clean. Applied 2026-09-19 (us-east-1): 24 resources, prod DB migrated, Lambda v1 registered with Restate Cloud as `dp_12xEDpaYDDkQBOMUz0r1QEp`, `SendScheduler/smoke/status` answers 200 through the ingress. Renderer is self-hosted browserless on the DB box (`WREN_RENDERER=cdp`), Browserbase optional. No `senders_config.toml` in the bundle yet — nothing can send until cutover. Trust policy taken from restate-cdk (UI did not show one). Gitignored secrets live in `deploy/prod.env`, `deploy/github-secrets.env`, `deploy/terraform/terraform.tfvars` | smoke invoke through Restate Cloud; migrations run from CI |
 
-## Cutover (after E9)
+## Cutover (after E9) — ✅ done 2026-09-19 00:40 ET
+
+Python daemon stopped 23:2x ET; 1,140 leads / 382 enrollments / 764 messages / 84k people /
+31k companies copied into prod (counts verified equal); private files copied to `wren/legacy/`
+(gitignored); roster pushed to SSM `/wren/prod/senders_config` (CI checkouts have no roster,
+so the Lambda reads it from SSM at cold start); `WREN_SEND_TRANSPORT=gmail`,
+`WREN_OPEN_TRACKING=false` (new flag: the Python daemon never embedded the pixel); Lambda v3
+registered as `dp_11AXYXxRQEuPbtmVEfwpzYl`; all 10 inboxes' `SendScheduler` + `InboxScheduler`
+loops and both fleet loops started. First ticks: sends sleep 61 h to Monday 13:00 ET (window
+closed), inbox syncs clean, Postmaster 5 domains clean. Python compose down, launchd report
+unloaded; `emails_gen_pgdata` volume and both repos kept locally until a clean send day.
+Also fixed: CI OIDC role now trusts the `environment:production` subject.
+
+Original steps:
 
 1. Pause the Python daemon (`docker compose --profile campaign stop app`).
 2. `pnpm db:migrate`, then `scripts/import-legacy.sh` into the wren DB.

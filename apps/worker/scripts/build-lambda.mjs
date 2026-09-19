@@ -43,7 +43,7 @@ await build({
 cpSync(resolve(repo, "packages/niches/templates"), resolve(out, "templates"), { recursive: true });
 const roster = resolve(repo, "senders_config.toml");
 if (existsSync(roster)) cpSync(roster, resolve(out, "senders_config.toml"));
-else console.warn("no senders_config.toml at the repo root: the bundle has no sender roster");
+else console.warn("no senders_config.toml at the repo root: the Lambda takes its roster from SSM");
 
 writeFileSync(
   resolve(out, "package.json"),
