@@ -10,7 +10,7 @@ import {
   rejectMessages,
   stopByHand,
 } from "../../src/outreach/review.js";
-import { enrollments, messages } from "../../src/schema.js";
+import { enrollments, type Message, messages } from "../../src/schema.js";
 import {
   allMessages,
   makeCompany,
@@ -34,11 +34,11 @@ async function composed() {
   await runCompose(db());
   const msgs = await allMessages(db());
   expect(msgs).toHaveLength(2);
-  return { company, opener: msgs[0]!, followup: msgs[1]! };
+  return { company, opener: msgs[0] as Message, followup: msgs[1] as Message };
 }
 
 const state = async (id: number) =>
-  (await db().select().from(messages).where(eq(messages.id, id)))[0]!;
+  (await db().select().from(messages).where(eq(messages.id, id)))[0] as Message;
 
 describe("review", () => {
   it("lists drafts with how the address was come by", async () => {
@@ -93,7 +93,10 @@ describe("review", () => {
       reviewReason: "too_salesy",
       detail: "opener too pushy",
     });
-    await db().update(messages).set({ state: "sent", messageId: "<x@test>", sentAt: new Date() }).where(eq(messages.id, followup.id));
+    await db()
+      .update(messages)
+      .set({ state: "sent", messageId: "<x@test>", sentAt: new Date() })
+      .where(eq(messages.id, followup.id));
     await expect(rejectMessages(db(), [followup.id], "other")).rejects.toThrow(/is sent/);
   });
 
@@ -130,7 +133,7 @@ describe("review", () => {
       toEmail: "ops@oakbridge.example",
       kind: "role_inbox",
     });
-    const byDomain = await stopByHand(db(), { companyDomain: company.domain! }, "opt_out");
+    const byDomain = await stopByHand(db(), { companyDomain: company.domain as string }, "opt_out");
     expect(byDomain.summary).toMatch(/stopped 1 enrollment/);
     expect(
       (await db().select().from(enrollments).where(eq(enrollments.id, other.id)))[0]?.state,
