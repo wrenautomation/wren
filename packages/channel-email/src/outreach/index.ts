@@ -2,6 +2,7 @@ export * from "./authoring.js";
 export * from "./compose.js";
 export * from "./facts.js";
 export * from "./pickers.js";
+export * from "./plan.js";
 export * from "./preview.js";
 export * from "./provenance.js";
 export * from "./pyrepr.js";

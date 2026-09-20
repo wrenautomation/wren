@@ -45,6 +45,10 @@ export const settingsSchema = z.object({
   sendGapMaxMinutes: z.coerce.number().default(20),
   /** Fleet-wide brake on new conversations per day; unset = unlimited. */
   newOpenersPerDay: z.coerce.number().int().optional(),
+  /** Send days of approved openers the queue-keeper holds ahead of the fleet (0 = off). */
+  composeDaysAhead: z.coerce.number().int().min(0).default(3),
+  /** A lead whose only VALID check is older than this counts as unverified at compose. */
+  verificationHorizonDays: z.coerce.number().int().default(45),
   resendCooldownDays: z.coerce.number().int().default(30),
   reconcileGraceMinutes: z.coerce.number().default(10),
   bouncePauseRate: z.coerce.number().default(0.02),
@@ -114,6 +118,8 @@ export const ENV_KEYS = {
   sendGapMinMinutes: "WREN_SEND_GAP_MIN_MINUTES",
   sendGapMaxMinutes: "WREN_SEND_GAP_MAX_MINUTES",
   newOpenersPerDay: "WREN_NEW_OPENERS_PER_DAY",
+  composeDaysAhead: "WREN_COMPOSE_DAYS_AHEAD",
+  verificationHorizonDays: "WREN_VERIFICATION_HORIZON_DAYS",
   resendCooldownDays: "WREN_RESEND_COOLDOWN_DAYS",
   reconcileGraceMinutes: "WREN_RECONCILE_GRACE_MINUTES",
   bouncePauseRate: "WREN_BOUNCE_PAUSE_RATE",

@@ -83,6 +83,20 @@ Original steps:
 6. `docker compose --profile campaign down` in emails_gen, `launchctl unload` the
    weekly-report plist, then delete the local Python repos (GitHub copies stay).
 
+## Queue-keeper (2026-09-19)
+
+The one manual step left in the ramp SOP was "keep the approved queue ahead of tomorrow's
+cap". `ComposeScheduler/{niche}` (`restate/compose-scheduler.ts`) does it daily: capacity ×
+`WREN_COMPOSE_DAYS_AHEAD` minus approved unsent openers, composed through the niche's
+`plan` (`outreach/plan.ts`: ordered `{ sequence, where }` rules, validated at registry
+load — every sequence known, only the last rule may be ungated). Auto-approve is the
+default because every draft so far was approved unread in bulk; review stays possible
+(`WREN_COMPOSE_DAYS_AHEAD=0` unbinds the object). Arms are decided by data
+(`agency_facts.segment`), not by a `--arm` flag, so the enrolled copy always matches the
+firm and the lander. The 382 `operations-days-0-5` enrollments from the Python campaign
+keep their stored text and finish on their own; new enrollments use the DRAFT 12
+marketing/build arms that the site continues.
+
 ## After cutover
 
 - `wren onboard-domain` (asked 2026-09-18): a durable workflow for a new sending domain.

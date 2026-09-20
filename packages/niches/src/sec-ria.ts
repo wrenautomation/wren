@@ -42,6 +42,8 @@ export const secRia = defineNiche({
     twoEmailSequence("documents/opener", "documents/followup"),
     twoEmailSequence("operations/opener", "operations/followup"),
   ],
+  // One arm until the RIA copy is re-read for role inboxes (its openers still assume a name).
+  plan: [{ sequence: "operations-days-0-5" }],
   // The SEC feed's "City, ST" `geo` field on companies.raw.
   companyLocation: (company) => rawLocation(company, "geo"),
 });

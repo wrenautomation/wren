@@ -51,6 +51,14 @@ export const agencies = defineNiche({
     threeEmailSequence(`${arm}/opener`, `${arm}/followup`, "final_followup"),
     twoEmailSequence(`${arm}/opener`, `${arm}/followup`),
   ]),
+  // The arm follows the firm's own service mix (`agency_facts.segment`, from the directory
+  // listing): marketing shops hear about month end, build shops about the invoice. A firm
+  // whose mix says neither gets the marketing arm, so no lead waits on a label.
+  plan: [
+    { sequence: "marketing-days-0-5", where: { "company.segment": "marketing" } },
+    { sequence: "build-days-0-5", where: { "company.segment": "build" } },
+    { sequence: "marketing-days-0-5" },
+  ],
   // Clutch and Shopify pages both store "City, ST" under `Location` on companies.raw.
   companyLocation: (company) => rawLocation(company, "Location"),
 });

@@ -6,7 +6,14 @@
  */
 
 import { fileURLToPath } from "node:url";
-import { loadTemplates, pyReprStr, type Sequence, type Template } from "@wren/channel-email";
+import {
+  type EnrollmentRule,
+  enrollmentPlan,
+  loadTemplates,
+  pyReprStr,
+  type Sequence,
+  type Template,
+} from "@wren/channel-email";
 import type { Company } from "@wren/core";
 
 export interface Niche {
@@ -21,6 +28,8 @@ export interface Niche {
   readonly discoveryGenericWords: ReadonlySet<string>;
   readonly templates: ReadonlyMap<string, Template>;
   readonly sequences: ReadonlyMap<string, Sequence>;
+  /** Which sequence a new enrollment gets, by facts, in order (the last rule may be ungated). */
+  readonly plan: readonly EnrollmentRule[];
   /** Where the company keeps office hours, as the source wrote it ("City, ST"), or null. */
   readonly companyLocation: (company: Company) => string | null;
 }
@@ -34,6 +43,8 @@ export interface NicheSpec {
   /** Directory holding the *.email files. */
   readonly templatesDir: string;
   readonly sequences: readonly Sequence[];
+  /** The live campaign's routing: first matching rule wins. */
+  readonly plan: readonly EnrollmentRule[];
   readonly companyLocation: (company: Company) => string | null;
 }
 
@@ -82,6 +93,11 @@ export function defineNiche(spec: NicheSpec): Niche {
     }
     sequences.set(seq.name, seq);
   }
+  const plan = enrollmentPlan(
+    spec.plan,
+    new Set(sequences.keys()),
+    `niche ${pyReprStr(spec.name)}`,
+  );
   return {
     name: spec.name,
     factsView: spec.factsView,
@@ -90,6 +106,7 @@ export function defineNiche(spec: NicheSpec): Niche {
     discoveryGenericWords: new Set(spec.discoveryGenericWords),
     templates,
     sequences,
+    plan,
     companyLocation: spec.companyLocation,
   };
 }

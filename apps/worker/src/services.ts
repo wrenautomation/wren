@@ -24,6 +24,8 @@ import {
   type Transport,
 } from "@wren/channel-email";
 import {
+  type Campaign,
+  makeComposeScheduler,
   makeDisposition,
   makeInboxScheduler,
   makeOpensScheduler,
@@ -98,6 +100,29 @@ export async function buildServices(
     }
   })();
   const fleet = rosterFleet(roster, activeSenders(roster), Object.fromEntries(LANDERS_BY_NICHE));
+  // One campaign per registered niche: its plan, copy and the inboxes it may send from,
+  // each sign-off already pointing at the niche's page. The queue-keeper reads these.
+  const campaigns = new Map<string, Campaign>(
+    NICHES.map((niche) => {
+      const active = activeSenders(roster, niche.name);
+      return [
+        niche.name,
+        {
+          niche: niche.name,
+          plan: niche.plan,
+          sequences: niche.sequences,
+          templates: niche.templates,
+          factsView: niche.factsView,
+          senders: active.map((s) => s.address),
+          signatures: Object.fromEntries(
+            active.flatMap((s) =>
+              s.signature ? [[s.address, s.signature.forPage(niche.lander).text]] : [],
+            ),
+          ),
+        },
+      ];
+    }),
+  );
   const keyPath = expandHome(settings.googleServiceAccount);
   const gmail = new GmailClient({ keyPath });
   const transport: Transport =
@@ -155,6 +180,19 @@ export async function buildServices(
     makeInboxScheduler({ db, reader, senders: fleet.senders, syncMs, tickMs, classify }),
     makeDisposition({ db, llm, tracer, tracing: settings.tracing }),
   ];
+  // The queue-keeper is bound only when asked to hold a queue; 0 means every enrollment is by hand.
+  if (settings.composeDaysAhead > 0) {
+    services.push(
+      makeComposeScheduler({
+        db,
+        policy,
+        campaigns,
+        daysAhead: settings.composeDaysAhead,
+        verificationHorizonDays: settings.verificationHorizonDays,
+        trackOpens: settings.openTracking,
+      }),
+    );
+  }
   // Bound only when configured: an object with nothing to pull is better absent than failing every pass.
   if (postmaster) {
     services.push(
@@ -179,6 +217,7 @@ export async function buildServices(
       renderer: renderer ? settings.renderer : "none",
       transport: transport.name,
       senders: fleet.senders.length,
+      compose_days_ahead: settings.composeDaysAhead,
       postmaster: postmaster !== null,
       opens: opens !== null,
       report: report !== null,

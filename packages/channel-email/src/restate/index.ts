@@ -1,3 +1,4 @@
+export * from "./compose-scheduler.js";
 export * from "./disposition.js";
 export * from "./inbox-scheduler.js";
 export * from "./loop.js";
