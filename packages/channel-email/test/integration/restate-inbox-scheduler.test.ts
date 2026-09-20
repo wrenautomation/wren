@@ -192,7 +192,12 @@ describe("InboxScheduler", () => {
     expect(event?.dispositionSource).toBe("llm");
     const [classify] = await runsFor(DISPOSITION_COMMAND);
     expect(classify?.model).toBe("fake");
-    expect((await disposition().status())?.stats?.labelled).toBe(1);
+    // The object's own state lands when its handler completes, a beat after the DB row.
+    const labelled = await waitFor(
+      () => disposition().status(),
+      (st) => st?.stats?.labelled === 1,
+    );
+    expect(labelled?.stats?.labelled).toBe(1);
 
     const status = await inbox(SENDER).status();
     expect(status.running).toBe(false);
