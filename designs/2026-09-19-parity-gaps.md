@@ -71,16 +71,23 @@ What the Python system did, and where each piece stands in wren. Source:
 4. **`inbox reply`** (send a reply from the CLI in-thread). Replies are read, not
    answered, from wren.
 5. **`senders check --send`** (one test mail per inbox).
-6. **Reads:** `opens rates`, `postmaster domains|show`, `outreach outcomes`,
-   `address via`. The views exist; the commands do not.
+6. ~~Reads~~ Closed 2026-09-20: `wren email outcomes|opens|postmaster`. Still no
+   `address via` (provenance per address).
 7. **`setup` domain tooling** (RDAP, Porkbun pricing, Cloudflare DNS records).
-8. **`sops/cold-email-copy.md`, `sops/campaign-ramp.md`** not copied into wren.
+8. ~~sops~~ Copied 2026-09-20 with a header mapping old commands to wren ones.
 9. **Pixel worker source** (`infra/pixel/`) lives in `legacy-private`; the
    deployed Cloudflare worker keeps running.
 10. `SUPPRESSED→IMPORTED` un-suppress and `UNDELIVERABLE→IMPORTED` were never
     implemented in Python either.
 
 ## Checked and fine
+
+- Postmaster shows `days_without_data: 5`: Google publishes nothing for a domain
+  under its daily volume floor; 50–70 sends over five domains is under it. Last
+  data rows are from August, when the Python fleet sent more per domain.
+- Compose reports `timezones: 338 unresolved`: those companies' `Location` holds
+  the company name (a shifted column in the Clutch export). 48 of them have a lead;
+  they send on the fleet clock. 697 of 745 lead-bearing agencies have a zone.
 
 - Reply capture: every "Re:" in the fleet inboxes on 2026-09-20 was spam from
   throwaway domains with no In-Reply-To. Zero real replies exist; the matcher is

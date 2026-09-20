@@ -9,10 +9,14 @@ import {
   activePauses,
   activeSuppression,
   addSuppression,
+  campaignFunnel,
   classifyValue,
   liftSuppression,
   loadRoster,
+  openOutcomes,
   pause,
+  postmasterDays,
+  replyByArmStep,
   resume,
   senderDays,
 } from "@wren/channel-email";
@@ -21,7 +25,7 @@ import { CsvLeadSource, runImport, type Suppression, suppressions } from "@wren/
 import type { Db } from "@wren/db";
 import { NICHE_NAMES, requireNiche } from "@wren/niches";
 import type { Command } from "commander";
-import { desc, sql } from "drizzle-orm";
+import { desc, gte, sql } from "drizzle-orm";
 
 type WithDb = <T>(fn: (db: Db) => Promise<T>) => Promise<T>;
 
@@ -37,7 +41,7 @@ export function registerEmail(
 ): void {
   const email = program
     .command("email")
-    .description("the email channel: queue, fleet, suppressions, imports");
+    .description("the email channel: queue, outcomes, fleet, suppressions, imports");
   const rosterAddresses = () =>
     loadRoster(resolve(rootDir, settings.sendersFile), NICHE_NAMES).map((s) => s.address);
 
@@ -91,6 +95,83 @@ export function registerEmail(
           console.log(
             `  ${domain}: sent ${r.sent}, hard bounces ${r.hard} (${pct(r.hard, r.sent)}), replies ${r.replies}, unsubscribes ${r.unsub}`,
           );
+      });
+    });
+
+  email
+    .command("outcomes")
+    .description("Funnel per niche and sequence, then reply rate by arm and step")
+    .action(async () => {
+      await withDb(async (db) => {
+        const funnel = await db.select().from(campaignFunnel);
+        console.log(
+          "funnel (niche · sequence · kind): enrolled active finished · replies interested bounces unsubs",
+        );
+        for (const f of funnel) {
+          console.log(
+            `  ${f.niche} · ${f.sequenceName} · ${f.enrollmentKind}: ${f.enrolled} ${f.active} ${f.finished} · ` +
+              `${f.replies} ${f.interested} ${f.hardBounces} ${f.unsubscribes}  (openers ${f.openersSent}, follow-ups ${f.followupsSent})`,
+          );
+        }
+        const arms = await db.select().from(replyByArmStep);
+        console.log("by arm and step: sent replies interested bounces reply%");
+        for (const a of arms) {
+          if (!a.sent) continue;
+          console.log(
+            `  ${a.niche} · ${a.arm} · step ${a.step} (${a.template} ${a.templateVersion ?? ""}): ` +
+              `${a.sent} ${a.replies} ${a.interested} ${a.hardBounces} ${a.replyRatePct ?? 0}%`,
+          );
+        }
+      });
+    });
+
+  email
+    .command("opens")
+    .description(
+      "Open rates per niche, sequence and step (raw, and human-plausible: first fetch ≥ 2 min after send)",
+    )
+    .action(async () => {
+      await withDb(async (db) => {
+        const rows = await db.select().from(openOutcomes);
+        if (rows.length === 0) {
+          console.log("no tracked sends (WREN_OPEN_TRACKING is off, or the pixel host is unset)");
+          return;
+        }
+        for (const r of rows) {
+          console.log(
+            `  ${r.niche} · ${r.sequenceName} · step ${r.step}: tracked ${r.trackedSent}, ` +
+              `opened raw ${pct(r.openedRaw ?? 0, r.trackedSent ?? 0)}, human-plausible ${pct(r.openedHumanPlausible ?? 0, r.trackedSent ?? 0)}`,
+          );
+        }
+      });
+    });
+
+  email
+    .command("postmaster")
+    .description(
+      "Google Postmaster per sending domain: spam rate and auth ratios, newest day first",
+    )
+    .option("--days <n>", "how many days back", "14")
+    .action(async (opts: { days: string }) => {
+      await withDb(async (db) => {
+        const since = isoDay(new Date(Date.now() - Number(opts.days) * 86_400_000));
+        const rows = await db
+          .select()
+          .from(postmasterDays)
+          .where(gte(postmasterDays.day, since))
+          .orderBy(desc(postmasterDays.day), postmasterDays.domain);
+        if (rows.length === 0) {
+          console.log(`no Postmaster rows since ${since} (PostmasterScheduler/fleet running?)`);
+          return;
+        }
+        console.log("day · domain: spam% · spf dkim dmarc · reputation");
+        for (const r of rows) {
+          const ratio = (v: number | string | null) =>
+            v === null ? "–" : `${(100 * Number(v)).toFixed(1)}%`;
+          console.log(
+            `  ${r.day} · ${r.domain}: ${ratio(r.spamRate)} · ${ratio(r.spfSuccessRatio)} ${ratio(r.dkimSuccessRatio)} ${ratio(r.dmarcSuccessRatio)} · ${r.domainReputation ?? "–"}`,
+          );
+        }
       });
     });
 
