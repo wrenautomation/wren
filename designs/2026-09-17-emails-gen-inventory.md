@@ -62,4 +62,3 @@ Tables (PK; notable FKs; constraints): `imports` (id; `superseded_by`→imports)
 - `templates/README.md`: directory facts must stay out of sentences "until a fact-quality gate exists (D45 candidate)"; `operations/` arm retired.
 - Open tracking off by default (adds a second domain to every message); `robots_mode` defaults to `warn` (fetches disallowed URLs, logged via `documents.robots_disallowed`).
 - `enrichment/render.py` needs the optional `render` extra + `playwright install chromium`; `langgraph`/`langfuse` are edge-only imports (`I8.8`).
-- `designs/opus_to_be_reviewed/` holds unreviewed design work (`2026-09-16-agency-segments.md`).
