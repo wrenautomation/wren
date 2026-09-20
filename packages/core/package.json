@@ -6,6 +6,7 @@
   "exports": {
     ".": "./src/index.ts",
     "./content": "./src/content/index.ts",
+    "./content/restate": "./src/content/restate.ts",
     "./ingest": "./src/ingest/index.ts",
     "./people": "./src/people/index.ts",
     "./schema": "./src/schema.ts"
@@ -16,6 +17,7 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
+    "@restatedev/restate-sdk": "1.17.1",
     "@wren/db": "workspace:*",
     "csv-parse": "7.0.2",
     "drizzle-orm": "0.45.2"

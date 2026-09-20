@@ -6,6 +6,8 @@
  * Design: designs/2026-09-21-content-channels.md.
  */
 
+export * from "./autobrowse.js";
+
 export type Platform = "linkedin" | "youtube";
 export type FetchedWith = "api" | "browser";
 

@@ -48,16 +48,25 @@ Rule: an adapter method that uses the browser says so in its row
 
 ## autobrowse side
 
-- Flows land in autobrowse as compiled workflows (`src/workflows/<site>-…`),
-  recorded/explored once, proven, healed on drift. Sites: `linkedin`,
-  `youtube` (Google login with the stored TOTP; the same `google` cred).
-- Wren calls them through the Restate `browserService` by name (durable,
-  already how domain provisioning's browser legs run). If wren needs more
-  of autobrowse than "run this flow", the `Backend` port
-  (`autobrowse/src/app/backend.ts`) gets an `httpBackend` adapter and wren
-  depends on that interface, not on the worker.
-- Publish steps are `irreversible`: the payment/irreversible gate holds them
-  until answered, like buying a domain.
+- autobrowse exposes each service under its official REST shape
+  (`POST /api/sites/linkedin/rest/posts`, `GET /api/sites/youtube/youtube/v3/videos`).
+  Each route goes API-first when a token is kept, browser otherwise; the
+  caller sees `via: api|browser` per route. Setup steps
+  (`developer-app`, `consent`, `oauth-client`) make the keys and tokens
+  and keep them in autobrowse's env store. Spec:
+  `autobrowse/designs/2026-09-21-site-apis.md`.
+- Wren depends on that HTTP surface only: `autobrowseSites({url, token})`
+  in `@wren/core/content` is the `SiteClient` (`call`, `via`); the
+  adapters (`linkedinContent` in `@wren/channel-linkedin`, `youtubeContent`
+  in `@wren/channel-youtube`) speak the real API shapes through it, so
+  they do not know whether a call ran over HTTP or a browser. Every row
+  carries `fetchedWith` from autobrowse's `via`.
+- The worker mounts them as the Restate `Content` service
+  (`@wren/core/content/restate`): `publish/list/metrics/comments/reply`,
+  keyed by platform, one journaled step per call, publish at one attempt
+  (no duplicate posts on retry). Only when `WREN_AUTOBROWSE_URL` is set.
+- Publish steps are `irreversible` on the autobrowse side: the gate holds
+  browser-leg posts until answered, like buying a domain.
 
 ## Credentials (William)
 
@@ -74,10 +83,14 @@ Rule: an adapter method that uses the browser says so in its row
 ## Where to attack (ranked)
 
 1. ✅ The port + fake in `@wren/core/content` (`ContentChannel`, `pageOf`, `fakeContentChannel`).
-2. YouTube adapter over the Data API (upload, list, metrics, comments).
-3. LinkedIn publish over the Posts API; list/metrics via browser until the
-   app is approved for reads.
-4. autobrowse flows: `linkedin-post-metrics`, `linkedin-comments`,
-   `youtube-community-post` — explore once each, prove, ship.
-5. Scheduling: a Restate `ContentScheduler` (like `ComposeScheduler`)
+2. ✅ YouTube adapter over the Data API (upload, list, metrics, comments) via autobrowse's site API.
+3. ✅ LinkedIn adapter over the Posts/Social Actions API shapes via autobrowse; reads
+   run over the browser leg until the app is approved.
+4. ✅ `Content` Restate service in the worker (2026-09-20).
+5. autobrowse: record the setup workflows and the gated LinkedIn reads
+   (`linkedin-list-posts`, `-post-stats`, `-post-comments`, `youtube-community-post`)
+   — explore once each, prove, ship. Needs William's creds (NEEDS-WILLIAM.md).
+6. Reachability: wren's Lambda must reach autobrowse's `/api` (prod box is
+   stopped on idle; a wake-on-call or a queue is needed before scheduling).
+7. Scheduling: a Restate `ContentScheduler` (like `ComposeScheduler`)
    that publishes the approved queue on each platform's clock.

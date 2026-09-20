@@ -37,8 +37,12 @@ import {
   makeResolution,
   makeSendScheduler,
 } from "@wren/channel-email/restate";
+import { linkedinContent } from "@wren/channel-linkedin";
 import { makeLinkedinInbox } from "@wren/channel-linkedin/restate";
+import { youtubeContent } from "@wren/channel-youtube";
 import type { Settings } from "@wren/config";
+import { autobrowseSites } from "@wren/core/content";
+import { type Channels, makeContent } from "@wren/core/content/restate";
 import { createDb } from "@wren/db";
 import { loadLlmEnv, makeLlm, makeTracer } from "@wren/llm";
 import { crawlHintsFor, discoveryWordsFor, LANDERS_BY_NICHE, NICHES } from "@wren/niches";
@@ -235,6 +239,9 @@ export async function buildServices(
   // Domain provisioning: API steps here, browser legs through autobrowse's `browser` service.
   const provision = provisionFor(settings, keyPath, rootDir, log);
   if (provision) services.push(makeDomain(provision));
+  // Content channels (LinkedIn, YouTube) over autobrowse's site APIs, as the `Content` service.
+  const content = contentFor(settings, log);
+  if (content) services.push(makeContent(content));
 
   return {
     services,
@@ -252,9 +259,23 @@ export async function buildServices(
       opens: opens !== null,
       report: report !== null,
       provision: provision !== null,
+      content: content ? Object.keys(content).join(",") : "none",
     },
     close: () => handle.close(),
   };
+}
+
+/** Content channels, or null (with one log line) when autobrowse's API is not configured. */
+function contentFor(settings: Settings, log: Logger): Channels | null {
+  if (!settings.autobrowseUrl) {
+    log.info("WREN_AUTOBROWSE_URL unset: no content channels");
+    return null;
+  }
+  const sites = autobrowseSites({
+    url: settings.autobrowseUrl,
+    token: settings.autobrowseToken ?? null,
+  });
+  return { linkedin: linkedinContent(sites), youtube: youtubeContent(sites) };
 }
 
 /** The domain provisioner's dependencies, or null (with one log line) when it is not configured. */
