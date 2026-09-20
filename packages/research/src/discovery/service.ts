@@ -21,7 +21,8 @@ import {
   sightings,
 } from "@wren/core";
 import type { Queryable } from "@wren/db";
-import { and, asc, count, eq, isNotNull, isNull, sql } from "drizzle-orm";
+import { and, asc, count, eq, isNotNull, isNull, notExists, sql } from "drizzle-orm";
+import { type DiscoveryKind, type DiscoveryOutcome, discoveryAttempts } from "../schema.js";
 import { domainCandidates } from "./candidates.js";
 import { gatePage } from "./gate.js";
 
@@ -51,6 +52,8 @@ export const dohResolves: Resolves = async (domain) => {
 export interface DiscoveryOptions {
   genericWords?: ReadonlySet<string>;
   limit?: number;
+  /** Days a miss keeps a company out of the queue (default 30). */
+  retryAfterDays?: number;
   /** Scope to one niche's companies. */
   niche?: string | null;
   resolves?: Resolves;
@@ -69,6 +72,28 @@ export interface DiscoveryStats {
   domains_attached: number;
   /** Present only on a niche-scoped run: NULL-niche companies invisible to it. */
   niche_null_skipped?: number;
+}
+
+/** A miss keeps its company out of the queue this long before it is guessed again. */
+export const DEFAULT_RETRY_AFTER_DAYS = 30;
+
+/** "No attempt of this kind in the window" as a WHERE fragment on `companies`. */
+const notAttempted = (kind: DiscoveryKind, retryAfterDays: number) => {
+  const since = sql`now() - make_interval(days => ${retryAfterDays})`;
+  return notExists(
+    sql`(SELECT 1 FROM ${discoveryAttempts} a
+         WHERE a.company_id = ${companies.id} AND a.kind = ${kind} AND a.attempted_at > ${since})`,
+  );
+};
+
+async function recordAttempt(
+  db: Queryable,
+  companyId: number,
+  kind: DiscoveryKind,
+  outcome: DiscoveryOutcome,
+  importId: number,
+): Promise<void> {
+  await db.insert(discoveryAttempts).values({ companyId, kind, outcome, importId });
 }
 
 /** The batch a run writes its evidence under. */
@@ -99,13 +124,14 @@ export async function closeDiscoveryBatch(
 /** Companies with no domain, oldest first; `niche` scopes, null sees every niche. */
 export async function selectDiscoveryTargets(
   db: Queryable,
-  opts: { limit?: number; niche?: string | null },
+  opts: { limit?: number; niche?: string | null; retryAfterDays?: number },
 ): Promise<Company[]> {
   const niche = opts.niche ?? null;
+  const fresh = notAttempted("discover", opts.retryAfterDays ?? DEFAULT_RETRY_AFTER_DAYS);
   const where =
     niche === null
-      ? isNull(companies.domain)
-      : and(isNull(companies.domain), eq(companies.niche, niche));
+      ? and(isNull(companies.domain), fresh)
+      : and(isNull(companies.domain), eq(companies.niche, niche), fresh);
   const q = db.select().from(companies).where(where).orderBy(asc(companies.id));
   return opts.limit === undefined ? q : q.limit(opts.limit);
 }
@@ -175,10 +201,15 @@ export async function discoverCompany(
   const resolves = opts.resolves ?? dohResolves;
   const counts = emptyDiscoveryStats();
   counts.companies_scanned = 1;
+  const done = async (outcome: DiscoveryOutcome) => {
+    await recordAttempt(db, company.id, "discover", outcome, opts.batchId);
+    return counts;
+  };
   if (!company.name) {
     counts.no_name = 1;
-    return counts;
+    return done("no_name");
   }
+  let reached = false;
   for (const candidate of domainCandidates(company.name, { genericWords: generic })) {
     if (await claimed(db, candidate)) {
       counts.already_claimed += 1;
@@ -199,6 +230,7 @@ export async function discoverCompany(
       counts.fetch_misses += 1;
       continue;
     }
+    reached = true;
     const evidence = gatePage({
       url: page.url,
       pageTitle: page.title,
@@ -222,9 +254,12 @@ export async function discoverCompany(
       rowNumber: opts.rowNumber,
       raw: { discovered_domain: candidate, evidence },
     });
-    break; // one proven domain per company; stop guessing
+    return done("attached"); // one proven domain per company; stop guessing
   }
-  return counts;
+  // Pages that answered but did not speak for the firm outrank guesses that never resolved.
+  return done(
+    reached ? "gate_rejected" : counts.candidates_tried > 0 ? "unreachable" : "no_candidate",
+  );
 }
 
 /** The whole run in one call: batch, targets, one unit per company, batch stats. */
@@ -252,6 +287,7 @@ export async function runDomainDiscovery(
 export interface DomainVerificationOptions {
   genericWords?: ReadonlySet<string>;
   limit?: number;
+  retryAfterDays?: number;
   niche?: string | null;
   fetchHomepage: HomepageFetcher;
 }
@@ -268,10 +304,14 @@ export interface DomainVerificationStats {
 /** Companies whose domain was asserted but never proven. */
 export async function selectVerificationTargets(
   db: Queryable,
-  opts: { limit?: number; niche?: string | null },
+  opts: { limit?: number; niche?: string | null; retryAfterDays?: number },
 ): Promise<Company[]> {
   const niche = opts.niche ?? null;
-  const base = and(isNotNull(companies.domain), isNull(companies.domainVerifiedAt));
+  const base = and(
+    isNotNull(companies.domain),
+    isNull(companies.domainVerifiedAt),
+    notAttempted("verify", opts.retryAfterDays ?? DEFAULT_RETRY_AFTER_DAYS),
+  );
   const where = niche === null ? base : and(base, eq(companies.niche, niche));
   const q = db.select().from(companies).where(where).orderBy(asc(companies.id));
   return opts.limit === undefined ? q : q.limit(opts.limit);
@@ -320,12 +360,16 @@ export async function verifyCompanyDomain(
   const generic = opts.genericWords ?? new Set<string>();
   const counts = emptyVerificationStats();
   counts.companies_scanned = 1;
+  const done = async (outcome: DiscoveryOutcome) => {
+    await recordAttempt(db, company.id, "verify", outcome, opts.batchId);
+    return counts;
+  };
   const domain = company.domain as string;
   const page = await opts.fetchHomepage(domain);
   if (page === null) {
     counts.fetch_misses = 1;
     counts.unverified_preview.push(`${domain}: unreachable`);
-    return counts;
+    return done("unreachable");
   }
   const evidence = gatePage({
     url: page.url,
@@ -338,7 +382,7 @@ export async function verifyCompanyDomain(
   if (evidence === null) {
     counts.gate_rejections = 1;
     counts.unverified_preview.push(`${domain}: page does not speak for the firm`);
-    return counts;
+    return done("gate_rejected");
   }
   await db
     .update(companies)
@@ -351,7 +395,7 @@ export async function verifyCompanyDomain(
     rowNumber: opts.rowNumber,
     raw: { verified_domain: domain, evidence },
   });
-  return counts;
+  return done("verified");
 }
 
 export async function runDomainVerification(

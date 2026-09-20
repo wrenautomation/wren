@@ -8,13 +8,14 @@ import {
   runDomainDiscovery,
   runDomainVerification,
 } from "../../src/discovery/service.js";
+import { discoveryAttempts } from "../../src/schema.js";
 
 let pg: TestPostgres;
 beforeAll(async () => {
   pg = await startTestPostgres();
 });
 afterAll(() => pg.stop());
-beforeEach(() => truncate(pg.db, ["imports", "companies"]));
+beforeEach(() => truncate(pg.db, ["discovery_attempts", "imports", "companies"]));
 const db = () => pg.db;
 
 const GENERIC = new Set(["wealth", "advisors"]);
@@ -83,6 +84,34 @@ describe("discovery", () => {
     });
     expect((await companyById(company?.id as number))?.domain).toBeNull();
     expect(stats.gate_rejections).toBeGreaterThanOrEqual(1);
+  });
+
+  it("a miss is recorded and keeps the company out of the next pass", async () => {
+    const [company] = await db()
+      .insert(companies)
+      .values({ sourceKey: "crd:915005", name: "Zorbel Wealth LLC", raw: {} })
+      .returning();
+    const opts = {
+      genericWords: GENERIC,
+      resolves: async () => false,
+      fetchHomepage: stubFetch({}),
+    };
+    const first = await runDomainDiscovery(db(), opts);
+    expect(first.stats).toMatchObject({ companies_scanned: 1, domains_attached: 0 });
+    const [attempt] = await db()
+      .select()
+      .from(discoveryAttempts)
+      .where(eq(discoveryAttempts.companyId, company?.id as number));
+    expect(attempt).toMatchObject({
+      kind: "discover",
+      outcome: "unreachable",
+      importId: first.batch.id,
+    });
+    const second = await runDomainDiscovery(db(), opts);
+    expect(second.stats.companies_scanned).toBe(0);
+    // The cooling period is the caller's: 0 days means guess again now.
+    const third = await runDomainDiscovery(db(), { ...opts, retryAfterDays: 0 });
+    expect(third.stats.companies_scanned).toBe(1);
   });
 
   it("verification stamps an asserted domain", async () => {

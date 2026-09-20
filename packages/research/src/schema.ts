@@ -1,4 +1,4 @@
-import { companies, runs } from "@wren/core/schema";
+import { companies, imports, runs } from "@wren/core/schema";
 import { oneOf } from "@wren/db/columns";
 import { sql } from "drizzle-orm";
 import {
@@ -104,3 +104,52 @@ export type Document = typeof documents.$inferSelect;
 export type NewDocument = typeof documents.$inferInsert;
 export type Enrichment = typeof enrichments.$inferSelect;
 export type NewEnrichment = typeof enrichments.$inferInsert;
+
+export const DISCOVERY_KINDS = ["discover", "verify"] as const;
+export type DiscoveryKind = (typeof DISCOVERY_KINDS)[number];
+/** Why one discovery unit ended the way it did; `attached`/`verified` are the passes. */
+export const DISCOVERY_OUTCOMES = [
+  "attached",
+  "verified",
+  "no_name",
+  "no_candidate",
+  "unreachable",
+  "gate_rejected",
+] as const;
+export type DiscoveryOutcome = (typeof DISCOVERY_OUTCOMES)[number];
+
+/**
+ * One row per discovery or verification unit, pass or miss. A miss keeps its
+ * company out of the next passes (retry after a cooling period) so a queue
+ * head of unguessable names cannot block the rest; and "why has this firm no
+ * domain?" has an answer.
+ */
+export const discoveryAttempts = pgTable(
+  "discovery_attempts",
+  {
+    id: serial("id").notNull(),
+    companyId: integer("company_id").notNull(),
+    kind: varchar("kind", { length: 16, enum: DISCOVERY_KINDS }).notNull(),
+    outcome: varchar("outcome", { length: 32, enum: DISCOVERY_OUTCOMES }).notNull(),
+    /** The batch (imports row) the run wrote its evidence under. */
+    importId: integer("import_id"),
+    attemptedAt: timestamp("attempted_at", { withTimezone: true }).defaultNow().notNull(),
+  },
+  (t) => [
+    primaryKey({ columns: [t.id], name: "pk_discovery_attempts" }),
+    index("ix_discovery_attempts_company_kind").on(t.companyId, t.kind, t.attemptedAt),
+    foreignKey({
+      columns: [t.companyId],
+      foreignColumns: [companies.id],
+      name: "fk_discovery_attempts_company_id_companies",
+    }),
+    foreignKey({
+      columns: [t.importId],
+      foreignColumns: [imports.id],
+      name: "fk_discovery_attempts_import_id_imports",
+    }),
+    oneOf("ck_discovery_attempts_kind", t.kind, DISCOVERY_KINDS),
+    oneOf("ck_discovery_attempts_outcome", t.outcome, DISCOVERY_OUTCOMES),
+  ],
+);
+export type DiscoveryAttempt = typeof discoveryAttempts.$inferSelect;

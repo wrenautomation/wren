@@ -33,7 +33,7 @@ afterAll(async () => {
   await env?.stop();
   await pg?.stop();
 });
-beforeEach(() => truncate(pg.db, ["imports", "companies", "runs"]));
+beforeEach(() => truncate(pg.db, ["discovery_attempts", "imports", "companies", "runs"]));
 
 const client = () =>
   clients.connect({ url: env.baseUrl() }).objectClient<Discovery>({ name: "Discovery" }, "sec_ria");
