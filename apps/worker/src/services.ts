@@ -178,9 +178,11 @@ export async function buildServices(
       robotsMode: settings.robotsMode,
       crawlHintsFor,
     }),
+    // Discovery probes guessed hosts, most of them parked or dead: a short timeout and
+    // one try per URL, or a single company's guesses can eat a Lambda invocation.
     makeDiscovery({
       db,
-      fetcher: ua ? new PoliteFetcher(ua) : null,
+      fetcher: ua ? new PoliteFetcher(ua, { timeout: 8, retries: 1 }) : null,
       genericWordsFor: discoveryWordsFor,
     }),
     makeResolution({ db, verifier }),
