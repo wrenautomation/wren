@@ -4,14 +4,19 @@
  * operator asserts, journaled by their own ledger rows, so they run against the
  * database directly. Composing and sending stay with the Restate loops.
  */
+import { randomUUID } from "node:crypto";
 import { statSync } from "node:fs";
 import { resolve } from "node:path";
 import {
   activePauses,
+  activeSenders,
   activeSuppression,
   addSuppression,
   campaignFunnel,
   classifyValue,
+  expandHome,
+  GmailClient,
+  GmailTransport,
   liftSuppression,
   loadRoster,
   openOutcomes,
@@ -248,6 +253,63 @@ export function registerEmail(
         resume(db, { target, by: BY, now: new Date(), senders: rosterAddresses() }),
       );
       console.log(`resumed ${rows.map((r) => r.sender).join(", ") || "nothing was paused"}`);
+    });
+
+  senders
+    .command("check")
+    .description(
+      "Prove every active inbox can send: mint its delegation token; --send mails one test each",
+    )
+    .option("--niche <name>", "only inboxes this niche's campaigns may use")
+    .option(
+      "--send",
+      "one test mail per inbox, to another inbox in the fleet (mail stays inside the fleet)",
+    )
+    .action(async (opts: { niche?: string; send?: boolean }) => {
+      const active = activeSenders(
+        loadRoster(resolve(rootDir, settings.sendersFile), NICHE_NAMES),
+        opts.niche ?? null,
+      ).map((s) => s.address);
+      if (active.length === 0) throw new Error("no active senders in scope — nothing to check");
+      const client = new GmailClient({ keyPath: expandHome(settings.googleServiceAccount) });
+      const transport = new GmailTransport(client);
+      let failures = 0;
+      const minted: string[] = [];
+      for (const address of active) {
+        try {
+          await client.ensureToken(address);
+          minted.push(address);
+          console.log(`mint ok    ${address}`);
+        } catch (err) {
+          failures += 1;
+          console.log(`mint FAIL  ${address}: ${(err as Error).message}`);
+        }
+      }
+      if (opts.send) {
+        for (const [i, address] of minted.entries()) {
+          // Each inbox mails the next one round-robin: the exact path campaigns use, no outsider.
+          const to = minted[(i + 1) % minted.length] as string;
+          const domain = address.slice(address.lastIndexOf("@") + 1);
+          try {
+            await transport.send({
+              fromAddress: address,
+              fromName: null,
+              to,
+              subject: `wren fleet send check: ${address} -> ${to}`,
+              replySubject: null,
+              body: "Automated test send from `wren email senders check --send`. One email per active inbox, each to another inbox in the fleet, through the exact path campaigns use. Safe to ignore.",
+              messageId: `<${randomUUID().replaceAll("-", "")}@${domain}>`,
+            });
+            console.log(`send ok    ${address} -> ${to}`);
+          } catch (err) {
+            failures += 1;
+            console.log(`send FAIL  ${address} -> ${to}: ${(err as Error).message}`);
+          }
+        }
+      }
+      const verb = opts.send ? "minted + sent" : "minted";
+      if (failures > 0) throw new Error(`${failures} failure(s) across ${active.length} inbox(es)`);
+      console.log(`all ${active.length} inbox(es) ${verb} clean`);
     });
 
   const suppress = email.command("suppress").description("addresses and domains we never mail");

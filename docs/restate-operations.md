@@ -204,6 +204,14 @@ wren fetch get adv-filing-data --months 2     # newest monthly zips → import-p
 wren fetch get shopify-partner-profiles       # profiles for slugs under data/agencies/shopify; 3–8 s apart, stops on a challenge page
 ```
 
+## Checking the fleet
+
+```sh
+wren email senders list                 # roster + pauses
+wren email senders check [--niche x]    # mints each inbox's delegation token; exit 1 on any failure
+wren email senders check --send         # plus one test mail per inbox to the next inbox in the fleet (nothing leaves the fleet)
+```
+
 ## Reviewing by hand
 
 Drafts are auto-approved today, so this seat is idle until a human reviews copy again

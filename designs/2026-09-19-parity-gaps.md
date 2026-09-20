@@ -78,7 +78,7 @@ What the Python system did, and where each piece stands in wren. Source:
    disposition or recorded one that came in off-channel. Now `wren email reply
    --event N | --enrollment N --disposition …` and `wren email event N` (with
    `address via` and `source page`); `replies` prints the event id.
-5. **`senders check --send`** (one test mail per inbox).
+5. ~~`senders check --send`~~ Closed 2026-09-20: `wren email senders check [--niche] [--send]`; mint verified on all 10 inboxes, `--send` round-robins one test mail inside the fleet through `GmailTransport`.
 6. ~~Reads~~ Closed 2026-09-20: `wren email outcomes|opens|postmaster`; `address via`
    is a column of `drafts` and a line of `show` / `event`.
 7. **`setup` domain tooling** (RDAP, Porkbun pricing, Cloudflare DNS records).
