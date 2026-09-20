@@ -69,14 +69,18 @@ What the Python system did, and where each piece stands in wren. Source:
    Old unit tests ported (46) plus one importer round-trip per family. The `fetch get`
    datasets followed the same day: `Dataset`/`fetchDataset` in `research/fetch`, the
    four SEC catalogs and the Shopify profile crawl on their niches, `wren fetch list|get`.
-3. **Review commands** (`drafts`, `show`, `approve`, `reject`, `edit`, `stop`,
-   `preview`). Every draft is auto-approved today; these matter when a human
-   reviews copy again.
-4. **`inbox reply`** (send a reply from the CLI in-thread). Replies are read, not
-   answered, from wren.
+3. ~~Review commands~~ Closed 2026-09-20: `channel-email/src/outreach/review.ts`
+   (listDrafts, approveMessages, rejectMessages, editMessage, stopByHand; 11 tests)
+   behind `wren email drafts|show|approve|reject|edit|stop|preview` (`cli/src/review.ts`).
+   Same rules as Python: ids may re-arm `failed`, `--all` is draft-only, stopped
+   enrollments refused, the original pinned under `provenance.review` on edit.
+4. ~~`inbox reply`~~ Closed 2026-09-20. It never sent mail: it labelled a reply's
+   disposition or recorded one that came in off-channel. Now `wren email reply
+   --event N | --enrollment N --disposition …` and `wren email event N` (with
+   `address via` and `source page`); `replies` prints the event id.
 5. **`senders check --send`** (one test mail per inbox).
-6. ~~Reads~~ Closed 2026-09-20: `wren email outcomes|opens|postmaster`. Still no
-   `address via` (provenance per address).
+6. ~~Reads~~ Closed 2026-09-20: `wren email outcomes|opens|postmaster`; `address via`
+   is a column of `drafts` and a line of `show` / `event`.
 7. **`setup` domain tooling** (RDAP, Porkbun pricing, Cloudflare DNS records).
 8. ~~sops~~ Copied 2026-09-20 with a header mapping old commands to wren ones.
 9. **Pixel worker source** (`infra/pixel/`) lives in `legacy-private`; the

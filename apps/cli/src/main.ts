@@ -21,6 +21,7 @@ import { Command } from "commander";
 import { sql } from "drizzle-orm";
 import { registerEmail } from "./email.js";
 import { registerFetch } from "./fetch.js";
+import { registerReview } from "./review.js";
 
 const BODY_PREVIEW_CHARS = 60;
 const rootDir = loadEnvFile();
@@ -101,7 +102,7 @@ notes
     }
   });
 
-registerEmail(program, withDb, settings, rootDir);
+registerReview(registerEmail(program, withDb, settings, rootDir), withDb);
 registerFetch(program, settings);
 
 const report = program.command("report").description("periodic reports");

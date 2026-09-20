@@ -45,7 +45,7 @@ export function registerEmail(
   withDb: WithDb,
   settings: Settings,
   rootDir: string,
-): void {
+): Command {
   const email = program
     .command("email")
     .description("the email channel: queue, outcomes, fleet, suppressions, imports");
@@ -184,13 +184,13 @@ export function registerEmail(
 
   email
     .command("replies")
-    .description("Human replies, newest first (subject and a snippet; answer from the inbox)")
+    .description("Human replies, newest first; #id feeds `email event` and `email reply --event`")
     .option("--days <n>", "how far back", "7")
     .option("--limit <n>", "at most", "50")
     .action(async (opts: { days: string; limit: string }) => {
       await withDb(async (db) => {
         const rows = (await db.execute(sql`
-          SELECT te.received_at, e.sender, c.name AS company, te.disposition, te.subject, left(te.snippet, 90) AS snippet
+          SELECT te.id, te.received_at, e.sender, c.name AS company, te.disposition, te.subject, left(te.snippet, 90) AS snippet
           FROM thread_events te
           JOIN enrollments e ON e.id = te.enrollment_id
           LEFT JOIN companies c ON c.id = e.company_id
@@ -202,7 +202,7 @@ export function registerEmail(
         if (rows.length === 0) console.log("no replies in that window");
         for (const r of rows)
           console.log(
-            `${String(r.received_at).slice(0, 16)}  ${r.sender}  ${r.company ?? "?"}  [${r.disposition ?? "unclassified"}]  ${r.subject ?? ""}\n    ${r.snippet ?? ""}`,
+            `#${r.id}  ${String(r.received_at).slice(0, 16)}  ${r.sender}  ${r.company ?? "?"}  [${r.disposition ?? "unclassified"}]  ${r.subject ?? ""}\n    ${r.snippet ?? ""}`,
           );
       });
     });
@@ -364,6 +364,7 @@ export function registerEmail(
       );
       console.log(`import ${result.batch.id}: ${JSON.stringify(result.stats)}`);
     });
+  return email;
 }
 
 /** "Column=field" -> [column, field]; refuses a pair with no "=". */

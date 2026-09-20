@@ -204,6 +204,32 @@ wren fetch get adv-filing-data --months 2     # newest monthly zips → import-p
 wren fetch get shopify-partner-profiles       # profiles for slugs under data/agencies/shopify; 3–8 s apart, stops on a challenge page
 ```
 
+## Reviewing by hand
+
+Drafts are auto-approved today, so this seat is idle until a human reviews copy again
+(or a step fails and needs re-arming). Everything reads the stored text; nothing here
+sends.
+
+```sh
+wren email drafts [--enrollment N] [--flagged]   # waiting drafts, "via scraped · valid" per address, DUP? flags
+wren email show 123                              # full text, address provenance, source page, review history
+wren email approve 123 124                       # explicit ids may also re-arm a FAILED step
+wren email approve --enrollment 7 | --all        # draft-only; a stopped enrollment's steps are refused
+wren email reject 123 --reason too_salesy --note "opener too pushy"
+wren email edit 123                              # $VISUAL/$EDITOR; original pinned in provenance.review
+wren email stop --enrollment 7 --reason manual --detail "asked on LinkedIn"
+wren email stop --company-domain acme.example --reason opt_out
+wren email preview build/opener --niche agencies [--variants]
+wren email replies                               # #id per reply
+wren email event 42                              # one inbox event + which message/address it answers
+wren email reply --event 42 --disposition not_now            # relabel
+wren email reply --enrollment 7 --disposition interested --note "called back"   # a reply that never hit the mailbox; stops the company
+```
+
+Reject reasons: wrong_fact, too_salesy, generic_opener, bad_tone, wrong_person,
+bad_address, other. Stop reasons: reply, bounce, opt_out, complaint, manual (opt_out /
+complaint / bounce also write the suppression). Answering a reply is done from the inbox.
+
 ## Discord (what you get told, and what you never get told)
 
 `WREN_NOTIFY=discord` + `WREN_DISCORD_WEBHOOK_URL` (in `deploy/prod.env` → SSM; the URL
