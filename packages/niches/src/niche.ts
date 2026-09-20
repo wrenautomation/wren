@@ -15,6 +15,7 @@ import {
   type Template,
 } from "@wren/channel-email";
 import type { Company, PersonSourceFormat, SourceFormat } from "@wren/core";
+import type { Dataset } from "@wren/research/fetch";
 
 export interface Niche {
   readonly name: string;
@@ -41,6 +42,12 @@ export interface Niche {
    * the platform-domain set at import so a pasted listing URL can never key a company.
    */
   readonly platformDomains: ReadonlySet<string>;
+  /**
+   * Bulk files this niche pulls from publishers (regulator catalogs, directory
+   * profiles), given the data directory: `<dataDir>/<niche>/` is the niche's own,
+   * `<dataDir>/<niche>/bulk/<dataset>/` where the files land.
+   */
+  readonly datasets: (dataDir: string) => readonly Dataset[];
 }
 
 export interface NicheSpec {
@@ -58,6 +65,7 @@ export interface NicheSpec {
   readonly leadSourceFormats?: readonly SourceFormat[];
   readonly personSourceFormats?: readonly PersonSourceFormat[];
   readonly platformDomains?: Iterable<string>;
+  readonly datasets?: (dataDir: string) => readonly Dataset[];
 }
 
 /** A niche-owned import format: `build` and `help` here, name and niche from the caller. */
@@ -134,6 +142,7 @@ export function defineNiche(spec: NicheSpec): Niche {
     leadSourceFormats: spec.leadSourceFormats ?? [],
     personSourceFormats: spec.personSourceFormats ?? [],
     platformDomains: new Set(spec.platformDomains ?? []),
+    datasets: spec.datasets ?? (() => []),
   };
 }
 

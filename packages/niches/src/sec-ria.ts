@@ -1,6 +1,7 @@
 /** SEC-registered investment advisers: regulator bulk files, two hook arms. */
 import { threeEmailSequence, twoEmailSequence } from "@wren/channel-email";
 import { defineNiche, leadFormat, rawLocation, templatesDir } from "./niche.js";
+import { SEC_DATASETS } from "./sec-ria/datasets.js";
 import { AdvFilingDataSource } from "./sec-ria/filing-data.js";
 import { SecFirmFeedSource } from "./sec-ria/firm-feed.js";
 import { SecInvestmentAdviserSource } from "./sec-ria/roster.js";
@@ -76,4 +77,5 @@ export const secRia = defineNiche({
       niche: NICHE,
     },
   ],
+  datasets: () => SEC_DATASETS,
 });

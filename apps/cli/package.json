@@ -17,6 +17,7 @@
     "@wren/core": "workspace:*",
     "@wren/db": "workspace:*",
     "@wren/niches": "workspace:*",
+    "@wren/research": "workspace:*",
     "commander": "15.0.0",
     "drizzle-orm": "0.45.2",
     "tsx": "4.23.13"

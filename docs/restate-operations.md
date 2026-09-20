@@ -193,8 +193,16 @@ wren email import-people ADV_Filing_Data_20260701_20260731.zip --format adv-fili
 Directory hosts (clutch.co, shopify.com, …) are platform domains in every import: a
 listing URL is kept as the company's social URL, never as its domain; a firm with no
 real domain keys by `clutch:<slug>` / `crd:<n>` and gets a domain later from discovery.
-Directory pages are saved by hand: none of these formats fetches. The SEC/Shopify file
-downloads (`fetch get` in the old CLI) are not ported yet: fetch the files with a browser.
+Directory pages are saved by hand: none of these formats fetches. The publisher files
+come through `wren fetch` (needs `WREN_FETCH_CONTACT`; lands under
+`<data>/<niche>/bulk/<dataset>/`, skips what is already there, so re-running resumes):
+
+```sh
+wren fetch list
+wren fetch get firm-feed                      # today's IA_FIRM_SEC_Feed → import --format sec-firm-feed
+wren fetch get adv-filing-data --months 2     # newest monthly zips → import-people --format adv-filing-data
+wren fetch get shopify-partner-profiles       # profiles for slugs under data/agencies/shopify; 3–8 s apart, stops on a challenge page
+```
 
 ## Discord (what you get told, and what you never get told)
 

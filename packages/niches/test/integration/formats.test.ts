@@ -52,7 +52,7 @@ describe("niche formats through runImport", () => {
       ["crd:283882", "rabenoldadvisors.com", "sec_ria"],
       ["crd:312360", null, "sec_ria"],
     ]);
-    expect((rows[0]?.raw as Record<string, unknown>)["5A"]).toBe("4");
+    expect(rows[0]?.raw).toMatchObject({ "5A": "4" });
   });
 
   it("clutch-pages never keys a company by the listing host", async () => {
@@ -82,7 +82,7 @@ describe("niche formats through runImport", () => {
     ]);
     // The profile URL is kept, as a social URL, never as a domain.
     expect(rows[1]?.socialUrl).toBe("https://clutch.co/profile/adshop");
-    expect((rows[0]?.raw as Record<string, unknown>)["agency.services"]).toBe("60% Pay Per Click");
+    expect(rows[0]?.raw).toMatchObject({ "agency.services": "60% Pay Per Click" });
   });
 
   it("adv-filing-data lands people under their firm, creating it if unknown", async () => {

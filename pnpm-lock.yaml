@@ -44,6 +44,9 @@ importers:
       '@wren/niches':
         specifier: workspace:*
         version: link:../../packages/niches
+      '@wren/research':
+        specifier: workspace:*
+        version: link:../../packages/research
       commander:
         specifier: 15.0.0
         version: 15.0.0
@@ -277,6 +280,9 @@ importers:
       '@wren/core':
         specifier: workspace:*
         version: link:../core
+      '@wren/research':
+        specifier: workspace:*
+        version: link:../research
       fflate:
         specifier: 0.8.3
         version: 0.8.3

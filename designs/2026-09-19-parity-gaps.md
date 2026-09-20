@@ -66,9 +66,9 @@ What the Python system did, and where each piece stands in wren. Source:
    `sec-firm-feed` and the `adv-filing-data` people format (`niches/src/sec-ria/`),
    registered on each `Niche` and merged in `LEAD_SOURCE_FORMATS` /
    `PERSON_SOURCE_FORMATS`; `wren email import --format`, `import-people`, `formats`.
-   Old unit tests ported (46) plus one importer round-trip per family. Still open
-   from the same area: the `fetch get` datasets (SEC catalog downloads, the jittered
-   Shopify profile crawl) — files are fetched by hand until then.
+   Old unit tests ported (46) plus one importer round-trip per family. The `fetch get`
+   datasets followed the same day: `Dataset`/`fetchDataset` in `research/fetch`, the
+   four SEC catalogs and the Shopify profile crawl on their niches, `wren fetch list|get`.
 3. **Review commands** (`drafts`, `show`, `approve`, `reject`, `edit`, `stop`,
    `preview`). Every draft is auto-approved today; these matter when a human
    reviews copy again.

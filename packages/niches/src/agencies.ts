@@ -1,7 +1,9 @@
 /** Marketing / build agencies: directory-sourced firms, people crawled from their sites. */
+import { join } from "node:path";
 import { threeEmailSequence, twoEmailSequence } from "@wren/channel-email";
 import { ClutchPagesSource } from "./agencies/clutch-pages.js";
 import { AgencyDirectoryCsvSource, DIRECTORY_DOMAINS } from "./agencies/directory.js";
+import { shopifyProfileDataset } from "./agencies/profiles.js";
 import { ShopifyPagesSource } from "./agencies/shopify-pages.js";
 import { defineNiche, leadFormat, rawLocation, templatesDir } from "./niche.js";
 
@@ -91,4 +93,6 @@ export const agencies = defineNiche({
     ),
   ],
   platformDomains: DIRECTORY_DOMAINS,
+  // The one fetch: profile pages for slugs a human already saved under <data>/agencies/shopify.
+  datasets: (dataDir) => [shopifyProfileDataset(join(dataDir, NICHE, "shopify"))],
 });

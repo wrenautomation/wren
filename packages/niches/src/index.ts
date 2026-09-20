@@ -5,6 +5,7 @@
  */
 import { pyReprStr } from "@wren/channel-email";
 import { BUILTIN_FORMATS, type PersonSourceFormat, type SourceFormat } from "@wren/core";
+import type { Dataset } from "@wren/research/fetch";
 import { agencies } from "./agencies.js";
 import type { Niche } from "./niche.js";
 import { secRia } from "./sec-ria.js";
@@ -91,3 +92,15 @@ export const PERSON_SOURCE_FORMATS: ReadonlyMap<string, PersonSourceFormat> = fo
 
 /** Every niche's directory and registry hosts: a listing URL never keys a company in any niche's import. */
 export const NICHE_PLATFORM_DOMAINS: ReadonlySet<string> = union((n) => n.platformDomains);
+
+/** Every niche's bulk datasets, with the niche each lands under: name -> (niche, dataset). */
+export function datasetsFor(
+  dataDir: string,
+): ReadonlyMap<string, { niche: string; dataset: Dataset }> {
+  return formatRegistry(
+    "dataset",
+    NICHES.flatMap((n) =>
+      n.datasets(dataDir).map((dataset) => ({ name: dataset.name, niche: n.name, dataset })),
+    ),
+  );
+}
