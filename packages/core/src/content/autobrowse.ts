@@ -1,8 +1,10 @@
 /**
- * autobrowse's site APIs from here: one client per worker, one call shaped
- * like the official API (`call("linkedin", "POST", "/rest/posts", body)`).
- * The worker answers through the platform's API or its browser; this side
- * never knows which, except through `fetchedWith` on what comes back.
+ * autobrowse's site APIs from here: one call shaped like the official API
+ * (`call("linkedin", "POST", "/rest/posts", body)`). The worker answers
+ * through the platform's API or its browser; this side never knows which,
+ * except through `fetchedWith` on what comes back. This is the HTTP client
+ * (a laptop against a local autobrowse); the worker uses `restateSites` in
+ * `./restate.js`, which reaches the box through Restate without a port.
  */
 import type { FetchLike } from "../doh.js";
 import type { FetchedWith } from "./index.js";
@@ -29,15 +31,22 @@ export class SiteCallError extends Error {
   }
 }
 
-interface SiteRow {
+/** The part of autobrowse's site status this side reads. */
+export interface SiteStatus {
   routes: Array<{ method: string; path: string; via: "api" | "browser" | "none" }>;
 }
 
 /** `/rest/socialActions/{urn}` matches `/rest/socialActions/urn:li:share:1`. */
-function matches(pattern: string, path: string): boolean {
+export function matches(pattern: string, path: string): boolean {
   const p = pattern.split("/");
   const a = (path.split("?")[0] ?? "").split("/");
   return p.length === a.length && p.every((seg, i) => seg.startsWith("{") || seg === a[i]);
+}
+
+/** A route's `via` from a status snapshot; `none` when the worker has no leg for it. */
+export function viaOf(status: SiteStatus, method: string, path: string): FetchedWith | "none" {
+  const row = status.routes.find((r) => r.method === method && matches(r.path, path));
+  return row?.via ?? "none";
 }
 
 export function autobrowseSites(o: {
@@ -51,14 +60,14 @@ export function autobrowseSites(o: {
     ...(json ? { "content-type": "application/json" } : {}),
     ...(o.token ? { authorization: `Bearer ${o.token}` } : {}),
   });
-  const statusRows = new Map<string, Promise<SiteRow>>();
+  const statusRows = new Map<string, Promise<SiteStatus>>();
   const status = (site: string) => {
     let p = statusRows.get(site);
     if (!p) {
       p = doFetch(`${base}/api/sites/${site}`, { method: "GET", headers: headers(false) }).then(
         async (res) => {
           if (!res.ok) throw new SiteCallError(site, "GET", "/", res.status, await res.text());
-          return (await res.json()) as SiteRow;
+          return (await res.json()) as SiteStatus;
         },
       );
       statusRows.set(site, p);
@@ -90,10 +99,7 @@ export function autobrowseSites(o: {
       return body as never;
     },
     async via(site, method, path) {
-      const row = (await status(site)).routes.find(
-        (r) => r.method === method && matches(r.path, path),
-      );
-      return row?.via ?? "none";
+      return viaOf(await status(site), method, path);
     },
   };
 }

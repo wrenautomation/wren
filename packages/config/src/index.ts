@@ -102,9 +102,17 @@ export const settingsSchema = z.object({
   googleAdminUser: z.string().email().optional(),
   /** DMARC aggregate reports go here (unset = none). */
   dmarcRua: z.string().email().optional(),
-  /** autobrowse's HTTP API (site APIs for content: LinkedIn, YouTube); unset = no content channels. */
-  autobrowseUrl: z.string().url().optional(),
-  autobrowseToken: z.string().min(1).optional(),
+  /** Content platforms served through autobrowse's `sites` Restate service; empty = no `Content` service. */
+  contentChannels: z
+    .string()
+    .default("")
+    .transform((s) =>
+      s
+        .split(",")
+        .map((x) => x.trim())
+        .filter(Boolean),
+    )
+    .pipe(z.array(z.enum(["linkedin", "youtube"]))),
 });
 export type Settings = z.infer<typeof settingsSchema>;
 
@@ -162,8 +170,7 @@ export const ENV_KEYS = {
   cloudflareAccountId: "WREN_CLOUDFLARE_ACCOUNT_ID",
   googleAdminUser: "WREN_GOOGLE_ADMIN_USER",
   dmarcRua: "WREN_DMARC_RUA",
-  autobrowseUrl: "WREN_AUTOBROWSE_URL",
-  autobrowseToken: "WREN_AUTOBROWSE_TOKEN",
+  contentChannels: "WREN_CONTENT_CHANNELS",
 } as const satisfies Record<keyof Settings, string>;
 
 export interface LoadOptions {

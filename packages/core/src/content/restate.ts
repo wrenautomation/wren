@@ -1,20 +1,71 @@
 /**
- * The content channels as one Restate service: `Content/publish` and the
- * reads, keyed by platform. A publish is one journaled step (the worker's
- * route is irreversible; a retry of the call does not post twice because
- * Restate replays the journal). This is the door a scheduler or a person
- * uses; the channels behind it are the adapters.
+ * The content channels as one Restate service, `Content`: publish and the
+ * reads, keyed by platform. Every site call underneath is a call to
+ * autobrowse's `sites` service on the same Restate, so it is journaled,
+ * queues while the box is down, and a retry of `publish` never posts twice
+ * (the worker runs a write once). No port on the box is ever reached from
+ * here.
  */
 import * as restate from "@restatedev/restate-sdk";
+import {
+  SiteCallError,
+  type SiteClient,
+  type SiteMethod,
+  type SiteStatus,
+  viaOf,
+} from "./autobrowse.js";
 import type { ContentChannel, ListQuery, Platform, Post } from "./index.js";
 
 export type Channels = Partial<Record<Platform, ContentChannel>>;
 
-const PUBLISH_RETRY = { maxRetryAttempts: 1 };
+const SITES = { name: "sites" } as const;
 
-export function makeContent(channels: Channels) {
-  const pick = (platform: Platform): ContentChannel => {
-    const ch = channels[platform];
+/** The `sites` service's handlers as autobrowse serves them; no import from that repo. */
+type SitesService = {
+  status: (ctx: restate.Context, req: { site: string }) => Promise<SiteStatus>;
+  call: (
+    ctx: restate.Context,
+    req: { site: string; method: SiteMethod; path: string; input?: Record<string, unknown> },
+  ) => Promise<unknown>;
+  setup: (
+    ctx: restate.Context,
+    req: { site: string; step: string },
+  ) => Promise<{ made: readonly string[] }>;
+};
+
+/** A terminal error from `sites` carries the site's own status code; surface it as a SiteCallError. */
+function siteCallErrorFrom(err: unknown, site: string, method: string, path: string): Error {
+  if (err instanceof restate.TerminalError)
+    return new SiteCallError(site, method, path, err.code ?? 500, err.message);
+  return err instanceof Error ? err : new Error(String(err));
+}
+
+/** autobrowse's site APIs through the invocation's context: each call is a durable step of this invocation. */
+export function restateSites(ctx: restate.Context): SiteClient {
+  const client = ctx.serviceClient<SitesService>(SITES);
+  const statuses = new Map<string, Promise<SiteStatus>>();
+  return {
+    async call(site, method, path, input = {}) {
+      try {
+        return (await client.call({ site, method, path, input })) as never;
+      } catch (err) {
+        throw siteCallErrorFrom(err, site, method, path);
+      }
+    },
+    async via(site, method, path) {
+      const p = statuses.get(site) ?? client.status({ site });
+      statuses.set(site, p);
+      return viaOf(await p, method, path);
+    },
+  };
+}
+
+/** Build the channels for one invocation from its context (the `sites` calls need it). */
+export type ChannelsFor = (ctx: restate.Context) => Channels;
+
+export function makeContent(channelsFor: ChannelsFor) {
+  const pick = (ctx: restate.Context, platform: Platform): ContentChannel => {
+    const ch = channelsFor(ctx)[platform];
     if (!ch)
       throw new restate.TerminalError(`no ${platform} channel configured`, { errorCode: 404 });
     return ch;
@@ -22,36 +73,29 @@ export function makeContent(channels: Channels) {
   return restate.service({
     name: "Content",
     handlers: {
-      platforms: async (): Promise<Platform[]> =>
-        (Object.keys(channels) as Platform[]).filter((p) => channels[p]),
-      /** Irreversible: a network fault after the post went out is not retried into a duplicate. */
-      publish: (ctx: restate.Context, req: { platform: Platform; post: Post }) =>
-        ctx.run(
-          `publish ${req.platform}`,
-          () => pick(req.platform).publish(req.post),
-          PUBLISH_RETRY,
-        ),
-      list: (ctx: restate.Context, req: { platform: Platform; q?: ListQuery }) =>
-        ctx.run(`list ${req.platform}`, () => pick(req.platform).list(req.q ?? {})),
-      metrics: (ctx: restate.Context, req: { platform: Platform; id: string }) =>
-        ctx.run(`metrics ${req.platform} ${req.id}`, () => pick(req.platform).metrics(req.id)),
-      comments: (ctx: restate.Context, req: { platform: Platform; id: string; q?: ListQuery }) =>
-        ctx.run(`comments ${req.platform} ${req.id}`, () =>
-          pick(req.platform).comments(req.id, req.q ?? {}),
-        ),
-      reply: (ctx: restate.Context, req: { platform: Platform; commentId: string; text: string }) =>
-        ctx.run(
-          `reply ${req.platform} ${req.commentId}`,
-          async () => {
-            const ch = pick(req.platform);
-            if (!ch.reply)
-              throw new restate.TerminalError(`${req.platform} cannot reply here`, {
-                errorCode: 501,
-              });
-            await ch.reply(req.commentId, req.text);
-          },
-          PUBLISH_RETRY,
-        ),
+      platforms: async (ctx: restate.Context): Promise<Platform[]> => {
+        const channels = channelsFor(ctx);
+        return (Object.keys(channels) as Platform[]).filter((p) => channels[p]);
+      },
+      publish: async (ctx: restate.Context, req: { platform: Platform; post: Post }) =>
+        pick(ctx, req.platform).publish(req.post),
+      list: async (ctx: restate.Context, req: { platform: Platform; q?: ListQuery }) =>
+        pick(ctx, req.platform).list(req.q ?? {}),
+      metrics: async (ctx: restate.Context, req: { platform: Platform; id: string }) =>
+        pick(ctx, req.platform).metrics(req.id),
+      comments: async (
+        ctx: restate.Context,
+        req: { platform: Platform; id: string; q?: ListQuery },
+      ) => pick(ctx, req.platform).comments(req.id, req.q ?? {}),
+      reply: async (
+        ctx: restate.Context,
+        req: { platform: Platform; commentId: string; text: string },
+      ) => {
+        const ch = pick(ctx, req.platform);
+        if (!ch.reply)
+          throw new restate.TerminalError(`${req.platform} cannot reply here`, { errorCode: 501 });
+        await ch.reply(req.commentId, req.text);
+      },
     },
   });
 }

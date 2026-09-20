@@ -55,16 +55,21 @@ Rule: an adapter method that uses the browser says so in its row
   (`developer-app`, `consent`, `oauth-client`) make the keys and tokens
   and keep them in autobrowse's env store. Spec:
   `autobrowse/designs/2026-09-21-site-apis.md`.
-- Wren depends on that HTTP surface only: `autobrowseSites({url, token})`
-  in `@wren/core/content` is the `SiteClient` (`call`, `via`); the
+- Wren reaches it as the Restate service `sites` on the same Restate
+  (`restateSites(ctx)` in `@wren/core/content/restate`, like the `browser`
+  service domain provisioning uses): no port on the box, calls queue while
+  it is down. `autobrowseSites({url, token})` is the HTTP `SiteClient` for
+  a laptop against a local autobrowse. Either is a `SiteClient` (`call`,
+  `via`); the
   adapters (`linkedinContent` in `@wren/channel-linkedin`, `youtubeContent`
   in `@wren/channel-youtube`) speak the real API shapes through it, so
   they do not know whether a call ran over HTTP or a browser. Every row
   carries `fetchedWith` from autobrowse's `via`.
 - The worker mounts them as the Restate `Content` service
   (`@wren/core/content/restate`): `publish/list/metrics/comments/reply`,
-  keyed by platform, one journaled step per call, publish at one attempt
-  (no duplicate posts on retry). Only when `WREN_AUTOBROWSE_URL` is set.
+  keyed by platform; channels are built per invocation from its context so
+  every site call is a journaled `sites` call (a write runs once on the
+  worker: no duplicate posts). On when `WREN_CONTENT_CHANNELS=linkedin,youtube`.
 - Publish steps are `irreversible` on the autobrowse side: the gate holds
   browser-leg posts until answered, like buying a domain.
 
@@ -90,7 +95,7 @@ Rule: an adapter method that uses the browser says so in its row
 5. autobrowse: record the setup workflows and the gated LinkedIn reads
    (`linkedin-list-posts`, `-post-stats`, `-post-comments`, `youtube-community-post`)
    — explore once each, prove, ship. Needs William's creds (NEEDS-WILLIAM.md).
-6. Reachability: wren's Lambda must reach autobrowse's `/api` (prod box is
-   stopped on idle; a wake-on-call or a queue is needed before scheduling).
+6. ✅ Reachability: through Restate (`sites` service); the box still has to be
+   up for a queued call to answer — wake/idle-stop is autobrowse's next deploy item.
 7. Scheduling: a Restate `ContentScheduler` (like `ComposeScheduler`)
    that publishes the approved queue on each platform's clock.
