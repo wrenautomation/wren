@@ -8,13 +8,13 @@
 | | |
 |---|---|
 | Restate Cloud | env `wren-automation` (`env_201m2vp6sq3x11xdaatsmjej302`), region `us` |
-| Deployment | the latest `restate deployments list` row → Lambda `wren-prod-worker` (CI publishes a new version per push to main), 11 services |
+| Deployment | the latest `restate deployments list` row → Lambda `wren-prod-worker` (CI publishes a new version per push to main), 12 services |
 | Compute | AWS Lambda, us-east-1, Node 22 arm64, 1 GB, 15 min max per invocation |
 | State | Postgres 17 in Docker on EC2 `t4g.small` (`i-04f8cb57c91e84126`), own EBS volume, TLS-only, nightly dump → S3 (30-day expiry) |
 | Browser | browserless Chromium on the same box, token-gated, over CDP (`WREN_RENDERER=cdp`) |
 | Secrets | one SSM SecureString `/wren/prod/env`, loaded once at cold start |
 | Smoke | `POST /SendScheduler/smoke/status` via ingress → `200 {"running":false,"onRoster":false}` |
-| Roster | **none in the bundle yet.** Nothing can send until cutover copies `senders_config.toml` in. |
+| Roster | `senders_config.toml` in the bundle since cutover (2026-09-19); `wren email senders list` shows it |
 
 ```
 you / CLI / curl ──ingress :8080, API key──▶ Restate Cloud (journal, timers, object state)
@@ -67,7 +67,7 @@ curl -X POST -H "$H" $U/DigestScheduler/fleet/start     # 07:00 fleet-clock dige
 ### CLI (already configured for this env)
 
 ```sh
-restate services list                 # the 11 services and revisions
+restate services list                 # the 12 services and revisions
 restate invocations list              # running and sleeping loops, with wake times
 restate invocations describe <id>     # one invocation's journal
 restate services status SendScheduler # per-key state
@@ -130,6 +130,29 @@ sign-off with the niche's page (`/agencies`, `/ria`), so the copy and the site a
 reads replies and bounces; kill switches pause a domain at 2% bounces. `status` on the
 compose object shows the last pass: `queued`, `target`, `enrolled`, `exhausted` (pool
 empty: import more leads or verify more addresses).
+
+## Feeding the pool
+
+`exhausted: true` on the compose object means every company with a sendable
+address is enrolled. Growth is the research chain, each handler one bounded pass
+keyed by niche (`all` = every niche); call it until it reports nothing scanned:
+
+```sh
+curl -X POST -H "$H" $U/Discovery/sec_ria/discover -d '{"limit":25}'   # name → domain, DoH + homepage gate, free
+curl -X POST -H "$H" $U/Discovery/sec_ria/verify   -d '{"limit":25}'   # prove asserted domains, free
+curl -X POST -H "$H" $U/Enrichment/sec_ria/crawl   -d '{"limit":10}'   # homepage + contact/team pages
+curl -X POST -H "$H" $U/Enrichment/sec_ria/render  -d '{"limit":10}'   # JS shells, through the CDP box
+curl -X POST -H "$H" $U/Enrichment/sec_ria/scan    -d '{}'             # addresses in stored pages, deterministic
+curl -X POST -H "$H" $U/Enrichment/sec_ria/extract -d '{"limit":20}'   # people + roles, one model call per page (Cohere)
+curl -X POST -H "$H" $U/Enrichment/sec_ria/applyExtractions -d '{}'
+curl -X POST -H "$H" $U/Enrichment/sec_ria/pick    -d '{"limit":50}'   # best send-to per company; a model call only when ambiguous
+curl -X POST -H "$H" $U/Enrichment/sec_ria/applyPicks -d '{}'          # role inboxes → leads (compose picks them up next pass)
+curl -X POST -H "$H" $U/Resolution/fleet/build; …/queue; …/resolve     # person guesses → MillionVerifier (free credits only)
+```
+
+Pool on 2026-09-20: agencies 5,277 companies without a domain, 471 crawled with no
+sendable address (42 of them person guesses waiting on credits); sec_ria 19,237 domains,
+5 crawled. Nothing loops this chain yet: every step above is by hand or by a script.
 
 ## Discord (what you get told, and what you never get told)
 

@@ -49,7 +49,7 @@ import {
   PoliteFetcher,
   userAgent,
 } from "@wren/research";
-import { makeEnrichment } from "@wren/research/restate";
+import { makeDiscovery, makeEnrichment } from "@wren/research/restate";
 import type { Logger } from "pino";
 
 export type AnyService =
@@ -176,6 +176,7 @@ export async function buildServices(
       tracer,
       robotsMode: settings.robotsMode,
     }),
+    makeDiscovery({ db, fetcher: ua ? new PoliteFetcher(ua) : null }),
     makeResolution({ db, verifier }),
     makeSendScheduler({
       db,

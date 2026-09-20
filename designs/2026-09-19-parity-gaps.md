@@ -1,0 +1,88 @@
+# emails_gen → wren parity (2026-09-19)
+
+What the Python system did, and where each piece stands in wren. Source:
+`designs/2026-09-17-emails-gen-inventory.md`, checked against code and prod on
+2026-09-19/20. Four buckets: **kept** (same function, ported), **rebuilt**
+(same function, different shape), **dropped by design**, **open**.
+
+## Kept (ported, running in prod)
+
+| Function | wren |
+|---|---|
+| Import (CSV, header aliases, sightings, supersede) | `core/ingest`, `wren ingest`, `wren email import <csv> --niche` |
+| Domain discovery + verification (DoH, ownership gate) | `research/discovery`; `Discovery/{niche}/discover|verify` (Restate, added 2026-09-20) |
+| Crawl → render → scan → extract → apply → pick → apply | `Enrichment/{niche}/*` handlers, one bounded pass each |
+| Candidate build → queue → resolve (local checks, MillionVerifier) | `Resolution/fleet/build|queue|resolve` |
+| Templates (`.email` block tree, arms, variants) | `channel-email/outreach/templates|authoring`, niche dirs |
+| Compose (facts → readable → provenance) | `outreach/compose.ts`, person + role-inbox kinds |
+| Send policy (window, lead window, ramp, gap, cooldown) | `send/policy.ts` |
+| Paced walk, intent-before-act, reconcile | `send/deliver.ts`, `send/reconcile.ts`, `SendScheduler/{inbox}` |
+| Gmail transport (DWD service account) | `send/gmail.ts` |
+| Inbox sync, bounce/OOO/unsubscribe classes, cursor overlap | `inbox/sync.ts`, `InboxScheduler/{inbox}` |
+| Reply disposition (LLM, quote-grounded) | `Disposition/fleet` |
+| Kill switches, sender pauses | `inbox/health.ts`, `wren email senders pause|resume` |
+| Suppression (address/domain, lift, check) | `wren email suppress` |
+| Postmaster daily pull | `PostmasterScheduler/fleet` |
+| Open pixel pull | `OpensScheduler/fleet` (pixel worker still the Cloudflare one) |
+| Friday report | `ReportScheduler/weekly` (mails; no `claude -p` narrative) |
+| Run ledger, stage costs, provenance views | `runs`, `stage_costs`, `send_health`, `agency_facts`, `person_facts` |
+| Roster (`senders_config.toml`, signature `{page}` slot) | `send/roster.ts` |
+| Lead timezone fill | `send/lead-timezone.ts`, runs inside every compose pass |
+
+## Rebuilt (same job, new shape)
+
+| Was | Now | Why |
+|---|---|---|
+| `emailsgen daemon` in Docker on the laptop | Restate Cloud loops on Lambda | laptop-off crash 2026-09-17; timers outlive any process |
+| Daily `outreach compose` by hand | `ComposeScheduler/{niche}`: keeps 3 send days of approved openers queued through the niche `plan` | nothing by hand once a niche has leads |
+| Discord notifier (Python) | `notify.ts`: replies, bounces, pauses, dry pool, stage error edges, 07:00 digest | counts only, never text or addresses |
+| `outreach status`, `inbox replies`, `senders`, `suppress` | `wren email status|replies|senders|suppress` | one command group, same tables |
+| `EMAILSGEN_*` env | `WREN_*` env, SSM `/wren/prod/env` | one secrets surface |
+| alembic + models.py | Drizzle schema + migrations | TS |
+| pytest markers | Vitest unit + `test/integration` (testcontainers) | TS |
+
+## Dropped by design
+
+| Function | Reason |
+|---|---|
+| Langfuse tracing | not paid for; `Tracer` seam kept, `WREN_TRACING` |
+| keycycle key fleets (groq/gemini/openrouter/…) | one Cohere key in prod; `makeLlm` seam takes any provider |
+| Google Sheets snapshot / people surface | sheet was repair-only; Postgres is the store |
+| `heartbeat_url` | never set in Python either |
+| `enrichment/shard.py` CLI sharding | Restate keys + `shard` input on crawl cover it |
+| weekly report via `claude -p` narrative | report mails numbers; the narrative was a laptop launchd job |
+
+## Open (real gaps, in the order to close them)
+
+1. **Nothing loops the research chain.** Every `Discovery`/`Enrichment`/`Resolution`
+   pass is one curl. Python was the same, but the pool now runs dry mid-week
+   (agencies: 255 companies ready on 2026-09-20). A `PoolScheduler/{niche}` that
+   walks discover → crawl → scan → extract → pick → applyPicks until each stage
+   reports nothing, then sleeps a day, is the missing loop. Spend: extract and the
+   ambiguous half of pick call Cohere. sec_ria has 19,237 uncrawled domains.
+2. **Niche lead-source formats** (`clutch-pages`, `shopify-pages`,
+   `agency-directory-csv`, `sec-investment-advisers`, `sec-firm-feed`). Only the
+   generic `csv` format exists (`core/ingest/sources.ts`). Needed the next time a
+   Clutch/Shopify page dump or a SEC feed is imported.
+3. **Review commands** (`drafts`, `show`, `approve`, `reject`, `edit`, `stop`,
+   `preview`). Every draft is auto-approved today; these matter when a human
+   reviews copy again.
+4. **`inbox reply`** (send a reply from the CLI in-thread). Replies are read, not
+   answered, from wren.
+5. **`senders check --send`** (one test mail per inbox).
+6. **Reads:** `opens rates`, `postmaster domains|show`, `outreach outcomes`,
+   `address via`. The views exist; the commands do not.
+7. **`setup` domain tooling** (RDAP, Porkbun pricing, Cloudflare DNS records).
+8. **`sops/cold-email-copy.md`, `sops/campaign-ramp.md`** not copied into wren.
+9. **Pixel worker source** (`infra/pixel/`) lives in `legacy-private`; the
+   deployed Cloudflare worker keeps running.
+10. `SUPPRESSED→IMPORTED` un-suppress and `UNDELIVERABLE→IMPORTED` were never
+    implemented in Python either.
+
+## Checked and fine
+
+- Reply capture: every "Re:" in the fleet inboxes on 2026-09-20 was spam from
+  throwaway domains with no In-Reply-To. Zero real replies exist; the matcher is
+  not dropping any.
+- The 42 agencies picks without a lead are person guesses in resolution (35
+  candidate, 7 queued), waiting on MillionVerifier credits. Free credits only.
