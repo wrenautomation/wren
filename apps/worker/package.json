@@ -19,6 +19,7 @@
     "@wren/db": "workspace:*",
     "@wren/llm": "workspace:*",
     "@wren/niches": "workspace:*",
+    "@wren/provision": "workspace:*",
     "@wren/research": "workspace:*",
     "pino": "10.3.1",
     "tsx": "4.23.13"

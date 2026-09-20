@@ -42,6 +42,8 @@ import type { Settings } from "@wren/config";
 import { createDb } from "@wren/db";
 import { loadLlmEnv, makeLlm, makeTracer } from "@wren/llm";
 import { crawlHintsFor, discoveryWordsFor, LANDERS_BY_NICHE, NICHES } from "@wren/niches";
+import { buildDeps } from "@wren/provision";
+import { makeDomain } from "@wren/provision/restate";
 import {
   type BrowserRenderer,
   browserbaseRenderer,
@@ -230,6 +232,9 @@ export async function buildServices(
     settings.reportTo && reportFrom ? { to: settings.reportTo, from: reportFrom } : null;
   if (settings.reportTo && !report) log.warn("WREN_REPORT_TO set but no sender to mail from");
   if (report) services.push(makeReportScheduler({ db, transport, mail: report, policy }));
+  // Domain provisioning: API steps here, browser legs through autobrowse's `browser` service.
+  const provision = provisionFor(settings, keyPath, rootDir, log);
+  if (provision) services.push(makeDomain(provision));
 
   return {
     services,
@@ -246,9 +251,36 @@ export async function buildServices(
       postmaster: postmaster !== null,
       opens: opens !== null,
       report: report !== null,
+      provision: provision !== null,
     },
     close: () => handle.close(),
   };
+}
+
+/** The domain provisioner's dependencies, or null (with one log line) when it is not configured. */
+function provisionFor(
+  settings: Settings,
+  keyPath: string,
+  rootDir: string,
+  log: Logger,
+): ReturnType<typeof buildDeps>["deps"] {
+  if (!settings.cloudflareAccountId || !settings.googleAdminUser) {
+    log.info("WREN_CLOUDFLARE_ACCOUNT_ID / WREN_GOOGLE_ADMIN_USER unset: no domain provisioning");
+    return null;
+  }
+  const built = buildDeps({
+    adminUser: settings.googleAdminUser,
+    cloudflareAccountId: settings.cloudflareAccountId,
+    // Lambda pulls the roster from this parameter at cold start (lambda.ts); a provision writes it back.
+    roster: process.env.WREN_SSM_ROSTER_PARAM
+      ? { param: process.env.WREN_SSM_ROSTER_PARAM }
+      : { file: resolve(rootDir, settings.sendersFile) },
+    dmarcRua: settings.dmarcRua ?? null,
+    serviceAccountKey: keyPath,
+    env: process.env,
+  });
+  if (built.missing) log.warn(`${built.missing} unset: no domain provisioning`);
+  return built.deps;
 }
 
 /** The render tier for this host: a local chromium, or Browserbase where none can run. */
