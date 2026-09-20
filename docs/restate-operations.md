@@ -151,6 +151,10 @@ curl -X POST -H "$H" $U/PoolScheduler/agencies/start
 pass the request waits. To interrupt now, `restate invocations cancel <the loop
 invocation>` (its children stop with it), then `stop`, then `start` when ready.
 
+A discovery or verification miss is written to `discovery_attempts` (outcome:
+`no_candidate`, `unreachable`, `gate_rejected`, `no_name`) and keeps that company out of
+the queue for 30 days, so a head of unguessable names never blocks the rest.
+
 The stages by hand, keyed by niche (`all` = every niche); each reports what it moved:
 
 ```sh
