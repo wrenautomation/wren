@@ -19,9 +19,11 @@ import { loadEnvFile, loadSettings } from "@wren/config";
 import { createDb } from "@wren/db";
 import { Command } from "commander";
 import { sql } from "drizzle-orm";
+import { registerEmail } from "./email.js";
 
 const BODY_PREVIEW_CHARS = 60;
-const settings = loadSettings(process.env, { rootDir: loadEnvFile() });
+const rootDir = loadEnvFile();
+const settings = loadSettings(process.env, { rootDir });
 
 /** Open the pool for one command and always close it. */
 async function withDb<T>(fn: (db: ReturnType<typeof createDb>["db"]) => Promise<T>): Promise<T> {
@@ -97,6 +99,8 @@ notes
       );
     }
   });
+
+registerEmail(program, withDb, settings, rootDir);
 
 const report = program.command("report").description("periodic reports");
 report

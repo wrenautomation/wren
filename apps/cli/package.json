@@ -14,7 +14,9 @@
     "@wren/channel-email": "workspace:*",
     "@wren/channel-linkedin": "workspace:*",
     "@wren/config": "workspace:*",
+    "@wren/core": "workspace:*",
     "@wren/db": "workspace:*",
+    "@wren/niches": "workspace:*",
     "commander": "15.0.0",
     "drizzle-orm": "0.45.2",
     "tsx": "4.23.13"

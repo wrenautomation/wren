@@ -35,9 +35,15 @@ importers:
       '@wren/config':
         specifier: workspace:*
         version: link:../../packages/config
+      '@wren/core':
+        specifier: workspace:*
+        version: link:../../packages/core
       '@wren/db':
         specifier: workspace:*
         version: link:../../packages/db
+      '@wren/niches':
+        specifier: workspace:*
+        version: link:../../packages/niches
       commander:
         specifier: 15.0.0
         version: 15.0.0
