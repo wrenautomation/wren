@@ -61,6 +61,26 @@ data "aws_iam_policy_document" "worker" {
     actions   = ["kms:Decrypt"]
     resources = [data.aws_kms_alias.ssm.target_key_arn]
   }
+  # Domain provisioning (Domain/{domain}): append to the roster, keep each new
+  # inbox's password under /<name>/inboxes/, recycle itself so the fleet reloads.
+  statement {
+    sid     = "ProvisionWrite"
+    actions = ["ssm:PutParameter"]
+    resources = [
+      aws_ssm_parameter.roster.arn,
+      "arn:aws:ssm:${var.region}:${data.aws_caller_identity.me.account_id}:parameter/${var.name}/inboxes/*",
+    ]
+  }
+  statement {
+    sid       = "EncryptSsm"
+    actions   = ["kms:Encrypt", "kms:GenerateDataKey"]
+    resources = [data.aws_kms_alias.ssm.target_key_arn]
+  }
+  statement {
+    sid       = "RecycleSelf"
+    actions   = ["lambda:UpdateFunctionConfiguration", "lambda:GetFunctionConfiguration"]
+    resources = ["arn:aws:lambda:${var.region}:${data.aws_caller_identity.me.account_id}:function:${local.prefix}-worker"]
+  }
 }
 
 resource "aws_iam_role_policy" "worker" {
