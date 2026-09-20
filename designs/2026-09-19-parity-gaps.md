@@ -83,8 +83,9 @@ What the Python system did, and where each piece stands in wren. Source:
    is a column of `drafts` and a line of `show` / `event`.
 7. **`setup` domain tooling** (RDAP, Porkbun pricing, Cloudflare DNS records).
 8. ~~sops~~ Copied 2026-09-20 with a header mapping old commands to wren ones.
-9. **Pixel worker source** (`infra/pixel/`) lives in `legacy-private`; the
-   deployed Cloudflare worker keeps running.
+9. ~~Pixel worker source~~ Closed 2026-09-20: ported to `deploy/pixel/` (worker,
+   D1 schema, wrangler.toml, README with `WREN_*` names). The deployed Cloudflare
+   worker is unchanged; this is the source to redeploy it from.
 10. `SUPPRESSED→IMPORTED` un-suppress and `UNDELIVERABLE→IMPORTED` were never
     implemented in Python either.
 

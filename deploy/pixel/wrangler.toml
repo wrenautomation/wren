@@ -1,0 +1,17 @@
+# Deploy: see README.md. Nothing secret and nothing account-identifying
+# lives in this file — EXPORT_TOKEN is set with `wrangler secret put`, and
+# the account id comes from CLOUDFLARE_ACCOUNT_ID in the environment
+# rather than being committed here.
+name = "wren-pixel"
+main = "src/worker.js"
+compatibility_date = "2026-09-09"
+
+# The route. The brand domain never sends cold mail,
+# so a tracker on a subdomain of it cannot touch the five sending domains'
+# reputation — that separation is the reason for this host, not tidiness.
+routes = [{ pattern = "t.wrenautomation.com/*", zone_name = "wrenautomation.com" }]
+
+[[d1_databases]]
+binding = "DB"
+database_name = "wren-pixel"
+database_id = "6c4247a6-bb94-484c-bd39-6c440d617045"

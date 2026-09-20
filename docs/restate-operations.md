@@ -238,6 +238,12 @@ Reject reasons: wrong_fact, too_salesy, generic_opener, bad_tone, wrong_person,
 bad_address, other. Stop reasons: reply, bounce, opt_out, complaint, manual (opt_out /
 complaint / bounce also write the suppression). Answering a reply is done from the inbox.
 
+## The open pixel
+
+`t.wrenautomation.com` is a Cloudflare Worker + D1, source and deploy steps in
+`deploy/pixel/`. Tracking is off (`WREN_OPEN_TRACKING`); `OpensScheduler/fleet` pulls
+hits whenever `WREN_PIXEL_BASE_URL` and `WREN_PIXEL_EXPORT_TOKEN` are set.
+
 ## Discord (what you get told, and what you never get told)
 
 `WREN_NOTIFY=discord` + `WREN_DISCORD_WEBHOOK_URL` (in `deploy/prod.env` → SSM; the URL
