@@ -22,7 +22,7 @@ beforeAll(async () => {
       makeDiscovery({
         db: pg.db,
         fetcher,
-        genericWords: new Set(["wealth", "advisors"]),
+        genericWordsFor: () => new Set(["wealth", "advisors"]),
         resolves: async (d) => d === "zorbelwealth.com",
       }),
     ],

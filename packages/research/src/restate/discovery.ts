@@ -31,8 +31,12 @@ export interface DiscoveryDeps {
   db: Db;
   /** null until WREN_FETCH_CONTACT names a contact; every call then refuses. */
   fetcher: Fetcher | null;
-  /** Words a company name shares with too many others ("advisors"); no signal for the gate. */
-  genericWords?: ReadonlySet<string>;
+  /**
+   * Per key, the words a firm name shares with its whole industry ("advisors",
+   * "agency"): the candidate generator drops them and the gate treats them as weak.
+   * The niche registry owns the lists; this package never imports it.
+   */
+  genericWordsFor?: (niche: string | null) => ReadonlySet<string>;
   /** DNS seam for tests; DoH by default. */
   resolves?: Resolves;
   fetchHomepage?: HomepageFetcher;
@@ -53,15 +57,23 @@ export function makeDiscovery(deps: DiscoveryDeps) {
     ctx: restate.ObjectContext,
     command: string,
     input: DiscoveryInput,
-    body: (opts: { limit: number; niche: string | null }) => Promise<{ stats: S }>,
+    body: (opts: {
+      limit: number;
+      niche: string | null;
+      genericWords: ReadonlySet<string>;
+    }) => Promise<{ stats: S }>,
   ): Promise<S> => {
     const niche = nicheOf(ctx);
     const limit = input.limit ?? DEFAULT_DISCOVERY_LIMIT;
+    const genericWords = deps.genericWordsFor?.(niche) ?? new Set<string>();
     const runId = await ctx.run("open run", async () => {
       const run = await openRun(deps.db, { command, argv: { limit, niche }, niche });
       return run.id;
     });
-    const stats = await ctx.run(command, async () => (await body({ limit, niche })).stats);
+    const stats = await ctx.run(
+      command,
+      async () => (await body({ limit, niche, genericWords })).stats,
+    );
     await ctx.run("finish run", () => finishRun(deps.db, runId, stats));
     return stats;
   };
@@ -77,7 +89,6 @@ export function makeDiscovery(deps: DiscoveryDeps) {
           runDomainDiscovery(deps.db, {
             ...opts,
             fetchHomepage: fetchHomepage(),
-            ...(deps.genericWords ? { genericWords: deps.genericWords } : {}),
             ...(deps.resolves ? { resolves: deps.resolves } : {}),
           }),
         ),
@@ -90,7 +101,6 @@ export function makeDiscovery(deps: DiscoveryDeps) {
           runDomainVerification(deps.db, {
             ...opts,
             fetchHomepage: fetchHomepage(),
-            ...(deps.genericWords ? { genericWords: deps.genericWords } : {}),
           }),
         ),
     },

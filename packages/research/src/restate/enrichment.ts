@@ -76,6 +76,12 @@ export interface EnrichmentDeps {
   renderJitter?: readonly [number, number];
   /** How long an idle browser stays open between render units before it closes. */
   renderIdleMs?: number;
+  /**
+   * Per key, the link words a niche's sites use for the pages worth fetching
+   * ("our advisors", "team"); on top of the crawler's base hints when a call
+   * names none of its own. The niche registry owns the lists.
+   */
+  crawlHintsFor?: (niche: string | null) => ReadonlySet<string>;
 }
 
 /**
@@ -166,6 +172,8 @@ export function makeEnrichment(deps: EnrichmentDeps) {
     if (!deps.fetcher) throw new restate.TerminalError("WREN_FETCH_CONTACT is not set");
     return deps.fetcher;
   };
+  const hintsFor = (niche: string | null, input: CrawlInput): string[] =>
+    input.extraHints ?? [...(deps.crawlHintsFor?.(niche) ?? [])];
   const companyRef = async (id: number): Promise<Pick<Company, "id" | "domain">> => {
     const [row] = await deps.db
       .select({ id: companies.id, domain: companies.domain })
@@ -215,7 +223,7 @@ export function makeEnrichment(deps: EnrichmentDeps) {
             return deps.db.transaction((tx) =>
               crawlCompany(tx, fetcher(), company, {
                 pagesPerSite: input.pagesPerSite ?? 5,
-                extraHints: input.extraHints ?? [],
+                extraHints: hintsFor(niche, input),
                 robotsMode,
               }),
             );
@@ -251,7 +259,7 @@ export function makeEnrichment(deps: EnrichmentDeps) {
               deps.db.transaction((tx) =>
                 renderCompany(tx, browser.render, fetcher(), company, robots, {
                   pagesPerSite: input.pagesPerSite ?? 5,
-                  extraHints: input.extraHints ?? [],
+                  extraHints: hintsFor(niche, input),
                   robotsMode,
                   ...(deps.renderJitter ? { jitter: deps.renderJitter } : {}),
                 }),

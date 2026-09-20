@@ -41,7 +41,7 @@ import { makeLinkedinInbox } from "@wren/channel-linkedin/restate";
 import type { Settings } from "@wren/config";
 import { createDb } from "@wren/db";
 import { loadLlmEnv, makeLlm, makeTracer } from "@wren/llm";
-import { LANDERS_BY_NICHE, NICHES } from "@wren/niches";
+import { crawlHintsFor, discoveryWordsFor, LANDERS_BY_NICHE, NICHES } from "@wren/niches";
 import {
   type BrowserRenderer,
   browserbaseRenderer,
@@ -176,8 +176,13 @@ export async function buildServices(
       renderer,
       tracer,
       robotsMode: settings.robotsMode,
+      crawlHintsFor,
     }),
-    makeDiscovery({ db, fetcher: ua ? new PoliteFetcher(ua) : null }),
+    makeDiscovery({
+      db,
+      fetcher: ua ? new PoliteFetcher(ua) : null,
+      genericWordsFor: discoveryWordsFor,
+    }),
     makeResolution({ db, verifier }),
     makeSendScheduler({
       db,
