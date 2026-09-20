@@ -1,6 +1,7 @@
 # Content channels: YouTube and LinkedIn, API first, browser for the gaps
 
-Status: decided 2026-09-21 (William), not built. Where to attack is at the end.
+Status: decided 2026-09-21 (William). Port + fake landed in `@wren/core/content`
+(same day); adapters not built. Where to attack is at the end.
 
 ## Decision
 
@@ -72,7 +73,7 @@ Rule: an adapter method that uses the browser says so in its row
 
 ## Where to attack (ranked)
 
-1. The port + fakes in `@wren/core`, with the paging/row rules tested.
+1. ✅ The port + fake in `@wren/core/content` (`ContentChannel`, `pageOf`, `fakeContentChannel`).
 2. YouTube adapter over the Data API (upload, list, metrics, comments).
 3. LinkedIn publish over the Posts API; list/metrics via browser until the
    app is approved for reads.

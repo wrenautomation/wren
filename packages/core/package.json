@@ -5,6 +5,7 @@
   "type": "module",
   "exports": {
     ".": "./src/index.ts",
+    "./content": "./src/content/index.ts",
     "./ingest": "./src/ingest/index.ts",
     "./people": "./src/people/index.ts",
     "./schema": "./src/schema.ts"
