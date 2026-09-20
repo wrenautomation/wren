@@ -7,5 +7,6 @@ export * from "./preview.js";
 export * from "./provenance.js";
 export * from "./pyrepr.js";
 export * from "./readable.js";
+export * from "./review.js";
 export * from "./sequences.js";
 export * from "./templates.js";
