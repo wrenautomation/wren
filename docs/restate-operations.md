@@ -150,8 +150,8 @@ curl -X POST -H "$H" $U/PoolScheduler/agencies/start
 The stages by hand, keyed by niche (`all` = every niche); each reports what it moved:
 
 ```sh
-curl -X POST -H "$H" $U/Discovery/sec_ria/discover -d '{"limit":25}'   # name → domain, DoH + homepage gate, free
-curl -X POST -H "$H" $U/Discovery/sec_ria/verify   -d '{"limit":25}'   # prove asserted domains, free
+curl -X POST -H "$H" $U/Discovery/sec_ria/discover -d '{"limit":10}'   # name → domain, DoH + homepage gate, free; one unit per company
+curl -X POST -H "$H" $U/Discovery/sec_ria/verify   -d '{"limit":10}'   # prove asserted domains, free
 curl -X POST -H "$H" $U/Enrichment/sec_ria/crawl   -d '{"limit":10}'   # homepage + contact/team pages
 curl -X POST -H "$H" $U/Enrichment/sec_ria/render  -d '{"limit":10}'   # JS shells, through the CDP box
 curl -X POST -H "$H" $U/Enrichment/sec_ria/scan    -d '{}'             # addresses in stored pages, deterministic

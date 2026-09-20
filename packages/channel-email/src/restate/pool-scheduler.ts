@@ -46,8 +46,8 @@ export interface StageLimits {
   pick: number;
 }
 export const DEFAULT_LIMITS: StageLimits = {
-  discover: 25,
-  verify: 25,
+  discover: 10,
+  verify: 10,
   crawl: 10,
   render: 5,
   scan: 200,

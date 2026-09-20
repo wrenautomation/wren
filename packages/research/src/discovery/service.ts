@@ -71,35 +71,56 @@ export interface DiscoveryStats {
   niche_null_skipped?: number;
 }
 
-export async function runDomainDiscovery(
+/** The batch a run writes its evidence under. */
+export async function openDiscoveryBatch(
   db: Queryable,
-  opts: DiscoveryOptions,
-): Promise<{ batch: ImportBatch; stats: DiscoveryStats }> {
-  const generic = opts.genericWords ?? new Set<string>();
-  const resolves = opts.resolves ?? dohResolves;
-  const niche = opts.niche ?? null;
+  sourceType: string,
+  opts: { limit?: number; niche?: string | null },
+): Promise<ImportBatch> {
   const [batch] = (await db
     .insert(imports)
     .values({
-      sourceType: DISCOVERY_SOURCE_TYPE,
-      sourceRef: `run limit=${opts.limit ?? null} niche=${niche}`,
+      sourceType,
+      sourceRef: `run limit=${opts.limit ?? null} niche=${opts.niche ?? null}`,
       stats: {},
     })
     .returning()) as [ImportBatch];
+  return batch;
+}
 
-  const claimed = new Set(
-    (await db.select({ domain: companies.domain }).from(companies))
-      .map((r) => r.domain)
-      .filter((d): d is string => !!d),
-  );
+export async function closeDiscoveryBatch(
+  db: Queryable,
+  batchId: number,
+  stats: object,
+): Promise<void> {
+  await db.update(imports).set({ stats }).where(eq(imports.id, batchId));
+}
+
+/** Companies with no domain, oldest first; `niche` scopes, null sees every niche. */
+export async function selectDiscoveryTargets(
+  db: Queryable,
+  opts: { limit?: number; niche?: string | null },
+): Promise<Company[]> {
+  const niche = opts.niche ?? null;
   const where =
     niche === null
       ? isNull(companies.domain)
       : and(isNull(companies.domain), eq(companies.niche, niche));
   const q = db.select().from(companies).where(where).orderBy(asc(companies.id));
-  const rows: Company[] = opts.limit === undefined ? await q : await q.limit(opts.limit);
+  return opts.limit === undefined ? q : q.limit(opts.limit);
+}
 
-  const counts: DiscoveryStats = {
+/** NULL-niche companies a niche-scoped discovery cannot see. */
+export async function countDiscoveryNicheNullSkipped(db: Queryable): Promise<number> {
+  const [r] = await db
+    .select({ n: count() })
+    .from(companies)
+    .where(and(isNull(companies.domain), isNull(companies.niche)));
+  return r?.n ?? 0;
+}
+
+export function emptyDiscoveryStats(): DiscoveryStats {
+  return {
     companies_scanned: 0,
     no_name: 0,
     candidates_tried: 0,
@@ -110,70 +131,121 @@ export async function runDomainDiscovery(
     already_claimed: 0,
     domains_attached: 0,
   };
-  if (niche !== null) {
-    const [r] = await db
-      .select({ n: count() })
-      .from(companies)
-      .where(and(isNull(companies.domain), isNull(companies.niche)));
-    counts.niche_null_skipped = r?.n ?? 0;
-  }
+}
 
+export function addDiscoveryStats(total: DiscoveryStats, unit: DiscoveryStats): DiscoveryStats {
+  const sum: DiscoveryStats = { ...total };
+  for (const k of Object.keys(unit) as (keyof DiscoveryStats)[]) {
+    if (k === "niche_null_skipped") continue;
+    sum[k] = (total[k] ?? 0) + (unit[k] ?? 0);
+  }
+  return sum;
+}
+
+export interface DiscoveryUnitOptions {
+  batchId: number;
+  rowNumber: number;
+  genericWords?: ReadonlySet<string>;
+  resolves?: Resolves;
+  fetchHomepage: HomepageFetcher;
+}
+
+/** Is this domain already some company's? Asked per candidate, so a unit needs no preload. */
+async function claimed(db: Queryable, domain: string): Promise<boolean> {
+  const [row] = await db
+    .select({ id: companies.id })
+    .from(companies)
+    .where(eq(companies.domain, domain))
+    .limit(1);
+  return row !== undefined;
+}
+
+/**
+ * One company: guess, prune by DNS, gate the homepage, attach the first proven
+ * domain with its evidence. Self-contained so a caller can journal it as one
+ * unit; re-running it after a crash is safe (a company with a domain is no
+ * longer a target, and a claimed domain is never taken twice).
+ */
+export async function discoverCompany(
+  db: Queryable,
+  company: Company,
+  opts: DiscoveryUnitOptions,
+): Promise<DiscoveryStats> {
+  const generic = opts.genericWords ?? new Set<string>();
+  const resolves = opts.resolves ?? dohResolves;
+  const counts = emptyDiscoveryStats();
+  counts.companies_scanned = 1;
+  if (!company.name) {
+    counts.no_name = 1;
+    return counts;
+  }
+  for (const candidate of domainCandidates(company.name, { genericWords: generic })) {
+    if (await claimed(db, candidate)) {
+      counts.already_claimed += 1;
+      continue;
+    }
+    counts.candidates_tried += 1;
+    const answered = await resolves(candidate);
+    if (answered === null) {
+      counts.resolver_errors += 1;
+      continue;
+    }
+    if (!answered) {
+      counts.dns_misses += 1;
+      continue;
+    }
+    const page = await opts.fetchHomepage(candidate);
+    if (page === null) {
+      counts.fetch_misses += 1;
+      continue;
+    }
+    const evidence = gatePage({
+      url: page.url,
+      pageTitle: page.title,
+      pageText: page.text,
+      companyName: company.name,
+      sourceKey: company.sourceKey,
+      genericWords: generic,
+    });
+    if (evidence === null) {
+      counts.gate_rejections += 1;
+      continue;
+    }
+    await db
+      .update(companies)
+      .set({ domain: candidate, domainVerifiedAt: sql`now()` })
+      .where(eq(companies.id, company.id));
+    counts.domains_attached += 1;
+    await db.insert(sightings).values({
+      companyId: company.id,
+      importId: opts.batchId,
+      rowNumber: opts.rowNumber,
+      raw: { discovered_domain: candidate, evidence },
+    });
+    break; // one proven domain per company; stop guessing
+  }
+  return counts;
+}
+
+/** The whole run in one call: batch, targets, one unit per company, batch stats. */
+export async function runDomainDiscovery(
+  db: Queryable,
+  opts: DiscoveryOptions,
+): Promise<{ batch: ImportBatch; stats: DiscoveryStats }> {
+  const niche = opts.niche ?? null;
+  const batch = await openDiscoveryBatch(db, DISCOVERY_SOURCE_TYPE, { ...opts, niche });
+  const rows = await selectDiscoveryTargets(db, { ...opts, niche });
+  let counts = emptyDiscoveryStats();
+  if (niche !== null) counts.niche_null_skipped = await countDiscoveryNicheNullSkipped(db);
   let rowNumber = 0;
   for (const company of rows) {
     rowNumber += 1;
-    counts.companies_scanned += 1;
-    if (!company.name) {
-      counts.no_name += 1;
-      continue;
-    }
-    for (const candidate of domainCandidates(company.name, { genericWords: generic })) {
-      if (claimed.has(candidate)) {
-        counts.already_claimed += 1;
-        continue;
-      }
-      counts.candidates_tried += 1;
-      const answered = await resolves(candidate);
-      if (answered === null) {
-        counts.resolver_errors += 1;
-        continue;
-      }
-      if (!answered) {
-        counts.dns_misses += 1;
-        continue;
-      }
-      const page = await opts.fetchHomepage(candidate);
-      if (page === null) {
-        counts.fetch_misses += 1;
-        continue;
-      }
-      const evidence = gatePage({
-        url: page.url,
-        pageTitle: page.title,
-        pageText: page.text,
-        companyName: company.name,
-        sourceKey: company.sourceKey,
-        genericWords: generic,
-      });
-      if (evidence === null) {
-        counts.gate_rejections += 1;
-        continue;
-      }
-      await db
-        .update(companies)
-        .set({ domain: candidate, domainVerifiedAt: sql`now()` })
-        .where(eq(companies.id, company.id));
-      claimed.add(candidate);
-      counts.domains_attached += 1;
-      await db.insert(sightings).values({
-        companyId: company.id,
-        importId: batch.id,
-        rowNumber,
-        raw: { discovered_domain: candidate, evidence },
-      });
-      break; // one proven domain per company; stop guessing
-    }
+    counts = addDiscoveryStats(
+      counts,
+      await discoverCompany(db, company, { ...opts, batchId: batch.id, rowNumber }),
+    );
   }
-  await db.update(imports).set({ stats: counts }).where(eq(imports.id, batch.id));
+  await closeDiscoveryBatch(db, batch.id, counts);
   return { batch: { ...batch, stats: counts }, stats: counts };
 }
 
@@ -193,79 +265,112 @@ export interface DomainVerificationStats {
   unverified_preview: string[];
 }
 
-export async function runDomainVerification(
+/** Companies whose domain was asserted but never proven. */
+export async function selectVerificationTargets(
   db: Queryable,
-  opts: DomainVerificationOptions,
-): Promise<{ batch: ImportBatch; stats: DomainVerificationStats }> {
-  const generic = opts.genericWords ?? new Set<string>();
+  opts: { limit?: number; niche?: string | null },
+): Promise<Company[]> {
   const niche = opts.niche ?? null;
-  const [batch] = (await db
-    .insert(imports)
-    .values({
-      sourceType: VERIFICATION_SOURCE_TYPE,
-      sourceRef: `run limit=${opts.limit ?? null} niche=${niche}`,
-      stats: {},
-    })
-    .returning()) as [ImportBatch];
-
   const base = and(isNotNull(companies.domain), isNull(companies.domainVerifiedAt));
   const where = niche === null ? base : and(base, eq(companies.niche, niche));
   const q = db.select().from(companies).where(where).orderBy(asc(companies.id));
-  const rows: Company[] = opts.limit === undefined ? await q : await q.limit(opts.limit);
+  return opts.limit === undefined ? q : q.limit(opts.limit);
+}
 
-  const counts: DomainVerificationStats = {
+export async function countVerificationNicheNullSkipped(db: Queryable): Promise<number> {
+  const [r] = await db
+    .select({ n: count() })
+    .from(companies)
+    .where(
+      and(isNotNull(companies.domain), isNull(companies.domainVerifiedAt), isNull(companies.niche)),
+    );
+  return r?.n ?? 0;
+}
+
+export function emptyVerificationStats(): DomainVerificationStats {
+  return {
     companies_scanned: 0,
     fetch_misses: 0,
     gate_rejections: 0,
     domains_verified: 0,
     unverified_preview: [],
   };
-  if (niche !== null) {
-    const [r] = await db
-      .select({ n: count() })
-      .from(companies)
-      .where(and(base, isNull(companies.niche)));
-    counts.niche_null_skipped = r?.n ?? 0;
-  }
-  const unverified: string[] = [];
+}
 
+export function addVerificationStats(
+  total: DomainVerificationStats,
+  unit: DomainVerificationStats,
+): DomainVerificationStats {
+  return {
+    ...total,
+    companies_scanned: total.companies_scanned + unit.companies_scanned,
+    fetch_misses: total.fetch_misses + unit.fetch_misses,
+    gate_rejections: total.gate_rejections + unit.gate_rejections,
+    domains_verified: total.domains_verified + unit.domains_verified,
+    unverified_preview: [...total.unverified_preview, ...unit.unverified_preview].slice(0, 20),
+  };
+}
+
+/** One company: gate the homepage of the domain it already has; a pass stamps it. */
+export async function verifyCompanyDomain(
+  db: Queryable,
+  company: Company,
+  opts: DiscoveryUnitOptions,
+): Promise<DomainVerificationStats> {
+  const generic = opts.genericWords ?? new Set<string>();
+  const counts = emptyVerificationStats();
+  counts.companies_scanned = 1;
+  const domain = company.domain as string;
+  const page = await opts.fetchHomepage(domain);
+  if (page === null) {
+    counts.fetch_misses = 1;
+    counts.unverified_preview.push(`${domain}: unreachable`);
+    return counts;
+  }
+  const evidence = gatePage({
+    url: page.url,
+    pageTitle: page.title,
+    pageText: page.text,
+    companyName: company.name,
+    sourceKey: company.sourceKey,
+    genericWords: generic,
+  });
+  if (evidence === null) {
+    counts.gate_rejections = 1;
+    counts.unverified_preview.push(`${domain}: page does not speak for the firm`);
+    return counts;
+  }
+  await db
+    .update(companies)
+    .set({ domainVerifiedAt: sql`now()` })
+    .where(eq(companies.id, company.id));
+  counts.domains_verified = 1;
+  await db.insert(sightings).values({
+    companyId: company.id,
+    importId: opts.batchId,
+    rowNumber: opts.rowNumber,
+    raw: { verified_domain: domain, evidence },
+  });
+  return counts;
+}
+
+export async function runDomainVerification(
+  db: Queryable,
+  opts: DomainVerificationOptions,
+): Promise<{ batch: ImportBatch; stats: DomainVerificationStats }> {
+  const niche = opts.niche ?? null;
+  const batch = await openDiscoveryBatch(db, VERIFICATION_SOURCE_TYPE, { ...opts, niche });
+  const rows = await selectVerificationTargets(db, { ...opts, niche });
+  let counts = emptyVerificationStats();
+  if (niche !== null) counts.niche_null_skipped = await countVerificationNicheNullSkipped(db);
   let rowNumber = 0;
   for (const company of rows) {
     rowNumber += 1;
-    counts.companies_scanned += 1;
-    const domain = company.domain as string;
-    const page = await opts.fetchHomepage(domain);
-    if (page === null) {
-      counts.fetch_misses += 1;
-      unverified.push(`${domain}: unreachable`);
-      continue;
-    }
-    const evidence = gatePage({
-      url: page.url,
-      pageTitle: page.title,
-      pageText: page.text,
-      companyName: company.name,
-      sourceKey: company.sourceKey,
-      genericWords: generic,
-    });
-    if (evidence === null) {
-      counts.gate_rejections += 1;
-      unverified.push(`${domain}: page does not speak for the firm`);
-      continue;
-    }
-    await db
-      .update(companies)
-      .set({ domainVerifiedAt: sql`now()` })
-      .where(eq(companies.id, company.id));
-    counts.domains_verified += 1;
-    await db.insert(sightings).values({
-      companyId: company.id,
-      importId: batch.id,
-      rowNumber,
-      raw: { verified_domain: domain, evidence },
-    });
+    counts = addVerificationStats(
+      counts,
+      await verifyCompanyDomain(db, company, { ...opts, batchId: batch.id, rowNumber }),
+    );
   }
-  counts.unverified_preview = unverified.slice(0, 20);
-  await db.update(imports).set({ stats: counts }).where(eq(imports.id, batch.id));
+  await closeDiscoveryBatch(db, batch.id, counts);
   return { batch: { ...batch, stats: counts }, stats: counts };
 }
