@@ -174,6 +174,28 @@ Pool on 2026-09-20: agencies 5,277 companies without a domain, 471 crawled with 
 sendable address (42 of them person guesses waiting on credits); sec_ria 19,237 domains,
 5 crawled. Resolution (person guesses → MillionVerifier) stays by hand: it spends credits.
 
+### Importing new companies and people
+
+New firms enter through `wren email import` from the laptop (the DB URL from
+`tofu output -raw database_url`). `wren email formats` lists every format and its
+owner niche; the format decides the niche, `--niche` is only for the generic `csv`.
+
+```sh
+wren email import roster.csv --format sec-investment-advisers          # SEC monthly roster (cp1252 CSV)
+wren email import IA_FIRM_SEC_Feed_09_02_2026.xml.gz --format sec-firm-feed   # daily feed: all WebAddrs, streamed
+wren email import data/agencies/clutch/design_agencies --format clutch-pages  # a directory of hand-saved pages = one batch
+wren email import data/agencies/shopify/store_setup --format shopify-pages    # + fetched profiles under data/agencies/bulk/
+wren email import export.csv --format agency-directory-csv                    # manual Clutch/DesignRush/Sortlist export
+wren email import leads.csv --format csv --niche agencies --map "Company=company_name"
+wren email import-people ADV_Filing_Data_20260701_20260731.zip --format adv-filing-data   # owners, officers, CCOs
+```
+
+Directory hosts (clutch.co, shopify.com, …) are platform domains in every import: a
+listing URL is kept as the company's social URL, never as its domain; a firm with no
+real domain keys by `clutch:<slug>` / `crd:<n>` and gets a domain later from discovery.
+Directory pages are saved by hand: none of these formats fetches. The SEC/Shopify file
+downloads (`fetch get` in the old CLI) are not ported yet: fetch the files with a browser.
+
 ## Discord (what you get told, and what you never get told)
 
 `WREN_NOTIFY=discord` + `WREN_DISCORD_WEBHOOK_URL` (in `deploy/prod.env` → SSM; the URL

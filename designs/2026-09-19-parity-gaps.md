@@ -61,10 +61,14 @@ What the Python system did, and where each piece stands in wren. Source:
    `WREN_POOL_MODEL_STAGES` gates spend (`none` default; `pick` is what makes
    leads; `all` adds extraction). Not started in prod: starting it with `pick` is
    a spend decision (Cohere production tier; sec_ria has 19,237 uncrawled domains).
-2. **Niche lead-source formats** (`clutch-pages`, `shopify-pages`,
-   `agency-directory-csv`, `sec-investment-advisers`, `sec-firm-feed`). Only the
-   generic `csv` format exists (`core/ingest/sources.ts`). Needed the next time a
-   Clutch/Shopify page dump or a SEC feed is imported.
+2. ~~Niche lead-source formats~~ Closed 2026-09-20: `agency-directory-csv`,
+   `clutch-pages`, `shopify-pages` (`niches/src/agencies/`), `sec-investment-advisers`,
+   `sec-firm-feed` and the `adv-filing-data` people format (`niches/src/sec-ria/`),
+   registered on each `Niche` and merged in `LEAD_SOURCE_FORMATS` /
+   `PERSON_SOURCE_FORMATS`; `wren email import --format`, `import-people`, `formats`.
+   Old unit tests ported (46) plus one importer round-trip per family. Still open
+   from the same area: the `fetch get` datasets (SEC catalog downloads, the jittered
+   Shopify profile crawl) — files are fetched by hand until then.
 3. **Review commands** (`drafts`, `show`, `approve`, `reject`, `edit`, `stop`,
    `preview`). Every draft is auto-approved today; these matter when a human
    reviews copy again.

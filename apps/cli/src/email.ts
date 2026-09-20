@@ -4,6 +4,7 @@
  * operator asserts, journaled by their own ledger rows, so they run against the
  * database directly. Composing and sending stay with the Restate loops.
  */
+import { statSync } from "node:fs";
 import { resolve } from "node:path";
 import {
   activePauses,
@@ -21,9 +22,15 @@ import {
   senderDays,
 } from "@wren/channel-email";
 import type { Settings } from "@wren/config";
-import { CsvLeadSource, runImport, type Suppression, suppressions } from "@wren/core";
+import { runImport, runPeopleImport, type Suppression, suppressions } from "@wren/core";
 import type { Db } from "@wren/db";
-import { NICHE_NAMES, requireNiche } from "@wren/niches";
+import {
+  LEAD_SOURCE_FORMATS,
+  NICHE_NAMES,
+  NICHE_PLATFORM_DOMAINS,
+  PERSON_SOURCE_FORMATS,
+  requireNiche,
+} from "@wren/niches";
 import type { Command } from "commander";
 import { desc, gte, sql } from "drizzle-orm";
 
@@ -294,18 +301,74 @@ export function registerEmail(
       for (const r of rows) console.log(show(r));
     });
 
+  const formatNames = (m: ReadonlyMap<string, { name: string }>) => [...m.keys()].sort().join(", ");
   email
-    .command("import <csv>")
-    .description("Import a lead CSV (generic header aliases) into a niche")
-    .requiredOption("--niche <name>", `one of ${[...NICHE_NAMES].sort().join(", ")}`)
-    .action(async (path: string, opts: { niche: string }) => {
-      requireNiche(opts.niche);
+    .command("formats")
+    .description("List the import formats: which file each reads and which niche owns it")
+    .action(() => {
+      console.log("lead formats (wren email import --format):");
+      for (const f of [...LEAD_SOURCE_FORMATS.values()].sort((a, b) =>
+        a.name.localeCompare(b.name),
+      ))
+        console.log(`  ${f.name.padEnd(26)} ${f.niche ?? "any niche"}  ${f.help}`);
+      console.log("people formats (wren email import-people --format):");
+      for (const f of [...PERSON_SOURCE_FORMATS.values()].sort((a, b) =>
+        a.name.localeCompare(b.name),
+      ))
+        console.log(`  ${f.name.padEnd(26)} ${f.niche ?? "any niche"}  ${f.help}`);
+    });
+
+  email
+    .command("import <path>")
+    .description("Import a lead file (or a saved-page directory) into a niche")
+    .option("--format <name>", `one of ${formatNames(LEAD_SOURCE_FORMATS)}`, "csv")
+    .option(
+      "--niche <name>",
+      `for niche-less formats: one of ${[...NICHE_NAMES].sort().join(", ")}`,
+    )
+    .option("--map <column=field...>", "csv only: source column -> canonical field")
+    .action(async (path: string, opts: { format: string; niche?: string; map?: string[] }) => {
+      const format = LEAD_SOURCE_FORMATS.get(opts.format);
+      if (!format) throw new Error(`unknown format ${opts.format}; see \`wren email formats\``);
+      // The format's niche wins; a generic format needs the operator to say.
+      const niche = format.niche ?? requireNiche(opts.niche ?? null);
+      if (niche === null) throw new Error(`--niche is required with --format ${format.name}`);
+      if (opts.map && !format.columnMapped)
+        throw new Error(`--map does not apply to ${format.name}: the format owns its dialect`);
+      const target = resolve(path);
+      if (statSync(target).isDirectory() && !format.directory)
+        throw new Error(`${format.name} reads one file, not a directory`);
+      const columnMap = opts.map ? { columnMap: Object.fromEntries(opts.map.map(pair)) } : {};
       const result = await withDb((db) =>
-        runImport(db, new CsvLeadSource(resolve(path)), { niche: opts.niche }),
+        runImport(db, format.build(target), {
+          niche,
+          ...columnMap,
+          extraPlatformDomains: NICHE_PLATFORM_DOMAINS,
+        }),
       );
       console.log(`import ${result.batch.id}: ${JSON.stringify(result.stats)}`);
       console.log(
-        "next: the queue-keeper picks new companies up on its next pass (resolution/enrichment first if they have no address)",
+        "next: the pool-feeder and queue-keeper pick new companies up on their next pass",
       );
     });
+
+  email
+    .command("import-people <path>")
+    .description("Import a people file (registry owners, officers, compliance contacts)")
+    .requiredOption("--format <name>", `one of ${formatNames(PERSON_SOURCE_FORMATS)}`)
+    .action(async (path: string, opts: { format: string }) => {
+      const format = PERSON_SOURCE_FORMATS.get(opts.format);
+      if (!format) throw new Error(`unknown format ${opts.format}; see \`wren email formats\``);
+      const result = await withDb((db) =>
+        runPeopleImport(db, format.build(resolve(path)), { niche: format.niche }),
+      );
+      console.log(`import ${result.batch.id}: ${JSON.stringify(result.stats)}`);
+    });
+}
+
+/** "Column=field" -> [column, field]; refuses a pair with no "=". */
+function pair(text: string): [string, string] {
+  const at = text.indexOf("=");
+  if (at <= 0) throw new Error(`--map expects column=field, got ${JSON.stringify(text)}`);
+  return [text.slice(0, at), text.slice(at + 1)];
 }

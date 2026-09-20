@@ -14,7 +14,7 @@ import {
   type Sequence,
   type Template,
 } from "@wren/channel-email";
-import type { Company } from "@wren/core";
+import type { Company, PersonSourceFormat, SourceFormat } from "@wren/core";
 
 export interface Niche {
   readonly name: string;
@@ -32,6 +32,15 @@ export interface Niche {
   readonly plan: readonly EnrollmentRule[];
   /** Where the company keeps office hours, as the source wrote it ("City, ST"), or null. */
   readonly companyLocation: (company: Company) => string | null;
+  /** How this niche's lead files (rosters, feeds, saved listing pages) become import rows. */
+  readonly leadSourceFormats: readonly SourceFormat[];
+  /** How this niche's people files become person rows. */
+  readonly personSourceFormats: readonly PersonSourceFormat[];
+  /**
+   * Hosts whose URLs identify a directory or registry, never a business. Merged into
+   * the platform-domain set at import so a pasted listing URL can never key a company.
+   */
+  readonly platformDomains: ReadonlySet<string>;
 }
 
 export interface NicheSpec {
@@ -46,6 +55,20 @@ export interface NicheSpec {
   /** The live campaign's routing: first matching rule wins. */
   readonly plan: readonly EnrollmentRule[];
   readonly companyLocation: (company: Company) => string | null;
+  readonly leadSourceFormats?: readonly SourceFormat[];
+  readonly personSourceFormats?: readonly PersonSourceFormat[];
+  readonly platformDomains?: Iterable<string>;
+}
+
+/** A niche-owned import format: `build` and `help` here, name and niche from the caller. */
+export function leadFormat(
+  niche: string,
+  name: string,
+  help: string,
+  build: SourceFormat["build"],
+  opts: { directory?: boolean } = {},
+): SourceFormat {
+  return { name, help, build, niche, columnMapped: false, directory: opts.directory ?? false };
 }
 
 /** The templates directory beside a niche module: `templatesDir(import.meta.url, "agencies")`. */
@@ -108,6 +131,9 @@ export function defineNiche(spec: NicheSpec): Niche {
     sequences,
     plan,
     companyLocation: spec.companyLocation,
+    leadSourceFormats: spec.leadSourceFormats ?? [],
+    personSourceFormats: spec.personSourceFormats ?? [],
+    platformDomains: new Set(spec.platformDomains ?? []),
   };
 }
 

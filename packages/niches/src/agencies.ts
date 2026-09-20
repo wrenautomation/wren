@@ -1,11 +1,16 @@
 /** Marketing / build agencies: directory-sourced firms, people crawled from their sites. */
 import { threeEmailSequence, twoEmailSequence } from "@wren/channel-email";
-import { defineNiche, rawLocation, templatesDir } from "./niche.js";
+import { ClutchPagesSource } from "./agencies/clutch-pages.js";
+import { AgencyDirectoryCsvSource, DIRECTORY_DOMAINS } from "./agencies/directory.js";
+import { ShopifyPagesSource } from "./agencies/shopify-pages.js";
+import { defineNiche, leadFormat, rawLocation, templatesDir } from "./niche.js";
+
+const NICHE = "agencies";
 
 const ARMS = ["marketing", "build"] as const;
 
 export const agencies = defineNiche({
-  name: "agencies",
+  name: NICHE,
   factsView: "agency_facts",
   lander: "/agencies",
   crawlHints: [
@@ -61,4 +66,29 @@ export const agencies = defineNiche({
   ],
   // Clutch and Shopify pages both store "City, ST" under `Location` on companies.raw.
   companyLocation: (company) => rawLocation(company, "Location"),
+  // No lawful bulk feed exists for the listing data: every format below reads what
+  // a human exported or saved. None of them fetches.
+  leadSourceFormats: [
+    leadFormat(
+      NICHE,
+      "agency-directory-csv",
+      "manual agency-directory export CSV (Clutch/DesignRush/Sortlist)",
+      (p) => new AgencyDirectoryCsvSource(p),
+    ),
+    leadFormat(
+      NICHE,
+      "clutch-pages",
+      "hand-saved Clutch listing pages — one category directory per batch",
+      (p) => new ClutchPagesSource(p),
+      { directory: true },
+    ),
+    leadFormat(
+      NICHE,
+      "shopify-pages",
+      "hand-saved Shopify Partners listing pages, enriched from fetched profiles",
+      (p) => new ShopifyPagesSource(p),
+      { directory: true },
+    ),
+  ],
+  platformDomains: DIRECTORY_DOMAINS,
 });

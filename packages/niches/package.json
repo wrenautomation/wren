@@ -8,13 +8,18 @@
   },
   "scripts": {
     "test:unit": "vitest run src",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "test:integration": "vitest run test/integration"
   },
   "dependencies": {
     "@wren/channel-email": "workspace:*",
-    "@wren/core": "workspace:*"
+    "@wren/core": "workspace:*",
+    "fflate": "0.8.3",
+    "saxes": "6.0.0"
   },
   "devDependencies": {
+    "@wren/db": "workspace:*",
+    "drizzle-orm": "0.45.2",
     "typescript": "5.9.3",
     "vitest": "5.0.1"
   }
