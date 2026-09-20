@@ -105,3 +105,19 @@ marketing/build arms that the site continues.
   persistent logged-in browser profile (Browserbase context or a dedicated Chrome profile),
   and an approval gate before anything that spends. Credentials stay in vendor sessions and
   stored payment methods, never in prompts.
+
+## Pool-feeder (2026-09-20)
+
+`PoolScheduler/{niche}` is the loop the Python system never had: the research chain
+(discover, verify, crawl, render, scan, extract, pick, applyPicks) as one bounded call per
+stage per pass, each to its own object, so every stage keeps its own ledger row and
+retry policy. Progress per stage is the number of units whose selection no longer
+matches after the pass (crawl counts unreachable homepages: they leave an empty
+document); render does not count (a failed render stays a shell and would spin the
+loop). Any progress → next pass in a minute; none → next local day; a stage that
+refuses with a TerminalError is recorded and the pass retries in an hour.
+
+Spend is a setting, not a code path: `WREN_POOL_MODEL_STAGES=none|pick|all`. `none`
+does the free groundwork; `pick` is the first setting that makes leads. Resolution is
+left out on purpose (verification credits). Added `Discovery` as a Restate object the
+same day so the chain starts at a company name.

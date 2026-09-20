@@ -31,6 +31,7 @@ import {
   makeDisposition,
   makeInboxScheduler,
   makeOpensScheduler,
+  makePoolScheduler,
   makePostmasterScheduler,
   makeReportScheduler,
   makeResolution,
@@ -205,6 +206,8 @@ export async function buildServices(
       }),
     );
   }
+  // The pool-feeder walks the research chain per niche; what may spend is a setting.
+  services.push(makePoolScheduler({ db, policy, modelStages: settings.poolModelStages }));
   if (settings.notify !== "none") services.push(makeDigestScheduler({ db, notifier, policy }));
   // Bound only when configured: an object with nothing to pull is better absent than failing every pass.
   if (postmaster) {
@@ -231,6 +234,7 @@ export async function buildServices(
       transport: transport.name,
       senders: fleet.senders.length,
       compose_days_ahead: settings.composeDaysAhead,
+      pool_model_stages: settings.poolModelStages,
       notify: notifier.name,
       postmaster: postmaster !== null,
       opens: opens !== null,

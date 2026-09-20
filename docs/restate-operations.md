@@ -8,7 +8,7 @@
 | | |
 |---|---|
 | Restate Cloud | env `wren-automation` (`env_201m2vp6sq3x11xdaatsmjej302`), region `us` |
-| Deployment | the latest `restate deployments list` row → Lambda `wren-prod-worker` (CI publishes a new version per push to main), 12 services |
+| Deployment | the latest `restate deployments list` row → Lambda `wren-prod-worker` (CI publishes a new version per push to main), 13 services |
 | Compute | AWS Lambda, us-east-1, Node 22 arm64, 1 GB, 15 min max per invocation |
 | State | Postgres 17 in Docker on EC2 `t4g.small` (`i-04f8cb57c91e84126`), own EBS volume, TLS-only, nightly dump → S3 (30-day expiry) |
 | Browser | browserless Chromium on the same box, token-gated, over CDP (`WREN_RENDERER=cdp`) |
@@ -67,7 +67,7 @@ curl -X POST -H "$H" $U/DigestScheduler/fleet/start     # 07:00 fleet-clock dige
 ### CLI (already configured for this env)
 
 ```sh
-restate services list                 # the 12 services and revisions
+restate services list                 # the 13 services and revisions
 restate invocations list              # running and sleeping loops, with wake times
 restate invocations describe <id>     # one invocation's journal
 restate services status SendScheduler # per-key state
@@ -134,8 +134,20 @@ empty: import more leads or verify more addresses).
 ## Feeding the pool
 
 `exhausted: true` on the compose object means every company with a sendable
-address is enrolled. Growth is the research chain, each handler one bounded pass
-keyed by niche (`all` = every niche); call it until it reports nothing scanned:
+address is enrolled. Growth is the research chain. `PoolScheduler/{niche}` walks
+it: one bounded call per stage per pass, another pass a minute later while any
+stage still finds work, then sleep until the next local day. What may call the
+model is `WREN_POOL_MODEL_STAGES`: `none` (default — discover, crawl, render, scan
+only; no verdicts, so no new leads yet), `pick` (one model call per company with
+more than one address; this is what turns role inboxes into leads), `all`
+(extraction too, one call per stored page — the expensive one).
+
+```sh
+curl -X POST -H "$H" $U/PoolScheduler/sec_ria/start    # /status shows per-stage progress and errors
+curl -X POST -H "$H" $U/PoolScheduler/agencies/start
+```
+
+The stages by hand, keyed by niche (`all` = every niche); each reports what it moved:
 
 ```sh
 curl -X POST -H "$H" $U/Discovery/sec_ria/discover -d '{"limit":25}'   # name → domain, DoH + homepage gate, free
@@ -152,7 +164,7 @@ curl -X POST -H "$H" $U/Resolution/fleet/build; …/queue; …/resolve     # per
 
 Pool on 2026-09-20: agencies 5,277 companies without a domain, 471 crawled with no
 sendable address (42 of them person guesses waiting on credits); sec_ria 19,237 domains,
-5 crawled. Nothing loops this chain yet: every step above is by hand or by a script.
+5 crawled. Resolution (person guesses → MillionVerifier) stays by hand: it spends credits.
 
 ## Discord (what you get told, and what you never get told)
 

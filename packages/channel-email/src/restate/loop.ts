@@ -16,7 +16,8 @@ import type { Db } from "@wren/db";
 import type { Notifier } from "../notify.js";
 
 const RUNNING = "running";
-const LAST = "last";
+/** Object state key holding the last pass outcome; `status` reads it. */
+export const LAST = "last";
 export const MIN_DELAY_MS = 1_000;
 
 /** What one pass left behind: its stats, or the error that ended it. */

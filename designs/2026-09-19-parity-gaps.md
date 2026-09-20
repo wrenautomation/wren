@@ -11,6 +11,7 @@ What the Python system did, and where each piece stands in wren. Source:
 |---|---|
 | Import (CSV, header aliases, sightings, supersede) | `core/ingest`, `wren ingest`, `wren email import <csv> --niche` |
 | Domain discovery + verification (DoH, ownership gate) | `research/discovery`; `Discovery/{niche}/discover|verify` (Restate, added 2026-09-20) |
+| Pool growth end to end | `PoolScheduler/{niche}` (new 2026-09-20; Python ran each stage by hand) |
 | Crawl → render → scan → extract → apply → pick → apply | `Enrichment/{niche}/*` handlers, one bounded pass each |
 | Candidate build → queue → resolve (local checks, MillionVerifier) | `Resolution/fleet/build|queue|resolve` |
 | Templates (`.email` block tree, arms, variants) | `channel-email/outreach/templates|authoring`, niche dirs |
@@ -54,12 +55,12 @@ What the Python system did, and where each piece stands in wren. Source:
 
 ## Open (real gaps, in the order to close them)
 
-1. **Nothing loops the research chain.** Every `Discovery`/`Enrichment`/`Resolution`
-   pass is one curl. Python was the same, but the pool now runs dry mid-week
-   (agencies: 255 companies ready on 2026-09-20). A `PoolScheduler/{niche}` that
-   walks discover → crawl → scan → extract → pick → applyPicks until each stage
-   reports nothing, then sleeps a day, is the missing loop. Spend: extract and the
-   ambiguous half of pick call Cohere. sec_ria has 19,237 uncrawled domains.
+1. ~~Nothing loops the research chain.~~ Closed 2026-09-20: `PoolScheduler/{niche}`
+   (`restate/pool-scheduler.ts`) walks discover → verify → crawl → render → scan →
+   extract → pick → applyPicks, a minute apart while there is work, then daily.
+   `WREN_POOL_MODEL_STAGES` gates spend (`none` default; `pick` is what makes
+   leads; `all` adds extraction). Not started in prod: starting it with `pick` is
+   a spend decision (Cohere production tier; sec_ria has 19,237 uncrawled domains).
 2. **Niche lead-source formats** (`clutch-pages`, `shopify-pages`,
    `agency-directory-csv`, `sec-investment-advisers`, `sec-firm-feed`). Only the
    generic `csv` format exists (`core/ingest/sources.ts`). Needed the next time a

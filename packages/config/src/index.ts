@@ -50,6 +50,8 @@ export const settingsSchema = z.object({
   discordWebhookUrl: z.string().min(1).optional(),
   /** Send days of approved openers the queue-keeper holds ahead of the fleet (0 = off). */
   composeDaysAhead: z.coerce.number().int().min(0).default(3),
+  /** Which pool-feeder stages may call the model: none (free groundwork), pick, all (+extraction). */
+  poolModelStages: z.enum(["none", "pick", "all"]).default("none"),
   /** A lead whose only VALID check is older than this counts as unverified at compose. */
   verificationHorizonDays: z.coerce.number().int().default(45),
   resendCooldownDays: z.coerce.number().int().default(30),
@@ -124,6 +126,7 @@ export const ENV_KEYS = {
   notify: "WREN_NOTIFY",
   discordWebhookUrl: "WREN_DISCORD_WEBHOOK_URL",
   composeDaysAhead: "WREN_COMPOSE_DAYS_AHEAD",
+  poolModelStages: "WREN_POOL_MODEL_STAGES",
   verificationHorizonDays: "WREN_VERIFICATION_HORIZON_DAYS",
   resendCooldownDays: "WREN_RESEND_COOLDOWN_DAYS",
   reconcileGraceMinutes: "WREN_RECONCILE_GRACE_MINUTES",
