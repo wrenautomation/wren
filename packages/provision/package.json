@@ -8,6 +8,7 @@
     "./restate": "./src/restate/index.ts"
   },
   "scripts": {
+    "test:integration": "vitest run test/integration",
     "test:unit": "vitest run src",
     "typecheck": "tsc --noEmit"
   },
@@ -20,6 +21,8 @@
     "zod": "4.6.5"
   },
   "devDependencies": {
+    "@restatedev/restate-sdk-clients": "1.17.1",
+    "@restatedev/restate-sdk-testcontainers": "1.17.1",
     "typescript": "5.9.3",
     "vitest": "5.0.1"
   }
