@@ -33,12 +33,18 @@ await build({
   minify: false,
   // Browsers never ship in the zip; the Browserbase tier connects to a remote one.
   external: ["playwright", "playwright-core"],
-  // CJS dependencies bundled into ESM still call require() for node builtins.
+  // CJS dependencies bundled into ESM still call require() for node builtins. The
+  // import is aliased: a bundled ESM dep (fflate) imports `createRequire` by its own
+  // name at top level, and two declarations of it made the whole module unloadable.
   banner: {
-    js: 'import { createRequire } from "node:module"; const require = createRequire(import.meta.url);',
+    js: 'import { createRequire as __wrenCreateRequire } from "node:module"; const require = __wrenCreateRequire(import.meta.url);',
   },
   logLevel: "info",
 });
+
+// Parse the bundle before shipping it: a duplicate top-level binding is a SyntaxError
+// the Lambda would only report at cold start, after publish, during register.
+execFileSync("node", ["--check", resolve(out, "app/lambda.mjs")], { stdio: "inherit" });
 
 cpSync(resolve(repo, "packages/niches/templates"), resolve(out, "templates"), { recursive: true });
 const roster = resolve(repo, "senders_config.toml");
