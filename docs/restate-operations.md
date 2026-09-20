@@ -147,6 +147,10 @@ curl -X POST -H "$H" $U/PoolScheduler/sec_ria/start    # /status shows per-stage
 curl -X POST -H "$H" $U/PoolScheduler/agencies/start
 ```
 
+`stop` is an exclusive handler: it runs after the pass in flight, so on a long pool
+pass the request waits. To interrupt now, `restate invocations cancel <the loop
+invocation>` (its children stop with it), then `stop`, then `start` when ready.
+
 The stages by hand, keyed by niche (`all` = every niche); each reports what it moved:
 
 ```sh

@@ -121,3 +121,10 @@ Spend is a setting, not a code path: `WREN_POOL_MODEL_STAGES=none|pick|all`. `no
 does the free groundwork; `pick` is the first setting that makes leads. Resolution is
 left out on purpose (verification credits). Added `Discovery` as a Restate object the
 same day so the chain starts at a company name.
+
+Lesson from the first prod pass (2026-09-20 00:03): `Discovery.discover` ran 25 companies
+inside one `ctx.run`; with polite fetch delays that is 7+ minutes per attempt, any thrown
+fetch error restarts the whole batch, and Lambda's 15-minute ceiling makes it a livelock
+risk. Rewritten as one journaled unit per company (the rule every other stage already
+follows). Also: `stop` is exclusive, so it queues behind a long pass; the way to interrupt
+is `restate invocations cancel` on the loop invocation.
