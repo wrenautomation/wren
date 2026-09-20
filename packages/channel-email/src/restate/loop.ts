@@ -13,6 +13,7 @@
 import * as restate from "@restatedev/restate-sdk";
 import { type RunOptions, recordedRun } from "@wren/core";
 import type { Db } from "@wren/db";
+import type { Notifier } from "../notify.js";
 
 const RUNNING = "running";
 const LAST = "last";
@@ -42,6 +43,12 @@ export interface PassSpec<S extends object> {
   delayAfter: (stats: S) => number;
   /** Delay after a pass that threw. */
   retryMs: number;
+  /**
+   * Told once when a pass starts failing (a new error text) and once when it
+   * recovers; a stage that fails the same way every pass is one message, not one
+   * per pass. Absent = silent.
+   */
+  notifier?: Notifier;
 }
 
 export function errorText(err: unknown): string {
@@ -77,8 +84,33 @@ export async function runPass<S extends object>(
     MIN_DELAY_MS,
   );
   const outcome: PassOutcome<S> = { ...result, delayMs, now: now.toISOString() };
+  const previous = (await ctx.get<PassOutcome<S>>(LAST)) ?? null;
   ctx.set(LAST, outcome);
+  if (spec.notifier) await notifyErrorEdges(ctx, spec.notifier, spec.name, previous, outcome);
   return outcome;
+}
+
+/** The two edges worth a message: a new failure, and the recovery after one. */
+async function notifyErrorEdges<S>(
+  ctx: restate.ObjectContext,
+  notifier: Notifier,
+  stage: string,
+  previous: PassOutcome<S> | null,
+  outcome: PassOutcome<S>,
+): Promise<void> {
+  const where = `${stage} · ${ctx.key}`;
+  const was = previous?.error ?? null;
+  if (outcome.error !== null && outcome.error !== was) {
+    await ctx.run("notify error", () =>
+      notifier.notify(
+        `${where} failed`,
+        `${outcome.error}\nthe loop keeps trying every ${Math.round(outcome.delayMs / 60_000)} min; a repeat of the same error stays quiet`,
+        "warning",
+      ),
+    );
+  } else if (outcome.error === null && was !== null) {
+    await ctx.run("notify recovered", () => notifier.notify(`${where} recovered`));
+  }
 }
 
 /** The self-send a loop makes, typed by name: the definition's own type is not yet known inside its factory. */

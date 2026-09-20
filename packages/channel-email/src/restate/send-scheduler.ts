@@ -16,6 +16,7 @@
 import * as restate from "@restatedev/restate-sdk";
 import { finishRun, openRun } from "@wren/core";
 import type { Db } from "@wren/db";
+import { type Notifier, plural } from "../notify.js";
 import type { SendStats } from "../send/deliver.js";
 import type { SendPolicy } from "../send/policy.js";
 import { seededRng } from "../send/rng.js";
@@ -31,6 +32,8 @@ export interface SendSchedulerDeps {
   /** How long to wait between ticks that sent nothing inside the window. */
   tickMs?: number;
   killSwitches?: KillSwitches;
+  /** Told when a tick's kill switch paused a domain. */
+  notifier?: Notifier;
 }
 
 export interface TickOutcome {
@@ -81,11 +84,26 @@ export function makeSendScheduler(deps: SendSchedulerDeps) {
         ...(deps.killSwitches ? { killSwitches: deps.killSwitches } : {}),
       });
       await finishRun(deps.db, run.id, stats);
-      return { stats, newPauses: newPauses.length };
+      return {
+        stats,
+        newPauses: newPauses.length,
+        paused: newPauses.map((p) => `${p.sender} — ${p.reason}`),
+      };
     });
     const delayMs = nextDelay(deps.policy, result.stats, now, seed, tickMs);
-    const outcome: TickOutcome = { ...result, delayMs, now: now.toISOString() };
+    const { paused, ...rest } = result;
+    const outcome: TickOutcome = { ...rest, delayMs, now: now.toISOString() };
     ctx.set(LAST, outcome);
+    const notifier = deps.notifier;
+    if (notifier && paused.length > 0) {
+      await ctx.run("notify pauses", () =>
+        notifier.notify(
+          `kill switch paused ${plural(paused.length, "inbox", "inboxes")}`,
+          `${paused.join("\n")}\nonly \`wren email senders resume\` lifts a pause`,
+          "warning",
+        ),
+      );
+    }
     return outcome;
   };
 

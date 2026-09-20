@@ -8,7 +8,7 @@
 | | |
 |---|---|
 | Restate Cloud | env `wren-automation` (`env_201m2vp6sq3x11xdaatsmjej302`), region `us` |
-| Deployment | the latest `restate deployments list` row → Lambda `wren-prod-worker` (CI publishes a new version per push to main), 10 services |
+| Deployment | the latest `restate deployments list` row → Lambda `wren-prod-worker` (CI publishes a new version per push to main), 11 services |
 | Compute | AWS Lambda, us-east-1, Node 22 arm64, 1 GB, 15 min max per invocation |
 | State | Postgres 17 in Docker on EC2 `t4g.small` (`i-04f8cb57c91e84126`), own EBS volume, TLS-only, nightly dump → S3 (30-day expiry) |
 | Browser | browserless Chromium on the same box, token-gated, over CDP (`WREN_RENDERER=cdp`) |
@@ -61,12 +61,13 @@ curl -X POST -H "$H" $U/PostmasterScheduler/fleet/start
 curl -X POST -H "$H" $U/OpensScheduler/fleet/start
 curl -X POST -H "$H" $U/ReportScheduler/weekly/start   # Friday 19:00 report; /sync mails one now
 curl -X POST -H "$H" $U/ComposeScheduler/agencies/start # keep 3 send days of approved openers queued; /sync tops up now
+curl -X POST -H "$H" $U/DigestScheduler/fleet/start     # 07:00 fleet-clock digest to Discord; /sync posts one now
 ```
 
 ### CLI (already configured for this env)
 
 ```sh
-restate services list                 # the 10 services and revisions
+restate services list                 # the 11 services and revisions
 restate invocations list              # running and sleeping loops, with wake times
 restate invocations describe <id>     # one invocation's journal
 restate services status SendScheduler # per-key state
@@ -129,6 +130,22 @@ sign-off with the niche's page (`/agencies`, `/ria`), so the copy and the site a
 reads replies and bounces; kill switches pause a domain at 2% bounces. `status` on the
 compose object shows the last pass: `queued`, `target`, `enrolled`, `exhausted` (pool
 empty: import more leads or verify more addresses).
+
+## Discord (what you get told, and what you never get told)
+
+`WREN_NOTIFY=discord` + `WREN_DISCORD_WEBHOOK_URL` (in `deploy/prod.env` → SSM; the URL
+authorises posting, so it is a secret). Counts only, never a reply's text or a lead's
+address:
+
+- `N new replies in <inbox>` after an inbox sync that found humans (answer from Gmail).
+- `N hard bounces, N unsubscribes via <inbox>` (warning).
+- `kill switch paused N inboxes` with sender and reason; `wren email senders resume` lifts it.
+- `<niche>: the pool ran dry` from the queue-keeper when the plan has nothing left to enroll.
+- `<stage> · <key> failed` once when a loop starts failing, `recovered` once when it stops.
+- `digest for YYYY-MM-DD` at 07:00 fleet clock: per domain sent / hard bounces / replies /
+  unsubscribes / newest Postmaster spam rate, then the queue.
+
+`WREN_NOTIFY=none` (the default) binds no `DigestScheduler` and every loop stays silent.
 
 ## Things to watch
 

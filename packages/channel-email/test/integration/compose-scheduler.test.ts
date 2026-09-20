@@ -1,6 +1,8 @@
 /** The queue-keeper's top-up: capacity × days ahead, minus what is queued, through the plan. */
 import { loadSettings } from "@wren/config";
+import { companies } from "@wren/core";
 import { startTestPostgres, type TestPostgres, truncate } from "@wren/db/testing";
+import { eq } from "drizzle-orm";
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 import { sequence, sequenceStep } from "../../src/outreach/sequences.js";
 import { field, template, text } from "../../src/outreach/templates.js";
@@ -50,6 +52,7 @@ const CAMPAIGN: Campaign = {
   factsView: "agency_facts",
   senders: [SENDER],
   signatures: { [SENDER]: "William" },
+  companyLocation: (c) => ((c.raw ?? {}) as Record<string, unknown>).Location as string | null,
 };
 // Flat cap of 2 per inbox, one inbox: capacity 2/day.
 const POLICY = SendPolicy.fromSettings(
@@ -82,7 +85,10 @@ async function seedAgencies() {
     domain: "ads.example",
     name: "Ads Co",
     niche: "agencies",
-    raw: { "agency.services": "60% Pay Per Click, 40% Search Engine Optimization" },
+    raw: {
+      "agency.services": "60% Pay Per Click, 40% Search Engine Optimization",
+      Location: "Austin, TX",
+    },
   });
   const build = await makeCompany(db(), {
     domain: "dev.example",
@@ -113,6 +119,9 @@ describe("topUp", () => {
       shortfall: 6,
       enrolled: 3,
     });
+    expect(stats.timezones).toEqual({ candidates: 3, resolved: 1, unresolved: 2 });
+    const [austin] = await db().select().from(companies).where(eq(companies.id, marketing.id));
+    expect(austin?.timezone).toBe("America/Chicago");
     expect(stats.exhausted).toBe(true);
     expect(stats.passes.map((p) => [p.sequence, p.stats.enrolled])).toEqual([
       ["marketing-days-0-5", 1],

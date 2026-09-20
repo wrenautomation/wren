@@ -15,6 +15,7 @@ import {
   type InboxReader,
   loadRoster,
   loadServiceAccountKey,
+  makeNotifier,
   makeVerifier,
   type PostmasterClient,
   postmasterToken,
@@ -26,6 +27,7 @@ import {
 import {
   type Campaign,
   makeComposeScheduler,
+  makeDigestScheduler,
   makeDisposition,
   makeInboxScheduler,
   makeOpensScheduler,
@@ -86,6 +88,12 @@ export async function buildServices(
     millionverifierApiKey: process.env.MILLIONVERIFIER_API_KEY ?? null,
   });
   const renderer = ua ? rendererFor(settings, ua, log) : null;
+  // Nudges to the operator: replies, bounces, pauses, a dry pool, stage errors, the
+  // morning digest. Discord with no URL refuses here, at start, not at the first reply.
+  const notifier = makeNotifier(settings.notify, {
+    discordWebhookUrl: settings.discordWebhookUrl ?? null,
+  });
+  const notify = settings.notify === "none" ? {} : { notifier };
 
   // The send loop: console prints until cutover flips WREN_SEND_TRANSPORT=gmail.
   // The roster names the live fleet; without one nothing may send, so a missing
@@ -119,6 +127,7 @@ export async function buildServices(
               s.signature ? [[s.address, s.signature.forPage(niche.lander).text]] : [],
             ),
           ),
+          companyLocation: niche.companyLocation,
         },
       ];
     }),
@@ -176,8 +185,9 @@ export async function buildServices(
       // The pixel goes into mail only when asked; the host alone just enables the opens pull.
       pixelBaseUrl: settings.openTracking ? (settings.pixelBaseUrl ?? null) : null,
       tickMs,
+      ...notify,
     }),
-    makeInboxScheduler({ db, reader, senders: fleet.senders, syncMs, tickMs, classify }),
+    makeInboxScheduler({ db, reader, senders: fleet.senders, syncMs, tickMs, classify, ...notify }),
     makeDisposition({ db, llm, tracer, tracing: settings.tracing }),
   ];
   // The queue-keeper is bound only when asked to hold a queue; 0 means every enrollment is by hand.
@@ -190,9 +200,11 @@ export async function buildServices(
         daysAhead: settings.composeDaysAhead,
         verificationHorizonDays: settings.verificationHorizonDays,
         trackOpens: settings.openTracking,
+        ...notify,
       }),
     );
   }
+  if (settings.notify !== "none") services.push(makeDigestScheduler({ db, notifier, policy }));
   // Bound only when configured: an object with nothing to pull is better absent than failing every pass.
   if (postmaster) {
     services.push(
@@ -218,6 +230,7 @@ export async function buildServices(
       transport: transport.name,
       senders: fleet.senders.length,
       compose_days_ahead: settings.composeDaysAhead,
+      notify: notifier.name,
       postmaster: postmaster !== null,
       opens: opens !== null,
       report: report !== null,

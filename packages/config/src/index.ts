@@ -45,6 +45,9 @@ export const settingsSchema = z.object({
   sendGapMaxMinutes: z.coerce.number().default(20),
   /** Fleet-wide brake on new conversations per day; unset = unlimited. */
   newOpenersPerDay: z.coerce.number().int().optional(),
+  /** Operator nudges: none | console | discord (needs the webhook URL, a secret). */
+  notify: z.enum(["none", "console", "discord"]).default("none"),
+  discordWebhookUrl: z.string().min(1).optional(),
   /** Send days of approved openers the queue-keeper holds ahead of the fleet (0 = off). */
   composeDaysAhead: z.coerce.number().int().min(0).default(3),
   /** A lead whose only VALID check is older than this counts as unverified at compose. */
@@ -118,6 +121,8 @@ export const ENV_KEYS = {
   sendGapMinMinutes: "WREN_SEND_GAP_MIN_MINUTES",
   sendGapMaxMinutes: "WREN_SEND_GAP_MAX_MINUTES",
   newOpenersPerDay: "WREN_NEW_OPENERS_PER_DAY",
+  notify: "WREN_NOTIFY",
+  discordWebhookUrl: "WREN_DISCORD_WEBHOOK_URL",
   composeDaysAhead: "WREN_COMPOSE_DAYS_AHEAD",
   verificationHorizonDays: "WREN_VERIFICATION_HORIZON_DAYS",
   resendCooldownDays: "WREN_RESEND_COOLDOWN_DAYS",

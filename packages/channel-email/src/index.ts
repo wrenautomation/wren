@@ -1,6 +1,7 @@
 export * from "./email-patterns.js";
 export * from "./guards.js";
 export * from "./inbox/index.js";
+export * from "./notify.js";
 export * from "./outreach/index.js";
 export * from "./report/index.js";
 export * from "./resolution/index.js";

@@ -14,6 +14,7 @@
 import type * as restate from "@restatedev/restate-sdk";
 import type { Db } from "@wren/db";
 import { DAY_MS, type InboxReader, type SyncStats, syncInbox } from "../inbox/sync.js";
+import { type Notifier, plural } from "../notify.js";
 import { DISPOSITION_KEY, type Disposition } from "./disposition.js";
 import { makeLoopObject, runPass } from "./loop.js";
 
@@ -30,6 +31,8 @@ export interface InboxSchedulerDeps {
   firstSyncLookbackMs?: number;
   /** Classify after a pass that found replies. Off when no real LLM is configured. */
   classify?: boolean;
+  /** Told the counts a pass found (replies; hard bounces and unsubscribes), never the text. */
+  notifier?: Notifier;
 }
 
 export const INBOX_SYNC_COMMAND = "outreach inbox sync";
@@ -58,12 +61,40 @@ export function makeInboxScheduler(deps: InboxSchedulerDeps) {
         }),
       delayAfter: () => syncMs,
       retryMs: tickMs,
+      ...(deps.notifier ? { notifier: deps.notifier } : {}),
     });
     if (deps.classify && (outcome.stats?.replies ?? 0) > 0) {
       ctx.objectSendClient<Disposition>({ name: "Disposition" }, DISPOSITION_KEY).classify();
     }
+    if (deps.notifier && outcome.stats) await tell(ctx, deps.notifier, sender, outcome.stats);
     return outcome;
   });
+}
+
+/** A pointer to the mailbox, not a mirror of it: counts only, journaled so a replay stays quiet. */
+async function tell(
+  ctx: restate.ObjectContext,
+  notifier: Notifier,
+  sender: string,
+  stats: SyncStats,
+): Promise<void> {
+  if (stats.replies > 0) {
+    await ctx.run("notify replies", () =>
+      notifier.notify(
+        `${plural(stats.replies, "new reply", "new replies")} in ${sender}`,
+        "conversations are human-owned: answer from the inbox",
+      ),
+    );
+  }
+  if (stats.bounces_hard > 0 || stats.unsubscribes > 0) {
+    await ctx.run("notify bounces", () =>
+      notifier.notify(
+        `${plural(stats.bounces_hard, "hard bounce")}, ${plural(stats.unsubscribes, "unsubscribe")} via ${sender}`,
+        "suppressed and stopped by the sync; the kill switch pauses a domain at 2% bounces",
+        "warning",
+      ),
+    );
+  }
 }
 
 export type InboxScheduler = ReturnType<typeof makeInboxScheduler>;

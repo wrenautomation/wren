@@ -6,6 +6,10 @@
  * window decides alone.
  */
 
+import { type Company, companies } from "@wren/core";
+import type { Queryable } from "@wren/db";
+import { and, eq, isNull } from "drizzle-orm";
+
 // The last ", ST" of the text, and only an UPPERCASE two-letter tail.
 const STATE_TAIL = /,\s*([A-Z]{2})\.?\s*$/;
 
@@ -92,4 +96,40 @@ export function timezoneForLocation(location: string | null | undefined): string
   const match = STATE_TAIL.exec(location);
   if (!match?.[1]) return null;
   return ZONE_BY_REGION[match[1]] ?? null;
+}
+
+export interface TimezoneFillStats {
+  /** Companies of the niche with no zone yet, looked at this pass. */
+  candidates: number;
+  resolved: number;
+  /** Location text the table does not read, or none stored; the fleet window decides for these. */
+  unresolved: number;
+}
+
+/**
+ * Fill `companies.timezone` for every company of `niche` still without one, from the
+ * location text the niche reads off the source row. Idempotent; a company whose text
+ * resolves to nothing stays null and is looked at again next pass (cheap, and a later
+ * sighting may carry a better location). Run before compose so the lead window has a
+ * clock for every new enrollment.
+ */
+export async function fillTimezones(
+  db: Queryable,
+  opts: { niche: string; locationOf: (company: Company) => string | null },
+): Promise<TimezoneFillStats> {
+  const rows = await db
+    .select()
+    .from(companies)
+    .where(and(eq(companies.niche, opts.niche), isNull(companies.timezone)));
+  const stats: TimezoneFillStats = { candidates: rows.length, resolved: 0, unresolved: 0 };
+  for (const company of rows) {
+    const zone = timezoneForLocation(opts.locationOf(company));
+    if (zone === null) {
+      stats.unresolved++;
+      continue;
+    }
+    await db.update(companies).set({ timezone: zone }).where(eq(companies.id, company.id));
+    stats.resolved++;
+  }
+  return stats;
 }

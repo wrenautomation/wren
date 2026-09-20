@@ -11,12 +11,15 @@
  * `exhausted` says so and the next pass looks again (a new import shows up on its own).
  */
 import type * as restate from "@restatedev/restate-sdk";
+import type { Company } from "@wren/core";
 import type { Db } from "@wren/db";
 import { sql } from "drizzle-orm";
+import { type Notifier, plural } from "../notify.js";
 import { type ComposeStats, compose } from "../outreach/compose.js";
 import type { EnrollmentRule } from "../outreach/plan.js";
 import type { Sequence } from "../outreach/sequences.js";
 import type { Template } from "../outreach/templates.js";
+import { fillTimezones, type TimezoneFillStats } from "../send/lead-timezone.js";
 import type { SendPolicy } from "../send/policy.js";
 import { makeLoopObject, runPass } from "./loop.js";
 import { untilNextLocalDay } from "./postmaster-scheduler.js";
@@ -32,6 +35,8 @@ export interface Campaign {
   readonly senders: readonly string[];
   /** Plain sign-off per sender, page slot already filled. */
   readonly signatures: Readonly<Record<string, string>>;
+  /** Where the company keeps office hours, as the source wrote it, for the lead's clock. */
+  readonly companyLocation: (company: Company) => string | null;
 }
 
 export interface ComposeSchedulerDeps {
@@ -44,10 +49,14 @@ export interface ComposeSchedulerDeps {
   trackOpens?: boolean;
   /** Wait after a pass that threw (default 1 h). */
   retryMs?: number;
+  /** Told when the plan ran dry (the pool needs an import) and when a pass fails. */
+  notifier?: Notifier;
 }
 
 export interface TopUpStats {
   niche: string;
+  /** `companies.timezone` filled for the niche before composing (the lead window's clock). */
+  timezones: TimezoneFillStats;
   /** Openers the fleet may send this niche per day, as of this pass. */
   capacity_per_day: number;
   queued: number;
@@ -93,11 +102,16 @@ export async function topUp(
     runId: string | null;
   },
 ): Promise<TopUpStats> {
+  const timezones = await fillTimezones(db, {
+    niche: campaign.niche,
+    locationOf: campaign.companyLocation,
+  });
   const capacity = dailyOpenerCapacity(opts.policy, campaign.senders.length, opts.now);
   const queued = await queuedOpeners(db, campaign.niche);
   const target = capacity * opts.daysAhead;
   const stats: TopUpStats = {
     niche: campaign.niche,
+    timezones,
     capacity_per_day: capacity,
     queued,
     target,
@@ -141,7 +155,7 @@ export function makeComposeScheduler(deps: ComposeSchedulerDeps) {
   return makeLoopObject("ComposeScheduler", async (ctx: restate.ObjectContext) => {
     const now = new Date(await ctx.date.now());
     const niche = ctx.key;
-    return runPass<TopUpStats>(ctx, deps.db, now, {
+    const outcome = await runPass<TopUpStats>(ctx, deps.db, now, {
       name: "compose top-up",
       ledger: {
         command: COMPOSE_COMMAND,
@@ -169,7 +183,21 @@ export function makeComposeScheduler(deps: ComposeSchedulerDeps) {
       },
       delayAfter: () => untilNextLocalDay(deps.policy, now),
       retryMs,
+      ...(deps.notifier ? { notifier: deps.notifier } : {}),
     });
+    const stats = outcome.stats;
+    const notifier = deps.notifier;
+    if (notifier && stats?.exhausted) {
+      await ctx.run("notify exhausted", () =>
+        notifier.notify(
+          `${niche}: the pool ran dry`,
+          `${stats.queued + stats.enrolled} of ${stats.target} openers queued after ` +
+            `${plural(stats.enrolled, "new enrollment")}; import more leads or verify more addresses`,
+          "warning",
+        ),
+      );
+    }
+    return outcome;
   });
 }
 
