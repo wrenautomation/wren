@@ -9,7 +9,7 @@ import * as clients from "@restatedev/restate-sdk-clients";
 import type { LaunchSpec, MetaObjective } from "@wren/channel-meta";
 import { formatLaunches, listLaunches, META_OBJECTIVES } from "@wren/channel-meta";
 import { type AdsService, type AdsWatch, WATCH_KEY } from "@wren/channel-meta/restate";
-import type { Settings } from "@wren/config";
+import { ingressOf, type Settings } from "@wren/config";
 import { uploadMedia } from "@wren/content";
 import { isStoredMedia, isUrl } from "@wren/core/content";
 import type { Db } from "@wren/db";
@@ -59,7 +59,7 @@ const usd = (minor: string | number | undefined) =>
   minor === undefined ? "-" : `$${(Number(minor) / 100).toFixed(2)}`;
 
 export function registerAds(program: Command, withDb: WithDb, settings: Settings): Command {
-  const ingress = () => clients.connect({ url: settings.restateIngressUrl });
+  const ingress = () => clients.connect(ingressOf(settings));
   const ads = () => ingress().serviceClient<AdsService>({ name: "Ads" });
   const watch = () => ingress().objectClient<AdsWatch>({ name: "AdsWatch" }, WATCH_KEY);
 

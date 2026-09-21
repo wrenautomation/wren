@@ -7,6 +7,8 @@ export { loadEnvFile } from "./env-file.js";
 export const settingsSchema = z.object({
   databaseUrl: z.string().url(),
   restateIngressUrl: z.string().url().default("http://127.0.0.1:8080"),
+  /** Bearer for the ingress (Restate Cloud API key); unset for a local Restate. */
+  restateAuthToken: z.string().min(1).optional(),
   inboxDir: z.string().min(1).default("inbox"),
   draftsDir: z.string().min(1).default("drafts"),
   logLevel: z.enum(["trace", "debug", "info", "warn", "error"]).default("info"),
@@ -137,10 +139,22 @@ export const settingsSchema = z.object({
 });
 export type Settings = z.infer<typeof settingsSchema>;
 
+/** The ingress connection: `clients.connect(ingressOf(settings))`; the bearer rides along when set. */
+export function ingressOf(s: Pick<Settings, "restateIngressUrl" | "restateAuthToken">): {
+  url: string;
+  headers?: Record<string, string>;
+} {
+  return {
+    url: s.restateIngressUrl,
+    ...(s.restateAuthToken ? { headers: { Authorization: `Bearer ${s.restateAuthToken}` } } : {}),
+  };
+}
+
 /** Env var name for each setting. One place, so `.env.example` and code can't drift. */
 export const ENV_KEYS = {
   databaseUrl: "WREN_DATABASE_URL",
   restateIngressUrl: "WREN_RESTATE_INGRESS_URL",
+  restateAuthToken: "RESTATE_AUTH_TOKEN",
   inboxDir: "WREN_INBOX_DIR",
   draftsDir: "WREN_DRAFTS_DIR",
   logLevel: "WREN_LOG_LEVEL",

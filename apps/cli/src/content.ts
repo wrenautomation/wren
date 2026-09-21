@@ -6,7 +6,7 @@
 import { readFile } from "node:fs/promises";
 import { extname } from "node:path";
 import * as clients from "@restatedev/restate-sdk-clients";
-import type { Settings } from "@wren/config";
+import { ingressOf, type Settings } from "@wren/config";
 import {
   approveDrafts,
   type ContentDraft,
@@ -112,7 +112,7 @@ async function readText(file: string | undefined): Promise<string> {
 }
 
 export function registerContent(program: Command, withDb: WithDb, settings: Settings): Command {
-  const ingress = () => clients.connect({ url: settings.restateIngressUrl });
+  const ingress = () => clients.connect(ingressOf(settings));
   const desk = () => ingress().objectClient<ContentDesk>({ name: "ContentDesk" }, DESK_KEY);
   const queue = () =>
     ingress().objectClient<ContentScheduler>({ name: "ContentScheduler" }, SCHEDULER_KEY);

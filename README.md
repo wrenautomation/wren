@@ -2,6 +2,9 @@
 
 Wren Automation platform. One TypeScript monorepo: durable automations on Restate, Postgres via Drizzle, dashboard in Next.js (later). Spec: `designs/2026-09-17-platform-spec.md`.
 
+New here: `walkthrough/` is the guided path (setup → content loop → Meta ads →
+email campaign → production) with read-only demos against prod.
+
 ## Quick start
 
 ```bash

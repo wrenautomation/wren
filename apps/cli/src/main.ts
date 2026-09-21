@@ -15,7 +15,7 @@ import {
 } from "@wren/channel-linkedin";
 import type { LinkedinInbox } from "@wren/channel-linkedin/restate";
 import { INBOX_KEY } from "@wren/channel-linkedin/restate";
-import { loadEnvFile, loadSettings } from "@wren/config";
+import { ingressOf, loadEnvFile, loadSettings } from "@wren/config";
 import { createDb } from "@wren/db";
 import { Command } from "commander";
 import { sql } from "drizzle-orm";
@@ -40,7 +40,7 @@ async function withDb<T>(fn: (db: ReturnType<typeof createDb>["db"]) => Promise<
 }
 
 function inboxClient() {
-  const ingress = clients.connect({ url: settings.restateIngressUrl });
+  const ingress = clients.connect(ingressOf(settings));
   return ingress.objectClient<LinkedinInbox>({ name: "LinkedinInbox" }, INBOX_KEY);
 }
 
