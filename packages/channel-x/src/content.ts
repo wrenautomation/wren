@@ -10,7 +10,9 @@ import {
   type ContentChannel,
   type FetchedWith,
   type ListQuery,
+  type MediaHost,
   type Metrics,
+  mediaFileOf,
   type Post,
   type Published,
   type PublishedRow,
@@ -22,6 +24,8 @@ import {
 
 export interface XContentOptions {
   now?: () => Date;
+  /** Makes a laptop file or a stored object reachable from the box; absent = paths are the box's own. */
+  host?: MediaHost;
 }
 
 interface Tweet {
@@ -60,7 +64,7 @@ export function xContent(sites: SiteClient, o: XContentOptions = {}): ContentCha
       const body: Record<string, unknown> = { text: post.text };
       if (post.media) {
         const up = await sites.call<{ data?: { id?: string } }>("x", "POST", "/2/media/upload", {
-          file: post.media.source,
+          file: await mediaFileOf(post.media.source, o.host, "x"),
         });
         if (!up.data?.id) throw new Error("x: the media upload answered no id");
         body.media = { media_ids: [up.data.id] };

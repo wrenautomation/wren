@@ -39,7 +39,8 @@ pnpm wren content queue start            # ContentScheduler/default: posts appro
 ```
 
 Drafts follow `WREN_CONTENT_VOICE` (a markdown file in your words) and go out through the
-channels in `WREN_CONTENT_CHANNELS`. Design: `designs/2026-09-22-content-loop.md`.
+channels in `WREN_CONTENT_CHANNELS`. A local `--media` file lands in `WREN_MEDIA_BUCKET`
+first (the worker and the box cannot read this laptop); a URL is used as is. Design: `designs/2026-09-22-content-loop.md`.
 
 ## Chores through autobrowse
 

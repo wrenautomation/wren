@@ -29,21 +29,34 @@ export interface Media {
 }
 
 /**
- * Where a local media file becomes a public URL for a platform that only
- * takes URLs (Instagram, Facebook videos): the adapter hosts it first.
+ * Where media becomes a URL a platform (or the autobrowse box) can fetch:
+ * a local file is put in the media store first; an `s3://bucket/key` the
+ * CLI already put there is just signed. Nothing else reads the store.
  */
 export interface MediaHost {
-  /** A URL the platform can fetch for a while; the file is not kept longer than needed. */
-  host(path: string): Promise<string>;
+  /** A URL good for a while, for a local path or an `s3://` object. */
+  host(source: string): Promise<string>;
 }
 
 export const isUrl = (source: string): boolean => /^https?:\/\//i.test(source);
+export const isStoredMedia = (source: string): boolean => /^s3:\/\//i.test(source);
 
 /** A URL for the platform: the source itself when it is one, else the host's copy. */
 export async function publicUrlOf(source: string, host: MediaHost | undefined, platform: string) {
   if (isUrl(source)) return source;
   if (!host) throw new Error(`${platform}: a public URL is needed for media (or a MediaHost)`);
   return host.host(source);
+}
+
+/**
+ * What an adapter hands a site that reads the file itself (YouTube, X):
+ * a URL as is; a stored object or, with a host, a local path as the
+ * host's URL; a local path with no host as the path (the box's own disk).
+ */
+export async function mediaFileOf(source: string, host: MediaHost | undefined, platform: string) {
+  if (isUrl(source)) return source;
+  if (isStoredMedia(source)) return publicUrlOf(source, host, platform);
+  return host ? host.host(source) : source;
 }
 
 /** What to publish. Text is the body (a LinkedIn post, a YouTube description). */

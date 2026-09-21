@@ -69,13 +69,7 @@ importers:
       '@aws-sdk/client-ec2':
         specifier: 3.1136.0
         version: 3.1136.0
-      '@aws-sdk/client-s3':
-        specifier: 3.1136.0
-        version: 3.1136.0
       '@aws-sdk/client-ssm':
-        specifier: 3.1136.0
-        version: 3.1136.0
-      '@aws-sdk/s3-request-presigner':
         specifier: 3.1136.0
         version: 3.1136.0
       '@restatedev/restate-sdk':
@@ -287,6 +281,12 @@ importers:
 
   packages/content:
     dependencies:
+      '@aws-sdk/client-s3':
+        specifier: 3.1136.0
+        version: 3.1136.0
+      '@aws-sdk/s3-request-presigner':
+        specifier: 3.1136.0
+        version: 3.1136.0
       '@restatedev/restate-sdk':
         specifier: 1.17.1
         version: 1.17.1

@@ -20,10 +20,11 @@ import {
   listDrafts,
   listIdeas,
   rejectDrafts,
+  uploadMedia,
 } from "@wren/content";
 import type { ContentDesk, ContentScheduler, DraftReport } from "@wren/content/restate";
 import { DESK_KEY, SCHEDULER_KEY } from "@wren/content/restate";
-import { type Media, PLATFORMS, type Platform } from "@wren/core/content";
+import { isStoredMedia, isUrl, type Media, PLATFORMS, type Platform } from "@wren/core/content";
 import type { Db } from "@wren/db";
 import type { Command } from "commander";
 
@@ -45,15 +46,31 @@ const platformsOf = (s: string | undefined): Platform[] | undefined =>
     .filter(Boolean)
     .map((p) => oneOf("platform", p, PLATFORMS));
 
-/** A file's media row: video by extension, image otherwise; `--kind` overrides. */
-function mediaOf(o: { media?: string; kind?: string; title?: string }): Media | null {
+/**
+ * A file's media row: video by extension, image otherwise; `--kind`
+ * overrides. A laptop file goes into the media store first (the worker and
+ * the box cannot read this disk); a URL or an `s3://` object is kept as is.
+ */
+async function mediaOf(
+  o: { media?: string; kind?: string; title?: string },
+  bucket: string | undefined,
+): Promise<Media | null> {
   if (!o.media) return null;
   const kind = o.kind
     ? oneOf("kind", o.kind, ["video", "image"] as const)
     : VIDEO_EXT.has(extname(o.media).toLowerCase())
       ? "video"
       : "image";
-  return { kind, source: o.media, ...(o.title ? { title: o.title } : {}) };
+  let source = o.media;
+  if (!isUrl(source) && !isStoredMedia(source)) {
+    if (!bucket)
+      throw new Error(
+        "a local file needs WREN_MEDIA_BUCKET to be stored where the worker can read it (or pass a URL)",
+      );
+    source = await uploadMedia(source, { bucket });
+    console.error(`stored ${o.media} as ${source}`);
+  }
+  return { kind, source, ...(o.title ? { title: o.title } : {}) };
 }
 
 const when = (d: Date | string | null) =>
@@ -113,7 +130,7 @@ export function registerContent(program: Command, withDb: WithDb, settings: Sett
         const platforms = platformsOf(o.platforms);
         const out = await desk().add({
           text,
-          media: mediaOf(o),
+          media: await mediaOf(o, settings.mediaBucket),
           draft: o.draft,
           ...(platforms ? { platforms } : {}),
         });

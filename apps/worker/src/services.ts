@@ -45,6 +45,7 @@ import { tiktokContent } from "@wren/channel-tiktok";
 import { xContent } from "@wren/channel-x";
 import { youtubeContent } from "@wren/channel-youtube";
 import type { Settings } from "@wren/config";
+import { s3MediaHost } from "@wren/content";
 import { makeContentDesk, makeContentScheduler } from "@wren/content/restate";
 import { type ChannelsFor, makeContent, restateSites } from "@wren/core/content/restate";
 import { createDb } from "@wren/db";
@@ -63,7 +64,6 @@ import {
 import { makeDiscovery, makeEnrichment } from "@wren/research/restate";
 import type { Logger } from "pino";
 import { ec2Wake } from "./autobrowse-box.js";
-import { s3MediaHost } from "./media-host.js";
 
 export type AnyService =
   | ServiceDefinition<string, unknown>
@@ -304,8 +304,8 @@ function contentFor(settings: Settings, log: Logger): ChannelsFor | null {
     const sites = restateSites(ctx, wake);
     return {
       ...(on.includes("linkedin") ? { linkedin: linkedinContent(sites) } : {}),
-      ...(on.includes("youtube") ? { youtube: youtubeContent(sites) } : {}),
-      ...(on.includes("x") ? { x: xContent(sites) } : {}),
+      ...(on.includes("youtube") ? { youtube: youtubeContent(sites, host ? { host } : {}) } : {}),
+      ...(on.includes("x") ? { x: xContent(sites, host ? { host } : {}) } : {}),
       ...(on.includes("instagram") ? { instagram: instagramContent(sites, meta) } : {}),
       ...(on.includes("facebook") ? { facebook: facebookContent(sites, meta) } : {}),
       ...(on.includes("tiktok") ? { tiktok: tiktokContent(sites, host ? { host } : {}) } : {}),

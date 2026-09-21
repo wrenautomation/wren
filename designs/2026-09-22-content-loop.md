@@ -82,7 +82,12 @@ Two tables, one package, three surfaces:
    snapshot table like `post_metrics`.
 4. **The scheduler posts on the wall clock, not the platform's best hour.** `--at` is manual.
    A per-platform default slot (e.g. LinkedIn 08:30 fleet time) is a small table away.
-5. **Media is a path on the laptop.** The worker on Lambda cannot read `~/Videos/x.mp4`; use a
-   URL or `WREN_MEDIA_BUCKET` (S3) today. `content add` could upload to the bucket itself.
+5. ✅ (2026-09-22) **Media is a path on the laptop.** `content add --media ./short.mp4` now
+   puts the file in `WREN_MEDIA_BUCKET` under its content hash and the draft carries
+   `s3://bucket/key`; at publish the worker signs it (`s3MediaHost`) and every adapter —
+   including YouTube and X, whose autobrowse sites read `file` as a path *or URL* — gets a
+   URL the box can fetch. `mediaFileOf` in core is the one rule (URL as is; stored object
+   signed; bare path = the box's own disk). Without a bucket, `content add` refuses a local
+   file and says so.
 6. **One `runs` row per request, no per-call cost line.** `llm` envelope per draft has usage;
    a `content_costs` view over it would make spend visible like `stage_costs`.

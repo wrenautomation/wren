@@ -9,7 +9,9 @@ import {
   type ContentChannel,
   type FetchedWith,
   type ListQuery,
+  type MediaHost,
   type Metrics,
+  mediaFileOf,
   type Post,
   type Published,
   type PublishedRow,
@@ -20,6 +22,8 @@ import {
 
 export interface YouTubeContentOptions {
   now?: () => Date;
+  /** Makes a laptop file or a stored object reachable from the box; absent = paths are the box's own. */
+  host?: MediaHost;
   /** Default privacy for an upload; `extra.privacyStatus` on the post overrides. */
   privacy?: "public" | "unlisted" | "private";
 }
@@ -75,7 +79,7 @@ export function youtubeContent(sites: SiteClient, o: YouTubeContentOptions = {})
   return {
     platform: "youtube",
     async publish(post: Post): Promise<Published> {
-      if (!post.media || post.media.kind !== "video")
+      if (post.media?.kind !== "video")
         throw new Error(
           "youtube: a post is a video (media.kind = video, media.source = path or URL)",
         );
@@ -93,7 +97,7 @@ export function youtubeContent(sites: SiteClient, o: YouTubeContentOptions = {})
             (post.extra?.privacyStatus as string | undefined) ?? o.privacy ?? "private",
           ...(post.scheduledFor ? { publishAt: post.scheduledFor } : {}),
         },
-        file: post.media.source,
+        file: await mediaFileOf(post.media.source, o.host, "youtube"),
       });
       return {
         id: v.id,
