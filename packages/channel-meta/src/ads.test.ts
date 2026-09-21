@@ -12,6 +12,13 @@ function fakeSites() {
       if (path === "/me/adaccounts") return { data: [{ id: "act_123", name: "Wren" }] } as never;
       if (path === "/me/accounts") return { data: [{ id: "pg1" }] } as never;
       if (path.endsWith("/adimages")) return { images: { "a.png": { hash: "h1" } } } as never;
+      if (path.endsWith("/leads"))
+        return {
+          data: [{ id: "L1", field_data: [{ name: "email", values: ["a@b.co"] }] }],
+          paging: { cursors: { after: "x" } },
+        } as never;
+      if (path.endsWith("/leadgen_forms") && method === "GET")
+        return { data: [{ id: "f1", name: "founders", leads_count: 2 }] } as never;
       if (path.endsWith("/insights"))
         return { data: [{ campaign_name: "c", spend: "1.50" }] } as never;
       if (path === "/search")
@@ -90,6 +97,59 @@ describe("metaAds", () => {
     expect(calls.filter((c) => c.method === "POST").every((c) => c.input.status !== "ACTIVE")).toBe(
       true,
     );
+  });
+
+  it("a lead form is made on the Page first and the CTA opens it instead of the link", async () => {
+    const { sites, calls } = fakeSites();
+    const ads = metaAds(sites, { adAccountId: "act_9", pageId: "pg9" });
+    const out = await ads.launch({
+      name: "Leads",
+      objective: "OUTCOME_LEADS",
+      dailyBudgetUsd: 5,
+      targeting: { countries: ["US"] },
+      optimizationGoal: "LEAD_GENERATION",
+      creative: {
+        message: "m",
+        link: "https://wren.test/thanks",
+        leadForm: { name: "founders", privacyUrl: "https://wren.test/privacy" },
+      },
+    });
+    expect(calls.map((c) => `${c.method} ${c.path}`)).toEqual([
+      "POST /act_9/campaigns",
+      "POST /act_9/adsets",
+      "POST /pg9/leadgen_forms",
+      "POST /act_9/adcreatives",
+      "POST /act_9/ads",
+    ]);
+    expect(calls[2]?.input).toEqual({
+      name: "founders",
+      questions: [{ type: "EMAIL" }, { type: "FULL_NAME" }],
+      privacy_policy: { url: "https://wren.test/privacy" },
+      follow_up_action_url: "https://wren.test/thanks",
+    });
+    expect(out.leadFormId).toMatch(/^leadgen_forms-/);
+    expect(calls[3]?.input).toMatchObject({
+      object_story_spec: {
+        link_data: {
+          call_to_action: { type: "SIGN_UP", value: { lead_gen_form_id: out.leadFormId } },
+        },
+      },
+    });
+    // An existing form by id makes nothing.
+    calls.length = 0;
+    await ads.launch({
+      name: "Leads 2",
+      objective: "OUTCOME_LEADS",
+      dailyBudgetUsd: 5,
+      targeting: { countries: ["US"] },
+      creative: { message: "m", link: "https://wren.test", leadForm: { id: "f1" } },
+    });
+    expect(calls.some((c) => c.path.endsWith("/leadgen_forms"))).toBe(false);
+    expect(await ads.leadForms()).toEqual([{ id: "f1", name: "founders", leads_count: 2 }]);
+    // Leads page by cursor until the asked-for count.
+    const leads = await ads.leads("f1", 2);
+    expect(leads).toHaveLength(2);
+    expect(calls.slice(-2).map((c) => c.input)).toEqual([{ limit: 2 }, { limit: 1, after: "x" }]);
   });
 
   it("a video creative uploads by URL first; ACTIVE carries the budget so the gate can name it", async () => {

@@ -160,6 +160,45 @@ export function registerAds(program: Command, withDb: WithDb, settings: Settings
     });
 
   cmd
+    .command("lead-form <name> <privacyUrl>")
+    .description("An instant form on the Page (email + full name); put its id in creative.leadForm")
+    .option("--thanks <url>", "where the thank-you button goes")
+    .action(async (name: string, privacyUrl: string, o: { thanks?: string }) => {
+      const id = await ads().leadForm({
+        name,
+        privacyUrl,
+        ...(o.thanks ? { followUpUrl: o.thanks } : {}),
+      });
+      console.log(id);
+    });
+
+  cmd
+    .command("lead-forms")
+    .description("The Page's instant forms with lead counts")
+    .action(async () => {
+      const rows = await ads().leadForms();
+      if (rows.length === 0) console.log("no forms");
+      for (const f of rows)
+        console.log(`${f.id}\t${f.status ?? ""}\t${f.leads_count ?? 0} leads\t${f.name}`);
+    });
+
+  cmd
+    .command("leads <formId>")
+    .description("What a form collected: one line per lead, answers tab-separated")
+    .option("--limit <n>", "how many", "100")
+    .action(async (formId: string, o: { limit: string }) => {
+      const rows = await ads().leads({ formId, limit: Number(o.limit) });
+      if (rows.length === 0) console.log("no leads yet");
+      for (const l of rows)
+        console.log(
+          [
+            l.created_time?.slice(0, 16) ?? "",
+            ...(l.field_data ?? []).map((f) => `${f.name}=${f.values.join("|")}`),
+          ].join("\t"),
+        );
+    });
+
+  cmd
     .command("launches")
     .description("What `wren ads` launched, started and stopped (the ad_launches ledger)")
     .option("--limit <n>", "rows", "50")

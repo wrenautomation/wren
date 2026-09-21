@@ -54,10 +54,46 @@ export interface LaunchSpec {
     callToAction?: string;
     /** An image or a video; a local file goes through the media host. */
     media?: { kind: "image" | "video"; source: string; thumbnail?: string };
+    /**
+     * OUTCOME_LEADS with an on-Facebook instant form: an existing form's id, or one
+     * to make on the Page (email + full name unless `questions` says otherwise). The
+     * CTA (SIGN_UP unless said) opens the form instead of `link`.
+     */
+    leadForm?: { id: string } | LeadFormSpec;
   };
   /** Everything is PAUSED unless said: ACTIVE makes the launch itself a spend. */
   status?: AdStatus;
 }
+
+export interface LeadFormSpec {
+  name: string;
+  privacyUrl: string;
+  /** Meta question objects (`{type: "EMAIL"}`, `{type: "CUSTOM", key, label}` …); default email + full name. */
+  questions?: Record<string, unknown>[];
+  /** Where the thank-you button goes (default `creative.link`). */
+  followUpUrl?: string;
+}
+
+export interface LeadFormRow {
+  id: string;
+  name: string;
+  status?: string;
+  leads_count?: number;
+  created_time?: string;
+}
+
+export interface Lead {
+  id: string;
+  created_time?: string;
+  ad_id?: string;
+  campaign_id?: string;
+  field_data?: { name: string; values: string[] }[];
+}
+
+export const DEFAULT_LEAD_QUESTIONS: Record<string, unknown>[] = [
+  { type: "EMAIL" },
+  { type: "FULL_NAME" },
+];
 
 /** The three objects a launch made; what `start` turns on. */
 export interface Tree {
@@ -70,6 +106,8 @@ export interface Launched extends Tree {
   creativeId: string;
   status: AdStatus;
   dailyBudgetUsd: number;
+  /** The instant form the ad opens, when the spec asked for one. */
+  leadFormId?: string;
 }
 
 export interface AdAccount {
@@ -165,6 +203,26 @@ export function metaAds(sites: SiteClient, o: MetaAdsOptions = {}) {
     });
   };
 
+  const makeLeadForm = async (
+    form: LeadFormSpec,
+    followUp: string | undefined,
+    pg: string,
+  ): Promise<string> => {
+    const made = await call<Made>("POST", `/${pg}/leadgen_forms`, {
+      name: form.name,
+      questions: form.questions ?? DEFAULT_LEAD_QUESTIONS,
+      privacy_policy: { url: form.privacyUrl },
+      ...(followUp ? { follow_up_action_url: followUp } : {}),
+    });
+    return made.id;
+  };
+  const leadFormIdOf = (
+    lf: NonNullable<LaunchSpec["creative"]["leadForm"]>,
+    link: string,
+    pg: string,
+  ): Promise<string> =>
+    "id" in lf ? Promise.resolve(lf.id) : makeLeadForm(lf, lf.followUpUrl ?? link, pg);
+
   return {
     accounts: () => call<Edge<AdAccount>>("GET", "/me/adaccounts", {}).then((r) => r.data ?? []),
     async campaigns(): Promise<CampaignRow[]> {
@@ -203,9 +261,17 @@ export function metaAds(sites: SiteClient, o: MetaAdsOptions = {}) {
         },
       });
       const c = spec.creative;
-      const cta = c.callToAction
-        ? { call_to_action: { type: c.callToAction, value: { link: c.link } } }
-        : {};
+      const leadFormId = c.leadForm ? await leadFormIdOf(c.leadForm, c.link, pg) : null;
+      const cta = leadFormId
+        ? {
+            call_to_action: {
+              type: c.callToAction ?? "SIGN_UP",
+              value: { lead_gen_form_id: leadFormId },
+            },
+          }
+        : c.callToAction
+          ? { call_to_action: { type: c.callToAction, value: { link: c.link } } }
+          : {};
       let story: Record<string, unknown>;
       if (c.media?.kind === "video") {
         const url = await publicUrlOf(c.media.source, o.host, "meta ads");
@@ -268,7 +334,32 @@ export function metaAds(sites: SiteClient, o: MetaAdsOptions = {}) {
         adId: ad.id,
         status,
         dailyBudgetUsd: spec.dailyBudgetUsd,
+        ...(leadFormId ? { leadFormId } : {}),
       };
+    },
+    /** Make an instant form on the Page; the id goes in `creative.leadForm`. */
+    leadForm: (form: LeadFormSpec, followUp?: string) =>
+      pageId().then((pg) => makeLeadForm(form, followUp ?? form.followUpUrl, pg)),
+    async leadForms(): Promise<LeadFormRow[]> {
+      const r = await call<Edge<LeadFormRow>>("GET", `/${await pageId()}/leadgen_forms`, {});
+      return r.data ?? [];
+    },
+    /** What a form collected, newest first, paged through `after`. */
+    async leads(formId: string, limit = 100): Promise<Lead[]> {
+      const out: Lead[] = [];
+      let after: string | undefined;
+      while (out.length < limit) {
+        const r = await call<Edge<Lead> & { paging?: { cursors?: { after?: string } } }>(
+          "GET",
+          `/${encodeURIComponent(formId)}/leads`,
+          { limit: Math.min(100, limit - out.length), ...(after ? { after } : {}) },
+        );
+        const page = r.data ?? [];
+        out.push(...page);
+        after = r.paging?.cursors?.after;
+        if (page.length === 0 || !after) break;
+      }
+      return out;
     },
     setStatus,
     /** The account in use, resolved once (`act_` stripped). */

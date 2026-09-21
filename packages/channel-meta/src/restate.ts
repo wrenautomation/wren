@@ -9,7 +9,7 @@
 import * as restate from "@restatedev/restate-sdk";
 import type { MediaHost, SiteClient } from "@wren/core/content";
 import type { Db } from "@wren/db";
-import { type LaunchSpec, type MetaAds, metaAds, type Tree } from "./ads.js";
+import { type LaunchSpec, type LeadFormSpec, type MetaAds, metaAds, type Tree } from "./ads.js";
 import { markStarted, markStopped, recordLaunch } from "./launches.js";
 
 export interface AdsDeps {
@@ -56,6 +56,10 @@ export function makeAds(deps: AdsDeps) {
         if (db)
           await ctx.run("record stop", () => markStopped(db, req.campaignId, req.reason ?? null));
       },
+      leadForm: async (ctx: restate.Context, req: LeadFormSpec) => ads(ctx).leadForm(req),
+      leadForms: async (ctx: restate.Context) => ads(ctx).leadForms(),
+      leads: async (ctx: restate.Context, req: { formId: string; limit?: number }) =>
+        ads(ctx).leads(req.formId, req.limit),
       interests: async (ctx: restate.Context, req: { q: string; limit?: number }) =>
         ads(ctx).interests(req.q, req.limit),
       insights: async (
