@@ -8,20 +8,11 @@ import { parseStored, uploadMedia } from "./media.js";
 /** Records puts. */
 function fakeS3() {
   const puts: { Bucket?: string; Key?: string; ContentType?: string; size: number }[] = [];
+  type Put = (typeof puts)[number];
   const client = {
     async send(cmd: { input: Record<string, unknown> }) {
-      const i = cmd.input as {
-        Bucket?: string;
-        Key?: string;
-        ContentType?: string;
-        Body?: Uint8Array;
-      };
-      puts.push({
-        Bucket: i.Bucket,
-        Key: i.Key,
-        ContentType: i.ContentType,
-        size: i.Body?.byteLength ?? 0,
-      });
+      const { Body, ...rest } = cmd.input as Put & { Body?: Uint8Array };
+      puts.push({ ...rest, size: Body?.byteLength ?? 0 });
       return {};
     },
   };

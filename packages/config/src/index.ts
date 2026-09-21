@@ -122,6 +122,11 @@ export const settingsSchema = z.object({
     .string()
     .regex(/^[0-9]+$/)
     .optional(),
+  /** The ad account `wren ads` works in (`act_…` or bare id); the first account on the token when unset. */
+  metaAdAccountId: z
+    .string()
+    .regex(/^(act_)?[0-9]+$/)
+    .optional(),
   /** autobrowse's EC2 instance: a `sites` call starts it when stopped (it stops itself when idle). Unset = never wake. */
   autobrowseInstanceId: z
     .string()
@@ -188,6 +193,7 @@ export const ENV_KEYS = {
   contentVoicePath: "WREN_CONTENT_VOICE",
   mediaBucket: "WREN_MEDIA_BUCKET",
   metaPageId: "WREN_META_PAGE_ID",
+  metaAdAccountId: "WREN_META_AD_ACCOUNT_ID",
   autobrowseInstanceId: "WREN_AUTOBROWSE_INSTANCE_ID",
 } as const satisfies Record<keyof Settings, string>;
 

@@ -42,6 +42,24 @@ Drafts follow `WREN_CONTENT_VOICE` (a markdown file in your words) and go out th
 channels in `WREN_CONTENT_CHANNELS`. A local `--media` file lands in `WREN_MEDIA_BUCKET`
 first (the worker and the box cannot read this laptop); a URL is used as is. Design: `designs/2026-09-22-content-loop.md`.
 
+## Meta ads
+
+```bash
+pnpm wren ads accounts                    # the ad accounts the Meta token admins
+pnpm wren ads interests "shopify"         # interest ids for the spec's targeting
+pnpm wren ads launch ads/founders.json    # campaign → ad set → creative → ad, all PAUSED; prints the ids
+pnpm wren ads start <campaignId> <adsetId> <adId> --daily 20   # the one command that spends
+pnpm wren ads insights --preset last_7d   # spend, impressions, reach, clicks, ctr, cpc per campaign
+pnpm wren ads stop <campaignId>
+```
+
+The spec file: `name`, `objective` (OUTCOME_LEADS, OUTCOME_TRAFFIC, …), `dailyBudgetUsd`,
+`targeting {countries, ageMin, ageMax, interests[{id,name}]}`, `creative {message, link,
+headline, description, callToAction, media {kind, source}}`. A local media file lands in
+`WREN_MEDIA_BUCKET` first. Every ACTIVE write is a spend on the box: it asks (or auto-yes
+under its small cap) and writes the ledger. `WREN_META_AD_ACCOUNT_ID` picks the account;
+unset = the first one. Design: `designs/2026-09-22-meta-ads.md`.
+
 ## Chores through autobrowse
 
 `restateDo(ctx, wake)({ goal: "upload this to youtube", inputs: { file } })` from a

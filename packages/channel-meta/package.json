@@ -4,13 +4,15 @@
   "private": true,
   "type": "module",
   "exports": {
-    ".": "./src/index.ts"
+    ".": "./src/index.ts",
+    "./restate": "./src/restate.ts"
   },
   "scripts": {
     "typecheck": "tsc --noEmit",
     "test:unit": "vitest run src"
   },
   "dependencies": {
+    "@restatedev/restate-sdk": "1.17.1",
     "@wren/core": "workspace:*"
   },
   "devDependencies": {

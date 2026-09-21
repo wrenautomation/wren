@@ -41,6 +41,7 @@ import {
 import { linkedinContent } from "@wren/channel-linkedin";
 import { makeLinkedinInbox } from "@wren/channel-linkedin/restate";
 import { facebookContent, instagramContent } from "@wren/channel-meta";
+import { makeAds } from "@wren/channel-meta/restate";
 import { tiktokContent } from "@wren/channel-tiktok";
 import { xContent } from "@wren/channel-x";
 import { youtubeContent } from "@wren/channel-youtube";
@@ -248,6 +249,9 @@ export async function buildServices(
   // Content channels (LinkedIn, YouTube) over autobrowse's `sites` service, as the `Content` service.
   const content = contentFor(settings, log);
   if (content) services.push(makeContent(content));
+  // Meta ads over the same `sites` service, as `Ads`. Always bound: a launch on a box without
+  // the meta site fails on its own invocation, and nothing spends until `start`.
+  services.push(makeAds(adsFor(settings)));
   // The content loop: ideas → drafts (ContentDesk, paid) → approved drafts posted (ContentScheduler).
   // Always bound: drafting needs no channel; a publish with none configured fails on its row.
   const voice = settings.contentVoicePath ? readFileSync(settings.contentVoicePath, "utf8") : null;
@@ -279,6 +283,7 @@ export async function buildServices(
       report: report !== null,
       provision: provision !== null,
       content: settings.contentChannels.join(",") || "none",
+      ads: settings.metaAdAccountId ?? "first account",
       content_voice: voice !== null ? "file" : "default",
     },
     close: () => handle.close(),
@@ -310,6 +315,18 @@ function contentFor(settings: Settings, log: Logger): ChannelsFor | null {
       ...(on.includes("facebook") ? { facebook: facebookContent(sites, meta) } : {}),
       ...(on.includes("tiktok") ? { tiktok: tiktokContent(sites, host ? { host } : {}) } : {}),
     };
+  };
+}
+
+/** The `Ads` service's dependencies: the box (woken like the content channels), the account and Page. */
+function adsFor(settings: Settings): Parameters<typeof makeAds>[0] {
+  const wake = settings.autobrowseInstanceId ? ec2Wake(settings.autobrowseInstanceId) : undefined;
+  const host = settings.mediaBucket ? s3MediaHost({ bucket: settings.mediaBucket }) : undefined;
+  return {
+    sitesFor: (ctx) => restateSites(ctx, wake),
+    ...(settings.metaAdAccountId ? { adAccountId: settings.metaAdAccountId } : {}),
+    ...(settings.metaPageId ? { pageId: settings.metaPageId } : {}),
+    ...(host ? { host } : {}),
   };
 }
 

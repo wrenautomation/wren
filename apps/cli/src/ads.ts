@@ -1,0 +1,159 @@
+/**
+ * `wren ads …`: Meta ads from the keyboard, through the `Ads` Restate
+ * service (every Graph call journaled, the box's spend gate in front of
+ * anything ACTIVE). A launch is PAUSED; `start` is the one command that
+ * spends, and it must say the daily budget.
+ */
+import { readFile } from "node:fs/promises";
+import * as clients from "@restatedev/restate-sdk-clients";
+import type { LaunchSpec, MetaObjective } from "@wren/channel-meta";
+import { META_OBJECTIVES } from "@wren/channel-meta";
+import type { AdsService } from "@wren/channel-meta/restate";
+import type { Settings } from "@wren/config";
+import { uploadMedia } from "@wren/content";
+import { isStoredMedia, isUrl } from "@wren/core/content";
+import type { Command } from "commander";
+
+/** The launch file: `creative.media.source` may be a local path when WREN_MEDIA_BUCKET is set (uploaded first). */
+function parseSpec(raw: string): LaunchSpec {
+  const j = JSON.parse(raw) as Partial<LaunchSpec>;
+  const need = <K extends keyof LaunchSpec>(k: K): LaunchSpec[K] => {
+    const v = j[k];
+    if (v === undefined || v === null) throw new Error(`spec needs "${k}"`);
+    return v as LaunchSpec[K];
+  };
+  const objective = need("objective");
+  if (!(META_OBJECTIVES as readonly string[]).includes(objective))
+    throw new Error(`objective must be one of ${META_OBJECTIVES.join(", ")}`);
+  const targeting = need("targeting");
+  if (!Array.isArray(targeting.countries) || targeting.countries.length === 0)
+    throw new Error("spec needs targeting.countries");
+  const creative = need("creative");
+  if (!creative.message || !creative.link) throw new Error("spec needs creative.message and .link");
+  const budget = need("dailyBudgetUsd");
+  if (!(budget > 0)) throw new Error("dailyBudgetUsd must be > 0");
+  return {
+    name: need("name"),
+    objective: objective as MetaObjective,
+    dailyBudgetUsd: budget,
+    targeting,
+    creative,
+    ...(j.optimizationGoal ? { optimizationGoal: j.optimizationGoal } : {}),
+    status: "PAUSED",
+  };
+}
+
+const size = (n: number | undefined) =>
+  n === undefined
+    ? "?"
+    : n >= 1e6
+      ? `${(n / 1e6).toFixed(1)}M`
+      : n >= 1e3
+        ? `${Math.round(n / 1e3)}k`
+        : String(n);
+
+const usd = (minor: string | number | undefined) =>
+  minor === undefined ? "-" : `$${(Number(minor) / 100).toFixed(2)}`;
+
+export function registerAds(program: Command, settings: Settings): Command {
+  const ads = () =>
+    clients.connect({ url: settings.restateIngressUrl }).serviceClient<AdsService>({ name: "Ads" });
+
+  const cmd = program
+    .command("ads")
+    .description("Meta ads: launch PAUSED, start with a budget, stop, read results");
+
+  cmd
+    .command("accounts")
+    .description("Ad accounts the Meta token admins")
+    .action(async () => {
+      for (const a of await ads().accounts())
+        console.log(
+          `${a.id}\t${a.name ?? ""}\t${a.currency ?? ""}\tstatus ${a.account_status ?? "?"}`,
+        );
+    });
+
+  cmd
+    .command("campaigns")
+    .description("Campaigns in the ad account")
+    .action(async () => {
+      const rows = await ads().campaigns();
+      if (rows.length === 0) console.log("no campaigns");
+      for (const c of rows)
+        console.log(
+          `${c.id}\t${c.status}\t${c.objective ?? ""}\t${usd(c.daily_budget)}/day\t${c.name}`,
+        );
+    });
+
+  cmd
+    .command("launch <spec.json>")
+    .description(
+      "Campaign → ad set → creative → ad from a JSON spec, all PAUSED (see designs/2026-09-22-meta-ads.md)",
+    )
+    .action(async (file: string) => {
+      const spec = parseSpec(await readFile(file, "utf8"));
+      const media = spec.creative.media;
+      if (media && !isUrl(media.source) && !isStoredMedia(media.source)) {
+        if (!settings.mediaBucket)
+          throw new Error("a local media file needs WREN_MEDIA_BUCKET (or give a URL)");
+        media.source = await uploadMedia(media.source, { bucket: settings.mediaBucket });
+        console.error(`stored media as ${media.source}`);
+      }
+      const made = await ads().launch(spec);
+      console.log(`campaign ${made.campaignId}`);
+      console.log(`adset    ${made.adsetId}`);
+      console.log(`creative ${made.creativeId}`);
+      console.log(`ad       ${made.adId}`);
+      console.log(`PAUSED · $${made.dailyBudgetUsd}/day once started:`);
+      console.log(
+        `  wren ads start ${made.campaignId} ${made.adsetId} ${made.adId} --daily ${made.dailyBudgetUsd}`,
+      );
+    });
+
+  cmd
+    .command("start <campaignId> <adsetId> <adId>")
+    .description("Deliver: ACTIVE on all three (spends; the box asks before each ACTIVE write)")
+    .requiredOption("--daily <usd>", "the ad set's daily budget in USD")
+    .action(async (campaignId: string, adsetId: string, adId: string, o: { daily: string }) => {
+      const dailyBudgetUsd = Number(o.daily);
+      if (!(dailyBudgetUsd > 0)) throw new Error("--daily must be > 0");
+      await ads().start({ campaignId, adsetId, adId, dailyBudgetUsd });
+      console.log(`started ${campaignId} at $${dailyBudgetUsd}/day`);
+    });
+
+  cmd
+    .command("stop <campaignId>")
+    .description("PAUSED at the campaign: nothing under it delivers")
+    .action(async (campaignId: string) => {
+      await ads().stop({ campaignId });
+      console.log(`stopped ${campaignId}`);
+    });
+
+  cmd
+    .command("interests <query>")
+    .description("Interest ids for a spec's targeting.interests")
+    .action(async (q: string) => {
+      const rows = await ads().interests({ q });
+      if (rows.length === 0) console.log(`no interest matches "${q}"`);
+      for (const r of rows)
+        console.log(
+          `${r.id}\t${r.name}\t${size(r.audience_size_lower_bound)}–${size(r.audience_size_upper_bound)}\t${r.path?.join(" › ") ?? ""}`,
+        );
+    });
+
+  cmd
+    .command("insights")
+    .description("Spend and results per campaign")
+    .option("--preset <p>", "today | yesterday | last_7d | last_30d | maximum", "last_7d")
+    .option("--level <l>", "account | campaign | adset | ad", "campaign")
+    .action(async (o: { preset: string; level: "account" | "campaign" | "adset" | "ad" }) => {
+      const rows = await ads().insights({ preset: o.preset, level: o.level });
+      if (rows.length === 0) console.log(`nothing for ${o.preset}`);
+      for (const r of rows)
+        console.log(
+          `${r.campaign_name ?? r.date_start ?? ""}\tspend $${r.spend ?? "0"}\timpr ${r.impressions ?? 0}\treach ${r.reach ?? 0}\tclicks ${r.clicks ?? 0}\tctr ${r.ctr ?? "-"}\tcpc ${r.cpc ?? "-"}`,
+        );
+    });
+
+  return cmd;
+}
