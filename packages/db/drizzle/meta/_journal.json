@@ -50,6 +50,13 @@
       "when": 1790002444624,
       "tag": "0006_content_redraft_index",
       "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "7",
+      "when": 1790003538876,
+      "tag": "0007_content_metrics",
+      "breakpoints": true
     }
   ]
 }

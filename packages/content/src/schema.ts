@@ -1,16 +1,17 @@
 /**
- * The content loop's two tables. An idea is William's raw input (a few lines,
+ * The content loop's tables. An idea is William's raw input (a few lines,
  * maybe a file); a draft is one platform's version of it, written by the LLM,
  * reviewed by a person, published by the scheduler. Everything the model wrote
  * stays on the draft row beside the audit envelope.
  * Design: designs/2026-09-22-content-loop.md.
  */
 import { type Media, PLATFORMS, type Platform } from "@wren/core/content";
-import { baseColumns, oneOf } from "@wren/db/columns";
+import { baseColumns, nonNegative, oneOf } from "@wren/db/columns";
 import {
   type AnyPgColumn,
   boolean,
   index,
+  integer,
   jsonb,
   pgTable,
   text,
@@ -96,7 +97,38 @@ export const contentDrafts = pgTable(
   ],
 );
 
+/**
+ * A metrics snapshot of a published draft: one row per look, so a post's
+ * curve is readable and a week's "what worked" is a query, not a guess.
+ */
+export const contentMetrics = pgTable(
+  "content_metrics",
+  {
+    ...baseColumns,
+    draftId: uuid("draft_id")
+      .notNull()
+      .references(() => contentDrafts.id, { onDelete: "cascade" }),
+    /** The platform's own clock for the numbers. */
+    asOf: timestamp("as_of", { withTimezone: true }).notNull(),
+    views: integer("views").notNull(),
+    reactions: integer("reactions").notNull(),
+    comments: integer("comments").notNull(),
+    shares: integer("shares").notNull(),
+    fetchedWith: varchar("fetched_with", { length: 16 }).notNull(),
+  },
+  (t) => [
+    index("ix_content_metrics_draft_id_created_at").on(t.draftId, t.createdAt),
+    ...nonNegative("content_metrics", {
+      views: t.views,
+      reactions: t.reactions,
+      comments: t.comments,
+      shares: t.shares,
+    }),
+  ],
+);
+
 export type ContentIdea = typeof contentIdeas.$inferSelect;
 export type NewContentIdea = typeof contentIdeas.$inferInsert;
 export type ContentDraft = typeof contentDrafts.$inferSelect;
 export type NewContentDraft = typeof contentDrafts.$inferInsert;
+export type ContentMetric = typeof contentMetrics.$inferSelect;

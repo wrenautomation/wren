@@ -63,6 +63,7 @@ curl -X POST -H "$H" $U/ReportScheduler/weekly/start   # Friday 19:00 report; /s
 curl -X POST -H "$H" $U/ComposeScheduler/agencies/start # keep 3 send days of approved openers queued; /sync tops up now
 curl -X POST -H "$H" $U/DigestScheduler/fleet/start     # 07:00 fleet-clock digest to Discord; /sync posts one now
 curl -X POST -H "$H" $U/ContentScheduler/default/start  # post approved content drafts as they come due (`wren content queue start`)
+curl -X POST -H "$H" $U/ContentMetrics/default/start    # daily metrics snapshots of young posts; Monday what-worked (`wren content metrics start`)
 # `Ads` is a plain service (no scheduler): `wren ads launch|start|stop|insights` call it through the ingress.
 ```
 

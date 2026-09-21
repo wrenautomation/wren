@@ -47,7 +47,7 @@ import { xContent } from "@wren/channel-x";
 import { youtubeContent } from "@wren/channel-youtube";
 import type { Settings } from "@wren/config";
 import { s3MediaHost } from "@wren/content";
-import { makeContentDesk, makeContentScheduler } from "@wren/content/restate";
+import { makeContentDesk, makeContentMetrics, makeContentScheduler } from "@wren/content/restate";
 import { type ChannelsFor, makeContent, restateSites } from "@wren/core/content/restate";
 import { createDb } from "@wren/db";
 import { loadLlmEnv, makeLlm, makeTracer } from "@wren/llm";
@@ -264,6 +264,7 @@ export async function buildServices(
       ...(voice !== null ? { voice } : {}),
     }),
     makeContentScheduler({ db, ...notify }),
+    makeContentMetrics({ db, ...notify }),
   );
 
   return {

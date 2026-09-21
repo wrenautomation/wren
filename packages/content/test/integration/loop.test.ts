@@ -18,15 +18,20 @@ import {
   addIdea,
   approveDrafts,
   contentDrafts,
+  contentMetrics,
   editDraft,
   getDraft,
   listDrafts,
+  whatWorked,
 } from "../../src/index.js";
 import { DESK_KEY, makeContentDesk, SCHEDULER_KEY } from "../../src/restate/index.js";
+import { METRICS_KEY, type MetricsStats, makeContentMetrics } from "../../src/restate/metrics.js";
 import { makeContentScheduler, type PublishStats } from "../../src/restate/scheduler.js";
 
 const posted: { platform: Platform; post: Post }[] = [];
 const refuse = new Set<Platform>();
+const views = new Map<string, number>();
+const notes: string[] = [];
 let calls = 0;
 const fakeContent = restate.service({
   name: "Content",
@@ -41,6 +46,22 @@ const fakeContent = restate.service({
         id: `${req.platform}-${posted.length}`,
         url: `https://${req.platform}.test/p/${posted.length}`,
         publishedAt: "2026-09-22T12:00:00.000Z",
+        fetchedWith: "api" as const,
+      };
+    },
+    metrics: async (_ctx: restate.Context, req: { platform: Platform; id: string }) => {
+      if (refuse.has(req.platform))
+        throw new restate.TerminalError(`no ${req.platform} channel configured`, {
+          errorCode: 404,
+        });
+      const v = views.get(req.id) ?? 0;
+      return {
+        id: req.id,
+        views: v,
+        reactions: Math.floor(v / 10),
+        comments: 1,
+        shares: 0,
+        asOf: "2026-09-22T13:00:00.000Z",
         fetchedWith: "api" as const,
       };
     },
@@ -68,6 +89,16 @@ beforeAll(async () => {
       fakeContent,
       makeContentDesk({ db: pg.db, llm, platforms: ["linkedin", "x", "youtube"] }),
       makeContentScheduler({ db: pg.db, idleMs: 60_000 }),
+      makeContentMetrics({
+        db: pg.db,
+        notifier: {
+          name: "test",
+          notify: async (title) => {
+            notes.push(title);
+            return true;
+          },
+        },
+      }),
     ],
     alwaysReplay: true,
   });
@@ -77,8 +108,10 @@ afterAll(async () => {
   await pg?.stop();
 });
 beforeEach(async () => {
-  await truncate(pg.db, ["content_ideas", "content_drafts", "runs"]);
+  await truncate(pg.db, ["content_ideas", "content_drafts", "content_metrics", "runs"]);
   posted.length = 0;
+  notes.length = 0;
+  views.clear();
   refuse.clear();
   calls = 0;
 });
@@ -92,6 +125,12 @@ const sched = () =>
     .connect({ url: env.baseUrl() })
     .objectClient<Sched>({ name: "ContentScheduler" }, SCHEDULER_KEY);
 const sync = () => sched().sync() as Promise<PassOutcome<PublishStats>>;
+type Met = ReturnType<typeof makeContentMetrics>;
+const look = () =>
+  clients
+    .connect({ url: env.baseUrl() })
+    .objectClient<Met>({ name: "ContentMetrics" }, METRICS_KEY)
+    .sync() as Promise<PassOutcome<MetricsStats>>;
 
 describe("content loop", () => {
   it("drafts one row per platform that fits, under one run, and skips a redraft", async () => {
@@ -161,6 +200,38 @@ describe("content loop", () => {
     const again = await sync();
     expect(again.stats?.published.map((p) => p.platform)).toEqual(["x"]);
     expect(posted).toHaveLength(3);
+  });
+
+  it("looks at each published post once a day and ranks the week", async () => {
+    const out = await desk().add({ text: "the gate, in one line" });
+    const drafts = await listDrafts(pg.db, { ideaId: out.idea.id });
+    await approveDrafts(
+      pg.db,
+      drafts.map((d) => d.id),
+      { now: new Date() },
+    );
+    await sync();
+    views.set("linkedin-1", 200);
+    views.set("x-2", 50);
+    refuse.add("x");
+    const first = await look();
+    expect(first.stats?.looked.map((l) => l.platform)).toEqual(["linkedin"]);
+    expect(first.stats?.failed).toMatchObject([{ platform: "x" }]);
+    // Looked at today: the next pass finds only the one that failed.
+    refuse.delete("x");
+    const second = await look();
+    expect(second.stats?.looked.map((l) => l.platform)).toEqual(["x"]);
+    expect((await look()).stats?.looked).toEqual([]);
+    expect(await pg.db.select().from(contentMetrics)).toHaveLength(2);
+    const ranked = await whatWorked(pg.db, new Date(), { days: 7 });
+    // x: 50 views, 5+1+0 → 12/100; linkedin: 200 views, 20+1 → 10.5.
+    expect(ranked.map((r) => r.platform)).toEqual(["x", "linkedin"]);
+    expect(ranked[0]).toMatchObject({ views: 50, reactions: 5, looks: 1 });
+    // The Monday report goes out once per week.
+    const monday = new Date().getUTCDay() === 1;
+    expect(notes).toHaveLength(monday ? 1 : 0);
+    expect(first.stats?.reported).toBe(monday);
+    expect(second.stats?.reported).toBe(false);
   });
 
   it("holds a scheduled draft until its time and sleeps toward it", async () => {

@@ -14,6 +14,7 @@ import {
   type DraftStatus,
   draftsOfIdea,
   editDraft,
+  formatWhatWorked,
   getDraft,
   IDEA_STATUSES,
   type IdeaStatus,
@@ -21,9 +22,15 @@ import {
   listIdeas,
   rejectDrafts,
   uploadMedia,
+  whatWorked,
 } from "@wren/content";
-import type { ContentDesk, ContentScheduler, DraftReport } from "@wren/content/restate";
-import { DESK_KEY, SCHEDULER_KEY } from "@wren/content/restate";
+import type {
+  ContentDesk,
+  ContentMetrics,
+  ContentScheduler,
+  DraftReport,
+} from "@wren/content/restate";
+import { DESK_KEY, METRICS_KEY, SCHEDULER_KEY } from "@wren/content/restate";
 import { isStoredMedia, isUrl, type Media, PLATFORMS, type Platform } from "@wren/core/content";
 import type { Db } from "@wren/db";
 import type { Command } from "commander";
@@ -107,6 +114,8 @@ export function registerContent(program: Command, withDb: WithDb, settings: Sett
   const desk = () => ingress().objectClient<ContentDesk>({ name: "ContentDesk" }, DESK_KEY);
   const queue = () =>
     ingress().objectClient<ContentScheduler>({ name: "ContentScheduler" }, SCHEDULER_KEY);
+  const metrics = () =>
+    ingress().objectClient<ContentMetrics>({ name: "ContentMetrics" }, METRICS_KEY);
 
   const content = program
     .command("content")
@@ -252,6 +261,37 @@ export function registerContent(program: Command, withDb: WithDb, settings: Sett
   q.command("sync")
     .description("One pass now")
     .action(async () => console.log(JSON.stringify(await queue().sync(), null, 2)));
+
+  content
+    .command("results")
+    .description("What worked: published posts of the last days, best engagement first")
+    .option("--days <n>", "window", "7")
+    .option("--platform <p>", "one platform")
+    .action(async (o: { days: string; platform?: string }) => {
+      const days = Number(o.days);
+      if (!(days > 0)) throw new Error("--days must be > 0");
+      const platform = o.platform ? oneOf("platform", o.platform, PLATFORMS) : undefined;
+      const rows = await withDb((db) =>
+        whatWorked(db, new Date(), { days, ...(platform ? { platform } : {}) }),
+      );
+      for (const line of formatWhatWorked(rows)) console.log(line);
+    });
+
+  const m = content
+    .command("metrics")
+    .description("the daily metrics look (ContentMetrics); Monday = what-worked to the channel");
+  m.command("status").action(async () =>
+    console.log(JSON.stringify(await metrics().status(), null, 2)),
+  );
+  m.command("start")
+    .description("Loop: snapshot every young published post once a day")
+    .action(async () => console.log(JSON.stringify(await metrics().start(), null, 2)));
+  m.command("stop").action(async () =>
+    console.log(JSON.stringify(await metrics().stop(), null, 2)),
+  );
+  m.command("sync")
+    .description("One pass now")
+    .action(async () => console.log(JSON.stringify(await metrics().sync(), null, 2)));
 
   return content;
 }

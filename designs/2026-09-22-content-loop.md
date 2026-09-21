@@ -69,6 +69,12 @@ Two tables, one package, three surfaces:
    the new loop supersedes them; `wren notes …` keeps working until the LinkedIn inbox is
    folded into `content add`.
 
+9. **Metrics are snapshots, one per look.** `content_metrics` keeps every read (a curve, not
+   a counter); `ContentMetrics` looks at each post once a day for 30 days through
+   `Content.metrics`, then stops. The rank key is engagements per 100 views: platforms with
+   very different reach still compare. The Monday report is one line per post, best first,
+   sent once per week (object state remembers the week).
+
 ## Where to attack (ranked)
 
 1. **Nothing has posted for real yet.** The channels wait on credentials (NEEDS-WILLIAM in
@@ -77,9 +83,10 @@ Two tables, one package, three surfaces:
 2. **Redraft notes are not remembered.** Each note fixes one draft; the next idea starts
    from the voice file again. Folding recurring notes into the voice ("he always cuts the
    last line") is the learning step.
-3. **No learning from metrics.** `Content.metrics` exists; nothing reads it back into the
-   prompt (which hooks got views). A weekly "what worked" needs a `content_metrics`
-   snapshot table like `post_metrics`.
+3. **Metrics are read, not learned from.** ✅ `content_metrics` snapshots (`ContentMetrics`
+   loop, one look per post per day for 30 days) and `wren content results` / the Monday
+   what-worked line (engagement per 100 views). Still open: nothing feeds the winners back
+   into the prompt.
 4. **The scheduler posts on the wall clock, not the platform's best hour.** `--at` is manual.
    A per-platform default slot (e.g. LinkedIn 08:30 fleet time) is a small table away.
 5. ✅ (2026-09-22) **Media is a path on the laptop.** `content add --media ./short.mp4` now
