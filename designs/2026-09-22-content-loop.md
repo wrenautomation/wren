@@ -75,18 +75,23 @@ Two tables, one package, three surfaces:
    very different reach still compare. The Monday report is one line per post, best first,
    sent once per week (object state remembers the week).
 
+10. **The prompt learns from rows, not from a memory.** Notes and winners are re-read per
+    draft (`lessonsFor`), so nothing is summarised or lost; the cost is two small queries.
+    A note the author gives once is followed on that platform until five newer notes push
+    it out — a recurring rule belongs in the voice file.
+
 ## Where to attack (ranked)
 
 1. **Nothing has posted for real yet.** The channels wait on credentials (NEEDS-WILLIAM in
    autobrowse); the first approved draft will show whether `Content.publish` through `sites`
    holds up end to end. The stand-in `Content` in the test only proves the loop.
-2. **Redraft notes are not remembered.** Each note fixes one draft; the next idea starts
-   from the voice file again. Folding recurring notes into the voice ("he always cuts the
-   last line") is the learning step.
-3. **Metrics are read, not learned from.** ✅ `content_metrics` snapshots (`ContentMetrics`
-   loop, one look per post per day for 30 days) and `wren content results` / the Monday
-   what-worked line (engagement per 100 views). Still open: nothing feeds the winners back
-   into the prompt.
+2. ✅ **Notes and winners are remembered** (`lessons.ts`, prompt v2): the platform's last
+   five distinct redraft notes and its three best posts (≥20 views, engagement per 100
+   views) go into every draft and redraft prompt. Still open: folding a note into the
+   voice file itself when it recurs.
+3. ✅ **Metrics are read and learned from.** `content_metrics` snapshots (`ContentMetrics`
+   loop, one look per post per day for 30 days), `wren content results`, the Monday
+   what-worked line, and the winners in the prompt (2).
 4. **The scheduler posts on the wall clock, not the platform's best hour.** `--at` is manual.
    A per-platform default slot (e.g. LinkedIn 08:30 fleet time) is a small table away.
 5. ✅ (2026-09-22) **Media is a path on the laptop.** `content add --media ./short.mp4` now

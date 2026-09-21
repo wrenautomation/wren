@@ -68,9 +68,11 @@ const fakeContent = restate.service({
   },
 });
 
+const prompts: string[] = [];
 const llm = new FakeLlm({
   respond: async (prompt) => {
     calls += 1;
+    prompts.push(prompt);
     if (prompt.includes("The author read it and says"))
       return '{"text": "shorter. the gate asks first."}';
     if (prompt.includes("one post on X"))
@@ -111,6 +113,7 @@ beforeEach(async () => {
   await truncate(pg.db, ["content_ideas", "content_drafts", "content_metrics", "runs"]);
   posted.length = 0;
   notes.length = 0;
+  prompts.length = 0;
   views.clear();
   refuse.clear();
   calls = 0;
@@ -227,6 +230,9 @@ describe("content loop", () => {
     // x: 50 views, 5+1+0 → 12/100; linkedin: 200 views, 20+1 → 10.5.
     expect(ranked.map((r) => r.platform)).toEqual(["x", "linkedin"]);
     expect(ranked[0]).toMatchObject({ views: 50, reactions: 5, looks: 1 });
+    // A winner with an audience shapes the next draft on its platform.
+    await desk().add({ text: "next idea", platforms: ["linkedin"] });
+    expect(prompts.at(-1)).toContain("(10.5, 200 views)");
     // The Monday report goes out once per week.
     const monday = new Date().getUTCDay() === 1;
     expect(notes).toHaveLength(monday ? 1 : 0);
@@ -290,5 +296,10 @@ describe("content loop", () => {
     const blank = await desk().redraft({ draftId: r.draft.id, note: "  " });
     expect(blank.results[0]).toMatchObject({ ok: false, reason: "empty note" });
     expect((await sync()).stats?.published).toEqual([]);
+    // The note is a lesson: the next idea's X draft is asked to follow it; LinkedIn's is not.
+    await desk().add({ text: "next idea", platforms: ["x", "linkedin"] });
+    const next = prompts.slice(-2);
+    expect(next.find((p) => p.includes("one post on X"))).toContain("- shorter");
+    expect(next.find((p) => !p.includes("one post on X"))).not.toContain("- shorter");
   });
 });

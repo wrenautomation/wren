@@ -10,12 +10,13 @@ import type { Queryable } from "@wren/db";
 import { completeAndParse, type LlmClient, type Tracer } from "@wren/llm";
 import { and, eq, inArray } from "drizzle-orm";
 import { z } from "zod";
+import { type Lessons, lessonsBlock, lessonsFor, NO_LESSONS } from "./lessons.js";
 import { PLATFORM_SPECS, type PlatformSpec, unfitReason } from "./platforms.js";
 import { type ContentDraft, type ContentIdea, contentDrafts, contentIdeas } from "./schema.js";
 import { type Brand, DEFAULT_BRAND, DEFAULT_VOICE } from "./voice.js";
 
 // v1 (2026-09-22): first prompt. Bump when the prompt or the platform shapes change.
-export const DRAFT_PROMPT_VERSION = "v1";
+export const DRAFT_PROMPT_VERSION = "v2";
 export const DRAFT_STAGE = "content_draft";
 // The answer is a few hundred tokens; a reasoning model thinks inside the same budget.
 const MAX_TOKENS = 4000;
@@ -43,7 +44,7 @@ export type DraftResult =
 export function draftPrompt(
   idea: Pick<ContentIdea, "text" | "media">,
   spec: PlatformSpec,
-  o: { voice: string; brand: Brand },
+  o: { voice: string; brand: Brand; lessons?: Lessons },
 ): string {
   const media = idea.media
     ? `\nThe post carries a ${idea.media.kind}${idea.media.title ? `: "${idea.media.title}"` : ""}. Write for someone who will watch or look at it.`
@@ -57,7 +58,7 @@ ${o.voice}
 
 Write ${spec.shape}. Stay inside ${spec.maxChars} characters.${spec.title ? ` The title stays inside ${spec.title.maxChars} characters.` : ""}
 Use only what the idea says; invent no numbers, names or events. Keep the author's wording where it already reads well.
-${media}
+${media}${lessonsBlock(o.lessons ?? NO_LESSONS)}
 The idea, in the author's own words:
 """
 ${idea.text.slice(0, MAX_IDEA_CHARS)}
@@ -72,7 +73,7 @@ export function redraftPrompt(
   spec: PlatformSpec,
   previous: { text: string; title: string | null },
   note: string,
-  o: { voice: string; brand: Brand },
+  o: { voice: string; brand: Brand; lessons?: Lessons },
 ): string {
   const base = draftPrompt(idea, spec, o);
   const cut = base.lastIndexOf("\nAnswer with JSON only");
@@ -137,6 +138,7 @@ export async function redraft(
   const prompt = redraftPrompt(idea, spec, { text: previous.text, title: previous.title }, note, {
     voice: o.voice ?? DEFAULT_VOICE,
     brand: o.brand ?? DEFAULT_BRAND,
+    lessons: await lessonsFor(db, platform),
   });
   const outcome = await completeAndParse(llm, prompt, proposal, {
     maxTokens: MAX_TOKENS,
@@ -205,7 +207,7 @@ export async function draftIdea(
     }
     const outcome = await completeAndParse(
       llm,
-      draftPrompt(idea, spec, { voice, brand }),
+      draftPrompt(idea, spec, { voice, brand, lessons: await lessonsFor(db, platform) }),
       proposal,
       {
         maxTokens: MAX_TOKENS,

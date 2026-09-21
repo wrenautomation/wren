@@ -40,8 +40,9 @@ pnpm wren content metrics start          # ContentMetrics/default: one look per 
 pnpm wren content results --days 7       # published posts, engagement per 100 views, best first
 ```
 
-Drafts follow `WREN_CONTENT_VOICE` (a markdown file in your words) and go out through the
-channels in `WREN_CONTENT_CHANNELS`. A local `--media` file lands in `WREN_MEDIA_BUCKET`
+Drafts follow `WREN_CONTENT_VOICE` (a markdown file in your words), your last redraft notes
+on that platform and its best posts so far, and go out through the channels in
+`WREN_CONTENT_CHANNELS`. A local `--media` file lands in `WREN_MEDIA_BUCKET`
 first (the worker and the box cannot read this laptop); a URL is used as is. Design: `designs/2026-09-22-content-loop.md`.
 
 ## Meta ads

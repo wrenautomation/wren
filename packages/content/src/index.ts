@@ -1,5 +1,6 @@
 export * from "./draft.js";
 export * from "./ideas.js";
+export * from "./lessons.js";
 export * from "./media.js";
 export * from "./metrics.js";
 export * from "./platforms.js";
