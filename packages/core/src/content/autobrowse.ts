@@ -40,7 +40,16 @@ export interface SiteStatus {
 export function matches(pattern: string, path: string): boolean {
   const p = pattern.split("/");
   const a = (path.split("?")[0] ?? "").split("/");
-  return p.length === a.length && p.every((seg, i) => seg.startsWith("{") || seg === a[i]);
+  const one = (seg: string, got: string) => {
+    // `{urn}`, or a fixed prefix/suffix around it (`act_{adAccountId}`).
+    const m = /^([^{}]*)\{[^{}]+\}([^{}]*)$/.exec(seg);
+    if (!m) return seg === got;
+    const [, before = "", after = ""] = m;
+    return (
+      got.startsWith(before) && got.endsWith(after) && got.length > before.length + after.length
+    );
+  };
+  return p.length === a.length && p.every((seg, i) => one(seg, a[i] ?? ""));
 }
 
 /** A route's `via` from a status snapshot; `none` when the worker has no leg for it. */

@@ -108,7 +108,23 @@ Rule: an adapter method that uses the browser says so in its row
    side. Both terraforms applied 2026-09-20; `IDLE_STOP_MINUTES=30` in the
    autobrowse env store.
 7. Scheduling: a Restate `ContentScheduler` (like `ComposeScheduler`)
-   that publishes the approved queue on each platform's clock.
+   that publishes the approved queue on each platform's clock. Next, with
+   the composer: notes/ideas → one draft per platform → review →
+   scheduled publish (`designs/2026-09-22-content-loop.md`).
+9. ✅ Four more platforms (2026-09-22): `Platform` is now linkedin |
+   youtube | x | instagram | facebook | tiktok. `@wren/channel-x`
+   (autobrowse `x` site: media upload then `/2/tweets`, own posts,
+   `public_metrics`, replies by search when the tier allows),
+   `@wren/channel-meta` (`instagramContent` + `facebookContent` over the
+   `meta` site: the Page from `/me/accounts` once, its Instagram account,
+   Reel container → publish, Page feed/photos/videos, insights) and
+   `@wren/channel-tiktok` (Content Posting API, `PULL_FROM_URL`). Graph
+   and TikTok only take URLs, so a local file goes through a `MediaHost`
+   first: `s3MediaHost` in the worker (`WREN_MEDIA_BUCKET`, presigned GET
+   for a day). `WREN_META_PAGE_ID` picks the Page; the first otherwise.
+   `WREN_CONTENT_CHANNELS` takes the new names. A YouTube short lands on
+   Instagram, TikTok and X by publishing the same file to each channel;
+   the composer (next) writes the caption per platform.
 8. ✅ One verb (2026-09-21): `autobrowseDo({url, token})` / `restateDo(ctx,
    wake)` in `@wren/core/content` call autobrowse's `do`: a goal in
    ("upload this to youtube" + `{file}`), what ran out. autobrowse routes it

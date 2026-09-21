@@ -39,6 +39,9 @@ import {
 } from "@wren/channel-email/restate";
 import { linkedinContent } from "@wren/channel-linkedin";
 import { makeLinkedinInbox } from "@wren/channel-linkedin/restate";
+import { facebookContent, instagramContent } from "@wren/channel-meta";
+import { tiktokContent } from "@wren/channel-tiktok";
+import { xContent } from "@wren/channel-x";
 import { youtubeContent } from "@wren/channel-youtube";
 import type { Settings } from "@wren/config";
 import { type ChannelsFor, makeContent, restateSites } from "@wren/core/content/restate";
@@ -58,6 +61,7 @@ import {
 import { makeDiscovery, makeEnrichment } from "@wren/research/restate";
 import type { Logger } from "pino";
 import { ec2Wake } from "./autobrowse-box.js";
+import { s3MediaHost } from "./media-host.js";
 
 export type AnyService =
   | ServiceDefinition<string, unknown>
@@ -274,11 +278,21 @@ function contentFor(settings: Settings, log: Logger): ChannelsFor | null {
   }
   const wake = settings.autobrowseInstanceId ? ec2Wake(settings.autobrowseInstanceId) : undefined;
   log.info({ wake: settings.autobrowseInstanceId ?? "none" }, "autobrowse box wake");
+  const host = settings.mediaBucket ? s3MediaHost({ bucket: settings.mediaBucket }) : undefined;
+  log.info({ mediaBucket: settings.mediaBucket ?? "none" }, "media host");
+  const meta = {
+    ...(host ? { host } : {}),
+    ...(settings.metaPageId ? { pageId: settings.metaPageId } : {}),
+  };
   return (ctx) => {
     const sites = restateSites(ctx, wake);
     return {
       ...(on.includes("linkedin") ? { linkedin: linkedinContent(sites) } : {}),
       ...(on.includes("youtube") ? { youtube: youtubeContent(sites) } : {}),
+      ...(on.includes("x") ? { x: xContent(sites) } : {}),
+      ...(on.includes("instagram") ? { instagram: instagramContent(sites, meta) } : {}),
+      ...(on.includes("facebook") ? { facebook: facebookContent(sites, meta) } : {}),
+      ...(on.includes("tiktok") ? { tiktok: tiktokContent(sites, host ? { host } : {}) } : {}),
     };
   };
 }

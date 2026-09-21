@@ -66,7 +66,13 @@ importers:
       '@aws-sdk/client-ec2':
         specifier: 3.1136.0
         version: 3.1136.0
+      '@aws-sdk/client-s3':
+        specifier: 3.1136.0
+        version: 3.1136.0
       '@aws-sdk/client-ssm':
+        specifier: 3.1136.0
+        version: 3.1136.0
+      '@aws-sdk/s3-request-presigner':
         specifier: 3.1136.0
         version: 3.1136.0
       '@restatedev/restate-sdk':
@@ -78,6 +84,15 @@ importers:
       '@wren/channel-linkedin':
         specifier: workspace:*
         version: link:../../packages/channel-linkedin
+      '@wren/channel-meta':
+        specifier: workspace:*
+        version: link:../../packages/channel-meta
+      '@wren/channel-tiktok':
+        specifier: workspace:*
+        version: link:../../packages/channel-tiktok
+      '@wren/channel-x':
+        specifier: workspace:*
+        version: link:../../packages/channel-x
       '@wren/channel-youtube':
         specifier: workspace:*
         version: link:../../packages/channel-youtube
@@ -192,6 +207,45 @@ importers:
       '@testcontainers/postgresql':
         specifier: 12.1.0
         version: 12.1.0
+      typescript:
+        specifier: 5.9.3
+        version: 5.9.3
+      vitest:
+        specifier: 5.0.1
+        version: 5.0.1(@types/node@22.20.3)(vite@8.3.0(@types/node@22.20.3)(esbuild@0.28.2)(tsx@4.23.13)(yaml@2.9.1))
+
+  packages/channel-meta:
+    dependencies:
+      '@wren/core':
+        specifier: workspace:*
+        version: link:../core
+    devDependencies:
+      typescript:
+        specifier: 5.9.3
+        version: 5.9.3
+      vitest:
+        specifier: 5.0.1
+        version: 5.0.1(@types/node@22.20.3)(vite@8.3.0(@types/node@22.20.3)(esbuild@0.28.2)(tsx@4.23.13)(yaml@2.9.1))
+
+  packages/channel-tiktok:
+    dependencies:
+      '@wren/core':
+        specifier: workspace:*
+        version: link:../core
+    devDependencies:
+      typescript:
+        specifier: 5.9.3
+        version: 5.9.3
+      vitest:
+        specifier: 5.0.1
+        version: 5.0.1(@types/node@22.20.3)(vite@8.3.0(@types/node@22.20.3)(esbuild@0.28.2)(tsx@4.23.13)(yaml@2.9.1))
+
+  packages/channel-x:
+    dependencies:
+      '@wren/core':
+        specifier: workspace:*
+        version: link:../core
+    devDependencies:
       typescript:
         specifier: 5.9.3
         version: 5.9.3
@@ -444,12 +498,20 @@ packages:
     resolution: {integrity: sha512-VYMBxIQdcHqbIf1j+YZlI9Ati6LZ4wJe0GGd4z4a5H/KxTggjeOiyaVYTnfF7LHZK5jMQ+rofmzz4QPqf++NUw==}
     engines: {node: '>=22'}
 
+  '@aws-sdk/checksums@3.1001.0':
+    resolution: {integrity: sha512-6uTniZc87q+B5eXouGTl+7Tmc482rEeCcvxpsvREP8EfF0gvloRZ41UOA9sbSJlyy8TbqIBXb3kKfKarEArUQA==}
+    engines: {node: '>=20.0.0'}
+
   '@aws-sdk/client-ec2@3.1136.0':
     resolution: {integrity: sha512-2LcLxH/qf7pUim9+C/k3BrQUo02iyeoHnmPQUgTDHvgHiGf/HHMj6FUkks7W7PupNh2eKs1dpNYCYHT4NiyYFg==}
     engines: {node: '>=20.0.0'}
 
   '@aws-sdk/client-lambda@3.1136.0':
     resolution: {integrity: sha512-vrXo4EWXyN7JOzuMXV2WdWTQbXiD6zfet2dVlJhPyh3xV2eVeeVKnduxhpSU9763gctIGM8wAulzzQXfIObQAw==}
+    engines: {node: '>=20.0.0'}
+
+  '@aws-sdk/client-s3@3.1136.0':
+    resolution: {integrity: sha512-1FUvu6nuUi3y9VjQAYootkfWKQqZ8aT8wZoV5I0bpeMkGVgntYpJ11xLicGotGE6E1qtLXB+GdOJM9B+OQYWDA==}
     engines: {node: '>=20.0.0'}
 
   '@aws-sdk/client-ssm@3.1136.0':
@@ -496,8 +558,16 @@ packages:
     resolution: {integrity: sha512-BJLwpH+l4ZpzEhMzigwR35Ox24a41oOm70b92pwbF2Pq5n9IPBZhqiN5WyF7XH9zoJwc9wsDmC1wC7rlz8idBg==}
     engines: {node: '>=20.0.0'}
 
+  '@aws-sdk/middleware-sdk-s3@3.972.76':
+    resolution: {integrity: sha512-NfnTkVUTBKTBuBgqaapFK9r3YdkKt1b2oRvgLzZq91bwNKh6ZS0S7sEcheguttREaL4iyfs/xQnqD7Z7AsWSsA==}
+    engines: {node: '>=20.0.0'}
+
   '@aws-sdk/nested-clients@3.997.45':
     resolution: {integrity: sha512-mooq9Q+jLa18VoM7HouczmslZU60iiB0aKc/Ztnq/luIL1ud0z4DnYprLR/ZO1gp331S9tJctM1HZr7u6YKBXQ==}
+    engines: {node: '>=20.0.0'}
+
+  '@aws-sdk/s3-request-presigner@3.1136.0':
+    resolution: {integrity: sha512-SYH0+Eg8+4Tb03s3rfpNVtWEtgqmSf9LCieuCam/hk9bTib72uTjVz5dENCIkRkw3baq1QsePmjiN7IRyqHcnQ==}
     engines: {node: '>=20.0.0'}
 
   '@aws-sdk/signature-v4-multi-region@3.996.46':
@@ -2440,6 +2510,14 @@ snapshots:
     dependencies:
       json-schema: 0.4.0
 
+  '@aws-sdk/checksums@3.1001.0':
+    dependencies:
+      '@aws-sdk/core': 3.978.0
+      '@aws-sdk/types': 3.974.5
+      '@smithy/core': 3.34.1
+      '@smithy/types': 4.18.0
+      tslib: 2.8.1
+
   '@aws-sdk/client-ec2@3.1136.0':
     dependencies:
       '@aws-sdk/core': 3.978.0
@@ -2456,6 +2534,20 @@ snapshots:
     dependencies:
       '@aws-sdk/core': 3.978.0
       '@aws-sdk/credential-provider-node': 3.972.83
+      '@aws-sdk/types': 3.974.5
+      '@smithy/core': 3.34.1
+      '@smithy/fetch-http-handler': 5.8.0
+      '@smithy/node-http-handler': 4.12.1
+      '@smithy/types': 4.18.0
+      tslib: 2.8.1
+
+  '@aws-sdk/client-s3@3.1136.0':
+    dependencies:
+      '@aws-sdk/checksums': 3.1001.0
+      '@aws-sdk/core': 3.978.0
+      '@aws-sdk/credential-provider-node': 3.972.83
+      '@aws-sdk/middleware-sdk-s3': 3.972.76
+      '@aws-sdk/signature-v4-multi-region': 3.996.46
       '@aws-sdk/types': 3.974.5
       '@smithy/core': 3.34.1
       '@smithy/fetch-http-handler': 5.8.0
@@ -2578,6 +2670,15 @@ snapshots:
       '@smithy/types': 4.18.0
       tslib: 2.8.1
 
+  '@aws-sdk/middleware-sdk-s3@3.972.76':
+    dependencies:
+      '@aws-sdk/core': 3.978.0
+      '@aws-sdk/signature-v4-multi-region': 3.996.46
+      '@aws-sdk/types': 3.974.5
+      '@smithy/core': 3.34.1
+      '@smithy/types': 4.18.0
+      tslib: 2.8.1
+
   '@aws-sdk/nested-clients@3.997.45':
     dependencies:
       '@aws-sdk/core': 3.978.0
@@ -2586,6 +2687,15 @@ snapshots:
       '@smithy/core': 3.34.1
       '@smithy/fetch-http-handler': 5.8.0
       '@smithy/node-http-handler': 4.12.1
+      '@smithy/types': 4.18.0
+      tslib: 2.8.1
+
+  '@aws-sdk/s3-request-presigner@3.1136.0':
+    dependencies:
+      '@aws-sdk/core': 3.978.0
+      '@aws-sdk/signature-v4-multi-region': 3.996.46
+      '@aws-sdk/types': 3.974.5
+      '@smithy/core': 3.34.1
       '@smithy/types': 4.18.0
       tslib: 2.8.1
 

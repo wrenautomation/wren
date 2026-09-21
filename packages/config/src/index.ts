@@ -112,7 +112,14 @@ export const settingsSchema = z.object({
         .map((x) => x.trim())
         .filter(Boolean),
     )
-    .pipe(z.array(z.enum(["linkedin", "youtube"]))),
+    .pipe(z.array(z.enum(["linkedin", "youtube", "x", "instagram", "facebook", "tiktok"]))),
+  /** An S3 bucket a local media file is hosted in (presigned URL) for platforms that only take URLs. Unset = URLs only. */
+  mediaBucket: z.string().min(1).optional(),
+  /** The Facebook Page the `facebook`/`instagram` channels post as; the first Page when unset. */
+  metaPageId: z
+    .string()
+    .regex(/^[0-9]+$/)
+    .optional(),
   /** autobrowse's EC2 instance: a `sites` call starts it when stopped (it stops itself when idle). Unset = never wake. */
   autobrowseInstanceId: z
     .string()
@@ -176,6 +183,8 @@ export const ENV_KEYS = {
   googleAdminUser: "WREN_GOOGLE_ADMIN_USER",
   dmarcRua: "WREN_DMARC_RUA",
   contentChannels: "WREN_CONTENT_CHANNELS",
+  mediaBucket: "WREN_MEDIA_BUCKET",
+  metaPageId: "WREN_META_PAGE_ID",
   autobrowseInstanceId: "WREN_AUTOBROWSE_INSTANCE_ID",
 } as const satisfies Record<keyof Settings, string>;
 

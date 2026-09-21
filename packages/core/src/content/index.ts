@@ -9,7 +9,15 @@
 export * from "./autobrowse.js";
 export * from "./do.js";
 
-export type Platform = "linkedin" | "youtube";
+export type Platform = "linkedin" | "youtube" | "x" | "instagram" | "facebook" | "tiktok";
+export const PLATFORMS: readonly Platform[] = [
+  "linkedin",
+  "youtube",
+  "x",
+  "instagram",
+  "facebook",
+  "tiktok",
+];
 export type FetchedWith = "api" | "browser";
 
 export interface Media {
@@ -18,6 +26,24 @@ export interface Media {
   source: string;
   /** Video title, image alt text. */
   title?: string;
+}
+
+/**
+ * Where a local media file becomes a public URL for a platform that only
+ * takes URLs (Instagram, Facebook videos): the adapter hosts it first.
+ */
+export interface MediaHost {
+  /** A URL the platform can fetch for a while; the file is not kept longer than needed. */
+  host(path: string): Promise<string>;
+}
+
+export const isUrl = (source: string): boolean => /^https?:\/\//i.test(source);
+
+/** A URL for the platform: the source itself when it is one, else the host's copy. */
+export async function publicUrlOf(source: string, host: MediaHost | undefined, platform: string) {
+  if (isUrl(source)) return source;
+  if (!host) throw new Error(`${platform}: a public URL is needed for media (or a MediaHost)`);
+  return host.host(source);
 }
 
 /** What to publish. Text is the body (a LinkedIn post, a YouTube description). */
