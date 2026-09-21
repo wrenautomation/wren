@@ -224,12 +224,22 @@ export function registerContent(program: Command, withDb: WithDb, settings: Sett
 
   content
     .command("approve <draftIds...>")
-    .description("Approve drafts; they post on the queue's next pass, or at --at")
+    .description(
+      "Approve drafts: each posts at its platform's next slot (WREN_SEND_TIMEZONE), or at --at, or --now",
+    )
     .option("--at <iso>", "publish at or after this time")
-    .action(async (ids: string[], o: { at?: string }) => {
+    .option("--now", "publish on the queue's next pass")
+    .action(async (ids: string[], o: { at?: string; now?: boolean }) => {
       const at = o.at ? new Date(o.at) : null;
       if (at && Number.isNaN(at.getTime())) throw new Error(`not a time: ${o.at}`);
-      const rows = await withDb((db) => approveDrafts(db, ids, { now: new Date(), at }));
+      const rows = await withDb((db) =>
+        approveDrafts(db, ids, {
+          now: new Date(),
+          at,
+          zone: settings.sendTimezone,
+          ...(o.now ? { asap: true } : {}),
+        }),
+      );
       for (const d of rows) printDraftRow(d);
     });
 

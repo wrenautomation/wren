@@ -8,6 +8,7 @@ import type { Queryable } from "@wren/db";
 import { and, asc, desc, eq, inArray, type SQL } from "drizzle-orm";
 import { PLATFORM_SPECS } from "./platforms.js";
 import { type ContentDraft, contentDrafts, type DraftStatus } from "./schema.js";
+import { nextSlot } from "./slots.js";
 
 export interface DraftFilter {
   status?: DraftStatus;
@@ -62,19 +63,27 @@ async function moveAll(
   return rows;
 }
 
-/** Approve; `at` schedules, absent = publish on the next pass. */
-export function approveDrafts(
+/**
+ * Approve. `at` schedules; `now: true` posts on the next pass; otherwise each
+ * draft takes its platform's next default slot on `zone`'s clock.
+ */
+export async function approveDrafts(
   db: Queryable,
   ids: readonly string[],
-  o: { now: Date; at?: Date | null },
+  o: { now: Date; at?: Date | null; zone?: string; asap?: boolean },
 ): Promise<ContentDraft[]> {
-  return moveAll(
-    db,
-    ids,
-    APPROVABLE,
-    { status: "approved", approvedAt: o.now, scheduledFor: o.at ?? null, error: null },
-    "approve",
-  );
+  const base = { status: "approved" as const, approvedAt: o.now, error: null };
+  if (o.at || o.asap || !o.zone)
+    return moveAll(db, ids, APPROVABLE, { ...base, scheduledFor: o.at ?? null }, "approve");
+  const zone = o.zone;
+  const rows: ContentDraft[] = [];
+  for (const id of ids) {
+    const [draft] = await db.select().from(contentDrafts).where(eq(contentDrafts.id, id));
+    if (!draft) throw new Error(`cannot approve ${id}: no such draft`);
+    const at = nextSlot(draft.platform, o.now, zone);
+    rows.push(...(await moveAll(db, [id], APPROVABLE, { ...base, scheduledFor: at }, "approve")));
+  }
+  return rows;
 }
 
 export function rejectDrafts(db: Queryable, ids: readonly string[]): Promise<ContentDraft[]> {

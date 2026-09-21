@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { canonicalZone, offsetMinutes, wallClock, zonedInstant } from "./tz.js";
+import { canonicalZone, offsetMinutes, wallClock, zonedInstant } from "./time.js";
 
 const CHI = "America/Chicago";
 

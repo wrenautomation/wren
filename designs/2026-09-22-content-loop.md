@@ -92,8 +92,10 @@ Two tables, one package, three surfaces:
 3. ✅ **Metrics are read and learned from.** `content_metrics` snapshots (`ContentMetrics`
    loop, one look per post per day for 30 days), `wren content results`, the Monday
    what-worked line, and the winners in the prompt (2).
-4. **The scheduler posts on the wall clock, not the platform's best hour.** `--at` is manual.
-   A per-platform default slot (e.g. LinkedIn 08:30 fleet time) is a small table away.
+4. ✅ **Default slots.** `slots.ts`: one slot per platform on `WREN_SEND_TIMEZONE`
+   (LinkedIn 08:30 and X 12:00 on weekdays; Facebook 13:00, YouTube 15:00, Instagram 18:00,
+   TikTok 19:00 daily); `approve` takes the next one unless `--at`/`--now`. Zone arithmetic
+   moved to `@wren/core/time`. Still open: slots learned from metrics, more than one a day.
 5. ✅ (2026-09-22) **Media is a path on the laptop.** `content add --media ./short.mp4` now
    puts the file in `WREN_MEDIA_BUCKET` under its content hash and the draft carries
    `s3://bucket/key`; at publish the worker signs it (`s3MediaHost`) and every adapter —

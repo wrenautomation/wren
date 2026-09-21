@@ -7,4 +7,5 @@ export * from "./platforms.js";
 export * from "./queue.js";
 export * from "./review.js";
 export * from "./schema.js";
+export * from "./slots.js";
 export * from "./voice.js";

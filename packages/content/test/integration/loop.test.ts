@@ -251,6 +251,13 @@ describe("content loop", () => {
     expect(pass.delayMs).toBeGreaterThanOrEqual(1_000);
     expect(pass.delayMs).toBeLessThanOrEqual(60_000);
     expect(posted).toHaveLength(0);
+    // With a zone and no time, approval lands on the platform's next slot (X: weekday noon).
+    const more = await desk().add({ text: "slotted", platforms: ["x"] });
+    const [s] = await listDrafts(pg.db, { ideaId: more.idea.id });
+    if (!s) throw new Error("no draft");
+    const now = new Date("2026-09-22T11:00:00Z");
+    const [slotted] = await approveDrafts(pg.db, [s.id], { now, zone: "America/New_York" });
+    expect(slotted?.scheduledFor?.toISOString()).toBe("2026-09-22T16:00:00.000Z");
   });
 
   it("an edit goes back to draft and keeps the platform's limit", async () => {

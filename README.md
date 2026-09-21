@@ -33,8 +33,9 @@ pnpm wren content drafts                 # one row per platform, status draft
 pnpm wren content show <draftId>
 pnpm wren content redraft <draftId> "shorter, keep the discord line"   # the model rewrites from your note
 pnpm wren content edit <draftId> fixed.md
-pnpm wren content approve <draftId>...   # posts on the queue's next pass
+pnpm wren content approve <draftId>...   # each posts at its platform's next slot (LinkedIn 08:30 weekdays, X noon, IG 18:00 … on WREN_SEND_TIMEZONE)
 pnpm wren content approve <draftId> --at 2026-09-23T14:00:00Z
+pnpm wren content approve <draftId> --now  # on the queue's next pass
 pnpm wren content queue start            # ContentScheduler/default: posts approved drafts as they come due
 pnpm wren content metrics start          # ContentMetrics/default: one look per young post per day; Monday = what-worked to the channel
 pnpm wren content results --days 7       # published posts, engagement per 100 views, best first

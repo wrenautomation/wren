@@ -11,7 +11,8 @@
     "./restate": "./src/restate/index.ts",
     "./ingest": "./src/ingest/index.ts",
     "./people": "./src/people/index.ts",
-    "./schema": "./src/schema.ts"
+    "./schema": "./src/schema.ts",
+    "./time": "./src/time.ts"
   },
   "scripts": {
     "test:integration": "vitest run test/integration",
