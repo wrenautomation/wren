@@ -66,6 +66,29 @@ ${idea.text.slice(0, MAX_IDEA_CHARS)}
 Answer with JSON only, nothing before or after: ${answer}`;
 }
 
+/** The same ask with the last draft and the person's note: rewrite, do not start over. */
+export function redraftPrompt(
+  idea: Pick<ContentIdea, "text" | "media">,
+  spec: PlatformSpec,
+  previous: { text: string; title: string | null },
+  note: string,
+  o: { voice: string; brand: Brand },
+): string {
+  const base = draftPrompt(idea, spec, o);
+  const cut = base.lastIndexOf("\nAnswer with JSON only");
+  const head = cut >= 0 ? base.slice(0, cut) : base;
+  const tail = cut >= 0 ? base.slice(cut) : "";
+  return `${head}
+The previous draft${previous.title ? ` (title: "${previous.title}")` : ""}:
+"""
+${previous.text}
+"""
+
+The author read it and says: "${note.trim().slice(0, 1000)}"
+Rewrite the draft to do what the author says and keep everything else that worked.
+${tail}`;
+}
+
 /** The deterministic gate: why the proposal cannot be stored, or null. */
 export function unfitProposal(spec: PlatformSpec, p: Proposal): string | null {
   const text = p.text.trim();
@@ -92,6 +115,70 @@ async function livePlatforms(db: Queryable, ideaId: string): Promise<Set<Platfor
       ),
     );
   return new Set(rows.map((r) => r.platform));
+}
+
+/**
+ * One more paid step for one draft: the previous text plus the person's
+ * note → a new row (the old one is rejected as superseded). Same gate.
+ */
+export async function redraft(
+  db: Queryable,
+  llm: LlmClient,
+  previous: ContentDraft,
+  idea: Pick<ContentIdea, "text" | "media">,
+  note: string,
+  o: Omit<DraftOptions, "again"> = {},
+): Promise<DraftResult> {
+  const platform = previous.platform;
+  const spec = PLATFORM_SPECS[platform];
+  if (note.trim() === "") return { platform, ok: false, reason: "empty note" };
+  if (!["draft", "approved", "failed"].includes(previous.status))
+    return { platform, ok: false, reason: `cannot redraft a ${previous.status} draft` };
+  const prompt = redraftPrompt(idea, spec, { text: previous.text, title: previous.title }, note, {
+    voice: o.voice ?? DEFAULT_VOICE,
+    brand: o.brand ?? DEFAULT_BRAND,
+  });
+  const outcome = await completeAndParse(llm, prompt, proposal, {
+    maxTokens: MAX_TOKENS,
+    runId: o.runId ?? null,
+    tracer: o.tracer ?? null,
+    name: DRAFT_STAGE,
+    metadata: {
+      platform,
+      ideaId: previous.ideaId,
+      redraftOf: previous.id,
+      version: DRAFT_PROMPT_VERSION,
+    },
+  });
+  if (!outcome.parsed)
+    return {
+      platform,
+      ok: false,
+      reason: outcome.providerRejected ?? outcome.parseError ?? "no answer",
+    };
+  const bad = unfitProposal(spec, outcome.parsed);
+  if (bad) return { platform, ok: false, reason: bad };
+  const [draft] = await db
+    .insert(contentDrafts)
+    .values({
+      ideaId: previous.ideaId,
+      platform,
+      text: outcome.parsed.text.trim(),
+      title: spec.title ? (outcome.parsed.title?.trim() ?? null) : null,
+      media: previous.media,
+      extra: previous.extra,
+      redraftOf: previous.id,
+      note: note.trim(),
+      promptVersion: DRAFT_PROMPT_VERSION,
+      llm: outcome.envelope(),
+    })
+    .returning();
+  if (!draft) throw new Error("insert returned no row");
+  await db
+    .update(contentDrafts)
+    .set({ status: "rejected", scheduledFor: null })
+    .where(eq(contentDrafts.id, previous.id));
+  return { platform, ok: true, draft };
 }
 
 export async function draftIdea(

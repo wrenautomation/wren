@@ -10,8 +10,9 @@ import type { Media, Platform } from "@wren/core/content";
 import { PLATFORMS } from "@wren/core/content";
 import type { Db } from "@wren/db";
 import type { LlmClient, Tracer } from "@wren/llm";
-import { DRAFT_STAGE, type DraftOptions, type DraftResult, draftIdea } from "../draft.js";
+import { DRAFT_STAGE, type DraftOptions, type DraftResult, draftIdea, redraft } from "../draft.js";
 import { addIdea, getIdea } from "../ideas.js";
+import { getDraft } from "../review.js";
 import type { ContentIdea } from "../schema.js";
 import type { Brand } from "../voice.js";
 
@@ -64,6 +65,29 @@ export function makeContentDesk(deps: ContentDeskDeps) {
       },
       draft: async (ctx: restate.ObjectContext, req: DraftRequest): Promise<DraftReport> =>
         draft(ctx, req),
+      /** Rewrite one draft from the person's note; the old row is rejected as superseded. */
+      redraft: async (
+        ctx: restate.ObjectContext,
+        req: { draftId: string; note: string },
+      ): Promise<DraftReport> => {
+        const previous = await ctx.run("read draft", () => getDraft(deps.db, req.draftId));
+        const idea = await ctx.run("read idea", () => getIdea(deps.db, previous.ideaId));
+        const runId = await ctx.run("open run", async () => {
+          const run = await openRun(deps.db, {
+            command: "content redraft",
+            argv: { draft: previous.id, platform: previous.platform },
+          });
+          return run.id;
+        });
+        const { again: _, ...o } = options(runId, false);
+        const result = await ctx.run(`${DRAFT_STAGE} ${previous.platform} redraft`, () =>
+          redraft(deps.db, deps.llm, previous, idea, req.note, o),
+        );
+        await ctx.run("finish run", () =>
+          finishRun(deps.db, runId, { drafted: result.ok ? 1 : 0, skipped: result.ok ? 0 : 1 }),
+        );
+        return { ideaId: idea.id, results: [result], runId };
+      },
     },
   });
 

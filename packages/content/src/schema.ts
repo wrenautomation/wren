@@ -8,6 +8,7 @@
 import { type Media, PLATFORMS, type Platform } from "@wren/core/content";
 import { baseColumns, oneOf } from "@wren/db/columns";
 import {
+  type AnyPgColumn,
   boolean,
   index,
   jsonb,
@@ -76,6 +77,11 @@ export const contentDrafts = pgTable(
     url: varchar("url", { length: 2048 }),
     /** The last publish error; cleared when re-approved. */
     error: text("error"),
+    /** The draft this one rewrote, and the person's note that asked for it ("shorter, keep the discord line"). */
+    redraftOf: uuid("redraft_of").references((): AnyPgColumn => contentDrafts.id, {
+      onDelete: "set null",
+    }),
+    note: text("note"),
     promptVersion: varchar("prompt_version", { length: 16 }).notNull(),
     /** The LLM stage's audit envelope (raw text, usage, model), or null for a hand-written draft. */
     llm: jsonb("llm").$type<Record<string, unknown>>(),
@@ -84,6 +90,7 @@ export const contentDrafts = pgTable(
     index("ix_content_drafts_idea_id").on(t.ideaId),
     index("ix_content_drafts_status_scheduled_for").on(t.status, t.scheduledFor),
     index("ix_content_drafts_platform_created_at").on(t.platform, t.createdAt),
+    index("ix_content_drafts_redraft_of").on(t.redraftOf),
     oneOf("ck_content_drafts_platform", t.platform, PLATFORMS),
     oneOf("ck_content_drafts_status", t.status, DRAFT_STATUSES),
   ],

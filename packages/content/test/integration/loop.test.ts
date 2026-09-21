@@ -50,6 +50,8 @@ const fakeContent = restate.service({
 const llm = new FakeLlm({
   respond: async (prompt) => {
     calls += 1;
+    if (prompt.includes("The author read it and says"))
+      return '{"text": "shorter. the gate asks first."}';
     if (prompt.includes("one post on X"))
       return '{"text": "the spend gate is live. every buy asks first."}';
     if (prompt.includes("YouTube title")) return '{"title": "Spend gate", "text": "what it does"}';
@@ -191,5 +193,31 @@ describe("content loop", () => {
     });
     await expect(editDraft(pg.db, row.id, { text: "a".repeat(281) })).rejects.toThrow(/over 280/);
     expect((await getDraft(pg.db, row.id)).text).toBe("new text");
+  });
+
+  it("a redraft takes the note, supersedes the old row, and links back", async () => {
+    const out = await desk().add({ text: "redraft me", platforms: ["x"] });
+    const [old] = await listDrafts(pg.db, { ideaId: out.idea.id });
+    if (!old) throw new Error("no draft");
+    await approveDrafts(pg.db, [old.id], { now: new Date() });
+    const report = await desk().redraft({ draftId: old.id, note: "shorter" });
+    const r = report.results[0];
+    if (!r?.ok) throw new Error(`redraft failed: ${r?.ok === false ? r.reason : "?"}`);
+    expect(r.draft).toMatchObject({
+      status: "draft",
+      text: "shorter. the gate asks first.",
+      redraftOf: old.id,
+      note: "shorter",
+    });
+    expect((await getDraft(pg.db, old.id)).status).toBe("rejected");
+    // The old row cannot be redrafted again; the note must say something.
+    const again = await desk().redraft({ draftId: old.id, note: "x" });
+    expect(again.results[0]).toMatchObject({
+      ok: false,
+      reason: "cannot redraft a rejected draft",
+    });
+    const blank = await desk().redraft({ draftId: r.draft.id, note: "  " });
+    expect(blank.results[0]).toMatchObject({ ok: false, reason: "empty note" });
+    expect((await sync()).stats?.published).toEqual([]);
   });
 });

@@ -36,6 +36,20 @@
       "when": 1790001314781,
       "tag": "0004_content_loop",
       "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1790002227879,
+      "tag": "0005_content_redraft",
+      "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1790002444624,
+      "tag": "0006_content_redraft_index",
+      "breakpoints": true
     }
   ]
 }

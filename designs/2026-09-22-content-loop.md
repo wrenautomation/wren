@@ -34,8 +34,12 @@ Two tables, one package, three surfaces:
   the row as `failed`; anything else retries under Restate. Cadence: a minute while work
   remains, else until the next `scheduled_for`, else `idleMs` (15 min). Discord gets one line
   per pass with work.
-- CLI: `add`, `ideas`, `draft`, `drafts`, `show`, `approve [--at]`, `reject`, `edit`, `queue
-  status|start|stop|sync`. Verdicts are rows written straight to Postgres, like the email
+- `ContentDesk.redraft` (2026-09-22): one draft + the person's note ("shorter, keep the
+  discord line") → a new row with `redraft_of` and `note`; the old row is rejected as
+  superseded. Same gate, same envelope. That is how his taste gets into the model without
+  him rewriting by hand.
+- CLI: `add`, `ideas`, `draft`, `drafts`, `show`, `approve [--at]`, `reject`, `edit`,
+  `redraft <id> "<note>"`, `queue status|start|stop|sync`. Verdicts are rows written straight to Postgres, like the email
   review seat; the paid step and the posting go through Restate.
 
 ## Decisions
@@ -70,9 +74,9 @@ Two tables, one package, three surfaces:
 1. **Nothing has posted for real yet.** The channels wait on credentials (NEEDS-WILLIAM in
    autobrowse); the first approved draft will show whether `Content.publish` through `sites`
    holds up end to end. The stand-in `Content` in the test only proves the loop.
-2. **Drafts are one shot.** No "make it shorter" / "more like this one" round-trip; `edit`
-   is the whole feedback path. A `redraft --note "…"` that feeds the previous text and the
-   note back is the next cheap win.
+2. **Redraft notes are not remembered.** Each note fixes one draft; the next idea starts
+   from the voice file again. Folding recurring notes into the voice ("he always cuts the
+   last line") is the learning step.
 3. **No learning from metrics.** `Content.metrics` exists; nothing reads it back into the
    prompt (which hooks got views). A weekly "what worked" needs a `content_metrics`
    snapshot table like `post_metrics`.

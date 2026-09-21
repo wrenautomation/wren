@@ -1,0 +1,1 @@
+CREATE INDEX "ix_content_drafts_redraft_of" ON "content_drafts" USING btree ("redraft_of");

@@ -31,6 +31,7 @@ echo "shipped the spend gate today. every buy asks me first." | pnpm wren conten
 pnpm wren content add idea.md --media short.mp4 --title "Spend gate"   # a short: YouTube, Reels, TikTok, X, LinkedIn captions
 pnpm wren content drafts                 # one row per platform, status draft
 pnpm wren content show <draftId>
+pnpm wren content redraft <draftId> "shorter, keep the discord line"   # the model rewrites from your note
 pnpm wren content edit <draftId> fixed.md
 pnpm wren content approve <draftId>...   # posts on the queue's next pass
 pnpm wren content approve <draftId> --at 2026-09-23T14:00:00Z

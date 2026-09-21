@@ -151,6 +151,15 @@ export function registerContent(program: Command, withDb: WithDb, settings: Sett
     });
 
   content
+    .command("redraft <draftId> <note>")
+    .description(
+      'Rewrite one draft from your note ("shorter, keep the discord line"); the old one is rejected',
+    )
+    .action(async (draftId: string, note: string) => {
+      printReport(await desk().redraft({ draftId, note }));
+    });
+
+  content
     .command("drafts")
     .description("List drafts")
     .option("--status <status>", DRAFT_STATUSES.join(" | "), "draft")

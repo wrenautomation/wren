@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { draftPrompt, unfitProposal } from "./draft.js";
+import { draftPrompt, redraftPrompt, unfitProposal } from "./draft.js";
 import { PLATFORM_SPECS, postOf, unfitReason } from "./platforms.js";
 import { DEFAULT_BRAND, DEFAULT_VOICE } from "./voice.js";
 
@@ -26,6 +26,19 @@ describe("draftPrompt", () => {
     expect(p).toContain('{"title": "<the title>"');
     expect(p).toContain('carries a video: "Spend gate demo"');
     expect(p).toContain("inside 100 characters");
+  });
+});
+
+describe("redraftPrompt", () => {
+  it("keeps the ask, adds the previous draft and the note, ends with the answer shape", () => {
+    const p = redraftPrompt(idea, PLATFORM_SPECS.x, { text: "old text", title: null }, "shorter", {
+      voice: "v",
+      brand: DEFAULT_BRAND,
+    });
+    expect(p).toContain("one post on X");
+    expect(p).toContain('The previous draft:\n"""\nold text\n"""');
+    expect(p).toContain('says: "shorter"');
+    expect(p.trim().endsWith('{"text": "<the post>"}')).toBe(true);
   });
 });
 
