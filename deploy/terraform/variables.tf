@@ -89,3 +89,9 @@ variable "browser_token" {
   sensitive   = true
   default     = ""
 }
+
+variable "autobrowse_instance_id" {
+  description = "autobrowse's EC2 instance (its terraform output instance_id). Set: the worker starts it for a Content call and may tag it; it stops itself when idle. Empty = never wake."
+  type        = string
+  default     = ""
+}

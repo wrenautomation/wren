@@ -58,7 +58,15 @@ Rule: an adapter method that uses the browser says so in its row
 - Wren reaches it as the Restate service `sites` on the same Restate
   (`restateSites(ctx)` in `@wren/core/content/restate`, like the `browser`
   service domain provisioning uses): no port on the box, calls queue while
-  it is down. `autobrowseSites({url, token})` is the HTTP `SiteClient` for
+  it is down. With `WREN_AUTOBROWSE_INSTANCE_ID` set, the first `sites`
+  call of an invocation is preceded by one journaled `wake autobrowse`
+  step (`ec2Wake`: start the instance if stopped, tag
+  `autobrowse:started-by=wren`); Restate holds the call until the worker
+  is back on the tunnel (~1–2 min). The box stops itself after
+  `IDLE_STOP_MINUTES` of nothing (autobrowse side), so a Content call costs
+  minutes of box time, not a day. The Lambda role gets
+  `ec2:StartInstances`/`CreateTags` on that one instance
+  (`autobrowse_instance_id` tfvar). `autobrowseSites({url, token})` is the HTTP `SiteClient` for
   a laptop against a local autobrowse. Either is a `SiteClient` (`call`,
   `via`); the
   adapters (`linkedinContent` in `@wren/channel-linkedin`, `youtubeContent`
@@ -95,7 +103,9 @@ Rule: an adapter method that uses the browser says so in its row
 5. autobrowse: record the setup workflows and the gated LinkedIn reads
    (`linkedin-list-posts`, `-post-stats`, `-post-comments`, `youtube-community-post`)
    — explore once each, prove, ship. Needs William's creds (NEEDS-WILLIAM.md).
-6. ✅ Reachability: through Restate (`sites` service); the box still has to be
-   up for a queued call to answer — wake/idle-stop is autobrowse's next deploy item.
+6. ✅ Reachability: through Restate (`sites` service). ✅ Wake (2026-09-20):
+   `ec2Wake` before the first `sites` call; idle-stop on the autobrowse
+   side. Owed: `tofu apply` in both repos with `autobrowse_instance_id`
+   set (William's `aws login`).
 7. Scheduling: a Restate `ContentScheduler` (like `ComposeScheduler`)
    that publishes the approved queue on each platform's clock.

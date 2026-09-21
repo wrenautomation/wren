@@ -76,6 +76,23 @@ data "aws_iam_policy_document" "worker" {
     actions   = ["kms:Encrypt", "kms:GenerateDataKey"]
     resources = [data.aws_kms_alias.ssm.target_key_arn]
   }
+  # Content calls run on autobrowse's box; the worker wakes it (start + our started-by tag).
+  dynamic "statement" {
+    for_each = var.autobrowse_instance_id == "" ? [] : [var.autobrowse_instance_id]
+    content {
+      sid       = "WakeAutobrowse"
+      actions   = ["ec2:StartInstances", "ec2:CreateTags"]
+      resources = ["arn:aws:ec2:${var.region}:${data.aws_caller_identity.me.account_id}:instance/${statement.value}"]
+    }
+  }
+  dynamic "statement" {
+    for_each = var.autobrowse_instance_id == "" ? [] : [1]
+    content {
+      sid       = "SeeAutobrowse"
+      actions   = ["ec2:DescribeInstances"]
+      resources = ["*"]
+    }
+  }
   statement {
     sid       = "RecycleSelf"
     actions   = ["lambda:UpdateFunctionConfiguration", "lambda:GetFunctionConfiguration"]
@@ -110,6 +127,7 @@ resource "aws_lambda_function" "worker" {
         WREN_LOG_LEVEL        = "info"
       },
       var.restate_identity_key == "" ? {} : { WREN_RESTATE_IDENTITY_KEY = var.restate_identity_key },
+      var.autobrowse_instance_id == "" ? {} : { WREN_AUTOBROWSE_INSTANCE_ID = var.autobrowse_instance_id },
     )
   }
 

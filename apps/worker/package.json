@@ -11,6 +11,7 @@
     "build:lambda": "node scripts/build-lambda.mjs"
   },
   "dependencies": {
+    "@aws-sdk/client-ec2": "3.1136.0",
     "@aws-sdk/client-ssm": "3.1136.0",
     "@restatedev/restate-sdk": "1.17.1",
     "@wren/channel-email": "workspace:*",

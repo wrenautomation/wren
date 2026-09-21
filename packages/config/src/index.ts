@@ -113,6 +113,11 @@ export const settingsSchema = z.object({
         .filter(Boolean),
     )
     .pipe(z.array(z.enum(["linkedin", "youtube"]))),
+  /** autobrowse's EC2 instance: a `sites` call starts it when stopped (it stops itself when idle). Unset = never wake. */
+  autobrowseInstanceId: z
+    .string()
+    .regex(/^i-[0-9a-f]+$/)
+    .optional(),
 });
 export type Settings = z.infer<typeof settingsSchema>;
 
@@ -171,6 +176,7 @@ export const ENV_KEYS = {
   googleAdminUser: "WREN_GOOGLE_ADMIN_USER",
   dmarcRua: "WREN_DMARC_RUA",
   contentChannels: "WREN_CONTENT_CHANNELS",
+  autobrowseInstanceId: "WREN_AUTOBROWSE_INSTANCE_ID",
 } as const satisfies Record<keyof Settings, string>;
 
 export interface LoadOptions {

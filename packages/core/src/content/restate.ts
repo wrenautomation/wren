@@ -40,12 +40,31 @@ function siteCallErrorFrom(err: unknown, site: string, method: string, path: str
   return err instanceof Error ? err : new Error(String(err));
 }
 
-/** autobrowse's site APIs through the invocation's context: each call is a durable step of this invocation. */
-export function restateSites(ctx: restate.Context): SiteClient {
+/**
+ * Wake the machine `sites` runs on: start it if stopped, no-op if running.
+ * Idempotent, so a retried invocation may wake twice. The box stops itself
+ * again once idle.
+ */
+export type Wake = () => Promise<"started" | "running">;
+
+/**
+ * autobrowse's site APIs through the invocation's context: each call is a
+ * durable step of this invocation. With a `wake`, the first call of the
+ * invocation starts the box first (one journaled step); Restate then holds
+ * the call until the worker is back on the tunnel.
+ */
+export function restateSites(ctx: restate.Context, wake?: Wake): SiteClient {
   const client = ctx.serviceClient<SitesService>(SITES);
   const statuses = new Map<string, Promise<SiteStatus>>();
+  let woken: Promise<unknown> | null = null;
+  const awake = () => {
+    if (!wake) return Promise.resolve();
+    woken ??= ctx.run("wake autobrowse", wake);
+    return woken;
+  };
   return {
     async call(site, method, path, input = {}) {
+      await awake();
       try {
         return (await client.call({ site, method, path, input })) as never;
       } catch (err) {
@@ -53,6 +72,7 @@ export function restateSites(ctx: restate.Context): SiteClient {
       }
     },
     async via(site, method, path) {
+      await awake();
       const p = statuses.get(site) ?? client.status({ site });
       statuses.set(site, p);
       return viaOf(await p, method, path);

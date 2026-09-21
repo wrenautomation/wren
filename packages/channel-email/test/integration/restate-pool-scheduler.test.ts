@@ -11,6 +11,7 @@ import { startTestPostgres, type TestPostgres, truncate } from "@wren/db/testing
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 import type { LoopStatus, PassOutcome } from "../../src/restate/loop.js";
 import { type FeedStats, makePoolScheduler } from "../../src/restate/pool-scheduler.js";
+import { untilNextLocalDay } from "../../src/restate/postmaster-scheduler.js";
 import { SendPolicy } from "../../src/send/policy.js";
 
 const POLICY = SendPolicy.fromSettings(
@@ -98,7 +99,8 @@ describe("PoolScheduler", () => {
       ["applyPicks", true],
     ]);
     expect(out.stats?.progress).toBe(0);
-    expect(out.delayMs).toBe(new Date("2026-09-21T00:00:00Z").getTime() - Date.parse(out.now));
+    // Sleeps to the policy's next local midnight after `now` (whatever day the test runs).
+    expect(out.delayMs).toBe(untilNextLocalDay(POLICY, new Date(out.now)));
     const ledger = await pg.db.select().from(runs);
     expect(ledger.map((r) => [r.command, r.niche, r.finishedAt !== null])).toEqual([
       ["pool feed", "sec_ria", true],

@@ -8,6 +8,10 @@ import { makeContent, restateSites } from "./restate.js";
 function ctxOf(answer: (handler: string, req: unknown) => unknown) {
   const calls: { handler: string; req: unknown }[] = [];
   const ctx = {
+    run: async (name: string, fn: () => Promise<unknown>) => {
+      calls.push({ handler: `run ${name}`, req: null });
+      return fn();
+    },
     serviceClient: () =>
       new Proxy(
         {},
@@ -25,6 +29,23 @@ function ctxOf(answer: (handler: string, req: unknown) => unknown) {
 }
 
 describe("restateSites", () => {
+  it("wakes the box once per invocation, as a journaled step before the first call", async () => {
+    const { ctx, calls } = ctxOf((h) => (h === "status" ? { routes: [] } : {}));
+    let woken = 0;
+    const sites = restateSites(ctx, async () => {
+      woken++;
+      return "started";
+    });
+    await sites.via("youtube", "GET", "/x");
+    await sites.call("youtube", "GET", "/x");
+    await sites.call("youtube", "GET", "/y");
+    expect(woken).toBe(1);
+    expect(calls.map((c) => c.handler)).toEqual(["run wake autobrowse", "status", "call", "call"]);
+    const bare = ctxOf(() => ({}));
+    await restateSites(bare.ctx).call("youtube", "GET", "/x");
+    expect(bare.calls.map((c) => c.handler)).toEqual(["call"]);
+  });
+
   it("calls `sites/call` with the official shape and reads `via` from one status per site", async () => {
     const { ctx, calls } = ctxOf((h) =>
       h === "status"

@@ -57,6 +57,7 @@ import {
 } from "@wren/research";
 import { makeDiscovery, makeEnrichment } from "@wren/research/restate";
 import type { Logger } from "pino";
+import { ec2Wake } from "./autobrowse-box.js";
 
 export type AnyService =
   | ServiceDefinition<string, unknown>
@@ -271,8 +272,10 @@ function contentFor(settings: Settings, log: Logger): ChannelsFor | null {
     log.info("WREN_CONTENT_CHANNELS empty: no Content service");
     return null;
   }
+  const wake = settings.autobrowseInstanceId ? ec2Wake(settings.autobrowseInstanceId) : undefined;
+  log.info({ wake: settings.autobrowseInstanceId ?? "none" }, "autobrowse box wake");
   return (ctx) => {
-    const sites = restateSites(ctx);
+    const sites = restateSites(ctx, wake);
     return {
       ...(on.includes("linkedin") ? { linkedin: linkedinContent(sites) } : {}),
       ...(on.includes("youtube") ? { youtube: youtubeContent(sites) } : {}),
