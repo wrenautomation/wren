@@ -5,10 +5,10 @@
  * the ledger row, the journal, or a log line.
  */
 import type * as restate from "@restatedev/restate-sdk";
+import { makeLoopObject, runPass } from "@wren/core/restate";
 import type { Db } from "@wren/db";
 import { type OpenSyncStats, syncOpens } from "../inbox/opens.js";
 import type { FetchLike } from "../verification/millionverifier.js";
-import { makeLoopObject, runPass } from "./loop.js";
 
 export interface OpensSchedulerDeps {
   db: Db;

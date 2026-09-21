@@ -2,6 +2,7 @@ export * from "./content/index.js";
 export * from "./doh.js";
 export * from "./emails.js";
 export * from "./ingest/index.js";
+export * from "./notify.js";
 export * from "./people/index.js";
 export * from "./runs.js";
 export * from "./schema.js";

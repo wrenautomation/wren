@@ -19,6 +19,7 @@ import { loadEnvFile, loadSettings } from "@wren/config";
 import { createDb } from "@wren/db";
 import { Command } from "commander";
 import { sql } from "drizzle-orm";
+import { registerContent } from "./content.js";
 import { registerEmail } from "./email.js";
 import { registerFetch } from "./fetch.js";
 import { registerReview } from "./review.js";
@@ -104,6 +105,7 @@ notes
 
 registerReview(registerEmail(program, withDb, settings, rootDir), withDb);
 registerFetch(program, settings);
+registerContent(program, withDb, settings);
 
 const report = program.command("report").description("periodic reports");
 report

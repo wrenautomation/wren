@@ -6,12 +6,12 @@
  * that arrives twice teaches nothing a late one does not.
  */
 import type * as restate from "@restatedev/restate-sdk";
+import { makeLoopObject, runPass } from "@wren/core/restate";
 import type { Db } from "@wren/db";
 import { untilNextReport } from "../report/schedule.js";
 import { runWeeklyReport, type WeeklyReportStats } from "../report/send.js";
 import type { SendPolicy } from "../send/policy.js";
 import type { Transport } from "../send/transport.js";
-import { makeLoopObject, runPass } from "./loop.js";
 
 export interface ReportSchedulerDeps {
   db: Db;

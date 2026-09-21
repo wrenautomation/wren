@@ -15,10 +15,10 @@
  */
 import * as restate from "@restatedev/restate-sdk";
 import { finishRun, openRun } from "@wren/core";
+import { errorText, LAST, makeLoopObject, type PassOutcome } from "@wren/core/restate";
 import type { Db } from "@wren/db";
 import type { Discovery, Enrichment } from "@wren/research/restate";
 import type { SendPolicy } from "../send/policy.js";
-import { errorText, LAST, makeLoopObject, type PassOutcome } from "./loop.js";
 import { untilNextLocalDay } from "./postmaster-scheduler.js";
 
 export const POOL_COMMAND = "pool feed";

@@ -62,6 +62,7 @@ curl -X POST -H "$H" $U/OpensScheduler/fleet/start
 curl -X POST -H "$H" $U/ReportScheduler/weekly/start   # Friday 19:00 report; /sync mails one now
 curl -X POST -H "$H" $U/ComposeScheduler/agencies/start # keep 3 send days of approved openers queued; /sync tops up now
 curl -X POST -H "$H" $U/DigestScheduler/fleet/start     # 07:00 fleet-clock digest to Discord; /sync posts one now
+curl -X POST -H "$H" $U/ContentScheduler/default/start  # post approved content drafts as they come due (`wren content queue start`)
 ```
 
 ### CLI (already configured for this env)

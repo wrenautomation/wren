@@ -12,11 +12,11 @@
  * than as fast as it can refuse.
  */
 import type * as restate from "@restatedev/restate-sdk";
+import { type Notifier, plural } from "@wren/core/notify";
+import { makeLoopObject, runPass } from "@wren/core/restate";
 import type { Db } from "@wren/db";
 import { DAY_MS, type InboxReader, type SyncStats, syncInbox } from "../inbox/sync.js";
-import { type Notifier, plural } from "../notify.js";
 import { DISPOSITION_KEY, type Disposition } from "./disposition.js";
-import { makeLoopObject, runPass } from "./loop.js";
 
 export interface InboxSchedulerDeps {
   db: Db;

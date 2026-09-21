@@ -11,6 +11,7 @@ export default defineConfig({
     "../channel-linkedin/src/schema.ts",
     "../channel-email/src/schema.ts",
     "../channel-email/src/views.ts",
+    "../content/src/schema.ts",
   ],
   out: "./drizzle",
   casing: "snake_case",

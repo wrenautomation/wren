@@ -6,6 +6,7 @@
  * minute, and tomorrow's pull re-reads today's window anyway.
  */
 import type * as restate from "@restatedev/restate-sdk";
+import { makeLoopObject, runPass } from "@wren/core/restate";
 import type { Db } from "@wren/db";
 import {
   type PostmasterClient,
@@ -13,7 +14,6 @@ import {
   syncPostmaster,
 } from "../inbox/postmaster.js";
 import type { SendPolicy } from "../send/policy.js";
-import { makeLoopObject, runPass } from "./loop.js";
 
 export interface PostmasterSchedulerDeps {
   db: Db;

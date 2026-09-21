@@ -15,8 +15,8 @@
  */
 import * as restate from "@restatedev/restate-sdk";
 import { finishRun, openRun } from "@wren/core";
+import { type Notifier, plural } from "@wren/core/notify";
 import type { Db } from "@wren/db";
-import { type Notifier, plural } from "../notify.js";
 import type { SendStats } from "../send/deliver.js";
 import type { SendPolicy } from "../send/policy.js";
 import { seededRng } from "../send/rng.js";

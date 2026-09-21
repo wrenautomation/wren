@@ -11,9 +11,9 @@
  * again after `retryMs` rather than dying or retrying as fast as it can.
  */
 import * as restate from "@restatedev/restate-sdk";
-import { type RunOptions, recordedRun } from "@wren/core";
 import type { Db } from "@wren/db";
 import type { Notifier } from "../notify.js";
+import { type RunOptions, recordedRun } from "../runs.js";
 
 const RUNNING = "running";
 /** Object state key holding the last pass outcome; `status` reads it. */

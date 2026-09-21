@@ -21,6 +21,7 @@
     "@wren/channel-meta": "workspace:*",
     "@wren/channel-tiktok": "workspace:*",
     "@wren/channel-x": "workspace:*",
+    "@wren/content": "workspace:*",
     "@wren/channel-youtube": "workspace:*",
     "@wren/config": "workspace:*",
     "@wren/core": "workspace:*",

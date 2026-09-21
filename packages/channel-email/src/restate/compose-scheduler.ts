@@ -12,16 +12,16 @@
  */
 import type * as restate from "@restatedev/restate-sdk";
 import type { Company } from "@wren/core";
+import { type Notifier, plural } from "@wren/core/notify";
+import { makeLoopObject, runPass } from "@wren/core/restate";
 import type { Db } from "@wren/db";
 import { sql } from "drizzle-orm";
-import { type Notifier, plural } from "../notify.js";
 import { type ComposeStats, compose } from "../outreach/compose.js";
 import type { EnrollmentRule } from "../outreach/plan.js";
 import type { Sequence } from "../outreach/sequences.js";
 import type { Template } from "../outreach/templates.js";
 import { fillTimezones, type TimezoneFillStats } from "../send/lead-timezone.js";
 import type { SendPolicy } from "../send/policy.js";
-import { makeLoopObject, runPass } from "./loop.js";
 import { untilNextLocalDay } from "./postmaster-scheduler.js";
 
 /** Everything compose needs for one niche, assembled by the composition root. */

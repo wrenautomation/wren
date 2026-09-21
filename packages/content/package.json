@@ -1,17 +1,12 @@
 {
-  "name": "@wren/core",
+  "name": "@wren/content",
   "version": "0.0.0",
   "private": true,
   "type": "module",
   "exports": {
     ".": "./src/index.ts",
-    "./content": "./src/content/index.ts",
-    "./content/restate": "./src/content/restate.ts",
-    "./notify": "./src/notify.ts",
-    "./restate": "./src/restate/index.ts",
-    "./ingest": "./src/ingest/index.ts",
-    "./people": "./src/people/index.ts",
-    "./schema": "./src/schema.ts"
+    "./schema": "./src/schema.ts",
+    "./restate": "./src/restate/index.ts"
   },
   "scripts": {
     "test:integration": "vitest run test/integration",
@@ -20,11 +15,15 @@
   },
   "dependencies": {
     "@restatedev/restate-sdk": "1.17.1",
+    "@wren/core": "workspace:*",
     "@wren/db": "workspace:*",
-    "csv-parse": "7.0.2",
-    "drizzle-orm": "0.45.2"
+    "@wren/llm": "workspace:*",
+    "drizzle-orm": "0.45.2",
+    "zod": "4.6.5"
   },
   "devDependencies": {
+    "@restatedev/restate-sdk-clients": "1.17.1",
+    "@restatedev/restate-sdk-testcontainers": "1.17.1",
     "@testcontainers/postgresql": "12.1.0",
     "typescript": "5.9.3",
     "vitest": "5.0.1"

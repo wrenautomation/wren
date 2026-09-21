@@ -107,10 +107,9 @@ Rule: an adapter method that uses the browser says so in its row
    `ec2Wake` before the first `sites` call; idle-stop on the autobrowse
    side. Both terraforms applied 2026-09-20; `IDLE_STOP_MINUTES=30` in the
    autobrowse env store.
-7. Scheduling: a Restate `ContentScheduler` (like `ComposeScheduler`)
-   that publishes the approved queue on each platform's clock. Next, with
-   the composer: notes/ideas → one draft per platform → review →
-   scheduled publish (`designs/2026-09-22-content-loop.md`).
+7. ✅ Scheduling and the composer (2026-09-22): `@wren/content` — ideas →
+   one draft per platform (`ContentDesk`) → review → `ContentScheduler`
+   posts through `Content.publish` when due. `designs/2026-09-22-content-loop.md`.
 9. ✅ Four more platforms (2026-09-22): `Platform` is now linkedin |
    youtube | x | instagram | facebook | tiktok. `@wren/channel-x`
    (autobrowse `x` site: media upload then `/2/tweets`, own posts,

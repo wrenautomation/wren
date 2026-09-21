@@ -35,6 +35,9 @@ importers:
       '@wren/config':
         specifier: workspace:*
         version: link:../../packages/config
+      '@wren/content':
+        specifier: workspace:*
+        version: link:../../packages/content
       '@wren/core':
         specifier: workspace:*
         version: link:../../packages/core
@@ -99,6 +102,9 @@ importers:
       '@wren/config':
         specifier: workspace:*
         version: link:../../packages/config
+      '@wren/content':
+        specifier: workspace:*
+        version: link:../../packages/content
       '@wren/core':
         specifier: workspace:*
         version: link:../../packages/core
@@ -272,6 +278,43 @@ importers:
         specifier: 4.6.5
         version: 4.6.5
     devDependencies:
+      typescript:
+        specifier: 5.9.3
+        version: 5.9.3
+      vitest:
+        specifier: 5.0.1
+        version: 5.0.1(@types/node@22.20.3)(vite@8.3.0(@types/node@22.20.3)(esbuild@0.28.2)(tsx@4.23.13)(yaml@2.9.1))
+
+  packages/content:
+    dependencies:
+      '@restatedev/restate-sdk':
+        specifier: 1.17.1
+        version: 1.17.1
+      '@wren/core':
+        specifier: workspace:*
+        version: link:../core
+      '@wren/db':
+        specifier: workspace:*
+        version: link:../db
+      '@wren/llm':
+        specifier: workspace:*
+        version: link:../llm
+      drizzle-orm:
+        specifier: 0.45.2
+        version: 0.45.2(postgres@3.4.9)
+      zod:
+        specifier: 4.6.5
+        version: 4.6.5
+    devDependencies:
+      '@restatedev/restate-sdk-clients':
+        specifier: 1.17.1
+        version: 1.17.1
+      '@restatedev/restate-sdk-testcontainers':
+        specifier: 1.17.1
+        version: 1.17.1
+      '@testcontainers/postgresql':
+        specifier: 12.1.0
+        version: 12.1.0
       typescript:
         specifier: 5.9.3
         version: 5.9.3

@@ -1,0 +1,68 @@
+/**
+ * The publish queue as rows: approved drafts whose time has come. `claim`
+ * moves one to `publishing` in the same statement that selects it, so two
+ * passes never publish the same draft; the scheduler is single-writer anyway.
+ */
+import type { Published } from "@wren/core/content";
+import type { Queryable } from "@wren/db";
+import { and, asc, eq, gt, isNull, lte, or, sql } from "drizzle-orm";
+import { type ContentDraft, contentDrafts } from "./schema.js";
+
+const dueAt = (now: Date) =>
+  and(
+    eq(contentDrafts.status, "approved"),
+    or(isNull(contentDrafts.scheduledFor), lte(contentDrafts.scheduledFor, now)),
+  );
+
+/** Approved drafts due by `now`, oldest approval first. */
+export function dueDrafts(db: Queryable, now: Date, limit = 20): Promise<ContentDraft[]> {
+  return db
+    .select()
+    .from(contentDrafts)
+    .where(dueAt(now))
+    .orderBy(asc(contentDrafts.approvedAt), asc(contentDrafts.createdAt))
+    .limit(limit);
+}
+
+/** When the next approved draft is due after `now` (ISO), or null when none is scheduled. Journal-safe: a string. */
+export async function nextDue(db: Queryable, now: Date): Promise<string | null> {
+  const [row] = await db
+    .select({ at: sql<string | null>`min(${contentDrafts.scheduledFor})` })
+    .from(contentDrafts)
+    .where(and(eq(contentDrafts.status, "approved"), gt(contentDrafts.scheduledFor, now)));
+  return row?.at ? new Date(row.at).toISOString() : null;
+}
+
+/** approved → publishing; null when someone else got there first or it was rejected meanwhile. */
+export async function claim(db: Queryable, id: string): Promise<ContentDraft | null> {
+  const [row] = await db
+    .update(contentDrafts)
+    .set({ status: "publishing", error: null })
+    .where(and(eq(contentDrafts.id, id), eq(contentDrafts.status, "approved")))
+    .returning();
+  return row ?? null;
+}
+
+export async function markPublished(
+  db: Queryable,
+  id: string,
+  published: Published,
+): Promise<void> {
+  await db
+    .update(contentDrafts)
+    .set({
+      status: "published",
+      publishedAt: new Date(published.publishedAt),
+      publishedId: published.id,
+      url: published.url,
+      error: null,
+    })
+    .where(eq(contentDrafts.id, id));
+}
+
+export async function markFailed(db: Queryable, id: string, error: string): Promise<void> {
+  await db
+    .update(contentDrafts)
+    .set({ status: "failed", error: error.slice(0, 1000) })
+    .where(eq(contentDrafts.id, id));
+}

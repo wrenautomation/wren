@@ -29,6 +29,13 @@
       "when": 1789879284418,
       "tag": "0003_discovery_attempts",
       "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1790001314781,
+      "tag": "0004_content_loop",
+      "breakpoints": true
     }
   ]
 }

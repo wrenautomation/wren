@@ -4,6 +4,7 @@
  * handler (`lambda.ts`, Restate Cloud). Nothing here assumes a process lifetime
  * beyond one invocation: state lives in Restate and Postgres.
  */
+import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
 import type { ServiceDefinition, VirtualObjectDefinition } from "@restatedev/restate-sdk";
 import {
@@ -44,6 +45,7 @@ import { tiktokContent } from "@wren/channel-tiktok";
 import { xContent } from "@wren/channel-x";
 import { youtubeContent } from "@wren/channel-youtube";
 import type { Settings } from "@wren/config";
+import { makeContentDesk, makeContentScheduler } from "@wren/content/restate";
 import { type ChannelsFor, makeContent, restateSites } from "@wren/core/content/restate";
 import { createDb } from "@wren/db";
 import { loadLlmEnv, makeLlm, makeTracer } from "@wren/llm";
@@ -246,6 +248,19 @@ export async function buildServices(
   // Content channels (LinkedIn, YouTube) over autobrowse's `sites` service, as the `Content` service.
   const content = contentFor(settings, log);
   if (content) services.push(makeContent(content));
+  // The content loop: ideas → drafts (ContentDesk, paid) → approved drafts posted (ContentScheduler).
+  // Always bound: drafting needs no channel; a publish with none configured fails on its row.
+  const voice = settings.contentVoicePath ? readFileSync(settings.contentVoicePath, "utf8") : null;
+  services.push(
+    makeContentDesk({
+      db,
+      llm,
+      platforms: settings.contentChannels,
+      tracer,
+      ...(voice !== null ? { voice } : {}),
+    }),
+    makeContentScheduler({ db, ...notify }),
+  );
 
   return {
     services,
@@ -264,6 +279,7 @@ export async function buildServices(
       report: report !== null,
       provision: provision !== null,
       content: settings.contentChannels.join(",") || "none",
+      content_voice: voice !== null ? "file" : "default",
     },
     close: () => handle.close(),
   };

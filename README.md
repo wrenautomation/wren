@@ -24,6 +24,22 @@ pnpm wren notes ls --status new
 pnpm wren status              # exit 1 on Thursday+ with no draft
 ```
 
+## Content loop (every platform)
+
+```bash
+echo "shipped the spend gate today. every buy asks me first." | pnpm wren content add
+pnpm wren content add idea.md --media short.mp4 --title "Spend gate"   # a short: YouTube, Reels, TikTok, X, LinkedIn captions
+pnpm wren content drafts                 # one row per platform, status draft
+pnpm wren content show <draftId>
+pnpm wren content edit <draftId> fixed.md
+pnpm wren content approve <draftId>...   # posts on the queue's next pass
+pnpm wren content approve <draftId> --at 2026-09-23T14:00:00Z
+pnpm wren content queue start            # ContentScheduler/default: posts approved drafts as they come due
+```
+
+Drafts follow `WREN_CONTENT_VOICE` (a markdown file in your words) and go out through the
+channels in `WREN_CONTENT_CHANNELS`. Design: `designs/2026-09-22-content-loop.md`.
+
 ## Chores through autobrowse
 
 `restateDo(ctx, wake)({ goal: "upload this to youtube", inputs: { file } })` from a

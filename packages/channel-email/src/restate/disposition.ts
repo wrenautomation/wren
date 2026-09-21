@@ -6,10 +6,10 @@
  */
 import * as restate from "@restatedev/restate-sdk";
 import { recordedRun } from "@wren/core";
+import { errorText } from "@wren/core/restate";
 import type { Db } from "@wren/db";
 import type { LlmClient, Tracer } from "@wren/llm";
 import { type DispositionStats, runDisposition } from "../inbox/disposition.js";
-import { errorText } from "./loop.js";
 
 export const DISPOSITION_KEY = "fleet";
 export const DISPOSITION_COMMAND = "outreach inbox classify";

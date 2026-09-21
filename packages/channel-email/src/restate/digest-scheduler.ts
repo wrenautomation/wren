@@ -7,12 +7,12 @@
  * A digest that cannot be built is skipped, not retried into the afternoon.
  */
 import type * as restate from "@restatedev/restate-sdk";
+import type { Notifier } from "@wren/core/notify";
+import { makeLoopObject, runPass } from "@wren/core/restate";
 import type { Db } from "@wren/db";
 import { sql } from "drizzle-orm";
-import type { Notifier } from "../notify.js";
 import type { SendPolicy } from "../send/policy.js";
 import { zonedInstant } from "../send/tz.js";
-import { makeLoopObject, runPass } from "./loop.js";
 
 export const DIGEST_KEY = "fleet";
 export const DIGEST_COMMAND = "notify digest";

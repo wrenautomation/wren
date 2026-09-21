@@ -113,6 +113,8 @@ export const settingsSchema = z.object({
         .filter(Boolean),
     )
     .pipe(z.array(z.enum(["linkedin", "youtube", "x", "instagram", "facebook", "tiktok"]))),
+  /** A markdown file with the posting voice in William's words; unset = the built-in voice. Relative to the project root. */
+  contentVoicePath: z.string().min(1).optional(),
   /** An S3 bucket a local media file is hosted in (presigned URL) for platforms that only take URLs. Unset = URLs only. */
   mediaBucket: z.string().min(1).optional(),
   /** The Facebook Page the `facebook`/`instagram` channels post as; the first Page when unset. */
@@ -183,6 +185,7 @@ export const ENV_KEYS = {
   googleAdminUser: "WREN_GOOGLE_ADMIN_USER",
   dmarcRua: "WREN_DMARC_RUA",
   contentChannels: "WREN_CONTENT_CHANNELS",
+  contentVoicePath: "WREN_CONTENT_VOICE",
   mediaBucket: "WREN_MEDIA_BUCKET",
   metaPageId: "WREN_META_PAGE_ID",
   autobrowseInstanceId: "WREN_AUTOBROWSE_INSTANCE_ID",
@@ -216,5 +219,10 @@ export function loadSettings(
   }
   const root = opts.rootDir ?? process.cwd();
   const s = parsed.data;
-  return { ...s, inboxDir: resolve(root, s.inboxDir), draftsDir: resolve(root, s.draftsDir) };
+  return {
+    ...s,
+    inboxDir: resolve(root, s.inboxDir),
+    draftsDir: resolve(root, s.draftsDir),
+    ...(s.contentVoicePath ? { contentVoicePath: resolve(root, s.contentVoicePath) } : {}),
+  };
 }
