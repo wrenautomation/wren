@@ -24,6 +24,13 @@ pnpm wren notes ls --status new
 pnpm wren status              # exit 1 on Thursday+ with no draft
 ```
 
+## Chores through autobrowse
+
+`restateDo(ctx, wake)({ goal: "upload this to youtube", inputs: { file } })` from a
+handler, `autobrowseDo({ url, token })` from a laptop: one verb, autobrowse routes
+it (site API → compiled workflow → its agent, which compiles what it did for next
+time). `restateSites(ctx)` stays for calls that need the official API shape.
+
 ## Gates
 
 `./scripts/gates.sh` runs lint + typecheck, unit tests, integration tests (Docker). CI runs the same.

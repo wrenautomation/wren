@@ -7,6 +7,7 @@
  */
 
 export * from "./autobrowse.js";
+export * from "./do.js";
 
 export type Platform = "linkedin" | "youtube";
 export type FetchedWith = "api" | "browser";

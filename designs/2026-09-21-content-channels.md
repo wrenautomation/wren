@@ -109,3 +109,11 @@ Rule: an adapter method that uses the browser says so in its row
    autobrowse env store.
 7. Scheduling: a Restate `ContentScheduler` (like `ComposeScheduler`)
    that publishes the approved queue on each platform's clock.
+8. ✅ One verb (2026-09-21): `autobrowseDo({url, token})` / `restateDo(ctx,
+   wake)` in `@wren/core/content` call autobrowse's `do`: a goal in
+   ("upload this to youtube" + `{file}`), what ran out. autobrowse routes it
+   to a site route, a compiled workflow or a flow; with nothing ready its
+   agent explores once and the result is compiled under the missing leg's
+   name, so the second ask is deterministic. New code that needs a chore
+   done calls `do` first and drops to `sites.call` only when it needs the
+   official shape.
