@@ -113,9 +113,11 @@ GitHub environment `production` secrets: `AWS_DEPLOY_ROLE_ARN`,
 
 ### Changing env vars
 
-Edit `deploy/prod.env`, run `deploy/scripts/push-secrets.sh`, then force a new
-cold start (publish a version, or `aws lambda update-function-configuration
---function-name wren-prod-worker --description "bump"`).
+Edit `deploy/prod.env`, run `deploy/scripts/push-secrets.sh`, then
+`gh workflow run deploy.yml --ref main`: it publishes a new Lambda version and
+registers it, so every instance cold-starts and re-reads SSM. (Bumping `$LATEST`'s
+description does not recycle a published version's instances; Restate invokes
+`:N`, not `$LATEST`.)
 
 ## The campaign, end to end
 
