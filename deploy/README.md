@@ -81,11 +81,11 @@ later release) so the version still serving does not break.
 ## Day 2
 
 - Logs: `aws logs tail /aws/lambda/wren-prod-worker --follow`.
-- Change a secret: edit `deploy/prod.env`, `scripts/push-secrets.sh`, then
+- Change a secret: edit `deploy/prod.env`, `deploy/scripts/push-secrets.sh`, then
   `aws lambda update-function-configuration --function-name wren-prod-worker --description "$(date)"`
   to force new instances (the env is read at cold start).
 - Change the roster: edit `senders_config.toml` at the repo root (gitignored), run
-  `scripts/push-secrets.sh` (writes SSM `/wren/prod/senders_config`), force new instances as
+  `deploy/scripts/push-secrets.sh` (writes SSM `/wren/prod/senders_config`), force new instances as
   above. The Lambda reads the roster from SSM at cold start; the bundle never carries it, so
   CI builds (which have no roster) deploy the same fleet.
 - Add a sending domain: `POST /Domain/{domain}/provision` on the Restate ingress with the plan
