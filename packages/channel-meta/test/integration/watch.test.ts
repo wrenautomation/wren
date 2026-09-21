@@ -4,7 +4,7 @@
  * go to a fake site), and one `AdsWatch` pass stops the launch that spent
  * the guard with nothing to show, through `Ads.stop`, with one message.
  */
-import type * as restate from "@restatedev/restate-sdk";
+import * as restate from "@restatedev/restate-sdk";
 import * as clients from "@restatedev/restate-sdk-clients";
 import { RestateTestEnvironment } from "@restatedev/restate-sdk-testcontainers";
 import type { SiteClient } from "@wren/core/content";
@@ -42,12 +42,28 @@ const journaled = (ctx: restate.Context): SiteClient => ({
   via: sites.via,
 });
 
+/** A stand-in content desk: keeps what AdsWatch hands it. */
+const ideas: { text: string; draft?: boolean; source?: string }[] = [];
+const fakeDesk = restate.object({
+  name: "ContentDesk",
+  handlers: {
+    add: async (
+      _ctx: restate.ObjectContext,
+      req: { text: string; draft?: boolean; source?: string },
+    ) => {
+      ideas.push(req);
+      return { idea: { id: `idea-${ideas.length}` } };
+    },
+  },
+});
+
 let pg: TestPostgres;
 let env: RestateTestEnvironment;
 beforeAll(async () => {
   pg = await startTestPostgres();
   env = await RestateTestEnvironment.start({
     services: [
+      fakeDesk,
       makeAds({ sitesFor: journaled, adAccountId: "act_1", pageId: "p", db: pg.db }),
       makeAdsWatch({
         db: pg.db,
@@ -72,6 +88,7 @@ beforeEach(async () => {
   await truncate(pg.db, ["ad_launches"]);
   writes.length = 0;
   notes.length = 0;
+  ideas.length = 0;
   insights = [];
 });
 
@@ -118,7 +135,7 @@ describe("ads ledger and watch", () => {
 
   it("a pass with nothing active reads nothing and says nothing", async () => {
     const out = await pass();
-    expect(out.stats).toEqual({ active: 0, verdicts: [], failed: [] });
+    expect(out.stats).toEqual({ active: 0, verdicts: [], failed: [], ideas: [] });
     expect(notes).toEqual([]);
   });
 
@@ -129,7 +146,7 @@ describe("ads ledger and watch", () => {
     await ads().start({ ...live, dailyBudgetUsd: 10 });
     insights = [
       { adset_id: dead.adsetId, campaign_id: dead.campaignId, spend: "55.10", clicks: "0" },
-      { adset_id: live.adsetId, campaign_id: live.campaignId, spend: "70", clicks: "4" },
+      { adset_id: live.adsetId, campaign_id: live.campaignId, spend: "70", clicks: "12" },
     ];
     writes.length = 0;
     const out = await pass();
@@ -147,10 +164,22 @@ describe("ads ledger and watch", () => {
     expect(rows.find((r) => r.campaignId === live.campaignId)?.status).toBe("active");
     expect(notes).toHaveLength(1);
     expect(notes[0]).toMatchObject({ title: "ads: last 7 days", level: "warning" });
-    expect(notes[0]?.body).toContain("agencies: $70.00 spent, 4 clicks, 0 results");
-    // Stopped launches leave the watch: the next pass has one active and nothing to pause.
+    expect(notes[0]?.body).toContain("agencies: $70.00 spent, 12 clicks, 0 results");
+    // The winner is one idea for the content loop, stored open (draft: false), never drafted here.
+    expect(out.stats?.ideas).toEqual([{ campaignId: live.campaignId, ideaId: "idea-1" }]);
+    expect(ideas).toEqual([
+      {
+        text: expect.stringContaining('the ad "agencies" got 12 clicks'),
+        draft: false,
+        source: "ads",
+      },
+    ]);
+    expect(notes[0]?.body).toContain("→ idea idea-1");
+    // Stopped launches leave the watch; the winner is not suggested twice.
     const again = await pass();
     expect(again.stats?.active).toBe(1);
     expect(again.stats?.verdicts.every((v) => !v.paused)).toBe(true);
+    expect(again.stats?.ideas).toEqual([]);
+    expect(ideas).toHaveLength(1);
   });
 });

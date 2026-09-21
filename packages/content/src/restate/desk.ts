@@ -13,7 +13,7 @@ import type { LlmClient, Tracer } from "@wren/llm";
 import { DRAFT_STAGE, type DraftOptions, type DraftResult, draftIdea, redraft } from "../draft.js";
 import { addIdea, getIdea } from "../ideas.js";
 import { getDraft } from "../review.js";
-import type { ContentIdea } from "../schema.js";
+import type { ContentIdea, IdeaSource } from "../schema.js";
 import type { Brand } from "../voice.js";
 
 export const DESK_KEY = "default";
@@ -51,10 +51,17 @@ export function makeContentDesk(deps: ContentDeskDeps) {
       /** Add an idea and draft it in one go: the everyday path. */
       add: async (
         ctx: restate.ObjectContext,
-        req: { text: string; media?: Media | null; draft?: boolean; platforms?: Platform[] },
+        req: {
+          text: string;
+          media?: Media | null;
+          draft?: boolean;
+          platforms?: Platform[];
+          /** Who wrote it: the person (`cli`, default), the API, or `AdsWatch` (`ads`). */
+          source?: IdeaSource;
+        },
       ): Promise<{ idea: ContentIdea; drafts: DraftReport | null }> => {
         const idea = await ctx.run("insert idea", () =>
-          addIdea(deps.db, req.text, "cli", req.media ?? null),
+          addIdea(deps.db, req.text, req.source ?? "cli", req.media ?? null),
         );
         if (req.draft === false) return { idea, drafts: null };
         const drafts = await draft(ctx, {

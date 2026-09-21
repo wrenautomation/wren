@@ -22,6 +22,9 @@ pnpm wren content add idea.md --platforms linkedin,x
 pnpm wren content add idea.md --no-draft                                # store only; `content draft <ideaId>` later
 ```
 
+Ideas also arrive from ads: `AdsWatch` adds one open idea per winning launch
+(`wren content ideas`, source `ads`); `content draft <ideaId>` when you want it.
+
 One paid call per platform in `WREN_CONTENT_CHANNELS` that fits (YouTube
 needs a video; a text idea skips it and says so). Drafts follow
 `WREN_CONTENT_VOICE` (a markdown file in your words), your last five

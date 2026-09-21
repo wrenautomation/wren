@@ -72,6 +72,16 @@ and zero results is stopped through `Ads.stop`, the row says why, and the
 channel gets one message per pass. One click or one result keeps it on —
 you read the numbers.
 
+## Ads ↔ posts
+
+```sh
+pnpm wren content ideas                        # a winning ad shows up here as an open idea (source ads), once
+pnpm wren content draft <ideaId>               # draft it when you want it
+pnpm wren ads spec-from <draftId> --out ads/post.json --daily 10 --countries US,CA   # a post that worked → a spec
+pnpm wren ads launch ads/post.json             # PAUSED, as always
+```
+A winner = a result, or ten clicks, and not paused.
+
 ## Leads
 
 ```sh

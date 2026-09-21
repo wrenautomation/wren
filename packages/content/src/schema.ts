@@ -22,7 +22,7 @@ import {
 
 export const IDEA_STATUSES = ["open", "drafted", "archived"] as const;
 export type IdeaStatus = (typeof IDEA_STATUSES)[number];
-export const IDEA_SOURCES = ["cli", "api"] as const;
+export const IDEA_SOURCES = ["cli", "api", "ads"] as const;
 export type IdeaSource = (typeof IDEA_SOURCES)[number];
 
 export const DRAFT_STATUSES = [

@@ -159,7 +159,7 @@ export function registerContent(program: Command, withDb: WithDb, settings: Sett
       const rows = await withDb((db) => listIdeas(db, status));
       for (const r of rows)
         console.log(
-          `${r.id}  ${when(r.createdAt)}  ${r.media ? r.media.kind.padEnd(5) : "     "}  ${line(r.text)}`,
+          `${r.id}  ${when(r.createdAt)}  ${r.source.padEnd(3)}  ${r.media ? r.media.kind.padEnd(5) : "     "}  ${line(r.text)}`,
         );
     });
 

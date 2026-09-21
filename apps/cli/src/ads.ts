@@ -4,13 +4,13 @@
  * anything ACTIVE). A launch is PAUSED; `start` is the one command that
  * spends, and it must say the daily budget.
  */
-import { readFile } from "node:fs/promises";
+import { readFile, writeFile } from "node:fs/promises";
 import * as clients from "@restatedev/restate-sdk-clients";
 import type { LaunchSpec, MetaObjective } from "@wren/channel-meta";
-import { formatLaunches, listLaunches, META_OBJECTIVES } from "@wren/channel-meta";
+import { formatLaunches, listLaunches, META_OBJECTIVES, specFromPost } from "@wren/channel-meta";
 import { type AdsService, type AdsWatch, WATCH_KEY } from "@wren/channel-meta/restate";
 import { ingressOf, type Settings } from "@wren/config";
-import { uploadMedia } from "@wren/content";
+import { getDraft, uploadMedia } from "@wren/content";
 import { isStoredMedia, isUrl } from "@wren/core/content";
 import type { Db } from "@wren/db";
 import type { Command } from "commander";
@@ -197,6 +197,40 @@ export function registerAds(program: Command, withDb: WithDb, settings: Settings
           ].join("\t"),
         );
     });
+
+  cmd
+    .command("spec-from <draftId>")
+    .description(
+      "A launch spec from a published post: same words and media, PAUSED; prints JSON (or --out)",
+    )
+    .option("--link <url>", "where the ad sends people (default: the post's URL)")
+    .option("--daily <usd>", "daily budget once started", "10")
+    .option("--countries <list>", "comma-separated", "US")
+    .option("--out <file>", "write the spec here instead of stdout")
+    .action(
+      async (
+        draftId: string,
+        o: { link?: string; daily: string; countries: string; out?: string },
+      ) => {
+        const d = await withDb((db) => getDraft(db, draftId));
+        const spec = specFromPost(
+          { text: d.text, title: d.title, url: d.url, media: d.media },
+          {
+            ...(o.link ? { link: o.link } : {}),
+            dailyBudgetUsd: Number(o.daily),
+            countries: o.countries
+              .split(",")
+              .map((c) => c.trim().toUpperCase())
+              .filter(Boolean),
+          },
+        );
+        const json = JSON.stringify(spec, null, 2);
+        if (o.out) {
+          await writeFile(o.out, `${json}\n`);
+          console.log(`wrote ${o.out}; then: wren ads launch ${o.out}`);
+        } else console.log(json);
+      },
+    );
 
   cmd
     .command("launches")

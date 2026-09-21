@@ -63,6 +63,7 @@ pnpm wren ads lead-form founders https://wrenautomation.com/privacy   # an insta
 pnpm wren ads leads <formId>              # what the form collected (needs leads_retrieval from app review)
 pnpm wren ads launches                    # the ad_launches ledger: ids, budget, started/stopped, why
 pnpm wren ads watch start                 # AdsWatch: daily guard, pauses a launch that spent $50 with nothing to show
+pnpm wren ads spec-from <draftId> --out ads/post.json   # a post that worked → a PAUSED launch spec (same words, same media)
 ```
 
 The spec file: `name`, `objective` (OUTCOME_LEADS, OUTCOME_TRAFFIC, …), `dailyBudgetUsd`,
@@ -76,7 +77,10 @@ under its small cap) and writes the ledger. `WREN_META_AD_ACCOUNT_ID` picks the 
 unset = the first one. Every launch/start/stop lands in `ad_launches`; `AdsWatch/default`
 reads adset insights once a day and stops any active launch whose 7-day spend reached
 `WREN_ADS_PAUSE_AFTER_USD` (default 50) with zero clicks and zero results — it only ever
-stops spend, and each pass is one message to the channel. Design:
+stops spend, and each pass is one message to the channel. A launch that wins (a result,
+or ten clicks) becomes one open idea for the content loop (`wren content ideas`, source
+`ads`), once; nothing is drafted until you say. The other way: `wren ads spec-from
+<draftId>` turns a published post into a spec. Design:
 `designs/2026-09-22-meta-ads.md`.
 
 ## Chores through autobrowse

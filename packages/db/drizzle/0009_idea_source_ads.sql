@@ -1,0 +1,2 @@
+ALTER TABLE "content_ideas" DROP CONSTRAINT "ck_content_ideas_source";--> statement-breakpoint
+ALTER TABLE "content_ideas" ADD CONSTRAINT "ck_content_ideas_source" CHECK (("source")::text = ANY ((ARRAY['cli'::character varying, 'api'::character varying, 'ads'::character varying])::text[]));

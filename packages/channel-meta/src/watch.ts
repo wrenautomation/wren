@@ -10,9 +10,13 @@ import type { Notifier } from "@wren/core/notify";
 import { errorText, LAST, makeLoopObject, type PassOutcome } from "@wren/core/restate";
 import type { Db } from "@wren/db";
 import type { InsightRow } from "./ads.js";
+import { ideaFromVerdict, isWinner } from "./bridge.js";
 import { activeLaunches, formatVerdicts, judge, type Verdict } from "./launches.js";
 
 export const WATCH_KEY = "default";
+/** Campaign ids already handed to the content loop as ideas. */
+const SUGGESTED = "suggested";
+const DESK_KEY = "default";
 const DEFAULT_EVERY_MS = 24 * 60 * 60 * 1000;
 export const DEFAULT_PAUSE_AFTER_USD = 50;
 
@@ -23,6 +27,14 @@ type AdsService = {
     req: { preset?: string; level?: "account" | "campaign" | "adset" | "ad" },
   ) => Promise<InsightRow[]>;
   stop: (ctx: restate.Context, req: { campaignId: string; reason?: string }) => Promise<void>;
+};
+
+/** The content desk's `add`, as the worker serves it; `draft: false` so nothing is paid for until the person drafts. */
+type ContentDesk = {
+  add: (
+    ctx: restate.Context,
+    req: { text: string; draft?: boolean; source?: "ads" },
+  ) => Promise<{ idea: { id: string } }>;
 };
 
 export interface AdsWatchDeps {
@@ -44,6 +56,8 @@ export interface WatchStats {
     paused: boolean;
   }[];
   failed: { campaignId: string; error: string }[];
+  /** Winners handed to the content loop this pass, as idea ids. */
+  ideas: { campaignId: string; ideaId: string }[];
 }
 
 export function makeAdsWatch(deps: AdsWatchDeps) {
@@ -53,7 +67,7 @@ export function makeAdsWatch(deps: AdsWatchDeps) {
     const now = new Date(await ctx.date.now());
     const ads = ctx.serviceClient<AdsService>({ name: "Ads" });
     const launches = await ctx.run("active launches", () => activeLaunches(deps.db));
-    const stats: WatchStats = { active: launches.length, verdicts: [], failed: [] };
+    const stats: WatchStats = { active: launches.length, verdicts: [], failed: [], ideas: [] };
     let verdicts: Verdict[] = [];
     if (launches.length > 0) {
       const rows = await ads.insights({ preset: "last_7d", level: "adset" });
@@ -78,9 +92,27 @@ export function makeAdsWatch(deps: AdsWatchDeps) {
           paused,
         });
       }
+      // A winner becomes one idea, once: the desk stores it open; the person drafts it.
+      const suggested = (await ctx.get<string[]>(SUGGESTED)) ?? [];
+      const desk = ctx.objectClient<ContentDesk>({ name: "ContentDesk" }, DESK_KEY);
+      for (const v of verdicts) {
+        const id = v.launch.campaignId;
+        if (!isWinner(v) || suggested.includes(id)) continue;
+        try {
+          const out = await desk.add({ text: ideaFromVerdict(v), draft: false, source: "ads" });
+          suggested.push(id);
+          stats.ideas.push({ campaignId: id, ideaId: out.idea.id });
+        } catch (err) {
+          if (!(err instanceof restate.TerminalError)) throw err;
+          stats.failed.push({ campaignId: id, error: errorText(err) });
+        }
+      }
+      ctx.set(SUGGESTED, suggested);
       if (deps.notifier) {
         const notifier = deps.notifier;
         const lines = formatVerdicts(verdicts);
+        for (const i of stats.ideas)
+          lines.push(`→ idea ${i.ideaId} for the content loop (wren content ideas)`);
         const level = verdicts.some((v) => v.pause) ? "warning" : "info";
         await ctx.run("notify", () => notifier.notify("ads: last 7 days", lines.join("\n"), level));
       }
