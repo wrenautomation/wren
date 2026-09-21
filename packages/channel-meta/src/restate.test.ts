@@ -28,14 +28,14 @@ describe("Ads service", () => {
 
   it("start and stop write status through the site", async () => {
     await h.start?.(ctx, { campaignId: "c", adsetId: "s", adId: "a", dailyBudgetUsd: 3 });
-    expect(calls.map((c) => c.input)).toEqual([
-      { objectId: "s", status: "ACTIVE", daily_budget: 300 },
-      { objectId: "c", status: "ACTIVE" },
-      { objectId: "a", status: "ACTIVE" },
+    expect(calls.map((c) => [c.path, c.input])).toEqual([
+      ["/s", { status: "ACTIVE", daily_budget: 300 }],
+      ["/c", { status: "ACTIVE" }],
+      ["/a", { status: "ACTIVE" }],
     ]);
     await h.stop?.(ctx, { campaignId: "c" });
-    expect(calls.at(-1)?.input).toEqual({ objectId: "c", status: "PAUSED" });
+    expect(calls.at(-1)).toMatchObject({ path: "/c", input: { status: "PAUSED" } });
     expect(await h.campaigns?.(ctx)).toEqual([]);
-    expect(calls.at(-1)?.input).toMatchObject({ adAccountId: "1" });
+    expect(calls.at(-1)?.path).toBe("/act_1/campaigns");
   });
 });

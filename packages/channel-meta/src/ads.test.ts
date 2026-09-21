@@ -11,13 +11,12 @@ function fakeSites() {
       calls.push({ method, path, input });
       if (path === "/me/adaccounts") return { data: [{ id: "act_123", name: "Wren" }] } as never;
       if (path === "/me/accounts") return { data: [{ id: "pg1" }] } as never;
-      if (path === "/act_{adAccountId}/adimages")
-        return { images: { "a.png": { hash: "h1" } } } as never;
-      if (path === "/act_{adAccountId}/insights")
+      if (path.endsWith("/adimages")) return { images: { "a.png": { hash: "h1" } } } as never;
+      if (path.endsWith("/insights"))
         return { data: [{ campaign_name: "c", spend: "1.50" }] } as never;
-      if (path === "/{objectId}") return { success: true } as never;
       if (path === "/search")
         return { data: [{ id: "6003", name: "Shopify", audience_size_upper_bound: 5e6 }] } as never;
+      if (/^\/[a-z0-9-]+$/.test(path)) return { success: true } as never;
       return { id: `${path.split("/").pop()}-${++n}` } as never;
     },
     async via() {
@@ -54,15 +53,14 @@ describe("metaAds", () => {
     expect(calls.map((c) => `${c.method} ${c.path}`)).toEqual([
       "GET /me/adaccounts",
       "GET /me/accounts",
-      "POST /act_{adAccountId}/campaigns",
-      "POST /act_{adAccountId}/adsets",
-      "POST /act_{adAccountId}/adimages",
-      "POST /act_{adAccountId}/adcreatives",
-      "POST /act_{adAccountId}/ads",
+      "POST /act_123/campaigns",
+      "POST /act_123/adsets",
+      "POST /act_123/adimages",
+      "POST /act_123/adcreatives",
+      "POST /act_123/ads",
     ]);
     const adset = calls[3]?.input;
     expect(adset).toMatchObject({
-      adAccountId: "123",
       status: "PAUSED",
       daily_budget: 2000,
       optimization_goal: "LINK_CLICKS",
@@ -109,25 +107,30 @@ describe("metaAds", () => {
       },
     });
     expect(calls.map((c) => `${c.method} ${c.path}`)).toEqual([
-      "POST /act_{adAccountId}/campaigns",
-      "POST /act_{adAccountId}/adsets",
-      "POST /act_{adAccountId}/advideos",
-      "POST /act_{adAccountId}/adcreatives",
-      "POST /act_{adAccountId}/ads",
+      "POST /act_9/campaigns",
+      "POST /act_9/adsets",
+      "POST /act_9/advideos",
+      "POST /act_9/adcreatives",
+      "POST /act_9/ads",
     ]);
-    expect(calls[2]?.input).toMatchObject({ adAccountId: "9", file_url: "https://cdn.test/v.mp4" });
+    expect(calls[2]?.input).toMatchObject({ file_url: "https://cdn.test/v.mp4" });
     expect(calls[3]?.input).toMatchObject({
       object_story_spec: {
         page_id: "pg9",
         video_data: { video_id: expect.stringMatching(/^advideos-/), message: "m" },
       },
     });
-    await ads.setStatus("adset-1", "ACTIVE", 5);
-    expect(calls.at(-1)?.input).toEqual({
-      objectId: "adset-1",
-      status: "ACTIVE",
-      daily_budget: 500,
-    });
+    await ads.start({ campaignId: "c1", adsetId: "s1", adId: "a1" }, 5);
+    expect(calls.slice(-3).map((c) => [c.path, c.input])).toEqual([
+      ["/s1", { status: "ACTIVE", daily_budget: 500 }],
+      ["/c1", { status: "ACTIVE" }],
+      ["/a1", { status: "ACTIVE" }],
+    ]);
+    await ads.stop("c1");
+    expect(calls.at(-1)).toMatchObject({ path: "/c1", input: { status: "PAUSED" } });
+    await expect(ads.start({ campaignId: "c1", adsetId: "s1", adId: "a1" }, 0)).rejects.toThrow(
+      /dailyBudgetUsd/,
+    );
     expect(await ads.insights({ preset: "today" })).toEqual([
       { campaign_name: "c", spend: "1.50" },
     ]);

@@ -147,8 +147,7 @@ export function metaAds(sites: SiteClient, o: MetaAdsOptions = {}) {
     status: AdStatus,
     dailyBudgetUsd?: number,
   ): Promise<void> => {
-    await call<{ success?: boolean }>("POST", "/{objectId}", {
-      objectId,
+    await call<{ success?: boolean }>("POST", `/${objectId}`, {
       status,
       ...(dailyBudgetUsd !== undefined ? { daily_budget: toMinor(dailyBudgetUsd) } : {}),
     });
@@ -157,8 +156,7 @@ export function metaAds(sites: SiteClient, o: MetaAdsOptions = {}) {
   return {
     accounts: () => call<Edge<AdAccount>>("GET", "/me/adaccounts", {}).then((r) => r.data ?? []),
     async campaigns(): Promise<CampaignRow[]> {
-      const r = await call<Edge<CampaignRow>>("GET", "/act_{adAccountId}/campaigns", {
-        adAccountId: await adAccountId(),
+      const r = await call<Edge<CampaignRow>>("GET", `/act_${await adAccountId()}/campaigns`, {
         fields: "id,name,status,objective,daily_budget",
       });
       return r.data ?? [];
@@ -170,15 +168,13 @@ export function metaAds(sites: SiteClient, o: MetaAdsOptions = {}) {
       const status: AdStatus = spec.status ?? "PAUSED";
       const acct = await adAccountId();
       const pg = await pageId();
-      const campaign = await call<Made>("POST", "/act_{adAccountId}/campaigns", {
-        adAccountId: acct,
+      const campaign = await call<Made>("POST", `/act_${acct}/campaigns`, {
         name: spec.name,
         objective: spec.objective,
         status,
         special_ad_categories: [],
       });
-      const adset = await call<Made>("POST", "/act_{adAccountId}/adsets", {
-        adAccountId: acct,
+      const adset = await call<Made>("POST", `/act_${acct}/adsets`, {
         name: `${spec.name} · set`,
         campaign_id: campaign.id,
         status,
@@ -201,8 +197,7 @@ export function metaAds(sites: SiteClient, o: MetaAdsOptions = {}) {
       let story: Record<string, unknown>;
       if (c.media?.kind === "video") {
         const url = await publicUrlOf(c.media.source, o.host, "meta ads");
-        const video = await call<Made>("POST", "/act_{adAccountId}/advideos", {
-          adAccountId: acct,
+        const video = await call<Made>("POST", `/act_${acct}/advideos`, {
           file_url: url,
           title: spec.name,
         });
@@ -226,8 +221,8 @@ export function metaAds(sites: SiteClient, o: MetaAdsOptions = {}) {
           const url = await publicUrlOf(c.media.source, o.host, "meta ads");
           const img = await call<{ images?: Record<string, { hash?: string }> }>(
             "POST",
-            "/act_{adAccountId}/adimages",
-            { adAccountId: acct, url },
+            `/act_${acct}/adimages`,
+            { url },
           );
           hash = Object.values(img.images ?? {})[0]?.hash ?? null;
           if (!hash) throw new Error("meta ads: adimages answered no hash");
@@ -244,13 +239,11 @@ export function metaAds(sites: SiteClient, o: MetaAdsOptions = {}) {
           },
         };
       }
-      const creative = await call<Made>("POST", "/act_{adAccountId}/adcreatives", {
-        adAccountId: acct,
+      const creative = await call<Made>("POST", `/act_${acct}/adcreatives`, {
         name: `${spec.name} · creative`,
         object_story_spec: story,
       });
-      const ad = await call<Made>("POST", "/act_{adAccountId}/ads", {
-        adAccountId: acct,
+      const ad = await call<Made>("POST", `/act_${acct}/ads`, {
         name: spec.name,
         adset_id: adset.id,
         creative: { creative_id: creative.id },
@@ -290,8 +283,7 @@ export function metaAds(sites: SiteClient, o: MetaAdsOptions = {}) {
     async insights(
       q: { preset?: string; level?: "account" | "campaign" | "adset" | "ad" } = {},
     ): Promise<InsightRow[]> {
-      const r = await call<Edge<InsightRow>>("GET", "/act_{adAccountId}/insights", {
-        adAccountId: await adAccountId(),
+      const r = await call<Edge<InsightRow>>("GET", `/act_${await adAccountId()}/insights`, {
         level: q.level ?? "campaign",
         date_preset: q.preset ?? "last_7d",
         fields: "campaign_name,spend,impressions,reach,clicks,cpc,ctr,actions",
