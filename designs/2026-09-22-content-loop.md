@@ -103,5 +103,6 @@ Two tables, one package, three surfaces:
    URL the box can fetch. `mediaFileOf` in core is the one rule (URL as is; stored object
    signed; bare path = the box's own disk). Without a bucket, `content add` refuses a local
    file and says so.
-6. **One `runs` row per request, no per-call cost line.** `llm` envelope per draft has usage;
-   a `content_costs` view over it would make spend visible like `stage_costs`.
+6. ✅ **Cost view.** `wren content costs --days 30`: calls and tokens by platform and model
+   from each draft's `llm.call.usage` (`costs.ts`, a query, not a DB view). Still no USD:
+   prices are not stored anywhere in wren.

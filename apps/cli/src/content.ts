@@ -12,8 +12,10 @@ import {
   type ContentDraft,
   DRAFT_STATUSES,
   type DraftStatus,
+  draftCosts,
   draftsOfIdea,
   editDraft,
+  formatCosts,
   formatWhatWorked,
   getDraft,
   IDEA_STATUSES,
@@ -285,6 +287,17 @@ export function registerContent(program: Command, withDb: WithDb, settings: Sett
         whatWorked(db, new Date(), { days, ...(platform ? { platform } : {}) }),
       );
       for (const line of formatWhatWorked(rows)) console.log(line);
+    });
+
+  content
+    .command("costs")
+    .description("Drafting spend: calls and tokens by platform and model")
+    .option("--days <n>", "window", "30")
+    .action(async (o: { days: string }) => {
+      const days = Number(o.days);
+      if (!(days > 0)) throw new Error("--days must be > 0");
+      const rows = await withDb((db) => draftCosts(db, new Date(), days));
+      for (const line of formatCosts(rows)) console.log(line);
     });
 
   const m = content

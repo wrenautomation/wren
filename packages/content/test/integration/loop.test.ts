@@ -19,6 +19,7 @@ import {
   approveDrafts,
   contentDrafts,
   contentMetrics,
+  draftCosts,
   editDraft,
   getDraft,
   listDrafts,
@@ -168,6 +169,13 @@ describe("content loop", () => {
     const drafts = await listDrafts(pg.db, { ideaId: out.idea.id });
     expect(drafts.map((d) => d.platform).sort()).toEqual(["linkedin", "x", "youtube"]);
     expect(drafts.find((d) => d.platform === "youtube")?.title).toBe("Spend gate");
+    // Every stored draft is one paid call in the cost view.
+    const costs = await draftCosts(pg.db, new Date(), 1);
+    expect(costs.map((c) => [c.platform, c.calls])).toEqual([
+      ["linkedin", 1],
+      ["x", 1],
+      ["youtube", 1],
+    ]);
     // Nothing posts before approval.
     expect((await sync()).stats).toMatchObject({ published: [], failed: [], remaining: 0 });
     refuse.add("x");
