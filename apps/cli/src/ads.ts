@@ -7,12 +7,15 @@
 import { readFile } from "node:fs/promises";
 import * as clients from "@restatedev/restate-sdk-clients";
 import type { LaunchSpec, MetaObjective } from "@wren/channel-meta";
-import { META_OBJECTIVES } from "@wren/channel-meta";
-import type { AdsService } from "@wren/channel-meta/restate";
+import { formatLaunches, listLaunches, META_OBJECTIVES } from "@wren/channel-meta";
+import { type AdsService, type AdsWatch, WATCH_KEY } from "@wren/channel-meta/restate";
 import type { Settings } from "@wren/config";
 import { uploadMedia } from "@wren/content";
 import { isStoredMedia, isUrl } from "@wren/core/content";
+import type { Db } from "@wren/db";
 import type { Command } from "commander";
+
+type WithDb = <T>(fn: (db: Db) => Promise<T>) => Promise<T>;
 
 /** The launch file: `creative.media.source` may be a local path when WREN_MEDIA_BUCKET is set (uploaded first). */
 function parseSpec(raw: string): LaunchSpec {
@@ -55,9 +58,10 @@ const size = (n: number | undefined) =>
 const usd = (minor: string | number | undefined) =>
   minor === undefined ? "-" : `$${(Number(minor) / 100).toFixed(2)}`;
 
-export function registerAds(program: Command, settings: Settings): Command {
-  const ads = () =>
-    clients.connect({ url: settings.restateIngressUrl }).serviceClient<AdsService>({ name: "Ads" });
+export function registerAds(program: Command, withDb: WithDb, settings: Settings): Command {
+  const ingress = () => clients.connect({ url: settings.restateIngressUrl });
+  const ads = () => ingress().serviceClient<AdsService>({ name: "Ads" });
+  const watch = () => ingress().objectClient<AdsWatch>({ name: "AdsWatch" }, WATCH_KEY);
 
   const cmd = program
     .command("ads")
@@ -154,6 +158,31 @@ export function registerAds(program: Command, settings: Settings): Command {
           `${r.campaign_name ?? r.date_start ?? ""}\tspend $${r.spend ?? "0"}\timpr ${r.impressions ?? 0}\treach ${r.reach ?? 0}\tclicks ${r.clicks ?? 0}\tctr ${r.ctr ?? "-"}\tcpc ${r.cpc ?? "-"}`,
         );
     });
+
+  cmd
+    .command("launches")
+    .description("What `wren ads` launched, started and stopped (the ad_launches ledger)")
+    .option("--limit <n>", "rows", "50")
+    .action(async (o: { limit: string }) => {
+      const rows = await withDb((db) => listLaunches(db, Number(o.limit)));
+      for (const line of formatLaunches(rows)) console.log(line);
+    });
+
+  const w = cmd
+    .command("watch")
+    .description(
+      `the daily guard (AdsWatch): pauses a launch that spent WREN_ADS_PAUSE_AFTER_USD ($${settings.adsPauseAfterUsd}) in 7 days with no clicks or results`,
+    );
+  w.command("status").action(async () =>
+    console.log(JSON.stringify(await watch().status(), null, 2)),
+  );
+  w.command("start")
+    .description("Loop: adset insights once a day, one message per pass")
+    .action(async () => console.log(JSON.stringify(await watch().start(), null, 2)));
+  w.command("stop").action(async () => console.log(JSON.stringify(await watch().stop(), null, 2)));
+  w.command("sync")
+    .description("One pass now")
+    .action(async () => console.log(JSON.stringify(await watch().sync(), null, 2)));
 
   return cmd;
 }

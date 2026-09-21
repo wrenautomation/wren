@@ -41,7 +41,7 @@ import {
 import { linkedinContent } from "@wren/channel-linkedin";
 import { makeLinkedinInbox } from "@wren/channel-linkedin/restate";
 import { facebookContent, instagramContent } from "@wren/channel-meta";
-import { makeAds } from "@wren/channel-meta/restate";
+import { makeAds, makeAdsWatch } from "@wren/channel-meta/restate";
 import { tiktokContent } from "@wren/channel-tiktok";
 import { xContent } from "@wren/channel-x";
 import { youtubeContent } from "@wren/channel-youtube";
@@ -251,7 +251,10 @@ export async function buildServices(
   if (content) services.push(makeContent(content));
   // Meta ads over the same `sites` service, as `Ads`. Always bound: a launch on a box without
   // the meta site fails on its own invocation, and nothing spends until `start`.
-  services.push(makeAds(adsFor(settings)));
+  services.push(
+    makeAds({ ...adsFor(settings), db }),
+    makeAdsWatch({ db, pauseAfterUsd: settings.adsPauseAfterUsd, ...notify }),
+  );
   // The content loop: ideas → drafts (ContentDesk, paid) → approved drafts posted (ContentScheduler).
   // Always bound: drafting needs no channel; a publish with none configured fails on its row.
   const voice = settings.contentVoicePath ? readFileSync(settings.contentVoicePath, "utf8") : null;

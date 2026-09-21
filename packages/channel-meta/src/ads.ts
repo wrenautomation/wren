@@ -88,7 +88,10 @@ export interface CampaignRow {
 export interface InsightRow {
   date_start?: string;
   date_stop?: string;
+  campaign_id?: string;
   campaign_name?: string;
+  adset_id?: string;
+  adset_name?: string;
   spend?: string;
   impressions?: string;
   reach?: string;
@@ -110,6 +113,15 @@ interface Edge<T> {
 interface Made {
   id: string;
 }
+
+const MEASURES = "spend,impressions,reach,clicks,cpc,ctr,actions";
+/** The id/name fields Graph allows per level (adset ids only at adset or ad). */
+const INSIGHT_FIELDS = {
+  account: MEASURES,
+  campaign: `campaign_id,campaign_name,${MEASURES}`,
+  adset: `campaign_id,campaign_name,adset_id,adset_name,${MEASURES}`,
+  ad: `campaign_id,campaign_name,adset_id,adset_name,ad_id,ad_name,${MEASURES}`,
+} as const;
 
 export const toMinor = (usd: number): number => Math.round(usd * 100);
 export const accountIdOf = (id: string): string => id.replace(/^act_/, "");
@@ -259,6 +271,8 @@ export function metaAds(sites: SiteClient, o: MetaAdsOptions = {}) {
       };
     },
     setStatus,
+    /** The account in use, resolved once (`act_` stripped). */
+    adAccountId,
     /**
      * Deliver: the ad set ACTIVE with its budget, then the campaign, then the
      * ad (Meta delivers only when all three are on). Three gated writes on the
@@ -283,10 +297,11 @@ export function metaAds(sites: SiteClient, o: MetaAdsOptions = {}) {
     async insights(
       q: { preset?: string; level?: "account" | "campaign" | "adset" | "ad" } = {},
     ): Promise<InsightRow[]> {
+      const level = q.level ?? "campaign";
       const r = await call<Edge<InsightRow>>("GET", `/act_${await adAccountId()}/insights`, {
-        level: q.level ?? "campaign",
+        level,
         date_preset: q.preset ?? "last_7d",
-        fields: "campaign_name,spend,impressions,reach,clicks,cpc,ctr,actions",
+        fields: INSIGHT_FIELDS[level],
       });
       return r.data ?? [];
     },

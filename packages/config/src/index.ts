@@ -127,6 +127,8 @@ export const settingsSchema = z.object({
     .string()
     .regex(/^(act_)?[0-9]+$/)
     .optional(),
+  /** `AdsWatch`: 7-day spend that, with no clicks and no results, pauses a launch (default $50). */
+  adsPauseAfterUsd: z.coerce.number().positive().default(50),
   /** autobrowse's EC2 instance: a `sites` call starts it when stopped (it stops itself when idle). Unset = never wake. */
   autobrowseInstanceId: z
     .string()
@@ -194,6 +196,7 @@ export const ENV_KEYS = {
   mediaBucket: "WREN_MEDIA_BUCKET",
   metaPageId: "WREN_META_PAGE_ID",
   metaAdAccountId: "WREN_META_AD_ACCOUNT_ID",
+  adsPauseAfterUsd: "WREN_ADS_PAUSE_AFTER_USD",
   autobrowseInstanceId: "WREN_AUTOBROWSE_INSTANCE_ID",
 } as const satisfies Record<keyof Settings, string>;
 

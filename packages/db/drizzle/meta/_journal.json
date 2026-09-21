@@ -57,6 +57,13 @@
       "when": 1790003538876,
       "tag": "0007_content_metrics",
       "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "7",
+      "when": 1790005940295,
+      "tag": "0008_ad_launches",
+      "breakpoints": true
     }
   ]
 }

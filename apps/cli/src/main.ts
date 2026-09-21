@@ -107,7 +107,7 @@ notes
 registerReview(registerEmail(program, withDb, settings, rootDir), withDb);
 registerFetch(program, settings);
 registerContent(program, withDb, settings);
-registerAds(program, settings);
+registerAds(program, withDb, settings);
 
 const report = program.command("report").description("periodic reports");
 report

@@ -56,6 +56,8 @@ pnpm wren ads launch ads/founders.json    # campaign → ad set → creative →
 pnpm wren ads start <campaignId> <adsetId> <adId> --daily 20   # the one command that spends
 pnpm wren ads insights --preset last_7d   # spend, impressions, reach, clicks, ctr, cpc per campaign
 pnpm wren ads stop <campaignId>
+pnpm wren ads launches                    # the ad_launches ledger: ids, budget, started/stopped, why
+pnpm wren ads watch start                 # AdsWatch: daily guard, pauses a launch that spent $50 with nothing to show
 ```
 
 The spec file: `name`, `objective` (OUTCOME_LEADS, OUTCOME_TRAFFIC, …), `dailyBudgetUsd`,
@@ -63,7 +65,11 @@ The spec file: `name`, `objective` (OUTCOME_LEADS, OUTCOME_TRAFFIC, …), `daily
 headline, description, callToAction, media {kind, source}}`. A local media file lands in
 `WREN_MEDIA_BUCKET` first. Every ACTIVE write is a spend on the box: it asks (or auto-yes
 under its small cap) and writes the ledger. `WREN_META_AD_ACCOUNT_ID` picks the account;
-unset = the first one. Design: `designs/2026-09-22-meta-ads.md`.
+unset = the first one. Every launch/start/stop lands in `ad_launches`; `AdsWatch/default`
+reads adset insights once a day and stops any active launch whose 7-day spend reached
+`WREN_ADS_PAUSE_AFTER_USD` (default 50) with zero clicks and zero results — it only ever
+stops spend, and each pass is one message to the channel. Design:
+`designs/2026-09-22-meta-ads.md`.
 
 ## Chores through autobrowse
 
