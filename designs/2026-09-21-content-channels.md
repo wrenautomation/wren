@@ -105,7 +105,7 @@ Rule: an adapter method that uses the browser says so in its row
    — explore once each, prove, ship. Needs William's creds (NEEDS-WILLIAM.md).
 6. ✅ Reachability: through Restate (`sites` service). ✅ Wake (2026-09-20):
    `ec2Wake` before the first `sites` call; idle-stop on the autobrowse
-   side. Owed: `tofu apply` in both repos with `autobrowse_instance_id`
-   set (William's `aws login`).
+   side. Both terraforms applied 2026-09-20; `IDLE_STOP_MINUTES=30` in the
+   autobrowse env store.
 7. Scheduling: a Restate `ContentScheduler` (like `ComposeScheduler`)
    that publishes the approved queue on each platform's clock.
