@@ -64,24 +64,16 @@ if [ -n "${browser_token_param}" ]; then
   unset TOKEN
 fi
 
-# The SMTP prober (apps/prober): one bundled file from S3, run on node:22. The same
-# script is what deploy/scripts/deploy-prober.sh re-runs over SSM after a new build.
-cat > /usr/local/bin/wren-prober-restart <<'PR'
-#!/bin/bash
-set -euo pipefail
-mkdir -p /var/lib/wren-pg/prober
-aws s3 cp --region ${region} "s3://${backups}/prober/prober.mjs" /var/lib/wren-pg/prober/prober.mjs
-TOKEN="$(aws ssm get-parameter --region "${region}" --name "${probe_token_param}" --with-decryption \
-  --query Parameter.Value --output text)"
-docker rm -f wren-prober >/dev/null 2>&1 || true
-docker run -d --name wren-prober --restart unless-stopped \
-  -p 2525:2525 -e PROBE_PORT=2525 -e PROBE_HELO="${probe_helo}" -e PROBE_TOKEN="$TOKEN" \
-  -v /var/lib/wren-pg/prober:/app:ro \
-  public.ecr.aws/docker/library/node:22-alpine node /app/prober.mjs
-PR
-chmod +x /usr/local/bin/wren-prober-restart
+# The SMTP prober (apps/prober): bundle and restart script both live in S3 under
+# prober/ (deploy/scripts/deploy-prober.sh puts them there and re-runs the script).
 if [ -n "${probe_token_param}" ]; then
-  /usr/local/bin/wren-prober-restart || echo "prober not started (no bundle in S3 yet?)"
+  if aws s3 cp --region ${region} "s3://${backups}/prober/restart.sh" /usr/local/bin/wren-prober-restart; then
+    chmod +x /usr/local/bin/wren-prober-restart
+    REGION=${region} BUCKET=${backups} TOKEN_PARAM=${probe_token_param} HELO=${probe_helo} \
+      /usr/local/bin/wren-prober-restart || echo "prober not started"
+  else
+    echo "no prober in S3 yet; run deploy/scripts/deploy-prober.sh"
+  fi
 fi
 
 # Nightly dump to S3; the bucket's lifecycle rule expires old ones.
