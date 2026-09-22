@@ -67,28 +67,6 @@ importers:
         specifier: 5.9.3
         version: 5.9.3
 
-  apps/prober:
-    dependencies:
-      '@wren/channel-email':
-        specifier: workspace:*
-        version: link:../../packages/channel-email
-      '@wren/core':
-        specifier: workspace:*
-        version: link:../../packages/core
-    devDependencies:
-      esbuild:
-        specifier: 0.28.2
-        version: 0.28.2
-      tsx:
-        specifier: 4.23.13
-        version: 4.23.13
-      typescript:
-        specifier: 5.9.3
-        version: 5.9.3
-      vitest:
-        specifier: 5.0.1
-        version: 5.0.1(@types/node@22.20.3)(vite@8.3.0(@types/node@22.20.3)(esbuild@0.28.2)(tsx@4.23.13)(yaml@2.9.1))
-
   apps/worker:
     dependencies:
       '@aws-sdk/client-ec2':
@@ -182,6 +160,9 @@ importers:
       drizzle-orm:
         specifier: 0.45.2
         version: 0.45.2(postgres@3.4.9)
+      mailifier:
+        specifier: 0.1.0
+        version: 0.1.0
       smol-toml:
         specifier: 1.8.0
         version: 1.8.0
@@ -2059,6 +2040,11 @@ packages:
   magic-string@1.4.1:
     resolution: {integrity: sha512-8lyCu36ErXR0J9uaGKlKQoiLZKmtI63YGLE8G2o9jyRPdr4X47LusSOwgOJOzcVtp81fTAAjxR7BwKz682Jhow==}
 
+  mailifier@0.1.0:
+    resolution: {integrity: sha512-V7nHca+12y9DKvOQZJ51VDmJePZRst1aBMP2SDLXb13mDpcqV24tTjQtglEqVvCoVfmMgHUrNEa5lVR/q7hkoQ==}
+    engines: {node: '>=22'}
+    hasBin: true
+
   minimatch@5.1.9:
     resolution: {integrity: sha512-7o1wEA2RyMP7Iu7GNba9vc0RWWGACJOCZBJX2GJWip0ikV+wcOsgVuY9uE8CPiyQhkGFSlhuSkZPavN7u1c2Fw==}
     engines: {node: '>=10'}
@@ -3871,6 +3857,8 @@ snapshots:
   magic-string@1.4.1:
     dependencies:
       '@jridgewell/sourcemap-codec': 1.6.0
+
+  mailifier@0.1.0: {}
 
   minimatch@5.1.9:
     dependencies:

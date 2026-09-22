@@ -64,7 +64,7 @@ if [ -n "${browser_token_param}" ]; then
   unset TOKEN
 fi
 
-# The SMTP prober (apps/prober): bundle and restart script both live in S3 under
+# The SMTP prober (the mailifier package): bundle and restart script live in S3 under
 # prober/ (deploy/scripts/deploy-prober.sh puts them there and re-runs the script).
 if [ -n "${probe_token_param}" ]; then
   if aws s3 cp --region ${region} "s3://${backups}/prober/restart.sh" /usr/local/bin/wren-prober-restart; then

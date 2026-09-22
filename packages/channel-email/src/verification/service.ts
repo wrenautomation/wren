@@ -21,7 +21,8 @@ import { companies, type Lead, type LeadStatus, leads, transitionLead } from "@w
 import type { Queryable } from "@wren/db";
 import { and, asc, eq, lt, notExists, or, sql } from "drizzle-orm";
 import { type VerificationResult, verifications } from "../schema.js";
-import { LocalChecker, type LocalCheckerLike } from "./local.js";
+import type { LocalCheckerLike } from "./local.js";
+import { defaultLocalChecker } from "./mailifier.js";
 import type { EmailVerifier } from "./verifier.js";
 
 /**
@@ -33,7 +34,7 @@ export const latestValidCheckedAt = () =>
   sql<Date | null>`(select max(${verifications.checkedAt}) from ${verifications} where ${verifications.leadId} = ${leads.id} and ${verifications.result} = 'valid')`;
 
 export interface VerificationOptions {
-  /** Test seam: a LocalChecker with a fake resolver. */
+  /** Test seam: a stage-1 checker with a fake resolver. */
   checker?: LocalCheckerLike;
   importId?: number;
   limit?: number;
@@ -63,7 +64,7 @@ export async function runVerification(
   verifier: EmailVerifier,
   opts: VerificationOptions = {},
 ): Promise<VerificationStats> {
-  const checker = opts.checker ?? new LocalChecker();
+  const checker = opts.checker ?? defaultLocalChecker();
   const unchecked = opts.reverify
     ? eq(leads.status, "imported")
     : and(

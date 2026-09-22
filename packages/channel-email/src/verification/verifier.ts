@@ -1,8 +1,8 @@
 /**
- * EmailVerifier seam: mailbox-level verification behind an interface. Production is
- * our own SMTP prober (`smtp.ts`, reached over HTTP from Lambda via `client.ts`);
- * tests run on the fake, steerable by address suffix so offline fixtures encode the
- * outcome they want in the email.
+ * EmailVerifier: what the funnel depends on, and what it wants to know about a
+ * verdict — may it move a lead, and did it cost anything. Production is our own SMTP
+ * prober, plugged in at `mailifier.ts`; tests run on the fake, steerable by address
+ * suffix so offline fixtures encode the outcome they want in the email.
  */
 import type { VerificationResult } from "../schema.js";
 
@@ -47,7 +47,7 @@ export class FakeVerifier implements EmailVerifier {
 }
 
 export interface VerifierEnv {
-  /** The prober service's URL and bearer, for `smtp` from a host with no port 25. */
+  /** The prober's URL and bearer, for `smtp` from a host with no port 25. */
   smtpProbeUrl?: string | null;
   smtpProbeToken?: string | null;
   /** HELO name for `smtp-direct`: a host that can open port 25 itself. */
@@ -57,17 +57,17 @@ export interface VerifierEnv {
 export async function makeVerifier(name: string, env: VerifierEnv): Promise<EmailVerifier> {
   if (name === "fake") return new FakeVerifier();
   if (name === "smtp") {
-    const { ProbeClientVerifier } = await import("./client.js");
+    const { remoteProbeVerifier } = await import("./mailifier.js");
     if (!env.smtpProbeUrl || !env.smtpProbeToken)
       throw new Error(
         "smtp needs WREN_SMTP_PROBE_URL and WREN_SMTP_PROBE_TOKEN in the environment",
       );
-    return new ProbeClientVerifier(env.smtpProbeUrl, env.smtpProbeToken);
+    return remoteProbeVerifier(env.smtpProbeUrl, env.smtpProbeToken);
   }
   if (name === "smtp-direct") {
-    const { SmtpVerifier } = await import("./smtp.js");
+    const { directProbeVerifier } = await import("./mailifier.js");
     if (!env.smtpHelo) throw new Error("smtp-direct needs WREN_SMTP_HELO in the environment");
-    return new SmtpVerifier({ helo: env.smtpHelo });
+    return directProbeVerifier(env.smtpHelo);
   }
   throw new Error(`unknown verifier '${name}'; expected 'fake', 'smtp' or 'smtp-direct'`);
 }

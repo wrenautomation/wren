@@ -62,7 +62,8 @@ import {
   verifications,
 } from "../schema.js";
 import { transitionCandidate } from "../state.js";
-import { LocalChecker, type LocalCheckerLike } from "../verification/local.js";
+import type { LocalCheckerLike } from "../verification/local.js";
+import { defaultLocalChecker } from "../verification/mailifier.js";
 import type { EmailVerifier } from "../verification/verifier.js";
 
 export const DEFAULT_DOMAIN_BUDGET = 5;
@@ -841,7 +842,7 @@ export async function runResolution(
   opts: ResolutionOptions = {},
 ): Promise<ResolutionStats> {
   const domainBudget = opts.domainBudget ?? DEFAULT_DOMAIN_BUDGET;
-  const checker = opts.checker ?? new LocalChecker();
+  const checker = opts.checker ?? defaultLocalChecker();
   const creditLimit = opts.creditLimit ?? null;
   let stats = emptyResolutionStats();
   const promotions = await strandedPromotions(db);

@@ -21,14 +21,15 @@ import {
   selectResolutionTargets,
   strandedPromotions,
 } from "../resolution/service.js";
-import { LocalChecker, type LocalCheckerLike } from "../verification/local.js";
+import type { LocalCheckerLike } from "../verification/local.js";
+import { defaultLocalChecker } from "../verification/mailifier.js";
 import { runVerification, type VerificationStats } from "../verification/service.js";
 import type { EmailVerifier } from "../verification/verifier.js";
 
 export interface ResolutionDeps {
   db: Db;
   verifier: EmailVerifier;
-  /** Test seam: a LocalChecker with a fake resolver. */
+  /** Test seam: a stage-1 checker with a fake resolver. */
   checker?: LocalCheckerLike;
 }
 
@@ -48,7 +49,7 @@ export interface VerifyLeadsInput {
 export const DEFAULT_RETRY_RISKY_DAYS = 2;
 
 export function makeResolution(deps: ResolutionDeps) {
-  const checker = deps.checker ?? new LocalChecker();
+  const checker = deps.checker ?? defaultLocalChecker();
   const open = (ctx: restate.ObjectContext, command: string, argv: Record<string, unknown>) =>
     ctx.run("open run", async () => {
       const run = await openRun(deps.db, { command, argv, model: deps.verifier.name });

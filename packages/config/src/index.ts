@@ -28,7 +28,7 @@ export const settingsSchema = z.object({
    * port 25), `smtp-direct` = probe from this host, `fake` never touches the network.
    */
   verifier: z.enum(["fake", "smtp", "smtp-direct"]).default("fake"),
-  /** The prober service (`apps/prober`): base URL and its bearer. */
+  /** The prober service (the mailifier package, on the DB box): base URL and its bearer. */
   smtpProbeUrl: z.string().min(1).optional(),
   smtpProbeToken: z.string().min(1).optional(),
   /** HELO name for smtp-direct; forward and reverse DNS should agree on it. */

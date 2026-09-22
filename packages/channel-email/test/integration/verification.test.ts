@@ -5,10 +5,12 @@
 import { companies, imports, type Lead, leads } from "@wren/core";
 import { startTestPostgres, type TestPostgres, truncate } from "@wren/db/testing";
 import { asc, eq } from "drizzle-orm";
+// The real stage-1 checker, with a fake resolver: the library is the implementation.
+import { LocalChecker } from "mailifier";
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 import { type Verification, verifications } from "../../src/schema.js";
-import { ProberError } from "../../src/verification/client.js";
-import { LocalChecker, type LocalCheckerLike } from "../../src/verification/local.js";
+import type { LocalCheckerLike } from "../../src/verification/local.js";
+import { RemoteProbeError } from "../../src/verification/mailifier.js";
 import { latestValidCheckedAt, runVerification } from "../../src/verification/service.js";
 import { type EmailVerifier, FakeVerifier, type Verdict } from "../../src/verification/verifier.js";
 
@@ -329,13 +331,13 @@ describe("runVerification", () => {
       authoritative: true,
       costsCredits: false,
       async verify(email) {
-        if (++calls > 1) throw new ProberError("prober unreachable");
+        if (++calls > 1) throw new RemoteProbeError("probe host unreachable");
         return new FakeVerifier().verify(email);
       },
     };
     const stats = await runVerification(db(), exploding, { checker: checker(), importId });
     expect(stats.valid).toBe(1);
-    expect(stats.aborted).toContain("prober unreachable");
+    expect(stats.aborted).toContain("probe host unreachable");
     const byEmail = Object.fromEntries(
       (await db().select().from(leads).where(eq(leads.importId, importId))).map((l) => [
         l.email,

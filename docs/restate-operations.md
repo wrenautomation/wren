@@ -190,15 +190,18 @@ pool-feeder runs it as its last stage (`verifyMailboxes`, 10 leads a pass) and
 compose enrolls a role inbox only once it holds a `valid` or `catch_all` verdict.
 A `risky` verdict (greylist, tarpit) is tried again after two days.
 
-Port 25 is closed from Lambda, so the prober is a service on the DB box
-(`apps/prober`, container `wren-prober`, `:2525`, bearer). The worker reaches it
+The handshake itself is not wren's: it lives in **mailifier**
+(github.com/wrenautomation/mailifier, `npm i mailifier`), and wren plugs it into
+the `EmailVerifier` port in one file, `verification/mailifier.ts`. Port 25 is
+closed from Lambda, so the prober is that package's own server run on the DB box
+(container `wren-prober`, `:2525`, bearer). The worker reaches it
 through `WREN_VERIFIER=smtp` + `WREN_SMTP_PROBE_URL` + `WREN_SMTP_PROBE_TOKEN`
 (`deploy/prod.env`; the same token is `probe_token` in `terraform.tfvars`).
 
 ```sh
 deploy/scripts/push-secrets.sh                       # env with the prober URL + token
 (cd deploy/terraform && tofu apply)                  # SSM param, port 2525, user-data script
-deploy/scripts/deploy-prober.sh                      # build → S3 prober/ → restart on the box over SSM
+deploy/scripts/deploy-prober.sh                      # mailifier bundle → S3 prober/ → restart on the box over SSM
 deploy/scripts/set-rdns.sh                           # EIP → probe.wrenautomation.com (idempotent; needs the A record first)
 gh workflow run deploy.yml --ref main                # worker re-reads env
 curl -s http://$(cd deploy/terraform && tofu output -raw pg_host):2525/healthz   # {"ok":true,"port_25":true}
