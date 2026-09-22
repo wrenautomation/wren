@@ -40,7 +40,7 @@ import {
 } from "@wren/channel-email/restate";
 import { linkedinContent } from "@wren/channel-linkedin";
 import { makeLinkedinInbox } from "@wren/channel-linkedin/restate";
-import { facebookContent, instagramContent } from "@wren/channel-meta";
+import { facebookContent, instagramContent, instagramWebContent } from "@wren/channel-meta";
 import { makeAds, makeAdsWatch } from "@wren/channel-meta/restate";
 import { tiktokContent } from "@wren/channel-tiktok";
 import { xContent } from "@wren/channel-x";
@@ -328,7 +328,11 @@ function contentFor(settings: Settings, log: Logger): ChannelsFor | null {
       ...(on.includes("linkedin") ? { linkedin: linkedinContent(sites) } : {}),
       ...(on.includes("youtube") ? { youtube: youtubeContent(sites, host ? { host } : {}) } : {}),
       ...(on.includes("x") ? { x: xContent(sites, host ? { host } : {}) } : {}),
-      ...(on.includes("instagram") ? { instagram: instagramContent(sites, meta) } : {}),
+      // The Graph path needs the media at a public URL; with no bucket to host
+      // it, the browser composer is the only one that can post a local file.
+      ...(on.includes("instagram")
+        ? { instagram: host ? instagramContent(sites, meta) : instagramWebContent(sites) }
+        : {}),
       ...(on.includes("facebook") ? { facebook: facebookContent(sites, meta) } : {}),
       ...(on.includes("tiktok") ? { tiktok: tiktokContent(sites, host ? { host } : {}) } : {}),
     };
