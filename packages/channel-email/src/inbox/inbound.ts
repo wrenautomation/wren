@@ -265,8 +265,12 @@ function readDeliveryReport(msg: MimePart): Report {
         header(block, "Final-Recipient") ?? header(block, "Original-Recipient"),
       );
       const diagnostic = clip(header(block, "Diagnostic-Code"), DIAGNOSTIC_MAX_CHARS);
-      const isHard = FAILED_ACTIONS.has(action) || (status ?? "").startsWith("5");
-      const isSoft = DELAYED_ACTIONS.has(action) || (status ?? "").startsWith("4");
+      // The status class decides when there is one: Gmail's last NDR after two days of
+      // failed connects is `Action: failed` + `Status: 4.4.1`, a dead MX, not a bad
+      // address. Only a 5.x.x (or a failure with no code) is the kind that costs reputation.
+      const klass = (status ?? "").charAt(0);
+      const isHard = klass === "5" || (FAILED_ACTIONS.has(action) && klass !== "4");
+      const isSoft = klass === "4" || DELAYED_ACTIONS.has(action);
       if (isHard && failed === null) failed = { bounceClass: "hard", address, status, diagnostic };
       else if (isSoft && delayed === null)
         delayed = { bounceClass: "soft", address, status, diagnostic };

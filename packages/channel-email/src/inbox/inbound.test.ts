@@ -62,6 +62,13 @@ describe("bounces", () => {
     expect(inbound.matchedBy).toBe("embedded_original");
   });
 
+  it("gmail dsn that gave up on a 4.x.x is still soft (dead MX, not a bad address)", () => {
+    const inbound = read("gmail_dsn_failed_4xx");
+    expect(inbound.kind).toBe("bounce");
+    expect(inbound.bounceClass).toBe("soft");
+    expect(inbound.bounceStatus).toBe("4.4.1");
+  });
+
   it("microsoft ndr without a report part", () => {
     const inbound = read("microsoft_ndr");
     expect(inbound.kind).toBe("bounce");
