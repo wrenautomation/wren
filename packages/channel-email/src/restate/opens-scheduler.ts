@@ -7,8 +7,8 @@
 import type * as restate from "@restatedev/restate-sdk";
 import { makeLoopObject, runPass } from "@wren/core/restate";
 import type { Db } from "@wren/db";
+import type { FetchLike } from "../fetch-like.js";
 import { type OpenSyncStats, syncOpens } from "../inbox/opens.js";
-import type { FetchLike } from "../verification/millionverifier.js";
 
 export interface OpensSchedulerDeps {
   db: Db;

@@ -1,7 +1,8 @@
 /**
- * EmailVerifier seam: mailbox-level verification behind an interface, so the paid
- * provider is swappable and tests run on the fake. The fake is steerable by
- * address suffix: offline fixtures encode the outcome they want in the email.
+ * EmailVerifier seam: mailbox-level verification behind an interface. Production is
+ * our own SMTP prober (`smtp.ts`, reached over HTTP from Lambda via `client.ts`);
+ * tests run on the fake, steerable by address suffix so offline fixtures encode the
+ * outcome they want in the email.
  */
 import type { VerificationResult } from "../schema.js";
 
@@ -17,6 +18,8 @@ export interface EmailVerifier {
    * double must never mint a real fact. Local-check INVALID is authoritative regardless.
    */
   authoritative: boolean;
+  /** Whether a verdict spends money: a free verifier may run inside the pool loop, unattended. */
+  costsCredits: boolean;
   verify(email: string): Promise<Verdict>;
 }
 
@@ -29,6 +32,7 @@ const FAKE_SUFFIXES: Record<string, VerificationResult> = {
 export class FakeVerifier implements EmailVerifier {
   readonly name = "fake";
   readonly authoritative: boolean;
+  readonly costsCredits = false;
   /** Default false: a stub must not silently promote real leads to verified. */
   constructor(opts: { authoritative?: boolean } = {}) {
     this.authoritative = opts.authoritative ?? false;
@@ -43,16 +47,27 @@ export class FakeVerifier implements EmailVerifier {
 }
 
 export interface VerifierEnv {
-  millionverifierApiKey?: string | null;
+  /** The prober service's URL and bearer, for `smtp` from a host with no port 25. */
+  smtpProbeUrl?: string | null;
+  smtpProbeToken?: string | null;
+  /** HELO name for `smtp-direct`: a host that can open port 25 itself. */
+  smtpHelo?: string | null;
 }
 
 export async function makeVerifier(name: string, env: VerifierEnv): Promise<EmailVerifier> {
   if (name === "fake") return new FakeVerifier();
-  if (name === "millionverifier") {
-    const { MillionVerifier } = await import("./millionverifier.js");
-    if (!env.millionverifierApiKey)
-      throw new Error("millionverifier needs MILLIONVERIFIER_API_KEY in the environment");
-    return new MillionVerifier(env.millionverifierApiKey);
+  if (name === "smtp") {
+    const { ProbeClientVerifier } = await import("./client.js");
+    if (!env.smtpProbeUrl || !env.smtpProbeToken)
+      throw new Error(
+        "smtp needs WREN_SMTP_PROBE_URL and WREN_SMTP_PROBE_TOKEN in the environment",
+      );
+    return new ProbeClientVerifier(env.smtpProbeUrl, env.smtpProbeToken);
   }
-  throw new Error(`unknown verifier '${name}'; expected 'fake' or 'millionverifier'`);
+  if (name === "smtp-direct") {
+    const { SmtpVerifier } = await import("./smtp.js");
+    if (!env.smtpHelo) throw new Error("smtp-direct needs WREN_SMTP_HELO in the environment");
+    return new SmtpVerifier({ helo: env.smtpHelo });
+  }
+  throw new Error(`unknown verifier '${name}'; expected 'fake', 'smtp' or 'smtp-direct'`);
 }

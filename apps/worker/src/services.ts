@@ -99,7 +99,9 @@ export async function buildServices(
   const ua = settings.fetchContact ? userAgent(settings.fetchContact) : null;
   if (!ua) log.warn("WREN_FETCH_CONTACT unset: crawl and render will refuse until it is");
   const verifier = await makeVerifier(settings.verifier, {
-    millionverifierApiKey: process.env.MILLIONVERIFIER_API_KEY ?? null,
+    smtpProbeUrl: settings.smtpProbeUrl ?? null,
+    smtpProbeToken: settings.smtpProbeToken ?? null,
+    smtpHelo: settings.smtpHelo ?? null,
   });
   const renderer = ua ? rendererFor(settings, ua, log) : null;
   // Nudges to the operator: replies, bounces, pauses, a dry pool, stage errors, the

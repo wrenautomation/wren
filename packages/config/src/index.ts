@@ -23,8 +23,16 @@ export const settingsSchema = z.object({
   /** Path of the key-fleet env file, relative to the project root. */
   llmEnvPath: z.string().min(1).default("llm.env"),
   tracing: z.enum(["none"]).default("none"),
-  /** Mailbox verifier for resolution: the fake never spends. */
-  verifier: z.enum(["fake", "millionverifier"]).default("fake"),
+  /**
+   * Mailbox verifier: `smtp` = our prober service on the database box (Lambda has no
+   * port 25), `smtp-direct` = probe from this host, `fake` never touches the network.
+   */
+  verifier: z.enum(["fake", "smtp", "smtp-direct"]).default("fake"),
+  /** The prober service (`apps/prober`): base URL and its bearer. */
+  smtpProbeUrl: z.string().min(1).optional(),
+  smtpProbeToken: z.string().min(1).optional(),
+  /** HELO name for smtp-direct; forward and reverse DNS should agree on it. */
+  smtpHelo: z.string().min(1).optional(),
 
   // ---- send policy (parsed and range-checked by SendPolicy in channel-email) ----
   /** IANA zone the fleet window is read in. */
@@ -165,6 +173,9 @@ export const ENV_KEYS = {
   llmEnvPath: "WREN_LLM_ENV_PATH",
   tracing: "WREN_TRACING",
   verifier: "WREN_VERIFIER",
+  smtpProbeUrl: "WREN_SMTP_PROBE_URL",
+  smtpProbeToken: "WREN_SMTP_PROBE_TOKEN",
+  smtpHelo: "WREN_SMTP_HELO",
   sendTimezone: "WREN_SEND_TIMEZONE",
   sendDays: "WREN_SEND_DAYS",
   sendWindowStart: "WREN_SEND_WINDOW_START",

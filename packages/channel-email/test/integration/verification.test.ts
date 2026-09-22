@@ -7,8 +7,8 @@ import { startTestPostgres, type TestPostgres, truncate } from "@wren/db/testing
 import { asc, eq } from "drizzle-orm";
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 import { type Verification, verifications } from "../../src/schema.js";
+import { ProberError } from "../../src/verification/client.js";
 import { LocalChecker, type LocalCheckerLike } from "../../src/verification/local.js";
-import { MillionVerifierError } from "../../src/verification/millionverifier.js";
 import { latestValidCheckedAt, runVerification } from "../../src/verification/service.js";
 import { type EmailVerifier, FakeVerifier, type Verdict } from "../../src/verification/verifier.js";
 
@@ -59,6 +59,7 @@ async function backdateLastVerification(leadId: number, days: number) {
 class DecayingVerifier implements EmailVerifier {
   readonly name = "decaying";
   readonly authoritative = true;
+  readonly costsCredits = true;
   private readonly seen = new Set<string>();
   constructor(private readonly then: Verdict["result"]) {}
   async verify(email: string): Promise<Verdict> {
@@ -265,14 +266,15 @@ describe("runVerification", () => {
     const exploding: EmailVerifier = {
       name: "exploding",
       authoritative: true,
+      costsCredits: false,
       async verify(email) {
-        if (++calls > 1) throw new MillionVerifierError("credits exhausted");
+        if (++calls > 1) throw new ProberError("prober unreachable");
         return new FakeVerifier().verify(email);
       },
     };
     const stats = await runVerification(db(), exploding, { checker: checker(), importId });
     expect(stats.valid).toBe(1);
-    expect(stats.aborted).toContain("credits exhausted");
+    expect(stats.aborted).toContain("prober unreachable");
     const byEmail = Object.fromEntries(
       (await db().select().from(leads).where(eq(leads.importId, importId))).map((l) => [
         l.email,

@@ -36,6 +36,7 @@ const DOMAIN = "veloqua.example";
 class MapVerifier implements EmailVerifier {
   readonly name = "map";
   readonly authoritative = true;
+  readonly costsCredits = true;
   readonly calls: string[] = [];
   constructor(private readonly verdicts: Record<string, VerificationResult>) {}
   async verify(email: string): Promise<Verdict> {

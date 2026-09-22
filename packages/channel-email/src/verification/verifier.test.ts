@@ -1,11 +1,7 @@
-/** EmailVerifier seam: fake, MillionVerifier adapter (fake fetch, no network), factory. */
+/** EmailVerifier seam: fake, prober client (fake fetch, no network), factory. */
 import { describe, expect, it } from "vitest";
-import {
-  type FetchLike,
-  MILLIONVERIFIER_API_URL,
-  MillionVerifier,
-  MillionVerifierError,
-} from "./millionverifier.js";
+import type { FetchLike } from "../fetch-like.js";
+import { ProbeClientVerifier, ProberError } from "./client.js";
 import { FakeVerifier, makeVerifier } from "./verifier.js";
 
 describe("FakeVerifier", () => {
@@ -22,73 +18,63 @@ describe("FakeVerifier", () => {
     expect(new FakeVerifier({ authoritative: true }).authoritative).toBe(true));
 });
 
-function adapter(payload: unknown, status = 200, seen?: string[]) {
-  const fetchImpl: FetchLike = async (url) => {
-    seen?.push(url);
+function client(payload: unknown, status = 200, seen?: { url: string; init?: RequestInit }[]) {
+  const fetchImpl: FetchLike = async (url, init) => {
+    seen?.push({ url, ...(init ? { init } : {}) });
     return new Response(JSON.stringify(payload), { status });
   };
-  return new MillionVerifier("test-key", fetchImpl);
+  return new ProbeClientVerifier("http://box:2525/", "tok-123", fetchImpl);
 }
 
-describe("MillionVerifier", () => {
-  it("authoritative", () => expect(adapter({ result: "ok" }).authoritative).toBe(true));
-  it.each([
-    ["ok", "valid"],
-    ["invalid", "invalid"],
-    ["disposable", "invalid"],
-    ["catch_all", "catch_all"],
-    ["unknown", "risky"],
-  ])("maps %s -> %s", async (api, expected) => {
-    const verdict = await adapter({ result: api }).verify("jane@foo.com");
-    expect(verdict.result).toBe(expected);
-    expect(verdict.raw).toEqual({ result: api }); // provider payload kept as provenance
+describe("ProbeClientVerifier", () => {
+  it("authoritative and free", () => {
+    const v = client({ result: "valid", raw: {} });
+    expect(v.authoritative).toBe(true);
+    expect(v.costsCredits).toBe(false);
+    expect(v.name).toBe("smtp");
   });
-  it("request carries key and email", async () => {
-    const seen: string[] = [];
-    await adapter({ result: "ok" }, 200, seen).verify("jane@foo.com");
-    const url = new URL(seen[0] as string);
-    expect(`${url.origin}${url.pathname}`).toBe(MILLIONVERIFIER_API_URL);
-    expect(url.searchParams.get("api")).toBe("test-key");
-    expect(url.searchParams.get("email")).toBe("jane@foo.com");
+  it("posts the address with the bearer and hands back the prober's verdict", async () => {
+    const seen: { url: string; init?: RequestInit }[] = [];
+    const verdict = await client(
+      { result: "catch_all", raw: { reason: "catch_all" } },
+      200,
+      seen,
+    ).verify("jane@foo.com");
+    expect(verdict).toEqual({ result: "catch_all", raw: { reason: "catch_all" } });
+    expect(seen[0]?.url).toBe("http://box:2525/verify");
+    expect(seen[0]?.init?.body).toBe(JSON.stringify({ email: "jane@foo.com" }));
+    expect(seen[0]?.init?.headers).toMatchObject({ authorization: "Bearer tok-123" });
   });
-  it("api error field raises", async () =>
-    expect(adapter({ error: "api key not found" }).verify("jane@foo.com")).rejects.toThrow(
-      /api key/,
-    ));
-  it("unexpected result raises", async () =>
-    expect(adapter({ result: "brand-new-status" }).verify("jane@foo.com")).rejects.toThrow(
-      /unexpected result/,
-    ));
-  it("http error becomes MillionVerifierError", async () =>
-    expect(adapter({}, 503).verify("jane@foo.com")).rejects.toThrow(/503/));
-  it("credit exhaustion does not leak the api key", async () => {
-    const err = await adapter({}, 402)
-      .verify("jane@foo.com")
-      .catch((e: unknown) => e);
-    expect(err).toBeInstanceOf(MillionVerifierError);
-    expect(String(err)).not.toContain("test-key");
-    expect((err as Error).cause).toBeUndefined();
+  it("http error and odd verdicts raise", async () => {
+    await expect(client({}, 503).verify("jane@foo.com")).rejects.toThrow(/503/);
+    await expect(client({ result: "maybe" }).verify("jane@foo.com")).rejects.toThrow(
+      /unexpected verdict/,
+    );
   });
-  it("transport failure does not leak the api key", async () => {
-    const boom: FetchLike = async (url) => {
-      throw new TypeError(`fetch failed: ${url}`);
+  it("transport failure does not leak the token", async () => {
+    const boom: FetchLike = async () => {
+      throw new TypeError("fetch failed: Bearer tok-123 leaked?");
     };
-    const err = await new MillionVerifier("test-key", boom)
+    const err = await new ProbeClientVerifier("http://box", "tok-123", boom)
       .verify("jane@foo.com")
       .catch((e: unknown) => e);
-    expect(err).toBeInstanceOf(MillionVerifierError);
-    expect(String(err)).not.toContain("test-key");
+    expect(err).toBeInstanceOf(ProberError);
+    expect(String(err)).not.toContain("tok-123");
   });
 });
 
 describe("makeVerifier", () => {
   it("fake by name", async () => expect((await makeVerifier("fake", {})).name).toBe("fake"));
-  it("millionverifier needs key", async () =>
-    expect(makeVerifier("millionverifier", {})).rejects.toThrow(/MILLIONVERIFIER_API_KEY/));
-  it("millionverifier with key", async () =>
-    expect((await makeVerifier("millionverifier", { millionverifierApiKey: "k" })).name).toBe(
-      "millionverifier",
+  it("smtp needs the prober url and token", async () =>
+    expect(makeVerifier("smtp", { smtpProbeUrl: "http://box" })).rejects.toThrow(
+      /WREN_SMTP_PROBE/,
     ));
+  it("smtp with both", async () =>
+    expect(
+      (await makeVerifier("smtp", { smtpProbeUrl: "http://box", smtpProbeToken: "t" })).name,
+    ).toBe("smtp"));
+  it("smtp-direct needs a helo", async () =>
+    expect(makeVerifier("smtp-direct", {})).rejects.toThrow(/WREN_SMTP_HELO/));
   it("unknown name raises", async () =>
     expect(makeVerifier("apollo", {})).rejects.toThrow(/unknown verifier/));
 });

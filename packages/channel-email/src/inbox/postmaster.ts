@@ -30,9 +30,9 @@
  */
 import type { Db, Queryable } from "@wren/db";
 import { sql } from "drizzle-orm";
+import type { FetchLike } from "../fetch-like.js";
 import { postmasterDays } from "../schema.js";
 import { POSTMASTER_SCOPE, POSTMASTER_TRAFFIC_SCOPE } from "../send/google-auth.js";
-import type { FetchLike } from "../verification/millionverifier.js";
 
 export const API = "https://gmailpostmastertools.googleapis.com/v2";
 

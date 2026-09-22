@@ -9,7 +9,7 @@
 import { createSign } from "node:crypto";
 import { existsSync, readFileSync } from "node:fs";
 import { homedir } from "node:os";
-import type { FetchLike } from "../verification/millionverifier.js";
+import type { FetchLike } from "../fetch-like.js";
 
 export const GMAIL_SEND_SCOPE = "https://www.googleapis.com/auth/gmail.send";
 /** Must be modify, not readonly: the delegation entry authorizes send + modify. */

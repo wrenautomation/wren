@@ -19,8 +19,8 @@
  */
 import type { Db, Queryable } from "@wren/db";
 import { eq, inArray, max, sql } from "drizzle-orm";
+import type { FetchLike } from "../fetch-like.js";
 import { messages, openEvents, openSyncs } from "../schema.js";
-import type { FetchLike } from "../verification/millionverifier.js";
 
 /** How many rows one request asks for. The host caps at 5000. */
 export const PAGE = 1000;
