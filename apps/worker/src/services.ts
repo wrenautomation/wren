@@ -103,6 +103,9 @@ export async function buildServices(
     smtpProbeToken: settings.smtpProbeToken ?? null,
     smtpHelo: settings.smtpHelo ?? null,
   });
+  // Real verdicts for free (smtp): the chain verifies mailboxes itself and compose
+  // waits for them. The fake is never that: its rows would gate real sends.
+  const freeVerdicts = verifier.authoritative && !verifier.costsCredits;
   const renderer = ua ? rendererFor(settings, ua, log) : null;
   // Nudges to the operator: replies, bounces, pauses, a dry pool, stage errors, the
   // morning digest. Discord with no URL refuses here, at start, not at the first reply.
@@ -224,8 +227,7 @@ export async function buildServices(
         daysAhead: settings.composeDaysAhead,
         verificationHorizonDays: settings.verificationHorizonDays,
         trackOpens: settings.openTracking,
-        // Free verdicts (smtp) → every role inbox is checked before it is enrolled.
-        roleInboxNeedsVerdict: !verifier.costsCredits,
+        roleInboxNeedsVerdict: freeVerdicts,
         ...notify,
       }),
     );
@@ -236,7 +238,7 @@ export async function buildServices(
       db,
       policy,
       modelStages: settings.poolModelStages,
-      freeVerifier: !verifier.costsCredits,
+      freeVerifier: freeVerdicts,
     }),
   );
   if (settings.notify !== "none") services.push(makeDigestScheduler({ db, notifier, policy }));
