@@ -37,6 +37,13 @@ resource "aws_ssm_parameter" "browser_token" {
   value = var.browser_token
 }
 
+resource "aws_ssm_parameter" "probe_token" {
+  count = var.probe_token == "" ? 0 : 1
+  name  = "${local.ssm_root}/probe_token"
+  type  = "SecureString"
+  value = var.probe_token
+}
+
 resource "aws_security_group" "pg" {
   name        = "${local.prefix}-pg"
   description = "Postgres over TLS from anywhere; no SSH (use SSM Session Manager)"
@@ -55,6 +62,16 @@ resource "aws_security_group" "pg" {
       description = "browserless CDP (token in the URL)"
       from_port   = 3000
       to_port     = 3000
+      protocol    = "tcp"
+      cidr_blocks = ["0.0.0.0/0"]
+    }
+  }
+  dynamic "ingress" {
+    for_each = var.probe_token == "" ? [] : [1]
+    content {
+      description = "SMTP prober HTTP (bearer)"
+      from_port   = 2525
+      to_port     = 2525
       protocol    = "tcp"
       cidr_blocks = ["0.0.0.0/0"]
     }
@@ -120,9 +137,13 @@ data "aws_kms_alias" "ssm" {
 
 data "aws_iam_policy_document" "pg" {
   statement {
-    sid       = "ReadOwnSecrets"
-    actions   = ["ssm:GetParameter"]
-    resources = concat([aws_ssm_parameter.pg_password.arn], aws_ssm_parameter.browser_token[*].arn)
+    sid     = "ReadOwnSecrets"
+    actions = ["ssm:GetParameter"]
+    resources = concat(
+      [aws_ssm_parameter.pg_password.arn],
+      aws_ssm_parameter.browser_token[*].arn,
+      aws_ssm_parameter.probe_token[*].arn,
+    )
   }
   statement {
     sid       = "DecryptSsm"
@@ -133,6 +154,11 @@ data "aws_iam_policy_document" "pg" {
     sid       = "WriteBackups"
     actions   = ["s3:PutObject", "s3:ListBucket"]
     resources = [aws_s3_bucket.backups.arn, "${aws_s3_bucket.backups.arn}/*"]
+  }
+  statement {
+    sid       = "ReadProberBundle"
+    actions   = ["s3:GetObject"]
+    resources = ["${aws_s3_bucket.backups.arn}/prober/*"]
   }
 }
 
@@ -179,6 +205,8 @@ resource "aws_instance" "pg" {
     volume_id           = aws_ebs_volume.pg_data.id
     pw_param            = aws_ssm_parameter.pg_password.name
     browser_token_param = var.browser_token == "" ? "" : aws_ssm_parameter.browser_token[0].name
+    probe_token_param   = var.probe_token == "" ? "" : aws_ssm_parameter.probe_token[0].name
+    probe_helo          = var.probe_helo
     backups             = aws_s3_bucket.backups.bucket
     db_name             = var.name
     db_user             = var.name
