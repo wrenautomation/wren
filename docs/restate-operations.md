@@ -173,12 +173,48 @@ curl -X POST -H "$H" $U/Enrichment/sec_ria/extract -d '{"limit":20}'   # people 
 curl -X POST -H "$H" $U/Enrichment/sec_ria/applyExtractions -d '{}'
 curl -X POST -H "$H" $U/Enrichment/sec_ria/pick    -d '{"limit":50}'   # best send-to per company; a model call only when ambiguous
 curl -X POST -H "$H" $U/Enrichment/sec_ria/applyPicks -d '{}'          # role inboxes → leads (compose picks them up next pass)
-curl -X POST -H "$H" $U/Resolution/fleet/build; …/queue; …/resolve     # person guesses → MillionVerifier (free credits only)
+curl -X POST -H "$H" $U/Resolution/default/verifyLeads -d '{"niche":"agencies","limit":10}'  # ask the mail servers about new leads
+curl -X POST -H "$H" $U/Resolution/default/build; …/queue; …/resolve   # person guesses (pattern proving), by hand
 ```
 
 Pool on 2026-09-20: agencies 5,277 companies without a domain, 471 crawled with no
-sendable address (42 of them person guesses waiting on credits); sec_ria 19,237 domains,
-5 crawled. Resolution (person guesses → MillionVerifier) stays by hand: it spends credits.
+sendable address (42 of them person guesses); sec_ria 19,237 domains, 5 crawled.
+Resolution's build/queue/resolve stays by hand.
+
+## Verifying addresses (our own prober)
+
+Every bounce so far was an unverified role inbox. Since 2026-09-21 verdicts come
+from our own SMTP prober, not MillionVerifier: it asks the address's MX
+`RCPT TO:` and hangs up before `DATA` — no mail is ever sent. Free, so the
+pool-feeder runs it as its last stage (`verifyMailboxes`, 10 leads a pass) and
+compose enrolls a role inbox only once it holds a `valid` or `catch_all` verdict.
+A `risky` verdict (greylist, tarpit) is tried again after two days.
+
+Port 25 is closed from Lambda, so the prober is a service on the DB box
+(`apps/prober`, container `wren-prober`, `:2525`, bearer). The worker reaches it
+through `WREN_VERIFIER=smtp` + `WREN_SMTP_PROBE_URL` + `WREN_SMTP_PROBE_TOKEN`
+(`deploy/prod.env`; the same token is `probe_token` in `terraform.tfvars`).
+
+```sh
+deploy/scripts/push-secrets.sh                       # env with the prober URL + token
+(cd deploy/terraform && tofu apply)                  # SSM param, port 2525, user-data script
+deploy/scripts/deploy-prober.sh                      # build → S3 prober/ → restart on the box over SSM
+gh workflow run deploy.yml --ref main                # worker re-reads env
+curl -s http://$(cd deploy/terraform && tofu output -raw pg_host):2525/healthz   # {"ok":true,"port_25":true}
+```
+
+AWS closes outbound port 25 on EC2 until the account asks (Support → "Request
+to remove email sending limitations", with the EIP and `probe.wrenautomation.com`
+as its reverse DNS). Until it is granted `/healthz` says `"port_25": false`, `/verify`
+answers 503, the pool stage records that error and retries hourly, and compose
+enrolls only role inboxes that already hold a verdict. Verified people are not
+affected. The canary re-checks every ten minutes, so nothing to restart when the
+port opens.
+
+Meaning of the verdicts: `valid` = the MX accepted the address and refused a random
+one; `catch_all` = it accepts anything (sendable, unproven); `invalid` = user
+unknown (lead → undeliverable); `risky` = greylisted, blocked or unreachable. Google
+Workspace and Microsoft 365 answer honestly; consumer Yahoo refuses probes.
 
 ### Importing new companies and people
 

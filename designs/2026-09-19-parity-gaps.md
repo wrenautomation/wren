@@ -13,7 +13,7 @@ What the Python system did, and where each piece stands in wren. Source:
 | Domain discovery + verification (DoH, ownership gate) | `research/discovery`; `Discovery/{niche}/discover|verify` (Restate, added 2026-09-20) |
 | Pool growth end to end | `PoolScheduler/{niche}` (new 2026-09-20; Python ran each stage by hand) |
 | Crawl → render → scan → extract → apply → pick → apply | `Enrichment/{niche}/*` handlers, one bounded pass each |
-| Candidate build → queue → resolve (local checks, MillionVerifier) | `Resolution/fleet/build|queue|resolve` |
+| Candidate build → queue → resolve (local checks, a verifier) | `Resolution/default/build|queue|resolve`; verdicts from our own SMTP prober since 2026-09-21 (MillionVerifier removed) |
 | Templates (`.email` block tree, arms, variants) | `channel-email/outreach/templates|authoring`, niche dirs |
 | Compose (facts → readable → provenance) | `outreach/compose.ts`, person + role-inbox kinds |
 | Send policy (window, lead window, ramp, gap, cooldown) | `send/policy.ts` |
@@ -102,4 +102,8 @@ What the Python system did, and where each piece stands in wren. Source:
   throwaway domains with no In-Reply-To. Zero real replies exist; the matcher is
   not dropping any.
 - The 42 agencies picks without a lead are person guesses in resolution (35
-  candidate, 7 queued), waiting on MillionVerifier credits. Free credits only.
+  candidate, 7 queued). Since 2026-09-21 verdicts are free (own SMTP prober), so
+  `resolve` costs nothing but time; still by hand.
+- Bounces 2026-09-21: all four were unverified role inboxes; 0 across 145 verified
+  people. Closed by `PoolScheduler.verifyMailboxes` + compose's
+  `roleInboxNeedsVerdict` (on with a free, authoritative verifier).
