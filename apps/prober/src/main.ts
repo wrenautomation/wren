@@ -1,5 +1,9 @@
-/** Serve the prober on PROBE_PORT (2525). Env: PROBE_TOKEN (required), PROBE_HELO (required). */
-import { SmtpVerifier } from "@wren/channel-email";
+/**
+ * Serve the prober on PROBE_PORT (2525). Env: PROBE_TOKEN (required), PROBE_HELO
+ * (required), PROBE_HOST_GAP_MS, PROBE_CANARY_HOST (an MX known to answer; default
+ * Google's inbound).
+ */
+import { dialTcp, SMTP_PORT, SmtpVerifier } from "@wren/channel-email";
 import { makeProber } from "./server.js";
 
 const port = Number(process.env.PROBE_PORT ?? 2525);
@@ -14,9 +18,33 @@ const verifier = new SmtpVerifier({
   helo,
   perHostGapMs: Number(process.env.PROBE_HOST_GAP_MS ?? 1500),
 });
+// One banner read from a well-known MX, remembered for ten minutes, says whether port
+// 25 is open from here. Open once = trusted for the window; closed = checked again.
+const canaryHost = process.env.PROBE_CANARY_HOST ?? "gmail-smtp-in.l.google.com";
+const CANARY_TTL_MS = 10 * 60_000;
+let canaryOpenUntil = 0;
+async function port25Open(): Promise<boolean> {
+  if (Date.now() < canaryOpenUntil) return true;
+  try {
+    const c = await dialTcp(canaryHost, SMTP_PORT, 8_000);
+    try {
+      const banner = await c.read();
+      if (!banner.startsWith("220")) return false;
+      await c.write("QUIT");
+    } finally {
+      c.close();
+    }
+    canaryOpenUntil = Date.now() + CANARY_TTL_MS;
+    return true;
+  } catch {
+    return false;
+  }
+}
+
 const server = makeProber({
   verifier,
   token,
+  canary: port25Open,
   log: (line) => console.log(new Date().toISOString(), line),
 });
 server.listen(port, () => console.log(`prober listening on :${port} as ${helo}`));

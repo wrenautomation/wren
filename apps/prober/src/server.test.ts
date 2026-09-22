@@ -48,4 +48,27 @@ describe("prober", () => {
   it("404s anything else", async () => {
     expect((await fetch(`${base}/other`)).status).toBe(404);
   });
+
+  it("with a closed port 25 the canary answers 503 and never a verdict", async () => {
+    let open = false;
+    const canaried = makeProber({ verifier, token: "secret-token", canary: async () => open });
+    await new Promise<void>((r) => canaried.listen(0, "127.0.0.1", () => r()));
+    const url = `http://127.0.0.1:${(canaried.address() as AddressInfo).port}`;
+    try {
+      const call = () =>
+        fetch(`${url}/verify`, {
+          method: "POST",
+          headers: { authorization: "Bearer secret-token", "content-type": "application/json" },
+          body: JSON.stringify({ email: "a@b.co" }),
+        });
+      const closed = await call();
+      expect(closed.status).toBe(503);
+      expect(await closed.json()).toEqual({ error: "port 25 closed from this host" });
+      expect(await (await fetch(`${url}/healthz`)).json()).toMatchObject({ port_25: false });
+      open = true;
+      expect((await call()).status).toBe(200);
+    } finally {
+      await new Promise<void>((r) => canaried.close(() => r()));
+    }
+  });
 });

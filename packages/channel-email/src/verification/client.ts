@@ -42,7 +42,18 @@ export class ProbeClientVerifier implements EmailVerifier {
       // The token rides in a header, never in a message; keep the error to its name.
       throw new ProberError(`prober unreachable: ${err instanceof Error ? err.name : "Error"}`);
     }
-    if (!resp.ok) throw new ProberError(`prober HTTP ${resp.status}`);
+    if (!resp.ok) {
+      // The prober's own error text (ours, short, never a secret); anything else is dropped.
+      const detail = await resp
+        .json()
+        .then((d: unknown) =>
+          d && typeof d === "object" ? (d as { error?: unknown }).error : null,
+        )
+        .catch(() => null);
+      throw new ProberError(
+        `prober HTTP ${resp.status}${typeof detail === "string" ? `: ${detail}` : ""}`,
+      );
+    }
     const data = (await resp.json()) as { result?: unknown; raw?: unknown };
     if (!VERIFICATION_RESULTS.includes(data.result as VerificationResult))
       throw new ProberError(`unexpected verdict: ${JSON.stringify(data.result)}`);

@@ -3,6 +3,10 @@
  * that can open port 25 (the database box). Bearer-authenticated; one process, one
  * SmtpVerifier, so the per-MX gap holds across every caller. `GET /healthz` for the
  * box's own checks. Nothing here is a mailbox: no DATA, no delivery, ever.
+ *
+ * The canary: before a verdict the prober asks whether port 25 is open from here at
+ * all (AWS closes it until asked). Closed means 503, never a `risky` verdict per
+ * address: that is this host's problem, not the mailbox's.
  */
 import { createServer, type IncomingMessage, type Server, type ServerResponse } from "node:http";
 import type { EmailVerifier } from "@wren/channel-email";
@@ -13,6 +17,8 @@ export interface ProberOptions {
   token: string;
   /** Calls at once across all MX hosts; the verifier still serialises per host. */
   maxInFlight?: number;
+  /** Can this host open port 25 right now? Absent = assume yes. */
+  canary?: () => Promise<boolean>;
   log?: (line: string) => void;
 }
 
@@ -24,8 +30,10 @@ export function makeProber(opts: ProberOptions): Server {
   let inFlight = 0;
   return createServer(async (req, res) => {
     try {
-      if (req.method === "GET" && req.url === "/healthz")
-        return json(res, 200, { ok: true, in_flight: inFlight });
+      if (req.method === "GET" && req.url === "/healthz") {
+        const port25 = opts.canary ? await opts.canary() : null;
+        return json(res, 200, { ok: true, in_flight: inFlight, port_25: port25 });
+      }
       if (req.method !== "POST" || req.url !== "/verify") return json(res, 404, { error: "no" });
       const offered = (req.headers.authorization ?? "").replace(/^Bearer\s+/i, "");
       if (!timingSafeEqual(offered, opts.token)) return json(res, 401, { error: "no" });
@@ -34,6 +42,10 @@ export function makeProber(opts: ProberOptions): Server {
       const email = typeof body.email === "string" ? body.email.trim() : "";
       const syntax = email ? emailSyntaxError(email) : "missing email";
       if (syntax) return json(res, 400, { error: syntax });
+      if (opts.canary && !(await opts.canary())) {
+        log("port 25 closed from this host");
+        return json(res, 503, { error: "port 25 closed from this host" });
+      }
       inFlight += 1;
       try {
         const t0 = Date.now();
