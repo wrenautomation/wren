@@ -230,4 +230,7 @@ resource "aws_eip" "pg" {
   instance = aws_instance.pg.id
   domain   = "vpc"
   tags     = { Name = "${local.prefix}-pg" }
+  # The PTR (probe_helo -> this address) is not a writable attribute here; AWS takes
+  # it through ec2:ModifyAddressAttribute. `deploy/scripts/set-rdns.sh` does that and
+  # is safe to re-run; a rebuilt EIP needs it again, after the forward record moves.
 }

@@ -199,13 +199,17 @@ through `WREN_VERIFIER=smtp` + `WREN_SMTP_PROBE_URL` + `WREN_SMTP_PROBE_TOKEN`
 deploy/scripts/push-secrets.sh                       # env with the prober URL + token
 (cd deploy/terraform && tofu apply)                  # SSM param, port 2525, user-data script
 deploy/scripts/deploy-prober.sh                      # build → S3 prober/ → restart on the box over SSM
+deploy/scripts/set-rdns.sh                           # EIP → probe.wrenautomation.com (idempotent; needs the A record first)
 gh workflow run deploy.yml --ref main                # worker re-reads env
 curl -s http://$(cd deploy/terraform && tofu output -raw pg_host):2525/healthz   # {"ok":true,"port_25":true}
 ```
 
 AWS closes outbound port 25 on EC2 until the account asks (Support → "Request
-to remove email sending limitations", with the EIP and `probe.wrenautomation.com`
-as its reverse DNS). Until it is granted `/healthz` says `"port_25": false`, `/verify`
+to remove email sending limitations"). That form is only the limit; the reverse DNS
+half is an API call, `deploy/scripts/set-rdns.sh` (done 2026-09-22: the EIP points at
+`probe.wrenautomation.com`). The form was filed 2026-09-22 but is unconfirmed — a
+Basic-plan account files it outside Support Center and AWS has sent nothing; refile
+if the port is still closed after a few days. Until it is granted `/healthz` says `"port_25": false`, `/verify`
 answers 503, the pool stage records that error and retries hourly, and compose
 enrolls only role inboxes that already hold a verdict. Verified people are not
 affected. The canary re-checks every ten minutes, so nothing to restart when the
