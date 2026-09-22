@@ -2,7 +2,7 @@
  * Verification funnel against the migrated schema: local stage, provider stage,
  * status transitions, selection rules (including staleness re-checks), abort-keeps-progress.
  */
-import { imports, type Lead, leads } from "@wren/core";
+import { companies, imports, type Lead, leads } from "@wren/core";
 import { startTestPostgres, type TestPostgres, truncate } from "@wren/db/testing";
 import { asc, eq } from "drizzle-orm";
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
@@ -17,7 +17,7 @@ beforeAll(async () => {
   pg = await startTestPostgres();
 });
 afterAll(() => pg.stop());
-beforeEach(() => truncate(pg.db, ["imports", "leads", "verifications"]));
+beforeEach(() => truncate(pg.db, ["imports", "companies", "leads", "verifications"]));
 const db = () => pg.db;
 
 const DAY = 86_400_000;
@@ -69,7 +69,68 @@ class DecayingVerifier implements EmailVerifier {
   }
 }
 
+/** `risky` on its first look at an address, `then` on every later one. */
+class GreylistedVerifier implements EmailVerifier {
+  readonly name = "greylisted";
+  readonly authoritative = true;
+  readonly costsCredits = false;
+  private readonly seen = new Set<string>();
+  constructor(private readonly then: Verdict["result"]) {}
+  async verify(email: string): Promise<Verdict> {
+    if (this.seen.has(email)) return { result: this.then, raw: { fake: true } };
+    this.seen.add(email);
+    return { result: "risky", raw: { fake: true, reason: "greylisted" } };
+  }
+}
+
 describe("runVerification", () => {
+  it("a risky verdict is tried again after retryRiskyOlderThan, not before", async () => {
+    const { leads: rows } = await makeLeads("info@verifyco.example");
+    const lead = rows[0] as Lead;
+    const verifier = new GreylistedVerifier("valid");
+    const first = await runVerification(db(), verifier, { checker: checker() });
+    expect(first).toMatchObject({ selected: 1, risky: 1 });
+    expect((await leadById(lead.id)).status).toBe("imported");
+    // Fresh risky: not selected again, with or without the retry option.
+    const opts = { checker: checker(), retryRiskyOlderThanMs: 2 * DAY };
+    expect((await runVerification(db(), verifier, opts)).selected).toBe(0);
+    await backdateLastVerification(lead.id, 3);
+    expect((await runVerification(db(), verifier, { checker: checker() })).selected).toBe(0);
+    const retried = await runVerification(db(), verifier, opts);
+    expect(retried).toMatchObject({ selected: 1, valid: 1 });
+    expect((await leadById(lead.id)).status).toBe("verified");
+    expect((await verificationsOf(lead.id)).map((v) => v.result)).toEqual(["risky", "valid"]);
+  });
+
+  it("niche narrows to leads of that niche's companies", async () => {
+    const firm = async (niche: string, domain: string) => {
+      const [row] = await db()
+        .insert(companies)
+        .values({ domain, name: domain, niche, raw: {} })
+        .returning();
+      return (row as { id: number }).id;
+    };
+    const agencies = await firm("agencies", "verifyco.example");
+    const ria = await firm("sec_ria", "other.example");
+    const { leads: rows } = await makeLeads(
+      "info@verifyco.example",
+      "hello@verifyco.example",
+      "nobody@verifyco.example",
+    );
+    const [a, b, c] = rows as [Lead, Lead, Lead];
+    await db().update(leads).set({ companyId: agencies }).where(eq(leads.id, a.id));
+    await db().update(leads).set({ companyId: ria }).where(eq(leads.id, b.id));
+    // c has no company at all: never "of" a niche.
+    const stats = await runVerification(db(), authoritative(), {
+      checker: checker(),
+      niche: "agencies",
+    });
+    expect(stats.selected).toBe(1);
+    expect((await verificationsOf(a.id)).length).toBe(1);
+    expect((await verificationsOf(b.id)).length).toBe(0);
+    expect((await verificationsOf(c.id)).length).toBe(0);
+  });
+
   it("funnel end to end", async () => {
     const { importId } = await makeLeads(
       "alice@verifyco.example", // passes local, fake says valid

@@ -5,6 +5,9 @@
  * Selection: leads with status=imported and (unless reverify) no verification rows
  * yet. With recheckOlderThan set, verified leads whose newest verification (ANY
  * result: spend control, not a freshness verdict) is older than that are selected too.
+ * With retryRiskyOlderThan set, imported leads whose newest verdict is `risky` and
+ * older than that are tried again (a greylist or an unreachable prober is not a
+ * verdict on the address). `niche` narrows to leads of that niche's companies.
  *
  * Status moves with the verdict: an authoritative VALID -> verified, a definitive
  * failure (local checks, or an authoritative INVALID) -> undeliverable. A
@@ -14,7 +17,7 @@
  * A provider error aborts the remaining run but keeps everything already verified.
  * A failure in the LOCAL stage costs that one lead (local_errors) and the run continues.
  */
-import { type Lead, type LeadStatus, leads, transitionLead } from "@wren/core";
+import { companies, type Lead, type LeadStatus, leads, transitionLead } from "@wren/core";
 import type { Queryable } from "@wren/db";
 import { and, asc, eq, lt, notExists, or, sql } from "drizzle-orm";
 import { type VerificationResult, verifications } from "../schema.js";
@@ -37,6 +40,10 @@ export interface VerificationOptions {
   reverify?: boolean;
   /** Milliseconds; verified leads whose newest verification is older are re-bought. */
   recheckOlderThanMs?: number;
+  /** Milliseconds; imported leads whose newest verdict is `risky` and older are tried again. */
+  retryRiskyOlderThanMs?: number;
+  /** Only leads held by this niche's companies. */
+  niche?: string;
 }
 
 export interface VerificationStats {
@@ -66,9 +73,9 @@ export async function runVerification(
         ),
       );
   const eligible = [unchecked];
+  // Age is measured on the newest verification, on the DB clock.
+  const lastChecked = sql`(select max(${verifications.checkedAt}) from ${verifications} where ${verifications.leadId} = ${leads.id})`;
   if (opts.recheckOlderThanMs !== undefined) {
-    // Age is measured on the newest verification, on the DB clock.
-    const lastChecked = sql`(select max(${verifications.checkedAt}) from ${verifications} where ${verifications.leadId} = ${leads.id})`;
     eligible.push(
       and(
         eq(leads.status, "verified"),
@@ -76,10 +83,24 @@ export async function runVerification(
       ),
     );
   }
-  const where =
-    opts.importId === undefined
-      ? or(...eligible)
-      : and(or(...eligible), eq(leads.importId, opts.importId));
+  if (opts.retryRiskyOlderThanMs !== undefined) {
+    const newestResult = sql`(select ${verifications.result} from ${verifications} where ${verifications.leadId} = ${leads.id} order by ${verifications.checkedAt} desc, ${verifications.id} desc limit 1)`;
+    eligible.push(
+      and(
+        eq(leads.status, "imported"),
+        eq(newestResult, "risky"),
+        lt(lastChecked, sql`now() - make_interval(secs => ${opts.retryRiskyOlderThanMs / 1000})`),
+      ),
+    );
+  }
+  const narrowing = [or(...eligible)];
+  if (opts.importId !== undefined) narrowing.push(eq(leads.importId, opts.importId));
+  if (opts.niche !== undefined) {
+    narrowing.push(
+      sql`exists (select 1 from ${companies} where ${companies.id} = ${leads.companyId} and ${companies.niche} = ${opts.niche})`,
+    );
+  }
+  const where = and(...narrowing);
   const q = db.select().from(leads).where(where).orderBy(asc(leads.id));
   const selected: Lead[] = opts.limit === undefined ? await q : await q.limit(opts.limit);
 

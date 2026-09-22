@@ -224,12 +224,21 @@ export async function buildServices(
         daysAhead: settings.composeDaysAhead,
         verificationHorizonDays: settings.verificationHorizonDays,
         trackOpens: settings.openTracking,
+        // Free verdicts (smtp) → every role inbox is checked before it is enrolled.
+        roleInboxNeedsVerdict: !verifier.costsCredits,
         ...notify,
       }),
     );
   }
   // The pool-feeder walks the research chain per niche; what may spend is a setting.
-  services.push(makePoolScheduler({ db, policy, modelStages: settings.poolModelStages }));
+  services.push(
+    makePoolScheduler({
+      db,
+      policy,
+      modelStages: settings.poolModelStages,
+      freeVerifier: !verifier.costsCredits,
+    }),
+  );
   if (settings.notify !== "none") services.push(makeDigestScheduler({ db, notifier, policy }));
   // Bound only when configured: an object with nothing to pull is better absent than failing every pass.
   if (postmaster) {

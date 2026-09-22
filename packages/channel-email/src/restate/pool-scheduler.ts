@@ -1,17 +1,19 @@
 /**
  * The pool-feeder: `PoolScheduler/{niche}` walks the research chain once per
- * pass — discover, verify, crawl, render, scan, extract, pick, applyPicks — each
- * stage one bounded call to its own object, journaled by Restate. While any
- * stage still finds work the next pass follows in a minute; when every stage
- * reports nothing the loop sleeps until the next local day and looks again
- * (new imports, new domains). Role inboxes it proves become leads, which the
- * queue-keeper (`ComposeScheduler`) enrolls on its next pass.
+ * pass — discover, verify, crawl, render, scan, extract, pick, applyPicks,
+ * verifyMailboxes — each stage one bounded call to its own object, journaled by
+ * Restate. While any stage still finds work the next pass follows in a minute;
+ * when every stage reports nothing the loop sleeps until the next local day and
+ * looks again (new imports, new domains). Role inboxes it proves become leads,
+ * which the queue-keeper (`ComposeScheduler`) enrolls on its next pass.
  *
  * Spend is opt-in by stage. `modelStages` names what may call the model:
  * "none" (default: free groundwork only — no verdicts, so no new leads yet),
  * "pick" (a model call only for companies with more than one address), "all"
- * (extraction too: people and titles from every stored page). Person guesses
- * go to Resolution by hand; that spends verification credits.
+ * (extraction too: people and titles from every stored page). `verifyMailboxes`
+ * runs only with a free verifier (`freeVerifier`): it asks the mail servers about
+ * the leads the picks made, so compose sends to proven inboxes. Person guesses
+ * go to Resolution by hand.
  */
 import * as restate from "@restatedev/restate-sdk";
 import { finishRun, openRun } from "@wren/core";
@@ -20,6 +22,7 @@ import type { Db } from "@wren/db";
 import type { Discovery, Enrichment } from "@wren/research/restate";
 import type { SendPolicy } from "../send/policy.js";
 import { untilNextLocalDay } from "./postmaster-scheduler.js";
+import { RESOLUTION_KEY, type Resolution } from "./resolution.js";
 
 export const POOL_COMMAND = "pool feed";
 export type ModelStages = "none" | "pick" | "all";
@@ -32,6 +35,7 @@ export const STAGES = [
   "extract",
   "pick",
   "applyPicks",
+  "verifyMailboxes",
 ] as const;
 export type Stage = (typeof STAGES)[number];
 
@@ -44,6 +48,7 @@ export interface StageLimits {
   scan: number;
   extract: number;
   pick: number;
+  verifyMailboxes: number;
 }
 export const DEFAULT_LIMITS: StageLimits = {
   discover: 10,
@@ -53,12 +58,16 @@ export const DEFAULT_LIMITS: StageLimits = {
   scan: 200,
   extract: 20,
   pick: 50,
+  // Each probe is a live SMTP conversation, seconds apiece: keep one pass short.
+  verifyMailboxes: 10,
 };
 
 export interface PoolSchedulerDeps {
   db: Db;
   policy: SendPolicy;
   modelStages: ModelStages;
+  /** The configured verifier charges nothing per check, so the chain may verify mailboxes itself. */
+  freeVerifier?: boolean;
   limits?: Partial<StageLimits>;
   /** Between passes that found work. */
   busyMs?: number;
@@ -100,11 +109,23 @@ export const progressOf: Record<Stage, (s: Record<string, number>) => number> = 
   extract: (s) => s.extracted ?? 0,
   pick: (s) => s.picked ?? 0,
   applyPicks: (s) => s.picks_applied ?? 0,
+  // A lead with a verdict row (any result) leaves the selection; local errors do not.
+  verifyMailboxes: (s) =>
+    (s.local_invalid ?? 0) +
+    (s.valid ?? 0) +
+    (s.invalid ?? 0) +
+    (s.risky ?? 0) +
+    (s.catch_all ?? 0),
 };
 
-export function stageEnabled(stage: Stage, modelStages: ModelStages): boolean {
+export function stageEnabled(
+  stage: Stage,
+  modelStages: ModelStages,
+  freeVerifier = false,
+): boolean {
   if (stage === "extract") return modelStages === "all";
   if (stage === "pick" || stage === "applyPicks") return modelStages !== "none";
+  if (stage === "verifyMailboxes") return freeVerifier;
   return true;
 }
 
@@ -118,6 +139,7 @@ export function makePoolScheduler(deps: PoolSchedulerDeps) {
     const niche = ctx.key;
     const discovery = ctx.objectClient<Discovery>({ name: "Discovery" }, niche);
     const enrichment = ctx.objectClient<Enrichment>({ name: "Enrichment" }, niche);
+    const resolution = ctx.objectClient<Resolution>({ name: "Resolution" }, RESOLUTION_KEY);
     const calls: Record<Stage, () => Promise<object>> = {
       discover: () => discovery.discover({ limit: limits.discover }),
       verify: () => discovery.verify({ limit: limits.verify }),
@@ -127,12 +149,19 @@ export function makePoolScheduler(deps: PoolSchedulerDeps) {
       extract: () => enrichment.extract({ limit: limits.extract }),
       pick: () => enrichment.pick({ limit: limits.pick }),
       applyPicks: () => enrichment.applyPicks({}),
+      verifyMailboxes: () => resolution.verifyLeads({ niche, limit: limits.verifyMailboxes }),
     };
 
     const runId = await ctx.run("open run", async () => {
       const run = await openRun(deps.db, {
         command: POOL_COMMAND,
-        argv: { daemon: true, niche, model_stages: deps.modelStages, limits },
+        argv: {
+          daemon: true,
+          niche,
+          model_stages: deps.modelStages,
+          free_verifier: deps.freeVerifier ?? false,
+          limits,
+        },
         niche,
       });
       return run.id;
@@ -145,7 +174,7 @@ export function makePoolScheduler(deps: PoolSchedulerDeps) {
       failed: 0,
     };
     for (const stage of STAGES) {
-      if (!stageEnabled(stage, deps.modelStages)) {
+      if (!stageEnabled(stage, deps.modelStages, deps.freeVerifier)) {
         stats.stages.push({ stage, progress: 0, stats: null, error: null, skipped: true });
         continue;
       }

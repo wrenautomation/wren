@@ -69,6 +69,7 @@ const opts = (daysAhead: number) => ({
   daysAhead,
   verificationHorizonDays: VERIFICATION_HORIZON_DAYS,
   trackOpens: false,
+  roleInboxNeedsVerdict: false,
   runId: null,
 });
 

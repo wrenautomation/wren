@@ -22,6 +22,7 @@ import {
   strandedPromotions,
 } from "../resolution/service.js";
 import { LocalChecker, type LocalCheckerLike } from "../verification/local.js";
+import { runVerification, type VerificationStats } from "../verification/service.js";
 import type { EmailVerifier } from "../verification/verifier.js";
 
 export interface ResolutionDeps {
@@ -37,6 +38,14 @@ export interface ResolveInput {
   domainBudget?: number;
   creditLimit?: number | null;
 }
+
+export interface VerifyLeadsInput {
+  niche?: string;
+  limit?: number;
+  /** Days after which a `risky` verdict is tried again (default 2). */
+  retryRiskyAfterDays?: number;
+}
+export const DEFAULT_RETRY_RISKY_DAYS = 2;
 
 export function makeResolution(deps: ResolutionDeps) {
   const checker = deps.checker ?? new LocalChecker();
@@ -108,8 +117,39 @@ export function makeResolution(deps: ResolutionDeps) {
         await close(ctx, runId, stats);
         return stats;
       },
+
+      /**
+       * The verification funnel over a niche's imported leads (role inboxes the picks
+       * made, people from imports): one bounded pass, journaled as a whole. The
+       * pool-feeder calls this only when the verifier is free; by hand it spends.
+       */
+      verifyLeads: async (
+        ctx: restate.ObjectContext,
+        input: VerifyLeadsInput = {},
+      ): Promise<VerificationStats> => {
+        const runId = await open(ctx, "verify leads", { ...input });
+        const days = input.retryRiskyAfterDays ?? DEFAULT_RETRY_RISKY_DAYS;
+        const stats = await ctx.run("verify", () =>
+          runVerification(deps.db, deps.verifier, {
+            checker,
+            ...(input.niche !== undefined ? { niche: input.niche } : {}),
+            ...(input.limit !== undefined ? { limit: input.limit } : {}),
+            retryRiskyOlderThanMs: days * 86_400_000,
+          }),
+        );
+        await close(ctx, runId, stats);
+        // Nothing checked and the verifier down: that is the stage's failure, not a quiet pass.
+        if (stats.aborted && verifiedRows(stats) === 0) {
+          throw new restate.TerminalError(`verifier: ${stats.aborted}`);
+        }
+        return stats;
+      },
     },
   });
 }
+
+/** Leads that got a verification row this pass. */
+export const verifiedRows = (s: VerificationStats) =>
+  s.local_invalid + s.valid + s.invalid + s.risky + s.catch_all;
 
 export type Resolution = ReturnType<typeof makeResolution>;

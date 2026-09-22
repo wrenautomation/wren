@@ -23,6 +23,7 @@ const answers = {
   discover: { companies_scanned: 0 },
   crawl: { companies_crawled: 0, homepage_unreachable: 0, robots_blocked: 0 },
   pick: { picked: 0 },
+  verify: { selected: 0, local_invalid: 0, valid: 0, invalid: 0, risky: 0, catch_all: 0 },
   crawlRefuses: false,
 };
 const called: string[] = [];
@@ -54,6 +55,11 @@ const fakeEnrichment = restate.object({
   },
 });
 
+const fakeResolution = restate.object({
+  name: "Resolution",
+  handlers: { verifyLeads: stage("verifyLeads", () => answers.verify) },
+});
+
 let pg: TestPostgres;
 let env: RestateTestEnvironment;
 beforeAll(async () => {
@@ -62,7 +68,14 @@ beforeAll(async () => {
     services: [
       fakeDiscovery,
       fakeEnrichment,
-      makePoolScheduler({ db: pg.db, policy: POLICY, modelStages: "none", busyMs: 5_000 }),
+      fakeResolution,
+      makePoolScheduler({
+        db: pg.db,
+        policy: POLICY,
+        modelStages: "none",
+        freeVerifier: true,
+        busyMs: 5_000,
+      }),
     ],
     alwaysReplay: true,
   });
@@ -76,6 +89,7 @@ beforeEach(async () => {
   called.length = 0;
   answers.discover = { companies_scanned: 0 };
   answers.crawl = { companies_crawled: 0, homepage_unreachable: 0, robots_blocked: 0 };
+  answers.verify = { selected: 0, local_invalid: 0, valid: 0, invalid: 0, risky: 0, catch_all: 0 };
   answers.crawlRefuses = false;
 });
 
@@ -87,7 +101,7 @@ const sync = (key?: string) => client(key).sync() as Promise<PassOutcome<FeedSta
 describe("PoolScheduler", () => {
   it("walks the free stages in order, skips model stages, and sleeps a day when idle", async () => {
     const out = await sync();
-    expect(called).toEqual(["discover", "verify", "crawl", "render", "scan"]);
+    expect(called).toEqual(["discover", "verify", "crawl", "render", "scan", "verifyLeads"]);
     expect(out.stats?.stages.map((s) => [s.stage, s.skipped])).toEqual([
       ["discover", false],
       ["verify", false],
@@ -97,6 +111,7 @@ describe("PoolScheduler", () => {
       ["extract", true],
       ["pick", true],
       ["applyPicks", true],
+      ["verifyMailboxes", false],
     ]);
     expect(out.stats?.progress).toBe(0);
     // Sleeps to the policy's next local midnight after `now` (whatever day the test runs).
@@ -114,13 +129,27 @@ describe("PoolScheduler", () => {
     expect(out.delayMs).toBe(5_000);
   });
 
+  it("counts every verdict row as mailbox progress", async () => {
+    answers.verify = {
+      selected: 6,
+      local_invalid: 1,
+      valid: 2,
+      invalid: 1,
+      risky: 1,
+      catch_all: 0,
+    };
+    const out = await sync();
+    expect(out.stats?.stages.find((s) => s.stage === "verifyMailboxes")?.progress).toBe(5);
+    expect(out.delayMs).toBe(5_000);
+  });
+
   it("records a refusing stage, keeps walking, and retries later", async () => {
     answers.crawlRefuses = true;
     answers.discover = { companies_scanned: 25 };
     const out = await sync();
     const crawl = out.stats?.stages.find((s) => s.stage === "crawl");
     expect(crawl?.error).toMatch(/WREN_FETCH_CONTACT/);
-    expect(called).toEqual(["discover", "verify", "crawl", "render", "scan"]);
+    expect(called).toEqual(["discover", "verify", "crawl", "render", "scan", "verifyLeads"]);
     expect(out.stats).toMatchObject({ failed: 1, progress: 25 });
     expect(out.delayMs).toBe(60 * 60_000);
     const status = (await client().status()) as LoopStatus<FeedStats>;

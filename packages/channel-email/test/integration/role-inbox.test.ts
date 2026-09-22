@@ -51,7 +51,12 @@ const address = (m: { provenance: unknown } | undefined): Record<string, unknown
   (prov(m).address ?? {}) as Record<string, unknown>;
 
 function run(
-  opts: { opener?: typeof OPENER; kind?: "person" | "role_inbox"; limit?: number } = {},
+  opts: {
+    opener?: typeof OPENER;
+    kind?: "person" | "role_inbox";
+    limit?: number;
+    needsVerdict?: boolean;
+  } = {},
 ) {
   return compose(db(), {
     niche: "sec_ria",
@@ -64,6 +69,7 @@ function run(
     senders: [SENDER],
     ...(opts.kind ? { kind: opts.kind } : {}),
     ...(opts.limit !== undefined ? { limit: opts.limit } : {}),
+    ...(opts.needsVerdict !== undefined ? { roleInboxNeedsVerdict: opts.needsVerdict } : {}),
   });
 }
 
@@ -135,6 +141,31 @@ describe("role-inbox pass", () => {
     await makePick(db(), company, "jane@oakbridge.example");
     const stats = await run();
     expect(stats.enrolled).toBe(0);
+  });
+
+  it("with roleInboxNeedsVerdict, an unchecked inbox waits and a proven one goes", async () => {
+    const unchecked = await roleCompany(db(), "a.example", "info@a.example");
+    const catchAll = await roleCompany(db(), "b.example", "info@b.example");
+    const risky = await roleCompany(db(), "c.example", "info@c.example");
+    const verdict = async (email: string, result: "catch_all" | "risky") => {
+      const [lead] = await db().select().from(leads).where(eq(leads.email, email));
+      await db()
+        .insert(verifications)
+        .values({ leadId: (lead as { id: number }).id, email, verifier: "smtp", result, raw: {} });
+    };
+    await verdict("info@b.example", "catch_all");
+    await verdict("info@c.example", "risky");
+
+    const listed = await eligibleRoleInboxes(db(), { niche: "sec_ria", needsVerdict: true });
+    expect(listed.map((r) => r.companyId)).toEqual([catchAll.id]);
+    const stats = await run({ needsVerdict: true });
+    expect(stats.enrolled_role_inbox).toBe(1);
+    const rows = await allEnrollments(db());
+    expect(rows.map((e) => e.companyId)).toEqual([catchAll.id]);
+    expect(rows.map((e) => e.companyId)).not.toContain(unchecked.id);
+    expect(rows.map((e) => e.companyId)).not.toContain(risky.id);
+    // Off, the unchecked and the risky inboxes go too (the invalid gate still holds).
+    expect((await run()).enrolled_role_inbox).toBe(2);
   });
 
   it("gates: suppressed lead status, invalid verification, opt-out", async () => {

@@ -47,6 +47,8 @@ export interface ComposeSchedulerDeps {
   daysAhead: number;
   verificationHorizonDays: number;
   trackOpens?: boolean;
+  /** Role inboxes wait for a valid/catch_all verdict (on when the verifier is free). */
+  roleInboxNeedsVerdict?: boolean;
   /** Wait after a pass that threw (default 1 h). */
   retryMs?: number;
   /** Told when the plan ran dry (the pool needs an import) and when a pass fails. */
@@ -99,6 +101,7 @@ export async function topUp(
     daysAhead: number;
     verificationHorizonDays: number;
     trackOpens: boolean;
+    roleInboxNeedsVerdict: boolean;
     runId: string | null;
   },
 ): Promise<TopUpStats> {
@@ -134,6 +137,7 @@ export async function topUp(
       senders: campaign.senders,
       signatures: campaign.signatures,
       trackOpens: opts.trackOpens,
+      roleInboxNeedsVerdict: opts.roleInboxNeedsVerdict,
       factsView: campaign.factsView,
       limit: remaining,
       autoApprove: true,
@@ -178,6 +182,7 @@ export function makeComposeScheduler(deps: ComposeSchedulerDeps) {
           daysAhead: deps.daysAhead,
           verificationHorizonDays: deps.verificationHorizonDays,
           trackOpens,
+          roleInboxNeedsVerdict: deps.roleInboxNeedsVerdict ?? false,
           runId,
         });
       },

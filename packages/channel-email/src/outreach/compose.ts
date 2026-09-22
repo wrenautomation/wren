@@ -53,6 +53,11 @@ export interface ComposeOptions {
   readonly kind?: ComposeKind;
   /** Fact gate: every `key=value` must hold on the facts row the templates see, as text. */
   readonly where?: Readonly<Record<string, string>>;
+  /**
+   * A role inbox needs a valid or catch_all verdict before it is enrolled. On when
+   * verdicts are free (the pool-feeder makes them); off, an unchecked inbox may go.
+   */
+  readonly roleInboxNeedsVerdict?: boolean;
 }
 
 export interface ComposeStats {
@@ -127,8 +132,8 @@ const eligibleSql = (niche: string, companyMatch: string | null) => sql`
 // address: the pick's `best_send_to`, held as a lead on the company's own record. The newest
 // pick is chosen first and gated second, on purpose. Gates: the lead is not
 // suppressed/undeliverable (status), no verdict ever called the address invalid, and no
-// contact candidate holds it. A verification is NOT required.
-const roleInboxSql = (niche: string, companyMatch: string | null) => sql`
+// contact candidate holds it. A verification is required only when `needsVerdict`.
+const roleInboxSql = (niche: string, companyMatch: string | null, needsVerdict: boolean) => sql`
   WITH newest_pick AS (
     SELECT DISTINCT ON (e.company_id)
            e.company_id, e.id,
@@ -148,6 +153,11 @@ const roleInboxSql = (niche: string, companyMatch: string | null) => sql`
     AND NOT EXISTS (SELECT 1 FROM verifications v WHERE v.lead_id = l.id AND v.result = 'invalid')
     AND NOT EXISTS (SELECT 1 FROM contact_candidates cc WHERE lower(cc.email) = lower(l.email))
     AND NOT EXISTS (SELECT 1 FROM enrollments en WHERE en.company_id = c.id)
+    ${
+      needsVerdict
+        ? sql`AND EXISTS (SELECT 1 FROM verifications v WHERE v.lead_id = l.id AND v.result IN ('valid', 'catch_all'))`
+        : sql``
+    }
     ${
       companyMatch === null
         ? sql``
@@ -243,10 +253,12 @@ export async function eligiblePeople(
 /** Every company the role-inbox pass would consider today, with the suppression gate pre-applied. */
 export async function eligibleRoleInboxes(
   db: Queryable,
-  opts: ListingOptions & { excludeCompanies?: ReadonlySet<number> },
+  opts: ListingOptions & { excludeCompanies?: ReadonlySet<number>; needsVerdict?: boolean },
 ): Promise<EligibleRoleInbox[]> {
   const match = opts.companyMatch ? `%${opts.companyMatch}%` : null;
-  const rows = rowsAs<RoleInboxRow>(await db.execute(roleInboxSql(opts.niche, match)));
+  const rows = rowsAs<RoleInboxRow>(
+    await db.execute(roleInboxSql(opts.niche, match, opts.needsVerdict ?? false)),
+  );
   const exclude = opts.excludeCompanies ?? new Set<number>();
   const out: EligibleRoleInbox[] = [];
   for (const row of rows) {
@@ -280,6 +292,7 @@ interface Shared {
   readonly runId: string | null;
   readonly stats: ComposeStats;
   readonly where: Readonly<Record<string, string>>;
+  readonly roleInboxNeedsVerdict: boolean;
 }
 
 /**
@@ -313,6 +326,7 @@ export async function compose(db: Queryable, opts: ComposeOptions): Promise<Comp
     runId: opts.runId ?? null,
     stats: newStats(),
     where: opts.where ?? {},
+    roleInboxNeedsVerdict: opts.roleInboxNeedsVerdict ?? false,
   };
   const kind = opts.kind ?? "all";
   const limit = opts.limit ?? null;
@@ -384,7 +398,9 @@ async function personPass(
 /** The companies the person pass left without an enrollment, through the address their pick chose. */
 async function roleInboxPass(db: Queryable, shared: Shared, limit: number | null) {
   const stats = shared.stats;
-  const rows = rowsAs<RoleInboxRow>(await db.execute(roleInboxSql(shared.niche, null)));
+  const rows = rowsAs<RoleInboxRow>(
+    await db.execute(roleInboxSql(shared.niche, null, shared.roleInboxNeedsVerdict)),
+  );
   for (const row of rows) {
     if (limit !== null && stats.enrolled >= limit) break;
     if ((await activeSuppression(db, row.email)) !== null) {
