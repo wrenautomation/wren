@@ -216,7 +216,9 @@ resource "aws_instance" "pg" {
   tags = { Name = "${local.prefix}-pg" }
 
   lifecycle {
-    ignore_changes = [ami]
+    # User data runs at first boot only; later changes ship by deploy scripts
+    # (deploy-prober.sh). An in-place user_data change would stop Postgres.
+    ignore_changes = [ami, user_data]
   }
 }
 
