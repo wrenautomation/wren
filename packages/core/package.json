@@ -7,6 +7,7 @@
     ".": "./src/index.ts",
     "./content": "./src/content/index.ts",
     "./content/restate": "./src/content/restate.ts",
+    "./content/renewal": "./src/content/renewal.ts",
     "./notify": "./src/notify.ts",
     "./restate": "./src/restate/index.ts",
     "./ingest": "./src/ingest/index.ts",

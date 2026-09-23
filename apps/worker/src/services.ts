@@ -48,6 +48,7 @@ import { youtubeContent } from "@wren/channel-youtube";
 import type { Settings } from "@wren/config";
 import { s3MediaHost } from "@wren/content";
 import { makeContentDesk, makeContentMetrics, makeContentScheduler } from "@wren/content/restate";
+import { makeTokenRenewal } from "@wren/core/content/renewal";
 import { type ChannelsFor, makeContent, restateSites } from "@wren/core/content/restate";
 import { createDb } from "@wren/db";
 import { loadLlmEnv, makeLlm, makeTracer } from "@wren/llm";
@@ -282,6 +283,9 @@ export async function buildServices(
     makeContentScheduler({ db, ...notify }),
     makeContentMetrics({ db, ...notify }),
   );
+  // autobrowse's tokens made again before they lapse (LinkedIn's 60 days, npm's 90); the box is woken for it.
+  const wake = settings.autobrowseInstanceId ? ec2Wake(settings.autobrowseInstanceId) : undefined;
+  services.push(makeTokenRenewal({ db, ...(wake ? { wake } : {}), ...notify }));
 
   return {
     services,

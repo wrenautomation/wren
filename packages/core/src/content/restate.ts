@@ -18,7 +18,7 @@ import type { ContentChannel, ListQuery, Platform, Post } from "./index.js";
 
 export type Channels = Partial<Record<Platform, ContentChannel>>;
 
-const SITES = { name: "sites" } as const;
+export const SITES = { name: "sites" } as const;
 
 /** The `sites` service's handlers as autobrowse serves them; no import from that repo. */
 type SitesService = {
