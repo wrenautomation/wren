@@ -17,6 +17,11 @@ output "backups_bucket" {
   value = aws_s3_bucket.backups.bucket
 }
 
+output "media_bucket" {
+  description = "WREN_MEDIA_BUCKET for the CLI (the worker has it already)"
+  value       = aws_s3_bucket.media.bucket
+}
+
 output "lambda_arn" {
   value = aws_lambda_function.worker.arn
 }

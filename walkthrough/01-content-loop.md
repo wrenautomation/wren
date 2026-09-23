@@ -81,7 +81,8 @@ channel. The winners feed the next drafts.
 
 A local `--media` file lands in `WREN_MEDIA_BUCKET` first (the worker and
 the box cannot read this laptop); every platform gets a signed URL at
-publish. A URL is used as is.
+publish. A URL is used as is. Instagram posts through the box's browser
+composer until Meta is set up: the box downloads the signed URL, then uploads.
 
 ## Where it breaks
 

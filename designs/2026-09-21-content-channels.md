@@ -124,6 +124,14 @@ Rule: an adapter method that uses the browser says so in its row
    `WREN_CONTENT_CHANNELS` takes the new names. A YouTube short lands on
    Instagram, TikTok and X by publishing the same file to each channel;
    the composer (next) writes the caption per platform.
+10. ✅ Media bucket live (2026-09-23): `deploy/terraform/media.tf`, private,
+   the worker may Get/Put `media/*`; terraform sets `WREN_MEDIA_BUCKET` on
+   the Lambda, `tofu output -raw media_bucket` for the CLI's `.env`.
+   Instagram posts through the browser composer until Meta is set up
+   (Graph only with a host and `WREN_META_PAGE_ID`); the box downloads the
+   signed URL first (autobrowse `uploads: "file"` on a browser leg). Prod
+   channels: youtube, linkedin, instagram. X, TikTok, Facebook wait on
+   accounts and keys (`autobrowse needs`).
 8. ✅ One verb (2026-09-21): `autobrowseDo({url, token})` / `restateDo(ctx,
    wake)` in `@wren/core/content` call autobrowse's `do`: a goal in
    ("upload this to youtube" + `{file}`), what ran out. autobrowse routes it

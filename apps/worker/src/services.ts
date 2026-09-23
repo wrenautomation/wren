@@ -332,10 +332,15 @@ function contentFor(settings: Settings, log: Logger): ChannelsFor | null {
       ...(on.includes("linkedin") ? { linkedin: linkedinContent(sites) } : {}),
       ...(on.includes("youtube") ? { youtube: youtubeContent(sites, host ? { host } : {}) } : {}),
       ...(on.includes("x") ? { x: xContent(sites, host ? { host } : {}) } : {}),
-      // The Graph path needs the media at a public URL; with no bucket to host
-      // it, the browser composer is the only one that can post a local file.
+      // The Graph path needs a hosted URL and a Facebook Page (WREN_META_PAGE_ID);
+      // until both exist the browser composer posts, fetching the signed URL itself.
       ...(on.includes("instagram")
-        ? { instagram: host ? instagramContent(sites, meta) : instagramWebContent(sites) }
+        ? {
+            instagram:
+              host && settings.metaPageId
+                ? instagramContent(sites, meta)
+                : instagramWebContent(sites, host ? { host } : {}),
+          }
         : {}),
       ...(on.includes("facebook") ? { facebook: facebookContent(sites, meta) } : {}),
       ...(on.includes("tiktok") ? { tiktok: tiktokContent(sites, host ? { host } : {}) } : {}),

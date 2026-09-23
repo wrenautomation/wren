@@ -6,19 +6,23 @@
  * while a signed-in browser posts the file directly. autobrowse answers
  * `POST /web/posts` with its composer flow and guards the account it
  * posts as (`INSTAGRAM_ACCOUNT`), so nothing here knows it is a browser.
+ * The box has none of our files: a stored object goes as a signed URL,
+ * which the box downloads before it uploads.
  *
  * Reading back is still the API's: the composer has no listing route, so
  * `list`, `metrics` and `comments` want the token and say so plainly.
  */
-import type {
-  CommentRow,
-  ContentChannel,
-  ListQuery,
-  Metrics,
-  Post,
-  Published,
-  PublishedRow,
-  SiteClient,
+import {
+  type CommentRow,
+  type ContentChannel,
+  type ListQuery,
+  type MediaHost,
+  type Metrics,
+  mediaFileOf,
+  type Post,
+  type Published,
+  type PublishedRow,
+  type SiteClient,
 } from "@wren/core/content";
 
 const NO_READ =
@@ -26,7 +30,7 @@ const NO_READ =
 
 export function instagramWebContent(
   sites: SiteClient,
-  o: { now?: () => Date } = {},
+  o: { now?: () => Date; host?: MediaHost } = {},
 ): ContentChannel {
   const now = o.now ?? (() => new Date());
   return {
@@ -34,7 +38,7 @@ export function instagramWebContent(
     async publish(post: Post): Promise<Published> {
       if (!post.media) throw new Error("instagram: a post is an image or a video");
       const r = await sites.call<{ url?: string | null }>("instagram", "POST", "/web/posts", {
-        file: post.media.source,
+        file: await mediaFileOf(post.media.source, o.host, "instagram"),
         caption: post.text,
       });
       // The composer confirms the post before the profile lists it; a post

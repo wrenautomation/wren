@@ -17,6 +17,16 @@ function fakeSites(answer: unknown) {
 const NOW = () => new Date("2026-09-22T18:00:00.000Z");
 
 describe("instagram through the browser", () => {
+  it("sends a stored object as the host's signed URL: the box has none of our files", async () => {
+    const { sites, calls } = fakeSites({ url: "https://www.instagram.com/reel/R1/" });
+    const host = { host: async (src: string) => `https://signed/${src.slice(5)}?sig=1` };
+    await instagramWebContent(sites, { now: NOW, host }).publish({
+      text: "hi",
+      media: { kind: "video", source: "s3://b/media/k.mp4" },
+    });
+    expect(calls[0]?.input).toEqual({ file: "https://signed/b/media/k.mp4?sig=1", caption: "hi" });
+  });
+
   it("posts the local file with its caption and reads the post id off the link", async () => {
     const { sites, calls } = fakeSites({ url: "https://www.instagram.com/p/ABC123/" });
     const out = await instagramWebContent(sites, { now: NOW }).publish({
