@@ -16,6 +16,7 @@ import {
 import type { LinkedinInbox } from "@wren/channel-linkedin/restate";
 import { INBOX_KEY } from "@wren/channel-linkedin/restate";
 import { ingressOf, loadEnvFile, loadSettings } from "@wren/config";
+import { RENEWAL_KEY, type TokenRenewal } from "@wren/core/content/renewal";
 import { createDb } from "@wren/db";
 import { Command } from "commander";
 import { sql } from "drizzle-orm";
@@ -108,6 +109,28 @@ registerReview(registerEmail(program, withDb, settings, rootDir), withDb);
 registerFetch(program, settings);
 registerContent(program, withDb, settings);
 registerAds(program, withDb, settings);
+
+const renewal = () =>
+  clients
+    .connect(ingressOf(settings))
+    .objectClient<TokenRenewal>({ name: "TokenRenewal" }, RENEWAL_KEY);
+const tokens = program
+  .command("tokens")
+  .description("TokenRenewal: autobrowse makes again what lapses within 14 days");
+tokens
+  .command("status")
+  .action(async () => console.log(JSON.stringify(await renewal().status(), null, 2)));
+tokens
+  .command("start")
+  .description("Loop: renew, then sleep until 14 days before the next lapse (1 to 7 days)")
+  .action(async () => console.log(JSON.stringify(await renewal().start(), null, 2)));
+tokens
+  .command("stop")
+  .action(async () => console.log(JSON.stringify(await renewal().stop(), null, 2)));
+tokens
+  .command("renew")
+  .description("One pass now")
+  .action(async () => console.log(JSON.stringify(await renewal().sync(), null, 2)));
 
 const report = program.command("report").description("periodic reports");
 report
