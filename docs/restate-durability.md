@@ -43,8 +43,9 @@ A Virtual Object with five handlers:
 
 The pass is one `ctx.run`. It catches its own error and returns
 `{stats, error}` instead of throwing, so a failing stage retries on *our*
-schedule (`retryMs`, usually 1 min), not Restate's exponential retry, and the
-loop never dies. The delay is computed from the journaled result, so a replay
+schedule, not Restate's, and the loop never dies. Failures in a row back off
+15s, 30s, 1m, ... up to the loop's `retryMs` cap (8 min for PoolScheduler);
+one clean pass resets it (`failures` in `last`). The delay is computed from the journaled result, so a replay
 picks the same delay.
 
 ```

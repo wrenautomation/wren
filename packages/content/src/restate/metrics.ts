@@ -77,6 +77,7 @@ export function makeContentMetrics(deps: ContentMetricsDeps) {
     const outcome: PassOutcome<MetricsStats> = {
       stats,
       error: null,
+      failures: 0,
       delayMs: everyMs,
       now: now.toISOString(),
     };

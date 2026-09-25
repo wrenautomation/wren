@@ -120,6 +120,7 @@ export function makeAdsWatch(deps: AdsWatchDeps) {
     const outcome: PassOutcome<WatchStats> = {
       stats,
       error: null,
+      failures: 0,
       delayMs: everyMs,
       now: now.toISOString(),
     };

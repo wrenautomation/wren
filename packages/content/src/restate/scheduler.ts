@@ -79,6 +79,7 @@ export function makeContentScheduler(deps: ContentSchedulerDeps) {
     const outcome: PassOutcome<PublishStats> = {
       stats,
       error: null,
+      failures: 0,
       delayMs,
       now: now.toISOString(),
     };

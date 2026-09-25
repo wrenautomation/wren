@@ -8,7 +8,8 @@
  *
  * A stage failure is the stage's problem, not the loop's (U-D4): the step
  * catches it, records it on the ledger row and in `last`, and the loop asks
- * again after `retryMs` rather than dying or retrying as fast as it can.
+ * again with a backoff (`retryDelayMs`: seconds first, capped at `retryMs`)
+ * rather than dying or retrying as fast as it can.
  */
 import * as restate from "@restatedev/restate-sdk";
 import type { Db } from "@wren/db";
@@ -21,11 +22,27 @@ export const LAST = "last";
 /** Object state key holding what `start` was last given; a pass reads it with `loopSettings`. */
 const SETTINGS = "settings";
 export const MIN_DELAY_MS = 1_000;
+/** The first retry after a failed pass; each further failure in a row doubles it. */
+export const FIRST_RETRY_MS = 15_000;
+
+/** Delay after the `failures`-th failed pass in a row: 15s, 30s, 1m, ... up to `capMs`. */
+export function retryDelayMs(failures: number, capMs: number): number {
+  return Math.min(FIRST_RETRY_MS * 2 ** Math.max(failures - 1, 0), capMs);
+}
+
+/** Failed passes in a row, this one included (0 when it succeeded). */
+export async function failuresInARow(ctx: restate.ObjectContext, failed: boolean): Promise<number> {
+  if (!failed) return 0;
+  const previous = await ctx.get<PassOutcome<unknown>>(LAST);
+  return (previous?.failures ?? 0) + 1;
+}
 
 /** What one pass left behind: its stats, or the error that ended it. */
 export interface PassOutcome<S> {
   stats: S | null;
   error: string | null;
+  /** Failed passes in a row, this one included; drives the retry backoff. */
+  failures: number;
   /** When the next pass is due, ms after this pass's `now`. */
   delayMs: number;
   now: string;
@@ -53,7 +70,7 @@ export interface PassSpec<S extends object> {
   body: (runId: string) => Promise<S>;
   /** Delay after a pass that returned, given its stats. */
   delayAfter: (stats: S) => number;
-  /** Delay after a pass that threw. */
+  /** The longest delay after failed passes (the backoff's cap). */
   retryMs: number;
   /**
    * Told once when a pass starts failing (a new error text) and once when it
@@ -91,12 +108,13 @@ export async function runPass<S extends object>(
       }
     },
   );
+  const previous = (await ctx.get<PassOutcome<S>>(LAST)) ?? null;
+  const failures = result.stats === null ? (previous?.failures ?? 0) + 1 : 0;
   const delayMs = Math.max(
-    result.stats === null ? spec.retryMs : spec.delayAfter(result.stats),
+    result.stats === null ? retryDelayMs(failures, spec.retryMs) : spec.delayAfter(result.stats),
     MIN_DELAY_MS,
   );
-  const outcome: PassOutcome<S> = { ...result, delayMs, now: now.toISOString() };
-  const previous = (await ctx.get<PassOutcome<S>>(LAST)) ?? null;
+  const outcome: PassOutcome<S> = { ...result, failures, delayMs, now: now.toISOString() };
   ctx.set(LAST, outcome);
   if (spec.notifier) await notifyErrorEdges(ctx, spec.notifier, spec.name, previous, outcome);
   return outcome;

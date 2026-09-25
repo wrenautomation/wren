@@ -23,10 +23,12 @@ import * as restate from "@restatedev/restate-sdk";
 import { finishRun, openRun } from "@wren/core";
 import {
   errorText,
+  failuresInARow,
   LAST,
   loopSettings,
   makeLoopObject,
   type PassOutcome,
+  retryDelayMs,
 } from "@wren/core/restate";
 import type { Db } from "@wren/db";
 import type { Discovery, Enrichment } from "@wren/research/restate";
@@ -112,7 +114,7 @@ export interface PoolSchedulerDeps {
   limits?: Partial<StageLimits>;
   /** Between passes that found work. */
   busyMs?: number;
-  /** After a pass in which a stage failed. */
+  /** The longest delay after passes in which a stage failed (backoff cap). */
   retryMs?: number;
 }
 
@@ -135,7 +137,7 @@ export interface FeedStats {
 }
 
 const DEFAULT_BUSY_MS = 60_000;
-const DEFAULT_RETRY_MS = 60 * 60_000;
+const DEFAULT_RETRY_MS = 8 * 60_000;
 
 /** A stage's "did work" number: units whose selection no longer matches after this pass. */
 export const progressOf: Record<Stage, (s: Record<string, number>) => number> = {
@@ -256,15 +258,17 @@ export function makePoolScheduler(deps: PoolSchedulerDeps) {
     }
     await ctx.run("finish run", () => finishRun(deps.db, runId, stats));
 
+    const failures = await failuresInARow(ctx, stats.failed > 0);
     const delayMs =
-      stats.failed > 0
-        ? retryMs
+      failures > 0
+        ? retryDelayMs(failures, retryMs)
         : stats.progress > 0
           ? busyMs
           : untilNextLocalDay(deps.policy, now);
     const outcome: PassOutcome<FeedStats> = {
       stats,
       error: null,
+      failures,
       delayMs,
       now: now.toISOString(),
     };

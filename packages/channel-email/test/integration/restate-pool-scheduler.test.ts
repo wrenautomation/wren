@@ -164,7 +164,7 @@ describe("PoolScheduler", () => {
     expect(out.delayMs).toBe(5_000);
   });
 
-  it("records a refusing stage, keeps walking, and retries later", async () => {
+  it("records a refusing stage, keeps walking, and retries with a backoff", async () => {
     answers.crawlRefuses = true;
     answers.discover = { companies_scanned: 25 };
     const out = await sync();
@@ -180,9 +180,13 @@ describe("PoolScheduler", () => {
       "verifyLeads",
     ]);
     expect(out.stats).toMatchObject({ failed: 1, progress: 25 });
-    expect(out.delayMs).toBe(60 * 60_000);
+    expect(out).toMatchObject({ failures: 1, delayMs: 15_000 });
     const status = (await client().status()) as LoopStatus<FeedStats>;
     expect(status.last?.stats?.failed).toBe(1);
+    // Failures in a row double the wait; one clean pass resets it.
+    expect(await sync()).toMatchObject({ failures: 2, delayMs: 30_000 });
+    answers.crawlRefuses = false;
+    expect(await sync()).toMatchObject({ failures: 0 });
   });
 
   it("narrows a niche's loop to the stages start was given, and {} widens it back", async () => {
