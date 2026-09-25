@@ -80,6 +80,24 @@ const client = () =>
     .connect({ url: env.baseUrl() })
     .objectClient<Resolution>({ name: "Resolution" }, RESOLUTION_KEY);
 
+async function inboxLead(company: Company, email: string) {
+  const [batch] = await db()
+    .insert(imports)
+    .values({ sourceType: "pick", sourceRef: "test", stats: {} })
+    .returning();
+  const [lead] = await db()
+    .insert(leads)
+    .values({
+      email,
+      raw: {},
+      importId: (batch as { id: number }).id,
+      status: "imported",
+      companyId: company.id,
+    })
+    .returning();
+  return lead as { id: number };
+}
+
 async function makeFirm(names: [string, string][], domain = DOMAIN): Promise<Company> {
   const [company] = await db()
     .insert(companies)
@@ -217,6 +235,31 @@ describe("Resolution virtual object", () => {
       expect(retry).toMatchObject({ domains_processed: 1, promoted: 1 });
     });
 
+    it("skips a domain a lead's verdict already showed catch-all", async () => {
+      verifier.costsCredits = false;
+      await firms(2);
+      const c = client();
+      await c.build({});
+      await c.queue({});
+      const [f0] = await db()
+        .select()
+        .from(companies)
+        .where(eq(companies.domain, "f0.veloqua.example"));
+      const lead = await inboxLead(f0 as Company, "info@f0.veloqua.example");
+      await db()
+        .insert(verifications)
+        .values({
+          leadId: lead.id,
+          verifier: "smtp",
+          result: "catch_all",
+          raw: { authoritative: true },
+          email: "info@f0.veloqua.example",
+        });
+      const stats = await c.resolveNewDomains({ niche: "sec_ria", limitDomains: 5 });
+      expect(stats.domains_processed).toBe(1);
+      expect(verifier.calls.every((e) => e.endsWith("@f1.veloqua.example"))).toBe(true);
+    });
+
     it("refuses a paid verifier: it would spend without a limit", async () => {
       await expect(client().resolveNewDomains({ limitDomains: 5 })).rejects.toThrow(
         /free verifiers/,
@@ -236,24 +279,6 @@ describe("Resolution virtual object", () => {
   });
 
   describe("verifyLeads", () => {
-    async function inboxLead(company: Company, email: string) {
-      const [batch] = await db()
-        .insert(imports)
-        .values({ sourceType: "pick", sourceRef: "test", stats: {} })
-        .returning();
-      const [lead] = await db()
-        .insert(leads)
-        .values({
-          email,
-          raw: {},
-          importId: (batch as { id: number }).id,
-          status: "imported",
-          companyId: company.id,
-        })
-        .returning();
-      return lead as { id: number };
-    }
-
     it("verifies a niche's imported leads and moves their status", async () => {
       const firm = await makeFirm([]);
       await db().update(companies).set({ niche: "agencies" }).where(eq(companies.id, firm.id));

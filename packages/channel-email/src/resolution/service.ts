@@ -768,7 +768,8 @@ export async function selectResolutionTargets(db: Queryable): Promise<string[]> 
 /**
  * Domains with queued candidates and no conclusive verdict yet, oldest queue first:
  * each one's first walk. A domain the walk left queued (catch-all, pattern unknown) has
- * rows, so it drops out; one whose walk wrote nothing (resolver trouble) comes back, and
+ * rows, so it drops out, as does one known catch-all from a lead's verdict; one whose
+ * walk wrote nothing (resolver trouble) comes back, and
  * so does one whose only verdicts are `risky` older than `retryRiskyAfterDays` (the
  * server blocked, timed out or deferred us; it may not next time).
  */
@@ -788,6 +789,11 @@ export async function selectNewResolutionTargets(
         SELECT 1 FROM verifications v JOIN contact_candidates x ON x.id = v.contact_candidate_id
         WHERE x.domain = c.domain
           AND (v.result <> 'risky' OR v.checked_at > now() - make_interval(days => ${retryDays})))
+      -- Known catch-all from any verdict at the domain (a lead's too): the walk has nothing to ask.
+      AND NOT EXISTS (
+        SELECT 1 FROM ${verifications}
+        WHERE split_part(${verifications.email}, '@', 2) = c.domain
+          AND ${verifications.result} = 'catch_all' AND ${authoritativeRaw})
     GROUP BY c.domain
     ORDER BY min(c.id)
     LIMIT ${opts.limit}
