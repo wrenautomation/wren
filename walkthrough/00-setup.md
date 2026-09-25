@@ -58,7 +58,6 @@ packages/content    ideas, drafts, review, slots, metrics, lessons, costs, resta
 packages/channel-*  email, linkedin, meta (ads + Page/IG posts), youtube, x, tiktok
 packages/research   the lead pool, discovery, enrichment
 packages/niches     per-niche registries (agencies, …): the core stays niche-agnostic
-packages/provision  domains, Workspace, inboxes through autobrowse
 ```
 
 Rules: deps point down; channels never import each other; every package

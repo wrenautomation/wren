@@ -102,16 +102,6 @@ export const settingsSchema = z.object({
   sendTransport: z.enum(["console", "gmail"]).default("console"),
   daemonTickSeconds: z.coerce.number().int().default(60),
   daemonSyncSeconds: z.coerce.number().int().default(300),
-  /**
-   * Domain provisioning (`Domain/{domain}`): bound only when the account id
-   * and the Workspace super admin are both set and CLOUDFLARE_API_TOKEN is in
-   * the env. Secrets never go through settings.
-   */
-  cloudflareAccountId: z.string().min(1).optional(),
-  /** The Workspace super admin the service account acts as for domains and users. */
-  googleAdminUser: z.string().email().optional(),
-  /** DMARC aggregate reports go here (unset = none). */
-  dmarcRua: z.string().email().optional(),
   /** Content platforms served through autobrowse's `sites` Restate service; empty = no `Content` service. */
   contentChannels: z
     .string()
@@ -213,9 +203,6 @@ export const ENV_KEYS = {
   sendTransport: "WREN_SEND_TRANSPORT",
   daemonTickSeconds: "WREN_DAEMON_TICK_SECONDS",
   daemonSyncSeconds: "WREN_DAEMON_SYNC_SECONDS",
-  cloudflareAccountId: "WREN_CLOUDFLARE_ACCOUNT_ID",
-  googleAdminUser: "WREN_GOOGLE_ADMIN_USER",
-  dmarcRua: "WREN_DMARC_RUA",
   contentChannels: "WREN_CONTENT_CHANNELS",
   contentVoicePath: "WREN_CONTENT_VOICE",
   mediaBucket: "WREN_MEDIA_BUCKET",

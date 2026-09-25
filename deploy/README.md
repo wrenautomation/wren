@@ -88,14 +88,9 @@ later release) so the version still serving does not break.
   `deploy/scripts/push-secrets.sh` (writes SSM `/wren/prod/senders_config`), force new instances as
   above. The Lambda reads the roster from SSM at cold start; the bundle never carries it, so
   CI builds (which have no roster) deploy the same fleet.
-- Add a sending domain: `POST /Domain/{domain}/provision` on the Restate ingress with the plan
-  (`{"domain","inboxes":[{"local","givenName","familyName"}],"signatureHtml"?}`), see
-  `packages/provision`. API steps run here; the browser legs (buy, DKIM, warmup) are
-  autobrowse's `browser` service registered with the same Restate. Gates (`purchase`,
-  `password`, `human`) show in `/Domain/{domain}/status`; answer with `/approve` or `/reject`.
-  Needs `WREN_CLOUDFLARE_ACCOUNT_ID`, `WREN_GOOGLE_ADMIN_USER` in prod.env, `CLOUDFLARE_API_TOKEN`
-  beside them, and the delegation entry for the service account to also grant
-  `admin.directory.domain`, `admin.directory.user`, `siteverification`, `gmail.settings.basic`.
+- Add a sending domain: autobrowse's `domain` workflow (buy, DNS, Workspace, inboxes with
+  password + TOTP, Instantly warmup, roster, loops); see `autobrowse/designs/2026-09-19-domain-flow.md`.
+  It writes the roster here and starts `SendScheduler`/`InboxScheduler` for each inbox.
 - Shell on the box: `aws ssm start-session --target $(cd deploy/terraform && tofu output -raw pg_instance_id)`.
   Postgres is `docker exec -it wren-pg psql -U wren`. First-boot log: `/var/log/wren-user-data.log`.
 - Backups: nightly `pg_dump -Fc` to the `backups_bucket`, 30-day expiry. Restore:

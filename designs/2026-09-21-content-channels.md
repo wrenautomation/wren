@@ -56,8 +56,7 @@ Rule: an adapter method that uses the browser says so in its row
   and keep them in autobrowse's env store. Spec:
   `autobrowse/designs/2026-09-21-site-apis.md`.
 - Wren reaches it as the Restate service `sites` on the same Restate
-  (`restateSites(ctx)` in `@wren/core/content/restate`, like the `browser`
-  service domain provisioning uses): no port on the box, calls queue while
+  (`restateSites(ctx)` in `@wren/core/content/restate`): no port on the box, calls queue while
   it is down. With `WREN_AUTOBROWSE_INSTANCE_ID` set, the first `sites`
   call of an invocation is preceded by one journaled `wake autobrowse`
   step (`ec2Wake`: start the instance if stopped, tag
