@@ -18,6 +18,8 @@ import { type RunOptions, recordedRun } from "../runs.js";
 const RUNNING = "running";
 /** Object state key holding the last pass outcome; `status` reads it. */
 export const LAST = "last";
+/** Object state key holding what `start` was last given; a pass reads it with `loopSettings`. */
+const SETTINGS = "settings";
 export const MIN_DELAY_MS = 1_000;
 
 /** What one pass left behind: its stats, or the error that ended it. */
@@ -33,6 +35,15 @@ export interface LoopStatus<S> {
   key: string;
   running: boolean;
   last: PassOutcome<S> | null;
+  /** What `start` was last given for this key; null = defaults. */
+  settings: Record<string, unknown> | null;
+}
+
+/** The settings `start` stored for this loop's key, or null. */
+export async function loopSettings<T extends object>(
+  ctx: restate.ObjectContext | restate.ObjectSharedContext,
+): Promise<T | null> {
+  return (await ctx.get<T>(SETTINGS)) ?? null;
 }
 
 export interface PassSpec<S extends object> {
@@ -129,8 +140,19 @@ export function makeLoopObject<S extends object>(
       /** One pass now; the loop (if any) is untouched. */
       sync: async (ctx: restate.ObjectContext): Promise<PassOutcome<S>> => pass(ctx),
 
-      /** Begin looping; a no-op when already running. */
-      start: async (ctx: restate.ObjectContext): Promise<LoopStatus<S>> => {
+      /**
+       * Begin looping; a no-op when already running. A body replaces this key's
+       * settings (`{}` = back to defaults) and applies from the next pass; no body
+       * keeps them.
+       */
+      start: async (
+        ctx: restate.ObjectContext,
+        settings?: Record<string, unknown> | null,
+      ): Promise<LoopStatus<S>> => {
+        if (settings !== undefined && settings !== null) {
+          if (Object.keys(settings).length > 0) ctx.set(SETTINGS, settings);
+          else ctx.clear(SETTINGS);
+        }
         const running = (await ctx.get<boolean>(RUNNING)) ?? false;
         if (!running) {
           ctx.set(RUNNING, true);
@@ -163,7 +185,12 @@ export function makeLoopObject<S extends object>(
     ctx: restate.ObjectSharedContext | restate.ObjectContext,
     running: boolean,
   ): Promise<LoopStatus<S>> {
-    return { key: ctx.key, running, last: (await ctx.get<PassOutcome<S>>(LAST)) ?? null };
+    return {
+      key: ctx.key,
+      running,
+      last: (await ctx.get<PassOutcome<S>>(LAST)) ?? null,
+      settings: await loopSettings(ctx),
+    };
   }
 
   return object;

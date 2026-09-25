@@ -15,10 +15,19 @@
  * the person guesses someone queued (`Resolution.queue`: who to reach stays a
  * person's call), `verifyMailboxes` asks the mail servers about the leads the picks
  * made, so compose sends to proven inboxes. A paid verifier resolves by hand.
+ *
+ * `start({stages: [...]})` narrows one niche's loop to those stages (e.g. only the
+ * two mailbox stages while the crawl stays off); `start({})` goes back to all.
  */
 import * as restate from "@restatedev/restate-sdk";
 import { finishRun, openRun } from "@wren/core";
-import { errorText, LAST, makeLoopObject, type PassOutcome } from "@wren/core/restate";
+import {
+  errorText,
+  LAST,
+  loopSettings,
+  makeLoopObject,
+  type PassOutcome,
+} from "@wren/core/restate";
 import type { Db } from "@wren/db";
 import type { Discovery, Enrichment } from "@wren/research/restate";
 import type { SendPolicy } from "../send/policy.js";
@@ -70,6 +79,24 @@ export const DEFAULT_LIMITS: StageLimits = {
 
 /** Mail servers talked to at once. Within the prober's own in-flight cap (PROBE_MAX_IN_FLIGHT). */
 export const PROBE_WIDTH = 16;
+
+/** What `PoolScheduler/{niche}/start` may be given. */
+export interface PoolSettings {
+  /** Only these stages run for this niche; absent = every enabled stage. */
+  stages?: Stage[];
+}
+
+/** The stages a pass runs: enabled by config, then narrowed by the niche's settings. */
+export function stagesToRun(
+  settings: PoolSettings | null,
+  modelStages: ModelStages,
+  freeVerifier = false,
+): Set<Stage> {
+  const chosen = settings?.stages ? new Set(settings.stages) : null;
+  return new Set(
+    STAGES.filter((s) => stageEnabled(s, modelStages, freeVerifier) && (!chosen || chosen.has(s))),
+  );
+}
 
 export interface PoolSchedulerDeps {
   db: Db;
@@ -148,6 +175,8 @@ export function makePoolScheduler(deps: PoolSchedulerDeps) {
   return makeLoopObject("PoolScheduler", async (ctx: restate.ObjectContext) => {
     const now = new Date(await ctx.date.now());
     const niche = ctx.key;
+    const settings = await loopSettings<PoolSettings>(ctx);
+    const runnable = stagesToRun(settings, deps.modelStages, deps.freeVerifier);
     const discovery = ctx.objectClient<Discovery>({ name: "Discovery" }, niche);
     const enrichment = ctx.objectClient<Enrichment>({ name: "Enrichment" }, niche);
     const resolution = ctx.objectClient<Resolution>({ name: "Resolution" }, RESOLUTION_KEY);
@@ -182,6 +211,7 @@ export function makePoolScheduler(deps: PoolSchedulerDeps) {
           niche,
           model_stages: deps.modelStages,
           free_verifier: deps.freeVerifier ?? false,
+          stages: [...runnable],
           limits,
         },
         niche,
@@ -196,7 +226,7 @@ export function makePoolScheduler(deps: PoolSchedulerDeps) {
       failed: 0,
     };
     for (const stage of STAGES) {
-      if (!stageEnabled(stage, deps.modelStages, deps.freeVerifier)) {
+      if (!runnable.has(stage)) {
         stats.stages.push({ stage, progress: 0, stats: null, error: null, skipped: true });
         continue;
       }

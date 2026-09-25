@@ -184,4 +184,24 @@ describe("PoolScheduler", () => {
     const status = (await client().status()) as LoopStatus<FeedStats>;
     expect(status.last?.stats?.failed).toBe(1);
   });
+
+  it("narrows a niche's loop to the stages start was given, and {} widens it back", async () => {
+    await client().start({ stages: ["resolveMailboxes", "verifyMailboxes"] });
+    await client().stop(); // the pass the start queued runs first: one object, one queue
+    const out = await sync();
+    expect(new Set(called)).toEqual(new Set(["resolveNewDomains", "verifyLeads"]));
+    expect(out.stats?.stages.filter((s) => !s.skipped).map((s) => s.stage)).toEqual([
+      "resolveMailboxes",
+      "verifyMailboxes",
+    ]);
+    expect(((await client().status()) as LoopStatus<FeedStats>).settings).toEqual({
+      stages: ["resolveMailboxes", "verifyMailboxes"],
+    });
+    await client().start({});
+    await client().stop();
+    expect(((await client().status()) as LoopStatus<FeedStats>).settings).toBeNull();
+    called.length = 0;
+    await sync();
+    expect(called).toContain("crawl");
+  });
 });

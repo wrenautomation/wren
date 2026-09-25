@@ -151,6 +151,10 @@ more than one address; this is what turns role inboxes into leads), `all`
 ```sh
 curl -X POST -H "$H" $U/PoolScheduler/sec_ria/start    # /status shows per-stage progress and errors
 curl -X POST -H "$H" $U/PoolScheduler/agencies/start
+# Only some stages for a niche (applies from the next pass; kept until changed):
+curl -X POST -H "$H" -H 'content-type: application/json' $U/PoolScheduler/sec_ria/start \
+  -d '{"stages":["resolveMailboxes","verifyMailboxes"]}'
+# ...and back to every enabled stage: -d '{}' 
 ```
 
 `stop` is an exclusive handler: it runs after the pass in flight, so on a long pool

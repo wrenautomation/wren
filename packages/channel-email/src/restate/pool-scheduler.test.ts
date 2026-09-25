@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { progressOf, STAGES, stageEnabled } from "./pool-scheduler.js";
+import { progressOf, STAGES, stageEnabled, stagesToRun } from "./pool-scheduler.js";
 
 describe("stageEnabled", () => {
   it("free groundwork always; model stages by setting; mailboxes only with a free verifier", () => {
@@ -36,5 +36,18 @@ describe("progressOf.verifyMailboxes", () => {
       }),
     ).toBe(7);
     expect(progressOf.verifyMailboxes({ selected: 10 })).toBe(0);
+  });
+});
+
+describe("stagesToRun", () => {
+  it("narrows to the niche's chosen stages, never past what config enables", () => {
+    const only = { stages: ["crawl", "extract", "resolveMailboxes"] as const };
+    expect([...stagesToRun({ stages: [...only.stages] }, "none", true)]).toEqual([
+      "crawl",
+      "resolveMailboxes",
+    ]);
+    expect([...stagesToRun(null, "none", false)]).toEqual(
+      STAGES.filter((s) => stageEnabled(s, "none", false)),
+    );
   });
 });
