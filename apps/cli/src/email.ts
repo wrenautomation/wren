@@ -416,13 +416,19 @@ export function registerEmail(
 
   email
     .command("import-people <path>")
-    .description("Import a people file (registry owners, officers, compliance contacts)")
+    .description("Import a people file (registry owners, officers, LinkedIn profiles)")
     .requiredOption("--format <name>", `one of ${formatNames(PERSON_SOURCE_FORMATS)}`)
-    .action(async (path: string, opts: { format: string }) => {
+    .option(
+      "--niche <name>",
+      `for niche-less formats: one of ${[...NICHE_NAMES].sort().join(", ")}`,
+    )
+    .action(async (path: string, opts: { format: string; niche?: string }) => {
       const format = PERSON_SOURCE_FORMATS.get(opts.format);
       if (!format) throw new Error(`unknown format ${opts.format}; see \`wren email formats\``);
+      const niche = format.niche ?? requireNiche(opts.niche ?? null);
+      if (niche === null) throw new Error(`--niche is required with --format ${format.name}`);
       const result = await withDb((db) =>
-        runPeopleImport(db, format.build(resolve(path)), { niche: format.niche }),
+        runPeopleImport(db, format.build(resolve(path)), { niche }),
       );
       console.log(`import ${result.batch.id}: ${JSON.stringify(result.stats)}`);
     });

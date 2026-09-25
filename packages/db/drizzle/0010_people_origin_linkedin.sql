@@ -1,0 +1,2 @@
+ALTER TABLE "people" DROP CONSTRAINT "ck_people_personorigin";--> statement-breakpoint
+ALTER TABLE "people" ADD CONSTRAINT "ck_people_personorigin" CHECK (("origin")::text = ANY ((ARRAY['registry'::character varying, 'website'::character varying, 'document'::character varying, 'manual'::character varying, 'linkedin'::character varying])::text[]));

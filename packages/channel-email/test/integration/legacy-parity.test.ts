@@ -15,6 +15,18 @@ const VIEW_RENAMES: Record<string, string> = {
   llm_calls: "email_llm_calls",
   stage_costs: "email_stage_costs",
 };
+/**
+ * Checks wren widened since the port: values added to an enum check. Legacy
+ * rows still satisfy them, so a restore still holds; anything else must match.
+ */
+const WIDENED: Record<string, string[]> = { ck_people_personorigin: ["linkedin"] };
+const unwiden = (c: Catalog["constraints"][number]) => ({
+  ...c,
+  def: (WIDENED[c.name] ?? []).reduce(
+    (d, v) => d.replace(`, ('${v}'::character varying)::text`, ""),
+    c.def,
+  ),
+});
 
 interface Catalog {
   columns: { tbl: string; col: string; type: string; notnull: boolean; def: string | null }[];
@@ -91,7 +103,7 @@ describe("legacy parity", () => {
     const legacyViews = a.views.map(renameView).sort((x, y) => x.name.localeCompare(y.name));
     const wrenViews = b.views.filter((v) => legacyViews.some((l) => l.name === v.name));
     expect(b.columns).toEqual(a.columns);
-    expect(b.constraints).toEqual(a.constraints);
+    expect(b.constraints.map(unwiden)).toEqual(a.constraints);
     expect(b.indexes).toEqual(a.indexes);
     expect(wrenViews).toEqual(legacyViews);
     expect(wrenViews).toHaveLength(16);

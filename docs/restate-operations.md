@@ -245,6 +245,7 @@ wren email import export.csv --format agency-directory-csv                    # 
 wren email import leads.csv --format csv --niche agencies --map "Company=company_name"
 wren email import maps.csv --format google-maps --niche <niche>               # gosom/google-maps-scraper CSV
 wren email import-people ADV_Filing_Data_20260701_20260731.zip --format adv-filing-data   # owners, officers, CCOs
+wren email import-people linkedin-ria-founder.csv --format linkedin --niche <niche>  # autobrowse `people --enrich`
 ```
 
 Directory hosts (clutch.co, shopify.com, …) are platform domains in every import: a
@@ -253,6 +254,7 @@ real domain keys by `clutch:<slug>` / `crd:<n>` and gets a domain later from dis
 
 Local businesses come from Google Maps through the MIT
 [gosom/google-maps-scraper](https://github.com/gosom/google-maps-scraper), run by hand
+or by `autobrowse maps "<search>"` (starts it, writes the CSV, stops it)
 (port 8090: Restate owns 8080). Keep `-c` at 2 to 4 without proxies; empty results
 mean slow down.
 
@@ -263,7 +265,9 @@ docker run --rm -v "$PWD/data/maps:/gmapsdata" -p 127.0.0.1:8090:8080 \
 
 Download a job's CSV and import it. `title` becomes the company name, the first of
 `emails` the general inbox; a listing with no real website keys by `gmaps:<cid>`.
-Directory pages are saved by hand: none of these formats fetches. The publisher files
+LinkedIn people come from `autobrowse people` (Wren's LinkedIn; `--enrich` adds the
+employer's website, which keys the company, else `li-co:<handle>`; the person keys by
+`li:<vanity>`). Directory pages are saved by hand: none of these formats fetches. The publisher files
 come through `wren fetch` (needs `WREN_FETCH_CONTACT`; lands under
 `<data>/<niche>/bulk/<dataset>/`, skips what is already there, so re-running resumes):
 

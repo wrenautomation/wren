@@ -4,7 +4,12 @@
  * (niche, name). Crawl hints and discovery words union when unscoped.
  */
 import { pyReprStr } from "@wren/channel-email";
-import { BUILTIN_FORMATS, type PersonSourceFormat, type SourceFormat } from "@wren/core";
+import {
+  BUILTIN_FORMATS,
+  BUILTIN_PERSON_FORMATS,
+  type PersonSourceFormat,
+  type SourceFormat,
+} from "@wren/core";
 import type { Dataset } from "@wren/research/fetch";
 import { agencies } from "./agencies.js";
 import type { Niche } from "./niche.js";
@@ -87,7 +92,7 @@ export const LEAD_SOURCE_FORMATS: ReadonlyMap<string, SourceFormat> = formatRegi
 );
 export const PERSON_SOURCE_FORMATS: ReadonlyMap<string, PersonSourceFormat> = formatRegistry(
   "person format",
-  NICHES.flatMap((n) => n.personSourceFormats),
+  [...BUILTIN_PERSON_FORMATS, ...NICHES.flatMap((n) => n.personSourceFormats)],
 );
 
 /** Every niche's directory and registry hosts: a listing URL never keys a company in any niche's import. */

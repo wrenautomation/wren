@@ -71,6 +71,13 @@
       "when": 1790010226590,
       "tag": "0009_idea_source_ads",
       "breakpoints": true
+    },
+    {
+      "idx": 10,
+      "version": "7",
+      "when": 1790367029326,
+      "tag": "0010_people_origin_linkedin",
+      "breakpoints": true
     }
   ]
 }
