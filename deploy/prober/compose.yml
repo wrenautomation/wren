@@ -12,7 +12,7 @@ services:
       PROBE_HELO: probe.wrenautomation.com
       PROBE_TOKEN: ${PROBE_TOKEN:?}
       # Twice the pool-feeder's walk width (PROBE_WIDTH): room for a hand run alongside.
-      PROBE_MAX_IN_FLIGHT: "32"
+      PROBE_MAX_IN_FLIGHT: "64"
       # Google/Microsoft/Proofpoint/Mimecast inbound: 3 conversations at once, each with
       # the 1.5s gap. One lane made Google's single host the pace of a whole list.
       PROBE_BIG_HOST_LANES: "3"

@@ -218,7 +218,8 @@ Reverse DNS is RackNerd's: support ticket #EF57722 asks for the PTR (check with
 closed `/verify` answers 503 and the pool stage retries hourly.
 
 Throughput: the pool-feeder's two mailbox stages run `PROBE_WIDTH` (32) walks at
-once and the prober admits `PROBE_MAX_IN_FLIGHT` (32). The prober paces each MX host
+once and the prober admits `PROBE_MAX_IN_FLIGHT` (64): the slack holds probes a
+timed-out client left running, so they never push the next pass into 429. The prober paces each MX host
 with a 1.5 s gap: one conversation at a time, 3 for the big shared hosts (Google,
 Microsoft, Proofpoint, Mimecast; `PROBE_BIG_HOST_LANES`). Measured 2026-09-25 at 16
 wide: ~1,000 domains an hour, VPS load near 0.

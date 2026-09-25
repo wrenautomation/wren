@@ -78,8 +78,9 @@ export const DEFAULT_LIMITS: StageLimits = {
 };
 
 /**
- * Mail servers talked to at once: the prober's whole in-flight cap (PROBE_MAX_IN_FLIGHT, 32).
- * Every pass goes through Resolution/default one at a time, so two niches never stack.
+ * Mail servers talked to at once: half the prober's in-flight cap (PROBE_MAX_IN_FLIGHT, 64).
+ * Every pass goes through Resolution/default one at a time, so two niches never stack; the
+ * other half absorbs probes a timed-out client left running on the server.
  * Each walk holds a DB connection: 32 of Postgres's 60.
  */
 export const PROBE_WIDTH = 32;
