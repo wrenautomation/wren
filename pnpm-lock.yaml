@@ -161,8 +161,8 @@ importers:
         specifier: 0.45.2
         version: 0.45.2(postgres@3.4.9)
       mailifier:
-        specifier: 0.2.0
-        version: 0.2.0
+        specifier: 0.3.0
+        version: 0.3.0
       smol-toml:
         specifier: 1.8.0
         version: 1.8.0
@@ -2040,8 +2040,8 @@ packages:
   magic-string@1.4.1:
     resolution: {integrity: sha512-8lyCu36ErXR0J9uaGKlKQoiLZKmtI63YGLE8G2o9jyRPdr4X47LusSOwgOJOzcVtp81fTAAjxR7BwKz682Jhow==}
 
-  mailifier@0.2.0:
-    resolution: {integrity: sha512-m7Ae2zBWQK7fo17TFgWBFCcG2TT9KyCXaNW9kr57zwY7wMiEAz/f9k9idEOYgdbSfmk4I3hRsY3PQLp0IrpHHQ==}
+  mailifier@0.3.0:
+    resolution: {integrity: sha512-54FiUEtZerxuvqs3gpHJtVRPKk1waxpAhf16ockYyEl1JJy2y6ILCHQaEUv867gyZOfLwPdeKuMKpmTLWTBlKQ==}
     engines: {node: '>=22'}
     hasBin: true
 
@@ -3858,7 +3858,7 @@ snapshots:
     dependencies:
       '@jridgewell/sourcemap-codec': 1.6.0
 
-  mailifier@0.2.0: {}
+  mailifier@0.3.0: {}
 
   minimatch@5.1.9:
     dependencies:

@@ -25,7 +25,7 @@
     "@wren/llm": "workspace:*",
     "@wren/research": "workspace:*",
     "drizzle-orm": "0.45.2",
-    "mailifier": "0.2.0",
+    "mailifier": "0.3.0",
     "smol-toml": "1.8.0",
     "zod": "4.6.5"
   },
