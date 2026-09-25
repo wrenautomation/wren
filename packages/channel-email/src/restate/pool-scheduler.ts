@@ -1,7 +1,7 @@
 /**
  * The pool-feeder: `PoolScheduler/{niche}` walks the research chain once per
  * pass — discover, verify, crawl, render, scan, extract, pick, applyPicks,
- * verifyMailboxes — each stage one bounded call to its own object, journaled by
+ * resolveMailboxes, verifyMailboxes — each stage one bounded call to its own object, journaled by
  * Restate. While any stage still finds work the next pass follows in a minute;
  * when every stage reports nothing the loop sleeps until the next local day and
  * looks again (new imports, new domains). Role inboxes it proves become leads,
@@ -10,10 +10,11 @@
  * Spend is opt-in by stage. `modelStages` names what may call the model:
  * "none" (default: free groundwork only — no verdicts, so no new leads yet),
  * "pick" (a model call only for companies with more than one address), "all"
- * (extraction too: people and titles from every stored page). `verifyMailboxes`
- * runs only with a free verifier (`freeVerifier`): it asks the mail servers about
- * the leads the picks made, so compose sends to proven inboxes. Person guesses
- * go to Resolution by hand.
+ * (extraction too: people and titles from every stored page). The two mailbox
+ * stages run only with a free verifier (`freeVerifier`): `resolveMailboxes` walks
+ * the person guesses someone queued (`Resolution.queue`: who to reach stays a
+ * person's call), `verifyMailboxes` asks the mail servers about the leads the picks
+ * made, so compose sends to proven inboxes. A paid verifier resolves by hand.
  */
 import * as restate from "@restatedev/restate-sdk";
 import { finishRun, openRun } from "@wren/core";
@@ -35,6 +36,7 @@ export const STAGES = [
   "extract",
   "pick",
   "applyPicks",
+  "resolveMailboxes",
   "verifyMailboxes",
 ] as const;
 export type Stage = (typeof STAGES)[number];
@@ -48,6 +50,8 @@ export interface StageLimits {
   scan: number;
   extract: number;
   pick: number;
+  /** Domains whose person guesses are walked this pass. */
+  resolveMailboxes: number;
   verifyMailboxes: number;
 }
 export const DEFAULT_LIMITS: StageLimits = {
@@ -58,9 +62,14 @@ export const DEFAULT_LIMITS: StageLimits = {
   scan: 200,
   extract: 20,
   pick: 50,
-  // Each probe is a live SMTP conversation, seconds apiece: keep one pass short.
-  verifyMailboxes: 10,
+  // Each probe is a live SMTP conversation, seconds apiece, run PROBE_WIDTH at once:
+  // a pass stays a few minutes, well inside one Lambda invocation.
+  resolveMailboxes: 96,
+  verifyMailboxes: 96,
 };
+
+/** Mail servers talked to at once. Within the prober's own in-flight cap (PROBE_MAX_IN_FLIGHT). */
+export const PROBE_WIDTH = 16;
 
 export interface PoolSchedulerDeps {
   db: Db;
@@ -109,6 +118,8 @@ export const progressOf: Record<Stage, (s: Record<string, number>) => number> = 
   extract: (s) => s.extracted ?? 0,
   pick: (s) => s.picked ?? 0,
   applyPicks: (s) => s.picks_applied ?? 0,
+  // A domain that wrote a verdict row leaves the selection; resolver trouble does not.
+  resolveMailboxes: (s) => (s.credits_spent ?? 0) + (s.dead_domains ?? 0),
   // A lead with a verdict row (any result) leaves the selection; local errors do not.
   verifyMailboxes: (s) =>
     (s.local_invalid ?? 0) +
@@ -125,7 +136,7 @@ export function stageEnabled(
 ): boolean {
   if (stage === "extract") return modelStages === "all";
   if (stage === "pick" || stage === "applyPicks") return modelStages !== "none";
-  if (stage === "verifyMailboxes") return freeVerifier;
+  if (stage === "resolveMailboxes" || stage === "verifyMailboxes") return freeVerifier;
   return true;
 }
 
@@ -149,7 +160,18 @@ export function makePoolScheduler(deps: PoolSchedulerDeps) {
       extract: () => enrichment.extract({ limit: limits.extract }),
       pick: () => enrichment.pick({ limit: limits.pick }),
       applyPicks: () => enrichment.applyPicks({}),
-      verifyMailboxes: () => resolution.verifyLeads({ niche, limit: limits.verifyMailboxes }),
+      resolveMailboxes: () =>
+        resolution.resolveNewDomains({
+          niche,
+          limitDomains: limits.resolveMailboxes,
+          concurrency: PROBE_WIDTH,
+        }),
+      verifyMailboxes: () =>
+        resolution.verifyLeads({
+          niche,
+          limit: limits.verifyMailboxes,
+          concurrency: PROBE_WIDTH,
+        }),
     };
 
     const runId = await ctx.run("open run", async () => {

@@ -750,6 +750,32 @@ export async function selectResolutionTargets(db: Queryable): Promise<string[]> 
   return rows.map((r) => r.domain);
 }
 
+/**
+ * Domains with queued candidates and no verdict yet, oldest queue first: each one's
+ * first walk. A domain the walk left queued (catch-all, pattern unknown) has rows,
+ * so it drops out; one whose walk wrote nothing (resolver trouble) comes back.
+ */
+export async function selectNewResolutionTargets(
+  db: Queryable,
+  opts: { limit: number; niche?: string },
+): Promise<string[]> {
+  const niche = opts.niche
+    ? sql`AND EXISTS (SELECT 1 FROM people p JOIN companies co ON co.id = p.company_id
+        WHERE p.id = c.person_id AND co.niche = ${opts.niche})`
+    : sql``;
+  const rows = await db.execute(sql`
+    SELECT c.domain FROM contact_candidates c
+    WHERE c.state = 'queued' ${niche}
+      AND NOT EXISTS (
+        SELECT 1 FROM verifications v JOIN contact_candidates x ON x.id = v.contact_candidate_id
+        WHERE x.domain = c.domain)
+    GROUP BY c.domain
+    ORDER BY min(c.id)
+    LIMIT ${opts.limit}
+  `);
+  return rows.map((r) => String((r as { domain: string }).domain));
+}
+
 export interface DomainUnitOptions {
   domainBudget: number;
   checker: LocalCheckerLike;

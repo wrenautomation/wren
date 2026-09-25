@@ -2,6 +2,7 @@
 import * as clients from "@restatedev/restate-sdk-clients";
 import { RestateTestEnvironment } from "@restatedev/restate-sdk-testcontainers";
 import { type Company, companies, imports, leads, people, runs } from "@wren/core";
+import { createDb } from "@wren/db";
 import { startTestPostgres, type TestPostgres, truncate } from "@wren/db/testing";
 import { eq, inArray } from "drizzle-orm";
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
@@ -15,13 +16,25 @@ const DOMAIN = "veloqua.example";
 class MapVerifier implements EmailVerifier {
   readonly name = "map";
   readonly authoritative = true;
-  readonly costsCredits = true;
+  costsCredits = true;
   readonly calls: string[] = [];
+  /** Most verify calls ever open at once. */
+  peak = 0;
+  /** Hold each call until this many have been open at once (2s cap): overlap no matter how slow the box. */
+  expectOpen = 0;
+  private open = 0;
   verdicts: Record<string, VerificationResult> = {};
   down = false;
   async verify(email: string): Promise<Verdict> {
     if (this.down) throw new Error("prober unreachable");
     this.calls.push(email);
+    this.open += 1;
+    this.peak = Math.max(this.peak, this.open);
+    const deadline = Date.now() + 2_000;
+    while (this.peak < this.expectOpen && Date.now() < deadline)
+      await new Promise((r) => setTimeout(r, 5));
+    await new Promise((r) => setTimeout(r, 20));
+    this.open -= 1;
     return { result: this.verdicts[email] ?? "invalid", raw: { stub: true } };
   }
 }
@@ -37,7 +50,14 @@ const verifier = new MapVerifier();
 beforeAll(async () => {
   pg = await startTestPostgres();
   env = await RestateTestEnvironment.start({
-    services: [makeResolution({ db: pg.db, verifier, checker: passChecker })],
+    services: [
+      makeResolution({
+        db: pg.db,
+        verifier,
+        checker: passChecker,
+        openPool: (max) => createDb(pg.url, { max }),
+      }),
+    ],
     alwaysReplay: true,
   });
 });
@@ -50,6 +70,9 @@ beforeEach(async () => {
   verifier.calls.length = 0;
   verifier.verdicts = {};
   verifier.down = false;
+  verifier.costsCredits = true;
+  verifier.peak = 0;
+  verifier.expectOpen = 0;
 });
 const db = () => pg.db;
 const client = () =>
@@ -134,6 +157,59 @@ describe("Resolution virtual object", () => {
     expect(queued.length).toBeGreaterThan(0);
   });
 
+  describe("resolveNewDomains", () => {
+    const firms = async (n: number) => {
+      for (let i = 0; i < n; i += 1) {
+        const f = await makeFirm([["Jane", "Doe"]], `f${i}.veloqua.example`);
+        await db().update(companies).set({ niche: "sec_ria" }).where(eq(companies.id, f.id));
+      }
+    };
+
+    it("walks new domains many at once, promotes, and never walks a domain twice", async () => {
+      verifier.costsCredits = false;
+      verifier.expectOpen = 3;
+      await firms(6);
+      const other = await makeFirm([["Ann", "Lee"]], "agency.example");
+      await db().update(companies).set({ niche: "agencies" }).where(eq(companies.id, other.id));
+      for (let i = 0; i < 6; i += 1) verifier.verdicts[`jane.doe@f${i}.veloqua.example`] = "valid";
+      const c = client();
+      await c.build({});
+      await c.queue({});
+      const stats = await c.resolveNewDomains({
+        niche: "sec_ria",
+        limitDomains: 5,
+        concurrency: 3,
+      });
+      expect(stats).toMatchObject({ domains_processed: 5, promoted: 5, aborted: null });
+      expect(verifier.peak).toBe(3);
+      expect(verifier.calls.some((e) => e.endsWith("@agency.example"))).toBe(false);
+      const rest = await c.resolveNewDomains({ niche: "sec_ria", limitDomains: 5, concurrency: 3 });
+      expect(rest.domains_processed).toBe(1);
+      expect(
+        (await c.resolveNewDomains({ niche: "sec_ria", limitDomains: 5 })).domains_processed,
+      ).toBe(0);
+      const promoted = await db().select().from(leads).where(eq(leads.status, "verified"));
+      expect(promoted).toHaveLength(6);
+    });
+
+    it("refuses a paid verifier: it would spend without a limit", async () => {
+      await expect(client().resolveNewDomains({ limitDomains: 5 })).rejects.toThrow(
+        /free verifiers/,
+      );
+    });
+
+    it("a verifier that is down fails the pass", async () => {
+      verifier.costsCredits = false;
+      verifier.down = true;
+      await firms(2);
+      await client().build({});
+      await client().queue({});
+      await expect(client().resolveNewDomains({ limitDomains: 5, concurrency: 2 })).rejects.toThrow(
+        /prober unreachable/,
+      );
+    });
+  });
+
   describe("verifyLeads", () => {
     async function inboxLead(company: Company, email: string) {
       const [batch] = await db()
@@ -173,6 +249,21 @@ describe("Resolution virtual object", () => {
         "verify leads",
         "verify leads",
       ]);
+    });
+
+    it("checks many leads at once with a free verifier, one at a time with a paid one", async () => {
+      const firm = await makeFirm([]);
+      for (const box of ["info", "sales", "hello", "team"])
+        await inboxLead(firm, `${box}@${DOMAIN}`);
+      await client().verifyLeads({ concurrency: 4 });
+      expect(verifier.peak).toBe(1);
+      verifier.costsCredits = false;
+      await client().verifyLeads({ concurrency: 4 }); // invalid verdicts: nothing left
+      for (const box of ["a", "b", "c", "d"]) await inboxLead(firm, `${box}@${DOMAIN}`);
+      verifier.expectOpen = 4;
+      const stats = await client().verifyLeads({ concurrency: 4 });
+      expect(stats.invalid).toBe(4);
+      expect(verifier.peak).toBe(4);
     });
 
     it("a verifier that is down fails the pass instead of passing quietly", async () => {

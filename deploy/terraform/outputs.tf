@@ -49,12 +49,3 @@ output "cdp_url" {
   value       = var.browser_token == "" ? "" : "ws://${aws_eip.pg.public_ip}:3000?token=${var.browser_token}"
   sensitive   = true
 }
-
-output "probe_url" {
-  description = "WREN_SMTP_PROBE_URL for the worker; the token is var.probe_token."
-  value       = length(aws_ssm_parameter.probe_token) == 0 ? "" : "http://${aws_eip.pg.public_ip}:2525"
-}
-
-output "probe_helo" {
-  value = var.probe_helo
-}

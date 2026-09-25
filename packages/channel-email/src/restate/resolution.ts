@@ -1,12 +1,14 @@
 /**
  * Resolution as a Restate Virtual Object with one key: verifier credits are one
- * global budget, so spend never runs concurrently. Each domain's walk is one
+ * global budget, so paid spend never runs concurrently (free probes may, many
+ * domains at once, in `resolveNewDomains` and `verifyLeads`). Each domain's walk is one
  * journaled step over one transaction; a crash loses at most one domain's spend
  * and the promotions batch runs from journaled refs.
  */
 import * as restate from "@restatedev/restate-sdk";
 import { finishRun, openRun } from "@wren/core";
-import type { Db } from "@wren/db";
+import type { Db, DbHandle } from "@wren/db";
+import { eachConcurrently } from "../concurrent.js";
 import {
   addResolutionStats,
   buildCandidates,
@@ -18,6 +20,7 @@ import {
   queueCandidates,
   type ResolutionStats,
   resolveDomainUnit,
+  selectNewResolutionTargets,
   selectResolutionTargets,
   strandedPromotions,
 } from "../resolution/service.js";
@@ -31,6 +34,12 @@ export interface ResolutionDeps {
   verifier: EmailVerifier;
   /** Test seam: a stage-1 checker with a fake resolver. */
   checker?: LocalCheckerLike;
+  /**
+   * A pool of `max` connections for one `resolveNewDomains` pass, closed after it:
+   * each domain walk holds a transaction while it probes, so the process's small
+   * pool would cap the width. Absent = walk on `db`.
+   */
+  openPool?: (max: number) => DbHandle;
 }
 
 export const RESOLUTION_KEY = "default";
@@ -40,11 +49,22 @@ export interface ResolveInput {
   creditLimit?: number | null;
 }
 
+export interface ResolveNewInput {
+  niche?: string;
+  /** Domains walked this pass. */
+  limitDomains: number;
+  /** Domain walks at once; each walk is sequential (a verdict decides the next guess). */
+  concurrency?: number;
+  domainBudget?: number;
+}
+
 export interface VerifyLeadsInput {
   niche?: string;
   limit?: number;
   /** Days after which a `risky` verdict is tried again (default 2). */
   retryRiskyAfterDays?: number;
+  /** Leads checked at once; free verifiers only (default 1). */
+  concurrency?: number;
 }
 export const DEFAULT_RETRY_RISKY_DAYS = 2;
 
@@ -120,6 +140,69 @@ export function makeResolution(deps: ResolutionDeps) {
       },
 
       /**
+       * One bounded pass over domains never walked, many walks at once: what the
+       * pool-feeder calls with a free verifier. Each domain commits on its own, so the
+       * pass is one journaled step; a retry re-selects only what is still new, and a
+       * VALID whose promotion was lost is repaired by the next `resolve` (stranded).
+       * No credit limit here: a paid verifier goes through `resolve`, one at a time.
+       */
+      resolveNewDomains: async (
+        ctx: restate.ObjectContext,
+        input: ResolveNewInput,
+      ): Promise<ResolutionStats> => {
+        if (deps.verifier.costsCredits)
+          throw new restate.TerminalError(
+            "resolveNewDomains spends without a limit: free verifiers only",
+          );
+        const domainBudget = input.domainBudget ?? DEFAULT_DOMAIN_BUDGET;
+        const runId = await open(ctx, "resolve new domains", { ...input });
+        const width = input.concurrency ?? 1;
+        const { stats, promotions } = await ctx.run("walk", async () => {
+          const pool = deps.openPool?.(width) ?? null;
+          const db = pool?.db ?? deps.db;
+          try {
+            const domains = await selectNewResolutionTargets(db, {
+              limit: input.limitDomains,
+              ...(input.niche !== undefined ? { niche: input.niche } : {}),
+            });
+            let stats = emptyResolutionStats();
+            const promotions: PromotionRef[] = [];
+            await eachConcurrently(
+              domains,
+              width,
+              async (domain) => {
+                const r = await db.transaction((tx) =>
+                  resolveDomainUnit(tx, deps.verifier, domain, {
+                    domainBudget,
+                    checker,
+                    alreadySpent: 0,
+                    creditLimit: null,
+                  }),
+                );
+                stats = addResolutionStats(stats, r.stats);
+                promotions.push(...r.promotions);
+              },
+              () => stats.aborted !== null,
+            );
+            return { stats, promotions };
+          } finally {
+            await pool?.close();
+          }
+        });
+        if (promotions.length) {
+          await ctx.run("promote", () =>
+            deps.db.transaction((tx) => promoteCandidates(tx, promotions)),
+          );
+        }
+        await close(ctx, runId, stats);
+        // Nothing walked and the verifier down: that is the stage's failure, not a quiet pass.
+        if (stats.aborted && stats.credits_spent === 0) {
+          throw new restate.TerminalError(`verifier: ${stats.aborted}`);
+        }
+        return stats;
+      },
+
+      /**
        * The verification funnel over a niche's imported leads (role inboxes the picks
        * made, people from imports): one bounded pass, journaled as a whole. The
        * pool-feeder calls this only when the verifier is free; by hand it spends.
@@ -135,6 +218,7 @@ export function makeResolution(deps: ResolutionDeps) {
             checker,
             ...(input.niche !== undefined ? { niche: input.niche } : {}),
             ...(input.limit !== undefined ? { limit: input.limit } : {}),
+            concurrency: deps.verifier.costsCredits ? 1 : (input.concurrency ?? 1),
             retryRiskyOlderThanMs: days * 86_400_000,
           }),
         );

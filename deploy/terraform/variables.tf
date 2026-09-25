@@ -91,17 +91,12 @@ variable "browser_token" {
 }
 
 variable "probe_token" {
-  description = "Bearer for the SMTP prober on the Postgres box (WREN_SMTP_PROBE_TOKEN on the worker side). Generate like pg_password. Empty = no prober."
+  description = "Bearer for the SMTP prober (WREN_SMTP_PROBE_TOKEN on the worker side), kept in SSM for deploy-prober.sh. Generate like pg_password. Empty = no prober."
   type        = string
   sensitive   = true
   default     = ""
 }
 
-variable "probe_helo" {
-  description = "The prober's HELO name; its A record points at the box's EIP and AWS holds the matching reverse DNS."
-  type        = string
-  default     = "probe.wrenautomation.com"
-}
 
 variable "autobrowse_instance_id" {
   description = "autobrowse's EC2 instance (its terraform output instance_id). Set: the worker starts it for a Content call and may tag it; it stops itself when idle. Empty = never wake."

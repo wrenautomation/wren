@@ -204,7 +204,7 @@ export async function buildServices(
       fetcher: ua ? new PoliteFetcher(ua, { timeout: 8, retries: 1 }) : null,
       genericWordsFor: discoveryWordsFor,
     }),
-    makeResolution({ db, verifier }),
+    makeResolution({ db, verifier, openPool: (max) => createDb(settings.databaseUrl, { max }) }),
     makeSendScheduler({
       db,
       transport,

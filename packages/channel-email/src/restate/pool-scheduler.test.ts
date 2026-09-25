@@ -16,7 +16,9 @@ describe("stageEnabled", () => {
       "applyPicks",
     ]);
     expect(on("all", true)).toEqual([...STAGES]);
-    expect(on("none", true)).toContain("verifyMailboxes");
+    expect(on("none", true)).toEqual(
+      expect.arrayContaining(["resolveMailboxes", "verifyMailboxes"]),
+    );
   });
 });
 

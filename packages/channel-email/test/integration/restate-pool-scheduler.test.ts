@@ -23,6 +23,7 @@ const answers = {
   discover: { companies_scanned: 0 },
   crawl: { companies_crawled: 0, homepage_unreachable: 0, robots_blocked: 0 },
   pick: { picked: 0 },
+  resolve: { domains_processed: 0, credits_spent: 0, dead_domains: 0 },
   verify: { selected: 0, local_invalid: 0, valid: 0, invalid: 0, risky: 0, catch_all: 0 },
   crawlRefuses: false,
 };
@@ -57,7 +58,10 @@ const fakeEnrichment = restate.object({
 
 const fakeResolution = restate.object({
   name: "Resolution",
-  handlers: { verifyLeads: stage("verifyLeads", () => answers.verify) },
+  handlers: {
+    resolveNewDomains: stage("resolveNewDomains", () => answers.resolve),
+    verifyLeads: stage("verifyLeads", () => answers.verify),
+  },
 });
 
 let pg: TestPostgres;
@@ -89,6 +93,7 @@ beforeEach(async () => {
   called.length = 0;
   answers.discover = { companies_scanned: 0 };
   answers.crawl = { companies_crawled: 0, homepage_unreachable: 0, robots_blocked: 0 };
+  answers.resolve = { domains_processed: 0, credits_spent: 0, dead_domains: 0 };
   answers.verify = { selected: 0, local_invalid: 0, valid: 0, invalid: 0, risky: 0, catch_all: 0 };
   answers.crawlRefuses = false;
 });
@@ -101,7 +106,15 @@ const sync = (key?: string) => client(key).sync() as Promise<PassOutcome<FeedSta
 describe("PoolScheduler", () => {
   it("walks the free stages in order, skips model stages, and sleeps a day when idle", async () => {
     const out = await sync();
-    expect(called).toEqual(["discover", "verify", "crawl", "render", "scan", "verifyLeads"]);
+    expect(called).toEqual([
+      "discover",
+      "verify",
+      "crawl",
+      "render",
+      "scan",
+      "resolveNewDomains",
+      "verifyLeads",
+    ]);
     expect(out.stats?.stages.map((s) => [s.stage, s.skipped])).toEqual([
       ["discover", false],
       ["verify", false],
@@ -111,6 +124,7 @@ describe("PoolScheduler", () => {
       ["extract", true],
       ["pick", true],
       ["applyPicks", true],
+      ["resolveMailboxes", false],
       ["verifyMailboxes", false],
     ]);
     expect(out.stats?.progress).toBe(0);
@@ -143,13 +157,28 @@ describe("PoolScheduler", () => {
     expect(out.delayMs).toBe(5_000);
   });
 
+  it("counts probes and dead domains as resolve progress, a domain walked twice never", async () => {
+    answers.resolve = { domains_processed: 9, credits_spent: 12, dead_domains: 2 };
+    const out = await sync();
+    expect(out.stats?.stages.find((s) => s.stage === "resolveMailboxes")?.progress).toBe(14);
+    expect(out.delayMs).toBe(5_000);
+  });
+
   it("records a refusing stage, keeps walking, and retries later", async () => {
     answers.crawlRefuses = true;
     answers.discover = { companies_scanned: 25 };
     const out = await sync();
     const crawl = out.stats?.stages.find((s) => s.stage === "crawl");
     expect(crawl?.error).toMatch(/WREN_FETCH_CONTACT/);
-    expect(called).toEqual(["discover", "verify", "crawl", "render", "scan", "verifyLeads"]);
+    expect(called).toEqual([
+      "discover",
+      "verify",
+      "crawl",
+      "render",
+      "scan",
+      "resolveNewDomains",
+      "verifyLeads",
+    ]);
     expect(out.stats).toMatchObject({ failed: 1, progress: 25 });
     expect(out.delayMs).toBe(60 * 60_000);
     const status = (await client().status()) as LoopStatus<FeedStats>;

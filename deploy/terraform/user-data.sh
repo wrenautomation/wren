@@ -64,18 +64,6 @@ if [ -n "${browser_token_param}" ]; then
   unset TOKEN
 fi
 
-# The SMTP prober (the mailifier package): bundle and restart script live in S3 under
-# prober/ (deploy/scripts/deploy-prober.sh puts them there and re-runs the script).
-if [ -n "${probe_token_param}" ]; then
-  if aws s3 cp --region ${region} "s3://${backups}/prober/restart.sh" /usr/local/bin/wren-prober-restart; then
-    chmod +x /usr/local/bin/wren-prober-restart
-    REGION=${region} BUCKET=${backups} TOKEN_PARAM=${probe_token_param} HELO=${probe_helo} \
-      /usr/local/bin/wren-prober-restart || echo "prober not started"
-  else
-    echo "no prober in S3 yet; run deploy/scripts/deploy-prober.sh"
-  fi
-fi
-
 # Nightly dump to S3; the bucket's lifecycle rule expires old ones.
 cat > /usr/local/bin/wren-pg-backup <<'BK'
 #!/bin/bash

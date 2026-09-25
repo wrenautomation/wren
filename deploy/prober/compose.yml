@@ -1,0 +1,27 @@
+# The SMTP prober on the RackNerd VPS (AWS will not open outbound port 25). Caddy
+# holds the only public ports and terminates TLS for probe.wrenautomation.com, so the
+# bearer token never crosses the internet in the clear; the prober itself is not
+# published. /opt/wren-prober/.env holds PROBE_TOKEN (from SSM /wren/prod/probe_token).
+services:
+  prober:
+    image: public.ecr.aws/docker/library/node:22-alpine
+    command: ["node", "/app/prober.mjs"]
+    restart: unless-stopped
+    environment:
+      PROBE_PORT: "2525"
+      PROBE_HELO: probe.wrenautomation.com
+      PROBE_TOKEN: ${PROBE_TOKEN:?}
+      # Twice the pool-feeder's walk width (PROBE_WIDTH): room for a hand run alongside.
+      PROBE_MAX_IN_FLIGHT: "32"
+    volumes:
+      - ./prober.mjs:/app/prober.mjs:ro
+  caddy:
+    image: public.ecr.aws/docker/library/caddy:2-alpine
+    restart: unless-stopped
+    ports: ["80:80", "443:443"]
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy-data:/data
+    depends_on: [prober]
+volumes:
+  caddy-data:

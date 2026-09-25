@@ -186,37 +186,38 @@ Resolution's build/queue/resolve stays by hand.
 Every bounce so far was an unverified role inbox. Since 2026-09-21 verdicts come
 from our own SMTP prober, not MillionVerifier: it asks the address's MX
 `RCPT TO:` and hangs up before `DATA` — no mail is ever sent. Free, so the
-pool-feeder runs it as its last stage (`verifyMailboxes`, 10 leads a pass) and
+pool-feeder runs it as its last stage (`verifyMailboxes`, 96 leads a pass, 16 at once) and
 compose enrolls a role inbox only once it holds a `valid` or `catch_all` verdict.
 A `risky` verdict (greylist, tarpit) is tried again after two days.
 
 The handshake itself is not wren's: it lives in **mailifier**
 (github.com/wrenautomation/mailifier, `npm i mailifier`), and wren plugs it into
 the `EmailVerifier` port in one file, `verification/mailifier.ts`. Port 25 is
-closed from Lambda, so the prober is that package's own server run on the DB box
-(container `wren-prober`, `:2525`, bearer). The worker reaches it
+closed from Lambda and AWS refused to open it on EC2, so the prober
+is that package's own server on a RackNerd VPS (192.255.226.241, Ubuntu 24.04,
+$21.99/yr, key-only SSH as root with `~/.ssh/wren_probe`, also in SSM
+`/wren/prod/probe_ssh_key`). Docker compose runs it behind Caddy, which holds the
+TLS for `https://probe.wrenautomation.com` (`deploy/prober/`). The worker reaches it
 through `WREN_VERIFIER=smtp` + `WREN_SMTP_PROBE_URL` + `WREN_SMTP_PROBE_TOKEN`
-(`deploy/prod.env`; the same token is `probe_token` in `terraform.tfvars`).
+(`deploy/prod.env`; the same token is SSM `/wren/prod/probe_token`).
 
 ```sh
+deploy/scripts/deploy-prober.sh                      # pinned mailifier + compose + Caddyfile → VPS, restart
 deploy/scripts/push-secrets.sh                       # env with the prober URL + token
-(cd deploy/terraform && tofu apply)                  # SSM param, port 2525, user-data script
-deploy/scripts/deploy-prober.sh                      # mailifier bundle → S3 prober/ → restart on the box over SSM
-deploy/scripts/set-rdns.sh                           # EIP → probe.wrenautomation.com (idempotent; needs the A record first)
 gh workflow run deploy.yml --ref main                # worker re-reads env
-curl -s http://$(cd deploy/terraform && tofu output -raw pg_host):2525/healthz   # {"ok":true,"port_25":true}
+curl -s https://probe.wrenautomation.com/healthz     # {"ok":true,"port_25":true}
 ```
 
-AWS closes outbound port 25 on EC2 until the account asks (Support → "Request
-to remove email sending limitations"). That form is only the limit; the reverse DNS
-half is an API call, `deploy/scripts/set-rdns.sh` (done 2026-09-22: the EIP points at
-`probe.wrenautomation.com`). The form was filed 2026-09-22 but is unconfirmed — a
-Basic-plan account files it outside Support Center and AWS has sent nothing; refile
-if the port is still closed after a few days. Until it is granted `/healthz` says `"port_25": false`, `/verify`
-answers 503, the pool stage records that error and retries hourly, and compose
-enrolls only role inboxes that already hold a verdict. Verified people are not
-affected. The canary re-checks every ten minutes, so nothing to restart when the
-port opens.
+The A record `probe.wrenautomation.com` (Cloudflare, DNS only) points at the VPS.
+Reverse DNS is RackNerd's: support ticket #EF57722 asks for the PTR (check with
+`dig -x 192.255.226.241`). The canary re-checks every ten minutes; with port 25
+closed `/verify` answers 503 and the pool stage retries hourly.
+
+Throughput: the pool-feeder's two mailbox stages run `PROBE_WIDTH` (16) walks at
+once and the prober admits `PROBE_MAX_IN_FLIGHT` (32). The prober still talks to one
+MX host one conversation at a time with a 1.5 s gap, so a batch that is mostly one
+provider's shared MX (Google, Proofpoint Essentials) is slower than a mixed one.
+`resolveMailboxes` walks only the person guesses someone queued (`Resolution/default/queue`).
 
 Meaning of the verdicts: `valid` = the MX accepted the address and refused a random
 one; `catch_all` = it accepts anything (sendable, unproven); `invalid` = user

@@ -20,6 +20,7 @@
 import { companies, type Lead, type LeadStatus, leads, transitionLead } from "@wren/core";
 import type { Queryable } from "@wren/db";
 import { and, asc, eq, lt, notExists, or, sql } from "drizzle-orm";
+import { eachConcurrently } from "../concurrent.js";
 import { type VerificationResult, verifications } from "../schema.js";
 import type { LocalCheckerLike } from "./local.js";
 import { defaultLocalChecker } from "./mailifier.js";
@@ -45,6 +46,8 @@ export interface VerificationOptions {
   retryRiskyOlderThanMs?: number;
   /** Only leads held by this niche's companies. */
   niche?: string;
+  /** Leads checked at once (default 1). A paid verifier stays at 1. */
+  concurrency?: number;
 }
 
 export interface VerificationStats {
@@ -122,14 +125,14 @@ export async function runVerification(
     lead.status = status;
   };
 
-  for (const lead of selected) {
+  const checkOne = async (lead: Lead): Promise<void> => {
     let local: Awaited<ReturnType<LocalCheckerLike["check"]>>;
     try {
       local = await checker.check(lead.email);
     } catch {
       // A local-stage bug can only be wrong about this one lead: skip it, keep the paid verdicts.
       stats.local_errors += 1;
-      continue;
+      return;
     }
     for (const flag of local.flags) stats.flags[flag] = (stats.flags[flag] ?? 0) + 1;
 
@@ -149,7 +152,7 @@ export async function runVerification(
       stats.local_invalid += 1;
       // Local-check INVALID is authoritative regardless of the configured verifier.
       await setStatus(lead, "undeliverable");
-      continue;
+      return;
     }
 
     let verdict: Awaited<ReturnType<EmailVerifier["verify"]>>;
@@ -157,8 +160,8 @@ export async function runVerification(
       verdict = await verifier.verify(lead.email);
     } catch (err) {
       // Provider/API failure: keep partial progress.
-      stats.aborted = `${err instanceof Error ? err.name : "Error"}: ${err instanceof Error ? err.message : String(err)}`;
-      break;
+      stats.aborted ??= `${err instanceof Error ? err.name : "Error"}: ${err instanceof Error ? err.message : String(err)}`;
+      return;
     }
     const raw: Record<string, unknown> = { ...verdict.raw, authoritative: verifier.authoritative };
     if (local.flags.length) raw.local_flags = [...local.flags];
@@ -177,6 +180,7 @@ export async function runVerification(
       if (verdict.result === "valid") await setStatus(lead, "verified");
       else if (verdict.result === "invalid") await setStatus(lead, "undeliverable");
     }
-  }
+  };
+  await eachConcurrently(selected, opts.concurrency ?? 1, checkOne, () => stats.aborted !== null);
   return stats;
 }

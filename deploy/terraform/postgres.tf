@@ -37,6 +37,8 @@ resource "aws_ssm_parameter" "browser_token" {
   value = var.browser_token
 }
 
+# The SMTP prober's bearer. The prober runs off AWS (outbound port 25 is shut here);
+# deploy/scripts/deploy-prober.sh reads the token from this parameter.
 resource "aws_ssm_parameter" "probe_token" {
   count = var.probe_token == "" ? 0 : 1
   name  = "${local.ssm_root}/probe_token"
@@ -62,16 +64,6 @@ resource "aws_security_group" "pg" {
       description = "browserless CDP (token in the URL)"
       from_port   = 3000
       to_port     = 3000
-      protocol    = "tcp"
-      cidr_blocks = ["0.0.0.0/0"]
-    }
-  }
-  dynamic "ingress" {
-    for_each = var.probe_token == "" ? [] : [1]
-    content {
-      description = "SMTP prober HTTP (bearer)"
-      from_port   = 2525
-      to_port     = 2525
       protocol    = "tcp"
       cidr_blocks = ["0.0.0.0/0"]
     }
@@ -158,7 +150,6 @@ data "aws_iam_policy_document" "pg" {
     resources = concat(
       [aws_ssm_parameter.pg_password.arn],
       aws_ssm_parameter.browser_token[*].arn,
-      aws_ssm_parameter.probe_token[*].arn,
     )
   }
   statement {
@@ -170,11 +161,6 @@ data "aws_iam_policy_document" "pg" {
     sid       = "WriteBackups"
     actions   = ["s3:PutObject", "s3:ListBucket"]
     resources = [aws_s3_bucket.backups.arn, "${aws_s3_bucket.backups.arn}/*"]
-  }
-  statement {
-    sid       = "ReadProberBundle"
-    actions   = ["s3:GetObject"]
-    resources = ["${aws_s3_bucket.backups.arn}/prober/*"]
   }
 }
 
@@ -221,8 +207,6 @@ resource "aws_instance" "pg" {
     volume_id           = aws_ebs_volume.pg_data.id
     pw_param            = aws_ssm_parameter.pg_password.name
     browser_token_param = var.browser_token == "" ? "" : aws_ssm_parameter.browser_token[0].name
-    probe_token_param   = var.probe_token == "" ? "" : aws_ssm_parameter.probe_token[0].name
-    probe_helo          = var.probe_helo
     backups             = aws_s3_bucket.backups.bucket
     db_name             = var.name
     db_user             = var.name
@@ -232,8 +216,7 @@ resource "aws_instance" "pg" {
   tags = { Name = "${local.prefix}-pg" }
 
   lifecycle {
-    # User data runs at first boot only; later changes ship by deploy scripts
-    # (deploy-prober.sh). An in-place user_data change would stop Postgres.
+    # User data runs at first boot only. An in-place user_data change would stop Postgres.
     ignore_changes = [ami, user_data]
   }
 }
@@ -248,7 +231,4 @@ resource "aws_eip" "pg" {
   instance = aws_instance.pg.id
   domain   = "vpc"
   tags     = { Name = "${local.prefix}-pg" }
-  # The PTR (probe_helo -> this address) is not a writable attribute here; AWS takes
-  # it through ec2:ModifyAddressAttribute. `deploy/scripts/set-rdns.sh` does that and
-  # is safe to re-run; a rebuilt EIP needs it again, after the forward record moves.
 }

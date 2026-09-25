@@ -35,7 +35,7 @@ class ProbeVerifier implements EmailVerifier {
   }
 }
 
-/** Ask the prober on the database box over HTTP: the Lambda's only way, port 25 being shut there. */
+/** Ask the prober host over HTTP: the Lambda's only way, port 25 being shut there. */
 export const remoteProbeVerifier = (url: string, token: string): EmailVerifier =>
   new ProbeVerifier(new RemoteProbe(url, token));
 
