@@ -163,6 +163,7 @@ export function makeResolution(deps: ResolutionDeps) {
           try {
             const domains = await selectNewResolutionTargets(db, {
               limit: input.limitDomains,
+              retryRiskyAfterDays: DEFAULT_RETRY_RISKY_DAYS,
               ...(input.niche !== undefined ? { niche: input.niche } : {}),
             });
             let stats = emptyResolutionStats();

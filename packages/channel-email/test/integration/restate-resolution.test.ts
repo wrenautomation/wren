@@ -8,7 +8,7 @@ import { eq, inArray } from "drizzle-orm";
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 import { domainKnowledge } from "../../src/resolution/service.js";
 import { makeResolution, RESOLUTION_KEY, type Resolution } from "../../src/restate/resolution.js";
-import { contactCandidates, type VerificationResult } from "../../src/schema.js";
+import { contactCandidates, type VerificationResult, verifications } from "../../src/schema.js";
 import type { LocalCheck, LocalCheckerLike } from "../../src/verification/local.js";
 import type { EmailVerifier, Verdict } from "../../src/verification/verifier.js";
 
@@ -190,6 +190,31 @@ describe("Resolution virtual object", () => {
       ).toBe(0);
       const promoted = await db().select().from(leads).where(eq(leads.status, "verified"));
       expect(promoted).toHaveLength(6);
+    });
+
+    it("a risky verdict stops the walk, costs no budget, and is retried after two days", async () => {
+      verifier.costsCredits = false;
+      await firms(1);
+      const c = client();
+      await c.build({});
+      await c.queue({});
+      const first = (
+        await db().select().from(contactCandidates).orderBy(contactCandidates.id).limit(1)
+      )[0];
+      verifier.verdicts[first!.email] = "risky";
+      const stats = await c.resolveNewDomains({ niche: "sec_ria", limitDomains: 5 });
+      expect(stats).toMatchObject({ domains_processed: 1, deferred_domains: 1, promoted: 0 });
+      expect(verifier.calls).toHaveLength(1);
+      expect((await domainKnowledge(db(), "f0.veloqua.example")).creditsSpent).toBe(0);
+      expect(
+        (await c.resolveNewDomains({ niche: "sec_ria", limitDomains: 5 })).domains_processed,
+      ).toBe(0);
+      await db()
+        .update(verifications)
+        .set({ checkedAt: new Date(Date.now() - 3 * 86_400_000) });
+      verifier.verdicts[first!.email] = "valid";
+      const retry = await c.resolveNewDomains({ niche: "sec_ria", limitDomains: 5 });
+      expect(retry).toMatchObject({ domains_processed: 1, promoted: 1 });
     });
 
     it("refuses a paid verifier: it would spend without a limit", async () => {

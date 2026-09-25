@@ -13,6 +13,8 @@
  *     unknown-pattern domain→ the discovery budget: walk evidence order until
  *                             VALID (proves the pattern), catch_all, or
  *                             exhaustion → pattern_unknown, HITL, no re-spend
+ *     any risky verdict     → the server, not the mailbox, answered: the walk stops
+ *                             there, the verdict costs no budget, retried later
  *   A free local MX check runs before the first paid verdict per domain.
  * - Promotion goes through the ordinary lead importer; the verification row is
  *   then linked to BOTH candidate and lead so the lead-side funnel never re-buys.
@@ -129,6 +131,8 @@ export async function domainKnowledge(db: Queryable, domain: string): Promise<Do
         ne(verifications.verifier, "local"),
         // Only authoritative verdicts consume budget; a dry run must not.
         authoritativeRaw,
+        // A risky verdict (blocked, unreachable, deferred) taught nothing about the pattern.
+        ne(verifications.result, "risky"),
       ),
     );
   return {
@@ -428,6 +432,8 @@ export interface ResolutionStats {
   patterns_proven: number;
   catch_all_domains: number;
   pattern_unknown_domains: number;
+  /** Domains whose server answered `risky` (blocked, unreachable, deferred): walked again later. */
+  deferred_domains: number;
   dead_domains: number;
   people_unresolved: number;
   email_collisions: number;
@@ -649,6 +655,11 @@ async function resolveDomain(
         stats.catch_all_domains += 1;
         break;
       }
+      if (outcome.result === "risky") {
+        // The server, not the mailbox, answered: the next guess would get the same.
+        stats.deferred_domains += 1;
+        return;
+      }
       if (outcome.result === "valid") {
         resolvedPeople.add(candidate.personId);
         taken.add(candidate.email);
@@ -682,6 +693,10 @@ async function resolveDomain(
     if (outcome.result === "valid") taken.add(chosen.email);
     if (outcome.result === "catch_all") {
       stats.catch_all_domains += 1;
+      return;
+    }
+    if (outcome.result === "risky") {
+      stats.deferred_domains += 1;
       return;
     }
   }
@@ -751,14 +766,17 @@ export async function selectResolutionTargets(db: Queryable): Promise<string[]> 
 }
 
 /**
- * Domains with queued candidates and no verdict yet, oldest queue first: each one's
- * first walk. A domain the walk left queued (catch-all, pattern unknown) has rows,
- * so it drops out; one whose walk wrote nothing (resolver trouble) comes back.
+ * Domains with queued candidates and no conclusive verdict yet, oldest queue first:
+ * each one's first walk. A domain the walk left queued (catch-all, pattern unknown) has
+ * rows, so it drops out; one whose walk wrote nothing (resolver trouble) comes back, and
+ * so does one whose only verdicts are `risky` older than `retryRiskyAfterDays` (the
+ * server blocked, timed out or deferred us; it may not next time).
  */
 export async function selectNewResolutionTargets(
   db: Queryable,
-  opts: { limit: number; niche?: string },
+  opts: { limit: number; niche?: string; retryRiskyAfterDays?: number },
 ): Promise<string[]> {
+  const retryDays = opts.retryRiskyAfterDays ?? 2;
   const niche = opts.niche
     ? sql`AND EXISTS (SELECT 1 FROM people p JOIN companies co ON co.id = p.company_id
         WHERE p.id = c.person_id AND co.niche = ${opts.niche})`
@@ -768,7 +786,8 @@ export async function selectNewResolutionTargets(
     WHERE c.state = 'queued' ${niche}
       AND NOT EXISTS (
         SELECT 1 FROM verifications v JOIN contact_candidates x ON x.id = v.contact_candidate_id
-        WHERE x.domain = c.domain)
+        WHERE x.domain = c.domain
+          AND (v.result <> 'risky' OR v.checked_at > now() - make_interval(days => ${retryDays})))
     GROUP BY c.domain
     ORDER BY min(c.id)
     LIMIT ${opts.limit}
@@ -846,6 +865,7 @@ export function emptyResolutionStats(): ResolutionStats {
     patterns_proven: 0,
     catch_all_domains: 0,
     pattern_unknown_domains: 0,
+    deferred_domains: 0,
     dead_domains: 0,
     people_unresolved: 0,
     email_collisions: 0,
