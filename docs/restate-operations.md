@@ -190,7 +190,7 @@ Resolution's build/queue/resolve stays by hand.
 Every bounce so far was an unverified role inbox. Since 2026-09-21 verdicts come
 from our own SMTP prober, not MillionVerifier: it asks the address's MX
 `RCPT TO:` and hangs up before `DATA` — no mail is ever sent. Free, so the
-pool-feeder runs it as its last stage (`verifyMailboxes`, 96 leads a pass, 16 at once) and
+pool-feeder runs it as its last stage (`verifyMailboxes`, 192 leads a pass, 32 at once) and
 compose enrolls a role inbox only once it holds a `valid` or `catch_all` verdict.
 A `risky` verdict (greylist, tarpit) is tried again after two days.
 
@@ -217,10 +217,11 @@ Reverse DNS is RackNerd's: support ticket #EF57722 asks for the PTR (check with
 `dig -x 192.255.226.241`). The canary re-checks every ten minutes; with port 25
 closed `/verify` answers 503 and the pool stage retries hourly.
 
-Throughput: the pool-feeder's two mailbox stages run `PROBE_WIDTH` (16) walks at
-once and the prober admits `PROBE_MAX_IN_FLIGHT` (32). The prober still talks to one
-MX host one conversation at a time with a 1.5 s gap, so a batch that is mostly one
-provider's shared MX (Google, Proofpoint Essentials) is slower than a mixed one.
+Throughput: the pool-feeder's two mailbox stages run `PROBE_WIDTH` (32) walks at
+once and the prober admits `PROBE_MAX_IN_FLIGHT` (32). The prober paces each MX host
+with a 1.5 s gap: one conversation at a time, 3 for the big shared hosts (Google,
+Microsoft, Proofpoint, Mimecast; `PROBE_BIG_HOST_LANES`). Measured 2026-09-25 at 16
+wide: ~1,000 domains an hour, VPS load near 0.
 `resolveMailboxes` walks only the person guesses someone queued (`Resolution/default/queue`).
 
 Meaning of the verdicts: `valid` = the MX accepted the address and refused a random

@@ -73,12 +73,16 @@ export const DEFAULT_LIMITS: StageLimits = {
   pick: 50,
   // Each probe is a live SMTP conversation, seconds apiece, run PROBE_WIDTH at once:
   // a pass stays a few minutes, well inside one Lambda invocation.
-  resolveMailboxes: 96,
-  verifyMailboxes: 96,
+  resolveMailboxes: 192,
+  verifyMailboxes: 192,
 };
 
-/** Mail servers talked to at once. Within the prober's own in-flight cap (PROBE_MAX_IN_FLIGHT). */
-export const PROBE_WIDTH = 16;
+/**
+ * Mail servers talked to at once: the prober's whole in-flight cap (PROBE_MAX_IN_FLIGHT, 32).
+ * Every pass goes through Resolution/default one at a time, so two niches never stack.
+ * Each walk holds a DB connection: 32 of Postgres's 60.
+ */
+export const PROBE_WIDTH = 32;
 
 /** What `PoolScheduler/{niche}/start` may be given. */
 export interface PoolSettings {
