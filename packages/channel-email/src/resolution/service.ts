@@ -790,10 +790,11 @@ export async function selectNewResolutionTargets(
         WHERE x.domain = c.domain
           AND (v.result <> 'risky' OR v.checked_at > now() - make_interval(days => ${retryDays})))
       -- Known catch-all from any verdict at the domain (a lead's too): the walk has nothing to ask.
-      AND NOT EXISTS (
-        SELECT 1 FROM ${verifications}
-        WHERE split_part(${verifications.email}, '@', 2) = c.domain
-          AND ${verifications.result} = 'catch_all' AND ${authoritativeRaw})
+      -- NOT IN, not a correlated NOT EXISTS: Postgres hashes it once (NOT EXISTS ran minutes).
+      AND c.domain NOT IN (
+        SELECT split_part(${verifications.email}, '@', 2) FROM ${verifications}
+        WHERE ${verifications.result} = 'catch_all' AND ${authoritativeRaw}
+          AND ${verifications.email} IS NOT NULL)
     GROUP BY c.domain
     ORDER BY min(c.id)
     LIMIT ${opts.limit}
