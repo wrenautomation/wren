@@ -6,6 +6,7 @@
 import { createHash } from "node:crypto";
 import { readFileSync } from "node:fs";
 import { parse } from "csv-parse/sync";
+import { GoogleMapsCsvSource } from "./google-maps.js";
 import type { RawRow } from "./schema.js";
 
 export interface LeadSource {
@@ -130,6 +131,14 @@ export const BUILTIN_FORMATS: Readonly<Record<string, SourceFormat>> = {
     build: (p) => new CsvLeadSource(p),
     niche: null,
     columnMapped: true,
+    directory: false,
+  },
+  "google-maps": {
+    name: "google-maps",
+    help: "gosom/google-maps-scraper CSV (listings -> companies, general inbox)",
+    build: (p) => new GoogleMapsCsvSource(p),
+    niche: null,
+    columnMapped: false,
     directory: false,
   },
 };

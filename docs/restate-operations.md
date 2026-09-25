@@ -242,12 +242,26 @@ wren email import data/agencies/clutch/design_agencies --format clutch-pages  # 
 wren email import data/agencies/shopify/store_setup --format shopify-pages    # + fetched profiles under data/agencies/bulk/
 wren email import export.csv --format agency-directory-csv                    # manual Clutch/DesignRush/Sortlist export
 wren email import leads.csv --format csv --niche agencies --map "Company=company_name"
+wren email import maps.csv --format google-maps --niche <niche>               # gosom/google-maps-scraper CSV
 wren email import-people ADV_Filing_Data_20260701_20260731.zip --format adv-filing-data   # owners, officers, CCOs
 ```
 
 Directory hosts (clutch.co, shopify.com, …) are platform domains in every import: a
 listing URL is kept as the company's social URL, never as its domain; a firm with no
 real domain keys by `clutch:<slug>` / `crd:<n>` and gets a domain later from discovery.
+
+Local businesses come from Google Maps through the MIT
+[gosom/google-maps-scraper](https://github.com/gosom/google-maps-scraper), run by hand
+(port 8090: Restate owns 8080). Keep `-c` at 2 to 4 without proxies; empty results
+mean slow down.
+
+```sh
+docker run --rm -v "$PWD/data/maps:/gmapsdata" -p 127.0.0.1:8090:8080 \
+  gosom/google-maps-scraper -data-folder /gmapsdata -c 2    # UI + /api/v1/jobs at :8090
+```
+
+Download a job's CSV and import it. `title` becomes the company name, the first of
+`emails` the general inbox; a listing with no real website keys by `gmaps:<cid>`.
 Directory pages are saved by hand: none of these formats fetches. The publisher files
 come through `wren fetch` (needs `WREN_FETCH_CONTACT`; lands under
 `<data>/<niche>/bulk/<dataset>/`, skips what is already there, so re-running resumes):
