@@ -162,7 +162,8 @@ export function makeSendScheduler(deps: SendSchedulerDeps) {
 
 /**
  * How long until this inbox should look again: the gap after a send, straight
- * to the next window open when closed, else the tick interval.
+ * to the next window open when closed or when the inbox is at today's cap
+ * (unless a send still awaits reconcile), else the tick interval.
  */
 export function nextDelay(
   policy: SendPolicy,
@@ -175,6 +176,10 @@ export function nextDelay(
     return Math.max(policy.nextWindowOpen(now).getTime() - now.getTime(), MIN_DELAY_MS);
   }
   if (stats.sent > 0) return Math.max(policy.gapFor(seededRng(seed)), MIN_DELAY_MS);
+  if (stats.senders_capped > 0 && stats.reconcile_pending === 0) {
+    const [, tomorrow] = policy.localDayBounds(now);
+    return Math.max(policy.nextWindowOpen(tomorrow).getTime() - now.getTime(), MIN_DELAY_MS);
+  }
   return Math.max(tickMs, MIN_DELAY_MS);
 }
 

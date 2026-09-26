@@ -121,7 +121,7 @@ describe("SendScheduler", () => {
     expect(stopped.running).toBe(false);
   });
 
-  it("nextDelay: gap after a send, next open when closed, tick interval otherwise", () => {
+  it("nextDelay: gap after a send, next open when closed or capped, tick interval otherwise", () => {
     const now = new Date(Date.UTC(2026, 11, 2, 12));
     const idle = emptySendStats();
     expect(nextDelay(OPEN, idle, now, 1, 60_000)).toBe(60_000);
@@ -134,6 +134,16 @@ describe("SendScheduler", () => {
     const saturday = new Date(Date.UTC(2026, 8, 12, 15)); // 10:00 Chicago, Saturday
     expect(nextDelay(office, closed, saturday, 1, 60_000)).toBe(
       office.nextWindowOpen(saturday).getTime() - saturday.getTime(),
+    );
+    // At today's cap: nothing goes out before tomorrow's window, so sleep until then.
+    const capped = { ...idle, senders_capped: 1 };
+    const [, tomorrow] = office.localDayBounds(saturday);
+    expect(nextDelay(office, capped, saturday, 1, 60_000)).toBe(
+      office.nextWindowOpen(tomorrow).getTime() - saturday.getTime(),
+    );
+    // A send still awaiting reconcile keeps the tick going.
+    expect(nextDelay(office, { ...capped, reconcile_pending: 1 }, saturday, 1, 60_000)).toBe(
+      60_000,
     );
   });
 });
