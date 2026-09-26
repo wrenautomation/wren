@@ -300,3 +300,18 @@ export function tidy(input: string): string {
     .replace(BLANK_STACK, "\n\n")
     .trim();
 }
+
+/** Every fact key the template quotes, in the subject or body, inside optional runs too. */
+export function factKeys(tpl: Template): ReadonlySet<string> {
+  const keys = new Set<string>();
+  const walk = (blocks: readonly Block[]): void => {
+    for (const b of blocks) {
+      if (b.kind === "field") keys.add(b.key);
+      else if (b.kind === "group") walk(b.blocks);
+      else if (b.kind === "variants") for (const o of b.options) walk(o);
+    }
+  };
+  walk(tpl.subject ?? []);
+  walk(tpl.body);
+  return keys;
+}

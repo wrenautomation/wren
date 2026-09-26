@@ -13,13 +13,14 @@ import {
 import type { Dataset } from "@wren/research/fetch";
 import { agencies } from "./agencies.js";
 import type { Niche } from "./niche.js";
+import { recruiting } from "./recruiting.js";
 import { secRia } from "./sec-ria.js";
 
 export type { Niche, NicheSpec } from "./niche.js";
 export { defineNiche, leadFormat, rawLocation, templatesDir } from "./niche.js";
-export { agencies, secRia };
+export { agencies, recruiting, secRia };
 
-export const NICHES: readonly Niche[] = [secRia, agencies];
+export const NICHES: readonly Niche[] = [secRia, agencies, recruiting];
 export const NICHE_NAMES: ReadonlySet<string> = new Set(NICHES.map((n) => n.name));
 if (NICHE_NAMES.size !== NICHES.length) throw new Error("duplicate niche name in registry");
 

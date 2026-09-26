@@ -31,6 +31,8 @@ export interface Campaign {
   readonly sequences: ReadonlyMap<string, Sequence>;
   /** The offer each sequence pitches, by sequence name (the niche's arm → offer map). */
   readonly offers: ReadonlyMap<string, string>;
+  /** Each offer's terms as `offer.*` facts, by offer id, for copy that quotes them. */
+  readonly offerFacts: ReadonlyMap<string, Readonly<Record<string, string>>>;
   readonly templates: ReadonlyMap<string, Template>;
   readonly factsView: string | null;
   /** Active roster addresses this niche may send from, roster order. */
@@ -138,6 +140,7 @@ export async function topUp(
       niche: campaign.niche,
       sequence,
       offer,
+      offerFacts: campaign.offerFacts.get(offer) ?? {},
       templates: campaign.templates,
       verificationHorizonDays: opts.verificationHorizonDays,
       senders: campaign.senders,

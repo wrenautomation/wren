@@ -25,7 +25,7 @@ export interface Fleet {
   readonly fromNames: Readonly<Record<string, string | null>>;
   /** The rich form of each inbox's sign-off; the plain form is already in the body. */
   readonly signatureHtml: Readonly<Record<string, string>>;
-  /** Each niche's page on the site ("/ria"), filled into the sign-off's `{page}` slot. */
+  /** Each niche's page on the site ("/recruiting"), filled into the sign-off's `{page}` slot. */
   readonly pages: Readonly<Record<string, string>>;
 }
 

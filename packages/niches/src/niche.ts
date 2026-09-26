@@ -9,20 +9,21 @@ import { fileURLToPath } from "node:url";
 import {
   type EnrollmentRule,
   enrollmentPlan,
+  factKeys,
   loadTemplates,
   pyReprStr,
   type Sequence,
   type Template,
 } from "@wren/channel-email";
 import type { Company, PersonSourceFormat, SourceFormat } from "@wren/core";
-import { offerFor } from "@wren/offers";
+import { OFFER_PAGES, offerFacts, offerFor } from "@wren/offers";
 import type { Dataset } from "@wren/research/fetch";
 
 export interface Niche {
   readonly name: string;
   /** The sanctioned targeting read surface for this niche (a view name), or null. */
   readonly factsView: string | null;
-  /** This niche's page on the site, path only (the sign-off links it). */
+  /** This niche's page on the site, path only (the sign-off links it). Must be a live offer's page. */
   readonly lander: string;
   /** Site-navigation vocabulary this niche's sites use for people-content pages. */
   readonly crawlHints: ReadonlySet<string>;
@@ -32,6 +33,8 @@ export interface Niche {
   readonly sequences: ReadonlyMap<string, Sequence>;
   /** The offer each sequence pitches (its arm's), by sequence name: every sequence has one. */
   readonly offers: ReadonlyMap<string, string>;
+  /** Each pitched offer's terms as `offer.*` facts, by offer id: `{offer.days}` in copy. */
+  readonly offerFacts: ReadonlyMap<string, Readonly<Record<string, string>>>;
   /** Which sequence a new enrollment gets, by facts, in order (the last rule may be ungated). */
   readonly plan: readonly EnrollmentRule[];
   /** Where the company keeps office hours, as the source wrote it ("City, ST"), or null. */
@@ -94,6 +97,12 @@ export function templatesDir(moduleUrl: string, niche: string): string {
 
 /** Build and validate one niche: every sequence step registered, every opener with a subject. */
 export function defineNiche(spec: NicheSpec): Niche {
+  if (!OFFER_PAGES.has(spec.lander)) {
+    throw new Error(
+      `niche ${pyReprStr(spec.name)}: lander ${pyReprStr(spec.lander)} is no live offer's page` +
+        ` — the site serves: ${[...OFFER_PAGES].sort().join(", ")}`,
+    );
+  }
   const templates = loadTemplates(spec.templatesDir);
   for (const [key, tpl] of templates) {
     if (key !== tpl.name) {
@@ -133,6 +142,7 @@ export function defineNiche(spec: NicheSpec): Niche {
     sequences.set(seq.name, seq);
   }
   const offers = new Map<string, string>();
+  const termsByOffer = new Map<string, Readonly<Record<string, string>>>();
   for (const seq of sequences.values()) {
     if (seq.arm === null) {
       throw new Error(
@@ -146,8 +156,21 @@ export function defineNiche(spec: NicheSpec): Niche {
         `niche ${pyReprStr(spec.name)}: arm ${pyReprStr(seq.arm)} names no offer in \`offers\``,
       );
     }
-    offerFor(offer); // throws on an id the registry does not know
+    const facts = offerFacts(offerFor(offer)); // offerFor throws on an id the registry does not know
+    // Copy quoting a term the offer doesn't set would refuse every draft at compose; say so now.
+    for (const step of seq.steps) {
+      const unset = [...factKeys(templates.get(step.template) as Template)]
+        .filter((k) => k.startsWith("offer.") && !(k in facts))
+        .sort();
+      if (unset.length > 0) {
+        throw new Error(
+          `niche ${pyReprStr(spec.name)}: template ${pyReprStr(step.template)} quotes` +
+            ` ${unset.join(", ")}, which offer ${pyReprStr(offer)} does not set`,
+        );
+      }
+    }
     offers.set(seq.name, offer);
+    termsByOffer.set(offer, facts);
   }
   const armed = new Set([...sequences.values()].map((s) => s.arm));
   const idle = Object.keys(spec.offers).filter((arm) => !armed.has(arm));
@@ -170,6 +193,7 @@ export function defineNiche(spec: NicheSpec): Niche {
     templates,
     sequences,
     offers,
+    offerFacts: termsByOffer,
     plan,
     companyLocation: spec.companyLocation,
     leadSourceFormats: spec.leadSourceFormats ?? [],

@@ -48,6 +48,7 @@ const CAMPAIGN: Campaign = {
     ["marketing-days-0-5", "marketing-offer"],
     ["build-days-0-5", "build-offer"],
   ]),
+  offerFacts: new Map(),
   templates: new Map([
     ["marketing/opener", MARKETING],
     ["build/opener", BUILD],

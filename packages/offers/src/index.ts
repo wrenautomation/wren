@@ -30,6 +30,7 @@ export {
   MEASURE_UNITS,
   OFFER_ID_MAX,
   OFFER_STATUSES,
+  offerFacts,
 } from "./offer.js";
 export { SNAPSHOT_VERSION, type Snapshot, snapshot } from "./snapshot.js";
 
@@ -79,6 +80,10 @@ export const OFFERS: readonly Offer[] = registry([
   opsAutomationBuild,
 ]);
 export const OFFER_IDS: ReadonlySet<string> = new Set(OFFERS.map((o) => o.id));
+/** Every page the site serves an offer on. The lander builds exactly these, so a link anywhere else 404s or redirects. */
+export const OFFER_PAGES: ReadonlySet<string> = new Set(
+  OFFERS.flatMap((o) => (o.status === "live" && o.page !== null ? [o.page] : [])),
+);
 
 const byId = new Map(OFFERS.map((o) => [o.id, o] as const));
 

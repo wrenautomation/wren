@@ -26,6 +26,9 @@ under `templates/`). Nothing sends unread. Review mode is the default.
   `company_name`), `company.*` keys from the niche's facts view. A missing
   fact refuses the draft, so anything that can be missing sits inside
   `((…))`.
+- Offer terms: `offer.name`, `offer.days`, `offer.slots`, `offer.page`
+  from the arm's offer in `packages/offers`. Never type a term the
+  registry holds. A key the offer doesn't set refuses the niche at import.
 - Subjects: all lowercase. It stands out in a sea of emails. No facts in
   the subject. A name renders capitalised and breaks the lowercase, and a
   refused fact kills the draft.
@@ -273,4 +276,24 @@ to these.
   bio, same one door, no new numbers. Openers run ~390 to ~425 words.
   Also found: `build/` was git-ignored (packaging rule), so the build arm
   was never in `921a2eb`; `.gitignore` now un-ignores that directory.
-
+- 2026-09-26 — Recruiting DRAFT 1, one arm `reactivation/` on the free
+  pilot (`recruiting-reactivation-pilot`), written from William's brief
+  without his edit pass. Reader: owner, CEO or MD of a midsize firm.
+  Pain family: BD hangs on one or two people, the week goes to intake
+  and scheduling, job orders come in waves. Example: past clients in the
+  ATS who moved, got promoted, or are hiring now. Usual fix dissed: a BD
+  push. Follow-up tip: pull placed-with contacts silent six months,
+  check the top 20 on LinkedIn for moves.
+- 2026-09-26 — Two rules bent for recruiting, on purpose. (1) The one
+  door is the page, not "send me some times": William routed the
+  campaign to `/recruiting`, where the application screens fit and a
+  fit applicant books in the page. (2) The email states the pilot's
+  terms (free, days, slots, what each side gives), because they are the
+  offer. Still no price, stack or guarantee. The numbers come from the
+  registry as `offer.*` facts, so email, page and form can't disagree.
+- 2026-09-26 — No utm on email links. The link is the domain plus the
+  offer's page, like the sign-off; the application stores the offer id
+  and the enrollment stamps it, so attribution doesn't need the query.
+- 2026-09-26 — A niche's page (the sign-off link) must be a live
+  offer's page, checked at import. sec_ria moved from the retired
+  `/ria` to `/`.

@@ -222,6 +222,7 @@ describe("fillPage", () => {
   it("puts the lander path in the slot", () => {
     expect(fillPage("wrenautomation.com{page}", "/agencies")).toBe("wrenautomation.com/agencies");
     expect(fillPage("wrenautomation.com{page}", "")).toBe("wrenautomation.com");
+    expect(fillPage("wrenautomation.com{page}", "/")).toBe("wrenautomation.com");
     expect(fillPage("wrenautomation.com", "/ria")).toBe("wrenautomation.com");
   });
   it("refuses anything but a plain path", () => {

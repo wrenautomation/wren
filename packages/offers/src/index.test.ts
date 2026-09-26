@@ -5,6 +5,7 @@ import {
   invalidAnswers,
   OFFERS,
   type Offer,
+  offerFacts,
   offerFor,
   registry,
   type snapshot,
@@ -147,6 +148,18 @@ describe("applications", () => {
     expect(invalidAnswers(o, { size: "big", pains: ["a"], extra: "x" })).toMatch(/unknown/);
     expect(invalidAnswers(o, { size: "big", pains: ["a"], note: ["x"] })).toMatch(/text/);
     expect(invalidAnswers(offer({}), {})).toMatch(/no application/);
+  });
+});
+
+describe("offerFacts", () => {
+  it("gives copy the terms the offer sets, and nothing it leaves null", () => {
+    expect(offerFacts(offer({ days: 30, slots: 3, page: "/x" }))).toEqual({
+      "offer.name": "Test",
+      "offer.days": "30",
+      "offer.slots": "3",
+      "offer.page": "/x",
+    });
+    expect(offerFacts(offer({}))).toEqual({ "offer.name": "Test" });
   });
 });
 

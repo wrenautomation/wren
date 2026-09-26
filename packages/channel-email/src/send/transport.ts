@@ -97,12 +97,13 @@ const BARE_DOMAIN = /^(?!-)[a-z0-9-]+(?:\.[a-z0-9-]+)+(?:\/[a-z0-9-]+)*$/i;
 const PAGE_SLOT = "{page}";
 const PLAIN_PATH = /^(?:\/[a-z0-9-]+)+$/;
 
-/** One signature form with its `{page}` slot filled; anything but a plain path or "" is refused. */
+/** One signature form with its `{page}` slot filled; "/" and "" are the home page, anything but a plain path is refused. */
 export function fillPage(form: string, page: string): string {
-  if (page && !PLAIN_PATH.test(page)) {
+  const path = page === "/" ? "" : page;
+  if (path && !PLAIN_PATH.test(path)) {
     throw new Error(`a lander page is a plain path like '/agencies', not ${JSON.stringify(page)}`);
   }
-  return form.replaceAll(PAGE_SLOT, page);
+  return form.replaceAll(PAGE_SLOT, path);
 }
 
 const STYLE_BODY = "font-family:Arial,Helvetica,sans-serif;font-size:14px;color:#222";

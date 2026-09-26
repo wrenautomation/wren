@@ -1,0 +1,24 @@
+subject: [[the clients in your ats | who's calling your old clients? | a guess about your job orders]]
+
+Hi {first_name|there},
+
+{first_name|This address} is listed on the {company_name} site((, as {title})).
+
+New business at {company_name} hangs on one or two people. Your recruiters spend the week on intake, interview scheduling and status updates, and business development gets whatever hours are left, which is usually Friday afternoon. So job orders come in waves, and a slow month shows up in the fees two months later.
+
+Meanwhile the best list you have sits in the ATS. Every hiring manager who ever paid you a fee, and most haven't heard from you in a year. Some moved to a new company with a new budget, some got promoted, and a few are hiring this month and will call whoever reached out last. Have fun watching a competitor fill a role for your old client.
+
+The usual fix doesn't work either, and I'll say why after a line about who I am.
+
+I'm William, from Wren Automation. I'm a software engineering student at the University of Waterloo, and this is the business I'm building. My work has been data cleaning, pipelines that connect systems, and CRMs. Two things I've built: an internal policy chatbot for the Government of Canada, which 17,000 staff use instead of searching 220+ directives by hand, saving about 6 to 7 hours a week each. And a University of Alberta lab tool that cut 200+ hours of manual lookups across 7,000+ records of messy fuel cell data, terabytes of it, in outdated file types.
+
+The usual fix is a BD push. Someone blocks Fridays for calls, or the whole list gets a newsletter. The calls stop the week a big search lands, and nobody reads a newsletter written to everyone. At a small scale that's fine, but with the number of contacts you guys have in the ATS, it's job orders every quarter going to somebody else.
+
+So I'm running a free {offer.days}-day pilot for {offer.slots} recruiting firms, as many as I can run well myself. You send an export of past clients. I clean it, check every address, and write to them in your recruiter's name from a new domain, so your main one is never touched. You approve every email, the warm replies reach your recruiter the same day, and you keep every job order. In return I get the numbers as a case study, and an intro or two if it works.
+
+If you want a slot, the details and a two-minute application are at wrenautomation.com{offer.page}. If it's a fit, you pick a time right after.
+
+Thanks for reading this far.
+
+Best,
+William

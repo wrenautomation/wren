@@ -39,6 +39,8 @@ export interface ComposeOptions {
   readonly sequence: Sequence;
   /** The offer this sequence pitches, stamped on every enrollment (an @wren/offers id). */
   readonly offer: string;
+  /** That offer's terms as `offer.*` facts (`offerFacts` in @wren/offers), beside every facts row. */
+  readonly offerFacts?: Readonly<Record<string, string>>;
   readonly templates: ReadonlyMap<string, Template>;
   /** A person whose only VALID check has aged past this is treated as having no address. */
   readonly verificationHorizonDays: number;
@@ -284,6 +286,7 @@ interface Shared {
   readonly niche: string;
   readonly sequence: Sequence;
   readonly offer: string;
+  readonly offerFacts: Readonly<Record<string, string>>;
   readonly templates: ReadonlyMap<string, Template>;
   readonly factsView: string | null;
   readonly senders: readonly string[];
@@ -319,6 +322,7 @@ export async function compose(db: Queryable, opts: ComposeOptions): Promise<Comp
     niche: opts.niche,
     sequence: opts.sequence,
     offer: opts.offer,
+    offerFacts: opts.offerFacts ?? {},
     templates: opts.templates,
     factsView: opts.factsView ?? null,
     senders: opts.senders,
@@ -446,7 +450,11 @@ async function roleInboxPass(db: Queryable, shared: Shared, limit: number | null
 function renderAll(shared: Shared, facts: Facts, seed: string): Rendered[] | null {
   try {
     return shared.sequence.steps.map((step) =>
-      render(shared.templates.get(step.template) as Template, facts.values, seed),
+      render(
+        shared.templates.get(step.template) as Template,
+        { ...facts.values, ...shared.offerFacts },
+        seed,
+      ),
     );
   } catch (err) {
     if (err instanceof MissingFactError) return null;

@@ -11,6 +11,7 @@ import {
   render,
   threeEmailSequence,
   toSource,
+  twoEmailSequence,
   variantCounts,
 } from "@wren/channel-email";
 import { OFFER_IDS } from "@wren/offers";
@@ -23,6 +24,7 @@ import {
   FACTS_VIEWS,
   NICHES,
   nicheFor,
+  recruiting,
   requireNiche,
   SEQUENCES_BY_NICHE,
   secRia,
@@ -50,8 +52,12 @@ const golden = JSON.parse(
 ) as { templates: GoldenTemplate[]; sequences: GoldenSequence[] };
 
 describe("golden parity with emails_gen", () => {
-  it("covers every registered template and nothing else", () => {
-    const ours = NICHES.flatMap((n) => [...n.templates.keys()].map((t) => `${n.name}:${t}`)).sort();
+  // Niches born in TS (recruiting) have no Python golden: nothing stored predates them.
+  const ported = new Set(golden.templates.map((g) => g.niche));
+  it("covers every registered template of a ported niche and nothing else", () => {
+    const ours = NICHES.filter((n) => ported.has(n.name))
+      .flatMap((n) => [...n.templates.keys()].map((t) => `${n.name}:${t}`))
+      .sort();
     const theirs = golden.templates.map((g) => `${g.niche}:${g.name}`).sort();
     expect(ours).toEqual(theirs);
   });
@@ -81,7 +87,7 @@ describe("golden parity with emails_gen", () => {
     });
   }
   it("sequences match", () => {
-    const ours = NICHES.flatMap((n) =>
+    const ours = NICHES.filter((n) => ported.has(n.name)).flatMap((n) =>
       [...n.sequences.values()].map((s) => ({
         niche: n.name,
         name: s.name,
@@ -98,13 +104,14 @@ describe("golden parity with emails_gen", () => {
 
 describe("registry", () => {
   it("names, views and landers", () => {
-    expect(NICHES.map((n) => n.name)).toEqual(["sec_ria", "agencies"]);
+    expect(NICHES.map((n) => n.name)).toEqual(["sec_ria", "agencies", "recruiting"]);
     expect([...FACTS_VIEWS]).toEqual([
       ["sec_ria", "firm_facts"],
       ["agencies", "agency_facts"],
     ]);
-    expect(secRia.lander).toBe("/ria");
+    expect(secRia.lander).toBe("/");
     expect(agencies.lander).toBe("/agencies");
+    expect(recruiting.lander).toBe("/recruiting");
     expect(TEMPLATES_BY_NICHE.get("agencies")?.size).toBe(5);
     expect(SEQUENCES_BY_NICHE.get("sec_ria")?.size).toBe(4);
   });
@@ -112,7 +119,7 @@ describe("registry", () => {
     expect(requireNiche(null)).toBeNull();
     expect(requireNiche("agencies")).toBe("agencies");
     expect(() => requireNiche("agency")).toThrow(
-      /unknown niche 'agency' — registered: agencies, sec_ria/,
+      /unknown niche 'agency' — registered: agencies, recruiting, sec_ria/,
     );
   });
   it("vocabulary unions when unscoped", () => {
@@ -144,7 +151,7 @@ describe("offers", () => {
   const spec = {
     name: "t",
     factsView: null,
-    lander: "/t",
+    lander: "/agencies",
     crawlHints: [],
     discoveryGenericWords: [],
     templatesDir: templatesDir(import.meta.url, "agencies"),
@@ -172,5 +179,29 @@ describe("offers", () => {
     expect(() =>
       defineNiche({ ...spec, offers: { build: "ops-audit", marketing: "ops-audit" } }),
     ).toThrow(/no sequence opens in: marketing/);
+  });
+  it("refuses a lander no live offer is served on", () => {
+    expect(() => defineNiche({ ...spec, lander: "/ria", offers: { build: "ops-audit" } })).toThrow(
+      /lander '\/ria' is no live offer's page/,
+    );
+  });
+  it("fills offer.* facts from the arm's offer", () => {
+    const facts = recruiting.offerFacts.get("recruiting-reactivation-pilot");
+    expect(facts).toMatchObject({
+      "offer.days": "30",
+      "offer.slots": "3",
+      "offer.page": "/recruiting",
+    });
+  });
+  it("refuses a template quoting an offer.* key its offer does not set", () => {
+    expect(() =>
+      defineNiche({
+        ...spec,
+        templatesDir: templatesDir(import.meta.url, "recruiting"),
+        sequences: [twoEmailSequence("reactivation/opener", "reactivation/followup")],
+        plan: [{ sequence: "reactivation-days-0-5" }],
+        offers: { reactivation: "ops-audit" },
+      }),
+    ).toThrow(/quotes offer\.days, offer\.slots, which offer 'ops-audit' does not set/);
   });
 });

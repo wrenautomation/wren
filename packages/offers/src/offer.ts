@@ -263,3 +263,17 @@ export function invalidAnswers(offer: Offer, answers: Answers): string | null {
   }
   return null;
 }
+
+/**
+ * What copy may quote from an offer, as `offer.*` facts: `{offer.days}`, `{offer.slots}`,
+ * `{offer.page}`. A term the offer leaves null is absent, so copy quoting it refuses instead
+ * of printing a guess. Email templates and the lander read the same terms this way.
+ */
+export function offerFacts(offer: Offer): Readonly<Record<string, string>> {
+  return {
+    "offer.name": offer.name,
+    ...(offer.days === null ? {} : { "offer.days": String(offer.days) }),
+    ...(offer.slots === null ? {} : { "offer.slots": String(offer.slots) }),
+    ...(offer.page === null ? {} : { "offer.page": offer.page }),
+  };
+}
