@@ -156,6 +156,7 @@ export function runCompose(db: Db, overrides: Partial<ComposeOptions> = {}) {
   return compose(db, {
     niche: "sec_ria",
     sequence: SEQ,
+    offer: "test-offer",
     templates: TEMPLATES,
     verificationHorizonDays: VERIFICATION_HORIZON_DAYS,
     senders: [SENDER],
@@ -186,6 +187,7 @@ export async function makeEnrollment(
       niche: "sec_ria",
       sequenceName: SEQ.name,
       sequenceSnapshot: { name: SEQ.name, steps: [] },
+      offer: "test-offer",
       state: opts.state ?? "active",
     })
     .returning();

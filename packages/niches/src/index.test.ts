@@ -9,13 +9,16 @@ import {
   enumerateRenders,
   placeholderFacts,
   render,
+  threeEmailSequence,
   toSource,
   variantCounts,
 } from "@wren/channel-email";
+import { OFFER_IDS } from "@wren/offers";
 import { describe, expect, it } from "vitest";
 import {
   agencies,
   crawlHintsFor,
+  defineNiche,
   discoveryWordsFor,
   FACTS_VIEWS,
   NICHES,
@@ -24,6 +27,7 @@ import {
   SEQUENCES_BY_NICHE,
   secRia,
   TEMPLATES_BY_NICHE,
+  templatesDir,
 } from "./index.js";
 
 interface GoldenTemplate {
@@ -133,5 +137,40 @@ describe("registry", () => {
         for (const st of rest) expect(n.templates.get(st.template)?.subject).toBeNull();
       }
     }
+  });
+});
+
+describe("offers", () => {
+  const spec = {
+    name: "t",
+    factsView: null,
+    lander: "/t",
+    crawlHints: [],
+    discoveryGenericWords: [],
+    templatesDir: templatesDir(import.meta.url, "agencies"),
+    sequences: [threeEmailSequence("build/opener", "build/followup", "final_followup")],
+    plan: [{ sequence: "build-days-0-3-7" }],
+    companyLocation: () => null,
+  };
+  it("gives every registered sequence a registered offer", () => {
+    for (const niche of NICHES) {
+      expect([...niche.offers.keys()].sort()).toEqual([...niche.sequences.keys()].sort());
+      for (const offer of niche.offers.values()) expect(OFFER_IDS.has(offer)).toBe(true);
+    }
+  });
+  it("maps a sequence to its arm's offer", () => {
+    const n = defineNiche({ ...spec, offers: { build: "ops-audit" } });
+    expect(n.offers.get("build-days-0-3-7")).toBe("ops-audit");
+  });
+  it("refuses an arm with no offer", () => {
+    expect(() => defineNiche({ ...spec, offers: {} })).toThrow(/arm 'build' names no offer/);
+  });
+  it("refuses an offer the registry does not know", () => {
+    expect(() => defineNiche({ ...spec, offers: { build: "ghost" } })).toThrow(/unknown offer/);
+  });
+  it("refuses an offer named for an arm nothing opens in", () => {
+    expect(() =>
+      defineNiche({ ...spec, offers: { build: "ops-audit", marketing: "ops-audit" } }),
+    ).toThrow(/no sequence opens in: marketing/);
   });
 });

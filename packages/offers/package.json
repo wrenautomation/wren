@@ -1,0 +1,19 @@
+{
+  "name": "@wren/offers",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "scripts": {
+    "typecheck": "tsc --noEmit",
+    "test:unit": "vitest run src",
+    "export": "tsx src/export-cli.ts"
+  },
+  "devDependencies": {
+    "tsx": "4.23.13",
+    "typescript": "5.9.3",
+    "vitest": "5.0.1"
+  }
+}

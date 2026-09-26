@@ -1,0 +1,182 @@
+/**
+ * Recruiting firms. The ladder: a free 30-day pilot that turns dead leads into job orders,
+ * a paid extension on the candidate side, then the operations build the growth calls for.
+ * ICP (William, 2026-09-25): midsize firms that can later pay $10-15k upfront and a
+ * $5-10k/mo retainer. The pilot goes to the same firms, so its proof sells the next rung.
+ * Buyer: the owner, CEO or managing director. They care about more business (job orders,
+ * a pipeline that doesn't hang on one rainmaker) and less busywork for their team.
+ */
+import { defineOffer } from "../offer.js";
+
+export const recruitingReactivationPilot = defineOffer({
+  id: "recruiting-reactivation-pilot",
+  name: "Dead lead reactivation pilot",
+  status: "live",
+  audience:
+    "Owners and leaders of midsize recruiting and staffing firms with years of past clients in their ATS.",
+  promise:
+    "I turn the past clients and cold contacts in your ATS into new job orders in 30 days, free.",
+  price: { kind: "free" },
+  slots: 3,
+  days: 30,
+  youGet: [
+    "Every past client and dormant hiring contact in your ATS, cleaned and checked.",
+    "A reactivation campaign written in your recruiter's voice, sent from a new domain in their name. Your main domain is never touched.",
+    "Replies sorted and handed to your recruiter the same day.",
+    "A weekly report: replies, meetings, job orders.",
+  ],
+  youGive: [
+    "An export of past clients and contacts from your ATS or CRM.",
+    "One recruiter's name and signature on the emails.",
+    "A 30-minute kickoff call.",
+    "Your real numbers at the end, job orders and fees, so we both know what it was worth.",
+  ],
+  weGet: [
+    "The results as a case study, named or anonymous, your call.",
+    "Introductions to firms you know, if it worked.",
+    "Straight feedback on what it was worth to you.",
+  ],
+  guarantee: "You keep the cleaned list, the copy and the domain whatever happens.",
+  measures: [
+    { key: "contacts_reached", label: "Contacts reached", unit: "count" },
+    { key: "replies", label: "Replies", unit: "count" },
+    { key: "meetings", label: "Meetings booked", unit: "count" },
+    { key: "job_orders", label: "Job orders", unit: "count" },
+    { key: "fees_usd", label: "Placement fees", unit: "usd" },
+  ],
+  next: ["recruiting-candidate-reactivation", "ops-automation-build"],
+  page: "/recruiting",
+  booking: null,
+  application: {
+    questions: [
+      {
+        id: "role",
+        ask: "What's your role?",
+        kind: "one",
+        required: true,
+        choices: [
+          { id: "owner", label: "Owner, founder or CEO" },
+          { id: "exec", label: "Managing director or partner" },
+          { id: "bd_lead", label: "Head of sales or BD" },
+          { id: "recruiter", label: "Recruiter or account manager" },
+          { id: "other", label: "Something else" },
+        ],
+      },
+      {
+        id: "placement_type",
+        ask: "What does your firm mostly place?",
+        kind: "one",
+        required: true,
+        choices: [
+          { id: "permanent", label: "Permanent" },
+          { id: "contract", label: "Contract and temp" },
+          { id: "executive", label: "Executive search" },
+          { id: "mix", label: "A mix" },
+        ],
+      },
+      {
+        id: "recruiters",
+        ask: "How many recruiters do you have?",
+        kind: "one",
+        required: true,
+        choices: [
+          { id: "r1_4", label: "1 to 4" },
+          { id: "r5_15", label: "5 to 15" },
+          { id: "r16_50", label: "16 to 50" },
+          { id: "r51_plus", label: "51 or more" },
+        ],
+      },
+      {
+        id: "past_contacts",
+        ask: "Roughly how many past clients and hiring contacts sit in your ATS or CRM?",
+        kind: "one",
+        required: true,
+        choices: [
+          { id: "c0_500", label: "Under 500" },
+          { id: "c500_2k", label: "500 to 2,000" },
+          { id: "c2k_10k", label: "2,000 to 10,000" },
+          { id: "c10k_plus", label: "More than 10,000" },
+        ],
+      },
+      {
+        id: "struggles",
+        ask: "What's holding growth back right now? Pick any.",
+        kind: "many",
+        required: true,
+        choices: [
+          { id: "few_job_orders", label: "Not enough job orders" },
+          { id: "bd_on_few", label: "BD depends on one or two people" },
+          { id: "slow_follow_up", label: "Inbound leads wait too long for a reply" },
+          { id: "admin_load", label: "Recruiters buried in admin" },
+          { id: "cold_candidates", label: "Good candidates go cold" },
+        ],
+      },
+      {
+        id: "avg_fee",
+        ask: "What's your average placement fee?",
+        kind: "one",
+        required: true,
+        choices: [
+          { id: "f0_10k", label: "Under $10k" },
+          { id: "f10k_25k", label: "$10k to $25k" },
+          { id: "f25k_plus", label: "More than $25k" },
+        ],
+      },
+      {
+        id: "ats",
+        ask: "Which ATS or CRM do you use?",
+        kind: "one",
+        required: true,
+        choices: [
+          { id: "bullhorn", label: "Bullhorn" },
+          { id: "loxo", label: "Loxo" },
+          { id: "recruit_crm", label: "Recruit CRM" },
+          { id: "jobadder", label: "JobAdder" },
+          { id: "crelate", label: "Crelate" },
+          { id: "other", label: "Something else" },
+        ],
+      },
+      {
+        id: "anything_else",
+        ask: "Anything I should know?",
+        kind: "text",
+        placeholder: "The client you lost touch with, the list nobody works, a worry.",
+        required: false,
+      },
+    ],
+    // Midsize with a list worth working: the pilot needs contacts to reactivate, and the
+    // firm has to be the kind that buys the next rung.
+    fit: [
+      { question: "recruiters", anyOf: ["r5_15", "r16_50", "r51_plus"] },
+      { question: "past_contacts", anyOf: ["c500_2k", "c2k_10k", "c10k_plus"] },
+    ],
+  },
+});
+
+export const recruitingCandidateReactivation = defineOffer({
+  id: "recruiting-candidate-reactivation",
+  name: "Candidate reactivation",
+  status: "live",
+  audience: "Recruiting firms that ran the pilot and want the candidate side worked too.",
+  promise: "The dormant candidates in your ATS, re-engaged for the roles you have open now.",
+  price: { kind: "quoted" },
+  slots: null,
+  days: null,
+  youGet: [
+    "Dormant candidates matched to your open roles and re-engaged in your recruiter's voice.",
+    "Interested candidates handed over with their current status and availability.",
+  ],
+  youGive: ["Read access to candidates and open roles in your ATS."],
+  weGet: [],
+  guarantee: null,
+  measures: [
+    { key: "candidates_reached", label: "Candidates reached", unit: "count" },
+    { key: "candidates_interested", label: "Candidates interested", unit: "count" },
+    { key: "submittals", label: "Submittals", unit: "count" },
+    { key: "placements", label: "Placements", unit: "count" },
+  ],
+  next: ["ops-automation-build"],
+  page: null,
+  booking: null,
+  application: null,
+});

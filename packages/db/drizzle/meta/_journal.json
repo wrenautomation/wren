@@ -78,6 +78,13 @@
       "when": 1790367029326,
       "tag": "0010_people_origin_linkedin",
       "breakpoints": true
+    },
+    {
+      "idx": 11,
+      "version": "7",
+      "when": 1790386103365,
+      "tag": "0011_enrollment_offer",
+      "breakpoints": true
     }
   ]
 }

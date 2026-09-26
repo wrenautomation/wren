@@ -14,6 +14,7 @@
   "dependencies": {
     "@wren/channel-email": "workspace:*",
     "@wren/core": "workspace:*",
+    "@wren/offers": "workspace:*",
     "@wren/research": "workspace:*",
     "fflate": "0.8.3",
     "saxes": "6.0.0"

@@ -61,6 +61,7 @@ function run(
   return compose(db(), {
     niche: "sec_ria",
     sequence: SEQ,
+    offer: "test-offer",
     templates: new Map([
       ["opener", opts.opener ?? OPENER],
       ["followup", FOLLOWUP],

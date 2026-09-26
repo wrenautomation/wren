@@ -73,6 +73,7 @@ async function makeEnrollment(toEmail: string): Promise<Enrollment> {
       niche: "agencies",
       sequenceName: "test-seq",
       sequenceSnapshot: { name: "test-seq", steps: [{ template: "opener", day: 0 }] },
+      offer: "test-offer",
       state: "active",
     })
     .returning();

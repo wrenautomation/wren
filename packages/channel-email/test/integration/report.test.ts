@@ -70,6 +70,7 @@ async function enroll(niche: string, opener: string, company = "Acme"): Promise<
       niche,
       sequenceName: "seq",
       sequenceSnapshot: { name: "seq", steps: [{ template: opener, day: 0 }] },
+      offer: "test-offer",
       state: "active",
     })
     .returning();

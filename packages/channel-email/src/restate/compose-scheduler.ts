@@ -29,6 +29,8 @@ export interface Campaign {
   readonly niche: string;
   readonly plan: readonly EnrollmentRule[];
   readonly sequences: ReadonlyMap<string, Sequence>;
+  /** The offer each sequence pitches, by sequence name (the niche's arm → offer map). */
+  readonly offers: ReadonlyMap<string, string>;
   readonly templates: ReadonlyMap<string, Template>;
   readonly factsView: string | null;
   /** Active roster addresses this niche may send from, roster order. */
@@ -129,9 +131,13 @@ export async function topUp(
     if (remaining <= 0) break;
     const sequence = campaign.sequences.get(rule.sequence);
     if (!sequence) throw new Error(`campaign ${campaign.niche}: no sequence '${rule.sequence}'`);
+    const offer = campaign.offers.get(rule.sequence);
+    if (!offer)
+      throw new Error(`campaign ${campaign.niche}: sequence '${rule.sequence}' has no offer`);
     const pass = await compose(db, {
       niche: campaign.niche,
       sequence,
+      offer,
       templates: campaign.templates,
       verificationHorizonDays: opts.verificationHorizonDays,
       senders: campaign.senders,

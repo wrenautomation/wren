@@ -44,6 +44,10 @@ const CAMPAIGN: Campaign = {
       sequence("build-days-0-5", [sequenceStep("build/opener", 0), sequenceStep("followup", 5)]),
     ],
   ]),
+  offers: new Map([
+    ["marketing-days-0-5", "marketing-offer"],
+    ["build-days-0-5", "build-offer"],
+  ]),
   templates: new Map([
     ["marketing/opener", MARKETING],
     ["build/opener", BUILD],
@@ -133,6 +137,10 @@ describe("topUp", () => {
     expect(bySeq.get(marketing.id)).toBe("marketing-days-0-5");
     expect(bySeq.get(build.id)).toBe("build-days-0-5");
     expect(bySeq.get(tied.id)).toBe("marketing-days-0-5");
+    // Each enrollment carries the offer its sequence pitches.
+    const byOffer = new Map((await allEnrollments(db())).map((e) => [e.companyId, e.offer]));
+    expect(byOffer.get(marketing.id)).toBe("marketing-offer");
+    expect(byOffer.get(build.id)).toBe("build-offer");
     expect(await queuedOpeners(db(), "agencies")).toBe(3);
   });
 

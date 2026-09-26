@@ -58,6 +58,7 @@ export const agencies = defineNiche({
     threeEmailSequence(`${arm}/opener`, `${arm}/followup`, "final_followup"),
     twoEmailSequence(`${arm}/opener`, `${arm}/followup`),
   ]),
+  offers: { marketing: "ops-audit", build: "ops-audit" },
   // The arm follows the firm's own service mix (`agency_facts.segment`, from the directory
   // listing): marketing shops hear about month end, build shops about the invoice. A firm
   // whose mix says neither gets the marketing arm, so no lead waits on a label.

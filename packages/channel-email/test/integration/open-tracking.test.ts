@@ -82,6 +82,7 @@ async function trackedMessage(opts: {
         name: "pilot-days-0-3-7",
         steps: [{ template: "opener", day: 0 }],
       },
+      offer: "test-offer",
       state: "active",
     })
     .returning();

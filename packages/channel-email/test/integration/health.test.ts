@@ -107,6 +107,7 @@ async function makeEnrollment(sender: string, niche = "agencies"): Promise<Enrol
       niche,
       sequenceName: "health-seq",
       sequenceSnapshot: SEQUENCE,
+      offer: "test-offer",
       state: "active",
     })
     .returning();

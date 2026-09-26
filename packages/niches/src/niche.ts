@@ -15,6 +15,7 @@ import {
   type Template,
 } from "@wren/channel-email";
 import type { Company, PersonSourceFormat, SourceFormat } from "@wren/core";
+import { offerFor } from "@wren/offers";
 import type { Dataset } from "@wren/research/fetch";
 
 export interface Niche {
@@ -29,6 +30,8 @@ export interface Niche {
   readonly discoveryGenericWords: ReadonlySet<string>;
   readonly templates: ReadonlyMap<string, Template>;
   readonly sequences: ReadonlyMap<string, Sequence>;
+  /** The offer each sequence pitches (its arm's), by sequence name: every sequence has one. */
+  readonly offers: ReadonlyMap<string, string>;
   /** Which sequence a new enrollment gets, by facts, in order (the last rule may be ungated). */
   readonly plan: readonly EnrollmentRule[];
   /** Where the company keeps office hours, as the source wrote it ("City, ST"), or null. */
@@ -59,6 +62,11 @@ export interface NicheSpec {
   /** Directory holding the *.email files. */
   readonly templatesDir: string;
   readonly sequences: readonly Sequence[];
+  /**
+   * The offer each arm pitches, by arm name (an arm is one offer, one hook). Every
+   * sequence must open in an arm named here, so every enrollment carries an offer.
+   */
+  readonly offers: Readonly<Record<string, string>>;
   /** The live campaign's routing: first matching rule wins. */
   readonly plan: readonly EnrollmentRule[];
   readonly companyLocation: (company: Company) => string | null;
@@ -124,6 +132,30 @@ export function defineNiche(spec: NicheSpec): Niche {
     }
     sequences.set(seq.name, seq);
   }
+  const offers = new Map<string, string>();
+  for (const seq of sequences.values()) {
+    if (seq.arm === null) {
+      throw new Error(
+        `niche ${pyReprStr(spec.name)}: sequence ${pyReprStr(seq.name)} opens on a shared` +
+          " template, so no arm says what it pitches — move its opener into an arm",
+      );
+    }
+    const offer = spec.offers[seq.arm];
+    if (offer === undefined) {
+      throw new Error(
+        `niche ${pyReprStr(spec.name)}: arm ${pyReprStr(seq.arm)} names no offer in \`offers\``,
+      );
+    }
+    offerFor(offer); // throws on an id the registry does not know
+    offers.set(seq.name, offer);
+  }
+  const armed = new Set([...sequences.values()].map((s) => s.arm));
+  const idle = Object.keys(spec.offers).filter((arm) => !armed.has(arm));
+  if (idle.length > 0) {
+    throw new Error(
+      `niche ${pyReprStr(spec.name)}: offers named for arms no sequence opens in: ${idle.sort().join(", ")}`,
+    );
+  }
   const plan = enrollmentPlan(
     spec.plan,
     new Set(sequences.keys()),
@@ -137,6 +169,7 @@ export function defineNiche(spec: NicheSpec): Niche {
     discoveryGenericWords: new Set(spec.discoveryGenericWords),
     templates,
     sequences,
+    offers,
     plan,
     companyLocation: spec.companyLocation,
     leadSourceFormats: spec.leadSourceFormats ?? [],

@@ -137,6 +137,7 @@ export async function buildServices(
           niche: niche.name,
           plan: niche.plan,
           sequences: niche.sequences,
+          offers: niche.offers,
           templates: niche.templates,
           factsView: niche.factsView,
           senders: active.map((s) => s.address),

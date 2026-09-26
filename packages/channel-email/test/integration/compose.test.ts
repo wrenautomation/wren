@@ -53,6 +53,7 @@ describe("compose", () => {
     const enrollment = await one(allEnrollments(db()));
     expect(enrollment.personId).toBe(person.id);
     expect(enrollment.state).toBe("active");
+    expect(enrollment.offer).toBe("test-offer");
     expect(enrollment.sequenceSnapshot).toEqual({
       name: "test-seq",
       arm: null,
@@ -119,6 +120,7 @@ describe("compose", () => {
     const stats = await compose(db(), {
       niche: "sec_ria",
       sequence: sequence("needy-seq", [sequenceStep("needy", 0)]),
+      offer: "test-offer",
       templates: new Map([["needy", needy]]),
       verificationHorizonDays: VERIFICATION_HORIZON_DAYS,
       senders: [SENDER],
@@ -228,6 +230,7 @@ describe("compose", () => {
     await compose(db(), {
       niche: "sec_ria",
       sequence: twoEmailSequence("pilot/opener", "followup"),
+      offer: "test-offer",
       templates: armTemplates,
       verificationHorizonDays: VERIFICATION_HORIZON_DAYS,
       senders: [SENDER],
@@ -426,6 +429,7 @@ describe("compose", () => {
     const stats = await compose(db(), {
       niche: "sec_ria",
       sequence: sequence("g", [sequenceStep("greet", 0)]),
+      offer: "test-offer",
       templates: new Map([["greet", greet]]),
       verificationHorizonDays: VERIFICATION_HORIZON_DAYS,
       senders: [SENDER],

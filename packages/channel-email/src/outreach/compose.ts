@@ -37,6 +37,8 @@ export type ComposeKind = "person" | "role_inbox" | "all";
 export interface ComposeOptions {
   readonly niche: string;
   readonly sequence: Sequence;
+  /** The offer this sequence pitches, stamped on every enrollment (an @wren/offers id). */
+  readonly offer: string;
   readonly templates: ReadonlyMap<string, Template>;
   /** A person whose only VALID check has aged past this is treated as having no address. */
   readonly verificationHorizonDays: number;
@@ -281,6 +283,7 @@ export async function eligibleRoleInboxes(
 interface Shared {
   readonly niche: string;
   readonly sequence: Sequence;
+  readonly offer: string;
   readonly templates: ReadonlyMap<string, Template>;
   readonly factsView: string | null;
   readonly senders: readonly string[];
@@ -315,6 +318,7 @@ export async function compose(db: Queryable, opts: ComposeOptions): Promise<Comp
   const shared: Shared = {
     niche: opts.niche,
     sequence: opts.sequence,
+    offer: opts.offer,
     templates: opts.templates,
     factsView: opts.factsView ?? null,
     senders: opts.senders,
@@ -572,6 +576,7 @@ async function enroll(
         arm: shared.sequence.arm,
         steps: shared.sequence.steps.map((s) => ({ template: s.template, day: s.day })),
       },
+      offer: shared.offer,
       state: "active",
       runId: shared.runId,
     })

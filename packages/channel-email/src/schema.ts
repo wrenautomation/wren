@@ -175,6 +175,8 @@ export const enrollments = pgTable(
     niche: varchar("niche", { length: 32 }).notNull(),
     sequenceName: varchar("sequence_name", { length: 64 }).notNull(),
     sequenceSnapshot: jsonb("sequence_snapshot").notNull(),
+    /** The offer this enrollment pitches (an @wren/offers id), fixed when it was composed. */
+    offer: varchar("offer", { length: 64 }).notNull(),
     state: varchar("state", { length: 32, enum: ENROLLMENT_STATES }).notNull(),
     stopReason: varchar("stop_reason", { length: 32, enum: STOP_REASONS }),
     stoppedAt: timestamp("stopped_at", { withTimezone: true }),
@@ -190,6 +192,7 @@ export const enrollments = pgTable(
     index("ix_enrollments_company_id").on(t.companyId),
     index("ix_enrollments_person_id").on(t.personId),
     index("ix_enrollments_run_id").on(t.runId),
+    index("ix_enrollments_offer").on(t.offer),
     uniqueIndex("uq_enrollments_active_address")
       .on(sql`lower((to_email)::text)`)
       .where(sql`(state)::text = 'active'::text`),
