@@ -24,5 +24,6 @@ Sequence `reactivation-days-0-5`: opener, one follow-up.
   `{offer.slots}` and `{offer.page}` come from the registry, so the
   email, the page and the form say the same thing. A key the offer
   doesn't set refuses the niche at import.
-- One door: the application at `wrenautomation.com{offer.page}`. A fit
-  applicant books in the page.
+- One door: reply with a few times, I book it. Fewest actions from
+  email to call. The page (`wrenautomation.com{offer.page}`) is there
+  for anyone who wants to read first; it isn't the ask.

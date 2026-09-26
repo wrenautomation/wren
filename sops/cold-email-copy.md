@@ -297,3 +297,8 @@ to these.
 - 2026-09-26 — A niche's page (the sign-off link) must be a live
   offer's page, checked at import. sec_ria moved from the retired
   `/ria` to `/`.
+- 2026-09-26 — William: the ask stays "send me some times". The funnel
+  should take the fewest actions from email to call, and a reply is one.
+  Recruiting's CTA is now a reply with times; the page link stays as
+  optional reading, not the door. Supersedes the "one door is the page"
+  half of the entry above.
