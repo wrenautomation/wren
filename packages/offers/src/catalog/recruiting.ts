@@ -48,33 +48,10 @@ export const recruitingReactivationPilot = defineOffer({
   page: "/recruiting",
   // Cal.com event "Pilot call" (autobrowse site `calcom`), 30 min on Meet, Mon-Fri 10-17 ET.
   booking: "https://cal.com/wrenautomation/pilot",
+  // Four questions, fit gates first: fewest taps from the page to the calendar. The rest
+  // (placement type, fee, ATS) is asked on the call.
   application: {
     questions: [
-      {
-        id: "role",
-        ask: "What's your role?",
-        kind: "one",
-        required: true,
-        choices: [
-          { id: "owner", label: "Owner, founder or CEO" },
-          { id: "exec", label: "Managing director or partner" },
-          { id: "bd_lead", label: "Head of sales or BD" },
-          { id: "recruiter", label: "Recruiter or account manager" },
-          { id: "other", label: "Something else" },
-        ],
-      },
-      {
-        id: "placement_type",
-        ask: "What does your firm mostly place?",
-        kind: "one",
-        required: true,
-        choices: [
-          { id: "permanent", label: "Permanent" },
-          { id: "contract", label: "Contract and temp" },
-          { id: "executive", label: "Executive search" },
-          { id: "mix", label: "A mix" },
-        ],
-      },
       {
         id: "recruiters",
         ask: "How many recruiters do you have?",
@@ -113,36 +90,17 @@ export const recruitingReactivationPilot = defineOffer({
         ],
       },
       {
-        id: "avg_fee",
-        ask: "What's your average placement fee?",
+        id: "role",
+        ask: "What's your role?",
         kind: "one",
         required: true,
         choices: [
-          { id: "f0_10k", label: "Under $10k" },
-          { id: "f10k_25k", label: "$10k to $25k" },
-          { id: "f25k_plus", label: "More than $25k" },
-        ],
-      },
-      {
-        id: "ats",
-        ask: "Which ATS or CRM do you use?",
-        kind: "one",
-        required: true,
-        choices: [
-          { id: "bullhorn", label: "Bullhorn" },
-          { id: "loxo", label: "Loxo" },
-          { id: "recruit_crm", label: "Recruit CRM" },
-          { id: "jobadder", label: "JobAdder" },
-          { id: "crelate", label: "Crelate" },
+          { id: "owner", label: "Owner, founder or CEO" },
+          { id: "exec", label: "Managing director or partner" },
+          { id: "bd_lead", label: "Head of sales or BD" },
+          { id: "recruiter", label: "Recruiter or account manager" },
           { id: "other", label: "Something else" },
         ],
-      },
-      {
-        id: "anything_else",
-        ask: "Anything I should know?",
-        kind: "text",
-        placeholder: "The client you lost touch with, the list nobody works, a worry.",
-        required: false,
       },
     ],
     // Midsize with a list worth working: the pilot needs contacts to reactivate, and the
