@@ -37,7 +37,9 @@ echo "wrote $PARAM:"
 python3 -c 'import json,sys; print("\n".join("  " + k for k in json.loads(sys.argv[1])))' "$json"
 
 if [ -f "$ROSTER" ]; then
-  aws ssm put-parameter --name "$ROSTER_PARAM" --type SecureString --tier Advanced --overwrite \
+  # Plain String: the roster holds addresses and copy, no secrets, and a
+  # SecureString read costs a KMS request on every Lambda cold start.
+  aws ssm put-parameter --name "$ROSTER_PARAM" --type String --tier Advanced --overwrite \
     --value "file://$ROSTER" >/dev/null
   echo "wrote $ROSTER_PARAM: $(grep -c '^\[\[' "$ROSTER") roster entries"
 else
