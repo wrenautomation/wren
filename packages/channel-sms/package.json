@@ -1,0 +1,35 @@
+{
+  "name": "@wren/channel-sms",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts",
+    "./restate": "./src/restate/index.ts",
+    "./schema": "./src/schema.ts",
+    "./webhook": "./src/webhook.ts"
+  },
+  "scripts": {
+    "typecheck": "tsc --noEmit",
+    "test:unit": "vitest run src",
+    "test:integration": "vitest run test/integration"
+  },
+  "dependencies": {
+    "@restatedev/restate-sdk": "1.17.1",
+    "@wren/config": "workspace:*",
+    "@wren/core": "workspace:*",
+    "@wren/db": "workspace:*",
+    "@wren/llm": "workspace:*",
+    "@wren/research": "workspace:*",
+    "drizzle-orm": "0.45.2",
+    "libphonenumber-js": "1.13.14",
+    "zod": "4.6.5"
+  },
+  "devDependencies": {
+    "@restatedev/restate-sdk-clients": "1.17.1",
+    "@restatedev/restate-sdk-testcontainers": "1.17.1",
+    "@testcontainers/postgresql": "12.1.0",
+    "typescript": "5.9.3",
+    "vitest": "5.0.1"
+  }
+}

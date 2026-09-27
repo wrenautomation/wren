@@ -92,6 +92,13 @@
       "when": 1790479021986,
       "tag": "0012_content_reddit",
       "breakpoints": true
+    },
+    {
+      "idx": 13,
+      "version": "7",
+      "when": 1790518959594,
+      "tag": "0013_sms_channel",
+      "breakpoints": true
     }
   ]
 }

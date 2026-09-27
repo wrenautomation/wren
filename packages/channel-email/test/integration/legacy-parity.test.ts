@@ -19,7 +19,10 @@ const VIEW_RENAMES: Record<string, string> = {
  * Checks wren widened since the port: values added to an enum check. Legacy
  * rows still satisfy them, so a restore still holds; anything else must match.
  */
-const WIDENED: Record<string, string[]> = { ck_people_personorigin: ["linkedin"] };
+const WIDENED: Record<string, string[]> = {
+  ck_people_personorigin: ["linkedin"],
+  ck_suppressions_suppressionkind: ["phone"],
+};
 const unwiden = (c: Catalog["constraints"][number]) => ({
   ...c,
   def: (WIDENED[c.name] ?? []).reduce(

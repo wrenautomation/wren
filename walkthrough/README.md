@@ -11,6 +11,7 @@ production, read-only.
 | 2 | [Meta ads](02-meta-ads.md) | a spec → launch PAUSED → start with a budget → the guard → leads |
 | 3 | [Email campaign](03-email-campaign.md) | the cold-email machine: pool, compose, send windows, replies, health |
 | 4 | [Production](04-production.md) | Restate Cloud + Lambda + Postgres on EC2; deploy by push; the loops and how to poke them |
+| 5 | [Cold SMS](05-sms.md) | number pool, contacts with consent basis, send loop, phone inbox |
 
 Demos (`prod.sh` points one `wren` command at production; nothing writes):
 

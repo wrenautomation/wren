@@ -1,6 +1,7 @@
 # Phone channel: cold calls, SMS, dialer app
 
-**Status:** design 2026-09-27. Nothing built, nothing bought.
+**Status:** SMS built and tested 2026-09-27 (`packages/channel-sms`, `apps/phone`, `wren sms`).
+Nothing bought, nothing registered, nothing sent. Calls: design only.
 **Ask:** cold SMS and calls as cheap as possible. 1000 cold SMS a day without bans.
 Branded calling. Looks legit to leads. Use it from the Mac, iPhone and Solana Seeker
 (no SIM). Billing connected. Durable workflows, call recording, stats, health checks.
@@ -53,6 +54,47 @@ Warm volume (tens a day) is under $10/mo total on Telnyx.
 - **Devices.** Texts go out through Telnyx numbers, never a SIM. The PWA inbox works the
   same on iPhone, the SIM-less Seeker and the Mac. The tap-to-send-from-your-own-phone
   idea is dropped (the Seeker can't do it).
+
+
+## Built 2026-09-27
+
+SMS only. Everything runs on the fake provider today; Telnyx is one setting away.
+
+- **`packages/channel-sms`.** Tables `sms_numbers`, `sms_contacts`, `sms_messages`,
+  `sms_events` (migration `0013_sms_channel`). Suppressions moved to core, kind `phone`
+  added, so a STOP by text also blocks email to that company's addresses and vice versa.
+  - **Lift:** phone numbers from crawled pages (tel links, page text) → contacts with the
+    page as evidence, basis `published`. Toll-free parked. Held niches never read.
+  - **Add by hand:** `wren sms add <phone> --why "…"` (basis `opt_in`, the reason is the record).
+  - **Enroll:** one carrier lookup per contact (stored), mobile/VoIP only, sticky number,
+    step 1 queued.
+  - **Send loop** (`SmsSender/fleet`): intent before act, one text per ready number per
+    tick, then the gap (20s). Quiet hours 10:00–17:00 on the lead's clock (unknown zone =
+    must be open in ET and PT), weekdays. Ramp per number 20 → +20 every 2 days to 200,
+    campaign cap 1000/day. A crash mid-send leaves `unknown`, never a resend.
+  - **Webhooks** (`SmsEvents.ingest`): receipts, inbound, STOP/START, deduped by event id.
+  - **Inbox** (`SmsDesk`): threads, reply, labels, numbers, stats.
+  - **Watch** (`SmsWatch/daily`, every 30 min): LLM reply labels (grounded, a grounded
+    opt-out suppresses), health checks that pause a failing number, low balance, one
+    summary line a day to Discord.
+- **Pool (PH-D10):** up to 5 numbers, fewest-enrolled gets the next contact, a paused
+  number is never replaced automatically, `numbers sync` never grows past the cap.
+- **`apps/phone`:** Cloudflare Worker on `phone.wrenautomation.com`. Telnyx webhook door
+  (Ed25519 checked, forwarded to Restate keyed by event id), passkey sign-in, static PWA
+  (inbox, thread + reply, labels, numbers pause/resume, stats). Works on iPhone, Seeker, Mac.
+- **Copy:** `agencies-sms` in `packages/niches/src/agencies.ts`, 2 steps, opener has STOP.
+  Draft, William's to edit. `wren sms sequences` renders it with segment counts.
+- **Tests:** unit + 18 Postgres integration + 4 Restate + 9 Worker tests.
+
+- **PH-D11 Basis per contact, gate per campaign.** Every contact carries how we may text
+  it: `published` (their own site, the page kept) or `opt_in` (they asked). Enroll only
+  takes bases in `WREN_SMS_BASES` (default `opt_in`), which must match what the registered
+  campaign says. `WREN_SMS_LIVE=false` (default) stops a real provider from sending at
+  all. I won't write a false opt-in description into a registration; if the campaign is
+  registered honestly as `published` and approved, flip the setting.
+- **PH-D12 The Worker is a door, not a store.** Postgres keeps every text; the Worker
+  holds only passkeys (KV) and forwards. Restate down = 502, Telnyx retries.
+- **PH-D13 `channel-sms`, not `channel-phone`.** Calls get their own package when built.
 
 ## Answer first
 
@@ -288,14 +330,41 @@ filed during step 2.
 
 ## Owed by William
 
-1. Yes or no on PH-D3: SMS is warm lane + optional CA lane, no US cold.
-2. Telnyx signup with your card (payment flow = your yes). ~$100/mo at full use.
-3. The legal entity for 10DLC: US EIN or Canadian business number? Is Wren incorporated?
-   Brand name must match the registration exactly.
-4. Area codes: which US metro for the first numbers, and 416/647 for CA?
-5. Who dials, and how many hours a day. That sets the number count.
+Superseded list (2026-09-27, SMS):
+
+1. **Telnyx account.** Automated signup is blocked by their bot check. Run once, by hand:
+   `pnpm -s autobrowse signup telnyx --url https://telnyx.com/sign-up --name "William Jin" --by-hand`
+   (the credential is already stored as `telnyx`). Card and top-up are your yes.
+2. **10DLC brand + campaign.** Sole prop (one number) or standard brand with a CRA
+   business number (pool). The campaign's opt-in description decides `WREN_SMS_BASES`.
+3. **Numbers**, then `wren sms numbers sync`.
+4. **Keys:** `WREN_SMS_PROVIDER=telnyx`, `WREN_TELNYX_API_KEY`,
+   `WREN_TELNYX_MESSAGING_PROFILE_ID`; Worker secrets per `deploy/phone.md`.
+5. **Go live:** `WREN_SMS_LIVE=true` after approval, `wren sms queue start`, `wren sms watch start`.
+6. **Cloudflare token** with Workers Scripts + KV + Routes edit (the one in prod.env can't
+   create KV), then deploy the phone Worker.
+7. **Copy pass** on `agencies-sms`.
 
 ## Where to attack
+
+SMS, as built:
+
+1. **Lookups spend on enroll.** Each new contact costs one carrier lookup (a fraction of
+   a cent). Enroll is by hand with a `--limit`; nothing enrolls on a timer yet.
+2. **Manual contacts have no name.** Copy falls back to "there"/"your agency". Fine for
+   tests; a name column if hand-adds become common.
+3. **No web push.** New replies reach the phone through Discord, not the PWA. Push
+   (VAPID) is a later add.
+4. **Timezone from company only.** A contact without a company (hand-added, inbound
+   stranger) must be open in ET and PT, which narrows its window to 13:00–17:00 ET.
+5. **The fake provider "sends".** Prod defaults to `WREN_SMS_PROVIDER=fake`. Running
+   `numbers sync` + `enroll` + `queue start` there would mark real contacts texted with
+   nothing sent. Set `telnyx` before any of those in prod.
+6. **Health minimum sample is 30 per number.** Below that a bad number sends on. At 20/day
+   ramp that's ~2 days of exposure.
+
+Calls (design, not built):
+
 
 1. **Consent evidence is only as good as the classifier.** An email reply saying "not
    interested, don't contact me" must never become `email_reply` consent. The consent row

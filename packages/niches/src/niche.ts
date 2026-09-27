@@ -15,6 +15,7 @@ import {
   type Sequence,
   type Template,
 } from "@wren/channel-email";
+import { checkSequence, type SmsSequence } from "@wren/channel-sms";
 import type { Company, PersonSourceFormat, SourceFormat } from "@wren/core";
 import { OFFER_PAGES, offerFacts, offerFor } from "@wren/offers";
 import type { Dataset } from "@wren/research/fetch";
@@ -31,6 +32,8 @@ export interface Niche {
   readonly discoveryGenericWords: ReadonlySet<string>;
   readonly templates: ReadonlyMap<string, Template>;
   readonly sequences: ReadonlyMap<string, Sequence>;
+  /** Text sequences, by name. Empty for a niche nobody texts. */
+  readonly smsSequences: ReadonlyMap<string, SmsSequence>;
   /** The offer each sequence pitches (its arm's), by sequence name: every sequence has one. */
   readonly offers: ReadonlyMap<string, string>;
   /** Each pitched offer's terms as `offer.*` facts, by offer id: `{offer.days}` in copy. */
@@ -65,6 +68,8 @@ export interface NicheSpec {
   /** Directory holding the *.email files. */
   readonly templatesDir: string;
   readonly sequences: readonly Sequence[];
+  /** Text sequences (plain data, checked at load: steps in order, STOP in the opener). */
+  readonly smsSequences?: readonly SmsSequence[];
   /**
    * The offer each arm pitches, by arm name (an arm is one offer, one hook). Every
    * sequence must open in an arm named here, so every enrollment carries an offer.
@@ -184,6 +189,15 @@ export function defineNiche(spec: NicheSpec): Niche {
     new Set(sequences.keys()),
     `niche ${pyReprStr(spec.name)}`,
   );
+  const smsSequences = new Map<string, SmsSequence>();
+  for (const seq of spec.smsSequences ?? []) {
+    if (smsSequences.has(seq.name)) {
+      throw new Error(
+        `niche ${pyReprStr(spec.name)}: sms sequence ${pyReprStr(seq.name)} registered twice`,
+      );
+    }
+    smsSequences.set(seq.name, checkSequence(seq));
+  }
   return {
     name: spec.name,
     factsView: spec.factsView,
@@ -192,6 +206,7 @@ export function defineNiche(spec: NicheSpec): Niche {
     discoveryGenericWords: new Set(spec.discoveryGenericWords),
     templates,
     sequences,
+    smsSequences,
     offers,
     offerFacts: termsByOffer,
     plan,

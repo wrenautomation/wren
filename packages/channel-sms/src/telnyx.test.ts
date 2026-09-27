@@ -1,0 +1,184 @@
+import { describe, expect, it } from "vitest";
+import { lineTypeOf, parseTelnyxEvent, TelnyxProvider } from "./telnyx.js";
+
+function fakeFetch(
+  status: number,
+  body: unknown,
+  seen: { url: string; init: RequestInit | undefined }[] = [],
+) {
+  return (async (url: string, init?: RequestInit) => {
+    seen.push({ url, init });
+    return new Response(JSON.stringify(body), { status });
+  }) as unknown as typeof fetch;
+}
+
+describe("TelnyxProvider.send", () => {
+  it("posts the message under the profile and reads id, parts, cost", async () => {
+    const seen: { url: string; init: RequestInit | undefined }[] = [];
+    const t = new TelnyxProvider({
+      apiKey: "k",
+      messagingProfileId: "mp",
+      fetch: fakeFetch(
+        200,
+        { data: { id: "m1", parts: 1, cost: { amount: "0.0040", currency: "USD" } } },
+        seen,
+      ),
+    });
+    expect(await t.send({ from: "+12125550100", to: "+12125550187", text: "hi" })).toEqual({
+      ok: true,
+      providerId: "m1",
+      parts: 1,
+      costUsd: 0.004,
+    });
+    expect(seen[0]?.url).toBe("https://api.telnyx.com/v2/messages");
+    expect(JSON.parse(String(seen[0]?.init?.body))).toMatchObject({
+      messaging_profile_id: "mp",
+      text: "hi",
+    });
+    expect((seen[0]?.init?.headers as Record<string, string> | undefined)?.authorization).toBe(
+      "Bearer k",
+    );
+  });
+  it("splits permanent refusals, STOP blocks and try-later", async () => {
+    const stop = new TelnyxProvider({
+      apiKey: "k",
+      fetch: fakeFetch(400, { errors: [{ code: "40300", title: "Blocked due to STOP message" }] }),
+    });
+    expect(await stop.send({ from: "a", to: "b", text: "c" })).toMatchObject({
+      ok: false,
+      retry: false,
+      optedOut: true,
+      code: "40300",
+    });
+    const bad = new TelnyxProvider({
+      apiKey: "k",
+      fetch: fakeFetch(422, { errors: [{ code: "40310", title: "Invalid 'to'" }] }),
+    });
+    expect(await bad.send({ from: "a", to: "b", text: "c" })).toMatchObject({
+      ok: false,
+      retry: false,
+      optedOut: false,
+    });
+    const busy = new TelnyxProvider({
+      apiKey: "k",
+      fetch: fakeFetch(429, { errors: [{ title: "Too many" }] }),
+    });
+    expect(await busy.send({ from: "a", to: "b", text: "c" })).toMatchObject({
+      ok: false,
+      retry: true,
+    });
+  });
+  it("needs a key", () => {
+    expect(() => new TelnyxProvider({ apiKey: "" })).toThrow(/API key/);
+  });
+});
+
+describe("lookup, numbers, balance", () => {
+  it("reads a carrier lookup", async () => {
+    const t = new TelnyxProvider({
+      apiKey: "k",
+      fetch: fakeFetch(200, { data: { carrier: { name: "T-Mobile USA", type: "mobile" } } }),
+    });
+    expect(await t.lookup("+12125550187")).toMatchObject({
+      lineType: "mobile",
+      carrier: "T-Mobile USA",
+    });
+  });
+  it("keeps only active numbers on our profile", async () => {
+    const t = new TelnyxProvider({
+      apiKey: "k",
+      messagingProfileId: "mp",
+      fetch: fakeFetch(200, {
+        data: [
+          { id: "1", phone_number: "+12125550100", status: "active", messaging_profile_id: "mp" },
+          {
+            id: "2",
+            phone_number: "+12125550101",
+            status: "active",
+            messaging_profile_id: "other",
+          },
+          {
+            id: "3",
+            phone_number: "+12125550102",
+            status: "port-pending",
+            messaging_profile_id: "mp",
+          },
+        ],
+        meta: { total_pages: 1 },
+      }),
+    });
+    expect(await t.listNumbers()).toEqual([{ e164: "+12125550100", providerId: "1" }]);
+  });
+  it("reads the balance and surfaces errors", async () => {
+    expect(
+      await new TelnyxProvider({
+        apiKey: "k",
+        fetch: fakeFetch(200, { data: { balance: "12.50" } }),
+      }).balance(),
+    ).toBe(12.5);
+    await expect(
+      new TelnyxProvider({
+        apiKey: "k",
+        fetch: fakeFetch(401, { errors: [{ code: "10009", detail: "auth" }] }),
+      }).balance(),
+    ).rejects.toThrow(/401/);
+  });
+  it("maps line types", () => {
+    expect(lineTypeOf("fixed line")).toBe("landline");
+    expect(lineTypeOf("fixed line or mobile")).toBe("unknown");
+    expect(lineTypeOf("non-fixed VoIP")).toBe("voip");
+  });
+});
+
+describe("parseTelnyxEvent", () => {
+  it("reads an inbound text", () => {
+    const e = parseTelnyxEvent({
+      data: {
+        id: "ev1",
+        event_type: "message.received",
+        occurred_at: "2026-09-29T15:00:00Z",
+        payload: {
+          id: "m9",
+          text: "STOP",
+          from: { phone_number: "+12125550187" },
+          to: [{ phone_number: "+12125550100" }],
+        },
+      },
+    });
+    expect(e).toMatchObject({
+      kind: "inbound",
+      eventId: "ev1",
+      from: "+12125550187",
+      to: "+12125550100",
+      text: "STOP",
+    });
+  });
+  it("reads a finalized delivery and a failure", () => {
+    const ok = parseTelnyxEvent({
+      data: {
+        id: "ev2",
+        event_type: "message.finalized",
+        payload: { id: "m1", to: [{ status: "delivered" }], completed_at: "2026-09-29T15:00:05Z" },
+      },
+    });
+    expect(ok).toMatchObject({ kind: "status", messageId: "m1", status: "delivered" });
+    const bad = parseTelnyxEvent({
+      data: {
+        id: "ev3",
+        event_type: "message.finalized",
+        payload: {
+          id: "m2",
+          to: [{ status: "delivery_failed" }],
+          errors: [{ code: "40008", title: "Undeliverable" }],
+        },
+      },
+    });
+    expect(bad).toMatchObject({ status: "failed", code: "40008", detail: "Undeliverable" });
+  });
+  it("ignores what it does not use and refuses junk", () => {
+    expect(
+      parseTelnyxEvent({ data: { id: "ev4", event_type: "number_order.complete" } }).kind,
+    ).toBe("ignored");
+    expect(() => parseTelnyxEvent({})).toThrow();
+  });
+});

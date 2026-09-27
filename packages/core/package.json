@@ -13,6 +13,7 @@
     "./ingest": "./src/ingest/index.ts",
     "./people": "./src/people/index.ts",
     "./schema": "./src/schema.ts",
+    "./stats": "./src/stats.ts",
     "./time": "./src/time.ts"
   },
   "scripts": {

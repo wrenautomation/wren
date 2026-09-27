@@ -25,6 +25,7 @@ import { registerContent } from "./content.js";
 import { registerEmail } from "./email.js";
 import { registerFetch } from "./fetch.js";
 import { registerReview } from "./review.js";
+import { registerSms } from "./sms.js";
 
 const BODY_PREVIEW_CHARS = 60;
 const rootDir = loadEnvFile();
@@ -109,6 +110,7 @@ registerReview(registerEmail(program, withDb, settings, rootDir), withDb);
 registerFetch(program, settings);
 registerContent(program, withDb, settings);
 registerAds(program, withDb, settings);
+registerSms(program, withDb, settings);
 
 const renewal = () =>
   clients

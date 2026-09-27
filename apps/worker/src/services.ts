@@ -43,6 +43,8 @@ import { makeLinkedinInbox } from "@wren/channel-linkedin/restate";
 import { facebookContent, instagramContent, instagramWebContent } from "@wren/channel-meta";
 import { makeAds, makeAdsWatch } from "@wren/channel-meta/restate";
 import { redditApi, redditContent } from "@wren/channel-reddit";
+import { healthFrom, policyFrom, providerFrom } from "@wren/channel-sms";
+import { makeSmsDesk, makeSmsEvents, makeSmsSender, makeSmsWatch } from "@wren/channel-sms/restate";
 import { tiktokContent } from "@wren/channel-tiktok";
 import { xContent } from "@wren/channel-x";
 import { youtubeContent } from "@wren/channel-youtube";
@@ -64,7 +66,13 @@ import {
 } from "@wren/core/content/restate";
 import { createDb } from "@wren/db";
 import { loadLlmEnv, makeLlm, makeTracer } from "@wren/llm";
-import { crawlHintsFor, discoveryWordsFor, LANDERS_BY_NICHE, NICHES } from "@wren/niches";
+import {
+  crawlHintsFor,
+  discoveryWordsFor,
+  LANDERS_BY_NICHE,
+  NICHES,
+  SMS_SEQUENCES,
+} from "@wren/niches";
 import {
   type BrowserRenderer,
   browserbaseRenderer,
@@ -297,6 +305,24 @@ export async function buildServices(
   // autobrowse's tokens made again before they lapse (LinkedIn's 60 days, npm's 90); the box is woken for it.
   const wake = settings.autobrowseInstanceId ? ec2Wake(settings.autobrowseInstanceId) : undefined;
   services.push(makeTokenRenewal({ db, ...(wake ? { wake } : {}), ...notify }));
+  // Cold SMS. Always bound: the sender is off until `wren sms queue start`, and a real
+  // provider sends nothing until WREN_SMS_LIVE (the registered campaign) says so.
+  const smsProvider = providerFrom(settings);
+  if (smsProvider.name !== "fake" && !settings.smsLive)
+    log.info("WREN_SMS_LIVE off: the sms sender queues but sends nothing");
+  const sms = {
+    db,
+    provider: smsProvider,
+    policy: policyFrom(settings),
+    health: healthFrom(settings),
+    live: settings.smsLive,
+    sequences: SMS_SEQUENCES,
+    senderName: settings.smsSenderName,
+    heldNiches: settings.smsHeldNiches,
+    llm: classify ? llm : null,
+    ...notify,
+  };
+  services.push(makeSmsSender(sms), makeSmsEvents(sms), makeSmsDesk(sms), makeSmsWatch(sms));
 
   return {
     services,
@@ -316,6 +342,8 @@ export async function buildServices(
       content: settings.contentChannels.join(",") || "none",
       ads: settings.metaAdAccountId ?? "first account",
       content_voice: voice !== null ? "file" : "default",
+      sms: smsProvider.name,
+      sms_live: settings.smsLive,
     },
     close: () => handle.close(),
   };

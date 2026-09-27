@@ -1,0 +1,19 @@
+# Deploy: see deploy/phone.md. Nothing secret lives here: SESSION_SECRET,
+# SETUP_TOKEN, TELNYX_PUBLIC_KEY, RESTATE_INGRESS_URL and RESTATE_AUTH_TOKEN are `wrangler secret put`,
+# and the account id comes from CLOUDFLARE_ACCOUNT_ID in the environment.
+name = "wren-phone"
+main = "src/worker.ts"
+compatibility_date = "2026-09-27"
+
+routes = [{ pattern = "phone.wrenautomation.com/*", zone_name = "wrenautomation.com" }]
+
+# The Worker decides first: /api, /auth and /webhooks are code, the rest is public/.
+[assets]
+directory = "./public"
+binding = "ASSETS"
+run_worker_first = true
+
+# `npx wrangler kv namespace create wren-phone-creds` prints the id to paste here.
+[[kv_namespaces]]
+binding = "CREDS"
+id = "REPLACE-WITH-KV-ID"

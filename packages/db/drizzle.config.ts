@@ -13,6 +13,7 @@ export default defineConfig({
     "../channel-email/src/views.ts",
     "../content/src/schema.ts",
     "../channel-meta/src/schema.ts",
+    "../channel-sms/src/schema.ts",
   ],
   out: "./drizzle",
   casing: "snake_case",

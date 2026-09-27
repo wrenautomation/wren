@@ -13,6 +13,7 @@
   },
   "dependencies": {
     "@wren/channel-email": "workspace:*",
+    "@wren/channel-sms": "workspace:*",
     "@wren/core": "workspace:*",
     "@wren/offers": "workspace:*",
     "@wren/research": "workspace:*",

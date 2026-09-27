@@ -14,6 +14,7 @@
     "@wren/channel-email": "workspace:*",
     "@wren/channel-linkedin": "workspace:*",
     "@wren/channel-meta": "workspace:*",
+    "@wren/channel-sms": "workspace:*",
     "@wren/config": "workspace:*",
     "@wren/content": "workspace:*",
     "@wren/core": "workspace:*",

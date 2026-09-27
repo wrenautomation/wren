@@ -14,6 +14,7 @@ import {
   twoEmailSequence,
   variantCounts,
 } from "@wren/channel-email";
+import { render as renderSms, segments } from "@wren/channel-sms";
 import { OFFER_IDS } from "@wren/offers";
 import { describe, expect, it } from "vitest";
 import {
@@ -27,6 +28,7 @@ import {
   recruiting,
   requireNiche,
   SEQUENCES_BY_NICHE,
+  SMS_SEQUENCES,
   secRia,
   TEMPLATES_BY_NICHE,
   templatesDir,
@@ -203,5 +205,21 @@ describe("offers", () => {
         offers: { reactivation: "ops-audit" },
       }),
     ).toThrow(/quotes offer\.days, offer\.slots, which offer 'ops-audit' does not set/);
+  });
+});
+
+describe("sms sequences", () => {
+  it("only agencies texts; names are fleet-wide; every step renders in two segments or less", () => {
+    expect([...SMS_SEQUENCES.keys()]).toEqual(["agencies-sms"]);
+    expect(secRia.smsSequences.size).toBe(0);
+    const seq = SMS_SEQUENCES.get("agencies-sms");
+    for (const step of seq?.steps ?? []) {
+      const body = renderSms(step.body, {
+        first_name: "Dana",
+        company: "Northwind",
+        sender: "William",
+      });
+      expect(segments(body).parts).toBeLessThanOrEqual(2);
+    }
   });
 });

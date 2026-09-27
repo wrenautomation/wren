@@ -141,6 +141,75 @@ export const settingsSchema = z.object({
   redditRefreshToken: z.string().min(1).optional(),
   /** The account posting, for Reddit's required User-Agent (`… (by /u/<name>)`). */
   redditUsername: z.string().min(1).optional(),
+  /**
+   * SMS (packages/channel-sms). `fake` sends nowhere; `telnyx` needs the key and
+   * the messaging profile. Nothing leaves a real provider until WREN_SMS_LIVE is
+   * true: set it only once the 10DLC campaign is approved as registered.
+   */
+  smsProvider: z.enum(["fake", "telnyx"]).default("fake"),
+  telnyxApiKey: z.string().min(1).optional(),
+  telnyxMessagingProfileId: z.string().min(1).optional(),
+  /** Telnyx's webhook public key (portal: Keys & Credentials → Public Key), for the phone Worker. */
+  telnyxPublicKey: z.string().min(1).optional(),
+  smsLive: z
+    .enum(["true", "false", "1", "0"])
+    .default("false")
+    .transform((v) => v === "true" || v === "1"),
+  /** Campaign-wide texts per fleet day, whatever the pool's size. */
+  smsDailyCap: z.coerce.number().int().positive().default(1000),
+  /** A fully ramped number's texts per day. */
+  smsNumberCap: z.coerce.number().int().positive().default(200),
+  smsRampStart: z.coerce.number().int().positive().default(20),
+  smsRampStep: z.coerce.number().int().nonnegative().default(20),
+  smsRampEveryDays: z.coerce.number().int().positive().default(2),
+  /** Most numbers in the pool (PH-D10). */
+  smsMaxNumbers: z.coerce.number().int().positive().max(5).default(5),
+  /** Lead-local send window, HH:MM–HH:MM; clamped to 08:00–20:00 whatever is set. */
+  smsWindow: z
+    .string()
+    .regex(/^\d{1,2}:\d{2}-\d{1,2}:\d{2}$/)
+    .default("10:00-17:00"),
+  /** ISO weekdays texts may land on (1 = Monday). */
+  smsDays: z
+    .string()
+    .default("1,2,3,4,5")
+    .transform((s) => s.split(",").map((x) => Number(x.trim())))
+    .pipe(z.array(z.number().int().min(1).max(7)).min(1)),
+  /** Least seconds between two texts from one number. */
+  smsGapSeconds: z.coerce.number().int().positive().default(20),
+  /** Who a text says it is from: `{sender}` in the copy. */
+  smsSenderName: z.string().min(1).default("William"),
+  /**
+   * Which contact bases the sender may text: `opt_in` (they gave us the number
+   * for this) and/or `published` (on their own site). Must match what the
+   * registered campaign says about how numbers are obtained.
+   */
+  smsBases: z
+    .string()
+    .default("opt_in")
+    .transform((s) =>
+      s
+        .split(",")
+        .map((x) => x.trim())
+        .filter(Boolean),
+    )
+    .pipe(z.array(z.enum(["published", "opt_in"])).min(1)),
+  /** Niches the SMS channel never reads, enrolls or texts (William's holds). */
+  smsHeldNiches: z
+    .string()
+    .default("sec_ria")
+    .transform((s) =>
+      s
+        .split(",")
+        .map((x) => x.trim())
+        .filter(Boolean),
+    ),
+  /** Health: 7-day delivery-failure rate that pauses a number. */
+  smsMaxFailRate: z.coerce.number().min(0).max(1).default(0.15),
+  /** Health: 7-day fleet opt-out rate that pauses every number. */
+  smsMaxOptOutRate: z.coerce.number().min(0).max(1).default(0.03),
+  /** Health: balance under this is a Discord warning. */
+  smsLowBalanceUsd: z.coerce.number().nonnegative().default(5),
   /** autobrowse's EC2 instance: a `sites` call starts it when stopped (it stops itself when idle). Unset = never wake. */
   autobrowseInstanceId: z
     .string()
@@ -221,6 +290,26 @@ export const ENV_KEYS = {
   metaPageId: "WREN_META_PAGE_ID",
   metaAdAccountId: "WREN_META_AD_ACCOUNT_ID",
   adsPauseAfterUsd: "WREN_ADS_PAUSE_AFTER_USD",
+  smsProvider: "WREN_SMS_PROVIDER",
+  telnyxApiKey: "WREN_TELNYX_API_KEY",
+  telnyxMessagingProfileId: "WREN_TELNYX_MESSAGING_PROFILE_ID",
+  telnyxPublicKey: "WREN_TELNYX_PUBLIC_KEY",
+  smsLive: "WREN_SMS_LIVE",
+  smsDailyCap: "WREN_SMS_DAILY_CAP",
+  smsNumberCap: "WREN_SMS_NUMBER_CAP",
+  smsRampStart: "WREN_SMS_RAMP_START",
+  smsRampStep: "WREN_SMS_RAMP_STEP",
+  smsRampEveryDays: "WREN_SMS_RAMP_EVERY_DAYS",
+  smsMaxNumbers: "WREN_SMS_MAX_NUMBERS",
+  smsWindow: "WREN_SMS_WINDOW",
+  smsDays: "WREN_SMS_DAYS",
+  smsGapSeconds: "WREN_SMS_GAP_SECONDS",
+  smsSenderName: "WREN_SMS_SENDER_NAME",
+  smsBases: "WREN_SMS_BASES",
+  smsHeldNiches: "WREN_SMS_HELD_NICHES",
+  smsMaxFailRate: "WREN_SMS_MAX_FAIL_RATE",
+  smsMaxOptOutRate: "WREN_SMS_MAX_OPT_OUT_RATE",
+  smsLowBalanceUsd: "WREN_SMS_LOW_BALANCE_USD",
   autobrowseInstanceId: "WREN_AUTOBROWSE_INSTANCE_ID",
   redditClientId: "WREN_REDDIT_CLIENT_ID",
   redditClientSecret: "WREN_REDDIT_CLIENT_SECRET",
