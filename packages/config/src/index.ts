@@ -112,7 +112,9 @@ export const settingsSchema = z.object({
         .map((x) => x.trim())
         .filter(Boolean),
     )
-    .pipe(z.array(z.enum(["linkedin", "youtube", "x", "instagram", "facebook", "tiktok"]))),
+    .pipe(
+      z.array(z.enum(["linkedin", "reddit", "youtube", "x", "instagram", "facebook", "tiktok"])),
+    ),
   /** A markdown file with the posting voice in William's words; unset = the built-in voice. Relative to the project root. */
   contentVoicePath: z.string().min(1).optional(),
   /** An S3 bucket a local media file is hosted in (presigned URL) for platforms that only take URLs. Unset = URLs only. */

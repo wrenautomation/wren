@@ -14,6 +14,8 @@ export interface PlatformSpec {
   readonly title?: { readonly maxChars: number };
   /** The platform cannot post text alone. */
   readonly needsMedia?: "video" | "image-or-video";
+  /** `extra` keys a person must set before approving (Reddit's subreddit). */
+  readonly needsExtra?: readonly string[];
   /** What the model is told to write, one line. */
   readonly shape: string;
 }
@@ -24,6 +26,14 @@ export const PLATFORM_SPECS: Readonly<Record<Platform, PlatformSpec>> = {
     maxChars: 3000,
     shape:
       "a LinkedIn post: a one-line hook, short paragraphs with blank lines between them, no hashtags, no emoji, ends with one plain question or take, under 1300 characters",
+  },
+  reddit: {
+    platform: "reddit",
+    maxChars: 40000,
+    title: { maxChars: 300 },
+    needsExtra: ["subreddit"],
+    shape:
+      "a Reddit text post: a plain title that states the point or the question (under 120 characters), then a body written like a practitioner sharing what they did and learned, specifics and numbers, no pitch, no links, no emoji, no hashtags, under 2000 characters",
   },
   x: {
     platform: "x",
@@ -66,6 +76,17 @@ export function unfitReason(spec: PlatformSpec, media: Media | null | undefined)
   if (spec.needsMedia === "video" && media.kind !== "video")
     return `${spec.platform} needs a video, not an image`;
   return null;
+}
+
+/** The `extra` keys this draft still lacks before it may be approved. */
+export function missingExtra(
+  spec: PlatformSpec,
+  extra: Readonly<Record<string, unknown>>,
+): string[] {
+  return (spec.needsExtra ?? []).filter((k) => {
+    const v = extra[k];
+    return v === undefined || v === null || v === "";
+  });
 }
 
 /** The channel port's post for a draft: text, the file, the title where the platform has one. */

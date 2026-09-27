@@ -42,6 +42,7 @@ import { linkedinContent } from "@wren/channel-linkedin";
 import { makeLinkedinInbox } from "@wren/channel-linkedin/restate";
 import { facebookContent, instagramContent, instagramWebContent } from "@wren/channel-meta";
 import { makeAds, makeAdsWatch } from "@wren/channel-meta/restate";
+import { redditContent } from "@wren/channel-reddit";
 import { tiktokContent } from "@wren/channel-tiktok";
 import { xContent } from "@wren/channel-x";
 import { youtubeContent } from "@wren/channel-youtube";
@@ -326,6 +327,7 @@ function contentFor(settings: Settings, log: Logger): ChannelsFor | null {
     const sites = restateSites(ctx, wake);
     return {
       ...(on.includes("linkedin") ? { linkedin: linkedinContent(sites) } : {}),
+      ...(on.includes("reddit") ? { reddit: redditContent(sites) } : {}),
       ...(on.includes("youtube") ? { youtube: youtubeContent(sites, host ? { host } : {}) } : {}),
       ...(on.includes("x") ? { x: xContent(sites, host ? { host } : {}) } : {}),
       // The Graph path needs a hosted URL and a Facebook Page (WREN_META_PAGE_ID);

@@ -19,6 +19,7 @@ const WEEKDAYS = [1, 2, 3, 4, 5] as const;
 
 export const DEFAULT_SLOTS: Readonly<Record<Platform, Slot>> = {
   linkedin: { hour: 8, minute: 30, days: WEEKDAYS },
+  reddit: { hour: 9, minute: 30 },
   x: { hour: 12, minute: 0, days: WEEKDAYS },
   facebook: { hour: 13, minute: 0 },
   instagram: { hour: 18, minute: 0 },

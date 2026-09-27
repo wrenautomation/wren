@@ -23,6 +23,7 @@ import {
   listDrafts,
   listIdeas,
   rejectDrafts,
+  setExtra,
   uploadMedia,
   whatWorked,
 } from "@wren/content";
@@ -260,6 +261,22 @@ export function registerContent(program: Command, withDb: WithDb, settings: Sett
         editDraft(db, id, { text, ...(o.title !== undefined ? { title: o.title } : {}) }),
       );
       printDraftRow(row);
+    });
+
+  content
+    .command("extra <draftId> <pairs...>")
+    .description(
+      "Set platform extras on a draft (subreddit=startups, url=https://…); key= removes one",
+    )
+    .action(async (id: string, pairs: string[]) => {
+      const patch: Record<string, string | null> = {};
+      for (const pair of pairs) {
+        const eq = pair.indexOf("=");
+        if (eq <= 0) throw new Error(`expected key=value, got ${pair}`);
+        const value = pair.slice(eq + 1).trim();
+        patch[pair.slice(0, eq).trim()] = value === "" ? null : value;
+      }
+      printDraftRow(await withDb((db) => setExtra(db, id, patch)));
     });
 
   const q = content.command("queue").description("the publish loop (ContentScheduler)");

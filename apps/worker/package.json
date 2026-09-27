@@ -18,6 +18,7 @@
     "@wren/channel-linkedin": "workspace:*",
     "@wren/channel-meta": "workspace:*",
     "@wren/channel-tiktok": "workspace:*",
+    "@wren/channel-reddit": "workspace:*",
     "@wren/channel-x": "workspace:*",
     "@wren/content": "workspace:*",
     "@wren/channel-youtube": "workspace:*",

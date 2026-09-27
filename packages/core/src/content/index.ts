@@ -9,9 +9,17 @@
 export * from "./autobrowse.js";
 export * from "./do.js";
 
-export type Platform = "linkedin" | "youtube" | "x" | "instagram" | "facebook" | "tiktok";
+export type Platform =
+  | "linkedin"
+  | "reddit"
+  | "youtube"
+  | "x"
+  | "instagram"
+  | "facebook"
+  | "tiktok";
 export const PLATFORMS: readonly Platform[] = [
   "linkedin",
+  "reddit",
   "youtube",
   "x",
   "instagram",
@@ -65,7 +73,7 @@ export interface Post {
   media?: Media;
   /** ISO time to publish at; absent = now. */
   scheduledFor?: string;
-  /** Platform extras: YouTube title/tags/visibility, LinkedIn visibility. Validated by the adapter. */
+  /** Platform extras: YouTube title/tags/visibility, LinkedIn visibility, Reddit subreddit. Validated by the adapter. */
   extra?: Record<string, unknown>;
 }
 

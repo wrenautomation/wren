@@ -6,7 +6,7 @@
 import type { Platform } from "@wren/core/content";
 import type { Queryable } from "@wren/db";
 import { and, asc, desc, eq, inArray, type SQL } from "drizzle-orm";
-import { PLATFORM_SPECS } from "./platforms.js";
+import { missingExtra, PLATFORM_SPECS } from "./platforms.js";
 import { type ContentDraft, contentDrafts, type DraftStatus } from "./schema.js";
 import { nextSlot } from "./slots.js";
 
@@ -73,6 +73,7 @@ export async function approveDrafts(
   o: { now: Date; at?: Date | null; zone?: string; asap?: boolean },
 ): Promise<ContentDraft[]> {
   const base = { status: "approved" as const, approvedAt: o.now, error: null };
+  await refuseMissingExtra(db, ids);
   if (o.at || o.asap || !o.zone)
     return moveAll(db, ids, APPROVABLE, { ...base, scheduledFor: o.at ?? null }, "approve");
   const zone = o.zone;
@@ -84,6 +85,48 @@ export async function approveDrafts(
     rows.push(...(await moveAll(db, [id], APPROVABLE, { ...base, scheduledFor: at }, "approve")));
   }
   return rows;
+}
+
+/** A draft whose platform needs an `extra` key (Reddit's subreddit) is not approvable without it. */
+async function refuseMissingExtra(db: Queryable, ids: readonly string[]): Promise<void> {
+  if (ids.length === 0) return;
+  const rows = await db
+    .select({ id: contentDrafts.id, platform: contentDrafts.platform, extra: contentDrafts.extra })
+    .from(contentDrafts)
+    .where(inArray(contentDrafts.id, [...ids]));
+  const lacking = rows
+    .map((r) => ({ id: r.id, missing: missingExtra(PLATFORM_SPECS[r.platform], r.extra) }))
+    .filter((r) => r.missing.length > 0);
+  if (lacking.length > 0)
+    throw new Error(
+      `cannot approve: ${lacking.map((r) => `${r.id} needs ${r.missing.join(", ")}`).join("; ")} (wren content extra <id> key=value)`,
+    );
+}
+
+/**
+ * Merge keys into a draft's `extra` (a `null` value removes one). The text is
+ * untouched, so an approved draft stays approved: where it goes is not what it says.
+ */
+export async function setExtra(
+  db: Queryable,
+  id: string,
+  patch: Readonly<Record<string, unknown>>,
+): Promise<ContentDraft> {
+  const current = await getDraft(db, id);
+  if (!EDITABLE.includes(current.status))
+    throw new Error(`cannot change ${id}: it is ${current.status}`);
+  const extra: Record<string, unknown> = { ...current.extra };
+  for (const [k, v] of Object.entries(patch)) {
+    if (v === null) delete extra[k];
+    else extra[k] = v;
+  }
+  const [row] = await db
+    .update(contentDrafts)
+    .set({ extra })
+    .where(eq(contentDrafts.id, id))
+    .returning();
+  if (!row) throw new Error(`no draft ${id}`);
+  return row;
 }
 
 export function rejectDrafts(db: Queryable, ids: readonly string[]): Promise<ContentDraft[]> {
