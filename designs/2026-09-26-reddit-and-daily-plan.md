@@ -50,9 +50,15 @@ then `wren content planner start`.
 
 ## Owed
 
-- autobrowse (peer session): `reddit@wren` account, API access request, web app,
-  OAuth consent (permanent; scopes identity submit read history edit), keys in SSM.
-  Then the four `WREN_REDDIT_*` keys into deploy/prod.env, never printed.
+- Done 2026-09-27: account u/WrenAutomation on william@wrenautomation.com (autobrowse
+  `reddit@wren`, SSM `AUTOBROWSE_CRED_REDDIT__WREN_*`). API access request filed via
+  Reddit's help-center form; Support confirmed. Decision by email to william@ in ~2–4 weeks.
+- On approval, autobrowse makes the web app, runs consent (permanent; identity submit read
+  history edit), and stores the keys in SSM. Then the four `WREN_REDDIT_*` keys go into
+  deploy/prod.env, never printed.
+- The request says **own-profile posts**. Posting to the profile is
+  `extra.subreddit=u_WrenAutomation`. Posting into other subreddits goes past what we
+  told Reddit; that's William's call before the first one.
 - The account comments and ages before it posts (William, by hand).
 - William's content, then approvals.
 - Deploy: the worker change is not deployed (Actions blocked; build-on-box).
