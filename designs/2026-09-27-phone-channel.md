@@ -40,6 +40,20 @@ Warm volume (tens a day) is under $10/mo total on Telnyx.
   purpose: the consent row points at the message. That's the honest route from cold
   lead to text, and it's what the campaign registration describes.
 
+- **PH-D10 Number pool, sticky sender, one campaign.** William wants number rotation,
+  no brand rotation. Built as: up to 5 numbers, all on the one registered campaign, each
+  lead always texted from the same number (replies thread). Carriers cap volume per
+  campaign and brand, not per number, so the pool adds no volume and hides nothing:
+  carriers see every number under the same campaign. What keeps it from being
+  snowshoeing: pool size is fixed, total sends stop at the campaign cap, and a
+  flagged number is paused and reported, never swapped out automatically. Nothing sends
+  until the campaign is approved as registered (honest description of the lead source).
+  A sole proprietor brand allows one number, so a pool needs a standard brand: a free
+  Canadian business number (CRA) for William's sole proprietorship. Confirm TCR takes it.
+- **Devices.** Texts go out through Telnyx numbers, never a SIM. The PWA inbox works the
+  same on iPhone, the SIM-less Seeker and the Mac. The tap-to-send-from-your-own-phone
+  idea is dropped (the Seeker can't do it).
+
 ## Answer first
 
 - **Where:** inside the wren monorepo. New `@wren/channel-phone` package plus an
