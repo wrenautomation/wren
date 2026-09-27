@@ -17,7 +17,7 @@ import { applyEvent } from "../../src/events.js";
 import { checkHealth, DEFAULT_HEALTH } from "../../src/health.js";
 import { liftPhones } from "../../src/lift.js";
 import { poolToday, syncNumbers } from "../../src/pool.js";
-import { FakeProvider, type SmsEvent } from "../../src/provider.js";
+import { FakeProvider, NoProvider, type SmsEvent } from "../../src/provider.js";
 import { smsContacts, smsMessages, smsNumbers } from "../../src/schema.js";
 import { smsStats } from "../../src/stats.js";
 import { getThread, listThreads } from "../../src/threads.js";
@@ -340,6 +340,35 @@ describe("failure paths", () => {
     expect(await tickAt(OPEN, { provider: real })).toMatchObject({ gated: 1, sent: 0 });
     expect(real.sent).toHaveLength(0);
     expect(await tickAt(OPEN, { provider: real, live: true })).toMatchObject({ sent: 1 });
+  });
+
+  it("with no provider nothing is sent, looked up, synced or pinned", async () => {
+    const none = new NoProvider();
+    const due = (await messages()).filter((m) => m.state === "queued").length;
+    expect(due).toBeGreaterThan(0);
+    expect(await tickAt(OPEN, { provider: none, live: true })).toMatchObject({
+      sent: 0,
+      gated: due,
+    });
+    expect((await messages()).filter((m) => m.state === "queued")).toHaveLength(due);
+    await addContact(db(), { phone: "+12125550199", basis: "opt_in", why: "test" });
+    await expect(
+      enroll(db(), {
+        sequence: SEQ,
+        policy: POLICY,
+        provider: none,
+        senderName: "William",
+        heldNiches: [],
+        limit: 5,
+        now: OPEN,
+      }),
+    ).rejects.toThrow(/no SMS provider/);
+    expect(await contact("+12125550199")).toMatchObject({
+      state: "new",
+      lookedUpAt: null,
+      numberId: null,
+    });
+    await expect(syncNumbers(db(), none, POLICY, OPEN)).rejects.toThrow(/no SMS provider/);
   });
 
   it("a suppression made on another channel stops the text", async () => {

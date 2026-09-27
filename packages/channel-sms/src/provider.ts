@@ -1,7 +1,8 @@
 /**
  * The SMS provider port. Everything the channel needs from a carrier is here,
  * in our words; `telnyx.ts` is the one file that speaks a vendor's API, and
- * `FakeProvider` is the one tests and dry runs use. Swapping vendors (PH-D8's
+ * `FakeProvider` is the one tests and local dry runs use, and `NoProvider` is
+ * what a deploy runs before a carrier account exists. Swapping vendors (PH-D8's
  * Twilio fallback) is one new file behind this interface.
  *
  * `send` answers three ways and throws for a fourth: accepted (an id we can
@@ -9,6 +10,7 @@
  * (429/5xx: nothing was sent). A thrown error means we cannot know whether it
  * went out; the caller marks the message `unknown` and never resends it.
  */
+import { SmsRefusal } from "./refusal.js";
 import type { LineType } from "./schema.js";
 
 export interface SendRequest {
@@ -133,5 +135,38 @@ export class FakeProvider implements SmsProvider {
     const event = body as SmsEvent & { at?: string };
     if (event.kind === "ignored") return event;
     return { ...event, at: new Date(event.at as unknown as string) } as SmsEvent;
+  }
+}
+
+/**
+ * No carrier yet: the default, so a deploy never fakes a send, a lookup or a
+ * number. Reading, adding contacts and the inbox work; anything that needs a
+ * carrier is refused, and the send tick holds every due text as gated.
+ */
+export class NoProvider implements SmsProvider {
+  readonly name = "none";
+
+  private refuse(): never {
+    throw new SmsRefusal("no SMS provider yet: set WREN_SMS_PROVIDER=telnyx and its keys");
+  }
+
+  async send(): Promise<SendResult> {
+    this.refuse();
+  }
+
+  async lookup(): Promise<LookupResult> {
+    this.refuse();
+  }
+
+  async listNumbers(): Promise<ProviderNumber[]> {
+    this.refuse();
+  }
+
+  async balance(): Promise<number | null> {
+    return null;
+  }
+
+  parseEvent(): SmsEvent {
+    this.refuse();
   }
 }

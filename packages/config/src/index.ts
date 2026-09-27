@@ -142,11 +142,13 @@ export const settingsSchema = z.object({
   /** The account posting, for Reddit's required User-Agent (`… (by /u/<name>)`). */
   redditUsername: z.string().min(1).optional(),
   /**
-   * SMS (packages/channel-sms). `fake` sends nowhere; `telnyx` needs the key and
-   * the messaging profile. Nothing leaves a real provider until WREN_SMS_LIVE is
-   * true: set it only once the 10DLC campaign is approved as registered.
+   * SMS (packages/channel-sms). `none` (the default) has no carrier: nothing is
+   * sent, looked up or synced. `fake` is for tests and local dry runs only: it
+   * pretends to send, so never set it on a deploy. `telnyx` needs the key and the
+   * messaging profile. Nothing leaves Telnyx until WREN_SMS_LIVE is true: set it
+   * only once the 10DLC campaign is approved as registered.
    */
-  smsProvider: z.enum(["fake", "telnyx"]).default("fake"),
+  smsProvider: z.enum(["none", "fake", "telnyx"]).default("none"),
   telnyxApiKey: z.string().min(1).optional(),
   telnyxMessagingProfileId: z.string().min(1).optional(),
   /** Telnyx's webhook public key (portal: Keys & Credentials → Public Key), for the phone Worker. */

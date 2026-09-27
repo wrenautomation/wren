@@ -95,6 +95,10 @@ SMS only. Everything runs on the fake provider today; Telnyx is one setting away
 - **PH-D12 The Worker is a door, not a store.** Postgres keeps every text; the Worker
   holds only passkeys (KV) and forwards. Restate down = 502, Telnyx retries.
 - **PH-D13 `channel-sms`, not `channel-phone`.** Calls get their own package when built.
+- **PH-D14 No provider by default.** `WREN_SMS_PROVIDER` defaults to `none`: texts queue
+  as gated; enroll, lookups and number sync are refused. The fake would have marked
+  real contacts texted and pinned them to a fictional number. `fake` is local only;
+  the worker refuses it on Lambda and runs `none` instead.
 
 ## Answer first
 
@@ -357,9 +361,7 @@ SMS, as built:
    (VAPID) is a later add.
 4. **Timezone from company only.** A contact without a company (hand-added, inbound
    stranger) must be open in ET and PT, which narrows its window to 13:00–17:00 ET.
-5. **The fake provider "sends".** Prod defaults to `WREN_SMS_PROVIDER=fake`. Running
-   `numbers sync` + `enroll` + `queue start` there would mark real contacts texted with
-   nothing sent. Set `telnyx` before any of those in prod.
+5. ~~**The fake provider "sends" in prod.**~~ Closed by PH-D14.
 6. **Health minimum sample is 30 per number.** Below that a bad number sends on. At 20/day
    ramp that's ~2 days of exposure.
 

@@ -215,7 +215,9 @@ export function makeSmsDesk(deps: SmsDeps) {
       },
       syncNumbers: async (ctx: restate.Context): Promise<SyncStats> => {
         const now = await nowOf(ctx);
-        return ctx.run("sync numbers", () => syncNumbers(deps.db, deps.provider, deps.policy, now));
+        return ctx.run("sync numbers", () =>
+          terminal(() => syncNumbers(deps.db, deps.provider, deps.policy, now)),
+        );
       },
       pause: async (
         ctx: restate.Context,
@@ -275,21 +277,23 @@ export function makeSmsDesk(deps: SmsDeps) {
           );
         const now = await nowOf(ctx);
         return ctx.run("enroll", async () => {
-          const { stats } = await recordedRun(
-            deps.db,
-            { command: "sms enroll", argv: { ...req }, niche: req.niche ?? null },
-            (run) =>
-              enroll(deps.db, {
-                sequence,
-                policy: deps.policy,
-                provider: deps.provider,
-                senderName: deps.senderName,
-                niche: req.niche ?? null,
-                heldNiches: deps.heldNiches,
-                limit: req.limit,
-                now,
-                runId: run.id,
-              }),
+          const { stats } = await terminal(() =>
+            recordedRun(
+              deps.db,
+              { command: "sms enroll", argv: { ...req }, niche: req.niche ?? null },
+              (run) =>
+                enroll(deps.db, {
+                  sequence,
+                  policy: deps.policy,
+                  provider: deps.provider,
+                  senderName: deps.senderName,
+                  niche: req.niche ?? null,
+                  heldNiches: deps.heldNiches,
+                  limit: req.limit,
+                  now,
+                  runId: run.id,
+                }),
+            ),
           );
           return stats;
         });

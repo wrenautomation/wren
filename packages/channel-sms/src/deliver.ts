@@ -8,7 +8,8 @@
  * After a sequence step is sent, the next step is queued `afterDays` later;
  * after the last, the contact is `finished`. The live gate: with a real
  * provider nothing leaves unless `live` is set (the registered campaign is
- * approved); the fake provider always sends, for tests and dry runs.
+ * approved); the fake provider always sends, for tests and dry runs; with no
+ * provider every due text is held as gated.
  */
 import { activeSuppressionOf, addSuppression, companies, people } from "@wren/core";
 import type { Db, Queryable } from "@wren/db";
@@ -212,7 +213,7 @@ export async function tick(db: Db, opts: TickOptions): Promise<TickStats> {
     )
     .limit(SCAN);
   stats.due = due.length;
-  const live = opts.live || opts.provider.name === "fake";
+  const live = opts.provider.name !== "none" && (opts.live || opts.provider.name === "fake");
   for (const { msg, contact, zone, from } of due) {
     if (msg.kind === "sequence" && contact.state !== "enrolled") {
       await skipQueued(db, contact.id, `contact ${contact.state}`);

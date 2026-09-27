@@ -2,7 +2,7 @@
 import type { Settings } from "@wren/config";
 import { DEFAULT_HEALTH, type HealthPolicy } from "./health.js";
 import { parseClock, type SmsPolicy } from "./policy.js";
-import { FakeProvider, type SmsProvider } from "./provider.js";
+import { FakeProvider, NoProvider, type SmsProvider } from "./provider.js";
 import { TelnyxProvider } from "./telnyx.js";
 
 export function policyFrom(s: Settings): SmsPolicy {
@@ -33,6 +33,7 @@ export function healthFrom(s: Settings): HealthPolicy {
 
 /** The configured provider. Telnyx without its key is a loud error at start, not at the first send. */
 export function providerFrom(s: Settings): SmsProvider {
+  if (s.smsProvider === "none") return new NoProvider();
   if (s.smsProvider === "fake") {
     // One fictional (555-01xx) number, so `numbers sync` gives a local stack a pool to send from.
     const fake = new FakeProvider();

@@ -1,11 +1,13 @@
 # 5. Cold SMS
 
 The SMS channel: a number pool, contacts with their consent basis, a send loop
-with quiet hours and ramps, an inbox on your phone. Works today on the fake
-provider; Telnyx is settings. Why and what is owed: `designs/2026-09-27-phone-channel.md`.
+with quiet hours and ramps, an inbox on your phone. With no provider set (the
+default, and prod until Telnyx) texts queue and nothing is sent, looked up or
+synced. Telnyx is settings. Why and what is owed: `designs/2026-09-27-phone-channel.md`.
 
 ## Try it locally (fake provider, nothing leaves)
 
+    export WREN_SMS_PROVIDER=fake           # local only; refused on Lambda
     pnpm db:migrate                         # adds the sms tables (0013)
     pnpm worker && pnpm register            # SmsSender, SmsEvents, SmsDesk, SmsWatch bound
     wren sms numbers sync                   # the fake's one number, (201) 555-0100

@@ -43,7 +43,7 @@ import { makeLinkedinInbox } from "@wren/channel-linkedin/restate";
 import { facebookContent, instagramContent, instagramWebContent } from "@wren/channel-meta";
 import { makeAds, makeAdsWatch } from "@wren/channel-meta/restate";
 import { redditApi, redditContent } from "@wren/channel-reddit";
-import { healthFrom, policyFrom, providerFrom } from "@wren/channel-sms";
+import { healthFrom, NoProvider, policyFrom, providerFrom } from "@wren/channel-sms";
 import { makeSmsDesk, makeSmsEvents, makeSmsSender, makeSmsWatch } from "@wren/channel-sms/restate";
 import { tiktokContent } from "@wren/channel-tiktok";
 import { xContent } from "@wren/channel-x";
@@ -307,8 +307,17 @@ export async function buildServices(
   services.push(makeTokenRenewal({ db, ...(wake ? { wake } : {}), ...notify }));
   // Cold SMS. Always bound: the sender is off until `wren sms queue start`, and a real
   // provider sends nothing until WREN_SMS_LIVE (the registered campaign) says so.
-  const smsProvider = providerFrom(settings);
-  if (smsProvider.name !== "fake" && !settings.smsLive)
+  // The fake pretends to send: on Lambda (prod) it is refused and no provider runs instead.
+  let smsProvider = providerFrom(settings);
+  if (smsProvider.name === "fake" && process.env.AWS_LAMBDA_FUNCTION_NAME) {
+    log.error("WREN_SMS_PROVIDER=fake refused in prod: running with no sms provider");
+    smsProvider = new NoProvider();
+  }
+  if (smsProvider.name === "none")
+    log.info("no sms provider: texts queue, nothing is sent, looked up or synced");
+  else if (smsProvider.name === "fake")
+    log.warn("WREN_SMS_PROVIDER=fake pretends to send: local dry runs only");
+  else if (!settings.smsLive)
     log.info("WREN_SMS_LIVE off: the sms sender queues but sends nothing");
   const sms = {
     db,

@@ -13,6 +13,7 @@ import { and, asc, eq, inArray, isNull, notInArray, or, sql } from "drizzle-orm"
 import type { SmsPolicy } from "./policy.js";
 import { pickNumber } from "./pool.js";
 import type { SmsProvider } from "./provider.js";
+import { SmsRefusal } from "./refusal.js";
 import { type LineType, type SmsContact, smsContacts, smsMessages } from "./schema.js";
 import { firstName, render, type SmsSequence } from "./templates.js";
 
@@ -121,6 +122,8 @@ export async function enroll(db: Db, opts: EnrollOptions): Promise<EnrollStats> 
           .where(eq(smsContacts.id, c.id));
         stats.lookedUp += 1;
       } catch (err) {
+        // No carrier at all is not one bad number: stop the run.
+        if (err instanceof SmsRefusal) throw err;
         stats.lookupErrors.push(`${c.e164}: ${err instanceof Error ? err.message : String(err)}`);
         continue;
       }
