@@ -1,6 +1,6 @@
 import * as restate from "@restatedev/restate-sdk";
 import { describe, expect, it } from "vitest";
-import { SiteCallError } from "./autobrowse.js";
+import { asAccount, autobrowseSites, SiteCallError } from "./autobrowse.js";
 import { fakeContentChannel } from "./index.js";
 import { makeContent, restateSites } from "./restate.js";
 
@@ -65,6 +65,29 @@ describe("restateSites", () => {
       path: "/rest/posts",
       input: { commentary: "hi" },
     });
+  });
+
+  it("a pinned account rides on every call, over Restate and over HTTP", async () => {
+    const { ctx, calls } = ctxOf(() => ({}));
+    await asAccount(restateSites(ctx), "linkedin@outreach-2").call("linkedin", "GET", "/rest/me");
+    expect(calls[0]?.req).toMatchObject({ site: "linkedin", account: "linkedin@outreach-2" });
+    await restateSites(ctx).call("linkedin", "GET", "/rest/me");
+    expect(calls[1]?.req).not.toHaveProperty("account");
+
+    const urls: string[] = [];
+    const http = autobrowseSites({
+      url: "http://box",
+      fetch: async (u) => {
+        urls.push(String(u));
+        return new Response("{}");
+      },
+    });
+    await asAccount(http, "reddit@a").call("reddit", "GET", "/api/v1/me", { raw_json: 1 });
+    await asAccount(http, "reddit@a").call("reddit", "POST", "/api/submit", { sr: "x" });
+    expect(urls).toEqual([
+      "http://box/api/sites/reddit/api/v1/me?raw_json=1&account=reddit%40a",
+      "http://box/api/sites/reddit/api/submit?account=reddit%40a",
+    ]);
   });
 
   it("a terminal error from the worker is a SiteCallError with its status", async () => {

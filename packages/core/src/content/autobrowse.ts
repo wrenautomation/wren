@@ -17,6 +17,8 @@ export interface SiteClient {
     method: SiteMethod,
     path: string,
     input?: Record<string, unknown>,
+    /** Which of the site's logins answers (`linkedin@outreach-2`); absent = the site's default. */
+    account?: string,
   ): Promise<T>;
   /** How the worker answers a route now; `api` or `browser` (`none` when it cannot yet). */
   via(site: string, method: SiteMethod, path: string): Promise<FetchedWith | "none">;
@@ -58,6 +60,18 @@ export function viaOf(status: SiteStatus, method: string, path: string): Fetched
   return row?.via ?? "none";
 }
 
+/**
+ * The same client, pinned to one login: every call carries `account`, so an
+ * adapter written for "the" LinkedIn works unchanged for any of them.
+ */
+export function asAccount(sites: SiteClient, account: string | null | undefined): SiteClient {
+  if (!account) return sites;
+  return {
+    call: (site, method, path, input, a) => sites.call(site, method, path, input, a ?? account),
+    via: (site, method, path) => sites.via(site, method, path),
+  };
+}
+
 export function autobrowseSites(o: {
   url: string;
   token?: string | null;
@@ -86,14 +100,15 @@ export function autobrowseSites(o: {
     return p;
   };
   return {
-    async call(site, method, path, input = {}) {
+    async call(site, method, path, input = {}, account) {
       const read = method === "GET" || method === "DELETE";
       let url = `${base}/api/sites/${site}${path}`;
-      if (read && Object.keys(input).length) {
-        const q = new URLSearchParams();
+      const q = new URLSearchParams();
+      if (read)
         for (const [k, v] of Object.entries(input)) if (v !== undefined) q.set(k, String(v));
-        url += `${path.includes("?") ? "&" : "?"}${q}`;
-      }
+      // The server takes `account` off the query before the site sees it.
+      if (account) q.set("account", account);
+      if (q.size) url += `${path.includes("?") ? "&" : "?"}${q}`;
       const res = await doFetch(url, {
         method,
         headers: headers(!read),

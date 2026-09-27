@@ -25,7 +25,13 @@ type SitesService = {
   status: (ctx: restate.Context, req: { site: string }) => Promise<SiteStatus>;
   call: (
     ctx: restate.Context,
-    req: { site: string; method: SiteMethod; path: string; input?: Record<string, unknown> },
+    req: {
+      site: string;
+      method: SiteMethod;
+      path: string;
+      input?: Record<string, unknown>;
+      account?: string;
+    },
   ) => Promise<unknown>;
   setup: (
     ctx: restate.Context,
@@ -63,10 +69,16 @@ export function restateSites(ctx: restate.Context, wake?: Wake): SiteClient {
     return woken;
   };
   return {
-    async call(site, method, path, input = {}) {
+    async call(site, method, path, input = {}, account) {
       await awake();
       try {
-        return (await client.call({ site, method, path, input })) as never;
+        return (await client.call({
+          site,
+          method,
+          path,
+          input,
+          ...(account ? { account } : {}),
+        })) as never;
       } catch (err) {
         throw siteCallErrorFrom(err, site, method, path);
       }
