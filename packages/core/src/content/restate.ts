@@ -92,6 +92,50 @@ export function restateSites(ctx: restate.Context, wake?: Wake): SiteClient {
   };
 }
 
+/** A platform said no (bad input, forbidden, gone): retrying the same call cannot help. 408/429 can. */
+export const isRefusal = (err: unknown): err is SiteCallError =>
+  err instanceof SiteCallError &&
+  err.status >= 400 &&
+  err.status < 500 &&
+  err.status !== 408 &&
+  err.status !== 429;
+
+/**
+ * A direct API client (no `sites` hop) made durable: each call is one
+ * journaled step, so a retried invocation replays the answer instead of
+ * calling again. A refusal ends the step for good; anything else retries.
+ */
+export function journaledSites(ctx: restate.Context, sites: SiteClient): SiteClient {
+  return {
+    async call(site, method, path, input = {}, account) {
+      try {
+        return (await ctx.run(`${site} ${method} ${path}`, async () => {
+          try {
+            return ((await sites.call(site, method, path, input, account)) ?? null) as never;
+          } catch (err) {
+            if (isRefusal(err))
+              throw new restate.TerminalError(err.message, { errorCode: err.status });
+            throw err;
+          }
+        })) as never;
+      } catch (err) {
+        throw siteCallErrorFrom(err, site, method, path);
+      }
+    },
+    via: (site, method, path) => sites.via(site, method, path),
+  };
+}
+
+/** A refusal from a channel is final for this request: terminal, so the scheduler marks the draft failed. */
+async function refusalsFinal<T>(work: Promise<T>): Promise<T> {
+  try {
+    return await work;
+  } catch (err) {
+    if (isRefusal(err)) throw new restate.TerminalError(err.message, { errorCode: err.status });
+    throw err;
+  }
+}
+
 /** Build the channels for one invocation from its context (the `sites` calls need it). */
 export type ChannelsFor = (ctx: restate.Context) => Channels;
 
@@ -110,15 +154,15 @@ export function makeContent(channelsFor: ChannelsFor) {
         return (Object.keys(channels) as Platform[]).filter((p) => channels[p]);
       },
       publish: async (ctx: restate.Context, req: { platform: Platform; post: Post }) =>
-        pick(ctx, req.platform).publish(req.post),
+        refusalsFinal(pick(ctx, req.platform).publish(req.post)),
       list: async (ctx: restate.Context, req: { platform: Platform; q?: ListQuery }) =>
-        pick(ctx, req.platform).list(req.q ?? {}),
+        refusalsFinal(pick(ctx, req.platform).list(req.q ?? {})),
       metrics: async (ctx: restate.Context, req: { platform: Platform; id: string }) =>
-        pick(ctx, req.platform).metrics(req.id),
+        refusalsFinal(pick(ctx, req.platform).metrics(req.id)),
       comments: async (
         ctx: restate.Context,
         req: { platform: Platform; id: string; q?: ListQuery },
-      ) => pick(ctx, req.platform).comments(req.id, req.q ?? {}),
+      ) => refusalsFinal(pick(ctx, req.platform).comments(req.id, req.q ?? {})),
       reply: async (
         ctx: restate.Context,
         req: { platform: Platform; commentId: string; text: string },
@@ -126,7 +170,7 @@ export function makeContent(channelsFor: ChannelsFor) {
         const ch = pick(ctx, req.platform);
         if (!ch.reply)
           throw new restate.TerminalError(`${req.platform} cannot reply here`, { errorCode: 501 });
-        await ch.reply(req.commentId, req.text);
+        await refusalsFinal(ch.reply(req.commentId, req.text));
       },
     },
   });

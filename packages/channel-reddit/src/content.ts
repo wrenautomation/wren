@@ -17,6 +17,7 @@ import {
   type PublishedRow,
   pageOf,
   previewOf,
+  SiteCallError,
   type SiteClient,
 } from "@wren/core/content";
 
@@ -57,11 +58,11 @@ const at = (utc: number | undefined, now: () => Date) =>
 export const bareId = (id: string) => id.replace(/^t\d_/, "");
 const children = (l: Listing | undefined) => (l?.data?.children ?? []).map((c) => c.data);
 
-/** The answer's data, or the first error Reddit gave, as a thrown error. */
-export function answerOf<T>(where: string, a: JsonAnswer<T>): T {
+/** The answer's data, or the refusal Reddit gave (a 200 carrying errors) as a 422: final, not retried. */
+export function answerOf<T>(path: string, a: JsonAnswer<T>): T {
   const err = a.json?.errors?.[0];
-  if (err) throw new Error(`reddit ${where}: ${err[0]} ${err[1]}`);
-  if (!a.json?.data) throw new Error(`reddit ${where}: no data`);
+  if (err) throw new SiteCallError(REDDIT_SITE, "POST", path, 422, `${err[0]} ${err[1]}`);
+  if (!a.json?.data) throw new SiteCallError(REDDIT_SITE, "POST", path, 502, "no data");
   return a.json.data;
 }
 
@@ -94,7 +95,7 @@ export function redditContent(sites: SiteClient, o: RedditContentOptions = {}): 
         throw new Error("reddit: media posts are not wired; put the link in extra.url");
       const link = typeof post.extra?.url === "string" ? post.extra.url : null;
       const data = answerOf<{ id?: string; name?: string; url?: string }>(
-        "submit",
+        "/api/submit",
         await call("POST", "/api/submit", {
           api_type: "json",
           sr: sr.replace(/^r\//, ""),
@@ -169,7 +170,7 @@ export function redditContent(sites: SiteClient, o: RedditContentOptions = {}): 
     },
     async reply(commentId: string, text: string): Promise<void> {
       answerOf(
-        "comment",
+        "/api/comment",
         await call<{ json?: { errors?: Array<[string, string, string?]>; data?: unknown } }>(
           "POST",
           "/api/comment",

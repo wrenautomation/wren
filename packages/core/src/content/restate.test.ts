@@ -1,8 +1,8 @@
 import * as restate from "@restatedev/restate-sdk";
 import { describe, expect, it } from "vitest";
-import { asAccount, autobrowseSites, SiteCallError } from "./autobrowse.js";
+import { asAccount, autobrowseSites, SiteCallError, type SiteClient } from "./autobrowse.js";
 import { fakeContentChannel } from "./index.js";
-import { makeContent, restateSites } from "./restate.js";
+import { journaledSites, makeContent, restateSites } from "./restate.js";
 
 /** A stand-in Context whose `sites` client answers from a script and keeps every call. */
 function ctxOf(answer: (handler: string, req: unknown) => unknown) {
@@ -97,6 +97,46 @@ describe("restateSites", () => {
     await expect(restateSites(ctx).call("youtube", "GET", "/youtube/v3/videos")).rejects.toSatisfy(
       (e: unknown) => e instanceof SiteCallError && e.status === 501,
     );
+  });
+});
+
+describe("journaledSites", () => {
+  const runCtx = () => {
+    const steps: string[] = [];
+    const ctx = {
+      run: async (name: string, fn: () => Promise<unknown>) => {
+        steps.push(name);
+        return fn();
+      },
+    } as unknown as restate.Context;
+    return { ctx, steps };
+  };
+  const direct = (fail?: SiteCallError): SiteClient => ({
+    async call<T>() {
+      if (fail) throw fail;
+      return { ok: 1 } as T;
+    },
+    async via() {
+      return "api" as const;
+    },
+  });
+
+  it("each call is one named step", async () => {
+    const { ctx, steps } = runCtx();
+    expect(await journaledSites(ctx, direct()).call("reddit", "POST", "/api/submit")).toEqual({
+      ok: 1,
+    });
+    expect(steps).toEqual(["reddit POST /api/submit"]);
+  });
+
+  it("a refusal is terminal inside the step and a SiteCallError outside; a 429 is not terminal", async () => {
+    const { ctx } = runCtx();
+    const refused = new SiteCallError("reddit", "POST", "/api/submit", 403, "no");
+    await expect(
+      journaledSites(ctx, direct(refused)).call("reddit", "POST", "/api/submit"),
+    ).rejects.toSatisfy((e: unknown) => e instanceof SiteCallError && e.status === 403);
+    const busy = new SiteCallError("reddit", "GET", "/x", 429, "slow down");
+    await expect(journaledSites(ctx, direct(busy)).call("reddit", "GET", "/x")).rejects.toBe(busy);
   });
 });
 

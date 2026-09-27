@@ -131,6 +131,16 @@ export const settingsSchema = z.object({
     .optional(),
   /** `AdsWatch`: 7-day spend that, with no clicks and no results, pauses a launch (default $50). */
   adsPauseAfterUsd: z.coerce.number().positive().default(50),
+  /**
+   * Reddit's API, called straight from wren (no autobrowse on the path): an
+   * approved OAuth app and a permanent refresh token from its consent. All
+   * three set = the `reddit` channel exists; any missing = it does not.
+   */
+  redditClientId: z.string().min(1).optional(),
+  redditClientSecret: z.string().min(1).optional(),
+  redditRefreshToken: z.string().min(1).optional(),
+  /** The account posting, for Reddit's required User-Agent (`… (by /u/<name>)`). */
+  redditUsername: z.string().min(1).optional(),
   /** autobrowse's EC2 instance: a `sites` call starts it when stopped (it stops itself when idle). Unset = never wake. */
   autobrowseInstanceId: z
     .string()
@@ -212,6 +222,10 @@ export const ENV_KEYS = {
   metaAdAccountId: "WREN_META_AD_ACCOUNT_ID",
   adsPauseAfterUsd: "WREN_ADS_PAUSE_AFTER_USD",
   autobrowseInstanceId: "WREN_AUTOBROWSE_INSTANCE_ID",
+  redditClientId: "WREN_REDDIT_CLIENT_ID",
+  redditClientSecret: "WREN_REDDIT_CLIENT_SECRET",
+  redditRefreshToken: "WREN_REDDIT_REFRESH_TOKEN",
+  redditUsername: "WREN_REDDIT_USERNAME",
 } as const satisfies Record<keyof Settings, string>;
 
 export interface LoadOptions {

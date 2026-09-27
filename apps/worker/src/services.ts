@@ -42,7 +42,7 @@ import { linkedinContent } from "@wren/channel-linkedin";
 import { makeLinkedinInbox } from "@wren/channel-linkedin/restate";
 import { facebookContent, instagramContent, instagramWebContent } from "@wren/channel-meta";
 import { makeAds, makeAdsWatch } from "@wren/channel-meta/restate";
-import { redditContent } from "@wren/channel-reddit";
+import { redditApi, redditContent } from "@wren/channel-reddit";
 import { tiktokContent } from "@wren/channel-tiktok";
 import { xContent } from "@wren/channel-x";
 import { youtubeContent } from "@wren/channel-youtube";
@@ -54,8 +54,14 @@ import {
   makeContentPlanner,
   makeContentScheduler,
 } from "@wren/content/restate";
+import type { SiteClient } from "@wren/core/content";
 import { makeTokenRenewal } from "@wren/core/content/renewal";
-import { type ChannelsFor, makeContent, restateSites } from "@wren/core/content/restate";
+import {
+  type ChannelsFor,
+  journaledSites,
+  makeContent,
+  restateSites,
+} from "@wren/core/content/restate";
 import { createDb } from "@wren/db";
 import { loadLlmEnv, makeLlm, makeTracer } from "@wren/llm";
 import { crawlHintsFor, discoveryWordsFor, LANDERS_BY_NICHE, NICHES } from "@wren/niches";
@@ -315,6 +321,22 @@ export async function buildServices(
   };
 }
 
+/** The Reddit API client when `reddit` is on and its app + token are set; null (with a log line) otherwise. */
+function redditFrom(settings: Settings, on: readonly string[], log: Logger): SiteClient | null {
+  if (!on.includes("reddit")) return null;
+  const { redditClientId, redditClientSecret, redditRefreshToken, redditUsername } = settings;
+  if (!redditClientId || !redditClientSecret || !redditRefreshToken || !redditUsername) {
+    log.warn("reddit is on but WREN_REDDIT_* is incomplete: no reddit channel");
+    return null;
+  }
+  return redditApi({
+    clientId: redditClientId,
+    clientSecret: redditClientSecret,
+    refreshToken: redditRefreshToken,
+    username: redditUsername,
+  });
+}
+
 /** The content channels per invocation, or null (with one log line) when none is configured. */
 function contentFor(settings: Settings, log: Logger): ChannelsFor | null {
   const on = settings.contentChannels;
@@ -330,11 +352,13 @@ function contentFor(settings: Settings, log: Logger): ChannelsFor | null {
     ...(host ? { host } : {}),
     ...(settings.metaPageId ? { pageId: settings.metaPageId } : {}),
   };
+  // Reddit goes straight to its API with wren's own token; no box to wake.
+  const reddit = redditFrom(settings, on, log);
   return (ctx) => {
     const sites = restateSites(ctx, wake);
     return {
       ...(on.includes("linkedin") ? { linkedin: linkedinContent(sites) } : {}),
-      ...(on.includes("reddit") ? { reddit: redditContent(sites) } : {}),
+      ...(reddit ? { reddit: redditContent(journaledSites(ctx, reddit)) } : {}),
       ...(on.includes("youtube") ? { youtube: youtubeContent(sites, host ? { host } : {}) } : {}),
       ...(on.includes("x") ? { x: xContent(sites, host ? { host } : {}) } : {}),
       // The Graph path needs a hosted URL and a Facebook Page (WREN_META_PAGE_ID);
