@@ -6,6 +6,40 @@ Branded calling. Looks legit to leads. Use it from the Mac, iPhone and Solana Se
 (no SIM). Billing connected. Durable workflows, call recording, stats, health checks.
 Warmup bought or built.
 
+## Revision 2026-09-27 (William's answers)
+
+- **No calls for now.** Build SMS only. The call path stays in this doc for later.
+- **Not incorporated, lives in Canada, leads are all US.** That means a 10DLC **Sole
+  Proprietor** brand: no EIN needed, $4 brand + $15 vetting once, $2/mo. Limits: one
+  number, about 1,000 texts a day. Twilio's docs say Canadian individuals qualify; Telnyx's
+  guide only mentions the US, so confirm at signup (PH-D8).
+- **$100/mo was mostly calls.** SMS alone costs ~$3/mo fixed plus ~$0.008 a text.
+- **Cold SMS still not built (PH-D3 stands).** A sole prop campaign must describe how
+  people opted in. Cold texts to scraped numbers means a false answer, and carriers
+  suspend the number and brand for it. Unregistered numbers are blocked. What we build:
+  the SMS stack, with opt-in captured from cold email (PH-D9).
+
+### SMS cost by provider (US, per text)
+
+Carrier fees (~$0.0035–0.005) are the same everywhere. Only the base rate differs.
+
+| Provider | Base | All-in | 1,000/day for a month (22k) |
+|---|---|---|---|
+| SignalWire | $0.00415 | ~$0.008 | ~$180 |
+| Telnyx | $0.004 | ~$0.008 | ~$180 |
+| Plivo | $0.0070 | ~$0.011 | ~$245 |
+| Twilio | $0.0083 | ~$0.012 | ~$270 |
+
+Warm volume (tens a day) is under $10/mo total on Telnyx.
+
+- **PH-D8 Telnyx, Twilio as fallback.** Cheapest with a full API. If Telnyx refuses a
+  Canadian sole prop, Twilio's sole prop accepts US and Canadian individuals, at ~50% more
+  per text. SignalWire is the same price as Telnyx but has thinner 10DLC tooling.
+- **PH-D9 Cold email makes the SMS opt-in.** A line in the cold email ("easier by text?
+  reply with your cell") or on the lander form. A reply with a number is consent for that
+  purpose: the consent row points at the message. That's the honest route from cold
+  lead to text, and it's what the campaign registration describes.
+
 ## Answer first
 
 - **Where:** inside the wren monorepo. New `@wren/channel-phone` package plus an
