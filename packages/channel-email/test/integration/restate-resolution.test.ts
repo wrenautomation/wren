@@ -216,10 +216,13 @@ describe("Resolution virtual object", () => {
       const c = client();
       await c.build({});
       await c.queue({});
-      const first = (
-        await db().select().from(contactCandidates).orderBy(contactCandidates.id).limit(1)
-      )[0];
-      verifier.verdicts[first!.email] = "risky";
+      const [first] = await db()
+        .select()
+        .from(contactCandidates)
+        .orderBy(contactCandidates.id)
+        .limit(1);
+      if (!first) throw new Error("no candidate built");
+      verifier.verdicts[first.email] = "risky";
       const stats = await c.resolveNewDomains({ niche: "sec_ria", limitDomains: 5 });
       expect(stats).toMatchObject({ domains_processed: 1, deferred_domains: 1, promoted: 0 });
       expect(verifier.calls).toHaveLength(1);
@@ -230,7 +233,7 @@ describe("Resolution virtual object", () => {
       await db()
         .update(verifications)
         .set({ checkedAt: new Date(Date.now() - 3 * 86_400_000) });
-      verifier.verdicts[first!.email] = "valid";
+      verifier.verdicts[first.email] = "valid";
       const retry = await c.resolveNewDomains({ niche: "sec_ria", limitDomains: 5 });
       expect(retry).toMatchObject({ domains_processed: 1, promoted: 1 });
     });
