@@ -48,7 +48,11 @@ const lstrip = (s: string, chars?: string) =>
 const rstrip = (s: string, chars?: string) =>
   chars === undefined ? s.replace(/\s+$/, "") : s.replace(new RegExp(`[${chars}]+$`), "");
 const strip = (s: string, chars?: string) => rstrip(lstrip(s, chars), chars);
-const countNewlines = (s: string) => s.split("\n").length - 1;
+const countNewlines = (s: string, from = 0, to = s.length) => {
+  let n = 0;
+  for (let i = s.indexOf("\n", from); i !== -1 && i < to; i = s.indexOf("\n", i + 1)) n++;
+  return n;
+};
 
 function stripComments(name: string, source: string): { text: string; lineMap: number[] } {
   const kept: string[] = [];
@@ -200,6 +204,9 @@ function parse(
 ): Block[] {
   const blocks: Block[] = [];
   let i = 0;
+  // Lines counted forward from the last block, not from the top each time.
+  let counted = 0;
+  let line = baseLine;
   while (i < src.length) {
     const found = (["((", "[[", "{"] as const)
       .map((token) => ({ pos: src.indexOf(token, i), token }))
@@ -212,7 +219,8 @@ function parse(
     }
     const { pos, token } = hit;
     appendText(blocks, src.slice(i, pos));
-    const line = baseLine + countNewlines(src.slice(0, pos));
+    line += countNewlines(src, counted, pos);
+    counted = pos;
     if (token === "{") {
       const end = src.indexOf("}", pos);
       if (end === -1) throw new AuthoringError(`${name}:${lineOf(line)}: unclosed { }`);

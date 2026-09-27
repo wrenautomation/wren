@@ -7,7 +7,7 @@
  * number (`opted_out`), a company that already has a running thread (left
  * `new`; one thread per company). Nothing here sends.
  */
-import { activeSuppressionOf, companies, people } from "@wren/core";
+import { activeSuppressionsOf, companies, people } from "@wren/core";
 import type { Db } from "@wren/db";
 import { and, asc, eq, inArray, isNull, notInArray, or, sql } from "drizzle-orm";
 import type { SmsPolicy } from "./policy.js";
@@ -94,10 +94,15 @@ export async function enroll(db: Db, opts: EnrollOptions): Promise<EnrollStats> 
     .where(and(...where))
     .orderBy(asc(smsContacts.id))
     .limit(opts.limit * 4);
+  const suppressed = await activeSuppressionsOf(
+    db,
+    "phone",
+    candidates.map((c) => c.e164),
+  );
   for (const c of candidates) {
     if (stats.enrolled >= opts.limit) break;
     stats.considered += 1;
-    if (await activeSuppressionOf(db, "phone", c.e164)) {
+    if (suppressed(c.e164)) {
       await end(db, c, "opted_out", "phone suppressed", opts.now);
       stats.suppressed += 1;
       continue;

@@ -54,7 +54,7 @@ import {
   sql,
 } from "drizzle-orm";
 import { applyPattern, inferPattern, PATTERNS } from "../email-patterns.js";
-import { activeSuppression } from "../guards.js";
+import { activeSuppressions } from "../guards.js";
 import {
   type CandidateEvidence,
   type CandidateState,
@@ -310,18 +310,26 @@ export async function queueCandidates(db: Queryable, opts: QueueOptions = {}): P
     .select()
     .from(contactCandidates)
     .where(and(...conditions));
-  for (const candidate of candidates) {
-    // Queueing authorizes paid spend and a suppressed address can never be sent to.
-    if ((await activeSuppression(db, candidate.email)) !== null) {
-      stats.suppressed_skipped += 1;
-      continue;
-    }
+  // Queueing authorizes paid spend and a suppressed address can never be sent to.
+  const suppressed = await activeSuppressions(
+    db,
+    candidates.map((c) => c.email),
+  );
+  const queue = candidates.filter((c) => suppressed(c.email) === null);
+  stats.suppressed_skipped = candidates.length - queue.length;
+  if (queue.length) {
+    // Every row is CANDIDATE (the filter above): one transition, one update.
     await db
       .update(contactCandidates)
-      .set({ state: transitionCandidate(candidate.state, "queued") })
-      .where(eq(contactCandidates.id, candidate.id));
-    stats.candidates_queued += 1;
+      .set({ state: transitionCandidate("candidate", "queued") })
+      .where(
+        inArray(
+          contactCandidates.id,
+          queue.map((c) => c.id),
+        ),
+      );
   }
+  stats.candidates_queued = queue.length;
   return stats;
 }
 
@@ -745,14 +753,13 @@ export async function queuedAtDomain(
     .from(contactCandidates)
     .where(and(eq(contactCandidates.state, "queued"), eq(contactCandidates.domain, domain)))
     .orderBy(asc(contactCandidates.rank), asc(contactCandidates.id));
-  const candidates: ContactCandidate[] = [];
-  let suppressedSkipped = 0;
-  for (const candidate of queued) {
-    // A suppression recorded AFTER queueing must not spend a credit either.
-    if ((await activeSuppression(db, candidate.email)) !== null) suppressedSkipped += 1;
-    else candidates.push(candidate);
-  }
-  return { candidates, suppressedSkipped };
+  // A suppression recorded AFTER queueing must not spend a credit either.
+  const suppressed = await activeSuppressions(
+    db,
+    queued.map((c) => c.email),
+  );
+  const candidates = queued.filter((c) => suppressed(c.email) === null);
+  return { candidates, suppressedSkipped: queued.length - candidates.length };
 }
 
 /** Domains with queued candidates, in walk order. */

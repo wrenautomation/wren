@@ -77,18 +77,30 @@ export async function approveDrafts(
   if (o.at || o.asap || !o.zone)
     return moveAll(db, ids, APPROVABLE, { ...base, scheduledFor: o.at ?? null }, "approve");
   const zone = o.zone;
+  // One read of the drafts and one of each platform's held slots; each
+  // approval then holds its slot in memory for the next.
+  const drafts = new Map(
+    (
+      await db
+        .select()
+        .from(contentDrafts)
+        .where(inArray(contentDrafts.id, [...ids]))
+    ).map((d) => [d.id, d]),
+  );
+  const held = new Map<Platform, Date[]>();
   const rows: ContentDraft[] = [];
   for (const id of ids) {
-    const [draft] = await db.select().from(contentDrafts).where(eq(contentDrafts.id, id));
+    const draft = drafts.get(id);
     if (!draft) throw new Error(`cannot approve ${id}: no such draft`);
-    const at = nextSlot(
-      draft.platform,
-      o.now,
-      zone,
-      undefined,
-      await heldSlots(db, draft.platform, o.now),
-    );
-    rows.push(...(await moveAll(db, [id], APPROVABLE, { ...base, scheduledFor: at }, "approve")));
+    let slots = held.get(draft.platform);
+    if (!slots) {
+      slots = await heldSlots(db, draft.platform, o.now);
+      held.set(draft.platform, slots);
+    }
+    const at = nextSlot(draft.platform, o.now, zone, undefined, slots);
+    const moved = await moveAll(db, [id], APPROVABLE, { ...base, scheduledFor: at }, "approve");
+    for (const m of moved) if (m.scheduledFor) slots.push(m.scheduledFor);
+    rows.push(...moved);
   }
   return rows;
 }

@@ -8,7 +8,7 @@
  * `suppression_events` is complete no matter which channel did the writing.
  */
 import type { Queryable } from "@wren/db";
-import { and, eq, isNull } from "drizzle-orm";
+import { and, eq, inArray, isNull } from "drizzle-orm";
 import {
   type Suppression,
   type SuppressionKind,
@@ -156,4 +156,28 @@ export async function activeSuppressionOf(
     )
     .limit(1);
   return row ?? null;
+}
+
+/** `activeSuppressionOf` for many values of one kind in one query: the normalised values suppressed. */
+export async function activeSuppressionsOf(
+  db: Queryable,
+  kind: SuppressionKind,
+  values: Iterable<string>,
+): Promise<(value: string) => boolean> {
+  const wanted = [...new Set([...values].map((v) => normalizeValue(kind, v)))];
+  const hit = new Set<string>();
+  if (wanted.length > 0) {
+    const rows = await db
+      .select({ value: suppressions.value })
+      .from(suppressions)
+      .where(
+        and(
+          eq(suppressions.kind, kind),
+          inArray(suppressions.value, wanted),
+          isNull(suppressions.revokedAt),
+        ),
+      );
+    for (const r of rows) hit.add(r.value);
+  }
+  return (value) => hit.has(normalizeValue(kind, value));
 }

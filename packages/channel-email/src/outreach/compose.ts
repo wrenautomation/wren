@@ -16,7 +16,7 @@
 import { randomBytes } from "node:crypto";
 import type { Queryable } from "@wren/db";
 import { sql } from "drizzle-orm";
-import { activeSuppression } from "../guards.js";
+import { activeSuppression, activeSuppressions } from "../guards.js";
 import {
   type ApprovalSource,
   type EnrollmentKind,
@@ -28,7 +28,12 @@ import { transitionMessage } from "../state.js";
 import { toSource } from "./authoring.js";
 import { type FactRow, type Facts, factsFor, factsForCompany } from "./facts.js";
 import type { FactValues } from "./pickers.js";
-import { type AddressRecord, personAddress, roleInboxAddress } from "./provenance.js";
+import {
+  type AddressRecord,
+  peopleWithAddress,
+  personAddressIn,
+  roleInboxAddress,
+} from "./provenance.js";
 import type { Sequence } from "./sequences.js";
 import { MissingFactError, type Rendered, render, type Template } from "./templates.js";
 
@@ -225,6 +230,11 @@ export async function eligiblePeople(
 ): Promise<EligiblePerson[]> {
   const match = opts.companyMatch ? `%${opts.companyMatch}%` : null;
   const rows = rowsAs<EligibleRow>(await db.execute(eligibleSql(opts.niche, match)));
+  const addressable = await peopleWithAddress(
+    db,
+    rows.map((r) => r.person_id),
+    opts.verificationHorizonDays,
+  );
   const out: EligiblePerson[] = [];
   let companyIndex = 0;
   for (const group of byCompany(rows)) {
@@ -232,7 +242,12 @@ export async function eligiblePeople(
     companyIndex++;
     let picked = false;
     for (const row of group) {
-      const { record } = await personAddress(db, row.person_id, opts.verificationHorizonDays);
+      const { record } = await personAddressIn(
+        db,
+        addressable,
+        row.person_id,
+        opts.verificationHorizonDays,
+      );
       const email = record?.email ?? null;
       const suppressed = email !== null && (await activeSuppression(db, email)) !== null;
       const wouldEnroll: boolean = !picked && email !== null && !suppressed;
@@ -264,11 +279,15 @@ export async function eligibleRoleInboxes(
     await db.execute(roleInboxSql(opts.niche, match, opts.needsVerdict ?? false)),
   );
   const exclude = opts.excludeCompanies ?? new Set<number>();
+  const isSuppressed = await activeSuppressions(
+    db,
+    rows.map((r) => r.email),
+  );
   const out: EligibleRoleInbox[] = [];
   for (const row of rows) {
     if (exclude.has(row.company_id)) continue;
     if (opts.maxCompanies != null && out.length >= opts.maxCompanies) break;
-    const suppressed = (await activeSuppression(db, row.email)) !== null;
+    const suppressed = isSuppressed(row.email) !== null;
     out.push({
       companyId: row.company_id,
       companyName: row.company_name,
@@ -361,10 +380,20 @@ async function personPass(
 ) {
   const stats = shared.stats;
   const rows = rowsAs<EligibleRow>(await db.execute(eligibleSql(shared.niche, null)));
+  const addressable = await peopleWithAddress(
+    db,
+    rows.map((r) => r.person_id),
+    horizonDays,
+  );
   for (const group of byCompany(rows)) {
     if (limit !== null && stats.enrolled >= limit) break;
     for (const row of group) {
-      const { record, alternates } = await personAddress(db, row.person_id, horizonDays);
+      const { record, alternates } = await personAddressIn(
+        db,
+        addressable,
+        row.person_id,
+        horizonDays,
+      );
       if (record === null) {
         stats.skipped_no_address++;
         continue;
@@ -409,9 +438,13 @@ async function roleInboxPass(db: Queryable, shared: Shared, limit: number | null
   const rows = rowsAs<RoleInboxRow>(
     await db.execute(roleInboxSql(shared.niche, null, shared.roleInboxNeedsVerdict)),
   );
+  const suppressed = await activeSuppressions(
+    db,
+    rows.map((r) => r.email),
+  );
   for (const row of rows) {
     if (limit !== null && stats.enrolled >= limit) break;
-    if ((await activeSuppression(db, row.email)) !== null) {
+    if (suppressed(row.email) !== null) {
       stats.skipped_suppressed++;
       continue;
     }

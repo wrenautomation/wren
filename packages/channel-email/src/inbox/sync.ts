@@ -528,13 +528,14 @@ async function act(
 // --------------------------------------------------------------------------
 // The sync
 
-async function alreadyStored(db: Queryable, gmailId: string): Promise<boolean> {
-  const [row] = await db
-    .select({ id: threadEvents.id })
+/** Which of a listed page's ids are already stored: one query per page, not per message. */
+async function alreadyStored(db: Queryable, gmailIds: string[]): Promise<Set<string>> {
+  if (gmailIds.length === 0) return new Set();
+  const rows = await db
+    .select({ gmailId: threadEvents.gmailId })
     .from(threadEvents)
-    .where(eq(threadEvents.gmailId, gmailId))
-    .limit(1);
-  return row !== undefined;
+    .where(inArray(threadEvents.gmailId, gmailIds));
+  return new Set(rows.flatMap((r) => (r.gmailId === null ? [] : [r.gmailId])));
 }
 
 /**
@@ -570,11 +571,6 @@ async function handleMessage(
   },
 ): Promise<number | null> {
   const { reader, sender, gmailId, now, counts: c } = opts;
-  if (await alreadyStored(db, gmailId)) {
-    c.already_seen += 1;
-    return null;
-  }
-
   const metadata = await reader.getMetadata(sender, gmailId, METADATA_HEADERS);
   const headers = normalizedHeaders(metadata);
   const threadId = typeof metadata.threadId === "string" ? metadata.threadId : null;
@@ -699,8 +695,14 @@ export async function syncInbox(db: Db, opts: SyncInboxOptions): Promise<SyncSta
         listingFailed = true;
         break;
       }
+      // Every sync re-lists a day of seen mail: skip it before any Gmail read.
+      const stored = await alreadyStored(db, ids);
       for (const gmailId of ids) {
         c.listed += 1;
+        if (stored.has(gmailId)) {
+          c.already_seen += 1;
+          continue;
+        }
         let seenMs: number | null;
         try {
           seenMs = await handleMessage(db, { reader, sender, gmailId, now, runId, counts: c });

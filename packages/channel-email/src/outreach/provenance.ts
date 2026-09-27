@@ -10,7 +10,7 @@
 import { leads, people } from "@wren/core";
 import type { Queryable } from "@wren/db";
 import { documents, enrichments } from "@wren/research/schema";
-import { and, asc, desc, eq, gt, sql } from "drizzle-orm";
+import { and, asc, desc, eq, gt, inArray, sql } from "drizzle-orm";
 import {
   contactCandidates,
   type Verification,
@@ -183,19 +183,11 @@ export async function personAddress(
   personId: number,
   horizonDays: number,
 ): Promise<PersonAddress> {
-  const horizon = new Date(Date.now() - horizonDays * 86_400_000);
   const rows = await db
     .select({ lead: leads, candidate: contactCandidates })
     .from(leads)
     .innerJoin(contactCandidates, eq(contactCandidates.leadId, leads.id))
-    .where(
-      and(
-        eq(contactCandidates.personId, personId),
-        eq(contactCandidates.state, "verified"),
-        eq(leads.status, "verified"),
-        gt(latestValidCheckedAt(), sql`${horizon.toISOString()}::timestamptz`),
-      ),
-    )
+    .where(and(eq(contactCandidates.personId, personId), sendable(horizonDays)))
     .orderBy(asc(contactCandidates.id));
   const records: AddressRecord[] = [];
   const seen = new Set<string>();
@@ -220,6 +212,47 @@ export async function personAddress(
   const [record = null, ...alternates] = records;
   return { record, alternates };
 }
+
+/** The `personAddress` gate, as a filter on leads joined to their candidates. */
+function sendable(horizonDays: number) {
+  const horizon = new Date(Date.now() - horizonDays * 86_400_000);
+  return and(
+    eq(contactCandidates.state, "verified"),
+    eq(leads.status, "verified"),
+    gt(latestValidCheckedAt(), sql`${horizon.toISOString()}::timestamptz`),
+  );
+}
+
+/**
+ * Which of these people have an address `personAddress` would return, in one
+ * query: a pass over many people asks for the full record only where one exists.
+ */
+export async function peopleWithAddress(
+  db: Queryable,
+  personIds: readonly number[],
+  horizonDays: number,
+): Promise<Set<number>> {
+  if (personIds.length === 0) return new Set();
+  const rows = await db
+    .selectDistinct({ personId: contactCandidates.personId })
+    .from(leads)
+    .innerJoin(contactCandidates, eq(contactCandidates.leadId, leads.id))
+    .where(and(inArray(contactCandidates.personId, [...personIds]), sendable(horizonDays)));
+  return new Set(rows.map((r) => r.personId));
+}
+
+const NO_ADDRESS: PersonAddress = { record: null, alternates: [] };
+
+/** `personAddress`, skipping the query for people `peopleWithAddress` ruled out. */
+export const personAddressIn = (
+  db: Queryable,
+  addressable: ReadonlySet<number>,
+  personId: number,
+  horizonDays: number,
+): Promise<PersonAddress> =>
+  addressable.has(personId)
+    ? personAddress(db, personId, horizonDays)
+    : Promise.resolve(NO_ADDRESS);
 
 export interface RoleInboxRef {
   readonly companyId: number;

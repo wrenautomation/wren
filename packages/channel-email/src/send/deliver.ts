@@ -22,7 +22,7 @@
  * and written as a stop or a suppression before this code ever runs.
  */
 import { randomUUID } from "node:crypto";
-import { companies } from "@wren/core";
+import { companies, type Suppression } from "@wren/core";
 import type { Db, Queryable } from "@wren/db";
 import {
   and,
@@ -40,7 +40,7 @@ import {
   or,
   sql,
 } from "drizzle-orm";
-import { activeSuppression } from "../guards.js";
+import { activeSuppressions } from "../guards.js";
 import { pyReprStr } from "../outreach/pyrepr.js";
 import {
   type Enrollment,
@@ -153,6 +153,23 @@ const messagesOf = (db: Queryable, enrollmentId: number): Promise<Message[]> =>
     .where(eq(messages.enrollmentId, enrollmentId))
     .orderBy(asc(messages.step));
 
+/** `messagesOf` for many enrollments in one query, each list in step order. */
+async function messagesOfAll(db: Queryable, ids: number[]): Promise<Map<number, Message[]>> {
+  const out = new Map<number, Message[]>();
+  if (ids.length === 0) return out;
+  const rows = await db
+    .select()
+    .from(messages)
+    .where(inArray(messages.enrollmentId, ids))
+    .orderBy(asc(messages.enrollmentId), asc(messages.step));
+  for (const m of rows) {
+    const list = out.get(m.enrollmentId);
+    if (list) list.push(m);
+    else out.set(m.enrollmentId, [m]);
+  }
+  return out;
+}
+
 /** The `steps[].day` list pinned on the enrollment at compose. */
 function snapshotDays(enrollment: Enrollment): number[] {
   const snapshot = enrollment.sequenceSnapshot as { steps?: unknown };
@@ -216,9 +233,18 @@ export async function sendDue(db: Db, opts: SendDueOptions): Promise<SendStats> 
       .where(eq(enrollments.state, "active"))
       .orderBy(asc(enrollments.id))
       .for("update", { skipLocked: true });
+    // Two reads for the whole walk, not two per enrollment.
+    const byEnrollment = await messagesOfAll(
+      tx,
+      rows.map((e) => e.id),
+    );
+    const suppressed = await activeSuppressions(
+      tx,
+      rows.flatMap((e) => byEnrollment.get(e.id)?.[0]?.toEmail ?? []),
+    );
     for (const enrollment of rows) {
-      const msgs = await messagesOf(tx, enrollment.id);
-      const due = await nextDue(tx, enrollment, msgs, now, stats);
+      const msgs = byEnrollment.get(enrollment.id) ?? [];
+      const due = await nextDue(tx, enrollment, msgs, now, stats, suppressed);
       if (due === null) continue;
       const candidate: Candidate = { enrollment, messages: msgs, ...due };
       if (due.anchor === null) openers.push(candidate);
@@ -398,10 +424,11 @@ async function nextDue(
   msgs: Message[],
   now: Date,
   stats: SendStats,
+  suppressed: (email: string) => Suppression | null,
 ): Promise<{ message: Message; anchor: Message | null } | null> {
   const first = msgs[0];
   if (first === undefined) return null; // compose never does this; refuse to guess
-  const suppression = await activeSuppression(tx, first.toEmail);
+  const suppression = suppressed(first.toEmail);
   if (suppression !== null) {
     await recordStop(tx, enrollment, SUPPRESSION_STOP[suppression.reason] ?? "manual", {
       detail: `suppressed: ${suppression.kind}:${suppression.value}`,

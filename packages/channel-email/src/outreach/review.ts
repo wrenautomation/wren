@@ -102,7 +102,8 @@ export async function approveMessages(
     .where(where)
     .orderBy(asc(messages.id));
   if (byIds) {
-    const missing = selector.ids.filter((id) => !rows.some((r) => r.message.id === id));
+    const found = new Set(rows.map((r) => r.message.id));
+    const missing = selector.ids.filter((id) => !found.has(id));
     if (missing.length > 0) throw new Error(`no such messages: ${JSON.stringify(missing)}`);
   }
   const result: ApproveResult = { approved: 0, refused: 0, notices: [] };
@@ -142,7 +143,8 @@ export async function rejectMessages(
   note: string | null = null,
 ): Promise<number> {
   const rows = await db.select().from(messages).where(inArray(messages.id, ids));
-  const missing = ids.filter((id) => !rows.some((r) => r.id === id));
+  const found = new Set(rows.map((r) => r.id));
+  const missing = ids.filter((id) => !found.has(id));
   if (missing.length > 0) throw new Error(`no such messages: ${JSON.stringify(missing)}`);
   for (const message of rows) {
     let next: Message["state"];
