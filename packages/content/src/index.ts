@@ -4,6 +4,7 @@ export * from "./ideas.js";
 export * from "./lessons.js";
 export * from "./media.js";
 export * from "./metrics.js";
+export * from "./plan.js";
 export * from "./platforms.js";
 export * from "./queue.js";
 export * from "./review.js";

@@ -5,7 +5,7 @@
  */
 import type { Platform } from "@wren/core/content";
 import type { Queryable } from "@wren/db";
-import { and, asc, desc, eq, inArray, type SQL } from "drizzle-orm";
+import { and, asc, desc, eq, gte, inArray, type SQL } from "drizzle-orm";
 import { missingExtra, PLATFORM_SPECS } from "./platforms.js";
 import { type ContentDraft, contentDrafts, type DraftStatus } from "./schema.js";
 import { nextSlot } from "./slots.js";
@@ -65,7 +65,7 @@ async function moveAll(
 
 /**
  * Approve. `at` schedules; `now: true` posts on the next pass; otherwise each
- * draft takes its platform's next default slot on `zone`'s clock.
+ * draft takes its platform's next free default slot on `zone`'s clock.
  */
 export async function approveDrafts(
   db: Queryable,
@@ -81,10 +81,31 @@ export async function approveDrafts(
   for (const id of ids) {
     const [draft] = await db.select().from(contentDrafts).where(eq(contentDrafts.id, id));
     if (!draft) throw new Error(`cannot approve ${id}: no such draft`);
-    const at = nextSlot(draft.platform, o.now, zone);
+    const at = nextSlot(
+      draft.platform,
+      o.now,
+      zone,
+      undefined,
+      await heldSlots(db, draft.platform, o.now),
+    );
     rows.push(...(await moveAll(db, [id], APPROVABLE, { ...base, scheduledFor: at }, "approve")));
   }
   return rows;
+}
+
+/** Times already given to approved or publishing drafts on the platform, from `now` on. */
+async function heldSlots(db: Queryable, platform: Platform, now: Date): Promise<Date[]> {
+  const rows = await db
+    .select({ at: contentDrafts.scheduledFor })
+    .from(contentDrafts)
+    .where(
+      and(
+        eq(contentDrafts.platform, platform),
+        inArray(contentDrafts.status, ["approved", "publishing"]),
+        gte(contentDrafts.scheduledFor, now),
+      ),
+    );
+  return rows.flatMap((r) => (r.at ? [r.at] : []));
 }
 
 /** A draft whose platform needs an `extra` key (Reddit's subreddit) is not approvable without it. */

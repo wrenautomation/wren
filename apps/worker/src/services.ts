@@ -48,7 +48,12 @@ import { xContent } from "@wren/channel-x";
 import { youtubeContent } from "@wren/channel-youtube";
 import type { Settings } from "@wren/config";
 import { s3MediaHost } from "@wren/content";
-import { makeContentDesk, makeContentMetrics, makeContentScheduler } from "@wren/content/restate";
+import {
+  makeContentDesk,
+  makeContentMetrics,
+  makeContentPlanner,
+  makeContentScheduler,
+} from "@wren/content/restate";
 import { makeTokenRenewal } from "@wren/core/content/renewal";
 import { type ChannelsFor, makeContent, restateSites } from "@wren/core/content/restate";
 import { createDb } from "@wren/db";
@@ -280,6 +285,8 @@ export async function buildServices(
     }),
     makeContentScheduler({ db, ...notify }),
     makeContentMetrics({ db, ...notify }),
+    // Tomorrow's slots vs scheduled drafts, said once a day; off until `wren content planner start`.
+    makeContentPlanner({ db, zone: settings.sendTimezone, ...notify }),
   );
   // autobrowse's tokens made again before they lapse (LinkedIn's 60 days, npm's 90); the box is woken for it.
   const wake = settings.autobrowseInstanceId ? ec2Wake(settings.autobrowseInstanceId) : undefined;

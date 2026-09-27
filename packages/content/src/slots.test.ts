@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { nextSlot } from "./slots.js";
+import { DEFAULT_SLOTS, nextSlot, slotInstants } from "./slots.js";
 
 const ET = "America/New_York";
 
@@ -29,5 +29,34 @@ describe("nextSlot", () => {
     expect(nextSlot("linkedin", new Date("2026-10-31T00:00:00Z"), ET).toISOString()).toBe(
       "2026-11-02T13:30:00.000Z",
     );
+  });
+});
+
+describe("taken slots", () => {
+  const twice = {
+    ...DEFAULT_SLOTS,
+    linkedin: [
+      { hour: 8, minute: 30 },
+      { hour: 12, minute: 30 },
+    ],
+  };
+
+  it("a taken slot is skipped, so a batch spreads over slots and days", () => {
+    const tue7am = new Date("2026-09-22T11:00:00Z");
+    const first = nextSlot("linkedin", tue7am, ET);
+    expect(first.toISOString()).toBe("2026-09-22T12:30:00.000Z");
+    expect(nextSlot("linkedin", tue7am, ET, undefined, [first]).toISOString()).toBe(
+      "2026-09-23T12:30:00.000Z",
+    );
+    const second = nextSlot("linkedin", tue7am, ET, twice, [first]);
+    expect(second.toISOString()).toBe("2026-09-22T16:30:00.000Z");
+  });
+
+  it("slotInstants lists a day's slots in order", () => {
+    expect(
+      slotInstants("linkedin", new Date("2026-09-26T04:00:00Z"), ET, 1, twice).map((d) =>
+        d.toISOString(),
+      ),
+    ).toEqual(["2026-09-26T12:30:00.000Z", "2026-09-26T16:30:00.000Z"]);
   });
 });

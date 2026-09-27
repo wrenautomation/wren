@@ -16,24 +16,34 @@ import {
   draftsOfIdea,
   editDraft,
   formatCosts,
+  formatPlan,
   formatWhatWorked,
   getDraft,
   IDEA_STATUSES,
   type IdeaStatus,
   listDrafts,
   listIdeas,
+  planFor,
   rejectDrafts,
   setExtra,
+  tomorrowOf,
   uploadMedia,
   whatWorked,
 } from "@wren/content";
 import type {
   ContentDesk,
   ContentMetrics,
+  ContentPlanner,
   ContentScheduler,
   DraftReport,
 } from "@wren/content/restate";
-import { DESK_KEY, METRICS_KEY, SCHEDULER_KEY } from "@wren/content/restate";
+import {
+  DEFAULT_PLAN_PLATFORMS,
+  DESK_KEY,
+  METRICS_KEY,
+  PLANNER_KEY,
+  SCHEDULER_KEY,
+} from "@wren/content/restate";
 import { isStoredMedia, isUrl, type Media, PLATFORMS, type Platform } from "@wren/core/content";
 import type { Db } from "@wren/db";
 import type { Command } from "commander";
@@ -117,6 +127,8 @@ export function registerContent(program: Command, withDb: WithDb, settings: Sett
   const desk = () => ingress().objectClient<ContentDesk>({ name: "ContentDesk" }, DESK_KEY);
   const queue = () =>
     ingress().objectClient<ContentScheduler>({ name: "ContentScheduler" }, SCHEDULER_KEY);
+  const planner = () =>
+    ingress().objectClient<ContentPlanner>({ name: "ContentPlanner" }, PLANNER_KEY);
   const metrics = () =>
     ingress().objectClient<ContentMetrics>({ name: "ContentMetrics" }, METRICS_KEY);
 
@@ -290,6 +302,39 @@ export function registerContent(program: Command, withDb: WithDb, settings: Sett
   q.command("sync")
     .description("One pass now")
     .action(async () => console.log(JSON.stringify(await queue().sync(), null, 2)));
+
+  content
+    .command("plan")
+    .description("Tomorrow's slots per platform: how many are filled, what waits for review")
+    .option("--platforms <list>", "comma-separated (default linkedin,reddit)")
+    .action(async (o: { platforms?: string }) => {
+      const platforms = platformsOf(o.platforms) ?? DEFAULT_PLAN_PLATFORMS;
+      const zone = settings.sendTimezone;
+      const plan = await withDb((db) => planFor(db, platforms, tomorrowOf(new Date(), zone), zone));
+      console.log(plan.day);
+      for (const l of formatPlan(plan)) console.log(`  ${l}`);
+    });
+
+  const pl = content
+    .command("planner")
+    .description("the daily plan on Discord at 17:00 (ContentPlanner); off until started");
+  pl.command("status").action(async () =>
+    console.log(JSON.stringify(await planner().status(), null, 2)),
+  );
+  pl.command("start")
+    .option("--platforms <list>", "comma-separated (default linkedin,reddit)")
+    .action(async (o: { platforms?: string }) => {
+      const platforms = platformsOf(o.platforms);
+      console.log(
+        JSON.stringify(await planner().start(platforms ? { platforms } : undefined), null, 2),
+      );
+    });
+  pl.command("stop").action(async () =>
+    console.log(JSON.stringify(await planner().stop(), null, 2)),
+  );
+  pl.command("sync")
+    .description("Send tomorrow's plan now")
+    .action(async () => console.log(JSON.stringify(await planner().sync(), null, 2)));
 
   content
     .command("results")
