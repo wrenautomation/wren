@@ -3,8 +3,8 @@ type: object
 cluster: ledger
 universe: live
 status: verified
-verified: 2026-09-28 @ 28823cd
-entity: packages/core/src/schema.ts:82
+verified: 2026-09-28 @ 83459e9
+entity: packages/core/src/schema.ts:49
 ---
 
 # import
@@ -13,14 +13,14 @@ One source file (or discovery batch) taken into the database, with its per-row r
 
 ## Why this shape
 
-`content_hash` makes a re-import of the same file a no-op, `as_of` dates the source, and `superseded_by` chains a newer file over an older one. Rejections are rows, not logs, because a domain conflict is a fact about the data (`IMPORT_ERROR_KINDS`, `packages/core/src/schema.ts:56`).
+`content_hash` makes a re-import of the same file a no-op, `as_of` dates the source, and `superseded_by` chains a newer file over an older one. Rejections are rows, not logs, because a domain conflict is a fact about the data (`IMPORT_ERROR_KINDS`, `packages/core/src/schema.ts:23`).
 
 ## Shape
 
 - `imports`: `source_type`, `source_ref`, `stats`, `content_hash`, `as_of`, `superseded_by`, `defaults` (`:85`–`93`)
 - `import_errors`: `import_id`, `row_number`, `kind`, `reason`, `raw`, `company_id`, `claimant_company_id` (`:108`–`115`)
 
-Citations: `packages/core/src/schema.ts:82`, `:105`
+Citations: `packages/core/src/schema.ts:49`, `:72`
 
 ## Connected to
 

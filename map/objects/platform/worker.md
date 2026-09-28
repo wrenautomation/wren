@@ -3,7 +3,7 @@ type: object
 cluster: platform
 universe: live
 status: verified
-verified: 2026-09-28 @ 28823cd
+verified: 2026-09-28 @ 83459e9
 entity: apps/worker/src/lambda.ts:16
 ---
 
@@ -17,11 +17,11 @@ Cold start pulls the secret env and the roster from SSM, builds the services, ha
 
 ## Shape
 
-- `main.ts` (local), `lambda.ts:16`–`18` (SSM env + roster), `ssm-env.ts:35`, `autobrowse-box.ts:41`, `services.ts:106`
+- `main.ts` (local), `lambda.ts:16`–`18` (SSM env + roster), `ssm-env.ts:35`, `autobrowse-box.ts:41`, `services.ts:105`
 - build: `pnpm --filter @wren/worker build:lambda` (esbuild bundle; `createRequire` lesson in `deploy/`)
 - infra: `deploy/terraform/lambda.tf` (function, SSM params `:4`, `:16`, IAM `:56`)
 
-Citations: `apps/worker/src/lambda.ts:16`, `apps/worker/src/services.ts:106`
+Citations: `apps/worker/src/lambda.ts:16`, `apps/worker/src/services.ts:105`
 
 ## Connected to
 

@@ -3,8 +3,8 @@ type: object
 cluster: platform
 universe: live
 status: verified
-verified: 2026-09-28 @ 28823cd
-entity: apps/cli/src/main.ts:52
+verified: 2026-09-28 @ 83459e9
+entity: apps/cli/src/main.ts:37
 ---
 
 # cli
@@ -17,11 +17,11 @@ Reads go straight to Postgres; writes that are one-row operator facts (approve, 
 
 ## Shape
 
-- `main.ts:52`–`139`: `status`, `db check`, `notes`, `tokens`, `report weekly`; `email.ts`, `review.ts` (drafts, approve, reject, edit, stop, preview, reply, event), `content.ts`, `ads.ts`, `sms.ts`, `fetch.ts`
+- `main.ts:37`–`90`: `status` (reads content, `packages/content/src/status.ts`), `db check`, `tokens`, `report weekly`; `email.ts`, `review.ts` (drafts, approve, reject, edit, stop, preview, reply, event), `content.ts`, `ads.ts`, `sms.ts`, `fetch.ts`
 - `walkthrough/demos/prod.sh` points one command at prod, read-only
 - `~/.local/bin/wren` links to `bin/wren` (outside the repo)
 
-Citations: `apps/cli/src/main.ts:52`
+Citations: `apps/cli/src/main.ts:37`
 
 ## Connected to
 

@@ -3,7 +3,7 @@ type: object
 cluster: leads
 universe: live
 status: verified
-verified: 2026-09-28 @ 28823cd
+verified: 2026-09-28 @ 83459e9
 entity: packages/core/src/suppress.ts:72
 ---
 
@@ -13,14 +13,14 @@ A promise not to contact an address, a domain or a phone. Tables `suppressions` 
 
 ## Why this shape
 
-Every channel writes one table through one path (`packages/core/src/suppress.ts:72`, `:113`), so an opt-out by text is honoured by email and back. A lift is an event, not a delete: `revoked_at` plus a `lifted` event keeps the history (`packages/core/src/schema.ts:302`, `:312`).
+Every channel writes one table through one path (`packages/core/src/suppress.ts:72`, `:113`), so an opt-out by text is honoured by email and back. A lift is an event, not a delete: `revoked_at` plus a `lifted` event keeps the history (`packages/core/src/schema.ts:269`, `:279`).
 
 ## Shape
 
-- `suppressions`: `kind` (email | domain | phone), `value`, `reason` (opt_out | bounce | complaint | manual | lifted), `revoked_at` (`packages/core/src/schema.ts:297`–`302`)
+- `suppressions`: `kind` (email | domain | phone), `value`, `reason` (opt_out | bounce | complaint | manual | lifted), `revoked_at` (`packages/core/src/schema.ts:264`–`269`)
 - `suppression_events`: `suppression_id`, `reason`, `evidence` (`:315`–`319`)
 
-Citations: `packages/core/src/suppress.ts:72`, `packages/core/src/schema.ts:294`
+Citations: `packages/core/src/suppress.ts:72`, `packages/core/src/schema.ts:261`
 
 ## Connected to
 

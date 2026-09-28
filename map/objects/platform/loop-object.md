@@ -3,7 +3,7 @@ type: object
 cluster: platform
 universe: live
 status: verified
-verified: 2026-09-28 @ 28823cd
+verified: 2026-09-28 @ 83459e9
 entity: packages/core/src/restate/loop.ts:150
 ---
 
@@ -30,7 +30,7 @@ Citations: `packages/core/src/restate/loop.ts:150`
 ## If you change this
 
 - **Hits:** every loop above; `walkthrough/demos/01-loops.sh`; `docs/restate-operations.md`
-- **Does not hit:** plain services (`Discovery`, `Enrichment`, `Resolution`, `Content`, `Ads`, `SmsDesk`, `SmsEvents`, `ContentDesk`, `LinkedinInbox`, `Disposition`)
+- **Does not hit:** plain services (`Discovery`, `Enrichment`, `Resolution`, `Content`, `Ads`, `SmsDesk`, `SmsEvents`, `ContentDesk`, `Disposition`)
 
 ## Surfaces
 

@@ -3,8 +3,8 @@ type: object
 cluster: leads
 universe: live
 status: verified
-verified: 2026-09-28 @ 28823cd
-entity: packages/core/src/schema.ts:139
+verified: 2026-09-28 @ 83459e9
+entity: packages/core/src/schema.ts:106
 ---
 
 # company
@@ -17,11 +17,11 @@ The company is the unit of outreach: one active email enrollment per company (`p
 
 ## Shape
 
-- `id`, `domain`, `name`, `import_id`, `raw`, `source_key`, `social_url`, `country`, `domain_verified_at`, `niche`, `timezone` (`packages/core/src/schema.ts:142`–`153`)
+- `id`, `domain`, `name`, `import_id`, `raw`, `source_key`, `social_url`, `country`, `domain_verified_at`, `niche`, `timezone` (`packages/core/src/schema.ts:109`–`120`)
 - `timezone` is filled per niche from location text, never guessed (`packages/channel-email/src/send/lead-timezone.ts:110`)
 - `domain` and `domain_verified_at` are set by discovery when a guessed host proves out (`packages/research/src/discovery/service.ts:247`)
 
-Citations: `packages/core/src/schema.ts:139`
+Citations: `packages/core/src/schema.ts:106`
 
 ## Connected to
 

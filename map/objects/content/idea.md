@@ -3,7 +3,7 @@ type: object
 cluster: content
 universe: live
 status: verified
-verified: 2026-09-28 @ 28823cd
+verified: 2026-09-28 @ 83459e9
 entity: packages/content/src/schema.ts:38
 ---
 
@@ -24,7 +24,7 @@ Citations: `packages/content/src/schema.ts:38`, `packages/content/src/ideas.ts:2
 ## Connected to
 
 - **owns:** [[content/draft]] (`idea_id`, cascade)
-- **looks-like-but-is-not:** a LinkedIn [[content/linkedin-note]]; leftover `post_ideas`
+- **looks-like-but-is-not:** `content_drafts.note` (a redraft instruction on a draft)
 
 ## If you change this
 

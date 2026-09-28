@@ -20,10 +20,10 @@ Twins `AGENTS.md` and `routing.md` are generated from this file by `_meta/build.
 | Cluster | Ask it |
 |---|---|
 | `leads/` | who we reach: companies, people, leads, sightings, suppressions |
-| `ledger/` | what ran and what it cost: runs, llm_calls, imports |
+| `ledger/` | what ran and what it cost: runs, imports |
 | `research/` | what we learned about a company: documents, enrichments, discovery, candidates, verifications |
 | `email/` | the cold-email machine: enrollments, messages, templates, sequences, roster, policy, health, inbox |
-| `content/` | the content loop: ideas, drafts, metrics, platforms, media; LinkedIn notes; the leftover LinkedIn pipeline |
+| `content/` | the content loop: ideas, drafts, metrics, platforms, media |
 | `ads/` | Meta ads: launches |
 | `sms/` | cold SMS: numbers, contacts, messages, events |
 | `platform/` | what everything stands on: settings, niches, offers, loop objects, Restate services, schema, worker, CLI, phone |
@@ -32,7 +32,7 @@ Twins `AGENTS.md` and `routing.md` are generated from this file by `_meta/build.
 
 - **lead**: in prose a company; in code `leads` is an email address with a status; `Ads.leads` are Meta form fills.
 - **message**: `messages` (email) and `sms_messages` are different tables and state machines.
-- **draft**: a `messages.state`, a `content_drafts` row, and a leftover `posts.status`.
+- **draft**: a `messages.state` and a `content_drafts` row.
 - **campaign**: a niche's email operation (`Campaign` in the worker), a Meta campaign object, an SMS 10DLC registration.
 - **sync**: the loop handler `sync` (one pass now) vs the mailbox read `syncInbox` vs the `inbox_syncs` cursor.
 - **worker**: `apps/worker` (Restate endpoint on Lambda) vs `apps/phone` and `deploy/pixel` (Cloudflare Workers).

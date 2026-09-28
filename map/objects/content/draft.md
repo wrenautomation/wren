@@ -3,7 +3,7 @@ type: object
 cluster: content
 universe: live
 status: verified
-verified: 2026-09-28 @ 28823cd
+verified: 2026-09-28 @ 83459e9
 entity: packages/content/src/schema.ts:55
 ---
 
@@ -40,6 +40,7 @@ Citations: `packages/content/src/schema.ts:55`
 | `wren content approve/reject/edit` | writes |
 | `ContentScheduler/default` | moves to published/failed |
 | `ContentPlanner`, `ContentMetrics` | read |
+| `wren status` (`packages/content/src/status.ts`) | reads counts, oldest draft, this month's tokens |
 
 ## See
 

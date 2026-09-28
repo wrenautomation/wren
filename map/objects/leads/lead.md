@@ -3,8 +3,8 @@ type: object
 cluster: leads
 universe: live
 status: verified
-verified: 2026-09-28 @ 28823cd
-entity: packages/core/src/schema.ts:252
+verified: 2026-09-28 @ 83459e9
+entity: packages/core/src/schema.ts:219
 ---
 
 # lead
@@ -13,14 +13,14 @@ One email address we might send to, with a status. Table `leads`. Not a company:
 
 ## Why this shape
 
-Status is the funnel: `imported → verified | undeliverable`, and `suppressed` (`LEAD_STATUSES`, `packages/core/src/schema.ts:60`; transitions `packages/core/src/state.ts:43`). Only an authoritative verdict moves it (`packages/channel-email/src/verification/service.ts:65`), so compose can trust `verified` without re-checking.
+Status is the funnel: `imported → verified | undeliverable`, and `suppressed` (`LEAD_STATUSES`, `packages/core/src/schema.ts:27`; transitions `packages/core/src/state.ts:43`). Only an authoritative verdict moves it (`packages/channel-email/src/verification/service.ts:65`), so compose can trust `verified` without re-checking.
 
 ## Shape
 
-- `email`, names, `title`, `persona`, `source`, `geo`, `status`, `raw`, `company_id`, `import_id`, `country`, `suppression_id`, `social_url` (`packages/core/src/schema.ts:255`–`270`)
+- `email`, names, `title`, `persona`, `source`, `geo`, `status`, `raw`, `company_id`, `import_id`, `country`, `suppression_id`, `social_url` (`packages/core/src/schema.ts:222`–`237`)
 - check on status (`:290`)
 
-Citations: `packages/core/src/schema.ts:252`
+Citations: `packages/core/src/schema.ts:219`
 
 ## Connected to
 

@@ -1,7 +1,7 @@
 ---
 type: process
 status: verified
-verified: 2026-09-28 @ 28823cd
+verified: 2026-09-28 @ 83459e9
 consumes: ["[[content/idea]]", "[[content/platform]]", "[[content/media]]", "[[platform/llm-client]]"]
 produces: ["[[content/draft]]", "[[content/content-metric]]", "[[content/idea]]"]
 ---
@@ -29,7 +29,7 @@ Drafting costs money and approving is publishing, so both stay a person's call; 
 ## If you change this
 
 - **Hits:** [[content/draft]], [[content/content-metric]], the seven adapters, `walkthrough/01-content-loop.md`
-- **Does not hit:** email; the leftover LinkedIn tables
+- **Does not hit:** email
 
 ## Surfaces
 

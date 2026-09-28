@@ -3,8 +3,8 @@ type: object
 cluster: leads
 universe: live
 status: verified
-verified: 2026-09-28 @ 28823cd
-entity: packages/core/src/schema.ts:208
+verified: 2026-09-28 @ 83459e9
+entity: packages/core/src/schema.ts:175
 ---
 
 # sighting
@@ -17,9 +17,9 @@ Re-importing a file must not rewrite facts, but it must still be visible that th
 
 ## Shape
 
-- `company_id`, `lead_id`, `person_id` (any may be null), `import_id`, `row_number`, `raw`, `seen_at` (`packages/core/src/schema.ts:211`–`218`)
+- `company_id`, `lead_id`, `person_id` (any may be null), `import_id`, `row_number`, `raw`, `seen_at` (`packages/core/src/schema.ts:178`–`185`)
 
-Citations: `packages/core/src/schema.ts:208`
+Citations: `packages/core/src/schema.ts:175`
 
 ## Connected to
 

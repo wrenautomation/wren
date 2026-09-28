@@ -3,7 +3,7 @@ type: object
 cluster: content
 universe: live
 status: verified
-verified: 2026-09-28 @ 28823cd
+verified: 2026-09-28 @ 83459e9
 entity: packages/content/src/schema.ts:104
 ---
 
@@ -29,7 +29,6 @@ Citations: `packages/content/src/schema.ts:104`
 ## If you change this
 
 - **Hits:** `metrics.ts:50`, `:97`; `restate/metrics.ts`; `lessons.ts`; `wren content results`
-- **Does not hit:** leftover `post_metrics`
 
 ## Surfaces
 
