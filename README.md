@@ -95,6 +95,10 @@ time). `restateSites(ctx)` stays for calls that need the official API shape.
 
 `./scripts/gates.sh` runs lint + typecheck, unit tests, integration tests (Docker). CI runs the same.
 
+## Map
+
+`map/` is a system map for agents: what each table, type and loop is, why, and what a change hits. Start at `map/CLAUDE.md`; cards cite `path:line`. Generated files rebuild with `map/_meta/build.sh` (checked by `gates.sh lint`).
+
 ## Layout
 
 See spec §3. Rules: deps point down; channels never import each other; every package owns `src/schema.ts` and `packages/db/drizzle.config.ts` lists them; Restate handlers in `src/restate/`, pure step functions beside them.

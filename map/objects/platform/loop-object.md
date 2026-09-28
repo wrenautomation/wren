@@ -1,0 +1,44 @@
+---
+type: object
+cluster: platform
+universe: live
+status: verified
+verified: 2026-09-28 @ 28823cd
+entity: packages/core/src/restate/loop.ts:150
+---
+
+# loop-object
+
+The one way a recurring job runs: a Restate Virtual Object from `makeLoopObject` with handlers `start`, `stop`, `sync`, `loop`, `status`. Fourteen of them in prod.
+
+## Why this shape
+
+Restate owns the timer, so a worker dying or a laptop closing loses nothing; the delayed `loop` fires when the deployment is back (`packages/channel-email/src/restate/send-scheduler.ts:1`). Each pass is one journaled step that opens a run row; a stage failure is recorded on the row and in `last`, never thrown at the loop (`loop.ts:1`). `docs/restate-operations.md:363` still names the old path.
+
+## Shape
+
+- `makeLoopObject(name, pass)` (`loop.ts:150`); `failuresInARow` (`:34`); state keys for `last` and the `start` input (`:20`, `:22`)
+- keys: `SendScheduler/{sender}`, `InboxScheduler/{sender}`, `ComposeScheduler/{niche}`, `PoolScheduler/{niche}`, `DigestScheduler/fleet`, `ReportScheduler/fleet`, `PostmasterScheduler/fleet`, `OpensScheduler/fleet`, `ContentScheduler/default`, `ContentPlanner/default`, `ContentMetrics/default`, `AdsWatch/default`, `TokenRenewal/box`, `SmsSender/fleet`, `SmsWatch/daily`
+
+Citations: `packages/core/src/restate/loop.ts:150`
+
+## Connected to
+
+- **owns:** one [[ledger/run]] per pass
+- **owned-by:** [[platform/restate-services]] (bound in `services.ts`)
+
+## If you change this
+
+- **Hits:** every loop above; `walkthrough/demos/01-loops.sh`; `docs/restate-operations.md`
+- **Does not hit:** plain services (`Discovery`, `Enrichment`, `Resolution`, `Content`, `Ads`, `SmsDesk`, `SmsEvents`, `ContentDesk`, `LinkedinInbox`, `Disposition`)
+
+## Surfaces
+
+| Surface | Role |
+|---|---|
+| `wren content|ads|sms ... start/stop/status` (CLI over ingress); email loops by ingress only (`docs/restate-operations.md`) | drives |
+| Restate Cloud | schedules |
+
+## See
+
+- Source: `packages/core/src/restate/loop.ts`
