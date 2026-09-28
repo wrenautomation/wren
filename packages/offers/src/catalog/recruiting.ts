@@ -1,8 +1,9 @@
 /**
- * Recruiting firms. The ladder: a free 30-day pilot that turns dead leads into job orders,
- * a paid extension on the candidate side, then the operations build the growth calls for.
- * ICP (William, 2026-09-25): midsize firms that can later pay $10-15k upfront and a
- * $5-10k/mo retainer. The pilot goes to the same firms, so its proof sells the next rung.
+ * Recruiting firms. The ladder: a free 30-day pilot that turns dead leads into job orders
+ * (stage four of the build, run on an export), then the AI integration build, which makes
+ * it run on everything. ICP (William, 2026-09-28): owner-led firms of 10-50 recruiters,
+ * about $2-15M in fees, that can pay $10-15k upfront and a $5-10k/mo retainer. The pilot
+ * stays free for the first firms, until there are recruiting case studies.
  * Buyer: the owner, CEO or managing director. They care about more business (job orders,
  * a pipeline that doesn't hang on one rainmaker) and less busywork for their team.
  */
