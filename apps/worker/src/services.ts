@@ -39,7 +39,6 @@ import {
   makeSendScheduler,
 } from "@wren/channel-email/restate";
 import { linkedinContent } from "@wren/channel-linkedin";
-import { makeLinkedinInbox } from "@wren/channel-linkedin/restate";
 import { facebookContent, instagramContent, instagramWebContent } from "@wren/channel-meta";
 import { makeAds, makeAdsWatch } from "@wren/channel-meta/restate";
 import { redditApi, redditContent } from "@wren/channel-reddit";
@@ -207,7 +206,6 @@ export async function buildServices(
     log.warn("WREN_PIXEL_BASE_URL set without WREN_PIXEL_EXPORT_TOKEN: opens are not pulled");
 
   const services: AnyService[] = [
-    makeLinkedinInbox({ db, inboxDir: settings.inboxDir }),
     makeEnrichment({
       db,
       fetcher: ua ? new PoliteFetcher(ua) : null,

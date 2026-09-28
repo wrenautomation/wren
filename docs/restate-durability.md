@@ -69,7 +69,6 @@ Restate ──loop, 9h12m later──▶ Lambda (cold start if needed)
 | `ReportScheduler` | `weekly` | **until next Friday 19:00** on the fleet's clock, success or failure | The weekly report (E8): counts from the same tables the views read, stored in `reports`, mailed through the send transport. No LLM. Bound because `WREN_REPORT_TO` is set. |
 | `Resolution` | `default` | on demand | One key because verifier credits are one global budget. Each domain's walk is one journaled step; a crash loses at most one domain's spend. |
 | `Enrichment` | population (`all` or a niche) | on demand | crawl / render / scan / extract / pick / apply. Every unit (one company, one document) is its own journaled step: replay resumes after the last finished unit, never buys a completion twice. |
-| `LinkedinInbox` | `default` | on demand | ingest / add. Not part of the email pipeline; keyed so ingests serialize. |
 
 ## "Sleep until Monday, then send" — walked through
 

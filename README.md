@@ -18,19 +18,10 @@ ln -s "$PWD/bin/wren" ~/.local/bin/wren   # the CLI, compiled on first run and a
 wren status
 ```
 
-## Daily use (LinkedIn channel)
-
-```bash
-# drop notes in inbox/ as <stem>.md with optional <stem>.png / <stem>-2.jpg
-wren notes ingest
-echo "an idea" | wren notes add
-wren notes ls --status new
-wren status              # exit 1 on Thursday+ with no draft
-```
-
 ## Content loop (every platform)
 
 ```bash
+wren status                         # drafts, open ideas, spend; exit 1 on Thursday+ with nothing drafted this week
 echo "shipped the spend gate today. every buy asks me first." | wren content add
 wren content add idea.md --media short.mp4 --title "Spend gate"   # a short: YouTube, Reels, TikTok, X, LinkedIn captions
 wren content drafts                 # one row per platform, status draft

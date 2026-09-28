@@ -48,7 +48,7 @@ ROLE=$(cd deploy/terraform && tofu output -raw restate_invoker_role_arn)
 restate deployments register "$ARN:1" --assume-role-arn "$ROLE"
 ```
 
-Smoke: `restate services list` shows LinkedinInbox, Enrichment, Resolution, SendScheduler,
+Smoke: `restate services list` shows Enrichment, Resolution, SendScheduler,
 InboxScheduler, Disposition (+ PostmasterScheduler / OpensScheduler when configured). Then
 `pnpm wren db check` with `WREN_DATABASE_URL` pointed at the box, and one invocation:
 `curl -H "Authorization: Bearer $RESTATE_AUTH_TOKEN" https://<env>.env.us.restate.cloud:8080/SendScheduler/<sender>/status`.

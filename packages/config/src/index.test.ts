@@ -5,7 +5,6 @@ describe("loadSettings", () => {
   it("reads WREN_* keys and applies defaults", () => {
     const s = loadSettings({ WREN_DATABASE_URL: "postgresql://u:p@h:1/d" });
     expect(s.databaseUrl).toBe("postgresql://u:p@h:1/d");
-    expect(s.inboxDir).toMatch(/\/inbox$/);
     expect(s.logLevel).toBe("info");
     expect(s.llm).toBe("fake");
     expect(s.robotsMode).toBe("warn");
@@ -31,13 +30,12 @@ describe("loadSettings", () => {
       loadSettings({ WREN_DATABASE_URL: "postgresql://u:p@h:1/d", WREN_LOG_LEVEL: "loud" }),
     ).toThrow(/WREN_LOG_LEVEL/);
   });
-  it("resolves directories against rootDir", () => {
+  it("resolves paths against rootDir", () => {
     const s = loadSettings(
-      { WREN_DATABASE_URL: "postgresql://u:p@h:1/d" },
+      { WREN_DATABASE_URL: "postgresql://u:p@h:1/d", WREN_CONTENT_VOICE: "voice.md" },
       { rootDir: "/srv/wren" },
     );
-    expect(s.inboxDir).toBe("/srv/wren/inbox");
-    expect(s.draftsDir).toBe("/srv/wren/drafts");
+    expect(s.contentVoicePath).toBe("/srv/wren/voice.md");
   });
   it("reads the inbox-side settings and leaves the secrets unset by default", () => {
     const s = loadSettings({
@@ -63,7 +61,7 @@ describe("loadSettings", () => {
   });
 
   it("treats empty strings as unset", () => {
-    const s = loadSettings({ WREN_DATABASE_URL: "postgresql://u:p@h:1/d", WREN_INBOX_DIR: "" });
-    expect(s.inboxDir).toMatch(/\/inbox$/);
+    const s = loadSettings({ WREN_DATABASE_URL: "postgresql://u:p@h:1/d", WREN_CONTENT_VOICE: "" });
+    expect(s.contentVoicePath).toBeUndefined();
   });
 });

@@ -8,7 +8,6 @@ export default defineConfig({
     "../core/src/schema.ts",
     "../core/src/views.ts",
     "../research/src/schema.ts",
-    "../channel-linkedin/src/schema.ts",
     "../channel-email/src/schema.ts",
     "../channel-email/src/views.ts",
     "../content/src/schema.ts",

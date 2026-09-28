@@ -17,7 +17,6 @@ export const TABLES = [
   "people",
   "companies",
   "runs",
-  "llm_calls",
 ];
 
 export const SEQ: SmsSequence = checkSequence({

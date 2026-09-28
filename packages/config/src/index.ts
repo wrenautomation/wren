@@ -9,8 +9,6 @@ export const settingsSchema = z.object({
   restateIngressUrl: z.string().url().default("http://127.0.0.1:8080"),
   /** Bearer for the ingress (Restate Cloud API key); unset for a local Restate. */
   restateAuthToken: z.string().min(1).optional(),
-  inboxDir: z.string().min(1).default("inbox"),
-  draftsDir: z.string().min(1).default("drafts"),
   logLevel: z.enum(["trace", "debug", "info", "warn", "error"]).default("info"),
   /** Contact for the outbound User-Agent (email or URL). Required before any fetch. */
   fetchContact: z.string().min(1).optional(),
@@ -236,8 +234,6 @@ export const ENV_KEYS = {
   databaseUrl: "WREN_DATABASE_URL",
   restateIngressUrl: "WREN_RESTATE_INGRESS_URL",
   restateAuthToken: "RESTATE_AUTH_TOKEN",
-  inboxDir: "WREN_INBOX_DIR",
-  draftsDir: "WREN_DRAFTS_DIR",
   logLevel: "WREN_LOG_LEVEL",
   fetchContact: "WREN_FETCH_CONTACT",
   robotsMode: "WREN_ROBOTS_MODE",
@@ -349,8 +345,6 @@ export function loadSettings(
   const s = parsed.data;
   return {
     ...s,
-    inboxDir: resolve(root, s.inboxDir),
-    draftsDir: resolve(root, s.draftsDir),
     ...(s.contentVoicePath ? { contentVoicePath: resolve(root, s.contentVoicePath) } : {}),
   };
 }

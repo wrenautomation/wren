@@ -360,6 +360,6 @@ address:
 | Terraform | `deploy/terraform/` — `tofu plan` / `tofu apply` |
 | Runbook | `deploy/README.md` |
 | Lambda entry | `apps/worker/src/lambda.ts`; services wired in `apps/worker/src/services.ts` |
-| Loop primitive | `packages/channel-email/src/restate/loop.ts`; send loop `send-scheduler.ts` |
+| Loop primitive | `packages/core/src/restate/loop.ts`; send loop `packages/channel-email/src/restate/send-scheduler.ts` |
 | Secrets (gitignored, chmod 600) | `deploy/prod.env`, `deploy/github-secrets.env`, `deploy/terraform/terraform.tfvars`, `.env` |
 | CI | `.github/workflows/deploy.yml`, GitHub environment `production` |

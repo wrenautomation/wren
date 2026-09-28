@@ -12,7 +12,8 @@
     "typecheck": "tsc --noEmit",
     "generate": "drizzle-kit generate",
     "migrate": "tsx src/migrate-cli.ts",
-    "check": "drizzle-kit check"
+    "check": "drizzle-kit check",
+    "test:integration": "vitest run test/integration"
   },
   "dependencies": {
     "drizzle-orm": "0.45.2",

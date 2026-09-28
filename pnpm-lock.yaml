@@ -29,9 +29,6 @@ importers:
       '@wren/channel-email':
         specifier: workspace:*
         version: link:../../packages/channel-email
-      '@wren/channel-linkedin':
-        specifier: workspace:*
-        version: link:../../packages/channel-linkedin
       '@wren/channel-meta':
         specifier: workspace:*
         version: link:../../packages/channel-meta
@@ -219,28 +216,10 @@ importers:
 
   packages/channel-linkedin:
     dependencies:
-      '@restatedev/restate-sdk':
-        specifier: 1.17.1
-        version: 1.17.1
       '@wren/core':
         specifier: workspace:*
         version: link:../core
-      '@wren/db':
-        specifier: workspace:*
-        version: link:../db
-      drizzle-orm:
-        specifier: 0.45.2
-        version: 0.45.2(@cloudflare/workers-types@5.20260927.1)(postgres@3.4.9)
     devDependencies:
-      '@restatedev/restate-sdk-clients':
-        specifier: 1.17.1
-        version: 1.17.1
-      '@restatedev/restate-sdk-testcontainers':
-        specifier: 1.17.1
-        version: 1.17.1
-      '@testcontainers/postgresql':
-        specifier: 12.1.0
-        version: 12.1.0
       typescript:
         specifier: 5.9.3
         version: 5.9.3

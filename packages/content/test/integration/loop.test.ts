@@ -17,7 +17,9 @@ import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 import {
   addIdea,
   approveDrafts,
+  collectStatus,
   contentDrafts,
+  contentIdeas,
   contentMetrics,
   draftCosts,
   editDraft,
@@ -316,5 +318,17 @@ describe("content loop", () => {
     const next = prompts.slice(-2);
     expect(next.find((p) => p.includes("one post on X"))).toContain("- shorter");
     expect(next.find((p) => !p.includes("one post on X"))).not.toContain("- shorter");
+  });
+
+  it("status counts drafts, open ideas, and this month's drafting calls", async () => {
+    await desk().add({ text: "status idea" });
+    const now = new Date();
+    const r = await collectStatus(pg.db, now);
+    expect(r.draftsByStatus).toEqual({ draft: 2 });
+    expect(r.oldestDraftDays).toBe(0);
+    expect(r.draftedThisWeek).toBe(2);
+    expect(r.tokensThisMonth.calls).toBe(2);
+    const open = await pg.db.select().from(contentIdeas).where(eq(contentIdeas.status, "open"));
+    expect(r.openIdeas).toBe(open.length);
   });
 });
