@@ -62,10 +62,10 @@ importers:
       drizzle-orm:
         specifier: 0.45.2
         version: 0.45.2(@cloudflare/workers-types@5.20260927.1)(postgres@3.4.9)
-      tsx:
-        specifier: 4.23.13
-        version: 4.23.13
     devDependencies:
+      esbuild:
+        specifier: 0.28.2
+        version: 0.28.2
       typescript:
         specifier: 5.9.3
         version: 5.9.3

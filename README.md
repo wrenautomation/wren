@@ -14,35 +14,36 @@ docker compose up -d          # Postgres :5434, Restate ingress :8080 admin :907
 pnpm db:migrate
 pnpm worker                   # Restate endpoint on :9080 (keep running)
 pnpm register                 # tell Restate where the worker is (once per worker restart)
-pnpm wren status
+ln -s "$PWD/bin/wren" ~/.local/bin/wren   # the CLI, compiled on first run and after every source change
+wren status
 ```
 
 ## Daily use (LinkedIn channel)
 
 ```bash
 # drop notes in inbox/ as <stem>.md with optional <stem>.png / <stem>-2.jpg
-pnpm wren notes ingest
-echo "an idea" | pnpm wren notes add
-pnpm wren notes ls --status new
-pnpm wren status              # exit 1 on Thursday+ with no draft
+wren notes ingest
+echo "an idea" | wren notes add
+wren notes ls --status new
+wren status              # exit 1 on Thursday+ with no draft
 ```
 
 ## Content loop (every platform)
 
 ```bash
-echo "shipped the spend gate today. every buy asks me first." | pnpm wren content add
-pnpm wren content add idea.md --media short.mp4 --title "Spend gate"   # a short: YouTube, Reels, TikTok, X, LinkedIn captions
-pnpm wren content drafts                 # one row per platform, status draft
-pnpm wren content show <draftId>
-pnpm wren content redraft <draftId> "shorter, keep the discord line"   # the model rewrites from your note
-pnpm wren content edit <draftId> fixed.md
-pnpm wren content approve <draftId>...   # each posts at its platform's next slot (LinkedIn 08:30 weekdays, X noon, IG 18:00 … on WREN_SEND_TIMEZONE)
-pnpm wren content approve <draftId> --at 2026-09-23T14:00:00Z
-pnpm wren content approve <draftId> --now  # on the queue's next pass
-pnpm wren content queue start            # ContentScheduler/default: posts approved drafts as they come due
-pnpm wren content metrics start          # ContentMetrics/default: one look per young post per day; Monday = what-worked to the channel
-pnpm wren content results --days 7       # published posts, engagement per 100 views, best first
-pnpm wren content costs --days 30        # drafting calls and tokens by platform and model
+echo "shipped the spend gate today. every buy asks me first." | wren content add
+wren content add idea.md --media short.mp4 --title "Spend gate"   # a short: YouTube, Reels, TikTok, X, LinkedIn captions
+wren content drafts                 # one row per platform, status draft
+wren content show <draftId>
+wren content redraft <draftId> "shorter, keep the discord line"   # the model rewrites from your note
+wren content edit <draftId> fixed.md
+wren content approve <draftId>...   # each posts at its platform's next slot (LinkedIn 08:30 weekdays, X noon, IG 18:00 … on WREN_SEND_TIMEZONE)
+wren content approve <draftId> --at 2026-09-23T14:00:00Z
+wren content approve <draftId> --now  # on the queue's next pass
+wren content queue start            # ContentScheduler/default: posts approved drafts as they come due
+wren content metrics start          # ContentMetrics/default: one look per young post per day; Monday = what-worked to the channel
+wren content results --days 7       # published posts, engagement per 100 views, best first
+wren content costs --days 30        # drafting calls and tokens by platform and model
 ```
 
 Drafts follow `WREN_CONTENT_VOICE` (a markdown file in your words), your last redraft notes
@@ -53,17 +54,17 @@ first (the worker and the box cannot read this laptop); a URL is used as is. Des
 ## Meta ads
 
 ```bash
-pnpm wren ads accounts                    # the ad accounts the Meta token admins
-pnpm wren ads interests "shopify"         # interest ids for the spec's targeting
-pnpm wren ads launch ads/founders.json    # campaign → ad set → creative → ad, all PAUSED; prints the ids
-pnpm wren ads start <campaignId> <adsetId> <adId> --daily 20   # the one command that spends
-pnpm wren ads insights --preset last_7d   # spend, impressions, reach, clicks, ctr, cpc per campaign
-pnpm wren ads stop <campaignId>
-pnpm wren ads lead-form founders https://wrenautomation.com/privacy   # an instant form; id → creative.leadForm
-pnpm wren ads leads <formId>              # what the form collected (needs leads_retrieval from app review)
-pnpm wren ads launches                    # the ad_launches ledger: ids, budget, started/stopped, why
-pnpm wren ads watch start                 # AdsWatch: daily guard, pauses a launch that spent $50 with nothing to show
-pnpm wren ads spec-from <draftId> --out ads/post.json   # a post that worked → a PAUSED launch spec (same words, same media)
+wren ads accounts                    # the ad accounts the Meta token admins
+wren ads interests "shopify"         # interest ids for the spec's targeting
+wren ads launch ads/founders.json    # campaign → ad set → creative → ad, all PAUSED; prints the ids
+wren ads start <campaignId> <adsetId> <adId> --daily 20   # the one command that spends
+wren ads insights --preset last_7d   # spend, impressions, reach, clicks, ctr, cpc per campaign
+wren ads stop <campaignId>
+wren ads lead-form founders https://wrenautomation.com/privacy   # an instant form; id → creative.leadForm
+wren ads leads <formId>              # what the form collected (needs leads_retrieval from app review)
+wren ads launches                    # the ad_launches ledger: ids, budget, started/stopped, why
+wren ads watch start                 # AdsWatch: daily guard, pauses a launch that spent $50 with nothing to show
+wren ads spec-from <draftId> --out ads/post.json   # a post that worked → a PAUSED launch spec (same words, same media)
 ```
 
 The spec file: `name`, `objective` (OUTCOME_LEADS, OUTCOME_TRAFFIC, …), `dailyBudgetUsd`,

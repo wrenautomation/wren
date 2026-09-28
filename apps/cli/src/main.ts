@@ -28,7 +28,7 @@ import { registerReview } from "./review.js";
 import { registerSms } from "./sms.js";
 
 const BODY_PREVIEW_CHARS = 60;
-const rootDir = loadEnvFile();
+const rootDir = loadEnvFile(process.cwd(), process.env.WREN_ROOT);
 const settings = loadSettings(process.env, { rootDir });
 
 /** Open the pool for one command and always close it. */

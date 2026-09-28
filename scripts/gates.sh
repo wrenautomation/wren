@@ -3,7 +3,9 @@
 # suspends `set -e` inside functions called from an && list.
 set -euo pipefail
 cd "$(dirname "$0")/.."
-lint() { echo "==> biome check" && pnpm biome check . && echo "==> typecheck" && pnpm turbo run typecheck && offers; }
+lint() { echo "==> biome check" && pnpm biome check . && echo "==> typecheck" && pnpm turbo run typecheck && cli && offers; }
+# The CLI ships as one esbuild bundle (bin/wren); a bundle that won't parse is caught here, not at first use.
+cli() { echo "==> cli bundle" && pnpm --filter @wren/cli build; }
 # The lander builds from a snapshot of the offer registry. Checked when the lander sits beside
 # this repo (a laptop), skipped where it doesn't (CI checks out wren alone).
 LANDER_OFFERS=../lander/src/data/offers.json

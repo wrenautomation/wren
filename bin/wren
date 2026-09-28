@@ -1,0 +1,20 @@
+#!/usr/bin/env bash
+# The wren CLI, compiled. Rebuilds the bundle when any source file is newer than
+# it (esbuild, well under a second), then runs it with plain node. Symlink this
+# onto your PATH: ln -s "$PWD/bin/wren" ~/.local/bin/wren
+set -euo pipefail
+ROOT="$(cd "$(dirname "$(readlink -f "${BASH_SOURCE[0]}")")/.." && pwd)"
+BUNDLE="$ROOT/apps/cli/dist/app/wren.mjs"
+
+stale() {
+  [ ! -f "$BUNDLE" ] || [ -n "$(find "$ROOT"/packages/*/src "$ROOT"/packages/niches/templates \
+    "$ROOT"/apps/cli/src "$ROOT"/apps/cli/scripts "$ROOT"/pnpm-lock.yaml \
+    -type f -newer "$BUNDLE" -print -quit)" ]
+}
+
+if stale; then
+  echo "wren: source changed, rebuilding" >&2
+  node "$ROOT/apps/cli/scripts/build.mjs"
+fi
+# The repo root is the .env fallback when the command runs from outside the repo.
+WREN_ROOT="$ROOT" exec node "$BUNDLE" "$@"

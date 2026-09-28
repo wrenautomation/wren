@@ -19,7 +19,7 @@
     "db:migrate": "pnpm --filter @wren/db migrate",
     "worker": "pnpm --filter @wren/worker dev",
     "register": "./scripts/register-worker.sh",
-    "wren": "pnpm --filter @wren/cli exec tsx src/main.ts",
+    "wren": "./bin/wren",
     "offers:export": "pnpm --filter @wren/offers export"
   },
   "devDependencies": {
