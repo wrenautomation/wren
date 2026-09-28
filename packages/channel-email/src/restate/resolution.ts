@@ -8,6 +8,7 @@
 import * as restate from "@restatedev/restate-sdk";
 import { finishRun, openRun } from "@wren/core";
 import type { Db, DbHandle } from "@wren/db";
+import { sql } from "drizzle-orm";
 import { eachConcurrently } from "../concurrent.js";
 import {
   addResolutionStats,
@@ -158,34 +159,37 @@ export function makeResolution(deps: ResolutionDeps) {
         const runId = await open(ctx, "resolve new domains", { ...input });
         const width = input.concurrency ?? 1;
         const { stats, promotions } = await ctx.run("walk", async () => {
-          const pool = deps.openPool?.(width) ?? null;
+          // One more connection than the walk's width: the lock holds it for the whole walk.
+          const pool = deps.openPool?.(width + 1) ?? null;
           const db = pool?.db ?? deps.db;
           try {
-            const domains = await selectNewResolutionTargets(db, {
-              limit: input.limitDomains,
-              retryRiskyAfterDays: DEFAULT_RETRY_RISKY_DAYS,
-              ...(input.niche !== undefined ? { niche: input.niche } : {}),
+            return await oneWalkAtATime(db, async () => {
+              const domains = await selectNewResolutionTargets(db, {
+                limit: input.limitDomains,
+                retryRiskyAfterDays: DEFAULT_RETRY_RISKY_DAYS,
+                ...(input.niche !== undefined ? { niche: input.niche } : {}),
+              });
+              let stats = emptyResolutionStats();
+              const promotions: PromotionRef[] = [];
+              await eachConcurrently(
+                domains,
+                width,
+                async (domain) => {
+                  const r = await db.transaction((tx) =>
+                    resolveDomainUnit(tx, deps.verifier, domain, {
+                      domainBudget,
+                      checker,
+                      alreadySpent: 0,
+                      creditLimit: null,
+                    }),
+                  );
+                  stats = addResolutionStats(stats, r.stats);
+                  promotions.push(...r.promotions);
+                },
+                () => stats.aborted !== null,
+              );
+              return { stats, promotions };
             });
-            let stats = emptyResolutionStats();
-            const promotions: PromotionRef[] = [];
-            await eachConcurrently(
-              domains,
-              width,
-              async (domain) => {
-                const r = await db.transaction((tx) =>
-                  resolveDomainUnit(tx, deps.verifier, domain, {
-                    domainBudget,
-                    checker,
-                    alreadySpent: 0,
-                    creditLimit: null,
-                  }),
-                );
-                stats = addResolutionStats(stats, r.stats);
-                promotions.push(...r.promotions);
-              },
-              () => stats.aborted !== null,
-            );
-            return { stats, promotions };
           } finally {
             await pool?.close();
           }
@@ -239,3 +243,21 @@ export const verifiedRows = (s: VerificationStats) =>
   s.local_invalid + s.valid + s.invalid + s.risky + s.catch_all;
 
 export type Resolution = ReturnType<typeof makeResolution>;
+
+/**
+ * One mailbox walk at a time, across every worker. Restate can start a retry of
+ * `resolveNewDomains` while the first attempt's walk still runs on another Lambda,
+ * and each walk holds its own pool of connections: two at once ran Postgres out of
+ * clients (2026-09-28 09:13 UTC). The second walk now fails fast, and Restate retries
+ * it after the first ends. The lock is transaction-scoped, so a dead worker's
+ * connection closing releases it.
+ */
+async function oneWalkAtATime<T>(db: Db, walk: () => Promise<T>): Promise<T> {
+  return db.transaction(async (tx) => {
+    const [row] = (await tx.execute(
+      sql`SELECT pg_try_advisory_xact_lock(hashtext('resolution: new-domain walk')) AS ok`,
+    )) as unknown as { ok: boolean }[];
+    if (!row?.ok) throw new Error("another mailbox walk is still running; retrying after it ends");
+    return walk();
+  });
+}

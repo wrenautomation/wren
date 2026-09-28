@@ -4,7 +4,7 @@ cluster: email
 universe: live
 status: verified
 verified: 2026-09-28 @ 28823cd
-entity: packages/channel-email/src/send/policy.ts:59
+entity: packages/channel-email/src/send/policy.ts:60
 ---
 
 # send-policy
@@ -13,13 +13,13 @@ When the fleet may send and how far apart: a frozen `SendPolicy` parsed once fro
 
 ## Why this shape
 
-Caps are per inbox because reputation is earned per address; the one fleet-wide number is `newOpenersPerDay`. The ramp is data (`from + step × (send days ÷ every)`), every window question is answered on the operator's clock and returned as a UTC instant (`policy.ts:1`). The lead's own clock narrows the window further, never widens it (`send/lead-timezone.ts:1`).
+Caps are per inbox because reputation is earned per address; the one fleet-wide number is `newOpenersPerDay` (0 = follow-ups only: open threads finish, none start). The ramp is data (`from + step × (send days ÷ every)`), every window question is answered on the operator's clock and returned as a UTC instant (`policy.ts:1`). The lead's own clock narrows the window further, never widens it (`send/lead-timezone.ts:1`).
 
 ## Shape
 
-- `SendPolicySettings`, `SendPolicyFields` (`policy.ts:37`, `:59`); the `WREN_SEND_*` keys in `packages/config/src/index.ts`
+- `SendPolicySettings`, `SendPolicyFields` (`policy.ts:38`, `:60`); the `WREN_SEND_*` keys in `packages/config/src/index.ts`
 
-Citations: `packages/channel-email/src/send/policy.ts:59`
+Citations: `packages/channel-email/src/send/policy.ts:60`
 
 ## Connected to
 

@@ -80,9 +80,38 @@ export interface PassSpec<S extends object> {
   notifier?: Notifier;
 }
 
+/**
+ * The root cause, named by the query it broke when a driver wrapped it. Never the
+ * SQL text or params: those hide the cause, and they change every pass, so the
+ * same failure would read as a new one each time.
+ */
 export function errorText(err: unknown): string {
-  const text = err instanceof Error ? `${err.name}: ${err.message}` : String(err);
-  return text.slice(0, 300);
+  let root = err;
+  for (let depth = 0; depth < 5 && root instanceof Error && root.cause !== undefined; depth++) {
+    root = root.cause;
+  }
+  const query = queryOf(err);
+  const text =
+    root === err && query !== null
+      ? "query failed"
+      : root instanceof Error
+        ? `${root.name}: ${root.message}`
+        : String(root);
+  return (query === null ? text : `${query}: ${text}`).slice(0, 300);
+}
+
+/** `insert "runs"` for a driver error carrying its SQL; null otherwise. */
+function queryOf(err: unknown): string | null {
+  const q = (err as { query?: unknown } | null)?.query;
+  if (typeof q !== "string") return null;
+  const verb = q.trim().split(/\s+/, 1)[0]?.toLowerCase() ?? "query";
+  const table = /\b(?:into|from|update)\s+("[^"]+"|\w+)/i.exec(q)?.[1];
+  return table === undefined ? verb : `${verb} ${table}`;
+}
+
+/** "45 s" under a minute, else whole minutes: never "every 0 min". */
+export function formatDelay(ms: number): string {
+  return ms < 60_000 ? `${Math.round(ms / 1000)} s` : `${Math.round(ms / 60_000)} min`;
 }
 
 /**
@@ -134,7 +163,7 @@ async function notifyErrorEdges<S>(
     await ctx.run("notify error", () =>
       notifier.notify(
         `${where} failed`,
-        `${outcome.error}\nthe loop keeps trying every ${Math.round(outcome.delayMs / 60_000)} min; a repeat of the same error stays quiet`,
+        `${outcome.error}\nthe loop keeps trying every ${formatDelay(outcome.delayMs)}; a repeat of the same error stays quiet`,
         "warning",
       ),
     );

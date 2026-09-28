@@ -29,7 +29,7 @@ Citations: `packages/core/src/runs.ts:21`, `:36`, `:49`
 
 ## If you change this
 
-- **Hits:** `packages/core/src/runs.ts`; the loop primitive that opens a run per pass (`packages/core/src/restate/loop.ts:150`); the cost views `email_llm_calls` and `email_stage_costs` (`packages/channel-email/src/views.ts:15`, `:40`)
+- **Hits:** `packages/core/src/runs.ts`; the loop primitive that opens a run per pass (`packages/core/src/restate/loop.ts:179`); the cost views `email_llm_calls` and `email_stage_costs` (`packages/channel-email/src/views.ts:15`, `:40`)
 
 ## Surfaces
 

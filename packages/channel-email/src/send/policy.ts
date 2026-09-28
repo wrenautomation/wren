@@ -7,7 +7,8 @@
  * walk in `deliver.ts` does that with the outbox in front of it.
  *
  * Caps are per inbox because reputation is earned per sending address. The
- * one fleet-wide number is `newOpenersPerDay`, a brake on new conversations.
+ * one fleet-wide number is `newOpenersPerDay`, a brake on new conversations;
+ * 0 means follow-ups only (threads already open finish, none start).
  * The ramp is data: `from + step × (send days elapsed ÷ every)`, never above
  * the ceiling, counted in the schedule's own days. Every window question is
  * answered on the operator's local clock and returned as a UTC instant.
@@ -175,10 +176,10 @@ export class SendPolicy implements SendPolicyFields {
           `${ENV_KEYS.sendGapMinMinutes} (${s.sendGapMinMinutes})`,
       );
     }
-    if (s.newOpenersPerDay !== undefined && s.newOpenersPerDay < 1) {
+    if (s.newOpenersPerDay !== undefined && s.newOpenersPerDay < 0) {
       throw new Error(
-        `${ENV_KEYS.newOpenersPerDay} must be at least 1 when set (leave it unset for ` +
-          `unlimited), got ${s.newOpenersPerDay}`,
+        `${ENV_KEYS.newOpenersPerDay} must not be negative (unset = unlimited, ` +
+          `0 = follow-ups only), got ${s.newOpenersPerDay}`,
       );
     }
     if (s.resendCooldownDays < 0) {

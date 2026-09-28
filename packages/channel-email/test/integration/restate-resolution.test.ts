@@ -4,7 +4,7 @@ import { RestateTestEnvironment } from "@restatedev/restate-sdk-testcontainers";
 import { type Company, companies, imports, leads, people, runs } from "@wren/core";
 import { createDb } from "@wren/db";
 import { startTestPostgres, type TestPostgres, truncate } from "@wren/db/testing";
-import { eq, inArray } from "drizzle-orm";
+import { eq, inArray, sql } from "drizzle-orm";
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 import { domainKnowledge } from "../../src/resolution/service.js";
 import { makeResolution, RESOLUTION_KEY, type Resolution } from "../../src/restate/resolution.js";
@@ -261,6 +261,34 @@ describe("Resolution virtual object", () => {
       const stats = await c.resolveNewDomains({ niche: "sec_ria", limitDomains: 5 });
       expect(stats.domains_processed).toBe(1);
       expect(verifier.calls.every((e) => e.endsWith("@f1.veloqua.example"))).toBe(true);
+    });
+
+    it("waits for a walk already running instead of walking beside it", async () => {
+      verifier.costsCredits = false;
+      await firms(2);
+      await client().build({});
+      await client().queue({});
+      let release = () => {};
+      let locked = () => {};
+      const isLocked = new Promise<void>((r) => {
+        locked = r;
+      });
+      const held = pg.db.transaction(async (tx) => {
+        await tx.execute(
+          sql`SELECT pg_advisory_xact_lock(hashtext('resolution: new-domain walk'))`,
+        );
+        locked();
+        await new Promise<void>((r) => {
+          release = r;
+        });
+      });
+      await isLocked;
+      const walk = client().resolveNewDomains({ niche: "sec_ria", limitDomains: 5 });
+      await new Promise((r) => setTimeout(r, 1_000));
+      expect(verifier.calls).toHaveLength(0);
+      release();
+      await held;
+      expect((await walk).domains_processed).toBe(2);
     });
 
     it("refuses a paid verifier: it would spend without a limit", async () => {

@@ -120,10 +120,11 @@ describe("validation", () => {
     const p = policy({ sendGapMinMinutes: 9, sendGapMaxMinutes: 9 });
     expect(p.gapFor(seededRng(7))).toBe(9 * MIN);
   });
-  it("openers cap must be at least one when set", () => {
-    expect(() => policy({ newOpenersPerDay: 0 })).toThrow(
-      "NEW_OPENERS_PER_DAY must be at least 1 when set",
+  it("openers cap must not be negative; 0 is follow-ups only", () => {
+    expect(() => policy({ newOpenersPerDay: -1 })).toThrow(
+      "NEW_OPENERS_PER_DAY must not be negative",
     );
+    expect(policy({ newOpenersPerDay: 0 }).newOpenersPerDay).toBe(0);
   });
   it("cooldown must not be negative", () => {
     expect(() => policy({ resendCooldownDays: -1 })).toThrow(

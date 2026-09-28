@@ -24,7 +24,7 @@ Spend is opt-in by stage (`WREN_POOL_MODEL_STAGES`: none | pick | all) and the t
 2. `Discovery.discover/verify` (`packages/research/src/discovery/service.ts`, attempts at `:96`).
 3. `Enrichment.crawl/render` store documents (`packages/research/src/enrichment/crawler.ts:133`, `render.ts:156`).
 4. `Enrichment.scan/extract/pick` propose (`email-scan.ts:245`, `store.ts:50`); `applyExtractions/applyPicks` dispose.
-5. `Resolution.resolveNewDomains/verifyLeads` prove mailboxes (`packages/channel-email/src/resolution/service.ts:899`; verdicts `:518`, `:566`; promotion `:739`).
+5. `Resolution.resolveNewDomains/verifyLeads` prove mailboxes; one new-domain walk at a time across workers (advisory lock, `packages/channel-email/src/restate/resolution.ts:255`), since each walk holds a pool as wide as its concurrency (`packages/channel-email/src/resolution/service.ts:899`; verdicts `:518`, `:566`; promotion `:739`).
 
 ## If you change this
 

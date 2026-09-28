@@ -24,7 +24,7 @@ Intent before act, so a crash costs at most one message and never a double send.
 2. `reconcile` (`send/reconcile.ts:42`).
 3. `sendDue` (`send/deliver.ts:190`): per-company clock (`:377`), transitions (`packages/channel-email/src/state.ts:6`).
 4. Transport (`send/transport.ts:78`, `send/gmail.ts`).
-5. Loop and delay (`restate/send-scheduler.ts:1`; primitive `packages/core/src/restate/loop.ts:150`).
+5. Loop and delay (`restate/send-scheduler.ts:1`; primitive `packages/core/src/restate/loop.ts:179`).
 
 ## If you change this
 
