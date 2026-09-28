@@ -5,25 +5,34 @@ passkeys only; texts live in Postgres behind Restate.
 
 ## Token
 
-`CLOUDFLARE_API_TOKEN` needs: Workers Scripts Edit, Workers KV Storage Edit, Workers
-Routes Edit (zone), DNS Edit (zone), Zone Read. The token in `deploy/prod.env` today
-lacks KV and D1 (Authentication error 10000).
+`wren-workers`, minted 2026-09-28 by autobrowse (deterministic flow, no hands):
+
+    cd ../autobrowse && pnpm -s autobrowse cloudflare-token wren-workers \
+      --env WREN_CLOUDFLARE_WORKERS_TOKEN \
+      --perm "Account:Workers Scripts:Edit" "Account:Workers KV Storage:Edit" \
+             "Account:D1:Edit" "Account:Account Settings:Read" \
+             "Zone:Workers Routes:Edit" "Zone:DNS:Edit" "Zone:Zone:Read"
+
+It lands in autobrowse's env store (SSM), then in `deploy/prod.env` as
+`CLOUDFLARE_API_TOKEN` and the `production` GitHub environment. Rerun with
+`--force` to mint a new one.
 
 ## Deploy
 
-From `apps/phone/`:
+CI deploys it on every green push to main (`deploy.yml`, last step). Done once,
+2026-09-28: KV `wren-phone-creds` (id in `wrangler.toml`), the custom domain, and
+the secrets below. `SESSION_SECRET` and `SETUP_TOKEN` are kept in `deploy/prod.env`
+as `WREN_PHONE_SESSION_SECRET` / `WREN_PHONE_SETUP_TOKEN`.
+
+By hand, from `apps/phone/`:
 
     export CLOUDFLARE_ACCOUNT_ID="$WREN_CLOUDFLARE_ACCOUNT_ID"
-    npx wrangler kv namespace create wren-phone-creds    # id -> wrangler.toml
-
-    rand() { node -e "console.log(require('crypto').randomBytes(32).toString('base64url'))"; }
-    rand | npx wrangler secret put SESSION_SECRET
-    rand | tee /dev/stderr | npx wrangler secret put SETUP_TOKEN    # keep it: it adds devices
-    printf %s "$WREN_RESTATE_INGRESS_URL" | npx wrangler secret put RESTATE_INGRESS_URL
+    printf %s "$WREN_PHONE_SESSION_SECRET" | npx wrangler secret put SESSION_SECRET
+    printf %s "$WREN_PHONE_SETUP_TOKEN" | npx wrangler secret put SETUP_TOKEN
+    printf %s "https://$RESTATE_HOST:8080/" | npx wrangler secret put RESTATE_INGRESS_URL
     printf %s "$RESTATE_AUTH_TOKEN" | npx wrangler secret put RESTATE_AUTH_TOKEN
     # Telnyx portal → Account → Public Key. Until set, every webhook gets 503.
     printf %s "$TELNYX_PUBLIC_KEY" | npx wrangler secret put TELNYX_PUBLIC_KEY
-
     npx wrangler deploy
 
 The worker (Lambda) must already serve `SmsDesk` and `SmsEvents`, and migration

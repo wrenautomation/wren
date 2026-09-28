@@ -5,7 +5,8 @@ name = "wren-phone"
 main = "src/worker.ts"
 compatibility_date = "2026-09-27"
 
-routes = [{ pattern = "phone.wrenautomation.com/*", zone_name = "wrenautomation.com" }]
+# A custom domain: Cloudflare makes the DNS record and certificate.
+routes = [{ pattern = "phone.wrenautomation.com", custom_domain = true }]
 
 # The Worker decides first: /api, /auth and /webhooks are code, the rest is public/.
 [assets]
@@ -13,7 +14,7 @@ directory = "./public"
 binding = "ASSETS"
 run_worker_first = true
 
-# `npx wrangler kv namespace create wren-phone-creds` prints the id to paste here.
+# Made 2026-09-28 by `npx wrangler kv namespace create wren-phone-creds`.
 [[kv_namespaces]]
 binding = "CREDS"
-id = "REPLACE-WITH-KV-ID"
+id = "30a6cf3636ce4570a63753d1a63678fc"
