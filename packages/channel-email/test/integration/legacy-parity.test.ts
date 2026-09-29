@@ -20,8 +20,10 @@ const VIEW_RENAMES: Record<string, string> = {
  * rows still satisfy them, so a restore still holds; anything else must match.
  */
 const WIDENED: Record<string, string[]> = {
-  ck_people_personorigin: ["linkedin"],
+  ck_people_personorigin: ["linkedin", "crm"],
   ck_suppressions_suppressionkind: ["phone"],
+  ck_contact_candidates_candidateevidence: ["crm"],
+  ck_documents_documentkind: ["snippet", "profile"],
 };
 const unwiden = (c: Catalog["constraints"][number]) => ({
   ...c,
