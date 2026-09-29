@@ -64,6 +64,11 @@ describe("defineOffer", () => {
   it("accepts a well-formed offer", () => {
     expect(defineOffer(offer({ application: app })).id).toBe("test-offer");
   });
+  it("takes a nested page: the service, then the offer", () => {
+    expect(defineOffer(offer({ page: "/recruiting/lead-reactivation" })).page).toBe(
+      "/recruiting/lead-reactivation",
+    );
+  });
   it.each([
     ["a non-kebab id", offer({ id: "Test_Offer" }), /kebab-case/],
     ["a free offer that takes nothing back", offer({ price: { kind: "free" } }), /weGet/],
@@ -71,6 +76,8 @@ describe("defineOffer", () => {
     ["zero slots", offer({ slots: 0 }), /slots/],
     ["a self-loop", offer({ next: ["test-offer"] }), /itself/],
     ["a page that is not a path", offer({ page: "recruiting" }), /site path/],
+    ["a page with a trailing slash", offer({ page: "/recruiting/" }), /site path/],
+    ["a page with an underscore", offer({ page: "/recruiting/lead_reactivation" }), /site path/],
     ["an http booking link", offer({ booking: "http://cal.com/x" }), /https/],
     [
       "a fixed price with no range",

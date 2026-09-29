@@ -5,7 +5,7 @@ import { defineNiche, rawLocation, templatesDir } from "./niche.js";
 export const recruiting = defineNiche({
   name: "recruiting",
   factsView: null,
-  lander: "/recruiting",
+  lander: "/recruiting/lead-reactivation",
   crawlHints: [
     "recruiters",
     "consultants",

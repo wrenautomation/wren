@@ -46,7 +46,7 @@ export const recruitingReactivationPilot = defineOffer({
     { key: "fees_usd", label: "Placement fees", unit: "usd" },
   ],
   next: ["recruiting-candidate-reactivation", "ops-automation-build"],
-  page: "/recruiting",
+  page: "/recruiting/lead-reactivation",
   // Cal.com event "Pilot call" (autobrowse site `calcom`), 30 min on Meet, Mon-Fri 10-17 ET.
   booking: "https://cal.com/wrenautomation/pilot",
   // Four questions, fit gates first: fewest taps from the page to the calendar. The rest

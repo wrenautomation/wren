@@ -212,8 +212,9 @@ export function defineOffer(offer: Offer): Offer {
   }
   if (offer.next.includes(offer.id)) throw new Error(`${where}: an offer cannot lead to itself`);
   unique(where, "next offer", offer.next);
-  if (offer.page !== null && !/^\/[a-z0-9-]*$/.test(offer.page)) {
-    throw new Error(`${where}: page must be a site path like '/recruiting'`);
+  // "/" or plain lowercase segments: a service's family, then the offer ("/recruiting/lead-reactivation")
+  if (offer.page !== null && !/^\/(?:[a-z0-9-]+(?:\/[a-z0-9-]+)*)?$/.test(offer.page)) {
+    throw new Error(`${where}: page must be a site path like '/recruiting/lead-reactivation'`);
   }
   if (offer.booking !== null && !offer.booking.startsWith("https://")) {
     throw new Error(`${where}: booking must be an https URL`);

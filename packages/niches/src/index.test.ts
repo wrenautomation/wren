@@ -113,7 +113,7 @@ describe("registry", () => {
     ]);
     expect(secRia.lander).toBe("/");
     expect(agencies.lander).toBe("/agencies");
-    expect(recruiting.lander).toBe("/recruiting");
+    expect(recruiting.lander).toBe("/recruiting/lead-reactivation");
     expect(TEMPLATES_BY_NICHE.get("agencies")?.size).toBe(5);
     expect(SEQUENCES_BY_NICHE.get("sec_ria")?.size).toBe(4);
   });
@@ -192,7 +192,7 @@ describe("offers", () => {
     expect(facts).toMatchObject({
       "offer.days": "30",
       "offer.slots": "3",
-      "offer.page": "/recruiting",
+      "offer.page": "/recruiting/lead-reactivation",
     });
   });
   it("refuses a template quoting an offer.* key its offer does not set", () => {

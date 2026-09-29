@@ -224,9 +224,12 @@ describe("fillPage", () => {
     expect(fillPage("wrenautomation.com{page}", "")).toBe("wrenautomation.com");
     expect(fillPage("wrenautomation.com{page}", "/")).toBe("wrenautomation.com");
     expect(fillPage("wrenautomation.com", "/ria")).toBe("wrenautomation.com");
+    expect(fillPage("wrenautomation.com{page}", "/recruiting/lead-reactivation")).toBe(
+      "wrenautomation.com/recruiting/lead-reactivation",
+    );
   });
   it("refuses anything but a plain path", () => {
-    for (const bad of ["agencies", "/agencies?x=1", "https://x.com/a", "/a b"]) {
+    for (const bad of ["agencies", "/agencies?x=1", "https://x.com/a", "/a b", "/a/", "/a_b"]) {
       expect(() => fillPage("wrenautomation.com{page}", bad)).toThrow("plain path");
     }
   });
@@ -235,6 +238,10 @@ describe("fillPage", () => {
     const html = toHtml(body);
     expect(html).toContain('href="https://wrenautomation.com/agencies"');
     expect(visible(html).endsWith("wrenautomation.com/agencies")).toBe(true);
+    const nested = toHtml(
+      SIGNED.replace("wrenautomation.com", "wrenautomation.com/recruiting/lead-reactivation"),
+    );
+    expect(nested).toContain('href="https://wrenautomation.com/recruiting/lead-reactivation"');
     expect(toHtml(SIGNED.replace("wrenautomation.com", "wrenautomation.com/a?b=1"))).not.toContain(
       "href=",
     );
