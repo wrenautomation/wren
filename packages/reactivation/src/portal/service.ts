@@ -247,12 +247,18 @@ export function portalApi(deps: PortalDeps) {
         try {
           const out = await markMeetingBooked(
             db,
-            { threadEventId, booked: req.booked !== false, by: viewer.email },
+            {
+              threadEventId,
+              booked: req.booked !== false,
+              by: viewer.email,
+              operator: viewer.operator === true,
+            },
             await readClientProfile(db),
           );
           return { bookedAt: out.bookedAt?.toISOString() ?? null, by: out.by };
         } catch (err) {
-          if (err instanceof HandoffRefusal) throw new PortalRefusal(err.message, 404);
+          if (err instanceof HandoffRefusal)
+            throw new PortalRefusal(err.message, err.kind === "forbidden" ? 403 : 404);
           throw err;
         }
       }),

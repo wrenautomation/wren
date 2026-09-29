@@ -10,19 +10,27 @@
  * the cursor did not move, so nothing is skipped by asking soon — and not
  * sooner than a tick, so a mailbox that is down is asked once a minute rather
  * than as fast as it can refuse.
+ *
+ * A key's scope names the database its mailbox's replies land in and the
+ * `Disposition` key that labels them: Wren's own, or its client's.
  */
 import type * as restate from "@restatedev/restate-sdk";
 import { type Notifier, plural } from "@wren/core/notify";
-import { makeLoopObject, runPass } from "@wren/core/restate";
+import { makeLoopObject, runPass, unitOfKey } from "@wren/core/restate";
 import type { Db } from "@wren/db";
 import { DAY_MS, type InboxReader, type SyncStats, syncInbox } from "../inbox/sync.js";
-import { DISPOSITION_KEY, type Disposition } from "./disposition.js";
+import type { Disposition } from "./disposition.js";
+
+/** Where one key's replies land, and which `Disposition` key labels them. */
+export interface InboxScope {
+  db: Db;
+  disposition: string;
+}
 
 export interface InboxSchedulerDeps {
-  db: Db;
   reader: InboxReader;
-  /** The roster; a key off it still syncs (the mailbox may hold replies to old sends) but `status` says so. */
-  senders: readonly string[];
+  /** From the key alone, so it needs no step: `acme/a@x.com` is acme's. */
+  scopeOf: (key: string) => InboxScope;
   /** Between passes that returned (default 5 min). */
   syncMs?: number;
   /** After a pass that threw (default 1 min). */
@@ -43,16 +51,17 @@ export function makeInboxScheduler(deps: InboxSchedulerDeps) {
   const lookbackMs = deps.firstSyncLookbackMs ?? 30 * DAY_MS;
 
   return makeLoopObject("InboxScheduler", async (ctx: restate.ObjectContext) => {
-    const sender = ctx.key;
+    const sender = unitOfKey(ctx.key);
+    const scope = deps.scopeOf(ctx.key);
     const now = new Date(await ctx.date.now());
-    const outcome = await runPass<SyncStats>(ctx, deps.db, now, {
+    const outcome = await runPass<SyncStats>(ctx, scope.db, now, {
       name: "inbox sync",
       ledger: {
         command: INBOX_SYNC_COMMAND,
         argv: { daemon: true, senders: [sender], lookback_days: lookbackMs / DAY_MS },
       },
       body: (runId) =>
-        syncInbox(deps.db, {
+        syncInbox(scope.db, {
           reader: deps.reader,
           senders: [sender],
           now,
@@ -64,7 +73,7 @@ export function makeInboxScheduler(deps: InboxSchedulerDeps) {
       ...(deps.notifier ? { notifier: deps.notifier } : {}),
     });
     if (deps.classify && (outcome.stats?.replies ?? 0) > 0) {
-      ctx.objectSendClient<Disposition>({ name: "Disposition" }, DISPOSITION_KEY).classify();
+      ctx.objectSendClient<Disposition>({ name: "Disposition" }, scope.disposition).classify();
     }
     if (deps.notifier && outcome.stats) await tell(ctx, deps.notifier, sender, outcome.stats);
     return outcome;

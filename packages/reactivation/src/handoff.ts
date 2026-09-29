@@ -10,7 +10,15 @@ import { sql } from "drizzle-orm";
 import { REACTIVATION } from "./compose.js";
 import { type ClientProfile, handoffs } from "./schema.js";
 
-export class HandoffRefusal extends Error {}
+export class HandoffRefusal extends Error {
+  /** Not found, or not this viewer's to change. */
+  constructor(
+    message: string,
+    readonly kind: "missing" | "forbidden" = "missing",
+  ) {
+    super(message);
+  }
+}
 
 /** Our Message-ID for a forward, minted before it is sent, on the sender's domain. */
 export const forwardMessageId = (sender: string) =>
@@ -87,6 +95,11 @@ export interface Booking {
   booked: boolean;
   /** A portal login's email, or `operator`. */
   by: string;
+  /**
+   * Wren's side: may take back anyone's mark. A client login takes back only its
+   * own, since each mark is a meeting billed.
+   */
+  operator?: boolean;
 }
 
 /**
@@ -105,6 +118,17 @@ export async function markMeetingBooked(
     const reply = await replyRef(tx, booking.threadEventId);
     if (!reply) throw new HandoffRefusal("no such reply");
     if (booking.booked) await ensureHandoff(tx, reply, profile);
+    else if (!(booking.operator ?? by === "operator")) {
+      const [mark] = await tx.execute<{ booked_by: string | null }>(sql`
+        SELECT booked_by FROM handoffs WHERE thread_event_id = ${reply.threadEventId}`);
+      const markedBy = mark?.booked_by ?? null;
+      if (markedBy !== null && markedBy !== by) {
+        throw new HandoffRefusal(
+          `only ${markedBy} or Wren can take this booking back`,
+          "forbidden",
+        );
+      }
+    }
     const [row] = await tx.execute<{
       meeting_booked_at: Date | string | null;
       booked_by: string | null;

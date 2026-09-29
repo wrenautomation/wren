@@ -147,6 +147,10 @@ export function parseRoster(
     if (sep < 0 || !local || !domain.includes(".")) {
       throw new RosterError(`${at}: ${JSON.stringify(address)} is not an email address`);
     }
+    // A "/" would read as a client's loop key (`<client>/<mailbox>`).
+    if (address.includes("/")) {
+      throw new RosterError(`${at}: ${JSON.stringify(address)} has a "/"; loop keys use it`);
+    }
     if (seen.has(address)) throw new RosterError(`${at}: ${address} appears twice`);
     seen.add(address);
 

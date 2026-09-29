@@ -85,14 +85,13 @@ beforeAll(async () => {
   env = await RestateTestEnvironment.start({
     services: [
       makeInboxScheduler({
-        db: pg.db,
         reader,
-        senders: [SENDER],
+        scopeOf: () => ({ db: pg.db, disposition: DISPOSITION_KEY }),
         syncMs: SYNC_MS,
         tickMs: TICK_MS,
         classify: true,
       }),
-      makeDisposition({ db: pg.db, llm }),
+      makeDisposition({ dbOf: () => pg.db, llm }),
       makePostmasterScheduler({
         db: pg.db,
         client: postmaster,

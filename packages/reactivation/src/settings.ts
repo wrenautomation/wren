@@ -8,6 +8,12 @@ import { z } from "zod";
 
 const email = z.string().trim().toLowerCase().email();
 
+/** "2026-02-30" matches the pattern but is no day. */
+const isCalendarDay = (d: string) => {
+  const at = new Date(`${d}T00:00:00Z`);
+  return !Number.isNaN(at.getTime()) && at.toISOString().startsWith(d);
+};
+
 export const reactivationSettingsSchema = z
   .object({
     /** The loop works this client at all. */
@@ -35,6 +41,7 @@ export const reactivationSettingsSchema = z
         rampStart: z
           .string()
           .regex(/^\d{4}-\d{2}-\d{2}$/)
+          .refine(isCalendarDay, "not a calendar day")
           .nullable()
           .default(null),
       })

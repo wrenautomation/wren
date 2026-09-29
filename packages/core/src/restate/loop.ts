@@ -17,6 +17,13 @@ import type { Notifier } from "../notify.js";
 import { type RunOptions, recordedRun } from "../runs.js";
 
 const RUNNING = "running";
+/**
+ * Bumped by each `start` that begins a loop; every `loop` call carries the one it
+ * was sent under. A stop then start inside one delay would otherwise leave the old
+ * delayed call to fire beside the new one: two chains, twice the passes. A call
+ * with none (sent before this existed) counts as 0.
+ */
+export const GENERATION = "generation";
 /** Object state key holding the last pass outcome; `status` reads it. */
 export const LAST = "last";
 /** Object state key holding what `start` was last given; a pass reads it with `loopSettings`. */
@@ -46,6 +53,8 @@ export interface PassOutcome<S> {
   /** When the next pass is due, ms after this pass's `now`. */
   delayMs: number;
   now: string;
+  /** Set when the work is gone (a client off or removed): the loop stops itself, saying why. */
+  stopped?: string;
 }
 
 export interface LoopStatus<S> {
@@ -150,7 +159,7 @@ export async function runPass<S extends object>(
 }
 
 /** The two edges worth a message: a new failure, and the recovery after one. */
-async function notifyErrorEdges<S>(
+export async function notifyErrorEdges<S>(
   ctx: restate.ObjectContext,
   notifier: Notifier,
   stage: string,
@@ -173,12 +182,18 @@ async function notifyErrorEdges<S>(
 }
 
 /** The self-send a loop makes, typed by name: the definition's own type is not yet known inside its factory. */
-type LoopSelf = { loop: (ctx: restate.ObjectContext) => Promise<void> };
+type LoopSelf = { loop: (ctx: restate.ObjectContext, generation?: number) => Promise<void> };
+
+export interface LoopHooks {
+  /** Runs inside `stop`, after the key is marked stopped: for what the loop started elsewhere. */
+  onStop?: (ctx: restate.ObjectContext) => Promise<void>;
+}
 
 /** The start/stop/loop/status handlers around one `pass`. */
 export function makeLoopObject<S extends object>(
   name: string,
   pass: (ctx: restate.ObjectContext) => Promise<PassOutcome<S>>,
+  hooks: LoopHooks = {},
 ) {
   const self = (ctx: restate.ObjectContext) => ctx.objectSendClient<LoopSelf>({ name }, ctx.key);
   const object = restate.object({
@@ -202,8 +217,10 @@ export function makeLoopObject<S extends object>(
         }
         const running = (await ctx.get<boolean>(RUNNING)) ?? false;
         if (!running) {
+          const generation = ((await ctx.get<number>(GENERATION)) ?? 0) + 1;
+          ctx.set(GENERATION, generation);
           ctx.set(RUNNING, true);
-          self(ctx).loop();
+          self(ctx).loop(generation);
         }
         return status(ctx, true);
       },
@@ -211,14 +228,19 @@ export function makeLoopObject<S extends object>(
       /** The loop stops after the pass in flight, if any. */
       stop: async (ctx: restate.ObjectContext): Promise<LoopStatus<S>> => {
         ctx.set(RUNNING, false);
+        if (hooks.onStop) await hooks.onStop(ctx);
         return status(ctx, false);
       },
 
       /** One iteration: pass, then the next one after a durable delay. */
-      loop: async (ctx: restate.ObjectContext): Promise<void> => {
+      loop: async (ctx: restate.ObjectContext, generation?: number | null): Promise<void> => {
         if (!((await ctx.get<boolean>(RUNNING)) ?? false)) return;
+        const current = (await ctx.get<number>(GENERATION)) ?? 0;
+        // A call from before the last stop: its chain ended there.
+        if ((generation ?? 0) !== current) return;
         const outcome = await pass(ctx);
-        self(ctx).loop(restate.rpc.sendOpts({ delay: outcome.delayMs }));
+        if (outcome.stopped !== undefined) ctx.set(RUNNING, false);
+        else self(ctx).loop(current, restate.rpc.sendOpts({ delay: outcome.delayMs }));
       },
 
       status: restate.handlers.object.shared(

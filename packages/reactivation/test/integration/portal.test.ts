@@ -103,7 +103,7 @@ beforeAll(async () => {
       id: "acme",
       name: "Acme Staffing",
       database: "wren_client_acme",
-      portalEmails: ["owner@acme.example"],
+      portalEmails: ["owner@acme.example", "ops@acme.example"],
     },
     { id: "beta", name: "Beta Search", database: "wren_client_beta" },
   ]);
@@ -265,7 +265,15 @@ describe("writes", () => {
     expect(replies.rows[0]?.handoff?.recruiter).toBe("sam@acme-talent.example");
     expect(replies.bill).toMatchObject({ meetings: 1, meetingFees: 500, total: 1500 });
 
+    // Each mark is a meeting billed: another login can't take it back; the marker or Wren can.
+    const ops = { viewer: { email: "ops@acme.example" } };
+    await expect(api.book({ ...ops, threadEventId: replyId, booked: false })).rejects.toEqual(
+      refusal(403),
+    );
     await api.book({ ...owner, threadEventId: replyId, booked: false });
+    expect((await api.replies({ ...owner, filter: "booked" })).total).toBe(0);
+    await api.book({ ...ops, threadEventId: replyId });
+    await api.book({ ...operator, client: "acme", threadEventId: replyId, booked: false });
     expect((await api.replies({ ...owner, filter: "booked" })).total).toBe(0);
     await expect(api.book({ ...owner, threadEventId: 999_999 })).rejects.toEqual(refusal(404));
     await expect(api.approve({ ...owner, enrollmentIds: ["1; drop" as never] })).rejects.toEqual(

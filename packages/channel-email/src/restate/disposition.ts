@@ -2,7 +2,8 @@
  * Reply disposition as a Virtual Object with one key: `classify` runs one
  * pass of `runDisposition` over every pending human reply. One key = one
  * pass at a time, so two inbox syncs finding replies in the same minute queue
- * rather than paying for the same event twice.
+ * rather than paying for the same event twice. Wren's replies are key
+ * "fleet"; a client's are `<client>/replies`, in its own database.
  */
 import * as restate from "@restatedev/restate-sdk";
 import { recordedRun } from "@wren/core";
@@ -15,7 +16,8 @@ export const DISPOSITION_KEY = "fleet";
 export const DISPOSITION_COMMAND = "outreach inbox classify";
 
 export interface DispositionDeps {
-  db: Db;
+  /** The database a key's replies are in. */
+  dbOf: (key: string) => Db;
   llm: LlmClient;
   tracer?: Tracer | null;
   /** Named on the ledger row's argv, never the key. */
@@ -36,17 +38,18 @@ export function makeDisposition(deps: DispositionDeps) {
     handlers: {
       classify: async (ctx: restate.ObjectContext): Promise<ClassifyOutcome> => {
         const now = new Date(await ctx.date.now());
+        const db = deps.dbOf(ctx.key);
         const result = await ctx.run("reply disposition", async () => {
           try {
             const { stats } = await recordedRun(
-              deps.db,
+              db,
               {
                 command: DISPOSITION_COMMAND,
                 argv: { daemon: true, llm: deps.llm.name, tracing: deps.tracing ?? "none" },
                 model: deps.llm.name,
               },
               (run) =>
-                runDisposition(deps.db, deps.llm, {
+                runDisposition(db, deps.llm, {
                   runId: run.id,
                   tracer: deps.tracer ?? null,
                   now,

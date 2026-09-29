@@ -12,10 +12,15 @@
  * The tick body is one journaled step over its own transactions: a retry
  * after a crash re-runs `sendTick`, which is safe by construction (intent
  * before act; reconcile resolves the row a crash left behind).
+ *
+ * A key's scope says which database, rules and fleet it sends under. Wren's
+ * own inboxes share one; a client's mailbox gets its client's. A key whose
+ * scope is gone (the client stopped sending) stops its own loop.
  */
 import * as restate from "@restatedev/restate-sdk";
 import { finishRun, openRun } from "@wren/core";
 import { type Notifier, plural } from "@wren/core/notify";
+import { unitOfKey } from "@wren/core/restate";
 import type { Db } from "@wren/db";
 import type { SendStats } from "../send/deliver.js";
 import type { SendPolicy } from "../send/policy.js";
@@ -23,12 +28,18 @@ import { seededRng } from "../send/rng.js";
 import { type Fleet, type KillSwitches, sendTick } from "../send/tick.js";
 import type { Transport } from "../send/transport.js";
 
-export interface SendSchedulerDeps {
+/** What one key sends under. */
+export interface SendScope {
   db: Db;
-  transport: Transport;
   policy: SendPolicy;
   fleet: Fleet;
   pixelBaseUrl?: string | null;
+}
+
+export interface SendSchedulerDeps {
+  transport: Transport;
+  /** This key's scope; null = nothing to send as any more, and the loop stops. */
+  scopeOf: (key: string) => Promise<SendScope | null>;
   /** How long to wait between ticks that sent nothing inside the window. */
   tickMs?: number;
   killSwitches?: KillSwitches;
@@ -44,6 +55,12 @@ export interface TickOutcome {
   now: string;
 }
 
+/** One scope for every key: a single fleet. */
+export const oneScope =
+  (scope: SendScope): ((key: string) => Promise<SendScope>) =>
+  async () =>
+    scope;
+
 export interface SchedulerStatus {
   sender: string;
   running: boolean;
@@ -53,46 +70,55 @@ export interface SchedulerStatus {
 
 const RUNNING = "running";
 const LAST = "last";
+/** As in `makeLoopObject`: a stop then start never leaves two chains. */
+const GENERATION = "generation";
 const MIN_DELAY_MS = 1_000;
 
 export function makeSendScheduler(deps: SendSchedulerDeps) {
   const tickMs = deps.tickMs ?? 60_000;
-  const onRoster = (sender: string) =>
-    deps.fleet.senders.some((s) => s.toLowerCase() === sender.toLowerCase());
+  const onRoster = (scope: SendScope | null, key: string) =>
+    scope?.fleet.senders.some((s) => sameMailbox(s, key)) ?? false;
 
-  /** One tick for this key's inbox, journaled as a single step. */
-  const runTick = async (ctx: restate.ObjectContext): Promise<TickOutcome> => {
-    const sender = ctx.key;
+  /** One tick for this key's inbox, journaled as a single step; null = the scope is gone. */
+  const runTick = async (ctx: restate.ObjectContext): Promise<TickOutcome | null> => {
+    const key = ctx.key;
     const now = new Date(await ctx.date.now());
     // Drawn from the journal, not inside the step, so a retried step paces the same way.
     const seed = Math.floor(ctx.rand.random() * 0x100000000);
-    const fleet: Fleet = {
-      ...deps.fleet,
-      // Only this key's inbox may send here; the rest of the fleet has its own keys.
-      senders: deps.fleet.senders.filter((s) => s.toLowerCase() === sender.toLowerCase()),
-    };
+    // The scope is read inside the step: a database handle can't be journaled, and the delay needs its rules.
     const result = await ctx.run("send tick", async () => {
-      const run = await openRun(deps.db, { command: "send tick", argv: { sender } });
-      const { stats, newPauses } = await sendTick(deps.db, {
-        policy: deps.policy,
+      const scope = await deps.scopeOf(key);
+      if (!scope) return null;
+      const fleet: Fleet = {
+        ...scope.fleet,
+        // Only this key's inbox may send here; the rest of the fleet has its own keys.
+        senders: scope.fleet.senders.filter((s) => sameMailbox(s, key)),
+      };
+      const run = await openRun(scope.db, {
+        command: "send tick",
+        argv: { sender: unitOfKey(key) },
+      });
+      const { stats, newPauses } = await sendTick(scope.db, {
+        policy: scope.policy,
         transport: deps.transport,
         now,
         runId: run.id,
         fleet,
-        pixelBaseUrl: deps.pixelBaseUrl ?? null,
+        pixelBaseUrl: scope.pixelBaseUrl ?? null,
         rng: seededRng(seed),
         ...(deps.killSwitches ? { killSwitches: deps.killSwitches } : {}),
       });
-      await finishRun(deps.db, run.id, stats);
+      await finishRun(scope.db, run.id, stats);
       return {
         stats,
         newPauses: newPauses.length,
         paused: newPauses.map((p) => `${p.sender} — ${p.reason}`),
+        delayMs: nextDelay(scope.policy, stats, now, seed, tickMs),
       };
     });
-    const delayMs = nextDelay(deps.policy, result.stats, now, seed, tickMs);
+    if (!result) return null;
     const { paused, ...rest } = result;
-    const outcome: TickOutcome = { ...rest, delayMs, now: now.toISOString() };
+    const outcome: TickOutcome = { ...rest, now: now.toISOString() };
     ctx.set(LAST, outcome);
     const notifier = deps.notifier;
     if (notifier && paused.length > 0) {
@@ -111,14 +137,16 @@ export function makeSendScheduler(deps: SendSchedulerDeps) {
     name: "SendScheduler",
     handlers: {
       /** Run one tick now; the loop (if any) is untouched. */
-      tick: async (ctx: restate.ObjectContext): Promise<TickOutcome> => runTick(ctx),
+      tick: async (ctx: restate.ObjectContext): Promise<TickOutcome | null> => runTick(ctx),
 
       /** Begin looping; a no-op when already running. */
       start: async (ctx: restate.ObjectContext): Promise<SchedulerStatus> => {
         const running = (await ctx.get<boolean>(RUNNING)) ?? false;
         if (!running) {
+          const generation = ((await ctx.get<number>(GENERATION)) ?? 0) + 1;
+          ctx.set(GENERATION, generation);
           ctx.set(RUNNING, true);
-          ctx.objectSendClient(scheduler, ctx.key).loop();
+          ctx.objectSendClient(scheduler, ctx.key).loop(generation);
         }
         return status(ctx, true);
       },
@@ -130,12 +158,19 @@ export function makeSendScheduler(deps: SendSchedulerDeps) {
       },
 
       /** One iteration: tick, then the next one after a durable delay. */
-      loop: async (ctx: restate.ObjectContext): Promise<void> => {
+      loop: async (ctx: restate.ObjectContext, generation?: number | null): Promise<void> => {
         if (!((await ctx.get<boolean>(RUNNING)) ?? false)) return;
+        const current = (await ctx.get<number>(GENERATION)) ?? 0;
+        // A call from before the last stop: its chain ended there.
+        if ((generation ?? 0) !== current) return;
         const outcome = await runTick(ctx);
+        if (!outcome) {
+          ctx.set(RUNNING, false);
+          return;
+        }
         ctx
           .objectSendClient(scheduler, ctx.key)
-          .loop(restate.rpc.sendOpts({ delay: outcome.delayMs }));
+          .loop(current, restate.rpc.sendOpts({ delay: outcome.delayMs }));
       },
 
       status: restate.handlers.object.shared(
@@ -149,16 +184,22 @@ export function makeSendScheduler(deps: SendSchedulerDeps) {
     ctx: restate.ObjectSharedContext | restate.ObjectContext,
     running: boolean,
   ): Promise<SchedulerStatus> {
+    const listed = await ctx.run("on roster", async () =>
+      onRoster(await deps.scopeOf(ctx.key), ctx.key),
+    );
     return {
       sender: ctx.key,
       running,
-      onRoster: onRoster(ctx.key),
+      onRoster: listed,
       last: (await ctx.get<TickOutcome>(LAST)) ?? null,
     };
   }
 
   return scheduler;
 }
+
+const sameMailbox = (sender: string, key: string) =>
+  sender.toLowerCase() === unitOfKey(key).toLowerCase();
 
 /**
  * How long until this inbox should look again: the gap after a send, straight

@@ -10,6 +10,7 @@ import type { ServiceDefinition, VirtualObjectDefinition } from "@restatedev/res
 import {
   activeSenders,
   ConsoleTransport,
+  defaultLocalChecker,
   expandHome,
   GmailClient,
   GmailTransport,
@@ -27,6 +28,7 @@ import {
 } from "@wren/channel-email";
 import {
   type Campaign,
+  DISPOSITION_KEY,
   makeComposeScheduler,
   makeDigestScheduler,
   makeDisposition,
@@ -37,6 +39,7 @@ import {
   makeReportScheduler,
   makeResolution,
   makeSendScheduler,
+  oneScope,
 } from "@wren/channel-email/restate";
 import { linkedinContent } from "@wren/channel-linkedin";
 import { facebookContent, instagramContent, instagramWebContent } from "@wren/channel-meta";
@@ -55,7 +58,6 @@ import {
   makeContentPlanner,
   makeContentScheduler,
 } from "@wren/content/restate";
-import { clientUrl } from "@wren/core/clients";
 import type { SiteClient } from "@wren/core/content";
 import { ec2Wake } from "@wren/core/content/box";
 import { makeTokenRenewal } from "@wren/core/content/renewal";
@@ -65,7 +67,8 @@ import {
   makeContent,
   restateSites,
 } from "@wren/core/content/restate";
-import { cachedDb, createDb } from "@wren/db";
+import { clientKey, clientOfKey } from "@wren/core/restate";
+import { cachedDb, clientDatabaseName, clientDatabaseUrl, createDb } from "@wren/db";
 import { loadLlmEnv, makeLlm, makeTracer } from "@wren/llm";
 import {
   crawlHintsFor,
@@ -74,7 +77,8 @@ import {
   NICHES,
   SMS_SEQUENCES,
 } from "@wren/niches";
-import { makeReactivationPortal } from "@wren/reactivation/restate";
+import { clientSendScope } from "@wren/reactivation";
+import { makeReactivation, makeReactivationPortal } from "@wren/reactivation/restate";
 import {
   type BrowserRenderer,
   browserbaseRenderer,
@@ -147,6 +151,18 @@ export async function buildServices(
     }
   })();
   const fleet = rosterFleet(roster, activeSenders(roster), Object.fromEntries(LANDERS_BY_NICHE));
+  const wrenScope = oneScope({
+    db,
+    policy,
+    fleet,
+    // The pixel goes into mail only when asked; the host alone just enables the opens pull.
+    pixelBaseUrl: settings.openTracking ? (settings.pixelBaseUrl ?? null) : null,
+  });
+  // Each client's own database, pooled per client; its name follows from the id.
+  const openClient = (client: { database: string }) =>
+    cachedDb(clientDatabaseUrl(settings.databaseUrl, client.database));
+  const clientDb = (id: string) => openClient({ database: clientDatabaseName(id) });
+  const clients = { main: db, open: openClient, policy };
   // One campaign per registered niche: its plan, copy and the inboxes it may send from,
   // each sign-off already pointing at the niche's page. The queue-keeper reads these.
   const campaigns = new Map<string, Campaign>(
@@ -225,18 +241,36 @@ export async function buildServices(
       genericWordsFor: discoveryWordsFor,
     }),
     makeResolution({ db, verifier, openPool: (max) => createDb(settings.databaseUrl, { max }) }),
+    // A plain key is one of Wren's inboxes; `<client>/<mailbox>` is a client's (R4, R12:
+    // its mailboxes are in Wren's Workspace, so the same transport and reader serve them).
     makeSendScheduler({
-      db,
       transport,
-      policy,
-      fleet,
-      // The pixel goes into mail only when asked; the host alone just enables the opens pull.
-      pixelBaseUrl: settings.openTracking ? (settings.pixelBaseUrl ?? null) : null,
+      scopeOf: (key) => (clientOfKey(key) ? clientSendScope(clients, key) : wrenScope(key)),
       tickMs,
       ...notify,
     }),
-    makeInboxScheduler({ db, reader, senders: fleet.senders, syncMs, tickMs, classify, ...notify }),
-    makeDisposition({ db, llm, tracer, tracing: settings.tracing }),
+    makeInboxScheduler({
+      reader,
+      scopeOf: (key) => {
+        const owner = clientOfKey(key);
+        return owner
+          ? { db: clientDb(owner.client), disposition: clientKey(owner.client, "replies") }
+          : { db, disposition: DISPOSITION_KEY };
+      },
+      syncMs,
+      tickMs,
+      classify,
+      ...notify,
+    }),
+    makeDisposition({
+      dbOf: (key) => {
+        const owner = clientOfKey(key);
+        return owner ? clientDb(owner.client) : db;
+      },
+      llm,
+      tracer,
+      tracing: settings.tracing,
+    }),
   ];
   // The queue-keeper is bound only when asked to hold a queue; 0 means every enrollment is by hand.
   if (settings.composeDaysAhead > 0) {
@@ -332,11 +366,15 @@ export async function buildServices(
     ...notify,
   };
   services.push(makeSmsSender(sms), makeSmsEvents(sms), makeSmsDesk(sms), makeSmsWatch(sms));
-  // The client portal's reads (apps/portal): each client's own database, pooled per client.
+  // The client portal's reads (apps/portal), and one reactivation loop per client.
   services.push(
-    makeReactivationPortal({
+    makeReactivationPortal({ main: db, open: openClient }),
+    makeReactivation({
       main: db,
-      open: (client) => cachedDb(clientUrl(settings.databaseUrl, client)),
+      open: openClient,
+      crm: { verifier, checker: defaultLocalChecker(), llm: classify ? llm : null },
+      freeVerify: freeVerdicts,
+      ...notify,
     }),
   );
 

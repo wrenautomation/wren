@@ -3,12 +3,15 @@
  * every stage that is due, `crm status` says where things stand and `crm top`
  * shows who to call first. The single-stage commands (verify, lookup) are for
  * debugging one stage. `crm emails`, `approve`, `skip` and `book` are the
- * operator's side of the portal's writes. Always a client's database.
+ * operator's side of the portal's writes. `crm loop` runs it all on the
+ * worker instead. Always a client's database.
  */
 import { readFileSync, writeFileSync } from "node:fs";
 import { resolve } from "node:path";
+import * as restate from "@restatedev/restate-sdk-clients";
 import { defaultLocalChecker, makeVerifier } from "@wren/channel-email";
-import type { Settings } from "@wren/config";
+import type { InboxScheduler, SendScheduler } from "@wren/channel-email/restate";
+import { ingressOf, type Settings } from "@wren/config";
 import { recordedRun } from "@wren/core";
 import type { Client } from "@wren/core/clients";
 import type { Db } from "@wren/db";
@@ -37,6 +40,7 @@ import {
   setClientProfile,
   skipDrafts,
 } from "@wren/reactivation";
+import type { Reactivation } from "@wren/reactivation/restate";
 import { PoliteFetcher, userAgent } from "@wren/research/fetch";
 import type { Command } from "commander";
 import { ingressSites } from "./sites.js";
@@ -183,6 +187,73 @@ export function registerCrm(
       );
       for (const line of formatCrmStatus(status)) console.log(line.replaceAll("<id>", client.id));
       if (stages.some((s) => s.stats.aborted)) process.exitCode = 1;
+    });
+
+  const loop = crm
+    .command("loop")
+    .description(
+      "The client's loop on the worker: works what is due every 10 min and runs its mailboxes",
+    );
+  const ingress = () => restate.connect(ingressOf(settings));
+  const loopOf = async () => {
+    const id = await withClientDb(async (_db, client) => client.id);
+    return { id, object: ingress().objectClient<Reactivation>({ name: "Reactivation" }, id) };
+  };
+  loop
+    .command("start")
+    .description("Start it (once per client); `reactivation.on` then turns the work on and off")
+    .action(async () => {
+      const { id, object } = await loopOf();
+      await object.start();
+      console.log(`reactivation loop ${id} started`);
+      console.log(`on/off: \`wren clients set ${id} --set reactivation.on=true\``);
+    });
+  loop
+    .command("stop")
+    .description("Stop it and every mailbox loop it started, after the pass in flight")
+    .action(async () => {
+      const { id, object } = await loopOf();
+      // Its stop stops the mailbox loops it started.
+      await object.stop();
+      console.log(`reactivation loop ${id} stopped, and its mailboxes`);
+    });
+  loop
+    .command("status")
+    .description("The last pass, and each mailbox loop")
+    .option("--json", "print as JSON")
+    .action(async (opts: { json?: boolean }) => {
+      const { id, object } = await loopOf();
+      const status = await object.status();
+      const loops = status.last?.stats?.loops ?? { send: [], inbox: [] };
+      const mailboxes = {
+        send: await Promise.all(
+          loops.send.map((k) =>
+            ingress().objectClient<SendScheduler>({ name: "SendScheduler" }, k).status(),
+          ),
+        ),
+        inbox: await Promise.all(
+          loops.inbox.map((k) =>
+            ingress().objectClient<InboxScheduler>({ name: "InboxScheduler" }, k).status(),
+          ),
+        ),
+      };
+      if (opts.json) {
+        console.log(JSON.stringify({ ...status, mailboxes }, null, 2));
+        return;
+      }
+      const last = status.last;
+      console.log(
+        `reactivation ${id}: ${status.running ? "running" : "stopped"}` +
+          (last ? `, last pass ${last.now}` : ", no pass yet"),
+      );
+      if (last?.error) console.log(`  failed: ${last.error}`);
+      if (last?.stats?.off) console.log(`  idle: ${last.stats.off}`);
+      for (const s of last?.stats?.stages ?? [])
+        console.log(`  ${s.stage}: ${JSON.stringify(s.stats)}`);
+      for (const m of mailboxes.send)
+        console.log(`  send  ${m.sender}: ${m.running ? "running" : "stopped"}`);
+      for (const m of mailboxes.inbox)
+        console.log(`  inbox ${m.key}: ${m.running ? "running" : "stopped"}`);
     });
 
   crm

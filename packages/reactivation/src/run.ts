@@ -23,7 +23,8 @@ import { CRM_STAGES, type CrmStage, crmStatus } from "./status.js";
 export interface CrmRunDeps {
   verifier: EmailVerifier;
   checker: LocalCheckerLike;
-  sites: SiteClient;
+  /** The `sites` service for LinkedIn; null = lookup and signals stop and say why. */
+  sites: SiteClient | null;
   /** For company sites and job boards; null = LinkedIn only. */
   fetcher: Fetcher | null;
   /** Writes briefs and emails; null = those stages stop and say why. */
@@ -81,6 +82,7 @@ export async function runCrm(
           }),
         };
       case "lookup":
+        if (!deps.sites) return { stage, stats: { ...NO_LOOKUPS, aborted: NO_SITES } };
         return {
           stage,
           stats: await lookUpCrmPeople(db, deps.sites, {
@@ -90,6 +92,7 @@ export async function runCrm(
           }),
         };
       case "signals":
+        if (!deps.sites) return { stage, stats: { ...NO_SIGNALS, aborted: NO_SITES } };
         return {
           stage,
           stats: await checkCrmCompanies(
@@ -140,6 +143,28 @@ const NO_EMAILS: CrmComposeStats = {
   failed: 0,
   suppressed: 0,
   raced: 0,
+  errors: 0,
+  aborted: null,
+};
+
+const NO_SITES = "lookup and signals need the sites service: run them with `crm run`";
+
+const NO_LOOKUPS: CrmLookupStats = {
+  selected: 0,
+  matched: 0,
+  unresolved: 0,
+  capped: 0,
+  errors: 0,
+  findings: {},
+  aborted: null,
+};
+
+const NO_SIGNALS: CrmSignalsStats = {
+  selected: 0,
+  hiring: 0,
+  no_openings: 0,
+  unresolved: 0,
+  capped: 0,
   errors: 0,
   aborted: null,
 };

@@ -43,7 +43,11 @@ A lint rule guards this. biome `noRestrictedImports` on `packages/**` fails the 
 - **R1. A client is a database, not a column or a branch.** Branches drift: every fix has to be merged N times. A `client_id` column would touch every table and query, and one missed filter leaks a client's list. A Postgres schema per client fails because the migrations name `"public"` outright (0001 has 51 references). A database per client runs the same migrations unchanged. All existing code (import, verify, compose, send, inbox sync, classify) works as is. Offboarding is `DROP DATABASE`. One Postgres server, so there's no new infrastructure.
 - **R2. The registry lives in the main database, not in code.** Repos are public (PolyForm Strict) and a client's name must never land in git. `clients` holds the database name, not a URL: the URL is the main URL with the database swapped, so no new secret.
 - **R3. Pools stay tiny.** Postgres connections are the ceiling (the SMTP-prober lesson). A client handle opens with `max: 2`, is cached per process and closes when idle. The CLI opens one per command.
-- **R4. The worker gains a client dimension.** Loop objects are keyed `<client>/<niche>` for client work, and `buildServices` resolves the handle per key from a cache. Wren's own loops keep their keys, so nothing live changes.
+- **R4. The worker gains a client dimension.** Client loop objects are keyed `<client>/<unit>` (`clientKey`, `core/restate/keys.ts`); ids never hold `/`. Wren's own loops keep their plain keys, so nothing live changes.
+  - `SendScheduler` and `InboxScheduler` take a scope per key: the database, the send policy and fleet, the disposition key. A plain key gets Wren's; `<client>/<mailbox>` gets that client's. A send key whose scope is gone (client off, sending off, mailbox suspended or unlisted) stops itself.
+  - `Reactivation`, keyed by client id, is the one loop per client. Each pass (10 min) plans from the registry row, runs what is due of verify (only when the verifier is free), score, brief and compose, a bounded slice each, then points the mailbox loops: an inbox loop per listed mailbox while the client is on, a send loop per unsuspended mailbox while `stages.send` is on. It re-starts them hourly and after a resume, in case one stopped itself.
+  - `on` is the one switch. Off, the loop idles and stops the mailbox loops; on again needs nothing else. It stops itself only when the client is gone or is the demo. `crm loop start` once per client; `crm loop stop` stops it and every mailbox loop it started; `crm loop status`. A stop then start never leaves two chains of passes: each start bumps a generation and older delayed calls drop out.
+  - Lookup and signals stay in `crm run`: they read through a personal account.
 - **R5. CRM exports have their own formats and table.** `CRM_FORMATS` in `packages/reactivation`: `hubspot`, `salesforce`, `bullhorn` and `crm-generic`. Each is a header synonym table; a dialect's own names are tried first, then the generic ones. A file with no name column, or no email/company/website column, fails before anything is written, listing its headers.
   - Rows go through the people importer (origin `crm`), so a CRM person meets the same person found anywhere else.
   - Each row is also kept whole in `crm_contacts`: owner, status, last contacted, last placement, date added, the email as the CRM holds it, the raw row. One row per CRM record, keyed by the CRM id (else a row hash), so duplicates stay visible and a re-import updates in place.
@@ -119,14 +123,23 @@ A lint rule guards this. biome `noRestrictedImports` on `packages/**` fails the 
   - Each reason cites the finding or CRM row behind it, with the same marks as briefs.
   - Everyone is rescored from one query. Due when someone has no score, when any finding, check or CRM row changes, and daily (the windows move with the calendar).
 - **R11. The composer writes as the client.** Input: the client's profile (firm, what they place, voice, the recruiter who knew the contact, signature) plus the brief. One email and one follow-up, lowercase subject, plain, per the cold-email SOP. The client approves the first batch in the portal before anything sends.
+  - A gate drops drafts with prices, links, addresses, dashes, placeholders, or numbers not in the brief; the subject gets the same checks plus names.
+  - People who moved are skipped: their CRM address is at the old firm.
+  - Suppressed contacts are excluded in SQL. A draft that loses a race to another pass is stored as `raced`, not a failure.
+  - `approval: first` means the first batch waits for the client, then drafts flow. `every` means each batch waits. Approve or skip in the portal (Emails) or `crm approve|skip`; `crm emails` lists them.
 - **R12. Sending uses the existing machine.** Enrollments, pacing, roster and the Gmail transport, from domains we set up for the client (lookalike domains, mailboxes in the recruiter's name with written consent), warmed about 10 days. Never from the client's own domain.
-- **R13. Replies go to the client.** Inbox sync plus the classifier. An `interested` reply is forwarded to the recruiter named on the contact (else the client's default), shows in the portal and pings the client. "Meeting booked" is marked by the recruiter in the portal or by us, and it's the billing unit.
+  - The mailboxes live in Wren's Workspace, so Wren's Gmail transport and reader serve them. They are listed in the block's `senders`; a suspended one still syncs its inbox but never sends.
+  - The client's policy is Wren's window, days and gaps with its own caps (`sending.perInboxPerDay`, `openersPerDay`, `rampStart`). Wren's opener cap and ramp are Wren's campaign's and are not inherited; the ramp never starts above the client's ceiling.
+  - Client mail carries no open pixel: its opens would land in Wren's database.
+- **R13. Replies go to the client.** Inbox sync plus the classifier. An `interested` reply is forwarded to the recruiter named on the contact (else the client's default), shows in the portal and pings the client. "Meeting booked" is marked by the recruiter in the portal or by us (`crm book`), and it's the billing unit.
+  - Forwarding (step 7e): each `interested` or `meeting_booked` reply without a forwarded handoff is sent from its mailbox to the recruiter the composer wrote as, else the firm's default. The row is written before the send, so a crash never forwards twice. The operator is notified.
+  - The bill is `upfront + min(meetings × perMeeting, cap)`, shown on Replies to the owner only.
 - **R14. Portal: one Cloudflare Worker (`apps/portal`), API on Lambda through Restate, Cloudflare Access login.** Setup and checks: `deploy/portal.md`.
   - One Worker on two hosts: `app.` (Access) and `demo.` (no login). It serves the React + Vite app and proxies `/api/<route>` to the `ReactivationPortal` service on the worker, the way the phone app reads SMS. No Pages project, no public API.
   - Access gives email-code login with no passwords, free to 50 users. The Worker checks the Access JWT itself (RS256, team certs, aud, iss, exp) and sets the viewer; the browser's viewer is ignored. The service maps the email to clients through `clients.portal_emails`. `OPERATOR_EMAILS` (a Worker secret) see every client.
   - Reads run in a read-only transaction on the client's pool. That replaces the planned `portal_ro` role: same guarantee, no role per database to keep.
-  - The only writes are "approve batch" and "mark meeting booked", added in step 7 through Restate like the CLI's writes.
-  - Pages built: **Overview** (people, looked up, moved, at hiring firms, "call these first"), **People** (filters, the drawer with the brief, its numbered marks and sources), **Data health**, **Sources** (every finding by where it came from). **Replies** and **Emails** come with step 7.
+  - The only writes are approve, skip and "meeting booked", through Restate like the CLI's writes. The demo refuses them at the edge and in the service. A booking is billed, so only the login that marked it, or Wren, takes it back.
+  - Pages: **Overview** (people, looked up, moved, at hiring firms, "call these first"), **People** (filters, the drawer with the brief, its numbered marks and sources), **Data health**, **Sources** (every finding by where it came from), **Emails** (drafts to approve or skip, what went out), **Replies** (handoffs, meetings, the bill).
   - Local: `pnpm --filter @wren/portal preview [--demo]` serves the build and runs the same handlers in-process.
 - **R15. The demo is client `demo` with `demo: true`.** Every demo answer passes through one mask (`portal/mask.ts`) that walks every string: surnames and middle names become an initial (`Sarah K.`), addresses keep one letter (`s•••@domain`), LinkedIn profile links lose the name. Name search is off on the demo. Company names and sources stay real. `me` names it "Sample recruiting firm". Answers are cached 5 minutes at the edge (200s only). A banner says what's real and what's made up. `test/integration/portal.test.ts` walks every route for leaks.
 - **R16. The sample firm comes from a real agency's public data, kept anonymous.** As built: `wren --client demo crm seed-demo --agency <url>` (a `crm` command, so it gets the client's database; refuses unless the client is `demo`).
@@ -148,14 +161,17 @@ A lint rule guards this. biome `noRestrictedImports` on `packages/**` fails the 
   - Later stages (the watch) join `CRM_STAGES`, so the commands never change. The single-stage commands stay for debugging; `crm top` reads the result.
 - **R21. Per-client differences are settings, not forks.** `clients.products` is JSON keyed by product: `{ reactivation: { … } }`.
   - Each product parses its own block with a schema and owns the defaults. A bad block fails at `clients set`, not in a loop at 3am.
-  - The reactivation block covers:
-    - stages on or off (lookup, watch, briefs, compose, send)
-    - daily caps (lookups, follows, sends)
-    - the sender domains and mailboxes
-    - the offer terms
+  - The reactivation block (`settings.ts`) covers:
+    - `on`: the one switch
+    - `stages`: research, compose, send (off by default), handoff
+    - `compose.perDay`, `approval` (`first` or `every`)
+    - `sending`: per-inbox and opener caps, ramp start; null keeps Wren's ceiling
+    - `senders`: address, From name, recruiter, suspended
+    - `offer`: upfront, perMeeting, cap
+  - `wren clients set <id> --set reactivation.senders.1.suspended=true --unset reactivation.x`: paths go through arrays, and the product's parser checks the block before it is written.
   - The firm's own details (voice, recruiters, signature) live in the client's database (`client_profile`), because only that client's work reads them.
-  - The worker walks every client whose block turns the product on (R4).
-  - This replaces `clients.caps`, which nothing reads. It gets built in step 7, when the worker first needs it.
+  - Each client has its own `Reactivation` loop (R4), so 50 clients are 50 small loops, not one walk.
+  - This replaced `clients.caps`, which nothing read.
 
 ## Data added (one migration, every database)
 
@@ -165,11 +181,12 @@ A lint rule guards this. biome `noRestrictedImports` on `packages/**` fails the 
 - `company_checks` (R8): company_id, state, finding_id, tried, retry_at, run_id, checked_at.
 - `contact_scores`: person_id, score, reasons JSON, computed_at.
 - `client_profile`: one row with firm, sells, fee_avg, voice, default_recruiter, signature.
-- `handoffs`: reply message id, recruiter, forwarded_at, meeting_booked_at.
+- `compositions`: one row per compose attempt (`drafted`, `failed`, `raced`), linked to the enrollment it drafted. Approval lives on the messages (`approved_by` gains `client`).
+- `handoffs`: reply message id, recruiter, forward Message-ID, forwarded_at, meeting_booked_at.
 - `crm_contacts` (R5): every CRM row whole, with owner, status and dates. Replaces the planned `people.owner` / `last_contacted_at`: those are per CRM record, not per person, and a person can appear twice.
 - `people.origin` gains `crm`; `contact_candidates.evidence` gains `crm`.
 
-Main database only: `clients` (id, name, database, accounts JSON, caps JSON, portal_emails, demo, created_at). Step 7 replaces `caps` with `products` JSON (R21).
+Main database only: `clients` (id, name, database, accounts JSON, caps JSON, portal_emails, demo, created_at). Step 7 replaced `caps` with `products` JSON (R21).
 
 ## Build order
 
@@ -179,7 +196,7 @@ Main database only: `clients` (id, name, database, accounts JSON, caps JSON, por
 4. Company signals (R8), the watch (R19), briefs (R9), plus scoring (R10). The watch waits on autobrowse's watch mode, so the other three can land first. **Done except the watch.** `crm run` is now verify, lookup, signals, score, brief; `crm top` prints the ranked list.
 5. Demo seed (R16): `wren --client demo crm seed-demo --agency <url>`. **Built.** The first real agency's site names 24 customers, under R16's 30.
 6. Portal API and web (R14, R15), deploy, `demo.` and `app.` hosts. **Built;** `app.` waits on Access.
-7. Composer (R11), the client dimension in the worker (R4), per-client settings (R21), sending (R12) and handoff (R13).
+7. Composer (R11), the client dimension in the worker (R4), per-client settings (R21), sending (R12) and handoff (R13). **Done except forwarding (7e).** 7a settings and profile, 7b+7c composer and portal writes, 7d the per-client loop and client mailbox loops.
 8. Offer `reactivation` (R18), lander `/demo` link, map cards.
 
 ## Owed by others

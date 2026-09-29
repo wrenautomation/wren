@@ -6,7 +6,7 @@
   "exports": {
     ".": "./src/index.ts",
     "./portal-routes": "./src/portal/routes.ts",
-    "./restate": "./src/portal/service.ts",
+    "./restate": "./src/restate.ts",
     "./schema": "./src/schema.ts"
   },
   "scripts": {
@@ -25,7 +25,10 @@
     "zod": "4.6.5"
   },
   "devDependencies": {
+    "@restatedev/restate-sdk-clients": "1.17.1",
+    "@restatedev/restate-sdk-testcontainers": "1.17.1",
     "@testcontainers/postgresql": "12.1.0",
+    "@wren/config": "workspace:*",
     "typescript": "5.9.3",
     "vitest": "5.0.1"
   }

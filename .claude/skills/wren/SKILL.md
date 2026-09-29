@@ -1,6 +1,6 @@
 ---
 name: wren
-description: Use wren for a client or for personal work. Covers adding a client, setting a client's research accounts, importing a CRM export, running reactivation (`crm run`, `crm status`, `crm top`), seeding the demo list (`crm seed-demo`), giving a client portal access, previewing the portal, and reading the send gate. Use when the user says "add a client", "import this CRM", "where is <client> at", "run the lookups", "who should they call", "seed the demo", "show me the portal", "give <client> access", or anything with `wren --client`.
+description: Use wren for a client or for personal work. Covers adding a client, setting a client's research accounts, importing a CRM export, running reactivation (`crm run`, `crm status`, `crm top`), emails and sending (`crm emails|approve|skip|book`, `crm loop`), a client's settings (`clients set --set`), seeding the demo list (`crm seed-demo`), giving a client portal access, previewing the portal, and reading the send gate. Use when the user says "add a client", "import this CRM", "where is <client> at", "run the lookups", "who should they call", "seed the demo", "show me the portal", "give <client> access", or anything with `wren --client`.
 ---
 
 # wren
@@ -54,6 +54,25 @@ Every client command takes `--client <id>`. Without it the command refuses. It n
 - `crm status` always ends with a `next:` line. Do what it says.
 - `--limit n` caps each stage for a trial run. `--no-linkedin` means web search only.
 - `crm verify` and `crm lookup` run a single stage and are for debugging. `crm lookup --again` redoes people already looked up.
+
+### Emails, sending, replies
+
+```sh
+./bin/wren --client <id> crm profile                   # the firm: voice, recruiters, signature
+./bin/wren --client <id> crm profile set <file.json>
+./bin/wren clients set <id> --set reactivation.on=true --set reactivation.stages.send=true
+./bin/wren clients set <id> --set reactivation.senders.0.suspended=true   # paths go through arrays
+./bin/wren --client <id> crm emails [--filter awaiting] # drafts; #ids are for approve and skip
+./bin/wren --client <id> crm approve <ids...> | --all
+./bin/wren --client <id> crm skip <ids...>
+./bin/wren --client <id> crm book <replyId> [--undo]   # a meeting booked: the billing unit
+./bin/wren --client <id> crm loop start|stop|status
+```
+
+- The block under `reactivation` holds the client's settings: `on`, `stages`, `approval`, `sending` caps, `senders` (the mailboxes in Wren's Workspace), `offer`. `clients set` checks it before writing.
+- `crm loop start` once per client. The loop works what is due every 10 minutes (verify only when free, score, briefs, emails) and runs each mailbox's inbox sync and sending. Lookup and signals stay `crm run`.
+- `on` is the one switch. Off, the loop idles and stops the mailboxes. Sending needs `stages.send` too; it is off by default.
+- `approval: first`: the client approves the first batch in the portal, then drafts flow. `every`: each batch.
 
 ### The demo list
 

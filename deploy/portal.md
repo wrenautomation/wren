@@ -11,6 +11,10 @@ One Worker, two hosts:
 through Restate's ingress. The Worker always sets the viewer; the browser's is
 ignored. The rest is the React app in `web/`, built to `dist/`.
 
+Reads run in a read-only transaction. The only writes are approve, skip and
+"meeting booked"; the demo refuses them at the edge and in the service. A
+booking is billed, so only the login that marked it, or Wren, takes it back.
+
 Who sees what: `wren clients set <id> --portal-email a@firm.com` (the list is the
 only door). Emails in `OPERATOR_EMAILS` see every client.
 

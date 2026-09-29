@@ -9,6 +9,7 @@ import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 import {
   makeSendScheduler,
   nextDelay,
+  oneScope,
   type SendScheduler,
 } from "../../src/restate/send-scheduler.js";
 import { enrollments } from "../../src/schema.js";
@@ -47,7 +48,11 @@ beforeAll(async () => {
   pg = await startTestPostgres();
   env = await RestateTestEnvironment.start({
     services: [
-      makeSendScheduler({ db: pg.db, transport, policy: OPEN, fleet: FLEET, tickMs: 5_000 }),
+      makeSendScheduler({
+        transport,
+        scopeOf: oneScope({ db: pg.db, policy: OPEN, fleet: FLEET }),
+        tickMs: 5_000,
+      }),
     ],
     alwaysReplay: true,
   });
@@ -85,6 +90,7 @@ describe("SendScheduler", () => {
     const theirs = await enrollOne("theirs.example", "b@theirs.example", SENDER_B);
 
     const outcome = await client(SENDER_A).tick();
+    if (!outcome) throw new Error("the one scope is always there");
 
     expect(outcome.stats.sent).toBe(1);
     expect(outcome.stats.sender_not_on_roster).toBe(1);
