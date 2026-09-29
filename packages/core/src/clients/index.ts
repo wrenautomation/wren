@@ -1,0 +1,100 @@
+/**
+ * The client registry: who the clients are and where their databases live.
+ * Every function here runs on the main database.
+ */
+import {
+  clientDatabaseName,
+  clientDatabaseUrl,
+  createDatabase,
+  type Db,
+  migrateClient,
+} from "@wren/db";
+import { asc, eq } from "drizzle-orm";
+import { type Client, clients } from "./schema.js";
+
+export * from "./schema.js";
+
+export interface NewClient {
+  id: string;
+  name: string;
+  accounts?: Record<string, string>;
+  caps?: Record<string, number>;
+  portalEmails?: string[];
+  demo?: boolean;
+}
+
+/**
+ * Create the client's database, migrate it, then register it. The row is written
+ * last, so a registered client always has a ready database. Re-running after a
+ * half-done add picks up where it stopped.
+ */
+export async function addClient(main: Db, mainUrl: string, input: NewClient): Promise<Client> {
+  const database = clientDatabaseName(input.id);
+  if (await findClient(main, input.id)) throw new Error(`client ${input.id} exists`);
+  await createDatabase(main, database);
+  await migrateClient(mainUrl, database);
+  const [row] = await main
+    .insert(clients)
+    .values({
+      id: input.id,
+      name: input.name,
+      database,
+      accounts: input.accounts ?? {},
+      caps: input.caps ?? {},
+      portalEmails: (input.portalEmails ?? []).map((e) => e.toLowerCase()),
+      demo: input.demo ?? false,
+    })
+    .returning();
+  if (!row) throw new Error(`client ${input.id}: insert returned nothing`);
+  return row;
+}
+
+export async function listClients(main: Db): Promise<Client[]> {
+  return main.select().from(clients).orderBy(asc(clients.id));
+}
+
+export async function findClient(main: Db, id: string): Promise<Client | null> {
+  const [row] = await main.select().from(clients).where(eq(clients.id, id));
+  return row ?? null;
+}
+
+export async function getClient(main: Db, id: string): Promise<Client> {
+  const row = await findClient(main, id);
+  if (!row) throw new Error(`unknown client ${id}; see \`wren clients list\``);
+  return row;
+}
+
+export interface ClientChange {
+  name?: string;
+  /** Merged in; an empty value turns that site off. */
+  accounts?: Record<string, string>;
+  /** Merged in; a negative value removes the cap. */
+  caps?: Record<string, number>;
+  /** Replaces the list. */
+  portalEmails?: string[];
+}
+
+export async function updateClient(main: Db, id: string, change: ClientChange): Promise<Client> {
+  const current = await getClient(main, id);
+  const accounts = { ...current.accounts, ...change.accounts };
+  for (const [site, account] of Object.entries(accounts)) if (!account) delete accounts[site];
+  const caps = { ...current.caps, ...change.caps };
+  for (const [name, n] of Object.entries(caps)) if (n < 0) delete caps[name];
+  const [row] = await main
+    .update(clients)
+    .set({
+      name: change.name ?? current.name,
+      accounts,
+      caps,
+      portalEmails: change.portalEmails?.map((e) => e.toLowerCase()) ?? current.portalEmails,
+    })
+    .where(eq(clients.id, id))
+    .returning();
+  if (!row) throw new Error(`client ${id}: update returned nothing`);
+  return row;
+}
+
+/** Where this client's data lives. */
+export function clientUrl(mainUrl: string, client: Pick<Client, "database">): string {
+  return clientDatabaseUrl(mainUrl, client.database);
+}

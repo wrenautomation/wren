@@ -40,3 +40,5 @@ await build({
 // A duplicate top-level binding is a SyntaxError only seen on load; catch it here.
 execFileSync("node", ["--check", bundle], { stdio: "inherit" });
 cpSync(resolve(repo, "packages/niches/templates"), resolve(out, "templates"), { recursive: true });
+// `wren clients add` migrates the new client's database from these.
+cpSync(resolve(repo, "packages/db/drizzle"), resolve(out, "drizzle"), { recursive: true });
