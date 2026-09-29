@@ -1,4 +1,5 @@
-import { companies, imports, people } from "@wren/core/schema";
+import { companies, imports, people, runs } from "@wren/core/schema";
+import { oneOf } from "@wren/db/columns";
 import {
   date,
   foreignKey,
@@ -11,6 +12,7 @@ import {
   text,
   timestamp,
   unique,
+  uuid,
   varchar,
 } from "drizzle-orm/pg-core";
 
@@ -67,3 +69,78 @@ export const crmContacts = pgTable(
 );
 
 export type CrmContact = typeof crmContacts.$inferSelect;
+
+/**
+ * Who goes first (R10), one row per CRM person. `reasons` says why, each with
+ * its points and the findings behind it, so the portal can show it. Rebuilt
+ * whenever what it stands on changes; cheap, no calls.
+ */
+export const contactScores = pgTable(
+  "contact_scores",
+  {
+    personId: integer("person_id").notNull(),
+    score: integer("score").notNull(),
+    /** `[{ reason, points, findingIds }]`, biggest first. */
+    reasons: jsonb("reasons").notNull(),
+    computedAt: timestamp("computed_at", { withTimezone: true }).defaultNow().notNull(),
+  },
+  (t) => [
+    primaryKey({ columns: [t.personId], name: "pk_contact_scores" }),
+    index("ix_contact_scores_score").on(t.score),
+    foreignKey({
+      columns: [t.personId],
+      foreignColumns: [people.id],
+      name: "fk_contact_scores_person_id_people",
+    }),
+  ],
+);
+export type ContactScore = typeof contactScores.$inferSelect;
+
+/**
+ * `written`: at least one cited sentence survived the gate. `empty`: none did,
+ * so there is nothing to show. `failed`: the model's answer didn't parse. All
+ * three are kept so the same inputs are never paid for twice.
+ */
+export const BRIEF_STATES = ["written", "empty", "failed"] as const;
+export type BriefState = (typeof BRIEF_STATES)[number];
+
+/**
+ * Why reach out to this person now (R9), one row per CRM person: sentences
+ * that each cite a finding (`[f<id>]`) or a CRM record (`[c<id>]`), or they
+ * were dropped. `inputs_hash` is what it was written from; a new hash means
+ * a new brief.
+ */
+export const briefs = pgTable(
+  "briefs",
+  {
+    personId: integer("person_id").notNull(),
+    state: varchar("state", { length: 16, enum: BRIEF_STATES }).notNull(),
+    text: text("text").notNull(),
+    /** `{ findings: [ids], crm: [ids] }`: what the kept sentences cite. */
+    citations: jsonb("citations").notNull(),
+    /** Sentences the gate dropped, with why. */
+    dropped: jsonb("dropped").notNull(),
+    inputsHash: varchar("inputs_hash", { length: 32 }).notNull(),
+    model: varchar("model", { length: 128 }).notNull(),
+    promptVersion: varchar("prompt_version", { length: 16 }).notNull(),
+    /** The call as made: raw text, parse error, provider refusal. */
+    llm: jsonb("llm"),
+    runId: uuid("run_id"),
+    createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+  },
+  (t) => [
+    primaryKey({ columns: [t.personId], name: "pk_briefs" }),
+    foreignKey({
+      columns: [t.personId],
+      foreignColumns: [people.id],
+      name: "fk_briefs_person_id_people",
+    }),
+    foreignKey({
+      columns: [t.runId],
+      foreignColumns: [runs.id],
+      name: "fk_briefs_run_id_runs",
+    }),
+    oneOf("ck_briefs_state", t.state, BRIEF_STATES),
+  ],
+);
+export type Brief = typeof briefs.$inferSelect;

@@ -47,6 +47,9 @@ importers:
       '@wren/db':
         specifier: workspace:*
         version: link:../../packages/db
+      '@wren/llm':
+        specifier: workspace:*
+        version: link:../../packages/llm
       '@wren/niches':
         specifier: workspace:*
         version: link:../../packages/niches
@@ -550,12 +553,18 @@ importers:
       '@wren/db':
         specifier: workspace:*
         version: link:../db
+      '@wren/llm':
+        specifier: workspace:*
+        version: link:../llm
       '@wren/research':
         specifier: workspace:*
         version: link:../research
       drizzle-orm:
         specifier: 0.45.2
         version: 0.45.2(@cloudflare/workers-types@5.20260927.1)(postgres@3.4.9)
+      zod:
+        specifier: 4.6.5
+        version: 4.6.5
     devDependencies:
       '@testcontainers/postgresql':
         specifier: 12.1.0

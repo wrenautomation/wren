@@ -15,7 +15,9 @@
  * Pure over a SiteClient: it returns findings and the trail, `store.ts` writes.
  */
 import { isFreemail } from "@wren/core";
-import { SiteCallError, type SiteClient } from "@wren/core/content";
+import type { SiteClient } from "@wren/core/content";
+import type { DocumentDraft, FindingDraft } from "../findings.js";
+import { Capped, paced, realSleep, refusedBy } from "../pacing.js";
 import type { FindingKind, LookupState } from "../schema.js";
 import {
   companyPhrase,
@@ -28,6 +30,8 @@ import {
 } from "./names.js";
 import { experienceOf, linkedinProfile, type ProfileLink, readSerpTitle } from "./serp.js";
 
+export type { DocumentDraft, FindingDraft } from "../findings.js";
+
 export interface LookupSubject {
   personId: number;
   firstName: string | null;
@@ -38,27 +42,6 @@ export interface LookupSubject {
   linkedinUrl: string | null;
   /** The latest check of the address we hold for them. */
   email: { address: string; result: string; verifier: string } | null;
-}
-
-export interface DocumentDraft {
-  url: string;
-  kind: "snippet" | "profile";
-  title: string | null;
-  text: string;
-  /** Who fetched it: the search backend, or `linkedin`. */
-  fetchTier: string;
-}
-
-export interface FindingDraft {
-  kind: FindingKind;
-  personId: number;
-  /** Subject, kind, how we know, what: seeing it again is the same fact. */
-  factKey: string;
-  value: Record<string, unknown>;
-  confidence: number;
-  via: string;
-  sourceUrl: string | null;
-  document: DocumentDraft | null;
 }
 
 export interface Tried {
@@ -100,12 +83,6 @@ const SURE = {
 /** Profiles read per person at most: the profile cap is shared by the whole list. */
 const MAX_PROFILE_READS = 3;
 const SEARCH_HITS = 5;
-/**
- * A 429 asking for this long or less is pacing: wait and ask again. Longer is
- * a daily cap. autobrowse refuses a paced call once its slot is 2+ minutes out.
- */
-const PACE_MAX_S = 300;
-const PACE_TRIES = 3;
 
 interface Hits {
   hits: { title: string; url: string; snippet: string | null }[];
@@ -129,17 +106,6 @@ interface PersonHit {
   headline?: string;
   current?: string;
   past?: string;
-}
-
-/** A daily cap said stop: when to try again. */
-class Capped extends Error {
-  constructor(
-    readonly site: string,
-    readonly retryAt: Date,
-    readonly why: string,
-  ) {
-    super(why);
-  }
 }
 
 const key = (s: LookupSubject, kind: FindingKind, via: string, detail: string) =>
@@ -200,7 +166,13 @@ function employerFinding(
     personId: s.personId,
     factKey: key(s, kind, via, `${link.vanity}:${companyPhrase(now.company)}`),
     value: there
-      ? { company: now.company, title: now.title, dates: now.dates ?? null }
+      ? // companyUrl: the firm's own LinkedIn page, so company research needs no search for it.
+        {
+          company: now.company,
+          title: now.title,
+          dates: now.dates ?? null,
+          companyUrl: now.companyUrl ?? null,
+        }
       : {
           from: firmLabel(s.firm),
           to: now.company,
@@ -248,23 +220,13 @@ function profileFinding(
   };
 }
 
-/** A 4xx that says no to this one request (private profile, not found); null for anything else. */
-const refusedBy = (err: unknown): number | null =>
-  err instanceof SiteCallError && err.status >= 400 && err.status < 500 ? err.status : null;
-
-/** Seconds a 429 asks us to wait; null for any other error. No figure = an hour. */
-function retryAfter(err: unknown): number | null {
-  if (!(err instanceof SiteCallError) || err.status !== 429) return null;
-  return Number(/retry after (\d+)s/.exec(err.message)?.[1] ?? 3_600);
-}
-
 export async function lookUpPerson(
   sites: SiteClient,
   s: LookupSubject,
   opts: LookupOptions,
 ): Promise<LookupResult> {
   const clock = opts.now ?? (() => new Date());
-  const call = paced(sites, clock, opts.sleep ?? ((ms) => new Promise((r) => setTimeout(r, ms))));
+  const call = paced(sites, clock, opts.sleep ?? realSleep);
   const tried: Tried[] = [];
   const findings = emailFindings(s);
   for (const f of findings)
@@ -444,24 +406,4 @@ export async function lookUpPerson(
   }
   if (status) findings.push(status);
   return done(profile ? "matched" : "unresolved", profile);
-}
-
-/**
- * SiteClient.call that waits out pacing (a short 429) and turns a daily cap
- * (a long one) into Capped.
- */
-function paced(sites: SiteClient, clock: () => Date, sleep: (ms: number) => Promise<void>) {
-  return async <T>(...args: Parameters<SiteClient["call"]>): Promise<T> => {
-    for (let attempt = 1; ; attempt++) {
-      try {
-        return await sites.call<T>(...args);
-      } catch (err) {
-        const secs = retryAfter(err);
-        if (secs === null || !(err instanceof SiteCallError)) throw err;
-        if (secs > PACE_MAX_S || attempt >= PACE_TRIES)
-          throw new Capped(err.site, new Date(clock().getTime() + secs * 1000), err.message);
-        await sleep(secs * 1000);
-      }
-    }
-  };
 }

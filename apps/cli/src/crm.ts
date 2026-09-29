@@ -1,15 +1,17 @@
 /**
  * `wren --client <id> crm …`: a client's CRM export in, then `crm run` does
- * every stage that is due and `crm status` says where things stand. The
- * single-stage commands (verify, lookup) are for debugging one stage. Always a
- * client's database.
+ * every stage that is due, `crm status` says where things stand and `crm top`
+ * shows who to call first. The single-stage commands (verify, lookup) are for
+ * debugging one stage. Always a client's database.
  */
+import { writeFileSync } from "node:fs";
 import { resolve } from "node:path";
 import { defaultLocalChecker, makeVerifier } from "@wren/channel-email";
 import type { Settings } from "@wren/config";
 import { recordedRun } from "@wren/core";
 import type { Client } from "@wren/core/clients";
 import type { Db } from "@wren/db";
+import { loadLlmEnv, makeLlm } from "@wren/llm";
 import {
   CRM_FORMATS,
   CrmCsvSource,
@@ -18,10 +20,14 @@ import {
   crmStatus,
   formatCrmHealth,
   formatCrmStatus,
+  formatRanked,
   lookUpCrmPeople,
+  rankedContacts,
   runCrm,
   runCrmImport,
+  seedDemo,
 } from "@wren/reactivation";
+import { PoliteFetcher, userAgent } from "@wren/research/fetch";
 import type { Command } from "commander";
 import { ingressSites } from "./sites.js";
 
@@ -33,7 +39,12 @@ const positive = (flag: string) => (v: string) => {
   return n;
 };
 
-export function registerCrm(program: Command, withClientDb: WithDb, settings: Settings): void {
+export function registerCrm(
+  program: Command,
+  withClientDb: WithDb,
+  settings: Settings,
+  rootDir: string,
+): void {
   const crm = program
     .command("crm")
     .description("a client's CRM: import, then `crm run` and `crm status`");
@@ -94,7 +105,22 @@ export function registerCrm(program: Command, withClientDb: WithDb, settings: Se
         smtpProbeToken: settings.smtpProbeToken ?? null,
         smtpHelo: settings.smtpHelo ?? null,
       });
-      const deps = { verifier, checker: defaultLocalChecker(), sites: ingressSites(settings) };
+      // Key fleets and provider keys live in llm.env (or the host's env); never logged.
+      loadLlmEnv(settings.llmEnvPath, rootDir);
+      const deps = {
+        verifier,
+        checker: defaultLocalChecker(),
+        sites: ingressSites(settings),
+        // Company sites and job boards: identified, short timeouts, one retry.
+        fetcher: settings.fetchContact
+          ? new PoliteFetcher(userAgent(settings.fetchContact), { timeout: 10, retries: 1 })
+          : null,
+        llm:
+          settings.llm === "fake"
+            ? null
+            : makeLlm(settings.llm, process.env, { anthropicModel: settings.llmModel }),
+      };
+      if (!deps.fetcher) console.log("WREN_FETCH_CONTACT unset: job boards skipped, LinkedIn only");
       const { client, run, stages, status } = await withClientDb(async (db, client) => {
         const linkedin = opts.linkedin ? (client.accounts?.linkedin ?? null) : null;
         const argv = { ...opts, linkedin };
@@ -113,6 +139,18 @@ export function registerCrm(program: Command, withClientDb: WithDb, settings: Se
       );
       for (const line of formatCrmStatus(status)) console.log(line.replaceAll("<id>", client.id));
       if (stages.some((s) => s.stats.aborted)) process.exitCode = 1;
+    });
+
+  crm
+    .command("top")
+    .description("Who to call first: best score first, with why and the brief")
+    .option("--limit <n>", "how many", positive("--limit"), 20)
+    .option("--json", "print as JSON")
+    .action(async (opts: { limit: number; json?: boolean }) => {
+      const list = await withClientDb((db) => rankedContacts(db, { limit: opts.limit }));
+      if (opts.json) console.log(JSON.stringify(list, null, 2));
+      else if (!list.length) console.log("no scores yet: `wren --client <id> crm run`");
+      else for (const line of formatRanked(list)) console.log(line);
     });
 
   crm
@@ -173,6 +211,63 @@ export function registerCrm(program: Command, withClientDb: WithDb, settings: Se
         });
         console.log(`run ${run.id}: ${JSON.stringify(stats)}`);
         if (stats.aborted) process.exitCode = 1;
+      },
+    );
+
+  crm
+    .command("seed-demo")
+    .description(
+      "Demo only: replace the list with one built from an agency's site (its customers, people who hire there)",
+    )
+    .requiredOption("--agency <url>", "the agency's site")
+    .option("--name <name>", "the agency's name (default: its home page title)")
+    .option("--companies <n>", "customers to use at most", positive("--companies"), 40)
+    .option("--per-company <n>", "people per customer at most", positive("--per-company"), 2)
+    .option("--csv <path>", "also save the export here (keep it out of the repo)")
+    .action(
+      async (opts: {
+        agency: string;
+        name?: string;
+        companies: number;
+        perCompany: number;
+        csv?: string;
+      }) => {
+        if (!settings.fetchContact)
+          throw new Error("seed-demo reads sites: set WREN_FETCH_CONTACT");
+        if (settings.llm === "fake")
+          throw new Error("seed-demo reads the agency's site with an LLM: set WREN_LLM");
+        loadLlmEnv(settings.llmEnvPath, rootDir);
+        const deps = {
+          fetcher: new PoliteFetcher(userAgent(settings.fetchContact), { timeout: 10, retries: 1 }),
+          sites: ingressSites(settings),
+          llm: makeLlm(settings.llm, process.env, { anthropicModel: settings.llmModel }),
+        };
+        const { client, run, stats } = await withClientDb(async (db, client) => {
+          if (!client.demo)
+            throw new Error(`${client.id} is not a demo client: seed-demo replaces its whole list`);
+          const { run, stats } = await recordedRun(
+            db,
+            { command: "crm seed-demo", argv: { ...opts } },
+            async (r) => {
+              const { csv, stats } = await seedDemo(db, deps, {
+                agency: opts.agency,
+                agencyName: opts.name ?? null,
+                companies: opts.companies,
+                perCompany: opts.perCompany,
+                runId: r.id,
+                onProgress: (line) => console.log(line),
+              });
+              if (opts.csv) writeFileSync(resolve(opts.csv), csv);
+              return stats;
+            },
+          );
+          return { client, run, stats };
+        });
+        console.log(
+          `run ${run.id}: ${JSON.stringify({ ...stats, dropped: stats.dropped.length })}`,
+        );
+        if (opts.csv) console.log(`saved ${resolve(opts.csv)}`);
+        console.log(`next: wren --client ${client.id} crm run`);
       },
     );
 }

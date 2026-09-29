@@ -5,6 +5,7 @@
   "type": "module",
   "exports": {
     ".": "./src/index.ts",
+    "./companies": "./src/companies/index.ts",
     "./discovery": "./src/discovery/index.ts",
     "./fetch": "./src/fetch/index.ts",
     "./people": "./src/people/index.ts",

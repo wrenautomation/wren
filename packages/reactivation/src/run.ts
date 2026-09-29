@@ -8,14 +8,23 @@
 import type { EmailVerifier, LocalCheckerLike } from "@wren/channel-email";
 import type { SiteClient } from "@wren/core/content";
 import type { Queryable } from "@wren/db";
+import type { LlmClient } from "@wren/llm";
+import type { Fetcher } from "@wren/research/fetch";
+import { type CrmBriefStats, writeCrmBriefs } from "./brief.js";
 import { type CrmVerifyStats, checkCrmEmails } from "./crm/verify.js";
 import { type CrmLookupStats, lookUpCrmPeople } from "./lookup.js";
+import { type CrmScoreStats, scoreCrmContacts } from "./score.js";
+import { type CrmSignalsStats, checkCrmCompanies } from "./signals.js";
 import { CRM_STAGES, type CrmStage, crmStatus } from "./status.js";
 
 export interface CrmRunDeps {
   verifier: EmailVerifier;
   checker: LocalCheckerLike;
   sites: SiteClient;
+  /** For company sites and job boards; null = LinkedIn only. */
+  fetcher: Fetcher | null;
+  /** Writes briefs; null = the brief stage stops and says why. */
+  llm: LlmClient | null;
 }
 
 export interface CrmRunOptions {
@@ -28,7 +37,10 @@ export interface CrmRunOptions {
 
 export type CrmStageResult =
   | { stage: "verify"; stats: CrmVerifyStats }
-  | { stage: "lookup"; stats: CrmLookupStats };
+  | { stage: "lookup"; stats: CrmLookupStats }
+  | { stage: "signals"; stats: CrmSignalsStats }
+  | { stage: "score"; stats: CrmScoreStats }
+  | { stage: "brief"; stats: CrmBriefStats };
 
 export async function runCrm(
   db: Queryable,
@@ -67,6 +79,34 @@ export async function runCrm(
             ...limit,
           }),
         };
+      case "signals":
+        return {
+          stage,
+          stats: await checkCrmCompanies(
+            db,
+            { fetcher: deps.fetcher, sites: deps.sites },
+            { linkedin: opts.linkedin, runId: opts.runId ?? null, ...limit },
+          ),
+        };
+      case "score":
+        return { stage, stats: await scoreCrmContacts(db) };
+      case "brief":
+        return {
+          stage,
+          stats: deps.llm
+            ? await writeCrmBriefs(db, deps.llm, { runId: opts.runId ?? null, ...limit })
+            : { ...NO_BRIEFS, aborted: "briefs need an LLM: set WREN_LLM (it is fake)" },
+        };
     }
   }
 }
+
+const NO_BRIEFS: CrmBriefStats = {
+  selected: 0,
+  written: 0,
+  empty: 0,
+  failed: 0,
+  dropped: 0,
+  errors: 0,
+  aborted: null,
+};

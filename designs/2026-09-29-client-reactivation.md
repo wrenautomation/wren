@@ -83,6 +83,15 @@ A lint rule guards this. biome `noRestrictedImports` on `packages/**` fails the 
   - Posts: the watch feeds (R19). Instagram Business Discovery (official) for business accounts, no follow needed.
   - News: web search.
   - A browser leg only where no API exists, in our own real browser, read-only.
+
+  As built for hiring (`packages/research/src/companies`, the `signals` stage of `crm run`). This replaces the plan above: a job board's own API is exact and free, and web search for posts guesses.
+  - The firm's own site first: `/careers`, `/jobs`, the home page, then the one page the home page links as careers. A page that redirects off the firm's site doesn't count.
+  - The board it names (greenhouse, lever, ashby, workable, smartrecruiters, recruitee, bamboohr) is read through that ATS's public postings API. One entry per ATS in `boards.ts`. Several boards on one page count only when one of them is clearly the firm's; otherwise none does.
+  - LinkedIn only when the client allows it and no board was found. The company's page comes from a matched profile's current role, else the company's own social link, else a search hit whose page names the firm's own website. Then its jobs.
+  - Confidence: board 0.95, LinkedIn 0.85. No board and no trusted page is `unresolved`, never a guess.
+  - One `company_checks` row per company: `hiring`, `no_openings`, `unresolved` or `capped`, pointing at the hiring finding it stands on. `no_openings` points at nothing, so an old hiring finding stops counting without being deleted. A capped re-check keeps the last real answer.
+  - Due again: an answer after 7 days, `unresolved` after 30, `capped` when the cap lifts. Biggest companies (most CRM people) first, 3 at a time. Caps, pacing and error streaks work as in R7.
+  - Posts come with the watch (R19). News is deferred: web search for news guesses, and nothing needs it until the composer does.
 - **R19. Watch by following, read the feed.** Searching per person per day costs one request per contact per platform and looks like a scraper. Following costs one request per contact, once, and the daily read is one feed per account.
   1. Handles are resolved once, during lookup (R7): the LinkedIn profile, the X handle and the Instagram handle when a result names them. Company pages too.
   2. Subscribe:
@@ -92,7 +101,23 @@ A lint rule guards this. biome `noRestrictedImports` on `packages/**` fails the 
   3. Once a day per platform per account, read the feed from the saved cursor. Match each post's author to a watched person or company. Store the post in `documents` and a `post` or `hiring` finding.
   4. Follows are capped per account per day (about 20 to start) and spread over days. A new client's list fills its watch over two to three weeks. Search runs only for the one-time lookup and for news.
 - **R9. Briefs are cited or dropped.** The LLM writes a brief from findings only. Each sentence carries `[f<id>]` marks, and a gate drops any sentence whose marks do not point at a finding for that contact (same idea as the reply classifier's quote gate). A brief with no surviving sentence is not stored. It goes through `complete_and_parse` and is a `runs` row with costs.
+
+  As built (`packages/reactivation/src/brief.ts`, the `brief` stage):
+  - Facts: the finding that says where they are (the surest, then the latest), their company's hiring finding, their post and news findings, and their CRM rows. CRM rows are cited as `[c<id>]`: "last placement 2024-03" is worth saying.
+  - The gate also drops a sentence with a number that isn't in the facts it cites, and anything past 4 sentences. What it dropped, and why, is kept on the row.
+  - Every outcome is stored, unlike the plan: `written`, `empty` (nothing survived) or `failed` (unreadable answer). So the same facts are never paid for twice. Only `written` shows anywhere. `failed` retries after a day.
+  - Rewritten only when its inputs change: a hash of the facts (without their read date, so a fact read again isn't a change), the CRM rows and the prompt version.
+  - Who gets one: score above 0, lookup finished, at least one finding.
+  - A provider failure stops the stage. No LLM configured (the fake) stops it with a message; the other stages still run.
+  - The call envelope is stored on `briefs.llm`. Owed: a cost view over it, since `email_stage_costs` covers email stages only.
 - **R10. Contacts are scored so the best go first.** Hiring at their company beats a job change to a new company. That beats still being there and recently in touch, which beats stale. The score's reasons are stored with it so the portal can say why.
+
+  As built (`packages/reactivation/src/score.ts`, the `score` stage; `crm top` prints the list):
+  - Still there and their company hiring 100; moved 70; still there 40; nothing found 10, or 40 if their company is hiring. Left scores 0.
+  - A placement in the last 24 months adds 15; a contact in the last 12 adds 10.
+  - A hiring finding counts only while it's under 30 days old. A mover's old firm's hiring doesn't count.
+  - Each reason cites the finding or CRM row behind it, with the same marks as briefs.
+  - Everyone is rescored from one query. Due when someone has no score, when any finding, check or CRM row changes, and daily (the windows move with the calendar).
 - **R11. The composer writes as the client.** Input: the client's profile (firm, what they place, voice, the recruiter who knew the contact, signature) plus the brief. One email and one follow-up, lowercase subject, plain, per the cold-email SOP. The client approves the first batch in the portal before anything sends.
 - **R12. Sending uses the existing machine.** Enrollments, pacing, roster and the Gmail transport, from domains we set up for the client (lookalike domains, mailboxes in the recruiter's name with written consent), warmed about 10 days. Never from the client's own domain.
 - **R13. Replies go to the client.** Inbox sync plus the classifier. An `interested` reply is forwarded to the recruiter named on the contact (else the client's default), shows in the portal and pings the client. "Meeting booked" is marked by the recruiter in the portal or by us, and it's the billing unit.
@@ -107,20 +132,23 @@ A lint rule guards this. biome `noRestrictedImports` on `packages/**` fails the 
     - **Emails:** the batch to approve
     - **Raw:** every finding with its source, per platform
 - **R15. The demo is client `demo` with `demo: true`.** The API strips unmasked people fields before they leave the server (`Sarah K.`, `s•••@domain`), serves without Access, and refuses writes. Company names and sources stay real. A banner says what's real and what's simulated.
-- **R16. The sample firm comes from a real agency's public data, kept anonymous.**
+- **R16. The sample firm comes from a real agency's public data, kept anonymous.** As built: `wren --client demo crm seed-demo --agency <url>` (a `crm` command, so it gets the client's database; refuses unless the client is `demo`).
   - Pick a real recruiting agency of 10–50 people whose site names at least 30 clients (logos, case studies, testimonials).
-  - Extract those names with the existing extraction, resolve their domains and find 1–3 hiring-side contacts per company through R7.
-  - Write it as a Bullhorn-style CSV with simulated CRM history (last placement, last contact, owner) and realistic mess: duplicates, dead emails, blank titles.
-  - Import it through the same path as a real client, so the demo exercises the product.
+  - **Customers** (`research/companies/customers.ts`, niche-agnostic): the home page plus up to 8 same-site pages whose path or link text looks like a client list. One model call sees each page's text, image alts and file names, and links off the site. A name counts only when the pages carry it; a website only when a link on the pages points there. The firm itself is dropped.
+  - **Sites** (`discovery/find.ts`): the linked site first, else guessed domains; either must pass the ownership gate.
+  - **People** (`people/contacts.ts`): one search, `site:linkedin.com/in "<company>" (talent OR recruiting OR "human resources" OR people)`. Keep results whose title is a hiring role and that name the firm. A result listing another employer now is someone who left: kept, so the demo has real movers.
+  - **Made up, seeded by the agency's domain** (same agency, same list): owner, status, date added (3–10 years ago), last contact (mostly 1–4 years ago), last placement (about 6 in 10). Email is the `first.last@` guess at the customer's domain; the verify stage says whether it works.
+  - **Mess:** blank titles (15%), a company spelled a second way (8%), a missing site (10%), a contact entered twice (5%). Never a fake bounce or a fake move: those would be claims about real people.
+  - Written as a Bullhorn export and imported through the same path as a real client. Each seed wipes the demo's list first. `--csv <path>` saves a copy; keep it out of the repo.
   - The agency is never named ("a 30-person tech recruiting firm, built from its public website"). No emails are ever sent to demo contacts: the demo client has no roster.
 - **R17. Accounts are per client.** The `clients` row names each site's account, and wren always passes `account` explicitly. autobrowse enforces caps per account.
   - For now every client uses `linkedin`: William's personal profile, read-only. Its caps are lower than the default (40 profiles and 15 searches a day, asked 2026-09-29).
   - Clients sharing an account split one daily cap, and `clients add|set` warns when that happens. Give a client its own account (`linkedin@<client>`) once volume needs it.
 - **R18. Offer.** `reactivation` is a `performance` price: `upfront` $1,000, `perUnit` $500, `unit` "meeting booked", `cap` $15,000. Prices stay off the lander (D14); the portal shows the running bill to the client.
 - **R20. One command per job: `crm run` and `crm status`, plus the `wren` skill.**
-  - `crm run` does every stage that is due, in order (`CRM_STAGES`: verify, then lookup). It stops at the first stage that aborts, is recorded as one `runs` row, and resumes when run again.
+  - `crm run` does every stage that is due, in order (`CRM_STAGES`: verify, lookup, signals, score, brief). It stops at the first stage that aborts, is recorded as one `runs` row, and resumes when run again.
   - `crm status` says where the client stands and ends with one `next:` line.
-  - Later stages (signals, watch, briefs, score) join `CRM_STAGES`, so the commands never change. The single-stage commands stay for debugging.
+  - Later stages (the watch) join `CRM_STAGES`, so the commands never change. The single-stage commands stay for debugging; `crm top` reads the result.
 - **R21. Per-client differences are settings, not forks.** `clients.products` is JSON keyed by product: `{ reactivation: { … } }`.
   - Each product parses its own block with a schema and owns the defaults. A bad block fails at `clients set`, not in a loop at 3am.
   - The reactivation block covers:
@@ -136,7 +164,8 @@ A lint rule guards this. biome `noRestrictedImports` on `packages/**` fails the 
 
 - `findings` (R6), indexed by person and by company.
 - `watches` (R19): platform, account, subject person or company, handle, state (`pending`, `following`, `failed`, `dropped`), followed_at; plus one cursor row per platform and account for the feed read.
-- `briefs`: person_id, text, citations JSON (finding ids), model, prompt_version, run_id.
+- `briefs`: person_id, state (`written`, `empty`, `failed`), text, citations JSON (finding and CRM row ids), dropped JSON, inputs_hash, model, prompt_version, llm (call envelope), run_id.
+- `company_checks` (R8): company_id, state, finding_id, tried, retry_at, run_id, checked_at.
 - `contact_scores`: person_id, score, reasons JSON, computed_at.
 - `client_profile`: one row with firm, sells, fee_avg, voice, default_recruiter, signature.
 - `handoffs`: reply message id, recruiter, forwarded_at, meeting_booked_at.
@@ -150,16 +179,15 @@ Main database only: `clients` (id, name, database, accounts JSON, caps JSON, por
 1. Client registry, per-client database, `wren clients add|list`, `--client` on the CLI, pool cache. **Done.**
 2. CRM formats and health: `wren --client <id> crm formats|import|verify|health`. Health exits 1 while the gate is shut. **Done.**
 3. Findings and person lookup (R7) through the `web` and `linkedin` sites, plus `crm run|status`, the `wren` skill and the layer lint rule (R20). **Done.**
-4. Company signals (R8), the watch (R19), briefs (R9), plus scoring (R10). The watch waits on autobrowse's watch mode, so the other three can land first.
-5. Demo seed (R16): `wren clients seed-demo --agency <url>`.
+4. Company signals (R8), the watch (R19), briefs (R9), plus scoring (R10). The watch waits on autobrowse's watch mode, so the other three can land first. **Done except the watch.** `crm run` is now verify, lookup, signals, score, brief; `crm top` prints the ranked list.
+5. Demo seed (R16): `wren --client demo crm seed-demo --agency <url>`. **Built; first real seed owed.**
 6. Portal API and web (R14, R15), deploy, `demo.` and `app.` hosts.
 7. Composer (R11), the client dimension in the worker (R4), per-client settings (R21), sending (R12) and handoff (R13).
 8. Offer `reactivation` (R18), lander `/demo` link, map cards.
 
 ## Owed by others
 
-- autobrowse (asked 2026-09-29). Live by evening: LinkedIn people search, `/in/{vanity}?experience=true`, company page and jobs, per-account caps, Instagram Business Discovery. Built, not proven: `web` search and read, X by username. Per-account pacing landed in 923c287. Still owed:
-  - lower caps on `linkedin`: 40 profiles and 15 searches a day (R17)
+- autobrowse (asked 2026-09-29). Live by evening: LinkedIn people search, `/in/{vanity}?experience=true`, company page and jobs, per-account caps, Instagram Business Discovery. Built, not proven: `web` search and read, X by username. Per-account pacing landed in 923c287; lower caps on `linkedin` (40 profiles, 15 searches, 40 company reads a day) in 0979d8f, not yet deployed to the box. Still owed:
   - watch mode (R19): follow a person or page per account, X private List add, read the feed from a cursor
   - scroll-collect: scroll a feed or list and collect items as they load, until a cursor or a count
   - `extract`: read text, links, images and structured items out of a page (no full-page dumps)

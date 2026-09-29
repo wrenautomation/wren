@@ -258,3 +258,47 @@ export const personLookups = pgTable(
   ],
 );
 export type PersonLookup = typeof personLookups.$inferSelect;
+
+/**
+ * Where a company's hiring check stands, one row per company. `hiring`: a
+ * board or LinkedIn lists open roles (the `hiring` finding holds them).
+ * `no_openings`: a board was read and lists none. `unresolved`: no board found
+ * and no page to read. `capped`: a daily cap stopped it; `retry_at` says when.
+ * Checks go stale: `checked_at` says how fresh the answer is.
+ */
+export const COMPANY_CHECK_STATES = ["hiring", "no_openings", "unresolved", "capped"] as const;
+export type CompanyCheckState = (typeof COMPANY_CHECK_STATES)[number];
+
+export const companyChecks = pgTable(
+  "company_checks",
+  {
+    companyId: integer("company_id").notNull(),
+    state: varchar("state", { length: 16, enum: COMPANY_CHECK_STATES }).notNull(),
+    /** The hiring finding this check stands on; null unless hiring. */
+    findingId: integer("finding_id"),
+    tried: jsonb("tried").notNull(),
+    retryAt: timestamp("retry_at", { withTimezone: true }),
+    runId: uuid("run_id"),
+    checkedAt: timestamp("checked_at", { withTimezone: true }).defaultNow().notNull(),
+  },
+  (t) => [
+    primaryKey({ columns: [t.companyId], name: "pk_company_checks" }),
+    foreignKey({
+      columns: [t.companyId],
+      foreignColumns: [companies.id],
+      name: "fk_company_checks_company_id_companies",
+    }),
+    foreignKey({
+      columns: [t.findingId],
+      foreignColumns: [findings.id],
+      name: "fk_company_checks_finding_id_findings",
+    }),
+    foreignKey({
+      columns: [t.runId],
+      foreignColumns: [runs.id],
+      name: "fk_company_checks_run_id_runs",
+    }),
+    oneOf("ck_company_checks_state", t.state, COMPANY_CHECK_STATES),
+  ],
+);
+export type CompanyCheck = typeof companyChecks.$inferSelect;

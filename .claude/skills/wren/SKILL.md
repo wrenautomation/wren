@@ -1,6 +1,6 @@
 ---
 name: wren
-description: Use wren for a client or for personal work. Covers adding a client, setting a client's research accounts, importing a CRM export, running reactivation (`crm run`, `crm status`) and reading the send gate. Use when the user says "add a client", "import this CRM", "where is <client> at", "run the lookups", or anything with `wren --client`.
+description: Use wren for a client or for personal work. Covers adding a client, setting a client's research accounts, importing a CRM export, running reactivation (`crm run`, `crm status`, `crm top`), seeding the demo list (`crm seed-demo`) and reading the send gate. Use when the user says "add a client", "import this CRM", "where is <client> at", "run the lookups", "who should they call", "seed the demo", or anything with `wren --client`.
 ---
 
 # wren
@@ -39,14 +39,33 @@ Every client command takes `--client <id>`. Without it the command refuses. It n
 ./bin/wren --client <id> crm run          # every stage that is due, in order
 ./bin/wren --client <id> crm status       # where it stands, and what to do next
 ./bin/wren --client <id> crm health       # duplicates, dead emails, staleness, owners, the send gate
+./bin/wren --client <id> crm top          # who to reach first, why, and the brief (--limit, --json)
 ```
 
-- `crm run` walks the stages in order: **verify** (check each CRM address once), then **lookup** (where each person is now).
+- `crm run` walks the stages in order:
+  1. **verify**: check each CRM address once.
+  2. **lookup**: where each person is now.
+  3. **signals**: is each CRM company hiring? The firm's own job board first, LinkedIn jobs after.
+  4. **score**: rank everyone by why to reach them now.
+  5. **brief**: a few sentences per person, each citing the facts it stands on.
+- **brief** needs a real LLM (`WREN_LLM`). With the fake one, the stage stops and says so; the rest still run.
 - Ctrl-C pauses a run. Running it again resumes where it left off.
 - A stage that aborts stops the run, and the exit code is 1. Read the stage line to see why.
 - `crm status` always ends with a `next:` line. Do what it says.
 - `--limit n` caps each stage for a trial run. `--no-linkedin` means web search only.
 - `crm verify` and `crm lookup` run a single stage and are for debugging. `crm lookup --again` redoes people already looked up.
+
+### The demo list
+
+```sh
+./bin/wren --client demo crm seed-demo --agency <url>   # --companies 40, --per-company 2, --csv <path>
+./bin/wren --client demo crm run
+```
+
+- Builds the demo's list from a real agency's site: the customers its pages name, their sites, and people who hire there (or did). Owners, statuses and dates are made up, the same every time for the same agency.
+- Wipes the demo's list first. Refuses on any client that isn't `demo`.
+- Needs `WREN_FETCH_CONTACT` and a real LLM (`WREN_LLM`).
+- Never write the agency's name into git. `--csv` copies go outside the repo.
 
 ### What the states mean
 
@@ -59,6 +78,17 @@ Every client command takes `--client <id>`. Without it the command refuses. It n
   - `unresolved`: not found. No guess is made.
   - `parked`: a daily cap was hit. The person is picked up again once the cap lifts. `crm status` says `wait: … until <time>` when nothing else is due.
 - **Findings** are `still_there`, `left`, `job_change` and similar. Each finding keeps its source document.
+- **Company checks:**
+  - `hiring`: open roles found. Rechecked after a week.
+  - `no openings`: a board was read and it is empty. Rechecked after a week.
+  - `unresolved`: no board found and no LinkedIn page we trust. Nothing is guessed. Rechecked after a month.
+  - `parked`: a daily cap was hit. Rechecked when it lifts; the last real answer still counts meanwhile.
+- **Scores:** open roles at a firm they are still at score highest, then a job change, then still there, then nothing found. Someone who left scores 0. A recent placement or contact adds a little. Every point has a reason in `crm top`.
+- **Briefs:**
+  - `written`: at least one sentence survived the gate. Only these show in `crm top`.
+  - `empty`: every sentence cited something wrong or made up a number. Kept so the same facts aren't paid for again.
+  - `failed`: the answer wasn't readable. Retried after a day.
+  - A brief is rewritten only when its facts change. People who score 0, aren't looked up yet, or have no findings get none.
 
 ## Rules
 

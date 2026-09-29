@@ -96,7 +96,7 @@ db.command("check")
   });
 
 registerClients(program, withMainDb, settings);
-registerCrm(program, withClientDb, settings);
+registerCrm(program, withClientDb, settings, rootDir);
 registerReview(registerEmail(program, withDb, settings, rootDir), withDb);
 registerFetch(program, settings);
 registerContent(program, withMainDb, settings);
