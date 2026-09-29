@@ -257,6 +257,8 @@ export const handoffs = pgTable(
     forwardMessageId: varchar("forward_message_id", { length: 255 }).notNull(),
     /** Null until the transport took it; a row without one is sent again. */
     forwardedAt: timestamp("forwarded_at", { withTimezone: true }),
+    /** The last try to forward it; the oldest try goes first, so one stuck row never blocks the rest. */
+    attemptedAt: timestamp("attempted_at", { withTimezone: true }),
     meetingBookedAt: timestamp("meeting_booked_at", { withTimezone: true }),
     /** Who marked it: a portal login's email, or `operator`. */
     bookedBy: varchar("booked_by", { length: 320 }),

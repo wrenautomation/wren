@@ -26,15 +26,21 @@ export const forwardMessageId = (sender: string) =>
 
 /**
  * Who a reply goes to: the recruiter the composer wrote as, else the firm's
- * default, else its first recruiter, else the mailbox that sent it (a mailbox
- * in a recruiter's name).
+ * default, else its first recruiter; never the mailbox that sent it (one in a
+ * recruiter's own name). The sender back means nobody to send to yet.
  */
 export function handoffRecruiter(
   wroteAs: string | null,
   profile: Pick<ClientProfile, "recruiters" | "defaultRecruiter"> | null,
   sender: string,
 ): string {
-  return wroteAs ?? profile?.defaultRecruiter ?? profile?.recruiters[0]?.email ?? sender;
+  const self = sender.toLowerCase();
+  const candidates = [
+    wroteAs,
+    profile?.defaultRecruiter,
+    ...(profile?.recruiters ?? []).map((r) => r.email),
+  ];
+  return candidates.find((c) => c && c.toLowerCase() !== self) ?? sender;
 }
 
 export interface ReplyRef {

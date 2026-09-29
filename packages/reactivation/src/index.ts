@@ -8,6 +8,7 @@ export * from "./crm/import.js";
 export * from "./crm/source.js";
 export * from "./crm/verify.js";
 export * from "./demo/seed.js";
+export * from "./forward.js";
 export * from "./handoff.js";
 export * from "./lookup.js";
 export * from "./portal/outbox.js";

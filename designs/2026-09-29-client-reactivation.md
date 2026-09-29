@@ -132,7 +132,7 @@ A lint rule guards this. biome `noRestrictedImports` on `packages/**` fails the 
   - The client's policy is Wren's window, days and gaps with its own caps (`sending.perInboxPerDay`, `openersPerDay`, `rampStart`). Wren's opener cap and ramp are Wren's campaign's and are not inherited; the ramp never starts above the client's ceiling.
   - Client mail carries no open pixel: its opens would land in Wren's database.
 - **R13. Replies go to the client.** Inbox sync plus the classifier. An `interested` reply is forwarded to the recruiter named on the contact (else the client's default), shows in the portal and pings the client. "Meeting booked" is marked by the recruiter in the portal or by us (`crm book`), and it's the billing unit.
-  - Forwarding (step 7e): each `interested` or `meeting_booked` reply without a forwarded handoff is sent from its mailbox to the recruiter the composer wrote as, else the firm's default. The row is written before the send, so a crash never forwards twice. The operator is notified.
+  - Forwarding (step 7e): each pass of the client's loop, while `stages.handoff` is on, sends each `interested` or `meeting_booked` reply (or one marked booked by hand) from its mailbox to the recruiter the composer wrote as, else the firm's default. The forward's Message-ID is stored on the handoff row before the send; a retry asks the mailbox for it first, so a crash never forwards twice. The row is locked while it is sent, so overlapping passes never both send. The oldest try goes first (`attempted_at`), so a forward that fails every pass never blocks newer ones. A reply relabelled cold, or a booking taken back, stops going. It never goes back to its own mailbox (one in a recruiter's name): the default recruiter takes it, and with nobody else it waits. The operator hears each forward (no contact names), and once when forwards start failing.
   - The bill is `upfront + min(meetings × perMeeting, cap)`, shown on Replies to the owner only.
 - **R14. Portal: one Cloudflare Worker (`apps/portal`), API on Lambda through Restate, Cloudflare Access login.** Setup and checks: `deploy/portal.md`.
   - One Worker on two hosts: `app.` (Access) and `demo.` (no login). It serves the React + Vite app and proxies `/api/<route>` to the `ReactivationPortal` service on the worker, the way the phone app reads SMS. No Pages project, no public API.
@@ -196,8 +196,8 @@ Main database only: `clients` (id, name, database, accounts JSON, caps JSON, por
 4. Company signals (R8), the watch (R19), briefs (R9), plus scoring (R10). The watch waits on autobrowse's watch mode, so the other three can land first. **Done except the watch.** `crm run` is now verify, lookup, signals, score, brief; `crm top` prints the ranked list.
 5. Demo seed (R16): `wren --client demo crm seed-demo --agency <url>`. **Built.** The first real agency's site names 24 customers, under R16's 30.
 6. Portal API and web (R14, R15), deploy, `demo.` and `app.` hosts. **Built;** `app.` waits on Access.
-7. Composer (R11), the client dimension in the worker (R4), per-client settings (R21), sending (R12) and handoff (R13). **Done except forwarding (7e).** 7a settings and profile, 7b+7c composer and portal writes, 7d the per-client loop and client mailbox loops.
-8. Offer `reactivation` (R18), lander `/demo` link, map cards.
+7. Composer (R11), the client dimension in the worker (R4), per-client settings (R21), sending (R12) and handoff (R13). **Done.** 7a settings and profile, 7b+7c composer and portal writes, 7d the per-client loop and client mailbox loops, 7e forwarding.
+8. Offer `reactivation` (R18), lander `/demo` link, map cards. **Offer and map done.** The pilot is retired; the lander switches to `reactivation` in its own session (schema gets the `performance` kind, snapshot re-exported). `/demo` links once the demo is live.
 
 ## Owed by others
 

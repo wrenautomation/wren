@@ -1,7 +1,8 @@
 /**
  * `Reactivation`: one loop per client, keyed by client id. Each pass reads the
  * client's settings, works what is due (verify when it's free, score, briefs,
- * emails), then points the client's mailboxes' loops at the settings: an inbox
+ * emails), forwards interested and booked replies to the recruiters (R13),
+ * then points the client's mailboxes' loops at the settings: an inbox
  * loop per mailbox while the client is on, a send loop per unsuspended mailbox
  * while sending is on. `on` is the one switch; turning it off stops the lot,
  * and the loop keeps looking so turning it on again needs nothing else.
@@ -13,9 +14,10 @@
  * the next pass picks up the rest.
  */
 import type * as restate from "@restatedev/restate-sdk";
+import type { Transport } from "@wren/channel-email";
 import type { InboxScheduler, SendScheduler } from "@wren/channel-email/restate";
 import { type Client, findClient } from "@wren/core/clients";
-import type { Notifier } from "@wren/core/notify";
+import { type Notifier, plural } from "@wren/core/notify";
 import {
   clientKey,
   errorText,
@@ -29,6 +31,7 @@ import {
   runPass,
 } from "@wren/core/restate";
 import type { Db } from "@wren/db";
+import { type ForwardStats, forwardHandoffs } from "./forward.js";
 import { readClientProfile } from "./profile.js";
 import { type CrmRunDeps, type CrmStageResult, runCrm } from "./run.js";
 import { sendingOff, settingsOrNull } from "./sending.js";
@@ -45,6 +48,8 @@ export interface ReactivationLoopDeps {
   crm: Omit<CrmRunDeps, "sites" | "fetcher">;
   /** Verify only when the verifier spends no credits. */
   freeVerify: boolean;
+  /** Forwards replies from the client's mailboxes: they are in Wren's Workspace. */
+  transport: Transport;
   /** Units per stage per pass (default 10). */
   limit?: number;
   /** Between passes (default 10 min). */
@@ -64,6 +69,8 @@ export interface ReactivationPassStats {
   /** Why no stage ran, or null. */
   off: string | null;
   stages: CrmStageResult[];
+  /** Replies forwarded this pass; null when `stages.handoff` is off or nothing ran. */
+  handoff: ForwardStats | null;
   loops: MailboxLoops;
 }
 
@@ -155,7 +162,7 @@ export function makeReactivation(deps: ReactivationLoopDeps) {
         const failures = await failuresInARow(ctx, true);
         const had = (await ctx.get<MailboxLoops>(STARTED)) ?? NO_LOOPS;
         return settle(ctx, previous, {
-          stats: { off: null, stages: [], loops: had },
+          stats: { off: null, stages: [], handoff: null, loops: had },
           error: plan.error,
           failures,
           delayMs: retryDelayMs(failures, retryMs),
@@ -165,7 +172,7 @@ export function makeReactivation(deps: ReactivationLoopDeps) {
       if (plan.kind !== "work") {
         const loops = await pointLoops(ctx, NO_LOOPS, now, resumed);
         return settle(ctx, previous, {
-          stats: { off: plan.why, stages: [], loops },
+          stats: { off: plan.why, stages: [], handoff: null, loops },
           error: null,
           failures: 0,
           delayMs: passMs,
@@ -192,7 +199,10 @@ export function makeReactivation(deps: ReactivationLoopDeps) {
               only: passStages(settings, deps.freeVerify),
             },
           );
-          return { off: null, stages, loops: plan.loops };
+          const handoff = settings.stages.handoff
+            ? await forwardHandoffs(db, deps.transport, { profile, settings, limit, now })
+            : null;
+          return { off: null, stages, handoff, loops: plan.loops };
         },
         delayAfter: () => passMs,
         retryMs,
@@ -200,14 +210,55 @@ export function makeReactivation(deps: ReactivationLoopDeps) {
       });
       // The mailboxes follow the settings whether or not the work failed.
       await pointLoops(ctx, plan.loops, now, resumed);
-      if (outcome.stats !== null) return outcome;
+      if (outcome.stats !== null) {
+        if (deps.notifier) await tellHandoffs(ctx, deps.notifier, outcome.stats.handoff);
+        return outcome;
+      }
       // A failed pass still names the loops it left running: `status` lists them.
-      const failed = { ...outcome, stats: { off: null, stages: [], loops: plan.loops } };
+      const failed = {
+        ...outcome,
+        stats: { off: null, stages: [], handoff: null, loops: plan.loops },
+      };
       ctx.set(LAST, failed);
       return failed;
     },
     { onStop: stopLoops },
   );
+}
+
+/** Whether the last pass that forwarded had failures; a pass that failed whole leaves it. */
+const FORWARDS_FAILING = "forwardsFailing";
+
+/**
+ * The operator hears each forward that went (no contact names), and once when
+ * forwards start failing; a forward that fails every pass is one message.
+ */
+async function tellHandoffs(
+  ctx: restate.ObjectContext,
+  notifier: Notifier,
+  handoff: ForwardStats | null,
+): Promise<void> {
+  if (!handoff) return;
+  const wasFailing = (await ctx.get<boolean>(FORWARDS_FAILING)) ?? false;
+  ctx.set(FORWARDS_FAILING, handoff.failed > 0);
+  const where = `handoff · ${ctx.key}`;
+  if (handoff.sent.length > 0) {
+    await ctx.run("notify forwards", () =>
+      notifier.notify(
+        `${where}: ${plural(handoff.sent.length, "reply", "replies")} forwarded`,
+        handoff.sent.join("\n"),
+      ),
+    );
+  }
+  if (handoff.failed > 0 && !wasFailing) {
+    await ctx.run("notify forward failed", () =>
+      notifier.notify(
+        `${where}: ${plural(handoff.failed, "forward")} failed`,
+        `${handoff.errors.join("\n")}\neach is tried again next pass`,
+        "warning",
+      ),
+    );
+  }
 }
 
 /** Stop every mailbox loop this key started, and forget them: the next start starts them all. */

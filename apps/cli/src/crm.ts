@@ -250,6 +250,12 @@ export function registerCrm(
       if (last?.stats?.off) console.log(`  idle: ${last.stats.off}`);
       for (const s of last?.stats?.stages ?? [])
         console.log(`  ${s.stage}: ${JSON.stringify(s.stats)}`);
+      const handoff = last?.stats?.handoff;
+      if (handoff) {
+        const { sent: _, errors, ...counts } = handoff;
+        console.log(`  handoff: ${JSON.stringify(counts)}`);
+        for (const e of errors) console.log(`    ${e}`);
+      }
       for (const m of mailboxes.send)
         console.log(`  send  ${m.sender}: ${m.running ? "running" : "stopped"}`);
       for (const m of mailboxes.inbox)

@@ -8,7 +8,12 @@
 import * as restate from "@restatedev/restate-sdk";
 import * as ingress from "@restatedev/restate-sdk-clients";
 import { RestateTestEnvironment } from "@restatedev/restate-sdk-testcontainers";
-import { FakeVerifier, type LocalCheckerLike, SendPolicy } from "@wren/channel-email";
+import {
+  ConsoleTransport,
+  FakeVerifier,
+  type LocalCheckerLike,
+  SendPolicy,
+} from "@wren/channel-email";
 import { loadSettings } from "@wren/config";
 import { clients } from "@wren/core/clients";
 import type { Notifier } from "@wren/core/notify";
@@ -100,6 +105,7 @@ beforeAll(async () => {
         open: () => breakable(pg.db, () => clientDbDown),
         crm: { verifier: new FakeVerifier({ authoritative: true }), checker, llm: null },
         freeVerify: false,
+        transport: new ConsoleTransport({ write: () => {} }),
         notifier,
       }),
       standIn("SendScheduler"),

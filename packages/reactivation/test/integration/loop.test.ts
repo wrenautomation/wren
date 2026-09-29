@@ -6,7 +6,12 @@
 import * as restate from "@restatedev/restate-sdk";
 import * as ingress from "@restatedev/restate-sdk-clients";
 import { RestateTestEnvironment } from "@restatedev/restate-sdk-testcontainers";
-import { FakeVerifier, type LocalCheckerLike, SendPolicy } from "@wren/channel-email";
+import {
+  ConsoleTransport,
+  FakeVerifier,
+  type LocalCheckerLike,
+  SendPolicy,
+} from "@wren/channel-email";
 import { loadSettings } from "@wren/config";
 import { clients } from "@wren/core/clients";
 import { startTestPostgres, type TestPostgres } from "@wren/db/testing";
@@ -62,6 +67,7 @@ beforeAll(async () => {
         open: () => pg.db,
         crm: { verifier: new FakeVerifier({ authoritative: true }), checker, llm: null },
         freeVerify: false,
+        transport: new ConsoleTransport({ write: () => {} }),
       }),
       standIn("SendScheduler"),
       standIn("InboxScheduler"),
@@ -114,6 +120,7 @@ describe("Reactivation loop", () => {
     expect(out.stats).toEqual({
       off: "reactivation is off",
       stages: [],
+      handoff: null,
       loops: { send: [], inbox: [] },
     });
     expect(out.stopped).toBeUndefined();
@@ -123,8 +130,9 @@ describe("Reactivation loop", () => {
     await addClient(block({ on: true }));
     const on = await loop().sync();
     expect(on.error).toBeNull();
-    // An empty CRM has nothing due.
+    // An empty CRM has nothing due, and no reply to forward.
     expect(on.stats?.stages).toEqual([]);
+    expect(on.stats?.handoff).toMatchObject({ opened: 0, forwarded: 0, failed: 0 });
     expect(on.stats?.loops).toEqual({ send: [], inbox: [`${id}/${ANN}`, `${id}/${BO}`] });
     await settle({
       [`InboxScheduler ${ANN}`]: true,
@@ -133,9 +141,11 @@ describe("Reactivation loop", () => {
       [`SendScheduler ${BO}`]: null,
     });
 
-    // Sending on: only the mailbox that isn't suspended sends.
-    await setProducts(block({ on: true, stages: { send: true } }));
-    expect((await loop().sync()).stats?.loops.send).toEqual([`${id}/${ANN}`]);
+    // Sending on: only the mailbox that isn't suspended sends. Handoff off: nothing forwarded.
+    await setProducts(block({ on: true, stages: { send: true, handoff: false } }));
+    const sending = await loop().sync();
+    expect(sending.stats?.loops.send).toEqual([`${id}/${ANN}`]);
+    expect(sending.stats?.handoff).toBeNull();
     await settle({ [`SendScheduler ${ANN}`]: true, [`SendScheduler ${BO}`]: null });
 
     // Ann suspended: her send loop stops, her inbox keeps syncing.

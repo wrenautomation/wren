@@ -374,6 +374,7 @@ export async function buildServices(
       open: openClient,
       crm: { verifier, checker: defaultLocalChecker(), llm: classify ? llm : null },
       freeVerify: freeVerdicts,
+      transport,
       ...notify,
     }),
   );

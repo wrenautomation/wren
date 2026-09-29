@@ -73,6 +73,8 @@ Every client command takes `--client <id>`. Without it the command refuses. It n
 - `crm loop start` once per client. The loop works what is due every 10 minutes (verify only when free, score, briefs, emails) and runs each mailbox's inbox sync and sending. Lookup and signals stay `crm run`.
 - `on` is the one switch. Off, the loop idles and stops the mailboxes. Sending needs `stages.send` too; it is off by default.
 - `approval: first`: the client approves the first batch in the portal, then drafts flow. `every`: each batch.
+- Interested and booked replies are forwarded by the loop, from their mailbox to the recruiter (`stages.handoff`, on by default). No recruiter in the profile: they wait. `crm loop status` shows the counts and any errors.
+- `crm loop stop` stops the mailboxes too.
 
 ### The demo list
 
