@@ -81,9 +81,11 @@ later release) so the version still serving does not break.
 ## Day 2
 
 - Logs: `aws logs tail /aws/lambda/wren-prod-worker --follow`.
-- Change a secret: edit `deploy/prod.env`, `deploy/scripts/push-secrets.sh`, then
-  `aws lambda update-function-configuration --function-name wren-prod-worker --description "$(date)"`
-  to force new instances (the env is read at cold start).
+- Change a secret: edit `deploy/prod.env`, `deploy/scripts/push-secrets.sh`. The env is read at cold
+  start, and Restate calls a published version, so a config change on `$LATEST` does not recycle it:
+  the change lands at the next CI deploy (a new version) or when Lambda retires the old instances (hours).
+  push-secrets overwrites the whole parameter: diff SSM against prod.env first, or a key set only in
+  SSM (e.g. `WREN_NEW_OPENERS_PER_DAY`) is dropped.
 - Change the roster: edit `senders_config.toml` at the repo root (gitignored), run
   `deploy/scripts/push-secrets.sh` (writes SSM `/wren/prod/senders_config`), force new instances as
   above. The Lambda reads the roster from SSM at cold start; the bundle never carries it, so
