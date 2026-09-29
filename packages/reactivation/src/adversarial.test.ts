@@ -1,6 +1,6 @@
 /**
  * Adversarial tests for the brief gate and the score. Each test says what
- * SHOULD happen per the doc comments; failing ones are marked BUG.
+ * SHOULD happen per the doc comments; fixed bugs are marked "Was a bug".
  */
 import { describe, expect, it } from "vitest";
 import { gateBrief } from "./brief.js";
@@ -17,25 +17,25 @@ const facts = [
 const kept = (s: string) => gateBrief([s], facts).kept;
 
 describe("gateBrief: numbers the facts don't hold", () => {
-  // BUG: NUMBER only matches ASCII digits, so a count written as a word skips the number check.
+  // Was a bug: NUMBER only matches ASCII digits, so a count written as a word skips the number check.
   it("a wrong count spelled out is dropped", () => {
     expect(kept("Acme has two open roles. [f12]")).toEqual([]);
   });
 
-  // BUG: same root: non-ASCII digits aren't \d, so they are never checked.
+  // Was a bug: same root: non-ASCII digits aren't \d, so they are never checked.
   it("a wrong count in non-ASCII digits is dropped", () => {
     expect(kept("Acme has ９ open roles. [f12]")).toEqual([]);
     expect(kept("Acme has ٩ open roles. [f12]")).toEqual([]);
   });
 
-  // BUG: hasNumber finds the count anywhere in the cited text, so the day of a read or posted date passes as a count.
+  // Was a bug: hasNumber finds the count anywhere in the cited text, so the day of a read or posted date passes as a count.
   it("a count lifted from a date in the fact is dropped", () => {
     expect(kept("Acme has 29 open roles. [f12]")).toEqual([]);
     expect(kept("Acme has 20 open roles. [f12]")).toEqual([]);
     expect(kept("Sam placed 15 candidates with them. [c3]")).toEqual([]);
   });
 
-  // BUG: a unit or magnitude glued to a real number isn't part of the check: "3k" passes on the fact's 3.
+  // Was a bug: a unit or magnitude glued to a real number isn't part of the check: "3k" passes on the fact's 3.
   it("a real number with a made-up magnitude is dropped", () => {
     expect(kept("Acme has 3k open roles. [f12]")).toEqual([]);
     expect(kept("Acme has 3 million open roles. [f12]")).toEqual([]);
@@ -58,7 +58,7 @@ describe("gateBrief: numbers the facts don't hold", () => {
 });
 
 describe("gateBrief: marks", () => {
-  // BUG: the gate never splits an element, so a second sentence packed after the marks rides on them uncited.
+  // Was a bug: the gate never splits an element, so a second sentence packed after the marks rides on them uncited.
   it("an uncited sentence packed after a cited one is not kept", () => {
     const g = gateBrief(
       ["Acme has 3 open roles. [f12] She was just promoted to VP at Google."],
@@ -67,7 +67,7 @@ describe("gateBrief: marks", () => {
     expect(g.kept.join(" ")).not.toContain("Google");
   });
 
-  // BUG: same root: packing sentences into elements beats the four-sentence cap.
+  // Was a bug: same root: packing sentences into elements beats the four-sentence cap.
   it("four elements can't carry more than four sentences", () => {
     const g = gateBrief(
       [
@@ -126,7 +126,7 @@ describe("scoreContact: windows", () => {
     ).toBe(POINTS.unknown + POINTS.placedRecently);
   });
 
-  // BUG: monthsBefore rolls Feb 29 minus 12 months to Mar 1, so a contact exactly 12 months back falls outside.
+  // Was a bug: monthsBefore rolls Feb 29 minus 12 months to Mar 1, so a contact exactly 12 months back falls outside.
   it("on a leap day, exactly 12 months back is still inside the contacted window", () => {
     expect(
       points({ ...base, contacted: { on: "2027-02-28", crmId: 1 } }, "2028-02-29T12:00:00Z"),

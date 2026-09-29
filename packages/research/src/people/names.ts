@@ -130,6 +130,15 @@ export const firmNames = (firm: Firm): string[] => {
   );
 };
 
+/** "The Globex Corporation, Inc." -> "Globex": the name as written, legal words gone. */
+export function bareCompanyName(name: string): string {
+  const words = name.split(/\s+/).filter(Boolean);
+  const legal = (w: string) => !plain(w) || LEGAL.has(plain(w));
+  if (words.length > 1 && plain(words[0] ?? "") === "the") words.shift();
+  while (words.length > 1 && legal(words.at(-1) ?? "")) words.pop();
+  return words.join(" ").replace(/[\s,.;:&-]+$/, "");
+}
+
 /** An address or a bare domain in running text. */
 const DOMAINISH = /[\w.+-]*@?[\w-]+(?:\.[\w-]+)*\.[a-z]{2,}\b/gi;
 
@@ -157,6 +166,17 @@ export function mentionsFirm(text: string, firm: Firm, except: string[] = []): b
   return firmNames(firm).some((n) => hay.includes(` ${companyPhrase(n)} `));
 }
 
-/** Is `name` this firm, by any of its names? */
-export const isFirm = (name: string, firm: Firm): boolean =>
-  firmNames(firm).some((n) => sameCompany(name, n));
+/**
+ * Is `name` this firm: the same company as its name, or its domain's label
+ * spaces aside ("Acme Staffing" at acmestaffing.com, "Acme" at acmestaffing.com).
+ * A longer name that only starts with the label is someone else: "Northside
+ * Hospital" is not Northside Talent at northside.com.
+ */
+export function isFirm(name: string, firm: Firm): boolean {
+  if (firm.name && companyPhrase(firm.name).length >= 2 && sameCompany(name, firm.name))
+    return true;
+  const label = firm.domain ? domainLabel(firm.domain).replace(/ /g, "") : "";
+  const said = companyPhrase(name).replace(/ /g, "");
+  if (label.length < 4 || !said) return false;
+  return said === label || (said.length >= 4 && label.startsWith(said));
+}

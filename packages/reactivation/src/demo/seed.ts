@@ -17,7 +17,7 @@ import {
   type Resolves,
   siteName,
 } from "@wren/research/discovery";
-import type { Fetcher } from "@wren/research/fetch";
+import { canFetch, type Fetcher } from "@wren/research/fetch";
 import { findContacts } from "@wren/research/people";
 import { sql } from "drizzle-orm";
 import { CRM_FORMATS } from "../crm/formats.js";
@@ -105,22 +105,53 @@ const domainOf = (site: string): string =>
     .toLowerCase()
     .replace(/^www\./, "");
 
-/** "jane.o'neil@acme.com": ascii letters only, the guess every mail server gets. */
+/** Letters NFKD leaves whole, spelled the way their owners write them in ASCII. */
+const SPELLED: Record<string, string> = {
+  ł: "l",
+  ø: "o",
+  ß: "ss",
+  đ: "d",
+  ð: "d",
+  æ: "ae",
+  œ: "oe",
+  þ: "th",
+  ı: "i",
+};
+/** The longest local part mail servers accept. */
+const LOCAL_MAX = 64;
+
+/**
+ * "jane.obrien@acme.com": ascii letters only, the guess every mail server
+ * gets. A letter with no ascii spelling (李, Иван) means no guess, never a
+ * guess with the letter dropped: that could be someone else's inbox.
+ */
 export const guessEmail = (first: string, last: string, domain: string): string | null => {
-  const part = (s: string) =>
-    s
-      .normalize("NFKD")
-      .replace(/[^\p{L}]/gu, "")
-      .toLowerCase()
-      .replace(/[^a-z]/g, "");
+  const part = (s: string) => {
+    const letters = [
+      ...s
+        .toLowerCase()
+        .normalize("NFKD")
+        .replace(/\p{M}+/gu, ""),
+    ]
+      .map((c) => SPELLED[c] ?? c)
+      .join("")
+      .replace(/[^\p{L}]/gu, "");
+    return /^[a-z]+$/.test(letters) ? letters : "";
+  };
   const f = part(first);
   const l = part(last);
-  return f && l ? `${f}.${l}@${domain}` : null;
+  const local = `${f}.${l}`;
+  return f && l && local.length <= LOCAL_MAX ? `${local}@${domain}` : null;
 };
 
-/** "Acme" written the way one recruiter typed it years ago. */
+const LEGAL_END = /,?\s+(inc|llc|ltd|corp)\.?$/i;
+/** "Acme" written the way one recruiter typed it years ago: with or without "Inc.", or in capitals. */
 const variant = (rng: Rng, name: string): string =>
-  rng() < 0.5 ? `${name} Inc.` : name.toUpperCase();
+  rng() < 0.5
+    ? LEGAL_END.test(name)
+      ? name.replace(LEGAL_END, "")
+      : `${name} Inc.`
+    : name.toUpperCase();
 
 /**
  * The mess real exports carry, on real people: a few blank titles, a company
@@ -160,15 +191,21 @@ export async function resetCrmData(db: Queryable): Promise<void> {
 }
 
 async function homeName(fetcher: Fetcher, domain: string): Promise<string | null> {
+  const url = `https://${domain}`;
+  if (!(await canFetch(fetcher, url, new Map()))) return null;
   try {
-    const r = await fetcher.get(`https://${domain}`);
+    const r = await fetcher.get(url);
     return r.status === 200 ? siteName(r.text, domain) : null;
   } catch {
     return null;
   }
 }
 
-/** Build the list, reset the database, import it. The caller checks the client is a demo. */
+/**
+ * Build the list, reset the database, import it. The caller checks the client
+ * is a demo. A run that finds nobody throws before the reset, so a bad day on
+ * the agency's site never wipes the list that was there.
+ */
 export async function seedDemo(
   db: Queryable,
   deps: SeedDeps,
@@ -207,9 +244,8 @@ export async function seedDemo(
     const people = await findContacts(
       deps.sites,
       { name: c.name, domain: home?.domain ?? null },
-      {
-        max: opts.perCompany ?? 2,
-      },
+      // The agency's own recruiters name its customers too; they are not the customer's people.
+      { max: opts.perCompany ?? 2, except: { name, domain } },
     );
     say(`  ${c.name}: ${home?.domain ?? "no site"}, ${people.length} people`);
     if (!people.length) noContacts++;
@@ -236,6 +272,10 @@ export async function seedDemo(
     }
   }
 
+  if (!rows.length)
+    throw new Error(
+      `found nobody to seed (${named.customers.length} customers named); the demo list is unchanged`,
+    );
   const messy = messUp(rng, rows);
   const csv = toBullhornCsv(messy);
   const format = CRM_FORMATS.get("bullhorn");

@@ -9,7 +9,7 @@ import { z } from "zod";
 import { FetchError, type Fetcher } from "../fetch/fetcher.js";
 import { decodeEntities, readPage } from "../fetch/htmltext.js";
 import { canFetch, type RobotsCache } from "../fetch/robots.js";
-import { companyPhrase, isFirm, mentionsFirm } from "../people/names.js";
+import { companyPhrase, isFirm, mentionsFirm, plain } from "../people/names.js";
 
 export const CUSTOMERS_STAGE = "research_customers";
 /** Pages read besides the home page. */
@@ -65,6 +65,12 @@ const customersSchema = z.object({
   ),
 });
 
+/** Social sites: a link there is a profile, never a customer's own site. */
+const SOCIAL = /(^|\.)(linkedin|facebook|instagram|twitter|x|youtube|tiktok)\.com$/;
+
+/** One key per page: no fragment, no trailing slash. */
+const pageKey = (url: string) => (url.split("#")[0] ?? url).replace(/\/+$/, "");
+
 const hostOf = (url: string): string | null => {
   try {
     return new URL(url).hostname.toLowerCase().replace(/^www\./, "");
@@ -73,19 +79,30 @@ const hostOf = (url: string): string | null => {
   }
 };
 
-/** Image alt and title text, and file names ("acme-corp-logo.png" -> "acme corp logo"). */
+const attrOf = (tag: string, attr: string): string => {
+  const m = new RegExp(`\\s${attr}\\s*=\\s*(?:"([^"]*)"|'([^']*)')`, "i").exec(tag);
+  return decodeEntities(m?.[1] ?? m?.[2] ?? "").trim();
+};
+
+/**
+ * Image alt and title text, and file names ("acme-corp-logo.png" -> "acme corp
+ * logo", "UmbrellaHealth.svg" -> "Umbrella Health"). A lazy-loaded logo's real
+ * file is in data-src; the src is then a placeholder.
+ */
 export function imageNames(html: string): string[] {
   const out: string[] = [];
   for (const tag of html.match(/<img\b[^>]*>/gi) ?? []) {
     for (const attr of ["alt", "title"]) {
-      const m = new RegExp(`\\b${attr}\\s*=\\s*(?:"([^"]*)"|'([^']*)')`, "i").exec(tag);
-      const v = decodeEntities(m?.[1] ?? m?.[2] ?? "").trim();
+      const v = attrOf(tag, attr);
       if (v) out.push(v);
     }
-    const src = /\bsrc\s*=\s*(?:"([^"]*)"|'([^']*)')/i.exec(tag);
-    const file = (src?.[1] ?? src?.[2] ?? "").split(/[?#]/)[0]?.split("/").at(-1) ?? "";
+    const src = ["data-src", "data-lazy-src", "data-original", "src"]
+      .map((a) => attrOf(tag, a))
+      .find((v) => v && !/^data:/i.test(v));
+    const file = (src ?? "").split(/[?#]/)[0]?.split("/").at(-1) ?? "";
     const stem = file
       .replace(/\.[a-z0-9]+$/i, "")
+      .replace(/([a-z])([A-Z])/g, "$1 $2")
       .replace(/[-_.]+/g, " ")
       .trim();
     // Hashes and sizes name nothing: "a8f3c2e1", "1200x630".
@@ -162,24 +179,21 @@ export async function findCustomers(
       text: page.text,
       images: imageNames(html),
       links: page.links.filter(
-        (l) =>
-          /^https?:/i.test(l.url) &&
-          !onSite(l.url) &&
-          !/linkedin|facebook|instagram|twitter|x\.com|youtube|tiktok/i.test(l.url),
+        (l) => /^https?:/i.test(l.url) && !onSite(l.url) && !SOCIAL.test(hostOf(l.url) ?? ""),
       ),
     };
   };
   const pages: PageMaterial[] = [material(home.url, home.html)];
   tried.push({ url: home.url, outcome: "read" });
 
-  const next = readPage(home.html, home.url)
-    .links.filter(
-      (l) => onSite(l.url) && CUSTOMER_PAGE.test(`${new URL(l.url).pathname} ${l.anchor}`),
-    )
-    .map((l) => l.url.split("#")[0] ?? l.url);
-  for (const url of [...new Set(next)]
-    .filter((u) => u !== home.url)
-    .slice(0, opts.maxPages ?? MAX_PAGES)) {
+  const next = new Map<string, string>();
+  for (const l of readPage(home.html, home.url).links) {
+    const key = pageKey(l.url);
+    if (!onSite(l.url) || key === pageKey(home.url) || next.has(key)) continue;
+    if (CUSTOMER_PAGE.test(`${new URL(l.url).pathname} ${l.anchor}`))
+      next.set(key, l.url.split("#")[0] ?? l.url);
+  }
+  for (const url of [...next.values()].slice(0, opts.maxPages ?? MAX_PAGES)) {
     const got = await fetchPage(fetcher, url, robots);
     if (typeof got === "string") {
       tried.push({ url, outcome: got });
@@ -209,21 +223,25 @@ export async function findCustomers(
 
 /**
  * Keep what the pages carry: the name in a page's text, an image name or a
- * link. The website only when a link on the pages points there. One entry per
- * company, first spelling wins.
+ * link's words, or a link whose domain is that name. The website only when a
+ * link on the pages points there and the link is that company's (its domain
+ * or its words name it). The firm is itself under the site it was given and
+ * the one its home page landed on (pages[0]). One entry per company, first
+ * spelling wins.
  */
 export function gateCustomers(
   said: z.infer<typeof customersSchema>["customers"],
   firm: { name: string; site: string },
   pages: PageMaterial[],
 ): Omit<CustomersResult, "tried"> {
-  const own = {
-    name: firm.name,
-    domain: hostOf(/^https?:/i.test(firm.site) ? firm.site : `https://${firm.site}`),
-  };
-  const outbound = new Map(
-    pages.flatMap((p) => p.links.map((l) => [hostOf(l.url) ?? "", l.url] as const)),
-  );
+  const given = hostOf(/^https?:/i.test(firm.site) ? firm.site : `https://${firm.site}`);
+  const landed = pages[0] ? hostOf(pages[0].url) : null;
+  const own = [...new Set([given, landed])].map((domain) => ({ name: firm.name, domain }));
+  const outbound = new Map<string, { url: string; anchor: string }>();
+  for (const l of pages.flatMap((p) => p.links)) {
+    const h = hostOf(l.url);
+    if (h && !outbound.has(h)) outbound.set(h, l);
+  }
   const customers: NamedCustomer[] = [];
   const dropped: CustomersResult["dropped"] = [];
   const seen = new Set<string>();
@@ -231,7 +249,7 @@ export function gateCustomers(
     const name = c.name.trim();
     const phrase = companyPhrase(name);
     if (!phrase) continue;
-    if (isFirm(name, own)) {
+    if (own.some((o) => isFirm(name, o))) {
       dropped.push({ name, why: "the firm itself" });
       continue;
     }
@@ -239,14 +257,21 @@ export function gateCustomers(
     const host = c.website
       ? hostOf(/^https?:/i.test(c.website) ? c.website : `https://${c.website}`)
       : null;
-    const website = host && outbound.has(host) ? (outbound.get(host) ?? null) : null;
-    const who = { name, domain: website ? host : null };
-    const page = pages.find((p) =>
-      mentionsFirm(
-        [p.text, ...p.images, ...p.links.map((l) => `${l.anchor} ${l.url}`)].join("\n"),
-        who,
-      ),
-    );
+    const link = host ? outbound.get(host) : undefined;
+    const theirs =
+      !!link &&
+      !!host &&
+      (isFirm(name, { name: null, domain: host }) ||
+        mentionsFirm(link.anchor, { name, domain: null }));
+    const website = theirs && link ? link.url : null;
+    // A two-letter name ("QX") is too short to find a person's employer by,
+    // but the page writing it as a word is enough to call it a customer.
+    const carries = (text: string) =>
+      mentionsFirm(text, { name, domain: null }) || ` ${plain(text)} `.includes(` ${phrase} `);
+    const page =
+      pages.find((p) =>
+        carries([p.text, ...p.images, ...p.links.map((l) => l.anchor)].join("\n")),
+      ) ?? (website ? pages.find((p) => p.links.some((l) => hostOf(l.url) === host)) : undefined);
     if (!page) {
       dropped.push({ name, why: "not on the pages" });
       continue;

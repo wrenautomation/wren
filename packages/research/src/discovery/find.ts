@@ -70,19 +70,25 @@ export function siteName(html: string, domain: string): string | null {
   const meta = html.match(
     /<meta\b[^>]*\b(?:property|name)\s*=\s*["'](?:og:site_name|application-name)["'][^>]*>/i,
   )?.[0];
-  const declared = decodeEntities(
-    meta?.match(/\bcontent\s*=\s*["']([^"']*)["']/i)?.[1] ?? "",
-  ).trim();
+  const content = meta?.match(/\bcontent\s*=\s*(?:"([^"]*)"|'([^']*)')/i);
+  const declared = decodeEntities(content?.[1] ?? content?.[2] ?? "").trim();
   if (declared) return declared;
   const squash = (s: string) => s.toLowerCase().replace(/[^a-z0-9]/g, "");
   const label = squash(domain.replace(/^www\./, "").split(".")[0] ?? "");
   if (!label) return null;
   const title = decodeEntities(html.match(/<title[^>]*>([^<]*)<\/title>/i)?.[1] ?? "");
   const parts = title.split(/\s+[|–—-]\s+|\s*[|:·]\s*/).map((p) => p.trim());
+  // Best first: the label itself, then a part starting with it (or it with the
+  // part), then one inside the other; a short label only as a start ("ns" is
+  // "NS Talent", not the letters in "Staffing Solutions").
+  const squashed = parts.map((p) => ({ p, q: squash(p) })).filter(({ q }) => q.length > 1);
+  const pick = (ok: (q: string) => boolean) => squashed.find(({ q }) => ok(q))?.p;
   return (
-    parts.find((p) => {
-      const q = squash(p);
-      return q.length > 1 && (label.includes(q) || q.includes(label));
-    }) ?? null
+    pick((q) => q === label) ??
+    pick((q) => q.startsWith(label) || label.startsWith(q)) ??
+    pick(
+      (q) => Math.min(q.length, label.length) >= 4 && (q.includes(label) || label.includes(q)),
+    ) ??
+    null
   );
 }

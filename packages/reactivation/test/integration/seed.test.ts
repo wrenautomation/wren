@@ -56,7 +56,8 @@ const HITS: Record<string, { title: string; url: string; snippet: string | null 
     {
       title: "Cara Lim - Senior Recruiter | LinkedIn",
       url: li("cara-lim"),
-      snippet: "Experience: Initech · Umbrella Health · Toronto",
+      snippet:
+        "Experience: Initech · Formerly Talent Partner at Umbrella Health · Location: Toronto",
     },
   ],
   Globex: [

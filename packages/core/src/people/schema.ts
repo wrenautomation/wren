@@ -109,9 +109,12 @@ export function matchKey(
   fullName: string,
 ): string {
   const text = firstName && lastName ? `${firstName} ${lastName}` : fullName;
+  // Accents go, letters of every script stay: "Zoë" = "Zoe", and "Иван" is not "".
   return text
+    .normalize("NFKD")
+    .replace(/\p{M}+/gu, "")
     .toLowerCase()
-    .replace(/[^a-z0-9]+/g, " ")
+    .replace(/[^\p{L}\p{N}]+/gu, " ")
     .trim();
 }
 
