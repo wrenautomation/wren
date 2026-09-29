@@ -20,6 +20,7 @@
     "@wren/core": "workspace:*",
     "@wren/db": "workspace:*",
     "@wren/niches": "workspace:*",
+    "@wren/reactivation": "workspace:*",
     "@wren/research": "workspace:*",
     "commander": "15.0.0",
     "drizzle-orm": "0.45.2"

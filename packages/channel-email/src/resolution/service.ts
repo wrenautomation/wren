@@ -71,6 +71,7 @@ import type { EmailVerifier } from "../verification/verifier.js";
 export const DEFAULT_DOMAIN_BUDGET = 5;
 
 const EVIDENCE_ORDER: Record<CandidateEvidence, number> = {
+  crm: 0,
   scraped: 0,
   derived_pattern: 1,
   guessed_pattern: 2,

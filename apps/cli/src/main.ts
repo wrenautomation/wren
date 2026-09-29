@@ -15,6 +15,7 @@ import { sql } from "drizzle-orm";
 import { registerAds } from "./ads.js";
 import { registerClients } from "./clients.js";
 import { registerContent } from "./content.js";
+import { registerCrm } from "./crm.js";
 import { registerEmail } from "./email.js";
 import { registerFetch } from "./fetch.js";
 import { registerReview } from "./review.js";
@@ -43,11 +44,18 @@ async function withDb<T>(fn: (db: Db) => Promise<T>): Promise<T> {
   return open(clientUrl(settings.databaseUrl, client), fn);
 }
 
+/** A client's database; refuses to fall back to main (a CRM never lands in Wren's own list). */
+async function withClientDb<T>(fn: (db: Db) => Promise<T>): Promise<T> {
+  if (!program.opts<{ client?: string }>().client)
+    throw new Error("this command needs --client <id> (see `wren clients list`)");
+  return withDb(fn);
+}
+
 /**
  * Commands that honour `--client`. Everything else runs Wren's own loops or the
  * registry, so `--client` there is refused rather than silently ignored.
  */
-const CLIENT_SCOPED = new Set(["db", "email"]);
+const CLIENT_SCOPED = new Set(["db", "email", "crm"]);
 
 const program = new Command("wren")
   .description("Wren automation ops")
@@ -87,6 +95,7 @@ db.command("check")
   });
 
 registerClients(program, withMainDb, settings);
+registerCrm(program, withClientDb, settings);
 registerReview(registerEmail(program, withDb, settings, rootDir), withDb);
 registerFetch(program, settings);
 registerContent(program, withMainDb, settings);

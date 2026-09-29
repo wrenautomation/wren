@@ -21,7 +21,8 @@ import {
   varchar,
 } from "drizzle-orm/pg-core";
 
-export const CANDIDATE_EVIDENCE = ["scraped", "derived_pattern", "guessed_pattern"] as const;
+/** `crm`: the address a client's own CRM holds for the person. */
+export const CANDIDATE_EVIDENCE = ["scraped", "derived_pattern", "guessed_pattern", "crm"] as const;
 export type CandidateEvidence = (typeof CANDIDATE_EVIDENCE)[number];
 export const CANDIDATE_STATES = ["candidate", "queued", "verified", "rejected"] as const;
 export type CandidateState = (typeof CANDIDATE_STATES)[number];

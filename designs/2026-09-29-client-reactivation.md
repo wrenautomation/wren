@@ -31,7 +31,12 @@ The first product wren runs for a paying client, not for Wren's own outbound. A 
 - **R2. The registry lives in the main database, not in code.** Repos are public (PolyForm Strict) and a client's name must never land in git. `clients` holds the database name, not a URL: the URL is the main URL with the database swapped, so no new secret.
 - **R3. Pools stay tiny.** Postgres connections are the ceiling (the SMTP-prober lesson). A client handle opens with `max: 2`, is cached per process and closes when idle. The CLI opens one per command.
 - **R4. The worker gains a client dimension.** Loop objects are keyed `<client>/<niche>` for client work, and `buildServices` resolves the handle per key from a cache. Wren's own loops keep their keys, so nothing live changes.
-- **R5. CRM exports are person source formats.** They sit next to the existing `linkedin` format in `PERSON_SOURCE_FORMATS`: `hubspot`, `salesforce`, `bullhorn` and `crm-generic`. `crm-generic` maps headers by a synonym table and fails loudly on an unmapped required column. The raw row is kept whole (never discard).
+- **R5. CRM exports have their own formats and table.** `CRM_FORMATS` in `packages/reactivation`: `hubspot`, `salesforce`, `bullhorn` and `crm-generic`. Each is a header synonym table; a dialect's own names are tried first, then the generic ones. A file with no name column, or no email/company/website column, fails before anything is written, listing its headers.
+  - Rows go through the people importer (origin `crm`), so a CRM person meets the same person found anywhere else.
+  - Each row is also kept whole in `crm_contacts`: owner, status, last contacted, last placement, date added, the email as the CRM holds it, the raw row. One row per CRM record, keyed by the CRM id (else a row hash), so duplicates stay visible and a re-import updates in place.
+  - The CRM's email becomes a `contact_candidates` row with evidence `crm`. `wren crm verify` checks each once (local check, then the prober); it doesn't use the resolution walker, which is built around guessing.
+  - Company: the website's domain, else the work email's domain, else a domain another row gave the same company name, else the name (`crm-co:<slug>`).
+  - Slash dates are month-first unless any date in the file can't be (a day over 12); the file is one locale.
 - **R6. Findings are the unit of research.** Each finding is one fact:
   - kind: `job_change`, `still_there`, `left`, `hiring`, `post` or `news`
   - subject: a person or a company
@@ -92,14 +97,15 @@ The first product wren runs for a paying client, not for Wren's own outbound. A 
 - `contact_scores`: person_id, score, reasons JSON, computed_at.
 - `client_profile`: one row with firm, sells, fee_avg, voice, default_recruiter, signature.
 - `handoffs`: reply message id, recruiter, forwarded_at, meeting_booked_at.
-- `people` gains `owner` (the recruiter from the CRM) and `last_contacted_at`.
+- `crm_contacts` (R5): every CRM row whole, with owner, status and dates. Replaces the planned `people.owner` / `last_contacted_at`: those are per CRM record, not per person, and a person can appear twice.
+- `people.origin` gains `crm`; `contact_candidates.evidence` gains `crm`.
 
 Main database only: `clients` (id, name, database, accounts JSON, caps JSON, portal_emails, demo, created_at).
 
 ## Build order
 
-1. Client registry, per-client database, `wren clients add|list`, `--client` on the CLI, pool cache.
-2. CRM formats (`hubspot`, `salesforce`, `bullhorn`, `crm-generic`) and `wren health`.
+1. Client registry, per-client database, `wren clients add|list`, `--client` on the CLI, pool cache. **Done.**
+2. CRM formats and health: `wren --client <id> crm formats|import|verify|health`. Health exits 1 while the gate is shut. **Done.**
 3. Findings and person lookup (R7) through the `web` and `linkedin` sites.
 4. Company signals (R8), the watch (R19), briefs (R9), plus scoring (R10).
 5. Demo seed (R16): `wren clients seed-demo --agency <url>`.
@@ -116,6 +122,9 @@ Main database only: `clients` (id, name, database, accounts JSON, caps JSON, por
   - X `users/by/username`
   - Instagram Business Discovery
   - a `web` site for search and read on the facade
+  - watch mode (R19): follow a person or page per account, X private List add, read the feed from a cursor
+  - scroll-collect: scroll a feed or list and collect items as they load, until a cursor or a count
+  - `extract`: read text, links, images and structured items out of a page (no full-page dumps)
 - William:
   - X read spend grant
   - Cloudflare Access on `app.` (dashboard)

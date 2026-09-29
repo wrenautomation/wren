@@ -47,6 +47,17 @@ export interface PeopleImportStats {
   replay_of?: number;
 }
 
+/** One person row landed: what the caller may hang its own facts on. */
+export interface PersonLanded {
+  person: Person;
+  company: Company;
+  row: PersonRow;
+  /** 1-based, as in import_errors and sightings. */
+  rowNumber: number;
+  batch: ImportBatch;
+  created: boolean;
+}
+
 export interface PeopleImportResult {
   batch: ImportBatch;
   stats: PeopleImportStats;
@@ -60,7 +71,11 @@ const nameRef = (company: Company, first: string | null, last: string | null, fu
 export async function runPeopleImport(
   db: Queryable,
   source: PersonSource,
-  opts: { niche?: string | null } = {},
+  opts: {
+    niche?: string | null;
+    /** Runs after each person row lands, inside the same queryable. */
+    onPerson?: (landed: PersonLanded) => Promise<void>;
+  } = {},
 ): Promise<PeopleImportResult> {
   const niche = opts.niche ?? null;
   const [batch] = (await db
@@ -190,6 +205,7 @@ export async function runPeopleImport(
     const key = nameRef(company, row.firstName, row.lastName, row.fullName);
     let person =
       (row.sourceKey ? peopleBySourceKey.get(row.sourceKey) : undefined) ?? peopleByName.get(key);
+    const created = !person;
     if (!person) {
       [person] = (await db
         .insert(people)
@@ -236,6 +252,7 @@ export async function runPeopleImport(
     }
     if (person.sourceKey) peopleBySourceKey.set(person.sourceKey, person);
     peopleByName.set(key, person);
+    await opts.onPerson?.({ person, company, row, rowNumber, batch, created });
   }
 
   if (replayOf != null) counts.replay_of = replayOf;

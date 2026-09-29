@@ -22,7 +22,14 @@ import {
 
 export const IMPORT_ERROR_KINDS = ["rejected", "domain_conflict", "domain_changed"] as const;
 export type ImportErrorKind = (typeof IMPORT_ERROR_KINDS)[number];
-export const PERSON_ORIGINS = ["registry", "website", "document", "manual", "linkedin"] as const;
+export const PERSON_ORIGINS = [
+  "registry",
+  "website",
+  "document",
+  "manual",
+  "linkedin",
+  "crm",
+] as const;
 export type PersonOrigin = (typeof PERSON_ORIGINS)[number];
 export const LEAD_STATUSES = ["imported", "verified", "suppressed", "undeliverable"] as const;
 export type LeadStatus = (typeof LEAD_STATUSES)[number];

@@ -16,6 +16,29 @@ import type { PersonOrigin } from "../schema.js";
 
 /** Dropped when picking the MATCHING last name; kept verbatim in full_name. */
 const SUFFIXES = new Set(["jr", "sr", "ii", "iii", "iv", "v", "esq"]);
+/** Dropped from the front when picking the first name ("Dr. Jane Doe" is Jane). */
+const HONORIFICS = new Set(["dr", "mr", "mrs", "ms", "miss", "mx", "prof"]);
+/** Letters written after a comma ("Jane Doe, CPA"): credentials, not an inverted name. */
+const CREDENTIALS = new Set([
+  ...SUFFIXES,
+  "phd",
+  "md",
+  "mba",
+  "cpa",
+  "cfa",
+  "cpc",
+  "ctc",
+  "pe",
+  "rn",
+  "jd",
+  "dds",
+  "pmp",
+  "phr",
+  "sphr",
+  "shrm-cp",
+  "shrm-scp",
+]);
+const bare = (w: string) => w.replace(/\./g, "").toLowerCase();
 
 const hasCase = (w: string) => w.toUpperCase() !== w.toLowerCase();
 const capitalizeRuns = (w: string) =>
@@ -56,9 +79,23 @@ export function parseDirectName(raw: string): ParsedName | null {
   const full = tokens.join(" ");
   let core = tokens.filter((t) => !SUFFIXES.has(t.replace(/\.+$/, "").toLowerCase()));
   if (core.length === 0) core = tokens;
+  while (core.length > 1 && HONORIFICS.has(bare(core[0] as string))) core = core.slice(1);
   const first = core[0] as string;
   const last = core.length > 1 ? (core[core.length - 1] as string) : null;
   return [full, first, last];
+}
+
+/**
+ * A name cell of unknown shape. "Doe, Jane" is inverted; "Jane Doe, CPA" is
+ * direct with credentials after the comma (dropped); no comma is direct.
+ */
+export function parseName(raw: string): ParsedName | null {
+  const [head = "", ...tail] = raw.split(",");
+  if (tail.length === 0) return parseDirectName(raw);
+  const after = tail.flatMap(words);
+  if (head.trim() && after.length && after.every((w) => CREDENTIALS.has(bare(w))))
+    return parseDirectName(head);
+  return parseInvertedName(raw);
 }
 
 /**
