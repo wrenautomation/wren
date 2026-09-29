@@ -7,7 +7,7 @@ import * as clients from "@restatedev/restate-sdk-clients";
 import { ConsoleTransport, runWeeklyReport } from "@wren/channel-email";
 import { ingressOf, loadEnvFile, loadSettings } from "@wren/config";
 import { collectStatus, formatStatusLines, weekSlipped } from "@wren/content";
-import { clientUrl, getClient } from "@wren/core/clients";
+import { type Client, clientUrl, getClient } from "@wren/core/clients";
 import { RENEWAL_KEY, type TokenRenewal } from "@wren/core/content/renewal";
 import { createDb, type Db } from "@wren/db";
 import { Command } from "commander";
@@ -45,10 +45,11 @@ async function withDb<T>(fn: (db: Db) => Promise<T>): Promise<T> {
 }
 
 /** A client's database; refuses to fall back to main (a CRM never lands in Wren's own list). */
-async function withClientDb<T>(fn: (db: Db) => Promise<T>): Promise<T> {
-  if (!program.opts<{ client?: string }>().client)
-    throw new Error("this command needs --client <id> (see `wren clients list`)");
-  return withDb(fn);
+async function withClientDb<T>(fn: (db: Db, client: Client) => Promise<T>): Promise<T> {
+  const id = program.opts<{ client?: string }>().client;
+  if (!id) throw new Error("this command needs --client <id> (see `wren clients list`)");
+  const client = await withMainDb((db) => getClient(db, id));
+  return open(clientUrl(settings.databaseUrl, client), (db) => fn(db, client));
 }
 
 /**

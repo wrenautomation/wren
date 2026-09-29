@@ -25,10 +25,12 @@ export interface SiteClient {
 }
 
 export class SiteCallError extends Error {
+  readonly site: string;
   readonly status: number;
   constructor(site: string, method: string, path: string, status: number, message: string) {
     super(`${site} ${method} ${path}: ${status} ${message}`);
     this.name = "SiteCallError";
+    this.site = site;
     this.status = status;
   }
 }

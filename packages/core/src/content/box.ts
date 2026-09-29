@@ -10,7 +10,7 @@ import {
   EC2Client,
   StartInstancesCommand,
 } from "@aws-sdk/client-ec2";
-import type { Wake } from "@wren/core/content/restate";
+import type { Wake } from "./restate.js";
 
 export const STARTED_BY_TAG = "autobrowse:started-by";
 

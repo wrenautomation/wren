@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { type BoxPort, boxPort, wakeBox } from "./autobrowse-box.js";
+import { type BoxPort, boxPort, wakeBox } from "./box.js";
 
 function port(state: string) {
   const calls: string[] = [];

@@ -3,7 +3,13 @@
  * `--client` scopes other commands to a client's own database.
  */
 import type { Settings } from "@wren/config";
-import { addClient, type Client, listClients, updateClient } from "@wren/core/clients";
+import {
+  addClient,
+  type Client,
+  listClients,
+  sharedAccounts,
+  updateClient,
+} from "@wren/core/clients";
 import type { Db } from "@wren/db";
 import type { Command } from "commander";
 
@@ -32,6 +38,12 @@ function split(pair: string, flag: string): [string, string] {
   const at = pair.indexOf("=");
   if (at <= 0) throw new Error(`${flag} expects name=value, got ${JSON.stringify(pair)}`);
   return [pair.slice(0, at), pair.slice(at + 1)];
+}
+
+/** Say so when an account now serves two clients. */
+async function warnShared(withMainDb: WithDb): Promise<void> {
+  for (const w of sharedAccounts(await withMainDb((db) => listClients(db))))
+    console.warn(`warning: ${w}`);
 }
 
 function show(c: Client): string {
@@ -91,11 +103,13 @@ export function registerClients(program: Command, withMainDb: WithDb, settings: 
           }),
         );
         console.log(show(client));
+        await warnShared(withMainDb);
       },
     );
 
   cmd.command("list").action(async () => {
     for (const c of await withMainDb((db) => listClients(db))) console.log(show(c));
+    await warnShared(withMainDb);
   });
 
   cmd
@@ -119,6 +133,7 @@ export function registerClients(program: Command, withMainDb: WithDb, settings: 
           }),
         );
         console.log(show(client));
+        await warnShared(withMainDb);
       },
     );
 }

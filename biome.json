@@ -1,8 +1,50 @@
 {
   "$schema": "https://biomejs.dev/schemas/2.5.14/schema.json",
-  "vcs": { "enabled": true, "clientKind": "git", "useIgnoreFile": true },
-  "files": { "includes": ["**", "!**/dist", "!**/drizzle/meta", "!designs"] },
-  "formatter": { "indentStyle": "space", "indentWidth": 2, "lineWidth": 100 },
-  "linter": { "enabled": true },
-  "javascript": { "formatter": { "quoteStyle": "double", "semicolons": "always" } }
+  "vcs": {
+    "enabled": true,
+    "clientKind": "git",
+    "useIgnoreFile": true
+  },
+  "files": {
+    "includes": ["**", "!**/dist", "!**/drizzle/meta", "!designs"]
+  },
+  "formatter": {
+    "indentStyle": "space",
+    "indentWidth": 2,
+    "lineWidth": 100
+  },
+  "linter": {
+    "enabled": true
+  },
+  "javascript": {
+    "formatter": {
+      "quoteStyle": "double",
+      "semicolons": "always"
+    }
+  },
+  "overrides": [
+    {
+      "includes": ["packages/**", "!packages/reactivation/**"],
+      "linter": {
+        "rules": {
+          "style": {
+            "noRestrictedImports": {
+              "level": "error",
+              "options": {
+                "paths": {
+                  "@wren/reactivation": "A foundation never imports a product: move the shared part down into the foundation (designs/2026-09-29-client-reactivation.md, Layers)."
+                },
+                "patterns": [
+                  {
+                    "group": ["@wren/reactivation/*"],
+                    "message": "A foundation never imports a product (designs/2026-09-29-client-reactivation.md, Layers)."
+                  }
+                ]
+              }
+            }
+          }
+        }
+      }
+    }
+  ]
 }

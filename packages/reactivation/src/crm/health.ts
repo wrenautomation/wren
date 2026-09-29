@@ -144,7 +144,7 @@ export async function crmHealth(db: Queryable, today = new Date()): Promise<CrmH
         ? {
             ok: false,
             deadShare,
-            reason: `not verified yet: ${verification.unchecked} unchecked, run \`wren crm verify\``,
+            reason: `not verified yet: ${verification.unchecked} unchecked, run \`wren crm run\``,
           }
         : (deadShare ?? 0) > DEAD_SHARE_GATE
           ? {

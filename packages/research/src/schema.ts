@@ -1,4 +1,4 @@
-import { companies, imports, runs } from "@wren/core/schema";
+import { companies, imports, people, runs } from "@wren/core/schema";
 import { oneOf } from "@wren/db/columns";
 import { sql } from "drizzle-orm";
 import {
@@ -10,6 +10,7 @@ import {
   jsonb,
   pgTable,
   primaryKey,
+  real,
   serial,
   text,
   timestamp,
@@ -18,7 +19,11 @@ import {
   varchar,
 } from "drizzle-orm/pg-core";
 
-export const DOCUMENT_KINDS = ["webpage", "pdf"] as const;
+/**
+ * `snippet`: a search engine's few lines about a page (url = the page, not the
+ * results page). `profile`: a platform's structured read of a profile, as JSON text.
+ */
+export const DOCUMENT_KINDS = ["webpage", "pdf", "snippet", "profile"] as const;
 export type DocumentKind = (typeof DOCUMENT_KINDS)[number];
 export const ENRICHMENT_KINDS = [
   "people_extraction",
@@ -153,3 +158,103 @@ export const discoveryAttempts = pgTable(
   ],
 );
 export type DiscoveryAttempt = typeof discoveryAttempts.$inferSelect;
+
+/**
+ * Research facts about a person or a company (R6). One row per fact, never
+ * per source read: `fact_key` names the fact (subject, kind, how we know,
+ * what), so seeing it again moves `observed_at` instead of adding a row.
+ * Downstream reads findings, never the sources.
+ */
+export const FINDING_KINDS = [
+  "job_change",
+  "still_there",
+  "left",
+  "hiring",
+  "post",
+  "news",
+] as const;
+export type FindingKind = (typeof FINDING_KINDS)[number];
+
+export const findings = pgTable(
+  "findings",
+  {
+    id: serial("id").notNull(),
+    kind: varchar("kind", { length: 32, enum: FINDING_KINDS }).notNull(),
+    personId: integer("person_id"),
+    companyId: integer("company_id"),
+    factKey: varchar("fact_key", { length: 400 }).notNull(),
+    value: jsonb("value").notNull(),
+    documentId: integer("document_id"),
+    sourceUrl: text("source_url"),
+    /** 0..1: how sure the reading is, not how good the news is. */
+    confidence: real("confidence").notNull(),
+    /** How we know: `email`, `search`, `linkedin@research`, `x`, `instagram`, `crawl`. */
+    via: varchar("via", { length: 64 }).notNull(),
+    /** Last time a read showed it; the first time is `created_at`. */
+    observedAt: timestamp("observed_at", { withTimezone: true }).defaultNow().notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+  },
+  (t) => [
+    primaryKey({ columns: [t.id], name: "pk_findings" }),
+    unique("uq_findings_fact_key").on(t.factKey),
+    index("ix_findings_person_id").on(t.personId),
+    index("ix_findings_company_id").on(t.companyId),
+    foreignKey({
+      columns: [t.personId],
+      foreignColumns: [people.id],
+      name: "fk_findings_person_id_people",
+    }),
+    foreignKey({
+      columns: [t.companyId],
+      foreignColumns: [companies.id],
+      name: "fk_findings_company_id_companies",
+    }),
+    foreignKey({
+      columns: [t.documentId],
+      foreignColumns: [documents.id],
+      name: "fk_findings_document_id_documents",
+    }),
+    oneOf("ck_findings_findingkind", t.kind, FINDING_KINDS),
+    check("ck_findings_one_subject", sql`(person_id IS NULL) <> (company_id IS NULL)`),
+    check("ck_findings_confidence", sql`confidence >= 0 AND confidence <= 1`),
+  ],
+);
+export type Finding = typeof findings.$inferSelect;
+
+/**
+ * Where a person lookup (R7) stands, one row per person. `matched`: we trust a
+ * profile as this person (its url is on `people.linkedin_url`). `unresolved`:
+ * nothing matched safely, so nothing was guessed. `capped`: a platform's daily
+ * cap stopped it; `retry_at` says when to try again. `tried` is the audit
+ * trail (queries, reads, why each candidate was kept or dropped), for
+ * measuring false matches by hand.
+ */
+export const LOOKUP_STATES = ["matched", "unresolved", "capped"] as const;
+export type LookupState = (typeof LOOKUP_STATES)[number];
+
+export const personLookups = pgTable(
+  "person_lookups",
+  {
+    personId: integer("person_id").notNull(),
+    state: varchar("state", { length: 16, enum: LOOKUP_STATES }).notNull(),
+    tried: jsonb("tried").notNull(),
+    retryAt: timestamp("retry_at", { withTimezone: true }),
+    runId: uuid("run_id"),
+    lookedUpAt: timestamp("looked_up_at", { withTimezone: true }).defaultNow().notNull(),
+  },
+  (t) => [
+    primaryKey({ columns: [t.personId], name: "pk_person_lookups" }),
+    foreignKey({
+      columns: [t.personId],
+      foreignColumns: [people.id],
+      name: "fk_person_lookups_person_id_people",
+    }),
+    foreignKey({
+      columns: [t.runId],
+      foreignColumns: [runs.id],
+      name: "fk_person_lookups_run_id_runs",
+    }),
+    oneOf("ck_person_lookups_lookupstate", t.state, LOOKUP_STATES),
+  ],
+);
+export type PersonLookup = typeof personLookups.$inferSelect;

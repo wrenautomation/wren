@@ -7,6 +7,7 @@
     ".": "./src/index.ts",
     "./discovery": "./src/discovery/index.ts",
     "./fetch": "./src/fetch/index.ts",
+    "./people": "./src/people/index.ts",
     "./schema": "./src/schema.ts",
     "./enrichment": "./src/enrichment/index.ts",
     "./restate": "./src/restate/index.ts"

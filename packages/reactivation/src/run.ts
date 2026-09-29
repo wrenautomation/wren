@@ -1,0 +1,72 @@
+/**
+ * `crm run`: every stage that is due, in order, so nobody has to remember the
+ * order. Each stage resumes on its own (a re-run picks up what is left), so the
+ * whole run does too: Ctrl-C, then run again. A stage that aborts stops the
+ * run; the stages after it would work on half a list. `crmStatus` says where
+ * things stand afterwards.
+ */
+import type { EmailVerifier, LocalCheckerLike } from "@wren/channel-email";
+import type { SiteClient } from "@wren/core/content";
+import type { Queryable } from "@wren/db";
+import { type CrmVerifyStats, checkCrmEmails } from "./crm/verify.js";
+import { type CrmLookupStats, lookUpCrmPeople } from "./lookup.js";
+import { CRM_STAGES, type CrmStage, crmStatus } from "./status.js";
+
+export interface CrmRunDeps {
+  verifier: EmailVerifier;
+  checker: LocalCheckerLike;
+  sites: SiteClient;
+}
+
+export interface CrmRunOptions {
+  /** The client's LinkedIn account for logged-in reads; null = search only. */
+  linkedin: string | null;
+  /** At most this many units per stage. */
+  limit?: number;
+  runId?: string | null;
+}
+
+export type CrmStageResult =
+  | { stage: "verify"; stats: CrmVerifyStats }
+  | { stage: "lookup"; stats: CrmLookupStats };
+
+export async function runCrm(
+  db: Queryable,
+  deps: CrmRunDeps,
+  opts: CrmRunOptions,
+  onStage: (r: CrmStageResult) => void = () => {},
+): Promise<CrmStageResult[]> {
+  const stages: CrmStageResult[] = [];
+  const limit = opts.limit ? { limit: opts.limit } : {};
+  for (const stage of CRM_STAGES) {
+    // Asked fresh each time: an earlier stage can change what a later one has to do.
+    if (!(await crmStatus(db)).due.includes(stage)) continue;
+    const r = await runStage(stage);
+    stages.push(r);
+    onStage(r);
+    if (r.stats.aborted) break;
+  }
+  return stages;
+
+  async function runStage(stage: CrmStage): Promise<CrmStageResult> {
+    switch (stage) {
+      case "verify":
+        return {
+          stage,
+          stats: await checkCrmEmails(db, deps.verifier, deps.checker, {
+            concurrency: 8,
+            ...limit,
+          }),
+        };
+      case "lookup":
+        return {
+          stage,
+          stats: await lookUpCrmPeople(db, deps.sites, {
+            linkedin: opts.linkedin,
+            runId: opts.runId ?? null,
+            ...limit,
+          }),
+        };
+    }
+  }
+}

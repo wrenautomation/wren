@@ -1,22 +1,31 @@
 /**
- * `wren --client <id> crm …`: a client's CRM export in, the health report out,
- * and the CRM's own addresses checked. Always a client's database.
+ * `wren --client <id> crm …`: a client's CRM export in, then `crm run` does
+ * every stage that is due and `crm status` says where things stand. The
+ * single-stage commands (verify, lookup) are for debugging one stage. Always a
+ * client's database.
  */
 import { resolve } from "node:path";
 import { defaultLocalChecker, makeVerifier } from "@wren/channel-email";
 import type { Settings } from "@wren/config";
+import { recordedRun } from "@wren/core";
+import type { Client } from "@wren/core/clients";
 import type { Db } from "@wren/db";
 import {
   CRM_FORMATS,
   CrmCsvSource,
   checkCrmEmails,
   crmHealth,
+  crmStatus,
   formatCrmHealth,
+  formatCrmStatus,
+  lookUpCrmPeople,
+  runCrm,
   runCrmImport,
 } from "@wren/reactivation";
 import type { Command } from "commander";
+import { ingressSites } from "./sites.js";
 
-type WithDb = <T>(fn: (db: Db) => Promise<T>) => Promise<T>;
+type WithDb = <T>(fn: (db: Db, client: Client) => Promise<T>) => Promise<T>;
 
 const positive = (flag: string) => (v: string) => {
   const n = Number(v);
@@ -25,7 +34,9 @@ const positive = (flag: string) => (v: string) => {
 };
 
 export function registerCrm(program: Command, withClientDb: WithDb, settings: Settings): void {
-  const crm = program.command("crm").description("a client's CRM export: import, health, verify");
+  const crm = program
+    .command("crm")
+    .description("a client's CRM: import, then `crm run` and `crm status`");
 
   crm
     .command("formats")
@@ -53,7 +64,55 @@ export function registerCrm(program: Command, withClientDb: WithDb, settings: Se
         runCrmImport(db, source, { niche: opts.niche ?? null }),
       );
       console.log(`import ${batch.id}: ${JSON.stringify(stats)}`);
-      console.log("next: `wren crm verify`, then `wren crm health`");
+      console.log("next: `wren --client <id> crm run`");
+    });
+
+  crm
+    .command("status")
+    .description("Where this client stands and what `crm run` does next")
+    .option("--json", "print the status as JSON")
+    .action(async (opts: { json?: boolean }) => {
+      const status = await withClientDb(async (db, client) => ({
+        ...(await crmStatus(db)),
+        client: client.id,
+      }));
+      if (opts.json) console.log(JSON.stringify(status, null, 2));
+      else
+        for (const line of formatCrmStatus(status))
+          console.log(line.replaceAll("<id>", status.client));
+    });
+
+  crm
+    .command("run")
+    .description("Do every stage that is due, in order; Ctrl-C pauses, running again resumes")
+    .option("--limit <n>", "at most n units per stage", positive("--limit"))
+    .option("--no-linkedin", "search only, even when the client has a LinkedIn account")
+    .option("--verifier <name>", "smtp, smtp-direct or fake", settings.verifier)
+    .action(async (opts: { limit?: number; linkedin: boolean; verifier: string }) => {
+      const verifier = await makeVerifier(opts.verifier, {
+        smtpProbeUrl: settings.smtpProbeUrl ?? null,
+        smtpProbeToken: settings.smtpProbeToken ?? null,
+        smtpHelo: settings.smtpHelo ?? null,
+      });
+      const deps = { verifier, checker: defaultLocalChecker(), sites: ingressSites(settings) };
+      const { client, run, stages, status } = await withClientDb(async (db, client) => {
+        const linkedin = opts.linkedin ? (client.accounts?.linkedin ?? null) : null;
+        const argv = { ...opts, linkedin };
+        const { run, stats } = await recordedRun(db, { command: "crm run", argv }, async (r) => ({
+          stages: await runCrm(
+            db,
+            deps,
+            { linkedin, runId: r.id, ...(opts.limit ? { limit: opts.limit } : {}) },
+            (s) => console.log(`${s.stage}: ${JSON.stringify(s.stats)}`),
+          ),
+        }));
+        return { client, run, stages: stats.stages, status: await crmStatus(db) };
+      });
+      console.log(
+        `run ${run.id}: ${stages.length ? stages.map((s) => s.stage).join(", ") : "nothing was due"}`,
+      );
+      for (const line of formatCrmStatus(status)) console.log(line.replaceAll("<id>", client.id));
+      if (stages.some((s) => s.stats.aborted)) process.exitCode = 1;
     });
 
   crm
@@ -88,4 +147,32 @@ export function registerCrm(program: Command, withClientDb: WithDb, settings: Se
       console.log(JSON.stringify(stats));
       if (stats.aborted) process.exitCode = 1;
     });
+
+  crm
+    .command("lookup")
+    .description("Where is each CRM contact now: search, then LinkedIn when the client allows it")
+    .option("--limit <n>", "look up at most n people", positive("--limit"))
+    .option("--concurrency <n>", "people looked up at once", positive("--concurrency"), 2)
+    .option("--no-linkedin", "search only, even when the client has a LinkedIn account")
+    .option("--again", "look up people already looked up, too")
+    .action(
+      async (opts: { limit?: number; concurrency: number; linkedin: boolean; again?: boolean }) => {
+        const sites = ingressSites(settings);
+        const { run, stats } = await withClientDb(async (db, client) => {
+          const linkedin = opts.linkedin ? (client.accounts?.linkedin ?? null) : null;
+          const argv = { ...opts, linkedin };
+          return recordedRun(db, { command: "crm lookup", argv }, (r) =>
+            lookUpCrmPeople(db, sites, {
+              linkedin,
+              concurrency: opts.concurrency,
+              again: opts.again ?? false,
+              runId: r.id,
+              ...(opts.limit ? { limit: opts.limit } : {}),
+            }),
+          );
+        });
+        console.log(`run ${run.id}: ${JSON.stringify(stats)}`);
+        if (stats.aborted) process.exitCode = 1;
+      },
+    );
 }

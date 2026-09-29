@@ -16,6 +16,7 @@
     "@wren/channel-email": "workspace:*",
     "@wren/core": "workspace:*",
     "@wren/db": "workspace:*",
+    "@wren/research": "workspace:*",
     "drizzle-orm": "0.45.2"
   },
   "devDependencies": {

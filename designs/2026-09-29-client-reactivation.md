@@ -7,16 +7,18 @@ The first product wren runs for a paying client, not for Wren's own outbound. A 
 - Reactivation is the offer. Paid, not free: $1,000 setup upfront plus $500 per meeting booked, capped at $15,000. A meeting counts when it is on a calendar.
 - Credibility is a demo and a clear explanation of how it works, not a free pilot.
 - One codebase, in wren. Non-technical staff (owners, C-suite) need a real UI.
-- LinkedIn search is in, carefully. The account is switchable per client: a dedicated research account by default, William's personal account when named, a client's alt account for a client.
+- LinkedIn search is in, carefully. The account is set per client. For now it is William's personal `linkedin`, read-only (2026-09-29).
 - Full enrichment: LinkedIn, X, Instagram, the web.
 - Watch, don't search (2026-09-29): follow people once and read the feed, not a search per person per day. Fewer requests, less risk of a flag.
 - The sample firm is built from a real recruiting agency's public data.
+- Monorepo, not a new repo (2026-09-29), with clear layers (below). Reactivation is one product on foundations William also uses himself (lookup, research, email checks). It must scale to 50+ clients, each with its own fulfilment details, on the same parts.
+- Easy to use (2026-09-29): one command per job, plus a `wren` skill (`.claude/skills/wren`).
 
 ## Shape
 
 | Piece | Where | What it does |
 |---|---|---|
-| Client registry | main DB `clients` table | id, name, database, accounts, caps, recruiters, portal emails, demo flag |
+| Client registry | main DB `clients` table | id, name, database, accounts, product settings, portal emails, demo flag |
 | Client database | one Postgres database per client on the same server (`wren_client_<id>`) | the full wren schema, migrated like main; nothing shared with Wren's own leads |
 | `packages/reactivation` | new | CRM export formats, health report, contact scoring, the reactivation composer, reply handoff |
 | `packages/research` people + signals | extended | person lookup, job changes, hiring signals, social posts, findings, cited briefs |
@@ -24,6 +26,17 @@ The first product wren runs for a paying client, not for Wren's own outbound. A 
 | `apps/portal` | new | `api/` (Lambda, read-only) + `web/` (React SPA on Cloudflare Pages) |
 | Demo | `demo.wrenautomation.com` | the portal on client `demo`, no login, people masked server-side |
 | Offer | `packages/offers` | `reactivation` offer with a new `performance` price kind |
+
+## Layers
+
+Three layers. Code only points down.
+
+- **Foundations** know nothing about clients or products. These are core, db, config, llm, research (people lookup, findings) and the channels (email checks, sending, sites). Each takes a database and a site client, so William can use any of them directly for personal work on the main database.
+- **Products** build a pipeline out of foundations. There is one package per product, and reactivation is `packages/reactivation`. Products never import each other. When two products need the same thing, it moves down into a foundation.
+- **Clients** are data only: a registry row with a database, accounts and product settings (R21). There is no per-client code and no client name in git.
+- **Apps** (cli, worker, portal) wire the layers: pick the client, open its database, call the product.
+
+A lint rule guards this. biome `noRestrictedImports` on `packages/**` fails the build when a foundation imports `@wren/reactivation`, and each new product adds its name to that rule.
 
 ## Decisions
 
@@ -48,11 +61,25 @@ The first product wren runs for a paying client, not for Wren's own outbound. A 
 - **R7. Person lookup is layered, cheapest and safest first.**
   1. The email check (mailifier). A once-valid address that now rejects means the person probably left.
   2. Web search (`web` site: exa → brave → ddg), `"<name>" "<company>" site:linkedin.com/in`, then parse the snippet for the current title and employer. No login.
-  3. LinkedIn logged in, only for contacts still unresolved. It runs as the client's configured account, within the caps autobrowse enforces per account per day (429 means stop, retry tomorrow), and is read-only. Off unless the client row allows it.
+  3. LinkedIn logged in, only for contacts still unresolved. It runs as the client's configured account, within the caps autobrowse enforces per account per day, and is read-only. Off unless the client row allows it.
 
   A match needs the name plus a past employer or the email domain in the result. Otherwise it's `unresolved`, never guessed.
+
+  As built (`packages/research/src/people`, `wren --client <id> crm lookup`):
+  - Pure over a `SiteClient`; `store.ts` writes. Research owns the lookup, reactivation owns the CRM runner, so any list can use it.
+  - Search: two queries at most. A LinkedIn result whose name matches and whose title or snippet names the firm (name, or domain label of 4+ letters) is the match. Its title ("Name - Title - Company") or snippet ("Experience: X") says where they are now.
+  - Name match: the given name, then every last-name word after it, so order counts. The first name must be equal, or a short form of 3+ letters that is 3+ letters shorter: Chris matches Christopher, Eric doesn't match Erica. Apostrophes drop, so O'Brien matches OBrien. Half a name never matches.
+  - Titles: in "Name - X", X counts only when it is the firm itself. "Former X at Y" and cut-off text ("…") say nothing.
+  - Other domains and addresses are blanked before looking for the firm, and so is the person's own name, so "Acme" in "jane@acme-mail.com" or in "Jane Acme" isn't a mention. Email findings come only from an address at the firm's domain.
+  - LinkedIn (only when `clients.accounts.linkedin` is set, `--no-linkedin` turns it off): read the half-matched profiles, else search LinkedIn people. A profile counts only with a role at the firm. At most 3 profile reads per person.
+  - Confidence: profile 0.9; search 0.7 still there, 0.6 moved; mailbox rejects 0.6, domain takes no mail 0.4; mailbox takes mail 0.5 still there.
+  - One `person_lookups` row per person: `matched`, `unresolved` or `capped` with `retry_at`, plus the trail of what was tried. A re-run picks people with no row, or capped and due; `--again` picks everyone.
+  - A 429 asking to wait 300s or less is pacing: autobrowse spaces LinkedIn calls 10–30s apart and refuses once a slot is 2+ minutes out. wren sleeps and retries, 3 tries.
+  - A longer 429 is a cap. A LinkedIn cap parks that person and every later one at step 3 for the rest of the run, with no repeat asks. A search cap stops the run. Five errors in a row also stop it.
+  - Any other 4xx from LinkedIn search is recorded as `refused`, with no match. Text is stripped of NUL bytes before it is stored.
+  - The CLI reaches autobrowse through Restate ingress, like the worker, and wakes the box first (`ec2Wake`, moved to core).
 - **R8. Company signals come from official paths first.**
-  - Hiring: careers page (existing crawler), LinkedIn company jobs, a search for job posts.
+  - Hiring: LinkedIn company jobs, plus a web search for job posts. The TS repo has no careers crawler; add one only if these two miss.
   - Posts: the watch feeds (R19). Instagram Business Discovery (official) for business accounts, no follow needed.
   - News: web search.
   - A browser leg only where no API exists, in our own real browser, read-only.
@@ -86,8 +113,24 @@ The first product wren runs for a paying client, not for Wren's own outbound. A 
   - Write it as a Bullhorn-style CSV with simulated CRM history (last placement, last contact, owner) and realistic mess: duplicates, dead emails, blank titles.
   - Import it through the same path as a real client, so the demo exercises the product.
   - The agency is never named ("a 30-person tech recruiting firm, built from its public website"). No emails are ever sent to demo contacts: the demo client has no roster.
-- **R17. Accounts are per client.** The `clients` row names each site's account (`linkedin@research`, `linkedin` for William's personal account when chosen, `linkedin@<client>` for a client's alt). wren always passes `account` explicitly, and autobrowse enforces caps per account.
+- **R17. Accounts are per client.** The `clients` row names each site's account, and wren always passes `account` explicitly. autobrowse enforces caps per account.
+  - For now every client uses `linkedin`: William's personal profile, read-only. Its caps are lower than the default (40 profiles and 15 searches a day, asked 2026-09-29).
+  - Clients sharing an account split one daily cap, and `clients add|set` warns when that happens. Give a client its own account (`linkedin@<client>`) once volume needs it.
 - **R18. Offer.** `reactivation` is a `performance` price: `upfront` $1,000, `perUnit` $500, `unit` "meeting booked", `cap` $15,000. Prices stay off the lander (D14); the portal shows the running bill to the client.
+- **R20. One command per job: `crm run` and `crm status`, plus the `wren` skill.**
+  - `crm run` does every stage that is due, in order (`CRM_STAGES`: verify, then lookup). It stops at the first stage that aborts, is recorded as one `runs` row, and resumes when run again.
+  - `crm status` says where the client stands and ends with one `next:` line.
+  - Later stages (signals, watch, briefs, score) join `CRM_STAGES`, so the commands never change. The single-stage commands stay for debugging.
+- **R21. Per-client differences are settings, not forks.** `clients.products` is JSON keyed by product: `{ reactivation: { … } }`.
+  - Each product parses its own block with a schema and owns the defaults. A bad block fails at `clients set`, not in a loop at 3am.
+  - The reactivation block covers:
+    - stages on or off (lookup, watch, briefs, compose, send)
+    - daily caps (lookups, follows, sends)
+    - the sender domains and mailboxes
+    - the offer terms
+  - The firm's own details (voice, recruiters, signature) live in the client's database (`client_profile`), because only that client's work reads them.
+  - The worker walks every client whose block turns the product on (R4).
+  - This replaces `clients.caps`, which nothing reads. It gets built in step 7, when the worker first needs it.
 
 ## Data added (one migration, every database)
 
@@ -100,28 +143,23 @@ The first product wren runs for a paying client, not for Wren's own outbound. A 
 - `crm_contacts` (R5): every CRM row whole, with owner, status and dates. Replaces the planned `people.owner` / `last_contacted_at`: those are per CRM record, not per person, and a person can appear twice.
 - `people.origin` gains `crm`; `contact_candidates.evidence` gains `crm`.
 
-Main database only: `clients` (id, name, database, accounts JSON, caps JSON, portal_emails, demo, created_at).
+Main database only: `clients` (id, name, database, accounts JSON, caps JSON, portal_emails, demo, created_at). Step 7 replaces `caps` with `products` JSON (R21).
 
 ## Build order
 
 1. Client registry, per-client database, `wren clients add|list`, `--client` on the CLI, pool cache. **Done.**
 2. CRM formats and health: `wren --client <id> crm formats|import|verify|health`. Health exits 1 while the gate is shut. **Done.**
-3. Findings and person lookup (R7) through the `web` and `linkedin` sites.
-4. Company signals (R8), the watch (R19), briefs (R9), plus scoring (R10).
+3. Findings and person lookup (R7) through the `web` and `linkedin` sites, plus `crm run|status`, the `wren` skill and the layer lint rule (R20). **Done.**
+4. Company signals (R8), the watch (R19), briefs (R9), plus scoring (R10). The watch waits on autobrowse's watch mode, so the other three can land first.
 5. Demo seed (R16): `wren clients seed-demo --agency <url>`.
 6. Portal API and web (R14, R15), deploy, `demo.` and `app.` hosts.
-7. Composer (R11), the client dimension in the worker (R4), sending (R12) and handoff (R13).
+7. Composer (R11), the client dimension in the worker (R4), per-client settings (R21), sending (R12) and handoff (R13).
 8. Offer `reactivation` (R18), lander `/demo` link, map cards.
 
 ## Owed by others
 
-- autobrowse (asked 2026-09-29):
-  - `linkedin@research`, and named `linkedin` working
-  - per-account daily caps
-  - `GET /company/{company}/jobs`
-  - X `users/by/username`
-  - Instagram Business Discovery
-  - a `web` site for search and read on the facade
+- autobrowse (asked 2026-09-29). Live by evening: LinkedIn people search, `/in/{vanity}?experience=true`, company page and jobs, per-account caps, Instagram Business Discovery. Built, not proven: `web` search and read, X by username. Per-account pacing landed in 923c287. Still owed:
+  - lower caps on `linkedin`: 40 profiles and 15 searches a day (R17)
   - watch mode (R19): follow a person or page per account, X private List add, read the feed from a cursor
   - scroll-collect: scroll a feed or list and collect items as they load, until a cursor or a count
   - `extract`: read text, links, images and structured items out of a page (no full-page dumps)
@@ -133,7 +171,7 @@ Main database only: `clients` (id, name, database, accounts JSON, caps JSON, por
 ## Where to attack
 
 1. **Matching the wrong person** (R7). A common name at a big company resolves to a stranger, and the brief cites a real page about the wrong person. The name-plus-employer rule is the only guard; measure false matches on the demo list by hand.
-2. **LinkedIn bans the research account.** Caps are guesses. Watch for challenge pages; the first one pauses the account for the day. Following hundreds of people from a fresh account is its own flag, so follows are capped and spread over days (R19).
+2. **LinkedIn bans the research account.** For now that account is William's own profile, so a ban costs him his LinkedIn. Caps are guesses, kept low. Watch for challenge pages; the first one pauses the account for the day. Following hundreds of people from a fresh account is its own flag, so follows are capped and spread over days (R19).
 3. **Demo masking leaks** (R15). One API path that forgets to mask exposes real people. Masking lives in one function every demo response passes through, with a test that walks every route.
 4. **Pool pressure** (R3). N clients × worker instances × 2 connections. Count before client 5.
 5. **Simulated CRM history** (R16) must never read as real. Banner plus a column label.

@@ -56,6 +56,7 @@ import {
   makeContentScheduler,
 } from "@wren/content/restate";
 import type { SiteClient } from "@wren/core/content";
+import { ec2Wake } from "@wren/core/content/box";
 import { makeTokenRenewal } from "@wren/core/content/renewal";
 import {
   type ChannelsFor,
@@ -82,7 +83,6 @@ import {
 } from "@wren/research";
 import { makeDiscovery, makeEnrichment } from "@wren/research/restate";
 import type { Logger } from "pino";
-import { ec2Wake } from "./autobrowse-box.js";
 
 export type AnyService =
   | ServiceDefinition<string, unknown>

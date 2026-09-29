@@ -94,9 +94,6 @@ importers:
 
   apps/worker:
     dependencies:
-      '@aws-sdk/client-ec2':
-        specifier: 3.1136.0
-        version: 3.1136.0
       '@aws-sdk/client-ssm':
         specifier: 3.1136.0
         version: 3.1136.0
@@ -417,6 +414,9 @@ importers:
 
   packages/core:
     dependencies:
+      '@aws-sdk/client-ec2':
+        specifier: 3.1136.0
+        version: 3.1136.0
       '@restatedev/restate-sdk':
         specifier: 1.17.1
         version: 1.17.1
@@ -550,6 +550,9 @@ importers:
       '@wren/db':
         specifier: workspace:*
         version: link:../db
+      '@wren/research':
+        specifier: workspace:*
+        version: link:../research
       drizzle-orm:
         specifier: 0.45.2
         version: 0.45.2(@cloudflare/workers-types@5.20260927.1)(postgres@3.4.9)

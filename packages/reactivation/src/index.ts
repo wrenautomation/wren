@@ -4,4 +4,7 @@ export * from "./crm/health.js";
 export * from "./crm/import.js";
 export * from "./crm/source.js";
 export * from "./crm/verify.js";
+export * from "./lookup.js";
+export * from "./run.js";
 export * from "./schema.js";
+export * from "./status.js";

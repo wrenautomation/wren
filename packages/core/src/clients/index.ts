@@ -94,6 +94,22 @@ export async function updateClient(main: Db, id: string, change: ClientChange): 
   return row;
 }
 
+/**
+ * Accounts two clients share. Each client should research from its own account:
+ * a shared one splits one daily cap and ties one client's use to another's.
+ */
+export function sharedAccounts(all: readonly Pick<Client, "id" | "accounts">[]): string[] {
+  const users = new Map<string, string[]>();
+  for (const c of all)
+    for (const [site, account] of Object.entries(c.accounts)) {
+      const k = `${site}=${account}`;
+      users.set(k, [...(users.get(k) ?? []), c.id]);
+    }
+  return [...users]
+    .filter(([, ids]) => ids.length > 1)
+    .map(([k, ids]) => `${k} is shared by ${ids.join(", ")}: one daily cap between them`);
+}
+
 /** Where this client's data lives. */
 export function clientUrl(mainUrl: string, client: Pick<Client, "database">): string {
   return clientDatabaseUrl(mainUrl, client.database);

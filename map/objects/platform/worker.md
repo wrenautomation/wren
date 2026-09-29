@@ -13,11 +13,11 @@ entity: apps/worker/src/lambda.ts:16
 
 ## Why this shape
 
-Cold start pulls the secret env and the roster from SSM, builds the services, hands the handler to Restate; every invocation is one journaled step (`lambda.ts:1`). The pool is per instance and small. `autobrowse-box.ts` wakes the autobrowse EC2 box before a `sites` call and tags who booted it (`autobrowse-box.ts:41`).
+Cold start pulls the secret env and the roster from SSM, builds the services, hands the handler to Restate; every invocation is one journaled step (`lambda.ts:1`). The pool is per instance and small. `@wren/core/content/box` wakes the autobrowse EC2 box before a `sites` call and tags who booted it (`box.ts:41`).
 
 ## Shape
 
-- `main.ts` (local), `lambda.ts:16`–`18` (SSM env + roster), `ssm-env.ts:35`, `autobrowse-box.ts:41`, `services.ts:105`
+- `main.ts` (local), `lambda.ts:16`–`18` (SSM env + roster), `ssm-env.ts:35`, `services.ts:105`
 - build: `pnpm --filter @wren/worker build:lambda` (esbuild bundle; `createRequire` lesson in `deploy/`)
 - infra: `deploy/terraform/lambda.tf` (function, SSM params `:4`, `:16`, IAM `:56`)
 

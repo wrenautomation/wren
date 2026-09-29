@@ -21,7 +21,7 @@ export type Channels = Partial<Record<Platform, ContentChannel>>;
 export const SITES = { name: "sites" } as const;
 
 /** The `sites` service's handlers as autobrowse serves them; no import from that repo. */
-type SitesService = {
+export type SitesService = {
   status: (ctx: restate.Context, req: { site: string }) => Promise<SiteStatus>;
   call: (
     ctx: restate.Context,
@@ -40,7 +40,7 @@ type SitesService = {
 };
 
 /** A terminal error from `sites` carries the site's own status code; surface it as a SiteCallError. */
-function siteCallErrorFrom(err: unknown, site: string, method: string, path: string): Error {
+export function siteCallErrorFrom(err: unknown, site: string, method: string, path: string): Error {
   if (err instanceof restate.TerminalError)
     return new SiteCallError(site, method, path, err.code ?? 500, err.message);
   return err instanceof Error ? err : new Error(String(err));

@@ -35,7 +35,7 @@ Verified against commit `83459e9` on 2026-09-28. The repo is a TypeScript monore
 | post | a published content draft; LinkedIn's `/rest/posts`. |
 | sites | autobrowse's Restate service, not in this repo. Every platform and Meta call goes through it (`packages/core/src/content/restate.ts:21`). Reddit does not. |
 | worker | `apps/worker` (Node/Lambda Restate endpoint); `apps/phone` (Cloudflare Worker, SMS inbox + webhooks); `deploy/pixel` (Cloudflare Worker, open pixel). |
-| box | autobrowse's EC2 machine, woken by `apps/worker/src/autobrowse-box.ts`. |
+| box | autobrowse's EC2 machine, woken by `packages/core/src/content/box.ts`. |
 
 ## What the map is not
 
