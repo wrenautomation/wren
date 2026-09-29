@@ -21,7 +21,7 @@ Cold start pulls the secret env and the roster from SSM, builds the services, ha
 - build: `pnpm --filter @wren/worker build:lambda` (esbuild bundle; `createRequire` lesson in `deploy/`)
 - infra: `deploy/terraform/lambda.tf` (function, SSM params `:4`, `:16`, IAM `:56`)
 
-Citations: `apps/worker/src/lambda.ts:16`, `apps/worker/src/services.ts:105`
+Citations: `apps/worker/src/lambda.ts:16`, `apps/worker/src/services.ts:106`
 
 ## Connected to
 

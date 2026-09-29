@@ -25,7 +25,7 @@ Citations: `packages/config/src/index.ts:7`, `:328`
 
 ## Connected to
 
-- **owns:** [[email/send-policy]]; which services bind in `apps/worker/src/services.ts:105`
+- **owns:** [[email/send-policy]]; which services bind in `apps/worker/src/services.ts:106`
 - **joins:** [[platform/worker]], [[platform/cli]] (both call `loadSettings`)
 
 ## If you change this

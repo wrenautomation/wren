@@ -13,7 +13,7 @@ One of seven places a post can go, and the adapter that speaks its API: `Platfor
 
 ## Why this shape
 
-Every adapter speaks the platform's own REST shape through autobrowse's `sites` Restate service, so a call is journaled and whether the API or a browser answered is the box's business (`packages/core/src/content/restate.ts:1`). Reddit is the exception: wren's own OAuth token, no box (`packages/channel-reddit/src/api.ts:1`). Limits are data (`PLATFORM_SPECS`: maxChars, needsMedia, needsExtra), so a draft is fit-checked before any paid call.
+Every adapter speaks the platform's own REST shape through autobrowse's `sites` Restate service, so a call is journaled and whether the API or a browser answered is the box's business (`packages/core/src/content/restate.ts:1`). Reddit is the exception: Reddit refused Wren an API client (2026-09-29), so it goes to autobrowse's `desk` service on the Mac (a home IP; `DESK` in `packages/core/src/content/restate.ts`, never woken), or straight to its API with wren's own token when `WREN_REDDIT_*` is set (`packages/channel-reddit/src/api.ts:1`). Limits are data (`PLATFORM_SPECS`: maxChars, needsMedia, needsExtra), so a draft is fit-checked before any paid call.
 
 ## Shape
 

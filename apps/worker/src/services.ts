@@ -63,6 +63,7 @@ import { ec2Wake } from "@wren/core/content/box";
 import { makeTokenRenewal } from "@wren/core/content/renewal";
 import {
   type ChannelsFor,
+  DESK,
   journaledSites,
   makeContent,
   restateSites,
@@ -404,13 +405,21 @@ export async function buildServices(
   };
 }
 
-/** The Reddit API client when `reddit` is on and its app + token are set; null (with a log line) otherwise. */
-function redditFrom(settings: Settings, on: readonly string[], log: Logger): SiteClient | null {
+/**
+ * Where Reddit calls go when `reddit` is on: its API with wren's own token
+ * when WREN_REDDIT_* is set, else the Mac's desk worker (Reddit refused Wren
+ * an API client on 2026-09-29; its browser legs need a home IP). Null when off.
+ */
+function redditFrom(
+  settings: Settings,
+  on: readonly string[],
+  log: Logger,
+): SiteClient | "desk" | null {
   if (!on.includes("reddit")) return null;
   const { redditClientId, redditClientSecret, redditRefreshToken, redditUsername } = settings;
   if (!redditClientId || !redditClientSecret || !redditRefreshToken || !redditUsername) {
-    log.warn("reddit is on but WREN_REDDIT_* is incomplete: no reddit channel");
-    return null;
+    log.info("reddit through the Mac's desk worker (no WREN_REDDIT_* API client)");
+    return "desk";
   }
   return redditApi({
     clientId: redditClientId,
@@ -435,13 +444,19 @@ function contentFor(settings: Settings, log: Logger): ChannelsFor | null {
     ...(host ? { host } : {}),
     ...(settings.metaPageId ? { pageId: settings.metaPageId } : {}),
   };
-  // Reddit goes straight to its API with wren's own token; no box to wake.
+  // Reddit: its API with wren's own token, or the Mac's desk worker; no box to wake either way.
   const reddit = redditFrom(settings, on, log);
   return (ctx) => {
     const sites = restateSites(ctx, wake);
     return {
       ...(on.includes("linkedin") ? { linkedin: linkedinContent(sites) } : {}),
-      ...(reddit ? { reddit: redditContent(journaledSites(ctx, reddit)) } : {}),
+      ...(reddit
+        ? {
+            reddit: redditContent(
+              reddit === "desk" ? restateSites(ctx, undefined, DESK) : journaledSites(ctx, reddit),
+            ),
+          }
+        : {}),
       ...(on.includes("youtube") ? { youtube: youtubeContent(sites, host ? { host } : {}) } : {}),
       ...(on.includes("x") ? { x: xContent(sites, host ? { host } : {}) } : {}),
       // The Graph path needs a hosted URL and a Facebook Page (WREN_META_PAGE_ID);

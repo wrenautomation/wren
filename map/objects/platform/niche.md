@@ -30,7 +30,7 @@ Citations: `packages/niches/src/niche.ts:23`, `packages/niches/src/index.ts:24`
 
 ## If you change this
 
-- **Hits:** adding a niche: a facts view (migration), a templates dir, a definition file, `NICHES`, the roster's niche list, `LANDERS_BY_NICHE` and the lander repo; the `Campaign` map in `apps/worker/src/services.ts:150`
+- **Hits:** adding a niche: a facts view (migration), a templates dir, a definition file, `NICHES`, the roster's niche list, `LANDERS_BY_NICHE` and the lander repo; the `Campaign` map in `apps/worker/src/services.ts:151`
 - **Does not hit:** running enrollments (snapshotted); the content loop (niche-free)
 
 ## Surfaces

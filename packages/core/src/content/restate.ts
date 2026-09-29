@@ -19,6 +19,8 @@ import type { ContentChannel, ListQuery, Platform, Post } from "./index.js";
 export type Channels = Partial<Record<Platform, ContentChannel>>;
 
 export const SITES = { name: "sites" } as const;
+/** The same service on the Mac (autobrowse `src/app/desk.ts`): legs a site refuses from the box's IP. */
+export const DESK = { name: "desk" } as const;
 
 /** The `sites` service's handlers as autobrowse serves them; no import from that repo. */
 export type SitesService = {
@@ -57,10 +59,15 @@ export type Wake = () => Promise<"started" | "running">;
  * autobrowse's site APIs through the invocation's context: each call is a
  * durable step of this invocation. With a `wake`, the first call of the
  * invocation starts the box first (one journaled step); Restate then holds
- * the call until the worker is back on the tunnel.
+ * the call until the worker is back on the tunnel. `service`: `SITES` (the
+ * box) or `DESK` (the Mac, never woken: it is on while the Mac is).
  */
-export function restateSites(ctx: restate.Context, wake?: Wake): SiteClient {
-  const client = ctx.serviceClient<SitesService>(SITES);
+export function restateSites(
+  ctx: restate.Context,
+  wake?: Wake,
+  service: { name: string } = SITES,
+): SiteClient {
+  const client = ctx.serviceClient<SitesService>(service);
   const statuses = new Map<string, Promise<SiteStatus>>();
   let woken: Promise<unknown> | null = null;
   const awake = () => {
@@ -87,7 +94,13 @@ export function restateSites(ctx: restate.Context, wake?: Wake): SiteClient {
       await awake();
       const p = statuses.get(site) ?? client.status({ site });
       statuses.set(site, p);
-      return viaOf(await p, method, path);
+      try {
+        return viaOf(await p, method, path);
+      } catch (err) {
+        // A failed read is not the site's answer: the next call asks again.
+        statuses.delete(site);
+        throw siteCallErrorFrom(err, site, "GET", "status");
+      }
     },
   };
 }

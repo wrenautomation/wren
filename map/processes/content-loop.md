@@ -23,7 +23,7 @@ Drafting costs money and approving is publishing, so both stay a person's call; 
 1. Idea (`packages/content/src/ideas.ts:24`); from ads (`packages/channel-meta/src/bridge.ts`).
 2. Draft, fit-checked against `PLATFORM_SPECS` (`draft.ts:186`, `platforms.ts:23`; lessons `lessons.ts`; voice `voice.ts`).
 3. Review (`review.ts:70`, `:165`, `:170`); slots (`slots.ts`).
-4. Publish (`restate/scheduler.ts`; `queue.ts:37`; `packages/core/src/content/restate.ts:62`; adapters `packages/channel-*/src/content.ts`).
+4. Publish (`restate/scheduler.ts`; `queue.ts:37`; `packages/core/src/content/restate.ts:65`; adapters `packages/channel-*/src/content.ts`).
 5. Metrics and plan (`metrics.ts:50`, `:97`; `restate/metrics.ts`; `plan.ts`; `restate/planner.ts`).
 
 ## If you change this

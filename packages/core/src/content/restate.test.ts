@@ -2,18 +2,20 @@ import * as restate from "@restatedev/restate-sdk";
 import { describe, expect, it } from "vitest";
 import { asAccount, autobrowseSites, SiteCallError, type SiteClient } from "./autobrowse.js";
 import { fakeContentChannel } from "./index.js";
-import { journaledSites, makeContent, restateSites } from "./restate.js";
+import { DESK, journaledSites, makeContent, restateSites, SITES } from "./restate.js";
 
 /** A stand-in Context whose `sites` client answers from a script and keeps every call. */
 function ctxOf(answer: (handler: string, req: unknown) => unknown) {
   const calls: { handler: string; req: unknown }[] = [];
+  const services: unknown[] = [];
   const ctx = {
     run: async (name: string, fn: () => Promise<unknown>) => {
       calls.push({ handler: `run ${name}`, req: null });
       return fn();
     },
-    serviceClient: () =>
-      new Proxy(
+    serviceClient: (service: unknown) => {
+      services.push(service);
+      return new Proxy(
         {},
         {
           get:
@@ -23,9 +25,10 @@ function ctxOf(answer: (handler: string, req: unknown) => unknown) {
               return answer(handler, req);
             },
         },
-      ),
+      );
+    },
   };
-  return { ctx: ctx as unknown as restate.Context, calls };
+  return { ctx: ctx as unknown as restate.Context, calls, services };
 }
 
 describe("restateSites", () => {
@@ -97,6 +100,108 @@ describe("restateSites", () => {
     await expect(restateSites(ctx).call("youtube", "GET", "/youtube/v3/videos")).rejects.toSatisfy(
       (e: unknown) => e instanceof SiteCallError && e.status === 501,
     );
+  });
+});
+
+describe("restateSites over a named service", () => {
+  it("defaults to `sites`; DESK names `desk`", async () => {
+    expect(SITES).toEqual({ name: "sites" });
+    expect(DESK).toEqual({ name: "desk" });
+    const box = ctxOf(() => ({}));
+    await restateSites(box.ctx).call("reddit", "GET", "/api/v1/me");
+    expect(box.services).toEqual([{ name: "sites" }]);
+    const mac = ctxOf(() => ({}));
+    await restateSites(mac.ctx, undefined, DESK).call("reddit", "GET", "/api/v1/me");
+    expect(mac.services).toEqual([{ name: "desk" }]);
+    expect(mac.calls).toEqual([
+      { handler: "call", req: { site: "reddit", method: "GET", path: "/api/v1/me", input: {} } },
+    ]);
+  });
+
+  it("the desk is never woken without a wake, even on via", async () => {
+    const { ctx, calls } = ctxOf((h) => (h === "status" ? { routes: [] } : {}));
+    const desk = restateSites(ctx, undefined, DESK);
+    await desk.via("reddit", "POST", "/api/submit");
+    await desk.call("reddit", "POST", "/api/submit");
+    expect(calls.map((c) => c.handler)).toEqual(["status", "call"]);
+  });
+
+  it("a wake still runs once before the first call on a named service", async () => {
+    const { ctx, calls, services } = ctxOf(() => ({}));
+    let woken = 0;
+    const sites = restateSites(
+      ctx,
+      async () => {
+        woken++;
+        return "running";
+      },
+      DESK,
+    );
+    await sites.call("reddit", "GET", "/a");
+    await sites.call("reddit", "GET", "/b");
+    expect(woken).toBe(1);
+    expect(services).toEqual([{ name: "desk" }]);
+    expect(calls.map((c) => c.handler)).toEqual(["run wake autobrowse", "call", "call"]);
+  });
+
+  it("a terminal error from the desk is a SiteCallError carrying the site, route and code", async () => {
+    const { ctx } = ctxOf(() => {
+      throw new restate.TerminalError("subreddit banned you", { errorCode: 403 });
+    });
+    const err = await restateSites(ctx, undefined, DESK)
+      .call("reddit", "POST", "/api/submit", { sr: "x" })
+      .catch((e: unknown) => e);
+    expect(err).toBeInstanceOf(SiteCallError);
+    expect(err).toMatchObject({
+      site: "reddit",
+      status: 403,
+      message: "reddit POST /api/submit: 403 subreddit banned you",
+    });
+  });
+
+  it("a terminal error with no code maps to 500; a plain error passes through", async () => {
+    const bare = ctxOf(() => {
+      throw new restate.TerminalError("boom");
+    });
+    await expect(
+      restateSites(bare.ctx, undefined, DESK).call("reddit", "GET", "/x"),
+    ).rejects.toSatisfy((e: unknown) => e instanceof SiteCallError && e.status === 500);
+    const plain = new Error("socket hang up");
+    const flaky = ctxOf(() => {
+      throw plain;
+    });
+    await expect(restateSites(flaky.ctx, undefined, DESK).call("reddit", "GET", "/x")).rejects.toBe(
+      plain,
+    );
+  });
+
+  it("via reads one status per site and keeps each site's apart", async () => {
+    const { ctx, calls } = ctxOf((h, req) => {
+      if (h !== "status") return {};
+      const site = (req as { site: string }).site;
+      return site === "reddit"
+        ? { routes: [{ method: "POST", path: "/api/submit", via: "browser" }] }
+        : { routes: [{ method: "POST", path: "/api/submit", via: "api" }] };
+    });
+    const desk = restateSites(ctx, undefined, DESK);
+    const [a, b] = await Promise.all([
+      desk.via("reddit", "POST", "/api/submit"),
+      desk.via("reddit", "POST", "/api/submit"),
+    ]);
+    expect([a, b]).toEqual(["browser", "browser"]);
+    expect(await desk.via("other", "POST", "/api/submit")).toBe("api");
+    expect(await desk.via("reddit", "GET", "/api/info")).toBe("none");
+    expect(calls.filter((c) => c.handler === "status").map((c) => c.req)).toEqual([
+      { site: "reddit" },
+      { site: "other" },
+    ]);
+  });
+
+  it("the status cache lives per client: a new client reads status again", async () => {
+    const { ctx, calls } = ctxOf(() => ({ routes: [] }));
+    await restateSites(ctx, undefined, DESK).via("reddit", "GET", "/x");
+    await restateSites(ctx, undefined, DESK).via("reddit", "GET", "/x");
+    expect(calls.filter((c) => c.handler === "status")).toHaveLength(2);
   });
 });
 
