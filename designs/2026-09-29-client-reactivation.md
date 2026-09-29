@@ -9,6 +9,7 @@ The first product wren runs for a paying client, not for Wren's own outbound. A 
 - One codebase, in wren. Non-technical staff (owners, C-suite) need a real UI.
 - LinkedIn search is in, carefully. The account is switchable per client: a dedicated research account by default, William's personal account when named, a client's alt account for a client.
 - Full enrichment: LinkedIn, X, Instagram, the web.
+- Watch, don't search (2026-09-29): follow people once and read the feed, not a search per person per day. Fewer requests, less risk of a flag.
 - The sample firm is built from a real recruiting agency's public data.
 
 ## Shape
@@ -47,9 +48,17 @@ The first product wren runs for a paying client, not for Wren's own outbound. A 
   A match needs the name plus a past employer or the email domain in the result. Otherwise it's `unresolved`, never guessed.
 - **R8. Company signals come from official paths first.**
   - Hiring: careers page (existing crawler), LinkedIn company jobs, a search for job posts.
-  - Posts: X API user timeline (a paid read, capped per run and spent only on a grant), Instagram Business Discovery (official).
+  - Posts: the watch feeds (R19). Instagram Business Discovery (official) for business accounts, no follow needed.
   - News: web search.
   - A browser leg only where no API exists, in our own real browser, read-only.
+- **R19. Watch by following, read the feed.** Searching per person per day costs one request per contact per platform and looks like a scraper. Following costs one request per contact, once, and the daily read is one feed per account.
+  1. Handles are resolved once, during lookup (R7): the LinkedIn profile, the X handle and the Instagram handle when a result names them. Company pages too.
+  2. Subscribe:
+     - X: a private List per client. Members get no notification, and the List timeline is one read.
+     - LinkedIn: follow company pages (nobody is told). Follow people only when the client row allows it, since the person can see it.
+     - Instagram: follow from the client's account, where it looks natural, or from the research account.
+  3. Once a day per platform per account, read the feed from the saved cursor. Match each post's author to a watched person or company. Store the post in `documents` and a `post` or `hiring` finding.
+  4. Follows are capped per account per day (about 20 to start) and spread over days. A new client's list fills its watch over two to three weeks. Search runs only for the one-time lookup and for news.
 - **R9. Briefs are cited or dropped.** The LLM writes a brief from findings only. Each sentence carries `[f<id>]` marks, and a gate drops any sentence whose marks do not point at a finding for that contact (same idea as the reply classifier's quote gate). A brief with no surviving sentence is not stored. It goes through `complete_and_parse` and is a `runs` row with costs.
 - **R10. Contacts are scored so the best go first.** Hiring at their company beats a job change to a new company. That beats still being there and recently in touch, which beats stale. The score's reasons are stored with it so the portal can say why.
 - **R11. The composer writes as the client.** Input: the client's profile (firm, what they place, voice, the recruiter who knew the contact, signature) plus the brief. One email and one follow-up, lowercase subject, plain, per the cold-email SOP. The client approves the first batch in the portal before anything sends.
@@ -78,6 +87,7 @@ The first product wren runs for a paying client, not for Wren's own outbound. A 
 ## Data added (one migration, every database)
 
 - `findings` (R6), indexed by person and by company.
+- `watches` (R19): platform, account, subject person or company, handle, state (`pending`, `following`, `failed`, `dropped`), followed_at; plus one cursor row per platform and account for the feed read.
 - `briefs`: person_id, text, citations JSON (finding ids), model, prompt_version, run_id.
 - `contact_scores`: person_id, score, reasons JSON, computed_at.
 - `client_profile`: one row with firm, sells, fee_avg, voice, default_recruiter, signature.
@@ -91,7 +101,7 @@ Main database only: `clients` (id, name, database, accounts JSON, caps JSON, por
 1. Client registry, per-client database, `wren clients add|list`, `--client` on the CLI, pool cache.
 2. CRM formats (`hubspot`, `salesforce`, `bullhorn`, `crm-generic`) and `wren health`.
 3. Findings and person lookup (R7) through the `web` and `linkedin` sites.
-4. Company signals (R8) and briefs (R9), plus scoring (R10).
+4. Company signals (R8), the watch (R19), briefs (R9), plus scoring (R10).
 5. Demo seed (R16): `wren clients seed-demo --agency <url>`.
 6. Portal API and web (R14, R15), deploy, `demo.` and `app.` hosts.
 7. Composer (R11), the client dimension in the worker (R4), sending (R12) and handoff (R13).
@@ -114,7 +124,7 @@ Main database only: `clients` (id, name, database, accounts JSON, caps JSON, por
 ## Where to attack
 
 1. **Matching the wrong person** (R7). A common name at a big company resolves to a stranger, and the brief cites a real page about the wrong person. The name-plus-employer rule is the only guard; measure false matches on the demo list by hand.
-2. **LinkedIn bans the research account.** Caps are guesses. Watch for challenge pages; the first one pauses the account for the day.
+2. **LinkedIn bans the research account.** Caps are guesses. Watch for challenge pages; the first one pauses the account for the day. Following hundreds of people from a fresh account is its own flag, so follows are capped and spread over days (R19).
 3. **Demo masking leaks** (R15). One API path that forgets to mask exposes real people. Masking lives in one function every demo response passes through, with a test that walks every route.
 4. **Pool pressure** (R3). N clients × worker instances × 2 connections. Count before client 5.
 5. **Simulated CRM history** (R16) must never read as real. Banner plus a column label.
