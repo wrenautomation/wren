@@ -34,7 +34,8 @@ export const ENROLLMENT_STATES = ["active", "finished", "stopped"] as const;
 export type EnrollmentState = (typeof ENROLLMENT_STATES)[number];
 export const STOP_REASONS = ["reply", "bounce", "opt_out", "complaint", "manual"] as const;
 export type StopReason = (typeof STOP_REASONS)[number];
-export const APPROVAL_SOURCES = ["operator", "auto"] as const;
+/** `client`: approved by the client in the portal (their own list, their own name on it). */
+export const APPROVAL_SOURCES = ["operator", "auto", "client"] as const;
 export type ApprovalSource = (typeof APPROVAL_SOURCES)[number];
 export const MESSAGE_STATES = [
   "draft",

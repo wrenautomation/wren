@@ -4,7 +4,7 @@
  * shows who to call first. The single-stage commands (verify, lookup) are for
  * debugging one stage. Always a client's database.
  */
-import { writeFileSync } from "node:fs";
+import { readFileSync, writeFileSync } from "node:fs";
 import { resolve } from "node:path";
 import { defaultLocalChecker, makeVerifier } from "@wren/channel-email";
 import type { Settings } from "@wren/config";
@@ -23,9 +23,11 @@ import {
   formatRanked,
   lookUpCrmPeople,
   rankedContacts,
+  readClientProfile,
   runCrm,
   runCrmImport,
   seedDemo,
+  setClientProfile,
 } from "@wren/reactivation";
 import { PoliteFetcher, userAgent } from "@wren/research/fetch";
 import type { Command } from "commander";
@@ -76,6 +78,26 @@ export function registerCrm(
       );
       console.log(`import ${batch.id}: ${JSON.stringify(stats)}`);
       console.log("next: `wren --client <id> crm run`");
+    });
+
+  const profile = crm
+    .command("profile")
+    .description("The firm's profile: what the emails say and who gets the replies")
+    .action(async () => {
+      const row = await withClientDb((db) => readClientProfile(db));
+      console.log(
+        row ? JSON.stringify(row, null, 2) : "no profile yet: `crm profile set <file.json>`",
+      );
+    });
+  profile
+    .command("set <file>")
+    .description(
+      "Replace it from a JSON file: firm, sells, feeAvg, voice, recruiters, defaultRecruiter, signature",
+    )
+    .action(async (file: string) => {
+      const input = JSON.parse(readFileSync(resolve(file), "utf8")) as unknown;
+      const row = await withClientDb((db) => setClientProfile(db, input));
+      console.log(`profile set: ${row.firm}, ${row.recruiters.length} recruiter(s)`);
     });
 
   crm

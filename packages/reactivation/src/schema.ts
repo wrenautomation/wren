@@ -1,6 +1,10 @@
+import { enrollments, threadEvents } from "@wren/channel-email/schema";
 import { companies, imports, people, runs } from "@wren/core/schema";
 import { oneOf } from "@wren/db/columns";
+import { sql } from "drizzle-orm";
 import {
+  boolean,
+  check,
   date,
   foreignKey,
   index,
@@ -144,3 +148,141 @@ export const briefs = pgTable(
   ],
 );
 export type Brief = typeof briefs.$inferSelect;
+
+/** A recruiter at the client: whose contacts they are, and the name the emails go out under. */
+export interface Recruiter {
+  name: string;
+  email: string;
+  /** How the CRM writes their name in its owner column; matched case-insensitively. */
+  owners: string[];
+}
+
+/**
+ * The firm's own details, one row (R11, R21): what the composer writes as. Kept
+ * in the client's database because only that client's work reads it.
+ */
+export const clientProfile = pgTable(
+  "client_profile",
+  {
+    /** Always true: the table holds one row. */
+    one: boolean("one").default(true).notNull(),
+    firm: text("firm").notNull(),
+    /** What they place, in their words: "senior software engineers in fintech". */
+    sells: text("sells").notNull(),
+    /** Their average placement fee in dollars; shown in the portal, never in an email. */
+    feeAvg: integer("fee_avg"),
+    /** How they write: a few lines of guidance, or a past email they're proud of. */
+    voice: text("voice").notNull(),
+    recruiters: jsonb("recruiters").$type<Recruiter[]>().default([]).notNull(),
+    /** Who gets a reply when the contact has no owner we know: a recruiter's email. */
+    defaultRecruiter: varchar("default_recruiter", { length: 320 }),
+    /** Pinned under every email; `{name}` becomes the sending recruiter's name. */
+    signature: text("signature").notNull(),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
+  },
+  (t) => [
+    primaryKey({ columns: [t.one], name: "pk_client_profile" }),
+    check("ck_client_profile_one", sql`${t.one}`),
+  ],
+);
+export type ClientProfile = typeof clientProfile.$inferSelect;
+
+/**
+ * `drafted`: the enrollment and its messages were written. `failed`: the model's
+ * answer didn't parse or broke a rule, with why. Both keep the call, so the
+ * same inputs are never paid for twice.
+ */
+export const COMPOSITION_STATES = ["drafted", "failed"] as const;
+export type CompositionState = (typeof COMPOSITION_STATES)[number];
+
+/** One row per compose attempt at a person (R11): what was asked, what came back, what it became. */
+export const compositions = pgTable(
+  "compositions",
+  {
+    id: serial("id").notNull(),
+    personId: integer("person_id").notNull(),
+    state: varchar("state", { length: 16, enum: COMPOSITION_STATES }).notNull(),
+    enrollmentId: integer("enrollment_id"),
+    /** Why it failed: the broken rules, or the parse error. */
+    detail: text("detail"),
+    inputsHash: varchar("inputs_hash", { length: 32 }).notNull(),
+    model: varchar("model", { length: 128 }).notNull(),
+    promptVersion: varchar("prompt_version", { length: 16 }).notNull(),
+    llm: jsonb("llm"),
+    runId: uuid("run_id"),
+    createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+  },
+  (t) => [
+    primaryKey({ columns: [t.id], name: "pk_compositions" }),
+    index("ix_compositions_person_id").on(t.personId),
+    foreignKey({
+      columns: [t.personId],
+      foreignColumns: [people.id],
+      name: "fk_compositions_person_id_people",
+    }),
+    foreignKey({
+      columns: [t.enrollmentId],
+      foreignColumns: [enrollments.id],
+      name: "fk_compositions_enrollment_id_enrollments",
+    }),
+    foreignKey({
+      columns: [t.runId],
+      foreignColumns: [runs.id],
+      name: "fk_compositions_run_id_runs",
+    }),
+    oneOf("ck_compositions_state", t.state, COMPOSITION_STATES),
+    check(
+      "ck_compositions_enrollment_iff_drafted",
+      sql`(${t.enrollmentId} is not null) = (${t.state} = 'drafted')`,
+    ),
+  ],
+);
+export type Composition = typeof compositions.$inferSelect;
+
+/**
+ * An interested reply passed to the recruiter who owns the contact (R13), and
+ * whether it became a meeting: the billing unit. One per reply.
+ */
+export const handoffs = pgTable(
+  "handoffs",
+  {
+    id: serial("id").notNull(),
+    threadEventId: integer("thread_event_id").notNull(),
+    enrollmentId: integer("enrollment_id").notNull(),
+    personId: integer("person_id"),
+    /** Who it went to. */
+    recruiterEmail: varchar("recruiter_email", { length: 320 }).notNull(),
+    /** Our Message-ID on the forward, minted before it is sent. */
+    forwardMessageId: varchar("forward_message_id", { length: 255 }).notNull(),
+    /** Null until the transport took it; a row without one is sent again. */
+    forwardedAt: timestamp("forwarded_at", { withTimezone: true }),
+    meetingBookedAt: timestamp("meeting_booked_at", { withTimezone: true }),
+    /** Who marked it: a portal login's email, or `operator`. */
+    bookedBy: varchar("booked_by", { length: 320 }),
+    createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+  },
+  (t) => [
+    primaryKey({ columns: [t.id], name: "pk_handoffs" }),
+    unique("uq_handoffs_thread_event_id").on(t.threadEventId),
+    foreignKey({
+      columns: [t.threadEventId],
+      foreignColumns: [threadEvents.id],
+      name: "fk_handoffs_thread_event_id_thread_events",
+    }),
+    foreignKey({
+      columns: [t.enrollmentId],
+      foreignColumns: [enrollments.id],
+      name: "fk_handoffs_enrollment_id_enrollments",
+    }),
+    foreignKey({
+      columns: [t.personId],
+      foreignColumns: [people.id],
+      name: "fk_handoffs_person_id_people",
+    }),
+    check(
+      "ck_handoffs_booked_by_iff_booked",
+      sql`(${t.bookedBy} is null) = (${t.meetingBookedAt} is null)`,
+    ),
+  ],
+);
+export type Handoff = typeof handoffs.$inferSelect;

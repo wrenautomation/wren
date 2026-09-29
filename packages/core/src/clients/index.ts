@@ -18,7 +18,7 @@ export interface NewClient {
   id: string;
   name: string;
   accounts?: Record<string, string>;
-  caps?: Record<string, number>;
+  products?: Record<string, unknown>;
   portalEmails?: string[];
   demo?: boolean;
 }
@@ -40,7 +40,7 @@ export async function addClient(main: Db, mainUrl: string, input: NewClient): Pr
       name: input.name,
       database,
       accounts: input.accounts ?? {},
-      caps: input.caps ?? {},
+      products: input.products ?? {},
       portalEmails: (input.portalEmails ?? []).map((e) => e.trim().toLowerCase()),
       demo: input.demo ?? false,
     })
@@ -68,8 +68,8 @@ export interface ClientChange {
   name?: string;
   /** Merged in; an empty value turns that site off. */
   accounts?: Record<string, string>;
-  /** Merged in; a negative value removes the cap. */
-  caps?: Record<string, number>;
+  /** Per product: a block replaces that product's settings, null removes them. The caller validates. */
+  products?: Record<string, unknown>;
   /** Replaces the list. */
   portalEmails?: string[];
 }
@@ -78,14 +78,14 @@ export async function updateClient(main: Db, id: string, change: ClientChange): 
   const current = await getClient(main, id);
   const accounts = { ...current.accounts, ...change.accounts };
   for (const [site, account] of Object.entries(accounts)) if (!account) delete accounts[site];
-  const caps = { ...current.caps, ...change.caps };
-  for (const [name, n] of Object.entries(caps)) if (n < 0) delete caps[name];
+  const products = { ...current.products, ...change.products };
+  for (const [name, block] of Object.entries(products)) if (block === null) delete products[name];
   const [row] = await main
     .update(clients)
     .set({
       name: change.name ?? current.name,
       accounts,
-      caps,
+      products,
       portalEmails: change.portalEmails?.map((e) => e.trim().toLowerCase()) ?? current.portalEmails,
     })
     .where(eq(clients.id, id))

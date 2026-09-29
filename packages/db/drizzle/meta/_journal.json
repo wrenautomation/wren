@@ -134,6 +134,13 @@
       "when": 1790694014505,
       "tag": "0018_signals_scores_briefs",
       "breakpoints": true
+    },
+    {
+      "idx": 19,
+      "version": "7",
+      "when": 1790707134401,
+      "tag": "0019_products_profile_handoffs",
+      "breakpoints": true
     }
   ]
 }

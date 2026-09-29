@@ -8,7 +8,8 @@
   },
   "scripts": {
     "build": "node scripts/build.mjs",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "test:unit": "vitest run src"
   },
   "dependencies": {
     "@restatedev/restate-sdk-clients": "1.17.1",
@@ -28,6 +29,7 @@
   },
   "devDependencies": {
     "typescript": "5.9.3",
-    "esbuild": "0.28.2"
+    "esbuild": "0.28.2",
+    "vitest": "5.0.1"
   }
 }

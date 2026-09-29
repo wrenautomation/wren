@@ -6,12 +6,14 @@ import type { Settings } from "@wren/config";
 import {
   addClient,
   type Client,
+  getClient,
   listClients,
   sharedAccounts,
   updateClient,
 } from "@wren/core/clients";
 import type { Db } from "@wren/db";
 import type { Command } from "commander";
+import { changeProducts, parseAssignment, pathOf } from "./products.js";
 
 type WithDb = <T>(fn: (db: Db) => Promise<T>) => Promise<T>;
 
@@ -22,17 +24,12 @@ function accountPairs(pairs: string[] = []): Record<string, string> {
   return Object.fromEntries(pairs.map((p) => split(p, "--account")));
 }
 
-/** "name=n" pairs -> { name: n }. A negative n removes the cap. */
-function capPairs(pairs: string[] = []): Record<string, number> {
-  return Object.fromEntries(
-    pairs.map((p) => {
-      const [name, raw] = split(p, "--cap");
-      const n = Number(raw);
-      if (!Number.isInteger(n)) throw new Error(`--cap ${p}: the value must be a whole number`);
-      return [name, n];
-    }),
-  );
-}
+/** `--set` and `--unset` against a client's product blocks: only the blocks touched. */
+const productChange = (
+  current: Record<string, unknown>,
+  set: string[] = [],
+  unset: string[] = [],
+) => changeProducts(current, set.map(parseAssignment), unset.map(pathOf));
 
 function split(pair: string, flag: string): [string, string] {
   const at = pair.indexOf("=");
@@ -51,16 +48,12 @@ function show(c: Client): string {
     Object.entries(c.accounts)
       .map(([s, a]) => `${s}=${a}`)
       .join(" ") || "-";
-  const caps =
-    Object.entries(c.caps)
-      .map(([k, n]) => `${k}=${n}`)
-      .join(" ") || "-";
   return [
     c.id.padEnd(16),
     c.demo ? "demo" : "    ",
     c.database.padEnd(28),
     `accounts: ${accounts}`,
-    `caps: ${caps}`,
+    `products: ${Object.keys(c.products).join(",") || "-"}`,
     `portal: ${c.portalEmails.join(",") || "-"}`,
     `(${c.name})`,
   ].join("  ");
@@ -78,7 +71,7 @@ export function registerClients(program: Command, withMainDb: WithDb, settings: 
     .description("Create the client's database, migrate it, register it")
     .requiredOption("--name <name>", "the firm's name (stays in the database, never in git)")
     .option("--account <site=account>", "autobrowse account per site, repeatable", collect)
-    .option("--cap <name=n>", "per-run limit, repeatable", collect)
+    .option("--set <product.path=value>", "a product setting (JSON or text), repeatable", collect)
     .option("--portal-email <email>", "who may log in to the portal, repeatable", collect)
     .option("--demo", "the demo: masked, no login, no writes, no sends")
     .action(
@@ -87,7 +80,7 @@ export function registerClients(program: Command, withMainDb: WithDb, settings: 
         opts: {
           name: string;
           account?: string[];
-          cap?: string[];
+          set?: string[];
           portalEmail?: string[];
           demo?: boolean;
         },
@@ -97,7 +90,9 @@ export function registerClients(program: Command, withMainDb: WithDb, settings: 
             id,
             name: opts.name,
             accounts: accountPairs(opts.account),
-            caps: capPairs(opts.cap),
+            products: Object.fromEntries(
+              Object.entries(productChange({}, opts.set)).filter(([, b]) => b !== null),
+            ),
             portalEmails: opts.portalEmail ?? [],
             demo: opts.demo ?? false,
           }),
@@ -114,24 +109,34 @@ export function registerClients(program: Command, withMainDb: WithDb, settings: 
 
   cmd
     .command("set <id>")
-    .description("Change a client's name, accounts, caps or portal emails")
+    .description("Change a client's name, accounts, product settings or portal emails")
     .option("--name <name>")
     .option("--account <site=account>", "merged in; site= turns it off", collect)
-    .option("--cap <name=n>", "merged in; a negative n removes it", collect)
+    .option("--set <product.path=value>", "a product setting (JSON or text), repeatable", collect)
+    .option("--unset <product.path>", "back to the default, repeatable", collect)
     .option("--portal-email <email>", "replaces the list, repeatable", collect)
     .action(
       async (
         id: string,
-        opts: { name?: string; account?: string[]; cap?: string[]; portalEmail?: string[] },
+        opts: {
+          name?: string;
+          account?: string[];
+          set?: string[];
+          unset?: string[];
+          portalEmail?: string[];
+        },
       ) => {
-        const client = await withMainDb((db) =>
-          updateClient(db, id, {
+        const client = await withMainDb(async (db) => {
+          const current = await getClient(db, id);
+          const products =
+            opts.set || opts.unset ? productChange(current.products, opts.set, opts.unset) : null;
+          return updateClient(db, id, {
             ...(opts.name ? { name: opts.name } : {}),
             ...(opts.account ? { accounts: accountPairs(opts.account) } : {}),
-            ...(opts.cap ? { caps: capPairs(opts.cap) } : {}),
+            ...(products ? { products } : {}),
             ...(opts.portalEmail ? { portalEmails: opts.portalEmail } : {}),
-          }),
-        );
+          });
+        });
         console.log(show(client));
         await warnShared(withMainDb);
       },
