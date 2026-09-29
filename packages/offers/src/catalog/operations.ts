@@ -4,7 +4,67 @@
  * fix, connect, put AI to work). ICP (William, 2026-09-28): owner-led firms of about 10-50
  * people that can pay $10-15k upfront and a $5-10k/mo retainer.
  */
-import { defineOffer } from "../offer.js";
+import { type Application, defineOffer } from "../offer.js";
+
+// The hub's form (William's brief, 2026-09-29): where the company is on the five levels, what hurts,
+// then the two gates, size and whether the person decides. A fit gets a call from William, fast.
+const APPLICATION: Application = {
+  questions: [
+    {
+      id: "level",
+      ask: "Where is your company today?",
+      kind: "one",
+      required: true,
+      choices: [
+        { id: "l1_sops", label: "Level 1: our processes are written down" },
+        { id: "l2_crm", label: "Level 2: we run on a CRM, messy or clean" },
+        { id: "l3_workflows", label: "Level 3: some work is automated" },
+        { id: "l4_ai", label: "Level 4: AI agents run parts of the business" },
+        { id: "l5_scale", label: "Level 5: we're scaling what's built" },
+      ],
+    },
+    {
+      id: "struggles",
+      ask: "What's slowing you down? Pick any.",
+      kind: "many",
+      required: true,
+      choices: [
+        { id: "repetitive", label: "Repetitive work and internal busywork" },
+        { id: "leads", label: "Not enough leads, or leads slipping" },
+        { id: "hiring", label: "Hiring and training take too long" },
+        { id: "tracking", label: "Work is hard to track" },
+      ],
+    },
+    {
+      id: "size",
+      ask: "How many people work at your company?",
+      kind: "one",
+      required: true,
+      choices: [
+        { id: "s1_9", label: "1 to 9" },
+        { id: "s10_50", label: "10 to 50" },
+        { id: "s51_200", label: "51 to 200" },
+        { id: "s201_plus", label: "201 or more" },
+      ],
+    },
+    {
+      id: "role",
+      ask: "What's your role?",
+      kind: "one",
+      required: true,
+      choices: [
+        { id: "owner", label: "Owner, founder or CEO" },
+        { id: "csuite", label: "Other C-suite or partner" },
+        { id: "lead", label: "Head of a team or department" },
+        { id: "other", label: "Something else" },
+      ],
+    },
+  ],
+  fit: [
+    { question: "size", anyOf: ["s10_50", "s51_200", "s201_plus"] },
+    { question: "role", anyOf: ["owner", "csuite", "lead"] },
+  ],
+};
 
 export const opsAudit = defineOffer({
   id: "ops-audit",
@@ -70,5 +130,5 @@ export const opsAutomationBuild = defineOffer({
   next: [],
   page: "/",
   booking: null,
-  application: null,
+  application: APPLICATION,
 });
