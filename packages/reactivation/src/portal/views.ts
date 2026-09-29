@@ -255,7 +255,7 @@ export async function portalPeople(db: Queryable, query: PeopleQuery = {}): Prom
   const filter = PEOPLE_FILTERS.includes(query.filter as PeopleFilter)
     ? (query.filter as PeopleFilter)
     : "all";
-  const offset = Math.max(0, Math.floor(query.offset ?? 0));
+  const offset = Number.isFinite(query.offset) ? Math.max(0, Math.floor(query.offset ?? 0)) : 0;
   const q = query.q?.trim() ? `%${query.q.trim().replace(/[\\%_]/g, (m) => `\\${m}`)}%` : null;
   const search = q
     ? query.searchNames
@@ -367,7 +367,7 @@ export interface RawQuery {
 }
 
 export async function portalRaw(db: Queryable, query: RawQuery = {}): Promise<RawPage> {
-  const offset = Math.max(0, Math.floor(query.offset ?? 0));
+  const offset = Number.isFinite(query.offset) ? Math.max(0, Math.floor(query.offset ?? 0)) : 0;
   const where = sql.join(
     [
       query.via ? sql`f.via = ${query.via}` : sql`true`,

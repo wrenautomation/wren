@@ -8,14 +8,19 @@ const names = [
 ];
 
 describe("hiddenWords", () => {
-  it("everything in a name but the first name; nicknames and one letter skipped", () => {
+  it("everything in a name but the first name, each half of a hyphenated one, what's in parentheses; one Latin letter skipped", () => {
     expect(hiddenWords(names)).toEqual([
       "o'neil-smith",
       "kowalski",
       "shrm-cp",
+      "o'neil",
       "maria",
+      "smith",
       "zhang",
+      "pepe",
+      "shrm",
       "wei",
+      "cp",
     ]);
   });
 });

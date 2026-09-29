@@ -100,6 +100,23 @@ async function read<T>(
   );
 }
 
+/** A browser can send anything: a page offset is a whole number from 0 to 1,000,000. */
+const offsetOf = (v: unknown): number | undefined => {
+  const n = typeof v === "number" ? v : typeof v === "string" ? Number(v) : Number.NaN;
+  return Number.isFinite(n) && n > 0 ? Math.min(Math.floor(n), 1_000_000) : undefined;
+};
+const textOf = (v: unknown): string | undefined =>
+  typeof v === "string" && v.trim() ? v : undefined;
+/** A person id that isn't a positive whole number names nobody. */
+const idOf = (v: unknown): number => {
+  const n = typeof v === "number" ? v : typeof v === "string" && v.trim() ? Number(v) : Number.NaN;
+  if (!Number.isSafeInteger(n) || n <= 0)
+    throw new PortalRefusal("no such person on this list", 404);
+  return n;
+};
+const opt = <K extends string, V>(k: K, v: V | undefined) =>
+  (v === undefined ? {} : { [k]: v }) as Partial<Record<K, V>>;
+
 /** The handlers as plain functions: the service wraps them, tests call them. */
 export function portalApi(deps: PortalDeps) {
   return {
@@ -118,14 +135,15 @@ export function portalApi(deps: PortalDeps) {
     ): Promise<PeoplePage> =>
       read(deps, req, (db) =>
         portalPeople(db, {
-          ...(req.filter ? { filter: req.filter } : {}),
-          ...(req.offset ? { offset: req.offset } : {}),
-          ...(req.q ? { q: req.q } : {}),
+          ...opt("filter", textOf(req.filter) as PeopleFilter | undefined),
+          ...opt("offset", offsetOf(req.offset)),
+          ...opt("q", textOf(req.q)),
           searchNames: !("demo" in req.viewer),
         }),
       ),
     person: async (req: PortalRequest & { personId: number }): Promise<PersonView> => {
-      const view = await read(deps, req, (db) => portalPerson(db, Number(req.personId)));
+      const id = idOf(req.personId);
+      const view = await read(deps, req, (db) => portalPerson(db, id));
       if (!view) throw new PortalRefusal("no such person on this list", 404);
       return view;
     },
@@ -134,9 +152,9 @@ export function portalApi(deps: PortalDeps) {
     ): Promise<RawPage> =>
       read(deps, req, (db) =>
         portalRaw(db, {
-          ...(req.via ? { via: req.via } : {}),
-          ...(req.kind ? { kind: req.kind } : {}),
-          ...(req.offset ? { offset: req.offset } : {}),
+          ...opt("via", textOf(req.via)),
+          ...opt("kind", textOf(req.kind)),
+          ...opt("offset", offsetOf(req.offset)),
         }),
       ),
   };

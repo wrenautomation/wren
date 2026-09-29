@@ -1,0 +1,163 @@
+/**
+ * Adversarial cases for the portal API over the seeded demo list: inputs a
+ * browser can send that the handlers must answer or refuse cleanly, and
+ * logins reaching past their own client. Anything but an answer or a
+ * PortalRefusal becomes a non-terminal error, which Restate retries forever.
+ */
+import { clients, updateClient } from "@wren/core/clients";
+import { startTestPostgres, type TestPostgres } from "@wren/db/testing";
+import { sql } from "drizzle-orm";
+import { afterAll, beforeAll, describe, expect, it } from "vitest";
+import { seedDemo } from "../../src/demo/seed.js";
+import { PortalRefusal, portalApi } from "../../src/portal/service.js";
+import { deps as seedDeps, today } from "./demo-fixture.js";
+
+let pg: TestPostgres;
+let api: ReturnType<typeof portalApi>;
+let jane: number;
+
+const personId = async (full: string) => {
+  const [r] = await pg.db.execute<{ id: number }>(
+    sql`select id from people where full_name = ${full}`,
+  );
+  if (!r) throw new Error(`${full} is not on the list`);
+  return r.id;
+};
+
+beforeAll(async () => {
+  pg = await startTestPostgres();
+  await seedDemo(pg.db, seedDeps, { agency: "northside.example", today });
+  jane = await personId("Jane Doe");
+  await pg.db.insert(clients).values([
+    { id: "demo", name: "Northside Talent", database: "wren_client_demo", demo: true },
+    {
+      id: "acme",
+      name: "Acme Staffing",
+      database: "wren_client_acme",
+      portalEmails: ["owner@acme.example"],
+    },
+    { id: "beta", name: "Beta Search", database: "wren_client_beta" },
+  ]);
+  api = portalApi({ main: pg.db, open: () => pg.db });
+});
+afterAll(() => pg.stop());
+
+const demo = { viewer: { demo: true as const } };
+const operator = { viewer: { email: "william@wren.example", operator: true } };
+const owner = { viewer: { email: "owner@acme.example" } };
+
+/** Resolves, or refuses with a PortalRefusal: never a raw error. */
+const clean = async (p: Promise<unknown>) => {
+  try {
+    await p;
+    return "answered";
+  } catch (err) {
+    if (err instanceof PortalRefusal) return "refused";
+    const cause = (err as { cause?: unknown }).cause;
+    return `raw error: ${String(cause ?? err).slice(0, 90)}`;
+  }
+};
+
+describe("who sees which client", () => {
+  it("the demo viewer can't name a real client", async () => {
+    await expect(api.overview({ ...demo, client: "acme" })).rejects.toBeInstanceOf(PortalRefusal);
+    await expect(api.people({ ...demo, client: "beta" })).rejects.toBeInstanceOf(PortalRefusal);
+  });
+
+  it("a login can't reach another client, or the demo, by id", async () => {
+    for (const client of ["beta", "demo", "ACME", " acme"])
+      await expect(api.people({ ...owner, client })).rejects.toBeInstanceOf(PortalRefusal);
+    expect((await api.me(owner)).clients.map((c) => c.id)).toEqual(["acme"]);
+  });
+
+  it("a person on the database but not on the list is 404", async () => {
+    const [p] = await pg.db.execute<{ id: number }>(
+      sql`insert into people (company_id, full_name, first_name, last_name, is_compliance, origin, origin_ref, raw)
+        select company_id, 'Off List', 'Off', 'List', is_compliance, origin, origin_ref || ':off', raw from people where id = ${jane} returning id`,
+    );
+    await expect(api.person({ ...owner, personId: p?.id ?? 0 })).rejects.toBeInstanceOf(
+      PortalRefusal,
+    );
+  });
+
+  it("a personId sent as a numeric string still reads", async () => {
+    const view = await api.person({ ...owner, personId: String(jane) as unknown as number });
+    expect(view.row.name).toBe("Jane Doe");
+  });
+
+  // Was a bug: an address pasted with a space (`--portal-email "a@firm.com "`) is stored as is; that login never gets in.
+  it("a portal email saved with stray spaces still signs in", async () => {
+    await updateClient(pg.db, "beta", { portalEmails: [" Boss@Beta.example "] });
+    expect((await api.me({ viewer: { email: "boss@beta.example" } })).clients).toEqual([
+      { id: "beta", name: "Beta Search" },
+    ]);
+  });
+});
+
+describe("inputs", () => {
+  it("negative and fractional offsets clamp; an unknown filter is all", async () => {
+    const page = await api.people({ ...operator, client: "acme", offset: -5.5 });
+    expect(page.offset).toBe(0);
+    const all = await api.people({ ...operator, client: "acme" });
+    const odd = await api.people({
+      ...operator,
+      client: "acme",
+      filter: "constructor" as never,
+    });
+    expect(odd.total).toBe(all.total);
+  });
+
+  it("% and _ in the search are literal", async () => {
+    expect((await api.people({ ...operator, client: "acme", q: "%" })).total).toBe(0);
+    expect((await api.people({ ...operator, client: "acme", q: "_" })).total).toBe(0);
+    expect((await api.people({ ...operator, client: "acme", q: "\\" })).total).toBe(0);
+  });
+
+  // Was a bug: a non-numeric offset reaches Postgres as NaN; the raw error is retried by Restate forever.
+  it("a non-numeric offset", async () => {
+    expect({
+      people: await clean(api.people({ ...demo, offset: "x" as unknown as number })),
+      raw: await clean(api.raw({ ...demo, offset: "x" as unknown as number })),
+    }).toEqual({ people: "answered", raw: "answered" });
+  });
+
+  // Was a bug: an offset past bigint (1e20, or 1e999 which JSON parses to Infinity) errors in Postgres, then retries forever.
+  it("an offset too large for Postgres", async () => {
+    expect({
+      big: await clean(api.people({ ...demo, offset: 1e20 })),
+      infinity: await clean(api.people({ ...demo, offset: Number.POSITIVE_INFINITY })),
+    }).toEqual({ big: "answered", infinity: "answered" });
+  });
+
+  // Was a bug: a missing, non-numeric or fractional personId is a Postgres error, not a 404.
+  it("a bad personId is a 404", async () => {
+    const got: Record<string, string> = {};
+    for (const personId of [undefined, "abc", 1.5, null])
+      got[String(personId)] = await clean(
+        api.person({ ...demo, personId: personId as unknown as number }),
+      );
+    expect(got).toEqual({
+      undefined: "refused",
+      abc: "refused",
+      "1.5": "refused",
+      null: "refused",
+    });
+  });
+
+  // Was a bug: a non-string q throws a TypeError (`.trim` of a number), retried by Restate forever.
+  it("a non-string search", async () => {
+    expect(await clean(api.people({ ...demo, q: 123 as unknown as string }))).toBe("answered");
+    expect(await clean(api.people({ ...demo, q: ["Umbrella"] as unknown as string }))).toBe(
+      "answered",
+    );
+  });
+
+  it("a non-string via or kind on raw", async () => {
+    expect(await clean(api.raw({ ...demo, via: { a: 1 } as unknown as string }))).toBe("answered");
+  });
+
+  it("the demo search never matches a name, even with wildcards", async () => {
+    expect((await api.people({ ...demo, q: "Jane Doe" })).total).toBe(0);
+    expect((await api.people({ ...demo, q: "Do" })).total).toBe(0);
+  });
+});

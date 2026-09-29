@@ -41,7 +41,7 @@ export async function addClient(main: Db, mainUrl: string, input: NewClient): Pr
       database,
       accounts: input.accounts ?? {},
       caps: input.caps ?? {},
-      portalEmails: (input.portalEmails ?? []).map((e) => e.toLowerCase()),
+      portalEmails: (input.portalEmails ?? []).map((e) => e.trim().toLowerCase()),
       demo: input.demo ?? false,
     })
     .returning();
@@ -86,7 +86,7 @@ export async function updateClient(main: Db, id: string, change: ClientChange): 
       name: change.name ?? current.name,
       accounts,
       caps,
-      portalEmails: change.portalEmails?.map((e) => e.toLowerCase()) ?? current.portalEmails,
+      portalEmails: change.portalEmails?.map((e) => e.trim().toLowerCase()) ?? current.portalEmails,
     })
     .where(eq(clients.id, id))
     .returning();
