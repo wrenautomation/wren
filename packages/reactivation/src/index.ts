@@ -1,4 +1,6 @@
+export * from "./approve.js";
 export * from "./brief.js";
+export * from "./compose.js";
 export * from "./crm/dates.js";
 export * from "./crm/formats.js";
 export * from "./crm/health.js";
@@ -6,7 +8,9 @@ export * from "./crm/import.js";
 export * from "./crm/source.js";
 export * from "./crm/verify.js";
 export * from "./demo/seed.js";
+export * from "./handoff.js";
 export * from "./lookup.js";
+export * from "./portal/outbox.js";
 export * from "./profile.js";
 export * from "./ranked.js";
 export * from "./run.js";

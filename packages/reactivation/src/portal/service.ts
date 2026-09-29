@@ -8,8 +8,20 @@ import * as restate from "@restatedev/restate-sdk";
 import { type Client, clients } from "@wren/core/clients";
 import type { Db, Queryable } from "@wren/db";
 import { and, asc, eq, sql } from "drizzle-orm";
+import { approveDrafts, type ReviewResult, skipDrafts } from "../approve.js";
 import { type CrmHealth, crmHealth } from "../crm/health.js";
+import { HandoffRefusal, markMeetingBooked } from "../handoff.js";
+import { readClientProfile } from "../profile.js";
+import { reactivationSettingsOf } from "../settings.js";
 import { makeMask } from "./mask.js";
+import {
+  type EmailFilter,
+  type EmailsPage,
+  portalEmails,
+  portalReplies,
+  type RepliesPage,
+  type ReplyFilter,
+} from "./outbox.js";
 import {
   listNames,
   type Overview,
@@ -87,18 +99,50 @@ async function pick(main: Db, req: PortalRequest): Promise<Client> {
 async function read<T>(
   deps: PortalDeps,
   req: PortalRequest,
-  view: (db: Queryable) => Promise<T>,
+  view: (db: Queryable, client: Client) => Promise<T>,
 ): Promise<T> {
   const client = await pick(deps.main, req);
   const db = deps.open(client);
   return db.transaction(
     async (tx) => {
-      const out = await view(tx);
+      const out = await view(tx, client);
       return client.demo ? makeMask(await listNames(tx))(out) : out;
     },
     { accessMode: "read only" },
   );
 }
+
+/**
+ * Change one client's list: never the demo, in one transaction. Settings come
+ * from the registry row, so a write sees the client's current ones.
+ */
+async function write<T>(
+  deps: PortalDeps,
+  req: PortalRequest,
+  change: (
+    db: Queryable,
+    client: Client,
+    viewer: { email: string; operator?: boolean },
+  ) => Promise<T>,
+): Promise<T> {
+  if ("demo" in req.viewer) throw new PortalRefusal("the demo is read-only", 403);
+  const viewer = req.viewer;
+  const client = await pick(deps.main, req);
+  if (client.demo) throw new PortalRefusal("the demo is read-only", 403);
+  return deps.open(client).transaction((tx) => change(tx, client, viewer));
+}
+
+/** Enrollment ids from a browser: whole positive numbers, at most one page's worth. */
+const idsOf = (v: unknown): number[] => {
+  if (!Array.isArray(v) || v.length === 0 || v.length > 500)
+    throw new PortalRefusal("pick the emails first", 404);
+  return v.map((x) => {
+    const n = typeof x === "number" ? x : Number.NaN;
+    if (!Number.isSafeInteger(n) || n <= 0) throw new PortalRefusal("no such email", 404);
+    return n;
+  });
+};
+const settingsOf = (client: Client) => reactivationSettingsOf(client.products);
 
 /** A browser can send anything: a page offset is a whole number from 0 to 1,000,000. */
 const offsetOf = (v: unknown): number | undefined => {
@@ -107,11 +151,10 @@ const offsetOf = (v: unknown): number | undefined => {
 };
 const textOf = (v: unknown): string | undefined =>
   typeof v === "string" && v.trim() ? v : undefined;
-/** A person id that isn't a positive whole number names nobody. */
-const idOf = (v: unknown): number => {
+/** A person or reply id that isn't a positive whole number names nobody. */
+const idOf = (v: unknown, what = "person on this list"): number => {
   const n = typeof v === "number" ? v : typeof v === "string" && v.trim() ? Number(v) : Number.NaN;
-  if (!Number.isSafeInteger(n) || n <= 0)
-    throw new PortalRefusal("no such person on this list", 404);
+  if (!Number.isSafeInteger(n) || n <= 0) throw new PortalRefusal(`no such ${what}`, 404);
   return n;
 };
 const opt = <K extends string, V>(k: K, v: V | undefined) =>
@@ -157,15 +200,81 @@ export function portalApi(deps: PortalDeps) {
           ...opt("offset", offsetOf(req.offset)),
         }),
       ),
+    emails: async (
+      req: PortalRequest & { filter?: EmailFilter; offset?: number },
+    ): Promise<EmailsPage> =>
+      read(deps, req, (db, client) =>
+        portalEmails(db, {
+          ...opt("filter", textOf(req.filter) as EmailFilter | undefined),
+          ...opt("offset", offsetOf(req.offset)),
+          approval: settingsOf(client).approval,
+        }),
+      ),
+    replies: async (
+      req: PortalRequest & { filter?: ReplyFilter; offset?: number },
+    ): Promise<RepliesPage> =>
+      read(deps, req, (db, client) =>
+        portalReplies(db, {
+          ...opt("filter", textOf(req.filter) as ReplyFilter | undefined),
+          ...opt("offset", offsetOf(req.offset)),
+          offer: client.demo ? null : settingsOf(client).offer,
+        }),
+      ),
+    /** Send these: approve the drafts of the chosen emails. */
+    approve: (req: PortalRequest & { enrollmentIds: number[] }): Promise<ReviewResult> =>
+      write(deps, req, (db, _, viewer) =>
+        approveDrafts(
+          db,
+          { enrollmentIds: idsOf(req.enrollmentIds) },
+          viewer.operator ? "operator" : "client",
+        ),
+      ),
+    /** Don't send these: the drafts are struck and that person is left alone. */
+    skip: (req: PortalRequest & { enrollmentIds: number[] }): Promise<ReviewResult> =>
+      write(deps, req, (db, _, viewer) =>
+        skipDrafts(
+          db,
+          { enrollmentIds: idsOf(req.enrollmentIds) },
+          viewer.operator ? "operator" : "client",
+        ),
+      ),
+    /** A meeting came of this reply, or (booked: false) it didn't after all. */
+    book: (
+      req: PortalRequest & { threadEventId: number; booked?: boolean },
+    ): Promise<{ bookedAt: string | null; by: string | null }> =>
+      write(deps, req, async (db, _, viewer) => {
+        const threadEventId = idOf(req.threadEventId, "reply");
+        try {
+          const out = await markMeetingBooked(
+            db,
+            { threadEventId, booked: req.booked !== false, by: viewer.email },
+            await readClientProfile(db),
+          );
+          return { bookedAt: out.bookedAt?.toISOString() ?? null, by: out.by };
+        } catch (err) {
+          if (err instanceof HandoffRefusal) throw new PortalRefusal(err.message, 404);
+          throw err;
+        }
+      }),
   };
 }
 
 export type PortalApi = ReturnType<typeof portalApi>;
+export type { ReviewResult } from "../approve.js";
 /** What the answers look like, for the portal's web app. */
 export type { CrmHealth } from "../crm/health.js";
 export type { RankedContact } from "../ranked.js";
 export type { Reason } from "../score.js";
-export { PORTAL_ROUTES } from "./routes.js";
+export type {
+  EmailFilter,
+  EmailRow,
+  EmailStatus,
+  EmailsPage,
+  RepliesPage,
+  ReplyFilter,
+  ReplyRow,
+} from "./outbox.js";
+export { PORTAL_ROUTES, PORTAL_WRITES } from "./routes.js";
 export type {
   Now,
   Overview,
@@ -179,7 +288,8 @@ export type {
 } from "./views.js";
 
 /**
- * Plain reads with no journal: a retry just reads again, and pages stay out of
+ * No journal: a retry reads again, or writes again, and every write is
+ * idempotent (a second approve finds nothing waiting). Pages stay out of
  * Restate's storage. Refusals are terminal, with the status the Worker returns.
  */
 export function makeReactivationPortal(deps: PortalDeps) {
@@ -203,6 +313,11 @@ export function makeReactivationPortal(deps: PortalDeps) {
       people: (_: restate.Context, req: Req<"people">) => answer(() => api.people(req)),
       person: (_: restate.Context, req: Req<"person">) => answer(() => api.person(req)),
       raw: (_: restate.Context, req: Req<"raw">) => answer(() => api.raw(req)),
+      emails: (_: restate.Context, req: Req<"emails">) => answer(() => api.emails(req)),
+      replies: (_: restate.Context, req: Req<"replies">) => answer(() => api.replies(req)),
+      approve: (_: restate.Context, req: Req<"approve">) => answer(() => api.approve(req)),
+      skip: (_: restate.Context, req: Req<"skip">) => answer(() => api.skip(req)),
+      book: (_: restate.Context, req: Req<"book">) => answer(() => api.book(req)),
     },
   });
 }

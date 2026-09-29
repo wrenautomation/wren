@@ -78,8 +78,11 @@ export async function updateClient(main: Db, id: string, change: ClientChange): 
   const current = await getClient(main, id);
   const accounts = { ...current.accounts, ...change.accounts };
   for (const [site, account] of Object.entries(accounts)) if (!account) delete accounts[site];
-  const products = { ...current.products, ...change.products };
-  for (const [name, block] of Object.entries(products)) if (block === null) delete products[name];
+  // null removes a product; undefined leaves it as it was.
+  const products: Record<string, unknown> = { ...current.products };
+  for (const [name, block] of Object.entries(change.products ?? {}))
+    if (block === null) delete products[name];
+    else if (block !== undefined) products[name] = block;
   const [row] = await main
     .update(clients)
     .set({

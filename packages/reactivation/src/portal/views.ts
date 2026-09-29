@@ -129,7 +129,7 @@ const FILTER_SQL: Record<PeopleFilter, SQL> = {
 
 const day = (v: unknown): string | null =>
   v instanceof Date ? v.toISOString().slice(0, 10) : typeof v === "string" ? v.slice(0, 10) : null;
-const iso = (v: unknown): string | null =>
+export const iso = (v: unknown): string | null =>
   v instanceof Date ? v.toISOString() : typeof v === "string" ? new Date(v).toISOString() : null;
 const str = (v: unknown): string | null => (typeof v === "string" && v.trim() ? v : null);
 

@@ -11,9 +11,12 @@ import type { Queryable } from "@wren/db";
 import type { LlmClient } from "@wren/llm";
 import type { Fetcher } from "@wren/research/fetch";
 import { type CrmBriefStats, writeCrmBriefs } from "./brief.js";
+import { type CrmComposeStats, composeCrmEmails } from "./compose.js";
 import { type CrmVerifyStats, checkCrmEmails } from "./crm/verify.js";
 import { type CrmLookupStats, lookUpCrmPeople } from "./lookup.js";
+import type { ClientProfile } from "./schema.js";
 import { type CrmScoreStats, scoreCrmContacts } from "./score.js";
+import type { ReactivationSettings } from "./settings.js";
 import { type CrmSignalsStats, checkCrmCompanies } from "./signals.js";
 import { CRM_STAGES, type CrmStage, crmStatus } from "./status.js";
 
@@ -23,7 +26,7 @@ export interface CrmRunDeps {
   sites: SiteClient;
   /** For company sites and job boards; null = LinkedIn only. */
   fetcher: Fetcher | null;
-  /** Writes briefs; null = the brief stage stops and says why. */
+  /** Writes briefs and emails; null = those stages stop and say why. */
   llm: LlmClient | null;
 }
 
@@ -33,6 +36,10 @@ export interface CrmRunOptions {
   /** At most this many units per stage. */
   limit?: number;
   runId?: string | null;
+  /** The client's settings and profile; without them compose never runs. */
+  compose?: { settings: ReactivationSettings; profile: ClientProfile | null };
+  /** Only these stages (the loop leaves the personal-account ones to `crm run`). */
+  only?: readonly CrmStage[];
 }
 
 export type CrmStageResult =
@@ -40,7 +47,8 @@ export type CrmStageResult =
   | { stage: "lookup"; stats: CrmLookupStats }
   | { stage: "signals"; stats: CrmSignalsStats }
   | { stage: "score"; stats: CrmScoreStats }
-  | { stage: "brief"; stats: CrmBriefStats };
+  | { stage: "brief"; stats: CrmBriefStats }
+  | { stage: "compose"; stats: CrmComposeStats };
 
 export async function runCrm(
   db: Queryable,
@@ -50,9 +58,11 @@ export async function runCrm(
 ): Promise<CrmStageResult[]> {
   const stages: CrmStageResult[] = [];
   const limit = opts.limit ? { limit: opts.limit } : {};
+  const status = opts.compose ? { compose: opts.compose } : {};
   for (const stage of CRM_STAGES) {
+    if (opts.only && !opts.only.includes(stage)) continue;
     // Asked fresh each time: an earlier stage can change what a later one has to do.
-    if (!(await crmStatus(db)).due.includes(stage)) continue;
+    if (!(await crmStatus(db, status)).due.includes(stage)) continue;
     const r = await runStage(stage);
     stages.push(r);
     onStage(r);
@@ -97,6 +107,18 @@ export async function runCrm(
             ? await writeCrmBriefs(db, deps.llm, { runId: opts.runId ?? null, ...limit })
             : { ...NO_BRIEFS, aborted: "briefs need an LLM: set WREN_LLM (it is fake)" },
         };
+      case "compose":
+        return {
+          stage,
+          stats:
+            deps.llm && opts.compose
+              ? await composeCrmEmails(db, deps.llm, {
+                  ...opts.compose,
+                  runId: opts.runId ?? null,
+                  ...limit,
+                })
+              : { ...NO_EMAILS, aborted: "emails need an LLM and the client's settings" },
+        };
     }
   }
 }
@@ -107,6 +129,17 @@ const NO_BRIEFS: CrmBriefStats = {
   empty: 0,
   failed: 0,
   dropped: 0,
+  errors: 0,
+  aborted: null,
+};
+
+const NO_EMAILS: CrmComposeStats = {
+  selected: 0,
+  drafted: 0,
+  approved: 0,
+  failed: 0,
+  suppressed: 0,
+  raced: 0,
   errors: 0,
   aborted: null,
 };

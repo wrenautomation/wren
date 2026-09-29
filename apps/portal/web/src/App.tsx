@@ -1,9 +1,11 @@
-/** The shell: who you are, which client, the four pages, and the demo's banner. */
+/** The shell: who you are, which client, the pages, and the demo's banner. */
 import { useEffect, useState } from "react";
 import { call, type Me } from "./api.js";
+import { Emails } from "./Emails.js";
 import { Health } from "./Health.js";
 import { Overview } from "./Overview.js";
 import { People } from "./People.js";
+import { Replies } from "./Replies.js";
 import { href, PAGES, useRoute } from "./route.js";
 import { Sources } from "./Sources.js";
 import { Failed, useCall } from "./ui.js";
@@ -96,6 +98,8 @@ export function App() {
     >
       {route.page === "overview" && <Overview key={current.id} {...pageProps} />}
       {route.page === "people" && <People key={current.id} {...pageProps} />}
+      {route.page === "emails" && <Emails key={current.id} {...pageProps} />}
+      {route.page === "replies" && <Replies key={current.id} {...pageProps} />}
       {route.page === "health" && <Health key={current.id} {...pageProps} />}
       {route.page === "sources" && <Sources key={current.id} {...pageProps} />}
     </Frame>

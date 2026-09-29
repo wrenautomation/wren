@@ -6,17 +6,19 @@
  * - app.<domain>: Cloudflare Access signs people in (email code); the Worker
  *   checks the token itself and passes the email. OPERATOR_EMAILS see every client.
  * - `/api/<route>`: forwarded to the `ReactivationPortal` service with the
- *   viewer set here, never by the browser.
+ *   viewer set here, never by the browser. Writes (approve, skip, book) are
+ *   refused on the demo.
  * - everything else: the built app in dist/.
  *
  * The Worker holds no data: each client's list is its own Postgres database,
  * read through Restate.
  */
-import { PORTAL_ROUTES } from "@wren/reactivation/portal-routes";
+import { PORTAL_ROUTES, PORTAL_WRITES } from "@wren/reactivation/portal-routes";
 import { accessEmail } from "./access.js";
 import type { Env } from "./env.js";
 
 const ROUTES: ReadonlySet<string> = new Set(PORTAL_ROUTES);
+const WRITES: ReadonlySet<string> = new Set(PORTAL_WRITES);
 
 const MAX_BODY = 16 * 1024;
 const DEMO_CACHE_SECONDS = 300;
@@ -136,6 +138,8 @@ async function api(req: Request, env: Env, route: string, ctx?: ExecutionContext
   if (viewer instanceof Response) return viewer;
   const body = JSON.stringify({ ...(input as Record<string, unknown>), viewer });
   if (!("demo" in viewer)) return forward(env, route, body);
+  // The service refuses too; this keeps a demo write out of the cache and off the wire.
+  if (WRITES.has(route)) return json({ error: "The demo is read-only." }, 403);
 
   // The demo is the same for everyone: answer from the edge cache when it can.
   const cache = (globalThis as { caches?: { default?: Cache } }).caches?.default;

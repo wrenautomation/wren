@@ -6,13 +6,16 @@
 import type { Queryable } from "@wren/db";
 import { sql } from "drizzle-orm";
 import { briefsDue } from "./brief.js";
+import { composeDue } from "./compose.js";
 import { type CrmHealth, crmHealth } from "./crm/health.js";
 import { dueForLookup } from "./lookup.js";
+import type { ClientProfile } from "./schema.js";
 import { scoreDue } from "./score.js";
+import type { ReactivationSettings } from "./settings.js";
 import { dueForCheck } from "./signals.js";
 
 /** The stages `crm run` walks, in order. */
-export const CRM_STAGES = ["verify", "lookup", "signals", "score", "brief"] as const;
+export const CRM_STAGES = ["verify", "lookup", "signals", "score", "brief", "compose"] as const;
 export type CrmStage = (typeof CRM_STAGES)[number];
 
 export interface CrmStatus {
@@ -38,14 +41,30 @@ export interface CrmStatus {
   /** People scored, people to rescore (everyone, when anything changed), and the best so far. */
   score: { scored: number; due: number; top: { score: number; count: number }[] };
   briefs: { written: number; empty: number; failed: number; due: number };
+  /** Emails written and where they stand; `blocked` says why none would be written now. */
+  emails: {
+    drafted: number;
+    awaiting: number;
+    approved: number;
+    sent: number;
+    failed: number;
+    due: number;
+    blocked: string | null;
+  };
   /** The stages `crm run` would do now, in order; empty when nothing is due. */
   due: CrmStage[];
   /** One line: what to do next. */
   next: string;
 }
 
-export async function crmStatus(db: Queryable, today = new Date()): Promise<CrmStatus> {
-  const health = await crmHealth(db, today);
+export interface CrmStatusOptions {
+  today?: Date;
+  /** The client's settings and profile; without them compose is never due. */
+  compose?: { settings: ReactivationSettings; profile: ClientProfile | null };
+}
+
+export async function crmStatus(db: Queryable, opts: CrmStatusOptions = {}): Promise<CrmStatus> {
+  const health = await crmHealth(db, opts.today ?? new Date());
   const [l] = await db.execute<{
     matched: number;
     unresolved: number;
@@ -113,12 +132,39 @@ export async function crmStatus(db: Queryable, today = new Date()): Promise<CrmS
     failed: b?.failed ?? 0,
     due: await briefsDue(db),
   };
+  const [e] = await db.execute<{
+    drafted: number;
+    awaiting: number;
+    approved: number;
+    sent: number;
+    failed: number;
+  }>(sql`
+    select
+      (select count(*) from compositions where state = 'drafted')::int drafted,
+      (select count(*) from compositions where state = 'failed')::int failed,
+      count(*) filter (where m.state = 'draft' and en.state = 'active')::int awaiting,
+      count(*) filter (where m.state = 'approved')::int approved,
+      count(*) filter (where m.state = 'sent')::int sent
+    from messages m join enrollments en on en.id = m.enrollment_id
+    where en.offer = 'reactivation' and m.step = 0`);
+  const compose = opts.compose
+    ? await composeDue(db, opts.compose.settings, opts.compose.profile)
+    : { due: 0, blocked: "settings not given" };
+  const emails = {
+    drafted: e?.drafted ?? 0,
+    awaiting: e?.awaiting ?? 0,
+    approved: e?.approved ?? 0,
+    sent: e?.sent ?? 0,
+    failed: e?.failed ?? 0,
+    ...compose,
+  };
   const count: Record<CrmStage, number> = {
     verify: health.verification.unchecked,
     lookup: lookup.due,
     signals: signals.due,
     score: score.due,
     brief: briefs.due,
+    compose: emails.due,
   };
   const does: Record<CrmStage, string> = {
     verify: `verify ${count.verify} addresses`,
@@ -126,6 +172,7 @@ export async function crmStatus(db: Queryable, today = new Date()): Promise<CrmS
     signals: `check ${count.signals} companies for open roles`,
     score: `score ${count.score} people`,
     brief: `write ${count.brief} briefs`,
+    compose: `write ${count.compose} emails`,
   };
   const due = CRM_STAGES.filter((s) => count[s] > 0);
   const parked = [
@@ -142,7 +189,7 @@ export async function crmStatus(db: Queryable, today = new Date()): Promise<CrmS
           : briefs.failed
             ? `wait: ${briefs.failed} failed briefs retry a day after they failed`
             : "nothing due: everyone is verified, looked up, scored and briefed";
-  return { health, lookup, signals, score, briefs, due, next };
+  return { health, lookup, signals, score, briefs, emails, due, next };
 }
 
 export function formatCrmStatus(s: CrmStatus): string[] {
@@ -159,6 +206,7 @@ export function formatCrmStatus(s: CrmStatus): string[] {
         : `${s.score.top.length ? s.score.top.map((t) => `${t.count} at ${t.score}`).join(", ") : "none above zero"}${s.score.due ? "  (stale)" : ""}`
     }`,
     `briefs: written ${b.written}  empty ${b.empty}  failed ${b.failed}  due ${b.due}`,
+    `emails: written ${s.emails.drafted}  awaiting approval ${s.emails.awaiting}  approved ${s.emails.approved}  sent ${s.emails.sent}  failed ${s.emails.failed}  due ${s.emails.due}${s.emails.blocked ? `  (${s.emails.blocked})` : ""}`,
     `next: ${s.next}`,
   ];
 }

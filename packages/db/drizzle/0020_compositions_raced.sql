@@ -1,0 +1,2 @@
+ALTER TABLE "compositions" DROP CONSTRAINT "ck_compositions_state";--> statement-breakpoint
+ALTER TABLE "compositions" ADD CONSTRAINT "ck_compositions_state" CHECK (("state")::text = ANY ((ARRAY['drafted'::character varying, 'failed'::character varying, 'raced'::character varying])::text[]));

@@ -1,10 +1,12 @@
 /** Hash routes: #/people?filter=moved&person=12. The URL is the state, so back and links work. */
 import { useEffect, useState } from "react";
 
-export type Page = "overview" | "people" | "health" | "sources";
+export type Page = "overview" | "people" | "emails" | "replies" | "health" | "sources";
 export const PAGES: { page: Page; label: string }[] = [
   { page: "overview", label: "Overview" },
   { page: "people", label: "People" },
+  { page: "emails", label: "Emails" },
+  { page: "replies", label: "Replies" },
   { page: "health", label: "Data health" },
   { page: "sources", label: "Sources" },
 ];

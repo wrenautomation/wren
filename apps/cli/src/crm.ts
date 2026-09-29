@@ -2,7 +2,8 @@
  * `wren --client <id> crm …`: a client's CRM export in, then `crm run` does
  * every stage that is due, `crm status` says where things stand and `crm top`
  * shows who to call first. The single-stage commands (verify, lookup) are for
- * debugging one stage. Always a client's database.
+ * debugging one stage. `crm emails`, `approve`, `skip` and `book` are the
+ * operator's side of the portal's writes. Always a client's database.
  */
 import { readFileSync, writeFileSync } from "node:fs";
 import { resolve } from "node:path";
@@ -13,27 +14,47 @@ import type { Client } from "@wren/core/clients";
 import type { Db } from "@wren/db";
 import { loadLlmEnv, makeLlm } from "@wren/llm";
 import {
+  approveDrafts,
   CRM_FORMATS,
   CrmCsvSource,
   checkCrmEmails,
   crmHealth,
   crmStatus,
+  EMAIL_FILTERS,
+  type EmailFilter,
   formatCrmHealth,
   formatCrmStatus,
   formatRanked,
   lookUpCrmPeople,
+  markMeetingBooked,
+  portalEmails,
   rankedContacts,
+  reactivationSettingsOf,
   readClientProfile,
   runCrm,
   runCrmImport,
   seedDemo,
   setClientProfile,
+  skipDrafts,
 } from "@wren/reactivation";
 import { PoliteFetcher, userAgent } from "@wren/research/fetch";
 import type { Command } from "commander";
 import { ingressSites } from "./sites.js";
 
 type WithDb = <T>(fn: (db: Db, client: Client) => Promise<T>) => Promise<T>;
+
+/** What compose needs from the registry and the client's database. */
+const composeInputs = async (db: Db, client: Client) => ({
+  settings: reactivationSettingsOf(client.products),
+  profile: await readClientProfile(db),
+});
+
+const ids = (args: string[]): number[] =>
+  args.map((a) => {
+    const n = Number(a);
+    if (!Number.isSafeInteger(n) || n < 1) throw new Error(`not an id: ${a}`);
+    return n;
+  });
 
 const positive = (flag: string) => (v: string) => {
   const n = Number(v);
@@ -106,7 +127,7 @@ export function registerCrm(
     .option("--json", "print the status as JSON")
     .action(async (opts: { json?: boolean }) => {
       const status = await withClientDb(async (db, client) => ({
-        ...(await crmStatus(db)),
+        ...(await crmStatus(db, { compose: await composeInputs(db, client) })),
         client: client.id,
       }));
       if (opts.json) console.log(JSON.stringify(status, null, 2));
@@ -146,15 +167,16 @@ export function registerCrm(
       const { client, run, stages, status } = await withClientDb(async (db, client) => {
         const linkedin = opts.linkedin ? (client.accounts?.linkedin ?? null) : null;
         const argv = { ...opts, linkedin };
+        const compose = await composeInputs(db, client);
         const { run, stats } = await recordedRun(db, { command: "crm run", argv }, async (r) => ({
           stages: await runCrm(
             db,
             deps,
-            { linkedin, runId: r.id, ...(opts.limit ? { limit: opts.limit } : {}) },
+            { linkedin, compose, runId: r.id, ...(opts.limit ? { limit: opts.limit } : {}) },
             (s) => console.log(`${s.stage}: ${JSON.stringify(s.stats)}`),
           ),
         }));
-        return { client, run, stages: stats.stages, status: await crmStatus(db) };
+        return { client, run, stages: stats.stages, status: await crmStatus(db, { compose }) };
       });
       console.log(
         `run ${run.id}: ${stages.length ? stages.map((s) => s.stage).join(", ") : "nothing was due"}`,
@@ -173,6 +195,78 @@ export function registerCrm(
       if (opts.json) console.log(JSON.stringify(list, null, 2));
       else if (!list.length) console.log("no scores yet: `wren --client <id> crm run`");
       else for (const line of formatRanked(list)) console.log(line);
+    });
+
+  crm
+    .command("emails")
+    .description("What the composer wrote and where each stands; the ids are for approve and skip")
+    .option("--filter <f>", EMAIL_FILTERS.join(", "), "awaiting")
+    .option("--json", "print as JSON")
+    .action(async (opts: { filter: string; json?: boolean }) => {
+      if (!EMAIL_FILTERS.includes(opts.filter as EmailFilter))
+        throw new Error(`--filter is one of ${EMAIL_FILTERS.join(", ")}`);
+      const page = await withClientDb((db, client) =>
+        portalEmails(db, {
+          filter: opts.filter as EmailFilter,
+          approval: reactivationSettingsOf(client.products).approval,
+        }),
+      );
+      if (opts.json) return console.log(JSON.stringify(page, null, 2));
+      console.log(
+        `${page.total} ${opts.filter} (${Object.entries(page.counts)
+          .map(([k, v]) => `${k} ${v}`)
+          .join(", ")})`,
+      );
+      for (const r of page.rows)
+        console.log(
+          `\n#${r.enrollmentId} ${r.status}: ${r.name}, ${r.firm} <${r.to}> from ${r.from}\n  ${r.subject ?? ""}\n  ${r.opener.replaceAll("\n", "\n  ")}`,
+        );
+    });
+
+  crm
+    .command("approve [ids...]")
+    .description("Send these emails (ids from `crm emails`), as the operator")
+    .option("--all", "every email waiting")
+    .action(async (args: string[], opts: { all?: boolean }) => {
+      if (!opts.all && !args.length) throw new Error("give ids, or --all");
+      const out = await withClientDb((db) =>
+        db.transaction((tx) =>
+          approveDrafts(tx, opts.all ? { all: true } : { enrollmentIds: ids(args) }, "operator"),
+        ),
+      );
+      console.log(
+        `approved ${out.done.length}${out.skipped.length ? `; not waiting: ${out.skipped.join(", ")}` : ""}`,
+      );
+    });
+
+  crm
+    .command("skip <ids...>")
+    .description("Don't send these emails; the composer won't write to them again")
+    .action(async (args: string[]) => {
+      const out = await withClientDb((db) =>
+        skipDrafts(db, { enrollmentIds: ids(args) }, "operator"),
+      );
+      console.log(
+        `skipped ${out.done.length}${out.skipped.length ? `; not waiting: ${out.skipped.join(", ")}` : ""}`,
+      );
+    });
+
+  crm
+    .command("book <replyId>")
+    .description("Mark a reply as a meeting booked (the billing unit); --undo takes it back")
+    .option("--undo", "take the mark back")
+    .action(async (arg: string, opts: { undo?: boolean }) => {
+      const [threadEventId] = ids([arg]);
+      const out = await withClientDb(async (db) =>
+        markMeetingBooked(
+          db,
+          { threadEventId: threadEventId as number, booked: !opts.undo, by: "operator" },
+          await readClientProfile(db),
+        ),
+      );
+      console.log(
+        out.bookedAt ? `booked ${out.bookedAt.toISOString()} by ${out.by}` : "not booked",
+      );
     });
 
   crm

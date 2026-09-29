@@ -123,6 +123,14 @@ describe("the demo host", () => {
       },
     ]);
   });
+
+  it("refuses every write before it reaches the service", async () => {
+    for (const route of ["approve", "skip", "book"]) {
+      const res = await worker.fetch(post("demo.test", route, { enrollmentIds: [1] }), env());
+      expect(res.status).toBe(403);
+    }
+    expect(restate).toEqual([]);
+  });
 });
 
 describe("the app host", () => {

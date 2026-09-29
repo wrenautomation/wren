@@ -192,7 +192,8 @@ export type ClientProfile = typeof clientProfile.$inferSelect;
  * answer didn't parse or broke a rule, with why. Both keep the call, so the
  * same inputs are never paid for twice.
  */
-export const COMPOSITION_STATES = ["drafted", "failed"] as const;
+/** `raced`: written, then someone else enrolled the person, firm or address first. Not their failure. */
+export const COMPOSITION_STATES = ["drafted", "failed", "raced"] as const;
 export type CompositionState = (typeof COMPOSITION_STATES)[number];
 
 /** One row per compose attempt at a person (R11): what was asked, what came back, what it became. */

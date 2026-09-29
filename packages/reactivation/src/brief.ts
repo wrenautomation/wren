@@ -45,7 +45,7 @@ export interface Gated {
   cites: { findings: number[]; crm: number[] };
 }
 
-const MARKS = /\[\s*([fc]\d+(?:\s*[,;]\s*[fc]\d+)*)\s*\]/gi;
+export const MARKS = /\[\s*([fc]\d+(?:\s*[,;]\s*[fc]\d+)*)\s*\]/gi;
 
 /** Number words a model might write for a count; "one" is left out (it is mostly a pronoun). */
 const WORDS: Record<string, string> = {
@@ -91,7 +91,7 @@ const numbers = (text: string): string[] =>
  * number of the facts (so "29" is not the day of "2026-09-29"), a year may
  * stand for a date in that year, and a digit outside 0-9 is never in them.
  */
-function madeUp(sentence: string, source: string): string[] {
+export function madeUp(sentence: string, source: string): string[] {
   const text = sentence.replace(MARKS, " ");
   if (OTHER_DIGIT.test(text.normalize("NFKC"))) return ["a digit outside 0-9"];
   const have = new Set(numbers(source));

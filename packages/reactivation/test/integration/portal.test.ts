@@ -10,6 +10,7 @@ import { startTestPostgres, type TestPostgres } from "@wren/db/testing";
 import { sql } from "drizzle-orm";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { seedDemo } from "../../src/demo/seed.js";
+import { EMAIL_FILTERS, REPLY_FILTERS } from "../../src/portal/outbox.js";
 import { DEMO_NAME, PortalRefusal, portalApi } from "../../src/portal/service.js";
 import { PEOPLE_FILTERS } from "../../src/portal/views.js";
 import { scoreCrmContacts } from "../../src/score.js";
@@ -19,6 +20,8 @@ let pg: TestPostgres;
 /** Every transaction the portal opened, and how. */
 const opened: unknown[] = [];
 let api: ReturnType<typeof portalApi>;
+let enrollmentId = 0;
+let replyId = 0;
 
 const personId = async (full: string) => {
   const [r] = await pg.db.execute<{ id: number }>(
@@ -69,6 +72,30 @@ beforeAll(async () => {
     values (${cara}, 'written',
       ${`Cara Lim moved to Initech [f${moved?.id}]. Write to cara.lim@initech.example or linkedin.com/in/cara-lim.`},
       '[]'::jsonb, '[]'::jsonb, 'x', 'fake', 'v1')`);
+
+  // An email pair to Cara and her reply, both naming her every way they can.
+  const [enr] = await db.execute<{ id: number }>(sql`
+    insert into enrollments (person_id, company_id, niche, sequence_name, sequence_snapshot, offer,
+      state, kind, to_email, sender)
+    values (${cara}, ${umbrella?.id}, 'reactivation', 'reactivation', '{}'::jsonb, 'reactivation',
+      'active', 'person', 'cara.lim@initech.example', 'sam@acme-talent.example')
+    returning id`);
+  enrollmentId = enr?.id ?? 0;
+  await db.execute(sql`
+    insert into messages (enrollment_id, step, template, template_version, to_email, subject, body,
+      provenance, state)
+    values
+      (${enrollmentId}, 0, 'reactivation_opener', 'v1', 'cara.lim@initech.example', 'initech',
+        'Hi Cara, saw you moved from Umbrella. Cara Lim, right?', '{}'::jsonb, 'draft'),
+      (${enrollmentId}, 1, 'reactivation_followup', 'v1', 'cara.lim@initech.example', null,
+        'Cara, one more note.', '{}'::jsonb, 'draft')`);
+  const [reply] = await db.execute<{ id: number }>(sql`
+    insert into thread_events (enrollment_id, kind, disposition, disposition_source, from_address, subject, body_text,
+      received_at)
+    values (${enrollmentId}, 'reply', 'interested', 'llm', 'cara.lim@initech.example', 'Re: initech',
+      'Sure. Cara Lim, cara.lim@initech.example, linkedin.com/in/cara-lim', now())
+    returning id`);
+  replyId = reply?.id ?? 0;
 
   await db.insert(clients).values([
     { id: "demo", name: "Northside Talent", database: "wren_client_demo", demo: true },
@@ -127,6 +154,12 @@ describe("the demo", () => {
     ];
     for (const filter of PEOPLE_FILTERS)
       answers.push([`people ${filter}`, await api.people({ ...demo, filter })]);
+    for (const filter of EMAIL_FILTERS)
+      answers.push([`emails ${filter}`, await api.emails({ ...demo, filter })]);
+    for (const filter of REPLY_FILTERS)
+      answers.push([`replies ${filter}`, await api.replies({ ...demo, filter })]);
+    expect((await api.emails({ ...demo, filter: "all" })).rows).toHaveLength(1);
+    expect((await api.replies({ ...demo, filter: "all" })).rows).toHaveLength(1);
     for (const [route, answer] of answers) expect(leaks(answer), route).toEqual([]);
   });
 
@@ -190,5 +223,53 @@ describe("logins", () => {
     );
     await expect(api.overview({ viewer: { email: "" } })).rejects.toEqual(refusal(403));
     await expect(api.person({ ...owner, personId: 999_999 })).rejects.toEqual(refusal(404));
+  });
+});
+
+describe("writes", () => {
+  const refusal = (status: number) =>
+    expect.objectContaining({ constructor: PortalRefusal, status });
+
+  it("the demo refuses every write, even from an operator", async () => {
+    await expect(api.approve({ ...demo, enrollmentIds: [enrollmentId] })).rejects.toEqual(
+      refusal(403),
+    );
+    await expect(api.book({ ...demo, threadEventId: replyId })).rejects.toEqual(refusal(403));
+    await expect(
+      api.skip({ ...operator, client: "demo", enrollmentIds: [enrollmentId] }),
+    ).rejects.toEqual(refusal(403));
+    expect((await api.emails({ ...owner, filter: "awaiting" })).total).toBe(1);
+  });
+
+  it("a demo reply carries no bill: prices stay off public pages", async () => {
+    expect((await api.replies(demo)).bill).toBeNull();
+    expect((await api.replies(owner)).bill).toMatchObject({ meetings: 0, total: 1000 });
+  });
+
+  it("a client approves, marks a meeting, and a second click changes nothing", async () => {
+    const first = await api.approve({ ...owner, enrollmentIds: [enrollmentId, 999_999] });
+    expect(first).toEqual({ done: [enrollmentId], skipped: [999_999] });
+    expect(await api.approve({ ...owner, enrollmentIds: [enrollmentId] })).toEqual({
+      done: [],
+      skipped: [enrollmentId],
+    });
+    const emails = await api.emails({ ...owner, filter: "approved" });
+    expect(emails.rows[0]).toMatchObject({ enrollmentId, approvedBy: "client" });
+    expect(emails.approval.firstApproved).toBe(true);
+
+    const booked = await api.book({ ...owner, threadEventId: replyId });
+    expect(booked.by).toBe("owner@acme.example");
+    const again = await api.book({ ...operator, client: "acme", threadEventId: replyId });
+    expect(again).toEqual(booked);
+    const replies = await api.replies({ ...owner, filter: "booked" });
+    expect(replies.rows[0]?.handoff?.recruiter).toBe("sam@acme-talent.example");
+    expect(replies.bill).toMatchObject({ meetings: 1, meetingFees: 500, total: 1500 });
+
+    await api.book({ ...owner, threadEventId: replyId, booked: false });
+    expect((await api.replies({ ...owner, filter: "booked" })).total).toBe(0);
+    await expect(api.book({ ...owner, threadEventId: 999_999 })).rejects.toEqual(refusal(404));
+    await expect(api.approve({ ...owner, enrollmentIds: ["1; drop" as never] })).rejects.toEqual(
+      refusal(404),
+    );
   });
 });

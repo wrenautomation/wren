@@ -1,6 +1,9 @@
 /** The portal API: POST /api/<route> with JSON. The Worker adds who is asking. */
 export type {
   CrmHealth,
+  EmailFilter,
+  EmailRow,
+  EmailsPage,
   Me,
   Now,
   Overview,
@@ -12,6 +15,10 @@ export type {
   RawFinding,
   RawPage,
   Reason,
+  RepliesPage,
+  ReplyFilter,
+  ReplyRow,
+  ReviewResult,
   Source,
 } from "@wren/reactivation/restate";
 
