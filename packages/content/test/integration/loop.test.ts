@@ -48,7 +48,7 @@ const fakeContent = restate.service({
       return {
         id: `${req.platform}-${posted.length}`,
         url: `https://${req.platform}.test/p/${posted.length}`,
-        publishedAt: "2026-09-22T12:00:00.000Z",
+        publishedAt: new Date().toISOString(),
         fetchedWith: "api" as const,
       };
     },
@@ -64,7 +64,7 @@ const fakeContent = restate.service({
         reactions: Math.floor(v / 10),
         comments: 1,
         shares: 0,
-        asOf: "2026-09-22T13:00:00.000Z",
+        asOf: new Date().toISOString(),
         fetchedWith: "api" as const,
       };
     },
