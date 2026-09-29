@@ -23,7 +23,7 @@ The first product wren runs for a paying client, not for Wren's own outbound. A 
 | `packages/reactivation` | new | CRM export formats, health report, contact scoring, the reactivation composer, reply handoff |
 | `packages/research` people + signals | extended | person lookup, job changes, hiring signals, social posts, findings, cited briefs |
 | `wren --client <id>` | CLI | every command runs against that client's database |
-| `apps/portal` | new | `api/` (Lambda, read-only) + `web/` (React SPA on Cloudflare Pages) |
+| `apps/portal` | new | the Cloudflare Worker (Access check, `/api` → Restate) + `web/` (React SPA); the API is `ReactivationPortal` in `packages/reactivation/src/portal` on the worker |
 | Demo | `demo.wrenautomation.com` | the portal on client `demo`, no login, people masked server-side |
 | Offer | `packages/offers` | `reactivation` offer with a new `performance` price kind |
 
@@ -121,17 +121,14 @@ A lint rule guards this. biome `noRestrictedImports` on `packages/**` fails the 
 - **R11. The composer writes as the client.** Input: the client's profile (firm, what they place, voice, the recruiter who knew the contact, signature) plus the brief. One email and one follow-up, lowercase subject, plain, per the cold-email SOP. The client approves the first batch in the portal before anything sends.
 - **R12. Sending uses the existing machine.** Enrollments, pacing, roster and the Gmail transport, from domains we set up for the client (lookalike domains, mailboxes in the recruiter's name with written consent), warmed about 10 days. Never from the client's own domain.
 - **R13. Replies go to the client.** Inbox sync plus the classifier. An `interested` reply is forwarded to the recruiter named on the contact (else the client's default), shows in the portal and pings the client. "Meeting booked" is marked by the recruiter in the portal or by us, and it's the billing unit.
-- **R14. Portal: read-only API on Lambda, SPA on Cloudflare Pages, Cloudflare Access login.**
-  - Access gives email-code login with no passwords, free to 50 users. The API checks the Access JWT, maps the email to a client through `clients.portal_emails`, and opens that client's database read-only (a `portal_ro` role per database).
-  - The only writes are "approve batch" and "mark meeting booked", through Restate like the CLI's writes.
-  - React + Vite, like autobrowse's `ui/`. Pages:
-    - **Overview:** reached, replies, meetings, pipeline $
-    - **Health:** the report
-    - **People:** a table with job changes and hiring flags; the brief with its sources opens on click
-    - **Replies**
-    - **Emails:** the batch to approve
-    - **Raw:** every finding with its source, per platform
-- **R15. The demo is client `demo` with `demo: true`.** The API strips unmasked people fields before they leave the server (`Sarah K.`, `s•••@domain`), serves without Access, and refuses writes. Company names and sources stay real. A banner says what's real and what's simulated.
+- **R14. Portal: one Cloudflare Worker (`apps/portal`), API on Lambda through Restate, Cloudflare Access login.** Setup and checks: `deploy/portal.md`.
+  - One Worker on two hosts: `app.` (Access) and `demo.` (no login). It serves the React + Vite app and proxies `/api/<route>` to the `ReactivationPortal` service on the worker, the way the phone app reads SMS. No Pages project, no public API.
+  - Access gives email-code login with no passwords, free to 50 users. The Worker checks the Access JWT itself (RS256, team certs, aud, iss, exp) and sets the viewer; the browser's viewer is ignored. The service maps the email to clients through `clients.portal_emails`. `OPERATOR_EMAILS` (a Worker secret) see every client.
+  - Reads run in a read-only transaction on the client's pool. That replaces the planned `portal_ro` role: same guarantee, no role per database to keep.
+  - The only writes are "approve batch" and "mark meeting booked", added in step 7 through Restate like the CLI's writes.
+  - Pages built: **Overview** (people, looked up, moved, at hiring firms, "call these first"), **People** (filters, the drawer with the brief, its numbered marks and sources), **Data health**, **Sources** (every finding by where it came from). **Replies** and **Emails** come with step 7.
+  - Local: `pnpm --filter @wren/portal preview [--demo]` serves the build and runs the same handlers in-process.
+- **R15. The demo is client `demo` with `demo: true`.** Every demo answer passes through one mask (`portal/mask.ts`) that walks every string: surnames and middle names become an initial (`Sarah K.`), addresses keep one letter (`s•••@domain`), LinkedIn profile links lose the name. Name search is off on the demo. Company names and sources stay real. `me` names it "Sample recruiting firm". Answers are cached 5 minutes at the edge (200s only). A banner says what's real and what's made up. `test/integration/portal.test.ts` walks every route for leaks.
 - **R16. The sample firm comes from a real agency's public data, kept anonymous.** As built: `wren --client demo crm seed-demo --agency <url>` (a `crm` command, so it gets the client's database; refuses unless the client is `demo`).
   - Pick a real recruiting agency of 10–50 people whose site names at least 30 clients (logos, case studies, testimonials).
   - **Customers** (`research/companies/customers.ts`, niche-agnostic): the home page plus up to 8 same-site pages whose path or link text looks like a client list. One model call sees each page's text, image alts and file names, and links off the site. A name counts only when the pages carry it; a website only when a link on the pages points there. The firm itself is dropped.
@@ -180,8 +177,8 @@ Main database only: `clients` (id, name, database, accounts JSON, caps JSON, por
 2. CRM formats and health: `wren --client <id> crm formats|import|verify|health`. Health exits 1 while the gate is shut. **Done.**
 3. Findings and person lookup (R7) through the `web` and `linkedin` sites, plus `crm run|status`, the `wren` skill and the layer lint rule (R20). **Done.**
 4. Company signals (R8), the watch (R19), briefs (R9), plus scoring (R10). The watch waits on autobrowse's watch mode, so the other three can land first. **Done except the watch.** `crm run` is now verify, lookup, signals, score, brief; `crm top` prints the ranked list.
-5. Demo seed (R16): `wren --client demo crm seed-demo --agency <url>`. **Built; first real seed owed.**
-6. Portal API and web (R14, R15), deploy, `demo.` and `app.` hosts.
+5. Demo seed (R16): `wren --client demo crm seed-demo --agency <url>`. **Built.** The first real agency's site names 24 customers, under R16's 30.
+6. Portal API and web (R14, R15), deploy, `demo.` and `app.` hosts. **Built;** `app.` waits on Access.
 7. Composer (R11), the client dimension in the worker (R4), per-client settings (R21), sending (R12) and handoff (R13).
 8. Offer `reactivation` (R18), lander `/demo` link, map cards.
 
@@ -193,7 +190,7 @@ Main database only: `clients` (id, name, database, accounts JSON, caps JSON, por
   - `extract`: read text, links, images and structured items out of a page (no full-page dumps)
 - William:
   - X read spend grant
-  - Cloudflare Access on `app.` (dashboard)
+  - Cloudflare Access on `app.` (dashboard, `deploy/portal.md`), then the `PORTAL_ACCESS_*` secrets
   - consent language in the client contract for sending in the recruiter's name
 
 ## Where to attack

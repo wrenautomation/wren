@@ -5,6 +5,8 @@
   "type": "module",
   "exports": {
     ".": "./src/index.ts",
+    "./portal-routes": "./src/portal/routes.ts",
+    "./restate": "./src/portal/service.ts",
     "./schema": "./src/schema.ts"
   },
   "scripts": {
@@ -13,6 +15,7 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
+    "@restatedev/restate-sdk": "1.17.1",
     "@wren/channel-email": "workspace:*",
     "@wren/core": "workspace:*",
     "@wren/db": "workspace:*",

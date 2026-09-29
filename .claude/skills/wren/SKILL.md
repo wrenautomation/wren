@@ -1,6 +1,6 @@
 ---
 name: wren
-description: Use wren for a client or for personal work. Covers adding a client, setting a client's research accounts, importing a CRM export, running reactivation (`crm run`, `crm status`, `crm top`), seeding the demo list (`crm seed-demo`) and reading the send gate. Use when the user says "add a client", "import this CRM", "where is <client> at", "run the lookups", "who should they call", "seed the demo", or anything with `wren --client`.
+description: Use wren for a client or for personal work. Covers adding a client, setting a client's research accounts, importing a CRM export, running reactivation (`crm run`, `crm status`, `crm top`), seeding the demo list (`crm seed-demo`), giving a client portal access, previewing the portal, and reading the send gate. Use when the user says "add a client", "import this CRM", "where is <client> at", "run the lookups", "who should they call", "seed the demo", "show me the portal", "give <client> access", or anything with `wren --client`.
 ---
 
 # wren
@@ -66,6 +66,19 @@ Every client command takes `--client <id>`. Without it the command refuses. It n
 - Wipes the demo's list first. Refuses on any client that isn't `demo`.
 - Needs `WREN_FETCH_CONTACT` and a real LLM (`WREN_LLM`).
 - Never write the agency's name into git. `--csv` copies go outside the repo.
+
+### The portal
+
+- `app.wrenautomation.com`: a client's own list, email-code login. Give someone access with `./bin/wren clients set <id> --portal-email a@firm.com` (replaces the list). Wren's own logins (`PORTAL_OPERATOR_EMAILS`) see every client.
+- `demo.wrenautomation.com`: the `demo` client, no login, people masked.
+- Look at it locally before showing anyone:
+
+```sh
+pnpm --filter @wren/portal preview          # localhost:8788, every client
+pnpm --filter @wren/portal preview --demo   # as a demo visitor
+```
+
+- Setup, secrets and checks: `deploy/portal.md`.
 
 ### What the states mean
 

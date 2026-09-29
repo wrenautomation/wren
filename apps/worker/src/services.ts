@@ -55,6 +55,7 @@ import {
   makeContentPlanner,
   makeContentScheduler,
 } from "@wren/content/restate";
+import { clientUrl } from "@wren/core/clients";
 import type { SiteClient } from "@wren/core/content";
 import { ec2Wake } from "@wren/core/content/box";
 import { makeTokenRenewal } from "@wren/core/content/renewal";
@@ -64,7 +65,7 @@ import {
   makeContent,
   restateSites,
 } from "@wren/core/content/restate";
-import { createDb } from "@wren/db";
+import { cachedDb, createDb } from "@wren/db";
 import { loadLlmEnv, makeLlm, makeTracer } from "@wren/llm";
 import {
   crawlHintsFor,
@@ -73,6 +74,7 @@ import {
   NICHES,
   SMS_SEQUENCES,
 } from "@wren/niches";
+import { makeReactivationPortal } from "@wren/reactivation/restate";
 import {
   type BrowserRenderer,
   browserbaseRenderer,
@@ -330,6 +332,13 @@ export async function buildServices(
     ...notify,
   };
   services.push(makeSmsSender(sms), makeSmsEvents(sms), makeSmsDesk(sms), makeSmsWatch(sms));
+  // The client portal's reads (apps/portal): each client's own database, pooled per client.
+  services.push(
+    makeReactivationPortal({
+      main: db,
+      open: (client) => cachedDb(clientUrl(settings.databaseUrl, client)),
+    }),
+  );
 
   return {
     services,

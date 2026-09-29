@@ -1,0 +1,33 @@
+{
+  "name": "@wren/portal",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "typecheck": "tsc --noEmit && tsc --noEmit -p web && tsc --noEmit -p scripts",
+    "test:unit": "vitest run",
+    "build": "vite build web",
+    "dev": "vite build web && wrangler dev",
+    "deploy": "vite build web && wrangler deploy",
+    "preview": "vite build web && tsx scripts/preview.ts"
+  },
+  "dependencies": {
+    "@wren/reactivation": "workspace:*",
+    "react": "19.3.0",
+    "react-dom": "19.3.0"
+  },
+  "devDependencies": {
+    "@cloudflare/workers-types": "5.20260927.1",
+    "@types/react": "19.3.0",
+    "@types/react-dom": "19.3.0",
+    "@vitejs/plugin-react": "6.1.1",
+    "@wren/config": "workspace:*",
+    "@wren/core": "workspace:*",
+    "@wren/db": "workspace:*",
+    "tsx": "4.23.13",
+    "typescript": "5.9.3",
+    "vite": "8.3.0",
+    "vitest": "5.0.1",
+    "wrangler": "4.142.0"
+  }
+}
