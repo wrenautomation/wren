@@ -3,8 +3,8 @@ type: object
 cluster: platform
 universe: live
 status: verified
-verified: 2026-09-28 @ 28823cd
-entity: packages/offers/src/offer.ts:80
+verified: 2026-09-29 @ 23a6170
+entity: packages/offers/src/offer.ts:90
 ---
 
 # offer
@@ -17,10 +17,11 @@ One home for the pitch: email enrollments name the offer (`enrollments.offer`), 
 
 ## Shape
 
-- `Offer` (`offer.ts:80`), `defineOffer` (`:172`), `OFFERS` (`index.ts:76`), `snapshot.ts` (export)
+- `Offer` (`offer.ts:90`), `defineOffer` (`:182`), `OFFERS` (`index.ts:77`), `snapshot.ts` (export)
+- Price kinds: free, quoted, fixed, performance (setup + per unit, capped). Ids never change: retire and add.
 - `pnpm offers:export ../lander/src/data/offers.json` (`package.json:23`)
 
-Citations: `packages/offers/src/offer.ts:80`, `packages/offers/src/index.ts:76`
+Citations: `packages/offers/src/offer.ts:90`, `packages/offers/src/index.ts:77`
 
 ## Connected to
 

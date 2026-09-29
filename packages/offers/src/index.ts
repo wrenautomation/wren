@@ -6,6 +6,7 @@
 import { opsAudit, opsAutomationBuild } from "./catalog/operations.js";
 import {
   recruitingCandidateReactivation,
+  recruitingReactivation,
   recruitingReactivationPilot,
 } from "./catalog/recruiting.js";
 import type { Offer } from "./offer.js";
@@ -74,6 +75,7 @@ export function registry(offers: readonly Offer[]): readonly Offer[] {
 }
 
 export const OFFERS: readonly Offer[] = registry([
+  recruitingReactivation,
   recruitingReactivationPilot,
   recruitingCandidateReactivation,
   opsAudit,

@@ -32,7 +32,7 @@ export const recruiting = defineNiche({
   ],
   templatesDir: templatesDir(import.meta.url, "recruiting"),
   sequences: [twoEmailSequence("reactivation/opener", "reactivation/followup")],
-  offers: { reactivation: "recruiting-reactivation-pilot" },
+  offers: { reactivation: "reactivation" },
   plan: [{ sequence: "reactivation-days-0-5" }],
   // Leads arrive through the generic csv and google-maps imports; google-maps keeps "City, ST" under `geo`.
   companyLocation: (company) => rawLocation(company, "geo"),

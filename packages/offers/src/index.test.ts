@@ -60,9 +60,23 @@ const app: NonNullable<Offer["application"]> = {
   fit: [{ question: "size", anyOf: ["big"] }],
 };
 
+const PERF = {
+  kind: "performance" as const,
+  upfront: 1000,
+  perUnit: 500,
+  unit: "meeting booked",
+  cap: 15000,
+};
+
 describe("defineOffer", () => {
   it("accepts a well-formed offer", () => {
     expect(defineOffer(offer({ application: app })).id).toBe("test-offer");
+  });
+  it("takes a performance price: setup, then per unit up to a cap", () => {
+    expect(defineOffer(offer({ price: PERF })).price).toEqual(PERF);
+    expect(defineOffer(offer({ price: { ...PERF, upfront: 0, cap: null } })).price.kind).toBe(
+      "performance",
+    );
   });
   it("takes a nested page: the service, then the offer", () => {
     expect(defineOffer(offer({ page: "/recruiting/lead-reactivation" })).page).toBe(
@@ -84,6 +98,10 @@ describe("defineOffer", () => {
       offer({ price: { kind: "fixed", upfront: null, monthly: null } }),
       /range/,
     ],
+    ["a performance price with no unit fee", offer({ price: { ...PERF, perUnit: 0 } }), /perUnit/],
+    ["a performance price in cents", offer({ price: { ...PERF, upfront: 999.5 } }), /whole/],
+    ["a performance price counting nothing", offer({ price: { ...PERF, unit: " " } }), /unit/],
+    ["a cap under one unit", offer({ price: { ...PERF, cap: 100 } }), /cap/],
     [
       "a fit rule on an unknown question",
       offer({ application: { ...app, fit: [{ question: "nope", anyOf: ["x"] }] } }),

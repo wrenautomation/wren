@@ -26,6 +26,10 @@ A catalog, not a waterfall. Each row names the cards whose **If you change this*
 | a `WREN_*` key | [[platform/settings]] | [[platform/worker]] (SSM), [[processes/deploy]] |
 | a niche or a new one | [[platform/niche]] | [[email/template]], [[email/sequence]], [[platform/offer]], [[processes/migrate]] (facts view), [[email/roster]] |
 | an offer | [[platform/offer]] | the lander snapshot (below) |
+| a client, its database or its settings block | [[clients/client]] | [[processes/reactivation-pass]], `apps/worker/src/services.ts` (key routing), [[processes/migrate]] (every client database) |
+| CRM formats, import, scoring | [[reactivation/crm-contact]] | [[processes/reactivation-pass]] |
+| recruiters, firm facts | [[reactivation/client-profile]] | [[reactivation/handoff]], compose (`packages/reactivation/src/compose.ts`) |
+| forwarding, meetings, the bill | [[reactivation/handoff]] | [[platform/offer]] (`perUnit`), the portal (`packages/reactivation/src/portal/`) |
 | a Restate service name or handler | [[platform/restate-services]] | [[platform/loop-object]], [[platform/cli]], [[platform/phone-worker]], `docs/restate-operations.md` |
 | the loop primitive | [[platform/loop-object]] | every scheduler |
 | a table (any) | [[platform/db-schema]] | [[processes/migrate]], the table's card |

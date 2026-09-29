@@ -12,7 +12,7 @@ and `offer.*` keys from the arm's offer (`offer.name`, `offer.days`,
 
 ## Arms
 
-One arm, `reactivation/`, offer `recruiting-reactivation-pilot`.
+One arm, `reactivation/`, offer `reactivation`.
 Sequence `reactivation-days-0-5`: opener, one follow-up.
 
 - The pain family: BD hangs on one or two people, recruiters' weeks go

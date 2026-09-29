@@ -27,6 +27,16 @@ export type Price =
       readonly kind: "fixed";
       readonly upfront: UsdRange | null;
       readonly monthly: UsdRange | null;
+    }
+  /** Paid for results: a setup fee, then a fee per unit delivered, up to a cap on those fees. */
+  | {
+      readonly kind: "performance";
+      readonly upfront: number;
+      readonly perUnit: number;
+      /** What is counted, singular: "meeting booked". */
+      readonly unit: string;
+      /** The most the per-unit fees add up to, or null for no cap. */
+      readonly cap: number | null;
     };
 
 export interface Choice {
@@ -184,6 +194,18 @@ export function defineOffer(offer: Offer): Offer {
     }
     checkRange(where, offer.price.upfront);
     checkRange(where, offer.price.monthly);
+  }
+  if (offer.price.kind === "performance") {
+    const { upfront, perUnit, unit, cap } = offer.price;
+    if (!Number.isInteger(upfront) || upfront < 0 || !Number.isInteger(perUnit) || perUnit <= 0) {
+      throw new Error(
+        `${where}: a performance price needs whole dollars, upfront >= 0, perUnit > 0`,
+      );
+    }
+    if (!unit.trim()) throw new Error(`${where}: say what a performance price counts (unit)`);
+    if (cap !== null && (!Number.isInteger(cap) || cap < perUnit)) {
+      throw new Error(`${where}: a cap is whole dollars, at least one unit's fee`);
+    }
   }
   if (offer.price.kind === "free" && offer.weGet.length === 0) {
     // Free is a trade. Saying what we get back is what makes it believable.
