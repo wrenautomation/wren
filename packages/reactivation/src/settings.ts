@@ -29,7 +29,11 @@ export const reactivationSettingsSchema = z
       .strict()
       .prefault({}),
     compose: z
-      .object({ perDay: z.number().int().min(0).max(500).default(20) })
+      .object({
+        perDay: z.number().int().min(0).max(500).default(20),
+        /** Write to addresses the mail server can't confirm (catch-all domains), not only verified ones. */
+        catchAll: z.boolean().default(false),
+      })
       .strict()
       .prefault({}),
     /** Overrides on Wren's send policy; null keeps Wren's. */

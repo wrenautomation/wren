@@ -192,6 +192,27 @@ describe("who is due", () => {
     expect(await composeEligible(db())).toBe(3);
   });
 
+  it("a catch-all address is written to only when the client allows it", async () => {
+    const catchAll = async (authoritative: boolean) => {
+      await db().execute(sql`delete from verifications where email = 'carl@betarecruit.com'`);
+      await db().execute(sql`
+        update contact_candidates set state = 'candidate' where email = 'carl@betarecruit.com'`);
+      await db().execute(sql`
+        insert into verifications (contact_candidate_id, email, verifier, result, raw)
+        select id, email, 'smtp', 'catch_all', ${JSON.stringify({ authoritative })}::jsonb
+        from contact_candidates where email = 'carl@betarecruit.com'`);
+    };
+    await catchAll(true);
+    expect(await names()).toEqual(["Jane", "Dana"]);
+    const allowed = async () =>
+      (await composeSubjects(db(), { catchAll: true })).map((s) => s.firstName);
+    expect(await allowed()).toEqual(["Jane", "Carl", "Dana"]);
+    expect(await composeEligible(db(), true)).toBe(3);
+    // A verifier that can't be trusted to say catch-all says nothing.
+    await catchAll(false);
+    expect(await allowed()).toEqual(["Jane", "Dana"]);
+  });
+
   it("the brief goes out with its marks taken out", async () => {
     const [s] = await composeSubjects(db(), { limit: 1 });
     expect(s?.brief).toBe("Jane is still there since 2019.");

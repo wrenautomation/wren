@@ -239,13 +239,16 @@ interface Row extends Record<string, unknown> {
   owner: string | null;
 }
 
-function subjectsSql(opts: { limit?: number; count?: boolean }) {
+function subjectsSql(opts: { limit?: number; count?: boolean; catchAll: boolean }) {
   return sql`
     with latest as (${LATEST_CRM_ROW}),
     addr as (
       select distinct on (cc.person_id) cc.person_id, cc.id candidate_id, lower(cc.email) email
-      from contact_candidates cc where cc.evidence = 'crm' and cc.state = 'verified'
-      order by cc.person_id, cc.rank, cc.id),
+      from contact_candidates cc where cc.evidence = 'crm' and (cc.state = 'verified'
+        or (${opts.catchAll} and cc.state = 'candidate' and exists (select 1 from verifications v
+          where v.contact_candidate_id = cc.id and v.result = 'catch_all'
+            and (v.raw->>'authoritative')::boolean)))
+      order by cc.person_id, cc.state = 'verified' desc, cc.rank, cc.id),
     owner as (
       select distinct on (c.person_id) c.person_id, c.owner from crm_contacts c
       where nullif(btrim(c.owner), '') is not null order by c.person_id, c.id desc),
@@ -288,9 +291,9 @@ const stripMarks = (text: string) =>
 /** Who is due an email, best score first, one per company and one per address. */
 export async function composeSubjects(
   db: Queryable,
-  opts: { limit?: number } = {},
+  opts: { limit?: number; catchAll?: boolean } = {},
 ): Promise<ComposeSubject[]> {
-  const rows = await db.execute<Row>(subjectsSql({}));
+  const rows = await db.execute<Row>(subjectsSql({ catchAll: opts.catchAll ?? false }));
   const firms = new Set<number>();
   const addresses = new Set<string>();
   const out: ComposeSubject[] = [];
@@ -317,8 +320,8 @@ export async function composeSubjects(
 }
 
 /** Contacts that could be written to now, before the day's budget. */
-export async function composeEligible(db: Queryable): Promise<number> {
-  const [r] = await db.execute<{ n: number }>(subjectsSql({ count: true }));
+export async function composeEligible(db: Queryable, catchAll = false): Promise<number> {
+  const [r] = await db.execute<{ n: number }>(subjectsSql({ count: true, catchAll }));
   return r?.n ?? 0;
 }
 
@@ -368,7 +371,10 @@ export async function composeDue(
       due: 0,
       blocked: `today's ${settings.compose.perDay} are written or waiting for approval`,
     };
-  return { due: Math.min(room, await composeEligible(db)), blocked: null };
+  return {
+    due: Math.min(room, await composeEligible(db, settings.compose.catchAll)),
+    blocked: null,
+  };
 }
 
 // ---- the stage -------------------------------------------------------------------
@@ -418,7 +424,7 @@ export async function composeCrmEmails(
   const room = await composeRoom(db, settings.compose.perDay);
   const limit = Math.min(room, opts.limit ?? room);
   if (!limit) return stats;
-  const subjects = await composeSubjects(db, { limit });
+  const subjects = await composeSubjects(db, { limit, catchAll: settings.compose.catchAll });
   stats.selected = subjects.length;
   const suppressed = await activeSuppressions(
     db,
