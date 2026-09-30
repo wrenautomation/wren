@@ -136,6 +136,16 @@ describe("check", () => {
     expect(bad?.reasons).toEqual(['issue date "08/08" is not a date']);
   });
 
+  it("lets the due date, else the sent day, stand in for an issue date none is printed for", () => {
+    const text = INVOICE.replace("Date of issue: August 8, 2026\n", "");
+    const due = checked(reading({ issued_on: null }), text);
+    expect(due.bill).toMatchObject({ issuedOn: "2026-08-22", reasons: [] });
+    expect(due.notes).toEqual(["no issue date printed: the due date stands in"]);
+    const sent = checked(reading({ issued_on: "", due_on: null }), text);
+    expect(sent.bill).toMatchObject({ issuedOn: "2026-08-08", reasons: [] });
+    expect(sent.notes).toEqual(["no issue date printed: the day it was sent stands in"]);
+  });
+
   it("claims GST only when the vendor can charge it", () => {
     const simplified = checked(reading(), INVOICE, { ...vendor, gstClaimable: false });
     expect(simplified.bill?.taxes[0]?.claimable).toBe(false);

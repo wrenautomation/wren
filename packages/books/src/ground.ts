@@ -285,8 +285,14 @@ export function check(reading: Reading, corpus: Corpus, vendor: VendorFacts): Ch
     else if (!isPrinted(number)) reasons.push(`number "${number}" is not printed`);
     if (!number) number = `sent ${corpus.sentAt?.toISOString() ?? "unknown"}`;
 
-    let issuedOn = b.issued_on ?? "";
-    if (!isDay(issuedOn)) {
+    const dueOn = optionalDay(b.due_on, "due date");
+    let issuedOn = b.issued_on?.trim() ?? "";
+    const standIn = dueOn ?? headerDays[0];
+    if (!issuedOn && standIn) {
+      // Some bills print none (Cloudflare's email gives a due date and an amount).
+      issuedOn = standIn;
+      notes.push(`no issue date printed: the ${dueOn ? "due date" : "day it was sent"} stands in`);
+    } else if (!isDay(issuedOn)) {
       reasons.push(`issue date "${issuedOn}" is not a date`);
       issuedOn = headerDays[0] ?? new Date().toISOString().slice(0, 10);
     } else if (!dayPrinted(issuedOn)) reasons.push(`issue date ${issuedOn} is not printed`);
@@ -362,7 +368,7 @@ export function check(reading: Reading, corpus: Corpus, vendor: VendorFacts): Ch
       number,
       kind,
       issuedOn,
-      dueOn: optionalDay(b.due_on, "due date"),
+      dueOn,
       periodStart,
       periodEnd,
       currency,
