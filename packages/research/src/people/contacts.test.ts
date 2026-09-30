@@ -1,16 +1,18 @@
-/** People who hire at a firm, from search results alone. */
+/** People who hire at a firm, from a people search's profiles. */
 import type { SiteClient } from "@wren/core/content";
 import { describe, expect, it } from "vitest";
 import { findContacts, splitName } from "./contacts.js";
 
-type Hit = { title: string; url: string; snippet: string | null };
-function search(hits: Hit[]): SiteClient & { queries: string[] } {
+type Role = { title: string; company: string; current: boolean };
+type Person = { name: string; url: string; roles: Role[] };
+function peopleSearch(people: Person[]): SiteClient & { queries: string[] } {
   const queries: string[] = [];
   return {
     queries,
-    async call(_site, _method, _path, input = {}) {
+    async call(_site, _method, path, input = {}) {
+      if (path !== "/people") throw new Error(`asked ${path}`);
       queries.push(String((input as { q: string }).q));
-      return { hits, via: "ddg" } as never;
+      return { people, via: "exa" } as never;
     },
     async via() {
       return "api";
@@ -19,6 +21,7 @@ function search(hits: Hit[]): SiteClient & { queries: string[] } {
 }
 const li = (v: string) => `https://ca.linkedin.com/in/${v}`;
 const firm = { name: "Umbrella Health", domain: "umbrellahealth.com" };
+const at = (title: string, company: string, current = true): Role => ({ title, company, current });
 
 describe("splitName", () => {
   it("drops credentials and parentheses; refuses an initial for a surname", () => {
@@ -30,38 +33,34 @@ describe("splitName", () => {
 });
 
 describe("findContacts", () => {
-  it("keeps hiring roles that name the firm; says who is there now", async () => {
-    const s = search([
+  it("keeps hiring roles at the firm; says who is there now and where the rest went", async () => {
+    const s = peopleSearch([
       {
-        title: "Jane Doe - Talent Acquisition Lead - Umbrella Health | LinkedIn",
+        name: "Jane Doe",
         url: li("janedoe"),
-        snippet: null,
+        roles: [at("Talent Acquisition Lead", "Umbrella Health")],
       },
+      { name: "Bob Roe", url: li("bobroe"), roles: [at("Software Engineer", "Umbrella Health")] },
       {
-        title: "Bob Roe - Software Engineer - Umbrella Health | LinkedIn",
-        url: li("bobroe"),
-        snippet: null,
-      },
-      {
-        title: "Cara Lim - Senior Recruiter | LinkedIn",
+        name: "Cara Lim",
         url: li("caralim"),
-        snippet: "Experience: Globex · Previously Umbrella Health · Toronto",
+        roles: [at("Senior Recruiter", "Globex"), at("Recruiter", "Umbrella Health", false)],
       },
-      { title: "Dan Wu - HR Manager - Initech | LinkedIn", url: li("danwu"), snippet: "Toronto" },
+      { name: "Dan Wu", url: li("danwu"), roles: [at("HR Manager", "Initech")] },
       {
-        title: "Eve Ng - Recruiter - Umbrella Health | LinkedIn",
+        name: "Eve Ng",
         url: "https://example.com/eve",
-        snippet: null,
+        roles: [at("Recruiter", "Umbrella Health")],
       },
       {
-        title: "Jane Doe - Talent Acquisition Lead - Umbrella Health",
+        name: "Jane Doe",
         url: li("JaneDoe/"),
-        snippet: null,
+        roles: [at("Talent Acquisition Lead", "Umbrella Health")],
       },
     ]);
     const found = await findContacts(s, firm, { max: 5 });
     expect(s.queries).toEqual([
-      'site:linkedin.com/in "Umbrella Health" (talent OR recruiting OR "human resources" OR people)',
+      "talent acquisition, recruiting, HR, or people team people who work or worked at Umbrella Health",
     ]);
     expect(found).toEqual([
       {
@@ -77,7 +76,7 @@ describe("findContacts", () => {
         fullName: "Cara Lim",
         firstName: "Cara",
         lastName: "Lim",
-        title: "Senior Recruiter",
+        title: "Recruiter",
         currentCompany: "Globex",
         current: false,
         linkedin: "https://www.linkedin.com/in/caralim/",
@@ -86,16 +85,16 @@ describe("findContacts", () => {
   });
 
   it("stops at max", async () => {
-    const hits = ["a", "b", "c"].map((v) => ({
-      title: `Ann ${v}son - Recruiter - Umbrella Health | LinkedIn`,
+    const people = ["a", "b", "c"].map((v) => ({
+      name: `Ann ${v}son`,
       url: li(`ann-${v}`),
-      snippet: null,
+      roles: [at("Recruiter", "Umbrella Health")],
     }));
-    expect(await findContacts(search(hits), firm, { max: 2 })).toHaveLength(2);
+    expect(await findContacts(peopleSearch(people), firm, { max: 2 })).toHaveLength(2);
   });
 
   it("a firm with no usable name asks nothing", async () => {
-    const s = search([]);
+    const s = peopleSearch([]);
     expect(await findContacts(s, { name: null, domain: null })).toEqual([]);
     expect(s.queries).toEqual([]);
   });

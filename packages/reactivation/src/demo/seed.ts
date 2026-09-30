@@ -2,8 +2,9 @@
  * A demo client list built from an agency's own site, so a prospect sees the
  * product on companies they know. Real: the agency's customers (as its site
  * names them), their sites, and people who do hiring there or did before
- * (from search results). Made up, and seeded by the agency's domain: owners,
- * statuses and dates, plus a little of the mess real exports carry. The list
+ * (from a people search's public profiles). Made up, and seeded by the
+ * agency's domain: owners, statuses and dates, plus a little of the mess real
+ * exports carry. The list
  * goes in as a Bullhorn export through the normal import, so everything after
  * is the product itself.
  */

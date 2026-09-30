@@ -31,29 +31,36 @@ const llm = new FakeLlm({
   }),
 });
 const li = (v: string) => `https://www.linkedin.com/in/${v}`;
-const HITS: Record<string, { title: string; url: string; snippet: string | null }[]> = {
+type Role = { title: string; company: string; current: boolean };
+const PEOPLE: Record<string, { name: string; url: string; roles: Role[] }[]> = {
   "Umbrella Health": [
     {
-      title: "Jane Doe - Talent Lead - Umbrella Health | LinkedIn",
+      name: "Jane Doe",
       url: li("jane-doe"),
-      snippet: null,
+      roles: [{ title: "Talent Lead", company: "Umbrella Health", current: true }],
     },
     {
-      title: "Cara Lim - Senior Recruiter | LinkedIn",
+      name: "Cara Lim",
       url: li("cara-lim"),
-      snippet:
-        "Experience: Initech · Formerly Talent Partner at Umbrella Health · Location: Toronto",
+      roles: [
+        { title: "Senior Recruiter", company: "Initech", current: true },
+        { title: "Talent Partner", company: "Umbrella Health", current: false },
+      ],
     },
   ],
   Globex: [
-    { title: "Bob Roe - HR Manager - Globex | LinkedIn", url: li("bob-roe"), snippet: null },
+    {
+      name: "Bob Roe",
+      url: li("bob-roe"),
+      roles: [{ title: "HR Manager", company: "Globex", current: true }],
+    },
   ],
 };
 const sites: SiteClient = {
   async call(_site, _method, _path, input = {}) {
     const q = String((input as { q: string }).q);
-    const firm = Object.keys(HITS).find((k) => q.includes(`"${k}"`)) ?? "";
-    return { hits: HITS[firm] ?? [], via: "ddg" } as never;
+    const firm = Object.keys(PEOPLE).find((k) => q.endsWith(` at ${k}`)) ?? "";
+    return { people: PEOPLE[firm] ?? [], via: "exa" } as never;
   },
   async via() {
     return "api";

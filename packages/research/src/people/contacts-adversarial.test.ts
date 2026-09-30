@@ -1,21 +1,23 @@
 /**
- * Adversarial tests for people who hire at a company, from search results
- * alone (the demo seed's people). A stranger kept as a past employee is the
- * worst outcome: the demo then claims a real person worked somewhere they
- * didn't. Tests state what SHOULD happen; a failing one is a bug.
+ * Adversarial tests for people who hire at a company (the demo seed's people).
+ * A stranger kept as a past employee is the worst outcome: the demo then
+ * claims a real person worked somewhere they didn't. Tests state what SHOULD
+ * happen; a failing one is a bug.
  */
 import type { SiteClient } from "@wren/core/content";
 import { describe, expect, it } from "vitest";
 import { findContacts, splitName } from "./contacts.js";
 
-type Hit = { title: string; url: string; snippet: string | null };
-function search(hits: Hit[]): SiteClient & { queries: string[] } {
+type Role = { title: string; company: string; current: boolean };
+type Person = { name: string; url: string; roles: Role[] };
+function peopleSearch(people: Person[]): SiteClient & { queries: string[] } {
   const queries: string[] = [];
   return {
     queries,
-    async call(_site, _method, _path, input = {}) {
+    async call(_site, _method, path, input = {}) {
+      if (path !== "/people") throw new Error(`asked ${path}`);
       queries.push(String((input as { q: string }).q));
-      return { hits, via: "ddg" } as never;
+      return { people, via: "exa" } as never;
     },
     async via() {
       return "api";
@@ -24,6 +26,7 @@ function search(hits: Hit[]): SiteClient & { queries: string[] } {
 }
 const li = (v: string) => `https://www.linkedin.com/in/${v}`;
 const firm = { name: "Umbrella Health", domain: "umbrellahealth.example" };
+const at = (title: string, company: string, current = true) => ({ title, company, current });
 
 describe("splitName", () => {
   // Was a bug: "Dr." passes the two-letter check and becomes the first name; the seed then writes "Dr." in the CRM and guesses dr.doe@.
@@ -38,34 +41,71 @@ describe("splitName", () => {
   });
 });
 
-describe("findContacts: people who never worked at the firm", () => {
-  // Was a bug: any mention of the firm in the snippet counts as having worked there, so an outside agency recruiter who places people AT the firm is kept as someone who left it.
-  it("a recruiter elsewhere who names the firm only as a client is not kept", async () => {
-    const s = search([
+describe("findContacts: people who never did this work at the firm", () => {
+  it("a recruiter elsewhere who names the firm only in a title is not kept", async () => {
+    const s = peopleSearch([
       {
-        title: "Sam Fox - Senior Recruiter - Brightpath Staffing | LinkedIn",
+        name: "Sam Fox",
         url: li("samfox"),
-        snippet: "Placing nurses with hospitals like Umbrella Health since 2019.",
+        roles: [at("Senior Recruiter, placing nurses at Umbrella Health", "Brightpath Staffing")],
       },
     ]);
     expect(await findContacts(s, firm)).toEqual([]);
   });
+
+  it("someone at the firm in another line of work, recruiting elsewhere before, is not kept", async () => {
+    const s = peopleSearch([
+      {
+        name: "Kim Cho",
+        url: li("kimcho"),
+        roles: [at("Controller", "Umbrella Health"), at("Recruiter", "Globex", false)],
+      },
+    ]);
+    expect(await findContacts(s, firm)).toEqual([]);
+  });
+
+  it("the agency's own recruiters are skipped, though they list the firm before", async () => {
+    const agency = { name: "Brightpath Staffing", domain: null };
+    const s = peopleSearch([
+      {
+        name: "Lou Tan",
+        url: li("loutan"),
+        roles: [at("Recruiter", "Brightpath Staffing"), at("Recruiter", "Umbrella Health", false)],
+      },
+    ]);
+    expect(await findContacts(s, firm, { except: agency })).toEqual([]);
+  });
+
+  it("moved within the firm: there now, titled by the hiring role", async () => {
+    const s = peopleSearch([
+      {
+        name: "Ann Park",
+        url: li("annpark"),
+        roles: [
+          at("Operations Lead", "Umbrella Health"),
+          at("Recruiter", "Umbrella Health", false),
+        ],
+      },
+    ]);
+    expect(await findContacts(s, firm)).toMatchObject([
+      { title: "Recruiter", current: true, currentCompany: "Umbrella Health" },
+    ]);
+  });
+
+  it("a person who lists no current role left, to nowhere known", async () => {
+    const s = peopleSearch([
+      { name: "Ray Oh", url: li("rayoh"), roles: [at("Recruiter", "Umbrella Health", false)] },
+    ]);
+    expect(await findContacts(s, firm)).toMatchObject([{ current: false, currentCompany: null }]);
+  });
 });
 
-describe("findContacts: people who hire, dropped", () => {
+describe("findContacts: people who hire, kept", () => {
   // Was a bug: HIRING_ROLES needs a word after "people", so "Head of People" and "VP of People", the people who own hiring, are never kept.
   it("Head of People is a hiring role", async () => {
-    const s = search([
-      {
-        title: "Ann Park - Head of People - Umbrella Health | LinkedIn",
-        url: li("annpark"),
-        snippet: null,
-      },
-      {
-        title: "Raj Iyer - VP of People - Umbrella Health | LinkedIn",
-        url: li("rajiyer"),
-        snippet: null,
-      },
+    const s = peopleSearch([
+      { name: "Ann Park", url: li("annpark"), roles: [at("Head of People", "Umbrella Health")] },
+      { name: "Raj Iyer", url: li("rajiyer"), roles: [at("VP of People", "Umbrella Health")] },
     ]);
     expect((await findContacts(s, firm, { max: 5 })).map((c) => c.fullName)).toEqual([
       "Ann Park",
@@ -73,33 +113,36 @@ describe("findContacts: people who hire, dropped", () => {
     ]);
   });
 
-  // Was a bug: the query quotes the name as the page wrote it, legal form and all; profiles say "Globex", so an exact-phrase search for "Globex Corporation, Inc." finds almost nobody.
-  it("the search leaves the legal form out of the quoted name", async () => {
-    const s = search([]);
+  // Was a bug: the query quoted the name as the page wrote it, legal form and all; profiles say "Globex".
+  it("the search leaves the legal form out of the name", async () => {
+    const s = peopleSearch([]);
     await findContacts(s, { name: "Globex Corporation, Inc.", domain: null });
-    expect(s.queries[0]).toContain('"Globex"');
+    expect(s.queries[0]).toMatch(/at Globex$/);
+  });
+
+  it("a profile that says the legal form still matches the firm", async () => {
+    const s = peopleSearch([
+      { name: "Ann Lee", url: li("annlee"), roles: [at("Recruiter", "Umbrella Health, Inc.")] },
+    ]);
+    expect(await findContacts(s, firm)).toHaveLength(1);
   });
 });
 
 describe("findContacts: caps", () => {
   // Was a bug: the cap is checked after the push, so max 0 still returns one person.
   it("max 0 finds nobody", async () => {
-    const s = search([
-      {
-        title: "Ann Lee - Recruiter - Umbrella Health | LinkedIn",
-        url: li("annlee"),
-        snippet: null,
-      },
+    const s = peopleSearch([
+      { name: "Ann Lee", url: li("annlee"), roles: [at("Recruiter", "Umbrella Health")] },
     ]);
     expect(await findContacts(s, firm, { max: 0 })).toEqual([]);
   });
 
   it("holds: one profile under www, country host, case and query variants is one person", async () => {
-    const title = "Ann Lee - Recruiter - Umbrella Health | LinkedIn";
-    const s = search([
-      { title, url: "https://ca.linkedin.com/in/AnnLee", snippet: null },
-      { title, url: "https://www.linkedin.com/in/annlee/?trk=public", snippet: null },
-      { title, url: "https://linkedin.com/in/annlee/details/experience/", snippet: null },
+    const roles = [at("Recruiter", "Umbrella Health")];
+    const s = peopleSearch([
+      { name: "Ann Lee", url: "https://ca.linkedin.com/in/AnnLee", roles },
+      { name: "Ann Lee", url: "https://www.linkedin.com/in/annlee/?trk=public", roles },
+      { name: "Ann Lee", url: "https://linkedin.com/in/annlee/details/experience/", roles },
     ]);
     const found = await findContacts(s, firm, { max: 5 });
     expect(found.map((c) => c.linkedin)).toEqual(["https://www.linkedin.com/in/annlee/"]);

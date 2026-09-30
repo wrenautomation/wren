@@ -21,7 +21,11 @@ beforeEach(() =>
 );
 const db = () => pg.db;
 
-type Hit = { title: string; url: string; snippet: string | null };
+type Person = {
+  name: string;
+  url: string;
+  roles: { title: string; company: string; current: boolean }[];
+};
 const li = (v: string) => `https://www.linkedin.com/in/${v}`;
 const today = new Date("2026-09-29T12:00:00Z");
 
@@ -46,28 +50,28 @@ function fetcher(pages: Record<string, string>): Fetcher & { asked: string[] } {
 }
 const says = (customers: { name: string; website?: string }[]) =>
   new FakeLlm({ default: JSON.stringify({ customers }) });
-function search(hits: Record<string, Hit[]>): SiteClient {
+function search(hits: Record<string, Person[]>): SiteClient {
   return {
     async call(_site, _method, _path, input = {}) {
       const q = String((input as { q: string }).q);
-      const firm = Object.keys(hits).find((k) => q.includes(`"${k}"`)) ?? "";
-      return { hits: hits[firm] ?? [], via: "ddg" } as never;
+      const firm = Object.keys(hits).find((k) => q.endsWith(` at ${k}`)) ?? "";
+      return { people: hits[firm] ?? [], via: "exa" } as never;
     },
     async via() {
       return "api";
     },
   };
 }
-const northside = (hits: Hit[], pages = NORTHSIDE) => ({
+const northside = (hits: Person[], pages = NORTHSIDE) => ({
   fetcher: fetcher(pages),
   sites: search({ "Umbrella Health": hits }),
   llm: says([{ name: "Umbrella Health", website: "https://umbrellahealth.example" }]),
   resolves: async () => false,
 });
-const JANE: Hit = {
-  title: "Jane Doe - Talent Lead - Umbrella Health | LinkedIn",
+const JANE: Person = {
+  name: "Jane Doe",
   url: li("jane-doe"),
-  snippet: null,
+  roles: [{ title: "Talent Lead", company: "Umbrella Health", current: true }],
 };
 const count = async (table: string) =>
   (await db().execute(sql.raw(`select count(*)::int as n from ${table}`)))[0]?.n;
@@ -106,12 +110,15 @@ describe("seedDemo: a bad run", () => {
 });
 
 describe("seedDemo: who lands in the list", () => {
-  // Was a bug: the agency's own recruiter, whose snippet names the customer, is kept as someone who left the customer; the demo shows the agency its own staff with a guessed address at the customer.
+  // Was a bug: the agency's own recruiter, who lists the customer before, is kept as someone who left the customer; the demo shows the agency its own staff with a guessed address at the customer.
   it("the agency's own recruiter is not a contact at its customer", async () => {
-    const fox: Hit = {
-      title: "Sam Fox - Senior Recruiter - Northside Talent | LinkedIn",
+    const fox: Person = {
+      name: "Sam Fox",
       url: li("sam-fox"),
-      snippet: "Placing nurses at Umbrella Health and other Toronto hospitals.",
+      roles: [
+        { title: "Senior Recruiter", company: "Northside Talent", current: true },
+        { title: "Recruiter", company: "Umbrella Health", current: false },
+      ],
     };
     await seedDemo(db(), northside([fox, JANE]), {
       agency: "northside.example",
@@ -124,16 +131,16 @@ describe("seedDemo: who lands in the list", () => {
 
   // Was a bug: the import's name key keeps only a-z and 0-9, so every non-Latin name keys to "" and two different people at one company merge into one.
   it("two people with non-Latin names stay two people", async () => {
-    const hits: Hit[] = [
+    const hits: Person[] = [
       {
-        title: "Иван Петров - HR Manager - Umbrella Health | LinkedIn",
+        name: "Иван Петров",
         url: li("ivan"),
-        snippet: null,
+        roles: [{ title: "HR Manager", company: "Umbrella Health", current: true }],
       },
       {
-        title: "Мария Смирнова - Recruiter - Umbrella Health | LinkedIn",
+        name: "Мария Смирнова",
         url: li("maria"),
-        snippet: null,
+        roles: [{ title: "Recruiter", company: "Umbrella Health", current: true }],
       },
     ];
     const { stats } = await seedDemo(db(), northside(hits), {
@@ -146,11 +153,13 @@ describe("seedDemo: who lands in the list", () => {
   });
 
   it("holds: accents, apostrophes, hyphens, commas and emoji survive the CSV and the import", async () => {
-    const hits: Hit[] = [
+    const hits: Person[] = [
       {
-        title: "Zoë O'Brien-Núñez - Director, Talent & Culture 🚀 - Umbrella Health | LinkedIn",
+        name: "Zoë O'Brien-Núñez",
         url: li("zoe"),
-        snippet: null,
+        roles: [
+          { title: "Director, Talent & Culture 🚀", company: "Umbrella Health", current: true },
+        ],
       },
     ];
     await seedDemo(db(), northside(hits), { agency: "northside.example", today });
@@ -174,7 +183,11 @@ describe("seedDemo: a second agency", () => {
       }),
       sites: search({
         Initrode: [
-          { title: "Bo Chen - Recruiter - Initrode | LinkedIn", url: li("bo-chen"), snippet: null },
+          {
+            name: "Bo Chen",
+            url: li("bo-chen"),
+            roles: [{ title: "Recruiter", company: "Initrode", current: true }],
+          },
         ],
       }),
       llm: says([{ name: "Initrode", website: "initrode.example" }]),
