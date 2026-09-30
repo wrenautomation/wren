@@ -3,7 +3,7 @@ type: object
 cluster: books
 universe: live
 status: verified
-verified: 2026-09-30 @ b96c9f8
+verified: 2026-09-30 @ 0964efe
 entity: packages/books/src/schema.ts:99
 ---
 
@@ -31,7 +31,7 @@ Citations: `packages/books/src/schema.ts:99`, `packages/books/src/store.ts:28`
 
 ## If you change this
 
-- **Hits:** `capture`, `keepEmail` (`packages/books/src/capture.ts:48`, `:101`), `readDocuments` (`packages/books/src/read.ts:123`), `reviewQueue` (`packages/books/src/report.ts:166`), `wren books doc`
+- **Hits:** `capture`, `keepEmail` (`packages/books/src/capture.ts:48`, `:101`), `readDocuments` (`packages/books/src/read.ts:123`), `reviewQueue` (`packages/books/src/report.ts:174`), `wren books doc`
 - **Does not hit:** the journal (entries cite bills, not documents)
 
 ## Surfaces

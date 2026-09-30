@@ -3,7 +3,7 @@ type: object
 cluster: books
 universe: live
 status: verified
-verified: 2026-09-30 @ b96c9f8
+verified: 2026-09-30 @ 0964efe
 entity: packages/books/src/schema.ts:58
 ---
 
@@ -30,7 +30,7 @@ Citations: `packages/books/src/schema.ts:58`, `packages/books/src/chart.ts:60`, 
 
 ## If you change this
 
-- **Hits:** capture's search, the reading prompt (`readingPrompt`, `packages/books/src/read.ts:43`), `check`'s GST rule (`packages/books/src/ground.ts:241`)
+- **Hits:** capture's search, the reading prompt (`readingPrompt`, `packages/books/src/read.ts:43`), `check`'s GST rule and last-resort cycle (`packages/books/src/ground.ts:250`)
 - **Does not hit:** bills already saved (a changed account reaches new bills only)
 
 ## Surfaces

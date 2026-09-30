@@ -3,7 +3,7 @@ type: object
 cluster: books
 universe: live
 status: verified
-verified: 2026-09-30 @ b96c9f8
+verified: 2026-09-30 @ 0964efe
 entity: packages/books/src/schema.ts:391
 ---
 
@@ -22,7 +22,7 @@ The journal is the books; bills only explain it. An entry's lines sum to zero in
 - `accounts` (`:34`): the chart, seeded from `CHART` (`packages/books/src/chart.ts:19`), each with its T2125 line; `CARD` is the paying side (`chart.ts:14`)
 - `rates` (`:371`): CAD per unit by day, currency and source
 - Triggers: balance (`packages/db/drizzle/0025_books.sql:211`, `:224`), never edited (`:227`)
-- View `spend` (`schema.ts:525`): expense per month, account and vendor
+- View `spend` (`schema.ts:527`): expense per month, account and vendor
 
 Citations: `packages/books/src/schema.ts:391`, `:429`, `:34`, `:371`, `packages/db/drizzle/0025_books.sql:211`
 
