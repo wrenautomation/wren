@@ -114,3 +114,4 @@ What keeps it cheap later, built now:
     - No `source` route. Sources ride along with the person and email views, which already pass the mask, so P7 holds with one route fewer.
     - A redraft records a new 'drafted' composition for the same enrollment. So the daily cap now counts enrollments made in the last day, and `crm status` counts drafted enrollments, not compositions.
     - The prompt now bans numbers the brief lacks: the fact gate refused two drafts that offered "10 minutes".
+- **2026-09-30** William: "there's no actual approval button for the emails." The demo hid them as read-only. Now each waiting email has Approve and Don't send, and the demo shows them too. On the demo a click changes only the page (tag, counts, a line saying nothing sends); a reload resets it. Client portals call `approve` and `skip` as before.
