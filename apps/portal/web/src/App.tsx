@@ -1,16 +1,49 @@
-/** The shell: who you are, which client, the pages, and the demo's banner. */
+/** The portal: who's signed in, whose list, and each product's pages inside Wren's app frame. */
+import { Alert, AppShell, Gate, Loading, type NavGroup, type ShellNotice } from "@wren/ui";
 import { useEffect, useState } from "react";
 import { call, type Me } from "./api.js";
-import { Emails } from "./Emails.js";
-import { Health } from "./Health.js";
-import { Overview } from "./Overview.js";
-import { People } from "./People.js";
-import { Replies } from "./Replies.js";
-import { href, PAGES, useRoute } from "./route.js";
-import { Sources } from "./Sources.js";
-import { Failed, useCall } from "./ui.js";
+import { useCall } from "./load.js";
+import type { Module, ModulePage } from "./module.js";
+import { MODULES } from "./modules/index.js";
+import { navigate, useRoute } from "./route.js";
 
+const STAMP = "/wren-icon.png";
 const CLIENT_KEY = "wren.portal.client";
+
+const pathOf = (m: Module, p: ModulePage) => `/${m.id}/${p.id}`;
+const [first] = MODULES;
+const HOME = first?.pages[0] ? pathOf(first, first.pages[0]) : "/";
+
+const NAV: NavGroup[] = MODULES.map((m) => ({
+  id: m.id,
+  label: m.name,
+  items: m.pages.map((p) => ({
+    id: pathOf(m, p),
+    label: p.label,
+    href: pathOf(m, p),
+    icon: p.icon,
+  })),
+}));
+
+function find(path: string[]): { module: Module; page: ModulePage } | null {
+  const module = MODULES.find((m) => m.id === path[0]);
+  const page = module?.pages.find((p) => p.id === path[1]);
+  return module && page ? { module, page } : null;
+}
+
+const DEMO: ShellNotice = {
+  label: "Demo",
+  lead: "Built from a real agency's public client list.",
+  body: (
+    <>
+      <b>Real:</b> the companies, the people (last names shortened), their job changes, who's
+      hiring, and every source. <b>Made up:</b> owners, statuses, dates and email addresses, since
+      those live in a CRM we don't have.
+    </>
+  ),
+  more: "What's real",
+};
+
 const remembered = () => {
   try {
     return localStorage.getItem(CLIENT_KEY);
@@ -24,34 +57,34 @@ export function App() {
   const me = useCall("me", () => call<Me>("me"));
   const [client, setClient] = useState<string | null>(remembered);
 
+  const at = find(route.path);
+  const lost = !at;
+  // An unknown address (or just "/") lands on the first page.
+  useEffect(() => {
+    if (lost) navigate(HOME, true);
+  }, [lost]);
+
   const clients = me.data?.clients ?? [];
   const current = clients.find((c) => c.id === client) ?? clients[0] ?? null;
   useEffect(() => {
-    if (current) document.title = `${current.name} · Wren`;
-  }, [current]);
+    if (at && current) document.title = `${at.page.label} · ${current.name} · Wren`;
+  }, [at, current]);
 
   if (me.error && !me.data)
     return (
-      <Frame>
-        <div className="gate">
-          <h1>Your client portal</h1>
-          <Failed error={me.error} />
-        </div>
-      </Frame>
+      <Gate stamp={STAMP} title="Your client portal">
+        <Alert>{me.error.message}</Alert>
+      </Gate>
     );
-  if (!me.data) return <Frame loading />;
-  if (!current)
+  if (me.data && !current)
     return (
-      <Frame>
-        <div className="gate">
-          <h1>Nothing here yet</h1>
-          <p>
-            This login isn't linked to a client list. Reply to your onboarding email and we'll add
-            it.
-          </p>
-        </div>
-      </Frame>
+      <Gate stamp={STAMP} title="Nothing here yet">
+        <p>
+          This login isn't linked to a client list. Reply to your onboarding email and we'll add it.
+        </p>
+      </Gate>
     );
+  if (!at) return null;
 
   const pick = (id: string) => {
     setClient(id);
@@ -59,85 +92,33 @@ export function App() {
       localStorage.setItem(CLIENT_KEY, id);
     } catch {}
   };
-  const pageProps = { client: current.id, demo: me.data.demo, params: route.params };
+  const { module, page } = at;
+  const demo = me.data?.demo ?? false;
 
   return (
-    <Frame
-      demo={me.data.demo}
-      header={
-        <>
-          {clients.length > 1 ? (
-            <select
-              className="client-pick"
-              value={current.id}
-              onChange={(e) => pick(e.target.value)}
-              aria-label="Client"
-            >
-              {clients.map((c) => (
-                <option key={c.id} value={c.id}>
-                  {c.name}
-                </option>
-              ))}
-            </select>
-          ) : (
-            <span className="client-name">{current.name}</span>
-          )}
-          <nav className="tabs" aria-label="Pages">
-            {PAGES.map((p) => (
-              <a
-                key={p.page}
-                href={href(p.page)}
-                aria-current={route.page === p.page ? "page" : undefined}
-              >
-                {p.label}
-              </a>
-            ))}
-          </nav>
-        </>
-      }
+    <AppShell
+      brand={{ name: "Wren", href: HOME, stamp: STAMP }}
+      workspace={{
+        current,
+        options: clients,
+        caption: demo ? "Demo workspace" : "Workspace",
+        onPick: pick,
+      }}
+      nav={NAV}
+      current={pathOf(module, page)}
+      crumbs={[
+        ...(current ? [{ label: current.name, href: HOME }] : []),
+        { label: module.name, href: module.pages[0] ? pathOf(module, module.pages[0]) : HOME },
+        { label: page.label },
+      ]}
+      notice={demo ? DEMO : undefined}
+      page={pathOf(module, page)}
     >
-      {route.page === "overview" && <Overview key={current.id} {...pageProps} />}
-      {route.page === "people" && <People key={current.id} {...pageProps} />}
-      {route.page === "emails" && <Emails key={current.id} {...pageProps} />}
-      {route.page === "replies" && <Replies key={current.id} {...pageProps} />}
-      {route.page === "health" && <Health key={current.id} {...pageProps} />}
-      {route.page === "sources" && <Sources key={current.id} {...pageProps} />}
-    </Frame>
-  );
-}
-
-function Frame({
-  children,
-  header,
-  demo,
-  loading,
-}: {
-  children?: React.ReactNode;
-  header?: React.ReactNode;
-  demo?: boolean;
-  loading?: boolean;
-}) {
-  return (
-    <div className="frame">
-      <header className="bar">
-        <a className="mark" href="#/overview">
-          Wren
-        </a>
-        {header}
-      </header>
-      {demo ? <DemoBanner /> : null}
-      <main className="main">{loading ? <div className="loading">Loading…</div> : children}</main>
-    </div>
-  );
-}
-
-function DemoBanner() {
-  return (
-    <aside className="demo-banner">
-      <b>Demo.</b> Built from a real agency's public client list. <b>Real:</b> the companies, the
-      people (last names shortened), their job changes, who's hiring, and every source.{" "}
-      <b>Made up:</b> owners, statuses, dates and email addresses, since those live in a CRM we
-      don't have.
-    </aside>
+      {current ? (
+        <page.Page key={current.id} client={current.id} demo={demo} params={route.params} />
+      ) : (
+        <Loading lines={8} />
+      )}
+    </AppShell>
   );
 }

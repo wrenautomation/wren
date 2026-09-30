@@ -1,0 +1,317 @@
+/* Reactivation's own pieces. Everything else comes from @wren/ui's kit. */
+.rx-quiet {
+  color: var(--ink-2);
+}
+.rx-sub {
+  margin-top: 2px;
+  color: var(--ink-2);
+  font-size: 13px;
+}
+.rx-foot {
+  margin-top: 14px;
+  color: var(--ink-2);
+  font-size: 13.5px;
+}
+.rx-gap {
+  margin-top: 24px;
+}
+.rx-who a {
+  text-decoration: none;
+}
+.rx-who a:hover {
+  text-decoration: underline;
+}
+
+/* The score and what adds up to it */
+.rx-score {
+  min-width: 40px;
+  font-size: 28px;
+  font-weight: 500;
+  line-height: 1;
+  letter-spacing: -0.03em;
+  font-variant-numeric: lining-nums tabular-nums;
+}
+.rx-reasons {
+  list-style: none;
+  color: var(--ink-2);
+  font-size: 13px;
+  line-height: 1.45;
+}
+.rx-reasons li + li {
+  margin-top: 3px;
+}
+.rx-pts {
+  color: var(--acc);
+  font-weight: 600;
+}
+
+/* Call these first */
+.rx-top {
+  margin: 0 -12px;
+  list-style: none;
+}
+.rx-top > li + li {
+  border-top: 1px solid var(--hair);
+}
+.rx-top-row {
+  display: grid;
+  grid-template-columns: 32px minmax(0, 1fr) minmax(200px, 250px);
+  align-items: start;
+  gap: 20px;
+  padding: 18px 12px;
+  text-decoration: none;
+  transition: background-color 0.2s var(--out);
+}
+.rx-top-row:hover {
+  background: var(--wash);
+}
+.rx-rank {
+  padding-top: 1px;
+  color: var(--ink-2);
+  font-size: 15px;
+  font-weight: 500;
+}
+.rx-top-who {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-size: 15.5px;
+}
+.rx-top-brief {
+  display: -webkit-box;
+  max-width: 66ch;
+  overflow: hidden;
+  color: var(--ink-2);
+  font-size: 14.5px;
+  line-height: 1.5;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
+}
+.rx-top-why {
+  display: flex;
+  align-items: flex-start;
+  gap: 14px;
+}
+
+/* One person, in the drawer */
+.rx-person > header {
+  margin-bottom: 22px;
+  padding-right: 40px;
+}
+.rx-person h2 {
+  font-size: 26px;
+  font-weight: 500;
+  line-height: 1.15;
+  letter-spacing: -0.03em;
+}
+.rx-person > header p {
+  margin-top: 6px;
+  font-size: 14.5px;
+}
+.rx-person h3 {
+  margin: 32px 0 12px;
+  font-size: 17px;
+  font-weight: 500;
+  letter-spacing: -0.015em;
+}
+.rx-brief {
+  padding: 16px 18px;
+  border-radius: 14px;
+  background: var(--paper-2);
+  font-size: 15.5px;
+  line-height: 1.6;
+  text-wrap: pretty;
+}
+.rx-marks {
+  margin-left: 2px;
+  line-height: 0;
+  vertical-align: 0.45em;
+}
+.rx-marks a {
+  display: inline-grid;
+  place-items: center;
+  min-width: 17px;
+  height: 17px;
+  margin-left: 2px;
+  padding: 0 4px;
+  border-radius: 5px;
+  background: rgba(168, 59, 18, 0.1);
+  color: var(--acc);
+  font-size: 10.5px;
+  font-weight: 600;
+  text-decoration: none;
+  transition:
+    background-color 0.2s var(--out),
+    color 0.2s var(--out);
+}
+.rx-marks a:hover {
+  background: var(--acc);
+  color: var(--cream);
+}
+
+/* People */
+.rx-people tbody tr {
+  cursor: pointer;
+}
+.rx-people td:first-child a {
+  text-decoration: none;
+}
+.rx-people td:first-child a:hover {
+  text-decoration: underline;
+}
+.rx-score-line {
+  display: flex;
+  align-items: flex-start;
+  gap: 14px;
+  margin-top: 16px;
+}
+.rx-sources {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  list-style: none;
+}
+.rx-source {
+  display: grid;
+  grid-template-columns: 22px minmax(0, 1fr);
+  gap: 12px;
+  padding: 12px 14px;
+  border-radius: 12px;
+  box-shadow: var(--node);
+  font-size: 14px;
+  overflow-wrap: anywhere;
+  scroll-margin: 24px;
+}
+.rx-source p + p {
+  margin-top: 2px;
+}
+.rx-source-n {
+  display: grid;
+  place-items: center;
+  width: 22px;
+  height: 22px;
+  border-radius: 6px;
+  background: var(--paper-2);
+  color: var(--ink-2);
+  font-size: 12px;
+  font-weight: 600;
+}
+
+/* Emails and replies */
+.rx-bulk {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px 12px;
+  margin-bottom: 16px;
+  padding: 10px 10px 10px 16px;
+  border-radius: 14px;
+  background: var(--paper-2);
+}
+.rx-bulk label {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-right: auto;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+}
+.rx-card-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 12px;
+}
+.rx-card-head > .ui-tag {
+  margin-left: auto;
+}
+.rx-when {
+  color: var(--ink-2);
+  font-size: 13px;
+  white-space: nowrap;
+}
+.rx-meta {
+  margin-top: 4px;
+  color: var(--ink-2);
+  font-size: 13px;
+  overflow-wrap: anywhere;
+}
+.rx-mail {
+  margin-top: 14px;
+  padding: 14px 16px;
+  border-radius: 10px;
+  background: var(--wash);
+}
+.rx-mail-subject {
+  margin-bottom: 6px;
+  font-weight: 600;
+}
+.rx-mail-body {
+  max-width: 72ch;
+  font-size: 14.5px;
+  line-height: 1.6;
+  white-space: pre-wrap;
+}
+.rx-followup {
+  margin-top: 10px;
+}
+.rx-followup summary {
+  width: fit-content;
+  color: var(--ink-2);
+  font-size: 13.5px;
+  font-weight: 500;
+  cursor: pointer;
+}
+.rx-followup summary:hover {
+  color: var(--ink);
+}
+.rx-card-foot {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px 16px;
+  margin-top: 14px;
+  font-size: 13.5px;
+}
+.rx-booked {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 10px;
+}
+
+/* Data health */
+.rx-split {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 56px;
+}
+.rx-split > .ui-section {
+  margin-top: 0;
+}
+.rx-split + .ui-section {
+  margin-top: 48px;
+}
+
+@media (max-width: 900px) {
+  .rx-split {
+    grid-template-columns: 1fr;
+    gap: 48px;
+  }
+}
+
+@media (max-width: 640px) {
+  .rx-top-row {
+    grid-template-columns: 22px minmax(0, 1fr);
+    gap: 10px 12px;
+  }
+  .rx-top-why {
+    grid-column: 2;
+  }
+  .rx-person h2 {
+    font-size: 23px;
+  }
+}

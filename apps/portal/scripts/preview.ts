@@ -26,6 +26,7 @@ const TYPES: Record<string, string> = {
   ".js": "text/javascript",
   ".css": "text/css",
   ".svg": "image/svg+xml",
+  ".png": "image/png",
 };
 
 createServer(async (req, res) => {

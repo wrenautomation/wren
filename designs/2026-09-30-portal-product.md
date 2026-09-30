@@ -16,7 +16,7 @@ The portal stops being a set of pages and becomes a packaged app. One shell, pro
 | Piece | Where | What it does |
 |---|---|---|
 | Kit | `packages/ui` (new, a foundation) | the lander's tokens, plus base pieces and delivery pieces; knows no product |
-| Shell | `apps/portal/web/src/shell` | the workspace › product frame, nav, Run button, demo strip |
+| Shell | `AppShell` in `packages/ui/src/shell.tsx`, wired in `apps/portal/web/src/App.tsx` | the workspace › product frame, nav, Run button, demo note |
 | Modules | `apps/portal/web/src/modules/<product>` | one product's pages, run graph and setup; `reactivation` first |
 | API | `ReactivationPortal` (`packages/reactivation/src/portal`) | new routes `run` (replay events), `source` (one finding) and `setup` (what the client plugged in); `overview` gains the pipeline |
 
@@ -86,3 +86,4 @@ The portal stops being a set of pages and becomes a packaged app. One shell, pro
 ## Decision log
 
 - **2026-09-30** Design approved ("yes continue"). One shell with modules: my call, since William left it open. The demo gets a replay, not a live run.
+- **2026-09-30** Step 1 built. The shell went into the kit (`AppShell`), since every client portal needs the same frame; the portal only feeds it modules. A module is `{id, name, pages}` and the sidebar groups pages by module. Paths route through one click handler, so plain `<a href>` works everywhere. Found and fixed on the way: Data health printed the dead-address share as "not contacted in over a year", plus the operator's gate text. On a phone, tables marked `stack` turn each row into a labeled block.

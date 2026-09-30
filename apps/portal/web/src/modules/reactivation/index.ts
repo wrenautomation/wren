@@ -1,0 +1,23 @@
+/** Reactivation: past clients checked for a reason to call, with a brief and an email for each. */
+import type { Module } from "../../module.js";
+import { Emails } from "./Emails.js";
+import { Health } from "./Health.js";
+import { REACTIVATION } from "./nav.js";
+import { Overview } from "./Overview.js";
+import { People } from "./People.js";
+import { Replies } from "./Replies.js";
+import { Sources } from "./Sources.js";
+import "./reactivation.css";
+
+export const reactivation: Module = {
+  id: REACTIVATION,
+  name: "Reactivation",
+  pages: [
+    { id: "overview", label: "Overview", icon: "home", Page: Overview },
+    { id: "people", label: "People", icon: "people", Page: People },
+    { id: "emails", label: "Emails", icon: "mail", Page: Emails },
+    { id: "replies", label: "Replies", icon: "reply", Page: Replies },
+    { id: "health", label: "Data health", icon: "pulse", Page: Health },
+    { id: "sources", label: "Sources", icon: "link", Page: Sources },
+  ],
+};
