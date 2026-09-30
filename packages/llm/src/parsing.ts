@@ -30,6 +30,32 @@ function objectEnd(text: string, start: number): number {
   return -1;
 }
 
+/** Raw line breaks and tabs inside strings escaped: models write them, JSON forbids them. */
+const CONTROL: Record<string, string> = { "\n": "\\n", "\r": "\\r", "\t": "\\t" };
+function escapeControlsInStrings(json: string): string {
+  let out = "";
+  let inString = false;
+  for (let i = 0; i < json.length; i++) {
+    const ch = json[i] as string;
+    if (inString && ch === "\\") {
+      out += ch + (json[++i] ?? "");
+      continue;
+    }
+    if (ch === '"') inString = !inString;
+    out += inString ? (CONTROL[ch] ?? ch) : ch;
+  }
+  return out;
+}
+
+/** The object `slice` holds, strict JSON first, then with raw controls in strings escaped. */
+function parseObject(slice: string): unknown {
+  try {
+    return JSON.parse(slice);
+  } catch {
+    return JSON.parse(escapeControlsInStrings(slice));
+  }
+}
+
 /**
  * The first complete JSON object in `text`, or a reason string. Tolerates code
  * fences, prose before, and prose after that happens to contain a brace: the scan
@@ -41,7 +67,7 @@ export function firstJsonObject(text: string): Record<string, unknown> | string 
     const end = objectEnd(text, start);
     if (end !== -1) {
       try {
-        const value: unknown = JSON.parse(text.slice(start, end));
+        const value = parseObject(text.slice(start, end));
         if (value !== null && typeof value === "object" && !Array.isArray(value))
           return value as Record<string, unknown>;
       } catch {

@@ -17,6 +17,16 @@ describe("firstJsonObject", () => {
     expect(firstJsonObject("[1, 2] then {")).toBe(NO_JSON_OBJECT);
   });
 
+  // Was a bug: Cohere writes real line breaks inside strings, so a whole email draft read as "no JSON object".
+  it("reads raw line breaks and tabs inside strings", () => {
+    const text =
+      '```json\n{\n  "opener": "Hi Peter,\n\nA call?\tThanks.",\n  "note": "a \\"q\\""\n}\n```';
+    expect(firstJsonObject(text)).toEqual({
+      opener: "Hi Peter,\n\nA call?\tThanks.",
+      note: 'a "q"',
+    });
+  });
+
   it("handles braces inside strings", () => {
     expect(firstJsonObject('{"a": "}{", "b": 1}')).toEqual({ a: "}{", b: 1 });
   });
