@@ -20,6 +20,7 @@ import {
   formatMoney,
   getDocument,
   listBills,
+  listPayments,
   listSpend,
   listSubscriptions,
   type Mailbox,
@@ -331,6 +332,33 @@ export function registerBooks(
         console.log(`${rows.length} bills, ${formatMoney(total, "CAD")} posted`);
       },
     );
+
+  books
+    .command("payments")
+    .description("Payments, oldest first: the bill each pays, or on account")
+    .option("--from <day>", "paid on or after", dayOf)
+    .option("--to <day>", "paid on or before", dayOf)
+    .option("--vendor <key>", "one vendor")
+    .option("--json", "print JSON")
+    .action(async (opts: { from?: string; to?: string; vendor?: string; json?: boolean }) => {
+      const rows = await withDb((db) => listPayments(db, opts));
+      if (opts.json) return json(rows);
+      for (const p of rows)
+        console.log(
+          [
+            p.paidOn,
+            p.vendor.padEnd(18),
+            formatMoney(p.amountCents, p.currency).padStart(16),
+            p.invoiceNumber === null
+              ? "on account"
+              : `toward ${p.invoiceNumber}${p.billId === null ? " (no bill yet)" : ` (bill ${p.billId})`}`,
+            p.method ?? "",
+          ]
+            .join("  ")
+            .trimEnd(),
+        );
+      console.log(`${rows.length} payments`);
+    });
 
   books
     .command("show <bill>")

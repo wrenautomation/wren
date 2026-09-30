@@ -125,7 +125,8 @@ export interface CheckedBill {
 }
 
 export interface CheckedPayment {
-  invoiceNumber: string;
+  /** null = on account: no invoice number printed. */
+  invoiceNumber: string | null;
   paidOn: string;
   amountCents: number;
   currency: string;
@@ -391,9 +392,12 @@ export function check(reading: Reading, corpus: Corpus, vendor: VendorFacts): Ch
   const bill = reading.bill ? checkBill(reading.bill) : null;
   const payments: CheckedPayment[] = [];
   for (const p of reading.payments ?? []) {
-    const number = invoiceNumber(p.invoice_number ?? "");
+    let number: string | null = invoiceNumber(p.invoice_number ?? "") || null;
+    if (number && !isPrinted(number)) {
+      notes.push(`invoice number "${number}" is not printed: payment kept on account`);
+      number = null;
+    }
     const problems: string[] = [];
-    if (!number || !isPrinted(number)) problems.push(`invoice number "${number}" is not printed`);
     if (!isDay(p.paid_on) || !dayPrinted(p.paid_on))
       problems.push(`paid on ${p.paid_on} is not printed`);
     const cents = amount(p.amount, "amount", problems);
@@ -403,7 +407,9 @@ export function check(reading: Reading, corpus: Corpus, vendor: VendorFacts): Ch
       currencyOf(p.amount ?? "") ?? currencyCode(p.currency) ?? billCurrency ?? vendor.currency;
     if (!currency) problems.push("no currency printed");
     if (problems.length || cents === null || !currency || !isDay(p.paid_on)) {
-      notes.push(`payment toward "${number}" dropped: ${problems.join("; ")}`);
+      notes.push(
+        `payment ${number ? `toward "${number}"` : "on account"} dropped: ${problems.join("; ")}`,
+      );
       continue;
     }
     const reference = clean(p.reference);

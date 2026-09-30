@@ -193,7 +193,7 @@ describe("check", () => {
     expect(out.notes).toEqual(["bill dropped: no total"]);
   });
 
-  it("keeps payments whose number, day and amount are printed", () => {
+  it("keeps payments whose day and amount are printed, on account when no invoice number is", () => {
     const out = checked(
       reading({}, [
         {
@@ -205,6 +205,7 @@ describe("check", () => {
         },
         { invoice_number: "INV-0099", paid_on: "2026-08-08", amount: "$31.50" },
         { invoice_number: "INV-0042", paid_on: "2026-08-08", amount: "$31.50" },
+        { invoice_number: null, paid_on: "2026-08-08", amount: "$99.00" },
       ]),
     );
     expect(out.payments).toEqual([
@@ -218,6 +219,15 @@ describe("check", () => {
         key: "ch_1",
       },
       {
+        invoiceNumber: null,
+        paidOn: "2026-08-08",
+        amountCents: 3150,
+        currency: "USD",
+        method: null,
+        reference: null,
+        key: "2026-08-08:3150",
+      },
+      {
         invoiceNumber: "INV-0042",
         paidOn: "2026-08-08",
         amountCents: 3150,
@@ -228,7 +238,8 @@ describe("check", () => {
       },
     ]);
     expect(out.notes).toEqual([
-      'payment toward "INV-0099" dropped: invoice number "INV-0099" is not printed',
+      'invoice number "INV-0099" is not printed: payment kept on account',
+      "payment on account dropped: amount $99.00 is not printed",
     ]);
   });
 });

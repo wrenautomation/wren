@@ -110,6 +110,31 @@ export async function billDetail(db: Db, id: number) {
   };
 }
 
+/** Payments, oldest first, with the bill each pays; `billNumber` null and `invoiceNumber` null = on account. */
+export async function listPayments(db: Db, opts: Range & { vendor?: string } = {}) {
+  const where: SQL[] = [];
+  if (opts.from) where.push(gte(billPayments.paidOn, opts.from));
+  if (opts.to) where.push(lte(billPayments.paidOn, opts.to));
+  if (opts.vendor) where.push(eq(vendors.key, opts.vendor));
+  return db
+    .select({
+      id: billPayments.id,
+      paidOn: billPayments.paidOn,
+      vendor: vendors.name,
+      invoiceNumber: billPayments.invoiceNumber,
+      billId: billPayments.billId,
+      amountCents: billPayments.amountCents,
+      currency: billPayments.currency,
+      method: billPayments.method,
+      reference: billPayments.reference,
+      documentId: billPayments.documentId,
+    })
+    .from(billPayments)
+    .innerJoin(vendors, eq(vendors.id, billPayments.vendorId))
+    .where(and(...where))
+    .orderBy(asc(billPayments.paidOn), asc(billPayments.id));
+}
+
 /** Expense by month, account and vendor, in CAD cents. */
 export async function listSpend(db: Db, opts: Range = {}) {
   const where: SQL[] = [];
@@ -134,8 +159,8 @@ export async function getDocument(db: Db, id: number) {
 }
 
 /**
- * What needs a look: bills held for review, payments no bill claims, and
- * emails that gave nothing (no vendor matched, the model could not read
+ * What needs a look: bills held for review, payments toward an invoice no
+ * bill claims (one on account needs no call), and emails that gave nothing (no vendor matched, the model could not read
  * them, or what they were read as did not survive the checks).
  */
 export async function reviewQueue(db: Db) {
@@ -165,7 +190,7 @@ export async function reviewQueue(db: Db) {
     })
     .from(billPayments)
     .innerJoin(vendors, eq(vendors.id, billPayments.vendorId))
-    .where(isNull(billPayments.billId))
+    .where(and(isNull(billPayments.billId), isNotNull(billPayments.invoiceNumber)))
     .orderBy(asc(billPayments.paidOn), asc(billPayments.id));
   const linked = sql`EXISTS (SELECT 1 FROM ${billDocuments} bd WHERE bd.document_id = ${documents.id})`;
   const paid = sql`EXISTS (SELECT 1 FROM ${billPayments} bp WHERE bp.document_id = ${documents.id})`;

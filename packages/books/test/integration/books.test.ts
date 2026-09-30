@@ -24,6 +24,7 @@ import {
   entries,
   lines,
   listBills,
+  listPayments,
   listSpend,
   listSubscriptions,
   type Mailbox,
@@ -611,6 +612,33 @@ describe("review", () => {
       ["GH-9999", "void", null],
       ["GH-1001", "ok", 2302],
     ]);
+  });
+
+  it("keeps a payment that names no invoice on account, once, and asks nothing about it", async () => {
+    const PAID: Mail = {
+      from: "Google Payments <payments-noreply@google.com>",
+      subject: "Google Workspace: Payment received",
+      date: "2026-08-30T12:00:00Z",
+      body: "Your payment of CA$70.00 was applied to Google Workspace on Aug 30, 2026.",
+    };
+    answers.set(PAID.subject, {
+      kind: "payment",
+      bill: null,
+      payments: [{ invoice_number: null, paid_on: "2026-08-30", amount: "CA$70.00" }],
+    });
+    const { read } = await importAll({ b: GOOGLE, p: PAID });
+    expect(read).toMatchObject({ bills: 1, payments: 1 });
+    const doc = await docId(PAID.subject);
+    expect(await readDocuments(pg.db, llm(), { ids: [doc] })).toMatchObject({ payments: 0 });
+    expect(
+      (await listPayments(pg.db)).map((p) => [
+        p.invoiceNumber,
+        p.billId,
+        p.amountCents,
+        p.currency,
+      ]),
+    ).toEqual([[null, null, 7000, "CAD"]]);
+    expect(await reviewQueue(pg.db)).toEqual({ bills: [], payments: [], documents: [] });
   });
 
   it("reads an email once its vendor is named, and stops asking about dismissed ones", async () => {

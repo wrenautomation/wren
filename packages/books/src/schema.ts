@@ -294,16 +294,17 @@ export const billTaxes = books.table(
 export type BillTax = typeof billTaxes.$inferSelect;
 
 /**
- * A payment a document confirms, toward a vendor's invoice number. It may be
- * read before the invoice itself; `bill_id` links it once the bill exists.
+ * A payment a document confirms, toward a vendor's invoice number, or on
+ * account when it names none (Google's "Payment received"). It may be read
+ * before the invoice itself; `bill_id` links it once the bill exists.
  */
 export const billPayments = books.table(
   "bill_payments",
   {
     id: serial("id").notNull(),
     vendorId: integer("vendor_id").notNull(),
-    /** The invoice number it pays, as printed. */
-    invoiceNumber: text("invoice_number").notNull(),
+    /** The invoice number it pays, as printed; null = on account. */
+    invoiceNumber: text("invoice_number"),
     billId: integer("bill_id"),
     paidOn: date("paid_on").notNull(),
     amountCents: bigint("amount_cents", { mode: "number" }).notNull(),
@@ -319,7 +320,7 @@ export const billPayments = books.table(
   },
   (t) => [
     primaryKey({ columns: [t.id], name: "pk_bill_payments" }),
-    unique("uq_bill_payments_key").on(t.vendorId, t.invoiceNumber, t.key),
+    unique("uq_bill_payments_key").on(t.vendorId, t.invoiceNumber, t.key).nullsNotDistinct(),
     index("ix_bill_payments_bill_id").on(t.billId),
     foreignKey({
       columns: [t.vendorId],

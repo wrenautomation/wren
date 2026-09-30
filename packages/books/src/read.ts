@@ -206,6 +206,7 @@ export async function readDocuments(
           report.payments++;
           continue;
         }
+        if (!p.invoiceNumber) continue;
         // Known from another document: this one speaks about the same bill.
         const [known] = await tx
           .select({ billId: billPayments.billId })
