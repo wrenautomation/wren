@@ -3,8 +3,8 @@ type: object
 cluster: books
 universe: live
 status: verified
-verified: 2026-09-30 @ 3daced1
-entity: packages/books/src/schema.ts:390
+verified: 2026-09-30 @ b96c9f8
+entity: packages/books/src/schema.ts:391
 ---
 
 # entry
@@ -17,14 +17,14 @@ The journal is the books; bills only explain it. An entry's lines sum to zero in
 
 ## Shape
 
-- `entries` (`schema.ts:390`): posted on (the bill's issue day), memo, `bill_id`, `reverses_id` (unique: reversed once at most), `run_id`
-- `lines` (`:427`): account, `cad_cents` (+ debit, − credit), amount, currency, rate, rate source
+- `entries` (`schema.ts:391`): posted on (the bill's issue day), memo, `bill_id`, `reverses_id` (unique: reversed once at most), `run_id`
+- `lines` (`:429`): account, `cad_cents` (+ debit, − credit), amount, currency, rate, rate source
 - `accounts` (`:34`): the chart, seeded from `CHART` (`packages/books/src/chart.ts:19`), each with its T2125 line; `CARD` is the paying side (`chart.ts:14`)
-- `rates` (`:369`): CAD per unit by day, currency and source
+- `rates` (`:371`): CAD per unit by day, currency and source
 - Triggers: balance (`packages/db/drizzle/0025_books.sql:211`, `:224`), never edited (`:227`)
-- View `spend` (`schema.ts:524`): expense per month, account and vendor
+- View `spend` (`schema.ts:525`): expense per month, account and vendor
 
-Citations: `packages/books/src/schema.ts:390`, `:428`, `:34`, `:370`, `packages/db/drizzle/0025_books.sql:211`
+Citations: `packages/books/src/schema.ts:391`, `:429`, `:34`, `:371`, `packages/db/drizzle/0025_books.sql:211`
 
 ## Connected to
 
