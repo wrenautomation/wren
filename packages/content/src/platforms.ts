@@ -18,6 +18,13 @@ export interface PlatformSpec {
   readonly needsExtra?: readonly string[];
   /** What the model is told to write, one line. */
   readonly shape: string;
+  /** The lander's `/go/<channel>` code, so a visit names the platform (lander src/data/links.json). */
+  readonly goCode: string;
+  /**
+   * The post ends with its own `/go` link. Only where a link is clickable and
+   * costs no reach; elsewhere the profile's `/go/<code>/bio` link counts it.
+   */
+  readonly linkInText?: boolean;
 }
 
 export const PLATFORM_SPECS: Readonly<Record<Platform, PlatformSpec>> = {
@@ -26,6 +33,8 @@ export const PLATFORM_SPECS: Readonly<Record<Platform, PlatformSpec>> = {
     maxChars: 3000,
     shape:
       "a LinkedIn post: a one-line hook, short paragraphs with blank lines between them, no hashtags, no emoji, ends with one plain question or take, under 1300 characters",
+    goCode: "li",
+    linkInText: true,
   },
   reddit: {
     platform: "reddit",
@@ -34,11 +43,13 @@ export const PLATFORM_SPECS: Readonly<Record<Platform, PlatformSpec>> = {
     needsExtra: ["subreddit"],
     shape:
       "a Reddit text post: a plain title that states the point or the question (under 120 characters), then a body written like a practitioner sharing what they did and learned, specifics and numbers, no pitch, no links, no emoji, no hashtags, under 2000 characters",
+    goCode: "rd",
   },
   x: {
     platform: "x",
     maxChars: 280,
     shape: "one post on X: a single sharp point in plain words, no hashtags, under 240 characters",
+    goCode: "x",
   },
   youtube: {
     platform: "youtube",
@@ -47,6 +58,8 @@ export const PLATFORM_SPECS: Readonly<Record<Platform, PlatformSpec>> = {
     needsMedia: "video",
     shape:
       "a YouTube title (under 70 characters, plain, says what the viewer gets) and a description: two short paragraphs of what the video shows and why it matters, no hashtags, no timestamps",
+    goCode: "yt",
+    linkInText: true,
   },
   instagram: {
     platform: "instagram",
@@ -54,18 +67,22 @@ export const PLATFORM_SPECS: Readonly<Record<Platform, PlatformSpec>> = {
     needsMedia: "video",
     shape:
       "an Instagram Reel caption: a first line that stands alone, two or three short lines after it, then up to five relevant hashtags on the last line",
+    goCode: "ig",
   },
   tiktok: {
     platform: "tiktok",
     maxChars: 2200,
     needsMedia: "video",
     shape: "a TikTok caption: one or two short lines in plain words, then up to four hashtags",
+    goCode: "tt",
   },
   facebook: {
     platform: "facebook",
     maxChars: 5000,
     shape:
       "a Facebook Page post: two or three short paragraphs in plain words, no hashtags, one question at the end",
+    goCode: "fb",
+    linkInText: true,
   },
 };
 
@@ -89,12 +106,34 @@ export function missingExtra(
   });
 }
 
-/** The channel port's post for a draft: text, the file, the title where the platform has one. */
-export function postOf(draft: Pick<ContentDraft, "text" | "title" | "media" | "extra">): Post {
+/**
+ * This draft's tracked link, `<site>/go/<code>/<first 8 of the draft id>`, or
+ * null when links are off (no site) or the platform takes none in its text.
+ * The lander records the visit under that campaign (`npm run channels`).
+ */
+export function postLink(
+  site: string | null | undefined,
+  draft: Pick<ContentDraft, "id" | "platform">,
+): string | null {
+  const spec = PLATFORM_SPECS[draft.platform];
+  if (!site || !spec.linkInText) return null;
+  return `${site.replace(/^https?:\/\//, "").replace(/\/+$/, "")}/go/${spec.goCode}/${draft.id.slice(0, 8)}`;
+}
+
+/**
+ * The channel port's post for a draft: text, the file, the title where the
+ * platform has one. `link` goes on its own line at the end, dropped if the
+ * text would pass the platform's cap.
+ */
+export function postOf(
+  draft: Pick<ContentDraft, "text" | "title" | "media" | "extra" | "platform">,
+  link?: string | null,
+): Post {
   const extra: Record<string, unknown> = { ...draft.extra };
   if (draft.title) extra.title = draft.title;
+  const linked = link ? `${draft.text.trimEnd()}\n\n${link}` : draft.text;
   return {
-    text: draft.text,
+    text: linked.length <= PLATFORM_SPECS[draft.platform].maxChars ? linked : draft.text,
     ...(draft.media ? { media: draft.media } : {}),
     ...(Object.keys(extra).length > 0 ? { extra } : {}),
   };

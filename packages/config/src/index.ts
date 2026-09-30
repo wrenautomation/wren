@@ -119,6 +119,8 @@ export const settingsSchema = z.object({
     ),
   /** A markdown file with the posting voice in William's words; unset = the built-in voice. Relative to the project root. */
   contentVoicePath: z.string().min(1).optional(),
+  /** The lander host posts end with a tracked `/go` link to ("wrenautomation.com"); unset = no links. */
+  contentLinkSite: z.string().min(1).optional(),
   /** An S3 bucket a local media file is hosted in (presigned URL) for platforms that only take URLs. Unset = URLs only. */
   mediaBucket: z.string().min(1).optional(),
   /** The Facebook Page the `facebook`/`instagram` channels post as; the first Page when unset. */
@@ -290,6 +292,7 @@ export const ENV_KEYS = {
   daemonSyncSeconds: "WREN_DAEMON_SYNC_SECONDS",
   contentChannels: "WREN_CONTENT_CHANNELS",
   contentVoicePath: "WREN_CONTENT_VOICE",
+  contentLinkSite: "WREN_CONTENT_LINK_SITE",
   mediaBucket: "WREN_MEDIA_BUCKET",
   metaPageId: "WREN_META_PAGE_ID",
   metaAdAccountId: "WREN_META_AD_ACCOUNT_ID",

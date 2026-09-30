@@ -69,11 +69,12 @@ describe("unfitReason", () => {
 describe("postOf", () => {
   it("puts the title in extra and keeps the media", () => {
     const media = { kind: "video" as const, source: "/v.mp4" };
-    expect(postOf({ text: "d", title: "T", media, extra: { privacyStatus: "public" } })).toEqual({
+    const draft = { platform: "youtube" as const, text: "d" };
+    expect(postOf({ ...draft, title: "T", media, extra: { privacyStatus: "public" } })).toEqual({
       text: "d",
       media,
       extra: { privacyStatus: "public", title: "T" },
     });
-    expect(postOf({ text: "d", title: null, media: null, extra: {} })).toEqual({ text: "d" });
+    expect(postOf({ ...draft, title: null, media: null, extra: {} })).toEqual({ text: "d" });
   });
 });

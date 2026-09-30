@@ -332,7 +332,7 @@ export async function buildServices(
       tracer,
       ...(voice !== null ? { voice } : {}),
     }),
-    makeContentScheduler({ db, ...notify }),
+    makeContentScheduler({ db, linkSite: settings.contentLinkSite ?? null, ...notify }),
     makeContentMetrics({ db, ...notify }),
     // Tomorrow's slots vs scheduled drafts, said once a day; off until `wren content planner start`.
     makeContentPlanner({ db, zone: settings.sendTimezone, ...notify }),

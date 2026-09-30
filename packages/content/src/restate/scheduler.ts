@@ -14,7 +14,7 @@ import type { Platform, Post, Published } from "@wren/core/content";
 import type { Notifier } from "@wren/core/notify";
 import { errorText, LAST, makeLoopObject, type PassOutcome } from "@wren/core/restate";
 import type { Db } from "@wren/db";
-import { postOf } from "../platforms.js";
+import { postLink, postOf } from "../platforms.js";
 import { claim, dueDrafts, markFailed, markPublished, nextDue } from "../queue.js";
 
 export const SCHEDULER_KEY = "default";
@@ -32,6 +32,8 @@ export interface ContentSchedulerDeps {
   /** Sleep between passes when nothing is scheduled (default 15 min). */
   idleMs?: number;
   notifier?: Notifier;
+  /** The lander host posts link to (`/go/<code>/<draft>`); unset = posts carry no link. */
+  linkSite?: string | null;
 }
 
 export interface PublishStats {
@@ -46,7 +48,7 @@ export function makeContentScheduler(deps: ContentSchedulerDeps) {
   return makeLoopObject("ContentScheduler", async (ctx: restate.ObjectContext) => {
     const now = new Date(await ctx.date.now());
     const content = ctx.serviceClient<ContentService>({ name: "Content" });
-    // Rows cross the journal as JSON: their Date columns are strings here, and only text/title/media/extra are read.
+    // Rows cross the journal as JSON: their Date columns are strings here; only id/platform/text/title/media/extra are read.
     const due = await ctx.run("due drafts", () => dueDrafts(deps.db, now, MAX_PER_PASS + 1));
     const batch = due.slice(0, MAX_PER_PASS);
     const stats: PublishStats = { published: [], failed: [], remaining: due.length - batch.length };
@@ -56,7 +58,7 @@ export function makeContentScheduler(deps: ContentSchedulerDeps) {
       try {
         const published = await content.publish({
           platform: draft.platform,
-          post: postOf(claimed),
+          post: postOf(claimed, postLink(deps.linkSite, claimed)),
         });
         await ctx.run(`published ${draft.id}`, () => markPublished(deps.db, draft.id, published));
         stats.published.push({ id: draft.id, platform: draft.platform, url: published.url });
