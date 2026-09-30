@@ -99,3 +99,19 @@ describe("buildBriefPrompt", () => {
     for (const f of facts) expect(p).toContain(`[${f.mark}] ${f.text}`);
   });
 });
+
+describe("gateBrief: the model's habits", () => {
+  // Was a bug: "Sr." ended the sentence, so the uncited half was dropped and the brief began mid-sentence.
+  it("a title abbreviation doesn't split the sentence", () => {
+    const g = gateBrief(["Jane remains at Acme as Sr. Head of Talent. [f7]"], facts);
+    expect(g.kept).toEqual(["Jane remains at Acme as Sr. Head of Talent. [f7]"]);
+  });
+  // Was a bug: "indicating ongoing recruitment needs" became "the team keeps growing" in the email.
+  it("a clause saying what a fact means is cut, the fact kept", () => {
+    const g = gateBrief(
+      ["Jane is still at Acme as Head of Talent, which may indicate ongoing hiring needs [f7]."],
+      facts,
+    );
+    expect(g.kept).toEqual(["Jane is still at Acme as Head of Talent [f7]."]);
+  });
+});

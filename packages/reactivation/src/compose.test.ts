@@ -12,6 +12,8 @@ import {
   gateDraft,
   pickSender,
   recruiterFor,
+  saysHiring,
+  unsign,
 } from "./compose.js";
 import { parseClientProfile } from "./profile.js";
 import type { ClientProfile } from "./schema.js";
@@ -22,6 +24,7 @@ const brief =
 const ctx = {
   source: [brief, "Northside Talent", "senior engineers in fintech"].join("\n"),
   private: ["Jane", "Doe", "Acme Staffing"],
+  hiring: true,
 };
 const OPENER =
   "Hi Jane,\nI saw Acme has 15 open roles. Worth a short call? Reply with a couple of times that work and I'll book it. Thanks for reading.";
@@ -363,5 +366,36 @@ describe("profile and settings edges", () => {
         ],
       }),
     ).toThrow(/listed twice/);
+  });
+});
+
+describe("growth talk needs open roles", () => {
+  // Was a bug: with no hiring found, drafts said "the team keeps growing".
+  it("no open roles in the brief: growing or hiring is held", () => {
+    const d = { ...good, opener: "Hi Jane,\nI see the team keeps growing. Worth a call?" };
+    expect(gateDraft(d, { ...ctx, hiring: false })).toEqual([
+      "opener: says they're hiring or growing; the brief found no open roles",
+    ]);
+  });
+  it("the brief's open roles allow it", () => {
+    expect(saysHiring(brief)).toBe(true);
+    expect(saysHiring("Jane is still at Acme.")).toBe(false);
+  });
+});
+
+describe("unsign", () => {
+  // Was a bug: the model signed "Sam" and the added signature printed the name again.
+  it("keeps the thanks, drops the name", () => {
+    expect(unsign("Hi Meg,\nA call?\n\nThanks for reading, Sam", "Sam Rivera")).toBe(
+      "Hi Meg,\nA call?\n\nThanks for reading.",
+    );
+  });
+  it("a bare valediction and full name go", () => {
+    expect(unsign("Hi Meg,\nA call?\n\nBest,\nSam Rivera", "Sam Rivera")).toBe("Hi Meg,\nA call?");
+  });
+  it("an unsigned body is untouched", () => {
+    expect(unsign("Hi Meg,\nThanks for reading.", "Sam Rivera")).toBe(
+      "Hi Meg,\nThanks for reading.",
+    );
   });
 });

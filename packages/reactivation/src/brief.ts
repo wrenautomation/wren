@@ -16,7 +16,7 @@ import { z } from "zod";
 import { type BriefState, briefs } from "./schema.js";
 import { hiringFinding, LATEST_CRM_ROW, whereFinding } from "./score.js";
 
-export const BRIEF_VERSION = "v1";
+export const BRIEF_VERSION = "v2";
 export const STAGE_NAME = "reactivation_brief";
 const MAX_TOKENS = 2000;
 const MAX_SENTENCES = 4;
@@ -77,8 +77,15 @@ const NUMBER = new RegExp(
 );
 /** A digit outside 0-9 (Arabic-Indic, Devanagari, ...) after NFKC folded the full-width ones. */
 const OTHER_DIGIT = /(?![0-9])\p{Nd}/u;
-/** A sentence ends at . ! or ? (and the marks after it) before the next one's capital. */
-const SENTENCE_END = /(?<=[.!?]["'\u201d\u2019)]*(?:\s*\[[^\]]*\])*)\s+(?=["'\u201c(]?\p{Lu})/u;
+/**
+ * A sentence ends at . ! or ? (and the marks after it) before the next one's
+ * capital, but not after a title or company abbreviation ("Sr. Manager").
+ */
+const SENTENCE_END =
+  /(?<=[.!?]["'\u201d\u2019)]*(?:\s*\[[^\]]*\])*)(?<!\b(?:Sr|Jr|Mr|Mrs|Ms|Dr|St|Inc|Ltd|Co|Corp|Assoc|Dept|vs)\.)\s+(?=["'\u201c(]?\p{Lu})/u;
+/** A clause saying what a fact means (", indicating a need to..."): a guess, cut before the marks. */
+const READING =
+  /,\s*(?:which\s+)?(?:(?:may|might|could|can|would)\s+)?(?:indicat|suggest|signal|impl|point)\w*[^.!?[]*?(?=\s*[.!?[]|$)/gi;
 
 const numbers = (text: string): string[] =>
   (text.normalize("NFKC").match(NUMBER) ?? []).map((n) => {
@@ -109,7 +116,8 @@ export function gateBrief(sentences: string[], facts: BriefFact[]): Gated {
   const kept: string[] = [];
   const dropped: Gated["dropped"] = [];
   const cited = new Set<string>();
-  for (const sentence of sentences.flatMap((s) => s.trim().split(SENTENCE_END))) {
+  for (const said of sentences.flatMap((s) => s.trim().split(SENTENCE_END))) {
+    const sentence = said.replace(READING, "");
     if (!sentence.trim()) continue;
     const marks = [...sentence.matchAll(MARKS)].flatMap((m) =>
       (m[1] ?? "").split(/[,;]/).map((x) => x.trim().toLowerCase()),
@@ -156,6 +164,7 @@ Rules:
 - 2 to 4 sentences, most useful first: open roles at their company, a new job, still there, then history with the recruiter.
 - End each sentence with the marks of the facts it rests on, like [f12] or [f12][c3].
 - Use only these facts. No guesses, no advice, no greetings, no outreach wording.
+- State the facts, never what they indicate, suggest or mean.
 - Copy names, numbers and dates exactly as written. Do not compute durations, ages or totals.
 
 Return ONLY a JSON object: {"sentences": ["...", "..."]}

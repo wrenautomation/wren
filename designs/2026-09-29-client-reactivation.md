@@ -128,6 +128,7 @@ A lint rule guards this. biome `noRestrictedImports` on `packages/**` fails the 
   - Only verified addresses by default. `compose.catchAll` (off) also takes an address the SMTP check calls catch-all; the demo turns it on, since 11 of its 15 guessed addresses are (2026-09-30).
   - The send gate (over 10% dead) holds compose too, except on the demo, which never sends.
   - Dashes become commas before the gate (Cohere writes them whatever it's told). The prompt keeps CRM details and last-contact dates out: "it's been a while" (2026-09-30, after a draft told a contact their record was Inactive).
+  - No growth or hiring talk unless the brief names open roles; a model's own sign-off is cut (the signature is added). Briefs cut "indicating ..." guesses and don't split at "Sr." (2026-09-30, after demo drafts said "the team keeps growing" with no hiring found).
   - Suppressed contacts are excluded in SQL. A draft that loses a race to another pass is stored as `raced`, not a failure.
   - `approval: first` means the first batch waits for the client, then drafts flow. `every` means each batch waits. Approve or skip in the portal (Emails) or `crm approve|skip`; `crm emails` lists them.
 - **R12. Sending uses the existing machine.** Enrollments, pacing, roster and the Gmail transport, from domains we set up for the client (lookalike domains, mailboxes in the recruiter's name with written consent), warmed about 10 days. Never from the client's own domain.

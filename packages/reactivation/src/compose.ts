@@ -29,7 +29,7 @@ import { type ClientProfile, compositions, type Recruiter } from "./schema.js";
 import { LATEST_CRM_ROW, whereFinding } from "./score.js";
 import type { ReactivationSettings, Sender } from "./settings.js";
 
-export const COMPOSE_VERSION = "v2";
+export const COMPOSE_VERSION = "v3";
 export const COMPOSE_STAGE = "reactivation_compose";
 /** Enrollments carry this as their niche, sequence and offer. */
 export const REACTIVATION = "reactivation";
@@ -115,7 +115,14 @@ export interface GateContext {
   source: string;
   /** Words the subject must not carry: the contact's names and their firm. */
   private: string[];
+  /** The brief names open roles; without them an email can't say the team is hiring or growing. */
+  hiring: boolean;
 }
+
+/** Growth talk: true only when the brief found open roles. */
+const GROWTH = /\b(?:grow(?:s|ing|th)?|hiring|expand(?:s|ing)?|scal(?:es|ing))\b/i;
+/** The brief's open-roles fact ("Acme has 4 open roles"). */
+export const saysHiring = (brief: string) => /\bopen roles?\b/i.test(brief);
 
 /** What no part of an email may carry: prices, links, addresses, dashes, placeholders. */
 function marks(part: string, text: string): string[] {
@@ -158,6 +165,8 @@ export function gateDraft(d: Draft, ctx: GateContext): string[] {
     why.push(...marks(part, body));
     const made = madeUp(body, ctx.source);
     if (made.length) why.push(`${part}: ${made.join(", ")} not in the brief`);
+    if (!ctx.hiring && GROWTH.test(body))
+      why.push(`${part}: says they're hiring or growing; the brief found no open roles`);
   }
   return why;
 }
@@ -170,6 +179,23 @@ const tidy = (s: string) =>
     .replace(/\r\n?/g, "\n")
     .replace(/[ \t]+\n/g, "\n")
     .replace(/\n{3,}/g, "\n\n");
+
+const literal = (s: string) => s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+const VALEDICTION =
+  /(?:^|\n)\s*(?:best|thanks|thank you|cheers|regards|best regards|kind regards|warmly|talk soon)[,!.]?\s*$/i;
+
+/**
+ * The signature is added, so a model's own sign-off would print the name
+ * twice: "Thanks for reading, Sam" keeps its thanks, a bare "Best,\nSam" goes.
+ */
+export function unsign(body: string, sender: string): string {
+  const first = sender.split(/\s+/)[0] ?? sender;
+  const names = [sender, first].filter(Boolean).map(literal).join("|");
+  const name = new RegExp(`[,\\s]*\\b(?:${names})[.!]?\\s*$`, "i");
+  if (!name.test(body)) return body;
+  const left = body.replace(name, "").replace(VALEDICTION, "").trimEnd();
+  return /[.!?]$/.test(left) ? left : `${left}.`;
+}
 
 // ---- the prompt ------------------------------------------------------------------
 
@@ -209,9 +235,9 @@ Write two emails.
 1. The opener.
 - Start with "${hi}" on its own line.
 - Say why you're writing now with one or two facts from "Why write now", plainly, as the recruiter who noticed.
-- Only what they could see themselves: their role, a move, their company hiring. Never the CRM, a record, a status, a placement, or the date you last spoke; "it's been a while" is enough.
+- Only what they could see themselves: their role, a move, their company's open roles if listed. Never say the team is growing or hiring unless "Why write now" names open roles. Never the CRM, a record, a status, a placement, or the date you last spoke; "it's been a while" is enough.
 - One ask: a short call. Close with: reply with a couple of times that work and I'll book it.
-- Thank them for reading, in a few words.
+- Thank them for reading, in a few words, without your name.
 - At most ${OPENER_WORDS} words.
 2. The follow-up, sent in the same thread 4 business days later if they don't reply.
 - Start with "${hi}".
@@ -476,14 +502,16 @@ export async function composeCrmEmails(
       );
       envelope = outcome.envelope();
       if (outcome.parsed) {
+        const from = picked.sender.name;
         draft = {
           subject: tidy(outcome.parsed.subject),
-          opener: tidy(outcome.parsed.opener),
-          followup: tidy(outcome.parsed.followup),
+          opener: unsign(tidy(outcome.parsed.opener), from),
+          followup: unsign(tidy(outcome.parsed.followup), from),
         };
         why = gateDraft(draft, {
           source: [s.brief, s.firm, profile.firm, profile.sells].join("\n"),
           private: [s.firstName, s.lastName, s.firm].filter((w): w is string => !!w),
+          hiring: saysHiring(s.brief),
         });
       } else why = [`did not parse: ${outcome.parseError ?? outcome.providerRejected ?? "?"}`];
     } catch (err) {
