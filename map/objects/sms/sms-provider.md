@@ -13,7 +13,7 @@ The carrier port: `SmsProvider`, with `telnyx.ts` as the one file that names a v
 
 ## Why this shape
 
-`send` answers accepted, rejected for good, or try later, and throws for "cannot know", which the caller marks `unknown` and never resends (`provider.ts:1`). On Lambda the fake is refused, so prod cannot pretend to send; that is the intended state until Telnyx is set up (`apps/worker/src/services.ts:316`). Even with a real provider nothing leaves until `WREN_SMS_LIVE` says the 10DLC campaign is approved (`deliver.ts:1`).
+`send` answers accepted, rejected for good, or try later, and throws for "cannot know", which the caller marks `unknown` and never resends (`provider.ts:1`). On Lambda the fake is refused, so prod cannot pretend to send; that is the intended state until Telnyx is set up (`apps/worker/src/services.ts:365`). Even with a real provider nothing leaves until `WREN_SMS_LIVE` says the 10DLC campaign is approved (`deliver.ts:1`).
 
 ## Shape
 
@@ -28,7 +28,7 @@ Citations: `packages/channel-sms/src/provider.ts:74`
 
 ## If you change this
 
-- **Hits:** `deliver.ts`, `pool.ts:114`, `health.ts` (balance), `events.ts`, `apps/phone/src/worker.ts`, settings `WREN_SMS_*`, `apps/worker/src/services.ts:312`
+- **Hits:** `deliver.ts`, `pool.ts:114`, `health.ts` (balance), `events.ts`, `apps/phone/src/worker.ts`, settings `WREN_SMS_*`, `apps/worker/src/services.ts:364`
 - **Does not hit:** contacts' consent; templates
 
 ## Surfaces

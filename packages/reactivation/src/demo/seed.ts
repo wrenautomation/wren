@@ -180,13 +180,17 @@ export function messUp(rng: Rng, rows: SeedRow[]): SeedRow[] {
   return out;
 }
 
-/** Everything a client list holds, dropped. Only for a demo client's own database. */
+/**
+ * Everything a client list holds, dropped. Only for a demo client's own database.
+ * Ids carry on from where they were: restarting them needs the sequences' owner,
+ * and the client's own login owns nothing.
+ */
 export async function resetCrmData(db: Queryable): Promise<void> {
   await db.execute(
     sql.raw(
       `truncate table briefs, contact_scores, company_checks, findings, person_lookups, documents,
         verifications, contact_candidates, crm_contacts, sightings, import_errors, people, companies, imports
-        restart identity cascade`,
+        cascade`,
     ),
   );
 }

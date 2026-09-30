@@ -27,11 +27,12 @@ Citations: `packages/core/src/clients/schema.ts:18`, `packages/core/src/clients/
 
 - **owns:** a whole client database: [[reactivation/crm-contact]], [[reactivation/client-profile]], [[reactivation/handoff]], and the channel tables ([[email/enrollment]], [[email/message]], [[email/thread-event]])
 - **owned-by:** nothing (main database)
+- **joins:** [[clients/client-login]] (the Postgres login its database is reached by), [[platform/audit-log]] (every write in its database)
 - **looks-like-but-is-not:** [[leads/company]] (a firm we reach, not one we work for)
 
 ## If you change this
 
-- **Hits:** `wren clients` (`apps/cli`), the worker's per-client db pool and key routing (`apps/worker/src/services.ts:250`), the portal's login check, every product's settings parser
+- **Hits:** `wren clients` (`apps/cli`), the worker's per-client db pool and key routing (`apps/worker/src/services.ts:261`), the portal's login check, every product's settings parser
 - **Does not hit:** Wren's own campaign (bare keys, main database)
 
 ## Surfaces

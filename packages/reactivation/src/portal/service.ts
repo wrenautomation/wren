@@ -6,7 +6,7 @@
  */
 import * as restate from "@restatedev/restate-sdk";
 import { type Client, clients } from "@wren/core/clients";
-import type { Db, Queryable } from "@wren/db";
+import { type Db, type Queryable, setAuditActor } from "@wren/db";
 import { and, asc, eq, sql } from "drizzle-orm";
 import { approveDrafts, type ReviewResult, skipDrafts } from "../approve.js";
 import { type CrmHealth, crmHealth } from "../crm/health.js";
@@ -133,7 +133,11 @@ async function write<T>(
   const viewer = req.viewer;
   const client = await pick(deps.main, req);
   if (client.demo) throw new PortalRefusal("the demo is read-only", 403);
-  return deps.open(client).transaction((tx) => change(tx, client, viewer));
+  return deps.open(client).transaction(async (tx) => {
+    // Every row this changes is logged as this person's (audit_events.actor).
+    await setAuditActor(tx, viewer.email);
+    return change(tx, client, viewer);
+  });
 }
 
 /** Enrollment ids from a browser: whole positive numbers, at most one page's worth. */

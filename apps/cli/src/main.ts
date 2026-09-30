@@ -3,13 +3,25 @@
  * `wren` ops CLI. Reads go straight to Postgres. Writes go through Restate so
  * they are journaled and single-writer per key.
  */
+import { userInfo } from "node:os";
 import * as clients from "@restatedev/restate-sdk-clients";
 import { ConsoleTransport, runWeeklyReport } from "@wren/channel-email";
 import { ingressOf, loadEnvFile, loadSettings } from "@wren/config";
 import { collectStatus, formatStatusLines, weekSlipped } from "@wren/content";
+import { type AuditSealer, SEALER_KEY } from "@wren/core/audit";
 import { type Client, clientUrl, getClient } from "@wren/core/clients";
 import { RENEWAL_KEY, type TokenRenewal } from "@wren/core/content/renewal";
-import { createDb, type Db } from "@wren/db";
+import {
+  type AuditCheck,
+  clientDatabases,
+  clientDatabaseUrl,
+  createDb,
+  type Db,
+  formatAuditEvent,
+  recentAuditEvents,
+  sealAudit,
+  verifyAudit,
+} from "@wren/db";
 import { Command } from "commander";
 import { sql } from "drizzle-orm";
 import { registerAds } from "./ads.js";
@@ -25,9 +37,21 @@ import { registerSms } from "./sms.js";
 const rootDir = loadEnvFile(process.cwd(), process.env.WREN_ROOT);
 const settings = loadSettings(process.env, { rootDir });
 
+/** Who ran the command, kept on every audit event it causes. */
+const actor = (() => {
+  if (process.env.CLAUDECODE) return "claude-code";
+  try {
+    return userInfo().username;
+  } catch {
+    return "unknown";
+  }
+})();
+/** `wren-cli:<command>`, set before each action; kept on every audit event it causes. */
+let app = "wren-cli";
+
 /** Open a one-connection pool for one command and always close it. */
 async function open<T>(url: string, fn: (db: Db) => Promise<T>): Promise<T> {
-  const handle = createDb(url, { max: 1 });
+  const handle = createDb(url, { max: 1, app, actor });
   try {
     return await fn(handle.db);
   } finally {
@@ -57,7 +81,9 @@ async function withClientDb<T>(fn: (db: Db, client: Client) => Promise<T>): Prom
  * Commands that honour `--client`. Everything else runs Wren's own loops or the
  * registry, so `--client` there is refused rather than silently ignored.
  */
-const CLIENT_SCOPED = new Set(["db", "email", "crm"]);
+const CLIENT_SCOPED = new Set(["db", "email", "crm", "audit"]);
+/** Under a client-scoped command, the parts that still cover every database. */
+const EVERY_DATABASE = new Set(["audit sealer"]);
 
 const program = new Command("wren")
   .description("Wren automation ops")
@@ -65,11 +91,13 @@ const program = new Command("wren")
   .showHelpAfterError();
 
 program.hook("preAction", (_root, action) => {
+  const path: string[] = [];
+  for (let c: Command | null = action; c && c !== program; c = c.parent) path.unshift(c.name());
+  app = `wren-cli:${path.join(" ")}`;
   if (!program.opts<{ client?: string }>().client) return;
-  let top: Command = action;
-  while (top.parent && top.parent !== program) top = top.parent;
-  if (!CLIENT_SCOPED.has(top.name()))
-    throw new Error(`\`wren ${top.name()}\` does not take --client`);
+  const top = path[0] ?? "";
+  if (!CLIENT_SCOPED.has(top) || EVERY_DATABASE.has(path.slice(0, 2).join(" ")))
+    throw new Error(`\`wren ${path.slice(0, 2).join(" ")}\` does not take --client`);
 });
 
 program
@@ -95,6 +123,74 @@ db.command("check")
     });
     console.log(`migrations applied: ${n}`);
   });
+
+const audit = program
+  .command("audit")
+  .description("the audit log: every change to every table, sealed into a hash chain");
+audit
+  .command("show")
+  .description("Newest changes, oldest of them first: table, row key, who, changed columns")
+  .option("--table <name>", "only this table")
+  .option("--limit <n>", "how many", "20")
+  .option("--values", "print old and new values too (rows can hold personal data)")
+  .action(async (opts: { table?: string; limit: string; values?: boolean }) => {
+    const rows = await withDb((d) =>
+      recentAuditEvents(d, {
+        limit: Number(opts.limit),
+        ...(opts.table ? { table: opts.table } : {}),
+      }),
+    );
+    for (const e of rows.reverse()) console.log(formatAuditEvent(e, opts.values === true));
+  });
+audit
+  .command("seal")
+  .description("Seal what finished since the last seal (the sealer loop does this every 15 min)")
+  .action(async () => {
+    const seal = await withDb((d) => sealAudit(d));
+    console.log(
+      seal ? `sealed #${seal.id}: ${seal.events} events, hash ${seal.hash}` : "nothing new to seal",
+    );
+  });
+audit
+  .command("verify")
+  .description("Recompute every seal from its events. Exit 1 if one no longer matches.")
+  .option("--all", "main and every client database")
+  .action(async (opts: { all?: boolean }) => {
+    const checks: Record<string, AuditCheck> = {};
+    if (opts.all) {
+      if (program.opts<{ client?: string }>().client)
+        throw new Error("--all or --client, not both");
+      checks.main = await withMainDb(verifyAudit);
+      for (const database of await withMainDb(clientDatabases))
+        checks[database] = await open(
+          clientDatabaseUrl(settings.databaseUrl, database),
+          verifyAudit,
+        );
+    } else checks.this = await withDb(verifyAudit);
+    console.log(JSON.stringify(opts.all ? checks : checks.this, null, 2));
+    if (Object.values(checks).some((c) => c.broken)) process.exitCode = 1;
+  });
+const sealer = () =>
+  clients
+    .connect(ingressOf(settings))
+    .objectClient<AuditSealer>({ name: "AuditSealer" }, SEALER_KEY);
+const sealing = audit
+  .command("sealer")
+  .description("AuditSealer: seals main and every client database every 15 minutes");
+sealing
+  .command("status")
+  .action(async () => console.log(JSON.stringify(await sealer().status(), null, 2)));
+sealing
+  .command("start")
+  .description("Loop: seal every database, then again in 15 minutes")
+  .action(async () => console.log(JSON.stringify(await sealer().start(), null, 2)));
+sealing
+  .command("stop")
+  .action(async () => console.log(JSON.stringify(await sealer().stop(), null, 2)));
+sealing
+  .command("sync")
+  .description("One pass now")
+  .action(async () => console.log(JSON.stringify(await sealer().sync(), null, 2)));
 
 registerClients(program, withMainDb, settings);
 registerCrm(program, withClientDb, settings, rootDir);

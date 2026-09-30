@@ -58,6 +58,7 @@ import {
   makeContentPlanner,
   makeContentScheduler,
 } from "@wren/content/restate";
+import { makeAuditSealer } from "@wren/core/audit";
 import type { SiteClient } from "@wren/core/content";
 import { ec2Wake } from "@wren/core/content/box";
 import { makeTokenRenewal } from "@wren/core/content/renewal";
@@ -91,6 +92,9 @@ import {
 import { makeDiscovery, makeEnrichment } from "@wren/research/restate";
 import type { Logger } from "pino";
 
+/** The worker's application_name on every connection, kept on each audit event. */
+const WORKER_APP = "wren-worker";
+
 export type AnyService =
   | ServiceDefinition<string, unknown>
   | VirtualObjectDefinition<string, unknown>;
@@ -115,7 +119,10 @@ export async function buildServices(
   opts: BuildOptions,
 ): Promise<Services> {
   const { rootDir } = opts;
-  const handle = createDb(settings.databaseUrl, opts.dbPoolMax ? { max: opts.dbPoolMax } : {});
+  const handle = createDb(settings.databaseUrl, {
+    app: WORKER_APP,
+    ...(opts.dbPoolMax ? { max: opts.dbPoolMax } : {}),
+  });
   const db = handle.db;
 
   // Key fleets and provider keys live in llm.env (or the host's env); never logged.
@@ -161,7 +168,7 @@ export async function buildServices(
   });
   // Each client's own database, pooled per client; its name follows from the id.
   const openClient = (client: { database: string }) =>
-    cachedDb(clientDatabaseUrl(settings.databaseUrl, client.database));
+    cachedDb(clientDatabaseUrl(settings.databaseUrl, client.database), { app: WORKER_APP });
   const clientDb = (id: string) => openClient({ database: clientDatabaseName(id) });
   const clients = { main: db, open: openClient, policy };
   // One campaign per registered niche: its plan, copy and the inboxes it may send from,
@@ -242,7 +249,11 @@ export async function buildServices(
       fetcher: ua ? new PoliteFetcher(ua, { timeout: 8, retries: 1 }) : null,
       genericWordsFor: discoveryWordsFor,
     }),
-    makeResolution({ db, verifier, openPool: (max) => createDb(settings.databaseUrl, { max }) }),
+    makeResolution({
+      db,
+      verifier,
+      openPool: (max) => createDb(settings.databaseUrl, { max, app: WORKER_APP }),
+    }),
     // A plain key is one of Wren's inboxes; `<client>/<mailbox>` is a client's (R4, R12:
     // its mailboxes are in Wren's Workspace, so the same transport and reader serve them).
     makeSendScheduler({
@@ -345,6 +356,8 @@ export async function buildServices(
   // autobrowse's tokens made again before they lapse (LinkedIn's 60 days, npm's 90); the box is woken for it.
   const wake = settings.autobrowseInstanceId ? ec2Wake(settings.autobrowseInstanceId) : undefined;
   services.push(makeTokenRenewal({ db, ...(wake ? { wake } : {}), ...notify }));
+  // The audit log's seals in every database, every 15 minutes; off until `wren audit sealer start`.
+  services.push(makeAuditSealer({ main: db, open: openClient, ...notify }));
   // Cold SMS. Always bound: the sender is off until `wren sms queue start`, and a real
   // provider sends nothing until WREN_SMS_LIVE (the registered campaign) says so.
   // The fake pretends to send: on Lambda (prod) it is refused and no provider runs instead.

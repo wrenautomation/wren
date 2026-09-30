@@ -4,7 +4,7 @@ cluster: platform
 universe: live
 status: verified
 verified: 2026-09-28 @ 83459e9
-entity: apps/worker/src/services.ts:106
+entity: apps/worker/src/services.ts:110
 ---
 
 # restate-services
@@ -22,7 +22,7 @@ One composition root wires db, llm, verifier, transport, notifier, roster, box w
 - outside this repo, same Restate: autobrowse's `sites` (the box) and `desk` (the Mac; Reddit) (`packages/core/src/content/restate.ts:21-23`)
 - plain handlers: `Discovery{discover,verify}`, `Enrichment{crawl,render,scan,extract,applyExtractions,pick,applyPicks,tagTestimonials,backfillCallRecords}`, `Resolution{build,queue,resolve,resolveNewDomains,verifyLeads}`, `Disposition{classify,status}`, `ContentDesk{add,draft,redraft}`, `Content{publish,list,metrics,comments,reply,platforms}`, `Ads{accounts,campaigns,insights,interests,launch,leadForm,leadForms,leads,start,stop}`, `SmsDesk`/`SmsEvents{addContact,enroll,ingest,label,lift,markRead,numbers,pause,reply,resume,stats,syncNumbers,thread,threads}`
 
-Citations: `apps/worker/src/services.ts:106`
+Citations: `apps/worker/src/services.ts:110`
 
 ## Connected to
 

@@ -18,7 +18,7 @@ Postgres 17 through Drizzle: every package owns its `src/schema.ts` (and `views.
 ## Shape
 
 - schema files (`drizzle.config.ts:8`–`18`): core, core views, clients, research, channel-email (+views), content, channel-meta, channel-sms, reactivation, books (its own `books` schema)
-- `createDb`, `migrate` (`packages/db/src/index.ts:23`, `:29`); `pnpm db:generate`, `pnpm db:migrate` (`package.json:18`)
+- `createDb`, `migrate` (`packages/db/src/index.ts:33`, `:77`); `pnpm db:generate`, `pnpm db:migrate` (`package.json:18`)
 - CI migrates before it bundles (`.github/workflows/deploy.yml:29`)
 
 Citations: `packages/db/drizzle.config.ts:7`
@@ -26,7 +26,7 @@ Citations: `packages/db/drizzle.config.ts:7`
 ## Connected to
 
 - **owns:** every table card in this map
-- **joins:** [[processes/migrate]]
+- **joins:** [[processes/migrate]], [[platform/audit-log]] (every table is audited unless listed in `AUDIT_SKIPPED`)
 
 ## If you change this
 
