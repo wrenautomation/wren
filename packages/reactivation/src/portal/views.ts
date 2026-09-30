@@ -4,10 +4,12 @@
  * finding. Plain reads, bounded pages; the service decides who may see which
  * client and masks the demo on the way out.
  */
+import type { Client } from "@wren/core/clients";
 import type { Queryable } from "@wren/db";
 import { type SQL, sql } from "drizzle-orm";
 import { type RankedContact, rankedContacts } from "../ranked.js";
 import { hiringFinding, type Reason, whereFinding } from "../score.js";
+import { type Pipeline, portalPipeline } from "./pipeline.js";
 
 export const PAGE = 50;
 
@@ -29,6 +31,8 @@ export interface Overview {
   atHiring: number;
   briefs: number;
   top: RankedContact[];
+  /** Every step from the list to the replies, and what each waits on. */
+  pipeline: Pipeline;
 }
 
 export interface PersonRow {
@@ -203,7 +207,7 @@ function toRow(r: PersonSqlRow): PersonRow {
   };
 }
 
-export async function portalOverview(db: Queryable): Promise<Overview> {
+export async function portalOverview(db: Queryable, client: Client): Promise<Overview> {
   const [c] = await db.execute<{
     people: number;
     companies: number;
@@ -239,6 +243,7 @@ export async function portalOverview(db: Queryable): Promise<Overview> {
     atHiring: c?.at_hiring ?? 0,
     briefs: c?.briefs ?? 0,
     top: await rankedContacts(db, { limit: 5 }),
+    pipeline: await portalPipeline(db, client),
   };
 }
 

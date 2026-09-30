@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { ago, cx, hostOf, initials, month, num } from "./format.js";
+import { ago, cx, hostOf, initials, month, num, soon } from "./format.js";
 
 describe("num", () => {
   it("formats zero", () => {
@@ -184,5 +184,102 @@ describe("cx", () => {
 
   it("drops empty strings without leaving a double space", () => {
     expect(cx("a", "", "b")).toBe("a b");
+  });
+});
+
+describe("soon", () => {
+  // Local time on both sides, so these hold in any timezone. Wed Sep 30 2026, 10:00.
+  const now = new Date(2026, 8, 30, 10, 0);
+  const at = (y: number, m: number, d: number, h = 0, min = 0) =>
+    new Date(y, m, d, h, min).toISOString();
+  // Some ICU builds put a narrow no-break space before AM/PM.
+  const said = (s: string | null) => s?.replace(/\s/g, " ") ?? null;
+
+  it("later today is just the time", () => {
+    expect(said(soon(at(2026, 8, 30, 20, 0), now))).toBe("8:00 PM");
+  });
+
+  it("a minute from now is just the time", () => {
+    expect(said(soon(at(2026, 8, 30, 10, 1), now))).toBe("10:01 AM");
+  });
+
+  it("the last minute of today is still today", () => {
+    expect(said(soon(at(2026, 8, 30, 23, 59), now))).toBe("11:59 PM");
+  });
+
+  it("tomorrow says tomorrow", () => {
+    expect(said(soon(at(2026, 9, 1, 8, 0), now))).toBe("tomorrow 8:00 AM");
+  });
+
+  it("just past midnight is tomorrow, even minutes away", () => {
+    const late = new Date(2026, 8, 30, 23, 58);
+    expect(said(soon(at(2026, 9, 1, 0, 1), late))).toBe("tomorrow 12:01 AM");
+  });
+
+  it("2 days out is the weekday", () => {
+    expect(said(soon(at(2026, 9, 2, 9, 30), now))).toBe("Fri 9:30 AM");
+  });
+
+  it("6 days out is still the weekday", () => {
+    expect(said(soon(at(2026, 9, 6, 20, 0), now))).toBe("Tue 8:00 PM");
+  });
+
+  it("7 days out is month and day, no time", () => {
+    expect(soon(at(2026, 9, 7, 8, 0), now)).toBe("Oct 7");
+  });
+
+  it("weeks out is month and day", () => {
+    expect(soon(at(2026, 9, 30, 8, 0), now)).toBe("Oct 30");
+  });
+
+  it("next year drops the year", () => {
+    expect(soon(at(2027, 0, 5, 8, 0), now)).toBe("Jan 5");
+  });
+
+  it("crosses a month boundary: Jan 31 to Feb 1 is tomorrow", () => {
+    expect(said(soon(at(2026, 1, 1, 9, 0), new Date(2026, 0, 31, 22, 0)))).toBe("tomorrow 9:00 AM");
+  });
+
+  it("crosses a month boundary: Sep 30 to Oct 3 is the weekday", () => {
+    expect(said(soon(at(2026, 9, 3, 9, 0), now))).toBe("Sat 9:00 AM");
+  });
+
+  it("crosses a year boundary: Dec 31 to Jan 1 is tomorrow", () => {
+    expect(said(soon(at(2027, 0, 1, 7, 0), new Date(2026, 11, 31, 18, 0)))).toBe(
+      "tomorrow 7:00 AM",
+    );
+  });
+
+  it("counts calendar days across a daylight-saving change", () => {
+    const sat = new Date(2026, 2, 7, 12, 0); // US clocks jump forward Sun Mar 8
+    expect(said(soon(at(2026, 2, 9, 12, 0), sat))).toBe("Mon 12:00 PM");
+    expect(said(soon(at(2026, 2, 13, 12, 0), sat))).toBe("Fri 12:00 PM");
+    expect(soon(at(2026, 2, 14, 12, 0), sat)).toBe("Mar 14");
+  });
+
+  it("the past is null", () => {
+    expect(soon(at(2026, 8, 30, 9, 0), now)).toBeNull();
+    expect(soon(at(2025, 8, 30, 20, 0), now)).toBeNull();
+  });
+
+  it("exactly now is null", () => {
+    expect(soon(now.toISOString(), now)).toBeNull();
+  });
+
+  it("a millisecond ago is null", () => {
+    expect(soon(new Date(now.getTime() - 1).toISOString(), now)).toBeNull();
+  });
+
+  it("null is null", () => {
+    expect(soon(null, now)).toBeNull();
+  });
+
+  it("empty string is null", () => {
+    expect(soon("", now)).toBeNull();
+  });
+
+  it("garbage is null", () => {
+    expect(soon("not-a-date", now)).toBeNull();
+    expect(soon("2026-13-45", now)).toBeNull();
   });
 });

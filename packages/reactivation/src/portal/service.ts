@@ -22,6 +22,7 @@ import {
   type RepliesPage,
   type ReplyFilter,
 } from "./outbox.js";
+import { portalSetup, type Setup } from "./setup.js";
 import {
   listNames,
   type Overview,
@@ -176,6 +177,7 @@ export function portalApi(deps: PortalDeps) {
     },
     overview: (req: PortalRequest): Promise<Overview> => read(deps, req, portalOverview),
     health: (req: PortalRequest): Promise<CrmHealth> => read(deps, req, (db) => crmHealth(db)),
+    setup: (req: PortalRequest): Promise<Setup> => read(deps, req, portalSetup),
     people: (
       req: PortalRequest & { filter?: PeopleFilter; offset?: number; q?: string },
     ): Promise<PeoplePage> =>
@@ -283,7 +285,9 @@ export type {
   ReplyFilter,
   ReplyRow,
 } from "./outbox.js";
+export type { Pipeline, PipelineStep, PipelineStepId, StepState } from "./pipeline.js";
 export { PORTAL_ROUTES, PORTAL_WRITES } from "./routes.js";
+export type { Setup } from "./setup.js";
 export type {
   Now,
   Overview,
@@ -319,6 +323,7 @@ export function makeReactivationPortal(deps: PortalDeps) {
       me: (_: restate.Context, req: Req<"me">) => answer(() => api.me(req)),
       overview: (_: restate.Context, req: Req<"overview">) => answer(() => api.overview(req)),
       health: (_: restate.Context, req: Req<"health">) => answer(() => api.health(req)),
+      setup: (_: restate.Context, req: Req<"setup">) => answer(() => api.setup(req)),
       people: (_: restate.Context, req: Req<"people">) => answer(() => api.people(req)),
       person: (_: restate.Context, req: Req<"person">) => answer(() => api.person(req)),
       raw: (_: restate.Context, req: Req<"raw">) => answer(() => api.raw(req)),

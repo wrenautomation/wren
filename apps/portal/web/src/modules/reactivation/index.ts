@@ -6,6 +6,7 @@ import { REACTIVATION } from "./nav.js";
 import { Overview } from "./Overview.js";
 import { People } from "./People.js";
 import { Replies } from "./Replies.js";
+import { Setup } from "./Setup.js";
 import { Sources } from "./Sources.js";
 import "./reactivation.css";
 
@@ -13,11 +14,12 @@ export const reactivation: Module = {
   id: REACTIVATION,
   name: "Reactivation",
   pages: [
-    { id: "overview", label: "Overview", icon: "home", Page: Overview },
+    { id: "overview", label: "Home", icon: "home", Page: Overview },
     { id: "people", label: "People", icon: "people", Page: People },
     { id: "emails", label: "Emails", icon: "mail", Page: Emails },
     { id: "replies", label: "Replies", icon: "reply", Page: Replies },
     { id: "health", label: "Data health", icon: "pulse", Page: Health },
     { id: "sources", label: "Sources", icon: "link", Page: Sources },
+    { id: "setup", label: "Setup", icon: "sliders", Page: Setup },
   ],
 };

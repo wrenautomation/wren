@@ -27,6 +27,22 @@ export function ago(day: string | null, today = new Date()): string {
   return `${years} yr${years > 1 ? "s" : ""} ago`;
 }
 
+/**
+ * When something later today or this week happens, in the viewer's time: "8:00 PM",
+ * "tomorrow 8:00 PM", "Fri 8:00 PM", then "Oct 9". Null once it's past or unreadable.
+ */
+export function soon(at: string | null, now = new Date()): string | null {
+  const d = new Date(at ?? "");
+  if (Number.isNaN(d.getTime()) || d <= now) return null;
+  const midnight = (x: Date) => new Date(x.getFullYear(), x.getMonth(), x.getDate()).getTime();
+  const days = Math.round((midnight(d) - midnight(now)) / 86_400_000);
+  const time = d.toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" });
+  if (days === 0) return time;
+  if (days === 1) return `tomorrow ${time}`;
+  if (days < 7) return `${d.toLocaleDateString("en-US", { weekday: "short" })} ${time}`;
+  return `${MONTHS[d.getMonth()]} ${d.getDate()}`;
+}
+
 /** "https://www.acme.com/jobs" -> "acme.com"; null when it isn't a URL. */
 export function hostOf(url: string | null): string | null {
   if (!url) return null;

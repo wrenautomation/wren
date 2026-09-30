@@ -95,6 +95,26 @@
   gap: 14px;
 }
 
+/* What's next: what waits on you, what runs next, what's parked */
+.rx-next {
+  list-style: none;
+  border-top: 1px solid var(--ui-hair);
+}
+.rx-next > li {
+  display: grid;
+  grid-template-columns: 112px minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 10px 20px;
+  padding: 16px 0;
+  border-bottom: 1px solid var(--ui-hair);
+}
+.rx-next p {
+  max-width: 72ch;
+  font-size: 15px;
+  line-height: 1.5;
+  text-wrap: pretty;
+}
+
 /* One person, in the drawer */
 .rx-person > header {
   margin-bottom: 22px;
@@ -295,8 +315,22 @@
 .rx-split > .ui-section {
   margin-top: 0;
 }
-.rx-split + .ui-section {
+.rx-split + .ui-section,
+.ui-section + .rx-split {
   margin-top: 48px;
+}
+
+/* Setup */
+.rx-sig {
+  white-space: pre-line;
+}
+.rx-slot {
+  padding: 1px 6px;
+  border-radius: var(--ui-radius-tag);
+  background: var(--ui-fill);
+  color: var(--ui-ink-2);
+  font-size: 13px;
+  font-weight: 500;
 }
 
 @media (max-width: 900px) {
@@ -313,6 +347,10 @@
   }
   .rx-top-why {
     grid-column: 2;
+  }
+  .rx-next > li {
+    grid-template-columns: minmax(0, 1fr);
+    align-items: start;
   }
   .rx-person h2 {
     font-size: 23px;

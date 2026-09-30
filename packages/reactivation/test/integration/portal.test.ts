@@ -13,6 +13,7 @@ import { seedDemo } from "../../src/demo/seed.js";
 import { EMAIL_FILTERS, REPLY_FILTERS } from "../../src/portal/outbox.js";
 import { DEMO_NAME, PortalRefusal, portalApi } from "../../src/portal/service.js";
 import { PEOPLE_FILTERS } from "../../src/portal/views.js";
+import { setClientProfile } from "../../src/profile.js";
 import { scoreCrmContacts } from "../../src/score.js";
 import { deps as seedDeps, today } from "./demo-fixture.js";
 
@@ -96,9 +97,26 @@ beforeAll(async () => {
       'Sure. Cara Lim, cara.lim@initech.example, linkedin.com/in/cara-lim', now())
     returning id`);
   replyId = reply?.id ?? 0;
+  // The firm's side: an export named for the agency, a profile that signs as it, a fee.
+  await db.execute(sql`update imports set source_ref = 'northside-bullhorn-export.csv'`);
+  await setClientProfile(db, {
+    firm: "Northside Talent",
+    sells: "tech hires for startups",
+    feeAvg: 22000,
+    voice: "Plain and short.",
+    recruiters: [{ name: "Sam Rivera", email: "sam@acme-talent.example" }],
+    signature: "{name}\nNorthside Talent",
+  });
 
   await db.insert(clients).values([
-    { id: "demo", name: "Northside Talent", database: "wren_client_demo", demo: true },
+    {
+      id: "demo",
+      name: "Northside Talent",
+      database: "wren_client_demo",
+      demo: true,
+      // Whose login researched the list: never shown, only that LinkedIn was used.
+      accounts: { linkedin: "jane-doe-personal" },
+    },
     {
       id: "acme",
       name: "Acme Staffing",
@@ -125,12 +143,13 @@ const demo = { viewer: { demo: true as const } };
 const operator = { viewer: { email: "william@wren.example", operator: true } };
 const owner = { viewer: { email: "Owner@Acme.example" } };
 
-/** A surname, an address's local part, a profile's name, the agency. */
+/** A surname, an address's local part, a profile's name, the agency, the firm's fee. */
 const LEAKS = [
   /\b(doe|lim|roe)\b/i,
   /jane\.|cara\.|bob\./i,
   /linkedin\.com\/in\/[^•]/i,
   /northside/i,
+  /22000|22,000/,
 ];
 const leaks = (v: unknown) => {
   const json = JSON.stringify(v);
@@ -147,6 +166,7 @@ describe("the demo", () => {
     const answers: [string, unknown][] = [
       ["overview", await api.overview(demo)],
       ["health", await api.health(demo)],
+      ["setup", await api.setup(demo)],
       ["raw", await api.raw(demo)],
       ["raw search", await api.raw({ ...demo, via: "search" })],
       ["person", await api.person({ ...demo, personId: cara })],
@@ -172,6 +192,40 @@ describe("the demo", () => {
     expect(view.sources.map((s) => s.url)).toContain("https://www.linkedin.com/in/•••/");
     const people = await api.people({ ...demo, filter: "moved" });
     expect(people.rows.map((r) => r.name)).toEqual(["Cara L."]);
+  });
+
+  it("setup says what was plugged in, never whose or from which file", async () => {
+    const setup = await api.setup(demo);
+    expect(setup.crm).toMatchObject({ format: "bullhorn", imports: 1 });
+    expect(setup.research).toEqual(["linkedin"]);
+    expect(setup.profile?.firm).toBe(DEMO_NAME);
+    expect(setup.profile?.signature).toBe(`{name}\n${DEMO_NAME}`);
+    expect(setup.profile?.recruiters).toEqual([
+      { name: "Sam Rivera", email: "s•••@acme-talent.example" },
+    ]);
+    expect(setup.sending.live).toBe(false);
+    expect(JSON.stringify(setup)).not.toMatch(/\.csv|export/i);
+  });
+
+  it("the overview carries every step, in order", async () => {
+    const { pipeline } = await api.overview(demo);
+    expect(pipeline.steps.map((s) => s.id)).toEqual([
+      "list",
+      "emails",
+      "where",
+      "hiring",
+      "score",
+      "briefs",
+      "drafts",
+      "approve",
+      "sent",
+      "replies",
+    ]);
+    expect(pipeline.sends).toBe(false);
+    const step = (id: string) => pipeline.steps.find((s) => s.id === id);
+    expect(step("list")?.state).toBe("done");
+    expect(step("replies")).toMatchObject({ count: 1, state: "done" });
+    expect(step("sent")?.state).not.toBe("next");
   });
 
   it("search matches firms, never names", async () => {

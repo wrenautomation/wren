@@ -16,10 +16,11 @@ export {
 export { BarList, Facts, Table, Tally } from "./data.js";
 export { Drawer } from "./drawer.js";
 export { Alert, Callout, Empty, Loading } from "./feedback.js";
-export { ago, cx, hostOf, initials, month, num } from "./format.js";
+export { ago, cx, hostOf, initials, month, num, soon } from "./format.js";
 export { Icon, type IconName } from "./icons.js";
 export { Card, CardList, PageHeader, Section, Stat, StatStrip } from "./layout.js";
 export { Pager } from "./pager.js";
+export { RAIL_STATES, Rail, type RailGroup, type RailState, type RailStep } from "./rail.js";
 export {
   AppShell,
   type Brand,

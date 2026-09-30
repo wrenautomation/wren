@@ -11,6 +11,9 @@ export type {
   PeoplePage,
   PersonRow,
   PersonView,
+  Pipeline,
+  PipelineStep,
+  PipelineStepId,
   RankedContact,
   RawFinding,
   RawPage,
@@ -19,7 +22,9 @@ export type {
   ReplyFilter,
   ReplyRow,
   ReviewResult,
+  Setup,
   Source,
+  StepState,
 } from "@wren/reactivation/restate";
 
 export class ApiError extends Error {
