@@ -1,15 +1,20 @@
 # Recruiting firm lead sources (2026-09-30)
 
-Where to get 10,000 viable recruiting and staffing firm leads, and how to get them without spending money. Research only; nothing is built yet. No lead data in this doc.
+Where to get 10,000 viable recruiting and staffing firm leads for free, in the US and Canada. No lead data in this doc.
+
+Revised the same day on William's rules: **no Apollo** (everyone uses it), **US and maybe Canada, no UK**, **keep every field a source gives**, and **one personalized opening line per email**.
 
 ## Answer first
 
-- **A viable lead** is a firm in the size band, the owner (or CEO/MD) named, a deliverable email for that person, and the office phone.
-- **The strict ICP is small.** In the US, about **3,300 firms** fit the band (Census, below). To reach 10,000, the list has to include the smaller firms (**~9,500 more in the US**) and then Canada and the UK. Smaller firms get the reactivation offer ($1k setup + $500 per meeting). The ICP firms get the bigger offer.
-- **Seed the firms with Google Maps** (free, every listing has a phone) **and Data Axle through a public library card** (free, owner name, size, sales and phone). Both are bulk sources. Everything else only adds or sizes firms.
-- **Get size and owner from the firm's own site first.** The recruiting niche already crawls team pages. Use LinkedIn only to size and confirm the top tier, at a slow daytime pace. Scraping LinkedIn overnight doesn't work: a real person doesn't browse all night, and at a safe pace one account covers ~100 firms a day.
-- **Verify emails with mailifier**, our own prober. It costs nothing per check.
-- **Phone numbers are for calls, not cold texts.** 10DLC approval covers only the warm SMS lane. US cold SMS stays unbuilt (PH-D3). Canadian numbers published on the firm's own site can take a CASL text, but that lane is off by default.
+- **A viable lead** is a firm in the size band, the owner named, a deliverable email for that person, and the office phone.
+- **10k is reachable from free public data.** Two bulk sources give ~25k distinct firms:
+  - **Overture Maps places**: ~18.8k US + ~2.2k Canadian firm domains, not chains, 97% with a phone.
+  - **SBA Small Business Search**: 5,932 US staffing firms, every one with a named contact, 84% with an email.
+  - They overlap by only ~870 domains.
+- **Size comes from PPP loan data** (jobs reported, loan size) and the firm's own site.
+- **Owners come from the firm's site crawl** (team pages), SBA contacts and principals, and LinkedIn for the top tier.
+- **Data Axle is blocked.** The one library that gives it to non-residents (Burlington, Ontario) wants $66/yr paid by phone. It's William's spend, and it's optional now.
+- **Each email gets a one-line opener**, written by an LLM from facts we hold and quoted from the firm's own site or record. No quote, no line.
 - **Pace:** at 10 senders × ~30 a day, 10,000 first emails take about 7 weeks of weekdays. Send the ICP tier first.
 
 ## Size of the market (US Census SUSB 2022, employer firms by yearly receipts)
@@ -25,105 +30,136 @@ Temp-help receipts include the temps' pay. Fees run about 20–30% of that, so $
 
 Not counted here: IT staffing firms filed under 5415 and healthcare staffing filed under 62xx. Both are real extra supply. Solo recruiters (no employees) are left out on purpose.
 
-**What it takes to reach 10k:** say 60–70% of firms end up with a named owner and a deliverable email. Then the US small + ICP bands give about 8–9k, and Canada and the UK fill the rest.
+**What it takes to reach 10k:** the free sources below hold ~25k distinct US + Canada firms. If half end up with a named owner and a deliverable email, that's ~12k.
 
 ## Sources, ranked
 
-| # | Source | Gives | Scale | Phones | Cost | Risk | Use |
-|---|---|---|---|---|---|---|---|
-| 1 | **Google Maps** (`autobrowse maps`) | name, site, phone, category, rating, address | ~20k+ US firms have listings; test below | ~100% | free | Google may throttle the home IP when pushed; signed out, no account at stake | main seed; US, then CA/UK metros |
-| 2 | **Data Axle Reference Solutions** via a public library card | name, site, phone, **exec name + title**, employees, sales volume, year founded, SIC | 44M US + 2.6M CA businesses; staffing SICs 7361/7363 | yes | free with a card | per-download record cap (repeatable, see FAQ); terms shown at login; own prospecting is the advertised use, resale is not | main seed with owners; sizes firms Maps can't |
-| 3 | **Firm's own site** (existing discovery crawl, recruiting `crawlHints`) | team page → headcount of recruiters, owner name/title, published emails, ATS in use | every seeded site | sometimes | free | none | sizing + owner, default |
-| 4 | **LinkedIn**: company search (industry Staffing & Recruiting, size 11–50 / 51–200, by state), `/company/<h>`, `/company/<h>/people?keywords=recruiter` | size bucket, HQ, site, recruiter count, owner | search: 10 firms per read, 1,000 per query (slice by state) | page phone sometimes | free | User Agreement bans automation (hiQ lost on contract); risk = the research account gets restricted | Tier A sizing; company search is a cheap seed too (build it) |
-| 5 | **Networks** | NPAworldwide ~520 member firms (public directory, sites); MRINetwork 250+ owner-run offices | ~800 | via site | free | none | owner-led perm firms; good Tier A/B seed |
-| 6 | **Award lists** | Inc 5000 (HR/staffing), Forbes best recruiting + temp staffing, ClearlyRated Best of Staffing, SIA fastest-growing | ~1–2k across years | no | free | none | "growing" signal; skews bigger |
-| 7 | **ATS footprints** (Common Crawl index, one crawl) | firms with a hosted job board: Crelate 190, Zoho Recruit 186 (some in-house HR), Recruiterflow 169, CATS 146, Loxo 130, PCRecruiter 53, Vincere 32, Avionté 24 | ~1k per crawl; more over past crawls | no | free | none | seed extras; better as **ATS detection on seeded sites** ("your Loxo" in copy, proves they have years of clients in an ATS) |
-| 8 | **State licence lists** | NYC Open Data: 238 active employment agencies, 235 with phone. NJ and IL keep lists (format not checked). Ontario: no public list found | hundreds | yes | free | none | small top-up |
-| 9 | **DOL LCA disclosures** (H-1B) | employer phone, **POC name, title, email, phone** | FY2025 Q4 file: 205 firms coded 5613, all with POC email; ~half owner titles. IT staffing mostly files as 5415 | yes | free | none | small, but direct owner emails |
-| 10 | **SBA PPP loan data** | name, address, NAICS, jobs reported, loan size | tens of thousands of 5613 loans | no | free | stale (2020–21) | size check by name+address match; not a seed |
-| 11 | **Apollo** | people search + emails + mobiles | large | mobiles (credits) | free tier too small; paid ~$49–99/mo | ToS allows own use | William's spend; fills owner emails if mailifier misses |
-| 12 | **Companies House (UK)** | every company with SIC 78100/78200/78300, directors by API | large | no | free | PECR (below) | UK fill |
-| — | UW library (Hoovers, Mergent, Scott's) | rich | — | — | — | academic licence, non-commercial | **don't use** for Wren |
-| — | Franchise branches (Express, PrideStaff…), national chains, RPOs, PEOs (561330) | — | — | — | — | the franchisor owns the tech and marketing | exclude; maybe test 50 franchisees later |
+| # | Source | Gives | Scale (US + CA) | Cost | Use |
+|---|---|---|---|---|---|
+| 1 | **Overture Maps places** (S3, release 2026-09-23.0, CDLA-Permissive) | name, every site/email/phone/social, address, category, confidence, open/closed, source ids | 53k places tagged `employment_agency` or `temp_agency`; 21k non-chain domains; 8.2k with no site | free | main seed |
+| 2 | **SBA Small Business Search** (`search.certifications.sba.gov`) | legal + DBA name, **contact person + email + phone**, site, address, year founded, principals, capabilities narrative, all NAICS, certifications, UEI, CAGE | 5,932 staffing-primary firms (US only); 15.8k more list a staffing code second (mostly IT and consulting) | free | seed with owners; the secondary list is IT staffing supply |
+| 3 | **Firm's own site** (discovery crawl, recruiting `crawlHints`) | team page → owner, recruiter count; published emails; specialties; ATS in use | every seeded site | free | owner, size, opener evidence |
+| 4 | **PPP loans** (SBA FOIA CSVs) | jobs reported, loan size (≈ 2.5 months of payroll), franchise name, business age | tens of thousands of 5613 loans, 2020–21 | free | sizing and franchise drop; not a seed |
+| 5 | **Google Maps** (`autobrowse maps`) | same as Overture plus rating | ~100% phones | free | top-up where Overture has no site |
+| 6 | **DOL LCA disclosures** | POC name, title, email, phone | ~205 firms coded 5613 | free | small, direct owner emails |
+| 7 | **Networks, award lists, NYC licence list** | firms, sites | ~2k | free | Tier A seeds, "growing" signal |
+| 8 | **LinkedIn** (research account) | size bucket, recruiter count, owner | ~100 firms a day | free | Tier A sizing only, daytime, read only |
+| — | Data Axle via Burlington PL | exec name, employees, sales | 44M US + 2.6M CA | $66/yr, pay by phone | blocked on William; optional |
+| — | Apollo | people + emails | large | paid | **not used** (William) |
+| — | UW library (Hoovers, Mergent) | rich | — | academic licence | **don't use** |
+| — | Chains, franchises, PEOs (561330), RPOs, job boards, state workforce offices, military recruiting | — | — | — | drop |
 
-### Maps test (one metro, 2026-09-30)
+### Overture (checked 2026-09-30)
 
-Two searches in Columbus OH ("recruiting firm", "staffing agency"), depth 5, with site email visits:
+- The category is in `taxonomy.primary`, not `basic_category` (that's just `professional_service`).
+- US + CA, not closed: 49.4k US and 3.6k CA places; 85% have a site, 97% a phone, 24% an email.
+- Domains by place count, US: 16,964 at one place, 1,839 at two, 1,513 at three or more (chains). Canada: 2,055 / 176 / 102.
+- Noise the chain rule doesn't catch: `.gov` workforce offices, `linkedin.com` pages, one-off military pages (`marines.com` subdomains, state National Guard sites).
+- Read with DuckDB over anonymous S3 in us-west-2, filtered on the bbox first. The North America pull took a few minutes.
 
-- 58 places in 9.5 minutes, 49 distinct domains.
-- Every place had a phone; 57 had a site; 13 had an email.
-- About a quarter were chains or national firms.
+### SBA Small Business Search (checked 2026-09-30)
 
-One search per metro misses most firms, so the sweep has to go by suburb and by category ("executive search firm", "temp agency", "IT staffing", "healthcare staffing"). Rough estimate: ~1,500 searches for the US at ~3–5 minutes each, ~75–120 hours of unattended Docker time. Chains are dropped by data: a domain that shows up in 3 or more metros is a chain.
+- `POST /_api/v2/search` with the page's full filter body. NAICS go in as `{value, label}` objects with `operatorType: "Or"`. Results come back unpaged, so ask one NAICS code at a time (561320 alone is ~76 MB).
+- The state filter didn't take any shape I tried. Not needed.
+- Staffing-primary firms: 561320 temp 3,683, 561311 perm 1,942, 561312 exec search 307 (561330 PEO 130, dropped).
+- Fill rates: contact 100%, email 84% (all with `display_email` true), phone 84%, site 59%, principals 24%, narrative 24%. Revenue and size are empty.
+- Email: 2,383 on the firm's own domain, 1,290 on free mail.
+- These are firms registered to sell to government. Many are small and owner-run.
 
 ### Library access (checked)
 
-- Burlington Public Library (Ontario) gives remote Data Axle access with a card: US + Canada.
-- Toronto Public Library has Mergent Intellect and Scott's Canadian Business Directory.
-- The KPL research list didn't render; check the Kitchener and Waterloo libraries first.
-- A card elsewhere may need residency or a non-resident fee (William's spend).
+- Burlington PL gives remote Data Axle (US + Canada) to non-residents for $66/yr, paid by phone. Edmonton PL has none. Calgary PL is Canada-only and residents-only.
+
+## Keep everything
+
+Every source row is stored whole: `companies.raw` and `sightings.raw` keep every field, including the ones no column uses. A field is never dropped because it doesn't fit a key.
+
+- **Overture:** all websites, emails, phones, socials, the full address, category and alternates, confidence, operating status, brand, the source datasets and their ids.
+- **SBA:** every field the search returns, plus the contact as a lead (name + email) when there's an email.
+- **PPP:** attached to the matched company as size facts: jobs reported, loan and forgiveness amounts, business age, franchise name, NAICS.
+- **Crawl:** pages kept in `documents`; people, emails and titles through the existing extraction.
+
+## The opener line
+
+One sentence at the top of the email, about the firm, true, and checkable.
+
+- **Input:** the company's facts (name, city, year founded, size, specialties, SBA narrative) and its crawled homepage and about pages.
+- **Output:** `{line, quote, source_url}`. The line is at most 25 words and speaks to the firm, not about us.
+- **Evidence-bound:** the quote must appear word for word in the input, and every number in the line must appear in the quote. Otherwise there is no line.
+- **Stored** in `enrichments` (kind `opener`, per company, model and prompt version), so a re-run only pays for new firms.
+- **Used** in templates as `(({{company.opener}}))`: no line, the sentence drops.
+- **Cost:** a small model at ~3k tokens in and ~60 out is ~$0.004 a firm, so ~$50 for 12k. The full run is William's call; a 50-firm sample first.
 
 ## Pipeline to 10k
 
-1. **Seed.** Run the Maps sweep (US metros, then CA/UK), plus the Data Axle exports (SIC 7361/7363, 3–99 employees), NPAworldwide, MRINetwork, award lists and NYC. Import with `--niche recruiting` and dedupe by domain.
-2. **Drop** chains (a domain in 3+ metros), franchises, PEOs, RPOs, job boards and dead sites.
-3. **Size.** Use Data Axle employees and sales, then the recruiter count on the team page, then the LinkedIn size bucket (Tier A only). Use domain age by RDAP as "years in business" when Data Axle doesn't have it.
-4. **Owner.** Take the team page first, then the Data Axle exec, then LinkedIn `/people?keywords=owner OR founder OR president`, then the LCA POC.
+1. **Seed.** `wren fetch get overture-places` and `wren fetch get sba-search`, then import both with `--niche recruiting`. Dedupe is by domain.
+2. **Drop** chains (a domain at 3+ places), closed places, PEOs, franchises (PPP `FranchiseName`), `.gov`/`.mil` and platform domains.
+3. **Size.** PPP jobs and loan size by name + ZIP, then the recruiter count on the team page, then LinkedIn (Tier A only).
+4. **Owner.** Take the SBA contact or principal first, then the team page, then LinkedIn, then the LCA POC.
 5. **Email.** Use a published address, else a pattern guess verified by mailifier. Catch-all domains are sent later, at lower volume. Canada: published addresses only (CASL).
-6. **Tier** and pick the offer:
+6. **Opener.** Run the opener pass on firms with a deliverable email.
+7. **Tier** and pick the offer:
 
 | Tier | Rule | Offer |
 |---|---|---|
-| A | 10–50 recruiters, or $2.5–15M perm / $10–50M temp billings | $10–15k + $5–10k/mo |
-| B | 3–9 recruiters, or $0.5–2.5M perm / $1–10M temp | reactivation, $1k + $500/meeting |
-| C | Canada and UK, A or B by the same rules | same as their size |
+| A | 10–50 staff, or $2.5–15M perm / $10–50M temp billings | $10–15k + $5–10k/mo |
+| B | 3–9 staff, or $0.5–2.5M perm / $1–10M temp | reactivation, $1k + $500/meeting |
+| C | Canada, A or B by the same rules | same as their size |
 
-7. **Phones:** store the office line for the dialer. Run a line-type lookup and a DNC scrub before anyone calls a mobile (phone doc).
+PPP loan size ≈ 2.5 months of payroll, so yearly payroll ≈ 4.8 × loan. For a perm firm payroll is most of the cost, so it's a fair floor on revenue.
+
+8. **Phones:** store the office line for the dialer. Run a line-type lookup and a DNC scrub before anyone calls a mobile (phone doc).
 
 ## LinkedIn pacing
 
-- **Daytime only**, in the account's time zone: spread through the working day, weekday-heavy, and stop at the first 429 (`caps.ts`). Overnight marathons look least like a person.
-- **Budget:** ~150–250 reads a day on the research account. A search page reads 10 firms, so seeding is cheap. Sizing costs ~2 reads per firm, so ~100 firms a day and ~3k Tier A firms in a month.
-- **Read only.** No connect, message or follow without William's yes.
-- **The account at stake is the research account, never Wren's posting account.**
+- **Daytime only**, in the account's time zone, weekday-heavy. Stop at the first 429 (`caps.ts`). No overnight scraping.
+- **Budget:** ~150–250 reads a day, ~2 per firm, so ~100 Tier A firms a day.
+- **Read only.** No connect, message or follow without William's yes. The research account only, never Wren's posting account.
 
 ## Compliance
 
 - **US email: CAN-SPAM.** A real sender, a postal address, one-click opt-out, no fake subject lines. Pattern-guessed addresses are legal.
-- **Canada email: CASL.** Implied consent only covers an address published conspicuously for the person's role, with no "no marketing" note. Keep the source URL (`provenance.address` already does). **Don't send to guessed Canadian addresses.**
-- **UK email: PECR.** Corporate subscribers (Ltd, LLP) can be emailed with an opt-out. Sole traders and English partnerships need consent, so skip them. Keep a short legitimate-interest note.
+- **Canada email: CASL.** Implied consent covers only an address published conspicuously for the person's role, with no "no marketing" note. Keep the source URL (`provenance.address` does). **Don't send to guessed Canadian addresses.**
+- **UK: out** (William, 2026-09-30).
 - **Calls:** the phone doc's rules apply (quiet hours, no AI voice, DNC on mobiles, recording notice).
 - **SMS:** US cold is not built (PH-D3). The Canada lane uses published business numbers only and is behind `WREN_SMS_CA_COLD=1`.
-- **Data Axle:** follow the library's terms. Use the data for our own outreach only; never resell it or put it in git.
+- **SBA contact data** is public (firms choose to display it). Use it for our own outreach only; lead data never goes in git.
 
 ## Decisions
 
-- **RL-D1** 10k needs Tier B and Canada/UK. The US strict band is ~3.3k firms.
-- **RL-D2** Maps and Data Axle are the two seeds. Everything else adds or sizes.
-- **RL-D3** Size from the firm's own site first. LinkedIn sizes only Tier A, at a daytime pace, read only. No overnight scraping.
-- **RL-D4** Emails are verified by mailifier. No paid verifier (the MillionVerifier policy stands). Apollo only if William pays for it.
+- **RL-D1** 10k needs Tier B and Canada. The US strict band is ~3.3k firms. *(Revised: UK dropped.)*
+- **RL-D2** Overture places and SBA search are the two seeds. Everything else adds or sizes. *(Revised: was Maps + Data Axle.)*
+- **RL-D3** Size from PPP and the firm's own site first. LinkedIn sizes only Tier A, at a daytime pace, read only.
+- **RL-D4** Emails are verified by mailifier. No paid verifier. **No Apollo, paid or free** (William).
 - **RL-D5** Numbers are for calls. No US cold SMS.
 - **RL-D6** University library data is not used (academic licence).
-- **RL-D7** Chain detection is data-driven (a domain in 3+ metros). No hand-kept list, so it works for any niche.
+- **RL-D7** Chain detection is data-driven (a domain at 3+ places). No hand-kept list, so it works for any niche.
+- **RL-D8** US and Canada only. No UK (William).
+- **RL-D9** Every field a source gives is stored. The raw row is the record; columns are views on it.
+- **RL-D10** The opener is evidence-bound: a word-for-word quote or no line.
+- **RL-D11** Overture and SBA are niche-agnostic datasets and formats in core. A niche registers its categories, NAICS codes and countries.
+- **RL-D12** Data Axle waits on William's card. Nothing depends on it.
 
 ## Build (next, in order)
 
-1. A **Maps sweep**: a plan file of metro × category searches, run nightly on the Mac with `--no-email` and resumable per search (run durability). It is niche-agnostic, with chain detection at import.
-2. A **Data Axle flow** in autobrowse (search, then paged download at the library's cap, at a human pace), plus a `data-axle` import format in wren.
-3. **ATS detection and domain age** in the site crawl.
-4. A **LinkedIn company search route** (`GET /search/results/companies` with industry, size and geo) and a **recruiter count** from `/people`.
-5. **Tiering** in the recruiting niche, with an offer per tier.
+1. **Overture places**: a dataset (DuckDB over S3, filtered by the niche's categories and countries) and an import format. Chain, closed and `.gov`/`.mil` drops at import.
+2. **SBA search**: a dataset (one POST per NAICS code) and an import format. The contact becomes a lead.
+3. **PPP sizing**: a dataset (streamed, filtered by NAICS) and a match by name + ZIP onto companies.
+4. **Import to prod**, then the discovery crawl.
+5. **Opener pass**: enrichment kind `opener`, a recruiting facts view exposing it, templates using it. Sample of 50, then the full run on William's yes.
+6. **Tiering** in the recruiting niche, with an offer per tier.
 
 ## Owed by William
 
-- A library card with Data Axle: Kitchener/Waterloo first, else Burlington or Toronto (a non-resident fee would be his spend). He accepts the terms at login.
-- Yes or no on Apollo paid, and on more senders to go faster.
+- Yes on the opener pass's full run (~$50 of LLM).
+- Optional: the Burlington card ($66/yr) for Data Axle.
 - Confirm the tiers and the offer per tier.
 
 ## Where to attack
 
 - Census counts employer firms, and the fee ratio for temp firms is an assumption.
-- The Maps estimate comes from one metro.
+- Overture categories come from its sources; some firms are tagged `employment_agency` wrongly (workforce offices, law firms).
+- SBA firms skew to government contractors. Their NAICS is self-reported.
+- PPP is 2020–21 and self-reported. Name + ZIP matching misses firms that moved or renamed.
 - LinkedIn size is self-reported and counts contractors.
-- Data Axle's staffing count and the library download cap weren't seen (no card yet).
 - 10k leads make a sale likely, not certain. At a 0.5–1% positive reply rate that's 50–100 conversations. Copy and deliverability decide the rest.
