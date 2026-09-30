@@ -714,6 +714,7 @@ async function sendOne(
     signatureHtml: signatureFor(ctx.signatureHtml, sender, ctx.pages, enrollment.niche),
     // A pixel exists only where compose minted a token AND a host is configured.
     pixelUrl: buildPixelUrl(ctx.pixelBaseUrl, message.openToken),
+    linkCode: message.linkCode,
   };
 
   const outcome = await attempt(ctx, outgoing, message, sender);

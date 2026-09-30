@@ -260,6 +260,8 @@ export const messages = pgTable(
     reviewReason: varchar("review_reason", { length: 32, enum: REJECT_REASONS }),
     editedAt: timestamp("edited_at", { withTimezone: true }),
     openToken: varchar("open_token", { length: 64 }),
+    /** The `?r=` on this message's site link: the lander records it, `wren site visits` names the click. */
+    linkCode: varchar("link_code", { length: 40 }),
     approvedBy: varchar("approved_by", { length: 32, enum: APPROVAL_SOURCES }),
   },
   (t) => [
@@ -280,6 +282,7 @@ export const messages = pgTable(
     }),
     unique("uq_messages_enrollment_id").on(t.enrollmentId, t.step),
     unique("uq_messages_open_token").on(t.openToken),
+    unique("uq_messages_link_code").on(t.linkCode),
     oneOf("ck_messages_approvalsource", t.approvedBy, APPROVAL_SOURCES),
     check(
       "ck_messages_approved_by_iff_approved_at",

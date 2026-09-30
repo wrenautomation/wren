@@ -42,12 +42,16 @@ describe("loadSettings", () => {
       WREN_DATABASE_URL: "postgresql://u:p@h:1/d",
       WREN_POSTMASTER_USER: "will@example.com",
       WREN_PIXEL_EXPORT_TOKEN: "s3cret",
+      WREN_SITE_EXPORT_TOKEN: "s1te",
     });
+    expect(s.siteExportToken).toBe("s1te");
     expect(s.postmasterUser).toBe("will@example.com");
     expect(s.pixelExportToken).toBe("s3cret");
     const bare = loadSettings({ WREN_DATABASE_URL: "postgresql://u:p@h:1/d" });
     expect(bare.postmasterUser).toBeUndefined();
     expect(bare.pixelExportToken).toBeUndefined();
+    expect(bare.siteExportToken).toBeUndefined();
+    expect(bare.siteBaseUrl).toBe("https://wrenautomation.com");
     expect(bare.daemonSyncSeconds).toBe(300);
   });
   it("keeps new mail pixel-free unless WREN_OPEN_TRACKING is on", () => {

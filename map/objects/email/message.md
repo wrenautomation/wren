@@ -17,7 +17,7 @@ Text is pinned at compose, so what a reviewer approves is the bytes that go out.
 
 ## Shape
 
-- `enrollment_id`, `step`, `template`, `template_version`, `to_email`, `subject`, `body`, `provenance`, `state`, `message_id`, `gmail_id`, `thread_id`, `attempted_at`, `transport`, `run_id`, `sent_run_id`, `review_reason`, `edited_at`, `open_token`, `approved_by` (operator | auto) (`packages/channel-email/src/schema.ts:237`–`261`)
+- `enrollment_id`, `step`, `template`, `template_version`, `to_email`, `subject`, `body`, `provenance`, `state`, `message_id`, `gmail_id`, `thread_id`, `attempted_at`, `transport`, `run_id`, `sent_run_id`, `review_reason`, `edited_at`, `open_token`, `approved_by` (operator | auto), `link_code` (the `?r=` on the sign-off link; `wren email clicks` reads it back from the lander, `packages/channel-email/src/inbox/clicks.ts`) (`packages/channel-email/src/schema.ts:237`–`261`)
 
 Citations: `packages/channel-email/src/schema.ts:234`, `packages/channel-email/src/state.ts:6`
 

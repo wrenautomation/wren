@@ -71,6 +71,7 @@ describe("compose", () => {
     expect(prov(opener).fields).toEqual(["first_name"]);
     expect(followup?.subject).toBeNull();
     expect(opener?.openToken).toBeNull();
+    expect(opener?.linkCode).toMatch(/^[A-Za-z0-9_-]{12}$/);
   });
 
   it("enrolls one best-ranked person per company and never re-approaches", async () => {

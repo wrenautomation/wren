@@ -597,6 +597,9 @@ export const signed = (body: string, signature: string) =>
 /** A Python `secrets.token_urlsafe(24)`-shaped open token. */
 export const mintOpenToken = () => randomBytes(24).toString("base64url");
 
+/** The short code a message's site link carries (`?r=`), so a visit names the message. */
+export const mintLinkCode = () => randomBytes(9).toString("base64url");
+
 async function enroll(
   tx: Queryable,
   shared: Shared,
@@ -659,6 +662,7 @@ async function enroll(
       runId: shared.runId,
       // Minted here and only here: a draft approved without one can never acquire a pixel.
       openToken: shared.trackOpens ? mintOpenToken() : null,
+      linkCode: mintLinkCode(),
       approvedAt,
       approvedBy,
     };

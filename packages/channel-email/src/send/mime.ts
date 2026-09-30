@@ -86,7 +86,12 @@ export function buildMime(
   headers.push(["MIME-Version", "1.0"]);
   headers.push(["Content-Type", `multipart/alternative; boundary="${boundary}"`]);
   const head = headers.map(([n, v]) => `${n}: ${assertHeaderSafe(n, v)}`).join(CRLF);
-  const html = toHtml(email.body, email.signatureHtml ?? null, email.pixelUrl ?? null);
+  const html = toHtml(
+    email.body,
+    email.signatureHtml ?? null,
+    email.pixelUrl ?? null,
+    email.linkCode ?? null,
+  );
   const part = (type: string, content: string): string =>
     [
       `--${boundary}`,

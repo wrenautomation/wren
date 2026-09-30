@@ -14,6 +14,7 @@ import {
   addSuppression,
   campaignFunnel,
   classifyValue,
+  emailClicks,
   expandHome,
   GmailClient,
   GmailTransport,
@@ -25,6 +26,7 @@ import {
   replyByArmStep,
   resume,
   senderDays,
+  siteExport,
 } from "@wren/channel-email";
 import type { Settings } from "@wren/config";
 import { runImport, runPeopleImport, type Suppression, suppressions } from "@wren/core";
@@ -156,6 +158,42 @@ export function registerEmail(
           );
         }
       });
+    });
+
+  email
+    .command("clicks")
+    .description(
+      "Who clicked the site link in which email (?r= codes from the lander), and what they did after",
+    )
+    .option("--limit <n>", "at most", "50")
+    .action(async (opts: { limit: string }) => {
+      if (!settings.siteExportToken) {
+        console.log("WREN_SITE_EXPORT_TOKEN is unset (the lander's EXPORT_TOKEN secret)");
+        return;
+      }
+      const site = { baseUrl: settings.siteBaseUrl, exportToken: settings.siteExportToken };
+      const [hits, applications] = await Promise.all([
+        siteExport("hits", site),
+        siteExport("applications", site),
+      ]);
+      const clicks = await withDb((db) => emailClicks(db, hits, applications));
+      if (clicks.length === 0) {
+        console.log("no email link clicks yet");
+        return;
+      }
+      console.log("first click · company · to · niche step · visitors views secs · form · applied");
+      for (const c of clicks.slice(0, Number(opts.limit))) {
+        const m = c.message;
+        const who = m
+          ? `${m.company ?? "?"} · ${m.toEmail} · ${m.niche} step ${m.step}`
+          : `unknown code ${c.code}`;
+        const applied = c.applied
+          ? `applied ${c.applied.offer}${c.applied.fit ? " (fit)" : ""}`
+          : "–";
+        console.log(
+          `  ${c.firstClick.slice(0, 16)} · ${who} · ${c.visitors} ${c.views} ${c.secs}s · ${c.reachedForm ? "form" : "–"} · ${applied}`,
+        );
+      }
     });
 
   email

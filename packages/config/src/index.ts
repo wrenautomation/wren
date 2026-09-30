@@ -79,6 +79,10 @@ export const settingsSchema = z.object({
     .transform((v) => v === "true" || v === "1"),
   /** The pixel host's /export bearer, shared with the worker. A secret: never logged, never in argv. */
   pixelExportToken: z.string().min(1).optional(),
+  /** The lander, where email sign-off links point; `wren email clicks` reads its /api/export. */
+  siteBaseUrl: z.string().url().default("https://wrenautomation.com"),
+  /** The lander's /api/export bearer (its EXPORT_TOKEN secret). A secret: never logged, never in argv. */
+  siteExportToken: z.string().min(1).optional(),
   /**
    * The Workspace user Postmaster answers for — the account that registered
    * the domains at postmaster.google.com. Unset = no daily pull.
@@ -272,6 +276,8 @@ export const ENV_KEYS = {
   pixelBaseUrl: "WREN_PIXEL_BASE_URL",
   openTracking: "WREN_OPEN_TRACKING",
   pixelExportToken: "WREN_PIXEL_EXPORT_TOKEN",
+  siteBaseUrl: "WREN_SITE_BASE_URL",
+  siteExportToken: "WREN_SITE_EXPORT_TOKEN",
   postmasterUser: "WREN_POSTMASTER_USER",
   reportTo: "WREN_REPORT_TO",
   reportFrom: "WREN_REPORT_FROM",

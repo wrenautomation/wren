@@ -582,6 +582,8 @@ async function enroll(
           ...approval,
           runId: record.runId ?? null,
           openToken: null,
+          // sent as the client, to the client's site: nothing of ours to count
+          linkCode: null,
         })),
       );
       await tx.insert(compositions).values({ ...record, state: "drafted", enrollmentId });

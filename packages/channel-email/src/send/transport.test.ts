@@ -10,6 +10,7 @@ import {
   TransportRefused,
   toHtml,
   visibleText,
+  withLinkCode,
 } from "./transport.js";
 
 const SENDER = "will@wren-automation.com";
@@ -215,6 +216,26 @@ describe("toHtml", () => {
       "--\nWilliam Jin\nFounder, Wren Automation\nwrenautomation.com",
     );
     expect(visibleText("<p>a &amp; b</p>")).toBe("a & b");
+  });
+});
+
+describe("withLinkCode", () => {
+  const signOff = "--\nWilliam Jin\nwrenautomation.com/recruiting";
+  it("tags the sign-off's own site link and leaves its text bare", () => {
+    const html = toHtml(`Hi.\n\n${signOff}`, null, null, "abcDEF123_-x");
+    expect(html).toContain('href="https://wrenautomation.com/recruiting?r=abcDEF123_-x"');
+    expect(html).toContain(">wrenautomation.com/recruiting</a>");
+    expect(visibleText(html)).not.toContain("?r=");
+  });
+  it("never tags a link whose text is not its own address", () => {
+    const other =
+      '<a href="https://linkedin.com/in/x">LinkedIn</a> <a href="https://evil.com">wrenautomation.com</a>';
+    expect(withLinkCode(other, "abcDEF123456")).toBe(other);
+  });
+  it("is off without a code and refuses a code of another shape", () => {
+    const html = toHtml(`Hi.\n\n${signOff}`);
+    expect(html).not.toContain("?r=");
+    expect(() => withLinkCode(html, 'a b"c')).toThrow("link code");
   });
 });
 

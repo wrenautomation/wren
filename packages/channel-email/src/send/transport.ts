@@ -37,6 +37,8 @@ export interface OutgoingEmail {
   readonly signatureHtml?: string | null;
   /** This message's open-tracking pixel (C-D12), already built by `buildPixelUrl`. */
   readonly pixelUrl?: string | null;
+  /** Added as `?r=` to the sign-off's site link, so a visit names this message. */
+  readonly linkCode?: string | null;
 }
 
 /** What came back: our id, plus the provider's handles on it. */
@@ -202,13 +204,39 @@ function pixelTag(url: string): string {
   return `<img src="${escapeHtml(url)}" width="1" height="1" alt="" style="border:0;width:1px;height:1px">`;
 }
 
+const LINK_CODE = /^[A-Za-z0-9_-]{8,40}$/;
+const LINK = /<a\b([^>]*?)\bhref="https:\/\/([^"?#]+)"([^>]*)>([^<]*)<\/a>/gi;
+
+/**
+ * The sign-off's site link with `?r=code` on it. Only a link that shows its own
+ * bare domain (href is https:// plus the visible text) is tagged; any other
+ * link is someone else's site and never sees the code. The text stays bare.
+ */
+export function withLinkCode(html: string, code: string | null | undefined): string {
+  if (!code) return html;
+  if (!LINK_CODE.test(code))
+    throw new Error(`refusing a link code of this shape: ${JSON.stringify(code)}`);
+  return html.replace(LINK, (whole, pre: string, target: string, post: string, text: string) => {
+    const shown = unescapeHtml(text).trim();
+    return shown === target && BARE_DOMAIN.test(shown)
+      ? `<a${pre}href="https://${target}?r=${code}"${post}>${text}</a>`
+      : whole;
+  });
+}
+
 /**
  * The HTML twin of a plain-text body: a rendering of it, never separate
  * content. Strip the tags and the plain part comes back. Everything from the
  * last `--` line on is the sign-off; `signatureHtml` is used only when its
  * visible text matches those lines. `pixel` is the last thing in the part.
+ * `linkCode` tags the sign-off's site link (`withLinkCode`).
  */
-export function toHtml(body: string, signatureHtml?: string | null, pixel?: string | null): string {
+export function toHtml(
+  body: string,
+  signatureHtml?: string | null,
+  pixel?: string | null,
+  linkCode?: string | null,
+): string {
   const lines = body.split("\n");
   let cut: number | null = null;
   for (let i = lines.length - 1; i >= 0; i--) {
@@ -230,7 +258,8 @@ export function toHtml(body: string, signatureHtml?: string | null, pixel?: stri
       signatureHtml && visibleText(signatureHtml) === block.join("\n")
         ? `<p>${signatureHtml.trim()}</p>`
         : derivedSignatureHtml(block);
-    inner = message ? `${message}\n${signature}` : signature;
+    const tagged = withLinkCode(signature, linkCode);
+    inner = message ? `${message}\n${tagged}` : tagged;
   }
   const tail = pixel ? `\n${pixelTag(pixel)}` : "";
   return `<div style="${STYLE_BODY}">\n${inner}\n</div>${tail}`;
