@@ -1,6 +1,18 @@
 import type { Db, Tx } from "@wren/db";
 import { completeAndParse, type LlmClient, type Tracer } from "@wren/llm";
-import { and, asc, count, eq, inArray, isNotNull, isNull, or, sql } from "drizzle-orm";
+import {
+  and,
+  asc,
+  count,
+  eq,
+  inArray,
+  isNotNull,
+  isNull,
+  ne,
+  notInArray,
+  or,
+  sql,
+} from "drizzle-orm";
 import { vendorSpec } from "./chart.js";
 import { type CheckedBill, check, Reading, type VendorFacts } from "./ground.js";
 import { formatMoney } from "./money.js";
@@ -53,7 +65,7 @@ Answer with one JSON object and nothing else:
 {
   "kind": "bill" | "payment" | "notice" | "other",
   "bill": null | {
-    "number": the invoice number as printed, without a leading "#"; a receipt's number only when no invoice number is printed,
+    "number": the invoice number as printed, without a leading "#"; when none is printed, the receipt number, else the transaction or payment ID,
     "kind": "invoice" | "receipt" | "credit_note",
     "issued_on": the invoice or receipt date, "YYYY-MM-DD",
     "due_on": "YYYY-MM-DD" or null,
@@ -77,6 +89,7 @@ Answer with one JSON object and nothing else:
 Rules:
 - "bill": an invoice, receipt or credit note with a total. "payment": it only confirms a payment toward an invoice. "notice": billing news with nothing owed (a card expiring, a plan change). "other": anything else.
 - A receipt for a paid invoice is both: fill "bill" and list the payment.
+- An order confirmation is a "notice" unless it shows the charge was made (paid, charged to a card): the invoice or receipt for the order is the bill.
 - Amounts: copy the printed text with its currency mark ("$147.00", "CA$7.00", "US$10.98"). Discounts and credits are negative lines ("-$5.00").
 - Dates: the printed date as "YYYY-MM-DD".
 - Anything not printed: null. No lines, taxes or payments: [].`;
@@ -98,6 +111,8 @@ export interface ReadReport {
   review: number;
   /** Documents the model could not answer for; left for `--reread`. */
   unreadable: number;
+  /** Bills a document read again no longer gives. */
+  voided: number;
 }
 
 /**
@@ -121,7 +136,14 @@ export async function readDocuments(
         : and(isNull(documents.readAt), isNull(documents.parentId), isNotNull(documents.vendorId)),
     )
     .orderBy(asc(documents.sentAt), asc(documents.id));
-  const report: ReadReport = { read: 0, bills: 0, payments: 0, review: 0, unreadable: 0 };
+  const report: ReadReport = {
+    read: 0,
+    bills: 0,
+    payments: 0,
+    review: 0,
+    unreadable: 0,
+    voided: 0,
+  };
   for (const doc of todo) {
     const vendor = doc.vendorId === null ? undefined : vendorRows.get(doc.vendorId);
     if (!vendor) {
@@ -201,6 +223,10 @@ export async function readDocuments(
             .values({ billId: known.billId, documentId: doc.id })
             .onConflictDoNothing();
       }
+      for (const v of await voidStale(tx, doc.id, saved?.id ?? null)) {
+        report.voided++;
+        opts.log?.(`  ${vendor.key} ${v.number}: void`);
+      }
       await tx
         .update(documents)
         .set({
@@ -263,9 +289,10 @@ async function writeLinesAndTaxes(tx: Tx, billId: number, b: CheckedBill): Promi
 
 /**
  * One bill per vendor and number, however many documents speak about it. A
- * new reading replaces the bill when it is a re-read of the same document or
- * fixes one held for review; agrees and fills gaps (and brings more lines or
- * taxes) when totals match; holds the bill for review when totals differ.
+ * new reading replaces the bill when it is a re-read of the same document,
+ * fixes one held for review, or names a void one; agrees and fills gaps (and
+ * brings more lines or taxes) when totals match; holds the bill for review
+ * when totals differ.
  */
 async function saveBill(
   tx: Tx,
@@ -301,7 +328,9 @@ async function saveBill(
   const reread = existing.documentId === documentId;
   if (
     existing.review !== "personal" &&
-    (reread || (existing.review === "needs_review" && review === "ok"))
+    (reread ||
+      existing.review === "void" ||
+      (existing.review === "needs_review" && review === "ok"))
   ) {
     await tx
       .update(bills)
@@ -347,6 +376,33 @@ async function saveBill(
     .set({ ...(gaps as Partial<typeof bills.$inferInsert>), updatedAt: new Date() })
     .where(eq(bills.id, id));
   return { id, saved: "enriched", review: existing.review };
+}
+
+/**
+ * Bills a document's earlier reading made that its new reading no longer
+ * gives (an order confirmation after all, a number read differently): kept,
+ * never posted. A bill you called personal stays so.
+ */
+async function voidStale(
+  tx: Tx,
+  documentId: number,
+  keep: number | null,
+): Promise<Array<{ number: string }>> {
+  return tx
+    .update(bills)
+    .set({
+      review: "void",
+      reviewReasons: [`document ${documentId}, read again, no longer gives it`],
+      updatedAt: new Date(),
+    })
+    .where(
+      and(
+        eq(bills.documentId, documentId),
+        notInArray(bills.review, ["void", "personal"]),
+        ...(keep === null ? [] : [ne(bills.id, keep)]),
+      ),
+    )
+    .returning({ number: bills.number });
 }
 
 /** Payments read before their bill find it by vendor and number; the payment's document joins the bill's. */

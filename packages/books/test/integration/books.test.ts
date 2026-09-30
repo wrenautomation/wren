@@ -350,7 +350,7 @@ describe("import", () => {
     expect(box.queries[0]?.startsWith("after:2026/07/31 {")).toBe(true);
     expect(captured).toMatchObject({ found: 7, known: 0, kept: 7, attachments: 1, unmatched: 1 });
     expect(await readdir(join(root, "books/documents"))).toHaveLength(8);
-    expect(read).toEqual({ read: 5, bills: 3, payments: 2, review: 0, unreadable: 1 });
+    expect(read).toEqual({ read: 5, bills: 3, payments: 2, review: 0, unreadable: 1, voided: 0 });
     expect(posted).toEqual({ posted: 3, reversed: 0, unchanged: 0 });
 
     const sums = await pg.db
@@ -564,6 +564,52 @@ describe("review", () => {
       { account: "code", cad: 2192 },
       { account: "gst-paid", cad: 110 },
       { account: "card-bmo", cad: -2302 },
+    ]);
+  });
+
+  it("voids a bill its document, read again, no longer gives, and posts it again when it does", async () => {
+    await importAll({ a: GITHUB });
+    const id = await billId("GH-1001");
+    const doc = await docId(GITHUB.subject);
+
+    answers.set(GITHUB.subject, { kind: "notice", bill: null, payments: [] });
+    expect(await readDocuments(pg.db, llm(), { ids: [doc] })).toMatchObject({
+      bills: 0,
+      voided: 1,
+    });
+    expect((await billDetail(pg.db, id))?.bill).toMatchObject({
+      review: "void",
+      reviewReasons: [`document ${doc}, read again, no longer gives it`],
+    });
+    expect(await post(pg.db, { feed })).toEqual({ posted: 0, reversed: 1, unchanged: 0 });
+    expect(await listSubscriptions(pg.db)).toEqual([]);
+    expect((await reviewQueue(pg.db)).bills).toEqual([]);
+
+    answers.set(GITHUB.subject, githubBill());
+    expect(await readDocuments(pg.db, llm(), { ids: [doc] })).toMatchObject({
+      bills: 1,
+      voided: 0,
+    });
+    expect((await billDetail(pg.db, id))?.bill.review).toBe("ok");
+    expect(await post(pg.db, { feed })).toEqual({ posted: 1, reversed: 0, unchanged: 0 });
+  });
+
+  it("voids the bill under a number read wrong once a re-read finds the printed one", async () => {
+    answers.set(GITHUB.subject, githubBill({ number: "GH-9999" }));
+    const box = mailbox({ a: GITHUB });
+    await capture(pg.db, box.mb, { since: "2026-08-01", store: dirStore(root) });
+    await readDocuments(pg.db, llm());
+    const wrong = await billId("GH-9999");
+
+    answers.set(GITHUB.subject, githubBill());
+    expect(await readDocuments(pg.db, llm(), { ids: [await docId(GITHUB.subject)] })).toMatchObject(
+      { bills: 1, review: 0, voided: 1 },
+    );
+    expect((await billDetail(pg.db, wrong))?.bill.review).toBe("void");
+    expect(await post(pg.db, { feed })).toEqual({ posted: 1, reversed: 0, unchanged: 0 });
+    expect((await listBills(pg.db)).map((b) => [b.number, b.review, b.cadCents])).toEqual([
+      ["GH-9999", "void", null],
+      ["GH-1001", "ok", 2302],
     ]);
   });
 

@@ -12,7 +12,7 @@ import { shiftDay } from "./day.js";
 import { billingQuery, type Mailbox, vendorFor } from "./mailbox.js";
 import { documents, vendors } from "./schema.js";
 import { type DocumentStore, sha256, storeKey } from "./store.js";
-import { bodyText, pdfText } from "./text.js";
+import { bodyText, pdfText, withoutNul } from "./text.js";
 
 export interface CaptureOptions {
   /** The first day to look at, `YYYY-MM-DD`. */
@@ -101,7 +101,7 @@ interface Keep {
 async function keepEmail(db: Db, store: DocumentStore, raw: Uint8Array, keep: Keep) {
   const message = parseMessage(raw);
   const [name, address] = parseAddr(message.get("From") ?? "");
-  const subject = decodeEncodedWords(message.get("Subject") ?? "").trim();
+  const subject = withoutNul(decodeEncodedWords(message.get("Subject") ?? "")).trim();
   const vendorId = keep.vendorOf(address, subject);
   const hash = sha256(raw);
   const key = storeKey(hash, "message/rfc822");
@@ -114,7 +114,8 @@ async function keepEmail(db: Db, store: DocumentStore, raw: Uint8Array, keep: Ke
     const pdfHash = sha256(bytes);
     const pdfKey = storeKey(pdfHash, "application/pdf");
     await store.put(pdfKey, bytes, "application/pdf");
-    pdfs.push({ hash: pdfHash, key: pdfKey, bytes, filename: part.filename() });
+    const filename = part.filename();
+    pdfs.push({ hash: pdfHash, key: pdfKey, bytes, filename: filename && withoutNul(filename) });
   }
   const pdfTexts = await Promise.all(pdfs.map((p) => pdfText(p.bytes)));
 
@@ -131,7 +132,7 @@ async function keepEmail(db: Db, store: DocumentStore, raw: Uint8Array, keep: Ke
         mailboxKey: keep.mailboxKey,
         messageId: message.get("Message-ID")?.trim() ?? null,
         fromAddress: address.toLowerCase() || null,
-        fromName: decodeEncodedWords(name) || null,
+        fromName: withoutNul(decodeEncodedWords(name)) || null,
         subject: subject || null,
         sentAt: parseDate(message.get("Date")),
         vendorId,

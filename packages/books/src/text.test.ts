@@ -12,6 +12,10 @@ describe("htmlText", () => {
       "Thanks for your order\n\nPro plan $20.00\nTotal $20.00\n\nQuestions? Reply…",
     );
   });
+
+  it("turns NUL into a space, since Postgres text refuses it", () => {
+    expect(htmlText("<p>Sep 6\u0000Oct 6, 2026 &#0;</p>")).toBe("Sep 6 Oct 6, 2026");
+  });
 });
 
 describe("bodyText", () => {

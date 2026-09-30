@@ -36,9 +36,12 @@ function decodeEntities(text: string): string {
   });
 }
 
+/** Postgres text refuses NUL; a PDF glyph with no text mapping comes out as one. */
+export const withoutNul = (text: string) => text.replaceAll("\u0000", " ");
+
 /** Tidy lines: trimmed, inner runs of spaces collapsed, at most one blank line between blocks. */
 function tidy(text: string): string {
-  return text
+  return withoutNul(text)
     .replace(/\r\n?/g, "\n")
     .split("\n")
     .map((line) =>

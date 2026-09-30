@@ -196,7 +196,7 @@ export function registerBooks(
           }
           const read = await readDocuments(db, llm, { runId: r.id, log });
           console.log(
-            `read ${read.read}: ${read.bills} bills (${read.review} held), ${read.payments} payments, ${read.unreadable} unreadable`,
+            `read ${read.read}: ${read.bills} bills (${read.review} held), ${read.payments} payments, ${read.unreadable} unreadable${read.voided ? `, ${read.voided} void` : ""}`,
           );
           return { captured, read, posted: await posting(db, r.id) };
         }),
@@ -226,7 +226,7 @@ export function registerBooks(
               ...(documentIds.length ? { ids: documentIds } : {}),
             });
             console.log(
-              `read ${read.read}: ${read.bills} bills (${read.review} held), ${read.payments} payments, ${read.unreadable} unreadable`,
+              `read ${read.read}: ${read.bills} bills (${read.review} held), ${read.payments} payments, ${read.unreadable} unreadable${read.voided ? `, ${read.voided} void` : ""}`,
             );
             return { read, posted: await posting(db, r.id) };
           },

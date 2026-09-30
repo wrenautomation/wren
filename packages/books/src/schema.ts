@@ -158,9 +158,10 @@ export const BILL_KINDS = ["invoice", "receipt", "credit_note"] as const;
 /**
  * `ok`: every check passed. `needs_review`: a check failed, so it is not
  * posted. `accepted`: you confirmed it anyway. `personal`: not a business
- * cost; kept, never posted.
+ * cost; kept, never posted. `void`: its document, read again, no longer gives
+ * it; kept, never posted.
  */
-export const REVIEW_STATES = ["ok", "needs_review", "accepted", "personal"] as const;
+export const REVIEW_STATES = ["ok", "needs_review", "accepted", "personal", "void"] as const;
 export type ReviewState = (typeof REVIEW_STATES)[number];
 
 /**
@@ -513,7 +514,7 @@ export const subscriptions = books
     bills: integer("bills"),
   })
   .as(
-    sql`SELECT DISTINCT ON (c.vendor_id, (lower(COALESCE(c.plan, ''::text)))) c.vendor_id, c.vendor, c.vendor_name, c.plan, c.cycle, c.currency, c.total_cents AS last_total_cents, c.cad_cents AS last_cad_cents, c.issued_on AS last_billed_on, (c.issued_on + CASE WHEN c.cycle::text = 'yearly'::text THEN '1 year'::interval ELSE '1 mon'::interval END)::date AS renews_on, CASE WHEN c.cycle::text = 'yearly'::text THEN round(c.cad_cents::numeric / 12.0)::bigint ELSE c.cad_cents END AS monthly_cad_cents, (SELECT min(b2.issued_on) FROM books.bills b2 WHERE b2.vendor_id = c.vendor_id AND lower(COALESCE(b2.plan, ''::text)) = lower(COALESCE(c.plan, ''::text)) AND b2.review::text <> 'personal'::text) AS since, (SELECT count(*)::integer FROM books.bills b2 WHERE b2.vendor_id = c.vendor_id AND lower(COALESCE(b2.plan, ''::text)) = lower(COALESCE(c.plan, ''::text)) AND b2.review::text <> 'personal'::text) AS bills FROM books.bill_costs c WHERE (c.cycle::text = ANY (ARRAY['monthly'::character varying, 'yearly'::character varying]::text[])) AND c.review::text <> 'personal'::text ORDER BY c.vendor_id, (lower(COALESCE(c.plan, ''::text))), c.issued_on DESC, c.bill_id DESC`,
+    sql`SELECT DISTINCT ON (c.vendor_id, (lower(COALESCE(c.plan, ''::text)))) c.vendor_id, c.vendor, c.vendor_name, c.plan, c.cycle, c.currency, c.total_cents AS last_total_cents, c.cad_cents AS last_cad_cents, c.issued_on AS last_billed_on, (c.issued_on + CASE WHEN c.cycle::text = 'yearly'::text THEN '1 year'::interval ELSE '1 mon'::interval END)::date AS renews_on, CASE WHEN c.cycle::text = 'yearly'::text THEN round(c.cad_cents::numeric / 12.0)::bigint ELSE c.cad_cents END AS monthly_cad_cents, (SELECT min(b2.issued_on) FROM books.bills b2 WHERE b2.vendor_id = c.vendor_id AND lower(COALESCE(b2.plan, ''::text)) = lower(COALESCE(c.plan, ''::text)) AND (b2.review::text <> ALL (ARRAY['personal'::character varying, 'void'::character varying]::text[]))) AS since, (SELECT count(*)::integer FROM books.bills b2 WHERE b2.vendor_id = c.vendor_id AND lower(COALESCE(b2.plan, ''::text)) = lower(COALESCE(c.plan, ''::text)) AND (b2.review::text <> ALL (ARRAY['personal'::character varying, 'void'::character varying]::text[]))) AS bills FROM books.bill_costs c WHERE (c.cycle::text = ANY (ARRAY['monthly'::character varying, 'yearly'::character varying]::text[])) AND (c.review::text <> ALL (ARRAY['personal'::character varying, 'void'::character varying]::text[])) ORDER BY c.vendor_id, (lower(COALESCE(c.plan, ''::text))), c.issued_on DESC, c.bill_id DESC`,
   );
 
 /**

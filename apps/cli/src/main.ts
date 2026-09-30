@@ -150,5 +150,8 @@ report
 
 program.parseAsync().catch((err: unknown) => {
   console.error(err instanceof Error ? err.message : String(err));
+  // A failed query's reason (Postgres's own words) rides on the cause.
+  if (err instanceof Error && err.cause instanceof Error)
+    console.error(`cause: ${err.cause.message}`);
   process.exitCode = 1;
 });
