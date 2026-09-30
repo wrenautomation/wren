@@ -136,8 +136,12 @@ export function makeSendScheduler(deps: SendSchedulerDeps) {
   const scheduler = restate.object({
     name: "SendScheduler",
     handlers: {
-      /** Run one tick now; the loop (if any) is untouched. */
-      tick: async (ctx: restate.ObjectContext): Promise<TickOutcome | null> => runTick(ctx),
+      /** Run one tick now; the loop (if any) is untouched, unless the scope is gone: then it ends, as its own next tick would end it. */
+      tick: async (ctx: restate.ObjectContext): Promise<TickOutcome | null> => {
+        const outcome = await runTick(ctx);
+        if (!outcome && ((await ctx.get<boolean>(RUNNING)) ?? false)) ctx.set(RUNNING, false);
+        return outcome;
+      },
 
       /** Begin looping; a no-op when already running. */
       start: async (ctx: restate.ObjectContext): Promise<SchedulerStatus> => {
