@@ -92,7 +92,7 @@ export function App() {
   const clients = me.data?.clients ?? [];
   const current = clients.find((c) => c.id === client) ?? clients[0] ?? null;
   useEffect(() => {
-    if (at && current) document.title = `${at.page.label} · ${current.name} · Wren`;
+    if (at && current) document.title = `${at.page.label} · ${current.name} · Wren Client Portal`;
   }, [at, current]);
 
   if (me.error && !me.data)
