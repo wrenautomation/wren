@@ -13,6 +13,7 @@ import {
   type SQL,
   sql,
 } from "drizzle-orm";
+import { shiftDay, today } from "./day.js";
 import {
   accounts,
   billCosts,
@@ -147,9 +148,16 @@ export async function listSpend(db: Db, opts: Range = {}) {
     .orderBy(asc(spend.month), asc(spend.account), asc(spend.vendor));
 }
 
-/** Subscriptions, dearest first. */
-export async function listSubscriptions(db: Db) {
-  return db.select().from(subscriptions).orderBy(desc(subscriptions.monthlyCadCents));
+/**
+ * Subscriptions running on a day (today by default), dearest first. One whose
+ * renewal is over a week late has lapsed, or its bill was missed.
+ */
+export async function listSubscriptions(db: Db, opts: { on?: string } = {}) {
+  return db
+    .select()
+    .from(subscriptions)
+    .where(gte(subscriptions.renewsOn, shiftDay(opts.on ?? today(), -7)))
+    .orderBy(desc(subscriptions.monthlyCadCents));
 }
 
 /** One kept document; its bytes are in the store under `storeKey`. */

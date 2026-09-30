@@ -424,7 +424,7 @@ describe("import", () => {
     expect(feedCalls).toEqual(["USD 2026-07-26 2026-08-15"]);
   });
 
-  it("reads back spend by month and what each subscription costs", async () => {
+  it("reads back spend by month, and what each subscription costs until it lapses", async () => {
     await importAll();
     const spend = await listSpend(pg.db);
     expect(spend.map((s) => [s.month, s.account, s.vendor, s.cadCents])).toEqual([
@@ -432,17 +432,49 @@ describe("import", () => {
       ["2026-08-01", "hosting", "racknerd", 1506],
       ["2026-09-01", "email", "google-workspace", 10500],
     ]);
-    const subs = await listSubscriptions(pg.db);
+    const subs = await listSubscriptions(pg.db, { on: "2026-09-05" });
     expect(subs.map((s) => [s.vendor, s.cycle, s.renewsOn, s.monthlyCadCents])).toEqual([
       ["google-workspace", "monthly", "2026-10-01", 10500],
       ["github", "monthly", "2026-09-05", 2302],
       ["racknerd", "yearly", "2027-08-10", 126],
     ]);
+    // A week past its renewal with no new bill, GitHub has lapsed.
+    const later = await listSubscriptions(pg.db, { on: "2026-09-13" });
+    expect(later.map((s) => s.vendor)).toEqual(["google-workspace", "racknerd"]);
     const august = await listBills(pg.db, { from: "2026-08-01", to: "2026-08-31" });
     expect(august.map((b) => [b.number, b.cadCents])).toEqual([
       ["GH-1001", 2302],
       ["777", 1506],
     ]);
+  });
+});
+
+describe("subscriptions", () => {
+  it("keeps each renewal a registrar names no plan for apart, and leaves out what cost nothing", async () => {
+    // Cloudflare's emails print an amount and a due date, not the domain.
+    const mails: Record<string, Mail> = {};
+    for (const [number, total, due] of [
+      ["IN-0", "$0.00", "2026-08-11"],
+      ["IN-1", "$10.98", "2026-08-22"],
+      ["IN-2", "$12.45", "2026-08-22"],
+    ] as const) {
+      const subject = `Your Cloudflare invoice ${number}`;
+      mails[number] = {
+        from: "Cloudflare <noreply@notify.cloudflare.com>",
+        subject,
+        date: `${due}T12:00:00Z`,
+        body: `Invoice ${number}\nAmount due: ${total}\nDue date: ${due}`,
+      };
+      const bill = { number, kind: "invoice", issued_on: null, due_on: due, total, cycle: null };
+      answers.set(subject, { kind: "bill", bill, payments: [] });
+    }
+    expect((await importAll(mails)).read).toMatchObject({ bills: 3, review: 0 });
+    const subs = await listSubscriptions(pg.db, { on: "2026-09-01" });
+    expect(subs.map((s) => [s.vendor, s.plan, s.cycle, s.renewsOn, s.lastTotalCents])).toEqual([
+      ["cloudflare", null, "yearly", "2027-08-22", 1245],
+      ["cloudflare", null, "yearly", "2027-08-22", 1098],
+    ]);
+    expect(await listSubscriptions(pg.db, { on: "2027-08-30" })).toEqual([]);
   });
 });
 

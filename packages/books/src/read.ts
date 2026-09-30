@@ -80,8 +80,8 @@ Answer with one JSON object and nothing else:
     "payment_method": as printed ("Mastercard ending 1234"), or null,
     "billed_to": the bill-to block as printed, on one line, or null,
     "vendor_tax_number": the vendor's tax registration as printed, or null,
-    "plan": the plan or product (a domain name for a registrar), or null,
-    "cycle": "monthly" | "yearly" | "usage" | "once" | null
+    "plan": the plan or product billed ("Business Starter", a server, a domain name for a registrar), or null,
+    "cycle": how often it bills: "monthly" or "yearly" (a plan that renews, even when priced per seat or prorated), "usage" (charged as used or topped up, on no schedule), "once", or null
   },
   "payments": [{"invoice_number", "paid_on": "YYYY-MM-DD", "amount", "currency", "method", "reference": the receipt or transaction number}]
 }

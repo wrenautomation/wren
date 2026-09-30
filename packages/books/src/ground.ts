@@ -218,6 +218,15 @@ const CYCLES: ReadonlyArray<[RegExp, BillCycle]> = [
 const cycleOf = (s: string | null | undefined) =>
   s ? (CYCLES.find(([re]) => re.test(s))?.[1] ?? null) : null;
 
+/** A printed service period of about a month or a year says how often it bills. */
+function periodCycle(start: string | null, end: string | null): BillCycle | null {
+  if (!start || !end) return null;
+  const days = (Date.parse(end) - Date.parse(start)) / 86_400_000;
+  if (days >= 27 && days <= 31) return "monthly";
+  if (days >= 364 && days <= 366) return "yearly";
+  return null;
+}
+
 const billKindOf = (s: string | null | undefined): CheckedBill["kind"] =>
   /credit/i.test(s ?? "") ? "credit_note" : /receipt/i.test(s ?? "") ? "receipt" : "invoice";
 
@@ -378,7 +387,7 @@ export function check(reading: Reading, corpus: Corpus, vendor: VendorFacts): Ch
       totalCents: total * flip,
       chargedCadCents: chargedCad === null ? null : Math.abs(chargedCad) * Math.sign(total * flip),
       plan: clean(b.plan),
-      cycle: cycleOf(b.cycle) ?? vendor.cycle,
+      cycle: cycleOf(b.cycle) ?? periodCycle(periodStart, periodEnd) ?? vendor.cycle,
       paymentMethod: clean(b.payment_method),
       billedTo: clean(b.billed_to),
       vendorTaxNumber,

@@ -407,9 +407,10 @@ export function registerBooks(
   books
     .command("subs")
     .description("Subscriptions: what each costs a month and when it renews")
+    .option("--on <day>", "running on this day (default today)", dayOf)
     .option("--json", "print JSON")
-    .action(async (opts: { json?: boolean }) => {
-      const rows = await withDb(listSubscriptions);
+    .action(async (opts: { on?: string; json?: boolean }) => {
+      const rows = await withDb((db) => listSubscriptions(db, opts));
       if (opts.json) return json(rows);
       for (const s of rows)
         console.log(
