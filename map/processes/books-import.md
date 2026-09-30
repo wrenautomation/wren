@@ -1,7 +1,7 @@
 ---
 type: process
 status: verified
-verified: 2026-09-30 @ ec9a947
+verified: 2026-09-30 @ 3daced1
 consumes: ["[[books/vendor]]"]
 produces: ["[[books/document]]", "[[books/bill]]", "[[books/entry]]", "[[ledger/run]]"]
 ---
@@ -22,7 +22,7 @@ The model is never trusted with a number: each figure must be printed in the doc
 
 1. Seed the chart and vendors (`packages/books/src/chart.ts:124`).
 2. Search each mailbox (`packages/books/src/mailbox.ts:92`); keep every new email and PDF (`packages/books/src/capture.ts:48`, `:101`).
-3. Read unread documents that have a vendor (`packages/books/src/read.ts:108`), check the reading (`packages/books/src/ground.ts:240`), save the bill (`read.ts:270`), link payments (`:353`).
+3. Read unread documents that have a vendor (`packages/books/src/read.ts:123`), check the reading (`packages/books/src/ground.ts:240`), save the bill (`read.ts:297`), void the bills a re-read no longer gives (`:386`), link payments (`:409`).
 4. Post (`packages/books/src/post.ts:105`) at the stated CAD charge, else the Bank of Canada rate (`packages/books/src/rates.ts:38`).
 5. The CLI wraps it in one `runs` row (`apps/cli/src/books.ts:165`).
 

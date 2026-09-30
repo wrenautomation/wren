@@ -3,8 +3,8 @@ type: object
 cluster: books
 universe: live
 status: verified
-verified: 2026-09-30 @ ec9a947
-entity: packages/books/src/schema.ts:170
+verified: 2026-09-30 @ 3daced1
+entity: packages/books/src/schema.ts:171
 ---
 
 # bill
@@ -13,15 +13,15 @@ A vendor's invoice or receipt as printed: one `books.bills` row per vendor and n
 
 ## Why this shape
 
-Every figure must be printed on a document we keep, so a bill is the vendor's record, not our summary. The invoice email, its PDF and a later payment notice all link to one bill; a copy with a different total holds it instead of making a second. `review` decides posting: `ok` and `accepted` post, `needs_review` waits with its `review_reasons`, `personal` is kept and never posted.
+Every figure must be printed on a document we keep, so a bill is the vendor's record, not our summary. The invoice email, its PDF and a later payment notice all link to one bill; a copy with a different total holds it instead of making a second. `review` decides posting: `ok` and `accepted` post, `needs_review` waits with its `review_reasons`, `personal` is kept and never posted. `void` is kept and never posted too: its document, read again, no longer gives it (an order confirmation, a number read wrong); a document that names it again revives it.
 
 ## Shape
 
-- `bills` (`schema.ts:170`): number, kind (invoice | receipt | credit_note), issued, due, period, currency, subtotal, tax, total, `charged_cad_cents`, plan, cycle, payment method, billed-to, vendor tax number, account, review and reasons, the document read
-- `bill_lines` (`:239`), `bill_taxes` (`:267`, `claimable` per tax), `bill_payments` (`:299`, one row per reference or day and amount, linked by invoice number), `bill_documents` (`:343`)
-- Views: `bill_costs` (`:466`, CAD from the live entry), `subscriptions` (`:499`, renews a cycle after the last bill)
+- `bills` (`schema.ts:171`): number, kind (invoice | receipt | credit_note), issued, due, period, currency, subtotal, tax, total, `charged_cad_cents`, plan, cycle, payment method, billed-to, vendor tax number, account, review and reasons, the document read
+- `bill_lines` (`:240`), `bill_taxes` (`:268`, `claimable` per tax), `bill_payments` (`:300`, one row per reference or day and amount, linked by invoice number), `bill_documents` (`:344`)
+- Views: `bill_costs` (`:467`, CAD from the live entry), `subscriptions` (`:500`, renews a cycle after the last bill; leaves out personal and void)
 
-Citations: `packages/books/src/schema.ts:170`, `:239`, `:267`, `:299`, `:343`, `:466`, `:499`
+Citations: `packages/books/src/schema.ts:171`, `:240`, `:268`, `:300`, `:344`, `:467`, `:500`, `packages/books/src/read.ts:386`
 
 ## Connected to
 
@@ -32,7 +32,7 @@ Citations: `packages/books/src/schema.ts:170`, `:239`, `:267`, `:299`, `:343`, `
 
 ## If you change this
 
-- **Hits:** `check` (`packages/books/src/ground.ts:240`), `saveBill` (`packages/books/src/read.ts:270`), `planLines` (`packages/books/src/post.ts:38`), the three views, `wren books bills | show | spend | subs`
+- **Hits:** `check` (`packages/books/src/ground.ts:240`), `saveBill` (`packages/books/src/read.ts:297`), `voidStale` (`:386`), `planLines` (`packages/books/src/post.ts:38`), the three views, `wren books bills | show | spend | subs`
 - **Does not hit:** capture (it stores documents, never bills)
 
 ## Surfaces
