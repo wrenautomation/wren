@@ -13,7 +13,7 @@ Revised the same day on William's rules: **no Apollo** (everyone uses it), **US 
   - They overlap by only ~870 domains.
 - **Size comes from PPP loan data** (jobs reported, loan size) and the firm's own site.
 - **Owners come from the firm's site crawl** (team pages), SBA contacts and principals, and LinkedIn for the top tier.
-- **Data Axle is blocked.** The one library that gives it to non-residents (Burlington, Ontario) wants $66/yr paid by phone. It's William's spend, and it's optional now.
+- **Data Axle is dropped for now.** The one library that gives it to non-residents (Burlington, Ontario) wants $66/yr paid by phone. William: use it only if free, so skip it.
 - **Each email gets a one-line opener**, written by an LLM from facts we hold and quoted from the firm's own site or record. No quote, no line.
 - **Measured (local import, 2026-09-30):** 32,955 firms, 23,414 with a site, 11,822 leads with an email before the crawl. PPP sizes 4,147 of them; 1,198 report 10–50 jobs.
 - **Pace:** at 10 senders × ~30 a day, 10,000 first emails take about 7 weeks of weekdays. Send the ICP tier first.
@@ -45,7 +45,7 @@ Not counted here: IT staffing firms filed under 5415 and healthcare staffing fil
 | 6 | **DOL LCA disclosures** | POC name, title, email, phone | ~205 firms coded 5613 | free | small, direct owner emails |
 | 7 | **Networks, award lists, NYC licence list** | firms, sites | ~2k | free | Tier A seeds, "growing" signal |
 | 8 | **LinkedIn** (research account) | size bucket, recruiter count, owner | ~100 firms a day | free | Tier A sizing only, daytime, read only |
-| — | Data Axle via Burlington PL | exec name, employees, sales | 44M US + 2.6M CA | $66/yr, pay by phone | blocked on William; optional |
+| — | Data Axle via Burlington PL | exec name, employees, sales | 44M US + 2.6M CA | $66/yr, pay by phone | dropped for now (not free) |
 | — | Apollo | people + emails | large | paid | **not used** (William) |
 | — | UW library (Hoovers, Mergent) | rich | — | academic licence | **don't use** |
 | — | Chains, franchises, PEOs (561330), RPOs, job boards, state workforce offices, military recruiting | — | — | — | drop |
@@ -140,7 +140,7 @@ PPP loan size ≈ 2.5 months of payroll, so yearly payroll ≈ 4.8 × loan. For 
 - **RL-D9** Every field a source gives is stored. The raw row is the record; columns are views on it.
 - **RL-D10** The opener is evidence-bound: a word-for-word quote or no line.
 - **RL-D11** Overture and SBA are niche-agnostic datasets and formats in core. A niche registers its categories, NAICS codes and countries.
-- **RL-D12** Data Axle waits on William's card. Nothing depends on it.
+- **RL-D12** Data Axle waits on William's card. Nothing depends on it. *(Revised 2026-09-30: dropped for now. William takes it only if free, and it costs $66/yr.)*
 - **RL-D13** Prod's LLM (Cohere Command A) writes the opener. No second provider for one pass.
 - **RL-D14** Opener v1 reads crawled pages only. The SBA narrative feeds v2, for firms with no site.
 
@@ -156,7 +156,6 @@ PPP loan size ≈ 2.5 months of payroll, so yearly payroll ≈ 4.8 × loan. For 
 ## Owed by William
 
 - Yes on the opener pass's full run (~$70 of LLM at Command A).
-- Optional: the Burlington card ($66/yr) for Data Axle.
 - Confirm the tiers and the offer per tier.
 
 ## Where to attack
