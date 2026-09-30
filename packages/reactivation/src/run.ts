@@ -38,7 +38,12 @@ export interface CrmRunOptions {
   limit?: number;
   runId?: string | null;
   /** The client's settings and profile; without them compose never runs. */
-  compose?: { settings: ReactivationSettings; profile: ClientProfile | null };
+  compose?: {
+    settings: ReactivationSettings;
+    profile: ClientProfile | null;
+    /** The demo never sends, so the send gate doesn't hold its drafts. */
+    demo?: boolean;
+  };
   /** Only these stages (the loop leaves the personal-account ones to `crm run`). */
   only?: readonly CrmStage[];
 }

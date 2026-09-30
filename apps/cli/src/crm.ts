@@ -51,6 +51,7 @@ type WithDb = <T>(fn: (db: Db, client: Client) => Promise<T>) => Promise<T>;
 const composeInputs = async (db: Db, client: Client) => ({
   settings: reactivationSettingsOf(client.products),
   profile: await readClientProfile(db),
+  demo: client.demo,
 });
 
 const ids = (args: string[]): number[] =>

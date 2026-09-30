@@ -60,7 +60,12 @@ export interface CrmStatus {
 export interface CrmStatusOptions {
   today?: Date;
   /** The client's settings and profile; without them compose is never due. */
-  compose?: { settings: ReactivationSettings; profile: ClientProfile | null };
+  compose?: {
+    settings: ReactivationSettings;
+    profile: ClientProfile | null;
+    /** The demo never sends, so the send gate doesn't hold its drafts. */
+    demo?: boolean;
+  };
 }
 
 export async function crmStatus(db: Queryable, opts: CrmStatusOptions = {}): Promise<CrmStatus> {
@@ -148,7 +153,7 @@ export async function crmStatus(db: Queryable, opts: CrmStatusOptions = {}): Pro
     from messages m join enrollments en on en.id = m.enrollment_id
     where en.offer = 'reactivation' and m.step = 0`);
   const compose = opts.compose
-    ? await composeDue(db, opts.compose.settings, opts.compose.profile)
+    ? await composeDue(db, opts.compose.settings, opts.compose.profile, opts.compose.demo)
     : { due: 0, blocked: "settings not given" };
   const emails = {
     drafted: e?.drafted ?? 0,

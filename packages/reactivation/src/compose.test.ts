@@ -317,6 +317,11 @@ describe("composeBlocked", () => {
     ).toMatch(/not ready to send: dirty/);
     expect(composeBlocked(parseReactivationSettings(live), p, ok)).toBeNull();
   });
+  it("the demo writes past a dirty list, since it never sends; nothing else is waived", () => {
+    const dirty = { ok: false, reason: "dirty" };
+    expect(composeBlocked(parseReactivationSettings(live), p, dirty, true)).toBeNull();
+    expect(composeBlocked(parseReactivationSettings({}), p, dirty, true)).toMatch(/no senders/);
+  });
 });
 
 describe("profile and settings edges", () => {

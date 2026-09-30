@@ -342,6 +342,7 @@ export function composeBlocked(
   settings: ReactivationSettings,
   profile: ClientProfile | null,
   gate: { ok: boolean; reason: string },
+  demo = false,
 ): string | null {
   if (!settings.stages.compose) return "compose is off (stages.compose)";
   if (!profile) return "no firm profile: `wren --client <id> crm profile set <file.json>`";
@@ -353,7 +354,7 @@ export function composeBlocked(
   if (unknown)
     return `sender ${unknown.address} writes as ${unknown.recruiter}, who is not in the firm profile`;
   if (!settings.compose.perDay) return "compose.perDay is 0";
-  if (!gate.ok) return `the list is not ready to send: ${gate.reason}`;
+  if (!gate.ok && !demo) return `the list is not ready to send: ${gate.reason}`;
   return null;
 }
 
@@ -362,8 +363,9 @@ export async function composeDue(
   db: Queryable,
   settings: ReactivationSettings,
   profile: ClientProfile | null,
+  demo = false,
 ): Promise<{ due: number; blocked: string | null }> {
-  const blocked = composeBlocked(settings, profile, (await crmHealth(db)).gate);
+  const blocked = composeBlocked(settings, profile, (await crmHealth(db)).gate, demo);
   if (blocked) return { due: 0, blocked };
   const room = await composeRoom(db, settings.compose.perDay);
   if (!room)
@@ -398,6 +400,8 @@ export interface ComposeOptions {
   profile: ClientProfile | null;
   limit?: number;
   runId?: string | null;
+  /** The demo never sends, so the send gate doesn't hold its drafts. */
+  demo?: boolean;
 }
 
 export async function composeCrmEmails(
@@ -416,7 +420,7 @@ export async function composeCrmEmails(
     aborted: null,
   };
   const { settings, profile } = opts;
-  const blocked = composeBlocked(settings, profile, (await crmHealth(db)).gate);
+  const blocked = composeBlocked(settings, profile, (await crmHealth(db)).gate, opts.demo);
   if (blocked || !profile) {
     stats.aborted = blocked;
     return stats;
