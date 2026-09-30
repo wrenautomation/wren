@@ -249,7 +249,7 @@ export async function sendDue(db: Db, opts: SendDueOptions): Promise<SendStats> 
     );
     for (const enrollment of rows) {
       const msgs = byEnrollment.get(enrollment.id) ?? [];
-      const due = await nextDue(tx, enrollment, msgs, now, stats, suppressed);
+      const due = await nextDue(tx, enrollment, msgs, now, stats, suppressed, policy);
       if (due === null) continue;
       const candidate: Candidate = { enrollment, messages: msgs, ...due };
       if (due.anchor === null) openers.push(candidate);
@@ -455,6 +455,7 @@ async function nextDue(
   now: Date,
   stats: SendStats,
   suppressed: (email: string) => Suppression | null,
+  policy: SendPolicy,
 ): Promise<{ message: Message; anchor: Message | null } | null> {
   const first = msgs[0];
   if (first === undefined) return null; // compose never does this; refuse to guess
@@ -515,7 +516,11 @@ async function nextDue(
         throw new Error(`enrollment ${enrollment.id}: snapshot has no day for step ${nxt.step}`);
       }
       if (anchor.sentAt === null) throw new Error(`sent message ${anchor.id} has no sent_at`);
-      due = addBusinessDays(PlainDate.utcDayOf(anchor.sentAt), nextDay - anchorDay);
+      due = addBusinessDays(
+        PlainDate.utcDayOf(anchor.sentAt),
+        nextDay - anchorDay,
+        (day) => policy.holidayOn(day) !== null,
+      );
     }
     if (today.compare(due) < 0) {
       stats.waiting += 1;

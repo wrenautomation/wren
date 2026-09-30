@@ -27,6 +27,12 @@ describe("addBusinessDays", () => {
       expect(addBusinessDays(start, 5).equals(start.addDays(7))).toBe(true);
     }
   });
+  it("a holiday is skipped like a weekend", () => {
+    // Wed Nov 25 2026 plus one, with Thanksgiving and the day after off: Monday.
+    const off = (d: PlainDate) => d.month === 11 && (d.day === 26 || d.day === 27);
+    expect(addBusinessDays(new PlainDate(2026, 11, 25), 1, off).toString()).toBe("2026-11-30");
+    expect(addBusinessDays(new PlainDate(2026, 11, 26), 0, off).toString()).toBe("2026-11-30");
+  });
   it("negative days refused", () => {
     expect(() => addBusinessDays(MONDAY, -1)).toThrow("past");
   });

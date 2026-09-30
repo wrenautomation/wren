@@ -2,6 +2,7 @@ export * from "./dates.js";
 export * from "./deliver.js";
 export * from "./gmail.js";
 export * from "./google-auth.js";
+export * from "./holidays.js";
 export * from "./lead-timezone.js";
 export * from "./mime.js";
 export * from "./policy.js";

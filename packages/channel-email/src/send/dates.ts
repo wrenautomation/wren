@@ -79,16 +79,21 @@ export function formatClock(t: ClockTime): string {
 
 /**
  * The date `days` business days after `start`. A weekend start rolls forward
- * to Monday first, so day 0 from a Saturday is Monday. Weekends only, no
- * holiday calendar.
+ * to Monday first, so day 0 from a Saturday is Monday. `holiday` marks more
+ * days off (the send policy's calendars); weekends are always off.
  */
-export function addBusinessDays(start: PlainDate, days: number): PlainDate {
+export function addBusinessDays(
+  start: PlainDate,
+  days: number,
+  holiday: (day: PlainDate) => boolean = () => false,
+): PlainDate {
   if (days < 0) throw new Error("cadence never schedules into the past");
+  const off = (day: PlainDate) => day.weekday() >= 5 || holiday(day);
   let current = start;
-  while (current.weekday() >= 5) current = current.addDays(1);
+  while (off(current)) current = current.addDays(1);
   for (let i = 0; i < days; i++) {
     current = current.addDays(1);
-    while (current.weekday() >= 5) current = current.addDays(1);
+    while (off(current)) current = current.addDays(1);
   }
   return current;
 }

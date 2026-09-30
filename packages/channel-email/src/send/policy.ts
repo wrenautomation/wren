@@ -13,11 +13,14 @@
  * while another opens. `killSwitchOffFor` names campaigns the kill switch neither
  * counts nor stops.
  * The ramp is data: `from + step × (send days elapsed ÷ every)`, never above
- * the ceiling, counted in the schedule's own days. Every window question is
- * answered on the operator's local clock and returned as a UTC instant.
+ * the ceiling, counted in the schedule's own days. Holidays (`holidays.ts`)
+ * are not send days: the window stays shut, the ramp does not climb.
+ * Every window question is answered on the operator's local clock and
+ * returned as a UTC instant.
  */
 import { ENV_KEYS } from "@wren/config";
 import { type ClockTime, formatClock, minutesOfDay, PlainDate } from "./dates.js";
+import { type HolidayCalendar, holidayOn, holidaysIn, parseHolidayCalendars } from "./holidays.js";
 import type { Rng } from "./rng.js";
 import { assertInstant, canonicalZone, wallClock, zonedInstant } from "./tz.js";
 
@@ -41,6 +44,7 @@ const HHMM = /^([01][0-9]|2[0-3]):([0-5][0-9])$/;
 export interface SendPolicySettings {
   readonly sendTimezone: string;
   readonly sendDays: string;
+  readonly sendHolidays: string;
   readonly sendWindowStart: string;
   readonly sendWindowEnd: string;
   readonly sendLeadWindowStart?: string | undefined;
@@ -65,6 +69,7 @@ export interface SendPolicySettings {
 export interface SendPolicyFields {
   readonly timezone: string; // canonical IANA name
   readonly days: ReadonlySet<number>; // 0 = Monday … 6 = Sunday
+  readonly holidays: ReadonlySet<HolidayCalendar>;
   readonly windowStart: ClockTime; // inclusive
   readonly windowEnd: ClockTime; // exclusive
   readonly leadWindowStart: ClockTime | null;
@@ -88,11 +93,14 @@ export interface SendPolicyFields {
 
 const MINUTE_MS = 60_000;
 const DAY_MS = 86_400_000;
+/** How far `nextWindowOpen` looks; past this the schedule is broken, not quiet. */
+const NEXT_SEND_DAY_HORIZON = 60;
 
 /** The parsed send schedule and pacing limits. Built once at startup, frozen. */
 export class SendPolicy implements SendPolicyFields {
   readonly timezone: string;
   readonly days: ReadonlySet<number>;
+  readonly holidays: ReadonlySet<HolidayCalendar>;
   readonly windowStart: ClockTime;
   readonly windowEnd: ClockTime;
   readonly leadWindowStart: ClockTime | null;
@@ -116,6 +124,7 @@ export class SendPolicy implements SendPolicyFields {
   constructor(fields: SendPolicyFields) {
     this.timezone = fields.timezone;
     this.days = new Set(fields.days);
+    this.holidays = new Set(fields.holidays);
     this.windowStart = fields.windowStart;
     this.windowEnd = fields.windowEnd;
     this.leadWindowStart = fields.leadWindowStart;
@@ -220,6 +229,7 @@ export class SendPolicy implements SendPolicyFields {
     return new SendPolicy({
       timezone,
       days,
+      holidays: parseHolidayCalendars(s.sendHolidays, ENV_KEYS.sendHolidays),
       windowStart,
       windowEnd,
       leadWindowStart,
@@ -273,6 +283,18 @@ export class SendPolicy implements SendPolicyFields {
     ];
   }
 
+  // ---- days off -----------------------------------------------------
+
+  /** The holiday `day` falls on, by name, or null. Weekends are not holidays. */
+  holidayOn(day: PlainDate): string | null {
+    return holidayOn(this.holidays, day);
+  }
+
+  /** True when `day` is one of the schedule's days and no holiday. */
+  sendsOn(day: PlainDate): boolean {
+    return this.days.has(day.weekday()) && this.holidayOn(day) === null;
+  }
+
   // ---- the window ---------------------------------------------------
 
   /** True when `now` is a send day and inside the local window (start inclusive, end exclusive). */
@@ -280,7 +302,7 @@ export class SendPolicy implements SendPolicyFields {
     const local = this.localNow(now);
     const minute = minutesOfDay(local.time);
     return (
-      this.days.has(local.weekday) &&
+      this.sendsOn(local.date) &&
       minutesOfDay(this.windowStart) <= minute &&
       minute < minutesOfDay(this.windowEnd)
     );
@@ -294,13 +316,16 @@ export class SendPolicy implements SendPolicyFields {
     assertInstant(now);
     if (this.windowOpen(now)) return now;
     const local = this.localNow(now);
-    for (let offset = 0; offset < 8; offset++) {
+    for (let offset = 0; offset < NEXT_SEND_DAY_HORIZON; offset++) {
       const day = local.date.addDays(offset);
-      if (!this.days.has(day.weekday())) continue;
+      if (!this.sendsOn(day)) continue;
       if (offset === 0 && minutesOfDay(local.time) >= minutesOfDay(this.windowStart)) continue;
       return this.localAt(day, this.windowStart);
     }
-    throw new Error(`no send day within a week of ${local.date}; days=${[...this.days].sort()}`);
+    throw new Error(
+      `no send day within ${NEXT_SEND_DAY_HORIZON} days of ${local.date}; ` +
+        `days=${[...this.days].sort()}, holidays=${[...this.holidays].join(",")}`,
+    );
   }
 
   /** Today's closing instant (UTC) while the window is open, else null. */
@@ -380,7 +405,19 @@ export class SendPolicy implements SendPolicyFields {
     for (let offset = 0; offset < rest; offset++) {
       if (this.days.has(firstOfTail.addDays(offset).weekday())) count += 1;
     }
-    return count;
+    return count - this.holidaysOnSendDays(this.rampStart, today);
+  }
+
+  /** Holidays in `[from, to)` that fall on one of the schedule's days. */
+  private holidaysOnSendDays(from: PlainDate, to: PlainDate): number {
+    let n = 0;
+    for (let year = from.year; year <= to.year; year++) {
+      for (const iso of holidaysIn(this.holidays, year).keys()) {
+        const day = PlainDate.fromIso(iso);
+        if (day.compare(from) >= 0 && day.compare(to) < 0 && this.days.has(day.weekday())) n += 1;
+      }
+    }
+    return n;
   }
 
   /** Real sends one inbox may make on the local day of `now`. */
@@ -446,13 +483,16 @@ export class SendPolicy implements SendPolicyFields {
     const off = this.killSwitchOffFor.size
       ? `, kill switch off for ${[...this.killSwitchOffFor].sort().join(", ")}`
       : "";
+    const holidays = this.holidays.size
+      ? `, off on ${[...this.holidays].join(", ")} holidays`
+      : ", no holidays off";
     return (
       `${describeDays(this.days)} ` +
       `${formatClock(this.windowStart)}–${formatClock(this.windowEnd)} ${this.timezone}, ` +
       `${leadWindow}${cap}, ` +
       `gap ${minutes(this.gapMinMs)}–${minutes(this.gapMaxMs)} min, ` +
       `openers/day ${openers}${perNiche}, ` +
-      `cooldown ${this.resendCooldownDays} d${off}`
+      `cooldown ${this.resendCooldownDays} d${holidays}${off}`
     );
   }
 }
