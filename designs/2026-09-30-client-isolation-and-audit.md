@@ -46,7 +46,7 @@ Who:
 
 How:
 
-- **One trigger function** `audit_row()`, `SECURITY DEFINER`, on every table in `public` except the skip list. A statement trigger records `TRUNCATE`.
+- **One trigger function** `audit_row()`, `SECURITY DEFINER`, on every table of every schema (`public`, `books`, any new one) except the skip lists. Outside `public` a table is logged as `schema.table`. A statement trigger records `TRUNCATE`.
 - **Every audit function puts `pg_temp` last** in its `search_path`: a session's temp table named `audit_events` can never catch the log's writes.
 - **Append-only.** A guard trigger refuses `UPDATE`, `DELETE`, `TRUNCATE` on the three audit tables.
 - **Triggers follow the schema.** After every migrate, `syncAuditTriggers` puts the trigger on each table not skipped, with its primary key columns, and removes it from skipped ones. A new table is audited by default. A dropped trigger comes back; one turned off is turned back on (guards too). One statement per table, so it locks one table at a time and never deadlocks a live worker.
@@ -96,3 +96,4 @@ Limits:
 - **2026-09-30** Keyless updates log the whole row. Only the changed columns, with no key, named nothing.
 - **2026-09-30** Sealer runs 4 databases at once with a 10 s lock wait. One locked database stalled every other client's seal.
 - **2026-09-30** A main URL without a password or host throws. Falling back (keying on the URL, dropping the user) hid a wrong setup.
+- **2026-09-30** (after rebasing onto books) Every schema, not only `public`. Books keeps its own `books` schema, and money records are what an audit log is for. `drizzle`, the migration journal, is skipped.

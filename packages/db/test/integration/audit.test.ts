@@ -7,8 +7,10 @@ import { getTableConfig } from "drizzle-orm/pg-core";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import {
   AUDIT_SKIPPED,
+  AUDIT_SKIPPED_SCHEMAS,
   AUDIT_TABLES,
   auditEvents,
+  auditName,
   auditSeals,
   createDb,
   type DbHandle,
@@ -65,31 +67,58 @@ afterAll(async () => {
 });
 
 describe("which tables", () => {
-  it("audits every table in public except the skipped ones and the log itself", async () => {
-    const rows = await pg.db.execute<{ table: string; row: boolean; truncate: boolean }>(sql`
-      select c.relname as "table",
+  it("audits every table of every schema except the skipped ones and the log itself", async () => {
+    const rows = await pg.db.execute<{
+      schema: string;
+      table: string;
+      row: boolean;
+      truncate: boolean;
+    }>(sql`
+      select n.nspname as "schema", c.relname as "table",
         exists(select 1 from pg_trigger t where t.tgrelid = c.oid and t.tgname = 'audit_row') as "row",
         exists(select 1 from pg_trigger t where t.tgrelid = c.oid and t.tgname = 'audit_truncate') as "truncate"
       from pg_class c join pg_namespace n on n.oid = c.relnamespace
-      where n.nspname = 'public' and c.relkind in ('r', 'p')`);
+      where c.relkind in ('r', 'p') and left(n.nspname, 3) <> 'pg_' and n.nspname <> 'information_schema'`);
     expect(rows.length).toBeGreaterThan(40);
+    // Books keeps its own schema; the migration journal is drizzle's.
+    expect(new Set(rows.map((r) => r.schema))).toEqual(new Set(["public", "books", "drizzle"]));
     for (const r of rows) {
+      const name = auditName(r.schema, r.table);
       const want =
-        !Object.hasOwn(AUDIT_SKIPPED, r.table) && !AUDIT_TABLES.includes(r.table as never);
-      expect({ table: r.table, row: r.row, truncate: r.truncate }).toEqual({
-        table: r.table,
+        !Object.hasOwn(AUDIT_SKIPPED, name) &&
+        !Object.hasOwn(AUDIT_SKIPPED_SCHEMAS, r.schema) &&
+        !AUDIT_TABLES.includes(name as never);
+      expect({ table: name, row: r.row, truncate: r.truncate }).toEqual({
+        table: name,
         row: want,
         truncate: want,
       });
     }
   });
 
-  it("skips only tables that exist", async () => {
-    const rows = await pg.db.execute<{ t: string }>(
-      sql`select tablename as t from pg_tables where schemaname = 'public'`,
+  it("skips only tables and schemas that exist", async () => {
+    const rows = await pg.db.execute<{ s: string; t: string }>(
+      sql`select schemaname as s, tablename as t from pg_tables`,
     );
-    const have = new Set(rows.map((r) => r.t));
-    for (const table of Object.keys(AUDIT_SKIPPED)) expect(have, table).toContain(table);
+    const tables = new Set(rows.map((r) => auditName(r.s, r.t)));
+    for (const table of Object.keys(AUDIT_SKIPPED)) expect(tables, table).toContain(table);
+    const schemas = new Set(rows.map((r) => r.s));
+    for (const schema of Object.keys(AUDIT_SKIPPED_SCHEMAS))
+      expect(schemas, schema).toContain(schema);
+  });
+
+  it("names a table outside public by its schema", async () => {
+    await pg.db.execute(sql`create schema audit_side`);
+    await pg.db.execute(sql`create table audit_side.audit_probe (id int primary key, v text)`);
+    expect(await installAudit(pg.db)).toEqual({ added: 1, removed: 0 });
+    await pg.db.execute(sql`insert into audit_side.audit_probe values (1, 'a')`);
+    await pg.db.execute(sql`truncate audit_side.audit_probe`);
+    const events = await eventsOf("audit_side.audit_probe");
+    expect(events.map((e) => [e.op, e.row_key])).toEqual([
+      ["insert", { id: 1 }],
+      ["truncate", null],
+    ]);
+    expect(await eventsOf("audit_probe")).toEqual([]);
   });
 
   it("changes nothing when installed again", async () => {

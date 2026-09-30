@@ -85,9 +85,12 @@ export const AUDIT_FUNCTION_STATEMENTS = [
     row_key jsonb;
     old_changed jsonb;
     new_changed jsonb;
+    -- auditName in ./index.ts: bare in public, schema.table elsewhere.
+    tbl text := CASE WHEN TG_TABLE_SCHEMA = 'public' THEN TG_TABLE_NAME
+      ELSE TG_TABLE_SCHEMA || '.' || TG_TABLE_NAME END;
   BEGIN
     IF TG_LEVEL = 'STATEMENT' THEN
-      INSERT INTO audit_events (table_name, op) VALUES (TG_TABLE_NAME, lower(TG_OP));
+      INSERT INTO audit_events (table_name, op) VALUES (tbl, lower(TG_OP));
       RETURN NULL;
     END IF;
     IF TG_OP <> 'INSERT' THEN before_row := to_jsonb(OLD); END IF;
@@ -98,10 +101,10 @@ export const AUDIT_FUNCTION_STATEMENTS = [
     END IF;
     IF TG_OP = 'INSERT' THEN
       INSERT INTO audit_events (table_name, op, row_key, new_values)
-        VALUES (TG_TABLE_NAME, 'insert', row_key, CASE WHEN row_key IS NULL THEN after_row END);
+        VALUES (tbl, 'insert', row_key, CASE WHEN row_key IS NULL THEN after_row END);
     ELSIF TG_OP = 'DELETE' THEN
       INSERT INTO audit_events (table_name, op, row_key, old_values)
-        VALUES (TG_TABLE_NAME, 'delete', row_key, before_row);
+        VALUES (tbl, 'delete', row_key, before_row);
     ELSE
       SELECT jsonb_object_agg(d.key, before_row -> d.key), jsonb_object_agg(d.key, d.value)
         INTO old_changed, new_changed
@@ -114,7 +117,7 @@ export const AUDIT_FUNCTION_STATEMENTS = [
         after_row := new_changed;
       END IF;
       INSERT INTO audit_events (table_name, op, row_key, old_values, new_values)
-        VALUES (TG_TABLE_NAME, 'update', row_key, before_row, after_row);
+        VALUES (tbl, 'update', row_key, before_row, after_row);
     END IF;
     RETURN NULL;
   END

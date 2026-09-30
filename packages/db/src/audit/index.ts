@@ -14,7 +14,8 @@ export * from "./schema.js";
 
 /**
  * Tables left out, each with why: machine-made, high volume, or already a log.
- * Every other table in `public` is audited, so a new table is by default.
+ * A table outside `public` goes by its schema too (`books.bills`). Every other
+ * table in an audited schema is audited, so a new table is by default.
  */
 export const AUDIT_SKIPPED: Readonly<Record<string, string>> = {
   runs: "the run ledger, already a log of every stage",
@@ -34,6 +35,15 @@ export const AUDIT_SKIPPED: Readonly<Record<string, string>> = {
   open_events: "pixel hits, append-only",
 };
 
+/** Schemas left out besides Postgres's own (`pg_*`, `information_schema`); a new schema is audited. */
+export const AUDIT_SKIPPED_SCHEMAS: Readonly<Record<string, string>> = {
+  drizzle: "the migration journal, already a log",
+};
+
+/** A table's name in the log: bare in `public`, `schema.table` elsewhere. */
+export const auditName = (schema: string, table: string): string =>
+  schema === "public" ? table : `${schema}.${table}`;
+
 /** The log itself: never audited (a trigger there would log its own writes). */
 export const AUDIT_TABLES = ["audit_events", "audit_seals", "audit_eras"] as const;
 
@@ -41,8 +51,10 @@ const ROW_TRIGGER = "audit_row";
 const TRUNCATE_TRIGGER = "audit_truncate";
 
 type TableTriggers = {
+  schema: string;
   table: string;
   /** The partition tree's top table: a partition is audited or skipped with it. */
+  rootSchema: string;
   root: string;
   partition: boolean;
   key: string[];
@@ -93,7 +105,7 @@ export async function installAudit(db: Db): Promise<{ added: number; removed: nu
 }
 
 /**
- * Put the audit trigger on every table in `public` that is not skipped, with its
+ * Put the audit trigger on every table of every audited schema that is not skipped, with its
  * primary key columns as arguments, and take it off skipped ones. A trigger
  * turned off by hand is turned back on. Touches only what differs.
  * Partitions: the row trigger comes from the parent (a partition's own would log
@@ -101,8 +113,8 @@ export async function installAudit(db: Db): Promise<{ added: number; removed: nu
  */
 async function syncAuditTriggers(db: Db): Promise<{ added: number; removed: number }> {
   const tables = await db.execute<TableTriggers>(sql`
-    select c.relname as "table",
-      coalesce((select r.relname from pg_class r where r.oid = pg_partition_root(c.oid)), c.relname) as "root",
+    select n.nspname as "schema", c.relname as "table",
+      coalesce(rn.nspname, n.nspname) as "rootSchema", coalesce(r.relname, c.relname) as "root",
       c.relispartition as "partition",
       coalesce((select array_agg(a.attname::text order by array_position(i.indkey::int2[], a.attnum))
         from pg_index i join pg_attribute a on a.attrelid = i.indrelid and a.attnum = any(i.indkey)
@@ -111,16 +123,20 @@ async function syncAuditTriggers(db: Db): Promise<{ added: number; removed: numb
       (select t.tgenabled from pg_trigger t where t.tgrelid = c.oid and t.tgname = ${ROW_TRIGGER}) as "rowEnabled",
       (select t.tgenabled from pg_trigger t where t.tgrelid = c.oid and t.tgname = ${TRUNCATE_TRIGGER}) as "truncateEnabled"
     from pg_class c join pg_namespace n on n.oid = c.relnamespace
-    where n.nspname = 'public' and c.relkind in ('r', 'p')
-    order by c.relname`);
+      left join pg_class r on r.oid = pg_partition_root(c.oid)
+      left join pg_namespace rn on rn.oid = r.relnamespace
+    where c.relkind in ('r', 'p') and left(n.nspname, 3) <> 'pg_' and n.nspname <> 'information_schema'
+    order by n.nspname, c.relname`);
   const run = (text: string) => db.execute(sql.raw(text));
   let added = 0;
   let removed = 0;
   for (const t of tables) {
-    if ((AUDIT_TABLES as readonly string[]).includes(t.root)) continue;
-    const on = `ON ${quote(t.table)}`;
+    const root = auditName(t.rootSchema, t.root);
+    if ((AUDIT_TABLES as readonly string[]).includes(root)) continue;
+    const table = `${quote(t.schema)}.${quote(t.table)}`;
+    const on = `ON ${table}`;
     const have = triggerArgs(t.rowArgs);
-    if (Object.hasOwn(AUDIT_SKIPPED, t.root)) {
+    if (Object.hasOwn(AUDIT_SKIPPED, root) || Object.hasOwn(AUDIT_SKIPPED_SCHEMAS, t.schema)) {
       const row = have !== null && !t.partition;
       if (!row && t.truncateEnabled === null) continue;
       if (row) await run(`DROP TRIGGER IF EXISTS ${ROW_TRIGGER} ${on}`);
@@ -135,7 +151,7 @@ async function syncAuditTriggers(db: Db): Promise<{ added: number; removed: numb
       );
       added++;
     } else if (have !== null && !firing(t.rowEnabled)) {
-      await run(`ALTER TABLE ${quote(t.table)} ENABLE TRIGGER ${ROW_TRIGGER}`);
+      await run(`ALTER TABLE ${table} ENABLE TRIGGER ${ROW_TRIGGER}`);
       added++;
     }
     if (t.truncateEnabled === null)
@@ -144,7 +160,7 @@ async function syncAuditTriggers(db: Db): Promise<{ added: number; removed: numb
           "FOR EACH STATEMENT EXECUTE FUNCTION audit_row()",
       );
     else if (!firing(t.truncateEnabled))
-      await run(`ALTER TABLE ${quote(t.table)} ENABLE TRIGGER ${TRUNCATE_TRIGGER}`);
+      await run(`ALTER TABLE ${table} ENABLE TRIGGER ${TRUNCATE_TRIGGER}`);
   }
   return { added, removed };
 }

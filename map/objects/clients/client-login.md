@@ -20,7 +20,7 @@ A bug that picks the wrong pool, or runs a main query on a client, hits a wall i
 - `clientLoginPassword`, `clientDatabaseUrl` (the client's login), `clientAdminUrl` (main's login, database swapped) (`packages/db/src/clients.ts:38`, `:48`, `:60`)
 - `grantClientAccess`: role, SCRAM verifier, its own settings cleared, `CONNECT` here only, DML on tables, `USAGE, SELECT` on sequences, audit tables read-only (`:112`)
 - `migrateClient` = migrate, then grant; every migrate (`:156`). `createDatabase` closes `PUBLIC` at creation (`:80`)
-- Used by the worker's per-client pools (`apps/worker/src/services.ts:171`), `clientUrl` (`packages/core/src/clients/index.ts:118`), `wren audit verify --all` (`apps/cli/src/main.ts:165`)
+- Used by the worker's per-client pools (`apps/worker/src/services.ts:171`), `clientUrl` (`packages/core/src/clients/index.ts:118`), `wren audit verify --all` (`apps/cli/src/main.ts:166`)
 
 Citations: `packages/db/src/clients.ts:112`, `packages/db/src/clients.ts:48`
 
