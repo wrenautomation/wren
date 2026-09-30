@@ -90,7 +90,7 @@ One sentence at the top of the email, about the firm, true, and checkable.
 - **Stored** in `enrichments` (kind `opener`, per company, model and prompt version), so a re-run only pays for new firms.
 - **Used** in templates as `(({company.opener}))` through `recruiting_facts`: no line, the paragraph drops.
 - **Run:** `Enrichment/recruiting/opener` (Restate), `{limit, shard}`. Not in the pool: every run is a spend.
-- **Cost:** prod runs Cohere Command A (~$2.50/M in, $10/M out). ~3k tokens in, ~100 out is ~$0.008 a firm, so ~$100 for 12k. The full run is William's call; a sample first.
+- **Cost:** prod runs Cohere Command A (~$2.50/M in, $10/M out). Measured on a 60-firm sample: ~2k tokens in, ~74 out, ~$0.006 a firm, so ~$70 for 12k. 29 lines from 42 firms with pages; the rest were rejected by the grounding checks. The full run is William's call.
 
 ## Pipeline to 10k
 
@@ -149,13 +149,13 @@ PPP loan size ≈ 2.5 months of payroll, so yearly payroll ≈ 4.8 × loan. For 
 1. ~~**Overture places**~~: built. `wren fetch get overture-staffing`, `import --format overture-staffing`. Declines are counted by reason on the import.
 2. ~~**SBA search**~~: built. `wren fetch get sba-staffing`, `import --format sba-staffing <dir>`. Firms whose primary NAICS isn't staffing are declined.
 3. ~~**PPP sizing**~~: built. `wren fetch get ppp-staffing`, `wren email size <dir> --niche recruiting`. Matches by name + ZIP, or name + state when the state has one ZIP for that name.
-4. **Import to prod**, then the discovery crawl.
+4. ~~**Import to prod**~~: done 2026-09-30. Prod holds 34,023 recruiting firms (22,739 US, 1,172 CA, the rest from SBA with no country field), 24,466 with a site, 12,095 with an email lead (13,367 leads), 4,289 sized from PPP. The Overture import declined 13,908 chain, 2,521 closed, 1,704 nonprofit, 1,317 military and 574 public-body places. Next: the discovery crawl, when William arms the recruiting pool loop.
 5. ~~**Opener pass**~~: built (kind `opener`, `recruiting_facts`, the opener template). Full run on William's yes.
 6. **Tiering** in the recruiting niche, with an offer per tier.
 
 ## Owed by William
 
-- Yes on the opener pass's full run (~$100 of LLM at Command A).
+- Yes on the opener pass's full run (~$70 of LLM at Command A).
 - Optional: the Burlington card ($66/yr) for Data Axle.
 - Confirm the tiers and the offer per tier.
 
