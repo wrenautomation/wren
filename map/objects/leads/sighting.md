@@ -28,7 +28,7 @@ Citations: `packages/core/src/schema.ts:175`
 
 ## If you change this
 
-- **Hits:** both importers (`packages/core/src/ingest/importer.ts:260`, `:333`; `packages/core/src/people/importer.ts:234`); discovery, which records its own sightings (`packages/research/src/discovery/service.ts:251`, `:392`)
+- **Hits:** both importers (`packages/core/src/ingest/importer.ts:262`, `:333`; `packages/core/src/people/importer.ts:234`); discovery, which records its own sightings (`packages/research/src/discovery/service.ts:251`, `:392`)
 - **Does not hit:** any channel; nothing sends from a sighting
 
 ## Surfaces

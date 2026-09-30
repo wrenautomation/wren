@@ -38,6 +38,7 @@ import {
   PERSON_SOURCE_FORMATS,
   requireNiche,
 } from "@wren/niches";
+import { sizeFromPpp } from "@wren/research/companies";
 import type { Command } from "commander";
 import { desc, gte, sql } from "drizzle-orm";
 
@@ -469,6 +470,17 @@ export function registerEmail(
         runPeopleImport(db, format.build(resolve(path)), { niche }),
       );
       console.log(`import ${result.batch.id}: ${JSON.stringify(result.stats)}`);
+    });
+
+  email
+    .command("size <dir>")
+    .description("Size a niche's companies from PPP loan files (jobs reported, yearly payroll)")
+    .requiredOption("--niche <name>", `one of ${[...NICHE_NAMES].sort().join(", ")}`)
+    .action(async (dir: string, opts: { niche: string }) => {
+      const niche = requireNiche(opts.niche);
+      if (niche === null) throw new Error("--niche is required");
+      const stats = await withDb((db) => sizeFromPpp(db, { dir: resolve(dir), niche }));
+      console.log(`size: ${JSON.stringify(stats)}`);
     });
   return email;
 }

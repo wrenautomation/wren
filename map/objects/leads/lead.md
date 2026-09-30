@@ -31,7 +31,7 @@ Citations: `packages/core/src/schema.ts:219`
 
 ## If you change this
 
-- **Hits:** the lead importer (`packages/core/src/ingest/importer.ts:378`); verification (`packages/channel-email/src/verification/service.ts:124`); resolution's promotion (`packages/channel-email/src/resolution/service.ts:739`); `LEAD_TRANSITIONS` (`packages/core/src/state.ts:43`); `verification_yield` view (`packages/channel-email/src/views.ts:102`)
+- **Hits:** the lead importer (`packages/core/src/ingest/importer.ts:381`); verification (`packages/channel-email/src/verification/service.ts:124`); resolution's promotion (`packages/channel-email/src/resolution/service.ts:739`); `LEAD_TRANSITIONS` (`packages/core/src/state.ts:43`); `verification_yield` view (`packages/channel-email/src/views.ts:102`)
 - **Does not hit:** `enrollments` (they carry their own `to_email`); SMS
 
 ## Surfaces

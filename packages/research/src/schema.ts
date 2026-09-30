@@ -30,6 +30,7 @@ export const ENRICHMENT_KINDS = [
   "firmographics",
   "email_scan",
   "email_pick",
+  "opener",
 ] as const;
 export type EnrichmentKind = (typeof ENRICHMENT_KINDS)[number];
 

@@ -4,7 +4,7 @@ cluster: research
 universe: live
 status: verified
 verified: 2026-09-28 @ 28823cd
-entity: packages/research/src/schema.ts:127
+entity: packages/research/src/schema.ts:128
 ---
 
 # discovery-attempt
@@ -13,13 +13,13 @@ One try at finding or proving a company's domain, with its outcome. Table `disco
 
 ## Why this shape
 
-Guessed hosts are mostly parked or dead. Recording every attempt (`DISCOVERY_OUTCOMES`, `packages/research/src/schema.ts:111`) lets the pool feeder skip companies already tried and lets the gate say why nothing was found.
+Guessed hosts are mostly parked or dead. Recording every attempt (`DISCOVERY_OUTCOMES`, `packages/research/src/schema.ts:112`) lets the pool feeder skip companies already tried and lets the gate say why nothing was found.
 
 ## Shape
 
 - `company_id`, `kind` (discover | verify), `outcome`, `import_id`, `attempted_at` (`:130`–`136`); index on company, kind, time (`:140`)
 
-Citations: `packages/research/src/schema.ts:127`
+Citations: `packages/research/src/schema.ts:128`
 
 ## Connected to
 

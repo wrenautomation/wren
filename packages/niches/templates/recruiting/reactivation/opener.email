@@ -2,6 +2,8 @@ subject: [[the clients in your ats | who's calling your old clients? | a guess a
 
 Hi {first_name|there},
 
+(({company.opener}))
+
 {first_name|This address} is listed on the {company_name} site((, as {title})).
 
 New business at {company_name} hangs on one or two people. Your recruiters spend the week on intake, interview scheduling and status updates, and business development gets whatever hours are left, which is usually Friday afternoon. So job orders come in waves, and a slow month shows up in the fees two months later.

@@ -17,7 +17,7 @@ Everything downstream reads stored pages, never the live web: extraction, email 
 
 ## Shape
 
-- `company_id`, `url`, `final_url`, `kind` (webpage | pdf), `status_code`, `content_hash`, `title`, `text`, `html`, `fetch_tier`, `is_shell`, `robots_disallowed` (`packages/research/src/schema.ts:35`–`47`)
+- `company_id`, `url`, `final_url`, `kind` (webpage | pdf), `status_code`, `content_hash`, `title`, `text`, `html`, `fetch_tier`, `is_shell`, `robots_disallowed` (`packages/research/src/schema.ts:36`–`47`)
 
 Citations: `packages/research/src/schema.ts:31`
 

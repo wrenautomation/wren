@@ -13,3 +13,6 @@ deploy/github-secrets.env
 legacy/
 senders_config.toml
 *.tsbuildinfo
+
+# `wren fetch` default: bulk lead data never enters git.
+/data/

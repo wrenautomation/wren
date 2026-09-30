@@ -84,6 +84,8 @@ export interface ImportStats {
   unmapped_headers: string[];
   /** Earlier batch of the same source type with byte-identical content. Recorded, never blocked. */
   replay_of?: number;
+  /** Rows the source declined (a chain, a closed place), by reason: never stored, never silent. */
+  declined?: Record<string, number>;
 }
 
 export interface ImportOptions {
@@ -334,7 +336,7 @@ export async function runImport(
         .values({ leadId: existing.id, importId: batch.id, rowNumber, raw });
       // A lead that arrived companyless still deserves the link once a later file supplies one.
       // No other lead scalar is blank-filled on a re-encounter: a NULL is not a claim.
-      if (parsed.companyDomain) {
+      if (parsed.companyDomain || parsed.sourceKey) {
         const company = await getOrCreateCompany(
           rowNumber,
           parsed.companyDomain,
@@ -350,8 +352,9 @@ export async function runImport(
       }
       continue;
     }
+    // A keyed row names its company even with no site (a freemail contact on a registry firm).
     let company: Company | null = null;
-    if (parsed.companyDomain) {
+    if (parsed.companyDomain || parsed.sourceKey) {
       company = await getOrCreateCompany(
         rowNumber,
         parsed.companyDomain,
@@ -401,6 +404,8 @@ export async function runImport(
     .filter((h) => Object.keys(canonicalize({ [h]: "x" }, columnMap)).length === 0)
     .sort();
   if (replayOf != null) counts.replay_of = replayOf;
+  const declined = source.declined?.();
+  if (declined && Object.keys(declined).length) counts.declined = declined;
   await db.update(imports).set({ stats: counts }).where(eq(imports.id, batch.id));
   return { batch: { ...batch, stats: counts }, stats: counts };
 }

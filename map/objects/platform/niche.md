@@ -26,7 +26,7 @@ Citations: `packages/niches/src/niche.ts:23`, `packages/niches/src/index.ts:24`
 ## Connected to
 
 - **owns:** [[email/template]], [[email/sequence]], SMS steps, source formats for [[ledger/import]]
-- **joins:** [[platform/offer]] (by name), the facts views in `packages/core/src/views.ts`, [[leads/company]] (`niche` column)
+- **joins:** [[platform/offer]] (by name), the facts views in `packages/core/src/views.ts` (`recruiting_facts`: PPP size, SBA founded year, the opener line), [[leads/company]] (`niche` column)
 
 ## If you change this
 

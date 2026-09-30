@@ -21,9 +21,9 @@ Identity constraints must never decide what gets stored: a clash is recorded as 
 ## Steps
 
 1. Pick the format: `LEAD_SOURCE_FORMATS` / `PERSON_SOURCE_FORMATS` (`packages/niches/src/index.ts:100`, `:104`).
-2. Open the import (`packages/core/src/ingest/importer.ts:144`; people: `packages/core/src/people/importer.ts:67`).
-3. Upsert the company (`ingest/importer.ts:233`, `:254`; domain conflict → `:267`, `:270`).
-4. Insert the lead (`ingest/importer.ts:378`) or person (`people/importer.ts:195`); sighting (`:260`, `:333`; `people/importer.ts:234`).
+2. Open the import (`packages/core/src/ingest/importer.ts:146`; people: `packages/core/src/people/importer.ts:67`).
+3. Upsert the company (`ingest/importer.ts:235`, `:256`; domain conflict → `:269`, `:272`).
+4. Insert the lead (`ingest/importer.ts:381`) or person (`people/importer.ts:195`); sighting (`:262`, `:335`; `people/importer.ts:234`).
 5. Discovery batches open their own import (`packages/research/src/discovery/service.ts:106`).
 
 ## If you change this

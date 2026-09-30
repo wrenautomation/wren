@@ -32,7 +32,8 @@ await build({
   sourcemap: false,
   minify: false,
   // Browsers never ship in the zip; the Browserbase tier connects to a remote one.
-  external: ["playwright", "playwright-core"],
+  // DuckDB is native and only `wren fetch` loads it (lazily), never the Lambda.
+  external: ["playwright", "playwright-core", "@duckdb/node-api"],
   // CJS dependencies bundled into ESM still call require() for node builtins. The
   // import is aliased: a bundled ESM dep (fflate) imports `createRequire` by its own
   // name at top level, and two declarations of it made the whole module unloadable.

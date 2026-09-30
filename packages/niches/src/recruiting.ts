@@ -1,10 +1,11 @@
 /** Recruiting and staffing firms: the dead lead reactivation pilot, sold to the owner or MD. */
 import { twoEmailSequence } from "@wren/channel-email";
 import { defineNiche, rawLocation, templatesDir } from "./niche.js";
+import { recruitingDatasets, recruitingLeadFormats } from "./recruiting/sources.js";
 
 export const recruiting = defineNiche({
   name: "recruiting",
-  factsView: null,
+  factsView: "recruiting_facts",
   lander: "/recruiting/lead-reactivation",
   crawlHints: [
     "recruiters",
@@ -34,6 +35,8 @@ export const recruiting = defineNiche({
   sequences: [twoEmailSequence("reactivation/opener", "reactivation/followup")],
   offers: { reactivation: "reactivation" },
   plan: [{ sequence: "reactivation-days-0-5" }],
-  // Leads arrive through the generic csv and google-maps imports; google-maps keeps "City, ST" under `geo`.
+  // Overture, SBA, google-maps and csv imports all keep "City, ST" under `geo`.
   companyLocation: (company) => rawLocation(company, "geo"),
+  leadSourceFormats: recruitingLeadFormats,
+  datasets: recruitingDatasets,
 });

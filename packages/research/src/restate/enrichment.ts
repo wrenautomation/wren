@@ -2,9 +2,9 @@
  * Enrichment as a Restate Virtual Object keyed by population: "all" or a niche.
  * One key → one writer, so the stages of one population serialize instead of
  * racing (this replaces the Python per-stage advisory locks). Every unit of work
- * (one company crawled, one document scanned or extracted, one company picked) is
- * its own journaled step over its own transaction, so a crash resumes after the
- * last finished unit and never buys a completion twice. Stats accumulate from
+ * (one company crawled, one document scanned or extracted, one company picked or
+ * given its opener line) is its own journaled step over its own transaction, so a
+ * crash resumes after the last finished unit and never buys a completion twice. Stats accumulate from
  * journaled unit results, so replay is deterministic.
  *
  * Each handler is one ledger run: opened before the first unit, closed with stats.
@@ -47,6 +47,14 @@ import {
   loadExtractionTarget,
   selectExtractionTargets,
 } from "../enrichment/extraction.js";
+import {
+  countOpener,
+  emptyOpenerStats,
+  OPENER_VERSION,
+  type OpenerStats,
+  selectOpenerTargets,
+  writeOpener,
+} from "../enrichment/opener.js";
 import {
   addRenderStats,
   type BrowserRenderer,
@@ -415,6 +423,33 @@ export function makeEnrichment(deps: EnrichmentDeps) {
           stats.ungrounded_emails += r.value.pick.ungrounded?.length ?? 0;
           stats.ungrounded_names += r.value.pick.ungrounded_names?.length ?? 0;
           stats.picked += 1;
+        }
+        await close(ctx, runId, stats);
+        return stats;
+      },
+
+      opener: async (ctx: restate.ObjectContext, input: PickInput = {}): Promise<OpenerStats> => {
+        const niche = nicheOf(ctx);
+        const shard = parseShard(input.shard);
+        const runId = await open(
+          ctx,
+          "enrich opener",
+          { ...input, niche, version: OPENER_VERSION },
+          deps.llm.name,
+        );
+        const ids = await ctx.run("select", () =>
+          selectOpenerTargets(deps.db, deps.llm, { limit: input.limit, niche, shard }),
+        );
+        const stats = emptyOpenerStats(ids.length);
+        for (const id of ids) {
+          const r = await unit(ctx, `opener company ${id}`, () =>
+            deps.db.transaction((tx) => writeOpener(tx, deps.llm, id, { runId, tracer })),
+          );
+          if (!r.ok) {
+            stats.aborted = r.reason;
+            break;
+          }
+          countOpener(stats, r.value);
         }
         await close(ctx, runId, stats);
         return stats;

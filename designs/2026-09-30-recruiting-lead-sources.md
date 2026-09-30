@@ -15,6 +15,7 @@ Revised the same day on William's rules: **no Apollo** (everyone uses it), **US 
 - **Owners come from the firm's site crawl** (team pages), SBA contacts and principals, and LinkedIn for the top tier.
 - **Data Axle is blocked.** The one library that gives it to non-residents (Burlington, Ontario) wants $66/yr paid by phone. It's William's spend, and it's optional now.
 - **Each email gets a one-line opener**, written by an LLM from facts we hold and quoted from the firm's own site or record. No quote, no line.
+- **Measured (local import, 2026-09-30):** 32,955 firms, 23,414 with a site, 11,822 leads with an email before the crawl. PPP sizes 4,147 of them; 1,198 report 10–50 jobs.
 - **Pace:** at 10 senders × ~30 a day, 10,000 first emails take about 7 weeks of weekdays. Send the ICP tier first.
 
 ## Size of the market (US Census SUSB 2022, employer firms by yearly receipts)
@@ -83,17 +84,18 @@ Every source row is stored whole: `companies.raw` and `sightings.raw` keep every
 
 One sentence at the top of the email, about the firm, true, and checkable.
 
-- **Input:** the company's facts (name, city, year founded, size, specialties, SBA narrative) and its crawled homepage and about pages.
+- **Input (v1):** the firm's crawled pages, homepage and about first, up to 10k characters. Firms with no crawled page get no line yet. *(v2: the SBA narrative for firms with no site.)*
 - **Output:** `{line, quote, source_url}`. The line is at most 25 words and speaks to the firm, not about us.
-- **Evidence-bound:** the quote must appear word for word in the input, and every number in the line must appear in the quote. Otherwise there is no line.
+- **Evidence-bound:** the quote must appear word for word on a page, every number in the line must be in the quote, and every capitalized name must be a word on the pages or the firm's name. No dashes, `!` or `?`, one line. Otherwise there is no line, and the reason is stored.
 - **Stored** in `enrichments` (kind `opener`, per company, model and prompt version), so a re-run only pays for new firms.
-- **Used** in templates as `(({{company.opener}}))`: no line, the sentence drops.
-- **Cost:** a small model at ~3k tokens in and ~60 out is ~$0.004 a firm, so ~$50 for 12k. The full run is William's call; a 50-firm sample first.
+- **Used** in templates as `(({company.opener}))` through `recruiting_facts`: no line, the paragraph drops.
+- **Run:** `Enrichment/recruiting/opener` (Restate), `{limit, shard}`. Not in the pool: every run is a spend.
+- **Cost:** prod runs Cohere Command A (~$2.50/M in, $10/M out). ~3k tokens in, ~100 out is ~$0.008 a firm, so ~$100 for 12k. The full run is William's call; a sample first.
 
 ## Pipeline to 10k
 
 1. **Seed.** `wren fetch get overture-places` and `wren fetch get sba-search`, then import both with `--niche recruiting`. Dedupe is by domain.
-2. **Drop** chains (a domain at 3+ places), closed places, PEOs, franchises (PPP `FranchiseName`), `.gov`/`.mil` and platform domains.
+2. **Drop** chains (recruiting: a domain at 11+ places; 3–10 is a regional firm), closed places, PEOs, franchises (PPP `FranchiseName`), `.gov`/`.mil` and platform domains.
 3. **Size.** PPP jobs and loan size by name + ZIP, then the recruiter count on the team page, then LinkedIn (Tier A only).
 4. **Owner.** Take the SBA contact or principal first, then the team page, then LinkedIn, then the LCA POC.
 5. **Email.** Use a published address, else a pattern guess verified by mailifier. Catch-all domains are sent later, at lower volume. Canada: published addresses only (CASL).
@@ -133,25 +135,27 @@ PPP loan size ≈ 2.5 months of payroll, so yearly payroll ≈ 4.8 × loan. For 
 - **RL-D4** Emails are verified by mailifier. No paid verifier. **No Apollo, paid or free** (William).
 - **RL-D5** Numbers are for calls. No US cold SMS.
 - **RL-D6** University library data is not used (academic licence).
-- **RL-D7** Chain detection is data-driven (a domain at 3+ places). No hand-kept list, so it works for any niche.
+- **RL-D7** Chain detection is data-driven (a domain at N+ places). No hand-kept list, so it works for any niche. Core's default is 3; recruiting uses 11, which keeps 1,303 regional firms with 3–10 offices.
 - **RL-D8** US and Canada only. No UK (William).
 - **RL-D9** Every field a source gives is stored. The raw row is the record; columns are views on it.
 - **RL-D10** The opener is evidence-bound: a word-for-word quote or no line.
 - **RL-D11** Overture and SBA are niche-agnostic datasets and formats in core. A niche registers its categories, NAICS codes and countries.
 - **RL-D12** Data Axle waits on William's card. Nothing depends on it.
+- **RL-D13** Prod's LLM (Cohere Command A) writes the opener. No second provider for one pass.
+- **RL-D14** Opener v1 reads crawled pages only. The SBA narrative feeds v2, for firms with no site.
 
-## Build (next, in order)
+## Build
 
-1. **Overture places**: a dataset (DuckDB over S3, filtered by the niche's categories and countries) and an import format. Chain, closed and `.gov`/`.mil` drops at import.
-2. **SBA search**: a dataset (one POST per NAICS code) and an import format. The contact becomes a lead.
-3. **PPP sizing**: a dataset (streamed, filtered by NAICS) and a match by name + ZIP onto companies.
+1. ~~**Overture places**~~: built. `wren fetch get overture-staffing`, `import --format overture-staffing`. Declines are counted by reason on the import.
+2. ~~**SBA search**~~: built. `wren fetch get sba-staffing`, `import --format sba-staffing <dir>`. Firms whose primary NAICS isn't staffing are declined.
+3. ~~**PPP sizing**~~: built. `wren fetch get ppp-staffing`, `wren email size <dir> --niche recruiting`. Matches by name + ZIP, or name + state when the state has one ZIP for that name.
 4. **Import to prod**, then the discovery crawl.
-5. **Opener pass**: enrichment kind `opener`, a recruiting facts view exposing it, templates using it. Sample of 50, then the full run on William's yes.
+5. ~~**Opener pass**~~: built (kind `opener`, `recruiting_facts`, the opener template). Full run on William's yes.
 6. **Tiering** in the recruiting niche, with an offer per tier.
 
 ## Owed by William
 
-- Yes on the opener pass's full run (~$50 of LLM).
+- Yes on the opener pass's full run (~$100 of LLM at Command A).
 - Optional: the Burlington card ($66/yr) for Data Axle.
 - Confirm the tiers and the offer per tier.
 
@@ -160,6 +164,6 @@ PPP loan size ≈ 2.5 months of payroll, so yearly payroll ≈ 4.8 × loan. For 
 - Census counts employer firms, and the fee ratio for temp firms is an assumption.
 - Overture categories come from its sources; some firms are tagged `employment_agency` wrongly (workforce offices, law firms).
 - SBA firms skew to government contractors. Their NAICS is self-reported.
-- PPP is 2020–21 and self-reported. Name + ZIP matching misses firms that moved or renamed.
+- PPP is 2020–21 and self-reported. Name + ZIP matching misses firms that moved or renamed: locally it sized 13% of firms.
 - LinkedIn size is self-reported and counts contractors.
 - 10k leads make a sale likely, not certain. At a 0.5–1% positive reply rate that's 50–100 conversations. Copy and deliverability decide the rest.

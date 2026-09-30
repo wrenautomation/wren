@@ -110,6 +110,7 @@ describe("registry", () => {
     expect([...FACTS_VIEWS]).toEqual([
       ["sec_ria", "firm_facts"],
       ["agencies", "agency_facts"],
+      ["recruiting", "recruiting_facts"],
     ]);
     expect(secRia.lander).toBe("/");
     expect(agencies.lander).toBe("/agencies");

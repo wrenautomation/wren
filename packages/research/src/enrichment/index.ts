@@ -4,6 +4,7 @@ export * from "./email-pick/graph.js";
 export * from "./email-pick/run.js";
 export * from "./email-scan.js";
 export * from "./extraction.js";
+export * from "./opener.js";
 export * from "./remote-browser.js";
 export * from "./render.js";
 export * from "./shard.js";

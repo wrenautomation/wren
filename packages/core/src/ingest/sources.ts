@@ -15,6 +15,8 @@ export interface LeadSource {
   /** sha256 of the exact bytes read; ties the batch to content, not a path. Sources without hashing omit it. */
   contentHash?: string;
   rows(): Iterable<RawRow> | AsyncIterable<RawRow>;
+  /** Rows the source chose not to yield, by reason; read after `rows()` is spent. */
+  declined?(): Record<string, number>;
 }
 
 const CP1252_UNDEFINED = new Set([0x81, 0x8d, 0x8f, 0x90, 0x9d]);

@@ -4,7 +4,7 @@ cluster: research
 universe: live
 status: verified
 verified: 2026-09-28 @ 28823cd
-entity: packages/research/src/schema.ts:62
+entity: packages/research/src/schema.ts:68
 ---
 
 # enrichment
@@ -17,9 +17,9 @@ Agentic proposes, deterministic disposes: a proposal is a row with `applied_at` 
 
 ## Shape
 
-- `document_id`, `company_id`, `kind` (`ENRICHMENT_KINDS`, `packages/research/src/schema.ts:23`), `model`, `prompt_version`, `output`, `applied_at`, `run_id` (`:65`–`74`)
+- `document_id`, `company_id`, `kind` (`ENRICHMENT_KINDS`, `packages/research/src/schema.ts:28`), `model`, `prompt_version`, `output`, `applied_at`, `run_id` (`:71`–`80`)
 
-Citations: `packages/research/src/schema.ts:62`
+Citations: `packages/research/src/schema.ts:68`
 
 ## Connected to
 
@@ -29,14 +29,15 @@ Citations: `packages/research/src/schema.ts:62`
 
 ## If you change this
 
-- **Hits:** `packages/research/src/enrichment/store.ts:50`, `email-scan.ts:245`, `email-pick/`, `extraction.ts`; the two cost views; disposition's audit record (`packages/channel-email/src/inbox/disposition.ts`)
+- **Hits:** `packages/research/src/enrichment/store.ts:24`, `email-scan.ts:245`, `email-pick/`, `extraction.ts`, `opener.ts`; the two cost views; `recruiting_facts` (reads `firmographics`/`ppp-foia` and `opener`, `packages/core/src/views.ts:79`); disposition's audit record (`packages/channel-email/src/inbox/disposition.ts`)
 - **Does not hit:** `content_drafts.llm` (the content loop keeps its own record)
 
 ## Surfaces
 
 | Surface | Role |
 |---|---|
-| `Enrichment.scan/extract/pick` | write |
+| `Enrichment.scan/extract/pick/opener` | write |
+| `wren email size <dir> --niche <n>` | write `firmographics` from PPP loans (`packages/research/src/companies/ppp-size.ts:139`) |
 | `Enrichment.applyExtractions/applyPicks` | read, set `applied_at` |
 
 ## See

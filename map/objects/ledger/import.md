@@ -29,7 +29,7 @@ Citations: `packages/core/src/schema.ts:49`, `:72`
 
 ## If you change this
 
-- **Hits:** `packages/core/src/ingest/importer.ts:144`, `packages/core/src/people/importer.ts:67`; discovery, which opens an import per batch (`packages/research/src/discovery/service.ts:106`)
+- **Hits:** `packages/core/src/ingest/importer.ts:146`, `packages/core/src/people/importer.ts:67`; discovery, which opens an import per batch (`packages/research/src/discovery/service.ts:106`)
 - **Does not hit:** `runs` (a CLI import is also a run, but the two rows are independent)
 
 ## Surfaces

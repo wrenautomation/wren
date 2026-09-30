@@ -71,3 +71,21 @@ export const firmFacts = pgView("firm_facts", {
 }).as(
   sql`WITH facts AS ( WITH newest_sighting AS ( SELECT DISTINCT ON (sightings.company_id) sightings.company_id, sightings.raw, sightings.seen_at FROM sightings WHERE sightings.company_id IS NOT NULL AND sightings.raw ? '5F(2)(c)'::text ORDER BY sightings.company_id, sightings.seen_at DESC ), eff AS ( SELECT c_1.id AS company_id, COALESCE(ns.raw, c_1.raw) AS raw, ns.seen_at AS last_seen_at FROM companies c_1 LEFT JOIN newest_sighting ns ON ns.company_id = c_1.id ) SELECT c.id AS company_id, c.source_key, c.domain, c.name, c.country, NULLIF(regexp_replace(split_part(eff.raw ->> '5F(2)(c)'::text, '.'::text, 1), '[^0-9]'::text, ''::text, 'g'::text), ''::text)::bigint AS aum_usd, NULLIF(regexp_replace(split_part(eff.raw ->> '5A'::text, '.'::text, 1), '[^0-9]'::text, ''::text, 'g'::text), ''::text)::integer AS employees, NULLIF(regexp_replace(split_part(eff.raw ->> '5D(a)(1)'::text, '.'::text, 1), '[^0-9]'::text, ''::text, 'g'::text), ''::text)::integer AS ind_clients, NULLIF(regexp_replace(split_part(eff.raw ->> '5D(b)(1)'::text, '.'::text, 1), '[^0-9]'::text, ''::text, 'g'::text), ''::text)::integer AS hnw_clients, NULLIF(regexp_replace(split_part(eff.raw ->> '5D(f)(1)'::text, '.'::text, 1), '[^0-9]'::text, ''::text, 'g'::text), ''::text)::integer AS pooled_clients, eff.raw ->> 'Main Office Country'::text AS country_raw, eff.last_seen_at FROM companies c JOIN eff ON eff.company_id = c.id WHERE eff.raw ? '5F(2)(c)'::text ) SELECT company_id, source_key, domain, name, country, aum_usd, employees, ind_clients, hnw_clients, pooled_clients, country_raw, last_seen_at, CASE WHEN COALESCE(ind_clients, 0) > 0 OR COALESCE(hnw_clients, 0) > 0 THEN 'individual'::text WHEN COALESCE(pooled_clients, 0) > 0 THEN 'pooled'::text WHEN ind_clients IS NOT NULL OR hnw_clients IS NOT NULL OR pooled_clients IS NOT NULL THEN 'institutional'::text ELSE 'unknown'::text END AS segment FROM facts`,
 );
+
+/**
+ * Recruiting firms: size from PPP loans (jobs reported, a yearly payroll estimate),
+ * the SBA founding year, and the opener line (newest grounded one, any model).
+ */
+export const recruitingFacts = pgView("recruiting_facts", {
+  companyId: integer("company_id"),
+  sourceKey: varchar("source_key", { length: 64 }),
+  domain: varchar("domain", { length: 255 }),
+  name: varchar("name"),
+  country: varchar("country", { length: 2 }),
+  employees: integer("employees"),
+  payrollYearlyUsd: bigint("payroll_yearly_usd", { mode: "number" }),
+  foundedYear: integer("founded_year"),
+  opener: text("opener"),
+}).as(
+  sql`SELECT c.id AS company_id, c.source_key, c.domain, c.name, c.country, NULLIF(round((ppp.output ->> 'jobs_reported')::numeric)::integer, 0) AS employees, NULLIF(round((ppp.output ->> 'payroll_yearly_estimate')::numeric)::bigint, 0) AS payroll_yearly_usd, substring(c.raw -> 'sba' ->> 'year_established' from '[0-9]{4}')::integer AS founded_year, op.output -> 'opener' ->> 'line' AS opener FROM companies c LEFT JOIN LATERAL ( SELECT e.output FROM enrichments e WHERE e.company_id = c.id AND e.kind = 'firmographics' AND e.model = 'ppp-foia' ORDER BY e.prompt_version DESC, e.created_at DESC LIMIT 1 ) ppp ON true LEFT JOIN LATERAL ( SELECT e.output FROM enrichments e WHERE e.company_id = c.id AND e.kind = 'opener' AND e.output -> 'opener' ->> 'line' IS NOT NULL ORDER BY e.created_at DESC LIMIT 1 ) op ON true WHERE c.niche = 'recruiting'`,
+);
