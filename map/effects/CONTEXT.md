@@ -30,6 +30,7 @@ A catalog, not a waterfall. Each row names the cards whose **If you change this*
 | CRM formats, import, scoring | [[reactivation/crm-contact]] | [[processes/reactivation-pass]] |
 | recruiters, firm facts | [[reactivation/client-profile]] | [[reactivation/handoff]], compose (`packages/reactivation/src/compose.ts`) |
 | forwarding, meetings, the bill | [[reactivation/handoff]] | [[platform/offer]] (`perUnit`), the portal (`packages/reactivation/src/portal/`) |
+| a bill, a vendor's rules, or how bills post | [[books/bill]], [[books/vendor]] | [[processes/books-import]], [[books/entry]], [[processes/migrate]] |
 | a Restate service name or handler | [[platform/restate-services]] | [[platform/loop-object]], [[platform/cli]], [[platform/phone-worker]], `docs/restate-operations.md` |
 | the loop primitive | [[platform/loop-object]] | every scheduler |
 | a table (any) | [[platform/db-schema]] | [[processes/migrate]], the table's card |

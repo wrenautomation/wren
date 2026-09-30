@@ -9,7 +9,7 @@ entity: packages/db/drizzle.config.ts:7
 
 # db-schema
 
-Postgres 17 through Drizzle: every package owns its `src/schema.ts` (and `views.ts`), and `drizzle.config.ts` is the only place they meet. Migrations in `packages/db/drizzle/`, 15 so far.
+Postgres 17 through Drizzle: every package owns its `src/schema.ts` (and `views.ts`), and `drizzle.config.ts` is the only place they meet. Migrations in `packages/db/drizzle/`, 26 so far.
 
 ## Why this shape
 
@@ -17,7 +17,7 @@ Postgres 17 through Drizzle: every package owns its `src/schema.ts` (and `views.
 
 ## Shape
 
-- schema files (`drizzle.config.ts:8`–`15`): core, core views, research, channel-email (+views), content, channel-meta, channel-sms
+- schema files (`drizzle.config.ts:8`–`18`): core, core views, clients, research, channel-email (+views), content, channel-meta, channel-sms, reactivation, books (its own `books` schema)
 - `createDb`, `migrate` (`packages/db/src/index.ts:23`, `:29`); `pnpm db:generate`, `pnpm db:migrate` (`package.json:18`)
 - CI migrates before it bundles (`.github/workflows/deploy.yml:29`)
 

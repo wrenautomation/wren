@@ -14,7 +14,7 @@ Two card types, closed. When practice and this file disagree, fix one the same d
 | Key | Values |
 |---|---|
 | `type` | `object` \| `process` |
-| `cluster` | objects only: `leads` `ledger` `research` `email` `content` `ads` `sms` `clients` `reactivation` `platform` |
+| `cluster` | objects only: `leads` `ledger` `research` `email` `content` `ads` `sms` `clients` `reactivation` `books` `platform` |
 | `universe` | `live` \| `leftover` \| `ghost` (see `../CONTEXT.md`) |
 | `status` | `stub` (no body yet) \| `verified` (needs `verified:`) \| `stale` (known drift, say where) |
 | `verified` | `YYYY-MM-DD @ <commit>`; required when status is verified |

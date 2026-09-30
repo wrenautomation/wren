@@ -1,6 +1,6 @@
 # How to walk this map
 
-Verified against commit `83459e9` on 2026-09-28. The repo is a TypeScript monorepo (pnpm + turbo): Restate Cloud calls a Lambda (`apps/worker`), which runs every channel's services over Postgres 17 (Drizzle). Deps point down: `config` ← `db` ← `core` ← `research`, `content`, `channel-*`; `niches` sits on the channels; `cli` and `worker` sit on everything; `llm` and `offers` are leaves. Channels never import each other.
+Verified against commit `83459e9` on 2026-09-28. The repo is a TypeScript monorepo (pnpm + turbo): Restate Cloud calls a Lambda (`apps/worker`), which runs every channel's services over Postgres 17 (Drizzle). Deps point down: `config` ← `db` ← `core` ← `research`, `content`, `channel-*`; `niches` sits on the channels; `books` sits on `core`, `db` and `llm`; `cli` and `worker` sit on everything; `llm` and `offers` are leaves. Channels never import each other.
 
 ## Walk
 
@@ -32,7 +32,10 @@ Verified against commit `83459e9` on 2026-09-28. The repo is a TypeScript monore
 | template | an `.email` file parsed to a `Template` tree; `template_versions` = the stored source per content hash; an SMS `SmsStep` body. |
 | sender | a roster `Sender` (an inbox address); `SmsSender` (the SMS loop object); `enrollments.sender` (the address chosen at compose). |
 | run | `runs` ledger row; one pass of a loop object. |
-| post | a published content draft; LinkedIn's `/rest/posts`. |
+| post | a published content draft; LinkedIn's `/rest/posts`; `wren books post` (make the journal match the bills). |
+| document | `documents` (a company's web page, `packages/research/src/schema.ts:31`) vs `books.documents` (a vendor email or PDF, `packages/books/src/schema.ts:99`). |
+| account | `books.accounts` (the chart, `packages/books/src/schema.ts:34`); `clients.accounts` (a client's ids, jsonb, `packages/core/src/clients/schema.ts:26`); autobrowse accounts (logins, not in this repo). |
+| line | `books.lines` (one side of a journal entry) vs `books.bill_lines` (a bill's printed items). |
 | sites | autobrowse's Restate service, not in this repo. Every platform and Meta call goes through it (`packages/core/src/content/restate.ts:21`). Reddit does not. |
 | worker | `apps/worker` (Node/Lambda Restate endpoint); `apps/phone` (Cloudflare Worker, SMS inbox + webhooks); `deploy/pixel` (Cloudflare Worker, open pixel). |
 | box | autobrowse's EC2 machine, woken by `packages/core/src/content/box.ts`. |
