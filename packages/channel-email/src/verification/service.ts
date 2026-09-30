@@ -7,7 +7,11 @@
  * result: spend control, not a freshness verdict) is older than that are selected too.
  * With retryRiskyOlderThan set, imported leads whose newest verdict is `risky` and
  * older than that are tried again (a greylist or an unreachable prober is not a
- * verdict on the address). `niche` narrows to leads of that niche's companies.
+ * verdict on the address). With recheckReturning set, the proven addresses (verified,
+ * or a newest valid/catch_all verdict) of companies that may come back for another
+ * sequence (src/recontact.ts) are re-checked once their newest check is older than
+ * that: a lead that rested 90 days is past the send horizon. `niche` narrows to leads
+ * of that niche's companies.
  *
  * Status moves with the verdict: an authoritative VALID -> verified, a definitive
  * failure (local checks, or an authoritative INVALID) -> undeliverable. A
@@ -21,6 +25,7 @@ import { companies, type Lead, type LeadStatus, leads, transitionLead } from "@w
 import type { Queryable } from "@wren/db";
 import { and, asc, eq, lt, notExists, or, sql } from "drizzle-orm";
 import { eachConcurrently } from "../concurrent.js";
+import { audienceGate, type RecontactPolicy } from "../recontact.js";
 import { type VerificationResult, verifications } from "../schema.js";
 import type { LocalCheckerLike } from "./local.js";
 import { defaultLocalChecker } from "./mailifier.js";
@@ -44,6 +49,8 @@ export interface VerificationOptions {
   recheckOlderThanMs?: number;
   /** Milliseconds; imported leads whose newest verdict is `risky` and older are tried again. */
   retryRiskyOlderThanMs?: number;
+  /** Proven addresses of companies that may come back, re-checked once older than this. */
+  recheckReturning?: { policy: RecontactPolicy; olderThanMs: number };
   /** Only leads held by this niche's companies. */
   niche?: string;
   /** Leads checked at once (default 1). A paid verifier stays at 1. */
@@ -94,6 +101,20 @@ export async function runVerification(
         eq(leads.status, "imported"),
         eq(newestResult, "risky"),
         lt(lastChecked, sql`now() - make_interval(secs => ${opts.retryRiskyOlderThanMs / 1000})`),
+      ),
+    );
+  }
+  if (opts.recheckReturning !== undefined) {
+    const { policy, olderThanMs } = opts.recheckReturning;
+    const newestResult = sql`(select ${verifications.result} from ${verifications} where ${verifications.leadId} = ${leads.id} order by ${verifications.checkedAt} desc, ${verifications.id} desc limit 1)`;
+    eligible.push(
+      and(
+        or(
+          eq(leads.status, "verified"),
+          and(eq(leads.status, "imported"), sql`${newestResult} in ('valid', 'catch_all')`),
+        ),
+        lt(lastChecked, sql`now() - make_interval(secs => ${olderThanMs / 1000})`),
+        audienceGate(sql`${leads.companyId}`, "returning", policy),
       ),
     );
   }

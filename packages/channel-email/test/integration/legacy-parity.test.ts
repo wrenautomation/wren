@@ -39,9 +39,11 @@ const unwiden = (c: Catalog["constraints"][number]) => ({
  * legacy data was already restored. Only these may exist beyond the legacy set.
  */
 const ADDED = {
-  columns: new Set(["enrollments.offer", "messages.link_code"]),
+  columns: new Set(["enrollments.offer", "messages.link_code", "enrollments.contact_round"]),
   constraints: new Set(["uq_messages_link_code"]),
   indexes: new Set(["ix_enrollments_offer", "uq_messages_link_code"]),
+  /** Legacy views wren grew columns on (lead recycling): still present, bodies free to differ. */
+  views: new Set(["campaign_funnel", "enrollment_outcomes"]),
 };
 
 interface Catalog {
@@ -116,8 +118,13 @@ describe("legacy parity", () => {
       name: VIEW_RENAMES[v.name] ?? v.name,
       def: v.def.replace(/\b(llm_calls|stage_costs)\b/g, (m) => VIEW_RENAMES[m] ?? m),
     });
-    const legacyViews = a.views.map(renameView).sort((x, y) => x.name.localeCompare(y.name));
-    const wrenViews = b.views.filter((v) => legacyViews.some((l) => l.name === v.name));
+    const grown = (v: { name: string; def: string }) =>
+      ADDED.views.has(v.name) ? { name: v.name, def: "(grown)" } : v;
+    const legacyViews = a.views
+      .map(renameView)
+      .map(grown)
+      .sort((x, y) => x.name.localeCompare(y.name));
+    const wrenViews = b.views.filter((v) => legacyViews.some((l) => l.name === v.name)).map(grown);
     expect(b.columns.filter((c) => !ADDED.columns.has(`${c.tbl}.${c.col}`))).toEqual(a.columns);
     expect(b.constraints.filter((c) => !ADDED.constraints.has(c.name)).map(unwiden)).toEqual(
       a.constraints,

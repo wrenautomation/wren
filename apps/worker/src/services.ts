@@ -186,6 +186,7 @@ export async function buildServices(
             ),
           ),
           companyLocation: niche.companyLocation,
+          recontact: niche.recontact,
         },
       ];
     }),
@@ -295,6 +296,10 @@ export async function buildServices(
       policy,
       modelStages: settings.poolModelStages,
       freeVerifier: freeVerdicts,
+      recheck: {
+        horizonDays: settings.verificationHorizonDays,
+        policy: (niche) => campaigns.get(niche)?.recontact,
+      },
     }),
   );
   if (settings.notify !== "none") services.push(makeDigestScheduler({ db, notifier, policy }));

@@ -4,7 +4,7 @@ cluster: platform
 universe: live
 status: verified
 verified: 2026-09-28 @ 83459e9
-entity: packages/niches/src/niche.ts:23
+entity: packages/niches/src/niche.ts:26
 ---
 
 # niche
@@ -17,11 +17,11 @@ Core is niche-agnostic; everything market-specific is data behind one contract, 
 
 ## Shape
 
-- `Niche` (`niche.ts:23`): `name`, `factsView`, `lander`, `crawlHints`, `discoveryGenericWords`, `templates`, `sequences`, `smsSequences`, `offers`, `offerFacts`, `plan`, `companyLocation`, `leadSourceFormats`, `personSourceFormats`, `platformDomains`, `datasets`
-- `NicheSpec` (`:62`), `defineNiche` (`:104`); definitions `sec-ria.ts`, `agencies.ts`, `recruiting.ts`; templates `packages/niches/templates/<niche>/`
+- `Niche` (`niche.ts:26`): `name`, `factsView`, `lander`, `crawlHints`, `discoveryGenericWords`, `templates`, `sequences`, `smsSequences`, `offers`, `offerFacts`, `plan`, `companyLocation`, `leadSourceFormats`, `personSourceFormats`, `platformDomains`, `datasets`, `recontact` (rest days per outcome and yearly cap for lead recycling, `:47`; defaults `packages/channel-email/src/recontact.ts:45`)
+- `NicheSpec` (`:67`), `defineNiche` (`:111`); definitions `sec-ria.ts`, `agencies.ts`, `recruiting.ts`; templates `packages/niches/templates/<niche>/`
 - registries: `NICHES`, `FACTS_VIEWS`, `LANDERS_BY_NICHE`, `SMS_SEQUENCES`, `LEAD_SOURCE_FORMATS`, `PERSON_SOURCE_FORMATS` (`index.ts:24`–`104`)
 
-Citations: `packages/niches/src/niche.ts:23`, `packages/niches/src/index.ts:24`
+Citations: `packages/niches/src/niche.ts:26`, `packages/niches/src/index.ts:24`
 
 ## Connected to
 
@@ -30,7 +30,7 @@ Citations: `packages/niches/src/niche.ts:23`, `packages/niches/src/index.ts:24`
 
 ## If you change this
 
-- **Hits:** adding a niche: a facts view (migration), a templates dir, a definition file, `NICHES`, the roster's niche list, `LANDERS_BY_NICHE` and the lander repo; the `Campaign` map in `apps/worker/src/services.ts:151`
+- **Hits:** adding a niche: a facts view (migration), a templates dir, a definition file, `NICHES`, the roster's niche list, `LANDERS_BY_NICHE` and the lander repo; the `Campaign` map in `apps/worker/src/services.ts:169`
 - **Does not hit:** running enrollments (snapshotted); the content loop (niche-free)
 
 ## Surfaces

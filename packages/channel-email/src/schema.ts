@@ -188,6 +188,8 @@ export const enrollments = pgTable(
     toEmail: varchar("to_email", { length: 320 }).notNull(),
     sender: varchar("sender", { length: 320 }).notNull(),
     runId: uuid("run_id"),
+    /** The company's Nth cold sequence: 1 = first contact, 2+ = it came back (lead recycling). */
+    contactRound: integer("contact_round").default(1).notNull(),
   },
   (t) => [
     primaryKey({ columns: [t.id], name: "pk_enrollments" }),

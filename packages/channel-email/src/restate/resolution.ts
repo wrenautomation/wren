@@ -10,6 +10,7 @@ import { finishRun, openRun } from "@wren/core";
 import type { Db, DbHandle } from "@wren/db";
 import { sql } from "drizzle-orm";
 import { eachConcurrently } from "../concurrent.js";
+import type { RecontactPolicy } from "../recontact.js";
 import {
   addResolutionStats,
   buildCandidates,
@@ -66,6 +67,11 @@ export interface VerifyLeadsInput {
   retryRiskyAfterDays?: number;
   /** Leads checked at once; free verifiers only (default 1). */
   concurrency?: number;
+  /**
+   * Also re-check the proven addresses of companies that may come back for another
+   * sequence (lead recycling), once their newest check is older than `olderThanDays`.
+   */
+  recheckReturning?: { policy: RecontactPolicy; olderThanDays: number };
 }
 export const DEFAULT_RETRY_RISKY_DAYS = 2;
 
@@ -225,6 +231,14 @@ export function makeResolution(deps: ResolutionDeps) {
             ...(input.limit !== undefined ? { limit: input.limit } : {}),
             concurrency: deps.verifier.costsCredits ? 1 : (input.concurrency ?? 1),
             retryRiskyOlderThanMs: days * 86_400_000,
+            ...(input.recheckReturning
+              ? {
+                  recheckReturning: {
+                    policy: input.recheckReturning.policy,
+                    olderThanMs: input.recheckReturning.olderThanDays * 86_400_000,
+                  },
+                }
+              : {}),
           }),
         );
         await close(ctx, runId, stats);

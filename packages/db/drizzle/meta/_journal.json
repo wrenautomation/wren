@@ -169,6 +169,13 @@
       "when": 1790773160893,
       "tag": "0023_recruiting_opener",
       "breakpoints": true
+    },
+    {
+      "idx": 24,
+      "version": "7",
+      "when": 1790777281266,
+      "tag": "0024_lead_recycling",
+      "breakpoints": true
     }
   ]
 }

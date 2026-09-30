@@ -6,8 +6,12 @@
  * this module never imports niche registries. One enrollment per company.
  *
  * Two passes, in this order: every company whose best-ranked person has a live address
- * gets a PERSON enrollment; then every company still without any enrollment whose email
+ * gets a PERSON enrollment; then every company still without an enrollment whose email
  * pick named a send-to address on the company's own site gets a ROLE_INBOX enrollment.
+ *
+ * `audience` picks the companies: `first_contact` (never enrolled) or `returning` (enrolled
+ * before, rested, and this sequence+offer new to it; src/recontact.ts). An address whose
+ * enrollment ended wrong_person, referral, bounced or opted_out is never used again.
  *
  * The whole sequence renders up front and every step is stored before anything can send.
  * Each enroll runs in its own transaction (a savepoint when compose itself runs inside
@@ -15,8 +19,15 @@
  */
 import { randomBytes } from "node:crypto";
 import type { Queryable } from "@wren/db";
-import { sql } from "drizzle-orm";
+import { type SQL, sql } from "drizzle-orm";
 import { activeSuppression, activeSuppressions } from "../guards.js";
+import {
+  type Audience,
+  audienceGate,
+  DEFAULT_RECONTACT,
+  doneAddresses,
+  type RecontactPolicy,
+} from "../recontact.js";
 import {
   type ApprovalSource,
   type EnrollmentKind,
@@ -67,6 +78,10 @@ export interface ComposeOptions {
    * verdicts are free (the pool-feeder makes them); off, an unchecked inbox may go.
    */
   readonly roleInboxNeedsVerdict?: boolean;
+  /** Companies never enrolled (default), or companies coming back for a new sequence. */
+  readonly audience?: Audience;
+  /** When a company may come back: the niche's rest periods and yearly cap. */
+  readonly recontact?: RecontactPolicy;
 }
 
 export interface ComposeStats {
@@ -81,6 +96,8 @@ export interface ComposeStats {
   skipped_suppressed: number;
   skipped_missing_facts: number;
   skipped_where: number;
+  /** The address ended wrong_person, referral, bounced or opted_out before. */
+  skipped_address_done: number;
   /** Lost the race for a company/address/person against another compose run. */
   skipped_already_enrolled: number;
   flagged_possible_duplicate: number;
@@ -97,6 +114,7 @@ const newStats = (): ComposeStats => ({
   skipped_suppressed: 0,
   skipped_missing_facts: 0,
   skipped_where: 0,
+  skipped_address_done: 0,
   skipped_already_enrolled: 0,
   flagged_possible_duplicate: 0,
 });
@@ -120,16 +138,16 @@ interface RoleInboxRow {
   pick_method: string | null;
 }
 
-// One row per (company, person) still eligible for a first cold email, best rank first
-// within each company. A company with ANY enrollment — active, finished, or stopped — is out.
-const eligibleSql = (niche: string, companyMatch: string | null) => sql`
+// One row per (company, person) whose company passes the audience gate, best rank first
+// within each company. First contact: a company with ANY enrollment is out.
+const eligibleSql = (niche: string, companyMatch: string | null, gate: Gate) => sql`
   SELECT pf.person_id, pf.company_id, pf.full_name, pf.title, pf.role_rank,
          pf.company_name, pf.company_domain
   FROM person_facts pf
   WHERE pf.company_niche = ${niche}
     AND NOT pf.avoid_emailing_first
     AND pf.role_rank IS NOT NULL
-    AND NOT EXISTS (SELECT 1 FROM enrollments e WHERE e.company_id = pf.company_id)
+    AND ${gate(sql`pf.company_id`)}
     ${
       companyMatch === null
         ? sql``
@@ -137,12 +155,18 @@ const eligibleSql = (niche: string, companyMatch: string | null) => sql`
     }
   ORDER BY pf.company_id, pf.role_rank, pf.person_id`;
 
-// One row per company still without any enrollment whose NEWEST email pick named a send-to
+// One row per company passing the audience gate whose NEWEST email pick named a send-to
 // address: the pick's `best_send_to`, held as a lead on the company's own record. The newest
 // pick is chosen first and gated second, on purpose. Gates: the lead is not
 // suppressed/undeliverable (status), no verdict ever called the address invalid, and no
-// contact candidate holds it. A verification is required only when `needsVerdict`.
-const roleInboxSql = (niche: string, companyMatch: string | null, needsVerdict: boolean) => sql`
+// contact candidate holds it. A valid or catch_all verdict is required when `verdict` says:
+// ever (`any`), or within the last N days (a returning company's address is re-checked).
+const roleInboxSql = (
+  niche: string,
+  companyMatch: string | null,
+  gate: Gate,
+  verdict: "none" | "any" | number,
+) => sql`
   WITH newest_pick AS (
     SELECT DISTINCT ON (e.company_id)
            e.company_id, e.id,
@@ -161,11 +185,12 @@ const roleInboxSql = (niche: string, companyMatch: string | null, needsVerdict: 
     AND l.status IN ('imported', 'verified')
     AND NOT EXISTS (SELECT 1 FROM verifications v WHERE v.lead_id = l.id AND v.result = 'invalid')
     AND NOT EXISTS (SELECT 1 FROM contact_candidates cc WHERE lower(cc.email) = lower(l.email))
-    AND NOT EXISTS (SELECT 1 FROM enrollments en WHERE en.company_id = c.id)
+    AND ${gate(sql`c.id`)}
     ${
-      needsVerdict
-        ? sql`AND EXISTS (SELECT 1 FROM verifications v WHERE v.lead_id = l.id AND v.result IN ('valid', 'catch_all'))`
-        : sql``
+      verdict === "none"
+        ? sql``
+        : sql`AND EXISTS (SELECT 1 FROM verifications v WHERE v.lead_id = l.id AND v.result IN ('valid', 'catch_all')
+                ${verdict === "any" ? sql`` : sql`AND v.checked_at > now() - make_interval(days => ${verdict}::int)`})`
     }
     ${
       companyMatch === null
@@ -173,6 +198,29 @@ const roleInboxSql = (niche: string, companyMatch: string | null, needsVerdict: 
         : sql`AND (c.name ILIKE ${companyMatch} OR c.domain ILIKE ${companyMatch})`
     }
   ORDER BY c.id`;
+
+/** The audience condition on a company id expression. */
+type Gate = (company: SQL) => SQL;
+
+const gateFor =
+  (
+    audience: Audience,
+    policy: RecontactPolicy,
+    pitch: { sequence: string; offer: string } | null,
+  ) =>
+  (company: SQL) =>
+    audienceGate(company, audience, policy, pitch);
+
+/** Returning role inboxes need a verdict inside the horizon; first contact keeps the old rule. */
+const roleInboxVerdict = (
+  audience: Audience,
+  needsVerdict: boolean,
+  horizonDays: number,
+): "none" | "any" | number =>
+  audience === "returning" ? horizonDays : needsVerdict ? "any" : "none";
+
+/** The listings below show first contact only. */
+const firstContact: Gate = (company) => audienceGate(company, "first_contact", DEFAULT_RECONTACT);
 
 /** Raw rows come back untyped; the SQL above fixes their shape. */
 const rowsAs = <R>(rows: unknown) => rows as R[];
@@ -229,7 +277,7 @@ export async function eligiblePeople(
   opts: ListingOptions & { verificationHorizonDays: number },
 ): Promise<EligiblePerson[]> {
   const match = opts.companyMatch ? `%${opts.companyMatch}%` : null;
-  const rows = rowsAs<EligibleRow>(await db.execute(eligibleSql(opts.niche, match)));
+  const rows = rowsAs<EligibleRow>(await db.execute(eligibleSql(opts.niche, match, firstContact)));
   const addressable = await peopleWithAddress(
     db,
     rows.map((r) => r.person_id),
@@ -272,11 +320,15 @@ export async function eligiblePeople(
 /** Every company the role-inbox pass would consider today, with the suppression gate pre-applied. */
 export async function eligibleRoleInboxes(
   db: Queryable,
-  opts: ListingOptions & { excludeCompanies?: ReadonlySet<number>; needsVerdict?: boolean },
+  opts: ListingOptions & {
+    excludeCompanies?: ReadonlySet<number>;
+    needsVerdict?: boolean;
+  },
 ): Promise<EligibleRoleInbox[]> {
   const match = opts.companyMatch ? `%${opts.companyMatch}%` : null;
+  const verdict = opts.needsVerdict ? "any" : "none";
   const rows = rowsAs<RoleInboxRow>(
-    await db.execute(roleInboxSql(opts.niche, match, opts.needsVerdict ?? false)),
+    await db.execute(roleInboxSql(opts.niche, match, firstContact, verdict)),
   );
   const exclude = opts.excludeCompanies ?? new Set<number>();
   const isSuppressed = await activeSuppressions(
@@ -317,7 +369,10 @@ interface Shared {
   readonly runId: string | null;
   readonly stats: ComposeStats;
   readonly where: Readonly<Record<string, string>>;
-  readonly roleInboxNeedsVerdict: boolean;
+  readonly roleInboxVerdict: "none" | "any" | number;
+  readonly gate: Gate;
+  /** Addresses never written to again (lowercased). */
+  readonly done: ReadonlySet<string>;
 }
 
 /**
@@ -337,6 +392,7 @@ export async function compose(db: Queryable, opts: ComposeOptions): Promise<Comp
     // An unpinned enrollment is a thread with no home.
     throw new Error("compose needs at least one sending address; none was passed");
   }
+  const audience = opts.audience ?? "first_contact";
   const shared: Shared = {
     niche: opts.niche,
     sequence: opts.sequence,
@@ -353,7 +409,16 @@ export async function compose(db: Queryable, opts: ComposeOptions): Promise<Comp
     runId: opts.runId ?? null,
     stats: newStats(),
     where: opts.where ?? {},
-    roleInboxNeedsVerdict: opts.roleInboxNeedsVerdict ?? false,
+    roleInboxVerdict: roleInboxVerdict(
+      audience,
+      opts.roleInboxNeedsVerdict ?? false,
+      opts.verificationHorizonDays,
+    ),
+    gate: gateFor(audience, opts.recontact ?? DEFAULT_RECONTACT, {
+      sequence: opts.sequence.name,
+      offer: opts.offer,
+    }),
+    done: await doneAddresses(db),
   };
   const kind = opts.kind ?? "all";
   const limit = opts.limit ?? null;
@@ -379,7 +444,7 @@ async function personPass(
   limit: number | null,
 ) {
   const stats = shared.stats;
-  const rows = rowsAs<EligibleRow>(await db.execute(eligibleSql(shared.niche, null)));
+  const rows = rowsAs<EligibleRow>(await db.execute(eligibleSql(shared.niche, null, shared.gate)));
   const addressable = await peopleWithAddress(
     db,
     rows.map((r) => r.person_id),
@@ -396,6 +461,10 @@ async function personPass(
       );
       if (record === null) {
         stats.skipped_no_address++;
+        continue;
+      }
+      if (shared.done.has(record.email.toLowerCase())) {
+        stats.skipped_address_done++;
         continue;
       }
       if ((await activeSuppression(db, record.email)) !== null) {
@@ -436,7 +505,7 @@ async function personPass(
 async function roleInboxPass(db: Queryable, shared: Shared, limit: number | null) {
   const stats = shared.stats;
   const rows = rowsAs<RoleInboxRow>(
-    await db.execute(roleInboxSql(shared.niche, null, shared.roleInboxNeedsVerdict)),
+    await db.execute(roleInboxSql(shared.niche, null, shared.gate, shared.roleInboxVerdict)),
   );
   const suppressed = await activeSuppressions(
     db,
@@ -444,6 +513,10 @@ async function roleInboxPass(db: Queryable, shared: Shared, limit: number | null
   );
   for (const row of rows) {
     if (limit !== null && stats.enrolled >= limit) break;
+    if (shared.done.has(row.email.toLowerCase())) {
+      stats.skipped_address_done++;
+      continue;
+    }
     if (suppressed(row.email) !== null) {
       stats.skipped_suppressed++;
       continue;
@@ -623,6 +696,7 @@ async function enroll(
       offer: shared.offer,
       state: "active",
       runId: shared.runId,
+      contactRound: sql`(SELECT count(*) + 1 FROM enrollments WHERE company_id = ${input.companyId})`,
     })
     .returning({ id: enrollments.id });
   const enrollmentId = (row as { id: number }).id;

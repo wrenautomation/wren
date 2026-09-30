@@ -6,6 +6,7 @@ import { eq } from "drizzle-orm";
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 import { sequence, sequenceStep } from "../../src/outreach/sequences.js";
 import { field, template, text } from "../../src/outreach/templates.js";
+import { DEFAULT_RECONTACT } from "../../src/recontact.js";
 import { type Campaign, queuedOpeners, topUp } from "../../src/restate/compose-scheduler.js";
 import { SendPolicy } from "../../src/send/policy.js";
 import {
@@ -58,6 +59,7 @@ const CAMPAIGN: Campaign = {
   senders: [SENDER],
   signatures: { [SENDER]: "William" },
   companyLocation: (c) => ((c.raw ?? {}) as Record<string, unknown>).Location as string | null,
+  recontact: DEFAULT_RECONTACT,
 };
 // Flat cap of 2 per inbox, one inbox: capacity 2/day.
 const POLICY = SendPolicy.fromSettings(
@@ -129,10 +131,14 @@ describe("topUp", () => {
     const [austin] = await db().select().from(companies).where(eq(companies.id, marketing.id));
     expect(austin?.timezone).toBe("America/Chicago");
     expect(stats.exhausted).toBe(true);
-    expect(stats.passes.map((p) => [p.sequence, p.stats.enrolled])).toEqual([
-      ["marketing-days-0-5", 1],
-      ["build-days-0-5", 1],
-      ["marketing-days-0-5", 1],
+    // First contact through the plan, then the same plan for returning firms (none yet).
+    expect(stats.passes.map((p) => [p.audience, p.sequence, p.stats.enrolled])).toEqual([
+      ["first_contact", "marketing-days-0-5", 1],
+      ["first_contact", "build-days-0-5", 1],
+      ["first_contact", "marketing-days-0-5", 1],
+      ["returning", "marketing-days-0-5", 0],
+      ["returning", "build-days-0-5", 0],
+      ["returning", "marketing-days-0-5", 0],
     ]);
     const bySeq = new Map((await allEnrollments(db())).map((e) => [e.companyId, e.sequenceName]));
     expect(bySeq.get(marketing.id)).toBe("marketing-days-0-5");

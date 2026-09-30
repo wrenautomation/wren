@@ -12,6 +12,7 @@ import {
   activeSenders,
   activeSuppression,
   addSuppression,
+  audienceGate,
   campaignFunnel,
   classifyValue,
   emailClicks,
@@ -35,6 +36,7 @@ import {
   LEAD_SOURCE_FORMATS,
   NICHE_NAMES,
   NICHE_PLATFORM_DOMAINS,
+  NICHES,
   PERSON_SOURCE_FORMATS,
   requireNiche,
 } from "@wren/niches";
@@ -76,15 +78,22 @@ export function registerEmail(
           `queue: ${queue?.openers} openers approved, ${queue?.followups} follow-ups waiting, ` +
             `${queue?.drafts} drafts unreviewed, ${queue?.failed} failed; sent today (UTC) ${queue?.sent_today}`,
         );
-        const pool = (await db.execute(sql`
-          SELECT c.niche, count(*)::int AS companies
-          FROM companies c
-          WHERE EXISTS (SELECT 1 FROM leads l WHERE l.company_id = c.id)
-            AND NOT EXISTS (SELECT 1 FROM enrollments e WHERE e.company_id = c.id)
-          GROUP BY c.niche ORDER BY c.niche`)) as unknown as { niche: string; companies: number }[];
-        console.log(
-          `pool (companies with a lead, not yet enrolled): ${pool.map((p) => `${p.niche} ${p.companies}`).join(", ") || "none"}`,
-        );
+        // Fresh = never enrolled; may return = rested under the niche's recontact policy
+        // (it still needs a sequence it has not had).
+        const pool: string[] = [];
+        for (const { name, recontact: policy } of NICHES) {
+          const [row] = (await db.execute(sql`
+            SELECT count(*) FILTER (WHERE ${audienceGate(sql`c.id`, "first_contact", policy)})::int AS fresh,
+                   count(*) FILTER (WHERE ${audienceGate(sql`c.id`, "returning", policy)})::int AS returning
+            FROM companies c
+            WHERE c.niche = ${name} AND EXISTS (SELECT 1 FROM leads l WHERE l.company_id = c.id)`)) as unknown as {
+            fresh: number;
+            returning: number;
+          }[];
+          if (row && (row.fresh > 0 || row.returning > 0))
+            pool.push(`${name} ${row.fresh} fresh + ${row.returning} may return`);
+        }
+        console.log(`pool (companies with a lead): ${pool.join(", ") || "none"}`);
         const paused = await activePauses(db);
         console.log(
           paused.size === 0
@@ -120,11 +129,11 @@ export function registerEmail(
       await withDb(async (db) => {
         const funnel = await db.select().from(campaignFunnel);
         console.log(
-          "funnel (niche · sequence · kind): enrolled active finished · replies interested bounces unsubs",
+          "funnel (niche · sequence · kind · first/recycled): enrolled active finished · replies interested bounces unsubs",
         );
         for (const f of funnel) {
           console.log(
-            `  ${f.niche} · ${f.sequenceName} · ${f.enrollmentKind}: ${f.enrolled} ${f.active} ${f.finished} · ` +
+            `  ${f.niche} · ${f.sequenceName} · ${f.enrollmentKind} · ${f.recycled ? "recycled" : "first"}: ${f.enrolled} ${f.active} ${f.finished} · ` +
               `${f.replies} ${f.interested} ${f.hardBounces} ${f.unsubscribes}  (openers ${f.openersSent}, follow-ups ${f.followupsSent})`,
           );
         }

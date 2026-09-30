@@ -13,7 +13,7 @@ An email as a file: `packages/niches/templates/<niche>/**/*.email`, parsed into 
 
 ## Why this shape
 
-Every word a sent email contains is human-authored; `render()` only assembles and records (`templates.ts:1`). Four marks and nothing else: `{key}`, `{key|fallback}`, `[[a | b]]`, `((optional))` (`authoring.ts:1`). No callables live in the tree, so `version` changes exactly when the words change, and `template_versions` stores the source under that hash at compose (`compose.ts:676`).
+Every word a sent email contains is human-authored; `render()` only assembles and records (`templates.ts:1`). Four marks and nothing else: `{key}`, `{key|fallback}`, `[[a | b]]`, `((optional))` (`authoring.ts:1`). No callables live in the tree, so `version` changes exactly when the words change, and `template_versions` stores the source under that hash at compose (`compose.ts:754`).
 
 ## Shape
 
@@ -26,7 +26,7 @@ Citations: `packages/channel-email/src/outreach/templates.ts:47`, `authoring.ts:
 
 ## Connected to
 
-- **owned-by:** [[platform/niche]] (`templatesDir`, `packages/niches/src/niche.ts:62`)
+- **owned-by:** [[platform/niche]] (`templatesDir`, `packages/niches/src/niche.ts:67`)
 - **owns:** the pinned `template` + `template_version` on [[email/message]]
 - **joins:** [[email/sequence]]; facts from `factsFor` (`outreach/facts.ts:110`)
 - **looks-like-but-is-not:** an SMS step body (`packages/channel-sms/src/templates.ts`)

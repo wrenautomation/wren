@@ -16,17 +16,17 @@ Verified against commit `83459e9` on 2026-09-28. The repo is a TypeScript monore
 | **live** | Bound in `apps/worker/src/services.ts` or reachable from `apps/cli`, and running in prod. Implement against these. |
 | **leftover** | Present, no longer the main path. None now: the old LinkedIn pipeline tables, `llm_calls` and the notes inbox were dropped on 2026-09-28 (`packages/db/drizzle/0014_drop_leftovers.sql`). Mark a card `leftover` when something loses its writer. |
 | **ghost** | Named but not wired. None now. |
-| **in build** | Wired, not yet live by design. SMS: the `fake` provider is refused on Lambda (`apps/worker/src/services.ts:311`) until Telnyx is configured. Cards stay `live`. |
+| **in build** | Wired, not yet live by design. SMS: the `fake` provider is refused on Lambda (`apps/worker/src/services.ts:316`) until Telnyx is configured. Cards stay `live`. |
 
 ## Name collisions
 
 | Word | Meanings |
 |---|---|
 | lead | prose: a company to reach. `leads` table: one email address with `status` (`packages/core/src/schema.ts:219`). `Ads.leads`: Meta lead-form fills. |
-| message | `messages` (email drafts and sends, `packages/channel-email/src/schema.ts:234`) vs `sms_messages` (`packages/channel-sms/src/schema.ts:200`). Different states, different tick. |
+| message | `messages` (email drafts and sends, `packages/channel-email/src/schema.ts:236`) vs `sms_messages` (`packages/channel-sms/src/schema.ts:200`). Different states, different tick. |
 | draft | `messages.state = draft`; a `content_drafts` row. |
 | enrollment | `enrollments`: one email sequence per company. SMS has no table; a contact's `state` becomes `enrolled`. |
-| campaign | worker `Campaign` (a niche's templates + sequences + plan, `apps/worker/src/services.ts:151`); a Meta campaign id in `ad_launches`; the 10DLC campaign that `WREN_SMS_LIVE` stands for. |
+| campaign | worker `Campaign` (a niche's templates + sequences + plan, `apps/worker/src/services.ts:169`); a Meta campaign id in `ad_launches`; the 10DLC campaign that `WREN_SMS_LIVE` stands for. |
 | verification | `verifications` rows (address verdicts); `Discovery.verify` (does this domain belong to this company); `Resolution.verifyLeads`. |
 | sync | loop handler `sync` = one pass now (`packages/core/src/restate/loop.ts`); `syncInbox` = read a mailbox; `inbox_syncs` / `open_syncs` = cursors. |
 | template | an `.email` file parsed to a `Template` tree; `template_versions` = the stored source per content hash; an SMS `SmsStep` body. |

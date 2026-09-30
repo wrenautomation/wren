@@ -4,7 +4,8 @@
  * composes by hand. A pass measures tomorrow's capacity (active inboxes for this niche ×
  * today's per-inbox cap, under the fleet-wide opener brake), counts approved openers not
  * yet sent, and composes the shortfall through the niche's enrollment plan, rule by rule,
- * auto-approved. Then it sleeps to the next local midnight.
+ * auto-approved: first-contact companies first, then returning ones (lead recycling) with
+ * what is left. Then it sleeps to the next local midnight.
  *
  * Compose commits one company per transaction and the partial unique indexes make a
  * retry safe, so the whole pass is one journaled step. An empty pool is not an error:
@@ -17,9 +18,10 @@ import { makeLoopObject, runPass } from "@wren/core/restate";
 import type { Db } from "@wren/db";
 import { sql } from "drizzle-orm";
 import { type ComposeStats, compose } from "../outreach/compose.js";
-import type { EnrollmentRule } from "../outreach/plan.js";
+import { type EnrollmentRule, ruleCovers } from "../outreach/plan.js";
 import type { Sequence } from "../outreach/sequences.js";
 import type { Template } from "../outreach/templates.js";
+import { AUDIENCES, type Audience, type RecontactPolicy } from "../recontact.js";
 import { fillTimezones, type TimezoneFillStats } from "../send/lead-timezone.js";
 import type { SendPolicy } from "../send/policy.js";
 import { untilNextLocalDay } from "./postmaster-scheduler.js";
@@ -41,6 +43,8 @@ export interface Campaign {
   readonly signatures: Readonly<Record<string, string>>;
   /** Where the company keeps office hours, as the source wrote it, for the lead's clock. */
   readonly companyLocation: (company: Company) => string | null;
+  /** When a company may get another cold sequence. */
+  readonly recontact: RecontactPolicy;
 }
 
 export interface ComposeSchedulerDeps {
@@ -70,8 +74,8 @@ export interface TopUpStats {
   shortfall: number;
   enrolled: number;
   messages_drafted: number;
-  /** One compose run per plan rule that was needed, in plan order. */
-  passes: { sequence: string; stats: ComposeStats }[];
+  /** One compose run per plan rule that was needed: first contact in plan order, then returning. */
+  passes: { sequence: string; audience: Audience; stats: ComposeStats }[];
   /** The plan ran dry before the target was met: nothing left to enroll today. */
   exhausted: boolean;
 }
@@ -129,7 +133,10 @@ export async function topUp(
     exhausted: false,
   };
   let remaining = stats.shortfall;
-  for (const rule of campaign.plan) {
+  const sweeps = AUDIENCES.flatMap((audience) =>
+    campaign.plan.filter((rule) => ruleCovers(rule, audience)).map((rule) => ({ rule, audience })),
+  );
+  for (const { rule, audience } of sweeps) {
     if (remaining <= 0) break;
     const sequence = campaign.sequences.get(rule.sequence);
     if (!sequence) throw new Error(`campaign ${campaign.niche}: no sequence '${rule.sequence}'`);
@@ -151,9 +158,11 @@ export async function topUp(
       limit: remaining,
       autoApprove: true,
       runId: opts.runId,
+      audience,
+      recontact: campaign.recontact,
       ...(rule.where ? { where: rule.where } : {}),
     });
-    stats.passes.push({ sequence: rule.sequence, stats: pass });
+    stats.passes.push({ sequence: rule.sequence, audience, stats: pass });
     stats.enrolled += pass.enrolled;
     stats.messages_drafted += pass.messages_drafted;
     remaining -= pass.enrolled;

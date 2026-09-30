@@ -4,7 +4,7 @@ cluster: email
 universe: live
 status: verified
 verified: 2026-09-28 @ 28823cd
-entity: packages/channel-email/src/schema.ts:367
+entity: packages/channel-email/src/schema.ts:369
 ---
 
 # open-event
@@ -21,7 +21,7 @@ The remote host is the source of truth, read forward from an explicit cursor so 
 - `open_syncs`: `base_url`, `cursor_id`, `synced_at`, `stats` (`:400`–`403`)
 - `messages.open_token` is minted at compose (`schema.ts:260`)
 
-Citations: `packages/channel-email/src/schema.ts:367`, `packages/channel-email/src/inbox/opens.ts:100`
+Citations: `packages/channel-email/src/schema.ts:369`, `packages/channel-email/src/inbox/opens.ts:100`
 
 ## Connected to
 

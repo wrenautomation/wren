@@ -12,7 +12,7 @@ The queue-keeper: keep enough approved openers ahead of what the fleet may send,
 
 ## Input → Movement → Output
 
-Verified leads of a niche whose companies have no active enrollment, the niche's templates and plan, the roster's active senders. `ComposeScheduler/{niche}` fills company time zones, measures tomorrow's capacity, counts approved openers not yet sent, and composes the shortfall rule by rule, one company per transaction, auto-approved. Output: enrollments with every step rendered as `messages`.
+Verified leads of a niche, for companies never enrolled (first contact) and then for companies that came back (returning: rested, under the yearly cap, new sequence+offer), the niche's templates and plan, the roster's active senders. `ComposeScheduler/{niche}` fills company time zones, measures tomorrow's capacity, counts approved openers not yet sent, and composes the shortfall rule by rule, first contact first, then returning, one company per transaction, auto-approved. Output: enrollments with every step rendered as `messages`.
 
 ## Why this shape
 
@@ -20,15 +20,15 @@ The whole sequence renders before anything can send; a missing fact refuses the 
 
 ## Steps
 
-1. Fill `companies.timezone` (`packages/channel-email/src/restate/compose-scheduler.ts:112`; `send/lead-timezone.ts:110`).
+1. Fill `companies.timezone` (`packages/channel-email/src/restate/compose-scheduler.ts:116`; `send/lead-timezone.ts:110`).
 2. Capacity and shortfall (`compose-scheduler.ts:116`, `:87`).
-3. `compose()` per plan rule (`packages/channel-email/src/outreach/compose.ts:327`): person pass, then role-inbox pass.
+3. `compose()` per plan rule and audience (`packages/channel-email/src/outreach/compose.ts:382`): person pass, then role-inbox pass. The audience gate is `audienceGate` (`packages/channel-email/src/recontact.ts:123`); addresses that ended wrong_person, referral, bounced or opted_out are skipped (`compose.ts:467`, `:517`).
 4. Facts from `factsFor` (`outreach/facts.ts:110`); render (`outreach/templates.ts`); provenance (`outreach/provenance.ts:66`).
-5. Insert enrollment and messages, store the template version (`compose.ts:606`, `:666`, `:676`).
+5. Insert enrollment and messages, store the template version (`compose.ts:598`, `:682`, `:744`, `:754`).
 
 ## If you change this
 
-- **Hits:** [[email/enrollment]], [[email/message]], `sops/campaign-ramp.md`
+- **Hits:** [[email/enrollment]], [[email/message]], `sops/campaign-ramp.md`; a niche's `recontact` rest days ([[platform/niche]])
 - **Does not hit:** the send tick's pacing; the inbox
 
 ## Surfaces

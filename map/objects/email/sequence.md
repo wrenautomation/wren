@@ -25,13 +25,13 @@ Citations: `packages/channel-email/src/outreach/sequences.ts:23`, `plan.ts:73`
 
 ## Connected to
 
-- **owned-by:** [[platform/niche]] (`sequences`, `plan`, `packages/niches/src/niche.ts:23`)
+- **owned-by:** [[platform/niche]] (`sequences`, `plan`, `packages/niches/src/niche.ts:26`)
 - **owns:** the `sequence_snapshot` on [[email/enrollment]]
 - **joins:** [[email/template]]
 
 ## If you change this
 
-- **Hits:** compose and the queue-keeper (`compose.ts:327`, `restate/compose-scheduler.ts`); the send walk's due dates; `reply_by_arm_step` (`views.ts:77`); `sops/campaign-ramp.md`
+- **Hits:** compose and the queue-keeper (`compose.ts:382`, `restate/compose-scheduler.ts`); the send walk's due dates; `reply_by_arm_step` (`views.ts:77`); `sops/campaign-ramp.md`
 - **Does not hit:** running enrollments (snapshotted)
 
 ## Surfaces

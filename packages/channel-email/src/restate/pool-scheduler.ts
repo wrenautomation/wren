@@ -14,7 +14,9 @@
  * stages run only with a free verifier (`freeVerifier`): `resolveMailboxes` walks
  * the person guesses someone queued (`Resolution.queue`: who to reach stays a
  * person's call), `verifyMailboxes` asks the mail servers about the leads the picks
- * made, so compose sends to proven inboxes. A paid verifier resolves by hand.
+ * made, so compose sends to proven inboxes, and re-checks the stale addresses of
+ * companies that may come back for another sequence (`recheck`, lead recycling). A
+ * paid verifier resolves by hand.
  *
  * `start({stages: [...]})` narrows one niche's loop to those stages (e.g. only the
  * two mailbox stages while the crawl stays off); `start({})` goes back to all.
@@ -32,6 +34,7 @@ import {
 } from "@wren/core/restate";
 import type { Db } from "@wren/db";
 import type { Discovery, Enrichment } from "@wren/research/restate";
+import type { RecontactPolicy } from "../recontact.js";
 import type { SendPolicy } from "../send/policy.js";
 import { untilNextLocalDay } from "./postmaster-scheduler.js";
 import { RESOLUTION_KEY, type Resolution } from "./resolution.js";
@@ -111,6 +114,11 @@ export interface PoolSchedulerDeps {
   modelStages: ModelStages;
   /** The configured verifier charges nothing per check, so the chain may verify mailboxes itself. */
   freeVerifier?: boolean;
+  /**
+   * Re-check returning companies' addresses older than `horizonDays` (compose's send
+   * horizon), under each niche's recontact policy. Absent = no re-checks.
+   */
+  recheck?: { horizonDays: number; policy: (niche: string) => RecontactPolicy | undefined };
   limits?: Partial<StageLimits>;
   /** Between passes that found work. */
   busyMs?: number;
@@ -202,12 +210,17 @@ export function makePoolScheduler(deps: PoolSchedulerDeps) {
           limitDomains: limits.resolveMailboxes,
           concurrency: PROBE_WIDTH,
         }),
-      verifyMailboxes: () =>
-        resolution.verifyLeads({
+      verifyMailboxes: () => {
+        const policy = deps.recheck?.policy(niche);
+        return resolution.verifyLeads({
           niche,
           limit: limits.verifyMailboxes,
           concurrency: PROBE_WIDTH,
-        }),
+          ...(deps.recheck && policy
+            ? { recheckReturning: { policy, olderThanDays: deps.recheck.horizonDays } }
+            : {}),
+        });
+      },
     };
 
     const runId = await ctx.run("open run", async () => {

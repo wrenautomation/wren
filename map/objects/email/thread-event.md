@@ -4,7 +4,7 @@ cluster: email
 universe: live
 status: verified
 verified: 2026-09-28 @ 28823cd
-entity: packages/channel-email/src/schema.ts:304
+entity: packages/channel-email/src/schema.ts:306
 ---
 
 # thread-event
@@ -19,7 +19,7 @@ The mailbox is the source of truth; the harness never infers an outcome (`packag
 
 - `enrollment_id`, `in_reply_to_message_id`, `kind`, `bounce_class`, `disposition`, `disposition_source`, `classified_at`, `gmail_id`, `gmail_thread_id`, `from_address`, `subject`, `snippet`, `headers`, `body_text`, `classification`, `received_at`, `run_id` (`:307`–`326`)
 
-Citations: `packages/channel-email/src/schema.ts:304`
+Citations: `packages/channel-email/src/schema.ts:306`
 
 ## Connected to
 

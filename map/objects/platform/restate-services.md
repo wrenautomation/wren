@@ -13,7 +13,7 @@ The set of services one worker serves, built by `buildServices` from settings. T
 
 ## Why this shape
 
-One composition root wires db, llm, verifier, transport, notifier, roster, box wake and the per-niche `Campaign`s, then binds a service only when its settings exist (`services.ts:105`–`332`). Nothing below the root imports a registry.
+One composition root wires db, llm, verifier, transport, notifier, roster, box wake and the per-niche `Campaign`s, then binds a service only when its settings exist (`services.ts:105`–`337`). Nothing below the root imports a registry.
 
 ## Shape
 

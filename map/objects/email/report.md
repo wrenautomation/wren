@@ -4,7 +4,7 @@ cluster: email
 universe: live
 status: verified
 verified: 2026-09-28 @ 28823cd
-entity: packages/channel-email/src/schema.ts:474
+entity: packages/channel-email/src/schema.ts:476
 ---
 
 # report
@@ -20,7 +20,7 @@ No LLM: every line is a query the operator can re-run, so a report is never wron
 - `kind` (weekly), `period_start`, `period_end`, `stats`, `body`, `sent_to`, `run_id` (`schema.ts:478`–`486`)
 - `runWeeklyReport`, `previousWeekly` (`report/send.ts:47`, `:35`)
 
-Citations: `packages/channel-email/src/schema.ts:474`
+Citations: `packages/channel-email/src/schema.ts:476`
 
 ## Connected to
 

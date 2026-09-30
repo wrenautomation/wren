@@ -13,7 +13,7 @@ A sending address taken out of rotation, by a kill switch or by hand. Table `sen
 
 ## Why this shape
 
-The grain is the domain, not the inbox: a spam verdict earned by one inbox is spent by its neighbours, so a trip pauses every inbox on the domain. The evidence window floors at the last lift, so a human's resume is not undone by the same evidence (`health.ts:1`). One active pause per sender (`uq_sender_pauses_active`, `packages/channel-email/src/schema.ts:435`).
+The grain is the domain, not the inbox: a spam verdict earned by one inbox is spent by its neighbours, so a trip pauses every inbox on the domain. The evidence window floors at the last lift, so a human's resume is not undone by the same evidence (`health.ts:1`). One active pause per sender (`uq_sender_pauses_active`, `packages/channel-email/src/schema.ts:437`).
 
 ## Shape
 
