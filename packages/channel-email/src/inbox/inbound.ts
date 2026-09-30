@@ -26,8 +26,9 @@
  * so. An unrecognised bounce with no status code is SOFT (suppresses nothing)
  * rather than a guessed HARD.
  */
+
+import { getAddresses, type MimePart, parseAddr, parseDate, parseMessage } from "@wren/core/mail";
 import { readPage } from "@wren/research/fetch";
-import { getAddresses, type MimePart, parseAddr, parseDate, parseMessage } from "./rfc822.js";
 
 export const SNIPPET_MAX_CHARS = 300;
 /** The reply text kept on the event for the disposition classifier: long enough for any real answer, short enough that a pasted contract is not a prompt. */

@@ -13,6 +13,7 @@ import { createDb, type Db } from "@wren/db";
 import { Command } from "commander";
 import { sql } from "drizzle-orm";
 import { registerAds } from "./ads.js";
+import { registerBooks } from "./books.js";
 import { registerClients } from "./clients.js";
 import { registerContent } from "./content.js";
 import { registerCrm } from "./crm.js";
@@ -102,6 +103,7 @@ registerFetch(program, settings);
 registerContent(program, withMainDb, settings);
 registerAds(program, withMainDb, settings);
 registerSms(program, withMainDb, settings);
+registerBooks(program, withMainDb, settings, rootDir);
 
 const renewal = () =>
   clients

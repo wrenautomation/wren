@@ -35,6 +35,8 @@
  * **Whose failure it is.** A hard DSN that names an address other than the one
  * we mailed does not stop or suppress anything. See `bounceDetail` and `act`.
  */
+
+import { parseAddr } from "@wren/core/mail";
 import type { Db, Queryable } from "@wren/db";
 import { and, desc, eq, inArray, sql } from "drizzle-orm";
 import {
@@ -61,7 +63,6 @@ import {
   type InboundKind,
   normalizeMessageId,
 } from "./inbound.js";
-import { parseAddr } from "./rfc822.js";
 
 /**
  * The cheap read: exactly the headers the classification and the match need,

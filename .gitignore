@@ -16,3 +16,6 @@ senders_config.toml
 
 # `wren fetch` default: bulk lead data never enters git.
 /data/
+
+# `wren books` with no WREN_BOOKS_BUCKET: invoices never enter git.
+/.books/

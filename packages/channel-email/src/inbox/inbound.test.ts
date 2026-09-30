@@ -4,9 +4,9 @@
  * actually meet in a sending inbox.
  */
 import { readFileSync } from "node:fs";
+import { getAddresses, parseAddr, parseDate, parseMessage } from "@wren/core/mail";
 import { describe, expect, it } from "vitest";
 import { classify, type Inbound, normalizeMessageId, ownText } from "./inbound.js";
-import { getAddresses, parseAddr, parseDate, parseMessage } from "./rfc822.js";
 
 const FIXTURES = new URL("../../test/fixtures/inbound/", import.meta.url);
 // The Message-ID of the outreach message these fixtures answer.

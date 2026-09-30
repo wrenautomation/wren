@@ -1,0 +1,29 @@
+{
+  "name": "@wren/books",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts",
+    "./schema": "./src/schema.ts"
+  },
+  "scripts": {
+    "test:integration": "vitest run test/integration",
+    "test:unit": "vitest run src",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@aws-sdk/client-s3": "3.1136.0",
+    "@wren/core": "workspace:*",
+    "@wren/db": "workspace:*",
+    "@wren/llm": "workspace:*",
+    "drizzle-orm": "0.45.2",
+    "unpdf": "1.8.1",
+    "zod": "4.6.5"
+  },
+  "devDependencies": {
+    "@testcontainers/postgresql": "12.1.0",
+    "typescript": "5.9.3",
+    "vitest": "5.0.1"
+  }
+}

@@ -1,6 +1,6 @@
 /**
  * A small RFC 5322 / MIME reader — the subset of Python's stdlib `email` the
- * inbound classifier reads: unfolded and RFC 2047-decoded headers, the
+ * inbound classifier and the books' receipt reader need: unfolded and RFC 2047-decoded headers, the
  * Content-Type and its params, transfer decoding, charset decoding, multipart
  * bodies, embedded `message/rfc822` originals and the header blocks of a
  * `message/delivery-status` report. Nothing is validated: inbound mail is
@@ -108,9 +108,13 @@ export function parseContentType(value: string | null): ContentType | null {
   const [head, ...rest] = value.split(";");
   const type = (head ?? "").trim().toLowerCase();
   if (!/^[\w.+-]+\/[\w.+-]+$/.test(type)) return null;
-  const params: Record<string, string> = {};
   // Params may carry ";" inside quotes; re-join and scan instead of trusting the split.
-  const tail = rest.join(";");
+  return { type, params: parseParams(rest.join(";")) };
+}
+
+/** `a=b; c="d e"` after a header's first token; names lowercased, the first of a name wins. */
+function parseParams(tail: string): Record<string, string> {
+  const params: Record<string, string> = {};
   const param = /\s*([^=;\s]+)\s*=\s*("((?:[^"\\]|\\.)*)"|[^;]*)\s*(?:;|$)/g;
   for (const m of tail.matchAll(param)) {
     const key = (m[1] ?? "").toLowerCase();
@@ -118,7 +122,23 @@ export function parseContentType(value: string | null): ContentType | null {
     const raw = quoted !== undefined ? quoted.replace(/\\(.)/g, "$1") : (m[2] ?? "").trim();
     if (key && !(key in params)) params[key] = raw;
   }
-  return { type, params };
+  return params;
+}
+
+/** An RFC 2231 extended value (`UTF-8''Invoice%20123.pdf`) decoded; a plain value unchanged. */
+function decodeExtended(value: string): string {
+  const m = /^([\w-]*)'[\w-]*'(.*)$/.exec(value);
+  if (!m) return value;
+  const text = m[2] ?? "";
+  const bytes: number[] = [];
+  for (let i = 0; i < text.length; i++) {
+    const hex = text.slice(i + 1, i + 3);
+    if (text[i] === "%" && /^[0-9a-f]{2}$/i.test(hex)) {
+      bytes.push(Number.parseInt(hex, 16));
+      i += 2;
+    } else bytes.push(text.charCodeAt(i) & 0xff);
+  }
+  return decodeCharset(Uint8Array.from(bytes), m[1] || "utf-8");
 }
 
 // --------------------------------------------------------------------------
@@ -217,6 +237,18 @@ export class MimePart {
     return (
       disposition !== null && disposition.split(";", 1)[0]?.trim().toLowerCase() === "attachment"
     );
+  }
+
+  /**
+   * The attachment's file name: Content-Disposition `filename` (RFC 2231 `filename*` too),
+   * else Content-Type `name`; null when neither names it.
+   */
+  filename(): string | null {
+    const disposition = this.get("Content-Disposition");
+    const params = disposition ? parseParams(disposition.split(";").slice(1).join(";")) : {};
+    const extended = params["filename*"];
+    if (extended) return decodeExtended(extended);
+    return params.filename ?? this.param("name");
   }
 
   /** This part, then every descendant, depth first — the stdlib's `walk()`. */

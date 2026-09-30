@@ -1,6 +1,6 @@
 /** Fixture mail and an in-memory Gmail read side, shared by the inbox and scheduler suites. */
 import { readFileSync } from "node:fs";
-import { parseMessage } from "../../src/inbox/rfc822.js";
+import { parseMessage } from "@wren/core/mail";
 import { type InboxReader, METADATA_HEADERS, type MessageMetadata } from "../../src/inbox/sync.js";
 
 export const FIXTURES = new URL("../fixtures/inbound/", import.meta.url);

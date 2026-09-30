@@ -123,6 +123,34 @@ export const settingsSchema = z.object({
   contentLinkSite: z.string().min(1).optional(),
   /** An S3 bucket a local media file is hosted in (presigned URL) for platforms that only take URLs. Unset = URLs only. */
   mediaBucket: z.string().min(1).optional(),
+  /** The private S3 bucket that keeps every email and PDF the books read (under `books/`); unset = the local `.books/` directory. */
+  booksBucket: z.string().min(1).optional(),
+  /**
+   * Inboxes the books read bills from, `address:via` comma-separated. `delegated`
+   * reads a Workspace inbox through the service account; `autobrowse` reads a
+   * personal Gmail, read-only, through autobrowse's `gmail` site.
+   */
+  booksMailboxes: z
+    .string()
+    .default("")
+    .transform((s) =>
+      s
+        .split(",")
+        .map((x) => x.trim())
+        .filter(Boolean)
+        .map((x) => {
+          const at = x.lastIndexOf(":");
+          return { address: x.slice(0, at), via: x.slice(at + 1) };
+        }),
+    )
+    .pipe(
+      z.array(z.object({ address: z.string().email(), via: z.enum(["delegated", "autobrowse"]) })),
+    ),
+  /** The first day the books cover; imports look no further back. */
+  booksSince: z
+    .string()
+    .regex(/^\d{4}-\d{2}-\d{2}$/)
+    .default("2026-08-01"),
   /** The Facebook Page the `facebook`/`instagram` channels post as; the first Page when unset. */
   metaPageId: z
     .string()
@@ -294,6 +322,9 @@ export const ENV_KEYS = {
   contentVoicePath: "WREN_CONTENT_VOICE",
   contentLinkSite: "WREN_CONTENT_LINK_SITE",
   mediaBucket: "WREN_MEDIA_BUCKET",
+  booksBucket: "WREN_BOOKS_BUCKET",
+  booksMailboxes: "WREN_BOOKS_MAILBOXES",
+  booksSince: "WREN_BOOKS_SINCE",
   metaPageId: "WREN_META_PAGE_ID",
   metaAdAccountId: "WREN_META_AD_ACCOUNT_ID",
   adsPauseAfterUsd: "WREN_ADS_PAUSE_AFTER_USD",

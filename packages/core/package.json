@@ -13,6 +13,7 @@
     "./notify": "./src/notify.ts",
     "./restate": "./src/restate/index.ts",
     "./ingest": "./src/ingest/index.ts",
+    "./mail": "./src/mail.ts",
     "./people": "./src/people/index.ts",
     "./schema": "./src/schema.ts",
     "./stats": "./src/stats.ts",

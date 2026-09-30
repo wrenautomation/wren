@@ -15,6 +15,7 @@ export default defineConfig({
     "../channel-meta/src/schema.ts",
     "../channel-sms/src/schema.ts",
     "../reactivation/src/schema.ts",
+    "../books/src/schema.ts",
   ],
   out: "./drizzle",
   casing: "snake_case",
