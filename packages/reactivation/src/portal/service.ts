@@ -106,7 +106,10 @@ async function read<T>(
   return db.transaction(
     async (tx) => {
       const out = await view(tx, client);
-      return client.demo ? makeMask(await listNames(tx))(out) : out;
+      if (!client.demo) return out;
+      const firm = (await readClientProfile(tx))?.firm;
+      const agency = { names: [client.name, firm].filter((n): n is string => !!n), as: DEMO_NAME };
+      return makeMask(await listNames(tx), agency)(out);
     },
     { accessMode: "read only" },
   );

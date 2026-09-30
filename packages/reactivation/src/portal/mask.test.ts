@@ -55,3 +55,19 @@ describe("makeMask", () => {
     expect(makeMask([])("Sarah Kowalski s.k@acme.com")).toBe("Sarah Kowalski s•••@acme.com");
   });
 });
+
+describe("the agency's name", () => {
+  // Was a bug: the demo's email signatures printed the real agency the demo was built from.
+  it("becomes the demo's name, any case; other firms and words containing it stay", () => {
+    const mask = makeMask([], { names: ["Northside Talent"], as: "Sample recruiting firm" });
+    expect(
+      mask({
+        body: "Sam\nNorthside Talent",
+        note: "NORTHSIDE TALENT hires; Northside Talentworks",
+      }),
+    ).toEqual({
+      body: "Sam\nSample recruiting firm",
+      note: "Sample recruiting firm hires; Northside Talentworks",
+    });
+  });
+});

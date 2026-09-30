@@ -3,8 +3,9 @@
  * leaves the server. It walks every string, keys included, whatever the route
  * or field, so a new view can't forget it. Surnames and middle names become an
  * initial ("Sarah K."), addresses keep one letter and the domain
- * ("s•••@acme.com"), LinkedIn profile links lose the name. Companies and other
- * sources stay real.
+ * ("s•••@acme.com"), LinkedIn profile links lose the name. The agency's own
+ * name (in a signature, say) becomes the demo's; other companies and sources
+ * stay real.
  *
  * Names match however the web writes them: any case, with or without accents,
  * either apostrophe, after a URL-encoded space, half of a hyphenated pair.
@@ -67,8 +68,22 @@ export function hiddenWords(names: readonly ListName[]): string[] {
   return [...hidden].sort((a, b) => b.length - a.length || a.localeCompare(b));
 }
 
-export function makeMask(names: readonly ListName[]): <T>(value: T) => T {
+export interface Agency {
+  /** How the agency may be written: its client name, its profile's firm. */
+  names: readonly string[];
+  /** What shows instead. */
+  as: string;
+}
+
+export function makeMask(
+  names: readonly ListName[],
+  agency: Agency = { names: [], as: "" },
+): <T>(value: T) => T {
   const hidden = hiddenWords(names);
+  const firms = agency.names.map((n) => n.trim()).filter((n) => n.length >= 3);
+  const firm = firms.length
+    ? new RegExp(`(?<![\\p{L}\\p{N}])(?:${firms.map(escapeRe).join("|")})(?![\\p{L}\\p{N}])`, "giu")
+    : null;
   // Not inside a word, but "%20Doe" counts as a word start: the digits belong to the escape.
   const pattern = hidden.length
     ? new RegExp(
@@ -91,8 +106,9 @@ export function makeMask(names: readonly ListName[]): <T>(value: T) => T {
   };
   const text = (raw: string): string => {
     const s = raw.normalize("NFC");
+    const named = firm ? s.replace(firm, agency.as) : s;
     return names_(
-      s
+      named
         .replace(EMAIL, (_, c: string, domain: string) => `${c}•••@${domain}`)
         .replace(PROFILE, "$1•••"),
     );

@@ -16,7 +16,7 @@ import { z } from "zod";
 import { type BriefState, briefs } from "./schema.js";
 import { hiringFinding, LATEST_CRM_ROW, whereFinding } from "./score.js";
 
-export const BRIEF_VERSION = "v2";
+export const BRIEF_VERSION = "v3";
 export const STAGE_NAME = "reactivation_brief";
 const MAX_TOKENS = 2000;
 const MAX_SENTENCES = 4;
@@ -83,9 +83,11 @@ const OTHER_DIGIT = /(?![0-9])\p{Nd}/u;
  */
 const SENTENCE_END =
   /(?<=[.!?]["'\u201d\u2019)]*(?:\s*\[[^\]]*\])*)(?<!\b(?:Sr|Jr|Mr|Mrs|Ms|Dr|St|Inc|Ltd|Co|Corp|Assoc|Dept|vs)\.)\s+(?=["'\u201c(]?\p{Lu})/u;
+/** Hiring talk: only a cited open-roles fact backs it. */
+const HIRING = /\b(?:open roles?|openings?|hiring|job posts?|postings?)\b/i;
 /** A clause saying what a fact means (", indicating a need to..."): a guess, cut before the marks. */
 const READING =
-  /,\s*(?:which\s+)?(?:(?:may|might|could|can|would)\s+)?(?:indicat|suggest|signal|impl|point)\w*[^.!?[]*?(?=\s*[.!?[]|$)/gi;
+  /,\s*(?:which\s+)?(?:(?:may|might|could|can|would)\s+)?(?:indicat|suggest|signal|impl|point|making)\w*[^.!?[]*?(?=\s*[.!?[]|$)/gi;
 
 const numbers = (text: string): string[] =>
   (text.normalize("NFKC").match(NUMBER) ?? []).map((n) => {
@@ -132,7 +134,12 @@ export function gateBrief(sentences: string[], facts: BriefFact[]): Gated {
       drop(`cites ${unknown.join(", ")}, not this person's facts`);
       continue;
     }
-    const made = madeUp(sentence, marks.map((m) => byMark.get(m)).join("\n"));
+    const backing = marks.map((m) => byMark.get(m)).join("\n");
+    if (HIRING.test(sentence) && !/\bopen roles?\b/i.test(backing)) {
+      drop("says hiring; the facts it cites have no open roles");
+      continue;
+    }
+    const made = madeUp(sentence, backing);
     if (made.length) {
       drop(`${made.join(", ")} not in the facts it cites`);
       continue;

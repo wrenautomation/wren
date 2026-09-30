@@ -339,7 +339,8 @@ describe("ranked", () => {
     await writeCrmBriefs(
       db(),
       new FakeLlm({
-        respond: (p) => JSON.stringify({ sentences: [`Hiring. [${/\[(f\d+)\]/.exec(p)?.[1]}]`] }),
+        respond: (p) =>
+          JSON.stringify({ sentences: [`Still there. [${/\[(f\d+)\]/.exec(p)?.[1]}]`] }),
       }),
     );
     const list = await rankedContacts(db());
@@ -352,7 +353,7 @@ describe("ranked", () => {
       "Acme Staffing has 2 open roles",
       "still at Acme Staffing",
     ]);
-    expect(list[0]?.brief).toMatch(/^Hiring\. \[f\d+\]$/);
+    expect(list[0]?.brief).toMatch(/^Still there\. \[f\d+\]$/);
     expect(list[1]?.brief).toBeNull();
     expect(await rankedContacts(db(), { limit: 1 })).toHaveLength(1);
   });

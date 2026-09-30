@@ -115,3 +115,22 @@ describe("gateBrief: the model's habits", () => {
     expect(g.kept).toEqual(["Jane is still at Acme as Head of Talent [f7]."]);
   });
 });
+
+describe("gateBrief: hiring needs an open-roles fact", () => {
+  // Was a bug: a job-change fact carried "There are open roles at ChainSafe" into the portal.
+  it("hiring cited to a fact without open roles is dropped", () => {
+    const g = gateBrief(["There are open roles at Acme. [f7]"], facts);
+    expect(g.kept).toEqual([]);
+    expect(g.dropped[0]?.why).toBe("says hiring; the facts it cites have no open roles");
+  });
+  it("hiring cited to the open-roles fact is kept", () => {
+    expect(gateBrief(["Acme is hiring a Recruiter in Toronto. [f12]"], facts).kept).toHaveLength(1);
+  });
+  it('"making this a good time" is a guess, cut', () => {
+    const g = gateBrief(
+      ["Jane is still at Acme as Head of Talent, making this a good time [f7]."],
+      facts,
+    );
+    expect(g.kept).toEqual(["Jane is still at Acme as Head of Talent [f7]."]);
+  });
+});
