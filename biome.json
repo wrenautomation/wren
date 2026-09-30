@@ -6,7 +6,7 @@
     "useIgnoreFile": true
   },
   "files": {
-    "includes": ["**", "!**/dist", "!**/drizzle/meta", "!designs"]
+    "includes": ["**", "!**/dist", "!**/drizzle/meta", "!designs", "!.claude/worktrees"]
   },
   "formatter": {
     "indentStyle": "space",

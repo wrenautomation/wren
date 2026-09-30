@@ -19,3 +19,6 @@ senders_config.toml
 
 # `wren books` with no WREN_BOOKS_BUCKET: invoices never enter git.
 /.books/
+
+# Git worktrees other sessions make; each is its own checkout.
+.claude/worktrees/
