@@ -4,8 +4,9 @@
  */
 import { type ReactNode, useEffect, useRef, useState } from "react";
 import { Tag } from "./controls.js";
-import { initials, num } from "./format.js";
+import { cx, initials, num } from "./format.js";
 import { Icon, type IconName } from "./icons.js";
+import { type Theme, usePageTheme } from "./theme.js";
 
 export interface NavItem {
   id: string;
@@ -66,6 +67,8 @@ export function AppShell({
   actions,
   notice,
   page,
+  theme,
+  className,
   children,
 }: {
   brand: Brand;
@@ -78,8 +81,12 @@ export function AppShell({
   notice?: ShellNotice | undefined;
   /** Changes when the page does, which scrolls back to the top. */
   page: string;
+  /** The client's look; without one it's Wren's. */
+  theme?: Theme | undefined;
+  className?: string | undefined;
   children: ReactNode;
 }) {
+  usePageTheme(theme);
   const [open, setOpen] = useState(false);
   const scroller = useRef<HTMLDivElement>(null);
 
@@ -103,7 +110,7 @@ export function AppShell({
 
   const last = crumbs.length - 1;
   return (
-    <div className="ui-app">
+    <div className={cx("ui-app", className)}>
       <a className="ui-skip" href="#main">
         Skip to content
       </a>
@@ -246,14 +253,19 @@ function WorkspaceCard({ workspace }: { workspace: Workspace }) {
 export function Gate({
   stamp,
   title,
+  theme,
+  className,
   children,
 }: {
   stamp: string;
   title: string;
+  theme?: Theme | undefined;
+  className?: string | undefined;
   children: ReactNode;
 }) {
+  usePageTheme(theme);
   return (
-    <main className="ui-gate">
+    <main className={cx("ui-gate", className)}>
       <div className="ui-gate-card">
         <img className="ui-stamp" src={stamp} alt="" width={36} height={36} />
         <h1>{title}</h1>

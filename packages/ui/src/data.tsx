@@ -15,7 +15,7 @@ export function Table({
 }: {
   stale?: boolean;
   stack?: boolean;
-  className?: string;
+  className?: string | undefined;
   children: ReactNode;
 }) {
   return (
@@ -26,9 +26,15 @@ export function Table({
 }
 
 /** Label and value pairs, one per line. */
-export function Facts({ items }: { items: [label: string, value: ReactNode][] }) {
+export function Facts({
+  items,
+  className,
+}: {
+  items: [label: string, value: ReactNode][];
+  className?: string | undefined;
+}) {
   return (
-    <dl className="ui-facts">
+    <dl className={cx("ui-facts", className)}>
       {items.map(([label, value]) => (
         <div key={label}>
           <dt>{label}</dt>
@@ -40,9 +46,15 @@ export function Facts({ items }: { items: [label: string, value: ReactNode][] })
 }
 
 /** Counts by label, the number on the right. */
-export function Tally({ rows }: { rows: [label: string, count: number][] }) {
+export function Tally({
+  rows,
+  className,
+}: {
+  rows: [label: string, count: number][];
+  className?: string | undefined;
+}) {
   return (
-    <ul className="ui-tally">
+    <ul className={cx("ui-tally", className)}>
       {rows.map(([label, n]) => (
         <li key={label}>
           <span>{label}</span>
@@ -57,12 +69,14 @@ export function Tally({ rows }: { rows: [label: string, count: number][] }) {
 export function BarList({
   rows,
   total,
+  className,
 }: {
   rows: [label: string, count: number][];
   total: number;
+  className?: string | undefined;
 }) {
   return (
-    <ul className="ui-bars">
+    <ul className={cx("ui-bars", className)}>
       {rows.map(([label, n]) => (
         <li key={label}>
           <span className="ui-bar-label">{label}</span>

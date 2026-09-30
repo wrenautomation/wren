@@ -6,14 +6,16 @@ export function PageHeader({
   title,
   lede,
   actions,
+  className,
 }: {
   title: string;
   /** One sentence on what this page is for. */
   lede?: ReactNode;
   actions?: ReactNode;
+  className?: string | undefined;
 }) {
   return (
-    <header className="ui-page-head">
+    <header className={cx("ui-page-head", className)}>
       <div>
         <h1>{title}</h1>
         {lede ? <p className="ui-lede">{lede}</p> : null}
@@ -30,10 +32,10 @@ export function Section({
   className,
   children,
 }: {
-  title?: string;
+  title?: string | undefined;
   note?: ReactNode;
   actions?: ReactNode;
-  className?: string;
+  className?: string | undefined;
   children: ReactNode;
 }) {
   return (
@@ -53,8 +55,14 @@ export function Section({
 }
 
 /** Figures in a row under one black rule, like the lander's sourced numbers. */
-export function StatStrip({ children }: { children: ReactNode }) {
-  return <dl className="ui-stats">{children}</dl>;
+export function StatStrip({
+  className,
+  children,
+}: {
+  className?: string | undefined;
+  children: ReactNode;
+}) {
+  return <dl className={cx("ui-stats", className)}>{children}</dl>;
 }
 
 /** A figure with its label. With `href`, the whole figure opens the rows behind it. */
@@ -63,14 +71,16 @@ export function Stat({
   value,
   note,
   href,
+  className,
 }: {
   label: string;
   value: ReactNode;
   note?: ReactNode;
   href?: string | undefined;
+  className?: string | undefined;
 }) {
   return (
-    <div className={cx("ui-stat", href && "ui-stat-link")}>
+    <div className={cx("ui-stat", href && "ui-stat-link", className)}>
       <dt>{label}</dt>
       <dd className="ui-stat-value">{href ? <a href={href}>{value}</a> : value}</dd>
       {note ? <dd className="ui-stat-note">{note}</dd> : null}
@@ -79,10 +89,24 @@ export function Stat({
 }
 
 /** A list of cards. `stale` dims it while the next page loads. */
-export function CardList({ stale = false, children }: { stale?: boolean; children: ReactNode }) {
-  return <ul className={cx("ui-cards", stale && "ui-stale")}>{children}</ul>;
+export function CardList({
+  stale = false,
+  className,
+  children,
+}: {
+  stale?: boolean;
+  className?: string | undefined;
+  children: ReactNode;
+}) {
+  return <ul className={cx("ui-cards", stale && "ui-stale", className)}>{children}</ul>;
 }
 
-export function Card({ children, className }: { children: ReactNode; className?: string }) {
+export function Card({
+  children,
+  className,
+}: {
+  children: ReactNode;
+  className?: string | undefined;
+}) {
   return <li className={cx("ui-card", className)}>{children}</li>;
 }

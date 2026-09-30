@@ -1,15 +1,15 @@
 /* Reactivation's own pieces. Everything else comes from @wren/ui's kit. */
 .rx-quiet {
-  color: var(--ink-2);
+  color: var(--ui-ink-2);
 }
 .rx-sub {
   margin-top: 2px;
-  color: var(--ink-2);
+  color: var(--ui-ink-2);
   font-size: 13px;
 }
 .rx-foot {
   margin-top: 14px;
-  color: var(--ink-2);
+  color: var(--ui-ink-2);
   font-size: 13.5px;
 }
 .rx-gap {
@@ -25,15 +25,16 @@
 /* The score and what adds up to it */
 .rx-score {
   min-width: 40px;
+  font-family: var(--ui-font-display);
   font-size: 28px;
-  font-weight: 500;
+  font-weight: var(--ui-display-weight);
   line-height: 1;
-  letter-spacing: -0.03em;
+  letter-spacing: calc(-0.03em * var(--ui-display-squeeze));
   font-variant-numeric: lining-nums tabular-nums;
 }
 .rx-reasons {
   list-style: none;
-  color: var(--ink-2);
+  color: var(--ui-ink-2);
   font-size: 13px;
   line-height: 1.45;
 }
@@ -41,7 +42,7 @@
   margin-top: 3px;
 }
 .rx-pts {
-  color: var(--acc);
+  color: var(--ui-accent);
   font-weight: 600;
 }
 
@@ -51,7 +52,7 @@
   list-style: none;
 }
 .rx-top > li + li {
-  border-top: 1px solid var(--hair);
+  border-top: 1px solid var(--ui-hair);
 }
 .rx-top-row {
   display: grid;
@@ -60,14 +61,14 @@
   gap: 20px;
   padding: 18px 12px;
   text-decoration: none;
-  transition: background-color 0.2s var(--out);
+  transition: background-color 0.2s var(--ui-ease);
 }
 .rx-top-row:hover {
-  background: var(--wash);
+  background: var(--ui-wash);
 }
 .rx-rank {
   padding-top: 1px;
-  color: var(--ink-2);
+  color: var(--ui-ink-2);
   font-size: 15px;
   font-weight: 500;
 }
@@ -81,7 +82,7 @@
   display: -webkit-box;
   max-width: 66ch;
   overflow: hidden;
-  color: var(--ink-2);
+  color: var(--ui-ink-2);
   font-size: 14.5px;
   line-height: 1.5;
   -webkit-box-orient: vertical;
@@ -100,10 +101,11 @@
   padding-right: 40px;
 }
 .rx-person h2 {
+  font-family: var(--ui-font-display);
   font-size: 26px;
-  font-weight: 500;
+  font-weight: var(--ui-display-weight);
   line-height: 1.15;
-  letter-spacing: -0.03em;
+  letter-spacing: calc(-0.03em * var(--ui-display-squeeze));
 }
 .rx-person > header p {
   margin-top: 6px;
@@ -111,14 +113,15 @@
 }
 .rx-person h3 {
   margin: 32px 0 12px;
+  font-family: var(--ui-font-display);
   font-size: 17px;
-  font-weight: 500;
-  letter-spacing: -0.015em;
+  font-weight: var(--ui-display-weight);
+  letter-spacing: calc(-0.015em * var(--ui-display-squeeze));
 }
 .rx-brief {
   padding: 16px 18px;
-  border-radius: 14px;
-  background: var(--paper-2);
+  border-radius: var(--ui-radius-card);
+  background: var(--ui-tile);
   font-size: 15.5px;
   line-height: 1.6;
   text-wrap: pretty;
@@ -135,19 +138,19 @@
   height: 17px;
   margin-left: 2px;
   padding: 0 4px;
-  border-radius: 5px;
-  background: rgba(168, 59, 18, 0.1);
-  color: var(--acc);
+  border-radius: min(5px, var(--ui-radius-control));
+  background: var(--ui-accent-tint);
+  color: var(--ui-accent);
   font-size: 10.5px;
   font-weight: 600;
   text-decoration: none;
   transition:
-    background-color 0.2s var(--out),
-    color 0.2s var(--out);
+    background-color 0.2s var(--ui-ease),
+    color 0.2s var(--ui-ease);
 }
 .rx-marks a:hover {
-  background: var(--acc);
-  color: var(--cream);
+  background: var(--ui-accent);
+  color: var(--ui-on-accent);
 }
 
 /* People */
@@ -177,8 +180,8 @@
   grid-template-columns: 22px minmax(0, 1fr);
   gap: 12px;
   padding: 12px 14px;
-  border-radius: 12px;
-  box-shadow: var(--node);
+  border-radius: var(--ui-radius-card);
+  box-shadow: var(--ui-shadow-node);
   font-size: 14px;
   overflow-wrap: anywhere;
   scroll-margin: 24px;
@@ -191,9 +194,9 @@
   place-items: center;
   width: 22px;
   height: 22px;
-  border-radius: 6px;
-  background: var(--paper-2);
-  color: var(--ink-2);
+  border-radius: min(6px, var(--ui-radius-control));
+  background: var(--ui-tile);
+  color: var(--ui-ink-2);
   font-size: 12px;
   font-weight: 600;
 }
@@ -206,8 +209,8 @@
   gap: 10px 12px;
   margin-bottom: 16px;
   padding: 10px 10px 10px 16px;
-  border-radius: 14px;
-  background: var(--paper-2);
+  border-radius: var(--ui-radius-card);
+  background: var(--ui-tile);
 }
 .rx-bulk label {
   display: flex;
@@ -228,21 +231,21 @@
   margin-left: auto;
 }
 .rx-when {
-  color: var(--ink-2);
+  color: var(--ui-ink-2);
   font-size: 13px;
   white-space: nowrap;
 }
 .rx-meta {
   margin-top: 4px;
-  color: var(--ink-2);
+  color: var(--ui-ink-2);
   font-size: 13px;
   overflow-wrap: anywhere;
 }
 .rx-mail {
   margin-top: 14px;
   padding: 14px 16px;
-  border-radius: 10px;
-  background: var(--wash);
+  border-radius: var(--ui-radius-control);
+  background: var(--ui-wash);
 }
 .rx-mail-subject {
   margin-bottom: 6px;
@@ -259,13 +262,13 @@
 }
 .rx-followup summary {
   width: fit-content;
-  color: var(--ink-2);
+  color: var(--ui-ink-2);
   font-size: 13.5px;
   font-weight: 500;
   cursor: pointer;
 }
 .rx-followup summary:hover {
-  color: var(--ink);
+  color: var(--ui-ink);
 }
 .rx-card-foot {
   display: flex;

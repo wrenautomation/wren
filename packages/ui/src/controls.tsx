@@ -80,16 +80,18 @@ export function Tabs({
   items,
   current,
   label,
+  className,
   children,
 }: {
   items: TabItem[];
   current: string;
   label: string;
+  className?: string | undefined;
   /** Beside the tabs, right-aligned: a search, an action. */
   children?: ReactNode;
 }) {
   return (
-    <div className="ui-tabs-row">
+    <div className={cx("ui-tabs-row", className)}>
       <nav className="ui-tabs" aria-label={label}>
         {items.map((t) => (
           <a key={t.id} href={t.href} aria-current={t.id === current ? "true" : undefined}>
@@ -110,15 +112,17 @@ export function Tag({
   tone = "neutral",
   dot = false,
   title,
+  className,
   children,
 }: {
   tone?: TagTone;
   dot?: boolean;
-  title?: string;
+  title?: string | undefined;
+  className?: string | undefined;
   children: ReactNode;
 }) {
   return (
-    <span className={cx("ui-tag", `ui-tag-${tone}`, dot && "ui-tag-dot")} title={title}>
+    <span className={cx("ui-tag", `ui-tag-${tone}`, dot && "ui-tag-dot", className)} title={title}>
       {children}
     </span>
   );
@@ -130,17 +134,19 @@ export function SearchField({
   label,
   placeholder,
   onSearch,
+  className,
 }: {
   value: string;
   label: string;
-  placeholder?: string;
+  placeholder?: string | undefined;
   onSearch: (value: string) => void;
+  className?: string | undefined;
 }) {
   const [v, setV] = useState(value);
   useEffect(() => setV(value), [value]);
   return (
     <form
-      className="ui-search"
+      className={cx("ui-search", className)}
       onSubmit={(e) => {
         e.preventDefault();
         onSearch(v.trim());

@@ -1,6 +1,7 @@
 /**
  * Wren's component kit: the lander's look as React pieces. A foundation, so it knows no product;
- * each product maps its own data onto these props. Styles ship in `@wren/ui/kit.css`.
+ * each product maps its own data onto these props. Styles ship in `@wren/ui/kit.css`;
+ * every look in it is a token a Theme can set (theme.tsx).
  */
 export {
   Button,
@@ -30,3 +31,15 @@ export {
   type Workspace,
   type WorkspaceOption,
 } from "./shell.js";
+export {
+  applyTheme,
+  PRESETS,
+  type PresetName,
+  readTheme,
+  type Theme,
+  ThemeScope,
+  TOKENS,
+  type Token,
+  themeVars,
+  usePageTheme,
+} from "./theme.js";

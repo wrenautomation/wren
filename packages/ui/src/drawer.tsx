@@ -1,5 +1,6 @@
 /** A panel that floats in from the right over the page: one record in full, the list still behind it. */
 import { type ReactNode, useEffect, useRef } from "react";
+import { cx } from "./format.js";
 import { Icon } from "./icons.js";
 
 const FOCUSABLE =
@@ -8,11 +9,14 @@ const FOCUSABLE =
 export function Drawer({
   label,
   onClose,
+  className,
   children,
 }: {
   /** What the panel holds, for screen readers ("Person"). */
   label: string;
   onClose: () => void;
+  /** On the panel itself. */
+  className?: string | undefined;
   children: ReactNode;
 }) {
   const panel = useRef<HTMLElement>(null);
@@ -63,7 +67,7 @@ export function Drawer({
       />
       <aside
         ref={panel}
-        className="ui-drawer"
+        className={cx("ui-drawer", className)}
         tabIndex={-1}
         role="dialog"
         aria-modal="true"

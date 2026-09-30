@@ -1,5 +1,14 @@
 /** The portal: who's signed in, whose list, and each product's pages inside Wren's app frame. */
-import { Alert, AppShell, Gate, Loading, type NavGroup, type ShellNotice } from "@wren/ui";
+import {
+  Alert,
+  AppShell,
+  Gate,
+  Loading,
+  type NavGroup,
+  readTheme,
+  type ShellNotice,
+  type Theme,
+} from "@wren/ui";
 import { useEffect, useState } from "react";
 import { call, type Me } from "./api.js";
 import { useCall } from "./load.js";
@@ -9,6 +18,7 @@ import { navigate, useRoute } from "./route.js";
 
 const STAMP = "/wren-icon.png";
 const CLIENT_KEY = "wren.portal.client";
+const THEME_KEY = "wren.portal.theme";
 
 const pathOf = (m: Module, p: ModulePage) => `/${m.id}/${p.id}`;
 const [first] = MODULES;
@@ -44,18 +54,33 @@ const DEMO: ShellNotice = {
   more: "What's real",
 };
 
-const remembered = () => {
+const recall = (key: string) => {
   try {
-    return localStorage.getItem(CLIENT_KEY);
+    return localStorage.getItem(key);
   } catch {
     return null;
   }
 };
+const keep = (key: string, value: string) => {
+  try {
+    localStorage.setItem(key, value);
+  } catch {}
+};
+
+/** `?theme=night` tries a preset look and remembers it; `?theme=wren` goes back to Wren's. */
+function useLook(params: URLSearchParams): Theme {
+  const asked = params.get("theme");
+  useEffect(() => {
+    if (asked !== null) keep(THEME_KEY, asked);
+  }, [asked]);
+  return readTheme(asked ?? recall(THEME_KEY));
+}
 
 export function App() {
   const route = useRoute();
   const me = useCall("me", () => call<Me>("me"));
-  const [client, setClient] = useState<string | null>(remembered);
+  const [client, setClient] = useState<string | null>(() => recall(CLIENT_KEY));
+  const theme = useLook(route.params);
 
   const at = find(route.path);
   const lost = !at;
@@ -72,13 +97,13 @@ export function App() {
 
   if (me.error && !me.data)
     return (
-      <Gate stamp={STAMP} title="Your client portal">
+      <Gate stamp={STAMP} title="Your client portal" theme={theme}>
         <Alert>{me.error.message}</Alert>
       </Gate>
     );
   if (me.data && !current)
     return (
-      <Gate stamp={STAMP} title="Nothing here yet">
+      <Gate stamp={STAMP} title="Nothing here yet" theme={theme}>
         <p>
           This login isn't linked to a client list. Reply to your onboarding email and we'll add it.
         </p>
@@ -88,9 +113,7 @@ export function App() {
 
   const pick = (id: string) => {
     setClient(id);
-    try {
-      localStorage.setItem(CLIENT_KEY, id);
-    } catch {}
+    keep(CLIENT_KEY, id);
   };
   const { module, page } = at;
   const demo = me.data?.demo ?? false;
@@ -113,6 +136,7 @@ export function App() {
       ]}
       notice={demo ? DEMO : undefined}
       page={pathOf(module, page)}
+      theme={theme}
     >
       {current ? (
         <page.Page key={current.id} client={current.id} demo={demo} params={route.params} />
