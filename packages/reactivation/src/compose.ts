@@ -29,7 +29,7 @@ import { type ClientProfile, compositions, type Recruiter } from "./schema.js";
 import { LATEST_CRM_ROW, whereFinding } from "./score.js";
 import type { ReactivationSettings, Sender } from "./settings.js";
 
-export const COMPOSE_VERSION = "v1";
+export const COMPOSE_VERSION = "v2";
 export const COMPOSE_STAGE = "reactivation_compose";
 /** Enrollments carry this as their niche, sequence and offer. */
 export const REACTIVATION = "reactivation";
@@ -162,8 +162,10 @@ export function gateDraft(d: Draft, ctx: GateContext): string[] {
   return why;
 }
 
+/** Models write dashes whatever they're told; a comma says the same. */
 const tidy = (s: string) =>
   s
+    .replace(/\s*[—–]\s*/g, ", ")
     .trim()
     .replace(/\r\n?/g, "\n")
     .replace(/[ \t]+\n/g, "\n")
@@ -207,6 +209,7 @@ Write two emails.
 1. The opener.
 - Start with "${hi}" on its own line.
 - Say why you're writing now with one or two facts from "Why write now", plainly, as the recruiter who noticed.
+- Only what they could see themselves: their role, a move, their company hiring. Never the CRM, a record, a status, a placement, or the date you last spoke; "it's been a while" is enough.
 - One ask: a short call. Close with: reply with a couple of times that work and I'll book it.
 - Thank them for reading, in a few words.
 - At most ${OPENER_WORDS} words.

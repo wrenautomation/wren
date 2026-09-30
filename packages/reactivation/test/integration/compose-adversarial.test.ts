@@ -351,6 +351,18 @@ describe("one pass", () => {
     expect(m.body.startsWith("Hi Jane,\n\nWorth a short call?\nThanks.")).toBe(true);
   });
 
+  it("a model's dashes become commas, so the draft isn't lost to them", async () => {
+    answer = (_p, first) =>
+      JSON.stringify({
+        subject: "quick question",
+        opener: `Hi ${first},\n\nStill at Acme—worth a short call – this week?`,
+        followup: `Hi ${first} — nudge.`,
+      });
+    expect(await compose(settingsWith(), 1)).toMatchObject({ drafted: 1, failed: 0 });
+    const m = await one<{ body: string }>(sql`select body from messages where step = 0`);
+    expect(m.body).toContain("Still at Acme, worth a short call, this week?");
+  });
+
   it("a second pass writes nothing new", async () => {
     await compose();
     const again = await compose();
