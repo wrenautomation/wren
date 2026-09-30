@@ -22,12 +22,17 @@
  * Complaints have no floor: at this fleet's volume one complaint is already
  * Google's enforcement line.
  *
+ * **Why a niche can be left out.** `policy.killSwitchOffFor` names campaigns
+ * the switch ignores: their sends and bounces are not counted here, and
+ * `deliver` lets them send past a kill-switch pause. Every other campaign on
+ * the same domains is still guarded by its own numbers.
+ *
  * Pausing is automatic; **resuming is a human**. Nothing in this module lifts
  * a pause on its own, and no timer does either — `resume` is called by the
  * operator and by nothing else.
  */
 import type { Db, Queryable } from "@wren/db";
-import { and, count, eq, gte, inArray, isNotNull, isNull, max, sql } from "drizzle-orm";
+import { and, count, eq, gte, inArray, isNotNull, isNull, max, notInArray, sql } from "drizzle-orm";
 import {
   type BounceClass,
   enrollments,
@@ -81,7 +86,7 @@ export interface DomainHealth {
  * caller cares about — this module never loads the roster itself).
  *
  * The window starts at `now - policy.healthWindowMs`, floored at the domain's
- * last lift. Sends are counted from `messages.sent_at`; inbound evidence from
+ * last lift. Niches in `policy.killSwitchOffFor` are left out of every count. Sends are counted from `messages.sent_at`; inbound evidence from
  * `thread_events.received_at`, both joined to `enrollments.sender`. The
  * `send_health` view attributes an event to the day of the send it answers —
  * right for a daily table, wrong here: a switch must fire on what arrived
@@ -102,6 +107,8 @@ export async function domainHealth(
 
   const paused = await activePauses(db);
   const floor = new Date(opts.now.getTime() - opts.policy.healthWindowMs);
+  const off = [...opts.policy.killSwitchOffFor];
+  const counted = off.length ? notInArray(enrollments.niche, off) : undefined;
   const health: DomainHealth[] = [];
   for (const domain of [...byDomain.keys()].sort()) {
     const addresses = byDomain.get(domain) ?? [];
@@ -120,6 +127,7 @@ export async function domainHealth(
           inArray(enrollments.sender, addresses),
           eq(messages.state, "sent"),
           gte(messages.sentAt, windowStart),
+          counted,
         ),
       );
     const sent = sentRow?.n ?? 0;
@@ -127,7 +135,13 @@ export async function domainHealth(
       .select({ kind: threadEvents.kind, bounceClass: threadEvents.bounceClass, n: count() })
       .from(threadEvents)
       .innerJoin(enrollments, eq(enrollments.id, threadEvents.enrollmentId))
-      .where(and(inArray(enrollments.sender, addresses), gte(threadEvents.receivedAt, windowStart)))
+      .where(
+        and(
+          inArray(enrollments.sender, addresses),
+          gte(threadEvents.receivedAt, windowStart),
+          counted,
+        ),
+      )
       .groupBy(threadEvents.kind, threadEvents.bounceClass);
     const total = (kind: ThreadEventKind, bounceClass?: BounceClass): number =>
       grouped

@@ -1,7 +1,7 @@
 /**
  * What a client's mailbox sends under (R4): its own database, its own fleet,
  * and Wren's send rules with the client's caps. Wren's window, days and gaps
- * carry over; Wren's opener cap and ramp are Wren's campaign's and do not.
+ * carry over; Wren's opener caps, kill-switch exemptions and ramp are Wren's campaigns' and do not.
  */
 import { type Fleet, PlainDate, SendPolicy } from "@wren/channel-email";
 import type { SendScope } from "@wren/channel-email/restate";
@@ -35,6 +35,8 @@ export function sendPolicyFor(
     ...base,
     perInboxCeiling: ceiling,
     newOpenersPerDay: settings.sending.openersPerDay,
+    nicheOpenersPerDay: new Map(),
+    killSwitchOffFor: new Set(),
     rampStart: settings.sending.rampStart ? PlainDate.fromIso(settings.sending.rampStart) : null,
     rampFrom: Math.min(base.rampFrom, ceiling),
   });

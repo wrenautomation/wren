@@ -126,6 +126,19 @@ describe("validation", () => {
     );
     expect(policy({ newOpenersPerDay: 0 }).newOpenersPerDay).toBe(0);
   });
+  it("per-niche openers caps and kill-switch exemptions parse; a typo is loud", () => {
+    const p = policy({
+      nicheOpenersPerDay: "agencies=0, recruiting=40",
+      killSwitchOffFor: "agencies",
+    });
+    expect(p.nicheOpenerCap("agencies")).toBe(0);
+    expect(p.nicheOpenerCap("recruiting")).toBe(40);
+    expect(p.nicheOpenerCap("sec_ria")).toBeNull();
+    expect(p.killSwitchOn("agencies")).toBe(false);
+    expect(p.killSwitchOn("recruiting")).toBe(true);
+    expect(p.describe()).toContain("kill switch off for agencies");
+    expect(() => policy({ nicheOpenersPerDay: "agencies:0" })).toThrow("NICHE_OPENERS_PER_DAY");
+  });
   it("cooldown must not be negative", () => {
     expect(() => policy({ resendCooldownDays: -1 })).toThrow(
       "RESEND_COOLDOWN_DAYS must not be negative",

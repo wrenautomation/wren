@@ -269,6 +269,35 @@ describe("the bounce switch", () => {
   });
 });
 
+// --- a niche the switch is off for ------------------------------------------
+
+describe("kill switch off for a niche", () => {
+  const offForAgencies = makePolicy({ WREN_KILL_SWITCH_OFF_FOR: "agencies" });
+  const evaluateWith = (policy: SendPolicy) =>
+    evaluateKillSwitches(db(), { policy, now: NOW, senders: FLEET });
+
+  it("ignores that niche's bounces", async () => {
+    const agency = await seedSends({ sender: WILL, count: 40, sentAt: ago(DAY) });
+    await hardBounces(agency, 5, ago(3 * HOUR));
+    expect(await evaluateWith(offForAgencies)).toEqual([]);
+    const [health] =
+      (await domainHealth(db(), { policy: offForAgencies, now: NOW, senders: [WILL] })) ?? [];
+    expect(health?.sent).toBe(0);
+    expect(health?.hardBounces).toBe(0);
+  });
+
+  it("still pauses the domain on another niche's bounces, counted over that niche alone", async () => {
+    const agency = await seedSends({ sender: WILL, count: 400, sentAt: ago(DAY) });
+    await hardBounces(agency, 1, ago(3 * HOUR));
+    const recruit = await makeEnrollment(HELLO, "recruiting");
+    await seedSends({ sender: HELLO, count: 50, sentAt: ago(DAY), enrollment: recruit });
+    await hardBounces(recruit, 2, ago(2 * HOUR));
+    const paused = await evaluateWith(offForAgencies);
+    expect(sendersOf(paused)).toEqual(new Set([WILL, HELLO]));
+    expect(paused[0]?.reason).toContain("2/50");
+  });
+});
+
 // --- the tick ---------------------------------------------------------------
 
 describe("the send tick", () => {

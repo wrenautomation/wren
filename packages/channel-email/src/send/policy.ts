@@ -9,6 +9,9 @@
  * Caps are per inbox because reputation is earned per sending address. The
  * one fleet-wide number is `newOpenersPerDay`, a brake on new conversations;
  * 0 means follow-ups only (threads already open finish, none start).
+ * `nicheOpenersPerDay` is the same brake for one campaign, so one can wind down
+ * while another opens. `killSwitchOffFor` names campaigns the kill switch neither
+ * counts nor stops.
  * The ramp is data: `from + step × (send days elapsed ÷ every)`, never above
  * the ceiling, counted in the schedule's own days. Every window question is
  * answered on the operator's local clock and returned as a UTC instant.
@@ -50,6 +53,8 @@ export interface SendPolicySettings {
   readonly sendGapMinMinutes: number;
   readonly sendGapMaxMinutes: number;
   readonly newOpenersPerDay?: number | undefined;
+  readonly nicheOpenersPerDay?: string | undefined;
+  readonly killSwitchOffFor?: string | undefined;
   readonly resendCooldownDays: number;
   readonly reconcileGraceMinutes: number;
   readonly bouncePauseRate: number;
@@ -72,6 +77,8 @@ export interface SendPolicyFields {
   readonly gapMinMs: number;
   readonly gapMaxMs: number;
   readonly newOpenersPerDay: number | null;
+  readonly nicheOpenersPerDay: ReadonlyMap<string, number>;
+  readonly killSwitchOffFor: ReadonlySet<string>;
   readonly resendCooldownDays: number;
   readonly reconcileGraceMs: number;
   readonly bouncePauseRate: number;
@@ -98,6 +105,8 @@ export class SendPolicy implements SendPolicyFields {
   readonly gapMinMs: number;
   readonly gapMaxMs: number;
   readonly newOpenersPerDay: number | null;
+  readonly nicheOpenersPerDay: ReadonlyMap<string, number>;
+  readonly killSwitchOffFor: ReadonlySet<string>;
   readonly resendCooldownDays: number;
   readonly reconcileGraceMs: number;
   readonly bouncePauseRate: number;
@@ -119,6 +128,8 @@ export class SendPolicy implements SendPolicyFields {
     this.gapMinMs = fields.gapMinMs;
     this.gapMaxMs = fields.gapMaxMs;
     this.newOpenersPerDay = fields.newOpenersPerDay;
+    this.nicheOpenersPerDay = new Map(fields.nicheOpenersPerDay);
+    this.killSwitchOffFor = new Set(fields.killSwitchOffFor);
     this.resendCooldownDays = fields.resendCooldownDays;
     this.reconcileGraceMs = fields.reconcileGraceMs;
     this.bouncePauseRate = fields.bouncePauseRate;
@@ -221,6 +232,13 @@ export class SendPolicy implements SendPolicyFields {
       gapMinMs: s.sendGapMinMinutes * MINUTE_MS,
       gapMaxMs: s.sendGapMaxMinutes * MINUTE_MS,
       newOpenersPerDay: s.newOpenersPerDay ?? null,
+      nicheOpenersPerDay: parseNicheCaps(s.nicheOpenersPerDay ?? ""),
+      killSwitchOffFor: new Set(
+        (s.killSwitchOffFor ?? "")
+          .split(",")
+          .map((n) => n.trim())
+          .filter(Boolean),
+      ),
       resendCooldownDays: s.resendCooldownDays,
       reconcileGraceMs: s.reconcileGraceMinutes * MINUTE_MS,
       bouncePauseRate: s.bouncePauseRate,
@@ -390,6 +408,16 @@ export class SendPolicy implements SendPolicyFields {
     return new Date(assertInstant(lastSent).getTime() + this.gapFor(rng));
   }
 
+  /** The niche's own opener brake; null = none (the fleet brake still applies). */
+  nicheOpenerCap(niche: string): number | null {
+    return this.nicheOpenersPerDay.get(niche) ?? null;
+  }
+
+  /** Whether the kill switch counts this niche's bounces and stops its sends. */
+  killSwitchOn(niche: string): boolean {
+    return !this.killSwitchOffFor.has(niche);
+  }
+
   // ---- for humans ---------------------------------------------------
 
   /** One line for the operator. With `now`, the ramp's position today. */
@@ -414,13 +442,17 @@ export class SendPolicy implements SendPolicyFields {
         `lead window ${formatClock(this.leadWindowStart)}–${formatClock(this.leadWindowEnd)}` +
         " on the lead's clock, ";
     }
+    const perNiche = [...this.nicheOpenersPerDay].map(([n, cap]) => ` ${n} ${cap}`).join(",");
+    const off = this.killSwitchOffFor.size
+      ? `, kill switch off for ${[...this.killSwitchOffFor].sort().join(", ")}`
+      : "";
     return (
       `${describeDays(this.days)} ` +
       `${formatClock(this.windowStart)}–${formatClock(this.windowEnd)} ${this.timezone}, ` +
       `${leadWindow}${cap}, ` +
       `gap ${minutes(this.gapMinMs)}–${minutes(this.gapMaxMs)} min, ` +
-      `openers/day ${openers}, ` +
-      `cooldown ${this.resendCooldownDays} d`
+      `openers/day ${openers}${perNiche}, ` +
+      `cooldown ${this.resendCooldownDays} d${off}`
     );
   }
 }
@@ -478,6 +510,24 @@ function parseTime(raw: string, key: string): ClockTime {
   const m = HHMM.exec(raw.trim());
   if (!m) throw new Error(`${key} must be HH:MM on a 24-hour clock, got ${JSON.stringify(raw)}`);
   return { hour: Number(m[1]), minute: Number(m[2]) };
+}
+
+/** "agencies=0, recruiting=40" → niche → cap. Strict: a typo stops startup, never reads as "no cap". */
+function parseNicheCaps(raw: string): Map<string, number> {
+  const caps = new Map<string, number>();
+  for (const part of raw
+    .split(",")
+    .map((p) => p.trim())
+    .filter(Boolean)) {
+    const m = /^([a-z0-9_-]+)\s*=\s*(\d+)$/.exec(part);
+    if (!m?.[1] || m[2] === undefined) {
+      throw new Error(
+        `${ENV_KEYS.nicheOpenersPerDay} must be niche=count pairs ("agencies=0,recruiting=40"), got ${JSON.stringify(part)}`,
+      );
+    }
+    caps.set(m[1], Number(m[2]));
+  }
+  return caps;
 }
 
 function parseRampStart(raw: string): PlainDate {

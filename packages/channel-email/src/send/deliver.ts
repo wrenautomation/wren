@@ -209,16 +209,21 @@ export async function sendDue(db: Db, opts: SendDueOptions): Promise<SendStats> 
     return stats;
   }
 
-  const paused = new Set(
+  // Sender → who paused it: a kill-switch pause does not stop a niche the switch is off for.
+  const paused = new Map(
     (
       await db
-        .select({ sender: senderPauses.sender })
+        .select({ sender: senderPauses.sender, source: senderPauses.source })
         .from(senderPauses)
         .where(sql`${senderPauses.liftedAt} IS NULL`)
-    ).map((r) => r.sender),
+    ).map((r) => [r.sender, r.source]),
   );
   const fleet = opts.senders == null ? null : new Set(opts.senders.map((a) => a.toLowerCase()));
-  const { sentToday, openersToday: openersAtStart } = await todaysSends(db, policy, now);
+  const {
+    sentToday,
+    openersToday: openersAtStart,
+    nicheOpeners,
+  } = await todaysSends(db, policy, now);
   let openersToday = openersAtStart;
   const lastSentPerSender = await lastSendPerSender(db);
 
@@ -272,7 +277,11 @@ export async function sendDue(db: Db, opts: SendDueOptions): Promise<SendStats> 
       continue;
     }
     const sender = enrollment.sender;
-    if (paused.has(sender)) {
+    const pausedBy = paused.get(sender);
+    if (
+      pausedBy !== undefined &&
+      !(pausedBy === "kill_switch" && !policy.killSwitchOn(enrollment.niche))
+    ) {
       stats.senders_paused += 1;
       continue;
     }
@@ -291,7 +300,12 @@ export async function sendDue(db: Db, opts: SendDueOptions): Promise<SendStats> 
       continue;
     }
     const opening = anchor === null;
-    if (opening && policy.newOpenersPerDay !== null && openersToday >= policy.newOpenersPerDay) {
+    const nicheCap = policy.nicheOpenerCap(enrollment.niche);
+    if (
+      opening &&
+      ((policy.newOpenersPerDay !== null && openersToday >= policy.newOpenersPerDay) ||
+        (nicheCap !== null && (nicheOpeners.get(enrollment.niche) ?? 0) >= nicheCap))
+    ) {
       stats.openers_capped += 1;
       continue;
     }
@@ -317,7 +331,10 @@ export async function sendDue(db: Db, opts: SendDueOptions): Promise<SendStats> 
     if (outcome.delivered) {
       sentToday.set(sender, (sentToday.get(sender) ?? 0) + 1);
       lastSentPerSender.set(sender, now);
-      if (opening) openersToday += 1;
+      if (opening) {
+        openersToday += 1;
+        nicheOpeners.set(enrollment.niche, (nicheOpeners.get(enrollment.niche) ?? 0) + 1);
+      }
       if (!outcome.messages.some((m) => isLive(m.state))) {
         // That was the last step: finish here rather than leave a completed
         // enrollment ACTIVE until some later tick walks it again.
@@ -335,30 +352,43 @@ export async function sendDue(db: Db, opts: SendDueOptions): Promise<SendStats> 
 // --- the pacing facts, read once per tick ------------------------------
 
 /**
- * (sends per inbox, openers fleet-wide) over the policy's LOCAL day: the cap
- * is a promise about one operator's working day. Openers are step 0.
+ * (sends per inbox, openers fleet-wide, openers per niche) over the policy's
+ * LOCAL day: the cap is a promise about one operator's working day. Openers are step 0.
  */
 async function todaysSends(
   db: Queryable,
   policy: SendPolicy,
   now: Date,
-): Promise<{ sentToday: Map<string, number>; openersToday: number }> {
+): Promise<{
+  sentToday: Map<string, number>;
+  openersToday: number;
+  nicheOpeners: Map<string, number>;
+}> {
   const [dayStart, dayEnd] = policy.localDayBounds(now);
   const rows = await db
-    .select({ sender: enrollments.sender, step: messages.step, n: count() })
+    .select({
+      sender: enrollments.sender,
+      niche: enrollments.niche,
+      step: messages.step,
+      n: count(),
+    })
     .from(messages)
     .innerJoin(enrollments, eq(enrollments.id, messages.enrollmentId))
     .where(
       and(eq(messages.state, "sent"), gte(messages.sentAt, dayStart), lt(messages.sentAt, dayEnd)),
     )
-    .groupBy(enrollments.sender, messages.step);
+    .groupBy(enrollments.sender, enrollments.niche, messages.step);
   const sentToday = new Map<string, number>();
+  const nicheOpeners = new Map<string, number>();
   let openersToday = 0;
-  for (const { sender, step, n } of rows) {
+  for (const { sender, niche, step, n } of rows) {
     sentToday.set(sender, (sentToday.get(sender) ?? 0) + n);
-    if (step === 0) openersToday += n;
+    if (step === 0) {
+      openersToday += n;
+      nicheOpeners.set(niche, (nicheOpeners.get(niche) ?? 0) + n);
+    }
   }
-  return { sentToday, openersToday };
+  return { sentToday, openersToday, nicheOpeners };
 }
 
 /**

@@ -53,6 +53,10 @@ export const settingsSchema = z.object({
   sendGapMaxMinutes: z.coerce.number().default(20),
   /** Fleet-wide brake on new conversations per day; unset = unlimited. */
   newOpenersPerDay: z.coerce.number().int().optional(),
+  /** Per-campaign brake on new conversations, "agencies=0,recruiting=40"; a niche not named has none. */
+  nicheOpenersPerDay: z.string().default(""),
+  /** Niches whose bounces the kill switch ignores and whose sends its pauses do not stop, "agencies". */
+  killSwitchOffFor: z.string().default(""),
   /** Operator nudges: none | console | discord (needs the webhook URL, a secret). */
   notify: z.enum(["none", "console", "discord"]).default("none"),
   discordWebhookUrl: z.string().min(1).optional(),
@@ -293,6 +297,8 @@ export const ENV_KEYS = {
   sendGapMinMinutes: "WREN_SEND_GAP_MIN_MINUTES",
   sendGapMaxMinutes: "WREN_SEND_GAP_MAX_MINUTES",
   newOpenersPerDay: "WREN_NEW_OPENERS_PER_DAY",
+  nicheOpenersPerDay: "WREN_NICHE_OPENERS_PER_DAY",
+  killSwitchOffFor: "WREN_KILL_SWITCH_OFF_FOR",
   notify: "WREN_NOTIFY",
   discordWebhookUrl: "WREN_DISCORD_WEBHOOK_URL",
   composeDaysAhead: "WREN_COMPOSE_DAYS_AHEAD",

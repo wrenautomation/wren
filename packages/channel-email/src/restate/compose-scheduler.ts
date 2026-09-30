@@ -2,7 +2,7 @@
  * The queue-keeper: `ComposeScheduler/{niche}` keeps the approved opener queue a few
  * send days ahead of what the fleet may send, so the send loops never starve and nobody
  * composes by hand. A pass measures tomorrow's capacity (active inboxes for this niche ×
- * today's per-inbox cap, under the fleet-wide opener brake), counts approved openers not
+ * today's per-inbox cap, under the fleet and niche opener brakes), counts approved openers not
  * yet sent, and composes the shortfall through the niche's enrollment plan, rule by rule,
  * auto-approved: first-contact companies first, then returning ones (lead recycling) with
  * what is left. Then it sleeps to the next local midnight.
@@ -93,10 +93,17 @@ export async function queuedOpeners(db: Db, niche: string): Promise<number> {
   return rows[0]?.n ?? 0;
 }
 
-/** Openers per day this niche's inboxes may open, under the fleet brake when there is one. */
-export function dailyOpenerCapacity(policy: SendPolicy, senders: number, now: Date): number {
-  const perInbox = policy.perInboxCap(now) * senders;
-  return policy.newOpenersPerDay === null ? perInbox : Math.min(perInbox, policy.newOpenersPerDay);
+/** Openers per day this niche's inboxes may open, under the fleet and niche brakes when set. */
+export function dailyOpenerCapacity(
+  policy: SendPolicy,
+  niche: string,
+  senders: number,
+  now: Date,
+): number {
+  const brakes = [policy.newOpenersPerDay, policy.nicheOpenerCap(niche)].filter(
+    (cap): cap is number => cap !== null,
+  );
+  return Math.min(policy.perInboxCap(now) * senders, ...brakes);
 }
 
 /** One top-up for `campaign`, as a plain function so an operator command and the loop agree. */
@@ -117,7 +124,12 @@ export async function topUp(
     niche: campaign.niche,
     locationOf: campaign.companyLocation,
   });
-  const capacity = dailyOpenerCapacity(opts.policy, campaign.senders.length, opts.now);
+  const capacity = dailyOpenerCapacity(
+    opts.policy,
+    campaign.niche,
+    campaign.senders.length,
+    opts.now,
+  );
   const queued = await queuedOpeners(db, campaign.niche);
   const target = capacity * opts.daysAhead;
   const stats: TopUpStats = {
