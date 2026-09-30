@@ -15,7 +15,7 @@ import {
   sameCompany,
   sameName,
 } from "./names.js";
-import { experienceOf, linkedinProfile, readSerpTitle } from "./serp.js";
+import { linkedinProfile } from "./profile-link.js";
 
 type Handler = (input: Record<string, unknown>, account?: string) => unknown;
 
@@ -45,17 +45,24 @@ const subject = (over: Partial<LookupSubject> = {}): LookupSubject => ({
   email: null,
   ...over,
 });
-const hits = (...h: { title: string; url: string; snippet?: string }[]) => ({
-  query: "q",
-  hits: h.map((x) => ({ snippet: null, ...x })),
-  via: "ddg",
-  tried: ["ddg"],
+type Role = { title: string; company: string; current: boolean };
+type Person = { name: string; url: string; headline?: string; roles: Role[] };
+const people = (...p: Person[]) => ({ query: "q", people: p, via: "exa" });
+const role = (title: string, company: string, current = true): Role => ({
+  title,
+  company,
+  current,
 });
 const NOW = new Date("2026-09-29T12:00:00Z");
 
-/** One search result for every query. */
-const oneHit = (title: string, snippet?: string, url = "https://www.linkedin.com/in/janedoe/") =>
-  fakeSites({ "web GET /search": () => hits({ title, url, ...(snippet ? { snippet } : {}) }) });
+/** One indexed profile for every search. */
+const oneHit = (name: string, roles: Role[], url = "https://www.linkedin.com/in/janedoe/") =>
+  fakeSites({ "web GET /people": () => people({ name, url, roles }) });
+const jd = (v: string, roles: Role[] = []): Person => ({
+  name: "Jane Doe",
+  url: `https://www.linkedin.com/in/${v}/`,
+  roles,
+});
 
 // ---------------------------------------------------------------------------
 // sameName
@@ -157,7 +164,7 @@ describe("mentionsFirm / sameCompany / domainLabel", () => {
 });
 
 // ---------------------------------------------------------------------------
-// serp
+// profile links
 // ---------------------------------------------------------------------------
 
 describe("linkedinProfile", () => {
@@ -194,74 +201,6 @@ describe("linkedinProfile", () => {
     expect(linkedinProfile("https://www.linkedin.com/in/józef-nowak")?.vanity).toBe(
       linkedinProfile("https://www.linkedin.com/in/J%C3%B3zef-Nowak/")?.vanity,
     );
-  });
-});
-
-describe("readSerpTitle: what it reads as the current employer", () => {
-  it("a location is not an employer", () => {
-    expect(readSerpTitle("Jane Doe - Toronto, Ontario, Canada | LinkedIn")?.company).toBeNull();
-  });
-
-  it("Google's '| Professional Profile' suffix is not an employer", () => {
-    const r = readSerpTitle(
-      "Jane Doe - Toronto, Ontario, Canada | Professional Profile | LinkedIn",
-    );
-    expect(r?.company ?? null).not.toBe("Professional Profile");
-  });
-
-  it("a headline with pipes: its last part is not an employer", () => {
-    expect(
-      readSerpTitle("Jane Doe - Senior Recruiter | Talent Acquisition | LinkedIn")?.company,
-    ).toBeNull();
-  });
-
-  it("a role the ROLE list does not know is not an employer", () => {
-    expect(readSerpTitle("Jane Doe - Software Developer | LinkedIn")?.company).toBeNull();
-    expect(readSerpTitle("Jane Doe - Registered Nurse | LinkedIn")?.company).toBeNull();
-  });
-
-  it("'Former … at X' does not say they are at X now", () => {
-    expect(
-      readSerpTitle("Jane Doe - Former Recruiter at Acme Staffing | LinkedIn")?.company,
-    ).not.toBe("Acme Staffing");
-  });
-
-  it("holds: hyphenated names, dashes inside the title, @, dash suffix, empties", () => {
-    expect(readSerpTitle("Mary-Jane Doe - Recruiter - Acme | LinkedIn")).toEqual({
-      name: "Mary-Jane Doe",
-      title: "Recruiter",
-      company: "Acme",
-      bare: null,
-    });
-    expect(readSerpTitle("Jane Doe - VP - Sales - Globex | LinkedIn")).toEqual({
-      name: "Jane Doe",
-      title: "VP - Sales",
-      company: "Globex",
-      bare: null,
-    });
-    expect(readSerpTitle("Jane Doe - Recruiter @ Acme Staffing | LinkedIn")?.company).toBe(
-      "Acme Staffing",
-    );
-    expect(readSerpTitle("Jane Doe – Acme Staffing – LinkedIn")?.bare).toBe("Acme Staffing");
-    expect(readSerpTitle("")).toBeNull();
-    expect(readSerpTitle(" | LinkedIn")).toBeNull();
-    expect(readSerpTitle("Jane Doe | LinkedIn")).toEqual({
-      name: "Jane Doe",
-      title: null,
-      company: null,
-      bare: null,
-    });
-  });
-});
-
-describe("experienceOf", () => {
-  it("stops at a semicolon or comma-separated next field", () => {
-    expect(experienceOf("Experience: Acme Staffing; Education: UW")).toBe("Acme Staffing");
-  });
-  it("holds: first entry, null safe", () => {
-    expect(experienceOf("Experience: Globex | Education: UW")).toBe("Globex");
-    expect(experienceOf("")).toBeNull();
-    expect(experienceOf("Experience:  · Education: UW")).toBeNull();
   });
 });
 
@@ -309,11 +248,11 @@ describe("emailFindings", () => {
 // ---------------------------------------------------------------------------
 
 describe("lookUpPerson: false match", () => {
-  it("a firm named after the person's surname is not 'named' by the result's own name", async () => {
+  it("a firm named after the person's surname is not matched by their own name", async () => {
     // Jane Doe at "Doe LLC": a nurse called Jane Doe is a stranger.
     const { sites } = oneHit(
-      "Jane Doe - Nurse - General Hospital | LinkedIn",
-      "Experience: General Hospital · Location: Ohio",
+      "Jane Doe",
+      [role("Nurse", "General Hospital")],
       "https://www.linkedin.com/in/nurse-jane-doe/",
     );
     const r = await lookUpPerson(sites, subject({ firm: { name: "Doe LLC", domain: null } }), {
@@ -325,8 +264,8 @@ describe("lookUpPerson: false match", () => {
 
   it("a swapped-name stranger at the firm is not trusted (John Taylor vs Taylor Johnson)", async () => {
     const { sites } = oneHit(
-      "Taylor Johnson - Account Manager - Globex | LinkedIn",
-      "Experience: Globex · Past: Acme Staffing",
+      "Taylor Johnson",
+      [role("Account Manager", "Globex"), role("Recruiter", "Acme Staffing", false)],
       "https://www.linkedin.com/in/taylorjohnson/",
     );
     const r = await lookUpPerson(sites, subject({ firstName: "John", lastName: "Taylor" }), {
@@ -335,80 +274,77 @@ describe("lookUpPerson: false match", () => {
     expect(r.state).toBe("unresolved");
     expect(r.profile).toBeNull();
   });
+
+  it("the firm named only in a title at another company does not tie a namesake to it", async () => {
+    const { sites } = oneHit("Jane Doe", [
+      role("Recruiter placing nurses at Acme Staffing", "Globex"),
+    ]);
+    const r = await lookUpPerson(sites, subject(), { linkedin: null });
+    expect(r.state).toBe("unresolved");
+    expect(r.findings).toEqual([]);
+  });
+
+  it("the firm named only in a headline does not tie a namesake to it", async () => {
+    const { sites } = fakeSites({
+      "web GET /people": () =>
+        people({
+          ...jd("janedoe", [role("Nurse", "General Hospital")]),
+          headline: "ex-Acme Staffing",
+        }),
+    });
+    const r = await lookUpPerson(sites, subject(), { linkedin: null });
+    expect(r.state).toBe("unresolved");
+  });
 });
 
 describe("lookUpPerson: false facts about the right person", () => {
-  const jobChanges = (r: Awaited<ReturnType<typeof lookUpPerson>>) =>
-    r.findings.filter((f) => f.kind === "job_change").map((f) => f.value.to);
-
-  it("a location in the title is not a job change", async () => {
-    const { sites } = oneHit(
-      "Jane Doe - Toronto, Ontario, Canada | LinkedIn",
-      "Experience: Acme Staffing · Education: University of Toronto · Location: Toronto",
-    );
+  it("two current roles, one at the firm: still there, not moved", async () => {
+    const { sites } = oneHit("Jane Doe", [
+      role("Advisor", "Globex"),
+      role("Senior Recruiter", "Acme Staffing Inc."),
+    ]);
     const r = await lookUpPerson(sites, subject(), { linkedin: null });
-    expect(jobChanges(r)).toEqual([]);
+    expect(r.findings.map((f) => f.kind)).toEqual(["still_there"]);
   });
 
-  it("a piped headline is not a job change", async () => {
-    const { sites } = oneHit(
-      "Jane Doe - Senior Recruiter | Talent Acquisition | LinkedIn",
-      "Experience: Acme Staffing · Location: Toronto",
-    );
+  it("a past role at the firm and a current one elsewhere is a move, to the current one", async () => {
+    const { sites } = oneHit("Jane Doe", [
+      role("Recruiter", "Acme Staffing", false),
+      role("Talent Lead", "Globex"),
+      role("Coordinator", "Initech", false),
+    ]);
     const r = await lookUpPerson(sites, subject(), { linkedin: null });
-    expect(jobChanges(r)).toEqual([]);
+    expect(r.findings[0]).toMatchObject({
+      kind: "job_change",
+      value: { from: "Acme Staffing", to: "Globex", title: "Talent Lead" },
+    });
   });
 
-  it("an unknown role word is not a job change", async () => {
-    const { sites } = oneHit(
-      "Jane Doe - Software Developer | LinkedIn",
-      "Experience: Acme Staffing · Location: Toronto",
-    );
+  it("an indexed match is trusted less than a logged-in read", async () => {
+    const { sites } = oneHit("Jane Doe", [role("Recruiter", "Acme Staffing")]);
     const r = await lookUpPerson(sites, subject(), { linkedin: null });
-    expect(jobChanges(r)).toEqual([]);
+    expect(r.findings[0]?.confidence).toBeLessThan(0.9);
   });
 
-  it("a title the engine cut short is not a job change", async () => {
-    const { sites } = oneHit(
-      "Jane Doe - Senior Technical Recruiter - Acme Staff...",
-      "Experience: Acme Staffing · Location: Toronto",
-    );
-    const r = await lookUpPerson(sites, subject(), { linkedin: null });
-    expect(jobChanges(r)).toEqual([]);
-  });
-
-  it("'Former Recruiter at Acme' is not 'still there'", async () => {
-    const { sites } = oneHit(
-      "Jane Doe - Former Recruiter at Acme Staffing | LinkedIn",
-      "Experience: Globex · Education: UW",
-    );
-    const r = await lookUpPerson(sites, subject(), { linkedin: null });
-    expect(r.findings.filter((f) => f.kind === "still_there")).toEqual([]);
+  it("an indexed match settles it: no LinkedIn read spent", async () => {
+    const { sites, calls } = oneHit("Jane Doe", [role("Recruiter", "Acme Staffing")]);
+    await lookUpPerson(sites, subject(), { linkedin: "linkedin@research" });
+    expect(calls.filter((c) => c.startsWith("linkedin"))).toEqual([]);
   });
 
   it("a profile read with no roles at all does not say they left", async () => {
-    // Search matched (firm named in the snippet) but gave no employer; the read returns no roles.
+    // Search matched the name only; the read returns no roles.
     const { sites } = fakeSites({
-      "web GET /search": () =>
-        hits({
-          title: "Jane Doe - Recruiter | LinkedIn",
-          url: "https://www.linkedin.com/in/janedoe/",
-          snippet: "Jane recruits for Acme Staffing in Toronto.",
-        }),
+      "web GET /people": () => people(jd("janedoe")),
       "linkedin GET /in/janedoe": () => ({ name: "Jane Doe" }),
     });
     const r = await lookUpPerson(sites, subject(), { linkedin: "linkedin@research" });
     expect(r.findings.filter((f) => f.kind === "left")).toEqual([]);
   });
 
-  it("a search match the logged-in read contradicts (different name) is not kept as matched", async () => {
+  it("a name-only search match the logged-in read contradicts (different name) is not matched", async () => {
     const { sites } = fakeSites({
-      "web GET /search": () =>
-        hits({
-          title: "Jane Doe - Recruiter | LinkedIn",
-          url: "https://www.linkedin.com/in/janedoe/",
-          snippet: "Jane recruits for Acme Staffing in Toronto.",
-        }),
+      "web GET /people": () => people(jd("janedoe")),
       "linkedin GET /in/janedoe": () => ({
         name: "Priya Patel",
         roles: [{ title: "Engineer", company: "Initech", companyUrl: "", current: true }],
@@ -418,19 +354,29 @@ describe("lookUpPerson: false facts about the right person", () => {
     expect(r.state).not.toBe("matched");
     expect(r.profile).toBeNull();
   });
+
+  it("holds: a person search with no LinkedIn url, or a malformed one, is skipped", async () => {
+    const { sites } = fakeSites({
+      "web GET /people": () =>
+        people(
+          {
+            name: "Jane Doe",
+            url: "https://example.com/jane",
+            roles: [role("Recruiter", "Acme Staffing")],
+          },
+          { name: "Jane Doe", url: "not a url", roles: [role("Recruiter", "Acme Staffing")] },
+        ),
+    });
+    const r = await lookUpPerson(sites, subject(), { linkedin: null });
+    expect(r.state).toBe("unresolved");
+  });
 });
 
 describe("lookUpPerson: caps and reads", () => {
   it("does not spend a LinkedIn search when the profile-read budget is already used", async () => {
     const maybes = ["jd1", "jd2", "jd3", "jd4"];
     const routes: Record<string, Handler> = {
-      "web GET /search": () =>
-        hits(
-          ...maybes.map((v) => ({
-            title: "Jane Doe | LinkedIn",
-            url: `https://www.linkedin.com/in/${v}/`,
-          })),
-        ),
+      "web GET /people": () => people(...maybes.map((v) => jd(v))),
       "linkedin GET /search/results/people": () => ({
         people: [
           { name: "Jane Doe", url: "https://www.linkedin.com/in/jd9/", headline: "Acme Staffing" },
@@ -451,8 +397,7 @@ describe("lookUpPerson: caps and reads", () => {
 
   it("holds: a profile-read 429 parks the person with retryAt from the message", async () => {
     const { sites } = fakeSites({
-      "web GET /search": () =>
-        hits({ title: "Jane Doe | LinkedIn", url: "https://www.linkedin.com/in/jd1/" }),
+      "web GET /people": () => people(jd("jd1")),
       "linkedin GET /in/jd1": () => {
         throw new SiteCallError("linkedin", "GET", "/in/jd1", 429, "cap used; retry after 1200s");
       },
@@ -467,8 +412,8 @@ describe("lookUpPerson: caps and reads", () => {
 
   it("holds: a web 429 with no retry-after parks for an hour, capped by web", async () => {
     const { sites } = fakeSites({
-      "web GET /search": () => {
-        throw new SiteCallError("web", "GET", "/search", 429, "slow down");
+      "web GET /people": () => {
+        throw new SiteCallError("web", "GET", "/people", 429, "slow down");
       },
     });
     const r = await lookUpPerson(sites, subject(), {
@@ -481,11 +426,7 @@ describe("lookUpPerson: caps and reads", () => {
 
   it("holds: a refused profile read (403) moves on to the next candidate", async () => {
     const { sites } = fakeSites({
-      "web GET /search": () =>
-        hits(
-          { title: "Jane Doe | LinkedIn", url: "https://www.linkedin.com/in/jd1/" },
-          { title: "Jane Doe | LinkedIn", url: "https://www.linkedin.com/in/jd2/" },
-        ),
+      "web GET /people": () => people(jd("jd1"), jd("jd2")),
       "linkedin GET /in/jd1": () => {
         throw new SiteCallError("linkedin", "GET", "/in/jd1", 403, "private");
       },
@@ -502,7 +443,7 @@ describe("lookUpPerson: caps and reads", () => {
 
   it("holds: a stranger with the same name and no role at the firm is never trusted via LinkedIn search", async () => {
     const { sites } = fakeSites({
-      "web GET /search": () => hits(),
+      "web GET /people": () => people(),
       "linkedin GET /search/results/people": () => ({
         people: [{ name: "Jane Doe", url: "https://www.linkedin.com/in/jdx/", headline: "Nurse" }],
       }),
@@ -518,17 +459,17 @@ describe("lookUpPerson: caps and reads", () => {
 });
 
 describe("lookUpPerson: fact keys", () => {
+  const moved = (company: string) => [
+    role("Account Manager", company),
+    role("Recruiter", "Acme Staffing", false),
+  ];
   it("the same move seen as 'Globex Inc.' and 'Globex' is one fact", async () => {
-    const a = await lookUpPerson(
-      oneHit("Jane Doe - Account Manager - Globex Inc. | LinkedIn", "Past: Acme Staffing").sites,
-      subject(),
-      { linkedin: null },
-    );
-    const b = await lookUpPerson(
-      oneHit("Jane Doe - Account Manager - Globex | LinkedIn", "Past: Acme Staffing").sites,
-      subject(),
-      { linkedin: null },
-    );
+    const a = await lookUpPerson(oneHit("Jane Doe", moved("Globex Inc.")).sites, subject(), {
+      linkedin: null,
+    });
+    const b = await lookUpPerson(oneHit("Jane Doe", moved("Globex")).sites, subject(), {
+      linkedin: null,
+    });
     expect(a.findings[0]?.kind).toBe("job_change");
     expect(a.findings[0]?.factKey).toBe(b.findings[0]?.factKey);
   });
@@ -536,7 +477,7 @@ describe("lookUpPerson: fact keys", () => {
   it("holds: the same reading twice gives the same key", async () => {
     const run = () =>
       lookUpPerson(
-        oneHit("Jane Doe - Account Manager - Globex | LinkedIn", "Past: Acme Staffing").sites,
+        oneHit("Jane Doe", moved("Globex")).sites,
         subject({
           email: { address: "jane@acmestaffing.com", result: "invalid", verifier: "smtp" },
         }),

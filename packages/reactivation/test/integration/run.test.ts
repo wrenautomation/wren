@@ -66,9 +66,9 @@ function sites(down = false): SiteClient {
       if (down || site !== "web") throw new SiteCallError(site, method, path, 502, "backend down");
       return {
         query: String((input as { q?: string }).q),
-        hits: [],
-        via: "ddg",
-        tried: ["ddg"],
+        ...(path === "/people"
+          ? { people: [], via: "exa" }
+          : { hits: [], via: "ddg", tried: ["ddg"] }),
       } as never;
     },
     async via() {

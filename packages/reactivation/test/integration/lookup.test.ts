@@ -67,16 +67,19 @@ function sites(opts: { searchDown?: boolean } = {}) {
       if (opts.searchDown) throw new SiteCallError(site, method, path, 502, "backend down");
       if (site === "web") {
         const q = String((input as { q?: string }).q ?? "");
-        const hitsFor = q.includes("Jane")
+        const found = q.includes("Jane")
           ? [
               {
-                title: "Jane Doe - Account Manager - Globex | LinkedIn",
+                name: "Jane Doe",
                 url: "https://ca.linkedin.com/in/janedoe",
-                snippet: "Experience: Globex · Past: Acme Staffing",
+                roles: [
+                  { title: "Account Manager", company: "Globex", current: true },
+                  { title: "Recruiter", company: "Acme Staffing", current: false },
+                ],
               },
             ]
           : [];
-        return { query: q, hits: hitsFor, via: "ddg", tried: ["ddg"] } as never;
+        return { query: q, people: found, via: "exa" } as never;
       }
       throw new SiteCallError(site, method, path, 429, "cap used; retry after 3600s");
     },

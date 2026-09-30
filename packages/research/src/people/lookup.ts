@@ -4,9 +4,11 @@
  *
  * 1. The email check already run. A work mailbox that rejects mail says they
  *    probably left; one that accepts says they may still be there.
- * 2. Web search through autobrowse's `web` site, no login: a LinkedIn result
- *    whose name matches and which names the firm (or its domain) is them, and
- *    its title or description says where they are now.
+ * 2. People search through autobrowse's `web` site (`/people`, an index of
+ *    public profiles), no login: a profile whose name matches and which lists
+ *    a role at the firm is them, and its current role says where they are now.
+ *    The index can lag the profile by months, so it is trusted a little less
+ *    than a logged-in read.
  * 3. LinkedIn logged in, only when the client allows it and search left the
  *    answer open: read the profiles search half-matched, else search LinkedIn
  *    itself, and trust a profile only when a role on it is at the firm. The
@@ -28,7 +30,7 @@ import {
   mentionsFirm,
   sameName,
 } from "./names.js";
-import { experienceOf, linkedinProfile, type ProfileLink, readSerpTitle } from "./serp.js";
+import { linkedinProfile, type ProfileLink } from "./profile-link.js";
 
 export type { DocumentDraft, FindingDraft } from "../findings.js";
 
@@ -75,30 +77,41 @@ const SURE = {
   mailboxGone: 0.6,
   domainGone: 0.4,
   mailboxLive: 0.5,
-  searchThere: 0.7,
-  searchMoved: 0.6,
   profile: 0.9,
   profileNoCurrent: 0.6,
+  indexed: 0.8,
+  indexedNoCurrent: 0.5,
 } as const;
+type Sure = { there: number; moved: number; noCurrent: number };
+const READ: Sure = {
+  there: SURE.profile,
+  moved: SURE.profile,
+  noCurrent: SURE.profileNoCurrent,
+};
+const INDEXED: Sure = {
+  there: SURE.indexed,
+  moved: SURE.indexed,
+  noCurrent: SURE.indexedNoCurrent,
+};
 /** Profiles read per person at most: the profile cap is shared by the whole list. */
 const MAX_PROFILE_READS = 3;
-const SEARCH_HITS = 5;
+const SEARCH_PEOPLE = 5;
 
-interface Hits {
-  hits: { title: string; url: string; snippet: string | null }[];
-  via: string;
-}
 interface Role {
   title: string;
   company: string;
-  companyUrl: string;
-  dates?: string;
+  companyUrl?: string | null;
+  dates?: string | null;
   current: boolean;
 }
 interface Profile {
   name: string;
-  headline?: string;
+  headline?: string | null;
   roles?: Role[];
+}
+interface People {
+  people: (Profile & { url: string })[];
+  via: string;
 }
 interface PersonHit {
   name: string;
@@ -153,11 +166,11 @@ export function emailFindings(s: LookupSubject): FindingDraft[] {
 /** Where they work now, per one reading, against where they worked. */
 function employerFinding(
   s: LookupSubject,
-  now: { company: string; title: string | null; dates?: string | null; companyUrl?: string },
+  now: Role,
   via: string,
   link: ProfileLink,
   document: DocumentDraft,
-  sure: { there: number; moved: number },
+  sure: Sure,
 ): FindingDraft {
   const there = isFirm(now.company, s.firm);
   const kind: FindingKind = there ? "still_there" : "job_change";
@@ -197,23 +210,20 @@ function profileFinding(
   via: string,
   link: ProfileLink,
   document: DocumentDraft,
+  sure: Sure,
 ): FindingDraft | null {
   const roles = p.roles ?? [];
   if (!roles.length) return null;
   const current = roles.filter((r) => r.current);
   const now = current.find((r) => isFirm(r.company, s.firm)) ?? current[0];
-  if (now)
-    return employerFinding(s, now, via, link, document, {
-      there: SURE.profile,
-      moved: SURE.profile,
-    });
+  if (now) return employerFinding(s, now, via, link, document, sure);
   const last = roles.find((r) => isFirm(r.company, s.firm));
   return {
     kind: "left",
     personId: s.personId,
     factKey: key(s, "left", via, link.vanity),
     value: { from: firmLabel(s.firm), reason: "no current role", lastRole: last ?? null },
-    confidence: SURE.profileNoCurrent,
+    confidence: sure.noCurrent,
     via,
     sourceUrl: link.url,
     document,
@@ -267,52 +277,43 @@ export async function lookUpPerson(
   const known = s.linkedinUrl ? linkedinProfile(s.linkedinUrl) : null;
   if (known) maybe.push(known);
   try {
-    // Step 2: search, at most two queries.
-    for (const q of [`"${who}" "${firm}" site:linkedin.com/in`, `${who} ${firm} linkedin`]) {
-      const res = await call<Hits>("web", "GET", "/search", { q, n: SEARCH_HITS });
-      const outcome: string[] = [`${res.hits.length} hits via ${res.via}`];
-      for (const h of res.hits) {
-        const link = linkedinProfile(h.url);
-        const read = link ? readSerpTitle(h.title) : null;
-        if (!link || !read) continue;
-        if (!sameName(s, read.name)) {
-          outcome.push(`${link.vanity}: name differs (${read.name})`);
-          continue;
-        }
-        const text = `${h.title}\n${h.snippet ?? ""}`;
-        // Their own name is not the firm's, even at "Doe LLC".
-        if (!mentionsFirm(text, s.firm, [read.name, who])) {
-          if (!maybe.some((m) => m.vanity === link.vanity)) maybe.push(link);
-          outcome.push(`${link.vanity}: name matches, firm not named`);
-          continue;
-        }
-        profile = link;
-        outcome.push(`${link.vanity}: matched`);
-        // LinkedIn's own "Experience:" first; a bare "Name - X" only as the firm itself.
-        const company =
-          experienceOf(h.snippet) ??
-          read.company ??
-          (read.bare && isFirm(read.bare, s.firm) ? read.bare : null);
-        if (company)
-          status = employerFinding(
-            s,
-            { company, title: read.title },
-            "search",
-            link,
-            {
-              url: link.url,
-              kind: "snippet",
-              title: h.title,
-              text,
-              fetchTier: res.via.slice(0, 16),
-            },
-            { there: SURE.searchThere, moved: SURE.searchMoved },
-          );
-        break;
+    // Step 2: one people search; each profile carries its roles.
+    const q = `${who} ${firm}`;
+    const res = await call<People>("web", "GET", "/people", { q, n: SEARCH_PEOPLE });
+    const outcome: string[] = [`${res.people.length} people via ${res.via}`];
+    for (const p of res.people) {
+      const link = linkedinProfile(p.url);
+      if (!link) continue;
+      if (!sameName(s, p.name)) {
+        outcome.push(`${link.vanity}: name differs (${p.name})`);
+        continue;
       }
-      tried.push({ step: "search", what: q, outcome: outcome.join("; ") });
-      if (profile) break;
+      // A role at the firm ties the profile to them; the one we already hold needs none.
+      const atFirm = (p.roles ?? []).some((r) => isFirm(r.company, s.firm));
+      if (!atFirm && link.vanity !== known?.vanity) {
+        if (!maybe.some((m) => m.vanity === link.vanity)) maybe.push(link);
+        outcome.push(`${link.vanity}: name matches, no role at the firm`);
+        continue;
+      }
+      profile = link;
+      status = profileFinding(
+        s,
+        p,
+        "search",
+        link,
+        {
+          url: link.url,
+          kind: "profile",
+          title: p.name,
+          text: JSON.stringify(p),
+          fetchTier: res.via.slice(0, 16),
+        },
+        INDEXED,
+      );
+      outcome.push(`${link.vanity}: matched`);
+      break;
     }
+    tried.push({ step: "search", what: q, outcome: outcome.join("; ") });
 
     // Step 3: LinkedIn logged in, only while where they are now is still open.
     if (!status && opts.linkedin) {
@@ -352,13 +353,20 @@ export async function lookUpPerson(
         if (!named && link.vanity === profile?.vanity) profile = null;
         if (!ok) return false;
         profile = link;
-        status = profileFinding(s, p, account, link, {
-          url: link.url,
-          kind: "profile",
-          title: p.name,
-          text: JSON.stringify(p),
-          fetchTier: "linkedin",
-        });
+        status = profileFinding(
+          s,
+          p,
+          account,
+          link,
+          {
+            url: link.url,
+            kind: "profile",
+            title: p.name,
+            text: JSON.stringify(p),
+            fetchTier: "linkedin",
+          },
+          READ,
+        );
         return true;
       };
 

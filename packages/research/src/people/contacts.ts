@@ -9,7 +9,7 @@
 import type { SiteClient } from "@wren/core/content";
 import { paced, realSleep } from "../pacing.js";
 import { bareCompanyName, type Firm, firmNames, isFirm } from "./names.js";
-import { linkedinProfile } from "./serp.js";
+import { linkedinProfile } from "./profile-link.js";
 
 /** The people who hire: talent, recruiting, HR, people teams. */
 export const HIRING_ROLES =

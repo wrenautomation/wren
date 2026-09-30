@@ -197,7 +197,7 @@ const str = (v: unknown): string | null => (typeof v === "string" && v.trim() ? 
 function source(via: string): string {
   if (via.startsWith("linkedin")) return "LinkedIn";
   if (via === "email") return "email check";
-  if (via === "search") return "web search";
+  if (via === "search") return "public profile";
   return `${via} job board`;
 }
 

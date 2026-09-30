@@ -64,19 +64,19 @@ A lint rule guards this. biome `noRestrictedImports` on `packages/**` fails the 
   Nothing downstream reads a source directly; it reads findings.
 - **R7. Person lookup is layered, cheapest and safest first.**
   1. The email check (mailifier). A once-valid address that now rejects means the person probably left.
-  2. Web search (`web` site: exa → brave → ddg), `"<name>" "<company>" site:linkedin.com/in`, then parse the snippet for the current title and employer. No login.
+  2. People search (`web` site `/people`, Exa's people index): `<name> <company>`, and each public profile comes back with its roles. No login.
   3. LinkedIn logged in, only for contacts still unresolved. It runs as the client's configured account, within the caps autobrowse enforces per account per day, and is read-only. Off unless the client row allows it.
 
   A match needs the name plus a past employer or the email domain in the result. Otherwise it's `unresolved`, never guessed.
 
   As built (`packages/research/src/people`, `wren --client <id> crm lookup`):
   - Pure over a `SiteClient`; `store.ts` writes. Research owns the lookup, reactivation owns the CRM runner, so any list can use it.
-  - Search: two queries at most. A LinkedIn result whose name matches and whose title or snippet names the firm (name, or domain label of 4+ letters) is the match. Its title ("Name - Title - Company") or snippet ("Experience: X") says where they are now.
+  - Search: one query, 5 profiles. A LinkedIn profile whose name matches and that lists a role at the firm is the match (a profile we already hold needs no firm role). Its current role says where they are now. Changed 2026-09-30: step 2 was a SERP search parsed from titles; Exa answers `site:linkedin` queries with names only, so it found nobody.
   - Name match: the given name, then every last-name word after it, so order counts. The first name must be equal, or a short form of 3+ letters that is 3+ letters shorter: Chris matches Christopher, Eric doesn't match Erica. Apostrophes drop, so O'Brien matches OBrien. Half a name never matches.
-  - Titles: in "Name - X", X counts only when it is the firm itself. "Former X at Y" and cut-off text ("…") say nothing.
+  - A firm named only in a title or headline, not as the role's company, says nothing.
   - Other domains and addresses are blanked before looking for the firm, and so is the person's own name, so "Acme" in "jane@acme-mail.com" or in "Jane Acme" isn't a mention. Email findings come only from an address at the firm's domain.
   - LinkedIn (only when `clients.accounts.linkedin` is set, `--no-linkedin` turns it off): read the half-matched profiles, else search LinkedIn people. A profile counts only with a role at the firm. At most 3 profile reads per person.
-  - Confidence: profile 0.9; search 0.7 still there, 0.6 moved; mailbox rejects 0.6, domain takes no mail 0.4; mailbox takes mail 0.5 still there.
+  - Confidence: profile 0.9; people search 0.8, 0.5 with no current role; mailbox rejects 0.6, domain takes no mail 0.4; mailbox takes mail 0.5 still there.
   - One `person_lookups` row per person: `matched`, `unresolved` or `capped` with `retry_at`, plus the trail of what was tried. A re-run picks people with no row, or capped and due; `--again` picks everyone.
   - A 429 asking to wait 300s or less is pacing: autobrowse spaces LinkedIn calls 10–30s apart and refuses once a slot is 2+ minutes out. wren sleeps and retries, 3 tries.
   - A longer 429 is a cap. A LinkedIn cap parks that person and every later one at step 3 for the rest of the run, with no repeat asks. A search cap stops the run. Five errors in a row also stop it.

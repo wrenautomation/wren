@@ -2,7 +2,7 @@ import { SiteCallError, type SiteClient } from "@wren/core/content";
 import { describe, expect, it } from "vitest";
 import { type LookupSubject, lookUpPerson } from "./lookup.js";
 import { domainLabel, isFirm, mentionsFirm, sameCompany, sameName } from "./names.js";
-import { experienceOf, linkedinProfile, readSerpTitle } from "./serp.js";
+import { linkedinProfile } from "./profile-link.js";
 
 describe("sameName", () => {
   const jane = { firstName: "Jane", lastName: "Doe" };
@@ -44,7 +44,7 @@ describe("firms", () => {
   });
 });
 
-describe("serp", () => {
+describe("profile links", () => {
   it("canonicalizes profile urls", () => {
     expect(linkedinProfile("https://ca.linkedin.com/in/Jane-Doe-123?trk=x")).toEqual({
       url: "https://www.linkedin.com/in/jane-doe-123/",
@@ -52,27 +52,6 @@ describe("serp", () => {
     });
     expect(linkedinProfile("https://www.linkedin.com/company/acme")).toBeNull();
     expect(linkedinProfile("https://evil.com/in/jane")).toBeNull();
-  });
-  it("reads result titles", () => {
-    expect(readSerpTitle("Jane Doe - Senior Recruiter - Globex | LinkedIn")).toEqual({
-      name: "Jane Doe",
-      title: "Senior Recruiter",
-      company: "Globex",
-      bare: null,
-    });
-    expect(readSerpTitle("Jane Doe - Recruiter at Globex | LinkedIn")?.company).toBe("Globex");
-    // "Name - X": X could be a firm, a headline or a place; kept as bare.
-    expect(readSerpTitle("Jane Doe – Globex | LinkedIn")).toEqual({
-      name: "Jane Doe",
-      title: null,
-      company: null,
-      bare: "Globex",
-    });
-    expect(readSerpTitle("Jane Doe - Talent Partner | LinkedIn")?.company).toBeNull();
-  });
-  it("reads the Experience line", () => {
-    expect(experienceOf("Experience: Globex · Education: UW · Location: Toronto")).toBe("Globex");
-    expect(experienceOf(null)).toBeNull();
   });
 });
 
@@ -105,17 +84,22 @@ const subject = (over: Partial<LookupSubject> = {}): LookupSubject => ({
   email: null,
   ...over,
 });
-const hits = (...h: { title: string; url: string; snippet?: string }[]) => ({
+type Role = { title: string; company: string; current: boolean; companyUrl?: string | null };
+const people = (...p: { name: string; url: string; roles: Role[] }[]) => ({
   query: "q",
-  hits: h.map((x) => ({ snippet: null, ...x })),
-  via: "ddg",
-  tried: ["ddg"],
+  people: p,
+  via: "exa",
+});
+const role = (title: string, company: string, current = true): Role => ({
+  title,
+  company,
+  current,
 });
 const NOW = new Date("2026-09-29T12:00:00Z");
 
 describe("lookUpPerson", () => {
   it("email: a rejecting mailbox says left, a live one still there, freemail nothing", async () => {
-    const { sites } = fakeSites({ "web GET /search": () => hits() });
+    const { sites } = fakeSites({ "web GET /people": () => people() });
     const gone = await lookUpPerson(
       sites,
       subject({ email: { address: "jane@acmestaffing.com", result: "invalid", verifier: "smtp" } }),
@@ -132,18 +116,19 @@ describe("lookUpPerson", () => {
     expect(free.findings).toEqual([]);
   });
 
-  it("search: a result naming the firm is the match; its title says where they are", async () => {
+  it("search: a profile with a role at the firm is the match; its current role says where they are", async () => {
     const { sites, calls } = fakeSites({
-      "web GET /search": () =>
-        hits(
+      "web GET /people": () =>
+        people(
           {
-            title: "Jane Doe - Recruiter - Other Co | LinkedIn",
+            name: "Jane Doe",
             url: "https://linkedin.com/in/other",
+            roles: [role("Recruiter", "Other Co")],
           },
           {
-            title: "Jane Doe - Account Manager - Globex | LinkedIn",
+            name: "Jane Doe",
             url: "https://www.linkedin.com/in/janedoe/",
-            snippet: "Experience: Globex · Formerly Acme Staffing",
+            roles: [role("Account Manager", "Globex"), role("Recruiter", "Acme Staffing", false)],
           },
         ),
     });
@@ -155,17 +140,32 @@ describe("lookUpPerson", () => {
       kind: "job_change",
       value: { from: "Acme Staffing", to: "Globex", title: "Account Manager" },
       via: "search",
+      confidence: 0.8,
     });
     // Search settled it: no LinkedIn read.
     expect(calls.filter((c) => c.startsWith("linkedin"))).toEqual([]);
   });
 
-  it("search without a firm mention goes to LinkedIn, and trusts the profile only with a role at the firm", async () => {
+  it("search: the query is the name and the firm", async () => {
+    const { sites } = fakeSites({});
+    const seen: unknown[] = [];
+    const spy = {
+      ...sites,
+      async call(...a: Parameters<typeof sites.call>) {
+        seen.push(a[3]);
+        return people() as never;
+      },
+    };
+    await lookUpPerson(spy, subject(), { linkedin: null });
+    expect(seen).toEqual([{ q: "Jane Doe Acme Staffing", n: 5 }]);
+  });
+
+  it("search without a role at the firm goes to LinkedIn, and trusts the profile only with a role at the firm", async () => {
     const { sites, calls } = fakeSites({
-      "web GET /search": () =>
-        hits(
-          { title: "Jane Doe - Toronto | LinkedIn", url: "https://www.linkedin.com/in/jd1/" },
-          { title: "Jane Doe | LinkedIn", url: "https://www.linkedin.com/in/jd2/" },
+      "web GET /people": () =>
+        people(
+          { name: "Jane Doe", url: "https://www.linkedin.com/in/jd1/", roles: [] },
+          { name: "Jane Doe", url: "https://www.linkedin.com/in/jd2/", roles: [] },
         ),
       "linkedin GET /in/jd1": () => ({
         name: "Jane Doe",
@@ -191,10 +191,14 @@ describe("lookUpPerson", () => {
     expect(calls).toContain("linkedin GET /in/jd1 @linkedin@research");
   });
 
-  it("no firm mention and no LinkedIn account: unresolved, never a guess", async () => {
+  it("no role at the firm and no LinkedIn account: unresolved, never a guess", async () => {
     const { sites } = fakeSites({
-      "web GET /search": () =>
-        hits({ title: "Jane Doe - Globex | LinkedIn", url: "https://www.linkedin.com/in/jd/" }),
+      "web GET /people": () =>
+        people({
+          name: "Jane Doe",
+          url: "https://www.linkedin.com/in/jd/",
+          roles: [role("Recruiter", "Globex")],
+        }),
     });
     const r = await lookUpPerson(sites, subject(), { linkedin: null });
     expect(r.state).toBe("unresolved");
@@ -202,9 +206,44 @@ describe("lookUpPerson", () => {
     expect(r.findings).toEqual([]);
   });
 
+  it("the profile we already hold needs no role at the firm", async () => {
+    const { sites } = fakeSites({
+      "web GET /people": () =>
+        people({
+          name: "Jane Doe",
+          url: "https://www.linkedin.com/in/JaneDoe",
+          roles: [role("Recruiter", "Globex")],
+        }),
+    });
+    const r = await lookUpPerson(
+      sites,
+      subject({ linkedinUrl: "https://ca.linkedin.com/in/janedoe/" }),
+      { linkedin: null },
+    );
+    expect(r.state).toBe("matched");
+    expect(r.findings[0]).toMatchObject({ kind: "job_change", value: { to: "Globex" } });
+  });
+
+  it("an indexed profile with a past role at the firm and no current role: left", async () => {
+    const { sites } = fakeSites({
+      "web GET /people": () =>
+        people({
+          name: "Jane Doe",
+          url: "https://www.linkedin.com/in/jd/",
+          roles: [role("Recruiter", "Acme Staffing", false)],
+        }),
+    });
+    const r = await lookUpPerson(sites, subject(), { linkedin: null });
+    expect(r.findings[0]).toMatchObject({
+      kind: "left",
+      value: { reason: "no current role" },
+      confidence: 0.5,
+    });
+  });
+
   it("a LinkedIn cap parks the person until the cap lifts, keeping what search found", async () => {
     const { sites } = fakeSites({
-      "web GET /search": () => hits(),
+      "web GET /people": () => people(),
       "linkedin GET /search/results/people": () => {
         throw new SiteCallError(
           "linkedin",
@@ -228,7 +267,7 @@ describe("lookUpPerson", () => {
 
   it("a cap hit earlier this run parks at step 3 without asking LinkedIn", async () => {
     const until = new Date("2026-09-30T00:00:00Z");
-    const { sites, calls } = fakeSites({ "web GET /search": () => hits() });
+    const { sites, calls } = fakeSites({ "web GET /people": () => people() });
     const r = await lookUpPerson(sites, subject(), {
       linkedin: "linkedin@research",
       linkedinCappedUntil: until,

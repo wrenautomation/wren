@@ -78,7 +78,22 @@ function sites(web: Web) {
   };
   return { client, calls };
 }
-const noHits = () => ({ query: "q", hits: [], via: "ddg", tried: ["ddg"] });
+const noHits = () => ({ query: "q", people: [], via: "exa" });
+/** Jane, indexed: Account Manager at Globex now, Acme Staffing before. */
+const janeAt = (q: string, company = "Globex", url = "https://www.linkedin.com/in/janedoe/") => ({
+  query: q,
+  people: [
+    {
+      name: "Jane Doe",
+      url,
+      roles: [
+        { title: "Account Manager", company, current: true },
+        { title: "Recruiter", company: "Acme Staffing", current: false },
+      ],
+    },
+  ],
+  via: "exa",
+});
 
 describe("crmLookupSubjects: which verdict rides with the person", () => {
   it("prefers the verdict on the firm's own address over a later freemail verdict", async () => {
@@ -149,22 +164,7 @@ describe("lookUpCrmPeople: runner edges", () => {
       "2,Bob Roe,,Acme Staffing,https://acmestaffing.com",
     ]);
     // A NUL byte in a result: Postgres text/jsonb refuse it.
-    const { client } = sites((q) =>
-      q.includes("Jane")
-        ? {
-            query: q,
-            hits: [
-              {
-                title: "Jane Doe - Account Manager - Globex | LinkedIn",
-                url: "https://www.linkedin.com/in/janedoe/",
-                snippet: "Experience: Globex\u0000 · Past: Acme Staffing",
-              },
-            ],
-            via: "ddg",
-            tried: ["ddg"],
-          }
-        : noHits(),
-    );
+    const { client } = sites((q) => (q.includes("Jane") ? janeAt(q, "Globex\u0000") : noHits()));
     const stats = await lookUpCrmPeople(db(), client, { linkedin: null, concurrency: 1 });
     expect(stats).toMatchObject({ errors: 0, matched: 1, unresolved: 1 });
     const [doc] = await db().select().from(documents);
@@ -182,7 +182,7 @@ describe("lookUpCrmPeople: runner edges", () => {
         throw new SiteCallError(
           "web",
           "GET",
-          "/search",
+          "/people",
           429,
           "web pace for the default account: too many calls queued; retry after 1s",
         );
@@ -199,7 +199,7 @@ describe("lookUpCrmPeople: runner edges", () => {
       "2,Bob Roe,,Acme Staffing,https://acmestaffing.com",
     ]);
     const { client, calls } = sites(() => {
-      throw new SiteCallError("web", "GET", "/search", 429, "search cap used; retry after 7200s");
+      throw new SiteCallError("web", "GET", "/people", 429, "search cap used; retry after 7200s");
     });
     const stats = await lookUpCrmPeople(db(), client, { linkedin: null, concurrency: 1 });
     expect(stats).toMatchObject({ capped: 1, aborted: expect.stringMatching(/web capped/) });
@@ -212,18 +212,9 @@ describe("lookUpCrmPeople: runner edges", () => {
 
   it("holds: a re-run with again keeps one document and one finding per fact", async () => {
     await importCsv(["1,Jane Doe,,Acme Staffing,https://acmestaffing.com"]);
-    const { client } = sites((q) => ({
-      query: q,
-      hits: [
-        {
-          title: "Jane Doe - Account Manager - Globex | LinkedIn",
-          url: "https://ca.linkedin.com/in/JaneDoe?trk=x",
-          snippet: "Experience: Globex · Past: Acme Staffing",
-        },
-      ],
-      via: "ddg",
-      tried: ["ddg"],
-    }));
+    const { client } = sites((q) =>
+      janeAt(q, "Globex", "https://ca.linkedin.com/in/JaneDoe?trk=x"),
+    );
     await lookUpCrmPeople(db(), client, { linkedin: null, concurrency: 1 });
     await lookUpCrmPeople(db(), client, { linkedin: null, concurrency: 1, again: true });
     expect(await db().select().from(documents)).toHaveLength(1);
@@ -239,7 +230,7 @@ describe("lookUpCrmPeople: runner edges", () => {
       ),
     );
     const { client } = sites(() => {
-      throw new SiteCallError("web", "GET", "/search", 502, "down");
+      throw new SiteCallError("web", "GET", "/people", 502, "down");
     });
     const stats = await lookUpCrmPeople(db(), client, { linkedin: null, concurrency: 2 });
     expect(stats.aborted).toMatch(/5 errors in a row/);
