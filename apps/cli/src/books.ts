@@ -415,7 +415,11 @@ export function registerBooks(
       for (const s of rows)
         console.log(
           [
-            `${s.vendorName}${s.plan ? ` ${s.plan}` : ""}`.padEnd(40),
+            // A plan that already names its vendor ("Google Workspace Business Plus") stands alone.
+            (s.plan?.toLowerCase().startsWith((s.vendorName ?? "").toLowerCase())
+              ? s.plan
+              : `${s.vendorName}${s.plan ? ` ${s.plan}` : ""}`
+            ).padEnd(40),
             (s.cycle ?? "").padEnd(8),
             `last ${s.lastBilledOn}`,
             `renews ${s.renewsOn}`,

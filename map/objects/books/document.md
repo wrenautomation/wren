@@ -3,7 +3,7 @@ type: object
 cluster: books
 universe: live
 status: verified
-verified: 2026-09-30 @ 0964efe
+verified: 2026-09-30 @ 06fccc8
 entity: packages/books/src/schema.ts:99
 ---
 

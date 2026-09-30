@@ -81,6 +81,8 @@ export interface VendorFacts {
   name: string;
   currency: string | null;
   cycle: BillCycle | null;
+  /** Its bills are all on `cycle`: the reading's word does not change it. */
+  plansOnly?: boolean;
   gstClaimable: boolean | null;
 }
 
@@ -387,7 +389,11 @@ export function check(reading: Reading, corpus: Corpus, vendor: VendorFacts): Ch
       totalCents: total * flip,
       chargedCadCents: chargedCad === null ? null : Math.abs(chargedCad) * Math.sign(total * flip),
       plan: clean(b.plan),
-      cycle: cycleOf(b.cycle) ?? periodCycle(periodStart, periodEnd) ?? vendor.cycle,
+      cycle:
+        (vendor.plansOnly ? vendor.cycle : null) ??
+        cycleOf(b.cycle) ??
+        periodCycle(periodStart, periodEnd) ??
+        vendor.cycle,
       paymentMethod: clean(b.payment_method),
       billedTo: clean(b.billed_to),
       vendorTaxNumber,

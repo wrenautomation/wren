@@ -49,6 +49,8 @@ export interface VendorSpec {
   /** The currency it bills in when a bill prints a bare "$". */
   currency?: string;
   cycle?: BillCycle;
+  /** It sells plans only: every bill is on `cycle`, whatever it calls its charges (Google prints seats as "Usage"). */
+  plansOnly?: boolean;
   /** Whether its GST/HST is claimable; false for the simplified regime. Absent = unknown. */
   gstClaimable?: boolean;
 }
@@ -89,6 +91,7 @@ export const VENDORS: readonly VendorSpec[] = [
     mail: { from: ["payments-noreply@google.com"] },
     currency: "CAD",
     cycle: "monthly",
+    plansOnly: true,
     gstClaimable: false,
   },
   {
@@ -111,6 +114,17 @@ export const VENDORS: readonly VendorSpec[] = [
     name: "Telnyx",
     account: "phone",
     mail: { from: ["portal@telnyx.com"], subject: ["payment success"] },
+    currency: "USD",
+    cycle: "usage",
+  },
+  {
+    key: "aws",
+    name: "Amazon Web Services",
+    account: "hosting",
+    mail: {
+      from: ["aws-billing@amazon.com", "no-reply-aws@amazon.com"],
+      subject: ["billing statement", "invoice"],
+    },
     currency: "USD",
     cycle: "usage",
   },

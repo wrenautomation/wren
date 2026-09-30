@@ -178,7 +178,7 @@ describe("check", () => {
     expect(notes).toEqual(["charged CAD dropped: charged CAD CA$50.00 is not printed"]);
   });
 
-  it("takes the cycle as read, else from a printed period of a month or a year, else the vendor's", () => {
+  it("takes the cycle as read, else from a printed period of a month or a year, else the vendor's; a plans-only vendor's always", () => {
     const usage: VendorFacts = { ...vendor, cycle: "usage" };
     const cycle = (over: Partial<Bill>, text = INVOICE) =>
       checked(reading(over), text, usage).bill?.cycle;
@@ -189,6 +189,8 @@ describe("check", () => {
     expect(cycle({ cycle: null })).toBe("monthly");
     expect(cycle({ cycle: "usage" })).toBe("usage");
     expect(cycle({ cycle: null, period_start: null, period_end: null })).toBe("usage");
+    const plans: VendorFacts = { ...vendor, plansOnly: true };
+    expect(checked(reading({ cycle: "usage" }), INVOICE, plans).bill?.cycle).toBe("monthly");
   });
 
   it("turns a credit note negative", () => {
