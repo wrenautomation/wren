@@ -38,8 +38,9 @@ const unwiden = (c: Catalog["constraints"][number]) => ({
  * legacy data was already restored. Only these may exist beyond the legacy set.
  */
 const ADDED = {
-  columns: new Set(["enrollments.offer"]),
-  indexes: new Set(["ix_enrollments_offer"]),
+  columns: new Set(["enrollments.offer", "messages.link_code"]),
+  constraints: new Set(["uq_messages_link_code"]),
+  indexes: new Set(["ix_enrollments_offer", "uq_messages_link_code"]),
 };
 
 interface Catalog {
@@ -117,7 +118,9 @@ describe("legacy parity", () => {
     const legacyViews = a.views.map(renameView).sort((x, y) => x.name.localeCompare(y.name));
     const wrenViews = b.views.filter((v) => legacyViews.some((l) => l.name === v.name));
     expect(b.columns.filter((c) => !ADDED.columns.has(`${c.tbl}.${c.col}`))).toEqual(a.columns);
-    expect(b.constraints.map(unwiden)).toEqual(a.constraints);
+    expect(b.constraints.filter((c) => !ADDED.constraints.has(c.name)).map(unwiden)).toEqual(
+      a.constraints,
+    );
     expect(b.indexes.filter((i) => !ADDED.indexes.has(i.name))).toEqual(a.indexes);
     expect(wrenViews).toEqual(legacyViews);
     expect(wrenViews).toHaveLength(16);
