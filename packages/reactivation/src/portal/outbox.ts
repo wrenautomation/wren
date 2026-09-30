@@ -5,9 +5,10 @@
  */
 import type { Queryable } from "@wren/db";
 import { type SQL, sql } from "drizzle-orm";
-import { REACTIVATION } from "../compose.js";
+import { MARKS } from "../brief.js";
+import { REACTIVATION, type WhyLine } from "../compose.js";
 import { billOf } from "../handoff.js";
-import { iso, PAGE } from "./views.js";
+import { iso, PAGE, type Source, sourcesOf } from "./views.js";
 
 export const EMAIL_FILTERS = ["awaiting", "approved", "sent", "stopped", "all"] as const;
 export type EmailFilter = (typeof EMAIL_FILTERS)[number];
@@ -25,6 +26,14 @@ export interface EmailRow {
   subject: string | null;
   opener: string;
   followup: string | null;
+  /**
+   * Why each line: the brief's sentences as the pair was written from them,
+   * and which paragraphs used which. Null for drafts written before the
+   * composer kept this.
+   */
+  why: { brief: string[]; opener: WhyLine[]; followup: WhyLine[] } | null;
+  /** What `why.brief` cites. */
+  sources: Source[];
   status: EmailStatus;
   /** Why it stopped: a reply, a bounce, skipped by you. */
   stopReason: string | null;
@@ -142,8 +151,9 @@ export async function portalEmails(
         step: number;
         subject: string | null;
         body: string;
+        provenance: unknown;
       }>(
-        sql`select enrollment_id, step, subject, body from messages
+        sql`select enrollment_id, step, subject, body, provenance from messages
           where enrollment_id in (${sql.join(
             rows.map((r) => sql`${r.id}`),
             sql`, `,
@@ -165,11 +175,21 @@ export async function portalEmails(
     EmailFilter,
     number
   >;
+  const whys = new Map(
+    rows.map((r) => {
+      const mine = steps.filter((s) => Number(s.enrollment_id) === Number(r.id));
+      const at = (step: number) => mine.find((s) => Number(s.step) === step)?.provenance;
+      return [Number(r.id), whyOf(at(0), at(1))];
+    }),
+  );
+  const cited = [...whys.values()].flatMap((w) => (w ? marksIn(w.brief) : []));
+  const sources = new Map((await sourcesOf(db, cited)).map((s) => [s.mark, s]));
   return {
     rows: rows.map((r) => {
       const mine = steps.filter((s) => Number(s.enrollment_id) === Number(r.id));
       const opener = mine.find((s) => Number(s.step) === 0);
       const followup = mine.find((s) => Number(s.step) === 1);
+      const why = whys.get(Number(r.id)) ?? null;
       return {
         enrollmentId: Number(r.id),
         personId: r.person_id === null ? null : Number(r.person_id),
@@ -180,6 +200,13 @@ export async function portalEmails(
         subject: opener?.subject ?? null,
         opener: opener?.body ?? "",
         followup: followup?.body ?? null,
+        why,
+        sources: why
+          ? [...new Set(marksIn(why.brief))].flatMap((m) => {
+              const s = sources.get(m);
+              return s ? [s] : [];
+            })
+          : [],
         status: r.status,
         stopReason: r.stop_reason,
         sent: Number(r.sent),
@@ -192,6 +219,36 @@ export async function portalEmails(
     offset,
     counts,
     approval: { mode: query.approval, firstApproved: first?.yes ?? false },
+  };
+}
+
+/** Every mark in these lines, lowercase: `f12`, `c3`. */
+const marksIn = (lines: string[]) =>
+  lines.flatMap((l) =>
+    [...l.matchAll(MARKS)].flatMap((m) =>
+      (m[1] ?? "").split(/[,;]/).map((x) => x.trim().toLowerCase()),
+    ),
+  );
+
+const isWhy = (x: unknown): x is WhyLine =>
+  !!x &&
+  typeof (x as WhyLine).text === "string" &&
+  Array.isArray((x as WhyLine).lines) &&
+  (x as WhyLine).lines.every((n) => Number.isInteger(n) && n >= 0);
+
+/** The "why" a pair's provenance carries, or null when the composer didn't keep one. */
+export function whyOf(opener: unknown, followup: unknown): EmailRow["why"] {
+  const p = (opener ?? {}) as { brief?: { lines?: unknown }; why?: unknown };
+  const lines = p.brief?.lines;
+  if (!Array.isArray(lines) || !lines.every((l) => typeof l === "string")) return null;
+  const read = (why: unknown) =>
+    Array.isArray(why)
+      ? why.filter(isWhy).filter((w) => w.lines.every((n) => n < lines.length))
+      : [];
+  return {
+    brief: lines,
+    opener: read(p.why),
+    followup: read((followup as { why?: unknown } | undefined)?.why),
   };
 }
 

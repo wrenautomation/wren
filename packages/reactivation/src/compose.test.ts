@@ -257,6 +257,7 @@ const subject: ComposeSubject = {
   lastName: "Doe",
   firm: "Acme Staffing",
   brief,
+  lines: [brief],
   briefHash: "h",
   citations: {},
   candidateId: 3,

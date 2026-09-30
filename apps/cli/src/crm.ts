@@ -34,6 +34,7 @@ import {
   rankedContacts,
   reactivationSettingsOf,
   readClientProfile,
+  redraftAwaiting,
   runCrm,
   runCrmImport,
   seedDemo,
@@ -315,6 +316,34 @@ export function registerCrm(
       console.log(
         `approved ${out.done.length}${out.skipped.length ? `; not waiting: ${out.skipped.join(", ")}` : ""}`,
       );
+    });
+
+  crm
+    .command("redraft [ids...]")
+    .description("Write drafts still waiting for approval again, with today's composer and brief")
+    .option("--all", "every draft still waiting that nobody edited")
+    .action(async (args: string[], opts: { all?: boolean }) => {
+      if (!opts.all && !args.length) throw new Error("give ids, or --all");
+      if (settings.llm === "fake") throw new Error("redraft needs a real model, not the fake");
+      loadLlmEnv(settings.llmEnvPath, rootDir);
+      const llm = makeLlm(settings.llm, process.env, { anthropicModel: settings.llmModel });
+      const stats = await withClientDb(async (db, client) => {
+        const { settings: rx, profile } = await composeInputs(db, client);
+        const { stats } = await recordedRun(
+          db,
+          { command: "crm redraft", argv: { ...opts, ids: args } },
+          async (r) =>
+            redraftAwaiting(db, llm, {
+              profile,
+              senders: rx.senders,
+              ...(opts.all ? {} : { enrollmentIds: ids(args) }),
+              runId: r.id,
+            }),
+        );
+        return stats;
+      });
+      console.log(JSON.stringify(stats));
+      if (stats.aborted) process.exitCode = 1;
     });
 
   crm

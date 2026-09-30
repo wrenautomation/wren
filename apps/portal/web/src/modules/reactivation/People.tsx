@@ -17,7 +17,7 @@ import {
 import { call, type PeopleFilter, type PeoplePage, type PersonView } from "../../api.js";
 import { useCall } from "../../load.js";
 import type { PageProps } from "../../module.js";
-import { Cited, NowCell, Reasons, SourceItem } from "./bits.js";
+import { Cited, NowCell, Reasons, SourceCards, useSourcePick } from "./bits.js";
 import { at, goto } from "./nav.js";
 
 const FILTERS: Record<PeopleFilter, string> = {
@@ -170,7 +170,8 @@ function PersonPanel({ client, personId }: { client: string; personId: number })
 
 function Person({ view }: { view: PersonView }) {
   const { row } = view;
-  const marks = new Map(view.sources.map((s) => [s.mark.toLowerCase(), s]));
+  const order = view.sources.map((s) => s.mark.toLowerCase());
+  const [lit, pick] = useSourcePick();
   return (
     <article className="rx-person">
       <header>
@@ -198,7 +199,7 @@ function Person({ view }: { view: PersonView }) {
       <h3>Why call now</h3>
       {view.brief ? (
         <p className="rx-brief">
-          <Cited text={view.brief.text} marks={marks} />
+          <Cited text={view.brief.text} order={order} lit={lit} onPick={pick} />
         </p>
       ) : (
         <Empty>No brief yet. One is written once there's something worth saying.</Empty>
@@ -214,11 +215,7 @@ function Person({ view }: { view: PersonView }) {
 
       <h3>Sources</h3>
       {view.sources.length ? (
-        <ol className="rx-sources">
-          {view.sources.map((s, i) => (
-            <SourceItem key={s.mark} source={s} n={i + 1} />
-          ))}
-        </ol>
+        <SourceCards sources={view.sources} lit={lit} />
       ) : (
         <Empty>Nothing found yet.</Empty>
       )}

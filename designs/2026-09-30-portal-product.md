@@ -18,7 +18,7 @@ The portal stops being a set of pages and becomes a packaged app. One shell, pro
 | Kit | `packages/ui` (new, a foundation) | the lander's tokens, plus base pieces and delivery pieces; knows no product |
 | Shell | `AppShell` in `packages/ui/src/shell.tsx`, wired in `apps/portal/web/src/App.tsx` | the workspace › product frame, nav, Run button, demo note |
 | Modules | `apps/portal/web/src/modules/<product>` | one product's pages, run graph and setup; `reactivation` first |
-| API | `ReactivationPortal` (`packages/reactivation/src/portal`) | new routes `run` (replay events), `source` (one finding) and `setup` (what the client plugged in); `overview` gains the pipeline |
+| API | `ReactivationPortal` (`packages/reactivation/src/portal`) | new routes `run` (replay events) and `setup` (what the client plugged in); `overview` gains the pipeline; person and email views carry their sources |
 
 ## Screens
 
@@ -65,7 +65,7 @@ The portal stops being a set of pages and becomes a packaged app. One shell, pro
   - Client portals later show the same view live, from the same events.
   - There is never a fake live run.
 - **P6. Motion follows the lander.** One thing at a time, in story order. Catch-up runs at most 2x, and nothing is skipped. With reduced motion, the end state shows still. Space pauses.
-- **P7. Every new route passes the mask.** `run`, `source` and `setup` answer through `mask.ts`, and the leak test walks them. Setup names a research account by its kind ("a LinkedIn research account"), never by whose it is.
+- **P7. Every new route passes the mask.** `run` and `setup` answer through `mask.ts` (a `source` route was dropped: sources ride along with the person and email views), and the leak test walks them. Setup names a research account by its kind ("a LinkedIn research account"), never by whose it is.
 - **P8. "Why this line" needs the composer's sources.** The composer returns, for each sentence, the brief lines it used. They are stored beside the draft and never sent. A draft without them shows no "why".
 - **P9. A client's look is data, not a fork.** Every color, face, radius, shadow and case in the kit is a `--ui-` token.
   - A `Theme` is a map of those tokens (`packages/ui/src/theme.tsx`). Four presets ship: `wren`, `night`, `soft`, `editorial`.
@@ -107,3 +107,10 @@ What keeps it cheap later, built now:
 - **2026-09-30** Step 1 built. The shell went into the kit (`AppShell`), since every client portal needs the same frame; the portal only feeds it modules. A module is `{id, name, pages}` and the sidebar groups pages by module. Paths route through one click handler, so plain `<a href>` works everywhere. Found and fixed on the way: Data health printed the dead-address share as "not contacted in over a year", plus the operator's gate text. On a phone, tables marked `stack` turn each row into a labeled block.
 - **2026-09-30** Look signed off ("looks fine"), with one ask: the kit must be "heavily customizable style wise". Every look became a `--ui-` token in CSS layer `ui`, themes became data with four presets, and every piece took `className` (P9). Wren's default renders pixel for pixel as signed off. The per-lead clip idea is logged under Later.
 - **2026-09-30** Step 2 built. `overview` carries the pipeline, read from `crmStatus` so the rail and `crm status` never disagree; a new `setup` route answers through the mask. The rail is a kit piece (`Rail`: phases of steps, across when wide, down when narrow, by its own width). Home now answers the four questions: the rail, then what's next (needs you, runs next, parked and till when), then what we found and the top 3. Deviations: the rail has no "running" state yet, since nothing records a live run until the Run view; a step with work due says "runs next". Setup names research logins by site only, never the import's file name, the fee or the offer. The leak test walks both routes, with a personal-looking account name and a firm-named export.
+- **2026-09-30** Step 3 built. Kit pieces: `Cite` (numbered chip), `Sure` (four bars plus words: Sure, Fairly sure, Maybe, Unsure), `SourceCard` and `SourceList`, `Trail` (a claim, then what it rests on) and `Traced` (a paragraph with a "Why" chip). Brief chips light their card and scroll to it. Each email paragraph written from the brief opens "Why this line": the paragraph, the brief lines it came from, then their sources with page links. The Sources page shows how sure each reading is.
+  - How P8 landed: composer v4 gets the brief as numbered lines and returns each email as paragraphs with the line numbers they used. Provenance keeps the brief's lines and each message's why. A why shows only while its paragraph is still word for word in the email, so an edited draft shows none.
+  - `crm redraft [ids...] --all` rewrites drafts still waiting for approval, in place, same sender. The demo's 6 drafts were redrafted with it.
+  - Deviations:
+    - No `source` route. Sources ride along with the person and email views, which already pass the mask, so P7 holds with one route fewer.
+    - A redraft records a new 'drafted' composition for the same enrollment. So the daily cap now counts enrollments made in the last day, and `crm status` counts drafted enrollments, not compositions.
+    - The prompt now bans numbers the brief lacks: the fact gate refused two drafts that offered "10 minutes".

@@ -1,5 +1,16 @@
 /** Every finding, by where it came from: the raw record behind every brief. */
-import { Alert, Empty, hostOf, Loading, month, PageHeader, Pager, Table, Tabs } from "@wren/ui";
+import {
+  Alert,
+  Empty,
+  hostOf,
+  Loading,
+  month,
+  PageHeader,
+  Pager,
+  Sure,
+  Table,
+  Tabs,
+} from "@wren/ui";
 import { call, type RawPage } from "../../api.js";
 import { useCall } from "../../load.js";
 import type { PageProps } from "../../module.js";
@@ -47,6 +58,7 @@ export function Sources({ client, params }: PageProps) {
                 <th>About</th>
                 <th>Found</th>
                 <th>Where</th>
+                <th>How sure</th>
                 <th>Seen</th>
               </tr>
             </thead>
@@ -75,6 +87,9 @@ export function Sources({ client, params }: PageProps) {
                           </a>
                         </div>
                       ) : null}
+                    </td>
+                    <td>
+                      <Sure value={f.confidence} />
                     </td>
                     <td className="ui-nowrap">{month(f.observedAt.slice(0, 10))}</td>
                   </tr>

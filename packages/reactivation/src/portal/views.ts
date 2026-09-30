@@ -70,6 +70,8 @@ export interface Source {
   via: string;
   url: string | null;
   title: string | null;
+  /** How sure the reading is, 0 to 1; null for your CRM's own rows. */
+  confidence: number | null;
   observedAt: string | null;
   value: Record<string, unknown>;
 }
@@ -292,6 +294,90 @@ export async function portalPeople(db: Queryable, query: PeopleQuery = {}): Prom
   return { rows: rows.map(toRow), total: n?.total ?? 0, offset, counts };
 }
 
+interface CrmSqlRow extends Record<string, unknown> {
+  id: number;
+  status: string | null;
+  owner: string | null;
+  added_on: unknown;
+  last_contacted_on: unknown;
+  last_placement_on: unknown;
+}
+
+const crmSource = (c: CrmSqlRow): Source => ({
+  mark: `c${c.id}`,
+  kind: "crm",
+  via: "crm",
+  url: null,
+  title: null,
+  confidence: null,
+  observedAt: null,
+  value: {
+    status: c.status,
+    owner: c.owner,
+    lastContactedOn: day(c.last_contacted_on),
+    lastPlacementOn: day(c.last_placement_on),
+  },
+});
+
+/** Findings as sources, newest first, at most `limit`. */
+async function findingSources(db: Queryable, where: SQL, limit = 100): Promise<Source[]> {
+  const found = await db.execute<{
+    id: number;
+    kind: string;
+    via: string;
+    source_url: string | null;
+    title: string | null;
+    confidence: number | null;
+    observed_at: unknown;
+    value: Record<string, unknown>;
+  }>(sql`
+    select f.id, f.kind, f.via, f.source_url, d.title, f.confidence, f.observed_at, f.value
+    from findings f left join documents d on d.id = f.document_id
+    where ${where}
+    order by f.observed_at desc, f.id desc
+    limit ${limit}`);
+  return found.map((f) => ({
+    mark: `f${f.id}`,
+    kind: f.kind,
+    via: f.via,
+    url: f.source_url,
+    title: f.title,
+    confidence: f.confidence === null ? null : Number(f.confidence),
+    observedAt: iso(f.observed_at),
+    value: f.value,
+  }));
+}
+
+/** Enough for a full page of emails, each citing a brief's worth of marks. */
+const MAX_MARKS = PAGE * 40;
+
+/** The sources behind these marks (`f12`, `c3`), in no set order; unknown marks drop. */
+export async function sourcesOf(db: Queryable, marks: Iterable<string>): Promise<Source[]> {
+  const all = [...new Set([...marks].map((m) => m.toLowerCase()))];
+  const ids = (p: string) =>
+    all
+      .filter((m) => m.startsWith(p) && /^\d{1,9}$/.test(m.slice(1)))
+      .map((m) => Number(m.slice(1)))
+      .slice(0, MAX_MARKS);
+  const f = ids("f");
+  const c = ids("c");
+  const list = (xs: number[]) =>
+    sql.join(
+      xs.map((x) => sql`${x}`),
+      sql`, `,
+    );
+  return [
+    ...(f.length ? await findingSources(db, sql`f.id in (${list(f)})`, MAX_MARKS) : []),
+    ...(c.length
+      ? (
+          await db.execute<CrmSqlRow>(sql`
+            select id, status, owner, added_on, last_contacted_on, last_placement_on
+            from crm_contacts where id in (${list(c)})`)
+        ).map(crmSource)
+      : []),
+  ];
+}
+
 export async function portalPerson(db: Queryable, personId: number): Promise<PersonView | null> {
   const [r] = await db.execute<PersonSqlRow & { company_id: number }>(sql`
     with ${SUBJECTS}
@@ -302,58 +388,17 @@ export async function portalPerson(db: Queryable, personId: number): Promise<Per
   const [b] = await db.execute<{ text: string; created_at: unknown }>(sql`
     select b.text, b.created_at from briefs b join contact_scores sc on sc.person_id = b.person_id
     where b.person_id = ${personId} and b.state = 'written' and sc.score > 0`);
-  const found = await db.execute<{
-    id: number;
-    kind: string;
-    via: string;
-    source_url: string | null;
-    title: string | null;
-    observed_at: unknown;
-    value: Record<string, unknown>;
-  }>(sql`
-    select f.id, f.kind, f.via, f.source_url, d.title, f.observed_at, f.value
-    from findings f left join documents d on d.id = f.document_id
-    where f.person_id = ${personId} or f.company_id = ${r.company_id}
-    order by f.observed_at desc, f.id desc
-    limit 100`);
-  const crm = await db.execute<{
-    id: number;
-    status: string | null;
-    owner: string | null;
-    added_on: unknown;
-    last_contacted_on: unknown;
-    last_placement_on: unknown;
-  }>(sql`
+  const found = await findingSources(
+    db,
+    sql`f.person_id = ${personId} or f.company_id = ${r.company_id}`,
+  );
+  const crm = await db.execute<CrmSqlRow>(sql`
     select id, status, owner, added_on, last_contacted_on, last_placement_on
     from crm_contacts where person_id = ${personId} order by id desc`);
   return {
     row: toRow(r),
     brief: b ? { text: b.text, writtenAt: iso(b.created_at) ?? "" } : null,
-    sources: [
-      ...found.map((f) => ({
-        mark: `f${f.id}`,
-        kind: f.kind,
-        via: f.via,
-        url: f.source_url,
-        title: f.title,
-        observedAt: iso(f.observed_at),
-        value: f.value,
-      })),
-      ...crm.map((c) => ({
-        mark: `c${c.id}`,
-        kind: "crm",
-        via: "crm",
-        url: null,
-        title: null,
-        observedAt: null,
-        value: {
-          status: c.status,
-          owner: c.owner,
-          lastContactedOn: day(c.last_contacted_on),
-          lastPlacementOn: day(c.last_placement_on),
-        },
-      })),
-    ],
+    sources: [...found, ...crm.map(crmSource)],
     crm: crm.map((c) => ({
       id: c.id,
       status: c.status,

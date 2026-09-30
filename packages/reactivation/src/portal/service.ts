@@ -276,6 +276,7 @@ export function portalApi(deps: PortalDeps) {
 
 export type PortalApi = ReturnType<typeof portalApi>;
 export type { ReviewResult } from "../approve.js";
+export type { WhyLine } from "../compose.js";
 /** What the answers look like, for the portal's web app. */
 export type { CrmHealth } from "../crm/health.js";
 export type { RankedContact } from "../ranked.js";

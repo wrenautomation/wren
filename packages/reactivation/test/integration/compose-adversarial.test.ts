@@ -391,7 +391,7 @@ describe("the day's budget", () => {
 
   it("drafts yesterday still waiting count against today", async () => {
     await compose(settingsWith(), 2);
-    await db().execute(sql`update compositions set created_at = now() - interval '2 days'`);
+    await db().execute(sql`update enrollments set created_at = now() - interval '2 days'`);
     expect(await composeRoom(db(), 3)).toBe(1);
   });
 

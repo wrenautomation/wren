@@ -146,31 +146,8 @@
   line-height: 1.6;
   text-wrap: pretty;
 }
-.rx-marks {
-  margin-left: 2px;
-  line-height: 0;
-  vertical-align: 0.45em;
-}
-.rx-marks a {
-  display: inline-grid;
-  place-items: center;
-  min-width: 17px;
-  height: 17px;
-  margin-left: 2px;
-  padding: 0 4px;
-  border-radius: min(5px, var(--ui-radius-control));
-  background: var(--ui-accent-tint);
-  color: var(--ui-accent);
-  font-size: 10.5px;
-  font-weight: 600;
-  text-decoration: none;
-  transition:
-    background-color 0.2s var(--ui-ease),
-    color 0.2s var(--ui-ease);
-}
-.rx-marks a:hover {
-  background: var(--ui-accent);
-  color: var(--ui-on-accent);
+.rx-cites {
+  white-space: nowrap;
 }
 
 /* People */
@@ -189,38 +166,6 @@
   gap: 14px;
   margin-top: 16px;
 }
-.rx-sources {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-  list-style: none;
-}
-.rx-source {
-  display: grid;
-  grid-template-columns: 22px minmax(0, 1fr);
-  gap: 12px;
-  padding: 12px 14px;
-  border-radius: var(--ui-radius-card);
-  box-shadow: var(--ui-shadow-node);
-  font-size: 14px;
-  overflow-wrap: anywhere;
-  scroll-margin: 24px;
-}
-.rx-source p + p {
-  margin-top: 2px;
-}
-.rx-source-n {
-  display: grid;
-  place-items: center;
-  width: 22px;
-  height: 22px;
-  border-radius: min(6px, var(--ui-radius-control));
-  background: var(--ui-tile);
-  color: var(--ui-ink-2);
-  font-size: 12px;
-  font-weight: 600;
-}
-
 /* Emails and replies */
 .rx-bulk {
   display: flex;
@@ -276,6 +221,53 @@
   font-size: 14.5px;
   line-height: 1.6;
   white-space: pre-wrap;
+}
+.rx-mail-body > * + * {
+  margin-top: 0.75em;
+}
+
+/* Why this line */
+.rx-why > header {
+  margin-bottom: 26px;
+  padding-right: 44px;
+}
+.rx-why h2 {
+  font-family: var(--ui-font-display);
+  font-size: 24px;
+  font-weight: var(--ui-display-weight);
+  letter-spacing: calc(-0.02em * var(--ui-display-squeeze));
+}
+.rx-why > header p {
+  margin-top: 6px;
+  font-size: 14.5px;
+}
+.rx-quote {
+  padding: 12px 16px;
+  border-left: 2px solid var(--ui-accent);
+  border-radius: 0 var(--ui-radius-control) var(--ui-radius-control) 0;
+  background: var(--ui-accent-wash);
+  font-size: 15px;
+  line-height: 1.6;
+  white-space: pre-wrap;
+}
+.rx-brief-lines {
+  display: grid;
+  gap: 8px;
+  list-style: none;
+}
+.rx-brief-line {
+  padding: 12px 16px;
+  border-radius: var(--ui-radius-control);
+  background: var(--ui-tile);
+  font-size: 14.5px;
+  line-height: 1.6;
+  text-wrap: pretty;
+}
+.rx-why-more {
+  margin-top: 28px;
+  padding-top: 16px;
+  border-top: 1px solid var(--ui-hair);
+  font-size: 14.5px;
 }
 .rx-followup {
   margin-top: 10px;

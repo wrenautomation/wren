@@ -79,10 +79,24 @@ const NUMBER = new RegExp(
 const OTHER_DIGIT = /(?![0-9])\p{Nd}/u;
 /**
  * A sentence ends at . ! or ? (and the marks after it) before the next one's
- * capital, but not after a title or company abbreviation ("Sr. Manager").
+ * capital or digit, but not after a title or company abbreviation ("Sr.
+ * Manager") or an initial ("J.P. Morgan").
  */
 const SENTENCE_END =
-  /(?<=[.!?]["'\u201d\u2019)]*(?:\s*\[[^\]]*\])*)(?<!\b(?:Sr|Jr|Mr|Mrs|Ms|Dr|St|Inc|Ltd|Co|Corp|Assoc|Dept|vs)\.)\s+(?=["'\u201c(]?\p{Lu})/u;
+  /(?<=[.!?]["'\u201d\u2019)]*(?:\s*\[[^\]]*\])*)(?<!\b(?:Sr|Jr|Mr|Mrs|Ms|Dr|St|Inc|Ltd|Co|Corp|Assoc|Dept|vs|\p{Lu})\.)\s+(?=["'\u201c(]?[\p{Lu}\p{Nd}])/u;
+/** Kept sentences, one per line, so they read back exactly. */
+const joinLines = (kept: string[]) => kept.join("\n");
+/**
+ * A written brief back into its sentences, marks and all. Briefs are one
+ * sentence per line; older ones were joined by spaces and split by guess.
+ */
+export const briefLines = (text: string): string[] => {
+  const t = text.trim();
+  return (t.includes("\n") ? t.split(/\n+/) : t.split(SENTENCE_END))
+    .map((s) => s.trim())
+    .filter(Boolean);
+};
+
 /** Hiring talk: only a cited open-roles fact backs it. */
 const HIRING = /\b(?:open roles?|openings?|hiring|job posts?|postings?)\b/i;
 /** A clause saying what a fact means (", indicating a need to..."): a guess, cut before the marks. */
@@ -387,7 +401,7 @@ export async function writeCrmBriefs(
     try {
       const row = {
         state,
-        text: gated.kept.join(" "),
+        text: joinLines(gated.kept),
         citations: gated.cites,
         dropped: gated.dropped,
         inputsHash: s.inputsHash,

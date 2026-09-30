@@ -25,6 +25,7 @@ export type {
   Setup,
   Source,
   StepState,
+  WhyLine,
 } from "@wren/reactivation/restate";
 
 export class ApiError extends Error {

@@ -20,16 +20,16 @@ import {
   signed,
 } from "@wren/channel-email";
 import type { Queryable } from "@wren/db";
-import { completeAndParse, type Envelope, type LlmClient, LlmError } from "@wren/llm";
-import { sql } from "drizzle-orm";
+import { completeAndParse, type LlmClient, LlmError } from "@wren/llm";
+import { and, eq, sql } from "drizzle-orm";
 import { z } from "zod";
-import { MARKS, madeUp } from "./brief.js";
+import { briefLines, MARKS, madeUp } from "./brief.js";
 import { crmHealth } from "./crm/health.js";
 import { type ClientProfile, compositions, type Recruiter } from "./schema.js";
 import { LATEST_CRM_ROW, whereFinding } from "./score.js";
 import type { ReactivationSettings, Sender } from "./settings.js";
 
-export const COMPOSE_VERSION = "v3";
+export const COMPOSE_VERSION = "v4";
 export const COMPOSE_STAGE = "reactivation_compose";
 /** Enrollments carry this as their niche, sequence and offer. */
 export const REACTIVATION = "reactivation";
@@ -49,12 +49,36 @@ const SUBJECT_WORDS = 6;
 const MAX_FAILURES = 3;
 const ERROR_STREAK = 5;
 
-export const draftSchema = z.object({
-  subject: z.string(),
-  opener: z.string(),
-  followup: z.string(),
+/** One paragraph and the numbers of the brief lines it rests on. */
+const paragraphSchema = z.object({
+  text: z.string(),
+  from: z.array(z.union([z.number(), z.string()])).optional(),
 });
-export type Draft = z.infer<typeof draftSchema>;
+/** An email as the model writes it: its paragraphs in order. A bare string still reads, with no "why". */
+const bodySchema = z.union([z.string(), z.array(paragraphSchema)]);
+export const answerSchema = z.object({
+  subject: z.string(),
+  opener: bodySchema,
+  followup: bodySchema,
+});
+export type Answer = z.infer<typeof answerSchema>;
+
+/** The email as the gate reads it and the messages carry it. */
+export interface Draft {
+  subject: string;
+  opener: string;
+  followup: string;
+}
+
+/**
+ * A paragraph and the brief lines it used (indexes into the brief's lines as
+ * written from). Stored beside the draft for the portal's "why this line";
+ * never sent.
+ */
+export interface WhyLine {
+  text: string;
+  lines: number[];
+}
 
 // ---- who writes --------------------------------------------------------------
 
@@ -181,20 +205,59 @@ const tidy = (s: string) =>
     .replace(/\n{3,}/g, "\n\n");
 
 const literal = (s: string) => s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-const VALEDICTION =
-  /(?:^|\n)\s*(?:best|thanks|thank you|cheers|regards|best regards|kind regards|warmly|talk soon)[,!.]?\s*$/i;
+const VALEDICTIONS =
+  "best|thanks|thank you|cheers|regards|best regards|kind regards|warmly|talk soon";
+const VALEDICTION = new RegExp(`(?:^|\\n)\\s*(?:${VALEDICTIONS})[,!.]?\\s*$`, "i");
+/** "Best,\nAnn Lee\nNorthside Talent": a sign-off line and a few short lines under it, at the end. */
+const SIGN_OFF_BLOCK = new RegExp(
+  `(?:^|\\n)[ \\t]*(?:${VALEDICTIONS})[,!.]?[ \\t]*(?:\\n[^\\n]{1,60}){1,4}\\s*$`,
+  "i",
+);
 
 /**
  * The signature is added, so a model's own sign-off would print the name
- * twice: "Thanks for reading, Sam" keeps its thanks, a bare "Best,\nSam" goes.
+ * twice: "Thanks for reading, Sam" keeps its thanks, a bare "Best,\nSam" goes,
+ * and so does a whole sign-off block that names the sender. The name only
+ * counts as a sign-off after a comma or on its own line: "and I will." stays.
  */
 export function unsign(body: string, sender: string): string {
   const first = sender.split(/\s+/)[0] ?? sender;
   const names = [sender, first].filter(Boolean).map(literal).join("|");
-  const name = new RegExp(`[,\\s]*\\b(?:${names})[.!]?\\s*$`, "i");
+  const block = body.match(SIGN_OFF_BLOCK);
+  if (block && new RegExp(`\\b(?:${names})\\b`, "i").test(block[0]))
+    return body.slice(0, block.index).trimEnd();
+  const name = new RegExp(`(?:^|[,\\n])\\s*(?:${names})[.!]?\\s*$`, "i");
   if (!name.test(body)) return body;
   const left = body.replace(name, "").replace(VALEDICTION, "").trimEnd();
   return /[.!?]$/.test(left) ? left : `${left}.`;
+}
+
+const PARAGRAPH = /\n{2,}/;
+
+/**
+ * One email of the answer as sent text and its "why". Paragraphs are tidied
+ * and joined by blank lines, the model's sign-off comes off the end, and a
+ * paragraph keeps its brief lines only while its text is still a paragraph of
+ * what gets sent: that text is how the portal finds it again.
+ */
+export function readBody(
+  body: Answer["opener"],
+  lineCount: number,
+  sender: string,
+): { text: string; why: WhyLine[] } {
+  const parts = (typeof body === "string" ? [{ text: body, from: [] }] : body).flatMap((p) => {
+    const lines = [...new Set((p.from ?? []).map(Number))]
+      .filter((n) => Number.isInteger(n) && n >= 1 && n <= lineCount)
+      .sort((a, b) => a - b)
+      .map((n) => n - 1);
+    return tidy(p.text)
+      .split(PARAGRAPH)
+      .map((t) => ({ text: t.trim(), lines }))
+      .filter((t) => t.text);
+  });
+  const text = unsign(tidy(parts.map((p) => p.text).join("\n\n")), sender);
+  const sent = new Set(text.split(PARAGRAPH).map((t) => t.trim()));
+  return { text, why: parts.filter((p) => p.lines.length && sent.has(p.text)) };
 }
 
 // ---- the prompt ------------------------------------------------------------------
@@ -207,6 +270,8 @@ export interface ComposeSubject {
   firm: string;
   /** The brief, marks taken out. */
   brief: string;
+  /** The brief's sentences with their marks, numbered for the model from 1. */
+  lines: string[];
   briefHash: string;
   citations: unknown;
   candidateId: number;
@@ -221,19 +286,20 @@ export function buildComposePrompt(
 ): string {
   const hi = s.firstName ? `Hi ${s.firstName},` : "Hi there,";
   const who = [s.firstName, s.lastName].filter(Boolean).join(" ") || "a past contact";
+  const lines = s.lines.length ? s.lines.map(stripMarks) : [s.brief];
   return `You write a short email from ${sender.name}, a recruiter at ${profile.firm}, to ${who}, someone the firm has worked with before, last known at ${s.firm}.
 
 What ${profile.firm} does: ${profile.sells}
 
-Why write now (true, from our research):
-${s.brief}
+Why write now (true, from our research), one numbered line each:
+${lines.map((l, i) => `${i + 1}. ${l}`).join("\n")}
 
 How ${profile.firm} writes:
 ${profile.voice}
 
 Write two emails.
 1. The opener.
-- Start with "${hi}" on its own line.
+- Start with "${hi}" as its own paragraph.
 - Say why you're writing now with one or two facts from "Why write now", plainly, as the recruiter who noticed.
 - Only what they could see themselves: their role, a move, their company's open roles if listed. Never say the team is growing or hiring unless "Why write now" names open roles. Never the CRM, a record, a status, a placement, or the date you last spoke; "it's been a while" is enough.
 - One ask: a short call. Close with: reply with a couple of times that work and I'll book it.
@@ -244,11 +310,12 @@ Write two emails.
 - A short nudge: the same ask, or one new angle from the facts. No guilt.
 - At most ${FOLLOWUP_WORDS} words.
 
-Both: plain text. No links, no prices, no guarantees, no dashes, no brackets, no sign-off or signature (it is added). Use only the facts given; copy names and numbers exactly. Invent nothing about ${profile.firm} or ${s.firstName ?? "them"}.
+Both: plain text. No links, no prices, no guarantees, no dashes, no brackets, no sign-off or signature (it is added). Use only the facts given; copy names and numbers exactly, and add no numbers of your own (not even "10 minutes"). Invent nothing about ${profile.firm} or ${s.firstName ?? "them"}.
 
 Subject: lowercase, 2 to ${SUBJECT_WORDS} words, no numbers, no names, no facts. Like "quick question" or "a thought".
 
-Return ONLY a JSON object: {"subject": "...", "opener": "...", "followup": "..."}
+Return ONLY a JSON object. Each email is its paragraphs in order, the greeting first. "from" is the numbers of the "Why write now" lines a paragraph uses, [] when none:
+{"subject": "...", "opener": [{"text": "${hi}", "from": []}, {"text": "...", "from": [1]}], "followup": [{"text": "...", "from": []}]}
 `;
 }
 
@@ -337,6 +404,7 @@ export async function composeSubjects(
       lastName: r.last_name?.trim() || null,
       firm: r.firm,
       brief: stripMarks(r.brief),
+      lines: briefLines(r.brief),
       briefHash: r.brief_hash,
       citations: r.citations,
       candidateId: r.candidate_id,
@@ -358,8 +426,8 @@ export async function composeEligible(db: Queryable, catchAll = false): Promise<
 export async function composeRoom(db: Queryable, perDay: number): Promise<number> {
   const [r] = await db.execute<{ drafted: number; waiting: number }>(sql`
     select
-      (select count(*) from compositions
-        where state = 'drafted' and created_at > now() - interval '1 day')::int drafted,
+      (select count(*) from enrollments
+        where offer = ${REACTIVATION} and created_at > now() - interval '1 day')::int drafted,
       (select count(*) from messages m join enrollments e on e.id = m.enrollment_id
         where e.offer = ${REACTIVATION} and e.state = 'active'
           and m.step = 0 and m.state = 'draft')::int waiting`);
@@ -473,47 +541,9 @@ export async function composeCrmEmails(
     const picked = pickSender(s.owner, profile, settings.senders) as NonNullable<
       ReturnType<typeof pickSender>
     >;
-    const inputsHash = createHash("md5")
-      .update(
-        [
-          COMPOSE_VERSION,
-          s.briefHash,
-          s.brief,
-          picked.sender.address,
-          picked.sender.name,
-          profile.updatedAt.toISOString(),
-        ].join("\0"),
-      )
-      .digest("hex");
-    let envelope: Envelope;
-    let draft: Draft | null = null;
-    let why: string[];
+    let w: Written;
     try {
-      const outcome = await completeAndParse(
-        llm,
-        buildComposePrompt(s, profile, picked.sender),
-        draftSchema,
-        {
-          maxTokens: MAX_TOKENS,
-          runId: opts.runId ?? null,
-          name: COMPOSE_STAGE,
-          metadata: { person_id: s.personId },
-        },
-      );
-      envelope = outcome.envelope();
-      if (outcome.parsed) {
-        const from = picked.sender.name;
-        draft = {
-          subject: tidy(outcome.parsed.subject),
-          opener: unsign(tidy(outcome.parsed.opener), from),
-          followup: unsign(tidy(outcome.parsed.followup), from),
-        };
-        why = gateDraft(draft, {
-          source: [s.brief, s.firm, profile.firm, profile.sells].join("\n"),
-          private: [s.firstName, s.lastName, s.firm].filter((w): w is string => !!w),
-          hiring: saysHiring(s.brief),
-        });
-      } else why = [`did not parse: ${outcome.parseError ?? outcome.providerRejected ?? "?"}`];
+      w = await writeDraft(llm, s, profile, picked.sender, opts.runId ?? null);
     } catch (err) {
       if (err instanceof LlmError) {
         stats.aborted = err.message;
@@ -521,22 +551,14 @@ export async function composeCrmEmails(
       }
       throw err;
     }
-    const record = {
-      personId: s.personId,
-      inputsHash,
-      model: llm.name,
-      promptVersion: COMPOSE_VERSION,
-      llm: envelope,
-      runId: opts.runId ?? null,
-    };
     try {
-      if (!draft || why.length) {
+      if (!w.draft || w.refused.length) {
         await db
           .insert(compositions)
-          .values({ ...record, state: "failed", detail: why.join("; ") });
+          .values({ ...w.record, state: "failed", detail: w.refused.join("; ") });
         stats.failed += 1;
       } else {
-        const ok = await enroll(db, s, draft, picked, profile, record, autoApprove);
+        const ok = await enroll(db, s, w, picked, profile, autoApprove);
         if (ok) {
           stats.drafted += 1;
           if (autoApprove) stats.approved += 1;
@@ -556,6 +578,96 @@ export async function composeCrmEmails(
   return stats;
 }
 
+/** One model call at one contact: the draft, its "why", and what the gate says. */
+interface Written {
+  draft: Draft | null;
+  why: { opener: WhyLine[]; followup: WhyLine[] };
+  /** Why it can't go out; empty when it can. */
+  refused: string[];
+  /** The compositions row, less its state. */
+  record: Omit<typeof compositions.$inferInsert, "state">;
+}
+
+/** Ask the model for the pair and gate it. An `LlmError` means the provider is down: callers stop. */
+async function writeDraft(
+  llm: LlmClient,
+  s: ComposeSubject,
+  profile: ClientProfile,
+  sender: Sender,
+  runId: string | null,
+): Promise<Written> {
+  const inputsHash = createHash("md5")
+    .update(
+      [
+        COMPOSE_VERSION,
+        s.briefHash,
+        s.brief,
+        sender.address,
+        sender.name,
+        profile.updatedAt.toISOString(),
+      ].join("\0"),
+    )
+    .digest("hex");
+  const outcome = await completeAndParse(
+    llm,
+    buildComposePrompt(s, profile, sender),
+    answerSchema,
+    {
+      maxTokens: MAX_TOKENS,
+      runId,
+      name: COMPOSE_STAGE,
+      metadata: { person_id: s.personId },
+    },
+  );
+  const record = {
+    personId: s.personId,
+    inputsHash,
+    model: llm.name,
+    promptVersion: COMPOSE_VERSION,
+    llm: outcome.envelope(),
+    runId,
+  };
+  const why = { opener: [] as WhyLine[], followup: [] as WhyLine[] };
+  if (!outcome.parsed)
+    return {
+      draft: null,
+      why,
+      refused: [`did not parse: ${outcome.parseError ?? outcome.providerRejected ?? "?"}`],
+      record,
+    };
+  const opener = readBody(outcome.parsed.opener, s.lines.length, sender.name);
+  const followup = readBody(outcome.parsed.followup, s.lines.length, sender.name);
+  const draft = {
+    subject: tidy(outcome.parsed.subject),
+    opener: opener.text,
+    followup: followup.text,
+  };
+  const refused = gateDraft(draft, {
+    source: [s.brief, s.firm, profile.firm, profile.sells].join("\n"),
+    private: [s.firstName, s.lastName, s.firm].filter((w): w is string => !!w),
+    hiring: saysHiring(s.brief),
+  });
+  return { draft, why: { opener: opener.why, followup: followup.why }, refused, record };
+}
+
+/** What each message keeps about how it was written; `why` is its own email's. Never sent. */
+function provenanceOf(
+  s: ComposeSubject,
+  recruiter: Recruiter | null,
+  why: WhyLine[],
+): Record<string, unknown> {
+  return {
+    composer: COMPOSE_VERSION,
+    // The lines as written from: a brief redone later can't move the "why".
+    brief: { inputs_hash: s.briefHash, citations: s.citations, lines: s.lines },
+    address: { candidate_id: s.candidateId, email: s.email, evidence: "crm" },
+    owner: s.owner,
+    recruiter: recruiter?.email ?? null,
+    why,
+    version: COMPOSE_VERSION,
+  };
+}
+
 /** Approval `first`: once a person approved any reactivation email, the rest flow. */
 async function firstBatchApproved(db: Queryable): Promise<boolean> {
   const [r] = await db.execute<{ yes: boolean }>(sql`
@@ -568,12 +680,12 @@ async function firstBatchApproved(db: Queryable): Promise<boolean> {
 async function enroll(
   db: Queryable,
   s: ComposeSubject,
-  draft: Draft,
+  w: Written,
   picked: { sender: Sender; recruiter: Recruiter | null },
   profile: ClientProfile,
-  record: Omit<typeof compositions.$inferInsert, "state">,
   autoApprove: boolean,
 ): Promise<boolean> {
+  const draft = w.draft as Draft;
   const signature = profile.signature.replaceAll("{name}", picked.sender.name);
   try {
     await db.transaction(async (tx) => {
@@ -590,7 +702,7 @@ async function enroll(
           sequenceSnapshot: SEQUENCE,
           offer: REACTIVATION,
           state: "active",
-          runId: record.runId ?? null,
+          runId: w.record.runId ?? null,
         })
         .returning({ id: enrollments.id });
       const enrollmentId = (row as { id: number }).id;
@@ -602,14 +714,6 @@ async function enroll(
       } = autoApprove
         ? { state: "approved", approvedAt: now, approvedBy: "auto" }
         : { state: "draft", approvedAt: null, approvedBy: null };
-      const provenance = {
-        composer: COMPOSE_VERSION,
-        brief: { inputs_hash: s.briefHash, citations: s.citations },
-        address: { candidate_id: s.candidateId, email: s.email, evidence: "crm" },
-        owner: s.owner,
-        recruiter: picked.recruiter?.email ?? null,
-        version: COMPOSE_VERSION,
-      };
       await tx.insert(messages).values(
         SEQUENCE.steps.map((step, i) => ({
           enrollmentId,
@@ -619,22 +723,157 @@ async function enroll(
           toEmail: s.email,
           subject: i === 0 ? draft.subject : null,
           body: signed(i === 0 ? draft.opener : draft.followup, signature),
-          provenance,
+          provenance: provenanceOf(s, picked.recruiter, i === 0 ? w.why.opener : w.why.followup),
           ...approval,
-          runId: record.runId ?? null,
+          runId: w.record.runId ?? null,
           openToken: null,
           // sent as the client, to the client's site: nothing of ours to count
           linkCode: null,
         })),
       );
-      await tx.insert(compositions).values({ ...record, state: "drafted", enrollmentId });
+      await tx.insert(compositions).values({ ...w.record, state: "drafted", enrollmentId });
     });
     return true;
   } catch (err) {
     if (!isUniqueViolation(err)) throw err;
     await db
       .insert(compositions)
-      .values({ ...record, state: "raced", detail: "already enrolled when it was written" });
+      .values({ ...w.record, state: "raced", detail: "already enrolled when it was written" });
     return false;
   }
+}
+
+// ---- redraft ---------------------------------------------------------------------
+
+export interface RedraftStats {
+  selected: number;
+  redrafted: number;
+  /** The model's answer didn't parse or the gate refused it: the old draft stays. */
+  failed: number;
+  /** Its mailbox is gone, or someone approved or edited it while it was being written. */
+  skipped: number;
+  aborted: string | null;
+}
+
+/**
+ * Write drafts that still wait for approval again with today's composer and
+ * brief, in place: same enrollment, address and mailbox. Only pairs nobody
+ * approved or sent, and without ids only pairs nobody edited. A refused
+ * rewrite leaves the old draft as it was.
+ */
+export async function redraftAwaiting(
+  db: Queryable,
+  llm: LlmClient,
+  opts: {
+    profile: ClientProfile | null;
+    senders: readonly Sender[];
+    enrollmentIds?: number[];
+    runId?: string | null;
+  },
+): Promise<RedraftStats> {
+  const stats: RedraftStats = { selected: 0, redrafted: 0, failed: 0, skipped: 0, aborted: null };
+  const { profile } = opts;
+  if (!profile) {
+    stats.aborted = "no firm profile: `wren --client <id> crm profile set <file.json>`";
+    return stats;
+  }
+  if (opts.enrollmentIds && !opts.enrollmentIds.length) return stats;
+  const rows = await db.execute<
+    Row & { enrollment_id: number; sender: string; recruiter: string | null }
+  >(sql`
+    select e.id enrollment_id, e.person_id, e.company_id,
+      coalesce(co.name, co.domain, 'their firm') firm, pe.first_name, pe.last_name,
+      b.text brief, b.inputs_hash brief_hash, b.citations,
+      (m.provenance->'address'->>'candidate_id')::int candidate_id, e.to_email email,
+      m.provenance->>'owner' owner, m.provenance->>'recruiter' recruiter, e.sender
+    from enrollments e
+    join people pe on pe.id = e.person_id
+    join companies co on co.id = e.company_id
+    join briefs b on b.person_id = e.person_id and b.state = 'written'
+    join messages m on m.enrollment_id = e.id and m.step = 0
+    where e.offer = ${REACTIVATION} and e.state = 'active'
+      and not exists (select 1 from messages x where x.enrollment_id = e.id and x.state <> 'draft')
+      and not exists (select 1 from suppressions sp where sp.revoked_at is null
+        and ((sp.kind = 'email' and sp.value = lower(e.to_email))
+          or (sp.kind = 'domain' and sp.value = split_part(lower(e.to_email), '@', 2))))
+      ${
+        opts.enrollmentIds
+          ? sql`and e.id in (${sql.join(
+              opts.enrollmentIds.map((id) => sql`${id}`),
+              sql`, `,
+            )})`
+          : // A draft someone edited keeps their words unless it's named.
+            sql`and not exists (select 1 from messages x
+              where x.enrollment_id = e.id and x.edited_at is not null)`
+      }
+    order by e.id`);
+  stats.selected = rows.length;
+  for (const r of rows) {
+    const sender = opts.senders.find((x) => x.address === r.sender && !x.suspended);
+    if (!sender) {
+      stats.skipped += 1;
+      continue;
+    }
+    const s: ComposeSubject = {
+      personId: r.person_id,
+      companyId: r.company_id,
+      firstName: r.first_name?.trim() || null,
+      lastName: r.last_name?.trim() || null,
+      firm: r.firm,
+      brief: stripMarks(r.brief),
+      lines: briefLines(r.brief),
+      briefHash: r.brief_hash,
+      citations: r.citations,
+      candidateId: r.candidate_id,
+      email: r.email,
+      owner: r.owner,
+    };
+    const recruiter = profile.recruiters.find((x) => x.email === r.recruiter) ?? null;
+    let w: Written;
+    try {
+      w = await writeDraft(llm, s, profile, sender, opts.runId ?? null);
+    } catch (err) {
+      if (err instanceof LlmError) {
+        stats.aborted = err.message;
+        break;
+      }
+      throw err;
+    }
+    const draft = w.draft;
+    if (!draft || w.refused.length) {
+      await db.insert(compositions).values({
+        ...w.record,
+        state: "failed",
+        detail: `redraft of #${r.enrollment_id}: ${w.refused.join("; ")}`,
+      });
+      stats.failed += 1;
+      continue;
+    }
+    const signature = profile.signature.replaceAll("{name}", sender.name);
+    const done = await db.transaction(async (tx) => {
+      const held = await tx.execute<{ state: string; edited: boolean }>(
+        sql`select state, edited_at is not null edited from messages
+          where enrollment_id = ${r.enrollment_id} for update`,
+      );
+      if (held.some((m) => m.state !== "draft" || (!opts.enrollmentIds && m.edited))) return false;
+      for (const [i] of SEQUENCE.steps.entries())
+        await tx
+          .update(messages)
+          .set({
+            subject: i === 0 ? draft.subject : null,
+            body: signed(i === 0 ? draft.opener : draft.followup, signature),
+            provenance: provenanceOf(s, recruiter, i === 0 ? w.why.opener : w.why.followup),
+            templateVersion: COMPOSE_VERSION,
+            editedAt: null,
+          })
+          .where(and(eq(messages.enrollmentId, r.enrollment_id), eq(messages.step, i)));
+      await tx
+        .insert(compositions)
+        .values({ ...w.record, state: "drafted", enrollmentId: r.enrollment_id });
+      return true;
+    });
+    if (done) stats.redrafted += 1;
+    else stats.skipped += 1;
+  }
+  return stats;
 }

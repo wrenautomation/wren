@@ -145,7 +145,7 @@ export async function crmStatus(db: Queryable, opts: CrmStatusOptions = {}): Pro
     failed: number;
   }>(sql`
     select
-      (select count(*) from compositions where state = 'drafted')::int drafted,
+      (select count(distinct enrollment_id) from compositions where state = 'drafted')::int drafted,
       (select count(*) from compositions where state = 'failed')::int failed,
       count(*) filter (where m.state = 'draft' and en.state = 'active')::int awaiting,
       count(*) filter (where m.state = 'approved')::int approved,

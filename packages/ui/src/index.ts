@@ -33,6 +33,17 @@ export {
   type WorkspaceOption,
 } from "./shell.js";
 export {
+  Cite,
+  SourceCard,
+  SourceList,
+  SURE_LEVELS,
+  Sure,
+  type SureLevel,
+  Traced,
+  Trail,
+  type TrailStep,
+} from "./sources.js";
+export {
   applyTheme,
   PRESETS,
   type PresetName,

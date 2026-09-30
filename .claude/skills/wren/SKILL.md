@@ -1,6 +1,6 @@
 ---
 name: wren
-description: Use wren for a client or for personal work. Covers adding a client, setting a client's research accounts, importing a CRM export, running reactivation (`crm run`, `crm status`, `crm top`), emails and sending (`crm emails|approve|skip|book`, `crm loop`), a client's settings (`clients set --set`), seeding the demo list (`crm seed-demo`), giving a client portal access, previewing the portal, and reading the send gate. Use when the user says "add a client", "import this CRM", "where is <client> at", "run the lookups", "who should they call", "seed the demo", "show me the portal", "give <client> access", or anything with `wren --client`.
+description: Use wren for a client or for personal work. Covers adding a client, setting a client's research accounts, importing a CRM export, running reactivation (`crm run`, `crm status`, `crm top`), emails and sending (`crm emails|approve|skip|redraft|book`, `crm loop`), a client's settings (`clients set --set`), seeding the demo list (`crm seed-demo`), giving a client portal access, previewing the portal, and reading the send gate. Use when the user says "add a client", "import this CRM", "where is <client> at", "run the lookups", "who should they call", "seed the demo", "show me the portal", "give <client> access", or anything with `wren --client`.
 ---
 
 # wren
@@ -65,6 +65,7 @@ Every client command takes `--client <id>`. Without it the command refuses. It n
 ./bin/wren --client <id> crm emails [--filter awaiting] # drafts; #ids are for approve and skip
 ./bin/wren --client <id> crm approve <ids...> | --all
 ./bin/wren --client <id> crm skip <ids...>
+./bin/wren --client <id> crm redraft <ids...> | --all  # rewrite drafts still waiting, same sender (real model only)
 ./bin/wren --client <id> crm book <replyId> [--undo]   # a meeting booked: the billing unit
 ./bin/wren --client <id> crm loop start|stop|status
 ```

@@ -5,6 +5,7 @@ import {
   Callout,
   Card,
   CardList,
+  Drawer,
   Empty,
   Loading,
   num,
@@ -13,12 +14,21 @@ import {
   Tabs,
   Tag,
   type TagTone,
+  Traced,
+  Trail,
 } from "@wren/ui";
 import { useState } from "react";
-import { ApiError, call, type EmailFilter, type EmailRow, type EmailsPage } from "../../api.js";
+import {
+  ApiError,
+  call,
+  type EmailFilter,
+  type EmailRow,
+  type EmailsPage,
+  type WhyLine,
+} from "../../api.js";
 import { useCall } from "../../load.js";
 import type { PageProps } from "../../module.js";
-import { Who } from "./bits.js";
+import { Cited, marksOf, SourceCards, useSourcePick, Who } from "./bits.js";
 import { at, goto } from "./nav.js";
 
 const FILTERS: Record<EmailFilter, string> = {
@@ -53,6 +63,7 @@ export function Emails({ client, demo, params }: PageProps) {
   const [picked, setPicked] = useState<Set<number>>(new Set());
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<ApiError | null>(null);
+  const [why, setWhy] = useState<{ row: EmailRow; line: WhyLine } | null>(null);
 
   const d = list.data;
   const waiting = d?.rows.filter((r) => r.status === "awaiting") ?? [];
@@ -166,13 +177,23 @@ export function Emails({ client, demo, params }: PageProps) {
                   </p>
                   <div className="rx-mail">
                     {r.subject ? <p className="rx-mail-subject">{r.subject}</p> : null}
-                    <p className="rx-mail-body">{r.opener}</p>
+                    <Body
+                      text={r.opener}
+                      why={r.why?.opener ?? []}
+                      open={why?.line ?? null}
+                      onWhy={(line) => setWhy({ row: r, line })}
+                    />
                   </div>
                   {r.followup ? (
                     <details className="rx-followup">
                       <summary>Follow-up, 4 days later if no reply</summary>
                       <div className="rx-mail">
-                        <p className="rx-mail-body">{r.followup}</p>
+                        <Body
+                          text={r.followup}
+                          why={r.why?.followup ?? []}
+                          open={why?.line ?? null}
+                          onWhy={(line) => setWhy({ row: r, line })}
+                        />
                       </div>
                     </details>
                   ) : null}
@@ -198,6 +219,103 @@ export function Emails({ client, demo, params }: PageProps) {
           onPage={(o) => goto("emails", { offset: o || null }, params)}
         />
       ) : null}
+
+      {why ? (
+        <Drawer label="Why this line" onClose={() => setWhy(null)}>
+          <Why row={why.row} line={why.line} />
+        </Drawer>
+      ) : null}
     </>
+  );
+}
+
+/** An email, paragraph by paragraph. One written from the brief can show why. */
+function Body({
+  text,
+  why,
+  open,
+  onWhy,
+}: {
+  text: string;
+  why: WhyLine[];
+  open: WhyLine | null;
+  onWhy: (line: WhyLine) => void;
+}) {
+  const byText = new Map(why.map((w) => [w.text, w]));
+  return (
+    <div className="rx-mail-body">
+      {text.split(/\n{2,}/).map((para, i) => {
+        const w = byText.get(para.trim());
+        return w?.lines.length ? (
+          // biome-ignore lint/suspicious/noArrayIndexKey: an email's paragraphs never reorder.
+          <Traced key={i} on={open?.text === w.text} onTrace={() => onWhy(w)}>
+            {para}
+          </Traced>
+        ) : (
+          // biome-ignore lint/suspicious/noArrayIndexKey: an email's paragraphs never reorder.
+          <p key={i}>{para}</p>
+        );
+      })}
+    </div>
+  );
+}
+
+/** One line of an email, traced back: the brief lines it was written from, then what they cite. */
+function Why({ row, line }: { row: EmailRow; line: WhyLine }) {
+  const brief = line.lines.flatMap((i) => row.why?.brief[i] ?? []);
+  const cited = new Set(brief.flatMap(marksOf));
+  const sources = row.sources.filter((s) => cited.has(s.mark.toLowerCase()));
+  const order = sources.map((s) => s.mark.toLowerCase());
+  const [lit, pick] = useSourcePick();
+  return (
+    <article className="rx-why">
+      <header>
+        <h2>Why this line</h2>
+        <p className="rx-quiet">
+          To {row.name} · {row.firm}
+        </p>
+      </header>
+      <Trail
+        steps={[
+          {
+            id: "line",
+            label: "In the email",
+            children: <blockquote className="rx-quote">{line.text}</blockquote>,
+          },
+          {
+            id: "brief",
+            label:
+              brief.length === 1
+                ? "Written from this line of the brief"
+                : "Written from these lines of the brief",
+            children: (
+              <ul className="rx-brief-lines">
+                {brief.map((b) => (
+                  <li key={b} className="rx-brief-line">
+                    <Cited text={b} order={order} lit={lit} onPick={pick} />
+                  </li>
+                ))}
+              </ul>
+            ),
+          },
+          {
+            id: "found",
+            label: "What we found",
+            children: sources.length ? (
+              <SourceCards sources={sources} lit={lit} />
+            ) : (
+              <p className="rx-quiet">These lines cite nothing we found.</p>
+            ),
+          },
+        ]}
+      />
+      {row.personId ? (
+        <p className="rx-why-more">
+          <a href={at("people", { person: row.personId })}>
+            See {row.name.split(" ")[0]}'s full brief
+          </a>
+        </p>
+      ) : null}
+    </article>
   );
 }
