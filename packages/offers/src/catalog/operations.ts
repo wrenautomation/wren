@@ -6,10 +6,24 @@
  */
 import { type Application, defineOffer } from "../offer.js";
 
-// The hub's form (William's brief, 2026-09-29): where the company is on the five levels, what hurts,
-// then the two gates, size and whether the person decides. A fit gets a call from William, fast.
+// The hub's form (William's brief, 2026-09-29): the main bottleneck first (the page asks it before contact
+// details, 2026-09-30), where the company is on the five levels, then the two gates, size and whether the
+// person decides. A fit gets a call from William, fast.
 const APPLICATION: Application = {
   questions: [
+    {
+      id: "bottleneck",
+      ask: "What's your main bottleneck?",
+      kind: "one",
+      required: true,
+      choices: [
+        { id: "leads", label: "Getting leads and following up" },
+        { id: "hiring", label: "Hiring and onboarding" },
+        { id: "admin", label: "Admin, timesheets and invoicing" },
+        { id: "data", label: "Data spread across too many tools" },
+        { id: "other", label: "Something else" },
+      ],
+    },
     {
       id: "level",
       ask: "Where is your company today?",
@@ -21,18 +35,6 @@ const APPLICATION: Application = {
         { id: "l3_workflows", label: "Level 3: some work is automated" },
         { id: "l4_ai", label: "Level 4: AI agents run parts of the business" },
         { id: "l5_scale", label: "Level 5: we're scaling what's built" },
-      ],
-    },
-    {
-      id: "struggles",
-      ask: "What's slowing you down? Pick any.",
-      kind: "many",
-      required: true,
-      choices: [
-        { id: "repetitive", label: "Repetitive work and internal busywork" },
-        { id: "leads", label: "Not enough leads, or leads slipping" },
-        { id: "hiring", label: "Hiring and training take too long" },
-        { id: "tracking", label: "Work is hard to track" },
       ],
     },
     {
