@@ -32,6 +32,7 @@ import { registerCrm } from "./crm.js";
 import { registerEmail } from "./email.js";
 import { registerFetch } from "./fetch.js";
 import { registerReview } from "./review.js";
+import { registerSearch } from "./search.js";
 import { registerSms } from "./sms.js";
 
 const rootDir = loadEnvFile(process.cwd(), process.env.WREN_ROOT);
@@ -200,6 +201,7 @@ registerContent(program, withMainDb, settings);
 registerAds(program, withMainDb, settings);
 registerSms(program, withMainDb, settings);
 registerBooks(program, withMainDb, settings, rootDir);
+registerSearch(program, withMainDb, settings, rootDir);
 
 const renewal = () =>
   clients

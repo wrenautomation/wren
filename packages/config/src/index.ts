@@ -92,6 +92,10 @@ export const settingsSchema = z.object({
    * the domains at postmaster.google.com. Unset = no daily pull.
    */
   postmasterUser: z.string().min(1).optional(),
+  /** The Search Console property (`sc-domain:example.com`) the service account owns. Unset = no SearchWatch. */
+  searchSite: z.string().min(1).optional(),
+  /** The site it answers for (`https://example.com`): sitemap, pages, `/llms.txt`. */
+  searchOrigin: z.string().url().optional(),
   /** Where the Friday report goes; unset = no ReportScheduler. */
   reportTo: z.string().email().optional(),
   /** The mailbox it is sent from (must be one the service account may impersonate); default = the first fleet sender. */
@@ -315,6 +319,8 @@ export const ENV_KEYS = {
   siteBaseUrl: "WREN_SITE_BASE_URL",
   siteExportToken: "WREN_SITE_EXPORT_TOKEN",
   postmasterUser: "WREN_POSTMASTER_USER",
+  searchSite: "WREN_SEARCH_SITE",
+  searchOrigin: "WREN_SEARCH_ORIGIN",
   reportTo: "WREN_REPORT_TO",
   reportFrom: "WREN_REPORT_FROM",
   googleServiceAccount: "WREN_GOOGLE_SERVICE_ACCOUNT",

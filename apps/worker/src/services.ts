@@ -45,6 +45,8 @@ import { linkedinContent } from "@wren/channel-linkedin";
 import { facebookContent, instagramContent, instagramWebContent } from "@wren/channel-meta";
 import { makeAds, makeAdsWatch } from "@wren/channel-meta/restate";
 import { redditApi, redditContent } from "@wren/channel-reddit";
+import { searchConsoleClient } from "@wren/channel-search";
+import { makeSearchWatch, makeSearchWeek } from "@wren/channel-search/restate";
 import { healthFrom, NoProvider, policyFrom, providerFrom } from "@wren/channel-sms";
 import { makeSmsDesk, makeSmsEvents, makeSmsSender, makeSmsWatch } from "@wren/channel-sms/restate";
 import { tiktokContent } from "@wren/channel-tiktok";
@@ -385,6 +387,22 @@ export async function buildServices(
     ...notify,
   };
   services.push(makeSmsSender(sms), makeSmsEvents(sms), makeSmsDesk(sms), makeSmsWatch(sms));
+  // Search: Search Console daily, the answer engines and edit proposals weekly (on the Mac's desk).
+  // Bound only with a property named; off until `wren search watch start`.
+  if (settings.searchSite && settings.searchOrigin) {
+    const search = {
+      db,
+      console: searchConsoleClient(loadServiceAccountKey(keyPath)),
+      site: settings.searchSite,
+      origin: settings.searchOrigin,
+      fetch: (url: string, init?: RequestInit) => fetch(url, init),
+      ...notify,
+    };
+    services.push(
+      makeSearchWatch(search),
+      makeSearchWeek({ ...search, llm, desk: (ctx) => restateSites(ctx, undefined, DESK) }),
+    );
+  } else log.info("WREN_SEARCH_SITE/WREN_SEARCH_ORIGIN unset: no search loop");
   // The client portal's reads (apps/portal), and one reactivation loop per client.
   services.push(
     makeReactivationPortal({ main: db, open: openClient }),

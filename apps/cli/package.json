@@ -17,6 +17,7 @@
     "@wren/books": "workspace:*",
     "@wren/channel-email": "workspace:*",
     "@wren/channel-meta": "workspace:*",
+    "@wren/channel-search": "workspace:*",
     "@wren/channel-sms": "workspace:*",
     "@wren/config": "workspace:*",
     "@wren/content": "workspace:*",

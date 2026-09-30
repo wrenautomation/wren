@@ -38,11 +38,11 @@ async function held<T>(send: (idempotencyKey: string) => PromiseLike<T>): Promis
   }
 }
 
-export function ingressSites(settings: Settings): SiteClient {
-  const client = clients.connect(ingressOf(settings)).serviceClient<SitesService>(SITES);
+export function ingressSites(settings: Settings, service: { name: string } = SITES): SiteClient {
+  const client = clients.connect(ingressOf(settings)).serviceClient<SitesService>(service);
   let woken: Promise<unknown> | null = null;
   const awake = () => {
-    const id = settings.autobrowseInstanceId;
+    const id = service === SITES ? settings.autobrowseInstanceId : undefined; // the desk is the Mac: nothing to wake
     if (!id) return Promise.resolve();
     woken ??= import("@wren/core/content/box").then(({ ec2Wake }) => ec2Wake(id)());
     return woken;

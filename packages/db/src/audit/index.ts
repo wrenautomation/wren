@@ -32,6 +32,9 @@ export const AUDIT_SKIPPED: Readonly<Record<string, string>> = {
   person_lookups: "lookup results with their own tried trail",
   postmaster_days: "numbers pulled from Google",
   content_metrics: "numbers pulled from the platforms",
+  search_days: "numbers pulled from Search Console",
+  search_pages: "index states pulled from Search Console",
+  search_answers: "what the answer engines said, with its own date",
   open_events: "pixel hits, append-only",
 };
 
