@@ -186,6 +186,22 @@
   font-weight: 500;
   cursor: pointer;
 }
+@media (max-width: 480px) {
+  .rx-bulk label {
+    flex-basis: 100%;
+  }
+}
+.rx-card-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 14px;
+}
+.rx-done {
+  margin: 0 0 16px;
+  color: var(--ui-ink-2);
+  font-size: 14px;
+}
 .rx-card-head {
   display: flex;
   flex-wrap: wrap;

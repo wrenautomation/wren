@@ -18,7 +18,7 @@ Restate owns the timer, so a worker dying or a laptop closing loses nothing; the
 ## Shape
 
 - `makeLoopObject(name, pass)` (`loop.ts:179`); `failuresInARow` (`:34`); state keys for `last` and the `start` input (`:20`, `:22`)
-- keys: `SendScheduler/{sender}`, `InboxScheduler/{sender}`, `ComposeScheduler/{niche}`, `PoolScheduler/{niche}`, `DigestScheduler/fleet`, `ReportScheduler/fleet`, `PostmasterScheduler/fleet`, `OpensScheduler/fleet`, `ContentScheduler/default`, `ContentPlanner/default`, `ContentMetrics/default`, `AdsWatch/default`, `TokenRenewal/box`, `SmsSender/fleet`, `SmsWatch/daily`
+- keys: `SendScheduler/{sender}`, `InboxScheduler/{sender}`, `ComposeScheduler/{niche}`, `PoolScheduler/{niche}`, `DigestScheduler/fleet`, `ReportScheduler/fleet`, `PostmasterScheduler/fleet`, `OpensScheduler/fleet`, `ContentScheduler/default`, `ContentPlanner/default`, `ContentMetrics/default`, `AdsWatch/default`, `TokenRenewal/box`, `SmsSender/fleet`, `SmsWatch/daily`, `SearchWatch/default`
 
 Citations: `packages/core/src/restate/loop.ts:179`
 

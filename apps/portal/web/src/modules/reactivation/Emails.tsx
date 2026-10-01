@@ -64,8 +64,11 @@ export function Emails({ client, demo, params }: PageProps) {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<ApiError | null>(null);
   const [why, setWhy] = useState<{ row: EmailRow; line: WhyLine } | null>(null);
+  const [done, setDone] = useState<string | null>(null);
+  // The demo acts in the page only: what you approved or skipped, until a reload.
+  const [local, setLocal] = useState<Map<number, Acted>>(new Map());
 
-  const d = list.data;
+  const d = list.data ? withLocal(list.data, local) : undefined;
   const waiting = d?.rows.filter((r) => r.status === "awaiting") ?? [];
   const toggle = (id: number) =>
     setPicked((p) => {
@@ -74,15 +77,22 @@ export function Emails({ client, demo, params }: PageProps) {
       else next.add(id);
       return next;
     });
-  const act = async (route: "approve" | "skip") => {
-    if (!picked.size) return;
-    if (route === "skip" && !confirm(`Don't send ${picked.size}? We won't write to them again.`))
-      return;
-    setBusy(true);
+  const act = async (route: "approve" | "skip", ids = [...picked]) => {
+    if (!ids.length) return;
+    const n = ids.length === 1 ? "this email" : `${num(ids.length)} emails`;
+    if (route === "skip" && !confirm(`Don't send ${n}? We won't write to them again.`)) return;
+    const said = route === "approve" ? `Approved ${n}.` : `Skipped ${n}.`;
     setError(null);
+    setPicked((p) => new Set([...p].filter((id) => !ids.includes(id))));
+    if (demo) {
+      setLocal((m) => new Map([...m, ...ids.map((id): [number, Acted] => [id, route])]));
+      setDone(`${said} Nothing sends on the demo. Reload to reset.`);
+      return;
+    }
+    setBusy(true);
     try {
-      await call(route, { client, enrollmentIds: [...picked] });
-      setPicked(new Set());
+      await call(route, { client, enrollmentIds: ids });
+      setDone(said);
       setNonce((n) => n + 1);
     } catch (err) {
       setError(err instanceof ApiError ? err : new ApiError(String(err), 0));
@@ -97,7 +107,7 @@ export function Emails({ client, demo, params }: PageProps) {
       {d ? (
         <Callout>
           {demo
-            ? "The demo is read-only. On your list, you approve emails here before anything sends."
+            ? "Nothing sends without your OK. Try it below: on the demo, nothing actually goes out."
             : d.approval.mode === "every"
               ? "Nothing sends until you approve it. Each new batch waits here."
               : d.approval.firstApproved
@@ -117,7 +127,7 @@ export function Emails({ client, demo, params }: PageProps) {
         }))}
       />
 
-      {!demo && waiting.length ? (
+      {waiting.length ? (
         <div className="rx-bulk">
           <label>
             <input
@@ -132,7 +142,7 @@ export function Emails({ client, demo, params }: PageProps) {
             All {num(waiting.length)} on this page
           </label>
           <Button size="sm" disabled={busy || !picked.size} onClick={() => act("approve")}>
-            Send {picked.size ? num(picked.size) : ""}
+            Approve {picked.size ? num(picked.size) : ""}
           </Button>
           <Button
             tone="secondary"
@@ -145,17 +155,26 @@ export function Emails({ client, demo, params }: PageProps) {
         </div>
       ) : null}
       {error ? <Alert>{error.message}</Alert> : null}
+      {done ? (
+        <p className="rx-done" role="status">
+          {done}
+        </p>
+      ) : null}
 
       {list.error && !d ? <Alert>{list.error.message}</Alert> : null}
       {d ? (
         d.rows.length ? (
           <CardList stale={list.loading}>
             {d.rows.map((r) => {
-              const [status, tone] = STATUS[r.status];
+              // On the demo an approved email goes nowhere, so it doesn't say it's going out.
+              const [status, tone] =
+                demo && r.status === "approved"
+                  ? (["Approved", "green"] as const)
+                  : STATUS[r.status];
               return (
                 <Card key={r.enrollmentId}>
                   <div className="rx-card-head">
-                    {!demo && r.status === "awaiting" ? (
+                    {r.status === "awaiting" ? (
                       <input
                         type="checkbox"
                         aria-label={`Pick the email to ${r.name}`}
@@ -197,6 +216,25 @@ export function Emails({ client, demo, params }: PageProps) {
                       </div>
                     </details>
                   ) : null}
+                  {r.status === "awaiting" ? (
+                    <div className="rx-card-actions">
+                      <Button
+                        size="sm"
+                        disabled={busy}
+                        onClick={() => act("approve", [r.enrollmentId])}
+                      >
+                        Approve
+                      </Button>
+                      <Button
+                        tone="secondary"
+                        size="sm"
+                        disabled={busy}
+                        onClick={() => act("skip", [r.enrollmentId])}
+                      >
+                        Don't send
+                      </Button>
+                    </div>
+                  ) : null}
                 </Card>
               );
             })}
@@ -227,6 +265,26 @@ export function Emails({ client, demo, params }: PageProps) {
       ) : null}
     </>
   );
+}
+
+type Acted = "approve" | "skip";
+
+/** The page with the demo's own approvals and skips laid over it, counts and all. */
+function withLocal(page: EmailsPage, local: Map<number, Acted>): EmailsPage {
+  if (!local.size) return page;
+  const counts = { ...page.counts };
+  const rows = page.rows.map((r): EmailRow => {
+    const a = r.status === "awaiting" ? local.get(r.enrollmentId) : undefined;
+    if (!a) return r;
+    counts.awaiting -= 1;
+    if (a === "approve") {
+      counts.approved += 1;
+      return { ...r, status: "approved" };
+    }
+    counts.stopped += 1;
+    return { ...r, status: "stopped", stopReason: "manual" };
+  });
+  return { ...page, rows, counts };
 }
 
 /** An email, paragraph by paragraph. One written from the brief can show why. */

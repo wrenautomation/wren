@@ -7,7 +7,7 @@ Status: seasons answered and the send calendar fixed. Studies built and run on r
 ## Built
 
 - **Holiday-aware sending** (f574e18). `WREN_SEND_HOLIDAYS`, default `us,ca,year_end`. Nothing sends on those days, the ramp does not climb, follow-ups skip them like weekends.
-- **Studies** in `@wren/research/studies`. A question, or a vertical, becomes a cited report with offers and emails. Tables `studies` and `study_steps` (migration 0029). CLI `wren study new | run | report | list`.
+- **Studies** in `@wren/research/studies`. A question, or a vertical, becomes a cited report with offers and emails. Tables `studies` and `study_steps` (migration 0030). CLI `wren study new | run | report | list`.
 - **Claude Code as a model.** `@wren/llm` provider `claude-code[:model]` runs `claude -p`. No key; the Claude Code login pays.
 - **Dossier** in `@wren/research/dossier`. Everything we know about a firm and its people, with sources. CLI `wren dossier show <firm>` and `wren dossier export --niche <n>`.
 - **Research skill** `.claude/skills/research`: Claude Code drives studies the way it drives autobrowse.

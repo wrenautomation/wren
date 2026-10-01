@@ -1,6 +1,6 @@
 {
-  "id": "b1d22761-b93f-4583-9d6b-55580ab7ffef",
-  "prevId": "c4eb0e07-1211-40cd-848d-fa136234deb3",
+  "id": "711f1e34-dbbd-4fb0-b9d3-96cd7f1b4c01",
+  "prevId": "b1d22761-b93f-4583-9d6b-55580ab7ffef",
   "version": "7",
   "dialect": "postgresql",
   "tables": {
@@ -2038,6 +2038,211 @@
         "ck_person_lookups_lookupstate": {
           "name": "ck_person_lookups_lookupstate",
           "value": "(\"state\")::text = ANY ((ARRAY['matched'::character varying, 'unresolved'::character varying, 'capped'::character varying])::text[])"
+        }
+      },
+      "isRLSEnabled": false
+    },
+    "public.studies": {
+      "name": "studies",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "serial",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "slug": {
+          "name": "slug",
+          "type": "varchar(80)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "question": {
+          "name": "question",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "angles": {
+          "name": "angles",
+          "type": "jsonb",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "drafts": {
+          "name": "drafts",
+          "type": "jsonb",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "niche": {
+          "name": "niche",
+          "type": "varchar(64)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {},
+      "compositePrimaryKeys": {
+        "pk_studies": {
+          "name": "pk_studies",
+          "columns": [
+            "id"
+          ]
+        }
+      },
+      "uniqueConstraints": {
+        "uq_studies_slug": {
+          "name": "uq_studies_slug",
+          "nullsNotDistinct": false,
+          "columns": [
+            "slug"
+          ]
+        }
+      },
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.study_steps": {
+      "name": "study_steps",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "serial",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "study_id": {
+          "name": "study_id",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "step": {
+          "name": "step",
+          "type": "varchar(16)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "key": {
+          "name": "key",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "outcome": {
+          "name": "outcome",
+          "type": "varchar(16)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "document_id": {
+          "name": "document_id",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "detail": {
+          "name": "detail",
+          "type": "jsonb",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "run_id": {
+          "name": "run_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "fk_study_steps_study_id_studies": {
+          "name": "fk_study_steps_study_id_studies",
+          "tableFrom": "study_steps",
+          "tableTo": "studies",
+          "columnsFrom": [
+            "study_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        },
+        "fk_study_steps_document_id_documents": {
+          "name": "fk_study_steps_document_id_documents",
+          "tableFrom": "study_steps",
+          "tableTo": "documents",
+          "columnsFrom": [
+            "document_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        },
+        "fk_study_steps_run_id_runs": {
+          "name": "fk_study_steps_run_id_runs",
+          "tableFrom": "study_steps",
+          "tableTo": "runs",
+          "columnsFrom": [
+            "run_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {
+        "pk_study_steps": {
+          "name": "pk_study_steps",
+          "columns": [
+            "id"
+          ]
+        }
+      },
+      "uniqueConstraints": {
+        "uq_study_steps_unit": {
+          "name": "uq_study_steps_unit",
+          "nullsNotDistinct": false,
+          "columns": [
+            "study_id",
+            "step",
+            "key"
+          ]
+        }
+      },
+      "policies": {},
+      "checkConstraints": {
+        "ck_study_steps_step": {
+          "name": "ck_study_steps_step",
+          "value": "(\"step\")::text = ANY ((ARRAY['plan'::character varying, 'search'::character varying, 'ask'::character varying, 'read'::character varying, 'claims'::character varying, 'draft'::character varying])::text[])"
+        },
+        "ck_study_steps_outcome": {
+          "name": "ck_study_steps_outcome",
+          "value": "(\"outcome\")::text = ANY ((ARRAY['ok'::character varying, 'empty'::character varying, 'refused'::character varying, 'failed'::character varying])::text[])"
         }
       },
       "isRLSEnabled": false

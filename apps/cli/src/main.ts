@@ -33,6 +33,7 @@ import { registerDossier } from "./dossier.js";
 import { registerEmail } from "./email.js";
 import { registerFetch } from "./fetch.js";
 import { registerReview } from "./review.js";
+import { registerSearch } from "./search.js";
 import { registerSms } from "./sms.js";
 import { registerStudy } from "./study.js";
 
@@ -204,6 +205,7 @@ registerSms(program, withMainDb, settings);
 registerBooks(program, withMainDb, settings, rootDir);
 registerStudy(program, withMainDb, settings, rootDir);
 registerDossier(program, withMainDb, rootDir);
+registerSearch(program, withMainDb, settings, rootDir);
 
 const renewal = () =>
   clients
