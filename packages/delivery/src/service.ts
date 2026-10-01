@@ -5,9 +5,18 @@
  * Wren's team. The demo reads its sample and writes nothing.
  */
 import * as restate from "@restatedev/restate-sdk";
-import type { Client } from "@wren/core/clients";
+import {
+  addMember,
+  type Client,
+  listMembers,
+  MEMBER_ROLES,
+  type MemberRole,
+  normalEmail,
+  removeMember,
+} from "@wren/core/clients";
 import {
   answer,
+  isDemo,
   type Me,
   PortalRefusal,
   type PortalRequest,
@@ -74,18 +83,21 @@ async function read<T>(
 
 /**
  * A change in one transaction, logged as this person's. `team` writes are
- * Wren's only. A domain refusal leaves with its status.
+ * Wren's only; `owner` writes are an owner's or Wren's. A domain refusal leaves
+ * with its status.
  * ponytail: no journal, so a lost reply after commit retries the write (a
  * doubled update); add an idempotency key from the browser if that shows up.
  */
 async function write<T>(
   deps: DeliveryDeps,
   req: PortalRequest,
-  who: "client" | "team",
+  who: "client" | "owner" | "team",
   change: (db: Queryable, client: Client, viewer: SignedViewer) => Promise<T>,
 ): Promise<T> {
   const { client, viewer } = await pickForWrite(deps.main, req);
   if (who === "team" && !viewer.operator) throw new PortalRefusal("that's for Wren's team", 403);
+  if (who === "owner" && !viewer.operator && !(await isOwner(deps.main, client.id, viewer.email)))
+    throw new PortalRefusal("only an owner can change who sees this", 403);
   try {
     return await deps.main.transaction(async (tx) => {
       await setAuditActor(tx, viewer.email);
@@ -95,6 +107,40 @@ async function write<T>(
     if (err instanceof DeliveryRefusal) throw new PortalRefusal(err.message, err.status);
     throw err;
   }
+}
+
+const isOwner = async (db: Queryable, clientId: string, email: string) =>
+  (await listMembers(db, clientId)).some(
+    (m) => m.email === normalEmail(email) && m.role === "owner",
+  );
+
+/** A project always keeps an owner: someone has to be able to invite. */
+async function keepAnOwner(db: Queryable, clientId: string, email: string) {
+  const owners = (await listMembers(db, clientId)).filter((m) => m.role === "owner");
+  if (owners.length === 1 && owners[0]?.email === email)
+    throw new PortalRefusal("the last owner stays; make someone else an owner first", 409);
+}
+
+const EMAIL = /^[^@\s]+@[^@\s]+\.[^@\s]+$/;
+const emailOf = (v: unknown): string => {
+  const e = typeof v === "string" ? normalEmail(v) : "";
+  if (!EMAIL.test(e) || e.length > 254) throw new PortalRefusal("that isn't an email", 400);
+  return e;
+};
+const roleOf = (v: unknown): MemberRole => {
+  if (v === undefined) return "member";
+  if (!MEMBER_ROLES.includes(v as MemberRole))
+    throw new PortalRefusal(`role is one of ${MEMBER_ROLES.join(", ")}`, 400);
+  return v as MemberRole;
+};
+
+/** Someone who sees this client, for its Settings page. */
+export interface MemberView {
+  email: string;
+  role: MemberRole;
+  invitedBy: string | null;
+  invitedAt: string;
+  lastSeenAt: string | null;
 }
 
 type EngagementReq = PortalRequest & { engagementId?: number };
@@ -232,6 +278,40 @@ export function deliveryApi(deps: DeliveryDeps) {
         await hideUpdate(db, c.id, idOf(req.updateId, "update"));
         return { hidden: true };
       }),
+    /** Who sees this client. The demo lists nobody: its members are real people. */
+    people: async (req: PortalRequest): Promise<{ people: MemberView[]; canManage: boolean }> => {
+      const client = await pickClient(deps.main, req);
+      if (isDemo(req.viewer)) return { people: [], canManage: false };
+      const rows = await listMembers(deps.main, client.id);
+      const me = normalEmail(req.viewer.email);
+      return {
+        people: rows.map((m) => ({
+          email: m.email,
+          role: m.role,
+          invitedBy: m.invitedBy,
+          invitedAt: m.invitedAt.toISOString(),
+          lastSeenAt: m.lastSeenAt?.toISOString() ?? null,
+        })),
+        canManage: seesInternal(req) || rows.some((m) => m.email === me && m.role === "owner"),
+      };
+    },
+    /** Let an email sign in and see this client; again changes their role. */
+    invite: (req: PortalRequest & { email: string; role?: MemberRole }) =>
+      write(deps, req, "owner", async (db, c, v) => {
+        const email = emailOf(req.email);
+        const role = roleOf(req.role);
+        if (role !== "owner") await keepAnOwner(db, c.id, email);
+        const m = await addMember(db, c.id, email, { role, invitedBy: v.email });
+        return { email: m.email, role: m.role };
+      }),
+    remove: (req: PortalRequest & { email: string }) =>
+      write(deps, req, "owner", async (db, c) => {
+        const email = emailOf(req.email);
+        await keepAnOwner(db, c.id, email);
+        if (!(await removeMember(db, c.id, email)))
+          throw new PortalRefusal("they don't see this project", 404);
+        return { removed: email };
+      }),
   };
 }
 
@@ -269,6 +349,9 @@ export function makeDeliveryPortal(deps: DeliveryDeps) {
       slip: (_: restate.Context, req: Req<"slip">) => answer(() => api.slip(req)),
       result: (_: restate.Context, req: Req<"result">) => answer(() => api.result(req)),
       hide: (_: restate.Context, req: Req<"hide">) => answer(() => api.hide(req)),
+      people: (_: restate.Context, req: Req<"people">) => answer(() => api.people(req)),
+      invite: (_: restate.Context, req: Req<"invite">) => answer(() => api.invite(req)),
+      remove: (_: restate.Context, req: Req<"remove">) => answer(() => api.remove(req)),
     },
   });
 }

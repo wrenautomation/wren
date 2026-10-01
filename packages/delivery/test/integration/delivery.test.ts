@@ -364,6 +364,45 @@ describe("what the team's writes take", () => {
   });
 });
 
+describe("people", () => {
+  const CY: Viewer = { email: "cy@acme.example" };
+  it("an owner invites a teammate, who then sees the project but can't invite", async () => {
+    expect(await api.invite({ viewer: AMY, email: " Cy@Acme.example ", role: "member" })).toEqual({
+      email: "cy@acme.example",
+      role: "member",
+    });
+    expect((await api.me({ viewer: CY })).clients.map((c) => c.id)).toEqual(["acme"]);
+    const seen = await api.people({ viewer: CY });
+    expect(seen.canManage).toBe(false);
+    expect(seen.people.find((p) => p.email === "cy@acme.example")?.invitedBy).toBe(
+      "amy@acme.example",
+    );
+    expect(await refused(api.invite({ viewer: CY, email: "dee@acme.example" }))).toBe(403);
+    expect(await refused(api.remove({ viewer: CY, email: "amy@acme.example" }))).toBe(403);
+    expect((await api.people({ viewer: AMY })).canManage).toBe(true);
+  });
+
+  it("keeps the last owner, refuses bad emails and other clients' owners", async () => {
+    expect(await refused(api.remove({ viewer: AMY, email: "amy@acme.example" }))).toBe(409);
+    expect(
+      await refused(api.invite({ viewer: AMY, email: "amy@acme.example", role: "member" })),
+    ).toBe(409);
+    expect(await refused(api.invite({ viewer: AMY, email: "not an email" }))).toBe(400);
+    expect(
+      await refused(api.invite({ viewer: AMY, email: "x@acme.example", role: "admin" as never })),
+    ).toBe(400);
+    expect(await refused(api.invite({ viewer: BO, ...acme, email: "x@beta.example" }))).toBe(403);
+  });
+
+  it("a removed teammate loses the project at once", async () => {
+    expect(await api.remove({ viewer: OPS, ...acme, email: "cy@acme.example" })).toEqual({
+      removed: "cy@acme.example",
+    });
+    expect(await refused(api.home({ viewer: CY, ...acme }))).toBe(403);
+    expect(await refused(api.remove({ viewer: AMY, email: "cy@acme.example" }))).toBe(404);
+  });
+});
+
 describe("the demo", () => {
   beforeAll(async () => {
     const e = await startEngagement(pg.db, {
@@ -393,6 +432,8 @@ describe("the demo", () => {
     expect(await refused(api.answer({ viewer: DEMO, askId: ask?.id ?? 0, answer: "x" }))).toBe(403);
     expect(await refused(api.post({ viewer: DEMO, body: "x" }))).toBe(403);
     expect(await refused(api.post({ viewer: OPS, client: "demo", body: "x" }))).toBe(403);
+    expect(await refused(api.invite({ viewer: DEMO, email: "x@y.example" }))).toBe(403);
+    expect(await api.people({ viewer: DEMO })).toEqual({ people: [], canManage: false });
   });
 
   it("is never among a client's or a stranger's clients", async () => {

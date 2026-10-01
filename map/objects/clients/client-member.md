@@ -42,6 +42,7 @@ Citations: `packages/core/src/clients/schema.ts:53`, `packages/core/src/clients/
 |---|---|
 | `wren clients members add\|remove\|list`, `wren operators add\|remove\|list` | writes |
 | auth.wrenautomation.com, app.wrenautomation.com | reads |
+| portal Settings (`delivery/people`, `invite`, `remove`; `packages/delivery/src/service.ts`) | an owner or Wren invites and removes; the last owner stays |
 
 ## See
 

@@ -12,6 +12,7 @@ export type {
   DeliveryHome,
   EngagementView,
   Me,
+  MemberView,
   MilestoneState,
   ResultView,
   StepView,

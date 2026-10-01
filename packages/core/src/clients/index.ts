@@ -8,6 +8,7 @@ import {
   createDatabase,
   type Db,
   migrateClient,
+  type Queryable,
 } from "@wren/db";
 import { and, asc, eq, sql } from "drizzle-orm";
 import {
@@ -58,12 +59,12 @@ export async function listClients(main: Db): Promise<Client[]> {
   return main.select().from(clients).orderBy(asc(clients.id));
 }
 
-export async function findClient(main: Db, id: string): Promise<Client | null> {
+export async function findClient(main: Queryable, id: string): Promise<Client | null> {
   const [row] = await main.select().from(clients).where(eq(clients.id, id));
   return row ?? null;
 }
 
-export async function getClient(main: Db, id: string): Promise<Client> {
+export async function getClient(main: Queryable, id: string): Promise<Client> {
   const row = await findClient(main, id);
   if (!row) throw new Error(`unknown client ${id}; see \`wren clients list\``);
   return row;
@@ -125,7 +126,7 @@ export const normalEmail = (email: string) => email.trim().toLowerCase();
 
 /** Add someone to a client, or change their role. */
 export async function addMember(
-  main: Db,
+  main: Queryable,
   clientId: string,
   email: string,
   opts: { role?: MemberRole; invitedBy?: string } = {},
@@ -141,7 +142,11 @@ export async function addMember(
   return row;
 }
 
-export async function removeMember(main: Db, clientId: string, email: string): Promise<boolean> {
+export async function removeMember(
+  main: Queryable,
+  clientId: string,
+  email: string,
+): Promise<boolean> {
   const gone = await main
     .delete(clientMembers)
     .where(and(eq(clientMembers.clientId, clientId), eq(clientMembers.email, normalEmail(email))))
@@ -149,7 +154,7 @@ export async function removeMember(main: Db, clientId: string, email: string): P
   return gone.length > 0;
 }
 
-export async function listMembers(main: Db, clientId: string): Promise<ClientMember[]> {
+export async function listMembers(main: Queryable, clientId: string): Promise<ClientMember[]> {
   return main
     .select()
     .from(clientMembers)

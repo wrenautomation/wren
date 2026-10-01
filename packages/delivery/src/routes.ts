@@ -13,6 +13,9 @@ export const DELIVERY_ROUTES = [
   "slip",
   "result",
   "hide",
+  "people",
+  "invite",
+  "remove",
 ] as const;
 export type DeliveryRoute = (typeof DELIVERY_ROUTES)[number];
 /** The ones that change something: never cached, never on the demo. */
@@ -27,4 +30,6 @@ export const DELIVERY_WRITES: readonly DeliveryRoute[] = [
   "slip",
   "result",
   "hide",
+  "invite",
+  "remove",
 ];
