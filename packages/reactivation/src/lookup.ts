@@ -5,6 +5,7 @@
  * pause; re-running resumes.
  */
 import { eachConcurrently } from "@wren/channel-email";
+import { type Feed, NO_FEED } from "@wren/core";
 import type { SiteClient } from "@wren/core/content";
 import type { Queryable } from "@wren/db";
 import type { FindingKind } from "@wren/research";
@@ -15,6 +16,7 @@ import {
   recordLookup,
 } from "@wren/research/people";
 import { type SQL, sql } from "drizzle-orm";
+import { failedLine, fullName, lookupLine } from "./feed.js";
 
 /** Errors in a row that stop the run: something is down, not one odd person. */
 const ERROR_STREAK = 5;
@@ -38,6 +40,7 @@ export interface CrmLookupOptions {
   again?: boolean;
   runId?: string | null;
   now?: () => Date;
+  feed?: Feed;
 }
 
 interface Row extends Record<string, unknown> {
@@ -120,16 +123,19 @@ export async function lookUpCrmPeople(
     aborted: null,
   };
   const lookup: LookupOptions = { linkedin: opts.linkedin, ...(opts.now ? { now: opts.now } : {}) };
+  const feed = opts.feed ?? NO_FEED;
   let streak = 0;
   await eachConcurrently(
     subjects,
     opts.concurrency ?? 2,
     async (s) => {
       let r: Awaited<ReturnType<typeof lookUpPerson>>;
+      const name = fullName(s.firstName, s.lastName);
       try {
         r = await lookUpPerson(sites, s, lookup);
         await recordLookup(db, s.personId, r, opts.runId ?? null);
       } catch (err) {
+        await feed.emit(failedLine("lookup", name, err));
         stats.errors += 1;
         streak += 1;
         if (streak >= ERROR_STREAK)
@@ -137,6 +143,7 @@ export async function lookUpCrmPeople(
         return;
       }
       streak = 0;
+      await feed.emit(lookupLine(name, r));
       stats[r.state] += 1;
       for (const f of r.findings) stats.findings[f.kind] = (stats.findings[f.kind] ?? 0) + 1;
       if (r.state !== "capped" || !r.retryAt) return;

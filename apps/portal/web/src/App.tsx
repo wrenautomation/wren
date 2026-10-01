@@ -2,6 +2,7 @@
 import {
   Alert,
   AppShell,
+  ButtonLink,
   Gate,
   Loading,
   type NavGroup,
@@ -117,6 +118,7 @@ export function App() {
   };
   const { module, page } = at;
   const demo = me.data?.demo ?? false;
+  const action = module.action;
 
   return (
     <AppShell
@@ -135,6 +137,18 @@ export function App() {
         { label: page.label },
       ]}
       notice={demo ? DEMO : undefined}
+      actions={
+        action && action.page !== page.id ? (
+          <ButtonLink
+            href={`/${module.id}/${action.page}`}
+            tone="quiet"
+            size="sm"
+            icon={action.icon}
+          >
+            {action.label}
+          </ButtonLink>
+        ) : undefined
+      }
       page={pathOf(module, page)}
       theme={theme}
     >

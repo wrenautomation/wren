@@ -22,6 +22,7 @@ import {
   type RepliesPage,
   type ReplyFilter,
 } from "./outbox.js";
+import { portalRun, type RunPage } from "./run.js";
 import { portalSetup, type Setup } from "./setup.js";
 import {
   listNames,
@@ -157,6 +158,11 @@ const offsetOf = (v: unknown): number | undefined => {
   const n = typeof v === "number" ? v : typeof v === "string" ? Number(v) : Number.NaN;
   return Number.isFinite(n) && n > 0 ? Math.min(Math.floor(n), 1_000_000) : undefined;
 };
+/** A feed cursor: the last line seen, 0 before any; up to the serial's top. */
+const cursorOf = (v: unknown): number | undefined => {
+  const n = typeof v === "number" ? v : typeof v === "string" && v.trim() ? Number(v) : Number.NaN;
+  return Number.isFinite(n) && n >= 0 ? Math.min(Math.floor(n), 2_147_483_647) : undefined;
+};
 const textOf = (v: unknown): string | undefined =>
   typeof v === "string" && v.trim() ? v : undefined;
 /** A person or reply id that isn't a positive whole number names nobody. */
@@ -182,6 +188,14 @@ export function portalApi(deps: PortalDeps) {
     overview: (req: PortalRequest): Promise<Overview> => read(deps, req, portalOverview),
     health: (req: PortalRequest): Promise<CrmHealth> => read(deps, req, (db) => crmHealth(db)),
     setup: (req: PortalRequest): Promise<Setup> => read(deps, req, portalSetup),
+    run: (req: PortalRequest & { run?: string; after?: number }): Promise<RunPage> =>
+      read(deps, req, (db) =>
+        portalRun(db, {
+          run: textOf(req.run),
+          after: cursorOf(req.after),
+          operator: !("demo" in req.viewer) && req.viewer.operator === true,
+        }),
+      ),
     people: (
       req: PortalRequest & { filter?: PeopleFilter; offset?: number; q?: string },
     ): Promise<PeoplePage> =>
@@ -292,7 +306,9 @@ export type {
 } from "./outbox.js";
 export type { Pipeline, PipelineStep, PipelineStepId, StepState } from "./pipeline.js";
 export { PORTAL_ROUTES, PORTAL_WRITES } from "./routes.js";
+export type { LiveRun, RunPage } from "./run.js";
 export type { Setup } from "./setup.js";
+export type { Story } from "./story.js";
 export type {
   Now,
   Overview,
@@ -329,6 +345,7 @@ export function makeReactivationPortal(deps: PortalDeps) {
       overview: (_: restate.Context, req: Req<"overview">) => answer(() => api.overview(req)),
       health: (_: restate.Context, req: Req<"health">) => answer(() => api.health(req)),
       setup: (_: restate.Context, req: Req<"setup">) => answer(() => api.setup(req)),
+      run: (_: restate.Context, req: Req<"run">) => answer(() => api.run(req)),
       people: (_: restate.Context, req: Req<"people">) => answer(() => api.people(req)),
       person: (_: restate.Context, req: Req<"person">) => answer(() => api.person(req)),
       raw: (_: restate.Context, req: Req<"raw">) => answer(() => api.raw(req)),

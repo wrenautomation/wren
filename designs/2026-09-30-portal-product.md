@@ -59,10 +59,11 @@ The portal stops being a set of pages and becomes a packaged app. One shell, pro
   - Filters become underline tabs. Buttons are square; only chips are pills.
   - That's Wren's look. A client's portal can wear its own (P9).
 - **P4. Paths, not hashes.** For example `/reactivation/people?filter=moved`. The URL names the product, which reads well on screen. The Worker and the preview both already serve the app for unknown paths.
-- **P5. The demo's Run is a replay, and says so.** The label reads "Replay of the Sep 30 run, sped up".
-  - Its events come from timestamps every stage already writes: verifications, person lookups, company checks, findings, scores, briefs and compositions. No new table.
-  - They play in story order (verify → lookup → signals → score → brief → compose), not clock order. Stages overlap, and the briefs were redone after compose.
-  - Client portals later show the same view live, from the same events.
+- **P5. Run shows a live run when one is going, and a labeled replay when not.** (Revised at step 4.)
+  - Live: `crm run` writes one plain line per person or company as it works, into `run_events` (a new table; core `runFeed`). The page polls with the last `seq` it has: every 1.5s while a run is going, every 10s while not.
+  - Replay: rebuilt from the records every stage keeps (verifications, lookups, company checks, findings, scores, briefs, emails), in the live run's words. The label stays on screen: "Replay of the work on your list as of Sep 30, sped up."
+  - Story order (verify → lookup → signals → score → brief → compose), not clock order. A stage with no records is left out, never filled in.
+  - A run that starts while you watch the replay is offered ("Watch it live"), never swapped in.
   - There is never a fake live run.
 - **P6. Motion follows the lander.** One thing at a time, in story order. Catch-up runs at most 2x, and nothing is skipped. With reduced motion, the end state shows still. Space pauses.
 - **P7. Every new route passes the mask.** `run` and `setup` answer through `mask.ts` (a `source` route was dropped: sources ride along with the person and email views), and the leak test walks them. Setup names a research account by its kind ("a LinkedIn research account"), never by whose it is.
@@ -115,3 +116,10 @@ What keeps it cheap later, built now:
     - A redraft records a new 'drafted' composition for the same enrollment. So the daily cap now counts enrollments made in the last day, and `crm status` counts drafted enrollments, not compositions.
     - The prompt now bans numbers the brief lacks: the fact gate refused two drafts that offered "10 minutes".
 - **2026-09-30** William: "there's no actual approval button for the emails." The demo hid them as read-only. Now each waiting email has Approve and Don't send, and the demo shows them too. On the demo a click changes only the page (tag, counts, a line saying nothing sends); a reload resets it. Client portals call `approve` and `skip` as before.
+- **2026-09-30** Step 4 built. William approved the event system ("thats the sort of system im thinking of"): live lines from `run_events`, polled; the replay from records (P5 revised, since the original "no new table" couldn't show a live run).
+  - Core: `runFeed(db, runId)` writes a line and never stops the work (it warns once, then goes quiet); `readFeed` reads after a cursor. `detail` (the technical why) reaches operators only.
+  - Kit: `RunView` takes steps and lines as plain props. One line at a time; a live backlog plays at most 2x, never skips; reduced motion shows the end state; Space pauses. A step's count is its handled subjects, or its last line's `count` where it has no line per subject (email checks). Parked subjects show as "waiting", not handled.
+  - Portal: a Run page and a "Watch it run" header button (a module names its one header action). The `run` route is cached 2s at the edge, passes the mask, and the leak test walks it.
+  - Hiring re-run stays parked: no LinkedIn reads on William's account until he lifts it. The replay shows the parked checks as waiting.
+  - Next, in autobrowse's own session: a forward channel so a browser step's progress lands in the same feed (`x-feed-url`, `x-feed-tag`, `traceparent`). Wren then adds the ingest route.
+  - When the portal gets a day counter or an end date for the reactivation window, it uses channel-email's `windowEnd(start, days, calendars)`: the 30 days skip holidays.

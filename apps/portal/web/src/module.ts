@@ -22,4 +22,6 @@ export interface Module {
   id: string;
   name: string;
   pages: ModulePage[];
+  /** The one button in the header while on this product: a page to go to. */
+  action?: { page: string; label: string; icon: IconName };
 }

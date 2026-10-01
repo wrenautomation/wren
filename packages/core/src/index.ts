@@ -1,6 +1,7 @@
 export * from "./content/index.js";
 export * from "./doh.js";
 export * from "./emails.js";
+export * from "./feed.js";
 export * from "./ingest/index.js";
 export * from "./notify.js";
 export * from "./people/index.js";

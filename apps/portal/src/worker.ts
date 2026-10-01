@@ -22,6 +22,8 @@ const WRITES: ReadonlySet<string> = new Set(PORTAL_WRITES);
 
 const MAX_BODY = 16 * 1024;
 const DEMO_CACHE_SECONDS = 300;
+/** The run feed changes by the second: a few seconds of cache, or a live run looks stuck. */
+const RUN_CACHE_SECONDS = 2;
 
 type Viewer = { email: string; operator?: boolean } | { demo: true };
 
@@ -158,7 +160,7 @@ async function api(req: Request, env: Env, route: string, ctx?: ExecutionContext
   const stored = new Response(text, {
     headers: {
       "content-type": res.headers.get("content-type") ?? "application/json",
-      "cache-control": `public, max-age=${DEMO_CACHE_SECONDS}`,
+      "cache-control": `public, max-age=${route === "run" ? RUN_CACHE_SECONDS : DEMO_CACHE_SECONDS}`,
     },
   });
   const put = cache.put(key, stored);

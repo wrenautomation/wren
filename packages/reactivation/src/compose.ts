@@ -19,12 +19,14 @@ import {
   messages,
   signed,
 } from "@wren/channel-email";
+import { type Feed, NO_FEED } from "@wren/core";
 import type { Queryable } from "@wren/db";
 import { completeAndParse, type LlmClient, LlmError } from "@wren/llm";
 import { and, eq, sql } from "drizzle-orm";
 import { z } from "zod";
 import { briefLines, MARKS, madeUp } from "./brief.js";
 import { crmHealth } from "./crm/health.js";
+import { composeLine, failedLine, fullName } from "./feed.js";
 import { type ClientProfile, compositions, type Recruiter } from "./schema.js";
 import { LATEST_CRM_ROW, whereFinding } from "./score.js";
 import type { ReactivationSettings, Sender } from "./settings.js";
@@ -499,6 +501,7 @@ export interface ComposeOptions {
   runId?: string | null;
   /** The demo never sends, so the send gate doesn't hold its drafts. */
   demo?: boolean;
+  feed?: Feed;
 }
 
 export async function composeCrmEmails(
@@ -532,9 +535,12 @@ export async function composeCrmEmails(
     subjects.map((s) => s.email),
   );
   const autoApprove = settings.approval === "first" && (await firstBatchApproved(db));
+  const feed = opts.feed ?? NO_FEED;
   let streak = 0;
   for (const s of subjects) {
+    const name = fullName(s.firstName, s.lastName);
     if (suppressed(s.email)) {
+      await feed.emit(composeLine(name, "suppressed"));
       stats.suppressed += 1;
       continue;
     }
@@ -556,15 +562,18 @@ export async function composeCrmEmails(
         await db
           .insert(compositions)
           .values({ ...w.record, state: "failed", detail: w.refused.join("; ") });
+        await feed.emit(composeLine(name, "failed"));
         stats.failed += 1;
       } else {
         const ok = await enroll(db, s, w, picked, profile, autoApprove);
         if (ok) {
+          await feed.emit(composeLine(name, autoApprove ? "approved" : "drafted"));
           stats.drafted += 1;
           if (autoApprove) stats.approved += 1;
         } else stats.raced += 1;
       }
     } catch (err) {
+      await feed.emit(failedLine("compose", name, err));
       stats.errors += 1;
       streak += 1;
       if (streak >= ERROR_STREAK) {

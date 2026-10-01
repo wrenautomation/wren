@@ -12,6 +12,7 @@ export const PORTAL_ROUTES = [
   "skip",
   "book",
   "setup",
+  "run",
 ] as const;
 export type PortalRoute = (typeof PORTAL_ROUTES)[number];
 /** The ones that change a list: never cached, never on the demo. */

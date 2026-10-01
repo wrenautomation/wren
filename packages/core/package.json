@@ -11,6 +11,7 @@
     "./content/box": "./src/content/box.ts",
     "./content/restate": "./src/content/restate.ts",
     "./content/renewal": "./src/content/renewal.ts",
+    "./feed": "./src/feed.ts",
     "./notify": "./src/notify.ts",
     "./restate": "./src/restate/index.ts",
     "./ingest": "./src/ingest/index.ts",

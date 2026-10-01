@@ -9,10 +9,12 @@
  * at least one finding to say. A brief is rewritten only when what it was
  * written from changes, so the same facts are never paid for twice.
  */
+import { type Feed, NO_FEED } from "@wren/core";
 import type { Queryable } from "@wren/db";
 import { completeAndParse, type Envelope, type LlmClient, LlmError } from "@wren/llm";
 import { sql } from "drizzle-orm";
 import { z } from "zod";
+import { briefLine, failedLine } from "./feed.js";
 import { type BriefState, briefs } from "./schema.js";
 import { hiringFinding, LATEST_CRM_ROW, whereFinding } from "./score.js";
 
@@ -361,8 +363,9 @@ export interface CrmBriefStats {
 export async function writeCrmBriefs(
   db: Queryable,
   llm: LlmClient,
-  opts: { limit?: number; runId?: string | null } = {},
+  opts: { limit?: number; runId?: string | null; feed?: Feed } = {},
 ): Promise<CrmBriefStats> {
+  const feed = opts.feed ?? NO_FEED;
   const subjects = await briefSubjects(db, opts);
   const stats: CrmBriefStats = {
     selected: subjects.length,
@@ -418,6 +421,7 @@ export async function writeCrmBriefs(
           set: { ...row, createdAt: sql`now()` },
         });
     } catch (err) {
+      await feed.emit(failedLine("brief", s.name, err));
       stats.errors += 1;
       streak += 1;
       if (streak >= ERROR_STREAK) {
@@ -427,6 +431,7 @@ export async function writeCrmBriefs(
       continue;
     }
     streak = 0;
+    await feed.emit(briefLine(s.name, state, gated.kept.length));
     stats[state] += 1;
     stats.dropped += gated.dropped.length;
   }
