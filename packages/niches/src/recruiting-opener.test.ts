@@ -53,7 +53,9 @@ describe("recruiting book-first opener", () => {
       true,
     );
     expect(b).toContain("software engineer at a top Canadian university (University of Waterloo)");
+    expect(b).toContain("I relate to the work you're doing.");
     expect(b).toContain("Government of Canada");
+    expect(b).toContain("missing out on hundreds of thousands in potential revenue");
     expect(b).toContain("Guess what a lot of them are probably doing right now?");
   });
 
@@ -70,6 +72,7 @@ describe("recruiting book-first opener", () => {
       "I'd bet",
       "I know you're busy",
       "every dollar back",
+      "Just not through you",
     ]) {
       expect(b).not.toContain(gone);
     }

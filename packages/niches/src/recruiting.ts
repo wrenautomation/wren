@@ -1,5 +1,5 @@
 /** Recruiting and staffing firms: the dead lead reactivation pilot, sold to the owner or MD. */
-import { twoEmailSequence } from "@wren/channel-email";
+import { sequence, sequenceStep, twoEmailSequence } from "@wren/channel-email";
 import { defineNiche, rawLocation, templatesDir } from "./niche.js";
 import {
   recruitingDatasets,
@@ -36,16 +36,17 @@ export const recruiting = defineNiche({
     "associates",
   ],
   templatesDir: templatesDir(import.meta.url, "recruiting"),
-  // A/B on the opener's ask: book a call now, or watch the video first and book on the
-  // follow-up. Each firm's half (`half`, fixed by its id) picks its arm.
+  // A/B on the opener's ask: book a call now, or ask if they want the demo. Each firm's
+  // half (`half`, fixed by its id) picks its arm. The demo arm has no follow-up for now: a
+  // yes to the demo is a warm reply, and William sends the link himself.
   sequences: [
     twoEmailSequence("book-first/opener", "book-first/followup"),
-    twoEmailSequence("watch-first/opener", "watch-first/followup"),
+    sequence("watch-first-days-0", [sequenceStep("watch-first/opener", 0)]),
   ],
   offers: { "book-first": "reactivation", "watch-first": "reactivation" },
   plan: [
     { sequence: "book-first-days-0-5", where: { half: "a" } },
-    { sequence: "watch-first-days-0-5" },
+    { sequence: "watch-first-days-0" },
   ],
   // Overture, SBA, google-maps and csv imports all keep "City, ST" under `geo`.
   companyLocation: (company) => rawLocation(company, "geo"),

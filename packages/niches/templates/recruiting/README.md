@@ -26,14 +26,15 @@ any other warm reply pings William. The inbox syncs every 2 minutes
 
 Two arms, one offer (`reactivation`), split by `half`:
 
-- `book-first/` (half a), sequence `book-first-days-0-5`: both emails
-  offer `{call.times}`.
-- `watch-first/` (half b), sequence `watch-first-days-0-5`: same email,
+- `book-first/` (half a), sequence `book-first-days-0-5`: the opener
+  offers `{call.times}`; the follow-up is a two-line bump with the same
+  ask.
+- `watch-first/` (half b), sequence `watch-first-days-0`: same email,
   but the ask is a curiosity loop ("if you're curious how I'll pull that
-  off, I can send you a quick demo"), no call; the follow-up sends the
-  demo (`{link.watch}`) and offers `{call.times}`. No
-  firm demo and no offer `video` yet, so this arm composes nothing
-  until one exists.
+  off, I can send you a quick demo"), no call. No follow-up for now. A
+  yes is a warm reply, so William gets the ping and answers by hand:
+  "Sent you the link. Appreciate the quick reply. Looking forward to
+  chatting more about how I can help your business."
 
 Each email's clicks and bookings carry its link code, so results split
 by arm.
@@ -47,21 +48,20 @@ by arm.
   `{offer.goal}` and `{offer.page}` come from the registry, so the
   email, the page and the form say the same thing. A key the offer
   doesn't set refuses the niche at import.
-- No links in a cold email (outbound-copy SOP). The one exception is
-  the watch-first follow-up, which sends the demo the opener
-  offered.
+- No links in a cold email (outbound-copy SOP). The sign-off links
+  wrenautomation.com/recruiting/lead-reactivation (the niche's `lander`).
 - Order (outbound-copy SOP): personalization, who William is, the
   offer, the ask. William's voice: short, plain, direct.
   - Personalization is a hard cold read: William has followed the firm
     for a while and, as a software student always recruiting for
-    internships, likes their work. The firm's own line
+    internships, relates to their work. The firm's own line
     (`{company.opener}`) goes first when there is one.
   - Who William is: a software engineer at a top Canadian university
     (University of Waterloo), with production systems at the Government
     of Canada (one used by 17,000 staff) and a U of A lab.
   - The pain is cold read and problem aware: "I'm sure you've got years of
-    past clients in your ATS", probably hiring right now, just not
-    through the firm.
+    past clients in your ATS", probably hiring right now; the firm is
+    missing out on hundreds of thousands in potential revenue.
   - The offer is plain words: a system that tracks past clients and books
     `{offer.goal}` meetings in `{offer.days}` days; no results, no pay.
     No "I know you're busy", no domain pre-objection, no scarcity line.
