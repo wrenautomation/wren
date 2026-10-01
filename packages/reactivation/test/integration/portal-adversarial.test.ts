@@ -4,7 +4,7 @@
  * logins reaching past their own client. Anything but an answer or a
  * PortalRefusal becomes a non-terminal error, which Restate retries forever.
  */
-import { clients, updateClient } from "@wren/core/clients";
+import { addMember, clients } from "@wren/core/clients";
 import { startTestPostgres, type TestPostgres } from "@wren/db/testing";
 import { sql } from "drizzle-orm";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
@@ -30,14 +30,10 @@ beforeAll(async () => {
   jane = await personId("Jane Doe");
   await pg.db.insert(clients).values([
     { id: "demo", name: "Northside Talent", database: "wren_client_demo", demo: true },
-    {
-      id: "acme",
-      name: "Acme Staffing",
-      database: "wren_client_acme",
-      portalEmails: ["owner@acme.example"],
-    },
+    { id: "acme", name: "Acme Staffing", database: "wren_client_acme" },
     { id: "beta", name: "Beta Search", database: "wren_client_beta" },
   ]);
+  await addMember(pg.db, "acme", "owner@acme.example");
   api = portalApi({ main: pg.db, open: () => pg.db });
 });
 afterAll(() => pg.stop());
@@ -85,9 +81,9 @@ describe("who sees which client", () => {
     expect(view.row.name).toBe("Jane Doe");
   });
 
-  // Was a bug: an address pasted with a space (`--portal-email "a@firm.com "`) is stored as is; that login never gets in.
-  it("a portal email saved with stray spaces still signs in", async () => {
-    await updateClient(pg.db, "beta", { portalEmails: [" Boss@Beta.example "] });
+  // Was a bug: an address pasted with a space was stored as is; that login never got in.
+  it("a member added with stray spaces still signs in", async () => {
+    await addMember(pg.db, "beta", " Boss@Beta.example ");
     expect((await api.me({ viewer: { email: "boss@beta.example" } })).clients).toEqual([
       { id: "beta", name: "Beta Search" },
     ]);

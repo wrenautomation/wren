@@ -80,8 +80,10 @@ describe("which tables", () => {
       from pg_class c join pg_namespace n on n.oid = c.relnamespace
       where c.relkind in ('r', 'p') and left(n.nspname, 3) <> 'pg_' and n.nspname <> 'information_schema'`);
     expect(rows.length).toBeGreaterThan(40);
-    // Books keeps its own schema; the migration journal is drizzle's.
-    expect(new Set(rows.map((r) => r.schema))).toEqual(new Set(["public", "books", "drizzle"]));
+    // Books keeps its own schema; the migration journal is drizzle's; sign-in is auth's.
+    expect(new Set(rows.map((r) => r.schema))).toEqual(
+      new Set(["public", "books", "drizzle", "auth"]),
+    );
     for (const r of rows) {
       const name = auditName(r.schema, r.table);
       const want =

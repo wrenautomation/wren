@@ -12,6 +12,7 @@
     "preview": "vite build web && tsx scripts/preview.ts"
   },
   "dependencies": {
+    "@wren/auth": "workspace:*",
     "@wren/reactivation": "workspace:*",
     "@wren/ui": "workspace:*",
     "react": "19.3.0",

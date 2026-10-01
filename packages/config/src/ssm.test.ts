@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { applyEnv } from "./ssm-env.js";
+import { applyEnv } from "./ssm.js";
 
 describe("applyEnv", () => {
   it("sets names the process lacks and keeps ones it has", () => {

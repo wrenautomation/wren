@@ -1,15 +1,16 @@
 /**
- * Adversarial cases for the Worker: tokens shaped the ways Access might send
+ * Adversarial cases for the Worker: tokens shaped the ways our sign-in might send
  * them (or an attacker might), odd requests at the API edge, and the demo
  * cache. Same fakes as worker.test.ts.
  */
+
+import { forgetKeys } from "@wren/auth/verify";
 import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
-import { forgetKeys } from "../src/access.js";
 import type { Env } from "../src/env.js";
 import worker from "../src/worker.js";
 
-const TEAM = "wren.cloudflareaccess.com";
-const AUD = "aud-tag";
+const AUTH = "https://auth.test";
+const AUD = "wren";
 let keys: CryptoKeyPair;
 let rotated: CryptoKeyPair;
 let published: { kid: string; key: CryptoKey }[];
@@ -23,19 +24,16 @@ const enc = (v: unknown) =>
     .replace(/=+$/, "");
 
 async function token(claims: Record<string, unknown>, kid = "k1", key = keys.privateKey) {
-  const head = enc({ alg: "RS256", kid, typ: "JWT" });
+  const head = enc({ alg: "EdDSA", kid, typ: "JWT" });
   const body = enc({
     aud: [AUD],
-    iss: `https://${TEAM}`,
+    iss: AUTH,
+    sub: "u1",
     exp: Math.floor(Date.now() / 1000) + 600,
     email: "owner@client.example",
     ...claims,
   });
-  const sig = await crypto.subtle.sign(
-    "RSASSA-PKCS1-v1_5",
-    key,
-    new TextEncoder().encode(`${head}.${body}`),
-  );
+  const sig = await crypto.subtle.sign("Ed25519", key, new TextEncoder().encode(`${head}.${body}`));
   let bin = "";
   for (const b of new Uint8Array(sig)) bin += String.fromCharCode(b);
   return `${head}.${body}.${enc(bin)}`;
@@ -46,9 +44,7 @@ const env = (over: Partial<Env> = {}): Env => ({
   DEMO_HOST: "demo.test",
   RESTATE_INGRESS_URL: "https://restate.test:8080/",
   RESTATE_AUTH_TOKEN: "rt",
-  ACCESS_TEAM_DOMAIN: TEAM,
-  ACCESS_AUD: AUD,
-  OPERATOR_EMAILS: " William@Wren.example ,ops@wren.example,, ",
+  AUTH_ORIGIN: AUTH,
   ...over,
 });
 
@@ -61,20 +57,11 @@ const post = (host: string, route: string, body: unknown = {}, headers: HeadersI
 
 const signedIn = async (claims: Record<string, unknown>, route = "me", kid?: string) => {
   const t = await token(claims, kid);
-  return worker.fetch(post("app.test", route, {}, { "cf-access-jwt-assertion": t }), env());
+  return worker.fetch(post("app.test", route, {}, { authorization: `Bearer ${t}` }), env());
 };
 
 const gen = async () =>
-  (await crypto.subtle.generateKey(
-    {
-      name: "RSASSA-PKCS1-v1_5",
-      modulusLength: 2048,
-      publicExponent: new Uint8Array([1, 0, 1]),
-      hash: "SHA-256",
-    },
-    true,
-    ["sign", "verify"],
-  )) as CryptoKeyPair;
+  (await crypto.subtle.generateKey({ name: "Ed25519" }, true, ["sign", "verify"])) as CryptoKeyPair;
 
 beforeAll(async () => {
   keys = await gen();
@@ -88,7 +75,7 @@ beforeEach(() => {
   published = [{ kid: "k1", key: keys.publicKey }];
   vi.stubGlobal("fetch", async (input: RequestInfo | URL, init?: RequestInit) => {
     const url = String(input);
-    if (url === `https://${TEAM}/cdn-cgi/access/certs`) {
+    if (url === `${AUTH}/api/auth/jwks`) {
       const out = [];
       for (const p of published)
         out.push({ ...(await crypto.subtle.exportKey("jwk", p.key)), kid: p.kid });
@@ -114,16 +101,37 @@ describe("tokens", () => {
     expect(restate).toEqual([]);
   });
 
-  it("an operator matches whatever the case and spaces, in the list or the token", async () => {
-    await signedIn({ email: "  WILLIAM@wren.EXAMPLE " });
-    expect(restate[0]?.body.viewer).toEqual({ email: "william@wren.example", operator: true });
+  it("an operator's email is lowercased; only operator: true marks one", async () => {
+    await signedIn({ email: "  WILLIAM@wren.EXAMPLE ", operator: "true" });
+    expect(restate[0]?.body.viewer).toEqual({ email: "william@wren.example" });
+    await signedIn({ email: "  WILLIAM@wren.EXAMPLE ", operator: true });
+    expect(restate[1]?.body.viewer).toEqual({ email: "william@wren.example", operator: true });
+  });
+
+  it("no subject is refused", async () => {
+    expect((await signedIn({ sub: undefined })).status).toBe(401);
+  });
+
+  it("an RS256 token is refused, whatever it carries", async () => {
+    const t = await token({});
+    const [, p, sig] = t.split(".");
+    const res = await worker.fetch(
+      post(
+        "app.test",
+        "me",
+        {},
+        { authorization: `Bearer ${enc({ alg: "RS256", kid: "k1" })}.${p}.${sig}` },
+      ),
+      env(),
+    );
+    expect(res.status).toBe(401);
   });
 
   it("an aud array that only contains another app's tag is refused", async () => {
     expect((await signedIn({ aud: ["other", `${AUD}x`] })).status).toBe(401);
   });
 
-  it("a key Access rotated in is picked up", async () => {
+  it("a rotated-in key is picked up", async () => {
     await signedIn({});
     published = [
       { kid: "k1", key: keys.publicKey },
@@ -133,13 +141,13 @@ describe("tokens", () => {
     vi.setSystemTime(Date.now() + 2 * 60_000);
     const t = await token({}, "k2", rotated.privateKey);
     const res = await worker.fetch(
-      post("app.test", "me", {}, { "cf-access-jwt-assertion": t }),
+      post("app.test", "me", {}, { authorization: `Bearer ${t}` }),
       env(),
     );
     expect(res.status).toBe(200);
   });
 
-  it("a key Access removed stops working after the hourly refresh", async () => {
+  it("a removed key stops working after the hourly refresh", async () => {
     await signedIn({});
     published = [{ kid: "k2", key: rotated.publicKey }];
     vi.useFakeTimers({ toFake: ["Date"] });
@@ -158,10 +166,10 @@ describe("tokens", () => {
     expect((await signedIn({ exp: "9999999999" })).status).toBe(401);
   });
 
-  it("the CF_Authorization cookie alone signs nobody in", async () => {
+  it("a cookie alone signs nobody in", async () => {
     const t = await token({});
     const res = await worker.fetch(
-      post("app.test", "me", {}, { cookie: `CF_Authorization=${t}` }),
+      post("app.test", "me", {}, { cookie: `__Secure-better-auth.session_token=${t}` }),
       env(),
     );
     expect(res.status).toBe(401);
@@ -169,7 +177,7 @@ describe("tokens", () => {
 
   it("a demo-host token is irrelevant: the demo host never becomes a login", async () => {
     const t = await token({ email: "william@wren.example" });
-    await worker.fetch(post("demo.test", "me", {}, { "cf-access-jwt-assertion": t }), env());
+    await worker.fetch(post("demo.test", "me", {}, { authorization: `Bearer ${t}` }), env());
     expect(restate[0]?.body.viewer).toEqual({ demo: true });
   });
 });
@@ -279,7 +287,7 @@ describe("the demo cache", () => {
     await worker.fetch(post("demo.test", "overview", { client: "demo" }), env());
     const t = await token({});
     const res = await worker.fetch(
-      post("app.test", "overview", { client: "demo" }, { "cf-access-jwt-assertion": t }),
+      post("app.test", "overview", { client: "demo" }, { authorization: `Bearer ${t}` }),
       env(),
     );
     expect(res.status).toBe(200);

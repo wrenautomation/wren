@@ -17,6 +17,7 @@ export default defineConfig({
     "../reactivation/src/schema.ts",
     "../books/src/schema.ts",
     "../channel-search/src/schema.ts",
+    "../auth/src/schema.ts",
   ],
   out: "./drizzle",
   casing: "snake_case",

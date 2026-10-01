@@ -6,7 +6,7 @@
  * and are marked "Bug".
  */
 import { signed } from "@wren/channel-email";
-import { clients } from "@wren/core/clients";
+import { addMember, clients } from "@wren/core/clients";
 import { startTestPostgres, type TestPostgres } from "@wren/db/testing";
 import { sql } from "drizzle-orm";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
@@ -149,13 +149,9 @@ beforeAll(async () => {
     .insert(clients)
     .values([
       { id: "demo", name: "Northside Talent", database: "wren_client_demo", demo: true },
-      {
-        id: "acme",
-        name: "Acme Staffing",
-        database: "wren_client_acme",
-        portalEmails: ["owner@acme.example"],
-      },
+      { id: "acme", name: "Acme Staffing", database: "wren_client_acme" },
     ]);
+  await addMember(db(), "acme", "owner@acme.example");
   api = portalApi({ main: db(), open: () => db() });
 
   // A pair that names Cara in every paragraph, every brief line and every source.

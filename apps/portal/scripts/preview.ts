@@ -1,6 +1,6 @@
 /**
  * The portal on your machine, against your local databases: the built app plus
- * the same API, called in-process instead of through Restate and Access.
+ * the same API, called in-process instead of through Restate and sign-in.
  *
  *   pnpm --filter @wren/portal preview          # as an operator: every client
  *   pnpm --filter @wren/portal preview --demo   # as a demo visitor: masked

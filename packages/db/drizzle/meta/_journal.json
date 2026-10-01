@@ -229,8 +229,15 @@
     {
       "idx": 32,
       "version": "7",
-      "when": 1790832579803,
-      "tag": "0032_video_enrichment",
+      "when": 1790832116123,
+      "tag": "0032_auth_and_members",
+      "breakpoints": true
+    },
+    {
+      "idx": 33,
+      "version": "7",
+      "when": 1790833949614,
+      "tag": "0033_video_enrichment",
       "breakpoints": true
     }
   ]

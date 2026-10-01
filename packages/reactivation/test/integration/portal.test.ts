@@ -5,7 +5,7 @@
  * from, whatever the route or field.
  */
 import { runFeed } from "@wren/core";
-import { clients } from "@wren/core/clients";
+import { addMember, clients } from "@wren/core/clients";
 import type { Db } from "@wren/db";
 import { startTestPostgres, type TestPostgres } from "@wren/db/testing";
 import { sql } from "drizzle-orm";
@@ -140,14 +140,11 @@ beforeAll(async () => {
       // Whose login researched the list: never shown, only that LinkedIn was used.
       accounts: { linkedin: "jane-doe-personal" },
     },
-    {
-      id: "acme",
-      name: "Acme Staffing",
-      database: "wren_client_acme",
-      portalEmails: ["owner@acme.example", "ops@acme.example"],
-    },
+    { id: "acme", name: "Acme Staffing", database: "wren_client_acme" },
     { id: "beta", name: "Beta Search", database: "wren_client_beta" },
   ]);
+  for (const email of ["owner@acme.example", "ops@acme.example"])
+    await addMember(db, "acme", email);
   // Every client reads the one seeded database; the recorder sees how it is opened.
   const client: Db = new Proxy(db, {
     get(target, key, receiver) {

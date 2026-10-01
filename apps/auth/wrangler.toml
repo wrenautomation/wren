@@ -1,0 +1,19 @@
+# Deploy: see deploy/portal.md. Nothing secret lives here: LAMBDA_URL and
+# EDGE_SECRET are secrets (deploy.yml); the account id comes from
+# CLOUDFLARE_ACCOUNT_ID.
+name = "wren-auth"
+main = "src/worker.ts"
+compatibility_date = "2026-09-27"
+workers_dev = false
+
+routes = [{ pattern = "auth.wrenautomation.com", custom_domain = true }]
+
+[vars]
+APPS = "https://app.wrenautomation.com"
+
+# The Worker decides first: /api/auth is the Lambda, the rest is the sign-in app.
+[assets]
+directory = "./dist/web"
+binding = "ASSETS"
+run_worker_first = true
+not_found_handling = "single-page-application"

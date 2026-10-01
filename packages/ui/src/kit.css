@@ -967,6 +967,31 @@
     box-shadow: 0 0 0 4px var(--ui-accent-tint);
   }
 
+  /* A form field: its label over its input */
+  .ui-field {
+    display: grid;
+    gap: 6px;
+    font-size: 13px;
+    font-weight: 500;
+  }
+  .ui-field input {
+    height: 42px;
+    padding: 0 12px;
+    border: 1px solid var(--ui-line);
+    border-radius: var(--ui-radius-control);
+    background: var(--ui-paper);
+    font-size: 15px;
+    font-weight: 400;
+    transition:
+      border-color 0.2s var(--ui-ease),
+      box-shadow 0.2s var(--ui-ease);
+  }
+  .ui-field input:focus {
+    border-color: var(--ui-accent);
+    outline: none;
+    box-shadow: 0 0 0 4px var(--ui-accent-tint);
+  }
+
   /* Tables */
   .ui-table-wrap {
     margin: 0 -12px;
@@ -1549,6 +1574,11 @@
   }
   .ui-gate-card p {
     color: var(--ui-ink-2);
+  }
+  .ui-gate-card form {
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
   }
 
   /* Phone and small tablet: a top bar, the sidebar as a menu, the window full width */

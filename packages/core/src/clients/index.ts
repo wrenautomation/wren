@@ -9,8 +9,15 @@ import {
   type Db,
   migrateClient,
 } from "@wren/db";
-import { asc, eq } from "drizzle-orm";
-import { type Client, clients } from "./schema.js";
+import { and, asc, eq, sql } from "drizzle-orm";
+import {
+  type Client,
+  type ClientMember,
+  clientMembers,
+  clients,
+  type MemberRole,
+  operators,
+} from "./schema.js";
 
 export * from "./schema.js";
 
@@ -19,7 +26,6 @@ export interface NewClient {
   name: string;
   accounts?: Record<string, string>;
   products?: Record<string, unknown>;
-  portalEmails?: string[];
   demo?: boolean;
 }
 
@@ -41,7 +47,6 @@ export async function addClient(main: Db, mainUrl: string, input: NewClient): Pr
       database,
       accounts: input.accounts ?? {},
       products: input.products ?? {},
-      portalEmails: (input.portalEmails ?? []).map((e) => e.trim().toLowerCase()),
       demo: input.demo ?? false,
     })
     .returning();
@@ -70,8 +75,6 @@ export interface ClientChange {
   accounts?: Record<string, string>;
   /** Per product: a block replaces that product's settings, null removes them. The caller validates. */
   products?: Record<string, unknown>;
-  /** Replaces the list. */
-  portalEmails?: string[];
 }
 
 export async function updateClient(main: Db, id: string, change: ClientChange): Promise<Client> {
@@ -89,7 +92,6 @@ export async function updateClient(main: Db, id: string, change: ClientChange): 
       name: change.name ?? current.name,
       accounts,
       products,
-      portalEmails: change.portalEmails?.map((e) => e.trim().toLowerCase()) ?? current.portalEmails,
     })
     .where(eq(clients.id, id))
     .returning();
@@ -116,4 +118,89 @@ export function sharedAccounts(all: readonly Pick<Client, "id" | "accounts">[]):
 /** Where this client's data lives. */
 export function clientUrl(mainUrl: string, client: Pick<Client, "database">): string {
   return clientDatabaseUrl(mainUrl, client.database);
+}
+
+/** Emails are compared lowercase everywhere: the sign-in, the registry, the token. */
+export const normalEmail = (email: string) => email.trim().toLowerCase();
+
+/** Add someone to a client, or change their role. */
+export async function addMember(
+  main: Db,
+  clientId: string,
+  email: string,
+  opts: { role?: MemberRole; invitedBy?: string } = {},
+): Promise<ClientMember> {
+  await getClient(main, clientId);
+  const role = opts.role ?? "member";
+  const [row] = await main
+    .insert(clientMembers)
+    .values({ clientId, email: normalEmail(email), role, invitedBy: opts.invitedBy ?? null })
+    .onConflictDoUpdate({ target: [clientMembers.clientId, clientMembers.email], set: { role } })
+    .returning();
+  if (!row) throw new Error(`client ${clientId}: member insert returned nothing`);
+  return row;
+}
+
+export async function removeMember(main: Db, clientId: string, email: string): Promise<boolean> {
+  const gone = await main
+    .delete(clientMembers)
+    .where(and(eq(clientMembers.clientId, clientId), eq(clientMembers.email, normalEmail(email))))
+    .returning();
+  return gone.length > 0;
+}
+
+export async function listMembers(main: Db, clientId: string): Promise<ClientMember[]> {
+  return main
+    .select()
+    .from(clientMembers)
+    .where(eq(clientMembers.clientId, clientId))
+    .orderBy(asc(clientMembers.email));
+}
+
+export async function addOperator(main: Db, email: string): Promise<void> {
+  await main
+    .insert(operators)
+    .values({ email: normalEmail(email) })
+    .onConflictDoNothing();
+}
+
+export async function removeOperator(main: Db, email: string): Promise<boolean> {
+  return (
+    (
+      await main
+        .delete(operators)
+        .where(eq(operators.email, normalEmail(email)))
+        .returning()
+    ).length > 0
+  );
+}
+
+export async function listOperators(main: Db): Promise<string[]> {
+  return (await main.select().from(operators).orderBy(asc(operators.email))).map((o) => o.email);
+}
+
+export async function isOperator(main: Db, email: string): Promise<boolean> {
+  const [row] = await main
+    .select()
+    .from(operators)
+    .where(eq(operators.email, normalEmail(email)));
+  return row !== undefined;
+}
+
+/** May this email have a Wren account? An operator, or a member of any client. Sign-in asks this. */
+export async function mayHaveAccount(main: Db, email: string): Promise<boolean> {
+  const e = normalEmail(email);
+  const [row] = await main.execute<{ ok: boolean }>(
+    sql`select exists (select 1 from ${operators} where ${operators.email} = ${e})
+        or exists (select 1 from ${clientMembers} where ${clientMembers.email} = ${e}) as ok`,
+  );
+  return row?.ok === true;
+}
+
+/** Mark that someone opened the portal. Best effort: a missed stamp is harmless. */
+export async function touchMember(main: Db, email: string): Promise<void> {
+  await main
+    .update(clientMembers)
+    .set({ lastSeenAt: new Date() })
+    .where(eq(clientMembers.email, normalEmail(email)));
 }
