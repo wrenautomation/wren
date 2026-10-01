@@ -27,7 +27,7 @@ Twins `AGENTS.md` and `routing.md` are generated from this file by `_meta/build.
 | `ads/` | Meta ads: launches |
 | `sms/` | cold SMS: numbers, contacts, messages, events |
 | `clients/` | who we work for: the registry row and its own database |
-| `reactivation/` | the lead reactivation product: CRM contacts, client profile, handoffs |
+| `reactivation/` | the lead reactivation product: CRM contacts, client profile, handoffs, demo videos |
 | `books/` | the money: vendors, bills, their documents, the journal |
 | `platform/` | what everything stands on: settings, niches, offers, loop objects, Restate services, schema, worker, CLI, phone |
 

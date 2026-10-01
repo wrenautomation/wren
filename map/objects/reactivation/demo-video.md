@@ -3,7 +3,7 @@ type: object
 cluster: reactivation
 universe: live
 status: verified
-verified: 2026-10-01 @ worktree-video-variants
+verified: 2026-10-01 @ d4f7f09
 entity: packages/reactivation/src/video/lead.ts:32
 ---
 
