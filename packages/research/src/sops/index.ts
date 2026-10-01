@@ -308,20 +308,35 @@ export async function extractPoints(dir: string, llm: LlmClient, only?: string):
   return out;
 }
 
-/** The folder as a Claude Code skill: SKILL.md points at SOP.md and refs/, so `sop link` is a symlink. */
-export function skillMd(name: string, sop: string): string {
+/** The folder as a Claude Code skill. SKILL.md injects SOP.md and the refs listing at load time (`!\`cmd\``), so the model never has to go read them. */
+export function skillMd(name: string, dir: string, sop: string): string {
   const purpose =
     sop
       .split("\n")
       .find((l) => l.trim() && !l.startsWith("#"))
       ?.trim() ?? name;
+  const q = JSON.stringify(dir);
   return `---
 name: sop-${name}
 description: ${JSON.stringify(`SOP: ${purpose}`)}
 ---
 
-Read \`SOP.md\` in this folder in full and follow it. Its examples and prompts are the bar. Reference files (designs, PDFs, images) are in \`refs/\` when present; look at them before writing.
+Follow this SOP start to finish. Its examples and prompts are the bar.
+
+!\`cat ${q}/SOP.md\`
+
+Reference files (designs, PDFs, images) in \`${dir}/refs/\`; open the relevant ones before writing:
+
+!\`ls ${q}/refs 2>/dev/null || echo "(none)"\`
 `;
+}
+
+/** Write SKILL.md from the folder's current SOP.md. */
+export async function writeSkill(dir: string): Promise<string> {
+  const sop = await readFile(join(dir, "SOP.md"), "utf8");
+  const file = join(dir, "SKILL.md");
+  await writeFile(file, skillMd(basename(dir), dir, sop));
+  return file;
 }
 
 /** Build the next SOP.md from the folder; returns it. The model answers in markdown, no schema. */
@@ -333,7 +348,7 @@ export async function buildSop(dir: string, llm: LlmClient): Promise<string> {
   const { text } = await llm.complete(sopPrompt({ name, ...read }), { maxTokens: 8000 });
   const sop = `${text.trim().replace(/^```(?:markdown)?\n([\s\S]*?)\n```$/, "$1")}\n`;
   await writeFile(join(dir, "SOP.md"), sop);
-  await writeFile(join(dir, "SKILL.md"), skillMd(name, sop));
+  await writeSkill(dir);
   // ponytail: tokens ≈ chars/4; swap in a real tokenizer if the estimate starts to matter.
   const row = (name: string, md: string) =>
     `${name}\t${md.split(/\s+/).filter(Boolean).length} words\t~${Math.round(md.length / 4)} tokens`;

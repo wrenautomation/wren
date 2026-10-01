@@ -21,6 +21,7 @@ import {
   fileSource,
   readSopDir,
   type Source,
+  writeSkill,
   youtubeSource,
 } from "@wren/research/sops";
 import type { Command } from "commander";
@@ -103,6 +104,7 @@ export function registerSop(program: Command, settings: Settings, rootDir: strin
       "expose the SOP folder as the Claude Code skill `sop-<name>` (symlink in ~/.claude/skills)",
     )
     .action(async (name: string) => {
+      await writeSkill(join(sopsDir, name));
       const to = join(homedir(), ".claude", "skills", `sop-${name}`);
       await unlink(to).catch(() => {});
       await symlink(join(sopsDir, name), to, "dir");
