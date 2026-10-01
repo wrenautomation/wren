@@ -65,7 +65,7 @@
 - **D3. Updates are the timeline**: what we did, what's next, what we need. Each has an author, a milestone and a visibility (client or internal).
 - **D4. Deliverables** are a file, link, Loom or doc, with versions. The client approves or asks for changes, and that's recorded.
 - **D5. Asks** are what we need from the client, with a due date. The client answers or uploads in place. "Waiting on you" shows on Home and in the digest.
-  - The Setup page from portal step 2 turns its missing items into asks.
+  - The Setup page's needs (CRM export, recruiter, sending) are the plan's opening asks, so no sync between them.
 - **D6. Results** are the offer's measures (hours saved a week, meetings booked, the fee meter), shown against the promise. Products fill them, or an operator does by hand.
 - **D7. Home answers five things on open**: where we are (phase, % done, next date), what we did lately, what's next, what we need from you, and results so far.
   - Day 0 is a welcome: the dated plan, who's on it, the kickoff booking and the guarantee. That's the first 72 hours, when remorse peaks.
@@ -99,7 +99,7 @@
 
 ## Client screens
 
-Home, Plan, Updates, Deliverables, Needs you and Results, then each bought service's module (Reactivation, …). The client's name at top left opens Account: an overview (who they are to us, what they bought, people, billing), People (an owner invites teammates), Your settings (mail level and sign-in) and Billing (owners only). Every screen works at 375px.
+The launcher groups apps under each bought service: the service's own app (Reactivation, …) and "Plan & paperwork" (Paperwork, Plan, Updates, Deliverables, Needs you, Results, plus the contract and welcome guide). Apps for services not bought sit under "More from Wren". The client's name at top left opens Account: an overview (who they are to us, what they bought, people, billing), People (an owner invites teammates), Your settings (mail level and sign-in) and Billing (owners only). Every screen works at 375px.
 
 ## Hosts
 
@@ -174,3 +174,4 @@ Later: enterprise SSO, OIDC for client domains, client custom domains. Comment t
   - **Onboarding.** `wren delivery onboard <offer>` opens the engagement as `onboarding`, issues the contract with terms (offer price by default, flags override) and asks for the offer's `access`. Signed + setup invoice paid (`invoice --setup`, then `paid`) starts it; dates shift by the days waited. No setup fee: signing starts it.
   - **Contract.** One template (`packages/delivery/src/contract.ts`, version 2026-10-01): an order block, then 14 sections. Protection: no promise of results, warranty disclaimer, liability capped at 3 months' fees with no indirect losses, client indemnity for their data, contact-law compliance (CAN-SPAM, TCPA, CASL) and approved messages, setup fee non-refundable once started, pause when 14 days late, 14-day disputes on per-unit fees, a per-unit definition (once per person; a no-show not rebooked in 14 days doesn't count), 30-day tail, Ontario law and Toronto courts, e-signature clause. Frozen per row with its sha256; signing must send that hash. Owners sign; operators can't. Evidence: name, title, email, time, IP, browser. The signed copy is mailed to the signer, owners and Wren.
   - **Open, William's call.** The party is "William Jin, operating as Wren Automation"; change `WREN_PARTY` when a company exists (the contract allows assigning to it). No lawyer has read it; worth one before a large deal. A wording change is a new `CONTRACT_VERSION`; issued ones keep their text.
+- **2026-10-01** William approved the contract as drafted: the legal name ("William Jin, operating as Wren Automation" until a company exists), Ontario law and Toronto courts, and the 14-day no-show rule.
