@@ -19,6 +19,7 @@
  */
 import * as restate from "@restatedev/restate-sdk";
 import { finishRun, openRun } from "@wren/core";
+import type { Calendar } from "@wren/core/calendar";
 import { type Notifier, plural } from "@wren/core/notify";
 import { unitOfKey } from "@wren/core/restate";
 import type { Db } from "@wren/db";
@@ -34,6 +35,8 @@ export interface SendScope {
   policy: SendPolicy;
   fleet: Fleet;
   pixelBaseUrl?: string | null;
+  /** Where `{call.times}` finds open times; a client's scope has none. */
+  calendar?: Calendar | null;
 }
 
 export interface SendSchedulerDeps {
@@ -105,6 +108,7 @@ export function makeSendScheduler(deps: SendSchedulerDeps) {
         runId: run.id,
         fleet,
         pixelBaseUrl: scope.pixelBaseUrl ?? null,
+        calendar: scope.calendar ?? null,
         rng: seededRng(seed),
         ...(deps.killSwitches ? { killSwitches: deps.killSwitches } : {}),
       });

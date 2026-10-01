@@ -14,6 +14,7 @@
 import { randomUUID } from "node:crypto";
 import { loadSettings } from "@wren/config";
 import { type Company, companies, type Suppression, suppressions } from "@wren/core";
+import { FakeCalendar } from "@wren/core/calendar";
 import type { Db } from "@wren/db";
 import { startTestPostgres, type TestPostgres, truncate } from "@wren/db/testing";
 import { eq, sql } from "drizzle-orm";
@@ -1036,5 +1037,41 @@ describe("the lead's window", () => {
     });
     await expect(tick(console_(), { policy })).rejects.toThrow("Mars/Olympus_Mons");
     expect((await step(enrollment, 0)).state).toBe("approved");
+  });
+});
+
+describe("call times", () => {
+  // NOW is Wednesday noon UTC; the lead's firm has no zone, so they hear ET.
+  const THU_10AM_ET = new Date(Date.UTC(2026, 11, 3, 15));
+  const THU_11AM_ET = new Date(Date.UTC(2026, 11, 3, 16));
+  const FRI_2PM_ET = new Date(Date.UTC(2026, 11, 4, 19));
+
+  async function openerAsking(domain: string): Promise<Message> {
+    const enrollment = await enrollOne(domain, `jane@${domain}`);
+    const opener = await step(enrollment, 0);
+    await patchMessage(opener.id, { body: "Worth a call? I'm free {call.times}." });
+    return opener;
+  }
+
+  it("the send says two open times in the lead's clock and keeps them", async () => {
+    const opener = await openerAsking("oak.example");
+    const transport = console_();
+    await tick(transport, { calendar: new FakeCalendar([THU_10AM_ET, THU_11AM_ET, FRI_2PM_ET]) });
+
+    const [sent] = delivered(transport);
+    expect(sent?.body).toContain("I'm free Thursday at 10am or Friday at 2pm ET.");
+    const [row] = await db().select().from(messages).where(eq(messages.id, opener.id));
+    expect(row?.body).toBe("Worth a call? I'm free Thursday at 10am or Friday at 2pm ET.");
+    expect(row?.offeredTimes).toEqual([THU_10AM_ET.toISOString(), FRI_2PM_ET.toISOString()]);
+  });
+
+  it("with no calendar the send falls back and offers nothing", async () => {
+    const opener = await openerAsking("elm.example");
+    const transport = console_();
+    await tick(transport);
+
+    expect(delivered(transport)[0]?.body).toContain("I'm free early next week.");
+    const [row] = await db().select().from(messages).where(eq(messages.id, opener.id));
+    expect(row?.offeredTimes).toBeNull();
   });
 });

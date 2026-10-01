@@ -35,6 +35,7 @@ import {
   messages,
   templateVersions,
 } from "../schema.js";
+import { CALL_TIMES } from "../send/call-times.js";
 import { transitionMessage } from "../state.js";
 import { toSource } from "./authoring.js";
 import { type FactRow, type Facts, factsFor, factsForCompany } from "./facts.js";
@@ -609,6 +610,8 @@ function renderAll(shared: Shared, facts: Facts, seed: string): Drafts | null {
         {
           ...facts.values,
           ...shared.offerFacts,
+          // Said at send, never here: a queued email must not offer a time that passed.
+          "call.times": CALL_TIMES,
           ...linkFacts(
             shared.site,
             shared.offer,

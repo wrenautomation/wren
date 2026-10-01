@@ -1,5 +1,5 @@
 /** recruiting_facts → factsForCompany → the reactivation opener: the stored line reaches the email. */
-import { factsForCompany, linkFacts, render } from "@wren/channel-email";
+import { CALL_TIMES, factsForCompany, linkFacts, render } from "@wren/channel-email";
 import { companies } from "@wren/core";
 import { startTestPostgres, type TestPostgres, truncate } from "@wren/db/testing";
 import { enrichments } from "@wren/research/schema";
@@ -50,7 +50,7 @@ const email = async (companyId: number) => {
     "code0001",
   );
   const offer = recruiting.offerFacts.get("reactivation");
-  return render(tpl, { ...facts.values, ...offer, ...links }, "c:1").body;
+  return render(tpl, { ...facts.values, ...offer, ...links, "call.times": CALL_TIMES }, "c:1").body;
 };
 
 describe("recruiting opener through the facts view", () => {
@@ -60,9 +60,9 @@ describe("recruiting opener through the facts view", () => {
 
   it("a stored line opens the email; no line leaves no gap", async () => {
     const lined = await email(await firm("lined.example", LINE));
-    expect(lined.startsWith(`Hi there,\n\n${LINE}\n\nThis address is listed`)).toBe(true);
+    expect(lined.startsWith(`Hi there,\n\n${LINE}\n\nI found you on the`)).toBe(true);
     const bare = await email(await firm("bare.example", null));
-    expect(bare.startsWith("Hi there,\n\nThis address is listed")).toBe(true);
+    expect(bare.startsWith("Hi there,\n\nI found you on the")).toBe(true);
     expect(bare).not.toMatch(/\n{3,}/);
   });
 });

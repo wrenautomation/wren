@@ -23,6 +23,7 @@
  */
 import { randomUUID } from "node:crypto";
 import { companies, type Suppression } from "@wren/core";
+import type { Calendar } from "@wren/core/calendar";
 import type { Db, Queryable } from "@wren/db";
 import {
   and,
@@ -52,6 +53,7 @@ import {
   senderPauses,
 } from "../schema.js";
 import { transitionEnrollment, transitionMessage } from "../state.js";
+import { CALL_TIMES, fillCallTimes, LOOKAHEAD_MS } from "./call-times.js";
 import { addBusinessDays, PlainDate } from "./dates.js";
 import type { SendPolicy } from "./policy.js";
 import { IN_FLIGHT, reconcile } from "./reconcile.js";
@@ -131,6 +133,8 @@ export interface SendDueOptions {
   signatureHtml?: StringMap | null;
   pages?: StringMap | null;
   pixelBaseUrl?: string | null;
+  /** Where `{call.times}` finds open times. Absent, or failing, the email says "early next week". */
+  calendar?: Calendar | null;
   /**
    * The fleet the caller is willing to send from: the roster's active
    * addresses. An enrollment pinned to an inbox no longer here is counted
@@ -269,6 +273,7 @@ export async function sendDue(db: Db, opts: SendDueOptions): Promise<SendStats> 
   // An inbox that just refused at the sender level is unusable for the rest
   // of this tick: one bad token must not become fifty FAILED rows.
   const sidelined = new Set<string>();
+  const openTimes = onceOpenTimes(opts.calendar ?? null, now);
   for (const candidate of candidates) {
     const { enrollment, message, anchor } = candidate;
     if (limit !== null && stats.sent >= limit) break;
@@ -326,6 +331,7 @@ export async function sendDue(db: Db, opts: SendDueOptions): Promise<SendStats> 
       signatureHtml: opts.signatureHtml ?? null,
       pages: opts.pages ?? null,
       pixelBaseUrl: opts.pixelBaseUrl ?? null,
+      openTimes,
       stats,
       sidelined,
     });
@@ -622,6 +628,8 @@ interface SendContext {
   signatureHtml: StringMap | null;
   pages: StringMap | null;
   pixelBaseUrl: string | null;
+  /** The calendar's open times for this pass, asked once; null when it couldn't say. */
+  openTimes: () => Promise<Date[] | null>;
   stats: SendStats;
   sidelined: Set<string>;
 }
@@ -670,6 +678,25 @@ async function pacedUnderLock(
   return true;
 }
 
+/** The calendar asked at most once a pass, and only when an email needs times. */
+function onceOpenTimes(calendar: Calendar | null, now: Date): () => Promise<Date[] | null> {
+  let asked: Promise<Date[] | null> | null = null;
+  return () => {
+    asked ??= calendar
+      ? calendar.open(now, new Date(now.getTime() + LOOKAHEAD_MS)).catch(() => null)
+      : Promise.resolve(null);
+    return asked;
+  };
+}
+
+async function companyZone(db: Queryable, companyId: number): Promise<string | null> {
+  const [row] = await db
+    .select({ timezone: companies.timezone })
+    .from(companies)
+    .where(eq(companies.id, companyId));
+  return row?.timezone ?? null;
+}
+
 /** This sender's rich sign-off with its `{page}` slot filled for the message's niche. */
 function signatureFor(
   signatureHtml: StringMap | null,
@@ -698,6 +725,10 @@ async function sendOne(
   candidate: Candidate,
   ctx: SendContext,
 ): Promise<{ delivered: boolean; messages: Message[] }> {
+  // The calendar and the lead's zone are read before the lock: no network inside it.
+  const asksTimes = candidate.message.body.includes(CALL_TIMES);
+  const open = asksTimes ? await ctx.openTimes() : null;
+  const zone = asksTimes ? await companyZone(db, candidate.enrollment.companyId) : null;
   const intent: Intent = await db.transaction(async (tx) => {
     const [freshMessage] = await tx
       .select()
@@ -718,9 +749,17 @@ async function sendOne(
 
     const sender = freshEnrollment.sender;
     const messageId = `<${randomUUID().replaceAll("-", "")}@${sender.slice(sender.lastIndexOf("@") + 1)}>`;
+    // The row keeps the words that went out, times said, and the times it offered.
+    const timed = fillCallTimes(freshMessage.body, open, zone, ctx.now);
     const [sending] = await tx
       .update(messages)
       .set({
+        ...(timed.body === freshMessage.body
+          ? {}
+          : {
+              body: timed.body,
+              offeredTimes: timed.offered.length ? timed.offered.map((t) => t.toISOString()) : null,
+            }),
         messageId,
         state: transitionMessage(freshMessage.state, "sending"),
         attemptedAt: ctx.now,

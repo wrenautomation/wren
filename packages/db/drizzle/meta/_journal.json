@@ -337,6 +337,13 @@
       "when": 1790883213922,
       "tag": "0047_invoice_periods",
       "breakpoints": true
+    },
+    {
+      "idx": 48,
+      "version": "7",
+      "when": 1790889916799,
+      "tag": "0048_call_invites",
+      "breakpoints": true
     }
   ]
 }

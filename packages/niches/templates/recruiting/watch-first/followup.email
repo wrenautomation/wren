@@ -1,13 +1,11 @@
 Hi {first_name|there},
 
-Following up on the walkthrough I sent about the past clients in your ATS.
+Following up on my note about the past clients in your ATS. Here's the walkthrough I mentioned: {link.watch}
 
-Something you can use whether or not we talk. Pull every hiring manager you've placed with in the last three years who hasn't heard from you in six months. Look the top 20 up on LinkedIn and count how many changed companies. Each one who moved already trusts you and sits at an account you don't have yet.
+Try this either way. Look up 20 hiring managers you placed with a few years back and count how many changed companies. Each one who moved already trusts you and sits at an account you don't have.
 
-That's the list I'd work for you, all of it, with every fee back if it books nothing in {offer.days} days.
+I'll book you {offer.goal} meetings with that list. If I don't book one in {offer.days} days, you get every dollar back.
 
-There's room this round for {offer.slots} firms. Grab a time here: {link.book}
-
-[[No worries either way. | If not, no hard feelings.]]
+How does {call.times} sound? I can send you a calendar invite for either, or for a time that suits you better.
 
 William

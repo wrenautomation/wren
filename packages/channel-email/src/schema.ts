@@ -267,6 +267,8 @@ export const messages = pgTable(
     /** The `?r=` on this message's site link: the lander records it, `wren site visits` names the click. */
     linkCode: varchar("link_code", { length: 40 }),
     approvedBy: varchar("approved_by", { length: 32, enum: APPROVAL_SOURCES }),
+    /** The call times `{call.times}` offered when this message sent (ISO instants), for the reply that picks one. */
+    offeredTimes: jsonb("offered_times").$type<string[]>(),
   },
   (t) => [
     primaryKey({ columns: [t.id], name: "pk_messages" }),
@@ -372,6 +374,63 @@ export const threadEvents = pgTable(
     oneOf("ck_thread_events_threadeventkind", t.kind, THREAD_EVENT_KINDS),
   ],
 );
+
+/**
+ * What happened to one warm reply: booked on the calendar (cal.com emails the
+ * invite), or handed to William because no time could be read or taken. One row
+ * per reply event, inserted BEFORE the calendar is called, so a crash between
+ * the two leaves a `booking` row that is never retried: a lead is never booked twice.
+ */
+export const CALL_INVITE_STATES = ["booking", "booked", "already_booked", "needs_you"] as const;
+export type CallInviteState = (typeof CALL_INVITE_STATES)[number];
+
+export const callInvites = pgTable(
+  "call_invites",
+  {
+    id: serial("id").notNull(),
+    threadEventId: integer("thread_event_id").notNull(),
+    enrollmentId: integer("enrollment_id").notNull(),
+    state: varchar("state", { length: 32, enum: CALL_INVITE_STATES }).notNull(),
+    start: timestamp("start", { withTimezone: true }),
+    timeZone: varchar("time_zone", { length: 64 }),
+    email: varchar("email", { length: 320 }).notNull(),
+    bookingUid: varchar("booking_uid", { length: 64 }),
+    /** Why it needs William, or what the calendar said. */
+    detail: text("detail"),
+    /** The time-reading step's proposal and verdict, the audit record. */
+    reading: jsonb("reading"),
+    runId: uuid("run_id"),
+    createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
+  },
+  (t) => [
+    primaryKey({ columns: [t.id], name: "pk_call_invites" }),
+    unique("uq_call_invites_thread_event_id").on(t.threadEventId),
+    index("ix_call_invites_enrollment_id").on(t.enrollmentId),
+    foreignKey({
+      columns: [t.threadEventId],
+      foreignColumns: [threadEvents.id],
+      name: "fk_call_invites_thread_event_id_thread_events",
+    }),
+    foreignKey({
+      columns: [t.enrollmentId],
+      foreignColumns: [enrollments.id],
+      name: "fk_call_invites_enrollment_id_enrollments",
+    }),
+    foreignKey({
+      columns: [t.runId],
+      foreignColumns: [runs.id],
+      name: "fk_call_invites_run_id_runs",
+    }),
+    oneOf("ck_call_invites_callinvitestate", t.state, CALL_INVITE_STATES),
+    check(
+      "ck_call_invites_booked_has_uid",
+      sql`((state)::text <> 'booked'::text) OR (booking_uid IS NOT NULL AND start IS NOT NULL)`,
+    ),
+  ],
+);
+
+export type CallInvite = typeof callInvites.$inferSelect;
 
 export const openEvents = pgTable(
   "open_events",

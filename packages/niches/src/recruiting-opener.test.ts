@@ -1,5 +1,5 @@
 /** The recruiting opener template with and without the company's opener line. */
-import { render } from "@wren/channel-email";
+import { CALL_TIMES, render } from "@wren/channel-email";
 import { describe, expect, it } from "vitest";
 import { recruiting } from "./index.js";
 
@@ -14,7 +14,7 @@ const base = {
   company_name: "Tulsa Nurse Partners",
   title: "Owner",
   ...recruiting.offerFacts.get("reactivation"),
-  "link.book": "https://wrenautomation.com/book/reactivation?r=code",
+  "call.times": CALL_TIMES,
 };
 const body = (facts: Record<string, unknown>) => render(tpl(), facts, "person:7").body;
 
@@ -23,7 +23,7 @@ describe("recruiting book-first opener", () => {
     const b = body({ ...base, "company.opener": LINE });
     expect(
       b.startsWith(
-        `Hi Dana,\n\n${LINE}\n\nDana is listed on the Tulsa Nurse Partners site, as Owner.`,
+        `Hi Dana,\n\n${LINE}\n\nI found you on the Tulsa Nurse Partners site, listed as Owner, so`,
       ),
     ).toBe(true);
     expect(b).not.toMatch(/\n{3,}/);
@@ -32,7 +32,9 @@ describe("recruiting book-first opener", () => {
   it("no line leaves no gap, whether the fact is absent, null or blank", () => {
     const without = body(base);
     expect(
-      without.startsWith("Hi Dana,\n\nDana is listed on the Tulsa Nurse Partners site, as Owner."),
+      without.startsWith(
+        "Hi Dana,\n\nI found you on the Tulsa Nurse Partners site, listed as Owner, so",
+      ),
     ).toBe(true);
     expect(without).not.toMatch(/\n{3,}/);
     for (const opener of [null, "", "   "]) {
@@ -44,9 +46,7 @@ describe("recruiting book-first opener", () => {
     const { first_name: _, title: __, ...company } = base;
     const b = body({ ...company, "company.opener": LINE });
     expect(
-      b.startsWith(
-        `Hi there,\n\n${LINE}\n\nThis address is listed on the Tulsa Nurse Partners site.`,
-      ),
+      b.startsWith(`Hi there,\n\n${LINE}\n\nI found you on the Tulsa Nurse Partners site, so`),
     ).toBe(true);
   });
 

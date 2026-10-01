@@ -69,6 +69,7 @@ import {
   makeContentScheduler,
 } from "@wren/content/restate";
 import { makeAuditSealer } from "@wren/core/audit";
+import { CalcomCalendar } from "@wren/core/calendar";
 import type { SiteClient } from "@wren/core/content";
 import { ec2Wake } from "@wren/core/content/box";
 import { makeTokenRenewal } from "@wren/core/content/renewal";
@@ -106,6 +107,8 @@ import type { Logger } from "pino";
 
 /** The worker's application_name on every connection, kept on each audit event. */
 const WORKER_APP = "wren-worker";
+/** Wren's intro call on cal.com, the event every live offer's `booking` names. */
+const WREN_CALL = { username: "wrenautomation", slug: "call" };
 
 export type AnyService =
   | ServiceDefinition<string, unknown>
@@ -171,10 +174,17 @@ export async function buildServices(
     }
   })();
   const fleet = rosterFleet(roster, activeSenders(roster), Object.fromEntries(LANDERS_BY_NICHE));
+  // Cold email offers two open times on Wren's call (the offers' booking page) and books a yes.
+  const calendar = settings.calcomApiKey
+    ? new CalcomCalendar(settings.calcomApiKey, WREN_CALL)
+    : null;
+  if (!calendar)
+    log.info('WREN_CALCOM_API_KEY unset: emails say "early next week" and no yes is booked');
   const wrenScope = oneScope({
     db,
     policy,
     fleet,
+    calendar,
     // The pixel goes into mail only when asked; the host alone just enables the opens pull.
     pixelBaseUrl: settings.openTracking ? (settings.pixelBaseUrl ?? null) : null,
   });
@@ -297,6 +307,7 @@ export async function buildServices(
       llm,
       tracer,
       tracing: settings.tracing,
+      invites: calendar ? { calendar, notifier } : null,
     }),
   ];
   // The queue-keeper is bound only when asked to hold a queue; 0 means every enrollment is by hand.
