@@ -91,6 +91,8 @@ priority) and the sources on Claude Code. Iterate: edit notes.md or SOP.md, buil
 `wren sop extract <name> [source]` lists every point a source makes into `points/<source>.md`
 (cited); delete lines you don't want, prefix `!` on ones that must appear, and build reads the
 points instead of the raw source.
+`sop build` also writes `SKILL.md`; `wren sop link <name>` symlinks the folder into `~/.claude/skills/sop-<name>`
+so Claude Code can follow the SOP as a skill. A non-text source (PDF, image) lands in `refs/`.
 
 ## Gates
 

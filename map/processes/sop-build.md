@@ -36,6 +36,7 @@ SOPs change weekly, so the loop is edit `notes.md` or `SOP.md`, build again: the
 |---|---|
 | `wren sop` | add, build, ls |
 | autobrowse `drive` site | exports Docs for `drive:` sources |
+| `~/.claude/skills/sop-<name>` | symlink from `sop link`; `SKILL.md` points at SOP.md and refs/ |
 
 ## See
 
