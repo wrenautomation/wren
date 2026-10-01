@@ -28,9 +28,10 @@ Two arms, one offer (`reactivation`), split by `half`:
 
 - `book-first/` (half a), sequence `book-first-days-0-5`: both emails
   offer `{call.times}`.
-- `watch-first/` (half b), sequence `watch-first-days-0-5`: the opener
-  offers to send a walkthrough (or a call at `{call.times}`); the
-  follow-up sends it (`{link.watch}`) and offers the times again. No
+- `watch-first/` (half b), sequence `watch-first-days-0-5`: same email,
+  but the ask is a curiosity loop ("if you're curious how I'll pull that
+  off, I can send you a quick demo"), no call; the follow-up sends the
+  demo (`{link.watch}`) and offers `{call.times}`. No
   firm demo and no offer `video` yet, so this arm composes nothing
   until one exists.
 
@@ -47,23 +48,25 @@ by arm.
   email, the page and the form say the same thing. A key the offer
   doesn't set refuses the niche at import.
 - No links in a cold email (outbound-copy SOP). The one exception is
-  the watch-first follow-up, which sends the walkthrough the opener
+  the watch-first follow-up, which sends the demo the opener
   offered.
 - Order (outbound-copy SOP): personalization, who William is, the
   offer, the ask. William's voice: short, plain, direct.
-  - Personalization is shared ground, not "I found you on your site": a
-    Waterloo software student chasing internships every co-op term knows
-    hiring runs in seasons. The firm's own line (`{company.opener}`) goes
-    first when there is one.
-  - Who William is carries the why-care: Government of Canada (one system
-    used by 17,000 staff), a U of A lab, big teams and small, and he is
-    looking to work with recruiting firms.
-  - The pain is cold read and problem aware: past clients in the ATS are
-    probably hiring right now, just not through the firm.
-  - The offer carries its deadline (`{offer.goal}` meetings in
-    `{offer.days}` days) and the refund if none. No domain pre-objection
-    and no scarcity line: the offer has no firm cap.
-  - The ask is `{call.times}`; William sends a Google Meet invite for it,
-    or they name a time.
+  - Personalization is a hard cold read: William has followed the firm
+    for a while and, as a software student always recruiting for
+    internships, likes their work. The firm's own line
+    (`{company.opener}`) goes first when there is one.
+  - Who William is: a software engineer at a top Canadian university
+    (University of Waterloo), with production systems at the Government
+    of Canada (one used by 17,000 staff) and a U of A lab.
+  - The pain is cold read and problem aware: "I'm sure you've got years of
+    past clients in your ATS", probably hiring right now, just not
+    through the firm.
+  - The offer is plain words: a system that tracks past clients and books
+    `{offer.goal}` meetings in `{offer.days}` days; no results, no pay.
+    No "I know you're busy", no domain pre-objection, no scarcity line.
+  - The ask holds frame: "Are you down to hop on a 30-minute call?", then
+    `{call.times}`; William sends a Google Meet invite for one, or they
+    name a time.
   - Follow-ups ride the opener's thread (the registry test holds every
     niche to it), not a new subject as the SOP suggests.

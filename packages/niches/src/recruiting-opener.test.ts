@@ -47,25 +47,29 @@ describe("recruiting book-first opener", () => {
     expect(withLine.replace(`${LINE}\n\n`, "")).toBe(body(base));
   });
 
-  it("opens on the co-op hook, says who William is, and names the problem", () => {
+  it("opens on the cold read, says who William is, and names the problem", () => {
     const b = body(base);
-    expect(
-      b.startsWith("Hi Dana,\n\nI'm a software engineering student at the University of Waterloo"),
-    ).toBe(true);
+    expect(b.startsWith("Hi Dana,\n\nI've been following Tulsa Nurse Partners for a while.")).toBe(
+      true,
+    );
+    expect(b).toContain("software engineer at a top Canadian university (University of Waterloo)");
     expect(b).toContain("Government of Canada");
-    expect(b).toContain("Now I'm looking to work with recruiting firms.");
     expect(b).toContain("Guess what a lot of them are probably doing right now?");
   });
 
   it("asks for a call with a Google Meet invite and drops the old claims", () => {
     const b = body(base);
+    expect(b).toContain("Are you down to hop on a 30-minute call?");
     expect(b).toContain("Google Meet invite");
+    expect(b).toContain("you don't pay me at all");
     for (const gone of [
       "I found you",
       "calendar invite",
       "firms at a time",
       "new domain",
       "I'd bet",
+      "I know you're busy",
+      "every dollar back",
     ]) {
       expect(b).not.toContain(gone);
     }

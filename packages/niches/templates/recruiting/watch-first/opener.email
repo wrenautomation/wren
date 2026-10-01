@@ -4,16 +4,14 @@ Hi {first_name|there},
 
 (({company.opener}))
 
-I'm a software engineering student at the University of Waterloo, so I'm chasing internships every co-op term. Hiring runs in seasons, and I'd guess you feel that more than I do.
+I've been following {company_name|your firm} for a while. As a software student who's constantly recruiting for internships, I like the work you're doing.
 
-I've built production systems with big teams at the Government of Canada (one is used by 17,000 staff) and with a small team at a University of Alberta lab. Now I'm looking to work with recruiting firms.
+I'm a software engineer at a top Canadian university (University of Waterloo). I've built production systems with big teams at the Government of Canada (one is used by 17,000 staff) and with a small team at a University of Alberta lab.
 
-You've got years of past clients sitting in your ATS that nobody's called in a while. Guess what a lot of them are probably doing right now? Hiring. Just not through you.
+I'm sure you've got years of past clients sitting in your ATS that nobody's called in a while. Guess what a lot of them are probably doing right now? Hiring. Just not through you.
 
-I'll email them for you and book you {offer.goal} meetings in {offer.days} days. If I don't book one, you get every dollar back.
+I'll build a system that tracks all your past clients and books you {offer.goal} meetings in {offer.days} days. If I don't get you any results, you don't pay me at all.
 
-I know you're busy, so it's one 30-minute call at the start and an export from your ATS. I handle the rest.
-
-I recorded a short walkthrough of how it works. Want me to send it? Or if you'd rather talk, how does {call.times} sound? I can send you a Google Meet invite, or you can name a time that suits you better. Just let me know.
+If you're curious how I'll pull that off, I can send you a quick demo. Want me to send it over?
 
 William
