@@ -82,7 +82,8 @@ export const recruitingReactivation = defineOffer({
   // Never on a page (D14); the client's portal shows the running bill.
   // William, 10-01: we push per meeting; flat is the anchor (breakeven ~12 meetings).
   // Setup plus meetings top out at $15,000 (27 meetings). Both include support
-  // until the 20th meeting, past day 90 if it takes longer.
+  // until the 20th meeting, past day 90 if it takes longer. William, 10-01: no
+  // meetings by day 90 means every fee back, on both options, if they did their part.
   price: {
     kind: "performance",
     upfront: 1500,
@@ -92,6 +93,7 @@ export const recruitingReactivation = defineOffer({
     monthly: 300,
     flat: 7500,
     until: 20,
+    refundIfNone: { minContacts: 500 },
   },
   slots: 3,
   days: 90,

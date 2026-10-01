@@ -652,6 +652,7 @@ export function termsFor(offer: Offer, over: Partial<Terms> = {}, flat = false):
     capCents: perf?.cap && !flat ? cents(perf.cap) : null,
     days: offer.days,
     until: perf?.until ?? null,
+    refundIfNone: perf?.refundIfNone ?? null,
     payDays: 7,
   };
   const t = { ...base, ...over };
@@ -672,6 +673,14 @@ export function termsFor(offer: Offer, over: Partial<Terms> = {}, flat = false):
     (t.days === null || !Number.isInteger(t.until) || t.until <= 0 || !t.unit?.trim())
   )
     throw bad("carrying on until a count needs days, a count above 0 and what it counts");
+  if (
+    t.refundIfNone != null &&
+    (t.days === null ||
+      !t.unit?.trim() ||
+      !Number.isInteger(t.refundIfNone.minContacts) ||
+      t.refundIfNone.minContacts <= 0)
+  )
+    throw bad("a refund if none needs days, what it counts and a contact count above 0");
   if ((p.kind === "fixed" || p.kind === "quoted") && !t.setupCents && t.monthlyCents === null)
     throw bad(`${offer.name} is priced per deal: give the setup or monthly fee`);
   return t;

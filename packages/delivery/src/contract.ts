@@ -9,7 +9,7 @@ import { createHash } from "node:crypto";
 import type { Offer } from "@wren/offers";
 import type { Terms } from "./schema.js";
 
-export const CONTRACT_VERSION = "2026-10-01.2";
+export const CONTRACT_VERSION = "2026-10-01.3";
 
 /** Who Wren is in law, and where notices go. */
 export const WREN_PARTY = {
@@ -115,7 +115,16 @@ export function contractText(input: { clientName: string; offer: Offer; terms: T
 
     "## 6. Fees and payment",
     `- We bill through Wise. Each invoice shows in your portal and is due ${t.payDays} days after its date.`,
-    ...(t.setupCents > 0 ? ["- The setup fee isn't refundable once the work has started."] : []),
+    ...(t.setupCents > 0
+      ? [
+          `- The setup fee isn't refundable once the work has started${t.refundIfNone ? ", except as the next point says" : ""}.`,
+        ]
+      : []),
+    ...(t.refundIfNone && t.days !== null && t.unit
+      ? [
+          `- If there are no ${plural(t.unit)} by day ${t.days}, we refund every fee you've paid us under this agreement. This applies if you gave us at least ${t.refundIfNone.minContacts} contacts whose email addresses pass our checks, approved each message or template within 5 business days of our asking, and didn't take back access we needed or ask us to pause. Ask for it within 30 days after day ${t.days}. We pay it within 14 days, and the work ends then.`,
+        ]
+      : []),
     ...(counted
       ? [
           `- A ${counted} is a meeting on your calendar with someone we reached for you. It counts once per person. If they don't turn up and it isn't rebooked within 14 days, it doesn't count.`,
@@ -130,7 +139,7 @@ export function contractText(input: { clientName: string; offer: Offer; terms: T
     "- If an invoice is more than 14 days late, we may pause the work until it's paid. We'll tell you first.",
 
     "## 7. Results",
-    "Replies, meetings and hires depend on people and markets neither of us controls, so we don't promise any number of them. What the order says you keep, you keep whatever the results.",
+    `Replies, meetings and hires depend on people and markets neither of us controls, so we don't promise any number of them${t.refundIfNone ? ", apart from the refund in section 6" : ""}. What the order says you keep, you keep whatever the results.`,
 
     "## 8. Who owns what",
     "- You own your data, and what we make for you alone once it's paid for, such as your cleaned lists and your copy.",

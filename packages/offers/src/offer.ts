@@ -43,6 +43,11 @@ export type Price =
       readonly flat: number | null;
       /** Past `days`, it carries on (monthly fee and all) until this many units, or null to stop at `days`. */
       readonly until: number | null;
+      /**
+       * Every fee back if there are no units by `days`, when the client gave at least
+       * `minContacts` reachable contacts and kept up their side; null for no refund.
+       */
+      readonly refundIfNone: { readonly minContacts: number } | null;
     };
 
 export interface Choice {
@@ -279,6 +284,11 @@ export function defineOffer(offer: Offer): Offer {
         throw new Error(`${where}: a performance price's ${k} is a whole number above 0`);
     if (until !== null && offer.days === null)
       throw new Error(`${where}: "until" carries on past days, so it needs days`);
+    const refund = offer.price.refundIfNone;
+    if (refund !== null && (!Number.isInteger(refund.minContacts) || refund.minContacts <= 0))
+      throw new Error(`${where}: a refund's minContacts is a whole number above 0`);
+    if (refund !== null && offer.days === null)
+      throw new Error(`${where}: a refund if none by day N needs days`);
   }
   if (offer.price.kind === "free" && offer.weGet.length === 0) {
     // Free is a trade. Saying what we get back is what makes it believable.

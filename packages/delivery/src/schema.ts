@@ -417,6 +417,8 @@ export interface Terms {
   days: number | null;
   /** Past `days`, it carries on until this many units, or null to stop at `days`. Older terms lack it. */
   until?: number | null;
+  /** Every fee back if there are no units by `days` (contract section 6). Older terms lack it. */
+  refundIfNone?: { minContacts: number } | null;
   /** Days after an invoice's date that it's due. */
   payDays: number;
 }

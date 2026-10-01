@@ -94,6 +94,7 @@ describe("terms", () => {
       capCents: 1_350_000,
       days: 90,
       until: 20,
+      refundIfNone: { minContacts: 500 },
     });
     expect(termsFor(offerFor("reactivation"), {}, true)).toMatchObject({
       setupCents: 750_000,
@@ -101,6 +102,7 @@ describe("terms", () => {
       perUnitCents: null,
       capCents: null,
       until: 20,
+      refundIfNone: { minContacts: 500 },
     });
     expect(() => termsFor(offerFor("recruiting-candidate-reactivation"), {}, true)).toThrow(/flat/);
     expect(termsFor(offerFor("reactivation"), { setupCents: 0 }).setupCents).toBe(0);
@@ -154,6 +156,14 @@ describe("onboarding", () => {
     expect(c.body).toContain(
       "If there are fewer than 20 meetings booked by then, it carries on until there are 20",
     );
+    expect(c.body).toContain(
+      "If there are no meetings booked by day 90, we refund every fee you've paid us",
+    );
+    expect(c.body).toContain("at least 500 contacts");
+    expect(c.body).toContain(
+      "isn't refundable once the work has started, except as the next point says",
+    );
+    expect(c.body).toContain("apart from the refund in section 6");
     expect(c.body).toContain(WREN_PARTY.name);
     expect(c.body).not.toMatch(/[–—]/);
     expect(c.signed).toBeNull();
