@@ -20,6 +20,7 @@
     "@wren/channel-email": "workspace:*",
     "@wren/core": "workspace:*",
     "@wren/db": "workspace:*",
+    "@wren/delivery": "workspace:*",
     "@wren/llm": "workspace:*",
     "@wren/offers": "workspace:*",
     "@wren/research": "workspace:*",

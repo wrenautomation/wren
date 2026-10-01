@@ -221,6 +221,8 @@ export async function postUpdate(
     author: string;
     milestone?: string | undefined;
     internal?: boolean | undefined;
+    /** When it happened, for a product on its own clock; default now. */
+    at?: Date | undefined;
   },
 ): Promise<Update> {
   const [u] = await db
@@ -231,6 +233,7 @@ export async function postUpdate(
       author: input.author,
       body: textIn(input.body, "the update", 10_000),
       internal: input.internal === true,
+      ...(input.at ? { createdAt: input.at } : {}),
     })
     .returning();
   if (!u) throw new Error("update insert returned nothing");

@@ -7,6 +7,7 @@ export * from "./crm/health.js";
 export * from "./crm/import.js";
 export * from "./crm/source.js";
 export * from "./crm/verify.js";
+export * from "./delivery.js";
 export * from "./demo/seed.js";
 export * from "./forward.js";
 export * from "./handoff.js";

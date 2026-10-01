@@ -820,6 +820,9 @@ importers:
       '@wren/db':
         specifier: workspace:*
         version: link:../db
+      '@wren/delivery':
+        specifier: workspace:*
+        version: link:../delivery
       '@wren/llm':
         specifier: workspace:*
         version: link:../llm

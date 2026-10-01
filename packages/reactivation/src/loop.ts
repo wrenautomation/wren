@@ -2,6 +2,7 @@
  * `Reactivation`: one loop per client, keyed by client id. Each pass reads the
  * client's settings, works what is due (verify when it's free, score, briefs,
  * emails), forwards interested and booked replies to the recruiters (R13),
+ * fills the client's delivery portal (results, bill, a daily line),
  * then points the client's mailboxes' loops at the settings: an inbox
  * loop per mailbox while the client is on, a send loop per unsuspended mailbox
  * while sending is on. `on` is the one switch; turning it off stops the lot,
@@ -32,6 +33,7 @@ import {
   runPass,
 } from "@wren/core/restate";
 import type { Db } from "@wren/db";
+import { type FeedStats, feedDelivery } from "./delivery.js";
 import { type ForwardStats, forwardHandoffs } from "./forward.js";
 import { readClientProfile } from "./profile.js";
 import { type CrmRunDeps, type CrmStageResult, runCrm } from "./run.js";
@@ -73,6 +75,8 @@ export interface ReactivationPassStats {
   /** Replies forwarded this pass; null when `stages.handoff` is off or nothing ran. */
   handoff: ForwardStats | null;
   loops: MailboxLoops;
+  /** What went into the client's delivery portal; a failure there never fails the pass. */
+  portal?: FeedStats | { error: string };
 }
 
 const STARTED = "started";
@@ -204,7 +208,10 @@ export function makeReactivation(deps: ReactivationLoopDeps) {
           const handoff = settings.stages.handoff
             ? await forwardHandoffs(db, deps.transport, { profile, settings, limit, now })
             : null;
-          return { off: null, stages, handoff, loops: plan.loops };
+          const portal = await feedDelivery(deps.main, db, ctx.key, settings, now).catch(
+            (err: unknown) => ({ error: errorText(err) }),
+          );
+          return { off: null, stages, handoff, loops: plan.loops, portal };
         },
         delayAfter: () => passMs,
         retryMs,

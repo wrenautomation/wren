@@ -19,6 +19,7 @@ import {
 import { type Db, type Queryable, setAuditActor } from "@wren/db";
 import { approveDrafts, type ReviewResult, skipDrafts } from "../approve.js";
 import { type CrmHealth, crmHealth } from "../crm/health.js";
+import { feedDelivery } from "../delivery.js";
 import { HandoffRefusal, markMeetingBooked } from "../handoff.js";
 import { readClientProfile } from "../profile.js";
 import { reactivationSettingsOf } from "../settings.js";
@@ -208,10 +209,10 @@ export function portalApi(deps: PortalDeps) {
         ),
       ),
     /** A meeting came of this reply, or (booked: false) it didn't after all. */
-    book: (
+    book: async (
       req: PortalRequest & { threadEventId: number; booked?: boolean },
-    ): Promise<{ bookedAt: string | null; by: string | null }> =>
-      write(deps, req, async (db, _, viewer) => {
+    ): Promise<{ bookedAt: string | null; by: string | null }> => {
+      const { client, out } = await write(deps, req, async (db, client, viewer) => {
         const threadEventId = idOf(req.threadEventId, "reply");
         try {
           const out = await markMeetingBooked(
@@ -224,13 +225,23 @@ export function portalApi(deps: PortalDeps) {
             },
             await readClientProfile(db),
           );
-          return { bookedAt: out.bookedAt?.toISOString() ?? null, by: out.by };
+          return { client, out: { bookedAt: out.bookedAt?.toISOString() ?? null, by: out.by } };
         } catch (err) {
           if (err instanceof HandoffRefusal)
             throw new PortalRefusal(err.message, err.kind === "forbidden" ? 403 : 404);
           throw err;
         }
-      }),
+      });
+      // The work portal's meetings and bill follow at once; a miss is the loop's next pass.
+      await feedDelivery(
+        deps.main,
+        deps.open(client),
+        client.id,
+        settingsOf(client),
+        new Date(),
+      ).catch(() => undefined);
+      return out;
+    },
   };
 }
 
