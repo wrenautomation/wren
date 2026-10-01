@@ -1,4 +1,4 @@
-// Wren SMS: inbox, thread + reply, numbers, stats. Vanilla, hash-routed, text only
+// Wren SMS: inbox, thread + reply, numbers, templates, stats. Vanilla, hash-routed, text only
 // through textContent (never innerHTML), so a reply can never inject markup.
 
 const view = document.getElementById("view");
@@ -309,6 +309,20 @@ async function numbers() {
           h(
             "div",
             { class: "kv" },
+            h("span", {}, "Texts"),
+            h(
+              "span",
+              { class: n.country === "US" && !n.registeredAt ? "bad" : "" },
+              n.country === "US"
+                ? n.registeredAt
+                  ? `US phones since ${n.registeredAt.slice(0, 10)}`
+                  : "US phones once carriers approve"
+                : "Canadian phones",
+            ),
+          ),
+          h(
+            "div",
+            { class: "kv" },
             h("span", {}, "Today"),
             h("span", {}, `${n.sentToday} / ${n.cap}`),
           ),
@@ -325,6 +339,67 @@ async function numbers() {
         ),
       ];
   screen("Numbers", header, ...cards);
+}
+
+async function templates() {
+  back.hidden = true;
+  const slots = await api("templates");
+  const hint = h(
+    "div",
+    { class: "card hint" },
+    "An empty template is never sent. {first_name|there} uses “there” when there’s no name.",
+  );
+  screen("Templates", hint, ...slots.map(templateCard));
+}
+
+function templateCard(t) {
+  const rules = [];
+  if (t.fields.length) rules.push(`Fields: ${t.fields.map((f) => `{${f}}`).join(" ")}`);
+  if (t.mustSayStop) rules.push("Must include STOP.");
+  if (t.minLength > 1) rules.push(`At least ${t.minLength} characters.`);
+  const saved = t.body
+    ? `${t.segments.parts} ${t.segments.parts === 1 ? "part" : "parts"} · saved ${when(t.updatedAt)} by ${t.updatedBy}`
+    : "Empty, so it’s never sent.";
+  const box = h("textarea", { class: "tpl", rows: 4, "aria-label": t.purpose });
+  box.value = t.body;
+  const count = h("span", { class: "count" });
+  const save = h("button", { class: "btn", disabled: true }, "Save");
+  const grow = () => {
+    box.style.height = "auto";
+    box.style.height = `${box.scrollHeight}px`;
+  };
+  box.addEventListener("input", () => {
+    grow();
+    count.textContent = `${box.value.trim().length} characters`;
+    save.disabled = box.value.trim() === t.body;
+  });
+  save.addEventListener("click", async () => {
+    save.disabled = true;
+    try {
+      card.replaceWith(templateCard(await api("setTemplate", { key: t.key, body: box.value })));
+    } catch (e) {
+      if (e instanceof SignedOut) return signInScreen();
+      alert(e.message);
+      save.disabled = false;
+    }
+  });
+  const card = h(
+    "div",
+    { class: "card" },
+    h("h2", {}, t.purpose, h("span", { class: "tag" }, t.body ? "filled" : "empty")),
+    rules.length ? h("div", { class: "hint" }, rules.join(" ")) : null,
+    box,
+    t.preview && t.preview !== t.body ? h("div", { class: "hint" }, `Sample: ${t.preview}`) : null,
+    h(
+      "div",
+      { class: "tpl-foot" },
+      h("span", { class: t.body ? "hint" : "hint bad" }, saved),
+      count,
+      save,
+    ),
+  );
+  requestAnimationFrame(grow);
+  return card;
 }
 
 async function stats() {
@@ -390,6 +465,7 @@ async function route() {
       tabs.hidden = true;
       await thread(Number(arg));
     } else if (name === "numbers") await numbers();
+    else if (name === "templates") await templates();
     else if (name === "stats") await stats();
     else await inbox();
     if (name === "inbox" || name === "thread") {

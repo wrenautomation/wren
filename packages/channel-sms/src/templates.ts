@@ -1,11 +1,13 @@
 /**
- * SMS copy: plain data (niches own the words), rendered here with three
- * fields, and measured the way carriers bill it.
+ * SMS copy: William writes every word. Code only declares the slots (which
+ * texts exist, the fields each may use, the rules each must meet); the words
+ * live in `sms_templates`, filled from the phone app or `wren sms templates
+ * set`. An empty slot sends nothing: enroll refuses a sequence with an empty
+ * step, and a keyword with no reply gets Telnyx's default.
  *
  * `{first_name|there}` = the field, or the fallback after the bar when it is
- * empty. Unknown fields are an error at load, not a blank at send. A cold
- * opener must say how to stop (the first text a stranger gets), so a step 1
- * without "STOP" does not load.
+ * empty. A field the slot does not offer is refused at save, never a blank at
+ * send. A cold opener must say how to stop, so a step 1 without "STOP" does not save.
  */
 
 export interface SmsStep {
@@ -13,7 +15,6 @@ export interface SmsStep {
   step: number;
   /** Days after the previous step was sent (step 1: 0). */
   afterDays: number;
-  body: string;
 }
 
 export interface SmsSequence {
@@ -27,10 +28,72 @@ export interface RenderFields {
   sender: string;
 }
 
-const FIELD = /\{([a-z_]+)(?:\|([^}]*))?\}/g;
-const KNOWN: ReadonlySet<string> = new Set(["first_name", "company", "sender"]);
+export type RenderField = keyof RenderFields;
 
-/** Throws on the first thing wrong with a sequence, so a bad one never reaches a send. */
+/** What a preview fills in, so a segment count is a real text's, not the braces'. */
+export function sampleFields(sender: string): RenderFields {
+  return { first_name: "Dana", company: "Northwind", sender };
+}
+
+/** One text William fills. The key is what `sms_messages.template` records. */
+export interface TemplateSlot {
+  key: string;
+  /** What the text is for, shown above its empty box. */
+  purpose: string;
+  fields: readonly RenderField[];
+  /** Must contain the word STOP (the first text a stranger gets). */
+  mustSayStop: boolean;
+  /** Fewest characters (Telnyx refuses a keyword reply under 20). */
+  minLength: number;
+}
+
+const FIELD = /\{([a-z_]+)(?:\|([^}]*))?\}/g;
+const SEQUENCE_FIELDS: readonly RenderField[] = ["first_name", "company", "sender"];
+
+export const KEYWORDS = ["help", "start", "stop"] as const;
+export type Keyword = (typeof KEYWORDS)[number];
+
+/**
+ * The words each reply answers, as registered on the 10DLC campaign (plus the
+ * carriers' standard opt-out set). Telnyx answers a bare YES with the start
+ * reply too, so that text has to read fine after any "yes".
+ */
+export const KEYWORD_WORDS: Record<Keyword, readonly string[]> = {
+  help: ["HELP", "INFO"],
+  start: ["START", "YES", "UNSTOP"],
+  stop: ["STOP", "STOPALL", "UNSUBSCRIBE", "CANCEL", "END", "QUIT", "OPTOUT", "REVOKE"],
+};
+
+/** Telnyx sends these itself, on the messaging profile: no fields. */
+export const KEYWORD_SLOTS: readonly TemplateSlot[] = [
+  { key: "keyword.help", purpose: "Auto reply to HELP or INFO" },
+  { key: "keyword.start", purpose: "Auto reply to START or YES (opting back in)" },
+  { key: "keyword.stop", purpose: "Auto reply to STOP and the other opt-out words" },
+].map((s) => ({ ...s, fields: [], mustSayStop: false, minLength: 20 }));
+
+export function keywordOf(key: string): Keyword | null {
+  const op = key.startsWith("keyword.") ? key.slice("keyword.".length) : "";
+  return (KEYWORDS as readonly string[]).includes(op) ? (op as Keyword) : null;
+}
+
+export function stepKey(sequence: string, step: number): string {
+  return `${sequence}#${step}`;
+}
+
+export function sequenceSlots(seq: SmsSequence): TemplateSlot[] {
+  return seq.steps.map((s) => ({
+    key: stepKey(seq.name, s.step),
+    purpose:
+      s.step === 1
+        ? `${seq.name}: first text, to someone who has not texted us`
+        : `${seq.name}: text ${s.step}, ${s.afterDays} days after the last one`,
+    fields: SEQUENCE_FIELDS,
+    mustSayStop: s.step === 1,
+    minLength: 1,
+  }));
+}
+
+/** Throws on the first thing wrong with a sequence's shape, so a bad one never loads. */
 export function checkSequence(seq: SmsSequence): SmsSequence {
   if (seq.steps.length === 0) throw new Error(`sms sequence ${seq.name} has no steps`);
   seq.steps.forEach((s, i) => {
@@ -38,18 +101,28 @@ export function checkSequence(seq: SmsSequence): SmsSequence {
     if (s.afterDays < 0 || (i === 0 && s.afterDays !== 0)) {
       throw new Error(`sms sequence ${seq.name} step ${s.step}: bad afterDays ${s.afterDays}`);
     }
-    for (const m of s.body.matchAll(FIELD)) {
-      if (!KNOWN.has(m[1] as string)) {
-        throw new Error(`sms sequence ${seq.name} step ${s.step}: unknown field {${m[1]}}`);
-      }
-    }
   });
-  if (!/\bstop\b/i.test(seq.steps[0]?.body ?? "")) {
-    throw new Error(
-      `sms sequence ${seq.name}: the opener must say how to stop (e.g. "reply STOP to opt out")`,
-    );
-  }
   return seq;
+}
+
+/** The body as it will be stored ("" clears the slot), or throws saying what is wrong. */
+export function checkBody(slot: TemplateSlot, body: string): string {
+  const text = body.trim();
+  if (text === "") return "";
+  for (const m of text.matchAll(FIELD)) {
+    if (!(slot.fields as readonly string[]).includes(m[1] as string)) {
+      throw new Error(
+        slot.fields.length === 0
+          ? `${slot.key} takes no fields: {${m[1]}} is not filled in`
+          : `${slot.key}: unknown field {${m[1]}} (have: ${slot.fields.map((f) => `{${f}}`).join(", ")})`,
+      );
+    }
+  }
+  if (slot.mustSayStop && !/\bstop\b/i.test(text))
+    throw new Error(`${slot.key} is a first text: it must say how to stop (the word STOP)`);
+  if (text.length < slot.minLength)
+    throw new Error(`${slot.key} needs at least ${slot.minLength} characters`);
+  return text;
 }
 
 export function render(body: string, fields: RenderFields): string {

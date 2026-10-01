@@ -13,6 +13,8 @@ describe("classifyInbound", () => {
   });
   it("reads start, and leaves real replies alone", () => {
     expect(classifyInbound("START").kind).toBe("start");
+    expect(classifyInbound("Yes!").kind).toBe("yes");
+    expect(classifyInbound("yes, tuesday works").kind).toBe("reply");
     expect(classifyInbound("sure, what's the price?").kind).toBe("reply");
     expect(classifyInbound("we can't stop now, send details").kind).toBe("reply");
     expect(classifyInbound("the end of the month works").kind).toBe("reply");

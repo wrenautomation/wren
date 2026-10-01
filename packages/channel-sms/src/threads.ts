@@ -6,7 +6,7 @@
 import { companies } from "@wren/core";
 import type { Queryable } from "@wren/db";
 import { and, asc, desc, eq, sql } from "drizzle-orm";
-import { formatUs } from "./phone.js";
+import { formatPhone } from "./phone.js";
 import {
   type SmsContact,
   type SmsMessage,
@@ -80,7 +80,7 @@ export async function listThreads(
   return rows.map((r) => ({
     contactId: r.contact.id,
     e164: r.contact.e164,
-    display: formatUs(r.contact.e164),
+    display: formatPhone(r.contact.e164),
     company: r.company,
     state: r.contact.state,
     lastAt: new Date(r.lastAt).toISOString(),
@@ -139,7 +139,7 @@ export async function getThread(db: Queryable, contactId: number): Promise<Threa
   return {
     contact: {
       ...row.contact,
-      display: formatUs(row.contact.e164),
+      display: formatPhone(row.contact.e164),
       company: row.company,
       companyDomain: row.domain,
       fromNumber: row.from,

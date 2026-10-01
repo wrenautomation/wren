@@ -209,6 +209,8 @@ export const settingsSchema = z.object({
   smsProvider: z.enum(["none", "fake", "telnyx"]).default("none"),
   telnyxApiKey: z.string().min(1).optional(),
   telnyxMessagingProfileId: z.string().min(1).optional(),
+  /** The 10DLC campaign US numbers go on; SmsWatch attaches them once carriers approve it. */
+  telnyxCampaignId: z.string().min(1).optional(),
   /** Telnyx's webhook public key (portal: Keys & Credentials → Public Key), for the phone Worker. */
   telnyxPublicKey: z.string().min(1).optional(),
   smsLive: z
@@ -370,6 +372,7 @@ export const ENV_KEYS = {
   smsProvider: "WREN_SMS_PROVIDER",
   telnyxApiKey: "WREN_TELNYX_API_KEY",
   telnyxMessagingProfileId: "WREN_TELNYX_MESSAGING_PROFILE_ID",
+  telnyxCampaignId: "WREN_TELNYX_CAMPAIGN_ID",
   telnyxPublicKey: "WREN_TELNYX_PUBLIC_KEY",
   smsLive: "WREN_SMS_LIVE",
   smsDailyCap: "WREN_SMS_DAILY_CAP",

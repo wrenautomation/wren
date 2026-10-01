@@ -4,22 +4,23 @@
  * Restate services, so every one is journaled. Nothing here sends by itself:
  * the SmsSender loop does, and only when WREN_SMS_LIVE lets a real provider.
  */
+import { readFile } from "node:fs/promises";
 import * as clients from "@restatedev/restate-sdk-clients";
 import {
   CONTACT_BASES,
   type ContactBasis,
   DISPOSITIONS,
   type Disposition,
-  formatUs,
+  formatPhone,
   getThread,
+  listTemplates,
   listThreads,
   policyFrom,
   poolToday,
-  render,
-  segments,
+  slotsOf,
   smsStats,
   type ThreadFilter,
-  toUsE164,
+  toPhoneE164,
 } from "@wren/channel-sms";
 import {
   SENDER_KEY,
@@ -38,8 +39,8 @@ type WithDb = <T>(fn: (db: Db) => Promise<T>) => Promise<T>;
 const json = (v: unknown) => console.log(JSON.stringify(v, null, 2));
 
 function e164Of(phone: string): string {
-  const e164 = toUsE164(phone);
-  if (!e164) throw new Error(`not a US number: ${phone}`);
+  const e164 = toPhoneE164(phone);
+  if (!e164) throw new Error(`not a US or Canadian number: ${phone}`);
   return e164;
 }
 
@@ -70,15 +71,28 @@ export function registerSms(program: Command, withDb: WithDb, settings: Settings
       );
       if (pool.numbers.length === 0)
         console.log("no numbers: buy them at the provider, then `wren sms numbers sync`");
-      for (const n of pool.numbers)
+      for (const n of pool.numbers) {
+        const reg =
+          n.number.country !== "US"
+            ? n.number.country
+            : n.number.registeredAt
+              ? `US, registered ${n.number.registeredAt.toISOString().slice(0, 10)}`
+              : "US, waiting on carrier approval";
         console.log(
-          `${formatUs(n.number.e164)}\t${n.number.state}\t${n.sentToday}/${n.cap} today\tramp from ${n.number.rampStartedOn}${n.number.pausedReason ? `\t${n.number.pausedReason}` : ""}`,
+          `${formatPhone(n.number.e164)}\t${n.number.state}\t${reg}\t${n.sentToday}/${n.cap} today\tramp from ${n.number.rampStartedOn}${n.number.pausedReason ? `\t${n.number.pausedReason}` : ""}`,
         );
+      }
     });
   nums
     .command("sync")
     .description("Mirror the provider's numbers into the pool (never grows past the cap)")
     .action(async () => json(await desk().syncNumbers()));
+  nums
+    .command("register")
+    .description(
+      "Attach waiting US numbers to the 10DLC campaign once carriers approve it (SmsWatch does this every 30 min)",
+    )
+    .action(async () => json(await desk().register()));
   nums
     .command("pause <phone>")
     .option("--reason <text>", "why", "paused by hand")
@@ -97,25 +111,47 @@ export function registerSms(program: Command, withDb: WithDb, settings: Settings
       ),
     );
 
-  cmd
-    .command("sequences")
-    .description("The registered SMS copy, rendered with a sample, and its segment count")
-    .action(() => {
-      for (const seq of SMS_SEQUENCES.values()) {
-        console.log(seq.name);
-        for (const step of seq.steps) {
-          const body = render(step.body, {
-            first_name: "Dana",
-            company: "Northwind",
-            sender: settings.smsSenderName,
-          });
-          const seg = segments(body);
+  const tpl = cmd
+    .command("templates")
+    .description(
+      "Every text you write: sequence steps and HELP/START/STOP replies. Empty = never sent",
+    );
+  tpl
+    .command("list", { isDefault: true })
+    .description("Each one, filled or empty, rendered with a sample name and its segment count")
+    .action(async () => {
+      const views = await withDb((db) =>
+        listTemplates(db, slotsOf(SMS_SEQUENCES.values()), settings.smsSenderName),
+      );
+      for (const v of views) {
+        console.log(`${v.key}\t${v.purpose}`);
+        if (!v.body) {
           console.log(
-            `  ${step.step}. +${step.afterDays}d · ${seg.parts} part(s) ${seg.encoding}\n     ${body}`,
+            `  (empty)${v.fields.length ? ` fields: ${v.fields.map((f) => `{${f}}`).join(" ")}` : ""}`,
           );
+          continue;
         }
+        const seg = v.segments;
+        console.log(
+          `  ${seg?.parts} part(s) ${seg?.encoding} · ${v.updatedBy} ${v.updatedAt?.slice(0, 10)}\n  ${v.preview}`,
+        );
       }
     });
+  tpl
+    .command("set <key>")
+    .description("Fill one. A keyword reply goes live on Telnyx at once")
+    .option("--body <text>", "the text")
+    .option("--file <path>", "read the text from a file")
+    .action(async (key: string, o: { body?: string; file?: string }) => {
+      if ((o.body === undefined) === (o.file === undefined))
+        throw new Error("give exactly one of --body or --file");
+      const body = o.file ? await readFile(o.file, "utf8") : (o.body as string);
+      json(await desk().setTemplate({ key, body, by: "cli" }));
+    });
+  tpl
+    .command("clear <key>")
+    .description("Empty one: that text stops being sent (a keyword reply falls back to Telnyx's)")
+    .action(async (key: string) => json(await desk().setTemplate({ key, body: "", by: "cli" })));
 
   cmd
     .command("add <phone>")
@@ -132,7 +168,7 @@ export function registerSms(program: Command, withDb: WithDb, settings: Settings
         ...(o.niche ? { niche: o.niche } : {}),
       });
       console.log(
-        `${r.created ? "added" : "already there"}: contact ${r.contactId} ${formatUs(r.e164)}`,
+        `${r.created ? "added" : "already there"}: contact ${r.contactId} ${formatPhone(r.e164)}`,
       );
     });
 
@@ -243,7 +279,7 @@ export function registerSms(program: Command, withDb: WithDb, settings: Settings
         `${c.display} · ${c.company ?? "no company"} · ${c.state} · basis ${c.basis}${c.basisDetail ? ` (${c.basisDetail})` : ""}`,
       );
       if (c.sourceUrl) console.log(`found on ${c.sourceUrl}`);
-      if (c.fromNumber) console.log(`from ${formatUs(c.fromNumber)}`);
+      if (c.fromNumber) console.log(`from ${formatPhone(c.fromNumber)}`);
       for (const m of t.messages)
         console.log(
           `${m.at.slice(0, 16)} ${m.direction === "in" ? "←" : "→"} [${m.id} ${m.state}${m.disposition ? ` · ${m.disposition}` : ""}] ${m.body}`,

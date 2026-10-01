@@ -16,12 +16,25 @@ import { enroll } from "../../src/enroll.js";
 import { applyEvent } from "../../src/events.js";
 import { checkHealth, DEFAULT_HEALTH } from "../../src/health.js";
 import { liftPhones } from "../../src/lift.js";
+import { fleetDay } from "../../src/policy.js";
 import { poolToday, syncNumbers } from "../../src/pool.js";
 import { FakeProvider, NoProvider, type SmsEvent } from "../../src/provider.js";
-import { smsContacts, smsMessages, smsNumbers } from "../../src/schema.js";
+import { watchRegistration } from "../../src/registration.js";
+import { smsContacts, smsMessages, smsNumbers, smsTemplates } from "../../src/schema.js";
 import { smsStats } from "../../src/stats.js";
 import { getThread, listThreads } from "../../src/threads.js";
-import { company, notes, numbers, OPEN, POLICY, SEQ, SEQUENCES, SHUT, TABLES } from "./fixtures.js";
+import {
+  company,
+  fillTemplates,
+  notes,
+  numbers,
+  OPEN,
+  POLICY,
+  SEQ,
+  SEQUENCES,
+  SHUT,
+  TABLES,
+} from "./fixtures.js";
 
 let pg: TestPostgres;
 let provider: FakeProvider;
@@ -35,6 +48,7 @@ afterAll(async () => {
 });
 beforeEach(async () => {
   await truncate(pg.db, TABLES);
+  await fillTemplates(pg.db);
   provider = new FakeProvider();
 });
 
@@ -99,7 +113,7 @@ describe("manual contacts", () => {
       addContact(db(), { phone: "212 555 0101", basis: "opt_in", why: " " }),
     ).rejects.toThrow(/consent record/);
     await expect(addContact(db(), { phone: "12", basis: "opt_in", why: "x" })).rejects.toThrow(
-      /not a US number/,
+      /not a US or Canadian number/,
     );
     const a = await addContact(db(), {
       phone: "(212) 555-0101",
@@ -114,6 +128,124 @@ describe("manual contacts", () => {
     await numbers(db(), provider, ["+13125550001"]);
     expect((await enrollAt(SHUT, 10, { ...POLICY, bases: ["published"] })).enrolled).toBe(0);
     expect((await enrollAt(SHUT, 10, { ...POLICY, bases: ["opt_in"] })).enrolled).toBe(1);
+  });
+});
+
+describe("US and Canada", () => {
+  const CAMPAIGN = "camp-1";
+  const US = "+13125550100";
+  const CA = "+14165550100";
+  beforeEach(async () => {
+    await numbers(db(), provider, [US, CA], "2026-09-01", { registered: false });
+    await company(db(), "Acme", { html: '<a href="tel:+12125550187">x</a>' });
+    await liftPhones(db(), { heldNiches: [] });
+    await addContact(db(), { phone: "647 555 0101", basis: "opt_in", why: "form, 2026-09-28" });
+  });
+
+  it("texts each country from its own number; US waits for the campaign, then attaches itself", async () => {
+    expect(await enrollAt(OPEN)).toMatchObject({ enrolled: 2 });
+    const numberOf = async (e164: string) =>
+      (await db().select().from(smsNumbers).where(eq(smsNumbers.e164, e164)))[0];
+    expect((await contact("+16475550101"))?.numberId).toBe((await numberOf(CA))?.id);
+    expect((await contact("+12125550187"))?.numberId).toBe((await numberOf(US))?.id);
+    // Canada needs no 10DLC; the US number holds its texts.
+    expect(await tickAt(OPEN)).toMatchObject({ sent: 1, unreachable: 1 });
+    expect(provider.sent.map((m) => [m.from, m.to])).toEqual([[CA, "+16475550101"]]);
+
+    const watch = (now = OPEN) => watchRegistration(db(), provider, CAMPAIGN, now);
+    expect(await watch()).toMatchObject({
+      campaign: { status: "pending" },
+      asked: [],
+      registered: [],
+    });
+    provider.registration.campaignState = { status: "approved", raw: "MNO_ACCEPTED", detail: null };
+    expect(await watch()).toMatchObject({ asked: [US], pending: [], registered: [] });
+    expect(await watch()).toMatchObject({ asked: [], pending: [US] });
+    provider.registration.settle();
+    const later = new Date(OPEN.getTime() + 86_400_000);
+    expect(await watch(later)).toMatchObject({ registered: [US] });
+    expect(await numberOf(US)).toMatchObject({
+      registeredAt: later,
+      rampStartedOn: fleetDay(later),
+    });
+    expect(await watch(later)).toMatchObject({ skipped: "no US number waits", campaign: null });
+    expect(await tickAt(later)).toMatchObject({ sent: 1, unreachable: 0 });
+    expect(provider.sent.at(-1)).toMatchObject({ from: US, to: "+12125550187" });
+  });
+
+  it("a rejected campaign or another campaign's number never registers", async () => {
+    provider.registration.campaignState = {
+      status: "rejected",
+      raw: "MNO_REJECTED",
+      detail: "opt-in unclear",
+    };
+    expect(await watchRegistration(db(), provider, CAMPAIGN, OPEN)).toMatchObject({
+      campaign: { status: "rejected" },
+      asked: [],
+      registered: [],
+    });
+    provider.registration.assignments.set(US, {
+      status: "assigned",
+      campaignId: "other",
+      detail: null,
+    });
+    expect((await watchRegistration(db(), provider, CAMPAIGN, OPEN)).failed).toEqual([
+      `${US}: on another campaign (other)`,
+    ]);
+    expect(await watchRegistration(db(), provider, null, OPEN)).toMatchObject({
+      skipped: expect.stringMatching(/no campaign/),
+    });
+  });
+
+  it("an operator reply waits on an unregistered number but is refused across the border", async () => {
+    await enrollAt(OPEN);
+    const us = await contact("+12125550187");
+    await queueManual(db(), { contactId: us?.id as number, body: "by hand", now: OPEN });
+    expect((await tickAt(OPEN)).unreachable).toBeGreaterThan(0);
+    const ca = await contact("+16475550101");
+    await db()
+      .update(smsContacts)
+      .set({ numberId: us?.numberId })
+      .where(eq(smsContacts.id, ca?.id as number));
+    await expect(
+      queueManual(db(), { contactId: ca?.id as number, body: "by hand", now: OPEN }),
+    ).rejects.toThrow(/US number; \+16475550101 is CA/);
+  });
+});
+
+describe("templates", () => {
+  beforeEach(async () => {
+    await numbers(db(), provider, ["+13125550100"]);
+    await company(db(), "Acme Studio", { html: '<a href="tel:+12125550187">x</a>' });
+    await liftPhones(db(), { heldNiches: [] });
+  });
+
+  it("enroll refuses until every step is filled, and spends nothing", async () => {
+    await db().delete(smsTemplates).where(eq(smsTemplates.key, "agencies-sms#2"));
+    await expect(enrollAt(OPEN)).rejects.toThrow(/fill agencies-sms#2 first/);
+    expect(await contact("+12125550187")).toMatchObject({ state: "new", lookedUpAt: null });
+    expect(await messages()).toHaveLength(0);
+  });
+
+  it("a queued text goes out in the words saved now, and an emptied step ends the thread", async () => {
+    await enrollAt(OPEN);
+    await fillTemplates(db(), {
+      "agencies-sms#1": "{first_name|hey}, {sender} again. STOP ends these",
+    });
+    await tickAt(OPEN);
+    expect(provider.sent[0]?.text).toBe("hey, William again. STOP ends these");
+    expect((await messages())[0]?.body).toBe("hey, William again. STOP ends these");
+    await db().delete(smsTemplates).where(eq(smsTemplates.key, "agencies-sms#2"));
+    expect(await tickAt(new Date(OPEN.getTime() + 3 * 86_400_000))).toMatchObject({
+      sent: 0,
+      skipped: 1,
+    });
+    expect(provider.sent).toHaveLength(1);
+    expect(await contact("+12125550187")).toMatchObject({
+      state: "finished",
+      stateReason: "template agencies-sms#2 is empty",
+    });
+    expect((await messages())[1]?.state).toBe("skipped");
   });
 });
 
@@ -269,6 +401,33 @@ describe("enroll → send → receipts → reply", () => {
       text: "start",
       at: OPEN,
     });
+    expect(await activeSuppressionOf(db(), "phone", to)).toBeNull();
+  });
+
+  it("a bare YES lifts an opt-out, and from anyone else is a reply", async () => {
+    await enrollAt(OPEN);
+    await tickAt(OPEN);
+    const [a, b] = (await messages()).filter((m) => m.state === "sent");
+    const inbound = (from: string, to: string, id: string, text: string) =>
+      event({
+        kind: "inbound",
+        eventId: id,
+        type: "message.received",
+        messageId: `in-${id}`,
+        from,
+        to,
+        text,
+        at: OPEN,
+      });
+    const yes = await inbound(b?.toE164 as string, b?.fromE164 as string, "y0", "Yes!");
+    expect(yes.outcome).toMatch(/^reply/);
+    expect((await contact(b?.toE164 as string))?.state).toBe("replied");
+    const to = a?.toE164 as string;
+    await inbound(to, a?.fromE164 as string, "y1", "stop");
+    expect(await activeSuppressionOf(db(), "phone", to)).not.toBeNull();
+    expect((await inbound(to, a?.fromE164 as string, "y2", "yes")).outcome).toMatch(
+      /^start: lifted/,
+    );
     expect(await activeSuppressionOf(db(), "phone", to)).toBeNull();
   });
 

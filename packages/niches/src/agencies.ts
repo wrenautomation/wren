@@ -58,27 +58,15 @@ export const agencies = defineNiche({
     threeEmailSequence(`${arm}/opener`, `${arm}/followup`, "final_followup"),
     twoEmailSequence(`${arm}/opener`, `${arm}/followup`),
   ]),
-  // Draft copy, William's to edit. One segment where the name allows, one ask, the stop line in the opener. Only
-  // contacts whose basis the registered campaign covers ever get it (WREN_SMS_BASES).
+  // Two texts, three days apart. The words are William's, in sms_templates (agencies-sms#1, #2):
+  // nothing enrolls until both are filled. Only contacts whose basis the registered campaign
+  // covers ever get them (WREN_SMS_BASES).
   smsSequences: [
     {
       name: "agencies-sms",
       steps: [
-        {
-          step: 1,
-          afterDays: 0,
-          body:
-            "hi {first_name|there}, {sender} from Wren Automation. are month-end client reports" +
-            " at {company|your agency} still fixed by hand in a spreadsheet? I fix that." +
-            " reply STOP to opt out",
-        },
-        {
-          step: 2,
-          afterDays: 3,
-          body:
-            "{first_name|hi}, worth a free look at where the retyping happens? you get a" +
-            " one-page audit either way. reply with a time and I'll book it",
-        },
+        { step: 1, afterDays: 0 },
+        { step: 2, afterDays: 3 },
       ],
     },
   ],

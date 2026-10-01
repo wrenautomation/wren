@@ -1,5 +1,14 @@
 import { describe, expect, it } from "vitest";
-import { checkSequence, firstName, render, segments } from "./templates.js";
+import {
+  checkBody,
+  checkSequence,
+  firstName,
+  KEYWORD_SLOTS,
+  keywordOf,
+  render,
+  segments,
+  sequenceSlots,
+} from "./templates.js";
 
 const fields = { first_name: "Dana", company: "Acme Studio", sender: "William" };
 
@@ -16,23 +25,61 @@ describe("render", () => {
 });
 
 describe("checkSequence", () => {
-  const ok = { name: "s", steps: [{ step: 1, afterDays: 0, body: "hi. reply STOP to opt out" }] };
+  const ok = { name: "s", steps: [{ step: 1, afterDays: 0 }] };
   it("accepts a good one", () => expect(checkSequence(ok)).toBe(ok));
-  it("needs STOP in the opener", () => {
-    expect(() =>
-      checkSequence({ name: "s", steps: [{ step: 1, afterDays: 0, body: "hi" }] }),
-    ).toThrow(/stop/);
-  });
-  it("rejects unknown fields and bad order", () => {
-    expect(() =>
-      checkSequence({ name: "s", steps: [{ step: 1, afterDays: 0, body: "{nick} STOP" }] }),
-    ).toThrow(/unknown field/);
+  it("rejects no steps, bad order, and an opener that waits", () => {
+    expect(() => checkSequence({ name: "s", steps: [] })).toThrow(/no steps/);
     expect(() =>
       checkSequence({
         name: "s",
-        steps: [ok.steps[0] as never, { step: 3, afterDays: 2, body: "x" }],
+        steps: [
+          { step: 1, afterDays: 0 },
+          { step: 3, afterDays: 2 },
+        ],
       }),
     ).toThrow(/order/);
+    expect(() => checkSequence({ name: "s", steps: [{ step: 1, afterDays: 2 }] })).toThrow(
+      /afterDays/,
+    );
+  });
+});
+
+describe("checkBody", () => {
+  const [opener, second] = sequenceSlots({
+    name: "s",
+    steps: [
+      { step: 1, afterDays: 0 },
+      { step: 2, afterDays: 3 },
+    ],
+  });
+  const help = KEYWORD_SLOTS[0];
+  it("keys slots the way messages record them", () => {
+    expect([opener?.key, second?.key, help?.key]).toEqual(["s#1", "s#2", "keyword.help"]);
+    expect([keywordOf("keyword.stop"), keywordOf("s#1"), keywordOf("keyword.x")]).toEqual([
+      "stop",
+      null,
+      null,
+    ]);
+  });
+  it("trims, and treats blank as empty", () => {
+    expect(checkBody(second as never, "  hi {first_name|there}  ")).toBe("hi {first_name|there}");
+    expect(checkBody(opener as never, "   ")).toBe("");
+  });
+  it("needs STOP in the opener only", () => {
+    expect(() => checkBody(opener as never, "hi")).toThrow(/STOP/);
+    expect(checkBody(opener as never, "hi. Reply stop to opt out")).toBe(
+      "hi. Reply stop to opt out",
+    );
+    expect(checkBody(second as never, "hi")).toBe("hi");
+  });
+  it("refuses a field the slot does not fill", () => {
+    expect(() => checkBody(second as never, "{nick} hi")).toThrow(/unknown field \{nick\}/);
+    expect(() => checkBody(help as never, "hi {first_name}, write to us at x")).toThrow(
+      /takes no fields/,
+    );
+  });
+  it("holds keyword replies to Telnyx's 20 characters", () => {
+    expect(() => checkBody(help as never, "too short")).toThrow(/20 characters/);
   });
 });
 

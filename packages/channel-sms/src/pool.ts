@@ -11,9 +11,16 @@
 import { zonedInstant } from "@wren/core/time";
 import type { Queryable } from "@wren/db";
 import { and, asc, count, eq, gte, inArray, isNull, max, ne, sql } from "drizzle-orm";
+import { countryOf } from "./phone.js";
 import { FLEET_ZONE, fleetDay, numberCapOn, type SmsPolicy } from "./policy.js";
 import type { SmsProvider } from "./provider.js";
-import { type SmsNumber, smsContacts, smsMessages, smsNumbers } from "./schema.js";
+import {
+  type PhoneCountry,
+  type SmsNumber,
+  smsContacts,
+  smsMessages,
+  smsNumbers,
+} from "./schema.js";
 
 /** Outbound states that count as a send attempt today (the carrier saw it, or may have). */
 const ATTEMPTED = ["sending", "sent", "delivered", "failed", "unknown"] as const;
@@ -86,13 +93,29 @@ export function numberReady(n: NumberToday, now: Date, policy: SmsPolicy): boole
   return now.getTime() - n.lastAttemptAt.getTime() >= policy.gapSeconds * 1000;
 }
 
-/** The active number carrying the fewest running threads, for a new contact; null when none is active. */
-export async function pickNumber(db: Queryable): Promise<SmsNumber | null> {
+/**
+ * Why `number` may not text `to` yet, or null when it may. Another country is
+ * never; an unregistered US number is until the carriers attach it.
+ */
+export function cannotReach(
+  number: Pick<SmsNumber, "e164" | "country" | "registeredAt">,
+  to: string,
+): string | null {
+  const country = countryOf(to);
+  if (country !== number.country)
+    return `${number.e164} is a ${number.country} number; ${to} is ${country ?? "not US or CA"}`;
+  if (country === "US" && number.registeredAt === null)
+    return `${number.e164} waits on the 10DLC campaign (carrier review)`;
+  return null;
+}
+
+/** The active number in `country` carrying the fewest running threads, for a new contact; null when there is none. */
+export async function pickNumber(db: Queryable, country: PhoneCountry): Promise<SmsNumber | null> {
   const load = sql<number>`(SELECT count(*) FROM ${smsContacts} WHERE ${smsContacts.numberId} = ${smsNumbers.id} AND ${smsContacts.state} = 'enrolled')`;
   const [row] = await db
     .select({ number: smsNumbers })
     .from(smsNumbers)
-    .where(eq(smsNumbers.state, "active"))
+    .where(and(eq(smsNumbers.state, "active"), eq(smsNumbers.country, country)))
     .orderBy(asc(load), asc(smsNumbers.e164))
     .limit(1);
   return row?.number ?? null;
@@ -104,6 +127,8 @@ export interface SyncStats {
   retired: string[];
   /** Numbers the account holds past the pool's size: not added, reported. */
   overCap: string[];
+  /** Numbers outside the US and Canada: never pooled. */
+  notUsOrCa: string[];
 }
 
 /**
@@ -118,7 +143,13 @@ export async function syncNumbers(
   now: Date,
 ): Promise<SyncStats> {
   const owned = await provider.listNumbers();
-  const stats: SyncStats = { seen: owned.length, added: [], retired: [], overCap: [] };
+  const stats: SyncStats = {
+    seen: owned.length,
+    added: [],
+    retired: [],
+    overCap: [],
+    notUsOrCa: [],
+  };
   const current = await db.select().from(smsNumbers).where(eq(smsNumbers.provider, provider.name));
   const ownedSet = new Set(owned.map((o) => o.e164));
   for (const n of current) {
@@ -130,11 +161,22 @@ export async function syncNumbers(
       stats.retired.push(n.e164);
     }
   }
+  // Country comes from the digits; rows from before the column get theirs here.
+  for (const n of current) {
+    const country = countryOf(n.e164);
+    if (country && country !== n.country)
+      await db.update(smsNumbers).set({ country }).where(eq(smsNumbers.id, n.id));
+  }
   const known = new Map(current.map((n) => [n.e164, n]));
   let live = current.filter((n) => n.state !== "retired" && ownedSet.has(n.e164)).length;
   for (const o of owned) {
     const existing = known.get(o.e164);
     if (existing && existing.state !== "retired") continue;
+    const country = countryOf(o.e164);
+    if (!country) {
+      stats.notUsOrCa.push(o.e164);
+      continue;
+    }
     if (live >= policy.maxNumbers) {
       stats.overCap.push(o.e164);
       continue;
@@ -147,6 +189,7 @@ export async function syncNumbers(
           retiredAt: null,
           providerId: o.providerId,
           rampStartedOn: fleetDay(now),
+          country,
         })
         .where(eq(smsNumbers.id, existing.id));
     } else {
@@ -155,6 +198,7 @@ export async function syncNumbers(
         provider: provider.name,
         providerId: o.providerId,
         rampStartedOn: fleetDay(now),
+        country,
       });
     }
     stats.added.push(o.e164);

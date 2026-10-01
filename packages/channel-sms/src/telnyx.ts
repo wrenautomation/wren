@@ -1,21 +1,25 @@
 /**
  * Telnyx: the one file that names the vendor (PH-D8). Messaging v2, number
- * lookup, phone numbers, balance, and the webhook body. Auth is the API key as
+ * lookup, phone numbers, balance, 10DLC, keyword auto-replies, and the webhook body. Auth is the API key as
  * a bearer; it never leaves this file's requests.
  *
  * https://developers.telnyx.com/api/messaging/send-message
  */
 
 import type {
+  CampaignState,
   DeliveryStatus,
+  KeywordReplies,
   LookupResult,
+  NumberAssignment,
   ProviderNumber,
+  Registration,
   SendRequest,
   SendResult,
   SmsEvent,
   SmsProvider,
 } from "./provider.js";
-import type { LineType } from "./schema.js";
+import { type LineType, PHONE_COUNTRIES } from "./schema.js";
 
 const BASE = "https://api.telnyx.com/v2";
 /** "Blocked due to STOP message": the recipient opted out of this number with the carrier. */
@@ -55,6 +59,57 @@ export function lineTypeOf(type: string | null | undefined): LineType {
   if (t.includes("voip")) return "voip";
   if (t.includes("toll")) return "toll_free";
   return "unknown";
+}
+
+/** Carriers have approved the campaign: numbers may be attached. */
+const APPROVED: ReadonlySet<string> = new Set(["MNO_ACCEPTED", "MNO_PROVISIONED"]);
+/** Dead ends: a fix and a resubmit, by hand. */
+const REJECTED: ReadonlySet<string> = new Set([
+  "TCR_FAILED",
+  "TCR_SUSPENDED",
+  "TCR_EXPIRED",
+  "TELNYX_FAILED",
+  "MNO_REJECTED",
+  "MNO_PROVISIONING_FAILED",
+]);
+
+/** `failureReasons` comes as a string or a list of `{ description }`. */
+function reasons(raw: unknown): string | null {
+  if (typeof raw === "string") return raw || null;
+  if (!Array.isArray(raw)) return null;
+  const text = raw
+    .map((r) =>
+      typeof r === "string" ? r : String((r as { description?: string }).description ?? ""),
+    )
+    .filter(Boolean)
+    .join(" | ");
+  return text || null;
+}
+
+/** `/10dlc/phone_number_campaigns` body → ours. */
+export function assignmentOf(body: unknown): NumberAssignment {
+  const b = (body ?? {}) as {
+    assignmentStatus?: string;
+    campaignId?: string;
+    failureReasons?: unknown;
+  };
+  const raw = b.assignmentStatus ?? "";
+  const status: NumberAssignment["status"] =
+    raw === "ASSIGNED" ? "assigned" : raw.includes("FAIL") ? "failed" : "pending";
+  return {
+    status,
+    campaignId: b.campaignId ?? null,
+    detail: reasons(b.failureReasons) ?? (raw || null),
+  };
+}
+
+/** `/10dlc/campaign/{id}` body → ours. Old failure reasons linger after a resubmit: shown only when rejected. */
+export function campaignOf(body: unknown): CampaignState {
+  const b = (body ?? {}) as { campaignStatus?: string; failureReasons?: unknown };
+  const raw = b.campaignStatus ?? "UNKNOWN";
+  if (APPROVED.has(raw)) return { status: "approved", raw, detail: null };
+  if (REJECTED.has(raw)) return { status: "rejected", raw, detail: reasons(b.failureReasons) };
+  return { status: "pending", raw, detail: null };
 }
 
 function statusOf(status: string | undefined): DeliveryStatus | null {
@@ -116,6 +171,17 @@ export class TelnyxProvider implements SmsProvider {
       );
     }
     return (json as { data?: unknown }).data;
+  }
+
+  private async write(method: string, path: string, body?: unknown): Promise<unknown> {
+    const { status, json } = await this.call(method, path, body);
+    if (status >= 400) {
+      const e = firstError(json);
+      throw new Error(
+        `telnyx ${method} ${path.replace(/\/[0-9a-f-]{36}/g, "/…")}: HTTP ${status} ${e.code ?? ""} ${e.detail ?? e.title ?? ""}`.trim(),
+      );
+    }
+    return (json as { data?: unknown } | null)?.data;
   }
 
   async send(req: SendRequest): Promise<SendResult> {
@@ -206,6 +272,66 @@ export class TelnyxProvider implements SmsProvider {
   parseEvent(body: unknown): SmsEvent {
     return parseTelnyxEvent(body);
   }
+
+  /** 10DLC answers come back bare, not under `data`. */
+  private async tenDlc(method: string, path: string, body?: unknown): Promise<unknown> {
+    const { status, json } = await this.call(method, `/10dlc${path}`, body);
+    if (status === 404 && method === "GET") return null;
+    if (status >= 400) {
+      const e = firstError(json);
+      throw new Error(
+        `telnyx ${method} /10dlc${path.split("/").slice(0, 2).join("/")}: HTTP ${status} ${e.code ?? ""} ${e.detail ?? e.title ?? ""}`.trim(),
+      );
+    }
+    return json;
+  }
+
+  readonly registration: Registration = {
+    campaign: async (campaignId) => {
+      const body = await this.tenDlc("GET", `/campaign/${encodeURIComponent(campaignId)}`);
+      if (body === null) throw new Error(`telnyx: no 10DLC campaign ${campaignId}`);
+      return campaignOf(body);
+    },
+    number: async (e164) => {
+      const body = await this.tenDlc("GET", `/phone_number_campaigns/${encodeURIComponent(e164)}`);
+      return body === null
+        ? { status: "none", campaignId: null, detail: null }
+        : assignmentOf(body);
+    },
+    assign: async (e164, campaignId) =>
+      assignmentOf(
+        await this.tenDlc("POST", "/phone_number_campaigns", { phoneNumber: e164, campaignId }),
+      ),
+  };
+
+  /** Auto-responses on the messaging profile: one per keyword per country, updated in place. */
+  readonly keywordReplies: KeywordReplies = {
+    set: async (keyword, words, text) => {
+      const profile = this.opts.messagingProfileId;
+      if (!profile)
+        throw new Error(
+          "telnyx: keyword replies live on the messaging profile (WREN_TELNYX_MESSAGING_PROFILE_ID)",
+        );
+      const base = `/messaging_profiles/${encodeURIComponent(profile)}/autoresp_configs`;
+      const have = ((await this.read(`${base}?page[size]=250`)) ?? []) as {
+        id: string;
+        op: string;
+        country_code: string;
+      }[];
+      const mine = have.filter((c) => c.op === keyword);
+      if (text === null) {
+        for (const c of mine) await this.write("DELETE", `${base}/${c.id}`);
+        return;
+      }
+      for (const country of PHONE_COUNTRIES) {
+        const body = { op: keyword, keywords: words, resp_text: text, country_code: country };
+        const found = mine.find((c) => c.country_code === country);
+        await (found
+          ? this.write("PUT", `${base}/${found.id}`, body)
+          : this.write("POST", base, body));
+      }
+    },
+  };
 }
 
 /** A Telnyx webhook body → our event. Pure: the signature was checked at the edge. */

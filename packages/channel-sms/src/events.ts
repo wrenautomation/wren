@@ -7,19 +7,21 @@
  * 1. STOP words (the carrier set) or a plain "stop texting me" → a `phone`
  *    suppression, the contact `opted_out`, queued steps skipped. Honored
  *    forever, on every channel.
- * 2. START/UNSTOP → the suppression lifted. The thread does not restart.
+ * 2. START/UNSTOP → the suppression lifted. The thread does not restart. A
+ *    bare YES counts as START only from an opted-out phone (it is a registered
+ *    opt-in word); from anyone else it is a reply.
  * 3. Anything else from a lead → `replied`: its sequence stops, the operator is
  *    told. The LLM classifier labels it later; it never suppresses on its own
  *    say (a grounded `opt_out` label does, see classify.ts).
  * A stranger who texts one of our numbers gets a contact row (basis `opt_in`,
  * they wrote first) so the thread shows in the inbox.
  */
-import { addSuppression, liftSuppression } from "@wren/core";
+import { activeSuppressionsOf, addSuppression, liftSuppression } from "@wren/core";
 import type { Notifier } from "@wren/core/notify";
 import type { Db, Queryable } from "@wren/db";
 import { and, desc, eq, sql } from "drizzle-orm";
 import { skipQueued } from "./deliver.js";
-import { formatUs } from "./phone.js";
+import { formatPhone } from "./phone.js";
 import { numberByE164 } from "./pool.js";
 import type { SmsEvent } from "./provider.js";
 import {
@@ -48,7 +50,7 @@ const START_WORDS: ReadonlySet<string> = new Set(["start", "unstop", "subscribe"
 const REVOCATION =
   /\b(stop (texting|messaging|contacting)|don'?t (text|message|contact)|do not (text|message|contact)|remove me|take me off|lose (this|my) number|unsubscribe|wrong number)\b/i;
 
-export type InboundClass = "stop" | "start" | "reply";
+export type InboundClass = "stop" | "start" | "yes" | "reply";
 
 export function classifyInbound(text: string): {
   kind: InboundClass;
@@ -61,6 +63,7 @@ export function classifyInbound(text: string): {
     .trim();
   if (STOP_WORDS.has(folded)) return { kind: "stop", disposition: "opt_out" };
   if (START_WORDS.has(folded)) return { kind: "start", disposition: null };
+  if (folded === "yes") return { kind: "yes", disposition: null };
   if (REVOCATION.test(text)) return { kind: "stop", disposition: "opt_out" };
   return { kind: "reply", disposition: null };
 }
@@ -164,6 +167,10 @@ async function applyInbound(
   const number = await numberByE164(db, e.to);
   const contact = await contactFor(db, e.from, number?.id ?? null, opts.now);
   const cls = classifyInbound(e.text);
+  if (cls.kind === "yes") {
+    const optedOut = (await activeSuppressionsOf(db, "phone", [e.from]))(e.from);
+    cls.kind = optedOut ? "start" : "reply";
+  }
   const inserted = await db
     .insert(smsMessages)
     .values({
@@ -188,7 +195,7 @@ async function applyInbound(
   if (!contact.numberId && number) {
     await db.update(smsContacts).set({ numberId: number.id }).where(eq(smsContacts.id, contact.id));
   }
-  const who = formatUs(e.from);
+  const who = formatPhone(e.from);
   if (cls.kind === "stop") {
     await addSuppression(db, {
       kind: "phone",

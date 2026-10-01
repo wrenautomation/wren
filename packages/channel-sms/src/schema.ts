@@ -1,5 +1,5 @@
 /**
- * The SMS channel's tables. Four, each one fact:
+ * The SMS channel's tables. Five, each one fact:
  *
  * - `sms_numbers`: the pool we send from (PH-D10). Fixed size, each paused on
  *   its own health, never replaced automatically.
@@ -10,6 +10,8 @@
  *   (`sending`) before the provider is called, so a crash never double-sends.
  * - `sms_events`: every webhook, raw, keyed by the provider's event id. The
  *   dedupe and the audit trail in one.
+ * - `sms_templates`: William's words for each slot code declares
+ *   (templates.ts). No row = empty = that text is never sent.
  *
  * Opt-outs are `suppressions` rows of kind `phone` (core), the same table every
  * channel reads.
@@ -38,6 +40,10 @@ import {
 
 export const NUMBER_STATES = ["active", "paused", "retired"] as const;
 export type NumberState = (typeof NUMBER_STATES)[number];
+
+/** The countries a person's number may be in: one +1 plan, two countries. */
+export const PHONE_COUNTRIES = ["US", "CA"] as const;
+export type PhoneCountry = (typeof PHONE_COUNTRIES)[number];
 
 export const LINE_TYPES = ["mobile", "landline", "voip", "toll_free", "unknown"] as const;
 export type LineType = (typeof LINE_TYPES)[number];
@@ -121,10 +127,18 @@ export const smsNumbers = pgTable(
     /** Day one of this number's ramp, fleet time. The daily cap grows from here. */
     rampStartedOn: date("ramp_started_on").notNull(),
     retiredAt: timestamp("retired_at", { withTimezone: true }),
+    /** Where the number is (from its digits). It texts phones in its own country only. */
+    country: varchar("country", { length: 2, enum: PHONE_COUNTRIES }).notNull().default("US"),
+    /**
+     * When the carriers attached it to the registered 10DLC campaign. A US number
+     * texts nobody until then; Canadian numbers need no registration.
+     */
+    registeredAt: timestamp("registered_at", { withTimezone: true }),
   },
   (t) => [
     unique("uq_sms_numbers_e164").on(t.e164),
     oneOf("ck_sms_numbers_numberstate", t.state, NUMBER_STATES),
+    oneOf("ck_sms_numbers_country", t.country, PHONE_COUNTRIES),
     check(
       "ck_sms_numbers_paused_reason_iff_paused",
       sql`((state)::text = 'paused'::text) = (paused_reason IS NOT NULL)`,
@@ -292,8 +306,18 @@ export const smsEvents = pgTable(
   (t) => [unique("uq_sms_events_provider_event").on(t.provider, t.providerEventId)],
 );
 
+export const smsTemplates = pgTable("sms_templates", {
+  /** A slot key: `<sequence>#<step>` or `keyword.<help|start|stop>`. */
+  key: varchar("key", { length: 120 }).primaryKey(),
+  body: text("body").notNull(),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+  /** Who saved it: an operator's email, or `cli`. */
+  updatedBy: varchar("updated_by", { length: 200 }).notNull(),
+});
+
 export type SmsNumber = typeof smsNumbers.$inferSelect;
 export type SmsContact = typeof smsContacts.$inferSelect;
 export type NewSmsContact = typeof smsContacts.$inferInsert;
 export type SmsMessage = typeof smsMessages.$inferSelect;
 export type SmsEventRow = typeof smsEvents.$inferSelect;
+export type SmsTemplateRow = typeof smsTemplates.$inferSelect;

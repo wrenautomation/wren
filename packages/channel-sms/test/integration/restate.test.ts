@@ -26,8 +26,8 @@ import {
   WATCH_KEY,
   type WatchStats,
 } from "../../src/restate/index.js";
-import { smsContacts, smsEvents, smsMessages } from "../../src/schema.js";
-import { company, notes, numbers, POLICY, SEQUENCES, TABLES } from "./fixtures.js";
+import { smsContacts, smsEvents, smsMessages, smsTemplates } from "../../src/schema.js";
+import { company, fillTemplates, notes, numbers, POLICY, SEQUENCES, TABLES } from "./fixtures.js";
 
 let pg: TestPostgres;
 let env: RestateTestEnvironment;
@@ -46,6 +46,7 @@ beforeAll(async () => {
     policy,
     health: DEFAULT_HEALTH,
     live: false,
+    campaignId: "camp-1",
     sequences: SEQUENCES,
     senderName: "William",
     heldNiches: ["sec_ria"],
@@ -64,6 +65,7 @@ afterAll(async () => {
 });
 beforeEach(async () => {
   await truncate(pg.db, TABLES);
+  await fillTemplates(pg.db);
   provider.sent.length = 0;
   n.seen.length = 0;
 });
@@ -134,10 +136,94 @@ describe("sms on restate", () => {
     expect(stats.texted).toBe(1);
   });
 
+  it("the desk lists every template, saves, clears, and refuses bad words", async () => {
+    const desk = ingress().serviceClient<SmsDeskService>({ name: "SmsDesk" });
+    await pg.db.delete(smsTemplates);
+    const empty = await desk.templates();
+    expect(empty.map((t) => t.key)).toEqual([
+      "agencies-sms#1",
+      "agencies-sms#2",
+      "keyword.help",
+      "keyword.start",
+      "keyword.stop",
+    ]);
+    expect(empty.every((t) => t.body === "" && t.segments === null)).toBe(true);
+    const saved = await desk.setTemplate({
+      key: "agencies-sms#1",
+      body: "  hi {first_name|there}, {sender} at {company}. STOP to opt out ",
+      by: "w@x.test",
+    });
+    expect(saved).toMatchObject({
+      body: "hi {first_name|there}, {sender} at {company}. STOP to opt out",
+      preview: "hi Dana, William at Northwind. STOP to opt out",
+      updatedBy: "w@x.test",
+      segments: { encoding: "GSM-7", parts: 1 },
+    });
+    await expect(
+      desk.setTemplate({ key: "agencies-sms#1", body: "hi {name}. STOP", by: "w" }),
+    ).rejects.toThrow(/unknown field \{name\}/);
+    await expect(
+      desk.setTemplate({ key: "agencies-sms#1", body: "hi there", by: "w" }),
+    ).rejects.toThrow(/must say how to stop/);
+    await expect(desk.setTemplate({ key: "nope", body: "x", by: "w" })).rejects.toThrow(
+      /no SMS template nope/,
+    );
+    expect((await desk.templates())[0]?.body).toContain("STOP to opt out"); // refusals kept the old words
+    expect((await desk.setTemplate({ key: "agencies-sms#1", body: " ", by: "w" })).body).toBe("");
+    expect(await pg.db.select().from(smsTemplates)).toHaveLength(0);
+  });
+
+  it("a keyword reply goes to the provider first; if it refuses, nothing saves", async () => {
+    const desk = ingress().serviceClient<SmsDeskService>({ name: "SmsDesk" });
+    const replies = provider.keywordReplies;
+    await expect(
+      desk.setTemplate({ key: "keyword.help", body: "too short", by: "w" }),
+    ).rejects.toThrow(/at least 20 characters/);
+    await expect(
+      desk.setTemplate({ key: "keyword.help", body: "{sender} here, reply anytime", by: "w" }),
+    ).rejects.toThrow(/takes no fields/);
+    const body = "Wren Automation. Reply here and a person answers.";
+    await desk.setTemplate({ key: "keyword.help", body, by: "w" });
+    expect(replies.replies.get("help")).toEqual({ words: ["HELP", "INFO"], text: body });
+    replies.fail = "boom";
+    await expect(
+      desk.setTemplate({ key: "keyword.help", body: `${body} Thanks.`, by: "w" }),
+    ).rejects.toThrow(/fake did not take the help reply: boom/);
+    replies.fail = null;
+    expect((await desk.templates()).find((t) => t.key === "keyword.help")?.body).toBe(body);
+    await desk.setTemplate({ key: "keyword.help", body: "", by: "w" });
+    expect(replies.replies.has("help")).toBe(false);
+  });
+
   it("the watch pass reports health", async () => {
     const watch = ingress().objectClient<SmsWatchObject>({ name: "SmsWatch" }, WATCH_KEY);
     const out = (await watch.sync()) as PassOutcome<WatchStats>;
     expect(out.error).toBeNull();
     expect(out.stats?.health).toMatchObject({ paused: [], balanceUsd: 25 });
+  });
+
+  it("the watch attaches a US number once carriers approve, and says each step once", async () => {
+    await numbers(pg.db, provider, ["+13125550100"], "2026-09-01", { registered: false });
+    const watch = ingress().objectClient<SmsWatchObject>({ name: "SmsWatch" }, WATCH_KEY);
+    const said = () => n.seen.map((s) => s.title).filter((t) => t.startsWith("SMS"));
+    await watch.sync();
+    await watch.sync();
+    expect(said()).toEqual(["SMS campaign: MNO_PENDING"]);
+    provider.registration.campaignState = { status: "approved", raw: "MNO_ACCEPTED", detail: null };
+    await watch.sync(); // asks the carriers
+    provider.registration.settle();
+    const out = (await watch.sync()) as PassOutcome<WatchStats>;
+    expect(out.stats?.registration.registered).toEqual(["+13125550100"]);
+    expect(said()).toEqual([
+      "SMS campaign: MNO_PENDING",
+      "SMS campaign: MNO_ACCEPTED",
+      "SMS: US numbers registered",
+    ]);
+    const desk = ingress().serviceClient<SmsDeskService>({ name: "SmsDesk" });
+    expect((await desk.numbers()).numbers[0]).toMatchObject({
+      country: "US",
+      registeredAt: OPEN.toISOString(),
+    });
+    expect(await desk.register()).toMatchObject({ skipped: "no US number waits" });
   });
 });

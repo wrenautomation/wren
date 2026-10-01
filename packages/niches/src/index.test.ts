@@ -14,7 +14,6 @@ import {
   twoEmailSequence,
   variantCounts,
 } from "@wren/channel-email";
-import { render as renderSms, segments } from "@wren/channel-sms";
 import { OFFER_IDS } from "@wren/offers";
 import { describe, expect, it } from "vitest";
 import {
@@ -210,17 +209,13 @@ describe("offers", () => {
 });
 
 describe("sms sequences", () => {
-  it("only agencies texts; names are fleet-wide; every step renders in two segments or less", () => {
+  it("only agencies texts; names are fleet-wide; code holds the shape, never the words", () => {
     expect([...SMS_SEQUENCES.keys()]).toEqual(["agencies-sms"]);
     expect(secRia.smsSequences.size).toBe(0);
     const seq = SMS_SEQUENCES.get("agencies-sms");
-    for (const step of seq?.steps ?? []) {
-      const body = renderSms(step.body, {
-        first_name: "Dana",
-        company: "Northwind",
-        sender: "William",
-      });
-      expect(segments(body).parts).toBeLessThanOrEqual(2);
-    }
+    expect(seq?.steps).toEqual([
+      { step: 1, afterDays: 0 },
+      { step: 2, afterDays: 3 },
+    ]);
   });
 });

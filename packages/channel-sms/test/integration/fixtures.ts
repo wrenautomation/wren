@@ -1,12 +1,14 @@
 import { companies } from "@wren/core";
 import type { Db } from "@wren/db";
 import { documents } from "@wren/research/schema";
+import { countryOf } from "../../src/phone.js";
 import { DEFAULT_POLICY, type SmsPolicy } from "../../src/policy.js";
 import type { FakeProvider } from "../../src/provider.js";
-import { smsNumbers } from "../../src/schema.js";
+import { smsNumbers, smsTemplates } from "../../src/schema.js";
 import { checkSequence, type SmsSequence } from "../../src/templates.js";
 
 export const TABLES = [
+  "sms_templates",
   "sms_events",
   "sms_messages",
   "sms_contacts",
@@ -22,15 +24,29 @@ export const TABLES = [
 export const SEQ: SmsSequence = checkSequence({
   name: "agencies-sms",
   steps: [
-    {
-      step: 1,
-      afterDays: 0,
-      body: "hi {first_name|there}, {sender} here. saw {company|your site}. reply STOP to opt out",
-    },
-    { step: 2, afterDays: 3, body: "{sender} again, worth a quick chat?" },
+    { step: 1, afterDays: 0 },
+    { step: 2, afterDays: 3 },
   ],
 });
 export const SEQUENCES = new Map([[SEQ.name, SEQ]]);
+
+/** Test words for SEQ's two steps (the real ones are William's, in prod's sms_templates). */
+export const BODIES: Record<string, string> = {
+  "agencies-sms#1":
+    "hi {first_name|there}, {sender} here. saw {company|your site}. reply STOP to opt out",
+  "agencies-sms#2": "{sender} again, worth a quick chat?",
+};
+
+export async function fillTemplates(
+  db: Db,
+  bodies: Record<string, string> = BODIES,
+): Promise<void> {
+  for (const [key, body] of Object.entries(bodies))
+    await db
+      .insert(smsTemplates)
+      .values({ key, body, updatedBy: "test" })
+      .onConflictDoUpdate({ target: smsTemplates.key, set: { body } });
+}
 
 /** Every basis on, tiny ramp, no gap: tests pick what they need. */
 export const POLICY: SmsPolicy = {
@@ -72,15 +88,24 @@ export async function company(
   return id;
 }
 
+/** Numbers in the pool, US ones already on the campaign unless `registered: false`. */
 export async function numbers(
   db: Db,
   provider: FakeProvider,
   e164s: string[],
   rampStartedOn = "2026-09-01",
+  opts: { registered?: boolean } = {},
 ) {
   provider.numbers = e164s.map((e164, i) => ({ e164, providerId: `n${i}` }));
   for (const e164 of e164s) {
-    await db.insert(smsNumbers).values({ e164, provider: "fake", providerId: e164, rampStartedOn });
+    await db.insert(smsNumbers).values({
+      e164,
+      provider: "fake",
+      providerId: e164,
+      rampStartedOn,
+      country: countryOf(e164) ?? "US",
+      registeredAt: opts.registered === false ? null : new Date("2026-08-31T12:00:00Z"),
+    });
   }
 }
 

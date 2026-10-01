@@ -1,5 +1,11 @@
 import { describe, expect, it } from "vitest";
-import { lineTypeOf, parseTelnyxEvent, TelnyxProvider } from "./telnyx.js";
+import {
+  assignmentOf,
+  campaignOf,
+  lineTypeOf,
+  parseTelnyxEvent,
+  TelnyxProvider,
+} from "./telnyx.js";
 
 function fakeFetch(
   status: number,
@@ -180,5 +186,42 @@ describe("parseTelnyxEvent", () => {
       parseTelnyxEvent({ data: { id: "ev4", event_type: "number_order.complete" } }).kind,
     ).toBe("ignored");
     expect(() => parseTelnyxEvent({})).toThrow();
+  });
+});
+
+describe("10DLC registration", () => {
+  it("reads the campaign; stale reasons show only on a rejection", () => {
+    const stale = [{ description: "opt-in unclear" }];
+    expect(campaignOf({ campaignStatus: "MNO_PENDING", failureReasons: stale })).toEqual({
+      status: "pending",
+      raw: "MNO_PENDING",
+      detail: null,
+    });
+    expect(campaignOf({ campaignStatus: "MNO_PROVISIONED" }).status).toBe("approved");
+    expect(campaignOf({ campaignStatus: "TCR_FAILED", failureReasons: stale })).toMatchObject({
+      status: "rejected",
+      detail: "opt-in unclear",
+    });
+  });
+  it("reads a number's assignment", () => {
+    expect(assignmentOf({ assignmentStatus: "ASSIGNED", campaignId: "c" })).toMatchObject({
+      status: "assigned",
+      campaignId: "c",
+    });
+    expect(assignmentOf({ assignmentStatus: "PENDING_ASSIGNMENT" }).status).toBe("pending");
+    expect(assignmentOf({ assignmentStatus: "FAILED_ASSIGNMENT" }).status).toBe("failed");
+  });
+  it("a number on no campaign is a 404, not an error", async () => {
+    const seen: { url: string; init: RequestInit | undefined }[] = [];
+    const t = new TelnyxProvider({
+      apiKey: "k",
+      fetch: fakeFetch(404, { errors: [{ code: "10005" }] }, seen),
+    });
+    expect(await t.registration.number("+13125550100")).toEqual({
+      status: "none",
+      campaignId: null,
+      detail: null,
+    });
+    expect(seen[0]?.url).toContain("/10dlc/phone_number_campaigns/%2B13125550100");
   });
 });

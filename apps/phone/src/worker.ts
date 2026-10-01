@@ -13,7 +13,7 @@
  *
  * The Worker holds no data: the inbox is Postgres, read through Restate.
  */
-import { AUDIENCE, bearer, verifyToken } from "@wren/auth/verify";
+import { AUDIENCE, bearer, type Signed, verifyToken } from "@wren/auth/verify";
 import { SIGNATURE_HEADER, TIMESTAMP_HEADER, verifyTelnyx } from "@wren/channel-sms/webhook";
 import type { Env } from "./env.js";
 
@@ -27,6 +27,8 @@ export const DESK_HANDLERS: ReadonlySet<string> = new Set([
   "stats",
   "pause",
   "resume",
+  "templates",
+  "setTemplate",
 ]);
 
 const MAX_BODY = 64 * 1024;
@@ -82,8 +84,8 @@ async function telnyxWebhook(req: Request, env: Env): Promise<Response> {
   return json({ ok: true });
 }
 
-/** Null for one of Wren's operators; otherwise the refusal. */
-async function refusal(req: Request, env: Env): Promise<Response | null> {
+/** The signed-in operator, or the refusal. */
+async function operator(req: Request, env: Env): Promise<Signed | Response> {
   if (!env.AUTH_ORIGIN) return json({ error: "sign-in is not set up" }, 503);
   let who: Awaited<ReturnType<typeof verifyToken>>;
   try {
@@ -92,19 +94,27 @@ async function refusal(req: Request, env: Env): Promise<Response | null> {
     return json({ error: "couldn't check your sign-in" }, 502);
   }
   if (!who) return json({ error: "sign in" }, 401);
-  return who.operator ? null : json({ error: "This is for Wren's team." }, 403);
+  return who.operator ? who : json({ error: "This is for Wren's team." }, 403);
 }
 
 async function desk(req: Request, env: Env, handler: string): Promise<Response> {
   if (!DESK_HANDLERS.has(handler)) return json({ error: "not found" }, 404);
-  const refused = await refusal(req, env);
-  if (refused) return refused;
+  const who = await operator(req, env);
+  if (who instanceof Response) return who;
   // A JSON content type forces a CORS preflight, so another site cannot post here.
   if (!(req.headers.get("content-type") ?? "").startsWith("application/json")) {
     return json({ error: "json only" }, 415);
   }
-  const body = await req.text();
+  let body = await req.text();
   if (body.length > MAX_BODY) return json({ error: "too large" }, 413);
+  // Who saved a template is the signed-in operator, never what the page says.
+  if (handler === "setTemplate") {
+    try {
+      body = JSON.stringify({ ...JSON.parse(body), by: who.email });
+    } catch {
+      return json({ error: "bad json" }, 400);
+    }
+  }
   let res: Response;
   try {
     res = await fetch(ingress(env, `SmsDesk/${handler}`), {

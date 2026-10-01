@@ -274,6 +274,20 @@
       "when": 1790860444809,
       "tag": "0038_delivery_invoices",
       "breakpoints": true
+    },
+    {
+      "idx": 39,
+      "version": "7",
+      "when": 1790860699137,
+      "tag": "0039_sms_registration",
+      "breakpoints": true
+    },
+    {
+      "idx": 40,
+      "version": "7",
+      "when": 1790862278000,
+      "tag": "0040_sms_templates",
+      "breakpoints": true
     }
   ]
 }

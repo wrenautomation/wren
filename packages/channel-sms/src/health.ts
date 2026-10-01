@@ -14,7 +14,7 @@
 import type { Notifier } from "@wren/core/notify";
 import type { Queryable } from "@wren/db";
 import { and, eq, gte, inArray, sql } from "drizzle-orm";
-import { formatUs } from "./phone.js";
+import { formatPhone } from "./phone.js";
 import { pauseNumber } from "./pool.js";
 import type { SmsProvider } from "./provider.js";
 import { smsMessages, smsNumbers } from "./schema.js";
@@ -147,7 +147,7 @@ export async function checkHealth(
   }
   if (opts.notifier) {
     for (const p of report.paused) {
-      await opts.notifier.notify(`SMS number ${formatUs(p.e164)} paused`, p.reason, "warning");
+      await opts.notifier.notify(`SMS number ${formatPhone(p.e164)} paused`, p.reason, "warning");
     }
     for (const w of report.warnings) await opts.notifier.notify("SMS", w, "warning");
   }

@@ -311,6 +311,36 @@ main {
 .kv span:last-child {
   font-variant-numeric: tabular-nums;
 }
+.hint {
+  font-size: 13px;
+  color: var(--muted);
+  padding: 2px 0;
+}
+.card.hint {
+  padding: 10px 16px;
+}
+.hint.bad {
+  color: var(--bad);
+}
+textarea.tpl {
+  display: block;
+  width: 100%;
+  margin: 8px 0;
+  padding: 10px 12px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--bg);
+  resize: none;
+  font-size: 16px;
+}
+.tpl-foot {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.tpl-foot .hint {
+  flex: 1;
+}
 .btn {
   border: 1px solid var(--line);
   background: var(--surface);

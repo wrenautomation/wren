@@ -12,6 +12,7 @@
  */
 import { SmsRefusal } from "./refusal.js";
 import type { LineType } from "./schema.js";
+import type { Keyword } from "./templates.js";
 
 export interface SendRequest {
   from: string;
@@ -80,6 +81,80 @@ export interface SmsProvider {
   /** Account balance in USD, or null when the provider has no prepaid balance. */
   balance(): Promise<number | null>;
   parseEvent(body: unknown): SmsEvent;
+  /** US 10DLC registration. Absent = this provider has none (`none`). */
+  readonly registration?: Registration;
+  /** Replies the provider sends itself to HELP/START/STOP. Absent = it has none. */
+  readonly keywordReplies?: KeywordReplies;
+}
+
+export interface KeywordReplies {
+  /** `text` answers `words` from now on, in every country we text; null removes it (the provider's default answers). */
+  set(keyword: Keyword, words: readonly string[], text: string | null): Promise<void>;
+}
+
+export class FakeKeywordReplies implements KeywordReplies {
+  readonly replies = new Map<Keyword, { words: readonly string[]; text: string }>();
+  /** The next set throws this. */
+  fail: string | null = null;
+
+  async set(keyword: Keyword, words: readonly string[], text: string | null): Promise<void> {
+    if (this.fail) throw new Error(this.fail);
+    if (text === null) this.replies.delete(keyword);
+    else this.replies.set(keyword, { words, text });
+  }
+}
+
+/**
+ * The registered campaign as the carriers see it. `approved` = numbers may be
+ * attached; `rejected` = it needs a fix and a resubmit, by hand.
+ */
+export interface CampaignState {
+  status: "pending" | "approved" | "rejected";
+  /** The provider's own word for it (`MNO_PENDING`), for the operator. */
+  raw: string;
+  detail: string | null;
+}
+
+/** One number's attachment to a campaign. `none` = never asked. */
+export interface NumberAssignment {
+  status: "none" | "pending" | "assigned" | "failed";
+  campaignId: string | null;
+  detail: string | null;
+}
+
+export interface Registration {
+  campaign(campaignId: string): Promise<CampaignState>;
+  number(e164: string): Promise<NumberAssignment>;
+  /** Ask the carriers to attach the number. Throws when the provider refuses the request. */
+  assign(e164: string, campaignId: string): Promise<NumberAssignment>;
+}
+
+/** In memory: `campaignState` scripts the campaign; an assign is pending until `settle()`. */
+export class FakeRegistration implements Registration {
+  campaignState: CampaignState = { status: "pending", raw: "MNO_PENDING", detail: null };
+  readonly assignments = new Map<string, NumberAssignment>();
+
+  async campaign(): Promise<CampaignState> {
+    return this.campaignState;
+  }
+
+  async number(e164: string): Promise<NumberAssignment> {
+    return this.assignments.get(e164) ?? { status: "none", campaignId: null, detail: null };
+  }
+
+  async assign(e164: string, campaignId: string): Promise<NumberAssignment> {
+    if (this.campaignState.status !== "approved")
+      throw new Error(`fake: campaign ${this.campaignState.raw}, cannot assign`);
+    const a: NumberAssignment = { status: "pending", campaignId, detail: null };
+    this.assignments.set(e164, a);
+    return a;
+  }
+
+  /** The carriers finish every pending assignment. */
+  settle(): void {
+    for (const [e164, a] of this.assignments)
+      if (a.status === "pending") this.assignments.set(e164, { ...a, status: "assigned" });
+  }
 }
 
 /**
@@ -97,6 +172,8 @@ export class FakeProvider implements SmsProvider {
   readonly landlines = new Set<string>();
   numbers: ProviderNumber[] = [];
   usd: number | null = 25;
+  readonly registration = new FakeRegistration();
+  readonly keywordReplies = new FakeKeywordReplies();
   private seq = 0;
 
   async send(req: SendRequest): Promise<SendResult> {

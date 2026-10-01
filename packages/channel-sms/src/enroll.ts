@@ -5,17 +5,20 @@
  * Who is skipped, and why it is written down: a basis the campaign does not
  * cover (left `new`), a landline or toll-free (`unreachable`), an opted-out
  * number (`opted_out`), a company that already has a running thread (left
- * `new`; one thread per company). Nothing here sends.
+ * `new`; one thread per company). Nothing here sends. A sequence with any
+ * step still empty (template-store.ts) enrolls no one.
  */
-import { activeSuppressionsOf, companies, people } from "@wren/core";
+import { activeSuppressionsOf } from "@wren/core";
 import type { Db } from "@wren/db";
 import { and, asc, eq, inArray, isNull, notInArray, or, sql } from "drizzle-orm";
+import { countryOf } from "./phone.js";
 import type { SmsPolicy } from "./policy.js";
 import { pickNumber } from "./pool.js";
 import type { SmsProvider } from "./provider.js";
 import { SmsRefusal } from "./refusal.js";
 import { type LineType, type SmsContact, smsContacts, smsMessages } from "./schema.js";
-import { firstName, render, type SmsSequence } from "./templates.js";
+import { fieldsFor, templateBodies } from "./template-store.js";
+import { render, type SmsSequence, stepKey } from "./templates.js";
 
 /** Line types that take a text. VoIP business lines usually do; landlines and switchboards never. */
 export const TEXTABLE: ReadonlySet<LineType> = new Set(["mobile", "voip"]);
@@ -39,6 +42,7 @@ export interface EnrollStats {
   notTextable: number;
   suppressed: number;
   companyBusy: number;
+  /** Some contact had no active pool number in its country: left `new`. */
   noNumber: boolean;
   lookupErrors: string[];
 }
@@ -77,8 +81,14 @@ export async function enroll(db: Db, opts: EnrollOptions): Promise<EnrollStats> 
     noNumber: false,
     lookupErrors: [],
   };
-  const first = opts.sequence.steps[0];
-  if (!first) throw new Error(`sms sequence ${opts.sequence.name} has no steps`);
+  const keys = opts.sequence.steps.map((s) => stepKey(opts.sequence.name, s.step));
+  const bodies = await templateBodies(db, keys);
+  const empty = keys.filter((k) => !bodies.has(k));
+  if (empty.length > 0)
+    throw new SmsRefusal(
+      `fill ${empty.join(", ")} first (phone app → Templates, or wren sms templates set)`,
+    );
+  const opener = bodies.get(keys[0] as string) as string;
   const where = [eq(smsContacts.state, "new"), inArray(smsContacts.basis, [...opts.policy.bases])];
   if (opts.niche) where.push(eq(smsContacts.niche, opts.niche));
   if (opts.heldNiches.length > 0) {
@@ -111,6 +121,13 @@ export async function enroll(db: Db, opts: EnrollOptions): Promise<EnrollStats> 
       stats.companyBusy += 1;
       continue;
     }
+    // A number first: a lookup for a phone no pool number can text is money for nothing.
+    const country = countryOf(c.e164);
+    const number = c.numberId ? { id: c.numberId } : country ? await pickNumber(db, country) : null;
+    if (!number) {
+      stats.noNumber = true;
+      continue;
+    }
     let lineType = c.lineType;
     if (c.lookedUpAt === null) {
       try {
@@ -138,25 +155,7 @@ export async function enroll(db: Db, opts: EnrollOptions): Promise<EnrollStats> 
       stats.notTextable += 1;
       continue;
     }
-    const number = c.numberId ? { id: c.numberId } : await pickNumber(db);
-    if (!number) {
-      stats.noNumber = true;
-      break;
-    }
-    const [company] = c.companyId
-      ? await db
-          .select({ name: companies.name })
-          .from(companies)
-          .where(eq(companies.id, c.companyId))
-      : [];
-    const [person] = c.personId
-      ? await db.select({ name: people.fullName }).from(people).where(eq(people.id, c.personId))
-      : [];
-    const body = render(first.body, {
-      first_name: firstName(person?.name),
-      company: company?.name ?? null,
-      sender: opts.senderName,
-    });
+    const body = render(opener, await fieldsFor(db, c, opts.senderName));
     try {
       await db.transaction(async (tx) => {
         await tx
@@ -174,7 +173,7 @@ export async function enroll(db: Db, opts: EnrollOptions): Promise<EnrollStats> 
           direction: "out",
           kind: "sequence",
           step: 1,
-          template: `${opts.sequence.name}#1`,
+          template: keys[0] as string,
           numberId: number.id,
           toE164: c.e164,
           body,

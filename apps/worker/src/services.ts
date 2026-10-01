@@ -383,6 +383,7 @@ export async function buildServices(
     policy: policyFrom(settings),
     health: healthFrom(settings),
     live: settings.smsLive,
+    campaignId: settings.telnyxCampaignId ?? null,
     sequences: SMS_SEQUENCES,
     senderName: settings.smsSenderName,
     heldNiches: settings.smsHeldNiches,

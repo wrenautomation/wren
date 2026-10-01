@@ -7,8 +7,9 @@
  * - `SmsEvents.ingest`: every webhook, forwarded by the phone Worker with the
  *   provider's event id as the idempotency key. Applying is idempotent anyway.
  * - `SmsDesk`: the operator's reads and writes, for the phone app and the CLI.
- * - `SmsWatch/daily`: every 30 minutes, labels new replies and runs the health
- *   checks; once a fleet day, one summary line.
+ * - `SmsWatch/daily`: every 30 minutes, attaches waiting US numbers to the
+ *   10DLC campaign once carriers approve it, labels new replies and runs the
+ *   health checks; once a fleet day, one summary line.
  */
 import * as restate from "@restatedev/restate-sdk";
 import { recordedRun } from "@wren/core";
@@ -23,13 +24,21 @@ import { type EnrollStats, enroll } from "../enroll.js";
 import { applyEvent } from "../events.js";
 import { checkHealth, type HealthPolicy, type HealthReport } from "../health.js";
 import { type LiftStats, liftPhones } from "../lift.js";
-import { formatUs } from "../phone.js";
+import { formatPhone } from "../phone.js";
 import { fleetDay, type SmsPolicy } from "../policy.js";
 import { pauseNumber, poolToday, resumeNumber, type SyncStats, syncNumbers } from "../pool.js";
 import type { SmsProvider } from "../provider.js";
 import { SmsRefusal } from "../refusal.js";
+import { type RegistrationStats, watchRegistration } from "../registration.js";
 import type { ContactBasis, Disposition } from "../schema.js";
 import { type SmsStats, smsStats } from "../stats.js";
+import {
+  listTemplates,
+  type SetTemplate,
+  type SlotView,
+  setTemplate,
+  slotsOf,
+} from "../template-store.js";
 import type { SmsSequence } from "../templates.js";
 import {
   getThread,
@@ -53,6 +62,8 @@ export interface SmsDeps {
   health: HealthPolicy;
   /** The live gate: false = a real provider sends nothing (the campaign is not approved yet). */
   live: boolean;
+  /** The 10DLC campaign US numbers are attached to; null = none to watch. */
+  campaignId: string | null;
   sequences: ReadonlyMap<string, SmsSequence>;
   senderName: string;
   heldNiches: readonly string[];
@@ -135,6 +146,9 @@ export interface NumbersView {
     display: string;
     state: string;
     pausedReason: string | null;
+    country: string;
+    /** ISO time the carriers attached it; null for a US number still waiting (Canada needs none). */
+    registeredAt: string | null;
     cap: number;
     sentToday: number;
     rampStartedOn: string;
@@ -152,6 +166,7 @@ export function makeSmsDesk(deps: SmsDeps) {
     }
   };
   const nowOf = (ctx: restate.Context) => nowFor(ctx, deps.clock);
+  const slots = slotsOf(deps.sequences.values());
   return restate.service({
     name: "SmsDesk",
     handlers: {
@@ -203,9 +218,11 @@ export function makeSmsDesk(deps: SmsDeps) {
             dailyCap: deps.policy.dailyCap,
             numbers: pool.numbers.map((n) => ({
               e164: n.number.e164,
-              display: formatUs(n.number.e164),
+              display: formatPhone(n.number.e164),
               state: n.number.state,
               pausedReason: n.number.pausedReason,
+              country: n.number.country,
+              registeredAt: n.number.registeredAt?.toISOString() ?? null,
               cap: n.cap,
               sentToday: n.sentToday,
               rampStartedOn: n.number.rampStartedOn,
@@ -217,6 +234,29 @@ export function makeSmsDesk(deps: SmsDeps) {
         const now = await nowOf(ctx);
         return ctx.run("sync numbers", () =>
           terminal(() => syncNumbers(deps.db, deps.provider, deps.policy, now)),
+        );
+      },
+      /** Every text William writes, empty or filled. */
+      templates: async (ctx: restate.Context): Promise<SlotView[]> =>
+        ctx.run("templates", () => listTemplates(deps.db, slots, deps.senderName)),
+      /** Save or clear one; a keyword reply goes live on the provider first. */
+      setTemplate: async (ctx: restate.Context, req: SetTemplate): Promise<SlotView> => {
+        const now = await nowOf(ctx);
+        return ctx.run("set template", () =>
+          terminal(() =>
+            setTemplate(
+              deps.db,
+              { provider: deps.provider, slots, sender: deps.senderName, now },
+              req,
+            ),
+          ),
+        );
+      },
+      /** The registration pass now (SmsWatch runs it every 30 minutes). */
+      register: async (ctx: restate.Context): Promise<RegistrationStats> => {
+        const now = await nowOf(ctx);
+        return ctx.run("register", () =>
+          watchRegistration(deps.db, deps.provider, deps.campaignId, now),
         );
       },
       pause: async (
@@ -303,12 +343,14 @@ export function makeSmsDesk(deps: SmsDeps) {
 }
 
 export interface WatchStats {
+  registration: RegistrationStats;
   classify: ClassifyStats | null;
   health: Pick<HealthReport, "paused" | "warnings" | "balanceUsd" | "fleet">;
   summarized: string | null;
 }
 
 const SUMMARIZED = "summarized";
+const CAMPAIGN = "campaign";
 
 export function makeSmsWatch(deps: SmsDeps) {
   return makeLoopObject<WatchStats>("SmsWatch", async (ctx) => {
@@ -317,6 +359,12 @@ export function makeSmsWatch(deps: SmsDeps) {
       name: "sms watch",
       ledger: { command: "sms watch", argv: {} },
       body: async (runId) => {
+        const registration = await watchRegistration(deps.db, deps.provider, deps.campaignId, now);
+        if (deps.notifier && registration.registered.length > 0)
+          await deps.notifier.notify(
+            "SMS: US numbers registered",
+            `${registration.registered.map(formatPhone).join(", ")} ${registration.registered.length === 1 ? "is" : "are"} on the 10DLC campaign and can text US phones now. The ramp starts today.`,
+          );
         const classify = deps.llm ? await classifyReplies(deps.db, deps.llm, { runId, now }) : null;
         const report = await checkHealth(deps.db, {
           now,
@@ -325,6 +373,7 @@ export function makeSmsWatch(deps: SmsDeps) {
           notifier: deps.notifier ?? null,
         });
         return {
+          registration,
           classify,
           health: {
             paused: report.paused,
@@ -339,6 +388,23 @@ export function makeSmsWatch(deps: SmsDeps) {
       retryMs: RETRY_MS,
       ...(deps.notifier ? { notifier: deps.notifier } : {}),
     });
+    // The campaign's word, said once each time it changes (a rejection needs a fix by hand).
+    const campaign = outcome.stats?.registration.campaign;
+    if (deps.notifier && campaign && (await ctx.get<string>(CAMPAIGN)) !== campaign.raw) {
+      const notifier = deps.notifier;
+      await ctx.run("campaign notice", () =>
+        notifier.notify(
+          `SMS campaign: ${campaign.raw}`,
+          campaign.status === "rejected"
+            ? `Rejected (${campaign.detail ?? "no reason given"}). Fix it and resubmit in Telnyx.`
+            : campaign.status === "approved"
+              ? "Carriers approved it. US numbers get attached over the next few watch runs."
+              : "Still in review.",
+          campaign.status === "rejected" ? "warning" : "info",
+        ),
+      );
+      ctx.set(CAMPAIGN, campaign.raw);
+    }
     // One line a fleet day, after 18:00 ET, when anything went out.
     const day = fleetDay(now);
     const hourEt = Number(
