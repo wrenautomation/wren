@@ -159,7 +159,7 @@ export type ProposalKind = (typeof PROPOSAL_KINDS)[number];
 export const PROPOSAL_STATES = ["open", "taken", "dropped"] as const;
 export type ProposalState = (typeof PROPOSAL_STATES)[number];
 
-/** One edit the weekly pass proposes. `current` is the page's text word for word; empty for a new FAQ or page. */
+/** One small edit for the keywords (the `/search-week` skill writes them, `refusal` gates them). `current` is the page's text word for word. */
 export const searchProposals = pgTable(
   "search_proposals",
   {
@@ -175,7 +175,7 @@ export const searchProposals = pgTable(
     state: varchar("state", { length: 16, enum: PROPOSAL_STATES }).notNull().default("open"),
     /** The pull request that took it. */
     pr: text("pr"),
-    /** The model call that made it (`CallRecord`). */
+    /** The model call that made it (`CallRecord`): rows from before the skill; null since. */
     llm: jsonb("llm"),
     runId: uuid("run_id"),
   },

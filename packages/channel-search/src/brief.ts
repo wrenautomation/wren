@@ -1,7 +1,7 @@
 /**
  * The brief: every active keyword with what Google and the engines say about
- * it, plus the index state of each page. One read for a person (`wren search
- * brief`) and the model's whole view of the numbers when it proposes.
+ * it, plus each page's index state and search traffic. One read for a person
+ * (`wren search brief`) and the `/search-week` skill's view of the numbers.
  */
 import type { Db } from "@wren/db";
 import { sql } from "drizzle-orm";
@@ -26,6 +26,10 @@ export type PageLine = {
   coverage: string | null;
   indexed: boolean;
   on: string;
+  /** Search traffic over the window, every query together. */
+  impressions: number;
+  clicks: number;
+  position: number | null;
 };
 
 export interface Brief {
@@ -60,8 +64,15 @@ export async function brief(db: Db, o: { today: string; days?: number }): Promis
     group by k.id
     order by k.source, impressions desc, k.id`);
   const pages = await db.execute<PageLine>(sql`
-    select distinct on (url) url, coverage, verdict = 'PASS' as indexed, checked_on::text as "on"
-    from search_pages order by url, checked_on desc`);
+    select p.url, p.coverage, p.indexed, p."on",
+      coalesce(sum(d.impressions), 0)::int as impressions,
+      coalesce(sum(d.clicks), 0)::int as clicks,
+      round((sum(d.position * d.impressions) / nullif(sum(d.impressions), 0))::numeric, 1)::float as position
+    from (select distinct on (url) url, coverage, verdict = 'PASS' as indexed, checked_on::text as "on"
+          from search_pages order by url, checked_on desc) p
+    left join search_days d on d.page = p.url and d.day >= ${since}::date
+    group by p.url, p.coverage, p.indexed, p."on"
+    order by p.url`);
   return {
     since,
     keywords: keywords.map((k) => ({ ...k, engines: k.engines ?? {} })),
@@ -84,9 +95,10 @@ export function formatBrief(b: Brief): string[] {
       (k) =>
         `- [${k.source}] "${k.phrase}"${k.page ? ` → ${k.page}` : ""}: ${k.impressions} imp, ${k.clicks} clicks, ${k.position ?? "-"} pos; ${engine(k)}`,
     ),
-    "pages:",
+    "pages (index state; impressions, clicks, avg position):",
     ...b.pages.map(
-      (p) => `- ${p.url}: ${p.indexed ? "indexed" : (p.coverage ?? "not indexed")} (${p.on})`,
+      (p) =>
+        `- ${p.url}: ${p.indexed ? "indexed" : (p.coverage ?? "not indexed")} (${p.on}); ${p.impressions} imp, ${p.clicks} clicks, ${p.position ?? "-"} pos`,
     ),
   ];
 }

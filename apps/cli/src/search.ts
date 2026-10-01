@@ -1,8 +1,9 @@
 /**
  * `wren search …`: the site in Google and the answer engines. Keywords (seeds
  * by hand, fan-out questions by the model, queries Search Console already
- * shows), what each engine answers for them, and edit proposals that ship as
- * a lander pull request a person merges. `watch` runs it all on Restate.
+ * shows), what each engine answers for them, and small edits (written by the
+ * `/search-week` skill, gated here) that ship as a lander pull request a person
+ * merges. `watch` runs the reading on Restate; the edits stay a person's step.
  */
 import { spawnSync } from "node:child_process";
 import { mkdtemp, readdir, readFile, rm, symlink, writeFile } from "node:fs/promises";
@@ -23,7 +24,7 @@ import {
   fanOut,
   formatBrief,
   formatChanges,
-  propose,
+  ProposalBatch,
   pullRequestBody,
   recordAnswer,
   retireKeyword,
@@ -31,6 +32,7 @@ import {
   searchProposals,
   sitemapUrls,
   siteText,
+  storeProposals,
   syncSearch,
 } from "@wren/channel-search";
 import { SEARCH_KEY, type SearchWatch, type SearchWeek } from "@wren/channel-search/restate";
@@ -89,7 +91,7 @@ export function registerSearch(
 
   const search = program
     .command("search")
-    .description("the site in Google and the answer engines: keywords, answers, proposals");
+    .description("the site in Google and the answer engines: keywords, answers, edits");
 
   search
     .command("sync")
@@ -218,29 +220,27 @@ export function registerSearch(
     });
 
   search
-    .command("propose")
+    .command("propose <file>")
     .description(
-      "the model reads the brief and the live site and proposes edits (paid); open ones from before go stale",
+      "gate a batch of edits (JSON) against the live site and store the ones that pass; open ones from before go stale",
     )
-    .action(async () => {
+    .option("--dry", "gate only; store nothing")
+    .action(async (file: string, o: { dry?: boolean }) => {
       const { origin } = need();
+      const drafts = ProposalBatch.parse(JSON.parse(await readFile(file, "utf8")));
       const fetch_ = (u: string, i?: RequestInit) => fetch(u, i);
       const urls = await sitemapUrls(fetch_, new URL("/sitemap.xml", origin).href);
       const site = await siteText(fetch_, origin, urls);
       const { stats } = await withDb((db) =>
-        recordedRun(db, { command: "search propose", argv: {} }, async (run) =>
-          propose(db, llm(), {
-            brief: await brief(db, { today: today() }),
-            site,
-            today: today(),
-            runId: run.id,
-          }),
+        recordedRun(db, { command: "search propose", argv: { file, dry: !!o.dry } }, (run) =>
+          storeProposals(db, drafts, { site, today: today(), runId: run.id, dry: !!o.dry }),
         ),
       );
       console.log(
-        `${stats.made} proposals, ${stats.staled} older dropped${stats.parseError ? `; model answer unreadable: ${stats.parseError}` : ""}`,
+        `${stats.made} ${o.dry ? "pass" : "stored"}, ${stats.refused.length} refused${stats.staled ? `, ${stats.staled} older dropped` : ""}`,
       );
-      for (const r of stats.refused) console.log(`  refused ${r.kind} on ${r.page}: ${r.reason}`);
+      for (const r of stats.refused)
+        console.log(`  refused ${r.kind} on ${r.page} ("${r.current.slice(0, 60)}"): ${r.reason}`);
     });
 
   search
@@ -364,7 +364,7 @@ export function registerSearch(
   const w = search
     .command("watch")
     .description(
-      "SearchWatch: Search Console daily, engines and proposals Mondays; off until started",
+      "SearchWatch: Search Console daily, keywords and engines Mondays; off until started",
     );
   w.command("status").action(async () => json(await watch().status()));
   w.command("start").action(async () => json(await watch().start()));

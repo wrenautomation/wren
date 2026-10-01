@@ -1,6 +1,7 @@
 # Search loop: keywords that tune themselves
 
-Living doc. How wren watches wrenautomation.com in Google and AI answers, and proposes copy changes each week.
+Living doc. How wren watches wrenautomation.com in Google and AI answers, and how a person turns that into small copy
+edits each week.
 The site side (structured data, llms.txt, IndexNow, one host) is in `lander/designs/2026-09-30-search.md`.
 
 ## What it does
@@ -21,11 +22,18 @@ Mac's desk, and the daily read must never wait on that:
 5. **Asks the engines**: up to 20 keywords per engine, least recently asked first, go to Google (AI Overview +
    organic results + "People also ask") and Perplexity through autobrowse on the Mac's desk. Stored: did an answer
    cite wrenautomation.com, and at what rank. Three failures in a row stop that engine for the week.
-6. **Proposes**: an LLM reads the brief (keywords, impressions, rank, citations, gaps) and the live site
-   (each page's title and description, then `/llms.txt`), and proposes up to 6 edits: a title, a description, a
-   heading, copy, a FAQ answer, a new page. Each quotes the current text word for word. Code gates them: the quote
-   must be on the site; no price, no dash, no number the site doesn't state. Last week's open proposals go stale.
-7. Notifies: counts only ("3 proposals, 1 page left the index").
+6. Notifies: counts, then "brief ready, run `/search-week`".
+
+The copy step is a Claude Code skill run by hand, `/search-week` (`.claude/skills/search-week/SKILL.md`):
+
+1. `wren search brief` against prod (`node scripts/prod-wren.mjs search brief`): each keyword's impressions,
+   clicks, position and engine citations; each page's index state and traffic.
+2. Reads the lander source for those pages (`lander/src/content/`).
+3. Drafts up to 6 small word or phrase swaps, each quoting the current text word for word, with a reason.
+4. `wren search propose <file> --dry` gates them against the live site: the quote must be there; no price, no
+   dash, no number the site doesn't state; at most 6 words changed (`MAX_WORDS_CHANGED`); no new FAQ or page.
+5. Shows William each edit with its reason, plus notes for anything bigger. Nothing is stored or pushed before his yes.
+6. `wren search propose <file>` stores them (last week's open ones go stale), then `wren search pr` opens the PR.
 
 `wren search pr` turns open proposals into a lander pull request: each one whose quoted text appears once in
 `lander/src/content/` is applied; the rest are listed in the PR body to do by hand. It works in a git worktree off
@@ -34,8 +42,9 @@ merge deploys; IndexNow tells Bing; next week's numbers show whether it worked.
 
 ## Commands
 
-`wren search sync | keywords [add|retire] | discover | fanout | answers | brief | propose | proposals | drop | pr`,
-and `wren search watch start|stop|status|sync|week`. Everything the loop does can be run by hand.
+`wren search sync | keywords [add|retire] | discover | fanout | answers | brief | propose <file> [--dry] | proposals | drop | pr`,
+and `wren search watch start|stop|status|sync|week`. Everything the loop does can be run by hand. Against prod:
+`node scripts/prod-wren.mjs <args>` (reads `deploy/prod.env`, prints nothing from it).
 
 ## Tables (`packages/channel-search/src/schema.ts`)
 
@@ -45,7 +54,7 @@ and `wren search watch start|stop|status|sync|week`. Everything the loop does ca
 | `search_pages` | URL × day inspected: verdict, coverage, last crawl, Google's canonical |
 | `search_keywords` | phrase we want to be found for; `source` seed / fanout / query; `parent_id` for fan-out |
 | `search_answers` | engine × keyword × day: cited, rank, the cited URLs |
-| `search_proposals` | one proposed edit: page, kind, current, proposed, why, status |
+| `search_proposals` | one proposed edit: page, kind, current, proposed, why, status; `llm` set only on rows from before the skill |
 
 ## Decisions
 
@@ -58,9 +67,12 @@ and `wren search watch start|stop|status|sync|week`. Everything the loop does ca
 | Q5 | Engine checks on the desk, weekly | Google bot-checks the box's IP. Weekly keeps the free Perplexity plan and Google's pace far from any limit. A missing Mac is a skipped week, not an error. |
 | Q6 | Proposals, never auto-applied | A push to lander main is a deploy, and the copy is William's. Auto-apply is his call to turn on later. |
 | Q7 | A proposal quotes current text verbatim; applied only on a single exact match | No fuzzy edits to his copy. A miss goes in the PR body for a person. |
-| Q8 | Prices, invented numbers and client names never proposed | The page rules hold for the model too (the prompt says so; the gate drops any proposal with a currency amount or a number the site doesn't state). |
+| Q8 | Prices, invented numbers and client names never proposed | The page rules hold for every author: the gate (`refusal`, `propose.ts`) drops any edit with a currency amount, a dash or a number the site doesn't state; the skill says no client names. |
 | Q9 | Only seeds and real queries fan out; "People also ask" under a fan-out question is not added | The list stays bounded: children never have children. |
 | Q10 | The weekly run is a separate Restate service (`SearchWeek`), sent once per week | It waits for the Mac; a sleeping Mac delays the week, never the daily Search Console read. |
+| Q11 | 2026-09-30: copy edits by a skill run by hand (`/search-week`), not an LLM step in `SearchWeek` | William's call. Copy is his voice; he sees each edit with its reason before anything is pushed. `SearchWeek` keeps sync, discovery, fan-out and engine checks. No cron yet. |
+| Q12 | Edits are word or phrase swaps only, capped in code at 6 words changed | No sentence, style or section rewrites, no new FAQs or pages. Bigger ideas are notes in the chat, not edits. The cap (`MAX_WORDS_CHANGED`, words removed plus added) holds whoever writes the edit. |
+| Q13 | The skill carries its own copy rules for now | Wren's copy SOPs (cold-email framework, lander copy rules, offer rules) must merge into one source the skill and agents both load. Not done yet; until then the skill uses only its built-in rules. |
 
 ## Settings
 
@@ -71,4 +83,6 @@ no `SearchWatch`/`SearchWeek` bound. Seeds: `wren search keywords add "<phrase>"
 
 Built and run locally against the live property: sync reads Search Console and inspects all 5 sitemap pages.
 `/` and `/privacy` indexed; `/recruiting/lead-reactivation`, `/agencies`, `/terms` "Crawled, currently not indexed"
-after the manual indexing requests. Prod needs the two settings and `wren search watch start`.
+after the manual indexing requests. Prod: settings set, 7 seeds, `SearchWatch/default` started; all 5 pages
+indexed by 2026-10-01. The LLM propose step is gone from `SearchWeek`; `/search-week` is ready to run by hand. Next:
+the merged copy SOP (Q13), then maybe a cron for the skill.

@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { isSite } from "./answers.js";
 import { applyProposals, pullRequestBody } from "./apply.js";
-import { type ProposalDraft, refusal } from "./propose.js";
+import { type ProposalDraft, refusal, wordsChanged } from "./propose.js";
 import type { SearchProposal } from "./schema.js";
 
 const site =
@@ -27,16 +27,33 @@ describe("refusal", () => {
       /dash/,
     );
     expect(refusal(draft({ proposed: "Live in 7 days." }), site)).toMatch(/number/);
-    expect(refusal(draft({ proposed: "Live in 14 days." }), site)).toBeNull();
+    expect(
+      refusal(
+        draft({ current: "We set it up in 14 days.", proposed: "We go live in 14 days." }),
+        site,
+      ),
+    ).toBeNull();
   });
-  it("needs a quote except for new FAQs and pages", () => {
+  it("needs a quote; a new FAQ or page is a note", () => {
     expect(refusal(draft({ kind: "title", current: "" }), site)).toMatch(/no current/);
     expect(
       refusal(
         draft({ kind: "faq", current: "", proposed: "Q: Who is it for?\nA: Agencies." }),
         site,
       ),
-    ).toBeNull();
+    ).toMatch(/note/);
+  });
+  it("caps the words an edit changes", () => {
+    expect(wordsChanged("You only pay when it works.", "You pay only when it works.")).toBe(2);
+    expect(wordsChanged("a b c", "a b c")).toBe(0);
+    expect(refusal(draft({ proposed: "You only pay when it books meetings." }), site)).toBeNull();
+    expect(
+      refusal(
+        draft({ proposed: "Payment happens after the system books your first real meetings." }),
+        site,
+      ),
+    ).toMatch(/words/);
+    expect(refusal(draft({ proposed: "You only pay when it works." }), site)).toMatch(/no change/);
   });
 });
 

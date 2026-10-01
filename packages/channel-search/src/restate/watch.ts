@@ -5,9 +5,11 @@
  * `SearchWeek.run` once: that one waits on the Mac's desk (Google and
  * Perplexity refuse the box), so the daily read never waits on it.
  *
- * `SearchWeek.run`: fan out and discover keywords, ask the engines, propose
- * edits, notify counts. Every step is journaled; a retry re-asks nothing.
- * With the Mac asleep the week waits for its desk, then carries on.
+ * `SearchWeek.run`: fan out and discover keywords, ask the engines, notify
+ * counts and that the brief is ready. Edits are a person's step: the
+ * `/search-week` skill reads the brief and opens a lander PR. Every step is
+ * journaled; a retry re-asks nothing. With the Mac asleep the week waits for
+ * its desk, then carries on.
  */
 import * as restate from "@restatedev/restate-sdk";
 import type { FetchLike } from "@wren/channel-email";
@@ -18,10 +20,8 @@ import { errorText, makeLoopObject, runPass } from "@wren/core/restate";
 import type { Db } from "@wren/db";
 import type { LlmClient } from "@wren/llm";
 import { ask, dueKeywords, recordAnswer } from "../answers.js";
-import { brief } from "../brief.js";
 import { type SearchConsoleClient, sitemapUrls } from "../console.js";
 import { discoverKeywords, fanOut } from "../keywords.js";
-import { propose } from "../propose.js";
 import { ENGINES, type Engine } from "../schema.js";
 import { siteText } from "../site.js";
 import { formatChanges, type SyncStats, syncSearch } from "../sync.js";
@@ -108,7 +108,6 @@ export interface WeekStats {
   discovered: number;
   asked: Record<string, { asked: number; cited: number; failed: string | null }>;
   questions: number;
-  proposals: { made: number; refused: number; staled: number; parseError: string | null };
 }
 
 export function makeSearchWeek(deps: SearchWeekDeps) {
@@ -118,9 +117,6 @@ export function makeSearchWeek(deps: SearchWeekDeps) {
     handlers: {
       run: async (ctx: restate.Context, req: { today: string }): Promise<WeekStats> => {
         const today = req.today;
-        const urls = await ctx.run("sitemap", () =>
-          sitemapUrls(deps.fetch, new URL("/sitemap.xml", deps.origin).href),
-        );
         const grow = await ctx.run(
           "fan out",
           async () =>
@@ -170,34 +166,7 @@ export function makeSearchWeek(deps: SearchWeekDeps) {
           }
         }
 
-        const p = await ctx.run(
-          "propose",
-          async () =>
-            (
-              await recordedRun(
-                deps.db,
-                { command: `${SEARCH_WEEK_COMMAND} propose`, argv: { today } },
-                async (run) => {
-                  const b = await brief(deps.db, { today });
-                  const site = await siteText(deps.fetch, deps.origin, urls);
-                  const s = await propose(deps.db, deps.llm, {
-                    brief: b,
-                    site,
-                    today,
-                    runId: run.id,
-                  });
-                  return {
-                    made: s.made,
-                    refused: s.refused.length,
-                    staled: s.staled,
-                    parseError: s.parseError,
-                  };
-                },
-              )
-            ).stats,
-        );
-
-        const stats: WeekStats = { ...grow, asked, questions, proposals: p };
+        const stats: WeekStats = { ...grow, asked, questions };
         const notifier = deps.notifier;
         if (notifier) {
           const lines = [
@@ -206,7 +175,7 @@ export function makeSearchWeek(deps: SearchWeekDeps) {
               ([e, a]) =>
                 `${e}: cited on ${a.cited} of ${a.asked} asked${a.failed ? ` (stopped: ${a.failed.slice(0, 120)})` : ""}`,
             ),
-            `proposals: ${p.made} new, ${p.refused} refused by the gate. Read: wren search proposals. Ship: wren search pr`,
+            "brief ready, run `/search-week`",
           ];
           await ctx.run("notify", () =>
             notifier.notify(
