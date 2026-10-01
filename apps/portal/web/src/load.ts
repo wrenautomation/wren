@@ -2,15 +2,20 @@
 import { useEffect, useState } from "react";
 import { ApiError } from "./api.js";
 
-export type Load<T> = { data: T | null; error: ApiError | null; loading: boolean };
+type State<T> = { data: T | null; error: ApiError | null; loading: boolean };
+export type Load<T> = State<T> & { retry: () => void };
 
-/** Run `fn` whenever `key` changes; the last answer stays on screen while the next loads. */
+/**
+ * Run `fn` whenever `key` changes, or on `retry`; the last answer stays on
+ * screen while the next loads.
+ */
 export function useCall<T>(key: string, fn: () => Promise<T>): Load<T> {
-  const [state, setState] = useState<Load<T>>({ data: null, error: null, loading: true });
-  // biome-ignore lint/correctness/useExhaustiveDependencies: `key` names everything `fn` reads.
+  const [state, setState] = useState<State<T>>({ data: null, error: null, loading: true });
+  const [attempt, setAttempt] = useState(0);
+  // biome-ignore lint/correctness/useExhaustiveDependencies: `key` names everything `fn` reads; `attempt` asks again.
   useEffect(() => {
     let live = true;
-    setState((s) => ({ ...s, loading: true }));
+    setState((s) => ({ ...s, error: null, loading: true }));
     fn().then(
       (data) => live && setState({ data, error: null, loading: false }),
       (err: unknown) =>
@@ -24,6 +29,6 @@ export function useCall<T>(key: string, fn: () => Promise<T>): Load<T> {
     return () => {
       live = false;
     };
-  }, [key]);
-  return state;
+  }, [key, attempt]);
+  return { ...state, retry: () => setAttempt((n) => n + 1) };
 }

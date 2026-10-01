@@ -28,7 +28,7 @@ export function Overview({ client, demo }: PageProps) {
         title="Reactivation"
         lede="Every past client on your list, looked up for a reason to call now. Each one gets a brief with its sources and an email that waits for your OK."
       />
-      {o.error && !o.data ? <Alert>{o.error.message}</Alert> : null}
+      {o.error && !o.data ? <Alert onRetry={o.retry}>{o.error.message}</Alert> : null}
       {o.data ? <Home d={o.data} demo={demo} /> : o.error ? null : <Loading lines={10} />}
     </>
   );

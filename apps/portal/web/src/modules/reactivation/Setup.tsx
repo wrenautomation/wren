@@ -18,7 +18,7 @@ export function Setup({ client, demo }: PageProps) {
             : "What you plugged in. Wren sets it up with you; to change anything, just ask."
         }
       />
-      {s.error && !s.data ? <Alert>{s.error.message}</Alert> : null}
+      {s.error && !s.data ? <Alert onRetry={s.retry}>{s.error.message}</Alert> : null}
       {s.data ? <Plugged d={s.data} demo={demo} /> : s.error ? null : <Loading lines={10} />}
     </>
   );

@@ -75,7 +75,7 @@ export function People({ client, demo, params }: PageProps) {
         )}
       </Tabs>
 
-      {list.error && !d ? <Alert>{list.error.message}</Alert> : null}
+      {list.error && !d ? <Alert onRetry={list.retry}>{list.error.message}</Alert> : null}
       {d ? (
         d.rows.length ? (
           <Table stale={list.loading} stack className="rx-people">
@@ -139,7 +139,7 @@ export function People({ client, demo, params }: PageProps) {
           <Empty>{q ? `Nobody matches “${q}”.` : "Nobody here."}</Empty>
         )
       ) : list.error ? null : (
-        <Loading lines={10} />
+        <Loading lines={10} shape="rows" />
       )}
       {d ? (
         <Pager
@@ -163,7 +163,7 @@ function PersonPanel({ client, personId }: { client: string; personId: number })
   const p = useCall(`person:${client}:${personId}`, () =>
     call<PersonView>("person", { client, personId }),
   );
-  if (p.error && !p.data) return <Alert>{p.error.message}</Alert>;
+  if (p.error && !p.data) return <Alert onRetry={p.retry}>{p.error.message}</Alert>;
   if (!p.data) return <Loading lines={9} label="Loading their brief" />;
   return <Person view={p.data} />;
 }

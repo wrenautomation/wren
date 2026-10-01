@@ -99,7 +99,7 @@ export function App() {
   if (me.error && !me.data)
     return (
       <Gate stamp={STAMP} title="Your client portal" theme={theme}>
-        <Alert>{me.error.message}</Alert>
+        <Alert onRetry={me.retry}>{me.error.message}</Alert>
       </Gate>
     );
   if (me.data && !current)
@@ -155,7 +155,7 @@ export function App() {
       {current ? (
         <page.Page key={current.id} client={current.id} demo={demo} params={route.params} />
       ) : (
-        <Loading lines={8} />
+        <Loading lines={8} heading />
       )}
     </AppShell>
   );

@@ -49,7 +49,7 @@ export async function call<T>(route: string, body: Record<string, unknown> = {})
       body: JSON.stringify(body),
     });
   } catch {
-    throw new ApiError("You're offline, or the portal is. Try again.", 0);
+    throw new ApiError("You're offline, or the portal is.", 0);
   }
   const text = await res.text();
   let data: unknown = null;

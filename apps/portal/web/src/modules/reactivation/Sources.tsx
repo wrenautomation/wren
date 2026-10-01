@@ -49,10 +49,10 @@ export function Sources({ client, params }: PageProps) {
           ]}
         />
       ) : null}
-      {raw.error && !d ? <Alert>{raw.error.message}</Alert> : null}
+      {raw.error && !d ? <Alert onRetry={raw.retry}>{raw.error.message}</Alert> : null}
       {d ? (
         d.rows.length ? (
-          <Table stale={raw.loading}>
+          <Table stale={raw.loading} stack>
             <thead>
               <tr>
                 <th>About</th>
@@ -74,11 +74,11 @@ export function Sources({ client, params }: PageProps) {
                         f.subject
                       )}
                     </td>
-                    <td>
+                    <td data-label="Found" data-wide>
                       <b>{kindLabel(f.kind)}</b>
                       {f.title ? <div className="rx-sub">{f.title}</div> : null}
                     </td>
-                    <td className="ui-nowrap">
+                    <td data-label="Where" className="ui-nowrap">
                       {viaLabel(f.via)}
                       {f.url && host && !f.url.includes("•••") ? (
                         <div className="rx-sub">
@@ -88,10 +88,12 @@ export function Sources({ client, params }: PageProps) {
                         </div>
                       ) : null}
                     </td>
-                    <td>
+                    <td data-label="How sure">
                       <Sure value={f.confidence} />
                     </td>
-                    <td className="ui-nowrap">{month(f.observedAt.slice(0, 10))}</td>
+                    <td data-label="Seen" className="ui-nowrap">
+                      {month(f.observedAt.slice(0, 10))}
+                    </td>
                   </tr>
                 );
               })}
@@ -101,7 +103,7 @@ export function Sources({ client, params }: PageProps) {
           <Empty>Nothing found yet.</Empty>
         )
       ) : raw.error ? null : (
-        <Loading lines={10} />
+        <Loading lines={10} shape="rows" />
       )}
       {d ? (
         <Pager

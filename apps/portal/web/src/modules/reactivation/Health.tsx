@@ -22,7 +22,7 @@ export function Health({ client }: PageProps) {
         title="Data health"
         lede="Your list as it came in: what's missing, stale or wrong."
       />
-      {h.error && !h.data ? <Alert>{h.error.message}</Alert> : null}
+      {h.error && !h.data ? <Alert onRetry={h.retry}>{h.error.message}</Alert> : null}
       {h.data ? <Report d={h.data} /> : h.error ? null : <Loading lines={8} />}
     </>
   );

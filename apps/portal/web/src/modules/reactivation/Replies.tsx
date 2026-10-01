@@ -110,7 +110,7 @@ export function Replies({ client, demo, params }: PageProps) {
       />
       {error ? <Alert>{error.message}</Alert> : null}
 
-      {list.error && !d ? <Alert>{list.error.message}</Alert> : null}
+      {list.error && !d ? <Alert onRetry={list.retry}>{list.error.message}</Alert> : null}
       {d ? (
         d.rows.length ? (
           <CardList stale={list.loading}>
@@ -177,7 +177,7 @@ export function Replies({ client, demo, params }: PageProps) {
           </Empty>
         )
       ) : list.error ? null : (
-        <Loading lines={8} />
+        <Loading lines={3} shape="cards" />
       )}
       {d ? (
         <Pager

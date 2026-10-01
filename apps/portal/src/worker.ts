@@ -58,7 +58,7 @@ async function viewerOf(req: Request, env: Env): Promise<Viewer | Response> {
       aud: env.ACCESS_AUD,
     });
   } catch {
-    return json({ error: "Couldn't check your sign-in. Try again." }, 502);
+    return json({ error: "Couldn't check your sign-in." }, 502);
   }
   if (!email) return json({ error: "Sign in." }, 401);
   return operators(env).has(email) ? { email, operator: true } : { email };
@@ -81,7 +81,7 @@ async function forward(env: Env, route: string, body: string): Promise<Response>
       body,
     });
   } catch {
-    return json({ error: "The portal's server is unreachable. Try again." }, 502);
+    return json({ error: "The portal's server is unreachable." }, 502);
   }
   // Restate's status and body: a refusal (no client for this login) reads as its message.
   return new Response(res.body, {
