@@ -1,9 +1,9 @@
 /**
  * The app frame: a slim bar on the gray canvas (whose workspace, and the viewer's own buttons)
  * over one white window. Outside any app the window holds the launcher, a card per app. Inside
- * one, the window's head names the app, links back to all of them, and runs the app's pages as
- * tabs. Apps can keep coming without the frame growing, and nothing hides behind a menu on a
- * phone: the tabs scroll sideways.
+ * one, a sidebar on the canvas links back to all apps, names this one and lists its pages. Apps
+ * can keep coming without the frame growing. On a phone the sidebar becomes the window's head,
+ * its pages tabs that scroll sideways, so nothing hides behind a menu.
  */
 import { type ReactNode, useEffect, useRef } from "react";
 import { Tag } from "./controls.js";
@@ -121,26 +121,65 @@ export function AppShell({
         {actions ? <div className="ui-bar-actions">{actions}</div> : null}
       </header>
 
-      <div className="ui-window" ref={scroller}>
-        {app ? <AppHead app={app} launcher={launcher} /> : null}
-        <main className="ui-main" id="main" tabIndex={-1}>
-          {notice ? (
-            <details className="ui-notice">
-              <summary>
-                <Tag tone="rust">{notice.label}</Tag>
-                <span>{notice.lead}</span>
-                <span className="ui-notice-more">{notice.more}</span>
-              </summary>
-              <p className="ui-notice-body">{notice.body}</p>
-            </details>
-          ) : null}
-          {children}
-        </main>
+      <div className="ui-stage">
+        {app ? <AppSide app={app} launcher={launcher} /> : null}
+        <div className="ui-window" ref={scroller}>
+          {app ? <AppHead app={app} launcher={launcher} /> : null}
+          <main className="ui-main" id="main" tabIndex={-1}>
+            {notice ? (
+              <details className="ui-notice">
+                <summary>
+                  <Tag tone="rust">{notice.label}</Tag>
+                  <span>{notice.lead}</span>
+                  <span className="ui-notice-more">{notice.more}</span>
+                </summary>
+                <p className="ui-notice-body">{notice.body}</p>
+              </details>
+            ) : null}
+            {children}
+          </main>
+        </div>
       </div>
     </div>
   );
 }
 
+/** The open app beside the window: back to all apps, its name, its pages, its one button. */
+function AppSide({ app, launcher }: { app: OpenApp; launcher: string | undefined }) {
+  return (
+    <aside className="ui-side">
+      {launcher ? (
+        <a className="ui-back" href={launcher}>
+          <Icon name="apps" />
+          <span>All apps</span>
+        </a>
+      ) : null}
+      <a className="ui-appname" href={app.href}>
+        <span className="ui-appmark" aria-hidden="true">
+          <Icon name={app.icon} />
+        </span>
+        {app.name}
+      </a>
+      <nav className="ui-nav" aria-label={`${app.name} pages`}>
+        <ul>
+          {app.tabs.map((t) => (
+            <li key={t.id}>
+              <a href={t.href} aria-current={t.id === app.current ? "page" : undefined}>
+                {t.label}
+                {t.count !== undefined ? (
+                  <span className="ui-nav-count">{num(t.count)}</span>
+                ) : null}
+              </a>
+            </li>
+          ))}
+        </ul>
+      </nav>
+      {app.action ? <div className="ui-side-action">{app.action}</div> : null}
+    </aside>
+  );
+}
+
+/** The same on a phone, as the window's head: pages as tabs. */
 function AppHead({ app, launcher }: { app: OpenApp; launcher: string | undefined }) {
   return (
     <header className="ui-apphead">

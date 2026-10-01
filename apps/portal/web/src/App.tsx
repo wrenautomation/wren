@@ -1,7 +1,7 @@
 /**
  * The portal: who's signed in, whose workspace, and Wren's apps for it. "/" is the launcher, a
- * card per app; each app's pages run as tabs at /<app>/<page>. A viewer with one app (the demo)
- * skips the launcher and lands in it.
+ * card per app. An open app lists its pages (/<app>/<page>) in a sidebar, as tabs on a phone. A
+ * viewer with one app (the demo) skips the launcher and lands in it.
  */
 import {
   Alert,

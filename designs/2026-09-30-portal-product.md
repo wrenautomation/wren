@@ -16,7 +16,7 @@ The portal stops being a set of pages and becomes a packaged app. One shell, pro
 | Piece | Where | What it does |
 |---|---|---|
 | Kit | `packages/ui` (new, a foundation) | the lander's tokens, plus base pieces and delivery pieces; knows no product |
-| Shell | `AppShell` in `packages/ui/src/shell.tsx`, wired in `apps/portal/web/src/App.tsx` | a bar (Wren, the client, the viewer's buttons) over one window; the launcher, or an app's head and page tabs; demo note |
+| Shell | `AppShell` in `packages/ui/src/shell.tsx`, wired in `apps/portal/web/src/App.tsx` | a bar (Wren, the client, the viewer's buttons) over one window; the launcher, or an app's sidebar (its head and page tabs on a phone); demo note |
 | Modules | `apps/portal/web/src/modules/<product>` | one product's pages, run graph and setup; `reactivation` first |
 | API | `ReactivationPortal` (`packages/reactivation/src/portal`) | new routes `run` (replay events) and `setup` (what the client plugged in); `overview` gains the pipeline; person and email views carry their sources |
 
@@ -25,8 +25,8 @@ The portal stops being a set of pages and becomes a packaged app. One shell, pro
 - **Shell.** A slim bar on the gray canvas over one white window (P10).
   - The bar: Wren, the client (a link to Account, or a switcher for operators), and the viewer's buttons.
   - `/` is the launcher: a card per app with its blurb, a few numbers and what waits on the viewer.
-  - Inside an app the window's head shows "All apps", the app's name and its one button, then its pages as tabs.
-  - On a phone: the same, with the tabs scrolling sideways. No menu.
+  - Inside an app a sidebar on the canvas shows "All apps", the app's name, its pages and its one button.
+  - On a phone the sidebar becomes the window's head, its pages tabs that scroll sideways. No menu.
 - **Home.** Answers four things: what this is, whose list it is, what's done and what's next.
   - Pipeline rail: List → Emails → Where now → Hiring → Score → Briefs → Drafts → Your OK → Sent → Replies. Each step shows a count and a state (done, running, waiting, not started). Clicking a step opens its people.
   - Needs you: drafts waiting for approval.
@@ -49,7 +49,7 @@ The portal stops being a set of pages and becomes a packaged app. One shell, pro
   - The shell renders the workspace (a client), its modules and the current page.
   - A client portal is the same shell with that client's list and settings. There is no per-client code (client-reactivation, Layers).
   - A second product is a new module, not a new app.
-- **P10. A suite of apps, not a sidebar.** (William, 2026-10-01: "a suite of apps with cards to click into, not a sidebar that will grow out of control.") `/` is a launcher, one card per app (`AppGrid`, `AppCard`, `AppGlance`). An app's pages are tabs in its head. A module adds `icon`, `blurb` and an optional `Glance` (its card's numbers). One app (the demo) skips the launcher. `menu` modules (Account) sit behind the client's name, never on a card.
+- **P10. A suite of apps, not a sidebar.** (William, 2026-10-01: "a suite of apps with cards to click into, not a sidebar that will grow out of control.") `/` is a launcher, one card per app (`AppGrid`, `AppCard`, `AppGlance`). An app's pages are tabs in its head. (William, later 2026-10-01: "i like the side dashboard more, but only for once we get into a app. the suite still makes sense": inside an app its pages are a sidebar; the launcher stays.) A module adds `icon`, `blurb` and an optional `Glance` (its card's numbers). One app (the demo) skips the launcher. `menu` modules (Account) sit behind the client's name, never on a card.
 - **P2. The kit is a foundation.** `packages/ui` holds React pieces and CSS, and no product types. The layer lint rule already covers `packages/**`. Each piece takes plain props (steps, events, a source), and the module maps its own data onto them.
   - Base pieces: button, tabs (filters), table, tag, stat, card, drawer, menu, tooltip, toast, skeleton, empty state, icons.
   - Delivery pieces: app shell, workflow rail, run view, source drawer, cited text, person timeline, email preview with approve, stat strip, activity feed.

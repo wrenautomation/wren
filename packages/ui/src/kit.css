@@ -306,6 +306,77 @@
     background: var(--ui-fill);
   }
 
+  /* The open app's sidebar, on the canvas beside the window */
+  .ui-stage {
+    flex: 1;
+    min-height: 0;
+    display: flex;
+  }
+  .ui-side {
+    flex: none;
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+    width: 236px;
+    padding: 4px 10px 16px calc(var(--ui-frame) + 6px);
+    overflow-y: auto;
+    scrollbar-width: none;
+  }
+  .ui-side .ui-back {
+    align-self: flex-start;
+    margin-left: 0;
+  }
+  .ui-side .ui-appname {
+    padding: 2px 10px 4px;
+    white-space: normal;
+  }
+  .ui-nav ul {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    list-style: none;
+  }
+  .ui-nav a {
+    display: flex;
+    align-items: center;
+    gap: 11px;
+    height: 38px;
+    padding: 0 10px;
+    border-radius: var(--ui-radius-control);
+    color: var(--ui-ink-2);
+    font-size: 14.5px;
+    font-weight: 500;
+    text-decoration: none;
+    transition:
+      background-color 0.25s var(--ui-ease),
+      color 0.25s var(--ui-ease),
+      box-shadow 0.25s var(--ui-ease);
+  }
+  .ui-nav a:hover {
+    background: var(--ui-hover);
+    color: var(--ui-ink);
+  }
+  .ui-nav a[aria-current="page"] {
+    background: var(--ui-paper);
+    color: var(--ui-ink);
+    box-shadow: var(--ui-shadow-node);
+  }
+  .ui-nav-count {
+    margin-left: auto;
+    color: var(--ui-ink-2);
+    font-size: 12.5px;
+  }
+  .ui-side-action {
+    padding: 0 10px;
+  }
+  /* With the sidebar there, the window needs no head of its own. */
+  .ui-side ~ .ui-window .ui-apphead {
+    display: none;
+  }
+  .ui-side ~ .ui-window {
+    margin-left: 0;
+  }
+
   /* The window */
   .ui-window {
     flex: 1;
@@ -1744,6 +1815,15 @@
     .ui-bar .ui-slash,
     .ui-ws-caption {
       display: none;
+    }
+    .ui-stage {
+      display: block;
+    }
+    .ui-side {
+      display: none;
+    }
+    .ui-side ~ .ui-window .ui-apphead {
+      display: block;
     }
     .ui-window {
       overflow: visible;
