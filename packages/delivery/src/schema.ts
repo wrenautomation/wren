@@ -299,7 +299,7 @@ export const pings = delivery.table(
   "pings",
   {
     engagementId: integer("engagement_id").notNull(),
-    /** "quiet", "away", "step:<key>", "ask:<id>" or "pulse:<id>". */
+    /** "quiet", "away", "step:<key>", "ask:<id>", "pulse:<id>" or "reply:<u|d><id>". */
     about: varchar("about", { length: 80 }).notNull(),
     pingedAt: timestamp("pinged_at", { withTimezone: true }).notNull(),
   },
@@ -313,3 +313,44 @@ export const pings = delivery.table(
   ],
 );
 export type Ping = typeof pings.$inferSelect;
+
+/**
+ * A thread under an update or a deliverable: the client asks, Wren answers.
+ * Exactly one of the two. `fromWren` says which side wrote it, for who gets told.
+ */
+export const comments = delivery.table(
+  "comments",
+  {
+    id: serial("id").notNull(),
+    engagementId: integer("engagement_id").notNull(),
+    updateId: integer("update_id"),
+    deliverableId: integer("deliverable_id"),
+    author: text("author").notNull(),
+    fromWren: boolean("from_wren").notNull(),
+    body: text("body").notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+  },
+  (t) => [
+    primaryKey({ columns: [t.id], name: "pk_comments" }),
+    foreignKey({
+      columns: [t.engagementId],
+      foreignColumns: [engagements.id],
+      name: "fk_comments_engagement",
+    }).onDelete("cascade"),
+    foreignKey({
+      columns: [t.updateId],
+      foreignColumns: [updates.id],
+      name: "fk_comments_update",
+    }).onDelete("cascade"),
+    foreignKey({
+      columns: [t.deliverableId],
+      foreignColumns: [deliverables.id],
+      name: "fk_comments_deliverable",
+    }).onDelete("cascade"),
+    index("ix_comments_update").on(t.updateId),
+    index("ix_comments_deliverable").on(t.deliverableId),
+    index("ix_comments_engagement").on(t.engagementId, t.createdAt),
+    check("ck_comments_on", sql`num_nonnulls(${t.updateId}, ${t.deliverableId}) = 1`),
+  ],
+);
+export type Comment = typeof comments.$inferSelect;

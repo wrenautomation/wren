@@ -12,7 +12,9 @@ import { getClient, listOperators, normalEmail } from "@wren/core/clients";
 import type { Db, Queryable } from "@wren/db";
 import {
   addAsk,
+  addComment,
   addDeliverable,
+  type CommentView,
   DELIVERABLE_KINDS,
   type DeliverableKind,
   deliveryHome,
@@ -57,6 +59,11 @@ async function authorOf(db: Db, by: string | undefined): Promise<string> {
   );
 }
 
+const thread = (cs: CommentView[]) =>
+  cs.map(
+    (c) => `      ${c.at.slice(0, 10)} ${c.author}${c.fromWren ? "" : " (client)"}: ${c.body}`,
+  );
+
 export function renderEngagement(clientId: string, e: EngagementView): string[] {
   const out = [
     `${clientId} · ${e.offer.name} (#${e.id}) · from ${e.startsOn} · ${e.status}`,
@@ -80,12 +87,14 @@ export function renderEngagement(clientId: string, e: EngagementView): string[] 
   for (const d of e.deliverables)
     out.push(
       `  #${d.id} v${d.version} ${d.status}${d.decisionNote ? ` (${d.decisionNote})` : ""} · ${d.title} · ${d.url ?? "file"}`,
+      ...thread(d.comments),
     );
   out.push(`results: ${e.results.map((r) => `${r.key} ${r.value ?? "-"}`).join(", ")}`);
   out.push("updates (latest):");
   for (const u of e.updates)
     out.push(
       `  #${u.id} ${u.at.slice(0, 10)} ${u.author}${u.internal ? " [internal]" : ""}${u.hidden ? " [hidden]" : ""}: ${u.body}`,
+      ...thread(u.comments),
     );
   return out;
 }
@@ -248,6 +257,29 @@ export function registerDelivery(program: Command, withMainDb: WithDb, settings:
         recordResult(db, e, { key, value: n, note: opts.note, by: author }),
       );
       console.log(`${key} = ${n}`);
+    });
+
+  by(cmd.command("comment <text>"))
+    .description("Reply in the thread under an update or a deliverable; the client is mailed")
+    .option("--update <id>", "the update it's under")
+    .option("--deliverable <id>", "the deliverable it's under")
+    .action(async (text: string, opts: Opts & { update?: string; deliverable?: string }) => {
+      if (!opts.update === !opts.deliverable)
+        throw new Error("give one of --update, --deliverable");
+      const c = await withMainDb(async (main) => {
+        const author = await authorOf(main, opts.by);
+        return main.transaction((tx) =>
+          addComment(tx, clientId(), {
+            on: opts.update
+              ? { updateId: idOf(opts.update) }
+              : { deliverableId: idOf(opts.deliverable as string) },
+            body: text,
+            by: author,
+            fromWren: true,
+          }),
+        );
+      });
+      console.log(`commented #${c.id}`);
     });
 
   cmd

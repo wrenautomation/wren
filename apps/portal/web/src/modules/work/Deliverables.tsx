@@ -12,6 +12,7 @@ import {
   fileOf,
   OpenFile,
   StepPick,
+  Thread,
   useAct,
   useWork,
 } from "./bits.js";
@@ -142,6 +143,7 @@ function Piece({
       ) : act.error ? (
         <p className="wk-error">{act.error}</p>
       ) : null}
+      <Thread props={props} act={act} on={{ deliverableId: d.id }} comments={d.comments} />
     </li>
   );
 }

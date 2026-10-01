@@ -4,7 +4,7 @@ import { useState } from "react";
 import { ApiError, call, type UpdateView } from "../../api.js";
 import { useCall } from "../../load.js";
 import type { PageProps } from "../../module.js";
-import { dayLabel, Form, field, SampleNote, StepPick, useAct, useWork } from "./bits.js";
+import { dayLabel, Form, field, SampleNote, StepPick, Thread, useAct, useWork } from "./bits.js";
 
 type Page = { updates: UpdateView[]; more: boolean };
 
@@ -109,6 +109,9 @@ export function Updates(props: PageProps) {
                   {u.hidden ? <Tag>Hidden</Tag> : null}
                 </div>
                 <p className="wk-body">{u.body}</p>
+                {u.internal || u.hidden ? null : (
+                  <Thread props={props} act={act} on={{ updateId: u.id }} comments={u.comments} />
+                )}
                 {team && !u.hidden ? (
                   <Button
                     size="sm"

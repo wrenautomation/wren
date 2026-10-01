@@ -25,9 +25,10 @@ It sits in main, beside the registry, so an operator can read across clients and
 - Reads: `deliveryHome`, `timeline`, both through `seenBy` (`:465`, `:576`, `:410`)
 - Input checks at the edge: https links only, Loom links on a Loom host, files only under `clients/<id>/` (`:63`, `:76`)
 - Files: private bucket (`deploy/terraform/files.tf`); `upload` signs a PUT for one listed type and the exact size, `file` signs a short GET (`packages/delivery/src/files.ts`, types and cap in `routes.ts`)
-- Portal service `DeliveryPortal` (`packages/delivery/src/service.ts:253`). Clients may `answer` and `decide`. Everything else is team-only. Writes go in one transaction under `setAuditActor` (`:81`).
+- Portal service `DeliveryPortal` (`packages/delivery/src/service.ts:253`). Clients may `answer`, `decide` and `comment`. Everything else is team-only. Writes go in one transaction under `setAuditActor` (`:81`).
 - Mail and pulse (step 5): `member_mail` (each person's level and what we've told them), `pulses` (one tap a week per person), `pings` (what the operator was told) (`schema.ts:245`, `:269`, `:298`); `recordPulse`, `setMailLevel` (`index.ts:414`, `:438`). Only the client's own people rate or set their mail.
 - Products fill results: reactivation writes contacts reached, replies and meetings (with the bill as the note) and a daily timeline line, as author `reactivation` (`packages/reactivation/src/delivery.ts:94`, [[processes/reactivation-pass]]).
+- Comments (`comments`, `schema.ts:321`): a thread under a client-visible update or a deliverable, from either side (`from_wren`). `addComment` (`index.ts:342`) refuses internal and hidden updates. A new deliverable version takes the thread with it. A client line with no Wren line after it pings us (`reply:<u|d><id>`); Wren's lines are mailed at level `all` ([[processes/delivery-watch]]).
 - Who sees which client: `pickClient` / `pickForWrite` (`packages/core/src/portal.ts:51`, `:63`). These are shared with every product's portal service.
 
 Citations: `packages/delivery/src/schema.ts:33`, `packages/delivery/src/index.ts:139`, `packages/delivery/src/service.ts:81`, `packages/core/src/portal.ts:51`

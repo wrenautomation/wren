@@ -459,6 +459,50 @@ describe("people", () => {
   });
 });
 
+describe("comments", () => {
+  it("a thread under an update and a deliverable, from both sides, oldest first", async () => {
+    await api.comment({ viewer: AMY, updateId: acmeUpdate, body: "Can we do Wednesday?" });
+    await api.comment({ viewer: OPS, ...acme, updateId: acmeUpdate, body: "Wednesday works." });
+    const before = (await api.home({ viewer: AMY })).engagements[0]?.deliverables;
+    const v2 = before?.find((x) => x.title === "Cleaned list")?.id ?? 0;
+    await api.comment({ viewer: AMY, deliverableId: v2, body: "Looks right." });
+    // A new version takes the thread with it.
+    const v3 = (
+      await api.deliver({
+        viewer: OPS,
+        ...acme,
+        title: "Cleaned list",
+        kind: "link",
+        url: "https://docs.example.com/acme-v3",
+        replaces: v2,
+      })
+    ).id;
+    const e = (await api.home({ viewer: AMY })).engagements[0];
+    const u = e?.updates.find((x) => x.id === acmeUpdate);
+    expect(u?.comments.map((c) => [c.author, c.fromWren, c.body])).toEqual([
+      ["amy@acme.example", false, "Can we do Wednesday?"],
+      ["ops@wren.example", true, "Wednesday works."],
+    ]);
+    const d = e?.deliverables.find((x) => x.id === v3);
+    expect(d?.comments.map((c) => c.body)).toEqual(["Looks right."]);
+    const page = await api.updates({ viewer: AMY });
+    expect(page.updates.find((x) => x.id === acmeUpdate)?.comments).toHaveLength(2);
+  });
+
+  it("none under an internal or hidden update, or another client's row, or empty", async () => {
+    const ops = await api.updates({ viewer: OPS, ...acme });
+    const internal = ops.updates.find((x) => x.internal)?.id ?? 0;
+    const hidden = ops.updates.find((x) => x.hidden)?.id ?? 0;
+    for (const updateId of [internal, hidden])
+      expect(await refused(api.comment({ viewer: OPS, ...acme, updateId, body: "x" }))).toBe(404);
+    expect(
+      await refused(api.comment({ viewer: AMY, deliverableId: betaDeliverable, body: "x" })),
+    ).toBe(404);
+    expect(await refused(api.comment({ viewer: BO, updateId: acmeUpdate, body: "x" }))).toBe(404);
+    expect(await refused(api.comment({ viewer: AMY, updateId: acmeUpdate, body: " " }))).toBe(400);
+  });
+});
+
 describe("the demo", () => {
   beforeAll(async () => {
     const e = await startEngagement(pg.db, {
@@ -487,6 +531,7 @@ describe("the demo", () => {
     const [ask] = (await api.home({ viewer: DEMO })).engagements[0]?.asks ?? [];
     expect(await refused(api.answer({ viewer: DEMO, askId: ask?.id ?? 0, answer: "x" }))).toBe(403);
     expect(await refused(api.post({ viewer: DEMO, body: "x" }))).toBe(403);
+    expect(await refused(api.comment({ viewer: DEMO, updateId: 1, body: "x" }))).toBe(403);
     expect(await refused(api.post({ viewer: OPS, client: "demo", body: "x" }))).toBe(403);
     expect(await refused(api.invite({ viewer: DEMO, email: "x@y.example" }))).toBe(403);
     expect(await api.people({ viewer: DEMO })).toEqual({

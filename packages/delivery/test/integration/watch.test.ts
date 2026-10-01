@@ -201,6 +201,31 @@ describe("operator pings", () => {
     );
     expect(rows.map((r) => r.about)).toEqual([expect.stringMatching(/^pulse:\d+$/)]);
   });
+
+  it("a client's comment pings until Wren replies; the reply is mailed at level all", async () => {
+    const [u] = (await api.updates({ viewer: AMY })).updates;
+    await api.comment({ viewer: AMY, updateId: u?.id ?? 0, body: "How many were dead?" });
+    await api.comment({ viewer: AMY, updateId: u?.id ?? 0, body: "Roughly is fine." });
+    await pass("2026-10-09T20:10:00Z");
+    expect(take(pinged).map((p) => p.body)).toEqual([
+      `acme: amy@acme.example wrote on update #${u?.id}, no reply yet: "How many were dead?"`,
+    ]);
+    take(mail);
+
+    await api.comment({ viewer: OPS, ...acme, updateId: u?.id ?? 0, body: "388 of them." });
+    await dated("comments", "created_at", "2026-10-09T20:15:00Z");
+    await pass("2026-10-09T20:20:00Z");
+    expect(take(pinged)).toEqual([]);
+    const rows = await pg.db.execute<{ about: string }>(sql`select about from delivery.pings`);
+    expect(rows.map((r) => r.about)).not.toContain(`reply:u${u?.id}`);
+    // Amy gets the digest only; Cal gets everything.
+    const [told, ...rest] = take(mail);
+    expect(rest).toEqual([]);
+    expect(told?.to).toBe("cal@acme.example");
+    expect(told?.subject).toBe("Acme Staffing: Wren replied");
+    expect(told?.text).toContain('- On "List is clean.": 388 of them.');
+    expect(told?.text).toContain("https://app.example/work/updates?client=acme");
+  });
 });
 
 describe("the ops board", () => {

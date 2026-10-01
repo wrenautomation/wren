@@ -31,6 +31,7 @@ import { type Db, type Queryable, setAuditActor } from "@wren/db";
 import { type FileStore, newFileKey } from "./files.js";
 import {
   addAsk,
+  addComment,
   addDeliverable,
   answerAsk,
   type DeliveryHome,
@@ -219,6 +220,21 @@ export function deliveryApi(deps: DeliveryDeps) {
           by: v.email,
         });
         return { id: d.id, status: d.status };
+      }),
+
+    /** A line in the thread under an update or a deliverable, from either side. */
+    comment: (req: PortalRequest & { updateId?: number; deliverableId?: number; body: string }) =>
+      write(deps, req, "client", async (db, c, v) => {
+        const made = await addComment(db, c.id, {
+          on:
+            req.deliverableId !== undefined
+              ? { deliverableId: idOf(req.deliverableId, "deliverable") }
+              : { updateId: idOf(req.updateId, "update") },
+          body: needText(req.body, "the comment"),
+          by: v.email,
+          fromWren: v.operator === true,
+        });
+        return { id: made.id };
       }),
 
     start: (req: PortalRequest & { offerId: string; startsOn: string }) =>
@@ -423,6 +439,7 @@ export type DeliveryApi = ReturnType<typeof deliveryApi>;
 export type { Me } from "@wren/core/portal";
 export type {
   AskView,
+  CommentView,
   DeliverableView,
   DeliveryHome,
   EngagementView,
@@ -458,6 +475,7 @@ export function makeDeliveryPortal(deps: DeliveryDeps) {
       updates: (_: restate.Context, req: Req<"updates">) => answer(() => api.updates(req)),
       answer: (_: restate.Context, req: Req<"answer">) => answer(() => api.answer(req)),
       decide: (_: restate.Context, req: Req<"decide">) => answer(() => api.decide(req)),
+      comment: (_: restate.Context, req: Req<"comment">) => answer(() => api.comment(req)),
       start: (_: restate.Context, req: Req<"start">) => answer(() => api.start(req)),
       post: (_: restate.Context, req: Req<"post">) => answer(() => api.post(req)),
       deliver: (_: restate.Context, req: Req<"deliver">) => answer(() => api.deliver(req)),

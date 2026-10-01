@@ -9,6 +9,7 @@
 export type {
   AskView,
   BoardRow,
+  CommentView,
   DeliverableView,
   DeliveryHome,
   EngagementView,

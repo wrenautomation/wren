@@ -106,6 +106,22 @@
 }
 
 /* Forms: the team's composer and the client's answers */
+/* A thread under an update or a deliverable: indented, Wren's lines marked. */
+.wk-thread {
+  max-width: 72ch;
+  margin-top: 8px;
+  padding-left: 14px;
+  border-left: 2px solid var(--ui-hair);
+}
+.wk-thread > ol {
+  list-style: none;
+}
+.wk-thread > ol > li {
+  margin-bottom: 8px;
+}
+.wk-thread > ol > li > .wk-body {
+  font-size: 14px;
+}
 .wk-form {
   display: flex;
   flex-wrap: wrap;

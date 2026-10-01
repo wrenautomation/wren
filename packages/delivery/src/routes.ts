@@ -6,6 +6,7 @@ export const DELIVERY_ROUTES = [
   "updates",
   "answer",
   "decide",
+  "comment",
   "start",
   "post",
   "deliver",
@@ -27,6 +28,7 @@ export type DeliveryRoute = (typeof DELIVERY_ROUTES)[number];
 export const DELIVERY_WRITES: readonly DeliveryRoute[] = [
   "answer",
   "decide",
+  "comment",
   "start",
   "post",
   "deliver",

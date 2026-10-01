@@ -13,6 +13,8 @@ import { fileNameOf } from "./files.js";
 import {
   type Ask,
   asks,
+  type Comment,
+  comments,
   type Deliverable,
   type DeliverableKind,
   type DeliverableState,
@@ -250,7 +252,10 @@ export async function hideUpdate(db: Queryable, clientId: string, id: number): P
   if (hidden.length === 0) throw missing("update");
 }
 
-/** Hand something over (D4). `replaces` makes it the next version of that one, waiting again. */
+/**
+ * Hand something over (D4). `replaces` makes it the next version of that one,
+ * waiting again, and moves its comment thread onto the new one.
+ */
 export async function addDeliverable(
   db: Queryable,
   e: Engagement,
@@ -292,6 +297,12 @@ export async function addDeliverable(
     })
     .returning();
   if (!d) throw new Error("deliverable insert returned nothing");
+  // The thread goes on under the newest version: Home shows only that one.
+  if (prev)
+    await db
+      .update(comments)
+      .set({ deliverableId: d.id })
+      .where(eq(comments.deliverableId, prev.id));
   return d;
 }
 
@@ -319,6 +330,58 @@ export async function decideDeliverable(
     .returning();
   if (!d) throw missing("deliverable");
   return d;
+}
+
+/** What a comment hangs under: an update the client can see, or a deliverable. */
+export type CommentOn = { updateId: number } | { deliverableId: number };
+
+/**
+ * A line in the thread under an update or a deliverable. Internal and hidden
+ * updates take none: their thread would reach the client by mail.
+ */
+export async function addComment(
+  db: Queryable,
+  clientId: string,
+  input: { on: CommentOn; body: string; by: string; fromWren: boolean },
+): Promise<Comment> {
+  const body = textIn(input.body, "the comment", 4000);
+  let target: { engagementId: number } | undefined;
+  if ("updateId" in input.on) {
+    [target] = await db
+      .select({ engagementId: updates.engagementId })
+      .from(updates)
+      .where(
+        and(
+          eq(updates.id, input.on.updateId),
+          ofClient(db, updates.engagementId, clientId),
+          seenBy(false),
+        ),
+      );
+    if (!target) throw missing("update");
+  } else {
+    [target] = await db
+      .select({ engagementId: deliverables.engagementId })
+      .from(deliverables)
+      .where(
+        and(
+          eq(deliverables.id, input.on.deliverableId),
+          ofClient(db, deliverables.engagementId, clientId),
+        ),
+      );
+    if (!target) throw missing("deliverable");
+  }
+  const [c] = await db
+    .insert(comments)
+    .values({
+      engagementId: target.engagementId,
+      ...input.on,
+      author: input.by,
+      fromWren: input.fromWren,
+      body,
+    })
+    .returning();
+  if (!c) throw new Error("comment insert returned nothing");
+  return c;
 }
 
 /** Something we need from the client (D5). */
@@ -507,15 +570,23 @@ export interface StepView
   > {
   state: MilestoneState;
 }
+export type CommentView = Pick<Comment, "id" | "author" | "fromWren" | "body"> & { at: string };
 export type UpdateView = Pick<Update, "id" | "author" | "body" | "internal"> & {
   step: string | null;
   at: string;
   hidden: boolean;
+  comments: CommentView[];
 };
 export type DeliverableView = Pick<
   Deliverable,
   "id" | "title" | "kind" | "url" | "version" | "status" | "decidedBy" | "decisionNote"
-> & { step: string | null; file: string | null; at: string; decidedAt: string | null };
+> & {
+  step: string | null;
+  file: string | null;
+  at: string;
+  decidedAt: string | null;
+  comments: CommentView[];
+};
 export type AskView = Pick<Ask, "id" | "text" | "dueOn" | "answer" | "answeredBy"> & {
   step: string | null;
   /** The uploaded file's name, when the answer carries one. */
@@ -561,6 +632,30 @@ const stateOf = (m: Milestone, today: string): MilestoneState =>
 
 const HOME_UPDATES = 10;
 
+/** The threads under these updates or deliverables, oldest first, by what they hang under. */
+async function threads(
+  db: Queryable,
+  col: typeof comments.updateId | typeof comments.deliverableId,
+  ids: number[],
+): Promise<Map<number, CommentView[]>> {
+  const out = new Map<number, CommentView[]>();
+  if (ids.length === 0) return out;
+  const rows = await db.select().from(comments).where(inArray(col, ids)).orderBy(asc(comments.id));
+  for (const c of rows) {
+    const on = (col === comments.updateId ? c.updateId : c.deliverableId) as number;
+    const list = out.get(on) ?? [];
+    list.push({
+      id: c.id,
+      author: c.author,
+      fromWren: c.fromWren,
+      body: c.body,
+      at: c.createdAt.toISOString(),
+    });
+    out.set(on, list);
+  }
+  return out;
+}
+
 /** Everything Home shows, for each of a client's engagements, newest first (D7). */
 export async function deliveryHome(
   db: Queryable,
@@ -605,6 +700,11 @@ export async function deliveryHome(
       .where(and(inArray(pulses.engagementId, ids), eq(pulses.week, week))),
   ]);
   const stepKey = new Map(ms.map((m) => [m.id, m.key]));
+  const talk = await threads(
+    db,
+    comments.deliverableId,
+    ds.map((d) => d.id),
+  );
   const timelines = await Promise.all(
     es.map((e) =>
       timeline(db, clientId, { operator: opts.operator, engagementId: e.id, limit: HOME_UPDATES }),
@@ -652,6 +752,7 @@ export async function deliveryHome(
             file: d.fileKey && fileNameOf(d.fileKey),
             at: d.createdAt.toISOString(),
             decidedAt: d.decidedAt?.toISOString() ?? null,
+            comments: talk.get(d.id) ?? [],
           })),
         asks: as
           .filter((a) => a.engagementId === e.id)
@@ -711,8 +812,14 @@ export async function timeline(
     )
     .orderBy(desc(updates.id))
     .limit(limit + 1);
+  const page = rows.slice(0, limit);
+  const talk = await threads(
+    db,
+    comments.updateId,
+    page.map(({ u }) => u.id),
+  );
   return {
-    updates: rows.slice(0, limit).map(({ u, step }) => ({
+    updates: page.map(({ u, step }) => ({
       id: u.id,
       author: u.author,
       body: u.body,
@@ -720,6 +827,7 @@ export async function timeline(
       step,
       at: u.createdAt.toISOString(),
       hidden: u.hiddenAt !== null,
+      comments: talk.get(u.id) ?? [],
     })),
     more: rows.length > limit,
   };

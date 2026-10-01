@@ -9,7 +9,7 @@ import { clients } from "@wren/core/clients";
 import type { Db, Queryable } from "@wren/db";
 import { and, eq } from "drizzle-orm";
 import { addDays, DeliveryRefusal, recordResult, startEngagement } from "./index.js";
-import { asks, deliverables, engagements, milestones, updates } from "./schema.js";
+import { asks, comments, deliverables, engagements, milestones, updates } from "./schema.js";
 
 /** How many days in the sample sits when seeded. */
 export const SAMPLE_DAY = 23;
@@ -32,6 +32,11 @@ const UPDATES: [number, string][] = [
 const DELIVERABLES: [number, string, string, string][] = [
   [4, "Cleaned contact list", "/reactivation/people", "set-up"],
   [12, "The campaign, in your recruiter's voice", "/reactivation/emails", "approve"],
+];
+/** A thread under the first week's numbers: [days after the start, hour, from Wren, text]. */
+const THREAD: [number, number, boolean, string][] = [
+  [21, 17, false, "Are the 2 meetings with past clients, or new ones?"],
+  [22, 9, true, "Both past clients: one last hired through you in 2023, the other in 2021."],
 ];
 /** The client's answer to each opening ask, and the day after the start they gave it. */
 const ANSWERS: Record<string, [string, number]> = {
@@ -67,12 +72,26 @@ export async function seedSample(db: Queryable, clientId: string, today: string)
       .set({ doneOn: addDays(start, day) })
       .where(and(eq(milestones.engagementId, e.id), eq(milestones.key, key)));
 
-  await db.insert(updates).values(
-    UPDATES.map(([day, body]) => ({
+  const posted = await db
+    .insert(updates)
+    .values(
+      UPDATES.map(([day, body]) => ({
+        engagementId: e.id,
+        author: BY,
+        body,
+        createdAt: at(start, day),
+      })),
+    )
+    .returning({ id: updates.id, body: updates.body });
+  const firstWeek = posted.find((u) => u.body.startsWith("First week"))?.id ?? null;
+  await db.insert(comments).values(
+    THREAD.map(([day, hour, fromWren, body]) => ({
       engagementId: e.id,
-      author: BY,
+      updateId: firstWeek,
+      author: fromWren ? BY : CLIENT,
+      fromWren,
       body,
-      createdAt: at(start, day),
+      createdAt: at(start, day, hour),
     })),
   );
   await db.insert(deliverables).values(

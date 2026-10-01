@@ -116,6 +116,7 @@ Every bought offer is an engagement: dated steps from the offer's plan, a timeli
 ./bin/wren --client <id> delivery slip approve --to 2026-10-15 --reason "Waiting on the recruiter's signature."
 ./bin/wren --client <id> delivery result meetings 3      # only the offer's measures
 ./bin/wren --client <id> delivery hide <updateId>        # off their timeline, kept on record
+./bin/wren --client <id> delivery comment "388 of them." --update <id> | --deliverable <id>   # reply in a thread
 ```
 
 - Write posts and ask text as the client reads them: plain, short, no internal names. `--internal` is for Wren only.
@@ -125,7 +126,7 @@ Every bought offer is an engagement: dated steps from the offer's plan, a timeli
 - Reactivation fills contacts reached, replies and meetings (with the bill) itself each pass, plus a daily line. Record only job orders and fees by hand.
 - Every client at a glance: `app.wrenautomation.com/ops/clients` (operators only), at risk first.
 - The demo's project is a labeled sample that DeliveryWatch keeps fresh. `./bin/wren --client demo delivery sample` reseeds it now.
-- Their people get mail from `portal@`: a welcome, anything that needs them, and a Friday recap. Each picks their level in Settings. A low weekly pulse, a quiet 3 days, a late step or ask, or nobody signing in pings us.
+- Their people get mail from `portal@`: a welcome, anything that needs them, and a Friday recap. Each picks their level in Settings. A low weekly pulse, a quiet 3 days, a late step or ask, a client comment with no reply, or nobody signing in pings us. `delivery status` shows the threads.
 
 ```sh
 ./bin/wren delivery watch status | start | stop | sync   # every client; hourly; off until started

@@ -7,6 +7,7 @@ import { Alert, Button, Callout, Empty, Loading, num, Tag, type TagTone } from "
 import { type FormEvent, type ReactNode, useState } from "react";
 import {
   ApiError,
+  type CommentView,
   call,
   type DeliveryHome,
   type EngagementView,
@@ -167,6 +168,68 @@ export function Form({
         ) : null}
       </div>
     </form>
+  );
+}
+
+/**
+ * The thread under an update or a deliverable, and a box to add to it. A client
+ * sees Wren's lines as "Wren"; the team sees who wrote each.
+ */
+export function Thread({
+  props,
+  act,
+  on,
+  comments,
+}: {
+  props: PageProps;
+  act: ReturnType<typeof useAct>;
+  on: { updateId: number } | { deliverableId: number };
+  comments: CommentView[];
+}) {
+  const [open, setOpen] = useState(false);
+  if (comments.length === 0 && !open)
+    return (
+      <Button size="sm" tone="quiet" disabled={props.demo} onClick={() => setOpen(true)}>
+        Comment
+      </Button>
+    );
+  return (
+    <div className="wk-thread">
+      {comments.length > 0 ? (
+        <ol>
+          {comments.map((c) => (
+            <li key={c.id}>
+              <span className="wk-quiet">
+                {c.fromWren && !props.team ? "Wren" : c.author} · {dayLabel(c.at)}
+              </span>
+              <p className="wk-body">{c.body}</p>
+            </li>
+          ))}
+        </ol>
+      ) : null}
+      {open ? (
+        <Form
+          label="Comment"
+          submit="Send"
+          act={act}
+          demo={props.demo}
+          onSubmit={async (f) => {
+            const ok = await act.run("comment", { ...on, body: field(f, "body") });
+            if (ok) setOpen(false);
+            return ok;
+          }}
+        >
+          <label className="wk-field wk-wide">
+            <span>{comments.length > 0 ? "Reply" : "Comment"}</span>
+            <textarea name="body" required rows={2} maxLength={4000} />
+          </label>
+        </Form>
+      ) : (
+        <Button size="sm" tone="quiet" disabled={props.demo} onClick={() => setOpen(true)}>
+          Reply
+        </Button>
+      )}
+    </div>
   );
 }
 

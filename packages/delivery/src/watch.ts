@@ -14,12 +14,28 @@ import { errorText, makeLoopObject, runPass } from "@wren/core/restate";
 import { wallClock } from "@wren/core/time";
 import type { Db } from "@wren/db";
 import { offerFor } from "@wren/offers";
-import { and, asc, desc, eq, gt, inArray, isNull, lt, lte, max, sql } from "drizzle-orm";
+import {
+  and,
+  asc,
+  desc,
+  eq,
+  gt,
+  inArray,
+  isNull,
+  lt,
+  lte,
+  max,
+  notExists,
+  or,
+  sql,
+} from "drizzle-orm";
+import { alias } from "drizzle-orm/pg-core";
 import { addDays, weekday } from "./index.js";
 import { PULSE_WORDS } from "./routes.js";
 import { keepSampleFresh } from "./sample.js";
 import {
   asks,
+  comments,
   deliverables,
   type Engagement,
   engagements,
@@ -208,10 +224,10 @@ async function mailPeople(
     const level = p.mail.level;
     const es = live.filter((l) => l.e.clientId === c.id).map((l) => l.e.id);
 
-    // New asks and deliverables since we last told them, in one message.
+    // New asks, deliverables and Wren's replies since we last told them, in one message.
     if (level === "all" && es.length > 0) {
       const since = p.mail.toldThrough;
-      const [newAsks, newWork] = await Promise.all([
+      const [newAsks, newWork, replies] = await Promise.all([
         main
           .select()
           .from(asks)
@@ -236,8 +252,9 @@ async function mailPeople(
             ),
           )
           .orderBy(asc(deliverables.id)),
+        repliesSince(main, es, since, now),
       ]);
-      if (newAsks.length + newWork.length > 0) {
+      if (newAsks.length + newWork.length + replies.length > 0) {
         const lines: string[] = [];
         if (newAsks.length > 0) {
           lines.push("We need from you:");
@@ -251,12 +268,21 @@ async function mailPeople(
             lines.push(`- ${clip(d.title, 200)}${d.version > 1 ? ` (version ${d.version})` : ""}`);
           lines.push(`Approve or ask for changes: ${app}/work/deliverables?client=${c.id}`, "");
         }
+        if (replies.length > 0) {
+          lines.push("Wren replied:");
+          for (const r of replies)
+            lines.push(`- On "${clip(r.on ?? "", 80)}": ${clip(r.body, 200)}`);
+          const page = replies.every((r) => r.update) ? "updates" : "deliverables";
+          lines.push(`Read and reply: ${app}/work/${page}?client=${c.id}`, "");
+        }
         lines.push(settings(c.id));
         const n = newAsks.length + newWork.length;
         const subject =
           newAsks.length > 0
             ? `${c.name}: ${n === 1 ? "1 thing needs" : `${n} things need`} you`
-            : `${c.name}: ${n === 1 ? "something" : `${n} things`} ready to look at`;
+            : n > 0
+              ? `${c.name}: ${n === 1 ? "something" : `${n} things`} ready to look at`
+              : `${c.name}: Wren replied`;
         if (!(await trySend({ to: p.m.email, subject, text: lines.join("\n") }))) continue;
         stats.told += 1;
       }
@@ -278,6 +304,32 @@ async function mailPeople(
       }
     }
   }
+}
+
+/**
+ * Wren's comments in these engagements in (since, now], each with what it hangs
+ * under. A thread under an update the client can't see now is left out.
+ */
+function repliesSince(main: Db, es: number[], since: Date, now: Date) {
+  return main
+    .select({
+      body: comments.body,
+      update: comments.updateId,
+      on: sql<string | null>`coalesce(${updates.body}, ${deliverables.title})`,
+    })
+    .from(comments)
+    .leftJoin(updates, eq(updates.id, comments.updateId))
+    .leftJoin(deliverables, eq(deliverables.id, comments.deliverableId))
+    .where(
+      and(
+        inArray(comments.engagementId, es),
+        eq(comments.fromWren, true),
+        gt(comments.createdAt, since),
+        lte(comments.createdAt, now),
+        or(isNull(comments.updateId), and(eq(updates.internal, false), isNull(updates.hiddenAt))),
+      ),
+    )
+    .orderBy(asc(comments.id));
 }
 
 /** The Friday digest for one client: the week, what's next, what we need, results, the pulse. */
@@ -381,7 +433,8 @@ async function problems(
   const ids = started.map((l) => l.e.id);
   const found: Found[] = [];
   if (ids.length > 0) {
-    const [lastUpdate, lastWork, late, overdue, low] = await Promise.all([
+    const answer = alias(comments, "answer");
+    const [lastUpdate, lastWork, late, overdue, low, unanswered] = await Promise.all([
       main
         .select({ id: updates.engagementId, at: max(updates.createdAt) })
         .from(updates)
@@ -424,6 +477,30 @@ async function problems(
             gt(pulses.at, new Date(now.getTime() - 7 * DAY)),
           ),
         ),
+      // The client wrote, and nobody at Wren has written in that thread since.
+      main
+        .select()
+        .from(comments)
+        .where(
+          and(
+            inArray(comments.engagementId, ids),
+            eq(comments.fromWren, false),
+            notExists(
+              main
+                .select({ id: answer.id })
+                .from(answer)
+                .where(
+                  and(
+                    eq(answer.fromWren, true),
+                    gt(answer.id, comments.id),
+                    sql`${answer.updateId} is not distinct from ${comments.updateId}`,
+                    sql`${answer.deliverableId} is not distinct from ${comments.deliverableId}`,
+                  ),
+                ),
+            ),
+          ),
+        )
+        .orderBy(asc(comments.id)),
     ]);
     for (const { e } of started) {
       const c = e.clientId;
@@ -459,6 +536,19 @@ async function problems(
           clientId: c,
           what: `pulse ${p.score}/5 this week`,
         });
+      // One ping per thread, from its first unanswered line.
+      const threads = new Set<string>();
+      for (const k of unanswered.filter((k) => k.engagementId === e.id)) {
+        const thread = k.updateId ? `u${k.updateId}` : `d${k.deliverableId}`;
+        if (threads.has(thread)) continue;
+        threads.add(thread);
+        found.push({
+          engagementId: e.id,
+          about: `reply:${thread}`,
+          clientId: c,
+          what: `${k.author} wrote on ${k.updateId ? `update #${k.updateId}` : `deliverable #${k.deliverableId}`}, no reply yet: "${clip(k.body, 120)}"`,
+        });
+      }
       const theirs = people.filter((p) => p.m.clientId === c);
       const seen = theirs
         .map((p) => p.m.lastSeenAt ?? p.m.invitedAt)

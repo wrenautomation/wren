@@ -33,6 +33,7 @@ describe("the demo's sample", () => {
       expect(e?.asks.filter((a) => !a.answeredAt)).toHaveLength(1);
       expect(e?.asks.some((a) => a.overdue)).toBe(false);
       expect(e?.updates.length).toBeGreaterThan(3);
+      expect(e?.updates.flatMap((u) => u.comments.map((c) => c.fromWren))).toEqual([false, true]);
       expect(e?.deliverables.every((d) => d.status === "approved")).toBe(true);
       expect(e?.results.find((r) => r.key === "meetings")?.value).toBe(6);
     }
