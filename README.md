@@ -82,6 +82,13 @@ handler, `autobrowseDo({ url, token })` from a laptop: one verb, autobrowse rout
 it (site API → compiled workflow → its agent, which compiles what it did for next
 time). `restateSites(ctx)` stays for calls that need the official API shape.
 
+## SOPs
+
+`wren sop add <name> <youtube url | drive:<folderId> --account <addr> | file> [--priority n]`
+ingests a source into `../sops/<name>/sources/` (a private folder, its own git).
+`wren sop build <name>` writes the next `SOP.md` from `notes.md` (your rules, top
+priority) and the sources on Claude Code. Iterate: edit notes.md or SOP.md, build again.
+
 ## Gates
 
 `./scripts/gates.sh` runs lint + typecheck, unit tests, integration tests (Docker). CI runs the same.

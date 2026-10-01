@@ -37,6 +37,7 @@ import { registerFetch } from "./fetch.js";
 import { registerReview } from "./review.js";
 import { registerSearch } from "./search.js";
 import { registerSms } from "./sms.js";
+import { registerSop } from "./sop.js";
 import { registerStudy } from "./study.js";
 import { registerVideo } from "./video.js";
 
@@ -209,6 +210,7 @@ registerAds(program, withMainDb, settings);
 registerSms(program, withMainDb, settings);
 registerBooks(program, withMainDb, settings, rootDir);
 registerStudy(program, withMainDb, settings, rootDir);
+registerSop(program, settings, rootDir);
 registerDossier(program, withMainDb, rootDir);
 registerVideo(program, withMainDb, settings, rootDir);
 registerSearch(program, withMainDb, settings, rootDir);

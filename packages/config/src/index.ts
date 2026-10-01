@@ -149,6 +149,12 @@ export const settingsSchema = z.object({
   videosWatchBase: z.string().url().default("https://wrenautomation.com/v/"),
   /** The ffmpeg binary videos are encoded with. */
   ffmpeg: z.string().min(1).default("ffmpeg"),
+  /** The yt-dlp command SOP sources are read with (split on spaces: `uvx yt-dlp`). */
+  ytDlp: z.string().min(1).default("yt-dlp"),
+  /** Where SOP folders live (relative to the repo root): private, not this repo. */
+  sopsDir: z.string().min(1).default("../sops"),
+  /** The autobrowse checkout whose CLI (and tokens) `sop add drive:` runs. */
+  autobrowseDir: z.string().min(1).default("../autobrowse"),
   /** The private S3 bucket that keeps every email and PDF the books read (under `books/`); unset = the local `.books/` directory. */
   booksBucket: z.string().min(1).optional(),
   /**
@@ -372,6 +378,9 @@ export const ENV_KEYS = {
   videosOrigin: "WREN_VIDEOS_ORIGIN",
   videosWatchBase: "WREN_VIDEOS_WATCH_BASE",
   ffmpeg: "WREN_FFMPEG",
+  ytDlp: "WREN_YT_DLP",
+  sopsDir: "WREN_SOPS_DIR",
+  autobrowseDir: "WREN_AUTOBROWSE_DIR",
   booksBucket: "WREN_BOOKS_BUCKET",
   booksMailboxes: "WREN_BOOKS_MAILBOXES",
   booksSince: "WREN_BOOKS_SINCE",

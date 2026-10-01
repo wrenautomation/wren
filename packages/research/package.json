@@ -13,6 +13,7 @@
     "./people": "./src/people/index.ts",
     "./schema": "./src/schema.ts",
     "./studies": "./src/studies/index.ts",
+    "./sops": "./src/sops/index.ts",
     "./enrichment": "./src/enrichment/index.ts",
     "./restate": "./src/restate/index.ts"
   },
