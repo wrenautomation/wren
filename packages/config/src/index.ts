@@ -113,7 +113,7 @@ export const settingsSchema = z.object({
   /** "console" prints; "gmail" sends for real. Console until cutover. */
   sendTransport: z.enum(["console", "gmail"]).default("console"),
   daemonTickSeconds: z.coerce.number().int().default(60),
-  daemonSyncSeconds: z.coerce.number().int().default(300),
+  daemonSyncSeconds: z.coerce.number().int().default(120),
   /** Content platforms served through autobrowse's `sites` Restate service; empty = no `Content` service. */
   contentChannels: z
     .string()

@@ -52,7 +52,7 @@ describe("loadSettings", () => {
     expect(bare.pixelExportToken).toBeUndefined();
     expect(bare.siteExportToken).toBeUndefined();
     expect(bare.siteBaseUrl).toBe("https://wrenautomation.com");
-    expect(bare.daemonSyncSeconds).toBe(300);
+    expect(bare.daemonSyncSeconds).toBe(120);
   });
   it("keeps new mail pixel-free unless WREN_OPEN_TRACKING is on", () => {
     const base = { WREN_DATABASE_URL: "postgresql://u:p@h:1/d", WREN_PIXEL_BASE_URL: "https://t" };

@@ -60,9 +60,10 @@ describe("recruiting opener through the facts view", () => {
 
   it("a stored line opens the email; no line leaves no gap", async () => {
     const lined = await email(await firm("lined.example", LINE));
-    expect(lined.startsWith(`Hi there,\n\n${LINE}\n\nI found you on the`)).toBe(true);
+    expect(lined.startsWith(`Hi there,\n\n${LINE}\n\n`)).toBe(true);
     const bare = await email(await firm("bare.example", null));
-    expect(bare.startsWith("Hi there,\n\nI found you on the")).toBe(true);
+    expect(bare).toMatch(/^Hi there,\n\n[^\n]/);
+    expect(bare).not.toContain(LINE);
     expect(bare).not.toMatch(/\n{3,}/);
   });
 });

@@ -4,16 +4,16 @@ Hi {first_name|there},
 
 (({company.opener}))
 
-I found you on the {company_name} site((, listed as {title})), so I figured you're the one to ask.
+I'm a software engineering student at the University of Waterloo, so I'm chasing internships every co-op term. Hiring runs in seasons, and I'd guess you feel that more than I do.
 
-I'm a software engineer out of Waterloo. I've built production systems with big teams at the Government of Canada (one is used by 17,000 staff) and with a small research lab at the University of Alberta.
+I've built production systems with big teams at the Government of Canada (one is used by 17,000 staff) and with a small team at a University of Alberta lab. Now I'm looking to work with recruiting firms.
 
-I'd bet your ATS holds years of past clients nobody has called in a while. Some of those hiring managers moved to new companies with new budgets, and a few are hiring right now.
+You've got years of past clients sitting in your ATS that nobody's called in a while. Guess what a lot of them are probably doing right now? Hiring. Just not through you.
 
-I'll book you {offer.goal} meetings with them. If I don't book one in {offer.days} days, you get every dollar back.
+I'll email them for you and book you {offer.goal} meetings in {offer.days} days. If I don't book one, you get every dollar back.
 
-I know you're busy, so all it takes is an export from your ATS and one 30-minute call at the start. I'll handle the rest, writing in your recruiter's name from a new domain so yours is never touched. I only take {offer.slots} firms at a time.
+I know you're busy, so it's one 30-minute call at the start and an export from your ATS. I handle the rest.
 
-I recorded a short walkthrough of how it works. Want me to send it? Or for a call, how does {call.times} sound? I can send you a calendar invite. Just let me know.
+I recorded a short walkthrough of how it works. Want me to send it? Or if you'd rather talk, how does {call.times} sound? I can send you a Google Meet invite, or you can name a time that suits you better. Just let me know.
 
 William

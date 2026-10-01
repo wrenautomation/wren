@@ -31,7 +31,7 @@ export interface InboxSchedulerDeps {
   reader: InboxReader;
   /** From the key alone, so it needs no step: `acme/a@x.com` is acme's. */
   scopeOf: (key: string) => InboxScope;
-  /** Between passes that returned (default 5 min). */
+  /** Between passes that returned (default 2 min). */
   syncMs?: number;
   /** After a pass that threw (default 1 min). */
   tickMs?: number;
@@ -46,7 +46,7 @@ export interface InboxSchedulerDeps {
 export const INBOX_SYNC_COMMAND = "outreach inbox sync";
 
 export function makeInboxScheduler(deps: InboxSchedulerDeps) {
-  const syncMs = deps.syncMs ?? 300_000;
+  const syncMs = deps.syncMs ?? 120_000;
   const tickMs = deps.tickMs ?? 60_000;
   const lookbackMs = deps.firstSyncLookbackMs ?? 30 * DAY_MS;
 

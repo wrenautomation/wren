@@ -8,7 +8,7 @@ rainmaker) and less busywork for the team.
 
 Facts: bare keys from `person_facts` (first_name, company_name, title)
 and `offer.*` keys from the arm's offer (`offer.name`, `offer.days`,
-`offer.slots`, `offer.page`, `offer.goal`). `half` is the firm's A/B half. `link.*`
+`offer.page`, `offer.goal`). `half` is the firm's A/B half. `link.*`
 are this email's own tracked links: `{link.book}` (Cal.com via
 /book), `{link.page}` (the pitch page), `{link.watch}` (the firm's demo,
 else the offer's video). An email that quotes a link the firm can't
@@ -18,7 +18,9 @@ get is not composed.
 lead's clock ("Tuesday at 10am or Wednesday at 2pm ET"). It is filled
 when the email sends, not when it is composed, and reads "early next
 week" if the calendar can't answer. A reply that takes a time is booked
-on Cal.com, which sends the invite; any other warm reply pings William.
+on Cal.com, which sends the invite (the event's location is Google Meet);
+any other warm reply pings William. The inbox syncs every 2 minutes
+(`WREN_DAEMON_SYNC_SECONDS`), so a warm reply is acted on in about 3.
 
 ## Arms
 
@@ -41,13 +43,27 @@ by arm.
 - The usual fix dissed: a BD push (Fridays blocked for calls, a
   newsletter to the whole list).
 - The offer's terms are never typed here. `{offer.days}`,
-  `{offer.slots}`, `{offer.goal}` and `{offer.page}` come from the registry, so the
+  `{offer.goal}` and `{offer.page}` come from the registry, so the
   email, the page and the form say the same thing. A key the offer
   doesn't set refuses the niche at import.
 - No links in a cold email (outbound-copy SOP). The one exception is
   the watch-first follow-up, which sends the walkthrough the opener
   offered.
-- Order (outbound-copy SOP): personalization, who William is (Waterloo,
-  Government of Canada, U of A lab), the offer, the ask with two times.
-  Follow-ups ride the opener's thread (the registry test holds every
-  niche to it), not a new subject as the SOP suggests.
+- Order (outbound-copy SOP): personalization, who William is, the
+  offer, the ask. William's voice: short, plain, direct.
+  - Personalization is shared ground, not "I found you on your site": a
+    Waterloo software student chasing internships every co-op term knows
+    hiring runs in seasons. The firm's own line (`{company.opener}`) goes
+    first when there is one.
+  - Who William is carries the why-care: Government of Canada (one system
+    used by 17,000 staff), a U of A lab, big teams and small, and he is
+    looking to work with recruiting firms.
+  - The pain is cold read and problem aware: past clients in the ATS are
+    probably hiring right now, just not through the firm.
+  - The offer carries its deadline (`{offer.goal}` meetings in
+    `{offer.days}` days) and the refund if none. No domain pre-objection
+    and no scarcity line: the offer has no firm cap.
+  - The ask is `{call.times}`; William sends a Google Meet invite for it,
+    or they name a time.
+  - Follow-ups ride the opener's thread (the registry test holds every
+    niche to it), not a new subject as the SOP suggests.

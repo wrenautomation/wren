@@ -15,7 +15,7 @@ export interface OpensSchedulerDeps {
   baseUrl: string;
   exportToken: string;
   fetch?: FetchLike;
-  /** Between passes that returned (default 5 min). */
+  /** Between passes that returned (default 2 min). */
   syncMs?: number;
   /** After a pass that threw (default 1 min). */
   tickMs?: number;
@@ -25,7 +25,7 @@ export const OPENS_KEY = "fleet";
 export const OPENS_SYNC_COMMAND = "outreach opens sync";
 
 export function makeOpensScheduler(deps: OpensSchedulerDeps) {
-  const syncMs = deps.syncMs ?? 300_000;
+  const syncMs = deps.syncMs ?? 120_000;
   const tickMs = deps.tickMs ?? 60_000;
   return makeLoopObject("OpensScheduler", async (ctx: restate.ObjectContext) => {
     const now = new Date(await ctx.date.now());
