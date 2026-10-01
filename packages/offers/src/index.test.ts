@@ -98,6 +98,7 @@ describe("defineOffer", () => {
     ["a page with a trailing slash", offer({ page: "/recruiting/" }), /site path/],
     ["a page with an underscore", offer({ page: "/recruiting/lead_reactivation" }), /site path/],
     ["an http booking link", offer({ booking: "http://cal.com/x" }), /https/],
+    ["a video that is not an mp4", offer({ video: "https://loom.com/share/x" }), /mp4/],
     [
       "a fixed price with no range",
       offer({ price: { kind: "fixed", upfront: null, monthly: null } }),
@@ -189,11 +190,14 @@ describe("applications", () => {
 
 describe("offerFacts", () => {
   it("gives copy the terms the offer sets, and nothing it leaves null", () => {
-    expect(offerFacts(offer({ days: 30, slots: 3, page: "/x" }))).toEqual({
+    expect(
+      offerFacts(offer({ days: 30, slots: 3, page: "/x", video: "https://cdn.test/vsl.mp4" })),
+    ).toEqual({
       "offer.name": "Test",
       "offer.days": "30",
       "offer.slots": "3",
       "offer.page": "/x",
+      "offer.video": "https://cdn.test/vsl.mp4",
     });
     expect(offerFacts(offer({}))).toEqual({ "offer.name": "Test" });
   });

@@ -4,8 +4,8 @@ import { describe, expect, it } from "vitest";
 import { recruiting } from "./index.js";
 
 const tpl = () => {
-  const t = recruiting.templates.get("reactivation/opener");
-  if (t === undefined) throw new Error("missing reactivation/opener");
+  const t = recruiting.templates.get("book-first/opener");
+  if (t === undefined) throw new Error("missing book-first/opener");
   return t;
 };
 const LINE = "You have placed ICU nurses in Tulsa hospitals since 1999.";
@@ -14,10 +14,11 @@ const base = {
   company_name: "Tulsa Nurse Partners",
   title: "Owner",
   ...recruiting.offerFacts.get("reactivation"),
+  "link.book": "https://wrenautomation.com/book/reactivation?r=code",
 };
 const body = (facts: Record<string, unknown>) => render(tpl(), facts, "person:7").body;
 
-describe("recruiting reactivation opener", () => {
+describe("recruiting book-first opener", () => {
   it("puts the line in its own paragraph after the greeting", () => {
     const b = body({ ...base, "company.opener": LINE });
     expect(

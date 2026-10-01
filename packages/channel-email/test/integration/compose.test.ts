@@ -6,6 +6,7 @@ import { asc, eq } from "drizzle-orm";
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 import { parseTemplate, toSource } from "../../src/outreach/authoring.js";
 import { compose } from "../../src/outreach/compose.js";
+import { halfOf } from "../../src/outreach/facts.js";
 import { sequence, sequenceStep, twoEmailSequence } from "../../src/outreach/sequences.js";
 import { field, template } from "../../src/outreach/templates.js";
 import { templateVersions } from "../../src/schema.js";
@@ -161,6 +162,45 @@ describe("compose", () => {
     expect(stats.enrolled).toBe(1);
     expect(stats.skipped_where).toBe(2);
     expect((await one(allEnrollments(db()))).companyId).toBe(marketing.id);
+  });
+
+  it("each draft's links carry that draft's own code, and half splits companies", async () => {
+    const company = await makeCompany(db());
+    await makePerson(db(), company, { email: "jane@oakbridge.example" });
+    const linked = new Map([
+      ["opener", parseTemplate("opener", "Hi {first_name},\n\nBook: {link.book}")],
+      ["followup", parseTemplate("followup", "Read: {link.page}\n\n(({link.watch}))")],
+    ]);
+    const half = halfOf(company.id);
+    const other = half === "a" ? "b" : "a";
+    const opts = {
+      templates: linked,
+      site: "https://site.example",
+      offerFacts: { "offer.page": "/recruiting/x" },
+    };
+    expect(await runCompose(db(), { ...opts, where: { half: other } })).toMatchObject({
+      enrolled: 0,
+      skipped_where: 1,
+    });
+    expect((await runCompose(db(), { ...opts, where: { half } })).enrolled).toBe(1);
+    const [opener, followup] = await messagesOf(db(), await one(allEnrollments(db())));
+    expect(opener?.body).toBe(
+      `Hi Jane,\n\nBook: https://site.example/book/test-offer?r=${opener?.linkCode}`,
+    );
+    // No video of its own and none on the offer: the watch link is absent, its sentence drops.
+    expect(followup?.body).toBe(`Read: https://site.example/recruiting/x?r=${followup?.linkCode}`);
+    expect(followup?.linkCode).not.toBe(opener?.linkCode);
+  });
+
+  it("copy that needs a link skips the company when there is none to give", async () => {
+    const company = await makeCompany(db());
+    await makePerson(db(), company, { email: "jane@oakbridge.example" });
+    const watch = new Map([
+      ["opener", parseTemplate("opener", "Watch: {link.watch}")],
+      ["followup", FOLLOWUP],
+    ]);
+    const stats = await runCompose(db(), { templates: watch, site: "https://site.example" });
+    expect(stats).toMatchObject({ enrolled: 0, skipped_missing_facts: 1 });
   });
 
   it("auto-approve pins and approves", async () => {

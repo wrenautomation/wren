@@ -57,6 +57,8 @@ export interface ComposeOptions {
   readonly offer: string;
   /** That offer's terms as `offer.*` facts (`offerFacts` in @wren/offers), beside every facts row. */
   readonly offerFacts?: Readonly<Record<string, string>>;
+  /** The site's origin ("https://wrenautomation.com"). With it every draft gets `link.*` facts (`linkFacts`). */
+  readonly site?: string | null;
   readonly templates: ReadonlyMap<string, Template>;
   /** A person whose only VALID check has aged past this is treated as having no address. */
   readonly verificationHorizonDays: number;
@@ -360,6 +362,7 @@ interface Shared {
   readonly sequence: Sequence;
   readonly offer: string;
   readonly offerFacts: Readonly<Record<string, string>>;
+  readonly site: string | null;
   readonly templates: ReadonlyMap<string, Template>;
   readonly factsView: string | null;
   readonly senders: readonly string[];
@@ -400,6 +403,7 @@ export async function compose(db: Queryable, opts: ComposeOptions): Promise<Comp
     sequence: opts.sequence,
     offer: opts.offer,
     offerFacts: opts.offerFacts ?? {},
+    site: opts.site ?? null,
     templates: opts.templates,
     factsView: opts.factsView ?? null,
     senders: opts.senders,
@@ -554,16 +558,69 @@ async function roleInboxPass(db: Queryable, shared: Shared, limit: number | null
   }
 }
 
+/**
+ * The links one draft may carry, each with that draft's own code (`?r=`), so a click or a
+ * booking names the email. `link.book` books the offer's call (the site's /book/<offer>);
+ * `link.page` is the offer's page; `link.watch` is the company's own demo (a facts view's
+ * `video_url`), else the offer's video (/watch/<offer>). Only the site's own links carry a
+ * code. A link the row can't fill is absent, so copy that needs it skips the company.
+ */
+export function linkFacts(
+  site: string | null,
+  offer: string,
+  values: Readonly<FactRow>,
+  offerFacts: Readonly<Record<string, string>>,
+  code: string,
+): Record<string, string> {
+  if (!site) return {};
+  const origin = new URL(site).origin;
+  const tagged = (to: string): string | null => {
+    const url = new URL(to, origin);
+    if (url.origin !== origin) return null;
+    url.searchParams.set("r", code);
+    return url.toString();
+  };
+  const out: Record<string, string> = {};
+  const add = (key: string, url: string | null) => {
+    if (url) out[key] = url;
+  };
+  add("link.book", tagged(`/book/${encodeURIComponent(offer)}`));
+  if (offerFacts["offer.page"]) add("link.page", tagged(offerFacts["offer.page"]));
+  const own = values["company.video_url"];
+  const demo = typeof own === "string" && own ? tagged(own) : null;
+  const vsl = offerFacts["offer.video"] ? tagged(`/watch/${encodeURIComponent(offer)}`) : null;
+  add("link.watch", demo ?? vsl);
+  return out;
+}
+
+/** One draft per step and the link code each carries. */
+interface Drafts {
+  readonly rendered: readonly Rendered[];
+  readonly linkCodes: readonly string[];
+}
+
 /** Every step rendered against one facts row, or null when a bare fact the copy needs is absent. */
-function renderAll(shared: Shared, facts: Facts, seed: string): Rendered[] | null {
+function renderAll(shared: Shared, facts: Facts, seed: string): Drafts | null {
+  const linkCodes = shared.sequence.steps.map(() => mintLinkCode());
   try {
-    return shared.sequence.steps.map((step) =>
+    const rendered = shared.sequence.steps.map((step, i) =>
       render(
         shared.templates.get(step.template) as Template,
-        { ...facts.values, ...shared.offerFacts },
+        {
+          ...facts.values,
+          ...shared.offerFacts,
+          ...linkFacts(
+            shared.site,
+            shared.offer,
+            facts.values,
+            shared.offerFacts,
+            linkCodes[i] as string,
+          ),
+        },
         seed,
       ),
     );
+    return { rendered, linkCodes };
   } catch (err) {
     if (err instanceof MissingFactError) return null;
     throw err;
@@ -583,7 +640,7 @@ interface EnrollInput {
   readonly address: AddressRecord;
   readonly alternates: readonly AddressRecord[];
   readonly duplicate: PossibleDuplicate | null;
-  readonly drafts: readonly Rendered[];
+  readonly drafts: Drafts;
   readonly refused: Readonly<FactRow>;
 }
 
@@ -705,7 +762,7 @@ async function enroll(
   const counted = { messages_drafted: 0, auto_approved: 0 };
   const now = new Date();
   const values = shared.sequence.steps.map((step, index) => {
-    const rendered = input.drafts[index] as Rendered;
+    const rendered = input.drafts.rendered[index] as Rendered;
     const provenance: Record<string, unknown> = {
       ...rendered.provenance,
       // The chain of ids behind the address on every draft.
@@ -738,7 +795,8 @@ async function enroll(
       runId: shared.runId,
       // Minted here and only here: a draft approved without one can never acquire a pixel.
       openToken: shared.trackOpens ? mintOpenToken() : null,
-      linkCode: mintLinkCode(),
+      // Minted before render: the draft's `link.*` facts already carry it.
+      linkCode: input.drafts.linkCodes[index] as string,
       approvedAt,
       approvedBy,
     };

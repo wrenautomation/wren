@@ -1,6 +1,6 @@
 /** sentenceReady: a new row, and every refusal named. */
 import { describe, expect, it } from "vitest";
-import { sentenceReady } from "./facts.js";
+import { halfOf, sentenceReady } from "./facts.js";
 
 describe("sentenceReady", () => {
   it("never touches the row handed in and names the refusals", () => {
@@ -42,5 +42,14 @@ describe("sentenceReady", () => {
     const ready = sentenceReady({ "company.aum_usd": "1234192870", "company.hnw_clients": "40" });
     expect(ready.values["company.aum"]).toBe("$1.2B");
     expect(ready.values["company.hnw_clients"]).toBe("40");
+  });
+});
+
+describe("halfOf", () => {
+  it("puts each company in the same half every time, and splits about evenly", () => {
+    expect(halfOf(7)).toBe(halfOf("7"));
+    const a = Array.from({ length: 1000 }, (_, i) => halfOf(i + 1)).filter((h) => h === "a").length;
+    expect(a).toBeGreaterThan(450);
+    expect(a).toBeLessThan(550);
   });
 });

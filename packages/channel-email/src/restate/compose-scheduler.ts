@@ -35,6 +35,8 @@ export interface Campaign {
   readonly offers: ReadonlyMap<string, string>;
   /** Each offer's terms as `offer.*` facts, by offer id, for copy that quotes them. */
   readonly offerFacts: ReadonlyMap<string, Readonly<Record<string, string>>>;
+  /** The site's origin, for each draft's `link.*` facts. Left out: copy gets no links. */
+  readonly site?: string | null;
   readonly templates: ReadonlyMap<string, Template>;
   readonly factsView: string | null;
   /** Active roster addresses this niche may send from, roster order. */
@@ -160,6 +162,7 @@ export async function topUp(
       sequence,
       offer,
       offerFacts: campaign.offerFacts.get(offer) ?? {},
+      site: campaign.site ?? null,
       templates: campaign.templates,
       verificationHorizonDays: opts.verificationHorizonDays,
       senders: campaign.senders,

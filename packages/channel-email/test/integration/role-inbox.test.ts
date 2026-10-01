@@ -4,7 +4,7 @@ import { startTestPostgres, type TestPostgres, truncate } from "@wren/db/testing
 import { eq } from "drizzle-orm";
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 import { compose, eligibleRoleInboxes } from "../../src/outreach/compose.js";
-import { factsForCompany } from "../../src/outreach/facts.js";
+import { factsForCompany, halfOf } from "../../src/outreach/facts.js";
 import { sequence, sequenceStep } from "../../src/outreach/sequences.js";
 import { field, template, text } from "../../src/outreach/templates.js";
 import { contactCandidates, verifications } from "../../src/schema.js";
@@ -238,6 +238,7 @@ describe("role-inbox pass", () => {
       company_name: "Acme Advisors",
       company_domain: "frontdoor.example",
       company_niche: "sec_ria",
+      half: halfOf(company.id),
     });
     const stats = await run();
     expect(stats.enrolled).toBe(1);

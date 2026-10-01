@@ -36,9 +36,17 @@ export const recruiting = defineNiche({
     "associates",
   ],
   templatesDir: templatesDir(import.meta.url, "recruiting"),
-  sequences: [twoEmailSequence("reactivation/opener", "reactivation/followup")],
-  offers: { reactivation: "reactivation" },
-  plan: [{ sequence: "reactivation-days-0-5" }],
+  // A/B on the opener's ask: book a call now, or watch the video first and book on the
+  // follow-up. Each firm's half (`half`, fixed by its id) picks its arm.
+  sequences: [
+    twoEmailSequence("book-first/opener", "book-first/followup"),
+    twoEmailSequence("watch-first/opener", "watch-first/followup"),
+  ],
+  offers: { "book-first": "reactivation", "watch-first": "reactivation" },
+  plan: [
+    { sequence: "book-first-days-0-5", where: { half: "a" } },
+    { sequence: "watch-first-days-0-5" },
+  ],
   // Overture, SBA, google-maps and csv imports all keep "City, ST" under `geo`.
   companyLocation: (company) => rawLocation(company, "geo"),
   leadSourceFormats: recruitingLeadFormats,

@@ -153,6 +153,11 @@ export interface Offer {
   readonly page: string | null;
   /** Where a fit applicant books the call, or null (then we reply with times). */
   readonly booking: string | null;
+  /**
+   * The offer's own video (the VSL), an https mp4. The site plays it at /watch/<id> and an
+   * email's `{link.watch}` points there when the firm has no demo of its own. Left out: none.
+   */
+  readonly video?: string;
   /** The form a buyer fills in first, or null when the first step is a reply. */
   readonly application: Application | null;
   /** The phases a bought offer runs through. Left out: no plan, the work is one step. */
@@ -309,6 +314,9 @@ export function defineOffer(offer: Offer): Offer {
   if (offer.booking !== null && !offer.booking.startsWith("https://")) {
     throw new Error(`${where}: booking must be an https URL`);
   }
+  if (offer.video !== undefined && !/^https:\/\/\S+\.mp4$/.test(offer.video)) {
+    throw new Error(`${where}: video must be an https URL to an mp4`);
+  }
   if (offer.application !== null) checkApplication(where, offer.application);
   if (offer.plan) checkPlan(where, offer.plan);
   for (const a of offer.access ?? [])
@@ -370,5 +378,6 @@ export function offerFacts(offer: Offer): Readonly<Record<string, string>> {
     ...(offer.days === null ? {} : { "offer.days": String(offer.days) }),
     ...(offer.slots === null ? {} : { "offer.slots": String(offer.slots) }),
     ...(offer.page === null ? {} : { "offer.page": offer.page }),
+    ...(offer.video === undefined ? {} : { "offer.video": offer.video }),
   };
 }

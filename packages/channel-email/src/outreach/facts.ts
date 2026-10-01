@@ -3,9 +3,11 @@
  *
  * The person_facts row contributes bare keys (first_name, title, company_name, ...); the
  * niche's facts-view row is namespaced as company.<column> so view columns can never shadow
- * person facts. `factsFor` is the merge, in exactly one place; compose and preview both
- * call it, so what you preview IS what composes.
+ * person facts. `half` is the company's side of a 50/50 test (`halfOf`). `factsFor` is the
+ * merge, in exactly one place; compose and preview both call it, so what you preview IS what
+ * composes.
  */
+import { createHash } from "node:crypto";
 import type { Queryable } from "@wren/db";
 import { sql } from "drizzle-orm";
 import {
@@ -74,6 +76,16 @@ export function sentenceReady(facts: Readonly<FactRow>): Facts {
   return { values: out, refused };
 }
 
+/**
+ * Which half of a 50/50 test a company is in, "a" or "b". Fixed by its id, so every run
+ * and every preview puts it in the same half; hashed, so the halves don't follow import order.
+ * A plan splits on it with `where: { half: "a" }`.
+ */
+export function halfOf(companyId: unknown): "a" | "b" {
+  const first = createHash("sha256").update(String(companyId)).digest()[0] as number;
+  return first % 2 === 0 ? "a" : "b";
+}
+
 const IDENTIFIER = /^[A-Za-z_][A-Za-z0-9_]*$/;
 
 export async function personFacts(db: Queryable, personId: number): Promise<FactRow> {
@@ -117,7 +129,7 @@ export async function factsFor(
     throw new Error(`person ${personId} is a testimonial author, not staff`);
   }
   const company = await companyFacts(db, factsView, Number(facts.company_id));
-  return sentenceReady({ ...facts, ...company });
+  return sentenceReady({ ...facts, ...company, half: halfOf(facts.company_id) });
 }
 
 /**
@@ -137,5 +149,5 @@ export async function factsForCompany(
   const row = rows[0];
   if (row === undefined) throw new Error(`no company ${companyId}`);
   const company = await companyFacts(db, factsView, companyId);
-  return sentenceReady({ ...row, ...company });
+  return sentenceReady({ ...row, ...company, half: halfOf(companyId) });
 }

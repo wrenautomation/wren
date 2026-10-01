@@ -200,9 +200,9 @@ describe("offers", () => {
       defineNiche({
         ...spec,
         templatesDir: templatesDir(import.meta.url, "recruiting"),
-        sequences: [twoEmailSequence("reactivation/opener", "reactivation/followup")],
-        plan: [{ sequence: "reactivation-days-0-5" }],
-        offers: { reactivation: "ops-audit" },
+        sequences: [twoEmailSequence("book-first/opener", "book-first/followup")],
+        plan: [{ sequence: "book-first-days-0-5" }],
+        offers: { "book-first": "ops-audit" },
       }),
     ).toThrow(/quotes offer\.days, offer\.slots, which offer 'ops-audit' does not set/);
   });

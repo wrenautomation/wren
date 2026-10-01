@@ -8,12 +8,25 @@ rainmaker) and less busywork for the team.
 
 Facts: bare keys from `person_facts` (first_name, company_name, title)
 and `offer.*` keys from the arm's offer (`offer.name`, `offer.days`,
-`offer.slots`, `offer.page`). No facts view yet.
+`offer.slots`, `offer.page`). `half` is the firm's A/B half. `link.*`
+are this email's own tracked links: `{link.book}` (Cal.com via
+/book), `{link.page}` (the pitch page), `{link.watch}` (the firm's demo,
+else the offer's video). An email that quotes a link the firm can't
+get is not composed.
 
 ## Arms
 
-One arm, `reactivation/`, offer `reactivation`.
-Sequence `reactivation-days-0-5`: opener, one follow-up.
+Two arms, one offer (`reactivation`), split by `half`:
+
+- `book-first/` (half a), sequence `book-first-days-0-5`: the opener
+  asks for a call (`{link.book}`), the follow-up asks again.
+- `watch-first/` (half b), sequence `watch-first-days-0-5`: the opener
+  sends the video (`{link.watch}`), the follow-up asks for a call. No
+  firm demo and no offer `video` yet, so this arm composes nothing
+  until one exists.
+
+Each email's clicks and bookings carry its link code, so results split
+by arm.
 
 - The pain family: BD hangs on one or two people, recruiters' weeks go
   to intake and scheduling, job orders come in waves. The example: past
@@ -24,6 +37,4 @@ Sequence `reactivation-days-0-5`: opener, one follow-up.
   `{offer.slots}` and `{offer.page}` come from the registry, so the
   email, the page and the form say the same thing. A key the offer
   doesn't set refuses the niche at import.
-- One door: reply with a few times, I book it. Fewest actions from
-  email to call. The page (`wrenautomation.com{offer.page}`) is there
-  for anyone who wants to read first; it isn't the ask.
+- One link per email. The CTA lines are drafts for William.

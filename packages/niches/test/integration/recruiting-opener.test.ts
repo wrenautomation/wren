@@ -1,5 +1,5 @@
 /** recruiting_facts → factsForCompany → the reactivation opener: the stored line reaches the email. */
-import { factsForCompany, render } from "@wren/channel-email";
+import { factsForCompany, linkFacts, render } from "@wren/channel-email";
 import { companies } from "@wren/core";
 import { startTestPostgres, type TestPostgres, truncate } from "@wren/db/testing";
 import { enrichments } from "@wren/research/schema";
@@ -40,9 +40,17 @@ async function firm(domain: string, line: string | null): Promise<number> {
 
 const email = async (companyId: number) => {
   const facts = await factsForCompany(db(), companyId, "recruiting_facts");
-  const tpl = recruiting.templates.get("reactivation/opener");
+  const tpl = recruiting.templates.get("book-first/opener");
   if (!tpl) throw new Error("missing template");
-  return render(tpl, { ...facts.values, ...recruiting.offerFacts.get("reactivation") }, "c:1").body;
+  const links = linkFacts(
+    "https://wrenautomation.com",
+    "reactivation",
+    facts.values,
+    {},
+    "code0001",
+  );
+  const offer = recruiting.offerFacts.get("reactivation");
+  return render(tpl, { ...facts.values, ...offer, ...links }, "c:1").body;
 };
 
 describe("recruiting opener through the facts view", () => {
