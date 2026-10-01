@@ -281,6 +281,42 @@ export const settingsSchema = z.object({
         .map((x) => x.trim())
         .filter(Boolean),
     ),
+  /**
+   * Cold outreach on Reddit and LinkedIn (packages/outreach). Off = the loop
+   * queues and reads but sends nothing. Accounts are autobrowse credential
+   * keys (`reddit@alt`), never william@wrenautomation's own logins.
+   */
+  reachLive: z
+    .enum(["true", "false", "1", "0"])
+    .default("false")
+    .transform((v) => v === "true" || v === "1"),
+  /** Fleet-local send window, HH:MM-HH:MM. */
+  reachWindow: z
+    .string()
+    .regex(/^\d{1,2}:\d{2}-\d{1,2}:\d{2}$/)
+    .default("10:00-17:00"),
+  reachDays: z
+    .string()
+    .default("1,2,3,4,5")
+    .transform((s) => s.split(",").map((x) => Number(x.trim())))
+    .pipe(z.array(z.number().int().min(1).max(7)).min(1)),
+  reachGapSeconds: z.coerce.number().int().positive().default(120),
+  /** Reddit DMs a day at the top of the warmup ladder (the site caps at 5). */
+  reachRedditMessagesPerDay: z.coerce.number().int().nonnegative().max(5).default(5),
+  /** LinkedIn invites a day on day one, and the cap the weekly ramp grows to. */
+  reachLinkedinConnectsStart: z.coerce.number().int().nonnegative().default(5),
+  reachLinkedinConnectsCap: z.coerce.number().int().nonnegative().default(20),
+  reachLinkedinMessagesPerDay: z.coerce.number().int().nonnegative().default(20),
+  /** Niches the outreach channel never enrolls (William's holds). */
+  reachHeldNiches: z
+    .string()
+    .default("sec_ria")
+    .transform((s) =>
+      s
+        .split(",")
+        .map((x) => x.trim())
+        .filter(Boolean),
+    ),
   /** Health: 7-day delivery-failure rate that pauses a number. */
   smsMaxFailRate: z.coerce.number().min(0).max(1).default(0.15),
   /** Health: 7-day fleet opt-out rate that pauses every number. */
@@ -410,6 +446,15 @@ export const ENV_KEYS = {
   smsPushSubject: "WREN_SMS_PUSH_SUBJECT",
   smsBases: "WREN_SMS_BASES",
   smsHeldNiches: "WREN_SMS_HELD_NICHES",
+  reachLive: "WREN_REACH_LIVE",
+  reachWindow: "WREN_REACH_WINDOW",
+  reachDays: "WREN_REACH_DAYS",
+  reachGapSeconds: "WREN_REACH_GAP_SECONDS",
+  reachRedditMessagesPerDay: "WREN_REACH_REDDIT_MESSAGES_PER_DAY",
+  reachLinkedinConnectsStart: "WREN_REACH_LINKEDIN_CONNECTS_START",
+  reachLinkedinConnectsCap: "WREN_REACH_LINKEDIN_CONNECTS_CAP",
+  reachLinkedinMessagesPerDay: "WREN_REACH_LINKEDIN_MESSAGES_PER_DAY",
+  reachHeldNiches: "WREN_REACH_HELD_NICHES",
   smsMaxFailRate: "WREN_SMS_MAX_FAIL_RATE",
   smsMaxOptOutRate: "WREN_SMS_MAX_OPT_OUT_RATE",
   smsLowBalanceUsd: "WREN_SMS_LOW_BALANCE_USD",

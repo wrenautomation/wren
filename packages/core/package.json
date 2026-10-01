@@ -14,6 +14,7 @@
     "./content/renewal": "./src/content/renewal.ts",
     "./feed": "./src/feed.ts",
     "./notify": "./src/notify.ts",
+    "./outreach": "./src/outreach/index.ts",
     "./restate": "./src/restate/index.ts",
     "./ingest": "./src/ingest/index.ts",
     "./mail": "./src/mail.ts",

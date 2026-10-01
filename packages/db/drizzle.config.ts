@@ -19,6 +19,7 @@ export default defineConfig({
     "../channel-search/src/schema.ts",
     "../auth/src/schema.ts",
     "../delivery/src/schema.ts",
+    "../outreach/src/schema.ts",
   ],
   out: "./drizzle",
   casing: "snake_case",
