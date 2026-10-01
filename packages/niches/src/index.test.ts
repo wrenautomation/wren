@@ -204,7 +204,9 @@ describe("offers", () => {
         plan: [{ sequence: "book-first-days-0-5" }],
         offers: { "book-first": "ops-audit" },
       }),
-    ).toThrow(/quotes offer\.days, offer\.goal, offer\.slots, which offer 'ops-audit' does not set/);
+    ).toThrow(
+      /quotes offer\.days, offer\.goal, offer\.slots, which offer 'ops-audit' does not set/,
+    );
   });
 });
 

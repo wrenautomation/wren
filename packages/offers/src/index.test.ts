@@ -234,7 +234,7 @@ describe("offerFacts", () => {
 
   it("gives a performance offer's goal, the units it runs until", () => {
     const o = OFFERS.find((x) => x.price.kind === "performance" && x.price.until !== null);
-    if (!o || o.price.kind !== "performance") throw new Error("no performance offer with a goal");
+    if (o?.price.kind !== "performance") throw new Error("no performance offer with a goal");
     expect(offerFacts(o)["offer.goal"]).toBe(String(o.price.until));
   });
 });
