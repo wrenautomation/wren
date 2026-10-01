@@ -25,7 +25,7 @@ const WIDENED: Record<string, string[]> = {
   ck_contact_candidates_candidateevidence: ["crm"],
   ck_documents_documentkind: ["snippet", "profile"],
   ck_messages_approvalsource: ["client"],
-  ck_enrichments_enrichmentkind: ["opener"],
+  ck_enrichments_enrichmentkind: ["opener", "video"],
 };
 const unwiden = (c: Catalog["constraints"][number]) => ({
   ...c,
