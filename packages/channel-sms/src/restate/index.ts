@@ -187,7 +187,14 @@ export function makeSmsDesk(deps: SmsDeps) {
       ): Promise<{ messageId: number }> => {
         const now = await nowOf(ctx);
         const msg = await ctx.run("queue", () =>
-          terminal(() => queueManual(deps.db, { contactId: req.contactId, body: req.body, now })),
+          terminal(() =>
+            queueManual(deps.db, {
+              contactId: req.contactId,
+              body: req.body,
+              now,
+              policy: deps.policy,
+            }),
+          ),
         );
         await ctx.run("mark read", () => markRead(deps.db, req.contactId, now));
         ctx

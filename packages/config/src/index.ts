@@ -219,6 +219,8 @@ export const settingsSchema = z.object({
     .transform((v) => v === "true" || v === "1"),
   /** Campaign-wide texts per fleet day, whatever the pool's size. */
   smsDailyCap: z.coerce.number().int().positive().default(1000),
+  /** Most texts one phone gets in any 31 days. The consent line promises "Up to 4 texts a month": never above it. */
+  smsMonthlyPerContact: z.coerce.number().int().positive().max(4).default(4),
   /** A fully ramped number's texts per day. */
   smsNumberCap: z.coerce.number().int().positive().default(200),
   smsRampStart: z.coerce.number().int().positive().default(20),
@@ -376,6 +378,7 @@ export const ENV_KEYS = {
   telnyxPublicKey: "WREN_TELNYX_PUBLIC_KEY",
   smsLive: "WREN_SMS_LIVE",
   smsDailyCap: "WREN_SMS_DAILY_CAP",
+  smsMonthlyPerContact: "WREN_SMS_MONTHLY_PER_CONTACT",
   smsNumberCap: "WREN_SMS_NUMBER_CAP",
   smsRampStart: "WREN_SMS_RAMP_START",
   smsRampStep: "WREN_SMS_RAMP_STEP",

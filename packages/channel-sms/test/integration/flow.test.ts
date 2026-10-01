@@ -200,7 +200,12 @@ describe("US and Canada", () => {
   it("an operator reply waits on an unregistered number but is refused across the border", async () => {
     await enrollAt(OPEN);
     const us = await contact("+12125550187");
-    await queueManual(db(), { contactId: us?.id as number, body: "by hand", now: OPEN });
+    await queueManual(db(), {
+      policy: POLICY,
+      contactId: us?.id as number,
+      body: "by hand",
+      now: OPEN,
+    });
     expect((await tickAt(OPEN)).unreachable).toBeGreaterThan(0);
     const ca = await contact("+16475550101");
     await db()
@@ -208,7 +213,12 @@ describe("US and Canada", () => {
       .set({ numberId: us?.numberId })
       .where(eq(smsContacts.id, ca?.id as number));
     await expect(
-      queueManual(db(), { contactId: ca?.id as number, body: "by hand", now: OPEN }),
+      queueManual(db(), {
+        policy: POLICY,
+        contactId: ca?.id as number,
+        body: "by hand",
+        now: OPEN,
+      }),
     ).rejects.toThrow(/US number; \+16475550101 is CA/);
   });
 });
@@ -386,7 +396,12 @@ describe("enroll → send → receipts → reply", () => {
     expect(await activeSuppressionOf(db(), "phone", to)).not.toBeNull();
     expect((await contact(to))?.state).toBe("opted_out");
     await expect(
-      queueManual(db(), { contactId: first?.contactId as number, body: "sorry!", now: OPEN }),
+      queueManual(db(), {
+        policy: POLICY,
+        contactId: first?.contactId as number,
+        body: "sorry!",
+        now: OPEN,
+      }),
     ).rejects.toThrow(/opted out/);
     const later = await tickAt(new Date(OPEN.getTime() + 3 * 86_400_000));
     expect(provider.sent.filter((s) => s.to === to)).toHaveLength(1);
@@ -431,11 +446,32 @@ describe("enroll → send → receipts → reply", () => {
     expect(await activeSuppressionOf(db(), "phone", to)).toBeNull();
   });
 
+  it("one phone gets at most the month's texts, under any contact row", async () => {
+    const policy = { ...POLICY, monthlyPerContact: 2 };
+    await enrollAt(OPEN);
+    await tickAt(OPEN, { policy });
+    const c = await contact("+12125550187");
+    const manual = (body: string, now = OPEN) =>
+      queueManual(db(), { contactId: c?.id as number, body, now, policy });
+    await manual("one more");
+    expect((await tickAt(OPEN, { policy })).sent).toBe(1);
+    await expect(manual("and another")).rejects.toThrow(
+      /already got 2 texts in the last 31 days.*next can go 2026-10-30/,
+    );
+    // Step 2 comes due 3 days on and waits for room instead of sending.
+    const later = new Date(OPEN.getTime() + 3 * 86_400_000);
+    expect(await tickAt(later, { policy })).toMatchObject({ capped: 1 });
+    const [step2] = (await messages()).filter((m) => m.contactId === c?.id && m.step === 2);
+    expect(step2).toMatchObject({ state: "queued", dueAt: new Date("2026-10-30T18:00:00Z") });
+    expect(provider.sent.filter((s) => s.to === c?.e164)).toHaveLength(2);
+  });
+
   it("an operator reply goes out ahead of the queue, and after hours only to someone who just wrote", async () => {
     await enrollAt(OPEN);
     await tickAt(OPEN);
     const c = await contact("+12125550187");
     await queueManual(db(), {
+      policy: POLICY,
       contactId: c?.id as number,
       body: "following up by hand",
       now: SHUT,

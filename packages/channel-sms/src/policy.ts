@@ -24,6 +24,8 @@ export interface SmsPolicy {
   days: readonly number[];
   /** Campaign-wide cap per fleet day: the pool never exceeds it, however many numbers. */
   dailyCap: number;
+  /** Most texts one phone gets in any 31 days (the consent's "up to 4 texts a month"). */
+  monthlyPerContact: number;
   /** A fully ramped number's cap per day. */
   numberCap: number;
   /** Ramp: day-one cap, added every `rampEveryDays`. */
@@ -43,6 +45,7 @@ export const DEFAULT_POLICY: SmsPolicy = {
   windowEndMinute: 17 * 60,
   days: [1, 2, 3, 4, 5],
   dailyCap: 1000,
+  monthlyPerContact: 4,
   numberCap: 200,
   rampStart: 20,
   rampStep: 20,

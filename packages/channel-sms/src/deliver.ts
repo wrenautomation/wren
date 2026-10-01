@@ -14,13 +14,14 @@
  */
 import { activeSuppressionOf, addSuppression, companies } from "@wren/core";
 import type { Db, Queryable } from "@wren/db";
-import { and, asc, eq, gte, lt, lte, sql } from "drizzle-orm";
+import { and, asc, desc, eq, gte, inArray, lt, lte, sql } from "drizzle-orm";
 import { countryOf } from "./phone.js";
 import { inWindow, type SmsPolicy } from "./policy.js";
 import { cannotReach, numberReady, poolToday } from "./pool.js";
 import type { SmsProvider } from "./provider.js";
 import { SmsRefusal } from "./refusal.js";
 import {
+  type MessageState,
   type SmsContact,
   type SmsMessage,
   smsContacts,
@@ -54,6 +55,8 @@ export interface TickStats {
   unknown: number;
   skipped: number;
   outOfWindow: number;
+  /** Due but the phone already got its texts for the month: moved to when it has room. */
+  capped: number;
   /** Due but not sent because the live gate is shut. */
   gated: number;
   /** Due but every number was capped, paused or inside its gap. */
@@ -150,6 +153,37 @@ async function queueNext(
     .onConflictDoNothing();
 }
 
+// Any calendar month fits inside 31 days, so a cap over every 31 days holds every month too.
+const MONTH_MS = 31 * 86_400_000;
+const REACHED: MessageState[] = ["sending", "sent", "delivered", "unknown"];
+
+/** When `e164` may get its next text under the monthly cap; null = now. Counts every text that left, under any contact row. */
+export async function monthlyRoomAt(
+  db: Queryable,
+  e164: string,
+  policy: Pick<SmsPolicy, "monthlyPerContact">,
+  now: Date,
+): Promise<Date | null> {
+  const recent = await db
+    .select({ at: smsMessages.attemptedAt })
+    .from(smsMessages)
+    .where(
+      and(
+        inArray(
+          smsMessages.contactId,
+          db.select({ id: smsContacts.id }).from(smsContacts).where(eq(smsContacts.e164, e164)),
+        ),
+        eq(smsMessages.direction, "out"),
+        inArray(smsMessages.state, REACHED),
+        gte(smsMessages.attemptedAt, new Date(now.getTime() - MONTH_MS)),
+      ),
+    )
+    .orderBy(desc(smsMessages.attemptedAt))
+    .limit(policy.monthlyPerContact);
+  if (recent.length < policy.monthlyPerContact) return null;
+  return new Date((recent.at(-1)?.at as Date).getTime() + MONTH_MS);
+}
+
 async function wroteRecently(db: Queryable, contactId: number, now: Date): Promise<boolean> {
   const [row] = await db
     .select({ id: smsMessages.id })
@@ -175,6 +209,7 @@ export async function tick(db: Db, opts: TickOptions): Promise<TickStats> {
     unknown: 0,
     skipped: 0,
     outOfWindow: 0,
+    capped: 0,
     gated: 0,
     noCapacity: 0,
     unreachable: 0,
@@ -241,6 +276,12 @@ export async function tick(db: Db, opts: TickOptions): Promise<TickStats> {
       !(msg.kind === "manual" && (await wroteRecently(db, contact.id, now)))
     ) {
       stats.outOfWindow += 1;
+      continue;
+    }
+    const roomAt = await monthlyRoomAt(db, contact.e164, policy, now);
+    if (roomAt) {
+      await db.update(smsMessages).set({ dueAt: roomAt }).where(eq(smsMessages.id, msg.id));
+      stats.capped += 1;
       continue;
     }
     // A manual reply is part of a conversation, not cold volume: it does not wait on the ramp.
@@ -341,7 +382,12 @@ export async function tick(db: Db, opts: TickOptions): Promise<TickStats> {
 /** Queue an operator's text on a contact's thread, from its sticky number. Sent by the next tick. */
 export async function queueManual(
   db: Queryable,
-  input: { contactId: number; body: string; now: Date },
+  input: {
+    contactId: number;
+    body: string;
+    now: Date;
+    policy: Pick<SmsPolicy, "monthlyPerContact">;
+  },
 ): Promise<SmsMessage> {
   const body = input.body.trim();
   if (!body) throw new SmsRefusal("empty message");
@@ -354,6 +400,12 @@ export async function queueManual(
   if (await activeSuppressionOf(db, "phone", contact.e164)) {
     throw new SmsRefusal(
       `${contact.e164} opted out; it is never texted again unless they text START`,
+    );
+  }
+  const roomAt = await monthlyRoomAt(db, contact.e164, input.policy, input.now);
+  if (roomAt) {
+    throw new SmsRefusal(
+      `${contact.e164} already got ${input.policy.monthlyPerContact} texts in the last 31 days, the most the consent allows; the next can go ${roomAt.toISOString().slice(0, 10)}`,
     );
   }
   // Another country is never; an unregistered US number queues and waits for the carriers.

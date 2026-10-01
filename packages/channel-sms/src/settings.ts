@@ -12,6 +12,7 @@ export function policyFrom(s: Settings): SmsPolicy {
     windowEndMinute: parseClock(end),
     days: s.smsDays,
     dailyCap: s.smsDailyCap,
+    monthlyPerContact: s.smsMonthlyPerContact,
     numberCap: s.smsNumberCap,
     rampStart: s.smsRampStart,
     rampStep: s.smsRampStep,
