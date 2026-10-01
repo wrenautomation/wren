@@ -3,7 +3,8 @@
  * texts exist, the fields each may use, the rules each must meet); the words
  * live in `sms_templates`, filled from the phone app or `wren sms templates
  * set`. An empty slot sends nothing: enroll refuses a sequence with an empty
- * step, and a keyword with no reply gets Telnyx's default.
+ * step, a keyword with no reply gets Telnyx's default, and an empty reminder
+ * means no reminders.
  *
  * `{first_name|there}` = the field, or the fallback after the bar when it is
  * empty. A field the slot does not offer is refused at save, never a blank at
@@ -30,13 +31,15 @@ export interface RenderFields {
   first_name: string | null;
   company: string | null;
   sender: string;
+  /** A reminder's call time on the person's own clock ("2:30 PM"); null in a sequence. */
+  time: string | null;
 }
 
 export type RenderField = keyof RenderFields;
 
 /** What a preview fills in, so a segment count is a real text's, not the braces'. */
 export function sampleFields(sender: string): RenderFields {
-  return { first_name: "Dana", company: "Northwind", sender };
+  return { first_name: "Dana", company: "Northwind", sender, time: "2:30 PM" };
 }
 
 /** One text William fills. The key is what `sms_messages.template` records. */
@@ -74,6 +77,20 @@ export const KEYWORD_SLOTS: readonly TemplateSlot[] = [
   { key: "keyword.start", purpose: "Auto reply to START or YES (opting back in)" },
   { key: "keyword.stop", purpose: "Auto reply to STOP and the other opt-out words" },
 ].map((s) => ({ ...s, fields: [], mustSayStop: false, minLength: 20 }));
+
+/** The day before a call booked on cal.com, to someone who ticked the texts box when they applied. */
+export const DAY_BEFORE = "reminder.day-before";
+
+export const REMINDER_SLOTS: readonly TemplateSlot[] = [
+  {
+    key: DAY_BEFORE,
+    purpose:
+      "Reminder the day before a booked call, to people who ticked the texts box. Goes during texting hours on their clock.",
+    fields: ["first_name", "time", "sender"],
+    mustSayStop: false,
+    minLength: 1,
+  },
+];
 
 export function keywordOf(key: string): Keyword | null {
   const op = key.startsWith("keyword.") ? key.slice("keyword.".length) : "";

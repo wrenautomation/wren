@@ -10,7 +10,7 @@ import {
   sequenceSlots,
 } from "./templates.js";
 
-const fields = { first_name: "Dana", company: "Acme Studio", sender: "William" };
+const fields = { first_name: "Dana", company: "Acme Studio", sender: "William", time: null };
 
 describe("render", () => {
   it("fills fields and falls back when empty", () => {

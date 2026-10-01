@@ -79,8 +79,11 @@ export type ContactBasis = (typeof CONTACT_BASES)[number];
 export const DIRECTIONS = ["out", "in"] as const;
 export type Direction = (typeof DIRECTIONS)[number];
 
-/** `sequence` = a cold step; `manual` = typed by the operator in the app or CLI; `inbound` = theirs. */
-export const MESSAGE_KINDS = ["sequence", "manual", "inbound"] as const;
+/**
+ * `sequence` = a cold step; `manual` = typed by the operator in the app or CLI;
+ * `reminder` = about something they booked (`ref` names it); `inbound` = theirs.
+ */
+export const MESSAGE_KINDS = ["sequence", "manual", "reminder", "inbound"] as const;
 export type MessageKind = (typeof MESSAGE_KINDS)[number];
 
 /**
@@ -227,6 +230,8 @@ export const smsMessages = pgTable(
     /** Sequence step, 1-based; null for manual and inbound. */
     step: smallint("step"),
     template: varchar("template", { length: 64 }),
+    /** What a reminder is about: the cal.com booking uid. One reminder per template and ref. */
+    ref: varchar("ref", { length: 64 }),
     /** Our number (the pool row) on either direction. */
     numberId: uuid("number_id"),
     fromE164: varchar("from_e164", { length: 16 }),
@@ -258,6 +263,9 @@ export const smsMessages = pgTable(
     uniqueIndex("uq_sms_messages_contact_step")
       .on(t.contactId, t.step)
       .where(sql`(kind)::text = 'sequence'::text`),
+    uniqueIndex("uq_sms_messages_reminder_ref")
+      .on(t.template, t.ref)
+      .where(sql`(kind)::text = 'reminder'::text`),
     foreignKey({
       columns: [t.contactId],
       foreignColumns: [smsContacts.id],

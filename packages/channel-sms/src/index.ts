@@ -14,6 +14,7 @@ export * from "./provider.js";
 export * from "./push.js";
 export * from "./refusal.js";
 export * from "./registration.js";
+export * from "./reminders.js";
 export * from "./schema.js";
 export * from "./settings.js";
 export * from "./stats.js";

@@ -316,6 +316,13 @@
       "when": 1790864919288,
       "tag": "0044_sms_push_subscriptions",
       "breakpoints": true
+    },
+    {
+      "idx": 45,
+      "version": "7",
+      "when": 1790866518872,
+      "tag": "0045_sms_reminders",
+      "breakpoints": true
     }
   ]
 }

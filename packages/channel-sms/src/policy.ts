@@ -14,7 +14,7 @@ import type { ContactBasis } from "./schema.js";
 export const FLEET_ZONE = "America/New_York";
 const UNKNOWN_ZONE_CHECKS = ["America/New_York", "America/Los_Angeles"] as const;
 const EARLIEST_MINUTE = 8 * 60;
-const LATEST_MINUTE = 20 * 60;
+export const LATEST_MINUTE = 20 * 60;
 
 export interface SmsPolicy {
   /** Lead-local window, minutes after midnight, [start, end). */

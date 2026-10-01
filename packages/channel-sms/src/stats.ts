@@ -1,5 +1,6 @@
 /**
- * The numbers: per sequence step, how many went out, arrived, got a reply,
+ * The numbers: per sequence step (a reminder counts under its template, not
+ * the contact's sequence), how many went out, arrived, got a reply,
  * said yes, opted out; each rate with its Wilson interval (core/stats), so a
  * 2-of-9 week never reads as "22% reply rate". Plus spend.
  */
@@ -22,6 +23,7 @@ export function rate(k: number, n: number): Rate {
 }
 
 export interface StepRow {
+  /** The contact's sequence, or a reminder's template key. */
   sequence: string | null;
   step: number | null;
   sent: number;
@@ -50,9 +52,12 @@ export async function smsStats(
   opts: { since: Date; niche?: string | null },
 ): Promise<SmsStats> {
   const niche = opts.niche ? eq(smsContacts.niche, opts.niche) : undefined;
+  const row = sql<
+    string | null
+  >`CASE WHEN ${smsMessages.kind} = 'reminder' THEN ${smsMessages.template} ELSE ${smsContacts.sequence} END`;
   const steps = await db
     .select({
-      sequence: smsContacts.sequence,
+      sequence: row,
       step: smsMessages.step,
       sent: sql<number>`count(*) FILTER (WHERE ${smsMessages.state} IN ('sent','delivered','failed','unknown'))::int`,
       delivered: sql<number>`count(*) FILTER (WHERE ${smsMessages.state} = 'delivered')::int`,
@@ -62,8 +67,8 @@ export async function smsStats(
     .from(smsMessages)
     .innerJoin(smsContacts, eq(smsContacts.id, smsMessages.contactId))
     .where(and(eq(smsMessages.direction, "out"), gte(smsMessages.attemptedAt, opts.since), niche))
-    .groupBy(smsContacts.sequence, smsMessages.step)
-    .orderBy(smsContacts.sequence, smsMessages.step);
+    .groupBy(row, smsMessages.step)
+    .orderBy(row, smsMessages.step);
   const [who] = await db
     .select({
       texted: sql<number>`count(DISTINCT ${smsMessages.contactId}) FILTER (WHERE ${smsMessages.direction} = 'out' AND ${smsMessages.state} IN ('sent','delivered','failed','unknown'))::int`,

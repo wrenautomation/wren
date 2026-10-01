@@ -155,6 +155,7 @@ describe("form opt-ins", () => {
       booked: async () => {
         throw new Error("cal.com answered 503");
       },
+      upcoming: async () => [],
     };
     const held = await pass(s, OPEN, down);
     expect(held).toMatchObject({ added: 2, texted: 0 });

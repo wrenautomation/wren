@@ -16,6 +16,7 @@ import {
   KEYWORD_SLOTS,
   KEYWORD_WORDS,
   keywordOf,
+  REMINDER_SLOTS,
   type RenderFields,
   render,
   type Segments,
@@ -37,9 +38,9 @@ export interface SlotView extends TemplateSlot {
   segments: Segments | null;
 }
 
-/** Every slot: each sequence's steps, then the keyword replies. */
+/** Every slot: each sequence's steps, the reminders, then the keyword replies. */
 export function slotsOf(sequences: Iterable<SmsSequence>): TemplateSlot[] {
-  return [...[...sequences].flatMap(sequenceSlots), ...KEYWORD_SLOTS];
+  return [...[...sequences].flatMap(sequenceSlots), ...REMINDER_SLOTS, ...KEYWORD_SLOTS];
 }
 
 /** What a sequence text fills in for this contact. */
@@ -61,6 +62,7 @@ export async function fieldsFor(
     first_name: firstName(person?.name ?? contact.name),
     company: company?.name ?? null,
     sender,
+    time: null,
   };
 }
 

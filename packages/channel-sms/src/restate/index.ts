@@ -9,8 +9,9 @@
  * - `SmsDesk`: the operator's reads and writes, for the phone app and the CLI.
  * - `SmsWatch/daily`: every 30 minutes, attaches waiting US numbers to the
  *   10DLC campaign once carriers approve it, follows up site applicants who
- *   ticked the texts box (form.ts), labels new replies and runs the health
- *   checks; once a fleet day, one summary line.
+ *   ticked the texts box (form.ts), queues day-before reminders for booked
+ *   calls (reminders.ts), labels new replies and runs the health checks; once
+ *   a fleet day, one summary line.
  */
 import * as restate from "@restatedev/restate-sdk";
 import { recordedRun } from "@wren/core";
@@ -40,6 +41,7 @@ import {
 } from "../push.js";
 import { SmsRefusal } from "../refusal.js";
 import { type RegistrationStats, watchRegistration } from "../registration.js";
+import { type ReminderStats, remindBookings } from "../reminders.js";
 import type { ContactBasis, Disposition } from "../schema.js";
 import { type SmsStats, smsStats } from "../stats.js";
 import {
@@ -79,7 +81,7 @@ export interface SmsDeps {
   heldNiches: readonly string[];
   /** The lander's export, read for form opt-ins. Null = no form follow-up. */
   site?: SiteSource | null;
-  /** Asked before a form applicant's first text. Null = no check. */
+  /** Asked before a form applicant's first text, and listed for reminders. Null = neither. */
   bookings?: Bookings | null;
   notifier?: Notifier;
   /** Reply alerts on the phone app. Null = off (no push keys). */
@@ -415,6 +417,27 @@ export function makeSmsDesk(deps: SmsDeps) {
           return stats;
         });
       },
+      /** The reminder pass now (SmsWatch runs it every 30 minutes). */
+      reminders: async (ctx: restate.Context): Promise<ReminderStats> => {
+        const bookings = deps.bookings;
+        if (!bookings)
+          throw new restate.TerminalError("no reminders: WREN_CALCOM_API_KEY is unset");
+        const now = await nowOf(ctx);
+        return ctx.run("reminders", async () => {
+          const { stats } = await terminal(() =>
+            recordedRun(deps.db, { command: "sms reminders", argv: {} }, (run) =>
+              remindBookings(deps.db, {
+                bookings,
+                policy: deps.policy,
+                senderName: deps.senderName,
+                now,
+                runId: run.id,
+              }),
+            ),
+          );
+          return stats;
+        });
+      },
       /** Enroll: carrier lookups cost a fraction of a cent each, so it is journaled whole. */
       enroll: async (
         ctx: restate.Context,
@@ -457,6 +480,9 @@ export interface WatchStats {
   /** Null = no site to read, or `formsError` says why the read failed. */
   forms: FormStats | null;
   formsError?: string;
+  /** Null = no cal.com key, or `remindersError` says why the pass failed. */
+  reminders: ReminderStats | null;
+  remindersError?: string;
   classify: ClassifyStats | null;
   health: Pick<HealthReport, "paused" | "warnings" | "balanceUsd" | "fleet">;
   summarized: string | null;
@@ -488,6 +514,21 @@ export function makeSmsWatch(deps: SmsDeps) {
             formsError = err instanceof Error ? err.message : String(err);
           }
         }
+        let reminders: ReminderStats | null = null;
+        let remindersError: string | undefined;
+        if (deps.bookings) {
+          try {
+            reminders = await remindBookings(deps.db, {
+              bookings: deps.bookings,
+              policy: deps.policy,
+              senderName: deps.senderName,
+              now,
+              runId,
+            });
+          } catch (err) {
+            remindersError = err instanceof Error ? err.message : String(err);
+          }
+        }
         const classify = deps.llm ? await classifyReplies(deps.db, deps.llm, { runId, now }) : null;
         const report = await checkHealth(deps.db, {
           now,
@@ -499,6 +540,8 @@ export function makeSmsWatch(deps: SmsDeps) {
           registration,
           forms,
           ...(formsError ? { formsError } : {}),
+          reminders,
+          ...(remindersError ? { remindersError } : {}),
           classify,
           health: {
             paused: report.paused,

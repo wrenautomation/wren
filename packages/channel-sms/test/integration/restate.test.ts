@@ -143,6 +143,7 @@ describe("sms on restate", () => {
     expect(empty.map((t) => t.key)).toEqual([
       "agencies-sms#1",
       "agencies-sms#2",
+      "reminder.day-before",
       "keyword.help",
       "keyword.start",
       "keyword.stop",

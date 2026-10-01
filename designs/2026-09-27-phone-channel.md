@@ -127,6 +127,15 @@ SMS only. Everything runs on the fake provider today; Telnyx is one setting away
   or STOP alerts; a tap opens the thread. Keys in `WREN_SMS_PUSH_PUBLIC_KEY` and
   `WREN_SMS_PUSH_PRIVATE_KEY`, devices in `sms_push_subscriptions` (migration `0044`).
   A device the push service calls gone is dropped. Discord still gets every reply.
+- **Call reminders (PH-D18).** The day before a call booked on cal.com, SmsWatch queues
+  `reminder.day-before` for the person who booked, if they ticked the texts box. It
+  matches the booking's application id (the lander's link carries it), then their email.
+  It goes inside the window's hours on their clock, any day of the week, and `{time}` is
+  the call's time on that clock. No reminder when they booked that day, opted out, or
+  are at the monthly cap; a sent one counts toward the cap. One per booking (migration
+  `0045`: kind `reminder`, `ref` = booking uid). The tick sends it ahead of cold steps
+  and drops one still unsent an hour after it was queued. `wren sms reminders` runs a
+  pass by hand.
 
 - **PH-D15 Every word a person receives is William's.** No copy in code. An empty step
   enrolls no one and ends a running thread instead of sending. A queued text goes out in
@@ -136,6 +145,10 @@ SMS only. Everything runs on the fake provider today; Telnyx is one setting away
 - **PH-D17 Pull the site's applications, don't push.** The export already exists and is
   durable; a missed pass catches up from the oldest unfinished application. A failed
   booking check holds the text for the next pass: not knowing is not "no".
+- **PH-D18 A reminder is on time or not at all.** It answers something they booked, so it
+  skips the ramp and the weekday rule. It still obeys their opt-out, the cap, and the
+  hours on their clock. A late reminder is worse than none, so the tick drops it after
+  an hour.
 
 ## Answer first
 

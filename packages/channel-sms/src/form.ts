@@ -10,10 +10,11 @@
  * nothing. An application older than FIRST_TEXT_WITHIN_MS still becomes a
  * contact (the consent record) but gets no first text.
  *
- * A pass runs only inside the texting window, so the booking check is
- * minutes before the text, never a weekend before it. Every application is
- * handled once: a form contact never stays `new` past its pass, except on a
- * lookup or booking-check error, which the next pass retries.
+ * Every pass reads the site, but the booking check and the text happen only
+ * inside the texting window, so the check is minutes before the text, never a
+ * weekend before it. Every application is handled once: a form contact never
+ * stays `new` past its first in-window pass, except on a lookup or
+ * booking-check error, which the next pass retries.
  */
 import type { Db, Queryable } from "@wren/db";
 import { and, eq, sql } from "drizzle-orm";
@@ -116,7 +117,7 @@ export interface FormStats {
   ended: number;
   /** Too fresh: their first text waits for a later pass. */
   waiting: number;
-  /** Outside the texting window: nothing read this pass. */
+  /** Outside the texting window: applicants recorded, nobody checked or texted. */
   outOfWindow: boolean;
   errors: string[];
 }

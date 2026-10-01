@@ -11,6 +11,11 @@
  * approved); the fake provider always sends, for tests and dry runs; with no
  * provider every due text is held as gated. A text whose number cannot reach
  * its phone yet (a US number before the carriers attach it) waits, counted.
+ *
+ * A reminder (reminders.ts) is checked against the person's clock when it is
+ * queued, so the tick sends it without the window or the ramp. One the cap or
+ * an emptied template stops is dropped, as is one still waiting after
+ * REMINDER_FRESH_MS: a reminder is never sent late.
  */
 import { activeSuppressionOf, addSuppression, companies } from "@wren/core";
 import type { Db, Queryable } from "@wren/db";
@@ -36,6 +41,8 @@ export const STALE_SENDING_MS = 10 * 60 * 1000;
 const RETRY_AFTER_MS = 5 * 60 * 1000;
 /** Most due rows read per tick; enough to fill every number past a few out-of-window leads. */
 const SCAN = 200;
+/** A reminder unsent this long after it was queued is dropped (reminders.ts queues it early enough). */
+export const REMINDER_FRESH_MS = 60 * 60 * 1000;
 
 export interface TickOptions {
   provider: SmsProvider;
@@ -259,9 +266,9 @@ export async function tick(db: Db, opts: TickOptions): Promise<TickStats> {
         lte(smsMessages.dueAt, now),
       ),
     )
-    // Operator replies first (a person is waiting), then oldest due.
+    // Operator replies and reminders first (a person is waiting), then oldest due.
     .orderBy(
-      sql`CASE WHEN ${smsMessages.kind} = 'manual' THEN 0 ELSE 1 END`,
+      sql`CASE WHEN ${smsMessages.kind} IN ('manual', 'reminder') THEN 0 ELSE 1 END`,
       asc(smsMessages.dueAt),
       asc(smsMessages.id),
     )
@@ -274,6 +281,27 @@ export async function tick(db: Db, opts: TickOptions): Promise<TickStats> {
       await skipQueued(db, contact.id, `contact ${contact.state}`);
       stats.skipped += 1;
       continue;
+    }
+    if (msg.kind === "reminder") {
+      const late = now.getTime() - (msg.dueAt ?? msg.createdAt).getTime() > REMINDER_FRESH_MS;
+      const words = msg.template
+        ? (await templateBodies(db, [msg.template])).get(msg.template)
+        : undefined;
+      const drop = late
+        ? "too late: not sent within an hour of queuing"
+        : words === undefined
+          ? `template ${msg.template} was emptied`
+          : (await monthlyRoomAt(db, contact.e164, policy, now))
+            ? `${policy.monthlyPerContact} texts in the last 31 days already`
+            : null;
+      if (drop) {
+        await db
+          .update(smsMessages)
+          .set({ state: "skipped", detail: drop })
+          .where(eq(smsMessages.id, msg.id));
+        stats.skipped += 1;
+        continue;
+      }
     }
     if (await activeSuppressionOf(db, "phone", contact.e164)) {
       await db
@@ -292,6 +320,7 @@ export async function tick(db: Db, opts: TickOptions): Promise<TickStats> {
     // Quiet hours hold for every cold step. An operator's reply to someone who
     // texted us in the last day is a conversation, not a solicitation: it goes now.
     if (
+      msg.kind !== "reminder" &&
       !inWindow(zone, now, policy) &&
       !(msg.kind === "manual" && (await wroteRecently(db, contact.id, now)))
     ) {
@@ -304,9 +333,9 @@ export async function tick(db: Db, opts: TickOptions): Promise<TickStats> {
       stats.capped += 1;
       continue;
     }
-    // A manual reply is part of a conversation, not cold volume: it does not wait on the ramp.
+    // A manual reply or a reminder answers the person, not cold volume: it does not wait on the ramp.
     const n = msg.numberId ? ready.get(msg.numberId) : undefined;
-    if (msg.kind !== "manual" && (!n || remaining <= 0)) {
+    if (msg.kind === "sequence" && (!n || remaining <= 0)) {
       stats.noCapacity += 1;
       continue;
     }
@@ -333,7 +362,7 @@ export async function tick(db: Db, opts: TickOptions): Promise<TickStats> {
       .returning({ id: smsMessages.id });
     if (claimed.length === 0) continue;
     if (msg.numberId) ready.delete(msg.numberId);
-    if (msg.kind !== "manual") remaining -= 1;
+    if (msg.kind === "sequence") remaining -= 1;
     let result: Awaited<ReturnType<SmsProvider["send"]>>;
     try {
       result = await opts.provider.send({ from, to: contact.e164, text: body });

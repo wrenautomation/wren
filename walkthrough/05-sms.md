@@ -36,7 +36,7 @@ from a real provider's webhooks.
     wren sms lift --niche agencies          # published numbers from crawled pages (free)
     wren sms enroll --sequence agencies-sms --limit 50   # one lookup each
     wren sms queue start                    # the loop; `stop` to halt
-    wren sms watch start                    # labels, health, site applicants every 30 min
+    wren sms watch start                    # labels, health, site applicants, reminders every 30 min
 
 ## Site applicants
 
@@ -44,6 +44,14 @@ An application on the site with the texts box ticked gets a text about 20 minute
 later, unless they booked on cal.com by then. Fits get `form-fit#1`, the rest
 `form-not-fit#1`. Both are empty until you write them, and an empty one sends nothing.
 Needs `WREN_SITE_EXPORT_TOKEN` and `WREN_CALCOM_API_KEY`. `wren sms forms` runs a pass now.
+
+## Call reminders
+
+The day before a call booked on cal.com, anyone who ticked the texts box gets
+`reminder.day-before`. It goes during texting hours on their clock, any day, and counts
+toward the 4-a-month cap. Fields: `{first_name|there}`, `{time}` (the call's time on
+their clock, like "2:30 PM") and `{sender}`. Empty until you write it.
+`wren sms reminders` runs a pass now.
 
 ## On the phone
 
