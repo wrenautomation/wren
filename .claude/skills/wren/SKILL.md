@@ -124,6 +124,7 @@ Every bought offer is an engagement: dated steps from the offer's plan, a timeli
 - `--engagement <id>` when the client has more than one running.
 - Reactivation fills contacts reached, replies and meetings (with the bill) itself each pass, plus a daily line. Record only job orders and fees by hand.
 - Every client at a glance: `app.wrenautomation.com/ops/clients` (operators only), at risk first.
+- The demo's project is a labeled sample that DeliveryWatch keeps fresh. `./bin/wren --client demo delivery sample` reseeds it now.
 - Their people get mail from `portal@`: a welcome, anything that needs them, and a Friday recap. Each picks their level in Settings. A low weekly pulse, a quiet 3 days, a late step or ask, or nobody signing in pings us.
 
 ```sh

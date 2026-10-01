@@ -8,7 +8,8 @@
     "./schema": "./src/schema.ts",
     "./restate": "./src/service.ts",
     "./routes": "./src/routes.ts",
-    "./files": "./src/files.ts"
+    "./files": "./src/files.ts",
+    "./sample": "./src/sample.ts"
   },
   "scripts": {
     "test:integration": "vitest run test/integration",

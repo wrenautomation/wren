@@ -29,6 +29,7 @@ import {
 } from "@wren/delivery";
 import { MAX_FILE_BYTES, newFileKey, s3Files, typeOfName } from "@wren/delivery/files";
 import { type DeliveryWatch, WATCH, WATCH_KEY } from "@wren/delivery/restate";
+import { seedSample } from "@wren/delivery/sample";
 import type { Command } from "commander";
 
 type WithDb = <T>(fn: (db: Db) => Promise<T>) => Promise<T>;
@@ -273,6 +274,16 @@ export function registerDelivery(program: Command, withMainDb: WithDb, settings:
           `${id}: nothing started (wren --client ${id} delivery start <offer> --on <date>)`,
         );
       for (const e of home.engagements) console.log(renderEngagement(id, e).join("\n"));
+    });
+
+  cmd
+    .command("sample")
+    .description("Reseed the demo's sample project from today (DeliveryWatch does it weekly)")
+    .action(async () => {
+      const id = await withMainDb((main) =>
+        main.transaction((tx) => seedSample(tx, clientId(), todayUtc())),
+      );
+      console.log(`sample engagement #${id}`);
     });
 
   // Every client at once, so no --client: `wren delivery watch start`.

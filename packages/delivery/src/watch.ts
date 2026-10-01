@@ -3,8 +3,9 @@
  * mails each client person (D9): a welcome when they're invited, new asks and
  * deliverables, and the Friday digest with the weekly pulse (D10). And it pings
  * the operator when a client could feel forgotten (D8). The demo is never
- * watched. Mail is per person and marks itself done, so a failed send is tried
- * again next hour and a sent one never repeats.
+ * watched; only its sample project is kept fresh. Mail is per person and
+ * marks itself done, so a failed send is tried again next hour and a sent one
+ * never repeats.
  */
 import type * as restate from "@restatedev/restate-sdk";
 import { type ClientMember, clientMembers, clients } from "@wren/core/clients";
@@ -16,6 +17,7 @@ import { offerFor } from "@wren/offers";
 import { and, asc, desc, eq, gt, inArray, isNull, lt, lte, max, sql } from "drizzle-orm";
 import { addDays, weekday } from "./index.js";
 import { PULSE_WORDS } from "./routes.js";
+import { keepSampleFresh } from "./sample.js";
 import {
   asks,
   deliverables,
@@ -70,6 +72,8 @@ export interface WatchStats {
   /** Sends that failed; each is tried again next pass. */
   failed: number;
   lastError: string | null;
+  /** The demo's sample project was reseeded. */
+  sample: boolean;
 }
 
 const pad = (n: number) => String(n).padStart(2, "0");
@@ -137,7 +141,9 @@ export async function watchPass(deps: WatchDeps, now: Date): Promise<WatchStats>
     pinged: 0,
     failed: 0,
     lastError: null,
+    sample: false,
   };
+  stats.sample = await keepSampleFresh(main, today);
   const { live, people } = await watched(main);
   if (deps.send) await mailPeople(deps, deps.send, now, today, live, people, stats);
   await pingOperator(deps, now, today, live, people, stats);

@@ -3,7 +3,7 @@
  * write that reloads them, and dates and figures as the client reads them.
  */
 import { FILE_TYPES, MAX_FILE_BYTES, typeOfName } from "@wren/delivery/routes";
-import { Alert, Button, Empty, Loading, num, Tag, type TagTone } from "@wren/ui";
+import { Alert, Button, Callout, Empty, Loading, num, Tag, type TagTone } from "@wren/ui";
 import { type FormEvent, type ReactNode, useState } from "react";
 import {
   ApiError,
@@ -52,6 +52,14 @@ export function useWork({ client, team }: PageProps) {
   return { ...home, reload: () => setNonce((n) => n + 1) };
 }
 
+/** D12: the demo's project is made up, and says so on every page. */
+export const SampleNote = () => (
+  <Callout>
+    <Tag tone="rust">Sample</Tag> A made-up project, a few weeks in, to show what you'd see here.
+    The names, dates and numbers are invented.
+  </Callout>
+);
+
 /** The page's body once loaded: each engagement, headed by its offer when there's more than one. */
 export function Engagements({
   work,
@@ -73,9 +81,17 @@ export function Engagements({
           : "Nothing started yet. Your plan shows here on day one."}
       </Empty>
     );
-  if (es.length === 1 && es[0]) return <>{children(es[0])}</>;
+  const sample = props.demo ? <SampleNote /> : null;
+  if (es.length === 1 && es[0])
+    return (
+      <>
+        {sample}
+        {children(es[0])}
+      </>
+    );
   return (
     <>
+      {sample}
       {es.map((e) => (
         <section key={e.id} className="wk-engagement">
           <h2 className="wk-offer">{e.offer.name}</h2>

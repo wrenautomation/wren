@@ -4,7 +4,7 @@ import { useState } from "react";
 import { ApiError, call, type UpdateView } from "../../api.js";
 import { useCall } from "../../load.js";
 import type { PageProps } from "../../module.js";
-import { dayLabel, Form, field, StepPick, useAct, useWork } from "./bits.js";
+import { dayLabel, Form, field, SampleNote, StepPick, useAct, useWork } from "./bits.js";
 
 type Page = { updates: UpdateView[]; more: boolean };
 
@@ -48,6 +48,7 @@ export function Updates(props: PageProps) {
   return (
     <>
       <PageHeader title="Updates" lede="What we did, as we did it." />
+      {props.demo ? <SampleNote /> : null}
       {team && e ? (
         <Section title="Post an update">
           <Form
