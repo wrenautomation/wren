@@ -36,6 +36,7 @@ import { registerReview } from "./review.js";
 import { registerSearch } from "./search.js";
 import { registerSms } from "./sms.js";
 import { registerStudy } from "./study.js";
+import { registerVideo } from "./video.js";
 
 const rootDir = loadEnvFile(process.cwd(), process.env.WREN_ROOT);
 const settings = loadSettings(process.env, { rootDir });
@@ -205,6 +206,7 @@ registerSms(program, withMainDb, settings);
 registerBooks(program, withMainDb, settings, rootDir);
 registerStudy(program, withMainDb, settings, rootDir);
 registerDossier(program, withMainDb, rootDir);
+registerVideo(program, withMainDb, settings, rootDir);
 registerSearch(program, withMainDb, settings, rootDir);
 
 const renewal = () =>

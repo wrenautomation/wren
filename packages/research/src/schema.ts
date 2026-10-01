@@ -31,6 +31,7 @@ export const ENRICHMENT_KINDS = [
   "email_scan",
   "email_pick",
   "opener",
+  "video",
 ] as const;
 export type EnrichmentKind = (typeof ENRICHMENT_KINDS)[number];
 

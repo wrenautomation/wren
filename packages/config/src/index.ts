@@ -133,6 +133,14 @@ export const settingsSchema = z.object({
   contentLinkSite: z.string().min(1).optional(),
   /** An S3 bucket a local media file is hosted in (presigned URL) for platforms that only take URLs. Unset = URLs only. */
   mediaBucket: z.string().min(1).optional(),
+  /** The S3 bucket per-lead demo videos are published to (`v/<id>.*`); unset = `wren video render` refuses. */
+  videosBucket: z.string().min(1).optional(),
+  /** Where the CDN serves that bucket, no trailing slash ("https://d123.cloudfront.net"). */
+  videosOrigin: z.string().url().optional(),
+  /** The watch page a video's id is appended to; the email links here. */
+  videosWatchBase: z.string().url().default("https://wrenautomation.com/v/"),
+  /** The ffmpeg binary videos are encoded with. */
+  ffmpeg: z.string().min(1).default("ffmpeg"),
   /** The private S3 bucket that keeps every email and PDF the books read (under `books/`); unset = the local `.books/` directory. */
   booksBucket: z.string().min(1).optional(),
   /**
@@ -337,6 +345,10 @@ export const ENV_KEYS = {
   contentVoicePath: "WREN_CONTENT_VOICE",
   contentLinkSite: "WREN_CONTENT_LINK_SITE",
   mediaBucket: "WREN_MEDIA_BUCKET",
+  videosBucket: "WREN_VIDEOS_BUCKET",
+  videosOrigin: "WREN_VIDEOS_ORIGIN",
+  videosWatchBase: "WREN_VIDEOS_WATCH_BASE",
+  ffmpeg: "WREN_FFMPEG",
   booksBucket: "WREN_BOOKS_BUCKET",
   booksMailboxes: "WREN_BOOKS_MAILBOXES",
   booksSince: "WREN_BOOKS_SINCE",

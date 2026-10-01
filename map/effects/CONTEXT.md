@@ -47,6 +47,7 @@ Nothing in this repo references these; they break silently.
 | Consumer | Points at | Recorded on |
 |---|---|---|
 | `../lander` (`README.md:11`, `src/data/offers.json`, `PRODUCT.md`) | `packages/offers` via `pnpm offers:export`; `scripts/gates.sh:13` checks the snapshot | [[platform/offer]] |
+| `../lander/functions/v/[id].ts` (`VIDEOS_ORIGIN` in `wrangler.toml`) | `<VIDEOS_ORIGIN>/v/<id>.json` as `packages/video/src/publish.ts` writes it; the CloudFront domain from `deploy/terraform/videos.tf` | [[reactivation/demo-video]] |
 | `../autobrowse/walkthrough/03-meta-app.md` | `walkthrough/02-meta-ads.md` (link) | [[ads/ad-launch]] |
 | autobrowse's `sites` service (same Restate Cloud) | called by name from `packages/core/src/content/restate.ts:21`; Meta, LinkedIn, YouTube, X, TikTok, Instagram go through it | [[content/platform]] |
 | Restate Cloud registrations | every service and handler name in `apps/worker/src/services.ts` | [[platform/restate-services]] |
