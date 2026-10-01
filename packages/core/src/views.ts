@@ -74,7 +74,8 @@ export const firmFacts = pgView("firm_facts", {
 
 /**
  * Recruiting firms: size from PPP loans (jobs reported, a yearly payroll estimate),
- * the SBA founding year, and the opener line (newest grounded one, any model).
+ * the SBA founding year, the opener line (newest grounded one, any model), and the
+ * firm's demo video page (newest render, any walk).
  */
 export const recruitingFacts = pgView("recruiting_facts", {
   companyId: integer("company_id"),
@@ -86,6 +87,7 @@ export const recruitingFacts = pgView("recruiting_facts", {
   payrollYearlyUsd: bigint("payroll_yearly_usd", { mode: "number" }),
   foundedYear: integer("founded_year"),
   opener: text("opener"),
+  videoUrl: text("video_url"),
 }).as(
-  sql`SELECT c.id AS company_id, c.source_key, c.domain, c.name, c.country, NULLIF(round((ppp.output ->> 'jobs_reported')::numeric)::integer, 0) AS employees, NULLIF(round((ppp.output ->> 'payroll_yearly_estimate')::numeric)::bigint, 0) AS payroll_yearly_usd, substring(c.raw -> 'sba' ->> 'year_established' from '[0-9]{4}')::integer AS founded_year, op.output -> 'opener' ->> 'line' AS opener FROM companies c LEFT JOIN LATERAL ( SELECT e.output FROM enrichments e WHERE e.company_id = c.id AND e.kind = 'firmographics' AND e.model = 'ppp-foia' ORDER BY e.prompt_version DESC, e.created_at DESC LIMIT 1 ) ppp ON true LEFT JOIN LATERAL ( SELECT e.output FROM enrichments e WHERE e.company_id = c.id AND e.kind = 'opener' AND e.output -> 'opener' ->> 'line' IS NOT NULL ORDER BY e.created_at DESC LIMIT 1 ) op ON true WHERE c.niche = 'recruiting'`,
+  sql`SELECT c.id AS company_id, c.source_key, c.domain, c.name, c.country, NULLIF(round((ppp.output ->> 'jobs_reported')::numeric)::integer, 0) AS employees, NULLIF(round((ppp.output ->> 'payroll_yearly_estimate')::numeric)::bigint, 0) AS payroll_yearly_usd, substring(c.raw -> 'sba' ->> 'year_established' from '[0-9]{4}')::integer AS founded_year, op.output -> 'opener' ->> 'line' AS opener, vid.output ->> 'url' AS video_url FROM companies c LEFT JOIN LATERAL ( SELECT e.output FROM enrichments e WHERE e.company_id = c.id AND e.kind = 'firmographics' AND e.model = 'ppp-foia' ORDER BY e.prompt_version DESC, e.created_at DESC LIMIT 1 ) ppp ON true LEFT JOIN LATERAL ( SELECT e.output FROM enrichments e WHERE e.company_id = c.id AND e.kind = 'opener' AND e.output -> 'opener' ->> 'line' IS NOT NULL ORDER BY e.created_at DESC LIMIT 1 ) op ON true LEFT JOIN LATERAL ( SELECT e.output FROM enrichments e WHERE e.company_id = c.id AND e.kind = 'video' AND e.output ->> 'url' IS NOT NULL ORDER BY e.created_at DESC LIMIT 1 ) vid ON true WHERE c.niche = 'recruiting'`,
 );

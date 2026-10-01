@@ -2,7 +2,7 @@
 
 William's ask: "Research same vertical, build pipeline to generate templates and offers. Check if hiring seasons interfere with the deliverability of our lead reactivation offer. Dedicated research and enrichment pipelines … Universal lead enrichment pipeline + ultra personalized lead enrichment thing (video variants) … to support all sorts of research tasks as internal admin work / crafting out full business products and as a product itself."
 
-Status: seasons answered and the send calendar fixed. Studies built and run on recruiting. Dossier built. Video variants planned, not built.
+Status: seasons answered and the send calendar fixed. Studies built and run on recruiting. Dossier built. Video variants built, one sample live; a batch render is William's call.
 
 ## Built
 
@@ -13,6 +13,7 @@ Status: seasons answered and the send calendar fixed. Studies built and run on r
 - **Research skill** `.claude/skills/research`: Claude Code drives studies the way it drives autobrowse.
 - **First study**: `designs/studies/2026-09-30-recruiting-vertical.md`. Verdict, timing, source trust, a final email.
 - **SOPs deleted** (`sops/`), as asked. References now point at the copy rules in code.
+- **Video variants**: a demo video per firm, its own watch page. See below.
 
 ## Hiring seasons
 
@@ -91,15 +92,17 @@ Read only. A dossier is as full as the runners made it. Locally that is the PPP 
 
 ## Video variants
 
-Plan only. The idea: each lead sees the portal demo with their own firm in it.
+Each firm gets the portal demo with its own name in it, on its own page.
 
-1. **Brief.** From the dossier: firm name, domain, first name, one sourced hook (the opener and its page), hiring roles. Only sourced facts go on screen.
-2. **Stage.** A demo tenant themed for the lead: their name and logo, our sample contacts. Never their real clients; we don't have them.
-3. **Record.** Playwright walks the demo as a script: compose, sources, the run.
-4. **Post.** Clicks and zooms added after (cursor, highlight, zoom on the cited source). ffmpeg.
-5. **Ship.** Media store (S3), a link per lead with `?r=` attribution, into the email.
+- **Brief** (`@wren/reactivation` `videoBrief`). From the dossier: the firm's display name. Skipped when there is no name, no words in it, or over 40 characters.
+- **Walk** (`renderWalk`, `WALK` reactivation-demo v1). Playwright walks demo.wrenautomation.com. The portal's API answers are rewritten in the browser so the sample's name reads as the firm's; the demo database is never touched. Title card, home, the run, one brief zoomed on why to call now, the emails, why a line was written, end card. Captions are the portal's own copy. 36 seconds.
+- **Record and encode** (`@wren/video`, no product knowledge). CDP screencast at 2x, real mouse and cursor. ffmpeg does 30 fps, zooms and captions after, so the page never moves. Poster at 5 s: the home screen with their name.
+- **Publish** (`@wren/video/publish`). `v/<id>.mp4`, `.jpg`, then `.json` last, to a private S3 bucket behind CloudFront (`deploy/terraform/videos.tf`). The id is 16 random bytes. Cached a year; an id never changes.
+- **Store** (enrichment kind `video`, model and prompt version from `WALK`). `recruiting_facts.video_url` is the newest render's watch link.
+- **Watch page** (lander `/v/<id>`). Fills the firm, video and poster from the CDN's JSON. Offer copy from `offers.json`, button to the booking link. Noindex. `?r=` attribution through `hit.ts`. Bad ids 404.
+- **CLI.** `wren video try <firm>` writes a local mp4, stores nothing. `wren video render <company> | --niche <n> --limit <k>` renders, publishes and records, one row per firm; a re-run skips firms that have this walk version. `wren video show <company>`.
 
-The seam today is `wren dossier export`. Steps 2 to 5 are new. Self-built costs nothing per lead but box minutes.
+Cost: 59 s of laptop time and 5 MB per firm. 1,000 firms is about 16 hours and 5 GB (cents a month on S3; CloudFront's free tier covers 1 TB out).
 
 ## Placement
 
@@ -109,7 +112,7 @@ A study needs the database (documents, runs, findings), the LLM core and the nic
 
 ## autobrowse
 
-No autobrowse code changed here. State at 23:15:
+Green light given (2026-10-01). Nothing in research needs autobrowse changes now; future asks go to the "autobrowse work" session. State at 2026-09-30 23:15:
 
 - `main` at 84798fb, matches origin. 4 files dirty: `src/browser/human/index.ts`, `src/explore/server.ts`, `src/recorder/redact.ts`, `test/recorder.test.ts`.
 - `runs-and-walks` (worktree `autobrowse-runs`) at b2e0eb3, one WIP commit ahead of main ("runs log and llm ledger"), 24 files dirty.
@@ -117,8 +120,8 @@ No autobrowse code changed here. State at 23:15:
 
 ## Needs your call
 
-1. **Video renderer.** I'd build it (Playwright plus ffmpeg, free, ours to learn). Paid avatar tools are the other path. A per-lead demo tenant needs the portal session's say before it touches `wren_client_demo`.
-2. **autobrowse green light**, for anything research needs from it later.
+1. **Batch render.** One sample is live. Rendering a niche is about a minute per firm on the laptop.
+2. **The email link.** `video_url` is in `recruiting_facts`; no copy uses it yet. Copy is yours.
 
 ## Decision log
 
@@ -139,6 +142,13 @@ No autobrowse code changed here. State at 23:15:
 - **2026-09-30** SOPs deleted at William's word. He will redo them.
 - **2026-09-30** The offer is 20 booked meetings in 90 days (the live page). The registry said 30 days, from an older draft; fixed to 90. The opener email quotes it, so it now reads "90-day".
 - **2026-09-30** Holidays don't count toward the 90 days; they push the end out. No skipping a month. A seasonal dip is accepted (William).
+- **2026-10-01** Video renderer self-built: Playwright plus ffmpeg, free, ours to learn (William).
+- **2026-10-01** autobrowse green light for anything research needs (William). Nothing needed now.
+- **2026-10-01** No per-lead demo tenant. The name swap happens in the recording browser, so `wren_client_demo` is never written.
+- **2026-10-01** Videos on S3 plus CloudFront, not R2. R2 needs a card on Cloudflare, which is William's call; AWS is already paid for.
+- **2026-10-01** The watch page is the lander's, not a raw mp4 link: the firm's name, the offer and the booking button around the player, and attribution.
+- **2026-10-01** `@wren/video` knows no leads or products. The walk lives in `@wren/reactivation`; a new product writes its own walk.
+- **2026-10-01** A video is an enrichment. Walk name is the model, walk version the prompt version, so a new walk re-renders and old ones stay history.
 - **2026-09-30** An out-of-office that names a return day within 60 days holds the next step until the sending day after. The latest date wins. Dates far off or with no away word near them are ignored.
 
 ## Where to attack
@@ -150,7 +160,9 @@ No autobrowse code changed here. State at 23:15:
 5. **No manual page.** A paywalled report or a PDF we hold cannot be added to a study. Wanted: `study add-page`.
 6. **Claude Code calls cost $0** in the cost ledger. Subscription limits are invisible until a call fails.
 7. **Two runners do one job** (PoolScheduler, `crm run`). Unify them before adding another. Studies stay a CLI run.
-8. **Out-of-office replies** don't hold follow-ups. One lands while the person is away.
-9. **Dossier is as thin as the runners.** No findings locally. A dossier for a firm no runner touched is a name and a domain.
-10. **Dossier on prod** needs the prod database URL (`prod.env` via `parseEnv`); the CLI defaults to local.
-11. **Thin angles.** Recruiting has no claim on client churn, sales cycle or Canada. A narrower study fills them.
+8. **Dossier is as thin as the runners.** No findings locally. A dossier for a firm no runner touched is a name and a domain.
+9. **Dossier on prod** needs the prod database URL (`prod.env` via `parseEnv`); the CLI defaults to local.
+10. **Thin angles.** Recruiting has no claim on client churn, sales cycle or Canada. A narrower study fills them.
+11. **Video renders need Chromium and ffmpeg** where the CLI runs: the laptop today, not a scheduled job. A batch holds it an hour per 60 firms.
+12. **Old renders stay on S3.** A new walk version uploads new files; nothing deletes the old ones.
+13. **The walk breaks when the portal changes.** It clicks by role and text. A renamed link fails the render for every firm (loudly, per firm).

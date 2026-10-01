@@ -427,6 +427,17 @@ describe("recruiting_facts view", () => {
         },
         createdAt: new Date(createdAt),
       });
+  const video = (companyId: number, url: string | null, createdAt: string, version: string) =>
+    db()
+      .insert(enrichments)
+      .values({
+        companyId,
+        kind: "video",
+        model: "reactivation-demo",
+        promptVersion: version,
+        output: url === null ? { firm: "x" } : { url, firm: "x" },
+        createdAt: new Date(createdAt),
+      });
   const facts = async () =>
     new Map((await db().select().from(recruitingFacts)).map((r) => [r.companyId as number, r]));
 
@@ -490,6 +501,18 @@ describe("recruiting_facts view", () => {
     expect(f.get(id)?.opener).toBe("Newest line.");
     expect(f.get(empty)?.opener).toBeNull();
     expect(f.get(bare)).toMatchObject({ opener: null, employees: null, foundedYear: null });
+  });
+
+  it("video_url is the newest render that has a url, across walk versions", async () => {
+    const id = await addCompany("Filmed");
+    await video(id, "https://w.example/v/old", "2025-01-01T00:00:00Z", "1");
+    await video(id, "https://w.example/v/new", "2026-01-01T00:00:00Z", "2");
+    await video(id, null, "2026-06-01T00:00:00Z", "3");
+    const bare = await addCompany("Unfilmed");
+
+    const f = await facts();
+    expect(f.get(id)?.videoUrl).toBe("https://w.example/v/new");
+    expect(f.get(bare)?.videoUrl).toBeNull();
   });
 
   it("only recruiting companies, with their identity columns", async () => {

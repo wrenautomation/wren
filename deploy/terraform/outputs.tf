@@ -22,6 +22,16 @@ output "media_bucket" {
   value       = aws_s3_bucket.media.bucket
 }
 
+output "videos_bucket" {
+  description = "WREN_VIDEOS_BUCKET for the CLI"
+  value       = aws_s3_bucket.videos.bucket
+}
+
+output "videos_origin" {
+  description = "WREN_VIDEOS_ORIGIN for the CLI, and VIDEOS_ORIGIN for the lander's /v/<id> page"
+  value       = "https://${aws_cloudfront_distribution.videos.domain_name}"
+}
+
 output "lambda_arn" {
   value = aws_lambda_function.worker.arn
 }
