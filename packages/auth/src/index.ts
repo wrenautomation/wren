@@ -1,11 +1,12 @@
 /**
  * Wren's sign-in (designs/2026-09-30-client-delivery-portal.md, A1–A9): Better
  * Auth over our Postgres, tables in schema `auth`. One account per verified
- * email across every method. Invite-only: an account is made only when
+ * email across every method, passkeys included. Invite-only: an account is made only when
  * `allowed(email)` says so; the registry decides who that is (A7), never this
  * package. Apps check the short-lived token it signs against its JWKS
  * (`@wren/auth/verify`).
  */
+import { passkey } from "@better-auth/passkey";
 import type { Db } from "@wren/db";
 import { betterAuth } from "better-auth";
 import { drizzleAdapter } from "better-auth/adapters/drizzle";
@@ -81,6 +82,12 @@ export function passwordMail(email: string, url: string): AuthMail {
   };
 }
 
+/**
+ * Passkeys belong to the registrable domain (auth.example.com → example.com),
+ * so the same passkey still works if sign-in ever moves host.
+ */
+export const rpIdOf = (baseURL: string) => new URL(baseURL).hostname.replace(/^auth\./, "");
+
 export function makeAuth(o: AuthOptions) {
   const gate = async (email: string) => o.allowed(email.trim().toLowerCase());
   return betterAuth({
@@ -127,6 +134,7 @@ export function makeAuth(o: AuthOptions) {
         "/sign-in/email-otp": { window: 600, max: 10 },
         "/sign-in/email": { window: 600, max: 10 },
         "/request-password-reset": { window: 600, max: 5 },
+        "/passkey/verify-authentication": { window: 600, max: 10 },
       },
     },
     advanced: {
@@ -144,6 +152,8 @@ export function makeAuth(o: AuthOptions) {
         },
       }),
       haveIBeenPwned(),
+      // Added once signed in (a session under a day old); signs in alone after that.
+      passkey({ rpID: rpIdOf(o.baseURL), rpName: "Wren", origin: new URL(o.baseURL).origin }),
       jwt({
         jwt: {
           issuer: o.baseURL,

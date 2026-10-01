@@ -112,12 +112,20 @@ export function Settings(props: PageProps) {
       ) : null}
       <Section title="Signing in">
         <p className="wk-body">
-          Sign in with your invited email, any way you like: a code by email, Google, Microsoft, or
-          a password. To set one, pick "Set or reset my password" on the sign-in page.
+          Sign in with your invited email, any way you like: a passkey, a code by email, Google,
+          Microsoft, or a password. A passkey is Face ID, Touch ID or your phone's screen lock; add
+          one per device. To set a password, pick "Set or reset my password" on the sign-in page.
         </p>
         {AUTH_ORIGIN ? (
           <div className="wk-tools">
-            <ButtonLink href={AUTH_ORIGIN} size="sm" tone="secondary">
+            <ButtonLink
+              href={`${AUTH_ORIGIN}/passkeys?next=${encodeURIComponent(location.href)}`}
+              size="sm"
+              tone="secondary"
+            >
+              Passkeys
+            </ButtonLink>
+            <ButtonLink href={AUTH_ORIGIN} size="sm" tone="quiet">
               Sign-in page
             </ButtonLink>
           </div>

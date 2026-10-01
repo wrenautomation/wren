@@ -1580,6 +1580,18 @@
     flex-direction: column;
     gap: 14px;
   }
+  .ui-gate-card ul {
+    list-style: none;
+    border-top: 1px solid var(--ui-line);
+  }
+  .ui-gate-card li {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 6px 0;
+    border-bottom: 1px solid var(--ui-line);
+  }
 
   /* Phone and small tablet: a top bar, the sidebar as a menu, the window full width */
   @media (max-width: 900px) {

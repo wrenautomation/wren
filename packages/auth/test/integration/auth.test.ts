@@ -123,3 +123,33 @@ describe("the token an app checks", () => {
     expect((await call("token")).status).toBe(401);
   });
 });
+
+describe("passkeys", () => {
+  let cookie = "";
+  beforeAll(async () => {
+    // The tests above used up this address's code sends.
+    await pg.db.execute("delete from auth.rate_limit");
+    cookie = cookieOf(await signIn(MEMBER));
+  });
+
+  it("adding one needs a session; the ceremony is for the registrable domain", async () => {
+    expect((await call("passkey/generate-register-options")).status).toBe(401);
+    const res = await call("passkey/generate-register-options", undefined, cookie);
+    expect(res.status).toBe(200);
+    const o = (await res.json()) as { rp: { id: string; name: string }; user: { name: string } };
+    expect(o.rp).toEqual({ id: "test", name: "Wren" });
+    expect(o.user.name).toBe(MEMBER);
+    // Signing in with one needs no session.
+    expect((await call("passkey/generate-authenticate-options")).status).toBe(200);
+  });
+
+  it("lists and deletes the person's own", async () => {
+    await pg.db.execute(`
+      insert into auth.passkey (id, user_id, public_key, credential_id, counter, device_type, backed_up)
+      select 'pk1', id, 'key', 'cred1', 0, 'multiDevice', true from auth."user" where email = '${MEMBER}'`);
+    const list = await (await call("passkey/list-user-passkeys", undefined, cookie)).json();
+    expect(list).toMatchObject([{ id: "pk1", credentialID: "cred1", backedUp: true }]);
+    expect((await call("passkey/delete-passkey", { id: "pk1" }, cookie)).status).toBe(200);
+    expect(await (await call("passkey/list-user-passkeys", undefined, cookie)).json()).toEqual([]);
+  });
+});

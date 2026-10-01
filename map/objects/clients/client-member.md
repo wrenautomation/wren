@@ -13,17 +13,17 @@ Who may sign in to Wren and what they see: a `client_members` row (an email on o
 
 ## Why this shape
 
-Sign-in is invite-only. Our sign-in (Better Auth at auth.wrenautomation.com) asks `mayHaveAccount` before it makes an account, so a stranger gets no mail and no row. One table per question: membership says which clients, the operator list says all of them. An operator flag is read fresh into each 15-minute token, so removing one takes effect without a session wipe.
+Sign-in is invite-only. Our sign-in (Better Auth at auth.wrenautomation.com) asks `mayHaveAccount` before it makes an account, so a stranger gets no mail and no row. A passkey is added only once signed in, so it never makes an account either. One table per question: membership says which clients, the operator list says all of them. An operator flag is read fresh into each 15-minute token, so removing one takes effect without a session wipe.
 
 ## Shape
 
 - `client_members` (`packages/core/src/clients/schema.ts:53`): `client_id` + `email` (key), `role` owner | member, `invited_by`, `invited_at`, `last_seen_at`; deleting the client deletes its members
 - `operators` (`:77`): `email`, `added_at`
 - `addMember` / `removeMember` / `listMembers`, `addOperator` / `isOperator`, `mayHaveAccount`, `touchMember` (`packages/core/src/clients/index.ts:120`, `:153`, `:165`, `:171`, `:181`); emails lowercased and trimmed (`:117`)
-- The sign-in: `makeAuth` (`packages/auth/src/index.ts:85`), schema `auth` in the main database; the Lambda (`apps/auth/lambda/index.ts`) behind the auth Worker (`apps/auth/src/worker.ts`)
+- The sign-in: `makeAuth` (`packages/auth/src/index.ts:91`), schema `auth` in the main database; the Lambda (`apps/auth/lambda/index.ts`) behind the auth Worker (`apps/auth/src/worker.ts`)
 - Apps check the token with `verifyToken` (`packages/auth/src/verify.ts:82`): EdDSA, iss, aud `wren`, exp
 
-Citations: `packages/core/src/clients/schema.ts:53`, `packages/core/src/clients/index.ts:171`, `packages/auth/src/index.ts:85`, `packages/auth/src/verify.ts:82`
+Citations: `packages/core/src/clients/schema.ts:53`, `packages/core/src/clients/index.ts:171`, `packages/auth/src/index.ts:91`, `packages/auth/src/verify.ts:82`
 
 ## Connected to
 

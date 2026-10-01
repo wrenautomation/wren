@@ -11,6 +11,7 @@
     "deploy": "vite build web && wrangler deploy"
   },
   "dependencies": {
+    "@simplewebauthn/browser": "13.3.0",
     "@wren/auth": "workspace:*",
     "@wren/channel-email": "workspace:*",
     "@wren/config": "workspace:*",

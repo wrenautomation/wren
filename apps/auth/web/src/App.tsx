@@ -1,8 +1,10 @@
 /**
- * The sign-in pages (A3, A4, A8): an emailed code or its link, Google,
- * Microsoft, or a password. Signed in, it sends you on to `?next=` (one of our
- * hosts) or the portal. `?out=1` signs out first. `/reset` sets a password.
+ * The sign-in pages (A2, A3, A4, A8): a passkey, an emailed code or its link,
+ * Google, Microsoft, or a password. Signed in, it sends you on to `?next=` (one
+ * of our hosts) or the portal. `?out=1` signs out first. `/reset` sets a
+ * password; `/passkeys` adds and removes passkeys.
  */
+import { startAuthentication, startRegistration } from "@simplewebauthn/browser";
 import { Alert, Button, ButtonLink, Gate } from "@wren/ui";
 import { type FormEvent, useEffect, useState } from "react";
 import { nextOf } from "./next.js";
@@ -22,7 +24,35 @@ const SAID: Record<string, string> = {
   PASSWORD_COMPROMISED: "That password shows up in known breaches. Pick another.",
   PASSWORD_TOO_SHORT: "Use at least 10 characters.",
   INVALID_TOKEN: "That link has run out. Ask for a new one.",
+  PASSKEY_NOT_FOUND:
+    "That passkey isn't on a Wren account. Sign in another way, then add it from your account.",
+  AUTHENTICATION_FAILED: "That passkey didn't work. Try again, or use your email.",
+  PREVIOUSLY_REGISTERED: "This device already has a passkey here.",
+  SESSION_NOT_FRESH: "For safety, sign in again to add a passkey.",
+  SESSION_EXPIRED: "For safety, sign in again to add a passkey.",
 };
+/** The browser's own refusals: closed, timed out, or not this device. */
+const PASSKEY_STOPPED = "No passkey was used. Try again, or use your email.";
+
+/** A rough name for this device, so a list of passkeys tells them apart. */
+function deviceName(): string {
+  const ua = navigator.userAgent;
+  if (/iPhone|iPad/.test(ua)) return "iPhone or iPad";
+  if (/Android/.test(ua)) return "Android";
+  if (/Mac/.test(ua)) return "Mac";
+  if (/Windows/.test(ua)) return "Windows";
+  return "This device";
+}
+
+/** Run a WebAuthn ceremony; the browser's cancel reads as one plain line. */
+async function ceremony<T>(fn: () => Promise<T>): Promise<T> {
+  try {
+    return await fn();
+  } catch (err) {
+    if (err instanceof Error && err.name !== "Error") throw new Error(PASSKEY_STOPPED);
+    throw err;
+  }
+}
 const PROVIDER_FAILED =
   "That sign-in didn't work. If you're new, ask the person you work with at Wren to invite you, or sign in with an emailed code.";
 
@@ -68,6 +98,7 @@ function useAction() {
 export function App() {
   if (location.pathname === "/link") return <EmailLink />;
   if (location.pathname === "/reset") return <Reset />;
+  if (location.pathname === "/passkeys") return <Passkeys />;
   return <Home />;
 }
 
@@ -130,6 +161,14 @@ function SignIn({ next, failed }: { next: string; failed: boolean }) {
     await api("sign-in/email-otp", { email, otp: code.trim() });
     location.replace(next);
   });
+  const withPasskey = run(async () => {
+    const optionsJSON = await api<Parameters<typeof startAuthentication>[0]["optionsJSON"]>(
+      "passkey/generate-authenticate-options",
+    );
+    const response = await ceremony(() => startAuthentication({ optionsJSON }));
+    await api("passkey/verify-authentication", { response });
+    location.replace(next);
+  });
   const usePassword = run(async () => {
     await api("sign-in/email", { email, password });
     location.replace(next);
@@ -148,6 +187,9 @@ function SignIn({ next, failed }: { next: string; failed: boolean }) {
       {note ? <p>{note}</p> : null}
       {!sent ? (
         <>
+          <Button tone="secondary" disabled={busy} onClick={() => void withPasskey()}>
+            Sign in with a passkey
+          </Button>
           <Button tone="secondary" disabled={busy} onClick={() => void social("google")()}>
             Continue with Google
           </Button>
@@ -300,6 +342,101 @@ function Reset() {
           Set password
         </Button>
       </form>
+    </Gate>
+  );
+}
+
+interface Passkey {
+  id: string;
+  name?: string | null;
+  createdAt: string;
+}
+
+/** Add a passkey on this device, or remove one. Adding needs a sign-in under a day old. */
+function Passkeys() {
+  const next = nextOf(location.search, BASE);
+  const here = `/passkeys${location.search}`;
+  const [keys, setKeys] = useState<Passkey[] | null>(null);
+  const [stale, setStale] = useState(false);
+  const { busy, problem, setProblem, run } = useAction();
+
+  const load = async () => setKeys(await api<Passkey[]>("passkey/list-user-passkeys"));
+  // biome-ignore lint/correctness/useExhaustiveDependencies: once, on arrival.
+  useEffect(() => {
+    void (async () => {
+      const s = await api<{ user?: unknown } | null>("get-session").catch(() => null);
+      if (!s?.user) location.replace(`/?next=${encodeURIComponent(location.href)}`);
+      else await load().catch((e: Error) => setProblem(e.message));
+    })();
+  }, []);
+
+  const add = run(async () => {
+    setStale(false);
+    try {
+      const optionsJSON = await api<Parameters<typeof startRegistration>[0]["optionsJSON"]>(
+        "passkey/generate-register-options",
+      );
+      const response = await ceremony(() => startRegistration({ optionsJSON }));
+      await api("passkey/verify-registration", { response, name: deviceName() });
+    } catch (err) {
+      if (err instanceof Error && err.message === SAID.SESSION_NOT_FRESH) setStale(true);
+      throw err;
+    }
+    await load();
+  });
+  const remove = (id: string) =>
+    run(async () => {
+      await api("passkey/delete-passkey", { id });
+      await load();
+    });
+
+  if (!keys)
+    return (
+      <Gate stamp={STAMP} title="Passkeys">
+        {problem ? <Alert>{problem}</Alert> : <p>One moment…</p>}
+      </Gate>
+    );
+  return (
+    <Gate stamp={STAMP} title="Passkeys">
+      {problem ? <Alert>{problem}</Alert> : null}
+      <p>
+        Sign in with Face ID, Touch ID or your phone's screen lock instead of a code. A passkey
+        stays on your device; we only keep its public half.
+      </p>
+      {keys.length > 0 ? (
+        <ul>
+          {keys.map((k) => (
+            <li key={k.id}>
+              <span>
+                {k.name || "Passkey"}, added{" "}
+                {new Date(k.createdAt).toLocaleDateString("en-US", {
+                  month: "short",
+                  day: "numeric",
+                  year: "numeric",
+                })}
+              </span>
+              <Button tone="quiet" disabled={busy} onClick={() => void remove(k.id)()}>
+                Remove
+              </Button>
+            </li>
+          ))}
+        </ul>
+      ) : null}
+      {stale ? (
+        <ButtonLink
+          href={`/?out=1&next=${encodeURIComponent(location.origin + here)}`}
+          tone="primary"
+        >
+          Sign in again
+        </ButtonLink>
+      ) : (
+        <Button tone="primary" disabled={busy} onClick={() => void add()}>
+          Add a passkey on this device
+        </Button>
+      )}
+      <ButtonLink href={next} tone="quiet">
+        Back
+      </ButtonLink>
     </Gate>
   );
 }

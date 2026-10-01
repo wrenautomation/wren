@@ -93,3 +93,25 @@ export const rateLimit = auth.table("rate_limit", {
   /** Epoch milliseconds. */
   lastRequest: bigint("last_request", { mode: "number" }).notNull(),
 });
+
+/** Passkeys: Face ID, Touch ID, a phone or a security key. Any person may add one once signed in. */
+export const passkey = auth.table(
+  "passkey",
+  {
+    id: text("id").primaryKey(),
+    name: text("name"),
+    publicKey: text("public_key").notNull(),
+    userId: text("user_id")
+      .notNull()
+      .references(() => user.id, { onDelete: "cascade" }),
+    credentialID: text("credential_id").notNull().unique(),
+    counter: integer("counter").notNull(),
+    deviceType: text("device_type").notNull(),
+    backedUp: boolean("backed_up").notNull(),
+    transports: text("transports"),
+    createdAt: at("created_at").defaultNow(),
+    /** The authenticator's model, for naming it in the list. */
+    aaguid: text("aaguid"),
+  },
+  (t) => [index("ix_auth_passkey_user").on(t.userId)],
+);
