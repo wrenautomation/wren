@@ -14,6 +14,7 @@ const BASE = SendPolicy.fromSettings(
     WREN_DATABASE_URL: "postgresql://x",
     WREN_SEND_TIMEZONE: "UTC",
     WREN_SEND_DAYS: "mon,tue,wed,thu,fri,sat,sun",
+    WREN_SEND_HOLIDAYS: "none",
     WREN_COLD_SENDS_PER_INBOX_PER_DAY: "30",
     WREN_COLD_SENDS_RAMP_START: "2026-01-05",
     WREN_COLD_SENDS_RAMP_FROM: "10",

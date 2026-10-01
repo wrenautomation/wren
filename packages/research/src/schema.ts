@@ -303,3 +303,95 @@ export const companyChecks = pgTable(
   ],
 );
 export type CompanyCheck = typeof companyChecks.$inferSelect;
+
+/**
+ * A study: one question researched from the open web into a cited report.
+ * `angles` are its sub-questions, one report section each (a plain question is
+ * its own single angle). Anything can be studied: a vertical before we sell to
+ * it, a buyer's market, a vendor. Every claim in the report quotes a page we
+ * read, or it is dropped. `drafts` are what the claims get turned into once
+ * every angle is in (offer candidates, cold emails), each a task in words.
+ */
+export interface StudyDraftSpec {
+  /** Names the draft in the report and on the command line: `offers`, `emails`. */
+  key: string;
+  /** The task, in full: what to write, how many, which rules to follow. */
+  ask: string;
+}
+
+export const studies = pgTable(
+  "studies",
+  {
+    id: serial("id").notNull(),
+    /** How people name it on the command line: `recruiting-offers-2026-10`. */
+    slug: varchar("slug", { length: 80 }).notNull(),
+    question: text("question").notNull(),
+    angles: jsonb("angles").$type<string[]>().notNull(),
+    drafts: jsonb("drafts").$type<StudyDraftSpec[]>().notNull(),
+    /** The niche it serves, when it serves one; studies are niche-free otherwise. */
+    niche: varchar("niche", { length: 64 }),
+    createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+  },
+  (t) => [
+    primaryKey({ columns: [t.id], name: "pk_studies" }),
+    unique("uq_studies_slug").on(t.slug),
+  ],
+);
+export type Study = typeof studies.$inferSelect;
+
+/**
+ * The units of a study, in order: `plan` an angle into search queries,
+ * `search` a query, `ask` an answer engine about an angle (its citations get
+ * read, its prose never counts), `read` a page, `claims` an angle's pages into
+ * quoted claims, `draft` the claims into something to use (offers, emails).
+ * One row per unit is the checkpoint: a re-run skips what is done.
+ */
+export const STUDY_STEPS = ["plan", "search", "ask", "read", "claims", "draft"] as const;
+export type StudyStep = (typeof STUDY_STEPS)[number];
+/**
+ * `failed` (an unparseable answer, a site error) is tried again on the next
+ * run; the rest are final. `refused`: the provider or site said no to this
+ * input. `empty`: it answered with nothing to use.
+ */
+export const STUDY_OUTCOMES = ["ok", "empty", "refused", "failed"] as const;
+export type StudyOutcome = (typeof STUDY_OUTCOMES)[number];
+
+export const studySteps = pgTable(
+  "study_steps",
+  {
+    id: serial("id").notNull(),
+    studyId: integer("study_id").notNull(),
+    step: varchar("step", { length: 16, enum: STUDY_STEPS }).notNull(),
+    /** The unit: an angle (plan, ask, claims), a query (search), a URL (read), a kind (draft). */
+    key: text("key").notNull(),
+    outcome: varchar("outcome", { length: 16, enum: STUDY_OUTCOMES }).notNull(),
+    /** The page a read stored. */
+    documentId: integer("document_id"),
+    /** What the unit found: queries, hits, sources, kept and dropped claims, the LLM envelope. */
+    detail: jsonb("detail").notNull(),
+    runId: uuid("run_id"),
+    createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+  },
+  (t) => [
+    primaryKey({ columns: [t.id], name: "pk_study_steps" }),
+    unique("uq_study_steps_unit").on(t.studyId, t.step, t.key),
+    foreignKey({
+      columns: [t.studyId],
+      foreignColumns: [studies.id],
+      name: "fk_study_steps_study_id_studies",
+    }),
+    foreignKey({
+      columns: [t.documentId],
+      foreignColumns: [documents.id],
+      name: "fk_study_steps_document_id_documents",
+    }),
+    foreignKey({
+      columns: [t.runId],
+      foreignColumns: [runs.id],
+      name: "fk_study_steps_run_id_runs",
+    }),
+    oneOf("ck_study_steps_step", t.step, STUDY_STEPS),
+    oneOf("ck_study_steps_outcome", t.outcome, STUDY_OUTCOMES),
+  ],
+);
+export type StudyStepRow = typeof studySteps.$inferSelect;

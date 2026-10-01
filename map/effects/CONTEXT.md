@@ -9,8 +9,8 @@ A catalog, not a waterfall. Each row names the cards whose **If you change this*
 | a column on `companies`, `people`, `leads` | [[leads/company]], [[leads/person]], [[leads/lead]] | `packages/core/src/views.ts`, [[processes/import]], [[processes/migrate]] |
 | what counts as suppressed | [[leads/suppression]] | [[processes/inbox-sync]], [[processes/sms-tick]], `packages/channel-email/src/guards.ts` |
 | a research stage or its spend | [[processes/pool-feed]] | [[research/enrichment]], [[research/contact-candidate]], [[research/verification]], [[platform/settings]] (`WREN_POOL_MODEL_STAGES`) |
-| an `.email` file or a `{key}` | [[email/template]] | [[email/sequence]], [[processes/compose]], `sops/cold-email-copy.md` |
-| a sequence, arm or plan rule | [[email/sequence]] | [[platform/niche]], [[processes/compose]], `sops/campaign-ramp.md` |
+| an `.email` file or a `{key}` | [[email/template]] | [[email/sequence]], [[processes/compose]] |
+| a sequence, arm or plan rule | [[email/sequence]] | [[platform/niche]], [[processes/compose]] |
 | who sends, from which inbox | [[email/roster]] | [[email/send-policy]], [[processes/deploy]] (SSM roster), [[platform/loop-object]] (keys) |
 | caps, windows, ramp | [[email/send-policy]] | [[processes/send-tick]], [[processes/compose]] |
 | message or enrollment states | [[email/message]], [[email/enrollment]] | `packages/channel-email/src/state.ts`, [[processes/send-tick]], every view in `packages/channel-email/src/views.ts` |

@@ -157,6 +157,12 @@ describe("makeLlm", () => {
       makeLlm("anthropic", { WREN_ANTHROPIC_API_KEY: "k", WREN_LLM_MODEL: "claude-x" }).name,
     ).toBe("claude-x");
   });
+  it("anthropic:<model> beats the configured model", () => {
+    const env = { WREN_ANTHROPIC_API_KEY: "k", WREN_LLM_MODEL: "claude-x" };
+    expect(makeLlm("anthropic:claude-y", env, { anthropicModel: "claude-z" }).name).toBe(
+      "claude-y",
+    );
+  });
 });
 
 describe("loadLlmEnv", () => {

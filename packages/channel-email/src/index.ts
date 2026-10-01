@@ -1,5 +1,6 @@
 export * from "@wren/core/notify";
 export * from "./concurrent.js";
+export * from "./dossier.js";
 export * from "./email-patterns.js";
 export * from "./guards.js";
 export * from "./inbox/index.js";

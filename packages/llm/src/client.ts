@@ -14,6 +14,7 @@
 import { createAnthropic } from "@ai-sdk/anthropic";
 import { createOpenAICompatible } from "@ai-sdk/openai-compatible";
 import { APICallError, generateText, type LanguageModel, RetryError } from "ai";
+import { ClaudeCodeLlm, DEFAULT_CLAUDE_CODE_MODEL } from "./claude-code.js";
 
 export interface LlmResponse {
   text: string;
@@ -228,8 +229,9 @@ export interface MakeLlmOptions {
 }
 
 /**
- * "fake" | "anthropic" | "<provider>[:model-id]" for provider in COMPATIBLE_PROVIDERS.
- * The optional :model suffix picks a specific model per run without touching config.
+ * "fake" | "claude-code[:model]" | "anthropic[:model-id]" | "<provider>[:model-id]" for
+ * provider in COMPATIBLE_PROVIDERS. The optional :model suffix picks a specific model
+ * per run without touching config. claude-code needs no key: the Claude Code login pays.
  */
 export function makeLlm(
   name: string,
@@ -237,10 +239,14 @@ export function makeLlm(
   opts: MakeLlmOptions = {},
 ): LlmClient {
   if (name === "fake") return new FakeLlm();
-  if (name === "anthropic") {
+  if (name === "claude-code" || name.startsWith("claude-code:"))
+    return new ClaudeCodeLlm(name.slice("claude-code:".length) || DEFAULT_CLAUDE_CODE_MODEL);
+  if (name === "anthropic" || name.startsWith("anthropic:")) {
     const apiKey = env.WREN_ANTHROPIC_API_KEY ?? env.ANTHROPIC_API_KEY;
     if (!apiKey) throw new Error("anthropic needs WREN_ANTHROPIC_API_KEY in the environment");
-    const modelId = opts.anthropicModel ?? env.WREN_LLM_MODEL ?? DEFAULT_ANTHROPIC_MODEL;
+    const modelId =
+      name.slice("anthropic:".length) ||
+      (opts.anthropicModel ?? env.WREN_LLM_MODEL ?? DEFAULT_ANTHROPIC_MODEL);
     return new AiSdkLlm("anthropic", modelId, createAnthropic({ apiKey })(modelId));
   }
   const [provider, ...rest] = name.split(":");

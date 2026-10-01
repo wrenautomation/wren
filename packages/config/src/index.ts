@@ -37,6 +37,8 @@ export const settingsSchema = z.object({
   sendTimezone: z.string().min(1).default("America/Chicago"),
   /** Comma-separated send days, mon..sun or full names. */
   sendDays: z.string().min(1).default("mon,tue,wed,thu,fri"),
+  /** Holiday calendars nothing sends on: us, ca, year_end (Dec 24 to Jan 1). none = no holidays. */
+  sendHolidays: z.string().default("us,ca,year_end"),
   sendWindowStart: z.string().min(1).default("08:00"),
   sendWindowEnd: z.string().min(1).default("17:00"),
   /** The lead's own window on the lead's clock. Both or neither. */
@@ -289,6 +291,7 @@ export const ENV_KEYS = {
   smtpHelo: "WREN_SMTP_HELO",
   sendTimezone: "WREN_SEND_TIMEZONE",
   sendDays: "WREN_SEND_DAYS",
+  sendHolidays: "WREN_SEND_HOLIDAYS",
   sendWindowStart: "WREN_SEND_WINDOW_START",
   sendWindowEnd: "WREN_SEND_WINDOW_END",
   sendLeadWindowStart: "WREN_SEND_LEAD_WINDOW_START",

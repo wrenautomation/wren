@@ -1,6 +1,6 @@
 # Recruiting templates
 
-Syntax: `../sec_ria/README.md`. Copy rules: `sops/cold-email-copy.md`.
+Syntax: `../sec_ria/README.md`.
 
 Reader: the owner, CEO or MD of a midsize recruiting firm. Two cares:
 more business (job orders, a pipeline that doesn't hang on one

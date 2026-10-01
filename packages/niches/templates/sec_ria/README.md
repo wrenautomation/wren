@@ -43,7 +43,7 @@ Rules:
 
 - First line `subject: …` sets the subject. **No subject line = this
   step rides the thread** as a reply to the previous step. Subjects are
-  all lowercase and carry no facts (William's rule, `sops/cold-email-copy.md`):
+  all lowercase and carry no facts (William's rule):
   lowercase stands out in a full inbox, a rendered name comes back
   capitalised, and a refused fact kills the draft.
 - Variant points may sit inside `((…))`; nothing nests further.
@@ -131,7 +131,7 @@ operations — and keep the other's copy on disk, unenrolled.
 `reply_by_arm_step` reads the split the day there are two.
 
 All five files are DRAFT 8 copy (2026-09-11), written to William's
-rules in `sops/cold-email-copy.md`: lowercase subjects, each subject
+rules: lowercase subjects, each subject
 option a different tool from the toolbox, the pain asserted, the same
 honest bio and both case studies in every opener, one-door CTA (free
 consultation + audit), and one follow-up that gives a free tip and implies the last chance. Nothing either

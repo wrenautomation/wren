@@ -67,6 +67,7 @@ function policyFrom(overrides: Record<string, string> = {}): SendPolicy {
     WREN_DATABASE_URL: "postgresql://x",
     WREN_SEND_TIMEZONE: "UTC",
     WREN_SEND_DAYS: "mon,tue,wed,thu,fri,sat,sun",
+    WREN_SEND_HOLIDAYS: "none",
     WREN_SEND_WINDOW_START: "00:00",
     WREN_SEND_WINDOW_END: "23:59",
     WREN_COLD_SENDS_PER_INBOX_PER_DAY: "1000",
@@ -493,6 +494,26 @@ describe("cadence and stops", () => {
     const after = await reload(enrollment);
     expect(after.state).toBe("stopped");
     expect(after.stopReason).toBe("reply");
+  });
+
+  it("an out-of-office holds the follow-up until the sending day after they're back", async () => {
+    const enrollment = await enrollOne("oakbridge.example", "jane@oakbridge.example");
+    const transport = console_();
+    await tick(transport);
+    const anchor = PlainDate.utcDayOf((await step(enrollment, 0)).sentAt as Date);
+    const away = addBusinessDays(anchor, 5);
+    await db()
+      .update(enrollments)
+      .set({ awayUntil: away.toString() })
+      .where(eq(enrollments.id, enrollment.id));
+
+    const held = await tick(transport, { now: atNoon(addBusinessDays(anchor, 3)) });
+    expect([held.sent, held.waiting_away]).toEqual([0, 1]);
+    const lastDay = await tick(transport, { now: atNoon(away) });
+    expect(lastDay.sent).toBe(0);
+
+    const back = await tick(transport, { now: atNoon(addBusinessDays(away, 1)) });
+    expect([back.sent, back.finished]).toEqual([1, 1]);
   });
 
   it("cadence anchors on the sent_at UTC date", async () => {

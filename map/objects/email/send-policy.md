@@ -29,7 +29,7 @@ Citations: `packages/channel-email/src/send/policy.ts:60`
 
 ## If you change this
 
-- **Hits:** `sendDue` pacing and windows; `ComposeScheduler`'s shortfall; digest hour; `sops/campaign-ramp.md`
+- **Hits:** `sendDue` pacing and windows; `ComposeScheduler`'s shortfall; digest hour
 - **Does not hit:** which message goes (the walk decides), the SMS window
 
 ## Surfaces

@@ -29,11 +29,13 @@ import { registerBooks } from "./books.js";
 import { registerClients } from "./clients.js";
 import { registerContent } from "./content.js";
 import { registerCrm } from "./crm.js";
+import { registerDossier } from "./dossier.js";
 import { registerEmail } from "./email.js";
 import { registerFetch } from "./fetch.js";
 import { registerReview } from "./review.js";
 import { registerSearch } from "./search.js";
 import { registerSms } from "./sms.js";
+import { registerStudy } from "./study.js";
 
 const rootDir = loadEnvFile(process.cwd(), process.env.WREN_ROOT);
 const settings = loadSettings(process.env, { rootDir });
@@ -201,6 +203,8 @@ registerContent(program, withMainDb, settings);
 registerAds(program, withMainDb, settings);
 registerSms(program, withMainDb, settings);
 registerBooks(program, withMainDb, settings, rootDir);
+registerStudy(program, withMainDb, settings, rootDir);
+registerDossier(program, withMainDb, rootDir);
 registerSearch(program, withMainDb, settings, rootDir);
 
 const renewal = () =>

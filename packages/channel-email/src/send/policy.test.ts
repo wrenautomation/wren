@@ -311,7 +311,8 @@ describe("the gap", () => {
 describe("describe", () => {
   it("reads as one line for the operator", () => {
     expect(policy().describe()).toBe(
-      "Mon–Fri 08:00–17:00 America/Chicago, 5/inbox/day, gap 8–20 min, openers/day unlimited, cooldown 30 d",
+      "Mon–Fri 08:00–17:00 America/Chicago, 5/inbox/day, gap 8–20 min, openers/day unlimited, " +
+        "cooldown 30 d, off on us, ca, year_end holidays",
     );
   });
   it("names a set openers cap", () => {
@@ -328,8 +329,13 @@ describe("describe", () => {
 });
 
 // Warmup protocol §2 as data: from 5, +2 per inbox every 3 SEND days, to a
-// ceiling. Start Monday 2026-09-14, the campaign's first send day.
-const RAMP = { coldSendsRampStart: "2026-09-14", coldSendsPerInboxPerDay: 25 };
+// ceiling. Start Monday 2026-09-14, the campaign's first send day. No holidays
+// here; "holidays" below covers the ramp across them.
+const RAMP = {
+  coldSendsRampStart: "2026-09-14",
+  coldSendsPerInboxPerDay: 25,
+  sendHolidays: "none",
+};
 /** 10:00 America/Chicago on `day`, as the UTC instant the tick sees. */
 const at = (y: number, m: number, d: number): Date => utc(y, m, d, 15, 0);
 
@@ -489,5 +495,44 @@ describe("the lead's own window", () => {
   it("describe names the lead window only when set", () => {
     expect(policy().describe()).not.toContain("lead window");
     expect(policy(LEAD_WINDOW).describe()).toContain("lead window 13:00–16:00 on the lead's clock");
+  });
+});
+
+// US Thanksgiving 2026 is Thu Nov 26; Chicago is CST (UTC-6) by then.
+describe("holidays", () => {
+  const THANKSGIVING_NOON = utc(2026, 11, 26, 18, 0);
+  const DEC_23_EVENING = utc(2026, 12, 24, 0, 0); // 18:00 Wed Dec 23 local
+  it("the window stays shut on a holiday", () => {
+    expect(policy().windowOpen(THANKSGIVING_NOON)).toBe(false);
+    expect(policy().holidayOn(new PlainDate(2026, 11, 26))).toBe("Thanksgiving");
+    expect(policy({ sendHolidays: "none" }).windowOpen(THANKSGIVING_NOON)).toBe(true);
+  });
+  it("the next window skips the year-end break to Monday Jan 4", () => {
+    expect(policy().nextWindowOpen(DEC_23_EVENING)).toEqual(utc(2027, 1, 4, 14, 0));
+    expect(policy({ sendHolidays: "us" }).nextWindowOpen(DEC_23_EVENING)).toEqual(
+      utc(2026, 12, 28, 14, 0),
+    );
+  });
+  it("the ramp does not climb on a holiday", () => {
+    // Mon Nov 23 to Mon Nov 30: five weekdays, two of them Thanksgiving and the day after.
+    const p = policy({ coldSendsRampStart: "2026-11-23", coldSendsPerInboxPerDay: 25 });
+    expect(p.sendDaysElapsed(utc(2026, 11, 30, 18, 0))).toBe(3);
+    const none = policy({
+      coldSendsRampStart: "2026-11-23",
+      coldSendsPerInboxPerDay: 25,
+      sendHolidays: "none",
+    });
+    expect(none.sendDaysElapsed(utc(2026, 11, 30, 18, 0))).toBe(5);
+  });
+  it("counts holidays across a year boundary once", () => {
+    // Mon Dec 21 2026 to Mon Jan 11 2027: 15 weekdays, 7 of them in the year-end break.
+    const p = policy({ coldSendsRampStart: "2026-12-21", coldSendsPerInboxPerDay: 25 });
+    expect(p.sendDaysElapsed(utc(2027, 1, 11, 18, 0))).toBe(8);
+  });
+  it("a typo stops startup", () => {
+    expect(() => policy({ sendHolidays: "us,xmas" })).toThrow(/WREN_SEND_HOLIDAYS/);
+  });
+  it("describe says when none are off", () => {
+    expect(policy({ sendHolidays: "none" }).describe()).toContain("no holidays off");
   });
 });

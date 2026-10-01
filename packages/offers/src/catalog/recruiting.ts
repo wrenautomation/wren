@@ -78,7 +78,7 @@ export const recruitingReactivation = defineOffer({
   status: "live",
   audience:
     "Owners and leaders of midsize recruiting and staffing firms with years of past clients in their ATS.",
-  promise: "I turn the past clients and cold contacts in your ATS into new job orders in 30 days.",
+  promise: "20 booked meetings with your past clients in 90 days, from leads you already paid for.",
   // Never on a page (D14); the client's portal shows the running bill.
   price: {
     kind: "performance",
@@ -88,7 +88,7 @@ export const recruitingReactivation = defineOffer({
     cap: 15000,
   },
   slots: 3,
-  days: 30,
+  days: 90,
   youGet: [
     "Every past client and dormant hiring contact in your ATS, cleaned and checked.",
     "A reactivation campaign written in your recruiter's voice, sent from a new domain in their name. Your main domain is never touched.",

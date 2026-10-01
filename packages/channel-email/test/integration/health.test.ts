@@ -307,6 +307,7 @@ describe("the send tick", () => {
     const wideOpen = makePolicy({
       WREN_SEND_TIMEZONE: "UTC",
       WREN_SEND_DAYS: "mon,tue,wed,thu,fri,sat,sun",
+      WREN_SEND_HOLIDAYS: "none",
       WREN_SEND_WINDOW_START: "00:00",
       WREN_SEND_WINDOW_END: "23:59",
     });

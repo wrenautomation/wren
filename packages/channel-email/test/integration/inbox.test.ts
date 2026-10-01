@@ -314,6 +314,21 @@ describe("auto-replies, unsubscribes, receipts", () => {
     },
   );
 
+  it("an out-of-office with a return day holds the enrollment until then", async () => {
+    const enrollment = await enroll({ domain: "leave.example", email: "dana@example.com" });
+    const reader = new FakeReader().add(SENDER, "g-leave", load("ooo_auto_submitted"), {
+      threadId: THREAD,
+      when: hoursAgo(4),
+    });
+
+    const stats = await runSync(reader);
+
+    expect(stats.held_away).toBe(1);
+    expect(first(await events()).detail).toBe("away until 2026-09-21");
+    const after = await reload(enrollment);
+    expect([after.state, after.awayUntil]).toEqual(["active", "2026-09-21"]);
+  });
+
   it("a short unsubscribe in thread stops and suppresses", async () => {
     const enrollment = await enroll({ domain: "unsub.example", email: "pat@example.net" });
     const reader = new FakeReader().add(SENDER, "g-unsub", load("unsubscribe_short"), {

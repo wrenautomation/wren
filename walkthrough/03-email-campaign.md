@@ -29,8 +29,8 @@ Postmaster spam rate (`email postmaster`), replies.
 
 Weekdays, after lunch on the lead's clock (13:00–16:00 where the lead sits)
 inside a 13:00–19:00 America/New_York fleet window. `WREN_SEND_*`,
-`WREN_COLD_SENDS_RAMP_*` in `deploy/prod.env`. `sops/campaign-ramp.md` is
-the routine; `sops/cold-email-copy.md` the copy rules.
+`WREN_COLD_SENDS_RAMP_*` in `deploy/prod.env`. No sends on holidays
+(`WREN_SEND_HOLIDAYS`, default `us,ca,year_end`).
 
 ## When the pool runs dry
 
