@@ -161,7 +161,7 @@ describe("a list with every stage on record", () => {
     expect(own.map((l) => [l.kind, l.line])).toEqual([
       ["started", "Checking which companies are hiring"],
       ["found", "Umbrella Health is hiring: 2 open roles"],
-      ["waiting", "Globex waits for 2026-10-02: today's checks are used up"],
+      ["waiting", "Globex waits until Oct 2. Today's checks ran out."],
       ["done", "Checked 1 company: 1 hiring"],
     ]);
     expect(own.at(-1)?.count).toBe(1);
