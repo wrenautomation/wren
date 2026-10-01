@@ -8,7 +8,7 @@
  * One row per (company, model, prompt version), whatever the answer, so a re-run
  * only pays for new firms. A parse failure is retried; a "no line" is not.
  */
-import { companies, leads } from "@wren/core";
+import { companies, inPlay, leads } from "@wren/core";
 import type { Queryable } from "@wren/db";
 import { completeAndParse, type LlmClient, LlmError, type Tracer } from "@wren/llm";
 import { and, asc, desc, eq, exists, inArray, notInArray, sql } from "drizzle-orm";
@@ -230,7 +230,7 @@ export async function selectOpenerTargets(
     .select({ one: sql`1` })
     .from(leads)
     .where(and(eq(leads.companyId, companies.id), inArray(leads.status, ["imported", "verified"])));
-  const conditions = [notInArray(companies.id, done), exists(hasPage), exists(mailable)];
+  const conditions = [notInArray(companies.id, done), exists(hasPage), exists(mailable), inPlay];
   if (opts.niche != null) conditions.push(eq(companies.niche, opts.niche));
   if (opts.shard) conditions.push(opts.shard.where(companies.id));
   const q = db

@@ -221,6 +221,22 @@ describe("OverturePlacesSource", () => {
     expect(source.sourceRef).toBe(path);
   });
 
+  it("branch subdomains count toward their parent; builder sites never group", () => {
+    const path = jsonl([
+      place({ id: "b1", websites: ["https://austin.bigstaff.example"] }),
+      place({ id: "b2", websites: ["https://dallas.bigstaff.example"] }),
+      place({ id: "b3", websites: ["https://bigstaff.example"] }),
+      place({ id: "s1", websites: ["https://acme.business.site"] }),
+      place({ id: "s2", websites: ["https://zenith.business.site"] }),
+      place({ id: "s3", websites: ["https://apex.business.site"] }),
+    ]);
+    const source = new OverturePlacesSource(path);
+    const rows = [...source.rows()];
+    expect(rows.map((r) => (r.overture as OverturePlace).id)).toEqual(["s1", "s2", "s3"]);
+    expect(rows.map((r) => r.places_with_domain)).toEqual([1, 1, 1]);
+    expect(source.declined()).toEqual({ chain: 3 });
+  });
+
   it("chainAt and the niche's decline are honoured", () => {
     const path = jsonl([
       place({ id: "a", websites: ["duo.example"] }),

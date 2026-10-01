@@ -44,11 +44,12 @@ const ADDED = {
     "messages.link_code",
     "enrollments.contact_round",
     "enrollments.away_until",
+    "companies.decline_reason",
   ]),
   constraints: new Set(["uq_messages_link_code"]),
   indexes: new Set(["ix_enrollments_offer", "uq_messages_link_code"]),
-  /** Legacy views wren grew columns on (lead recycling): still present, bodies free to differ. */
-  views: new Set(["campaign_funnel", "enrollment_outcomes"]),
+  /** Legacy views wren grew (lead recycling, recruiting ranks): still present, bodies free to differ. */
+  views: new Set(["campaign_funnel", "enrollment_outcomes", "person_facts"]),
 };
 
 interface Catalog {

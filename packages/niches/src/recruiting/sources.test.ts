@@ -1,8 +1,10 @@
 /** Recruiting's lead sources: which places are not staffing firms, and what gets registered. */
-import type { OverturePlace } from "@wren/core";
+import type { OverturePlace, ScreenedCompany } from "@wren/core";
 import { describe, expect, it } from "vitest";
 import {
   declineNonStaffing,
+  declineRecruiting,
+  GENERALIST_NAICS,
   RECRUITING_COUNTRIES,
   recruitingDatasets,
   recruitingLeadFormats,
@@ -126,5 +128,59 @@ describe("registrations", () => {
     expect(RECRUITING_COUNTRIES).toEqual(["US", "CA"]);
     expect(STAFFING_NAICS).toEqual(["561311", "561312", "561320"]);
     expect(STAFFING_NAICS).not.toContain("561330");
+  });
+});
+
+describe("declineRecruiting", () => {
+  const firm = (name: string, raw: unknown = {}): ScreenedCompany => ({
+    id: 1,
+    domain: null,
+    name,
+    country: "US",
+    raw,
+  });
+
+  it("job centers, charities and college offices by name", () => {
+    expect(declineRecruiting(firm("American Job Center Largo"))).toBe("job_center");
+    expect(declineRecruiting(firm("OhioMeansJobs Allen County"))).toBe("job_center");
+    expect(declineRecruiting(firm("Workforce Solutions Greater Dallas"))).toBe("job_center");
+    expect(declineRecruiting(firm("YMCA Employment Services"))).toBe("nonprofit");
+    expect(declineRecruiting(firm("Algonquin College Employment Services"))).toBe("school");
+  });
+
+  it("a firm with an entity suffix or a staffing word stays", () => {
+    for (const name of [
+      "Acme Workforce Solutions",
+      "Career Centers, LLC",
+      "Goodwill Staffing LLC",
+      "College Recruiter",
+      "Mri Of University Circle",
+      "Career Centered Staffing",
+    ])
+      expect(declineRecruiting(firm(name)), name).toBeNull();
+  });
+
+  it("an SBA generalist: 10+ codes and no staffing talk anywhere", () => {
+    const codes = (n: number) => Array.from({ length: n }, (_, i) => String(561000 + i));
+    const listing = (n: number, narrative = "") => ({
+      sba: { naics_all_codes: codes(n), keywords: [], capabilities_narrative: narrative },
+    });
+    expect(declineRecruiting(firm("ACME HOLDINGS LLC", listing(GENERALIST_NAICS)))).toBe(
+      "generalist",
+    );
+    expect(declineRecruiting(firm("ACME HOLDINGS LLC", listing(GENERALIST_NAICS - 1)))).toBeNull();
+    expect(
+      declineRecruiting(
+        firm("ACME HOLDINGS LLC", listing(GENERALIST_NAICS, "IT staff augmentation")),
+      ),
+    ).toBeNull();
+    // A nursing firm on a staffing code, or staffing talk in the domain, stays.
+    expect(declineRecruiting(firm("ADVENTURE NURSING LLC", listing(GENERALIST_NAICS)))).toBeNull();
+    expect(
+      declineRecruiting({
+        ...firm("BACKOFFICE INC", listing(GENERALIST_NAICS)),
+        domain: "bgtalent.example",
+      }),
+    ).toBeNull();
   });
 });

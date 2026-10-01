@@ -26,11 +26,12 @@ import {
   postmasterDays,
   replyByArmStep,
   resume,
+  runListedContacts,
   senderDays,
   siteExport,
 } from "@wren/channel-email";
 import type { Settings } from "@wren/config";
-import { runImport, runPeopleImport, type Suppression, suppressions } from "@wren/core";
+import { runImport, runPeopleImport, runScreen, type Suppression, suppressions } from "@wren/core";
 import type { Db } from "@wren/db";
 import {
   LEAD_SOURCE_FORMATS,
@@ -457,6 +458,13 @@ export function registerEmail(
         }),
       );
       console.log(`import ${result.batch.id}: ${JSON.stringify(result.stats)}`);
+      const screen = NICHES.find((n) => n.name === niche)?.screen;
+      if (screen) {
+        const screened = await withDb((db) => runScreen(db, niche, screen));
+        console.log(`screen: ${JSON.stringify(screened)}`);
+      }
+      const listed = await withDb((db) => runListedContacts(db, niche));
+      console.log(`contacts: ${JSON.stringify(listed)}`);
       console.log(
         "next: the pool-feeder and queue-keeper pick new companies up on their next pass",
       );
@@ -479,6 +487,36 @@ export function registerEmail(
         runPeopleImport(db, format.build(resolve(path)), { niche }),
       );
       console.log(`import ${result.batch.id}: ${JSON.stringify(result.stats)}`);
+    });
+
+  email
+    .command("screen")
+    .description(
+      "Mark a niche's firms that are no buyer (chains, public bodies, abroad, the niche's rule); runs after every import",
+    )
+    .requiredOption("--niche <name>", `one of ${[...NICHE_NAMES].sort().join(", ")}`)
+    .option("--dry-run", "count without writing")
+    .action(async (opts: { niche: string; dryRun?: boolean }) => {
+      const niche = requireNiche(opts.niche);
+      const screen = NICHES.find((n) => n.name === niche)?.screen;
+      if (niche === null || !screen) throw new Error(`niche ${opts.niche} has no screen`);
+      const stats = await withDb((db) =>
+        runScreen(db, niche, screen, { dryRun: opts.dryRun === true }),
+      );
+      console.log(`screen${opts.dryRun ? " (dry run)" : ""}: ${JSON.stringify(stats)}`);
+    });
+
+  email
+    .command("contacts")
+    .description(
+      "Make people of a niche's named leads, each holding their own address; runs after every import",
+    )
+    .requiredOption("--niche <name>", `one of ${[...NICHE_NAMES].sort().join(", ")}`)
+    .action(async (opts: { niche: string }) => {
+      const niche = requireNiche(opts.niche);
+      if (niche === null) throw new Error(`unknown niche ${opts.niche}`);
+      const stats = await withDb((db) => runListedContacts(db, niche));
+      console.log(`contacts: ${JSON.stringify(stats)}`);
     });
 
   email

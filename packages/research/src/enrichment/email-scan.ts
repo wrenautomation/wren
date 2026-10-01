@@ -8,7 +8,7 @@
  * markup-only hit (JSON-LD, attributes), then conservative de-obfuscation (both a
  * bracketed at-marker AND a dot-marker required, never guessed).
  */
-import { companies, emailDomain, emailSyntaxError, normalizeEmail } from "@wren/core";
+import { companies, emailDomain, emailSyntaxError, inPlay, normalizeEmail } from "@wren/core";
 import type { Queryable } from "@wren/db";
 import { and, asc, eq, ne, notInArray } from "drizzle-orm";
 import { readPage } from "../fetch/htmltext.js";
@@ -210,6 +210,7 @@ export async function selectScanTargets(
     notInArray(documents.id, scannedDocumentIds(db)),
     ne(documents.text, ""),
     eq(documents.isShell, false),
+    inPlay,
   ];
   if (opts.niche != null) conditions.push(eq(companies.niche, opts.niche));
   const q = db

@@ -344,6 +344,7 @@ export async function runImport(
           parsed.companyName,
           raw,
           parsed.socialUrl,
+          parsed.country,
         );
         if (existing.companyId == null) {
           await db.update(leads).set({ companyId: company.id }).where(eq(leads.id, existing.id));
@@ -352,7 +353,15 @@ export async function runImport(
       }
       continue;
     }
+    // A batch default fills only true-absent country; present-but-unrecognized stays NULL and is counted.
+    let country: string | null;
+    if (parsed.countryRaw == null) country = parsed.country ?? defaults.country;
+    else {
+      country = parsed.country;
+      if (country == null) counts.country_unrecognized += 1;
+    }
     // A keyed row names its company even with no site (a freemail contact on a registry firm).
+    // The company takes the lead's country: compliance and send times key on it.
     let company: Company | null = null;
     if (parsed.companyDomain || parsed.sourceKey) {
       company = await getOrCreateCompany(
@@ -362,6 +371,7 @@ export async function runImport(
         parsed.companyName,
         raw,
         parsed.socialUrl,
+        country,
       );
     }
     // Match precedence mirrors specificity: exact address, mailbox domain, business domain.
@@ -370,13 +380,6 @@ export async function runImport(
       byDomainRule.get(emailDomain(parsed.email)) ??
       (parsed.companyDomain ? byDomainRule.get(parsed.companyDomain) : undefined) ??
       null;
-    // A batch default fills only true-absent country; present-but-unrecognized stays NULL and is counted.
-    let country: string | null;
-    if (parsed.countryRaw == null) country = parsed.country ?? defaults.country;
-    else {
-      country = parsed.country;
-      if (country == null) counts.country_unrecognized += 1;
-    }
     const [lead] = (await db
       .insert(leads)
       .values({

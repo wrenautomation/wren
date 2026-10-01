@@ -1,7 +1,11 @@
 /** Recruiting and staffing firms: the dead lead reactivation pilot, sold to the owner or MD. */
 import { twoEmailSequence } from "@wren/channel-email";
 import { defineNiche, rawLocation, templatesDir } from "./niche.js";
-import { recruitingDatasets, recruitingLeadFormats } from "./recruiting/sources.js";
+import {
+  recruitingDatasets,
+  recruitingLeadFormats,
+  recruitingScreen,
+} from "./recruiting/sources.js";
 
 export const recruiting = defineNiche({
   name: "recruiting",
@@ -39,4 +43,5 @@ export const recruiting = defineNiche({
   companyLocation: (company) => rawLocation(company, "geo"),
   leadSourceFormats: recruitingLeadFormats,
   datasets: recruitingDatasets,
+  screen: recruitingScreen,
 });

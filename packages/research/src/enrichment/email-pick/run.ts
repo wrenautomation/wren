@@ -12,6 +12,7 @@
 import {
   type Company,
   companies,
+  inPlay,
   type LeadSource,
   matchKey,
   type Person,
@@ -145,6 +146,7 @@ export async function selectPickTargets(
       and(inArray(companies.id, crawledCompanies), notInArray(companies.id, scannableCompanies)),
     ),
     notInArray(companies.id, alreadyPicked),
+    inPlay,
   ];
   if (opts.niche != null) conditions.push(eq(companies.niche, opts.niche));
   if (opts.shard) conditions.push(opts.shard.where(companies.id));

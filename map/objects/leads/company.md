@@ -18,6 +18,7 @@ The company is the unit of outreach: one active email enrollment per company (`p
 ## Shape
 
 - `id`, `domain`, `name`, `import_id`, `raw`, `source_key`, `social_url`, `country`, `domain_verified_at`, `niche`, `timezone` (`packages/core/src/schema.ts:109`–`120`)
+- `decline_reason`: why the firm is no buyer (chain, public_body, foreign, or the niche's rule); NULL = in play. Set by `runScreen` (`packages/core/src/ingest/screen.ts`); every stage filters with `inPlay`
 - `timezone` is filled per niche from location text, never guessed (`packages/channel-email/src/send/lead-timezone.ts:110`)
 - `domain` and `domain_verified_at` are set by discovery when a guessed host proves out (`packages/research/src/discovery/service.ts:247`)
 
@@ -40,6 +41,7 @@ Citations: `packages/core/src/schema.ts:106`
 | Surface | Role |
 |---|---|
 | `wren email import` / `import-people` (CLI) | writes |
+| `wren email screen` | writes `decline_reason`, `country` |
 | `Discovery` service | writes domain fields |
 | `ComposeScheduler`, `SendScheduler` | read |
 | facts views | read |

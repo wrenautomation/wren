@@ -19,7 +19,7 @@ import {
   type Template,
 } from "@wren/channel-email";
 import { checkSequence, type SmsSequence } from "@wren/channel-sms";
-import type { Company, PersonSourceFormat, SourceFormat } from "@wren/core";
+import type { Company, CompanyScreen, PersonSourceFormat, SourceFormat } from "@wren/core";
 import { OFFER_PAGES, offerFacts, offerFor } from "@wren/offers";
 import type { Dataset } from "@wren/research/fetch";
 
@@ -62,6 +62,8 @@ export interface Niche {
    * `<dataDir>/<niche>/bulk/<dataset>/` where the files land.
    */
   readonly datasets: (dataDir: string) => readonly Dataset[];
+  /** Which stored firms are no buyer (`wren email screen`, and after every import), or null. */
+  readonly screen: CompanyScreen | null;
 }
 
 export interface NicheSpec {
@@ -89,6 +91,7 @@ export interface NicheSpec {
   readonly personSourceFormats?: readonly PersonSourceFormat[];
   readonly platformDomains?: Iterable<string>;
   readonly datasets?: (dataDir: string) => readonly Dataset[];
+  readonly screen?: CompanyScreen;
 }
 
 /** A niche-owned import format: `build` and `help` here, name and niche from the caller. */
@@ -223,6 +226,7 @@ export function defineNiche(spec: NicheSpec): Niche {
     personSourceFormats: spec.personSourceFormats ?? [],
     platformDomains: new Set(spec.platformDomains ?? []),
     datasets: spec.datasets ?? (() => []),
+    screen: spec.screen ?? null,
   };
 }
 

@@ -34,7 +34,8 @@ export const ENROLLMENT_TRANSITIONS: TransitionTable<EnrollmentState> = {
 
 export const CANDIDATE_TRANSITIONS: TransitionTable<CandidateState> = {
   // queued -> candidate is the operator dequeue; nothing else re-opens.
-  candidate: set("queued"),
+  // candidate -> verified/rejected: the verdict on the lead it already holds (a listed contact).
+  candidate: set("queued", "verified", "rejected"),
   queued: set("verified", "rejected", "candidate"),
   // Terminal: a verdict was paid for; a re-check is a new verification row.
   verified: set(),

@@ -3,8 +3,9 @@
  * line), turned into import rows. Niche-agnostic: a niche registers a format with
  * its name and, if it needs one, its own `decline` rule.
  *
- * The whole file is read first so chains can be seen: a domain listed at `chainAt`
- * or more places is a chain, and all its places are declined. Closed places and
+ * The whole file is read first so chains can be seen: a registered domain listed at
+ * `chainAt` or more places is a chain (branch subdomains count toward their parent),
+ * and all its places are declined. Closed places and
  * public bodies (.gov, .mil, Canadian government hosts) are declined too. Declined
  * rows are counted by reason on the import (`stats.declined`), and the file on disk
  * stays whole.
@@ -15,7 +16,7 @@
  */
 import { createHash } from "node:crypto";
 import { readFileSync } from "node:fs";
-import { extractDomain, isPlatformDomain } from "../emails.js";
+import { extractDomain, isPlatformDomain, registrableDomain } from "../emails.js";
 import { IDENTITY_KEY, type RawRow } from "./schema.js";
 import type { LeadSource, SourceFormat } from "./sources.js";
 
@@ -26,7 +27,7 @@ export type PlaceDecline = (place: OverturePlace, domain: string | null) => stri
 
 export const CHAIN_AT = 3;
 
-const PUBLIC_BODY =
+export const PUBLIC_BODY =
   /(^|\.)(gov|mil)$|(^|\.)gc\.ca$|(^|\.)canada\.ca$|(^|\.)(gov|gouv)\.[a-z]{2}\.ca$/;
 
 const strings = (v: unknown): string[] =>
@@ -118,12 +119,14 @@ export class OverturePlacesSource implements LeadSource {
     const perDomain = new Map<string, number>();
     for (const p of open) {
       const d = placeDomain(p);
-      if (d) perDomain.set(d, (perDomain.get(d) ?? 0) + 1);
+      if (!d) continue;
+      const parent = registrableDomain(d);
+      perDomain.set(parent, (perDomain.get(parent) ?? 0) + 1);
     }
     const chainAt = this.opts.chainAt ?? CHAIN_AT;
     for (const place of places) {
       const domain = placeDomain(place);
-      const n = domain ? (perDomain.get(domain) ?? 0) : 0;
+      const n = domain ? (perDomain.get(registrableDomain(domain)) ?? 0) : 0;
       const reason = declineReason(place, domain, n, { chainAt, decline: this.opts.decline });
       if (reason) {
         this.counts[reason] = (this.counts[reason] ?? 0) + 1;

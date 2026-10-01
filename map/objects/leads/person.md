@@ -19,6 +19,7 @@ People come from five origins (`PERSON_ORIGINS`, `packages/core/src/schema.ts:25
 
 - `company_id` (not null), `full_name`, `first_name`, `last_name`, `title`, `is_compliance`, `origin`, `origin_ref`, `as_of`, `linkedin_url`, `import_id`, `raw`, `is_testimonial`, `testimonial_org` (`packages/core/src/schema.ts:138`–`155`)
 - one index on `company_id` (`:192`)
+- `person_facts.role_rank` ranks titles per niche; an untitled `registry` person ranks 3 (`packages/core/src/views.ts`)
 
 Citations: `packages/core/src/schema.ts:135`
 
@@ -40,6 +41,7 @@ Citations: `packages/core/src/schema.ts:135`
 |---|---|
 | `wren email import-people` | writes |
 | `Enrichment.applyExtractions` | writes |
+| `wren email contacts` (named leads → registry people) | writes |
 | `Resolution.build` | reads |
 | compose (via `person_facts`) | reads |
 

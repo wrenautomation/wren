@@ -7,7 +7,7 @@
  * force a recrawl. Crawl order prefers verified domains.
  */
 import { createHash } from "node:crypto";
-import { type Company, companies } from "@wren/core";
+import { type Company, companies, inPlay } from "@wren/core";
 import type { Queryable } from "@wren/db";
 import { and, asc, count, eq, isNotNull, isNull, notInArray, sql } from "drizzle-orm";
 import { FetchError, type Fetcher, type FetchResponse } from "../fetch/fetcher.js";
@@ -239,7 +239,11 @@ export async function selectCrawlTargets(
   db: Queryable,
   opts: CrawlSelectOptions = {},
 ): Promise<Company[]> {
-  const conditions = [isNotNull(companies.domain), notInArray(companies.id, crawledCompanyIds(db))];
+  const conditions = [
+    isNotNull(companies.domain),
+    inPlay,
+    notInArray(companies.id, crawledCompanyIds(db)),
+  ];
   if (opts.niche != null) conditions.push(eq(companies.niche, opts.niche));
   if (opts.shard) conditions.push(opts.shard.where(companies.id));
   const q = db

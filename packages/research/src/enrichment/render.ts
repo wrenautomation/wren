@@ -10,7 +10,7 @@
  * never retries it forever (delete the tombstone to retry).
  */
 import { createHash } from "node:crypto";
-import { type Company, companies } from "@wren/core";
+import { type Company, companies, inPlay } from "@wren/core";
 import type { Queryable } from "@wren/db";
 import { and, asc, count, eq, inArray, isNotNull, isNull, notInArray } from "drizzle-orm";
 import type { Fetcher } from "../fetch/fetcher.js";
@@ -310,6 +310,7 @@ export async function selectRenderTargets(
   const conditions = [
     inArray(companies.id, shelled(db)),
     notInArray(companies.id, renderedAlready(db)),
+    inPlay,
   ];
   if (opts.niche != null) conditions.push(eq(companies.niche, opts.niche));
   if (opts.shard) conditions.push(opts.shard.where(companies.id));

@@ -7,6 +7,7 @@ import {
   isPlatformDomain,
   isRoleLocalpart,
   normalizeEmail,
+  registrableDomain,
   validDomain,
 } from "./emails.js";
 
@@ -102,5 +103,21 @@ describe("domains", () => {
     expect(isRoleLocalpart("jane.roe@x.com")).toBe(false);
     expect(isRoleLocalpart("info")).toBe(false);
     expect(isRoleLocalpart("")).toBe(false);
+  });
+});
+
+describe("registrableDomain", () => {
+  it("a branch subdomain is its parent's; a public suffix stays whole", () => {
+    expect(registrableDomain("locations.acme.com")).toBe("acme.com");
+    expect(registrableDomain("Acme.com")).toBe("acme.com");
+    expect(registrableDomain("toronto.acme.on.ca")).toBe("acme.on.ca");
+    expect(registrableDomain("jobs.acme.co.uk")).toBe("acme.co.uk");
+  });
+
+  it("each site on a builder is its own", () => {
+    expect(registrableDomain("acme.business.site")).toBe("acme.business.site");
+    expect(registrableDomain("www.acme.godaddysites.com")).toBe("acme.godaddysites.com");
+    expect(registrableDomain("acme.wixsite.com")).toBe("acme.wixsite.com");
+    expect(registrableDomain("acme.blogspot.com")).toBe("acme.blogspot.com");
   });
 });

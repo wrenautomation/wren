@@ -5,6 +5,8 @@
  * don't survive real B2B mail anyway.
  */
 
+import { getDomain } from "tldts";
+
 /** Providers where the email domain identifies a person, not a business. Never keys a company. */
 export const FREEMAIL_DOMAINS: ReadonlySet<string> = new Set([
   "gmail.com",
@@ -193,6 +195,48 @@ const suffixMatch = (d: string, set: Iterable<string>) => {
 export function isPlatformDomain(domain: string, extra: Iterable<string> = []): boolean {
   const d = domain.toLowerCase();
   return suffixMatch(d, PLATFORM_DOMAINS) || suffixMatch(d, extra);
+}
+
+/**
+ * Site builders that hand each customer a subdomain, beyond the public suffix list's
+ * own (blogspot.com, wixsite.com, square.site are already there): each subdomain is a
+ * different business, so none of them groups with another.
+ */
+export const SITE_BUILDER_HOSTS: ReadonlySet<string> = new Set([
+  "business.site",
+  "wix.com",
+  "weebly.com",
+  "godaddysites.com",
+  "ueniweb.com",
+  "hub.biz",
+  "placeweb.site",
+  "wordpress.com",
+  "squarespace.com",
+  "webflow.io",
+  "carrd.co",
+  "jimdosite.com",
+  "mystrikingly.com",
+  "site123.me",
+  "yolasite.com",
+  "webs.com",
+  "homestead.com",
+]);
+
+/**
+ * The domain its owner registered: `locations.acme.com` → `acme.com`, `acme.on.ca`
+ * stays whole, and one site on a builder (`acme.business.site`) is its own.
+ */
+export function registrableDomain(domain: string): string {
+  const d = domain.toLowerCase().replace(/\.+$/, "");
+  for (const host of SITE_BUILDER_HOSTS) {
+    if (!d.endsWith(`.${host}`)) continue;
+    const label = d
+      .slice(0, -host.length - 1)
+      .split(".")
+      .pop() as string;
+    return `${label}.${host}`;
+  }
+  return getDomain(d, { allowPrivateDomains: true }) ?? d;
 }
 
 /** True for a functional mailbox by its local part alone; plus-tags stripped. A bare word is never an address. */

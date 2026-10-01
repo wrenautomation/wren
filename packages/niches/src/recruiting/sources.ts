@@ -3,7 +3,15 @@
  * free public data, US and Canada only. Core owns the readers; this file only says
  * which categories, which countries, and which places are not staffing firms.
  */
-import { type OverturePlace, overtureFormat, type PlaceDecline, sbaSearchFormat } from "@wren/core";
+import {
+  type CompanyScreen,
+  isCommercialName,
+  type OverturePlace,
+  overtureFormat,
+  type PlaceDecline,
+  type ScreenedCompany,
+  sbaSearchFormat,
+} from "@wren/core";
 import { overturePlaces, pppLoans, sbaSearch } from "@wren/research/fetch";
 
 export const RECRUITING_COUNTRIES = ["US", "CA"] as const;
@@ -44,6 +52,56 @@ export const declineNonStaffing: PlaceDecline = (place, domain) => {
     return "military";
   if (domain?.endsWith(".org") && !STAFFING_WORD.test(name)) return "nonprofit";
   return null;
+};
+
+/** Public job services and charities Overture files as employment agencies. None buys. */
+const JOB_CENTER =
+  /job ?corps|america'?s job cent|\bajcc?\b|job ?cent(er|re)s?\b|career ?cent(er|re)s?\b|careerlink|career ?source|one[- ]?stop (career|cent|business|workforce|job)|\b1-stop\b|ohio ?means ?jobs|ncworks|masshire|worksource|worknet|workforce (development|investment|board|cent(er|re))|^(texas )?workforce solutions\b|employment (development|training)|community employment services|vocational rehab/i;
+const CHARITY =
+  /\b(ymca|goodwill|easter ?seals|salvation army|urban league|united way|catholic|lutheran)\b|immigra(nt|tion)/i;
+/** A college's own career office; "of University Circle" is a place, not a school. */
+const SCHOOL = /(?<!of )\b(college|university)\b/i;
+/** Staffing talk anywhere in an SBA listing (name, keywords, narrative). */
+const STAFFING_TALK =
+  /staff|personnel|recruit|talent|search|employ|placement|workforce|career|hir(e|ing)|temp|labou?r|jobs|nurs/i;
+/** NAICS codes past which an SBA firm with no staffing talk is a generalist contractor. */
+export const GENERALIST_NAICS = 10;
+
+const sbaListing = (raw: unknown): Record<string, unknown> | null => {
+  const sba = typeof raw === "object" && raw !== null ? (raw as Record<string, unknown>).sba : null;
+  return typeof sba === "object" && sba !== null ? (sba as Record<string, unknown>) : null;
+};
+
+/**
+ * Recruiting's own screen rule over stored firms: job centers, charities and college
+ * career offices by name (a firm with "LLC" or "Staffing" in its name stays), and SBA
+ * generalists, firms that list a staffing code among 10+ others and never talk staffing.
+ */
+export function declineRecruiting(company: ScreenedCompany): string | null {
+  const name = company.name ?? "";
+  if (!isCommercialName(name)) {
+    if (JOB_CENTER.test(name)) return "job_center";
+    if (CHARITY.test(name)) return "nonprofit";
+    if (SCHOOL.test(name)) return "school";
+  }
+  const sba = sbaListing(company.raw);
+  const codes = sba?.naics_all_codes;
+  if (sba && Array.isArray(codes) && codes.length >= GENERALIST_NAICS) {
+    const said = [
+      name,
+      company.domain ?? "",
+      JSON.stringify(sba.keywords ?? ""),
+      String(sba.capabilities_narrative ?? ""),
+    ];
+    if (!STAFFING_TALK.test(said.join(" "))) return "generalist";
+  }
+  return null;
+}
+
+export const recruitingScreen: CompanyScreen = {
+  countries: RECRUITING_COUNTRIES,
+  chainAt: RECRUITING_CHAIN_AT,
+  decline: declineRecruiting,
 };
 
 export const recruitingDatasets = () => [

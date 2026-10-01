@@ -145,6 +145,7 @@ const eligibleSql = (niche: string, companyMatch: string | null, gate: Gate) => 
          pf.company_name, pf.company_domain
   FROM person_facts pf
   WHERE pf.company_niche = ${niche}
+    AND NOT EXISTS (SELECT 1 FROM companies dc WHERE dc.id = pf.company_id AND dc.decline_reason IS NOT NULL)
     AND NOT pf.avoid_emailing_first
     AND pf.role_rank IS NOT NULL
     AND ${gate(sql`pf.company_id`)}
@@ -182,6 +183,7 @@ const roleInboxSql = (
   JOIN newest_pick p ON p.company_id = c.id AND p.best_send_to IS NOT NULL
   JOIN leads l ON l.company_id = c.id AND lower(l.email) = lower(p.best_send_to)
   WHERE c.niche = ${niche}
+    AND c.decline_reason IS NULL
     AND l.status IN ('imported', 'verified')
     AND NOT EXISTS (SELECT 1 FROM verifications v WHERE v.lead_id = l.id AND v.result = 'invalid')
     AND NOT EXISTS (SELECT 1 FROM contact_candidates cc WHERE lower(cc.email) = lower(l.email))

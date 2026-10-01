@@ -231,7 +231,7 @@ describe("registry sources end to end", () => {
     writeFileSync(
       path,
       [
-        place("solo"),
+        place("solo", { emails: ["info@solo.example"] }),
         place("c1", { websites: ["https://chain.example/1"] }),
         place("c2", { websites: ["https://chain.example/2"] }),
         place("c3", { websites: ["https://chain.example/3"] }),
@@ -252,5 +252,7 @@ describe("registry sources end to end", () => {
     });
     const solo = must((await allCompanies()).find((c) => c.domain === "solo.example"));
     expect(solo.sourceKey).toBeNull();
+    // A company made beside its lead takes the lead's country.
+    expect(solo.country).toBe("US");
   });
 });

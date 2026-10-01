@@ -32,7 +32,8 @@
     "@restatedev/restate-sdk": "1.17.1",
     "@wren/db": "workspace:*",
     "csv-parse": "7.0.2",
-    "drizzle-orm": "0.45.2"
+    "drizzle-orm": "0.45.2",
+    "tldts": "7.4.16"
   },
   "devDependencies": {
     "@testcontainers/postgresql": "12.1.0",

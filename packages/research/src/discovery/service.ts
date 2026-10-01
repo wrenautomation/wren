@@ -17,6 +17,7 @@ import {
   DohStatusError,
   type ImportBatch,
   imports,
+  inPlay,
   resolve,
   sightings,
 } from "@wren/core";
@@ -130,8 +131,8 @@ export async function selectDiscoveryTargets(
   const fresh = notAttempted("discover", opts.retryAfterDays ?? DEFAULT_RETRY_AFTER_DAYS);
   const where =
     niche === null
-      ? and(isNull(companies.domain), fresh)
-      : and(isNull(companies.domain), eq(companies.niche, niche), fresh);
+      ? and(isNull(companies.domain), inPlay, fresh)
+      : and(isNull(companies.domain), eq(companies.niche, niche), inPlay, fresh);
   const q = db.select().from(companies).where(where).orderBy(asc(companies.id));
   return opts.limit === undefined ? q : q.limit(opts.limit);
 }
@@ -310,6 +311,7 @@ export async function selectVerificationTargets(
   const base = and(
     isNotNull(companies.domain),
     isNull(companies.domainVerifiedAt),
+    inPlay,
     notAttempted("verify", opts.retryAfterDays ?? DEFAULT_RETRY_AFTER_DAYS),
   );
   const where = niche === null ? base : and(base, eq(companies.niche, niche));

@@ -166,6 +166,8 @@ export const companies = pgTable(
     domainVerifiedAt: timestamp("domain_verified_at", { withTimezone: true }),
     niche: varchar("niche", { length: 32 }),
     timezone: varchar("timezone", { length: 64 }),
+    /** Why the niche's screen says this firm is no buyer (chain, public_body, ...); NULL = in play. */
+    declineReason: varchar("decline_reason", { length: 32 }),
   },
   (t) => [
     primaryKey({ columns: [t.id], name: "pk_companies" }),

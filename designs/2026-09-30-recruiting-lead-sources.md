@@ -143,6 +143,12 @@ PPP loan size ≈ 2.5 months of payroll, so yearly payroll ≈ 4.8 × loan. For 
 - **RL-D12** Data Axle waits on William's card. Nothing depends on it. *(Revised 2026-09-30: dropped for now. William takes it only if free, and it costs $66/yr.)*
 - **RL-D13** Prod's LLM (Cohere Command A) writes the opener. No second provider for one pass.
 - **RL-D14** Opener v1 reads crawled pages only. The SBA narrative feeds v2, for firms with no site.
+- **RL-D15** A firm that is no buyer is marked, never deleted: `companies.decline_reason` (NULL = in play). Every research, verify and compose stage skips it. `wren email screen` runs after each import and lifts a decline its rule no longer makes.
+- **RL-D16** Screen order: public body, foreign, the niche's rule, chain. Chains count by registrable domain (`austin.bigstaff.com` is `bigstaff.com`). Site-builder hosts (business.site, wixsite...) never group.
+- **RL-D17** Recruiting's rule declines job centers, nonprofits, schools and generalists. A generalist is an SBA firm with 10+ NAICS codes and no staffing word in its name, domain, keywords or narrative ("nurs" counts).
+- **RL-D18** A company made beside its lead takes the lead's country. The screen fills a blank country from the raw row.
+- **RL-D19** A named lead is a person: `wren email contacts` makes a `registry` person whose candidate is the lead's own address. The lead's verdict settles the candidate; resolution never queues it. Runs after each import.
+- **RL-D20** Recruiting ranks titles: owner, CEO, president, principal, managing partner first; COO, CFO, MD, GM, partner second; VP, director, manager third. An untitled registry contact ranks third: the source named them as the firm's contact.
 
 ## Build
 
@@ -170,6 +176,9 @@ Leaks found:
 - **Public bodies**: ~490 names look like county offices, job centers or colleges. Needs a tighter rule, not a blind drop ("workforce solutions" is also a staffing name).
 - **SBA off-niche**: 1,286 SBA firms have no staffing word and 4+ NAICS codes (fashion, contracting).
 - **UK**: 23 `.uk` domains, 2 with leads.
+- **SBA owners can't enroll**: 4,916 named leads have no people rows, so compose never sees them.
+
+Fixed (RL-D15–D20). Dry run on prod: 10,112 countries filled; declines 446 generalist, 336 job center, 87 public body, 82 foreign, 64 chain, 39 nonprofit, 22 school. 32,947 firms stay in play, 11,484 with an email lead.
 
 ## Owed by William
 

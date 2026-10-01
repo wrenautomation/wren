@@ -19,6 +19,8 @@ Minting is free and never verifies; queueing is an explicit operator step; only 
 
 - `person_id`, `email`, `domain`, `evidence` (scraped | derived_pattern | guessed_pattern), `pattern`, `rank`, `state` (candidate | queued | verified | rejected), `source_ref`, `lead_id` (`packages/channel-email/src/schema.ts:88`–`98`)
 
+- A listed contact's candidate is born with `lead_id` set: the lead's verdict settles it (`candidate → verified | rejected` in `runVerification`), and `queueCandidates` skips it (`packages/channel-email/src/resolution/listed.ts`)
+
 Citations: `packages/channel-email/src/schema.ts:85`
 
 ## Connected to
@@ -38,6 +40,8 @@ Citations: `packages/channel-email/src/schema.ts:85`
 | Surface | Role |
 |---|---|
 | `Resolution.build/queue/resolve` | write |
+| `wren email contacts` (listed contacts) | write |
+| `runVerification` (lead verdict) | settles linked candidates |
 | `PoolScheduler` (free verifier only) | drives |
 
 ## See

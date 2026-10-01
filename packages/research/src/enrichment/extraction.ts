@@ -14,6 +14,7 @@
 import {
   type Company,
   companies,
+  inPlay,
   type PersonItem,
   type PersonSource,
   parseDirectName,
@@ -212,6 +213,7 @@ export async function selectExtractionTargets(
     notInArray(documents.id, cached),
     ne(documents.text, ""),
     eq(documents.isShell, false),
+    inPlay,
   ];
   if (opts.niche != null) scoped.push(eq(companies.niche, opts.niche));
   if (opts.shard) scoped.push(opts.shard.where(documents.id));

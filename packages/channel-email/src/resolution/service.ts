@@ -279,7 +279,8 @@ export interface QueueStats extends Record<string, number> {
  * follows the person_facts taxonomy: lowest rank first, avoid-list people last.
  */
 export async function queueCandidates(db: Queryable, opts: QueueOptions = {}): Promise<QueueStats> {
-  const filters = [sql`c.state = 'candidate'`];
+  // A candidate already holding its lead (a listed contact) waits on that lead's verdict.
+  const filters = [sql`c.state = 'candidate'`, sql`c.lead_id IS NULL`];
   if (opts.domain) filters.push(sql`c.domain = ${opts.domain}`);
   if (opts.companySourceKey) filters.push(sql`pf.company_source_key = ${opts.companySourceKey}`);
   if (opts.companyDomain) filters.push(sql`pf.company_domain = ${opts.companyDomain}`);
@@ -303,6 +304,7 @@ export async function queueCandidates(db: Queryable, opts: QueueOptions = {}): P
   const conditions = [
     inArray(contactCandidates.personId, personIds),
     eq(contactCandidates.state, "candidate"),
+    isNull(contactCandidates.leadId),
   ];
   // A person can hold candidates at OTHER domains too (a scraped freemail); queueing
   // those under a domain scope would spend credits the operator never authorized.

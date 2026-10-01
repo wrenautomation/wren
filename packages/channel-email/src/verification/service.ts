@@ -26,7 +26,8 @@ import type { Queryable } from "@wren/db";
 import { and, asc, eq, lt, notExists, or, sql } from "drizzle-orm";
 import { eachConcurrently } from "../concurrent.js";
 import { audienceGate, type RecontactPolicy } from "../recontact.js";
-import { type VerificationResult, verifications } from "../schema.js";
+import { settledBy } from "../resolution/listed.js";
+import { contactCandidates, type VerificationResult, verifications } from "../schema.js";
 import type { LocalCheckerLike } from "./local.js";
 import { defaultLocalChecker } from "./mailifier.js";
 import type { EmailVerifier } from "./verifier.js";
@@ -118,7 +119,10 @@ export async function runVerification(
       ),
     );
   }
-  const narrowing = [or(...eligible)];
+  const narrowing = [
+    or(...eligible),
+    sql`not exists (select 1 from ${companies} where ${companies.id} = ${leads.companyId} and ${companies.declineReason} is not null)`,
+  ];
   if (opts.importId !== undefined) narrowing.push(eq(leads.importId, opts.importId));
   if (opts.niche !== undefined) {
     narrowing.push(
@@ -144,6 +148,15 @@ export async function runVerification(
     const status = transitionLead(lead.status, next);
     await db.update(leads).set({ status }).where(eq(leads.id, lead.id));
     lead.status = status;
+    // The verdict on the address settles a listed contact's candidate holding this lead.
+    const settled = settledBy(status);
+    if (settled)
+      await db
+        .update(contactCandidates)
+        .set({ state: settled })
+        .where(
+          and(eq(contactCandidates.leadId, lead.id), eq(contactCandidates.state, "candidate")),
+        );
   };
 
   const checkOne = async (lead: Lead): Promise<void> => {
