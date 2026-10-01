@@ -279,14 +279,21 @@ export function registerSms(program: Command, withDb: WithDb, settings: Settings
     .command("thread <contactId>")
     .description("One thread in full")
     .action(async (id: string) => {
-      const t = await withDb((db) => getThread(db, Number(id)));
+      const t = await withDb((db) =>
+        getThread(db, Number(id), {
+          now: new Date(),
+          cap: policyFrom(settings).monthlyPerContact,
+        }),
+      );
       if (!t) throw new Error(`no sms contact ${id}`);
       const c = t.contact;
       console.log(
         `${c.display} · ${c.company ?? "no company"} · ${c.state} · basis ${c.basis}${c.basisDetail ? ` (${c.basisDetail})` : ""}`,
       );
       if (c.sourceUrl) console.log(`found on ${c.sourceUrl}`);
+      if (c.name || c.email) console.log([c.name, c.email].filter(Boolean).join(" · "));
       if (c.fromNumber) console.log(`from ${formatPhone(c.fromNumber)}`);
+      console.log(`${t.month.sent}/${t.month.cap} texts in the last 31 days`);
       for (const m of t.messages)
         console.log(
           `${m.at.slice(0, 16)} ${m.direction === "in" ? "←" : "→"} [${m.id} ${m.state}${m.disposition ? ` · ${m.disposition}` : ""}] ${m.body}`,

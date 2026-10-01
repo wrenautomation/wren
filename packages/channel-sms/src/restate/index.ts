@@ -20,7 +20,7 @@ import type { Db } from "@wren/db";
 import type { LlmClient } from "@wren/llm";
 import type { Bookings } from "../bookings.js";
 import { type ClassifyStats, classifyReplies, labelReply } from "../classify.js";
-import { addContact } from "../contacts.js";
+import { addContact, startThread } from "../contacts.js";
 import { queueManual, type TickStats, tick } from "../deliver.js";
 import { type EnrollStats, enroll } from "../enroll.js";
 import { applyEvent } from "../events.js";
@@ -200,8 +200,12 @@ export function makeSmsDesk(deps: SmsDeps) {
         ctx: restate.Context,
         req: { filter?: ThreadFilter; limit?: number; offset?: number } = {},
       ): Promise<ThreadSummary[]> => ctx.run("threads", () => listThreads(deps.db, req ?? {})),
-      thread: async (ctx: restate.Context, req: { contactId: number }): Promise<Thread | null> =>
-        ctx.run("thread", () => getThread(deps.db, req.contactId)),
+      thread: async (ctx: restate.Context, req: { contactId: number }): Promise<Thread | null> => {
+        const now = await nowOf(ctx);
+        return ctx.run("thread", () =>
+          getThread(deps.db, req.contactId, { now, cap: deps.policy.monthlyPerContact }),
+        );
+      },
       markRead: async (ctx: restate.Context, req: { contactId: number }): Promise<void> => {
         const now = await nowOf(ctx);
         await ctx.run("mark read", () => markRead(deps.db, req.contactId, now));
@@ -230,6 +234,23 @@ export function makeSmsDesk(deps: SmsDeps) {
           )
           .sync();
         return { messageId: msg.id };
+      },
+      /** A new thread from the app: someone who asked to be texted, why, the first words. */
+      start: async (
+        ctx: restate.Context,
+        req: { phone: string; why: string; body: string },
+      ): Promise<{ contactId: number; messageId: number }> => {
+        const now = await nowOf(ctx);
+        const got = await ctx.run("start", () =>
+          terminal(() => startThread(deps.db, { ...req, now, policy: deps.policy })),
+        );
+        ctx
+          .objectSendClient<{ sync: (c: restate.ObjectContext) => Promise<unknown> }>(
+            { name: "SmsSender" },
+            SENDER_KEY,
+          )
+          .sync();
+        return got;
       },
       label: async (
         ctx: restate.Context,

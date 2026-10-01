@@ -157,6 +157,25 @@ async function queueNext(
 const MONTH_MS = 31 * 86_400_000;
 const REACHED: MessageState[] = ["sending", "sent", "delivered", "unknown"];
 
+/** Texts that left for `e164` in the last 31 days, under any contact row: what the monthly cap counts. */
+export async function textedThisMonth(db: Queryable, e164: string, now: Date): Promise<number> {
+  const [row] = await db
+    .select({ n: sql<number>`count(*)::int` })
+    .from(smsMessages)
+    .where(
+      and(
+        inArray(
+          smsMessages.contactId,
+          db.select({ id: smsContacts.id }).from(smsContacts).where(eq(smsContacts.e164, e164)),
+        ),
+        eq(smsMessages.direction, "out"),
+        inArray(smsMessages.state, REACHED),
+        gte(smsMessages.attemptedAt, new Date(now.getTime() - MONTH_MS)),
+      ),
+    );
+  return row?.n ?? 0;
+}
+
 /** When `e164` may get its next text under the monthly cap; null = now. Counts every text that left, under any contact row. */
 export async function monthlyRoomAt(
   db: Queryable,

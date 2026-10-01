@@ -22,6 +22,7 @@ export const DESK_HANDLERS: ReadonlySet<string> = new Set([
   "thread",
   "markRead",
   "reply",
+  "start",
   "label",
   "numbers",
   "stats",

@@ -164,7 +164,7 @@ async function inbox() {
                 h(
                   "span",
                   { class: "row-name" },
-                  t.company || t.display,
+                  t.company || t.name || t.display,
                   t.disposition ? h("span", { class: "tag" }, words(t.disposition)) : null,
                 ),
                 h("span", { class: "row-when" }, when(t.lastAt)),
@@ -175,7 +175,59 @@ async function inbox() {
         ),
       )
     : h("div", { class: "empty" }, filter === "all" ? "No texts yet." : `Nothing ${filter}.`);
-  screen("Inbox", h("div", { class: "filters" }, chips), list);
+  const start = h("a", { class: "btn new", href: "#/new" }, "New text");
+  screen("Inbox", h("div", { class: "filters" }, chips, start), list);
+}
+
+/** Text someone who asked for it. The reason is kept as the consent record. */
+function newText() {
+  back.hidden = false;
+  const phone = h("input", {
+    class: "field",
+    type: "tel",
+    autocomplete: "off",
+    placeholder: "Phone",
+    "aria-label": "Phone",
+  });
+  const why = h("input", {
+    class: "field",
+    placeholder: "How they asked for texts",
+    "aria-label": "How they asked for texts",
+  });
+  const body = h("textarea", { class: "tpl", rows: 4, placeholder: "Text", "aria-label": "Text" });
+  const send = h("button", { class: "primary", disabled: true }, "Send");
+  const ready = () => {
+    send.disabled = !phone.value.trim() || !body.value.trim();
+  };
+  for (const el of [phone, why, body]) el.addEventListener("input", ready);
+  send.addEventListener("click", async () => {
+    send.disabled = true;
+    try {
+      const got = await api("start", { phone: phone.value, why: why.value, body: body.value });
+      body.value = "";
+      location.hash = `#/thread/${got.contactId}`;
+    } catch (e) {
+      if (e instanceof SignedOut) return signInScreen();
+      alert(e.message);
+      ready();
+    }
+  });
+  screen(
+    "New text",
+    h(
+      "div",
+      { class: "card" },
+      h(
+        "div",
+        { class: "hint" },
+        "Only to someone who asked to be texted. A phone with a thread gets it there.",
+      ),
+      phone,
+      why,
+      body,
+      send,
+    ),
+  );
 }
 
 async function thread(id) {
@@ -188,6 +240,9 @@ async function thread(id) {
     { class: "meta" },
     `${c.display} · ${words(c.state)}`,
     c.fromNumber ? ` · from ${us(c.fromNumber)}` : "",
+    h("br"),
+    c.name || c.email ? [[c.name, c.email].filter(Boolean).join(" · "), h("br")] : "",
+    `${t.month.sent}/${t.month.cap} texts in the last 31 days`,
     h("br"),
     `basis ${c.basis}`,
     c.basisDetail ? ` (${c.basisDetail})` : "",
@@ -226,7 +281,7 @@ async function thread(id) {
     }
     bubbles.append(metaEl);
   }
-  screen(c.company || c.display, meta, bubbles, composer(c));
+  screen(c.company || c.name || c.display, meta, bubbles, composer(c));
   bubbles.lastElementChild?.scrollIntoView({ block: "end" });
   if (
     c.readAt === null ||
@@ -464,6 +519,9 @@ async function route() {
     if (name === "thread") {
       tabs.hidden = true;
       await thread(Number(arg));
+    } else if (name === "new") {
+      tabs.hidden = true;
+      newText();
     } else if (name === "numbers") await numbers();
     else if (name === "templates") await templates();
     else if (name === "stats") await stats();

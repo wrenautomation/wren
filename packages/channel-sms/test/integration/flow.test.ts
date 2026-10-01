@@ -10,7 +10,7 @@ import { FakeLlm } from "@wren/llm";
 import { asc, eq } from "drizzle-orm";
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 import { classifyReplies } from "../../src/classify.js";
-import { addContact } from "../../src/contacts.js";
+import { addContact, startThread } from "../../src/contacts.js";
 import { queueManual, reconcile, tick } from "../../src/deliver.js";
 import { enroll } from "../../src/enroll.js";
 import { applyEvent } from "../../src/events.js";
@@ -128,6 +128,34 @@ describe("manual contacts", () => {
     await numbers(db(), provider, ["+13125550001"]);
     expect((await enrollAt(SHUT, 10, { ...POLICY, bases: ["published"] })).enrolled).toBe(0);
     expect((await enrollAt(SHUT, 10, { ...POLICY, bases: ["opt_in"] })).enrolled).toBe(1);
+  });
+});
+
+describe("new thread from the app", () => {
+  it("needs a reason and a pool number, never enrolls, and reuses a running thread", async () => {
+    const start = (phone: string, why = "asked on a call 2026-09-30") =>
+      startThread(db(), { phone, why, body: "hi, William here", now: OPEN, policy: POLICY });
+    await expect(start("(212) 555-0101")).rejects.toThrow(/no pool number texts US/);
+    await numbers(db(), provider, ["+13125550001"]);
+    await expect(start("(212) 555-0101", " ")).rejects.toThrow(/consent record/);
+    const first = await start("(212) 555-0101");
+    const [c] = await db().select().from(smsContacts);
+    expect(c).toMatchObject({
+      id: first.contactId,
+      sourceKind: "manual",
+      basis: "opt_in",
+      basisDetail: "asked on a call 2026-09-30",
+      state: "finished",
+      stateReason: "started by hand in the app",
+    });
+    expect(c?.numberId).not.toBeNull();
+    expect((await enrollAt(OPEN, 10)).considered).toBe(0);
+    await tickAt(OPEN);
+    expect(provider.sent.map((m) => m.text)).toEqual(["hi, William here"]);
+    // The same phone again: the text joins its thread, no reason needed.
+    const again = await start("+12125550101", "");
+    expect(again.contactId).toBe(first.contactId);
+    expect(await db().select().from(smsContacts)).toHaveLength(1);
   });
 });
 
@@ -373,8 +401,9 @@ describe("enroll → send → receipts → reply", () => {
       lastDirection: "in",
       lastBody: "sure, what's the price?",
     });
-    const thread = await getThread(db(), threads[0]?.contactId as number);
+    const thread = await getThread(db(), threads[0]?.contactId as number, { now: OPEN, cap: 4 });
     expect(thread?.messages.map((m) => m.direction)).toEqual(["out", "in"]);
+    expect(thread?.month).toEqual({ sent: 1, cap: 4 });
   });
 
   it("STOP suppresses on every channel, START lifts, no text follows", async () => {

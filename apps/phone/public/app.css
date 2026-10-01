@@ -139,6 +139,11 @@ main {
   border-color: var(--ink);
   font-weight: 600;
 }
+.btn.new {
+  margin-left: auto;
+  color: var(--ink);
+  text-decoration: none;
+}
 
 .list {
   list-style: none;

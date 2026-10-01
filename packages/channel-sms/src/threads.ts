@@ -6,6 +6,7 @@
 import { companies } from "@wren/core";
 import type { Queryable } from "@wren/db";
 import { and, asc, desc, eq, sql } from "drizzle-orm";
+import { textedThisMonth } from "./deliver.js";
 import { formatPhone } from "./phone.js";
 import {
   type SmsContact,
@@ -20,6 +21,8 @@ export interface ThreadSummary {
   e164: string;
   display: string;
   company: string | null;
+  /** The person's name, when we have one (form applicants). */
+  name: string | null;
   state: SmsContact["state"];
   lastAt: string;
   lastBody: string;
@@ -82,6 +85,7 @@ export async function listThreads(
     e164: r.contact.e164,
     display: formatPhone(r.contact.e164),
     company: r.company,
+    name: r.contact.name,
     state: r.contact.state,
     lastAt: new Date(r.lastAt).toISOString(),
     lastBody: r.lastBody ?? "",
@@ -111,9 +115,15 @@ export interface Thread {
     | "disposition"
     | "dispositionSource"
   > & { at: string })[];
+  /** Texts that left for this phone in the last 31 days, against the monthly cap. */
+  month: { sent: number; cap: number };
 }
 
-export async function getThread(db: Queryable, contactId: number): Promise<Thread | null> {
+export async function getThread(
+  db: Queryable,
+  contactId: number,
+  opts: { now: Date; cap: number },
+): Promise<Thread | null> {
   const [row] = await db
     .select({
       contact: smsContacts,
@@ -157,6 +167,7 @@ export async function getThread(db: Queryable, contactId: number): Promise<Threa
       dispositionSource: m.dispositionSource,
       at: (m.receivedAt ?? m.sentAt ?? m.dueAt ?? m.createdAt).toISOString(),
     })),
+    month: { sent: await textedThisMonth(db, row.contact.e164, opts.now), cap: opts.cap },
   };
 }
 
