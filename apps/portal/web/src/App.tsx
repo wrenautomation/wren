@@ -17,7 +17,7 @@ import {
   type ShellNotice,
   type Theme,
 } from "@wren/ui";
-import { useEffect, useState } from "react";
+import { Component, type ReactNode, useEffect, useState } from "react";
 import { call, type Me, signOutUrl } from "./api.js";
 import { useCall } from "./load.js";
 import type { Module, ModulePage, PageProps } from "./module.js";
@@ -239,7 +239,9 @@ export function App() {
       {!current ? (
         <Loading lines={8} heading />
       ) : open ? (
-        <open.page.Page key={current.id} {...props(current.id)} />
+        <Contained key={`${current.id}/${open.module.id}/${open.page.id}`}>
+          <open.page.Page {...props(current.id)} />
+        </Contained>
       ) : (
         <Launcher key={current.id} name={current.name} apps={cards} props={props(current.id)} />
       )}
@@ -255,7 +257,11 @@ function Launcher({ name, apps, props }: { name: string; apps: Module[]; props: 
   const account = useAccount(props);
   const card = (m: Module) => (
     <AppCard key={m.id} name={m.name} icon={m.icon} href={firstOf(m)} blurb={m.blurb}>
-      {m.Glance ? <m.Glance {...props} /> : null}
+      {m.Glance ? (
+        <Contained quiet>
+          <m.Glance {...props} />
+        </Contained>
+      ) : null}
     </AppCard>
   );
   if (!account.data && !account.error) return <Loading lines={8} heading />;
@@ -282,4 +288,21 @@ function Launcher({ name, apps, props }: { name: string; apps: Module[]; props: 
       {ours.length ? <AppGrid label="Wren team">{ours.map(card)}</AppGrid> : null}
     </>
   );
+}
+
+/** A page that throws breaks itself, never the shell around it. A card's glance just goes blank. */
+class Contained extends Component<{ quiet?: boolean; children: ReactNode }, { failed: boolean }> {
+  override state = { failed: false };
+  static getDerivedStateFromError() {
+    return { failed: true };
+  }
+  override render() {
+    if (!this.state.failed) return this.props.children;
+    if (this.props.quiet) return null;
+    return (
+      <Alert onRetry={() => this.setState({ failed: false })}>
+        This page hit a problem. Try again, or open another app.
+      </Alert>
+    );
+  }
 }
