@@ -9,6 +9,7 @@ import { eachConcurrently } from "@wren/channel-email";
 import { type Feed, NO_FEED } from "@wren/core";
 import type { SiteClient } from "@wren/core/content";
 import type { Queryable } from "@wren/db";
+import { failedRead } from "@wren/research";
 import {
   type CompanySubject,
   checkHiring,
@@ -134,6 +135,8 @@ export async function checkCrmCompanies(
       } catch (err) {
         await feed.emit(failedLine("signals", firm, err));
         stats.errors += 1;
+        if (failedRead(err, "linkedin"))
+          stats.aborted ??= `LinkedIn failed a read, so stopped asking it: ${(err as Error).message}`;
         streak += 1;
         if (streak >= ERROR_STREAK)
           stats.aborted ??= `${ERROR_STREAK} errors in a row, last: ${err instanceof Error ? err.message : String(err)}`;

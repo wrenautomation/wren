@@ -78,12 +78,15 @@ export function autobrowseSites(o: {
   url: string;
   token?: string | null;
   fetch?: FetchLike;
+  /** Who in wren asked, sent as `x-caller` for autobrowse's per-caller usage. */
+  caller?: string;
 }): SiteClient {
   const doFetch: FetchLike = o.fetch ?? ((u, i) => fetch(u, i));
   const base = o.url.replace(/\/$/, "");
   const headers = (json: boolean) => ({
     ...(json ? { "content-type": "application/json" } : {}),
     ...(o.token ? { authorization: `Bearer ${o.token}` } : {}),
+    ...(o.caller ? { "x-caller": o.caller } : {}),
   });
   const statusRows = new Map<string, Promise<SiteStatus>>();
   const status = (site: string) => {

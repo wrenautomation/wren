@@ -175,6 +175,8 @@ const NO_LOOKUPS: CrmLookupStats = {
   capped: 0,
   errors: 0,
   findings: {},
+  moved: 0,
+  left: 0,
   aborted: null,
 };
 

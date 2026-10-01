@@ -148,7 +148,7 @@ export function registerBooks(
           new GmailClient({ keyPath: expandHome(settings.googleServiceAccount) }),
           m.address,
         )
-      : siteMailbox(ingressSites(settings), m.address);
+      : siteMailbox(ingressSites(settings, "wren:books"), m.address);
   const reader = () => {
     if (settings.llm === "fake")
       throw new Error("books reads bills with a real model; WREN_LLM is fake");

@@ -6,6 +6,8 @@
  * outlast Node's 5-minute wait for response headers ("fetch failed"), so each
  * call carries an idempotency key and a dropped connection asks again with it:
  * Restate answers from the same invocation instead of running a second one.
+ * `caller` names the command on every call, so autobrowse can say who spent
+ * a capped site's reads.
  */
 import * as clients from "@restatedev/restate-sdk-clients";
 import { ingressOf, type Settings } from "@wren/config";
@@ -38,7 +40,11 @@ async function held<T>(send: (idempotencyKey: string) => PromiseLike<T>): Promis
   }
 }
 
-export function ingressSites(settings: Settings, service: { name: string } = SITES): SiteClient {
+export function ingressSites(
+  settings: Settings,
+  caller: string,
+  service: { name: string } = SITES,
+): SiteClient {
   const client = clients.connect(ingressOf(settings)).serviceClient<SitesService>(service);
   let woken: Promise<unknown> | null = null;
   const awake = () => {
@@ -59,6 +65,7 @@ export function ingressSites(settings: Settings, service: { name: string } = SIT
               path,
               input,
               ...(account ? { account } : {}),
+              caller,
             },
             clients.rpc.opts({ idempotencyKey }),
           ),

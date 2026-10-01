@@ -71,3 +71,34 @@ describe("dwellOf", () => {
     expect(dwellOf(LINES[1], 40, true)).toBe(RUN_DWELL.found / 2);
   });
 });
+
+describe("edge cases", () => {
+  it("shown past the end counts every line once", () => {
+    expect(stepsAt(STEPS, LINES, 99)).toEqual(stepsAt(STEPS, LINES, LINES.length));
+  });
+
+  it("a done count lower than what the lines handled never lowers it", () => {
+    const lines = [
+      line(1, "a", "started"),
+      line(2, "a", "did", "X"),
+      line(3, "a", "did", "Y"),
+      line(4, "a", "found", "Z"),
+      { ...line(5, "a", "done"), count: 2 },
+    ];
+    expect(stepsAt(STEPS, lines, 5).a).toEqual({ state: "done", handled: 3, found: 1, waiting: 0 });
+  });
+
+  it("a done line with no count or zero keeps the handled count", () => {
+    const lines = [line(1, "a", "did", "X"), { ...line(2, "a", "done"), count: 0 }];
+    expect(stepsAt(STEPS, lines, 2).a?.handled).toBe(1);
+  });
+
+  it("exactly 3 behind keeps the normal pace; 4 behind speeds up", () => {
+    expect(dwellOf(LINES[0], 3, true)).toBe(RUN_DWELL.started);
+    expect(dwellOf(LINES[0], 4, true)).toBe(RUN_DWELL.started / 2);
+  });
+
+  it("no line to hold: no wait", () => {
+    expect(dwellOf(undefined, 10, true)).toBe(0);
+  });
+});

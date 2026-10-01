@@ -35,9 +35,12 @@ describe("restateSites", () => {
   it("wakes the box once per invocation, as a journaled step before the first call", async () => {
     const { ctx, calls } = ctxOf((h) => (h === "status" ? { routes: [] } : {}));
     let woken = 0;
-    const sites = restateSites(ctx, async () => {
-      woken++;
-      return "started";
+    const sites = restateSites(ctx, {
+      caller: "test",
+      wake: async () => {
+        woken++;
+        return "started";
+      },
     });
     await sites.via("youtube", "GET", "/x");
     await sites.call("youtube", "GET", "/x");
@@ -45,7 +48,7 @@ describe("restateSites", () => {
     expect(woken).toBe(1);
     expect(calls.map((c) => c.handler)).toEqual(["run wake autobrowse", "status", "call", "call"]);
     const bare = ctxOf(() => ({}));
-    await restateSites(bare.ctx).call("youtube", "GET", "/x");
+    await restateSites(bare.ctx, { caller: "test" }).call("youtube", "GET", "/x");
     expect(bare.calls.map((c) => c.handler)).toEqual(["call"]);
   });
 
@@ -55,7 +58,7 @@ describe("restateSites", () => {
         ? { routes: [{ method: "POST", path: "/rest/posts", via: "api" }] }
         : { id: "urn:li:share:1" },
     );
-    const sites = restateSites(ctx);
+    const sites = restateSites(ctx, { caller: "test" });
     expect(await sites.call("linkedin", "POST", "/rest/posts", { commentary: "hi" })).toEqual({
       id: "urn:li:share:1",
     });
@@ -67,14 +70,19 @@ describe("restateSites", () => {
       method: "POST",
       path: "/rest/posts",
       input: { commentary: "hi" },
+      caller: "test",
     });
   });
 
   it("a pinned account rides on every call, over Restate and over HTTP", async () => {
     const { ctx, calls } = ctxOf(() => ({}));
-    await asAccount(restateSites(ctx), "linkedin@outreach-2").call("linkedin", "GET", "/rest/me");
+    await asAccount(restateSites(ctx, { caller: "test" }), "linkedin@outreach-2").call(
+      "linkedin",
+      "GET",
+      "/rest/me",
+    );
     expect(calls[0]?.req).toMatchObject({ site: "linkedin", account: "linkedin@outreach-2" });
-    await restateSites(ctx).call("linkedin", "GET", "/rest/me");
+    await restateSites(ctx, { caller: "test" }).call("linkedin", "GET", "/rest/me");
     expect(calls[1]?.req).not.toHaveProperty("account");
 
     const urls: string[] = [];
@@ -93,13 +101,33 @@ describe("restateSites", () => {
     ]);
   });
 
+  it("the caller rides on every call: in the body over Restate, as x-caller over HTTP", async () => {
+    const { ctx, calls } = ctxOf(() => ({}));
+    await restateSites(ctx, { caller: "wren:crm-run" }).call("linkedin", "GET", "/rest/me");
+    expect(calls[0]?.req).toMatchObject({ caller: "wren:crm-run" });
+
+    const sent: (string | null)[] = [];
+    const http = (caller?: string) =>
+      autobrowseSites({
+        url: "http://box",
+        ...(caller ? { caller } : {}),
+        fetch: async (_u, init) => {
+          sent.push(new Headers(init?.headers).get("x-caller"));
+          return new Response("{}");
+        },
+      });
+    await http("wren:books").call("gmail", "GET", "/x");
+    await http().call("gmail", "GET", "/x");
+    expect(sent).toEqual(["wren:books", null]);
+  });
+
   it("a terminal error from the worker is a SiteCallError with its status", async () => {
     const { ctx } = ctxOf(() => {
       throw new restate.TerminalError("no leg yet", { errorCode: 501 });
     });
-    await expect(restateSites(ctx).call("youtube", "GET", "/youtube/v3/videos")).rejects.toSatisfy(
-      (e: unknown) => e instanceof SiteCallError && e.status === 501,
-    );
+    await expect(
+      restateSites(ctx, { caller: "test" }).call("youtube", "GET", "/youtube/v3/videos"),
+    ).rejects.toSatisfy((e: unknown) => e instanceof SiteCallError && e.status === 501);
   });
 });
 
@@ -108,19 +136,26 @@ describe("restateSites over a named service", () => {
     expect(SITES).toEqual({ name: "sites" });
     expect(DESK).toEqual({ name: "desk" });
     const box = ctxOf(() => ({}));
-    await restateSites(box.ctx).call("reddit", "GET", "/api/v1/me");
+    await restateSites(box.ctx, { caller: "test" }).call("reddit", "GET", "/api/v1/me");
     expect(box.services).toEqual([{ name: "sites" }]);
     const mac = ctxOf(() => ({}));
-    await restateSites(mac.ctx, undefined, DESK).call("reddit", "GET", "/api/v1/me");
+    await restateSites(mac.ctx, { caller: "test", service: DESK }).call(
+      "reddit",
+      "GET",
+      "/api/v1/me",
+    );
     expect(mac.services).toEqual([{ name: "desk" }]);
     expect(mac.calls).toEqual([
-      { handler: "call", req: { site: "reddit", method: "GET", path: "/api/v1/me", input: {} } },
+      {
+        handler: "call",
+        req: { site: "reddit", method: "GET", path: "/api/v1/me", input: {}, caller: "test" },
+      },
     ]);
   });
 
   it("the desk is never woken without a wake, even on via", async () => {
     const { ctx, calls } = ctxOf((h) => (h === "status" ? { routes: [] } : {}));
-    const desk = restateSites(ctx, undefined, DESK);
+    const desk = restateSites(ctx, { caller: "test", service: DESK });
     await desk.via("reddit", "POST", "/api/submit");
     await desk.call("reddit", "POST", "/api/submit");
     expect(calls.map((c) => c.handler)).toEqual(["status", "call"]);
@@ -129,14 +164,14 @@ describe("restateSites over a named service", () => {
   it("a wake still runs once before the first call on a named service", async () => {
     const { ctx, calls, services } = ctxOf(() => ({}));
     let woken = 0;
-    const sites = restateSites(
-      ctx,
-      async () => {
+    const sites = restateSites(ctx, {
+      caller: "test",
+      wake: async () => {
         woken++;
         return "running";
       },
-      DESK,
-    );
+      service: DESK,
+    });
     await sites.call("reddit", "GET", "/a");
     await sites.call("reddit", "GET", "/b");
     expect(woken).toBe(1);
@@ -148,7 +183,7 @@ describe("restateSites over a named service", () => {
     const { ctx } = ctxOf(() => {
       throw new restate.TerminalError("subreddit banned you", { errorCode: 403 });
     });
-    const err = await restateSites(ctx, undefined, DESK)
+    const err = await restateSites(ctx, { caller: "test", service: DESK })
       .call("reddit", "POST", "/api/submit", { sr: "x" })
       .catch((e: unknown) => e);
     expect(err).toBeInstanceOf(SiteCallError);
@@ -164,15 +199,15 @@ describe("restateSites over a named service", () => {
       throw new restate.TerminalError("boom");
     });
     await expect(
-      restateSites(bare.ctx, undefined, DESK).call("reddit", "GET", "/x"),
+      restateSites(bare.ctx, { caller: "test", service: DESK }).call("reddit", "GET", "/x"),
     ).rejects.toSatisfy((e: unknown) => e instanceof SiteCallError && e.status === 500);
     const plain = new Error("socket hang up");
     const flaky = ctxOf(() => {
       throw plain;
     });
-    await expect(restateSites(flaky.ctx, undefined, DESK).call("reddit", "GET", "/x")).rejects.toBe(
-      plain,
-    );
+    await expect(
+      restateSites(flaky.ctx, { caller: "test", service: DESK }).call("reddit", "GET", "/x"),
+    ).rejects.toBe(plain);
   });
 
   it("via reads one status per site and keeps each site's apart", async () => {
@@ -183,7 +218,7 @@ describe("restateSites over a named service", () => {
         ? { routes: [{ method: "POST", path: "/api/submit", via: "browser" }] }
         : { routes: [{ method: "POST", path: "/api/submit", via: "api" }] };
     });
-    const desk = restateSites(ctx, undefined, DESK);
+    const desk = restateSites(ctx, { caller: "test", service: DESK });
     const [a, b] = await Promise.all([
       desk.via("reddit", "POST", "/api/submit"),
       desk.via("reddit", "POST", "/api/submit"),
@@ -199,8 +234,8 @@ describe("restateSites over a named service", () => {
 
   it("the status cache lives per client: a new client reads status again", async () => {
     const { ctx, calls } = ctxOf(() => ({ routes: [] }));
-    await restateSites(ctx, undefined, DESK).via("reddit", "GET", "/x");
-    await restateSites(ctx, undefined, DESK).via("reddit", "GET", "/x");
+    await restateSites(ctx, { caller: "test", service: DESK }).via("reddit", "GET", "/x");
+    await restateSites(ctx, { caller: "test", service: DESK }).via("reddit", "GET", "/x");
     expect(calls.filter((c) => c.handler === "status")).toHaveLength(2);
   });
 });

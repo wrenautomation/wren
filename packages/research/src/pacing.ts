@@ -27,6 +27,14 @@ export class Capped extends Error {
 export const refusedBy = (err: unknown): number | null =>
   err instanceof SiteCallError && err.status >= 400 && err.status < 500 ? err.status : null;
 
+/**
+ * A metered site's read that failed (5xx) was still spent: one is enough to
+ * stop asking that site for the rest of a run. LinkedIn's reads are a
+ * person's own account, so a stage stops on the first.
+ */
+export const failedRead = (err: unknown, site: string): boolean =>
+  err instanceof SiteCallError && err.site === site && err.status >= 500;
+
 /** Seconds a 429 asks us to wait; null for any other error. No figure = an hour. */
 export function retryAfter(err: unknown): number | null {
   if (!(err instanceof SiteCallError) || err.status !== 429) return null;

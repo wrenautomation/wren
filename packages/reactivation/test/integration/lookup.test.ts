@@ -58,8 +58,8 @@ const passAll: LocalCheckerLike = {
 const personId = async (fullName: string) =>
   (await db().select().from(people).where(eq(people.fullName, fullName)))[0]?.id ?? -1;
 
-/** Search finds Jane at Globex; Bob and Ann come back empty; LinkedIn is capped. */
-function sites(opts: { searchDown?: boolean } = {}) {
+/** Search finds Jane at Globex; Bob and Ann come back empty; LinkedIn is capped (or failing). */
+function sites(opts: { searchDown?: boolean; linkedinDown?: boolean } = {}) {
   const calls: string[] = [];
   const client: SiteClient = {
     async call(site, method, path, input = {}) {
@@ -81,6 +81,7 @@ function sites(opts: { searchDown?: boolean } = {}) {
           : [];
         return { query: q, people: found, via: "exa" } as never;
       }
+      if (opts.linkedinDown) throw new SiteCallError(site, method, path, 502, "read failed");
       throw new SiteCallError(site, method, path, 429, "cap used; retry after 3600s");
     },
     async via() {
@@ -148,6 +149,17 @@ describe("crm lookup", () => {
 
     await db().execute(sql`update person_lookups set retry_at = now() - interval '1 minute'`);
     expect((await crmLookupSubjects(db())).map((s) => s.firstName)).toEqual(["Bob", "Ann"]);
+  });
+
+  it("a failed LinkedIn read stops the stage: one spent, no second", async () => {
+    const { client, calls } = sites({ linkedinDown: true });
+    const stats = await lookUpCrmPeople(db(), client, {
+      linkedin: "linkedin@research",
+      concurrency: 1,
+    });
+    expect(calls.filter((c) => c.startsWith("linkedin"))).toHaveLength(1);
+    expect(stats.errors).toBe(1);
+    expect(stats.aborted).toMatch(/LinkedIn failed a read/);
   });
 
   it("stops after a streak of errors and writes nothing for them", async () => {

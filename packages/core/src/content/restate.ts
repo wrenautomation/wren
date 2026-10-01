@@ -33,6 +33,8 @@ export type SitesService = {
       path: string;
       input?: Record<string, unknown>;
       account?: string;
+      /** Who in wren asked, for autobrowse's per-caller usage (`wren:crm-run`). */
+      caller?: string;
     },
   ) => Promise<unknown>;
   setup: (
@@ -60,13 +62,14 @@ export type Wake = () => Promise<"started" | "running">;
  * durable step of this invocation. With a `wake`, the first call of the
  * invocation starts the box first (one journaled step); Restate then holds
  * the call until the worker is back on the tunnel. `service`: `SITES` (the
- * box) or `DESK` (the Mac, never woken: it is on while the Mac is).
+ * box) or `DESK` (the Mac, never woken: it is on while the Mac is). `caller`
+ * rides on every call, so autobrowse can say who spent a capped site's reads.
  */
 export function restateSites(
   ctx: restate.Context,
-  wake?: Wake,
-  service: { name: string } = SITES,
+  o: { caller: string; wake?: Wake | undefined; service?: { name: string } },
 ): SiteClient {
+  const { caller, wake, service = SITES } = o;
   const client = ctx.serviceClient<SitesService>(service);
   const statuses = new Map<string, Promise<SiteStatus>>();
   let woken: Promise<unknown> | null = null;
@@ -85,6 +88,7 @@ export function restateSites(
           path,
           input,
           ...(account ? { account } : {}),
+          caller,
         })) as never;
       } catch (err) {
         throw siteCallErrorFrom(err, site, method, path);

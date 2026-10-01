@@ -400,7 +400,11 @@ export async function buildServices(
     };
     services.push(
       makeSearchWatch(search),
-      makeSearchWeek({ ...search, llm, desk: (ctx) => restateSites(ctx, undefined, DESK) }),
+      makeSearchWeek({
+        ...search,
+        llm,
+        desk: (ctx) => restateSites(ctx, { caller: "wren:search-week", service: DESK }),
+      }),
     );
   } else log.info("WREN_SEARCH_SITE/WREN_SEARCH_ORIGIN unset: no search loop");
   // The client portal's reads (apps/portal), and one reactivation loop per client.
@@ -483,13 +487,15 @@ function contentFor(settings: Settings, log: Logger): ChannelsFor | null {
   // Reddit: its API with wren's own token, or the Mac's desk worker; no box to wake either way.
   const reddit = redditFrom(settings, on, log);
   return (ctx) => {
-    const sites = restateSites(ctx, wake);
+    const sites = restateSites(ctx, { caller: "wren:content", wake });
     return {
       ...(on.includes("linkedin") ? { linkedin: linkedinContent(sites) } : {}),
       ...(reddit
         ? {
             reddit: redditContent(
-              reddit === "desk" ? restateSites(ctx, undefined, DESK) : journaledSites(ctx, reddit),
+              reddit === "desk"
+                ? restateSites(ctx, { caller: "wren:content", service: DESK })
+                : journaledSites(ctx, reddit),
             ),
           }
         : {}),
@@ -516,7 +522,7 @@ function adsFor(settings: Settings): Parameters<typeof makeAds>[0] {
   const wake = settings.autobrowseInstanceId ? ec2Wake(settings.autobrowseInstanceId) : undefined;
   const host = settings.mediaBucket ? s3MediaHost({ bucket: settings.mediaBucket }) : undefined;
   return {
-    sitesFor: (ctx) => restateSites(ctx, wake),
+    sitesFor: (ctx) => restateSites(ctx, { caller: "wren:ads", wake }),
     ...(settings.metaAdAccountId ? { adAccountId: settings.metaAdAccountId } : {}),
     ...(settings.metaPageId ? { pageId: settings.metaPageId } : {}),
     ...(host ? { host } : {}),

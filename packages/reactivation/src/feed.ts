@@ -48,7 +48,7 @@ export interface FoundFact {
 }
 
 /** The finding worth a line: a move or a departure before "still there". */
-function headline(findings: FindingDraft[]): FindingDraft | null {
+export function headline(findings: FindingDraft[]): FindingDraft | null {
   const rank = (k: string) =>
     k === "job_change" ? 0 : k === "left" ? 1 : k === "still_there" ? 2 : 3;
   return [...findings].sort((a, b) => rank(a.kind) - rank(b.kind))[0] ?? null;
@@ -195,15 +195,16 @@ export function stageDone(r: CrmStageResult): FeedEvent {
         const n = v.valid + v.invalid + v.risky + v.catch_all + v.local_invalid + v.local_errors;
         return [STAGE_DONE.verify(n, v.valid, v.invalid + v.local_invalid), n];
       }
+      // A parked unit waits; it isn't counted until it's done (the replay agrees).
       case "lookup": {
         const v = r.stats;
-        return [
-          STAGE_DONE.lookup(v.selected, v.findings.job_change ?? 0, v.findings.left ?? 0),
-          v.selected,
-        ];
+        const n = v.selected - v.capped;
+        return [STAGE_DONE.lookup(n, v.moved, v.left), n];
       }
-      case "signals":
-        return [STAGE_DONE.signals(r.stats.selected, r.stats.hiring), r.stats.selected];
+      case "signals": {
+        const n = r.stats.selected - r.stats.capped;
+        return [STAGE_DONE.signals(n, r.stats.hiring), n];
+      }
       case "score":
         return [STAGE_DONE.score(), null];
       case "brief":

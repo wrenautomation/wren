@@ -37,7 +37,18 @@ export const NO_FEED: Feed = { emit: async () => {} };
 
 const LINE_LIMIT = 300;
 const DETAIL_LIMIT = 500;
-const cut = (s: string, n: number) => (s.length > n ? `${s.slice(0, n - 1)}…` : s);
+/** Postgres refuses a NUL in text or jsonb; an error's message can carry one. */
+const clean = (s: string) => s.replaceAll("\u0000", "");
+/** At most `n` characters, counting an emoji as one, so none is split. */
+const cut = (s: string, n: number) => {
+  const chars = [...clean(s)];
+  return chars.length > n ? `${chars.slice(0, n - 1).join("")}…` : chars.join("");
+};
+/** Why a write failed, without the query's values (names, emails). */
+const whyFailed = (err: unknown) => {
+  const cause = err instanceof Error ? err.cause : null;
+  return cause instanceof Error ? cause.message : err instanceof Error ? err.name : String(err);
+};
 
 /** The feed of one `runs` row. */
 export function runFeed(db: Queryable, runId: string, warn = console.warn): Feed {
@@ -51,15 +62,21 @@ export function runFeed(db: Queryable, runId: string, warn = console.warn): Feed
           step: e.step,
           kind: e.kind,
           line: cut(e.line, LINE_LIMIT),
-          subject: e.subject ?? null,
+          subject: e.subject ? clean(e.subject) : null,
           count: e.count ?? null,
-          source: e.source ?? null,
+          source: e.source
+            ? {
+                ...e.source,
+                label: clean(e.source.label),
+                ...(e.source.href ? { href: clean(e.source.href) } : {}),
+              }
+            : null,
           detail: e.detail ? cut(e.detail, DETAIL_LIMIT) : null,
           traceId: e.traceId ?? null,
         });
       } catch (err) {
         broken = true;
-        warn(`feed for run ${runId} stopped: ${err instanceof Error ? err.message : String(err)}`);
+        warn(`feed for run ${runId} stopped: ${whyFailed(err)}`);
       }
     },
   };

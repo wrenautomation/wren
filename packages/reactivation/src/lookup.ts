@@ -8,7 +8,7 @@ import { eachConcurrently } from "@wren/channel-email";
 import { type Feed, NO_FEED } from "@wren/core";
 import type { SiteClient } from "@wren/core/content";
 import type { Queryable } from "@wren/db";
-import type { FindingKind } from "@wren/research";
+import { type FindingKind, failedRead } from "@wren/research";
 import {
   type LookupOptions,
   type LookupSubject,
@@ -16,7 +16,7 @@ import {
   recordLookup,
 } from "@wren/research/people";
 import { type SQL, sql } from "drizzle-orm";
-import { failedLine, fullName, lookupLine } from "./feed.js";
+import { failedLine, fullName, headline, lookupLine } from "./feed.js";
 
 /** Errors in a row that stop the run: something is down, not one odd person. */
 const ERROR_STREAK = 5;
@@ -28,6 +28,9 @@ export interface CrmLookupStats {
   capped: number;
   errors: number;
   findings: Partial<Record<FindingKind, number>>;
+  /** People, by the finding their line names: one person is one move or one departure. */
+  moved: number;
+  left: number;
   aborted: string | null;
 }
 
@@ -120,6 +123,8 @@ export async function lookUpCrmPeople(
     capped: 0,
     errors: 0,
     findings: {},
+    moved: 0,
+    left: 0,
     aborted: null,
   };
   const lookup: LookupOptions = { linkedin: opts.linkedin, ...(opts.now ? { now: opts.now } : {}) };
@@ -137,6 +142,8 @@ export async function lookUpCrmPeople(
       } catch (err) {
         await feed.emit(failedLine("lookup", name, err));
         stats.errors += 1;
+        if (failedRead(err, "linkedin"))
+          stats.aborted ??= `LinkedIn failed a read, so stopped asking it: ${(err as Error).message}`;
         streak += 1;
         if (streak >= ERROR_STREAK)
           stats.aborted ??= `${ERROR_STREAK} errors in a row, last: ${err instanceof Error ? err.message : String(err)}`;
@@ -146,6 +153,9 @@ export async function lookUpCrmPeople(
       await feed.emit(lookupLine(name, r));
       stats[r.state] += 1;
       for (const f of r.findings) stats.findings[f.kind] = (stats.findings[f.kind] ?? 0) + 1;
+      const top = r.state === "matched" ? headline(r.findings)?.kind : null;
+      if (top === "job_change") stats.moved += 1;
+      else if (top === "left") stats.left += 1;
       if (r.state !== "capped" || !r.retryAt) return;
       // LinkedIn capped: the rest go on by search alone and park at step 3.
       // Search capped: nobody else can get anywhere today.

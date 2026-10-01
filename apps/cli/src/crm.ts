@@ -159,7 +159,7 @@ export function registerCrm(
       const deps = {
         verifier,
         checker: defaultLocalChecker(),
-        sites: ingressSites(settings),
+        sites: ingressSites(settings, "wren:crm-run"),
         // Company sites and job boards: identified, short timeouts, one retry.
         fetcher: settings.fetchContact
           ? new PoliteFetcher(userAgent(settings.fetchContact), { timeout: 10, retries: 1 })
@@ -424,7 +424,7 @@ export function registerCrm(
     .option("--again", "look up people already looked up, too")
     .action(
       async (opts: { limit?: number; concurrency: number; linkedin: boolean; again?: boolean }) => {
-        const sites = ingressSites(settings);
+        const sites = ingressSites(settings, "wren:crm-lookup");
         const { run, stats } = await withClientDb(async (db, client) => {
           const linkedin = opts.linkedin ? (client.accounts?.linkedin ?? null) : null;
           const argv = { ...opts, linkedin };
@@ -468,7 +468,7 @@ export function registerCrm(
         loadLlmEnv(settings.llmEnvPath, rootDir);
         const deps = {
           fetcher: new PoliteFetcher(userAgent(settings.fetchContact), { timeout: 10, retries: 1 }),
-          sites: ingressSites(settings),
+          sites: ingressSites(settings, "wren:crm-seed-demo"),
           llm: makeLlm(settings.llm, process.env, { anthropicModel: settings.llmModel }),
         };
         const { client, run, stats } = await withClientDb(async (db, client) => {

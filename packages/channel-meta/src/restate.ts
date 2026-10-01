@@ -13,7 +13,7 @@ import { type LaunchSpec, type LeadFormSpec, type MetaAds, metaAds, type Tree } 
 import { markStarted, markStopped, recordLaunch } from "./launches.js";
 
 export interface AdsDeps {
-  /** The site client for one invocation (`restateSites(ctx)` in the worker). */
+  /** The site client for one invocation (`restateSites(ctx, { caller })` in the worker). */
   sitesFor: (ctx: restate.Context) => SiteClient;
   adAccountId?: string;
   pageId?: string;

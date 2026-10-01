@@ -50,7 +50,7 @@ export interface SearchDeps {
 
 export interface SearchWeekDeps extends SearchDeps {
   llm: LlmClient;
-  /** autobrowse on the Mac, for this invocation (`restateSites(ctx, undefined, DESK)`). */
+  /** autobrowse on the Mac, for this invocation (`restateSites(ctx, { caller, service: DESK })`). */
   desk: (ctx: restate.Context) => SiteClient;
 }
 

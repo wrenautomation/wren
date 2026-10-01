@@ -187,7 +187,7 @@ export function registerSearch(
     .action(async (o: { engine?: string; limit: string }) => {
       const { origin } = need();
       const host = new URL(origin).hostname.replace(/^www\./, "");
-      const desk = ingressSites(settings, DESK);
+      const desk = ingressSites(settings, "wren:search", DESK);
       if (o.engine && !(ENGINES as readonly string[]).includes(o.engine))
         throw new Error(`--engine: one of ${ENGINES.join(", ")}`);
       const engines = (o.engine ? [o.engine] : [...ENGINES]) as Engine[];
