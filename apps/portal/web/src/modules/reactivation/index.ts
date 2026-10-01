@@ -1,5 +1,6 @@
 /** Reactivation: past clients checked for a reason to call, with a brief and an email for each. */
 import type { Module } from "../../module.js";
+import { ENGAGEMENT_PAGES } from "../work/index.js";
 import { Emails } from "./Emails.js";
 import { Glance } from "./Glance.js";
 import { Health } from "./Health.js";
@@ -19,7 +20,6 @@ export const reactivation: Module = {
   blurb:
     "Checks your past clients for a reason to call now. Each gets a brief and an email that waits for your OK.",
   Glance,
-  offers: ["reactivation", "recruiting-reactivation-pilot"],
   action: { page: "run", label: "Watch it run", icon: "play" },
   pages: [
     { id: "overview", label: "Overview", Page: Overview },
@@ -30,5 +30,7 @@ export const reactivation: Module = {
     { id: "health", label: "Data health", Page: Health },
     { id: "sources", label: "Sources", Page: Sources },
     { id: "setup", label: "Setup", Page: Setup },
+    // The client's plan and paperwork, here and not in an app of their own.
+    ...ENGAGEMENT_PAGES,
   ],
 };

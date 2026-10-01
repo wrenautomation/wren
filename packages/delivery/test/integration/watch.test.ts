@@ -10,7 +10,15 @@ import { PortalRefusal, type Viewer } from "@wren/core/portal";
 import { startTestPostgres, type TestPostgres } from "@wren/db/testing";
 import { sql } from "drizzle-orm";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
-import { addInvoice, engagementOf, markInvoice, startEngagement } from "../../src/index.js";
+import {
+  addInvoice,
+  billsDue,
+  engagementOf,
+  markInvoice,
+  onboard,
+  signAgreement,
+  startEngagement,
+} from "../../src/index.js";
 import { deliveryApi } from "../../src/service.js";
 import { opsBoard, type PortalMail, watchPass, workdaysAfter } from "../../src/watch.js";
 
@@ -95,7 +103,7 @@ describe("client mail", () => {
     expect(rest).toEqual([]);
     expect(welcome?.to).toBe("amy@acme.example");
     expect(welcome?.subject).toBe("You're invited to Acme Staffing's project with Wren");
-    expect(welcome?.text).toContain("https://app.example/work/home?client=acme");
+    expect(welcome?.text).toContain("https://app.example/reactivation/overview?client=acme");
     await pass("2026-10-05T10:30:00Z");
     expect(take(mail)).toEqual([]);
   });
@@ -171,7 +179,9 @@ describe("the Friday digest", () => {
     const text = digests[0]?.text ?? "";
     expect(text).toContain("- Delivered: Cleaned list");
     expect(text).toMatch(/We need \d+ things from you/);
-    expect(text).toMatch(/5 Great: https:\/\/app\.example\/work\/home\?client=acme&e=\d+&pulse=5/);
+    expect(text).toMatch(
+      /5 Great: https:\/\/app\.example\/reactivation\/overview\?client=acme&e=\d+&pulse=5/,
+    );
     await pass("2026-10-09T17:00:00Z");
     expect(take(mail)).toEqual([]);
   });
@@ -224,7 +234,7 @@ describe("operator pings", () => {
     expect(told?.to).toBe("cal@acme.example");
     expect(told?.subject).toBe("Acme Staffing: Wren replied");
     expect(told?.text).toContain('- On "List is clean.": 388 of them.');
-    expect(told?.text).toContain("https://app.example/work/updates?client=acme");
+    expect(told?.text).toContain("https://app.example/reactivation/updates?client=acme");
   });
 
   it("an invoice past its due day pings once, and clears when paid", async () => {
@@ -280,7 +290,7 @@ describe("moments, reviews and reminders (D13)", () => {
     const sent = titled("Acme Staffing: Your first meeting is booked");
     expect(sent.map((m) => m.to).sort()).toEqual(["amy@acme.example", "cal@acme.example"]);
     expect(sent[0]?.text).toContain(
-      "Excellent: https://app.example/work/home?client=acme&e=1&review=first%3Ameetings&score=5",
+      "Excellent: https://app.example/reactivation/overview?client=acme&e=1&review=first%3Ameetings&score=5",
     );
     expect(sent[0]?.text).not.toContain("ready for more");
     await pass("2026-10-14T11:00:00Z");
@@ -355,5 +365,76 @@ describe("the ops board", () => {
       risks: ["pulse 2/5 this week"],
     });
     expect(rows[1]).toMatchObject({ engagementId: null, phase: null, risks: [] });
+  });
+});
+
+describe("the 1st's bills (D15)", () => {
+  const bills = () =>
+    take(pinged)
+      .flatMap((p) => p.body.split("\n"))
+      .filter((l) => /^bolt: bill(s on the 1st for)? 2026-12/.test(l));
+
+  it("previews, then pings daily until the month's invoice is on record", async () => {
+    await pg.db.insert(clients).values({ id: "bolt", name: "Bolt", database: "wren_client_bolt" });
+    const { engagement, agreement } = await onboard(pg.db, {
+      clientId: "bolt",
+      offerId: "reactivation",
+      startsOn: "2026-10-05",
+      terms: { setupCents: 0 },
+      by: "ops@wren.example",
+    });
+    await signAgreement(pg.db, engagement, {
+      sha256: agreement.sha256,
+      name: "Bo Brown",
+      email: "bo@bolt.example",
+      agreed: true,
+    });
+    const e = await engagementOf(pg.db, "bolt");
+    await api.result({ viewer: OPS, client: "bolt", key: "meetings", value: 3 });
+    expect(await billsDue(pg.db, "2026-12")).toMatchObject([
+      { clientId: "bolt", monthlyCents: 30_000, units: 3, unitCents: 50_000 },
+    ]);
+    take(pinged);
+
+    await pass("2026-11-28T10:00:00Z");
+    expect(bills()).toEqual([]);
+    await pass("2026-11-29T10:00:00Z");
+    expect(bills()).toEqual([expect.stringContaining("bolt: bills on the 1st for 2026-12")]);
+
+    await pass("2026-12-01T10:00:00Z");
+    const [bill, ...rest] = bills();
+    expect(rest).toEqual([]);
+    expect(bill).toContain("bill 2026-12:");
+    expect(bill).toContain("delivery invoice <number> 1800 ");
+    expect(bill).toContain("--period 2026-12 --units 3");
+    await pass("2026-12-01T12:00:00Z");
+    expect(bills()).toEqual([]);
+    await pass("2026-12-02T10:00:00Z");
+    expect(bills()).toHaveLength(1);
+
+    const invoice = {
+      number: "BOLT-12",
+      description: "December 2026",
+      cents: 180_000,
+      dueOn: "2026-12-16",
+      period: "2026-12",
+      units: 3,
+      by: "ops@wren.example",
+    };
+    await addInvoice(pg.db, e, invoice);
+    await expect(addInvoice(pg.db, e, { ...invoice, number: "BOLT-13" })).rejects.toMatchObject({
+      status: 409,
+    });
+    await expect(
+      addInvoice(pg.db, e, { ...invoice, number: "B", period: "12-2026" }),
+    ).rejects.toMatchObject({ status: 400 });
+    await pass("2026-12-03T10:00:00Z");
+    expect(bills()).toEqual([]);
+  });
+
+  it("bills units once each, up to the cap", async () => {
+    await api.result({ viewer: OPS, client: "bolt", key: "meetings", value: 40 });
+    // The $13.5k cap less $1.5k billed leaves 24 meetings.
+    expect(await billsDue(pg.db, "2027-01")).toMatchObject([{ monthlyCents: 30_000, units: 24 }]);
   });
 });

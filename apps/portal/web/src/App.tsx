@@ -39,7 +39,9 @@ const firstOf = (m: Module) => (m.pages[0] ? pathOf(m, m.pages[0]) : "/");
  * host this is; those apps wait for it.
  */
 const shown = (team: boolean, demo: boolean | null) =>
-  MODULES.filter((m) => (team || !m.team) && (demo === false || !m.noDemo));
+  MODULES.filter((m) => (team || !m.team) && (demo === false || !m.noDemo)).map((m) =>
+    demo === false ? m : { ...m, pages: m.pages.filter((p) => !p.noDemo) },
+  );
 
 /** Where an address goes: an app's page, the launcher, or elsewhere (`to`) once the viewer is known. */
 type Place =
@@ -250,8 +252,8 @@ export function App() {
 }
 
 /**
- * "/": the apps under each service the client bought, each with its plan and
- * paperwork; then the rest; then Wren's own in team view.
+ * "/": the app each service the client bought runs in (its plan and paperwork inside);
+ * then the rest; then Wren's own in team view.
  */
 function Launcher({ name, apps, props }: { name: string; apps: Module[]; props: PageProps }) {
   const account = useAccount(props);
@@ -266,20 +268,17 @@ function Launcher({ name, apps, props }: { name: string; apps: Module[]; props: 
   );
   if (!account.data && !account.error) return <Loading lines={8} heading />;
   // One heading per offer, newest first; a finished one stays, it still has its paperwork.
-  const bought = [
-    ...new Map((account.data?.bought ?? []).map((b) => [b.offerId, b.offer])).entries(),
-  ];
-  const under = (offerId: string) =>
-    apps.filter((m) => !m.team && (m.companion || m.offers?.includes(offerId)));
-  const placed = new Set(bought.flatMap(([id]) => under(id).map((m) => m.id)));
-  const rest = apps.filter((m) => !m.team && !placed.has(m.id));
+  const bought = [...new Map((account.data?.bought ?? []).map((b) => [b.offerId, b])).values()];
+  const under = (app: string) => apps.filter((m) => !m.team && m.id === app);
+  const placed = new Set(bought.map((b) => b.app));
+  const rest = apps.filter((m) => !m.team && !m.fallback && !placed.has(m.id));
   const ours = apps.filter((m) => m.team);
   return (
     <>
       <PageHeader title="Apps" lede={`Everything Wren runs for ${name}.`} />
-      {bought.map(([id, offer]) => (
-        <AppGrid key={id} label={offer}>
-          {under(id).map(card)}
+      {bought.map((b) => (
+        <AppGrid key={b.offerId} label={b.offer}>
+          {under(b.app).map(card)}
         </AppGrid>
       ))}
       {rest.length ? (

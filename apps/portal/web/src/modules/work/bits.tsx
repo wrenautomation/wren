@@ -16,6 +16,7 @@ import {
 } from "../../api.js";
 import { useCall } from "../../load.js";
 import type { PageProps } from "../../module.js";
+import { appHere, WORK } from "./nav.js";
 
 const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
 
@@ -61,6 +62,12 @@ export const SampleNote = () => (
   </Callout>
 );
 
+/** The engagements this app shows: a product's app its own, the work app all of them. */
+export function ofThisApp(es: EngagementView[]): EngagementView[] {
+  const app = appHere();
+  return app === WORK ? es : es.filter((e) => e.offer.app === app);
+}
+
 /** The page's body once loaded: each engagement, headed by its offer when there's more than one. */
 export function Engagements({
   work,
@@ -73,7 +80,7 @@ export function Engagements({
 }) {
   if (work.error && !work.data) return <Alert onRetry={work.retry}>{work.error.message}</Alert>;
   if (!work.data) return <Loading lines={8} />;
-  const es = work.data.engagements;
+  const es = ofThisApp(work.data.engagements);
   if (es.length === 0)
     return (
       <Empty>

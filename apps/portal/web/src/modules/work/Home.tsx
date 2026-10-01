@@ -1,18 +1,27 @@
 /**
- * Home answers five things on open (D7): where we are, what we did lately, what's next,
+ * Overview answers five things on open (D7): where we are, what we did lately, what's next,
  * what we need from you, and results so far. Before the first update it's a welcome.
  * It also takes the weekly pulse (D10), from a tap here or a link in the Friday mail, and
  * a review at each moment (D13), with what's next once they're halfway.
  */
 import { GOOGLE_REVIEW_URL, PULSE_WORDS, REVIEW_WORDS } from "@wren/delivery/routes";
 import { Button, ButtonLink, Callout, PageHeader, Section, Stat, StatStrip, Tag } from "@wren/ui";
-import { useEffect, useState } from "react";
+import { Fragment, useEffect, useState } from "react";
 import type { EngagementView, MomentView } from "../../api.js";
 import type { PageProps } from "../../module.js";
 import { href, navigate } from "../../route.js";
-import { dayLabel, Engagements, Form, field, figure, StateTag, useAct, useWork } from "./bits.js";
+import {
+  dayLabel,
+  Engagements,
+  Form,
+  field,
+  figure,
+  ofThisApp,
+  StateTag,
+  useAct,
+  useWork,
+} from "./bits.js";
 import { at } from "./nav.js";
-import { waitingOn } from "./Paperwork.js";
 
 export function Home(props: PageProps) {
   const work = useWork(props);
@@ -21,7 +30,7 @@ export function Home(props: PageProps) {
   const rated = useReviewLink(props, act);
   return (
     <>
-      <PageHeader title="Home" lede="Where your project stands, and what we need from you." />
+      <PageHeader title="Overview" lede="Where your project stands, and what we need from you." />
       {act.error ? (
         <p className="wk-error" role="alert">
           {act.error}
@@ -31,6 +40,124 @@ export function Home(props: PageProps) {
         {(e) => <Glance e={e} props={props} act={act} rated={rated} />}
       </Engagements>
     </>
+  );
+}
+
+/**
+ * A product's overview, above its own numbers: getting started, the review asked for, what
+ * waits on them and what's next. The mail's pulse and review links land here too.
+ */
+export function EngagementBar(props: PageProps) {
+  return props.demo ? null : <Bar {...props} />;
+}
+
+function Bar(props: PageProps) {
+  const work = useWork(props);
+  const act = useAct(props, work.reload);
+  usePulseLink(props, act);
+  const rated = useReviewLink(props, act);
+  return (
+    <>
+      {act.error ? (
+        <p className="wk-error" role="alert">
+          {act.error}
+        </p>
+      ) : null}
+      {ofThisApp(work.data?.engagements ?? []).map((e) => (
+        <Fragment key={e.id}>
+          <Checklist e={e} team={props.team} />
+          <Review e={e} props={props} act={act} rated={rated} />
+          <NeedsYou e={e} />
+          <Next e={e} props={props} act={act} />
+        </Fragment>
+      ))}
+    </>
+  );
+}
+
+/**
+ * Getting started, in order: sign, pay the setup fee, grant access, then the first step's
+ * asks (the export, a contact, the kickoff). Gone once all of it is done.
+ */
+export function Checklist({ e, team }: { e: EngagementView; team: boolean }) {
+  const p = e.paperwork;
+  const first = e.steps[0]?.name;
+  const items: { label: string; done: boolean; href: string }[] = [
+    ...(p.contract
+      ? [
+          {
+            label: "Sign the contract",
+            done: p.contract.signedAt !== null,
+            href: at("contract", { e: e.id }),
+          },
+        ]
+      : []),
+    ...(p.setupPaid === null
+      ? []
+      : [{ label: "Pay the setup invoice", done: p.setupPaid, href: "/account/billing" }]),
+    ...p.access.map((a) => ({
+      label: `Give us access to ${a.system}`,
+      done: a.status !== "open",
+      href: at("paperwork"),
+    })),
+    ...e.asks
+      .filter((a) => first !== undefined && a.step === first)
+      .map((a) => ({ label: a.text, done: a.answeredAt !== null, href: at("needs-you") })),
+  ];
+  const left = items.filter((i) => !i.done).length;
+  if (left === 0) return null;
+  return (
+    <Section
+      title="Getting started"
+      note={
+        e.status === "onboarding"
+          ? "The plan starts the day the paperwork is done."
+          : `${left} left from the first step.`
+      }
+    >
+      <ul className="wk-list">
+        {items.map((i) => (
+          <li key={i.label}>
+            {i.done ? <Tag tone="green">Done</Tag> : <Tag tone="rust">To do</Tag>}{" "}
+            {i.done || team ? i.label : <a href={i.href}>{i.label}</a>}
+          </li>
+        ))}
+      </ul>
+      <p className="wk-quiet">
+        New here? <a href={at("welcome")}>Read the welcome guide</a>.
+      </p>
+    </Section>
+  );
+}
+
+/** Deliverables waiting on their OK and the first open asks. */
+function NeedsYou({ e }: { e: EngagementView }) {
+  const open = e.asks.filter((a) => !a.answeredAt);
+  const toApprove = e.deliverables.filter((d) => d.status === "waiting");
+  if (!open.length && !toApprove.length) return null;
+  return (
+    <Section
+      title="What we need from you"
+      actions={
+        <ButtonLink href={at("needs-you")} tone="primary" size="sm" arrow>
+          Answer
+        </ButtonLink>
+      }
+    >
+      <ul className="wk-list">
+        {toApprove.map((d) => (
+          <li key={`d${d.id}`}>
+            <Tag tone="rust">Your OK</Tag> <a href={at("deliverables")}>{d.title}</a>
+          </li>
+        ))}
+        {open.slice(0, 5).map((a) => (
+          <li key={a.id}>
+            {a.overdue ? <Tag tone="rust">Overdue</Tag> : <Tag>Due {dayLabel(a.dueOn)}</Tag>}{" "}
+            {a.text}
+          </li>
+        ))}
+      </ul>
+    </Section>
   );
 }
 
@@ -93,23 +220,8 @@ function Glance({
 
   return (
     <>
-      {e.status === "onboarding" ? (
-        <Section
-          title="Before we start"
-          actions={
-            <ButtonLink href={at("paperwork")} tone="primary" size="sm" arrow>
-              Paperwork
-            </ButtonLink>
-          }
-        >
-          <p>
-            {waitingOn(e).length
-              ? `Still to do: ${waitingOn(e).join(", ")}. The plan starts the day that's done.`
-              : "All done. The plan starts today."}{" "}
-            New here? <a href={at("welcome")}>Read the welcome guide</a>.
-          </p>
-        </Section>
-      ) : welcome ? (
+      <Checklist e={e} team={props.team} />
+      {e.status !== "onboarding" && welcome ? (
         <Callout>
           Welcome. Your plan below is dated from {dayLabel(e.startsOn)}. We post here as the work
           moves, and anything we need from you shows under Needs you.{" "}
@@ -150,30 +262,7 @@ function Glance({
         </StatStrip>
       </Section>
 
-      {open.length || toApprove.length ? (
-        <Section
-          title="What we need from you"
-          actions={
-            <ButtonLink href={at("needs-you")} tone="primary" size="sm" arrow>
-              Answer
-            </ButtonLink>
-          }
-        >
-          <ul className="wk-list">
-            {toApprove.map((d) => (
-              <li key={`d${d.id}`}>
-                <Tag tone="rust">Your OK</Tag> <a href={at("deliverables")}>{d.title}</a>
-              </li>
-            ))}
-            {open.slice(0, 5).map((a) => (
-              <li key={a.id}>
-                {a.overdue ? <Tag tone="rust">Overdue</Tag> : <Tag>Due {dayLabel(a.dueOn)}</Tag>}{" "}
-                {a.text}
-              </li>
-            ))}
-          </ul>
-        </Section>
-      ) : null}
+      <NeedsYou e={e} />
 
       {e.updates.length ? (
         <Section

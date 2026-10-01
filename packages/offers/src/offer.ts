@@ -179,6 +179,13 @@ export interface Offer {
    * and in the last week. Left out: not offered to clients yet.
    */
   readonly upsell?: { readonly pitch: string };
+  /**
+   * The portal app it runs in; its plan, paperwork and reviews show there too. Left out: the
+   * generic `work` app, for an offer with no app of its own.
+   */
+  readonly app?: string;
+  /** A performance price's measure: the count its per-unit fee bills ("meetings"). */
+  readonly perUnitMeasure?: string;
 }
 
 const ID = /^[a-z][a-z0-9]*(-[a-z0-9]+)*$/;
@@ -346,6 +353,17 @@ export function defineOffer(offer: Offer): Offer {
   }
   if (offer.upsell && !offer.upsell.pitch.trim())
     throw new Error(`${where}: an upsell needs a pitch, or leave it out`);
+  if (offer.app !== undefined && !ID.test(offer.app))
+    throw new Error(`${where}: app must be a kebab-case app id`);
+  if ((offer.price.kind === "performance") !== (offer.perUnitMeasure !== undefined))
+    throw new Error(`${where}: a performance price, and only one, names its perUnitMeasure`);
+  if (
+    offer.perUnitMeasure !== undefined &&
+    !offer.measures.some((m) => m.key === offer.perUnitMeasure)
+  )
+    throw new Error(
+      `${where}: perUnitMeasure '${offer.perUnitMeasure}' is not one of its measures`,
+    );
   for (const a of offer.access ?? [])
     if (![a.system, a.scope, a.why, a.revoke].every((t) => t.trim()))
       throw new Error(`${where}: access to '${a.system}' needs a system, scope, why and revoke`);

@@ -31,7 +31,12 @@ const base: Offer = {
   booking: null,
   application: null,
 };
-const offer = (o: Partial<Offer>): Offer => ({ ...base, ...o });
+// A performance price names its measure; the cases below that test that say so.
+const offer = (o: Partial<Offer>): Offer => ({
+  ...base,
+  ...(o.price?.kind === "performance" ? { perUnitMeasure: "things" } : {}),
+  ...o,
+});
 
 const app: NonNullable<Offer["application"]> = {
   questions: [
@@ -106,6 +111,18 @@ describe("defineOffer", () => {
       /range/,
     ],
     ["a performance price with no unit fee", offer({ price: { ...PERF, perUnit: 0 } }), /perUnit/],
+    [
+      "a performance price with no measure",
+      { ...base, price: PERF },
+      /perUnitMeasure/,
+    ],
+    ["a per-unit measure on another price", offer({ perUnitMeasure: "things" }), /perUnitMeasure/],
+    [
+      "a per-unit measure it lacks",
+      offer({ price: PERF, perUnitMeasure: "hires" }),
+      /not one of its measures/,
+    ],
+    ["an app that is not an id", offer({ app: "Reactivation" }), /app/],
     ["a performance price in cents", offer({ price: { ...PERF, upfront: 999.5 } }), /whole/],
     ["a performance price counting nothing", offer({ price: { ...PERF, unit: " " } }), /unit/],
     ["a cap under one unit", offer({ price: { ...PERF, cap: 100 } }), /cap/],
@@ -225,9 +242,19 @@ describe("snapshot", () => {
     const parsed = JSON.parse(snapshotText(OFFERS)) as ReturnType<typeof snapshot>;
     expect(parsed.version).toBe(1);
     expect(parsed.offers).toEqual(
-      OFFERS.map(({ plan: _, access: __, reviewAfterFirst: ___, upsell: ____, ...o }) => o),
+      OFFERS.map(
+        ({
+          plan: _,
+          access: __,
+          reviewAfterFirst: ___,
+          upsell: ____,
+          app: _____,
+          perUnitMeasure: ______,
+          ...o
+        }) => o,
+      ),
     );
-    const portalOnly = ["plan", "access", "reviewAfterFirst", "upsell"];
+    const portalOnly = ["plan", "access", "reviewAfterFirst", "upsell", "app", "perUnitMeasure"];
     expect(parsed.offers.some((o) => portalOnly.some((k) => k in o))).toBe(false);
   });
 });

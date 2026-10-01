@@ -119,12 +119,14 @@ export const recruitingReactivation = defineOffer({
     { key: "job_orders", label: "Job orders", unit: "count" },
     { key: "fees_usd", label: "Placement fees", unit: "usd" },
   ],
+  perUnitMeasure: "meetings",
   next: ["recruiting-candidate-reactivation", "ops-automation-build"],
   // William, 10-01: ask for a review at the first meeting and the first client won back.
   reviewAfterFirst: [
     { measure: "meetings", moment: "Your first meeting is booked" },
     { measure: "job_orders", moment: "Your first job order came in" },
   ],
+  app: "reactivation",
   page: "/recruiting/lead-reactivation",
   // Cal.com event "Pilot call" (autobrowse site `calcom`), 30 min on Meet, Mon-Fri 10-17 ET.
   booking: "https://cal.com/wrenautomation/call",
@@ -214,6 +216,7 @@ export const recruitingReactivationPilot = defineOffer({
     { key: "fees_usd", label: "Placement fees", unit: "usd" },
   ],
   next: ["recruiting-candidate-reactivation", "ops-automation-build"],
+  app: "reactivation",
   page: "/recruiting/lead-reactivation",
   // Cal.com event "Pilot call" (autobrowse site `calcom`), 30 min on Meet, Mon-Fri 10-17 ET.
   booking: "https://cal.com/wrenautomation/call",

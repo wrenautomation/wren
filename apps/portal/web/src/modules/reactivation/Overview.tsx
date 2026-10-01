@@ -16,11 +16,12 @@ import type { ReactNode } from "react";
 import { call, type Overview as Data, type PipelineStep } from "../../api.js";
 import { useCall } from "../../load.js";
 import type { PageProps } from "../../module.js";
+import { EngagementBar } from "../work/index.js";
 import { Reasons, stripMarks } from "./bits.js";
 import { at } from "./nav.js";
 import { railOf } from "./steps.js";
 
-export function Overview({ client, demo }: PageProps) {
+export function Overview({ client, demo, team, params }: PageProps) {
   const o = useCall(`overview:${client}`, () => call<Data>("reactivation/overview", { client }));
   return (
     <>
@@ -28,6 +29,7 @@ export function Overview({ client, demo }: PageProps) {
         title="Reactivation"
         lede="Every past client on your list, looked up for a reason to call now. Each one gets a brief with its sources and an email that waits for your OK."
       />
+      <EngagementBar client={client} demo={demo} team={team} params={params} />
       {o.error && !o.data ? <Alert onRetry={o.retry}>{o.error.message}</Alert> : null}
       {o.data ? <Home d={o.data} demo={demo} /> : o.error ? null : <Loading lines={10} />}
     </>

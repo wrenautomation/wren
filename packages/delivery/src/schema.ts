@@ -384,6 +384,10 @@ export const invoices = delivery.table(
     remindedAt: timestamp("reminded_at", { withTimezone: true }),
     /** The setup fee: paying it (with the contract signed) starts the plan. */
     setup: boolean("setup").default(false).notNull(),
+    /** The month a recurring bill is for, `2026-11` (D15): one per engagement, void ones aside. */
+    period: varchar("period", { length: 7 }),
+    /** How many per-unit fees it bills ("meetings booked"); what's billed stops at the cap. */
+    units: integer("units"),
     createdBy: text("created_by").notNull(),
     createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
   },

@@ -33,11 +33,15 @@ import { alias } from "drizzle-orm/pg-core";
 import { amount, WREN_PARTY } from "./contract.js";
 import {
   addDays,
+  type Bill,
+  billCents,
+  billsDue,
   HALFWAY,
   LAST_WEEK,
   momentLabel,
   momentsReached,
   nextOffers,
+  pagePath,
   weekday,
 } from "./index.js";
 import { PULSE_WORDS, REVIEW_WORDS } from "./routes.js";
@@ -77,6 +81,10 @@ const LOW_PULSE = 3;
 const PAPERWORK_DAYS = 3;
 /** A problem still standing pings again after this long. */
 const REPING_DAYS = 7;
+/** A day's re-ping lands on the hourly pass a little before the clock comes round. */
+const HOUR_SLACK = 5 * 60 * 1000;
+/** Days before the 1st that its bills are previewed. */
+const BILL_HEADS_UP_DAYS = 2;
 /** The digest goes Friday from this hour, fleet clock. */
 const DIGEST_HOUR = 15;
 /** An open invoice is reminded once, this many days or fewer before it's due (D13)... */
@@ -252,7 +260,8 @@ async function markMoments(
       (p) => p.m.clientId === e.clientId && p.mail?.toldThrough && p.mail.level !== "off",
     );
     const label = momentLabel(offer, newest) ?? newest;
-    const link = (q = "") => `${app}/work/home?client=${e.clientId}&e=${e.id}${q && `&${q}`}`;
+    const link = (q = "") =>
+      `${app}${pagePath([e.offerId], "overview")}?client=${e.clientId}&e=${e.id}${q && `&${q}`}`;
     const ups = newest === HALFWAY || newest === LAST_WEEK ? nextOffers(offer) : [];
     const text = [
       newest === HALFWAY
@@ -440,7 +449,12 @@ async function mailContracts(
 ): Promise<void> {
   const { main, app } = deps;
   const due = await main
-    .select({ a: agreements, clientId: engagements.clientId, clientName: clients.name })
+    .select({
+      a: agreements,
+      clientId: engagements.clientId,
+      offerId: engagements.offerId,
+      clientName: clients.name,
+    })
     .from(agreements)
     .innerJoin(engagements, eq(engagements.id, agreements.engagementId))
     .innerJoin(clients, eq(clients.id, engagements.clientId))
@@ -451,7 +465,7 @@ async function mailContracts(
         eq(clients.demo, false),
       ),
     );
-  for (const { a, clientId, clientName } of due) {
+  for (const { a, clientId, offerId, clientName } of due) {
     const owners = await main
       .select({ email: clientMembers.email })
       .from(clientMembers)
@@ -461,7 +475,7 @@ async function mailContracts(
     ].filter(Boolean);
     const at = a.signedAt?.toISOString().replace("T", " ").slice(0, 16);
     const text = [
-      `${clientName}'s contract with Wren is signed. Your copy is below. It's also in your portal: ${app}/work/contract?client=${clientId}`,
+      `${clientName}'s contract with Wren is signed. Your copy is below. It's also in your portal: ${app}${pagePath([offerId], "contract")}?client=${clientId}`,
       "",
       a.body,
       "",
@@ -518,6 +532,8 @@ async function mailPeople(
 
   for (const p of people) {
     const c = { id: p.m.clientId, name: p.clientName };
+    const theirs = live.filter((l) => l.e.clientId === c.id).map((l) => l.e.offerId);
+    const page = (name: string) => `${app}${pagePath(theirs, name)}?client=${c.id}`;
     if (!p.mail?.toldThrough) {
       const sent = await trySend({
         to: p.m.email,
@@ -530,12 +546,9 @@ async function mailPeople(
                 p.m.role === "owner"
                   ? "First, the paperwork: read and sign the contract, and answer our access requests."
                   : "First, the paperwork: see what's left before we start.",
-                `${app}/work/paperwork?client=${c.id}`,
+                page("paperwork"),
               ]
-            : [
-                "See where things stand, what's next and what we need from you:",
-                `${app}/work/home?client=${c.id}`,
-              ]),
+            : ["See where things stand, what's next and what we need from you:", page("overview")]),
           "",
           "Sign in with this email address: a code by email, Google, Microsoft or a password.",
           "",
@@ -587,20 +600,20 @@ async function mailPeople(
           lines.push("We need from you:");
           for (const a of newAsks)
             lines.push(`- ${clip(a.text, 200)}${a.dueOn ? ` (by ${a.dueOn})` : ""}`);
-          lines.push(`Answer here: ${app}/work/needs-you?client=${c.id}`, "");
+          lines.push(`Answer here: ${page("needs-you")}`, "");
         }
         if (newWork.length > 0) {
           lines.push("Ready for you to look at:");
           for (const d of newWork)
             lines.push(`- ${clip(d.title, 200)}${d.version > 1 ? ` (version ${d.version})` : ""}`);
-          lines.push(`Approve or ask for changes: ${app}/work/deliverables?client=${c.id}`, "");
+          lines.push(`Approve or ask for changes: ${page("deliverables")}`, "");
         }
         if (replies.length > 0) {
           lines.push("Wren replied:");
           for (const r of replies)
             lines.push(`- On "${clip(r.on ?? "", 80)}": ${clip(r.body, 200)}`);
-          const page = replies.every((r) => r.update) ? "updates" : "deliverables";
-          lines.push(`Read and reply: ${app}/work/${page}?client=${c.id}`, "");
+          const on = replies.every((r) => r.update) ? "updates" : "deliverables";
+          lines.push(`Read and reply: ${page(on)}`, "");
         }
         lines.push(settings(c.id));
         const n = newAsks.length + newWork.length;
@@ -724,7 +737,7 @@ async function digestOf(
     if (open.length > 0) {
       const late = open.filter((a) => a.dueOn && a.dueOn < today).length;
       out.push(
-        `We need ${open.length} thing${open.length === 1 ? "" : "s"} from you${late ? ` (${late} overdue)` : ""}: ${app}/work/needs-you?client=${clientId}`,
+        `We need ${open.length} thing${open.length === 1 ? "" : "s"} from you${late ? ` (${late} overdue)` : ""}: ${app}${pagePath([e.offerId], "needs-you")}?client=${clientId}`,
       );
     }
     const figures = offer.measures.flatMap((m) => {
@@ -736,18 +749,31 @@ async function digestOf(
       "",
       "How's it going? One tap:",
       ...[5, 4, 3, 2, 1].map(
-        (n) => `${n} ${PULSE_WORDS[n]}: ${app}/work/home?client=${clientId}&e=${e.id}&pulse=${n}`,
+        (n) =>
+          `${n} ${PULSE_WORDS[n]}: ${app}${pagePath([e.offerId], "overview")}?client=${clientId}&e=${e.id}&pulse=${n}`,
       ),
       "",
     );
   }
-  out.push(`The full picture: ${app}/work/home?client=${clientId}`);
+  out.push(
+    `The full picture: ${app}${pagePath(
+      es.map((e) => e.offerId),
+      "overview",
+    )}?client=${clientId}`,
+  );
   return out.join("\n");
 }
 
 // --- operator pings (D8) ---------------------------------------------------------
 
-type Found = { engagementId: number; clientId: string; about: string; what: string };
+type Found = {
+  engagementId: number;
+  clientId: string;
+  about: string;
+  what: string;
+  /** Pings again after this many days while it stands; a week by default. */
+  everyDays?: number;
+};
 
 /** What could leave a client feeling forgotten (D8): the pings, and the ops board's risks. */
 async function problems(
@@ -975,8 +1001,64 @@ async function problems(
       clientId,
       what: `invoice ${i.number} (${i.currency} ${(i.cents / 100).toFixed(2)}) unpaid, due ${i.dueOn}`,
     });
+  found.push(...(await billing(main, today)));
   return found;
 }
+
+/**
+ * The 1st's bills (D15): a heads-up two days before, then from the 1st a ping each day of
+ * the first week, weekly after, until the invoice is on record with its month.
+ */
+async function billing(main: Db, today: string): Promise<Found[]> {
+  const period = today.slice(0, 7);
+  const day = Number(today.slice(8));
+  const next = addDays(`${period}-01`, 32).slice(0, 7);
+  const soon = addDays(today, BILL_HEADS_UP_DAYS) >= `${next}-01`;
+  const said = (b: Bill) =>
+    [
+      b.monthlyCents ? `${amount(b.monthlyCents, b.currency)} monthly` : "",
+      b.units ? `${b.units} × ${b.unit ?? "unit"} at ${amount(b.unitCents, b.currency)}` : "",
+    ]
+      .filter(Boolean)
+      .join(" + ");
+  const now = (await billsDue(main, period)).map(
+    (b): Found => ({
+      engagementId: b.engagementId,
+      clientId: b.clientId,
+      about: `bill:${period}`,
+      everyDays: day <= 7 ? 1 : REPING_DAYS,
+      what: `bill ${period}: ${said(b)} = ${amount(billCents(b), b.currency)}. Send it through Wise, then \`wren --client ${b.clientId} delivery invoice <number> ${billCents(b) / 100} --for "${monthName(period)}" --due ${addDays(today, b.payDays)} --period ${period}${b.units ? ` --units ${b.units}` : ""}\``,
+    }),
+  );
+  const ahead = soon
+    ? (await billsDue(main, next)).map(
+        (b): Found => ({
+          engagementId: b.engagementId,
+          clientId: b.clientId,
+          about: `bill-soon:${next}`,
+          what: `bills on the 1st for ${next}: ${said(b)} so far = ${amount(billCents(b), b.currency)}`,
+        }),
+      )
+    : [];
+  return [...now, ...ahead];
+}
+
+const MONTH_NAMES = [
+  "January",
+  "February",
+  "March",
+  "April",
+  "May",
+  "June",
+  "July",
+  "August",
+  "September",
+  "October",
+  "November",
+  "December",
+];
+const monthName = (period: string) =>
+  `${MONTH_NAMES[Number(period.slice(5)) - 1]} ${period.slice(0, 4)}`;
 
 async function pingOperator(
   deps: WatchDeps,
@@ -998,7 +1080,9 @@ async function pingOperator(
       .where(and(eq(pings.engagementId, k.engagementId), eq(pings.about, k.about)));
   const pingedAt = new Map(known.map((k) => [key(k), k.pingedAt.getTime()]));
   const fresh = found.filter(
-    (f) => (pingedAt.get(key(f)) ?? 0) <= now.getTime() - REPING_DAYS * DAY,
+    (f) =>
+      (pingedAt.get(key(f)) ?? 0) <=
+      now.getTime() - (f.everyDays ?? REPING_DAYS) * DAY + HOUR_SLACK,
   );
   if (fresh.length === 0 || !deps.notifier) return;
   const told = await deps.notifier.notify(
@@ -1025,6 +1109,8 @@ export interface BoardRow {
   name: string;
   engagementId: number | null;
   offer: string | null;
+  /** Where its plan opens: the paperwork while onboarding. */
+  path: string;
   /** Onboarding: the paperwork comes first. */
   status: Engagement["status"] | null;
   startsOn: string | null;
@@ -1107,6 +1193,7 @@ export async function opsBoard(main: Db, zone: string, now: Date): Promise<Board
           ...base,
           engagementId: null,
           offer: null,
+          path: pagePath([], "overview"),
           status: null,
           startsOn: null,
           phase: null,
@@ -1127,6 +1214,7 @@ export async function opsBoard(main: Db, zone: string, now: Date): Promise<Board
         ...base,
         engagementId: e.id,
         offer: offerFor(e.offerId).name,
+        path: pagePath([e.offerId], e.status === "onboarding" ? "paperwork" : "overview"),
         status: e.status,
         startsOn: e.startsOn,
         phase: left[0]?.name ?? null,

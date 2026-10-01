@@ -20,6 +20,8 @@ export interface ModulePage {
   Page: ComponentType<PageProps>;
   /** Reached by link only, never a tab. */
   hidden?: true;
+  /** A signed-in client's own (their plan, contract, prices): never on the demo. */
+  noDemo?: true;
 }
 
 export interface Module {
@@ -38,10 +40,11 @@ export interface Module {
   noDemo?: true;
   /** Reached from the client's name at top left, never a launcher card. */
   menu?: true;
-  /** The offers it serves: its card sits under each one the client bought. */
-  offers?: readonly string[];
-  /** The plan and paperwork around any offer: its card sits under every one bought. */
-  companion?: true;
+  /**
+   * The app for offers with none of their own: a card only under those. Any other app's card
+   * sits under each bought offer that names it (the offer's `app`).
+   */
+  fallback?: true;
   /** The one button in its head, a page to go to. */
   action?: { page: string; label: string; icon: IconName };
 }

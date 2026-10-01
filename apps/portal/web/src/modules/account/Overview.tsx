@@ -13,7 +13,6 @@ import {
 import type { AccountView } from "../../api.js";
 import type { PageProps } from "../../module.js";
 import { dayLabel } from "../work/bits.js";
-import { at } from "../work/nav.js";
 import { useAccount } from "./load.js";
 
 const STATUS: Record<AccountView["bought"][number]["status"], string> = {
@@ -47,16 +46,7 @@ export function Overview(props: PageProps) {
   return (
     <>
       <PageHeader title={a.name} lede={`Working with Wren since ${month(a.since)}.`} />
-      <Section
-        title="What you have with us"
-        actions={
-          a.bought.length ? (
-            <ButtonLink href={at("home")} size="sm" tone="quiet" arrow>
-              Plan & paperwork
-            </ButtonLink>
-          ) : null
-        }
-      >
+      <Section title="What you have with us">
         {a.bought.length === 0 ? (
           <Empty>Nothing started yet.</Empty>
         ) : (
@@ -64,7 +54,9 @@ export function Overview(props: PageProps) {
             {a.bought.map((b) => (
               <li key={b.id} className="wk-person">
                 <span>
-                  <b>{b.offer}</b>
+                  <a href={`/${b.app}/overview`}>
+                    <b>{b.offer}</b>
+                  </a>
                   <span className="wk-quiet wk-block">
                     {b.status === "onboarding" ? "Starts" : "Started"} {dayLabel(b.startsOn)}
                   </span>

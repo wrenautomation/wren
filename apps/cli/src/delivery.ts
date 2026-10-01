@@ -427,6 +427,8 @@ export function registerDelivery(program: Command, withMainDb: WithDb, settings:
     .option("--currency <code>", "three letters", "USD")
     .option("--link <url>", "Wise's page for it, to view and pay")
     .option("--setup", "the setup fee: paid, with the contract signed, it starts the plan")
+    .option("--period <month>", "the month a recurring bill is for, YYYY-MM (stops the 1st's ping)")
+    .option("--units <n>", "how many per-unit fees it bills (meetings booked)")
     .action(
       async (
         number: string,
@@ -438,6 +440,8 @@ export function registerDelivery(program: Command, withMainDb: WithDb, settings:
           currency: string;
           link?: string;
           setup?: boolean;
+          period?: string;
+          units?: string;
         },
       ) => {
         const i = await change(opts, (db, e, author) =>
@@ -450,6 +454,8 @@ export function registerDelivery(program: Command, withMainDb: WithDb, settings:
             dueOn: opts.due,
             link: opts.link,
             setup: opts.setup,
+            period: opts.period,
+            units: opts.units === undefined ? undefined : Number(opts.units),
             by: author,
           }),
         );

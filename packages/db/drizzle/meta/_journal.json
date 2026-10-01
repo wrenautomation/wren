@@ -330,6 +330,13 @@
       "when": 1790881717972,
       "tag": "0046_delivery_moments",
       "breakpoints": true
+    },
+    {
+      "idx": 47,
+      "version": "7",
+      "when": 1790883213922,
+      "tag": "0047_invoice_periods",
+      "breakpoints": true
     }
   ]
 }

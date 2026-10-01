@@ -55,7 +55,7 @@ Citations: `packages/delivery/src/schema.ts:33`, `packages/delivery/src/index.ts
 |---|---|
 | app.wrenautomation.com `/api/delivery/*` | reads; clients answer and decide; operators write the rest |
 | demo host | reads the demo client's sample, writes nothing |
-| portal `work` module, "Plan & paperwork" (`apps/portal/web/src/modules/work/`) | the client's pages: Paperwork, the contract (hidden tab, signs and prints) and the welcome guide (hidden tab) first; operators write in place, "view as client" drops internal |
+| portal engagement kit (`apps/portal/web/src/modules/work/`: `ENGAGEMENT_PAGES` + `EngagementBar` inside each product app; the `work` app "Your project" for offers with no `app`) | the client's pages: Paperwork, the contract (hidden tab, signs and prints) and the welcome guide (hidden tab) first; operators write in place, "view as client" drops internal |
 | portal `account` module (`apps/portal/web/src/modules/account/`) | from the client's name at top left: overview, people, each person's mail level and sign-in, billing |
 | `wren --client <id> delivery …` (`apps/cli/src/delivery.ts`) | the team's writes from the terminal and the skill; `onboard`, `contract`, `access` for the paperwork; `deliver --file` uploads; `invoice [--setup]`, `paid`, `void` track Wise invoices |
 | S3 files bucket (`WREN_FILES_BUCKET`) | the bytes; the browser PUTs and GETs on signed URLs |

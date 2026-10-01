@@ -531,6 +531,20 @@ export async function recordPulse(
 
 // --- moments, reviews and what's next (D13) ------------------------------------
 
+/** The generic app: every engagement's plan and paperwork, for offers with no app of their own (D14). */
+export const WORK_APP = "work";
+/** The portal app an offer runs in; its plan and paperwork live there too. */
+export const appOf = (offerId: string): string => offerFor(offerId).app ?? WORK_APP;
+/**
+ * A portal page for these offers' engagements: their app when they share one, else `work`,
+ * which holds them all. Every app names the plan's pages alike ("overview", "needs-you").
+ */
+export function pagePath(offerIds: readonly string[], page: string): string {
+  const apps = new Set(offerIds.map(appOf));
+  const [only] = apps;
+  return `/${apps.size === 1 && only ? only : WORK_APP}/${page}`;
+}
+
 export const HALFWAY = "halfway";
 export const LAST_WEEK = "last_week";
 const firstOf = (measure: string) => `first:${measure}`;
@@ -667,6 +681,10 @@ export async function addInvoice(
     link?: string | undefined;
     /** The setup fee: paid with the contract signed, the plan starts. */
     setup?: boolean | undefined;
+    /** The month a recurring bill is for, `2026-11`. */
+    period?: string | undefined;
+    /** Per-unit fees it bills. */
+    units?: number | undefined;
     by: string;
   },
 ): Promise<Invoice> {
@@ -683,6 +701,24 @@ export async function addInvoice(
     .from(invoices)
     .where(eq(invoices.number, number));
   if (taken) throw new DeliveryRefusal(`invoice ${number} is already on record`, 409);
+  const period = input.period ?? null;
+  if (period !== null) {
+    if (!PERIOD.test(period)) throw bad("the period is a month, like 2026-11");
+    const [billed] = await db
+      .select({ number: invoices.number })
+      .from(invoices)
+      .where(
+        and(
+          eq(invoices.engagementId, e.id),
+          eq(invoices.period, period),
+          sql`${invoices.status} <> 'void'`,
+        ),
+      );
+    if (billed)
+      throw new DeliveryRefusal(`${period} is billed already, invoice ${billed.number}`, 409);
+  }
+  if (input.units !== undefined && !(Number.isSafeInteger(input.units) && input.units >= 0))
+    throw bad("units is a whole number, 0 or more");
   const [row] = await db
     .insert(invoices)
     .values({
@@ -695,10 +731,92 @@ export async function addInvoice(
       dueOn,
       link: input.link?.trim() ? linkOf(input.link, "link") : null,
       setup: input.setup === true,
+      period,
+      units: input.units ?? null,
       createdBy: input.by,
     })
     .returning();
   return row as Invoice;
+}
+
+const PERIOD = /^\d{4}-(0[1-9]|1[0-2])$/;
+
+/** What to bill one engagement for a month (D15). */
+export interface Bill {
+  engagementId: number;
+  clientId: string;
+  /** `2026-11`. */
+  period: string;
+  monthlyCents: number;
+  units: number;
+  unitCents: number;
+  /** What a unit is, singular: "meeting booked". */
+  unit: string | null;
+  currency: string;
+  payDays: number;
+}
+export const billCents = (b: Bill): number => b.monthlyCents + b.units * b.unitCents;
+
+/**
+ * The month's bills, from each signed contract's terms: the monthly fee while the work runs
+ * (from the first month after it started), plus a fee for each unit not billed yet, until the
+ * cap. A non-void invoice for the month means it's sent. Nothing owed, no bill. The demo has none.
+ */
+export async function billsDue(db: Queryable, period: string): Promise<Bill[]> {
+  const rows = await db
+    .select({ e: engagements, terms: agreements.terms })
+    .from(engagements)
+    .innerJoin(agreements, eq(agreements.engagementId, engagements.id))
+    .innerJoin(clients, eq(clients.id, engagements.clientId))
+    .where(
+      and(
+        inArray(engagements.status, ["active", "done"]),
+        sql`${agreements.signedAt} is not null`,
+        eq(clients.demo, false),
+      ),
+    );
+  if (rows.length === 0) return [];
+  const ids = rows.map((r) => r.e.id);
+  const [billed, counts] = await Promise.all([
+    db
+      .select({
+        engagementId: invoices.engagementId,
+        period: invoices.period,
+        units: invoices.units,
+      })
+      .from(invoices)
+      .where(and(inArray(invoices.engagementId, ids), sql`${invoices.status} <> 'void'`)),
+    db.select().from(results).where(inArray(results.engagementId, ids)),
+  ]);
+  return rows.flatMap(({ e, terms: t }): Bill[] => {
+    const mine = billed.filter((b) => b.engagementId === e.id);
+    if (mine.some((b) => b.period === period)) return [];
+    const monthlyCents =
+      e.status === "active" && t.monthlyCents && e.startsOn < `${period}-01` ? t.monthlyCents : 0;
+    let units = 0;
+    const measure = offerFor(e.offerId).perUnitMeasure;
+    if (t.perUnitCents && measure) {
+      const done = mine.reduce((n, b) => n + (b.units ?? 0), 0);
+      const count = counts.find((r) => r.engagementId === e.id && r.key === measure)?.value ?? 0;
+      const room =
+        t.capCents === null
+          ? Infinity
+          : Math.floor((t.capCents - done * t.perUnitCents) / t.perUnitCents);
+      units = Math.max(0, Math.min(Math.floor(count) - done, room));
+    }
+    const bill: Bill = {
+      engagementId: e.id,
+      clientId: e.clientId,
+      period,
+      monthlyCents,
+      units,
+      unitCents: t.perUnitCents ?? 0,
+      unit: t.unit,
+      currency: t.currency,
+      payDays: t.payDays,
+    };
+    return billCents(bill) > 0 ? [bill] : [];
+  });
 }
 
 /** Paid on a day (today by default), void, or open again. A paid setup fee may start the plan. */
@@ -1050,6 +1168,8 @@ export interface EngagementView {
   offer: {
     id: string;
     name: string;
+    /** The portal app it runs in. */
+    app: string;
     promise: string;
     guarantee: string | null;
     youGet: readonly string[];
@@ -1226,6 +1346,7 @@ export async function deliveryHome(
         offer: {
           id: offer.id,
           name: offer.name,
+          app: appOf(offer.id),
           promise: offer.promise,
           guarantee: offer.guarantee,
           youGet: offer.youGet,
@@ -1439,7 +1560,15 @@ export async function boughtBy(
   db: Queryable,
   clientId: string,
 ): Promise<
-  { id: number; offerId: string; offer: string; startsOn: string; status: EngagementStatus }[]
+  {
+    id: number;
+    offerId: string;
+    offer: string;
+    /** The portal app it runs in. */
+    app: string;
+    startsOn: string;
+    status: EngagementStatus;
+  }[]
 > {
   const rows = await db
     .select()
@@ -1450,6 +1579,7 @@ export async function boughtBy(
     id: e.id,
     offerId: e.offerId,
     offer: offerFor(e.offerId).name,
+    app: appOf(e.offerId),
     startsOn: e.startsOn,
     status: e.status,
   }));
