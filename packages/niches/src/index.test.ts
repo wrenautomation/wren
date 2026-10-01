@@ -209,8 +209,8 @@ describe("offers", () => {
 });
 
 describe("sms sequences", () => {
-  it("only agencies texts; names are fleet-wide; code holds the shape, never the words", () => {
-    expect([...SMS_SEQUENCES.keys()]).toEqual(["agencies-sms"]);
+  it("agencies and site applicants text; names are fleet-wide; code holds the shape, never the words", () => {
+    expect([...SMS_SEQUENCES.keys()]).toEqual(["form-fit", "form-not-fit", "agencies-sms"]);
     expect(secRia.smsSequences.size).toBe(0);
     const seq = SMS_SEQUENCES.get("agencies-sms");
     expect(seq?.steps).toEqual([

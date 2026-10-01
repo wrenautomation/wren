@@ -157,8 +157,13 @@ export const smsContacts = pgTable(
     /** The crawled page the number was published on (documents.id), and its URL: the evidence. */
     sourceDocumentId: integer("source_document_id"),
     sourceUrl: text("source_url"),
-    /** How it was found: `tel_link`, `page_text`, `manual`, `inbound`. */
+    /** How it was found: `tel_link`, `page_text`, `manual`, `inbound`, `form`. */
     sourceKind: varchar("source_kind", { length: 16 }).notNull(),
+    /** The source's own id for it, when it has one (`form`: the lander's application id). */
+    sourceRef: varchar("source_ref", { length: 64 }),
+    /** What they called themselves, when no person row names them (a form applicant). */
+    name: text("name"),
+    email: text("email"),
     basis: varchar("basis", { length: 16, enum: CONTACT_BASES }).notNull(),
     basisDetail: text("basis_detail"),
     lineType: varchar("line_type", { length: 16, enum: LINE_TYPES }).notNull().default("unknown"),
@@ -179,6 +184,7 @@ export const smsContacts = pgTable(
   },
   (t) => [
     unique("uq_sms_contacts_e164_company").on(t.e164, t.companyId),
+    unique("uq_sms_contacts_source_ref").on(t.sourceKind, t.sourceRef),
     // One running sequence per phone, whichever company it was found under.
     uniqueIndex("uq_sms_contacts_enrolled_e164")
       .on(t.e164)

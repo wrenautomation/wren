@@ -154,6 +154,13 @@ export function registerSms(program: Command, withDb: WithDb, settings: Settings
     .action(async (key: string) => json(await desk().setTemplate({ key, body: "", by: "cli" })));
 
   cmd
+    .command("forms")
+    .description(
+      "Text site applicants who ticked the texts box, now (SmsWatch does this every 30 min)",
+    )
+    .action(async () => json(await desk().forms()));
+
+  cmd
     .command("add <phone>")
     .description("Add a number by hand (someone who asked to be texted, or your own for a test)")
     .requiredOption("--why <text>", "why it may be texted: the consent record")

@@ -8,8 +8,9 @@
  *   provider's event id as the idempotency key. Applying is idempotent anyway.
  * - `SmsDesk`: the operator's reads and writes, for the phone app and the CLI.
  * - `SmsWatch/daily`: every 30 minutes, attaches waiting US numbers to the
- *   10DLC campaign once carriers approve it, labels new replies and runs the
- *   health checks; once a fleet day, one summary line.
+ *   10DLC campaign once carriers approve it, follows up site applicants who
+ *   ticked the texts box (form.ts), labels new replies and runs the health
+ *   checks; once a fleet day, one summary line.
  */
 import * as restate from "@restatedev/restate-sdk";
 import { recordedRun } from "@wren/core";
@@ -17,11 +18,13 @@ import type { Notifier } from "@wren/core/notify";
 import { LAST, makeLoopObject, type PassOutcome, runPass } from "@wren/core/restate";
 import type { Db } from "@wren/db";
 import type { LlmClient } from "@wren/llm";
+import type { Bookings } from "../bookings.js";
 import { type ClassifyStats, classifyReplies, labelReply } from "../classify.js";
 import { addContact } from "../contacts.js";
 import { queueManual, type TickStats, tick } from "../deliver.js";
 import { type EnrollStats, enroll } from "../enroll.js";
 import { applyEvent } from "../events.js";
+import { type FormOptions, type FormStats, followUpForms, type SiteSource } from "../form.js";
 import { checkHealth, type HealthPolicy, type HealthReport } from "../health.js";
 import { type LiftStats, liftPhones } from "../lift.js";
 import { formatPhone } from "../phone.js";
@@ -67,6 +70,10 @@ export interface SmsDeps {
   sequences: ReadonlyMap<string, SmsSequence>;
   senderName: string;
   heldNiches: readonly string[];
+  /** The lander's export, read for form opt-ins. Null = no form follow-up. */
+  site?: SiteSource | null;
+  /** Asked before a form applicant's first text. Null = no check. */
+  bookings?: Bookings | null;
   notifier?: Notifier;
   /** Reply labels are bought only with a real model. */
   llm?: LlmClient | null;
@@ -79,6 +86,25 @@ async function nowFor(
   clock?: () => Date,
 ): Promise<Date> {
   return clock ? clock() : new Date(await ctx.date.now());
+}
+
+function formOptions(
+  deps: SmsDeps,
+  site: SiteSource,
+  now: Date,
+  runId: string | null,
+): FormOptions {
+  return {
+    site,
+    bookings: deps.bookings ?? null,
+    sequences: deps.sequences,
+    policy: deps.policy,
+    provider: deps.provider,
+    senderName: deps.senderName,
+    heldNiches: deps.heldNiches,
+    now,
+    runId,
+  };
 }
 
 export function makeSmsSender(deps: SmsDeps) {
@@ -312,6 +338,21 @@ export function makeSmsDesk(deps: SmsDeps) {
           );
           return stats;
         }),
+      /** The form follow-up now (SmsWatch runs it every 30 minutes). */
+      forms: async (ctx: restate.Context): Promise<FormStats> => {
+        const site = deps.site;
+        if (!site)
+          throw new restate.TerminalError("no form follow-up: WREN_SITE_EXPORT_TOKEN is unset");
+        const now = await nowOf(ctx);
+        return ctx.run("forms", async () => {
+          const { stats } = await terminal(() =>
+            recordedRun(deps.db, { command: "sms forms", argv: {} }, (run) =>
+              followUpForms(deps.db, formOptions(deps, site, now, run.id)),
+            ),
+          );
+          return stats;
+        });
+      },
       /** Enroll: carrier lookups cost a fraction of a cent each, so it is journaled whole. */
       enroll: async (
         ctx: restate.Context,
@@ -351,6 +392,9 @@ export function makeSmsDesk(deps: SmsDeps) {
 
 export interface WatchStats {
   registration: RegistrationStats;
+  /** Null = no site to read, or `formsError` says why the read failed. */
+  forms: FormStats | null;
+  formsError?: string;
   classify: ClassifyStats | null;
   health: Pick<HealthReport, "paused" | "warnings" | "balanceUsd" | "fleet">;
   summarized: string | null;
@@ -372,6 +416,16 @@ export function makeSmsWatch(deps: SmsDeps) {
             "SMS: US numbers registered",
             `${registration.registered.map(formatPhone).join(", ")} ${registration.registered.length === 1 ? "is" : "are"} on the 10DLC campaign and can text US phones now. The ramp starts today.`,
           );
+        // A site outage costs this pass its form follow-up, not its health checks.
+        let forms: FormStats | null = null;
+        let formsError: string | undefined;
+        if (deps.site) {
+          try {
+            forms = await followUpForms(deps.db, formOptions(deps, deps.site, now, runId));
+          } catch (err) {
+            formsError = err instanceof Error ? err.message : String(err);
+          }
+        }
         const classify = deps.llm ? await classifyReplies(deps.db, deps.llm, { runId, now }) : null;
         const report = await checkHealth(deps.db, {
           now,
@@ -381,6 +435,8 @@ export function makeSmsWatch(deps: SmsDeps) {
         });
         return {
           registration,
+          forms,
+          ...(formsError ? { formsError } : {}),
           classify,
           health: {
             paused: report.paused,

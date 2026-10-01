@@ -45,7 +45,7 @@ export function slotsOf(sequences: Iterable<SmsSequence>): TemplateSlot[] {
 /** What a sequence text fills in for this contact. */
 export async function fieldsFor(
   db: Queryable,
-  contact: Pick<SmsContact, "companyId" | "personId">,
+  contact: Pick<SmsContact, "companyId" | "personId" | "name">,
   sender: string,
 ): Promise<RenderFields> {
   const [company] = contact.companyId
@@ -57,7 +57,11 @@ export async function fieldsFor(
   const [person] = contact.personId
     ? await db.select({ name: people.fullName }).from(people).where(eq(people.id, contact.personId))
     : [];
-  return { first_name: firstName(person?.name), company: company?.name ?? null, sender };
+  return {
+    first_name: firstName(person?.name ?? contact.name),
+    company: company?.name ?? null,
+    sender,
+  };
 }
 
 /** The filled bodies among `keys`; an empty slot is absent. */

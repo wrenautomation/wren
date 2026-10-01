@@ -4,7 +4,7 @@
  * (niche, name). Crawl hints and discovery words union when unscoped.
  */
 import { pyReprStr } from "@wren/channel-email";
-import type { SmsSequence } from "@wren/channel-sms";
+import { FORM_SEQUENCES, type SmsSequence } from "@wren/channel-sms";
 import {
   BUILTIN_FORMATS,
   BUILTIN_PERSON_FORMATS,
@@ -70,13 +70,14 @@ export const TEMPLATES_BY_NICHE = new Map(NICHES.map((n) => [n.name, n.templates
 export const SEQUENCES_BY_NICHE = new Map(NICHES.map((n) => [n.name, n.sequences] as const));
 
 /**
- * Every text sequence by name. Contacts store only the name, so a name is one sequence
- * fleet-wide: a second niche claiming it is refused here.
+ * Every text sequence by name: each niche's, plus the core ones for site applicants.
+ * Contacts store only the name, so a name is one sequence fleet-wide: a second
+ * owner claiming it is refused here.
  */
-export const SMS_SEQUENCES: ReadonlyMap<string, SmsSequence> = formatRegistry(
-  "sms sequence",
-  NICHES.flatMap((n) => [...n.smsSequences.values()].map((s) => ({ ...s, niche: n.name }))),
-);
+export const SMS_SEQUENCES: ReadonlyMap<string, SmsSequence> = formatRegistry("sms sequence", [
+  ...FORM_SEQUENCES.map((s) => ({ ...s, niche: null })),
+  ...NICHES.flatMap((n) => [...n.smsSequences.values()].map((s) => ({ ...s, niche: n.name }))),
+]);
 
 /** Name -> format, refusing a name two owners claim: a format is one dialect, one niche. */
 function formatRegistry<F extends { name: string; niche: string | null }>(

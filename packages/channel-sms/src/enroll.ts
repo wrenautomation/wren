@@ -6,11 +6,12 @@
  * cover (left `new`), a landline or toll-free (`unreachable`), an opted-out
  * number (`opted_out`), a company that already has a running thread (left
  * `new`; one thread per company). Nothing here sends. A sequence with any
- * step still empty (template-store.ts) enrolls no one.
+ * step still empty (template-store.ts) enrolls no one. A form applicant is
+ * enrolled only by name, by the form follow-up (form.ts), never by a cold run.
  */
 import { activeSuppressionsOf } from "@wren/core";
 import type { Db } from "@wren/db";
-import { and, asc, eq, inArray, isNull, notInArray, or, sql } from "drizzle-orm";
+import { and, asc, eq, inArray, isNull, ne, notInArray, or, sql } from "drizzle-orm";
 import { countryOf } from "./phone.js";
 import type { SmsPolicy } from "./policy.js";
 import { pickNumber } from "./pool.js";
@@ -30,6 +31,8 @@ export interface EnrollOptions {
   senderName: string;
   niche?: string | null;
   heldNiches: readonly string[];
+  /** Only these contacts (the form follow-up). Unset = any cold `new` contact. */
+  contactIds?: readonly number[];
   limit: number;
   now: Date;
   runId?: string | null;
@@ -91,6 +94,8 @@ export async function enroll(db: Db, opts: EnrollOptions): Promise<EnrollStats> 
   const opener = bodies.get(keys[0] as string) as string;
   const where = [eq(smsContacts.state, "new"), inArray(smsContacts.basis, [...opts.policy.bases])];
   if (opts.niche) where.push(eq(smsContacts.niche, opts.niche));
+  if (opts.contactIds) where.push(inArray(smsContacts.id, [...opts.contactIds]));
+  else where.push(ne(smsContacts.sourceKind, "form"));
   if (opts.heldNiches.length > 0) {
     where.push(
       or(isNull(smsContacts.niche), notInArray(smsContacts.niche, [...opts.heldNiches])) as never,

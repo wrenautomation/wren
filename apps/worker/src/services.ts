@@ -48,7 +48,13 @@ import { makeAds, makeAdsWatch } from "@wren/channel-meta/restate";
 import { redditApi, redditContent } from "@wren/channel-reddit";
 import { searchConsoleClient } from "@wren/channel-search";
 import { makeSearchWatch, makeSearchWeek } from "@wren/channel-search/restate";
-import { healthFrom, NoProvider, policyFrom, providerFrom } from "@wren/channel-sms";
+import {
+  CalcomBookings,
+  healthFrom,
+  NoProvider,
+  policyFrom,
+  providerFrom,
+} from "@wren/channel-sms";
 import { makeSmsDesk, makeSmsEvents, makeSmsSender, makeSmsWatch } from "@wren/channel-sms/restate";
 import { tiktokContent } from "@wren/channel-tiktok";
 import { xContent } from "@wren/channel-x";
@@ -387,6 +393,10 @@ export async function buildServices(
     sequences: SMS_SEQUENCES,
     senderName: settings.smsSenderName,
     heldNiches: settings.smsHeldNiches,
+    site: settings.siteExportToken
+      ? { baseUrl: settings.siteBaseUrl, exportToken: settings.siteExportToken }
+      : null,
+    bookings: settings.calcomApiKey ? new CalcomBookings(settings.calcomApiKey) : null,
     llm: classify ? llm : null,
     ...notify,
   };

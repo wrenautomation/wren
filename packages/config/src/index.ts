@@ -243,6 +243,8 @@ export const settingsSchema = z.object({
   smsGapSeconds: z.coerce.number().int().positive().default(20),
   /** Who a text says it is from: `{sender}` in the copy. */
   smsSenderName: z.string().min(1).default("William"),
+  /** Cal.com API key: the form follow-up asks it whether an applicant already booked. Unset = no check. */
+  calcomApiKey: z.string().min(1).optional(),
   /**
    * Which contact bases the sender may text: `opt_in` (they gave us the number
    * for this) and/or `published` (on their own site). Must match what the
@@ -388,6 +390,7 @@ export const ENV_KEYS = {
   smsDays: "WREN_SMS_DAYS",
   smsGapSeconds: "WREN_SMS_GAP_SECONDS",
   smsSenderName: "WREN_SMS_SENDER_NAME",
+  calcomApiKey: "WREN_CALCOM_API_KEY",
   smsBases: "WREN_SMS_BASES",
   smsHeldNiches: "WREN_SMS_HELD_NICHES",
   smsMaxFailRate: "WREN_SMS_MAX_FAIL_RATE",

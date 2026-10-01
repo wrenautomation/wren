@@ -20,6 +20,10 @@ export interface SmsStep {
 export interface SmsSequence {
   name: string;
   steps: readonly SmsStep[];
+  /** When the first text goes, shown above its empty box. Unset = a cold first text. */
+  firstGoes?: string;
+  /** The fields its texts may use. Unset = all of them. */
+  fields?: readonly RenderField[];
 }
 
 export interface RenderFields {
@@ -85,9 +89,9 @@ export function sequenceSlots(seq: SmsSequence): TemplateSlot[] {
     key: stepKey(seq.name, s.step),
     purpose:
       s.step === 1
-        ? `${seq.name}: first text, to someone who has not texted us`
+        ? `${seq.name}: first text, ${seq.firstGoes ?? "to someone who has not texted us"}`
         : `${seq.name}: text ${s.step}, ${s.afterDays} days after the last one`,
-    fields: SEQUENCE_FIELDS,
+    fields: seq.fields ?? SEQUENCE_FIELDS,
     mustSayStop: s.step === 1,
     minLength: 1,
   }));
