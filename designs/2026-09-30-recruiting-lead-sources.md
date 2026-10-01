@@ -153,6 +153,24 @@ PPP loan size ≈ 2.5 months of payroll, so yearly payroll ≈ 4.8 × loan. For 
 5. ~~**Opener pass**~~: built (kind `opener`, `recruiting_facts`, the opener template). Full run on William's yes.
 6. **Tiering** in the recruiting niche, with an offer per tier.
 
+## Quality audit (prod, 2026-10-01)
+
+| Count | Firms or leads |
+|---|---|
+| Firms | 34,023 (24,466 with a site, 31,828 with an office phone) |
+| Email leads | 13,367 at 12,095 firms. None verified, none with an opener |
+| Named, personal address (SBA contact) | 4,558. When SBA lists principals, the contact is one in 83% |
+| Role inboxes only (Overture: info@, jobs@...) | 8,451. No name, so not a decision maker yet |
+| People rows | 0: the discovery crawl (team pages) has not run |
+| Named leads by PPP size | 284 in 10–50, 188 in 3–9, 368 over 50, 3,634 unsized |
+
+Leaks found:
+- **Country missing** on 10,112 firms. SBA rows are all US. Overture's own address says 4,661 US and 1,316 CA. CASL and send-time zones need it.
+- **Chains on subdomains** pass the chain rule (it counts the exact domain): 10 parents with 11+ rows, ~300 rows.
+- **Public bodies**: ~490 names look like county offices, job centers or colleges. Needs a tighter rule, not a blind drop ("workforce solutions" is also a staffing name).
+- **SBA off-niche**: 1,286 SBA firms have no staffing word and 4+ NAICS codes (fashion, contracting).
+- **UK**: 23 `.uk` domains, 2 with leads.
+
 ## Owed by William
 
 - Yes on the opener pass's full run (~$70 of LLM at Command A).
