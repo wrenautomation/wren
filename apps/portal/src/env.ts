@@ -6,9 +6,6 @@ export interface Env {
   /** Restate Cloud ingress, e.g. https://<env>.env.<region>.restate.cloud:8080 */
   RESTATE_INGRESS_URL: string;
   RESTATE_AUTH_TOKEN?: string;
-  /** Cloudflare Access: the team domain (`<team>.cloudflareaccess.com`) and the app's AUD tag. Unset = no sign-in yet. */
-  ACCESS_TEAM_DOMAIN?: string;
-  ACCESS_AUD?: string;
-  /** Wren's own logins, comma separated: they see every client. */
-  OPERATOR_EMAILS?: string;
+  /** Our sign-in, e.g. https://auth.wrenautomation.com: it signs the tokens and publishes the keys. Unset = no sign-in yet. */
+  AUTH_ORIGIN?: string;
 }

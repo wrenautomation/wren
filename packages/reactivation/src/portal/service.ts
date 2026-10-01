@@ -5,9 +5,9 @@
  * The demo (R15) needs no login and every answer goes through the mask.
  */
 import * as restate from "@restatedev/restate-sdk";
-import { type Client, clients } from "@wren/core/clients";
+import { type Client, clientMembers, clients, normalEmail, touchMember } from "@wren/core/clients";
 import { type Db, type Queryable, setAuditActor } from "@wren/db";
-import { and, asc, eq, sql } from "drizzle-orm";
+import { and, asc, eq } from "drizzle-orm";
 import { approveDrafts, type ReviewResult, skipDrafts } from "../approve.js";
 import { type CrmHealth, crmHealth } from "../crm/health.js";
 import { HandoffRefusal, markMeetingBooked } from "../handoff.js";
@@ -38,8 +38,8 @@ import {
 } from "./views.js";
 
 /**
- * Who is asking: an email Cloudflare Access vouched for, or anyone on the demo
- * host. The Worker marks Wren's own logins as operators: they see every client.
+ * Who is asking: an email our sign-in vouched for, or anyone on the demo host.
+ * The token marks Wren's own people as operators: they see every client.
  */
 export type Viewer = { email: string; operator?: boolean } | { demo: true };
 
@@ -77,13 +77,15 @@ async function clientsFor(main: Db, viewer: Viewer): Promise<Client[]> {
   if ("demo" in viewer)
     return main.select().from(clients).where(eq(clients.demo, true)).orderBy(asc(clients.id));
   if (viewer.operator) return main.select().from(clients).orderBy(asc(clients.id));
-  const email = viewer.email.trim().toLowerCase();
+  const email = normalEmail(viewer.email);
   if (!email) return [];
-  return main
-    .select()
+  const rows = await main
+    .select({ client: clients })
     .from(clients)
-    .where(and(eq(clients.demo, false), sql`${email} = any(${clients.portalEmails})`))
+    .innerJoin(clientMembers, eq(clientMembers.clientId, clients.id))
+    .where(and(eq(clients.demo, false), eq(clientMembers.email, email)))
     .orderBy(asc(clients.id));
+  return rows.map((r) => r.client);
 }
 
 async function pick(main: Db, req: PortalRequest): Promise<Client> {
@@ -180,6 +182,7 @@ export function portalApi(deps: PortalDeps) {
     me: async (req: PortalRequest): Promise<Me> => {
       const mine = await clientsFor(deps.main, req.viewer);
       const demo = "demo" in req.viewer;
+      if (!("demo" in req.viewer)) await touchMember(deps.main, req.viewer.email);
       return {
         clients: mine.map((c) => ({ id: c.id, name: demo ? DEMO_NAME : c.name })),
         demo,

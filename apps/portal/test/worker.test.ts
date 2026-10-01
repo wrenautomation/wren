@@ -1,16 +1,17 @@
 /**
  * The Worker with fake bindings and a fake Restate: the viewer is always the
- * Worker's own (demo by host, or the email a valid Access token carries), the
+ * Worker's own (demo by host, or the email a valid token carries), the
  * API is closed for anything short of a valid token, and the demo is served
  * from the edge cache the second time.
  */
+
+import { forgetKeys } from "@wren/auth/verify";
 import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
-import { forgetKeys } from "../src/access.js";
 import type { Env } from "../src/env.js";
 import worker from "../src/worker.js";
 
-const TEAM = "wren.cloudflareaccess.com";
-const AUD = "aud-tag";
+const AUTH = "https://auth.test";
+const AUD = "wren";
 let keys: CryptoKeyPair;
 let restate: { url: string; body: Record<string, unknown> }[];
 let restateStatus: number;
@@ -23,19 +24,16 @@ const enc = (v: unknown) =>
     .replace(/=+$/, "");
 
 async function token(claims: Record<string, unknown>, kid = "k1", key = keys.privateKey) {
-  const head = enc({ alg: "RS256", kid, typ: "JWT" });
+  const head = enc({ alg: "EdDSA", kid, typ: "JWT" });
   const body = enc({
     aud: [AUD],
-    iss: `https://${TEAM}`,
+    iss: AUTH,
+    sub: "u1",
     exp: Math.floor(Date.now() / 1000) + 600,
     email: "Owner@Client.example",
     ...claims,
   });
-  const sig = await crypto.subtle.sign(
-    "RSASSA-PKCS1-v1_5",
-    key,
-    new TextEncoder().encode(`${head}.${body}`),
-  );
+  const sig = await crypto.subtle.sign("Ed25519", key, new TextEncoder().encode(`${head}.${body}`));
   let bin = "";
   for (const b of new Uint8Array(sig)) bin += String.fromCharCode(b);
   return `${head}.${body}.${enc(bin)}`;
@@ -46,9 +44,7 @@ const env = (over: Partial<Env> = {}): Env => ({
   DEMO_HOST: "demo.test",
   RESTATE_INGRESS_URL: "https://restate.test:8080/",
   RESTATE_AUTH_TOKEN: "rt",
-  ACCESS_TEAM_DOMAIN: TEAM,
-  ACCESS_AUD: AUD,
-  OPERATOR_EMAILS: "william@wren.example, Ops@Wren.example",
+  AUTH_ORIGIN: AUTH,
   ...over,
 });
 
@@ -60,16 +56,10 @@ const post = (host: string, route: string, body: unknown = {}, headers: HeadersI
   });
 
 beforeAll(async () => {
-  keys = (await crypto.subtle.generateKey(
-    {
-      name: "RSASSA-PKCS1-v1_5",
-      modulusLength: 2048,
-      publicExponent: new Uint8Array([1, 0, 1]),
-      hash: "SHA-256",
-    },
-    true,
-    ["sign", "verify"],
-  )) as CryptoKeyPair;
+  keys = (await crypto.subtle.generateKey({ name: "Ed25519" }, true, [
+    "sign",
+    "verify",
+  ])) as CryptoKeyPair;
 });
 
 beforeEach(() => {
@@ -79,7 +69,7 @@ beforeEach(() => {
   certFetches = 0;
   vi.stubGlobal("fetch", async (input: RequestInfo | URL, init?: RequestInit) => {
     const url = String(input);
-    if (url === `https://${TEAM}/cdn-cgi/access/certs`) {
+    if (url === `${AUTH}/api/auth/jwks`) {
       certFetches++;
       const jwk = await crypto.subtle.exportKey("jwk", keys.publicKey);
       return Response.json({ keys: [{ ...jwk, kid: "k1" }] });
@@ -134,8 +124,8 @@ describe("the demo host", () => {
 });
 
 describe("the app host", () => {
-  it("refuses everything until Access is set up", async () => {
-    const res = await worker.fetch(post("app.test", "me"), env({ ACCESS_AUD: "" }));
+  it("refuses everything until sign-in is set up", async () => {
+    const res = await worker.fetch(post("app.test", "me"), env({ AUTH_ORIGIN: "" }));
     expect(res.status).toBe(503);
     expect(restate).toEqual([]);
   });
@@ -152,7 +142,7 @@ describe("the app host", () => {
         "overview",
         { client: "acme", viewer: { demo: true } },
         {
-          "cf-access-jwt-assertion": t,
+          authorization: `Bearer ${t}`,
         },
       ),
       env(),
@@ -162,27 +152,21 @@ describe("the app host", () => {
   });
 
   it("marks an operator", async () => {
-    const t = await token({ email: "ops@wren.example" });
-    await worker.fetch(post("app.test", "me", {}, { "cf-access-jwt-assertion": t }), env());
+    const t = await token({ email: "ops@wren.example", operator: true });
+    await worker.fetch(post("app.test", "me", {}, { authorization: `Bearer ${t}` }), env());
     expect(restate[0]?.body).toEqual({ viewer: { email: "ops@wren.example", operator: true } });
   });
 
   it("refuses a token with the wrong audience, issuer, expiry, key or signature", async () => {
-    const other = (await crypto.subtle.generateKey(
-      {
-        name: "RSASSA-PKCS1-v1_5",
-        modulusLength: 2048,
-        publicExponent: new Uint8Array([1, 0, 1]),
-        hash: "SHA-256",
-      },
-      true,
-      ["sign", "verify"],
-    )) as CryptoKeyPair;
+    const other = (await crypto.subtle.generateKey({ name: "Ed25519" }, true, [
+      "sign",
+      "verify",
+    ])) as CryptoKeyPair;
     const good = await token({});
     const [h, p] = good.split(".");
     const bad = [
       await token({ aud: ["someone-else"] }),
-      await token({ iss: "https://evil.cloudflareaccess.com" }),
+      await token({ iss: "https://evil.test" }),
       await token({ exp: Math.floor(Date.now() / 1000) - 5 }),
       await token({}, "k2"),
       await token({}, "k1", other.privateKey),
@@ -192,7 +176,7 @@ describe("the app host", () => {
     ];
     for (const t of bad) {
       const res = await worker.fetch(
-        post("app.test", "me", {}, { "cf-access-jwt-assertion": t }),
+        post("app.test", "me", {}, { authorization: `Bearer ${t}` }),
         env(),
       );
       expect(res.status, t.slice(0, 30)).toBe(401);
@@ -203,7 +187,7 @@ describe("the app host", () => {
   it("a made-up key id refetches the keys at most once a minute", async () => {
     for (const kid of ["x1", "x2", "x3"]) {
       const t = await token({}, kid);
-      await worker.fetch(post("app.test", "me", {}, { "cf-access-jwt-assertion": t }), env());
+      await worker.fetch(post("app.test", "me", {}, { authorization: `Bearer ${t}` }), env());
     }
     expect(certFetches).toBe(1);
   });
@@ -212,7 +196,7 @@ describe("the app host", () => {
     restateStatus = 403;
     const t = await token({});
     const res = await worker.fetch(
-      post("app.test", "me", {}, { "cf-access-jwt-assertion": t }),
+      post("app.test", "me", {}, { authorization: `Bearer ${t}` }),
       env(),
     );
     expect(res.status).toBe(403);
@@ -250,7 +234,7 @@ describe("the demo cache", () => {
   it("never serves the app host from it", async () => {
     await worker.fetch(post("demo.test", "me"), env());
     const t = await token({});
-    await worker.fetch(post("app.test", "me", {}, { "cf-access-jwt-assertion": t }), env());
+    await worker.fetch(post("app.test", "me", {}, { authorization: `Bearer ${t}` }), env());
     expect(restate).toHaveLength(2);
   });
 });

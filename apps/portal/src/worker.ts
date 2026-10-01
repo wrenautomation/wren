@@ -3,8 +3,9 @@
  *
  * - demo.<domain> (DEMO_HOST): no sign-in; the viewer is the demo, and answers
  *   are cached at the edge for a few minutes. The server masks every answer.
- * - app.<domain>: Cloudflare Access signs people in (email code); the Worker
- *   checks the token itself and passes the email. OPERATOR_EMAILS see every client.
+ * - app.<domain>: people sign in at AUTH_ORIGIN (our own sign-in); the app
+ *   sends its short-lived token as a bearer, the Worker checks it and passes
+ *   the email. The token marks Wren's operators: they see every client.
  * - `/api/<route>`: forwarded to the `ReactivationPortal` service with the
  *   viewer set here, never by the browser. Writes (approve, skip, book) are
  *   refused on the demo.
@@ -13,8 +14,9 @@
  * The Worker holds no data: each client's list is its own Postgres database,
  * read through Restate.
  */
+
+import { AUDIENCE, bearer, verifyToken } from "@wren/auth/verify";
 import { PORTAL_ROUTES, PORTAL_WRITES } from "@wren/reactivation/portal-routes";
-import { accessEmail } from "./access.js";
 import type { Env } from "./env.js";
 
 const ROUTES: ReadonlySet<string> = new Set(PORTAL_ROUTES);
@@ -37,31 +39,19 @@ function json(body: unknown, status = 200): Response {
 const ingress = (env: Env, path: string) =>
   `${env.RESTATE_INGRESS_URL.replace(/\/+$/, "")}/${path}`;
 
-const operators = (env: Env): Set<string> =>
-  new Set(
-    (env.OPERATOR_EMAILS ?? "")
-      .split(",")
-      .map((e) => e.trim().toLowerCase())
-      .filter(Boolean),
-  );
-
 /** The viewer, or the response that refuses one. */
 async function viewerOf(req: Request, env: Env): Promise<Viewer | Response> {
   const host = new URL(req.url).hostname;
   if (host === env.DEMO_HOST) return { demo: true };
-  if (!env.ACCESS_TEAM_DOMAIN || !env.ACCESS_AUD)
-    return json({ error: "Sign-in isn't set up yet." }, 503);
-  let email: string | null;
+  if (!env.AUTH_ORIGIN) return json({ error: "Sign-in isn't set up yet." }, 503);
+  let who: Awaited<ReturnType<typeof verifyToken>>;
   try {
-    email = await accessEmail(req.headers.get("cf-access-jwt-assertion"), {
-      teamDomain: env.ACCESS_TEAM_DOMAIN,
-      aud: env.ACCESS_AUD,
-    });
+    who = await verifyToken(bearer(req), { issuer: env.AUTH_ORIGIN, audience: AUDIENCE });
   } catch {
     return json({ error: "Couldn't check your sign-in." }, 502);
   }
-  if (!email) return json({ error: "Sign in." }, 401);
-  return operators(env).has(email) ? { email, operator: true } : { email };
+  if (!who) return json({ error: "Sign in." }, 401);
+  return who.operator ? { email: who.email, operator: true } : { email: who.email };
 }
 
 async function sha256(s: string): Promise<string> {
@@ -123,7 +113,7 @@ async function bodyOf(req: Request): Promise<string | null> {
 async function api(req: Request, env: Env, route: string, ctx?: ExecutionContext) {
   if (!ROUTES.has(route)) return json({ error: "not found" }, 404);
   if (req.method !== "POST") return json({ error: "POST only" }, 405);
-  // A JSON content type forces a CORS preflight, so another site can't post here with the Access cookie.
+  // A JSON content type forces a CORS preflight, so another site can't post here.
   if (!(req.headers.get("content-type") ?? "").startsWith("application/json"))
     return json({ error: "json only" }, 415);
   const raw = await bodyOf(req);

@@ -11,7 +11,7 @@ import {
   type Theme,
 } from "@wren/ui";
 import { useEffect, useState } from "react";
-import { call, type Me } from "./api.js";
+import { call, type Me, signOutUrl } from "./api.js";
 import { useCall } from "./load.js";
 import type { Module, ModulePage } from "./module.js";
 import { MODULES } from "./modules/index.js";
@@ -108,6 +108,11 @@ export function App() {
         <p>
           This login isn't linked to a client list. Reply to your onboarding email and we'll add it.
         </p>
+        {signOutUrl ? (
+          <ButtonLink href={signOutUrl} tone="secondary">
+            Use another email
+          </ButtonLink>
+        ) : null}
       </Gate>
     );
   if (!at) return null;
@@ -138,16 +143,23 @@ export function App() {
       ]}
       notice={demo ? DEMO : undefined}
       actions={
-        action && action.page !== page.id ? (
-          <ButtonLink
-            href={`/${module.id}/${action.page}`}
-            tone="quiet"
-            size="sm"
-            icon={action.icon}
-          >
-            {action.label}
-          </ButtonLink>
-        ) : undefined
+        <>
+          {action && action.page !== page.id ? (
+            <ButtonLink
+              href={`/${module.id}/${action.page}`}
+              tone="quiet"
+              size="sm"
+              icon={action.icon}
+            >
+              {action.label}
+            </ButtonLink>
+          ) : null}
+          {signOutUrl ? (
+            <ButtonLink href={signOutUrl} tone="quiet" size="sm">
+              Sign out
+            </ButtonLink>
+          ) : null}
+        </>
       }
       page={pathOf(module, page)}
       theme={theme}

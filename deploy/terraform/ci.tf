@@ -54,7 +54,11 @@ data "aws_iam_policy_document" "ci" {
       "lambda:GetFunctionConfiguration",
       "lambda:ListVersionsByFunction",
     ]
-    resources = [aws_lambda_function.worker.arn]
+    # By name, not by reference: a targeted apply of this policy then leaves the functions alone.
+    resources = [
+      for f in ["worker", "auth"] :
+      "arn:aws:lambda:${var.region}:${data.aws_caller_identity.me.account_id}:function:${local.prefix}-${f}"
+    ]
   }
 }
 

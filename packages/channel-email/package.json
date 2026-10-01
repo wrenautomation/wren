@@ -10,6 +10,7 @@
     "./outreach": "./src/outreach/index.ts",
     "./restate": "./src/restate/index.ts",
     "./send": "./src/send/index.ts",
+    "./send/*": "./src/send/*.ts",
     "./inbox": "./src/inbox/index.ts"
   },
   "scripts": {

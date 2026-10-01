@@ -41,6 +41,7 @@ export const AUDIT_SKIPPED: Readonly<Record<string, string>> = {
 /** Schemas left out besides Postgres's own (`pg_*`, `information_schema`); a new schema is audited. */
 export const AUDIT_SKIPPED_SCHEMAS: Readonly<Record<string, string>> = {
   drizzle: "the migration journal, already a log",
+  auth: "sign-in: session tokens, password hashes and signing keys never go in a permanent log",
 };
 
 /** A table's name in the log: bare in `public`, `schema.table` elsewhere. */

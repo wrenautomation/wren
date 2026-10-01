@@ -1,13 +1,13 @@
 # Deploy: see deploy/portal.md. Nothing secret lives here: RESTATE_INGRESS_URL,
-# RESTATE_AUTH_TOKEN, ACCESS_TEAM_DOMAIN, ACCESS_AUD and OPERATOR_EMAILS are
-# `wrangler secret put`; the account id comes from CLOUDFLARE_ACCOUNT_ID.
+# RESTATE_AUTH_TOKEN are secrets (deploy.yml); the account id comes from
+# CLOUDFLARE_ACCOUNT_ID.
 name = "wren-portal"
 main = "src/worker.ts"
 compatibility_date = "2026-09-27"
-# Only the two hosts below; a workers.dev address would skip Access at the edge.
+# Only the two hosts below.
 workers_dev = false
 
-# app. is the clients' portal (behind Cloudflare Access), demo. the public demo.
+# app. is the clients' portal (sign-in at auth.), demo. the public demo.
 routes = [
   { pattern = "app.wrenautomation.com", custom_domain = true },
   { pattern = "demo.wrenautomation.com", custom_domain = true },
@@ -15,6 +15,7 @@ routes = [
 
 [vars]
 DEMO_HOST = "demo.wrenautomation.com"
+AUTH_ORIGIN = "https://auth.wrenautomation.com"
 
 # The Worker decides first: /api is code, the rest is the built app.
 [assets]

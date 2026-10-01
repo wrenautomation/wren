@@ -91,7 +91,7 @@ Every client command takes `--client <id>`. Without it the command refuses. It n
 
 ### The portal
 
-- `app.wrenautomation.com`: a client's own list, email-code login. Give someone access with `./bin/wren clients set <id> --portal-email a@firm.com` (replaces the list). Wren's own logins (`PORTAL_OPERATOR_EMAILS`) see every client.
+- `app.wrenautomation.com`: a client's own list. Sign-in at `auth.wrenautomation.com` (emailed code, Google, Microsoft, password), invite-only. Let someone in with `./bin/wren clients members add <id> a@firm.com [--role owner]`. Wren's own people: `./bin/wren operators add a@wrenautomation.com` (every client). Prod: run these against prod's `WREN_DATABASE_URL`.
 - `demo.wrenautomation.com`: the `demo` client, no login, people masked.
 - Look at it locally before showing anyone:
 

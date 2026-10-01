@@ -1,6 +1,8 @@
-import { sql } from "drizzle-orm";
+import { oneOf } from "@wren/db/columns";
 import {
   boolean,
+  foreignKey,
+  index,
   jsonb,
   pgTable,
   primaryKey,
@@ -29,8 +31,6 @@ export const clients = pgTable(
      * product parses its own block and owns the defaults; this layer never looks inside.
      */
     products: jsonb("products").$type<Record<string, unknown>>().default({}).notNull(),
-    /** Who may log in to this client's portal (Cloudflare Access email). */
-    portalEmails: text("portal_emails").array().default(sql`'{}'::text[]`).notNull(),
     /** The demo: people masked on the way out, no login, no writes, no sends. */
     demo: boolean("demo").default(false).notNull(),
     createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
@@ -42,3 +42,45 @@ export const clients = pgTable(
 );
 
 export type Client = typeof clients.$inferSelect;
+
+export const MEMBER_ROLES = ["owner", "member"] as const;
+export type MemberRole = (typeof MEMBER_ROLES)[number];
+
+/**
+ * Who sees which client in the portal, by sign-in email (lowercase). Auth says
+ * who someone is; this says what they see. An owner invites teammates.
+ */
+export const clientMembers = pgTable(
+  "client_members",
+  {
+    clientId: varchar("client_id", { length: 40 }).notNull(),
+    email: text("email").notNull(),
+    role: varchar("role", { length: 16, enum: MEMBER_ROLES }).default("member").notNull(),
+    /** Who invited them: an operator's or an owner's email. */
+    invitedBy: text("invited_by"),
+    invitedAt: timestamp("invited_at", { withTimezone: true }).defaultNow().notNull(),
+    lastSeenAt: timestamp("last_seen_at", { withTimezone: true }),
+  },
+  (t) => [
+    primaryKey({ columns: [t.clientId, t.email], name: "pk_client_members" }),
+    foreignKey({
+      columns: [t.clientId],
+      foreignColumns: [clients.id],
+      name: "fk_client_members_client",
+    }).onDelete("cascade"),
+    index("ix_client_members_email").on(t.email),
+    oneOf("ck_client_members_role", t.role, MEMBER_ROLES),
+  ],
+);
+
+export type ClientMember = typeof clientMembers.$inferSelect;
+
+/** Wren's own people: they see every client and the operator tools. */
+export const operators = pgTable(
+  "operators",
+  {
+    email: text("email").notNull(),
+    addedAt: timestamp("added_at", { withTimezone: true }).defaultNow().notNull(),
+  },
+  (t) => [primaryKey({ columns: [t.email], name: "pk_operators" })],
+);

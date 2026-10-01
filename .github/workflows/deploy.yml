@@ -1,10 +1,10 @@
-# Deploy main to production: migrate the database, ship the worker to Lambda,
-# register the new version with Restate Cloud, ship the phone and portal Workers
-# to Cloudflare. Runs after `ci` is green.
-# Secrets (repo settings): AWS_DEPLOY_ROLE_ARN, AWS_INVOKE_ROLE_ARN, LAMBDA_NAME,
-# WREN_DATABASE_URL, RESTATE_HOST, RESTATE_AUTH_TOKEN, CLOUDFLARE_API_TOKEN,
-# CLOUDFLARE_ACCOUNT_ID; optional PORTAL_ACCESS_TEAM_DOMAIN, PORTAL_ACCESS_AUD,
-# PORTAL_OPERATOR_EMAILS. See deploy/README.md, deploy/phone.md, deploy/portal.md.
+# Deploy main to production: migrate the database, ship the worker and the
+# sign-in to Lambda, register the worker's new version with Restate Cloud, ship
+# the phone, sign-in and portal Workers to Cloudflare. Runs after `ci` is green.
+# Secrets (production environment): AWS_DEPLOY_ROLE_ARN, AWS_INVOKE_ROLE_ARN,
+# LAMBDA_NAME, WREN_DATABASE_URL, RESTATE_HOST, RESTATE_AUTH_TOKEN,
+# CLOUDFLARE_API_TOKEN, CLOUDFLARE_ACCOUNT_ID, AUTH_LAMBDA_URL, AUTH_EDGE_SECRET.
+# See deploy/README.md, deploy/phone.md, deploy/portal.md.
 name: deploy
 on:
   workflow_run:
@@ -31,7 +31,9 @@ jobs:
         run: pnpm db:migrate
         env: { WREN_DATABASE_URL: "${{ secrets.WREN_DATABASE_URL }}" }
       - name: bundle
-        run: pnpm --filter @wren/worker build:lambda
+        run: |
+          pnpm --filter @wren/worker build:lambda
+          pnpm --filter @wren/auth-app build:lambda
       - uses: aws-actions/configure-aws-credentials@v5
         with:
           role-to-assume: ${{ secrets.AWS_DEPLOY_ROLE_ARN }}
@@ -54,28 +56,39 @@ jobs:
           RESTATE_HOST_SCHEME: https
           RESTATE_HOST: ${{ secrets.RESTATE_HOST }}
           RESTATE_AUTH_TOKEN: ${{ secrets.RESTATE_AUTH_TOKEN }}
+      - name: ship the sign-in lambda
+        # Its function URL serves $LATEST; no version to publish.
+        run: |
+          aws lambda update-function-code --function-name wren-prod-auth \
+            --zip-file fileb://apps/auth/dist/lambda.zip > /dev/null
+          aws lambda wait function-updated --function-name wren-prod-auth
       - name: deploy the phone worker
         working-directory: apps/phone
         run: npx wrangler deploy
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+      - name: deploy the sign-in worker
+        working-directory: apps/auth
+        run: |
+          pnpm run build
+          jq -n --arg url "$LAMBDA_URL" --arg edge "$EDGE_SECRET" '{LAMBDA_URL: $url, EDGE_SECRET: $edge}' \
+            > "$RUNNER_TEMP/auth-secrets.json"
+          npx wrangler deploy --secrets-file "$RUNNER_TEMP/auth-secrets.json"
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          LAMBDA_URL: ${{ secrets.AUTH_LAMBDA_URL }}
+          EDGE_SECRET: ${{ secrets.AUTH_EDGE_SECRET }}
       - name: deploy the portal worker
         working-directory: apps/portal
-        # Secrets go up with the version; an unset one is left as it was.
         run: |
           pnpm run build
           jq -n --arg url "https://$RESTATE_HOST:8080/" --arg token "$RESTATE_AUTH_TOKEN" \
-            --arg team "$ACCESS_TEAM_DOMAIN" --arg aud "$ACCESS_AUD" --arg ops "$OPERATOR_EMAILS" \
-            '{RESTATE_INGRESS_URL: $url, RESTATE_AUTH_TOKEN: $token, ACCESS_TEAM_DOMAIN: $team,
-              ACCESS_AUD: $aud, OPERATOR_EMAILS: $ops} | with_entries(select(.value != ""))' \
-            > "$RUNNER_TEMP/portal-secrets.json"
+            '{RESTATE_INGRESS_URL: $url, RESTATE_AUTH_TOKEN: $token}' > "$RUNNER_TEMP/portal-secrets.json"
           npx wrangler deploy --secrets-file "$RUNNER_TEMP/portal-secrets.json"
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
           RESTATE_HOST: ${{ secrets.RESTATE_HOST }}
           RESTATE_AUTH_TOKEN: ${{ secrets.RESTATE_AUTH_TOKEN }}
-          ACCESS_TEAM_DOMAIN: ${{ secrets.PORTAL_ACCESS_TEAM_DOMAIN }}
-          ACCESS_AUD: ${{ secrets.PORTAL_ACCESS_AUD }}
-          OPERATOR_EMAILS: ${{ secrets.PORTAL_OPERATOR_EMAILS }}

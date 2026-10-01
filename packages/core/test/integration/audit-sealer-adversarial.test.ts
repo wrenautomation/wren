@@ -51,7 +51,6 @@ const addGhost = () =>
     database: GHOST,
     accounts: {},
     products: {},
-    portalEmails: [],
   });
 const removeGhost = () => pg.db.delete(clients).where(eq(clients.id, "ghost"));
 

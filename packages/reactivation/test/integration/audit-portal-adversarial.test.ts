@@ -5,7 +5,7 @@
  * The demo reset logs a truncate for each audited table and none of the skipped
  * ones. Nothing here is expected to fail; these are the guarantees that hold.
  */
-import { clients } from "@wren/core/clients";
+import { addMember, clients } from "@wren/core/clients";
 import {
   clientDatabaseName,
   clientDatabaseUrl,
@@ -99,8 +99,9 @@ beforeAll(async () => {
     database: ACME,
     accounts: {},
     products: { reactivation: { on: true } },
-    portalEmails: ["owner@acme.example", "ops@acme.example"],
   });
+  for (const email of ["owner@acme.example", "ops@acme.example"])
+    await addMember(pg.db, "acme", email);
   await pg.db
     .insert(clients)
     .values({ id: "demo", name: "Demo", database: DEMO, accounts: {}, products: {}, demo: true });

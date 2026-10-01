@@ -7,9 +7,9 @@
 
 import { createEndpointHandler } from "@restatedev/restate-sdk/lambda";
 import { loadSettings } from "@wren/config";
+import { loadSsmEnv, loadSsmFile } from "@wren/config/ssm";
 import pino from "pino";
 import { buildServices } from "./services.js";
-import { loadSsmEnv, loadSsmFile } from "./ssm-env.js";
 
 const ROOT = process.env.LAMBDA_TASK_ROOT ?? process.cwd();
 
