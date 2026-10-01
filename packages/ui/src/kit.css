@@ -1956,7 +1956,8 @@
   .ui-run-step {
     display: grid;
     grid-template-columns: auto minmax(0, 1fr);
-    align-content: start;
+    /* Name, source, then the spare room, so the counts and bars in a row line up. */
+    grid-template-rows: auto auto 1fr auto;
     gap: 2px 8px;
     min-width: 0;
     padding: 12px 12px 14px;
@@ -2027,6 +2028,7 @@
     display: none;
   }
   .ui-run-source {
+    grid-row: 2;
     grid-column: 1 / -1;
     color: var(--ui-ink-2);
     font-size: 12px;
@@ -2035,7 +2037,9 @@
   .ui-run-tally {
     display: flex;
     flex-wrap: wrap;
+    grid-row: 3;
     grid-column: 1 / -1;
+    align-self: end;
     align-items: baseline;
     gap: 0 8px;
     margin-top: 6px;
@@ -2079,6 +2083,7 @@
   /* What came of it so far: finds, plain checks, misses, and who's waiting. */
   .ui-run-mix {
     display: flex;
+    grid-row: 4;
     grid-column: 1 / -1;
     overflow: hidden;
     height: 4px;
