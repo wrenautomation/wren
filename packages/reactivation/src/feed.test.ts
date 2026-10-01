@@ -88,15 +88,15 @@ describe("whereLine", () => {
 });
 
 describe("lookupLine", () => {
-  it("capped: waits for the retry day, or later", () => {
+  it("capped: waits until the retry day", () => {
     expect(lookupLine("Cara", looked({ state: "capped", retryAt: OCT_1 }))).toEqual({
       step: "lookup",
       subject: "Cara",
       kind: "waiting",
-      line: "Cara waits for 2026-10-01: today's lookups are used up",
+      line: "Cara waits until Oct 1. Today's lookups ran out.",
     });
     expect(lookupLine("Cara", looked({ state: "capped" })).line).toBe(
-      "Cara waits for later: today's lookups are used up",
+      "Cara waits. Today's lookups ran out.",
     );
   });
 
@@ -144,9 +144,9 @@ describe("hiringLine", () => {
     expect(r("no_openings")).toMatchObject({ kind: "did", line: "Acme has no open roles" });
     expect(r("capped", OCT_1)).toMatchObject({
       kind: "waiting",
-      line: "Acme waits for 2026-10-01: today's checks are used up",
+      line: "Acme waits until Oct 1. Today's checks ran out.",
     });
-    expect(r("capped").line).toBe("Acme waits for later: today's checks are used up");
+    expect(r("capped").line).toBe("Acme waits. Today's checks ran out.");
     expect(r("unresolved")).toMatchObject({ kind: "did", line: "Couldn't tell if Acme is hiring" });
   });
 

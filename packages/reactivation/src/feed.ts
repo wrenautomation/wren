@@ -21,7 +21,11 @@ export const STAGE_STARTS: Record<CrmStage, string> = {
 };
 
 const str = (v: unknown): string | null => (typeof v === "string" && v.trim() ? v.trim() : null);
-const day = (d: Date) => d.toISOString().slice(0, 10);
+const day = (d: Date) =>
+  d.toLocaleDateString("en-US", { month: "short", day: "numeric", timeZone: "UTC" });
+/** "Cara waits until Oct 1. Today's lookups ran out." */
+const parked = (who: string, at: Date | null | undefined, what: string) =>
+  `${who} waits${at ? ` until ${day(at)}` : ""}. Today's ${what} ran out.`;
 /** Where a fact came from, as the portal names it. */
 const VIAS: Record<string, string> = {
   search: "Web search",
@@ -89,7 +93,7 @@ export function lookupLine(name: string, r: LookupResult): FeedEvent {
       step: "lookup",
       subject: name,
       kind: "waiting",
-      line: `${name} waits for ${r.retryAt ? day(r.retryAt) : "later"}: today's lookups are used up`,
+      line: parked(name, r.retryAt, "lookups"),
     };
   return whereLine(name, r.state === "matched" ? headline(r.findings) : null);
 }
@@ -117,7 +121,7 @@ export function hiringLine(firm: string, r: HiringOutcome): FeedEvent {
     return {
       ...base,
       kind: "waiting",
-      line: `${firm} waits for ${r.retryAt ? day(r.retryAt) : "later"}: today's checks are used up`,
+      line: parked(firm, r.retryAt, "checks"),
     };
   return { ...base, kind: "did", line: `Couldn't tell if ${firm} is hiring` };
 }
