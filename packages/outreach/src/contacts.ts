@@ -3,7 +3,13 @@
  * handle, never a duplicate); `enrichContact` reads their page once and
  * stores it; `fieldsFor` is what a template fills in for them.
  */
-import { HANDLE_RE, handleOf, type OutreachChannel, type Profile, type Prospect } from "@wren/core/outreach";
+import {
+  HANDLE_RE,
+  handleOf,
+  type OutreachChannel,
+  type Profile,
+  type Prospect,
+} from "@wren/core/outreach";
 import type { Queryable } from "@wren/db";
 import { and, desc, eq, inArray, sql } from "drizzle-orm";
 import { ReachRefusal } from "./refusal.js";
@@ -146,23 +152,37 @@ export async function setContactState(
     .set({
       state,
       stateReason: o.reason ?? null,
-      ...(o.ended ?? !["new", "enrolled", "connected"].includes(state) ? { endedAt: o.now } : {}),
+      ...((o.ended ?? !["new", "enrolled", "connected"].includes(state)) ? { endedAt: o.now } : {}),
     })
     .where(eq(reachContacts.id, id));
 }
 
-export async function contactsById(db: Queryable, ids: readonly number[]): Promise<Map<number, ReachContact>> {
+export async function contactsById(
+  db: Queryable,
+  ids: readonly number[],
+): Promise<Map<number, ReachContact>> {
   if (ids.length === 0) return new Map();
-  const rows = await db.select().from(reachContacts).where(inArray(reachContacts.id, [...ids]));
+  const rows = await db
+    .select()
+    .from(reachContacts)
+    .where(inArray(reachContacts.id, [...ids]));
   return new Map(rows.map((r) => [r.id, r]));
 }
 
 /** How many contacts each account carries: enroll gives the next one to the lightest. */
-export async function loadByAccount(db: Queryable, platform: Platform): Promise<Map<string, number>> {
+export async function loadByAccount(
+  db: Queryable,
+  platform: Platform,
+): Promise<Map<string, number>> {
   const rows = await db
     .select({ accountId: reachContacts.accountId, n: sql<number>`count(*)::int` })
     .from(reachContacts)
-    .where(and(eq(reachContacts.platform, platform), inArray(reachContacts.state, ["enrolled", "connected"])))
+    .where(
+      and(
+        eq(reachContacts.platform, platform),
+        inArray(reachContacts.state, ["enrolled", "connected"]),
+      ),
+    )
     .groupBy(reachContacts.accountId);
   return new Map(rows.filter((r) => r.accountId).map((r) => [r.accountId as string, r.n]));
 }

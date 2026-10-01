@@ -22,7 +22,10 @@ function fakeSites(answers: Record<string, unknown>) {
 describe("linkedin outreach", () => {
   it("parses a company query", () => {
     expect(parseFindQuery("company/acme founder")).toEqual({ company: "acme", words: "founder" });
-    expect(parseFindQuery("founder recruiting")).toEqual({ company: null, words: "founder recruiting" });
+    expect(parseFindQuery("founder recruiting")).toEqual({
+      company: null,
+      words: "founder recruiting",
+    });
   });
 
   it("find pages people search one page at a time", async () => {
@@ -54,16 +57,34 @@ describe("linkedin outreach", () => {
     const ch = linkedinOutreach(sites, { account: "linkedin@wren" });
     expect(await ch.relationship?.("https://www.linkedin.com/in/jane-doe/")).toBe("none");
     await ch.connect?.("in/jane-doe", "hi");
-    expect(calls[1]).toMatchObject({ method: "POST", path: "/in/jane-doe/connect", input: { note: "hi" } });
+    expect(calls[1]).toMatchObject({
+      method: "POST",
+      path: "/in/jane-doe/connect",
+      input: { note: "hi" },
+    });
   });
 
   it("replies are the unread threads that name a profile", async () => {
     const { sites } = fakeSites({
       "GET /messaging": {
         conversations: [
-          { url: "/messaging/thread/1/", name: "Jane", vanity: "jane", preview: "sure", when: "2h", unread: true },
+          {
+            url: "/messaging/thread/1/",
+            name: "Jane",
+            vanity: "jane",
+            preview: "sure",
+            when: "2h",
+            unread: true,
+          },
           { url: "/messaging/thread/2/", name: "Group", preview: "x", when: "1d", unread: true },
-          { url: "/messaging/thread/3/", name: "Old", vanity: "old", preview: "y", when: "Sep 1", unread: false },
+          {
+            url: "/messaging/thread/3/",
+            name: "Old",
+            vanity: "old",
+            preview: "y",
+            when: "Sep 1",
+            unread: false,
+          },
         ],
       },
     });

@@ -57,7 +57,9 @@ export async function enroll(db: Queryable, o: EnrollOptions): Promise<EnrollSta
   if (accounts.length === 0) return { considered: 0, enrolled: 0, noAccount: true };
   const load = await loadByAccount(db, seq.platform);
   const lightest = () =>
-    [...accounts].sort((a, b) => (load.get(a.id) ?? 0) - (load.get(b.id) ?? 0))[0] as (typeof accounts)[number];
+    [...accounts].sort(
+      (a, b) => (load.get(a.id) ?? 0) - (load.get(b.id) ?? 0),
+    )[0] as (typeof accounts)[number];
 
   const candidates: ReachContact[] = await db
     .select()
@@ -88,7 +90,9 @@ export async function enroll(db: Queryable, o: EnrollOptions): Promise<EnrollSta
             direction: "out",
             kind: "connect",
             template: CONNECT_NOTE,
-            body: bodies.has(CONNECT_NOTE) ? render(bodies.get(CONNECT_NOTE) as string, fields) : "",
+            body: bodies.has(CONNECT_NOTE)
+              ? render(bodies.get(CONNECT_NOTE) as string, fields)
+              : "",
             state: "queued",
             dueAt: o.now,
             runId: o.runId ?? null,

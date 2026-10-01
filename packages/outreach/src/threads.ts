@@ -55,7 +55,8 @@ export async function listThreads(db: Queryable, f: ThreadFilter = {}): Promise<
   const lastInAt = new Map<number, Date>();
   for (const m of msgs) {
     if (!lastOf.has(m.contactId)) lastOf.set(m.contactId, m);
-    if (m.direction === "in" && !lastInAt.has(m.contactId)) lastInAt.set(m.contactId, m.sentAt ?? m.createdAt);
+    if (m.direction === "in" && !lastInAt.has(m.contactId))
+      lastInAt.set(m.contactId, m.sentAt ?? m.createdAt);
   }
   return contacts
     .map(({ contact, account }) => {
@@ -94,7 +95,10 @@ export interface ReachStats {
   days: number;
 }
 
-export async function reachStats(db: Queryable, o: { platform?: Platform | null; days: number; now: Date }): Promise<ReachStats> {
+export async function reachStats(
+  db: Queryable,
+  o: { platform?: Platform | null; days: number; now: Date },
+): Promise<ReachStats> {
   const since = new Date(o.now.getTime() - o.days * 86_400_000);
   const byState = await db
     .select({ state: reachContacts.state, n: sql<number>`count(*)::int` })

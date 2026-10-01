@@ -160,17 +160,27 @@ export function linkedinOutreach(sites: SiteClient, o: LinkedInOutreachOptions):
     async connect(handle, note): Promise<Sent> {
       const vanity = vanityOf(handle);
       await call("POST", `/in/${vanity}/connect`, note ? { note: note.slice(0, 200) } : {});
-      return { ref: null, at: now().toISOString(), fetchedWith: await via("POST", "/in/{vanity}/connect") };
+      return {
+        ref: null,
+        at: now().toISOString(),
+        fetchedWith: await via("POST", "/in/{vanity}/connect"),
+      };
     },
 
     async message(handle, text): Promise<Sent> {
       const vanity = vanityOf(handle);
       await call("POST", `/in/${vanity}/message`, { text });
-      return { ref: null, at: now().toISOString(), fetchedWith: await via("POST", "/in/{vanity}/message") };
+      return {
+        ref: null,
+        at: now().toISOString(),
+        fetchedWith: await via("POST", "/in/{vanity}/message"),
+      };
     },
 
     async replies(): Promise<Reply[]> {
-      const r = await call<{ conversations: Conversation[] }>("GET", "/messaging", { unread: true });
+      const r = await call<{ conversations: Conversation[] }>("GET", "/messaging", {
+        unread: true,
+      });
       const at = now().toISOString();
       return r.conversations
         .filter((c) => c.unread && c.vanity)

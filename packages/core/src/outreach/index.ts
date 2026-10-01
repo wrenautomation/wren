@@ -159,7 +159,11 @@ export function fakeOutreachChannel(
     raw: {},
     asOf: now().toISOString(),
   };
-  const sentNow = (): Sent => ({ ref: `fake_${sent.length}`, at: now().toISOString(), fetchedWith: "api" });
+  const sentNow = (): Sent => ({
+    ref: `fake_${sent.length}`,
+    at: now().toISOString(),
+    fetchedWith: "api",
+  });
   const base: OutreachChannel = {
     platform,
     account: o.account ?? `${platform}@fake`,

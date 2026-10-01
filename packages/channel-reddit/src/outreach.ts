@@ -201,7 +201,11 @@ export function redditOutreach(
 
     async replies(since): Promise<Reply[]> {
       const self = (await whoami()).name ?? null;
-      const l = await call<Listing>("GET", "/message/unread", { limit: 100, mark: true, raw_json: 1 });
+      const l = await call<Listing>("GET", "/message/unread", {
+        limit: 100,
+        mark: true,
+        raw_json: 1,
+      });
       const floor = since?.toISOString() ?? "";
       return items<Message>(l)
         .filter((m) => !m.was_comment && m.author && m.author !== self)

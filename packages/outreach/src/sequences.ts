@@ -59,7 +59,13 @@ export interface TemplateSlot {
 }
 
 const FIELD = /\{([a-z_]+)(?:\|([^}]*))?\}/g;
-const ALL_FIELDS: readonly RenderField[] = ["first_name", "company", "headline", "found_in", "sender"];
+const ALL_FIELDS: readonly RenderField[] = [
+  "first_name",
+  "company",
+  "headline",
+  "found_in",
+  "sender",
+];
 /** LinkedIn's note cap; a Reddit PM is long enough for anyone. */
 const NOTE_MAX = 200;
 const MESSAGE_MAX = 2000;

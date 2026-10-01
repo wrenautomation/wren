@@ -4,7 +4,11 @@ import { parseFindQuery } from "./outreach.js";
 import { warmupOf } from "./warmup.js";
 
 const now = new Date("2026-10-01T12:00:00Z");
-const health = (ageDays: number, karma: number, more: Partial<AccountHealth> = {}): AccountHealth => ({
+const health = (
+  ageDays: number,
+  karma: number,
+  more: Partial<AccountHealth> = {},
+): AccountHealth => ({
   handle: "alt",
   createdAt: new Date(now.getTime() - ageDays * 86_400_000).toISOString(),
   karma,
