@@ -1439,6 +1439,8 @@
     display: inline-flex;
     align-items: center;
     gap: 5px;
+    max-width: 100%;
+    overflow-wrap: anywhere;
     margin-top: 8px;
     color: var(--ui-ink-2);
     font-size: 13px;
@@ -2658,6 +2660,13 @@
     font-weight: 400;
     overflow-wrap: anywhere;
   }
+  a.ui-work-query {
+    text-decoration: underline;
+    text-decoration-color: var(--ui-hair);
+  }
+  a.ui-work-query:hover {
+    color: var(--ui-accent);
+  }
   .ui-work-query::before {
     content: "\201C";
   }
@@ -2717,9 +2726,8 @@
     text-decoration: none;
   }
   .ui-pagechip-label {
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
+    min-width: 0;
+    overflow-wrap: anywhere;
   }
   a.ui-pagechip:hover {
     border-color: var(--ui-accent);

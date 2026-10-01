@@ -20,6 +20,8 @@ export interface RunWorkStep {
   icon: RunWorkIcon;
   did: string;
   query: string | null;
+  /** The same search, for the reader to run again. */
+  queryHref?: string | null | undefined;
   page: RunWorkLink | null;
   result: string | null;
   options: { page: RunWorkLink; verdict: string; kept: boolean }[];
@@ -58,7 +60,7 @@ const ICONS: Record<RunWorkIcon, IconName> = {
 
 /** A site's mark: its first letter on a tint, so no third-party image loads. */
 export function SiteMark({ site }: { site: string }) {
-  const host = site.split("/")[0] ?? site;
+  const host = site.replace(/^[a-z]+:\/\//i, "").split("/")[0] ?? site;
   const letter =
     host
       .replace(/^www\./, "")
@@ -71,7 +73,7 @@ export function SiteMark({ site }: { site: string }) {
   );
 }
 
-/** A page it read: the site's mark and the short address, a link when there is one. */
+/** A page it read: the site's mark and the address, a link when there is one. */
 export function PageChip({
   page,
   tone,
@@ -111,7 +113,20 @@ function Step({ s }: { s: RunWorkStep }) {
       <div className="ui-work-body">
         <p className="ui-work-did">
           {s.did}
-          {s.query ? <span className="ui-work-query">{s.query}</span> : null}
+          {s.query ? (
+            s.queryHref ? (
+              <a
+                className="ui-work-query"
+                href={s.queryHref}
+                target="_blank"
+                rel="noopener noreferrer"
+              >
+                {s.query}
+              </a>
+            ) : (
+              <span className="ui-work-query">{s.query}</span>
+            )
+          ) : null}
         </p>
         {s.page ? <PageChip page={s.page} tone={s.tone === "plain" ? undefined : s.tone} /> : null}
         {s.result ? <p className="ui-work-result">{s.result}</p> : null}

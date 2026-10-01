@@ -402,3 +402,8 @@
   color: var(--ui-accent);
   font-weight: 600;
 }
+
+/* Full addresses, so anyone can check them: wrap anywhere, never overflow. */
+.rx-url {
+  overflow-wrap: anywhere;
+}

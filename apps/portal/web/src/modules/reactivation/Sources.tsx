@@ -78,12 +78,12 @@ export function Sources({ client, params }: PageProps) {
                       <b>{kindLabel(f.kind)}</b>
                       {f.title ? <div className="rx-sub">{f.title}</div> : null}
                     </td>
-                    <td data-label="Where" className="ui-nowrap">
+                    <td data-label="Where">
                       {viaLabel(f.via)}
                       {f.url && host && !f.url.includes("•••") ? (
-                        <div className="rx-sub">
+                        <div className="rx-sub rx-url">
                           <a href={f.url} target="_blank" rel="noopener noreferrer">
-                            {host}
+                            {f.url}
                           </a>
                         </div>
                       ) : null}

@@ -100,7 +100,18 @@ const WORK_TITLES: Record<string, (who: string) => string> = {
 };
 
 /** Each line's work, asked for once when it's opened, then kept for the visit. */
-function LineWork({ line, client, team }: { line: RunLine; client: string; team: boolean }) {
+export function LineWork({
+  line,
+  client,
+  team,
+  more = true,
+}: {
+  line: Pick<RunLine, "step" | "subject">;
+  client: string;
+  team: boolean;
+  /** Link to the person's page; off on that page. */
+  more?: boolean;
+}) {
   const key = `${line.step}|${line.subject}`;
   const [got, setGot] = useState<{ key: string; view: WorkView | null; error?: string } | null>(
     () => (WORK_SEEN.has(key) ? { key, view: WORK_SEEN.get(key) ?? null } : null),
@@ -135,7 +146,7 @@ function LineWork({ line, client, team }: { line: RunLine; client: string; team:
   return (
     <>
       <RunWorkTrail work={view} title={title} />
-      {view.personId ? (
+      {more && view.personId ? (
         <p className="rx-run-work-more">
           <a href={at("people", { person: view.personId })}>Open {view.subject}'s page</a>
         </p>

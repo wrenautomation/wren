@@ -19,6 +19,7 @@ import { useCall } from "../../load.js";
 import type { PageProps } from "../../module.js";
 import { Cited, NowCell, Reasons, SourceCards, useSourcePick } from "./bits.js";
 import { at, goto } from "./nav.js";
+import { LineWork } from "./Run.js";
 
 const FILTERS: Record<PeopleFilter, string> = {
   all: "Everyone",
@@ -38,7 +39,7 @@ const VERDICTS: Record<string, string> = {
   unknown: "Can't tell",
 };
 
-export function People({ client, demo, params }: PageProps) {
+export function People({ client, demo, params, team }: PageProps) {
   const filter = (params.get("filter") as PeopleFilter | null) ?? "all";
   const offset = Number(params.get("offset")) || 0;
   const q = params.get("q") ?? "";
@@ -152,23 +153,31 @@ export function People({ client, demo, params }: PageProps) {
 
       {person ? (
         <Drawer label="Person" onClose={() => set({ person: null })}>
-          <PersonPanel client={client} personId={person} />
+          <PersonPanel client={client} team={team} personId={person} />
         </Drawer>
       ) : null}
     </>
   );
 }
 
-function PersonPanel({ client, personId }: { client: string; personId: number }) {
+function PersonPanel({
+  client,
+  team,
+  personId,
+}: {
+  client: string;
+  team: boolean;
+  personId: number;
+}) {
   const p = useCall(`person:${client}:${personId}`, () =>
     call<PersonView>("reactivation/person", { client, personId }),
   );
   if (p.error && !p.data) return <Alert onRetry={p.retry}>{p.error.message}</Alert>;
   if (!p.data) return <Loading lines={9} label="Loading their brief" />;
-  return <Person view={p.data} />;
+  return <Person view={p.data} client={client} team={team} />;
 }
 
-function Person({ view }: { view: PersonView }) {
+function Person({ view, client, team }: { view: PersonView; client: string; team: boolean }) {
   const { row } = view;
   const order = view.sources.map((s) => s.mark.toLowerCase());
   const [lit, pick] = useSourcePick();
@@ -219,6 +228,20 @@ function Person({ view }: { view: PersonView }) {
       ) : (
         <Empty>Nothing found yet.</Empty>
       )}
+
+      <h3>How we looked</h3>
+      <LineWork
+        line={{ step: "lookup", subject: row.name }}
+        client={client}
+        team={team}
+        more={false}
+      />
+      <LineWork
+        line={{ step: "signals", subject: row.firm }}
+        client={client}
+        team={team}
+        more={false}
+      />
     </article>
   );
 }

@@ -27,11 +27,12 @@ describe("lookupSteps", () => {
       tone: "kept",
     });
     expect(search?.options.map((o) => [o.page.label, o.verdict, o.kept])).toEqual([
-      ["linkedin.com/in/dana-r", "A different name", false],
-      ["linkedin.com/in/dana-reyes-1", "Same name, no sign of the firm", false],
-      ["linkedin.com/in/dana-reyes", "Same person", true],
+      ["https://www.linkedin.com/in/dana-r", "A different name", false],
+      ["https://www.linkedin.com/in/dana-reyes-1", "Same name, no sign of the firm", false],
+      ["https://www.linkedin.com/in/dana-reyes", "Same person", true],
     ]);
     expect(search?.options[2]?.page.href).toBe("https://www.linkedin.com/in/dana-reyes");
+    expect(search?.queryHref).toBe("https://www.google.com/search?q=Dana%20Reyes%20Acme");
   });
 
   it("never names the vendor a search went through", () => {
@@ -85,12 +86,15 @@ describe("checkSteps", () => {
       },
     ]);
     expect(steps[0]).toMatchObject({
-      page: { label: "acme.com/careers", href: "https://www.acme.com/careers/" },
+      page: { label: "https://www.acme.com/careers/", href: "https://www.acme.com/careers/" },
       result: "Links to their Greenhouse job board",
       tone: "kept",
     });
     expect(steps[1]).toMatchObject({
-      page: { label: "boards-api.greenhouse.io", href: null },
+      page: {
+        label: "https://boards-api.greenhouse.io/v1/boards/acme/jobs",
+        href: "https://boards-api.greenhouse.io/v1/boards/acme/jobs",
+      },
       result: "3 open roles",
       tone: "kept",
     });
@@ -159,7 +163,7 @@ describe("factOf", () => {
     expect(f).toMatchObject({
       kind: "Still there",
       sure: 0.8,
-      page: { label: "linkedin.com/in/dana-reyes" },
+      page: { label: "https://www.linkedin.com/in/dana-reyes" },
       seen: "2026-09-30T12:00:00.000Z",
     });
     expect(f.fields).toEqual([
@@ -188,8 +192,8 @@ describe("factOf", () => {
 });
 
 describe("helpers", () => {
-  it("pageOf shortens and refuses junk", () => {
-    expect(pageOf("https://www.acme.com/")?.label).toBe("acme.com");
+  it("pageOf keeps the full address and refuses junk", () => {
+    expect(pageOf("https://www.acme.com/a?b=1")?.label).toBe("https://www.acme.com/a?b=1");
     expect(pageOf("-")).toBeNull();
     expect(pageOf("not a url")).toBeNull();
   });
@@ -226,7 +230,7 @@ describe("unlinkMasked", () => {
       shown,
     );
     expect(out.steps[0]?.options[0]?.page).toEqual({
-      label: "linkedin.com/in/dana-reyes",
+      label: "https://www.linkedin.com/in/dana-reyes",
       href: null,
     });
     expect(out.steps[1]?.page?.href).toBe("https://acme.com/jobs");

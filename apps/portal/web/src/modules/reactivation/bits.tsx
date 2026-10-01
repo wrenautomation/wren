@@ -234,7 +234,7 @@ export function SourceItem({
       link={
         s.url && host
           ? // The demo hides profile names, so its profile links lead nowhere: shown, not linked.
-            { href: s.url.includes("•••") ? null : s.url, label: host }
+            { href: s.url.includes("•••") ? null : s.url, label: s.url }
           : null
       }
     />

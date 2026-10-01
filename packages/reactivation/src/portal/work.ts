@@ -31,6 +31,8 @@ export interface WorkStep {
   did: string;
   /** What it searched for. */
   query: string | null;
+  /** The same search, for anyone to run again. */
+  queryHref: string | null;
   /** The page it read. */
   page: WorkLink | null;
   /** What came of it. */
@@ -81,30 +83,30 @@ const EMAIL = /[^\s@:;,()]+@[^\s@:;,()]+/g;
 const redact = (s: string) => s.replace(EMAIL, "…");
 const cap = (s: string) => s.charAt(0).toUpperCase() + s.slice(1);
 
-const hostOf = (url: string): string | null => {
-  try {
-    return new URL(url).hostname.replace(/^www\./, "");
-  } catch {
-    return null;
-  }
-};
-
-/** A page by its site and path, short: "lumiq.com/careers". */
+/** A page by its full address, so anyone can check it. */
 export const pageOf = (url: string | null | undefined): WorkLink | null => {
   if (!url || url === "-") return null;
   try {
-    const u = new URL(url);
-    const path = u.pathname.replace(/\/$/, "");
-    return { label: `${u.hostname.replace(/^www\./, "")}${path}`, href: u.toString() };
+    const href = new URL(url).toString();
+    return { label: href, href };
   } catch {
     return null;
   }
 };
 
-const profileOf = (vanity: string): WorkLink => ({
-  label: `linkedin.com/in/${vanity}`,
-  href: `https://www.linkedin.com/in/${encodeURIComponent(vanity)}`,
-});
+const profileOf = (vanity: string): WorkLink => {
+  const href = `https://www.linkedin.com/in/${encodeURIComponent(vanity)}`;
+  return { label: href, href };
+};
+
+/** Where to run a search again: the web's on Google, LinkedIn's on LinkedIn. */
+const SEARCHES = {
+  web: "https://www.google.com/search?q=",
+  people: "https://www.linkedin.com/search/results/people/?keywords=",
+  companies: "https://www.linkedin.com/search/results/companies/?keywords=",
+};
+const searchAt = (where: keyof typeof SEARCHES, q: string) =>
+  `${SEARCHES[where]}${encodeURIComponent(q)}`;
 
 const day = (isoText: string) => {
   const d = new Date(isoText);
@@ -115,6 +117,7 @@ const day = (isoText: string) => {
 
 const step = (s: Partial<WorkStep> & Pick<WorkStep, "icon" | "did">): WorkStep => ({
   query: null,
+  queryHref: null,
   page: null,
   result: null,
   options: [],
@@ -172,6 +175,7 @@ export function lookupSteps(tried: readonly Tried[]): WorkStep[] {
           icon: "search",
           did: "Searched the web",
           query: t.what,
+          queryHref: searchAt("web", t.what),
           result: Number.isFinite(n) ? `${n} ${n === 1 ? "person" : "people"} found` : null,
           options,
           tone: options.some((o) => o.kept) ? "kept" : "plain",
@@ -192,6 +196,7 @@ export function lookupSteps(tried: readonly Tried[]): WorkStep[] {
           icon: "search",
           did: "Searched LinkedIn",
           query: t.what,
+          queryHref: searchAt("people", t.what),
           result: refused(t.outcome) ? "LinkedIn didn't answer" : cap(t.outcome),
           tone: refused(t.outcome) ? "dropped" : "plain",
         });
@@ -231,11 +236,10 @@ export function checkSteps(tried: readonly Tried[]): WorkStep[] {
         });
       case "board": {
         const ok = /^\d+ open roles?$/.test(t.outcome);
-        const host = hostOf(t.what);
         return step({
           icon: "board",
           did: "Read their job board",
-          page: host ? { label: host, href: null } : null,
+          page: pageOf(t.what),
           result: ok ? cap(t.outcome) : "Couldn't read it",
           tone: ok ? "kept" : "dropped",
         });
@@ -254,6 +258,7 @@ export function checkSteps(tried: readonly Tried[]): WorkStep[] {
             icon: "search",
             did: "Searched LinkedIn for their page",
             query: t.what,
+            queryHref: searchAt("companies", t.what),
             result: cap(t.outcome),
           });
         const ours = t.outcome.endsWith(": the firm's");
@@ -401,6 +406,7 @@ export function unlinkMasked(view: WorkView, shown: (s: string) => string): Work
     ...view,
     steps: view.steps.map((s) => ({
       ...s,
+      queryHref: s.queryHref && shown(s.queryHref) !== s.queryHref ? null : s.queryHref,
       page: fix(s.page),
       options: s.options.map((o) => ({ ...o, page: fix(o.page) ?? o.page })),
     })),
