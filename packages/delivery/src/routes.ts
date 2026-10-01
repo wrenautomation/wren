@@ -18,6 +18,8 @@ export const DELIVERY_ROUTES = [
   "remove",
   "upload",
   "file",
+  "pulse",
+  "mail",
 ] as const;
 export type DeliveryRoute = (typeof DELIVERY_ROUTES)[number];
 /** The ones that change something: never cached, never on the demo. */
@@ -35,6 +37,8 @@ export const DELIVERY_WRITES: readonly DeliveryRoute[] = [
   "invite",
   "remove",
   "upload",
+  "pulse",
+  "mail",
 ];
 
 /** Client files (D11): at most this big, and only these types. The web checks first; the service decides. */
@@ -61,4 +65,13 @@ export const typeOfName = (name: string): string | undefined => {
   const ext = /\.[^.]+$/.exec(name.toLowerCase())?.[0];
   if (ext === ".jpeg") return "image/jpeg";
   return Object.keys(FILE_TYPES).find((t) => FILE_TYPES[t] === ext);
+};
+
+/** The weekly pulse's five taps (D10), best first. */
+export const PULSE_WORDS: Readonly<Record<number, string>> = {
+  5: "Great",
+  4: "Good",
+  3: "Okay",
+  2: "Not great",
+  1: "Bad",
 };

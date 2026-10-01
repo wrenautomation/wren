@@ -39,9 +39,12 @@ import {
   type Engagement,
   engagementOf,
   hideUpdate,
+  mailLevelOf,
   markDone,
   postUpdate,
+  recordPulse,
   recordResult,
+  setMailLevel,
   slipMilestone,
   startEngagement,
   storedFile,
@@ -49,7 +52,8 @@ import {
   type UpdateView,
 } from "./index.js";
 import { FILE_TYPES, MAX_FILE_BYTES } from "./routes.js";
-import { DELIVERABLE_KINDS, type DeliverableKind } from "./schema.js";
+import { DELIVERABLE_KINDS, type DeliverableKind, type MailLevel } from "./schema.js";
+import { type DeliveryWatch, WATCH, WATCH_KEY } from "./watch.js";
 
 export interface DeliveryDeps {
   /** The main database: the registry and the delivery schema. */
@@ -58,6 +62,8 @@ export interface DeliveryDeps {
   demoName: string;
   /** The private bucket for client files; without it, uploads are refused. */
   files?: FileStore | undefined;
+  /** DeliveryWatch runs here: an invite asks it for a pass, so the welcome goes now. */
+  watched?: boolean;
 }
 
 /** A browser can send anything: these turn it into what the domain takes, or refuse. */
@@ -162,7 +168,12 @@ export function deliveryApi(deps: DeliveryDeps) {
   return {
     me: (req: PortalRequest): Promise<Me> => portalMe(deps.main, req.viewer, deps.demoName),
     home: (req: PortalRequest): Promise<DeliveryHome> =>
-      read(deps, req, (db, c, operator) => deliveryHome(db, c.id, { operator })),
+      read(deps, req, (db, c, operator) =>
+        deliveryHome(db, c.id, {
+          operator,
+          email: isDemo(req.viewer) ? null : normalEmail(req.viewer.email),
+        }),
+      ),
     updates: (
       req: EngagementReq & { before?: number },
     ): Promise<{ updates: UpdateView[]; more: boolean }> =>
@@ -329,9 +340,11 @@ export function deliveryApi(deps: DeliveryDeps) {
       return { url: await files.getUrl(key) };
     },
     /** Who sees this client. The demo lists nobody: its members are real people. */
-    people: async (req: PortalRequest): Promise<{ people: MemberView[]; canManage: boolean }> => {
+    people: async (
+      req: PortalRequest,
+    ): Promise<{ people: MemberView[]; canManage: boolean; mail: MailLevel | null }> => {
       const client = await pickClient(deps.main, req);
-      if (isDemo(req.viewer)) return { people: [], canManage: false };
+      if (isDemo(req.viewer)) return { people: [], canManage: false, mail: null };
       const rows = await listMembers(deps.main, client.id);
       const me = normalEmail(req.viewer.email);
       return {
@@ -343,6 +356,7 @@ export function deliveryApi(deps: DeliveryDeps) {
           lastSeenAt: m.lastSeenAt?.toISOString() ?? null,
         })),
         canManage: seesInternal(req) || rows.some((m) => m.email === me && m.role === "owner"),
+        mail: rows.some((m) => m.email === me) ? await mailLevelOf(deps.main, client.id, me) : null,
       };
     },
     /** Let an email sign in and see this client; again changes their role. */
@@ -362,7 +376,39 @@ export function deliveryApi(deps: DeliveryDeps) {
           throw new PortalRefusal("they don't see this project", 404);
         return { removed: email };
       }),
+    /** The client person's one tap for the week (D10). */
+    pulse: (req: EngagementReq & { score: number; note?: string }) =>
+      write(deps, req, "client", async (db, c, v) => {
+        const email = await memberOnly(
+          db,
+          c.id,
+          v.email,
+          "the week is rated by the client's people",
+        );
+        const e = await engagementFor(db, c, req);
+        await recordPulse(db, e, { email, score: Number(req.score), note: textOf(req.note) });
+        return { score: Number(req.score) };
+      }),
+    /** What mail the viewer gets about this client (D9). */
+    mail: (req: PortalRequest & { level: string }) =>
+      write(deps, req, "client", async (db, c, v) => {
+        const email = await memberOnly(
+          db,
+          c.id,
+          v.email,
+          "mail is set by each person for themselves",
+        );
+        return { level: await setMailLevel(db, c.id, email, String(req.level)) };
+      }),
   };
+}
+
+/** The viewer's own email when they're one of this client's people; else 403 with why. */
+async function memberOnly(db: Queryable, clientId: string, email: string, why: string) {
+  const me = normalEmail(email);
+  if (!(await listMembers(db, clientId)).some((m) => m.email === me))
+    throw new PortalRefusal(why, 403);
+  return me;
 }
 
 export type DeliveryApi = ReturnType<typeof deliveryApi>;
@@ -373,11 +419,22 @@ export type {
   DeliveryHome,
   EngagementView,
   MilestoneState,
+  PulseView,
   ResultView,
   StepView,
   UpdateView,
 } from "./index.js";
 export { DELIVERY_ROUTES, DELIVERY_WRITES } from "./routes.js";
+export type { MailLevel } from "./schema.js";
+export {
+  type DeliveryWatch,
+  makeDeliveryWatch,
+  type PortalMail,
+  WATCH,
+  WATCH_KEY,
+  type WatchDeps,
+  type WatchStats,
+} from "./watch.js";
 
 /** No journal, like every portal service: pages stay out of Restate's storage. */
 export function makeDeliveryPortal(deps: DeliveryDeps) {
@@ -400,10 +457,16 @@ export function makeDeliveryPortal(deps: DeliveryDeps) {
       result: (_: restate.Context, req: Req<"result">) => answer(() => api.result(req)),
       hide: (_: restate.Context, req: Req<"hide">) => answer(() => api.hide(req)),
       people: (_: restate.Context, req: Req<"people">) => answer(() => api.people(req)),
-      invite: (_: restate.Context, req: Req<"invite">) => answer(() => api.invite(req)),
+      invite: async (ctx: restate.Context, req: Req<"invite">) => {
+        const out = await answer(() => api.invite(req));
+        if (deps.watched) ctx.objectSendClient<DeliveryWatch>({ name: WATCH }, WATCH_KEY).sync();
+        return out;
+      },
       remove: (_: restate.Context, req: Req<"remove">) => answer(() => api.remove(req)),
       upload: (_: restate.Context, req: Req<"upload">) => answer(() => api.upload(req)),
       file: (_: restate.Context, req: Req<"file">) => answer(() => api.file(req)),
+      pulse: (_: restate.Context, req: Req<"pulse">) => answer(() => api.pulse(req)),
+      mail: (_: restate.Context, req: Req<"mail">) => answer(() => api.mail(req)),
     },
   });
 }

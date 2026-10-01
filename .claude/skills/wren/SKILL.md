@@ -122,6 +122,11 @@ Every bought offer is an engagement: dated steps from the offer's plan, a timeli
 - A slip's reason is shown to the client. Say why, honestly.
 - `--by <email>` picks the operator it's from; with one operator it's them.
 - `--engagement <id>` when the client has more than one running.
+- Their people get mail from `portal@`: a welcome, anything that needs them, and a Friday recap. Each picks their level in Settings. A low weekly pulse, a quiet 3 days, a late step or ask, or nobody signing in pings us.
+
+```sh
+./bin/wren delivery watch status | start | stop | sync   # every client; hourly; off until started
+```
 
 ### What the states mean
 

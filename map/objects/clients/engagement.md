@@ -26,6 +26,7 @@ It sits in main, beside the registry, so an operator can read across clients and
 - Input checks at the edge: https links only, Loom links on a Loom host, files only under `clients/<id>/` (`:63`, `:76`)
 - Files: private bucket (`deploy/terraform/files.tf`); `upload` signs a PUT for one listed type and the exact size, `file` signs a short GET (`packages/delivery/src/files.ts`, types and cap in `routes.ts`)
 - Portal service `DeliveryPortal` (`packages/delivery/src/service.ts:253`). Clients may `answer` and `decide`. Everything else is team-only. Writes go in one transaction under `setAuditActor` (`:81`).
+- Mail and pulse (step 5): `member_mail` (each person's level and what we've told them), `pulses` (one tap a week per person), `pings` (what the operator was told) (`schema.ts:245`, `:269`, `:298`); `recordPulse`, `setMailLevel` (`index.ts:414`, `:438`). Only the client's own people rate or set their mail.
 - Who sees which client: `pickClient` / `pickForWrite` (`packages/core/src/portal.ts:51`, `:63`). These are shared with every product's portal service.
 
 Citations: `packages/delivery/src/schema.ts:33`, `packages/delivery/src/index.ts:139`, `packages/delivery/src/service.ts:81`, `packages/core/src/portal.ts:51`
@@ -50,8 +51,9 @@ Citations: `packages/delivery/src/schema.ts:33`, `packages/delivery/src/index.ts
 | portal `work` module (`apps/portal/web/src/modules/work/`) | the client's pages; operators write in place, "view as client" drops internal |
 | `wren --client <id> delivery …` (`apps/cli/src/delivery.ts`) | the team's writes from the terminal and the skill; `deliver --file` uploads |
 | S3 files bucket (`WREN_FILES_BUCKET`) | the bytes; the browser PUTs and GETs on signed URLs |
+| [[processes/delivery-watch]] | mails the client's people, pings the operator |
 
 ## See
 
 - Design: `designs/2026-09-30-client-delivery-portal.md`
-- Tests: `packages/delivery/test/integration/delivery.test.ts`
+- Tests: `packages/delivery/test/integration/delivery.test.ts`, `watch.test.ts`

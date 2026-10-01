@@ -82,7 +82,9 @@ function useLook(params: URLSearchParams): Theme {
 export function App() {
   const route = useRoute();
   const me = useCall("me", () => call<Me>("delivery/me"));
-  const [client, setClient] = useState<string | null>(() => recall(CLIENT_KEY));
+  // A link in our mail names its client (`?client=acme`): open that one, and stay on it.
+  const named = route.params.get("client");
+  const [client, setClient] = useState<string | null>(() => named ?? recall(CLIENT_KEY));
   // Wren's team can look as the client would: no internal notes, no team tools.
   const [asClient, setAsClient] = useState(() => recall(AS_CLIENT_KEY) === "1");
   const theme = useLook(route.params);
@@ -93,6 +95,12 @@ export function App() {
   useEffect(() => {
     if (lost) navigate(HOME, true);
   }, [lost]);
+
+  useEffect(() => {
+    if (!named) return;
+    setClient(named);
+    keep(CLIENT_KEY, named);
+  }, [named]);
 
   const clients = me.data?.clients ?? [];
   const current = clients.find((c) => c.id === client) ?? clients[0] ?? null;

@@ -1,15 +1,24 @@
-/** Settings: who sees this project (an owner invites and removes), and how sign-in works. */
+/**
+ * Settings: who sees this project (an owner invites and removes), the mail each person
+ * gets from us (D9), and how sign-in works.
+ */
 import { Alert, Button, ButtonLink, Empty, Loading, PageHeader, Section, Tag } from "@wren/ui";
 import { useState } from "react";
-import { AUTH_ORIGIN, call, type MemberView } from "../../api.js";
+import { AUTH_ORIGIN, call, type MailLevel, type MemberView } from "../../api.js";
 import { useCall } from "../../load.js";
 import type { PageProps } from "../../module.js";
 import { dayLabel, Form, field, useAct } from "./bits.js";
 
+const MAIL: [MailLevel, string, string][] = [
+  ["all", "Everything", "Anything that needs you, right away, plus a Friday recap."],
+  ["digest", "Friday recap only", "One email on Friday afternoon with the week."],
+  ["off", "None", "No email. Everything is still here."],
+];
+
 export function Settings(props: PageProps) {
   const [nonce, setNonce] = useState(0);
   const people = useCall(`people:${props.client}:${props.team}:${nonce}`, () =>
-    call<{ people: MemberView[]; canManage: boolean }>("delivery/people", {
+    call<{ people: MemberView[]; canManage: boolean; mail: MailLevel | null }>("delivery/people", {
       client: props.client,
       asClient: !props.team,
     }),
@@ -82,6 +91,25 @@ export function Settings(props: PageProps) {
         ) : null}
         {act.error && !manage ? <p className="wk-error">{act.error}</p> : null}
       </Section>
+      {people.data?.mail ? (
+        <Section title="Email from us" note="Just for you. Each person picks their own.">
+          <div className="wk-tools">
+            {MAIL.map(([level, label]) => (
+              <Button
+                key={level}
+                size="sm"
+                aria-pressed={people.data?.mail === level}
+                tone={people.data?.mail === level ? "primary" : "secondary"}
+                disabled={act.busy}
+                onClick={() => void act.run("mail", { level })}
+              >
+                {label}
+              </Button>
+            ))}
+          </div>
+          <p className="wk-quiet">{MAIL.find(([l]) => l === people.data?.mail)?.[2]}</p>
+        </Section>
+      ) : null}
       <Section title="Signing in">
         <p className="wk-body">
           Sign in with your invited email, any way you like: a code by email, Google, Microsoft, or

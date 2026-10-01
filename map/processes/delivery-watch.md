@@ -1,0 +1,40 @@
+---
+type: process
+status: verified
+verified: 2026-10-01 @ 196f68e
+consumes: ["[[clients/engagement]]", "[[clients/client-member]]"]
+produces: ["[[clients/engagement]]", "[[ledger/run]]"]
+---
+
+# delivery-watch
+
+Each hour, every live project's people get the mail they asked for, and the operator hears about any client who could feel forgotten.
+
+## Input → Movement → Output
+
+Active engagements of non-demo clients and their members. `DeliveryWatch/fleet` (`packages/delivery/src/watch.ts:497`) runs one pass an hour in a `runs` row: welcomes, "needs you" mail, the Friday digest from `portal@`, then one notifier message listing new problems. Off until `wren delivery watch start`; runs only when `WREN_PORTAL_ORIGIN` is set, mails only when `WREN_PORTAL_FROM` and `WREN_PORTAL_MAILBOX` are too.
+
+## Why this shape
+
+One pass over the database finds everything, so a missed hour costs nothing: the next pass sees the same rows. What was mailed is a timestamp per person (`member_mail.told_through`), so a new ask is sent once even if passes overlap. Pings are rows (`delivery.pings`) so each problem pings once a week at most and clears itself (design risk 5, alert fatigue).
+
+## Steps
+
+1. `watchPass` (`watch.ts:105`): live engagements, people with their level.
+2. `mailPeople` (`watch.ts:144`): welcome once; level `all` gets new asks and deliverables since `told_through`; Friday after 15:00 (send zone) everyone not `off` gets `digestOf` (`watch.ts:273`) once (`digest_on`). A failed send keeps the mark, so it retries next pass.
+3. `pingOperator` (`watch.ts:360`): quiet 3 business days, step past due, ask overdue, pulse ≤3, nobody signed in 14 days. Rows no longer true are deleted; new or 7-day-old ones go in one notice, recorded only if it sent.
+4. An invite through the portal kicks a pass (`service.ts`, `watched`), so a welcome lands in seconds.
+
+## Surfaces
+
+| Surface | Role |
+|---|---|
+| `wren delivery watch start/stop/status/sync` | the loop |
+| portal Settings → Email from us (`delivery/mail`) | each person's level |
+| portal Home pulse, digest links `?pulse=N&e=ID` (`delivery/pulse`) | the weekly tap |
+
+## See
+
+- Objects: [[clients/engagement]], [[clients/client-member]]
+- Design: `designs/2026-09-30-client-delivery-portal.md` (D8–D10)
+- Tests: `packages/delivery/test/integration/watch.test.ts`

@@ -6,7 +6,8 @@
  */
 import { readFile } from "node:fs/promises";
 import { basename } from "node:path";
-import type { Settings } from "@wren/config";
+import * as restateClients from "@restatedev/restate-sdk-clients";
+import { ingressOf, type Settings } from "@wren/config";
 import { getClient, listOperators, normalEmail } from "@wren/core/clients";
 import type { Db, Queryable } from "@wren/db";
 import {
@@ -27,6 +28,7 @@ import {
   todayUtc,
 } from "@wren/delivery";
 import { MAX_FILE_BYTES, newFileKey, s3Files, typeOfName } from "@wren/delivery/files";
+import { type DeliveryWatch, WATCH, WATCH_KEY } from "@wren/delivery/restate";
 import type { Command } from "commander";
 
 type WithDb = <T>(fn: (db: Db) => Promise<T>) => Promise<T>;
@@ -272,4 +274,20 @@ export function registerDelivery(program: Command, withMainDb: WithDb, settings:
         );
       for (const e of home.engagements) console.log(renderEngagement(id, e).join("\n"));
     });
+
+  // Every client at once, so no --client: `wren delivery watch start`.
+  const watch = () =>
+    restateClients
+      .connect(ingressOf(settings))
+      .objectClient<DeliveryWatch>({ name: WATCH }, WATCH_KEY);
+  const print = (v: unknown) => console.log(JSON.stringify(v, null, 2));
+  const w = cmd
+    .command("watch")
+    .description("DeliveryWatch: client mail and operator pings, hourly; off until started");
+  w.command("status").action(async () => print(await watch().status()));
+  w.command("start").action(async () => print(await watch().start()));
+  w.command("stop").action(async () => print(await watch().stop()));
+  w.command("sync")
+    .description("one pass now")
+    .action(async () => print(await watch().sync()));
 }

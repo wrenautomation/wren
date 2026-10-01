@@ -20,8 +20,12 @@ import {
   type Engagement,
   type EngagementStatus,
   engagements,
+  MAIL_LEVELS,
+  type MailLevel,
   type Milestone,
+  memberMail,
   milestones,
+  pulses,
   results,
   type Update,
   updates,
@@ -54,6 +58,10 @@ export function dayOf(v: string, what = "date"): string {
 export const addDays = (day: string, n: number): string =>
   new Date(Date.parse(`${day}T00:00:00Z`) + n * 86_400_000).toISOString().slice(0, 10);
 export const todayUtc = (): string => new Date().toISOString().slice(0, 10);
+/** 0 = Sunday. */
+export const weekday = (day: string): number => new Date(`${day}T00:00:00Z`).getUTCDay();
+/** The Monday of `day`'s week: a pulse's week. */
+export const mondayOf = (day: string): string => addDays(day, -((weekday(day) + 6) % 7));
 
 function textIn(v: string, what: string, max: number): string {
   const t = v.trim();
@@ -402,6 +410,59 @@ export async function recordResult(
     .onConflictDoUpdate({ target: [results.engagementId, results.key], set: row });
 }
 
+/** A client person's one tap for the week (D10); a second tap the same week replaces it. */
+export async function recordPulse(
+  db: Queryable,
+  e: Engagement,
+  input: { email: string; score: number; note?: string | undefined; today?: string },
+): Promise<void> {
+  if (!Number.isInteger(input.score) || input.score < 1 || input.score > 5)
+    throw bad("a pulse is 1 to 5");
+  const row = {
+    score: input.score,
+    note: input.note?.trim() ? textIn(input.note, "the note", 2000) : null,
+    at: new Date(),
+  };
+  await db
+    .insert(pulses)
+    .values({
+      engagementId: e.id,
+      email: input.email,
+      week: mondayOf(input.today ?? todayUtc()),
+      ...row,
+    })
+    .onConflictDoUpdate({ target: [pulses.engagementId, pulses.email, pulses.week], set: row });
+}
+
+/** What mail a person gets about this client (D9). */
+export async function setMailLevel(
+  db: Queryable,
+  clientId: string,
+  email: string,
+  level: string,
+): Promise<MailLevel> {
+  if (!MAIL_LEVELS.includes(level as MailLevel))
+    throw bad(`mail is one of ${MAIL_LEVELS.join(", ")}`);
+  const set = { level: level as MailLevel };
+  await db
+    .insert(memberMail)
+    .values({ clientId, email, ...set })
+    .onConflictDoUpdate({ target: [memberMail.clientId, memberMail.email], set });
+  return set.level;
+}
+
+export async function mailLevelOf(
+  db: Queryable,
+  clientId: string,
+  email: string,
+): Promise<MailLevel> {
+  const [row] = await db
+    .select({ level: memberMail.level })
+    .from(memberMail)
+    .where(and(eq(memberMail.clientId, clientId), eq(memberMail.email, email)));
+  return row?.level ?? "all";
+}
+
 // --- reads ----------------------------------------------------------------------
 
 /** The stored file of one of this client's deliverables or answered asks, or null. */
@@ -477,6 +538,16 @@ export interface EngagementView {
   deliverables: DeliverableView[];
   asks: AskView[];
   results: ResultView[];
+  pulse: PulseView;
+}
+/** This week's pulse (D10). */
+export interface PulseView {
+  /** The Monday of this week. */
+  week: string;
+  /** The viewer's own tap this week; null when none or the viewer isn't the client's. */
+  mine: number | null;
+  /** Everyone's taps this week, for Wren's team only. */
+  scores: number[];
 }
 export interface DeliveryHome {
   engagements: EngagementView[];
@@ -491,9 +562,10 @@ const HOME_UPDATES = 10;
 export async function deliveryHome(
   db: Queryable,
   clientId: string,
-  opts: { operator: boolean; today?: string },
+  opts: { operator: boolean; today?: string; email?: string | null },
 ): Promise<DeliveryHome> {
   const today = opts.today ?? todayUtc();
+  const week = mondayOf(today);
   const es = await db
     .select()
     .from(engagements)
@@ -501,7 +573,7 @@ export async function deliveryHome(
     .orderBy(desc(engagements.startsOn), desc(engagements.id));
   if (es.length === 0) return { engagements: [] };
   const ids = es.map((e) => e.id);
-  const [ms, ds, as, rs] = await Promise.all([
+  const [ms, ds, as, rs, ps] = await Promise.all([
     db
       .select()
       .from(milestones)
@@ -524,6 +596,10 @@ export async function deliveryHome(
       .where(inArray(asks.engagementId, ids))
       .orderBy(asc(asks.dueOn), asc(asks.id)),
     db.select().from(results).where(inArray(results.engagementId, ids)),
+    db
+      .select()
+      .from(pulses)
+      .where(and(inArray(pulses.engagementId, ids), eq(pulses.week, week))),
   ]);
   const stepKey = new Map(ms.map((m) => [m.id, m.key]));
   const timelines = await Promise.all(
@@ -598,6 +674,13 @@ export async function deliveryHome(
             at: r?.updatedAt.toISOString() ?? null,
           };
         }),
+        pulse: {
+          week,
+          mine: ps.find((p) => p.engagementId === e.id && p.email === opts.email)?.score ?? null,
+          scores: opts.operator
+            ? ps.filter((p) => p.engagementId === e.id).map((p) => p.score)
+            : [],
+        },
       };
     }),
   };

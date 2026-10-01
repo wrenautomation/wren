@@ -65,6 +65,35 @@ export interface GmailClientOptions {
   tokenFactory?: (sender: string) => TokenSupplier;
 }
 
+/** One plain message: sign-in codes, client mail. */
+export interface PlainMail {
+  to: string;
+  subject: string;
+  text: string;
+}
+
+/**
+ * Plain mail from a role address (portal@) through a mailbox allowed to send as
+ * it. Not the outbox: no ledger, no reconcile, nothing to thread.
+ */
+export function plainMailer(
+  gmail: GmailClient,
+  o: { mailbox: string; from: string; name: string },
+): (m: PlainMail) => Promise<void> {
+  return async (m) => {
+    const mime = buildMime({
+      fromAddress: o.from,
+      fromName: o.name,
+      to: m.to,
+      subject: m.subject,
+      replySubject: null,
+      body: m.text,
+      messageId: `<${crypto.randomUUID()}@${o.from.split("@")[1]}>`,
+    });
+    await gmail.sendRaw(o.mailbox, mime);
+  };
+}
+
 /**
  * Gmail REST for one service-account key, acting as many senders. One token
  * supplier is cached per sender (never the bearer string): it refreshes

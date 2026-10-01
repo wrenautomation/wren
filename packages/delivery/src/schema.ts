@@ -1,4 +1,4 @@
-import { clients } from "@wren/core/clients";
+import { clientMembers, clients } from "@wren/core/clients";
 import { oneOf } from "@wren/db/columns";
 import { sql } from "drizzle-orm";
 import {
@@ -13,6 +13,7 @@ import {
   pgSchema,
   primaryKey,
   serial,
+  smallint,
   text,
   timestamp,
   unique,
@@ -232,3 +233,83 @@ export const results = delivery.table(
   ],
 );
 export type Result = typeof results.$inferSelect;
+
+/** What mail a person gets about a client's work (D9). */
+export const MAIL_LEVELS = ["all", "digest", "off"] as const;
+export type MailLevel = (typeof MAIL_LEVELS)[number];
+
+/**
+ * Each member's mail level and how far they've been told. No row means "all",
+ * told through the day they were invited. Goes with the membership.
+ */
+export const memberMail = delivery.table(
+  "member_mail",
+  {
+    clientId: varchar("client_id", { length: 40 }).notNull(),
+    email: text("email").notNull(),
+    level: varchar("level", { length: 8, enum: MAIL_LEVELS }).default("all").notNull(),
+    /** New asks and deliverables up to here have been mailed (or skipped by level). */
+    toldThrough: timestamp("told_through", { withTimezone: true }),
+    /** The Friday the last digest went out for. */
+    digestOn: date("digest_on"),
+  },
+  (t) => [
+    primaryKey({ columns: [t.clientId, t.email], name: "pk_member_mail" }),
+    foreignKey({
+      columns: [t.clientId, t.email],
+      foreignColumns: [clientMembers.clientId, clientMembers.email],
+      name: "fk_member_mail_member",
+    }).onDelete("cascade"),
+    oneOf("ck_member_mail_level", t.level, MAIL_LEVELS),
+  ],
+);
+export type MemberMail = typeof memberMail.$inferSelect;
+
+/** The weekly one-tap "how's it going", 1 to 5 (D10). One per person per engagement per week. */
+export const pulses = delivery.table(
+  "pulses",
+  {
+    id: serial("id").notNull(),
+    engagementId: integer("engagement_id").notNull(),
+    email: text("email").notNull(),
+    /** The Monday of the week it's for. */
+    week: date("week").notNull(),
+    score: smallint("score").notNull(),
+    note: text("note"),
+    at: timestamp("at", { withTimezone: true }).defaultNow().notNull(),
+  },
+  (t) => [
+    primaryKey({ columns: [t.id], name: "pk_pulses" }),
+    foreignKey({
+      columns: [t.engagementId],
+      foreignColumns: [engagements.id],
+      name: "fk_pulses_engagement",
+    }).onDelete("cascade"),
+    unique("uq_pulses_week").on(t.engagementId, t.email, t.week),
+    check("ck_pulses_score", sql`${t.score} between 1 and 5`),
+  ],
+);
+export type Pulse = typeof pulses.$inferSelect;
+
+/**
+ * What DeliveryWatch told the operator (D8), so a standing problem pings once a
+ * week, not every hour. A row goes when its problem clears; a new one pings again.
+ */
+export const pings = delivery.table(
+  "pings",
+  {
+    engagementId: integer("engagement_id").notNull(),
+    /** "quiet", "away", "step:<key>", "ask:<id>" or "pulse:<id>". */
+    about: varchar("about", { length: 80 }).notNull(),
+    pingedAt: timestamp("pinged_at", { withTimezone: true }).notNull(),
+  },
+  (t) => [
+    primaryKey({ columns: [t.engagementId, t.about], name: "pk_pings" }),
+    foreignKey({
+      columns: [t.engagementId],
+      foreignColumns: [engagements.id],
+      name: "fk_pings_engagement",
+    }).onDelete("cascade"),
+  ],
+);
+export type Ping = typeof pings.$inferSelect;

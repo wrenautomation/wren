@@ -489,7 +489,11 @@ describe("the demo", () => {
     expect(await refused(api.post({ viewer: DEMO, body: "x" }))).toBe(403);
     expect(await refused(api.post({ viewer: OPS, client: "demo", body: "x" }))).toBe(403);
     expect(await refused(api.invite({ viewer: DEMO, email: "x@y.example" }))).toBe(403);
-    expect(await api.people({ viewer: DEMO })).toEqual({ people: [], canManage: false });
+    expect(await api.people({ viewer: DEMO })).toEqual({
+      people: [],
+      canManage: false,
+      mail: null,
+    });
   });
 
   it("is never among a client's or a stranger's clients", async () => {

@@ -4,6 +4,7 @@
  *
  *   pnpm --filter @wren/portal preview          # as an operator: every client
  *   pnpm --filter @wren/portal preview --demo   # as a demo visitor: masked
+ *   pnpm --filter @wren/portal preview --as amy@acme.example   # as a client's person
  */
 import { createReadStream, existsSync } from "node:fs";
 import { createServer } from "node:http";
@@ -36,7 +37,12 @@ const SERVICES: Record<string, { routes: readonly string[]; api: object }> = {
     api: portalApi({ main, open: (c) => cachedDb(clientUrl(settings.databaseUrl, c)) }),
   },
 };
-const viewer: Viewer = demo ? { demo: true } : { email: "preview@localhost", operator: true };
+const as = process.argv[process.argv.indexOf("--as") + 1];
+const viewer: Viewer = demo
+  ? { demo: true }
+  : process.argv.includes("--as") && as
+    ? { email: as }
+    : { email: "preview@localhost", operator: true };
 const dist = join(import.meta.dirname, "..", "dist");
 const TYPES: Record<string, string> = {
   ".html": "text/html",

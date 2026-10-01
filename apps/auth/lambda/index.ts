@@ -7,9 +7,8 @@
  */
 import { makeAuth } from "@wren/auth";
 // The narrow modules: the send index pulls in the whole outbox tick and Restate.
-import { GmailClient } from "@wren/channel-email/send/gmail";
+import { GmailClient, plainMailer } from "@wren/channel-email/send/gmail";
 import { GMAIL_SEND_SCOPE, loadServiceAccountKey } from "@wren/channel-email/send/google-auth";
-import { buildMime } from "@wren/channel-email/send/mime";
 import { loadSsmEnv } from "@wren/config/ssm";
 import { isOperator, mayHaveAccount } from "@wren/core/clients";
 import { cachedDb } from "@wren/db";
@@ -51,18 +50,7 @@ const auth = makeAuth({
   ...(microsoft ? { microsoft } : {}),
   allowed: (email) => mayHaveAccount(db, email),
   claims: async (email) => ({ operator: await isOperator(db, email) }),
-  send: async ({ to, subject, text }) => {
-    const mime = buildMime({
-      fromAddress: FROM,
-      fromName: "Wren",
-      to,
-      subject,
-      replySubject: null,
-      body: text,
-      messageId: `<${crypto.randomUUID()}@${FROM.split("@")[1]}>`,
-    });
-    await gmail.sendRaw(MAILBOX, mime);
-  },
+  send: plainMailer(gmail, { mailbox: MAILBOX, from: FROM, name: "Wren" }),
   ipHeader: IP_HEADER,
 });
 

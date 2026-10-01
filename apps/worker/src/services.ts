@@ -20,6 +20,7 @@ import {
   makeNotifier,
   makeVerifier,
   type PostmasterClient,
+  plainMailer,
   postmasterToken,
   rosterFleet,
   SendPolicy,
@@ -74,7 +75,7 @@ import {
 import { clientKey, clientOfKey } from "@wren/core/restate";
 import { cachedDb, clientDatabaseName, clientDatabaseUrl, createDb } from "@wren/db";
 import { s3Files } from "@wren/delivery/files";
-import { makeDeliveryPortal } from "@wren/delivery/restate";
+import { makeDeliveryPortal, makeDeliveryWatch } from "@wren/delivery/restate";
 import { loadLlmEnv, makeLlm, makeTracer } from "@wren/llm";
 import {
   crawlHintsFor,
@@ -411,11 +412,32 @@ export async function buildServices(
   } else log.info("WREN_SEARCH_SITE/WREN_SEARCH_ORIGIN unset: no search loop");
   // The client portal (apps/portal): delivery for every client, each product's
   // own pages, and one reactivation loop per client.
+  // DeliveryWatch mails clients from portal@ and pings us when one could feel forgotten.
+  const portal = settings.portalOrigin ?? null;
+  if (portal)
+    services.push(
+      makeDeliveryWatch({
+        main: db,
+        send:
+          settings.portalFrom && settings.portalMailbox
+            ? plainMailer(gmail, {
+                mailbox: settings.portalMailbox,
+                from: settings.portalFrom,
+                name: "Wren",
+              })
+            : null,
+        app: portal,
+        zone: settings.sendTimezone,
+        ...notify,
+      }),
+    );
+  else log.info("WREN_PORTAL_ORIGIN unset: no DeliveryWatch");
   services.push(
     makeDeliveryPortal({
       main: db,
       demoName: DEMO_NAME,
       files: settings.filesBucket ? s3Files({ bucket: settings.filesBucket }) : undefined,
+      watched: portal !== null,
     }),
     makeReactivationPortal({ main: db, open: openClient }),
     makeReactivation({

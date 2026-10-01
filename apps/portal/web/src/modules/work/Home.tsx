@@ -1,26 +1,56 @@
 /**
  * Home answers five things on open (D7): where we are, what we did lately, what's next,
  * what we need from you, and results so far. Before the first update it's a welcome.
+ * It also takes the weekly pulse (D10), from a tap here or a link in the Friday mail.
  */
-import { ButtonLink, Callout, PageHeader, Section, Stat, StatStrip, Tag } from "@wren/ui";
+import { PULSE_WORDS } from "@wren/delivery/routes";
+import { Button, ButtonLink, Callout, PageHeader, Section, Stat, StatStrip, Tag } from "@wren/ui";
+import { useEffect } from "react";
 import type { EngagementView } from "../../api.js";
 import type { PageProps } from "../../module.js";
-import { dayLabel, Engagements, figure, StateTag, useWork } from "./bits.js";
+import { href, navigate } from "../../route.js";
+import { dayLabel, Engagements, figure, StateTag, useAct, useWork } from "./bits.js";
 import { at } from "./nav.js";
 
 export function Home(props: PageProps) {
   const work = useWork(props);
+  const act = useAct(props, work.reload);
+  usePulseLink(props, act);
   return (
     <>
       <PageHeader title="Home" lede="Where your project stands, and what we need from you." />
+      {act.error ? (
+        <p className="wk-error" role="alert">
+          {act.error}
+        </p>
+      ) : null}
       <Engagements work={work} props={props}>
-        {(e) => <Glance e={e} />}
+        {(e) => <Glance e={e} props={props} act={act} />}
       </Engagements>
     </>
   );
 }
 
-function Glance({ e }: { e: EngagementView }) {
+/** `?pulse=4&e=12` from the Friday mail: record the tap, then drop it from the address. */
+function usePulseLink({ params, team, demo }: PageProps, act: ReturnType<typeof useAct>) {
+  const score = Number(params.get("pulse"));
+  const engagementId = Number(params.get("e")) || undefined;
+  useEffect(() => {
+    if (!score) return;
+    if (!team && !demo) void act.run("pulse", { engagementId, score });
+    navigate(href(location.pathname, { pulse: null, e: null }, params), true);
+  }, [score, engagementId, team, demo, act.run, params]);
+}
+
+function Glance({
+  e,
+  props,
+  act,
+}: {
+  e: EngagementView;
+  props: PageProps;
+  act: ReturnType<typeof useAct>;
+}) {
   const done = e.steps.filter((s) => s.state === "done").length;
   const current = e.steps.find((s) => s.state === "late" || s.state === "now");
   const coming = e.steps.find((s) => s.state === "next");
@@ -137,10 +167,60 @@ function Glance({ e }: { e: EngagementView }) {
         </StatStrip>
       </Section>
 
+      <Pulse e={e} props={props} act={act} />
+
       <Section title="What we promised">
         <p>{e.offer.promise}</p>
         {e.offer.guarantee ? <p className="wk-quiet">{e.offer.guarantee}</p> : null}
       </Section>
     </>
+  );
+}
+
+/** One tap a week from the client's people; Wren's team sees the taps. A low one pings us. */
+function Pulse({
+  e,
+  props,
+  act,
+}: {
+  e: EngagementView;
+  props: PageProps;
+  act: ReturnType<typeof useAct>;
+}) {
+  const { mine, scores } = e.pulse;
+  if (props.team)
+    return (
+      <Section title="This week's pulse">
+        <p>
+          {scores.length
+            ? scores.map((n) => `${n} ${PULSE_WORDS[n]}`).join(", ")
+            : "Nobody has rated this week yet."}
+        </p>
+      </Section>
+    );
+  return (
+    <Section title="How's this week going?">
+      <div className="wk-tools">
+        {[5, 4, 3, 2, 1].map((n) => (
+          <Button
+            key={n}
+            size="sm"
+            tone={mine === n ? "primary" : "secondary"}
+            aria-pressed={mine === n}
+            disabled={act.busy || props.demo}
+            onClick={() => void act.run("pulse", { engagementId: e.id, score: n })}
+          >
+            {PULSE_WORDS[n]}
+          </Button>
+        ))}
+      </div>
+      <p className="wk-quiet">
+        {props.demo
+          ? "Off on the demo."
+          : mine
+            ? `You said ${PULSE_WORDS[mine]}. Tap another to change it.`
+            : "One tap. Each one reaches us."}
+      </p>
+    </Section>
   );
 }

@@ -135,6 +135,12 @@ export const settingsSchema = z.object({
   mediaBucket: z.string().min(1).optional(),
   /** The private S3 bucket for client files (`clients/<id>/`); unset = the portal refuses uploads. */
   filesBucket: z.string().min(1).optional(),
+  /** The client portal (`https://app.<domain>`); unset = no DeliveryWatch. */
+  portalOrigin: z.string().url().optional(),
+  /** Client mail comes from this address, sent through `portalMailbox`; either unset = pings only. */
+  portalFrom: z.string().email().optional(),
+  /** A mailbox the service account may impersonate that can send as `portalFrom`. */
+  portalMailbox: z.string().email().optional(),
   /** The S3 bucket per-lead demo videos are published to (`v/<id>.*`); unset = `wren video render` refuses. */
   videosBucket: z.string().min(1).optional(),
   /** Where the CDN serves that bucket, no trailing slash ("https://d123.cloudfront.net"). */
@@ -348,6 +354,9 @@ export const ENV_KEYS = {
   contentLinkSite: "WREN_CONTENT_LINK_SITE",
   mediaBucket: "WREN_MEDIA_BUCKET",
   filesBucket: "WREN_FILES_BUCKET",
+  portalOrigin: "WREN_PORTAL_ORIGIN",
+  portalFrom: "WREN_PORTAL_FROM",
+  portalMailbox: "WREN_PORTAL_MAILBOX",
   videosBucket: "WREN_VIDEOS_BUCKET",
   videosOrigin: "WREN_VIDEOS_ORIGIN",
   videosWatchBase: "WREN_VIDEOS_WATCH_BASE",
