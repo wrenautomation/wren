@@ -9,7 +9,15 @@ import { startTestPostgres, type TestPostgres } from "@wren/db/testing";
 import { sql } from "drizzle-orm";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import type { FileStore } from "../../src/files.js";
-import { deliveryHome, postUpdate, startEngagement } from "../../src/index.js";
+import {
+  addInvoice,
+  DeliveryRefusal,
+  deliveryHome,
+  engagementOf,
+  markInvoice,
+  postUpdate,
+  startEngagement,
+} from "../../src/index.js";
 import { deliveryApi } from "../../src/service.js";
 
 let pg: TestPostgres;
@@ -503,6 +511,95 @@ describe("comments", () => {
   });
 });
 
+describe("billing and the account", () => {
+  const CY: Viewer = { email: "cy@acme.example" };
+  const bill = async (number: string, over: Partial<Parameters<typeof addInvoice>[2]> = {}) =>
+    addInvoice(pg.db, await engagementOf(pg.db, "acme"), {
+      number,
+      description: "Setup",
+      cents: 100_000,
+      issuedOn: "2026-09-01",
+      dueOn: "2026-09-15",
+      link: "https://wise.com/pay/r/abc",
+      by: "ops@wren.example",
+      ...over,
+    });
+  const status = async (p: Promise<unknown>) => {
+    try {
+      await p;
+    } catch (err) {
+      if (err instanceof DeliveryRefusal) return err.status;
+      throw err;
+    }
+    throw new Error("expected a refusal");
+  };
+
+  it("an owner sees what we billed, late ones as overdue; a member and another client don't", async () => {
+    await bill("WREN-1");
+    await bill("WREN-2", {
+      description: "Meetings booked in October",
+      cents: 250_050,
+      dueOn: "2099-01-01",
+    });
+    const seen = await api.invoices({ viewer: AMY });
+    expect(seen.invoices.map((i) => [i.number, i.status, i.cents, i.offer])).toEqual([
+      ["WREN-2", "open", 250_050, "Lead reactivation"],
+      ["WREN-1", "overdue", 100_000, "Lead reactivation"],
+    ]);
+    expect((await api.invoices({ viewer: OPS, ...acme })).invoices).toHaveLength(2);
+    expect((await api.invoices({ viewer: OPS, ...beta })).invoices).toEqual([]);
+    await addMember(pg.db, "acme", "cy@acme.example");
+    expect(await refused(api.invoices({ viewer: CY }))).toBe(403);
+    expect(await refused(api.invoices({ viewer: BO, ...acme }))).toBe(403);
+  });
+
+  it("paid, void and open again; never another client's", async () => {
+    expect((await markInvoice(pg.db, "acme", "WREN-1", "paid", "2026-10-20")).paidOn).toBe(
+      "2026-10-20",
+    );
+    expect((await api.invoices({ viewer: AMY })).invoices[1]?.status).toBe("paid");
+    expect((await markInvoice(pg.db, "acme", "WREN-1", "open")).paidOn).toBeNull();
+    expect((await markInvoice(pg.db, "acme", "WREN-1", "void")).status).toBe("void");
+    expect(await status(markInvoice(pg.db, "beta", "WREN-1", "paid"))).toBe(404);
+    expect(await status(markInvoice(pg.db, "acme", "WREN-1", "gone"))).toBe(400);
+  });
+
+  it("refuses a number twice, a bad amount, currency, dates or link", async () => {
+    expect(await status(bill("WREN-1"))).toBe(409);
+    for (const over of [
+      { cents: 0 },
+      { cents: 10.5 },
+      { currency: "dollars" },
+      { dueOn: "2026-08-31" },
+      { dueOn: "soon" },
+      { link: "javascript:alert(1)" },
+      { description: " " },
+    ])
+      expect(await status(bill("WREN-9", over))).toBe(400);
+  });
+
+  it("the account: who they are, what they bought, billing for owners only", async () => {
+    const a = await api.account({ viewer: AMY });
+    expect(a).toMatchObject({
+      name: "Acme Staffing",
+      you: { email: "amy@acme.example", role: "owner", wren: false },
+      owners: ["amy@acme.example"],
+      billing: { open: 1, overdue: 0 },
+    });
+    expect(a.bought.map((b) => [b.offer, b.startsOn, b.status])).toEqual([
+      ["Lead reactivation", START, "active"],
+    ]);
+    expect((await api.account({ viewer: CY })).billing).toBeNull();
+    expect((await api.account({ viewer: OPS, ...acme })).you).toEqual({
+      email: "ops@wren.example",
+      role: null,
+      wren: true,
+    });
+    expect(await refused(api.account({ viewer: BO, ...acme }))).toBe(403);
+    await api.remove({ viewer: AMY, email: "cy@acme.example" });
+  });
+});
+
 describe("the demo", () => {
   beforeAll(async () => {
     const e = await startEngagement(pg.db, {
@@ -525,6 +622,12 @@ describe("the demo", () => {
     expect(home.engagements[0]?.updates.map((u) => u.body)).toEqual([
       "List cleaned: 1,204 contacts.",
     ]);
+    expect(await api.account({ viewer: DEMO })).toMatchObject({
+      name: "Demo recruiting firm",
+      people: 0,
+      billing: null,
+    });
+    expect((await api.invoices({ viewer: DEMO })).invoices).toEqual([]);
   });
 
   it("writes nothing, even as an operator naming the demo client", async () => {

@@ -34,6 +34,7 @@ import {
   addComment,
   addDeliverable,
   answerAsk,
+  boughtBy,
   type DeliveryHome,
   DeliveryRefusal,
   decideDeliverable,
@@ -41,6 +42,8 @@ import {
   type Engagement,
   engagementOf,
   hideUpdate,
+  type InvoiceView,
+  invoicesOf,
   mailLevelOf,
   markDone,
   postUpdate,
@@ -154,13 +157,26 @@ const storeOf = (deps: DeliveryDeps): FileStore => {
   return deps.files;
 };
 
-/** Someone who sees this client, for its Settings page. */
+/** Someone who sees this client, for the account's People page. */
 export interface MemberView {
   email: string;
   role: MemberRole;
   invitedBy: string | null;
   invitedAt: string;
   lastSeenAt: string | null;
+}
+
+/** The client's account page: who they are to us, what they bought, who's on it, billing at a glance. */
+export interface AccountView {
+  name: string;
+  /** When they became a client. */
+  since: string;
+  you: { email: string | null; role: MemberRole | null; wren: boolean };
+  bought: Awaited<ReturnType<typeof boughtBy>>;
+  people: number;
+  owners: string[];
+  /** Owners and Wren only. */
+  billing: { open: number; overdue: number } | null;
 }
 
 type EngagementReq = PortalRequest & { engagementId?: number };
@@ -363,6 +379,37 @@ export function deliveryApi(deps: DeliveryDeps) {
       if (!key) throw new PortalRefusal("no such file", 404);
       return { url: await files.getUrl(key) };
     },
+    account: async (req: PortalRequest): Promise<AccountView> => {
+      const client = await pickClient(deps.main, req);
+      const viewer = req.viewer;
+      const demo = isDemo(viewer);
+      const rows = demo ? [] : await listMembers(deps.main, client.id);
+      const me = isDemo(viewer) ? null : normalEmail(viewer.email);
+      const role = rows.find((m) => m.email === me)?.role ?? null;
+      const owed =
+        seesInternal(req) || role === "owner" ? await invoicesOf(deps.main, client.id) : null;
+      return {
+        name: demo ? deps.demoName : client.name,
+        since: client.createdAt.toISOString(),
+        you: { email: me, role, wren: isOperator(req.viewer) },
+        bought: await boughtBy(deps.main, client.id),
+        people: rows.length,
+        owners: rows.filter((m) => m.role === "owner").map((m) => m.email),
+        billing: owed && {
+          open: owed.filter((i) => i.status === "open").length,
+          overdue: owed.filter((i) => i.status === "overdue").length,
+        },
+      };
+    },
+    /** What we've billed through Wise: the account's owners and Wren see it. */
+    invoices: async (req: PortalRequest): Promise<{ invoices: InvoiceView[] }> => {
+      const client = await pickClient(deps.main, req);
+      const viewer = req.viewer;
+      if (isDemo(viewer)) return { invoices: [] };
+      if (!seesInternal(req) && !(await isOwner(deps.main, client.id, viewer.email)))
+        throw new PortalRefusal("billing is for this account's owners", 403);
+      return { invoices: await invoicesOf(deps.main, client.id) };
+    },
     /** Who sees this client. The demo lists nobody: its members are real people. */
     people: async (
       req: PortalRequest,
@@ -443,6 +490,7 @@ export type {
   DeliverableView,
   DeliveryHome,
   EngagementView,
+  InvoiceView,
   MilestoneState,
   PulseView,
   ResultView,
@@ -484,6 +532,8 @@ export function makeDeliveryPortal(deps: DeliveryDeps) {
       slip: (_: restate.Context, req: Req<"slip">) => answer(() => api.slip(req)),
       result: (_: restate.Context, req: Req<"result">) => answer(() => api.result(req)),
       hide: (_: restate.Context, req: Req<"hide">) => answer(() => api.hide(req)),
+      account: (_: restate.Context, req: Req<"account">) => answer(() => api.account(req)),
+      invoices: (_: restate.Context, req: Req<"invoices">) => answer(() => api.invoices(req)),
       people: (_: restate.Context, req: Req<"people">) => answer(() => api.people(req)),
       invite: async (ctx: restate.Context, req: Req<"invite">) => {
         const out = await answer(() => api.invite(req));

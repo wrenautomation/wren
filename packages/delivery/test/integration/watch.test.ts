@@ -10,7 +10,7 @@ import { PortalRefusal, type Viewer } from "@wren/core/portal";
 import { startTestPostgres, type TestPostgres } from "@wren/db/testing";
 import { sql } from "drizzle-orm";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
-import { startEngagement } from "../../src/index.js";
+import { addInvoice, engagementOf, markInvoice, startEngagement } from "../../src/index.js";
 import { deliveryApi } from "../../src/service.js";
 import { opsBoard, type PortalMail, watchPass, workdaysAfter } from "../../src/watch.js";
 
@@ -117,7 +117,7 @@ describe("client mail", () => {
     expect(told?.subject).toBe("Acme Staffing: 2 things need you");
     expect(told?.text).toContain("- Your ATS login (by 2026-10-20)");
     expect(told?.text).toContain("- Cleaned list");
-    expect(told?.text).toContain("https://app.example/work/settings?client=acme");
+    expect(told?.text).toContain("https://app.example/account/you?client=acme");
     await pass("2026-10-05T13:00:00Z");
     expect(take(mail)).toEqual([]);
   });
@@ -225,6 +225,27 @@ describe("operator pings", () => {
     expect(told?.subject).toBe("Acme Staffing: Wren replied");
     expect(told?.text).toContain('- On "List is clean.": 388 of them.');
     expect(told?.text).toContain("https://app.example/work/updates?client=acme");
+  });
+
+  it("an invoice past its due day pings once, and clears when paid", async () => {
+    await addInvoice(pg.db, await engagementOf(pg.db, "acme"), {
+      number: "WREN-7",
+      description: "Setup",
+      cents: 100_000,
+      issuedOn: "2026-09-25",
+      dueOn: "2026-10-08",
+      by: "ops@wren.example",
+    });
+    await pass("2026-10-09T20:30:00Z");
+    expect(take(pinged).map((p) => p.body)).toEqual([
+      "acme: invoice WREN-7 (USD 1000.00) unpaid, due 2026-10-08",
+    ]);
+    await pass("2026-10-09T20:40:00Z");
+    expect(take(pinged)).toEqual([]);
+    await markInvoice(pg.db, "acme", "WREN-7", "paid", "2026-10-09");
+    await pass("2026-10-09T20:50:00Z");
+    const rows = await pg.db.execute<{ about: string }>(sql`select about from delivery.pings`);
+    expect(rows.map((r) => r.about).filter((a) => a.startsWith("invoice:"))).toEqual([]);
   });
 });
 

@@ -267,6 +267,13 @@
       "when": 1790858264848,
       "tag": "0037_delivery_comments",
       "breakpoints": true
+    },
+    {
+      "idx": 38,
+      "version": "7",
+      "when": 1790860444809,
+      "tag": "0038_delivery_invoices",
+      "breakpoints": true
     }
   ]
 }

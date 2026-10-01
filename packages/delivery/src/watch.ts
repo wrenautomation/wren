@@ -39,6 +39,7 @@ import {
   deliverables,
   type Engagement,
   engagements,
+  invoices,
   type MemberMail,
   memberMail,
   milestones,
@@ -196,7 +197,7 @@ async function mailPeople(
     }
   };
   const settings = (clientId: string) =>
-    `Change what we email you: ${app}/work/settings?client=${clientId}`;
+    `Change what we email you: ${app}/account/you?client=${clientId}`;
 
   for (const p of people) {
     const c = { id: p.m.clientId, name: p.clientName };
@@ -569,6 +570,20 @@ async function problems(
         });
     }
   }
+  // Money owed past its due day, whether or not the work is still running.
+  const unpaid = await main
+    .select({ i: invoices, clientId: engagements.clientId })
+    .from(invoices)
+    .innerJoin(engagements, eq(engagements.id, invoices.engagementId))
+    .where(and(eq(invoices.status, "open"), lt(invoices.dueOn, today)))
+    .orderBy(asc(invoices.dueOn));
+  for (const { i, clientId } of unpaid)
+    found.push({
+      engagementId: i.engagementId,
+      about: `invoice:${i.id}`,
+      clientId,
+      what: `invoice ${i.number} (${i.currency} ${(i.cents / 100).toFixed(2)}) unpaid, due ${i.dueOn}`,
+    });
   return found;
 }
 

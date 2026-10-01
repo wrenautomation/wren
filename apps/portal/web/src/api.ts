@@ -7,12 +7,14 @@
  */
 
 export type {
+  AccountView,
   AskView,
   BoardRow,
   CommentView,
   DeliverableView,
   DeliveryHome,
   EngagementView,
+  InvoiceView,
   MailLevel,
   Me,
   MemberView,

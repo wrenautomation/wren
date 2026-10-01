@@ -14,6 +14,7 @@ import {
   addAsk,
   addComment,
   addDeliverable,
+  addInvoice,
   type CommentView,
   DELIVERABLE_KINDS,
   type DeliverableKind,
@@ -22,7 +23,10 @@ import {
   type EngagementView,
   engagementOf,
   hideUpdate,
+  type InvoiceView,
+  invoicesOf,
   markDone,
+  markInvoice,
   postUpdate,
   recordResult,
   slipMilestone,
@@ -63,6 +67,16 @@ const thread = (cs: CommentView[]) =>
   cs.map(
     (c) => `      ${c.at.slice(0, 10)} ${c.author}${c.fromWren ? "" : " (client)"}: ${c.body}`,
   );
+
+/** "1,000" or "499.5" dollars as whole cents. */
+const centsOf = (v: string): number => {
+  const t = v.replace(/,/g, "");
+  if (!/^\d+(\.\d{1,2})?$/.test(t)) throw new Error(`not an amount: ${v}`);
+  return Math.round(Number(t) * 100);
+};
+
+const renderInvoice = (i: InvoiceView) =>
+  `  ${i.number} ${i.status.toUpperCase()} · ${i.currency} ${(i.cents / 100).toFixed(2)} · ${i.description} · issued ${i.issuedOn}, due ${i.dueOn}${i.paidOn ? `, paid ${i.paidOn}` : ""}`;
 
 export function renderEngagement(clientId: string, e: EngagementView): string[] {
   const out = [
@@ -282,6 +296,57 @@ export function registerDelivery(program: Command, withMainDb: WithDb, settings:
       console.log(`commented #${c.id}`);
     });
 
+  onEngagement(cmd.command("invoice <number> <amount>"))
+    .description(
+      "An invoice we sent through Wise: the client's owners see it, we're pinged when it's late",
+    )
+    .requiredOption("--for <text>", "what it's for, as the client reads it")
+    .requiredOption("--due <date>", "YYYY-MM-DD")
+    .option("--issued <date>", "YYYY-MM-DD (default: today)")
+    .option("--currency <code>", "three letters", "USD")
+    .option("--link <url>", "Wise's page for it, to view and pay")
+    .action(
+      async (
+        number: string,
+        amount: string,
+        opts: Opts & { for: string; due: string; issued?: string; currency: string; link?: string },
+      ) => {
+        const i = await change(opts, (db, e, author) =>
+          addInvoice(db, e, {
+            number,
+            description: opts.for,
+            cents: centsOf(amount),
+            currency: opts.currency,
+            issuedOn: opts.issued,
+            dueOn: opts.due,
+            link: opts.link,
+            by: author,
+          }),
+        );
+        console.log(`invoice ${i.number} open, due ${i.dueOn}`);
+      },
+    );
+
+  cmd
+    .command("paid <number>")
+    .description("An invoice is paid")
+    .option("--on <date>", "YYYY-MM-DD (default: today)")
+    .option("--undo", "it isn't paid after all")
+    .action(async (number: string, opts: { on?: string; undo?: boolean }) => {
+      const i = await withMainDb((main) =>
+        markInvoice(main, clientId(), number, opts.undo ? "open" : "paid", opts.on),
+      );
+      console.log(i.paidOn ? `${i.number} paid ${i.paidOn}` : `${i.number} open`);
+    });
+
+  cmd
+    .command("void <number>")
+    .description("An invoice is cancelled: it stays on record, owed nothing")
+    .action(async (number: string) => {
+      const i = await withMainDb((main) => markInvoice(main, clientId(), number, "void"));
+      console.log(`${i.number} void`);
+    });
+
   cmd
     .command("hide <updateId>")
     .description("Take an update off the client's timeline (kept on record)")
@@ -296,16 +361,17 @@ export function registerDelivery(program: Command, withMainDb: WithDb, settings:
     .option("--json")
     .action(async (opts: { json?: boolean }) => {
       const id = clientId();
-      const home = await withMainDb(async (main) => {
+      const [home, bills] = await withMainDb(async (main) => {
         await getClient(main, id);
-        return deliveryHome(main, id, { operator: true });
+        return Promise.all([deliveryHome(main, id, { operator: true }), invoicesOf(main, id)]);
       });
-      if (opts.json) return console.log(JSON.stringify(home, null, 2));
+      if (opts.json) return console.log(JSON.stringify({ ...home, invoices: bills }, null, 2));
       if (home.engagements.length === 0)
         return console.log(
           `${id}: nothing started (wren --client ${id} delivery start <offer> --on <date>)`,
         );
       for (const e of home.engagements) console.log(renderEngagement(id, e).join("\n"));
+      if (bills.length > 0) console.log(["invoices:", ...bills.map(renderInvoice)].join("\n"));
     });
 
   cmd

@@ -299,7 +299,7 @@ export const pings = delivery.table(
   "pings",
   {
     engagementId: integer("engagement_id").notNull(),
-    /** "quiet", "away", "step:<key>", "ask:<id>", "pulse:<id>" or "reply:<u|d><id>". */
+    /** "quiet", "away", "step:<key>", "ask:<id>", "pulse:<id>", "reply:<u|d><id>" or "invoice:<id>". */
     about: varchar("about", { length: 80 }).notNull(),
     pingedAt: timestamp("pinged_at", { withTimezone: true }).notNull(),
   },
@@ -354,3 +354,48 @@ export const comments = delivery.table(
   ],
 );
 export type Comment = typeof comments.$inferSelect;
+
+export const INVOICE_STATUSES = ["open", "paid", "void"] as const;
+export type InvoiceStatus = (typeof INVOICE_STATUSES)[number];
+
+/**
+ * An invoice we sent through Wise for an engagement, tracked here so the client
+ * sees what's owed and we see what's late. Wise holds the invoice itself; `link`
+ * is its page to view and pay. Overdue is an open one past `due_on`.
+ */
+export const invoices = delivery.table(
+  "invoices",
+  {
+    id: serial("id").notNull(),
+    engagementId: integer("engagement_id").notNull(),
+    /** The number printed on the Wise invoice. */
+    number: varchar("number", { length: 64 }).notNull(),
+    /** What it's for, as the client reads it: "Setup", "Meetings booked in October". */
+    description: text("description").notNull(),
+    cents: integer("cents").notNull(),
+    currency: varchar("currency", { length: 3 }).default("USD").notNull(),
+    issuedOn: date("issued_on").notNull(),
+    dueOn: date("due_on").notNull(),
+    status: varchar("status", { length: 16, enum: INVOICE_STATUSES }).default("open").notNull(),
+    paidOn: date("paid_on"),
+    link: text("link"),
+    createdBy: text("created_by").notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+  },
+  (t) => [
+    primaryKey({ columns: [t.id], name: "pk_invoices" }),
+    foreignKey({
+      columns: [t.engagementId],
+      foreignColumns: [engagements.id],
+      name: "fk_invoices_engagement",
+    }).onDelete("cascade"),
+    // Wise numbers its invoices across all our clients.
+    unique("uq_invoices_number").on(t.number),
+    index("ix_invoices_engagement").on(t.engagementId),
+    oneOf("ck_invoices_status", t.status, INVOICE_STATUSES),
+    check("ck_invoices_cents", sql`${t.cents} > 0`),
+    check("ck_invoices_currency", sql`${t.currency} ~ '^[A-Z]{3}$'`),
+    check("ck_invoices_paid", sql`(${t.status} = 'paid') = (${t.paidOn} is not null)`),
+  ],
+);
+export type Invoice = typeof invoices.$inferSelect;

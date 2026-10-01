@@ -29,6 +29,8 @@ It sits in main, beside the registry, so an operator can read across clients and
 - Mail and pulse (step 5): `member_mail` (each person's level and what we've told them), `pulses` (one tap a week per person), `pings` (what the operator was told) (`schema.ts:245`, `:269`, `:298`); `recordPulse`, `setMailLevel` (`index.ts:414`, `:438`). Only the client's own people rate or set their mail.
 - Products fill results: reactivation writes contacts reached, replies and meetings (with the bill as the note) and a daily timeline line, as author `reactivation` (`packages/reactivation/src/delivery.ts:94`, [[processes/reactivation-pass]]).
 - Comments (`comments`, `schema.ts:321`): a thread under a client-visible update or a deliverable, from either side (`from_wren`). `addComment` (`index.ts:342`) refuses internal and hidden updates. A new deliverable version takes the thread with it. A client line with no Wren line after it pings us (`reply:<u|d><id>`); Wren's lines are mailed at level `all` ([[processes/delivery-watch]]).
+- Invoices (`invoices`, `schema.ts:366`): what we billed through Wise, per engagement. Wise sends the invoice and takes the money; the row keeps its number (unique across clients), amount in cents, currency, dates, status and Wise link. `addInvoice`, `markInvoice` (`index.ts:541`, `:586`); `invoicesOf` reports an open one past its due day as `overdue` (`:922`). Only the account's owners and Wren read them (`service.ts:405`). One unpaid past its due day pings us (`invoice:<id>`).
+- The account page (`account`, `service.ts:382`): the client's name, since when, what they bought (`boughtBy`, `index.ts:949`), people and owners, and billing counts for owners.
 - Who sees which client: `pickClient` / `pickForWrite` (`packages/core/src/portal.ts:51`, `:63`). These are shared with every product's portal service.
 
 Citations: `packages/delivery/src/schema.ts:33`, `packages/delivery/src/index.ts:139`, `packages/delivery/src/service.ts:81`, `packages/core/src/portal.ts:51`
@@ -51,7 +53,8 @@ Citations: `packages/delivery/src/schema.ts:33`, `packages/delivery/src/index.ts
 | app.wrenautomation.com `/api/delivery/*` | reads; clients answer and decide; operators write the rest |
 | demo host | reads the demo client's sample, writes nothing |
 | portal `work` module (`apps/portal/web/src/modules/work/`) | the client's pages; operators write in place, "view as client" drops internal |
-| `wren --client <id> delivery …` (`apps/cli/src/delivery.ts`) | the team's writes from the terminal and the skill; `deliver --file` uploads |
+| portal `account` module (`apps/portal/web/src/modules/account/`) | from the client's name at top left: overview, people, each person's mail level and sign-in, billing |
+| `wren --client <id> delivery …` (`apps/cli/src/delivery.ts`) | the team's writes from the terminal and the skill; `deliver --file` uploads; `invoice`, `paid`, `void` track Wise invoices |
 | S3 files bucket (`WREN_FILES_BUCKET`) | the bytes; the browser PUTs and GETs on signed URLs |
 | [[processes/delivery-watch]] | mails the client's people, pings the operator |
 

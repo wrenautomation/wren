@@ -22,6 +22,10 @@ import {
   type Engagement,
   type EngagementStatus,
   engagements,
+  INVOICE_STATUSES,
+  type Invoice,
+  type InvoiceStatus,
+  invoices,
   MAIL_LEVELS,
   type MailLevel,
   type Milestone,
@@ -529,6 +533,77 @@ export async function mailLevelOf(
   return row?.level ?? "all";
 }
 
+// --- billing: invoices we sent through Wise ----------------------------------------
+
+const CURRENCY = /^[A-Z]{3}$/;
+
+/** An invoice we sent through Wise, put on the engagement's record. */
+export async function addInvoice(
+  db: Queryable,
+  e: Engagement,
+  input: {
+    number: string;
+    description: string;
+    cents: number;
+    currency?: string | undefined;
+    issuedOn?: string | undefined;
+    dueOn: string;
+    link?: string | undefined;
+    by: string;
+  },
+): Promise<Invoice> {
+  const number = textIn(input.number, "the invoice number", 64);
+  if (!Number.isSafeInteger(input.cents) || input.cents <= 0)
+    throw bad("the amount must be over 0, in whole cents");
+  const currency = (input.currency ?? "USD").trim().toUpperCase();
+  if (!CURRENCY.test(currency)) throw bad("the currency is three letters, like USD");
+  const issuedOn = dayOf(input.issuedOn ?? todayUtc(), "the issue date");
+  const dueOn = dayOf(input.dueOn, "the due date");
+  if (dueOn < issuedOn) throw bad("it can't be due before it's issued");
+  const [taken] = await db
+    .select({ id: invoices.id })
+    .from(invoices)
+    .where(eq(invoices.number, number));
+  if (taken) throw new DeliveryRefusal(`invoice ${number} is already on record`, 409);
+  const [row] = await db
+    .insert(invoices)
+    .values({
+      engagementId: e.id,
+      number,
+      description: textIn(input.description, "what it's for", 200),
+      cents: input.cents,
+      currency,
+      issuedOn,
+      dueOn,
+      link: input.link?.trim() ? linkOf(input.link, "link") : null,
+      createdBy: input.by,
+    })
+    .returning();
+  return row as Invoice;
+}
+
+/** Paid on a day (today by default), void, or open again. */
+export async function markInvoice(
+  db: Queryable,
+  clientId: string,
+  number: string,
+  status: string,
+  on?: string,
+): Promise<Invoice> {
+  if (!INVOICE_STATUSES.includes(status as InvoiceStatus))
+    throw bad(`an invoice is ${INVOICE_STATUSES.join(", ")}`);
+  const [row] = await db
+    .update(invoices)
+    .set({
+      status: status as InvoiceStatus,
+      paidOn: status === "paid" ? dayOf(on ?? todayUtc(), "the paid date") : null,
+    })
+    .where(and(eq(invoices.number, number.trim()), ofClient(db, invoices.engagementId, clientId)))
+    .returning();
+  if (!row) throw missing(`invoice '${number}'`);
+  return row;
+}
+
 // --- reads ----------------------------------------------------------------------
 
 /** The stored file of one of this client's deliverables or answered asks, or null. */
@@ -831,4 +906,59 @@ export async function timeline(
     })),
     more: rows.length > limit,
   };
+}
+
+export type InvoiceView = Pick<
+  Invoice,
+  "id" | "number" | "description" | "cents" | "currency" | "issuedOn" | "dueOn" | "paidOn" | "link"
+> & {
+  /** Overdue: open and past its due day. */
+  status: InvoiceStatus | "overdue";
+  /** The offer it bills for, by name. */
+  offer: string;
+};
+
+/** The client's invoices, newest first. */
+export async function invoicesOf(
+  db: Queryable,
+  clientId: string,
+  today = todayUtc(),
+): Promise<InvoiceView[]> {
+  const rows = await db
+    .select({ i: invoices, offerId: engagements.offerId })
+    .from(invoices)
+    .innerJoin(engagements, eq(engagements.id, invoices.engagementId))
+    .where(eq(engagements.clientId, clientId))
+    .orderBy(desc(invoices.issuedOn), desc(invoices.id));
+  return rows.map(({ i, offerId }) => ({
+    id: i.id,
+    number: i.number,
+    description: i.description,
+    cents: i.cents,
+    currency: i.currency,
+    issuedOn: i.issuedOn,
+    dueOn: i.dueOn,
+    paidOn: i.paidOn,
+    link: i.link,
+    status: i.status === "open" && i.dueOn < today ? "overdue" : i.status,
+    offer: offerFor(offerId).name,
+  }));
+}
+
+/** What the client has bought from us, newest first, for their account page. */
+export async function boughtBy(
+  db: Queryable,
+  clientId: string,
+): Promise<{ id: number; offer: string; startsOn: string; status: EngagementStatus }[]> {
+  const rows = await db
+    .select()
+    .from(engagements)
+    .where(eq(engagements.clientId, clientId))
+    .orderBy(desc(engagements.startsOn), desc(engagements.id));
+  return rows.map((e) => ({
+    id: e.id,
+    offer: offerFor(e.offerId).name,
+    startsOn: e.startsOn,
+    status: e.status,
+  }));
 }

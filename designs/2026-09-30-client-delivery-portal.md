@@ -99,7 +99,7 @@
 
 ## Client screens
 
-Home, Plan, Updates, Deliverables, Needs you and Results, then each bought service's module (Reactivation, …). Settings has three parts: people (an owner invites teammates), notifications and sign-in methods. Every screen works at 375px.
+Home, Plan, Updates, Deliverables, Needs you and Results, then each bought service's module (Reactivation, …). The client's name at top left opens Account: an overview (who they are to us, what they bought, people, billing), People (an owner invites teammates), Your settings (mail level and sign-in) and Billing (owners only). Every screen works at 375px.
 
 ## Hosts
 
@@ -121,7 +121,7 @@ Home, Plan, Updates, Deliverables, Needs you and Results, then each bought servi
 6. **Products feed it.** Reactivation run summaries, results and the fee meter.
 7. **Ops board**, passkeys, the phone on shared auth, the demo's sample engagement.
 
-Later: enterprise SSO, OIDC for client domains, client custom domains, a billing page (invoices). Comment threads: built 2026-10-01.
+Later: enterprise SSO, OIDC for client domains, client custom domains. Comment threads and the Account area with Wise invoices: built 2026-10-01.
 
 ## Setup chores (autobrowse can drive)
 
@@ -168,3 +168,4 @@ Later: enterprise SSO, OIDC for client domains, client custom domains, a billing
 - **2026-10-01** Step 7, the phone on shared auth (A6). The phone's own passkeys (KV, a setup link, a session cookie) are gone. Its app takes the 15-minute token from auth. like the portal and sends it; its Worker checks the token and lets operators only. Sign-in on a phone is now any of Wren's methods, and its passkey is added at `auth./passkeys`. Old phone passkeys don't carry over: they were for the phone's host, and the ceremony there is gone. `phone.` is in the sign-in Worker's `APPS`, so the token call works cross-origin.
 - **2026-10-01** app. and demo. split back apart (William: "app.wren is for the actual suite of services, demo is for the demo"). Step 7's sample had put "Your project" on the demo, so both hosts showed the same UI. Now a module can say `noDemo`; the work module does. On the demo it's off the sidebar and unreachable, and `/` and any `/work/...` land on Reactivation's first page. The shell waits for `delivery/me` before picking a landing page, since only the server knows the host. `seedSample` and DeliveryWatch's reseed still run but nothing shows them; drop them or keep them for a sales walkthrough on app., the delivery session's call.
 - **2026-10-01** Later list, comment threads. `delivery.comments` (migration 0037): a line under an update or a deliverable, exactly one, with `from_wren` for which side wrote it. Anyone who sees the client can comment; the demo can't. No threads under internal or hidden updates: their replies would reach the client by mail. A new deliverable version takes the thread with it, since Home shows only the latest. A client's comment pings us until anyone at Wren writes after it in that thread (`reply:u12`); Wren's lines go to level `all` in the same message as new asks and deliverables. `wren delivery comment --update|--deliverable` replies from the terminal; `status` prints the threads. The sample has one short thread. The sample stays: an operator opens the demo client on app. (view as client) for a sales walkthrough. Billing waits on the books plan's revenue step; SSO and custom domains wait for a client to ask.
+- **2026-10-01** Account area and Wise invoices (William: account info was underdeveloped, the top-left "Workspace" block confused him, and "billing usually should be directly wise invoices, but having it tracked in the app is fine"). Settings left the project and became the `account` module, reached from the client's name, never a launcher card: Overview, People, Your settings, Billing. Mail footers link to `/account/you`. Wise sends each invoice and takes the money; we record it with `wren delivery invoice` (migration 0038, `delivery.invoices`: number unique across clients, cents, currency, issued, due, status open/paid/void, Wise link) and mark it `paid` or `void`. Owners and Wren see invoices; members don't. An open one past its due day shows as overdue and pings us once a week until paid. No prices or deal terms in the app: they're negotiated per client and would go stale. The shell edits (launcher, top-left link, `menu` flag) were the parallel portal session's, by message, so no worktree.

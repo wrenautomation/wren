@@ -16,6 +16,8 @@ export const DELIVERY_ROUTES = [
   "result",
   "hide",
   "people",
+  "account",
+  "invoices",
   "invite",
   "remove",
   "upload",

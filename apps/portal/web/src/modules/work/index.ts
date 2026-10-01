@@ -7,7 +7,6 @@ import { Needs } from "./Needs.js";
 import { WORK } from "./nav.js";
 import { Plan } from "./Plan.js";
 import { Results } from "./Results.js";
-import { Settings } from "./Settings.js";
 import { Updates } from "./Updates.js";
 import "./work.css";
 
@@ -26,6 +25,5 @@ export const work: Module = {
     { id: "deliverables", label: "Deliverables", Page: Deliverables },
     { id: "needs-you", label: "Needs you", Page: Needs },
     { id: "results", label: "Results", Page: Results },
-    { id: "settings", label: "Settings", Page: Settings },
   ],
 };
