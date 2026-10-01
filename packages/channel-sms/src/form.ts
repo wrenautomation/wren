@@ -194,11 +194,9 @@ export async function followUpForms(db: Db, opts: FormOptions): Promise<FormStat
     outOfWindow: false,
     errors: [],
   };
-  // No company, so no time zone: inside the window on both US coasts.
-  if (!inWindow(null, opts.now, opts.policy)) {
-    stats.outOfWindow = true;
-    return stats;
-  }
+  // No company, so no time zone: texts go inside the window on both US coasts. The site
+  // is read every pass anyway, so applicants show up (and a broken read shows) at once.
+  stats.outOfWindow = !inWindow(null, opts.now, opts.policy);
   const apps = await readApplications(opts.site, await cursor(db));
   stats.read = apps.length;
   for (const app of apps) {
@@ -223,6 +221,8 @@ export async function followUpForms(db: Db, opts: FormOptions): Promise<FormStat
       stats.tooOld += 1;
       continue;
     }
+    // Asked about bookings at text time, not before.
+    if (stats.outOfWindow) continue;
     if (opts.bookings) {
       let booked: boolean;
       try {

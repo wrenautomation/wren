@@ -178,12 +178,20 @@ describe("form opt-ins", () => {
     expect(s.asked).toEqual([0, 0]);
   });
 
-  it("reads nothing outside the window, and turns away a landline", async () => {
-    const s = site([application(1)]);
-    expect(await pass(s, SHUT)).toMatchObject({ outOfWindow: true, read: 0 });
-    expect(s.asked).toEqual([]);
+  it("outside the window records applicants but texts no one, and turns away a landline", async () => {
+    const s = site([application(1, { ts: minutesBefore(SHUT, 30) })]);
+    const bookings = new FakeBookings();
+    expect(await pass(s, SHUT, bookings)).toMatchObject({
+      outOfWindow: true,
+      read: 1,
+      added: 1,
+      texted: 0,
+    });
+    expect((await contacts())[0]?.state).toBe("new");
+    expect(bookings.asked).toEqual([]);
     provider.landlines.add("+12125550101");
-    expect(await pass(s)).toMatchObject({ added: 1, texted: 0, ended: 1 });
+    expect(await pass(s, OPEN, bookings)).toMatchObject({ added: 0, texted: 0, ended: 1 });
+    expect(s.asked).toEqual([0, 0]);
     const [c] = await db().select().from(smsContacts).where(eq(smsContacts.sourceRef, "1"));
     expect(c).toMatchObject({ state: "unreachable", stateReason: "line type landline" });
   });
