@@ -653,3 +653,29 @@ describe("the demo", () => {
     ]);
   });
 });
+
+describe("every route a client reads", () => {
+  it("carries no internal or hidden note, and nothing of another client's", async () => {
+    await api.post({ viewer: OPS, ...acme, body: "INTERNAL-ZQ acme", internal: true });
+    const hidden = await api.post({ viewer: OPS, ...acme, body: "HIDDEN-ZQ acme" });
+    await api.hide({ viewer: OPS, ...acme, updateId: hidden.id });
+    await api.post({ viewer: OPS, ...beta, body: "BETA-ZQ only" });
+    const walk = async (viewer: Viewer) =>
+      JSON.stringify(
+        await Promise.all([
+          api.me({ viewer }),
+          api.home({ viewer }),
+          api.updates({ viewer }),
+          api.account({ viewer }),
+          api.invoices({ viewer }),
+          api.people({ viewer }),
+          api.contract({ viewer }).catch(() => null),
+        ]),
+      );
+    const amy = await walk(AMY);
+    expect(amy).not.toMatch(/INTERNAL-ZQ|HIDDEN-ZQ|BETA-ZQ|bo@beta/);
+    const bo = await walk(BO);
+    expect(bo).toContain("BETA-ZQ");
+    expect(bo).not.toMatch(/ZQ acme|amy@acme/);
+  });
+});
