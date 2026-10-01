@@ -114,7 +114,14 @@ export function stepsAt(
   shown: number,
 ): Record<string, RunStepView> {
   const out: Record<string, RunStepView> = {};
-  for (const s of steps) out[s.id] = { state: "idle", handled: 0, found: 0, failed: 0, waiting: 0 };
+  // Each subject counts once per step, as its latest line says: parked then
+  // checked is checked, failed then retried is the retry.
+  const latest: Record<string, Map<string, RunLineKind>> = {};
+  const total: Record<string, number> = {};
+  for (const s of steps) {
+    out[s.id] = { state: "idle", handled: 0, found: 0, failed: 0, waiting: 0 };
+    latest[s.id] = new Map();
+  }
   for (const l of lines.slice(0, shown)) {
     const v = out[l.step];
     if (!v) continue;
@@ -122,24 +129,36 @@ export function stepsAt(
     else if (l.kind === "done") {
       v.state = "done";
       // A step with no line per subject says its total at the end.
-      if (l.count) v.handled = Math.max(v.handled, l.count);
+      if (l.count && Number.isFinite(l.count))
+        total[l.step] = Math.max(total[l.step] ?? 0, l.count);
     } else if (!l.subject) {
       if (l.kind === "waiting") v.state = "waiting";
-    } else if (l.kind === "waiting") v.waiting += 1;
-    else {
-      v.handled += 1;
-      if (l.kind === "found") v.found += 1;
-      if (l.kind === "failed") v.failed += 1;
+    } else {
+      latest[l.step]?.set(l.subject, l.kind);
+      if (v.state === "idle") v.state = "active";
     }
+  }
+  for (const [id, v] of Object.entries(out)) {
+    for (const kind of latest[id]?.values() ?? []) {
+      if (kind === "waiting") v.waiting += 1;
+      else v.handled += 1;
+      if (kind === "found") v.found += 1;
+      if (kind === "failed") v.failed += 1;
+    }
+    v.handled = Math.max(v.handled, total[id] ?? 0);
   }
   return out;
 }
 
-/** How many lines about one subject each step has in all: what its bar fills toward on a replay. */
+/** How many subjects each step has lines about in all: what its bar fills toward on a replay. */
 export function expectedOf(lines: readonly RunLine[]): Record<string, number> {
-  const out: Record<string, number> = {};
-  for (const l of lines) if (aboutOne(l)) out[l.step] = (out[l.step] ?? 0) + 1;
-  return out;
+  const seen = new Map<string, Set<string>>();
+  for (const l of lines) {
+    if (!aboutOne(l) || !l.subject) continue;
+    const at = seen.get(l.step) ?? new Set<string>();
+    seen.set(l.step, at.add(l.subject));
+  }
+  return Object.fromEntries([...seen].map(([id, s]) => [id, s.size]));
 }
 
 export interface RunMix {
@@ -268,7 +287,8 @@ export function RunView({
   const [paused, setPaused] = useState(false);
   const [focus, setFocus] = useState<RunFocus>(null);
   const total = lines.length;
-  const over = shown >= total;
+  // Caught up isn't over: a live run is over when it says so.
+  const over = shown >= total && !live;
 
   // Reduced motion: wherever the lines are, show them.
   useEffect(() => {
@@ -293,13 +313,22 @@ export function RunView({
     return () => window.removeEventListener("keydown", onKey);
   }, []);
 
+  // From the top, unpaused. Reduced motion has nothing to replay, so no button.
+  const replay = () => {
+    setPaused(false);
+    setShown(0);
+  };
+
   // A live run may still reach any step; a replay shows only the steps it has lines for.
-  const stepKey = steps.map((s) => `${s.id}<${s.after?.join(",") ?? ""}`).join(" ");
-  const touched = useMemo(() => [...new Set(lines.map((l) => l.step))].sort().join(" "), [lines]);
+  const stepKey = JSON.stringify(steps.map((s) => [s.id, s.after ?? null]));
+  const touched = useMemo(
+    () => JSON.stringify([...new Set(lines.map((l) => l.step))].sort()),
+    [lines],
+  );
   const ends = { input: !!input, output: !!output };
   // biome-ignore lint/correctness/useExhaustiveDependencies: the keys stand in for steps and lines.
   const graph = useMemo(() => {
-    const has = new Set(touched.split(" "));
+    const has = new Set<string>(JSON.parse(touched));
     return flowOf(steps, (id) => live || has.has(id), ends);
   }, [stepKey, touched, live, ends.input, ends.output]);
   const { box, axis, boxes } = useLayout(graph);
@@ -327,10 +356,13 @@ export function RunView({
     if (!focus) return null;
     if ("step" in focus) return new Set([focus.step]);
     const out = new Set<string>([INPUT]);
-    for (const l of lines.slice(0, shown)) if (l.subject === focus.subject) out.add(l.step);
+    const drawn = new Set(graph.nodes.map((n) => n.id));
+    for (const l of lines.slice(0, shown))
+      if (l.subject === focus.subject && drawn.has(l.step)) out.add(l.step);
     if (graph.edges.some((e) => e.to === OUTPUT && out.has(e.from))) out.add(OUTPUT);
     return out;
   }, [focus, lines, shown, graph]);
+  const followed = [...(lit ?? [])].filter((id) => byId.has(id)).length;
   const onTrace = (from: string, to: string) =>
     !!lit &&
     (focus && "step" in focus ? lit.has(from) || lit.has(to) : lit.has(from) && lit.has(to));
@@ -380,19 +412,15 @@ export function RunView({
     <div className={cx("ui-run", className)} data-live={live || undefined}>
       <div className="ui-run-bar">
         <p className="ui-run-label">
-          <span
-            className="ui-run-dot"
-            data-on={live && !over ? true : undefined}
-            aria-hidden="true"
-          />
+          <span className="ui-run-dot" data-on={live || undefined} aria-hidden="true" />
           {label}
         </p>
         <div className="ui-run-controls">
           <span className="ui-run-progress" aria-hidden="true">
             {num(shown)} / {num(total)}
           </span>
-          {over && !live ? (
-            <button type="button" className="ui-run-button" onClick={() => setShown(0)}>
+          {over && still ? null : over ? (
+            <button type="button" className="ui-run-button" onClick={replay}>
               <Icon name="play" size={12} />
               Play again
             </button>
@@ -551,8 +579,8 @@ export function RunView({
                 </>
               ) : (
                 <>
-                  Following <b>{focus.subject}</b> through{" "}
-                  {num(Math.max((lit?.size ?? 1) - 1 - (lit?.has(OUTPUT) ? 1 : 0), 0))} steps
+                  Following <b>{focus.subject}</b> through {num(followed)}{" "}
+                  {followed === 1 ? "step" : "steps"}
                 </>
               )}
             </span>

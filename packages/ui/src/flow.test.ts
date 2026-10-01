@@ -160,3 +160,48 @@ describe("edgePath", () => {
     expect(d).not.toMatch(/NaN|-\d/);
   });
 });
+
+describe("flowOf on bad input", () => {
+  it("a loop leaves no empty column and no line running backwards", () => {
+    const g = flowOf(
+      [
+        { id: "a", after: ["b"] },
+        { id: "b", after: ["a"] },
+      ],
+      all,
+      { input: true, output: true },
+    );
+    expect(colsOf(g)).toEqual({ [INPUT]: 0, b: 1, a: 2, [OUTPUT]: 3 });
+    expect(g.edges.every((e) => e.span >= 1)).toBe(true);
+    expect(g.edges.filter((e) => e.to === OUTPUT)).toEqual([{ from: "a", to: OUTPUT, span: 1 }]);
+  });
+
+  it("a repeated id keeps the first, so keys stay unique", () => {
+    const g = flowOf([{ id: "a" }, { id: "b" }, { id: "a" }], all);
+    expect(g.nodes.map((n) => n.id)).toEqual(["a", "b"]);
+    expect(g.edges).toEqual([{ from: "a", to: "b", span: 1 }]);
+  });
+
+  it("a step can't take an end's id", () => {
+    const g = flowOf([{ id: INPUT }, { id: "a", after: [] }], all, { input: true, output: false });
+    expect(g.nodes.map((n) => n.id)).toEqual([INPUT, "a"]);
+    expect(g.edges).toEqual([{ from: INPUT, to: "a", span: 1 }]);
+  });
+});
+
+describe("tracksOf past a sane count", () => {
+  it("columns of 7, 8 and 9 don't make 504 tracks", () => {
+    const wide = (n: number, at: string[]) =>
+      Array.from({ length: n }, (_, i) => ({ id: `${at.length}-${i}`, after: at }));
+    const c1 = wide(7, []);
+    const c2 = wide(
+      8,
+      c1.map((s) => s.id),
+    );
+    const c3 = wide(
+      9,
+      c2.map((s) => s.id),
+    );
+    expect(tracksOf(flowOf([...c1, ...c2, ...c3], all))).toBe(9);
+  });
+});

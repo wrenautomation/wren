@@ -48,10 +48,15 @@ export function flowOf(
   keep: (id: string) => boolean,
   ends: { input: boolean; output: boolean } = { input: false, output: false },
 ): FlowGraph {
-  const raw = new Map(
-    steps.map((s, i) => [s.id, s.after ?? (i > 0 ? [steps[i - 1]?.id ?? ""] : [])]),
+  // The first of a repeated id wins; the ends' own ids aren't steps.
+  const seenIds = new Set<string>();
+  const unique = steps.filter(
+    (s) => s.id !== INPUT && s.id !== OUTPUT && !seenIds.has(s.id) && seenIds.add(s.id),
   );
-  const kept = steps.filter((s) => keep(s.id));
+  const raw = new Map(
+    unique.map((s, i) => [s.id, s.after ?? (i > 0 ? [unique[i - 1]?.id ?? ""] : [])]),
+  );
+  const kept = unique.filter((s) => keep(s.id));
   if (!kept.length) return { nodes: [], edges: [], cols: 0, rows: 0 };
 
   // What each kept step builds on, looking through the ones dropped.
@@ -86,11 +91,15 @@ export function flowOf(
     return c;
   };
   for (const s of kept) colOf(s.id, new Set());
+  // A loop can leave a column empty; close the gap.
+  const used = [...new Set(cols.values())].sort((a, b) => a - b);
+  for (const [id, c] of cols) cols.set(id, used.indexOf(c) + first);
 
   const edges: FlowEdge[] = [];
   const at = (id: string) => cols.get(id) ?? 0;
   for (const s of kept) {
-    const ds = deps.get(s.id) ?? [];
+    // A line that would run backwards is the loop's back half; leave it out.
+    const ds = (deps.get(s.id) ?? []).filter((d) => at(d) < at(s.id));
     if (!ds.length && ends.input) edges.push({ from: INPUT, to: s.id, span: at(s.id) });
     for (const d of ds) edges.push({ from: d, to: s.id, span: at(s.id) - at(d) });
   }
@@ -98,7 +107,7 @@ export function flowOf(
   if (ends.input) cols.set(INPUT, 0);
   if (ends.output) {
     cols.set(OUTPUT, last + 1);
-    const built = new Set(kept.flatMap((s) => deps.get(s.id) ?? []));
+    const built = new Set(edges.map((e) => e.from));
     for (const s of kept)
       if (!built.has(s.id)) edges.push({ from: s.id, to: OUTPUT, span: last + 1 - at(s.id) });
   }
@@ -146,7 +155,7 @@ export function edgePath(a: Box, b: Box, span: number, axis: FlowAxis, gutter = 
       const cx = b.x + b.w / 2;
       const dir = ty > sy ? 1 : -1;
       const ey = dir > 0 ? b.y : b.y + b.h;
-      const r = Math.min(TURN, Math.abs(ey - sy) / 2, (cx - sx) / 2);
+      const r = Math.max(0, Math.min(TURN, Math.abs(ey - sy) / 2, (cx - sx) / 2));
       return `M${px(sx)} ${px(sy)}H${px(cx - r)}Q${px(cx)} ${px(sy)} ${px(cx)} ${px(sy + dir * r)}V${px(ey)}`;
     }
     const tx = b.x;
@@ -173,8 +182,14 @@ export function edgePath(a: Box, b: Box, span: number, axis: FlowAxis, gutter = 
   return `M${px(sx)} ${px(sy)}V${px(my - r)}Q${px(sx)} ${px(my)} ${px(sx + dir * r)} ${px(my)}H${px(tx - dir * r)}Q${px(tx)} ${px(my)} ${px(tx)} ${px(my + r)}V${px(ty)}`;
 }
 
-/** The smallest track count every column's nodes split evenly: down, a column of 3 is 3 equal thirds. */
+/**
+ * The smallest track count every column's nodes split evenly: down, a column
+ * of 3 is 3 equal thirds. Past 24 tracks, the widest column sets it and the
+ * others split as near as they can.
+ */
 export function tracksOf(g: FlowGraph): number {
   const gcd = (a: number, b: number): number => (b ? gcd(b, a % b) : a);
-  return [...new Set(g.nodes.map((n) => n.of))].reduce((l, n) => (l * n) / gcd(l, n), 1);
+  const sizes = [...new Set(g.nodes.map((n) => n.of))];
+  const even = sizes.reduce((l, n) => (l * n) / gcd(l, n), 1);
+  return even <= 24 ? even : Math.max(...sizes);
 }

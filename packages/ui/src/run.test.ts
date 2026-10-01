@@ -61,6 +61,22 @@ describe("stepsAt", () => {
   it("a line for a step it doesn't draw is left out, not a crash", () => {
     expect(stepsAt(STEPS, [line(1, "zzz", "found", "X")], 1).a?.handled).toBe(0);
   });
+
+  it("each subject counts once, as its latest line says", () => {
+    const parkedThenDone = [line(1, "a", "waiting", "Cara L."), line(2, "a", "did", "Cara L.")];
+    expect(stepsAt(STEPS, parkedThenDone, 2).a).toMatchObject({ handled: 1, waiting: 0 });
+    const failedThenFound = [line(1, "a", "failed", "Cara L."), line(2, "a", "found", "Cara L.")];
+    expect(stepsAt(STEPS, failedThenFound, 2).a).toMatchObject({ handled: 1, found: 1, failed: 0 });
+  });
+
+  it("a subject line with no started line still marks the step active", () => {
+    expect(stepsAt(STEPS, [line(1, "a", "did", "Jane D.")], 1).a?.state).toBe("active");
+  });
+
+  it("a total that isn't a number is ignored", () => {
+    const done = { ...line(1, "a", "done"), count: Number.POSITIVE_INFINITY };
+    expect(stepsAt(STEPS, [done], 1).a?.handled).toBe(0);
+  });
 });
 
 describe("dwellOf", () => {
