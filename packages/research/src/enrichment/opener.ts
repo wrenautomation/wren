@@ -13,9 +13,12 @@ import type { Queryable } from "@wren/db";
 import { completeAndParse, type LlmClient, LlmError, type Tracer } from "@wren/llm";
 import { and, asc, desc, eq, exists, inArray, notInArray, sql } from "drizzle-orm";
 import { z } from "zod";
+import { type EvidencePage, foldText, numbersQuoted, pageQuoted, words } from "../grounding.js";
 import { documents, enrichments } from "../schema.js";
 import type { Shard } from "./shard.js";
 import { upsertEnrichment } from "./store.js";
+
+export { type EvidencePage, foldText } from "../grounding.js";
 
 export const OPENER_VERSION = "v1";
 export const OPENER_MAX_WORDS = 25;
@@ -62,12 +65,6 @@ export interface Opener {
   line: string;
   quote: string;
   source_url: string;
-}
-
-/** A page as the model sees it: its URL and the text it was shown (already cut). */
-export interface EvidencePage {
-  url: string;
-  text: string;
 }
 
 export interface SitePage {
@@ -120,36 +117,6 @@ export function buildOpenerPrompt(company: string, pages: readonly EvidencePage[
   const body = pages.map((p) => `=== ${p.url}\n${p.text}`).join("\n\n");
   // Function replacers: a "$&" in page text is text, not a replacement pattern.
   return PROMPT.replaceAll("{company}", () => company).replace("{pages}", () => body);
-}
-
-/** Case, whitespace and curly quotes/dashes folded, so a faithful copy matches. */
-export function foldText(s: string): string {
-  return s
-    .normalize("NFKC")
-    .replace(/[‘’ʼ]/g, "'")
-    .replace(/[“”]/g, '"')
-    .replace(/[‐-―]/g, "-")
-    .replace(/\s+/g, " ")
-    .trim()
-    .toLowerCase();
-}
-
-const numbers = (s: string): string[] =>
-  (s.match(/\d[\d,.]*/g) ?? []).map((n) => n.replace(/[,.]+$/, "").replace(/,/g, ""));
-
-const words = (s: string): number => s.trim().split(/\s+/).filter(Boolean).length;
-
-/**
- * The folded quote is on the folded page word for word, or each of its sentences
- * is: the model often joins two sentences from one page into one quote.
- */
-function quotedFrom(quote: string, page: string): boolean {
-  if (page.includes(quote)) return true;
-  const sentences = quote
-    .split(/(?<=[.;·])\s+/)
-    .map((f) => f.replace(/[\s.;·]+$/, ""))
-    .filter(Boolean);
-  return sentences.length > 1 && sentences.every((f) => page.includes(f));
 }
 
 /** A capitalized word that starts a sentence, or is "I" or "I've", names nothing. */
@@ -213,15 +180,9 @@ export function groundOpener(
   if (PUFFERY.test(line)) return { opener: null, rejected: "puffery" };
   const quote = (proposal.quote ?? "").trim();
   if (words(quote) < 3) return { opener: null, rejected: "no_quote" };
-  const folded = foldText(quote);
-  const named = pages.find((p) => p.url === proposal.source_url);
-  const source = [...(named ? [named] : []), ...pages].find((p) =>
-    quotedFrom(folded, foldText(p.text)),
-  );
+  const source = pageQuoted(quote, pages, proposal.source_url);
   if (!source) return { opener: null, rejected: "quote_not_found" };
-  const inQuote = new Set(numbers(quote));
-  if (numbers(line).some((n) => !inQuote.has(n)))
-    return { opener: null, rejected: "number_not_in_quote" };
+  if (!numbersQuoted(line, quote)) return { opener: null, rejected: "number_not_in_quote" };
   const onPage = pageWords([companyName, ...pages.map((p) => p.text)]);
   if (names(line).some((n) => !onPage.has(foldText(n))))
     return { opener: null, rejected: "name_not_on_page" };

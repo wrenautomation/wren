@@ -1,7 +1,7 @@
 /**
  * The compose stage (R11): an opener and one follow-up per contact, written by
  * the model as the recruiter who owns the contact, from the brief only. A gate
- * refuses anything the SOP forbids (prices, links, numbers not in the brief,
+ * refuses what the copy rules forbid (prices, links, numbers not in the brief,
  * a subject that says too much) before a word is stored. What passes becomes an
  * enrollment and two messages, the same rows Wren's own campaigns send from.
  *

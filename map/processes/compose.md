@@ -28,7 +28,7 @@ The whole sequence renders before anything can send; a missing fact refuses the 
 
 ## If you change this
 
-- **Hits:** [[email/enrollment]], [[email/message]], `sops/campaign-ramp.md`; a niche's `recontact` rest days ([[platform/niche]])
+- **Hits:** [[email/enrollment]], [[email/message]]; a niche's `recontact` rest days ([[platform/niche]])
 - **Does not hit:** the send tick's pacing; the inbox
 
 ## Surfaces

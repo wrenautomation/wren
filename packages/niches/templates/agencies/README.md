@@ -1,8 +1,7 @@
 # Agencies templates
 
 Syntax and the preview loop: see `../../sec_ria/templates/README.md`,
-same authoring format (D38), same commands with `--niche agencies`. The
-copy rules are `sops/cold-email-copy.md`.
+same authoring format (D38), same commands with `--niche agencies`.
 
 Facts here: bare keys from `person_facts` (first_name, company_name,
 title, …) and `agency.*` keys from `agency_facts` (agency.services,
@@ -39,9 +38,9 @@ loop over the bio (the zap didn't fix it either, and I'll say why),
 the usual fix closing the loop, the "we're small" turn, one door that
 says what comes back. DRAFTs 10 and 11 were in William's documents
 voice, reverse
-engineered in `sops/cold-email-copy.md` (Examples). The templates carry
+engineered from his examples. The templates carry
 no `##` comment lines (stripped 2026-09-16); the notes live here and in
-the SOP. The trust line
+the old copy SOP (git history). The trust line
 reads both ways since 2026-09-15: `{first_name|This address} is listed
 on the {company_name} site` gives a named person "Sarah is listed on
 the X site, as CEO." and a role inbox "This address is listed on the X

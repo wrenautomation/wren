@@ -1,4 +1,5 @@
 export * from "./audit.js";
+export * from "./claude-code.js";
 export * from "./client.js";
 export * from "./env.js";
 export * from "./parsing.js";

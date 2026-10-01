@@ -7,9 +7,11 @@
     ".": "./src/index.ts",
     "./companies": "./src/companies/index.ts",
     "./discovery": "./src/discovery/index.ts",
+    "./dossier": "./src/dossier.ts",
     "./fetch": "./src/fetch/index.ts",
     "./people": "./src/people/index.ts",
     "./schema": "./src/schema.ts",
+    "./studies": "./src/studies/index.ts",
     "./enrichment": "./src/enrichment/index.ts",
     "./restate": "./src/restate/index.ts"
   },

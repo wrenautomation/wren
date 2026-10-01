@@ -26,4 +26,4 @@ walkthrough/demos/02-content-dry.sh                # one idea through the local 
 ```
 
 Reference: `../README.md`, `../docs/restate-operations.md` (what is live),
-`../designs/` (why), `../sops/` (copy rules, ramp).
+`../designs/` (why).

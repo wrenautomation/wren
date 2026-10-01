@@ -31,7 +31,7 @@ Citations: `packages/channel-email/src/outreach/sequences.ts:23`, `plan.ts:73`
 
 ## If you change this
 
-- **Hits:** compose and the queue-keeper (`compose.ts:382`, `restate/compose-scheduler.ts`); the send walk's due dates; `reply_by_arm_step` (`views.ts:77`); `sops/campaign-ramp.md`
+- **Hits:** compose and the queue-keeper (`compose.ts:382`, `restate/compose-scheduler.ts`); the send walk's due dates; `reply_by_arm_step` (`views.ts:77`)
 - **Does not hit:** running enrollments (snapshotted)
 
 ## Surfaces
