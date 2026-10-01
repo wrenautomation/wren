@@ -126,6 +126,7 @@ resource "aws_lambda_function" "worker" {
         WREN_RENDERER         = var.browser_token == "" ? "browserbase" : "cdp"
         WREN_LOG_LEVEL        = "info"
         WREN_MEDIA_BUCKET     = aws_s3_bucket.media.bucket
+        WREN_FILES_BUCKET     = aws_s3_bucket.files.bucket
       },
       var.restate_identity_key == "" ? {} : { WREN_RESTATE_IDENTITY_KEY = var.restate_identity_key },
       var.autobrowse_instance_id == "" ? {} : { WREN_AUTOBROWSE_INSTANCE_ID = var.autobrowse_instance_id },

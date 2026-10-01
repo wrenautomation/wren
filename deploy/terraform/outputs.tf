@@ -22,6 +22,11 @@ output "media_bucket" {
   value       = aws_s3_bucket.media.bucket
 }
 
+output "files_bucket" {
+  description = "WREN_FILES_BUCKET for the CLI (the worker has it already)"
+  value       = aws_s3_bucket.files.bucket
+}
+
 output "videos_bucket" {
   description = "WREN_VIDEOS_BUCKET for the CLI"
   value       = aws_s3_bucket.videos.bucket

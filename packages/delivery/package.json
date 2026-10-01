@@ -7,13 +7,16 @@
     ".": "./src/index.ts",
     "./schema": "./src/schema.ts",
     "./restate": "./src/service.ts",
-    "./routes": "./src/routes.ts"
+    "./routes": "./src/routes.ts",
+    "./files": "./src/files.ts"
   },
   "scripts": {
     "test:integration": "vitest run test/integration",
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
+    "@aws-sdk/client-s3": "3.1136.0",
+    "@aws-sdk/s3-request-presigner": "3.1136.0",
     "@restatedev/restate-sdk": "1.17.1",
     "@wren/core": "workspace:*",
     "@wren/db": "workspace:*",

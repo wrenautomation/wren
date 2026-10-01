@@ -110,7 +110,7 @@ Every bought offer is an engagement: dated steps from the offer's plan, a timeli
 ./bin/wren --client <id> delivery start reactivation --on 2026-10-06   # plan dated, asks open
 ./bin/wren --client <id> delivery status                               # what their Home shows, plus internal notes
 ./bin/wren --client <id> delivery post "Cleaned 2,140 contacts." [--step set-up] [--internal]
-./bin/wren --client <id> delivery deliver "Contact list" --link <https url> | --loom <url> | --doc <url> [--replaces <id>]
+./bin/wren --client <id> delivery deliver "Contact list" --link <https url> | --loom <url> | --doc <url> | --file <path> [--replaces <id>]
 ./bin/wren --client <id> delivery ask "Your ATS export" [--due 2026-10-10]
 ./bin/wren --client <id> delivery done set-up            # --undo takes it back
 ./bin/wren --client <id> delivery slip approve --to 2026-10-15 --reason "Waiting on the recruiter's signature."

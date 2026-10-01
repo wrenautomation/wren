@@ -27,6 +27,7 @@ import {
   seesInternal,
 } from "@wren/core/portal";
 import { type Db, type Queryable, setAuditActor } from "@wren/db";
+import { type FileStore, newFileKey } from "./files.js";
 import {
   addAsk,
   addDeliverable,
@@ -43,9 +44,11 @@ import {
   recordResult,
   slipMilestone,
   startEngagement,
+  storedFile,
   timeline,
   type UpdateView,
 } from "./index.js";
+import { FILE_TYPES, MAX_FILE_BYTES } from "./routes.js";
 import { DELIVERABLE_KINDS, type DeliverableKind } from "./schema.js";
 
 export interface DeliveryDeps {
@@ -53,6 +56,8 @@ export interface DeliveryDeps {
   main: Db;
   /** What the demo host calls its client. */
   demoName: string;
+  /** The private bucket for client files; without it, uploads are refused. */
+  files?: FileStore | undefined;
 }
 
 /** A browser can send anything: these turn it into what the domain takes, or refuse. */
@@ -134,6 +139,11 @@ const roleOf = (v: unknown): MemberRole => {
   return v as MemberRole;
 };
 
+const storeOf = (deps: DeliveryDeps): FileStore => {
+  if (!deps.files) throw new PortalRefusal("files aren't set up here", 409);
+  return deps.files;
+};
+
 /** Someone who sees this client, for its Settings page. */
 export interface MemberView {
   email: string;
@@ -167,11 +177,13 @@ export function deliveryApi(deps: DeliveryDeps) {
       }),
 
     /** The client answers an ask in place. */
-    answer: (req: PortalRequest & { askId: number; answer?: string }) =>
+    /** Text, a file from `upload`, or both. */
+    answer: (req: PortalRequest & { askId: number; answer?: string; fileKey?: string }) =>
       write(deps, req, "client", async (db, c, v) => {
         const a = await answerAsk(db, c.id, {
           id: idOf(req.askId, "ask"),
-          answer: needText(req.answer, "the answer"),
+          answer: textOf(req.answer),
+          fileKey: textOf(req.fileKey),
           by: v.email,
         });
         return { id: a.id, answeredAt: a.answeredAt?.toISOString() ?? null };
@@ -278,6 +290,44 @@ export function deliveryApi(deps: DeliveryDeps) {
         await hideUpdate(db, c.id, idOf(req.updateId, "update"));
         return { hidden: true };
       }),
+    /**
+     * Where to PUT a file before it's handed over or answers an ask: anyone who
+     * may write here, one type from the list, up to MAX_FILE_BYTES. The key goes
+     * back in `deliver` or `answer`.
+     * ponytail: a file uploaded and never attached stays; sweep `clients/` against
+     * the rows if that piles up.
+     */
+    upload: async (req: PortalRequest & { name: string; type: string; size: number }) => {
+      const files = storeOf(deps);
+      const { client } = await pickForWrite(deps.main, req);
+      const name = needText(req.name, "the file name");
+      if (typeof req.type !== "string" || !Object.hasOwn(FILE_TYPES, req.type))
+        throw new PortalRefusal(
+          "that kind of file isn't taken; send a PDF, image, sheet or doc",
+          400,
+        );
+      const size = Number(req.size);
+      if (!Number.isSafeInteger(size) || size <= 0)
+        throw new PortalRefusal("that file is empty", 400);
+      if (size > MAX_FILE_BYTES)
+        throw new PortalRefusal(`files go up to ${MAX_FILE_BYTES / 1024 / 1024} MB`, 400);
+      const key = newFileKey(client.id, name);
+      return { key, url: await files.putUrl(key, req.type, size) };
+    },
+    /** A download link for a deliverable's or an answer's file, good for minutes. */
+    file: async (req: PortalRequest & { deliverableId?: number; askId?: number }) => {
+      const files = storeOf(deps);
+      const client = await pickClient(deps.main, req);
+      const key = await storedFile(
+        deps.main,
+        client.id,
+        req.deliverableId !== undefined
+          ? { deliverableId: idOf(req.deliverableId, "deliverable") }
+          : { askId: idOf(req.askId, "ask") },
+      );
+      if (!key) throw new PortalRefusal("no such file", 404);
+      return { url: await files.getUrl(key) };
+    },
     /** Who sees this client. The demo lists nobody: its members are real people. */
     people: async (req: PortalRequest): Promise<{ people: MemberView[]; canManage: boolean }> => {
       const client = await pickClient(deps.main, req);
@@ -352,6 +402,8 @@ export function makeDeliveryPortal(deps: DeliveryDeps) {
       people: (_: restate.Context, req: Req<"people">) => answer(() => api.people(req)),
       invite: (_: restate.Context, req: Req<"invite">) => answer(() => api.invite(req)),
       remove: (_: restate.Context, req: Req<"remove">) => answer(() => api.remove(req)),
+      upload: (_: restate.Context, req: Req<"upload">) => answer(() => api.upload(req)),
+      file: (_: restate.Context, req: Req<"file">) => answer(() => api.file(req)),
     },
   });
 }

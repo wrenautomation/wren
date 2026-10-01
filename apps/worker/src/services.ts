@@ -73,6 +73,7 @@ import {
 } from "@wren/core/content/restate";
 import { clientKey, clientOfKey } from "@wren/core/restate";
 import { cachedDb, clientDatabaseName, clientDatabaseUrl, createDb } from "@wren/db";
+import { s3Files } from "@wren/delivery/files";
 import { makeDeliveryPortal } from "@wren/delivery/restate";
 import { loadLlmEnv, makeLlm, makeTracer } from "@wren/llm";
 import {
@@ -411,7 +412,11 @@ export async function buildServices(
   // The client portal (apps/portal): delivery for every client, each product's
   // own pages, and one reactivation loop per client.
   services.push(
-    makeDeliveryPortal({ main: db, demoName: DEMO_NAME }),
+    makeDeliveryPortal({
+      main: db,
+      demoName: DEMO_NAME,
+      files: settings.filesBucket ? s3Files({ bucket: settings.filesBucket }) : undefined,
+    }),
     makeReactivationPortal({ main: db, open: openClient }),
     makeReactivation({
       main: db,

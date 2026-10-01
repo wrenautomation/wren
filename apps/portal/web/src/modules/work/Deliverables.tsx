@@ -3,7 +3,18 @@ import { Button, ButtonLink, Empty, PageHeader, Section, Tag, type TagTone } fro
 import { useState } from "react";
 import type { DeliverableView, EngagementView } from "../../api.js";
 import type { PageProps } from "../../module.js";
-import { dayLabel, Engagements, Form, field, StepPick, useAct, useWork } from "./bits.js";
+import {
+  ACCEPT,
+  dayLabel,
+  Engagements,
+  Form,
+  field,
+  fileOf,
+  OpenFile,
+  StepPick,
+  useAct,
+  useWork,
+} from "./bits.js";
 
 const STATUS: Record<DeliverableView["status"], [string, TagTone]> = {
   waiting: ["Waiting on your OK", "rust"],
@@ -63,7 +74,7 @@ function Piece({
         <Tag tone={tone}>{label}</Tag>
       </div>
       <p className="wk-quiet">
-        {KIND[d.kind]}
+        {d.file ?? KIND[d.kind]}
         {d.version > 1 ? ` · version ${d.version}` : ""} · {dayLabel(d.at)}
         {d.decidedBy
           ? ` · ${d.status === "approved" ? "approved" : "reviewed"} by ${d.decidedBy}`
@@ -83,6 +94,7 @@ function Piece({
             Open
           </ButtonLink>
         ) : null}
+        {d.file ? <OpenFile props={props} of={{ deliverableId: d.id }} /> : null}
         {d.status === "waiting" && !props.team ? (
           <>
             <Button
@@ -143,6 +155,7 @@ function Deliver({
   props: PageProps;
   act: ReturnType<typeof useAct>;
 }) {
+  const [kind, setKind] = useState("link");
   return (
     <Section title="Hand something over">
       <Form
@@ -152,14 +165,18 @@ function Deliver({
         demo={props.demo}
         onSubmit={(f) => {
           const replaces = field(f, "replaces");
-          return act.run("deliver", {
-            engagementId: e.id,
-            title: field(f, "title"),
-            kind: field(f, "kind"),
-            url: field(f, "url"),
-            step: field(f, "step"),
-            ...(replaces ? { replaces: Number(replaces) } : {}),
-          });
+          return act.run(
+            "deliver",
+            {
+              engagementId: e.id,
+              title: field(f, "title"),
+              kind,
+              url: field(f, "url"),
+              step: field(f, "step"),
+              ...(replaces ? { replaces: Number(replaces) } : {}),
+            },
+            fileOf(f, "file"),
+          );
         }}
       >
         <label className="wk-field wk-grow">
@@ -168,16 +185,24 @@ function Deliver({
         </label>
         <label className="wk-field">
           <span>Kind</span>
-          <select name="kind" defaultValue="link">
+          <select name="kind" value={kind} onChange={(ev) => setKind(ev.target.value)}>
             <option value="link">Link</option>
             <option value="loom">Loom</option>
             <option value="doc">Document</option>
+            <option value="file">File</option>
           </select>
         </label>
-        <label className="wk-field wk-wide">
-          <span>Address (https)</span>
-          <input name="url" type="url" required placeholder="https://" />
-        </label>
+        {kind === "file" ? (
+          <label className="wk-field wk-wide">
+            <span>File (up to 50 MB)</span>
+            <input name="file" type="file" required accept={ACCEPT} />
+          </label>
+        ) : (
+          <label className="wk-field wk-wide">
+            <span>Address (https)</span>
+            <input name="url" type="url" required placeholder="https://" />
+          </label>
+        )}
         <StepPick e={e} />
         {e.deliverables.length ? (
           <label className="wk-field">

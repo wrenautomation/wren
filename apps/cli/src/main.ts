@@ -198,7 +198,7 @@ sealing
   .action(async () => console.log(JSON.stringify(await sealer().sync(), null, 2)));
 
 registerClients(program, withMainDb, settings);
-registerDelivery(program, withMainDb);
+registerDelivery(program, withMainDb, settings);
 registerCrm(program, withClientDb, settings, rootDir);
 registerReview(registerEmail(program, withDb, settings, rootDir), withDb);
 registerFetch(program, settings);

@@ -2,6 +2,7 @@
  * What every page of the work shares: the client's engagements loaded once per page, a
  * write that reloads them, and dates and figures as the client reads them.
  */
+import { FILE_TYPES, MAX_FILE_BYTES, typeOfName } from "@wren/delivery/routes";
 import { Alert, Button, Empty, Loading, num, Tag, type TagTone } from "@wren/ui";
 import { type FormEvent, type ReactNode, useState } from "react";
 import {
@@ -89,11 +90,17 @@ export function Engagements({
 export function useAct(props: PageProps, reload: () => void) {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const run = async (route: string, body: Record<string, unknown>): Promise<boolean> => {
+  /** With a file, it goes up first and its key rides along as `fileKey`. */
+  const run = async (
+    route: string,
+    body: Record<string, unknown>,
+    file?: File,
+  ): Promise<boolean> => {
     setBusy(true);
     setError(null);
     try {
-      await call(`delivery/${route}`, { client: props.client, ...body });
+      const fileKey = file ? await upload(props.client, file) : undefined;
+      await call(`delivery/${route}`, { client: props.client, ...body, fileKey });
       reload();
       return true;
     } catch (err) {
@@ -144,6 +151,73 @@ export function Form({
         ) : null}
       </div>
     </form>
+  );
+}
+
+/** Straight to the private bucket on a signed PUT; the portal only signs (D11). */
+async function upload(client: string | undefined, file: File): Promise<string> {
+  const type = FILE_TYPES[file.type] ? file.type : typeOfName(file.name);
+  if (!type)
+    throw new ApiError("That kind of file isn't taken. Send a PDF, image, sheet or doc.", 400);
+  if (file.size > MAX_FILE_BYTES)
+    throw new ApiError(`Files go up to ${MAX_FILE_BYTES / 1024 / 1024} MB.`, 400);
+  const { key, url } = await call<{ key: string; url: string }>("delivery/upload", {
+    client,
+    name: file.name,
+    type,
+    size: file.size,
+  });
+  const res = await fetch(url, {
+    method: "PUT",
+    headers: { "content-type": type },
+    body: file,
+  }).catch(() => null);
+  if (!res?.ok) throw new ApiError("The file didn't go up. Try again.", res?.status ?? 0);
+  return key;
+}
+
+/** What a file input accepts. */
+export const ACCEPT = [...Object.keys(FILE_TYPES), ...Object.values(FILE_TYPES), ".jpeg"].join(",");
+
+/** The picked file, or undefined when none. */
+export const fileOf = (f: FormData, name: string): File | undefined => {
+  const v = f.get(name);
+  return v instanceof File && v.size > 0 ? v : undefined;
+};
+
+/** Downloads a deliverable's or an answer's file on a link signed just now. */
+export function OpenFile({
+  props,
+  of,
+}: {
+  props: PageProps;
+  of: { deliverableId: number } | { askId: number };
+}) {
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const open = async () => {
+    setBusy(true);
+    setError(null);
+    try {
+      const { url } = await call<{ url: string }>("delivery/file", {
+        client: props.client,
+        asClient: !props.team,
+        ...of,
+      });
+      window.location.assign(url);
+    } catch (err) {
+      setError(err instanceof ApiError ? err.message : String(err));
+    } finally {
+      setBusy(false);
+    }
+  };
+  return (
+    <>
+      <Button size="sm" tone="secondary" icon="download" disabled={busy} onClick={open}>
+        Download
+      </Button>
+      {error ? <span className="wk-error">{error}</span> : null}
+    </>
   );
 }
 

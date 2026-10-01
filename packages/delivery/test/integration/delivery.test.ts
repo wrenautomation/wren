@@ -8,6 +8,7 @@ import { PortalRefusal, type Viewer } from "@wren/core/portal";
 import { startTestPostgres, type TestPostgres } from "@wren/db/testing";
 import { sql } from "drizzle-orm";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
+import type { FileStore } from "../../src/files.js";
 import { deliveryHome, postUpdate, startEngagement } from "../../src/index.js";
 import { deliveryApi } from "../../src/service.js";
 
@@ -19,6 +20,12 @@ const AMY: Viewer = { email: "amy@acme.example" };
 const BO: Viewer = { email: "bo@beta.example" };
 const DEMO: Viewer = { demo: true };
 const START = "2026-10-05";
+/** Signs nothing: a URL that names what it would sign. */
+const FILES: FileStore = {
+  putUrl: async (key, type, size) => `https://files.example/put/${key}?type=${type}&size=${size}`,
+  getUrl: async (key) => `https://files.example/get/${key}`,
+  put: async () => {},
+};
 
 /** The status a call was refused with. */
 async function refused(p: Promise<unknown>): Promise<number> {
@@ -48,7 +55,7 @@ beforeAll(async () => {
   ]);
   await addMember(pg.db, "acme", "amy@acme.example", { role: "owner" });
   await addMember(pg.db, "beta", "bo@beta.example", { role: "owner" });
-  api = deliveryApi({ main: pg.db, demoName: "Demo recruiting firm" });
+  api = deliveryApi({ main: pg.db, demoName: "Demo recruiting firm", files: FILES });
 
   await api.start({ viewer: OPS, ...acme, offerId: "reactivation", startsOn: START });
   await api.start({ viewer: OPS, ...beta, offerId: "reactivation", startsOn: START });
@@ -361,6 +368,55 @@ describe("what the team's writes take", () => {
     expect(
       (await api.ask({ viewer: OPS, ...acme, text: "Logo file", dueOn: "2026-10-20" })).id,
     ).toBeGreaterThan(0);
+  });
+});
+
+describe("files", () => {
+  const PDF = { name: "Q3 report (final).pdf", type: "application/pdf", size: 2048 };
+  it("signs an upload into the client's own folder, only for taken types and sizes", async () => {
+    const up = await api.upload({ viewer: AMY, ...PDF });
+    expect(up.key).toMatch(/^clients\/acme\/\d{4}-\d{2}-\d{2}\/[0-9a-f]{8}-Q3-report-final-.pdf$/);
+    expect(up.url).toContain("size=2048");
+    expect(await refused(api.upload({ viewer: AMY, ...PDF, type: "text/html" }))).toBe(400);
+    expect(await refused(api.upload({ viewer: AMY, ...PDF, size: 51 * 1024 * 1024 }))).toBe(400);
+    expect(await refused(api.upload({ viewer: AMY, ...PDF, size: 0 }))).toBe(400);
+    expect(await refused(api.upload({ viewer: DEMO, ...PDF }))).toBe(403);
+    const bare = deliveryApi({ main: pg.db, demoName: "x" });
+    expect(await refused(bare.upload({ viewer: AMY, ...PDF }))).toBe(409);
+  });
+
+  it("a file handed over or answered with downloads for its client only", async () => {
+    const theirs = await api.upload({ viewer: OPS, ...acme, ...PDF });
+    const d = await api.deliver({
+      viewer: OPS,
+      ...acme,
+      title: "Report",
+      kind: "file",
+      fileKey: theirs.key,
+    });
+    const home = await api.home({ viewer: AMY });
+    expect(home.engagements[0]?.deliverables.find((x) => x.id === d.id)?.file).toBe(
+      "Q3-report-final-.pdf",
+    );
+    expect((await api.file({ viewer: AMY, deliverableId: d.id })).url).toBe(
+      `https://files.example/get/${theirs.key}`,
+    );
+    expect(await refused(api.file({ viewer: BO, deliverableId: d.id }))).toBe(404);
+    expect(await refused(api.file({ viewer: AMY, deliverableId: acmeDeliverable }))).toBe(404);
+
+    const answer = await api.upload({ viewer: AMY, ...PDF, name: "export.csv", type: "text/csv" });
+    const [ask] = home.engagements[0]?.asks.filter((a) => !a.answeredAt) ?? [];
+    await api.answer({ viewer: AMY, askId: ask?.id ?? 0, fileKey: answer.key });
+    expect((await api.file({ viewer: OPS, ...acme, askId: ask?.id ?? 0 })).url).toContain(
+      answer.key,
+    );
+    // Another client's folder never attaches.
+    const other = await api.upload({ viewer: BO, ...PDF });
+    expect(
+      await refused(
+        api.deliver({ viewer: OPS, ...acme, title: "x", kind: "file", fileKey: other.key }),
+      ),
+    ).toBe(400);
   });
 });
 

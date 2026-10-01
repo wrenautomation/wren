@@ -22,6 +22,7 @@ const PATHS = {
   menu: "M2.5 4.5h11M2.5 8h11M2.5 11.5h11",
   external: "M9.5 2.5h4v4M13.5 2.5l-6 6M11.5 9.5v4h-9v-9h4",
   search: "M7 11.5a4.5 4.5 0 1 0 0-9 4.5 4.5 0 0 0 0 9ZM10.25 10.25 13.5 13.5",
+  download: "M8 2.5v8M4.5 7 8 10.5 11.5 7M2.5 13.5h11",
 } as const;
 
 export type IconName = keyof typeof PATHS;

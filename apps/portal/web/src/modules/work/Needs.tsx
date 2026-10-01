@@ -2,7 +2,18 @@
 import { ButtonLink, Empty, PageHeader, Section, Tag } from "@wren/ui";
 import type { AskView, EngagementView } from "../../api.js";
 import type { PageProps } from "../../module.js";
-import { dayLabel, Engagements, Form, field, StepPick, useAct, useWork } from "./bits.js";
+import {
+  ACCEPT,
+  dayLabel,
+  Engagements,
+  Form,
+  field,
+  fileOf,
+  OpenFile,
+  StepPick,
+  useAct,
+  useWork,
+} from "./bits.js";
 import { at } from "./nav.js";
 
 export function Needs(props: PageProps) {
@@ -67,8 +78,14 @@ function Waiting({
               <li key={a.id}>
                 <b>{a.text}</b>
                 <p className="wk-quiet">
-                  {a.answer ?? "Sent a file"} · {a.answeredBy}, {dayLabel(a.answeredAt)}
+                  {[a.answer, a.file].filter(Boolean).join(" · ")} · {a.answeredBy},{" "}
+                  {dayLabel(a.answeredAt)}
                 </p>
+                {a.file ? (
+                  <div className="wk-tools">
+                    <OpenFile props={props} of={{ askId: a.id }} />
+                  </div>
+                ) : null}
               </li>
             ))}
           </ul>
@@ -97,11 +114,17 @@ function Ask({ a, props, act }: { a: AskView; props: PageProps; act: ReturnType<
           submit="Send"
           act={act}
           demo={props.demo}
-          onSubmit={(f) => act.run("answer", { askId: a.id, answer: field(f, "answer") })}
+          onSubmit={(f) =>
+            act.run("answer", { askId: a.id, answer: field(f, "answer") }, fileOf(f, "file"))
+          }
         >
           <label className="wk-field wk-wide">
             <span>Your answer (a link works too)</span>
-            <textarea name="answer" required rows={2} maxLength={4000} />
+            <textarea name="answer" rows={2} maxLength={4000} />
+          </label>
+          <label className="wk-field wk-wide">
+            <span>Or a file (up to 50 MB)</span>
+            <input name="file" type="file" accept={ACCEPT} />
           </label>
         </Form>
       )}

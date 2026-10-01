@@ -4,6 +4,9 @@
  * delivery schema sits beside the registry). `--by` is who the client sees it
  * from; the audit log still names who ran the command.
  */
+import { readFile } from "node:fs/promises";
+import { basename } from "node:path";
+import type { Settings } from "@wren/config";
 import { getClient, listOperators, normalEmail } from "@wren/core/clients";
 import type { Db, Queryable } from "@wren/db";
 import {
@@ -23,6 +26,7 @@ import {
   startEngagement,
   todayUtc,
 } from "@wren/delivery";
+import { MAX_FILE_BYTES, newFileKey, s3Files, typeOfName } from "@wren/delivery/files";
 import type { Command } from "commander";
 
 type WithDb = <T>(fn: (db: Db) => Promise<T>) => Promise<T>;
@@ -83,7 +87,7 @@ export function renderEngagement(clientId: string, e: EngagementView): string[] 
   return out;
 }
 
-export function registerDelivery(program: Command, withMainDb: WithDb): void {
+export function registerDelivery(program: Command, withMainDb: WithDb, settings: Settings): void {
   const cmd = program
     .command("delivery")
     .description(
@@ -147,11 +151,25 @@ export function registerDelivery(program: Command, withMainDb: WithDb): void {
       console.log(`posted #${u.id}${u.internal ? " (internal)" : ""}`);
     });
 
+  /** A local file into the client's private folder (D11), with this machine's AWS login. */
+  const upload = async (clientId: string, path: string): Promise<string> => {
+    if (!settings.filesBucket) throw new Error("WREN_FILES_BUCKET is unset: no files bucket here");
+    const type = typeOfName(path);
+    if (!type) throw new Error(`not a file type the portal takes: ${basename(path)}`);
+    const bytes = await readFile(path);
+    if (bytes.length > MAX_FILE_BYTES)
+      throw new Error(`files go up to ${MAX_FILE_BYTES / 1024 / 1024} MB`);
+    const key = newFileKey(clientId, basename(path));
+    await s3Files({ bucket: settings.filesBucket }).put(key, bytes, type);
+    return key;
+  };
+
   onEngagement(cmd.command("deliver <title>"))
     .description("Hand something over; the client approves it or asks for changes")
     .option("--link <url>", "a web page (https)")
     .option("--loom <url>", "a Loom video")
     .option("--doc <url>", "a document (https)")
+    .option("--file <path>", "a file from this machine (PDF, image, sheet, doc, zip; up to 50 MB)")
     .option("--step <key>", "the plan step it belongs to")
     .option("--replaces <id>", "a new version of that deliverable")
     .action(
@@ -161,19 +179,21 @@ export function registerDelivery(program: Command, withMainDb: WithDb): void {
           link?: string;
           loom?: string;
           doc?: string;
+          file?: string;
           step?: string;
           replaces?: string;
         },
       ) => {
-        const given = (["link", "loom", "doc"] as const).filter((k) => opts[k]);
-        if (given.length !== 1) throw new Error("give one of --link, --loom, --doc");
+        const given = (["link", "loom", "doc", "file"] as const).filter((k) => opts[k]);
+        if (given.length !== 1) throw new Error("give one of --link, --loom, --doc, --file");
         const kind = given[0] as DeliverableKind;
         if (!DELIVERABLE_KINDS.includes(kind)) throw new Error(`not a kind: ${kind}`);
-        const d = await change(opts, (db, e, author) =>
+        const d = await change(opts, async (db, e, author) =>
           addDeliverable(db, e, {
             title,
             kind,
-            url: opts[kind as "link" | "loom" | "doc"],
+            url: kind === "file" ? undefined : opts[kind as "link" | "loom" | "doc"],
+            fileKey: opts.file ? await upload(e.clientId, opts.file) : undefined,
             milestone: opts.step,
             replaces: opts.replaces ? idOf(opts.replaces) : undefined,
             by: author,

@@ -9,6 +9,7 @@ import type { Queryable } from "@wren/db";
 import { OFFER_IDS, type Offer, offerFor } from "@wren/offers";
 import { and, asc, desc, eq, inArray, isNull, lt, type SQL, sql } from "drizzle-orm";
 import type { AnyPgColumn } from "drizzle-orm/pg-core";
+import { fileNameOf } from "./files.js";
 import {
   type Ask,
   asks,
@@ -403,6 +404,30 @@ export async function recordResult(
 
 // --- reads ----------------------------------------------------------------------
 
+/** The stored file of one of this client's deliverables or answered asks, or null. */
+export async function storedFile(
+  db: Queryable,
+  clientId: string,
+  of: { deliverableId: number } | { askId: number },
+): Promise<string | null> {
+  const [row] =
+    "deliverableId" in of
+      ? await db
+          .select({ key: deliverables.fileKey })
+          .from(deliverables)
+          .where(
+            and(
+              eq(deliverables.id, of.deliverableId),
+              ofClient(db, deliverables.engagementId, clientId),
+            ),
+          )
+      : await db
+          .select({ key: asks.fileKey })
+          .from(asks)
+          .where(and(eq(asks.id, of.askId), ofClient(db, asks.engagementId, clientId)));
+  return row?.key ?? null;
+}
+
 /**
  * What a viewer may see of the timeline: the one place internal and hidden
  * updates are kept from a client (D12). Every read of `updates` goes through it.
@@ -426,10 +451,11 @@ export type UpdateView = Pick<Update, "id" | "author" | "body" | "internal"> & {
 export type DeliverableView = Pick<
   Deliverable,
   "id" | "title" | "kind" | "url" | "version" | "status" | "decidedBy" | "decisionNote"
-> & { step: string | null; hasFile: boolean; at: string; decidedAt: string | null };
+> & { step: string | null; file: string | null; at: string; decidedAt: string | null };
 export type AskView = Pick<Ask, "id" | "text" | "dueOn" | "answer" | "answeredBy"> & {
   step: string | null;
-  hasFile: boolean;
+  /** The uploaded file's name, when the answer carries one. */
+  file: string | null;
   answeredAt: string | null;
   overdue: boolean;
 };
@@ -544,7 +570,7 @@ export async function deliveryHome(
             decidedBy: d.decidedBy,
             decisionNote: d.decisionNote,
             step: d.milestoneId === null ? null : (stepKey.get(d.milestoneId) ?? null),
-            hasFile: d.fileKey !== null,
+            file: d.fileKey && fileNameOf(d.fileKey),
             at: d.createdAt.toISOString(),
             decidedAt: d.decidedAt?.toISOString() ?? null,
           })),
@@ -557,7 +583,7 @@ export async function deliveryHome(
             answer: a.answer,
             answeredBy: a.answeredBy,
             step: a.milestoneId === null ? null : (stepKey.get(a.milestoneId) ?? null),
-            hasFile: a.fileKey !== null,
+            file: a.fileKey && fileNameOf(a.fileKey),
             answeredAt: a.answeredAt?.toISOString() ?? null,
             overdue: !a.answeredAt && a.dueOn !== null && a.dueOn < today,
           })),

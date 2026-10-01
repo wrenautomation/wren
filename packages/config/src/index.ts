@@ -133,6 +133,8 @@ export const settingsSchema = z.object({
   contentLinkSite: z.string().min(1).optional(),
   /** An S3 bucket a local media file is hosted in (presigned URL) for platforms that only take URLs. Unset = URLs only. */
   mediaBucket: z.string().min(1).optional(),
+  /** The private S3 bucket for client files (`clients/<id>/`); unset = the portal refuses uploads. */
+  filesBucket: z.string().min(1).optional(),
   /** The S3 bucket per-lead demo videos are published to (`v/<id>.*`); unset = `wren video render` refuses. */
   videosBucket: z.string().min(1).optional(),
   /** Where the CDN serves that bucket, no trailing slash ("https://d123.cloudfront.net"). */
@@ -345,6 +347,7 @@ export const ENV_KEYS = {
   contentVoicePath: "WREN_CONTENT_VOICE",
   contentLinkSite: "WREN_CONTENT_LINK_SITE",
   mediaBucket: "WREN_MEDIA_BUCKET",
+  filesBucket: "WREN_FILES_BUCKET",
   videosBucket: "WREN_VIDEOS_BUCKET",
   videosOrigin: "WREN_VIDEOS_ORIGIN",
   videosWatchBase: "WREN_VIDEOS_WATCH_BASE",
