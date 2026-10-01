@@ -9,7 +9,6 @@ import { eachConcurrently } from "@wren/channel-email";
 import { type Feed, NO_FEED } from "@wren/core";
 import type { SiteClient } from "@wren/core/content";
 import type { Queryable } from "@wren/db";
-import { failedRead } from "@wren/research";
 import {
   type CompanySubject,
   checkHiring,
@@ -18,6 +17,7 @@ import {
   recordCompanyCheck,
 } from "@wren/research/companies";
 import type { Fetcher } from "@wren/research/fetch";
+import { failedRead } from "@wren/research/pacing";
 import { type SQL, sql } from "drizzle-orm";
 import { failedLine, hiringLine } from "./feed.js";
 import { LATEST_CRM_ROW } from "./score.js";

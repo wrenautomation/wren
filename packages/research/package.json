@@ -9,6 +9,7 @@
     "./discovery": "./src/discovery/index.ts",
     "./dossier": "./src/dossier.ts",
     "./fetch": "./src/fetch/index.ts",
+    "./pacing": "./src/pacing.ts",
     "./people": "./src/people/index.ts",
     "./schema": "./src/schema.ts",
     "./studies": "./src/studies/index.ts",
