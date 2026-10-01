@@ -380,6 +380,8 @@ export const invoices = delivery.table(
     status: varchar("status", { length: 16, enum: INVOICE_STATUSES }).default("open").notNull(),
     paidOn: date("paid_on"),
     link: text("link"),
+    /** When the client's people were reminded it's coming due (D13). */
+    remindedAt: timestamp("reminded_at", { withTimezone: true }),
     /** The setup fee: paying it (with the contract signed) starts the plan. */
     setup: boolean("setup").default(false).notNull(),
     createdBy: text("created_by").notNull(),
@@ -402,6 +404,92 @@ export const invoices = delivery.table(
   ],
 );
 export type Invoice = typeof invoices.$inferSelect;
+
+/**
+ * A moment worth marking (D12): a first result ("first:meetings"), "halfway" or
+ * "last_week". Reached once; its mail goes once, asking how it's going.
+ */
+export const moments = delivery.table(
+  "moments",
+  {
+    engagementId: integer("engagement_id").notNull(),
+    moment: varchar("moment", { length: 80 }).notNull(),
+    reachedOn: date("reached_on").notNull(),
+    mailedAt: timestamp("mailed_at", { withTimezone: true }),
+  },
+  (t) => [
+    primaryKey({ columns: [t.engagementId, t.moment], name: "pk_moments" }),
+    foreignKey({
+      columns: [t.engagementId],
+      foreignColumns: [engagements.id],
+      name: "fk_moments_engagement",
+    }).onDelete("cascade"),
+  ],
+);
+export type Moment = typeof moments.$inferSelect;
+
+/** Who may see a review's words: only Wren, others without a name, or others with it. */
+export const QUOTE_CONSENTS = ["private", "anonymous", "named"] as const;
+export type QuoteConsent = (typeof QUOTE_CONSENTS)[number];
+
+/**
+ * A client person's review at a moment (D12): 1 to 5, their words, and whether
+ * we may quote them. No score: they said "not now". One per person per moment.
+ */
+export const reviews = delivery.table(
+  "reviews",
+  {
+    id: serial("id").notNull(),
+    engagementId: integer("engagement_id").notNull(),
+    moment: varchar("moment", { length: 80 }).notNull(),
+    email: text("email").notNull(),
+    score: smallint("score"),
+    words: text("words"),
+    mayQuote: varchar("may_quote", { length: 16, enum: QUOTE_CONSENTS })
+      .default("private")
+      .notNull(),
+    at: timestamp("at", { withTimezone: true }).defaultNow().notNull(),
+    /** When Wren was pinged about it; an edit clears it. */
+    toldAt: timestamp("told_at", { withTimezone: true }),
+  },
+  (t) => [
+    primaryKey({ columns: [t.id], name: "pk_reviews" }),
+    foreignKey({
+      columns: [t.engagementId],
+      foreignColumns: [engagements.id],
+      name: "fk_reviews_engagement",
+    }).onDelete("cascade"),
+    unique("uq_reviews_moment").on(t.engagementId, t.moment, t.email),
+    check("ck_reviews_score", sql`${t.score} is null or ${t.score} between 1 and 5`),
+    oneOf("ck_reviews_may_quote", t.mayQuote, QUOTE_CONSENTS),
+  ],
+);
+export type Review = typeof reviews.$inferSelect;
+
+/** A client person asked to hear more about a next offer (D12). Wren is pinged. */
+export const interests = delivery.table(
+  "interests",
+  {
+    id: serial("id").notNull(),
+    engagementId: integer("engagement_id").notNull(),
+    /** An id in the offers registry. */
+    offerId: varchar("offer_id", { length: 64 }).notNull(),
+    email: text("email").notNull(),
+    at: timestamp("at", { withTimezone: true }).defaultNow().notNull(),
+    /** When Wren was pinged about it. */
+    toldAt: timestamp("told_at", { withTimezone: true }),
+  },
+  (t) => [
+    primaryKey({ columns: [t.id], name: "pk_interests" }),
+    foreignKey({
+      columns: [t.engagementId],
+      foreignColumns: [engagements.id],
+      name: "fk_interests_engagement",
+    }).onDelete("cascade"),
+    unique("uq_interests_offer").on(t.engagementId, t.offerId, t.email),
+  ],
+);
+export type Interest = typeof interests.$inferSelect;
 
 /** What the client pays, frozen into the contract when it's issued. Cents; null = none. */
 export interface Terms {

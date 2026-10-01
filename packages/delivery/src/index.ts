@@ -33,14 +33,19 @@ import {
   INVOICE_STATUSES,
   type Invoice,
   type InvoiceStatus,
+  interests,
   invoices,
   MAIL_LEVELS,
   type MailLevel,
   type Milestone,
   memberMail,
   milestones,
+  moments,
   pulses,
+  QUOTE_CONSENTS,
+  type QuoteConsent,
   results,
+  reviews,
   type Terms,
   type Update,
   updates,
@@ -524,6 +529,97 @@ export async function recordPulse(
     .onConflictDoUpdate({ target: [pulses.engagementId, pulses.email, pulses.week], set: row });
 }
 
+// --- moments, reviews and what's next (D13) ------------------------------------
+
+export const HALFWAY = "halfway";
+export const LAST_WEEK = "last_week";
+const firstOf = (measure: string) => `first:${measure}`;
+
+/** What the client calls a moment, or null for one this offer doesn't have. */
+export function momentLabel(offer: Offer, moment: string): string | null {
+  if (moment === HALFWAY) return "Halfway there";
+  if (moment === LAST_WEEK) return "The final week";
+  return offer.reviewAfterFirst?.find((f) => firstOf(f.measure) === moment)?.moment ?? null;
+}
+
+/**
+ * The moments a running engagement has reached by `today`: each first result the
+ * offer names, day `days`/2 and the last 7 days. Onboarding or done reaches none.
+ */
+export function momentsReached(
+  offer: Offer,
+  e: Pick<Engagement, "status" | "startsOn">,
+  values: ReadonlyMap<string, number | null>,
+  today: string,
+): string[] {
+  if (e.status !== "active" || e.startsOn > today) return [];
+  const out = (offer.reviewAfterFirst ?? [])
+    .filter((f) => (values.get(f.measure) ?? 0) >= 1)
+    .map((f) => firstOf(f.measure));
+  if (offer.days !== null) {
+    if (addDays(e.startsOn, Math.floor(offer.days / 2)) <= today) out.push(HALFWAY);
+    if (addDays(e.startsOn, offer.days - 7) <= today) out.push(LAST_WEEK);
+  }
+  return out;
+}
+
+/** Offers put to a client on this one: live, in its `next`, with an upsell pitch. */
+export const nextOffers = (offer: Offer): Offer[] =>
+  offer.next.map((id) => offerFor(id)).filter((o) => o.status === "live" && o.upsell);
+
+/** A client person's review at a moment they reached; again replaces it. No score: "not now". */
+export async function recordReview(
+  db: Queryable,
+  e: Engagement,
+  input: {
+    email: string;
+    moment: string;
+    score: number | null;
+    words?: string | undefined;
+    mayQuote?: string | undefined;
+  },
+): Promise<void> {
+  const reached = await db
+    .select()
+    .from(moments)
+    .where(and(eq(moments.engagementId, e.id), eq(moments.moment, input.moment)));
+  if (reached.length === 0) throw missing("moment");
+  if (
+    input.score !== null &&
+    (!Number.isInteger(input.score) || input.score < 1 || input.score > 5)
+  )
+    throw bad("a review is 1 to 5");
+  const mayQuote = (input.mayQuote ?? "private") as QuoteConsent;
+  if (!QUOTE_CONSENTS.includes(mayQuote)) throw bad(`may quote is ${QUOTE_CONSENTS.join(", ")}`);
+  const row = {
+    score: input.score,
+    words: input.words?.trim() ? textIn(input.words, "the review", 4000) : null,
+    mayQuote,
+    at: new Date(),
+    toldAt: null,
+  };
+  await db
+    .insert(reviews)
+    .values({ engagementId: e.id, moment: input.moment, email: input.email, ...row })
+    .onConflictDoUpdate({
+      target: [reviews.engagementId, reviews.moment, reviews.email],
+      set: row,
+    });
+}
+
+/** A client person wants to hear about a next offer; Wren is pinged once. */
+export async function recordInterest(
+  db: Queryable,
+  e: Engagement,
+  input: { email: string; offerId: string },
+): Promise<void> {
+  if (!nextOffers(offerFor(e.offerId)).some((o) => o.id === input.offerId)) throw missing("offer");
+  await db
+    .insert(interests)
+    .values({ engagementId: e.id, offerId: input.offerId, email: input.email })
+    .onConflictDoNothing();
+}
+
 /** What mail a person gets about this client (D9). */
 export async function setMailLevel(
   db: Queryable,
@@ -968,6 +1064,33 @@ export interface EngagementView {
   asks: AskView[];
   results: ResultView[];
   pulse: PulseView;
+  /** Moments reached, newest first, with the viewer's review (D13). */
+  moments: MomentView[];
+  /** Offers put to them once halfway (D13); empty until any has an upsell. */
+  next: NextView[];
+}
+export interface ReviewView {
+  email: string;
+  score: number | null;
+  words: string | null;
+  mayQuote: QuoteConsent;
+}
+export interface MomentView {
+  moment: string;
+  label: string;
+  reachedOn: string;
+  /** The viewer's own review; null when none yet. */
+  mine: ReviewView | null;
+  /** Everyone's, for Wren's team only. */
+  reviews: ReviewView[];
+}
+export interface NextView {
+  id: string;
+  name: string;
+  promise: string;
+  pitch: string;
+  /** The viewer asked to hear more. */
+  interested: boolean;
 }
 /** This week's pulse (D10). */
 export interface PulseView {
@@ -1026,7 +1149,7 @@ export async function deliveryHome(
     .orderBy(desc(engagements.startsOn), desc(engagements.id));
   if (es.length === 0) return { engagements: [] };
   const ids = es.map((e) => e.id);
-  const [ms, ds, as, rs, ps, ags, acc, setups] = await Promise.all([
+  const [ms, ds, as, rs, ps, ags, acc, setups, mos, rvs, ints] = await Promise.all([
     db
       .select()
       .from(milestones)
@@ -1069,7 +1192,20 @@ export async function deliveryHome(
           eq(invoices.status, "paid"),
         ),
       ),
+    db
+      .select()
+      .from(moments)
+      .where(inArray(moments.engagementId, ids))
+      .orderBy(desc(moments.reachedOn)),
+    db.select().from(reviews).where(inArray(reviews.engagementId, ids)),
+    db.select().from(interests).where(inArray(interests.engagementId, ids)),
   ]);
+  const reviewOf = (r: (typeof rvs)[number]): ReviewView => ({
+    email: r.email,
+    score: r.score,
+    words: r.words,
+    mayQuote: r.mayQuote,
+  });
   const stepKey = new Map(ms.map((m) => [m.id, m.key]));
   const talk = await threads(
     db,
@@ -1183,6 +1319,36 @@ export async function deliveryHome(
             ? ps.filter((p) => p.engagementId === e.id).map((p) => p.score)
             : [],
         },
+        moments: mos
+          .filter((m) => m.engagementId === e.id)
+          .flatMap((m) => {
+            const label = momentLabel(offer, m.moment);
+            if (!label) return [];
+            const said = rvs.filter((r) => r.engagementId === e.id && r.moment === m.moment);
+            const mine = said.find((r) => r.email === opts.email);
+            return [
+              {
+                moment: m.moment,
+                label,
+                reachedOn: m.reachedOn,
+                mine: mine ? reviewOf(mine) : null,
+                reviews: opts.operator ? said.map(reviewOf) : [],
+              },
+            ];
+          }),
+        next: mos.some(
+          (m) => m.engagementId === e.id && (m.moment === HALFWAY || m.moment === LAST_WEEK),
+        )
+          ? nextOffers(offer).map((o) => ({
+              id: o.id,
+              name: o.name,
+              promise: o.promise,
+              pitch: o.upsell?.pitch ?? "",
+              interested: ints.some(
+                (i) => i.engagementId === e.id && i.offerId === o.id && i.email === opts.email,
+              ),
+            }))
+          : [],
       };
     }),
   };

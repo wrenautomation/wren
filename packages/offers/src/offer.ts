@@ -169,6 +169,16 @@ export interface Offer {
   readonly plan?: readonly Phase[];
   /** Access we ask for when it's bought. Left out: none. */
   readonly access?: readonly AccessNeed[];
+  /**
+   * Firsts worth a review ask: the first time a measure reaches 1 ("Your first meeting is
+   * booked"). Halfway and the last week ask on every offer with `days`. Left out: none.
+   */
+  readonly reviewAfterFirst?: readonly { readonly measure: string; readonly moment: string }[];
+  /**
+   * How this offer is put to a client already on one that lists it in `next`, at halfway
+   * and in the last week. Left out: not offered to clients yet.
+   */
+  readonly upsell?: { readonly pitch: string };
 }
 
 const ID = /^[a-z][a-z0-9]*(-[a-z0-9]+)*$/;
@@ -329,6 +339,13 @@ export function defineOffer(offer: Offer): Offer {
   }
   if (offer.application !== null) checkApplication(where, offer.application);
   if (offer.plan) checkPlan(where, offer.plan);
+  for (const f of offer.reviewAfterFirst ?? []) {
+    if (!offer.measures.some((m) => m.key === f.measure))
+      throw new Error(`${where}: reviewAfterFirst names '${f.measure}', not one of its measures`);
+    if (!f.moment.trim()) throw new Error(`${where}: say what the first '${f.measure}' is`);
+  }
+  if (offer.upsell && !offer.upsell.pitch.trim())
+    throw new Error(`${where}: an upsell needs a pitch, or leave it out`);
   for (const a of offer.access ?? [])
     if (![a.system, a.scope, a.why, a.revoke].every((t) => t.trim()))
       throw new Error(`${where}: access to '${a.system}' needs a system, scope, why and revoke`);

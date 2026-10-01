@@ -31,8 +31,16 @@ import {
 } from "drizzle-orm";
 import { alias } from "drizzle-orm/pg-core";
 import { amount, WREN_PARTY } from "./contract.js";
-import { addDays, weekday } from "./index.js";
-import { PULSE_WORDS } from "./routes.js";
+import {
+  addDays,
+  HALFWAY,
+  LAST_WEEK,
+  momentLabel,
+  momentsReached,
+  nextOffers,
+  weekday,
+} from "./index.js";
+import { PULSE_WORDS, REVIEW_WORDS } from "./routes.js";
 import { keepSampleFresh } from "./sample.js";
 import {
   accessRequests,
@@ -42,13 +50,16 @@ import {
   deliverables,
   type Engagement,
   engagements,
+  interests,
   invoices,
   type MemberMail,
   memberMail,
   milestones,
+  moments,
   pings,
   pulses,
   results,
+  reviews,
   updates,
 } from "./schema.js";
 
@@ -68,6 +79,12 @@ const PAPERWORK_DAYS = 3;
 const REPING_DAYS = 7;
 /** The digest goes Friday from this hour, fleet clock. */
 const DIGEST_HOUR = 15;
+/** An open invoice is reminded once, this many days or fewer before it's due (D13)... */
+const REMIND_DAYS = 5;
+/** ...when it was issued at least this long before, so it isn't news... */
+const REMIND_AFTER_DAYS = 3;
+/** ...from this hour, fleet clock. */
+const REMIND_HOUR = 9;
 
 export interface PortalMail {
   to: string;
@@ -93,6 +110,12 @@ export interface WatchStats {
   told: number;
   digests: number;
   pinged: number;
+  /** Moments mailed with a review ask (D13). */
+  moments: number;
+  /** Invoices reminded before they're due (D13). */
+  reminded: number;
+  /** New reviews and interests Wren was told about. */
+  heard: number;
   /** Sends that failed; each is tried again next pass. */
   failed: number;
   lastError: string | null;
@@ -164,6 +187,9 @@ export async function watchPass(deps: WatchDeps, now: Date): Promise<WatchStats>
     told: 0,
     digests: 0,
     pinged: 0,
+    moments: 0,
+    reminded: 0,
+    heard: 0,
     failed: 0,
     lastError: null,
     sample: false,
@@ -174,8 +200,229 @@ export async function watchPass(deps: WatchDeps, now: Date): Promise<WatchStats>
     await mailContracts(deps, deps.send, now, stats);
     await mailPeople(deps, deps.send, now, today, live, people, stats);
   }
+  await markMoments(deps, today, live, people, stats);
+  if (deps.send) await remindInvoices(deps, deps.send, now, today, stats);
   await pingOperator(deps, now, today, live, people, stats);
+  await tellOperator(deps, now, stats);
   return stats;
+}
+
+// --- moments, reviews and what's next (D13) ------------------------------------
+
+/**
+ * Records the moments each running engagement reached, then mails its people the
+ * newest unmailed one: a one-tap review and, from halfway, what's next. Moments
+ * reached together send one mail.
+ */
+async function markMoments(
+  deps: WatchDeps,
+  today: string,
+  live: Live[],
+  people: Person[],
+  stats: WatchStats,
+): Promise<void> {
+  const { main, app, send } = deps;
+  const running = live.filter((l) => l.e.status === "active");
+  if (running.length === 0) return;
+  const ids = running.map((l) => l.e.id);
+  const [rs, known] = await Promise.all([
+    main.select().from(results).where(inArray(results.engagementId, ids)),
+    main.select().from(moments).where(inArray(moments.engagementId, ids)),
+  ]);
+  for (const { e, clientName } of running) {
+    const offer = offerFor(e.offerId);
+    const values = new Map(
+      rs.filter((r) => r.engagementId === e.id).map((r) => [r.key, r.value] as const),
+    );
+    const reached = momentsReached(offer, e, values, today);
+    const mine = known.filter((k) => k.engagementId === e.id);
+    const fresh = reached.filter((m) => !mine.some((k) => k.moment === m));
+    if (fresh.length > 0)
+      await main
+        .insert(moments)
+        .values(fresh.map((moment) => ({ engagementId: e.id, moment, reachedOn: today })))
+        .onConflictDoNothing();
+    const unmailed = reached.filter(
+      (m) => fresh.includes(m) || mine.some((k) => k.moment === m && !k.mailedAt),
+    );
+    const newest = unmailed.at(-1);
+    if (!send || !newest) continue;
+
+    const to = people.filter(
+      (p) => p.m.clientId === e.clientId && p.mail?.toldThrough && p.mail.level !== "off",
+    );
+    const label = momentLabel(offer, newest) ?? newest;
+    const link = (q = "") => `${app}/work/home?client=${e.clientId}&e=${e.id}${q && `&${q}`}`;
+    const ups = newest === HALFWAY || newest === LAST_WEEK ? nextOffers(offer) : [];
+    const text = [
+      newest === HALFWAY
+        ? `You're halfway through ${offer.name}.`
+        : newest === LAST_WEEK
+          ? `The final week of ${offer.name} starts now.`
+          : `${label}.`,
+      "",
+      "How would you rate working with Wren so far? One tap:",
+      ...[5, 4, 3, 2, 1].map(
+        (n) => `${REVIEW_WORDS[n]}: ${link(`review=${encodeURIComponent(newest)}&score=${n}`)}`,
+      ),
+      "",
+      `Say more, or let us quote you: ${link()}`,
+      ...(ups.length > 0
+        ? [
+            "",
+            "When you're ready for more:",
+            ...ups.flatMap((o) => [
+              `- ${o.name}: ${o.upsell?.pitch}`,
+              `  Want to hear more? ${link(`next=${o.id}`)}`,
+            ]),
+          ]
+        : []),
+      "",
+      `Change what we email you: ${app}/account/you?client=${e.clientId}`,
+    ].join("\n");
+    let ok = true;
+    for (const p of to) {
+      try {
+        await send({ to: p.m.email, subject: `${clientName}: ${label}`, text });
+      } catch (err) {
+        ok = false;
+        stats.failed += 1;
+        stats.lastError = errorText(err);
+      }
+    }
+    if (!ok) continue;
+    await main
+      .update(moments)
+      .set({ mailedAt: new Date() })
+      .where(and(eq(moments.engagementId, e.id), inArray(moments.moment, unmailed)));
+    stats.moments += 1;
+  }
+}
+
+/**
+ * An open invoice due in the next few days gets one reminder to the client's
+ * owners, like the signed contract: billing mail ignores mail settings.
+ */
+async function remindInvoices(
+  deps: WatchDeps,
+  send: (m: PortalMail) => Promise<void>,
+  now: Date,
+  today: string,
+  stats: WatchStats,
+): Promise<void> {
+  const { main, app } = deps;
+  if (wallClock(deps.zone, now).hour < REMIND_HOUR) return;
+  const due = await main
+    .select({ i: invoices, clientId: engagements.clientId, clientName: clients.name })
+    .from(invoices)
+    .innerJoin(engagements, eq(engagements.id, invoices.engagementId))
+    .innerJoin(clients, eq(clients.id, engagements.clientId))
+    .where(
+      and(
+        eq(invoices.status, "open"),
+        isNull(invoices.remindedAt),
+        gt(invoices.dueOn, today),
+        lte(invoices.dueOn, addDays(today, REMIND_DAYS)),
+        lte(invoices.issuedOn, addDays(today, -REMIND_AFTER_DAYS)),
+        eq(clients.demo, false),
+      ),
+    );
+  for (const { i, clientId, clientName } of due) {
+    const owners = await main
+      .select({ email: clientMembers.email })
+      .from(clientMembers)
+      .where(and(eq(clientMembers.clientId, clientId), eq(clientMembers.role, "owner")));
+    const days = Math.round((Date.parse(i.dueOn) - Date.parse(today)) / DAY);
+    const text = [
+      `Invoice ${i.number} for ${amount(i.cents, i.currency)} is due ${i.dueOn}, in ${days === 1 ? "1 day" : `${days} days`}.`,
+      i.description,
+      "",
+      ...(i.link ? [`Pay with Wise: ${i.link}`] : []),
+      `Your invoices: ${app}/account/billing?client=${clientId}`,
+      "",
+      "Paid already? Thank you, and ignore this.",
+    ].join("\n");
+    let ok = true;
+    for (const { email } of owners) {
+      try {
+        await send({
+          to: email,
+          subject: `${clientName}: invoice ${i.number} due in ${days === 1 ? "1 day" : `${days} days`}`,
+          text,
+        });
+      } catch (err) {
+        ok = false;
+        stats.failed += 1;
+        stats.lastError = errorText(err);
+      }
+    }
+    if (!ok) continue;
+    await main.update(invoices).set({ remindedAt: now }).where(eq(invoices.id, i.id));
+    stats.reminded += 1;
+  }
+}
+
+/** New reviews and interests, one ping; a low review is a warning. "Not now" is never pinged. */
+async function tellOperator(deps: WatchDeps, now: Date, stats: WatchStats): Promise<void> {
+  const { main, notifier } = deps;
+  if (!notifier) return;
+  const [rv, it] = await Promise.all([
+    main
+      .select({ r: reviews, e: engagements })
+      .from(reviews)
+      .innerJoin(engagements, eq(engagements.id, reviews.engagementId))
+      .innerJoin(clients, eq(clients.id, engagements.clientId))
+      .where(and(isNull(reviews.toldAt), eq(clients.demo, false))),
+    main
+      .select({ i: interests, e: engagements })
+      .from(interests)
+      .innerJoin(engagements, eq(engagements.id, interests.engagementId))
+      .innerJoin(clients, eq(clients.id, engagements.clientId))
+      .where(and(isNull(interests.toldAt), eq(clients.demo, false))),
+  ]);
+  const scored = rv.filter(({ r }) => r.score !== null);
+  const lines = [
+    ...scored.map(({ r, e }) => {
+      const at = momentLabel(offerFor(e.offerId), r.moment) ?? r.moment;
+      const words = r.words ? ` "${clip(r.words, 200)}"` : "";
+      return `${e.clientId}: ${r.email} rated ${r.score}/5 at "${at}"${words} (quote: ${r.mayQuote})`;
+    }),
+    ...it.map(
+      ({ i, e }) => `${e.clientId}: ${i.email} wants to hear about ${offerFor(i.offerId).name}`,
+    ),
+  ];
+  if (lines.length > 0) {
+    const low = scored.some(({ r }) => (r.score ?? 5) <= 2);
+    if (
+      !(await notifier.notify(
+        `Delivery: ${lines.length} new from clients`,
+        lines.join("\n"),
+        low ? "warning" : "info",
+      ))
+    )
+      return;
+    stats.heard = lines.length;
+  }
+  if (rv.length > 0)
+    await main
+      .update(reviews)
+      .set({ toldAt: now })
+      .where(
+        inArray(
+          reviews.id,
+          rv.map(({ r }) => r.id),
+        ),
+      );
+  if (it.length > 0)
+    await main
+      .update(interests)
+      .set({ toldAt: now })
+      .where(
+        inArray(
+          interests.id,
+          it.map(({ i }) => i.id),
+        ),
+      );
 }
 
 // --- client mail (D9, D10) -----------------------------------------------------

@@ -26,6 +26,8 @@ export const DELIVERY_ROUTES = [
   "upload",
   "file",
   "pulse",
+  "review",
+  "interest",
   "mail",
 ] as const;
 export type DeliveryRoute = (typeof DELIVERY_ROUTES)[number];
@@ -48,6 +50,8 @@ export const DELIVERY_WRITES: readonly DeliveryRoute[] = [
   "remove",
   "upload",
   "pulse",
+  "review",
+  "interest",
   "mail",
 ];
 
@@ -75,6 +79,18 @@ export const typeOfName = (name: string): string | undefined => {
   const ext = /\.[^.]+$/.exec(name.toLowerCase())?.[0];
   if (ext === ".jpeg") return "image/jpeg";
   return Object.keys(FILE_TYPES).find((t) => FILE_TYPES[t] === ext);
+};
+
+/** Wren's "write a review" link on Google, or null until the business profile exists (D13). */
+export const GOOGLE_REVIEW_URL: string | null = null;
+
+/** A review's five stars (D13), best first: what each means in the mail and on Home. */
+export const REVIEW_WORDS: Readonly<Record<number, string>> = {
+  5: "Excellent",
+  4: "Good",
+  3: "Fine",
+  2: "Poor",
+  1: "Bad",
 };
 
 /** The weekly pulse's five taps (D10), best first. */

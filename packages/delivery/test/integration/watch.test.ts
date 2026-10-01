@@ -249,6 +249,91 @@ describe("operator pings", () => {
   });
 });
 
+describe("moments, reviews and reminders (D13)", () => {
+  const titled = (subject: string) => take(mail).filter((m) => m.subject === subject);
+
+  it("reminds an owner once, in the morning, a few days before an invoice is due", async () => {
+    await addInvoice(pg.db, await engagementOf(pg.db, "acme"), {
+      number: "WREN-8",
+      description: "Meetings, week 1",
+      cents: 50_000,
+      issuedOn: "2026-10-09",
+      dueOn: "2026-10-16",
+      by: "ops@wren.example",
+    });
+    await pass("2026-10-12T08:00:00Z");
+    expect(titled("Acme Staffing: invoice WREN-8 due in 4 days")).toEqual([]);
+    await pass("2026-10-12T10:00:00Z");
+    const [told, ...rest] = titled("Acme Staffing: invoice WREN-8 due in 4 days");
+    expect(rest).toEqual([]);
+    expect(told?.to).toBe("amy@acme.example");
+    expect(told?.text).toContain("Invoice WREN-8 for USD 500 is due 2026-10-16, in 4 days.");
+    expect(told?.text).toContain("https://app.example/account/billing?client=acme");
+    await pass("2026-10-13T10:00:00Z");
+    expect(titled("Acme Staffing: invoice WREN-8 due in 3 days")).toEqual([]);
+    await markInvoice(pg.db, "acme", "WREN-8", "paid", "2026-10-13");
+  });
+
+  it("the first meeting is a moment: one review mail each, once", async () => {
+    await api.result({ viewer: OPS, ...acme, key: "meetings", value: 1 });
+    await pass("2026-10-14T10:00:00Z");
+    const sent = titled("Acme Staffing: Your first meeting is booked");
+    expect(sent.map((m) => m.to).sort()).toEqual(["amy@acme.example", "cal@acme.example"]);
+    expect(sent[0]?.text).toContain(
+      "Excellent: https://app.example/work/home?client=acme&e=1&review=first%3Ameetings&score=5",
+    );
+    expect(sent[0]?.text).not.toContain("ready for more");
+    await pass("2026-10-14T11:00:00Z");
+    expect(titled("Acme Staffing: Your first meeting is booked")).toEqual([]);
+    const [mine] = (await api.home({ viewer: AMY })).engagements;
+    expect(mine?.moments).toMatchObject([
+      { moment: "first:meetings", label: "Your first meeting is booked", mine: null, reviews: [] },
+    ]);
+    expect(mine?.next).toEqual([]);
+  });
+
+  it("a review is the client's people's, at a moment they reached; a good one pings Wren", async () => {
+    const at = { moment: "first:meetings" };
+    expect(await refused(api.review({ viewer: OPS, ...acme, ...at, score: 5 }))).toBe(403);
+    expect(await refused(api.review({ viewer: AMY, moment: "halfway", score: 5 }))).toBe(404);
+    expect(await refused(api.review({ viewer: AMY, ...at, score: 6 }))).toBe(400);
+    expect(await refused(api.review({ viewer: AMY, ...at, score: 5, mayQuote: "loud" }))).toBe(400);
+    take(pinged);
+    await api.review({ viewer: AMY, ...at, score: 4 });
+    await api.review({
+      viewer: AMY,
+      ...at,
+      score: 5,
+      words: "Booked in week 2.",
+      mayQuote: "named",
+    });
+    await api.review({ viewer: { email: "cal@acme.example" }, ...at, score: null });
+    await pass("2026-10-14T12:00:00Z");
+    expect(take(pinged).map((p) => p.body)).toEqual([
+      'acme: amy@acme.example rated 5/5 at "Your first meeting is booked" "Booked in week 2." (quote: named)',
+    ]);
+    await pass("2026-10-14T13:00:00Z");
+    expect(take(pinged)).toEqual([]);
+    const [ours] = (await api.home({ viewer: OPS, ...acme })).engagements;
+    expect(ours?.moments[0]?.reviews).toHaveLength(2);
+    const [mine] = (await api.home({ viewer: AMY })).engagements;
+    expect(mine?.moments[0]?.mine).toMatchObject({ score: 5, mayQuote: "named" });
+  });
+
+  it("halfway is day 45; nothing is offered until an offer has an upsell", async () => {
+    await pass("2026-11-18T10:00:00Z");
+    expect(titled("Acme Staffing: Halfway there")).toEqual([]);
+    await pass("2026-11-19T10:00:00Z");
+    const [half] = titled("Acme Staffing: Halfway there");
+    expect(half?.text).toContain("You're halfway through Lead reactivation.");
+    const [mine] = (await api.home({ viewer: AMY })).engagements;
+    expect(mine?.moments.map((m) => m.moment)).toEqual(["halfway", "first:meetings"]);
+    expect(mine?.next).toEqual([]);
+    expect(await refused(api.interest({ viewer: AMY, offerId: "ops-automation-build" }))).toBe(404);
+    take(pinged);
+  });
+});
+
 describe("the ops board", () => {
   it("is Wren's only: every client, at risk first, the demo left out", async () => {
     expect(await refused(api.board({ viewer: AMY }))).toBe(403);

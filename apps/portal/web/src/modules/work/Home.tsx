@@ -1,15 +1,16 @@
 /**
  * Home answers five things on open (D7): where we are, what we did lately, what's next,
  * what we need from you, and results so far. Before the first update it's a welcome.
- * It also takes the weekly pulse (D10), from a tap here or a link in the Friday mail.
+ * It also takes the weekly pulse (D10), from a tap here or a link in the Friday mail, and
+ * a review at each moment (D13), with what's next once they're halfway.
  */
-import { PULSE_WORDS } from "@wren/delivery/routes";
+import { GOOGLE_REVIEW_URL, PULSE_WORDS, REVIEW_WORDS } from "@wren/delivery/routes";
 import { Button, ButtonLink, Callout, PageHeader, Section, Stat, StatStrip, Tag } from "@wren/ui";
-import { useEffect } from "react";
-import type { EngagementView } from "../../api.js";
+import { useEffect, useState } from "react";
+import type { EngagementView, MomentView } from "../../api.js";
 import type { PageProps } from "../../module.js";
 import { href, navigate } from "../../route.js";
-import { dayLabel, Engagements, figure, StateTag, useAct, useWork } from "./bits.js";
+import { dayLabel, Engagements, Form, field, figure, StateTag, useAct, useWork } from "./bits.js";
 import { at } from "./nav.js";
 import { waitingOn } from "./Paperwork.js";
 
@@ -17,6 +18,7 @@ export function Home(props: PageProps) {
   const work = useWork(props);
   const act = useAct(props, work.reload);
   usePulseLink(props, act);
+  const rated = useReviewLink(props, act);
   return (
     <>
       <PageHeader title="Home" lede="Where your project stands, and what we need from you." />
@@ -26,7 +28,7 @@ export function Home(props: PageProps) {
         </p>
       ) : null}
       <Engagements work={work} props={props}>
-        {(e) => <Glance e={e} props={props} act={act} />}
+        {(e) => <Glance e={e} props={props} act={act} rated={rated} />}
       </Engagements>
     </>
   );
@@ -43,14 +45,43 @@ function usePulseLink({ params, team, demo }: PageProps, act: ReturnType<typeof 
   }, [score, engagementId, team, demo, act.run, params]);
 }
 
+/**
+ * `?review=halfway&score=5&e=12` or `?next=<offer>&e=12` from a moment's mail: record the
+ * tap, drop it from the address, and say which moment was rated so its card asks for a line.
+ */
+function useReviewLink({ params, team, demo }: PageProps, act: ReturnType<typeof useAct>) {
+  const [rated, setRated] = useState<string | null>(null);
+  const moment = params.get("review");
+  const score = Number(params.get("score"));
+  const offerId = params.get("next");
+  const engagementId = Number(params.get("e")) || undefined;
+  useEffect(() => {
+    if (!moment && !offerId) return;
+    if (!team && !demo) {
+      if (moment && score) {
+        void act.run("review", { engagementId, moment, score });
+        setRated(`${engagementId} ${moment}`);
+      }
+      if (offerId) void act.run("interest", { engagementId, offerId });
+    }
+    navigate(
+      href(location.pathname, { review: null, score: null, next: null, e: null }, params),
+      true,
+    );
+  }, [moment, score, offerId, engagementId, team, demo, act.run, params]);
+  return rated;
+}
+
 function Glance({
   e,
   props,
   act,
+  rated,
 }: {
   e: EngagementView;
   props: PageProps;
   act: ReturnType<typeof useAct>;
+  rated: string | null;
 }) {
   const done = e.steps.filter((s) => s.state === "done").length;
   const current = e.steps.find((s) => s.state === "late" || s.state === "now");
@@ -85,6 +116,8 @@ function Glance({
           <a href={at("welcome")}>The welcome guide</a> has the rest.
         </Callout>
       ) : null}
+
+      <Review e={e} props={props} act={act} rated={rated} />
 
       <Section title="Where we are">
         <StatStrip>
@@ -185,6 +218,8 @@ function Glance({
         </StatStrip>
       </Section>
 
+      <Next e={e} props={props} act={act} />
+
       <Pulse e={e} props={props} act={act} />
 
       <Section title="What we promised">
@@ -239,6 +274,207 @@ function Pulse({
             ? `You said ${PULSE_WORDS[mine]}. Tap another to change it.`
             : "One tap. Each one reaches us."}
       </p>
+    </Section>
+  );
+}
+
+const QUOTE_CHOICES = [
+  ["private", "Just for Wren"],
+  ["anonymous", "Quote me without my name"],
+  ["named", "Quote me with my name and firm"],
+] as const;
+
+/**
+ * At a moment (D13): stars, then a line and whether we may quote it. A client sees the
+ * newest moment they haven't answered; Wren's team sees everyone's reviews.
+ */
+function Review({
+  e,
+  props,
+  act,
+  rated,
+}: {
+  e: EngagementView;
+  props: PageProps;
+  act: ReturnType<typeof useAct>;
+  rated: string | null;
+}) {
+  const [open, setOpen] = useState<string | null>(null);
+  const [thanked, setThanked] = useState<{ score: number; words: string } | null>(null);
+  if (props.team) return <Reviews moments={e.moments} />;
+  const asked = (m: MomentView) => m.moment === open || `${e.id} ${m.moment}` === rated;
+  const m = e.moments.find(asked) ?? e.moments.find((x) => !x.mine);
+  if (!m) return thanked ? <Thanks {...thanked} /> : null;
+  const score = m.mine?.score ?? null;
+  const send = (body: Record<string, unknown>) =>
+    act.run("review", { engagementId: e.id, moment: m.moment, ...body });
+
+  return (
+    <Section title={`${m.label}. How are we doing?`}>
+      <div className="wk-tools">
+        {[5, 4, 3, 2, 1].map((n) => (
+          <Button
+            key={n}
+            size="sm"
+            tone={score === n ? "primary" : "secondary"}
+            aria-pressed={score === n}
+            disabled={act.busy || props.demo}
+            onClick={async () => {
+              if (await send({ score: n })) setOpen(m.moment);
+            }}
+          >
+            {REVIEW_WORDS[n]}
+          </Button>
+        ))}
+        {score === null ? (
+          <Button
+            size="sm"
+            tone="quiet"
+            disabled={act.busy || props.demo}
+            onClick={() => void send({ score: null })}
+          >
+            Not now
+          </Button>
+        ) : null}
+      </div>
+      {score === null ? (
+        <p className="wk-quiet">
+          {props.demo ? "Off on the demo." : "One tap. It reaches William."}
+        </p>
+      ) : (
+        <Form
+          label="Say more"
+          submit="Send"
+          act={act}
+          demo={props.demo}
+          onSubmit={async (f) => {
+            const ok = await send({
+              score,
+              words: field(f, "words"),
+              mayQuote: score >= 4 ? field(f, "mayQuote") : "private",
+            });
+            if (ok) {
+              setOpen(null);
+              setThanked({ score, words: field(f, "words") ?? "" });
+            }
+            return ok;
+          }}
+        >
+          <label className="wk-field wk-wide">
+            <span>
+              {score >= 4
+                ? "Glad to hear it. What made the difference?"
+                : "What should we do better?"}
+            </span>
+            <textarea name="words" rows={3} maxLength={4000} defaultValue={m.mine?.words ?? ""} />
+          </label>
+          {score >= 4 ? (
+            <label className="wk-field">
+              <span>May we quote you?</span>
+              <select name="mayQuote" defaultValue={m.mine?.mayQuote ?? "private"}>
+                {QUOTE_CHOICES.map(([v, l]) => (
+                  <option key={v} value={v}>
+                    {l}
+                  </option>
+                ))}
+              </select>
+            </label>
+          ) : null}
+        </Form>
+      )}
+    </Section>
+  );
+}
+
+/** Wren's team: every review so far, newest moment first. */
+function Reviews({ moments }: { moments: MomentView[] }) {
+  const said = moments.filter((m) => m.reviews.some((r) => r.score !== null));
+  if (said.length === 0) return null;
+  const quote = Object.fromEntries(QUOTE_CHOICES);
+  return (
+    <Section title="Reviews">
+      <ul className="wk-list">
+        {said.flatMap((m) =>
+          m.reviews
+            .filter((r) => r.score !== null)
+            .map((r) => (
+              <li key={`${m.moment} ${r.email}`}>
+                <span className="wk-quiet">
+                  {m.label}, {dayLabel(m.reachedOn)}
+                </span>{" "}
+                <b>{REVIEW_WORDS[r.score ?? 0]}</b> from {r.email}
+                {r.words ? `: "${r.words}"` : ""} <Tag>{quote[r.mayQuote]}</Tag>
+              </li>
+            )),
+        )}
+      </ul>
+    </Section>
+  );
+}
+
+/** From halfway (D13): what they can do next with us, one tap to hear more. */
+function Next({
+  e,
+  props,
+  act,
+}: {
+  e: EngagementView;
+  props: PageProps;
+  act: ReturnType<typeof useAct>;
+}) {
+  if (e.next.length === 0) return null;
+  return (
+    <Section title="When you're ready for more">
+      <ul className="wk-list">
+        {e.next.map((o) => (
+          <li key={o.id}>
+            <b>{o.name}.</b> {o.pitch}{" "}
+            {props.team ? null : o.interested ? (
+              <Tag>We'll be in touch</Tag>
+            ) : (
+              <Button
+                size="sm"
+                tone="secondary"
+                disabled={act.busy || props.demo}
+                onClick={() => void act.run("interest", { engagementId: e.id, offerId: o.id })}
+              >
+                I'm interested
+              </Button>
+            )}
+          </li>
+        ))}
+      </ul>
+    </Section>
+  );
+}
+
+/**
+ * After a review (D13). A happy one (4 or 5) gets a one-tap way to post it on Google,
+ * words copied; a low one stays with us (William, 10-01).
+ */
+function Thanks({ score, words }: { score: number; words: string }) {
+  if (!GOOGLE_REVIEW_URL || score < 4)
+    return (
+      <Callout>Thanks. William reads every review{score < 4 ? " and will follow up" : ""}.</Callout>
+    );
+  const url = GOOGLE_REVIEW_URL;
+  return (
+    <Section title="Thank you. Would you post it on Google?">
+      <p>
+        It helps other firms find us.{" "}
+        {words ? "Tap below and your words are copied, ready to paste." : ""}
+      </p>
+      <div className="wk-tools">
+        <Button
+          size="sm"
+          onClick={() => {
+            if (words) void navigator.clipboard?.writeText(words).catch(() => undefined);
+            window.open(url, "_blank", "noopener");
+          }}
+        >
+          Post it on Google
+        </Button>
+      </div>
     </Section>
   );
 }

@@ -112,6 +112,12 @@ describe("defineOffer", () => {
     ["a monthly fee of zero", offer({ price: { ...PERF, monthly: 0 } }), /monthly/],
     ["an until with no days", offer({ days: null, price: { ...PERF, until: 20 } }), /needs days/],
     [
+      "a review after a first of no measure",
+      offer({ reviewAfterFirst: [{ measure: "hires", moment: "First hire" }] }),
+      /not one of its measures/,
+    ],
+    ["an upsell with no pitch", offer({ upsell: { pitch: " " } }), /pitch/],
+    [
       "a refund with no days",
       offer({ days: null, price: { ...PERF, refundIfNone: { minContacts: 500 } } }),
       /needs days/,
@@ -218,7 +224,10 @@ describe("snapshot", () => {
   it("round-trips the registry as JSON", () => {
     const parsed = JSON.parse(snapshotText(OFFERS)) as ReturnType<typeof snapshot>;
     expect(parsed.version).toBe(1);
-    expect(parsed.offers).toEqual(OFFERS.map(({ plan: _, access: __, ...o }) => o));
-    expect(parsed.offers.some((o) => "plan" in o || "access" in o)).toBe(false);
+    expect(parsed.offers).toEqual(
+      OFFERS.map(({ plan: _, access: __, reviewAfterFirst: ___, upsell: ____, ...o }) => o),
+    );
+    const portalOnly = ["plan", "access", "reviewAfterFirst", "upsell"];
+    expect(parsed.offers.some((o) => portalOnly.some((k) => k in o))).toBe(false);
   });
 });

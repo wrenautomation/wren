@@ -49,8 +49,10 @@ import {
   mailLevelOf,
   markDone,
   postUpdate,
+  recordInterest,
   recordPulse,
   recordResult,
+  recordReview,
   setMailLevel,
   signAgreement,
   slipMilestone,
@@ -536,6 +538,36 @@ export function deliveryApi(deps: DeliveryDeps) {
         await recordPulse(db, e, { email, score: Number(req.score), note: textOf(req.note) });
         return { score: Number(req.score) };
       }),
+    /** A client person's review at a moment (D13); no score is "not now". */
+    review: (
+      req: EngagementReq & {
+        moment: string;
+        score?: number | null;
+        words?: string;
+        mayQuote?: string;
+      },
+    ) =>
+      write(deps, req, "client", async (db, c, v) => {
+        const email = await memberOnly(db, c.id, v.email, "reviews come from the client's people");
+        const e = await engagementFor(db, c, req);
+        const score = req.score === null || req.score === undefined ? null : Number(req.score);
+        await recordReview(db, e, {
+          email,
+          moment: String(req.moment),
+          score,
+          words: textOf(req.words),
+          mayQuote: textOf(req.mayQuote),
+        });
+        return { moment: String(req.moment), score };
+      }),
+    /** A client person wants to hear about a next offer (D13). */
+    interest: (req: EngagementReq & { offerId: string }) =>
+      write(deps, req, "client", async (db, c, v) => {
+        const email = await memberOnly(db, c.id, v.email, "the client's people say what they want");
+        const e = await engagementFor(db, c, req);
+        await recordInterest(db, e, { email, offerId: String(req.offerId) });
+        return { offerId: String(req.offerId) };
+      }),
     /** What mail the viewer gets about this client (D9). */
     mail: (req: PortalRequest & { level: string }) =>
       write(deps, req, "client", async (db, c, v) => {
@@ -569,9 +601,12 @@ export type {
   EngagementView,
   InvoiceView,
   MilestoneState,
+  MomentView,
+  NextView,
   PaperworkView,
   PulseView,
   ResultView,
+  ReviewView,
   StepView,
   UpdateView,
 } from "./index.js";
@@ -631,6 +666,17 @@ export function makeDeliveryPortal(deps: DeliveryDeps) {
       file: (_: restate.Context, req: Req<"file">) => answer(() => api.file(req)),
       pulse: (_: restate.Context, req: Req<"pulse">) => answer(() => api.pulse(req)),
       mail: (_: restate.Context, req: Req<"mail">) => answer(() => api.mail(req)),
+      // Wren hears about a review or an interest on the next pass: ask for it now.
+      review: async (ctx: restate.Context, req: Req<"review">) => {
+        const out = await answer(() => api.review(req));
+        if (deps.watched) ctx.objectSendClient<DeliveryWatch>({ name: WATCH }, WATCH_KEY).sync();
+        return out;
+      },
+      interest: async (ctx: restate.Context, req: Req<"interest">) => {
+        const out = await answer(() => api.interest(req));
+        if (deps.watched) ctx.objectSendClient<DeliveryWatch>({ name: WATCH }, WATCH_KEY).sync();
+        return out;
+      },
     },
   });
 }
