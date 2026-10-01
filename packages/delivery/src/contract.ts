@@ -9,7 +9,7 @@ import { createHash } from "node:crypto";
 import type { Offer } from "@wren/offers";
 import type { Terms } from "./schema.js";
 
-export const CONTRACT_VERSION = "2026-10-01";
+export const CONTRACT_VERSION = "2026-10-01.2";
 
 /** Who Wren is in law, and where notices go. */
 export const WREN_PARTY = {
@@ -34,7 +34,9 @@ function fees(t: Terms): string[] {
   if (t.setupCents > 0)
     out.push(`A setup fee of ${amount(t.setupCents, t.currency)}, invoiced when you sign.`);
   if (t.monthlyCents !== null)
-    out.push(`${amount(t.monthlyCents, t.currency)} a month, invoiced at the start of each month.`);
+    out.push(
+      `${amount(t.monthlyCents, t.currency)} a month while the work runs, invoiced at the start of each month.`,
+    );
   if (t.perUnitCents !== null && t.unit)
     out.push(
       `${amount(t.perUnitCents, t.currency)} per ${t.unit}, invoiced each month for the month before${
@@ -45,15 +47,29 @@ function fees(t: Terms): string[] {
   return out;
 }
 
+/** "meeting booked" → "meetings booked". */
+const plural = (unit: string) => unit.replace(/^(\S+)/, "$1s");
+
+/** How long it runs: a set time, or until either side ends it; past the time, maybe until a count. */
+function length(t: Terms): string {
+  if (t.days === null) return "until either side ends it (section 13)";
+  const days = `${t.days} days from the start`;
+  return t.until && t.unit
+    ? `${days}. If there are fewer than ${t.until} ${plural(t.unit)} by then, it carries on until there are ${t.until}, on the same terms and with no new setup fee.`
+    : days;
+}
+
 /** The full text to issue for this client, offer and terms. */
 export function contractText(input: { clientName: string; offer: Offer; terms: Terms }): string {
   const { clientName, offer, terms: t } = input;
   const unit = t.perUnitCents !== null && t.unit ? t.unit : null;
+  /** What's counted, for a fee or for how long it runs. */
+  const counted = unit ?? (t.until ? t.unit : null);
   const list = (items: readonly string[]) => items.map((i) => `- ${i}`);
   const access = offer.access ?? [];
   const order = [
     `Service: ${offer.name}`,
-    `Length: ${t.days === null ? "until either side ends it (section 13)" : `${t.days} days from the start`}`,
+    `Length: ${length(t)}`,
     `Start: the day you sign${t.setupCents > 0 ? " and the setup invoice is paid, whichever is later" : ""}`,
   ];
   return [
@@ -100,9 +116,13 @@ export function contractText(input: { clientName: string; offer: Offer; terms: T
     "## 6. Fees and payment",
     `- We bill through Wise. Each invoice shows in your portal and is due ${t.payDays} days after its date.`,
     ...(t.setupCents > 0 ? ["- The setup fee isn't refundable once the work has started."] : []),
+    ...(counted
+      ? [
+          `- A ${counted} is a meeting on your calendar with someone we reached for you. It counts once per person. If they don't turn up and it isn't rebooked within 14 days, it doesn't count.`,
+        ]
+      : []),
     ...(unit
       ? [
-          `- A ${unit} is a meeting on your calendar with someone we reached for you. It counts once per person. If they don't turn up and it isn't rebooked within 14 days, it doesn't count.`,
           `- Each ${unit} is listed in your portal as it happens, so you can check it before it's invoiced. If you think one shouldn't count, tell us within 14 days of the invoice and we'll settle it in good faith.`,
         ]
       : []),
@@ -137,7 +157,7 @@ export function contractText(input: { clientName: string; offer: Offer; terms: T
     "- Either of us can end it at once if the other breaks it and doesn't fix it within 7 days of being told, or can't pay its debts.",
     `- When it ends, you pay for the work done up to the end.${
       unit
-        ? ` Per-${unit} fees are also due for each ${unit} in the 30 days after the end with someone we reached before it.`
+        ? ` Fees per ${unit} are also due for each one in the 30 days after the end with someone we reached before it.`
         : ""
     }`,
     "- Sections 3, 6, 8 to 12, 13 and 14 still apply after it ends.",

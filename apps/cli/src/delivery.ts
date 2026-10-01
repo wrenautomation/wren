@@ -189,6 +189,7 @@ export function registerDelivery(program: Command, withMainDb: WithDb, settings:
     .option("--per-unit <amount>", "fee per unit, dollars (default: the offer's)")
     .option("--unit <text>", "what a per-unit fee counts (default: the offer's)")
     .option("--cap <amount>", "most the per-unit fees add up to (default: the offer's)")
+    .option("--flat", "the offer's all-upfront price instead of per-unit fees")
     .option("--days <n>", "how long it runs (default: the offer's)")
     .option("--currency <code>", "three letters", "USD")
     .option("--pay-days <n>", "days an invoice is due after its date", "7")
@@ -203,6 +204,7 @@ export function registerDelivery(program: Command, withMainDb: WithDb, settings:
           unit?: string;
           cap?: string;
           days?: string;
+          flat?: boolean;
           currency: string;
           payDays: string;
         },
@@ -225,6 +227,7 @@ export function registerDelivery(program: Command, withMainDb: WithDb, settings:
                 ...(opts.cap ? { capCents: centsOf(opts.cap) } : {}),
                 ...(opts.days ? { days: idOf(opts.days) } : {}),
               },
+              flat: opts.flat === true,
               by: author,
             }),
           );

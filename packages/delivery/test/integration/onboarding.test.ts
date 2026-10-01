@@ -87,12 +87,22 @@ describe("terms", () => {
   it("come from the offer's price, in cents, with changes on top", () => {
     const t = termsFor(offerFor("reactivation"));
     expect(t).toMatchObject({
-      setupCents: 100_000,
+      setupCents: 150_000,
+      monthlyCents: 30_000,
       perUnitCents: 50_000,
       unit: "meeting booked",
-      capCents: 1_500_000,
+      capCents: 1_350_000,
       days: 90,
+      until: 20,
     });
+    expect(termsFor(offerFor("reactivation"), {}, true)).toMatchObject({
+      setupCents: 750_000,
+      monthlyCents: 30_000,
+      perUnitCents: null,
+      capCents: null,
+      until: 20,
+    });
+    expect(() => termsFor(offerFor("recruiting-candidate-reactivation"), {}, true)).toThrow(/flat/);
     expect(termsFor(offerFor("reactivation"), { setupCents: 0 }).setupCents).toBe(0);
     expect(() => termsFor(offerFor("reactivation"), { currency: "dollars" })).toThrow();
     expect(() => termsFor(offerFor("recruiting-candidate-reactivation"))).toThrow(/per deal/);
@@ -138,7 +148,12 @@ describe("onboarding", () => {
     const c = await api.contract({ viewer: AMY });
     sha = c.sha256;
     expect(c.body).toContain("Acme Staffing");
-    expect(c.body).toContain("USD 1,000");
+    expect(c.body).toContain("A setup fee of USD 1,500");
+    expect(c.body).toContain("USD 300 a month while the work runs");
+    expect(c.body).toContain("up to USD 13,500 in total");
+    expect(c.body).toContain(
+      "If there are fewer than 20 meetings booked by then, it carries on until there are 20",
+    );
     expect(c.body).toContain(WREN_PARTY.name);
     expect(c.body).not.toMatch(/[–—]/);
     expect(c.signed).toBeNull();

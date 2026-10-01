@@ -635,18 +635,23 @@ const cents = (dollars: number) => Math.round(dollars * 100);
 
 /**
  * The terms an offer's price implies, in cents, with the operator's changes on
- * top. Fixed and quoted prices are ranges or nothing: their fees must be given.
+ * top. `flat` takes the offer's all-upfront option: its price as the setup fee,
+ * no per-unit fee. Fixed and quoted prices are ranges or nothing: their fees
+ * must be given.
  */
-export function termsFor(offer: Offer, over: Partial<Terms> = {}): Terms {
+export function termsFor(offer: Offer, over: Partial<Terms> = {}, flat = false): Terms {
   const p = offer.price;
+  const perf = p.kind === "performance" ? p : null;
+  if (flat && perf?.flat == null) throw bad(`${offer.name} has no flat price`);
   const base: Terms = {
     currency: "USD",
-    setupCents: p.kind === "performance" ? cents(p.upfront) : 0,
-    monthlyCents: null,
-    perUnitCents: p.kind === "performance" ? cents(p.perUnit) : null,
-    unit: p.kind === "performance" ? p.unit : null,
-    capCents: p.kind === "performance" && p.cap !== null ? cents(p.cap) : null,
+    setupCents: perf ? cents(flat && perf.flat ? perf.flat : perf.upfront) : 0,
+    monthlyCents: perf?.monthly ? cents(perf.monthly) : null,
+    perUnitCents: perf && !flat ? cents(perf.perUnit) : null,
+    unit: perf ? perf.unit : null,
+    capCents: perf?.cap && !flat ? cents(perf.cap) : null,
     days: offer.days,
+    until: perf?.until ?? null,
     payDays: 7,
   };
   const t = { ...base, ...over };
@@ -662,6 +667,11 @@ export function termsFor(offer: Offer, over: Partial<Terms> = {}): Terms {
   if (!Number.isInteger(t.payDays) || t.payDays < 0 || t.payDays > 90)
     throw bad("invoices are due 0 to 90 days after their date");
   if (t.perUnitCents !== null && !t.unit?.trim()) throw bad("say what a per-unit fee counts");
+  if (
+    t.until != null &&
+    (t.days === null || !Number.isInteger(t.until) || t.until <= 0 || !t.unit?.trim())
+  )
+    throw bad("carrying on until a count needs days, a count above 0 and what it counts");
   if ((p.kind === "fixed" || p.kind === "quoted") && !t.setupCents && t.monthlyCents === null)
     throw bad(`${offer.name} is priced per deal: give the setup or monthly fee`);
   return t;
@@ -679,12 +689,14 @@ export async function onboard(
     offerId: string;
     startsOn: string;
     terms?: Partial<Terms>;
+    /** The offer's all-upfront option instead of per-unit fees. */
+    flat?: boolean;
     by: string;
   },
 ): Promise<{ engagement: Engagement; agreement: Agreement }> {
   if (!OFFER_IDS.has(input.offerId)) throw missing(`offer '${input.offerId}'`);
   const offer = offerFor(input.offerId);
-  const terms = termsFor(offer, input.terms);
+  const terms = termsFor(offer, input.terms, input.flat);
   const [client] = await db
     .select({ name: clients.name })
     .from(clients)

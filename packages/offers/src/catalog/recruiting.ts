@@ -80,12 +80,18 @@ export const recruitingReactivation = defineOffer({
     "Owners and leaders of midsize recruiting and staffing firms with years of past clients in their ATS.",
   promise: "20 booked meetings with your past clients in 90 days, from leads you already paid for.",
   // Never on a page (D14); the client's portal shows the running bill.
+  // William, 10-01: we push per meeting; flat is the anchor (breakeven ~12 meetings).
+  // Setup plus meetings top out at $15,000 (27 meetings). Both include support
+  // until the 20th meeting, past day 90 if it takes longer.
   price: {
     kind: "performance",
-    upfront: 1000,
+    upfront: 1500,
     perUnit: 500,
     unit: "meeting booked",
-    cap: 15000,
+    cap: 13500,
+    monthly: 300,
+    flat: 7500,
+    until: 20,
   },
   slots: 3,
   days: 90,

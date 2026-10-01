@@ -37,6 +37,12 @@ export type Price =
       readonly unit: string;
       /** The most the per-unit fees add up to, or null for no cap. */
       readonly cap: number | null;
+      /** A monthly fee on top (tools, domains, inboxes), or null for none. */
+      readonly monthly: number | null;
+      /** The same work paid all upfront instead, with no per-unit fee, or null if not offered. */
+      readonly flat: number | null;
+      /** Past `days`, it carries on (monthly fee and all) until this many units, or null to stop at `days`. */
+      readonly until: number | null;
     };
 
 export interface Choice {
@@ -258,6 +264,16 @@ export function defineOffer(offer: Offer): Offer {
     if (cap !== null && (!Number.isInteger(cap) || cap < perUnit)) {
       throw new Error(`${where}: a cap is whole dollars, at least one unit's fee`);
     }
+    const { monthly, flat, until } = offer.price;
+    for (const [k, v] of [
+      ["monthly", monthly],
+      ["flat", flat],
+      ["until", until],
+    ] as const)
+      if (v !== null && (!Number.isInteger(v) || v <= 0))
+        throw new Error(`${where}: a performance price's ${k} is a whole number above 0`);
+    if (until !== null && offer.days === null)
+      throw new Error(`${where}: "until" carries on past days, so it needs days`);
   }
   if (offer.price.kind === "free" && offer.weGet.length === 0) {
     // Free is a trade. Saying what we get back is what makes it believable.

@@ -66,6 +66,9 @@ const PERF = {
   perUnit: 500,
   unit: "meeting booked",
   cap: 15000,
+  monthly: null,
+  flat: null,
+  until: null,
 };
 
 const PHASE = { id: "set-up", name: "Set up", from: 1, to: 2, deliverables: [], asks: [] };
@@ -104,6 +107,8 @@ describe("defineOffer", () => {
     ["a performance price in cents", offer({ price: { ...PERF, upfront: 999.5 } }), /whole/],
     ["a performance price counting nothing", offer({ price: { ...PERF, unit: " " } }), /unit/],
     ["a cap under one unit", offer({ price: { ...PERF, cap: 100 } }), /cap/],
+    ["a monthly fee of zero", offer({ price: { ...PERF, monthly: 0 } }), /monthly/],
+    ["an until with no days", offer({ days: null, price: { ...PERF, until: 20 } }), /needs days/],
     [
       "a fit rule on an unknown question",
       offer({ application: { ...app, fit: [{ question: "nope", anyOf: ["x"] }] } }),

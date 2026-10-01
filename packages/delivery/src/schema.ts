@@ -415,6 +415,8 @@ export interface Terms {
   capCents: number | null;
   /** How long it runs, or null until either side ends it. */
   days: number | null;
+  /** Past `days`, it carries on until this many units, or null to stop at `days`. Older terms lack it. */
+  until?: number | null;
   /** Days after an invoice's date that it's due. */
   payDays: number;
 }
