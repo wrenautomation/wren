@@ -93,7 +93,7 @@ export function registerStudy(
       if (spec === "fake") throw new Error("a study needs a real model, not the fake");
       loadLlmEnv(settings.llmEnvPath, rootDir);
       const deps = {
-        sites: ingressSites(settings),
+        sites: ingressSites(settings, "wren:study"),
         llm: makeLlm(spec, process.env, { anthropicModel: settings.llmModel }),
       };
       const { run, stats } = await withDb((db) =>
