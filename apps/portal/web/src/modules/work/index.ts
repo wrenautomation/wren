@@ -13,6 +13,8 @@ import "./work.css";
 export const work: Module = {
   id: WORK,
   name: "Your project",
+  // The demo shows the products; a client's project lives on app. only.
+  noDemo: true,
   pages: [
     { id: "home", label: "Home", icon: "home", Page: Home },
     { id: "plan", label: "Plan", icon: "clock", Page: Plan },

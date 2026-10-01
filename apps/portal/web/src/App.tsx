@@ -24,14 +24,23 @@ const THEME_KEY = "wren.portal.theme";
 const AS_CLIENT_KEY = "wren.portal.asClient";
 
 const pathOf = (m: Module, p: ModulePage) => `/${m.id}/${p.id}`;
-const [first] = MODULES;
-const HOME = first?.pages[0] ? pathOf(first, first.pages[0]) : "/";
 
-/** The sections this viewer sees: the team's own only in team view. */
-const shown = (team: boolean) => MODULES.filter((m) => team || !m.team);
+/**
+ * The sections this viewer sees: the team's own only in team view, and a
+ * client's own project never on the demo. `demo` is null until the server says
+ * which host this is; those sections wait for it.
+ */
+const shown = (team: boolean, demo: boolean | null) =>
+  MODULES.filter((m) => (team || !m.team) && (demo === false || !m.noDemo));
 
-const navOf = (team: boolean): NavGroup[] =>
-  shown(team).map((m) => ({
+/** The first page of the first section this viewer sees. */
+const homeOf = (team: boolean, demo: boolean | null) => {
+  const [first] = shown(team, demo);
+  return first?.pages[0] ? pathOf(first, first.pages[0]) : "/";
+};
+
+const navOf = (team: boolean, demo: boolean | null): NavGroup[] =>
+  shown(team, demo).map((m) => ({
     id: m.id,
     label: m.name,
     items: m.pages.map((p) => ({
@@ -42,8 +51,12 @@ const navOf = (team: boolean): NavGroup[] =>
     })),
   }));
 
-function find(path: string[], team: boolean): { module: Module; page: ModulePage } | null {
-  const module = shown(team).find((m) => m.id === path[0]);
+function find(
+  path: string[],
+  team: boolean,
+  demo: boolean | null,
+): { module: Module; page: ModulePage } | null {
+  const module = shown(team, demo).find((m) => m.id === path[0]);
   const page = module?.pages.find((p) => p.id === path[1]);
   return module && page ? { module, page } : null;
 }
@@ -94,14 +107,16 @@ export function App() {
   const theme = useLook(route.params);
   const operator = me.data?.operator ?? false;
   const team = operator && !asClient;
+  const onDemo = me.data ? me.data.demo : null;
+  const home = homeOf(team, onDemo);
 
-  const at = find(route.path, team);
-  // An unknown address (or just "/") lands on the first page; a team page waits to know who's asking.
-  const lost =
-    !at && (me.data !== null || !route.path[0] || !MODULES.some((m) => m.id === route.path[0]));
+  const at = find(route.path, team, onDemo);
+  // An unknown address (or just "/") lands on this viewer's first page, once
+  // the server says who's asking and on which host.
+  const lost = !at && me.data !== null;
   useEffect(() => {
-    if (lost) navigate(HOME, true);
-  }, [lost]);
+    if (lost) navigate(home, true);
+  }, [lost, home]);
 
   useEffect(() => {
     if (!named) return;
@@ -141,7 +156,7 @@ export function App() {
     keep(CLIENT_KEY, id);
   };
   const { module, page } = at;
-  const demo = me.data?.demo ?? false;
+  const demo = onDemo ?? false;
   const action = module.action;
   const flip = () => {
     setAsClient(team);
@@ -150,18 +165,18 @@ export function App() {
 
   return (
     <AppShell
-      brand={{ name: "Wren", href: HOME, stamp: STAMP }}
+      brand={{ name: "Wren", href: home, stamp: STAMP }}
       workspace={{
         current,
         options: clients,
         caption: demo ? "Demo workspace" : "Workspace",
         onPick: pick,
       }}
-      nav={navOf(team)}
+      nav={navOf(team, onDemo)}
       current={pathOf(module, page)}
       crumbs={[
-        ...(current && !module.team ? [{ label: current.name, href: HOME }] : []),
-        { label: module.name, href: module.pages[0] ? pathOf(module, module.pages[0]) : HOME },
+        ...(current && !module.team ? [{ label: current.name, href: home }] : []),
+        { label: module.name, href: module.pages[0] ? pathOf(module, module.pages[0]) : home },
         { label: page.label },
       ]}
       notice={demo ? DEMO : undefined}

@@ -37,7 +37,7 @@
 | CLI + skill | compiled `wren`, `.claude/skills/wren` | `wren delivery …`; skill learns it |
 | DB + migrations | Drizzle, one migrations folder, CI migrates main + every client DB (`packages/db/src/migrate-cli.ts`); `books` already uses its own schema | schemas `auth` + `delivery` the same way; no CI change |
 | CI/CD | `ci.yml` gates; `deploy.yml`: migrate, Lambda, Restate register, phone + portal Workers; AWS by OIDC; terraform | auth Lambda + function URL (terraform), auth Worker deploy step, files bucket, auth + OAuth secrets |
-| Demo | `demo.` host, server-side mask, edge cache | delivery module shows a sample engagement, labeled as a sample |
+| Demo | `demo.` host, server-side mask, edge cache | the products only; the work suite never shows there (2026-10-01 log) |
 
 ## Sign-in
 
@@ -107,7 +107,7 @@ Home, Plan, Updates, Deliverables, Needs you and Results, then each bought servi
 |---|---|
 | `app.wrenautomation.com` | the portal, sign-in required |
 | `auth.wrenautomation.com` | sign-in for every Wren system (new) |
-| `demo.wrenautomation.com` | the demo, unchanged |
+| `demo.wrenautomation.com` | the reactivation demo only, no work suite |
 | `portal.wrenautomation.com` | optional redirect to `app.` |
 
 ## Build order (commit and push each)
@@ -121,7 +121,7 @@ Home, Plan, Updates, Deliverables, Needs you and Results, then each bought servi
 6. **Products feed it.** Reactivation run summaries, results and the fee meter.
 7. **Ops board**, passkeys, the phone on shared auth, the demo's sample engagement.
 
-Later: enterprise SSO, OIDC for client domains, client custom domains, a billing page (invoices), comment threads.
+Later: enterprise SSO, OIDC for client domains, client custom domains, a billing page (invoices). Comment threads: built 2026-10-01.
 
 ## Setup chores (autobrowse can drive)
 
@@ -166,3 +166,5 @@ Later: enterprise SSO, OIDC for client domains, client custom domains, a billing
 - **2026-10-01** Step 7, the demo's sample. `seedSample` (`packages/delivery/src/sample.ts`) gives the demo a reactivation project 23 days in: two steps done, sending under way, six updates, two approved deliverables that link to the demo's own People and Emails pages, every opening ask answered, one open, and results with the bill. Every work page on the demo heads it with a "Sample" note (D12). DeliveryWatch reseeds it when missing or a week old, so nothing on it runs late; `wren --client demo delivery sample` does it now. Refuses any client that isn't the demo.
 - **2026-10-01** Step 7, passkeys (A2). Better Auth's passkey plugin (`@better-auth/passkey`, same version), table `auth.passkey`. The passkey belongs to the registrable domain (`wrenautomation.com`), not the auth host, so it survives a move. "Sign in with a passkey" leads the sign-in page; `auth./passkeys` adds one per device and removes them, linked from the portal's Settings. Adding needs a sign-in under a day old (Better Auth's fresh session); a stale one is told to sign in again. Signing in with a passkey makes no account: only someone already signed in can add one, so the invite gate (A4) still holds. Checked end to end with Chrome's virtual authenticator: add, sign out, sign in by passkey.
 - **2026-10-01** Step 7, the phone on shared auth (A6). The phone's own passkeys (KV, a setup link, a session cookie) are gone. Its app takes the 15-minute token from auth. like the portal and sends it; its Worker checks the token and lets operators only. Sign-in on a phone is now any of Wren's methods, and its passkey is added at `auth./passkeys`. Old phone passkeys don't carry over: they were for the phone's host, and the ceremony there is gone. `phone.` is in the sign-in Worker's `APPS`, so the token call works cross-origin.
+- **2026-10-01** app. and demo. split back apart (William: "app.wren is for the actual suite of services, demo is for the demo"). Step 7's sample had put "Your project" on the demo, so both hosts showed the same UI. Now a module can say `noDemo`; the work module does. On the demo it's off the sidebar and unreachable, and `/` and any `/work/...` land on Reactivation's first page. The shell waits for `delivery/me` before picking a landing page, since only the server knows the host. `seedSample` and DeliveryWatch's reseed still run but nothing shows them; drop them or keep them for a sales walkthrough on app., the delivery session's call.
+- **2026-10-01** Later list, comment threads. `delivery.comments` (migration 0037): a line under an update or a deliverable, exactly one, with `from_wren` for which side wrote it. Anyone who sees the client can comment; the demo can't. No threads under internal or hidden updates: their replies would reach the client by mail. A new deliverable version takes the thread with it, since Home shows only the latest. A client's comment pings us until anyone at Wren writes after it in that thread (`reply:u12`); Wren's lines go to level `all` in the same message as new asks and deliverables. `wren delivery comment --update|--deliverable` replies from the terminal; `status` prints the threads. The demo's sample has one short thread. Billing waits on the books plan's revenue step; SSO and custom domains wait for a client to ask.
