@@ -180,8 +180,9 @@ export async function monthlyRoomAt(
     )
     .orderBy(desc(smsMessages.attemptedAt))
     .limit(policy.monthlyPerContact);
-  if (recent.length < policy.monthlyPerContact) return null;
-  return new Date((recent.at(-1)?.at as Date).getTime() + MONTH_MS);
+  const oldest = recent.at(-1)?.at;
+  if (recent.length < policy.monthlyPerContact || !oldest) return null;
+  return new Date(oldest.getTime() + MONTH_MS);
 }
 
 async function wroteRecently(db: Queryable, contactId: number, now: Date): Promise<boolean> {
