@@ -9,7 +9,7 @@ import { createHash } from "node:crypto";
 import type { Offer } from "@wren/offers";
 import type { Terms } from "./schema.js";
 
-export const CONTRACT_VERSION = "2026-10-01.3";
+export const CONTRACT_VERSION = "2026-10-01.4";
 
 /** Who Wren is in law, and where notices go. */
 export const WREN_PARTY = {
@@ -117,7 +117,7 @@ export function contractText(input: { clientName: string; offer: Offer; terms: T
     `- We bill through Wise. Each invoice shows in your portal and is due ${t.payDays} days after its date.`,
     ...(t.setupCents > 0
       ? [
-          `- The setup fee isn't refundable once the work has started${t.refundIfNone ? ", except as the next point says" : ""}.`,
+          `- The setup fee isn't refundable once the work has started, except ${t.refundIfNone ? "as the next point and section 13 say" : "as section 13 says"}.`,
         ]
       : []),
     ...(t.refundIfNone && t.days !== null && t.unit
@@ -164,9 +164,21 @@ export function contractText(input: { clientName: string; offer: Offer; terms: T
     "## 13. Ending it",
     "- Either of us can end this agreement with 14 days' written notice. Email counts.",
     "- Either of us can end it at once if the other breaks it and doesn't fix it within 7 days of being told, or can't pay its debts.",
+    ...(t.days !== null && (t.setupCents > 0 || t.monthlyCents !== null)
+      ? [
+          `- If we end it with notice, and not because you broke it, we refund what you prepaid for time we won't work: ${[
+            t.setupCents > 0
+              ? `the setup fee in proportion to the days left of the ${t.days}${t.days === 90 ? " (end on day 30 and you get two thirds back)" : ""}`
+              : "",
+            t.monthlyCents !== null ? "that month's fee for the days left in the month" : "",
+          ]
+            .filter(Boolean)
+            .join(", and ")}. We pay it within 14 days of the end.`,
+        ]
+      : []),
     `- When it ends, you pay for the work done up to the end.${
       unit
-        ? ` Fees per ${unit} are also due for each one in the 30 days after the end with someone we reached before it.`
+        ? ` Fees per ${unit} are also due for each one in the 60 days after the end with someone we reached before it.`
         : ""
     }`,
     "- Sections 3, 6, 8 to 12, 13 and 14 still apply after it ends.",

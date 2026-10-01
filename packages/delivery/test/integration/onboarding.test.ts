@@ -161,8 +161,12 @@ describe("onboarding", () => {
     );
     expect(c.body).toContain("at least 500 contacts");
     expect(c.body).toContain(
-      "isn't refundable once the work has started, except as the next point says",
+      "isn't refundable once the work has started, except as the next point and section 13 say",
     );
+    expect(c.body).toContain(
+      "If we end it with notice, and not because you broke it, we refund what you prepaid for time we won't work: the setup fee in proportion to the days left of the 90 (end on day 30 and you get two thirds back), and that month's fee for the days left in the month.",
+    );
+    expect(c.body).toContain("each one in the 60 days after the end");
     expect(c.body).toContain("apart from the refund in section 6");
     expect(c.body).toContain(WREN_PARTY.name);
     expect(c.body).not.toMatch(/[–—]/);
