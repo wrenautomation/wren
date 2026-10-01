@@ -71,6 +71,18 @@ beforeAll(async () => {
   await db.execute(sql`
     insert into company_checks (company_id, state, finding_id, tried)
     values (${umbrella?.id}, 'hiring', ${hiring?.id}, '[]'::jsonb)`);
+  // How we found Cara, naming her every way a trail step can.
+  await db.execute(sql`
+    insert into person_lookups (person_id, state, tried)
+    values (${cara}, 'matched', ${JSON.stringify([
+      { step: "email", what: "cara.lim@umbrellahealth.com", outcome: "left: bounced" },
+      {
+        step: "search",
+        what: "Cara Lim Umbrella Health",
+        outcome: "2 people via exa; cara-lim-1: name differs (Cara Lin); cara-lim: matched",
+      },
+      { step: "profile", what: "cara-lim", outcome: "Cara Lim, Senior Recruiter at Initech" },
+    ])}::jsonb)`);
   await scoreCrmContacts(db, today);
   await db.execute(sql`
     insert into briefs (person_id, state, text, citations, dropped, inputs_hash, model, prompt_version)
@@ -199,6 +211,8 @@ describe("the demo", () => {
       ["person jane", await api.person({ ...demo, personId: await personId("Jane Doe") })],
       ["run", await api.run(demo)],
       ["run after", await api.run({ ...demo, run: runId, after: 0 })],
+      ["work lookup", await api.work({ ...demo, step: "lookup", subject: "Cara L." })],
+      ["work signals", await api.work({ ...demo, step: "signals", subject: "Umbrella Health" })],
     ];
     for (const filter of PEOPLE_FILTERS)
       answers.push([`people ${filter}`, await api.people({ ...demo, filter })]);
@@ -209,6 +223,11 @@ describe("the demo", () => {
     expect((await api.emails({ ...demo, filter: "all" })).rows).toHaveLength(1);
     expect((await api.replies({ ...demo, filter: "all" })).rows).toHaveLength(1);
     for (const [route, answer] of answers) expect(leaks(answer), route).toEqual([]);
+    const work = answers.find(([r]) => r === "work lookup")?.[1] as Awaited<
+      ReturnType<typeof api.work>
+    >;
+    expect(work.steps.length).toBe(3);
+    expect(work.steps.some((x) => x.queryHref)).toBe(false);
   });
 
   it("the facts are still there, masked", async () => {
