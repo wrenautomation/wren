@@ -1,4 +1,4 @@
-// The app shell works offline; data never comes from a cache. /api and /auth pass straight through.
+// The app shell works offline; data never comes from a cache. /api passes straight through.
 const CACHE = "wren-sms-v1";
 const SHELL = ["/", "/app.js", "/app.css", "/manifest.webmanifest", "/icon.svg", "/icon-192.png"];
 
@@ -23,7 +23,7 @@ self.addEventListener("activate", (e) => {
 self.addEventListener("fetch", (e) => {
   const url = new URL(e.request.url);
   if (e.request.method !== "GET" || url.origin !== location.origin) return;
-  if (url.pathname.startsWith("/api/") || url.pathname.startsWith("/auth/")) return;
+  if (url.pathname.startsWith("/api/")) return;
   // Network first, so a deploy shows up on the next open; the cache only when offline.
   e.respondWith(
     fetch(e.request)

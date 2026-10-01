@@ -6,23 +6,16 @@
  *   (`SmsEvents/ingest/send`) with the event id as the idempotency key, so a
  *   webhook Telnyx sends twice is applied once. Restate down = 502, and Telnyx
  *   retries.
- * - `/auth/*`: passkeys (passkeys.ts).
- * - `/api/<handler>`: signed-in only; forwarded to the `SmsDesk` service. Only the
- *   handlers the app needs are open; enroll and lift stay on the CLI.
+ * - `/api/<handler>`: Wren's operators only, by the token from Wren's sign-in
+ *   (auth.wrenautomation.com, any method incl. passkeys); forwarded to the `SmsDesk`
+ *   service. Only the handlers the app needs are open; enroll and lift stay on the CLI.
  * - everything else: the static app in public/.
  *
  * The Worker holds no data: the inbox is Postgres, read through Restate.
  */
+import { AUDIENCE, bearer, verifyToken } from "@wren/auth/verify";
 import { SIGNATURE_HEADER, TIMESTAMP_HEADER, verifyTelnyx } from "@wren/channel-sms/webhook";
 import type { Env } from "./env.js";
-import {
-  loginOptions,
-  loginVerify,
-  logout,
-  registerOptions,
-  registerVerify,
-  signedIn,
-} from "./passkeys.js";
 
 export const DESK_HANDLERS: ReadonlySet<string> = new Set([
   "threads",
@@ -89,11 +82,24 @@ async function telnyxWebhook(req: Request, env: Env): Promise<Response> {
   return json({ ok: true });
 }
 
+/** Null for one of Wren's operators; otherwise the refusal. */
+async function refusal(req: Request, env: Env): Promise<Response | null> {
+  if (!env.AUTH_ORIGIN) return json({ error: "sign-in is not set up" }, 503);
+  let who: Awaited<ReturnType<typeof verifyToken>>;
+  try {
+    who = await verifyToken(bearer(req), { issuer: env.AUTH_ORIGIN, audience: AUDIENCE });
+  } catch {
+    return json({ error: "couldn't check your sign-in" }, 502);
+  }
+  if (!who) return json({ error: "sign in" }, 401);
+  return who.operator ? null : json({ error: "This is for Wren's team." }, 403);
+}
+
 async function desk(req: Request, env: Env, handler: string): Promise<Response> {
   if (!DESK_HANDLERS.has(handler)) return json({ error: "not found" }, 404);
-  if (!(await signedIn(req, env))) return json({ error: "sign in" }, 401);
-  // A JSON content type forces a CORS preflight, so another site cannot post here
-  // even if a browser ever sent the SameSite=Strict cookie along.
+  const refused = await refusal(req, env);
+  if (refused) return refused;
+  // A JSON content type forces a CORS preflight, so another site cannot post here.
   if (!(req.headers.get("content-type") ?? "").startsWith("application/json")) {
     return json({ error: "json only" }, 415);
   }
@@ -125,24 +131,9 @@ export default {
     if (pathname === "/webhooks/telnyx") {
       return req.method === "POST" ? telnyxWebhook(req, env) : json({ error: "POST only" }, 405);
     }
-    if (pathname.startsWith("/auth/") || pathname.startsWith("/api/")) {
+    if (pathname.startsWith("/api/")) {
       if (req.method !== "POST") return json({ error: "POST only" }, 405);
-      switch (pathname) {
-        case "/auth/register/options":
-          return registerOptions(req, env);
-        case "/auth/register/verify":
-          return registerVerify(req, env);
-        case "/auth/login/options":
-          return loginOptions(req, env);
-        case "/auth/login/verify":
-          return loginVerify(req, env);
-        case "/auth/logout":
-          return logout();
-        case "/auth/me":
-          return json({ signedIn: await signedIn(req, env) });
-      }
-      if (pathname.startsWith("/api/")) return desk(req, env, pathname.slice("/api/".length));
-      return json({ error: "not found" }, 404);
+      return desk(req, env, pathname.slice("/api/".length));
     }
     return env.ASSETS.fetch(req);
   },

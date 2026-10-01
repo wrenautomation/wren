@@ -58,17 +58,46 @@ function when(iso) {
 }
 
 // ---- server ---------------------------------------------------------------
+// Sign-in is Wren's (auth.<domain>): a passkey, an emailed code, Google... The app
+// holds the 15-minute token from there and sends it with each call; the Worker
+// lets Wren's operators in.
 
 class SignedOut extends Error {}
 
-async function post(path, body = {}) {
+const AUTH = location.hostname.startsWith("phone.")
+  ? `https://auth.${location.hostname.slice("phone.".length)}`
+  : null;
+let held = null;
+
+/** The current token, fetched again a minute before it runs out. */
+async function token() {
+  if (!AUTH) return null;
+  if (held && held.until > Date.now()) return held.token;
+  const res = await fetch(`${AUTH}/api/auth/token`, { credentials: "include" });
+  if (res.status === 401) throw new SignedOut();
+  if (!res.ok) throw new Error(`sign-in ${res.status}`);
+  const { token: t } = await res.json();
+  const exp = JSON.parse(atob(t.split(".")[1].replace(/-/g, "+").replace(/_/g, "/"))).exp;
+  held = { token: t, until: exp * 1000 - 60_000 };
+  return t;
+}
+
+async function post(path, body = {}, retried = false) {
+  const t = await token();
   const res = await fetch(path, {
     method: "POST",
-    headers: { "content-type": "application/json" },
+    headers: {
+      "content-type": "application/json",
+      ...(t ? { authorization: `Bearer ${t}` } : {}),
+    },
     body: JSON.stringify(body),
-    credentials: "same-origin",
   });
-  if (res.status === 401) throw new SignedOut();
+  // A token the Worker refused (keys rotated, clock skew): one fresh one, then sign in.
+  if (res.status === 401) {
+    held = null;
+    if (!retried) return post(path, body, true);
+    throw new SignedOut();
+  }
   const text = await res.text();
   let data = null;
   try {
@@ -82,131 +111,22 @@ async function post(path, body = {}) {
 
 const api = (handler, body) => post(`/api/${handler}`, body);
 
-// ---- passkeys (WebAuthn JSON <-> binary, by hand so older Safari works) ----
-
-const b64u = {
-  toBytes(s) {
-    const pad = "=".repeat((4 - (s.length % 4)) % 4);
-    const bin = atob((s + pad).replace(/-/g, "+").replace(/_/g, "/"));
-    return Uint8Array.from(bin, (c) => c.charCodeAt(0));
-  },
-  from(buf) {
-    let bin = "";
-    for (const b of new Uint8Array(buf)) bin += String.fromCharCode(b);
-    return btoa(bin).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
-  },
-};
-
-async function addDevice(setup, label) {
-  const o = await post("/auth/register/options", { setup });
-  const cred = await navigator.credentials.create({
-    publicKey: {
-      ...o,
-      challenge: b64u.toBytes(o.challenge),
-      user: { ...o.user, id: b64u.toBytes(o.user.id) },
-      excludeCredentials: (o.excludeCredentials || []).map((c) => ({
-        ...c,
-        id: b64u.toBytes(c.id),
-      })),
-    },
-  });
-  const r = cred.response;
-  await post("/auth/register/verify", {
-    setup,
-    label,
-    response: {
-      id: cred.id,
-      rawId: b64u.from(cred.rawId),
-      type: cred.type,
-      clientExtensionResults: cred.getClientExtensionResults(),
-      authenticatorAttachment: cred.authenticatorAttachment ?? undefined,
-      response: {
-        clientDataJSON: b64u.from(r.clientDataJSON),
-        attestationObject: b64u.from(r.attestationObject),
-        transports: r.getTransports ? r.getTransports() : [],
-      },
-    },
-  });
-}
-
-async function signIn() {
-  const o = await post("/auth/login/options");
-  const cred = await navigator.credentials.get({
-    publicKey: {
-      ...o,
-      challenge: b64u.toBytes(o.challenge),
-      allowCredentials: (o.allowCredentials || []).map((c) => ({ ...c, id: b64u.toBytes(c.id) })),
-    },
-  });
-  const r = cred.response;
-  await post("/auth/login/verify", {
-    response: {
-      id: cred.id,
-      rawId: b64u.from(cred.rawId),
-      type: cred.type,
-      clientExtensionResults: cred.getClientExtensionResults(),
-      authenticatorAttachment: cred.authenticatorAttachment ?? undefined,
-      response: {
-        clientDataJSON: b64u.from(r.clientDataJSON),
-        authenticatorData: b64u.from(r.authenticatorData),
-        signature: b64u.from(r.signature),
-        userHandle: r.userHandle ? b64u.from(r.userHandle) : undefined,
-      },
-    },
-  });
-}
-
-function guessDevice() {
-  const ua = navigator.userAgent;
-  if (/iPhone/.test(ua)) return "iPhone";
-  if (/Android/.test(ua)) return "Android";
-  if (/Macintosh/.test(ua)) return "Mac";
-  return "device";
-}
-
 function signInScreen(message) {
   stopPoll();
   tabs.hidden = true;
   back.hidden = true;
-  const setup = new URLSearchParams(location.search).get("setup");
+  const here = encodeURIComponent(location.href);
   const err = message ? h("div", { class: "error" }, message) : null;
-  if (setup) {
-    const label = h("input", { class: "field", value: guessDevice(), "aria-label": "Device name" });
-    const btn = h("button", { class: "primary" }, "Add this device with a passkey");
-    btn.addEventListener("click", async () => {
-      btn.disabled = true;
-      try {
-        await addDevice(setup, label.value.trim() || "device");
-        history.replaceState(null, "", "/#/inbox");
-        route();
-      } catch (e) {
-        signInScreen(e.message);
-      }
-    });
-    screen(
-      "Add device",
-      h(
-        "div",
-        { class: "center" },
-        h("p", {}, "One time per device. Face ID, fingerprint or Touch ID."),
-        label,
-        btn,
-      ),
-      err,
-    );
-    return;
-  }
-  const btn = h("button", { class: "primary" }, "Sign in with passkey");
-  btn.addEventListener("click", async () => {
-    btn.disabled = true;
-    try {
-      await signIn();
-      route();
-    } catch (e) {
-      signInScreen(e.name === "NotAllowedError" ? "Cancelled." : e.message);
-    }
-  });
-  screen("Wren SMS", h("div", { class: "center" }, h("p", {}, "Signed out."), btn), err);
+  const btn = h("button", { class: "primary" }, "Sign in");
+  btn.addEventListener("click", () => AUTH && location.assign(`${AUTH}/?next=${here}`));
+  const passkey = AUTH
+    ? h("a", { href: `${AUTH}/passkeys?next=${here}` }, "Add a passkey on this device")
+    : null;
+  screen(
+    "Wren SMS",
+    h("div", { class: "center" }, h("p", {}, "Signed out. Use your Wren account."), btn, passkey),
+    err,
+  );
 }
 
 // ---- screens ----------------------------------------------------------------
@@ -493,5 +413,4 @@ document.addEventListener(
 );
 if ("serviceWorker" in navigator) navigator.serviceWorker.register("/sw.js").catch(() => {});
 
-if (new URLSearchParams(location.search).get("setup")) signInScreen();
-else route();
+route();

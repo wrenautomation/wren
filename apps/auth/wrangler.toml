@@ -9,7 +9,7 @@ workers_dev = false
 routes = [{ pattern = "auth.wrenautomation.com", custom_domain = true }]
 
 [vars]
-APPS = "https://app.wrenautomation.com"
+APPS = "https://app.wrenautomation.com,https://phone.wrenautomation.com"
 
 # The Worker decides first: /api/auth is the Lambda, the rest is the sign-in app.
 [assets]

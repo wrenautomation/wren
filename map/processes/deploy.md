@@ -22,7 +22,7 @@ Never ask before deploying; CI is the only path to prod. Migrations run first so
 
 1. Gates (`.github/workflows/ci.yml:14`–`16`; `scripts/gates.sh`).
 2. Trigger (`.github/workflows/deploy.yml:9`–`20`).
-3. Migrate (`deploy.yml:29`), bundle (`:32`), publish (`:38`), register (`:47`), phone (`:56`).
+3. Migrate (`deploy.yml:29`), bundle (`:32`), publish (`:38`), register (`:47`), phone (`:65`).
 4. Secrets: `deploy/scripts/push-secrets.sh` writes SSM `/wren/prod/env` and `/wren/prod/senders_config` by hand, never from CI.
 5. Infra: `deploy/terraform/` (Lambda, SSM, IAM, media bucket); the Postgres host is EC2 Docker per `walkthrough/04-production.md`.
 

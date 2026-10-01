@@ -1,36 +1,15 @@
 /**
  * The Worker with fake bindings: webhooks are signature-checked and forwarded
- * once per event id, the API is closed without a session and open with one, and
- * a device joins only through the setup token. WebAuthn's own verification is
- * the library's; it is stubbed here so the flow around it is what is tested.
+ * once per event id, and the desk opens only for a valid token from Wren's
+ * sign-in that names an operator.
  */
+import { forgetKeys } from "@wren/auth/verify";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-
-vi.mock("@simplewebauthn/server", () => ({
-  generateRegistrationOptions: vi.fn(async () => ({ challenge: "regchallenge" })),
-  generateAuthenticationOptions: vi.fn(async () => ({ challenge: "authchallenge" })),
-  verifyRegistrationResponse: vi.fn(
-    async ({ expectedChallenge }: { expectedChallenge: string }) => ({
-      verified: expectedChallenge === "regchallenge",
-      registrationInfo: {
-        credential: { id: "cred1", publicKey: new Uint8Array([1, 2, 3]), counter: 0 },
-      },
-    }),
-  ),
-  verifyAuthenticationResponse: vi.fn(
-    async ({ expectedChallenge }: { expectedChallenge: string }) => ({
-      verified: expectedChallenge === "authchallenge",
-      authenticationInfo: { newCounter: 7 },
-    }),
-  ),
-}));
-
-const { default: worker, DESK_HANDLERS } = await import("../src/worker.js");
-
 import type { Env } from "../src/env.js";
+import worker, { DESK_HANDLERS } from "../src/worker.js";
 
 const HOST = "https://phone.test";
-const kv = new Map<string, string>();
+const AUTH = "https://auth.test";
 let restateCalls: { url: string; headers: Headers; body: string }[] = [];
 let restateStatus = 200;
 let keys: CryptoKeyPair;
@@ -41,9 +20,32 @@ function b64(bytes: ArrayBuffer): string {
   for (const b of new Uint8Array(bytes)) bin += String.fromCharCode(b);
   return btoa(bin);
 }
+const b64u = (v: unknown) =>
+  btoa(typeof v === "string" ? v : JSON.stringify(v))
+    .replace(/\+/g, "-")
+    .replace(/\//g, "_")
+    .replace(/=+$/, "");
+
+/** A token as Wren's sign-in mints it, signed with `key`. */
+async function token(claims: Record<string, unknown>, key = keys.privateKey) {
+  const head = b64u({ alg: "EdDSA", kid: "k1", typ: "JWT" });
+  const body = b64u({
+    aud: ["wren"],
+    iss: AUTH,
+    sub: "u1",
+    exp: Math.floor(Date.now() / 1000) + 600,
+    email: "william@wrenautomation.com",
+    operator: true,
+    ...claims,
+  });
+  const sig = await crypto.subtle.sign("Ed25519", key, new TextEncoder().encode(`${head}.${body}`));
+  let bin = "";
+  for (const b of new Uint8Array(sig)) bin += String.fromCharCode(b);
+  return `${head}.${body}.${b64u(bin)}`;
+}
 
 beforeEach(async () => {
-  kv.clear();
+  forgetKeys();
   restateCalls = [];
   restateStatus = 200;
   keys = (await crypto.subtle.generateKey({ name: "Ed25519" }, true, [
@@ -53,17 +55,16 @@ beforeEach(async () => {
   const pub = (await crypto.subtle.exportKey("raw", keys.publicKey)) as ArrayBuffer;
   env = {
     ASSETS: { fetch: async () => new Response("<html>app</html>") } as unknown as Fetcher,
-    CREDS: {
-      get: async (k: string) => kv.get(k) ?? null,
-      put: async (k: string, v: string) => void kv.set(k, v),
-    } as unknown as KVNamespace,
-    SESSION_SECRET: "s3cret",
-    SETUP_TOKEN: "join-me",
+    AUTH_ORIGIN: AUTH,
     TELNYX_PUBLIC_KEY: b64(pub),
     RESTATE_INGRESS_URL: "https://restate.test/",
     RESTATE_AUTH_TOKEN: "rt",
   };
   vi.stubGlobal("fetch", async (url: string, init: RequestInit) => {
+    if (url === `${AUTH}/api/auth/jwks`) {
+      const jwk = await crypto.subtle.exportKey("jwk", keys.publicKey);
+      return Response.json({ keys: [{ ...jwk, kid: "k1" }] });
+    }
     restateCalls.push({ url, headers: new Headers(init.headers), body: String(init.body) });
     return new Response(JSON.stringify({ ok: true }), { status: restateStatus });
   });
@@ -80,7 +81,9 @@ const post = (path: string, body: unknown, headers: Record<string, string> = {})
     headers: { "content-type": "application/json", ...headers },
     body: JSON.stringify(body),
   });
-const cookieOf = (res: Response) => (res.headers.get("set-cookie") ?? "").split(";")[0] as string;
+const as = async (claims: Record<string, unknown> = {}) => ({
+  authorization: `Bearer ${await token(claims)}`,
+});
 
 async function signedWebhook(body: string, at = Math.floor(Date.now() / 1000)) {
   const sig = await crypto.subtle.sign(
@@ -136,82 +139,52 @@ describe("telnyx webhook", () => {
   });
 });
 
-describe("passkeys and the desk", () => {
-  async function join(): Promise<string> {
-    const opts = await post("/auth/register/options", { setup: "join-me" });
-    expect(opts.status).toBe(200);
-    const res = await post(
-      "/auth/register/verify",
-      { setup: "join-me", label: "iPhone", response: { id: "cred1" } },
-      { cookie: cookieOf(opts) },
-    );
-    expect(res.status).toBe(200);
-    return cookieOf(res);
-  }
-
-  it("the API is closed without a session", async () => {
+describe("the desk", () => {
+  it("is closed without a token, and shut when sign-in isn't set up", async () => {
     expect((await post("/api/threads", {})).status).toBe(401);
+    delete env.AUTH_ORIGIN;
+    expect((await post("/api/threads", {}, await as())).status).toBe(503);
     expect(restateCalls).toHaveLength(0);
   });
 
-  it("only the setup token adds a device", async () => {
-    expect((await post("/auth/register/options", { setup: "guess" })).status).toBe(403);
-    expect((await post("/auth/register/options", {})).status).toBe(403);
-    await join();
-    expect(JSON.parse(kv.get("cred:cred1") as string)).toMatchObject({
-      label: "iPhone",
-      counter: 0,
-    });
-  });
-
-  it("a joined device reaches the desk; a later sign-in updates the counter", async () => {
-    const session = await join();
-    const res = await post("/api/reply", { contactId: 3, body: "hi" }, { cookie: session });
+  it("an operator's token reaches SmsDesk", async () => {
+    const res = await post("/api/reply", { contactId: 3, body: "hi" }, await as());
     expect(res.status).toBe(200);
     expect(restateCalls[0]?.url).toBe("https://restate.test/SmsDesk/reply");
     expect(JSON.parse(restateCalls[0]?.body as string)).toEqual({ contactId: 3, body: "hi" });
-
-    const opts = await post("/auth/login/options", {});
-    const login = await post(
-      "/auth/login/verify",
-      { response: { id: "cred1" } },
-      { cookie: cookieOf(opts) },
-    );
-    expect(login.status).toBe(200);
-    expect(cookieOf(login)).toMatch(/^wren_session=/);
-    expect(JSON.parse(kv.get("cred:cred1") as string).counter).toBe(7);
   });
 
-  it("an unknown passkey, a missing challenge or a forged cookie is refused", async () => {
-    const opts = await post("/auth/login/options", {});
-    expect(
-      (await post("/auth/login/verify", { response: { id: "nope" } }, { cookie: cookieOf(opts) }))
-        .status,
-    ).toBe(403);
-    await join();
-    expect((await post("/auth/login/verify", { response: { id: "cred1" } })).status).toBe(400);
-    expect(
-      (await post("/api/threads", {}, { cookie: "wren_session=operator.9999999999.forged" }))
-        .status,
-    ).toBe(401);
-  });
-
-  it("only the app's handlers are open, and only as JSON", async () => {
-    const session = await join();
-    expect(DESK_HANDLERS.has("enroll")).toBe(false);
-    expect(
-      (await post("/api/enroll", { sequence: "x", limit: 5 }, { cookie: session })).status,
-    ).toBe(404);
-    const form = await call("/api/threads", {
-      method: "POST",
-      headers: { cookie: session, "content-type": "text/plain" },
-      body: "{}",
-    });
-    expect(form.status).toBe(415);
+  it("a client's token is turned away; a forged, expired or foreign one is not a sign-in", async () => {
+    expect((await post("/api/threads", {}, await as({ operator: false }))).status).toBe(403);
+    const stranger = (await crypto.subtle.generateKey({ name: "Ed25519" }, true, [
+      "sign",
+      "verify",
+    ])) as CryptoKeyPair;
+    for (const bad of [
+      await token({}, stranger.privateKey),
+      await token({ exp: Math.floor(Date.now() / 1000) - 60 }),
+      await token({ iss: "https://elsewhere.test" }),
+      await token({ aud: ["other"] }),
+    ])
+      expect((await post("/api/threads", {}, { authorization: `Bearer ${bad}` })).status).toBe(401);
     expect(restateCalls).toHaveLength(0);
   });
 
-  it("everything else is the static app", async () => {
+  it("only the app's handlers are open, and only as JSON", async () => {
+    expect(DESK_HANDLERS.has("enroll")).toBe(false);
+    expect((await post("/api/enroll", { sequence: "x", limit: 5 }, await as())).status).toBe(404);
+    const form = await call("/api/threads", {
+      method: "POST",
+      headers: { ...(await as()), "content-type": "text/plain" },
+      body: "{}",
+    });
+    expect(form.status).toBe(415);
+    expect((await call("/api/threads")).status).toBe(405);
+    expect(restateCalls).toHaveLength(0);
+  });
+
+  it("the old passkey routes are gone; everything else is the static app", async () => {
+    expect(await (await post("/auth/login/options", {})).text()).toContain("app");
     expect(await (await call("/")).text()).toContain("app");
   });
 });
