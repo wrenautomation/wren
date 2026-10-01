@@ -9,7 +9,7 @@
 import { createHash } from "node:crypto";
 import { type Company, companies, inPlay } from "@wren/core";
 import type { Queryable } from "@wren/db";
-import { and, asc, count, eq, isNotNull, isNull, notInArray, sql } from "drizzle-orm";
+import { and, asc, count, eq, isNotNull, isNull, sql } from "drizzle-orm";
 import { FetchError, type Fetcher, type FetchResponse } from "../fetch/fetcher.js";
 import { looksLikeJsShell, readPage } from "../fetch/htmltext.js";
 import { canFetch, type RobotsCache } from "../fetch/robots.js";
@@ -231,19 +231,15 @@ export interface CrawlSelectOptions {
   shard?: Shard | null | undefined;
 }
 
-const crawledCompanyIds = (db: Queryable) =>
-  db.select({ id: documents.companyId }).from(documents).where(isNotNull(documents.companyId));
+/** NOT EXISTS, not NOT IN: Postgres cannot hash a NOT IN over a big documents table and goes quadratic. */
+const uncrawled = sql`NOT EXISTS (SELECT 1 FROM ${documents} WHERE ${documents.companyId} = ${companies.id})`;
 
 /** Companies with a domain and no documents yet, verified domains first. */
 export async function selectCrawlTargets(
   db: Queryable,
   opts: CrawlSelectOptions = {},
 ): Promise<Company[]> {
-  const conditions = [
-    isNotNull(companies.domain),
-    inPlay,
-    notInArray(companies.id, crawledCompanyIds(db)),
-  ];
+  const conditions = [isNotNull(companies.domain), inPlay, uncrawled];
   if (opts.niche != null) conditions.push(eq(companies.niche, opts.niche));
   if (opts.shard) conditions.push(opts.shard.where(companies.id));
   const q = db
@@ -259,13 +255,7 @@ export async function countCrawlNicheNullSkipped(db: Queryable): Promise<number>
   const [r] = await db
     .select({ n: count() })
     .from(companies)
-    .where(
-      and(
-        isNotNull(companies.domain),
-        notInArray(companies.id, crawledCompanyIds(db)),
-        isNull(companies.niche),
-      ),
-    );
+    .where(and(isNotNull(companies.domain), uncrawled, isNull(companies.niche)));
   return r?.n ?? 0;
 }
 

@@ -170,6 +170,25 @@ describe("Enrichment virtual object", () => {
     expect((await client(ALL_NICHES).crawl({ limit: 10 })).companies_crawled).toBe(1);
   });
 
+  it("a niche@i/n key crawls only its shard, so shard keys run side by side", async () => {
+    const ids: number[] = [];
+    for (const name of ["Ash", "Birch", "Cedar", "Dogwood"]) {
+      const c = await makeCompany(db(), {
+        key: null,
+        domain: `${name.toLowerCase()}.example`,
+        name,
+        niche: "agencies",
+      });
+      ids.push(c.id);
+    }
+    // The fake web has none of these sites: each visit ends unreachable, which still counts.
+    const visited = (s: { companies_crawled: number; homepage_unreachable: number }) =>
+      s.companies_crawled + s.homepage_unreachable;
+    const even = ids.filter((id) => id % 2 === 0).length;
+    expect(visited(await client("agencies@0/2").crawl({ limit: 10 }))).toBe(even);
+    expect(visited(await client("agencies@1/2").crawl({ limit: 10 }))).toBe(4 - even);
+  });
+
   it("render shares one browser across units, closes it when idle, and hands the page to scan", async () => {
     const spa = await makeCompany(db(), {
       key: null,

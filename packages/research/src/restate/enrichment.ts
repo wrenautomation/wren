@@ -128,8 +128,15 @@ function browserPool(launch: () => Promise<BrowserRenderer>, idleMs: number) {
 
 /** The key that means "every niche". */
 export const ALL_NICHES = "all";
-const nicheOf = (ctx: restate.ObjectContext): string | null =>
-  ctx.key === ALL_NICHES ? null : ctx.key;
+/**
+ * A key is a niche, or `niche@i/n` for one shard of it: each key runs one handler at
+ * a time, so shard keys are how a backlog crawls side by side.
+ */
+const nicheOf = (ctx: restate.ObjectContext): string | null => {
+  const niche = ctx.key.split("@")[0] as string;
+  return niche === ALL_NICHES ? null : niche;
+};
+const keyShard = (ctx: restate.ObjectContext): string | undefined => ctx.key.split("@")[1];
 
 export interface CrawlInput {
   limit?: number;
@@ -217,7 +224,7 @@ export function makeEnrichment(deps: EnrichmentDeps) {
     handlers: {
       crawl: async (ctx: restate.ObjectContext, input: CrawlInput = {}): Promise<CrawlStats> => {
         const niche = nicheOf(ctx);
-        const shard = parseShard(input.shard);
+        const shard = parseShard(input.shard ?? keyShard(ctx));
         const runId = await open(ctx, "enrich crawl", { ...input, niche });
         const ids = await ctx.run("select", async () =>
           (await selectCrawlTargets(deps.db, { limit: input.limit ?? 10, niche, shard })).map(
@@ -251,7 +258,7 @@ export function makeEnrichment(deps: EnrichmentDeps) {
       render: async (ctx: restate.ObjectContext, input: RenderInput = {}): Promise<RenderStats> => {
         if (!withBrowser) throw new restate.TerminalError("no browser renderer configured");
         const niche = nicheOf(ctx);
-        const shard = parseShard(input.shard);
+        const shard = parseShard(input.shard ?? keyShard(ctx));
         const runId = await open(ctx, "enrich render", { ...input, niche });
         const ids = await ctx.run("select", async () =>
           (await selectRenderTargets(deps.db, { limit: input.limit ?? 10, niche, shard })).map(
@@ -317,7 +324,7 @@ export function makeEnrichment(deps: EnrichmentDeps) {
         input: ExtractInput = {},
       ): Promise<ExtractionStats> => {
         const niche = nicheOf(ctx);
-        const shard = parseShard(input.shard);
+        const shard = parseShard(input.shard ?? keyShard(ctx));
         const runId = await open(ctx, "enrich extract", { ...input, niche }, deps.llm.name);
         const selected = await ctx.run("select", async () => {
           const { targets, skippedOlderVersion } = await selectExtractionTargets(
@@ -375,7 +382,7 @@ export function makeEnrichment(deps: EnrichmentDeps) {
 
       pick: async (ctx: restate.ObjectContext, input: PickInput = {}): Promise<EmailPickStats> => {
         const niche = nicheOf(ctx);
-        const shard = parseShard(input.shard);
+        const shard = parseShard(input.shard ?? keyShard(ctx));
         const runId = await open(
           ctx,
           "enrich pick",
@@ -430,7 +437,7 @@ export function makeEnrichment(deps: EnrichmentDeps) {
 
       opener: async (ctx: restate.ObjectContext, input: PickInput = {}): Promise<OpenerStats> => {
         const niche = nicheOf(ctx);
-        const shard = parseShard(input.shard);
+        const shard = parseShard(input.shard ?? keyShard(ctx));
         const runId = await open(
           ctx,
           "enrich opener",
