@@ -112,7 +112,7 @@ export async function youtubeSource(
   fetchFn: typeof fetch = fetch,
 ): Promise<Source> {
   const [cmd, ...pre] = ytDlp.split(/\s+/) as [string, ...string[]];
-  const { stdout } = await run(cmd, [...pre, "-J", "--no-warnings", url], {
+  const { stdout } = await run(cmd, [...pre, "-J", "--no-warnings", "--no-playlist", url], {
     maxBuffer: 256 * 1024 * 1024,
   });
   const info = JSON.parse(stdout) as VideoInfo;
@@ -300,6 +300,22 @@ export async function extractPoints(dir: string, llm: LlmClient, only?: string):
   return out;
 }
 
+/** The folder as a Claude Code skill: SKILL.md points at SOP.md and refs/, so `sop link` is a symlink. */
+export function skillMd(name: string, sop: string): string {
+  const purpose =
+    sop
+      .split("\n")
+      .find((l) => l.trim() && !l.startsWith("#"))
+      ?.trim() ?? name;
+  return `---
+name: sop-${name}
+description: ${JSON.stringify(`SOP: ${purpose}`)}
+---
+
+Read \`SOP.md\` in this folder in full and follow it. Its examples and prompts are the bar. Reference files (designs, PDFs, images) are in \`refs/\` when present; look at them before writing.
+`;
+}
+
 /** Build the next SOP.md from the folder; returns it. The model answers in markdown, no schema. */
 export async function buildSop(dir: string, llm: LlmClient): Promise<string> {
   const read = await readSopDir(dir);
@@ -309,6 +325,7 @@ export async function buildSop(dir: string, llm: LlmClient): Promise<string> {
   const { text } = await llm.complete(sopPrompt({ name, ...read }), { maxTokens: 8000 });
   const sop = `${text.trim().replace(/^```(?:markdown)?\n([\s\S]*?)\n```$/, "$1")}\n`;
   await writeFile(join(dir, "SOP.md"), sop);
+  await writeFile(join(dir, "SKILL.md"), skillMd(name, sop));
   // ponytail: tokens ≈ chars/4; swap in a real tokenizer if the estimate starts to matter.
   const row = (name: string, md: string) =>
     `${name}\t${md.split(/\s+/).filter(Boolean).length} words\t~${Math.round(md.length / 4)} tokens`;

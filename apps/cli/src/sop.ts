@@ -6,8 +6,9 @@
  * again. Drive reads go through autobrowse's `drive` site on this machine.
  */
 import { spawnSync } from "node:child_process";
-import { readdir } from "node:fs/promises";
-import { join, resolve } from "node:path";
+import { copyFile, mkdir, readdir, symlink, unlink } from "node:fs/promises";
+import { homedir } from "node:os";
+import { basename, join, resolve } from "node:path";
 import type { Settings } from "@wren/config";
 import { ClaudeCodeLlm } from "@wren/llm";
 import {
@@ -62,7 +63,15 @@ export function registerSop(program: Command, settings: Settings, rootDir: strin
         if (!opts.account) throw new Error("drive: needs --account <address>");
         const drive = autobrowseDrive(resolve(rootDir, settings.autobrowseDir), opts.account);
         sources = await driveSources(what.slice("drive:".length), drive, priority);
-      } else sources = [await fileSource(resolve(what), priority)];
+      } else if (/\.(md|txt)$/i.test(what)) sources = [await fileSource(resolve(what), priority)];
+      else {
+        // Not text (PDF, image, design export): kept as a reference file, not a source.
+        await mkdir(join(dir, "refs"), { recursive: true });
+        const to = join(dir, "refs", basename(what));
+        await copyFile(resolve(what), to);
+        console.log(to);
+        return;
+      }
       for (const s of sources) console.log(await addSource(dir, s));
     });
 
@@ -86,6 +95,18 @@ export function registerSop(program: Command, settings: Settings, rootDir: strin
     .action(async (name: string, source: string | undefined, opts: { model: string }) => {
       const llm = new ClaudeCodeLlm(opts.model, { timeoutMs: 1_800_000 });
       for (const f of await extractPoints(join(sopsDir, name), llm, source)) console.log(f);
+    });
+
+  sop
+    .command("link <name>")
+    .description(
+      "expose the SOP folder as the Claude Code skill `sop-<name>` (symlink in ~/.claude/skills)",
+    )
+    .action(async (name: string) => {
+      const to = join(homedir(), ".claude", "skills", `sop-${name}`);
+      await unlink(to).catch(() => {});
+      await symlink(join(sopsDir, name), to, "dir");
+      console.log(to);
     });
 
   sop
