@@ -64,6 +64,9 @@ The portal stops being a set of pages and becomes a packaged app. One shell, pro
 - **P5. Run shows a live run when one is going, and a labeled replay when not.** (Revised at step 4.)
   - Live: `crm run` writes one plain line per person or company as it works, into `run_events` (a new table; core `runFeed`). The page polls with the last `seq` it has: every 1.5s while a run is going, every 10s while not.
   - Replay: rebuilt from the records every stage keeps (verifications, lookups, company checks, findings, scores, briefs, emails), in the live run's words. The label stays on screen: "Replay of the work on your list as of Sep 30, sped up."
+  - How: any line about a person or company opens its work under the feed, like an answer engine's search (`reactivation/work`). Each step in order: the query, the pages read (site mark + short address, no third-party favicons), what each said, kept or dead end. Then the fact kept (fields, how sure, source, date seen) or, for a rank, the points. Built from the trail each lookup and check keeps (`tried`). Opening one pauses the replay. A Sources strip above the feed counts the sites cited so far.
+  - Never shown to a client: the vendor a search went through, or a cap's own message (it names our account). A cap reads "Paused for the day" with the retry date. Operators also see each step's raw record, emails cut.
+  - Demo: lines name people masked, so the route matches a name as the demo shows it. Profile links the mask cuts keep their label and lose the link.
   - Story order (verify → lookup → signals → score → brief → compose), not clock order. A stage with no records is left out, never filled in.
   - A run that starts while you watch the replay is offered ("Watch it live"), never swapped in.
   - There is never a fake live run.
@@ -148,3 +151,4 @@ What keeps it cheap later, built now:
   - Landing on the first page → `/` is the launcher when there are two or more apps. `/<app>` opens its first page; unknown paths go home.
   - Page icons dropped (tabs are text). First tabs renamed "Overview", since "Home" now reads as the launcher.
   - Later: a client sees only the apps it has (`clients.products`), once a second product ships.
+- **2026-10-01** Run audit log, after William's "the audit logs should still have more details, do what exa or perplexity does UI wise": a How panel per line and a Sources strip (P5).

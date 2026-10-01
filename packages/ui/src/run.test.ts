@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { dwellOf, RUN_DWELL, type RunLine, stepsAt } from "./run.js";
+import { dwellOf, RUN_DWELL, type RunLine, sourcesOf, stepsAt } from "./run.js";
 
 const line = (id: number, step: string, kind: RunLine["kind"], subject?: string): RunLine => ({
   id,
@@ -124,5 +124,32 @@ describe("edge cases", () => {
 
   it("no line to hold: no wait", () => {
     expect(dwellOf(undefined, 10, true)).toBe(0);
+  });
+});
+
+describe("sourcesOf", () => {
+  it("counts the sites the lines cite by address, most first", () => {
+    const line = (id: number, label?: string) => ({
+      id,
+      step: "lookup",
+      kind: "found" as const,
+      text: "x",
+      ...(label ? { source: { label } } : {}),
+    });
+    const at = (id: number, href: string) => ({
+      ...line(id, "Web search"),
+      source: { label: "Web search", href },
+    });
+    expect(
+      sourcesOf([
+        line(1, "Your CRM"),
+        line(2),
+        at(3, "https://www.linkedin.com/in/a"),
+        at(4, "https://linkedin.com/in/b"),
+      ]),
+    ).toEqual([
+      { label: "linkedin.com", count: 2 },
+      { label: "Your CRM", count: 1 },
+    ]);
   });
 });

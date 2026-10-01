@@ -53,6 +53,12 @@ export type {
   StepState,
   Story,
   WhyLine,
+  WorkFact,
+  WorkIcon,
+  WorkLink,
+  WorkOption,
+  WorkStep,
+  WorkView,
 } from "@wren/reactivation/restate";
 
 export class ApiError extends Error {

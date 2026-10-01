@@ -4,7 +4,8 @@
  * the end. It plays one line at a time in the order given; a replay on its own
  * clock, a live run as lines arrive. A backlog plays at most twice as fast and
  * nothing is skipped. With reduced motion it shows where things stand, still.
- * Space pauses. Pick a step or a line to follow it through the graph.
+ * Space pauses. Pick a step or a line to follow it through the graph. A line
+ * with work behind it opens that work under the feed, and the replay waits.
  *
  * A foundation piece: steps, lines and sources are plain props, so any product
  * maps its own run onto them.
@@ -28,8 +29,9 @@ import {
   OUTPUT,
   tracksOf,
 } from "./flow.js";
-import { cx, num } from "./format.js";
+import { cx, hostOf, num } from "./format.js";
 import { Icon } from "./icons.js";
+import { SiteMark } from "./work.js";
 
 export type RunLineKind = "started" | "did" | "found" | "waiting" | "failed" | "done";
 
@@ -46,6 +48,17 @@ export interface RunLine {
   source?: { label: string; href?: string | null } | null;
   /** The technical why, for operators; shown small under the line. */
   detail?: string | null;
+}
+
+/** The sites the shown lines cite, by their address when they have one, most cited first. */
+export function sourcesOf(lines: readonly RunLine[]): { label: string; count: number }[] {
+  const by = new Map<string, number>();
+  for (const l of lines) {
+    if (!l.source) continue;
+    const site = hostOf(l.source.href ?? null) ?? l.source.label;
+    by.set(site, (by.get(site) ?? 0) + 1);
+  }
+  return [...by].map(([label, count]) => ({ label, count })).sort((a, b) => b.count - a.count);
 }
 
 export interface RunStep {
@@ -263,6 +276,7 @@ export function RunView({
   input,
   output,
   pace = 1,
+  work,
   className,
 }: {
   /** Every step the run can take. A replay leaves out the ones it has no lines for. */
@@ -280,12 +294,15 @@ export function RunView({
   output?: RunEnd;
   /** Multiplies every dwell: 0.5 plays twice as fast. */
   pace?: number;
+  /** The work behind a line, opened under the feed; null when a line has none. */
+  work?: ((line: RunLine) => ReactNode) | undefined;
   className?: string | undefined;
 }) {
   const still = useMemo(prefersStill, []);
   const [shown, setShown] = useState(() => (still ? lines.length : 0));
   const [paused, setPaused] = useState(false);
   const [focus, setFocus] = useState<RunFocus>(null);
+  const [opened, setOpened] = useState<RunLine | null>(null);
   const total = lines.length;
   // Caught up isn't over: a live run is over when it says so.
   const over = shown >= total && !live;
@@ -304,7 +321,10 @@ export function RunView({
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
-      if (e.code === "Escape") return setFocus(null);
+      if (e.code === "Escape") {
+        setOpened(null);
+        return setFocus(null);
+      }
       if (e.code !== "Space" || e.repeat || typing(e.target)) return;
       e.preventDefault();
       setPaused((p) => !p);
@@ -388,6 +408,13 @@ export function RunView({
       });
 
   const shownLines = lines.slice(0, shown);
+  const sources = sourcesOf(shownLines);
+  const panel = opened && work ? work(opened) : null;
+  // Opening a line's work holds the replay there; closing it leaves it paused for Play.
+  const open = (l: RunLine) => {
+    setOpened((o) => (o?.id === l.id ? null : l));
+    setPaused(true);
+  };
   const visible = !focus
     ? shownLines
     : shownLines.filter((l) =>
@@ -503,7 +530,7 @@ export function RunView({
                     {n.id === OUTPUT && over ? <Icon name="check" size={12} /> : null}
                     {end.label}
                   </span>
-                  {end.note ? <span className="ui-run-source">{end.note}</span> : null}
+                  {end.note ? <span className="ui-run-site">{end.note}</span> : null}
                 </li>
               );
             const s = byId.get(n.id);
@@ -536,7 +563,7 @@ export function RunView({
                       {s.short ?? s.label}
                     </span>
                   </span>
-                  {s.source ? <span className="ui-run-source">{s.source}</span> : null}
+                  {s.source ? <span className="ui-run-site">{s.source}</span> : null}
                   <span className="ui-run-tally">
                     <span className="ui-run-count">{num(v.handled)}</span>
                     {s.found && v.found ? (
@@ -591,6 +618,19 @@ export function RunView({
         )}
       </p>
 
+      {sources.length ? (
+        <p className="ui-run-sources">
+          <span className="ui-run-sources-label">Sources</span>
+          {sources.map((x) => (
+            <span key={x.label} className="ui-run-site">
+              <SiteMark site={x.label} />
+              {x.label}
+              <b>{num(x.count)}</b>
+            </span>
+          ))}
+        </p>
+      ) : null}
+
       <ol
         ref={feed}
         className="ui-run-feed"
@@ -598,7 +638,12 @@ export function RunView({
         aria-live={live ? "polite" : "off"}
       >
         {visible.map((l) => (
-          <li key={l.id} className="ui-run-line" data-kind={l.kind}>
+          <li
+            key={l.id}
+            className="ui-run-line"
+            data-kind={l.kind}
+            data-open={opened?.id === l.id || undefined}
+          >
             <span className="ui-run-mark" aria-hidden="true" />
             <span className="ui-run-text">
               {aboutOne(l) && l.subject ? (
@@ -629,10 +674,35 @@ export function RunView({
                 <span className="ui-run-cite">{l.source.label}</span>
               )
             ) : null}
+            {work && aboutOne(l) && work(l) !== null ? (
+              <button
+                type="button"
+                className="ui-run-how"
+                aria-expanded={opened?.id === l.id}
+                aria-controls="ui-run-work"
+                onClick={() => open(l)}
+              >
+                How
+              </button>
+            ) : null}
           </li>
         ))}
         {!shown ? <li className="ui-run-line ui-run-wait">Starting…</li> : null}
       </ol>
+
+      {opened && panel ? (
+        <div id="ui-run-work" className="ui-run-work">
+          <button
+            type="button"
+            className="ui-run-work-close"
+            aria-label="Close"
+            onClick={() => setOpened(null)}
+          >
+            <Icon name="close" size={14} />
+          </button>
+          {panel}
+        </div>
+      ) : null}
 
       {over && results ? <div className="ui-run-results">{results}</div> : null}
     </div>

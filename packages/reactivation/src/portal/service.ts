@@ -46,6 +46,7 @@ import {
   portalRaw,
   type RawPage,
 } from "./views.js";
+import { portalWork, unlinkMasked, type WorkView } from "./work.js";
 
 export { PortalRefusal, type PortalRequest, type Viewer } from "@wren/core/portal";
 
@@ -60,6 +61,13 @@ export interface PortalDeps {
 export const DEMO_NAME = "Sample recruiting firm";
 
 /** Read one client's database, read-only, masked when it is the demo. */
+/** The demo's mask: list surnames to initials, the agency's name to the demo's. */
+async function demoMask(tx: Queryable, client: Client) {
+  const firm = (await readClientProfile(tx))?.firm;
+  const agency = { names: [client.name, firm].filter((n): n is string => !!n), as: DEMO_NAME };
+  return makeMask(await listNames(tx), agency);
+}
+
 async function read<T>(
   deps: PortalDeps,
   req: PortalRequest,
@@ -70,10 +78,7 @@ async function read<T>(
   return db.transaction(
     async (tx) => {
       const out = await view(tx, client);
-      if (!client.demo) return out;
-      const firm = (await readClientProfile(tx))?.firm;
-      const agency = { names: [client.name, firm].filter((n): n is string => !!n), as: DEMO_NAME };
-      return makeMask(await listNames(tx), agency)(out);
+      return client.demo ? (await demoMask(tx, client))(out) : out;
     },
     { accessMode: "read only" },
   );
@@ -143,6 +148,21 @@ export function portalApi(deps: PortalDeps) {
           operator: seesInternal(req),
         }),
       ),
+    /** The work behind one run line: a step and who it was about. */
+    work: async (req: PortalRequest & { step?: string; subject?: string }): Promise<WorkView> => {
+      const step = textOf(req.step);
+      const subject = textOf(req.subject)?.slice(0, 200);
+      if (!step || !subject) throw new PortalRefusal("no such line in this run", 404);
+      // The demo's lines name people as masked, so a name matches as the demo shows it.
+      const view = await read(deps, req, async (db, client) => {
+        if (!client.demo) return portalWork(db, { step, subject, operator: seesInternal(req) });
+        const shown = await demoMask(db, client);
+        const work = await portalWork(db, { step, subject, operator: seesInternal(req), shown });
+        return work && unlinkMasked(work, shown);
+      });
+      if (!view) throw new PortalRefusal("nothing kept for that line", 404);
+      return view;
+    },
     people: (
       req: PortalRequest & { filter?: PeopleFilter; offset?: number; q?: string },
     ): Promise<PeoplePage> =>
@@ -277,6 +297,7 @@ export type {
   RawPage,
   Source,
 } from "./views.js";
+export type { WorkFact, WorkIcon, WorkLink, WorkOption, WorkStep, WorkView } from "./work.js";
 
 /**
  * No journal: a retry reads again, or writes again, and every write is
@@ -293,6 +314,7 @@ export function makeReactivationPortal(deps: PortalDeps) {
       health: (_: restate.Context, req: Req<"health">) => answer(() => api.health(req)),
       setup: (_: restate.Context, req: Req<"setup">) => answer(() => api.setup(req)),
       run: (_: restate.Context, req: Req<"run">) => answer(() => api.run(req)),
+      work: (_: restate.Context, req: Req<"work">) => answer(() => api.work(req)),
       people: (_: restate.Context, req: Req<"people">) => answer(() => api.people(req)),
       person: (_: restate.Context, req: Req<"person">) => answer(() => api.person(req)),
       raw: (_: restate.Context, req: Req<"raw">) => answer(() => api.raw(req)),

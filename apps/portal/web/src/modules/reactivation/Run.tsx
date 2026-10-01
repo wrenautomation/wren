@@ -13,9 +13,10 @@ import {
   type RunLine,
   type RunStep,
   RunView,
+  RunWorkTrail,
 } from "@wren/ui";
-import { useEffect, useRef, useState } from "react";
-import { call, type LiveRun, type RunPage } from "../../api.js";
+import { type ReactNode, useEffect, useRef, useState } from "react";
+import { call, type LiveRun, type RunPage, type WorkView } from "../../api.js";
 import type { PageProps } from "../../module.js";
 import { at } from "./nav.js";
 
@@ -88,6 +89,62 @@ const dayOf = (iso: string | null) =>
   iso ? new Date(iso).toLocaleDateString("en-US", { month: "short", day: "numeric" }) : null;
 const timeOf = (iso: string) =>
   new Date(iso).toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" });
+
+/** The steps that keep their work, and what opening one shows. */
+const WORK_TITLES: Record<string, (who: string) => string> = {
+  lookup: (who) => `How we found where ${who} is now`,
+  signals: (who) => `How we checked if ${who} is hiring`,
+  score: (who) => `Why ${who} ranks here`,
+  brief: (who) => `What ${who}'s brief drew on`,
+  compose: (who) => `How ${who}'s email was drafted`,
+};
+
+/** Each line's work, asked for once when it's opened, then kept for the visit. */
+function LineWork({ line, client, team }: { line: RunLine; client: string; team: boolean }) {
+  const key = `${line.step}|${line.subject}`;
+  const [got, setGot] = useState<{ key: string; view: WorkView | null; error?: string } | null>(
+    () => (WORK_SEEN.has(key) ? { key, view: WORK_SEEN.get(key) ?? null } : null),
+  );
+  useEffect(() => {
+    if (WORK_SEEN.has(key)) return setGot({ key, view: WORK_SEEN.get(key) ?? null });
+    let on = true;
+    setGot(null);
+    call<WorkView>("reactivation/work", {
+      client,
+      asClient: !team,
+      step: line.step,
+      subject: line.subject,
+    }).then(
+      (view) => {
+        WORK_SEEN.set(key, view);
+        if (on) setGot({ key, view });
+      },
+      (err: unknown) =>
+        on && setGot({ key, view: null, error: err instanceof Error ? err.message : String(err) }),
+    );
+    return () => {
+      on = false;
+    };
+  }, [key, client, team, line.step, line.subject]);
+
+  const title = (WORK_TITLES[line.step] ?? ((who: string) => who))(line.subject ?? "");
+  if (!got || got.key !== key) return <Loading lines={4} />;
+  if (!got.view)
+    return <p className="rx-quiet">{got.error ?? "Nothing more to show for this line."}</p>;
+  const view = got.view;
+  return (
+    <>
+      <RunWorkTrail work={view} title={title} />
+      {view.personId ? (
+        <p className="rx-run-work-more">
+          <a href={at("people", { person: view.personId })}>Open {view.subject}'s page</a>
+        </p>
+      ) : null}
+    </>
+  );
+}
+const WORK_SEEN = new Map<string, WorkView>();
+const withWork = (line: RunLine) => !!line.subject && line.step in WORK_TITLES;
 
 /** The first load, then new lines as they're written: fast while a run is going, slow while not. */
 function useRun(client: string, team: boolean) {
@@ -164,7 +221,7 @@ export function Run({ client, demo, team }: PageProps) {
           <Loading lines={8} />
         )
       ) : watching ? (
-        <Live run={watching} demo={demo} />
+        <Live run={watching} demo={demo} work={workOf(client, team)} />
       ) : (
         <>
           {live?.open ? (
@@ -177,14 +234,20 @@ export function Run({ client, demo, team }: PageProps) {
               </Button>
             </div>
           ) : null}
-          <Replay page={first} demo={demo} />
+          <Replay page={first} demo={demo} work={workOf(client, team)} />
         </>
       )}
     </>
   );
 }
 
-function Live({ run, demo }: { run: LiveRun; demo: boolean }) {
+type WorkOf = (line: RunLine) => ReactNode;
+const workOf =
+  (client: string, team: boolean): WorkOf =>
+  (line) =>
+    withWork(line) ? <LineWork line={line} client={client} team={team} /> : null;
+
+function Live({ run, demo, work }: { run: LiveRun; demo: boolean; work: WorkOf }) {
   const label = run.open
     ? `Live. Started at ${timeOf(run.startedAt)}.`
     : `Finished at ${timeOf(run.finishedAt ?? run.startedAt)}.`;
@@ -195,6 +258,7 @@ function Live({ run, demo }: { run: LiveRun; demo: boolean }) {
       lines={run.lines.map(toRunLine)}
       live={run.open}
       label={label}
+      work={work}
       input={INPUT}
       output={outputOf(demo)}
       results={<Results demo={demo} />}
@@ -202,7 +266,7 @@ function Live({ run, demo }: { run: LiveRun; demo: boolean }) {
   );
 }
 
-function Replay({ page, demo }: { page: RunPage; demo: boolean }) {
+function Replay({ page, demo, work }: { page: RunPage; demo: boolean; work: WorkOf }) {
   const story = page.story;
   if (!story?.lines.length)
     return (
@@ -217,6 +281,7 @@ function Replay({ page, demo }: { page: RunPage; demo: boolean }) {
       steps={STEPS}
       lines={story.lines.map(toRunLine)}
       label={`Replay of the work on your list${day ? ` as of ${day}` : ""}, sped up.`}
+      work={work}
       input={INPUT}
       output={outputOf(demo)}
       results={<Results demo={demo} />}

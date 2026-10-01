@@ -393,3 +393,12 @@
     font-size: 23px;
   }
 }
+
+.rx-run-work-more {
+  margin: 12px 0 0;
+  font-size: 13px;
+}
+.rx-run-work-more a {
+  color: var(--ui-accent);
+  font-weight: 600;
+}
