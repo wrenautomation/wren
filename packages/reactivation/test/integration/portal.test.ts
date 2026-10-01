@@ -4,6 +4,7 @@
  * address's local part, a profile link's name or the agency it was built
  * from, whatever the route or field.
  */
+import { runFeed } from "@wren/core";
 import { clients } from "@wren/core/clients";
 import type { Db } from "@wren/db";
 import { startTestPostgres, type TestPostgres } from "@wren/db/testing";
@@ -23,6 +24,7 @@ const opened: unknown[] = [];
 let api: ReturnType<typeof portalApi>;
 let enrollmentId = 0;
 let replyId = 0;
+let runId = "";
 
 const personId = async (full: string) => {
   const [r] = await pg.db.execute<{ id: number }>(
@@ -97,6 +99,27 @@ beforeAll(async () => {
       'Sure. Cara Lim, cara.lim@initech.example, linkedin.com/in/cara-lim', now())
     returning id`);
   replyId = reply?.id ?? 0;
+  // A run that said what it found, naming Cara and Jane every way a line can.
+  const [run] = await db.execute<{ id: string }>(
+    sql`insert into runs (id, command, argv) values (gen_random_uuid(), 'crm run', '[]'::jsonb) returning id`,
+  );
+  runId = run?.id ?? "";
+  const feed = runFeed(db, runId);
+  await feed.emit({ step: "lookup", kind: "started", line: "Finding where each person is now" });
+  await feed.emit({
+    step: "lookup",
+    kind: "found",
+    subject: "Cara Lim",
+    line: "Cara Lim moved to Initech, Senior Recruiter",
+    source: { label: "Web search", href: "https://www.linkedin.com/in/cara-lim/" },
+  });
+  await feed.emit({
+    step: "lookup",
+    kind: "failed",
+    subject: "Jane Doe",
+    line: "Couldn't finish Jane Doe; it will be tried again",
+    detail: "Error: 429 for jane.doe@umbrellahealth.com",
+  });
   // The firm's side: an export named for the agency, a profile that signs as it, a fee.
   await db.execute(sql`update imports set source_ref = 'northside-bullhorn-export.csv'`);
   await setClientProfile(db, {
@@ -171,6 +194,8 @@ describe("the demo", () => {
       ["raw search", await api.raw({ ...demo, via: "search" })],
       ["person", await api.person({ ...demo, personId: cara })],
       ["person jane", await api.person({ ...demo, personId: await personId("Jane Doe") })],
+      ["run", await api.run(demo)],
+      ["run after", await api.run({ ...demo, run: runId, after: 0 })],
     ];
     for (const filter of PEOPLE_FILTERS)
       answers.push([`people ${filter}`, await api.people({ ...demo, filter })]);
@@ -228,6 +253,37 @@ describe("the demo", () => {
     expect(step("sent")?.state).not.toBe("next");
   });
 
+  it("the run page: the live run, then only what is new, and the replay on first load", async () => {
+    const first = await api.run(demo);
+    expect(first.live).toMatchObject({ run: runId, command: "crm run", open: true });
+    expect(first.live?.lines.map((l) => l.line)).toEqual([
+      "Finding where each person is now",
+      "Cara L. moved to Initech, Senior Recruiter",
+      "Couldn't finish Jane D.; it will be tried again",
+    ]);
+    expect(first.live?.lines.map((l) => l.detail)).toEqual([null, null, null]);
+    expect(first.live?.lines[1]?.source).toEqual({
+      label: "Web search",
+      href: "https://www.linkedin.com/in/•••/",
+    });
+    const story = first.story?.lines.map((l) => l.line) ?? [];
+    expect(story).toContain("Cara L. moved to Initech, Senior Recruiter");
+    expect(story).toContain("Umbrella Health is hiring: 2 open roles");
+    expect(story).toContain("Wrote a brief on Cara L.: 2 sourced lines");
+    expect(story).toContain("Drafted an email to Cara L.: waiting for your OK");
+    // The seed checked no addresses: the replay leaves that step out rather than fill it in.
+    const steps = [...new Set(first.story?.lines.map((l) => l.step))];
+    expect(steps).toEqual(["lookup", "signals", "score", "brief", "compose"]);
+
+    const again = await api.run({ ...demo, run: runId, after: first.live?.last ?? 0 });
+    expect(again.live?.lines).toEqual([]);
+    expect(again.live?.last).toBe(first.live?.last);
+    expect(again.story).toBeNull();
+    // A cursor from another run gets the whole of this one.
+    const stale = await api.run({ ...demo, run: "an-older-run", after: 999 });
+    expect(stale.live?.lines).toHaveLength(3);
+  });
+
   it("search matches firms, never names", async () => {
     expect((await api.people({ ...demo, q: "Doe" })).total).toBe(0);
     expect((await api.people({ ...demo, q: "Umbrella" })).total).toBeGreaterThan(0);
@@ -253,6 +309,17 @@ describe("logins", () => {
     });
     const acme = await api.people({ ...operator, client: "acme", q: "Doe" });
     expect(acme.rows.map((r) => r.name)).toEqual(["Jane Doe"]);
+  });
+
+  it("the technical why of a failed line is for operators only", async () => {
+    const detail = async (who: typeof operator | typeof owner) =>
+      (await api.run({ ...who, client: "acme" })).live?.lines.map((l) => l.detail);
+    expect(await detail(operator)).toEqual([
+      null,
+      null,
+      "Error: 429 for jane.doe@umbrellahealth.com",
+    ]);
+    expect(await detail(owner)).toEqual([null, null, null]);
   });
 
   it("an operator reading the demo still gets it masked", async () => {

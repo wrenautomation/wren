@@ -26,6 +26,7 @@ CREATE TABLE "study_steps" (
 	CONSTRAINT "ck_study_steps_outcome" CHECK (("outcome")::text = ANY ((ARRAY['ok'::character varying, 'empty'::character varying, 'refused'::character varying, 'failed'::character varying])::text[]))
 );
 --> statement-breakpoint
+ALTER TABLE "enrollments" ADD COLUMN "away_until" date;--> statement-breakpoint
 ALTER TABLE "study_steps" ADD CONSTRAINT "fk_study_steps_study_id_studies" FOREIGN KEY ("study_id") REFERENCES "public"."studies"("id") ON DELETE no action ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "study_steps" ADD CONSTRAINT "fk_study_steps_document_id_documents" FOREIGN KEY ("document_id") REFERENCES "public"."documents"("id") ON DELETE no action ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "study_steps" ADD CONSTRAINT "fk_study_steps_run_id_runs" FOREIGN KEY ("run_id") REFERENCES "public"."runs"("id") ON DELETE no action ON UPDATE no action;

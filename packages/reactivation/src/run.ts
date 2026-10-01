@@ -6,6 +6,7 @@
  * things stand afterwards.
  */
 import type { EmailVerifier, LocalCheckerLike } from "@wren/channel-email";
+import { type Feed, NO_FEED } from "@wren/core";
 import type { SiteClient } from "@wren/core/content";
 import type { Queryable } from "@wren/db";
 import type { LlmClient } from "@wren/llm";
@@ -13,6 +14,7 @@ import type { Fetcher } from "@wren/research/fetch";
 import { type CrmBriefStats, writeCrmBriefs } from "./brief.js";
 import { type CrmComposeStats, composeCrmEmails } from "./compose.js";
 import { type CrmVerifyStats, checkCrmEmails } from "./crm/verify.js";
+import { STAGE_STARTS, stageDone } from "./feed.js";
 import { type CrmLookupStats, lookUpCrmPeople } from "./lookup.js";
 import type { ClientProfile } from "./schema.js";
 import { type CrmScoreStats, scoreCrmContacts } from "./score.js";
@@ -46,6 +48,8 @@ export interface CrmRunOptions {
   };
   /** Only these stages (the loop leaves the personal-account ones to `crm run`). */
   only?: readonly CrmStage[];
+  /** Where the run says what it is doing; nobody watching when left out. */
+  feed?: Feed;
 }
 
 export type CrmStageResult =
@@ -63,13 +67,17 @@ export async function runCrm(
   onStage: (r: CrmStageResult) => void = () => {},
 ): Promise<CrmStageResult[]> {
   const stages: CrmStageResult[] = [];
+  const feed = opts.feed ?? NO_FEED;
   const limit = opts.limit ? { limit: opts.limit } : {};
+  const watched = { feed };
   const status = opts.compose ? { compose: opts.compose } : {};
   for (const stage of CRM_STAGES) {
     if (opts.only && !opts.only.includes(stage)) continue;
     // Asked fresh each time: an earlier stage can change what a later one has to do.
     if (!(await crmStatus(db, status)).due.includes(stage)) continue;
+    await feed.emit({ step: stage, kind: "started", line: STAGE_STARTS[stage] });
     const r = await runStage(stage);
+    await feed.emit(stageDone(r));
     stages.push(r);
     onStage(r);
     if (r.stats.aborted) break;
@@ -93,6 +101,7 @@ export async function runCrm(
           stats: await lookUpCrmPeople(db, deps.sites, {
             linkedin: opts.linkedin,
             runId: opts.runId ?? null,
+            ...watched,
             ...limit,
           }),
         };
@@ -103,7 +112,7 @@ export async function runCrm(
           stats: await checkCrmCompanies(
             db,
             { fetcher: deps.fetcher, sites: deps.sites },
-            { linkedin: opts.linkedin, runId: opts.runId ?? null, ...limit },
+            { linkedin: opts.linkedin, runId: opts.runId ?? null, ...watched, ...limit },
           ),
         };
       case "score":
@@ -112,7 +121,11 @@ export async function runCrm(
         return {
           stage,
           stats: deps.llm
-            ? await writeCrmBriefs(db, deps.llm, { runId: opts.runId ?? null, ...limit })
+            ? await writeCrmBriefs(db, deps.llm, {
+                runId: opts.runId ?? null,
+                ...watched,
+                ...limit,
+              })
             : { ...NO_BRIEFS, aborted: "briefs need an LLM: set WREN_LLM (it is fake)" },
         };
       case "compose":
@@ -123,6 +136,7 @@ export async function runCrm(
               ? await composeCrmEmails(db, deps.llm, {
                   ...opts.compose,
                   runId: opts.runId ?? null,
+                  ...watched,
                   ...limit,
                 })
               : { ...NO_EMAILS, aborted: "emails need an LLM and the client's settings" },

@@ -53,6 +53,47 @@ export const runs = pgTable(
   (t) => [primaryKey({ columns: [t.id], name: "pk_runs" })],
 );
 
+/** What a feed line says happened: a step began, did something, found something, parked, failed or ended. */
+export const RUN_EVENT_KINDS = ["started", "did", "found", "waiting", "failed", "done"] as const;
+export type RunEventKind = (typeof RUN_EVENT_KINDS)[number];
+
+/**
+ * A run's feed: plain-words lines a stage writes as it works, so a person can
+ * watch it. `seq` is the cursor a viewer polls after. Never secrets, prompts or
+ * page text; `detail` is the technical why (an error), for operators only.
+ */
+export const runEvents = pgTable(
+  "run_events",
+  {
+    seq: serial("seq").notNull(),
+    runId: uuid("run_id").notNull(),
+    at: timestamp("at", { withTimezone: true }).defaultNow().notNull(),
+    /** The stage or step, in the product's own words ("lookup"). */
+    step: varchar("step", { length: 64 }).notNull(),
+    kind: varchar("kind", { length: 16, enum: RUN_EVENT_KINDS }).notNull(),
+    line: text("line").notNull(),
+    /** Who or what it is about ("Jane Doe", "Acme"): the chip that moves through the graph. */
+    subject: text("subject"),
+    count: integer("count"),
+    /** Where it came from: `{ label, href }`. */
+    source: jsonb("source"),
+    detail: text("detail"),
+    /** The W3C trace this line belongs to, to join a run's spans. */
+    traceId: varchar("trace_id", { length: 32 }),
+  },
+  (t) => [
+    primaryKey({ columns: [t.seq], name: "pk_run_events" }),
+    foreignKey({
+      columns: [t.runId],
+      foreignColumns: [runs.id],
+      name: "fk_run_events_run_id_runs",
+    }).onDelete("cascade"),
+    index("ix_run_events_run_id_seq").on(t.runId, t.seq),
+    oneOf("ck_run_events_kind", t.kind, RUN_EVENT_KINDS),
+  ],
+);
+export type RunEvent = typeof runEvents.$inferSelect;
+
 export const imports = pgTable(
   "imports",
   {

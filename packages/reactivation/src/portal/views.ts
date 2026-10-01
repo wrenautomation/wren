@@ -115,7 +115,7 @@ export interface RawPage {
 }
 
 /** Each CRM person with their latest row, where they are now and whether their firm hires. */
-const SUBJECTS = sql`
+export const SUBJECTS = sql`
   latest as (
     select distinct on (c.person_id) c.person_id, c.company_id, c.id crm_id, c.email,
       c.owner, c.last_contacted_on, c.last_placement_on

@@ -341,6 +341,35 @@
   font-weight: 500;
 }
 
+/* Run: a run going now, offered; what the run leaves you with. */
+.rx-run-now {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px 20px;
+  margin-bottom: 16px;
+  padding: 14px 18px;
+  border-radius: var(--ui-radius-card);
+  background: var(--ui-accent-tint);
+}
+.rx-run-results {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px 24px;
+  padding: 18px 20px;
+  border-radius: var(--ui-radius-card);
+  background: var(--ui-paper);
+  box-shadow: var(--ui-shadow-node);
+}
+.rx-run-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
 @media (max-width: 900px) {
   .rx-split {
     grid-template-columns: 1fr;

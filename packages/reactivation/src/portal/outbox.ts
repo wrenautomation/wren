@@ -83,21 +83,21 @@ export interface RepliesPage {
 /** Longer replies are cut; the full thread is in the recruiter's inbox. */
 const REPLY_CHARS = 2000;
 
-const STATUS = sql`case
+export const EMAIL_STATUS = sql`case
   when e.state = 'stopped' then 'stopped'
   when m.sent > 0 then 'sent'
   when m.drafts > 0 then 'awaiting'
   else 'approved' end`;
 
 const EMAIL_WHERE: Record<EmailFilter, SQL> = {
-  awaiting: sql`${STATUS} = 'awaiting'`,
-  approved: sql`${STATUS} = 'approved'`,
-  sent: sql`${STATUS} = 'sent'`,
-  stopped: sql`${STATUS} = 'stopped'`,
+  awaiting: sql`${EMAIL_STATUS} = 'awaiting'`,
+  approved: sql`${EMAIL_STATUS} = 'approved'`,
+  sent: sql`${EMAIL_STATUS} = 'sent'`,
+  stopped: sql`${EMAIL_STATUS} = 'stopped'`,
   all: sql`true`,
 };
 
-const EMAIL_FROM = sql`
+export const EMAIL_FROM = sql`
   from enrollments e
   join lateral (
     select count(*) filter (where state = 'sent')::int sent,
@@ -140,7 +140,7 @@ export async function portalEmails(
     last_sent_at: unknown;
   }>(sql`
     select e.id, e.person_id, p.full_name name, coalesce(co.name, co.domain) firm, e.to_email,
-      e.sender, ${STATUS} status, e.stop_reason, m.sent, m.approved_by, e.created_at,
+      e.sender, ${EMAIL_STATUS} status, e.stop_reason, m.sent, m.approved_by, e.created_at,
       m.last_sent_at
     ${EMAIL_FROM} and ${EMAIL_WHERE[filter]}
     order by e.created_at desc, e.id desc

@@ -1,6 +1,6 @@
 {
-  "id": "0d1dd720-2869-46d2-ac1e-7fde2ff23cec",
-  "prevId": "711f1e34-dbbd-4fb0-b9d3-96cd7f1b4c01",
+  "id": "9b800b3b-906b-4947-bf56-8255a7187215",
+  "prevId": "5777e5c6-8b48-4648-98c4-07d01ba80d29",
   "version": "7",
   "dialect": "postgresql",
   "tables": {
@@ -701,6 +701,134 @@
         "ck_people_personorigin": {
           "name": "ck_people_personorigin",
           "value": "(\"origin\")::text = ANY ((ARRAY['registry'::character varying, 'website'::character varying, 'document'::character varying, 'manual'::character varying, 'linkedin'::character varying, 'crm'::character varying])::text[])"
+        }
+      },
+      "isRLSEnabled": false
+    },
+    "public.run_events": {
+      "name": "run_events",
+      "schema": "",
+      "columns": {
+        "seq": {
+          "name": "seq",
+          "type": "serial",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "run_id": {
+          "name": "run_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "at": {
+          "name": "at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "step": {
+          "name": "step",
+          "type": "varchar(64)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "kind": {
+          "name": "kind",
+          "type": "varchar(16)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "line": {
+          "name": "line",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "subject": {
+          "name": "subject",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "count": {
+          "name": "count",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "source": {
+          "name": "source",
+          "type": "jsonb",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "detail": {
+          "name": "detail",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "trace_id": {
+          "name": "trace_id",
+          "type": "varchar(32)",
+          "primaryKey": false,
+          "notNull": false
+        }
+      },
+      "indexes": {
+        "ix_run_events_run_id_seq": {
+          "name": "ix_run_events_run_id_seq",
+          "columns": [
+            {
+              "expression": "run_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "seq",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {
+        "fk_run_events_run_id_runs": {
+          "name": "fk_run_events_run_id_runs",
+          "tableFrom": "run_events",
+          "tableTo": "runs",
+          "columnsFrom": [
+            "run_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {
+        "pk_run_events": {
+          "name": "pk_run_events",
+          "columns": [
+            "seq"
+          ]
+        }
+      },
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {
+        "ck_run_events_kind": {
+          "name": "ck_run_events_kind",
+          "value": "(\"kind\")::text = ANY ((ARRAY['started'::character varying, 'did'::character varying, 'found'::character varying, 'waiting'::character varying, 'failed'::character varying, 'done'::character varying])::text[])"
         }
       },
       "isRLSEnabled": false

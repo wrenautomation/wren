@@ -1,1 +1,0 @@
-ALTER TABLE "enrollments" ADD COLUMN "away_until" date;

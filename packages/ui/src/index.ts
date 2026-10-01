@@ -22,6 +22,18 @@ export { Card, CardList, PageHeader, Section, Stat, StatStrip } from "./layout.j
 export { Pager } from "./pager.js";
 export { RAIL_STATES, Rail, type RailGroup, type RailState, type RailStep } from "./rail.js";
 export {
+  dwellOf,
+  RUN_DWELL,
+  RUN_MAX_SPEEDUP,
+  type RunLine,
+  type RunLineKind,
+  type RunStep,
+  type RunStepState,
+  type RunStepView,
+  RunView,
+  stepsAt,
+} from "./run.js";
+export {
   AppShell,
   type Brand,
   type Crumb,

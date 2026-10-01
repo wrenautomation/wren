@@ -67,7 +67,7 @@ export function pullRequestBody(a: Applied): string {
       `- now: ${p.proposed.replace(/\n/g, "\n  ")}`,
     ].join("\n");
   return [
-    "Search proposals from `wren search`: the weekly read of Search Console and the answer engines.",
+    "Small copy edits from `/search-week`, for the keywords in this week's Search Console and answer-engine brief.",
     "",
     `## Applied (${a.applied.length})`,
     ...a.applied.map(item),

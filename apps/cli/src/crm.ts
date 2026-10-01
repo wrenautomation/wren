@@ -12,7 +12,7 @@ import * as restate from "@restatedev/restate-sdk-clients";
 import { defaultLocalChecker, makeVerifier } from "@wren/channel-email";
 import type { InboxScheduler, SendScheduler } from "@wren/channel-email/restate";
 import { ingressOf, type Settings } from "@wren/config";
-import { recordedRun } from "@wren/core";
+import { recordedRun, runFeed } from "@wren/core";
 import type { Client } from "@wren/core/clients";
 import type { Db } from "@wren/db";
 import { loadLlmEnv, makeLlm } from "@wren/llm";
@@ -178,7 +178,13 @@ export function registerCrm(
           stages: await runCrm(
             db,
             deps,
-            { linkedin, compose, runId: r.id, ...(opts.limit ? { limit: opts.limit } : {}) },
+            {
+              linkedin,
+              compose,
+              runId: r.id,
+              feed: runFeed(db, r.id),
+              ...(opts.limit ? { limit: opts.limit } : {}),
+            },
             (s) => console.log(`${s.stage}: ${JSON.stringify(s.stats)}`),
           ),
         }));

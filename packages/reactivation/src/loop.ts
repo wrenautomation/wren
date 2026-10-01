@@ -16,6 +16,7 @@
 import type * as restate from "@restatedev/restate-sdk";
 import type { Transport } from "@wren/channel-email";
 import type { InboxScheduler, SendScheduler } from "@wren/channel-email/restate";
+import { runFeed } from "@wren/core";
 import { type Client, findClient } from "@wren/core/clients";
 import { type Notifier, plural } from "@wren/core/notify";
 import {
@@ -195,6 +196,7 @@ export function makeReactivation(deps: ReactivationLoopDeps) {
               linkedin: null,
               limit,
               runId,
+              feed: runFeed(db, runId),
               compose: { settings, profile },
               only: passStages(settings, deps.freeVerify),
             },

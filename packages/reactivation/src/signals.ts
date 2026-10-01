@@ -6,6 +6,7 @@
  * small ones. Ctrl-C is a pause; re-running resumes.
  */
 import { eachConcurrently } from "@wren/channel-email";
+import { type Feed, NO_FEED } from "@wren/core";
 import type { SiteClient } from "@wren/core/content";
 import type { Queryable } from "@wren/db";
 import {
@@ -17,6 +18,7 @@ import {
 } from "@wren/research/companies";
 import type { Fetcher } from "@wren/research/fetch";
 import { type SQL, sql } from "drizzle-orm";
+import { failedLine, hiringLine } from "./feed.js";
 import { LATEST_CRM_ROW } from "./score.js";
 
 /** Errors in a row that stop the run: something is down, not one odd company. */
@@ -45,6 +47,7 @@ export interface CrmSignalsOptions {
   concurrency?: number;
   runId?: string | null;
   now?: () => Date;
+  feed?: Feed;
 }
 
 /**
@@ -117,16 +120,19 @@ export async function checkCrmCompanies(
     return stats;
   }
   const hiring: HiringOptions = { linkedin: opts.linkedin, ...(opts.now ? { now: opts.now } : {}) };
+  const feed = opts.feed ?? NO_FEED;
   let streak = 0;
   await eachConcurrently(
     subjects,
     opts.concurrency ?? 3,
     async (s) => {
       let r: Awaited<ReturnType<typeof checkHiring>>;
+      const firm = s.firm.name ?? s.firm.domain ?? "A company";
       try {
         r = await checkHiring(deps, s, hiring);
         await recordCompanyCheck(db, s.companyId, r, opts.runId ?? null);
       } catch (err) {
+        await feed.emit(failedLine("signals", firm, err));
         stats.errors += 1;
         streak += 1;
         if (streak >= ERROR_STREAK)
@@ -134,6 +140,7 @@ export async function checkCrmCompanies(
         return;
       }
       streak = 0;
+      await feed.emit(hiringLine(firm, r));
       stats[r.state] += 1;
       if (r.state !== "capped" || !r.retryAt) return;
       // LinkedIn capped: the rest still get their job board, and park after.
