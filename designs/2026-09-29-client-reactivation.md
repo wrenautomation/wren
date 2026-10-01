@@ -176,6 +176,7 @@ A lint rule guards this. biome `noRestrictedImports` on `packages/**` fails the 
   - The firm's own details (voice, recruiters, signature) live in the client's database (`client_profile`), because only that client's work reads them.
   - Each client has its own `Reactivation` loop (R4), so 50 clients are 50 small loops, not one walk.
   - This replaced `clients.caps`, which nothing read.
+- **R22. The lander embeds the VSL; no `/demo` link.** (William, 2026-10-01.) The lander gets the video, not a link to the portal. The demo stays live at demo.wrenautomation.com.
 
 ## Data added (one migration, every database)
 
@@ -201,7 +202,7 @@ Main database only: `clients` (id, name, database, accounts JSON, caps JSON, por
 5. Demo seed (R16): `wren --client demo crm seed-demo --agency <url>`. **Built.** The first real agency's site names 24 customers, under R16's 30.
 6. Portal API and web (R14, R15), deploy, `demo.` and `app.` hosts. **Built;** `app.` waits on Access.
 7. Composer (R11), the client dimension in the worker (R4), per-client settings (R21), sending (R12) and handoff (R13). **Done.** 7a settings and profile, 7b+7c composer and portal writes, 7d the per-client loop and client mailbox loops, 7e forwarding.
-8. Offer `reactivation` (R18), lander `/demo` link, map cards. **Offer and map done.** The pilot is retired; the lander switches to `reactivation` in its own session (schema gets the `performance` kind, snapshot re-exported). `/demo` links once the demo is live.
+8. Offer `reactivation` (R18), the VSL on the lander (R22), map cards. **Offer and map done.** The pilot is retired; the lander switches to `reactivation` in its own session (schema gets the `performance` kind, snapshot re-exported). The VSL embeds once William records it.
 
 ## Owed by others
 
