@@ -245,9 +245,10 @@ export async function buildServices(
     log.warn("WREN_PIXEL_BASE_URL set without WREN_PIXEL_EXPORT_TOKEN: opens are not pulled");
 
   const services: AnyService[] = [
+    // A dead firm site at 30s × 3 tries held one shard ~90s a page; a live one answers in seconds.
     makeEnrichment({
       db,
-      fetcher: ua ? new PoliteFetcher(ua) : null,
+      fetcher: ua ? new PoliteFetcher(ua, { timeout: 10, retries: 2 }) : null,
       llm,
       renderer,
       tracer,
