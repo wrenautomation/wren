@@ -22,7 +22,8 @@ SOPs change weekly, so the loop is edit `notes.md` or `SOP.md`, build again: the
 
 1. `youtubeSource` (`packages/research/src/sops/index.ts`): `yt-dlp -J`, the English json3 track, `captionsMarkdown`.
 2. `driveSources`: walk the folder, export each Doc as text (`apps/cli/src/sop.ts` `autobrowseDrive`).
-3. `buildSop`: `readSopDir` (priority order), `sopPrompt`, one `ClaudeCodeLlm.complete`, write `SOP.md`.
+3. `extractPoints` (optional): one call per source writes `points/<stem>.md`, an exhaustive cited list the owner curates (delete, `!` to force); `readSopDir` hands build the points file in place of the raw source when it exists.
+4. `buildSop`: `readSopDir` (priority order), `sopPrompt`, one `ClaudeCodeLlm.complete`, write `SOP.md`.
 
 ## If you change this
 

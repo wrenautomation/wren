@@ -88,6 +88,9 @@ time). `restateSites(ctx)` stays for calls that need the official API shape.
 ingests a source into `../sops/<name>/sources/` (a private folder, its own git).
 `wren sop build <name>` writes the next `SOP.md` from `notes.md` (your rules, top
 priority) and the sources on Claude Code. Iterate: edit notes.md or SOP.md, build again.
+`wren sop extract <name> [source]` lists every point a source makes into `points/<source>.md`
+(cited); delete lines you don't want, prefix `!` on ones that must appear, and build reads the
+points instead of the raw source.
 
 ## Gates
 

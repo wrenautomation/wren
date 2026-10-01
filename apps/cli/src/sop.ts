@@ -16,6 +16,7 @@ import {
   DEFAULT_PRIORITY,
   type DriveGet,
   driveSources,
+  extractPoints,
   fileSource,
   readSopDir,
   type Source,
@@ -74,6 +75,17 @@ export function registerSop(program: Command, settings: Settings, rootDir: strin
       const llm = new ClaudeCodeLlm(opts.model, { timeoutMs: 1_800_000 });
       const text = await buildSop(dir, llm);
       console.log(`${join(dir, "SOP.md")} (${text.split(/\s+/).length} words)`);
+    });
+
+  sop
+    .command("extract <name> [source]")
+    .description(
+      "list every point a source makes into points/<source>.md for you to curate (delete lines, prefix ! to force in); build then reads points instead of the raw source",
+    )
+    .option("--model <model>", "Claude Code model", "opus")
+    .action(async (name: string, source: string | undefined, opts: { model: string }) => {
+      const llm = new ClaudeCodeLlm(opts.model, { timeoutMs: 1_800_000 });
+      for (const f of await extractPoints(join(sopsDir, name), llm, source)) console.log(f);
     });
 
   sop

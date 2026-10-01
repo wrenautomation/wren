@@ -207,6 +207,7 @@ export function sopPrompt(input: SopInput): string {
     "Priority. The owner's notes win over everything. Sources are listed highest priority first; when two disagree, the higher one wins, and a lower one only adds what the higher ones leave out. A source may be dated or off topic: take only what serves this SOP. Make nothing up; every step and rule must come from the notes or a source.",
     'Examples. End with an "## Examples" section holding the one or two best worked examples the sources give (a full email, script or message). Quote each one in full, in a fenced block, with the wording as the source gives it; do not shorten or improve it, only fix obvious caption transcription errors (misheard words, spelling). Under each, keep the source\'s own analysis of why it works, point by point, cited. Examples are the highest-signal part of the SOP, so pick the ones the source itself treats as best.',
     "Structure. When a source teaches its own framework (numbered parts, a formula, named stages), make that the SOP's skeleton in the source's order, with the source's names, and nest everything else under it. Cover every key point the source makes; a missed point is worse than a longer SOP.",
+    "Points. A source whose text is a list of points (its file name starts with points-) is the owner's curated extract of a raw source: every line is a point with its citation already in brackets. The owner has deleted what they don't want; what remains is in. A line starting with ! is one the owner marked important and must appear in the SOP. Keep each point's citation as given.",
     "Citations. After a step or rule, cite where it came from in brackets: the source file stem and, for a video, the nearest [m:ss] marker before the words, e.g. [youtube-abc123 1:02:30] or [drive-9f8e]. Notes need no citation.",
     input.current.trim()
       ? "There is a current SOP.md below. Keep what still holds, word for word where you can. Change only what the notes or a higher-priority source contradicts, and add only what they add. Do not reword for its own sake."
@@ -237,8 +238,13 @@ export async function readSopDir(dir: string): Promise<SopDir> {
   );
   const sources = await Promise.all(
     names.map(async (name) => {
-      const md = await readFile(join(srcDir, name), "utf8");
-      return { name: name.replace(/\.md$/, ""), priority: priorityOf(md), md };
+      const stem = name.replace(/\.md$/, "");
+      const raw = await readFile(join(srcDir, name), "utf8");
+      // A curated points file stands in for the raw source when it exists.
+      const points = await readFile(join(dir, "points", name), "utf8").catch(() => "");
+      return points
+        ? { name: `points-${stem}`, priority: priorityOf(points), md: points }
+        : { name: stem, priority: priorityOf(raw), md: raw };
     }),
   );
   sources.sort((a, b) => b.priority - a.priority || a.name.localeCompare(b.name));
@@ -258,6 +264,40 @@ export async function addSource(dir: string, source: Source): Promise<string> {
   const file = join(dir, "sources", source.name);
   await writeFile(file, source.md);
   return file;
+}
+
+/** Prompt that turns one raw source into an exhaustive, cited list of points for the owner to curate. */
+export function pointsPrompt(stem: string, md: string): string {
+  return [
+    `Extract every point the source below makes, as a markdown list, for the owner to curate before an SOP is built from it. Be exhaustive: every rule, step, claim, number, heuristic, warning, example and the reasoning behind it. Missing a point is the one failure that matters; a long list is fine.`,
+    "One point per line, starting with \"- \", in the source's own order, under the source's section headings. Each line ends with its citation in brackets: the source stem and, for a video, the nearest [m:ss] marker before the words, e.g. [" +
+      stem +
+      " 1:02:30]. Keep the source's wording where it is specific; fix only obvious caption transcription errors.",
+    "Worked examples (a full email, script or message) are quoted in full inside a fenced block, followed by the source's own analysis of why it works as points.",
+    "Reply with only the markdown list and headings. Start with the front matter block from the source, unchanged.",
+    `<source file="${stem}">\n${md.trim()}\n</source>`,
+  ].join("\n\n");
+}
+
+/** Write `points/<stem>.md` for one source (or every source without one); returns the files written. */
+export async function extractPoints(dir: string, llm: LlmClient, only?: string): Promise<string[]> {
+  const read = await readSopDir(dir);
+  await mkdir(join(dir, "points"), { recursive: true });
+  const out: string[] = [];
+  for (const s of read.sources) {
+    if (s.name.startsWith("points-")) continue;
+    if (only && s.name !== only) continue;
+    const { text } = await llm.complete(pointsPrompt(s.name, s.md), { maxTokens: 32_000 });
+    const file = join(dir, "points", `${s.name}.md`);
+    // Models drop the stem from citations; a bare [m:ss] or [h:mm:ss] gets it back.
+    const md = text
+      .trim()
+      .replace(/^```(?:markdown)?\n([\s\S]*?)\n```$/, "$1")
+      .replace(/\[(\d{1,2}:\d{2}(?::\d{2})?)\]/g, `[${s.name} $1]`);
+    await writeFile(file, `${md}\n`);
+    out.push(file);
+  }
+  return out;
 }
 
 /** Build the next SOP.md from the folder; returns it. The model answers in markdown, no schema. */
