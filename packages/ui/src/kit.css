@@ -2800,12 +2800,21 @@
     .ui-run {
       padding: 12px;
     }
+    /* The source and How share one row under the text. */
     .ui-run-line {
-      grid-template-columns: 14px minmax(0, 1fr);
+      grid-template-columns: 14px auto minmax(0, 1fr);
+      row-gap: 4px;
+    }
+    .ui-run-text {
+      grid-column: 2 / -1;
     }
     .ui-run-cite,
-    .ui-run-how {
+    .ui-run-text + .ui-run-how {
       grid-column: 2;
+      justify-self: start;
+    }
+    .ui-run-cite + .ui-run-how {
+      grid-column: 3;
       justify-self: start;
     }
     .ui-run-work {

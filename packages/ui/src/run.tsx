@@ -530,7 +530,7 @@ export function RunView({
                     {n.id === OUTPUT && over ? <Icon name="check" size={12} /> : null}
                     {end.label}
                   </span>
-                  {end.note ? <span className="ui-run-site">{end.note}</span> : null}
+                  {end.note ? <span className="ui-run-source">{end.note}</span> : null}
                 </li>
               );
             const s = byId.get(n.id);
@@ -563,7 +563,7 @@ export function RunView({
                       {s.short ?? s.label}
                     </span>
                   </span>
-                  {s.source ? <span className="ui-run-site">{s.source}</span> : null}
+                  {s.source ? <span className="ui-run-source">{s.source}</span> : null}
                   <span className="ui-run-tally">
                     <span className="ui-run-count">{num(v.handled)}</span>
                     {s.found && v.found ? (
