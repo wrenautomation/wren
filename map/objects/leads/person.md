@@ -41,6 +41,8 @@ Citations: `packages/core/src/schema.ts:135`
 |---|---|
 | `wren email import-people` | writes |
 | `Enrichment.applyExtractions` | writes |
+| `wren enrich read-load` (outside readers, names grounded in the page) | writes |
+| `wren email import-people --format officers` (state registry officers) | writes |
 | `wren email contacts` (named leads → registry people) | writes |
 | `Resolution.build` | reads |
 | compose (via `person_facts`) | reads |

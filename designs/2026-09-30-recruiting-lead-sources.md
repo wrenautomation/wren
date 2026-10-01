@@ -149,6 +149,10 @@ PPP loan size ≈ 2.5 months of payroll, so yearly payroll ≈ 4.8 × loan. For 
 - **RL-D18** A company made beside its lead takes the lead's country. The screen fills a blank country from the raw row.
 - **RL-D19** A named lead is a person: `wren email contacts` makes a `registry` person whose candidate is the lead's own address. The lead's verdict settles the candidate; resolution never queues it. Runs after each import.
 - **RL-D20** Recruiting ranks titles: owner, CEO, president, principal, managing partner first; COO, CFO, MD, GM, partner second; VP, director, manager third. An untitled registry contact ranks third: the source named them as the firm's contact.
+- **RL-D21** The wide crawl runs in Lambda on shard keys (`Enrichment/recruiting@i/n`). A laptop crawl to the prod DB saturates the home uplink (pages average 156KB).
+- **RL-D22** People off crawled pages are read by Haiku agents on William's subscription, not the API: `wren enrich read-export` cuts each firm to its leadership lines, `read-load` keeps a name only when the stored page prints it. No API spend.
+- **RL-D23** State registries name officers for free: NY's active corporations (CEO name, data.ny.gov) and Florida's quarterly corporate file (up to six officers, public SFTP). Match is the firm's normalized name in its own state, one hit only. Imported as `--format officers`, origin `registry`.
+- **RL-D24** Big anti-joins are NOT EXISTS, never NOT IN: on prod Postgres NOT IN over documents or contact_candidates went quadratic and stalled the loop.
 
 ## Build
 
@@ -158,6 +162,7 @@ PPP loan size ≈ 2.5 months of payroll, so yearly payroll ≈ 4.8 × loan. For 
 4. ~~**Import to prod**~~: done 2026-09-30. Prod holds 34,023 recruiting firms (22,739 US, 1,172 CA, the rest from SBA with no country field), 24,466 with a site, 12,095 with an email lead (13,367 leads), 4,289 sized from PPP. The Overture import declined 13,908 chain, 2,521 closed, 1,704 nonprofit, 1,317 military and 574 public-body places. Next: the discovery crawl, when William arms the recruiting pool loop.
 5. ~~**Opener pass**~~: built (kind `opener`, `recruiting_facts`, the opener template). Full run on William's yes.
 6. **Tiering** in the recruiting niche, with an offer per tier.
+7. ~~**Decision makers**~~: built 2026-10-01. Shard-key crawl, outside readings (RL-D22), registry officers (RL-D23). Then `Resolution.build` guesses, `Resolution.queue {niche}` and the pool's free mailbox stages verify.
 
 ## Quality audit (prod, 2026-10-01)
 

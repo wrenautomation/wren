@@ -22,7 +22,7 @@ Spend is opt-in by stage (`WREN_POOL_MODEL_STAGES`: none | pick | all) and the t
 
 1. Stage list and the spend gate (`packages/channel-email/src/restate/pool-scheduler.ts:45`–`51`, `:179`–`:181`).
 2. `Discovery.discover/verify` (`packages/research/src/discovery/service.ts`, attempts at `:96`).
-3. `Enrichment.crawl/render` store documents (`packages/research/src/enrichment/crawler.ts:133`, `render.ts:156`).
+3. `Enrichment.crawl/render` store documents (`packages/research/src/enrichment/crawler.ts:133`, `render.ts:156`). A key `niche@i/n` holds one shard, so shard keys crawl side by side; `wren enrich crawl` is the same crawl from a laptop.
 4. `Enrichment.scan/extract/pick` propose (`email-scan.ts:245`, `store.ts:50`); `applyExtractions/applyPicks` dispose.
 5. `Resolution.resolveNewDomains/verifyLeads` prove mailboxes; one new-domain walk at a time across workers (advisory lock, `packages/channel-email/src/restate/resolution.ts:269`), since each walk holds a pool as wide as its concurrency (`packages/channel-email/src/resolution/service.ts:899`; verdicts `:518`, `:566`; promotion `:739`). `verifyMailboxes` also re-checks proven addresses older than the verification horizon at companies that may come back for another sequence (`pool-scheduler.ts:220`; `packages/channel-email/src/verification/service.ts:107`).
 
