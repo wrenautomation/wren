@@ -8,6 +8,7 @@
 
 export type {
   AskView,
+  BoardRow,
   DeliverableView,
   DeliveryHome,
   EngagementView,

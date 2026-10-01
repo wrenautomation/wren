@@ -17,6 +17,7 @@ import {
 import {
   answer,
   isDemo,
+  isOperator,
   type Me,
   PortalRefusal,
   type PortalRequest,
@@ -53,7 +54,7 @@ import {
 } from "./index.js";
 import { FILE_TYPES, MAX_FILE_BYTES } from "./routes.js";
 import { DELIVERABLE_KINDS, type DeliverableKind, type MailLevel } from "./schema.js";
-import { type DeliveryWatch, WATCH, WATCH_KEY } from "./watch.js";
+import { type BoardRow, type DeliveryWatch, opsBoard, WATCH, WATCH_KEY } from "./watch.js";
 
 export interface DeliveryDeps {
   /** The main database: the registry and the delivery schema. */
@@ -64,6 +65,8 @@ export interface DeliveryDeps {
   files?: FileStore | undefined;
   /** DeliveryWatch runs here: an invite asks it for a pass, so the welcome goes now. */
   watched?: boolean;
+  /** The fleet's clock, for the ops board's business days; UTC when unset. */
+  zone?: string;
 }
 
 /** A browser can send anything: these turn it into what the domain takes, or refuse. */
@@ -167,6 +170,11 @@ const engagementFor = (db: Queryable, client: Client, req: EngagementReq): Promi
 export function deliveryApi(deps: DeliveryDeps) {
   return {
     me: (req: PortalRequest): Promise<Me> => portalMe(deps.main, req.viewer, deps.demoName),
+    /** Wren's ops board: every client, at risk first. */
+    board: async (req: PortalRequest): Promise<BoardRow[]> => {
+      if (!isOperator(req.viewer)) throw new PortalRefusal("that's for Wren's team", 403);
+      return opsBoard(deps.main, deps.zone ?? "UTC", new Date());
+    },
     home: (req: PortalRequest): Promise<DeliveryHome> =>
       read(deps, req, (db, c, operator) =>
         deliveryHome(db, c.id, {
@@ -427,6 +435,7 @@ export type {
 export { DELIVERY_ROUTES, DELIVERY_WRITES } from "./routes.js";
 export type { MailLevel } from "./schema.js";
 export {
+  type BoardRow,
   type DeliveryWatch,
   makeDeliveryWatch,
   type PortalMail,
@@ -444,6 +453,7 @@ export function makeDeliveryPortal(deps: DeliveryDeps) {
     name: "DeliveryPortal",
     handlers: {
       me: (_: restate.Context, req: Req<"me">) => answer(() => api.me(req)),
+      board: (_: restate.Context, req: Req<"board">) => answer(() => api.board(req)),
       home: (_: restate.Context, req: Req<"home">) => answer(() => api.home(req)),
       updates: (_: restate.Context, req: Req<"updates">) => answer(() => api.updates(req)),
       answer: (_: restate.Context, req: Req<"answer">) => answer(() => api.answer(req)),

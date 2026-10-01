@@ -1,7 +1,8 @@
 /**
  * DeliveryWatch on a fixed clock: a welcome once per person, new asks and
  * deliverables in one message, the Friday digest by level, the weekly pulse,
- * and operator pings that fire once and clear. The demo is never mailed.
+ * operator pings that fire once and clear, and the ops board. The demo is
+ * never mailed and never on the board.
  */
 import { addMember, clients } from "@wren/core/clients";
 import type { Notifier } from "@wren/core/notify";
@@ -11,7 +12,7 @@ import { sql } from "drizzle-orm";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { startEngagement } from "../../src/index.js";
 import { deliveryApi } from "../../src/service.js";
-import { type PortalMail, watchPass, workdaysAfter } from "../../src/watch.js";
+import { opsBoard, type PortalMail, watchPass, workdaysAfter } from "../../src/watch.js";
 
 let pg: TestPostgres;
 let api: ReturnType<typeof deliveryApi>;
@@ -199,5 +200,29 @@ describe("operator pings", () => {
       sql`select about from delivery.pings order by about`,
     );
     expect(rows.map((r) => r.about)).toEqual([expect.stringMatching(/^pulse:\d+$/)]);
+  });
+});
+
+describe("the ops board", () => {
+  it("is Wren's only: every client, at risk first, the demo left out", async () => {
+    expect(await refused(api.board({ viewer: AMY }))).toBe(403);
+    expect(await refused(api.board({ viewer: { demo: true } }))).toBe(403);
+    await pg.db
+      .insert(clients)
+      .values({ id: "able", name: "Able Search", database: "wren_client_able" });
+    const rows = await opsBoard(pg.db, "UTC", new Date("2026-10-09T20:00:00Z"));
+    expect(rows.map((r) => r.clientId)).toEqual(["acme", "able"]);
+    expect(rows[0]).toMatchObject({
+      offer: "Lead reactivation",
+      phase: "Set up",
+      stepsDone: 0,
+      steps: 4,
+      next: { name: "Set up", dueOn: "2026-10-18" },
+      lastUpdateAt: "2026-10-09T19:30:00.000Z",
+      openAsks: 7,
+      pulse: 2,
+      risks: ["pulse 2/5 this week"],
+    });
+    expect(rows[1]).toMatchObject({ engagementId: null, phase: null, risks: [] });
   });
 });

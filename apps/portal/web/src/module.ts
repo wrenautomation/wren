@@ -26,6 +26,8 @@ export interface Module {
   id: string;
   name: string;
   pages: ModulePage[];
+  /** Wren's team only: shown and reachable only in team view. */
+  team?: true;
   /** The one button in the header while on this product: a page to go to. */
   action?: { page: string; label: string; icon: IconName };
 }

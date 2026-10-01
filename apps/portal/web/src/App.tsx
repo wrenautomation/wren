@@ -27,19 +27,23 @@ const pathOf = (m: Module, p: ModulePage) => `/${m.id}/${p.id}`;
 const [first] = MODULES;
 const HOME = first?.pages[0] ? pathOf(first, first.pages[0]) : "/";
 
-const NAV: NavGroup[] = MODULES.map((m) => ({
-  id: m.id,
-  label: m.name,
-  items: m.pages.map((p) => ({
-    id: pathOf(m, p),
-    label: p.label,
-    href: pathOf(m, p),
-    icon: p.icon,
-  })),
-}));
+/** The sections this viewer sees: the team's own only in team view. */
+const shown = (team: boolean) => MODULES.filter((m) => team || !m.team);
 
-function find(path: string[]): { module: Module; page: ModulePage } | null {
-  const module = MODULES.find((m) => m.id === path[0]);
+const navOf = (team: boolean): NavGroup[] =>
+  shown(team).map((m) => ({
+    id: m.id,
+    label: m.name,
+    items: m.pages.map((p) => ({
+      id: pathOf(m, p),
+      label: p.label,
+      href: pathOf(m, p),
+      icon: p.icon,
+    })),
+  }));
+
+function find(path: string[], team: boolean): { module: Module; page: ModulePage } | null {
+  const module = shown(team).find((m) => m.id === path[0]);
   const page = module?.pages.find((p) => p.id === path[1]);
   return module && page ? { module, page } : null;
 }
@@ -88,10 +92,13 @@ export function App() {
   // Wren's team can look as the client would: no internal notes, no team tools.
   const [asClient, setAsClient] = useState(() => recall(AS_CLIENT_KEY) === "1");
   const theme = useLook(route.params);
+  const operator = me.data?.operator ?? false;
+  const team = operator && !asClient;
 
-  const at = find(route.path);
-  const lost = !at;
-  // An unknown address (or just "/") lands on the first page.
+  const at = find(route.path, team);
+  // An unknown address (or just "/") lands on the first page; a team page waits to know who's asking.
+  const lost =
+    !at && (me.data !== null || !route.path[0] || !MODULES.some((m) => m.id === route.path[0]));
   useEffect(() => {
     if (lost) navigate(HOME, true);
   }, [lost]);
@@ -135,8 +142,6 @@ export function App() {
   };
   const { module, page } = at;
   const demo = me.data?.demo ?? false;
-  const operator = me.data?.operator ?? false;
-  const team = operator && !asClient;
   const action = module.action;
   const flip = () => {
     setAsClient(team);
@@ -152,10 +157,10 @@ export function App() {
         caption: demo ? "Demo workspace" : "Workspace",
         onPick: pick,
       }}
-      nav={NAV}
+      nav={navOf(team)}
       current={pathOf(module, page)}
       crumbs={[
-        ...(current ? [{ label: current.name, href: HOME }] : []),
+        ...(current && !module.team ? [{ label: current.name, href: HOME }] : []),
         { label: module.name, href: module.pages[0] ? pathOf(module, module.pages[0]) : HOME },
         { label: page.label },
       ]}

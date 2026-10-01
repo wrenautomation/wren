@@ -101,18 +101,8 @@ const money = (unit: string, v: number) =>
 type Live = { e: Engagement; clientName: string };
 type Person = { m: ClientMember; mail: MemberMail | null; clientName: string };
 
-/** One pass: mail, then pings. */
-export async function watchPass(deps: WatchDeps, now: Date): Promise<WatchStats> {
-  const { main } = deps;
-  const today = dayIn(deps.zone, now);
-  const stats: WatchStats = {
-    welcomed: 0,
-    told: 0,
-    digests: 0,
-    pinged: 0,
-    failed: 0,
-    lastError: null,
-  };
+/** Every active engagement and every client person, the demo's left out. */
+async function watched(main: Db): Promise<{ live: Live[]; people: Person[] }> {
   const live: Live[] = (
     await main
       .select({ e: engagements, clientName: clients.name })
@@ -133,7 +123,22 @@ export async function watchPass(deps: WatchDeps, now: Date): Promise<WatchStats>
       ),
     )
     .where(eq(clients.demo, false));
+  return { live, people };
+}
 
+/** One pass: mail, then pings. */
+export async function watchPass(deps: WatchDeps, now: Date): Promise<WatchStats> {
+  const { main } = deps;
+  const today = dayIn(deps.zone, now);
+  const stats: WatchStats = {
+    welcomed: 0,
+    told: 0,
+    digests: 0,
+    pinged: 0,
+    failed: 0,
+    lastError: null,
+  };
+  const { live, people } = await watched(main);
   if (deps.send) await mailPeople(deps, deps.send, now, today, live, people, stats);
   await pingOperator(deps, now, today, live, people, stats);
   return stats;
@@ -355,17 +360,17 @@ async function digestOf(
 
 // --- operator pings (D8) ---------------------------------------------------------
 
-type Found = { engagementId: number; about: string; line: string };
+type Found = { engagementId: number; clientId: string; about: string; what: string };
 
-async function pingOperator(
-  deps: WatchDeps,
+/** What could leave a client feeling forgotten (D8): the pings, and the ops board's risks. */
+async function problems(
+  main: Db,
+  zone: string,
   now: Date,
   today: string,
   live: Live[],
   people: Person[],
-  stats: WatchStats,
-): Promise<void> {
-  const { main } = deps;
+): Promise<Found[]> {
   const started = live.filter((l) => l.e.startsOn <= today);
   const ids = started.map((l) => l.e.id);
   const found: Found[] = [];
@@ -419,30 +424,34 @@ async function pingOperator(
       const at = [lastUpdate, lastWork]
         .map((rows) => rows.find((r) => r.id === e.id)?.at ?? null)
         .reduce<Date | null>((a, b) => (b && (!a || b > a) ? b : a), null);
-      const lastDay = at ? dayIn(deps.zone, at) : addDays(e.startsOn, -1);
+      const lastDay = at ? dayIn(zone, at) : addDays(e.startsOn, -1);
       if (workdaysAfter(lastDay, today, QUIET_WORKDAYS) >= QUIET_WORKDAYS)
         found.push({
           engagementId: e.id,
           about: "quiet",
-          line: `${c}: nothing new for the client in ${QUIET_WORKDAYS}+ business days`,
+          clientId: c,
+          what: `nothing new for the client in ${QUIET_WORKDAYS}+ business days`,
         });
       for (const m of late.filter((m) => m.engagementId === e.id))
         found.push({
           engagementId: e.id,
           about: `step:${m.key}`,
-          line: `${c}: step "${m.name}" was due ${m.dueOn}`,
+          clientId: c,
+          what: `step "${m.name}" was due ${m.dueOn}`,
         });
       for (const a of overdue.filter((a) => a.engagementId === e.id))
         found.push({
           engagementId: e.id,
           about: `ask:${a.id}`,
-          line: `${c}: ask #${a.id} overdue since ${a.dueOn}`,
+          clientId: c,
+          what: `ask #${a.id} overdue since ${a.dueOn}`,
         });
       for (const p of low.filter((p) => p.engagementId === e.id))
         found.push({
           engagementId: e.id,
           about: `pulse:${p.id}`,
-          line: `${c}: pulse ${p.score}/5 this week`,
+          clientId: c,
+          what: `pulse ${p.score}/5 this week`,
         });
       const theirs = people.filter((p) => p.m.clientId === c);
       const seen = theirs
@@ -452,17 +461,31 @@ async function pingOperator(
         found.push({
           engagementId: e.id,
           about: "away",
-          line: `${c}: nobody on their side can sign in`,
+          clientId: c,
+          what: `nobody on their side can sign in`,
         });
       else if (seen.getTime() < now.getTime() - AWAY_DAYS * DAY)
         found.push({
           engagementId: e.id,
           about: "away",
-          line: `${c}: no client visit in ${AWAY_DAYS}+ days`,
+          clientId: c,
+          what: `no client visit in ${AWAY_DAYS}+ days`,
         });
     }
   }
+  return found;
+}
 
+async function pingOperator(
+  deps: WatchDeps,
+  now: Date,
+  today: string,
+  live: Live[],
+  people: Person[],
+  stats: WatchStats,
+): Promise<void> {
+  const { main } = deps;
+  const found = await problems(main, deps.zone, now, today, live, people);
   // Dedupe: a problem pings once, again after a week if it stands, and its row goes when it clears.
   const key = (r: { engagementId: number; about: string }) => `${r.engagementId} ${r.about}`;
   const known = await main.select().from(pings);
@@ -478,7 +501,7 @@ async function pingOperator(
   if (fresh.length === 0 || !deps.notifier) return;
   const told = await deps.notifier.notify(
     `Delivery: ${fresh.length} to look at`,
-    fresh.map((f) => f.line).join("\n"),
+    fresh.map((f) => `${f.clientId}: ${f.what}`).join("\n"),
     "warning",
   );
   if (!told) return;
@@ -490,6 +513,128 @@ async function pingOperator(
       set: { pingedAt: sql`excluded.pinged_at` },
     });
   stats.pinged = fresh.length;
+}
+
+// --- the ops board --------------------------------------------------------------
+
+/** One running engagement on the ops board, or a client with none (offer null). */
+export interface BoardRow {
+  clientId: string;
+  name: string;
+  engagementId: number | null;
+  offer: string | null;
+  startsOn: string | null;
+  /** The step under way: the first not done. */
+  phase: string | null;
+  stepsDone: number;
+  steps: number;
+  /** The first open step with a due date. */
+  next: { name: string; dueOn: string } | null;
+  /** The last update the client could see. */
+  lastUpdateAt: string | null;
+  openAsks: number;
+  /** The last time anyone on their side opened the portal. */
+  lastSeenAt: string | null;
+  /** The latest weekly tap, 1-5, within a week. */
+  pulse: number | null;
+  /** What could leave them feeling forgotten (D8); empty = fine. */
+  risks: string[];
+}
+
+/** Every client with its running work, at risk first (plan: ops board). The demo isn't on it. */
+export async function opsBoard(main: Db, zone: string, now: Date): Promise<BoardRow[]> {
+  const today = dayIn(zone, now);
+  const { live, people } = await watched(main);
+  const ids = live.map((l) => l.e.id);
+  const none = ids.length === 0;
+  const [all, steps, lastUpdate, open, taps, found] = await Promise.all([
+    main.select().from(clients).where(eq(clients.demo, false)).orderBy(asc(clients.name)),
+    none
+      ? []
+      : main
+          .select()
+          .from(milestones)
+          .where(inArray(milestones.engagementId, ids))
+          .orderBy(asc(milestones.position), asc(milestones.id)),
+    none
+      ? []
+      : main
+          .select({ id: updates.engagementId, at: max(updates.createdAt) })
+          .from(updates)
+          .where(
+            and(
+              inArray(updates.engagementId, ids),
+              eq(updates.internal, false),
+              isNull(updates.hiddenAt),
+            ),
+          )
+          .groupBy(updates.engagementId),
+    none
+      ? []
+      : main
+          .select({ id: asks.engagementId })
+          .from(asks)
+          .where(and(inArray(asks.engagementId, ids), isNull(asks.answeredAt))),
+    none
+      ? []
+      : main
+          .select()
+          .from(pulses)
+          .where(
+            and(
+              inArray(pulses.engagementId, ids),
+              gt(pulses.at, new Date(now.getTime() - 7 * DAY)),
+            ),
+          )
+          .orderBy(desc(pulses.at)),
+    problems(main, zone, now, today, live, people),
+  ]);
+  const iso = (d: Date | null | undefined) => d?.toISOString() ?? null;
+  const rows = all.flatMap((c): BoardRow[] => {
+    const seen = people
+      .filter((p) => p.m.clientId === c.id && p.m.lastSeenAt)
+      .map((p) => p.m.lastSeenAt as Date)
+      .reduce<Date | null>((a, b) => (!a || b > a ? b : a), null);
+    const base = { clientId: c.id, name: c.name, lastSeenAt: iso(seen) };
+    const mine = live.filter((l) => l.e.clientId === c.id);
+    if (mine.length === 0)
+      return [
+        {
+          ...base,
+          engagementId: null,
+          offer: null,
+          startsOn: null,
+          phase: null,
+          stepsDone: 0,
+          steps: 0,
+          next: null,
+          lastUpdateAt: null,
+          openAsks: 0,
+          pulse: null,
+          risks: [],
+        },
+      ];
+    return mine.map(({ e }) => {
+      const its = steps.filter((m) => m.engagementId === e.id);
+      const left = its.filter((m) => !m.doneOn);
+      const due = left.find((m) => m.dueOn);
+      return {
+        ...base,
+        engagementId: e.id,
+        offer: offerFor(e.offerId).name,
+        startsOn: e.startsOn,
+        phase: left[0]?.name ?? null,
+        stepsDone: its.length - left.length,
+        steps: its.length,
+        next: due?.dueOn ? { name: due.name, dueOn: due.dueOn } : null,
+        lastUpdateAt: iso(lastUpdate.find((u) => u.id === e.id)?.at),
+        openAsks: open.filter((a) => a.id === e.id).length,
+        pulse: taps.find((t) => t.engagementId === e.id)?.score ?? null,
+        risks: found.filter((f) => f.engagementId === e.id).map((f) => f.what),
+      };
+    });
+  });
+  return rows.sort((a, b) => Number(b.risks.length > 0) - Number(a.risks.length > 0));
 }
 
 // --- the loop --------------------------------------------------------------------

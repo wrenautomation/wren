@@ -438,6 +438,7 @@ export async function buildServices(
       demoName: DEMO_NAME,
       files: settings.filesBucket ? s3Files({ bucket: settings.filesBucket }) : undefined,
       watched: portal !== null,
+      zone: settings.sendTimezone,
     }),
     makeReactivationPortal({ main: db, open: openClient }),
     makeReactivation({

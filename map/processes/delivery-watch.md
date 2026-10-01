@@ -1,7 +1,7 @@
 ---
 type: process
 status: verified
-verified: 2026-10-01 @ 196f68e
+verified: 2026-10-01 @ c4ad6b7
 consumes: ["[[clients/engagement]]", "[[clients/client-member]]"]
 produces: ["[[clients/engagement]]", "[[ledger/run]]"]
 ---
@@ -12,7 +12,7 @@ Each hour, every live project's people get the mail they asked for, and the oper
 
 ## Input → Movement → Output
 
-Active engagements of non-demo clients and their members. `DeliveryWatch/fleet` (`packages/delivery/src/watch.ts:497`) runs one pass an hour in a `runs` row: welcomes, "needs you" mail, the Friday digest from `portal@`, then one notifier message listing new problems. Off until `wren delivery watch start`; runs only when `WREN_PORTAL_ORIGIN` is set, mails only when `WREN_PORTAL_FROM` and `WREN_PORTAL_MAILBOX` are too.
+Active engagements of non-demo clients and their members. `DeliveryWatch/fleet` (`packages/delivery/src/watch.ts:642`) runs one pass an hour in a `runs` row: welcomes, "needs you" mail, the Friday digest from `portal@`, then one notifier message listing new problems. Off until `wren delivery watch start`; runs only when `WREN_PORTAL_ORIGIN` is set, mails only when `WREN_PORTAL_FROM` and `WREN_PORTAL_MAILBOX` are too.
 
 ## Why this shape
 
@@ -20,10 +20,11 @@ One pass over the database finds everything, so a missed hour costs nothing: the
 
 ## Steps
 
-1. `watchPass` (`watch.ts:105`): live engagements, people with their level.
-2. `mailPeople` (`watch.ts:144`): welcome once; level `all` gets new asks and deliverables since `told_through`; Friday after 15:00 (send zone) everyone not `off` gets `digestOf` (`watch.ts:273`) once (`digest_on`). A failed send keeps the mark, so it retries next pass.
-3. `pingOperator` (`watch.ts:360`): quiet 3 business days, step past due, ask overdue, pulse ≤3, nobody signed in 14 days. Rows no longer true are deleted; new or 7-day-old ones go in one notice, recorded only if it sent.
+1. `watchPass` (`watch.ts:130`): live engagements, people with their level.
+2. `mailPeople` (`watch.ts:149`): welcome once; level `all` gets new asks and deliverables since `told_through`; Friday after 15:00 (send zone) everyone not `off` gets `digestOf` (`watch.ts:278`) once (`digest_on`). A failed send keeps the mark, so it retries next pass.
+3. `problems` (`watch.ts:366`): quiet 3 business days, step past due, ask overdue, pulse ≤3, nobody signed in 14 days. `pingOperator` (`watch.ts:479`) sends them: Rows no longer true are deleted; new or 7-day-old ones go in one notice, recorded only if it sent.
 4. An invite through the portal kicks a pass (`service.ts`, `watched`), so a welcome lands in seconds.
+5. The ops board (`opsBoard`, `watch.ts:545`) reads the same `problems` on demand, so the board's risks and the pings never disagree.
 
 ## Surfaces
 
@@ -32,6 +33,7 @@ One pass over the database finds everything, so a missed hour costs nothing: the
 | `wren delivery watch start/stop/status/sync` | the loop |
 | portal Settings → Email from us (`delivery/mail`) | each person's level |
 | portal Home pulse, digest links `?pulse=N&e=ID` (`delivery/pulse`) | the weekly tap |
+| portal `/ops/clients` (`delivery/board`, operators only) | every client: phase, next date, last update, open asks, last seen, pulse, risks |
 
 ## See
 

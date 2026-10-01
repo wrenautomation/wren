@@ -1,6 +1,7 @@
 /** The delivery API's handlers: the service serves these, the edge Worker opens only these. No imports, so the Worker bundles it alone. */
 export const DELIVERY_ROUTES = [
   "me",
+  "board",
   "home",
   "updates",
   "answer",
