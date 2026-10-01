@@ -104,6 +104,17 @@ export interface Phase {
   readonly asks: readonly string[];
 }
 
+/** A system of the client's we need into, asked for formally when the offer is bought. */
+export interface AccessNeed {
+  /** "Your ATS". */
+  readonly system: string;
+  /** How much, and no more: "Read only: candidates and open roles". */
+  readonly scope: string;
+  readonly why: string;
+  /** How the client takes it back. */
+  readonly revoke: string;
+}
+
 export interface Offer {
   /** Stable, kebab-case, stored on enrollments and deals. Never renamed; retire and add. */
   readonly id: string;
@@ -140,6 +151,8 @@ export interface Offer {
   readonly application: Application | null;
   /** The phases a bought offer runs through. Left out: no plan, the work is one step. */
   readonly plan?: readonly Phase[];
+  /** Access we ask for when it's bought. Left out: none. */
+  readonly access?: readonly AccessNeed[];
 }
 
 const ID = /^[a-z][a-z0-9]*(-[a-z0-9]+)*$/;
@@ -282,6 +295,9 @@ export function defineOffer(offer: Offer): Offer {
   }
   if (offer.application !== null) checkApplication(where, offer.application);
   if (offer.plan) checkPlan(where, offer.plan);
+  for (const a of offer.access ?? [])
+    if (![a.system, a.scope, a.why, a.revoke].every((t) => t.trim()))
+      throw new Error(`${where}: access to '${a.system}' needs a system, scope, why and revoke`);
   return offer;
 }
 

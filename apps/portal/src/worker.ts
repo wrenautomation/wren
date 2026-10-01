@@ -146,8 +146,12 @@ async function api(req: Request, env: Env, path: string, ctx?: ExecutionContext)
     return json({ error: "an object only" }, 400);
   const viewer = await viewerOf(req, env);
   if (viewer instanceof Response) return viewer;
+  if (!("demo" in viewer)) {
+    // Where a signed-in request came from, set here like the viewer: a contract signature records it.
+    const from = { ip: req.headers.get("cf-connecting-ip"), agent: req.headers.get("user-agent") };
+    return forward(env, target, JSON.stringify({ ...(input as object), viewer, from }));
+  }
   const body = JSON.stringify({ ...(input as Record<string, unknown>), viewer });
-  if (!("demo" in viewer)) return forward(env, target, body);
   // The service refuses too; this keeps a demo write out of the cache and off the wire.
   if (svc.writes.has(route)) return json({ error: "The demo is read-only." }, 403);
 

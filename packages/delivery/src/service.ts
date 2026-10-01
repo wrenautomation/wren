@@ -33,6 +33,8 @@ import {
   addAsk,
   addComment,
   addDeliverable,
+  agreementOf,
+  answerAccess,
   answerAsk,
   boughtBy,
   type DeliveryHome,
@@ -50,6 +52,7 @@ import {
   recordPulse,
   recordResult,
   setMailLevel,
+  signAgreement,
   slipMilestone,
   startEngagement,
   storedFile,
@@ -57,7 +60,7 @@ import {
   type UpdateView,
 } from "./index.js";
 import { FILE_TYPES, MAX_FILE_BYTES } from "./routes.js";
-import { DELIVERABLE_KINDS, type DeliverableKind, type MailLevel } from "./schema.js";
+import { DELIVERABLE_KINDS, type DeliverableKind, type MailLevel, type Terms } from "./schema.js";
 import { type BoardRow, type DeliveryWatch, opsBoard, WATCH, WATCH_KEY } from "./watch.js";
 
 export interface DeliveryDeps {
@@ -115,7 +118,7 @@ async function write<T>(
   const { client, viewer } = await pickForWrite(deps.main, req);
   if (who === "team" && !viewer.operator) throw new PortalRefusal("that's for Wren's team", 403);
   if (who === "owner" && !viewer.operator && !(await isOwner(deps.main, client.id, viewer.email)))
-    throw new PortalRefusal("only an owner can change who sees this", 403);
+    throw new PortalRefusal("only an owner of this account can do that", 403);
   try {
     return await deps.main.transaction(async (tx) => {
       await setAuditActor(tx, viewer.email);
@@ -177,6 +180,18 @@ export interface AccountView {
   owners: string[];
   /** Owners and Wren only. */
   billing: { open: number; overdue: number } | null;
+}
+
+/** The contract as an owner reads it before signing. */
+export interface ContractView {
+  engagementId: number;
+  version: string;
+  body: string;
+  /** Sent back on signing: proof it's this text that was signed. */
+  sha256: string;
+  terms: Terms;
+  issuedAt: string;
+  signed: { name: string; title: string | null; email: string; at: string } | null;
 }
 
 type EngagementReq = PortalRequest & { engagementId?: number };
@@ -410,6 +425,67 @@ export function deliveryApi(deps: DeliveryDeps) {
         throw new PortalRefusal("billing is for this account's owners", 403);
       return { invoices: await invoicesOf(deps.main, client.id) };
     },
+    /** The contract's text and terms: the account's owners and Wren. */
+    contract: async (req: EngagementReq): Promise<ContractView> => {
+      const client = await pickClient(deps.main, req);
+      const viewer = req.viewer;
+      if (isDemo(viewer)) throw new PortalRefusal("no such contract", 404);
+      if (!seesInternal(req) && !(await isOwner(deps.main, client.id, viewer.email)))
+        throw new PortalRefusal("the contract is for this account's owners", 403);
+      const a = await agreementOf(deps.main, await engagementFor(deps.main, client, req));
+      if (!a) throw new PortalRefusal("this work started without a contract", 404);
+      return {
+        engagementId: a.engagementId,
+        version: a.version,
+        body: a.body,
+        sha256: a.sha256,
+        terms: a.terms,
+        issuedAt: a.issuedAt.toISOString(),
+        signed:
+          a.signedAt && a.signerName && a.signerEmail
+            ? {
+                name: a.signerName,
+                title: a.signerTitle,
+                email: a.signerEmail,
+                at: a.signedAt.toISOString(),
+              }
+            : null,
+      };
+    },
+    /** An owner signs: typed name, the box ticked, and the fingerprint of the text they read. */
+    sign: (
+      req: EngagementReq & {
+        sha256: string;
+        name: string;
+        title?: string;
+        agreed: boolean;
+        from?: { ip?: string | null; agent?: string | null };
+      },
+    ) =>
+      write(deps, req, "owner", async (db, c, v) => {
+        if (v.operator) throw new PortalRefusal("the client signs this, not Wren", 403);
+        const a = await signAgreement(db, await engagementFor(db, c, req), {
+          sha256: needText(req.sha256, "the contract's fingerprint"),
+          name: needText(req.name, "your full name"),
+          title: textOf(req.title),
+          email: normalEmail(v.email),
+          agreed: req.agreed === true,
+          ip: textOf(req.from?.ip),
+          agent: textOf(req.from?.agent),
+        });
+        return { signedAt: a.signedAt?.toISOString() ?? null };
+      }),
+    /** The client grants, declines or takes back access we asked for. */
+    access: (req: PortalRequest & { accessId: number; status: string; note?: string }) =>
+      write(deps, req, "client", async (db, c, v) => {
+        const r = await answerAccess(db, c.id, {
+          id: idOf(req.accessId, "access request"),
+          status: String(req.status),
+          note: textOf(req.note),
+          by: v.email,
+        });
+        return { id: r.id, status: r.status };
+      }),
     /** Who sees this client. The demo lists nobody: its members are real people. */
     people: async (
       req: PortalRequest,
@@ -485,6 +561,7 @@ async function memberOnly(db: Queryable, clientId: string, email: string, why: s
 export type DeliveryApi = ReturnType<typeof deliveryApi>;
 export type { Me } from "@wren/core/portal";
 export type {
+  AccessView,
   AskView,
   CommentView,
   DeliverableView,
@@ -492,6 +569,7 @@ export type {
   EngagementView,
   InvoiceView,
   MilestoneState,
+  PaperworkView,
   PulseView,
   ResultView,
   StepView,
@@ -535,6 +613,14 @@ export function makeDeliveryPortal(deps: DeliveryDeps) {
       account: (_: restate.Context, req: Req<"account">) => answer(() => api.account(req)),
       invoices: (_: restate.Context, req: Req<"invoices">) => answer(() => api.invoices(req)),
       people: (_: restate.Context, req: Req<"people">) => answer(() => api.people(req)),
+      contract: (_: restate.Context, req: Req<"contract">) => answer(() => api.contract(req)),
+      sign: async (ctx: restate.Context, req: Req<"sign">) => {
+        const out = await answer(() => api.sign(req));
+        // The signed copy goes out by mail on the next pass: ask for it now.
+        if (deps.watched) ctx.objectSendClient<DeliveryWatch>({ name: WATCH }, WATCH_KEY).sync();
+        return out;
+      },
+      access: (_: restate.Context, req: Req<"access">) => answer(() => api.access(req)),
       invite: async (ctx: restate.Context, req: Req<"invite">) => {
         const out = await answer(() => api.invite(req));
         if (deps.watched) ctx.objectSendClient<DeliveryWatch>({ name: WATCH }, WATCH_KEY).sync();

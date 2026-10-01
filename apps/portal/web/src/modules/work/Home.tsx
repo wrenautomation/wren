@@ -11,6 +11,7 @@ import type { PageProps } from "../../module.js";
 import { href, navigate } from "../../route.js";
 import { dayLabel, Engagements, figure, StateTag, useAct, useWork } from "./bits.js";
 import { at } from "./nav.js";
+import { waitingOn } from "./Paperwork.js";
 
 export function Home(props: PageProps) {
   const work = useWork(props);
@@ -61,10 +62,27 @@ function Glance({
 
   return (
     <>
-      {welcome ? (
+      {e.status === "onboarding" ? (
+        <Section
+          title="Before we start"
+          actions={
+            <ButtonLink href={at("paperwork")} tone="primary" size="sm" arrow>
+              Paperwork
+            </ButtonLink>
+          }
+        >
+          <p>
+            {waitingOn(e).length
+              ? `Still to do: ${waitingOn(e).join(", ")}. The plan starts the day that's done.`
+              : "All done. The plan starts today."}{" "}
+            New here? <a href={at("welcome")}>Read the welcome guide</a>.
+          </p>
+        </Section>
+      ) : welcome ? (
         <Callout>
           Welcome. Your plan below is dated from {dayLabel(e.startsOn)}. We post here as the work
-          moves, and anything we need from you shows under Needs you.
+          moves, and anything we need from you shows under Needs you.{" "}
+          <a href={at("welcome")}>The welcome guide</a> has the rest.
         </Callout>
       ) : null}
 

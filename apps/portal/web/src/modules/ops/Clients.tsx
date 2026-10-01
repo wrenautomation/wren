@@ -41,13 +41,21 @@ export function Clients() {
               {rows.map((r) => (
                 <tr key={`${r.clientId}:${r.engagementId}`}>
                   <td>
-                    <a href={href("/work/home", { client: r.clientId })}>{r.name}</a>
+                    <a
+                      href={href(r.status === "onboarding" ? "/work/paperwork" : "/work/home", {
+                        client: r.clientId,
+                      })}
+                    >
+                      {r.name}
+                    </a>
                     {r.offer ? <div className="ops-sub">{r.offer}</div> : null}
                   </td>
                   <td data-label="Phase">
-                    {r.offer
-                      ? `${r.phase ?? "All done"} (${r.stepsDone}/${r.steps})`
-                      : "Nothing running"}
+                    {!r.offer
+                      ? "Nothing running"
+                      : r.status === "onboarding"
+                        ? "Paperwork"
+                        : `${r.phase ?? "All done"} (${r.stepsDone}/${r.steps})`}
                   </td>
                   <td data-label="Next" className="ui-nowrap">
                     {r.next ? `${r.next.name}, ${dayLabel(r.next.dueOn)}` : "-"}

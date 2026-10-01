@@ -12,7 +12,7 @@ Each hour, every live project's people get the mail they asked for, and the oper
 
 ## Input → Movement → Output
 
-Active engagements of non-demo clients and their members; the demo's sample. `DeliveryWatch/fleet` (`packages/delivery/src/watch.ts:648`) runs one pass an hour in a `runs` row: welcomes, "needs you" mail, the Friday digest from `portal@`, then one notifier message listing new problems. Off until `wren delivery watch start`; runs only when `WREN_PORTAL_ORIGIN` is set, mails only when `WREN_PORTAL_FROM` and `WREN_PORTAL_MAILBOX` are too.
+Onboarding and active engagements of non-demo clients (activity pings and the digest: active only) and their members; the demo's sample. `DeliveryWatch/fleet` (`packages/delivery/src/watch.ts:648`) runs one pass an hour in a `runs` row: welcomes, "needs you" mail, the Friday digest from `portal@`, then one notifier message listing new problems. Off until `wren delivery watch start`; runs only when `WREN_PORTAL_ORIGIN` is set, mails only when `WREN_PORTAL_FROM` and `WREN_PORTAL_MAILBOX` are too.
 
 ## Why this shape
 
@@ -22,10 +22,11 @@ One pass over the database finds everything, so a missed hour costs nothing: the
 
 1. `keepSampleFresh` (`sample.ts`): the demo's sample project (`seedSample`, `sample.ts:53`) is reseeded when missing or over a week old, so it never shows a late step.
 2. `watchPass` (`watch.ts:134`): live engagements, people with their level.
-3. `mailPeople` (`watch.ts:155`): welcome once; level `all` gets new asks, deliverables and Wren's comments since `told_through`; Friday after 15:00 (send zone) everyone not `off` gets `digestOf` (`watch.ts:284`) once (`digest_on`). A failed send keeps the mark, so it retries next pass.
-4. `problems` (`watch.ts:372`): quiet 3 business days, step past due, ask overdue, pulse ≤3, nobody signed in 14 days, a client comment with no Wren reply after it (one per thread), an invoice unpaid past its due day (on any engagement, running or not). `pingOperator` (`watch.ts:485`) sends them. Rows no longer true are deleted; new or 7-day-old ones go in one notice, recorded only if it sent.
-5. An invite through the portal kicks a pass (`service.ts`, `watched`), so a welcome lands in seconds.
-6. The ops board (`opsBoard`, `watch.ts:551`) reads the same `problems` on demand, so the board's risks and the pings never disagree.
+3. `mailContracts` (`watch.ts:188`): a signed contract not yet mailed goes to the signer, every owner and Wren, with the signature and fingerprint; `mailed_at` marks it.
+4. `mailPeople` (`watch.ts:155`): welcome once; level `all` gets new asks, deliverables and Wren's comments since `told_through`; Friday after 15:00 (send zone) everyone not `off` gets `digestOf` (`watch.ts:284`) once (`digest_on`). A failed send keeps the mark, so it retries next pass.
+5. `problems` (`watch.ts:506`): quiet 3 business days, step past due, ask overdue, pulse ≤3, nobody signed in 14 days, a client comment with no Wren reply after it (one per thread), an invoice unpaid past its due day (on any engagement, running or not). Onboarding ones get paperwork pings only: contract unsigned 3 days, signed with a setup fee and no setup invoice on record, access declined or unanswered 3 days. `pingOperator` (`watch.ts:485`) sends them. Rows no longer true are deleted; new or 7-day-old ones go in one notice, recorded only if it sent.
+6. An invite or a signature through the portal kicks a pass (`service.ts`, `watched`), so a welcome lands in seconds.
+7. The ops board (`opsBoard`, `watch.ts:551`) reads the same `problems` on demand, so the board's risks and the pings never disagree.
 
 ## Surfaces
 

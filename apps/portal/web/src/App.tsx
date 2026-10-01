@@ -21,6 +21,7 @@ import { useEffect, useState } from "react";
 import { call, type Me, signOutUrl } from "./api.js";
 import { useCall } from "./load.js";
 import type { Module, ModulePage, PageProps } from "./module.js";
+import { useAccount } from "./modules/account/load.js";
 import { MODULES } from "./modules/index.js";
 import { navigate, useRoute } from "./route.js";
 
@@ -190,11 +191,13 @@ export function App() {
               name: open.module.name,
               icon: open.module.icon,
               href: firstOf(open.module),
-              tabs: open.module.pages.map((p) => ({
-                id: p.id,
-                label: p.label,
-                href: pathOf(open.module, p),
-              })),
+              tabs: open.module.pages
+                .filter((p) => !p.hidden || p.id === open.page.id)
+                .map((p) => ({
+                  id: p.id,
+                  label: p.label,
+                  href: pathOf(open.module, p),
+                })),
               current: open.page.id,
               action:
                 action && action.page !== open.page.id ? (
@@ -244,18 +247,38 @@ export function App() {
   );
 }
 
-/** "/": a card per app, the client's first, then Wren's own in team view. */
+/**
+ * "/": the apps under each service the client bought, each with its plan and
+ * paperwork; then the rest; then Wren's own in team view.
+ */
 function Launcher({ name, apps, props }: { name: string; apps: Module[]; props: PageProps }) {
+  const account = useAccount(props);
   const card = (m: Module) => (
     <AppCard key={m.id} name={m.name} icon={m.icon} href={firstOf(m)} blurb={m.blurb}>
       {m.Glance ? <m.Glance {...props} /> : null}
     </AppCard>
   );
+  if (!account.data && !account.error) return <Loading lines={8} heading />;
+  // One heading per offer, newest first; a finished one stays, it still has its paperwork.
+  const bought = [
+    ...new Map((account.data?.bought ?? []).map((b) => [b.offerId, b.offer])).entries(),
+  ];
+  const under = (offerId: string) =>
+    apps.filter((m) => !m.team && (m.companion || m.offers?.includes(offerId)));
+  const placed = new Set(bought.flatMap(([id]) => under(id).map((m) => m.id)));
+  const rest = apps.filter((m) => !m.team && !placed.has(m.id));
   const ours = apps.filter((m) => m.team);
   return (
     <>
       <PageHeader title="Apps" lede={`Everything Wren runs for ${name}.`} />
-      <AppGrid>{apps.filter((m) => !m.team).map(card)}</AppGrid>
+      {bought.map(([id, offer]) => (
+        <AppGrid key={id} label={offer}>
+          {under(id).map(card)}
+        </AppGrid>
+      ))}
+      {rest.length ? (
+        <AppGrid label={bought.length ? "More from Wren" : undefined}>{rest.map(card)}</AppGrid>
+      ) : null}
       {ours.length ? <AppGrid label="Wren team">{ours.map(card)}</AppGrid> : null}
     </>
   );

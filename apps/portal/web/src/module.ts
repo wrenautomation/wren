@@ -18,6 +18,8 @@ export interface ModulePage {
   id: string;
   label: string;
   Page: ComponentType<PageProps>;
+  /** Reached by link only, never a tab. */
+  hidden?: true;
 }
 
 export interface Module {
@@ -36,6 +38,10 @@ export interface Module {
   noDemo?: true;
   /** Reached from the client's name at top left, never a launcher card. */
   menu?: true;
+  /** The offers it serves: its card sits under each one the client bought. */
+  offers?: readonly string[];
+  /** The plan and paperwork around any offer: its card sits under every one bought. */
+  companion?: true;
   /** The one button in its head, a page to go to. */
   action?: { page: string; label: string; icon: IconName };
 }

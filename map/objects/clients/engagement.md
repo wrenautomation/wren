@@ -31,6 +31,9 @@ It sits in main, beside the registry, so an operator can read across clients and
 - Comments (`comments`, `schema.ts:321`): a thread under a client-visible update or a deliverable, from either side (`from_wren`). `addComment` (`index.ts:342`) refuses internal and hidden updates. A new deliverable version takes the thread with it. A client line with no Wren line after it pings us (`reply:<u|d><id>`); Wren's lines are mailed at level `all` ([[processes/delivery-watch]]).
 - Invoices (`invoices`, `schema.ts:366`): what we billed through Wise, per engagement. Wise sends the invoice and takes the money; the row keeps its number (unique across clients), amount in cents, currency, dates, status and Wise link. `addInvoice`, `markInvoice` (`index.ts:541`, `:586`); `invoicesOf` reports an open one past its due day as `overdue` (`:922`). Only the account's owners and Wren read them (`service.ts:405`). One unpaid past its due day pings us (`invoice:<id>`).
 - The account page (`account`, `service.ts:382`): the client's name, since when, what they bought (`boughtBy`, `index.ts:949`), people and owners, and billing counts for owners.
+- Onboarding (`onboard`, `index.ts:675`): selling an offer opens the engagement as `onboarding`, issues the contract and asks for the offer's `access`. Steps show "next" and asks are never overdue until it starts. `startIfReady` (`:765`) makes it `active` once the contract is signed and the setup invoice (`invoices.setup`) is paid or there's no setup fee; undone steps and open asks move by the days waited, and the start becomes today if later.
+- Agreements (`agreements`, `schema.ts:427`): one per engagement. The text (`contractText`, `contract.ts`) and terms (`termsFor`, `index.ts:640`) are frozen when issued, with their sha256. `signAgreement` (`:721`) takes the hash the signer read and refuses any other (409), keeps name, title, email, time, IP and browser. Only owners and Wren read it (`service.ts:429`); only an owner signs (`:456`), never an operator. DeliveryWatch mails the signed copy once (`mailed_at`).
+- Access requests (`access_requests`, `schema.ts:472`): one system each, with scope, why and how to revoke. `requestAccess` (`:804`) for the team; the client answers granted, declined (with a note) or revoked (`answerAccess`, `:825`).
 - Who sees which client: `pickClient` / `pickForWrite` (`packages/core/src/portal.ts:51`, `:63`). These are shared with every product's portal service.
 
 Citations: `packages/delivery/src/schema.ts:33`, `packages/delivery/src/index.ts:139`, `packages/delivery/src/service.ts:81`, `packages/core/src/portal.ts:51`
@@ -52,13 +55,13 @@ Citations: `packages/delivery/src/schema.ts:33`, `packages/delivery/src/index.ts
 |---|---|
 | app.wrenautomation.com `/api/delivery/*` | reads; clients answer and decide; operators write the rest |
 | demo host | reads the demo client's sample, writes nothing |
-| portal `work` module (`apps/portal/web/src/modules/work/`) | the client's pages; operators write in place, "view as client" drops internal |
+| portal `work` module, "Plan & paperwork" (`apps/portal/web/src/modules/work/`) | the client's pages: Paperwork, the contract (hidden tab, signs and prints) and the welcome guide (hidden tab) first; operators write in place, "view as client" drops internal |
 | portal `account` module (`apps/portal/web/src/modules/account/`) | from the client's name at top left: overview, people, each person's mail level and sign-in, billing |
-| `wren --client <id> delivery …` (`apps/cli/src/delivery.ts`) | the team's writes from the terminal and the skill; `deliver --file` uploads; `invoice`, `paid`, `void` track Wise invoices |
+| `wren --client <id> delivery …` (`apps/cli/src/delivery.ts`) | the team's writes from the terminal and the skill; `onboard`, `contract`, `access` for the paperwork; `deliver --file` uploads; `invoice [--setup]`, `paid`, `void` track Wise invoices |
 | S3 files bucket (`WREN_FILES_BUCKET`) | the bytes; the browser PUTs and GETs on signed URLs |
 | [[processes/delivery-watch]] | mails the client's people, pings the operator |
 
 ## See
 
 - Design: `designs/2026-09-30-client-delivery-portal.md`
-- Tests: `packages/delivery/test/integration/delivery.test.ts`, `watch.test.ts`
+- Tests: `packages/delivery/test/integration/delivery.test.ts`, `watch.test.ts`, `onboarding.test.ts`

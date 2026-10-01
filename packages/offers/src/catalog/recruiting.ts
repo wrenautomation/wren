@@ -223,6 +223,14 @@ export const recruitingCandidateReactivation = defineOffer({
   youGive: ["Read access to candidates and open roles in your ATS."],
   weGet: [],
   guarantee: null,
+  access: [
+    {
+      system: "Your ATS",
+      scope: "Read only: candidates and open roles. No editing, no billing.",
+      why: "To match dormant candidates to the roles you have open now.",
+      revoke: "Remove our user in your ATS's user settings. Nothing else changes.",
+    },
+  ],
   measures: [
     { key: "candidates_reached", label: "Candidates reached", unit: "count" },
     { key: "candidates_interested", label: "Candidates interested", unit: "count" },

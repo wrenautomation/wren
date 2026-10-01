@@ -30,10 +30,13 @@ import {
   sql,
 } from "drizzle-orm";
 import { alias } from "drizzle-orm/pg-core";
+import { amount, WREN_PARTY } from "./contract.js";
 import { addDays, weekday } from "./index.js";
 import { PULSE_WORDS } from "./routes.js";
 import { keepSampleFresh } from "./sample.js";
 import {
+  accessRequests,
+  agreements,
   asks,
   comments,
   deliverables,
@@ -59,6 +62,8 @@ const DAY = 24 * HOUR;
 const QUIET_WORKDAYS = 3;
 const AWAY_DAYS = 14;
 const LOW_PULSE = 3;
+/** Paperwork left this long pings: an unsigned contract, unanswered access. */
+const PAPERWORK_DAYS = 3;
 /** A problem still standing pings again after this long. */
 const REPING_DAYS = 7;
 /** The digest goes Friday from this hour, fleet clock. */
@@ -83,6 +88,8 @@ export interface WatchDeps {
 
 export interface WatchStats {
   welcomed: number;
+  /** Signed contracts mailed out. */
+  contracts: number;
   told: number;
   digests: number;
   pinged: number;
@@ -122,14 +129,14 @@ const money = (unit: string, v: number) =>
 type Live = { e: Engagement; clientName: string };
 type Person = { m: ClientMember; mail: MemberMail | null; clientName: string };
 
-/** Every active engagement and every client person, the demo's left out. */
+/** Every running engagement (onboarding or active) and every client person, the demo's left out. */
 async function watched(main: Db): Promise<{ live: Live[]; people: Person[] }> {
   const live: Live[] = (
     await main
       .select({ e: engagements, clientName: clients.name })
       .from(engagements)
       .innerJoin(clients, eq(clients.id, engagements.clientId))
-      .where(and(eq(engagements.status, "active"), eq(clients.demo, false)))
+      .where(and(inArray(engagements.status, ["onboarding", "active"]), eq(clients.demo, false)))
       .orderBy(asc(engagements.id))
   ).map((r) => ({ e: r.e, clientName: r.clientName }));
   const people: Person[] = await main
@@ -153,6 +160,7 @@ export async function watchPass(deps: WatchDeps, now: Date): Promise<WatchStats>
   const today = dayIn(deps.zone, now);
   const stats: WatchStats = {
     welcomed: 0,
+    contracts: 0,
     told: 0,
     digests: 0,
     pinged: 0,
@@ -162,12 +170,74 @@ export async function watchPass(deps: WatchDeps, now: Date): Promise<WatchStats>
   };
   stats.sample = await keepSampleFresh(main, today);
   const { live, people } = await watched(main);
-  if (deps.send) await mailPeople(deps, deps.send, now, today, live, people, stats);
+  if (deps.send) {
+    await mailContracts(deps, deps.send, now, stats);
+    await mailPeople(deps, deps.send, now, today, live, people, stats);
+  }
   await pingOperator(deps, now, today, live, people, stats);
   return stats;
 }
 
 // --- client mail (D9, D10) -----------------------------------------------------
+
+/**
+ * A signed contract goes to the signer, the account's owners and Wren, with the
+ * signature on it. It's marked mailed once every copy went.
+ * ponytail: one failed copy resends them all next pass; mark per address if that bites.
+ */
+async function mailContracts(
+  deps: WatchDeps,
+  send: (m: PortalMail) => Promise<void>,
+  now: Date,
+  stats: WatchStats,
+): Promise<void> {
+  const { main, app } = deps;
+  const due = await main
+    .select({ a: agreements, clientId: engagements.clientId, clientName: clients.name })
+    .from(agreements)
+    .innerJoin(engagements, eq(engagements.id, agreements.engagementId))
+    .innerJoin(clients, eq(clients.id, engagements.clientId))
+    .where(
+      and(
+        sql`${agreements.signedAt} is not null`,
+        isNull(agreements.mailedAt),
+        eq(clients.demo, false),
+      ),
+    );
+  for (const { a, clientId, clientName } of due) {
+    const owners = await main
+      .select({ email: clientMembers.email })
+      .from(clientMembers)
+      .where(and(eq(clientMembers.clientId, clientId), eq(clientMembers.role, "owner")));
+    const to = [
+      ...new Set([a.signerEmail ?? "", ...owners.map((o) => o.email), WREN_PARTY.email]),
+    ].filter(Boolean);
+    const at = a.signedAt?.toISOString().replace("T", " ").slice(0, 16);
+    const text = [
+      `${clientName}'s contract with Wren is signed. Your copy is below. It's also in your portal: ${app}/work/contract?client=${clientId}`,
+      "",
+      a.body,
+      "",
+      "Signed",
+      `- For ${clientName}: ${a.signerName}${a.signerTitle ? `, ${a.signerTitle}` : ""} (${a.signerEmail}), ${at} UTC${a.signedIp ? `, from ${a.signedIp}` : ""}`,
+      `- For Wren: ${WREN_PARTY.name}, issued ${a.issuedAt.toISOString().slice(0, 10)}`,
+      `- Version ${a.version}, fingerprint ${a.sha256}`,
+    ].join("\n");
+    let ok = true;
+    for (const email of to) {
+      try {
+        await send({ to: email, subject: `${clientName}: your signed contract with Wren`, text });
+      } catch (err) {
+        ok = false;
+        stats.failed += 1;
+        stats.lastError = errorText(err);
+      }
+    }
+    if (!ok) continue;
+    await main.update(agreements).set({ mailedAt: now }).where(eq(agreements.id, a.id));
+    stats.contracts += 1;
+  }
+}
 
 async function mailPeople(
   deps: WatchDeps,
@@ -208,8 +278,17 @@ async function mailPeople(
         text: [
           `${p.m.invitedBy ?? "Wren"} added you to ${c.name}'s project with Wren.`,
           "",
-          "See where things stand, what's next and what we need from you:",
-          `${app}/work/home?client=${c.id}`,
+          ...(live.some((l) => l.e.clientId === c.id && l.e.status === "onboarding")
+            ? [
+                p.m.role === "owner"
+                  ? "First, the paperwork: read and sign the contract, and answer our access requests."
+                  : "First, the paperwork: see what's left before we start.",
+                `${app}/work/paperwork?client=${c.id}`,
+              ]
+            : [
+                "See where things stand, what's next and what we need from you:",
+                `${app}/work/home?client=${c.id}`,
+              ]),
           "",
           "Sign in with this email address: a code by email, Google, Microsoft or a password.",
           "",
@@ -342,7 +421,9 @@ async function digestOf(
   today: string,
 ): Promise<string | null> {
   const { main, app } = deps;
-  const es = live.filter((l) => l.e.clientId === clientId).map((l) => l.e);
+  const es = live
+    .filter((l) => l.e.clientId === clientId && l.e.status === "active")
+    .map((l) => l.e);
   if (es.length === 0) return null;
   const ids = es.map((e) => e.id);
   const weekAgo = new Date(now.getTime() - 7 * DAY);
@@ -430,7 +511,7 @@ async function problems(
   live: Live[],
   people: Person[],
 ): Promise<Found[]> {
-  const started = live.filter((l) => l.e.startsOn <= today);
+  const started = live.filter((l) => l.e.status === "active" && l.e.startsOn <= today);
   const ids = started.map((l) => l.e.id);
   const found: Found[] = [];
   if (ids.length > 0) {
@@ -570,6 +651,69 @@ async function problems(
         });
     }
   }
+  // Paperwork: a contract left unsigned, a setup invoice not sent, access refused or unanswered.
+  const stale = new Date(now.getTime() - PAPERWORK_DAYS * DAY);
+  const [waiting, access] = await Promise.all([
+    main
+      .select({ a: agreements, clientId: engagements.clientId })
+      .from(agreements)
+      .innerJoin(engagements, eq(engagements.id, agreements.engagementId))
+      .innerJoin(clients, eq(clients.id, engagements.clientId))
+      .where(and(eq(engagements.status, "onboarding"), eq(clients.demo, false))),
+    main
+      .select({ r: accessRequests, clientId: engagements.clientId })
+      .from(accessRequests)
+      .innerJoin(engagements, eq(engagements.id, accessRequests.engagementId))
+      .innerJoin(clients, eq(clients.id, engagements.clientId))
+      .where(
+        and(
+          inArray(engagements.status, ["onboarding", "active"]),
+          eq(clients.demo, false),
+          or(
+            eq(accessRequests.status, "declined"),
+            and(eq(accessRequests.status, "open"), lt(accessRequests.createdAt, stale)),
+          ),
+        ),
+      ),
+  ]);
+  const setupSent = new Set(
+    (
+      await main
+        .select({ id: invoices.engagementId })
+        .from(invoices)
+        .where(
+          and(
+            eq(invoices.setup, true),
+            inArray(invoices.engagementId, waiting.map((w) => w.a.engagementId).concat(0)),
+          ),
+        )
+    ).map((r) => r.id),
+  );
+  for (const { a, clientId } of waiting) {
+    const base = { engagementId: a.engagementId, clientId };
+    if (!a.signedAt && a.issuedAt < stale)
+      found.push({
+        ...base,
+        about: "contract",
+        what: `contract unsigned since ${a.issuedAt.toISOString().slice(0, 10)}`,
+      });
+    if (a.terms.setupCents > 0 && !setupSent.has(a.engagementId))
+      found.push({
+        ...base,
+        about: "setup",
+        what: `no setup invoice on record (${amount(a.terms.setupCents, a.terms.currency)}): send it through Wise, then \`wren delivery invoice --setup\``,
+      });
+  }
+  for (const { r, clientId } of access)
+    found.push({
+      engagementId: r.engagementId,
+      clientId,
+      about: `access:${r.id}`,
+      what:
+        r.status === "declined"
+          ? `declined access to ${r.system}: "${clip(r.note ?? "", 120)}"`
+          : `access to ${r.system} unanswered since ${r.createdAt.toISOString().slice(0, 10)}`,
+    });
   // Money owed past its due day, whether or not the work is still running.
   const unpaid = await main
     .select({ i: invoices, clientId: engagements.clientId })
@@ -634,6 +778,8 @@ export interface BoardRow {
   name: string;
   engagementId: number | null;
   offer: string | null;
+  /** Onboarding: the paperwork comes first. */
+  status: Engagement["status"] | null;
   startsOn: string | null;
   /** The step under way: the first not done. */
   phase: string | null;
@@ -714,6 +860,7 @@ export async function opsBoard(main: Db, zone: string, now: Date): Promise<Board
           ...base,
           engagementId: null,
           offer: null,
+          status: null,
           startsOn: null,
           phase: null,
           stepsDone: 0,
@@ -733,6 +880,7 @@ export async function opsBoard(main: Db, zone: string, now: Date): Promise<Board
         ...base,
         engagementId: e.id,
         offer: offerFor(e.offerId).name,
+        status: e.status,
         startsOn: e.startsOn,
         phase: left[0]?.name ?? null,
         stepsDone: its.length - left.length,

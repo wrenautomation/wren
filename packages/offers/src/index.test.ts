@@ -198,7 +198,7 @@ describe("snapshot", () => {
   it("round-trips the registry as JSON", () => {
     const parsed = JSON.parse(snapshotText(OFFERS)) as ReturnType<typeof snapshot>;
     expect(parsed.version).toBe(1);
-    expect(parsed.offers).toEqual(OFFERS.map(({ plan: _, ...o }) => o));
-    expect(parsed.offers.some((o) => "plan" in o)).toBe(false);
+    expect(parsed.offers).toEqual(OFFERS.map(({ plan: _, access: __, ...o }) => o));
+    expect(parsed.offers.some((o) => "plan" in o || "access" in o)).toBe(false);
   });
 });

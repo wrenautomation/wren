@@ -5,13 +5,21 @@
  * imports one. Every write names the client, and a row of another client's
  * is "not found", so one client can never reach another's by id.
  */
+import { clients } from "@wren/core/clients";
 import type { Queryable } from "@wren/db";
 import { OFFER_IDS, type Offer, offerFor } from "@wren/offers";
 import { and, asc, desc, eq, inArray, isNull, lt, type SQL, sql } from "drizzle-orm";
 import type { AnyPgColumn } from "drizzle-orm/pg-core";
+import { CONTRACT_VERSION, contractText, sha256 } from "./contract.js";
 import { fileNameOf } from "./files.js";
 import {
+  ACCESS_STATUSES,
+  type AccessRequest,
+  type AccessStatus,
+  type Agreement,
   type Ask,
+  accessRequests,
+  agreements,
   asks,
   type Comment,
   comments,
@@ -33,10 +41,12 @@ import {
   milestones,
   pulses,
   results,
+  type Terms,
   type Update,
   updates,
 } from "./schema.js";
 
+export { amount, CONTRACT_VERSION, contractText, WREN_PARTY } from "./contract.js";
 export * from "./schema.js";
 
 /** Bad input (400), nothing of this client's by that id (404), or a clash with what's there (409). */
@@ -97,7 +107,10 @@ function fileKeyOf(clientId: string, v: string): string {
 
 // --- finding a client's rows ---------------------------------------------------
 
-/** The client's engagement: by id, or the one that's active when there's one. */
+/** Statuses where the work is under way: one per offer per client. */
+const RUNNING: EngagementStatus[] = ["onboarding", "active"];
+
+/** The client's engagement: by id, or the one running (onboarding or active) when there's one. */
 export async function engagementOf(
   db: Queryable,
   clientId: string,
@@ -114,8 +127,8 @@ export async function engagementOf(
   const active = await db
     .select()
     .from(engagements)
-    .where(and(eq(engagements.clientId, clientId), eq(engagements.status, "active")));
-  if (active.length === 0) throw missing("active engagement");
+    .where(and(eq(engagements.clientId, clientId), inArray(engagements.status, RUNNING)));
+  if (active.length === 0) throw missing("running engagement");
   if (active.length > 1) throw bad("this client has more than one engagement running: pick one");
   return active[0] as Engagement;
 }
@@ -153,7 +166,13 @@ export function datedPlan(offer: Offer, startsOn: string) {
 /** Start an offer for a client (D1, D2): the plan's phases become dated milestones, its asks open. */
 export async function startEngagement(
   db: Queryable,
-  input: { clientId: string; offerId: string; startsOn: string; by: string },
+  input: {
+    clientId: string;
+    offerId: string;
+    startsOn: string;
+    by: string;
+    status?: "onboarding" | "active";
+  },
 ): Promise<Engagement> {
   if (!OFFER_IDS.has(input.offerId)) throw missing(`offer '${input.offerId}'`);
   const offer = offerFor(input.offerId);
@@ -165,7 +184,7 @@ export async function startEngagement(
       and(
         eq(engagements.clientId, input.clientId),
         eq(engagements.offerId, offer.id),
-        eq(engagements.status, "active"),
+        inArray(engagements.status, RUNNING),
       ),
     );
   if (running) throw new DeliveryRefusal(`${offer.name} is already running for this client`, 409);
@@ -175,6 +194,7 @@ export async function startEngagement(
       clientId: input.clientId,
       offerId: offer.id,
       startsOn: input.startsOn,
+      status: input.status ?? "active",
       createdBy: input.by,
     })
     .returning();
@@ -549,6 +569,8 @@ export async function addInvoice(
     issuedOn?: string | undefined;
     dueOn: string;
     link?: string | undefined;
+    /** The setup fee: paid with the contract signed, the plan starts. */
+    setup?: boolean | undefined;
     by: string;
   },
 ): Promise<Invoice> {
@@ -576,13 +598,14 @@ export async function addInvoice(
       issuedOn,
       dueOn,
       link: input.link?.trim() ? linkOf(input.link, "link") : null,
+      setup: input.setup === true,
       createdBy: input.by,
     })
     .returning();
   return row as Invoice;
 }
 
-/** Paid on a day (today by default), void, or open again. */
+/** Paid on a day (today by default), void, or open again. A paid setup fee may start the plan. */
 export async function markInvoice(
   db: Queryable,
   clientId: string,
@@ -601,7 +624,223 @@ export async function markInvoice(
     .where(and(eq(invoices.number, number.trim()), ofClient(db, invoices.engagementId, clientId)))
     .returning();
   if (!row) throw missing(`invoice '${number}'`);
+  if (row.status === "paid" && row.setup)
+    await startIfReady(db, await engagementOf(db, clientId, row.engagementId));
   return row;
+}
+
+// --- onboarding: the contract, the setup fee, access ---------------------------
+
+const cents = (dollars: number) => Math.round(dollars * 100);
+
+/**
+ * The terms an offer's price implies, in cents, with the operator's changes on
+ * top. Fixed and quoted prices are ranges or nothing: their fees must be given.
+ */
+export function termsFor(offer: Offer, over: Partial<Terms> = {}): Terms {
+  const p = offer.price;
+  const base: Terms = {
+    currency: "USD",
+    setupCents: p.kind === "performance" ? cents(p.upfront) : 0,
+    monthlyCents: null,
+    perUnitCents: p.kind === "performance" ? cents(p.perUnit) : null,
+    unit: p.kind === "performance" ? p.unit : null,
+    capCents: p.kind === "performance" && p.cap !== null ? cents(p.cap) : null,
+    days: offer.days,
+    payDays: 7,
+  };
+  const t = { ...base, ...over };
+  t.currency = t.currency.trim().toUpperCase();
+  if (!CURRENCY.test(t.currency)) throw bad("the currency is three letters, like USD");
+  for (const [k, v] of [
+    ["setup", t.setupCents],
+    ["monthly", t.monthlyCents],
+    ["per unit", t.perUnitCents],
+    ["cap", t.capCents],
+  ] as const)
+    if (v !== null && (!Number.isSafeInteger(v) || v < 0)) throw bad(`the ${k} fee is whole cents`);
+  if (!Number.isInteger(t.payDays) || t.payDays < 0 || t.payDays > 90)
+    throw bad("invoices are due 0 to 90 days after their date");
+  if (t.perUnitCents !== null && !t.unit?.trim()) throw bad("say what a per-unit fee counts");
+  if ((p.kind === "fixed" || p.kind === "quoted") && !t.setupCents && t.monthlyCents === null)
+    throw bad(`${offer.name} is priced per deal: give the setup or monthly fee`);
+  return t;
+}
+
+/**
+ * Sell an offer (onboarding): the engagement waits, the contract is issued with
+ * these terms, and the offer's access requests open. Signing it, and paying the
+ * setup invoice when there's a fee, starts the plan.
+ */
+export async function onboard(
+  db: Queryable,
+  input: {
+    clientId: string;
+    offerId: string;
+    startsOn: string;
+    terms?: Partial<Terms>;
+    by: string;
+  },
+): Promise<{ engagement: Engagement; agreement: Agreement }> {
+  if (!OFFER_IDS.has(input.offerId)) throw missing(`offer '${input.offerId}'`);
+  const offer = offerFor(input.offerId);
+  const terms = termsFor(offer, input.terms);
+  const [client] = await db
+    .select({ name: clients.name })
+    .from(clients)
+    .where(eq(clients.id, input.clientId));
+  if (!client) throw missing(`client '${input.clientId}'`);
+  const engagement = await startEngagement(db, { ...input, status: "onboarding" });
+  const body = contractText({ clientName: client.name, offer, terms });
+  const [agreement] = await db
+    .insert(agreements)
+    .values({
+      engagementId: engagement.id,
+      version: CONTRACT_VERSION,
+      terms,
+      body,
+      sha256: sha256(body),
+      issuedBy: input.by,
+    })
+    .returning();
+  if (!agreement) throw new Error("agreement insert returned nothing");
+  for (const a of offer.access ?? []) await requestAccess(db, engagement, { ...a, by: input.by });
+  return { engagement, agreement };
+}
+
+/** The engagement's contract, or null when it was started without one. */
+export async function agreementOf(db: Queryable, e: Engagement): Promise<Agreement | null> {
+  const [a] = await db.select().from(agreements).where(eq(agreements.engagementId, e.id));
+  return a ?? null;
+}
+
+/**
+ * The client signs (an owner, in the portal). `sha256` is the fingerprint of
+ * the text they were shown: a different one means they saw another text.
+ */
+export async function signAgreement(
+  db: Queryable,
+  e: Engagement,
+  input: {
+    sha256: string;
+    name: string;
+    title?: string | undefined;
+    email: string;
+    agreed: boolean;
+    ip?: string | undefined;
+    agent?: string | undefined;
+  },
+): Promise<Agreement> {
+  if (!input.agreed) throw bad("tick the box to agree");
+  const a = await agreementOf(db, e);
+  if (!a) throw missing("contract for this engagement");
+  if (a.signedAt) throw new DeliveryRefusal("this contract is already signed", 409);
+  if (input.sha256 !== a.sha256)
+    throw new DeliveryRefusal(
+      "the contract changed since you opened it: reload and read it again",
+      409,
+    );
+  const [signed] = await db
+    .update(agreements)
+    .set({
+      signerName: textIn(input.name, "your full name", 200),
+      signerTitle: input.title?.trim() ? textIn(input.title, "your title", 200) : null,
+      signerEmail: input.email,
+      signedAt: new Date(),
+      signedIp: input.ip?.slice(0, 64) ?? null,
+      signedAgent: input.agent?.slice(0, 500) ?? null,
+    })
+    .where(and(eq(agreements.id, a.id), isNull(agreements.signedAt)))
+    .returning();
+  if (!signed) throw new DeliveryRefusal("this contract is already signed", 409);
+  await startIfReady(db, e);
+  return signed;
+}
+
+/**
+ * Onboarding ends when the contract is signed and the setup fee, if any, is
+ * paid. The plan then starts today (or on its start day, if that's later):
+ * every step and open ask moves by the days it waited.
+ */
+export async function startIfReady(
+  db: Queryable,
+  e: Engagement,
+  today = todayUtc(),
+): Promise<boolean> {
+  if (e.status !== "onboarding") return false;
+  const a = await agreementOf(db, e);
+  if (!a?.signedAt) return false;
+  if (a.terms.setupCents > 0) {
+    const [paid] = await db
+      .select({ id: invoices.id })
+      .from(invoices)
+      .where(
+        and(eq(invoices.engagementId, e.id), eq(invoices.setup, true), eq(invoices.status, "paid")),
+      );
+    if (!paid) return false;
+  }
+  const startsOn = today > e.startsOn ? today : e.startsOn;
+  const by = Math.round((Date.parse(startsOn) - Date.parse(e.startsOn)) / 86_400_000);
+  if (by > 0) {
+    const moved = (c: AnyPgColumn) => sql`${c} + ${by}::int`;
+    await db
+      .update(milestones)
+      .set({
+        plannedFrom: moved(milestones.plannedFrom),
+        plannedTo: moved(milestones.plannedTo),
+        dueOn: moved(milestones.dueOn),
+      })
+      .where(and(eq(milestones.engagementId, e.id), isNull(milestones.doneOn)));
+    await db
+      .update(asks)
+      .set({ dueOn: moved(asks.dueOn) })
+      .where(and(eq(asks.engagementId, e.id), isNull(asks.answeredAt)));
+  }
+  await db.update(engagements).set({ status: "active", startsOn }).where(eq(engagements.id, e.id));
+  return true;
+}
+
+/** Ask, formally, for access to one of the client's systems. */
+export async function requestAccess(
+  db: Queryable,
+  e: Engagement,
+  input: { system: string; scope: string; why: string; revoke: string; by: string },
+): Promise<AccessRequest> {
+  const [r] = await db
+    .insert(accessRequests)
+    .values({
+      engagementId: e.id,
+      system: textIn(input.system, "the system", 120),
+      scope: textIn(input.scope, "how much access", 500),
+      why: textIn(input.why, "why we need it", 1000),
+      revoke: textIn(input.revoke, "how to take it back", 500),
+      createdBy: input.by,
+    })
+    .returning();
+  if (!r) throw new Error("access request insert returned nothing");
+  return r;
+}
+
+/** The client grants, declines, or takes back access, with a note (who they added, or why not). */
+export async function answerAccess(
+  db: Queryable,
+  clientId: string,
+  input: { id: number; status: string; note?: string | undefined; by: string },
+): Promise<AccessRequest> {
+  const status = input.status as AccessStatus;
+  if (status === "open" || !ACCESS_STATUSES.includes(status))
+    throw bad("access is granted, declined or revoked");
+  const note = input.note?.trim() ? textIn(input.note, "the note", 2000) : null;
+  if (status === "declined" && !note) throw bad("say why, so we can find another way");
+  const [r] = await db
+    .update(accessRequests)
+    .set({ status, note, answeredBy: input.by, answeredAt: new Date() })
+    .where(
+      and(eq(accessRequests.id, input.id), ofClient(db, accessRequests.engagementId, clientId)),
+    )
+    .returning();
+  if (!r) throw missing("access request");
+  return r;
 }
 
 // --- reads ----------------------------------------------------------------------
@@ -677,9 +916,29 @@ export interface ResultView {
   note: string | null;
   at: string | null;
 }
+export type AccessView = Pick<
+  AccessRequest,
+  "id" | "system" | "scope" | "why" | "revoke" | "status" | "note" | "answeredBy"
+> & { answeredAt: string | null };
+/** The paperwork around the work: what Home and the welcome guide show of it. */
+export interface PaperworkView {
+  /** null: started without a contract. Its text and terms are read by owners only. */
+  contract: { issuedAt: string; signedBy: string | null; signedAt: string | null } | null;
+  /** null: no setup fee. */
+  setupPaid: boolean | null;
+  access: AccessView[];
+}
 export interface EngagementView {
   id: number;
-  offer: { id: string; name: string; promise: string; guarantee: string | null };
+  offer: {
+    id: string;
+    name: string;
+    promise: string;
+    guarantee: string | null;
+    youGet: readonly string[];
+    youGive: readonly string[];
+  };
+  paperwork: PaperworkView;
   startsOn: string;
   status: EngagementStatus;
   steps: StepView[];
@@ -746,7 +1005,7 @@ export async function deliveryHome(
     .orderBy(desc(engagements.startsOn), desc(engagements.id));
   if (es.length === 0) return { engagements: [] };
   const ids = es.map((e) => e.id);
-  const [ms, ds, as, rs, ps] = await Promise.all([
+  const [ms, ds, as, rs, ps, ags, acc, setups] = await Promise.all([
     db
       .select()
       .from(milestones)
@@ -773,6 +1032,22 @@ export async function deliveryHome(
       .select()
       .from(pulses)
       .where(and(inArray(pulses.engagementId, ids), eq(pulses.week, week))),
+    db.select().from(agreements).where(inArray(agreements.engagementId, ids)),
+    db
+      .select()
+      .from(accessRequests)
+      .where(inArray(accessRequests.engagementId, ids))
+      .orderBy(asc(accessRequests.id)),
+    db
+      .select({ id: invoices.engagementId })
+      .from(invoices)
+      .where(
+        and(
+          inArray(invoices.engagementId, ids),
+          eq(invoices.setup, true),
+          eq(invoices.status, "paid"),
+        ),
+      ),
   ]);
   const stepKey = new Map(ms.map((m) => [m.id, m.key]));
   const talk = await threads(
@@ -788,6 +1063,7 @@ export async function deliveryHome(
   return {
     engagements: es.map((e, i) => {
       const offer = offerFor(e.offerId);
+      const ag = ags.find((a) => a.engagementId === e.id);
       return {
         id: e.id,
         offer: {
@@ -795,6 +1071,31 @@ export async function deliveryHome(
           name: offer.name,
           promise: offer.promise,
           guarantee: offer.guarantee,
+          youGet: offer.youGet,
+          youGive: offer.youGive,
+        },
+        paperwork: {
+          contract: ag
+            ? {
+                issuedAt: ag.issuedAt.toISOString(),
+                signedBy: ag.signerName,
+                signedAt: ag.signedAt?.toISOString() ?? null,
+              }
+            : null,
+          setupPaid: ag && ag.terms.setupCents > 0 ? setups.some((x) => x.id === e.id) : null,
+          access: acc
+            .filter((r) => r.engagementId === e.id)
+            .map((r) => ({
+              id: r.id,
+              system: r.system,
+              scope: r.scope,
+              why: r.why,
+              revoke: r.revoke,
+              status: r.status,
+              note: r.note,
+              answeredBy: r.answeredBy,
+              answeredAt: r.answeredAt?.toISOString() ?? null,
+            })),
         },
         startsOn: e.startsOn,
         status: e.status,
@@ -809,7 +1110,7 @@ export async function deliveryHome(
             doneOn: m.doneOn,
             slipReason: m.slipReason,
             promised: m.promised,
-            state: stateOf(m, today),
+            state: e.status === "onboarding" ? "next" : stateOf(m, today),
           })),
         updates: timelines[i]?.updates ?? [],
         deliverables: ds
@@ -840,7 +1141,8 @@ export async function deliveryHome(
             step: a.milestoneId === null ? null : (stepKey.get(a.milestoneId) ?? null),
             file: a.fileKey && fileNameOf(a.fileKey),
             answeredAt: a.answeredAt?.toISOString() ?? null,
-            overdue: !a.answeredAt && a.dueOn !== null && a.dueOn < today,
+            overdue:
+              e.status !== "onboarding" && !a.answeredAt && a.dueOn !== null && a.dueOn < today,
           })),
         results: offer.measures.map((m) => {
           const r = rs.find((x) => x.engagementId === e.id && x.key === m.key);
@@ -949,7 +1251,9 @@ export async function invoicesOf(
 export async function boughtBy(
   db: Queryable,
   clientId: string,
-): Promise<{ id: number; offer: string; startsOn: string; status: EngagementStatus }[]> {
+): Promise<
+  { id: number; offerId: string; offer: string; startsOn: string; status: EngagementStatus }[]
+> {
   const rows = await db
     .select()
     .from(engagements)
@@ -957,6 +1261,7 @@ export async function boughtBy(
     .orderBy(desc(engagements.startsOn), desc(engagements.id));
   return rows.map((e) => ({
     id: e.id,
+    offerId: e.offerId,
     offer: offerFor(e.offerId).name,
     startsOn: e.startsOn,
     status: e.status,

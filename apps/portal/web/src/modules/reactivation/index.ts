@@ -19,6 +19,7 @@ export const reactivation: Module = {
   blurb:
     "Checks your past clients for a reason to call now. Each gets a brief and an email that waits for your OK.",
   Glance,
+  offers: ["reactivation", "recruiting-reactivation-pilot"],
   action: { page: "run", label: "Watch it run", icon: "play" },
   pages: [
     { id: "overview", label: "Overview", Page: Overview },

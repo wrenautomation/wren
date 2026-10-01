@@ -12,6 +12,7 @@ import {
 import type { Offer } from "./offer.js";
 
 export type {
+  AccessNeed,
   Answers,
   Application,
   Choice,

@@ -158,13 +158,13 @@ describe("the app host", () => {
     expect((await worker.fetch(post("app.test", "delivery/me"), env())).status).toBe(401);
   });
 
-  it("passes the token's email, lowercased, and the browser's viewer is ignored", async () => {
+  it("passes the token's email, lowercased; the browser's viewer and origin are ignored", async () => {
     const t = await token({});
     const res = await worker.fetch(
       post(
         "app.test",
         "reactivation/overview",
-        { client: "acme", viewer: { demo: true } },
+        { client: "acme", viewer: { demo: true }, from: { ip: "1.2.3.4", agent: "forged" } },
         {
           authorization: `Bearer ${t}`,
         },
@@ -172,7 +172,12 @@ describe("the app host", () => {
       env(),
     );
     expect(res.status).toBe(200);
-    expect(restate[0]?.body).toEqual({ client: "acme", viewer: { email: "owner@client.example" } });
+    // Where it came from is the edge's to say, like the viewer.
+    expect(restate[0]?.body).toEqual({
+      client: "acme",
+      viewer: { email: "owner@client.example" },
+      from: { ip: null, agent: null },
+    });
   });
 
   it("marks an operator", async () => {
@@ -181,7 +186,9 @@ describe("the app host", () => {
       post("app.test", "delivery/me", {}, { authorization: `Bearer ${t}` }),
       env(),
     );
-    expect(restate[0]?.body).toEqual({ viewer: { email: "ops@wren.example", operator: true } });
+    expect(restate[0]?.body).toMatchObject({
+      viewer: { email: "ops@wren.example", operator: true },
+    });
   });
 
   it("refuses a token with the wrong audience, issuer, expiry, key or signature", async () => {

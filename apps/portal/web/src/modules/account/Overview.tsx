@@ -17,6 +17,7 @@ import { at } from "../work/nav.js";
 import { useAccount } from "./load.js";
 
 const STATUS: Record<AccountView["bought"][number]["status"], string> = {
+  onboarding: "Getting started",
   active: "Running",
   paused: "Paused",
   done: "Finished",
@@ -51,7 +52,7 @@ export function Overview(props: PageProps) {
         actions={
           a.bought.length ? (
             <ButtonLink href={at("home")} size="sm" tone="quiet" arrow>
-              Your project
+              Plan & paperwork
             </ButtonLink>
           ) : null
         }
@@ -64,7 +65,9 @@ export function Overview(props: PageProps) {
               <li key={b.id} className="wk-person">
                 <span>
                   <b>{b.offer}</b>
-                  <span className="wk-quiet wk-block">Started {dayLabel(b.startsOn)}</span>
+                  <span className="wk-quiet wk-block">
+                    {b.status === "onboarding" ? "Starts" : "Started"} {dayLabel(b.startsOn)}
+                  </span>
                 </span>
                 <Tag tone={b.status === "active" ? "green" : "neutral"}>{STATUS[b.status]}</Tag>
               </li>

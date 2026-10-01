@@ -15,6 +15,7 @@ import {
   addComment,
   addDeliverable,
   addInvoice,
+  agreementOf,
   type CommentView,
   DELIVERABLE_KINDS,
   type DeliverableKind,
@@ -27,8 +28,11 @@ import {
   invoicesOf,
   markDone,
   markInvoice,
+  amount as money,
+  onboard,
   postUpdate,
   recordResult,
+  requestAccess,
   slipMilestone,
   startEngagement,
   todayUtc,
@@ -79,10 +83,19 @@ const renderInvoice = (i: InvoiceView) =>
   `  ${i.number} ${i.status.toUpperCase()} · ${i.currency} ${(i.cents / 100).toFixed(2)} · ${i.description} · issued ${i.issuedOn}, due ${i.dueOn}${i.paidOn ? `, paid ${i.paidOn}` : ""}`;
 
 export function renderEngagement(clientId: string, e: EngagementView): string[] {
-  const out = [
-    `${clientId} · ${e.offer.name} (#${e.id}) · from ${e.startsOn} · ${e.status}`,
-    "steps:",
-  ];
+  const out = [`${clientId} · ${e.offer.name} (#${e.id}) · from ${e.startsOn} · ${e.status}`];
+  const p = e.paperwork;
+  if (p.contract || p.access.length > 0) {
+    out.push("paperwork:");
+    if (p.contract)
+      out.push(
+        `  contract  ${p.contract.signedAt ? `signed by ${p.contract.signedBy} ${p.contract.signedAt.slice(0, 10)}` : `WAITING (issued ${p.contract.issuedAt.slice(0, 10)})`}`,
+      );
+    if (p.setupPaid !== null) out.push(`  setup fee ${p.setupPaid ? "paid" : "WAITING"}`);
+    for (const a of p.access)
+      out.push(`  access #${a.id} ${a.status} · ${a.system}${a.note ? ` → ${a.note}` : ""}`);
+  }
+  out.push("steps:");
   for (const s of e.steps) {
     const moved = s.dueOn !== s.plannedTo ? ` · due ${s.dueOn ?? "-"}: ${s.slipReason ?? ""}` : "";
     const done = s.doneOn ? ` · done ${s.doneOn}` : "";
@@ -164,6 +177,111 @@ export function registerDelivery(program: Command, withMainDb: WithDb, settings:
         );
       });
       console.log(`started engagement #${e.id}: ${offerId} from ${e.startsOn}`);
+    });
+
+  by(cmd.command("onboard <offer>"))
+    .description(
+      "Sell an offer: the contract is issued with these terms and access is asked for; signing it, and paying the setup invoice, starts the plan",
+    )
+    .option("--start <date>", "the start we aim for, YYYY-MM-DD (default: today)")
+    .option("--setup <amount>", "setup fee, dollars (default: the offer's)")
+    .option("--monthly <amount>", "monthly fee, dollars")
+    .option("--per-unit <amount>", "fee per unit, dollars (default: the offer's)")
+    .option("--unit <text>", "what a per-unit fee counts (default: the offer's)")
+    .option("--cap <amount>", "most the per-unit fees add up to (default: the offer's)")
+    .option("--days <n>", "how long it runs (default: the offer's)")
+    .option("--currency <code>", "three letters", "USD")
+    .option("--pay-days <n>", "days an invoice is due after its date", "7")
+    .action(
+      async (
+        offerId: string,
+        opts: Opts & {
+          start?: string;
+          setup?: string;
+          monthly?: string;
+          perUnit?: string;
+          unit?: string;
+          cap?: string;
+          days?: string;
+          currency: string;
+          payDays: string;
+        },
+      ) => {
+        const { engagement: e, agreement: a } = await withMainDb(async (main) => {
+          const client = await getClient(main, clientId());
+          const author = await authorOf(main, opts.by);
+          return main.transaction((tx) =>
+            onboard(tx, {
+              clientId: client.id,
+              offerId,
+              startsOn: opts.start ?? todayUtc(),
+              terms: {
+                currency: opts.currency,
+                payDays: Number(opts.payDays),
+                ...(opts.setup ? { setupCents: centsOf(opts.setup) } : {}),
+                ...(opts.monthly ? { monthlyCents: centsOf(opts.monthly) } : {}),
+                ...(opts.perUnit ? { perUnitCents: centsOf(opts.perUnit) } : {}),
+                ...(opts.unit ? { unit: opts.unit } : {}),
+                ...(opts.cap ? { capCents: centsOf(opts.cap) } : {}),
+                ...(opts.days ? { days: idOf(opts.days) } : {}),
+              },
+              by: author,
+            }),
+          );
+        });
+        const t = a.terms;
+        console.log(
+          [
+            `onboarding #${e.id}: ${offerId}, aiming to start ${e.startsOn}`,
+            `contract ${a.version} issued; an owner signs it in the portal`,
+            t.setupCents > 0
+              ? `setup ${money(t.setupCents, t.currency)}: send it through Wise, then \`delivery invoice <number> <amount> --setup --for "Setup" --due <date>\``
+              : "no setup fee: signing starts the plan",
+          ].join("\n"),
+        );
+      },
+    );
+
+  onEngagement(cmd.command("contract"))
+    .description("The contract: who signed it and when, or its full text")
+    .option("--text", "print the full text")
+    .action(async (opts: Opts & { text?: boolean }) => {
+      const a = await withMainDb(async (main) =>
+        agreementOf(
+          main,
+          await engagementOf(main, clientId(), opts.engagement ? idOf(opts.engagement) : undefined),
+        ),
+      );
+      if (!a) return console.log("no contract: this engagement was started without one");
+      if (opts.text) return console.log(a.body);
+      console.log(
+        [
+          `version ${a.version}, issued ${a.issuedAt.toISOString().slice(0, 10)} by ${a.issuedBy}`,
+          a.signedAt
+            ? `signed ${a.signedAt.toISOString()} by ${a.signerName}${a.signerTitle ? `, ${a.signerTitle}` : ""} <${a.signerEmail}> from ${a.signedIp ?? "?"}`
+            : "not signed yet",
+          `mailed: ${a.mailedAt?.toISOString() ?? "not yet"}`,
+          `sha256 ${a.sha256}`,
+        ].join("\n"),
+      );
+    });
+
+  onEngagement(cmd.command("access <system>"))
+    .description("Ask, formally, for access to one of the client's systems")
+    .requiredOption("--scope <text>", "how much, and no more")
+    .requiredOption("--why <text>", "what we need it for")
+    .requiredOption("--revoke <text>", "how they take it back")
+    .action(async (system: string, opts: Opts & { scope: string; why: string; revoke: string }) => {
+      const r = await change(opts, (db, e, author) =>
+        requestAccess(db, e, {
+          system,
+          scope: opts.scope,
+          why: opts.why,
+          revoke: opts.revoke,
+          by: author,
+        }),
+      );
+      console.log(`access #${r.id} asked: ${r.system}`);
     });
 
   onEngagement(cmd.command("post <text>"))
@@ -305,11 +423,19 @@ export function registerDelivery(program: Command, withMainDb: WithDb, settings:
     .option("--issued <date>", "YYYY-MM-DD (default: today)")
     .option("--currency <code>", "three letters", "USD")
     .option("--link <url>", "Wise's page for it, to view and pay")
+    .option("--setup", "the setup fee: paid, with the contract signed, it starts the plan")
     .action(
       async (
         number: string,
         amount: string,
-        opts: Opts & { for: string; due: string; issued?: string; currency: string; link?: string },
+        opts: Opts & {
+          for: string;
+          due: string;
+          issued?: string;
+          currency: string;
+          link?: string;
+          setup?: boolean;
+        },
       ) => {
         const i = await change(opts, (db, e, author) =>
           addInvoice(db, e, {
@@ -320,10 +446,11 @@ export function registerDelivery(program: Command, withMainDb: WithDb, settings:
             issuedOn: opts.issued,
             dueOn: opts.due,
             link: opts.link,
+            setup: opts.setup,
             by: author,
           }),
         );
-        console.log(`invoice ${i.number} open, due ${i.dueOn}`);
+        console.log(`invoice ${i.number} open, due ${i.dueOn}${i.setup ? " (setup fee)" : ""}`);
       },
     );
 
@@ -334,7 +461,9 @@ export function registerDelivery(program: Command, withMainDb: WithDb, settings:
     .option("--undo", "it isn't paid after all")
     .action(async (number: string, opts: { on?: string; undo?: boolean }) => {
       const i = await withMainDb((main) =>
-        markInvoice(main, clientId(), number, opts.undo ? "open" : "paid", opts.on),
+        main.transaction((tx) =>
+          markInvoice(tx, clientId(), number, opts.undo ? "open" : "paid", opts.on),
+        ),
       );
       console.log(i.paidOn ? `${i.number} paid ${i.paidOn}` : `${i.number} open`);
     });
@@ -367,9 +496,7 @@ export function registerDelivery(program: Command, withMainDb: WithDb, settings:
       });
       if (opts.json) return console.log(JSON.stringify({ ...home, invoices: bills }, null, 2));
       if (home.engagements.length === 0)
-        return console.log(
-          `${id}: nothing started (wren --client ${id} delivery start <offer> --on <date>)`,
-        );
+        return console.log(`${id}: nothing started (wren --client ${id} delivery onboard <offer>)`);
       for (const e of home.engagements) console.log(renderEngagement(id, e).join("\n"));
       if (bills.length > 0) console.log(["invoices:", ...bills.map(renderInvoice)].join("\n"));
     });

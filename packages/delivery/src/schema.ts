@@ -27,10 +27,11 @@ import {
  */
 export const delivery = pgSchema("delivery");
 
-export const ENGAGEMENT_STATUSES = ["active", "paused", "done"] as const;
+/** `onboarding`: the contract, setup invoice and access come first; the plan starts when it's signed and paid. */
+export const ENGAGEMENT_STATUSES = ["onboarding", "active", "paused", "done"] as const;
 export type EngagementStatus = (typeof ENGAGEMENT_STATUSES)[number];
 
-/** One bought offer for one client (D1). */
+/** One bought offer for one client (D1). While onboarding, `starts_on` is the day we aim for. */
 export const engagements = delivery.table(
   "engagements",
   {
@@ -379,6 +380,8 @@ export const invoices = delivery.table(
     status: varchar("status", { length: 16, enum: INVOICE_STATUSES }).default("open").notNull(),
     paidOn: date("paid_on"),
     link: text("link"),
+    /** The setup fee: paying it (with the contract signed) starts the plan. */
+    setup: boolean("setup").default(false).notNull(),
     createdBy: text("created_by").notNull(),
     createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
   },
@@ -399,3 +402,101 @@ export const invoices = delivery.table(
   ],
 );
 export type Invoice = typeof invoices.$inferSelect;
+
+/** What the client pays, frozen into the contract when it's issued. Cents; null = none. */
+export interface Terms {
+  currency: string;
+  setupCents: number;
+  monthlyCents: number | null;
+  perUnitCents: number | null;
+  /** What a per-unit fee counts, singular: "meeting booked". */
+  unit: string | null;
+  /** The most the per-unit fees add up to. */
+  capCents: number | null;
+  /** How long it runs, or null until either side ends it. */
+  days: number | null;
+  /** Days after an invoice's date that it's due. */
+  payDays: number;
+}
+
+/**
+ * The contract for an engagement: the exact text we issued, and who signed it,
+ * when and from where. `body` never changes after issue; `sha256` is its
+ * fingerprint, checked on signing so nobody signs a text they didn't see.
+ */
+export const agreements = delivery.table(
+  "agreements",
+  {
+    id: serial("id").notNull(),
+    engagementId: integer("engagement_id").notNull(),
+    /** The template's version: `2026-10-01`. */
+    version: varchar("version", { length: 16 }).notNull(),
+    terms: jsonb("terms").$type<Terms>().notNull(),
+    body: text("body").notNull(),
+    sha256: varchar("sha256", { length: 64 }).notNull(),
+    issuedBy: text("issued_by").notNull(),
+    issuedAt: timestamp("issued_at", { withTimezone: true }).defaultNow().notNull(),
+    signerName: text("signer_name"),
+    signerTitle: text("signer_title"),
+    signerEmail: text("signer_email"),
+    signedAt: timestamp("signed_at", { withTimezone: true }),
+    signedIp: text("signed_ip"),
+    signedAgent: text("signed_agent"),
+    /** The signed copy went out by email. */
+    mailedAt: timestamp("mailed_at", { withTimezone: true }),
+  },
+  (t) => [
+    primaryKey({ columns: [t.id], name: "pk_agreements" }),
+    foreignKey({
+      columns: [t.engagementId],
+      foreignColumns: [engagements.id],
+      name: "fk_agreements_engagement",
+    }).onDelete("cascade"),
+    unique("uq_agreements_engagement").on(t.engagementId),
+    check(
+      "ck_agreements_signed",
+      sql`(${t.signedAt} is null) = (${t.signerName} is null) and (${t.signedAt} is null) = (${t.signerEmail} is null)`,
+    ),
+  ],
+);
+export type Agreement = typeof agreements.$inferSelect;
+
+export const ACCESS_STATUSES = ["open", "granted", "declined", "revoked"] as const;
+export type AccessStatus = (typeof ACCESS_STATUSES)[number];
+
+/**
+ * A formal request for access to one of the client's systems: what, how much,
+ * why, and how to take it back. The client answers it; `revoked` is them
+ * taking it back, which they can do any time.
+ */
+export const accessRequests = delivery.table(
+  "access_requests",
+  {
+    id: serial("id").notNull(),
+    engagementId: integer("engagement_id").notNull(),
+    /** "Your ATS". */
+    system: text("system").notNull(),
+    /** "Read only: candidates and open roles". */
+    scope: text("scope").notNull(),
+    why: text("why").notNull(),
+    revoke: text("revoke").notNull(),
+    status: varchar("status", { length: 16, enum: ACCESS_STATUSES }).default("open").notNull(),
+    /** The client's note: who they added, or why they can't. */
+    note: text("note"),
+    answeredBy: text("answered_by"),
+    answeredAt: timestamp("answered_at", { withTimezone: true }),
+    createdBy: text("created_by").notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+  },
+  (t) => [
+    primaryKey({ columns: [t.id], name: "pk_access_requests" }),
+    foreignKey({
+      columns: [t.engagementId],
+      foreignColumns: [engagements.id],
+      name: "fk_access_requests_engagement",
+    }).onDelete("cascade"),
+    index("ix_access_requests_engagement").on(t.engagementId),
+    oneOf("ck_access_requests_status", t.status, ACCESS_STATUSES),
+  ],
+);
+export type AccessRequest = typeof accessRequests.$inferSelect;
