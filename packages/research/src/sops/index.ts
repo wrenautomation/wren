@@ -99,10 +99,10 @@ export function captionsMarkdown(
   })}# ${info.title}\n\n${body.join("\n")}`;
 }
 
-const captionTrack = (info: VideoInfo) =>
+const captionTracks = (info: VideoInfo) =>
   [info.subtitles?.en, info.automatic_captions?.en, info.automatic_captions?.["en-orig"]]
     .flatMap((t) => t ?? [])
-    .find((t) => t.ext === "json3");
+    .filter((t) => t.ext === "json3");
 
 /** A YouTube video's captions and chapters, through `yt-dlp` (`ytDlp` is the command, split on spaces: `uvx yt-dlp`). */
 export async function youtubeSource(
@@ -116,11 +116,19 @@ export async function youtubeSource(
     maxBuffer: 256 * 1024 * 1024,
   });
   const info = JSON.parse(stdout) as VideoInfo;
-  const track = captionTrack(info);
-  if (!track) throw new Error(`${url}: no English captions (manual or auto) to read`);
-  const res = await fetchFn(track.url);
-  if (!res.ok) throw new Error(`${url}: captions fetch HTTP ${res.status}`);
-  const json = (await res.json()) as Json3;
+  const tracks = captionTracks(info);
+  if (!tracks.length) throw new Error(`${url}: no English captions (manual or auto) to read`);
+  // YouTube throttles single caption URLs (429); the same text sits behind several, so try each.
+  let json: Json3 | undefined;
+  let last = 0;
+  for (const t of tracks) {
+    const res = await fetchFn(t.url);
+    last = res.status;
+    if (!res.ok) continue;
+    json = (await res.json()) as Json3;
+    break;
+  }
+  if (!json) throw new Error(`${url}: captions fetch HTTP ${last} on all ${tracks.length} tracks`);
   return { name: `youtube-${info.id}.md`, md: captionsMarkdown(info, json, priority) };
 }
 
