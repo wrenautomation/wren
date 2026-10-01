@@ -90,7 +90,7 @@ const timeOf = (iso: string) =>
   new Date(iso).toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" });
 
 /** The first load, then new lines as they're written: fast while a run is going, slow while not. */
-function useRun(client: string) {
+function useRun(client: string, team: boolean) {
   const [first, setFirst] = useState<RunPage | null>(null);
   const [live, setLive] = useState<LiveRun | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -111,7 +111,11 @@ function useRun(client: string) {
           if (!on) return;
           if (document.hidden) return poll(open);
           try {
-            const page = await call<RunPage>("reactivation/run", { client, ...cursor.current });
+            const page = await call<RunPage>("reactivation/run", {
+              client,
+              asClient: !team,
+              ...cursor.current,
+            });
             if (!on) return;
             keep(page.live);
             setError(null);
@@ -123,7 +127,7 @@ function useRun(client: string) {
         open ? POLL_LIVE_MS : POLL_IDLE_MS,
       );
     };
-    call<RunPage>("reactivation/run", { client }).then(
+    call<RunPage>("reactivation/run", { client, asClient: !team }).then(
       (page) => {
         if (!on) return;
         setFirst(page);
@@ -136,13 +140,13 @@ function useRun(client: string) {
       on = false;
       clearTimeout(timer);
     };
-  }, [client]);
+  }, [client, team]);
 
   return { first, live, error };
 }
 
-export function Run({ client, demo }: PageProps) {
-  const { first, live, error } = useRun(client);
+export function Run({ client, demo, team }: PageProps) {
+  const { first, live, error } = useRun(client, team);
   // Watching live is a choice once the page is open; on load, a run going now wins.
   const [watch, setWatch] = useState<string | null>(null);
   const openOnLoad = first?.live?.open ? first.live.run : null;

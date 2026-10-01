@@ -180,7 +180,11 @@ const leaks = (v: unknown) => {
 
 describe("the demo", () => {
   it("is named by DEMO_NAME, never by the agency", async () => {
-    expect(await me(demo)).toEqual({ clients: [{ id: "demo", name: DEMO_NAME }], demo: true });
+    expect(await me(demo)).toEqual({
+      clients: [{ id: "demo", name: DEMO_NAME }],
+      demo: true,
+      operator: false,
+    });
   });
 
   it("no route leaks a name, an address or a profile", async () => {
@@ -305,6 +309,7 @@ describe("logins", () => {
         { id: "demo", name: "Northside Talent" },
       ],
       demo: false,
+      operator: true,
     });
     const acme = await api.people({ ...operator, client: "acme", q: "Doe" });
     expect(acme.rows.map((r) => r.name)).toEqual(["Jane Doe"]);
@@ -319,6 +324,9 @@ describe("logins", () => {
       "Error: 429 for jane.doe@umbrellahealth.com",
     ]);
     expect(await detail(owner)).toEqual([null, null, null]);
+    // Viewing as the client shows what the client sees.
+    const asClient = await api.run({ ...operator, client: "acme", asClient: true });
+    expect(asClient.live?.lines.map((l) => l.detail)).toEqual([null, null, null]);
   });
 
   it("an operator reading the demo still gets it masked", async () => {
@@ -329,6 +337,7 @@ describe("logins", () => {
     expect(await me(owner)).toEqual({
       clients: [{ id: "acme", name: "Acme Staffing" }],
       demo: false,
+      operator: false,
     });
     expect((await api.overview(owner)).people).toBeGreaterThan(0);
   });

@@ -84,13 +84,16 @@
 
 - **In the portal.** Operators see every client. On the client's own pages they get a composer: post an update, add a deliverable, add an ask, mark a milestone done, record a result. Plus "view as client".
 - **Ops board** (`/ops/clients`). Every client with their phase, last update age, open asks, next milestone, last seen, pulse and an at-risk flag.
-- **CLI.**
+- **CLI.** Every command takes `--engagement <id>` when a client has several, and `--by <email>` (an operator; defaults to the only one).
   - `wren --client <id> delivery start <offer> --on <date>`
-  - `wren --client <id> delivery post "…" [--file f | --link url | --loom url] [--milestone m] [--internal]`
-  - `wren --client <id> delivery ask "…" --due <date>`
-  - `wren --client <id> delivery done <milestone>`
-  - `wren --client <id> delivery result <key> <value>`
-  - `wren --client <id> delivery status`
+  - `wren --client <id> delivery post "…" [--step s] [--internal]`
+  - `wren --client <id> delivery deliver "<title>" --link|--loom|--doc <url> [--step s] [--replaces id]`
+  - `wren --client <id> delivery ask "…" [--due <date>] [--step s]`
+  - `wren --client <id> delivery done <step> [--on <date>] [--undo]`
+  - `wren --client <id> delivery slip <step> --to <date> --reason "…"`
+  - `wren --client <id> delivery result <key> <value> [--note "…"]`
+  - `wren --client <id> delivery hide <update id>`
+  - `wren --client <id> delivery status [--json]`
 - **Skill.** "Tell <client> the SOPs are done, attach sops.pdf" becomes a post.
 - **Products.** One summary update per run, never one per row. An operator can hide any update.
 
@@ -149,3 +152,4 @@ Later: enterprise SSO, OIDC for client domains, client custom domains, a billing
   - **Refusals.** Another client's id returns "not found". Links must be https; Loom links must be on a Loom host. Files only from `clients/<id>/`.
   - **Visibility.** Internal and hidden updates are filtered in one place (`seenBy`). A test walks Home and the timeline as a client to check it.
   - **No idempotency key yet.** Like the other portal services, there's no Restate journal. A lost reply after commit can double a post. Add a key if that ever happens.
+- **2026-10-01** Steps 3 and 4, first cut. `wren delivery` (above) and the `wren` skill's delivery section. The portal's `work` module ("Your project"): Home, Plan, Updates, Deliverables, Needs you, Results, every one at 375px. Operators get the composer in place on each page (post, deliver, ask, done, move a date, record a result, hide); clients approve or ask for changes and answer asks. "View as client" is a header switch: it sends `asClient`, and `seesInternal` in core drops internal and hidden updates for that view, so it shows exactly what the client sees. Still to do in these steps: Settings (people, notifications, sign-in methods) and the files bucket with uploads.

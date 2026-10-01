@@ -1,6 +1,6 @@
 ---
 name: wren
-description: Use wren for a client or for personal work. Covers adding a client, setting a client's research accounts, importing a CRM export, running reactivation (`crm run`, `crm status`, `crm top`), emails and sending (`crm emails|approve|skip|redraft|book`, `crm loop`), a client's settings (`clients set --set`), seeding the demo list (`crm seed-demo`), giving a client portal access, previewing the portal, and reading the send gate. Use when the user says "add a client", "import this CRM", "where is <client> at", "run the lookups", "who should they call", "seed the demo", "show me the portal", "give <client> access", or anything with `wren --client`.
+description: Use wren for a client or for personal work. Covers adding a client, setting a client's research accounts, importing a CRM export, running reactivation (`crm run`, `crm status`, `crm top`), emails and sending (`crm emails|approve|skip|redraft|book`, `crm loop`), a client's settings (`clients set --set`), seeding the demo list (`crm seed-demo`), giving a client portal access, previewing the portal, reading the send gate, and delivery (start an offer, post an update, deliver, ask, mark a step done, slip, record a result). Use when the user says "add a client", "import this CRM", "where is <client> at", "run the lookups", "who should they call", "seed the demo", "show me the portal", "give <client> access", "tell <client> X is done", "send <client> the deck", "we need X from <client>", or anything with `wren --client`.
 ---
 
 # wren
@@ -101,6 +101,27 @@ pnpm --filter @wren/portal preview --demo   # as a demo visitor
 ```
 
 - Setup, secrets and checks: `deploy/portal.md`.
+
+### Delivery: what the client sees we did
+
+Every bought offer is an engagement: dated steps from the offer's plan, a timeline, deliverables, asks and results. The client sees it on their portal Home. Turn "tell <client> X" into one of these:
+
+```sh
+./bin/wren --client <id> delivery start reactivation --on 2026-10-06   # plan dated, asks open
+./bin/wren --client <id> delivery status                               # what their Home shows, plus internal notes
+./bin/wren --client <id> delivery post "Cleaned 2,140 contacts." [--step set-up] [--internal]
+./bin/wren --client <id> delivery deliver "Contact list" --link <https url> | --loom <url> | --doc <url> [--replaces <id>]
+./bin/wren --client <id> delivery ask "Your ATS export" [--due 2026-10-10]
+./bin/wren --client <id> delivery done set-up            # --undo takes it back
+./bin/wren --client <id> delivery slip approve --to 2026-10-15 --reason "Waiting on the recruiter's signature."
+./bin/wren --client <id> delivery result meetings 3      # only the offer's measures
+./bin/wren --client <id> delivery hide <updateId>        # off their timeline, kept on record
+```
+
+- Write posts and ask text as the client reads them: plain, short, no internal names. `--internal` is for Wren only.
+- A slip's reason is shown to the client. Say why, honestly.
+- `--by <email>` picks the operator it's from; with one operator it's them.
+- `--engagement <id>` when the client has more than one running.
 
 ### What the states mean
 

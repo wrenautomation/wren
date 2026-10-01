@@ -17,6 +17,8 @@ export interface PortalRequest {
   viewer: Viewer;
   /** Which of the viewer's clients; the first when omitted. */
   client?: string;
+  /** An operator looking as the client would: no internal notes, no team tools. */
+  asClient?: boolean;
 }
 
 /** A refusal the Worker passes on with its status. */
@@ -31,6 +33,9 @@ export class PortalRefusal extends Error {
 
 export const isDemo = (v: Viewer): v is { demo: true } => "demo" in v;
 export const isOperator = (v: Viewer): boolean => !isDemo(v) && v.operator === true;
+/** Sees what only Wren's team sees: an operator, unless they asked to look as the client. */
+export const seesInternal = (req: PortalRequest): boolean =>
+  isOperator(req.viewer) && req.asClient !== true;
 
 /** The clients this viewer may open: the demo's, every one for an operator, else their memberships. */
 export async function clientsFor(main: Db, viewer: Viewer): Promise<Client[]> {
@@ -74,6 +79,8 @@ export async function pickForWrite(
 export interface Me {
   clients: { id: string; name: string }[];
   demo: boolean;
+  /** Wren's team: every client, and the tools to post to them. */
+  operator: boolean;
 }
 
 /** Who you are to the portal. The demo host sees its client as `demoName`, never its real name. */
@@ -83,6 +90,7 @@ export async function portalMe(main: Db, viewer: Viewer, demoName: string): Prom
   return {
     clients: mine.map((c) => ({ id: c.id, name: isDemo(viewer) ? demoName : c.name })),
     demo: isDemo(viewer),
+    operator: isOperator(viewer),
   };
 }
 

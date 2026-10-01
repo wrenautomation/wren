@@ -2,6 +2,7 @@
 import {
   Alert,
   AppShell,
+  Button,
   ButtonLink,
   Gate,
   Loading,
@@ -20,6 +21,7 @@ import { navigate, useRoute } from "./route.js";
 const STAMP = "/wren-icon.png";
 const CLIENT_KEY = "wren.portal.client";
 const THEME_KEY = "wren.portal.theme";
+const AS_CLIENT_KEY = "wren.portal.asClient";
 
 const pathOf = (m: Module, p: ModulePage) => `/${m.id}/${p.id}`;
 const [first] = MODULES;
@@ -81,6 +83,8 @@ export function App() {
   const route = useRoute();
   const me = useCall("me", () => call<Me>("delivery/me"));
   const [client, setClient] = useState<string | null>(() => recall(CLIENT_KEY));
+  // Wren's team can look as the client would: no internal notes, no team tools.
+  const [asClient, setAsClient] = useState(() => recall(AS_CLIENT_KEY) === "1");
   const theme = useLook(route.params);
 
   const at = find(route.path);
@@ -123,7 +127,13 @@ export function App() {
   };
   const { module, page } = at;
   const demo = me.data?.demo ?? false;
+  const operator = me.data?.operator ?? false;
+  const team = operator && !asClient;
   const action = module.action;
+  const flip = () => {
+    setAsClient(team);
+    keep(AS_CLIENT_KEY, team ? "1" : "0");
+  };
 
   return (
     <AppShell
@@ -154,6 +164,11 @@ export function App() {
               {action.label}
             </ButtonLink>
           ) : null}
+          {operator ? (
+            <Button tone="quiet" size="sm" onClick={flip}>
+              {team ? "View as client" : "Back to team view"}
+            </Button>
+          ) : null}
           {signOutUrl ? (
             <ButtonLink href={signOutUrl} tone="quiet" size="sm">
               Sign out
@@ -165,7 +180,13 @@ export function App() {
       theme={theme}
     >
       {current ? (
-        <page.Page key={current.id} client={current.id} demo={demo} params={route.params} />
+        <page.Page
+          key={current.id}
+          client={current.id}
+          demo={demo}
+          team={team}
+          params={route.params}
+        />
       ) : (
         <Loading lines={8} heading />
       )}

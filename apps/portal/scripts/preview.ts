@@ -10,15 +10,24 @@ import { createServer } from "node:http";
 import { extname, join, normalize } from "node:path";
 import { loadEnvFile, loadSettings } from "@wren/config";
 import { clientUrl } from "@wren/core/clients";
+import { PortalRefusal, type Viewer } from "@wren/core/portal";
 import { cachedDb, createDb } from "@wren/db";
-import { PORTAL_ROUTES, PortalRefusal, portalApi, type Viewer } from "@wren/reactivation/restate";
+import { DELIVERY_ROUTES, deliveryApi } from "@wren/delivery/restate";
+import { DEMO_NAME, PORTAL_ROUTES, portalApi } from "@wren/reactivation/restate";
 
 const demo = process.argv.includes("--demo");
 const port = Number(process.env.PORT ?? 8788);
 const rootDir = loadEnvFile(process.cwd(), process.env.WREN_ROOT);
 const settings = loadSettings(process.env, { rootDir });
 const main = createDb(settings.databaseUrl, { max: 2 }).db;
-const api = portalApi({ main, open: (c) => cachedDb(clientUrl(settings.databaseUrl, c)) });
+/** The same services as the Worker's `/api/<service>/<route>`, called in-process. */
+const SERVICES: Record<string, { routes: readonly string[]; api: object }> = {
+  delivery: { routes: DELIVERY_ROUTES, api: deliveryApi({ main, demoName: DEMO_NAME }) },
+  reactivation: {
+    routes: PORTAL_ROUTES,
+    api: portalApi({ main, open: (c) => cachedDb(clientUrl(settings.databaseUrl, c)) }),
+  },
+};
 const viewer: Viewer = demo ? { demo: true } : { email: "preview@localhost", operator: true };
 const dist = join(import.meta.dirname, "..", "dist");
 const TYPES: Record<string, string> = {
@@ -37,13 +46,15 @@ createServer(async (req, res) => {
       res.writeHead(status, { "content-type": "application/json" });
       res.end(JSON.stringify(body));
     };
-    if (!(PORTAL_ROUTES as readonly string[]).includes(route))
-      return send(404, { error: "not found" });
+    const [name = "", call = ""] = route.split("/");
+    const svc = SERVICES[name];
+    if (!svc?.routes.includes(call)) return send(404, { error: "not found" });
     let raw = "";
     for await (const chunk of req) raw += chunk;
     try {
       const input = { ...(raw ? JSON.parse(raw) : {}), viewer };
-      const handler = api[route as keyof typeof api] as (i: unknown) => Promise<unknown>;
+      const handler = (svc.api as Record<string, (i: unknown) => Promise<unknown>>)[call];
+      if (!handler) return send(404, { error: "not found" });
       return send(200, await handler(input));
     } catch (err) {
       if (err instanceof PortalRefusal) return send(err.status, { message: err.message });

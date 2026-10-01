@@ -2,10 +2,14 @@
 import type { IconName } from "@wren/ui";
 import type { ComponentType } from "react";
 
-/** What every page gets: whose list, whether it's the read-only demo, and the URL's query. */
+/**
+ * What every page gets: whose list, whether it's the read-only demo, whether Wren's team is
+ * looking (and not viewing as the client), and the URL's query.
+ */
 export interface PageProps {
   client: string;
   demo: boolean;
+  team: boolean;
   params: URLSearchParams;
 }
 

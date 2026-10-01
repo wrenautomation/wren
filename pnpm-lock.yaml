@@ -111,6 +111,9 @@ importers:
       '@wren/db':
         specifier: workspace:*
         version: link:../../packages/db
+      '@wren/delivery':
+        specifier: workspace:*
+        version: link:../../packages/delivery
       '@wren/llm':
         specifier: workspace:*
         version: link:../../packages/llm

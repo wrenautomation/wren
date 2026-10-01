@@ -8,7 +8,6 @@ import * as restate from "@restatedev/restate-sdk";
 import type { Client } from "@wren/core/clients";
 import {
   answer,
-  isOperator,
   type Me,
   PortalRefusal,
   type PortalRequest,
@@ -16,6 +15,7 @@ import {
   pickForWrite,
   portalMe,
   type SignedViewer,
+  seesInternal,
 } from "@wren/core/portal";
 import { type Db, type Queryable, setAuditActor } from "@wren/db";
 import {
@@ -62,14 +62,14 @@ const idOf = (v: unknown, what: string): number => {
 const maybeId = (v: unknown, what: string) =>
   v === undefined || v === null ? undefined : idOf(v, what);
 
-/** Read as the viewer: an operator sees internal notes, a client never does. */
+/** Read as the viewer: an operator sees internal notes (unless looking as the client), a client never does. */
 async function read<T>(
   deps: DeliveryDeps,
   req: PortalRequest,
   view: (db: Queryable, client: Client, operator: boolean) => Promise<T>,
 ): Promise<T> {
   const client = await pickClient(deps.main, req);
-  return view(deps.main, client, isOperator(req.viewer));
+  return view(deps.main, client, seesInternal(req));
 }
 
 /**

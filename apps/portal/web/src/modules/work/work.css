@@ -1,0 +1,163 @@
+/* The work's own pieces. Everything else comes from @wren/ui's kit. */
+.wk-quiet {
+  color: var(--ui-ink-2);
+}
+.wk-error {
+  color: var(--ui-bad);
+  font-size: 13.5px;
+}
+.wk-moved {
+  margin-top: 4px;
+  color: var(--ui-accent);
+  font-size: 14px;
+}
+.wk-engagement + .wk-engagement {
+  margin-top: 40px;
+}
+.wk-offer {
+  margin-bottom: 8px;
+  font-family: var(--ui-font-display);
+  font-size: 22px;
+  font-weight: var(--ui-display-weight);
+}
+
+/* Lists: lately, what we need, answered */
+.wk-list {
+  list-style: none;
+  border-top: 1px solid var(--ui-hair);
+}
+.wk-list > li {
+  padding: 12px 0;
+  border-bottom: 1px solid var(--ui-hair);
+  font-size: 15px;
+  line-height: 1.5;
+}
+
+/* Plan steps, deliverables and asks: one block each */
+.wk-steps,
+.wk-cards {
+  display: grid;
+  gap: 12px;
+  list-style: none;
+}
+.wk-step,
+.wk-card {
+  padding: 16px 18px;
+  border: 1px solid var(--ui-hair);
+  border-radius: var(--ui-radius-card);
+  background: var(--ui-paper);
+}
+.wk-step-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px 12px;
+  margin-bottom: 4px;
+  font-size: 15.5px;
+}
+.wk-tools {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  margin-top: 12px;
+}
+
+/* The timeline */
+.wk-timeline {
+  margin-bottom: 16px;
+  list-style: none;
+  border-top: 1px solid var(--ui-hair);
+}
+.wk-timeline > li {
+  padding: 14px 0;
+  border-bottom: 1px solid var(--ui-hair);
+}
+.wk-timeline > li.wk-hidden {
+  opacity: 0.55;
+}
+.wk-when {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 4px;
+  color: var(--ui-ink-2);
+  font-size: 13px;
+}
+.wk-body {
+  max-width: 72ch;
+  font-size: 15px;
+  line-height: 1.55;
+  white-space: pre-wrap;
+  text-wrap: pretty;
+}
+
+/* Forms: the team's composer and the client's answers */
+.wk-form {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: 12px;
+  margin-top: 12px;
+}
+.wk-field {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  color: var(--ui-ink-2);
+  font-size: 13px;
+}
+.wk-grow {
+  flex: 1 1 220px;
+}
+.wk-wide {
+  flex: 1 1 100%;
+}
+.wk-field input,
+.wk-field select,
+.wk-field textarea {
+  min-height: 38px;
+  padding: 8px 12px;
+  border: 1px solid var(--ui-line);
+  border-radius: var(--ui-radius-control);
+  background: var(--ui-paper);
+  color: var(--ui-ink);
+  font: inherit;
+  font-size: 14.5px;
+}
+.wk-field textarea {
+  resize: vertical;
+}
+.wk-field input:focus,
+.wk-field select:focus,
+.wk-field textarea:focus {
+  border-color: var(--ui-accent);
+  outline: none;
+  box-shadow: 0 0 0 4px var(--ui-accent-tint);
+}
+.wk-check {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 38px;
+  font-size: 14px;
+}
+.wk-form-foot {
+  display: flex;
+  flex: 1 1 100%;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px;
+}
+
+@media (max-width: 480px) {
+  .wk-step,
+  .wk-card {
+    padding: 14px;
+  }
+  .wk-field {
+    flex: 1 1 100%;
+  }
+}

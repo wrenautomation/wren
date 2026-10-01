@@ -86,7 +86,7 @@ afterAll(async () => {
 describe("starting an engagement", () => {
   it("dates each step from the plan's weeks", async () => {
     const [e] = (await api.home({ viewer: AMY })).engagements;
-    expect(e?.offer).toEqual({ id: "reactivation", name: "Lead reactivation" });
+    expect(e?.offer).toMatchObject({ id: "reactivation", name: "Lead reactivation" });
     expect(e?.steps.map((s) => [s.key, s.plannedFrom, s.plannedTo, s.dueOn])).toEqual([
       ["set-up", "2026-10-05", "2026-10-18", "2026-10-18"],
       ["approve", "2026-10-12", "2026-10-25", "2026-10-25"],
@@ -146,6 +146,11 @@ describe("what a client sees", () => {
       ["Their ATS export is a mess.", true],
       ["Kickoff booked for Tuesday.", false],
     ]);
+    // "View as client": the operator sees exactly what Amy sees.
+    const asClient = await api.home({ viewer: OPS, ...acme, asClient: true });
+    expect(asClient.engagements[0]?.updates.map((u) => u.body)).toEqual(bodies);
+    expect((await api.me({ viewer: OPS })).operator).toBe(true);
+    expect((await api.me({ viewer: AMY })).operator).toBe(false);
   });
 
   it("never a hidden update; the team still sees it, marked", async () => {
@@ -375,6 +380,7 @@ describe("the demo", () => {
     expect(await api.me({ viewer: DEMO })).toEqual({
       clients: [{ id: "demo", name: "Demo recruiting firm" }],
       demo: true,
+      operator: false,
     });
     const home = await api.home({ viewer: DEMO });
     expect(home.engagements[0]?.updates.map((u) => u.body)).toEqual([

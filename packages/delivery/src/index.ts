@@ -443,7 +443,7 @@ export interface ResultView {
 }
 export interface EngagementView {
   id: number;
-  offer: { id: string; name: string };
+  offer: { id: string; name: string; promise: string; guarantee: string | null };
   startsOn: string;
   status: EngagementStatus;
   steps: StepView[];
@@ -510,7 +510,12 @@ export async function deliveryHome(
       const offer = offerFor(e.offerId);
       return {
         id: e.id,
-        offer: { id: offer.id, name: offer.name },
+        offer: {
+          id: offer.id,
+          name: offer.name,
+          promise: offer.promise,
+          guarantee: offer.guarantee,
+        },
         startsOn: e.startsOn,
         status: e.status,
         steps: ms

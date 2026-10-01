@@ -9,12 +9,12 @@ import type { Client } from "@wren/core/clients";
 import {
   answer,
   isDemo,
-  isOperator,
   PortalRefusal,
   type PortalRequest,
   pickClient,
   pickForWrite,
   type SignedViewer,
+  seesInternal,
 } from "@wren/core/portal";
 import { type Db, type Queryable, setAuditActor } from "@wren/db";
 import { approveDrafts, type ReviewResult, skipDrafts } from "../approve.js";
@@ -139,7 +139,7 @@ export function portalApi(deps: PortalDeps) {
         portalRun(db, {
           run: textOf(req.run),
           after: cursorOf(req.after),
-          operator: isOperator(req.viewer),
+          operator: seesInternal(req),
         }),
       ),
     people: (

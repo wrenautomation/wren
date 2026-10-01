@@ -29,6 +29,7 @@ import { registerBooks } from "./books.js";
 import { registerClients } from "./clients.js";
 import { registerContent } from "./content.js";
 import { registerCrm } from "./crm.js";
+import { registerDelivery } from "./delivery.js";
 import { registerDossier } from "./dossier.js";
 import { registerEmail } from "./email.js";
 import { registerFetch } from "./fetch.js";
@@ -85,7 +86,7 @@ async function withClientDb<T>(fn: (db: Db, client: Client) => Promise<T>): Prom
  * Commands that honour `--client`. Everything else runs Wren's own loops or the
  * registry, so `--client` there is refused rather than silently ignored.
  */
-const CLIENT_SCOPED = new Set(["db", "email", "crm", "audit"]);
+const CLIENT_SCOPED = new Set(["db", "email", "crm", "audit", "delivery"]);
 /** Under a client-scoped command, the parts that still cover every database. */
 const EVERY_DATABASE = new Set(["audit sealer"]);
 
@@ -197,6 +198,7 @@ sealing
   .action(async () => console.log(JSON.stringify(await sealer().sync(), null, 2)));
 
 registerClients(program, withMainDb, settings);
+registerDelivery(program, withMainDb);
 registerCrm(program, withClientDb, settings, rootDir);
 registerReview(registerEmail(program, withDb, settings, rootDir), withDb);
 registerFetch(program, settings);

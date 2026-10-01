@@ -13,7 +13,7 @@ One offer we sell to one client, with dates (schema `delivery` in main). It carr
 
 ## Why this shape
 
-It sits in main, beside the registry, so an operator can read across clients and the client's own database stays product data. Every row hangs off the engagement and the engagement hangs off the client, so deleting the client deletes everything. Every write names the client, and another client's id comes back as "not found". Internal and hidden updates are filtered in one place (`seenBy`).
+It sits in main, beside the registry, so an operator can read across clients and the client's own database stays product data. Every row hangs off the engagement and the engagement hangs off the client, so deleting the client deletes everything. Every write names the client, and another client's id comes back as "not found". Internal and hidden updates are filtered in one place (`seenBy`); an operator viewing as the client (`asClient`, `seesInternal` in core) gets the client's filter.
 
 ## Shape
 
@@ -46,6 +46,8 @@ Citations: `packages/delivery/src/schema.ts:33`, `packages/delivery/src/index.ts
 |---|---|
 | app.wrenautomation.com `/api/delivery/*` | reads; clients answer and decide; operators write the rest |
 | demo host | reads the demo client's sample, writes nothing |
+| portal `work` module (`apps/portal/web/src/modules/work/`) | the client's pages; operators write in place, "view as client" drops internal |
+| `wren --client <id> delivery …` (`apps/cli/src/delivery.ts`) | the team's writes from the terminal and the skill |
 
 ## See
 
