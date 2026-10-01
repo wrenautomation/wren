@@ -111,11 +111,7 @@ describe("defineOffer", () => {
       /range/,
     ],
     ["a performance price with no unit fee", offer({ price: { ...PERF, perUnit: 0 } }), /perUnit/],
-    [
-      "a performance price with no measure",
-      { ...base, price: PERF },
-      /perUnitMeasure/,
-    ],
+    ["a performance price with no measure", { ...base, price: PERF }, /perUnitMeasure/],
     ["a per-unit measure on another price", offer({ perUnitMeasure: "things" }), /perUnitMeasure/],
     [
       "a per-unit measure it lacks",
