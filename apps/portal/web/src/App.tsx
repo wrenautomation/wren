@@ -1,12 +1,18 @@
-/** The portal: who's signed in, whose list, and each product's pages inside Wren's app frame. */
+/**
+ * The portal: who's signed in, whose workspace, and Wren's apps for it. "/" is the launcher, a
+ * card per app; each app's pages run as tabs at /<app>/<page>. A viewer with one app (the demo)
+ * skips the launcher and lands in it.
+ */
 import {
   Alert,
+  AppCard,
+  AppGrid,
   AppShell,
   Button,
   ButtonLink,
   Gate,
   Loading,
-  type NavGroup,
+  PageHeader,
   readTheme,
   type ShellNotice,
   type Theme,
@@ -14,7 +20,7 @@ import {
 import { useEffect, useState } from "react";
 import { call, type Me, signOutUrl } from "./api.js";
 import { useCall } from "./load.js";
-import type { Module, ModulePage } from "./module.js";
+import type { Module, ModulePage, PageProps } from "./module.js";
 import { MODULES } from "./modules/index.js";
 import { navigate, useRoute } from "./route.js";
 
@@ -24,41 +30,37 @@ const THEME_KEY = "wren.portal.theme";
 const AS_CLIENT_KEY = "wren.portal.asClient";
 
 const pathOf = (m: Module, p: ModulePage) => `/${m.id}/${p.id}`;
+const firstOf = (m: Module) => (m.pages[0] ? pathOf(m, m.pages[0]) : "/");
 
 /**
- * The sections this viewer sees: the team's own only in team view, and a
- * client's own project never on the demo. `demo` is null until the server says
- * which host this is; those sections wait for it.
+ * The apps this viewer sees: the team's own only in team view, and a client's
+ * own project never on the demo. `demo` is null until the server says which
+ * host this is; those apps wait for it.
  */
 const shown = (team: boolean, demo: boolean | null) =>
   MODULES.filter((m) => (team || !m.team) && (demo === false || !m.noDemo));
 
-/** The first page of the first section this viewer sees. */
-const homeOf = (team: boolean, demo: boolean | null) => {
-  const [first] = shown(team, demo);
-  return first?.pages[0] ? pathOf(first, first.pages[0]) : "/";
-};
+/** Where an address goes: an app's page, the launcher, or elsewhere (`to`) once the viewer is known. */
+type Place =
+  | { kind: "page"; module: Module; page: ModulePage }
+  | { kind: "launcher" }
+  | { kind: "go"; to: string }
+  | { kind: "wait" };
 
-const navOf = (team: boolean, demo: boolean | null): NavGroup[] =>
-  shown(team, demo).map((m) => ({
-    id: m.id,
-    label: m.name,
-    items: m.pages.map((p) => ({
-      id: pathOf(m, p),
-      label: p.label,
-      href: pathOf(m, p),
-      icon: p.icon,
-    })),
-  }));
-
-function find(
-  path: string[],
-  team: boolean,
-  demo: boolean | null,
-): { module: Module; page: ModulePage } | null {
-  const module = shown(team, demo).find((m) => m.id === path[0]);
+function place(path: string[], apps: Module[], known: boolean): Place {
+  const cards = apps.filter((m) => !m.menu);
+  const [only] = cards;
+  const home = cards.length === 1 && only ? firstOf(only) : "/";
+  if (!path.length) {
+    if (!known) return { kind: "wait" };
+    return home === "/" ? { kind: "launcher" } : { kind: "go", to: home };
+  }
+  const module = apps.find((m) => m.id === path[0]);
   const page = module?.pages.find((p) => p.id === path[1]);
-  return module && page ? { module, page } : null;
+  if (module && page) return { kind: "page", module, page };
+  // "/reactivation" alone opens the app; anything else unknown goes home.
+  if (module && path.length === 1) return { kind: "go", to: firstOf(module) };
+  return known ? { kind: "go", to: home } : { kind: "wait" };
 }
 
 const DEMO: ShellNotice = {
@@ -108,15 +110,20 @@ export function App() {
   const operator = me.data?.operator ?? false;
   const team = operator && !asClient;
   const onDemo = me.data ? me.data.demo : null;
-  const home = homeOf(team, onDemo);
+  const apps = shown(team, onDemo);
+  // Menu apps (the account) are reached from the client's name, not a card.
+  const cards = apps.filter((m) => !m.menu);
+  const [only] = cards;
+  // One app needs no launcher: its first page is home.
+  const launcher = cards.length > 1 ? "/" : undefined;
+  const home = launcher ?? (only ? firstOf(only) : "/");
+  const account = apps.find((m) => m.menu);
 
-  const at = find(route.path, team, onDemo);
-  // An unknown address (or just "/") lands on this viewer's first page, once
-  // the server says who's asking and on which host.
-  const lost = !at && me.data !== null;
+  const at = place(route.path, apps, me.data !== null);
+  const to = at.kind === "go" ? at.to : null;
   useEffect(() => {
-    if (lost) navigate(home, true);
-  }, [lost, home]);
+    if (to) navigate(to, true);
+  }, [to]);
 
   useEffect(() => {
     if (!named) return;
@@ -126,9 +133,10 @@ export function App() {
 
   const clients = me.data?.clients ?? [];
   const current = clients.find((c) => c.id === client) ?? clients[0] ?? null;
+  const label = at.kind === "page" ? at.page.label : at.kind === "launcher" ? "Apps" : null;
   useEffect(() => {
-    if (at && current) document.title = `${at.page.label} · ${current.name} · Wren Client Portal`;
-  }, [at, current]);
+    if (label && current) document.title = `${label} · ${current.name} · Wren Client Portal`;
+  }, [label, current]);
 
   if (me.error && !me.data)
     return (
@@ -149,19 +157,20 @@ export function App() {
         ) : null}
       </Gate>
     );
-  if (!at) return null;
+  if (at.kind !== "page" && at.kind !== "launcher") return null;
 
   const pick = (id: string) => {
     setClient(id);
     keep(CLIENT_KEY, id);
   };
-  const { module, page } = at;
   const demo = onDemo ?? false;
-  const action = module.action;
   const flip = () => {
     setAsClient(team);
     keep(AS_CLIENT_KEY, team ? "1" : "0");
   };
+  const props = (id: string): PageProps => ({ client: id, demo, team, params: route.params });
+  const open = at.kind === "page" ? at : null;
+  const action = open?.module.action;
 
   return (
     <AppShell
@@ -169,33 +178,50 @@ export function App() {
       workspace={{
         current,
         options: clients,
-        caption: demo ? "Demo workspace" : "Workspace",
+        caption: demo ? "Demo" : undefined,
+        href: account ? firstOf(account) : undefined,
+        label: clients.length > 1 ? "Client" : "Account",
         onPick: pick,
       }}
-      nav={navOf(team, onDemo)}
-      current={pathOf(module, page)}
-      crumbs={[
-        ...(current && !module.team ? [{ label: current.name, href: home }] : []),
-        { label: module.name, href: module.pages[0] ? pathOf(module, module.pages[0]) : home },
-        { label: page.label },
-      ]}
+      launcher={launcher}
+      app={
+        open
+          ? {
+              name: open.module.name,
+              icon: open.module.icon,
+              href: firstOf(open.module),
+              tabs: open.module.pages.map((p) => ({
+                id: p.id,
+                label: p.label,
+                href: pathOf(open.module, p),
+              })),
+              current: open.page.id,
+              action:
+                action && action.page !== open.page.id ? (
+                  <ButtonLink
+                    href={`/${open.module.id}/${action.page}`}
+                    tone="quiet"
+                    size="sm"
+                    icon={action.icon}
+                  >
+                    {action.label}
+                  </ButtonLink>
+                ) : undefined,
+            }
+          : null
+      }
       notice={demo ? DEMO : undefined}
       actions={
         <>
-          {action && action.page !== page.id ? (
-            <ButtonLink
-              href={`/${module.id}/${action.page}`}
-              tone="quiet"
-              size="sm"
-              icon={action.icon}
-            >
-              {action.label}
-            </ButtonLink>
-          ) : null}
           {operator ? (
             <Button tone="quiet" size="sm" onClick={flip}>
               {team ? "View as client" : "Back to team view"}
             </Button>
+          ) : null}
+          {account ? (
+            <ButtonLink href={firstOf(account)} tone="quiet" size="sm">
+              Account
+            </ButtonLink>
           ) : null}
           {signOutUrl ? (
             <ButtonLink href={signOutUrl} tone="quiet" size="sm">
@@ -204,20 +230,33 @@ export function App() {
           ) : null}
         </>
       }
-      page={pathOf(module, page)}
+      page={open ? pathOf(open.module, open.page) : "/"}
       theme={theme}
     >
-      {current ? (
-        <page.Page
-          key={current.id}
-          client={current.id}
-          demo={demo}
-          team={team}
-          params={route.params}
-        />
-      ) : (
+      {!current ? (
         <Loading lines={8} heading />
+      ) : open ? (
+        <open.page.Page key={current.id} {...props(current.id)} />
+      ) : (
+        <Launcher key={current.id} name={current.name} apps={cards} props={props(current.id)} />
       )}
     </AppShell>
+  );
+}
+
+/** "/": a card per app, the client's first, then Wren's own in team view. */
+function Launcher({ name, apps, props }: { name: string; apps: Module[]; props: PageProps }) {
+  const card = (m: Module) => (
+    <AppCard key={m.id} name={m.name} icon={m.icon} href={firstOf(m)} blurb={m.blurb}>
+      {m.Glance ? <m.Glance {...props} /> : null}
+    </AppCard>
+  );
+  const ours = apps.filter((m) => m.team);
+  return (
+    <>
+      <PageHeader title="Apps" lede={`Everything Wren runs for ${name}.`} />
+      <AppGrid>{apps.filter((m) => !m.team).map(card)}</AppGrid>
+      {ours.length ? <AppGrid label="Wren team">{ours.map(card)}</AppGrid> : null}
+    </>
   );
 }

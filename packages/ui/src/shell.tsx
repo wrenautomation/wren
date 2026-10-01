@@ -1,31 +1,35 @@
 /**
- * The app frame: a gray canvas, a sidebar with the workspace and its products' pages, and one
- * white window with the breadcrumb on top. On a phone the sidebar becomes a menu under a top bar.
+ * The app frame: a slim bar on the gray canvas (whose workspace, and the viewer's own buttons)
+ * over one white window. Outside any app the window holds the launcher, a card per app. Inside
+ * one, the window's head names the app, links back to all of them, and runs the app's pages as
+ * tabs. Apps can keep coming without the frame growing, and nothing hides behind a menu on a
+ * phone: the tabs scroll sideways.
  */
-import { type ReactNode, useEffect, useRef, useState } from "react";
+import { type ReactNode, useEffect, useRef } from "react";
 import { Tag } from "./controls.js";
 import { cx, initials, num } from "./format.js";
 import { Icon, type IconName } from "./icons.js";
 import { type Theme, usePageTheme } from "./theme.js";
 
+/** One of an app's pages, as a tab. */
 export interface NavItem {
   id: string;
   label: string;
   href: string;
-  icon: IconName;
   count?: number | undefined;
 }
 
-/** One product and its pages. */
-export interface NavGroup {
-  id: string;
-  label: string;
-  items: NavItem[];
-}
-
-export interface Crumb {
-  label: string;
-  href?: string | undefined;
+/** The app on screen. */
+export interface OpenApp {
+  name: string;
+  icon: IconName;
+  /** Its first page. */
+  href: string;
+  tabs: NavItem[];
+  /** The id of the tab on screen. */
+  current: string;
+  /** Its one button, at the head's right. */
+  action?: ReactNode;
 }
 
 export interface WorkspaceOption {
@@ -37,17 +41,21 @@ export interface Workspace {
   /** Null while it loads. */
   current: WorkspaceOption | null;
   options: WorkspaceOption[];
-  /** The line under the name ("Demo workspace"). */
-  caption: string;
+  /** A word after the name ("Demo"). */
+  caption?: string | undefined;
+  /** With one option, the name links here (the client's account). */
+  href?: string | undefined;
+  /** What the name leads to, or the switcher picks ("Account", "Client"). */
+  label: string;
   onPick: (id: string) => void;
 }
 
-/** A note that stays on screen: in the sidebar on a computer, folded above the page on a phone. */
+/** A note that stays on every page, folded above it: the label and lead show, the body unfolds. */
 export interface ShellNotice {
   label: string;
   lead: ReactNode;
   body: ReactNode;
-  /** The phone's unfold link ("What's real"). */
+  /** The unfold link ("What's real"). */
   more: string;
 }
 
@@ -61,9 +69,8 @@ export interface Brand {
 export function AppShell({
   brand,
   workspace,
-  nav,
-  current,
-  crumbs,
+  launcher,
+  app,
   actions,
   notice,
   page,
@@ -73,10 +80,11 @@ export function AppShell({
 }: {
   brand: Brand;
   workspace: Workspace;
-  nav: NavGroup[];
-  /** The id of the page on screen. */
-  current: string;
-  crumbs: Crumb[];
+  /** Where "All apps" goes. Left out when there's only one app to go to. */
+  launcher?: string | undefined;
+  /** Null on the launcher. */
+  app: OpenApp | null;
+  /** The viewer's own buttons, top right. */
   actions?: ReactNode;
   notice?: ShellNotice | undefined;
   /** Changes when the page does, which scrolls back to the top. */
@@ -87,7 +95,6 @@ export function AppShell({
   children: ReactNode;
 }) {
   usePageTheme(theme);
-  const [open, setOpen] = useState(false);
   const scroller = useRef<HTMLDivElement>(null);
 
   // biome-ignore lint/correctness/useExhaustiveDependencies: a new page starts at its top.
@@ -96,103 +103,26 @@ export function AppShell({
     scrollTo(0, 0);
   }, [page]);
 
-  useEffect(() => {
-    if (!open) return;
-    const root = document.documentElement;
-    root.classList.add("ui-menu-open");
-    const onKey = (e: KeyboardEvent) => e.key === "Escape" && setOpen(false);
-    addEventListener("keydown", onKey);
-    return () => {
-      root.classList.remove("ui-menu-open");
-      removeEventListener("keydown", onKey);
-    };
-  }, [open]);
-
-  const last = crumbs.length - 1;
   return (
     <div className={cx("ui-app", className)}>
       <a className="ui-skip" href="#main">
         Skip to content
       </a>
 
-      <header className="ui-top">
-        <a className="ui-brand" href={brand.href} aria-label={brand.name}>
-          <img className="ui-stamp" src={brand.stamp} alt="" width={28} height={28} />
-        </a>
-        <span className="ui-top-name">{workspace.current?.name ?? ""}</span>
-        <button
-          type="button"
-          className="ui-top-menu"
-          aria-expanded={open}
-          aria-controls="ui-side"
-          aria-label={open ? "Close menu" : "Menu"}
-          onClick={() => setOpen((o) => !o)}
-        >
-          <Icon name={open ? "close" : "menu"} size={18} />
-        </button>
-      </header>
-
-      <aside id="ui-side" className="ui-side" data-open={open}>
+      <header className="ui-bar">
         <a className="ui-brand" href={brand.href}>
           <img className="ui-stamp" src={brand.stamp} alt="" width={26} height={26} />
-          <span>{brand.name}</span>
+          <span className="ui-brand-name">{brand.name}</span>
         </a>
-        <WorkspaceCard workspace={workspace} />
-        <nav className="ui-nav" aria-label="Pages">
-          {nav.map((g) => (
-            <div key={g.id} className="ui-nav-group">
-              <p className="ui-nav-label" id={`ui-nav-${g.id}`}>
-                {g.label}
-              </p>
-              <ul aria-labelledby={`ui-nav-${g.id}`}>
-                {g.items.map((it) => (
-                  <li key={it.id}>
-                    <a
-                      href={it.href}
-                      aria-current={it.id === current ? "page" : undefined}
-                      onClick={() => setOpen(false)}
-                    >
-                      <Icon name={it.icon} />
-                      <span>{it.label}</span>
-                      {it.count !== undefined ? (
-                        <span className="ui-nav-count">{num(it.count)}</span>
-                      ) : null}
-                    </a>
-                  </li>
-                ))}
-              </ul>
-            </div>
-          ))}
-        </nav>
-        {notice ? (
-          <div className="ui-side-notice">
-            <p>
-              <Tag tone="rust">{notice.label}</Tag> {notice.lead}
-            </p>
-            <p>{notice.body}</p>
-          </div>
-        ) : null}
-      </aside>
+        <span className="ui-slash" aria-hidden="true">
+          /
+        </span>
+        <WorkspacePick workspace={workspace} />
+        {actions ? <div className="ui-bar-actions">{actions}</div> : null}
+      </header>
 
       <div className="ui-window" ref={scroller}>
-        <header className="ui-head">
-          <nav className="ui-crumbs" aria-label="Breadcrumb">
-            <ol>
-              {crumbs.map((c, i) => (
-                // biome-ignore lint/suspicious/noArrayIndexKey: a trail never reorders.
-                <li key={i}>
-                  {i ? <Icon name="right" size={12} /> : null}
-                  {c.href && i < last ? (
-                    <a href={c.href}>{c.label}</a>
-                  ) : (
-                    <span aria-current={i === last ? "page" : undefined}>{c.label}</span>
-                  )}
-                </li>
-              ))}
-            </ol>
-          </nav>
-          {actions ? <div className="ui-head-actions">{actions}</div> : null}
-        </header>
+        {app ? <AppHead app={app} launcher={launcher} /> : null}
         <main className="ui-main" id="main" tabIndex={-1}>
           {notice ? (
             <details className="ui-notice">
@@ -211,34 +141,77 @@ export function AppShell({
   );
 }
 
-function WorkspaceCard({ workspace }: { workspace: Workspace }) {
-  const { current, options, caption, onPick } = workspace;
+function AppHead({ app, launcher }: { app: OpenApp; launcher: string | undefined }) {
+  return (
+    <header className="ui-apphead">
+      <div className="ui-apphead-row">
+        {launcher ? (
+          <>
+            <a className="ui-back" href={launcher} aria-label="All apps">
+              <Icon name="apps" />
+              <span>All apps</span>
+            </a>
+            <span className="ui-slash" aria-hidden="true">
+              /
+            </span>
+          </>
+        ) : null}
+        <a className="ui-appname" href={app.href}>
+          <span className="ui-appmark" aria-hidden="true">
+            <Icon name={app.icon} />
+          </span>
+          {app.name}
+        </a>
+        {app.action ? <div className="ui-apphead-action">{app.action}</div> : null}
+      </div>
+      <nav className="ui-apptabs" aria-label={`${app.name} pages`}>
+        <ul>
+          {app.tabs.map((t) => (
+            <li key={t.id}>
+              <a href={t.href} aria-current={t.id === app.current ? "page" : undefined}>
+                {t.label}
+                {t.count !== undefined ? <span className="ui-tabs-n">{num(t.count)}</span> : null}
+              </a>
+            </li>
+          ))}
+        </ul>
+      </nav>
+    </header>
+  );
+}
+
+/** Whose workspace this is: a name (a link when it has one), or a switcher when there's more than one. */
+function WorkspacePick({ workspace }: { workspace: Workspace }) {
+  const { current, options, caption, href, label, onPick } = workspace;
   if (!current)
     return (
-      <div className="ui-ws" aria-busy="true">
+      <span className="ui-ws" aria-busy="true">
         <span className="ui-ws-mark ui-ws-ghost" />
-        <span className="ui-ws-text">
-          <span className="ui-ghost" />
-        </span>
-      </div>
+        <span className="ui-ghost" />
+      </span>
     );
   const face = (
     <>
       <span className="ui-ws-mark" aria-hidden="true">
         {initials(current.name)}
       </span>
-      <span className="ui-ws-text">
-        <span className="ui-ws-name">{current.name}</span>
-        <span className="ui-ws-caption">{caption}</span>
-      </span>
+      <span className="ui-ws-name">{current.name}</span>
+      {caption ? <span className="ui-ws-caption">{caption}</span> : null}
     </>
   );
-  if (options.length < 2) return <div className="ui-ws">{face}</div>;
+  if (options.length < 2)
+    return href ? (
+      <a className="ui-ws ui-ws-pick" href={href} title={label}>
+        {face}
+      </a>
+    ) : (
+      <span className="ui-ws">{face}</span>
+    );
   return (
     <label className="ui-ws ui-ws-pick">
       {face}
       <Icon name="down" className="ui-ws-chev" />
-      <select value={current.id} onChange={(e) => onPick(e.target.value)} aria-label="Workspace">
+      <select value={current.id} onChange={(e) => onPick(e.target.value)} aria-label={label}>
         {options.map((o) => (
           <option key={o.id} value={o.id}>
             {o.name}

@@ -1,4 +1,4 @@
-/** The portal's sections, in sidebar order: the work first, then each product, then Wren's own. */
+/** The portal's apps, in launcher order: the work first, then each product, then Wren's own. */
 import type { Module } from "../module.js";
 import { ops } from "./ops/index.js";
 import { reactivation } from "./reactivation/index.js";

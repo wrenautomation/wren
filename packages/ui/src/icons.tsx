@@ -23,6 +23,11 @@ const PATHS = {
   external: "M9.5 2.5h4v4M13.5 2.5l-6 6M11.5 9.5v4h-9v-9h4",
   search: "M7 11.5a4.5 4.5 0 1 0 0-9 4.5 4.5 0 0 0 0 9ZM10.25 10.25 13.5 13.5",
   download: "M8 2.5v8M4.5 7 8 10.5 11.5 7M2.5 13.5h11",
+  // Apps: the launcher, and each app's mark.
+  apps: "M2.5 2.5h4v4h-4zM9.5 2.5h4v4h-4zM2.5 9.5h4v4h-4zM9.5 9.5h4v4h-4z",
+  cycle: "M12.9 6A5 5 0 0 0 3.4 5.2M3 2.75V5.5h2.75M3.1 10a5 5 0 0 0 9.5.8M13 13.25V10.5h-2.75",
+  flag: "M3.5 14V2.5M3.5 3h8.5l-2 3 2 3H3.5",
+  board: "M2.5 2.5h11v11h-11zM2.5 6.5h11M6.5 6.5v7",
 } as const;
 
 export type IconName = keyof typeof PATHS;

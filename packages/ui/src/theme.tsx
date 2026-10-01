@@ -36,7 +36,6 @@ export const TOKENS = [
   "radius-tag",
   "radius-bar",
   "frame",
-  "side",
   "main-width",
   "ease",
   // Made from the ones above by default.
@@ -74,7 +73,6 @@ const LENGTHS: ReadonlySet<string> = new Set([
   "radius-tag",
   "radius-bar",
   "frame",
-  "side",
   "main-width",
 ]);
 

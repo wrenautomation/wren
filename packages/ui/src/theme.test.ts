@@ -121,7 +121,11 @@ describe("readTheme", () => {
 
     it("drops NaN and Infinity", () => {
       expect(
-        readTheme({ frame: Number.NaN, side: Number.POSITIVE_INFINITY, "radius-bar": -Infinity }),
+        readTheme({
+          frame: Number.NaN,
+          "main-width": Number.POSITIVE_INFINITY,
+          "radius-bar": -Infinity,
+        }),
       ).toEqual({});
     });
 
@@ -134,7 +138,7 @@ describe("readTheme", () => {
           canvas: ["red"],
           font: { family: "serif" },
           frame: 1n,
-          side: Symbol("x"),
+          "main-width": Symbol("x"),
         }),
       ).toEqual({});
     });
@@ -292,7 +296,6 @@ describe("themeVars", () => {
     "radius-tag",
     "radius-bar",
     "frame",
-    "side",
     "main-width",
   ] as const)("turns a bare 0 into 0px for the length token %s", (key) => {
     expect(themeVars({ [key]: "0" })).toEqual({ [`--ui-${key}`]: "0px" });
@@ -303,9 +306,9 @@ describe("themeVars", () => {
   });
 
   it("leaves a zero with a unit, and a non-zero, alone", () => {
-    expect(themeVars({ frame: "0em", side: "0.5" })).toEqual({
+    expect(themeVars({ frame: "0em", "main-width": "0.5" })).toEqual({
       "--ui-frame": "0em",
-      "--ui-side": "0.5",
+      "--ui-main-width": "0.5",
     });
   });
 
@@ -320,10 +323,10 @@ describe("themeVars", () => {
   });
 
   it("leaves non-zero lengths alone", () => {
-    expect(themeVars({ "radius-card": "18px", frame: "0px", side: "10" })).toEqual({
+    expect(themeVars({ "radius-card": "18px", frame: "0px", "main-width": "10" })).toEqual({
       "--ui-radius-card": "18px",
       "--ui-frame": "0px",
-      "--ui-side": "10",
+      "--ui-main-width": "10",
     });
   });
 

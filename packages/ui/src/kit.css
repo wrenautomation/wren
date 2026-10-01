@@ -39,7 +39,6 @@
     --ui-radius-tag: 999px;
     --ui-radius-bar: 2px;
     --ui-frame: 10px; /* the canvas around the window; 0px makes it flush */
-    --ui-side: 252px;
     --ui-main-width: 1240px;
     --ui-ease: cubic-bezier(0.16, 1, 0.3, 1);
     color-scheme: var(--ui-scheme);
@@ -174,11 +173,11 @@
     transition: opacity 0.2s var(--ui-ease);
   }
 
-  /* Frame */
+  /* Frame: a slim bar on the canvas, one window under it */
   .ui-app {
-    display: grid;
-    grid-template-columns: var(--ui-side) minmax(0, 1fr);
-    min-height: 100dvh;
+    display: flex;
+    flex-direction: column;
+    height: 100dvh;
   }
   .ui-skip {
     position: fixed;
@@ -196,89 +195,101 @@
   .ui-skip:focus {
     transform: none;
   }
-  .ui-top {
-    display: none;
-  }
-  .ui-side {
-    position: sticky;
-    top: 0;
-    height: 100dvh;
-    display: flex;
-    flex-direction: column;
-    gap: 20px;
-    padding: 18px 12px 14px 14px;
-    overflow-y: auto;
-    scrollbar-width: none;
-  }
-  .ui-brand {
+  .ui-bar {
+    flex: none;
     display: flex;
     align-items: center;
-    gap: 10px;
-    padding: 2px 6px;
-    font-size: 15.5px;
+    gap: 6px;
+    min-width: 0;
+    height: 54px;
+    padding: 0 calc(var(--ui-frame) + 8px);
+  }
+  .ui-brand {
+    flex: none;
+    display: flex;
+    align-items: center;
+    gap: 9px;
+    height: 36px;
+    padding: 0 8px 0 4px;
+    border-radius: var(--ui-radius-control);
+    font-size: 15px;
     font-weight: 600;
     letter-spacing: -0.01em;
     text-decoration: none;
+    transition: background-color 0.25s var(--ui-ease);
+  }
+  .ui-brand:hover {
+    background: var(--ui-hover);
   }
   .ui-stamp {
     flex: none;
   }
+  .ui-slash {
+    flex: none;
+    color: var(--ui-ink-3);
+    font-size: 17px;
+    font-weight: 300;
+  }
+  .ui-bar-actions {
+    flex: none;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    margin-left: auto;
+  }
 
-  /* The workspace: whose list this is. A white node on the gray, like the lander's diagrams. */
+  /* The workspace: whose list this is, and a switcher when there's more than one */
   .ui-ws {
     position: relative;
     display: flex;
     align-items: center;
-    gap: 11px;
-    min-height: 58px;
-    padding: 10px 12px 10px 10px;
-    background: var(--ui-paper);
-    border-radius: var(--ui-radius-card);
-    box-shadow: var(--ui-shadow-node);
+    gap: 9px;
+    min-width: 0;
+    height: 36px;
+    padding: 0 10px 0 5px;
+    border-radius: var(--ui-radius-control);
   }
   .ui-ws-mark {
     flex: none;
     display: grid;
     place-items: center;
-    width: 36px;
-    height: 36px;
+    width: 26px;
+    height: 26px;
     border-radius: var(--ui-radius-control);
     background: var(--ui-ink);
     color: var(--ui-on-ink);
-    font-size: 12.5px;
+    font-size: 10.5px;
     font-weight: 600;
     letter-spacing: 0.04em;
-  }
-  .ui-ws-text {
-    display: flex;
-    flex-direction: column;
-    flex: 1;
-    min-width: 0;
   }
   .ui-ws-name {
     overflow: hidden;
     font-size: 14px;
     font-weight: 600;
-    line-height: 1.3;
     text-overflow: ellipsis;
     white-space: nowrap;
   }
   .ui-ws-caption {
+    flex: none;
+    padding: 1px 7px;
+    border-radius: var(--ui-radius-tag);
+    background: var(--ui-fill);
     color: var(--ui-ink-2);
-    font-size: 12.5px;
-    line-height: 1.35;
+    font-size: 12px;
+    font-weight: 500;
+    white-space: nowrap;
   }
   .ui-ws-chev {
+    flex: none;
     color: var(--ui-ink-2);
   }
   .ui-ws-pick {
     cursor: pointer;
-    transition: box-shadow 0.25s var(--ui-ease);
+    text-decoration: none;
+    transition: background-color 0.25s var(--ui-ease);
   }
   .ui-ws-pick:hover {
-    box-shadow:
-      inset 0 0 0 1px var(--ui-line),
-      0 1px 2px color-mix(in srgb, var(--ui-shade) 5%, transparent);
+    background: var(--ui-hover);
   }
   .ui-ws-pick:has(select:focus-visible) {
     outline: 2px solid var(--ui-accent);
@@ -295,76 +306,11 @@
     background: var(--ui-fill);
   }
 
-  /* Pages, grouped by product */
-  .ui-nav {
-    display: flex;
-    flex-direction: column;
-    gap: 22px;
-  }
-  .ui-nav-label {
-    padding: 0 10px 8px;
-    color: var(--ui-ink-2);
-    font-size: 11.5px;
-    font-weight: 600;
-    letter-spacing: var(--ui-label-tracking);
-    text-transform: var(--ui-label-case);
-  }
-  .ui-nav ul {
-    display: flex;
-    flex-direction: column;
-    gap: 2px;
-    list-style: none;
-  }
-  .ui-nav a {
-    display: flex;
-    align-items: center;
-    gap: 11px;
-    height: 38px;
-    padding: 0 10px;
-    border-radius: var(--ui-radius-control);
-    color: var(--ui-ink-2);
-    font-size: 14.5px;
-    font-weight: 500;
-    text-decoration: none;
-    transition:
-      background-color 0.25s var(--ui-ease),
-      color 0.25s var(--ui-ease),
-      box-shadow 0.25s var(--ui-ease);
-  }
-  .ui-nav a:hover {
-    background: var(--ui-hover);
-    color: var(--ui-ink);
-  }
-  .ui-nav a[aria-current="page"] {
-    background: var(--ui-paper);
-    color: var(--ui-ink);
-    box-shadow: var(--ui-shadow-node);
-  }
-  .ui-nav-count {
-    margin-left: auto;
-    color: var(--ui-ink-2);
-    font-size: 12.5px;
-  }
-  .ui-side-notice {
-    display: flex;
-    flex-direction: column;
-    gap: 8px;
-    margin-top: auto;
-    padding: 14px 14px 15px;
-    border-radius: var(--ui-radius-card);
-    box-shadow: inset 0 0 0 1px var(--ui-hair);
-    color: var(--ui-ink-2);
-    font-size: 12.5px;
-    line-height: 1.5;
-  }
-  .ui-side-notice b {
-    color: var(--ui-ink);
-  }
-
   /* The window */
   .ui-window {
-    height: calc(100dvh - 2 * var(--ui-frame));
-    margin: var(--ui-frame) var(--ui-frame) var(--ui-frame) 0;
+    flex: 1;
+    min-height: 0;
+    margin: 0 var(--ui-frame) var(--ui-frame);
     overflow-y: auto;
     overscroll-behavior: contain;
     background: var(--ui-paper);
@@ -372,60 +318,112 @@
     box-shadow: var(--ui-shadow-window);
     scrollbar-width: thin;
   }
-  .ui-head {
+
+  /* An app's head: back to all apps, its name and button, then its pages as tabs */
+  .ui-apphead {
     position: sticky;
     top: 0;
     z-index: 5;
-    display: flex;
-    align-items: center;
-    gap: 16px;
-    min-height: 58px;
-    padding: 10px 28px;
     background: var(--ui-glass);
     backdrop-filter: saturate(1.4) blur(12px);
     border-bottom: 1px solid var(--ui-hair);
   }
-  .ui-crumbs {
-    min-width: 0;
+  .ui-apphead > * {
+    max-width: var(--ui-main-width);
+    margin: 0 auto;
+    padding: 0 44px;
   }
-  .ui-crumbs ol {
+  .ui-apphead-row {
     display: flex;
     align-items: center;
+    gap: 6px;
+    min-height: 58px;
+    padding-top: 8px;
+  }
+  .ui-back {
+    display: inline-flex;
+    align-items: center;
     gap: 8px;
-    list-style: none;
+    height: 34px;
+    margin-left: -10px;
+    padding: 0 10px;
+    border-radius: var(--ui-radius-control);
     color: var(--ui-ink-2);
     font-size: 13.5px;
+    font-weight: 500;
+    text-decoration: none;
+    white-space: nowrap;
+    transition:
+      background-color 0.25s var(--ui-ease),
+      color 0.25s var(--ui-ease);
   }
-  .ui-crumbs li {
+  .ui-back:hover {
+    background: var(--ui-hover);
+    color: var(--ui-ink);
+  }
+  .ui-appname {
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+    min-width: 0;
+    padding: 0 4px;
+    font-family: var(--ui-font-display);
+    font-size: 17px;
+    font-weight: var(--ui-display-weight);
+    letter-spacing: -0.01em;
+    text-decoration: none;
+    white-space: nowrap;
+  }
+  .ui-appmark {
+    flex: none;
+    display: grid;
+    place-items: center;
+    width: 30px;
+    height: 30px;
+    border-radius: var(--ui-radius-control);
+    background: var(--ui-accent-wash);
+    color: var(--ui-accent);
+  }
+  .ui-apphead-action {
     display: flex;
     align-items: center;
     gap: 8px;
-    min-width: 0;
-    white-space: nowrap;
-  }
-  .ui-crumbs li:first-child {
-    overflow: hidden;
-    text-overflow: ellipsis;
-  }
-  .ui-crumbs .ui-icon {
-    color: var(--ui-ink-3);
-  }
-  .ui-crumbs a {
-    text-decoration: none;
-  }
-  .ui-crumbs a:hover {
-    color: var(--ui-ink);
-  }
-  .ui-crumbs [aria-current="page"] {
-    color: var(--ui-ink);
-    font-weight: 500;
-  }
-  .ui-head-actions {
-    display: flex;
-    align-items: center;
-    gap: 10px;
     margin-left: auto;
   }
+  .ui-apptabs ul {
+    display: flex;
+    gap: 26px;
+    margin-bottom: -1px;
+    overflow-x: auto;
+    list-style: none;
+    scrollbar-width: none;
+  }
+  .ui-apptabs a {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 12px 0 11px;
+    border-bottom: 2px solid transparent;
+    color: var(--ui-ink-2);
+    font-size: 14px;
+    font-weight: 500;
+    text-decoration: none;
+    white-space: nowrap;
+    transition:
+      color 0.2s var(--ui-ease),
+      border-color 0.2s var(--ui-ease);
+  }
+  .ui-apptabs a:hover {
+    color: var(--ui-ink);
+  }
+  .ui-apptabs a[aria-current="page"] {
+    border-bottom-color: var(--ui-accent);
+    color: var(--ui-ink);
+  }
+  .ui-apptabs a:focus-visible {
+    outline-offset: -2px;
+  }
+
   .ui-main {
     max-width: var(--ui-main-width);
     margin: 0 auto;
@@ -440,8 +438,148 @@
   .ui-main > :not(.ui-notice, .ui-drawer-wrap) {
     animation: ui-fade 0.4s var(--ui-ease) backwards;
   }
+
+  /* A note on every page (the demo's): one line, the rest unfolds */
   .ui-notice {
+    margin-bottom: 28px;
+    padding: 10px 14px;
+    border-radius: var(--ui-radius-card);
+    background: var(--ui-tile);
+    color: var(--ui-ink-2);
+    font-size: 13.5px;
+    line-height: 1.5;
+  }
+  .ui-notice summary {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 4px 10px;
+    cursor: pointer;
+    list-style: none;
+  }
+  .ui-notice summary::-webkit-details-marker {
     display: none;
+  }
+  .ui-notice b {
+    color: var(--ui-ink);
+  }
+  .ui-notice-more {
+    color: var(--ui-ink);
+    font-weight: 500;
+    text-decoration: underline;
+    text-decoration-color: var(--ui-ink-3);
+    text-underline-offset: 0.24em;
+  }
+  .ui-notice[open] .ui-notice-more {
+    display: none;
+  }
+  .ui-notice-body {
+    max-width: 72ch;
+    margin-top: 8px;
+  }
+
+  /* The launcher: a card per app */
+  .ui-apps + .ui-apps {
+    margin-top: 44px;
+  }
+  .ui-apps-label {
+    margin-bottom: 14px;
+    color: var(--ui-ink-2);
+    font-size: 12px;
+    font-weight: 600;
+    letter-spacing: var(--ui-label-tracking);
+    text-transform: var(--ui-label-case);
+  }
+  .ui-apps-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(min(100%, 320px), 1fr));
+    gap: 16px;
+    list-style: none;
+  }
+  .ui-appcard {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    height: 100%;
+    padding: 20px 22px 22px;
+    border-radius: var(--ui-radius-card);
+    background: var(--ui-paper);
+    box-shadow: inset 0 0 0 1px var(--ui-line);
+    text-decoration: none;
+    transition:
+      box-shadow 0.35s var(--ui-ease),
+      transform 0.35s var(--ui-ease);
+  }
+  .ui-appcard:hover {
+    box-shadow:
+      inset 0 0 0 1px var(--ui-hair),
+      var(--ui-shadow-lift);
+    transform: translateY(-2px);
+  }
+  .ui-appcard:active {
+    transform: translateY(0);
+  }
+  .ui-appcard-top {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 8px;
+  }
+  .ui-appcard .ui-appmark {
+    width: 40px;
+    height: 40px;
+  }
+  .ui-appcard-go {
+    color: var(--ui-ink-3);
+    transition:
+      color 0.35s var(--ui-ease),
+      transform 0.35s var(--ui-ease);
+  }
+  .ui-appcard:hover .ui-appcard-go {
+    color: var(--ui-accent);
+    transform: translateX(3px);
+  }
+  .ui-appcard-name {
+    font-family: var(--ui-font-display);
+    font-size: 20px;
+    font-weight: var(--ui-display-weight);
+    letter-spacing: -0.015em;
+    line-height: 1.2;
+  }
+  .ui-appcard-blurb {
+    color: var(--ui-ink-2);
+    font-size: 14px;
+    line-height: 1.5;
+    text-wrap: pretty;
+  }
+  .ui-appcard-glance {
+    margin-top: auto;
+    padding-top: 14px;
+  }
+  .ui-glance {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px 26px;
+    padding-top: 14px;
+    border-top: 1px solid var(--ui-rule);
+  }
+  .ui-glance div {
+    display: flex;
+    flex-direction: column-reverse;
+    gap: 1px;
+  }
+  .ui-glance dt {
+    color: var(--ui-ink-2);
+    font-size: 12.5px;
+  }
+  .ui-glance dd {
+    font-size: 19px;
+    font-weight: 600;
+    font-variant-numeric: tabular-nums;
+    letter-spacing: -0.01em;
+  }
+  .ui-glance-note {
+    margin-top: 12px;
   }
 
   /* A page */
@@ -930,10 +1068,6 @@
     background: currentColor;
   }
 
-  .ui-side-notice .ui-tag {
-    margin-right: 4px;
-  }
-
   /* Search */
   .ui-search {
     position: relative;
@@ -1376,7 +1510,11 @@
     width: 58%;
   }
   .ui-ws .ui-ghost {
-    width: 70%;
+    width: 110px;
+  }
+  .ui-glance .ui-ghost {
+    width: 64px;
+    height: 34px;
   }
   /* A page's title and lede, before it can name itself. */
   .ui-ghost-head {
@@ -1474,11 +1612,6 @@
     flex: none;
     margin: -4px 0 -4px auto;
   }
-  /* After the other icon rules so the current page's icon stays rust. */
-  .ui-nav a[aria-current="page"] .ui-icon {
-    color: var(--ui-accent);
-  }
-
   /* Drawer: a floating inset panel */
   .ui-drawer-wrap {
     position: fixed;
@@ -1593,132 +1726,60 @@
     border-bottom: 1px solid var(--ui-line);
   }
 
-  /* Phone and small tablet: a top bar, the sidebar as a menu, the window full width */
+  /* Phone and small tablet: the page scrolls, the window runs full width, tabs scroll sideways */
   @media (max-width: 900px) {
     body {
       background: var(--ui-paper);
     }
     .ui-app {
       display: block;
-    }
-    .ui-top {
-      position: sticky;
-      top: 0;
-      z-index: 30;
-      display: flex;
-      align-items: center;
-      gap: 12px;
-      height: 56px;
-      padding: 0 8px 0 16px;
-      background: var(--ui-glass);
-      backdrop-filter: saturate(1.4) blur(12px);
-      border-bottom: 1px solid var(--ui-hair);
-    }
-    .ui-top .ui-brand {
-      padding: 0;
-    }
-    .ui-top-name {
-      flex: 1;
-      min-width: 0;
-      overflow: hidden;
-      font-size: 14.5px;
-      font-weight: 600;
-      text-overflow: ellipsis;
-      white-space: nowrap;
-    }
-    .ui-top-menu {
-      display: grid;
-      place-items: center;
-      width: 44px;
-      height: 44px;
-      border: 0;
-      background: none;
-      cursor: pointer;
-    }
-    .ui-side {
-      position: fixed;
-      inset: 56px 0 0;
-      z-index: 29;
       height: auto;
-      padding: 16px 16px 24px;
+    }
+    .ui-bar {
+      height: 52px;
+      padding: 0 8px;
       background: var(--ui-canvas);
-      opacity: 0;
-      visibility: hidden;
-      transform: translateY(-10px);
-      transition:
-        opacity 0.3s var(--ui-ease),
-        transform 0.45s var(--ui-ease),
-        visibility 0s linear 0.45s;
     }
-    .ui-side[data-open="true"] {
-      opacity: 1;
-      visibility: visible;
-      transform: none;
-      transition:
-        opacity 0.3s var(--ui-ease),
-        transform 0.45s var(--ui-ease);
-    }
-    .ui-side > .ui-brand,
-    .ui-side-notice {
+    .ui-brand-name,
+    .ui-bar .ui-slash,
+    .ui-ws-caption {
       display: none;
     }
-    .ui-nav a {
-      height: 44px;
-      font-size: 15.5px;
-    }
-    .ui-menu-open,
-    .ui-menu-open body {
-      overflow: hidden;
-    }
     .ui-window {
-      height: auto;
-      margin: 0;
       overflow: visible;
+      margin: 0;
       border-radius: 0;
       box-shadow: none;
     }
-    .ui-head {
+    .ui-apphead > * {
+      padding: 0 16px;
+    }
+    .ui-apphead-row {
+      min-height: 52px;
+      padding-top: 6px;
+    }
+    .ui-back {
+      margin-left: -8px;
+      padding: 0 8px;
+    }
+    .ui-back span {
       display: none;
+    }
+    /* Run the tabs off the screen's edge so a cut-off one reads as "scroll for more". */
+    .ui-apptabs {
+      padding-right: 0;
+    }
+    .ui-apptabs ul {
+      gap: 22px;
+      padding-right: 16px;
     }
     .ui-main {
       padding: 22px 16px 64px;
     }
     .ui-notice {
-      display: block;
       margin-bottom: 22px;
       padding: 10px 12px;
-      border-radius: var(--ui-radius-card);
-      background: var(--ui-tile);
-      color: var(--ui-ink-2);
       font-size: 13px;
-      line-height: 1.5;
-    }
-    .ui-notice summary {
-      display: flex;
-      flex-wrap: wrap;
-      align-items: center;
-      gap: 4px 8px;
-      cursor: pointer;
-      list-style: none;
-    }
-    .ui-notice summary::-webkit-details-marker {
-      display: none;
-    }
-    .ui-notice b {
-      color: var(--ui-ink);
-    }
-    .ui-notice-more {
-      color: var(--ui-ink);
-      font-weight: 500;
-      text-decoration: underline;
-      text-decoration-color: var(--ui-ink-3);
-      text-underline-offset: 0.24em;
-    }
-    .ui-notice[open] .ui-notice-more {
-      display: none;
-    }
-    .ui-notice-body {
-      margin-top: 8px;
     }
     .ui-page-head {
       margin-bottom: 24px;

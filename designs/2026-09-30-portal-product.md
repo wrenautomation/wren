@@ -16,16 +16,17 @@ The portal stops being a set of pages and becomes a packaged app. One shell, pro
 | Piece | Where | What it does |
 |---|---|---|
 | Kit | `packages/ui` (new, a foundation) | the lander's tokens, plus base pieces and delivery pieces; knows no product |
-| Shell | `AppShell` in `packages/ui/src/shell.tsx`, wired in `apps/portal/web/src/App.tsx` | the workspace › product frame, nav, Run button, demo note |
+| Shell | `AppShell` in `packages/ui/src/shell.tsx`, wired in `apps/portal/web/src/App.tsx` | a bar (Wren, the client, the viewer's buttons) over one window; the launcher, or an app's head and page tabs; demo note |
 | Modules | `apps/portal/web/src/modules/<product>` | one product's pages, run graph and setup; `reactivation` first |
 | API | `ReactivationPortal` (`packages/reactivation/src/portal`) | new routes `run` (replay events) and `setup` (what the client plugged in); `overview` gains the pipeline; person and email views carry their sources |
 
 ## Screens
 
-- **Shell.** A gray canvas with a white main window.
-  - The sidebar has the workspace (a switcher for operators), the product and its pages, and the viewer.
-  - The header shows `workspace › product › page`, the status and Run.
-  - On a phone: a top bar and a menu sheet.
+- **Shell.** A slim bar on the gray canvas over one white window (P10).
+  - The bar: Wren, the client (a link to Account, or a switcher for operators), and the viewer's buttons.
+  - `/` is the launcher: a card per app with its blurb, a few numbers and what waits on the viewer.
+  - Inside an app the window's head shows "All apps", the app's name and its one button, then its pages as tabs.
+  - On a phone: the same, with the tabs scrolling sideways. No menu.
 - **Home.** Answers four things: what this is, whose list it is, what's done and what's next.
   - Pipeline rail: List → Emails → Where now → Hiring → Score → Briefs → Drafts → Your OK → Sent → Replies. Each step shows a count and a state (done, running, waiting, not started). Clicking a step opens its people.
   - Needs you: drafts waiting for approval.
@@ -48,6 +49,7 @@ The portal stops being a set of pages and becomes a packaged app. One shell, pro
   - The shell renders the workspace (a client), its modules and the current page.
   - A client portal is the same shell with that client's list and settings. There is no per-client code (client-reactivation, Layers).
   - A second product is a new module, not a new app.
+- **P10. A suite of apps, not a sidebar.** (William, 2026-10-01: "a suite of apps with cards to click into, not a sidebar that will grow out of control.") `/` is a launcher, one card per app (`AppGrid`, `AppCard`, `AppGlance`). An app's pages are tabs in its head. A module adds `icon`, `blurb` and an optional `Glance` (its card's numbers). One app (the demo) skips the launcher. `menu` modules (Account) sit behind the client's name, never on a card.
 - **P2. The kit is a foundation.** `packages/ui` holds React pieces and CSS, and no product types. The layer lint rule already covers `packages/**`. Each piece takes plain props (steps, events, a source), and the module maps its own data onto them.
   - Base pieces: button, tabs (filters), table, tag, stat, card, drawer, menu, tooltip, toast, skeleton, empty state, icons.
   - Delivery pieces: app shell, workflow rail, run view, source drawer, cited text, person timeline, email preview with approve, stat strip, activity feed.
@@ -137,3 +139,12 @@ What keeps it cheap later, built now:
   - Motion: a spark rides into a step for each line about one person, colored by what came of it. The line into a working step flows. Each node has a bar: finds, plain checks, misses, waiting. Reduced motion shows none of it moving.
   - Following: click a step to see only its lines, or a line to follow that person through every step they touched. Everything else dims. Escape or "Show all" clears it.
   - Portal: the three checks read the list side by side; ranking takes moves and hiring; drafts take the brief and the checked email.
+- **2026-10-01** Sidebar replaced by a launcher (P10). Re-checked the earlier calls:
+  - Sidebar of every app's pages → a card per app, and the open app's pages as tabs. More apps add cards, not nav length.
+  - Breadcrumb header → the app's head ("All apps" / app). Tabs already say the page.
+  - Phone menu sheet → gone. The bar stays, tabs scroll sideways, one less tap.
+  - Demo note in the sidebar → a folded line above every page, on all sizes.
+  - Big workspace card → the client's name in the bar, a link to Account (delivery session's module); no "Workspace" caption, which read as noise. The demo says "Demo".
+  - Landing on the first page → `/` is the launcher when there are two or more apps. `/<app>` opens its first page; unknown paths go home.
+  - Page icons dropped (tabs are text). First tabs renamed "Overview", since "Home" now reads as the launcher.
+  - Later: a client sees only the apps it has (`clients.products`), once a second product ships.

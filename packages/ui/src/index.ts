@@ -28,6 +28,7 @@ export {
 } from "./flow.js";
 export { ago, cx, hostOf, initials, month, num, soon } from "./format.js";
 export { Icon, type IconName } from "./icons.js";
+export { AppCard, AppGlance, AppGrid, type GlanceFigure } from "./launcher.js";
 export { Card, CardList, PageHeader, Section, Stat, StatStrip } from "./layout.js";
 export { Pager } from "./pager.js";
 export { RAIL_STATES, Rail, type RailGroup, type RailState, type RailStep } from "./rail.js";
@@ -51,10 +52,9 @@ export {
 export {
   AppShell,
   type Brand,
-  type Crumb,
   Gate,
-  type NavGroup,
   type NavItem,
+  type OpenApp,
   type ShellNotice,
   type Workspace,
   type WorkspaceOption,
