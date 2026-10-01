@@ -1,14 +1,33 @@
 /**
- * A run, watched: the workflow as a row of steps, a feed of what each one does,
- * and what came of it at the end. It plays one line at a time in the order
- * given; a replay on its own clock, a live run as lines arrive. A backlog plays
- * at most twice as fast and nothing is skipped. With reduced motion it shows
- * where things stand, still. Space pauses.
+ * A run, watched: the workflow as a graph of steps, a spark along each line as
+ * work moves through it, a feed of what each step does, and what came of it at
+ * the end. It plays one line at a time in the order given; a replay on its own
+ * clock, a live run as lines arrive. A backlog plays at most twice as fast and
+ * nothing is skipped. With reduced motion it shows where things stand, still.
+ * Space pauses. Pick a step or a line to follow it through the graph.
  *
  * A foundation piece: steps, lines and sources are plain props, so any product
  * maps its own run onto them.
  */
-import { type ReactNode, useEffect, useMemo, useRef, useState } from "react";
+import {
+  type CSSProperties,
+  type ReactNode,
+  useEffect,
+  useLayoutEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
+import {
+  type Box,
+  edgePath,
+  type FlowAxis,
+  type FlowGraph,
+  flowOf,
+  INPUT,
+  OUTPUT,
+  tracksOf,
+} from "./flow.js";
 import { cx, num } from "./format.js";
 import { Icon } from "./icons.js";
 
@@ -20,7 +39,7 @@ export interface RunLine {
   step: string;
   kind: RunLineKind;
   text: string;
-  /** Who or what it is about: the name on the moving chip. */
+  /** Who or what it is about: the name on the moving chip, and what following a line follows. */
   subject?: string | null;
   /** On a step's last line: how many it handled in all. */
   count?: number | null;
@@ -32,10 +51,20 @@ export interface RunLine {
 export interface RunStep {
   id: string;
   label: string;
+  /** For a narrow node ("Emails"); without it, the label. */
+  short?: string;
   /** Where this step reads from ("LinkedIn, job boards"). */
   source?: string;
   /** What a find is called here ("moved or left"); without it, finds aren't tallied apart. */
   found?: string;
+  /** The steps it builds on, by id. Left out: the step before it. Empty: it reads the run's input. */
+  after?: string[];
+}
+
+/** One end of the graph: what the run reads ("Your list"), or who it hands its work to. */
+export interface RunEnd {
+  label: string;
+  note?: string;
 }
 
 export type RunStepState = "idle" | "active" | "done" | "waiting";
@@ -45,6 +74,7 @@ export interface RunStepView {
   /** People or companies it has handled so far. */
   handled: number;
   found: number;
+  failed: number;
   /** Parked for later: not handled yet. */
   waiting: number;
 }
@@ -65,11 +95,17 @@ export const RUN_MAX_SPEEDUP = 2;
 /** Lines behind before a live run speeds up. */
 const BACKLOG = 3;
 
+/** Narrower than this per column, the graph runs top to bottom. */
+const MIN_COLUMN = 150;
+
 /** How long to hold `line` at this backlog: normal, or up to 2x faster when behind. */
 export function dwellOf(line: RunLine | undefined, behind: number, live: boolean): number {
   const base = line ? RUN_DWELL[line.kind] : 0;
   return live && behind > BACKLOG ? base / RUN_MAX_SPEEDUP : base;
 }
+
+/** A line about one person or company, not a step starting or ending. */
+const aboutOne = (l: RunLine) => !!l.subject && l.kind !== "started" && l.kind !== "done";
 
 /** Each step as of the first `shown` lines. */
 export function stepsAt(
@@ -78,7 +114,7 @@ export function stepsAt(
   shown: number,
 ): Record<string, RunStepView> {
   const out: Record<string, RunStepView> = {};
-  for (const s of steps) out[s.id] = { state: "idle", handled: 0, found: 0, waiting: 0 };
+  for (const s of steps) out[s.id] = { state: "idle", handled: 0, found: 0, failed: 0, waiting: 0 };
   for (const l of lines.slice(0, shown)) {
     const v = out[l.step];
     if (!v) continue;
@@ -93,10 +129,35 @@ export function stepsAt(
     else {
       v.handled += 1;
       if (l.kind === "found") v.found += 1;
+      if (l.kind === "failed") v.failed += 1;
     }
   }
   return out;
 }
+
+/** How many lines about one subject each step has in all: what its bar fills toward on a replay. */
+export function expectedOf(lines: readonly RunLine[]): Record<string, number> {
+  const out: Record<string, number> = {};
+  for (const l of lines) if (aboutOne(l)) out[l.step] = (out[l.step] ?? 0) + 1;
+  return out;
+}
+
+export interface RunMix {
+  found: number;
+  did: number;
+  failed: number;
+  waiting: number;
+}
+
+/** A step's bar: each outcome's share of what it has, or will have, handled. */
+export function mixOf(v: RunStepView, expected: number): RunMix {
+  const did = Math.max(v.handled - v.found - v.failed, 0);
+  const all = Math.max(expected, v.handled + v.waiting, 1);
+  return { found: v.found / all, did: did / all, failed: v.failed / all, waiting: v.waiting / all };
+}
+
+/** What the viewer is following: one step, or one person or company through every step. */
+export type RunFocus = { step: string } | { subject: string } | null;
 
 const prefersStill = () =>
   typeof window !== "undefined" &&
@@ -108,15 +169,84 @@ const typing = (t: EventTarget | null) =>
   t instanceof HTMLElement &&
   (t.isContentEditable || /^(INPUT|TEXTAREA|SELECT|BUTTON|A)$/.test(t.tagName));
 
+const sameBoxes = (a: Record<string, Box>, b: Record<string, Box>) => {
+  const ka = Object.keys(a);
+  return (
+    ka.length === Object.keys(b).length &&
+    ka.every((k) => {
+      const x = a[k];
+      const y = b[k];
+      return !!x && !!y && x.x === y.x && x.y === y.y && x.w === y.w && x.h === y.h;
+    })
+  );
+};
+
+/** Where each node sits, measured, and which way the graph runs at this width. */
+function useLayout(graph: FlowGraph) {
+  const box = useRef<HTMLDivElement>(null);
+  const [axis, setAxis] = useState<FlowAxis>("across");
+  const [boxes, setBoxes] = useState<Record<string, Box>>({});
+
+  // biome-ignore lint/correctness/useExhaustiveDependencies: a new axis moves every node; measure again.
+  useLayoutEffect(() => {
+    const el = box.current;
+    if (!el) return;
+    const measure = () => {
+      const next: FlowAxis =
+        el.clientWidth / Math.max(graph.cols, 1) >= MIN_COLUMN ? "across" : "down";
+      setAxis(next);
+      // Layout positions, not painted ones: a lifted node doesn't move its lines.
+      const out: Record<string, Box> = {};
+      for (const n of el.querySelectorAll<HTMLElement>("[data-node]")) {
+        const id = n.dataset.node;
+        if (id) out[id] = { x: n.offsetLeft, y: n.offsetTop, w: n.offsetWidth, h: n.offsetHeight };
+      }
+      setBoxes((was) => (sameBoxes(was, out) ? was : out));
+    };
+    measure();
+    if (typeof ResizeObserver === "undefined") return;
+    const watch = new ResizeObserver(measure);
+    watch.observe(el);
+    for (const n of el.querySelectorAll("[data-node]")) watch.observe(n);
+    return () => watch.disconnect();
+  }, [graph, axis]);
+
+  return { box, axis, boxes };
+}
+
+/** Where a node sits in the grid, by which way the graph runs. */
+function placeOf(
+  n: { col: number; index: number; of: number },
+  g: FlowGraph,
+  axis: FlowAxis,
+  tracks: number,
+): CSSProperties {
+  if (axis === "across")
+    return { gridColumn: n.col + 1, gridRow: `${g.rows - n.of + n.index * 2 + 1} / span 2` };
+  const span = Math.max(1, Math.floor(tracks / n.of));
+  return { gridRow: n.col + 1, gridColumn: `${n.index * span + 1} / span ${span}` };
+}
+
+/** Across: a column holding only an end is narrower than a column of steps. */
+const columnsOf = (g: FlowGraph) =>
+  Array.from({ length: g.cols }, (_, c) =>
+    g.nodes.some((n) => n.col === c && n.id !== INPUT && n.id !== OUTPUT)
+      ? "minmax(0, 1fr)"
+      : "minmax(0, 0.7fr)",
+  ).join(" ");
+
 export function RunView({
   steps,
   lines,
   live = false,
   label,
   results,
+  input,
+  output,
   pace = 1,
   className,
 }: {
+  /** Every step the run can take. A replay leaves out the ones it has no lines for. */
   steps: RunStep[];
   lines: RunLine[];
   /** Lines arrive as the run goes; otherwise it's a replay on its own clock. */
@@ -125,6 +255,10 @@ export function RunView({
   label: ReactNode;
   /** Shown once every line has played. */
   results?: ReactNode;
+  /** The node the first steps read from. */
+  input?: RunEnd;
+  /** The node the last steps hand off to; it lights when the run is over. */
+  output?: RunEnd;
   /** Multiplies every dwell: 0.5 plays twice as fast. */
   pace?: number;
   className?: string | undefined;
@@ -132,6 +266,7 @@ export function RunView({
   const still = useMemo(prefersStill, []);
   const [shown, setShown] = useState(() => (still ? lines.length : 0));
   const [paused, setPaused] = useState(false);
+  const [focus, setFocus] = useState<RunFocus>(null);
   const total = lines.length;
   const over = shown >= total;
 
@@ -149,6 +284,7 @@ export function RunView({
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
+      if (e.code === "Escape") return setFocus(null);
       if (e.code !== "Space" || e.repeat || typing(e.target)) return;
       e.preventDefault();
       setPaused((p) => !p);
@@ -157,10 +293,74 @@ export function RunView({
     return () => window.removeEventListener("keydown", onKey);
   }, []);
 
+  // A live run may still reach any step; a replay shows only the steps it has lines for.
+  const stepKey = steps.map((s) => `${s.id}<${s.after?.join(",") ?? ""}`).join(" ");
+  const touched = useMemo(() => [...new Set(lines.map((l) => l.step))].sort().join(" "), [lines]);
+  const ends = { input: !!input, output: !!output };
+  // biome-ignore lint/correctness/useExhaustiveDependencies: the keys stand in for steps and lines.
+  const graph = useMemo(() => {
+    const has = new Set(touched.split(" "));
+    return flowOf(steps, (id) => live || has.has(id), ends);
+  }, [stepKey, touched, live, ends.input, ends.output]);
+  const { box, axis, boxes } = useLayout(graph);
+  const tracks = useMemo(() => tracksOf(graph), [graph]);
+
+  const byId = useMemo(() => new Map(steps.map((s) => [s.id, s])), [steps]);
   const views = useMemo(() => stepsAt(steps, lines, shown), [steps, lines, shown]);
+  const expected = useMemo(() => expectedOf(lines), [lines]);
   const newest = shown > 0 ? lines[shown - 1] : undefined;
-  const chip =
-    newest?.subject && newest.kind !== "started" && newest.kind !== "done" ? newest : null;
+  const chip = newest && aboutOne(newest) ? newest : null;
+
+  const stateOf = (id: string): RunStepState =>
+    id === INPUT
+      ? shown > 0
+        ? "done"
+        : "idle"
+      : id === OUTPUT
+        ? over
+          ? "done"
+          : "idle"
+        : (views[id]?.state ?? "idle");
+
+  // Following: the nodes a subject passed through, with the run's two ends.
+  const lit = useMemo(() => {
+    if (!focus) return null;
+    if ("step" in focus) return new Set([focus.step]);
+    const out = new Set<string>([INPUT]);
+    for (const l of lines.slice(0, shown)) if (l.subject === focus.subject) out.add(l.step);
+    if (graph.edges.some((e) => e.to === OUTPUT && out.has(e.from))) out.add(OUTPUT);
+    return out;
+  }, [focus, lines, shown, graph]);
+  const onTrace = (from: string, to: string) =>
+    !!lit &&
+    (focus && "step" in focus ? lit.has(from) || lit.has(to) : lit.has(from) && lit.has(to));
+
+  const paths = useMemo(() => {
+    const out = new Map<string, string>();
+    for (const e of graph.edges) {
+      const a = boxes[e.from];
+      const b = boxes[e.to];
+      if (a && b) out.set(`${e.from}>${e.to}`, edgePath(a, b, e.span, axis));
+    }
+    return out;
+  }, [graph, boxes, axis]);
+
+  // A spark rides into a step for each of its last few lines: the work arriving.
+  const sparks = still
+    ? []
+    : lines.slice(Math.max(0, shown - 3), shown).flatMap((l) => {
+        if (!aboutOne(l)) return [];
+        const e = graph.edges.find((x) => x.to === l.step);
+        const d = e && paths.get(`${e.from}>${e.to}`);
+        return d ? [{ id: l.id, kind: l.kind, d }] : [];
+      });
+
+  const shownLines = lines.slice(0, shown);
+  const visible = !focus
+    ? shownLines
+    : shownLines.filter((l) =>
+        "step" in focus ? l.step === focus.step : l.subject === focus.subject,
+      );
 
   // The feed follows the newest line, inside its own box; the page doesn't jump.
   const feed = useRef<HTMLOListElement>(null);
@@ -168,7 +368,13 @@ export function RunView({
   useEffect(() => {
     const el = feed.current;
     if (el) el.scrollTop = el.scrollHeight;
-  }, [shown]);
+  }, [shown, focus]);
+
+  const ordinal = new Map(
+    graph.nodes.filter((n) => byId.has(n.id)).map((n, i) => [n.id, i + 1] as const),
+  );
+  const toggleStep = (id: string) =>
+    setFocus((f) => (f && "step" in f && f.step === id ? null : { step: id }));
 
   return (
     <div className={cx("ui-run", className)} data-live={live || undefined}>
@@ -206,34 +412,156 @@ export function RunView({
         </div>
       </div>
 
-      <ol className="ui-run-steps" aria-label="Steps">
-        {steps.map((s, i) => {
-          const v = views[s.id] ?? { state: "idle", handled: 0, found: 0, waiting: 0 };
-          return (
-            <li key={s.id} className="ui-run-step" data-state={v.state}>
-              <span className="ui-run-index" aria-hidden="true">
-                {v.state === "done" ? <Icon name="check" size={12} /> : i + 1}
-              </span>
-              <span className="ui-run-name">{s.label}</span>
-              {s.source ? <span className="ui-run-source">{s.source}</span> : null}
-              <span className="ui-run-tally">
-                <span className="ui-run-count">{num(v.handled)}</span>
-                {s.found && v.found ? (
-                  <span className="ui-run-found">
-                    {num(v.found)} {s.found}
+      <div
+        ref={box}
+        className="ui-run-graph"
+        data-axis={axis}
+        data-following={lit ? true : undefined}
+      >
+        <svg className="ui-run-edges" aria-hidden="true">
+          {graph.edges.map((e) => {
+            const d = paths.get(`${e.from}>${e.to}`);
+            if (!d) return null;
+            const to = stateOf(e.to);
+            const state =
+              to === "active" ? "flowing" : stateOf(e.from) === "done" ? "done" : "idle";
+            return (
+              <path
+                key={`${e.from}>${e.to}`}
+                d={d}
+                className="ui-run-edge"
+                data-state={state}
+                data-trace={onTrace(e.from, e.to) || undefined}
+              />
+            );
+          })}
+        </svg>
+        {sparks.map((s) => (
+          <span
+            key={s.id}
+            className="ui-run-spark"
+            data-kind={s.kind}
+            style={{ offsetPath: `path("${s.d}")` }}
+            aria-hidden="true"
+          />
+        ))}
+        <ol
+          className="ui-run-steps"
+          aria-label="Steps"
+          style={
+            axis === "across"
+              ? {
+                  gridTemplateColumns: columnsOf(graph),
+                  gridTemplateRows: `repeat(${graph.rows * 2}, auto)`,
+                }
+              : { gridTemplateColumns: `repeat(${tracks}, minmax(0, 1fr))` }
+          }
+        >
+          {graph.nodes.map((n) => {
+            const place = placeOf(n, graph, axis, tracks);
+            const dim = lit && !lit.has(n.id) ? true : undefined;
+            const end = n.id === INPUT ? input : n.id === OUTPUT ? output : undefined;
+            if (end)
+              return (
+                <li
+                  key={n.id}
+                  data-node={n.id}
+                  className="ui-run-end"
+                  data-state={stateOf(n.id)}
+                  data-dim={dim}
+                  style={place}
+                >
+                  <span className="ui-run-end-name">
+                    {n.id === OUTPUT && over ? <Icon name="check" size={12} /> : null}
+                    {end.label}
+                  </span>
+                  {end.note ? <span className="ui-run-source">{end.note}</span> : null}
+                </li>
+              );
+            const s = byId.get(n.id);
+            if (!s) return null;
+            const v = views[s.id] ?? { state: "idle", handled: 0, found: 0, failed: 0, waiting: 0 };
+            const mix = mixOf(v, expected[s.id] ?? 0);
+            const picked = !!focus && "step" in focus && focus.step === s.id;
+            return (
+              <li
+                key={s.id}
+                data-node={s.id}
+                className="ui-run-node"
+                data-state={v.state}
+                data-dim={dim}
+                data-split={axis === "down" && n.of > 1 ? true : undefined}
+                style={place}
+              >
+                <button
+                  type="button"
+                  className="ui-run-step"
+                  aria-pressed={picked}
+                  onClick={() => toggleStep(s.id)}
+                >
+                  <span className="ui-run-index" aria-hidden="true">
+                    {v.state === "done" ? <Icon name="check" size={11} /> : ordinal.get(s.id)}
+                  </span>
+                  <span className="ui-run-name">
+                    <span className="ui-run-long">{s.label}</span>
+                    <span className="ui-run-short" aria-hidden="true">
+                      {s.short ?? s.label}
+                    </span>
+                  </span>
+                  {s.source ? <span className="ui-run-source">{s.source}</span> : null}
+                  <span className="ui-run-tally">
+                    <span className="ui-run-count">{num(v.handled)}</span>
+                    {s.found && v.found ? (
+                      <span className="ui-run-found">
+                        {num(v.found)} {s.found}
+                      </span>
+                    ) : null}
+                    {v.waiting ? (
+                      <span className="ui-run-parked">{num(v.waiting)} waiting</span>
+                    ) : null}
+                  </span>
+                  <span className="ui-run-mix" aria-hidden="true">
+                    {(["found", "did", "failed", "waiting"] as const).map((k) =>
+                      mix[k] ? (
+                        <i key={k} data-kind={k} style={{ width: `${mix[k] * 100}%` }} />
+                      ) : null,
+                    )}
+                  </span>
+                </button>
+                {chip?.step === s.id ? (
+                  <span key={chip.id} className="ui-run-chip" data-kind={chip.kind}>
+                    {chip.subject}
                   </span>
                 ) : null}
-                {v.waiting ? <span className="ui-run-parked">{num(v.waiting)} waiting</span> : null}
-              </span>
-              {chip?.step === s.id ? (
-                <span key={chip.id} className="ui-run-chip" data-kind={chip.kind}>
-                  {chip.subject}
-                </span>
-              ) : null}
-            </li>
-          );
-        })}
-      </ol>
+              </li>
+            );
+          })}
+        </ol>
+      </div>
+
+      <p className="ui-run-focus" aria-live="polite">
+        {!focus ? (
+          <span className="ui-run-hint">Pick a step, or a line, to follow it through the run.</span>
+        ) : (
+          <>
+            <span>
+              {"step" in focus ? (
+                <>
+                  Showing <b>{byId.get(focus.step)?.label ?? focus.step}</b> only
+                </>
+              ) : (
+                <>
+                  Following <b>{focus.subject}</b> through{" "}
+                  {num(Math.max((lit?.size ?? 1) - 1 - (lit?.has(OUTPUT) ? 1 : 0), 0))} steps
+                </>
+              )}
+            </span>
+            <button type="button" className="ui-run-clear" onClick={() => setFocus(null)}>
+              Show all
+            </button>
+          </>
+        )}
+      </p>
 
       <ol
         ref={feed}
@@ -241,11 +569,22 @@ export function RunView({
         aria-label="What it did"
         aria-live={live ? "polite" : "off"}
       >
-        {lines.slice(0, shown).map((l) => (
+        {visible.map((l) => (
           <li key={l.id} className="ui-run-line" data-kind={l.kind}>
             <span className="ui-run-mark" aria-hidden="true" />
             <span className="ui-run-text">
-              {l.text}
+              {aboutOne(l) && l.subject ? (
+                <button
+                  type="button"
+                  className="ui-run-follow"
+                  title={`Follow ${l.subject}`}
+                  onClick={() => setFocus({ subject: l.subject ?? "" })}
+                >
+                  {l.text}
+                </button>
+              ) : (
+                l.text
+              )}
               {l.detail ? <span className="ui-run-detail">{l.detail}</span> : null}
             </span>
             {l.source ? (

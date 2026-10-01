@@ -26,8 +26,8 @@ const LINES = [
 describe("stepsAt", () => {
   it("nothing shown: every step idle at zero", () => {
     expect(stepsAt(STEPS, LINES, 0)).toEqual({
-      a: { state: "idle", handled: 0, found: 0, waiting: 0 },
-      b: { state: "idle", handled: 0, found: 0, waiting: 0 },
+      a: { state: "idle", handled: 0, found: 0, failed: 0, waiting: 0 },
+      b: { state: "idle", handled: 0, found: 0, failed: 0, waiting: 0 },
     });
   });
 
@@ -36,6 +36,7 @@ describe("stepsAt", () => {
       state: "active",
       handled: 2,
       found: 1,
+      failed: 0,
       waiting: 0,
     });
     expect(stepsAt(STEPS, LINES, 4).a?.state).toBe("done");
@@ -46,6 +47,7 @@ describe("stepsAt", () => {
       state: "active",
       handled: 0,
       found: 0,
+      failed: 0,
       waiting: 1,
     });
     expect(stepsAt(STEPS, LINES, 7).b?.state).toBe("waiting");
@@ -85,7 +87,13 @@ describe("edge cases", () => {
       line(4, "a", "found", "Z"),
       { ...line(5, "a", "done"), count: 2 },
     ];
-    expect(stepsAt(STEPS, lines, 5).a).toEqual({ state: "done", handled: 3, found: 1, waiting: 0 });
+    expect(stepsAt(STEPS, lines, 5).a).toEqual({
+      state: "done",
+      handled: 3,
+      found: 1,
+      failed: 0,
+      waiting: 0,
+    });
   });
 
   it("a done line with no count or zero keeps the handled count", () => {

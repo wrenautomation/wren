@@ -131,3 +131,9 @@ What keeps it cheap later, built now:
   - Errors: `Alert` takes `onRetry` and shows a Try again button; `useCall` returns `retry`. Every load failure has one. The messages lost their own "Try again." since the button says it.
   - Empty: every page already said what's missing and when it fills in. No change.
   - Motion: a new page, and data landing after its loader, fade in (0.4s). Opacity only, and only while it plays, so a drawer opened by a link stays where it belongs. Reduced motion turns it off with the rest.
+- **2026-10-01** William: the Run view read like a task list, not a workflow ("your call"). It is now the graph the Screens section asked for.
+  - Kit: a step names what it builds on (`after`; left out means the step before). Columns come from that, so parallel steps stack in one column and lines show what feeds what. `input` and `output` nodes bracket the run; the output lights when it's over. A replay drops steps it has no lines for and joins the lines around them.
+  - Lines are measured from the nodes, so any theme or width keeps them attached. Across when each column gets 150px, down otherwise; down, a long line rides a left gutter.
+  - Motion: a spark rides into a step for each line about one person, colored by what came of it. The line into a working step flows. Each node has a bar: finds, plain checks, misses, waiting. Reduced motion shows none of it moving.
+  - Following: click a step to see only its lines, or a line to follow that person through every step they touched. Everything else dims. Escape or "Show all" clears it.
+  - Portal: the three checks read the list side by side; ranking takes moves and hiring; drafts take the brief and the checked email.

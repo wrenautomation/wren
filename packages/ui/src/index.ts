@@ -16,6 +16,16 @@ export {
 export { BarList, Facts, Table, Tally } from "./data.js";
 export { Drawer } from "./drawer.js";
 export { Alert, Callout, Empty, Loading } from "./feedback.js";
+export {
+  type Box,
+  edgePath,
+  type FlowAxis,
+  type FlowEdge,
+  type FlowGraph,
+  type FlowNode,
+  type FlowStep,
+  flowOf,
+} from "./flow.js";
 export { ago, cx, hostOf, initials, month, num, soon } from "./format.js";
 export { Icon, type IconName } from "./icons.js";
 export { Card, CardList, PageHeader, Section, Stat, StatStrip } from "./layout.js";
@@ -23,10 +33,15 @@ export { Pager } from "./pager.js";
 export { RAIL_STATES, Rail, type RailGroup, type RailState, type RailStep } from "./rail.js";
 export {
   dwellOf,
+  expectedOf,
+  mixOf,
   RUN_DWELL,
   RUN_MAX_SPEEDUP,
+  type RunEnd,
+  type RunFocus,
   type RunLine,
   type RunLineKind,
+  type RunMix,
   type RunStep,
   type RunStepState,
   type RunStepView,

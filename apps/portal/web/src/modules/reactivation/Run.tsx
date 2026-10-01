@@ -23,20 +23,53 @@ import { at } from "./nav.js";
 const POLL_LIVE_MS = 1500;
 const POLL_IDLE_MS = 10_000;
 
-/** Every step a run can take, in order, with where it reads from. */
+/** Every step a run can take, what each builds on, and where it reads from. */
 const STEPS: RunStep[] = [
-  { id: "verify", label: "Check emails", source: "Email check" },
+  { id: "verify", label: "Check emails", short: "Emails", source: "Email check", after: [] },
   {
     id: "lookup",
     label: "Find where they are",
+    short: "Where now",
     source: "Web search, LinkedIn",
     found: "moved or left",
+    after: [],
   },
-  { id: "signals", label: "Check hiring", source: "Job posts", found: "hiring" },
-  { id: "score", label: "Rank who to call", source: "Moves and hiring" },
-  { id: "brief", label: "Write briefs", source: "AI, every line cited" },
-  { id: "compose", label: "Draft emails", source: "Each waits for your OK" },
+  {
+    id: "signals",
+    label: "Check hiring",
+    short: "Hiring",
+    source: "Job posts",
+    found: "hiring",
+    after: [],
+  },
+  {
+    id: "score",
+    label: "Rank who to call",
+    short: "Ranked",
+    source: "Moves and hiring",
+    after: ["lookup", "signals"],
+  },
+  {
+    id: "brief",
+    label: "Write briefs",
+    short: "Briefs",
+    source: "AI, every line cited",
+    after: ["score"],
+  },
+  {
+    id: "compose",
+    label: "Draft emails",
+    short: "Drafts",
+    source: "AI, from the brief",
+    after: ["brief", "verify"],
+  },
 ];
+
+const INPUT = { label: "Your list", note: "From your CRM" };
+const outputOf = (demo: boolean) => ({
+  label: "Your OK",
+  note: demo ? "Off on the demo" : "Nothing sends without it",
+});
 
 type Line = NonNullable<RunPage["story"]>["lines"][number];
 
@@ -50,9 +83,6 @@ const toRunLine = (l: Line): RunLine => ({
   source: l.source,
   detail: l.detail,
 });
-
-/** Only the steps these lines touch: a replay never shows a step it has nothing for. */
-const stepsIn = (lines: Line[]) => STEPS.filter((s) => lines.some((l) => l.step === s.id));
 
 const dayOf = (iso: string | null) =>
   iso ? new Date(iso).toLocaleDateString("en-US", { month: "short", day: "numeric" }) : null;
@@ -161,6 +191,8 @@ function Live({ run, demo }: { run: LiveRun; demo: boolean }) {
       lines={run.lines.map(toRunLine)}
       live={run.open}
       label={label}
+      input={INPUT}
+      output={outputOf(demo)}
       results={<Results demo={demo} />}
     />
   );
@@ -178,9 +210,11 @@ function Replay({ page, demo }: { page: RunPage; demo: boolean }) {
   const day = dayOf(story.asOf);
   return (
     <RunView
-      steps={stepsIn(story.lines)}
+      steps={STEPS}
       lines={story.lines.map(toRunLine)}
       label={`Replay of the work on your list${day ? ` as of ${day}` : ""}, sped up.`}
+      input={INPUT}
+      output={outputOf(demo)}
       results={<Results demo={demo} />}
     />
   );
