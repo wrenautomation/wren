@@ -99,7 +99,10 @@ export interface Offer {
   readonly price: Price;
   /** Firms taken at once, or null for no cap. A real cap: the work one person can do well. */
   readonly slots: number | null;
-  /** How long it runs, or null for open-ended. */
+  /**
+   * How long it runs, or null for open-ended. Holidays don't count (`windowEnd`
+   * in channel-email): they push the end out, they never skip a month.
+   */
   readonly days: number | null;
   /** What the buyer gets. */
   readonly youGet: readonly string[];

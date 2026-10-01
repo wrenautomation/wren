@@ -157,6 +157,26 @@ export function holidayOn(calendars: ReadonlySet<HolidayCalendar>, day: PlainDat
 }
 
 /**
+ * The last day of a `days`-day window that opens on `start`. Holidays don't
+ * count, so they push the end out; weekends count. A window opened Dec 1 ends
+ * Jan 8, not Dec 30: the nine year-end days are skipped, not the month.
+ */
+export function windowEnd(
+  start: PlainDate,
+  days: number,
+  calendars: ReadonlySet<HolidayCalendar>,
+): PlainDate {
+  if (!Number.isInteger(days) || days < 1)
+    throw new Error(`a window is 1 day or more, got ${days}`);
+  let day = start;
+  let counted = 0;
+  for (;;) {
+    if (holidayOn(calendars, day) === null && ++counted === days) return day;
+    day = day.addDays(1);
+  }
+}
+
+/**
  * Strict: an unknown name throws, since a typo that silently sends on
  * Christmas is worse than a startup error. `none` = no holidays (a blank
  * setting reads as unset, so it takes the default).

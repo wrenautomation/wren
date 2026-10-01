@@ -87,6 +87,7 @@ export const STAT_KEYS = [
   "ambiguous",
   "finished",
   "waiting",
+  "waiting_away",
   "awaiting_approval",
   "awaiting_retry",
   "awaiting_reconcile",
@@ -521,6 +522,18 @@ async function nextDue(
         nextDay - anchorDay,
         (day) => policy.holidayOn(day) !== null,
       );
+    }
+    if (enrollment.awayUntil !== null) {
+      // Their out-of-office named a return day: the step waits for the first sending day after it.
+      const back = addBusinessDays(
+        PlainDate.fromIso(enrollment.awayUntil).addDays(1),
+        0,
+        (day) => policy.holidayOn(day) !== null,
+      );
+      if (today.compare(back) < 0) {
+        stats[due.compare(back) < 0 ? "waiting_away" : "waiting"] += 1;
+        return null;
+      }
     }
     if (today.compare(due) < 0) {
       stats.waiting += 1;

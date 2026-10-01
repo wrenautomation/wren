@@ -16,7 +16,7 @@ Status: seasons answered and the send calendar fixed. Studies built and run on r
 
 ## Hiring seasons
 
-Question: do hiring seasons hurt the reactivation offer (meetings booked in a 30-day window)?
+Question: do hiring seasons hurt the reactivation offer (20 booked meetings in 90 days)?
 
 Yes, through slow replies and meetings slipping into January. Not through lost demand. Per-meeting pricing puts that risk on us.
 
@@ -38,17 +38,16 @@ Job orders hold up in Q4. Starts and replies drop.
 
 2026-27 calendar: Canadian Thanksgiving Oct 12. US Thanksgiving Nov 26, that week is weak. Dead from about Dec 21 to Jan 1. Restart Jan 4, strong from Jan 11.
 
-My estimate of a 30-day window's yield (working days × relative reply rate): October start 1.0, November about 0.72, December about 0.52.
+90 days is 13 weeks. The dead stretch (about Dec 21 to Jan 1) is under 2 of them, and the holidays don't count toward the 90 days. So any start gets the same sending days. A Nov or Dec start loses some reply rate in December and gets it back in February, the best month. The dip is small. We accept it.
 
 What to do:
 
-1. Don't start a window after about Nov 9. For a Nov or Dec signing, do setup and domain warmup in December and start the clock Jan 4 to 11. *Offer terms: your call.*
-2. Or count sending days, not calendar days, so holiday weeks pause the clock. *Offer terms: your call.*
-3. Count a meeting booked inside the window even when it is held in January.
-4. Oct to Dec copy angle: "Q1 hiring plans", "fill your January desk".
-5. Re-run job-change lookups late January. Movers become new accounts (ties to lead recycling).
-6. Out-of-office replies: read "back on <date>" and hold the follow-up. Not built.
-7. Holiday calendar: built.
+1. Holidays don't count toward the 90 days: built (`windowEnd`). No skipping to January.
+2. Count a meeting booked inside the 90 days even when it is held later.
+3. Oct to Dec copy angle: "Q1 hiring plans", "fill your January desk".
+4. Re-run job-change lookups late January. Movers become new accounts (ties to lead recycling).
+5. Out-of-office replies: read "back on <date>" and hold the follow-up: built (`enrollments.away_until`).
+6. Holiday calendar: built.
 
 ## Studies
 
@@ -118,9 +117,8 @@ No autobrowse code changed here. State at 23:15:
 
 ## Needs your call
 
-1. **The 30-day window over the holidays.** Start Nov and Dec signings on Jan 4, or count sending days. Either changes offer terms.
-2. **Video renderer.** I'd build it (Playwright plus ffmpeg, free, ours to learn). Paid avatar tools are the other path. A per-lead demo tenant needs the portal session's say before it touches `wren_client_demo`.
-3. **autobrowse green light**, for anything research needs from it later.
+1. **Video renderer.** I'd build it (Playwright plus ffmpeg, free, ours to learn). Paid avatar tools are the other path. A per-lead demo tenant needs the portal session's say before it touches `wren_client_demo`.
+2. **autobrowse green light**, for anything research needs from it later.
 
 ## Decision log
 
@@ -139,6 +137,9 @@ No autobrowse code changed here. State at 23:15:
 - **2026-09-30** An enrichment fact is the newest per kind and model. Older prompts are history. The model call's envelope, raw reply and parse are the ledger's, not facts.
 - **2026-09-30** Video variants: plan only. The dossier export is the seam.
 - **2026-09-30** SOPs deleted at William's word. He will redo them.
+- **2026-09-30** The offer is 20 booked meetings in 90 days (the live page). The registry said 30 days, from an older draft; fixed to 90. The opener email quotes it, so it now reads "90-day".
+- **2026-09-30** Holidays don't count toward the 90 days; they push the end out. No skipping a month. A seasonal dip is accepted (William).
+- **2026-09-30** An out-of-office that names a return day within 60 days holds the next step until the sending day after. The latest date wins. Dates far off or with no away word near them are ignored.
 
 ## Where to attack
 

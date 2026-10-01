@@ -54,8 +54,10 @@ import {
   type ThreadEventKind,
   threadEvents,
 } from "../schema.js";
+import { PlainDate } from "../send/dates.js";
 import { recordStop, stopCompany } from "../send/deliver.js";
 import { ensureSuppression } from "../send/suppress.js";
+import { awayUntil } from "./away.js";
 import {
   classify,
   type Inbound,
@@ -129,6 +131,7 @@ export const SYNC_COUNTERS = [
   "stopped_bounce",
   "stopped_opt_out",
   "stopped_reply",
+  "held_away",
   "suppressed_post_finish",
   "bounce_address_mismatch",
   "read_errors",
@@ -476,7 +479,10 @@ async function stopOrSuppress(
   opts.counts.suppressed_post_finish += 1;
 }
 
-/** What each class does. Soft bounces, auto-replies and receipts do nothing at all. */
+/**
+ * What each class does. An auto-reply that names a return day holds the next
+ * step until then; soft bounces, other auto-replies and receipts do nothing.
+ */
 async function act(
   db: Queryable,
   opts: {
@@ -485,11 +491,26 @@ async function act(
     event: ThreadEvent;
     counts: SyncCounts;
     mismatch: boolean;
+    away: PlainDate | null;
     now: Date;
   },
 ): Promise<void> {
-  const { enrollment, inbound, event, counts: c, now } = opts;
-  if (inbound.kind === "bounce") {
+  const { enrollment, inbound, event, counts: c, away, now } = opts;
+  if (away !== null) {
+    if (enrollment.state !== "active") return;
+    // The latest return day wins: an older auto-reply synced late never shortens a hold.
+    const held = await db
+      .update(enrollments)
+      .set({ awayUntil: away.toString() })
+      .where(
+        and(
+          eq(enrollments.id, enrollment.id),
+          sql`(${enrollments.awayUntil} IS NULL OR ${enrollments.awayUntil} < ${away.toString()})`,
+        ),
+      )
+      .returning({ id: enrollments.id });
+    c.held_away += held.length;
+  } else if (inbound.kind === "bounce") {
     if (inbound.bounceClass !== "hard") return;
     // The DSN failed a DIFFERENT address than the one we mailed: no stop, no
     // suppression, and the thread carries on. The event still stands as
@@ -599,12 +620,21 @@ async function handleMessage(
       .filter((id): id is string => !!id);
     const inbound = classify(raw, { ourMessageIds: ours });
 
+    const receivedAt = seenMs !== null ? new Date(seenMs) : (inbound.date ?? now);
+    const away =
+      inbound.kind === "auto_reply"
+        ? awayUntil(
+            `${inbound.subject ?? ""}\n${inbound.text ?? ""}`,
+            PlainDate.utcDayOf(receivedAt),
+          )
+        : null;
+
     let detail: string | null = null;
     let mismatch = false;
     if (inbound.kind === "bounce") [detail, mismatch] = bounceDetail(inbound, m.enrollment.toEmail);
     else if (inbound.kind === "receipt") detail = "receipt";
+    else if (away !== null) detail = `away until ${away}`;
 
-    const receivedAt = seenMs !== null ? new Date(seenMs) : (inbound.date ?? now);
     const event = await writeEvent(tx, {
       match: m,
       inbound,
@@ -629,7 +659,7 @@ async function handleMessage(
       c[CLASS_COUNTER[inbound.kind]] += 1;
     }
 
-    await act(tx, { enrollment: m.enrollment, inbound, event, counts: c, mismatch, now });
+    await act(tx, { enrollment: m.enrollment, inbound, event, counts: c, mismatch, away, now });
     return seenMs;
   });
 }

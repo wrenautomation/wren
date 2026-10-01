@@ -39,7 +39,12 @@ const unwiden = (c: Catalog["constraints"][number]) => ({
  * legacy data was already restored. Only these may exist beyond the legacy set.
  */
 const ADDED = {
-  columns: new Set(["enrollments.offer", "messages.link_code", "enrollments.contact_round"]),
+  columns: new Set([
+    "enrollments.offer",
+    "messages.link_code",
+    "enrollments.contact_round",
+    "enrollments.away_until",
+  ]),
   constraints: new Set(["uq_messages_link_code"]),
   indexes: new Set(["ix_enrollments_offer", "uq_messages_link_code"]),
   /** Legacy views wren grew columns on (lead recycling): still present, bodies free to differ. */

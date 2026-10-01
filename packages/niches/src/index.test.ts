@@ -191,7 +191,7 @@ describe("offers", () => {
   it("fills offer.* facts from the arm's offer", () => {
     const facts = recruiting.offerFacts.get("reactivation");
     expect(facts).toMatchObject({
-      "offer.days": "30",
+      "offer.days": "90",
       "offer.slots": "3",
       "offer.page": "/recruiting/lead-reactivation",
     });

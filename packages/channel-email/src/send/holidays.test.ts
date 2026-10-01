@@ -1,7 +1,7 @@
 /** Holiday calendars: checked against published 2022, 2026 and 2027 dates. */
 import { describe, expect, it } from "vitest";
 import { PlainDate } from "./dates.js";
-import { holidayOn, holidaysIn, parseHolidayCalendars } from "./holidays.js";
+import { holidayOn, holidaysIn, parseHolidayCalendars, windowEnd } from "./holidays.js";
 
 const days = (calendar: "us" | "ca" | "year_end", year: number) => [
   ...holidaysIn([calendar], year).keys(),
@@ -82,6 +82,28 @@ describe("holidayOn", () => {
   });
   it("no calendars, no holidays", () => {
     expect(holidayOn(new Set(), new PlainDate(2026, 12, 25))).toBeNull();
+  });
+});
+
+describe("windowEnd", () => {
+  const ALL = new Set(["us", "ca", "year_end"] as const);
+  it("no holiday inside: day 30 is 29 days on", () => {
+    expect(windowEnd(new PlainDate(2026, 10, 13), 30, US).toString()).toBe("2026-11-11");
+  });
+  it("holidays push the end out by the days skipped, not a month", () => {
+    // Dec 1 + 30: Dec 24 to Jan 1 are off (9 days), so it ends Jan 8.
+    expect(windowEnd(new PlainDate(2026, 12, 1), 30, ALL).toString()).toBe("2027-01-08");
+    // Thanksgiving and the Friday after: 2 days.
+    expect(windowEnd(new PlainDate(2026, 11, 2), 30, US).toString()).toBe("2026-12-03");
+  });
+  it("a window opened on a holiday starts counting the next working day", () => {
+    expect(windowEnd(new PlainDate(2026, 12, 25), 1, ALL).toString()).toBe("2027-01-02");
+  });
+  it("no calendars: plain calendar days", () => {
+    expect(windowEnd(new PlainDate(2026, 12, 1), 30, new Set()).toString()).toBe("2026-12-30");
+  });
+  it("refuses an empty window", () => {
+    expect(() => windowEnd(new PlainDate(2026, 12, 1), 0, US)).toThrow(/1 day or more/);
   });
 });
 

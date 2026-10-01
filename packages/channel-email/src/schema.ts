@@ -190,6 +190,8 @@ export const enrollments = pgTable(
     runId: uuid("run_id"),
     /** The company's Nth cold sequence: 1 = first contact, 2+ = it came back (lead recycling). */
     contactRound: integer("contact_round").default(1).notNull(),
+    /** Their out-of-office said they're away through this day: the next step waits for the sending day after. */
+    awayUntil: date("away_until"),
   },
   (t) => [
     primaryKey({ columns: [t.id], name: "pk_enrollments" }),

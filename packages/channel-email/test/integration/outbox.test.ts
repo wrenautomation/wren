@@ -496,6 +496,26 @@ describe("cadence and stops", () => {
     expect(after.stopReason).toBe("reply");
   });
 
+  it("an out-of-office holds the follow-up until the sending day after they're back", async () => {
+    const enrollment = await enrollOne("oakbridge.example", "jane@oakbridge.example");
+    const transport = console_();
+    await tick(transport);
+    const anchor = PlainDate.utcDayOf((await step(enrollment, 0)).sentAt as Date);
+    const away = addBusinessDays(anchor, 5);
+    await db()
+      .update(enrollments)
+      .set({ awayUntil: away.toString() })
+      .where(eq(enrollments.id, enrollment.id));
+
+    const held = await tick(transport, { now: atNoon(addBusinessDays(anchor, 3)) });
+    expect([held.sent, held.waiting_away]).toEqual([0, 1]);
+    const lastDay = await tick(transport, { now: atNoon(away) });
+    expect(lastDay.sent).toBe(0);
+
+    const back = await tick(transport, { now: atNoon(addBusinessDays(away, 1)) });
+    expect([back.sent, back.finished]).toEqual([1, 1]);
+  });
+
   it("cadence anchors on the sent_at UTC date", async () => {
     const enrollment = await enrollOne("oakbridge.example", "jane@oakbridge.example");
     const opener = await step(enrollment, 0);
