@@ -269,5 +269,12 @@ export async function buildSop(dir: string, llm: LlmClient): Promise<string> {
   const { text } = await llm.complete(sopPrompt({ name, ...read }), { maxTokens: 8000 });
   const sop = `${text.trim().replace(/^```(?:markdown)?\n([\s\S]*?)\n```$/, "$1")}\n`;
   await writeFile(join(dir, "SOP.md"), sop);
+  // ponytail: tokens ≈ chars/4; swap in a real tokenizer if the estimate starts to matter.
+  const row = (name: string, md: string) =>
+    `${name}\t${md.split(/\s+/).filter(Boolean).length} words\t~${Math.round(md.length / 4)} tokens`;
+  await writeFile(
+    join(dir, "counts.tsv"),
+    `${[row("SOP.md", sop), row("notes.md", read.notes), ...read.sources.map((s) => row(`sources/${s.name}.md`, s.md))].join("\n")}\n`,
+  );
   return sop;
 }
