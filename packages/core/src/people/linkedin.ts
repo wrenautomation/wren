@@ -90,12 +90,9 @@ export class LinkedInPeopleCsvSource implements PersonSource {
   }
 }
 
-/** People formats every niche can use. */
-export const BUILTIN_PERSON_FORMATS: readonly PersonSourceFormat[] = [
-  {
-    name: "linkedin",
-    help: "autobrowse `people` CSV: LinkedIn profiles, current role, employer website",
-    build: (p) => new LinkedInPeopleCsvSource(p),
-    niche: null,
-  },
-];
+export const LINKEDIN_FORMAT: PersonSourceFormat = {
+  name: "linkedin",
+  help: "autobrowse `people` CSV: LinkedIn profiles, current role, employer website",
+  build: (p) => new LinkedInPeopleCsvSource(p),
+  niche: null,
+};
