@@ -8,7 +8,8 @@ import { eachConcurrently } from "@wren/channel-email";
 import { type Feed, NO_FEED } from "@wren/core";
 import type { SiteClient } from "@wren/core/content";
 import type { Queryable } from "@wren/db";
-import { type FindingKind, failedRead } from "@wren/research";
+import type { FindingKind } from "@wren/research";
+import { failedRead } from "@wren/research/pacing";
 import {
   type LookupOptions,
   type LookupSubject,
