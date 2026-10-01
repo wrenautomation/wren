@@ -9,7 +9,13 @@ import type { Queryable } from "@wren/db";
 import { and, asc, eq, inArray } from "drizzle-orm";
 import { fleetDay, type ReachPolicy, type Standing, standingOf } from "./policy.js";
 import { ReachRefusal } from "./refusal.js";
-import { type AccountState, type Platform, PLATFORMS, type ReachAccount, reachAccounts } from "./schema.js";
+import {
+  type AccountState,
+  PLATFORMS,
+  type Platform,
+  type ReachAccount,
+  reachAccounts,
+} from "./schema.js";
 
 export interface AccountView extends Omit<ReachAccount, "health"> {
   health: AccountHealth | null;
@@ -41,7 +47,8 @@ export async function addAccount(
   req: { platform: Platform; account: string; now: Date },
 ): Promise<ReachAccount> {
   const account = req.account.trim();
-  if (!account.includes("@")) throw new ReachRefusal(`not a credential key (site@label): ${account}`);
+  if (!account.includes("@"))
+    throw new ReachRefusal(`not a credential key (site@label): ${account}`);
   if (!account.startsWith(`${req.platform}@`))
     throw new ReachRefusal(`a ${req.platform} account's key starts with ${req.platform}@`);
   const [row] = await db
@@ -57,7 +64,10 @@ export async function addAccount(
   return found as ReachAccount;
 }
 
-export async function listAccounts(db: Queryable, platform?: Platform | null): Promise<ReachAccount[]> {
+export async function listAccounts(
+  db: Queryable,
+  platform?: Platform | null,
+): Promise<ReachAccount[]> {
   return db
     .select()
     .from(reachAccounts)
@@ -72,7 +82,10 @@ export async function accountById(db: Queryable, id: string): Promise<ReachAccou
 }
 
 /** Accounts that may send today: `active`, on one platform or all. */
-export async function activeAccounts(db: Queryable, platform?: Platform | null): Promise<ReachAccount[]> {
+export async function activeAccounts(
+  db: Queryable,
+  platform?: Platform | null,
+): Promise<ReachAccount[]> {
   return db
     .select()
     .from(reachAccounts)
@@ -95,7 +108,7 @@ export async function setAccountState(
     .update(reachAccounts)
     .set({
       state,
-      pausedReason: state === "paused" ? (o.reason?.trim() || "paused by hand") : null,
+      pausedReason: state === "paused" ? o.reason?.trim() || "paused by hand" : null,
       ...(state === "retired" ? { retiredAt: o.now } : {}),
       ...(state === "active" ? { retiredAt: null } : {}),
     })
@@ -140,8 +153,14 @@ export async function refreshHealth(
   return stats;
 }
 
-export async function accountsById(db: Queryable, ids: readonly string[]): Promise<Map<string, ReachAccount>> {
+export async function accountsById(
+  db: Queryable,
+  ids: readonly string[],
+): Promise<Map<string, ReachAccount>> {
   if (ids.length === 0) return new Map();
-  const rows = await db.select().from(reachAccounts).where(inArray(reachAccounts.id, [...ids]));
+  const rows = await db
+    .select()
+    .from(reachAccounts)
+    .where(inArray(reachAccounts.id, [...ids]));
   return new Map(rows.map((r) => [r.id, r]));
 }

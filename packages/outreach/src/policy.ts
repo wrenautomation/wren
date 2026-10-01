@@ -9,9 +9,10 @@
  * whenever they open the app, and a person's account sending at 3am is the
  * tell, so sends go in working hours on weekdays.
  */
+
+import { warmupOf } from "@wren/channel-reddit";
 import type { AccountHealth } from "@wren/core/outreach";
 import { wallClock } from "@wren/core/time";
-import { warmupOf } from "@wren/channel-reddit";
 import type { Platform } from "./schema.js";
 
 export const FLEET_ZONE = "America/New_York";
