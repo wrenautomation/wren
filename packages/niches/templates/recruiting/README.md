@@ -8,7 +8,7 @@ rainmaker) and less busywork for the team.
 
 Facts: bare keys from `person_facts` (first_name, company_name, title)
 and `offer.*` keys from the arm's offer (`offer.name`, `offer.days`,
-`offer.slots`, `offer.page`). `half` is the firm's A/B half. `link.*`
+`offer.slots`, `offer.page`, `offer.goal`). `half` is the firm's A/B half. `link.*`
 are this email's own tracked links: `{link.book}` (Cal.com via
 /book), `{link.page}` (the pitch page), `{link.watch}` (the firm's demo,
 else the offer's video). An email that quotes a link the firm can't
@@ -34,7 +34,11 @@ by arm.
 - The usual fix dissed: a BD push (Fridays blocked for calls, a
   newsletter to the whole list).
 - The offer's terms are never typed here. `{offer.days}`,
-  `{offer.slots}` and `{offer.page}` come from the registry, so the
+  `{offer.slots}`, `{offer.goal}` and `{offer.page}` come from the registry, so the
   email, the page and the form say the same thing. A key the offer
   doesn't set refuses the niche at import.
 - One link per email. The CTA lines are drafts for William.
+- Order (outbound-copy SOP): opener line, a short-version line with the
+  offer, the pain, who William is (Waterloo, Government of Canada, U of A
+  lab), the plan, what it takes from them, the ask. Follow-ups ride the
+  opener's thread (the registry test holds every niche to it).
