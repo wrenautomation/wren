@@ -8,11 +8,11 @@
  * writes skips it. Each run recomputes every verdict, so a loosened rule lifts its
  * declines. It also fills a blank country from the stored import row.
  *
- * Order: public body, foreign, the niche's own rule, chain.
+ * Order: platform site, public body, foreign, the niche's own rule, chain.
  */
 import type { Queryable } from "@wren/db";
 import { and, asc, eq, gt, inArray, isNull, sql } from "drizzle-orm";
-import { registrableDomain } from "../emails.js";
+import { isPlatformDomain, registrableDomain } from "../emails.js";
 import { type Company, companies } from "../schema.js";
 import { ISO_ALPHA2, normalizeCountry } from "./countries.js";
 import { PUBLIC_BODY } from "./overture.js";
@@ -112,6 +112,8 @@ export function screenCompany(
   chains: ReadonlyMap<string, number>,
 ): string | null {
   const { domain, name, country } = company;
+  // A job board or social page: no firm to research there, and no address to write.
+  if (domain && isPlatformDomain(domain)) return "platform_site";
   if ((domain && PUBLIC_BODY.test(domain)) || (name && publicBodyName(name))) return "public_body";
   for (const where of [country, domain ? domainCountry(domain) : null])
     if (where && !screen.countries.includes(where)) return "foreign";

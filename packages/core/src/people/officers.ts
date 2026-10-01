@@ -1,8 +1,10 @@
 /**
- * Officers from a state business registry (NY's CEO name, Florida's officer list),
- * matched to firms we already hold before they get here. One row a person: the
- * firm by `company_source_key` or `company_domain`, the officer's name and title,
- * and `registry_ref` naming the filing ("ny-dos:4424185"). Niche-agnostic.
+ * Officers and contacts named in public filings (NY's CEO name, Florida's officer
+ * list, a DOL labor-condition filing's point of contact), matched to a firm before
+ * they get here. One row a person: the firm by `company_source_key` or
+ * `company_domain`, the name and title, and `registry_ref` naming the filing
+ * ("ny-dos:4424185"). An `email` the filing prints rides in raw and becomes a
+ * scraped candidate. Niche-agnostic.
  */
 import { createHash } from "node:crypto";
 import { readFileSync } from "node:fs";
@@ -70,7 +72,7 @@ export class OfficersCsvSource implements PersonSource {
 
 export const OFFICERS_FORMAT: PersonSourceFormat = {
   name: "officers",
-  help: "state registry officers matched to held firms: company_source_key|company_domain, full_name, title, registry_ref",
+  help: "officers from public filings (state registries, DOL LCA): company_source_key|company_domain, full_name, title, registry_ref, email if printed",
   build: (p) => new OfficersCsvSource(p),
   niche: null,
 };

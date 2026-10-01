@@ -73,12 +73,13 @@ const sbaListing = (raw: unknown): Record<string, unknown> | null => {
 };
 
 /**
- * Recruiting's own screen rule over stored firms: job centers, charities and college
- * career offices by name (a firm with "LLC" or "Staffing" in its name stays), and SBA
+ * Recruiting's own screen rule over stored firms: a college's .edu site, job centers,
+ * charities and college career offices by name (a firm with "LLC" or "Staffing" in its name stays), and SBA
  * generalists, firms that list a staffing code among 10+ others and never talk staffing.
  */
 export function declineRecruiting(company: ScreenedCompany): string | null {
   const name = company.name ?? "";
+  if (company.domain && /(^|\.)edu$/.test(company.domain)) return "school";
   if (!isCommercialName(name)) {
     if (JOB_CENTER.test(name)) return "job_center";
     if (CHARITY.test(name)) return "nonprofit";

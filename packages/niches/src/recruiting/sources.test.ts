@@ -148,6 +148,14 @@ describe("declineRecruiting", () => {
     expect(declineRecruiting(firm("Algonquin College Employment Services"))).toBe("school");
   });
 
+  it("a college's .edu site is a school, whatever the office calls itself", () => {
+    const office = { ...firm("Student Employment Staffing"), domain: "employment.ku.edu" };
+    expect(declineRecruiting(office)).toBe("school");
+    expect(
+      declineRecruiting({ ...firm("Edu Staffing LLC"), domain: "edustaffing.com" }),
+    ).toBeNull();
+  });
+
   it("a firm with an entity suffix or a staffing word stays", () => {
     for (const name of [
       "Acme Workforce Solutions",

@@ -78,6 +78,16 @@ describe("screenCompany", () => {
   it("public body by host or by name", () => {
     expect(check({ domain: "twc.texas.gov" })).toBe("public_body");
     expect(check({ name: "Department of Labor" })).toBe("public_body");
+    expect(check({ domain: "wit.twc.state.tx.us" })).toBe("public_body");
+    expect(check({ domain: "ci.milford.ct.us" })).toBe("public_body");
+    expect(check({ domain: "alberta.ca" })).toBe("public_body");
+    expect(check({ domain: "acme.us" })).toBeNull();
+  });
+
+  it("a job board or applicant-tracking page is no firm's site", () => {
+    expect(check({ domain: "acme.applytojob.com" })).toBe("platform_site");
+    expect(check({ domain: "butler.wd1.myworkdayjobs.com" })).toBe("platform_site");
+    expect(check({ domain: "ziprecruiter.com" })).toBe("platform_site");
   });
 
   it("foreign by the stored country or the domain's ending; unknown country passes", () => {

@@ -27,8 +27,9 @@ export type PlaceDecline = (place: OverturePlace, domain: string | null) => stri
 
 export const CHAIN_AT = 3;
 
+/** Government hosts: .gov/.mil, US locality domains (state.tx.us, ci.richmond.ca.us), Canada's federal and provincial ones. */
 export const PUBLIC_BODY =
-  /(^|\.)(gov|mil)$|(^|\.)gc\.ca$|(^|\.)canada\.ca$|(^|\.)(gov|gouv)\.[a-z]{2}\.ca$/;
+  /(^|\.)(gov|mil)$|\.[a-z]{2}\.us$|(^|\.)gc\.ca$|(^|\.)canada\.ca$|(^|\.)(gov|gouv)\.[a-z]{2}\.ca$|^(www\.)?(alberta|saskatchewan|ontario|manitoba|novascotia|gnb|quebec|princeedwardisland|yukon)\.ca$/;
 
 const strings = (v: unknown): string[] =>
   Array.isArray(v) ? v.filter((x): x is string => typeof x === "string" && x.trim() !== "") : [];
