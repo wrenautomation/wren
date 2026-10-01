@@ -210,6 +210,42 @@ describe("Resolution virtual object", () => {
       expect(promoted).toHaveLength(6);
     });
 
+    it("someone added after a walk gets one probe on the proven pattern; an unproven domain stays out", async () => {
+      verifier.costsCredits = false;
+      await firms(2);
+      verifier.verdicts["jane.doe@f0.veloqua.example"] = "valid"; // f1: every guess invalid
+      const c = client();
+      await c.build({});
+      await c.queue({});
+      await c.resolveNewDomains({ niche: "sec_ria", limitDomains: 5 });
+      for (const domain of ["f0.veloqua.example", "f1.veloqua.example"]) {
+        const [firm] = await db().select().from(companies).where(eq(companies.domain, domain));
+        await db()
+          .insert(people)
+          .values({
+            companyId: (firm as Company).id,
+            fullName: "Bob Reyes",
+            firstName: "Bob",
+            lastName: "Reyes",
+            title: "Recruiter",
+            isCompliance: false,
+            origin: "registry",
+            originRef: "test",
+            raw: {},
+          });
+      }
+      verifier.verdicts["bob.reyes@f0.veloqua.example"] = "valid";
+      await c.build({});
+      await c.queue({});
+      verifier.calls.length = 0;
+      const later = await c.resolveNewDomains({ niche: "sec_ria", limitDomains: 5 });
+      expect(later).toMatchObject({ domains_processed: 1, promoted: 1 });
+      expect(verifier.calls).toEqual(["bob.reyes@f0.veloqua.example"]);
+      expect(
+        (await c.resolveNewDomains({ niche: "sec_ria", limitDomains: 5 })).domains_processed,
+      ).toBe(0);
+    });
+
     it("a risky verdict stops the walk, costs no budget, and is retried after two days", async () => {
       verifier.costsCredits = false;
       await firms(1);

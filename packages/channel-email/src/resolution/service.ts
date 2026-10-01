@@ -769,7 +769,9 @@ export async function selectResolutionTargets(db: Queryable): Promise<string[]> 
  * rows, so it drops out, as does one known catch-all from a lead's verdict; one whose
  * walk wrote nothing (resolver trouble) comes back, and
  * so does one whose only verdicts are `risky` older than `retryRiskyAfterDays` (the
- * server blocked, timed out or deferred us; it may not next time).
+ * server blocked, timed out or deferred us; it may not next time). A walked domain with
+ * a verified candidate also comes back while someone there has no verdict at all: people
+ * queued after the walk get their one probe against the proven pattern.
  */
 export async function selectNewResolutionTargets(
   db: Queryable,
@@ -783,10 +785,19 @@ export async function selectNewResolutionTargets(
   const rows = await db.execute(sql`
     SELECT c.domain FROM contact_candidates c
     WHERE c.state = 'queued' ${niche}
-      AND NOT EXISTS (
-        SELECT 1 FROM verifications v JOIN contact_candidates x ON x.id = v.contact_candidate_id
-        WHERE x.domain = c.domain
-          AND (v.result <> 'risky' OR v.checked_at > now() - make_interval(days => ${retryDays})))
+      AND (
+        NOT EXISTS (
+          SELECT 1 FROM verifications v JOIN contact_candidates x ON x.id = v.contact_candidate_id
+          WHERE x.domain = c.domain
+            AND (v.result <> 'risky' OR v.checked_at > now() - make_interval(days => ${retryDays})))
+        -- A walked domain with a proven pattern comes back for people queued after its walk:
+        -- one probe each. Without a proven pattern it stays out (its budget is spent).
+        OR (c.domain IN (SELECT x.domain FROM contact_candidates x WHERE x.state = 'verified')
+          AND c.person_id NOT IN (
+            SELECT x.person_id FROM contact_candidates x WHERE x.state = 'verified'
+            UNION
+            SELECT x.person_id FROM verifications v
+            JOIN contact_candidates x ON x.id = v.contact_candidate_id)))
       -- Known catch-all from any verdict at the domain (a lead's too): the walk has nothing to ask.
       -- NOT IN, not a correlated NOT EXISTS: Postgres hashes it once (NOT EXISTS ran minutes).
       AND c.domain NOT IN (
