@@ -31,6 +31,13 @@ import { formatPhone } from "../phone.js";
 import { fleetDay, type SmsPolicy } from "../policy.js";
 import { pauseNumber, poolToday, resumeNumber, type SyncStats, syncNumbers } from "../pool.js";
 import type { SmsProvider } from "../provider.js";
+import {
+  type Pusher,
+  type PushSubscriptionInput,
+  pushOne,
+  subscribe,
+  unsubscribe,
+} from "../push.js";
 import { SmsRefusal } from "../refusal.js";
 import { type RegistrationStats, watchRegistration } from "../registration.js";
 import type { ContactBasis, Disposition } from "../schema.js";
@@ -75,6 +82,8 @@ export interface SmsDeps {
   /** Asked before a form applicant's first text. Null = no check. */
   bookings?: Bookings | null;
   notifier?: Notifier;
+  /** Reply alerts on the phone app. Null = off (no push keys). */
+  pusher?: Pusher | null;
   /** Reply labels are bought only with a real model. */
   llm?: LlmClient | null;
   /** A pinned clock (tests: quiet hours are real). Must return the same instant on replay. Unset = Restate's. */
@@ -130,7 +139,9 @@ export function makeSmsSender(deps: SmsDeps) {
   });
 }
 
-export function makeSmsEvents(deps: Pick<SmsDeps, "db" | "provider" | "notifier" | "clock">) {
+export function makeSmsEvents(
+  deps: Pick<SmsDeps, "db" | "provider" | "notifier" | "pusher" | "clock">,
+) {
   return restate.service({
     name: "SmsEvents",
     handlers: {
@@ -153,6 +164,7 @@ export function makeSmsEvents(deps: Pick<SmsDeps, "db" | "provider" | "notifier"
             provider: deps.provider.name,
             now,
             notifier: deps.notifier ?? null,
+            pusher: deps.pusher ?? null,
           }),
         );
       },
@@ -252,6 +264,35 @@ export function makeSmsDesk(deps: SmsDeps) {
           .sync();
         return got;
       },
+      /** The key a device subscribes with; null = alerts are off. */
+      pushKey: async (): Promise<{ publicKey: string | null }> => ({
+        publicKey: deps.pusher?.publicKey ?? null,
+      }),
+      /** Save this device for reply alerts, then send it one so it is known to work. */
+      subscribe: async (
+        ctx: restate.Context,
+        req: { subscription: PushSubscriptionInput; by: string },
+      ): Promise<{ pushed: boolean; error: string | null }> => {
+        const pusher = deps.pusher;
+        if (!pusher) throw new restate.TerminalError("reply alerts are off: no push keys");
+        await ctx.run("subscribe", () =>
+          terminal(() => subscribe(deps.db, req.subscription, req.by)),
+        );
+        return ctx.run("first alert", () =>
+          pushOne(deps.db, pusher, req.subscription.endpoint, {
+            title: "Reply alerts are on",
+            body: "You'll get one when someone texts back.",
+            url: "/#/",
+            tag: "alerts-on",
+          }),
+        );
+      },
+      unsubscribe: async (
+        ctx: restate.Context,
+        req: { endpoint: string },
+      ): Promise<{ removed: boolean }> => ({
+        removed: await ctx.run("unsubscribe", () => unsubscribe(deps.db, req.endpoint)),
+      }),
       label: async (
         ctx: restate.Context,
         req: { messageId: number; disposition: Disposition },

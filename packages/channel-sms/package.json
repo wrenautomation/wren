@@ -23,12 +23,14 @@
     "@wren/research": "workspace:*",
     "drizzle-orm": "0.45.2",
     "libphonenumber-js": "1.13.14",
+    "web-push": "3.6.7",
     "zod": "4.6.5"
   },
   "devDependencies": {
     "@restatedev/restate-sdk-clients": "1.17.1",
     "@restatedev/restate-sdk-testcontainers": "1.17.1",
     "@testcontainers/postgresql": "12.1.0",
+    "@types/web-push": "3.6.4",
     "typescript": "5.9.3",
     "vitest": "5.0.1"
   }

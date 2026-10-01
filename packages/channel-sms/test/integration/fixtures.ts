@@ -8,6 +8,7 @@ import { smsNumbers, smsTemplates } from "../../src/schema.js";
 import { checkSequence, type SmsSequence } from "../../src/templates.js";
 
 export const TABLES = [
+  "sms_push_subscriptions",
   "sms_templates",
   "sms_events",
   "sms_messages",

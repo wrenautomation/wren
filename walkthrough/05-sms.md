@@ -47,9 +47,15 @@ Needs `WREN_SITE_EXPORT_TOKEN` and `WREN_CALCOM_API_KEY`. `wren sms forms` runs 
 
 ## On the phone
 
-`phone.wrenautomation.com`, deployed per `deploy/phone.md`. Add each device once
-with the setup link, then Add to Home Screen. Inbox, reply, label, pause a number,
-templates, stats.
+`phone.wrenautomation.com`, deployed per `deploy/phone.md`. Sign in with your Wren
+account, add a passkey, then Add to Home Screen. Inbox, reply, new text, label, pause a
+number, templates, stats. A thread shows how many texts that phone got in the last 31
+days.
+
+Reply alerts: open the app from the home screen, go to Numbers, tap Turn on. A test
+alert comes right away. After that, each reply or STOP alerts every device that turned
+it on, and a tap opens the thread. Needs `WREN_SMS_PUSH_PUBLIC_KEY` and
+`WREN_SMS_PUSH_PRIVATE_KEY` (`npx web-push generate-vapid-keys`).
 
 ## Knobs
 

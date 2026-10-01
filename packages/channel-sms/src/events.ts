@@ -24,6 +24,7 @@ import { skipQueued } from "./deliver.js";
 import { formatPhone } from "./phone.js";
 import { numberByE164 } from "./pool.js";
 import type { SmsEvent } from "./provider.js";
+import { type PushAlert, type Pusher, pushAll } from "./push.js";
 import {
   type Disposition,
   type SmsContact,
@@ -72,6 +73,8 @@ export interface ApplyOptions {
   provider: string;
   now: Date;
   notifier?: Notifier | null;
+  /** Reply alerts on the phone app. */
+  pusher?: Pusher | null;
 }
 
 export interface ApplyResult {
@@ -163,7 +166,7 @@ async function applyInbound(
   db: Queryable,
   e: Extract<SmsEvent, { kind: "inbound" }>,
   opts: ApplyOptions,
-): Promise<{ outcome: string; notify: string | null }> {
+): Promise<{ outcome: string; notify: string | null; alert: PushAlert | null }> {
   const number = await numberByE164(db, e.to);
   const contact = await contactFor(db, e.from, number?.id ?? null, opts.now);
   const cls = classifyInbound(e.text);
@@ -191,11 +194,19 @@ async function applyInbound(
     .onConflictDoNothing()
     .returning({ id: smsMessages.id });
   const msgId = inserted[0]?.id;
-  if (msgId === undefined) return { outcome: `duplicate message ${e.messageId}`, notify: null };
+  if (msgId === undefined)
+    return { outcome: `duplicate message ${e.messageId}`, notify: null, alert: null };
   if (!contact.numberId && number) {
     await db.update(smsContacts).set({ numberId: number.id }).where(eq(smsContacts.id, contact.id));
   }
   const who = formatPhone(e.from);
+  const alert = (title: string): PushAlert => ({
+    title,
+    body: e.text.length > 160 ? `${e.text.slice(0, 159)}…` : e.text,
+    url: `/#/thread/${contact.id}`,
+    tag: `thread-${contact.id}`,
+  });
+  const name = contact.name ?? who;
   if (cls.kind === "stop") {
     await addSuppression(db, {
       kind: "phone",
@@ -213,7 +224,11 @@ async function applyInbound(
       .update(smsMessages)
       .set({ state: "skipped", detail: "opted out" })
       .where(and(eq(smsMessages.contactId, contact.id), eq(smsMessages.state, "queued")));
-    return { outcome: `stop: suppressed ${e.from} (#${msgId})`, notify: `SMS opt-out from ${who}` };
+    return {
+      outcome: `stop: suppressed ${e.from} (#${msgId})`,
+      notify: `SMS opt-out from ${who}`,
+      alert: alert(`${name} opted out`),
+    };
   }
   if (cls.kind === "start") {
     const lifted = await liftSuppression(db, {
@@ -221,7 +236,11 @@ async function applyInbound(
       value: e.from,
       evidence: { source: "sms", sms_message_id: msgId },
     });
-    return { outcome: `start: ${lifted ? "lifted" : "nothing to lift"} (#${msgId})`, notify: null };
+    return {
+      outcome: `start: ${lifted ? "lifted" : "nothing to lift"} (#${msgId})`,
+      notify: null,
+      alert: null,
+    };
   }
   if (contact.state === "enrolled" || contact.state === "finished") {
     await db
@@ -230,7 +249,7 @@ async function applyInbound(
       .where(eq(smsContacts.id, contact.id));
     await skipQueued(db, contact.id, "they replied");
   }
-  return { outcome: `reply #${msgId}`, notify: `SMS reply from ${who}` };
+  return { outcome: `reply #${msgId}`, notify: `SMS reply from ${who}`, alert: alert(name) };
 }
 
 /** Apply one webhook. The raw body is stored as received; `event` is it read into our words. */
@@ -241,6 +260,7 @@ export async function applyEvent(
   opts: ApplyOptions,
 ): Promise<ApplyResult> {
   let notify: string | null = null;
+  let alert: PushAlert | null = null;
   const result = await db.transaction(async (tx): Promise<ApplyResult> => {
     const claimed = await tx
       .insert(smsEvents)
@@ -260,11 +280,21 @@ export async function applyEvent(
       const r = await applyInbound(tx, event, opts);
       outcome = r.outcome;
       notify = r.notify;
+      alert = r.alert;
     } else outcome = `ignored: ${event.type}`;
     await tx.update(smsEvents).set({ outcome }).where(eq(smsEvents.id, id));
     return { duplicate: false, outcome };
   });
   if (notify && opts.notifier)
     await opts.notifier.notify(notify, "open the phone app to read and answer");
+  // After the commit, and never thrown: the text is saved either way, and Discord still has it.
+  if (alert && opts.pusher) {
+    try {
+      const pushed = await pushAll(db, opts.pusher, alert);
+      for (const err of pushed.errors) console.warn(`sms push: ${err}`);
+    } catch (err) {
+      console.warn(`sms push: ${(err as Error).message}`);
+    }
+  }
   return result;
 }

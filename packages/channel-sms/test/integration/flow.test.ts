@@ -19,8 +19,15 @@ import { liftPhones } from "../../src/lift.js";
 import { fleetDay } from "../../src/policy.js";
 import { poolToday, syncNumbers } from "../../src/pool.js";
 import { FakeProvider, NoProvider, type SmsEvent } from "../../src/provider.js";
+import { FakePusher, pushOne, subscribe } from "../../src/push.js";
 import { watchRegistration } from "../../src/registration.js";
-import { smsContacts, smsMessages, smsNumbers, smsTemplates } from "../../src/schema.js";
+import {
+  smsContacts,
+  smsMessages,
+  smsNumbers,
+  smsPushSubscriptions,
+  smsTemplates,
+} from "../../src/schema.js";
 import { smsStats } from "../../src/stats.js";
 import { getThread, listThreads } from "../../src/threads.js";
 import {
@@ -156,6 +163,70 @@ describe("new thread from the app", () => {
     const again = await start("+12125550101", "");
     expect(again.contactId).toBe(first.contactId);
     expect(await db().select().from(smsContacts)).toHaveLength(1);
+  });
+});
+
+describe("reply alerts", () => {
+  it("alerts every device on a reply or STOP, once, and drops a device that is gone", async () => {
+    await numbers(db(), provider, ["+13125550001"]);
+    const { contactId } = await startThread(db(), {
+      phone: "+12125550101",
+      why: "asked on a call 2026-09-30",
+      body: "hi",
+      now: OPEN,
+      policy: POLICY,
+    });
+    const keys = { p256dh: "p", auth: "a" };
+    await subscribe(db(), { endpoint: "https://push.example/phone", keys }, "w@wren");
+    await subscribe(db(), { endpoint: "https://push.example/old", keys }, "w@wren");
+    await expect(
+      subscribe(db(), { endpoint: "http://push.example/x", keys }, "w@wren"),
+    ).rejects.toThrow(/https/);
+    const pusher = new FakePusher();
+    pusher.gone.add("https://push.example/old");
+    const inbound = (eventId: string, text: string) =>
+      applyEvent(
+        db(),
+        {},
+        {
+          kind: "inbound",
+          eventId,
+          type: "message.received",
+          messageId: eventId,
+          from: "+12125550101",
+          to: "+13125550001",
+          text,
+          at: OPEN,
+        },
+        { provider: "fake", now: OPEN, pusher },
+      );
+    await inbound("r1", "sure, call me tomorrow");
+    await inbound("r1", "sure, call me tomorrow"); // the provider retried: no second alert
+    expect(pusher.sent).toEqual([
+      {
+        endpoint: "https://push.example/phone",
+        alert: {
+          title: "(212) 555-0101",
+          body: "sure, call me tomorrow",
+          url: `/#/thread/${contactId}`,
+          tag: `thread-${contactId}`,
+        },
+      },
+    ]);
+    const left = await db().select().from(smsPushSubscriptions);
+    expect(left.map((s) => s.endpoint)).toEqual(["https://push.example/phone"]);
+    expect(left[0]?.lastPushedAt).not.toBeNull();
+    await inbound("r2", "STOP");
+    await inbound("r3", "START");
+    expect(pusher.sent.map((s) => s.alert.title)).toEqual([
+      "(212) 555-0101",
+      "(212) 555-0101 opted out",
+    ]);
+    const alert = { title: "t", body: "b", url: "/", tag: "t" };
+    expect(await pushOne(db(), pusher, "https://push.example/old", alert)).toEqual({
+      pushed: false,
+      error: "this device is not subscribed",
+    });
   });
 });
 

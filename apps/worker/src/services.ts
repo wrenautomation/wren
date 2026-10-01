@@ -54,6 +54,7 @@ import {
   NoProvider,
   policyFrom,
   providerFrom,
+  pusherFrom,
 } from "@wren/channel-sms";
 import { makeSmsDesk, makeSmsEvents, makeSmsSender, makeSmsWatch } from "@wren/channel-sms/restate";
 import { tiktokContent } from "@wren/channel-tiktok";
@@ -397,6 +398,7 @@ export async function buildServices(
       ? { baseUrl: settings.siteBaseUrl, exportToken: settings.siteExportToken }
       : null,
     bookings: settings.calcomApiKey ? new CalcomBookings(settings.calcomApiKey) : null,
+    pusher: pusherFrom(settings),
     llm: classify ? llm : null,
     ...notify,
   };
@@ -482,6 +484,7 @@ export async function buildServices(
       content_voice: voice !== null ? "file" : "default",
       sms: smsProvider.name,
       sms_live: settings.smsLive,
+      sms_alerts: Boolean(settings.smsPushPublicKey),
     },
     close: () => handle.close(),
   };

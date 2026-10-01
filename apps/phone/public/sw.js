@@ -37,3 +37,33 @@ self.addEventListener("fetch", (e) => {
       .catch(() => caches.match(e.request).then((hit) => hit || caches.match("/"))),
   );
 });
+
+// Reply alerts. The server sends { title, body, url, tag }; a tap opens that thread.
+self.addEventListener("push", (e) => {
+  let alert = { title: "New text", body: "", url: "/", tag: "sms" };
+  try {
+    alert = { ...alert, ...e.data.json() };
+  } catch {}
+  e.waitUntil(
+    self.registration.showNotification(alert.title, {
+      body: alert.body,
+      tag: alert.tag,
+      renotify: true,
+      icon: "/icon-192.png",
+      badge: "/icon-192.png",
+      data: { url: alert.url },
+    }),
+  );
+});
+
+self.addEventListener("notificationclick", (e) => {
+  e.notification.close();
+  const url = new URL(e.notification.data?.url || "/", location.origin).href;
+  e.waitUntil(
+    self.clients.matchAll({ type: "window", includeUncontrolled: true }).then((wins) => {
+      const open = wins.find((w) => new URL(w.url).origin === location.origin);
+      if (open) return open.navigate(url).then((w) => (w || open).focus());
+      return self.clients.openWindow(url);
+    }),
+  );
+});

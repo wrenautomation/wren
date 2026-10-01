@@ -30,6 +30,9 @@ export const DESK_HANDLERS: ReadonlySet<string> = new Set([
   "resume",
   "templates",
   "setTemplate",
+  "pushKey",
+  "subscribe",
+  "unsubscribe",
 ]);
 
 const MAX_BODY = 64 * 1024;
@@ -108,8 +111,8 @@ async function desk(req: Request, env: Env, handler: string): Promise<Response> 
   }
   let body = await req.text();
   if (body.length > MAX_BODY) return json({ error: "too large" }, 413);
-  // Who saved a template is the signed-in operator, never what the page says.
-  if (handler === "setTemplate") {
+  // Who saved a template or turned on alerts is the signed-in operator, never what the page says.
+  if (handler === "setTemplate" || handler === "subscribe") {
     try {
       body = JSON.stringify({ ...JSON.parse(body), by: who.email });
     } catch {

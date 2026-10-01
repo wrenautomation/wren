@@ -393,7 +393,71 @@ async function numbers() {
           "No numbers. Buy them at Telnyx, then run `wren sms numbers sync`.",
         ),
       ];
-  screen("Numbers", header, ...cards);
+  screen("Numbers", alertsCard(), header, ...cards);
+}
+
+/** VAPID public key (base64url) to the bytes pushManager wants. */
+function keyBytes(b64) {
+  const pad = "=".repeat((4 - (b64.length % 4)) % 4);
+  const raw = atob(b64.replace(/-/g, "+").replace(/_/g, "/") + pad);
+  return Uint8Array.from(raw, (c) => c.charCodeAt(0));
+}
+
+/** Turn reply alerts on or off for this device. Filled in after the screen shows. */
+function alertsCard() {
+  const note = h("div", { class: "hint" }, "Checking…");
+  const btn = h("button", { class: "btn", hidden: true });
+  const card = h("div", { class: "card" }, h("h2", {}, "Reply alerts"), note, btn);
+  if (!("serviceWorker" in navigator) || !("PushManager" in window)) {
+    note.textContent = "On iPhone, add this app to your home screen, then open it from there.";
+    return card;
+  }
+  (async () => {
+    // The key is fetched first: iPhone only asks for permission straight from a tap.
+    const [{ publicKey }, reg] = await Promise.all([api("pushKey"), navigator.serviceWorker.ready]);
+    if (!publicKey) {
+      note.textContent = "Not set up on the server yet.";
+      return;
+    }
+    let sub = await reg.pushManager.getSubscription();
+    const show = (extra) => {
+      btn.hidden = false;
+      btn.disabled = false;
+      btn.textContent = sub ? "Turn off" : "Turn on";
+      note.textContent =
+        extra ||
+        (sub
+          ? "On for this device."
+          : Notification.permission === "denied"
+            ? "Blocked. Allow notifications for this app in your phone's Settings."
+            : "Off for this device.");
+    };
+    btn.addEventListener("click", async () => {
+      btn.disabled = true;
+      try {
+        if (sub) {
+          await api("unsubscribe", { endpoint: sub.endpoint }).catch(() => {});
+          await sub.unsubscribe();
+          sub = null;
+          return show();
+        }
+        if ((await Notification.requestPermission()) !== "granted") return show();
+        sub = await reg.pushManager.subscribe({
+          userVisibleOnly: true,
+          applicationServerKey: keyBytes(publicKey),
+        });
+        const r = await api("subscribe", { subscription: sub.toJSON() });
+        show(r.pushed ? null : `On, but the test alert didn't go out: ${r.error}`);
+      } catch (e) {
+        if (e instanceof SignedOut) return signInScreen();
+        show(e.message);
+      }
+    });
+    show();
+  })().catch((e) => {
+    note.textContent = e instanceof SignedOut ? "Signed out." : e.message;
+  });
+  return card;
 }
 
 async function templates() {

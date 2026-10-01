@@ -3,6 +3,7 @@ import type { Settings } from "@wren/config";
 import { DEFAULT_HEALTH, type HealthPolicy } from "./health.js";
 import { parseClock, type SmsPolicy } from "./policy.js";
 import { FakeProvider, NoProvider, type SmsProvider } from "./provider.js";
+import { type Pusher, WebPusher } from "./push.js";
 import { TelnyxProvider } from "./telnyx.js";
 
 export function policyFrom(s: Settings): SmsPolicy {
@@ -45,5 +46,19 @@ export function providerFrom(s: Settings): SmsProvider {
   return new TelnyxProvider({
     apiKey: s.telnyxApiKey,
     messagingProfileId: s.telnyxMessagingProfileId ?? null,
+  });
+}
+
+/** Reply alerts on the phone app. Null = no push keys. One key without the other is a loud error at start. */
+export function pusherFrom(s: Settings): Pusher | null {
+  if (!s.smsPushPublicKey && !s.smsPushPrivateKey) return null;
+  if (!s.smsPushPublicKey || !s.smsPushPrivateKey)
+    throw new Error(
+      "reply alerts need both WREN_SMS_PUSH_PUBLIC_KEY and WREN_SMS_PUSH_PRIVATE_KEY",
+    );
+  return new WebPusher({
+    publicKey: s.smsPushPublicKey,
+    privateKey: s.smsPushPrivateKey,
+    subject: s.smsPushSubject,
   });
 }

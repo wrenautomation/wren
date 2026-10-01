@@ -321,9 +321,22 @@ export const smsTemplates = pgTable("sms_templates", {
   updatedBy: varchar("updated_by", { length: 200 }).notNull(),
 });
 
+/** A device that gets a notification when a text comes in (web push from the phone app). */
+export const smsPushSubscriptions = pgTable("sms_push_subscriptions", {
+  ...baseColumns,
+  /** The browser's push service URL for this device: its identity. */
+  endpoint: text("endpoint").notNull().unique("uq_sms_push_subscriptions_endpoint"),
+  p256dh: text("p256dh").notNull(),
+  auth: text("auth").notNull(),
+  /** The operator who turned it on. */
+  operator: varchar("operator", { length: 200 }).notNull(),
+  lastPushedAt: timestamp("last_pushed_at", { withTimezone: true }),
+});
+
 export type SmsNumber = typeof smsNumbers.$inferSelect;
 export type SmsContact = typeof smsContacts.$inferSelect;
 export type NewSmsContact = typeof smsContacts.$inferInsert;
 export type SmsMessage = typeof smsMessages.$inferSelect;
 export type SmsEventRow = typeof smsEvents.$inferSelect;
 export type SmsTemplateRow = typeof smsTemplates.$inferSelect;
+export type SmsPushSubscription = typeof smsPushSubscriptions.$inferSelect;

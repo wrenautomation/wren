@@ -245,6 +245,11 @@ export const settingsSchema = z.object({
   smsSenderName: z.string().min(1).default("William"),
   /** Cal.com API key: the form follow-up asks it whether an applicant already booked. Unset = no check. */
   calcomApiKey: z.string().min(1).optional(),
+  /** Web push keys: the phone app's reply alerts. Both unset = no alerts (`npx web-push generate-vapid-keys`). */
+  smsPushPublicKey: z.string().min(1).optional(),
+  smsPushPrivateKey: z.string().min(1).optional(),
+  /** Who sends the alerts, for the push services. */
+  smsPushSubject: z.string().min(1).default("mailto:william@wrenautomation.com"),
   /**
    * Which contact bases the sender may text: `opt_in` (they gave us the number
    * for this) and/or `published` (on their own site). Must match what the
@@ -391,6 +396,9 @@ export const ENV_KEYS = {
   smsGapSeconds: "WREN_SMS_GAP_SECONDS",
   smsSenderName: "WREN_SMS_SENDER_NAME",
   calcomApiKey: "WREN_CALCOM_API_KEY",
+  smsPushPublicKey: "WREN_SMS_PUSH_PUBLIC_KEY",
+  smsPushPrivateKey: "WREN_SMS_PUSH_PRIVATE_KEY",
+  smsPushSubject: "WREN_SMS_PUSH_SUBJECT",
   smsBases: "WREN_SMS_BASES",
   smsHeldNiches: "WREN_SMS_HELD_NICHES",
   smsMaxFailRate: "WREN_SMS_MAX_FAIL_RATE",

@@ -120,6 +120,13 @@ SMS only. Everything runs on the fake provider today; Telnyx is one setting away
   (`WREN_CALCOM_API_KEY`). Fits get `form-fit#1`, the rest `form-not-fit#1`. Older than
   4 days: contact kept, no text. Cold enroll never takes a form contact.
   `wren sms forms` runs a pass by hand.
+- **New text from the app.** For someone who asked to be texted: their phone, how they
+  asked, the words. A phone with a thread gets it there. The contact never enters a
+  sequence. Each thread shows how many texts that phone got in the last 31 days.
+- **Reply alerts.** Web push to every device that turned it on (Numbers tab). Each reply
+  or STOP alerts; a tap opens the thread. Keys in `WREN_SMS_PUSH_PUBLIC_KEY` and
+  `WREN_SMS_PUSH_PRIVATE_KEY`, devices in `sms_push_subscriptions` (migration `0044`).
+  A device the push service calls gone is dropped. Discord still gets every reply.
 
 - **PH-D15 Every word a person receives is William's.** No copy in code. An empty step
   enrolls no one and ends a running thread instead of sending. A queued text goes out in
@@ -391,8 +398,8 @@ SMS, as built:
    a cent). Enroll is by hand with a `--limit`; nothing enrolls on a timer yet.
 2. **Manual contacts have no name.** Copy falls back to the template's default. Form
    contacts carry the applicant's name.
-3. **No web push.** New replies reach the phone through Discord, not the PWA. Push
-   (VAPID) is a later add.
+3. ~~**No web push.**~~ Closed: reply alerts (Built 2026-10-01). An iPhone gets them
+   only from the home-screen app.
 4. **Timezone from company only.** A contact without a company (hand-added, inbound
    stranger) must be open in ET and PT, which narrows its window to 13:00–17:00 ET.
 5. ~~**The fake provider "sends" in prod.**~~ Closed by PH-D14.
