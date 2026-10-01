@@ -82,8 +82,8 @@ SMS only. Everything runs on the fake provider today; Telnyx is one setting away
 - **`apps/phone`:** Cloudflare Worker on `phone.wrenautomation.com`. Telnyx webhook door
   (Ed25519 checked, forwarded to Restate keyed by event id), passkey sign-in, static PWA
   (inbox, thread + reply, labels, numbers pause/resume, stats). Works on iPhone, Seeker, Mac.
-- **Copy:** `agencies-sms` in `packages/niches/src/agencies.ts`, 2 steps, opener has STOP.
-  Draft, William's to edit. `wren sms sequences` renders it with segment counts.
+- **Copy:** none in code since 2026-10-01 (PH-D15). `agencies-sms` declares 2 steps;
+  the words are William's, in `sms_templates`.
 - **Tests:** unit + 18 Postgres integration + 4 Restate + 9 Worker tests.
 
 - **PH-D11 Basis per contact, gate per campaign.** Every contact carries how we may text
@@ -99,6 +99,36 @@ SMS only. Everything runs on the fake provider today; Telnyx is one setting away
   as gated; enroll, lookups and number sync are refused. The fake would have marked
   real contacts texted and pinned them to a fictional number. `fake` is local only;
   the worker refuses it on Lambda and runs `none` instead.
+
+## Built 2026-10-01
+
+- **US registration.** Telnyx 10DLC brand + campaign filed; campaign id in
+  `WREN_TELNYX_CAMPAIGN_ID`. SmsWatch attaches waiting US numbers once carriers approve
+  it. The pool never sends from an unregistered US number. Canadian numbers send now.
+- **Templates (PH-D15).** Code declares slots: each sequence step (`agencies-sms#1`),
+  and the HELP/START/STOP replies (`keyword.help` …). William fills them in the phone
+  app's Templates tab or `wren sms templates set`. Keyword replies are pushed to Telnyx
+  before they are saved. Telnyx sends the START reply to a bare YES too.
+- **Monthly cap (PH-D16).** At most 4 texts to one phone in any 31 days, counted across
+  every contact row for that phone. A due step waits; a hand reply over the cap is
+  refused with the date it can go. `WREN_SMS_MONTHLY_PER_CONTACT` lowers it, never raises it.
+- **Site applicants (PH-D17).** The lander's form has an unticked texts box. SmsWatch
+  reads new applications from the lander's export every pass (`WREN_SITE_EXPORT_TOKEN`).
+  A ticked box with a US or Canadian phone becomes an `opt_in` contact, the application
+  kept as the record (migration `0043`). The first text goes about 20 minutes later,
+  inside the window, unless cal.com shows a booking under their email
+  (`WREN_CALCOM_API_KEY`). Fits get `form-fit#1`, the rest `form-not-fit#1`. Older than
+  4 days: contact kept, no text. Cold enroll never takes a form contact.
+  `wren sms forms` runs a pass by hand.
+
+- **PH-D15 Every word a person receives is William's.** No copy in code. An empty step
+  enrolls no one and ends a running thread instead of sending. A queued text goes out in
+  the words saved at send time.
+- **PH-D16 The consent line is the cap.** It promises "Up to 4 texts a month"; 31 days
+  covers every calendar month.
+- **PH-D17 Pull the site's applications, don't push.** The export already exists and is
+  durable; a missed pass catches up from the oldest unfinished application. A failed
+  booking check holds the text for the next pass: not knowing is not "no".
 
 ## Answer first
 
@@ -349,14 +379,18 @@ Superseded list (2026-09-27, SMS):
    create KV), then deploy the phone Worker.
 7. **Copy pass** on `agencies-sms`.
 
+Now (2026-10-01): fill the templates (`agencies-sms#1`, `#2`, `form-fit#1`,
+`form-not-fit#1`, the three keyword replies). Items 1–6 are done; the US number waits on
+carrier approval of the campaign.
+
 ## Where to attack
 
 SMS, as built:
 
 1. **Lookups spend on enroll.** Each new contact costs one carrier lookup (a fraction of
    a cent). Enroll is by hand with a `--limit`; nothing enrolls on a timer yet.
-2. **Manual contacts have no name.** Copy falls back to "there"/"your agency". Fine for
-   tests; a name column if hand-adds become common.
+2. **Manual contacts have no name.** Copy falls back to the template's default. Form
+   contacts carry the applicant's name.
 3. **No web push.** New replies reach the phone through Discord, not the PWA. Push
    (VAPID) is a later add.
 4. **Timezone from company only.** A contact without a company (hand-added, inbound

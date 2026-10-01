@@ -4,7 +4,7 @@ cluster: sms
 universe: live
 status: verified
 verified: 2026-09-28 @ 28823cd
-entity: packages/channel-sms/src/schema.ts:135
+entity: packages/channel-sms/src/schema.ts:149
 ---
 
 # sms-contact
@@ -13,14 +13,14 @@ One phone number we may text, with the basis for texting it, its carrier lookup,
 
 ## Why this shape
 
-Consent basis is a column, not a comment: `published` (the business put the number on its own site, with the document as evidence) or `opt_in` (they wrote first) (`lift.ts:1`, `events.ts:1`). One thread per company; a landline or toll-free lands `unreachable`; a STOP lands `opted_out` and a phone suppression, forever (`enroll.ts:1`).
+Consent basis is a column, not a comment: `published` (the business put the number on its own site, with the document as evidence) or `opt_in` (they wrote first, were added by hand with a reason, or ticked the texts box on the site's form) (`lift.ts:1`, `events.ts:1`, `form.ts:1`). One thread per company; a landline or toll-free lands `unreachable`; a STOP lands `opted_out` and a phone suppression, forever (`enroll.ts:1`).
 
 ## Shape
 
-- `e164`, `company_id`, `person_id`, `source_document_id`, `source_url`, `source_kind`, `basis`, `basis_detail`, `line_type`, `carrier`, `lookup`, `number_id`, `state` (`CONTACT_STATES`, `:52`), `state_reason`, `niche`, `sequence`, `enrolled_at`, `ended_at`, `read_at` (`schema.ts:138`–`164`)
-- one enrolled row per number (`uq_sms_contacts_enrolled_e164`, `:169`)
+- `e164`, `company_id`, `person_id`, `source_document_id`, `source_url`, `source_kind` (`tel_link`/`page_text`/`manual`/`inbound`/`form`), `source_ref` (the site application id), `name`, `email` (form applicants), `basis`, `basis_detail`, `line_type`, `carrier`, `lookup`, `number_id`, `state` (`CONTACT_STATES`, `:52`), `state_reason`, `niche`, `sequence`, `enrolled_at`, `ended_at`, `read_at` (`schema.ts:152`–`182`)
+- one enrolled row per number (`uq_sms_contacts_enrolled_e164`, `:189`); one row per site application (`uq_sms_contacts_source_ref`, `:187`)
 
-Citations: `packages/channel-sms/src/schema.ts:135`
+Citations: `packages/channel-sms/src/schema.ts:149`
 
 ## Connected to
 
@@ -39,6 +39,7 @@ Citations: `packages/channel-sms/src/schema.ts:135`
 | Surface | Role |
 |---|---|
 | `SmsDesk.lift/addContact/enroll` | writes |
+| `SmsWatch` form pass, `SmsDesk.forms`, `wren sms forms` | writes form applicants |
 | `SmsEvents.ingest` | writes state on STOP/reply |
 | phone PWA, `wren sms threads` | read, mark read |
 

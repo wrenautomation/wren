@@ -48,7 +48,8 @@ auth session; the app fetches a fresh 15-minute token itself.
 ## Telnyx
 
 Messaging profile → webhook URL `https://phone.wrenautomation.com/webhooks/telnyx`,
-API v2. Put the profile id in `WREN_TELNYX_MESSAGING_PROFILE_ID`.
+API v2. Put the profile id in `WREN_TELNYX_MESSAGING_PROFILE_ID` and the 10DLC
+campaign id in `WREN_TELNYX_CAMPAIGN_ID`.
 
 ## Check
 
