@@ -120,7 +120,7 @@ export const recruitingReactivation = defineOffer({
   next: ["recruiting-candidate-reactivation", "ops-automation-build"],
   page: "/recruiting/lead-reactivation",
   // Cal.com event "Pilot call" (autobrowse site `calcom`), 30 min on Meet, Mon-Fri 10-17 ET.
-  booking: "https://cal.com/wrenautomation/pilot",
+  booking: "https://cal.com/wrenautomation/call",
   application: APPLICATION,
   // 90 days is 13 weeks. The new domain warms while the list is cleaned and the copy written.
   plan: [
@@ -209,7 +209,7 @@ export const recruitingReactivationPilot = defineOffer({
   next: ["recruiting-candidate-reactivation", "ops-automation-build"],
   page: "/recruiting/lead-reactivation",
   // Cal.com event "Pilot call" (autobrowse site `calcom`), 30 min on Meet, Mon-Fri 10-17 ET.
-  booking: "https://cal.com/wrenautomation/pilot",
+  booking: "https://cal.com/wrenautomation/call",
   application: APPLICATION,
 });
 
