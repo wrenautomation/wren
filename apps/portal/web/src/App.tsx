@@ -79,7 +79,7 @@ function useLook(params: URLSearchParams): Theme {
 
 export function App() {
   const route = useRoute();
-  const me = useCall("me", () => call<Me>("me"));
+  const me = useCall("me", () => call<Me>("delivery/me"));
   const [client, setClient] = useState<string | null>(() => recall(CLIENT_KEY));
   const theme = useLook(route.params);
 

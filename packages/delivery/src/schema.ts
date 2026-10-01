@@ -1,0 +1,234 @@
+import { clients } from "@wren/core/clients";
+import { oneOf } from "@wren/db/columns";
+import { sql } from "drizzle-orm";
+import {
+  boolean,
+  check,
+  date,
+  foreignKey,
+  index,
+  integer,
+  jsonb,
+  numeric,
+  pgSchema,
+  primaryKey,
+  serial,
+  text,
+  timestamp,
+  unique,
+  varchar,
+} from "drizzle-orm/pg-core";
+
+/**
+ * What we do for each client, in the main database beside the registry (D11):
+ * the dated plan, the timeline, deliverables, asks and results. Every row hangs
+ * off an engagement, which hangs off the client, so all of it drops with them.
+ */
+export const delivery = pgSchema("delivery");
+
+export const ENGAGEMENT_STATUSES = ["active", "paused", "done"] as const;
+export type EngagementStatus = (typeof ENGAGEMENT_STATUSES)[number];
+
+/** One bought offer for one client (D1). */
+export const engagements = delivery.table(
+  "engagements",
+  {
+    id: serial("id").notNull(),
+    clientId: varchar("client_id", { length: 40 }).notNull(),
+    /** An id in the offers registry. */
+    offerId: varchar("offer_id", { length: 64 }).notNull(),
+    startsOn: date("starts_on").notNull(),
+    status: varchar("status", { length: 16, enum: ENGAGEMENT_STATUSES })
+      .default("active")
+      .notNull(),
+    createdBy: text("created_by").notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+  },
+  (t) => [
+    primaryKey({ columns: [t.id], name: "pk_engagements" }),
+    foreignKey({
+      columns: [t.clientId],
+      foreignColumns: [clients.id],
+      name: "fk_engagements_client",
+    }).onDelete("cascade"),
+    index("ix_engagements_client").on(t.clientId),
+    oneOf("ck_engagements_status", t.status, ENGAGEMENT_STATUSES),
+  ],
+);
+export type Engagement = typeof engagements.$inferSelect;
+
+/** A phase of the offer's plan with dates (D2). The planned dates never move; `due_on` does, with a reason. */
+export const milestones = delivery.table(
+  "milestones",
+  {
+    id: serial("id").notNull(),
+    engagementId: integer("engagement_id").notNull(),
+    /** The plan's phase id: `set-up`. */
+    key: varchar("key", { length: 64 }).notNull(),
+    name: text("name").notNull(),
+    position: integer("position").notNull(),
+    plannedFrom: date("planned_from").notNull(),
+    /** Null: open-ended, it runs until we stop. */
+    plannedTo: date("planned_to"),
+    dueOn: date("due_on"),
+    doneOn: date("done_on"),
+    /** Why `due_on` moved off `planned_to`; set on every slip. */
+    slipReason: text("slip_reason"),
+    /** What the plan promised from this phase. */
+    promised: jsonb("promised").$type<string[]>().default([]).notNull(),
+  },
+  (t) => [
+    primaryKey({ columns: [t.id], name: "pk_milestones" }),
+    foreignKey({
+      columns: [t.engagementId],
+      foreignColumns: [engagements.id],
+      name: "fk_milestones_engagement",
+    }).onDelete("cascade"),
+    unique("uq_milestones_key").on(t.engagementId, t.key),
+  ],
+);
+export type Milestone = typeof milestones.$inferSelect;
+
+/** The timeline (D3): what we did, what's next. Internal ones never reach a client (D12). */
+export const updates = delivery.table(
+  "updates",
+  {
+    id: serial("id").notNull(),
+    engagementId: integer("engagement_id").notNull(),
+    milestoneId: integer("milestone_id"),
+    /** An email, or a product's name for what it posts itself. */
+    author: text("author").notNull(),
+    body: text("body").notNull(),
+    internal: boolean("internal").default(false).notNull(),
+    /** An operator took it down; kept for the record. */
+    hiddenAt: timestamp("hidden_at", { withTimezone: true }),
+    createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+  },
+  (t) => [
+    primaryKey({ columns: [t.id], name: "pk_updates" }),
+    foreignKey({
+      columns: [t.engagementId],
+      foreignColumns: [engagements.id],
+      name: "fk_updates_engagement",
+    }).onDelete("cascade"),
+    foreignKey({
+      columns: [t.milestoneId],
+      foreignColumns: [milestones.id],
+      name: "fk_updates_milestone",
+    }).onDelete("set null"),
+    index("ix_updates_engagement").on(t.engagementId, t.createdAt),
+    index("ix_updates_milestone").on(t.milestoneId),
+  ],
+);
+export type Update = typeof updates.$inferSelect;
+
+export const DELIVERABLE_KINDS = ["file", "link", "loom", "doc"] as const;
+export type DeliverableKind = (typeof DELIVERABLE_KINDS)[number];
+export const DELIVERABLE_STATES = ["waiting", "approved", "changes"] as const;
+export type DeliverableState = (typeof DELIVERABLE_STATES)[number];
+
+/** Something we hand over (D4). A new version is a new row pointing at the last. */
+export const deliverables = delivery.table(
+  "deliverables",
+  {
+    id: serial("id").notNull(),
+    engagementId: integer("engagement_id").notNull(),
+    milestoneId: integer("milestone_id"),
+    title: text("title").notNull(),
+    kind: varchar("kind", { length: 8, enum: DELIVERABLE_KINDS }).notNull(),
+    url: text("url"),
+    /** In the private bucket, under `clients/<id>/`. */
+    fileKey: text("file_key"),
+    version: integer("version").default(1).notNull(),
+    previousId: integer("previous_id"),
+    status: varchar("status", { length: 8, enum: DELIVERABLE_STATES }).default("waiting").notNull(),
+    decidedBy: text("decided_by"),
+    decidedAt: timestamp("decided_at", { withTimezone: true }),
+    decisionNote: text("decision_note"),
+    createdBy: text("created_by").notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+  },
+  (t) => [
+    primaryKey({ columns: [t.id], name: "pk_deliverables" }),
+    foreignKey({
+      columns: [t.engagementId],
+      foreignColumns: [engagements.id],
+      name: "fk_deliverables_engagement",
+    }).onDelete("cascade"),
+    foreignKey({
+      columns: [t.milestoneId],
+      foreignColumns: [milestones.id],
+      name: "fk_deliverables_milestone",
+    }).onDelete("set null"),
+    foreignKey({
+      columns: [t.previousId],
+      foreignColumns: [t.id],
+      name: "fk_deliverables_previous",
+    }).onDelete("set null"),
+    index("ix_deliverables_engagement").on(t.engagementId),
+    index("ix_deliverables_milestone").on(t.milestoneId),
+    // Home's "latest version only" asks who points here.
+    index("ix_deliverables_previous").on(t.previousId),
+    oneOf("ck_deliverables_kind", t.kind, DELIVERABLE_KINDS),
+    oneOf("ck_deliverables_status", t.status, DELIVERABLE_STATES),
+    check("ck_deliverables_where", sql`${t.url} is not null or ${t.fileKey} is not null`),
+  ],
+);
+export type Deliverable = typeof deliverables.$inferSelect;
+
+/** What we need from the client (D5), answered in place. */
+export const asks = delivery.table(
+  "asks",
+  {
+    id: serial("id").notNull(),
+    engagementId: integer("engagement_id").notNull(),
+    milestoneId: integer("milestone_id"),
+    text: text("text").notNull(),
+    dueOn: date("due_on"),
+    answer: text("answer"),
+    fileKey: text("file_key"),
+    answeredBy: text("answered_by"),
+    answeredAt: timestamp("answered_at", { withTimezone: true }),
+    createdBy: text("created_by").notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+  },
+  (t) => [
+    primaryKey({ columns: [t.id], name: "pk_asks" }),
+    foreignKey({
+      columns: [t.engagementId],
+      foreignColumns: [engagements.id],
+      name: "fk_asks_engagement",
+    }).onDelete("cascade"),
+    foreignKey({
+      columns: [t.milestoneId],
+      foreignColumns: [milestones.id],
+      name: "fk_asks_milestone",
+    }).onDelete("set null"),
+    index("ix_asks_engagement").on(t.engagementId),
+    index("ix_asks_milestone").on(t.milestoneId),
+  ],
+);
+export type Ask = typeof asks.$inferSelect;
+
+/** The offer's measures so far (D6), one row per measure. */
+export const results = delivery.table(
+  "results",
+  {
+    engagementId: integer("engagement_id").notNull(),
+    /** A measure key on the offer: `meetings_booked`. */
+    key: varchar("key", { length: 64 }).notNull(),
+    value: numeric("value", { mode: "number" }).notNull(),
+    note: text("note"),
+    updatedBy: text("updated_by").notNull(),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
+  },
+  (t) => [
+    primaryKey({ columns: [t.engagementId, t.key], name: "pk_results" }),
+    foreignKey({
+      columns: [t.engagementId],
+      foreignColumns: [engagements.id],
+      name: "fk_results_engagement",
+    }).onDelete("cascade"),
+  ],
+);
+export type Result = typeof results.$inferSelect;

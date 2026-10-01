@@ -111,7 +111,7 @@ function useRun(client: string) {
           if (!on) return;
           if (document.hidden) return poll(open);
           try {
-            const page = await call<RunPage>("run", { client, ...cursor.current });
+            const page = await call<RunPage>("reactivation/run", { client, ...cursor.current });
             if (!on) return;
             keep(page.live);
             setError(null);
@@ -123,7 +123,7 @@ function useRun(client: string) {
         open ? POLL_LIVE_MS : POLL_IDLE_MS,
       );
     };
-    call<RunPage>("run", { client }).then(
+    call<RunPage>("reactivation/run", { client }).then(
       (page) => {
         if (!on) return;
         setFirst(page);

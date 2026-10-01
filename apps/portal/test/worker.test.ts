@@ -84,13 +84,30 @@ afterEach(() => {
 
 describe("routes", () => {
   it("an unknown route is 404, a GET 405, a form post 415, an array 400", async () => {
-    expect((await worker.fetch(post("demo.test", "reset"), env())).status).toBe(404);
-    const get = new Request("https://demo.test/api/me");
+    for (const path of [
+      "reset",
+      "delivery/reset",
+      "nope/me",
+      "delivery/me/x",
+      "__proto__/me",
+      "delivery",
+    ])
+      expect((await worker.fetch(post("demo.test", path), env())).status).toBe(404);
+    const get = new Request("https://demo.test/api/delivery/me");
     expect((await worker.fetch(get, env())).status).toBe(405);
-    const form = new Request("https://demo.test/api/me", { method: "POST", body: "a=1" });
+    const form = new Request("https://demo.test/api/delivery/me", { method: "POST", body: "a=1" });
     expect((await worker.fetch(form, env())).status).toBe(415);
-    expect((await worker.fetch(post("demo.test", "me", [1]), env())).status).toBe(400);
+    expect((await worker.fetch(post("demo.test", "delivery/me", [1]), env())).status).toBe(400);
     expect(restate).toEqual([]);
+  });
+
+  it("the first part names the service", async () => {
+    await worker.fetch(post("demo.test", "delivery/home"), env());
+    await worker.fetch(post("demo.test", "reactivation/overview"), env());
+    expect(restate.map((r) => r.url)).toEqual([
+      "https://restate.test:8080/DeliveryPortal/home",
+      "https://restate.test:8080/ReactivationPortal/overview",
+    ]);
   });
 
   it("anything else is the app", async () => {
@@ -102,7 +119,9 @@ describe("routes", () => {
 describe("the demo host", () => {
   it("is always the demo viewer, whatever the browser sends", async () => {
     const res = await worker.fetch(
-      post("demo.test", "people", { viewer: { email: "william@wren.example", operator: true } }),
+      post("demo.test", "reactivation/people", {
+        viewer: { email: "william@wren.example", operator: true },
+      }),
       env(),
     );
     expect(res.status).toBe(200);
@@ -115,7 +134,12 @@ describe("the demo host", () => {
   });
 
   it("refuses every write before it reaches the service", async () => {
-    for (const route of ["approve", "skip", "book"]) {
+    for (const route of [
+      "reactivation/approve",
+      "reactivation/skip",
+      "delivery/post",
+      "delivery/answer",
+    ]) {
       const res = await worker.fetch(post("demo.test", route, { enrollmentIds: [1] }), env());
       expect(res.status).toBe(403);
     }
@@ -125,13 +149,13 @@ describe("the demo host", () => {
 
 describe("the app host", () => {
   it("refuses everything until sign-in is set up", async () => {
-    const res = await worker.fetch(post("app.test", "me"), env({ AUTH_ORIGIN: "" }));
+    const res = await worker.fetch(post("app.test", "delivery/me"), env({ AUTH_ORIGIN: "" }));
     expect(res.status).toBe(503);
     expect(restate).toEqual([]);
   });
 
   it("with no token, asks to sign in", async () => {
-    expect((await worker.fetch(post("app.test", "me"), env())).status).toBe(401);
+    expect((await worker.fetch(post("app.test", "delivery/me"), env())).status).toBe(401);
   });
 
   it("passes the token's email, lowercased, and the browser's viewer is ignored", async () => {
@@ -139,7 +163,7 @@ describe("the app host", () => {
     const res = await worker.fetch(
       post(
         "app.test",
-        "overview",
+        "reactivation/overview",
         { client: "acme", viewer: { demo: true } },
         {
           authorization: `Bearer ${t}`,
@@ -153,7 +177,10 @@ describe("the app host", () => {
 
   it("marks an operator", async () => {
     const t = await token({ email: "ops@wren.example", operator: true });
-    await worker.fetch(post("app.test", "me", {}, { authorization: `Bearer ${t}` }), env());
+    await worker.fetch(
+      post("app.test", "delivery/me", {}, { authorization: `Bearer ${t}` }),
+      env(),
+    );
     expect(restate[0]?.body).toEqual({ viewer: { email: "ops@wren.example", operator: true } });
   });
 
@@ -176,7 +203,7 @@ describe("the app host", () => {
     ];
     for (const t of bad) {
       const res = await worker.fetch(
-        post("app.test", "me", {}, { authorization: `Bearer ${t}` }),
+        post("app.test", "delivery/me", {}, { authorization: `Bearer ${t}` }),
         env(),
       );
       expect(res.status, t.slice(0, 30)).toBe(401);
@@ -187,7 +214,10 @@ describe("the app host", () => {
   it("a made-up key id refetches the keys at most once a minute", async () => {
     for (const kid of ["x1", "x2", "x3"]) {
       const t = await token({}, kid);
-      await worker.fetch(post("app.test", "me", {}, { authorization: `Bearer ${t}` }), env());
+      await worker.fetch(
+        post("app.test", "delivery/me", {}, { authorization: `Bearer ${t}` }),
+        env(),
+      );
     }
     expect(certFetches).toBe(1);
   });
@@ -196,7 +226,7 @@ describe("the app host", () => {
     restateStatus = 403;
     const t = await token({});
     const res = await worker.fetch(
-      post("app.test", "me", {}, { authorization: `Bearer ${t}` }),
+      post("app.test", "delivery/me", {}, { authorization: `Bearer ${t}` }),
       env(),
     );
     expect(res.status).toBe(403);
@@ -216,25 +246,34 @@ describe("the demo cache", () => {
   });
 
   it("answers the same request from the edge the second time", async () => {
-    const a = await worker.fetch(post("demo.test", "people", { filter: "moved" }), env());
-    const b = await worker.fetch(post("demo.test", "people", { filter: "moved" }), env());
+    const a = await worker.fetch(
+      post("demo.test", "reactivation/people", { filter: "moved" }),
+      env(),
+    );
+    const b = await worker.fetch(
+      post("demo.test", "reactivation/people", { filter: "moved" }),
+      env(),
+    );
     expect(await b.json()).toEqual(await a.json());
     expect(restate).toHaveLength(1);
-    await worker.fetch(post("demo.test", "people", { filter: "hiring" }), env());
+    await worker.fetch(post("demo.test", "reactivation/people", { filter: "hiring" }), env());
     expect(restate).toHaveLength(2);
   });
 
   it("never keeps an error", async () => {
     restateStatus = 500;
-    await worker.fetch(post("demo.test", "me"), env());
-    await worker.fetch(post("demo.test", "me"), env());
+    await worker.fetch(post("demo.test", "delivery/me"), env());
+    await worker.fetch(post("demo.test", "delivery/me"), env());
     expect(restate).toHaveLength(2);
   });
 
   it("never serves the app host from it", async () => {
-    await worker.fetch(post("demo.test", "me"), env());
+    await worker.fetch(post("demo.test", "delivery/me"), env());
     const t = await token({});
-    await worker.fetch(post("app.test", "me", {}, { authorization: `Bearer ${t}` }), env());
+    await worker.fetch(
+      post("app.test", "delivery/me", {}, { authorization: `Bearer ${t}` }),
+      env(),
+    );
     expect(restate).toHaveLength(2);
   });
 });

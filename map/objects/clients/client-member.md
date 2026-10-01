@@ -28,7 +28,7 @@ Citations: `packages/core/src/clients/schema.ts:53`, `packages/core/src/clients/
 ## Connected to
 
 - **owned-by:** [[clients/client]] (members go with the client)
-- **joins:** the portal's `clientsFor` (`packages/reactivation/src/portal/service.ts`), which lists a member's clients
+- **joins:** the portal's `clientsFor` (`packages/core/src/portal.ts:36`), which lists a member's clients
 - **looks-like-but-is-not:** [[clients/client-login]] (a Postgres login per client database, not a person)
 
 ## If you change this

@@ -6,9 +6,9 @@
  * - app.<domain>: people sign in at AUTH_ORIGIN (our own sign-in); the app
  *   sends its short-lived token as a bearer, the Worker checks it and passes
  *   the email. The token marks Wren's operators: they see every client.
- * - `/api/<route>`: forwarded to the `ReactivationPortal` service with the
- *   viewer set here, never by the browser. Writes (approve, skip, book) are
- *   refused on the demo.
+ * - `/api/<service>/<route>`: forwarded to that portal service (`delivery`
+ *   for every client, then one per product) with the viewer set here, never
+ *   by the browser. Writes are refused on the demo.
  * - everything else: the built app in dist/.
  *
  * The Worker holds no data: each client's list is its own Postgres database,
@@ -16,11 +16,26 @@
  */
 
 import { AUDIENCE, bearer, verifyToken } from "@wren/auth/verify";
+import { DELIVERY_ROUTES, DELIVERY_WRITES } from "@wren/delivery/routes";
 import { PORTAL_ROUTES, PORTAL_WRITES } from "@wren/reactivation/portal-routes";
 import type { Env } from "./env.js";
 
-const ROUTES: ReadonlySet<string> = new Set(PORTAL_ROUTES);
-const WRITES: ReadonlySet<string> = new Set(PORTAL_WRITES);
+interface Service {
+  /** The Restate service. */
+  name: string;
+  routes: ReadonlySet<string>;
+  writes: ReadonlySet<string>;
+}
+const service = (name: string, routes: readonly string[], writes: readonly string[]): Service => ({
+  name,
+  routes: new Set(routes),
+  writes: new Set(writes),
+});
+/** The first path part after /api/: the portal's services. A new product adds a line. */
+const SERVICES: Readonly<Record<string, Service>> = {
+  delivery: service("DeliveryPortal", DELIVERY_ROUTES, DELIVERY_WRITES),
+  reactivation: service("ReactivationPortal", PORTAL_ROUTES, PORTAL_WRITES),
+};
 
 const MAX_BODY = 16 * 1024;
 const DEMO_CACHE_SECONDS = 300;
@@ -59,10 +74,10 @@ async function sha256(s: string): Promise<string> {
   return [...new Uint8Array(d)].map((b) => b.toString(16).padStart(2, "0")).join("");
 }
 
-async function forward(env: Env, route: string, body: string): Promise<Response> {
+async function forward(env: Env, path: string, body: string): Promise<Response> {
   let res: Response;
   try {
-    res = await fetch(ingress(env, `ReactivationPortal/${route}`), {
+    res = await fetch(ingress(env, path), {
       method: "POST",
       headers: {
         "content-type": "application/json",
@@ -110,8 +125,11 @@ async function bodyOf(req: Request): Promise<string | null> {
   return new TextDecoder().decode(all);
 }
 
-async function api(req: Request, env: Env, route: string, ctx?: ExecutionContext) {
-  if (!ROUTES.has(route)) return json({ error: "not found" }, 404);
+async function api(req: Request, env: Env, path: string, ctx?: ExecutionContext) {
+  const [name = "", route = "", ...rest] = path.split("/");
+  const svc = Object.hasOwn(SERVICES, name) ? SERVICES[name] : undefined;
+  if (!svc || rest.length || !svc.routes.has(route)) return json({ error: "not found" }, 404);
+  const target = `${svc.name}/${route}`;
   if (req.method !== "POST") return json({ error: "POST only" }, 405);
   // A JSON content type forces a CORS preflight, so another site can't post here.
   if (!(req.headers.get("content-type") ?? "").startsWith("application/json"))
@@ -129,14 +147,14 @@ async function api(req: Request, env: Env, route: string, ctx?: ExecutionContext
   const viewer = await viewerOf(req, env);
   if (viewer instanceof Response) return viewer;
   const body = JSON.stringify({ ...(input as Record<string, unknown>), viewer });
-  if (!("demo" in viewer)) return forward(env, route, body);
+  if (!("demo" in viewer)) return forward(env, target, body);
   // The service refuses too; this keeps a demo write out of the cache and off the wire.
-  if (WRITES.has(route)) return json({ error: "The demo is read-only." }, 403);
+  if (svc.writes.has(route)) return json({ error: "The demo is read-only." }, 403);
 
   // The demo is the same for everyone: answer from the edge cache when it can.
   const cache = (globalThis as { caches?: { default?: Cache } }).caches?.default;
-  if (!cache) return forward(env, route, body);
-  const key = new Request(`https://${env.DEMO_HOST}/__demo/${route}/${await sha256(body)}`);
+  if (!cache) return forward(env, target, body);
+  const key = new Request(`https://${env.DEMO_HOST}/__demo/${target}/${await sha256(body)}`);
   const hit = await cache.match(key);
   const answer = (b: BodyInit | null) =>
     new Response(b, {
@@ -144,13 +162,13 @@ async function api(req: Request, env: Env, route: string, ctx?: ExecutionContext
       headers: { "content-type": "application/json", "cache-control": "no-store" },
     });
   if (hit) return answer(hit.body);
-  const res = await forward(env, route, body);
+  const res = await forward(env, target, body);
   if (res.status !== 200) return res;
   const text = await res.text();
   const stored = new Response(text, {
     headers: {
       "content-type": res.headers.get("content-type") ?? "application/json",
-      "cache-control": `public, max-age=${route === "run" ? RUN_CACHE_SECONDS : DEMO_CACHE_SECONDS}`,
+      "cache-control": `public, max-age=${target === "ReactivationPortal/run" ? RUN_CACHE_SECONDS : DEMO_CACHE_SECONDS}`,
     },
   });
   const put = cache.put(key, stored);

@@ -55,7 +55,7 @@ export function Replies({ client, demo, params }: PageProps) {
   const offset = Number(params.get("offset")) || 0;
   const [nonce, setNonce] = useState(0);
   const list = useCall(`replies:${client}:${filter}:${offset}:${nonce}`, () =>
-    call<RepliesPage>("replies", { client, filter, offset }),
+    call<RepliesPage>("reactivation/replies", { client, filter, offset }),
   );
   const [busy, setBusy] = useState<number | null>(null);
   const [error, setError] = useState<ApiError | null>(null);
@@ -65,7 +65,7 @@ export function Replies({ client, demo, params }: PageProps) {
     setBusy(r.threadEventId);
     setError(null);
     try {
-      await call("book", { client, threadEventId: r.threadEventId, booked });
+      await call("reactivation/book", { client, threadEventId: r.threadEventId, booked });
       setNonce((n) => n + 1);
     } catch (err) {
       setError(err instanceof ApiError ? err : new ApiError(String(err), 0));

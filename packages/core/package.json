@@ -17,6 +17,7 @@
     "./ingest": "./src/ingest/index.ts",
     "./mail": "./src/mail.ts",
     "./people": "./src/people/index.ts",
+    "./portal": "./src/portal.ts",
     "./schema": "./src/schema.ts",
     "./stats": "./src/stats.ts",
     "./time": "./src/time.ts"

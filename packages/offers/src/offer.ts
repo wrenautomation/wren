@@ -87,6 +87,23 @@ export interface Measure {
   readonly unit: MeasureUnit;
 }
 
+/**
+ * One phase of the work, in weeks from the start (week 1 is the first). The client's
+ * plan is built from these on start, so the weeks we promise are the weeks they see.
+ */
+export interface Phase {
+  /** Stable, kebab-case: a started plan's milestones keep it. */
+  readonly id: string;
+  readonly name: string;
+  readonly from: number;
+  /** The last week, or null when it runs on (a retainer). */
+  readonly to: number | null;
+  /** What the client gets out of this phase. */
+  readonly deliverables: readonly string[];
+  /** What we need from the client, due at the end of the phase's first week. */
+  readonly asks: readonly string[];
+}
+
 export interface Offer {
   /** Stable, kebab-case, stored on enrollments and deals. Never renamed; retire and add. */
   readonly id: string;
@@ -121,6 +138,8 @@ export interface Offer {
   readonly booking: string | null;
   /** The form a buyer fills in first, or null when the first step is a reply. */
   readonly application: Application | null;
+  /** The phases a bought offer runs through. Left out: no plan, the work is one step. */
+  readonly plan?: readonly Phase[];
 }
 
 const ID = /^[a-z][a-z0-9]*(-[a-z0-9]+)*$/;
@@ -178,6 +197,23 @@ function checkApplication(where: string, app: Application): void {
     const known = new Set(q.choices.map((c) => c.id));
     const bad = rule.anyOf.filter((id) => !known.has(id));
     if (bad.length) throw new Error(`${where}: fit rule on '${q.id}' names ${bad.join(", ")}`);
+  }
+}
+
+function checkPlan(where: string, plan: readonly Phase[]): void {
+  if (plan.length === 0) throw new Error(`${where}: a plan needs a phase, or leave it out`);
+  unique(
+    where,
+    "phase",
+    plan.map((p) => p.id),
+  );
+  for (const p of plan) {
+    if (!ID.test(p.id)) throw new Error(`${where}: phase id '${p.id}' must be kebab-case`);
+    if (!p.name.trim()) throw new Error(`${where}: phase '${p.id}' needs a name`);
+    if (!Number.isInteger(p.from) || p.from < 1)
+      throw new Error(`${where}: phase '${p.id}' starts in a whole week, 1 or later`);
+    if (p.to !== null && (!Number.isInteger(p.to) || p.to < p.from))
+      throw new Error(`${where}: phase '${p.id}' ends in a whole week, not before it starts`);
   }
 }
 
@@ -245,6 +281,7 @@ export function defineOffer(offer: Offer): Offer {
     throw new Error(`${where}: booking must be an https URL`);
   }
   if (offer.application !== null) checkApplication(where, offer.application);
+  if (offer.plan) checkPlan(where, offer.plan);
   return offer;
 }
 

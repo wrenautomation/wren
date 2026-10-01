@@ -55,7 +55,7 @@ const post = (host: string, route: string, body: unknown = {}, headers: HeadersI
     body: typeof body === "string" ? body : JSON.stringify(body),
   });
 
-const signedIn = async (claims: Record<string, unknown>, route = "me", kid?: string) => {
+const signedIn = async (claims: Record<string, unknown>, route = "delivery/me", kid?: string) => {
   const t = await token(claims, kid);
   return worker.fetch(post("app.test", route, {}, { authorization: `Bearer ${t}` }), env());
 };
@@ -118,7 +118,7 @@ describe("tokens", () => {
     const res = await worker.fetch(
       post(
         "app.test",
-        "me",
+        "delivery/me",
         {},
         { authorization: `Bearer ${enc({ alg: "RS256", kid: "k1" })}.${p}.${sig}` },
       ),
@@ -141,7 +141,7 @@ describe("tokens", () => {
     vi.setSystemTime(Date.now() + 2 * 60_000);
     const t = await token({}, "k2", rotated.privateKey);
     const res = await worker.fetch(
-      post("app.test", "me", {}, { authorization: `Bearer ${t}` }),
+      post("app.test", "delivery/me", {}, { authorization: `Bearer ${t}` }),
       env(),
     );
     expect(res.status).toBe(200);
@@ -169,7 +169,7 @@ describe("tokens", () => {
   it("a cookie alone signs nobody in", async () => {
     const t = await token({});
     const res = await worker.fetch(
-      post("app.test", "me", {}, { cookie: `__Secure-better-auth.session_token=${t}` }),
+      post("app.test", "delivery/me", {}, { cookie: `__Secure-better-auth.session_token=${t}` }),
       env(),
     );
     expect(res.status).toBe(401);
@@ -177,7 +177,10 @@ describe("tokens", () => {
 
   it("a demo-host token is irrelevant: the demo host never becomes a login", async () => {
     const t = await token({ email: "william@wren.example" });
-    await worker.fetch(post("demo.test", "me", {}, { authorization: `Bearer ${t}` }), env());
+    await worker.fetch(
+      post("demo.test", "delivery/me", {}, { authorization: `Bearer ${t}` }),
+      env(),
+    );
     expect(restate[0]?.body.viewer).toEqual({ demo: true });
   });
 });
@@ -185,7 +188,7 @@ describe("tokens", () => {
 describe("requests", () => {
   it("a JSON content type with a charset is accepted", async () => {
     const res = await worker.fetch(
-      post("demo.test", "me", {}, { "content-type": "application/json; charset=utf-8" }),
+      post("demo.test", "delivery/me", {}, { "content-type": "application/json; charset=utf-8" }),
       env(),
     );
     expect(res.status).toBe(200);
@@ -196,9 +199,9 @@ describe("requests", () => {
       post("demo.test", "me/"),
       post("demo.test", "m%65"),
       post("demo.test", "ME"),
-      new Request("https://demo.test/api/me", { method: "HEAD" }),
-      new Request("https://demo.test/api/me", { method: "OPTIONS" }),
-      new Request("https://demo.test/api/me", { method: "PUT", body: "{}" }),
+      new Request("https://demo.test/api/delivery/me", { method: "HEAD" }),
+      new Request("https://demo.test/api/delivery/me", { method: "OPTIONS" }),
+      new Request("https://demo.test/api/delivery/me", { method: "PUT", body: "{}" }),
     ];
     for (const r of bad) expect((await worker.fetch(r, env())).status).toBeGreaterThanOrEqual(400);
     expect(restate).toEqual([]);
@@ -206,14 +209,18 @@ describe("requests", () => {
 
   it("null, a string or a number body is refused; an empty body is {}", async () => {
     for (const b of ["null", '"x"', "1", "{"])
-      expect((await worker.fetch(post("demo.test", "me", b), env())).status).toBe(400);
-    expect((await worker.fetch(post("demo.test", "me", ""), env())).status).toBe(200);
+      expect((await worker.fetch(post("demo.test", "delivery/me", b), env())).status).toBe(400);
+    expect((await worker.fetch(post("demo.test", "delivery/me", ""), env())).status).toBe(200);
     expect(restate).toEqual([{ url: expect.any(String), body: { viewer: { demo: true } } }]);
   });
 
   it("a __proto__ or nested viewer never wins", async () => {
     await worker.fetch(
-      post("demo.test", "people", '{"__proto__":{"viewer":{"operator":true}},"viewer":{"x":1}}'),
+      post(
+        "demo.test",
+        "reactivation/people",
+        '{"__proto__":{"viewer":{"operator":true}},"viewer":{"x":1}}',
+      ),
       env(),
     );
     expect(restate[0]?.body.viewer).toEqual({ demo: true });
@@ -221,7 +228,10 @@ describe("requests", () => {
 
   // Was a bug: the limit is 16 KiB but counts UTF-16 units, so a multi-byte body three times the size gets through.
   it("the size limit counts bytes", async () => {
-    const res = await worker.fetch(post("demo.test", "people", { q: "€".repeat(10_000) }), env());
+    const res = await worker.fetch(
+      post("demo.test", "reactivation/people", { q: "€".repeat(10_000) }),
+      env(),
+    );
     expect(res.status).toBe(413);
   });
 
@@ -236,7 +246,7 @@ describe("requests", () => {
         c.enqueue(chunk);
       },
     });
-    const req = new Request("https://demo.test/api/people", {
+    const req = new Request("https://demo.test/api/reactivation/people", {
       method: "POST",
       headers: { "content-type": "application/json" },
       body: stream,
@@ -272,22 +282,27 @@ describe("the demo cache", () => {
   });
 
   it("different routes with the same body never share an answer", async () => {
-    await worker.fetch(post("demo.test", "overview"), env());
-    await worker.fetch(post("demo.test", "health"), env());
+    await worker.fetch(post("demo.test", "reactivation/overview"), env());
+    await worker.fetch(post("demo.test", "reactivation/health"), env());
     expect(restate).toHaveLength(2);
   });
 
   it("a browser-sent viewer can't pick a different cache entry than the demo's", async () => {
-    await worker.fetch(post("demo.test", "me"), env());
-    await worker.fetch(post("demo.test", "me", { viewer: { email: "x@y.z" } }), env());
+    await worker.fetch(post("demo.test", "delivery/me"), env());
+    await worker.fetch(post("demo.test", "delivery/me", { viewer: { email: "x@y.z" } }), env());
     expect(restate).toHaveLength(1);
   });
 
   it("an app-host login is never answered from the demo cache, even on the same body", async () => {
-    await worker.fetch(post("demo.test", "overview", { client: "demo" }), env());
+    await worker.fetch(post("demo.test", "reactivation/overview", { client: "demo" }), env());
     const t = await token({});
     const res = await worker.fetch(
-      post("app.test", "overview", { client: "demo" }, { authorization: `Bearer ${t}` }),
+      post(
+        "app.test",
+        "reactivation/overview",
+        { client: "demo" },
+        { authorization: `Bearer ${t}` },
+      ),
       env(),
     );
     expect(res.status).toBe(200);
@@ -296,16 +311,16 @@ describe("the demo cache", () => {
 
   it("a 4xx is never kept", async () => {
     restateReply = () => Response.json({ message: "no demo" }, { status: 404 });
-    await worker.fetch(post("demo.test", "me"), env());
+    await worker.fetch(post("demo.test", "delivery/me"), env());
     restateReply = () => Response.json({ ok: true });
-    const res = await worker.fetch(post("demo.test", "me"), env());
+    const res = await worker.fetch(post("demo.test", "delivery/me"), env());
     expect(res.status).toBe(200);
     expect(restate).toHaveLength(2);
   });
 
   it("the cached answer is not cacheable by the browser or a shared proxy", async () => {
-    await worker.fetch(post("demo.test", "me"), env());
-    const hit = await worker.fetch(post("demo.test", "me"), env());
+    await worker.fetch(post("demo.test", "delivery/me"), env());
+    const hit = await worker.fetch(post("demo.test", "delivery/me"), env());
     expect(hit.headers.get("cache-control")).toBe("no-store");
   });
 });

@@ -4,7 +4,7 @@ cluster: platform
 universe: live
 status: verified
 verified: 2026-09-29 @ 23a6170
-entity: packages/offers/src/offer.ts:90
+entity: packages/offers/src/offer.ts:107
 ---
 
 # offer
@@ -17,11 +17,12 @@ One home for the pitch: email enrollments name the offer (`enrollments.offer`), 
 
 ## Shape
 
-- `Offer` (`offer.ts:90`), `defineOffer` (`:182`), `OFFERS` (`index.ts:77`), `snapshot.ts` (export)
+- `Offer` (`offer.ts:107`), `defineOffer` (`:221`), `OFFERS` (`index.ts:78`), `snapshot.ts` (export)
 - Price kinds: free, quoted, fixed, performance (setup + per unit, capped). Ids never change: retire and add.
+- `plan` (`Phase`, `offer.ts:94`): the weeks a bought offer runs, each with what we hand over and what we need. [[clients/engagement]] dates it on start. Never on the lander snapshot.
 - `pnpm offers:export ../lander/src/data/offers.json` (`package.json:23`)
 
-Citations: `packages/offers/src/offer.ts:90`, `packages/offers/src/index.ts:77`
+Citations: `packages/offers/src/offer.ts:107`, `packages/offers/src/index.ts:78`
 
 ## Connected to
 

@@ -73,6 +73,7 @@ import {
 } from "@wren/core/content/restate";
 import { clientKey, clientOfKey } from "@wren/core/restate";
 import { cachedDb, clientDatabaseName, clientDatabaseUrl, createDb } from "@wren/db";
+import { makeDeliveryPortal } from "@wren/delivery/restate";
 import { loadLlmEnv, makeLlm, makeTracer } from "@wren/llm";
 import {
   crawlHintsFor,
@@ -82,7 +83,7 @@ import {
   SMS_SEQUENCES,
 } from "@wren/niches";
 import { clientSendScope } from "@wren/reactivation";
-import { makeReactivation, makeReactivationPortal } from "@wren/reactivation/restate";
+import { DEMO_NAME, makeReactivation, makeReactivationPortal } from "@wren/reactivation/restate";
 import {
   type BrowserRenderer,
   browserbaseRenderer,
@@ -407,8 +408,10 @@ export async function buildServices(
       }),
     );
   } else log.info("WREN_SEARCH_SITE/WREN_SEARCH_ORIGIN unset: no search loop");
-  // The client portal's reads (apps/portal), and one reactivation loop per client.
+  // The client portal (apps/portal): delivery for every client, each product's
+  // own pages, and one reactivation loop per client.
   services.push(
+    makeDeliveryPortal({ main: db, demoName: DEMO_NAME }),
     makeReactivationPortal({ main: db, open: openClient }),
     makeReactivation({
       main: db,

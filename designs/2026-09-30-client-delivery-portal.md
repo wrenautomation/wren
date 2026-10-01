@@ -141,3 +141,11 @@ Later: enterprise SSO, OIDC for client domains, client custom domains, a billing
 
 - **2026-09-30** Researched what exists. The portal, kit, registry, per-client databases, CI and mail are already there. New: auth, delivery data, fulfiller tools, client screens, watch. Decided: `app.` is the door to every service, no new repo, and our own auth on Better Auth at `auth.` (Access can't do passwords or magic links). Delivery goes in the main database; its files go in S3.
 - **2026-10-01** Step 1 built. `@wren/auth` (Better Auth 1.7, drizzle, schema `auth`; emailed code + link button, Google, Microsoft, password with breach check; EdDSA tokens, 15 min, aud `wren`; DB rate limit keyed on the edge's IP header). `apps/auth`: Worker on `auth.` (pages + `/api/auth/*` proxy, CORS on `token` for app. only) → Lambda `wren-prod-auth` by function URL, locked by an edge secret. `client_members` + `operators` replace `portal_emails` (migration 0032 copies every portal email in as an owner). The portal checks our token; Access was never set up, so nothing to remove. Known gap: Microsoft sign-up needs a verified-email claim; a Microsoft account with no claim is told to use a code.
+- **2026-10-01** Step 1 tested on prod for real: a code emailed to william@, read from the inbox, signed in, operator token, and the portal answered. Step 2 built.
+  - **Schema.** `delivery` (migration 0034) with six tables. Pulses wait for step 5.
+  - **`offer.plan`.** Phases are given in weeks. On start they become dated milestones, and their asks open, due at the end of the phase's first week. `reactivation` and `ops-automation-build` have plans.
+  - **Shared viewer.** The viewer, client pick and `me` now live in `@wren/core/portal`, shared with `ReactivationPortal`. The Worker routes `/api/<service>/<route>`.
+  - **`DeliveryPortal`.** Clients answer asks and decide on deliverables. The rest is team-only.
+  - **Refusals.** Another client's id returns "not found". Links must be https; Loom links must be on a Loom host. Files only from `clients/<id>/`.
+  - **Visibility.** Internal and hidden updates are filtered in one place (`seenBy`). A test walks Home and the timeline as a client to check it.
+  - **No idempotency key yet.** Like the other portal services, there's no Restate journal. A lost reply after commit can double a post. Add a key if that ever happens.

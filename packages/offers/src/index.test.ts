@@ -68,6 +68,8 @@ const PERF = {
   cap: 15000,
 };
 
+const PHASE = { id: "set-up", name: "Set up", from: 1, to: 2, deliverables: [], asks: [] };
+
 describe("defineOffer", () => {
   it("accepts a well-formed offer", () => {
     expect(defineOffer(offer({ application: app })).id).toBe("test-offer");
@@ -122,6 +124,10 @@ describe("defineOffer", () => {
       }),
       /optional/,
     ],
+    ["an empty plan", offer({ plan: [] }), /leave it out/],
+    ["a phase ending before it starts", offer({ plan: [{ ...PHASE, from: 3, to: 2 }] }), /ends/],
+    ["a phase in week 0", offer({ plan: [{ ...PHASE, from: 0 }] }), /starts/],
+    ["a phase twice", offer({ plan: [PHASE, PHASE] }), /twice/],
   ])("refuses %s", (_, o, err) => {
     expect(() => defineOffer(o)).toThrow(err);
   });
@@ -192,6 +198,7 @@ describe("snapshot", () => {
   it("round-trips the registry as JSON", () => {
     const parsed = JSON.parse(snapshotText(OFFERS)) as ReturnType<typeof snapshot>;
     expect(parsed.version).toBe(1);
-    expect(parsed.offers).toEqual(OFFERS);
+    expect(parsed.offers).toEqual(OFFERS.map(({ plan: _, ...o }) => o));
+    expect(parsed.offers.some((o) => "plan" in o)).toBe(false);
   });
 });

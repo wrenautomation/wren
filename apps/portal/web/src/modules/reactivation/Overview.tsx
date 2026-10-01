@@ -21,7 +21,7 @@ import { at } from "./nav.js";
 import { railOf } from "./steps.js";
 
 export function Overview({ client, demo }: PageProps) {
-  const o = useCall(`overview:${client}`, () => call<Data>("overview", { client }));
+  const o = useCall(`overview:${client}`, () => call<Data>("reactivation/overview", { client }));
   return (
     <>
       <PageHeader

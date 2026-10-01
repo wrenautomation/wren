@@ -5,9 +5,18 @@
  * The demo (R15) needs no login and every answer goes through the mask.
  */
 import * as restate from "@restatedev/restate-sdk";
-import { type Client, clientMembers, clients, normalEmail, touchMember } from "@wren/core/clients";
+import type { Client } from "@wren/core/clients";
+import {
+  answer,
+  isDemo,
+  isOperator,
+  PortalRefusal,
+  type PortalRequest,
+  pickClient,
+  pickForWrite,
+  type SignedViewer,
+} from "@wren/core/portal";
 import { type Db, type Queryable, setAuditActor } from "@wren/db";
-import { and, asc, eq } from "drizzle-orm";
 import { approveDrafts, type ReviewResult, skipDrafts } from "../approve.js";
 import { type CrmHealth, crmHealth } from "../crm/health.js";
 import { HandoffRefusal, markMeetingBooked } from "../handoff.js";
@@ -37,17 +46,7 @@ import {
   type RawPage,
 } from "./views.js";
 
-/**
- * Who is asking: an email our sign-in vouched for, or anyone on the demo host.
- * The token marks Wren's own people as operators: they see every client.
- */
-export type Viewer = { email: string; operator?: boolean } | { demo: true };
-
-export interface PortalRequest {
-  viewer: Viewer;
-  /** Which of the viewer's clients; the first when omitted. */
-  client?: string;
-}
+export { PortalRefusal, type PortalRequest, type Viewer } from "@wren/core/portal";
 
 export interface PortalDeps {
   /** The main database: the client registry. */
@@ -56,48 +55,8 @@ export interface PortalDeps {
   open(client: Client): Db;
 }
 
-export class PortalRefusal extends Error {
-  constructor(
-    message: string,
-    readonly status: 403 | 404,
-  ) {
-    super(message);
-  }
-}
-
-export interface Me {
-  clients: { id: string; name: string }[];
-  demo: boolean;
-}
-
 /** The demo's name on screen; the agency it was built from is never named. */
 export const DEMO_NAME = "Sample recruiting firm";
-
-async function clientsFor(main: Db, viewer: Viewer): Promise<Client[]> {
-  if ("demo" in viewer)
-    return main.select().from(clients).where(eq(clients.demo, true)).orderBy(asc(clients.id));
-  if (viewer.operator) return main.select().from(clients).orderBy(asc(clients.id));
-  const email = normalEmail(viewer.email);
-  if (!email) return [];
-  const rows = await main
-    .select({ client: clients })
-    .from(clients)
-    .innerJoin(clientMembers, eq(clientMembers.clientId, clients.id))
-    .where(and(eq(clients.demo, false), eq(clientMembers.email, email)))
-    .orderBy(asc(clients.id));
-  return rows.map((r) => r.client);
-}
-
-async function pick(main: Db, req: PortalRequest): Promise<Client> {
-  const mine = await clientsFor(main, req.viewer);
-  const client = req.client ? mine.find((c) => c.id === req.client) : mine[0];
-  if (!client)
-    throw new PortalRefusal(
-      "demo" in req.viewer ? "no demo is set up" : "this login has no client",
-      "demo" in req.viewer ? 404 : 403,
-    );
-  return client;
-}
 
 /** Read one client's database, read-only, masked when it is the demo. */
 async function read<T>(
@@ -105,7 +64,7 @@ async function read<T>(
   req: PortalRequest,
   view: (db: Queryable, client: Client) => Promise<T>,
 ): Promise<T> {
-  const client = await pick(deps.main, req);
+  const client = await pickClient(deps.main, req);
   const db = deps.open(client);
   return db.transaction(
     async (tx) => {
@@ -126,16 +85,9 @@ async function read<T>(
 async function write<T>(
   deps: PortalDeps,
   req: PortalRequest,
-  change: (
-    db: Queryable,
-    client: Client,
-    viewer: { email: string; operator?: boolean },
-  ) => Promise<T>,
+  change: (db: Queryable, client: Client, viewer: SignedViewer) => Promise<T>,
 ): Promise<T> {
-  if ("demo" in req.viewer) throw new PortalRefusal("the demo is read-only", 403);
-  const viewer = req.viewer;
-  const client = await pick(deps.main, req);
-  if (client.demo) throw new PortalRefusal("the demo is read-only", 403);
+  const { client, viewer } = await pickForWrite(deps.main, req);
   return deps.open(client).transaction(async (tx) => {
     // Every row this changes is logged as this person's (audit_events.actor).
     await setAuditActor(tx, viewer.email);
@@ -179,15 +131,6 @@ const opt = <K extends string, V>(k: K, v: V | undefined) =>
 /** The handlers as plain functions: the service wraps them, tests call them. */
 export function portalApi(deps: PortalDeps) {
   return {
-    me: async (req: PortalRequest): Promise<Me> => {
-      const mine = await clientsFor(deps.main, req.viewer);
-      const demo = "demo" in req.viewer;
-      if (!("demo" in req.viewer)) await touchMember(deps.main, req.viewer.email);
-      return {
-        clients: mine.map((c) => ({ id: c.id, name: demo ? DEMO_NAME : c.name })),
-        demo,
-      };
-    },
     overview: (req: PortalRequest): Promise<Overview> => read(deps, req, portalOverview),
     health: (req: PortalRequest): Promise<CrmHealth> => read(deps, req, (db) => crmHealth(db)),
     setup: (req: PortalRequest): Promise<Setup> => read(deps, req, portalSetup),
@@ -196,7 +139,7 @@ export function portalApi(deps: PortalDeps) {
         portalRun(db, {
           run: textOf(req.run),
           after: cursorOf(req.after),
-          operator: !("demo" in req.viewer) && req.viewer.operator === true,
+          operator: isOperator(req.viewer),
         }),
       ),
     people: (
@@ -207,7 +150,7 @@ export function portalApi(deps: PortalDeps) {
           ...opt("filter", textOf(req.filter) as PeopleFilter | undefined),
           ...opt("offset", offsetOf(req.offset)),
           ...opt("q", textOf(req.q)),
-          searchNames: !("demo" in req.viewer),
+          searchNames: !isDemo(req.viewer),
         }),
       ),
     person: async (req: PortalRequest & { personId: number }): Promise<PersonView> => {
@@ -331,20 +274,10 @@ export type {
  */
 export function makeReactivationPortal(deps: PortalDeps) {
   const api = portalApi(deps);
-  const answer = async <T>(fn: () => Promise<T>): Promise<T> => {
-    try {
-      return await fn();
-    } catch (err) {
-      if (err instanceof PortalRefusal)
-        throw new restate.TerminalError(err.message, { errorCode: err.status });
-      throw err;
-    }
-  };
   type Req<K extends keyof PortalApi> = Parameters<PortalApi[K]>[0];
   return restate.service({
     name: "ReactivationPortal",
     handlers: {
-      me: (_: restate.Context, req: Req<"me">) => answer(() => api.me(req)),
       overview: (_: restate.Context, req: Req<"overview">) => answer(() => api.overview(req)),
       health: (_: restate.Context, req: Req<"health">) => answer(() => api.health(req)),
       setup: (_: restate.Context, req: Req<"setup">) => answer(() => api.setup(req)),

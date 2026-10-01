@@ -18,6 +18,7 @@ export default defineConfig({
     "../books/src/schema.ts",
     "../channel-search/src/schema.ts",
     "../auth/src/schema.ts",
+    "../delivery/src/schema.ts",
   ],
   out: "./drizzle",
   casing: "snake_case",

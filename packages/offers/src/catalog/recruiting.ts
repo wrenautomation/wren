@@ -116,6 +116,51 @@ export const recruitingReactivation = defineOffer({
   // Cal.com event "Pilot call" (autobrowse site `calcom`), 30 min on Meet, Mon-Fri 10-17 ET.
   booking: "https://cal.com/wrenautomation/pilot",
   application: APPLICATION,
+  // 90 days is 13 weeks. The new domain warms while the list is cleaned and the copy written.
+  plan: [
+    {
+      id: "set-up",
+      name: "Set up",
+      from: 1,
+      to: 2,
+      deliverables: [
+        "Your past clients and contacts, cleaned and checked",
+        "A new sending domain in your recruiter's name",
+      ],
+      asks: [
+        "An export of past clients and contacts from your ATS or CRM",
+        "The recruiter whose name and signature go on the emails",
+        "A time for the 30-minute kickoff call",
+      ],
+    },
+    {
+      id: "approve",
+      name: "Approve the first emails",
+      from: 2,
+      to: 3,
+      deliverables: ["The campaign, written in your recruiter's voice"],
+      asks: ["Approve the first emails in your portal"],
+    },
+    {
+      id: "send",
+      name: "Send and hand over",
+      from: 3,
+      to: 13,
+      deliverables: [
+        "Interested replies forwarded to your recruiter the same day",
+        "Replies and meetings booked, live in your portal",
+      ],
+      asks: [],
+    },
+    {
+      id: "wrap-up",
+      name: "Wrap up",
+      from: 13,
+      to: 13,
+      deliverables: ["The final numbers against the promise"],
+      asks: ["Your real numbers: job orders and fees"],
+    },
+  ],
 });
 
 /** Retired 2026-09-29: the free first rung, replaced by `reactivation`. Kept for its enrollments. */

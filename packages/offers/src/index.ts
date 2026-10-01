@@ -20,6 +20,7 @@ export type {
   MeasureUnit,
   Offer,
   OfferStatus,
+  Phase,
   Price,
   Question,
   UsdRange,

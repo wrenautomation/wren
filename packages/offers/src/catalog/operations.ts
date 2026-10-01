@@ -133,4 +133,39 @@ export const opsAutomationBuild = defineOffer({
   page: "/",
   booking: null,
   application: APPLICATION,
+  // The four stages overlap on purpose: fixing starts before figuring out ends.
+  plan: [
+    {
+      id: "figure-out",
+      name: "Figure out",
+      from: 1,
+      to: 2,
+      deliverables: ["Every core process written down as a plain SOP"],
+      asks: ["An hour with you, and 45 minutes each with three or four of your team"],
+    },
+    {
+      id: "fix",
+      name: "Fix",
+      from: 2,
+      to: 4,
+      deliverables: ["The steps that leak time or deals cut, one agreed way to do each thing"],
+      asks: [],
+    },
+    {
+      id: "connect",
+      name: "Connect",
+      from: 3,
+      to: 7,
+      deliverables: ["Your ATS or CRM, inboxes, calendars and spreadsheets in one CRM"],
+      asks: ["Access to the tools involved"],
+    },
+    {
+      id: "ai",
+      name: "Put AI to work",
+      from: 6,
+      to: null,
+      deliverables: ["The first AI job running on that data, then one new one a month"],
+      asks: [],
+    },
+  ],
 });

@@ -7,7 +7,7 @@ import type { PageProps } from "../../module.js";
 import { at } from "./nav.js";
 
 export function Setup({ client, demo }: PageProps) {
-  const s = useCall(`setup:${client}`, () => call<Data>("setup", { client }));
+  const s = useCall(`setup:${client}`, () => call<Data>("reactivation/setup", { client }));
   return (
     <>
       <PageHeader

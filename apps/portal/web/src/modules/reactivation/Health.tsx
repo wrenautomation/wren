@@ -15,7 +15,7 @@ import { useCall } from "../../load.js";
 import type { PageProps } from "../../module.js";
 
 export function Health({ client }: PageProps) {
-  const h = useCall(`health:${client}`, () => call<CrmHealth>("health", { client }));
+  const h = useCall(`health:${client}`, () => call<CrmHealth>("reactivation/health", { client }));
   return (
     <>
       <PageHeader

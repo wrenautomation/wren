@@ -23,7 +23,7 @@ export function Sources({ client, params }: PageProps) {
   const via = params.get("via") ?? "";
   const offset = Number(params.get("offset")) || 0;
   const raw = useCall(`raw:${client}:${via}:${offset}`, () =>
-    call<RawPage>("raw", { client, offset, ...(via ? { via } : {}) }),
+    call<RawPage>("reactivation/raw", { client, offset, ...(via ? { via } : {}) }),
   );
   const d = raw.data;
   return (

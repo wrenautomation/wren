@@ -6,6 +6,7 @@
  */
 import { runFeed } from "@wren/core";
 import { addMember, clients } from "@wren/core/clients";
+import { portalMe, type Viewer } from "@wren/core/portal";
 import type { Db } from "@wren/db";
 import { startTestPostgres, type TestPostgres } from "@wren/db/testing";
 import { sql } from "drizzle-orm";
@@ -19,6 +20,7 @@ import { scoreCrmContacts } from "../../src/score.js";
 import { deps as seedDeps, today } from "./demo-fixture.js";
 
 let pg: TestPostgres;
+const me = (r: { viewer: Viewer }) => portalMe(pg.db, r.viewer, DEMO_NAME);
 /** Every transaction the portal opened, and how. */
 const opened: unknown[] = [];
 let api: ReturnType<typeof portalApi>;
@@ -178,7 +180,7 @@ const leaks = (v: unknown) => {
 
 describe("the demo", () => {
   it("is named by DEMO_NAME, never by the agency", async () => {
-    expect(await api.me(demo)).toEqual({ clients: [{ id: "demo", name: DEMO_NAME }], demo: true });
+    expect(await me(demo)).toEqual({ clients: [{ id: "demo", name: DEMO_NAME }], demo: true });
   });
 
   it("no route leaks a name, an address or a profile", async () => {
@@ -296,7 +298,7 @@ describe("the demo", () => {
 
 describe("logins", () => {
   it("an operator sees every client by its real name, and real names on a real list", async () => {
-    expect(await api.me(operator)).toEqual({
+    expect(await me(operator)).toEqual({
       clients: [
         { id: "acme", name: "Acme Staffing" },
         { id: "beta", name: "Beta Search" },
@@ -324,7 +326,7 @@ describe("logins", () => {
   });
 
   it("a client login sees only its own clients, whatever the case of its email", async () => {
-    expect(await api.me(owner)).toEqual({
+    expect(await me(owner)).toEqual({
       clients: [{ id: "acme", name: "Acme Staffing" }],
       demo: false,
     });

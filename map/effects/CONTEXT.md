@@ -29,6 +29,7 @@ A catalog, not a waterfall. Each row names the cards whose **If you change this*
 | a client, its database or its settings block | [[clients/client]] | [[processes/reactivation-pass]], `apps/worker/src/services.ts` (key routing), [[processes/migrate]] (every client database) |
 | the audit log, its seals or eras | [[platform/audit-log]] | [[processes/migrate]] (install), [[clients/client-login]] (who may write it), `packages/core/src/audit.ts` (the sealer) |
 | a client's Postgres login or grants | [[clients/client-login]] | [[clients/client]], [[processes/migrate]], [[platform/audit-log]] |
+| what we deliver: plan, timeline, deliverables, asks, results | [[clients/engagement]] | [[platform/offer]] (`plan`), the portal Worker routes, [[processes/migrate]] |
 | CRM formats, import, scoring | [[reactivation/crm-contact]] | [[processes/reactivation-pass]] |
 | recruiters, firm facts | [[reactivation/client-profile]] | [[reactivation/handoff]], compose (`packages/reactivation/src/compose.ts`) |
 | forwarding, meetings, the bill | [[reactivation/handoff]] | [[platform/offer]] (`perUnit`), the portal (`packages/reactivation/src/portal/`) |

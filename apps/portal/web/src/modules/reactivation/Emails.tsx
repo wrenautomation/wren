@@ -58,7 +58,7 @@ export function Emails({ client, demo, params }: PageProps) {
   const offset = Number(params.get("offset")) || 0;
   const [nonce, setNonce] = useState(0);
   const list = useCall(`emails:${client}:${filter}:${offset}:${nonce}`, () =>
-    call<EmailsPage>("emails", { client, filter, offset }),
+    call<EmailsPage>("reactivation/emails", { client, filter, offset }),
   );
   const [picked, setPicked] = useState<Set<number>>(new Set());
   const [busy, setBusy] = useState(false);
@@ -91,7 +91,7 @@ export function Emails({ client, demo, params }: PageProps) {
     }
     setBusy(true);
     try {
-      await call(route, { client, enrollmentIds: ids });
+      await call(`reactivation/${route}`, { client, enrollmentIds: ids });
       setDone(said);
       setNonce((n) => n + 1);
     } catch (err) {

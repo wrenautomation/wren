@@ -1,16 +1,28 @@
 /**
- * The portal API: POST /api/<route> with JSON. On app.<domain> each call
+ * The portal API: POST /api/<service>/<route> with JSON (`delivery/home`,
+ * `reactivation/people`). On app.<domain> each call
  * carries a short-lived token from our sign-in at auth.<domain>; no session
  * there sends the browser to sign in and back. The demo and the local preview
  * need none.
  */
+
+export type {
+  AskView,
+  DeliverableView,
+  DeliveryHome,
+  EngagementView,
+  Me,
+  MilestoneState,
+  ResultView,
+  StepView,
+  UpdateView,
+} from "@wren/delivery/restate";
 export type {
   CrmHealth,
   EmailFilter,
   EmailRow,
   EmailsPage,
   LiveRun,
-  Me,
   Now,
   Overview,
   PeopleFilter,
@@ -92,14 +104,14 @@ async function token(): Promise<string | null> {
 }
 
 export async function call<T>(
-  route: string,
+  path: string,
   body: Record<string, unknown> = {},
   retried = false,
 ): Promise<T> {
   const t = await token();
   let res: Response;
   try {
-    res = await fetch(`/api/${route}`, {
+    res = await fetch(`/api/${path}`, {
       method: "POST",
       headers: {
         "content-type": "application/json",
@@ -113,7 +125,7 @@ export async function call<T>(
   // A token the Worker refused (keys rotated, clock skew): one fresh one, then sign in.
   if (res.status === 401 && AUTH_ORIGIN) {
     held = null;
-    return retried ? signIn() : call<T>(route, body, true);
+    return retried ? signIn() : call<T>(path, body, true);
   }
   const text = await res.text();
   let data: unknown = null;

@@ -5,14 +5,16 @@
  * PortalRefusal becomes a non-terminal error, which Restate retries forever.
  */
 import { addMember, clients } from "@wren/core/clients";
+import { portalMe, type Viewer } from "@wren/core/portal";
 import { startTestPostgres, type TestPostgres } from "@wren/db/testing";
 import { sql } from "drizzle-orm";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { seedDemo } from "../../src/demo/seed.js";
-import { PortalRefusal, portalApi } from "../../src/portal/service.js";
+import { DEMO_NAME, PortalRefusal, portalApi } from "../../src/portal/service.js";
 import { deps as seedDeps, today } from "./demo-fixture.js";
 
 let pg: TestPostgres;
+const me = (r: { viewer: Viewer }) => portalMe(pg.db, r.viewer, DEMO_NAME);
 let api: ReturnType<typeof portalApi>;
 let jane: number;
 
@@ -63,7 +65,7 @@ describe("who sees which client", () => {
   it("a login can't reach another client, or the demo, by id", async () => {
     for (const client of ["beta", "demo", "ACME", " acme"])
       await expect(api.people({ ...owner, client })).rejects.toBeInstanceOf(PortalRefusal);
-    expect((await api.me(owner)).clients.map((c) => c.id)).toEqual(["acme"]);
+    expect((await me(owner)).clients.map((c) => c.id)).toEqual(["acme"]);
   });
 
   it("a person on the database but not on the list is 404", async () => {
@@ -84,7 +86,7 @@ describe("who sees which client", () => {
   // Was a bug: an address pasted with a space was stored as is; that login never got in.
   it("a member added with stray spaces still signs in", async () => {
     await addMember(pg.db, "beta", " Boss@Beta.example ");
-    expect((await api.me({ viewer: { email: "boss@beta.example" } })).clients).toEqual([
+    expect((await me({ viewer: { email: "boss@beta.example" } })).clients).toEqual([
       { id: "beta", name: "Beta Search" },
     ]);
   });

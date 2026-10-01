@@ -1,0 +1,400 @@
+/**
+ * Delivery over the portal API, as an operator, two clients' logins and the
+ * demo: the plan is dated from the start day, a client never sees an internal
+ * or hidden update, and no id of one client's reaches another's.
+ */
+import { addMember, clients } from "@wren/core/clients";
+import { PortalRefusal, type Viewer } from "@wren/core/portal";
+import { startTestPostgres, type TestPostgres } from "@wren/db/testing";
+import { sql } from "drizzle-orm";
+import { afterAll, beforeAll, describe, expect, it } from "vitest";
+import { deliveryHome, postUpdate, startEngagement } from "../../src/index.js";
+import { deliveryApi } from "../../src/service.js";
+
+let pg: TestPostgres;
+let api: ReturnType<typeof deliveryApi>;
+
+const OPS: Viewer = { email: "ops@wren.example", operator: true };
+const AMY: Viewer = { email: "amy@acme.example" };
+const BO: Viewer = { email: "bo@beta.example" };
+const DEMO: Viewer = { demo: true };
+const START = "2026-10-05";
+
+/** The status a call was refused with. */
+async function refused(p: Promise<unknown>): Promise<number> {
+  try {
+    await p;
+  } catch (err) {
+    if (err instanceof PortalRefusal) return err.status;
+    throw err;
+  }
+  throw new Error("expected a refusal");
+}
+
+const acme = { client: "acme" };
+const beta = { client: "beta" };
+let acmeAsk = 0;
+let betaAsk = 0;
+let acmeDeliverable = 0;
+let betaDeliverable = 0;
+let acmeUpdate = 0;
+
+beforeAll(async () => {
+  pg = await startTestPostgres();
+  await pg.db.insert(clients).values([
+    { id: "acme", name: "Acme Staffing", database: "wren_client_acme" },
+    { id: "beta", name: "Beta Search", database: "wren_client_beta" },
+    { id: "demo", name: "Northside Talent", database: "wren_client_demo", demo: true },
+  ]);
+  await addMember(pg.db, "acme", "amy@acme.example", { role: "owner" });
+  await addMember(pg.db, "beta", "bo@beta.example", { role: "owner" });
+  api = deliveryApi({ main: pg.db, demoName: "Demo recruiting firm" });
+
+  await api.start({ viewer: OPS, ...acme, offerId: "reactivation", startsOn: START });
+  await api.start({ viewer: OPS, ...beta, offerId: "reactivation", startsOn: START });
+  const [a] = (await api.home({ viewer: AMY })).engagements[0]?.asks ?? [];
+  const [b] = (await api.home({ viewer: BO })).engagements[0]?.asks ?? [];
+  acmeAsk = a?.id ?? 0;
+  betaAsk = b?.id ?? 0;
+  acmeDeliverable = (
+    await api.deliver({
+      viewer: OPS,
+      ...acme,
+      title: "Cleaned list",
+      kind: "link",
+      url: "https://docs.example.com/acme",
+      step: "set-up",
+    })
+  ).id;
+  betaDeliverable = (
+    await api.deliver({
+      viewer: OPS,
+      ...beta,
+      title: "Cleaned list",
+      kind: "link",
+      url: "https://docs.example.com/beta",
+    })
+  ).id;
+  acmeUpdate = (await api.post({ viewer: OPS, ...acme, body: "Kickoff booked for Tuesday." })).id;
+  await api.post({ viewer: OPS, ...acme, body: "Their ATS export is a mess.", internal: true });
+});
+
+afterAll(async () => {
+  await pg?.stop();
+});
+
+describe("starting an engagement", () => {
+  it("dates each step from the plan's weeks", async () => {
+    const [e] = (await api.home({ viewer: AMY })).engagements;
+    expect(e?.offer).toEqual({ id: "reactivation", name: "Lead reactivation" });
+    expect(e?.steps.map((s) => [s.key, s.plannedFrom, s.plannedTo, s.dueOn])).toEqual([
+      ["set-up", "2026-10-05", "2026-10-18", "2026-10-18"],
+      ["approve", "2026-10-12", "2026-10-25", "2026-10-25"],
+      ["send", "2026-10-19", "2027-01-03", "2027-01-03"],
+      ["wrap-up", "2026-12-28", "2027-01-03", "2027-01-03"],
+    ]);
+  });
+
+  it("opens the plan's asks, due at the end of their step's first week", async () => {
+    const [e] = (await api.home({ viewer: AMY })).engagements;
+    const due = Object.fromEntries((e?.asks ?? []).map((a) => [a.text, [a.step, a.dueOn]]));
+    expect(due["The recruiter whose name and signature go on the emails"]).toEqual([
+      "set-up",
+      "2026-10-11",
+    ]);
+    expect(due["Approve the first emails in your portal"]).toEqual(["approve", "2026-10-18"]);
+    expect(e?.asks).toHaveLength(5);
+  });
+
+  it("states each step against today", async () => {
+    const home = await deliveryHome(pg.db, "acme", { operator: false, today: "2026-10-13" });
+    expect(home.engagements[0]?.steps.map((s) => s.state)).toEqual(["now", "now", "next", "next"]);
+    const later = await deliveryHome(pg.db, "acme", { operator: false, today: "2026-10-20" });
+    expect(later.engagements[0]?.steps.map((s) => s.state)).toEqual(["late", "now", "now", "next"]);
+    expect(later.engagements[0]?.asks.find((a) => a.step === "set-up")?.overdue).toBe(true);
+  });
+
+  it("refuses the same offer twice, an unknown offer and a bad day", async () => {
+    expect(
+      await refused(api.start({ viewer: OPS, ...acme, offerId: "reactivation", startsOn: START })),
+    ).toBe(409);
+    expect(
+      await refused(api.start({ viewer: OPS, ...acme, offerId: "nope", startsOn: START })),
+    ).toBe(404);
+    expect(
+      await refused(
+        api.start({
+          viewer: OPS,
+          ...acme,
+          offerId: "ops-automation-build",
+          startsOn: "2026-02-30",
+        }),
+      ),
+    ).toBe(400);
+  });
+});
+
+describe("what a client sees", () => {
+  it("never an internal update, on Home or the timeline", async () => {
+    const home = await api.home({ viewer: AMY });
+    const bodies = home.engagements[0]?.updates.map((u) => u.body);
+    expect(bodies).toEqual(["Kickoff booked for Tuesday."]);
+    const { updates } = await api.updates({ viewer: AMY });
+    expect(updates.map((u) => u.body)).toEqual(["Kickoff booked for Tuesday."]);
+    const ops = await api.updates({ viewer: OPS, ...acme });
+    expect(ops.updates.map((u) => [u.body, u.internal])).toEqual([
+      ["Their ATS export is a mess.", true],
+      ["Kickoff booked for Tuesday.", false],
+    ]);
+  });
+
+  it("never a hidden update; the team still sees it, marked", async () => {
+    const id = (await api.post({ viewer: OPS, ...acme, body: "Wrong client, oops." })).id;
+    expect((await api.updates({ viewer: AMY })).updates.map((u) => u.body)).toContain(
+      "Wrong client, oops.",
+    );
+    await api.hide({ viewer: OPS, ...acme, updateId: id });
+    expect((await api.updates({ viewer: AMY })).updates.map((u) => u.body)).not.toContain(
+      "Wrong client, oops.",
+    );
+    const ops = await api.updates({ viewer: OPS, ...acme });
+    expect(ops.updates.find((u) => u.id === id)?.hidden).toBe(true);
+  });
+
+  it("pages the timeline by the last id seen", async () => {
+    for (let i = 0; i < 3; i++) await api.post({ viewer: OPS, ...acme, body: `Week note ${i}` });
+    const first = await api.updates({ viewer: AMY });
+    expect(first.more).toBe(false);
+    const older = await api.updates({ viewer: AMY, before: first.updates[1]?.id ?? 0 } as never);
+    expect(older.updates.map((u) => u.body)).toEqual(first.updates.slice(2).map((u) => u.body));
+  });
+
+  it("only their own engagements", async () => {
+    const home = await api.home({ viewer: BO });
+    expect(home.engagements[0]?.updates).toEqual([]);
+    expect(home.engagements[0]?.deliverables.map((d) => d.url)).toEqual([
+      "https://docs.example.com/beta",
+    ]);
+  });
+});
+
+describe("one client's ids never reach another's", () => {
+  it("answer, decide and hide refuse another client's row as not found", async () => {
+    expect(await refused(api.answer({ viewer: AMY, askId: betaAsk, answer: "x" }))).toBe(404);
+    expect(
+      await refused(
+        api.decide({ viewer: AMY, deliverableId: betaDeliverable, decision: "approved" }),
+      ),
+    ).toBe(404);
+    expect(await refused(api.hide({ viewer: OPS, ...beta, updateId: acmeUpdate }))).toBe(404);
+    const [b] = (await api.home({ viewer: BO })).engagements[0]?.deliverables ?? [];
+    expect(b?.status).toBe("waiting");
+  });
+
+  it("a new version can't replace another client's deliverable", async () => {
+    expect(
+      await refused(
+        api.deliver({
+          viewer: OPS,
+          ...acme,
+          title: "v2",
+          kind: "link",
+          url: "https://docs.example.com/v2",
+          replaces: betaDeliverable,
+        }),
+      ),
+    ).toBe(404);
+  });
+
+  it("a login without the client is refused, whatever it names", async () => {
+    expect(await refused(api.home({ viewer: AMY, ...beta }))).toBe(403);
+    expect(await refused(api.home({ viewer: { email: "x@nowhere.example" } }))).toBe(403);
+  });
+
+  it("ids that aren't ids are not found", async () => {
+    for (const askId of [0, -1, 1.5, "1 or 1=1", null, {}] as unknown[])
+      expect(await refused(api.answer({ viewer: AMY, askId: askId as number, answer: "x" }))).toBe(
+        404,
+      );
+  });
+});
+
+describe("who may write", () => {
+  it("a client answers and decides; the rest is the team's", async () => {
+    const a = await api.answer({ viewer: AMY, askId: acmeAsk, answer: "Attached in the email." });
+    expect(a.answeredAt).not.toBeNull();
+    expect(
+      await refused(
+        api.decide({ viewer: AMY, deliverableId: acmeDeliverable, decision: "changes" }),
+      ),
+    ).toBe(400);
+    const d = await api.decide({
+      viewer: AMY,
+      deliverableId: acmeDeliverable,
+      decision: "changes",
+      note: "Drop the 2019 contacts.",
+    });
+    expect(d.status).toBe("changes");
+    for (const write of [
+      () => api.post({ viewer: AMY, body: "hi" }),
+      () => api.deliver({ viewer: AMY, title: "t", kind: "link", url: "https://x.example.com" }),
+      () => api.ask({ viewer: AMY, text: "t" }),
+      () => api.done({ viewer: AMY, step: "set-up" }),
+      () => api.slip({ viewer: AMY, step: "set-up", to: "2026-11-01", reason: "r" }),
+      () => api.result({ viewer: AMY, key: "replies", value: 1 }),
+      () => api.hide({ viewer: AMY, updateId: acmeUpdate }),
+      () => api.start({ viewer: AMY, offerId: "reactivation", startsOn: START }),
+    ])
+      expect(await refused(write())).toBe(403);
+  });
+
+  it("logs every write as the person who made it", async () => {
+    const rows = await pg.db.execute<{ table_name: string; actor: string | null }>(
+      sql`select table_name, actor from audit_events where table_name like 'delivery.%' order by id`,
+    );
+    expect(rows.length).toBeGreaterThan(0);
+    expect(
+      rows.every((r) => r.actor === "ops@wren.example" || r.actor === "amy@acme.example"),
+    ).toBe(true);
+    expect(
+      rows.find((r) => r.table_name === "delivery.asks" && r.actor === "amy@acme.example"),
+    ).toBeTruthy();
+  });
+
+  it("a new version waits again and Home shows only it", async () => {
+    const v2 = await api.deliver({
+      viewer: OPS,
+      ...acme,
+      title: "Cleaned list",
+      kind: "link",
+      url: "https://docs.example.com/acme-v2",
+      replaces: acmeDeliverable,
+    });
+    expect(v2.version).toBe(2);
+    const ds = (await api.home({ viewer: AMY })).engagements[0]?.deliverables ?? [];
+    expect(ds.map((d) => [d.id, d.version, d.status, d.step])).toEqual([
+      [v2.id, 2, "waiting", "set-up"],
+    ]);
+  });
+});
+
+describe("what the team's writes take", () => {
+  it("https links only, Loom links from Loom", async () => {
+    const link = (kind: string, url: string) =>
+      api.deliver({ viewer: OPS, ...acme, title: "t", kind, url });
+    expect(await refused(link("link", "javascript:alert(1)"))).toBe(400);
+    expect(await refused(link("link", "http://docs.example.com"))).toBe(400);
+    expect(await refused(link("link", "not a url"))).toBe(400);
+    expect(await refused(link("loom", "https://evil.example.com/share/x"))).toBe(400);
+    expect(await refused(link("loom", "https://loom.com.evil.example/share/x"))).toBe(400);
+    expect(await refused(link("video", "https://www.loom.com/share/x"))).toBe(400);
+    expect((await link("loom", "https://www.loom.com/share/abc")).version).toBe(1);
+  });
+
+  it("files only from the client's own folder", async () => {
+    const file = (fileKey: string) =>
+      api.deliver({ viewer: OPS, ...acme, title: "t", kind: "file", fileKey });
+    expect(await refused(file("clients/beta/list.csv"))).toBe(400);
+    expect(await refused(file("clients/acme/../beta/list.csv"))).toBe(400);
+    expect(await refused(file("list.csv"))).toBe(400);
+    expect((await file("clients/acme/list.csv")).version).toBe(1);
+  });
+
+  it("results only for the offer's measures, numbers only", async () => {
+    await api.result({ viewer: OPS, ...acme, key: "replies", value: 12 });
+    await api.result({ viewer: OPS, ...acme, key: "replies", value: 14, note: "two late" });
+    expect(await refused(api.result({ viewer: OPS, ...acme, key: "revenue", value: 1 }))).toBe(400);
+    expect(
+      await refused(api.result({ viewer: OPS, ...acme, key: "replies", value: "9" as never })),
+    ).toBe(400);
+    expect(
+      await refused(api.result({ viewer: OPS, ...acme, key: "replies", value: Number.NaN })),
+    ).toBe(400);
+    const rs = (await api.home({ viewer: AMY })).engagements[0]?.results ?? [];
+    expect(rs.find((r) => r.key === "replies")).toMatchObject({ value: 14, note: "two late" });
+    expect(rs.find((r) => r.key === "meetings")?.value).toBeNull();
+  });
+
+  it("a slip keeps the planned dates and says why; done marks the step", async () => {
+    await api.slip({
+      viewer: OPS,
+      ...acme,
+      step: "approve",
+      to: "2026-11-01",
+      reason: "Late export.",
+    });
+    expect(
+      await refused(
+        api.slip({ viewer: OPS, ...acme, step: "approve", to: "2026-10-01", reason: "r" }),
+      ),
+    ).toBe(400);
+    expect(
+      await refused(
+        api.slip({ viewer: OPS, ...acme, step: "nope", to: "2026-11-01", reason: "r" }),
+      ),
+    ).toBe(404);
+    await api.done({ viewer: OPS, ...acme, step: "set-up", on: "2026-10-17" });
+    const home = await deliveryHome(pg.db, "acme", { operator: false, today: "2026-10-27" });
+    const [setUp, approve] = home.engagements[0]?.steps ?? [];
+    expect(setUp).toMatchObject({ state: "done", doneOn: "2026-10-17" });
+    expect(approve).toMatchObject({
+      plannedTo: "2026-10-25",
+      dueOn: "2026-11-01",
+      slipReason: "Late export.",
+      state: "now",
+    });
+    await api.done({ viewer: OPS, ...acme, step: "set-up", on: null });
+    const undone = await deliveryHome(pg.db, "acme", { operator: false, today: "2026-10-27" });
+    expect(undone.engagements[0]?.steps[0]?.state).toBe("late");
+  });
+
+  it("asks take a real day", async () => {
+    expect(await refused(api.ask({ viewer: OPS, ...acme, text: "t", dueOn: "next week" }))).toBe(
+      400,
+    );
+    expect(await refused(api.ask({ viewer: OPS, ...acme, text: "  " }))).toBe(400);
+    expect(
+      (await api.ask({ viewer: OPS, ...acme, text: "Logo file", dueOn: "2026-10-20" })).id,
+    ).toBeGreaterThan(0);
+  });
+});
+
+describe("the demo", () => {
+  beforeAll(async () => {
+    const e = await startEngagement(pg.db, {
+      clientId: "demo",
+      offerId: "reactivation",
+      startsOn: START,
+      by: "seed",
+    });
+    await postUpdate(pg.db, e, { body: "List cleaned: 1,204 contacts.", author: "seed" });
+    await postUpdate(pg.db, e, { body: "Internal only.", author: "seed", internal: true });
+  });
+
+  it("reads the sample under its demo name, without internal notes", async () => {
+    expect(await api.me({ viewer: DEMO })).toEqual({
+      clients: [{ id: "demo", name: "Demo recruiting firm" }],
+      demo: true,
+    });
+    const home = await api.home({ viewer: DEMO });
+    expect(home.engagements[0]?.updates.map((u) => u.body)).toEqual([
+      "List cleaned: 1,204 contacts.",
+    ]);
+  });
+
+  it("writes nothing, even as an operator naming the demo client", async () => {
+    const [ask] = (await api.home({ viewer: DEMO })).engagements[0]?.asks ?? [];
+    expect(await refused(api.answer({ viewer: DEMO, askId: ask?.id ?? 0, answer: "x" }))).toBe(403);
+    expect(await refused(api.post({ viewer: DEMO, body: "x" }))).toBe(403);
+    expect(await refused(api.post({ viewer: OPS, client: "demo", body: "x" }))).toBe(403);
+  });
+
+  it("is never among a client's or a stranger's clients", async () => {
+    expect((await api.me({ viewer: AMY })).clients.map((c) => c.id)).toEqual(["acme"]);
+    expect((await api.me({ viewer: OPS })).clients.map((c) => c.id)).toEqual([
+      "acme",
+      "beta",
+      "demo",
+    ]);
+  });
+});

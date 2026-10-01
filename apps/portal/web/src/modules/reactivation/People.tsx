@@ -44,7 +44,7 @@ export function People({ client, demo, params }: PageProps) {
   const q = params.get("q") ?? "";
   const person = Number(params.get("person")) || null;
   const list = useCall(`people:${client}:${filter}:${offset}:${q}`, () =>
-    call<PeoplePage>("people", { client, filter, offset, ...(q ? { q } : {}) }),
+    call<PeoplePage>("reactivation/people", { client, filter, offset, ...(q ? { q } : {}) }),
   );
   const set = (p: Record<string, string | number | null>) => goto("people", p, params);
   const d = list.data;
@@ -161,7 +161,7 @@ export function People({ client, demo, params }: PageProps) {
 
 function PersonPanel({ client, personId }: { client: string; personId: number }) {
   const p = useCall(`person:${client}:${personId}`, () =>
-    call<PersonView>("person", { client, personId }),
+    call<PersonView>("reactivation/person", { client, personId }),
   );
   if (p.error && !p.data) return <Alert onRetry={p.retry}>{p.error.message}</Alert>;
   if (!p.data) return <Loading lines={9} label="Loading their brief" />;
