@@ -53,7 +53,7 @@ describe("recruiting book-first opener", () => {
       true,
     );
     expect(b).toContain("University of Waterloo");
-    expect(b).toContain("Government of Canada");
+    expect(b).toContain("internal tools for the Government of Canada");
     expect(b).toContain("missing out on hundreds of thousands in potential revenue");
     expect(b).toMatch(/hiring/i);
     expect(b.indexOf("hundreds of thousands")).toBeLessThan(b.indexOf("University of Waterloo"));
@@ -87,7 +87,7 @@ describe("recruiting book-first opener", () => {
     expect(subj(company)).toMatch(/^(you're|your) /);
   });
 
-  it("the follow-up restates the opener, says it follows up, under its own subject", () => {
+  it("the follow-up opens on the check-in, restates the opener, under its own subject", () => {
     const f = recruiting.templates.get("book-first/followup");
     if (f === undefined) throw new Error("missing book-first/followup");
     const r = render(f, base, "person:7");
@@ -95,9 +95,14 @@ describe("recruiting book-first opener", () => {
     expect(r.subject).not.toBe(render(tpl(), base, "person:7").subject);
     expect(r.body).toContain("University of Waterloo");
     expect(r.body).toMatch(/hiring/i);
-    expect(r.body).toMatch(/following up on my (last email|email from a few days ago)\./i);
+    expect(r.body).toMatch(
+      /^Dana, just checking in on the email I sent a few days ago\. (If you haven't seen it|In case you missed it), here's the TL;DR\.\n\n/,
+    );
+    expect(r.body).not.toMatch(/following up|^(Hi|Hey) /im);
     expect(r.body).toContain("you don't pay me at all");
     expect(r.body).toContain(CALL_TIMES);
+    const { first_name: _, ...company } = base;
+    expect(render(f, company, "person:7").body).toMatch(/^Hi there, just checking in/);
   });
 
   it("asks for the times, quotes the offer's terms, and leaves no syntax behind", () => {
@@ -126,7 +131,7 @@ describe("recruiting watch-first", () => {
       "If this sounds too good to be true, I can send you a quick demo.",
     );
     expect(render(named("watch-first/followup"), base, "person:7").body).toMatch(
-      /following up on my/i,
+      /^Dana, just checking in on the email I sent a few days ago\./,
     );
   });
 
