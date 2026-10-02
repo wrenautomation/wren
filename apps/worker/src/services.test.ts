@@ -5,7 +5,7 @@ import type * as restate from "@restatedev/restate-sdk";
 import { loadSettings } from "@wren/config";
 import type { Logger } from "pino";
 import { afterEach, describe, expect, it } from "vitest";
-import { buildServices, POOL_CHAIN, servicesFor } from "./services.js";
+import { BOX_SERVICES, buildServices, POOL_CHAIN, servicesFor } from "./services.js";
 
 /** A logger that keeps every line; pino's shape is all the worker uses. */
 function logOf() {
@@ -202,11 +202,13 @@ describe("contentFor: reddit", () => {
 });
 
 describe("servicesFor: which side serves the pool chain", () => {
-  const all = ["SendScheduler", ...POOL_CHAIN, "Content"].map((name) => ({ name })) as never[];
+  const all = ["SendScheduler", ...POOL_CHAIN, "PageArchive", "Content"].map((name) => ({
+    name,
+  })) as never[];
   const names = (s: { name: string }[]) => s.map((x) => x.name);
 
-  it("the box serves only the chain", () => {
-    expect(names(servicesFor(all, "box"))).toEqual(POOL_CHAIN);
+  it("the box serves only the chain and the page archive", () => {
+    expect(names(servicesFor(all, "box"))).toEqual(BOX_SERVICES);
   });
 
   it("Lambda drops the chain once the box hosts it", () => {

@@ -68,6 +68,7 @@ import { Shard } from "../enrichment/shard.js";
 import { tagTestimonials } from "../enrichment/testimonials.js";
 import type { Fetcher } from "../fetch/fetcher.js";
 import type { RobotsCache } from "../fetch/robots.js";
+import type { PageStore } from "../pages.js";
 
 export interface EnrichmentDeps {
   db: Db;
@@ -90,6 +91,8 @@ export interface EnrichmentDeps {
    * names none of its own. The niche registry owns the lists.
    */
   crawlHintsFor?: (niche: string | null) => ReadonlySet<string>;
+  /** Where archived page HTML is; the scan reads it back for pages `PageArchive` moved. */
+  pages?: PageStore | null;
 }
 
 /**
@@ -309,7 +312,9 @@ export function makeEnrichment(deps: EnrichmentDeps) {
           const signals = await ctx.run(`scan document ${id}`, async () => {
             const doc = await loadScanTarget(deps.db, id);
             if (!doc) return 0;
-            return (await deps.db.transaction((tx) => scanDocument(tx, doc, runId))).length;
+            return (
+              await deps.db.transaction((tx) => scanDocument(tx, doc, runId, deps.pages ?? null))
+            ).length;
           });
           stats.scanned += 1;
           stats.signals += signals;

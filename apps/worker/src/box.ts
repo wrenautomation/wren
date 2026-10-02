@@ -1,6 +1,6 @@
 /**
  * The pool chain served from the Postgres box. Same bundle and secrets as `lambda.ts`,
- * but only the waiting-heavy services (`POOL_CHAIN`) and the database over loopback:
+ * but only `BOX_SERVICES` (the waiting-heavy chain, the page archive) over loopback:
  * the wait on sites and mail servers bills nothing and no row crosses the network.
  * No inbound port: the worker dials Restate Cloud's tunnel, then registers the URL it
  * is handed, which moves those services here from Lambda.

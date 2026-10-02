@@ -48,7 +48,12 @@ export const documents = pgTable(
     title: text("title"),
     text: text("text").notNull(),
     fetchedAt: timestamp("fetched_at", { withTimezone: true }).defaultNow().notNull(),
+    /** Inline until `archivePages` moves it to the pages bucket; `htmlOf` reads either. */
     html: text("html"),
+    /** Where the archived HTML is (`pages/<id>.html.gz`); null while inline. */
+    htmlKey: text("html_key"),
+    /** The archived page's `tel:` link targets, kept for the phone lift; null while inline. */
+    telHrefs: text("tel_hrefs").array(),
     fetchTier: varchar("fetch_tier", { length: 16 }).default("httpx").notNull(),
     isShell: boolean("is_shell").default(false).notNull(),
     robotsDisallowed: boolean("robots_disallowed").default(false).notNull(),

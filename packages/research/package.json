@@ -10,6 +10,7 @@
     "./dossier": "./src/dossier.ts",
     "./fetch": "./src/fetch/index.ts",
     "./pacing": "./src/pacing.ts",
+    "./pages": "./src/pages.ts",
     "./people": "./src/people/index.ts",
     "./schema": "./src/schema.ts",
     "./studies": "./src/studies/index.ts",
@@ -23,6 +24,7 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
+    "@aws-sdk/client-s3": "3.1136.0",
     "@duckdb/node-api": "1.5.6-r.1",
     "@restatedev/restate-sdk": "1.17.1",
     "@wren/core": "workspace:*",

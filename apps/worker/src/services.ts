@@ -107,7 +107,8 @@ import {
   PoliteFetcher,
   userAgent,
 } from "@wren/research";
-import { makeDiscovery, makeEnrichment } from "@wren/research/restate";
+import { s3PageStore } from "@wren/research/pages";
+import { makeDiscovery, makeEnrichment, makePageArchive } from "@wren/research/restate";
 import type { Logger } from "pino";
 
 /** The worker's application_name on every connection, kept on each audit event. */
@@ -133,13 +134,15 @@ export interface Services {
  * Restate keeps each service on one deployment: whichever side serves it, the other skips it.
  */
 export const POOL_CHAIN = ["PoolScheduler", "Discovery", "Enrichment", "Resolution"];
+/** Everything the box serves: the chain, and the page archive, which moves rows out of its own disk. */
+export const BOX_SERVICES = [...POOL_CHAIN, "PageArchive"];
 
 export function servicesFor(
   all: AnyService[],
   here: "box" | "lambda",
   chainHost = process.env.WREN_POOL_CHAIN_HOST,
 ): AnyService[] {
-  const inChain = (s: AnyService) => POOL_CHAIN.includes(s.name);
+  const inChain = (s: AnyService) => BOX_SERVICES.includes(s.name);
   if (here === "box") return all.filter(inChain);
   return chainHost === "box" ? all.filter((s) => !inChain(s)) : all;
 }
@@ -181,10 +184,10 @@ export async function buildServices(
   // morning digest. Discord with no URL refuses here, at start, not at the first reply.
   const notifier = makeNotifier(settings.notify, {
     discordWebhookUrl: settings.discordWebhookUrl ?? null,
+    discordPingUserId: settings.discordPingUserId ?? null,
   });
   const notify = settings.notify === "none" ? {} : { notifier };
   // Each sales channel pings its own Discord channel when its webhook is set; else the main one.
-    discordPingUserId: settings.discordPingUserId ?? null,
   const laneNotifier = (url: string | undefined): Notifier =>
     settings.notify === "discord" && url
       ? makeNotifier("discord", {
@@ -319,6 +322,7 @@ export async function buildServices(
   if (settings.pixelBaseUrl && !opens)
     log.warn("WREN_PIXEL_BASE_URL set without WREN_PIXEL_EXPORT_TOKEN: opens are not pulled");
 
+  const pages = settings.pagesBucket ? s3PageStore(settings.pagesBucket) : null;
   const services: AnyService[] = [
     // A dead firm site at 30s × 3 tries held one shard ~90s a page; a live one answers in seconds.
     makeEnrichment({
@@ -329,6 +333,7 @@ export async function buildServices(
       tracer,
       robotsMode: settings.robotsMode,
       crawlHintsFor,
+      pages,
     }),
     // Discovery probes guessed hosts, most of them parked or dead: a short timeout and
     // one try per URL, or a single company's guesses can eat a Lambda invocation.
@@ -451,6 +456,8 @@ export async function buildServices(
   );
   // The audit log's seals in every database, every 15 minutes; off until `wren audit sealer start`.
   services.push(makeAuditSealer({ main: db, open: openClient, ...notify }));
+  // Page HTML a day old moves to the pages bucket; off until `wren pages archive start`.
+  services.push(makePageArchive({ db, pages, ...notify }));
   // Cold SMS. Always bound: the sender is off until `wren sms queue start`.
   const sms = {
     db,

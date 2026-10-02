@@ -11,6 +11,7 @@
  */
 import { companies } from "@wren/core/schema";
 import type { Db } from "@wren/db";
+import { telHrefs } from "@wren/research/pages";
 import { documents } from "@wren/research/schema";
 import { and, asc, eq, gt, isNotNull, notInArray, or, sql } from "drizzle-orm";
 import { isTollFree, toUsE164 } from "./phone.js";
@@ -23,7 +24,6 @@ export interface FoundPhone {
   kind: FoundKind;
 }
 
-const TEL_HREF = /href\s*=\s*["']\s*tel:([^"']+)["']/gi;
 // NANP shapes as people type them: optional +1, area code (parens optional), 3, 4.
 const TEXT_PHONE = /(?<![\d+])(?:\+?1[\s.-]?)?\(?[2-9]\d{2}\)?[\s.-]?[2-9]\d{2}[\s.-]?\d{4}(?!\d)/g;
 
@@ -37,9 +37,14 @@ function decode(text: string): string {
 
 /** Every distinct valid US number on one page, `tel:` links first. */
 export function phonesInPage(html: string | null, text: string | null): FoundPhone[] {
+  return phonesOf(telHrefs(html ?? ""), text);
+}
+
+/** The same from a page's `tel:` targets and text: what an archived page keeps. */
+export function phonesOf(tels: readonly string[], text: string | null): FoundPhone[] {
   const seen = new Map<string, FoundKind>();
-  for (const m of (html ?? "").matchAll(TEL_HREF)) {
-    const e164 = toUsE164(decode(m[1] as string).split(/[;,?]/)[0] as string);
+  for (const tel of tels) {
+    const e164 = toUsE164(decode(tel).split(/[;,?]/)[0] as string);
     if (e164 && !seen.has(e164)) seen.set(e164, "tel_link");
   }
   for (const m of (text ?? "").matchAll(TEXT_PHONE)) {
@@ -92,6 +97,7 @@ export async function liftPhones(db: Db, opts: LiftOptions): Promise<LiftStats> 
       isNotNull(documents.companyId),
       or(
         sql`${documents.html} LIKE '%tel:%'`,
+        sql`cardinality(${documents.telHrefs}) > 0`,
         sql`${documents.text} ~ '[0-9]{3}[^0-9]{0,2}[0-9]{3}[^0-9]?[0-9]{4}'`,
       ),
     ];
@@ -109,6 +115,7 @@ export async function liftPhones(db: Db, opts: LiftOptions): Promise<LiftStats> 
         companyId: documents.companyId,
         url: documents.url,
         html: documents.html,
+        telHrefs: documents.telHrefs,
         text: documents.text,
         niche: companies.niche,
       })
@@ -122,7 +129,9 @@ export async function liftPhones(db: Db, opts: LiftOptions): Promise<LiftStats> 
     const values = [];
     for (const row of rows) {
       stats.pages += 1;
-      const found = phonesInPage(row.html, row.text);
+      // An archived page kept its `tel:` targets; the HTML stays in the bucket.
+      const tels = row.html !== null ? telHrefs(row.html) : (row.telHrefs ?? []);
+      const found = phonesOf(tels, row.text);
       if (found.length > 0) stats.pagesWithPhones += 1;
       for (const f of found) {
         stats.found += 1;

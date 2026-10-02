@@ -156,6 +156,8 @@ export const settingsSchema = z.object({
   mediaBucket: z.string().min(1).optional(),
   /** The private S3 bucket for client files (`clients/<id>/`); unset = the portal refuses uploads. */
   filesBucket: z.string().min(1).optional(),
+  /** The private S3 bucket archived page HTML moves to (`pages/<id>.html.gz`); unset = pages stay in Postgres. */
+  pagesBucket: z.string().min(1).optional(),
   /** The client portal (`https://app.<domain>`); unset = no DeliveryWatch. */
   portalOrigin: z.string().url().optional(),
   /** Client mail comes from this address, sent through `portalMailbox`; either unset = pings only. */
@@ -405,9 +407,9 @@ export const ENV_KEYS = {
   discordContentWebhookUrl: "WREN_DISCORD_CONTENT_WEBHOOK_URL",
   discordSearchWebhookUrl: "WREN_DISCORD_SEARCH_WEBHOOK_URL",
   discordClientsWebhookUrl: "WREN_DISCORD_CLIENTS_WEBHOOK_URL",
+  discordPingUserId: "WREN_DISCORD_PING_USER_ID",
   operatorPhone: "WREN_OPERATOR_PHONE",
   composeDaysAhead: "WREN_COMPOSE_DAYS_AHEAD",
-  discordPingUserId: "WREN_DISCORD_PING_USER_ID",
   poolModelStages: "WREN_POOL_MODEL_STAGES",
   verificationHorizonDays: "WREN_VERIFICATION_HORIZON_DAYS",
   resendCooldownDays: "WREN_RESEND_COOLDOWN_DAYS",
@@ -437,6 +439,7 @@ export const ENV_KEYS = {
   contentLinkSite: "WREN_CONTENT_LINK_SITE",
   mediaBucket: "WREN_MEDIA_BUCKET",
   filesBucket: "WREN_FILES_BUCKET",
+  pagesBucket: "WREN_PAGES_BUCKET",
   portalOrigin: "WREN_PORTAL_ORIGIN",
   portalFrom: "WREN_PORTAL_FROM",
   portalMailbox: "WREN_PORTAL_MAILBOX",

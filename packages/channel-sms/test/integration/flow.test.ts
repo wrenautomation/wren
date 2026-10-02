@@ -7,6 +7,7 @@
 import { activeSuppressionOf, addSuppression } from "@wren/core";
 import { startTestPostgres, type TestPostgres, truncate } from "@wren/db/testing";
 import { FakeLlm } from "@wren/llm";
+import { archivePages, memoryPageStore } from "@wren/research/pages";
 import { asc, eq } from "drizzle-orm";
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 import { classifyReplies } from "../../src/classify.js";
@@ -111,6 +112,14 @@ describe("lift", () => {
     });
     expect(await contact("+12125550142")).toBeUndefined();
     expect((await liftPhones(db(), { heldNiches: ["sec_ria"] })).added).toBe(0); // re-run is a no-op
+  });
+
+  it("reads an archived page's kept tel targets, never the bucket", async () => {
+    await company(db(), "Acme", { html: '<a href="tel:+12125550187">call</a>', text: "hi" });
+    const store = memoryPageStore();
+    await archivePages(db(), store, { before: new Date(Date.now() + 86_400_000) });
+    expect(await liftPhones(db(), { heldNiches: [] })).toMatchObject({ added: 1 });
+    expect(await contact("+12125550187")).toMatchObject({ sourceKind: "tel_link" });
   });
 });
 

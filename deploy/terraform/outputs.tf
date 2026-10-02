@@ -64,3 +64,8 @@ output "cdp_url" {
   value       = var.browser_token == "" ? "" : "ws://${aws_eip.pg.public_ip}:3000?token=${var.browser_token}"
   sensitive   = true
 }
+
+output "pages_bucket" {
+  description = "WREN_PAGES_BUCKET: archived page HTML; goes in the box worker's /wren/prod/box env"
+  value       = aws_s3_bucket.pages.bucket
+}

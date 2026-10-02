@@ -365,6 +365,13 @@
       "when": 1790948457547,
       "tag": "0051_call_invite_proposals",
       "breakpoints": true
+    },
+    {
+      "idx": 52,
+      "version": "7",
+      "when": 1790984250537,
+      "tag": "0052_page_archive",
+      "breakpoints": true
     }
   ]
 }

@@ -12,6 +12,7 @@ import { companies, emailDomain, emailSyntaxError, inPlay, normalizeEmail } from
 import type { Queryable } from "@wren/db";
 import { and, asc, eq, ne, notInArray } from "drizzle-orm";
 import { readPage } from "../fetch/htmltext.js";
+import { htmlOf, type PageStore } from "../pages.js";
 import { type Document, documents, enrichments } from "../schema.js";
 
 export const SCAN_VERSION = "v3";
@@ -233,13 +234,14 @@ export async function loadScanTarget(db: Queryable, id: number): Promise<ScanTar
   return row ? { ...row.document, companyDomain: row.companyDomain ?? null } : null;
 }
 
-/** One email_scan enrichment for one document. */
+/** One email_scan enrichment for one document; an archived page is read back from `pages`. */
 export async function scanDocument(
   db: Queryable,
   doc: ScanTarget,
   runId: string | null = null,
+  pages: PageStore | null = null,
 ): Promise<EmailSignal[]> {
-  const signals = scanPage(doc.html, doc.text, {
+  const signals = scanPage(await htmlOf(doc, pages), doc.text, {
     pageUrl: doc.url,
     companyDomain: doc.companyDomain,
   });
@@ -256,6 +258,8 @@ export async function scanDocument(
 
 export interface ScanRunOptions extends ScanSelectOptions {
   runId?: string | null;
+  /** Where archived pages are; unset = every page must still be inline. */
+  pages?: PageStore | null;
   checkpoint?: (doc: ScanTarget) => void | Promise<void>;
 }
 
@@ -269,7 +273,9 @@ export async function runScan(db: Queryable, opts: ScanRunOptions = {}): Promise
     pages_with_signals: 0,
   };
   for (const doc of targets) {
-    const signals = await db.transaction((tx) => scanDocument(tx, doc, opts.runId ?? null));
+    const signals = await db.transaction((tx) =>
+      scanDocument(tx, doc, opts.runId ?? null, opts.pages ?? null),
+    );
     stats.scanned += 1;
     stats.signals += signals.length;
     if (signals.length) stats.pages_with_signals += 1;
