@@ -324,6 +324,10 @@ hits whenever `WREN_PIXEL_BASE_URL` and `WREN_PIXEL_EXPORT_TOKEN` are set.
 authorises posting, so it is a secret). Counts only, never a reply's text or a lead's
 address:
 
+Channels: email (the webhook above), SMS (`WREN_DISCORD_SMS_WEBHOOK_URL`, unset = the
+email one), lander intake (the lander's own `DISCORD_WEBHOOK`).
+
+
 - `N new replies in <inbox>` after an inbox sync that found humans (answer from Gmail).
 - `N hard bounces, N unsubscribes via <inbox>` (warning).
 - `kill switch paused N inboxes` with sender and reason; `wren email senders resume` lifts it.

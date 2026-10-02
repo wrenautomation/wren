@@ -164,6 +164,11 @@ export async function buildServices(
     discordWebhookUrl: settings.discordWebhookUrl ?? null,
   });
   const notify = settings.notify === "none" ? {} : { notifier };
+  // SMS has its own channel when its webhook is set; otherwise it shares the main one.
+  const smsNotify =
+    settings.notify === "discord" && settings.discordSmsWebhookUrl
+      ? { notifier: makeNotifier("discord", { discordWebhookUrl: settings.discordSmsWebhookUrl }) }
+      : notify;
 
   // SMS: a real provider sends nothing until WREN_SMS_LIVE (the registered campaign) says so.
   // The fake pretends to send: on Lambda (prod) it is refused and no provider runs instead.
@@ -427,7 +432,7 @@ export async function buildServices(
     bookings: settings.calcomApiKey ? new CalcomBookings(settings.calcomApiKey) : null,
     pusher: pusherFrom(settings),
     llm: classify ? llm : null,
-    ...notify,
+    ...smsNotify,
   };
   services.push(makeSmsSender(sms), makeSmsEvents(sms), makeSmsDesk(sms), makeSmsWatch(sms));
   // Cold outreach on Reddit and LinkedIn, over the Mac's desk worker as each

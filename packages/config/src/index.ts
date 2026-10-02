@@ -62,6 +62,8 @@ export const settingsSchema = z.object({
   /** Operator nudges: none | console | discord (needs the webhook URL, a secret). */
   notify: z.enum(["none", "console", "discord"]).default("none"),
   discordWebhookUrl: z.string().min(1).optional(),
+  /** SMS pings (replies, opt-outs, health) go to their own channel; unset = the main webhook. */
+  discordSmsWebhookUrl: z.string().min(1).optional(),
   /** William's phone (E.164): warm-reply pings are texted here too, from a number in its country. */
   operatorPhone: z
     .string()
@@ -382,6 +384,7 @@ export const ENV_KEYS = {
   killSwitchOffFor: "WREN_KILL_SWITCH_OFF_FOR",
   notify: "WREN_NOTIFY",
   discordWebhookUrl: "WREN_DISCORD_WEBHOOK_URL",
+  discordSmsWebhookUrl: "WREN_DISCORD_SMS_WEBHOOK_URL",
   operatorPhone: "WREN_OPERATOR_PHONE",
   composeDaysAhead: "WREN_COMPOSE_DAYS_AHEAD",
   poolModelStages: "WREN_POOL_MODEL_STAGES",

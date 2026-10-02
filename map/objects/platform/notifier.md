@@ -17,7 +17,7 @@ Counts only, never content: the digest, health trips, ads pauses, the planner's 
 
 ## Shape
 
-- `Notifier` (`notify.ts:13`), `NOTIFIER_KINDS` (`:19`); `WREN_NOTIFY` + `WREN_DISCORD_WEBHOOK_URL` in settings
+- `Notifier` (`notify.ts:13`), `NOTIFIER_KINDS` (`:19`); `WREN_NOTIFY` + `WREN_DISCORD_WEBHOOK_URL` in settings; SMS loops get their own when `WREN_DISCORD_SMS_WEBHOOK_URL` is set (`apps/worker/src/services.ts`)
 
 Citations: `packages/core/src/notify.ts:13`
 
