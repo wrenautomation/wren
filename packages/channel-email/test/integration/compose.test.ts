@@ -478,7 +478,7 @@ describe("compose", () => {
     expect(stats.enrolled).toBe(1);
     expect(stats.facts_refused).toBe(1);
     const [m] = await allMessages(db());
-    expect(m?.subject).toBe("Acme Wealth, LLC");
+    expect(m?.subject).toBe("Acme Wealth");
     expect(m?.body).toBe("there");
     expect(prov(m).facts_refused).toEqual({ first_name: "D" });
   });
