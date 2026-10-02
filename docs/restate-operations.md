@@ -324,8 +324,22 @@ hits whenever `WREN_PIXEL_BASE_URL` and `WREN_PIXEL_EXPORT_TOKEN` are set.
 authorises posting, so it is a secret). Counts only, never a reply's text or a lead's
 address:
 
-Channels: email (the webhook above), SMS (`WREN_DISCORD_SMS_WEBHOOK_URL`, unset = the
-email one), lander intake (the lander's own `DISCORD_WEBHOOK`).
+One Discord channel per sales channel, so their data stays apart. Each
+`WREN_DISCORD_<LANE>_WEBHOOK_URL` unset falls back to the main webhook, which keeps
+the digest and system pings (token renewal, audit seals):
+
+| Lane | Setting | Loops |
+|---|---|---|
+| email | `WREN_DISCORD_EMAIL_WEBHOOK_URL` | send, inbox, compose, warm replies |
+| sms | `WREN_DISCORD_SMS_WEBHOOK_URL` | SMS sender, events, desk, watch |
+| reach | `WREN_DISCORD_REACH_WEBHOOK_URL` | Reddit/LinkedIn DMs |
+| ads | `WREN_DISCORD_ADS_WEBHOOK_URL` | AdsWatch |
+| content | `WREN_DISCORD_CONTENT_WEBHOOK_URL` | content scheduler, metrics, planner |
+| search | `WREN_DISCORD_SEARCH_WEBHOOK_URL` | SearchWatch, SearchWeek |
+| clients | `WREN_DISCORD_CLIENTS_WEBHOOK_URL` | DeliveryWatch, reactivation |
+
+Lander intake has its own channel too: the lander's `DISCORD_WEBHOOK`. autobrowse
+`discord-layout` makes the server's categories, channels and these webhooks.
 
 
 - `N new replies in <inbox>` after an inbox sync that found humans (answer from Gmail).

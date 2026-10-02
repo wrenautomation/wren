@@ -20,6 +20,7 @@ import {
   loadServiceAccountKey,
   makeNotifier,
   makeVerifier,
+  type Notifier,
   type PostmasterClient,
   plainMailer,
   postmasterToken,
@@ -164,11 +165,20 @@ export async function buildServices(
     discordWebhookUrl: settings.discordWebhookUrl ?? null,
   });
   const notify = settings.notify === "none" ? {} : { notifier };
-  // SMS has its own channel when its webhook is set; otherwise it shares the main one.
-  const smsNotify =
-    settings.notify === "discord" && settings.discordSmsWebhookUrl
-      ? { notifier: makeNotifier("discord", { discordWebhookUrl: settings.discordSmsWebhookUrl }) }
-      : notify;
+  // Each sales channel pings its own Discord channel when its webhook is set; else the main one.
+  const laneNotifier = (url: string | undefined): Notifier =>
+    settings.notify === "discord" && url
+      ? makeNotifier("discord", { discordWebhookUrl: url })
+      : notifier;
+  const lane = (url: string | undefined) =>
+    settings.notify === "none" ? {} : { notifier: laneNotifier(url) };
+  const emailNotify = lane(settings.discordEmailWebhookUrl);
+  const smsNotify = lane(settings.discordSmsWebhookUrl);
+  const reachNotify = lane(settings.discordReachWebhookUrl);
+  const adsNotify = lane(settings.discordAdsWebhookUrl);
+  const contentNotify = lane(settings.discordContentWebhookUrl);
+  const searchNotify = lane(settings.discordSearchWebhookUrl);
+  const clientsNotify = lane(settings.discordClientsWebhookUrl);
 
   // SMS: a real provider sends nothing until WREN_SMS_LIVE (the registered campaign) says so.
   // The fake pretends to send: on Lambda (prod) it is refused and no provider runs instead.
@@ -186,8 +196,11 @@ export async function buildServices(
   // Warm replies wait on William, so their pings also text his phone (Discord stays the log).
   const replyNotifier =
     settings.operatorPhone && settings.smsLive && smsProvider.name === "telnyx"
-      ? new Broadcast([notifier, new SmsNotifier(db, smsProvider, settings.operatorPhone)])
-      : notifier;
+      ? new Broadcast([
+          laneNotifier(settings.discordEmailWebhookUrl),
+          new SmsNotifier(db, smsProvider, settings.operatorPhone),
+        ])
+      : laneNotifier(settings.discordEmailWebhookUrl);
 
   // The send loop: console prints until cutover flips WREN_SEND_TRANSPORT=gmail.
   // The roster names the live fleet; without one nothing may send, so a missing
@@ -313,7 +326,7 @@ export async function buildServices(
       transport,
       scopeOf: (key) => (clientOfKey(key) ? clientSendScope(clients, key) : wrenScope(key)),
       tickMs,
-      ...notify,
+      ...emailNotify,
     }),
     makeInboxScheduler({
       reader,
@@ -326,7 +339,7 @@ export async function buildServices(
       syncMs,
       tickMs,
       classify,
-      ...notify,
+      ...emailNotify,
     }),
     makeDisposition({
       dbOf: (key) => {
@@ -353,7 +366,7 @@ export async function buildServices(
         verificationHorizonDays: settings.verificationHorizonDays,
         trackOpens: settings.openTracking,
         roleInboxNeedsVerdict: freeVerdicts,
-        ...notify,
+        ...emailNotify,
       }),
     );
   }
@@ -392,7 +405,7 @@ export async function buildServices(
   // the meta site fails on its own invocation, and nothing spends until `start`.
   services.push(
     makeAds({ ...adsFor(settings), db }),
-    makeAdsWatch({ db, pauseAfterUsd: settings.adsPauseAfterUsd, ...notify }),
+    makeAdsWatch({ db, pauseAfterUsd: settings.adsPauseAfterUsd, ...adsNotify }),
   );
   // The content loop: ideas → drafts (ContentDesk, paid) → approved drafts posted (ContentScheduler).
   // Always bound: drafting needs no channel; a publish with none configured fails on its row.
@@ -405,10 +418,10 @@ export async function buildServices(
       tracer,
       ...(voice !== null ? { voice } : {}),
     }),
-    makeContentScheduler({ db, linkSite: settings.contentLinkSite ?? null, ...notify }),
-    makeContentMetrics({ db, ...notify }),
+    makeContentScheduler({ db, linkSite: settings.contentLinkSite ?? null, ...contentNotify }),
+    makeContentMetrics({ db, ...contentNotify }),
     // Tomorrow's slots vs scheduled drafts, said once a day; off until `wren content planner start`.
-    makeContentPlanner({ db, zone: settings.sendTimezone, ...notify }),
+    makeContentPlanner({ db, zone: settings.sendTimezone, ...contentNotify }),
   );
   // autobrowse's tokens made again before they lapse (LinkedIn's 60 days, npm's 90); the box is woken for it.
   const wake = settings.autobrowseInstanceId ? ec2Wake(settings.autobrowseInstanceId) : undefined;
@@ -448,7 +461,7 @@ export async function buildServices(
     senderName: settings.smsSenderName,
     heldNiches: settings.reachHeldNiches,
     sitesFor: (ctx: Context) => restateSites(ctx, { caller: "wren:reach", service: DESK }),
-    ...notify,
+    ...reachNotify,
   };
   services.push(makeReachSender(reach), makeReachWatch(reach), makeReachDesk(reach));
   // Search: Search Console daily, the answer engines and edit proposals weekly (on the Mac's desk).
@@ -460,7 +473,7 @@ export async function buildServices(
       site: settings.searchSite,
       origin: settings.searchOrigin,
       fetch: (url: string, init?: RequestInit) => fetch(url, init),
-      ...notify,
+      ...searchNotify,
     };
     services.push(
       makeSearchWatch(search),
@@ -489,7 +502,7 @@ export async function buildServices(
             : null,
         app: portal,
         zone: settings.sendTimezone,
-        ...notify,
+        ...clientsNotify,
       }),
     );
   else log.info("WREN_PORTAL_ORIGIN unset: no DeliveryWatch");
@@ -508,7 +521,7 @@ export async function buildServices(
       crm: { verifier, checker: defaultLocalChecker(), llm: classify ? llm : null },
       freeVerify: freeVerdicts,
       transport,
-      ...notify,
+      ...clientsNotify,
     }),
   );
 
