@@ -14,11 +14,11 @@ export const CALL_TIMES_FALLBACK = "early next week";
 export const FLEET_ZONE = "America/New_York";
 /** How far ahead the offered times may sit: a weekday name stays unambiguous inside a week. */
 export const LOOKAHEAD_MS = 6 * 24 * 3600 * 1000;
-/** No time sooner than this after the send: they need a chance to read it. */
-const NOTICE_MS = 20 * 3600 * 1000;
-/** Their working day, in their clock. */
-const DAY_START = 9;
-const DAY_END = 17;
+/** The first offered day is this many weekdays after the send day: they need a chance to read it. */
+const NOTICE_WEEKDAYS = 2;
+/** Their afternoon, in their clock: the hours a time may start. */
+const AFTERNOON_START = 12;
+const AFTERNOON_END = 17;
 
 const SHORT_ZONE: Readonly<Record<string, string>> = {
   "America/New_York": "ET",
@@ -77,24 +77,33 @@ function clock(l: Local): string {
   return `${h}${m}${l.hour < 12 ? "am" : "pm"}`;
 }
 
+/** The weekday `n` weekdays after `day` (YYYY-MM-DD), skipping Saturday and Sunday. */
+export function weekdaysAfter(day: string, n: number): string {
+  const d = new Date(`${day}T12:00:00Z`);
+  for (let left = n; left > 0; ) {
+    d.setUTCDate(d.getUTCDate() + 1);
+    if (d.getUTCDay() !== 0 && d.getUTCDay() !== 6) left -= 1;
+  }
+  return d.toISOString().slice(0, 10);
+}
+
 /**
- * Two times to offer: the first open slot inside their working day at least a
- * day out, then the first on a later day at least three hours apart in the
- * day (a morning and an afternoon read as a real choice). Fewer when the
- * calendar has fewer.
+ * Two afternoon times on two weekdays: the first open slot two weekdays after
+ * the send (a Friday send offers Tuesday), then the first on a later weekday,
+ * normally the next one. Fewer when the calendar has fewer.
  */
 export function pickTimes(open: readonly Date[], zone: string, now: Date): Date[] {
+  const earliest = weekdaysAfter(local(now, zone).day, NOTICE_WEEKDAYS);
   const usable = open.filter((s) => {
-    const ms = s.getTime() - now.getTime();
-    if (ms < NOTICE_MS || ms > LOOKAHEAD_MS) return false;
+    if (s.getTime() - now.getTime() > LOOKAHEAD_MS) return false;
     const l = local(s, zone);
-    return l.hour >= DAY_START && l.hour < DAY_END;
+    const weekend = l.weekday === "Saturday" || l.weekday === "Sunday";
+    return !weekend && l.day >= earliest && l.hour >= AFTERNOON_START && l.hour < AFTERNOON_END;
   });
   const first = usable[0];
   if (!first) return [];
-  const a = local(first, zone);
-  const later = usable.filter((s) => local(s, zone).day !== a.day);
-  const second = later.find((s) => Math.abs(local(s, zone).hour - a.hour) >= 3) ?? later[0] ?? null;
+  const firstDay = local(first, zone).day;
+  const second = usable.find((s) => local(s, zone).day !== firstDay);
   return second ? [first, second] : [first];
 }
 

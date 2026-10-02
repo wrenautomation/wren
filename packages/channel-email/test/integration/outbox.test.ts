@@ -1061,9 +1061,11 @@ describe("the lead's window", () => {
 
 describe("call times", () => {
   // NOW is Wednesday noon UTC; the lead's firm has no zone, so they hear ET.
-  const THU_10AM_ET = new Date(Date.UTC(2026, 11, 3, 15));
-  const THU_11AM_ET = new Date(Date.UTC(2026, 11, 3, 16));
+  // Two weekdays out is Friday; Thursday and mornings are never offered.
+  const THU_2PM_ET = new Date(Date.UTC(2026, 11, 3, 19));
+  const FRI_1PM_ET = new Date(Date.UTC(2026, 11, 4, 18));
   const FRI_2PM_ET = new Date(Date.UTC(2026, 11, 4, 19));
+  const MON_3PM_ET = new Date(Date.UTC(2026, 11, 7, 20));
 
   async function openerAsking(domain: string): Promise<Message> {
     const enrollment = await enrollOne(domain, `jane@${domain}`);
@@ -1075,13 +1077,15 @@ describe("call times", () => {
   it("the send says two open times in the lead's clock and keeps them", async () => {
     const opener = await openerAsking("oak.example");
     const transport = console_();
-    await tick(transport, { calendar: new FakeCalendar([THU_10AM_ET, THU_11AM_ET, FRI_2PM_ET]) });
+    await tick(transport, {
+      calendar: new FakeCalendar([THU_2PM_ET, FRI_1PM_ET, FRI_2PM_ET, MON_3PM_ET]),
+    });
 
     const [sent] = delivered(transport);
-    expect(sent?.body).toContain("I'm free Thursday at 10am or Friday at 2pm ET.");
+    expect(sent?.body).toContain("I'm free Friday at 1pm or Monday at 3pm ET.");
     const [row] = await db().select().from(messages).where(eq(messages.id, opener.id));
-    expect(row?.body).toBe("Worth a call? I'm free Thursday at 10am or Friday at 2pm ET.");
-    expect(row?.offeredTimes).toEqual([THU_10AM_ET.toISOString(), FRI_2PM_ET.toISOString()]);
+    expect(row?.body).toBe("Worth a call? I'm free Friday at 1pm or Monday at 3pm ET.");
+    expect(row?.offeredTimes).toEqual([FRI_1PM_ET.toISOString(), MON_3PM_ET.toISOString()]);
   });
 
   it("with no calendar the send falls back and offers nothing", async () => {
