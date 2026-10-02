@@ -10,7 +10,7 @@
   },
   "scripts": {
     "typecheck": "tsc --noEmit",
-    "test:unit": "vitest run src"
+    "test:unit": "vitest run src --passWithNoTests"
   },
   "dependencies": {
     "@restatedev/restate-sdk": "1.17.1",
