@@ -159,6 +159,8 @@ describe("the pulse", () => {
     expect(await refused(api.pulse({ viewer: AMY, score: 6 }))).toBe(400);
     await api.pulse({ viewer: AMY, score: 4 });
     await api.pulse({ viewer: AMY, score: 2 });
+    // Off the real clock, or a low score lands in the week the pings below look at.
+    await dated("pulses", "at", "2026-09-28T09:00:00Z");
     const [mine] = (await api.home({ viewer: AMY })).engagements;
     expect(mine?.pulse).toMatchObject({ mine: 2, scores: [] });
     const [ours] = (await api.home({ viewer: OPS, ...acme })).engagements;
