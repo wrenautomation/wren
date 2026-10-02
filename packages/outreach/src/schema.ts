@@ -142,6 +142,8 @@ export const reachContacts = pgTable(
     unique("uq_reach_contacts_platform_handle").on(t.platform, t.handle),
     index("ix_reach_contacts_state").on(t.state),
     index("ix_reach_contacts_company_id").on(t.companyId),
+    index("ix_reach_contacts_person_id").on(t.personId),
+    index("ix_reach_contacts_account_id").on(t.accountId),
     oneOf("ck_reach_contacts_platform", t.platform, PLATFORMS),
     oneOf("ck_reach_contacts_state", t.state, CONTACT_STATES),
     foreignKey({
@@ -189,6 +191,8 @@ export const reachMessages = pgTable(
   (t) => [
     index("ix_reach_messages_contact_id").on(t.contactId),
     index("ix_reach_messages_due").on(t.state, t.dueAt),
+    index("ix_reach_messages_account_id").on(t.accountId),
+    index("ix_reach_messages_run_id").on(t.runId),
     /** One inbound row per platform id. */
     uniqueIndex("uq_reach_messages_in_ref")
       .on(t.contactId, t.ref)
