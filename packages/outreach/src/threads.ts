@@ -1,6 +1,6 @@
 /** The operator's reads: threads, one thread, counts. */
 import type { Queryable } from "@wren/db";
-import { and, desc, eq, inArray, sql } from "drizzle-orm";
+import { and, desc, eq, gte, inArray, sql } from "drizzle-orm";
 import { contactById } from "./contacts.js";
 import {
   type ContactState,
@@ -112,7 +112,7 @@ export async function reachStats(
     .where(
       and(
         eq(reachMessages.direction, "out"),
-        sql`${reachMessages.createdAt} >= ${since}`,
+        gte(reachMessages.createdAt, since),
         o.platform ? eq(reachContacts.platform, o.platform) : undefined,
       ),
     )
@@ -124,7 +124,7 @@ export async function reachStats(
     .where(
       and(
         eq(reachMessages.direction, "in"),
-        sql`${reachMessages.createdAt} >= ${since}`,
+        gte(reachMessages.createdAt, since),
         o.platform ? eq(reachContacts.platform, o.platform) : undefined,
       ),
     );

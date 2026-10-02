@@ -6,7 +6,7 @@
  */
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
-import type { ServiceDefinition, VirtualObjectDefinition } from "@restatedev/restate-sdk";
+import type { Context, ServiceDefinition, VirtualObjectDefinition } from "@restatedev/restate-sdk";
 import {
   activeSenders,
   ConsoleTransport,
@@ -92,6 +92,8 @@ import {
   NICHES,
   SMS_SEQUENCES,
 } from "@wren/niches";
+import { REACH_SEQUENCES, policyFrom as reachPolicyFrom } from "@wren/outreach";
+import { makeReachDesk, makeReachSender, makeReachWatch } from "@wren/outreach/restate";
 import { clientSendScope } from "@wren/reactivation";
 import { DEMO_NAME, makeReactivation, makeReactivationPortal } from "@wren/reactivation/restate";
 import {
@@ -416,6 +418,22 @@ export async function buildServices(
     ...notify,
   };
   services.push(makeSmsSender(sms), makeSmsEvents(sms), makeSmsDesk(sms), makeSmsWatch(sms));
+  // Cold outreach on Reddit and LinkedIn, over the Mac's desk worker as each
+  // reach account. Always bound: the sender and watch are off until
+  // `wren reach queue start` / `wren reach watch start`, and nothing leaves
+  // until WREN_REACH_LIVE says so.
+  if (!settings.reachLive) log.info("WREN_REACH_LIVE off: reach plans and holds, nothing is sent");
+  const reach = {
+    db,
+    policy: reachPolicyFrom(settings),
+    sequences: REACH_SEQUENCES,
+    live: settings.reachLive,
+    senderName: settings.smsSenderName,
+    heldNiches: settings.reachHeldNiches,
+    sitesFor: (ctx: Context) => restateSites(ctx, { caller: "wren:reach", service: DESK }),
+    ...notify,
+  };
+  services.push(makeReachSender(reach), makeReachWatch(reach), makeReachDesk(reach));
   // Search: Search Console daily, the answer engines and edit proposals weekly (on the Mac's desk).
   // Bound only with a property named; off until `wren search watch start`.
   if (settings.searchSite && settings.searchOrigin) {
@@ -497,6 +515,7 @@ export async function buildServices(
       content_voice: voice !== null ? "file" : "default",
       sms: smsProvider.name,
       sms_live: settings.smsLive,
+      reach_live: settings.reachLive,
       sms_alerts: Boolean(settings.smsPushPublicKey),
     },
     close: () => handle.close(),

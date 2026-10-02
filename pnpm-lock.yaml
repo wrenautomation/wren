@@ -123,6 +123,9 @@ importers:
       '@wren/niches':
         specifier: workspace:*
         version: link:../../packages/niches
+      '@wren/outreach':
+        specifier: workspace:*
+        version: link:../../packages/outreach
       '@wren/reactivation':
         specifier: workspace:*
         version: link:../../packages/reactivation
@@ -288,6 +291,9 @@ importers:
       '@wren/niches':
         specifier: workspace:*
         version: link:../../packages/niches
+      '@wren/outreach':
+        specifier: workspace:*
+        version: link:../../packages/outreach
       '@wren/reactivation':
         specifier: workspace:*
         version: link:../../packages/reactivation

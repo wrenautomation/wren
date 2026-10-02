@@ -29,7 +29,9 @@ then `wren content planner start`.
   and a deploy for no new capability. New surfaces are `wren content …` commands.
 - **P-D3 Daily planner reports, never acts.** Drafting costs money and approving is
   publishing. Both stay William's.
-- **P-D4 Many-account cold outreach: not built.** Buying or farming LinkedIn and Reddit
+- **P-D4 Many-account cold outreach: not built.** *(Superseded 2026-10-01 by
+  `2026-10-01-reach-reddit-linkedin.md`: one alt per platform with enforced warmup and caps;
+  a fleet of accounts stays out.)* Buying or farming LinkedIn and Reddit
   accounts to DM strangers breaks both platforms' rules (one real person per account on
   LinkedIn; spam and ban evasion on Reddit). Detection links accounts by device and IP,
   so the shared autobrowse box puts Wren's main accounts in the same ban. It also

@@ -1,28 +1,31 @@
 /**
- * The send tick: due rows out, at most one per account per tick, inside the
- * window, under each account's standing for the day. Intent before act: a
- * row is marked `sending` in its own write before the platform is called, so
- * a crash leaves a `sending` row, which `reconcile` turns into `unknown` and
- * nothing ever resends. Messaging a stranger twice is worse than missing one.
+ * The send tick, in steps a journal can bracket: every database move is one
+ * step (`run`), every platform call sits between two of them. On Restate the
+ * steps are `ctx.run` and the platform calls are journaled service calls to
+ * the Mac's desk, so a crash anywhere replays to the same outcome. In tests
+ * `run` is a plain call.
  *
- * LinkedIn: a sequence step goes only once the invite is accepted. The step
- * is due a day after the invite; when due, the tick reads the relationship:
- * connected = send (and mark the contact connected), pending = ask again
- * tomorrow, and past `connectWaitDays` the contact is `unreachable`.
+ * Per account at most one send a tick, inside the window, under the account's
+ * standing for the day (policy.ts). Intent before act: the row is `sending`
+ * in its own step before the platform is called; a `sending` row older than
+ * ten minutes becomes `unknown` and nothing ever resends. Messaging a
+ * stranger twice is worse than missing one.
  *
- * After a step is sent the next is queued `afterDays` later; after the last,
- * the contact is `finished`. The live gate: `live` off holds every due row,
- * counted, nothing leaves. A 429 from the worker (its own caps) holds the row
- * for the retry it names; any other platform refusal fails the row and ends
- * the contact as `unreachable`.
+ * LinkedIn: a sequence step goes only once the invite is accepted. When the
+ * step is due the tick reads the relationship: connected = send (and mark the
+ * contact connected), pending = ask again tomorrow, past `connectWaitDays` =
+ * `unreachable`. After a step the next is queued `afterDays` out; after the
+ * last, the contact is `finished`. The live gate off holds every due row.
+ * A 429 from the worker (its caps) holds the row an hour; any other 4xx fails
+ * it and ends the contact as `unreachable`; anything else leaves `unknown`.
  */
 import { SiteCallError } from "@wren/core/content";
-import type { OutreachChannel } from "@wren/core/outreach";
+import type { OutreachChannel, Relationship, Sent } from "@wren/core/outreach";
 import type { Queryable } from "@wren/db";
 import { and, asc, eq, gte, inArray, isNull, lt, lte, or, sql } from "drizzle-orm";
 import { activeAccounts, healthOf } from "./accounts.js";
 import { contactsById, fieldsFor, setContactState } from "./contacts.js";
-import { fleetDay, inWindow, type ReachPolicy, standingOf } from "./policy.js";
+import { FLEET_ZONE, fleetDay, inWindow, type ReachPolicy, standingOf } from "./policy.js";
 import {
   type ReachAccount,
   type ReachContact,
@@ -60,6 +63,29 @@ export interface TickStats {
   unreachable: number;
 }
 
+/** One due row the plan picked, with what it needs. Dates travel as ISO through a journal. */
+export interface Candidate {
+  row: ReachMessage;
+  contact: ReachContact;
+  account: ReachAccount;
+  /** LinkedIn step: ask the relationship first. */
+  checkRelationship: boolean;
+}
+
+export const emptyStats = (): TickStats => ({
+  sent: 0,
+  connected: 0,
+  held: {},
+  failed: 0,
+  reconciled: 0,
+  finished: 0,
+  unreachable: 0,
+});
+
+const hold = (stats: TickStats, why: string) => {
+  stats.held[why] = (stats.held[why] ?? 0) + 1;
+};
+
 /** `sending` rows past STALE become `unknown`: the call's fate is lost, never resent. */
 export async function reconcile(db: Queryable, now: Date): Promise<number> {
   const rows = await db
@@ -75,14 +101,13 @@ export async function reconcile(db: Queryable, now: Date): Promise<number> {
   return rows.length;
 }
 
-/** Today's sends from each account, by kind. */
+/** Today's sends from each account, by kind (fleet day). */
 async function sentToday(
   db: Queryable,
   accountIds: readonly string[],
   now: Date,
 ): Promise<Map<string, { connects: number; messages: number }>> {
   const day = fleetDay(now);
-  const from = new Date(`${day}T00:00:00-04:00`);
   const rows = await db
     .select({
       accountId: reachMessages.accountId,
@@ -95,8 +120,8 @@ async function sentToday(
         inArray(reachMessages.accountId, [...accountIds]),
         inArray(reachMessages.state, ["sent", "sending", "unknown"]),
         eq(reachMessages.direction, "out"),
-        gte(reachMessages.createdAt, new Date(from.getTime() - 6 * 60 * 60 * 1000)),
-        sql`${reachMessages.sentAt} IS NULL OR ${reachMessages.sentAt} >= ${from}`,
+        gte(reachMessages.createdAt, new Date(now.getTime() - 2 * DAY_MS)),
+        sql`to_char(coalesce(${reachMessages.sentAt}, ${reachMessages.createdAt}) at time zone ${FLEET_ZONE}, 'YYYY-MM-DD') = ${day}`,
       ),
     )
     .groupBy(reachMessages.accountId, reachMessages.kind);
@@ -111,30 +136,151 @@ async function sentToday(
   return out;
 }
 
-const hold = (stats: TickStats, why: string) => {
-  stats.held[why] = (stats.held[why] ?? 0) + 1;
-};
-
-async function defer(db: Queryable, row: ReachMessage, until: Date, why: string) {
-  await db
-    .update(reachMessages)
-    .set({ dueAt: until, stateReason: why })
-    .where(eq(reachMessages.id, row.id));
+/**
+ * Step 1 (database only): reconcile, then pick at most one due row per active
+ * account that may go now. Rows for a contact no longer enrolled are skipped
+ * here.
+ */
+export async function planTick(
+  db: Queryable,
+  o: Omit<TickOptions, "channelFor">,
+): Promise<{ stats: TickStats; candidates: Candidate[] }> {
+  const stats = emptyStats();
+  const candidates: Candidate[] = [];
+  stats.reconciled = await reconcile(db, o.now);
+  const accounts = await activeAccounts(db);
+  if (accounts.length === 0) return { stats, candidates };
+  const byAccount = new Map(accounts.map((a) => [a.id, a]));
+  const due: ReachMessage[] = await db
+    .select()
+    .from(reachMessages)
+    .where(
+      and(
+        eq(reachMessages.state, "queued"),
+        eq(reachMessages.direction, "out"),
+        inArray(reachMessages.accountId, [...byAccount.keys()]),
+        or(isNull(reachMessages.dueAt), lte(reachMessages.dueAt, o.now)),
+      ),
+    )
+    .orderBy(asc(reachMessages.dueAt), asc(reachMessages.id))
+    .limit(SCAN);
+  if (due.length === 0) return { stats, candidates };
+  if (!inWindow(o.now, o.policy)) {
+    for (const _ of due) hold(stats, "window");
+    return { stats, candidates };
+  }
+  if (!o.live) {
+    for (const _ of due) hold(stats, "gated");
+    return { stats, candidates };
+  }
+  const today = await sentToday(db, [...byAccount.keys()], o.now);
+  const contacts = await contactsById(
+    db,
+    due.map((r) => r.contactId),
+  );
+  const taken = new Set<string>();
+  for (const row of due) {
+    const account = row.accountId ? byAccount.get(row.accountId) : undefined;
+    const contact = contacts.get(row.contactId);
+    if (!account || !contact) continue;
+    // Sequence rows ride the enrollment; a manual reply goes to anyone who has not asked us to stop.
+    const allowed =
+      row.kind === "manual"
+        ? !["opted_out", "blocked", "unreachable"].includes(contact.state)
+        : ["enrolled", "connected"].includes(contact.state);
+    if (!allowed) {
+      await db
+        .update(reachMessages)
+        .set({ state: "skipped", stateReason: `contact is ${contact.state}` })
+        .where(eq(reachMessages.id, row.id));
+      continue;
+    }
+    if (taken.has(account.id)) {
+      hold(stats, "gap");
+      continue;
+    }
+    const standing = standingOf(
+      { platform: account.platform, startedOn: account.startedOn, health: healthOf(account) },
+      o.policy,
+      o.now,
+    );
+    if (standing.frozen) {
+      hold(stats, "frozen");
+      continue;
+    }
+    const spent = today.get(account.id) ?? { connects: 0, messages: 0 };
+    const left =
+      row.kind === "connect"
+        ? standing.caps.connects - spent.connects
+        : standing.caps.messages - spent.messages;
+    if (left <= 0) {
+      hold(stats, "cap");
+      continue;
+    }
+    const seq = contact.sequence ? o.sequences.get(contact.sequence) : undefined;
+    taken.add(account.id);
+    candidates.push({
+      row,
+      contact,
+      account,
+      checkRelationship: row.kind !== "connect" && Boolean(seq?.connectFirst),
+    });
+  }
+  return { stats, candidates };
 }
 
-async function fail(db: Queryable, row: ReachMessage, why: string, now: Date, stats: TickStats) {
+/** Step 2 (LinkedIn): what the relationship read means for this row. */
+export async function applyRelationship(
+  db: Queryable,
+  c: Candidate,
+  rel: Relationship,
+  o: Pick<TickOptions, "sequences" | "now">,
+  stats: TickStats,
+): Promise<"send" | "wait"> {
+  const seq = c.contact.sequence ? o.sequences.get(c.contact.sequence) : undefined;
+  if (rel === "connected") {
+    if (c.contact.state !== "connected") {
+      await db
+        .update(reachContacts)
+        .set({ state: "connected", connectedAt: o.now })
+        .where(eq(reachContacts.id, c.contact.id));
+      stats.connected++;
+    }
+    return "send";
+  }
+  const waitDays = seq?.connectWaitDays ?? 21;
+  const invitedAt = new Date(c.contact.enrolledAt ?? c.contact.createdAt);
+  if (o.now.getTime() - invitedAt.getTime() > waitDays * DAY_MS) {
+    await db
+      .update(reachMessages)
+      .set({ state: "skipped", stateReason: `invite not accepted in ${waitDays} days` })
+      .where(eq(reachMessages.id, c.row.id));
+    await setContactState(db, c.contact.id, "unreachable", {
+      reason: `invite ${rel} after ${waitDays} days`,
+      now: o.now,
+    });
+    stats.unreachable++;
+  } else {
+    await db
+      .update(reachMessages)
+      .set({ dueAt: new Date(o.now.getTime() + DAY_MS), stateReason: `invite ${rel}` })
+      .where(eq(reachMessages.id, c.row.id));
+    hold(stats, "pending");
+  }
+  return "wait";
+}
+
+/** Step 3: intent. */
+export async function markSending(db: Queryable, rowId: number): Promise<void> {
   await db
     .update(reachMessages)
-    .set({ state: "failed", stateReason: why.slice(0, 500) })
-    .where(eq(reachMessages.id, row.id));
-  await setContactState(db, row.contactId, "unreachable", { reason: why.slice(0, 500), now });
-  stats.failed++;
-  stats.unreachable++;
+    .set({ state: "sending", stateReason: null })
+    .where(eq(reachMessages.id, rowId));
 }
 
 async function queueNext(
   db: Queryable,
-  o: TickOptions,
+  o: Pick<TickOptions, "sender" | "now" | "runId">,
   seq: ReachSequence,
   contact: ReachContact,
   afterStep: number,
@@ -174,177 +320,123 @@ async function queueNext(
   });
 }
 
-export async function tick(db: Queryable, o: TickOptions): Promise<TickStats> {
-  const stats: TickStats = {
-    sent: 0,
-    connected: 0,
-    held: {},
-    failed: 0,
-    reconciled: 0,
-    finished: 0,
-    unreachable: 0,
-  };
-  stats.reconciled = await reconcile(db, o.now);
-  const accounts = await activeAccounts(db);
-  if (accounts.length === 0) return stats;
-  const byAccount = new Map(accounts.map((a) => [a.id, a]));
-  const due: ReachMessage[] = await db
-    .select()
-    .from(reachMessages)
-    .where(
-      and(
-        eq(reachMessages.state, "queued"),
-        eq(reachMessages.direction, "out"),
-        inArray(reachMessages.accountId, [...byAccount.keys()]),
-        or(isNull(reachMessages.dueAt), lte(reachMessages.dueAt, o.now)),
-      ),
-    )
-    .orderBy(asc(reachMessages.dueAt), asc(reachMessages.id))
-    .limit(SCAN);
-  if (due.length === 0) return stats;
-  if (!inWindow(o.now, o.policy)) {
-    for (const _ of due) hold(stats, "window");
-    return stats;
-  }
-  if (!o.live) {
-    for (const _ of due) hold(stats, "gated");
-    return stats;
-  }
-  const today = await sentToday(db, [...byAccount.keys()], o.now);
-  const contacts = await contactsById(
-    db,
-    due.map((r) => r.contactId),
-  );
-  const usedThisTick = new Set<string>();
+/** Step 4a: the platform took it. The next step is queued, or the contact finished. */
+export async function recordSent(
+  db: Queryable,
+  c: Candidate,
+  sent: Sent,
+  o: Pick<TickOptions, "sequences" | "sender" | "now" | "runId">,
+  stats: TickStats,
+): Promise<void> {
+  await db
+    .update(reachMessages)
+    .set({ state: "sent", sentAt: o.now, ref: sent.ref })
+    .where(eq(reachMessages.id, c.row.id));
+  stats.sent++;
+  const seq = c.contact.sequence ? o.sequences.get(c.contact.sequence) : undefined;
+  if (!seq) return;
+  if (c.row.kind === "connect") await queueNext(db, o, seq, c.contact, 0, stats);
+  else if (c.row.kind === "sequence" && c.row.step)
+    await queueNext(db, o, seq, c.contact, c.row.step, stats);
+}
 
-  for (const row of due) {
-    const account = row.accountId ? byAccount.get(row.accountId) : undefined;
-    const contact = contacts.get(row.contactId);
-    if (!account || !contact) continue;
-    if (usedThisTick.has(account.id)) {
-      hold(stats, "gap");
-      continue;
-    }
-    if (!["enrolled", "connected"].includes(contact.state)) {
-      await db
-        .update(reachMessages)
-        .set({ state: "skipped", stateReason: `contact is ${contact.state}` })
-        .where(eq(reachMessages.id, row.id));
-      continue;
-    }
-    const standing = standingOf(
-      { platform: account.platform, startedOn: account.startedOn, health: healthOf(account) },
-      o.policy,
-      o.now,
-    );
-    if (standing.frozen) {
-      hold(stats, "frozen");
-      continue;
-    }
-    const spent = today.get(account.id) ?? { connects: 0, messages: 0 };
-    const isConnect = row.kind === "connect";
-    const left = isConnect
-      ? standing.caps.connects - spent.connects
-      : standing.caps.messages - spent.messages;
-    if (left <= 0) {
-      hold(stats, "cap");
-      continue;
-    }
-    const channel = o.channelFor(account);
-    if (!channel) {
+/** Step 4b: the platform did not take it, or we do not know. */
+export async function recordFailure(
+  db: Queryable,
+  c: Candidate,
+  err: unknown,
+  now: Date,
+  stats: TickStats,
+): Promise<void> {
+  const text = (err instanceof Error ? err.message : String(err)).slice(0, 500);
+  if (err instanceof SiteCallError && err.status === 429) {
+    await db
+      .update(reachMessages)
+      .set({ state: "queued", dueAt: new Date(now.getTime() + HOLD_MS), stateReason: text })
+      .where(eq(reachMessages.id, c.row.id));
+    hold(stats, "retry");
+    return;
+  }
+  if (err instanceof SiteCallError && err.status >= 400 && err.status < 500) {
+    await db
+      .update(reachMessages)
+      .set({ state: "failed", stateReason: text })
+      .where(eq(reachMessages.id, c.row.id));
+    await setContactState(db, c.contact.id, "unreachable", { reason: text, now });
+    stats.failed++;
+    stats.unreachable++;
+    return;
+  }
+  await db
+    .update(reachMessages)
+    .set({ state: "unknown", stateReason: text })
+    .where(eq(reachMessages.id, c.row.id));
+  stats.failed++;
+}
+
+/** A journal step: on Restate `ctx.run`, in tests a plain call. */
+export type Journal = <T>(name: string, fn: () => Promise<T>) => Promise<T>;
+
+/** The whole tick over a journal: the loop object and the tests both run this. */
+export async function tick(
+  db: Queryable,
+  o: TickOptions,
+  run: Journal = (_n, fn) => fn(),
+): Promise<TickStats> {
+  const { stats, candidates } = await run("plan", () => planTick(db, o));
+  const stepStats = async (name: string, body: (s: TickStats) => Promise<unknown>) => {
+    const s = await run(name, async () => {
+      const s = emptyStats();
+      await body(s);
+      return s;
+    });
+    merge(stats, s);
+    return s;
+  };
+  for (const c of candidates) {
+    const channel = o.channelFor(c.account);
+    if (!channel || (c.checkRelationship && !channel.relationship)) {
       hold(stats, "no-channel");
       continue;
     }
-    const seq = contact.sequence ? o.sequences.get(contact.sequence) : undefined;
-
-    // LinkedIn: a step goes only to a 1st-degree connection.
-    if (!isConnect && seq?.connectFirst && channel.relationship) {
-      const rel = await channel.relationship(contact.handle);
-      if (rel !== "connected") {
-        const invitedAt = contact.enrolledAt ?? contact.createdAt;
-        if (o.now.getTime() - invitedAt.getTime() > seq.connectWaitDays * DAY_MS) {
-          await db
-            .update(reachMessages)
-            .set({
-              state: "skipped",
-              stateReason: `invite not accepted in ${seq.connectWaitDays} days`,
-            })
-            .where(eq(reachMessages.id, row.id));
-          await setContactState(db, contact.id, "unreachable", {
-            reason: `invite ${rel} after ${seq.connectWaitDays} days`,
-            now: o.now,
-          });
-          stats.unreachable++;
-        } else {
-          await defer(db, row, new Date(o.now.getTime() + DAY_MS), `invite ${rel}`);
-          hold(stats, "pending");
-        }
-        continue;
-      }
-      if (contact.state !== "connected") {
-        await db
-          .update(reachContacts)
-          .set({ state: "connected", connectedAt: o.now })
-          .where(eq(reachContacts.id, contact.id));
-        stats.connected++;
-      }
+    if (c.checkRelationship) {
+      const rel = await (channel.relationship as NonNullable<typeof channel.relationship>)(
+        c.contact.handle,
+      );
+      const verdict = await run(`relationship ${c.row.id}`, async () => {
+        const s = emptyStats();
+        const v = await applyRelationship(db, c, rel, o, s);
+        return { v, s };
+      });
+      merge(stats, verdict.s);
+      if (verdict.v !== "send") continue;
     }
-
-    // Intent first.
-    await db
-      .update(reachMessages)
-      .set({ state: "sending", stateReason: null })
-      .where(eq(reachMessages.id, row.id));
-    usedThisTick.add(account.id);
+    await run(`sending ${c.row.id}`, () => markSending(db, c.row.id));
+    let sent: Sent;
     try {
-      const sent = isConnect
-        ? await (channel.connect as NonNullable<typeof channel.connect>)(
-            contact.handle,
-            row.body || null,
-          )
-        : await channel.message(contact.handle, row.body, row.subject);
-      await db
-        .update(reachMessages)
-        .set({ state: "sent", sentAt: o.now, ref: sent.ref })
-        .where(eq(reachMessages.id, row.id));
-      stats.sent++;
-      if (isConnect) spent.connects++;
-      else spent.messages++;
-      today.set(account.id, spent);
-      if (isConnect && seq) {
-        // The first step waits for the acceptance; due a day out, then polled daily.
-        const first = seq.steps[0];
-        if (first) await queueNext(db, o, seq, contact, 0, stats);
-      } else if (seq && row.step) {
-        await queueNext(db, o, seq, contact, row.step, stats);
-      }
+      sent =
+        c.row.kind === "connect"
+          ? await (channel.connect as NonNullable<typeof channel.connect>)(
+              c.contact.handle,
+              c.row.body || null,
+            )
+          : await channel.message(c.contact.handle, c.row.body, c.row.subject);
     } catch (err) {
-      if (err instanceof SiteCallError && err.status === 429) {
-        await db
-          .update(reachMessages)
-          .set({
-            state: "queued",
-            dueAt: new Date(o.now.getTime() + HOLD_MS),
-            stateReason: err.message,
-          })
-          .where(eq(reachMessages.id, row.id));
-        hold(stats, "retry");
-      } else if (err instanceof SiteCallError && err.status >= 400 && err.status < 500) {
-        await fail(db, row, err.message, o.now, stats);
-      } else {
-        // Fate unknown: never resent.
-        await db
-          .update(reachMessages)
-          .set({
-            state: "unknown",
-            stateReason: (err instanceof Error ? err.message : String(err)).slice(0, 500),
-          })
-          .where(eq(reachMessages.id, row.id));
-        stats.failed++;
-      }
+      await stepStats(`failed ${c.row.id}`, (s) => recordFailure(db, c, err, o.now, s));
+      continue;
     }
+    await stepStats(`sent ${c.row.id}`, (s) => recordSent(db, c, sent, o, s));
   }
   return stats;
+}
+
+function merge(into: TickStats, from: TickStats) {
+  into.sent += from.sent;
+  into.connected += from.connected;
+  into.failed += from.failed;
+  into.finished += from.finished;
+  into.unreachable += from.unreachable;
+  for (const [k, v] of Object.entries(from.held)) into.held[k] = (into.held[k] ?? 0) + v;
 }
 
 /** A message typed by the operator on a thread, out on the next tick from the contact's account. */

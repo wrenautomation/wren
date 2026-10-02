@@ -28,6 +28,7 @@
     "@wren/delivery": "workspace:*",
     "@wren/llm": "workspace:*",
     "@wren/niches": "workspace:*",
+    "@wren/outreach": "workspace:*",
     "@wren/reactivation": "workspace:*",
     "@wren/research": "workspace:*",
     "pino": "10.3.1",
