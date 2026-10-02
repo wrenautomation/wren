@@ -6,12 +6,13 @@ subject: (({first_name}, ))[[your old clients | the clients you already won | yo
 
 I've been following {company_name|your firm} for a while. I'm a student who's constantly recruiting for coop internships, so I love the work that you're doing.
 
-As a software engineer at a top Canadian university (University of Waterloo), I've built production systems with big teams at the Government of Canada (one is used by 17,000 staff) and with a small team at a University of Alberta lab. I understand how to solve problems with technology.
-
 I know for a fact you've got years of past clients sitting in your CRM that nobody's called in a while. [[Guess what a lot of them are probably doing right now? Hiring. | A lot of them are probably hiring right now.]] You're missing out on hundreds of thousands in potential revenue.
 
-[[Following up on my last email. | Following up on my email from a few days ago. | Just following up on my last email.]] I'll build you a reliable, automated lead reactivation system that tracks all your past clients and books you {offer.goal} meetings in {offer.days} days. I'm confident I'll get you results, so if I don't, you don't pay me at all.
+I study software engineering at the University of Waterloo, one of Canada's top engineering schools. I've built software for the Government of Canada (one tool is used by 17,000 staff) and for university research labs.
 
-Are you down to hop on a 30-minute call? How does {call.times} sound? I'll send you a Google Meet invite for one of those, or you can name a time that [[suits you | works]] better. Let me know.
+[[Following up on my last email. | Following up on my email from a few days ago. | Just following up on my last email.]] I'll build you a custom lead reactivation system that tracks all your past clients and books you {offer.goal} meetings in {offer.days} days. I'm confident I'll get you results, so if I don't, you don't pay me at all.
 
+Are you down to hop on a 30-minute call {call.times}? I'll send you a Google Meet invite, or you can name a time that [[suits you | works]] better. Let me know.
+
+[[Thanks, | Appreciate it,]]
 William

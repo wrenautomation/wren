@@ -47,24 +47,27 @@ describe("recruiting book-first opener", () => {
     expect(withLine.replace(`${LINE}\n\n`, "")).toBe(body(base));
   });
 
-  it("opens on the cold read, says who William is, and names the problem", () => {
+  it("opens on the cold read, names the problem, then says who William is", () => {
     const b = body(base);
     expect(b.startsWith("Hi Dana,\n\nI've been following Tulsa Nurse Partners for a while.")).toBe(
       true,
     );
-    expect(b).toContain("software engineer at a top Canadian university (University of Waterloo)");
+    expect(b).toContain("University of Waterloo");
     expect(b).toContain("Government of Canada");
     expect(b).toContain("missing out on hundreds of thousands in potential revenue");
     expect(b).toMatch(/hiring/i);
+    expect(b.indexOf("hundreds of thousands")).toBeLessThan(b.indexOf("University of Waterloo"));
   });
 
   it("asks for a call with a Google Meet invite and drops the old claims", () => {
     const b = body(base);
-    expect(b).toContain("Are you down to hop on a 30-minute call?");
+    expect(b).toContain(`Are you down to hop on a 30-minute call ${CALL_TIMES}?`);
     expect(b).toContain("Google Meet invite");
     expect(b).toContain("you don't pay me at all");
     for (const gone of [
       "I found you",
+      "How does",
+      "production systems",
       "calendar invite",
       "firms at a time",
       "new domain",
@@ -90,9 +93,7 @@ describe("recruiting book-first opener", () => {
     const r = render(f, base, "person:7");
     expect(r.subject).toMatch(/^Dana, /);
     expect(r.subject).not.toBe(render(tpl(), base, "person:7").subject);
-    expect(r.body).toContain(
-      "software engineer at a top Canadian university (University of Waterloo)",
-    );
+    expect(r.body).toContain("University of Waterloo");
     expect(r.body).toMatch(/hiring/i);
     expect(r.body).toMatch(/following up on my (last email|email from a few days ago)\./i);
     expect(r.body).toContain("you don't pay me at all");
@@ -101,6 +102,7 @@ describe("recruiting book-first opener", () => {
 
   it("asks for the times, quotes the offer's terms, and leaves no syntax behind", () => {
     const b = body(base);
+    expect(b).toMatch(/\n\n(Thanks|Appreciate it),\nWilliam$/);
     expect(b).toContain(CALL_TIMES);
     expect(b).toContain(`${terms["offer.goal"]} meetings in ${terms["offer.days"]} days`);
     expect(b.replace(CALL_TIMES, "")).not.toMatch(/[{}]|\[\[|\(\(|\]\]|\)\)/);
