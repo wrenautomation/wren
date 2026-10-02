@@ -162,11 +162,25 @@ async function contactFor(
   return made as SmsContact;
 }
 
+/** The shape `ck_sms_contacts_e164` allows. */
+const E164 = /^\+[1-9][0-9]{7,14}$/;
+
 async function applyInbound(
   db: Queryable,
   e: Extract<SmsEvent, { kind: "inbound" }>,
   opts: ApplyOptions,
 ): Promise<{ outcome: string; notify: string | null; alert: PushAlert | null }> {
+  // A short code or alphanumeric sender (Google's sign-in codes) is no contact:
+  // it cannot be texted back. The raw event row keeps it; the note and the
+  // alert carry the text so a code is readable at once.
+  if (!E164.test(e.from)) {
+    const body = e.text.length > 160 ? `${e.text.slice(0, 159)}…` : e.text;
+    return {
+      outcome: `from ${e.from} (not a phone number): ${body}`,
+      notify: `SMS from ${e.from} to ${formatPhone(e.to)}: ${body}`,
+      alert: { title: `SMS from ${e.from}`, body, url: "/", tag: `sender-${e.from}` },
+    };
+  }
   const number = await numberByE164(db, e.to);
   const contact = await contactFor(db, e.from, number?.id ?? null, opts.now);
   const cls = classifyInbound(e.text);

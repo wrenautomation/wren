@@ -546,6 +546,24 @@ describe("enroll → send → receipts → reply", () => {
     expect(await activeSuppressionOf(db(), "phone", to)).toBeNull();
   });
 
+  it("a short-code text is kept and readable, with no contact made", async () => {
+    const r = await event({
+      kind: "inbound",
+      eventId: "g1",
+      type: "message.received",
+      messageId: "in-g1",
+      from: "22000",
+      to: "+13652428903",
+      text: "G-123456 is your Google verification code.",
+      at: OPEN,
+    });
+    expect(r.duplicate).toBe(false);
+    expect(r.outcome).toBe(
+      "from 22000 (not a phone number): G-123456 is your Google verification code.",
+    );
+    expect(await contact("22000")).toBeUndefined();
+  });
+
   it("one phone gets at most the month's texts, under any contact row", async () => {
     const policy = { ...POLICY, monthlyPerContact: 2 };
     await enrollAt(OPEN);
