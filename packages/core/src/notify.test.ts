@@ -1,5 +1,13 @@
 import { describe, expect, it } from "vitest";
-import { ConsoleNotifier, DiscordNotifier, makeNotifier, plural } from "./notify.js";
+import {
+  Broadcast,
+  ConsoleNotifier,
+  DiscordNotifier,
+  makeNotifier,
+  NoneNotifier,
+  type Notifier,
+  plural,
+} from "./notify.js";
 
 describe("notifiers", () => {
   it("none never sends; console prints", async () => {
@@ -36,6 +44,25 @@ describe("notifiers", () => {
 
   it("discord without a URL refuses at construction", () => {
     expect(() => makeNotifier("discord")).toThrow(/WREN_DISCORD_WEBHOOK_URL/);
+  });
+
+  it("broadcast reaches every subscriber; one failing never stops the rest", async () => {
+    const lines: string[] = [];
+    const broken: Notifier = {
+      name: "broken",
+      notify: async () => {
+        throw new Error("down");
+      },
+    };
+    const b = new Broadcast([
+      broken,
+      new ConsoleNotifier((l) => lines.push(l)),
+      new NoneNotifier(),
+    ]);
+    expect(b.name).toBe("broken+console+none");
+    expect(await b.notify("Warm reply", "Wednesday", "warning")).toBe(true);
+    expect(lines).toEqual(["[notify:warning] Warm reply\nWednesday"]);
+    expect(await new Broadcast([broken, new NoneNotifier()]).notify("x")).toBe(false);
   });
 
   it("plural", () => {

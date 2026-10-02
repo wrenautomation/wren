@@ -85,15 +85,19 @@ describe("recruiting book-first opener", () => {
     expect(subj(company)).toMatch(/^(you're|your) /);
   });
 
-  it("the follow-up is a short ping under its own subject", () => {
+  it("the follow-up restates the opener, says it follows up, under its own subject", () => {
     const f = recruiting.templates.get("book-first/followup");
     if (f === undefined) throw new Error("missing book-first/followup");
     const r = render(f, base, "person:7");
     expect(r.subject).toMatch(/^Dana, /);
     expect(r.subject).not.toBe(render(tpl(), base, "person:7").subject);
-    expect(r.body).toContain("Following up on my last email.");
+    expect(r.body).toContain(
+      "software engineer at a top Canadian university (University of Waterloo)",
+    );
+    expect(r.body).toContain("hiring");
+    expect(r.body).toMatch(/following up on my (last email|email from a few days ago)\./i);
     expect(r.body).toContain("you don't pay me at all");
-    expect(r.body.length).toBeLessThan(body(base).length / 2);
+    expect(r.body).toContain(CALL_TIMES);
   });
 
   it("asks for the times, quotes the offer's terms, and leaves no syntax behind", () => {
@@ -101,5 +105,58 @@ describe("recruiting book-first opener", () => {
     expect(b).toContain(CALL_TIMES);
     expect(b).toContain(`${terms["offer.goal"]} meetings in ${terms["offer.days"]} days`);
     expect(b.replace(CALL_TIMES, "")).not.toMatch(/[{}]|\[\[|\(\(|\]\]|\)\)/);
+  });
+});
+
+const named = (name: string) => {
+  const t = recruiting.templates.get(name);
+  if (t === undefined) throw new Error(`missing ${name}`);
+  return t;
+};
+
+describe("recruiting watch-first", () => {
+  it("the opener and follow-up offer the demo after 'too good to be true'", () => {
+    for (const name of ["watch-first/opener", "watch-first/followup"]) {
+      const b = render(named(name), base, "person:7").body;
+      expect(b).toContain("If this sounds too good to be true, I can send you a quick demo.");
+      expect(b).not.toContain("curious how I'll pull that off");
+    }
+    expect(render(named("watch-first/followup"), base, "person:7").body).toMatch(
+      /following up on my/i,
+    );
+  });
+
+  it("both arms send a follow-up", () => {
+    expect(recruiting.sequences.get("watch-first-days-0-5")?.steps.map((s) => s.template)).toEqual([
+      "watch-first/opener",
+      "watch-first/followup",
+    ]);
+  });
+});
+
+describe("recruiting replies (drafted for William's approval)", () => {
+  it("book-first names the booked time and rides the thread", () => {
+    const r = render(
+      named("book-first/reply"),
+      { ...base, "call.booked": "Tuesday at 10am ET" },
+      "person:7",
+    );
+    expect(r.subject).toBeNull();
+    expect(r.body).toMatch(
+      /^(Hi|Hey) Dana,\n\n(Just sent|Sent) you the invite for Tuesday at 10am ET\./,
+    );
+    expect(r.body).toContain(
+      "Looking forward to chatting more about how I can help your business.",
+    );
+  });
+
+  it("watch-first carries the demo link", () => {
+    const r = render(
+      named("watch-first/reply"),
+      { ...base, "link.watch": "https://x.test/w" },
+      "person:7",
+    );
+    expect(r.subject).toBeNull();
+    expect(r.body).toContain("https://x.test/w");
   });
 });

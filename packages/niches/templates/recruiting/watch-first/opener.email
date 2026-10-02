@@ -4,7 +4,7 @@ Hi {first_name|there},
 
 (({company.opener}))
 
-I've been following {company_name|your firm} for a while. As a software student who's constantly recruiting for internships, I relate to the work you're doing.
+I've been following {company_name|your firm} for a while. As a student who's constantly recruiting for internships, I relate to the work you're doing.
 
 I'm a software engineer at a top Canadian university (University of Waterloo). I've built production systems with big teams at the Government of Canada (one is used by 17,000 staff) and with a small team at a University of Alberta lab.
 
@@ -12,6 +12,6 @@ I'm sure you've got years of past clients sitting in your CRM that nobody's call
 
 I'll build a system that tracks all your past clients and books you {offer.goal} meetings in {offer.days} days. If I don't get you any results, you don't pay me at all.
 
-If you're curious how I'll pull that off, I can send you a quick demo. Want me to send it over?
+If this sounds too good to be true, I can send you a quick demo. Want me to send it over?
 
 William

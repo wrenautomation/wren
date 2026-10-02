@@ -1,0 +1,5 @@
+ALTER TABLE "call_invites" DROP CONSTRAINT "ck_call_invites_callinvitestate";--> statement-breakpoint
+ALTER TABLE "call_invites" ADD COLUMN "reply_message_id" integer;--> statement-breakpoint
+ALTER TABLE "call_invites" ADD CONSTRAINT "fk_call_invites_reply_message_id_messages" FOREIGN KEY ("reply_message_id") REFERENCES "public"."messages"("id") ON DELETE set null ON UPDATE no action;--> statement-breakpoint
+CREATE INDEX "ix_call_invites_reply_message_id" ON "call_invites" USING btree ("reply_message_id");--> statement-breakpoint
+ALTER TABLE "call_invites" ADD CONSTRAINT "ck_call_invites_callinvitestate" CHECK (("state")::text = ANY ((ARRAY['proposed'::character varying, 'booking'::character varying, 'booked'::character varying, 'sent'::character varying, 'already_booked'::character varying, 'needs_you'::character varying, 'dropped'::character varying])::text[]));

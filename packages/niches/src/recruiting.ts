@@ -1,5 +1,5 @@
 /** Recruiting and staffing firms: the dead lead reactivation pilot, sold to the owner or MD. */
-import { sequence, sequenceStep, twoEmailSequence } from "@wren/channel-email";
+import { twoEmailSequence } from "@wren/channel-email";
 import { defineNiche, rawLocation, templatesDir } from "./niche.js";
 import {
   recruitingDatasets,
@@ -37,10 +37,11 @@ export const recruiting = defineNiche({
   ],
   templatesDir: templatesDir(import.meta.url, "recruiting"),
   // Every firm gets book-first for now (William, 10-02). The demo arm stays defined so
-  // switching it back on is one plan line; it has no follow-up.
+  // switching it back on is one plan line. Each arm's `reply` copy is drafted for
+  // William's approval when a warm reply lands; it is in no sequence.
   sequences: [
     twoEmailSequence("book-first/opener", "book-first/followup"),
-    sequence("watch-first-days-0", [sequenceStep("watch-first/opener", 0)]),
+    twoEmailSequence("watch-first/opener", "watch-first/followup"),
   ],
   offers: { "book-first": "reactivation", "watch-first": "reactivation" },
   plan: [{ sequence: "book-first-days-0-5" }],

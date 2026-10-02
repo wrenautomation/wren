@@ -376,12 +376,23 @@ export const threadEvents = pgTable(
 );
 
 /**
- * What happened to one warm reply: booked on the calendar (cal.com emails the
- * invite), or handed to William because no time could be read or taken. One row
- * per reply event, inserted BEFORE the calendar is called, so a crash between
- * the two leaves a `booking` row that is never retried: a lead is never booked twice.
+ * What happened to one warm reply. Code proposes, William decides (10-02): a
+ * `proposed` row holds the time code read and the reply it drafted; William's
+ * approve books it (cal.com emails the invite) and sends the reply, or just sends
+ * it (`sent`, a demo link or his own words). Anything code can't read is
+ * `needs_you`; William passing on a proposal is `dropped`. `booking` is written
+ * BEFORE the calendar is called, so a crash between the two is never retried:
+ * a lead is never booked twice.
  */
-export const CALL_INVITE_STATES = ["booking", "booked", "already_booked", "needs_you"] as const;
+export const CALL_INVITE_STATES = [
+  "proposed",
+  "booking",
+  "booked",
+  "sent",
+  "already_booked",
+  "needs_you",
+  "dropped",
+] as const;
 export type CallInviteState = (typeof CALL_INVITE_STATES)[number];
 
 export const callInvites = pgTable(
@@ -402,9 +413,17 @@ export const callInvites = pgTable(
     runId: uuid("run_id"),
     createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
     updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
+    /** The reply code drafted for William to approve (a `messages` row on the thread). */
+    replyMessageId: integer("reply_message_id"),
   },
   (t) => [
     primaryKey({ columns: [t.id], name: "pk_call_invites" }),
+    index("ix_call_invites_reply_message_id").on(t.replyMessageId),
+    foreignKey({
+      columns: [t.replyMessageId],
+      foreignColumns: [messages.id],
+      name: "fk_call_invites_reply_message_id_messages",
+    }).onDelete("set null"),
     unique("uq_call_invites_thread_event_id").on(t.threadEventId),
     index("ix_call_invites_enrollment_id").on(t.enrollmentId),
     foreignKey({

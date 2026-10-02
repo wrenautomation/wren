@@ -62,6 +62,11 @@ export const settingsSchema = z.object({
   /** Operator nudges: none | console | discord (needs the webhook URL, a secret). */
   notify: z.enum(["none", "console", "discord"]).default("none"),
   discordWebhookUrl: z.string().min(1).optional(),
+  /** William's phone (E.164): warm-reply pings are texted here too, from a number in its country. */
+  operatorPhone: z
+    .string()
+    .regex(/^\+[1-9][0-9]{7,14}$/)
+    .optional(),
   /** Send days of approved openers the queue-keeper holds ahead of the fleet (0 = off). */
   composeDaysAhead: z.coerce.number().int().min(0).default(3),
   /** Which pool-feeder stages may call the model: none (free groundwork), pick, all (+extraction). */
@@ -377,6 +382,7 @@ export const ENV_KEYS = {
   killSwitchOffFor: "WREN_KILL_SWITCH_OFF_FOR",
   notify: "WREN_NOTIFY",
   discordWebhookUrl: "WREN_DISCORD_WEBHOOK_URL",
+  operatorPhone: "WREN_OPERATOR_PHONE",
   composeDaysAhead: "WREN_COMPOSE_DAYS_AHEAD",
   poolModelStages: "WREN_POOL_MODEL_STAGES",
   verificationHorizonDays: "WREN_VERIFICATION_HORIZON_DAYS",

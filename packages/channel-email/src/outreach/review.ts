@@ -41,7 +41,11 @@ export async function listDrafts(
   db: Queryable,
   opts: { enrollmentId?: number; flagged?: boolean } = {},
 ): Promise<DraftRow[]> {
-  const where = [eq(messages.state, "draft")];
+  const where = [
+    eq(messages.state, "draft"),
+    // A drafted answer to a warm reply is William's through `wren email answers`.
+    sql`NOT EXISTS (SELECT 1 FROM call_invites ci WHERE ci.reply_message_id = ${messages.id})`,
+  ];
   if (opts.enrollmentId !== undefined) where.push(eq(messages.enrollmentId, opts.enrollmentId));
   if (opts.flagged) where.push(sql`${messages.provenance} ? ${DUPLICATE_KEY}`);
   const rows = await db

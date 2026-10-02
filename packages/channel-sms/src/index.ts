@@ -7,6 +7,7 @@ export * from "./events.js";
 export * from "./form.js";
 export * from "./health.js";
 export * from "./lift.js";
+export * from "./operator.js";
 export * from "./phone.js";
 export * from "./policy.js";
 export * from "./pool.js";

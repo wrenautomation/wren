@@ -9,6 +9,7 @@ import { resolve } from "node:path";
 import type { Context, ServiceDefinition, VirtualObjectDefinition } from "@restatedev/restate-sdk";
 import {
   activeSenders,
+  Broadcast,
   ConsoleTransport,
   defaultLocalChecker,
   expandHome,
@@ -55,6 +56,7 @@ import {
   policyFrom,
   providerFrom,
   pusherFrom,
+  SmsNotifier,
 } from "@wren/channel-sms";
 import { makeSmsDesk, makeSmsEvents, makeSmsSender, makeSmsWatch } from "@wren/channel-sms/restate";
 import { tiktokContent } from "@wren/channel-tiktok";
@@ -163,6 +165,25 @@ export async function buildServices(
   });
   const notify = settings.notify === "none" ? {} : { notifier };
 
+  // SMS: a real provider sends nothing until WREN_SMS_LIVE (the registered campaign) says so.
+  // The fake pretends to send: on Lambda (prod) it is refused and no provider runs instead.
+  let smsProvider = providerFrom(settings);
+  if (smsProvider.name === "fake" && process.env.AWS_LAMBDA_FUNCTION_NAME) {
+    log.error("WREN_SMS_PROVIDER=fake refused in prod: running with no sms provider");
+    smsProvider = new NoProvider();
+  }
+  if (smsProvider.name === "none")
+    log.info("no sms provider: texts queue, nothing is sent, looked up or synced");
+  else if (smsProvider.name === "fake")
+    log.warn("WREN_SMS_PROVIDER=fake pretends to send: local dry runs only");
+  else if (!settings.smsLive)
+    log.info("WREN_SMS_LIVE off: the sms sender queues but sends nothing");
+  // Warm replies wait on William, so their pings also text his phone (Discord stays the log).
+  const replyNotifier =
+    settings.operatorPhone && settings.smsLive && smsProvider.name === "telnyx"
+      ? new Broadcast([notifier, new SmsNotifier(db, smsProvider, settings.operatorPhone)])
+      : notifier;
+
   // The send loop: console prints until cutover flips WREN_SEND_TRANSPORT=gmail.
   // The roster names the live fleet; without one nothing may send, so a missing
   // file degrades to an empty fleet rather than a worker that will not start.
@@ -176,12 +197,13 @@ export async function buildServices(
     }
   })();
   const fleet = rosterFleet(roster, activeSenders(roster), Object.fromEntries(LANDERS_BY_NICHE));
-  // Cold email offers two open times on Wren's call (the offers' booking page) and books a yes.
+  // Cold email offers two open times on Wren's call (the offers' booking page);
+  // a yes is proposed to William, who books it.
   const calendar = settings.calcomApiKey
     ? new CalcomCalendar(settings.calcomApiKey, WREN_CALL)
     : null;
   if (!calendar)
-    log.info('WREN_CALCOM_API_KEY unset: emails say "early next week" and no yes is booked');
+    log.info('WREN_CALCOM_API_KEY unset: emails say "early next week" and no yes is proposed');
   const wrenScope = oneScope({
     db,
     policy,
@@ -309,7 +331,10 @@ export async function buildServices(
       llm,
       tracer,
       tracing: settings.tracing,
-      invites: calendar ? { calendar, notifier } : null,
+      // Code proposes each warm reply's answer; only William's approve books or sends.
+      invites: calendar
+        ? { calendar, notifier: replyNotifier, copies: campaigns, send: { transport, fleet } }
+        : null,
     }),
   ];
   // The queue-keeper is bound only when asked to hold a queue; 0 means every enrollment is by hand.
@@ -385,20 +410,7 @@ export async function buildServices(
   services.push(makeTokenRenewal({ db, ...(wake ? { wake } : {}), ...notify }));
   // The audit log's seals in every database, every 15 minutes; off until `wren audit sealer start`.
   services.push(makeAuditSealer({ main: db, open: openClient, ...notify }));
-  // Cold SMS. Always bound: the sender is off until `wren sms queue start`, and a real
-  // provider sends nothing until WREN_SMS_LIVE (the registered campaign) says so.
-  // The fake pretends to send: on Lambda (prod) it is refused and no provider runs instead.
-  let smsProvider = providerFrom(settings);
-  if (smsProvider.name === "fake" && process.env.AWS_LAMBDA_FUNCTION_NAME) {
-    log.error("WREN_SMS_PROVIDER=fake refused in prod: running with no sms provider");
-    smsProvider = new NoProvider();
-  }
-  if (smsProvider.name === "none")
-    log.info("no sms provider: texts queue, nothing is sent, looked up or synced");
-  else if (smsProvider.name === "fake")
-    log.warn("WREN_SMS_PROVIDER=fake pretends to send: local dry runs only");
-  else if (!settings.smsLive)
-    log.info("WREN_SMS_LIVE off: the sms sender queues but sends nothing");
+  // Cold SMS. Always bound: the sender is off until `wren sms queue start`.
   const sms = {
     db,
     provider: smsProvider,

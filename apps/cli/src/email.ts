@@ -44,6 +44,7 @@ import {
 import { sizeFromPpp } from "@wren/research/companies";
 import type { Command } from "commander";
 import { desc, gte, sql } from "drizzle-orm";
+import { registerAnswers } from "./answers.js";
 
 type WithDb = <T>(fn: (db: Db) => Promise<T>) => Promise<T>;
 
@@ -529,6 +530,7 @@ export function registerEmail(
       const stats = await withDb((db) => sizeFromPpp(db, { dir: resolve(dir), niche }));
       console.log(`size: ${JSON.stringify(stats)}`);
     });
+  registerAnswers(email, withDb, settings);
   return email;
 }
 

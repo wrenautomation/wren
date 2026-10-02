@@ -71,6 +71,25 @@ export class DiscordNotifier implements Notifier {
   }
 }
 
+/**
+ * One ping, many subscribers: Discord, a text to William, the console. Every
+ * subscriber is a `Notifier`, so callers never know how many there are. One
+ * subscriber failing never stops the others; true when any one delivered.
+ */
+export class Broadcast implements Notifier {
+  readonly name: string;
+  constructor(private readonly subscribers: readonly Notifier[]) {
+    this.name = subscribers.map((s) => s.name).join("+") || "none";
+  }
+
+  async notify(title: string, body?: string, level?: NotifyLevel): Promise<boolean> {
+    const sent = await Promise.all(
+      this.subscribers.map((s) => s.notify(title, body, level).catch(() => false)),
+    );
+    return sent.some(Boolean);
+  }
+}
+
 /** The notifier settings name; discord with no URL refuses on purpose rather than posting nowhere. */
 export function makeNotifier(
   kind: NotifierKind,

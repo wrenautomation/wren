@@ -17,10 +17,27 @@ get is not composed.
 `{call.times}` is two open times on Wren's Cal.com call, said in the
 lead's clock ("Tuesday at 10am or Wednesday at 2pm ET"). It is filled
 when the email sends, not when it is composed, and reads "early next
-week" if the calendar can't answer. A reply that takes a time is booked
-on Cal.com, which sends the invite (the event's location is Google Meet);
-any other warm reply pings William. The inbox syncs every 2 minutes
-(`WREN_DAEMON_SYNC_SECONDS`), so a warm reply is acted on in about 3.
+week" if the calendar can't answer.
+
+## Replies (William approves every one)
+
+Code never answers a lead alone (William, 10-02). A warm reply that
+takes an offered time, or any warm reply to the demo arm, gets a
+proposal: the time (book-first) and the arm's `reply.email` drafted in
+the thread. William is pinged with their words and the draft. Anything
+else ("this time works better", "skip the demo, call me") pings him
+with their words and no draft. Pings go to Discord and, when
+`WREN_OPERATOR_PHONE` is set, a text to his phone. The inbox syncs every 2 minutes
+(`WREN_DAEMON_SYNC_SECONDS`), so the ping lands in about 3.
+
+- `wren email answers`: what's waiting.
+- `wren email answers approve <id>`: books the time on Cal.com (it
+  emails the Google Meet invite), then sends the draft.
+- `wren email answers approve <id> --body "..."`: sends his words instead.
+- `wren email answers drop <id>`: nothing goes out.
+
+`reply.email` facts: the opener's, plus `{call.booked}` (the time
+approve books, book-first) and `{link.watch}` (the demo, watch-first).
 
 ## Arms
 
@@ -29,12 +46,15 @@ Every firm gets `book-first/` for now (William, 10-02), sequence
 
 - Opener subject: the first name plus a hinted loss ("Dana, you're
   missing out on dozens of placements"). A role inbox drops the name.
-- Follow-up (day 5): a short human ping that restates the offer and the
-  ask, under a new subject, as a fresh thread (a step with its own
-  subject never rides the opener's thread).
+- Follow-up (day 5): the opener restated (personalization, who William
+  is, the pain), the offer opening "Following up on my last email", and
+  the same ask, under a new subject as a fresh thread (outbound-copy
+  SOP). Slight `[[ ]]` variants keep it from reading as a copy.
 
-`watch-first/` (demo ask, no call, no follow-up) is defined but off.
-Turning it back on is one plan line in `src/recruiting.ts`.
+`watch-first/` (demo ask, no call) is defined but off, sequence
+`watch-first-days-0-5`: the same opener and follow-up, ending "If this
+sounds too good to be true, I can send you a quick demo." Turning it
+back on is one plan line in `src/recruiting.ts`.
 
 Each email's clicks and bookings carry its link code, so results split
 by arm.
@@ -68,5 +88,3 @@ by arm.
   - The ask holds frame: "Are you down to hop on a 30-minute call?", then
     `{call.times}`; William sends a Google Meet invite for one, or they
     name a time.
-  - Follow-ups ride the opener's thread (the registry test holds every
-    niche to it), not a new subject as the SOP suggests.
