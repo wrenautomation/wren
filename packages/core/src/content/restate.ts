@@ -51,6 +51,15 @@ export function siteCallErrorFrom(err: unknown, site: string, method: string, pa
 }
 
 /**
+ * Where `sites` runs: `SITES` on the AWS box (woken before the first call) or `DESK`
+ * on the Mac (never woken: it is on while the Mac is).
+ */
+export interface SitesHost {
+  service: { name: string };
+  wake?: Wake | undefined;
+}
+
+/**
  * Wake the machine `sites` runs on: start it if stopped, no-op if running.
  * Idempotent, so a retried invocation may wake twice. The box stops itself
  * again once idle.
@@ -67,7 +76,7 @@ export type Wake = () => Promise<"started" | "running">;
  */
 export function restateSites(
   ctx: restate.Context,
-  o: { caller: string; wake?: Wake | undefined; service?: { name: string } },
+  o: { caller: string } & Partial<SitesHost>,
 ): SiteClient {
   const { caller, wake, service = SITES } = o;
   const client = ctx.serviceClient<SitesService>(service);

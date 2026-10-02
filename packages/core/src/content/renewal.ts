@@ -11,7 +11,7 @@ import * as restate from "@restatedev/restate-sdk";
 import type { Db } from "@wren/db";
 import type { Notifier } from "../notify.js";
 import { errorText, makeLoopObject, type PassOutcome, runPass } from "../restate/index.js";
-import { SITES, type Wake } from "./restate.js";
+import { SITES, type SitesHost } from "./restate.js";
 
 export const RENEWAL_KEY = "box";
 export const RENEWAL_COMMAND = "sites renew";
@@ -40,7 +40,8 @@ export interface RenewalStats {
 
 export interface TokenRenewalDeps {
   db: Db;
-  wake?: Wake;
+  /** Where `sites/renew` runs (`sitesHost`); the box by default. */
+  host?: SitesHost;
   notifier?: Notifier;
 }
 
@@ -54,13 +55,13 @@ export function renewalDelay(next: string | null, now: Date): number {
 export function makeTokenRenewal(deps: TokenRenewalDeps) {
   return makeLoopObject("TokenRenewal", async (ctx: restate.ObjectContext) => {
     const now = new Date(await ctx.date.now());
-    const wake = deps.wake;
+    const { service, wake } = deps.host ?? { service: SITES };
     if (wake) await ctx.run("wake autobrowse", wake);
-    // A durable call: while the box is down it waits, then answers once the worker is back.
+    // A durable call: while the host is down it waits, then answers once the worker is back.
     let report: RenewReport | null = null;
     let refused: string | null = null;
     try {
-      report = await ctx.serviceClient<SitesRenew>(SITES).renew({});
+      report = await ctx.serviceClient<SitesRenew>(service).renew({});
     } catch (err) {
       // An old box without `renew`, or a bad request: this pass's problem, asked again tomorrow.
       if (!(err instanceof restate.TerminalError)) throw err;

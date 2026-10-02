@@ -339,7 +339,7 @@ export const settingsSchema = z.object({
   smsMaxOptOutRate: z.coerce.number().min(0).max(1).default(0.03),
   /** Health: balance under this is a Discord warning. */
   smsLowBalanceUsd: z.coerce.number().nonnegative().default(5),
-  /** autobrowse's EC2 instance: a `sites` call starts it when stopped (it stops itself when idle). Unset = never wake. */
+  /** autobrowse's EC2 instance: a `sites` call starts it when stopped (it stops itself when idle). Unset = the Mac's desk serves `sites`. */
   autobrowseInstanceId: z
     .string()
     .regex(/^i-[0-9a-f]+$/)

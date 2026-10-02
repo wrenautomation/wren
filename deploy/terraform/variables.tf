@@ -105,7 +105,7 @@ variable "probe_token" {
 
 
 variable "autobrowse_instance_id" {
-  description = "autobrowse's EC2 instance (its terraform output instance_id). Set: the worker starts it for a Content call and may tag it; it stops itself when idle. Empty = never wake."
+  description = "autobrowse's EC2 instance (its terraform output instance_id). Set: the worker starts it for a Content call and may tag it; it stops itself when idle. Empty = no box: site calls go to the Mac's desk worker."
   type        = string
   default     = ""
 }

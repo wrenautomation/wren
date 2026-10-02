@@ -10,9 +10,17 @@ import {
   EC2Client,
   StartInstancesCommand,
 } from "@aws-sdk/client-ec2";
-import type { Wake } from "./restate.js";
+import { DESK, SITES, type SitesHost, type Wake } from "./restate.js";
 
 export const STARTED_BY_TAG = "autobrowse:started-by";
+
+/**
+ * Where wren's `sites` calls go: the box when its instance id is set, else the Mac's
+ * desk worker. No box id, no box: every caller follows this one switch.
+ */
+export function sitesHost(instanceId: string | undefined): SitesHost {
+  return instanceId ? { service: SITES, wake: ec2Wake(instanceId) } : { service: DESK };
+}
 
 export interface BoxPort {
   state(id: string): Promise<string>;

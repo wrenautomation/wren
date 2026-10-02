@@ -12,7 +12,7 @@
 import * as clients from "@restatedev/restate-sdk-clients";
 import { ingressOf, type Settings } from "@wren/config";
 import { SiteCallError, type SiteClient, viaOf } from "@wren/core/content";
-import { SITES, type SitesService } from "@wren/core/content/restate";
+import { DESK, SITES, type SitesService } from "@wren/core/content/restate";
 
 /** Restate answers a terminal error as `{"code":429,"message":"…"}` under that status. */
 function siteError(err: unknown, site: string, method: string, path: string): Error {
@@ -43,7 +43,8 @@ async function held<T>(send: (idempotencyKey: string) => PromiseLike<T>): Promis
 export function ingressSites(
   settings: Settings,
   caller: string,
-  service: { name: string } = SITES,
+  // No box id, no box: the Mac's desk serves every site.
+  service: { name: string } = settings.autobrowseInstanceId ? SITES : DESK,
 ): SiteClient {
   const client = clients.connect(ingressOf(settings)).serviceClient<SitesService>(service);
   let woken: Promise<unknown> | null = null;

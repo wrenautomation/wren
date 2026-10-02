@@ -65,7 +65,10 @@ Rule: an adapter method that uses the browser says so in its row
   `IDLE_STOP_MINUTES` of nothing (autobrowse side), so a Content call costs
   minutes of box time, not a day. The Lambda role gets
   `ec2:StartInstances`/`CreateTags` on that one instance
-  (`autobrowse_instance_id` tfvar). `autobrowseSites({url, token})` is the HTTP `SiteClient` for
+  (`autobrowse_instance_id` tfvar). 2026-10-02: the box is retired to cut
+  cost; with no instance id every `sites` call (content, ads, token renewal,
+  CLI) goes to `desk`, the same service on the Mac (`sitesHost` in
+  `@wren/core/content/box`). Calls wait while the Mac sleeps. `autobrowseSites({url, token})` is the HTTP `SiteClient` for
   a laptop against a local autobrowse. Either is a `SiteClient` (`call`,
   `via`); the
   adapters (`linkedinContent` in `@wren/channel-linkedin`, `youtubeContent`

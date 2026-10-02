@@ -74,7 +74,7 @@ import {
 import { makeAuditSealer } from "@wren/core/audit";
 import { CalcomCalendar } from "@wren/core/calendar";
 import type { SiteClient } from "@wren/core/content";
-import { ec2Wake } from "@wren/core/content/box";
+import { sitesHost } from "@wren/core/content/box";
 import { makeTokenRenewal } from "@wren/core/content/renewal";
 import {
   type ChannelsFor,
@@ -441,9 +441,10 @@ export async function buildServices(
     // Tomorrow's slots vs scheduled drafts, said once a day; off until `wren content planner start`.
     makeContentPlanner({ db, zone: settings.sendTimezone, ...contentNotify }),
   );
-  // autobrowse's tokens made again before they lapse (LinkedIn's 60 days, npm's 90); the box is woken for it.
-  const wake = settings.autobrowseInstanceId ? ec2Wake(settings.autobrowseInstanceId) : undefined;
-  services.push(makeTokenRenewal({ db, ...(wake ? { wake } : {}), ...notify }));
+  // autobrowse's tokens made again before they lapse (LinkedIn's 60 days, npm's 90).
+  services.push(
+    makeTokenRenewal({ db, host: sitesHost(settings.autobrowseInstanceId), ...notify }),
+  );
   // The audit log's seals in every database, every 15 minutes; off until `wren audit sealer start`.
   services.push(makeAuditSealer({ main: db, open: openClient, ...notify }));
   // Cold SMS. Always bound: the sender is off until `wren sms queue start`.
@@ -601,18 +602,18 @@ function contentFor(settings: Settings, log: Logger): ChannelsFor | null {
     log.info("WREN_CONTENT_CHANNELS empty: no Content service");
     return null;
   }
-  const wake = settings.autobrowseInstanceId ? ec2Wake(settings.autobrowseInstanceId) : undefined;
-  log.info({ wake: settings.autobrowseInstanceId ?? "none" }, "autobrowse box wake");
+  const sitesAt = sitesHost(settings.autobrowseInstanceId);
+  log.info({ sites: sitesAt.service.name }, "autobrowse sites host");
   const host = settings.mediaBucket ? s3MediaHost({ bucket: settings.mediaBucket }) : undefined;
   log.info({ mediaBucket: settings.mediaBucket ?? "none" }, "media host");
   const meta = {
     ...(host ? { host } : {}),
     ...(settings.metaPageId ? { pageId: settings.metaPageId } : {}),
   };
-  // Reddit: its API with wren's own token, or the Mac's desk worker; no box to wake either way.
+  // Reddit: its API with wren's own token, or the Mac's desk worker, whatever the sites host.
   const reddit = redditFrom(settings, on, log);
   return (ctx) => {
-    const sites = restateSites(ctx, { caller: "wren:content", wake });
+    const sites = restateSites(ctx, { caller: "wren:content", ...sitesAt });
     return {
       ...(on.includes("linkedin") ? { linkedin: linkedinContent(sites) } : {}),
       ...(reddit
@@ -642,12 +643,12 @@ function contentFor(settings: Settings, log: Logger): ChannelsFor | null {
   };
 }
 
-/** The `Ads` service's dependencies: the box (woken like the content channels), the account and Page. */
+/** The `Ads` service's dependencies: the sites host (as the content channels), the account and Page. */
 function adsFor(settings: Settings): Parameters<typeof makeAds>[0] {
-  const wake = settings.autobrowseInstanceId ? ec2Wake(settings.autobrowseInstanceId) : undefined;
+  const sitesAt = sitesHost(settings.autobrowseInstanceId);
   const host = settings.mediaBucket ? s3MediaHost({ bucket: settings.mediaBucket }) : undefined;
   return {
-    sitesFor: (ctx) => restateSites(ctx, { caller: "wren:ads", wake }),
+    sitesFor: (ctx) => restateSites(ctx, { caller: "wren:ads", ...sitesAt }),
     ...(settings.metaAdAccountId ? { adAccountId: settings.metaAdAccountId } : {}),
     ...(settings.metaPageId ? { pageId: settings.metaPageId } : {}),
     ...(host ? { host } : {}),

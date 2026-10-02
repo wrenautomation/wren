@@ -139,6 +139,7 @@ describe("contentFor: reddit", () => {
   it("with all four WREN_REDDIT_* keys uses the direct API as journaled steps, no desk", async () => {
     const { handlers, lines } = await contentOf({
       WREN_CONTENT_CHANNELS: "reddit",
+      WREN_AUTOBROWSE_INSTANCE_ID: "i-0123456789abcdef0",
       ...REDDIT_KEYS,
     });
     expect(lines.some((l) => /desk worker/.test(l.msg))).toBe(false);
@@ -172,7 +173,10 @@ describe("contentFor: reddit", () => {
   });
 
   it("the other channels still ride the box's `sites` next to a desk reddit", async () => {
-    const { handlers } = await contentOf({ WREN_CONTENT_CHANNELS: "reddit,linkedin" });
+    const { handlers } = await contentOf({
+      WREN_CONTENT_CHANNELS: "reddit,linkedin",
+      WREN_AUTOBROWSE_INSTANCE_ID: "i-0123456789abcdef0",
+    });
     const { ctx, services } = ctxOf(
       () => ({}),
       () => null,
@@ -180,6 +184,20 @@ describe("contentFor: reddit", () => {
     const platforms = (await handlers?.platforms?.(ctx)) as string[];
     expect([...platforms].sort()).toEqual(["linkedin", "reddit"]);
     expect(services).toEqual([{ name: "sites" }, { name: "desk" }]);
+  });
+
+  it("no box id: every channel rides the Mac's desk, nothing to wake", async () => {
+    const { handlers } = await contentOf({ WREN_CONTENT_CHANNELS: "linkedin" });
+    const { ctx, services, calls, runs } = ctxOf(
+      (h) => (h === "status" ? { routes: [] } : { json: { id: "urn:li:share:1" } }),
+      () => {
+        throw new Error("no step expected");
+      },
+    );
+    await handlers?.publish?.(ctx, { platform: "linkedin", post: POST });
+    expect(services).toEqual([{ name: "desk" }]);
+    expect(new Set(calls.map((c) => c.service))).toEqual(new Set(["desk"]));
+    expect(runs).toEqual([]);
   });
 });
 
