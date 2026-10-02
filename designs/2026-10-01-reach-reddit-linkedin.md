@@ -96,7 +96,8 @@ autobrowse (Mac desk worker)        wren (Restate + Postgres)
 - ~~The Reddit alt itself~~: made 2026-10-02 as `reddit@alt` (u/Ok_Crow5098, on
   will@wren-automation.com, email verified, Reddit picked the handle). Credential and
   the inbox consent are local to the Mac until `aws login` + `autobrowse creds push`.
-  Still to do: `wren reach accounts add reddit reddit@alt` on prod, then health.
+  Added on prod (warming, lurk, health read ok). The prod CLI needs
+  `WREN_RESTATE_INGRESS_URL` set to the cloud ingress on top of `scripts/prod-wren.mjs`.
 - The LinkedIn account name.
 - Copy for six slots.
 - Deploy of the worker (migration 0049 applies on the next deploy).
