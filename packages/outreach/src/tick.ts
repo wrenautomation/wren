@@ -151,7 +151,10 @@ async function queueNext(
   const body = bodies.get(stepKey(seq, next.step));
   if (!body) {
     // Emptied since enroll: the contact ends here rather than waiting on a blank.
-    await setContactState(db, contact.id, "finished", { reason: `${stepKey(seq, next.step)} is empty`, now: o.now });
+    await setContactState(db, contact.id, "finished", {
+      reason: `${stepKey(seq, next.step)} is empty`,
+      now: o.now,
+    });
     stats.finished++;
     return;
   }
@@ -262,7 +265,10 @@ export async function tick(db: Queryable, o: TickOptions): Promise<TickStats> {
         if (o.now.getTime() - invitedAt.getTime() > seq.connectWaitDays * DAY_MS) {
           await db
             .update(reachMessages)
-            .set({ state: "skipped", stateReason: `invite not accepted in ${seq.connectWaitDays} days` })
+            .set({
+              state: "skipped",
+              stateReason: `invite not accepted in ${seq.connectWaitDays} days`,
+            })
             .where(eq(reachMessages.id, row.id));
           await setContactState(db, contact.id, "unreachable", {
             reason: `invite ${rel} after ${seq.connectWaitDays} days`,
@@ -292,7 +298,10 @@ export async function tick(db: Queryable, o: TickOptions): Promise<TickStats> {
     usedThisTick.add(account.id);
     try {
       const sent = isConnect
-        ? await (channel.connect as NonNullable<typeof channel.connect>)(contact.handle, row.body || null)
+        ? await (channel.connect as NonNullable<typeof channel.connect>)(
+            contact.handle,
+            row.body || null,
+          )
         : await channel.message(contact.handle, row.body, row.subject);
       await db
         .update(reachMessages)
@@ -313,7 +322,11 @@ export async function tick(db: Queryable, o: TickOptions): Promise<TickStats> {
       if (err instanceof SiteCallError && err.status === 429) {
         await db
           .update(reachMessages)
-          .set({ state: "queued", dueAt: new Date(o.now.getTime() + HOLD_MS), stateReason: err.message })
+          .set({
+            state: "queued",
+            dueAt: new Date(o.now.getTime() + HOLD_MS),
+            stateReason: err.message,
+          })
           .where(eq(reachMessages.id, row.id));
         hold(stats, "retry");
       } else if (err instanceof SiteCallError && err.status >= 400 && err.status < 500) {
@@ -322,7 +335,10 @@ export async function tick(db: Queryable, o: TickOptions): Promise<TickStats> {
         // Fate unknown: never resent.
         await db
           .update(reachMessages)
-          .set({ state: "unknown", stateReason: (err instanceof Error ? err.message : String(err)).slice(0, 500) })
+          .set({
+            state: "unknown",
+            stateReason: (err instanceof Error ? err.message : String(err)).slice(0, 500),
+          })
           .where(eq(reachMessages.id, row.id));
         stats.failed++;
       }
