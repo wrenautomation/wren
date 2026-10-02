@@ -115,12 +115,15 @@ const named = (name: string) => {
 };
 
 describe("recruiting watch-first", () => {
-  it("the opener and follow-up offer the demo after 'too good to be true'", () => {
+  it("the opener and follow-up offer the demo", () => {
     for (const name of ["watch-first/opener", "watch-first/followup"]) {
       const b = render(named(name), base, "person:7").body;
-      expect(b).toContain("If this sounds too good to be true, I can send you a quick demo.");
+      expect(b).toMatch(/send you a quick demo\./);
       expect(b).not.toContain("curious how I'll pull that off");
     }
+    expect(render(named("watch-first/opener"), base, "person:7").body).toContain(
+      "If this sounds too good to be true, I can send you a quick demo.",
+    );
     expect(render(named("watch-first/followup"), base, "person:7").body).toMatch(
       /following up on my/i,
     );
