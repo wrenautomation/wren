@@ -1,6 +1,12 @@
 #!/bin/sh
-# CI's first gates before a push: lint/format and types. Every red CI run so far
-# was one of these. Fix with `pnpm biome check --write .`; skip with --no-verify.
+# CI's first gates for what this push changes: biome on its files, types for the
+# packages it touches and their dependents. Other sessions' unfinished files
+# elsewhere in the checkout never block it, so push without --no-verify.
+# Fix with `pnpm biome check --write <file>`.
 set -e
-pnpm -s lint
-pnpm -s typecheck
+base=$(git merge-base HEAD '@{u}' 2>/dev/null || git rev-parse HEAD~1)
+files=$(git diff --name-only --diff-filter=ACMR "$base" HEAD)
+[ -z "$files" ] && exit 0
+# shellcheck disable=SC2086 # one path per word; repo paths have no spaces
+pnpm -s biome check --no-errors-on-unmatched $files
+pnpm -s turbo run typecheck --filter="...[$base]" --output-logs=errors-only

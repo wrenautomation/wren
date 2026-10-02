@@ -2,16 +2,27 @@ name: ci
 on:
   push: { branches: [main] }
   pull_request:
+# Many sessions push to main: a newer push cancels the older run, and deploy
+# follows the newest green one. The three gates run side by side, and turbo's
+# cache carries over between runs, so a package nobody touched is not retested.
+concurrency: { group: "ci-${{ github.ref }}", cancel-in-progress: true }
 jobs:
   gates:
+    strategy:
+      fail-fast: true
+      matrix: { gate: [lint, unit, integration] }
+    name: ${{ matrix.gate }}
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v5
       - uses: pnpm/action-setup@v4
       - uses: actions/setup-node@v5
         with: { node-version-file: .node-version, cache: pnpm }
+      - uses: actions/cache@v4
+        with:
+          path: .turbo/cache
+          key: turbo-${{ matrix.gate }}-${{ github.sha }}
+          restore-keys: turbo-${{ matrix.gate }}-
       - run: pnpm install --frozen-lockfile
-      - run: ./scripts/gates.sh lint
-      - run: ./scripts/gates.sh unit
-      - run: ./scripts/gates.sh integration
+      - run: ./scripts/gates.sh ${{ matrix.gate }}
         env: { TESTCONTAINERS_RYUK_DISABLED: "true" }

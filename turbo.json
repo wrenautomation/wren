@@ -6,7 +6,7 @@
     "test:unit": { "dependsOn": ["^build"] },
     "test:integration": {
       "dependsOn": ["^build"],
-      "cache": false,
+      "outputs": [],
       "env": ["DOCKER_HOST", "TESTCONTAINERS_RYUK_DISABLED"]
     },
     "test": { "dependsOn": ["test:unit", "test:integration"] }
