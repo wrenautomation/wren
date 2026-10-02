@@ -16,7 +16,7 @@ resource "aws_ssm_parameter" "env" {
 resource "aws_ssm_parameter" "roster" {
   name        = "${local.ssm_root}/senders_config"
   description = "senders_config.toml: the sender roster; written by deploy/scripts/push-secrets.sh"
-  type        = "SecureString"
+  type        = "String"   # addresses and copy, no secrets; skips a KMS read per cold start
   tier        = "Advanced" # the roster passes 4 KB
   value       = "# empty roster: push-secrets.sh fills this\n"
 
