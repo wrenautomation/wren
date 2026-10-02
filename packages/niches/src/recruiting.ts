@@ -36,18 +36,15 @@ export const recruiting = defineNiche({
     "associates",
   ],
   templatesDir: templatesDir(import.meta.url, "recruiting"),
-  // A/B on the opener's ask: book a call now, or ask if they want the demo. Each firm's
-  // half (`half`, fixed by its id) picks its arm. The demo arm has no follow-up for now: a
-  // yes to the demo is a warm reply, and William sends the link himself.
+  // Every firm gets book-first for now (William, 10-02). The demo arm stays defined so
+  // switching it back on is one plan line; it has no follow-up.
   sequences: [
     twoEmailSequence("book-first/opener", "book-first/followup"),
     sequence("watch-first-days-0", [sequenceStep("watch-first/opener", 0)]),
   ],
   offers: { "book-first": "reactivation", "watch-first": "reactivation" },
-  plan: [
-    { sequence: "book-first-days-0-5", where: { half: "a" } },
-    { sequence: "watch-first-days-0" },
-  ],
+  plan: [{ sequence: "book-first-days-0-5" }],
+
   // Overture, SBA, google-maps and csv imports all keep "City, ST" under `geo`.
   companyLocation: (company) => rawLocation(company, "geo"),
   leadSourceFormats: recruitingLeadFormats,

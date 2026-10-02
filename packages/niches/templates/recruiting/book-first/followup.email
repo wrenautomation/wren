@@ -1,5 +1,9 @@
+subject: (({first_name}, ))[[your old clients | the clients you already won]]
+
 Hi {first_name|there},
 
-Just bumping this. Are you down to hop on a 30-minute call? How does {call.times} sound? I'll send you a Google Meet invite.
+Following up on my last email. I'll build a system that tracks all your past clients and books you {offer.goal} meetings in {offer.days} days. If I don't get you any results, you don't pay me at all.
+
+Are you down to hop on a 30-minute call? How does {call.times} sound? I'll send you a Google Meet invite.
 
 William

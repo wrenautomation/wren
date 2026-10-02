@@ -782,7 +782,10 @@ async function sendOne(
 
   const { enrollment, message } = intent;
   const sender = enrollment.sender;
-  const anchor = candidate.anchor === null ? null : lastSent(intent.messages);
+  // Only a subjectless step rides the thread. A step with its own subject starts a fresh
+  // one (no Re:, no In-Reply-To); replies still match on its own Message-ID.
+  const rides = candidate.anchor !== null && message.subject === null;
+  const anchor = rides ? lastSent(intent.messages) : null;
   if (message.messageId === null) throw new Error("intent row has no Message-ID");
   const outgoing: OutgoingEmail = {
     fromAddress: sender,
@@ -793,9 +796,11 @@ async function sendOne(
     body: message.body,
     messageId: message.messageId,
     inReplyTo: anchor?.messageId ?? null,
-    references: intent.messages
-      .filter((m) => m.state === "sent" && m.messageId)
-      .map((m) => m.messageId as string),
+    references: rides
+      ? intent.messages
+          .filter((m) => m.state === "sent" && m.messageId)
+          .map((m) => m.messageId as string)
+      : [],
     threadId: anchor?.threadId ?? null,
     listUnsubscribe: `<mailto:${sender}?subject=unsubscribe>`,
     signatureHtml: signatureFor(ctx.signatureHtml, sender, ctx.pages, enrollment.niche),

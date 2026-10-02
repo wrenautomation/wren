@@ -78,6 +78,24 @@ describe("recruiting book-first opener", () => {
     }
   });
 
+  it("subject has the first name and a loss; a role inbox drops the name", () => {
+    const subj = (facts: Record<string, unknown>) => render(tpl(), facts, "person:7").subject ?? "";
+    expect(subj(base)).toMatch(/^Dana, (you're|your) /);
+    const { first_name: _, ...company } = base;
+    expect(subj(company)).toMatch(/^(you're|your) /);
+  });
+
+  it("the follow-up is a short ping under its own subject", () => {
+    const f = recruiting.templates.get("book-first/followup");
+    if (f === undefined) throw new Error("missing book-first/followup");
+    const r = render(f, base, "person:7");
+    expect(r.subject).toMatch(/^Dana, /);
+    expect(r.subject).not.toBe(render(tpl(), base, "person:7").subject);
+    expect(r.body).toContain("Following up on my last email.");
+    expect(r.body).toContain("you don't pay me at all");
+    expect(r.body.length).toBeLessThan(body(base).length / 2);
+  });
+
   it("asks for the times, quotes the offer's terms, and leaves no syntax behind", () => {
     const b = body(base);
     expect(b).toContain(CALL_TIMES);

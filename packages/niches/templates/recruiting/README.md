@@ -24,17 +24,17 @@ any other warm reply pings William. The inbox syncs every 2 minutes
 
 ## Arms
 
-Two arms, one offer (`reactivation`), split by `half`:
+Every firm gets `book-first/` for now (William, 10-02), sequence
+`book-first-days-0-5`:
 
-- `book-first/` (half a), sequence `book-first-days-0-5`: the opener
-  offers `{call.times}`; the follow-up is a two-line bump with the same
-  ask.
-- `watch-first/` (half b), sequence `watch-first-days-0`: same email,
-  but the ask is a curiosity loop ("if you're curious how I'll pull that
-  off, I can send you a quick demo"), no call. No follow-up for now. A
-  yes is a warm reply, so William gets the ping and answers by hand:
-  "Sent you the link. Appreciate the quick reply. Looking forward to
-  chatting more about how I can help your business."
+- Opener subject: the first name plus a hinted loss ("Dana, you're
+  missing out on dozens of placements"). A role inbox drops the name.
+- Follow-up (day 5): a short human ping that restates the offer and the
+  ask, under a new subject, as a fresh thread (a step with its own
+  subject never rides the opener's thread).
+
+`watch-first/` (demo ask, no call, no follow-up) is defined but off.
+Turning it back on is one plan line in `src/recruiting.ts`.
 
 Each email's clicks and bookings carry its link code, so results split
 by arm.

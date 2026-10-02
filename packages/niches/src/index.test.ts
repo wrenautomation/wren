@@ -138,12 +138,12 @@ describe("registry", () => {
     expect(agencies.companyLocation({ raw: { Location: "  " } } as never)).toBeNull();
     expect(agencies.companyLocation({ raw: null } as never)).toBeNull();
   });
-  it("every opener has a subject and every followup rides the thread", () => {
+  // A follow-up may ride the thread (no subject) or start a fresh one (its own subject).
+  it("every opener has a subject", () => {
     for (const n of NICHES) {
       for (const s of n.sequences.values()) {
-        const [opener, ...rest] = s.steps;
+        const [opener] = s.steps;
         expect(n.templates.get(opener?.template ?? "")?.subject).not.toBeNull();
-        for (const st of rest) expect(n.templates.get(st.template)?.subject).toBeNull();
       }
     }
   });

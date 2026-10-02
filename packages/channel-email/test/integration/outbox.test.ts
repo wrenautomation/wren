@@ -864,6 +864,25 @@ describe("the wire", () => {
     expect(followup.threadId).toBe(opener.threadId);
   });
 
+  it("a follow-up with its own subject starts a fresh thread", async () => {
+    const enrollment = await enrollOne("fresh.example", "jane@fresh.example");
+    const transport = console_();
+    await tick(transport);
+    const opener = await step(enrollment, 0);
+    await patchMessage((await step(enrollment, 1)).id, { subject: "Jane, your old clients" });
+    await tick(transport, {
+      now: atNoon(addBusinessDays(PlainDate.utcDayOf(opener.sentAt as Date), 3)),
+    });
+    expect((await step(enrollment, 1)).state).toBe("sent");
+
+    const [, followup] = (transport.mailbox.get(SENDER_A) ?? []).map((e) => e.email);
+    expect(followup?.subject).toBe("Jane, your old clients");
+    expect(followup?.replySubject).toBeNull();
+    expect(followup?.inReplyTo).toBeNull();
+    expect(followup?.references).toEqual([]);
+    expect(followup?.threadId).toBeNull();
+  });
+
   it("the sign-off links the niche page of each message", async () => {
     const enrollment = await enrollOne("wire.example", "jane@wire.example");
     const transport = console_();
