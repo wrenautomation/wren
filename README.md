@@ -84,8 +84,10 @@ time). `restateSites(ctx)` stays for calls that need the official API shape.
 
 ## SOPs
 
-`wren sop add <name> <youtube url | drive:<folderId> --account <addr> | file> [--priority n]`
-ingests a source into `../sops/<name>/sources/` (a private folder, its own git).
+`wren sop add <name> <youtube url | drive:<folderId> --account <addr> | file> [--priority n] [--no-screen]`
+ingests a source into `../sops/<name>/sources/` (a private folder, its own git). A video is
+its captions plus an `## On screen` section: Gemini (llm.env keys) reads the URL in clips and
+transcribes the documents and slides shown; `--no-screen` skips that.
 `wren sop build <name>` writes the next `SOP.md` from `notes.md` (your rules, top
 priority) and the sources on Claude Code. Iterate: edit notes.md or SOP.md, build again.
 `wren sop extract <name> [source]` lists every point a source makes into `points/<source>.md`

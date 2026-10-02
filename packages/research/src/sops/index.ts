@@ -7,8 +7,7 @@
  * SOP.md and building again. Nothing here touches a database.
  */
 import { execFile } from "node:child_process";
-import { mkdir, mkdtemp, readdir, readFile, rename, rm, writeFile } from "node:fs/promises";
-import { tmpdir } from "node:os";
+import { mkdir, readdir, readFile, writeFile } from "node:fs/promises";
 import { basename, join } from "node:path";
 import { promisify } from "node:util";
 import type { LlmClient } from "@wren/llm";
@@ -105,13 +104,92 @@ const captionTracks = (info: VideoInfo) =>
     .flatMap((t) => t ?? [])
     .filter((t) => t.ext === "json3");
 
+const GEMINI = (model: string) =>
+  `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent`;
+// flash first; 503 (model busy) hands the clip to lite.
+const GEMINI_MODELS = ["gemini-2.5-flash", "gemini-3.5-flash-lite"];
+const CLIP_S = 600;
+
+/**
+ * What the video shows on screen (documents, slides, tables, templates), read by Gemini straight
+ * from the YouTube URL in `CLIP_S` clips, keys rotated on 429/403. One markdown block per clip,
+ * timestamps absolute. Empty when `keys` is empty.
+ */
+export async function screenText(
+  url: string,
+  durationS: number,
+  keys: readonly string[],
+  fetchFn: typeof fetch = fetch,
+): Promise<string> {
+  if (!keys.length) return "";
+  const clips = Array.from({ length: Math.ceil(durationS / CLIP_S) }, (_, i) => i * CLIP_S);
+  let next = 0;
+  const read = async (start: number): Promise<string> => {
+    const end = Math.min(start + CLIP_S, durationS);
+    const body = {
+      contents: [
+        {
+          parts: [
+            {
+              fileData: { fileUri: url },
+              videoMetadata: { startOffset: `${start}s`, endOffset: `${end}s`, fps: 0.5 },
+            },
+            {
+              text: `Transcribe in full, verbatim, every document, list, table, slide, template or other text the speaker shows on screen in this clip, each under a [h:mm:ss] heading of the video time it appears (the clip starts at ${clock(start)}). Skip the speaker's face, chat windows and anything already shown earlier in the clip. Markdown. If nothing is shown, reply with the single word none.`,
+            },
+          ],
+        },
+      ],
+      // Low resolution reads a shown document fine at a quarter of the tokens.
+      generationConfig: { mediaResolution: "MEDIA_RESOLUTION_LOW" },
+    };
+    let last = "";
+    let wait = 2000;
+    for (let i = 0; i < 24; i++) {
+      const key = keys[next++ % keys.length] as string;
+      const model = GEMINI_MODELS[i % GEMINI_MODELS.length] as string;
+      const res = await fetchFn(GEMINI(model), {
+        method: "POST",
+        headers: { "content-type": "application/json", "x-goog-api-key": key },
+        body: JSON.stringify(body),
+      });
+      const json = (await res.json()) as {
+        candidates?: { content?: { parts?: { text?: string }[] } }[];
+        error?: { message?: string };
+      };
+      if (res.ok)
+        return (json.candidates?.[0]?.content?.parts ?? [])
+          .map((p) => p.text ?? "")
+          .join("")
+          .trim();
+      last = `${model} HTTP ${res.status} ${json.error?.message ?? ""}`.trim();
+      if (![401, 402, 403, 429, 500, 503].includes(res.status))
+        throw new Error(`gemini ${clock(start)}: ${last}`);
+      // Busy or throttled: back off (2s doubling to 1 min) before the next key and model.
+      await new Promise((r) => setTimeout(r, wait));
+      wait = Math.min(wait * 2, 60_000);
+    }
+    // One unread clip must not lose the other 23: leave a marker and carry on.
+    console.warn(`gemini ${clock(start)}: unread, last ${last}`);
+    return `[${clock(start)}] (not read: ${last})`;
+  };
+  const out: string[] = [];
+  // ponytail: 4 clips at a time; limits are per key, so go wider if it ever drags.
+  for (let i = 0; i < clips.length; i += 4) {
+    const texts = await Promise.all(clips.slice(i, i + 4).map(read));
+    out.push(...texts.filter((t) => t && t.toLowerCase() !== "none"));
+  }
+  return out.join("\n\n");
+}
+
 /** A YouTube video's captions and chapters, through `yt-dlp` (`ytDlp` is the command, split on spaces: `uvx yt-dlp`). */
 export async function youtubeSource(
   url: string,
   ytDlp: string,
   priority = DEFAULT_PRIORITY,
-  fetchFn: typeof fetch = fetch,
+  opts: { geminiKeys?: readonly string[]; fetchFn?: typeof fetch } = {},
 ): Promise<Source> {
+  const fetchFn = opts.fetchFn ?? fetch;
   const [cmd, ...pre] = ytDlp.split(/\s+/) as [string, ...string[]];
   const { stdout } = await run(cmd, [...pre, "-J", "--no-warnings", "--no-playlist", url], {
     maxBuffer: 256 * 1024 * 1024,
@@ -130,70 +208,11 @@ export async function youtubeSource(
     break;
   }
   if (!json) throw new Error(`${url}: captions fetch HTTP ${last} on all ${tracks.length} tracks`);
-  return { name: `youtube-${info.id}.md`, md: captionsMarkdown(info, json, priority) };
-}
-
-/**
- * Frames of a YouTube video into `outDir/<h-mm-ss>.jpg`: every scene change (slides, documents,
- * screens the speaker shows) and at least one every `everyS` seconds. Video only, 360p, through
- * yt-dlp into a temp file, then ffmpeg. Returns the frame files written.
- */
-export async function videoFrames(
-  url: string,
-  ytDlp: string,
-  outDir: string,
-  everyS = 120,
-): Promise<string[]> {
-  const [cmd, ...pre] = ytDlp.split(/\s+/) as [string, ...string[]];
-  const tmp = await mkdtemp(join(tmpdir(), "wren-frames-"));
-  try {
-    await run(
-      cmd,
-      [
-        ...pre,
-        "--no-warnings",
-        "--no-playlist",
-        "-f",
-        "bv*[height<=360][ext=mp4]/bv*[height<=360]/wv*",
-        "-o",
-        join(tmp, "v.%(ext)s"),
-        url,
-      ],
-      { maxBuffer: 64 * 1024 * 1024 },
-    );
-    const video = (await readdir(tmp)).find((f) => f.startsWith("v."));
-    if (!video) throw new Error(`${url}: yt-dlp wrote no video file`);
-    await mkdir(outDir, { recursive: true });
-    const { stderr } = await run(
-      "ffmpeg",
-      [
-        "-hide_banner",
-        "-i",
-        join(tmp, video),
-        "-vf",
-        `select='gt(scene,0.3)+gte(t-prev_selected_t,${everyS})',showinfo,scale=640:-2`,
-        "-vsync",
-        "vfr",
-        "-q:v",
-        "4",
-        join(outDir, "f%05d.jpg"),
-      ],
-      { maxBuffer: 256 * 1024 * 1024 },
-    );
-    const times = [...stderr.matchAll(/pts_time:\s*([\d.]+)/g)].map((m) => Number(m[1]));
-    const out: string[] = [];
-    for (const [i, t] of times.entries()) {
-      const name = `${clock(t).replace(/:/g, "-")}.jpg`;
-      await rename(
-        join(outDir, `f${String(i + 1).padStart(5, "0")}.jpg`),
-        join(outDir, name),
-      ).catch(() => {});
-      out.push(join(outDir, name));
-    }
-    return out;
-  } finally {
-    await rm(tmp, { recursive: true, force: true });
-  }
+  let md = captionsMarkdown(info, json, priority);
+  const screen = await screenText(url, info.duration ?? 0, opts.geminiKeys ?? [], fetchFn);
+  if (screen)
+    md += `\n## On screen\n\nWhat the video showed (documents, slides, tables), read from the frames; the transcript above has only the speech.\n\n${screen}\n`;
+  return { name: `youtube-${info.id}.md`, md };
 }
 
 /** `GET /drive/v3/...` on autobrowse's `drive` site, as the CLI wires it. */
@@ -339,18 +358,14 @@ export async function addSource(dir: string, source: Source): Promise<string> {
 }
 
 /** Prompt that turns one raw source into an exhaustive, cited list of points for the owner to curate. */
-export function pointsPrompt(stem: string, md: string, framesDir?: string): string {
+export function pointsPrompt(stem: string, md: string): string {
   return [
     `Extract every point the source below makes, as a markdown list, for the owner to curate before an SOP is built from it. Be exhaustive: every rule, step, claim, number, heuristic, warning, example and the reasoning behind it. Missing a point is the one failure that matters; a long list is fine.`,
     "One point per line, starting with \"- \", in the source's own order, under the source's section headings. Each line ends with its citation in brackets: the source stem and, for a video, the nearest [m:ss] marker before the words, e.g. [" +
       stem +
       " 1:02:30]. Keep the source's wording where it is specific; fix only obvious caption transcription errors.",
     "Worked examples (a full email, script or message) are quoted in full inside a fenced block, followed by the source's own analysis of why it works as points.",
-    ...(framesDir
-      ? [
-          `Frames of the screen are in ${framesDir}, one JPEG per scene change, named by time as h-mm-ss.jpg. Whenever the transcript says the speaker is showing something (a document, list, table, slide, template, example, screen), use the Read tool on the frames from that stretch of time and transcribe what is on screen in full as points, cited to that time. On-screen text is often the highest-signal part of a source; the transcript alone misses it. Skip frames of the speaker's face.`,
-        ]
-      : []),
+    'An "## On screen" section is what the video showed (documents, tables, lists); carry every item of it as points, cited to its time. On-screen text is often the highest-signal part of a source.',
     "Reply with only the markdown list and headings. Start with the front matter block from the source, unchanged.",
     `<source file="${stem}">\n${md.trim()}\n</source>`,
   ].join("\n\n");
@@ -364,14 +379,7 @@ export async function extractPoints(dir: string, llm: LlmClient, only?: string):
   for (const s of read.sources) {
     if (s.name.startsWith("points-")) continue;
     if (only && s.name !== only) continue;
-    const frames = join(dir, "refs", "frames", s.name);
-    const hasFrames = (await readdir(frames).catch(() => [])).length > 0;
-    const { text } = await llm.complete(
-      pointsPrompt(s.name, s.md, hasFrames ? frames : undefined),
-      {
-        maxTokens: 32_000,
-      },
-    );
+    const { text } = await llm.complete(pointsPrompt(s.name, s.md), { maxTokens: 32_000 });
     const file = join(dir, "points", `${s.name}.md`);
     // Models drop the stem from citations; a bare [m:ss] or [h:mm:ss] gets it back.
     const md = text
