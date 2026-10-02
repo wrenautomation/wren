@@ -300,7 +300,7 @@ export async function applyEvent(
     return { duplicate: false, outcome };
   });
   if (notify && opts.notifier)
-    await opts.notifier.notify(notify, "open the phone app to read and answer");
+    await opts.notifier.notify(notify, "open the phone app to read and answer", "action");
   // After the commit, and never thrown: the text is saved either way, and Discord still has it.
   if (alert && opts.pusher) {
     try {

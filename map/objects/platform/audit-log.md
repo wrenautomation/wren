@@ -21,7 +21,7 @@ One trigger function on every table of every schema (`public`, `books`, any new 
 - The SQL: `audit_era()` (`packages/db/src/audit/install.ts:17`); `audit_row()`, `audit_seal()`, `audit_verify()` (`:76`)
 - `installAudit` ends every `migrate()` (`packages/db/src/audit/index.ts:87`, `packages/db/src/index.ts:79`); `syncAuditTriggers` (`packages/db/src/audit/index.ts:114`); skip lists `AUDIT_SKIPPED`, `AUDIT_SKIPPED_SCHEMAS` (`:20`, `:39`); outside `public` a table is logged as `schema.table` (`auditName`, `:44`)
 - `sealAudit`, `verifyAudit`, `setAuditActor` (`:190`, `:222`, `:249`)
-- `AuditSealer/all`: every database, 4 at a time, every 15 min (`packages/core/src/audit.ts:47`, `:78`); registered in `apps/worker/src/services.ts:360`, off until started
+- `AuditSealer/all`: every database, 4 at a time, every 15 min (`packages/core/src/audit.ts:47`, `:78`); registered in `apps/worker/src/services.ts:369`, off until started
 - CLI `wren [--client id] audit show|seal|verify|sealer` (`apps/cli/src/main.ts:127`)
 
 Citations: `packages/db/src/audit/schema.ts:26`, `packages/db/src/audit/install.ts:76`, `packages/core/src/audit.ts:47`

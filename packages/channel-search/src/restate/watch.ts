@@ -89,7 +89,7 @@ export function makeSearchWatch(deps: SearchDeps) {
         notifier.notify(
           `search: ${changes.length} page(s) changed in Google's index`,
           formatChanges(changes).join("\n"),
-          "warning",
+          "info",
         ),
       );
     }

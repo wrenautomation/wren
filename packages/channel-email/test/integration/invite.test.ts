@@ -300,7 +300,7 @@ describe("call invites", () => {
       null,
     ]);
     expect(sent).toHaveLength(1);
-    expect(sent[0]?.level).toBe("warning");
+    expect(sent[0]?.level).toBe("action");
   });
 
   it("a time the calendar no longer has is never proposed: the row says needs_you", async () => {

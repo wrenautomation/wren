@@ -57,7 +57,7 @@ export function makeContentPlanner(deps: ContentPlannerDeps) {
             ? `content ${plan.day}: ${short} empty slots`
             : `content ${plan.day}: every slot filled`,
           formatPlan(plan).join("\n"),
-          short > 0 ? "warning" : "info",
+          "info",
         ),
       );
     const outcome: PassOutcome<DayPlan> = {

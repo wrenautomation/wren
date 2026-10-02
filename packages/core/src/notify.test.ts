@@ -30,6 +30,30 @@ describe("notifiers", () => {
     expect(content.length).toBeLessThanOrEqual(1900);
   });
 
+  it("routine posts go silent; actions and warnings @mention William and nobody else", async () => {
+    const bodies: Record<string, unknown>[] = [];
+    const http = (async (_url: string | URL | Request, init?: RequestInit) => {
+      bodies.push(JSON.parse(String(init?.body)));
+      return new Response(null, { status: 204 });
+    }) as typeof fetch;
+    const n = new DiscordNotifier("https://hook.example/x", http, () => {}, "123456789012345678");
+    await n.notify("digest", "@everyone sent 4");
+    await n.notify("reply from Ann", "", "action");
+    await n.notify("loop failed", "", "warning");
+    expect(bodies[0]).toMatchObject({ flags: 4096, allowed_mentions: { parse: [], users: [] } });
+    expect(String(bodies[0]?.content)).not.toContain("<@");
+    for (const b of bodies.slice(1)) {
+      expect(b.flags).toBeUndefined();
+      expect(String(b.content).startsWith("<@123456789012345678> ")).toBe(true);
+      expect(b.allowed_mentions).toEqual({ parse: [], users: ["123456789012345678"] });
+    }
+    // No user id set: a ping still posts loud, with no mention.
+    bodies.length = 0;
+    await new DiscordNotifier("https://h/x", http, () => {}).notify("x", "", "action");
+    expect(bodies[0]?.flags).toBeUndefined();
+    expect(String(bodies[0]?.content)).toBe("🔔 **x**");
+  });
+
   it("discord failures return false and never throw", async () => {
     const logged: string[] = [];
     const down = (async () => {

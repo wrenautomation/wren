@@ -213,7 +213,7 @@ export function makeReachWatch(deps: ReachDeps) {
         notifier.notify(
           `reach: ${replies.received} new replies${health.frozen.length ? `, paused ${health.frozen.join(", ")}` : ""}`,
           [...replies.errors, ...health.errors].join("\n"),
-          health.frozen.length ? "warning" : "info",
+          health.frozen.length ? "warning" : replies.received > 0 ? "action" : "info",
         ),
       );
     }

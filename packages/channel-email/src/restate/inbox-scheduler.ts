@@ -92,6 +92,7 @@ async function tell(
       notifier.notify(
         `${plural(stats.replies, "new reply", "new replies")} in ${sender}`,
         "conversations are human-owned: answer from the inbox",
+        "action",
       ),
     );
   }

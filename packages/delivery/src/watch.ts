@@ -406,7 +406,7 @@ async function tellOperator(deps: WatchDeps, now: Date, stats: WatchStats): Prom
       !(await notifier.notify(
         `Delivery: ${lines.length} new from clients`,
         lines.join("\n"),
-        low ? "warning" : "info",
+        low ? "warning" : "action",
       ))
     )
       return;
@@ -1088,7 +1088,7 @@ async function pingOperator(
   const told = await deps.notifier.notify(
     `Delivery: ${fresh.length} to look at`,
     fresh.map((f) => `${f.clientId}: ${f.what}`).join("\n"),
-    "warning",
+    "action",
   );
   if (!told) return;
   await main

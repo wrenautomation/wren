@@ -8,7 +8,15 @@
  * ledger row.
  */
 
-export type NotifyLevel = "info" | "warning";
+/**
+ * How loud: `info` is a routine report (posted silent, no push); `action`
+ * means someone waits on William (a reply, a booking); `warning` means
+ * something broke or stopped. `action` and `warning` ping him.
+ */
+export type NotifyLevel = "info" | "action" | "warning";
+
+/** Whether this level should reach William's phone, not just the channel. */
+export const pings = (level: NotifyLevel): boolean => level !== "info";
 
 export interface Notifier {
   readonly name: string;
@@ -37,7 +45,9 @@ export class ConsoleNotifier implements Notifier {
 
 /** Discord rejects content over 2000 chars; a long digest is cut, never refused. */
 const DISCORD_CONTENT_LIMIT = 1900;
-const MARK: Record<NotifyLevel, string> = { info: "", warning: "⚠️ " };
+const MARK: Record<NotifyLevel, string> = { info: "", action: "🔔 ", warning: "⚠️ " };
+/** Discord's @silent: the post lands, no push or sound. */
+const SUPPRESS_NOTIFICATIONS = 1 << 12;
 
 export class DiscordNotifier implements Notifier {
   readonly name = "discord";
@@ -45,10 +55,14 @@ export class DiscordNotifier implements Notifier {
     private readonly webhookUrl: string,
     private readonly http: typeof fetch = fetch,
     private readonly log: (line: string) => void = console.warn,
+    /** William's Discord user id: a ping @mentions him, so it reaches him under "only @mentions". */
+    private readonly pingUserId?: string,
   ) {}
 
   async notify(title: string, body = "", level: NotifyLevel = "info"): Promise<boolean> {
-    const text = `${MARK[level]}**${title}**${body ? `\n${body}` : ""}`.slice(
+    const loud = pings(level);
+    const mention = loud && this.pingUserId ? `<@${this.pingUserId}> ` : "";
+    const text = `${mention}${MARK[level]}**${title}**${body ? `\n${body}` : ""}`.slice(
       0,
       DISCORD_CONTENT_LIMIT,
     );
@@ -56,7 +70,12 @@ export class DiscordNotifier implements Notifier {
       const res = await this.http(this.webhookUrl, {
         method: "POST",
         headers: { "content-type": "application/json" },
-        body: JSON.stringify({ content: text }),
+        body: JSON.stringify({
+          content: text,
+          // Only the one mention we put there: a body quoting "@everyone" pings nobody.
+          allowed_mentions: { parse: [], users: mention ? [this.pingUserId] : [] },
+          ...(loud ? {} : { flags: SUPPRESS_NOTIFICATIONS }),
+        }),
       });
       if (!res.ok) {
         this.log(`discord notify failed: HTTP ${res.status}`);
@@ -93,13 +112,22 @@ export class Broadcast implements Notifier {
 /** The notifier settings name; discord with no URL refuses on purpose rather than posting nowhere. */
 export function makeNotifier(
   kind: NotifierKind,
-  opts: { discordWebhookUrl?: string | null; http?: typeof fetch } = {},
+  opts: {
+    discordWebhookUrl?: string | null;
+    discordPingUserId?: string | null;
+    http?: typeof fetch;
+  } = {},
 ): Notifier {
   if (kind === "none") return new NoneNotifier();
   if (kind === "console") return new ConsoleNotifier();
   const url = opts.discordWebhookUrl?.trim() ?? "";
   if (!url) throw new Error("WREN_NOTIFY=discord needs WREN_DISCORD_WEBHOOK_URL");
-  return new DiscordNotifier(url, opts.http ?? fetch);
+  return new DiscordNotifier(
+    url,
+    opts.http ?? fetch,
+    console.warn,
+    opts.discordPingUserId?.trim() || undefined,
+  );
 }
 
 export const plural = (n: number, one: string, many = `${one}s`) => `${n} ${n === 1 ? one : many}`;

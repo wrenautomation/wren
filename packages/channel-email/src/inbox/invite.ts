@@ -24,7 +24,7 @@
  */
 import { companies, people } from "@wren/core";
 import type { Calendar } from "@wren/core/calendar";
-import type { Notifier } from "@wren/core/notify";
+import type { Notifier, NotifyLevel } from "@wren/core/notify";
 import { canonicalZone, wallClock, zonedInstant } from "@wren/core/time";
 import type { Db } from "@wren/db";
 import { completeAndParse, type Envelope, type LlmClient, LlmError, type Tracer } from "@wren/llm";
@@ -275,7 +275,7 @@ export async function runInvites(
     needs_you: 0,
     aborted: null,
   };
-  const tell = async (title: string, body: string, level: "info" | "warning") => {
+  const tell = async (title: string, body: string, level: NotifyLevel) => {
     await opts.notifier?.notify(title, body, level);
   };
 
@@ -309,7 +309,7 @@ export async function runInvites(
       await tell(
         `Warm reply: answer ${who} now`,
         `${reason}. ${theyWrote}\n\n${approveLine(row.id, false)}`,
-        "warning",
+        "action",
       );
     };
     /** The row first (one per reply), then the draft hung on it, as one write. */
@@ -347,7 +347,7 @@ export async function runInvites(
       if (await opts.calendar.booked(email)) {
         if (await record("already_booked", { detail: "they already hold a booking" })) {
           stats.already_booked += 1;
-          await tell(`Call already booked: ${who}`, "They booked on cal.com themselves.", "info");
+          await tell(`Call already booked: ${who}`, "They booked on cal.com themselves.", "action");
         }
         continue;
       }
@@ -370,7 +370,7 @@ export async function runInvites(
         await tell(
           `Warm reply: answer ${who} now`,
           `No reply copy for this arm. ${theyWrote}\n\n${approveLine(made.id, false)}`,
-          "warning",
+          "action",
         );
         continue;
       }
@@ -378,7 +378,7 @@ export async function runInvites(
       await tell(
         `Warm reply from ${who}: approve the answer`,
         `${theyWrote}\n\nDraft:\n${made.draft.body}\n\n${approveLine(made.id, true)}`,
-        "warning",
+        "action",
       );
       continue;
     }
@@ -433,7 +433,7 @@ export async function runInvites(
       `${theyWrote}\n\nApprove books ${said} on cal.com (it emails the invite)` +
         (made.draft ? ` and sends:\n${made.draft.body}` : ". No reply drafted.") +
         `\n\n${approveLine(made.id, made.draft !== null)}`,
-      "warning",
+      "action",
     );
   }
   return stats;

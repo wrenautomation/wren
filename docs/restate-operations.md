@@ -341,6 +341,18 @@ the digest and system pings (token renewal, audit seals):
 Lander intake has its own channel too: the lander's `DISCORD_WEBHOOK`. autobrowse
 `discord-layout` makes the server's categories, channels and these webhooks.
 
+Pings vs. reports. `level` decides who gets a push:
+
+| Level | Means | Discord |
+|---|---|---|
+| `info` | routine report (digest, SMS today, content posted, search week, ads week, tokens renewed, recovered) | posted @silent |
+| `action` | someone waits on William (new reply, warm reply to approve, call booked, inbound text, client message) | @mentions him |
+| `warning` | something broke or stopped (loop failed, bounces, kill switch, dry pool, ad to pause) | @mentions him |
+
+`WREN_DISCORD_PING_USER_ID` is his Discord user id; unset, pings post loud with no mention.
+The server's default is "only @mentions", so a silent report never buzzes a phone.
+Lander leads always @mention him (`DISCORD_PING_USER_ID` Pages secret).
+
 
 - `N new replies in <inbox>` after an inbox sync that found humans (answer from Gmail).
 - `N hard bounces, N unsubscribes via <inbox>` (warning).

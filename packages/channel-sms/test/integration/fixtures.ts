@@ -1,4 +1,5 @@
 import { companies } from "@wren/core";
+import type { NotifyLevel } from "@wren/core/notify";
 import type { Db } from "@wren/db";
 import { documents } from "@wren/research/schema";
 import { countryOf } from "../../src/phone.js";
@@ -116,7 +117,7 @@ export function notes() {
     seen,
     notifier: {
       name: "test",
-      notify: async (title: string, body = "", level?: "info" | "warning") => {
+      notify: async (title: string, body = "", level?: NotifyLevel) => {
         seen.push({ title, body, ...(level ? { level } : {}) });
         return true;
       },

@@ -73,6 +73,11 @@ export const settingsSchema = z.object({
   discordContentWebhookUrl: z.string().min(1).optional(),
   discordSearchWebhookUrl: z.string().min(1).optional(),
   discordClientsWebhookUrl: z.string().min(1).optional(),
+  /** William's Discord user id: pings (replies, bookings, breakage) @mention him; routine reports post silent. */
+  discordPingUserId: z
+    .string()
+    .regex(/^\d{15,25}$/)
+    .optional(),
   /** William's phone (E.164): warm-reply pings are texted here too, from a number in its country. */
   operatorPhone: z
     .string()
@@ -402,6 +407,7 @@ export const ENV_KEYS = {
   discordClientsWebhookUrl: "WREN_DISCORD_CLIENTS_WEBHOOK_URL",
   operatorPhone: "WREN_OPERATOR_PHONE",
   composeDaysAhead: "WREN_COMPOSE_DAYS_AHEAD",
+  discordPingUserId: "WREN_DISCORD_PING_USER_ID",
   poolModelStages: "WREN_POOL_MODEL_STAGES",
   verificationHorizonDays: "WREN_VERIFICATION_HORIZON_DAYS",
   resendCooldownDays: "WREN_RESEND_COOLDOWN_DAYS",

@@ -184,9 +184,13 @@ export async function buildServices(
   });
   const notify = settings.notify === "none" ? {} : { notifier };
   // Each sales channel pings its own Discord channel when its webhook is set; else the main one.
+    discordPingUserId: settings.discordPingUserId ?? null,
   const laneNotifier = (url: string | undefined): Notifier =>
     settings.notify === "discord" && url
-      ? makeNotifier("discord", { discordWebhookUrl: url })
+      ? makeNotifier("discord", {
+          discordWebhookUrl: url,
+          discordPingUserId: settings.discordPingUserId ?? null,
+        })
       : notifier;
   const lane = (url: string | undefined) =>
     settings.notify === "none" ? {} : { notifier: laneNotifier(url) };
