@@ -59,13 +59,16 @@ export class ClaudeCodeLlm implements LlmClient {
   readonly name: string;
   private readonly run: ClaudeRun;
   private readonly timeoutMs: number;
+  private readonly tools: string;
   constructor(
     readonly modelId: string = DEFAULT_CLAUDE_CODE_MODEL,
-    opts: { bin?: string; timeoutMs?: number; run?: ClaudeRun } = {},
+    opts: { bin?: string; timeoutMs?: number; run?: ClaudeRun; tools?: string } = {},
   ) {
     this.name = `claude-code:${modelId}`;
     this.run = opts.run ?? spawnClaude(opts.bin ?? "claude");
     this.timeoutMs = opts.timeoutMs ?? 300_000;
+    // Tools the headless run may use, e.g. "Read" to look at images; none by default.
+    this.tools = opts.tools ?? "";
   }
 
   /** `maxTokens` has no flag in headless mode; the prompt bounds the answer. */
@@ -79,7 +82,7 @@ export class ClaudeCodeLlm implements LlmClient {
       "--system-prompt",
       SYSTEM,
       "--tools",
-      "",
+      this.tools,
       "--strict-mcp-config",
       "--mcp-config",
       '{"mcpServers":{}}',

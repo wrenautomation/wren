@@ -21,6 +21,7 @@ import {
   fileSource,
   readSopDir,
   type Source,
+  videoFrames,
   writeSkill,
   youtubeSource,
 } from "@wren/research/sops";
@@ -55,26 +56,43 @@ export function registerSop(program: Command, settings: Settings, rootDir: strin
     .option("--priority <n>", "higher wins when sources disagree (notes.md always wins)", (v) =>
       Number.parseInt(v, 10),
     )
-    .action(async (name: string, what: string, opts: { account?: string; priority?: number }) => {
-      const dir = join(sopsDir, name);
-      const priority = opts.priority ?? DEFAULT_PRIORITY;
-      let sources: Source[];
-      if (YOUTUBE.test(what)) sources = [await youtubeSource(what, settings.ytDlp, priority)];
-      else if (what.startsWith("drive:")) {
-        if (!opts.account) throw new Error("drive: needs --account <address>");
-        const drive = autobrowseDrive(resolve(rootDir, settings.autobrowseDir), opts.account);
-        sources = await driveSources(what.slice("drive:".length), drive, priority);
-      } else if (/\.(md|txt)$/i.test(what)) sources = [await fileSource(resolve(what), priority)];
-      else {
-        // Not text (PDF, image, design export): kept as a reference file, not a source.
-        await mkdir(join(dir, "refs"), { recursive: true });
-        const to = join(dir, "refs", basename(what));
-        await copyFile(resolve(what), to);
-        console.log(to);
-        return;
-      }
-      for (const s of sources) console.log(await addSource(dir, s));
-    });
+    .option("--no-frames", "YouTube: skip the screen frames (scene changes) that `extract` reads")
+    .action(
+      async (
+        name: string,
+        what: string,
+        opts: { account?: string; priority?: number; noFrames?: boolean; frames?: boolean },
+      ) => {
+        const dir = join(sopsDir, name);
+        const priority = opts.priority ?? DEFAULT_PRIORITY;
+        let sources: Source[];
+        if (YOUTUBE.test(what)) {
+          sources = [await youtubeSource(what, settings.ytDlp, priority)];
+          if (opts.frames !== false) {
+            const stem = sources[0]?.name.replace(/\.md$/, "") ?? "";
+            const frames = await videoFrames(
+              what,
+              settings.ytDlp,
+              join(dir, "refs", "frames", stem),
+            );
+            console.log(`${frames.length} frames in refs/frames/${stem}`);
+          }
+        } else if (what.startsWith("drive:")) {
+          if (!opts.account) throw new Error("drive: needs --account <address>");
+          const drive = autobrowseDrive(resolve(rootDir, settings.autobrowseDir), opts.account);
+          sources = await driveSources(what.slice("drive:".length), drive, priority);
+        } else if (/\.(md|txt)$/i.test(what)) sources = [await fileSource(resolve(what), priority)];
+        else {
+          // Not text (PDF, image, design export): kept as a reference file, not a source.
+          await mkdir(join(dir, "refs"), { recursive: true });
+          const to = join(dir, "refs", basename(what));
+          await copyFile(resolve(what), to);
+          console.log(to);
+          return;
+        }
+        for (const s of sources) console.log(await addSource(dir, s));
+      },
+    );
 
   sop
     .command("build <name>")
@@ -94,7 +112,8 @@ export function registerSop(program: Command, settings: Settings, rootDir: strin
     )
     .option("--model <model>", "Claude Code model", "opus")
     .action(async (name: string, source: string | undefined, opts: { model: string }) => {
-      const llm = new ClaudeCodeLlm(opts.model, { timeoutMs: 1_800_000 });
+      // Read lets it look at the screen frames under refs/frames/<source>.
+      const llm = new ClaudeCodeLlm(opts.model, { timeoutMs: 1_800_000, tools: "Read" });
       for (const f of await extractPoints(join(sopsDir, name), llm, source)) console.log(f);
     });
 

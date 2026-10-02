@@ -7,7 +7,8 @@
  * SOP.md and building again. Nothing here touches a database.
  */
 import { execFile } from "node:child_process";
-import { mkdir, readdir, readFile, writeFile } from "node:fs/promises";
+import { mkdir, mkdtemp, readdir, readFile, rename, rm, writeFile } from "node:fs/promises";
+import { tmpdir } from "node:os";
 import { basename, join } from "node:path";
 import { promisify } from "node:util";
 import type { LlmClient } from "@wren/llm";
@@ -130,6 +131,69 @@ export async function youtubeSource(
   }
   if (!json) throw new Error(`${url}: captions fetch HTTP ${last} on all ${tracks.length} tracks`);
   return { name: `youtube-${info.id}.md`, md: captionsMarkdown(info, json, priority) };
+}
+
+/**
+ * Frames of a YouTube video into `outDir/<h-mm-ss>.jpg`: every scene change (slides, documents,
+ * screens the speaker shows) and at least one every `everyS` seconds. Video only, 360p, through
+ * yt-dlp into a temp file, then ffmpeg. Returns the frame files written.
+ */
+export async function videoFrames(
+  url: string,
+  ytDlp: string,
+  outDir: string,
+  everyS = 120,
+): Promise<string[]> {
+  const [cmd, ...pre] = ytDlp.split(/\s+/) as [string, ...string[]];
+  const tmp = await mkdtemp(join(tmpdir(), "wren-frames-"));
+  try {
+    await run(
+      cmd,
+      [
+        ...pre,
+        "--no-warnings",
+        "--no-playlist",
+        "-f",
+        "bv*[height<=360][ext=mp4]/bv*[height<=360]/wv*",
+        "-o",
+        join(tmp, "v.%(ext)s"),
+        url,
+      ],
+      { maxBuffer: 64 * 1024 * 1024 },
+    );
+    const video = (await readdir(tmp)).find((f) => f.startsWith("v."));
+    if (!video) throw new Error(`${url}: yt-dlp wrote no video file`);
+    await mkdir(outDir, { recursive: true });
+    const { stderr } = await run(
+      "ffmpeg",
+      [
+        "-hide_banner",
+        "-i",
+        join(tmp, video),
+        "-vf",
+        `select='gt(scene,0.3)+gte(t-prev_selected_t,${everyS})',showinfo,scale=640:-2`,
+        "-vsync",
+        "vfr",
+        "-q:v",
+        "4",
+        join(outDir, "f%05d.jpg"),
+      ],
+      { maxBuffer: 256 * 1024 * 1024 },
+    );
+    const times = [...stderr.matchAll(/pts_time:\s*([\d.]+)/g)].map((m) => Number(m[1]));
+    const out: string[] = [];
+    for (const [i, t] of times.entries()) {
+      const name = `${clock(t).replace(/:/g, "-")}.jpg`;
+      await rename(
+        join(outDir, `f${String(i + 1).padStart(5, "0")}.jpg`),
+        join(outDir, name),
+      ).catch(() => {});
+      out.push(join(outDir, name));
+    }
+    return out;
+  } finally {
+    await rm(tmp, { recursive: true, force: true });
+  }
 }
 
 /** `GET /drive/v3/...` on autobrowse's `drive` site, as the CLI wires it. */
@@ -275,13 +339,18 @@ export async function addSource(dir: string, source: Source): Promise<string> {
 }
 
 /** Prompt that turns one raw source into an exhaustive, cited list of points for the owner to curate. */
-export function pointsPrompt(stem: string, md: string): string {
+export function pointsPrompt(stem: string, md: string, framesDir?: string): string {
   return [
     `Extract every point the source below makes, as a markdown list, for the owner to curate before an SOP is built from it. Be exhaustive: every rule, step, claim, number, heuristic, warning, example and the reasoning behind it. Missing a point is the one failure that matters; a long list is fine.`,
     "One point per line, starting with \"- \", in the source's own order, under the source's section headings. Each line ends with its citation in brackets: the source stem and, for a video, the nearest [m:ss] marker before the words, e.g. [" +
       stem +
       " 1:02:30]. Keep the source's wording where it is specific; fix only obvious caption transcription errors.",
     "Worked examples (a full email, script or message) are quoted in full inside a fenced block, followed by the source's own analysis of why it works as points.",
+    ...(framesDir
+      ? [
+          `Frames of the screen are in ${framesDir}, one JPEG per scene change, named by time as h-mm-ss.jpg. Whenever the transcript says the speaker is showing something (a document, list, table, slide, template, example, screen), use the Read tool on the frames from that stretch of time and transcribe what is on screen in full as points, cited to that time. On-screen text is often the highest-signal part of a source; the transcript alone misses it. Skip frames of the speaker's face.`,
+        ]
+      : []),
     "Reply with only the markdown list and headings. Start with the front matter block from the source, unchanged.",
     `<source file="${stem}">\n${md.trim()}\n</source>`,
   ].join("\n\n");
@@ -295,7 +364,14 @@ export async function extractPoints(dir: string, llm: LlmClient, only?: string):
   for (const s of read.sources) {
     if (s.name.startsWith("points-")) continue;
     if (only && s.name !== only) continue;
-    const { text } = await llm.complete(pointsPrompt(s.name, s.md), { maxTokens: 32_000 });
+    const frames = join(dir, "refs", "frames", s.name);
+    const hasFrames = (await readdir(frames).catch(() => [])).length > 0;
+    const { text } = await llm.complete(
+      pointsPrompt(s.name, s.md, hasFrames ? frames : undefined),
+      {
+        maxTokens: 32_000,
+      },
+    );
     const file = join(dir, "points", `${s.name}.md`);
     // Models drop the stem from citations; a bare [m:ss] or [h:mm:ss] gets it back.
     const md = text
