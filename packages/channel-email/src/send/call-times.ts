@@ -18,9 +18,9 @@ export const LOOKAHEAD_MS = 6 * 24 * 3600 * 1000;
 const NOTICE_WEEKDAYS = 2;
 /** One less when the count crosses a weekend: the weekend is reading time too. */
 const NOTICE_WEEKDAYS_OVER_WEEKEND = 1;
-/** Their afternoon, in their clock: the hours a time may start. */
-const AFTERNOON_START = 12;
-const AFTERNOON_END = 17;
+/** Their business hours, in their clock: the hours a time may start. */
+const HOURS_START = 10;
+const HOURS_END = 17;
 
 const SHORT_ZONE: Readonly<Record<string, string>> = {
   "America/New_York": "ET",
@@ -109,7 +109,7 @@ export function firstOfferDay(sendDay: string): string {
 }
 
 /**
- * Two afternoon times on two weekdays: the first open slot two weekdays after
+ * Two times (10am to 5pm theirs) on two weekdays: the first open slot two weekdays after
  * the send, or one when that crosses a weekend (Monday sends offer Wednesday
  * and Thursday, Thursday sends Friday and Monday, Friday sends Monday and
  * Tuesday), then the first on a later weekday. Fewer when the calendar has fewer.
@@ -120,7 +120,7 @@ export function pickTimes(open: readonly Date[], zone: string, now: Date): Date[
     if (s.getTime() - now.getTime() > LOOKAHEAD_MS) return false;
     const l = local(s, zone);
     const weekend = l.weekday === "Saturday" || l.weekday === "Sunday";
-    return !weekend && l.day >= earliest && l.hour >= AFTERNOON_START && l.hour < AFTERNOON_END;
+    return !weekend && l.day >= earliest && l.hour >= HOURS_START && l.hour < HOURS_END;
   });
   const first = usable[0];
   if (!first) return [];

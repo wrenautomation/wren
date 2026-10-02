@@ -15,9 +15,9 @@ const NOW = new Date(Date.UTC(2026, 9, 5, 13));
 const at = (day: number, hourUtc: number) => new Date(Date.UTC(2026, 9, day, hourUtc));
 
 describe("pickTimes", () => {
-  it("offers afternoons two and three weekdays after the send", () => {
-    // Monday send: Wednesday and Thursday. Tuesday and mornings are skipped.
-    const open = [at(6, 18), at(7, 14), at(7, 17), at(7, 18), at(8, 19)];
+  it("offers 10am to 5pm two and three weekdays after the send", () => {
+    // Monday send: Wednesday and Thursday. Tuesday and 9am are skipped.
+    const open = [at(6, 18), at(7, 13), at(7, 17), at(7, 18), at(8, 19)];
     expect(pickTimes(open, ET, NOW)).toEqual([at(7, 17), at(8, 19)]);
   });
 
@@ -27,10 +27,10 @@ describe("pickTimes", () => {
     expect(pickTimes(open, ET, friday)).toEqual([at(5, 17), at(6, 18)]);
   });
 
-  it("keeps to the lead's afternoon", () => {
-    // 1pm ET is 10am PT: still morning for them.
-    const open = [at(7, 17), at(7, 20), at(8, 21)];
-    expect(pickTimes(open, PT, NOW)).toEqual([at(7, 20), at(8, 21)]);
+  it("keeps to the lead's hours", () => {
+    // 12pm ET is 9am PT: too early for them; 1pm ET is 10am PT.
+    const open = [at(7, 16), at(7, 17), at(8, 21)];
+    expect(pickTimes(open, PT, NOW)).toEqual([at(7, 17), at(8, 21)]);
   });
 
   it("offers one when only one day is open, none when nothing is", () => {
