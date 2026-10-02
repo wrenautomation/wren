@@ -846,7 +846,6 @@ describe("the wire", () => {
     expect(sentOpener.to).toBe("jane@wire.example");
     expect(sentOpener.subject).toBe("Quick question, Jane");
     expect(sentOpener.messageId).toBe(opener.messageId);
-    expect(sentOpener.listUnsubscribe).toBe(`<mailto:${SENDER_A}?subject=unsubscribe>`);
     expect(sentOpener.inReplyTo).toBeNull();
     expect(sentOpener.references).toEqual([]);
     expect(sentOpener.threadId).toBeNull();
@@ -857,7 +856,6 @@ describe("the wire", () => {
     expect(sentFollowup.inReplyTo).toBe(opener.messageId);
     expect(sentFollowup.references).toEqual([opener.messageId]);
     expect(sentFollowup.threadId).toBe(opener.threadId);
-    expect(sentFollowup.listUnsubscribe).toBe(`<mailto:${SENDER_A}?subject=unsubscribe>`);
 
     expect(opener.gmailId).toBe("console-1");
     expect(followup.gmailId).toBe("console-2");

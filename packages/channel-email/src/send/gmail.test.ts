@@ -27,7 +27,6 @@ function mail(overrides: Partial<OutgoingEmail> = {}): OutgoingEmail {
     replySubject: null,
     body: "Hello there.\nTwo lines.",
     messageId: "<m1@wren-automation.com>",
-    listUnsubscribe: `<mailto:${SENDER}?subject=unsubscribe>`,
     ...overrides,
   };
 }
@@ -142,7 +141,8 @@ describe("what goes on the wire", () => {
     expect(msg.headers.To).toBe("jane@acme.example");
     expect(msg.headers.Subject).toBe("Quick question, Jane");
     expect(msg.headers["Message-ID"]).toBe("<m1@wren-automation.com>");
-    expect(msg.headers["List-Unsubscribe"]).toBe(`<mailto:${SENDER}?subject=unsubscribe>`);
+    // No unsubscribe header: Gmail's button beside the name reads as bulk mail.
+    expect(msg.headers["List-Unsubscribe"]).toBeUndefined();
     expect(msg.headers.Date).toBeTruthy();
     expect(msg.headers["In-Reply-To"]).toBeUndefined();
     expect(msg.headers.References).toBeUndefined();

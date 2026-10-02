@@ -301,7 +301,7 @@ export async function sendDue(db: Db, opts: SendDueOptions): Promise<SendStats> 
       continue;
     }
     const lastSent = lastSentPerSender.get(sender) ?? null;
-    if (lastSent !== null && now < policy.earliestNextSend(lastSent, rng)) {
+    if (lastSent !== null && now < policy.earliestNextSend(lastSent, sentToday.get(sender) ?? 0)) {
       stats.gap_waiting += 1;
       continue;
     }
@@ -432,6 +432,28 @@ async function leadZonesFor(
     out.set(id, zone);
   }
   return out;
+}
+
+/**
+ * The soonest any of `senders` may send again by the gap alone (window and cap
+ * aside); null when none has sent. The scheduler sleeps until then.
+ */
+export async function nextSendAt(
+  db: Queryable,
+  policy: SendPolicy,
+  senders: readonly string[],
+  now: Date,
+): Promise<Date | null> {
+  const wanted = new Set(senders.map((s) => s.toLowerCase()));
+  const last = await lastSendPerSender(db);
+  const { sentToday } = await todaysSends(db, policy, now);
+  let soonest: Date | null = null;
+  for (const [sender, at] of last) {
+    if (!wanted.has(sender.toLowerCase())) continue;
+    const next = policy.earliestNextSend(at, sentToday.get(sender) ?? 0);
+    if (soonest === null || next < soonest) soonest = next;
+  }
+  return soonest;
 }
 
 /** The newest send per inbox, any day: the gap is a property of the mailbox's own history. */
@@ -667,7 +689,7 @@ async function pacedUnderLock(
     );
   const last = (row?.last ?? null) as Date | null;
   const today = row?.today ?? 0;
-  if (last !== null && ctx.now < ctx.policy.earliestNextSend(last, ctx.rng)) {
+  if (last !== null && ctx.now < ctx.policy.earliestNextSend(last, today)) {
     ctx.stats.gap_waiting += 1;
     return false;
   }
@@ -802,7 +824,6 @@ async function sendOne(
           .map((m) => m.messageId as string)
       : [],
     threadId: anchor?.threadId ?? null,
-    listUnsubscribe: `<mailto:${sender}?subject=unsubscribe>`,
     signatureHtml: signatureFor(ctx.signatureHtml, sender, ctx.pages, enrollment.niche),
     // A pixel exists only where compose minted a token AND a host is configured.
     pixelUrl: buildPixelUrl(ctx.pixelBaseUrl, message.openToken),

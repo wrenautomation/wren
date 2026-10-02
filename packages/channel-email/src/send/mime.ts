@@ -82,7 +82,6 @@ export function buildMime(
   ];
   if (email.inReplyTo) headers.push(["In-Reply-To", email.inReplyTo]);
   if (email.references?.length) headers.push(["References", email.references.join(" ")]);
-  if (email.listUnsubscribe) headers.push(["List-Unsubscribe", email.listUnsubscribe]);
   headers.push(["MIME-Version", "1.0"]);
   headers.push(["Content-Type", `multipart/alternative; boundary="${boundary}"`]);
   const head = headers.map(([n, v]) => `${n}: ${assertHeaderSafe(n, v)}`).join(CRLF);

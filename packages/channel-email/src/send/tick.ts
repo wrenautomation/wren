@@ -6,7 +6,7 @@ import type { Calendar } from "@wren/core/calendar";
 import type { Db } from "@wren/db";
 import { evaluateKillSwitches } from "../inbox/health.js";
 import type { SenderPause } from "../schema.js";
-import { type SendStats, sendDue } from "./deliver.js";
+import { nextSendAt, type SendStats, sendDue } from "./deliver.js";
 import type { SendPolicy } from "./policy.js";
 import type { Rng } from "./rng.js";
 import type { Sender } from "./roster.js";
@@ -75,6 +75,8 @@ export interface TickOptions {
 export interface TickResult {
   stats: SendStats;
   newPauses: SenderPause[];
+  /** When the gap next lets one of these inboxes send; null if none has sent. */
+  nextSendAt: Date | null;
 }
 
 /**
@@ -104,5 +106,6 @@ export async function sendTick(db: Db, opts: TickOptions): Promise<TickResult> {
     senders: opts.fleet.senders,
     reconcileFirst: opts.reconcileFirst ?? true,
   });
-  return { stats, newPauses };
+  const nextAt = await nextSendAt(db, opts.policy, opts.fleet.senders, opts.now);
+  return { stats, newPauses, nextSendAt: nextAt };
 }

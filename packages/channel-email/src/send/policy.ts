@@ -21,7 +21,7 @@
 import { ENV_KEYS } from "@wren/config";
 import { type ClockTime, formatClock, minutesOfDay, PlainDate } from "./dates.js";
 import { type HolidayCalendar, holidayOn, holidaysIn, parseHolidayCalendars } from "./holidays.js";
-import type { Rng } from "./rng.js";
+import { type Rng, seededRng } from "./rng.js";
 import { assertInstant, canonicalZone, wallClock, zonedInstant } from "./tz.js";
 
 /** An instant every real clock is already past: what an inbox that never sent owes. */
@@ -437,12 +437,28 @@ export class SendPolicy implements SendPolicyFields {
   }
 
   /**
-   * The soonest an inbox that last sent at `lastSent` may send again. `null`
-   * (never sent) yields `EPOCH` and draws nothing.
+   * The wait after a send, so an inbox spreads its day: the rest of that
+   * day's window shared by the sends it has left, ±20%, never under the
+   * configured gap. A small cap spaces sends out (10 a day ≈ 40 min apart); a
+   * cap past what the floor fits sends at the floor and stops at the close.
+   * Seeded by the send instant, so every tick and the scheduler agree.
    */
-  earliestNextSend(lastSent: Date | null, rng: Rng): Date {
+  gapAfter(lastSent: Date, sentThatDay: number): number {
+    const close = this.windowClose(lastSent);
+    const left = this.perInboxCap(lastSent) - sentThatDay;
+    const spread = close !== null && left > 0 ? (close.getTime() - lastSent.getTime()) / left : 0;
+    const low = Math.round(Math.max(this.gapMinMs, spread * 0.8) / 1000);
+    const high = Math.round(Math.max(this.gapMaxMs, spread * 1.2) / 1000);
+    return seededRng(lastSent.getTime()).int(low, high) * 1000;
+  }
+
+  /**
+   * The soonest an inbox that last sent at `lastSent` may send again, having
+   * sent `sentThatDay` that day. `null` (never sent) yields `EPOCH`.
+   */
+  earliestNextSend(lastSent: Date | null, sentThatDay: number): Date {
     if (lastSent === null) return EPOCH;
-    return new Date(assertInstant(lastSent).getTime() + this.gapFor(rng));
+    return new Date(assertInstant(lastSent).getTime() + this.gapAfter(lastSent, sentThatDay));
   }
 
   /** The niche's own opener brake; null = none (the fleet brake still applies). */

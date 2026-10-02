@@ -31,8 +31,6 @@ export interface OutgoingEmail {
   readonly references?: readonly string[];
   /** The provider's own thread id, so a follow-up lands *in* the thread (I11.6). */
   readonly threadId?: string | null;
-  /** Full header value, composed by the caller (C-D3). */
-  readonly listUnsubscribe?: string | null;
   /** The authored rich form of the sign-off already in `body`; used only when it matches. */
   readonly signatureHtml?: string | null;
   /** This message's open-tracking pixel (C-D12), already built by `buildPixelUrl`. */

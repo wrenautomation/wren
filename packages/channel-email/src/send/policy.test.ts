@@ -289,22 +289,34 @@ describe("the gap", () => {
     expect(new Set(Array.from({ length: 50 }, () => p.gapFor(rng))).size).toBeGreaterThan(1);
   });
   it("earliest next send for an inbox that never sent is the past", () => {
-    expect(policy().earliestNextSend(null, seededRng(1))).toEqual(EPOCH);
+    expect(policy().earliestNextSend(null, 0)).toEqual(EPOCH);
     expect(EPOCH.getTime()).toBeLessThan(TUESDAY_OPEN.getTime());
   });
-  it("earliest next send draws nothing for an idle inbox", () => {
-    const p = policy();
-    const rng = seededRng(1);
-    p.earliestNextSend(null, rng);
-    expect(p.earliestNextSend(TUESDAY_OPEN, rng)).toEqual(
-      p.earliestNextSend(TUESDAY_OPEN, seededRng(1)),
-    );
-  });
-  it("earliest next send adds a gap to the last send", () => {
-    const p = policy();
-    const earliest = p.earliestNextSend(TUESDAY_OPEN, seededRng(1)).getTime();
+  it("earliest next send adds at least the configured gap", () => {
+    const p = policy({ coldSendsPerInboxPerDay: 1000 });
+    const earliest = p.earliestNextSend(TUESDAY_OPEN, 1).getTime();
     expect(earliest).toBeGreaterThanOrEqual(TUESDAY_OPEN.getTime() + p.gapMinMs);
     expect(earliest).toBeLessThanOrEqual(TUESDAY_OPEN.getTime() + p.gapMaxMs);
+  });
+  it("spreads a small cap across the window", () => {
+    // 08:00–17:00 is 540 min; 10 a day with one sent leaves 9 → 60 min ±20%.
+    const p = policy({ coldSendsPerInboxPerDay: 10 });
+    for (let i = 0; i < 20; i++) {
+      const at = new Date(TUESDAY_OPEN.getTime() + i * 1000);
+      const gap = p.gapAfter(at, 1);
+      expect(gap).toBeGreaterThanOrEqual(48 * MIN - 1000);
+      expect(gap).toBeLessThanOrEqual(72 * MIN);
+    }
+  });
+  it("the same send gives the same gap, so every tick agrees", () => {
+    const p = policy({ coldSendsPerInboxPerDay: 10 });
+    expect(p.gapAfter(TUESDAY_OPEN, 3)).toBe(p.gapAfter(TUESDAY_OPEN, 3));
+  });
+  it("100 a day sends at the floor and still fits the floor", () => {
+    const p = policy({ coldSendsPerInboxPerDay: 100, sendGapMinMinutes: 5, sendGapMaxMinutes: 10 });
+    const gap = p.gapAfter(TUESDAY_OPEN, 1);
+    expect(gap).toBeGreaterThanOrEqual(5 * MIN);
+    expect(gap).toBeLessThanOrEqual(10 * MIN);
   });
 });
 

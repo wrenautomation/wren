@@ -101,7 +101,7 @@ export function makeSendScheduler(deps: SendSchedulerDeps) {
         command: "send tick",
         argv: { sender: unitOfKey(key) },
       });
-      const { stats, newPauses } = await sendTick(scope.db, {
+      const { stats, newPauses, nextSendAt } = await sendTick(scope.db, {
         policy: scope.policy,
         transport: deps.transport,
         now,
@@ -117,7 +117,7 @@ export function makeSendScheduler(deps: SendSchedulerDeps) {
         stats,
         newPauses: newPauses.length,
         paused: newPauses.map((p) => `${p.sender} — ${p.reason}`),
-        delayMs: nextDelay(scope.policy, stats, now, seed, tickMs),
+        delayMs: nextDelay(scope.policy, stats, now, nextSendAt, tickMs),
       };
     });
     if (!result) return null;
@@ -210,7 +210,8 @@ const sameMailbox = (sender: string, key: string) =>
   sender.toLowerCase() === unitOfKey(key).toLowerCase();
 
 /**
- * How long until this inbox should look again: the gap after a send, straight
+ * How long until this inbox should look again: until the gap allows the next
+ * send (after a send or while waiting on the gap), straight
  * to the next window open when closed or when the inbox is at today's cap
  * (unless a send still awaits reconcile), else the tick interval.
  */
@@ -218,13 +219,15 @@ export function nextDelay(
   policy: SendPolicy,
   stats: SendStats,
   now: Date,
-  seed: number,
+  nextSendAt: Date | null,
   tickMs: number,
 ): number {
   if (stats.window_closed > 0) {
     return Math.max(policy.nextWindowOpen(now).getTime() - now.getTime(), MIN_DELAY_MS);
   }
-  if (stats.sent > 0) return Math.max(policy.gapFor(seededRng(seed)), MIN_DELAY_MS);
+  if ((stats.sent > 0 || stats.gap_waiting > 0) && nextSendAt !== null) {
+    return Math.max(nextSendAt.getTime() - now.getTime(), MIN_DELAY_MS);
+  }
   if (stats.senders_capped > 0 && stats.reconcile_pending === 0) {
     const [, tomorrow] = policy.localDayBounds(now);
     return Math.max(policy.nextWindowOpen(tomorrow).getTime() - now.getTime(), MIN_DELAY_MS);
