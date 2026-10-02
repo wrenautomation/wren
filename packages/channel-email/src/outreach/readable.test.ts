@@ -23,7 +23,7 @@ const cases = (
 describe("anything already cased is returned untouched", () => {
   for (const value of [
     "Joshua Kirk Gibbs",
-    "Hays Financial Group, LLC",
+    "Hays Financial Group",
     "Chief Compliance Officer",
     "iShares Core",
   ]) {
@@ -35,24 +35,48 @@ describe("anything already cased is returned untouched", () => {
   }
 });
 
-cases("legal entity forms survive as themselves", readableCompany, [
-  ["HAYS FINANCIAL GROUP, LLC", "Hays Financial Group, LLC"],
-  ["FORESIGHT CAPITAL ADVISORS, INC.", "Foresight Capital Advisors, Inc."],
-  ["GRADIENT RIDGE CAPITAL, L.P.", "Gradient Ridge Capital, L.P."],
-  ["WATERWAY WEALTH, L.L.C.", "Waterway Wealth, L.L.C."],
-  ["HLM MANAGEMENT CO., LLC", "HLM Management Co., LLC"],
-  ["BULLDOG INVESTORS, LLP", "Bulldog Investors, LLP"],
+cases("a firm is named without its legal form", readableCompany, [
+  ["HAYS FINANCIAL GROUP, LLC", "Hays Financial Group"],
+  ["FORESIGHT CAPITAL ADVISORS, INC.", "Foresight Capital Advisors"],
+  ["GRADIENT RIDGE CAPITAL, L.P.", "Gradient Ridge Capital"],
+  ["WATERWAY WEALTH, L.L.C.", "Waterway Wealth"],
+  ["HLM MANAGEMENT CO., LLC", "HLM Management Co."],
+  ["BULLDOG INVESTORS, LLP", "Bulldog Investors"],
+  ["Catapult Recruiting LLC", "Catapult Recruiting"],
+  ["Omni Healthcare Staffing, Inc.", "Omni Healthcare Staffing"],
+  ["Flexible Pharmacy Staffing, PLLC", "Flexible Pharmacy Staffing"],
+  ["Venus Solutions Limited Liability Company", "Venus Solutions"],
+  ["Allpro Staffnet Limited-Liability Company", "Allpro Staffnet"],
+  ["The Robinson Group, Ltd.", "The Robinson Group"],
+  ["Acme Search Pte. Ltd.", "Acme Search"],
+  ["Smith & Co.", "Smith & Co."],
+  ["Rightclick Recruiting", "Rightclick Recruiting"],
+  ["Polish, LLC", "Polish"],
+  ["LLC", "LLC"],
+  ["LANE STAFFING INC A CORP", "Lane Staffing"],
+  ["EXCLUSIVE STAFFING LLC A CORP", "Exclusive Staffing"],
+  ["CLASS A JOBS 411", "Class A Jobs 411"],
+]);
+cases("a firm is named without its tagline or brackets", readableCompany, [
+  ["Career Personnel, Inc. -- the Professional Difference", "Career Personnel"],
+  ["Acme Staffing | People First", "Acme Staffing"],
+  ["Free Market Talent Hub (FMTH)", "Free Market Talent Hub"],
+  ["Mid-Valley Interim Health Care Services Inc", "Mid-Valley Interim Health Care Services"],
+]);
+cases("a firm filed in lowercase is cased", readableCompany, [
+  ["staffing fish, llc", "Staffing Fish"],
+  ["abc talent partners", "ABC Talent Partners"],
 ]);
 cases("short tokens are read as initialisms", readableCompany, [
   ["BCWM", "BCWM"],
   ["IMS CAPITAL MANAGEMENT", "IMS Capital Management"],
   ["AO WEALTH ADVISORY", "AO Wealth Advisory"],
   ["NW1 PARTNERS", "NW1 Partners"],
-  ["UNIGESTION (US) LTD", "Unigestion (US) Ltd"],
+  ["UNIGESTION (US) LTD", "Unigestion"],
   ["J.P. MORGAN PRIVATE WEALTH", "J.P. Morgan Private Wealth"],
 ]);
 cases("common short words beat the initialism rule", readableCompany, [
-  ["RED ARTS CAPITAL, LLC", "Red Arts Capital, LLC"],
+  ["RED ARTS CAPITAL, LLC", "Red Arts Capital"],
   ["OAK WEALTH ADVISORS", "Oak Wealth Advisors"],
   ["NEW DAY CAPITAL", "New Day Capital"],
 ]);
@@ -86,6 +110,16 @@ cases("person names never take the initialism shortcut", readablePersonName, [
   ["B.J.", "B.J."],
   ["J.P.", "J.P."],
   ["A.M.J.", "A.M.J."],
+]);
+cases("a name filed in lowercase is cased", readablePersonName, [
+  ["rona", "Rona"],
+  ["mary-kate", "Mary-Kate"],
+  ["o'neil", "O'Neil"],
+]);
+cases("a suffix filed as the whole name refuses", readablePersonName, [
+  ["II", null],
+  ["Jr.", null],
+  ["III", null],
 ]);
 cases("a one-letter name refuses", readablePersonName, [
   ["A", null],
@@ -135,7 +169,7 @@ cases("an accented letter is a letter", readablePersonName, [
 ]);
 it("an accented firm name is rebuilt whole too", () => {
   expect(readableCompany("CRÉDIT AGRICOLE ADVISORS")).toBe("Crédit Agricole Advisors");
-  expect(readableCompany("NÚÑEZ WEALTH PARTNERS, LLC")).toBe("Núñez Wealth Partners, LLC");
+  expect(readableCompany("NÚÑEZ WEALTH PARTNERS, LLC")).toBe("Núñez Wealth Partners");
 });
 it("dotted initials beat the suffix table", () => {
   expect(readablePersonName("I.V.")).toBe("I.V.");
@@ -156,7 +190,7 @@ describe("degenerate input comes back whole or refuses", () => {
   }
 });
 it("repeated and trailing separators survive untouched", () => {
-  expect(readableCompany("SMITH  &  JONES ADVISORS, LLC")).toBe("Smith  &  Jones Advisors, LLC");
+  expect(readableCompany("SMITH  &  JONES ADVISORS, LLC")).toBe("Smith  &  Jones Advisors");
   expect(readableCompany("A--B PARTNERS")).toBe("A--B Partners");
 });
 cases("a count above zero reads as a person writes it", readableCount, [
@@ -177,7 +211,7 @@ cases("a count of zero refuses", readableCount, [
 cases("the short words the band actually contains", readableCompany, [
   ["VAN KAMPEN ADVISORS", "Van Kampen Advisors"],
   ["LAS VEGAS WEALTH ADVISORS", "Las Vegas Wealth Advisors"],
-  ["SAN DIEGO CAPITAL, LLC", "San Diego Capital, LLC"],
+  ["SAN DIEGO CAPITAL, LLC", "San Diego Capital"],
   ["MAN GROUP", "Man Group"],
   ["DEL MAR ASSET MANAGEMENT", "Del Mar Asset Management"],
   ["VAN ECK ASSOCIATES", "Van ECK Associates"],
@@ -186,8 +220,8 @@ cases("the short words the band actually contains", readableCompany, [
   ["RIA ADVISORS", "RIA Advisors"],
 ]);
 cases("singapore and australian entity forms", readableCompany, [
-  ["ACME CAPITAL PTE. LTD.", "Acme Capital Pte. Ltd."],
-  ["ACME CAPITAL PTY LTD", "Acme Capital Pty Ltd"],
+  ["ACME CAPITAL PTE. LTD.", "Acme Capital"],
+  ["ACME CAPITAL PTY LTD", "Acme Capital"],
 ]);
 it("an accented short token is a word not an initialism", () => {
   expect(readableCompany("SÃO PAULO CAPITAL LTDA.")).toBe("São Paulo Capital Ltda.");

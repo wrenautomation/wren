@@ -19,7 +19,7 @@ describe("sentenceReady", () => {
     expect(ready.values.first_name).toBeNull();
     expect(ready.values.last_name).toBe("Smith");
     expect(ready.values.title).toBe("Chief Compliance Officer");
-    expect(ready.values.company_name).toBe("Acme Wealth, LLC");
+    expect(ready.values.company_name).toBe("Acme Wealth");
     expect(ready.values["company.aum"]).toBeNull();
     expect(ready.values["company.aum_usd"]).toBe(0);
     expect(ready.values["company.ind_clients"]).toBeNull();

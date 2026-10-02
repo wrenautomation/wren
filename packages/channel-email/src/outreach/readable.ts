@@ -6,8 +6,10 @@
  * This module makes them usable on one rule: it refuses rather than guesses. A value it
  * cannot make readable comes back null, which the renderer treats exactly as a missing fact.
  *
- * Two safety properties: anything already containing a lowercase letter is returned
- * untouched, and nothing is written back — readability is derived at render time.
+ * Casing is only rebuilt for a value filed all in one case (block capitals or all
+ * lowercase); a mixed-case value keeps its casing. A firm is called what a person
+ * would call it: no legal form, tagline or bracketed short name. Nothing is written
+ * back — readability is derived at render time.
  */
 
 // Split on runs of anything that is not part of a word, KEEPING the separators. Periods,
@@ -80,6 +82,34 @@ const capitalize = (s: string) => {
 
 /** A value worth rewriting: has letters and not one of them is lower. */
 const isShouting = (s: string) => hasLetter(s) && s === s.toUpperCase();
+/** Filed in one case, all capitals or all lowercase: its casing carries nothing. */
+const oneCase = (s: string) => isShouting(s) || (hasLetter(s) && s === s.toLowerCase());
+
+// A tagline after a spaced dash or bar: "Acme Staffing -- People First".
+const TAGLINE = /\s+(?:-{1,2}|\u2013|\u2014|\|)\s+/u;
+const BRACKETED = /\s*\([^)]*\)/g;
+// One legal form at the end of a firm name, after a comma or a space. "Co." is left alone:
+// in "Smith & Co." it is the name. Applied until none is left ("Pte. Ltd.", "Co., LLC").
+const LEGAL_FORM = new RegExp(
+  `(?:,\\s*|\\s+)(?:${[
+    "l\\.?\\s?l\\.?\\s?c",
+    "l\\.?\\s?l\\.?\\s?l?\\.?\\s?p",
+    "p\\.?\\s?l\\.?\\s?l\\.?\\s?c",
+    "p\\.?l\\.?c",
+    "l\\.?p",
+    "p\\.?c",
+    "p\\.a",
+    "inc(?:orporated)?",
+    "an?\\s+corp(?:oration)?", // SBA files "LANE STAFFING INC A CORP"
+    "corp(?:oration)?",
+    "ltd",
+    "limited(?:[\\s-]+liability(?:[\\s-]+(?:company|partnership))?)?",
+    "pte",
+    "pty",
+    "gmbh",
+  ].join("|")})\\.?$`,
+  "i",
+);
 
 /** Title-case one word: O'BRIEN -> O'Brien, MID-AMERICAN -> Mid-American, MCGRAW -> McGraw. */
 function titled(word: string): string {
@@ -113,6 +143,8 @@ function acronymish(token: string, first: boolean): string {
       .map((part, i) => (part ? acronymish(part, first && i === 0) : part))
       .join("-");
   }
+  // "CLASS A JOBS": a lone A in a firm name is a letter grade, not the article.
+  if (key === "A") return "A";
   if (JOINERS.has(key)) return first ? titled(token) : token.toLowerCase();
   const entity = ENTITY[key];
   if (entity !== undefined && !bare.includes(".")) {
@@ -159,16 +191,35 @@ export function readablePersonName(value: unknown): string | null {
   const text = asText(value);
   if (!text) return null;
   if (letters(text).length <= 1) return null;
-  if (!isShouting(text)) return text;
-  return rebuild(text, person);
+  // "II" or "Jr." filed as the whole name: a parsing slip, not a name.
+  const words = text.split(TOKENS).filter(hasLetter);
+  if (words.every((w) => !INITIALS.test(w) && SUFFIXES[letters(w).toUpperCase()] !== undefined))
+    return null;
+  return oneCase(text) ? rebuild(text.toUpperCase(), person) : text;
 }
 
 /** A firm name fit to sit mid-sentence, or null. */
 export function readableCompany(value: unknown): string | null {
-  const text = asText(value);
-  if (!text) return null;
-  if (!isShouting(text)) return text;
-  return rebuild(text, acronymish);
+  const filed = asText(value);
+  if (!filed) return null;
+  let text = filed;
+  // "Career Personnel, Inc. -- the Professional Difference": the name is before the tagline.
+  const head = text.split(TAGLINE)[0]?.trim() ?? "";
+  if (hasLetter(head)) text = head;
+  // "Free Market Talent Hub (FMTH)", "Unigestion (US) Ltd": the brackets are filing detail.
+  if (text.includes("(")) {
+    const bare = text
+      .replace(BRACKETED, " ")
+      .replace(/\s{2,}/g, " ")
+      .trim();
+    if (hasLetter(bare)) text = bare;
+  }
+  if (oneCase(text)) text = rebuild(text.toUpperCase(), acronymish);
+  for (let cut = text.replace(LEGAL_FORM, ""); cut !== text; cut = text.replace(LEGAL_FORM, "")) {
+    if (!hasLetter(cut)) break;
+    text = cut.replace(/[\s,]+$/, "");
+  }
+  return text;
 }
 
 /** A title longer than this refuses, however it is cased. */
