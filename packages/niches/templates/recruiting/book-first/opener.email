@@ -1,18 +1,18 @@
-subject: (({first_name}, ))[[you're missing out on dozens of placements | you're leaving six figures on the table | your past clients are hiring again]]
+subject: (({first_name}, ))[[your past clients are hiring again | placements sitting in your CRM]]
 
 Hi {first_name|there},
 
 (({company.opener}))
 
-I've been following {company_name|your firm} for a while. I'm a student who's constantly recruiting for coop internships, so I love the work that you're doing.
+[[I've been following {company_name|your firm} for a while. | I've followed {company_name|your firm} for a while now.]] [[I'm a student who's constantly recruiting for coop internships, so I love the work that you're doing. | As a student, I'm always recruiting for my next coop internship, so I love the work you do.]]
 
-I know for a fact you've got years of past clients sitting in your CRM that nobody's called in a while. [[Guess what a lot of them are probably doing right now? Hiring. | A lot of them are probably hiring right now.]] You're missing out on hundreds of thousands in potential revenue.
+[[I know for a fact you've got years of past clients sitting in your CRM that nobody's called in a while. | I know for a fact your CRM has years of past clients nobody has called in a while.]] [[Guess what a lot of them are probably doing right now? Hiring. | A lot of them are probably hiring right now.]] [[You're missing out on hundreds of thousands in potential revenue. | That's hundreds of thousands in revenue you're missing out on.]]
 
-I study software engineering at the University of Waterloo, one of Canada's top engineering schools. I've built internal tools for the Government of Canada (one is used by 17,000 staff) and for university research labs.
+[[I study software engineering at the University of Waterloo, one of Canada's top engineering schools. | I'm a software engineering student at the University of Waterloo, one of Canada's top engineering schools.]] [[I've built internal tools for the Government of Canada (one is used by 17,000 staff) and for university research labs. | I've built internal tools for university research labs and the Government of Canada (one is used by 17,000 staff).]]
 
-I'll build you a custom lead reactivation system that tracks all your past clients and books you {offer.goal} meetings in {offer.days} days. I'm confident I'll get you results, so if I don't, you don't pay me at all.
+[[I'll build you a custom lead reactivation system that tracks all your past clients and books you {offer.goal} meetings in {offer.days} days. | I'll build you a custom system that tracks all your past clients and books you {offer.goal} meetings in {offer.days} days.]] [[I'm confident I'll get you results, so if I don't, you don't pay me at all. | I'm confident in the results, so if I don't deliver, you don't pay me at all.]]
 
-Are you down to hop on a 30-minute call {call.times}? I'll send you a Google Meet invite, or you can name a time that suits you better. Let me know.
+[[Are you down to hop on a 30-minute call {call.times}? | Are you open to a quick 30-minute call {call.times}?]] I'll send you a Google Meet invite, or you can name a time that [[suits you | works]] better. Let me know.
 
 [[Thanks, | Appreciate it,]]
 William

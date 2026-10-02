@@ -49,19 +49,20 @@ describe("recruiting book-first opener", () => {
 
   it("opens on the cold read, names the problem, then says who William is", () => {
     const b = body(base);
-    expect(b.startsWith("Hi Dana,\n\nI've been following Tulsa Nurse Partners for a while.")).toBe(
-      true,
+    expect(b).toMatch(
+      /^Hi Dana,\n\nI've (been following Tulsa Nurse Partners for a while|followed Tulsa Nurse Partners for a while now)\./,
     );
     expect(b).toContain("University of Waterloo");
-    expect(b).toContain("internal tools for the Government of Canada");
-    expect(b).toContain("missing out on hundreds of thousands in potential revenue");
+    expect(b).toMatch(/internal tools for .*Government of Canada/);
+    expect(b).toMatch(/hundreds of thousands in (potential )?revenue/);
     expect(b).toMatch(/hiring/i);
     expect(b.indexOf("hundreds of thousands")).toBeLessThan(b.indexOf("University of Waterloo"));
   });
 
   it("asks for a call with a Google Meet invite and drops the old claims", () => {
     const b = body(base);
-    expect(b).toContain(`Are you down to hop on a 30-minute call ${CALL_TIMES}?`);
+    expect(b).toMatch(/(Are you down to hop on a|Are you open to a quick) 30-minute call /);
+    expect(b).toContain(`30-minute call ${CALL_TIMES}?`);
     expect(b).toContain("Google Meet invite");
     expect(b).toContain("you don't pay me at all");
     for (const gone of [
@@ -80,11 +81,36 @@ describe("recruiting book-first opener", () => {
     }
   });
 
-  it("subject has the first name and a loss; a role inbox drops the name", () => {
-    const subj = (facts: Record<string, unknown>) => render(tpl(), facts, "person:7").subject ?? "";
-    expect(subj(base)).toMatch(/^Dana, (you're|your) /);
+  it("varies every paragraph so no two firms get the same text", () => {
+    const bodies = new Set(
+      Array.from({ length: 40 }, (_, i) => render(tpl(), base, `person:${i}`).body),
+    );
+    expect(bodies.size).toBeGreaterThan(30);
+    for (const para of body(base).split("\n\n").slice(1, -2)) {
+      expect([...bodies].some((b) => !b.includes(para))).toBe(true);
+    }
+  });
+
+  it("subject has the first name and a hinted loss; a role inbox drops the name", () => {
+    const subj = (facts: Record<string, unknown>, seed: string) =>
+      render(tpl(), facts, seed).subject ?? "";
     const { first_name: _, ...company } = base;
-    expect(subj(company)).toMatch(/^(you're|your) /);
+    for (const seed of ["person:1", "person:2", "person:7"]) {
+      expect(subj(base, seed)).toMatch(
+        /^Dana, (your past clients are hiring again|placements sitting in your CRM)$/,
+      );
+      expect(subj(company, seed)).toMatch(/^(your past clients|placements sitting)/);
+    }
+  });
+
+  it("no subject uses the money lines that landed in junk", () => {
+    for (const name of ["book-first/opener", "book-first/followup"]) {
+      for (let i = 0; i < 20; i++) {
+        expect(render(named(name), base, `person:${i}`).subject).not.toMatch(
+          /six figures|dozens of placements|old clients|full of revenue/,
+        );
+      }
+    }
   });
 
   it("the follow-up opens on the check-in, restates the opener, under its own subject", () => {
