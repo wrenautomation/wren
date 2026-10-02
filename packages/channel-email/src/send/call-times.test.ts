@@ -1,5 +1,12 @@
 import { describe, expect, it } from "vitest";
-import { CALL_TIMES, fillCallTimes, pickTimes, sayTimes, weekdaysAfter } from "./call-times.js";
+import {
+  CALL_TIMES,
+  fillCallTimes,
+  firstOfferDay,
+  pickTimes,
+  sayTimes,
+  weekdaysAfter,
+} from "./call-times.js";
 
 const ET = "America/New_York";
 const PT = "America/Los_Angeles";
@@ -14,10 +21,10 @@ describe("pickTimes", () => {
     expect(pickTimes(open, ET, NOW)).toEqual([at(7, 17), at(8, 19)]);
   });
 
-  it("skips the weekend: a Friday send offers Tuesday and Wednesday", () => {
+  it("one weekday when the count crosses a weekend: a Friday send offers Monday and Tuesday", () => {
     const friday = new Date(Date.UTC(2026, 9, 2, 20));
-    const open = [at(5, 17), at(6, 17), at(7, 18)];
-    expect(pickTimes(open, ET, friday)).toEqual([at(6, 17), at(7, 18)]);
+    const open = [at(3, 17), at(5, 17), at(6, 18), at(7, 18)];
+    expect(pickTimes(open, ET, friday)).toEqual([at(5, 17), at(6, 18)]);
   });
 
   it("keeps to the lead's afternoon", () => {
@@ -33,6 +40,15 @@ describe("pickTimes", () => {
 
   it("never reaches past six days, so a weekday name is unambiguous", () => {
     expect(pickTimes([at(12, 17)], ET, NOW)).toEqual([]);
+  });
+});
+
+describe("firstOfferDay", () => {
+  it("is two weekdays out, one when that would cross a weekend", () => {
+    expect(firstOfferDay("2026-10-05")).toBe("2026-10-07"); // Mon → Wed
+    expect(firstOfferDay("2026-10-07")).toBe("2026-10-09"); // Wed → Fri
+    expect(firstOfferDay("2026-10-08")).toBe("2026-10-09"); // Thu → Fri
+    expect(firstOfferDay("2026-10-09")).toBe("2026-10-12"); // Fri → Mon
   });
 });
 

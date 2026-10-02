@@ -16,6 +16,8 @@ export const FLEET_ZONE = "America/New_York";
 export const LOOKAHEAD_MS = 6 * 24 * 3600 * 1000;
 /** The first offered day is this many weekdays after the send day: they need a chance to read it. */
 const NOTICE_WEEKDAYS = 2;
+/** One less when the count crosses a weekend: the weekend is reading time too. */
+const NOTICE_WEEKDAYS_OVER_WEEKEND = 1;
 /** Their afternoon, in their clock: the hours a time may start. */
 const AFTERNOON_START = 12;
 const AFTERNOON_END = 17;
@@ -87,13 +89,33 @@ export function weekdaysAfter(day: string, n: number): string {
   return d.toISOString().slice(0, 10);
 }
 
+/** Whether a Saturday or Sunday falls strictly between two days (YYYY-MM-DD). */
+function weekendBetween(from: string, to: string): boolean {
+  const d = new Date(`${from}T12:00:00Z`);
+  for (
+    d.setUTCDate(d.getUTCDate() + 1);
+    d.toISOString().slice(0, 10) < to;
+    d.setUTCDate(d.getUTCDate() + 1)
+  ) {
+    if (d.getUTCDay() === 0 || d.getUTCDay() === 6) return true;
+  }
+  return false;
+}
+
+/** The first day a time may sit on: two weekdays after the send, one when that crosses a weekend. */
+export function firstOfferDay(sendDay: string): string {
+  const two = weekdaysAfter(sendDay, NOTICE_WEEKDAYS);
+  return weekendBetween(sendDay, two) ? weekdaysAfter(sendDay, NOTICE_WEEKDAYS_OVER_WEEKEND) : two;
+}
+
 /**
  * Two afternoon times on two weekdays: the first open slot two weekdays after
- * the send (a Friday send offers Tuesday), then the first on a later weekday,
- * normally the next one. Fewer when the calendar has fewer.
+ * the send, or one when that crosses a weekend (Monday sends offer Wednesday
+ * and Thursday, Thursday sends Friday and Monday, Friday sends Monday and
+ * Tuesday), then the first on a later weekday. Fewer when the calendar has fewer.
  */
 export function pickTimes(open: readonly Date[], zone: string, now: Date): Date[] {
-  const earliest = weekdaysAfter(local(now, zone).day, NOTICE_WEEKDAYS);
+  const earliest = firstOfferDay(local(now, zone).day);
   const usable = open.filter((s) => {
     if (s.getTime() - now.getTime() > LOOKAHEAD_MS) return false;
     const l = local(s, zone);
