@@ -117,6 +117,8 @@ resource "aws_lambda_function" "worker" {
   memory_size      = var.lambda_memory_mb
   timeout          = var.lambda_timeout_s
   publish          = true
+  # A spend ceiling: each concurrent run costs ~$1.44/day at 1 GB. Restate retries throttles.
+  reserved_concurrent_executions = var.lambda_max_concurrency
 
   environment {
     variables = merge(

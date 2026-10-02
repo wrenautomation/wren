@@ -53,6 +53,12 @@ variable "lambda_memory_mb" {
   default = 1024
 }
 
+variable "lambda_max_concurrency" {
+  description = "Worker runs at once. Normal peaks are 4-5; a cloud crawl wants ~10."
+  type        = number
+  default     = 6
+}
+
 variable "lambda_timeout_s" {
   description = "Lambda's ceiling is 900. Every handler step is far shorter; this is headroom for a render."
   type        = number
