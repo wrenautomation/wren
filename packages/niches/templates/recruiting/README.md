@@ -41,7 +41,7 @@ by arm.
 
 - The pain family: BD hangs on one or two people, recruiters' weeks go
   to intake and scheduling, job orders come in waves. The example: past
-  clients in the ATS who moved, got promoted, or are hiring now.
+  clients in the CRM who moved, got promoted, or are hiring now.
 - The usual fix dissed: a BD push (Fridays blocked for calls, a
   newsletter to the whole list).
 - The offer's terms are never typed here. `{offer.days}`,
@@ -60,7 +60,7 @@ by arm.
     (University of Waterloo), with production systems at the Government
     of Canada (one used by 17,000 staff) and a U of A lab.
   - The pain is cold read and problem aware: "I'm sure you've got years of
-    past clients in your ATS", probably hiring right now; the firm is
+    past clients in your CRM", probably hiring right now; the firm is
     missing out on hundreds of thousands in potential revenue.
   - The offer is plain words: a system that tracks past clients and books
     `{offer.goal}` meetings in `{offer.days}` days; no results, no pay.
