@@ -243,6 +243,22 @@ function* byCompany<R extends { company_id: number }>(rows: readonly R[]): Gener
   if (group.length > 0) yield group;
 }
 
+/**
+ * Companies whose best addressable person ranks highest go first, so a limited day
+ * spends its slots on owners before untitled contacts. Ties keep company order.
+ */
+export function bestReachableFirst<R extends { person_id: number; role_rank: number }>(
+  groups: Iterable<R[]>,
+  addressable: ReadonlySet<number>,
+): R[][] {
+  const best = (group: R[]) =>
+    Math.min(...group.filter((r) => addressable.has(r.person_id)).map((r) => r.role_rank));
+  return [...groups]
+    .map((group, order) => ({ group, order, rank: best(group) }))
+    .sort((a, b) => a.rank - b.rank || a.order - b.order)
+    .map((g) => g.group);
+}
+
 export interface EligiblePerson {
   readonly personId: number;
   readonly companyId: number;
@@ -457,7 +473,7 @@ async function personPass(
     rows.map((r) => r.person_id),
     horizonDays,
   );
-  for (const group of byCompany(rows)) {
+  for (const group of bestReachableFirst(byCompany(rows), addressable)) {
     if (limit !== null && stats.enrolled >= limit) break;
     for (const row of group) {
       const { record, alternates } = await personAddressIn(
