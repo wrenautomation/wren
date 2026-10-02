@@ -126,6 +126,24 @@ export interface Services {
   close(): Promise<void>;
 }
 
+/**
+ * The pool chain: research and mailbox checks, waiting on sites and mail servers far
+ * longer than it computes. Lambda bills every second of that wait, so with
+ * `WREN_POOL_CHAIN_HOST=box` the Postgres box serves it (`box.ts`), next to the data.
+ * Restate keeps each service on one deployment: whichever side serves it, the other skips it.
+ */
+export const POOL_CHAIN = ["PoolScheduler", "Discovery", "Enrichment", "Resolution"];
+
+export function servicesFor(
+  all: AnyService[],
+  here: "box" | "lambda",
+  chainHost = process.env.WREN_POOL_CHAIN_HOST,
+): AnyService[] {
+  const inChain = (s: AnyService) => POOL_CHAIN.includes(s.name);
+  if (here === "box") return all.filter(inChain);
+  return chainHost === "box" ? all.filter((s) => !inChain(s)) : all;
+}
+
 export interface BuildOptions {
   /** Where relative settings paths (roster, llm.env) resolve. */
   rootDir: string;

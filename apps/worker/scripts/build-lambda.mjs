@@ -1,7 +1,8 @@
 #!/usr/bin/env node
 /**
  * Bundle the Lambda handler: dist/lambda.zip with app/lambda.mjs (one ESM
- * file, handler `app/lambda.handler`), the niche templates beside it (the
+ * file, handler `app/lambda.handler`) and app/box.mjs (the pool chain on the
+ * Postgres box, `node app/box.mjs`), the niche templates beside it (the
  * niches resolve `../templates` from their module), the sender roster when
  * the repo has one, and playwright-core for the Browserbase render tier.
  * Node 22 runtime; nothing in the bundle needs a native module.
@@ -23,8 +24,9 @@ rmSync(resolve(worker, "dist"), { recursive: true, force: true });
 mkdirSync(resolve(out, "app"), { recursive: true });
 
 await build({
-  entryPoints: [resolve(worker, "src/lambda.ts")],
-  outfile: resolve(out, "app/lambda.mjs"),
+  entryPoints: [resolve(worker, "src/lambda.ts"), resolve(worker, "src/box.ts")],
+  outdir: resolve(out, "app"),
+  outExtension: { ".js": ".mjs" },
   bundle: true,
   platform: "node",
   format: "esm",
@@ -45,7 +47,8 @@ await build({
 
 // Parse the bundle before shipping it: a duplicate top-level binding is a SyntaxError
 // the Lambda would only report at cold start, after publish, during register.
-execFileSync("node", ["--check", resolve(out, "app/lambda.mjs")], { stdio: "inherit" });
+for (const app of ["lambda", "box"])
+  execFileSync("node", ["--check", resolve(out, `app/${app}.mjs`)], { stdio: "inherit" });
 
 cpSync(resolve(repo, "packages/niches/templates"), resolve(out, "templates"), { recursive: true });
 const roster = resolve(repo, "senders_config.toml");

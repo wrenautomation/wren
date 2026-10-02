@@ -60,6 +60,22 @@ data "aws_iam_policy_document" "ci" {
       "arn:aws:lambda:${var.region}:${data.aws_caller_identity.me.account_id}:function:${local.prefix}-${f}"
     ]
   }
+  # The pool chain's worker on the Postgres box: drop the bundle, restart it over SSM.
+  statement {
+    actions   = ["s3:PutObject"]
+    resources = ["${aws_s3_bucket.backups.arn}/worker/*"]
+  }
+  statement {
+    actions = ["ssm:SendCommand"]
+    resources = [
+      aws_instance.pg.arn,
+      "arn:aws:ssm:${var.region}::document/AWS-RunShellScript",
+    ]
+  }
+  statement {
+    actions   = ["ssm:GetCommandInvocation"]
+    resources = ["*"]
+  }
 }
 
 resource "aws_iam_role_policy" "ci" {

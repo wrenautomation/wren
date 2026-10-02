@@ -46,6 +46,19 @@ resource "aws_ssm_parameter" "probe_token" {
   value = var.probe_token
 }
 
+# The pool chain's worker on this box (apps/worker/src/box.ts): the Restate Cloud tunnel's
+# name, environment, signing key and a Full-role key, as a JSON env object. Set by hand.
+resource "aws_ssm_parameter" "box" {
+  name        = "${local.ssm_root}/box"
+  description = "JSON env for the box worker: RESTATE_TUNNEL_NAME, RESTATE_ENVIRONMENT_ID, RESTATE_CLOUD_REGION, WREN_RESTATE_IDENTITY_KEY, RESTATE_AUTH_TOKEN"
+  type        = "SecureString"
+  value       = "{}"
+
+  lifecycle {
+    ignore_changes = [value]
+  }
+}
+
 resource "aws_security_group" "pg" {
   name        = "${local.prefix}-pg"
   description = "Postgres over TLS from anywhere; no SSH (use SSM Session Manager)"
@@ -90,7 +103,8 @@ resource "aws_s3_bucket_public_access_block" "backups" {
 
 resource "aws_s3_bucket_lifecycle_configuration" "backups" {
   bucket = aws_s3_bucket.backups.id
-  # Only the nightly dumps expire; `legacy/` (the retired Python repos' data) is kept.
+  # The nightly dumps and old box-worker bundles expire; `legacy/` (the retired Python
+  # repos' data) is kept.
   rule {
     id     = "expire-pg-dumps"
     status = "Enabled"
@@ -99,6 +113,16 @@ resource "aws_s3_bucket_lifecycle_configuration" "backups" {
     }
     expiration {
       days = var.backup_retention_days
+    }
+  }
+  rule {
+    id     = "expire-worker-bundles"
+    status = "Enabled"
+    filter {
+      prefix = "worker/"
+    }
+    expiration {
+      days = 14
     }
   }
 }
@@ -150,7 +174,14 @@ data "aws_iam_policy_document" "pg" {
     resources = concat(
       [aws_ssm_parameter.pg_password.arn],
       aws_ssm_parameter.browser_token[*].arn,
+      # The box worker runs with the Lambda's env and roster, plus its own.
+      [aws_ssm_parameter.env.arn, aws_ssm_parameter.roster.arn, aws_ssm_parameter.box.arn],
     )
+  }
+  statement {
+    sid       = "ReadWorkerBundle"
+    actions   = ["s3:GetObject"]
+    resources = ["${aws_s3_bucket.backups.arn}/worker/*"]
   }
   statement {
     sid       = "DecryptSsm"

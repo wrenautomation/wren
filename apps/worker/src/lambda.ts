@@ -9,7 +9,7 @@ import { createEndpointHandler } from "@restatedev/restate-sdk/lambda";
 import { loadSettings } from "@wren/config";
 import { loadSsmEnv, loadSsmFile } from "@wren/config/ssm";
 import pino from "pino";
-import { buildServices } from "./services.js";
+import { buildServices, servicesFor } from "./services.js";
 
 const ROOT = process.env.LAMBDA_TASK_ROOT ?? process.cwd();
 
@@ -27,6 +27,6 @@ log.info(built.summary, "lambda ready");
 const identityKey = process.env.WREN_RESTATE_IDENTITY_KEY;
 
 export const handler = createEndpointHandler({
-  services: built.services,
+  services: servicesFor(built.services, "lambda"),
   ...(identityKey ? { identityKeys: [identityKey] } : {}),
 });

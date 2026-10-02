@@ -12,11 +12,12 @@
   },
   "dependencies": {
     "@restatedev/restate-sdk": "1.17.1",
+    "@restatedev/restate-sdk-tunnel": "1.17.1",
     "@wren/channel-email": "workspace:*",
     "@wren/channel-linkedin": "workspace:*",
-    "@wren/channel-search": "workspace:*",
     "@wren/channel-meta": "workspace:*",
     "@wren/channel-reddit": "workspace:*",
+    "@wren/channel-search": "workspace:*",
     "@wren/channel-sms": "workspace:*",
     "@wren/channel-tiktok": "workspace:*",
     "@wren/channel-x": "workspace:*",
