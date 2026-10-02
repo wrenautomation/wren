@@ -33,8 +33,9 @@ variable "pg_volume_gb" {
 }
 
 variable "backup_retention_days" {
-  type    = number
-  default = 30
+  description = "Days a nightly pg dump is kept. Each dump is a full copy (GBs), so S3 cost scales with this."
+  type        = number
+  default     = 7
 }
 
 variable "lambda_zip" {

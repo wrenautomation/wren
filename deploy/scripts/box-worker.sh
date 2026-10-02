@@ -6,11 +6,13 @@ set -euo pipefail
 bucket="$1" key="$2"
 dir=/opt/wren-worker
 
-# Headroom beside Postgres and the browser on a 2 GB box: a swap file, made once.
-if ! swapon --show | grep -q /swapfile; then
-  [ -f /swapfile ] || { dd if=/dev/zero of=/swapfile bs=1M count=1024 status=none; chmod 600 /swapfile; mkswap /swapfile >/dev/null; }
-  swapon /swapfile
-  grep -q /swapfile /etc/fstab || echo "/swapfile swap swap defaults 0 0" >> /etc/fstab
+# Headroom beside Postgres and the browser on a 2 GB box: a swap file, made once, on the
+# data volume (the 8 GB root has no room for it).
+SWAP=/var/lib/wren-pg/swapfile
+if ! swapon --show | grep -q "$SWAP"; then
+  [ -f "$SWAP" ] || { dd if=/dev/zero of="$SWAP" bs=1M count=1024 status=none; chmod 600 "$SWAP"; mkswap "$SWAP" >/dev/null; }
+  swapon "$SWAP"
+  grep -q "$SWAP" /etc/fstab || echo "$SWAP swap swap defaults,nofail 0 0" >> /etc/fstab
 fi
 
 aws s3 cp --only-show-errors "s3://$bucket/$key" /tmp/wren-worker.zip
