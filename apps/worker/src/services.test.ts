@@ -5,7 +5,7 @@ import type * as restate from "@restatedev/restate-sdk";
 import { loadSettings } from "@wren/config";
 import type { Logger } from "pino";
 import { afterEach, describe, expect, it } from "vitest";
-import { POOL_CHAIN, buildServices, servicesFor } from "./services.js";
+import { buildServices, POOL_CHAIN, servicesFor } from "./services.js";
 
 /** A logger that keeps every line; pino's shape is all the worker uses. */
 function logOf() {

@@ -58,7 +58,8 @@ const res = await fetch(`${admin}/deployments`, {
   headers: { authorization: `Bearer ${authToken}`, "content-type": "application/json" },
   body: JSON.stringify({ uri: tunnel.deploymentUrl, force: true }),
 });
-if (!res.ok) throw new Error(`restate register: HTTP ${res.status} ${(await res.text()).slice(0, 300)}`);
+if (!res.ok)
+  throw new Error(`restate register: HTTP ${res.status} ${(await res.text()).slice(0, 300)}`);
 const reg = (await res.json()) as { id: string; services: { name: string }[] };
 log.info(
   { deployment: reg.id, services: reg.services.map((s) => s.name), ...built.summary },
