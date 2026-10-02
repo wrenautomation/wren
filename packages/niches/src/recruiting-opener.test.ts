@@ -91,15 +91,13 @@ describe("recruiting book-first opener", () => {
     }
   });
 
-  it("subject has the first name and a hinted loss; a role inbox drops the name", () => {
+  it("subject is a curiosity loop: the first name and a missed-clients hint; a role inbox drops the name", () => {
     const subj = (facts: Record<string, unknown>, seed: string) =>
       render(tpl(), facts, seed).subject ?? "";
     const { first_name: _, ...company } = base;
     for (const seed of ["person:1", "person:2", "person:7"]) {
-      expect(subj(base, seed)).toMatch(
-        /^Dana, (your past clients are hiring again|placements sitting in your CRM)$/,
-      );
-      expect(subj(company, seed)).toMatch(/^(your past clients|placements sitting)/);
+      expect(subj(base, seed)).toMatch(/^Dana, you're missing out on clients$/);
+      expect(subj(company, seed)).toBe("you're missing out on clients");
     }
   });
 
@@ -107,7 +105,7 @@ describe("recruiting book-first opener", () => {
     for (const name of ["book-first/opener", "book-first/followup"]) {
       for (let i = 0; i < 20; i++) {
         expect(render(named(name), base, `person:${i}`).subject).not.toMatch(
-          /six figures|dozens of placements|old clients|full of revenue/,
+          /six figures|dozens of placements|old clients|past clients|CRM|full of revenue/,
         );
       }
     }
