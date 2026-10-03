@@ -3,7 +3,9 @@
  * writes a few sentences from the facts only, each ending in the marks of the
  * facts it rests on (`[f12]` a finding, `[c3]` a CRM row). The gate keeps a
  * sentence only when every mark is one of this person's facts and every
- * number in it is in those facts; the rest are dropped, with why.
+ * number in it is in those facts; the rest are dropped, with why. It opens
+ * with the signal (the move, or open roles at their company) in one sentence,
+ * then the facts; the gate puts the signal's sentence first if the model didn't.
  *
  * Who gets one: people who score above zero, whose lookup is done, and with
  * at least one finding to say. A brief is rewritten only when what it was
@@ -18,7 +20,7 @@ import { briefLine, failedLine } from "./feed.js";
 import { type BriefState, briefs } from "./schema.js";
 import { hiringFinding, LATEST_CRM_ROW, whereFinding } from "./score.js";
 
-export const BRIEF_VERSION = "v3";
+export const BRIEF_VERSION = "v4";
 export const STAGE_NAME = "reactivation_brief";
 const MAX_TOKENS = 2000;
 const MAX_SENTENCES = 4;
@@ -38,6 +40,8 @@ export interface BriefSubject {
   name: string;
   firm: string;
   facts: BriefFact[];
+  /** The mark of the reason to call now (the move, else open roles); null when there is none. */
+  signal: string | null;
   inputsHash: string;
 }
 
@@ -129,9 +133,14 @@ export function madeUp(sentence: string, source: string): string[] {
  * element the model packed with several sentences is gated one sentence at a
  * time, so an uncited one can't ride on its neighbour's marks.
  */
-export function gateBrief(sentences: string[], facts: BriefFact[]): Gated {
+export function gateBrief(
+  sentences: string[],
+  facts: BriefFact[],
+  signal: string | null = null,
+): Gated {
   const byMark = new Map(facts.map((f) => [f.mark.toLowerCase(), f.text]));
   const kept: string[] = [];
+  let lead = -1;
   const dropped: Gated["dropped"] = [];
   const cited = new Set<string>();
   for (const said of sentences.flatMap((s) => s.trim().split(SENTENCE_END))) {
@@ -164,9 +173,12 @@ export function gateBrief(sentences: string[], facts: BriefFact[]): Gated {
       drop(`over ${MAX_SENTENCES} sentences`);
       continue;
     }
+    if (lead < 0 && signal && marks.includes(signal.toLowerCase())) lead = kept.length;
     kept.push(sentence);
     for (const m of marks) cited.add(m);
   }
+  // The signal opens the brief, whatever order the model wrote it in.
+  if (lead > 0) kept.unshift(...kept.splice(lead, 1));
   const ids = (p: string) =>
     [...cited]
       .filter((m) => m.startsWith(p))
@@ -184,7 +196,7 @@ Facts, each with its mark:
 ${s.facts.map((f) => `[${f.mark}] ${f.text}`).join("\n")}
 
 Rules:
-- 2 to 4 sentences, most useful first: open roles at their company, a new job, still there, then history with the recruiter.
+- 2 to 4 sentences. The first is ${s.signal ? `the reason to call now, from [${s.signal}]` : "where they are now"}, in one sentence. Then the other facts, most useful first, history with the recruiter last.
 - End each sentence with the marks of the facts it rests on, like [f12] or [f12][c3].
 - Use only these facts. No guesses, no advice, no greetings, no outreach wording.
 - State the facts, never what they indicate, suggest or mean.
@@ -335,16 +347,21 @@ export async function briefSubjects(
   opts: { limit?: number } = {},
 ): Promise<BriefSubject[]> {
   const rows = await db.execute<Row>(briefSubjectsSql(opts));
-  return rows.map((r) => ({
-    personId: r.person_id,
-    name: [r.first_name, r.last_name].filter(Boolean).join(" ") || "(no name)",
-    firm: r.firm,
-    facts: [
-      ...r.facts.map((f) => ({ mark: `f${f.id}`, text: factText(f, r.firm) })),
-      ...r.crm.map((c) => ({ mark: `c${c.id}`, text: crmText(c) })),
-    ],
-    inputsHash: r.inputs_hash,
-  }));
+  return rows.map((r) => {
+    const signal =
+      r.facts.find((f) => f.kind === "job_change") ?? r.facts.find((f) => f.kind === "hiring");
+    return {
+      personId: r.person_id,
+      name: [r.first_name, r.last_name].filter(Boolean).join(" ") || "(no name)",
+      firm: r.firm,
+      facts: [
+        ...r.facts.map((f) => ({ mark: `f${f.id}`, text: factText(f, r.firm) })),
+        ...r.crm.map((c) => ({ mark: `c${c.id}`, text: crmText(c) })),
+      ],
+      signal: signal ? `f${signal.id}` : null,
+      inputsHash: r.inputs_hash,
+    };
+  });
 }
 
 // ---- the stage -------------------------------------------------------------
@@ -390,7 +407,7 @@ export async function writeCrmBriefs(
       });
       envelope = outcome.envelope();
       if (outcome.parsed) {
-        gated = gateBrief(outcome.parsed.sentences, s.facts);
+        gated = gateBrief(outcome.parsed.sentences, s.facts, s.signal);
         state = gated.kept.length ? "written" : "empty";
       } else state = "failed";
     } catch (err) {

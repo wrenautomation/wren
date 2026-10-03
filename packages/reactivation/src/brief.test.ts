@@ -93,10 +93,50 @@ describe("buildBriefPrompt", () => {
       name: "Jane Doe",
       firm: "Acme",
       facts,
+      signal: "f12",
       inputsHash: "x",
     });
     expect(p).toContain("Contact: Jane Doe, last known at Acme.");
     for (const f of facts) expect(p).toContain(`[${f.mark}] ${f.text}`);
+    expect(p).toContain("The first is the reason to call now, from [f12], in one sentence.");
+  });
+  it("no signal: it opens with where they are", () => {
+    const p = buildBriefPrompt({
+      personId: 1,
+      name: "J",
+      firm: "A",
+      facts,
+      signal: null,
+      inputsHash: "x",
+    });
+    expect(p).toContain("The first is where they are now, in one sentence.");
+  });
+});
+
+describe("gateBrief: the signal opens", () => {
+  it("moves the sentence citing the signal first, the rest in order", () => {
+    const g = gateBrief(
+      [
+        "She is still Head of Talent there. [f7]",
+        "Last placement was 2024-03-15. [c3]",
+        "Acme has 3 open roles. [f12]",
+      ],
+      facts,
+      "f12",
+    );
+    expect(g.kept).toEqual([
+      "Acme has 3 open roles. [f12]",
+      "She is still Head of Talent there. [f7]",
+      "Last placement was 2024-03-15. [c3]",
+    ]);
+  });
+  it("a signal sentence the gate dropped is not brought back", () => {
+    const g = gateBrief(
+      ["She is still Head of Talent there. [f7]", "Acme has 30 open roles. [f12]"],
+      facts,
+      "f12",
+    );
+    expect(g.kept).toEqual(["She is still Head of Talent there. [f7]"]);
   });
 });
 
