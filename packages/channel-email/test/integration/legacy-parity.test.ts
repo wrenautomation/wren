@@ -46,6 +46,8 @@ const ADDED = {
     "enrollments.away_until",
     "companies.decline_reason",
     "messages.offered_times",
+    "documents.html_key",
+    "documents.tel_hrefs",
   ]),
   constraints: new Set(["uq_messages_link_code"]),
   indexes: new Set(["ix_enrollments_offer", "uq_messages_link_code"]),
