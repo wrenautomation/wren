@@ -85,21 +85,21 @@ const NAMED_ENTITIES: Readonly<Record<string, string>> = {
   times: "×",
 };
 
+/** A code point from a character reference; a surrogate alone is U+FFFD, as browsers read it. */
+const fromReference = (code: number): string =>
+  code >= 0xd800 && code <= 0xdfff ? "\uFFFD" : String.fromCodePoint(code);
+
 /** Decode numeric and common named character references. Unknown names are left as-is. */
 export function decodeEntities(s: string): string {
   if (!s.includes("&")) return s;
   return s.replace(/&(#x[0-9a-fA-F]+|#\d+|[a-zA-Z][a-zA-Z0-9]*);?/g, (whole, body: string) => {
     if (body.startsWith("#x") || body.startsWith("#X")) {
       const code = Number.parseInt(body.slice(2), 16);
-      return Number.isFinite(code) && code > 0 && code <= 0x10ffff
-        ? String.fromCodePoint(code)
-        : whole;
+      return Number.isFinite(code) && code > 0 && code <= 0x10ffff ? fromReference(code) : whole;
     }
     if (body.startsWith("#")) {
       const code = Number.parseInt(body.slice(1), 10);
-      return Number.isFinite(code) && code > 0 && code <= 0x10ffff
-        ? String.fromCodePoint(code)
-        : whole;
+      return Number.isFinite(code) && code > 0 && code <= 0x10ffff ? fromReference(code) : whole;
     }
     const named = NAMED_ENTITIES[body] ?? NAMED_ENTITIES[body.toLowerCase()];
     return named ?? whole;

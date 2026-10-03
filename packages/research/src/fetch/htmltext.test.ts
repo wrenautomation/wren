@@ -95,3 +95,9 @@ describe("looksLikeJsShell", () => {
     expect(looksLikeJsShell(html, "")).toBe(true);
   });
 });
+
+describe("decodeEntities surrogates", () => {
+  it("reads a surrogate character reference as U+FFFD", () => {
+    expect(decodeEntities("a&#xD83D;b&#55357;c")).toBe("a\uFFFDb\uFFFDc");
+  });
+});

@@ -90,4 +90,13 @@ describe("scanPage", () => {
     expect([...s.keys()]).toEqual(["hello@10up.com"]);
     expect(s.get("hello@10up.com")?.on_domain).toBe(true);
   });
+
+  it("never cuts an emoji in half at the context edge", () => {
+    // The 120-char window ends inside the 👤 after, or starts inside the one before.
+    const opts = { pageUrl: "https://acme.com", companyDomain: "acme.com" };
+    const after = scanPage(null, `jane@acme.com ${"x".repeat(118)}👤`, opts)[0];
+    const before = scanPage(null, `👤${"y".repeat(118)} jane@acme.com`, opts)[0];
+    expect(after?.context).toBe(`jane@acme.com ${"x".repeat(118)}`);
+    expect(before?.context).toBe(`${"y".repeat(118)} jane@acme.com`);
+  });
 });

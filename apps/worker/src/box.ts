@@ -51,18 +51,55 @@ const tunnel = connectTunnel({
 await tunnel.ready;
 if (!tunnel.deploymentUrl) throw new Error("restate tunnel handshake gave no deployment URL");
 
-// `force`: a restart lands at the same tunnel URL with this build's handlers.
+// `force`: a restart that lands at the same tunnel URL takes this build's handlers.
 const admin = `https://${environmentId.replace(/^env_/, "")}.env.${region}.restate.cloud:9070`;
+const headers = { authorization: `Bearer ${authToken}`, "content-type": "application/json" };
 const res = await fetch(`${admin}/deployments`, {
   method: "POST",
-  headers: { authorization: `Bearer ${authToken}`, "content-type": "application/json" },
+  headers,
   body: JSON.stringify({ uri: tunnel.deploymentUrl, force: true }),
 });
 if (!res.ok)
   throw new Error(`restate register: HTTP ${res.status} ${(await res.text()).slice(0, 300)}`);
 const reg = (await res.json()) as { id: string; services: { name: string }[] };
+
+// A restart often lands on another tunnel server, so a new URL and a new deployment. An
+// unfinished call stays pinned to the old one, whose endpoint died with the old
+// container, and waits forever (the pool loop stalled on every deploy). Move them here.
+const tunnelName = need("RESTATE_TUNNEL_NAME");
+const stranded = await fetch(`${admin}/query`, {
+  method: "POST",
+  headers: { ...headers, accept: "application/json" },
+  body: JSON.stringify({
+    query: `SELECT i.id FROM sys_invocation i JOIN sys_deployment d ON d.id = i.pinned_deployment_id
+      WHERE i.status <> 'completed' AND d.id <> '${reg.id}'
+        AND d.endpoint LIKE '%/${tunnelName.replace(/[^\w-]/g, "")}/%'`,
+  }),
+});
+const moved: string[] = [];
+if (stranded.ok) {
+  for (const { id } of ((await stranded.json()) as { rows: { id: string }[] }).rows) {
+    const r = await fetch(`${admin}/invocations/${id}/resume?deployment=${reg.id}`, {
+      method: "PATCH",
+      headers,
+    });
+    if (r.ok) moved.push(id);
+    else
+      log.warn(
+        { id, status: r.status, body: (await r.text()).slice(0, 200) },
+        "stranded call not moved",
+      );
+  }
+} else {
+  log.warn({ status: stranded.status }, "stranded call query failed");
+}
 log.info(
-  { deployment: reg.id, services: reg.services.map((s) => s.name), ...built.summary },
+  {
+    deployment: reg.id,
+    services: reg.services.map((s) => s.name),
+    moved_calls: moved.length,
+    ...built.summary,
+  },
   "box ready",
 );
 

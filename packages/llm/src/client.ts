@@ -15,6 +15,7 @@ import { createAnthropic } from "@ai-sdk/anthropic";
 import { createOpenAICompatible } from "@ai-sdk/openai-compatible";
 import { APICallError, generateText, type LanguageModel, RetryError } from "ai";
 import { ClaudeCodeLlm, DEFAULT_CLAUDE_CODE_MODEL } from "./claude-code.js";
+import { wellFormed } from "./parsing.js";
 
 export interface LlmResponse {
   text: string;
@@ -110,7 +111,7 @@ export class AiSdkLlm implements LlmClient {
     try {
       result = await generateText({
         model: this.model,
-        prompt,
+        prompt: wellFormed(prompt),
         maxOutputTokens: opts.maxTokens ?? DEFAULT_MAX_TOKENS,
       });
     } catch (err) {

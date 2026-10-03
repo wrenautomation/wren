@@ -10,6 +10,7 @@
  */
 import { companies, emailDomain, emailSyntaxError, inPlay, normalizeEmail } from "@wren/core";
 import type { Queryable } from "@wren/db";
+import { wellFormed } from "@wren/llm";
 import { and, asc, eq, ne, notInArray } from "drizzle-orm";
 import { readPage } from "../fetch/htmltext.js";
 import { htmlOf, type PageStore } from "../pages.js";
@@ -138,7 +139,7 @@ function contextFor(email: string, text: string): string {
   if (at === -1) return "";
   const lo = Math.max(0, at - CONTEXT_CHARS);
   const hi = Math.min(text.length, at + email.length + CONTEXT_CHARS);
-  return text.slice(lo, hi).split(/\s+/).filter(Boolean).join(" ");
+  return wellFormed(text.slice(lo, hi)).split(/\s+/).filter(Boolean).join(" ");
 }
 
 /**

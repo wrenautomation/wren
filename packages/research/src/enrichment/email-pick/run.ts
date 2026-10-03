@@ -25,7 +25,7 @@ import {
   runPeopleImport,
 } from "@wren/core";
 import type { Queryable } from "@wren/db";
-import { type LlmClient, LlmError, type Tracer } from "@wren/llm";
+import { type LlmClient, LlmError, type Tracer, wellFormed } from "@wren/llm";
 import { and, asc, eq, inArray, isNotNull, isNull, ne, notInArray, or, sql } from "drizzle-orm";
 import { documents, type Enrichment, enrichments } from "../../schema.js";
 import { type EmailSignal, SCAN_MODEL, SCAN_VERSION } from "../email-scan.js";
@@ -53,7 +53,7 @@ export async function gatherState(db: Queryable, company: Company): Promise<Pick
   for (const doc of docs) {
     if (doc.text) pages.push(doc.url);
     if (!snippet && doc.text)
-      snippet = doc.text.slice(0, SNIPPET_CHARS).split(/\s+/).filter(Boolean).join(" ");
+      snippet = wellFormed(doc.text.slice(0, SNIPPET_CHARS)).split(/\s+/).filter(Boolean).join(" ");
   }
   const signals: EmailSignal[] = [];
   const seen = new Set<string>();

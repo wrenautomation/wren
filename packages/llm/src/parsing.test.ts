@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { z } from "zod";
-import { firstJsonObject, NO_JSON_OBJECT, parseModel } from "./parsing.js";
+import { firstJsonObject, NO_JSON_OBJECT, parseModel, wellFormed } from "./parsing.js";
 
 const Answer = z.object({ items: z.array(z.string()).default([]) });
 
@@ -43,5 +43,11 @@ describe("parseModel", () => {
   });
   it("returns the no-object reason", () => {
     expect(parseModel("no json here", Answer)).toBe(NO_JSON_OBJECT);
+  });
+});
+
+describe("wellFormed", () => {
+  it("drops half an emoji and keeps whole ones", () => {
+    expect(wellFormed("\uDC64 Jane 👤 Doe \uD83D")).toBe(" Jane 👤 Doe ");
   });
 });

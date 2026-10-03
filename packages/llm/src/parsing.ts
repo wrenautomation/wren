@@ -93,3 +93,11 @@ export function parseModel<T>(text: string, schema: ZodType<T>): T | string {
     .join("; ");
   return `ValidationError: ${issues}`;
 }
+
+/**
+ * Drop lone UTF-16 surrogates. A slice through an emoji leaves half of it, and
+ * Postgres refuses the half in jsonb, so the whole insert fails and its caller retries
+ * forever (the pool chain stalled on one page's 👤). A provider may refuse it in a prompt.
+ */
+export const wellFormed = (s: string): string =>
+  s.replace(/[\uD800-\uDBFF](?![\uDC00-\uDFFF])|(?<![\uD800-\uDBFF])[\uDC00-\uDFFF]/g, "");
