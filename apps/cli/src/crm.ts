@@ -19,7 +19,9 @@ import { loadLlmEnv, makeLlm } from "@wren/llm";
 import {
   approveDrafts,
   CRM_FORMATS,
+  CRM_STAGES,
   CrmCsvSource,
+  type CrmStage,
   checkCrmEmails,
   crmHealth,
   crmStatus,
@@ -148,54 +150,62 @@ export function registerCrm(
     .option("--limit <n>", "at most n units per stage", positive("--limit"))
     .option("--no-linkedin", "search only, even when the client has a LinkedIn account")
     .option("--verifier <name>", "smtp, smtp-direct or fake", settings.verifier)
-    .action(async (opts: { limit?: number; linkedin: boolean; verifier: string }) => {
-      const verifier = await makeVerifier(opts.verifier, {
-        smtpProbeUrl: settings.smtpProbeUrl ?? null,
-        smtpProbeToken: settings.smtpProbeToken ?? null,
-        smtpHelo: settings.smtpHelo ?? null,
-      });
-      // Key fleets and provider keys live in llm.env (or the host's env); never logged.
-      loadLlmEnv(settings.llmEnvPath, rootDir);
-      const deps = {
-        verifier,
-        checker: defaultLocalChecker(),
-        sites: ingressSites(settings, "wren:crm-run"),
-        // Company sites and job boards: identified, short timeouts, one retry.
-        fetcher: settings.fetchContact
-          ? new PoliteFetcher(userAgent(settings.fetchContact), { timeout: 10, retries: 1 })
-          : null,
-        llm:
-          settings.llm === "fake"
-            ? null
-            : makeLlm(settings.llm, process.env, { anthropicModel: settings.llmModel }),
-      };
-      if (!deps.fetcher) console.log("WREN_FETCH_CONTACT unset: job boards skipped, LinkedIn only");
-      const { client, run, stages, status } = await withClientDb(async (db, client) => {
-        const linkedin = opts.linkedin ? (client.accounts?.linkedin ?? null) : null;
-        const argv = { ...opts, linkedin };
-        const compose = await composeInputs(db, client);
-        const { run, stats } = await recordedRun(db, { command: "crm run", argv }, async (r) => ({
-          stages: await runCrm(
-            db,
-            deps,
-            {
-              linkedin,
-              compose,
-              runId: r.id,
-              feed: runFeed(db, r.id),
-              ...(opts.limit ? { limit: opts.limit } : {}),
-            },
-            (s) => console.log(`${s.stage}: ${JSON.stringify(s.stats)}`),
-          ),
-        }));
-        return { client, run, stages: stats.stages, status: await crmStatus(db, { compose }) };
-      });
-      console.log(
-        `run ${run.id}: ${stages.length ? stages.map((s) => s.stage).join(", ") : "nothing was due"}`,
-      );
-      for (const line of formatCrmStatus(status)) console.log(line.replaceAll("<id>", client.id));
-      if (stages.some((s) => s.stats.aborted)) process.exitCode = 1;
-    });
+    .option("--only <stages>", `only these, comma separated: ${CRM_STAGES.join(", ")}`)
+    .action(
+      async (opts: { limit?: number; linkedin: boolean; verifier: string; only?: string }) => {
+        const only = opts.only?.split(",").map((x) => x.trim()) as CrmStage[] | undefined;
+        const bad = only?.filter((x) => !CRM_STAGES.includes(x));
+        if (bad?.length) throw new Error(`--only: no stage ${bad.join(", ")}`);
+        const verifier = await makeVerifier(opts.verifier, {
+          smtpProbeUrl: settings.smtpProbeUrl ?? null,
+          smtpProbeToken: settings.smtpProbeToken ?? null,
+          smtpHelo: settings.smtpHelo ?? null,
+        });
+        // Key fleets and provider keys live in llm.env (or the host's env); never logged.
+        loadLlmEnv(settings.llmEnvPath, rootDir);
+        const deps = {
+          verifier,
+          checker: defaultLocalChecker(),
+          sites: ingressSites(settings, "wren:crm-run"),
+          // Company sites and job boards: identified, short timeouts, one retry.
+          fetcher: settings.fetchContact
+            ? new PoliteFetcher(userAgent(settings.fetchContact), { timeout: 10, retries: 1 })
+            : null,
+          llm:
+            settings.llm === "fake"
+              ? null
+              : makeLlm(settings.llm, process.env, { anthropicModel: settings.llmModel }),
+        };
+        if (!deps.fetcher)
+          console.log("WREN_FETCH_CONTACT unset: job boards skipped, LinkedIn only");
+        const { client, run, stages, status } = await withClientDb(async (db, client) => {
+          const linkedin = opts.linkedin ? (client.accounts?.linkedin ?? null) : null;
+          const argv = { ...opts, linkedin };
+          const compose = await composeInputs(db, client);
+          const { run, stats } = await recordedRun(db, { command: "crm run", argv }, async (r) => ({
+            stages: await runCrm(
+              db,
+              deps,
+              {
+                linkedin,
+                compose,
+                runId: r.id,
+                feed: runFeed(db, r.id),
+                ...(opts.limit ? { limit: opts.limit } : {}),
+                ...(only ? { only } : {}),
+              },
+              (s) => console.log(`${s.stage}: ${JSON.stringify(s.stats)}`),
+            ),
+          }));
+          return { client, run, stages: stats.stages, status: await crmStatus(db, { compose }) };
+        });
+        console.log(
+          `run ${run.id}: ${stages.length ? stages.map((s) => s.stage).join(", ") : "nothing was due"}`,
+        );
+        for (const line of formatCrmStatus(status)) console.log(line.replaceAll("<id>", client.id));
+        if (stages.some((s) => s.stats.aborted)) process.exitCode = 1;
+      },
+    );
 
   const loop = crm
     .command("loop")
