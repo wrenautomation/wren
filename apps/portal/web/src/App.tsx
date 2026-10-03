@@ -10,14 +10,17 @@ import {
   AppShell,
   Button,
   ButtonLink,
+  can,
   Gate,
   Loading,
   PageHeader,
+  type PaletteItem,
   readTheme,
   type ShellNotice,
   type Theme,
+  type Viewer,
 } from "@wren/ui";
-import { Component, type ReactNode, useEffect, useState } from "react";
+import { Component, lazy, type ReactNode, Suspense, useEffect, useState } from "react";
 import { call, type Me, signOutUrl } from "./api.js";
 import { useCall } from "./load.js";
 import type { Module, ModulePage, PageProps } from "./module.js";
@@ -32,16 +35,50 @@ const AS_CLIENT_KEY = "wren.portal.asClient";
 
 const pathOf = (m: Module, p: ModulePage) => `/${m.id}/${p.id}`;
 const firstOf = (m: Module) => (m.pages[0] ? pathOf(m, m.pages[0]) : "/");
+const teamOnly = (m: Module) => m.requires?.audience === "team";
+
+/** ⌘K. Loaded on the first press, so cmdk stays out of the first load. */
+const CommandPalette = lazy(() =>
+  import("@wren/ui/palette").then((m) => ({ default: m.CommandPalette })),
+);
+
+/** Open (true), shut (false), or never asked for (null): ⌘K or Ctrl+K toggles it. */
+function usePaletteKey() {
+  const [open, setOpen] = useState<boolean | null>(null);
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key.toLowerCase() !== "k" || !(e.metaKey || e.ctrlKey)) return;
+      e.preventDefault();
+      setOpen((o) => !o);
+    };
+    addEventListener("keydown", onKey);
+    return () => removeEventListener("keydown", onKey);
+  }, []);
+  return [open, setOpen] as const;
+}
+
+/** ⌘K's list: home, then every page this viewer may open, by app. */
+const jumps = (apps: Module[], launcher: string | undefined): PaletteItem[] => [
+  ...(launcher
+    ? [{ label: "All apps", group: "Wren", href: launcher, icon: "apps" as const }]
+    : []),
+  ...apps.flatMap((m) =>
+    m.pages
+      .filter((p) => !p.hidden)
+      .map((p) => ({ label: p.label, group: m.name, href: pathOf(m, p), icon: m.icon })),
+  ),
+];
 
 /**
- * The apps this viewer sees: the team's own only in team view, and a client's
- * own project never on the demo. `demo` is null until the server says which
- * host this is; those apps wait for it.
+ * The apps and pages this viewer may see (`requires`): the team's own only in team view, a
+ * client's own never on the demo. Until the server says which host this is, it counts as the
+ * demo, so a client's own waits.
  */
-const shown = (team: boolean, demo: boolean | null) =>
-  MODULES.filter((m) => (team || !m.team) && (demo === false || !m.noDemo)).map((m) =>
-    demo === false ? m : { ...m, pages: m.pages.filter((p) => !p.noDemo) },
-  );
+const shown = (viewer: Viewer) =>
+  MODULES.filter((m) => can(viewer, m.requires)).map((m) => ({
+    ...m,
+    pages: m.pages.filter((p) => can(viewer, p.requires)),
+  }));
 
 /** Where an address goes: an app's page, the launcher, or elsewhere (`to`) once the viewer is known. */
 type Place =
@@ -110,10 +147,11 @@ export function App() {
   // Wren's team can look as the client would: no internal notes, no team tools.
   const [asClient, setAsClient] = useState(() => recall(AS_CLIENT_KEY) === "1");
   const theme = useLook(route.params);
+  const [jump, setJump] = usePaletteKey();
   const operator = me.data?.operator ?? false;
   const team = operator && !asClient;
   const onDemo = me.data ? me.data.demo : null;
-  const apps = shown(team, onDemo);
+  const apps = shown({ team, demo: onDemo !== false });
   // Menu apps (the account) are reached from the client's name, not a card.
   const cards = apps.filter((m) => !m.menu);
   const [only] = cards;
@@ -176,78 +214,92 @@ export function App() {
   const action = open?.module.action;
 
   return (
-    <AppShell
-      brand={{ name: "Wren", href: home, stamp: STAMP }}
-      workspace={{
-        current,
-        options: clients,
-        caption: demo ? "Demo" : undefined,
-        href: account ? firstOf(account) : undefined,
-        label: clients.length > 1 ? "Client" : "Account",
-        onPick: pick,
-      }}
-      launcher={launcher}
-      app={
-        open
-          ? {
-              name: open.module.name,
-              icon: open.module.icon,
-              href: firstOf(open.module),
-              tabs: open.module.pages
-                .filter((p) => !p.hidden || p.id === open.page.id)
-                .map((p) => ({
-                  id: p.id,
-                  label: p.label,
-                  href: pathOf(open.module, p),
-                })),
-              current: open.page.id,
-              action:
-                action && action.page !== open.page.id ? (
-                  <ButtonLink
-                    href={`/${open.module.id}/${action.page}`}
-                    tone="quiet"
-                    size="sm"
-                    icon={action.icon}
-                  >
-                    {action.label}
-                  </ButtonLink>
-                ) : undefined,
-            }
-          : null
-      }
-      notice={demo ? DEMO : undefined}
-      actions={
-        <>
-          {operator ? (
-            <Button tone="quiet" size="sm" onClick={flip}>
-              {team ? "View as client" : "Back to team view"}
-            </Button>
-          ) : null}
-          {account ? (
-            <ButtonLink href={firstOf(account)} tone="quiet" size="sm">
-              Account
-            </ButtonLink>
-          ) : null}
-          {signOutUrl ? (
-            <ButtonLink href={signOutUrl} tone="quiet" size="sm">
-              Sign out
-            </ButtonLink>
-          ) : null}
-        </>
-      }
-      page={open ? pathOf(open.module, open.page) : "/"}
-      theme={theme}
-    >
-      {!current ? (
-        <Loading lines={8} heading />
-      ) : open ? (
-        <Contained key={`${current.id}/${open.module.id}/${open.page.id}`}>
-          <open.page.Page {...props(current.id)} />
-        </Contained>
-      ) : (
-        <Launcher key={current.id} name={current.name} apps={cards} props={props(current.id)} />
+    <>
+      <AppShell
+        brand={{ name: "Wren", href: home, stamp: STAMP }}
+        workspace={{
+          current,
+          options: clients,
+          caption: demo ? "Demo" : undefined,
+          href: account ? firstOf(account) : undefined,
+          label: clients.length > 1 ? "Client" : "Account",
+          onPick: pick,
+        }}
+        launcher={launcher}
+        app={
+          open
+            ? {
+                name: open.module.name,
+                icon: open.module.icon,
+                href: firstOf(open.module),
+                tabs: open.module.pages
+                  .filter((p) => !p.hidden || p.id === open.page.id)
+                  .map((p) => ({
+                    id: p.id,
+                    label: p.label,
+                    href: pathOf(open.module, p),
+                  })),
+                current: open.page.id,
+                action:
+                  action && action.page !== open.page.id ? (
+                    <ButtonLink
+                      href={`/${open.module.id}/${action.page}`}
+                      tone="quiet"
+                      size="sm"
+                      icon={action.icon}
+                    >
+                      {action.label}
+                    </ButtonLink>
+                  ) : undefined,
+              }
+            : null
+        }
+        notice={demo ? DEMO : undefined}
+        actions={
+          <>
+            {operator ? (
+              <Button tone="quiet" size="sm" onClick={flip}>
+                {team ? "View as client" : "Back to team view"}
+              </Button>
+            ) : null}
+            {account ? (
+              <ButtonLink href={firstOf(account)} tone="quiet" size="sm">
+                Account
+              </ButtonLink>
+            ) : null}
+            {signOutUrl ? (
+              <ButtonLink href={signOutUrl} tone="quiet" size="sm">
+                Sign out
+              </ButtonLink>
+            ) : null}
+          </>
+        }
+        page={open ? pathOf(open.module, open.page) : "/"}
+        theme={theme}
+      >
+        {!current ? (
+          <Loading lines={8} heading />
+        ) : open ? (
+          <Contained key={`${current.id}/${open.module.id}/${open.page.id}`}>
+            <Suspense fallback={<Loading lines={8} heading />}>
+              <open.page.Page {...props(current.id)} />
+            </Suspense>
+          </Contained>
+        ) : (
+          <Launcher key={current.id} name={current.name} apps={cards} props={props(current.id)} />
+        )}
+      </AppShell>
+      {jump === null ? null : (
+        <Suspense fallback={null}>
+          <CommandPalette
+            open={jump}
+            onOpenChange={setJump}
+            items={jumps(apps, launcher)}
+            onPick={(href) => navigate(href)}
+          />
+        </Suspense>
       )}
-    </AppShell>
+    </>
   );
 }
 
@@ -269,10 +321,10 @@ function Launcher({ name, apps, props }: { name: string; apps: Module[]; props: 
   if (!account.data && !account.error) return <Loading lines={8} heading />;
   // One heading per offer, newest first; a finished one stays, it still has its paperwork.
   const bought = [...new Map((account.data?.bought ?? []).map((b) => [b.offerId, b])).values()];
-  const under = (app: string) => apps.filter((m) => !m.team && m.id === app);
+  const under = (app: string) => apps.filter((m) => !teamOnly(m) && m.id === app);
   const placed = new Set(bought.map((b) => b.app));
-  const rest = apps.filter((m) => !m.team && !m.fallback && !placed.has(m.id));
-  const ours = apps.filter((m) => m.team);
+  const rest = apps.filter((m) => !teamOnly(m) && !m.fallback && !placed.has(m.id));
+  const ours = apps.filter(teamOnly);
   return (
     <>
       <PageHeader title="Apps" lede={`Everything Wren runs for ${name}.`} />

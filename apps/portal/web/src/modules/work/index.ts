@@ -3,6 +3,7 @@
  * deliverables, asks and results. A product's app adds these pages to its own; the work app
  * shows them for offers without an app.
  */
+import type { Access } from "@wren/ui";
 import type { Module, ModulePage } from "../../module.js";
 import { Contract } from "./Contract.js";
 import { Deliverables } from "./Deliverables.js";
@@ -19,19 +20,22 @@ import "./work.css";
 
 export { Checklist, EngagementBar } from "./Home.js";
 
+/** A signed-in client's own: never on the demo. */
+const OWN: Access = { audience: "client" };
+
 /**
  * The plan's pages for a product's app: the ones a client opens often as tabs, the rest by
  * link. A client's own, so never on the demo.
  */
 export const ENGAGEMENT_PAGES: ModulePage[] = [
-  { id: "plan", label: "Plan", Page: Plan, noDemo: true },
-  { id: "updates", label: "Updates", Page: Updates, noDemo: true },
-  { id: "needs-you", label: "Needs you", Page: Needs, noDemo: true },
-  { id: "paperwork", label: "Paperwork", Page: Paperwork, noDemo: true },
-  { id: "deliverables", label: "Deliverables", Page: Deliverables, noDemo: true, hidden: true },
-  { id: "results", label: "Results", Page: Results, noDemo: true, hidden: true },
-  { id: "contract", label: "Contract", Page: Contract, noDemo: true, hidden: true },
-  { id: "welcome", label: "Welcome guide", Page: Welcome, noDemo: true, hidden: true },
+  { id: "plan", label: "Plan", Page: Plan, requires: OWN },
+  { id: "updates", label: "Updates", Page: Updates, requires: OWN },
+  { id: "needs-you", label: "Needs you", Page: Needs, requires: OWN },
+  { id: "paperwork", label: "Paperwork", Page: Paperwork, requires: OWN },
+  { id: "deliverables", label: "Deliverables", Page: Deliverables, requires: OWN, hidden: true },
+  { id: "results", label: "Results", Page: Results, requires: OWN, hidden: true },
+  { id: "contract", label: "Contract", Page: Contract, requires: OWN, hidden: true },
+  { id: "welcome", label: "Welcome guide", Page: Welcome, requires: OWN, hidden: true },
 ];
 
 export const work: Module = {
@@ -42,7 +46,7 @@ export const work: Module = {
   fallback: true,
   Glance,
   // The demo shows the products; a client's project lives on app. only.
-  noDemo: true,
+  requires: OWN,
   pages: [
     { id: "overview", label: "Overview", Page: Home },
     // Its own app: deliverables and results get tabs too.

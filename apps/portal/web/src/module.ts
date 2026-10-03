@@ -1,5 +1,5 @@
 /** An app in the portal: a card on the launcher, and its pages as tabs at /<app>/<page>. */
-import type { IconName } from "@wren/ui";
+import type { Access, IconName } from "@wren/ui";
 import type { ComponentType } from "react";
 
 /**
@@ -20,8 +20,8 @@ export interface ModulePage {
   Page: ComponentType<PageProps>;
   /** Reached by link only, never a tab. */
   hidden?: true;
-  /** A signed-in client's own (their plan, contract, prices): never on the demo. */
-  noDemo?: true;
+  /** Who sees it: `{ audience: "client" }` is a signed-in client's own, never on the demo. */
+  requires?: Access;
 }
 
 export interface Module {
@@ -34,10 +34,11 @@ export interface Module {
   /** Its card's numbers, and what waits on the viewer. */
   Glance?: ComponentType<PageProps>;
   pages: ModulePage[];
-  /** Wren's team only: shown and reachable only in team view. */
-  team?: true;
-  /** A signed-in client's own: never on the demo, which shows the products alone. */
-  noDemo?: true;
+  /**
+   * Who sees it, and reaches it: `{ audience: "team" }` is Wren's team in team view only;
+   * `{ audience: "client" }` a signed-in client's own, never on the demo (products alone).
+   */
+  requires?: Access;
   /** Reached from the client's name at top left, never a launcher card. */
   menu?: true;
   /**

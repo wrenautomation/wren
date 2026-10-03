@@ -8,6 +8,6 @@ export const ops: Module = {
   name: "Wren ops",
   icon: "board",
   blurb: "Every client's project on one board, the ones at risk first.",
-  team: true,
+  requires: { audience: "team" },
   pages: [{ id: "clients", label: "Clients", Page: Clients }],
 };

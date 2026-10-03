@@ -12,7 +12,7 @@ export const account: Module = {
   blurb: "Your company's details, who can see your projects, your email settings and invoices.",
   menu: true,
   // The demo is nobody's account.
-  noDemo: true,
+  requires: { audience: "client" },
   pages: [
     { id: "overview", label: "Overview", Page: Overview },
     { id: "people", label: "People", Page: People },
