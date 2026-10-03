@@ -5,7 +5,8 @@
  * today's per-inbox cap, under the fleet and niche opener brakes), counts approved openers not
  * yet sent, and composes the shortfall through the niche's enrollment plan, rule by rule,
  * auto-approved: first-contact companies first, then returning ones (lead recycling) with
- * what is left. Then it sleeps to the next local midnight.
+ * what is left. Before counting, it refreshes the queue (`refreshQueue`): queued email takes
+ * today's templates and tracking switch. Then it sleeps to the next local midnight.
  *
  * Compose commits one company per transaction and the partial unique indexes make a
  * retry safe, so the whole pass is one journaled step. An empty pool is not an error:
@@ -19,6 +20,7 @@ import type { Db } from "@wren/db";
 import { sql } from "drizzle-orm";
 import { type ComposeStats, compose } from "../outreach/compose.js";
 import { type EnrollmentRule, ruleCovers } from "../outreach/plan.js";
+import { type RefreshStats, refreshQueue } from "../outreach/refresh.js";
 import type { Sequence } from "../outreach/sequences.js";
 import type { Template } from "../outreach/templates.js";
 import { AUDIENCES, type Audience, type RecontactPolicy } from "../recontact.js";
@@ -67,6 +69,8 @@ export interface ComposeSchedulerDeps {
 
 export interface TopUpStats {
   niche: string;
+  /** Queued email re-rendered from today's templates, tokens matched to the tracking switch. */
+  refresh: RefreshStats;
   /** `companies.timezone` filled for the niche before composing (the lead window's clock). */
   timezones: TimezoneFillStats;
   /** Openers the fleet may send this niche per day, as of this pass. */
@@ -132,10 +136,21 @@ export async function topUp(
     campaign.senders.length,
     opts.now,
   );
+  const refresh = await refreshQueue(db, {
+    niche: campaign.niche,
+    templates: campaign.templates,
+    factsView: campaign.factsView,
+    offerFacts: campaign.offerFacts,
+    site: campaign.site ?? null,
+    senders: campaign.senders,
+    signatures: campaign.signatures,
+    trackOpens: opts.trackOpens,
+  });
   const queued = await queuedOpeners(db, campaign.niche);
   const target = capacity * opts.daysAhead;
   const stats: TopUpStats = {
     niche: campaign.niche,
+    refresh,
     timezones,
     capacity_per_day: capacity,
     queued,

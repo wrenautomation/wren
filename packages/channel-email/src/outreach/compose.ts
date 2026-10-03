@@ -812,7 +812,7 @@ async function enroll(
       provenance,
       state,
       runId: shared.runId,
-      // Minted here and only here: a draft approved without one can never acquire a pixel.
+      // Tracking on today; a refresh (refreshQueue) clears it if tracking is off by send day.
       openToken: shared.trackOpens ? mintOpenToken() : null,
       // Minted before render: the draft's `link.*` facts already carry it.
       linkCode: input.drafts.linkCodes[index] as string,

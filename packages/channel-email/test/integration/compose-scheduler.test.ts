@@ -8,6 +8,7 @@ import { sequence, sequenceStep } from "../../src/outreach/sequences.js";
 import { field, template, text } from "../../src/outreach/templates.js";
 import { DEFAULT_RECONTACT } from "../../src/recontact.js";
 import { type Campaign, queuedOpeners, topUp } from "../../src/restate/compose-scheduler.js";
+import { enrollments, messages } from "../../src/schema.js";
 import { SendPolicy } from "../../src/send/policy.js";
 import {
   allEnrollments,
@@ -158,5 +159,80 @@ describe("topUp", () => {
     const second = await topUp(db(), CAMPAIGN, opts(1));
     expect(second).toMatchObject({ queued: 2, shortfall: 0, enrolled: 0, exhausted: false });
     expect(second.passes).toEqual([]);
+  });
+
+  it("re-renders the queue from today's templates and drops pixel tokens when tracking is off", async () => {
+    await seedAgencies();
+    await topUp(db(), CAMPAIGN, { ...opts(1), trackOpens: true });
+    const queued = await db().select().from(messages);
+    expect(queued.every((m) => m.openToken !== null)).toBe(true);
+    const edited = queued.find((m) => m.template === "followup");
+    await db()
+      .update(messages)
+      .set({ body: "hand edit", editedAt: new Date(), approvedBy: "operator" })
+      .where(eq(messages.id, (edited as { id: number }).id));
+    const MARKETING_V2 = template(
+      "marketing/opener",
+      [text("month end")],
+      [text("Hello "), field("first_name")],
+    );
+    const v2: Campaign = {
+      ...CAMPAIGN,
+      templates: new Map([...CAMPAIGN.templates, ["marketing/opener", MARKETING_V2]]),
+    };
+    const stats = await topUp(db(), v2, opts(1));
+    expect(stats.refresh).toMatchObject({ tokens_changed: queued.length, raced: 0 });
+    const after = await db().select().from(messages);
+    expect(after.every((m) => m.openToken === null)).toBe(true);
+    const openers = after.filter((m) => m.template === "marketing/opener" && m.id !== edited?.id);
+    expect(openers.length).toBeGreaterThan(0);
+    expect(openers.every((m) => m.body.startsWith("Hello "))).toBe(true);
+    expect(openers.every((m) => m.templateVersion === MARKETING_V2.version)).toBe(true);
+    // What a person approved or edited ships as they left it.
+    expect(after.find((m) => m.id === edited?.id)?.body).toBe("hand edit");
+  });
+
+  it("keeps the text of a sequence already started and of a sender no longer active", async () => {
+    await seedAgencies();
+    await topUp(db(), CAMPAIGN, opts(1));
+    const before = await db().select().from(messages);
+    const byEnrollment = new Map<number, typeof before>();
+    for (const m of before)
+      byEnrollment.set(m.enrollmentId, [...(byEnrollment.get(m.enrollmentId) ?? []), m]);
+    expect(byEnrollment.size).toBeGreaterThanOrEqual(2);
+    const [startedId, inactiveId] = [...byEnrollment.keys()] as [number, number];
+    const opener = byEnrollment.get(startedId)?.find((m) => m.step === 0) as { id: number };
+    await db()
+      .update(messages)
+      .set({ state: "sent", sentAt: NOW, messageId: "<sent@example.test>" })
+      .where(eq(messages.id, opener.id));
+    await db()
+      .update(enrollments)
+      .set({ sender: "gone@example.test" })
+      .where(eq(enrollments.id, inactiveId));
+    const v2: Campaign = {
+      ...CAMPAIGN,
+      templates: new Map(
+        [...CAMPAIGN.templates].map(([k, t]) => [
+          k,
+          template(t.name, [text("new subject")], [text("new body")]),
+        ]),
+      ),
+    };
+    const stats = await topUp(db(), v2, opts(1));
+    expect(stats.refresh.kept_started_or_inactive).toBe(
+      (byEnrollment.get(startedId)?.length ?? 0) - 1 + (byEnrollment.get(inactiveId)?.length ?? 0),
+    );
+    const after = new Map((await db().select().from(messages)).map((m) => [m.id, m]));
+    for (const m of [
+      ...(byEnrollment.get(startedId) ?? []),
+      ...(byEnrollment.get(inactiveId) ?? []),
+    ]) {
+      expect(after.get(m.id)?.body).toBe(m.body);
+    }
+    const others = before.filter(
+      (m) => m.enrollmentId !== startedId && m.enrollmentId !== inactiveId,
+    );
+    for (const m of others) expect(after.get(m.id)?.body.startsWith("new body")).toBe(true);
   });
 });
