@@ -46,7 +46,7 @@ Indexes go in the Drizzle schema files next to their tables, then `pnpm --filter
 Done once, after the migration deploys. The SQL lives in `deploy/pg-settings.sql`.
 
 1. `VACUUM FULL` documents and contact_candidates, then `ANALYZE`, with `lock_timeout` set so a long query can't stall it. This frees about 3.8 GB, taking the database from 5.35 GB to about 1.5 GB. Each table is locked for seconds while it is rewritten, and Restate retries anything that waits.
-2. `ALTER SYSTEM` sets `random_page_cost = 1.1`, `effective_cache_size = 1GB` and `shared_preload_libraries = pg_stat_statements`. These live in the data volume, so they survive a box rebuild. The box's `-c` flags in `user-data.sh` stay as they are, because editing user data stops the instance.
+2. `ALTER SYSTEM` sets `random_page_cost = 1.1`, `effective_cache_size = 1GB`, `shared_preload_libraries = pg_stat_statements` and `jit = off`. These live in the data volume, so they survive a box rebuild. The box's `-c` flags in `user-data.sh` stay as they are, because editing user data stops the instance.
 3. Restart the `wren-pg` container once through SSM for the preload. That means about 5 seconds down, and Restate retries.
 
 Cost: none. The data volume is a fixed 20 GB ($1.60/mo) whatever it holds, nightly dumps skip dead space, and the new indexes total about 15 MB.
@@ -70,3 +70,4 @@ Cost: none. The data volume is a fixed 20 GB ($1.60/mo) whatever it holds, night
 
 - 2026-10-03: audit run on prod. Foreign key indexing is now a rule enforced by a test, not a case-by-case call. Partitioning was skipped, since no table is near the size where it pays. pg_stat_statements moved up from Next in the direction plan, because it needs the same restart.
 - 2026-10-03: 0056 built. The prefix test found three more plain indexes under a unique one: enrichments company_id and document_id, messages enrollment_id. Dropped with the first. 46 indexes added: the 44 foreign keys, the domain, and the new sms_contacts foreign key.
+- 2026-10-03: one-off run on prod. VACUUM FULL took 33s on documents and under 1s on contact_candidates. The database went from 5.35 GB to 1.19 GB, and the data volume from 6.5 GB to 2.5 GB used. Settings are live after one restart. JIT was turned off as well: it added about 1s to each console view (pipeline_leaks 1.58s to 0.56s). Scan baseline at 22:06Z: verifications seq_tup_read 13,978,894,821; contact_candidates 10,037,528,472.

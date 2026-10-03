@@ -19,6 +19,8 @@ ANALYZE contact_candidates;
 ALTER SYSTEM SET random_page_cost = 1.1;
 ALTER SYSTEM SET effective_cache_size = '1GB';
 ALTER SYSTEM SET shared_preload_libraries = 'pg_stat_statements';
+-- JIT compiles each big query first, which costs about 1s here and never pays back at these sizes.
+ALTER SYSTEM SET jit = off;
 
 -- Then restart the container once through SSM (about 5s down; Restate retries):
 --   docker restart wren-pg
