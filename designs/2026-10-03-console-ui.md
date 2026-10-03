@@ -21,7 +21,7 @@ William runs Wren and sells what he runs it on. The portal is where he and a buy
 | Toasts | sonner | MIT | nothing yet |
 | Icons | lucide-react | ISC | `icons.tsx` |
 | Internal forms | AutoForm (`@autoform/zod`), from a handler's zod schema | MIT | nothing yet. Used by the form per handler (Next #4) |
-| Workflow graphs | React Flow (`@xyflow/react`), when a flow becomes editable | MIT | `flow.ts` layout, later |
+| Workflow graphs | React Flow (`@xyflow/react`) | MIT | the hand-drawn graph in `run.tsx` |
 
 shadcn copies component source into our repo through its CLI. The code is generated and owned, so a client theme can restyle anything and no upstream release breaks us. Blocks (dashboards, sidebars, data tables, KPI cards) install the same way, so pages get assembled instead of written. Coding agents also know its components well, which matters because Claude Code builds most of this.
 
@@ -92,7 +92,7 @@ A workflow (a Restate handler, a loop, an autobrowse flow) shows up in three pla
 - a widget for its status (last run, next run, paused or not)
 - its run, drawn as the `RunView` trail that already exists
 
-When a workflow needs editing, its graph moves to React Flow. Until then `flow.ts` stays.
+The graph draws on React Flow, read-only for now. `flow.ts` still places the steps. React Flow draws the step nodes, the edges and the spark along a live edge. Editing a flow later turns on dragging and connecting in the same canvas.
 
 ### 6. Access (policy)
 
@@ -128,8 +128,9 @@ Theme tokens stay the source. A theme writes shadcn's CSS variables from them: `
 5. Build `ConsolePortal` with one route, `view`, and register it in the portal worker's `SERVICES`.
 6. Build the Pipeline app, team-only, as a widget tree: the funnel from the direction plan as a stat strip, a per-niche funnel chart, and a leaks table (catch-all, risky, waiting in the resolution queue, crawled with no named person), each with CSV export.
 7. Add the ⌘K palette, listing apps and pages. Actions join it as they are built.
+8. Draw `RunView`'s graph on React Flow: a custom node per step, a custom edge that carries the spark, positions from `flow.ts`, no dragging or zoom. Keep `RunView`'s props, so `Run.tsx` doesn't change. Delete the drawing code it replaces. Load it lazily with the run page.
 
-Out of Phase 1: the Outbound, Money, Loops and Inbox apps (each a later phase on these parts), the form per handler, React Flow, and features on offers. The `feature` field exists from step 4, but no offer lists features until a paid tier differs.
+Out of Phase 1: the Outbound, Money, Loops and Inbox apps (each a later phase on these parts), the form per handler, editing a flow in the canvas, and features on offers. The `feature` field exists from step 4, but no offer lists features until a paid tier differs.
 
 ## Done when
 
@@ -141,9 +142,10 @@ Out of Phase 1: the Outbound, Money, Loops and Inbox apps (each a later phase on
 ## Risks
 
 - Tailwind and `kit.css` side by side. Skipping preflight and moving component by component keeps both working. The risk ends when `kit.css` is empty.
-- Bundle size. Recharts adds roughly 100 KB gzipped. Load chart pages lazily.
+- Bundle size. Recharts adds roughly 100 KB gzipped and React Flow about 50 KB. Load chart and run pages lazily.
 - Look. shadcn's defaults are recognizable. The theme tokens and the impeccable finish review keep the portal looking like Wren's product.
 
 ## Decision log
 
 - 2026-10-03: shadcn/ui on Base UI with Tailwind v4 chosen over Mantine, MUI, Ant Design and a bare React Aria. Composite pages, widgets, actions and one access check adopted as the portal's patterns. Features on offers designed now and built when a paid tier differs.
+- 2026-10-03: William moved React Flow into Phase 1. The run graph draws on it now, read-only, so editing later is a setting, not a rewrite.
