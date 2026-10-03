@@ -38,6 +38,7 @@ Citations: `packages/core/src/restate/loop.ts:179`
 |---|---|
 | `wren content|ads|sms ... start/stop/status` (CLI over ingress); email loops by ingress only (`docs/restate-operations.md`) | drives |
 | Restate Cloud | schedules |
+| `ConsolePortal/loops` (admin SQL over `state` + `sys_invocation`; needs `WREN_RESTATE_ADMIN_URL`), `/setLoop` (`stop`, or `start` with no body so stored settings stay) | reads, drives |
 
 ## See
 

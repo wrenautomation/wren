@@ -239,3 +239,12 @@ kit.css to zero. AppShell, PageHeader, Section, StatStrip, Card, the launcher an
   - Loops come from one Restate admin query, not a key list per package. It covers all 39 objects, and any loop added later.
   - Email draft review cut, since none wait.
   - kit.css moved to Phase 3.
+- 2026-10-03: Phase 2 server and data built (steps 1-6). Steps 7-10, the four app pages, moved to `designs/2026-10-03-console-standard.md`. Changes from the plan:
+  - `setLoop` calls `start` with no body. Start keeps the stored settings, so the read skips the `settings` key.
+  - `loops` returns flat rows, failing loops first. A loop is failing when it has failures or an error, since PoolScheduler can fail with no error set.
+  - `Action` gained `ask` (a text field, sent only when edited) and `done` (the toast's words). PageTree mounts the Toaster when it has a `call`.
+  - When Disposition refuses an approve, EmailConsole answers 409 with its reason.
+  - Pause and resume run in one transaction logged as the operator, with `by: console:<email>`. `resolveTarget` is exported, so an unknown inbox is a 404 instead of an error Restate retries.
+  - No `senders` read yet. The inbox page will need pause state per inbox.
+  - `PortalRefusal` allows 503, for a worker with no admin URL.
+  - core has the Restate testcontainers package as a dev dependency, for the loops test.

@@ -37,6 +37,7 @@ Citations: `packages/channel-email/src/schema.ts:306`
 |---|---|
 | `InboxScheduler/{sender}` | writes |
 | `Disposition/fleet` | writes `disposition` (source llm) |
+| `EmailConsole/answers`, `/approve`, `/drop` (console; approve and drop go through `Disposition/fleet`) | reads, drives |
 | `wren email reply/event` | writes operator labels |
 
 ## See
