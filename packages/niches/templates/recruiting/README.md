@@ -6,8 +6,9 @@ Reader: the owner, CEO or MD of a midsize recruiting firm. Two cares:
 more business (job orders, a pipeline that doesn't hang on one
 rainmaker) and less busywork for the team.
 
-Facts: bare keys from `person_facts` (first_name, company_name, title)
-and `offer.*` keys from the arm's offer (`offer.name`, `offer.days`,
+Facts: bare keys from `person_facts` (first_name, company_name, title;
+`company_short` is the name a person says: "Grove" for "Grove Technical
+Resources", "SRS" for "Superior Resource Specialists") and `offer.*` keys from the arm's offer (`offer.name`, `offer.days`,
 `offer.page`, `offer.goal`). `half` is the firm's A/B half. `link.*`
 are this email's own tracked links: `{link.book}` (Cal.com via
 /book), `{link.page}` (the pitch page), `{link.watch}` (the firm's demo,
@@ -88,3 +89,6 @@ by arm.
   - The ask holds frame: "Are you down to hop on a 30-minute call?", then
     `{call.times}`; William sends a Google Meet invite for one, or they
     name a time.
+
+Every `[[a | b]]` is tracked: `wren email variants --niche recruiting`
+shows each option's sends, opens, replies and interested per version.

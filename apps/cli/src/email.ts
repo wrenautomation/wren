@@ -29,6 +29,7 @@ import {
   runListedContacts,
   senderDays,
   siteExport,
+  variantOutcomes,
 } from "@wren/channel-email";
 import type { Settings } from "@wren/config";
 import { runImport, runPeopleImport, runScreen, type Suppression, suppressions } from "@wren/core";
@@ -149,6 +150,52 @@ export function registerEmail(
           );
         }
       });
+    });
+
+  email
+    .command("variants")
+    .description(
+      "Each [[variant]] option's sends, opens, replies and interested, per template version; compare options at the same point",
+    )
+    .option("--niche <niche>", "one niche")
+    .option("--all", "every version, not only the newest per template")
+    .action(async (opts: { niche?: string; all?: boolean }) => {
+      const rows = await withDb((db) => variantOutcomes(db, opts.niche));
+      if (rows.length === 0) {
+        console.log("no sent messages yet");
+        return;
+      }
+      // Newest version per template: the one that is sending.
+      const newest = new Map<string, string>();
+      if (!opts.all) {
+        const latest = await withDb((db) =>
+          db.execute(sql`SELECT m.template, m.template_version AS version FROM messages m
+            WHERE m.state = 'sent' AND m.sent_at = (SELECT max(sent_at) FROM messages x
+              WHERE x.template = m.template AND x.state = 'sent')`),
+        );
+        for (const r of latest as Record<string, unknown>[])
+          newest.set(String(r.template), String(r.version));
+      }
+      let head = "";
+      let point = "";
+      for (const r of rows) {
+        if (!opts.all && newest.get(r.template) !== r.version) continue;
+        const h = `${r.niche} · ${r.template}@${r.version}`;
+        if (h !== head) {
+          console.log(`${h}\n  option: sent · opened (of tracked) · replies · interested`);
+          head = h;
+          point = "";
+        }
+        if (r.variant !== point) {
+          console.log(`  ${r.variant}${r.inSubject ? " (subject)" : ""}`);
+          point = r.variant;
+        }
+        const words = (r.text ?? "?").replace(/\s+/g, " ");
+        console.log(
+          `    ${r.option}: ${r.sent} · ${r.opened}/${r.tracked} (${pct(r.opened, r.tracked)}) · ` +
+            `${r.replies} (${pct(r.replies, r.sent)}) · ${r.interested}  "${words.length > 70 ? `${words.slice(0, 69)}…` : words}"`,
+        );
+      }
     });
 
   email

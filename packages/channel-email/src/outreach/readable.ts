@@ -222,6 +222,68 @@ export function readableCompany(value: unknown): string | null {
   return text;
 }
 
+// Words that describe what a firm does, not who it is: a name that ends in them reads as
+// pasted off a listing ("Grove Technical Resources"). A person says the word before them.
+const DESCRIPTORS = new Set(
+  (
+    "staffing solutions solution group groups services service talent agency agencies " +
+    "technologies technology technical partners partner associates healthcare professional " +
+    "professionals medical resources resource global employment search searches hire hiring " +
+    "recruiting recruitment recruiters recruiter consulting consultants consultancy personnel " +
+    "workforce specialists specialist international systems management careers career " +
+    "enterprises holdings company corporation network placement placements people advisors " +
+    "executive executives staff nursing health connections"
+  ).split(" "),
+);
+// Left alone, these name nobody ("Superior", "Premier"): the firm goes by its initials.
+const PLAIN_WORDS = new Set(
+  (
+    "superior premier elite national american advanced strategic united first integrated " +
+    "total prime pro smart top best quality select preferred reliable precision alliance " +
+    "allied pinnacle summit apex peak priority express direct key core true north south " +
+    "east west central pacific atlantic midwest southern northern eastern western general " +
+    "complete creative innovative dynamic modern instant lead lucrative peer sharp " +
+    "stability vital advance rapid swift trusted ideal optimal ultimate supreme dedicated " +
+    "diverse elevated essential exceptional focused genuine honest proven quick ready " +
+    "right secure simple solid strong success trust unique"
+  ).split(" "),
+);
+// "Lucrative", "Overflowing": a describing word, whatever the list misses.
+const isPlain = (word: string) =>
+  PLAIN_WORDS.has(word) || (word.length >= 7 && /(?:ive|ous|ful|ing)$/.test(word));
+const NAME_JOINERS = new Set(["&", "and", "of", "the", "+"]);
+
+/**
+ * A firm as a person would call it in a sentence: `readableCompany` less the words that
+ * say what it does. "Grove Technical Resources" is Grove, "Briggs & Associates" is Briggs;
+ * a name left with only a plain word ("Superior Resource Specialists") goes by its initials
+ * (SRS). A name made only of such words, or too short to cut, stays whole.
+ */
+export function shortCompany(value: unknown): string | null {
+  const full = readableCompany(value);
+  if (!full) return null;
+  const words = full
+    .replace(/^the\s+/i, "")
+    .split(/\s+/)
+    .filter(Boolean);
+  const key = (w: string) => w.toLowerCase().replace(/[^\p{L}\p{N}&+]/gu, "");
+  let end = words.length;
+  while (
+    end > 1 &&
+    (DESCRIPTORS.has(key(words[end - 1] ?? "")) || NAME_JOINERS.has(key(words[end - 1] ?? "")))
+  )
+    end--;
+  const core = words.slice(0, end);
+  const named = words.filter((w) => !NAME_JOINERS.has(key(w)));
+  const plain = core.every((w) => isPlain(key(w)) || DESCRIPTORS.has(key(w)));
+  if (plain || core.length === 0) {
+    if (named.length < 3) return full;
+    return named.map((w) => (w[0] ?? "").toUpperCase()).join("");
+  }
+  const short = core.join(" ");
+  return letters(short).length >= 2 ? short : full;
+}
+
 /** A title longer than this refuses, however it is cased. */
 export const TITLE_MAX_CHARS = 80;
 

@@ -16,6 +16,7 @@ import {
   readableMoney,
   readablePersonName,
   readableTitle,
+  shortCompany,
 } from "./readable.js";
 
 export type FactRow = Record<string, unknown>;
@@ -49,6 +50,8 @@ const READABLE: readonly (readonly [key: string, rule: Rule])[] = [
 // Derived keys: `aum_usd` stays a bigint; `aum` is the only form fit to sit in a sentence.
 const DERIVED: readonly (readonly [key: string, source: string, rule: Rule])[] = [
   ["company.aum", "company.aum_usd", readableMoney],
+  // What a person calls the firm mid-sentence: "Grove", not "Grove Technical Resources".
+  ["company_short", "company_name", shortCompany],
 ];
 
 /** A value the source actually supplied — null and blank are absence, not a refusal. */

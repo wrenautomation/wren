@@ -1,5 +1,5 @@
 /** The recruiting opener template with and without the company's opener line. */
-import { CALL_TIMES, render } from "@wren/channel-email";
+import { CALL_TIMES, render, sentenceReady } from "@wren/channel-email";
 import { describe, expect, it } from "vitest";
 import { recruiting } from "./index.js";
 
@@ -10,10 +10,10 @@ const tpl = () => {
 };
 const LINE = "You have placed ICU nurses in Tulsa hospitals since 1999.";
 const terms: Readonly<Record<string, string>> = recruiting.offerFacts.get("reactivation") ?? {};
-const base = {
-  first_name: "Dana",
-  company_name: "Tulsa Nurse Partners",
-  title: "Owner",
+// Through sentenceReady, as compose does: `company_short` is derived there.
+const base: Record<string, unknown> = {
+  ...sentenceReady({ first_name: "Dana", company_name: "Tulsa Nurse Partners", title: "Owner" })
+    .values,
   ...terms,
   "call.times": CALL_TIMES,
 };
@@ -50,19 +50,24 @@ describe("recruiting book-first opener", () => {
   it("opens on the cold read, names the problem, then says who William is", () => {
     const b = body(base);
     expect(b).toMatch(
-      /^Hi Dana,\n\nI've (been following Tulsa Nurse Partners for a while|followed Tulsa Nurse Partners for a while now)\./,
+      /^Hi Dana,\n\nI've (been following Tulsa Nurse for a while|followed Tulsa Nurse for a while now)\. (I'm a college student|As a college student)/,
     );
     expect(b).toContain("University of Waterloo");
     expect(b).toMatch(/internal tools for .*Government of Canada/);
-    expect(b).toMatch(/hundreds of thousands in (potential )?revenue/);
+    expect(b).toContain(
+      "I think you're missing out on hundreds of thousands in revenue, to be frank.",
+    );
+    expect(b).toContain("(top eng school in Canada)");
+    expect(b).toContain("college research labs");
+    expect(b).toMatch(/enriches them|researches every contact/);
     expect(b).toMatch(/hiring/i);
     expect(b.indexOf("hundreds of thousands")).toBeLessThan(b.indexOf("University of Waterloo"));
   });
 
   it("asks for a call with a Google Meet invite and drops the old claims", () => {
     const b = body(base);
-    expect(b).toMatch(/(Are you down to hop on a|Are you open to a quick) 30-minute call /);
-    expect(b).toContain(`30-minute call ${CALL_TIMES}?`);
+    expect(b).toMatch(/(Are you down to hop on a|Are you open to a quick) 30 min call /);
+    expect(b).toContain(`30 min call ${CALL_TIMES}?`);
     expect(b).toContain("Google Meet invite");
     expect(b).toContain("you don't pay me at all");
     for (const gone of [
@@ -76,6 +81,12 @@ describe("recruiting book-first opener", () => {
       "I know you're busy",
       "every dollar back",
       "Just not through you",
+      "Tulsa Nurse Partners",
+      "university research",
+      "uni ",
+      "coop",
+      "I love",
+      "missing out on clients",
     ]) {
       expect(b).not.toContain(gone);
     }
@@ -91,21 +102,25 @@ describe("recruiting book-first opener", () => {
     }
   });
 
-  it("subject is a curiosity loop: the first name and a missed-clients hint; a role inbox drops the name", () => {
+  it("subject is a curiosity loop that gives no pitch away; a role inbox drops the name", () => {
     const subj = (facts: Record<string, unknown>, seed: string) =>
       render(tpl(), facts, seed).subject ?? "";
     const { first_name: _, ...company } = base;
-    for (const seed of ["person:1", "person:2", "person:7"]) {
-      expect(subj(base, seed)).toMatch(/^Dana, you're missing out on clients$/);
-      expect(subj(company, seed)).toBe("you're missing out on clients");
+    const seen = new Set<string>();
+    for (let i = 0; i < 20; i++) {
+      const s = subj(base, `person:${i}`);
+      seen.add(s);
+      expect(s).toMatch(/^Dana, (something interesting about|about) your clients$/);
+      expect(subj(company, `person:${i}`)).toBe(s.slice("Dana, ".length));
     }
+    expect(seen.size).toBe(2);
   });
 
   it("no subject uses the money lines that landed in junk", () => {
     for (const name of ["book-first/opener", "book-first/followup"]) {
       for (let i = 0; i < 20; i++) {
         expect(render(named(name), base, `person:${i}`).subject).not.toMatch(
-          /six figures|dozens of placements|old clients|past clients|CRM|full of revenue/,
+          /six figures|dozens of placements|old clients|past clients|CRM|full of revenue|missing|quick question/,
         );
       }
     }
@@ -131,7 +146,7 @@ describe("recruiting book-first opener", () => {
 
   it("asks for the times, quotes the offer's terms, and leaves no syntax behind", () => {
     const b = body(base);
-    expect(b).toMatch(/\n\n(Thanks|Appreciate it),\nWilliam$/);
+    expect(b).toMatch(/\n\n(Thanks|Appreciate it),\n\nWilliam$/);
     expect(b).toContain(CALL_TIMES);
     expect(b).toContain(`${terms["offer.goal"]} meetings in ${terms["offer.days"]} days`);
     expect(b.replace(CALL_TIMES, "")).not.toMatch(/[{}]|\[\[|\(\(|\]\]|\)\)/);

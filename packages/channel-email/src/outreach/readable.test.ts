@@ -6,6 +6,7 @@ import {
   readableMoney,
   readablePersonName,
   readableTitle,
+  shortCompany,
   TITLE_MAX_CHARS,
 } from "./readable.js";
 
@@ -243,3 +244,25 @@ it("a title too long for a sentence refuses however it is cased", () => {
     "Executive Vice President, General Counsel, Chief Compliance Officer",
   );
 });
+
+cases("a firm is called what a person would say, not what a listing prints", shortCompany, [
+  ["Briggs and Associates", "Briggs"],
+  ["Briggs & Associates, LLC", "Briggs"],
+  ["Mavic Group", "Mavic"],
+  ["Wander Staffing", "Wander"],
+  ["Aero Medical Group", "Aero"],
+  ["Grove Technical Resources", "Grove"],
+  ["Superior Resource Specialists", "SRS"],
+  ["The Premier Staffing Group of Texas", "Premier Staffing Group of Texas"],
+  ["Medical Staffing Network", "MSN"],
+  ["Staffing Solutions", "Staffing Solutions"],
+  ["Premier Staffing", "Premier Staffing"],
+  ["Smith & Jones Staffing", "Smith & Jones"],
+  ["Insight Global", "Insight"],
+  ["Robert Half", "Robert Half"],
+  ["Lucrative Staffing", "Lucrative Staffing"],
+  ["Overflowing Talent Solutions", "OTS"],
+  ["KFORCE INC", "Kforce"],
+  ["", null],
+  [null, null],
+]);

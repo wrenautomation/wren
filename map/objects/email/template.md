@@ -21,6 +21,7 @@ Every word a sent email contains is human-authored; `render()` only assembles an
 - a file without a leading `subject:` is a thread-riding follow-up; `<arm>/opener` belongs to an arm, a root-level file is shared (`sequences.ts:1`)
 - `template_versions`: `niche`, `template`, `version`, `source` (`packages/channel-email/src/schema.ts:157`–`161`)
 - pickers choose among variants, deterministic by hash (`outreach/pickers.ts`)
+- each message keeps its picks (`provenance.picks`, `v1` → option); `variantOutcomes` scores every option per version, `wren email variants` prints it (`packages/channel-email/src/report/variants.ts:1`)
 
 Citations: `packages/channel-email/src/outreach/templates.ts:47`, `authoring.ts:142`
 
@@ -28,7 +29,7 @@ Citations: `packages/channel-email/src/outreach/templates.ts:47`, `authoring.ts:
 
 - **owned-by:** [[platform/niche]] (`templatesDir`, `packages/niches/src/niche.ts:67`)
 - **owns:** the pinned `template` + `template_version` on [[email/message]]
-- **joins:** [[email/sequence]]; facts from `factsFor` (`outreach/facts.ts:110`)
+- **joins:** [[email/sequence]]; facts from `factsFor` (`outreach/facts.ts:125`)
 - **looks-like-but-is-not:** an SMS step body (`packages/channel-sms/src/templates.ts`)
 
 ## If you change this
