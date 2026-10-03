@@ -72,8 +72,9 @@ const cid = async (name: string) =>
 async function scoreAndBrief(first: string, score: number, text?: string, state = "written") {
   const p = await pid(first);
   await db().execute(sql`
-    insert into contact_scores (person_id, score, reasons) values (${p}, ${score}, '[]'::jsonb)
-    on conflict (person_id) do update set score = excluded.score`);
+    insert into contact_scores (person_id, score, reasons, next_step)
+    values (${p}, ${score}, '[]'::jsonb, ${score > 0 ? "reach_out" : "none"})
+    on conflict (person_id) do update set score = excluded.score, next_step = excluded.next_step`);
   await db().execute(sql`
     insert into briefs (person_id, state, text, citations, dropped, inputs_hash, model, prompt_version)
     values (${p}, ${state}, ${text ?? `${first} is still there since 2019. [c1]`},

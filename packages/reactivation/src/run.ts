@@ -10,12 +10,14 @@ import { type Feed, NO_FEED } from "@wren/core";
 import type { SiteClient } from "@wren/core/content";
 import type { Queryable } from "@wren/db";
 import type { LlmClient } from "@wren/llm";
+import { politeHomepageFetcher } from "@wren/research/discovery";
 import type { Fetcher } from "@wren/research/fetch";
 import { type CrmBriefStats, writeCrmBriefs } from "./brief.js";
 import { type CrmComposeStats, composeCrmEmails } from "./compose.js";
 import { type CrmVerifyStats, checkCrmEmails } from "./crm/verify.js";
 import { STAGE_STARTS, stageDone } from "./feed.js";
 import { type CrmLookupStats, lookUpCrmPeople } from "./lookup.js";
+import { type CrmMoverStats, findMoverAddresses } from "./movers.js";
 import type { ClientProfile } from "./schema.js";
 import { type CrmScoreStats, scoreCrmContacts } from "./score.js";
 import type { ReactivationSettings } from "./settings.js";
@@ -27,7 +29,7 @@ export interface CrmRunDeps {
   checker: LocalCheckerLike;
   /** The `sites` service for LinkedIn; null = lookup and signals stop and say why. */
   sites: SiteClient | null;
-  /** For company sites and job boards; null = LinkedIn only. */
+  /** For company sites and job boards; null = LinkedIn only, and movers stop and say why. */
   fetcher: Fetcher | null;
   /** Writes briefs and emails; null = those stages stop and say why. */
   llm: LlmClient | null;
@@ -56,6 +58,7 @@ export type CrmStageResult =
   | { stage: "verify"; stats: CrmVerifyStats }
   | { stage: "lookup"; stats: CrmLookupStats }
   | { stage: "signals"; stats: CrmSignalsStats }
+  | { stage: "movers"; stats: CrmMoverStats }
   | { stage: "score"; stats: CrmScoreStats }
   | { stage: "brief"; stats: CrmBriefStats }
   | { stage: "compose"; stats: CrmComposeStats };
@@ -115,6 +118,20 @@ export async function runCrm(
             { linkedin: opts.linkedin, runId: opts.runId ?? null, ...watched, ...limit },
           ),
         };
+      case "movers":
+        if (!deps.fetcher) return { stage, stats: { ...NO_MOVERS, aborted: NO_FETCHER } };
+        return {
+          stage,
+          stats: await findMoverAddresses(
+            db,
+            {
+              verifier: deps.verifier,
+              checker: deps.checker,
+              fetchHomepage: politeHomepageFetcher(deps.fetcher),
+            },
+            limit,
+          ),
+        };
       case "score":
         return { stage, stats: await scoreCrmContacts(db) };
       case "brief":
@@ -162,6 +179,19 @@ const NO_EMAILS: CrmComposeStats = {
   failed: 0,
   suppressed: 0,
   raced: 0,
+  errors: 0,
+  aborted: null,
+};
+
+const NO_FETCHER = "movers' new addresses need the new firm's site: set WREN_FETCH_CONTACT";
+
+const NO_MOVERS: CrmMoverStats = {
+  selected: 0,
+  found: 0,
+  noDomain: 0,
+  catchAll: 0,
+  notFound: 0,
+  held: 0,
   errors: 0,
   aborted: null,
 };

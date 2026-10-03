@@ -9,13 +9,22 @@ import { briefsDue } from "./brief.js";
 import { composeDue } from "./compose.js";
 import { type CrmHealth, crmHealth } from "./crm/health.js";
 import { dueForLookup } from "./lookup.js";
+import { moversDue } from "./movers.js";
 import type { ClientProfile } from "./schema.js";
 import { scoreDue } from "./score.js";
 import type { ReactivationSettings } from "./settings.js";
 import { dueForCheck } from "./signals.js";
 
 /** The stages `crm run` walks, in order. */
-export const CRM_STAGES = ["verify", "lookup", "signals", "score", "brief", "compose"] as const;
+export const CRM_STAGES = [
+  "verify",
+  "lookup",
+  "signals",
+  "movers",
+  "score",
+  "brief",
+  "compose",
+] as const;
 export type CrmStage = (typeof CRM_STAGES)[number];
 
 export interface CrmStatus {
@@ -167,6 +176,7 @@ export async function crmStatus(db: Queryable, opts: CrmStatusOptions = {}): Pro
     verify: health.verification.unchecked,
     lookup: lookup.due,
     signals: signals.due,
+    movers: await moversDue(db),
     score: score.due,
     brief: briefs.due,
     compose: emails.due,
@@ -175,6 +185,7 @@ export async function crmStatus(db: Queryable, opts: CrmStatusOptions = {}): Pro
     verify: `verify ${count.verify} addresses`,
     lookup: `look up ${count.lookup} people`,
     signals: `check ${count.signals} companies for open roles`,
+    movers: `find ${count.movers} movers' addresses at their new firms`,
     score: `score ${count.score} people`,
     brief: `write ${count.brief} briefs`,
     compose: `write ${count.compose} emails`,

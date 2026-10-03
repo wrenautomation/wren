@@ -414,6 +414,13 @@
       "when": 1791068570931,
       "tag": "0058_console_usage_views",
       "breakpoints": true
+    },
+    {
+      "idx": 59,
+      "version": "7",
+      "when": 1791070024499,
+      "tag": "0059_mover_addresses_next_step",
+      "breakpoints": true
     }
   ]
 }

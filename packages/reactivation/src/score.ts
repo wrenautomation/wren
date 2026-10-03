@@ -3,11 +3,14 @@
  * a job change, which beats still there and recently in touch, which beats
  * stale; someone who left scores nothing. Every CRM person is rescored from
  * one read of what the other stages found (no calls, no per-person queries),
- * with the reasons and the facts behind each, so the portal can say why.
+ * with the reasons in a recruiter's words and the facts behind each, so the
+ * portal can say why. The score also says what to do: only a signal (a move
+ * with a firm to write to, or open roles) is a reason to reach out; the rest
+ * are kept warm.
  */
 import type { Queryable } from "@wren/db";
 import { type SQL, sql } from "drizzle-orm";
-import { contactScores } from "./schema.js";
+import { contactScores, type NextStep } from "./schema.js";
 
 export const POINTS = {
   /** Still there, and their company has open roles. */
@@ -68,7 +71,9 @@ export interface Reason {
 
 export interface Scored {
   score: number;
+  /** Biggest first: the first one is the signal, in one line. */
   reasons: Reason[];
+  nextStep: NextStep;
 }
 
 /** The same day `months` back, held to that month's last day (Feb 29 less 12 months is Feb 28). */
@@ -79,55 +84,90 @@ const monthsBefore = (today: Date, months: number): string => {
   return new Date(Date.UTC(y, m, Math.min(today.getUTCDate(), last))).toISOString().slice(0, 10);
 };
 
-const text = (v: unknown): string | null => (typeof v === "string" && v.trim() ? v : null);
+const text = (v: unknown): string | null => (typeof v === "string" && v.trim() ? v.trim() : null);
+
+const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+/** "2024-12-09" as "Dec 2024". */
+const monthOf = (day: string) => `${MONTHS[Number(day.slice(5, 7)) - 1] ?? "?"} ${day.slice(0, 4)}`;
+
+/**
+ * How long ago a role began, from its dates as a profile shows them ("Feb 2026
+ * - Present (7 months)"): " 7 months ago", " this month", " 4 years ago".
+ * Empty when the dates name no month and year.
+ */
+export function startedAgo(dates: unknown, today: Date): string {
+  const m = text(dates)?.match(
+    /\b(Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)[a-z]*\.? (\d{4})\b/,
+  );
+  if (!m?.[1] || !m[2]) return "";
+  const n =
+    (today.getUTCFullYear() - Number(m[2])) * 12 + today.getUTCMonth() - MONTHS.indexOf(m[1]);
+  if (n < 0) return "";
+  if (n === 0) return " this month";
+  if (n < 24) return ` ${n} month${n === 1 ? "" : "s"} ago`;
+  return ` ${Math.floor(n / 12)} years ago`;
+}
+
+const roles = (n: number) => `${n} open role${n === 1 ? "" : "s"}`;
 
 export function scoreContact(s: ScoreInput, today = new Date()): Scored {
   const reasons: Reason[] = [];
   const w = s.where;
   const f = (id: number) => `f${id}`;
-  if (w?.kind === "left") {
+  const to = w?.kind === "job_change" ? text(w.value.to) : null;
+  // Gone, and nobody knows where: nothing to write to.
+  if (w?.kind === "left" || (w?.kind === "job_change" && !to)) {
     const from = text(w.value.from) ?? s.firm;
-    return { score: 0, reasons: [{ reason: `left ${from}`, points: 0, cites: [f(w.id)] }] };
+    return {
+      score: 0,
+      reasons: [{ reason: `Left ${from}, new firm unknown`, points: 0, cites: [f(w.id)] }],
+      nextStep: "none",
+    };
   }
+  let signal = false;
   if (w?.kind === "job_change") {
-    const to = text(w.value.to) ?? "a new company";
     const title = text(w.value.title);
     reasons.push({
-      reason: `moved to ${to}${title ? ` as ${title}` : ""}`,
+      reason: `Moved to ${to}${startedAgo(w.value.dates, today)}${title ? `, now ${title}` : ""}`,
       points: POINTS.moved,
       cites: [f(w.id)],
     });
-  } else if (w?.kind === "still_there") {
-    reasons.push({ reason: `still at ${s.firm}`, points: POINTS.stillThere, cites: [f(w.id)] });
-    if (s.hiring)
-      reasons.push({
-        reason: `${s.firm} has ${s.hiring.count} open roles`,
-        points: POINTS.hiringThere,
-        cites: [f(s.hiring.id)],
-      });
+    signal = true;
   } else {
-    reasons.push({ reason: "nothing new found yet", points: POINTS.unknown, cites: [] });
-    if (s.hiring)
+    const there = w?.kind === "still_there";
+    const quiet = s.hiring ? "" : ", nothing new";
+    reasons.push(
+      there
+        ? { reason: `Still at ${s.firm}${quiet}`, points: POINTS.stillThere, cites: [f(w.id)] }
+        : { reason: `Not found yet${quiet}`, points: POINTS.unknown, cites: [] },
+    );
+    if (s.hiring) {
       reasons.push({
-        reason: `${s.firm} has ${s.hiring.count} open roles`,
-        points: POINTS.hiringUnknown,
+        reason: `${s.firm} has ${roles(s.hiring.count)}`,
+        points: there ? POINTS.hiringThere : POINTS.hiringUnknown,
         cites: [f(s.hiring.id)],
       });
+      signal = true;
+    }
   }
   if (s.placed && s.placed.on >= monthsBefore(today, PLACED_MONTHS))
     reasons.push({
-      reason: `placement on ${s.placed.on}`,
+      reason: `Last placement ${monthOf(s.placed.on)}`,
       points: POINTS.placedRecently,
       cites: [`c${s.placed.crmId}`],
     });
   if (s.contacted && s.contacted.on >= monthsBefore(today, CONTACTED_MONTHS))
     reasons.push({
-      reason: `last contacted ${s.contacted.on}`,
+      reason: `Last contacted ${monthOf(s.contacted.on)}`,
       points: POINTS.contactedRecently,
       cites: [`c${s.contacted.crmId}`],
     });
   reasons.sort((a, b) => b.points - a.points);
-  return { score: reasons.reduce((n, r) => n + r.points, 0), reasons };
+  return {
+    score: reasons.reduce((n, r) => n + r.points, 0),
+    reasons,
+    nextStep: signal ? "reach_out" : "keep_warm",
+  };
 }
 
 export interface CrmScoreStats {
@@ -138,6 +178,8 @@ export interface CrmScoreStats {
   stillThere: number;
   unknown: number;
   left: number;
+  /** No signal: no draft, kept warm. */
+  keepWarm: number;
   aborted: string | null;
 }
 
@@ -211,16 +253,18 @@ export async function scoreCrmContacts(db: Queryable, today = new Date()): Promi
     stillThere: 0,
     unknown: 0,
     left: 0,
+    keepWarm: 0,
     aborted: null,
   };
   const rows = inputs.map(({ personId, input }) => {
     const s = scoreContact(input, today);
     const kind = input.where?.kind;
-    if (kind === "left") stats.left += 1;
+    if (s.nextStep === "none") stats.left += 1;
     else if (kind === "job_change") stats.moved += 1;
     else if (kind === "still_there") stats[input.hiring ? "hiringThere" : "stillThere"] += 1;
     else stats.unknown += 1;
-    return { personId, score: s.score, reasons: s.reasons };
+    if (s.nextStep === "keep_warm") stats.keepWarm += 1;
+    return { personId, score: s.score, reasons: s.reasons, nextStep: s.nextStep };
   });
   for (let i = 0; i < rows.length; i += CHUNK) {
     await db
@@ -231,6 +275,7 @@ export async function scoreCrmContacts(db: Queryable, today = new Date()): Promi
         set: {
           score: sql`excluded.score`,
           reasons: sql`excluded.reasons`,
+          nextStep: sql`excluded.next_step`,
           computedAt: sql`now()`,
         },
       });
@@ -239,8 +284,9 @@ export async function scoreCrmContacts(db: Queryable, today = new Date()): Promi
 }
 
 /**
- * Scores are due when someone has none, when anything they stand on changed
- * since, or once a day (recency windows move with the calendar).
+ * Scores are due when someone has none (or one from before `next_step`), when
+ * anything they stand on changed since, or once a day (recency windows move
+ * with the calendar).
  */
 export async function scoreDue(db: Queryable): Promise<number> {
   const [r] = await db.execute<{ people: number; unscored: number; stale: boolean }>(sql`
@@ -249,8 +295,8 @@ export async function scoreDue(db: Queryable): Promise<number> {
       select min(s.computed_at) at from contact_scores s join crm on crm.person_id = s.person_id
     )
     select (select count(*) from crm)::int people,
-      (select count(*) from crm where not exists
-        (select 1 from contact_scores s where s.person_id = crm.person_id))::int unscored,
+      (select count(*) from crm where not exists (select 1 from contact_scores s
+        where s.person_id = crm.person_id and s.next_step is not null))::int unscored,
       coalesce((select at from scored) < greatest(
         (select max(observed_at) from findings),
         (select max(checked_at) from company_checks),

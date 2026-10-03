@@ -206,6 +206,7 @@ describe("STAGE_DONE", () => {
     expect(STAGE_DONE.lookup(1, 1, 0)).toBe("Looked up 1 person: 1 moved, 0 left");
     expect(STAGE_DONE.lookup(2, 0, 1)).toBe("Looked up 2 people: 0 moved, 1 left");
     expect(STAGE_DONE.signals(1, 0)).toBe("Checked 1 company: 0 hiring");
+    expect(STAGE_DONE.movers(3, 2)).toBe("Looked for 3 movers at their new firms: 2 found");
     expect(STAGE_DONE.brief(1)).toBe("Wrote 1 brief");
     expect(STAGE_DONE.compose(2)).toBe("Drafted 2 emails");
   });
@@ -277,6 +278,7 @@ describe("stageDone", () => {
           stillThere: 0,
           unknown: 0,
           left: 0,
+          keepWarm: 0,
           aborted: null,
         },
       }),

@@ -256,12 +256,14 @@ const subject: ComposeSubject = {
   firstName: "Jane",
   lastName: "Doe",
   firm: "Acme Staffing",
+  movedTo: null,
   brief,
   lines: [brief],
   briefHash: "h",
   citations: {},
   candidateId: 3,
   email: "jane@acme.example",
+  evidence: "crm",
   owner: "alee",
 };
 
@@ -286,6 +288,14 @@ describe("buildComposePrompt", () => {
     expect(p).toContain("to a past contact,");
     expect(p).not.toContain("null");
     expect(p).toContain("Invent nothing about Northside Talent or them.");
+  });
+  it("a mover: the move is named and opens the email", () => {
+    const p = buildComposePrompt({ ...subject, movedTo: "Beta Labs" }, profile, {
+      name: "Ann Lee",
+    });
+    expect(p).toContain("who moved from Acme Staffing to Beta Labs.");
+    expect(p).not.toContain("last known at");
+    expect(p).toContain('Open with line 1 of "Why write now", their move to Beta Labs:');
   });
   it("never shows the fee or the signature to the model", () => {
     const withFee = { ...profile, feeAvg: 25000 };

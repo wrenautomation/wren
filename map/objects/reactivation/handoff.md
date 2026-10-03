@@ -3,8 +3,8 @@ type: object
 cluster: reactivation
 universe: live
 status: verified
-verified: 2026-09-29 @ 23a6170
-entity: packages/reactivation/src/schema.ts:247
+verified: 2026-10-03 @ fc9fe66
+entity: packages/reactivation/src/schema.ts:317
 ---
 
 # handoff
@@ -17,11 +17,11 @@ The forward's Message-ID is minted before the send, and the mailbox is asked for
 
 ## Shape
 
-- `handoffs` (`schema.ts:247`), unique on `thread_event_id`
+- `handoffs` (`schema.ts:317`), unique on `thread_event_id`
 - `ensureHandoff` (`handoff.ts:81`), `markMeetingBooked` (`:115`), `billOf` (`:157`)
 - Forward: `forwardHandoffs` (`forward.ts:65`)
 
-Citations: `packages/reactivation/src/schema.ts:247`, `packages/reactivation/src/forward.ts:65`
+Citations: `packages/reactivation/src/schema.ts:317`, `packages/reactivation/src/forward.ts:65`
 
 ## Connected to
 

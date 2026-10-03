@@ -1,6 +1,7 @@
-import { enrollments, threadEvents } from "@wren/channel-email/schema";
+import { contactCandidates, enrollments, threadEvents } from "@wren/channel-email/schema";
 import { companies, imports, people, runs } from "@wren/core/schema";
 import { oneOf } from "@wren/db/columns";
+import { findings } from "@wren/research/schema";
 import { sql } from "drizzle-orm";
 import {
   boolean,
@@ -77,6 +78,15 @@ export const crmContacts = pgTable(
 export type CrmContact = typeof crmContacts.$inferSelect;
 
 /**
+ * What a score says to do. `reach_out`: a reason to write now (a move with a
+ * firm to write to, or open roles at their company); only these get drafts.
+ * `keep_warm`: still there, or not found, and nothing new: no draft, the
+ * portal's "Keep warm" view. `none`: left, and nobody knows for where.
+ */
+export const NEXT_STEPS = ["reach_out", "keep_warm", "none"] as const;
+export type NextStep = (typeof NEXT_STEPS)[number];
+
+/**
  * Who goes first (R10), one row per CRM person. `reasons` says why, each with
  * its points and the findings behind it, so the portal can show it. Rebuilt
  * whenever what it stands on changes; cheap, no calls.
@@ -88,11 +98,14 @@ export const contactScores = pgTable(
     score: integer("score").notNull(),
     /** `[{ reason, points, findingIds }]`, biggest first. */
     reasons: jsonb("reasons").notNull(),
+    /** Null only on a row scored before it existed: the next score fills it. */
+    nextStep: varchar("next_step", { length: 16, enum: NEXT_STEPS }),
     computedAt: timestamp("computed_at", { withTimezone: true }).defaultNow().notNull(),
   },
   (t) => [
     primaryKey({ columns: [t.personId], name: "pk_contact_scores" }),
     index("ix_contact_scores_score").on(t.score),
+    oneOf("ck_contact_scores_nextstep", t.nextStep, NEXT_STEPS),
     foreignKey({
       columns: [t.personId],
       foreignColumns: [people.id],
@@ -101,6 +114,58 @@ export const contactScores = pgTable(
   ],
 );
 export type ContactScore = typeof contactScores.$inferSelect;
+
+/**
+ * `found`: a pattern address at the new firm passed the verifier. `no_domain`:
+ * no site that speaks for the firm. `catch_all`: its server takes any address,
+ * so none is proven. `not_found`: every pattern tried bounced or stayed unsure.
+ */
+export const MOVER_OUTCOMES = ["found", "no_domain", "catch_all", "not_found"] as const;
+export type MoverOutcome = (typeof MOVER_OUTCOMES)[number];
+
+/**
+ * A mover's address at their new firm, one row per move (`job_change`
+ * finding) tried. A miss is tried again after a while; a newer move is a new row.
+ */
+export const moverAddresses = pgTable(
+  "mover_addresses",
+  {
+    findingId: integer("finding_id").notNull(),
+    personId: integer("person_id").notNull(),
+    /** The new firm's site, when one was found. */
+    domain: varchar("domain", { length: 255 }),
+    outcome: varchar("outcome", { length: 16, enum: MOVER_OUTCOMES }).notNull(),
+    /** The verified address, when `found`. */
+    candidateId: integer("candidate_id"),
+    triedAt: timestamp("tried_at", { withTimezone: true }).defaultNow().notNull(),
+  },
+  (t) => [
+    primaryKey({ columns: [t.findingId], name: "pk_mover_addresses" }),
+    index("ix_mover_addresses_person_id").on(t.personId),
+    index("ix_mover_addresses_candidate_id").on(t.candidateId),
+    foreignKey({
+      columns: [t.findingId],
+      foreignColumns: [findings.id],
+      name: "fk_mover_addresses_finding_id_findings",
+    }),
+    foreignKey({
+      columns: [t.personId],
+      foreignColumns: [people.id],
+      name: "fk_mover_addresses_person_id_people",
+    }),
+    foreignKey({
+      columns: [t.candidateId],
+      foreignColumns: [contactCandidates.id],
+      name: "fk_mover_addresses_candidate_id_contact_candidates",
+    }),
+    oneOf("ck_mover_addresses_moveroutcome", t.outcome, MOVER_OUTCOMES),
+    check(
+      "ck_mover_addresses_found_iff_candidate",
+      sql`(${t.candidateId} is not null) = (${t.outcome} = 'found')`,
+    ),
+  ],
+);
+export type MoverAddress = typeof moverAddresses.$inferSelect;
 
 /**
  * `written`: at least one cited sentence survived the gate. `empty`: none did,

@@ -351,7 +351,7 @@ describe("ranked", () => {
     ]);
     expect(list[0]?.reasons.map((r) => r.reason)).toEqual([
       "Acme Staffing has 2 open roles",
-      "still at Acme Staffing",
+      "Still at Acme Staffing",
     ]);
     expect(list[0]?.brief).toMatch(/^Still there\. \[f\d+\]$/);
     expect(list[1]?.brief).toBeNull();

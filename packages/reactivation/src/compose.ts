@@ -5,10 +5,12 @@
  * a subject that says too much) before a word is stored. What passes becomes an
  * enrollment and two messages, the same rows Wren's own campaigns send from.
  *
- * Who is due: a written brief, a score above zero, a verified CRM address, not
- * moved or left (their CRM address is at the old firm), never enrolled, their
- * company not in a live thread, and one per company per pass. At most
- * `compose.perDay` a day, and none while that many openers wait for approval.
+ * Who is due: a written brief, a score that says reach out (a signal: a move
+ * or open roles; the rest are kept warm), a verified address, never enrolled,
+ * their company not in a live thread, and one per company per pass. A mover's
+ * address is the one found at the new firm for that move, never the CRM's (it
+ * is at the old firm); someone who left has none. At most `compose.perDay` a
+ * day, and none while that many openers wait for approval.
  */
 import { createHash } from "node:crypto";
 import {
@@ -31,7 +33,7 @@ import { type ClientProfile, compositions, type Recruiter } from "./schema.js";
 import { LATEST_CRM_ROW, whereFinding } from "./score.js";
 import type { ReactivationSettings, Sender } from "./settings.js";
 
-export const COMPOSE_VERSION = "v4";
+export const COMPOSE_VERSION = "v5";
 export const COMPOSE_STAGE = "reactivation_compose";
 /** Enrollments carry this as their niche, sequence and offer. */
 export const REACTIVATION = "reactivation";
@@ -269,7 +271,10 @@ export interface ComposeSubject {
   companyId: number;
   firstName: string | null;
   lastName: string | null;
+  /** Their firm in the CRM; a mover's old firm. */
   firm: string;
+  /** A mover's new firm, where the email goes. */
+  movedTo: string | null;
   /** The brief, marks taken out. */
   brief: string;
   /** The brief's sentences with their marks, numbered for the model from 1. */
@@ -278,6 +283,8 @@ export interface ComposeSubject {
   citations: unknown;
   candidateId: number;
   email: string;
+  /** How the address was found: `crm`, or a pattern at a mover's new firm. */
+  evidence: string;
   owner: string | null;
 }
 
@@ -289,7 +296,8 @@ export function buildComposePrompt(
   const hi = s.firstName ? `Hi ${s.firstName},` : "Hi there,";
   const who = [s.firstName, s.lastName].filter(Boolean).join(" ") || "a past contact";
   const lines = s.lines.length ? s.lines.map(stripMarks) : [s.brief];
-  return `You write a short email from ${sender.name}, a recruiter at ${profile.firm}, to ${who}, someone the firm has worked with before, last known at ${s.firm}.
+  const where = s.movedTo ? `who moved from ${s.firm} to ${s.movedTo}` : `last known at ${s.firm}`;
+  return `You write a short email from ${sender.name}, a recruiter at ${profile.firm}, to ${who}, someone the firm has worked with before, ${where}.
 
 What ${profile.firm} does: ${profile.sells}
 
@@ -302,7 +310,7 @@ ${profile.voice}
 Write two emails.
 1. The opener.
 - Start with "${hi}" as its own paragraph.
-- Say why you're writing now with one or two facts from "Why write now", plainly, as the recruiter who noticed.
+- Open with line 1 of "Why write now"${s.movedTo ? `, their move to ${s.movedTo}` : ""}: the reason you're writing now, plainly, as the recruiter who noticed. One more fact at most.
 - Only what they could see themselves: their role, a move, their company's open roles if listed. Never say the team is growing or hiring unless "Why write now" names open roles. Never the CRM, a record, a status, a placement, or the date you last spoke; "it's been a while" is enough.
 - One ask: a short call. Close with: reply with a couple of times that work and I'll book it.
 - Thank them for reading, in a few words, without your name.
@@ -327,6 +335,8 @@ interface Row extends Record<string, unknown> {
   person_id: number;
   company_id: number;
   firm: string;
+  moved_to: string | null;
+  evidence: string;
   first_name: string | null;
   last_name: string | null;
   brief: string;
@@ -340,29 +350,41 @@ interface Row extends Record<string, unknown> {
 function subjectsSql(opts: { limit?: number; count?: boolean; catchAll: boolean }) {
   return sql`
     with latest as (${LATEST_CRM_ROW}),
+    now_at as (
+      select l.person_id, w.id where_id, w.kind where_kind,
+        case when w.kind = 'job_change' then nullif(btrim(w.value->>'to'), '') end moved_to
+      from latest l left join findings w on w.id = ${whereFinding(sql`l.person_id`)}),
     addr as (
-      select distinct on (cc.person_id) cc.person_id, cc.id candidate_id, lower(cc.email) email
-      from contact_candidates cc where cc.evidence = 'crm' and (cc.state = 'verified'
-        or (${opts.catchAll} and cc.state = 'candidate' and exists (select 1 from verifications v
-          where v.contact_candidate_id = cc.id and v.result = 'catch_all'
-            and (v.raw->>'authoritative')::boolean)))
+      select distinct on (cc.person_id) cc.person_id, cc.id candidate_id, lower(cc.email) email,
+        cc.evidence
+      from contact_candidates cc join now_at n on n.person_id = cc.person_id
+      where case when n.where_kind = 'job_change'
+        -- A mover's is the address found at the new firm for this move, and only verified.
+        then cc.state = 'verified' and exists (select 1 from mover_addresses ma
+          where ma.finding_id = n.where_id and ma.candidate_id = cc.id)
+        else cc.evidence = 'crm' and (cc.state = 'verified'
+          or (${opts.catchAll} and cc.state = 'candidate' and exists (select 1 from verifications v
+            where v.contact_candidate_id = cc.id and v.result = 'catch_all'
+              and (v.raw->>'authoritative')::boolean))) end
       order by cc.person_id, cc.state = 'verified' desc, cc.rank, cc.id),
     owner as (
       select distinct on (c.person_id) c.person_id, c.owner from crm_contacts c
       where nullif(btrim(c.owner), '') is not null order by c.person_id, c.id desc),
     due as (
       select l.person_id, l.company_id, coalesce(co.name, co.domain, 'their firm') firm,
-        pe.first_name, pe.last_name, b.text brief, b.inputs_hash brief_hash, b.citations,
-        a.candidate_id, a.email, o.owner, s.score
+        n.moved_to, pe.first_name, pe.last_name, b.text brief, b.inputs_hash brief_hash,
+        b.citations, a.candidate_id, a.email, a.evidence, o.owner, s.score
       from latest l
+      join now_at n on n.person_id = l.person_id
       join companies co on co.id = l.company_id
       join people pe on pe.id = l.person_id
-      join contact_scores s on s.person_id = l.person_id and s.score > 0
+      -- No signal, no draft: keep-warm people wait for one.
+      join contact_scores s on s.person_id = l.person_id and s.next_step = 'reach_out'
       join briefs b on b.person_id = l.person_id and b.state = 'written'
       join addr a on a.person_id = l.person_id
       left join owner o on o.person_id = l.person_id
-      where coalesce((select w.kind from findings w
-          where w.id = ${whereFinding(sql`l.person_id`)}), '') not in ('job_change', 'left')
+      -- A score older than the news that they left must not write to them.
+      where coalesce(n.where_kind, '') <> 'left'
         and not exists (select 1 from enrollments e where e.person_id = l.person_id)
         and not exists (select 1 from enrollments e
           where e.state = 'active' and (e.company_id = l.company_id or lower(e.to_email) = a.email))
@@ -405,12 +427,14 @@ export async function composeSubjects(
       firstName: r.first_name?.trim() || null,
       lastName: r.last_name?.trim() || null,
       firm: r.firm,
+      movedTo: r.moved_to,
       brief: stripMarks(r.brief),
       lines: briefLines(r.brief),
       briefHash: r.brief_hash,
       citations: r.citations,
       candidateId: r.candidate_id,
       email: r.email,
+      evidence: r.evidence,
       owner: r.owner,
     });
     if (opts.limit !== undefined && out.length >= opts.limit) break;
@@ -652,8 +676,8 @@ async function writeDraft(
     followup: followup.text,
   };
   const refused = gateDraft(draft, {
-    source: [s.brief, s.firm, profile.firm, profile.sells].join("\n"),
-    private: [s.firstName, s.lastName, s.firm].filter((w): w is string => !!w),
+    source: [s.brief, s.firm, s.movedTo ?? "", profile.firm, profile.sells].join("\n"),
+    private: [s.firstName, s.lastName, s.firm, s.movedTo].filter((w): w is string => !!w),
     hiring: saysHiring(s.brief),
   });
   return { draft, why: { opener: opener.why, followup: followup.why }, refused, record };
@@ -669,7 +693,8 @@ function provenanceOf(
     composer: COMPOSE_VERSION,
     // The lines as written from: a brief redone later can't move the "why".
     brief: { inputs_hash: s.briefHash, citations: s.citations, lines: s.lines },
-    address: { candidate_id: s.candidateId, email: s.email, evidence: "crm" },
+    address: { candidate_id: s.candidateId, email: s.email, evidence: s.evidence },
+    moved_to: s.movedTo,
     owner: s.owner,
     recruiter: recruiter?.email ?? null,
     why,
@@ -794,6 +819,8 @@ export async function redraftAwaiting(
       coalesce(co.name, co.domain, 'their firm') firm, pe.first_name, pe.last_name,
       b.text brief, b.inputs_hash brief_hash, b.citations,
       (m.provenance->'address'->>'candidate_id')::int candidate_id, e.to_email email,
+      coalesce(m.provenance->'address'->>'evidence', 'crm') evidence,
+      m.provenance->>'moved_to' moved_to,
       m.provenance->>'owner' owner, m.provenance->>'recruiter' recruiter, e.sender
     from enrollments e
     join people pe on pe.id = e.person_id
@@ -829,12 +856,14 @@ export async function redraftAwaiting(
       firstName: r.first_name?.trim() || null,
       lastName: r.last_name?.trim() || null,
       firm: r.firm,
+      movedTo: r.moved_to,
       brief: stripMarks(r.brief),
       lines: briefLines(r.brief),
       briefHash: r.brief_hash,
       citations: r.citations,
       candidateId: r.candidate_id,
       email: r.email,
+      evidence: r.evidence,
       owner: r.owner,
     };
     const recruiter = profile.recruiters.find((x) => x.email === r.recruiter) ?? null;

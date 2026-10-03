@@ -3,8 +3,8 @@ type: object
 cluster: reactivation
 universe: live
 status: verified
-verified: 2026-09-29 @ 23a6170
-entity: packages/reactivation/src/schema.ts:164
+verified: 2026-10-03 @ fc9fe66
+entity: packages/reactivation/src/schema.ts:232
 ---
 
 # client-profile
@@ -17,10 +17,10 @@ The profile is facts the client edits in the portal (firm, what they place, recr
 
 ## Shape
 
-- `client_profile` (`schema.ts:164`), one row
+- `client_profile` (`schema.ts:232`), one row
 - Settings: `settings.ts:17`, `reactivationSettingsOf` (`:101`)
 
-Citations: `packages/reactivation/src/schema.ts:164`, `packages/reactivation/src/settings.ts:17`
+Citations: `packages/reactivation/src/schema.ts:232`, `packages/reactivation/src/settings.ts:17`
 
 ## Connected to
 
