@@ -439,9 +439,13 @@ describe("TOKENS and PRESETS", () => {
 
 describe("TOKENS match kit.css", () => {
   const css = readFileSync(new URL("./kit.css", import.meta.url), "utf8");
+  /** Parts moved to shadcn read tokens in Tailwind classes: `bg-(--ui-accent)`. */
+  const classes = ["controls.tsx", "data.tsx"]
+    .map((f) => readFileSync(new URL(`./${f}`, import.meta.url), "utf8"))
+    .join("\n");
 
-  it.each([...TOKENS])("kit.css reads --ui-%s", (token) => {
-    expect(css).toMatch(new RegExp(`var\\(\\s*--ui-${token}(?![a-z0-9-])`));
+  it.each([...TOKENS])("kit.css or a kit class reads --ui-%s", (token) => {
+    expect(`${css}\n${classes}`).toMatch(new RegExp(`(var\\(\\s*|\\()--ui-${token}(?![a-z0-9-])`));
   });
 
   it("every --ui-* property kit.css declares is in TOKENS", () => {

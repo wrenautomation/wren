@@ -6,7 +6,10 @@
     "moduleResolution": "Bundler",
     "lib": ["ES2023", "DOM", "DOM.Iterable"],
     "jsx": "react-jsx",
-    "types": []
+    "types": [],
+    "paths": {
+      "@wren/ui/*": ["./src/*"]
+    }
   },
   "include": ["src"]
 }

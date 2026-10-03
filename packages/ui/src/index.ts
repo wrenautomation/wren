@@ -3,6 +3,7 @@
  * each product maps its own data onto these props. Styles ship in `@wren/ui/kit.css`;
  * every look in it is a token a Theme can set (theme.tsx).
  */
+export { type Access, can, type Viewer } from "./access.js";
 export {
   Button,
   ButtonLink,
@@ -30,7 +31,18 @@ export { ago, cx, hostOf, initials, month, num, soon } from "./format.js";
 export { Icon, type IconName } from "./icons.js";
 export { AppCard, AppGlance, AppGrid, type GlanceFigure } from "./launcher.js";
 export { Card, CardList, PageHeader, Section, Stat, StatStrip } from "./layout.js";
+export {
+  type Action,
+  type Group,
+  type Node,
+  PageTree,
+  type Size,
+  type Source,
+  type Widget,
+  type WidgetProps,
+} from "./page.js";
 export { Pager } from "./pager.js";
+export type { PaletteItem } from "./palette.js";
 export { RAIL_STATES, Rail, type RailGroup, type RailState, type RailStep } from "./rail.js";
 export {
   dwellOf,

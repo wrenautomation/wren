@@ -6,7 +6,15 @@
     "useIgnoreFile": true
   },
   "files": {
-    "includes": ["**", "!**/dist", "!**/drizzle/meta", "!designs", "!.claude/worktrees"]
+    "includes": [
+      "**",
+      "!**/dist",
+      "!**/drizzle/meta",
+      "!designs",
+      "!.claude/worktrees",
+      "!packages/ui/src/components/ui",
+      "!packages/ui/src/hooks"
+    ]
   },
   "formatter": {
     "indentStyle": "space",
@@ -46,5 +54,10 @@
         }
       }
     }
-  ]
+  ],
+  "css": {
+    "parser": {
+      "tailwindDirectives": true
+    }
+  }
 }

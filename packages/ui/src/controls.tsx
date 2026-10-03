@@ -1,4 +1,6 @@
 /** Things you press or pick: square buttons, underline tabs, pill tags for status, a search box. */
+
+import { cn } from "cn";
 import {
   type AnchorHTMLAttributes,
   type ButtonHTMLAttributes,
@@ -6,6 +8,8 @@ import {
   useEffect,
   useState,
 } from "react";
+import { Badge } from "./components/ui/badge.js";
+import { buttonVariants, Button as ShadButton } from "./components/ui/button.js";
 import { cx, num } from "./format.js";
 import { Icon, type IconName } from "./icons.js";
 
@@ -22,14 +26,31 @@ interface ButtonLook {
   className?: string | undefined;
 }
 
+/** shadcn's button, in the kit's look: square, uppercase, rust; ink on hover. */
+const BUTTON =
+  "h-auto gap-[0.8em] px-[1.6em] py-[1.15em] border-0 rounded-(--ui-radius-button) bg-(--ui-accent) text-(--ui-on-accent) font-(family-name:--ui-font) font-(--ui-button-weight) text-[13.5px]/none tracking-(--ui-button-tracking) [text-transform:var(--ui-button-case)] no-underline cursor-pointer transition-[background-color,color,box-shadow,transform] duration-350 ease-(--ui-ease) hover:bg-(--ui-ink) hover:text-(--ui-on-ink) disabled:opacity-40 focus-visible:ring-0 focus-visible:outline-2 focus-visible:outline-solid focus-visible:outline-offset-2 focus-visible:outline-(--ui-accent)";
+const BUTTON_SIZE = { md: "", sm: "px-[1.3em] py-[1em] text-[12.5px]/none" };
+const BUTTON_TONE: Record<ButtonTone, string> = {
+  primary: "",
+  secondary:
+    "bg-transparent text-(--ui-ink) shadow-[inset_0_0_0_1px_var(--ui-ink)] hover:bg-(--ui-ink) hover:text-(--ui-on-ink)",
+  quiet:
+    "px-0 py-[0.4em] bg-transparent text-(--ui-ink-2) text-[14px]/none font-medium tracking-normal [text-transform:none] underline decoration-(--ui-ink-3) underline-offset-[0.24em] hover:bg-transparent hover:text-(--ui-ink) hover:decoration-current",
+};
+
 const look = ({ tone = "primary", size = "md", className }: ButtonLook) =>
-  cx("ui-btn", `ui-btn-${tone}`, size === "sm" && "ui-btn-sm", className);
+  cn(buttonVariants(), BUTTON, BUTTON_SIZE[size], BUTTON_TONE[tone], className);
 
 const inside = ({ icon, arrow, children }: ButtonLook) => (
   <>
     {icon ? <Icon name={icon} /> : null}
     <span>{children}</span>
-    {arrow ? <Icon name="arrow" className="ui-btn-arrow" /> : null}
+    {arrow ? (
+      <Icon
+        name="arrow"
+        className="transition-transform duration-350 ease-(--ui-ease) group-hover/button:translate-x-[3px]"
+      />
+    ) : null}
   </>
 );
 
@@ -45,12 +66,13 @@ export function Button({
 }: ButtonLook & Omit<ButtonHTMLAttributes<HTMLButtonElement>, "children" | "className">) {
   const l: ButtonLook = { tone, size, icon, arrow, children, className };
   return (
-    <button type={type} className={look(l)} {...rest}>
+    <ShadButton type={type} className={look(l)} {...rest}>
       {inside(l)}
-    </button>
+    </ShadButton>
   );
 }
 
+/** A link that looks like a button. A plain `<a>`, so it stays a link to assistive tech. */
 export function ButtonLink({
   tone,
   size,
@@ -62,7 +84,7 @@ export function ButtonLink({
 }: ButtonLook & Omit<AnchorHTMLAttributes<HTMLAnchorElement>, "children" | "className">) {
   const l: ButtonLook = { tone, size, icon, arrow, children, className };
   return (
-    <a className={look(l)} {...rest}>
+    <a data-slot="button" className={look(l)} {...rest}>
       {inside(l)}
     </a>
   );
@@ -108,6 +130,16 @@ export function Tabs({
 /** `rust` marks what needs you or what changed; `green` a result; `neutral` the rest. */
 export type TagTone = "neutral" | "rust" | "green";
 
+const TAG =
+  "ui-tag h-auto gap-1.5 px-[9px] py-0.5 border-0 rounded-(--ui-radius-tag) text-[12px]/[1.5] font-semibold align-[1px]";
+const TAG_TONE: Record<TagTone, string> = {
+  neutral: "bg-(--ui-fill) text-(--ui-ink-2)",
+  rust: "bg-(--ui-accent-tint) text-(--ui-accent)",
+  green: "bg-(--ui-good-tint) text-(--ui-good-ink)",
+};
+const DOT = "before:size-1.5 before:rounded-full before:bg-current before:content-['']";
+
+/** shadcn's badge as the kit's status pill. `ui-tag` stays as a hook for product CSS. */
 export function Tag({
   tone = "neutral",
   dot = false,
@@ -122,9 +154,9 @@ export function Tag({
   children: ReactNode;
 }) {
   return (
-    <span className={cx("ui-tag", `ui-tag-${tone}`, dot && "ui-tag-dot", className)} title={title}>
+    <Badge className={cn(TAG, TAG_TONE[tone], dot && DOT, className)} title={title}>
       {children}
-    </span>
+    </Badge>
   );
 }
 
