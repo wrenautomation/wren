@@ -13,6 +13,7 @@
   "dependencies": {
     "@restatedev/restate-sdk": "1.17.1",
     "@restatedev/restate-sdk-tunnel": "1.17.1",
+    "@wren/books": "workspace:*",
     "@wren/channel-email": "workspace:*",
     "@wren/channel-linkedin": "workspace:*",
     "@wren/channel-meta": "workspace:*",

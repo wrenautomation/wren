@@ -8,6 +8,15 @@ import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
 import type { Context, ServiceDefinition, VirtualObjectDefinition } from "@restatedev/restate-sdk";
 import {
+  awsCostExplorer,
+  bankOfCanada,
+  delegatedMailbox,
+  dirStore,
+  s3Store,
+  siteMailbox,
+} from "@wren/books";
+import { makeBooks } from "@wren/books/restate";
+import {
   activeSenders,
   Broadcast,
   ConsoleTransport,
@@ -63,7 +72,7 @@ import { makeSmsDesk, makeSmsEvents, makeSmsSender, makeSmsWatch } from "@wren/c
 import { tiktokContent } from "@wren/channel-tiktok";
 import { xContent } from "@wren/channel-x";
 import { youtubeContent } from "@wren/channel-youtube";
-import type { Settings } from "@wren/config";
+import { ingressOf, type Settings } from "@wren/config";
 import { s3MediaHost } from "@wren/content";
 import {
   makeContentDesk,
@@ -75,6 +84,7 @@ import { makeAuditSealer } from "@wren/core/audit";
 import { CalcomCalendar } from "@wren/core/calendar";
 import type { SiteClient } from "@wren/core/content";
 import { sitesHost } from "@wren/core/content/box";
+import { ingressSites } from "@wren/core/content/ingress";
 import { makeTokenRenewal } from "@wren/core/content/renewal";
 import {
   type ChannelsFor,
@@ -133,9 +143,15 @@ export interface Services {
  * `WREN_POOL_CHAIN_HOST=box` the Postgres box serves it (`box.ts`), next to the data.
  * Restate keeps each service on one deployment: whichever side serves it, the other skips it.
  */
+/** One desk call from the books' day; past it the mailbox waits for tomorrow's pass. */
+const BOOKS_DESK_TIMEOUT_MS = 120_000;
+
 export const POOL_CHAIN = ["PoolScheduler", "Discovery", "Enrichment", "Resolution"];
-/** Everything the box serves: the chain, and the page archive, which moves rows out of its own disk. */
-export const BOX_SERVICES = [...POOL_CHAIN, "PageArchive"];
+/**
+ * Everything the box serves: the chain; the page archive, which moves rows out of
+ * its own disk; and the books' day, which waits on the model and the Mac's desk.
+ */
+export const BOX_SERVICES = [...POOL_CHAIN, "PageArchive", "Books"];
 
 export function servicesFor(
   all: AnyService[],
@@ -458,6 +474,34 @@ export async function buildServices(
   services.push(makeAuditSealer({ main: db, open: openClient, ...notify }));
   // Page HTML a day old moves to the pages bucket; off until `wren pages archive start`.
   services.push(makePageArchive({ db, pages, ...notify }));
+  // The books' day: billing mail kept, read and posted, AWS spend in, alerts out;
+  // off until `wren books loop start`.
+  services.push(
+    makeBooks({
+      db,
+      llm,
+      mailboxes: settings.booksMailboxes.map((m) =>
+        m.via === "delegated"
+          ? delegatedMailbox(gmail, m.address)
+          : // Inside the pass's one step, so through the ingress; a Mac that is off is an alert, not a hang.
+            siteMailbox(
+              ingressSites(ingressOf(settings), {
+                caller: "wren:books",
+                service: DESK,
+                timeoutMs: BOOKS_DESK_TIMEOUT_MS,
+              }),
+              m.address,
+            ),
+      ),
+      store: settings.booksBucket
+        ? s3Store(settings.booksBucket)
+        : dirStore(resolve(rootDir, ".books")),
+      rates: bankOfCanada(),
+      aws: settings.booksAwsUsage ? awsCostExplorer() : null,
+      since: settings.booksSince,
+      ...notify,
+    }),
+  );
   // Cold SMS. Always bound: the sender is off until `wren sms queue start`.
   const sms = {
     db,

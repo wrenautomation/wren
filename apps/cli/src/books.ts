@@ -7,7 +7,10 @@
 import { writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { extname, join, resolve } from "node:path";
+import * as clients from "@restatedev/restate-sdk-clients";
 import {
+  ALERT_KINDS,
+  type AlertKind,
   assignVendor,
   bankOfCanada,
   billDetail,
@@ -24,6 +27,7 @@ import {
   listSpend,
   listSubscriptions,
   type Mailbox,
+  openAlerts,
   post,
   readDocuments,
   reviewQueue,
@@ -31,9 +35,12 @@ import {
   seedBooks,
   setReview,
   siteMailbox,
+  today,
+  usageMonth,
 } from "@wren/books";
+import { BOOKS_KEY, type Books } from "@wren/books/restate";
 import { expandHome, GmailClient } from "@wren/channel-email";
-import type { Settings } from "@wren/config";
+import { ingressOf, type Settings } from "@wren/config";
 import { recordedRun } from "@wren/core";
 import type { Db } from "@wren/db";
 import { loadLlmEnv, makeLlm } from "@wren/llm";
@@ -443,4 +450,54 @@ export function registerBooks(
       await writeFile(out, await store().get(doc.storeKey));
       console.log(out);
     });
+
+  books
+    .command("alerts")
+    .description("What the daily pass raised and is still open")
+    .option("--kind <kind>", `only one kind: ${ALERT_KINDS.join(", ")}`)
+    .action(async (opts: { kind?: string }) => {
+      if (opts.kind && !(ALERT_KINDS as readonly string[]).includes(opts.kind))
+        throw new Error(`no alert kind ${opts.kind}: ${ALERT_KINDS.join(", ")}`);
+      const rows = await withDb((db) => openAlerts(db, opts.kind as AlertKind | undefined));
+      for (const a of rows) console.log(`${day(a.raisedAt)} ${a.kind.padEnd(16)} ${a.message}`);
+      if (!rows.length) console.log("nothing open");
+    });
+
+  books
+    .command("aws")
+    .description("AWS spend per service this month so far, beside the same days last month")
+    .option("--on <day>", "count up to this day (default today)", dayOf)
+    .action(async (opts: { on?: string }) => {
+      const on = opts.on ?? today();
+      const rows = await withDb((db) => usageMonth(db, "aws", on));
+      const sum = (k: "sofar" | "before") => rows.reduce((n, r) => n + r[k], 0);
+      console.log(
+        `${"service".padEnd(44)} ${"this month".padStart(11)} ${"last month".padStart(11)}`,
+      );
+      for (const r of rows)
+        console.log(
+          `${r.service.slice(0, 44).padEnd(44)} ${r.sofar.toFixed(2).padStart(11)} ${r.before.toFixed(2).padStart(11)}`,
+        );
+      console.log(
+        `${"total (USD, through yesterday)".padEnd(44)} ${sum("sofar").toFixed(2).padStart(11)} ${sum("before").toFixed(2).padStart(11)}`,
+      );
+      if (!rows.length)
+        console.log("no spend kept yet: the daily pass takes it in (WREN_BOOKS_AWS_USAGE)");
+    });
+
+  const loop = () =>
+    clients.connect(ingressOf(settings)).objectClient<Books>({ name: "Books" }, BOOKS_KEY);
+  const daily = books
+    .command("loop")
+    .description("Books/all on the Postgres box: import, read, post, AWS spend and alerts, daily");
+  daily.command("status").action(async () => json(await loop().status()));
+  daily
+    .command("start")
+    .description("Daily from now on")
+    .action(async () => json(await loop().start()));
+  daily.command("stop").action(async () => json(await loop().stop()));
+  daily
+    .command("sync")
+    .description("One pass now")
+    .action(async () => json(await loop().sync()));
 }

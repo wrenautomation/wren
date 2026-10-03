@@ -206,6 +206,11 @@ export const settingsSchema = z.object({
     .string()
     .regex(/^\d{4}-\d{2}-\d{2}$/)
     .default("2026-08-01"),
+  /** The books' day takes in AWS spend per service from Cost Explorer (one billed request a day). */
+  booksAwsUsage: z
+    .enum(["true", "false", "1", "0"])
+    .default("false")
+    .transform((v) => v === "true" || v === "1"),
   /** The Facebook Page the `facebook`/`instagram` channels post as; the first Page when unset. */
   metaPageId: z
     .string()
@@ -453,6 +458,7 @@ export const ENV_KEYS = {
   booksBucket: "WREN_BOOKS_BUCKET",
   booksMailboxes: "WREN_BOOKS_MAILBOXES",
   booksSince: "WREN_BOOKS_SINCE",
+  booksAwsUsage: "WREN_BOOKS_AWS_USAGE",
   metaPageId: "WREN_META_PAGE_ID",
   metaAdAccountId: "WREN_META_AD_ACCOUNT_ID",
   adsPauseAfterUsd: "WREN_ADS_PAUSE_AFTER_USD",

@@ -193,6 +193,18 @@ data "aws_iam_policy_document" "pg" {
     actions   = ["s3:PutObject", "s3:ListBucket"]
     resources = [aws_s3_bucket.backups.arn, "${aws_s3_bucket.backups.arn}/*"]
   }
+  # The books' day (Books/all) reads kept bills back from `books/`.
+  statement {
+    sid       = "ReadBooks"
+    actions   = ["s3:GetObject"]
+    resources = ["${aws_s3_bucket.backups.arn}/books/*"]
+  }
+  # ...and takes in AWS spend per service, one request a day.
+  statement {
+    sid       = "ReadCosts"
+    actions   = ["ce:GetCostAndUsage"]
+    resources = ["*"]
+  }
 }
 
 resource "aws_iam_role_policy" "pg" {

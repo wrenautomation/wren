@@ -10,6 +10,7 @@
     "./clients": "./src/clients/index.ts",
     "./content": "./src/content/index.ts",
     "./content/box": "./src/content/box.ts",
+    "./content/ingress": "./src/content/ingress.ts",
     "./content/restate": "./src/content/restate.ts",
     "./content/renewal": "./src/content/renewal.ts",
     "./feed": "./src/feed.ts",
@@ -32,6 +33,7 @@
   "dependencies": {
     "@aws-sdk/client-ec2": "3.1136.0",
     "@restatedev/restate-sdk": "1.17.1",
+    "@restatedev/restate-sdk-clients": "1.17.1",
     "@wren/db": "workspace:*",
     "csv-parse": "7.0.2",
     "drizzle-orm": "0.45.2",

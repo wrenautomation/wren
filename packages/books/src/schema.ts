@@ -537,3 +537,59 @@ export const spend = books
   .as(
     sql`SELECT date_trunc('month'::text, e.posted_on::timestamp with time zone)::date AS month, a.key AS account, a.name AS account_name, a.t2125_line, v.key AS vendor, v.name AS vendor_name, sum(l.cad_cents)::bigint AS cad_cents FROM books.lines l JOIN books.entries e ON e.id = l.entry_id JOIN books.accounts a ON a.id = l.account_id LEFT JOIN books.bills b ON b.id = e.bill_id LEFT JOIN books.vendors v ON v.id = b.vendor_id WHERE a.type::text = 'expense'::text GROUP BY (date_trunc('month'::text, e.posted_on::timestamp with time zone)::date), a.key, a.name, a.t2125_line, v.key, v.name`,
   );
+
+export const USAGE_PROVIDERS = ["aws"] as const;
+export type UsageProvider = (typeof USAGE_PROVIDERS)[number];
+
+/**
+ * Metered spend per day and service, from the provider's own cost API (AWS
+ * Cost Explorer). It runs ahead of the bill: the month's invoice is the books'
+ * truth, this is the early look. Metered amounts go below a cent, so they are
+ * exact decimals, never cents. A day is fetched again until it settles.
+ */
+export const usage = books.table(
+  "usage",
+  {
+    on: date("on").notNull(),
+    provider: varchar("provider", { length: 16, enum: USAGE_PROVIDERS }).notNull(),
+    service: text("service").notNull(),
+    currency: char("currency", { length: 3 }).notNull(),
+    amount: numeric("amount", { precision: 18, scale: 6 }).notNull(),
+    fetchedAt: timestamp("fetched_at", { withTimezone: true }).defaultNow().notNull(),
+  },
+  (t) => [
+    primaryKey({ columns: [t.on, t.provider, t.service], name: "pk_usage" }),
+    oneOf("ck_usage_provider", t.provider, USAGE_PROVIDERS),
+  ],
+);
+
+export const ALERT_KINDS = [
+  "capture",
+  "held",
+  "unread",
+  "new_subscription",
+  "renewal",
+  "lapsed",
+  "spike",
+] as const;
+export type AlertKind = (typeof ALERT_KINDS)[number];
+
+/**
+ * What the daily books pass told the operator. One row per condition, keyed by
+ * what it is about: raised once when it appears, cleared when it goes, raised
+ * again only if it comes back. So a held bill is one message, not one a day.
+ */
+export const alerts = books.table(
+  "alerts",
+  {
+    key: text("key").primaryKey(),
+    kind: varchar("kind", { length: 32, enum: ALERT_KINDS }).notNull(),
+    message: text("message").notNull(),
+    raisedAt: timestamp("raised_at", { withTimezone: true }).defaultNow().notNull(),
+    clearedAt: timestamp("cleared_at", { withTimezone: true }),
+  },
+  (t) => [
+    oneOf("ck_alerts_kind", t.kind, ALERT_KINDS),
+    index("ix_alerts_open").on(t.kind).where(sql`${t.clearedAt} IS NULL`),
+  ],
+);
