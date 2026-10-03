@@ -1,29 +1,43 @@
 # Wren production: what is live and how to run it
 
-2026-09-19. Companion to `restate-durability.md` (why it survives crashes) and
+Checked 2026-10-03. Companion to `restate-durability.md` (why it survives crashes) and
 `deploy/README.md` (setup runbook).
 
-## What is live
+## Where everything runs
 
-| | |
-|---|---|
-| Restate Cloud | env `wren-automation` (`env_201m2vp6sq3x11xdaatsmjej302`), region `us` |
-| Deployment | the latest `restate deployments list` row → Lambda `wren-prod-worker` (CI publishes a new version per push to main), 13 services |
-| Compute | AWS Lambda, us-east-1, Node 22 arm64, 1 GB, 15 min max per invocation |
-| State | Postgres 17 in Docker on EC2 `t4g.small` (`i-04f8cb57c91e84126`), own EBS volume, TLS-only, nightly dump → S3 (30-day expiry) |
-| Browser | browserless Chromium on the same box, token-gated, over CDP (`WREN_RENDERER=cdp`) |
-| Secrets | one SSM SecureString `/wren/prod/env`, loaded once at cold start |
-| Smoke | `POST /SendScheduler/smoke/status` via ingress → `200 {"running":false,"onRoster":false}` |
-| Roster | `senders_config.toml` in the bundle since cutover (2026-09-19); `wren email senders list` shows it |
+| Host | What runs there | Shipped by | Runbook |
+|---|---|---|---|
+| Restate Cloud, env `wren-automation` (`env_201m2vp6sq3x11xdaatsmjej302`), region `us` | every loop's journal, timers, object state; the ingress | always on, free tier | this file |
+| Lambda `wren-prod-worker` (us-east-1, Node 22 arm64, 1 GB, 15 min max) | every service except the box's; one version per push | CI `deploy.yml` | `deploy/README.md` |
+| EC2 `wren-prod-pg` (`t4g.small`) | Postgres 17 + browserless Chromium in Docker; the **box worker**: `BOX_SERVICES` (PoolScheduler, Discovery, Enrichment, Resolution, PageArchive, Books) over Restate's tunnel (`WREN_POOL_CHAIN_HOST=box`) | CI over SSM (`deploy/scripts/box-worker.sh`) | `deploy/README.md`, `apps/worker/src/box.ts` |
+| RackNerd VPS (192.255.226.241) | mailifier SMTP prober behind Caddy (`probe.wrenautomation.com`) | `deploy/scripts/deploy-prober.sh` | "Verifying addresses" below |
+| William's Mac | autobrowse desk worker under launchd: every `sites` call (browser, logins, Chrome profiles, home IP) | `../autobrowse/deploy/desk/install.sh` | `../autobrowse/deploy/README.md` |
+| Lambda `wren-prod-auth` + Cloudflare Workers | sign-in (`apps/auth`), phone (`apps/phone`), portal (`apps/portal`) | CI `deploy.yml` | `deploy/phone.md`, `deploy/portal.md` |
+| Cloudflare Worker + D1 | open pixel `t.wrenautomation.com` (tracking off) | by hand, `wrangler deploy` | `deploy/pixel/README.md` |
+| Cloudflare Pages | the lander (`../lander`) | push to lander `main` | `../lander/README.md` |
+
+Secrets: one SSM SecureString `/wren/prod/env` (from `deploy/prod.env`) read at cold start;
+the roster is SSM `/wren/prod/senders_config` (from `senders_config.toml`). Model calls in
+prod use `WREN_LLM` (paid Cohere); `WREN_POOL_MODEL_STAGES=none` keeps the pool chain off it.
+
+Prod from this laptop, from the repo root (nothing secret is printed):
+
+```sh
+node scripts/prod-sql.mjs "SELECT ..."                 # read-only query (READ ONLY transaction)
+node scripts/ingress.mjs PoolScheduler/recruiting/status   # any handler; writes too, so read it first
+node scripts/prod-wren.mjs <cmd>                        # the wren CLI against the prod database
+restate invocations list --service Enrichment --key recruiting   # stuck work; cancel with `restate invocations cancel --yes <id>`
+```
 
 ```
 you / CLI / curl ──ingress :8080, API key──▶ Restate Cloud (journal, timers, object state)
 Restate Cloud ──assume wren-prod-restate-invoker──▶ Lambda wren-prod-worker
-Lambda ──cold start──▶ SSM /wren/prod/env
-Lambda ──TLS 5432──▶ Postgres on EC2
-Lambda ──CDP :3000──▶ browserless
+Restate Cloud ──tunnel──▶ box worker (EC2) and desk worker (Mac)
+Lambda, box ──TLS 5432──▶ Postgres on EC2
+Lambda, box ──CDP :3000──▶ browserless
+Resolution (box) ──HTTPS──▶ prober (RackNerd) ──port 25──▶ mail servers
 Lambda ──Gmail API (domain-wide delegation)──▶ Gmail
-GitHub Actions (main) ──OIDC role──▶ update Lambda code, publish version, register with Restate
+GitHub Actions (main) ──OIDC role──▶ Lambda versions, box worker, Cloudflare Workers
 ```
 
 Restate Cloud is the only always-on piece. It holds every loop's timer and
