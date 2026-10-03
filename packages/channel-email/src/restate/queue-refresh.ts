@@ -32,7 +32,11 @@ export function makeQueueRefresh(deps: QueueRefreshDeps) {
         )) {
           if (campaign.senders.length === 0) continue;
           out[niche] = await ctx.run(`refresh ${niche}`, async () => {
-            const run = await openRun(deps.db, { command: REFRESH_COMMAND, argv: { niche }, niche });
+            const run = await openRun(deps.db, {
+              command: REFRESH_COMMAND,
+              argv: { niche },
+              niche,
+            });
             const stats = await refreshCampaign(deps.db, campaign, trackOpens);
             await finishRun(deps.db, run.id, stats);
             return stats;
