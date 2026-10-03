@@ -236,6 +236,7 @@ describe("role-inbox pass", () => {
     expect(facts.values).toEqual({
       company_id: company.id,
       company_name: "Acme Advisors",
+      company_short: "Acme",
       company_domain: "frontdoor.example",
       company_niche: "sec_ria",
       half: halfOf(company.id),
