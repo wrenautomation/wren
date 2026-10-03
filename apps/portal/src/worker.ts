@@ -35,6 +35,8 @@ const service = (name: string, routes: readonly string[], writes: readonly strin
 const SERVICES: Readonly<Record<string, Service>> = {
   delivery: service("DeliveryPortal", DELIVERY_ROUTES, DELIVERY_WRITES),
   reactivation: service("ReactivationPortal", PORTAL_ROUTES, PORTAL_WRITES),
+  // Wren's team reads its numbers: views by name (`@wren/core/console`). Read-only.
+  console: service("ConsolePortal", ["view"], []),
 };
 
 const MAX_BODY = 16 * 1024;

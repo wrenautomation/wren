@@ -8,6 +8,7 @@
     "./audit": "./src/audit.ts",
     "./calendar": "./src/calendar.ts",
     "./clients": "./src/clients/index.ts",
+    "./console": "./src/console.ts",
     "./content": "./src/content/index.ts",
     "./content/box": "./src/content/box.ts",
     "./content/ingress": "./src/content/ingress.ts",

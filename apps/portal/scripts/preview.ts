@@ -9,8 +9,10 @@
 import { createReadStream, existsSync } from "node:fs";
 import { createServer } from "node:http";
 import { extname, join, normalize } from "node:path";
+import { EMAIL_CONSOLE_VIEWS } from "@wren/channel-email/views";
 import { loadEnvFile, loadSettings } from "@wren/config";
 import { clientUrl } from "@wren/core/clients";
+import { consoleApi } from "@wren/core/console";
 import { PortalRefusal, type Viewer } from "@wren/core/portal";
 import { cachedDb, createDb } from "@wren/db";
 import { type FileStore, fileNameOf } from "@wren/delivery/files";
@@ -36,6 +38,7 @@ const SERVICES: Record<string, { routes: readonly string[]; api: object }> = {
     routes: PORTAL_ROUTES,
     api: portalApi({ main, open: (c) => cachedDb(clientUrl(settings.databaseUrl, c)) }),
   },
+  console: { routes: ["view"], api: consoleApi({ main, views: EMAIL_CONSOLE_VIEWS }) },
 };
 const as = process.argv[process.argv.indexOf("--as") + 1];
 const viewer: Viewer = demo

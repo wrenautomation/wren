@@ -54,6 +54,7 @@ import {
   makeSendScheduler,
   oneScope,
 } from "@wren/channel-email/restate";
+import { EMAIL_CONSOLE_VIEWS } from "@wren/channel-email/views";
 import { linkedinContent } from "@wren/channel-linkedin";
 import { facebookContent, instagramContent, instagramWebContent } from "@wren/channel-meta";
 import { makeAds, makeAdsWatch } from "@wren/channel-meta/restate";
@@ -83,6 +84,7 @@ import {
 } from "@wren/content/restate";
 import { makeAuditSealer } from "@wren/core/audit";
 import { CalcomCalendar } from "@wren/core/calendar";
+import { makeConsolePortal } from "@wren/core/console";
 import type { SiteClient } from "@wren/core/content";
 import { sitesHost } from "@wren/core/content/box";
 import { ingressSites } from "@wren/core/content/ingress";
@@ -593,6 +595,7 @@ export async function buildServices(
       zone: settings.sendTimezone,
     }),
     makeReactivationPortal({ main: db, open: openClient }),
+    makeConsolePortal({ main: db, views: [...EMAIL_CONSOLE_VIEWS] }),
     makeReactivation({
       main: db,
       open: openClient,

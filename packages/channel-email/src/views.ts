@@ -289,3 +289,44 @@ export const funnelLatency = pgView("funnel_latency", {
 }).as(
   sql`WITH stamps AS ( SELECT c.id AS company_id, c.niche, c.domain, c.created_at AS imported_at, ( SELECT min(d.fetched_at) AS min FROM documents d WHERE d.company_id = c.id) AS first_fetch_at, ( SELECT min(e.created_at) AS min FROM enrollments e WHERE e.company_id = c.id) AS enrolled_at, ( SELECT min(m.sent_at) AS min FROM messages m JOIN enrollments e ON e.id = m.enrollment_id WHERE e.company_id = c.id AND m.step = 0 AND m.state::text = 'sent'::text) AS first_send_at, ( SELECT min(te.received_at) AS min FROM thread_events te JOIN enrollments e ON e.id = te.enrollment_id WHERE e.company_id = c.id AND te.kind::text = 'reply'::text) AS first_reply_at FROM companies c ) SELECT company_id, niche, domain, imported_at, first_fetch_at, enrolled_at, first_send_at, first_reply_at, EXTRACT(epoch FROM first_fetch_at - imported_at) / 86400.0 AS days_import_to_fetch, EXTRACT(epoch FROM enrolled_at - imported_at) / 86400.0 AS days_import_to_enroll, EXTRACT(epoch FROM first_send_at - enrolled_at) / 86400.0 AS days_enroll_to_send, EXTRACT(epoch FROM first_send_at - imported_at) / 86400.0 AS days_import_to_send, EXTRACT(epoch FROM first_reply_at - first_send_at) / 86400.0 AS days_send_to_reply FROM stamps s`,
 );
+
+/**
+ * The lead pipeline per niche, firms still in play: a domain, a crawl, a named person, a
+ * verified lead for that person. Each step counts firms.
+ */
+export const pipelineFunnel = pgView("pipeline_funnel", {
+  niche: varchar({ length: 32 }),
+  inPlay: bigint("in_play", { mode: "number" }),
+  withDomain: bigint("with_domain", { mode: "number" }),
+  crawled: bigint("crawled", { mode: "number" }),
+  namedPerson: bigint("named_person", { mode: "number" }),
+  verifiedNamedLead: bigint("verified_named_lead", { mode: "number" }),
+}).as(
+  sql`SELECT c.niche, count(*) AS in_play, count(*) FILTER (WHERE c.domain IS NOT NULL) AS with_domain, count(*) FILTER (WHERE EXISTS (SELECT 1 FROM documents d WHERE d.company_id = c.id)) AS crawled, count(*) FILTER (WHERE EXISTS (SELECT 1 FROM people p WHERE p.company_id = c.id)) AS named_person, count(*) FILTER (WHERE EXISTS (SELECT 1 FROM leads l WHERE l.company_id = c.id AND l.status::text = 'verified'::text AND l.first_name IS NOT NULL)) AS verified_named_lead FROM companies c WHERE c.decline_reason IS NULL GROUP BY c.niche`,
+);
+
+/**
+ * Where named people stall, per niche: leads whose latest check said catch-all or risky, firms
+ * whose candidates wait in the resolution queue with no named lead yet, and crawled firms (real
+ * pages, not shells) where no one was named.
+ */
+export const pipelineLeaks = pgView("pipeline_leaks", {
+  niche: varchar({ length: 32 }),
+  catchAllLeads: bigint("catch_all_leads", { mode: "number" }),
+  riskyLeads: bigint("risky_leads", { mode: "number" }),
+  queuedFirms: bigint("queued_firms", { mode: "number" }),
+  crawledNoPersonFirms: bigint("crawled_no_person_firms", { mode: "number" }),
+}).as(
+  sql`WITH firms AS ( SELECT c.id, c.niche, EXISTS ( SELECT 1 FROM people p WHERE p.company_id = c.id) AS has_person, EXISTS ( SELECT 1 FROM leads l WHERE l.company_id = c.id AND l.first_name IS NOT NULL) AS has_named_lead, EXISTS ( SELECT 1 FROM documents d WHERE d.company_id = c.id AND NOT d.is_shell) AS crawled, EXISTS ( SELECT 1 FROM contact_candidates cc JOIN people p ON p.id = cc.person_id WHERE p.company_id = c.id AND cc.state::text = 'queued'::text) AS queued FROM companies c WHERE c.decline_reason IS NULL ), latest AS ( SELECT DISTINCT ON (v.lead_id) v.lead_id, v.result FROM verifications v WHERE v.lead_id IS NOT NULL ORDER BY v.lead_id, v.checked_at DESC ), named AS ( SELECT f.niche, lt.result FROM leads l JOIN firms f ON f.id = l.company_id JOIN latest lt ON lt.lead_id = l.id WHERE l.first_name IS NOT NULL ) SELECT f.niche, ( SELECT count(*) FROM named n WHERE n.niche::text = f.niche::text AND n.result::text = 'catch_all'::text) AS catch_all_leads, ( SELECT count(*) FROM named n WHERE n.niche::text = f.niche::text AND n.result::text = 'risky'::text) AS risky_leads, count(*) FILTER (WHERE f.queued AND NOT f.has_named_lead) AS queued_firms, count(*) FILTER (WHERE f.crawled AND NOT f.has_person) AS crawled_no_person_firms FROM firms f GROUP BY f.niche`,
+);
+
+/** What the console may read by name (`ConsolePortal/view`): numbers only, no rows about a person. */
+export const EMAIL_CONSOLE_VIEWS = [
+  "pipeline_funnel",
+  "pipeline_leaks",
+  "campaign_funnel",
+  "send_health",
+  "reply_by_arm_step",
+  "verification_yield",
+  "email_stage_costs",
+] as const;
