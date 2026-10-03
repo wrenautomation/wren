@@ -107,13 +107,15 @@ describe("recruiting book-first opener", () => {
       render(tpl(), facts, seed).subject ?? "";
     const { first_name: _, ...company } = base;
     const seen = new Set<string>();
-    for (let i = 0; i < 20; i++) {
+    for (let i = 0; i < 40; i++) {
       const s = subj(base, `person:${i}`);
       seen.add(s);
-      expect(s).toMatch(/^Dana, (something interesting about|about) your clients$/);
+      expect(s).toMatch(
+        /^Dana, ((something interesting about|about) your clients|love your work|cool company)$/,
+      );
       expect(subj(company, `person:${i}`)).toBe(s.slice("Dana, ".length));
     }
-    expect(seen.size).toBe(2);
+    expect(seen.size).toBe(4);
   });
 
   it("no subject uses the money lines that landed in junk", () => {

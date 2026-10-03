@@ -45,8 +45,10 @@ approve books, book-first) and `{link.watch}` (the demo, watch-first).
 Every firm gets `book-first/` for now (William, 10-02), sequence
 `book-first-days-0-5`:
 
-- Opener subject: the first name plus a hinted loss ("Dana, you're
-  missing out on dozens of placements"). A role inbox drops the name.
+- Opener subject: the first name plus a curiosity line or a compliment
+  ("Dana, about your clients", "Dana, love your work", "Dana, cool
+  company"). The follow-up's own set adds "one more thing". A role inbox
+  drops the name.
 - Follow-up (day 5): the opener restated (personalization, who William
   is, the pain), the offer opening "Following up on my last email", and
   the same ask, under a new subject as a fresh thread (outbound-copy
