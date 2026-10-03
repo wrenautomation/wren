@@ -3,12 +3,15 @@
  * renderer walks it: a client's layout, the demo's and the console's are different trees over
  * the same widgets. A widget never fetches. Its `source` names an allowlisted view or a portal
  * handler, and the page's `load` reads it, so a card, a CSV export and an agent read one answer.
+ * A View offers buttons through `act`; the page's `call` runs them and the widget reads again.
  */
 import { cn } from "cn";
-import { type ReactNode, Suspense, use, useState } from "react";
+import { type ReactNode, Suspense, startTransition, use, useState } from "react";
 import { type Access, can, type Viewer } from "./access.js";
+import { ActionButton, type Call } from "./action.js";
 import { Card, CardAction, CardContent, CardHeader, CardTitle } from "./components/ui/card.js";
 import { Skeleton } from "./components/ui/skeleton.js";
+import { Toaster } from "./components/ui/sonner.js";
 import { Button } from "./controls.js";
 
 export type Size = "s" | "m" | "l" | "full";
@@ -20,6 +23,11 @@ export type Source =
 export interface WidgetProps<T> {
   data: T;
   size: Size;
+  /**
+   * A button for `action` on `input` (a row's id): it runs, then this widget reads again.
+   * Nothing when the page has no `call` or the viewer may not.
+   */
+  act: (action: Action, input?: Record<string, unknown>) => ReactNode;
 }
 
 export interface Widget<T = unknown> {
@@ -55,6 +63,14 @@ export interface Action {
   requires?: Access;
   /** Asked before it runs. */
   confirm?: string;
+  /**
+   * A text asked before it runs, into `field` of the input: "why" for a pause, the draft for an
+   * approve. It starts from the input's own `field` and goes only when changed, so an untouched
+   * draft isn't sent as an edit.
+   */
+  ask?: { field: string; label: string };
+  /** The toast after it worked, from the handler's answer. */
+  done?: (answer: unknown) => string;
 }
 
 type Answer = { data: unknown } | { error: string };
@@ -62,8 +78,12 @@ type Answer = { data: unknown } | { error: string };
 interface TreeProps {
   viewer: Viewer;
   read: (source: Source) => Promise<Answer>;
+  /** Forgets a source's answer and draws again, keeping the old answer up until the new one is in. */
+  reread: (source: Source) => void;
   /** Downloads a view-backed widget's rows as CSV; its button shows only when given. */
   csv?: ((view: string, name: string) => void) | undefined;
+  /** Runs a widget's actions; absent, `act` offers none. */
+  call?: Call | undefined;
 }
 
 const LAYOUT = {
@@ -79,13 +99,16 @@ export function PageTree({
   viewer,
   load,
   csv,
+  call,
 }: {
   node: Node;
   viewer: Viewer;
   load: (source: Source) => Promise<unknown>;
   csv?: TreeProps["csv"];
+  call?: Call;
 }) {
   const [answers] = useState(() => new Map<string, Promise<Answer>>());
+  const [, redraw] = useState(0);
   const read = (source: Source) => {
     const key = JSON.stringify(source);
     let answer = answers.get(key);
@@ -98,7 +121,17 @@ export function PageTree({
     }
     return answer;
   };
-  return <Tree node={node} viewer={viewer} read={read} csv={csv} />;
+  const reread = (source: Source) =>
+    startTransition(() => {
+      answers.delete(JSON.stringify(source));
+      redraw((n) => n + 1);
+    });
+  return (
+    <>
+      <Tree node={node} viewer={viewer} read={read} reread={reread} csv={csv} call={call} />
+      {call ? <Toaster /> : null}
+    </>
+  );
 }
 
 function Tree({ node, ...tree }: TreeProps & { node: Node }) {
@@ -124,9 +157,19 @@ function Tree({ node, ...tree }: TreeProps & { node: Node }) {
   );
 }
 
-function WidgetCard({ widget, read, csv }: TreeProps & { widget: Widget }) {
+function WidgetCard({ widget, viewer, read, reread, csv, call }: TreeProps & { widget: Widget }) {
   const size = widget.size ?? "m";
   const source = widget.source;
+  const act: WidgetProps<unknown>["act"] = (action, input) =>
+    call ? (
+      <ActionButton
+        action={action}
+        input={input}
+        viewer={viewer}
+        call={call}
+        after={() => reread(source)}
+      />
+    ) : null;
   return (
     <Card className={cn("min-w-0", SPAN[size])} data-widget={widget.id}>
       <CardHeader>
@@ -146,15 +189,19 @@ function WidgetCard({ widget, read, csv }: TreeProps & { widget: Widget }) {
       </CardHeader>
       <CardContent>
         <Suspense fallback={<Skeleton className="h-24 w-full" />}>
-          <Body answer={read(source)} widget={widget} size={size} />
+          <Body answer={read(source)} widget={widget} size={size} act={act} />
         </Suspense>
       </CardContent>
     </Card>
   );
 }
 
-function Body({ answer, widget, size }: { answer: Promise<Answer>; widget: Widget; size: Size }) {
+function Body({
+  answer,
+  widget,
+  ...props
+}: Omit<WidgetProps<unknown>, "data"> & { answer: Promise<Answer>; widget: Widget }) {
   const a = use(answer);
   if ("error" in a) return <p className="text-sm text-(--ui-bad)">{a.error}</p>;
-  return <widget.View data={a.data} size={size} />;
+  return <widget.View data={a.data} {...props} />;
 }

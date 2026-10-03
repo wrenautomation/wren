@@ -1,7 +1,8 @@
 import { prerender } from "react-dom/static";
 import { describe, expect, it } from "vitest";
 import type { Viewer } from "./access.js";
-import { type Node, PageTree, type Source, type Widget } from "./page.js";
+import { inputOf } from "./action.js";
+import { type Action, type Node, PageTree, type Source, type Widget } from "./page.js";
 
 const count = (id: string, view: string, extra: Partial<Widget<number>> = {}): Widget<number> => ({
   kind: "widget",
@@ -61,5 +62,69 @@ describe("PageTree", () => {
   it("reads a source once however many widgets share it", async () => {
     const { asked } = await draw(team);
     expect(asked).toHaveLength(3);
+  });
+});
+
+const PAUSE: Action = {
+  id: "pause",
+  label: "Pause",
+  handler: "email/pause",
+  ask: { field: "reason", label: "Why?" },
+};
+const STOP: Action = {
+  id: "stop",
+  label: "Stop",
+  handler: "console/setLoop",
+  requires: { audience: "team" },
+};
+const rows: Widget<string[]> = {
+  kind: "widget",
+  id: "inboxes",
+  title: "Inboxes",
+  source: { view: "send_health" },
+  View: ({ data, act }) => (
+    <ul>
+      {data.map((sender) => (
+        <li key={sender}>
+          {sender} {act(PAUSE, { target: sender })} {act(STOP, { key: sender })}
+        </li>
+      ))}
+    </ul>
+  ),
+};
+
+async function drawRows(viewer: Viewer, call?: () => Promise<unknown>) {
+  const load = async () => ["a@x.test"];
+  const { prelude } = await prerender(
+    <PageTree node={rows} viewer={viewer} load={load} {...(call ? { call } : {})} />,
+  );
+  return new Response(prelude).text();
+}
+
+describe("act", () => {
+  it("draws a View's buttons when the page can call, each only for who may", async () => {
+    const call = async () => null;
+    const html = await drawRows(team, call);
+    expect(html).toContain(">Pause<");
+    expect(html).toContain(">Stop<");
+    expect(await drawRows(client, call)).not.toContain(">Stop<");
+    expect(await drawRows(team)).not.toContain(">Pause<");
+  });
+
+  it("sends the asked text only when it changed", () => {
+    const APPROVE: Action = { ...PAUSE, ask: { field: "body", label: "Reply" } };
+    expect(inputOf(PAUSE, { target: "a@x.test" }, "  bounced  ")).toEqual({
+      target: "a@x.test",
+      reason: "bounced",
+    });
+    expect(inputOf(PAUSE, { target: "a@x.test" }, " ")).toEqual({ target: "a@x.test" });
+    expect(inputOf(APPROVE, { id: 4, body: "Tuesday works." }, "Tuesday works.\n")).toEqual({
+      id: 4,
+    });
+    expect(inputOf(APPROVE, { id: 4, body: "Tuesday works." }, "Wednesday?")).toEqual({
+      id: 4,
+      body: "Wednesday?",
+    });
+    expect(inputOf(STOP, { key: "k" }, "")).toEqual({ key: "k" });
   });
 });

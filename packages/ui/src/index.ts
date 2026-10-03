@@ -4,6 +4,7 @@
  * every look in it is a token a Theme can set (theme.tsx).
  */
 export { type Access, can, type Viewer } from "./access.js";
+export { ActionButton, type Call } from "./action.js";
 export {
   Button,
   ButtonLink,
