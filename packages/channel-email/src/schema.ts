@@ -127,6 +127,26 @@ export const contactCandidates = pgTable(
   ],
 );
 
+/**
+ * People whose addresses buildCandidates already minted. Minting is once per person: a
+ * person here is never minted again, even after their unverified guesses are deleted.
+ */
+export const candidateMints = pgTable(
+  "candidate_mints",
+  {
+    personId: integer("person_id").notNull(),
+    mintedAt: timestamp("minted_at", { withTimezone: true }).defaultNow().notNull(),
+  },
+  (t) => [
+    primaryKey({ columns: [t.personId], name: "pk_candidate_mints" }),
+    foreignKey({
+      columns: [t.personId],
+      foreignColumns: [people.id],
+      name: "fk_candidate_mints_person_id_people",
+    }).onDelete("cascade"),
+  ],
+);
+
 export const verifications = pgTable(
   "verifications",
   {

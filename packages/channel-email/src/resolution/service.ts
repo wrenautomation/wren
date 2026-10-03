@@ -46,6 +46,7 @@ import {
   type CandidateEvidence,
   type CandidateState,
   type ContactCandidate,
+  candidateMints,
   contactCandidates,
   type Verification,
   verifications,
@@ -140,18 +141,22 @@ export interface BuildCandidatesStats extends Record<string, number> {
   no_usable_names: number;
 }
 
-/** Mint candidates for people at domained companies (free, idempotent: people with candidates are skipped). */
+/**
+ * Mint candidates for people at domained companies (free, idempotent: people with
+ * candidates, or minted once before, are skipped, so deleted guesses stay deleted).
+ */
 export async function buildCandidates(
   db: Queryable,
   opts: { limitPeople?: number } = {},
 ): Promise<BuildCandidatesStats> {
   // NOT EXISTS, not NOT IN: Postgres cannot hash a NOT IN over a big candidates table and goes quadratic.
   const hasCandidates = sql`EXISTS (SELECT 1 FROM ${contactCandidates} WHERE ${contactCandidates.personId} = ${people.id})`;
+  const mintedBefore = sql`EXISTS (SELECT 1 FROM ${candidateMints} WHERE ${candidateMints.personId} = ${people.id})`;
   const q = db
     .select({ person: people, company: companies })
     .from(people)
     .innerJoin(companies, eq(people.companyId, companies.id))
-    .where(and(isNotNull(companies.domain), sql`NOT ${hasCandidates}`))
+    .where(and(isNotNull(companies.domain), sql`NOT ${hasCandidates}`, sql`NOT ${mintedBefore}`))
     .orderBy(sql`${companies.domainVerifiedAt} DESC NULLS LAST`, asc(people.id));
   const rows = opts.limitPeople === undefined ? await q : await q.limit(opts.limitPeople);
 
@@ -242,7 +247,10 @@ export async function buildCandidates(
       if (guessedAny) counts.guessed += 1;
       else if (minted.size === 0) counts.no_usable_names += 1;
     }
-    if (minted.size) await db.insert(contactCandidates).values([...minted.values()]);
+    if (minted.size) {
+      await db.insert(contactCandidates).values([...minted.values()]);
+      await db.insert(candidateMints).values({ personId: person.id }).onConflictDoNothing();
+    }
   }
   return counts;
 }

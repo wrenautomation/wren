@@ -161,6 +161,16 @@ describe("buildCandidates", () => {
     expect(before?.id).toBe(after?.id);
   });
 
+  it("never mints a person again after their guesses are deleted", async () => {
+    await prepare([["Jane", "Doe", {}]]);
+    const minted = await candidatesAt(DOMAIN);
+    expect(minted.length).toBeGreaterThan(0);
+    await db().delete(contactCandidates).where(eq(contactCandidates.domain, DOMAIN));
+    const stats = await buildCandidates(db());
+    expect(stats.people_seen).toBe(0);
+    expect(await candidatesAt(DOMAIN)).toHaveLength(0);
+  });
+
   it("a rejected scraped address no longer proves the pattern", async () => {
     await prepare([["Jane", "Doe", { email: `jane.doe@${DOMAIN}` }]]);
     expect((await domainKnowledge(db(), DOMAIN)).provenPattern).toBe("{first}.{last}");
