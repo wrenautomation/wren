@@ -570,6 +570,26 @@ export const usage = books.table(
   ],
 );
 
+/** Metered spend per month and service: `usage` summed, for the console. */
+export const usageByMonth = books
+  .view("usage_by_month", {
+    month: date("month"),
+    provider: varchar("provider", { length: 16 }),
+    service: text("service"),
+    currency: char("currency", { length: 3 }),
+    amount: numeric("amount", { precision: 18, scale: 6 }),
+  })
+  .as(
+    sql`SELECT date_trunc('month'::text, u."on"::timestamp with time zone)::date AS month, u.provider, u.service, u.currency, sum(u.amount) AS amount FROM books.usage u GROUP BY (date_trunc('month'::text, u."on"::timestamp with time zone)::date), u.provider, u.service, u.currency`,
+  );
+
+/** What the console may read by name (`ConsolePortal/view`): totals only. */
+export const BOOKS_CONSOLE_VIEWS = [
+  "books.spend",
+  "books.subscriptions",
+  "books.usage_by_month",
+] as const;
+
 export const ALERT_KINDS = [
   "capture",
   "held",

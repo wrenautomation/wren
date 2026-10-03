@@ -21,7 +21,7 @@ import {
   threadEvents,
 } from "../../src/schema.js";
 import { transitionMessage } from "../../src/state.js";
-import { emailLlmCalls, emailStageCosts } from "../../src/views.js";
+import { emailLlmCalls, emailStageCosts, llmUsageByMonth } from "../../src/views.js";
 import {
   makeCompany,
   makePerson,
@@ -284,6 +284,19 @@ describe("the disposition run", () => {
       .from(emailStageCosts)
       .where(eq(emailStageCosts.kind, "reply_disposition"));
     expect(costs).toEqual({ calls: 1, command: "outreach inbox classify" });
+    const month = await db()
+      .select()
+      .from(llmUsageByMonth)
+      .where(eq(llmUsageByMonth.kind, "reply_disposition"));
+    expect(month).toEqual([
+      expect.objectContaining({
+        month: expect.stringMatching(/^\d{4}-\d{2}-01$/),
+        model: "fake",
+        calls: 1,
+        rejectedCalls: 0,
+        parseFailures: 0,
+      }),
+    ]);
   });
 
   it("sync keeps the reply's own words, capped for the classifier", () => {

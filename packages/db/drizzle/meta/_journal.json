@@ -407,6 +407,13 @@
       "when": 1791061621314,
       "tag": "0057_pipeline_views",
       "breakpoints": true
+    },
+    {
+      "idx": 58,
+      "version": "7",
+      "when": 1791068570931,
+      "tag": "0058_console_usage_views",
+      "breakpoints": true
     }
   ]
 }

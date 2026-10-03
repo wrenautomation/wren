@@ -9,6 +9,8 @@ export const settingsSchema = z.object({
   restateIngressUrl: z.string().url().default("http://127.0.0.1:8080"),
   /** Bearer for the ingress (Restate Cloud API key); unset for a local Restate. */
   restateAuthToken: z.string().min(1).optional(),
+  /** Restate's admin API (port 9070): the console reads loop state here. Unset, the Loops read refuses. */
+  restateAdminUrl: z.string().url().optional(),
   logLevel: z.enum(["trace", "debug", "info", "warn", "error"]).default("info"),
   /** Contact for the outbound User-Agent (email or URL). Required before any fetch. */
   fetchContact: z.string().min(1).optional(),
@@ -375,6 +377,7 @@ export const ENV_KEYS = {
   databaseUrl: "WREN_DATABASE_URL",
   restateIngressUrl: "WREN_RESTATE_INGRESS_URL",
   restateAuthToken: "RESTATE_AUTH_TOKEN",
+  restateAdminUrl: "WREN_RESTATE_ADMIN_URL",
   logLevel: "WREN_LOG_LEVEL",
   fetchContact: "WREN_FETCH_CONTACT",
   robotsMode: "WREN_ROBOTS_MODE",

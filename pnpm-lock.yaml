@@ -708,6 +708,9 @@ importers:
         specifier: 7.4.16
         version: 7.4.16
     devDependencies:
+      '@restatedev/restate-sdk-testcontainers':
+        specifier: 1.17.1
+        version: 1.17.1
       '@testcontainers/postgresql':
         specifier: 12.1.0
         version: 12.1.0

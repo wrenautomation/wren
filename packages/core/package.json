@@ -41,6 +41,7 @@
     "tldts": "7.4.16"
   },
   "devDependencies": {
+    "@restatedev/restate-sdk-testcontainers": "1.17.1",
     "@testcontainers/postgresql": "12.1.0",
     "typescript": "5.9.3",
     "vitest": "5.0.1"

@@ -20,6 +20,7 @@ import {
   shiftDay,
   type UsageDay,
   type UsageFeed,
+  usageByMonth,
   usageMonth,
 } from "../../src/index.js";
 
@@ -215,6 +216,19 @@ describe("usage", () => {
         sofar: expect.closeTo(0.3, 6),
         before: expect.closeTo(0.3, 6),
       },
+    ]);
+  });
+  it("usage_by_month sums each month and service", async () => {
+    await ingestUsage(pg.db, "aws", awsFeed(), { since: "2026-08-01", on: "2026-09-04" });
+    const rows = await pg.db
+      .select()
+      .from(usageByMonth)
+      .orderBy(usageByMonth.month, usageByMonth.service);
+    expect(rows.map((r) => [r.month, r.service, r.currency, Number(r.amount)])).toEqual([
+      ["2026-08-01", "Amazon EC2", "USD", 31],
+      ["2026-08-01", "Amazon S3", "USD", 3.1],
+      ["2026-09-01", "Amazon EC2", "USD", 3],
+      ["2026-09-01", "Amazon S3", "USD", 0.3],
     ]);
   });
 });
