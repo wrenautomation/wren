@@ -270,6 +270,25 @@ describe("discovery budget", () => {
     expect(again.pattern_unknown_domains).toBe(1);
   });
 
+  it("tries a colleague's common patterns before the first person's rare ones", async () => {
+    await prepare([
+      ["Jane", "Doe", {}],
+      ["Bob", "Reyes", {}],
+    ]);
+    const verifier = new MapVerifier({ [`bob_reyes@${DOMAIN}`]: "valid" });
+    await runResolution(db(), verifier, { domainBudget: 14, checker: passChecker });
+    expect(verifier.calls.slice(0, 7)).toEqual([
+      `jane.doe@${DOMAIN}`,
+      `jdoe@${DOMAIN}`,
+      `jane@${DOMAIN}`,
+      `bob.reyes@${DOMAIN}`,
+      `breyes@${DOMAIN}`,
+      `bob@${DOMAIN}`,
+      `janedoe@${DOMAIN}`,
+    ]);
+    expect((await domainKnowledge(db(), DOMAIN)).provenPattern).toBe("{first}_{last}");
+  });
+
   it("catch-all closes the domain at first contact", async () => {
     await prepare([
       ["Jane", "Doe", {}],
@@ -373,7 +392,7 @@ describe("collisions and the scraped exemption", () => {
       ["Zed", "Smith", {}],
     ]);
     const verifier = new MapVerifier({ [`smith@${DOMAIN}`]: "valid" });
-    const stats = await runResolution(db(), verifier, { domainBudget: 10, checker: passChecker });
+    const stats = await runResolution(db(), verifier, { domainBudget: 14, checker: passChecker });
     expect(stats.patterns_proven).toBe(1);
     expect(verifier.calls.filter((e) => e === `smith@${DOMAIN}`)).toHaveLength(1);
     expect(stats.email_collisions).toBeGreaterThanOrEqual(1);

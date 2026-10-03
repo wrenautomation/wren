@@ -58,6 +58,12 @@ import { riskyWait, waitingDomains } from "../verification/retry.js";
 import type { EmailVerifier } from "../verification/verifier.js";
 
 export const DEFAULT_DOMAIN_BUDGET = 5;
+/**
+ * Guess ranks every person tries before anyone tries a rarer one. {first}.{last},
+ * {f}{last} and {first} hold 99% of verified guesses: when all three fail, the person
+ * more likely left than uses a rare pattern, so a colleague's top three come next.
+ */
+export const COMMON_GUESS_RANKS = 3;
 
 const EVIDENCE_ORDER: Record<CandidateEvidence, number> = {
   crm: 0,
@@ -622,16 +628,20 @@ async function resolveDomain(
   };
 
   if (proven === null) {
-    // Rule 3: the discovery budget, walked depth-first PER PERSON in evidence order.
-    // Verdicts are per-mailbox: a pattern that fails for one person fails for
-    // colleagues, so finishing one likely-existing person's ladder converges fastest.
+    // Rule 3: the discovery budget, walked PER PERSON in evidence order, common
+    // guesses first: each person's top patterns (COMMON_GUESS_RANKS), then the rare
+    // rest. A person whose common patterns all fail has likely left the firm; their
+    // rare patterns rarely prove anything, a colleague's common ones often do.
     const personPriority = new Map<number, number>();
     for (const c of candidates)
       if (!personPriority.has(c.personId)) personPriority.set(c.personId, personPriority.size);
+    const rare = (c: ContactCandidate) =>
+      c.evidence === "guessed_pattern" && c.rank >= COMMON_GUESS_RANKS ? 1 : 0;
     const walk = candidates
       .filter((c) => c.state === "queued")
       .sort(
         (a, b) =>
+          rare(a) - rare(b) ||
           (personPriority.get(a.personId) ?? 0) - (personPriority.get(b.personId) ?? 0) ||
           evidenceSort(a, b),
       );

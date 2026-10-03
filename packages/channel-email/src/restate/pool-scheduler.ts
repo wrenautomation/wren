@@ -90,6 +90,13 @@ export const DEFAULT_LIMITS: StageLimits = {
  */
 export const PROBE_WIDTH = 32;
 
+/**
+ * Guesses a domain may cost before its pattern is called unknown, with a free verifier:
+ * the paid default (5) plus room for a second person's common guesses when the first
+ * left. Each is a probe, not a credit; the cap only bounds the misses one server sees.
+ */
+export const FREE_DOMAIN_BUDGET = 8;
+
 /** What `PoolScheduler/{niche}/start` may be given. */
 export interface PoolSettings {
   /** Only these stages run for this niche; absent = every enabled stage. */
@@ -209,6 +216,7 @@ export function makePoolScheduler(deps: PoolSchedulerDeps) {
           niche,
           limitDomains: limits.resolveMailboxes,
           concurrency: PROBE_WIDTH,
+          domainBudget: FREE_DOMAIN_BUDGET,
         }),
       verifyMailboxes: () => {
         const policy = deps.recheck?.policy(niche);
