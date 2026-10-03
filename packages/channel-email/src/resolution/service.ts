@@ -53,6 +53,7 @@ import {
 import { transitionCandidate } from "../state.js";
 import type { LocalCheckerLike } from "../verification/local.js";
 import { defaultLocalChecker } from "../verification/mailifier.js";
+import { riskyWait, waitingDomains } from "../verification/retry.js";
 import type { EmailVerifier } from "../verification/verifier.js";
 
 export const DEFAULT_DOMAIN_BUDGET = 5;
@@ -764,51 +765,102 @@ export async function selectResolutionTargets(db: Queryable): Promise<string[]> 
 }
 
 /**
- * Domains with queued candidates and no conclusive verdict yet, oldest queue first:
- * each one's first walk. A domain the walk left queued (catch-all, pattern unknown) has
- * rows, so it drops out, as does one known catch-all from a lead's verdict; one whose
- * walk wrote nothing (resolver trouble) comes back, and
- * so does one whose only verdicts are `risky` older than `retryRiskyAfterDays` (the
- * server blocked, timed out or deferred us; it may not next time). A walked domain with
- * a verified candidate also comes back while someone there has no verdict at all: people
- * queued after the walk get their one probe against the proven pattern.
+ * Domains a walk can make progress at, oldest queue first. It asks the walk's own
+ * questions once per pass, so a domain comes back only when its walk would probe
+ * something: a queued address nobody verified for someone else, with no verdict of its
+ * own still standing, for a person not yet resolved, that is scraped, or matches the
+ * domain's proven pattern, or is a guess while the discovery budget lasts. A domain
+ * whose server answered `risky` waits out that verdict (`riskyWait`) before any walk;
+ * a known catch-all never comes back.
  */
 export async function selectNewResolutionTargets(
   db: Queryable,
-  opts: { limit: number; niche?: string; retryRiskyAfterDays?: number },
+  opts: { limit: number; niche?: string; retryRiskyAfterDays?: number; domainBudget?: number },
 ): Promise<string[]> {
   const retryDays = opts.retryRiskyAfterDays ?? 2;
+  const budget = opts.domainBudget ?? DEFAULT_DOMAIN_BUDGET;
+  const wait = riskyWait(sql`v.raw`, sql`make_interval(days => ${retryDays})`);
   const niche = opts.niche
     ? sql`AND EXISTS (SELECT 1 FROM people p JOIN companies co ON co.id = p.company_id
         WHERE p.id = c.person_id AND co.niche = ${opts.niche})`
     : sql``;
   const rows = await db.execute(sql`
-    SELECT c.domain FROM contact_candidates c
-    WHERE c.state = 'queued' ${niche}
+    WITH queued AS (
+      SELECT c.id, c.domain, c.person_id, c.email, c.evidence, c.pattern
+      FROM contact_candidates c WHERE c.state = 'queued' ${niche}),
+    domains AS (SELECT DISTINCT domain FROM queued),
+    at_domains AS (
+      SELECT x.* FROM contact_candidates x WHERE x.domain IN (SELECT domain FROM domains)),
+    verdicts AS (
+      SELECT x.domain, x.id AS candidate_id, x.evidence, v.verifier, v.result, v.raw,
+        v.result = 'risky' AND v.checked_at > now() - ${wait} AS waiting
+      FROM verifications v JOIN at_domains x ON x.id = v.contact_candidate_id),
+    -- Discovery spend, as domainKnowledge counts it.
+    spent AS (
+      SELECT domain, count(*) AS n FROM verdicts
+      WHERE evidence <> 'scraped' AND verifier <> 'local' AND result <> 'risky'
+        AND raw->>'authoritative' = 'true'
+      GROUP BY domain),
+    -- The proven pattern, as domainKnowledge picks it.
+    proven AS (
+      SELECT DISTINCT ON (domain) domain, pattern FROM at_domains
+      WHERE pattern IS NOT NULL
+        AND ((evidence = 'scraped' AND state <> 'rejected') OR state = 'verified')
+      ORDER BY domain, (state = 'verified') DESC, id),
+    -- Its own risky verdicts, and any lead's that says the server turned us away.
+    waiting AS (SELECT domain FROM verdicts WHERE waiting UNION ${waitingDomains()}),
+    -- Its own verdict still stands (a stub's, or a risky one not yet due).
+    standing AS (SELECT DISTINCT candidate_id FROM verdicts WHERE waiting OR result <> 'risky'),
+    -- Same address verified for someone else: a person decides whose mailbox it is.
+    taken_emails AS (SELECT DISTINCT email FROM at_domains WHERE state = 'verified'),
+    resolved AS (SELECT DISTINCT person_id FROM at_domains WHERE state = 'verified')
+    -- Anti-joins, not NOT IN over CTEs: those ran as nested loops (90s on prod).
+    SELECT q.domain FROM queued q
+    LEFT JOIN proven p ON p.domain = q.domain
+    LEFT JOIN spent s ON s.domain = q.domain
+    LEFT JOIN waiting w ON w.domain = q.domain
+    LEFT JOIN standing st ON st.candidate_id = q.id
+    LEFT JOIN taken_emails te ON te.email = q.email
+    LEFT JOIN resolved r ON r.person_id = q.person_id
+    WHERE w.domain IS NULL AND st.candidate_id IS NULL
+      AND te.email IS NULL AND r.person_id IS NULL
       AND (
-        NOT EXISTS (
-          SELECT 1 FROM verifications v JOIN contact_candidates x ON x.id = v.contact_candidate_id
-          WHERE x.domain = c.domain
-            AND (v.result <> 'risky' OR v.checked_at > now() - make_interval(days => ${retryDays})))
-        -- A walked domain with a proven pattern comes back for people queued after its walk:
-        -- one probe each. Without a proven pattern it stays out (its budget is spent).
-        OR (c.domain IN (SELECT x.domain FROM contact_candidates x WHERE x.state = 'verified')
-          AND c.person_id NOT IN (
-            SELECT x.person_id FROM contact_candidates x WHERE x.state = 'verified'
-            UNION
-            SELECT x.person_id FROM verifications v
-            JOIN contact_candidates x ON x.id = v.contact_candidate_id)))
+        q.evidence = 'scraped'
+        OR q.pattern = p.pattern
+        OR (p.pattern IS NULL AND coalesce(s.n, 0) < ${budget}))
       -- Known catch-all from any verdict at the domain (a lead's too): the walk has nothing to ask.
       -- NOT IN, not a correlated NOT EXISTS: Postgres hashes it once (NOT EXISTS ran minutes).
-      AND c.domain NOT IN (
+      AND q.domain NOT IN (
         SELECT split_part(${verifications.email}, '@', 2) FROM ${verifications}
         WHERE ${verifications.result} = 'catch_all' AND ${authoritativeRaw}
           AND ${verifications.email} IS NOT NULL)
-    GROUP BY c.domain
-    ORDER BY min(c.id)
+    GROUP BY q.domain
+    ORDER BY min(q.id)
     LIMIT ${opts.limit}
   `);
   return rows.map((r) => String((r as { domain: string }).domain));
+}
+
+/** True while any `risky` verdict at the domain is inside its wait (`riskyWait`). */
+export async function riskyWaiting(
+  db: Queryable,
+  domain: string,
+  retryDays: number,
+): Promise<boolean> {
+  const wait = riskyWait(sql`${verifications.raw}`, sql`make_interval(days => ${retryDays})`);
+  const [hit] = await db
+    .select({ id: verifications.id })
+    .from(verifications)
+    .innerJoin(contactCandidates, eq(verifications.contactCandidateId, contactCandidates.id))
+    .where(
+      and(
+        eq(contactCandidates.domain, domain),
+        eq(verifications.result, "risky"),
+        sql`${verifications.checkedAt} > now() - ${wait}`,
+      ),
+    )
+    .limit(1);
+  return hit !== undefined;
 }
 
 export interface DomainUnitOptions {
@@ -817,6 +869,8 @@ export interface DomainUnitOptions {
   /** Credits already spent by this run, for the run-wide credit limit. */
   alreadySpent: number;
   creditLimit: number | null;
+  /** Days a `risky` verdict holds the domain when its reason has no wait of its own. */
+  retryRiskyAfterDays?: number;
 }
 
 export interface DomainUnitResult {
@@ -843,7 +897,10 @@ export async function resolveDomainUnit(
   };
   const { candidates, suppressedSkipped } = await queuedAtDomain(db, domain);
   ctx.stats.suppressed_skipped = suppressedSkipped;
-  if (candidates.length) {
+  // Its server answered `risky` and the wait is not over: asking again only feeds a block.
+  if (candidates.length && (await riskyWaiting(db, domain, opts.retryRiskyAfterDays ?? 2))) {
+    ctx.stats.deferred_domains++;
+  } else if (candidates.length) {
     await resolveDomain(db, verifier, domain, candidates, ctx, {
       domainBudget: opts.domainBudget,
       checker: opts.checker,

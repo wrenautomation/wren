@@ -23,13 +23,14 @@
  */
 import { companies, type Lead, type LeadStatus, leads, transitionLead } from "@wren/core";
 import type { Queryable } from "@wren/db";
-import { and, asc, eq, lt, notExists, or, sql } from "drizzle-orm";
+import { and, asc, eq, lt, notExists, or, type SQL, sql } from "drizzle-orm";
 import { eachConcurrently } from "../concurrent.js";
 import { audienceGate, type RecontactPolicy } from "../recontact.js";
 import { settledBy } from "../resolution/listed.js";
 import { contactCandidates, type VerificationResult, verifications } from "../schema.js";
 import type { LocalCheckerLike } from "./local.js";
 import { defaultLocalChecker } from "./mailifier.js";
+import { riskyWait, SERVER_HOLD_REASONS, waitingDomains } from "./retry.js";
 import type { EmailVerifier } from "./verifier.js";
 
 /**
@@ -48,7 +49,7 @@ export interface VerificationOptions {
   reverify?: boolean;
   /** Milliseconds; verified leads whose newest verification is older are re-bought. */
   recheckOlderThanMs?: number;
-  /** Milliseconds; imported leads whose newest verdict is `risky` and older are tried again. */
+  /** Milliseconds; imported leads whose newest verdict is `risky` and older are tried again (greylisted and blocked keep their own waits, `riskyWait`). */
   retryRiskyOlderThanMs?: number;
   /** Proven addresses of companies that may come back, re-checked once older than this. */
   recheckReturning?: { policy: RecontactPolicy; olderThanMs: number };
@@ -66,6 +67,8 @@ export interface VerificationStats {
   invalid: number;
   risky: number;
   catch_all: number;
+  /** Skipped: its server blocked or greylisted another address earlier in this run. */
+  held: number;
   flags: Record<string, number>;
   aborted: string | null;
 }
@@ -96,12 +99,17 @@ export async function runVerification(
     );
   }
   if (opts.retryRiskyOlderThanMs !== undefined) {
-    const newestResult = sql`(select ${verifications.result} from ${verifications} where ${verifications.leadId} = ${leads.id} order by ${verifications.checkedAt} desc, ${verifications.id} desc limit 1)`;
+    const newest = (col: SQL) =>
+      sql`(select ${col} from ${verifications} where ${verifications.leadId} = ${leads.id} order by ${verifications.checkedAt} desc, ${verifications.id} desc limit 1)`;
+    const wait = riskyWait(
+      newest(sql`${verifications.raw}`),
+      sql`make_interval(secs => ${opts.retryRiskyOlderThanMs / 1000})`,
+    );
     eligible.push(
       and(
         eq(leads.status, "imported"),
-        eq(newestResult, "risky"),
-        lt(lastChecked, sql`now() - make_interval(secs => ${opts.retryRiskyOlderThanMs / 1000})`),
+        eq(newest(sql`${verifications.result}`), "risky"),
+        lt(lastChecked, sql`now() - ${wait}`),
       ),
     );
   }
@@ -123,6 +131,8 @@ export async function runVerification(
     or(...eligible),
     sql`not exists (select 1 from ${companies} where ${companies.id} = ${leads.companyId} and ${companies.declineReason} is not null)`,
   ];
+  // A server that blocked or greylisted any address is not asked about another until its wait ends.
+  narrowing.push(sql`split_part(${leads.email}, '@', 2) not in ${waitingDomains()}`);
   if (opts.importId !== undefined) narrowing.push(eq(leads.importId, opts.importId));
   if (opts.niche !== undefined) {
     narrowing.push(
@@ -141,9 +151,12 @@ export async function runVerification(
     invalid: 0,
     risky: 0,
     catch_all: 0,
+    held: 0,
     flags: {},
     aborted: null,
   };
+  // Domains whose server turned us away during this run: the rest of their leads wait.
+  const holding = new Set<string>();
   const setStatus = async (lead: Lead, next: LeadStatus) => {
     const status = transitionLead(lead.status, next);
     await db.update(leads).set({ status }).where(eq(leads.id, lead.id));
@@ -189,6 +202,11 @@ export async function runVerification(
       return;
     }
 
+    const domain = lead.email.split("@")[1] ?? "";
+    if (holding.has(domain)) {
+      stats.held += 1;
+      return;
+    }
     let verdict: Awaited<ReturnType<EmailVerifier["verify"]>>;
     try {
       verdict = await verifier.verify(lead.email);
@@ -209,6 +227,8 @@ export async function runVerification(
       raw,
     });
     stats[verdict.result as VerificationResult] += 1;
+    if (verdict.result === "risky" && SERVER_HOLD_REASONS.has(String(verdict.raw.reason)))
+      holding.add(domain);
     // A non-authoritative verdict gets its row for history and stats but never mints a status change.
     if (verifier.authoritative) {
       if (verdict.result === "valid") await setStatus(lead, "verified");

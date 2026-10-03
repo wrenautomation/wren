@@ -3,15 +3,24 @@
  * discovery budget, pattern proof and re-pricing, catch-all closure, dead domains,
  * and promotion through the lead importer (suppression still gates).
  */
-import { type Company, companies, leads, type Person, people, suppressions } from "@wren/core";
+import {
+  type Company,
+  companies,
+  imports,
+  leads,
+  type Person,
+  people,
+  suppressions,
+} from "@wren/core";
 import { startTestPostgres, type TestPostgres, truncate } from "@wren/db/testing";
-import { and, asc, desc, eq, inArray } from "drizzle-orm";
+import { and, asc, desc, eq, inArray, like, sql } from "drizzle-orm";
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 import {
   buildCandidates,
   domainKnowledge,
   queueCandidates,
   runResolution,
+  selectNewResolutionTargets,
 } from "../../src/resolution/service.js";
 import {
   type ContactCandidate,
@@ -445,5 +454,129 @@ describe("stranded promotion repair", () => {
     expect(
       (await runResolution(db(), new MapVerifier({}), { checker: passChecker })).stranded_repaired,
     ).toBe(0);
+  });
+});
+
+/** `risky` with the prober's reason for every address, as a server that turns us away. */
+class RiskyVerifier implements EmailVerifier {
+  readonly name = "risky";
+  readonly authoritative = true;
+  readonly costsCredits = true;
+  readonly calls: string[] = [];
+  constructor(private readonly reason: string) {}
+  async verify(email: string): Promise<Verdict> {
+    this.calls.push(email);
+    return { result: "risky", raw: { stub: true, reason: this.reason } };
+  }
+}
+const ageVerdictsAt = (domain: string, hours: number) =>
+  db()
+    .update(verifications)
+    .set({ checkedAt: sql`now() - make_interval(mins => ${Math.round(hours * 60)})` })
+    .where(like(verifications.email, `%@${domain}`));
+const targets = () => selectNewResolutionTargets(db(), { limit: 10 });
+
+describe("server holds", () => {
+  it("a server that blocked us is not asked again for 7 days, by any path", async () => {
+    await prepare([
+      ["Jane", "Doe", {}],
+      ["Bob", "Reyes", {}],
+    ]);
+    const verifier = new RiskyVerifier("blocked");
+    expect(await runResolution(db(), verifier, { checker: passChecker })).toMatchObject({
+      deferred_domains: 1,
+      credits_spent: 1,
+    });
+    // Two days on: past the default wait, inside the block's.
+    await ageVerdictsAt(DOMAIN, 3 * 24);
+    expect(await targets()).toEqual([]);
+    expect(await runResolution(db(), verifier, { checker: passChecker })).toMatchObject({
+      deferred_domains: 1,
+      credits_spent: 0,
+    });
+    expect(verifier.calls).toHaveLength(1);
+    await ageVerdictsAt(DOMAIN, 8 * 24);
+    expect(await targets()).toEqual([DOMAIN]);
+  });
+
+  it("a greylist holds the domain for an hour", async () => {
+    await prepare([["Jane", "Doe", {}]]);
+    await runResolution(db(), new RiskyVerifier("greylisted"), { checker: passChecker });
+    await ageVerdictsAt(DOMAIN, 0.5);
+    expect(await targets()).toEqual([]);
+    await ageVerdictsAt(DOMAIN, 2);
+    expect(await targets()).toEqual([DOMAIN]);
+  });
+
+  it("a block seen on a lead holds the domain's candidates too", async () => {
+    await prepare([["Jane", "Doe", {}]]);
+    const [batch] = await db()
+      .insert(imports)
+      .values({ sourceType: "csv", sourceRef: "fixture.csv", stats: {} })
+      .returning();
+    const [lead] = await db()
+      .insert(leads)
+      .values({ email: `info@${DOMAIN}`, raw: {}, status: "imported", importId: batch?.id ?? 0 })
+      .returning();
+    await db()
+      .insert(verifications)
+      .values({
+        leadId: lead?.id,
+        email: `info@${DOMAIN}`,
+        verifier: "risky",
+        result: "risky",
+        raw: { reason: "blocked" },
+      });
+    expect(await targets()).toEqual([]);
+  });
+});
+
+describe("re-walk selection", () => {
+  it("a person whose only address on the proven pattern is taken does not bring the domain back", async () => {
+    await prepare([
+      ["Jane", "Doe", {}],
+      ["John", "Doe", {}],
+    ]);
+    // jdoe proves {f}{last} for Jane; John's address on it is the same jdoe.
+    const verifier = new MapVerifier({
+      [`jane.doe@${DOMAIN}`]: "invalid",
+      [`jdoe@${DOMAIN}`]: "valid",
+    });
+    expect(await runResolution(db(), verifier, { checker: passChecker })).toMatchObject({
+      promoted: 1,
+      email_collisions: 1,
+    });
+    expect((await candidatesAt(DOMAIN)).some((c) => c.state === "queued")).toBe(true);
+    expect(await targets()).toEqual([]);
+  });
+
+  it("an unprobed colleague does not bring back a domain whose server answered risky", async () => {
+    const { company } = await prepare([
+      ["Jane", "Doe", {}],
+      ["Bob", "Reyes", {}],
+    ]);
+    const verifier = new MapVerifier({
+      [`jane.doe@${DOMAIN}`]: "invalid",
+      [`jdoe@${DOMAIN}`]: "valid",
+      [`breyes@${DOMAIN}`]: "risky",
+    });
+    await runResolution(db(), verifier, { checker: passChecker });
+    // A colleague queued after the walk, with no verdict: the old loop's trigger.
+    await db().insert(people).values({
+      companyId: company.id,
+      fullName: "Carl Ito",
+      firstName: "Carl",
+      lastName: "Ito",
+      title: "Advisor",
+      isCompliance: false,
+      origin: "registry",
+      originRef: "test",
+      raw: {},
+    });
+    await buildCandidates(db());
+    await queueCandidates(db());
+    expect(await targets()).toEqual([]);
+    await ageVerdictsAt(DOMAIN, 3 * 24);
+    expect(await targets()).toEqual([DOMAIN]);
   });
 });

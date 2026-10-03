@@ -128,6 +128,7 @@ export function makeResolution(deps: ResolutionDeps) {
                 domainBudget,
                 checker,
                 alreadySpent,
+                retryRiskyAfterDays: DEFAULT_RETRY_RISKY_DAYS,
                 creditLimit,
               }),
             ),
@@ -173,6 +174,7 @@ export function makeResolution(deps: ResolutionDeps) {
               const domains = await selectNewResolutionTargets(db, {
                 limit: input.limitDomains,
                 retryRiskyAfterDays: DEFAULT_RETRY_RISKY_DAYS,
+                domainBudget,
                 ...(input.niche !== undefined ? { niche: input.niche } : {}),
               });
               let stats = emptyResolutionStats();
@@ -186,6 +188,7 @@ export function makeResolution(deps: ResolutionDeps) {
                       domainBudget,
                       checker,
                       alreadySpent: 0,
+                      retryRiskyAfterDays: DEFAULT_RETRY_RISKY_DAYS,
                       creditLimit: null,
                     }),
                   );

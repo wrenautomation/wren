@@ -13,8 +13,10 @@ import {
   type EmailVerifier,
   eachConcurrently,
   type LocalCheckerLike,
+  SERVER_HOLD_REASONS,
   transitionCandidate,
   verifications,
+  waitingDomains,
 } from "@wren/channel-email";
 import type { Queryable } from "@wren/db";
 import { and, eq, inArray, notExists, or, sql } from "drizzle-orm";
@@ -28,6 +30,8 @@ export interface CrmVerifyStats {
   invalid: number;
   risky: number;
   catch_all: number;
+  /** Skipped: its server blocked or greylisted another address earlier in this run. */
+  held: number;
   aborted: string | null;
 }
 
@@ -44,6 +48,8 @@ export async function checkCrmEmails(
       and(
         eq(contactCandidates.evidence, "crm"),
         eq(contactCandidates.state, "candidate"),
+        // A server that blocked or greylisted any address waits out that verdict first.
+        sql`${contactCandidates.domain} not in ${waitingDomains()}`,
         notExists(
           db
             .select({ one: sql`1` })
@@ -73,8 +79,11 @@ export async function checkCrmEmails(
     invalid: 0,
     risky: 0,
     catch_all: 0,
+    held: 0,
     aborted: null,
   };
+  // Domains whose server turned us away during this run: the rest of their addresses wait.
+  const holding = new Set<string>();
   const settle = async (id: number, next: CandidateState) => {
     transitionCandidate(transitionCandidate("candidate", "queued"), next);
     await db.update(contactCandidates).set({ state: next }).where(eq(contactCandidates.id, id));
@@ -106,6 +115,11 @@ export async function checkCrmEmails(
         for (const id of ids) await settle(id, "rejected");
         return;
       }
+      const domain = email.split("@")[1] ?? "";
+      if (holding.has(domain)) {
+        stats.held += 1;
+        return;
+      }
       let verdict: Awaited<ReturnType<EmailVerifier["verify"]>>;
       try {
         verdict = await verifier.verify(email);
@@ -129,6 +143,8 @@ export async function checkCrmEmails(
         })),
       );
       stats[verdict.result] += 1;
+      if (verdict.result === "risky" && SERVER_HOLD_REASONS.has(String(verdict.raw.reason)))
+        holding.add(domain);
       if (!verifier.authoritative) return;
       const next =
         verdict.result === "valid" ? "verified" : verdict.result === "invalid" ? "rejected" : null;

@@ -220,6 +220,7 @@ describe("stageDone", () => {
     risky: 1,
     catch_all: 1,
     local_errors: 1,
+    held: 0,
     aborted: null,
   };
   const lookup = {

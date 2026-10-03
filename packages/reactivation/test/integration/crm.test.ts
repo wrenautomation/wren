@@ -261,6 +261,21 @@ describe("verify", () => {
     "Lou Local,lou@nomx.example,Nomx",
   ].join("\n");
 
+  it("a server that blocks one address is not asked about the rest, this run or the next", async () => {
+    await importCsv(FUNNEL);
+    const verifier = new (class extends CountingVerifier {
+      override async verify(email: string): Promise<Verdict> {
+        this.calls.push(email);
+        return { result: "risky", raw: { fake: true, reason: "blocked" } };
+      }
+    })();
+    const stats = await checkCrmEmails(db(), verifier, new StubChecker());
+    expect(stats).toMatchObject({ selected: 5, local_invalid: 1, risky: 1, held: 3 });
+    expect(verifier.calls).toHaveLength(1);
+    // The block's wait holds acme.com's unchecked addresses out of the next run too.
+    expect((await checkCrmEmails(db(), verifier, new StubChecker())).selected).toBe(0);
+  });
+
   it("routes each verdict: valid verified, invalid rejected, risky/catch-all open, local failure final", async () => {
     await importCsv(FUNNEL);
     const verifier = new CountingVerifier(true);
@@ -274,6 +289,7 @@ describe("verify", () => {
       invalid: 1,
       risky: 1,
       catch_all: 1,
+      held: 0,
       aborted: null,
     });
     expect(verifier.calls).not.toContain("lou@nomx.example");
