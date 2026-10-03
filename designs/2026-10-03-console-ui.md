@@ -138,6 +138,8 @@ Out of Phase 1: the Outbound, Money, Loops and Inbox apps (each a later phase on
 - Existing reactivation and delivery pages look unchanged in the demo, checked by recording the demo video.
 - `./scripts/gates.sh` passes.
 - The portal bundle size before and after is noted here.
+  - Before: 108.2 KB of JS gzipped, in one chunk, and 10.8 KB of CSS.
+  - After Phase 1: 126.1 KB of JS at start (index 120.2, icons 5.9). Loaded on first use: Pipeline 113.3, the palette 35.0, the run graph 54.6 plus 2.0 of CSS. CSS at start is 23.8 KB.
 
 ## Risks
 
@@ -149,3 +151,14 @@ Out of Phase 1: the Outbound, Money, Loops and Inbox apps (each a later phase on
 
 - 2026-10-03: shadcn/ui on Base UI with Tailwind v4 chosen over Mantine, MUI, Ant Design and a bare React Aria. Composite pages, widgets, actions and one access check adopted as the portal's patterns. Features on offers designed now and built when a paid tier differs.
 - 2026-10-03: William moved React Flow into Phase 1. The run graph draws on it now, read-only, so editing later is a setting, not a rewrite.
+- 2026-10-03: Phase 1 built. Changes from the plan:
+  - Button, ButtonLink, Tag and Table render shadcn parts. AppShell, PageHeader, Section, StatStrip, Card and the launcher still use `kit.css`.
+  - `can()` checks access in the UI. ConsolePortal refuses anyone `seesInternal` rejects.
+  - The `view` route lives in `packages/core/src/console.ts`; the worker hands it the database and the allowlist. It reads the main database, with no client scope yet.
+  - shadcn's chart pins recharts 3.8.0. The `cn` package stands in for clsx and tailwind-merge. Generated code under `components/ui` is left out of Biome.
+  - The palette loads lazily because cmdk pulls in Radix's dialog.
+  - The Pipeline stat strip adds up every niche. The chart and the leaks table split by niche.
+  - The run graph loads lazily inside `RunView`, not with the run page, because People imports `Run.tsx`.
+  - `layoutOf` replaces `tracksOf`. `flow.ts` places every node in pixels and React Flow only draws. The graph sits at zoom 1 in a box as wide as the run; fitView runs before nodes are measured and would scale the text.
+  - React Flow's attribution is hidden. Its MIT license allows that, but React Flow asks commercial users to pay for Pro. That's William's call.
+  - Demo pages were checked with Playwright screenshots before and after, not by recording the demo video.
