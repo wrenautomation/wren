@@ -35,7 +35,8 @@ Citations: `packages/channel-email/src/outreach/templates.ts:47`, `authoring.ts:
 ## If you change this
 
 - **Hits:** editing a `.email` file changes its hash and every future draft; adding a `{key}` needs the facts view to supply it or drafts are refused
-- **Does not hit:** stored messages (pinned); running enrollments
+- **Also hits:** queued, untouched, unstarted messages: deploy calls `QueueRefresh/all`, which re-renders them (`packages/channel-email/src/restate/queue-refresh.ts:1`)
+- **Does not hit:** sent, hand-edited or person-approved messages; a sequence once a step went out
 
 ## Surfaces
 

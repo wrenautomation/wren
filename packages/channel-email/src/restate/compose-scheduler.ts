@@ -115,6 +115,24 @@ export function dailyOpenerCapacity(
 }
 
 /** One top-up for `campaign`, as a plain function so an operator command and the loop agree. */
+/** The campaign's queue re-rendered from the templates this deployment carries. */
+export function refreshCampaign(
+  db: Db,
+  campaign: Campaign,
+  trackOpens: boolean,
+): Promise<RefreshStats> {
+  return refreshQueue(db, {
+    niche: campaign.niche,
+    templates: campaign.templates,
+    factsView: campaign.factsView,
+    offerFacts: campaign.offerFacts,
+    site: campaign.site ?? null,
+    senders: campaign.senders,
+    signatures: campaign.signatures,
+    trackOpens,
+  });
+}
+
 export async function topUp(
   db: Db,
   campaign: Campaign,
@@ -138,16 +156,7 @@ export async function topUp(
     campaign.senders.length,
     opts.now,
   );
-  const refresh = await refreshQueue(db, {
-    niche: campaign.niche,
-    templates: campaign.templates,
-    factsView: campaign.factsView,
-    offerFacts: campaign.offerFacts,
-    site: campaign.site ?? null,
-    senders: campaign.senders,
-    signatures: campaign.signatures,
-    trackOpens: opts.trackOpens,
-  });
+  const refresh = await refreshCampaign(db, campaign, opts.trackOpens);
   const queued = await queuedOpeners(db, campaign.niche);
   const target = capacity * opts.daysAhead;
   const stats: TopUpStats = {

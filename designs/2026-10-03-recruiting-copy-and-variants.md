@@ -19,6 +19,12 @@
   version, each `[[ ]]` point's options with sends, human opens, replies,
   interested, and the option's words read back from `template_versions.source`.
 
+- **Queue follows deploys.** Compose saves each sequence's text at enroll, so a
+  template edit used to reach queued mail only at the midnight top-up. Deploy
+  now calls `QueueRefresh/all` after registering the worker: every niche's
+  untouched, unstarted queue re-renders within minutes. `wren email refresh`
+  runs it by hand. Refresh only; nothing composed or sent.
+
 ## Decision log
 
 - Rules over Haiku for short names: free, deterministic, tested.
@@ -27,3 +33,7 @@
 - Sign-off stays "William": the From name already reads "William Jin".
 - Picks are independent per point, so options compare within a point; a new
   version starts its count fresh (newest version shown by default).
+- Refresh on deploy, not hourly polling: templates only change by deploy, so
+  the deploy is the event. Facts and sign-off drift still catch up at midnight.
+- No opt-out flag: to run old vs new copy side by side, add the new copy as its
+  own arm (or a `[[ ]]` variant). An edit in place means "replace".

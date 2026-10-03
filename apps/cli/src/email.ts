@@ -7,6 +7,7 @@
 import { randomUUID } from "node:crypto";
 import { statSync } from "node:fs";
 import { resolve } from "node:path";
+import * as clients from "@restatedev/restate-sdk-clients";
 import {
   activePauses,
   activeSenders,
@@ -31,7 +32,8 @@ import {
   siteExport,
   variantOutcomes,
 } from "@wren/channel-email";
-import type { Settings } from "@wren/config";
+import type { QueueRefresh } from "@wren/channel-email/restate";
+import { ingressOf, type Settings } from "@wren/config";
 import { runImport, runPeopleImport, runScreen, type Suppression, suppressions } from "@wren/core";
 import type { Db } from "@wren/db";
 import {
@@ -150,6 +152,23 @@ export function registerEmail(
           );
         }
       });
+    });
+
+  email
+    .command("refresh")
+    .description(
+      "Re-render every niche's queued mail from the deployed templates now (deploy does this itself); composes and sends nothing",
+    )
+    .action(async () => {
+      const out = await clients
+        .connect(ingressOf(settings))
+        .serviceClient<QueueRefresh>({ name: "QueueRefresh" })
+        .all();
+      for (const [niche, s] of Object.entries(out))
+        console.log(
+          `${niche}: ${s.rerendered} re-rendered of ${s.checked} queued · kept ${s.kept_started_or_inactive} started or inactive, ${s.kept_unrenderable} unrenderable`,
+        );
+      if (Object.keys(out).length === 0) console.log("no niche has an active sender");
     });
 
   email

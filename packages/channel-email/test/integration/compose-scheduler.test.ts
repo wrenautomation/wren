@@ -7,7 +7,12 @@ import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 import { sequence, sequenceStep } from "../../src/outreach/sequences.js";
 import { field, template, text } from "../../src/outreach/templates.js";
 import { DEFAULT_RECONTACT } from "../../src/recontact.js";
-import { type Campaign, queuedOpeners, topUp } from "../../src/restate/compose-scheduler.js";
+import {
+  type Campaign,
+  queuedOpeners,
+  refreshCampaign,
+  topUp,
+} from "../../src/restate/compose-scheduler.js";
 import { enrollments, messages } from "../../src/schema.js";
 import { SendPolicy } from "../../src/send/policy.js";
 import {
@@ -214,6 +219,29 @@ describe("topUp", () => {
     expect(openers.every((m) => m.templateVersion === MARKETING_V2.version)).toBe(true);
     // What a person approved or edited ships as they left it.
     expect(after.find((m) => m.id === edited?.id)?.body).toBe("hand edit");
+  });
+
+  it("a deploy's refresh takes the new words and composes nothing", async () => {
+    await seedAgencies();
+    await topUp(db(), CAMPAIGN, opts(1));
+    const before = await db().select().from(messages);
+    const v2: Campaign = {
+      ...CAMPAIGN,
+      templates: new Map([
+        ...CAMPAIGN.templates,
+        [
+          "marketing/opener",
+          template("marketing/opener", [text("month end")], [text("Yo "), field("first_name")]),
+        ],
+      ]),
+    };
+    const stats = await refreshCampaign(db(), v2, false);
+    expect(stats.rerendered).toBeGreaterThan(0);
+    const after = await db().select().from(messages);
+    expect(after.length).toBe(before.length);
+    expect(
+      after.filter((m) => m.template === "marketing/opener").every((m) => m.body.startsWith("Yo ")),
+    ).toBe(true);
   });
 
   it("keeps the text of a sequence already started and of a sender no longer active", async () => {

@@ -48,6 +48,7 @@ import {
   makeOpensScheduler,
   makePoolScheduler,
   makePostmasterScheduler,
+  makeQueueRefresh,
   makeReportScheduler,
   makeResolution,
   makeSendScheduler,
@@ -414,6 +415,8 @@ export async function buildServices(
       }),
     );
   }
+  // Deploy calls it once the new version is registered: queued mail takes the new templates.
+  services.push(makeQueueRefresh({ db, campaigns, trackOpens: settings.openTracking }));
   // The pool-feeder walks the research chain per niche; what may spend is a setting.
   services.push(
     makePoolScheduler({

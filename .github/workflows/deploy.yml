@@ -79,6 +79,15 @@ jobs:
           RESTATE_HOST_SCHEME: https
           RESTATE_HOST: ${{ secrets.RESTATE_HOST }}
           RESTATE_AUTH_TOKEN: ${{ secrets.RESTATE_AUTH_TOKEN }}
+      - name: refresh the queued mail
+        # Queued email was saved at compose; this re-renders it from the templates just shipped.
+        # Fire and forget: the run lands in the runs ledger (`outreach refresh`).
+        run: |
+          curl -fsS -X POST "https://$RESTATE_HOST:8080/QueueRefresh/all/send" \
+            -H "Authorization: Bearer $RESTATE_AUTH_TOKEN" -H "content-type: application/json" -d 'null' > /dev/null
+        env:
+          RESTATE_HOST: ${{ secrets.RESTATE_HOST }}
+          RESTATE_AUTH_TOKEN: ${{ secrets.RESTATE_AUTH_TOKEN }}
       - name: ship the sign-in lambda
         # Its function URL serves $LATEST; no version to publish.
         run: |
