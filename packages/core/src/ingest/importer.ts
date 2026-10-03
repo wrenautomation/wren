@@ -124,6 +124,20 @@ export async function findReplay(db: Queryable, batch: ImportBatch): Promise<num
   return row?.id ?? null;
 }
 
+/** Rows by one unique key, read once each (misses too) and kept current by `set`. */
+function lookup<T>(load: (key: string) => Promise<T | undefined>) {
+  const seen = new Map<string, T | null>();
+  return {
+    async get(key: string): Promise<T | undefined> {
+      if (!seen.has(key)) seen.set(key, (await load(key)) ?? null);
+      return seen.get(key) ?? undefined;
+    },
+    set(key: string, row: T): void {
+      seen.set(key, row);
+    },
+  };
+}
+
 export async function runImport(
   db: Queryable,
   source: LeadSource,
@@ -160,15 +174,19 @@ export async function runImport(
   for (const s of await db.select().from(suppressions).where(isNull(suppressions.revokedAt))) {
     (s.kind === "email" ? byEmail : byDomainRule).set(s.value.toLowerCase(), s);
   }
-  // Whole-table preloads: fine at niche-database scale, one query each.
-  const leadsByEmail = new Map<string, Lead>();
-  for (const l of await db.select().from(leads)) leadsByEmail.set(l.email, l);
-  const companiesByDomain = new Map<string, Company>();
-  const companiesBySourceKey = new Map<string, Company>();
-  for (const c of await db.select().from(companies)) {
-    if (c.domain) companiesByDomain.set(c.domain, c);
-    if (c.sourceKey) companiesBySourceKey.set(c.sourceKey, c);
-  }
+  // Read on first touch, not preloaded: a whole-table read outgrows a small worker's heap.
+  const leadsByEmail = lookup(async (email) => {
+    const [l] = await db.select().from(leads).where(eq(leads.email, email)).limit(1);
+    return l;
+  });
+  const companiesByDomain = lookup(async (domain) => {
+    const [c] = await db.select().from(companies).where(eq(companies.domain, domain)).limit(1);
+    return c;
+  });
+  const companiesBySourceKey = lookup(async (key) => {
+    const [c] = await db.select().from(companies).where(eq(companies.sourceKey, key)).limit(1);
+    return c;
+  });
 
   const counts: ImportStats = {
     rows: 0,
@@ -223,14 +241,14 @@ export async function runImport(
   ): Promise<Company> {
     // With a source_key the key ALONE decides match-or-create; keyless rows dedupe on domain.
     let company = sourceKey
-      ? companiesBySourceKey.get(sourceKey)
+      ? await companiesBySourceKey.get(sourceKey)
       : domain
-        ? companiesByDomain.get(domain)
+        ? await companiesByDomain.get(domain)
         : undefined;
     if (!company) {
       // ck_companies_identified needs domain or source_key at insert: an unclaimed domain
       // attaches on create; a claimed one goes through the conflict path below.
-      const own = domain && !companiesByDomain.has(domain) ? domain : null;
+      const own = domain && !(await companiesByDomain.get(domain)) ? domain : null;
       [company] = (await db
         .insert(companies)
         .values({
@@ -263,7 +281,7 @@ export async function runImport(
         .values({ companyId: company.id, importId: batch.id, rowNumber, raw });
     }
     if (domain) {
-      const claimant = companiesByDomain.get(domain);
+      const claimant = await companiesByDomain.get(domain);
       if (!claimant) {
         if (company.domain == null) {
           await db.update(companies).set({ domain }).where(eq(companies.id, company.id));
@@ -328,7 +346,7 @@ export async function runImport(
       continue;
     }
     bumpLead(parsed);
-    const existing = leadsByEmail.get(parsed.email);
+    const existing = await leadsByEmail.get(parsed.email);
     if (existing) {
       counts.duplicate_leads += 1;
       await db
