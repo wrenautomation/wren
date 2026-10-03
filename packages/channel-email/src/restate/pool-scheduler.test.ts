@@ -2,10 +2,10 @@ import { describe, expect, it } from "vitest";
 import { progressOf, STAGES, stageEnabled, stagesToRun } from "./pool-scheduler.js";
 
 describe("stageEnabled", () => {
-  it("free groundwork always; model stages by setting; mailboxes only with a free verifier", () => {
+  it("free groundwork and the pick always; extraction by setting; mailboxes only with a free verifier", () => {
     const on = (modelStages: "none" | "pick" | "all", free: boolean) =>
       STAGES.filter((s) => stageEnabled(s, modelStages, free));
-    expect(on("none", false)).toEqual(["discover", "verify", "crawl", "render", "scan"]);
+    expect(on("none", false)).toEqual(on("pick", false));
     expect(on("pick", false)).toEqual([
       "discover",
       "verify",

@@ -118,6 +118,48 @@ describe("email pick", () => {
     expect((await runEmailPick(db(), llm)).selected).toBe(0);
   });
 
+  it("with no model, rules pick: a name pattern names its owner, jane.doe@ makes Jane Doe", async () => {
+    const { roeco } = await seed();
+    const pine = await agency("pine.example", "Pine Talent");
+    await runCrawl(
+      db(),
+      new FakeFetcher({
+        "https://pine.example": `<html><body><p>Pine Talent places nurses.</p>
+<p>Reach Dana Kowalski: dana.kowalski@pine.example</p>
+<p>Resumes: careers.team@pine.example or info@pine.example</p></body></html>`,
+      }),
+      { limit: 10 },
+    );
+    await runScan(db());
+    const stats = await runEmailPick(db(), null);
+    expect(stats.classified).toBe(2); // roeco and pine had more than one address
+    const applied = await applyPicks(db());
+    expect(applied.people_from_addresses).toBe(1);
+    expect(applied.person_emails).toBe(2); // jane@ is Jane A. Roe's {first}
+
+    const [dana] = await db().select().from(people).where(eq(people.companyId, pine.id));
+    expect([dana?.firstName, dana?.lastName]).toEqual(["Dana", "Kowalski"]);
+    expect(dana?.originRef).toMatch(/^email-pick:\d+ https:\/\/pine\.example/);
+    const pineLeads = await db().select().from(leads).where(eq(leads.companyId, pine.id));
+    expect(pineLeads.map((l) => l.email).sort()).toEqual([
+      "careers.team@pine.example",
+      "info@pine.example",
+    ]);
+    const [jane] = await db().select().from(people).where(eq(people.companyId, roeco.id));
+    const seen = await db()
+      .select({ raw: sightings.raw })
+      .from(sightings)
+      .where(eq(sightings.personId, jane?.id as number));
+    expect(seen.map((s) => (s.raw as { email?: string }).email).filter(Boolean)).toEqual([
+      "jane@roeco.example",
+    ]);
+    const [pick] = await db()
+      .select()
+      .from(enrichments)
+      .where(and(eq(enrichments.companyId, pine.id), eq(enrichments.kind, "email_pick")));
+    expect(pick?.model).toBe("deterministic");
+  });
+
   it("no-signal companies get free empty verdicts", async () => {
     await agency("quiet.example", "Quiet Co");
     await runCrawl(

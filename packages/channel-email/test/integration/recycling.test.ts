@@ -655,6 +655,7 @@ describe("topUp with returning companies", () => {
   const campaign = (plan: Campaign["plan"]): Campaign => ({
     niche: "sec_ria",
     plan,
+    mailsRoleInboxes: true,
     sequences: new Map([
       [FRESH.name, FRESH],
       [AGAIN.name, AGAIN],

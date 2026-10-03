@@ -15,6 +15,8 @@ import {
   FOLLOWUP,
   makeCompany,
   makePerson,
+  makePick,
+  makeRoleLead,
   SENDER,
   TABLES,
   VERIFICATION_HORIZON_DAYS,
@@ -28,6 +30,7 @@ const MARKETING = template(
 const BUILD = template("build/opener", [text("invoices")], [text("Hi "), field("first_name")]);
 const CAMPAIGN: Campaign = {
   niche: "agencies",
+  mailsRoleInboxes: true,
   plan: [
     { sequence: "marketing-days-0-5", where: { "company.segment": "marketing" } },
     { sequence: "build-days-0-5", where: { "company.segment": "build" } },
@@ -150,6 +153,27 @@ describe("topUp", () => {
     expect(byOffer.get(marketing.id)).toBe("marketing-offer");
     expect(byOffer.get(build.id)).toBe("build-offer");
     expect(await queuedOpeners(db(), "agencies")).toBe(3);
+  });
+
+  it("a niche that mails people only leaves the inbox a pick chose alone", async () => {
+    await seedAgencies();
+    const desk = await makeCompany(db(), { domain: "desk.example", niche: "agencies" });
+    await makeRoleLead(db(), desk, "info@desk.example");
+    await makePick(db(), desk, "info@desk.example");
+    // An inbox has no first name: openers that greet nobody, so only the switch decides.
+    const greetless = new Map(
+      [...CAMPAIGN.templates].map(([name, t]) => [
+        name,
+        name.endsWith("/opener") ? template(name, [text("month end")], [text("Hi there")]) : t,
+      ]),
+    );
+    const campaign = { ...CAMPAIGN, templates: greetless };
+    const people = await topUp(db(), { ...campaign, mailsRoleInboxes: false }, opts(3));
+    expect(people.enrolled).toBe(3);
+    const all = await topUp(db(), campaign, opts(3));
+    expect(all.enrolled).toBe(1);
+    const atDesk = (await allEnrollments(db())).filter((e) => e.companyId === desk.id);
+    expect(atDesk.map((e) => e.personId)).toEqual([null]);
   });
 
   it("stops at the target and does nothing once the queue is full", async () => {

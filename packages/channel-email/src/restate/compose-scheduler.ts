@@ -32,6 +32,8 @@ import { untilNextLocalDay } from "./postmaster-scheduler.js";
 export interface Campaign {
   readonly niche: string;
   readonly plan: readonly EnrollmentRule[];
+  /** False: openers go to named people only, never to the inbox a pick chose. */
+  readonly mailsRoleInboxes: boolean;
   readonly sequences: ReadonlyMap<string, Sequence>;
   /** The offer each sequence pitches, by sequence name (the niche's arm → offer map). */
   readonly offers: ReadonlyMap<string, string>;
@@ -184,6 +186,7 @@ export async function topUp(
       signatures: campaign.signatures,
       trackOpens: opts.trackOpens,
       roleInboxNeedsVerdict: opts.roleInboxNeedsVerdict,
+      kind: campaign.mailsRoleInboxes ? "all" : "person",
       factsView: campaign.factsView,
       limit: remaining,
       autoApprove: true,

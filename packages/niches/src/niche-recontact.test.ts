@@ -12,6 +12,7 @@ const spec = {
   templatesDir: templatesDir(import.meta.url, "agencies"),
   sequences: [threeEmailSequence("build/opener", "build/followup", "final_followup")],
   plan: [{ sequence: "build-days-0-3-7" }],
+  mailsRoleInboxes: true,
   offers: { build: "ops-audit" },
   companyLocation: () => null,
 };

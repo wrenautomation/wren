@@ -23,14 +23,17 @@
  * verifications + candidates: a query, not a table, so it cannot drift.
  */
 import {
+  applyPattern,
   type Company,
   companies,
   emailDomain,
   emailSyntaxError,
   IDENTITY_KEY,
+  inferPattern,
   type LeadSource,
   leads,
   normalizeEmail,
+  PATTERNS,
   type Person,
   people,
   type RawRow,
@@ -40,7 +43,6 @@ import {
 } from "@wren/core";
 import type { Queryable } from "@wren/db";
 import { and, asc, count, desc, eq, inArray, isNotNull, isNull, ne, or, sql } from "drizzle-orm";
-import { applyPattern, inferPattern, PATTERNS } from "../email-patterns.js";
 import { activeSuppressions } from "../guards.js";
 import {
   type CandidateEvidence,

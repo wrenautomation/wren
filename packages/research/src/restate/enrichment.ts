@@ -24,7 +24,7 @@ import {
   type RobotsMode,
   selectCrawlTargets,
 } from "../enrichment/crawler.js";
-import { PICK_VERSION } from "../enrichment/email-pick/graph.js";
+import { PICK_VERSION, RULES_PICKER } from "../enrichment/email-pick/graph.js";
 import {
   applyPicks,
   type EmailPickStats,
@@ -163,6 +163,10 @@ export interface LimitInput {
 export interface PickInput {
   limit?: number;
   shard?: string;
+}
+export interface EmailPickInput extends PickInput {
+  /** Pick without the model (byRules), under model "deterministic": free. */
+  rules?: boolean;
 }
 export interface TagInput {
   limit?: number;
@@ -385,17 +389,21 @@ export function makeEnrichment(deps: EnrichmentDeps) {
         return stats;
       },
 
-      pick: async (ctx: restate.ObjectContext, input: PickInput = {}): Promise<EmailPickStats> => {
+      pick: async (
+        ctx: restate.ObjectContext,
+        input: EmailPickInput = {},
+      ): Promise<EmailPickStats> => {
         const niche = nicheOf(ctx);
         const shard = parseShard(input.shard ?? keyShard(ctx));
+        const llm = input.rules ? null : deps.llm;
         const runId = await open(
           ctx,
           "enrich pick",
           { ...input, niche, version: PICK_VERSION },
-          deps.llm.name,
+          llm?.name ?? RULES_PICKER,
         );
         const ids = await ctx.run("select", async () =>
-          (await selectPickTargets(deps.db, deps.llm, { limit: input.limit, niche, shard })).map(
+          (await selectPickTargets(deps.db, llm, { limit: input.limit, niche, shard })).map(
             (c) => c.id,
           ),
         );
@@ -416,9 +424,7 @@ export function makeEnrichment(deps: EnrichmentDeps) {
           const r = await unit(ctx, `pick company ${id}`, async () => {
             const [company] = await deps.db.select().from(companies).where(eq(companies.id, id));
             if (!company) return null;
-            return deps.db.transaction((tx) =>
-              pickCompany(tx, deps.llm, company, { runId, tracer }),
-            );
+            return deps.db.transaction((tx) => pickCompany(tx, llm, company, { runId, tracer }));
           });
           if (!r.ok) {
             stats.aborted = r.reason;

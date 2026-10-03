@@ -45,6 +45,8 @@ export const recruiting = defineNiche({
   ],
   offers: { "book-first": "reactivation", "watch-first": "reactivation" },
   plan: [{ sequence: "book-first-days-0-5" }],
+  // Real named people only (William, 10-02): an info@ is not a person.
+  mailsRoleInboxes: false,
 
   // Overture, SBA, google-maps and csv imports all keep "City, ST" under `geo`.
   companyLocation: (company) => rawLocation(company, "geo"),

@@ -286,6 +286,7 @@ export async function buildServices(
         {
           niche: niche.name,
           plan: niche.plan,
+          mailsRoleInboxes: niche.mailsRoleInboxes,
           sequences: niche.sequences,
           offers: niche.offers,
           offerFacts: niche.offerFacts,

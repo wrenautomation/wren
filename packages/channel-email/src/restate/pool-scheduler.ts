@@ -8,9 +8,10 @@
  * which the queue-keeper (`ComposeScheduler`) enrolls on its next pass.
  *
  * Spend is opt-in by stage. `modelStages` names what may call the model:
- * "none" (default: free groundwork only — no verdicts, so no new leads yet),
- * "pick" (a model call only for companies with more than one address), "all"
- * (extraction too: people and titles from every stored page). The two mailbox
+ * "none" (default: free groundwork only; the pick reads addresses by rules, so a
+ * jane.doe@ on a firm's page still becomes Jane Doe's), "pick" (a model call only
+ * for companies with more than one address), "all" (extraction too: people and
+ * titles from every stored page). The two mailbox
  * stages run only with a free verifier (`freeVerifier`): `resolveMailboxes` walks
  * the person guesses someone queued (`Resolution.queue`: who to reach stays a
  * person's call), `verifyMailboxes` asks the mail servers about the leads the picks
@@ -184,7 +185,6 @@ export function stageEnabled(
   freeVerifier = false,
 ): boolean {
   if (stage === "extract") return modelStages === "all";
-  if (stage === "pick" || stage === "applyPicks") return modelStages !== "none";
   if (stage === "resolveMailboxes" || stage === "verifyMailboxes") return freeVerifier;
   return true;
 }
@@ -209,7 +209,7 @@ export function makePoolScheduler(deps: PoolSchedulerDeps) {
       render: () => enrichment.render({ limit: limits.render }),
       scan: () => enrichment.scan({ limit: limits.scan }),
       extract: () => enrichment.extract({ limit: limits.extract }),
-      pick: () => enrichment.pick({ limit: limits.pick }),
+      pick: () => enrichment.pick({ limit: limits.pick, rules: deps.modelStages === "none" }),
       applyPicks: () => enrichment.applyPicks({}),
       resolveMailboxes: () =>
         resolution.resolveNewDomains({

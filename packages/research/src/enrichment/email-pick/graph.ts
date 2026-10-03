@@ -5,14 +5,16 @@
  *                    ├─ no signals ─────────────→ emptyVerdict ─→ END
  *                    ├─ one on-domain, no people → autoAccept ──→ END
  *                    └─ otherwise ──────────────→ classify ─→ ground ─→ END
+ *                                              (or byRules, when no model may run)
  *
- * route/autoAccept/ground are deterministic; classify is the single LLM step.
+ * route/autoAccept/ground/byRules are deterministic; classify is the single LLM step.
  * ground: every email in the pick must be a scanned signal, every person_name a
- * known person. Fabrications are dropped and recorded. No LangGraph: typed step
- * functions and one runner. No database: the run module assembles the state, so
- * every step is unit-testable on FakeLlm.
+ * known person. Fabrications are dropped and recorded. byRules reads an address by
+ * its local part alone: a known person's name pattern, a role word, or neither. No
+ * LangGraph: typed step functions and one runner. No database: the run module
+ * assembles the state, so every step is unit-testable on FakeLlm.
  */
-import { isRoleLocalpart, matchKey } from "@wren/core";
+import { emailDomain, inferPattern, isFreemail, isRoleLocalpart, matchKey } from "@wren/core";
 import {
   completeAndParse,
   type Envelope,
@@ -76,6 +78,8 @@ export const ClassifiedEmail = z.object({
   classification: z.string().default("role"),
   person_name: nullableString,
   reason: nullableString,
+  /** The page the address was printed on: filled from the scan, never by the model. */
+  page_url: nullableString,
 });
 export type ClassifiedEmail = z.infer<typeof ClassifiedEmail>;
 
@@ -90,12 +94,20 @@ export function parsePick(text: string): PickResult | string {
   return parseModel(text, PickResult);
 }
 
-export type PickMethod = "no_signals" | "no_scannable_content" | "auto_accept" | "classify";
+export type PickMethod =
+  | "no_signals"
+  | "no_scannable_content"
+  | "auto_accept"
+  | "classify"
+  | "rules";
 export const FREE_PICK_METHODS: ReadonlySet<string> = new Set([
   "auto_accept",
   "no_signals",
   "no_scannable_content",
+  "rules",
 ]);
+/** The enrichment `model` of picks made without one, like the scan's. */
+export const RULES_PICKER = "deterministic";
 
 export interface Pick {
   method: PickMethod;
@@ -117,6 +129,8 @@ export interface PickCompany {
 export interface PickPerson {
   full_name: string;
   title: string | null;
+  first_name?: string | null;
+  last_name?: string | null;
 }
 
 /** Input to the graph. Plain data: the run module assembles it from the database. */
@@ -167,7 +181,15 @@ export function autoAccept(state: PickState): Pick {
   const email = first.email;
   return {
     method: "auto_accept",
-    emails: [{ email, classification: classifyLocal(email), person_name: null, reason: null }],
+    emails: [
+      {
+        email,
+        classification: classifyLocal(email),
+        person_name: null,
+        reason: null,
+        page_url: first.page_url ?? null,
+      },
+    ],
     best_send_to: email,
   };
 }
@@ -239,7 +261,7 @@ export async function classify(
 
 /** Every claimed email must be a scanned signal; every person_name a known person. */
 export function ground(state: PickState, pick: Pick): Pick {
-  const knownEmails = new Set((state.signals ?? []).map((s) => s.email.toLowerCase()));
+  const pageOf = new Map((state.signals ?? []).map((s) => [s.email.toLowerCase(), s.page_url]));
   const knownPeople = new Map<string, string>();
   for (const p of state.people ?? [])
     knownPeople.set(matchKey(null, null, p.full_name), p.full_name);
@@ -248,7 +270,7 @@ export function ground(state: PickState, pick: Pick): Pick {
   const droppedNames: string[] = [];
   for (const entry of pick.emails ?? []) {
     const email = (entry.email ?? "").trim().toLowerCase();
-    if (!knownEmails.has(email)) {
+    if (!pageOf.has(email)) {
       dropped.push(entry.email ?? "");
       continue;
     }
@@ -259,7 +281,7 @@ export function ground(state: PickState, pick: Pick): Pick {
       if (canonical === undefined) droppedNames.push(entry.person_name);
       personName = canonical ?? null;
     }
-    kept.push({ ...entry, email, person_name: personName });
+    kept.push({ ...entry, email, person_name: personName, page_url: pageOf.get(email) ?? null });
   }
   let best = (pick.best_send_to ?? "").trim().toLowerCase() || null;
   if (best && !kept.some((e) => e.email === best)) {
@@ -275,9 +297,48 @@ export function ground(state: PickState, pick: Pick): Pick {
   };
 }
 
-/** Walk the graph for one state. */
+/** The one known person whose name pattern yields this local part; two or more is no answer. */
+function ownerOf(local: string, people: readonly PickPerson[]): PickPerson | null {
+  const owners = people.filter(
+    (p) => p.first_name && p.last_name && inferPattern(local, p.first_name, p.last_name),
+  );
+  return owners.length === 1 ? (owners[0] as PickPerson) : null;
+}
+
+/**
+ * classify without a model. An address on the company's domain (or a freemail one)
+ * is a role inbox by its role word, else a person's, named when exactly one known
+ * person's name pattern yields it. Any other domain is another organization's. The
+ * best send-to: a named person, then any person, then a role inbox; on-domain first.
+ */
+export function byRules(state: PickState): Pick {
+  const emails: ClassifiedEmail[] = [];
+  for (const s of state.signals ?? []) {
+    const email = s.email.toLowerCase();
+    const local = email.split("@")[0] ?? "";
+    const own = s.on_domain || isFreemail(emailDomain(email));
+    const role = own && isRoleLocalpart(email);
+    const owner = own && !role ? ownerOf(local, state.people ?? []) : null;
+    emails.push({
+      email,
+      classification: !own ? "other_company" : role ? "role" : "person",
+      person_name: owner?.full_name ?? null,
+      reason: owner ? "name pattern" : null,
+      page_url: s.page_url ?? null,
+    });
+  }
+  const onDomain = new Set((state.signals ?? []).filter((s) => s.on_domain).map((s) => s.email));
+  const score = (e: ClassifiedEmail) =>
+    (e.person_name ? 0 : e.classification === "person" ? 2 : 4) + (onDomain.has(e.email) ? 0 : 1);
+  const best = emails
+    .filter((e) => e.classification === "person" || e.classification === "role")
+    .sort((a, b) => score(a) - score(b))[0];
+  return { method: "rules", emails, best_send_to: best?.email ?? null };
+}
+
+/** Walk the graph for one state. `null` for the model: ambiguity goes to byRules, free. */
 export async function runPickGraph(
-  llm: LlmClient,
+  llm: LlmClient | null,
   state: PickState,
   opts: ClassifyOptions = {},
 ): Promise<PickOutcome> {
@@ -295,6 +356,7 @@ export async function runPickGraph(
     case "auto_accept":
       return free(autoAccept(state));
     case "classify": {
+      if (llm === null) return free(byRules(state));
       const outcome = await classify(llm, state, opts);
       return { ...outcome, pick: ground(state, outcome.pick) };
     }

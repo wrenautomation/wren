@@ -43,6 +43,8 @@ export interface Niche {
   readonly offerFacts: ReadonlyMap<string, Readonly<Record<string, string>>>;
   /** Which sequence a new enrollment gets, by facts, in order (the last rule may be ungated). */
   readonly plan: readonly EnrollmentRule[];
+  /** A firm nobody named may get its opener at the inbox its pick chose (info@); else people only. */
+  readonly mailsRoleInboxes: boolean;
   /** When a company that had a cold sequence may get another (lead recycling). */
   readonly recontact: RecontactPolicy;
   /** Where the company keeps office hours, as the source wrote it ("City, ST"), or null. */
@@ -84,6 +86,8 @@ export interface NicheSpec {
   readonly offers: Readonly<Record<string, string>>;
   /** The live campaign's routing: first matching rule wins. */
   readonly plan: readonly EnrollmentRule[];
+  /** A firm nobody named may get its opener at the inbox its pick chose (info@); else people only. */
+  readonly mailsRoleInboxes: boolean;
   /** Rest periods and yearly cap over the defaults (designs/2026-09-30-lead-recycling.md). */
   readonly recontact?: RecontactOverrides;
   readonly companyLocation: (company: Company) => string | null;
@@ -220,6 +224,7 @@ export function defineNiche(spec: NicheSpec): Niche {
     offers,
     offerFacts: termsByOffer,
     plan,
+    mailsRoleInboxes: spec.mailsRoleInboxes,
     recontact: recontactPolicy(spec.recontact, `niche ${pyReprStr(spec.name)}`),
     companyLocation: spec.companyLocation,
     leadSourceFormats: spec.leadSourceFormats ?? [],

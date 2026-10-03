@@ -79,6 +79,7 @@ export const agencies = defineNiche({
     { sequence: "build-days-0-5", where: { "company.segment": "build" } },
     { sequence: "marketing-days-0-5" },
   ],
+  mailsRoleInboxes: true,
   // Clutch and Shopify pages both store "City, ST" under `Location` on companies.raw.
   companyLocation: (company) => rawLocation(company, "Location"),
   // No lawful bulk feed exists for the listing data: every format below reads what

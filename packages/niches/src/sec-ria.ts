@@ -53,6 +53,7 @@ export const secRia = defineNiche({
   offers: { documents: "ops-audit", operations: "ops-audit" },
   // One arm until the RIA copy is re-read for role inboxes (its openers still assume a name).
   plan: [{ sequence: "operations-days-0-5" }],
+  mailsRoleInboxes: false,
   // The SEC feed's "City, ST" `geo` field on companies.raw.
   companyLocation: (company) => rawLocation(company, "geo"),
   // Everything that speaks the SEC/IAPD dialect (the monthly roster CSV, the daily

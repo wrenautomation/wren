@@ -1,5 +1,6 @@
 export * from "./content/index.js";
 export * from "./doh.js";
+export * from "./email-patterns.js";
 export * from "./emails.js";
 export * from "./feed.js";
 export * from "./ingest/index.js";

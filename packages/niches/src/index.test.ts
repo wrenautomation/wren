@@ -159,6 +159,7 @@ describe("offers", () => {
     templatesDir: templatesDir(import.meta.url, "agencies"),
     sequences: [threeEmailSequence("build/opener", "build/followup", "final_followup")],
     plan: [{ sequence: "build-days-0-3-7" }],
+    mailsRoleInboxes: true,
     companyLocation: () => null,
   };
   it("gives every registered sequence a registered offer", () => {
@@ -202,6 +203,7 @@ describe("offers", () => {
         templatesDir: templatesDir(import.meta.url, "recruiting"),
         sequences: [twoEmailSequence("book-first/opener", "book-first/followup")],
         plan: [{ sequence: "book-first-days-0-5" }],
+        mailsRoleInboxes: true,
         offers: { "book-first": "ops-audit" },
       }),
     ).toThrow(/quotes offer\.days, offer\.goal, which offer 'ops-audit' does not set/);

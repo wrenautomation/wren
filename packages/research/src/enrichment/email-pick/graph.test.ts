@@ -2,7 +2,14 @@
 import { FakeLlm, RecordingTracer } from "@wren/llm";
 import { describe, expect, it } from "vitest";
 import type { EmailSignal, SignalSource } from "../email-scan.js";
-import { buildPickPrompt, type PickState, parsePick, route, runPickGraph } from "./graph.js";
+import {
+  buildPickPrompt,
+  byRules,
+  type PickState,
+  parsePick,
+  route,
+  runPickGraph,
+} from "./graph.js";
 
 function signal(
   email: string,
@@ -184,5 +191,53 @@ describe("buildPickPrompt", () => {
     );
     expect(prompt).toContain("jane@x.com");
     expect(prompt).not.toContain("noise49@other.com");
+  });
+});
+
+describe("byRules", () => {
+  it("names a known person by pattern, keeps role and outside addresses apart, best is the named person", () => {
+    const pick = byRules(
+      state({
+        signals: [
+          signal("info@x.com"),
+          signal("jroe@x.com"),
+          signal("pat@x.com"),
+          signal("billing@vendor.com", { onDomain: false }),
+        ],
+        people: [{ full_name: "Jane Roe", title: "Owner", first_name: "Jane", last_name: "Roe" }],
+      }),
+    );
+    expect(pick.method).toBe("rules");
+    expect(pick.emails.map((e) => [e.email, e.classification, e.person_name])).toEqual([
+      ["info@x.com", "role", null],
+      ["jroe@x.com", "person", "Jane Roe"],
+      ["pat@x.com", "person", null],
+      ["billing@vendor.com", "other_company", null],
+    ]);
+    expect(pick.emails[1]?.page_url).toBe("https://x.com/contact");
+    expect(pick.best_send_to).toBe("jroe@x.com");
+  });
+
+  it("two people one pattern fits names nobody", () => {
+    const pick = byRules(
+      state({
+        signals: [signal("jane@x.com"), signal("info@x.com")],
+        people: [
+          { full_name: "Jane Roe", title: null, first_name: "Jane", last_name: "Roe" },
+          { full_name: "Jane Poe", title: null, first_name: "Jane", last_name: "Poe" },
+        ],
+      }),
+    );
+    expect(pick.emails[0]?.person_name).toBeNull();
+  });
+
+  it("runs in place of the model when there is none", async () => {
+    const result = await runPickGraph(
+      null,
+      state({ signals: [signal("a@x.com"), signal("info@x.com")] }),
+    );
+    expect(result.llm).toBeNull();
+    expect(result.pick.method).toBe("rules");
+    expect(result.pick.best_send_to).toBe("a@x.com");
   });
 });

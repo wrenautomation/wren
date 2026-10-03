@@ -51,7 +51,10 @@ const fakeEnrichment = restate.object({
     render: stage("render", () => ({ companies_rendered: 0 })),
     scan: stage("scan", () => ({ scanned: 0 })),
     extract: stage("extract", () => ({ extracted: 0 })),
-    pick: stage("pick", () => answers.pick),
+    pick: async (_ctx: restate.ObjectContext, input: { rules?: boolean }) => {
+      called.push(input.rules ? "pick" : "pick by model");
+      return answers.pick;
+    },
     applyPicks: stage("applyPicks", () => ({ picks_applied: 0 })),
   },
 });
@@ -104,7 +107,7 @@ const client = (key = "sec_ria") =>
 const sync = (key?: string) => client(key).sync() as Promise<PassOutcome<FeedStats>>;
 
 describe("PoolScheduler", () => {
-  it("walks the free stages in order, skips model stages, and sleeps a day when idle", async () => {
+  it("walks the free stages in order (the pick by rules), skips extraction, and sleeps a day when idle", async () => {
     const out = await sync();
     expect(called).toEqual([
       "discover",
@@ -112,6 +115,8 @@ describe("PoolScheduler", () => {
       "crawl",
       "render",
       "scan",
+      "pick",
+      "applyPicks",
       "resolveNewDomains",
       "verifyLeads",
     ]);
@@ -122,8 +127,8 @@ describe("PoolScheduler", () => {
       ["render", false],
       ["scan", false],
       ["extract", true],
-      ["pick", true],
-      ["applyPicks", true],
+      ["pick", false],
+      ["applyPicks", false],
       ["resolveMailboxes", false],
       ["verifyMailboxes", false],
     ]);
@@ -176,6 +181,8 @@ describe("PoolScheduler", () => {
       "crawl",
       "render",
       "scan",
+      "pick",
+      "applyPicks",
       "resolveNewDomains",
       "verifyLeads",
     ]);

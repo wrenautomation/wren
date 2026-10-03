@@ -1,5 +1,11 @@
 import { describe, expect, it } from "vitest";
-import { applyPattern, inferPattern, nameToken, PATTERNS } from "./email-patterns.js";
+import {
+  applyPattern,
+  inferPattern,
+  nameFromLocalPart,
+  nameToken,
+  PATTERNS,
+} from "./email-patterns.js";
 
 describe("nameToken", () => {
   it("lowercases, strips, folds accents; empty is null", () => {
@@ -35,5 +41,31 @@ describe("inferPattern", () => {
   it("unknown shape is null; case-insensitive", () => {
     expect(inferPattern("jd123", "Jane", "Doe")).toBeNull();
     expect(inferPattern("Jane.Doe", "Jane", "Doe")).toBe("{first}.{last}");
+  });
+});
+
+describe("nameFromLocalPart", () => {
+  it("reads first.last and first_last as a name", () => {
+    expect(nameFromLocalPart("jane.doe", "acme.com")).toEqual({
+      firstName: "Jane",
+      lastName: "Doe",
+    });
+    expect(nameFromLocalPart("Jane_Doe", "www.acme.com")).toEqual({
+      firstName: "Jane",
+      lastName: "Doe",
+    });
+  });
+  it("refuses desks, initials without vowels, the domain's own words and other shapes", () => {
+    for (const local of [
+      "sales.team",
+      "alexis.manager",
+      "dt.cadres",
+      "acme.uk",
+      "jdoe",
+      "j.doe",
+      "jane.doe2",
+    ]) {
+      expect(nameFromLocalPart(local, "acme.com")).toBeNull();
+    }
   });
 });

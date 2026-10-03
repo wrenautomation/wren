@@ -3,11 +3,13 @@
  * the cache, persist verdicts, fold them into the funnel.
  *
  * Verdicts persist as company-keyed enrichments under (company, kind, model,
- * prompt_version), in the same envelope every LLM stage writes. applyPicks folds
- * them through the EXISTING write paths only: person-associated emails ride the
- * people importer (sighting → SCRAPED candidate); every other grounded role/person
- * address becomes an ordinary lead import. best_send_to stays in the pick as the
- * send-priority marker, never as a storage gate.
+ * prompt_version), in the same envelope every LLM stage writes; with no model (`null`)
+ * the picks are byRules, under model "deterministic". applyPicks folds them through
+ * the EXISTING write paths only: person-associated emails ride the people importer
+ * (sighting → SCRAPED candidate), as does a personal address nobody named whose local
+ * part reads as a name (jane.doe → Jane Doe); every other grounded role/person address
+ * becomes an ordinary lead import. Each keeps the page it was printed on. best_send_to
+ * stays in the pick as the send-priority marker, never as a storage gate.
  */
 import {
   type Company,
@@ -15,6 +17,7 @@ import {
   inPlay,
   type LeadSource,
   matchKey,
+  nameFromLocalPart,
   type Person,
   type PersonItem,
   type PersonSource,
@@ -36,8 +39,12 @@ import {
   type Pick,
   type PickOutcome,
   type PickState,
+  RULES_PICKER,
   runPickGraph,
 } from "./graph.js";
+
+/** The enrichment `model` a picker writes under. */
+const pickerName = (llm: LlmClient | null) => llm?.name ?? RULES_PICKER;
 
 const SNIPPET_CHARS = 500;
 
@@ -84,7 +91,12 @@ export async function gatherState(db: Queryable, company: Company): Promise<Pick
   }
   // WEBSITE-origin only: registry-fed people were never on the crawled site.
   const known = await db
-    .select({ full_name: people.fullName, title: people.title })
+    .select({
+      full_name: people.fullName,
+      title: people.title,
+      first_name: people.firstName,
+      last_name: people.lastName,
+    })
     .from(people)
     .where(and(eq(people.companyId, company.id), eq(people.origin, "website")))
     .orderBy(asc(people.id));
@@ -109,7 +121,7 @@ export interface PickSelectOptions {
  */
 export async function selectPickTargets(
   db: Queryable,
-  llm: LlmClient,
+  llm: LlmClient | null,
   opts: PickSelectOptions = {},
 ): Promise<Company[]> {
   const scannedCompanies = db
@@ -134,7 +146,7 @@ export async function selectPickTargets(
     .where(
       and(
         eq(enrichments.kind, "email_pick"),
-        eq(enrichments.model, llm.name),
+        eq(enrichments.model, pickerName(llm)),
         eq(enrichments.promptVersion, PICK_VERSION),
         isNotNull(enrichments.companyId),
         sql`${enrichments.output}->>'parse_error' IS NULL`,
@@ -174,7 +186,7 @@ const NO_ENVELOPE = {
 /** Pick for one company and persist it. Throws LlmError on provider failure. */
 export async function pickCompany(
   db: Queryable,
-  llm: LlmClient,
+  llm: LlmClient | null,
   company: Company,
   opts: PickUnitOptions = {},
 ): Promise<PickOutcome> {
@@ -185,7 +197,7 @@ export async function pickCompany(
   await upsertEnrichment(db, {
     companyId: company.id,
     kind: "email_pick",
-    model: llm.name,
+    model: pickerName(llm),
     promptVersion: PICK_VERSION,
     output: { ...envelope, pick: result.pick },
     runId: opts.runId ?? null,
@@ -224,7 +236,7 @@ const METHOD_STAT: Record<string, keyof EmailPickStats> = {
  */
 export async function runEmailPick(
   db: Queryable,
-  llm: LlmClient,
+  llm: LlmClient | null,
   opts: EmailPickRunOptions = {},
 ): Promise<EmailPickStats> {
   const targets = await selectPickTargets(db, llm, opts);
@@ -297,6 +309,8 @@ class RoleAddressSource implements LeadSource {
 export interface ApplyPicksStats extends Record<string, unknown> {
   picks_applied: number;
   person_emails: number;
+  /** Of person_emails: a person made from the address itself (jane.doe → Jane Doe). */
+  people_from_addresses: number;
   role_leads: number;
   companies_without_send_to: number;
 }
@@ -323,6 +337,7 @@ export async function applyPicks(
   const stats: ApplyPicksStats = {
     picks_applied: 0,
     person_emails: 0,
+    people_from_addresses: 0,
     role_leads: 0,
     companies_without_send_to: 0,
   };
@@ -355,26 +370,37 @@ export async function applyPicks(
     for (const entry of emails) {
       const email = entry.email;
       if (!email) continue;
-      const person = entry.person_name
+      const pageUrl = entry.page_url ?? null;
+      // The same shape a reading's people carry: "<ref> <page>", the page the address was on.
+      const originRef = `email-pick:${enrichment.id}${pageUrl ? ` ${pageUrl}` : ""}`;
+      const owner = entry.person_name
         ? peopleByKey.get(matchKey(null, null, entry.person_name))
         : undefined;
-      if (entry.classification === "person" && person) {
+      const local = email.split("@")[0] ?? "";
+      const domain = company.domain ?? email.split("@")[1] ?? "";
+      const onDomain = email.endsWith(`@${domain}`) || email.endsWith(`.${domain}`);
+      const read =
+        entry.classification === "person" && !owner && onDomain
+          ? nameFromLocalPart(local, domain)
+          : null;
+      if (entry.classification === "person" && (owner || read)) {
         personItems.push(
           personRow({
             companySourceKey: company.sourceKey,
             companyDomain: company.domain,
             companyName: company.name,
-            fullName: person.fullName,
-            firstName: person.firstName,
-            lastName: person.lastName,
-            title: person.title,
+            fullName: owner ? owner.fullName : `${read?.firstName} ${read?.lastName}`,
+            firstName: owner ? owner.firstName : (read?.firstName ?? null),
+            lastName: owner ? owner.lastName : (read?.lastName ?? null),
+            title: owner?.title ?? null,
             origin: "website",
-            originRef: `email-pick:${enrichment.id}`,
-            raw: { email, _email_pick: enrichment.id },
+            originRef,
+            raw: { email, _email_pick: enrichment.id, page_url: pageUrl },
           }),
         );
         personEnrichmentIds.push(enrichment.id);
         stats.person_emails += 1;
+        if (!owner) stats.people_from_addresses += 1;
         anySendTo = true;
       } else if (entry.classification === "role" || entry.classification === "person") {
         // A role inbox, or a personal address whose owner the site never named.
@@ -388,6 +414,7 @@ export async function applyPicks(
           country: company.country ?? "",
           source: "email-pick",
           _email_pick: enrichment.id,
+          page_url: pageUrl ?? "",
         });
         roleEnrichmentIds.push(enrichment.id);
         stats.role_leads += 1;
