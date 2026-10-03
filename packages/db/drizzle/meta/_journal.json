@@ -393,6 +393,13 @@
       "when": 1791037864245,
       "tag": "0055_candidate_mints",
       "breakpoints": true
+    },
+    {
+      "idx": 56,
+      "version": "7",
+      "when": 1791059798009,
+      "tag": "0056_fk_indexes",
+      "breakpoints": true
     }
   ]
 }

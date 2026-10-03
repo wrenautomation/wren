@@ -12,20 +12,38 @@ beforeAll(async () => {
 });
 afterAll(() => pg.stop());
 
+async function offenders(query: ReturnType<typeof sql>): Promise<string[]> {
+  const rows = await pg.db.execute<{ o: string }>(query);
+  return rows.map((r) => r.o).sort();
+}
+
 describe("schema", () => {
-  it("indexes every SET NULL foreign key column", async () => {
-    const fks = await pg.db.execute<{ t: string; c: string }>(sql`
-      select tc.table_name t, kcu.column_name c
-      from information_schema.table_constraints tc
-      join information_schema.key_column_usage kcu on kcu.constraint_name = tc.constraint_name
-      join information_schema.referential_constraints rc on rc.constraint_name = tc.constraint_name
-      where tc.constraint_type='FOREIGN KEY' and rc.delete_rule='SET NULL'`);
-    expect(fks.length).toBeGreaterThan(0);
-    for (const { t, c } of fks) {
-      const idx = await pg.db.execute(
-        sql`select 1 from pg_indexes where tablename=${t} and indexdef like ${`%(${c}%`}`,
-      );
-      expect(idx.length, `${t}.${c} has no index`).toBeGreaterThan(0);
-    }
+  // A lookup by parent or a parent delete scans the whole child table without one.
+  it("indexes every foreign key column, leading", async () => {
+    expect(
+      await offenders(sql`
+        select c.conrelid::regclass || '.' || a.attname o
+        from pg_constraint c
+        join pg_attribute a on a.attrelid = c.conrelid and a.attnum = c.conkey[1]
+        where c.contype = 'f' and array_length(c.conkey, 1) = 1
+          and not exists (select 1 from pg_index i where i.indrelid = c.conrelid and i.indkey[0] = c.conkey[1])`),
+    ).toEqual([]);
+  });
+
+  // A plain index that leads another (or repeats it) costs a write per row and serves nothing.
+  it("has no plain index that is a prefix of another on the same table", async () => {
+    expect(
+      await offenders(sql`
+        select a.indexrelid::regclass || ' is a prefix of ' || b.indexrelid::regclass o
+        from pg_index a
+        join pg_index b on b.indrelid = a.indrelid and b.indexrelid <> a.indexrelid
+        join pg_class ca on ca.oid = a.indexrelid
+        join pg_class cb on cb.oid = b.indexrelid
+        join pg_namespace n on n.oid = ca.relnamespace
+        where n.nspname = 'public' and ca.relam = cb.relam
+          and not a.indisunique and a.indexprs is null and a.indpred is null and b.indpred is null
+          and a.indnkeyatts <= b.indnkeyatts
+          and (a.indkey::int2[])[0:a.indnkeyatts - 1] = (b.indkey::int2[])[0:a.indnkeyatts - 1]`),
+    ).toEqual([]);
   });
 });

@@ -52,6 +52,8 @@ export const crmContacts = pgTable(
   },
   (t) => [
     primaryKey({ columns: [t.id], name: "pk_crm_contacts" }),
+    index("ix_crm_contacts_import_id").on(t.importId),
+    index("ix_crm_contacts_company_id").on(t.companyId),
     unique("uq_crm_contacts_key").on(t.format, t.crmKey),
     index("ix_crm_contacts_person_id").on(t.personId),
     foreignKey({
@@ -134,6 +136,7 @@ export const briefs = pgTable(
   },
   (t) => [
     primaryKey({ columns: [t.personId], name: "pk_briefs" }),
+    index("ix_briefs_run_id").on(t.runId),
     foreignKey({
       columns: [t.personId],
       foreignColumns: [people.id],
@@ -215,6 +218,8 @@ export const compositions = pgTable(
   },
   (t) => [
     primaryKey({ columns: [t.id], name: "pk_compositions" }),
+    index("ix_compositions_run_id").on(t.runId),
+    index("ix_compositions_enrollment_id").on(t.enrollmentId),
     index("ix_compositions_person_id").on(t.personId),
     foreignKey({
       columns: [t.personId],
@@ -266,6 +271,8 @@ export const handoffs = pgTable(
   },
   (t) => [
     primaryKey({ columns: [t.id], name: "pk_handoffs" }),
+    index("ix_handoffs_person_id").on(t.personId),
+    index("ix_handoffs_enrollment_id").on(t.enrollmentId),
     unique("uq_handoffs_thread_event_id").on(t.threadEventId),
     foreignKey({
       columns: [t.threadEventId],

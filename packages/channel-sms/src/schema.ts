@@ -18,6 +18,7 @@
  */
 import { companies, people, runs } from "@wren/core/schema";
 import { baseColumns, oneOf } from "@wren/db/columns";
+import { documents } from "@wren/research/schema";
 import { sql } from "drizzle-orm";
 import {
   check,
@@ -186,6 +187,9 @@ export const smsContacts = pgTable(
     createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   },
   (t) => [
+    index("ix_sms_contacts_person_id").on(t.personId),
+    index("ix_sms_contacts_number_id").on(t.numberId),
+    index("ix_sms_contacts_source_document_id").on(t.sourceDocumentId),
     unique("uq_sms_contacts_e164_company").on(t.e164, t.companyId),
     unique("uq_sms_contacts_source_ref").on(t.sourceKind, t.sourceRef),
     // One running sequence per phone, whichever company it was found under.
@@ -209,6 +213,11 @@ export const smsContacts = pgTable(
       foreignColumns: [smsNumbers.id],
       name: "fk_sms_contacts_number_id_sms_numbers",
     }),
+    foreignKey({
+      columns: [t.sourceDocumentId],
+      foreignColumns: [documents.id],
+      name: "fk_sms_contacts_source_document_id_documents",
+    }).onDelete("set null"),
     oneOf("ck_sms_contacts_contactbasis", t.basis, CONTACT_BASES),
     oneOf("ck_sms_contacts_linetype", t.lineType, LINE_TYPES),
     oneOf("ck_sms_contacts_contactstate", t.state, CONTACT_STATES),
@@ -256,6 +265,7 @@ export const smsMessages = pgTable(
     createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   },
   (t) => [
+    index("ix_sms_messages_run_id").on(t.runId),
     index("ix_sms_messages_contact_id").on(t.contactId),
     index("ix_sms_messages_state_due").on(t.state, t.dueAt),
     index("ix_sms_messages_number_attempted").on(t.numberId, t.attemptedAt),

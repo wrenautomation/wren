@@ -109,8 +109,8 @@ export const contactCandidates = pgTable(
   },
   (t) => [
     primaryKey({ columns: [t.id], name: "pk_contact_candidates" }),
+    index("ix_contact_candidates_lead_id").on(t.leadId),
     index("ix_contact_candidates_domain").on(t.domain),
-    index("ix_contact_candidates_person_id").on(t.personId),
     foreignKey({
       columns: [t.leadId],
       foreignColumns: [leads.id],
@@ -165,6 +165,8 @@ export const verifications = pgTable(
     index("ix_verifications_lead_id").on(t.leadId),
     // The send walk's newest-verdict read, per address.
     index("ix_verifications_email_checked_at").on(t.email, t.checkedAt),
+    // Matches the resolution walk's per-domain reads (resolution/service.ts, verification/retry.ts).
+    index("ix_verifications_email_domain").on(sql`split_part(${t.email}, '@', 2)`),
     foreignKey({
       columns: [t.contactCandidateId],
       foreignColumns: [contactCandidates.id],
@@ -302,7 +304,6 @@ export const messages = pgTable(
   },
   (t) => [
     primaryKey({ columns: [t.id], name: "pk_messages" }),
-    index("ix_messages_enrollment_id").on(t.enrollmentId),
     index("ix_messages_run_id").on(t.runId),
     index("ix_messages_sent_run_id").on(t.sentRunId),
     foreignKey({
@@ -368,6 +369,7 @@ export const threadEvents = pgTable(
   },
   (t) => [
     primaryKey({ columns: [t.id], name: "pk_thread_events" }),
+    index("ix_thread_events_in_reply_to_message_id").on(t.inReplyToMessageId),
     index("ix_thread_events_enrollment_id").on(t.enrollmentId),
     index("ix_thread_events_run_id").on(t.runId),
     uniqueIndex("uq_thread_events_gmail_id").on(t.gmailId).where(sql`gmail_id IS NOT NULL`),
@@ -448,6 +450,7 @@ export const callInvites = pgTable(
   },
   (t) => [
     primaryKey({ columns: [t.id], name: "pk_call_invites" }),
+    index("ix_call_invites_run_id").on(t.runId),
     index("ix_call_invites_reply_message_id").on(t.replyMessageId),
     foreignKey({
       columns: [t.replyMessageId],
@@ -603,6 +606,7 @@ export const reports = pgTable(
     runId: uuid("run_id"),
   },
   (t) => [
+    index("ix_reports_run_id").on(t.runId),
     index("ix_reports_kind_period_end").on(t.kind, t.periodEnd),
     foreignKey({
       columns: [t.runId],

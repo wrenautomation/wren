@@ -41,6 +41,7 @@ export const searchDays = pgTable(
   },
   (t) => [
     primaryKey({ columns: [t.day, t.query, t.page], name: "pk_search_days" }),
+    index("ix_search_days_run_id").on(t.runId),
     index("ix_search_days_query").on(t.query),
     foreignKey({
       columns: [t.runId],
@@ -68,6 +69,7 @@ export const searchPages = pgTable(
   },
   (t) => [
     primaryKey({ columns: [t.url, t.checkedOn], name: "pk_search_pages" }),
+    index("ix_search_pages_run_id").on(t.runId),
     foreignKey({
       columns: [t.runId],
       foreignColumns: [runs.id],
@@ -98,6 +100,8 @@ export const searchKeywords = pgTable(
   },
   (t) => [
     primaryKey({ columns: [t.id], name: "pk_search_keywords" }),
+    index("ix_search_keywords_run_id").on(t.runId),
+    index("ix_search_keywords_parent_id").on(t.parentId),
     unique("uq_search_keywords_phrase").on(t.phrase),
     oneOf("ck_search_keywords_source", t.source, KEYWORD_SOURCES),
     foreignKey({
@@ -138,6 +142,8 @@ export const searchAnswers = pgTable(
   },
   (t) => [
     primaryKey({ columns: [t.engine, t.keywordId, t.askedOn], name: "pk_search_answers" }),
+    index("ix_search_answers_run_id").on(t.runId),
+    index("ix_search_answers_keyword_id").on(t.keywordId),
     oneOf("ck_search_answers_engine", t.engine, ENGINES),
     foreignKey({
       columns: [t.keywordId],
@@ -181,6 +187,7 @@ export const searchProposals = pgTable(
   },
   (t) => [
     primaryKey({ columns: [t.id], name: "pk_search_proposals" }),
+    index("ix_search_proposals_run_id").on(t.runId),
     oneOf("ck_search_proposals_kind", t.kind, PROPOSAL_KINDS),
     oneOf("ck_search_proposals_state", t.state, PROPOSAL_STATES),
     index("ix_search_proposals_state").on(t.state),

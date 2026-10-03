@@ -87,8 +87,6 @@ export const enrichments = pgTable(
   },
   (t) => [
     primaryKey({ columns: [t.id], name: "pk_enrichments" }),
-    index("ix_enrichments_company_id").on(t.companyId),
-    index("ix_enrichments_document_id").on(t.documentId),
     index("ix_enrichments_run_id").on(t.runId),
     foreignKey({
       columns: [t.companyId],
@@ -149,6 +147,7 @@ export const discoveryAttempts = pgTable(
   },
   (t) => [
     primaryKey({ columns: [t.id], name: "pk_discovery_attempts" }),
+    index("ix_discovery_attempts_import_id").on(t.importId),
     index("ix_discovery_attempts_company_kind").on(t.companyId, t.kind, t.attemptedAt),
     foreignKey({
       columns: [t.companyId],
@@ -203,6 +202,7 @@ export const findings = pgTable(
   },
   (t) => [
     primaryKey({ columns: [t.id], name: "pk_findings" }),
+    index("ix_findings_document_id").on(t.documentId),
     unique("uq_findings_fact_key").on(t.factKey),
     index("ix_findings_person_id").on(t.personId),
     index("ix_findings_company_id").on(t.companyId),
@@ -251,6 +251,7 @@ export const personLookups = pgTable(
   },
   (t) => [
     primaryKey({ columns: [t.personId], name: "pk_person_lookups" }),
+    index("ix_person_lookups_run_id").on(t.runId),
     foreignKey({
       columns: [t.personId],
       foreignColumns: [people.id],
@@ -290,6 +291,8 @@ export const companyChecks = pgTable(
   },
   (t) => [
     primaryKey({ columns: [t.companyId], name: "pk_company_checks" }),
+    index("ix_company_checks_run_id").on(t.runId),
+    index("ix_company_checks_finding_id").on(t.findingId),
     foreignKey({
       columns: [t.companyId],
       foreignColumns: [companies.id],
@@ -380,6 +383,8 @@ export const studySteps = pgTable(
   },
   (t) => [
     primaryKey({ columns: [t.id], name: "pk_study_steps" }),
+    index("ix_study_steps_run_id").on(t.runId),
+    index("ix_study_steps_document_id").on(t.documentId),
     unique("uq_study_steps_unit").on(t.studyId, t.step, t.key),
     foreignKey({
       columns: [t.studyId],

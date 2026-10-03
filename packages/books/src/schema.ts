@@ -75,6 +75,7 @@ export const vendors = books.table(
   },
   (t) => [
     primaryKey({ columns: [t.id], name: "pk_vendors" }),
+    index("ix_vendors_account_id").on(t.accountId),
     unique("uq_vendors_key").on(t.key),
     oneOf("ck_vendors_cycle", t.cycle, BILL_CYCLES),
     foreignKey({
@@ -133,6 +134,7 @@ export const documents = books.table(
   },
   (t) => [
     primaryKey({ columns: [t.id], name: "pk_documents" }),
+    index("ix_documents_run_id").on(t.runId),
     unique("uq_documents_sha256").on(t.sha256),
     unique("uq_documents_mailbox_key").on(t.mailbox, t.mailboxKey),
     index("ix_documents_parent_id").on(t.parentId),
@@ -211,6 +213,9 @@ export const bills = books.table(
   },
   (t) => [
     primaryKey({ columns: [t.id], name: "pk_bills" }),
+    index("ix_bills_run_id").on(t.runId),
+    index("ix_bills_document_id").on(t.documentId),
+    index("ix_bills_account_id").on(t.accountId),
     unique("uq_bills_vendor_number").on(t.vendorId, t.number),
     index("ix_bills_issued_on").on(t.issuedOn),
     oneOf("ck_bills_kind", t.kind, BILL_KINDS),
@@ -320,6 +325,7 @@ export const billPayments = books.table(
   },
   (t) => [
     primaryKey({ columns: [t.id], name: "pk_bill_payments" }),
+    index("ix_bill_payments_document_id").on(t.documentId),
     unique("uq_bill_payments_key").on(t.vendorId, t.invoiceNumber, t.key).nullsNotDistinct(),
     index("ix_bill_payments_bill_id").on(t.billId),
     foreignKey({
@@ -403,6 +409,7 @@ export const entries = books.table(
   },
   (t) => [
     primaryKey({ columns: [t.id], name: "pk_entries" }),
+    index("ix_entries_run_id").on(t.runId),
     unique("uq_entries_reverses_id").on(t.reversesId),
     index("ix_entries_bill_id").on(t.billId),
     index("ix_entries_posted_on").on(t.postedOn),

@@ -109,6 +109,7 @@ export const imports = pgTable(
   },
   (t) => [
     primaryKey({ columns: [t.id], name: "pk_imports" }),
+    index("ix_imports_superseded_by").on(t.supersededBy),
     foreignKey({
       columns: [t.supersededBy],
       foreignColumns: [t.id],
@@ -131,6 +132,8 @@ export const importErrors = pgTable(
   },
   (t) => [
     primaryKey({ columns: [t.id], name: "pk_import_errors" }),
+    index("ix_import_errors_company_id").on(t.companyId),
+    index("ix_import_errors_claimant_company_id").on(t.claimantCompanyId),
     index("ix_import_errors_import_id").on(t.importId),
     foreignKey({
       columns: [t.claimantCompanyId],
@@ -171,6 +174,7 @@ export const companies = pgTable(
   },
   (t) => [
     primaryKey({ columns: [t.id], name: "pk_companies" }),
+    index("ix_companies_import_id").on(t.importId),
     foreignKey({
       columns: [t.importId],
       foreignColumns: [imports.id],
@@ -206,6 +210,7 @@ export const people = pgTable(
   },
   (t) => [
     primaryKey({ columns: [t.id], name: "pk_people" }),
+    index("ix_people_import_id").on(t.importId),
     index("ix_people_company_id").on(t.companyId),
     foreignKey({
       columns: [t.companyId],
@@ -236,6 +241,7 @@ export const sightings = pgTable(
   },
   (t) => [
     primaryKey({ columns: [t.id], name: "pk_sightings" }),
+    index("ix_sightings_import_id").on(t.importId),
     index("ix_sightings_company_id").on(t.companyId),
     index("ix_sightings_lead_id").on(t.leadId),
     index("ix_sightings_person_id").on(t.personId),
@@ -288,6 +294,9 @@ export const leads = pgTable(
   },
   (t) => [
     primaryKey({ columns: [t.id], name: "pk_leads" }),
+    index("ix_leads_suppression_id").on(t.suppressionId),
+    index("ix_leads_import_id").on(t.importId),
+    index("ix_leads_company_id").on(t.companyId),
     foreignKey({
       columns: [t.companyId],
       foreignColumns: [companies.id],

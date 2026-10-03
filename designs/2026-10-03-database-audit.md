@@ -69,3 +69,4 @@ Cost: none. The data volume is a fixed 20 GB ($1.60/mo) whatever it holds, night
 ## Decision log
 
 - 2026-10-03: audit run on prod. Foreign key indexing is now a rule enforced by a test, not a case-by-case call. Partitioning was skipped, since no table is near the size where it pays. pg_stat_statements moved up from Next in the direction plan, because it needs the same restart.
+- 2026-10-03: 0056 built. The prefix test found three more plain indexes under a unique one: enrichments company_id and document_id, messages enrollment_id. Dropped with the first. 46 indexes added: the 44 foreign keys, the domain, and the new sms_contacts foreign key.

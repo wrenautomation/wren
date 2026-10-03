@@ -55,10 +55,31 @@ const ADDED = {
     "ix_enrollments_offer",
     "uq_messages_link_code",
     "ix_verifications_email_checked_at",
+    // 2026-10-03 database audit: every foreign key indexed, the domain lookup indexed.
+    "ix_companies_import_id",
+    "ix_contact_candidates_lead_id",
+    "ix_import_errors_claimant_company_id",
+    "ix_import_errors_company_id",
+    "ix_imports_superseded_by",
+    "ix_leads_company_id",
+    "ix_leads_import_id",
+    "ix_leads_suppression_id",
+    "ix_people_import_id",
+    "ix_sightings_import_id",
+    "ix_thread_events_in_reply_to_message_id",
+    "ix_verifications_email_domain",
   ]),
   /** Legacy views wren grew (lead recycling, recruiting ranks): still present, bodies free to differ. */
   views: new Set(["campaign_funnel", "enrollment_outcomes", "person_facts"]),
 };
+
+/** Legacy indexes wren dropped: each a prefix of a unique index that serves the same reads (2026-10-03 audit). */
+const DROPPED_INDEXES = new Set([
+  "ix_contact_candidates_person_id",
+  "ix_enrichments_company_id",
+  "ix_enrichments_document_id",
+  "ix_messages_enrollment_id",
+]);
 
 interface Catalog {
   columns: { tbl: string; col: string; type: string; notnull: boolean; def: string | null }[];
@@ -143,7 +164,9 @@ describe("legacy parity", () => {
     expect(b.constraints.filter((c) => !ADDED.constraints.has(c.name)).map(unwiden)).toEqual(
       a.constraints,
     );
-    expect(b.indexes.filter((i) => !ADDED.indexes.has(i.name))).toEqual(a.indexes);
+    expect(b.indexes.filter((i) => !ADDED.indexes.has(i.name))).toEqual(
+      a.indexes.filter((i) => !DROPPED_INDEXES.has(i.name)),
+    );
     expect(wrenViews).toEqual(legacyViews);
     expect(wrenViews).toHaveLength(16);
   });
