@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { edgePath, flowOf, INPUT, OUTPUT, tracksOf } from "./flow.js";
+import { edgePath, flowOf, INPUT, layoutOf, OUTPUT } from "./flow.js";
 
 const all = () => true;
 
@@ -104,20 +104,34 @@ describe("flowOf", () => {
   });
 });
 
-describe("tracksOf", () => {
-  it("splits evenly for every column's count", () => {
-    expect(tracksOf(flowOf(RUN, all, { input: true, output: true }))).toBe(3);
-    const g = flowOf(
-      [
-        { id: "a", after: [] },
-        { id: "b", after: [] },
-        { id: "c", after: ["a", "b"] },
-        { id: "d", after: ["a", "b"] },
-        { id: "e", after: ["a", "b"] },
-      ],
-      all,
+describe("layoutOf", () => {
+  const g = flowOf(RUN, all, { input: true, output: true });
+  const heights = Object.fromEntries(
+    g.nodes.map((n) => [n.id, n.id === INPUT || n.id === OUTPUT ? 40 : 100]),
+  );
+
+  it("across: columns share the width, steps stretch to the tallest, ends center", () => {
+    // Shares 0.7 + 4 + 0.7 = 5.4 of 150 px, five 40 px gaps.
+    const { boxes, height } = layoutOf(g, "across", 1010, heights);
+    expect(boxes[INPUT]).toEqual({ x: 0, y: 152, w: 105, h: 40 });
+    expect(boxes.verify).toEqual({ x: 145, y: 0, w: 150, h: 100 });
+    expect(boxes.signals).toEqual({ x: 145, y: 244, w: 150, h: 100 });
+    expect(boxes.score).toEqual({ x: 335, y: 122, w: 150, h: 100 });
+    expect(boxes[OUTPUT]).toEqual({ x: 905, y: 152, w: 105, h: 40 });
+    expect(height).toBe(344);
+    // A shorter step stretches to the tallest, so counts and bars line up.
+    expect(layoutOf(g, "across", 1010, { ...heights, verify: 80 }).boxes.verify).toEqual(
+      boxes.verify,
     );
-    expect(tracksOf(g)).toBe(6);
+  });
+
+  it("down: each column a row, its nodes side by side, an end half wide", () => {
+    const { boxes, height } = layoutOf(g, "down", 418, heights);
+    expect(boxes[INPUT]).toEqual({ x: 118, y: 0, w: 200, h: 40 });
+    expect(boxes.lookup).toEqual({ x: 154, y: 68, w: 128, h: 100 });
+    expect(boxes.score).toEqual({ x: 18, y: 196, w: 400, h: 100 });
+    expect(boxes[OUTPUT]?.y).toBe(580);
+    expect(height).toBe(620);
   });
 });
 
@@ -186,22 +200,5 @@ describe("flowOf on bad input", () => {
     const g = flowOf([{ id: INPUT }, { id: "a", after: [] }], all, { input: true, output: false });
     expect(g.nodes.map((n) => n.id)).toEqual([INPUT, "a"]);
     expect(g.edges).toEqual([{ from: INPUT, to: "a", span: 1 }]);
-  });
-});
-
-describe("tracksOf past a sane count", () => {
-  it("columns of 7, 8 and 9 don't make 504 tracks", () => {
-    const wide = (n: number, at: string[]) =>
-      Array.from({ length: n }, (_, i) => ({ id: `${at.length}-${i}`, after: at }));
-    const c1 = wide(7, []);
-    const c2 = wide(
-      8,
-      c1.map((s) => s.id),
-    );
-    const c3 = wide(
-      9,
-      c2.map((s) => s.id),
-    );
-    expect(tracksOf(flowOf([...c1, ...c2, ...c3], all))).toBe(9);
   });
 });

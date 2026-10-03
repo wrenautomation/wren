@@ -182,14 +182,55 @@ export function edgePath(a: Box, b: Box, span: number, axis: FlowAxis, gutter = 
   return `M${px(sx)} ${px(sy)}V${px(my - r)}Q${px(sx)} ${px(my)} ${px(sx + dir * r)} ${px(my)}H${px(tx - dir * r)}Q${px(tx)} ${px(my)} ${px(tx)} ${px(my + r)}V${px(ty)}`;
 }
 
+/** Room between nodes: across, between columns then rows; down, side by side then between rows. */
+const GAP = { across: { x: 40, y: 22 }, down: { x: 8, y: 28 } };
+/** Down, the room on the left for a line that skips a step. */
+const GUTTER = 18;
+const isEnd = (id: string) => id === INPUT || id === OUTPUT;
+
 /**
- * The smallest track count every column's nodes split evenly: down, a column
- * of 3 is 3 equal thirds. Past 24 tracks, the widest column sets it and the
- * others split as near as they can.
+ * Where each node sits in a box `width` wide, given each node's height as drawn. Across, the
+ * columns share the width (one holding only an end gets 0.7 of a share), and each column's
+ * nodes center on slots as tall as the tallest node. Down, each column is a row and its nodes
+ * share it; an end is half wide, centered. A step takes its slot's or row's full height, so the
+ * counts and bars beside it line up; an end keeps its own.
  */
-export function tracksOf(g: FlowGraph): number {
-  const gcd = (a: number, b: number): number => (b ? gcd(b, a % b) : a);
-  const sizes = [...new Set(g.nodes.map((n) => n.of))];
-  const even = sizes.reduce((l, n) => (l * n) / gcd(l, n), 1);
-  return even <= 24 ? even : Math.max(...sizes);
+export function layoutOf(
+  g: FlowGraph,
+  axis: FlowAxis,
+  width: number,
+  heights: Readonly<Record<string, number>>,
+): { boxes: Record<string, Box>; height: number } {
+  const gap = GAP[axis];
+  const boxes: Record<string, Box> = {};
+  const hOf = (id: string) => heights[id] ?? 0;
+  if (axis === "across") {
+    const share = Array.from({ length: g.cols }, (_, c) =>
+      g.nodes.some((n) => n.col === c && !isEnd(n.id)) ? 1 : 0.7,
+    );
+    const unit = (width - gap.x * (g.cols - 1)) / share.reduce((a, b) => a + b, 0);
+    const left = share.map((_, c) => share.slice(0, c).reduce((x, s) => x + s * unit + gap.x, 0));
+    const tall = Math.max(0, ...g.nodes.map((n) => hOf(n.id)));
+    const slot = (tall + gap.y) / 2;
+    for (const n of g.nodes) {
+      const h = isEnd(n.id) ? hOf(n.id) : tall;
+      const y = (g.rows - n.of + n.index * 2) * slot + (tall - h) / 2;
+      boxes[n.id] = { x: left[n.col] ?? 0, y, w: (share[n.col] ?? 1) * unit, h };
+    }
+    return { boxes, height: g.rows * tall + Math.max(0, g.rows - 1) * gap.y };
+  }
+  const room = width - GUTTER;
+  let top = 0;
+  for (let c = 0; c < g.cols; c++) {
+    const row = g.nodes.filter((n) => n.col === c);
+    const tall = Math.max(0, ...row.map((n) => hOf(n.id)));
+    for (const n of row) {
+      const h = isEnd(n.id) ? hOf(n.id) : tall;
+      const w = isEnd(n.id) ? room / 2 : (room - gap.x * (n.of - 1)) / n.of;
+      const x = GUTTER + (isEnd(n.id) ? room / 4 : n.index * (w + gap.x));
+      boxes[n.id] = { x, y: top + (tall - h) / 2, w, h };
+    }
+    top += tall + gap.y;
+  }
+  return { boxes, height: Math.max(0, top - gap.y) };
 }

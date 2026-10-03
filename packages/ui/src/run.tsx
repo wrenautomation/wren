@@ -10,25 +10,8 @@
  * A foundation piece: steps, lines and sources are plain props, so any product
  * maps its own run onto them.
  */
-import {
-  type CSSProperties,
-  type ReactNode,
-  useEffect,
-  useLayoutEffect,
-  useMemo,
-  useRef,
-  useState,
-} from "react";
-import {
-  type Box,
-  edgePath,
-  type FlowAxis,
-  type FlowGraph,
-  flowOf,
-  INPUT,
-  OUTPUT,
-  tracksOf,
-} from "./flow.js";
+import { lazy, type ReactNode, Suspense, useEffect, useMemo, useRef, useState } from "react";
+import { flowOf, INPUT, OUTPUT } from "./flow.js";
 import { cx, hostOf, num } from "./format.js";
 import { Icon } from "./icons.js";
 import { SiteMark } from "./work.js";
@@ -107,9 +90,6 @@ export const RUN_MAX_SPEEDUP = 2;
 
 /** Lines behind before a live run speeds up. */
 const BACKLOG = 3;
-
-/** Narrower than this per column, the graph runs top to bottom. */
-const MIN_COLUMN = 150;
 
 /** How long to hold `line` at this backlog: normal, or up to 2x faster when behind. */
 export function dwellOf(line: RunLine | undefined, behind: number, live: boolean): number {
@@ -201,71 +181,8 @@ const typing = (t: EventTarget | null) =>
   t instanceof HTMLElement &&
   (t.isContentEditable || /^(INPUT|TEXTAREA|SELECT|BUTTON|A)$/.test(t.tagName));
 
-const sameBoxes = (a: Record<string, Box>, b: Record<string, Box>) => {
-  const ka = Object.keys(a);
-  return (
-    ka.length === Object.keys(b).length &&
-    ka.every((k) => {
-      const x = a[k];
-      const y = b[k];
-      return !!x && !!y && x.x === y.x && x.y === y.y && x.w === y.w && x.h === y.h;
-    })
-  );
-};
-
-/** Where each node sits, measured, and which way the graph runs at this width. */
-function useLayout(graph: FlowGraph) {
-  const box = useRef<HTMLDivElement>(null);
-  const [axis, setAxis] = useState<FlowAxis>("across");
-  const [boxes, setBoxes] = useState<Record<string, Box>>({});
-
-  // biome-ignore lint/correctness/useExhaustiveDependencies: a new axis moves every node; measure again.
-  useLayoutEffect(() => {
-    const el = box.current;
-    if (!el) return;
-    const measure = () => {
-      const next: FlowAxis =
-        el.clientWidth / Math.max(graph.cols, 1) >= MIN_COLUMN ? "across" : "down";
-      setAxis(next);
-      // Layout positions, not painted ones: a lifted node doesn't move its lines.
-      const out: Record<string, Box> = {};
-      for (const n of el.querySelectorAll<HTMLElement>("[data-node]")) {
-        const id = n.dataset.node;
-        if (id) out[id] = { x: n.offsetLeft, y: n.offsetTop, w: n.offsetWidth, h: n.offsetHeight };
-      }
-      setBoxes((was) => (sameBoxes(was, out) ? was : out));
-    };
-    measure();
-    if (typeof ResizeObserver === "undefined") return;
-    const watch = new ResizeObserver(measure);
-    watch.observe(el);
-    for (const n of el.querySelectorAll("[data-node]")) watch.observe(n);
-    return () => watch.disconnect();
-  }, [graph, axis]);
-
-  return { box, axis, boxes };
-}
-
-/** Where a node sits in the grid, by which way the graph runs. */
-function placeOf(
-  n: { col: number; index: number; of: number },
-  g: FlowGraph,
-  axis: FlowAxis,
-  tracks: number,
-): CSSProperties {
-  if (axis === "across")
-    return { gridColumn: n.col + 1, gridRow: `${g.rows - n.of + n.index * 2 + 1} / span 2` };
-  const span = Math.max(1, Math.floor(tracks / n.of));
-  return { gridRow: n.col + 1, gridColumn: `${n.index * span + 1} / span ${span}` };
-}
-
-/** Across: a column holding only an end is narrower than a column of steps. */
-const columnsOf = (g: FlowGraph) =>
-  Array.from({ length: g.cols }, (_, c) =>
-    g.nodes.some((n) => n.col === c && n.id !== INPUT && n.id !== OUTPUT)
-      ? "minmax(0, 1fr)"
-      : "minmax(0, 0.7fr)",
-  ).join(" ");
+/** React Flow draws the graph; it loads with the first run shown. */
+const RunGraph = lazy(() => import("./run-graph.js"));
 
 export function RunView({
   steps,
@@ -351,8 +268,6 @@ export function RunView({
     const has = new Set<string>(JSON.parse(touched));
     return flowOf(steps, (id) => live || has.has(id), ends);
   }, [stepKey, touched, live, ends.input, ends.output]);
-  const { box, axis, boxes } = useLayout(graph);
-  const tracks = useMemo(() => tracksOf(graph), [graph]);
 
   const byId = useMemo(() => new Map(steps.map((s) => [s.id, s])), [steps]);
   const views = useMemo(() => stepsAt(steps, lines, shown), [steps, lines, shown]);
@@ -387,25 +302,8 @@ export function RunView({
     !!lit &&
     (focus && "step" in focus ? lit.has(from) || lit.has(to) : lit.has(from) && lit.has(to));
 
-  const paths = useMemo(() => {
-    const out = new Map<string, string>();
-    for (const e of graph.edges) {
-      const a = boxes[e.from];
-      const b = boxes[e.to];
-      if (a && b) out.set(`${e.from}>${e.to}`, edgePath(a, b, e.span, axis));
-    }
-    return out;
-  }, [graph, boxes, axis]);
-
   // A spark rides into a step for each of its last few lines: the work arriving.
-  const sparks = still
-    ? []
-    : lines.slice(Math.max(0, shown - 3), shown).flatMap((l) => {
-        if (!aboutOne(l)) return [];
-        const e = graph.edges.find((x) => x.to === l.step);
-        const d = e && paths.get(`${e.from}>${e.to}`);
-        return d ? [{ id: l.id, kind: l.kind, d }] : [];
-      });
+  const recent = still ? [] : lines.slice(Math.max(0, shown - 3), shown).filter(aboutOne);
 
   const shownLines = lines.slice(0, shown);
   const sources = sourcesOf(shownLines);
@@ -429,9 +327,6 @@ export function RunView({
     if (el) el.scrollTop = el.scrollHeight;
   }, [shown, focus]);
 
-  const ordinal = new Map(
-    graph.nodes.filter((n) => byId.has(n.id)).map((n, i) => [n.id, i + 1] as const),
-  );
   const toggleStep = (id: string) =>
     setFocus((f) => (f && "step" in f && f.step === id ? null : { step: id }));
 
@@ -467,132 +362,24 @@ export function RunView({
         </div>
       </div>
 
-      <div
-        ref={box}
-        className="ui-run-graph"
-        data-axis={axis}
-        data-following={lit ? true : undefined}
-      >
-        <svg className="ui-run-edges" aria-hidden="true">
-          {graph.edges.map((e) => {
-            const d = paths.get(`${e.from}>${e.to}`);
-            if (!d) return null;
-            const to = stateOf(e.to);
-            const state =
-              to === "active" ? "flowing" : stateOf(e.from) === "done" ? "done" : "idle";
-            return (
-              <path
-                key={`${e.from}>${e.to}`}
-                d={d}
-                className="ui-run-edge"
-                data-state={state}
-                data-trace={onTrace(e.from, e.to) || undefined}
-              />
-            );
-          })}
-        </svg>
-        {sparks.map((s) => (
-          <span
-            key={s.id}
-            className="ui-run-spark"
-            data-kind={s.kind}
-            style={{ offsetPath: `path("${s.d}")` }}
-            aria-hidden="true"
-          />
-        ))}
-        <ol
-          className="ui-run-steps"
-          aria-label="Steps"
-          style={
-            axis === "across"
-              ? {
-                  gridTemplateColumns: columnsOf(graph),
-                  gridTemplateRows: `repeat(${graph.rows * 2}, auto)`,
-                }
-              : { gridTemplateColumns: `repeat(${tracks}, minmax(0, 1fr))` }
-          }
-        >
-          {graph.nodes.map((n) => {
-            const place = placeOf(n, graph, axis, tracks);
-            const dim = lit && !lit.has(n.id) ? true : undefined;
-            const end = n.id === INPUT ? input : n.id === OUTPUT ? output : undefined;
-            if (end)
-              return (
-                <li
-                  key={n.id}
-                  data-node={n.id}
-                  className="ui-run-end"
-                  data-state={stateOf(n.id)}
-                  data-dim={dim}
-                  style={place}
-                >
-                  <span className="ui-run-end-name">
-                    {n.id === OUTPUT && over ? <Icon name="check" size={12} /> : null}
-                    {end.label}
-                  </span>
-                  {end.note ? <span className="ui-run-source">{end.note}</span> : null}
-                </li>
-              );
-            const s = byId.get(n.id);
-            if (!s) return null;
-            const v = views[s.id] ?? { state: "idle", handled: 0, found: 0, failed: 0, waiting: 0 };
-            const mix = mixOf(v, expected[s.id] ?? 0);
-            const picked = !!focus && "step" in focus && focus.step === s.id;
-            return (
-              <li
-                key={s.id}
-                data-node={s.id}
-                className="ui-run-node"
-                data-state={v.state}
-                data-dim={dim}
-                data-split={axis === "down" && n.of > 1 ? true : undefined}
-                style={place}
-              >
-                <button
-                  type="button"
-                  className="ui-run-step"
-                  aria-pressed={picked}
-                  onClick={() => toggleStep(s.id)}
-                >
-                  <span className="ui-run-index" aria-hidden="true">
-                    {v.state === "done" ? <Icon name="check" size={11} /> : ordinal.get(s.id)}
-                  </span>
-                  <span className="ui-run-name">
-                    <span className="ui-run-long">{s.label}</span>
-                    <span className="ui-run-short" aria-hidden="true">
-                      {s.short ?? s.label}
-                    </span>
-                  </span>
-                  {s.source ? <span className="ui-run-source">{s.source}</span> : null}
-                  <span className="ui-run-tally">
-                    <span className="ui-run-count">{num(v.handled)}</span>
-                    {s.found && v.found ? (
-                      <span className="ui-run-found">
-                        {num(v.found)} {s.found}
-                      </span>
-                    ) : null}
-                    {v.waiting ? (
-                      <span className="ui-run-parked">{num(v.waiting)} waiting</span>
-                    ) : null}
-                  </span>
-                  <span className="ui-run-mix" aria-hidden="true">
-                    {(["found", "did", "failed", "waiting"] as const).map((k) =>
-                      mix[k] ? (
-                        <i key={k} data-kind={k} style={{ width: `${mix[k] * 100}%` }} />
-                      ) : null,
-                    )}
-                  </span>
-                </button>
-                {chip?.step === s.id ? (
-                  <span key={chip.id} className="ui-run-chip" data-kind={chip.kind}>
-                    {chip.subject}
-                  </span>
-                ) : null}
-              </li>
-            );
-          })}
-        </ol>
-      </div>
+      <Suspense fallback={<div className="ui-run-graph" style={{ minHeight: 160 }} />}>
+        <RunGraph
+          graph={graph}
+          steps={byId}
+          views={views}
+          expected={expected}
+          input={input}
+          output={output}
+          over={over}
+          stateOf={stateOf}
+          lit={lit}
+          trace={onTrace}
+          picked={focus && "step" in focus ? focus.step : null}
+          onPick={toggleStep}
+          recent={recent}
+          chip={chip}
+        />
+      </Suspense>
 
       <p className="ui-run-focus" aria-live="polite">
         {!focus ? (
