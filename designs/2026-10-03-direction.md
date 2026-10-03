@@ -63,7 +63,7 @@ Two things block progress. Revenue waits on inbox placement, and that is mostly 
 ## Next
 
 4. A form for every handler. Declare each Restate handler's input with its zod schema through the SDK's `serde.schema`. Restate's admin API then serves an OpenAPI spec per service, and one portal page renders a form from it. Every handler becomes usable from the portal without a page of its own. The five apps above stay the curated views, and this page reaches everything else.
-5. Turn on pg_stat_statements on the box. It needs a Postgres restart. After that, cache and index decisions start from measured slow queries.
+5. Turn on pg_stat_statements on the box. Moved into the database audit (`2026-10-03-database-audit.md`), which needs the same restart.
 6. Write client #1's fulfillment spec. It is the first real DSL: which products a client gets, wired to which foundations, plus the client's validated settings. Reactivation already has most of it.
 
 ## Later (needs clients or volume)
@@ -146,3 +146,4 @@ One definition, many faces. A handler's zod schema is the DSL. The CLI command, 
 
 - 2026-10-03: created from William's notes. Prod numbers pulled the same day.
 - 2026-10-03: William named his own view of wren as the bottleneck, and that view is also the sales demo. The console moved to Now #1. Metabase was dropped because it would be a second place to look. The DigitalOcean move was parked, since it about doubles today's bill and Books already makes the bill readable. Open-source alternatives were checked, with verdicts under Tools.
+- 2026-10-03: before the console, a database audit (`2026-10-03-database-audit.md`). The console's stack and patterns are in `2026-10-03-console-ui.md`: shadcn/ui on Base UI, composite pages of widgets, one access check that can later carry paid features.
