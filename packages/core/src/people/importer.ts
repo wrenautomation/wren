@@ -11,7 +11,7 @@
  * - is_compliance / is_testimonial only ever flip false -> true.
  */
 import type { Queryable } from "@wren/db";
-import { eq } from "drizzle-orm";
+import { eq, inArray, or } from "drizzle-orm";
 import { findReplay } from "../ingest/importer.js";
 import {
   type Company,
@@ -23,7 +23,7 @@ import {
   people,
   sightings,
 } from "../schema.js";
-import { matchKey, type PersonRow } from "./schema.js";
+import { matchKey, type PersonItem, type PersonRow } from "./schema.js";
 import type { PersonSource } from "./sources.js";
 
 const PERSON_FIELDS = [
@@ -89,21 +89,44 @@ export async function runPeopleImport(
     .returning()) as [ImportBatch];
   const replayOf = await findReplay(db, batch);
 
+  // Only the companies these rows name, and their people: the whole table is too big to
+  // hold in one Lambda (hundreds of thousands of firms with their raw rows).
+  const items: PersonItem[] = [];
+  for await (const item of source.rows()) items.push(item);
+  const keys = new Set<string>();
+  const domains = new Set<string>();
+  for (const item of items) {
+    if (item.kind === "error") continue;
+    if (item.companySourceKey) keys.add(item.companySourceKey);
+    if (item.companyDomain) domains.add(item.companyDomain);
+  }
   const companiesBySourceKey = new Map<string, Company>();
   const companiesByDomain = new Map<string, Company>();
   const companiesById = new Map<number, Company>();
-  for (const c of await db.select().from(companies)) {
-    companiesById.set(c.id, c);
-    if (c.sourceKey) companiesBySourceKey.set(c.sourceKey, c);
-    if (c.domain) companiesByDomain.set(c.domain, c);
+  for (const [keyChunk, domainChunk] of zipChunks([...keys], [...domains])) {
+    const named = await db
+      .select()
+      .from(companies)
+      .where(
+        or(
+          keyChunk.length ? inArray(companies.sourceKey, keyChunk) : undefined,
+          domainChunk.length ? inArray(companies.domain, domainChunk) : undefined,
+        ),
+      );
+    for (const c of named) {
+      companiesById.set(c.id, c);
+      if (c.sourceKey) companiesBySourceKey.set(c.sourceKey, c);
+      if (c.domain) companiesByDomain.set(c.domain, c);
+    }
   }
   const peopleBySourceKey = new Map<string, Person>();
   const peopleByName = new Map<string, Person>();
-  for (const p of await db.select().from(people)) {
-    const company = companiesById.get(p.companyId);
-    if (!company) continue;
-    if (p.sourceKey) peopleBySourceKey.set(p.sourceKey, p);
-    peopleByName.set(nameRef(company, p.firstName, p.lastName, p.fullName), p);
+  for (const [ids] of zipChunks([...companiesById.keys()], [])) {
+    for (const p of await db.select().from(people).where(inArray(people.companyId, ids))) {
+      const company = companiesById.get(p.companyId) as Company;
+      if (p.sourceKey) peopleBySourceKey.set(p.sourceKey, p);
+      peopleByName.set(nameRef(company, p.firstName, p.lastName, p.fullName), p);
+    }
   }
 
   const counts: PeopleImportStats = {
@@ -175,7 +198,7 @@ export async function runPeopleImport(
   }
 
   let rowNumber = 0;
-  for await (const item of source.rows()) {
+  for (const item of items) {
     rowNumber += 1;
     counts.rows += 1;
     if (item.kind === "error") {
@@ -258,4 +281,11 @@ export async function runPeopleImport(
   if (replayOf != null) counts.replay_of = replayOf;
   await db.update(imports).set({ stats: counts }).where(eq(imports.id, batch.id));
   return { batch: { ...batch, stats: counts }, stats: counts };
+}
+
+/** Parallel slices of both lists, a few thousand values per query (Postgres caps bind parameters). */
+function* zipChunks<A, B>(a: A[], b: B[], size = 5000): Generator<[A[], B[]]> {
+  for (let i = 0; i < Math.max(a.length, b.length); i += size) {
+    yield [a.slice(i, i + size), b.slice(i, i + size)];
+  }
 }
