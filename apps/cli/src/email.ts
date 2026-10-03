@@ -188,17 +188,18 @@ export function registerEmail(
       const newest = new Map<string, string>();
       if (!opts.all) {
         const latest = await withDb((db) =>
-          db.execute(sql`SELECT m.template, m.template_version AS version FROM messages m
-            WHERE m.state = 'sent' AND m.sent_at = (SELECT max(sent_at) FROM messages x
-              WHERE x.template = m.template AND x.state = 'sent')`),
+          db.execute(sql`SELECT DISTINCT ON (e.niche, m.template) e.niche, m.template,
+              m.template_version AS version
+            FROM messages m JOIN enrollments e ON e.id = m.enrollment_id
+            WHERE m.state = 'sent' ORDER BY e.niche, m.template, m.sent_at DESC`),
         );
         for (const r of latest as Record<string, unknown>[])
-          newest.set(String(r.template), String(r.version));
+          newest.set(`${r.niche}\0${r.template}`, String(r.version));
       }
       let head = "";
       let point = "";
       for (const r of rows) {
-        if (!opts.all && newest.get(r.template) !== r.version) continue;
+        if (!opts.all && newest.get(`${r.niche}\0${r.template}`) !== r.version) continue;
         const h = `${r.niche} · ${r.template}@${r.version}`;
         if (h !== head) {
           console.log(`${h}\n  option: sent · opened (of tracked) · replies · interested`);

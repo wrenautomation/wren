@@ -3,7 +3,8 @@
  * template edit reaches mail already queued only when that queue is re-rendered. Deploy
  * calls `QueueRefresh/all` right after it registers a new worker version: every niche's
  * untouched, unstarted queue takes the new words within minutes, not at the next
- * midnight top-up. Refresh only: nothing is composed, approved or sent here.
+ * midnight top-up. Only messages whose template changed are re-rendered, so a deploy that
+ * touched no template reads no facts. Refresh only: nothing is composed, approved or sent here.
  */
 import * as restate from "@restatedev/restate-sdk";
 import { finishRun, openRun } from "@wren/core";
@@ -37,7 +38,7 @@ export function makeQueueRefresh(deps: QueueRefreshDeps) {
               argv: { niche },
               niche,
             });
-            const stats = await refreshCampaign(deps.db, campaign, trackOpens);
+            const stats = await refreshCampaign(deps.db, campaign, trackOpens, true);
             await finishRun(deps.db, run.id, stats);
             return stats;
           });

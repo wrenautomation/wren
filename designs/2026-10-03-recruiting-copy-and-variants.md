@@ -37,3 +37,4 @@
   the deploy is the event. Facts and sign-off drift still catch up at midnight.
 - No opt-out flag: to run old vs new copy side by side, add the new copy as its
   own arm (or a `[[ ]]` variant). An edit in place means "replace".
+- 2026-10-03: the deploy refresh skips messages already on the current template version (`staleOnly`), so a deploy that touched no template reads no facts and writes nothing. The midnight pass still re-renders everything for facts and sign-off drift. The variant report counts replies and opens once per message, then joins, instead of running subqueries per row.

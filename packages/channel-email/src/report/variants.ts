@@ -54,34 +54,37 @@ export function variantTexts(name: string, source: string) {
 }
 
 export async function variantOutcomes(db: Queryable, niche?: string): Promise<VariantOutcome[]> {
+  // Replies and human opens counted once per message, then joined: no per-row subqueries.
   const rows = (await db.execute(sql`
     WITH sent AS (
       SELECT m.id, e.niche, m.template, m.template_version, m.sent_at, m.open_token, m.provenance
       FROM messages m JOIN enrollments e ON e.id = m.enrollment_id
       WHERE m.state = 'sent' ${niche ? sql`AND e.niche = ${niche}` : sql``}
-    ), per AS (
-      SELECT s.id,
-        EXISTS (SELECT 1 FROM open_events oe WHERE oe.message_id = s.id
-                AND oe.seen_at - s.sent_at >= interval '2 minutes') AS opened,
-        (SELECT count(*) FROM thread_events te WHERE te.in_reply_to_message_id = s.id
-                AND te.kind = 'reply') AS replies,
-        (SELECT count(*) FROM thread_events te WHERE te.in_reply_to_message_id = s.id
-                AND te.kind = 'reply'
-                AND te.disposition IN ('interested', 'meeting_booked')) AS interested
-      FROM sent s
+    ), replied AS (
+      SELECT te.in_reply_to_message_id AS id, count(*) AS replies,
+        count(*) FILTER (WHERE te.disposition IN ('interested', 'meeting_booked')) AS interested
+      FROM thread_events te JOIN sent s ON s.id = te.in_reply_to_message_id
+      WHERE te.kind = 'reply' GROUP BY 1
+    ), opened AS (
+      SELECT DISTINCT oe.message_id AS id
+      FROM open_events oe JOIN sent s ON s.id = oe.message_id
+      WHERE oe.seen_at - s.sent_at >= interval '2 minutes'
     )
-    SELECT s.niche, s.template, s.template_version AS version, p.key AS variant,
-      p.value::int AS option, count(*)::int AS sent,
-      count(*) FILTER (WHERE s.open_token IS NOT NULL)::int AS tracked,
-      count(*) FILTER (WHERE per.opened)::int AS opened,
-      sum(per.replies)::int AS replies, sum(per.interested)::int AS interested,
-      tv.source
-    FROM sent s
-    JOIN per ON per.id = s.id
-    CROSS JOIN LATERAL jsonb_each_text(s.provenance -> 'picks') p
+    SELECT a.*, tv.source FROM (
+      SELECT s.niche, s.template, s.template_version AS version, p.key AS variant,
+        p.value::int AS option, count(*)::int AS sent,
+        count(*) FILTER (WHERE s.open_token IS NOT NULL)::int AS tracked,
+        count(o.id)::int AS opened,
+        coalesce(sum(r.replies), 0)::int AS replies,
+        coalesce(sum(r.interested), 0)::int AS interested
+      FROM sent s
+      LEFT JOIN replied r ON r.id = s.id
+      LEFT JOIN opened o ON o.id = s.id
+      CROSS JOIN LATERAL jsonb_each_text(s.provenance -> 'picks') p
+      GROUP BY 1, 2, 3, 4, 5
+    ) a
     LEFT JOIN template_versions tv
-      ON tv.niche = s.niche AND tv.template = s.template AND tv.version = s.template_version
-    GROUP BY s.niche, s.template, s.template_version, p.key, p.value, tv.source
+      ON tv.niche = a.niche AND tv.template = a.template AND tv.version = a.version
   `)) as Record<string, unknown>[];
   const parsed = new Map<string, ReturnType<typeof variantTexts> | null>();
   const out: VariantOutcome[] = rows.map((r) => {

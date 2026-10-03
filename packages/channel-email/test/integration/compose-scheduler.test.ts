@@ -235,7 +235,10 @@ describe("topUp", () => {
         ],
       ]),
     };
-    const stats = await refreshCampaign(db(), v2, false);
+    const unchanged = await refreshCampaign(db(), CAMPAIGN, false, true);
+    expect(unchanged.rerendered).toBe(0);
+    expect(unchanged.kept_current).toBe(before.length);
+    const stats = await refreshCampaign(db(), v2, false, true);
     expect(stats.rerendered).toBeGreaterThan(0);
     const after = await db().select().from(messages);
     expect(after.length).toBe(before.length);

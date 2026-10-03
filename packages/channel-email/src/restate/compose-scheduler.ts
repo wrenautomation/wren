@@ -120,6 +120,7 @@ export function refreshCampaign(
   db: Db,
   campaign: Campaign,
   trackOpens: boolean,
+  staleOnly = false,
 ): Promise<RefreshStats> {
   return refreshQueue(db, {
     niche: campaign.niche,
@@ -130,6 +131,7 @@ export function refreshCampaign(
     senders: campaign.senders,
     signatures: campaign.signatures,
     trackOpens,
+    staleOnly,
   });
 }
 

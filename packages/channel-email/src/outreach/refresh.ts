@@ -33,6 +33,12 @@ export interface RefreshOptions {
   /** Plain sign-off per active sender (absent = that sender signs nothing). */
   readonly signatures: Readonly<Record<string, string>>;
   readonly trackOpens: boolean;
+  /**
+   * Re-render only messages whose template changed since they were rendered: what a deploy
+   * needs, and no facts read for the rest. Off (the midnight top-up), facts and sign-off
+   * changes are picked up too.
+   */
+  readonly staleOnly?: boolean;
 }
 
 export interface RefreshStats {
@@ -46,6 +52,8 @@ export interface RefreshStats {
   tokens_changed: number;
   /** The template is gone or a fact it needs is missing now: left as queued. */
   kept_unrenderable: number;
+  /** `staleOnly`: already on the current template version, not re-rendered. */
+  kept_current: number;
   /** Sent or changed state while this ran: left alone. */
   raced: number;
 }
@@ -57,6 +65,7 @@ export async function refreshQueue(db: Queryable, opts: RefreshOptions): Promise
     rerendered: 0,
     tokens_changed: 0,
     kept_unrenderable: 0,
+    kept_current: 0,
     raced: 0,
   };
   const queued = await db
@@ -102,6 +111,12 @@ export async function refreshQueue(db: Queryable, opts: RefreshOptions): Promise
     if (untouched) stats.checked++;
     if (untouched && (started.has(e.id) || !active.has(e.sender))) {
       stats.kept_started_or_inactive++;
+    } else if (
+      untouched &&
+      opts.staleOnly &&
+      opts.templates.get(m.template)?.version === m.templateVersion
+    ) {
+      stats.kept_current++;
     } else if (untouched) {
       const tpl = opts.templates.get(m.template);
       let facts = factsByEnrollment.get(e.id) ?? null;
