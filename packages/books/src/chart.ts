@@ -51,6 +51,8 @@ export interface VendorSpec {
   cycle?: BillCycle;
   /** It sells plans only: every bill is on `cycle`, whatever it calls its charges (Google prints seats as "Usage"). */
   plansOnly?: boolean;
+  /** One subscription per account, whatever edition a bill names: every bill is on this plan (Workspace bills two editions the month it switches). */
+  plan?: string;
   /** Whether its GST/HST is claimable; false for the simplified regime. Absent = unknown. */
   gstClaimable?: boolean;
 }
@@ -92,6 +94,7 @@ export const VENDORS: readonly VendorSpec[] = [
     currency: "CAD",
     cycle: "monthly",
     plansOnly: true,
+    plan: "Workspace",
     gstClaimable: false,
   },
   {

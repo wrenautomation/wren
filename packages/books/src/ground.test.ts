@@ -193,6 +193,13 @@ describe("check", () => {
     expect(checked(reading({ cycle: "usage" }), INVOICE, plans).bill?.cycle).toBe("monthly");
   });
 
+  it("keeps a one-plan vendor's bills on its plan, whatever the reading names", () => {
+    const one: VendorFacts = { ...vendor, plan: "Suite" };
+    expect(checked(reading({ plan: null }), INVOICE, one).bill?.plan).toBe("Suite");
+    expect(checked(reading({ plan: "Suite Plus" }), INVOICE, one).bill?.plan).toBe("Suite");
+    expect(checked(reading({ plan: "Suite Plus" })).bill?.plan).toBe("Suite Plus");
+  });
+
   it("turns a credit note negative", () => {
     const bill = checked(reading({ kind: "credit note" })).bill;
     expect(bill?.kind).toBe("credit_note");

@@ -160,6 +160,7 @@ export async function readDocuments(
       currency: vendorSpec(vendor.key)?.currency ?? null,
       cycle: vendor.cycle,
       plansOnly: vendorSpec(vendor.key)?.plansOnly ?? false,
+      plan: vendorSpec(vendor.key)?.plan ?? null,
       gstClaimable: vendor.gstClaimable,
     };
     const outcome = await completeAndParse(
