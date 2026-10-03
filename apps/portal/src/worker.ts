@@ -16,6 +16,7 @@
  */
 
 import { AUDIENCE, bearer, verifyToken } from "@wren/auth/verify";
+import { EMAIL_CONSOLE_ROUTES, EMAIL_CONSOLE_WRITES } from "@wren/channel-email/console-routes";
 import { DELIVERY_ROUTES, DELIVERY_WRITES } from "@wren/delivery/routes";
 import { PORTAL_ROUTES, PORTAL_WRITES } from "@wren/reactivation/portal-routes";
 import type { Env } from "./env.js";
@@ -35,8 +36,10 @@ const service = (name: string, routes: readonly string[], writes: readonly strin
 const SERVICES: Readonly<Record<string, Service>> = {
   delivery: service("DeliveryPortal", DELIVERY_ROUTES, DELIVERY_WRITES),
   reactivation: service("ReactivationPortal", PORTAL_ROUTES, PORTAL_WRITES),
-  // Wren's team reads its numbers: views by name (`@wren/core/console`). Read-only.
-  console: service("ConsolePortal", ["view"], []),
+  // Wren's team: views by name and the loops (`@wren/core/console`), stopping or starting one.
+  console: service("ConsolePortal", ["view", "loops", "setLoop"], ["setLoop"]),
+  // Wren's team: warm replies to answer, inboxes to pause.
+  email: service("EmailConsole", EMAIL_CONSOLE_ROUTES, EMAIL_CONSOLE_WRITES),
 };
 
 const MAX_BODY = 16 * 1024;

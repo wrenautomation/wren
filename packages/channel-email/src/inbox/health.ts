@@ -306,7 +306,7 @@ export async function resume(
 }
 
 /** The addresses a target names: itself, or every inbox on a domain. */
-function resolveTarget(target: string, senders: readonly string[]): string[] {
+export function resolveTarget(target: string, senders: readonly string[]): string[] {
   const wanted = target.trim().toLowerCase();
   const addresses = new Set(senders.map((sender) => sender.trim().toLowerCase()));
   const picked = wanted.includes("@")

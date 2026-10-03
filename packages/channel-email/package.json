@@ -7,6 +7,7 @@
     ".": "./src/index.ts",
     "./schema": "./src/schema.ts",
     "./views": "./src/views.ts",
+    "./console-routes": "./src/console-routes.ts",
     "./outreach": "./src/outreach/index.ts",
     "./restate": "./src/restate/index.ts",
     "./send": "./src/send/index.ts",

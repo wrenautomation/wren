@@ -1,5 +1,6 @@
 export * from "@wren/core/restate";
 export * from "./compose-scheduler.js";
+export * from "./console.js";
 export * from "./digest-scheduler.js";
 export * from "./disposition.js";
 export * from "./inbox-scheduler.js";

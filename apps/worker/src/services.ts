@@ -9,6 +9,7 @@ import { resolve } from "node:path";
 import type { Context, ServiceDefinition, VirtualObjectDefinition } from "@restatedev/restate-sdk";
 import {
   awsCostExplorer,
+  BOOKS_CONSOLE_VIEWS,
   bankOfCanada,
   delegatedMailbox,
   dirStore,
@@ -45,6 +46,7 @@ import {
   makeComposeScheduler,
   makeDigestScheduler,
   makeDisposition,
+  makeEmailConsole,
   makeInboxScheduler,
   makeOpensScheduler,
   makePoolScheduler,
@@ -85,7 +87,7 @@ import {
 } from "@wren/content/restate";
 import { makeAuditSealer } from "@wren/core/audit";
 import { CalcomCalendar } from "@wren/core/calendar";
-import { makeConsolePortal } from "@wren/core/console";
+import { makeConsolePortal, restateAdmin } from "@wren/core/console";
 import type { SiteClient } from "@wren/core/content";
 import { sitesHost } from "@wren/core/content/box";
 import { ingressSites } from "@wren/core/content/ingress";
@@ -599,7 +601,14 @@ export async function buildServices(
       zone: settings.sendTimezone,
     }),
     makeReactivationPortal({ main: db, open: openClient }),
-    makeConsolePortal({ main: db, views: [...EMAIL_CONSOLE_VIEWS] }),
+    makeConsolePortal({
+      main: db,
+      views: [...EMAIL_CONSOLE_VIEWS, ...BOOKS_CONSOLE_VIEWS],
+      admin: settings.restateAdminUrl
+        ? restateAdmin(settings.restateAdminUrl, settings.restateAuthToken)
+        : undefined,
+    }),
+    makeEmailConsole({ db, senders: roster.map((s) => s.address) }),
     makeReactivation({
       main: db,
       open: openClient,
