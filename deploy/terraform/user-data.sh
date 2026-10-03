@@ -64,12 +64,17 @@ if [ -n "${browser_token_param}" ]; then
   unset TOKEN
 fi
 
-# Nightly dump to S3; the bucket's lifecycle rule expires old ones.
+# Nightly dump to S3; the bucket's lifecycle rule expires old ones. On the 1st,
+# a second dump goes to keep/ in Deep Archive and is never expired: the history.
 cat > /usr/local/bin/wren-pg-backup <<'BK'
 #!/bin/bash
 set -euo pipefail
 docker exec wren-pg pg_dump -U ${db_user} -Fc ${db_name} \
   | aws s3 cp --region ${region} - "s3://${backups}/pg/$(date -u +%F).dump"
+if [ "$(date -u +%d)" = 01 ]; then
+  docker exec wren-pg pg_dump -U ${db_user} -Fc ${db_name} \
+    | aws s3 cp --region ${region} --storage-class DEEP_ARCHIVE - "s3://${backups}/keep/$(date -u +%Y-%m).dump"
+fi
 BK
 chmod +x /usr/local/bin/wren-pg-backup
 echo "0 8 * * * root /usr/local/bin/wren-pg-backup >> /var/log/wren-pg-backup.log 2>&1" > /etc/cron.d/wren-pg-backup

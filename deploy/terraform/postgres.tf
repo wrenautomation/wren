@@ -103,8 +103,8 @@ resource "aws_s3_bucket_public_access_block" "backups" {
 
 resource "aws_s3_bucket_lifecycle_configuration" "backups" {
   bucket = aws_s3_bucket.backups.id
-  # The nightly dumps and old box-worker bundles expire; `legacy/` (the retired Python
-  # repos' data) is kept.
+  # The nightly dumps and old box-worker bundles expire; `keep/` (one dump a month, Deep
+  # Archive) and `legacy/` (the retired Python repos' data) are kept.
   rule {
     id     = "expire-pg-dumps"
     status = "Enabled"
