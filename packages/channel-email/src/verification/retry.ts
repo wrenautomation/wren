@@ -1,7 +1,9 @@
 /**
  * How long a `risky` verdict waits before the same server is asked again, by the
  * prober's reason. Greylisting lifts in minutes. A block on our IP lasts until our
- * reputation changes, and each retry before then feeds it; broken DNS is slow to mend.
+ * reputation changes, and each retry before then feeds it; so does a refusal for our
+ * missing reverse DNS, until the PTR exists. A server that requires TLS will still
+ * require it, and broken DNS is slow to mend.
  * Any other reason (unreachable, catch_all_unknown, another verifier's rows) takes the
  * caller's default.
  */
@@ -12,6 +14,8 @@ export const RISKY_WAIT_BY_REASON: Readonly<Record<string, string>> = {
   greylisted: "1 hour",
   blocked: "7 days",
   dns_error: "7 days",
+  no_ptr: "7 days",
+  tls_required: "7 days",
 };
 
 /** The wait for one verdict, as a Postgres interval: `raw` is its `raw` column. */

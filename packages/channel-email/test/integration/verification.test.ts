@@ -88,15 +88,18 @@ class GreylistedVerifier implements EmailVerifier {
   }
 }
 
-/** `risky`/blocked at one domain, as a server that refuses our IP answers; VALID elsewhere. */
+/** `risky` at one domain, as a server that refuses our IP answers; VALID elsewhere. */
 class BlockingVerifier implements EmailVerifier {
   readonly name = "blocking";
   readonly authoritative = true;
   readonly costsCredits = false;
-  constructor(private readonly domain: string) {}
+  constructor(
+    private readonly domain: string,
+    private readonly reason = "blocked",
+  ) {}
   async verify(email: string): Promise<Verdict> {
     return email.endsWith(`@${this.domain}`)
-      ? { result: "risky", raw: { fake: true, reason: "blocked" } }
+      ? { result: "risky", raw: { fake: true, reason: this.reason } }
       : { result: "valid", raw: { fake: true } };
   }
 }
@@ -132,29 +135,32 @@ describe("runVerification", () => {
     expect(await runVerification(db(), verifier, opts)).toMatchObject({ selected: 1, valid: 1 });
   });
 
-  it("a server that blocked one address is asked about none for 7 days", async () => {
-    const { leads: rows } = await makeLeads(
-      "a@blockco.example",
-      "b@blockco.example",
-      "info@verifyco.example",
-    );
-    const [a, b] = rows as [Lead, Lead];
-    const verifier = new BlockingVerifier("blockco.example");
-    const opts = { checker: checker(), retryRiskyOlderThanMs: 2 * DAY };
-    // In the run: b is held once a's answer says the server turned us away.
-    expect(await runVerification(db(), verifier, opts)).toMatchObject({
-      selected: 3,
-      risky: 1,
-      held: 1,
-      valid: 1,
-    });
-    expect(await verificationsOf(b.id)).toEqual([]);
-    // Across runs: past the default retry age, still inside the block's wait.
-    await backdateLastVerification(a.id, 3);
-    expect((await runVerification(db(), verifier, opts)).selected).toBe(0);
-    await backdateLastVerification(a.id, 8);
-    expect((await runVerification(db(), verifier, opts)).selected).toBe(2);
-  });
+  it.each(["blocked", "no_ptr", "tls_required"])(
+    "a server that refused one address (%s) is asked about none for 7 days",
+    async (reason) => {
+      const { leads: rows } = await makeLeads(
+        "a@blockco.example",
+        "b@blockco.example",
+        "info@verifyco.example",
+      );
+      const [a, b] = rows as [Lead, Lead];
+      const verifier = new BlockingVerifier("blockco.example", reason);
+      const opts = { checker: checker(), retryRiskyOlderThanMs: 2 * DAY };
+      // In the run: b is held once a's answer says the server turned us away.
+      expect(await runVerification(db(), verifier, opts)).toMatchObject({
+        selected: 3,
+        risky: 1,
+        held: 1,
+        valid: 1,
+      });
+      expect(await verificationsOf(b.id)).toEqual([]);
+      // Across runs: past the default retry age, still inside the block's wait.
+      await backdateLastVerification(a.id, 3);
+      expect((await runVerification(db(), verifier, opts)).selected).toBe(0);
+      await backdateLastVerification(a.id, 8);
+      expect((await runVerification(db(), verifier, opts)).selected).toBe(2);
+    },
+  );
 
   it("niche narrows to leads of that niche's companies", async () => {
     const firm = async (niche: string, domain: string) => {
