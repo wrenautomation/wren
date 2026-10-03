@@ -2,7 +2,8 @@
  * The morning digest: `DigestScheduler/fleet` posts yesterday's numbers per sending
  * domain (sent, hard bounces, replies, unsubscribes), Google's newest complaint
  * rate where Postmaster has one, and the queue (approved openers, follow-ups
- * waiting) once a day at `DIGEST_HOUR` on the fleet's clock. Counts only; the
+ * waiting) once a day at `DIGEST_HOUR` on the fleet's clock, then each prober IP's
+ * standing (PTR, blocklists, refusals); a prober in trouble also pings. Counts only; the
  * notifier never carries an address we mailed or a word anyone wrote back.
  * A digest that cannot be built is skipped, not retried into the afternoon.
  */
@@ -13,6 +14,7 @@ import type { Db } from "@wren/db";
 import { sql } from "drizzle-orm";
 import type { SendPolicy } from "../send/policy.js";
 import { zonedInstant } from "../send/tz.js";
+import { proberHealth, proberLine, proberProblems } from "../verification/prober-health.js";
 
 export const DIGEST_KEY = "fleet";
 export const DIGEST_COMMAND = "notify digest";
@@ -22,6 +24,8 @@ export interface DigestSchedulerDeps {
   db: Db;
   notifier: Notifier;
   policy: SendPolicy;
+  /** Prober host names (WREN_SMTP_PROBE_URL), each checked every morning. */
+  probers?: readonly string[];
 }
 
 export interface DigestStats {
@@ -95,6 +99,15 @@ export function makeDigestScheduler(deps: DigestSchedulerDeps) {
       ledger: { command: DIGEST_COMMAND, argv: { daemon: true, day: yesterday } },
       body: async () => {
         const { lines, domains } = await digestLines(deps.db, yesterday);
+        const probers = await proberHealth(
+          deps.db,
+          deps.probers ?? [],
+          new Date(now.getTime() - 24 * 3600 * 1000),
+        );
+        lines.push(...probers.map(proberLine));
+        const problems = probers.flatMap(proberProblems);
+        if (problems.length > 0)
+          await deps.notifier.notify("prober reputation", problems.join("\n"), "warning");
         const sent = await deps.notifier.notify(`digest for ${yesterday}`, lines.join("\n"));
         return { day: yesterday, domains, lines, sent };
       },

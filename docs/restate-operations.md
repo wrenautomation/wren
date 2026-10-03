@@ -228,7 +228,20 @@ curl -s https://probe.wrenautomation.com/healthz     # {"ok":true,"port_25":true
 
 The A record `probe.wrenautomation.com` (Cloudflare, DNS only) points at the VPS.
 Reverse DNS is RackNerd's: support ticket #EF57722 asks for the PTR (check with
-`dig -x 192.255.226.241`). The canary re-checks every ten minutes; with port 25
+`dig -x 192.255.226.241`). Each box's name is also its HELO and MAIL FROM domain
+(`postmaster@<host>`), so each name has an SPF TXT naming only its own IP
+(`v=spf1 ip4:<ip> -all`).
+
+Several probers: `WREN_SMTP_PROBE_URL` takes a comma list, one token for all.
+Each recipient domain always goes to the same box first (rendezvous hash on the
+domain, `ProbeFleet` in `verification/mailifier.ts`), so a mail server sees one IP
+at half the pace. When that box's IP is refused (`blocked`, `no_ptr`,
+`unreachable`) or the box is down, the other asks once; greylisting stays on its
+first box. Each verdict carries `raw.prober`. A second box deploys with
+`PROBE_HOST=probe2.wrenautomation.com deploy/scripts/deploy-prober.sh`; keep it out
+of the list until its PTR names it (the script warns). The morning digest checks
+each box: PTR, five blocklists, and the share of checks refused for our IP
+(warning past 10% of 100+). The canary re-checks every ten minutes; with port 25
 closed `/verify` answers 503 and the pool stage retries hourly.
 
 Throughput: the pool-feeder's two mailbox stages run `PROBE_WIDTH` (32) walks at

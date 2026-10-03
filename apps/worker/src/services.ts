@@ -33,6 +33,7 @@ import {
   type PostmasterClient,
   plainMailer,
   postmasterToken,
+  proberHosts,
   rosterFleet,
   SendPolicy,
   senderDomain,
@@ -432,7 +433,10 @@ export async function buildServices(
       },
     }),
   );
-  if (settings.notify !== "none") services.push(makeDigestScheduler({ db, notifier, policy }));
+  if (settings.notify !== "none")
+    services.push(
+      makeDigestScheduler({ db, notifier, policy, probers: proberHosts(settings.smtpProbeUrl) }),
+    );
   // Bound only when configured: an object with nothing to pull is better absent than failing every pass.
   if (postmaster) {
     services.push(
