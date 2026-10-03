@@ -13,7 +13,7 @@
  */
 import { randomUUID } from "node:crypto";
 import { loadSettings } from "@wren/config";
-import { type Company, companies, type Suppression, suppressions } from "@wren/core";
+import { type Company, companies, leads, type Suppression, suppressions } from "@wren/core";
 import { FakeCalendar } from "@wren/core/calendar";
 import type { Db } from "@wren/db";
 import { startTestPostgres, type TestPostgres, truncate } from "@wren/db/testing";
@@ -26,6 +26,7 @@ import {
   type Message,
   messages,
   senderPauses,
+  verifications,
 } from "../../src/schema.js";
 import { addBusinessDays, PlainDate } from "../../src/send/dates.js";
 import { recordStop, type SendDueOptions, sendDue, stopCompany } from "../../src/send/deliver.js";
@@ -438,6 +439,48 @@ describe("cadence and stops", () => {
     expect(stopped.stopReason).toBe("opt_out");
     const states = new Set((await messagesOf(db(), enrollment)).map((m) => m.state));
     expect(states).toEqual(new Set(["skipped"]));
+  });
+
+  describe("send-time verdict", () => {
+    async function verdicts(email: string, ...results: ("valid" | "invalid")[]): Promise<void> {
+      // The person's lead from enrollment; its own valid verdict is older than these.
+      const [lead] = await db().select({ id: leads.id }).from(leads).where(eq(leads.email, email));
+      if (!lead) throw new Error(`no lead for ${email}`);
+      for (const [i, result] of results.entries()) {
+        await db()
+          .insert(verifications)
+          .values({
+            leadId: lead.id,
+            email,
+            verifier: "test",
+            result,
+            raw: {},
+            checkedAt: new Date(Date.now() + (i + 1) * 60_000),
+          });
+      }
+    }
+
+    it("an address whose newest verdict is invalid is stopped, not sent", async () => {
+      const enrollment = await enrollOne("oakbridge.example", "jane@oakbridge.example");
+      await verdicts("jane@oakbridge.example", "valid", "invalid");
+      const transport = console_();
+
+      const stats = await tick(transport);
+      expect(stats.stopped_undeliverable).toBe(1);
+      expect(delivered(transport)).toEqual([]);
+      const stopped = await reload(enrollment);
+      expect(stopped.stopReason).toBe("undeliverable");
+      const states = new Set((await messagesOf(db(), enrollment)).map((m) => m.state));
+      expect(states).toEqual(new Set(["skipped"]));
+    });
+
+    it("an old invalid verdict a newer valid one cleared does not stop the send", async () => {
+      await enrollOne("oakbridge.example", "jane@oakbridge.example");
+      await verdicts("jane@oakbridge.example", "invalid", "valid");
+      const stats = await tick(console_());
+      expect(stats.stopped_undeliverable).toBe(0);
+      expect(stats.sent).toBe(1);
+    });
   });
 
   it("a thread rider without an anchor is skipped, not sent", async () => {

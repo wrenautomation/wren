@@ -379,6 +379,13 @@
       "when": 1790985398747,
       "tag": "0053_books_usage_alerts",
       "breakpoints": true
+    },
+    {
+      "idx": 54,
+      "version": "7",
+      "when": 1791011528209,
+      "tag": "0054_send_stops_on_invalid",
+      "breakpoints": true
     }
   ]
 }

@@ -51,6 +51,7 @@ import {
   messages,
   type StopReason,
   senderPauses,
+  verifications,
 } from "../schema.js";
 import { transitionEnrollment, transitionMessage } from "../state.js";
 import { CALL_TIMES, fillCallTimes, LOOKAHEAD_MS } from "./call-times.js";
@@ -95,6 +96,7 @@ export const STAT_KEYS = [
   "awaiting_reconcile",
   "skipped_no_thread",
   "stopped_suppressed",
+  "stopped_undeliverable",
   "stopped_cooldown",
   "window_closed",
   "lead_window_waiting",
@@ -248,13 +250,12 @@ export async function sendDue(db: Db, opts: SendDueOptions): Promise<SendStats> 
       tx,
       rows.map((e) => e.id),
     );
-    const suppressed = await activeSuppressions(
-      tx,
-      rows.flatMap((e) => byEnrollment.get(e.id)?.[0]?.toEmail ?? []),
-    );
+    const addresses = rows.flatMap((e) => byEnrollment.get(e.id)?.[0]?.toEmail ?? []);
+    const suppressed = await activeSuppressions(tx, addresses);
+    const invalid = await invalidNow(tx, addresses);
     for (const enrollment of rows) {
       const msgs = byEnrollment.get(enrollment.id) ?? [];
-      const due = await nextDue(tx, enrollment, msgs, now, stats, suppressed, policy);
+      const due = await nextDue(tx, enrollment, msgs, now, stats, suppressed, invalid, policy);
       if (due === null) continue;
       const candidate: Candidate = { enrollment, messages: msgs, ...due };
       if (due.anchor === null) openers.push(candidate);
@@ -472,6 +473,25 @@ async function lastSendPerSender(db: Queryable): Promise<Map<string, Date>> {
 // --- classification: at most one due message per enrollment -------------
 
 /**
+ * Addresses whose newest verdict is invalid. A step queued weeks ago went out to an
+ * address a later walk, CRM check or reverify found dead: a hard bounce, which no
+ * pause takes back. Lowercased, as verifications stores them.
+ */
+async function invalidNow(db: Queryable, emails: string[]): Promise<Set<string>> {
+  const wanted = [...new Set(emails.map((e) => e.toLowerCase()))];
+  if (wanted.length === 0) return new Set();
+  const rows = await db
+    .selectDistinctOn([verifications.email], {
+      email: verifications.email,
+      result: verifications.result,
+    })
+    .from(verifications)
+    .where(inArray(verifications.email, wanted))
+    .orderBy(verifications.email, desc(verifications.checkedAt), desc(verifications.id));
+  return new Set(rows.filter((r) => r.result === "invalid").map((r) => r.email as string));
+}
+
+/**
  * The one message this enrollment may send now, with its thread anchor (null
  * when it opens) — or null, having counted why not. Everything that is NOT a
  * send is resolved here: the suppression re-check, the in-flight block, the
@@ -484,6 +504,7 @@ async function nextDue(
   now: Date,
   stats: SendStats,
   suppressed: (email: string) => Suppression | null,
+  invalid: ReadonlySet<string>,
   policy: SendPolicy,
 ): Promise<{ message: Message; anchor: Message | null } | null> {
   const first = msgs[0];
@@ -495,6 +516,14 @@ async function nextDue(
       messages: msgs,
     });
     stats.stopped_suppressed += 1;
+    return null;
+  }
+  if (invalid.has(first.toEmail.toLowerCase())) {
+    await recordStop(tx, enrollment, "undeliverable", {
+      detail: "newest verdict: invalid",
+      messages: msgs,
+    });
+    stats.stopped_undeliverable += 1;
     return null;
   }
   if (msgs.some((m) => isInFlight(m.state))) {

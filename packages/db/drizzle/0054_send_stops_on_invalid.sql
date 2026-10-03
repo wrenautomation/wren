@@ -1,0 +1,3 @@
+ALTER TABLE "enrollments" DROP CONSTRAINT "ck_enrollments_stopreason";--> statement-breakpoint
+CREATE INDEX "ix_verifications_email_checked_at" ON "verifications" USING btree ("email","checked_at");--> statement-breakpoint
+ALTER TABLE "enrollments" ADD CONSTRAINT "ck_enrollments_stopreason" CHECK (("stop_reason")::text = ANY ((ARRAY['reply'::character varying, 'bounce'::character varying, 'opt_out'::character varying, 'complaint'::character varying, 'manual'::character varying, 'undeliverable'::character varying])::text[]));

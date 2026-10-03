@@ -26,6 +26,7 @@ const WIDENED: Record<string, string[]> = {
   ck_documents_documentkind: ["snippet", "profile"],
   ck_messages_approvalsource: ["client"],
   ck_enrichments_enrichmentkind: ["opener", "video"],
+  ck_enrollments_stopreason: ["undeliverable"],
 };
 const unwiden = (c: Catalog["constraints"][number]) => ({
   ...c,
@@ -50,7 +51,11 @@ const ADDED = {
     "documents.tel_hrefs",
   ]),
   constraints: new Set(["uq_messages_link_code"]),
-  indexes: new Set(["ix_enrollments_offer", "uq_messages_link_code"]),
+  indexes: new Set([
+    "ix_enrollments_offer",
+    "uq_messages_link_code",
+    "ix_verifications_email_checked_at",
+  ]),
   /** Legacy views wren grew (lead recycling, recruiting ranks): still present, bodies free to differ. */
   views: new Set(["campaign_funnel", "enrollment_outcomes", "person_facts"]),
 };

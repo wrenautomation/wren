@@ -32,7 +32,15 @@ export const ENROLLMENT_KINDS = ["person", "role_inbox"] as const;
 export type EnrollmentKind = (typeof ENROLLMENT_KINDS)[number];
 export const ENROLLMENT_STATES = ["active", "finished", "stopped"] as const;
 export type EnrollmentState = (typeof ENROLLMENT_STATES)[number];
-export const STOP_REASONS = ["reply", "bounce", "opt_out", "complaint", "manual"] as const;
+/** `undeliverable`: the address's newest verdict turned invalid before a step went out. */
+export const STOP_REASONS = [
+  "reply",
+  "bounce",
+  "opt_out",
+  "complaint",
+  "manual",
+  "undeliverable",
+] as const;
 export type StopReason = (typeof STOP_REASONS)[number];
 /** `client`: approved by the client in the portal (their own list, their own name on it). */
 export const APPROVAL_SOURCES = ["operator", "auto", "client"] as const;
@@ -135,6 +143,8 @@ export const verifications = pgTable(
     primaryKey({ columns: [t.id], name: "pk_verifications" }),
     index("ix_verifications_contact_candidate_id").on(t.contactCandidateId),
     index("ix_verifications_lead_id").on(t.leadId),
+    // The send walk's newest-verdict read, per address.
+    index("ix_verifications_email_checked_at").on(t.email, t.checkedAt),
     foreignKey({
       columns: [t.contactCandidateId],
       foreignColumns: [contactCandidates.id],
