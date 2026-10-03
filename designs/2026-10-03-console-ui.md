@@ -141,11 +141,84 @@ Out of Phase 1: the Outbound, Money, Loops and Inbox apps (each a later phase on
   - Before: 108.2 KB of JS gzipped, in one chunk, and 10.8 KB of CSS.
   - After Phase 1: 126.1 KB of JS at start (index 120.2, icons 5.9). Loaded on first use: Pipeline 113.3, the palette 35.0, the run graph 54.6 plus 2.0 of CSS. CSS at start is 23.8 KB.
 
+## Phase 2 scope
+
+Outbound, Money, Loops and Inbox, team only, on Phase 1's parts, plus the first buttons. kit.css moves to shadcn in Phase 3, so this phase stays one implementer's worth.
+
+Prod on 2026-10-03: 39 loop objects in Restate, 0 replies, 0 open call invites, 0 email drafts waiting (compose approves its own). Inbox and every button get tested on synthetic data. On prod they show empty until something waits.
+
+### Buttons
+
+1. `Action` gets a renderer. `ActionButton` in `@wren/ui` asks `confirm` first when set, calls the handler, shows the answer in a sonner toast, then re-reads the widget's source so the row updates. `WidgetProps` gains `act(action, input)`, so a View offers per-row buttons without fetching. The portal hands `PageTree` a `call` next to `load`.
+2. Row actions stay on their rows. An action that needs no row joins the ⌘K palette. None exists yet.
+
+### Services
+
+3. Products own their console routes, as they own their views. channel-email adds `EmailConsole`, registered in the portal worker as `email`:
+   - read `answers`: `openInvites`.
+   - write `approve` (`{id, body?}`) and `drop` (`{id}`): forward to `Disposition/{DISPOSITION_KEY}`.
+   - write `pause` (`{target, reason}`) and `resume` (`{target}`): the same functions `wren email senders pause|resume` call.
+   - Every handler refuses whoever `seesInternal` rejects. The worker lists the writes, so the demo never reaches them.
+4. Loops are a core primitive, so ConsolePortal gains two routes:
+   - read `loops`: one Restate admin query over `state` (keys `running`, `last`, `settings`), joined with `sys_invocation` for the next scheduled `loop` call (`scheduled_start_at`). One row per loop: service, key, running, last pass (when, ok or failed, failures in a row, error), next due.
+   - write `setLoop` (`{service, key, run}`): `stop`, or `start` with the loop's stored settings so a restart keeps them. It refuses a loop the read didn't return.
+   - The Lambda needs the admin URL and token. Settings gain `restateAdminUrl` (`WREN_RESTATE_ADMIN_URL`). `restateAuthToken` exists, and the box already holds that token. The orchestrator pushes both to prod. The implementer never reads `deploy/prod.env`.
+5. ConsolePortal reads schema-qualified views like `books.spend` by splitting on the dot into `sql.identifier` parts. books exports `BOOKS_CONSOLE_VIEWS`.
+
+### Views
+
+6. Two new views, each with its migration and on its package's list:
+   - `books.usage_by_month` over `books.usage`: month, provider, service, currency, amount.
+   - `llm_usage_by_month` over `email_llm_calls`: month, kind, model, provider, calls, input and output tokens, rejected calls, parse failures.
+   - Used as they are: `campaign_funnel`, `send_health`, `reply_by_arm_step`, `books.spend`, `books.subscriptions`.
+
+### Apps
+
+Each is a module with `requires: {audience: "team"}`, a widget tree, CSV on every view widget, and a Glance.
+
+7. Outbound
+   - Stat strip from `campaign_funnel`, summed: enrolled, openers sent, follow-ups sent, replies, interested, hard bounces.
+   - Campaigns table, one row per niche and sequence.
+   - Send health: sent and bounce rate per day for 30 days, summed across inboxes. Below it, one row per inbox with Pause or Resume. Pause asks why.
+   - Replies by variant: `reply_by_arm_step` with the reply rate and a 95% Wilson interval worked out in the View. Under 30 sends, the row says "too few to tell".
+   - Glance: sent, replies and bounces in the last 7 days.
+8. Money
+   - Spend by month in CAD, stacked by vendor (`books.spend`).
+   - Subscriptions, dearest first (`books.subscriptions`).
+   - AWS by service, this month and last (`books.usage_by_month`).
+   - Model calls and tokens by month and model (`llm_usage_by_month`). No dollars per call until a price table exists. The provider bills in Spend carry the dollars.
+   - Glance: spend so far this month.
+9. Loops
+   - One table: loop, running or stopped, last pass (how long ago, ok or the error), failures in a row, next due. Failing loops sort first. Stop or Start per row, with a confirm.
+   - Glance: how many run, how many fail.
+10. Inbox
+   - Warm replies waiting: who, what they wrote, the proposed time in their zone, the draft. Approve opens the draft in a textarea and sends an edit as `body`. Drop asks to confirm.
+   - Glance: how many wait.
+
+Out of Phase 2:
+- kit.css to zero (Phase 3).
+- Email draft review: nothing waits, because compose approves.
+- A client id on views. The console reads Wren's main database. A client's views route by `client` once client #1 runs outbound.
+- The form per handler.
+- CAC, LTV and churn. They read delivery invoices and fill in after the first paid month.
+
+### Done when (Phase 2)
+
+- Each app renders on the app host as the operator with prod numbers, checked by screenshot after deploy.
+- `EmailConsole` and `setLoop` refuse a non-operator with 403, and the worker refuses the demo. Approve, drop, pause, resume and `setLoop` pass tests on synthetic data. No write runs on prod during the build.
+- `./scripts/gates.sh` passes. Bundle sizes are noted here.
+- Map cards for ConsolePortal, the loop object and the email inbox name the new routes.
+
+## Phase 3 scope
+
+kit.css to zero. AppShell, PageHeader, Section, StatStrip, Card, the launcher and every remaining rule move to Tailwind and shadcn parts, keeping their names and props. Done when kit.css is deleted and the demo pages screenshot the same as before.
+
 ## Risks
 
 - Tailwind and `kit.css` side by side. Skipping preflight and moving component by component keeps both working. The risk ends when `kit.css` is empty.
 - Bundle size. Recharts adds roughly 100 KB gzipped and React Flow about 50 KB. Load chart and run pages lazily.
 - Look. shadcn's defaults are recognizable. The theme tokens and the impeccable finish review keep the portal looking like Wren's product.
+- The admin token on the Lambda can also remove deployments and kill calls. Accepted: the Lambda already runs every service, and the token sits in SSM with the rest.
 
 ## Decision log
 
@@ -162,3 +235,7 @@ Out of Phase 1: the Outbound, Money, Loops and Inbox apps (each a later phase on
   - `layoutOf` replaces `tracksOf`. `flow.ts` places every node in pixels and React Flow only draws. The graph sits at zoom 1 in a box as wide as the run; fitView runs before nodes are measured and would scale the text.
   - React Flow's attribution is hidden. Its MIT license allows that, but React Flow asks commercial users to pay for Pro. That's William's call.
   - Demo pages were checked with Playwright screenshots before and after, not by recording the demo video.
+- 2026-10-03: Pipeline checked on prod as the operator, signed in by email code. Phase 2 scoped:
+  - Loops come from one Restate admin query, not a key list per package. It covers all 39 objects, and any loop added later.
+  - Email draft review cut, since none wait.
+  - kit.css moved to Phase 3.
