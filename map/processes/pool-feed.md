@@ -1,7 +1,7 @@
 ---
 type: process
 status: verified
-verified: 2026-10-03 @ e2ebaa5
+verified: 2026-10-03 @ fb87ac1
 consumes: ["[[leads/company]]", "[[leads/person]]", "[[platform/settings]]"]
 produces: ["[[research/discovery-attempt]]", "[[research/document]]", "[[research/enrichment]]", "[[research/contact-candidate]]", "[[research/verification]]", "[[leads/lead]]"]
 ---

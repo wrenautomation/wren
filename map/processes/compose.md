@@ -1,7 +1,7 @@
 ---
 type: process
 status: verified
-verified: 2026-10-03 @ dd1d1b4
+verified: 2026-10-03 @ cbbe9ab
 consumes: ["[[leads/lead]]", "[[leads/person]]", "[[email/template]]", "[[email/sequence]]", "[[email/roster]]", "[[email/send-policy]]", "[[platform/offer]]"]
 produces: ["[[email/enrollment]]", "[[email/message]]"]
 ---

@@ -3,7 +3,7 @@ type: object
 cluster: research
 universe: live
 status: verified
-verified: 2026-10-03 @ 32ccf4b
+verified: 2026-10-03 @ 6ac5e6f
 entity: packages/channel-email/src/schema.ts:664
 ---
 

@@ -3,7 +3,7 @@ type: object
 cluster: leads
 universe: live
 status: verified
-verified: 2026-10-03 @ 3a7fb74
+verified: 2026-10-03 @ 7c65d59
 entity: packages/core/src/schema.ts:277
 ---
 
