@@ -211,8 +211,15 @@ One implementer per phase, from this doc. Commit and push each step.
 
 ### S4. Demo and product depth
 
-1. Product depth 1 to 3.
+1. Product depth 1 to 3. 1 and 2 shipped 10-03 (be17b46..1633b98). What's left, seen in S3's screenshots:
+   - Why call now reads as one plain sentence. "Moved to Osborne Interim Management in Sep 2025", not the profile's raw "Sep 2025 - Present (1 year) in Toronto, Ontario, Canada".
+   - A mover's Email field shows the new-firm address and its verdict. The old address goes under Where now, not a red "Invalid" on someone marked Call first.
 2. The demo rules. The list's size waits on William's yes.
+   - The Overview's Call first rows show each person's one-sentence reason.
+   - The banner goes. The top bar's "Demo" chip reads "Sample firm" and opens What's real.
+   - Replies, empty on the demo, offers a labeled walk-through of what happens when someone replies.
+   - Nothing on the demo host says an action only works elsewhere.
+3. Campaign names, not niche keys, in firm and reply rows: "Recruiting", not "recruiting".
 
 ## Done when
 
