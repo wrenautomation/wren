@@ -21,7 +21,7 @@ export const handlers: Module = {
         effects: "No handler spends, sends or posts.",
       },
       extras: (detail, { row }): RecordExtras => {
-        const { form } = detail as { form: FormField[] | null };
+        const form = (detail as { form?: FormField[] | null } | undefined)?.form ?? null;
         const id = String(row.id);
         const service = String(row.service);
         const handler = String(row.handler);

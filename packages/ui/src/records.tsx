@@ -81,7 +81,7 @@ export interface RecordSource {
   link?: { href: string | null; label: string } | null;
 }
 
-/** What a record's `detail` (its type's `load`) adds: lines under its fields, sections, sources. */
+/** What a record adds from its `detail` (its type's `load`, if any): lines under its fields, sections, sources. */
 export interface RecordExtras {
   /** What leads the details, before the fields: an email's draft. */
   lead?: ReactNode;
@@ -1095,7 +1095,8 @@ export function RecordBody({
       </div>
     );
   const { row, related, activity, detail } = got.data;
-  const more = detail && extras ? extras(detail, row) : {};
+  // A type with no `load` still gets its extras, with no detail.
+  const more = extras ? extras(detail, row) : {};
   const sources = more.sources ?? [];
   const cite: CiteTo = {
     order: sources.map((s) => s.mark.toLowerCase()),
