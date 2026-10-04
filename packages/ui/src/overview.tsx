@@ -102,7 +102,7 @@ export function RecordOverview({ title, api, tiles, top = [] }: OverviewProps) {
   return (
     <div className={cn(ROOT, "mx-auto grid w-full max-w-[1200px] gap-8")}>
       <h1 className="text-[20px] leading-7 font-semibold tracking-[-0.01em]">{title}</h1>
-      <div className="grid grid-cols-[repeat(auto-fill,minmax(220px,1fr))] gap-px p-px">
+      <div className="grid grid-cols-2 gap-px p-px sm:grid-cols-[repeat(auto-fill,minmax(220px,1fr))]">
         {tiles.map((t) => {
           const meta = metaOf(t.record);
           return meta ? (
@@ -176,7 +176,7 @@ function Tile({ tile, meta, api }: { tile: OverviewTile; meta: RecordMeta; api: 
       href={tileHref(tile, meta)}
       className={cn(TILE, "text-(--ui-ink) no-underline hover:bg-(--ui-wash)")}
     >
-      <span className="flex items-baseline justify-between gap-2 text-[13px] text-(--ui-ink-2)">
+      <span className="flex flex-wrap items-baseline justify-between gap-x-2 text-[13px] text-(--ui-ink-2)">
         <span className="font-medium text-(--ui-ink)">{tile.label}</span>
         <span>{period ? periodName(period) : "Now"}</span>
       </span>

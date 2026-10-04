@@ -119,7 +119,7 @@ export function AiSpend() {
   return (
     <a
       href={`/money/spend?view=this_month&${AI_SPEND}`}
-      className="mr-2 text-[13px] text-(--ui-ink-2) hover:text-(--ui-ink)"
+      className="mr-2 text-[13px] whitespace-nowrap text-(--ui-ink-2) hover:text-(--ui-ink)"
     >
       AI spend this month: <span className="font-medium text-(--ui-ink)">{amount}</span>
     </a>

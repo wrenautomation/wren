@@ -260,7 +260,7 @@ export const modelRecord = defineRecord({
     outputTokens: number("Tokens out"),
     rejectedCalls: number("Rejected"),
     parseFailures: number("Unparsed"),
-    age: status(AGES, "Month"),
+    age: status(AGES, "When"),
   },
   views: [
     { id: "this_month", label: "This month", where: { age: "this_month" }, sort: "-calls" },
