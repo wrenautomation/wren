@@ -1363,7 +1363,7 @@ function Related({
             <th
               key={f.key}
               className={cn(
-                "h-8 truncate border-b border-(--ui-hair) px-2 font-medium first:pl-0",
+                "h-8 truncate border-b border-(--ui-hair) px-2 font-medium first:w-1/2 first:pl-0",
                 f.column?.align === "end" ? "text-right" : "text-left",
               )}
             >
@@ -1379,9 +1379,10 @@ function Related({
               <td
                 key={f.key}
                 className={cn(
-                  "truncate px-2 first:pl-0",
+                  "px-2 first:pl-0",
                   f.column?.align === "end" ? "text-right" : "text-left",
-                  i > 0 && "text-(--ui-ink-2)",
+                  // The title wraps: a cut-off name or copy line says nothing.
+                  i > 0 ? "truncate text-(--ui-ink-2)" : "py-2 break-words",
                 )}
               >
                 <FieldCell field={f} cell={r[f.key]} />
