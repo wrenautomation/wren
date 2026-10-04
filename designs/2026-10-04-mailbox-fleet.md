@@ -26,7 +26,7 @@ The Lambda pulls the parameter at cold start beside the roster: `loadSsmFile(WRE
 Two optional keys per sender in `senders_config.toml`:
 
 ```toml
-[[sender]]
+[[senders]]
 address = "william@getwrenautomation.com"
 display_name = "William Jin"
 transport = "smtp"                       # default "gmail"
