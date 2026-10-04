@@ -352,7 +352,8 @@ const ROLE_LIST = sql.raw(
  * HTML lives in the pages bucket, out of SQL's reach). `checks` and `verified`
  * fold `lead_checks`: yes = mail ok, firm domain, works there, and the mailbox
  * fits the name (or is a role inbox); wrong person = the mailbox fits someone
- * else or they moved on; else partial.
+ * else or they moved on; else partial. The newest verdict is two index lookups
+ * (by lead, by candidate), never an OR: the OR scanned all of verifications per row.
  */
 export const leadSheet = pgView("lead_sheet", {
   leadId: integer("lead_id"),
@@ -402,9 +403,13 @@ FROM leads l
 LEFT JOIN companies c ON c.id = l.company_id
 LEFT JOIN LATERAL (SELECT cc.person_id FROM contact_candidates cc WHERE cc.lead_id = l.id ORDER BY cc.id DESC LIMIT 1) cand ON true
 LEFT JOIN people p ON p.id = cand.person_id
-LEFT JOIN LATERAL (SELECT vv.result, vv.checked_at FROM verifications vv
-  WHERE vv.lead_id = l.id OR vv.contact_candidate_id IN (SELECT cc.id FROM contact_candidates cc WHERE cc.lead_id = l.id)
-  ORDER BY vv.checked_at DESC, vv.id DESC LIMIT 1) v ON true
+LEFT JOIN LATERAL (SELECT x.result, x.checked_at FROM (
+  (SELECT vv.result, vv.checked_at, vv.id FROM verifications vv WHERE vv.lead_id = l.id
+    ORDER BY vv.checked_at DESC, vv.id DESC LIMIT 1)
+  UNION ALL
+  (SELECT vv.result, vv.checked_at, vv.id FROM contact_candidates cc JOIN verifications vv ON vv.contact_candidate_id = cc.id
+    WHERE cc.lead_id = l.id ORDER BY vv.checked_at DESC, vv.id DESC LIMIT 1)
+  ) x ORDER BY x.checked_at DESC, x.id DESC LIMIT 1) v ON true
 CROSS JOIN LATERAL (SELECT
   CASE WHEN split_part(split_part(lower(l.email), '@', 1), '+', 1) IN (${ROLE_LIST}) THEN 'role' ELSE 'person' END AS email_type,
   CASE v.result WHEN 'valid' THEN 'ok' WHEN 'risky' THEN 'risky' WHEN 'catch_all' THEN 'risky' WHEN 'invalid' THEN 'bad' ELSE 'unchecked' END AS mail_status) m
