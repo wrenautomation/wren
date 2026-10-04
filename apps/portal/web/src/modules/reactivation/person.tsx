@@ -45,7 +45,8 @@ export const personExtras: NonNullable<ListPage["extras"]> = (detail, { client, 
   const facts: [string, ReactNode][] = [];
   if (d.email) facts.push(["Email", address(d.email)]);
   if (where) facts.push(["Where now", where]);
-  if (d.oldEmail) facts.push(["Old email", address(d.oldEmail)]);
+  // The address at the firm they left: no verdict, a dead one there is expected.
+  if (d.oldEmail) facts.push(["Old email", d.oldEmail.address]);
   facts.push(["Company hiring", d.hiring ? `${num(d.hiring.count)} open roles` : "Nothing found"]);
   if (placed) facts.push(["Last placement", month(placed)]);
   if (d.reasons.length) facts.push(["Why this score", d.reasons.map((r) => r.reason).join(" · ")]);

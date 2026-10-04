@@ -20,7 +20,7 @@ import { briefLine, failedLine } from "./feed.js";
 import { type BriefState, briefs } from "./schema.js";
 import { hiringFinding, LATEST_CRM_ROW, startedIn, whereFinding } from "./score.js";
 
-export const BRIEF_VERSION = "v5";
+export const BRIEF_VERSION = "v6";
 export const STAGE_NAME = "reactivation_brief";
 const MAX_TOKENS = 2000;
 const MAX_SENTENCES = 4;
@@ -272,13 +272,17 @@ function factText(f: Fact, firm: string): string {
   }
 }
 
+/** "2025-04-01" as a person says it: "Apr 2025". */
+const monthOf = (day: string) =>
+  new Date(day).toLocaleDateString("en-US", { month: "short", year: "numeric", timeZone: "UTC" });
+
 function crmText(c: CrmRow): string {
   const parts = [
     c.owner && `owner ${c.owner}`,
     c.status && `status ${c.status}`,
-    c.contacted && `last contacted ${c.contacted}`,
-    c.placed && `last placement ${c.placed}`,
-    c.added && `added ${c.added}`,
+    c.contacted && `last contacted ${monthOf(c.contacted)}`,
+    c.placed && `last placement ${monthOf(c.placed)}`,
+    c.added && `added ${monthOf(c.added)}`,
   ].filter(Boolean);
   return `CRM record: ${parts.length ? parts.join("; ") : "no dates or owner"}`;
 }
