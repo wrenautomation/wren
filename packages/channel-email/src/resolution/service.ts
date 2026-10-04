@@ -805,57 +805,50 @@ export async function selectNewResolutionTargets(
         WHERE p.id = c.person_id AND co.niche = ${opts.niche})`
     : sql``;
   const rows = await db.execute(sql`
-    WITH queued AS (
-      SELECT c.id, c.domain, c.person_id, c.email, c.evidence, c.pattern
-      FROM contact_candidates c WHERE c.state = 'queued' ${niche}),
-    domains AS (SELECT DISTINCT domain FROM queued),
-    at_domains AS (
-      SELECT x.* FROM contact_candidates x WHERE x.domain IN (SELECT domain FROM domains)),
-    verdicts AS (
-      SELECT x.domain, x.id AS candidate_id, x.evidence, v.verifier, v.result, v.raw,
-        v.result = 'risky' AND v.checked_at > now() - ${wait} AS waiting
-      FROM verifications v JOIN at_domains x ON x.id = v.contact_candidate_id),
-    -- Discovery spend, as domainKnowledge counts it.
-    spent AS (
-      SELECT domain, count(*) AS n FROM verdicts
-      WHERE evidence <> 'scraped' AND verifier <> 'local' AND result <> 'risky'
-        AND raw->>'authoritative' = 'true'
-      GROUP BY domain),
-    -- The proven pattern, as domainKnowledge picks it.
-    proven AS (
-      SELECT DISTINCT ON (domain) domain, pattern FROM at_domains
-      WHERE pattern IS NOT NULL
-        AND ((evidence = 'scraped' AND state <> 'rejected') OR state = 'verified')
-      ORDER BY domain, (state = 'verified') DESC, id),
-    -- Its own risky verdicts, and any lead's that says the server turned us away.
-    waiting AS (SELECT domain FROM verdicts WHERE waiting UNION ${waitingDomains()}),
-    -- Its own verdict still stands (a stub's, or a risky one not yet due).
-    standing AS (SELECT DISTINCT candidate_id FROM verdicts WHERE waiting OR result <> 'risky'),
-    -- Same address verified for someone else: a person decides whose mailbox it is.
-    taken_emails AS (SELECT DISTINCT email FROM at_domains WHERE state = 'verified'),
-    resolved AS (SELECT DISTINCT person_id FROM at_domains WHERE state = 'verified')
-    -- Anti-joins, not NOT IN over CTEs: those ran as nested loops (90s on prod).
-    SELECT q.domain FROM queued q
-    LEFT JOIN proven p ON p.domain = q.domain
-    LEFT JOIN spent s ON s.domain = q.domain
-    LEFT JOIN waiting w ON w.domain = q.domain
-    LEFT JOIN standing st ON st.candidate_id = q.id
-    LEFT JOIN taken_emails te ON te.email = q.email
-    LEFT JOIN resolved r ON r.person_id = q.person_id
-    WHERE w.domain IS NULL AND st.candidate_id IS NULL
-      AND te.email IS NULL AND r.person_id IS NULL
-      AND (
-        q.evidence = 'scraped'
-        OR q.pattern = p.pattern
-        OR (p.pattern IS NULL AND coalesce(s.n, 0) < ${budget}))
-      -- Known catch-all from any verdict at the domain (a lead's too): the walk has nothing to ask.
-      -- NOT IN, not a correlated NOT EXISTS: Postgres hashes it once (NOT EXISTS ran minutes).
-      AND q.domain NOT IN (
-        SELECT split_part(${verifications.email}, '@', 2) FROM ${verifications}
-        WHERE ${verifications.result} = 'catch_all' AND ${authoritativeRaw}
-          AND ${verifications.email} IS NOT NULL)
-    GROUP BY q.domain
-    ORDER BY min(q.id)
+    WITH domains AS (
+      SELECT DISTINCT c.domain FROM contact_candidates c WHERE c.state = 'queued' ${niche}),
+    -- Domain facts once per domain. Per-candidate checks below are NOT EXISTS on indexed
+    -- base tables: anti-joins against CTE aggregates got misestimated to one row and ran
+    -- as nested loops (5s per tick on prod).
+    facts AS (
+      SELECT d.domain,
+        -- The proven pattern, as domainKnowledge picks it.
+        (SELECT x.pattern FROM contact_candidates x
+          WHERE x.domain = d.domain AND x.pattern IS NOT NULL
+            AND ((x.evidence = 'scraped' AND x.state <> 'rejected') OR x.state = 'verified')
+          ORDER BY (x.state = 'verified') DESC, x.id LIMIT 1) AS proven,
+        -- Discovery spend, as domainKnowledge counts it.
+        (SELECT count(*) FROM contact_candidates x JOIN verifications v ON v.contact_candidate_id = x.id
+          WHERE x.domain = d.domain AND x.evidence <> 'scraped' AND v.verifier <> 'local'
+            AND v.result <> 'risky' AND v.raw->>'authoritative' = 'true') AS spent
+      FROM domains d
+      -- Its own risky verdicts, and any lead's that says the server turned us away.
+      WHERE NOT EXISTS (
+          SELECT 1 FROM contact_candidates x JOIN verifications v ON v.contact_candidate_id = x.id
+          WHERE x.domain = d.domain AND v.result = 'risky' AND v.checked_at > now() - ${wait})
+        AND d.domain NOT IN ${waitingDomains()}
+        -- Known catch-all from any verdict at the domain (a lead's too): the walk has nothing to ask.
+        -- NOT IN, not a correlated NOT EXISTS: Postgres hashes it once (NOT EXISTS ran minutes).
+        AND d.domain NOT IN (
+          SELECT split_part(${verifications.email}, '@', 2) FROM ${verifications}
+          WHERE ${verifications.result} = 'catch_all' AND ${authoritativeRaw}
+            AND ${verifications.email} IS NOT NULL))
+    SELECT f.domain FROM facts f
+    CROSS JOIN LATERAL (
+      SELECT min(c.id) AS first FROM contact_candidates c
+      WHERE c.domain = f.domain AND c.state = 'queued' ${niche}
+        AND (c.evidence = 'scraped' OR c.pattern = f.proven OR (f.proven IS NULL AND f.spent < ${budget}))
+        -- Its own verdict still stands (a stub's, or a risky one not yet due).
+        AND NOT EXISTS (SELECT 1 FROM verifications v WHERE v.contact_candidate_id = c.id
+          AND (v.result <> 'risky' OR v.checked_at > now() - ${wait}))
+        -- Same address verified for someone else: a person decides whose mailbox it is.
+        AND NOT EXISTS (SELECT 1 FROM contact_candidates t
+          WHERE t.domain = c.domain AND t.email = c.email AND t.state = 'verified')
+        -- Person already resolved here.
+        AND NOT EXISTS (SELECT 1 FROM contact_candidates r
+          WHERE r.person_id = c.person_id AND r.domain = c.domain AND r.state = 'verified')) q
+    WHERE q.first IS NOT NULL
+    ORDER BY q.first
     LIMIT ${opts.limit}
   `);
   return rows.map((r) => String((r as { domain: string }).domain));

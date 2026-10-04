@@ -524,10 +524,15 @@ export function serveRecords(types: readonly RecordType[], db: Queryable, mask?:
         const zone =
           typeof ask.zone === "string" ? canonicalZone(ask.zone) : ask.zone ? null : "UTC";
         if (!zone) throw new BadAsk("no such time zone");
-        // A bare day ("2026-03-10") starts at midnight in `zone`, not at UTC's.
-        const atText = sql`(${ref(atField.from ?? "")})::text`;
-        const at = sql`(case when ${atText} ~ ${BARE_DAY} then ${atText}::timestamp at time zone ${zone}
-          else ${atText}::timestamptz end)`;
+        // A bare day ("2026-03-10") starts at midnight in `zone`, not at UTC's. Branch on the
+        // column's type: the text round trip on every row cost ~4x on timestamp columns.
+        const col = ref(atField.from ?? "");
+        const atText = sql`(${col})::text`;
+        const at = sql`(case pg_typeof(${col})
+          when 'timestamptz'::regtype then (${col})::timestamptz
+          when 'date'::regtype then (${col})::date::timestamp at time zone ${zone}
+          else (case when ${atText} ~ ${BARE_DAY}
+            then ${atText}::timestamp at time zone ${zone} else ${atText}::timestamptz end) end)`;
         const ts = (d: Date) => bind(d.toISOString(), "timestamptz");
         const from = await source(p.t);
         const stat = (
