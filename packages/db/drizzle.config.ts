@@ -11,6 +11,7 @@ export default defineConfig({
     "../research/src/schema.ts",
     "../channel-email/src/schema.ts",
     "../channel-email/src/views.ts",
+    "../channel-email/src/record-views.ts",
     "../content/src/schema.ts",
     "../channel-meta/src/schema.ts",
     "../channel-sms/src/schema.ts",

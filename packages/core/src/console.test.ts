@@ -142,3 +142,25 @@ describe("ConsolePortal loops", () => {
     );
   });
 });
+
+describe("ConsolePortal records", () => {
+  const recs = consoleApi({ main, views: [], admin: async () => ADMIN_ROWS });
+  const record = "console.loop";
+
+  it("refuses the demo and clients on every records route", async () => {
+    for (const viewer of [{ demo: true as const }, { email: "amy@acme.test" }]) {
+      await refused(recs.recordsTypes({ viewer }), 403);
+      await refused(recs.recordsList({ viewer, record }), 403);
+      await refused(recs.recordsGet({ viewer, record, id: "Tick/a" }), 403);
+      await refused(recs.recordsExport({ viewer, record }), 403);
+      await refused(recs.recordsStats({ viewer, record, period: 7 }), 403);
+    }
+    await refused(recs.recordsList({ viewer: operator, asClient: true, record }), 403);
+  });
+
+  it("lists the loops as a record for the team, with start and stop", async () => {
+    const [loop] = await recs.recordsTypes({ viewer: operator });
+    expect(loop).toMatchObject({ id: record, actions: ["console.startLoop", "console.stopLoop"] });
+    expect(await consoleApi({ main, views: [] }).recordsTypes({ viewer: operator })).toEqual([]);
+  });
+});

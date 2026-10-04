@@ -104,9 +104,11 @@ describe("routes", () => {
   it("the first part names the service", async () => {
     await worker.fetch(post("demo.test", "delivery/home"), env());
     await worker.fetch(post("demo.test", "reactivation/overview"), env());
+    await worker.fetch(post("demo.test", "console/recordsStats"), env());
     expect(restate.map((r) => r.url)).toEqual([
       "https://restate.test:8080/DeliveryPortal/home",
       "https://restate.test:8080/ReactivationPortal/overview",
+      "https://restate.test:8080/ConsolePortal/recordsStats",
     ]);
   });
 

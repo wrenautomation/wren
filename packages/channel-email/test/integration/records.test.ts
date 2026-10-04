@@ -1,0 +1,167 @@
+/**
+ * Wren's email records over the migrated schema and synthetic rows: one firm enrolled, sent,
+ * replied to and bounced; one with only a domain; one declined. Each type's saved views count
+ * what they say, and the inbox and campaign rows read the roster and policy they were built from.
+ */
+import { loadSettings } from "@wren/config";
+import { serveRecords } from "@wren/core/records/serve";
+import { startTestPostgres, type TestPostgres } from "@wren/db/testing";
+import { eq, sql } from "drizzle-orm";
+import { afterAll, beforeAll, describe, expect, it } from "vitest";
+import { pause } from "../../src/inbox/health.js";
+import { emailRecords } from "../../src/records.js";
+import { callInvites, enrollments, messages, threadEvents } from "../../src/schema.js";
+import { SendPolicy } from "../../src/send/policy.js";
+import type { Sender } from "../../src/send/roster.js";
+import { transitionMessage } from "../../src/state.js";
+import { makeCompany, makePerson, messagesOf, runCompose, SENDER } from "./compose-fixtures.js";
+
+const OTHER = "pat@other-domain.test";
+const sender = (address: string): Sender => ({
+  address,
+  niches: null,
+  excludedNiches: [],
+  suspended: false,
+  displayName: null,
+  signature: null,
+});
+const ROSTER = [sender(SENDER), sender(OTHER)];
+const policyOf = (env: Record<string, string> = {}) =>
+  SendPolicy.fromSettings(loadSettings({ WREN_DATABASE_URL: "postgresql://x", ...env }));
+
+let pg: TestPostgres;
+const today = new Date();
+const MONTH_AGO = new Date(Date.UTC(today.getUTCFullYear(), today.getUTCMonth() - 1, 15));
+const call = (at: Date) => ({
+  model: "test-model",
+  call: { provider: "test", usage: { input: 10, output: 2 } },
+  classified_at: at.toISOString(),
+});
+
+beforeAll(async () => {
+  pg = await startTestPostgres();
+  const db = pg.db;
+  const now = new Date();
+  const oak = await makeCompany(db, { domain: "oak.example", name: "Oak Advisors" });
+  await makePerson(db, oak, { email: "jane@oak.example" });
+  await db.execute(sql`update leads set first_name = 'Jane'`);
+  await runCompose(db, { autoApprove: true });
+  await makeCompany(db, { domain: "elm.example", name: "Elm Advisors" });
+  const ash = await makeCompany(db, { domain: "ash.example", name: "Ash Advisors" });
+  await db.execute(sql`update companies set decline_reason = 'not a fit' where id = ${ash.id}`);
+
+  const [enrollment] = await db.select().from(enrollments).where(eq(enrollments.companyId, oak.id));
+  if (!enrollment) throw new Error("compose enrolled nobody");
+  const [opener] = await messagesOf(db, enrollment);
+  if (!opener) throw new Error("no opener");
+  await db
+    .update(messages)
+    .set({
+      state: transitionMessage(transitionMessage(opener.state, "sending"), "sent"),
+      messageId: "<oak@test>",
+      threadId: "t-oak",
+      sentAt: now,
+    })
+    .where(eq(messages.id, opener.id));
+  const event = (kind: "reply" | "bounce", at: Date) => ({
+    enrollmentId: enrollment.id,
+    kind,
+    gmailId: `g-${kind}`,
+    gmailThreadId: "t-oak",
+    headers: {},
+    fromAddress: "jane@oak.example",
+    snippet: `a ${kind}`,
+    bodyText: `a ${kind}`,
+    receivedAt: at,
+    classification: call(at),
+    ...(kind === "reply"
+      ? { disposition: "interested" as const, dispositionSource: "llm" as const }
+      : { bounceClass: "hard" as const }),
+  });
+  const [reply] = await db.insert(threadEvents).values(event("reply", now)).returning();
+  await db.insert(threadEvents).values(event("bounce", MONTH_AGO));
+  if (!reply) throw new Error("no reply");
+  await db.insert(callInvites).values({
+    threadEventId: reply.id,
+    enrollmentId: enrollment.id,
+    state: "proposed",
+    email: "jane@oak.example",
+    detail: "asked for Tuesday",
+  });
+  await pause(db, { target: OTHER, reason: "testing", by: "test", now, senders: [OTHER] });
+});
+afterAll(() => pg.stop());
+
+const serve = (policy = policyOf()) => serveRecords(emailRecords(ROSTER, policy), pg.db);
+
+describe("email records", () => {
+  it("a campaign: what went out and came back, its state and kill switch from the policy", async () => {
+    const page = await serve().list({ record: "email.campaign", view: "all" });
+    expect(page.rows).toMatchObject([
+      {
+        id: "sec_ria",
+        sent: 1,
+        replies: 1,
+        replyRate: { n: 1, of: 1 },
+        bounces: { n: 1, of: 1 },
+        state: "opening",
+        killSwitch: "on",
+      },
+    ]);
+    const held = serve(
+      policyOf({ WREN_NICHE_OPENERS_PER_DAY: "sec_ria=0", WREN_KILL_SWITCH_OFF_FOR: "sec_ria" }),
+    );
+    const one = await held.get({ record: "email.campaign", id: "sec_ria" });
+    expect(one.row).toMatchObject({ state: "follow_ups", killSwitch: "off" });
+    expect(one.related).toEqual([
+      { record: "email.firm", count: 3 },
+      { record: "email.reply", count: 1 },
+    ]);
+  });
+
+  it("an inbox: sending or paused, today's sends against the cap", async () => {
+    const policy = policyOf();
+    const page = await serve(policy).list({ record: "email.inbox", view: "sending" });
+    expect(page.counts).toEqual({ sending: 1, paused: 1, all: 2 });
+    expect(page.rows).toMatchObject([
+      { id: SENDER, sentToday: 1, cap: policy.perInboxCap(new Date()), state: "sending" },
+    ]);
+    const paused = await serve(policy).list({ record: "email.inbox", view: "paused" });
+    expect(paused.rows).toMatchObject([{ id: OTHER, reason: "testing", health: "quiet" }]);
+  });
+
+  it("a reply waiting on William, with its thread", async () => {
+    const page = await serve().list({ record: "email.reply", view: "waiting" });
+    expect(page.counts).toEqual({ waiting: 1, booked: 0, all: 1 });
+    expect(page.rows).toMatchObject([
+      { who: "Jane Doe", state: "proposed", campaign: "sec_ria", words: "a reply" },
+    ]);
+    const one = await serve().get({ record: "email.reply", id: String(page.rows[0]?.id) });
+    expect(one.activity?.map((a) => a.kind).sort()).toEqual(["bounce", "reply", "sent"]);
+  });
+
+  it("firms, one view per pipeline stage", async () => {
+    const page = await serve().list({ record: "email.firm", view: "in_play" });
+    expect(page.counts).toEqual({
+      in_play: 2,
+      with_domain: 2,
+      crawled: 0,
+      named: 1,
+      lead: 1,
+      declined: 1,
+    });
+    const lead = await serve().list({ record: "email.firm", view: "lead" });
+    expect(lead.rows).toMatchObject([{ stage: "lead", domain: "oak.example" }]);
+  });
+
+  it("model usage by month", async () => {
+    const page = await serve().list({ record: "email.model", view: "this_month" });
+    expect(page.counts).toMatchObject({ this_month: 1, last_month: 1, all: 2 });
+    expect(page.rows).toMatchObject([{ model: "test-model", calls: 1, inputTokens: 10 }]);
+  });
+
+  it("stats: replies waiting, this week", async () => {
+    const s = await serve().stats({ record: "email.reply", view: "waiting", period: 7 });
+    expect([s.value, s.prior]).toEqual([1, 0]);
+  });
+});

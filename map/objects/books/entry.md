@@ -34,7 +34,7 @@ Citations: `packages/books/src/schema.ts:391`, `:429`, `:34`, `:371`, `packages/
 
 ## If you change this
 
-- **Hits:** `planLines`, `post` (`packages/books/src/post.ts:38`, `:105`), `bocRate` (`packages/books/src/rates.ts:38`), the triggers, `bill_costs` and `spend`
+- **Hits:** `planLines`, `post` (`packages/books/src/post.ts:38`, `:105`), `bocRate` (`packages/books/src/rates.ts:38`), the triggers, `bill_costs` and `spend`; `books.spend_records` and `books.subscription_records` (console records, migration 0061)
 - **Does not hit:** capture and reading (they never touch the journal)
 
 ## Surfaces

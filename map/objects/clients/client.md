@@ -32,7 +32,7 @@ Citations: `packages/core/src/clients/schema.ts:18`, `packages/core/src/clients/
 
 ## If you change this
 
-- **Hits:** `wren clients` (`apps/cli`), the worker's per-client db pool and key routing (`apps/worker/src/services.ts:261`), the portal's login check, every product's settings parser
+- **Hits:** `wren clients` (`apps/cli`), the worker's per-client db pool and key routing (`apps/worker/src/services.ts:261`), the portal's login check, every product's settings parser; `client_records` (the `console.client` record, migration 0061)
 - **Does not hit:** Wren's own campaign (bare keys, main database)
 
 ## Surfaces

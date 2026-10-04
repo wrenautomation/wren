@@ -7,10 +7,12 @@
  * With a mask (the demo), every row, detail and CSV cell goes through it, and filters are only
  * those `allowed` leaves: no masked field, no substring match, no value the mask would rewrite.
  * A hit on a name would say who is on the list.
+ *
+ * A type with `rows` instead of a view (loops, inboxes) is read once per request and queried
+ * as a table of text columns, cast by kind like any view's.
  */
 import type { Queryable } from "@wren/db";
 import { type SQL, sql } from "drizzle-orm";
-import { toCsv } from "./console.js";
 import { PortalRefusal } from "./portal.js";
 import {
   allowed,
@@ -26,6 +28,7 @@ import {
   type RecordType,
   sortOf,
 } from "./records.js";
+import { canonicalZone, wallClock, zonedInstant } from "./time.js";
 
 export type Mask = <T>(v: T) => T;
 export type Row = { id: string | number } & Record<string, Cell>;
@@ -80,6 +83,38 @@ export interface RecordsCsv {
   capped: boolean;
 }
 
+/** How many days a stat's period spans back (today counts), or the calendar month so far. */
+export type Period = number | "month";
+export interface StatsAsk extends ExportAsk {
+  /** A date field; absent, the view's `at`. */
+  at?: string;
+  period: Period;
+  /** A number or money field to add up; absent, rows are counted. */
+  sum?: string;
+  /** The IANA zone days start in; UTC when absent. */
+  zone?: string;
+}
+export interface RecordsStat {
+  record: string;
+  view: string | null;
+  /** This period so far. */
+  value: number;
+  /** The same stretch of the period before: last week to this hour, not all of last week. */
+  prior: number;
+  /** Each day of this period so far, oldest first: the day's start and its value. */
+  series: { at: string; value: number }[];
+  /** A money sum's currency; null otherwise or with no rows. */
+  currency: string | null;
+}
+
+type CsvCell = string | number | boolean | null;
+const csvCell = (v: CsvCell) => {
+  const s = v === null ? "" : String(v);
+  return /[",\r\n]/.test(s) ? `"${s.replaceAll('"', '""')}"` : s;
+};
+export const toCsv = ({ columns, rows }: { columns: string[]; rows: CsvCell[][] }): string =>
+  [columns, ...rows].map((r) => r.map(csvCell).join(",")).join("\r\n");
+
 const PAGE = 50;
 const MAX_LIMIT = 200;
 /** Like ConsolePortal's cap on a view. */
@@ -87,6 +122,35 @@ export const MAX_EXPORT = 5000;
 const MAX_Q = 100;
 const MAX_CURSOR = 1000;
 const ACTIVITY = 50;
+const MAX_DAYS = 92;
+
+/** Midnight in `zone` of a calendar day; the day may run past its month either way. */
+const midnight = (zone: string, year: number, month: number, day: number): Date => {
+  const d = new Date(Date.UTC(year, month - 1, day));
+  return zonedInstant(zone, d.getUTCFullYear(), d.getUTCMonth() + 1, d.getUTCDate());
+};
+
+/**
+ * A stat's windows at `now`: this period from its first midnight in `zone`, and the period
+ * before cut to the same length, so a half-elapsed today meets a half-elapsed day.
+ * ponytail: the cut is in hours, so across a DST change the prior stretch is an hour off.
+ */
+export function statWindows(period: Period, zone: string, now: Date) {
+  const { year, month, day } = wallClock(zone, now);
+  const first = period === "month" ? 1 : day - period + 1;
+  const days = Array.from({ length: period === "month" ? day : period }, (_, i) =>
+    midnight(zone, year, month, first + i),
+  );
+  const from = days[0] as Date;
+  const priorFrom =
+    period === "month"
+      ? midnight(zone, year, month - 1, 1)
+      : midnight(zone, year, month, first - period);
+  const priorTo = new Date(
+    Math.min(priorFrom.getTime() + now.getTime() - from.getTime(), from.getTime()),
+  );
+  return { from, priorFrom, priorTo, days };
+}
 
 type Cast = "text" | "numeric" | "timestamptz";
 const ref = (column: string) => sql`r.${sql.identifier(column)}`;
@@ -198,18 +262,15 @@ function cellOf(f: Field, raw: Raw): Cell {
 }
 
 /** The view's columns a type reads: its key and every field's. */
-const columnsOf = (type: RecordType): SQL =>
-  sql.join(
-    [
-      ...new Set([
-        type.key,
-        ...Object.values(type.fields).flatMap((f) =>
-          [f.from, f.domain, f.currency, f.of].filter((c): c is string => !!c),
-        ),
-      ]),
-    ].map(ref),
-    sql`, `,
-  );
+const namesOf = (type: RecordType): string[] => [
+  ...new Set([
+    type.key,
+    ...Object.values(type.fields).flatMap((f) =>
+      [f.from, f.domain, f.currency, f.of].filter((c): c is string => !!c),
+    ),
+  ]),
+];
+const columnsOf = (type: RecordType): SQL => sql.join(namesOf(type).map(ref), sql`, `);
 
 /** A cursor: the sort it was made under, whether the sort value was null, that value, the key. */
 type Cursor = [sort: string, isNull: boolean, value: string | null, key: string];
@@ -251,6 +312,21 @@ export function serveRecords(types: readonly RecordType[], db: Queryable, mask?:
     for (const [k, f] of Object.entries(t.fields)) row[k] = cellOf(f, raw);
     return masked(row);
   };
+  const loaded = new Map<string, Promise<Raw[]>>();
+  /** What a type's rows are read from, as `r`: its view, or its own rows as a table. */
+  async function source(t: RecordType): Promise<SQL> {
+    if (t.view) return sql`${viewSql(t.view)} r`;
+    const rows = loaded.get(t.id) ?? t.rows?.(db) ?? Promise.resolve([]);
+    loaded.set(t.id, rows);
+    const pointedBy = types.flatMap((x) =>
+      (x.related ?? []).filter((r) => r.record === t.id).map((r) => r.by),
+    );
+    const columns = [...new Set([...namesOf(t), ...pointedBy])];
+    return sql`jsonb_to_recordset(${JSON.stringify(await rows)}::jsonb) r(${sql.join(
+      columns.map((c) => sql`${sql.identifier(c)} text`),
+      sql`, `,
+    )})`;
+  }
 
   /** Everything a list or export asks, checked, as SQL. */
   function plan(ask: ExportAsk) {
@@ -331,7 +407,7 @@ export function serveRecords(types: readonly RecordType[], db: Queryable, mask?:
         const raw = await db.execute<Raw>(sql`
           select ${columnsOf(p.t)}, ${keyText(p.t)} "__key",
             ${p.by ? sql`(${p.by.expr})::text` : sql`null`} "__sort"
-          from ${viewSql(p.t.view)} r
+          from ${await source(p.t)}
           where ${p.base} and ${p.inView} and ${after}
           order by ${p.order}
           limit ${limit + 1}`);
@@ -345,7 +421,7 @@ export function serveRecords(types: readonly RecordType[], db: Queryable, mask?:
               ),
               sql`, `,
             )}
-          from ${viewSql(p.t.view)} r where ${p.base}`);
+          from ${await source(p.t)} where ${p.base}`);
         const page = raw.slice(0, limit);
         const last = raw.length > limit ? page.at(-1) : undefined;
         return {
@@ -370,14 +446,14 @@ export function serveRecords(types: readonly RecordType[], db: Queryable, mask?:
         const t = typeOf(ask.record);
         const id = idOf(ask.id);
         const [raw] = await db.execute<Raw>(sql`
-          select ${columnsOf(t)} from ${viewSql(t.view)} r
+          select ${columnsOf(t)} from ${await source(t)}
           where (${ref(t.key)})::text = ${id} limit 1`);
         if (!raw) throw new PortalRefusal(`no such ${t.name.one}`, 404);
         const related = [];
         for (const r of t.related ?? []) {
           const other = typeOf(r.record);
           const [c] = await db.execute<{ n: number }>(sql`
-            select count(*)::int n from ${viewSql(other.view)} r
+            select count(*)::int n from ${await source(other)}
             where (${ref(r.by)})::text = ${id}`);
           related.push({ record: other.id, count: Number(c?.n ?? 0) });
         }
@@ -407,7 +483,7 @@ export function serveRecords(types: readonly RecordType[], db: Queryable, mask?:
       guard(async () => {
         const p = plan(ask);
         const raw = await db.execute<Raw>(sql`
-          select ${columnsOf(p.t)} from ${viewSql(p.t.view)} r
+          select ${columnsOf(p.t)} from ${await source(p.t)}
           where ${p.base} and ${p.inView}
           order by ${p.order}
           limit ${MAX_EXPORT + 1}`);
@@ -418,6 +494,74 @@ export function serveRecords(types: readonly RecordType[], db: Queryable, mask?:
           csv: toCsv({ columns, rows }),
           rows: rows.length,
           capped: raw.length > MAX_EXPORT,
+        };
+      }),
+
+    /**
+     * A number for an Overview: rows (or a field's sum) whose date falls in this period so far,
+     * the same stretch before, and each day's. Filters as list does; it groups by day only, so
+     * no name rides out on a key.
+     */
+    stats: (ask: StatsAsk, now = new Date()): Promise<RecordsStat> =>
+      guard(async () => {
+        const p = plan(ask);
+        const fieldOf = (k: unknown) =>
+          typeof k === "string" && Object.hasOwn(p.t.fields, k) ? p.t.fields[k] : undefined;
+        const atField = fieldOf(ask.at ?? p.view?.at);
+        if (atField?.kind !== "date") throw new BadAsk(`say which date ${p.t.name.many} count by`);
+        const sumField = ask.sum === undefined ? null : fieldOf(ask.sum);
+        if (sumField !== null && sumField?.kind !== "number" && sumField?.kind !== "money")
+          throw new BadAsk(`${p.t.name.many} can't add that up`);
+        const { period } = ask;
+        if (
+          period !== "month" &&
+          !(
+            Number.isSafeInteger(period) &&
+            (period as number) >= 1 &&
+            (period as number) <= MAX_DAYS
+          )
+        )
+          throw new BadAsk(`period takes 1 to ${MAX_DAYS} days or "month"`);
+        const zone =
+          typeof ask.zone === "string" ? canonicalZone(ask.zone) : ask.zone ? null : "UTC";
+        if (!zone) throw new BadAsk("no such time zone");
+
+        const w = statWindows(period, zone, now);
+        const at = valueSql(atField);
+        const ts = (d: Date) => bind(d.toISOString(), "timestamptz");
+        const within = (a: Date, b: Date) => sql`(${at} >= ${ts(a)} and ${at} < ${ts(b)})`;
+        const agg = (when: SQL) =>
+          sumField
+            ? sql`coalesce(sum(${valueSql(sumField)}) filter (where ${when}), 0)`
+            : sql`count(*) filter (where ${when})`;
+        const both = sql`(${within(w.from, now)} or ${within(w.priorFrom, w.priorTo)})`;
+        const currency =
+          sumField?.kind === "money" ? ref(sumField.currency ?? "") : sql`null::text`;
+        const from = await source(p.t);
+        const [n] = await db.execute<Raw>(sql`
+          select ${agg(within(w.from, now))}::numeric "value",
+            ${agg(within(w.priorFrom, w.priorTo))}::numeric "prior",
+            count(distinct ${currency}) filter (where ${both})::int "currencies",
+            min(${currency}) filter (where ${both}) "currency"
+          from ${from} where ${p.base} and ${p.inView}`);
+        if (Number(n?.currencies ?? 0) > 1) throw new BadAsk(`${sumField?.label} mixes currencies`);
+        const days = await db.execute<Raw>(sql`
+          select width_bucket(${at}, array[${sql.join(w.days.map(ts), sql`, `)}]) "day",
+            ${agg(sql`true`)}::numeric "value"
+          from ${from} where ${p.base} and ${p.inView} and ${within(w.from, now)}
+          group by 1`);
+        const series = w.days.map((d) => ({ at: d.toISOString(), value: 0 }));
+        for (const d of days) {
+          const point = series[Number(d.day) - 1];
+          if (point) point.value = Number(d.value);
+        }
+        return {
+          record: p.t.id,
+          view: p.view?.id ?? null,
+          value: Number(n?.value ?? 0),
+          prior: Number(n?.prior ?? 0),
+          series,
+          currency: typeof n?.currency === "string" ? n.currency : null,
         };
       }),
   };

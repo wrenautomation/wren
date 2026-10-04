@@ -1,12 +1,13 @@
 /**
  * ConsolePortal's loops against a real Restate: `loops` reads every object with a `running` key
  * through the admin SQL, with its next scheduled call, and `setLoop` stops and starts one. A loop
- * the read didn't list, or a viewer who isn't Wren's team, is refused.
+ * the read didn't list, or a viewer who isn't Wren's team, is refused. The same rows are the
+ * `console.loop` record type, read through Postgres like any other.
  */
 import type * as restate from "@restatedev/restate-sdk";
 import * as clients from "@restatedev/restate-sdk-clients";
 import { RestateTestEnvironment } from "@restatedev/restate-sdk-testcontainers";
-import type { Db } from "@wren/db";
+import { startTestPostgres, type TestPostgres } from "@wren/db/testing";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { type LoopRow, makeConsolePortal, restateAdmin } from "../../src/console.js";
 import { LAST, makeLoopObject, type PassOutcome } from "../../src/restate/loop.js";
@@ -28,16 +29,18 @@ type Console = ReturnType<typeof makeConsolePortal>;
 
 const operator = { viewer: { email: "op@example.test", operator: true } };
 let env: RestateTestEnvironment;
+let pg: TestPostgres;
 const ingress = () => clients.connect({ url: env.baseUrl() });
 const consolePortal = () => ingress().serviceClient<Console>({ name: "ConsolePortal" });
 const tickOf = (key: string) => ingress().objectClient<Tick>({ name: "Tick" }, key);
 
 beforeAll(async () => {
+  pg = await startTestPostgres();
   env = await RestateTestEnvironment.start({
     services: [
       tick,
       makeConsolePortal({
-        main: {} as Db,
+        main: pg.db,
         views: [],
         admin: async (query) => restateAdmin(env.adminAPIBaseUrl())(query),
       }),
@@ -47,6 +50,7 @@ beforeAll(async () => {
 });
 afterAll(async () => {
   await env?.stop();
+  await pg?.stop();
 });
 
 /** Admin SQL reads lag the ingress a little: ask until `ok` holds. */
@@ -94,5 +98,30 @@ describe("ConsolePortal loops", () => {
       "that's for Wren's team",
     );
     expect((await tickOf("a").status()).running).toBe(true);
+  });
+
+  it("the loops as records: listed, filtered and gotten, team only", async () => {
+    await tickOf("b").start();
+    await loopsUntil((l) => one(l, "b")?.nextAt != null);
+    const record = "console.loop";
+    const all = await consolePortal().recordsList({ ...operator, record, view: "all" });
+    expect(all.rows.find((r) => r.id === "Tick/b")).toMatchObject({
+      service: "Tick",
+      key: "b",
+      state: "running",
+      health: "ok",
+      failures: 0,
+    });
+    expect(all.counts.failing).toBe(0);
+
+    await consolePortal().setLoop({ ...operator, service: "Tick", key: "b", run: false });
+    await loopsUntil((l) => one(l, "b")?.running === false);
+    const stopped = await consolePortal().recordsList({ ...operator, record, view: "stopped" });
+    expect(stopped.rows.map((r) => r.id)).toEqual(["Tick/b"]);
+    const got = await consolePortal().recordsGet({ ...operator, record, id: "Tick/b" });
+    expect(got.row).toMatchObject({ state: "stopped" });
+    await expect(consolePortal().recordsList({ viewer: { demo: true }, record })).rejects.toThrow(
+      "that's for Wren's team",
+    );
   });
 });

@@ -16,6 +16,7 @@ export const PORTAL_ROUTES = [
   "recordsList",
   "recordsGet",
   "recordsExport",
+  "recordsStats",
 ] as const;
 export type PortalRoute = (typeof PORTAL_ROUTES)[number];
 /** The ones that change a list: never cached, never on the demo. */

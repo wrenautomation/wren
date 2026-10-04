@@ -30,7 +30,7 @@ Citations: `packages/channel-email/src/schema.ts:172`
 
 ## If you change this
 
-- **Hits:** compose (`compose.ts:598`); the send walk's per-enrollment rule (`send/deliver.ts:190`); inbox sync's stop (`inbox/sync.ts`); the queue-keeper's capacity count (`restate/compose-scheduler.ts`); views `campaign_funnel`, `enrollment_outcomes`, `contact_outcomes`, `reply_by_arm_step` (`views.ts:153`, `:178`, `:222`, `:77`); the recycling gate (`recontact.ts:123`)
+- **Hits:** compose (`compose.ts:598`); the send walk's per-enrollment rule (`send/deliver.ts:190`); inbox sync's stop (`inbox/sync.ts`); the queue-keeper's capacity count (`restate/compose-scheduler.ts`); views `campaign_funnel`, `enrollment_outcomes`, `contact_outcomes`, `reply_by_arm_step` (`views.ts:153`, `:178`, `:222`, `:77`); the recycling gate (`recontact.ts:123`); the console views `email_campaign_records` and `email_reply_records` (migration 0061)
 - **Does not hit:** templates or facts; the roster
 
 ## Surfaces

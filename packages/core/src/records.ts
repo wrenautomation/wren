@@ -233,6 +233,8 @@ export interface SavedView {
   where?: Where;
   /** A sortable field, "-" first for descending: "-score". */
   sort?: string;
+  /** The date field its stats count by (`recordsStats`): "received". */
+  at?: string;
 }
 
 export interface RecordDecl<F extends Record<string, Draft>> {
@@ -240,7 +242,13 @@ export interface RecordDecl<F extends Record<string, Draft>> {
   id: string;
   name: { one: string; many: string };
   /** The SQL view behind it, one row per record. */
-  view: string;
+  view?: string;
+  /**
+   * Or its rows from outside the database (Restate's state, the roster), keyed by column like a
+   * view's. They are read once per request and queried as a table, so every filter, sort, page
+   * and count is the same SQL. For a few hundred rows, not thousands.
+   */
+  rows?: (db: Queryable) => Promise<Record<string, unknown>[]>;
   /** The view's unique column. */
   key: string;
   title: keyof F & string;
@@ -355,6 +363,7 @@ export function defineRecord<F extends Record<string, Draft>>(decl: RecordDecl<F
     fields[key] = { ...d, label: d.label ?? words(key), from: d.from ?? snake(key) };
   }
   const type: RecordType = { ...decl, fields };
+  if (!decl.view === !decl.rows) throw new Error(`${decl.id}: needs a view or rows, not both`);
   const columns = [
     decl.view,
     decl.key,
@@ -377,6 +386,8 @@ export function defineRecord<F extends Record<string, Draft>>(decl: RecordDecl<F
   for (const v of decl.views) {
     clausesOf(type, v.where);
     if (v.sort) sortOf(type, v.sort);
+    if (v.at !== undefined && fields[v.at]?.kind !== "date")
+      throw new Error(`${decl.id}: ${v.id} counts by ${v.at}, not a date field`);
   }
   return type;
 }

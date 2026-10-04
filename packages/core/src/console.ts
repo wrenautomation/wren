@@ -5,12 +5,40 @@
  *
  * Loops are core's: `loops` lists every object with a `running` key from Restate's admin SQL,
  * so a loop added later shows up with no list to update, and `setLoop` stops or starts one.
+ *
+ * Records (`./records.ts`) for the team: each package passes its types in, as with views, and
+ * the loops ride along as one more type, `console.loop`, read from Restate instead of a view.
  */
 import * as restate from "@restatedev/restate-sdk";
 import type { Db } from "@wren/db";
 import { sql } from "drizzle-orm";
 import { answer, PortalRefusal, type PortalRequest, seesInternal } from "./portal.js";
+import {
+  date,
+  defineRecord,
+  metaOf,
+  number,
+  type RecordMeta,
+  type RecordType,
+  status,
+  text,
+} from "./records.js";
+import {
+  type ExportAsk,
+  type GetAsk,
+  type ListAsk,
+  type RecordAnswer,
+  type RecordsApi,
+  type RecordsCsv,
+  type RecordsPage,
+  type RecordsStat,
+  type StatsAsk,
+  serveRecords,
+  toCsv,
+} from "./records-serve.js";
 import type { PassOutcome } from "./restate/loop.js";
+
+export { toCsv };
 
 export interface ViewRequest extends PortalRequest {
   view: string;
@@ -36,14 +64,6 @@ const cellOf = (v: unknown, numeric: boolean): Cell => {
   if (typeof v === "number" || typeof v === "boolean" || typeof v === "string") return v;
   return JSON.stringify(v);
 };
-
-const csvCell = (v: Cell) => {
-  const s = v === null ? "" : String(v);
-  return /[",\r\n]/.test(s) ? `"${s.replaceAll('"', '""')}"` : s;
-};
-
-export const toCsv = ({ columns, rows }: Pick<ViewTable, "columns" | "rows">): string =>
-  [columns, ...rows].map((r) => r.map(csvCell).join(",")).join("\r\n");
 
 type Rows = Record<string, unknown>[] & { columns?: { name: string; type: number }[] };
 
@@ -126,19 +146,75 @@ export function loopsOf(rows: Record<string, unknown>[]): LoopRow[] {
   );
 }
 
+/**
+ * Every loop as a record. Its id is "<service>/<key>"; `console.startLoop` and
+ * `console.stopLoop` call `setLoop` with its service and key.
+ */
+export const loopRecord = (admin: RestateAdmin): RecordType =>
+  defineRecord({
+    id: "console.loop",
+    name: { one: "loop", many: "loops" },
+    rows: async () =>
+      loopsOf(await admin(LOOPS_SQL)).map((l) => ({
+        id: `${l.service}/${l.key}`,
+        service: l.service,
+        key: l.key,
+        state: l.running ? "running" : "stopped",
+        health: l.failures > 0 || l.error !== null ? "failing" : "ok",
+        last_at: l.lastAt,
+        failures: l.failures,
+        error: l.error,
+        next_at: l.nextAt,
+      })),
+    key: "id",
+    title: "service",
+    subtitle: "key",
+    fields: {
+      service: text("Loop"),
+      key: text("Key"),
+      state: status({
+        running: { label: "Running", tone: "good" },
+        stopped: { label: "Stopped", tone: "neutral" },
+      }),
+      health: status({
+        failing: { label: "Failing", tone: "bad" },
+        ok: { label: "OK", tone: "good" },
+      }),
+      lastAt: date("Last pass"),
+      failures: number("Failures in a row"),
+      error: text("Last error"),
+      nextAt: date("Next pass"),
+    },
+    views: [
+      { id: "all", label: "All", sort: "health", at: "lastAt" },
+      { id: "failing", label: "Failing", where: { health: "failing" }, sort: "-failures" },
+      { id: "stopped", label: "Stopped", where: { state: "stopped" } },
+    ],
+    actions: ["console.startLoop", "console.stopLoop"],
+  });
+
 export function consoleApi({
   main,
   views,
   admin,
+  records = [],
 }: {
   main: Db;
   views: readonly string[];
   /** Absent, `loops` refuses: this worker can't see Restate's state. */
   admin?: RestateAdmin | undefined;
+  /** The team's record types; the loops join them when there's an admin. */
+  records?: readonly RecordType[];
 }) {
   const allowed = new Set(views);
+  const types = [...records, ...(admin ? [loopRecord(admin)] : [])];
   const team = (req: PortalRequest) => {
     if (!seesInternal(req)) throw new PortalRefusal("that's for Wren's team", 403);
+  };
+  /** Records on the main database, read-only, unmasked: the team sees everything. */
+  const read = async <T>(req: PortalRequest, use: (api: RecordsApi) => Promise<T>): Promise<T> => {
+    team(req);
+    return main.transaction((tx) => use(serveRecords(types, tx)), { accessMode: "read only" });
   };
   /** Restate's admin for Wren's team; refused before any read, so a refusal never lands in a journaled step. */
   const adminFor = (req: PortalRequest): RestateAdmin => {
@@ -170,6 +246,19 @@ export function consoleApi({
     loops: async (req: PortalRequest): Promise<LoopRow[]> =>
       loopsOf(await adminFor(req)(LOOPS_SQL)),
 
+    recordsTypes: async (req: PortalRequest): Promise<RecordMeta[]> => {
+      team(req);
+      return types.map((t) => metaOf(t, false));
+    },
+    recordsList: (req: PortalRequest & ListAsk): Promise<RecordsPage> =>
+      read(req, (r) => r.list(req)),
+    recordsGet: (req: PortalRequest & GetAsk): Promise<RecordAnswer> =>
+      read(req, (r) => r.get(req)),
+    recordsExport: (req: PortalRequest & ExportAsk): Promise<RecordsCsv> =>
+      read(req, (r) => r.export(req)),
+    recordsStats: (req: PortalRequest & StatsAsk): Promise<RecordsStat> =>
+      read(req, (r) => r.stats(req)),
+
     /** The loop `req` names, if `loops` listed it; anything else names no loop. */
     pick(req: SetLoopRequest, loops: readonly LoopRow[]): LoopRow {
       if (typeof req.run !== "boolean") throw new PortalRefusal("say run: true or false", 400);
@@ -193,6 +282,15 @@ export function makeConsolePortal(deps: Parameters<typeof consoleApi>[0]) {
     handlers: {
       view: (_: restate.Context, req: ViewRequest) => answer(() => api.view(req)),
       loops: (_: restate.Context, req: PortalRequest) => answer(() => api.loops(req)),
+      recordsTypes: (_: restate.Context, req: PortalRequest) => answer(() => api.recordsTypes(req)),
+      recordsList: (_: restate.Context, req: PortalRequest & ListAsk) =>
+        answer(() => api.recordsList(req)),
+      recordsGet: (_: restate.Context, req: PortalRequest & GetAsk) =>
+        answer(() => api.recordsGet(req)),
+      recordsExport: (_: restate.Context, req: PortalRequest & ExportAsk) =>
+        answer(() => api.recordsExport(req)),
+      recordsStats: (_: restate.Context, req: PortalRequest & StatsAsk) =>
+        answer(() => api.recordsStats(req)),
       setLoop: (ctx: restate.Context, req: SetLoopRequest) =>
         answer(async () => {
           api.adminFor(req);

@@ -36,8 +36,22 @@ const service = (name: string, routes: readonly string[], writes: readonly strin
 const SERVICES: Readonly<Record<string, Service>> = {
   delivery: service("DeliveryPortal", DELIVERY_ROUTES, DELIVERY_WRITES),
   reactivation: service("ReactivationPortal", PORTAL_ROUTES, PORTAL_WRITES),
-  // Wren's team: views by name and the loops (`@wren/core/console`), stopping or starting one.
-  console: service("ConsolePortal", ["view", "loops", "setLoop"], ["setLoop"]),
+  // Wren's team: views by name, records, and the loops (`@wren/core/console`), stopping or
+  // starting one. The service refuses anyone but the team.
+  console: service(
+    "ConsolePortal",
+    [
+      "view",
+      "loops",
+      "setLoop",
+      "recordsTypes",
+      "recordsList",
+      "recordsGet",
+      "recordsExport",
+      "recordsStats",
+    ],
+    ["setLoop"],
+  ),
   // Wren's team: warm replies to answer, inboxes to pause.
   email: service("EmailConsole", EMAIL_CONSOLE_ROUTES, EMAIL_CONSOLE_WRITES),
 };

@@ -6,6 +6,7 @@
   "exports": {
     ".": "./src/index.ts",
     "./schema": "./src/schema.ts",
+    "./records": "./src/records.ts",
     "./restate": "./src/restate.ts"
   },
   "scripts": {

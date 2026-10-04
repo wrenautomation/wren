@@ -16,6 +16,7 @@ import {
   s3Store,
   siteMailbox,
 } from "@wren/books";
+import { BOOKS_RECORDS } from "@wren/books/records";
 import { makeBooks } from "@wren/books/restate";
 import {
   activeSenders,
@@ -40,6 +41,7 @@ import {
   senderDomain,
   type Transport,
 } from "@wren/channel-email";
+import { emailRecords } from "@wren/channel-email/records";
 import {
   type Campaign,
   DISPOSITION_KEY,
@@ -87,6 +89,7 @@ import {
 } from "@wren/content/restate";
 import { makeAuditSealer } from "@wren/core/audit";
 import { CalcomCalendar } from "@wren/core/calendar";
+import { clientRecord } from "@wren/core/clients";
 import { makeConsolePortal, restateAdmin } from "@wren/core/console";
 import type { SiteClient } from "@wren/core/content";
 import { sitesHost } from "@wren/core/content/box";
@@ -604,6 +607,7 @@ export async function buildServices(
     makeConsolePortal({
       main: db,
       views: [...EMAIL_CONSOLE_VIEWS, ...BOOKS_CONSOLE_VIEWS],
+      records: [...emailRecords(roster, policy), ...BOOKS_RECORDS, clientRecord],
       admin: settings.restateAdminUrl
         ? restateAdmin(settings.restateAdminUrl, settings.restateAuthToken)
         : undefined,

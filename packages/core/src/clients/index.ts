@@ -11,6 +11,7 @@ import {
   type Queryable,
 } from "@wren/db";
 import { and, asc, eq, sql } from "drizzle-orm";
+import { date, defineRecord, number, status, text } from "../records.js";
 import {
   type Client,
   type ClientMember,
@@ -209,3 +210,28 @@ export async function touchMember(main: Db, email: string): Promise<void> {
     .set({ lastSeenAt: new Date() })
     .where(eq(clientMembers.email, normalEmail(email)));
 }
+
+/** Wren's clients as a console record, over `client_records`. */
+export const clientRecord = defineRecord({
+  id: "console.client",
+  name: { one: "client", many: "clients" },
+  view: "client_records",
+  key: "id",
+  title: "name",
+  subtitle: "products",
+  fields: {
+    name: text("Client"),
+    kind: status({
+      client: { label: "Client", tone: "good" },
+      demo: { label: "Demo", tone: "neutral" },
+    }),
+    products: text(),
+    members: number(),
+    lastSeen: date("Last sign-in"),
+    added: date(),
+  },
+  views: [
+    { id: "clients", label: "Clients", where: { kind: "client" }, sort: "-added", at: "added" },
+    { id: "all", label: "All", sort: "-added", at: "added" },
+  ],
+});

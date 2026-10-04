@@ -583,6 +583,58 @@ export const usageByMonth = books
     sql`SELECT date_trunc('month'::text, u."on"::timestamp with time zone)::date AS month, u.provider, u.service, u.currency, sum(u.amount) AS amount FROM books.usage u GROUP BY (date_trunc('month'::text, u."on"::timestamp with time zone)::date), u.provider, u.service, u.currency`,
   );
 
+/**
+ * `spend` as console records (`./records.ts`): one id per line, the amount in dollars, and its
+ * month aged against today, so "This month" is a static saved view.
+ */
+export const spendRecords = books
+  .view("spend_records", {
+    id: text("id"),
+    month: date("month"),
+    account: text("account"),
+    t2125Line: text("t2125_line"),
+    vendor: text("vendor"),
+    amount: numeric("amount", { mode: "number" }),
+    currency: text("currency"),
+    age: text("age"),
+  })
+  .as(sql`
+    select concat_ws('/', s.month, s.account, s.vendor) id, s.month,
+      coalesce(s.account_name, s.account)::text account, s.t2125_line::text t2125_line,
+      coalesce(s.vendor_name, s.vendor)::text vendor, s.cad_cents / 100.0 amount,
+      'CAD' currency,
+      case when s.month = date_trunc('month', current_date)::date then 'this_month'
+        when s.month = (date_trunc('month', current_date) - interval '1 month')::date then 'last_month'
+        else 'earlier' end age
+    from books.spend s`);
+
+/** `subscriptions` as console records: dollars, and whether the renewal is near or past. */
+export const subscriptionRecords = books
+  .view("subscription_records", {
+    id: text("id"),
+    vendor: text("vendor"),
+    plan: text("plan"),
+    cycle: text("cycle"),
+    cost: numeric("cost", { mode: "number" }),
+    currency: text("currency"),
+    monthly: numeric("monthly", { mode: "number" }),
+    cad: text("cad"),
+    lastBilledOn: date("last_billed_on"),
+    renewsOn: date("renews_on"),
+    renewal: text("renewal"),
+    since: date("since"),
+    bills: integer("bills"),
+  })
+  .as(sql`
+    select concat_ws('/', s.vendor_id, lower(coalesce(s.plan, '')), s.cycle, s.last_billed_on) id,
+      coalesce(s.vendor_name, s.vendor)::text vendor, s.plan, s.cycle::text cycle,
+      s.last_total_cents / 100.0 cost, s.currency::text currency,
+      s.monthly_cad_cents / 100.0 monthly, 'CAD' cad, s.last_billed_on, s.renews_on,
+      case when s.renews_on < current_date then 'past'
+        when s.renews_on < current_date + 30 then 'soon' else 'later' end renewal,
+      s.since, s.bills
+    from books.subscriptions s`);
+
 /** What the console may read by name (`ConsolePortal/view`): totals only. */
 export const BOOKS_CONSOLE_VIEWS = [
   "books.spend",

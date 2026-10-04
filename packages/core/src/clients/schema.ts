@@ -1,10 +1,13 @@
 import { oneOf } from "@wren/db/columns";
+import { sql } from "drizzle-orm";
 import {
+  bigint,
   boolean,
   foreignKey,
   index,
   jsonb,
   pgTable,
+  pgView,
   primaryKey,
   text,
   timestamp,
@@ -84,3 +87,20 @@ export const operators = pgTable(
   },
   (t) => [primaryKey({ columns: [t.email], name: "pk_operators" })],
 );
+
+/** Each client as a console record (`clientRecord`): its products, members and last sign-in. */
+export const clientRecords = pgView("client_records", {
+  id: text("id"),
+  name: text("name"),
+  kind: text("kind"),
+  products: text("products"),
+  members: bigint("members", { mode: "number" }),
+  lastSeen: timestamp("last_seen", { withTimezone: true }),
+  added: timestamp("added", { withTimezone: true }),
+}).as(sql`
+  select c.id::text id, c.name, case when c.demo then 'demo' else 'client' end kind,
+    (select string_agg(k, ', ' order by k) from jsonb_object_keys(c.products) k) products,
+    (select count(*) from client_members m where m.client_id = c.id) members,
+    (select max(m.last_seen_at) from client_members m where m.client_id = c.id) last_seen,
+    c.created_at added
+  from clients c`);

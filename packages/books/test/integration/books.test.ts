@@ -7,6 +7,7 @@
 import { mkdtemp, readdir, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
+import { serveRecords } from "@wren/core/records/serve";
 import { startTestPostgres, type TestPostgres } from "@wren/db/testing";
 import { FakeLlm } from "@wren/llm";
 import { and, asc, eq, sql } from "drizzle-orm";
@@ -36,6 +37,7 @@ import {
   setReview,
   shiftDay,
 } from "../../src/index.js";
+import { BOOKS_RECORDS } from "../../src/records.js";
 
 const TABLES = [
   "lines",
@@ -446,6 +448,27 @@ describe("import", () => {
       ["GH-1001", 2302],
       ["777", 1506],
     ]);
+  });
+
+  it("spend and subscriptions as console records, in dollars", async () => {
+    await importAll();
+    const api = serveRecords(BOOKS_RECORDS, pg.db);
+    const spend = await api.list({ record: "books.spend", view: "all" });
+    expect(spend.rows.map((r) => [r.vendor, r.amount])).toEqual([
+      ["Google Workspace", { amount: 105, currency: "CAD" }],
+      ["GitHub", { amount: 21.92, currency: "CAD" }],
+      ["RackNerd", { amount: 15.06, currency: "CAD" }],
+    ]);
+    const months = await api.stats({
+      record: "books.spend",
+      view: "all",
+      period: "month",
+      sum: "amount",
+    });
+    expect(months.currency === null || months.currency === "CAD").toBe(true);
+    const subs = await api.list({ record: "books.subscription", view: "all" });
+    expect(subs.rows[0]).toMatchObject({ vendor: "Google Workspace", monthly: { amount: 105 } });
+    expect(Object.values(subs.counts).every((n) => n <= subs.total)).toBe(true);
   });
 });
 

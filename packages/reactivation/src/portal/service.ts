@@ -24,6 +24,8 @@ import {
   type RecordsApi,
   type RecordsCsv,
   type RecordsPage,
+  type RecordsStat,
+  type StatsAsk,
   serveRecords,
 } from "@wren/core/records/serve";
 import { type Db, type Queryable, setAuditActor } from "@wren/db";
@@ -173,6 +175,9 @@ export function portalApi(deps: PortalDeps) {
       records(deps, req, (r) => r.get(req)),
     recordsExport: (req: PortalRequest & ExportAsk): Promise<RecordsCsv> =>
       records(deps, req, (r) => r.export(req)),
+    /** One number for the Overview: this period, the one before, and a daily series. */
+    recordsStats: (req: PortalRequest & StatsAsk): Promise<RecordsStat> =>
+      records(deps, req, (r) => r.stats(req)),
     health: (req: PortalRequest): Promise<CrmHealth> => read(deps, req, (db) => crmHealth(db)),
     setup: (req: PortalRequest): Promise<Setup> => read(deps, req, portalSetup),
     run: (req: PortalRequest & { run?: string; after?: number }): Promise<RunPage> =>
@@ -308,7 +313,9 @@ export type {
   RecordAnswer,
   RecordsCsv,
   RecordsPage,
+  RecordsStat,
   Row,
+  StatsAsk,
 } from "@wren/core/records/serve";
 export type { ReviewResult } from "../approve.js";
 export type { WhyLine } from "../compose.js";
@@ -360,6 +367,8 @@ export function makeReactivationPortal(deps: PortalDeps) {
       recordsGet: (_: restate.Context, req: Req<"recordsGet">) => answer(() => api.recordsGet(req)),
       recordsExport: (_: restate.Context, req: Req<"recordsExport">) =>
         answer(() => api.recordsExport(req)),
+      recordsStats: (_: restate.Context, req: Req<"recordsStats">) =>
+        answer(() => api.recordsStats(req)),
       health: (_: restate.Context, req: Req<"health">) => answer(() => api.health(req)),
       setup: (_: restate.Context, req: Req<"setup">) => answer(() => api.setup(req)),
       run: (_: restate.Context, req: Req<"run">) => answer(() => api.run(req)),

@@ -9,6 +9,7 @@ import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 import {
   addMember,
   addOperator,
+  clientRecord,
   clients,
   findClient,
   isOperator,
@@ -17,6 +18,7 @@ import {
   removeMember,
   updateClient,
 } from "../../src/clients/index.js";
+import { serveRecords } from "../../src/records-serve.js";
 
 let pg: TestPostgres;
 beforeAll(async () => {
@@ -110,5 +112,23 @@ describe("who may sign in", () => {
     await addMember(pg.db, "acme", "b@acme.example");
     await pg.db.delete(clients);
     expect(await mayHaveAccount(pg.db, "b@acme.example")).toBe(false);
+  });
+});
+
+describe("clients as a console record", () => {
+  it("a client with its products and members, the demo apart", async () => {
+    await pg.db
+      .insert(clients)
+      .values({ id: "show", name: "Show", database: "wren_client_show", demo: true });
+    await addMember(pg.db, "acme", "b@acme.example");
+    await addMember(pg.db, "acme", "c@acme.example");
+    const api = serveRecords([clientRecord], pg.db);
+    const page = await api.list({ record: "console.client", view: "clients" });
+    expect(page.counts).toEqual({ clients: 1, all: 2 });
+    expect(page.rows).toMatchObject([
+      { id: "acme", name: "Acme", kind: "client", products: "other, reactivation", members: 2 },
+    ]);
+    const demo = await api.get({ record: "console.client", id: "show" });
+    expect(demo.row).toMatchObject({ kind: "demo", members: 0, lastSeen: null });
   });
 });

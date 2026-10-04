@@ -363,7 +363,7 @@ export async function sendDue(db: Db, opts: SendDueOptions): Promise<SendStats> 
  * (sends per inbox, openers fleet-wide, openers per niche) over the policy's
  * LOCAL day: the cap is a promise about one operator's working day. Openers are step 0.
  */
-async function todaysSends(
+export async function todaysSends(
   db: Queryable,
   policy: SendPolicy,
   now: Date,
