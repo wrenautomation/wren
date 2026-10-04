@@ -21,9 +21,12 @@ Sends shift toward the options that work without anyone editing a file. The band
 - `experiment_alleles` (`schema.ts:250`), `experiment_snapshots` (shares and P(best) per locus per tick, `schema.ts:284`), `experiment_journal` (every event, `schema.ts:311`)
 - `template_versions.parent_version`, `.experiment_id`: a genome's lineage (`schema.ts:234`)
 - engine: fitness, pooled Beta prior, P(best) by quadrature, selection, floor, guards, settle (`packages/experiments/src/engine.ts:228`); settings schema (`packages/experiments/src/settings.ts:30`)
-- compose and refresh render the genome in place of the file, drawing each locus by the newest snapshot's shares (`packages/channel-email/src/evolve/experiments.ts:560`, `outreach/templates.ts:222`)
+- compose and refresh render the genome in place of the file, drawing each locus by the newest snapshot's shares (`packages/channel-email/src/evolve/experiments.ts:465`, `outreach/templates.ts:222`)
 
-Citations: `packages/channel-email/src/evolve/experiments.ts:144`, `:372`, `packages/experiments/src/engine.ts:228`
+- candidates: the LLM tiers (strategist, writer, judge) around a no-LLM checker write `candidate` alleles that wait for William; approve puts one live in a new genome version, reject keeps it out (`packages/channel-email/src/evolve/candidates.ts:177`, `:416`, `:504`; tiers `evolve/tiers.ts:242`)
+- a candidate's journal row gets its outcome when it retires, settles or is rejected (`evolve/genome.ts:123`)
+
+Citations: `packages/channel-email/src/evolve/experiments.ts:57`, `:272`, `packages/experiments/src/engine.ts:228`
 
 ## Connected to
 
@@ -34,7 +37,7 @@ Citations: `packages/channel-email/src/evolve/experiments.ts:144`, `:372`, `pack
 
 ## If you change this
 
-- **Hits:** what compose renders for that template ([[processes/compose]]); the queue refresh; [[processes/evolution]]
+- **Hits:** what compose renders for that template ([[processes/compose]]); the queue refresh; [[processes/evolution]]; Cohere spend when the tiers run
 - **Does not hit:** templates with no experiment (they render exactly as before); the send gate, caps and kill switch
 
 ## Surfaces
@@ -42,10 +45,11 @@ Citations: `packages/channel-email/src/evolve/experiments.ts:144`, `:372`, `pack
 | Surface | Role |
 |---|---|
 | `wren evolve start/status/tick/switch/pause/resume/stop` | operator (`apps/cli/src/evolve.ts`) |
+| `wren evolve candidates/approve/reject` | the approval queue; approve refreshes the niche's queue |
 | `wren evolve simulate` | compares selection strategies on synthetic truth (`packages/experiments/src/simulate.ts`) |
 | `Evolution/fleet` | ticks daily |
 | compose, `QueueRefresh` | read the genome and shares |
 
 ## See
 
-- Source: `packages/channel-email/src/evolve/experiments.ts`, `packages/experiments/src/engine.ts`
+- Source: `packages/channel-email/src/evolve/experiments.ts`, `evolve/candidates.ts`, `evolve/tiers.ts`, `packages/experiments/src/engine.ts`

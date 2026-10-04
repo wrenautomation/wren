@@ -473,7 +473,19 @@ export async function buildServices(
   // Deploy calls it once the new version is registered: queued mail takes the new templates.
   services.push(makeQueueRefresh({ db, campaigns, trackOpens: settings.openTracking }));
   // Copy experiments tick daily; with none running a pass does nothing.
-  services.push(makeEvolution({ db, campaigns, policy, trackOpens: settings.openTracking }));
+  // Its tiers name their own models in each experiment's settings (Cohere by default).
+  const evolveLlms = new Map<string, ReturnType<typeof makeLlm>>();
+  const llmFor = (spec: string) => {
+    let client = evolveLlms.get(spec);
+    if (!client) {
+      client = makeLlm(spec, process.env);
+      evolveLlms.set(spec, client);
+    }
+    return client;
+  };
+  services.push(
+    makeEvolution({ db, campaigns, policy, trackOpens: settings.openTracking, llmFor }),
+  );
   // The pool-feeder walks the research chain per niche; what may spend is a setting.
   services.push(
     makePoolScheduler({

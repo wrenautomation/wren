@@ -1,12 +1,20 @@
 /**
  * The copy-evolution loop: once a day at 08:00 (send timezone), each running
- * experiment ticks (file import, counts, retire, snapshot, settle). A tick that
- * changed a genome re-renders that niche's queue so no draft keeps a retired allele.
+ * experiment ticks (file import, counts, retire, snapshot, settle). When the strategist
+ * is due, the LLM tiers write candidates for William's queue. A tick that changed a
+ * genome re-renders that niche's queue so no draft keeps a retired allele.
  */
 import type * as restate from "@restatedev/restate-sdk";
 import { makeLoopObject, runPass } from "@wren/core/restate";
 import type { Db } from "@wren/db";
-import { type EvolveTick, runningExperiments, tickExperiment } from "../evolve/experiments.js";
+import { parseSettings } from "@wren/experiments";
+import { type LlmFor, proposeCandidates, writeDue } from "../evolve/candidates.js";
+import {
+  type EvolveTick,
+  getExperiment,
+  runningExperiments,
+  tickExperiment,
+} from "../evolve/experiments.js";
 import type { SendPolicy } from "../send/policy.js";
 import { zonedInstant } from "../send/tz.js";
 import { type Campaign, refreshCampaign } from "./compose-scheduler.js";
@@ -16,6 +24,8 @@ export interface EvolutionDeps {
   campaigns: ReadonlyMap<string, Campaign>;
   policy: SendPolicy;
   trackOpens?: boolean;
+  /** The tiers' models; without it no candidates are written. */
+  llmFor?: LlmFor;
 }
 
 export const EVOLUTION_KEY = "fleet";
@@ -27,6 +37,7 @@ const TICKED_WITHIN_MS = 20 * 60 * 60 * 1000;
 export interface EvolutionStats {
   ticked: EvolveTick[];
   skipped: number;
+  proposed: { experiment: number; queued: number; approved: number; error?: string }[];
 }
 
 /** The next 08:00 local strictly after `now`. */
@@ -44,9 +55,9 @@ export function nextTickAt(policy: SendPolicy, now: Date): Date {
 export async function tickAll(
   db: Db,
   campaigns: ReadonlyMap<string, Campaign>,
-  opts: { now: Date; trackOpens: boolean; skipRecent?: boolean },
+  opts: { now: Date; trackOpens: boolean; skipRecent?: boolean; llmFor?: LlmFor },
 ): Promise<EvolutionStats> {
-  const stats: EvolutionStats = { ticked: [], skipped: 0 };
+  const stats: EvolutionStats = { ticked: [], skipped: 0, proposed: [] };
   const changed = new Set<string>();
   const since = new Date(opts.now.getTime() - TICKED_WITHIN_MS);
   for (const exp of await runningExperiments(db)) {
@@ -59,6 +70,18 @@ export async function tickAll(
     if (!result) continue;
     stats.ticked.push(result);
     if (result.genomeChanged) changed.add(exp.niche);
+    if (!opts.llmFor) continue;
+    const settings = parseSettings((await getExperiment(db, exp.id)).settings);
+    if (!writeDue(settings, result)) continue;
+    try {
+      const p = await proposeCandidates(db, exp.id, opts.llmFor);
+      stats.proposed.push({ experiment: exp.id, queued: p.queued.length, approved: p.approved });
+      if (p.approved > 0) changed.add(exp.niche);
+    } catch (err) {
+      // One experiment's tiers failing leaves the others' ticks standing.
+      const error = err instanceof Error ? err.message : String(err);
+      stats.proposed.push({ experiment: exp.id, queued: 0, approved: 0, error });
+    }
   }
   for (const niche of changed) {
     const campaign = campaigns.get(niche);
@@ -79,6 +102,7 @@ export function makeEvolution(deps: EvolutionDeps) {
           now,
           trackOpens: deps.trackOpens ?? false,
           skipRecent: true,
+          ...(deps.llmFor ? { llmFor: deps.llmFor } : {}),
         }),
       delayAfter: () => delay,
       retryMs: delay,

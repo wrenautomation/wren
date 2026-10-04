@@ -3,8 +3,16 @@ import { randomUUID } from "node:crypto";
 import { companies } from "@wren/core";
 import type { Db } from "@wren/db";
 import { startTestPostgres, type TestPostgres, truncate } from "@wren/db/testing";
-import { asc, eq } from "drizzle-orm";
+import { FakeLlm } from "@wren/llm";
+import { and, asc, eq } from "drizzle-orm";
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
+import {
+  approveCandidate,
+  listCandidates,
+  proposeCandidates,
+  rejectCandidate,
+  seedExperiment,
+} from "../../src/evolve/candidates.js";
 import {
   experimentTemplates,
   moveExperiment,
@@ -340,5 +348,226 @@ describe("tickAll", () => {
     expect([again.ticked.length, again.skipped]).toEqual([0, 1]);
     const forced = await tickAll(db(), new Map(), { now, trackOpens: false });
     expect(forced.ticked[0]?.generation).toBe(2);
+  });
+});
+
+/** A fake model that answers each tier by its prompt. */
+function fakeTiers(over: { strategist?: string; writer?: string[]; judge?: string } = {}) {
+  const calls: string[] = [];
+  const llm = new FakeLlm({
+    respond: (prompt) => {
+      if (prompt.includes("Pick what the writer works on next")) {
+        calls.push("strategist");
+        return (
+          over.strategist ??
+          '{"mode":"fix","loci":["growth"],"mutation":"rewrite_loser","temperature":0.4,"reason":"growth lags"}'
+        );
+      }
+      if (prompt.includes("You write copy for one point")) {
+        calls.push("writer");
+        return JSON.stringify({
+          options: over.writer ?? [
+            "I read that {company_name} grew",
+            "your team grew — a lot this year",
+            "I saw {company_name} grew this year",
+            "I noticed {company_name} is growing",
+            "hello {first_name}, your team grew",
+            "word is {company_name} keeps growing",
+          ],
+        });
+      }
+      calls.push("judge");
+      return (
+        over.judge ??
+        '{"scores":[{"n":1,"score":6,"angle":"proof"},{"n":2,"score":8,"angle":"curiosity"},{"n":3,"score":4,"angle":"pain"}]}'
+      );
+    },
+  });
+  return { llmFor: () => llm, calls };
+}
+
+const GROWTH = parseTemplate(
+  "opener",
+  "subject: [[Quick question | A question]] for {company_name}\n\n[[#growth I saw {company_name} grew this year | your team at {company_name} grew a lot]].",
+);
+
+describe("candidates", () => {
+  it("writes, checks and judges candidates; approve makes a new genome version; reject keeps it out", async () => {
+    const exp = await startExperiment(db(), { niche: NICHE, file: GROWTH });
+    await tickExperiment(db(), exp.id, GROWTH);
+    const fake = fakeTiers();
+    const p = await proposeCandidates(db(), exp.id, fake.llmFor);
+    expect(fake.calls).toEqual(["strategist", "writer", "judge"]);
+    // The dash, the unknown fact and the repeat of a live allele are dropped; three wait.
+    expect(p.loci).toEqual([{ locus: "growth", written: 6, checked: 3, queued: 3, error: null }]);
+    expect(p.queued.map((q) => q.text)).toEqual([
+      "I noticed {company_name} is growing",
+      "I read that {company_name} grew",
+      "word is {company_name} keeps growing",
+    ]);
+    const waiting = await listCandidates(db());
+    expect(waiting.map((c) => [c.origin, c.judgeScore, c.angle, c.reason])).toEqual([
+      ["mutation", 8, "curiosity", "growth lags"],
+      ["mutation", 6, "proof", "growth lags"],
+      ["mutation", 4, "pain", "growth lags"],
+    ]);
+    expect(waiting[0]?.winners.map((w) => w.text).sort()).toEqual([
+      "I saw {company_name} grew this year",
+      "your team at {company_name} grew a lot",
+    ]);
+    // growth's queue is full, so the plan falls back to the subject, where every option is too long.
+    const again = await proposeCandidates(db(), exp.id, fakeTiers().llmFor);
+    expect(again.queued).toEqual([]);
+
+    const [first, second, third] = waiting as [
+      (typeof waiting)[0],
+      (typeof waiting)[0],
+      (typeof waiting)[0],
+    ];
+    const before = (await db().select().from(experiments).where(eq(experiments.id, exp.id)))[0];
+    const d = await approveCandidate(db(), first.id, { by: "test" });
+    const [after] = await db().select().from(experiments).where(eq(experiments.id, exp.id));
+    expect(after?.liveVersion).toBe(d.version);
+    expect(d.version).not.toBe(before?.liveVersion);
+    const [version] = await db()
+      .select()
+      .from(templateVersions)
+      .where(eq(templateVersions.version, d.version));
+    expect(version).toMatchObject({ parentVersion: before?.liveVersion, experimentId: exp.id });
+    const { templates, allocations } = await experimentTemplates(
+      db(),
+      NICHE,
+      new Map([["opener", GROWTH]]),
+    );
+    const genome = templates.get("opener") as Template;
+    expect(keysAt(genome, "growth")).toContain(first.allele);
+    // Newer than the snapshot: it renders at the floor.
+    expect(allocations.get("opener")?.shares.growth).toEqual([0.5, 0.5, 0.05]);
+
+    await expect(approveCandidate(db(), first.id, { by: "test" })).rejects.toThrow(
+      /not a candidate/,
+    );
+    await expect(
+      approveCandidate(db(), second.id, { by: "test", text: "they grew — fast" }),
+    ).rejects.toThrow(/edit refused: a dash/);
+    const edited = await approveCandidate(db(), second.id, {
+      by: "test",
+      text: "{company_name|your firm} grew fast",
+    });
+    expect(edited.allele).not.toBe(second.allele);
+    await rejectCandidate(db(), third.id, { by: "test" });
+    const rows = await db()
+      .select()
+      .from(experimentAlleles)
+      .where(eq(experimentAlleles.experimentId, exp.id))
+      .orderBy(asc(experimentAlleles.id));
+    expect(rows.slice(-3).map((r) => [r.state, r.decidedBy])).toEqual([
+      ["live", "test"],
+      ["live", "test"],
+      ["rejected", "test"],
+    ]);
+    expect(rows.at(-2)?.text).toBe("{company_name|your firm} grew fast");
+    const [rejectRow] = await db()
+      .select()
+      .from(experimentJournal)
+      .where(eq(experimentJournal.id, rows.at(-1)?.journalId as number));
+    expect(rejectRow?.outcome).toEqual({ state: "rejected", by: "test" });
+    expect(await journalKinds(exp.id)).toEqual([
+      "start",
+      "seed",
+      "snapshot",
+      "strategist",
+      "check",
+      "judge",
+      "candidate",
+      "candidate",
+      "candidate",
+      "strategist",
+      "check",
+      "approve",
+      "edit",
+      "approve",
+      "reject",
+    ]);
+  });
+
+  it("falls back when the strategist answers nonsense, and autoApprove puts candidates live", async () => {
+    const exp = await startExperiment(db(), {
+      niche: NICHE,
+      file: GROWTH,
+      settings: { autoApprove: true, queueSize: 1 },
+    });
+    await tickExperiment(db(), exp.id, GROWTH);
+    const p = await proposeCandidates(
+      db(),
+      exp.id,
+      fakeTiers({ strategist: "sure!", writer: ["A short question", "One quick question"] }).llmFor,
+    );
+    expect(p.plan?.fallback).toBe(true);
+    expect(p.approved).toBe(1);
+    const live = await db()
+      .select()
+      .from(experimentAlleles)
+      .where(
+        and(eq(experimentAlleles.experimentId, exp.id), eq(experimentAlleles.origin, "mutation")),
+      );
+    expect(live.map((r) => [r.state, r.decidedBy])).toEqual([["live", "auto"]]);
+  });
+
+  it("llm_seed queues candidates at every locus; from_winners puts another experiment's best live", async () => {
+    const seeded = await startExperiment(db(), {
+      niche: NICHE,
+      file: GROWTH,
+      settings: { seeding: "llm_seed", queueSize: 1 },
+    });
+    const fake = fakeTiers({
+      writer: ["I saw {company_name} is growing", "a quick question"],
+      judge: '{"scores":[{"n":1,"score":5,"angle":"pain"}]}',
+    });
+    const out = await seedExperiment(db(), seeded.id, { llmFor: fake.llmFor });
+    expect(fake.calls).not.toContain("strategist");
+    // Two loci, one candidate each (the subject's "a quick question" passes there).
+    expect(out.queued).toBe(2);
+    expect((await listCandidates(db())).map((c) => [c.locus, c.origin])).toEqual([
+      ["v1", "seed"],
+      ["growth", "seed"],
+    ]);
+    await moveExperiment(db(), seeded.id, "stop");
+
+    const source = await startExperiment(db(), { niche: NICHE, file: GROWTH });
+    await tickExperiment(db(), source.id, GROWTH);
+    const other = parseTemplate(
+      "opener",
+      "subject: [[Quick question | A question]] for {company_name}\n\n[[#growth {company_name} keeps growing | a growing team at {company_name}]].",
+    );
+    await moveExperiment(db(), source.id, "stop");
+    const target = await startExperiment(db(), {
+      niche: NICHE,
+      file: other,
+      settings: { seeding: "from_winners" },
+    });
+    await expect(seedExperiment(db(), target.id, {})).rejects.toThrow(/needs the experiment/);
+    const won = await seedExperiment(db(), target.id, { from: source.id });
+    // v1 already holds the source's best; growth takes it.
+    expect([won.imported, won.skipped]).toEqual([1, 1]);
+    const [t] = await db().select().from(experiments).where(eq(experiments.id, target.id));
+    const genome = (
+      await experimentTemplates(db(), NICHE, new Map([["opener", other]]))
+    ).templates.get("opener") as Template;
+    expect(genome.version).toBe(t?.liveVersion);
+    expect(keysAt(genome, "growth")).toHaveLength(3);
+  });
+
+  it("tickAll runs the tiers when the strategist is due", async () => {
+    await startExperiment(db(), { niche: NICHE, file: GROWTH, settings: { strategistEvery: 1 } });
+    const fake = fakeTiers();
+    const out = await tickAll(db(), new Map(), {
+      now: new Date(),
+      trackOpens: false,
+      llmFor: fake.llmFor,
+    });
+    expect(out.proposed).toEqual([
+      { experiment: out.ticked[0]?.experiment, queued: 3, approved: 0 },
+    ]);
   });
 });

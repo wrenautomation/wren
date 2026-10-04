@@ -3,13 +3,23 @@
  * running experiment renders its template's live genome and shifts sends toward
  * what works; the `Evolution` loop ticks it daily. Start, watch, tune, stop.
  */
+import * as clients from "@restatedev/restate-sdk-clients";
 import {
+  approveCandidate,
   experimentStatus,
+  type LlmFor,
+  listCandidates,
   moveExperiment,
+  proposeCandidates,
+  rejectCandidate,
+  seedExperiment,
   startExperiment,
   switchSetting,
   tickExperiment,
+  writeDue,
 } from "@wren/channel-email";
+import type { QueueRefresh } from "@wren/channel-email/restate";
+import { ingressOf, type Settings } from "@wren/config";
 import type { Db } from "@wren/db";
 import {
   parseSettings,
@@ -18,6 +28,7 @@ import {
   simulate,
   withSetting,
 } from "@wren/experiments";
+import { type LlmClient, loadLlmEnv, makeLlm } from "@wren/llm";
 import { nicheFor } from "@wren/niches";
 import type { Command } from "commander";
 
@@ -43,7 +54,42 @@ const id = (v: string) => {
   return n;
 };
 
-export function registerEvolve(program: Command, withDb: WithDb): void {
+/** Who decided, on the rows a CLI approve or reject writes. */
+const BY = "cli";
+
+export function registerEvolve(
+  program: Command,
+  withDb: WithDb,
+  settings: Settings,
+  rootDir: string,
+): void {
+  let llms: Map<string, LlmClient> | null = null;
+  const llmFor: LlmFor = (spec) => {
+    if (!llms) {
+      loadLlmEnv(settings.llmEnvPath, rootDir);
+      llms = new Map();
+    }
+    let client = llms.get(spec);
+    if (!client) {
+      client = makeLlm(spec, process.env);
+      llms.set(spec, client);
+    }
+    return client;
+  };
+  /** Re-render the queue on the new genome; the hint when Restate can't be reached. */
+  const refresh = async () => {
+    try {
+      await clients
+        .connect(ingressOf(settings))
+        .serviceClient<QueueRefresh>({ name: "QueueRefresh" })
+        .all();
+      console.log("queue refreshed");
+    } catch (err) {
+      console.log(
+        `queue not refreshed (${err instanceof Error ? err.message : err}): run \`wren email refresh\``,
+      );
+    }
+  };
   const evolve = program
     .command("evolve")
     .description("copy experiments: each [[variant]] point's sends shift toward what works");
@@ -55,7 +101,11 @@ export function registerEvolve(program: Command, withDb: WithDb): void {
     )
     .option("--selection <name>", "even, thompson, epsilon or ucb1")
     .option("--fitness <name>", "what counts as a success")
-    .option("--seeding <name>", "from_template (the LLM seedings come with E3)")
+    .option(
+      "--seeding <name>",
+      "from_template, llm_seed (candidates for your approval) or from_winners",
+    )
+    .option("--from <id>", "from_winners: the experiment whose winners to take")
     .option(
       "--set <key=value>",
       "any other setting, repeatable (guards.negativeRatio=3, floor=0.1)",
@@ -66,7 +116,13 @@ export function registerEvolve(program: Command, withDb: WithDb): void {
       (
         niche: string,
         template: string,
-        opts: { selection?: string; fitness?: string; seeding?: string; set: string[] },
+        opts: {
+          selection?: string;
+          fitness?: string;
+          seeding?: string;
+          from?: string;
+          set: string[];
+        },
       ) =>
         withDb(async (db) => {
           const file = nicheFor(niche).templates.get(template);
@@ -78,11 +134,23 @@ export function registerEvolve(program: Command, withDb: WithDb): void {
             (s, [k, v]) => withSetting(s, k, v),
             parseSettings({}),
           );
+          if (settings.seeding === "from_winners" && !opts.from)
+            throw new Error("from_winners needs --from <experiment>");
           const exp = await startExperiment(db, { niche, file, settings });
           console.log(
             `experiment ${exp.id}: ${exp.niche}/${exp.template} running on genome ${exp.liveVersion}` +
               ` (${settings.selection}, ${settings.fitness}). The Evolution loop ticks it daily.`,
           );
+          if (settings.seeding !== "from_template") {
+            const seeded = await seedExperiment(db, exp.id, {
+              llmFor,
+              ...(opts.from ? { from: id(opts.from) } : {}),
+            });
+            console.log(
+              `${settings.seeding}: ${seeded.queued} candidates queued, ${seeded.imported} imported, ${seeded.skipped} skipped`,
+            );
+            if (seeded.imported > 0) await refresh();
+          }
         }),
     );
 
@@ -130,9 +198,11 @@ export function registerEvolve(program: Command, withDb: WithDb): void {
   evolve
     .command("tick [id]")
     .description(
-      "one tick now (every running experiment, or one): import a file edit, count, retire, snapshot, settle",
+      "one tick now (every running experiment, or one): import a file edit, count, retire, snapshot, settle; the LLM tiers when due",
     )
-    .action((which: string | undefined) =>
+    .option("--write", "run the strategist, writer, checker and judge now, due or not")
+    .option("--no-llm", "never run the tiers")
+    .action((which: string | undefined, opts: { write?: boolean; llm: boolean }) =>
       withDb(async (db) => {
         const list = await experimentStatus(db, which ? { id: id(which) } : {});
         let changed = false;
@@ -149,8 +219,33 @@ export function registerEvolve(program: Command, withDb: WithDb): void {
               `${r.imported ? ", file imported" : ""}, settled [${r.settled.join(", ")}]` +
               `${r.stopped ? `, done (${r.stopped})` : ""}`,
           );
+          if (!opts.llm || !(opts.write || writeDue(parseSettings(e.settings), r))) continue;
+          const p = await proposeCandidates(db, e.id, llmFor);
+          changed ||= p.approved > 0;
+          const plan = p.plan;
+          console.log(
+            plan
+              ? `  strategist: ${plan.mode}, ${plan.mutation} on ${plan.loci.join(", ")} (${plan.reason})`
+              : "  no locus can take a candidate",
+          );
+          for (const l of p.loci)
+            console.log(
+              `  #${l.locus}: wrote ${l.written}, ${l.checked} passed the checker, ${l.queued} queued` +
+                `${l.error ? ` (${l.error})` : ""}`,
+            );
+          const tokens = p.calls.reduce(
+            (t, c) => ({
+              input: t.input + (c.usage?.input ?? 0),
+              output: t.output + (c.usage?.output ?? 0),
+            }),
+            { input: 0, output: 0 },
+          );
+          console.log(
+            `  ${p.calls.length} model calls, ${tokens.input} tokens in, ${tokens.output} out` +
+              `${p.approved ? `, ${p.approved} auto-approved` : ""}`,
+          );
         }
-        if (changed) console.log("genome changed: `wren email refresh` re-renders the queue now");
+        if (changed) await refresh();
       }),
     );
 
@@ -162,6 +257,60 @@ export function registerEvolve(program: Command, withDb: WithDb): void {
         const [key, value] = pair(setting);
         await switchSetting(db, id(which), key, value);
         console.log(`experiment ${which}: ${key} = ${JSON.stringify(value)}`);
+      }),
+    );
+
+  evolve
+    .command("candidates [id]")
+    .description(
+      "copy waiting on your approval: each candidate beside the live winners at its point",
+    )
+    .option("--json", "print JSON")
+    .action((which: string | undefined, opts: { json?: boolean }) =>
+      withDb(async (db) => {
+        const list = await listCandidates(db, which ? { experiment: id(which) } : {});
+        if (opts.json) {
+          console.log(JSON.stringify(list, null, 2));
+          return;
+        }
+        if (list.length === 0) console.log("no candidate waiting");
+        for (const c of list) {
+          console.log(
+            `${c.id}  #${c.experiment} ${c.niche}/${c.template} #${c.locus} · ${c.origin}` +
+              `${c.judgeScore !== null ? ` · judge ${c.judgeScore}` : ""}${c.angle ? ` · ${c.angle}` : ""}` +
+              `${c.reason ? ` · ${c.reason}` : ""}`,
+          );
+          console.log(`    new   ${JSON.stringify(c.text)}`);
+          for (const w of c.winners.slice(0, 3))
+            console.log(`    live  ${JSON.stringify(w.text)} · P(best) ${pct(w.pBest)}`);
+        }
+      }),
+    );
+
+  evolve
+    .command("approve <candidate>")
+    .description("put a candidate live in a new genome version, then re-render the queue")
+    .option("--text <words>", "your edit of its words; the copy rules still hold")
+    .action((which: string, opts: { text?: string }) =>
+      withDb(async (db) => {
+        const d = await approveCandidate(db, id(which), {
+          by: BY,
+          ...(opts.text !== undefined ? { text: opts.text } : {}),
+        });
+        console.log(
+          `candidate ${which} live at #${d.locus} of experiment ${d.experiment} · genome ${d.version}`,
+        );
+        await refresh();
+      }),
+    );
+
+  evolve
+    .command("reject <candidate>")
+    .description("turn a candidate down; the writer sees it next time")
+    .action((which: string) =>
+      withDb(async (db) => {
+        const d = await rejectCandidate(db, id(which), { by: BY });
+        console.log(`candidate ${which} rejected at #${d.locus} of experiment ${d.experiment}`);
       }),
     );
 

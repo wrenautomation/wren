@@ -3,7 +3,7 @@
  * running experiment owns one template of a niche: compose renders its live genome
  * (a `template_versions` row) in place of the file, drawing each locus along the
  * newest snapshot's shares. A tick imports a file edit, counts, retires, snapshots
- * and settles, and journals every step. No LLM here: candidates are E3.
+ * and settles, and journals every step. No LLM here: the tiers are candidates.ts.
  */
 
 import type { Db, Queryable } from "@wren/db";
@@ -17,27 +17,26 @@ import {
   withSetting,
 } from "@wren/experiments";
 import { and, desc, eq, inArray, ne, sql } from "drizzle-orm";
-import { parseTemplate, toSource } from "../outreach/authoring.js";
 import {
   type Allocation,
   alleleKey,
-  type Block,
-  group,
   optionText,
   type Template,
-  template,
   type VariantsBlock,
-  variantPoints,
   variants,
 } from "../outreach/templates.js";
+import { type Experiment, experimentAlleles, experimentSnapshots, experiments } from "../schema.js";
 import {
-  type Experiment,
-  experimentAlleles,
-  experimentJournal,
-  experimentSnapshots,
-  experiments,
-  templateVersions,
-} from "../schema.js";
+  asGenome,
+  fillOutcome,
+  generationOf,
+  journal,
+  mapPoints,
+  points,
+  recordVersion,
+  versionTemplate,
+  ZERO,
+} from "./genome.js";
 import { alleleStats } from "./stats.js";
 
 /** States whose genome compose renders. A stopped experiment hands the template back to the file. */
@@ -45,110 +44,21 @@ export const GENOME_STATES = ["running", "paused", "settled"] as const;
 /** Who decided a retirement or a settle the tick made. */
 const BY = "evolution";
 
-const points = (tpl: Template) => [...variantPoints([...(tpl.subject ?? []), ...tpl.body])];
-
-/** The template with every point passed through `f`. */
-function mapPoints(tpl: Template, f: (p: VariantsBlock) => VariantsBlock): Template {
-  const walk = (blocks: readonly Block[]): Block[] =>
-    blocks.map((b) =>
-      b.kind === "variants"
-        ? f(b)
-        : b.kind === "group"
-          ? group(walk(b.blocks) as Parameters<typeof group>[0])
-          : b,
-    );
-  return template(tpl.name, tpl.subject === null ? null : walk(tpl.subject), walk(tpl.body));
-}
-
-/** The canonical genome: every point named, so its loci keep their keys. */
-const asGenome = (tpl: Template) => parseTemplate(tpl.name, toSource(tpl, { nameAll: true }));
-
-async function recordVersion(
-  db: Queryable,
-  niche: string,
-  tpl: Template,
-  lineage: { parent: string | null; experimentId: number | null },
-): Promise<void> {
-  await db
-    .insert(templateVersions)
-    .values({
-      niche,
-      template: tpl.name,
-      version: tpl.version,
-      source: toSource(tpl),
-      parentVersion: lineage.parent,
-      experimentId: lineage.experimentId,
-    })
-    .onConflictDoNothing();
-}
-
-// Parsed once per version: sources never change under a version.
-const parsed = new Map<string, Template>();
-async function versionTemplate(
-  db: Queryable,
-  niche: string,
-  name: string,
-  version: string,
-): Promise<Template | null> {
-  const key = `${niche}\x00${name}\x00${version}`;
-  const hit = parsed.get(key);
-  if (hit) return hit;
-  const [row] = await db
-    .select({ source: templateVersions.source })
-    .from(templateVersions)
-    .where(
-      and(
-        eq(templateVersions.niche, niche),
-        eq(templateVersions.template, name),
-        eq(templateVersions.version, version),
-      ),
-    );
-  if (!row) return null;
-  const tpl = parseTemplate(name, row.source);
-  if (parsed.size >= 256) parsed.clear();
-  parsed.set(key, tpl);
-  return tpl;
-}
-
-async function journal(
-  db: Queryable,
-  experimentId: number,
-  generation: number,
-  kind: string,
-  detail: Record<string, unknown>,
-  locus: string | null = null,
-  outcome: Record<string, unknown> | null = null,
-): Promise<number> {
-  const [row] = await db
-    .insert(experimentJournal)
-    .values({ experimentId, generation, kind, locus, detail, outcome })
-    .returning({ id: experimentJournal.id });
-  return (row as { id: number }).id;
-}
-
-async function generationOf(db: Queryable, experimentId: number): Promise<number> {
-  const [row] = await db
-    .select({ g: sql<number>`coalesce(max(${experimentSnapshots.generation}), 0)::int` })
-    .from(experimentSnapshots)
-    .where(eq(experimentSnapshots.experimentId, experimentId));
-  return row?.g ?? 0;
-}
-
 export async function getExperiment(db: Queryable, id: number): Promise<Experiment> {
   const [row] = await db.select().from(experiments).where(eq(experiments.id, id));
   if (!row) throw new Error(`no experiment ${id}`);
   return row;
 }
 
-/** Start evolving `file`: name its points, write the genome, seed its options as live alleles. */
+/**
+ * Start evolving `file`: name its points, write the genome, seed its options as live
+ * alleles. `llm_seed` and `from_winners` add to that afterwards (`seedExperiment`).
+ */
 export async function startExperiment(
   db: Db,
   opts: { niche: string; file: Template; settings?: unknown },
 ): Promise<Experiment> {
   const settings = parseSettings(opts.settings);
-  if (settings.seeding !== "from_template") {
-    throw new Error(`seeding '${settings.seeding}' needs the LLM tiers, not built yet`);
-  }
   const genome = asGenome(opts.file);
   if (points(genome).length === 0) {
     throw new Error(`template ${opts.file.name} has no [[variant]] point to evolve`);
@@ -186,7 +96,7 @@ export async function startExperiment(
     });
     const loci = points(genome);
     const seeded = Object.fromEntries(loci.map((p) => [p.name, p.options.map(alleleKey)]));
-    const seedId = await journal(tx, e.id, 0, "seed", { seeding: settings.seeding, loci: seeded });
+    const seedId = await journal(tx, e.id, 0, "seed", { seeding: "from_template", loci: seeded });
     await tx
       .insert(experimentAlleles)
       .values(
@@ -333,16 +243,6 @@ async function syncAlleles(
   return retired;
 }
 
-const ZERO: AlleleCounts = {
-  exposures: 0,
-  replies: 0,
-  interested: 0,
-  booked: 0,
-  opens: 0,
-  tracked: 0,
-  negatives: 0,
-};
-
 /** Per locus, what the tick concluded beside the selection and fitness it ran under. */
 interface LocusStrategy {
   selection: Settings["selection"];
@@ -440,7 +340,7 @@ export async function tickExperiment(
       const now = new Date();
       for (const r of results) {
         for (const x of r.retire) {
-          const counts = byKey(stats, r.locus, x.allele);
+          const outcome = { ...byKey(stats, r.locus, x.allele), p_best: r.pBest[x.allele] ?? 0 };
           await journal(
             tx,
             exp.id,
@@ -448,8 +348,9 @@ export async function tickExperiment(
             "retire",
             { allele: x.allele, reason: x.reason },
             r.locus,
-            { ...counts, p_best: r.pBest[x.allele] ?? 0 },
+            outcome,
           );
+          await fillOutcome(tx, exp.id, r.locus, x.allele, { ...outcome, state: "retired" });
           await tx
             .update(experimentAlleles)
             .set({ state: "retired", retiredReason: x.reason, decidedBy: BY, decidedAt: now })
@@ -503,10 +404,13 @@ export async function tickExperiment(
     await journal(tx, exp.id, generation, "snapshot", { snapshot, settled, stagnant });
     for (const r of results) {
       if (r.settled && !last?.[r.locus]?.settled) {
-        await journal(tx, exp.id, generation, "settle", { allele: r.best }, r.locus, {
+        const outcome = {
           ...byKey(stats, r.locus, r.best ?? ""),
           p_best: r.best ? (r.pBest[r.best] ?? 0) : 0,
-        });
+        };
+        await journal(tx, exp.id, generation, "settle", { allele: r.best }, r.locus, outcome);
+        if (r.best)
+          await fillOutcome(tx, exp.id, r.locus, r.best, { ...outcome, state: "settled" });
       }
     }
     const stop = stopReason(results);
@@ -554,7 +458,8 @@ export async function runningExperiments(
 
 /**
  * The niche's templates as compose should render them: each experiment's live genome
- * in place of its file, plus the newest snapshot's shares by option. With no
+ * in place of its file, plus the newest snapshot's shares by option (the floor for an
+ * option newer than the snapshot). With no
  * experiment, the files and no allocations: compose works exactly as before.
  */
 export async function experimentTemplates(
@@ -570,6 +475,7 @@ export async function experimentTemplates(
       id: experiments.id,
       template: experiments.template,
       liveVersion: experiments.liveVersion,
+      settings: experiments.settings,
       snapshot: sql<number | null>`(
         SELECT s.id FROM experiment_snapshots s WHERE s.experiment_id = ${experiments.id}
         ORDER BY s.generation DESC LIMIT 1)`,
@@ -589,12 +495,14 @@ export async function experimentTemplates(
     templates.set(r.template, genome);
     if (r.snapshot === null || r.shares === null) continue;
     const shares = r.shares;
+    // An allele approved since the snapshot starts at the floor; the next tick prices it.
+    const floor = parseSettings(r.settings).floor;
     allocations.set(r.template, {
       snapshot: Number(r.snapshot),
       shares: Object.fromEntries(
         points(genome).map((p) => [
           p.name,
-          p.options.map((o) => shares[p.name]?.[alleleKey(o)] ?? 0),
+          p.options.map((o) => shares[p.name]?.[alleleKey(o)] ?? floor),
         ]),
       ),
     });

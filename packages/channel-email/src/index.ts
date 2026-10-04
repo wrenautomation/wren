@@ -1,6 +1,7 @@
 export * from "@wren/core/notify";
 export * from "./concurrent.js";
 export * from "./dossier.js";
+export * from "./evolve/candidates.js";
 export * from "./evolve/experiments.js";
 export * from "./evolve/stats.js";
 export * from "./guards.js";

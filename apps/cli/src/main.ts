@@ -208,7 +208,7 @@ registerCrm(program, withClientDb, settings, rootDir);
 registerReview(registerEmail(program, withDb, settings, rootDir), withDb);
 registerFetch(program, settings);
 registerEnrich(program, withMainDb, settings);
-registerEvolve(program, withMainDb);
+registerEvolve(program, withMainDb, settings, rootDir);
 registerPages(program, withMainDb, settings);
 registerContent(program, withMainDb, settings);
 registerAds(program, withMainDb, settings);
