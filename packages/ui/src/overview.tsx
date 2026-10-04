@@ -100,7 +100,7 @@ export function RecordOverview({ title, api, tiles, top = [] }: OverviewProps) {
   if (types.error && !types.data) return <Alert onRetry={types.retry}>{types.error.message}</Alert>;
   const metaOf = (id: string) => types.data?.find((t) => t.id === id);
   return (
-    <div className={cn(ROOT, "mx-auto grid w-full max-w-[1200px] gap-8")}>
+    <div className={cn(ROOT, "mx-auto grid w-full max-w-[1200px] grid-cols-[minmax(0,1fr)] gap-8")}>
       <h1 className="text-[20px] leading-7 font-semibold tracking-[-0.01em]">{title}</h1>
       <div className="grid grid-cols-2 gap-px p-px sm:grid-cols-[repeat(auto-fill,minmax(220px,1fr))]">
         {tiles.map((t) => {
@@ -113,7 +113,7 @@ export function RecordOverview({ title, api, tiles, top = [] }: OverviewProps) {
         })}
       </div>
       {top.length ? (
-        <div className="grid gap-8 lg:grid-cols-2">
+        <div className="grid grid-cols-[minmax(0,1fr)] gap-8 lg:grid-cols-2">
           {top.map((t) => {
             const meta = metaOf(t.record);
             return meta ? <Top key={t.label} top={t} meta={meta} api={api} /> : null;
@@ -257,7 +257,7 @@ function Top({ top, meta, api }: { top: OverviewTop; meta: RecordMeta; api: Reco
     return `${path}?${params}`;
   };
   return (
-    <section className="grid content-start gap-2">
+    <section className="grid grid-cols-[minmax(0,1fr)] content-start gap-2">
       <div className="flex items-baseline justify-between gap-3">
         <h2 className="text-[14px] font-semibold">{top.label}</h2>
         <a href={top.href} className="text-[13px] text-(--ui-ink-2) hover:text-(--ui-ink)">
@@ -274,7 +274,7 @@ function Top({ top, meta, api }: { top: OverviewTop; meta: RecordMeta; api: Reco
           {top.empty}
         </p>
       ) : (
-        <ul className="m-0 grid list-none p-0 text-[13px]">
+        <ul className="m-0 grid grid-cols-[minmax(0,1fr)] list-none p-0 text-[13px]">
           {rows.map((r) => (
             <li key={String(r.id)} className="border-t border-(--ui-hair)">
               <a

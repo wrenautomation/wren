@@ -196,7 +196,7 @@ function Queue({
                     <a
                       href={place.link({ [one]: id, tab: null })}
                       aria-current={on ? "true" : undefined}
-                      className="grid min-w-0 flex-1 gap-0.5 text-[13px] text-(--ui-ink) no-underline"
+                      className="grid min-w-0 flex-1 grid-cols-[minmax(0,1fr)] gap-0.5 text-[13px] text-(--ui-ink) no-underline"
                     >
                       <span className="flex items-baseline justify-between gap-2">
                         <span className="truncate font-medium">{titleOf(meta, r)}</span>

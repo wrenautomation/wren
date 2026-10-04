@@ -35,7 +35,7 @@ function Mine(props: PageProps) {
   usePulseLink(props, act);
   const rated = useReviewLink(props, act);
   return (
-    <div className="mx-auto grid w-full max-w-[1200px] gap-8">
+    <div className="mx-auto mt-10 grid w-full max-w-[1200px] gap-8">
       {act.error ? (
         <p className="text-[13.5px] text-(--ui-bad)" role="alert">
           {act.error}

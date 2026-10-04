@@ -299,3 +299,4 @@ One implementer per phase, from this doc. Commit and push each step.
 - 2026-10-04 (S3 pages): `deliver` infers the kind from what it's given: a file, a Loom, a Google doc, else a link.
 - 2026-10-04 (S3 pages): The contract prints alone through `data-print` and one print rule in `app.css`, not a module file. Biome now accepts the kit's `Input` and `Textarea` as label controls.
 - 2026-10-04 (S3 pages): `work.css` is deleted. Work module code went from 2,263 lines to 1,331. All modules went from 4,270 to 3,351.
+- 2026-10-04 (S3 pages): A record shows its Sources tab only when the page gives sources. Overview and Queue grids get `minmax(0,1fr)` columns so long titles truncate at 390 instead of widening the page.

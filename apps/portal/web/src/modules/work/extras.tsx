@@ -2,15 +2,15 @@
 import { ButtonLink, type RecordExtras } from "@wren/ui";
 import type { AskView, DeliverableView, UpdateView } from "../../api.js";
 import type { ListPage } from "../../module.js";
-import { BODY, OpenFile, Thread } from "./bits.js";
+import { OpenFile, Thread } from "./bits.js";
 import { at } from "./nav.js";
 
 type Extras = NonNullable<ListPage["extras"]>;
 
+/** The update's words are its title; the thread goes under. */
 export const updateExtras: Extras = (detail, props) => {
   const u = detail as UpdateView;
   return {
-    lead: <p className={BODY}>{u.body}</p>,
     sections: [
       [
         "Comments",

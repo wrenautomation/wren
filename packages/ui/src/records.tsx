@@ -1124,7 +1124,7 @@ export function RecordBody({
       return t ? [{ id: t.name.many, label: cap(t.name.many), count: r.count }] : [];
     }),
     ...(activity ? [{ id: "activity", label: "Activity", count: activity.length }] : []),
-    ...(meta.detail ? [{ id: "sources", label: "Sources", count: sources.length }] : []),
+    ...(more.sources ? [{ id: "sources", label: "Sources", count: sources.length }] : []),
   ];
   const relatedType = types.find(
     (t) => t.name.many === tab && related.some((r) => r.record === t.id),

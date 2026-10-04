@@ -321,7 +321,7 @@ export function deliveryRecords(
       revoke: text("To take it back"),
       note: text("Note"),
       by: text("By"),
-      answered: date("On"),
+      answered: date("Done on"),
     },
     views: [
       { id: "all", label: "All" },
