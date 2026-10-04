@@ -6,6 +6,7 @@
  */
 import { startTestPostgres, type TestPostgres, truncate } from "@wren/db/testing";
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
+import { z } from "zod";
 import {
   addMember,
   addOperator,
@@ -18,9 +19,11 @@ import {
   removeMember,
   updateClient,
 } from "../../src/clients/index.js";
+import { defineComponent } from "../../src/components.js";
 import { consoleApi } from "../../src/console.js";
-import { portalMe } from "../../src/portal.js";
+import { portalMe, type Viewer } from "../../src/portal.js";
 import { serveRecords } from "../../src/records-serve.js";
+import { runs } from "../../src/schema.js";
 
 let pg: TestPostgres;
 beforeAll(async () => {
@@ -28,7 +31,7 @@ beforeAll(async () => {
 });
 afterAll(() => pg.stop());
 beforeEach(async () => {
-  await truncate(pg.db, ["clients", "client_members", "operators"]);
+  await truncate(pg.db, ["clients", "client_members", "operators", "runs"]);
   await pg.db.insert(clients).values({
     id: "acme",
     name: "Acme",
@@ -154,7 +157,9 @@ describe("setLook", () => {
     await api().setLook({ viewer, client: "acme", look });
     expect(await lookOf("acme")).toEqual(look);
     const me = await portalMe(pg.db, viewer, "Demo");
-    expect(me.clients).toEqual([{ id: "acme", name: "Acme", look }]);
+    expect(me.clients).toEqual([
+      { id: "acme", name: "Acme", look, installed: ["other", "reactivation"] },
+    ]);
     await api().setLook({ viewer, client: "acme", look: null });
     expect(await lookOf("acme")).toBeNull();
   });
@@ -192,5 +197,146 @@ describe("setLook", () => {
       await expect(
         api().setLook({ viewer: operator, client: "acme", look: bad }),
       ).rejects.toMatchObject({ status: 400 });
+  });
+});
+
+describe("install, configure, uninstall", () => {
+  const ops = { email: "ops@wren.example", operator: true };
+  const base = defineComponent({
+    id: "texts",
+    name: "Texts",
+    blurb: "Sends texts.",
+    icon: "mail",
+    for: "client",
+    ready: true,
+    settings: z.object({ perDay: z.number().default(5), price: z.number().optional() }),
+    priced: ["price"],
+    effects: ["sends"],
+  });
+  const all = [
+    base,
+    defineComponent({
+      ...base,
+      id: "reminders",
+      name: "Reminders",
+      effects: [],
+      requires: { components: ["texts"] },
+    }),
+    defineComponent({
+      ...base,
+      id: "dms",
+      name: "DMs",
+      effects: [],
+      requires: { accounts: ["telnyx"] },
+    }),
+    defineComponent({
+      ...base,
+      id: "soon",
+      name: "Soon",
+      ready: false,
+      missing: ["per client db"],
+    }),
+    defineComponent({ ...base, id: "books", name: "Books", for: "wren" }),
+  ];
+  const asked: string[] = [];
+  const api = () =>
+    consoleApi({
+      main: pg.db,
+      views: [],
+      components: all,
+      asked: async (c, by, x) => void asked.push(`${c.id} ${by} ${x.id}`),
+    });
+  const productsOf = async () => (await findClient(pg.db, "acme"))?.products ?? {};
+  const go = (component: string, more: object = {}) =>
+    api().install({ viewer: ops, client: "acme", component, ...more });
+
+  it("refuses not ready, Wren's own, missing requirements and an unconfirmed effect", async () => {
+    await expect(go("soon")).rejects.toMatchObject({
+      status: 409,
+      message: expect.stringContaining("per client db"),
+    });
+    await expect(go("books")).rejects.toMatchObject({ status: 409 });
+    await expect(go("reminders")).rejects.toMatchObject({
+      status: 409,
+      message: expect.stringContaining("texts"),
+    });
+    await expect(go("dms")).rejects.toMatchObject({
+      status: 409,
+      message: expect.stringContaining("telnyx"),
+    });
+    await expect(go("texts")).rejects.toMatchObject({ status: 400 });
+    await expect(
+      go("texts", { confirm: "texts", settings: { perDay: "x" } }),
+    ).rejects.toMatchObject({ status: 400 });
+    expect(Object.keys(await productsOf()).sort()).toEqual(["other", "reactivation"]);
+  });
+
+  it("installs, configures and uninstalls, each on the run trail", async () => {
+    await go("texts", { confirm: "texts", settings: { perDay: 9 } });
+    await expect(go("texts", { confirm: "texts" })).rejects.toMatchObject({ status: 409 });
+    await go("reminders");
+    expect((await productsOf()).texts).toEqual({ perDay: 9 });
+    await api().configure({
+      viewer: ops,
+      client: "acme",
+      component: "texts",
+      settings: { price: 1 },
+    });
+    expect((await productsOf()).texts).toEqual({ perDay: 9, price: 1 });
+    // Required by reminders: it stays until reminders goes.
+    await expect(
+      api().uninstall({ viewer: ops, client: "acme", component: "texts" }),
+    ).rejects.toMatchObject({ status: 409, message: expect.stringContaining("Reminders") });
+    await api().uninstall({ viewer: ops, client: "acme", component: "reminders" });
+    await api().uninstall({ viewer: ops, client: "acme", component: "texts" });
+    expect(await productsOf()).not.toHaveProperty("texts");
+    const trail = (await pg.db.select().from(runs))
+      .map((r) => `${r.command} ${JSON.stringify(r.stats)}`)
+      .sort();
+    expect(trail).toEqual([
+      'console configure texts {"ok":true}',
+      'console install reminders {"ok":true}',
+      'console install texts {"ok":true}',
+      'console uninstall reminders {"ok":true}',
+      'console uninstall texts {"ok":true}',
+    ]);
+  });
+
+  it("only the team installs; a client asks, the demo can't", async () => {
+    await pg.db
+      .insert(clients)
+      .values({ id: "show", name: "Show", database: "wren_client_show", demo: true });
+    await addMember(pg.db, "acme", "owner@acme.example", { role: "owner" });
+    const owner = { email: "owner@acme.example" };
+    await expect(
+      api().install({ viewer: owner, client: "acme", component: "texts", confirm: "texts" }),
+    ).rejects.toMatchObject({ status: 403 });
+    await expect(
+      api().ask({ viewer: owner, client: "acme", component: "books" }),
+    ).rejects.toMatchObject({ status: 404 });
+    await api().ask({ viewer: owner, client: "acme", component: "texts" });
+    expect(asked).toEqual(["acme owner@acme.example texts"]);
+    await expect(
+      api().ask({ viewer: { demo: true }, client: "show", component: "texts" }),
+    ).rejects.toMatchObject({ status: 403 });
+  });
+
+  it("the catalog: a client sees its own kind only, and never a price", async () => {
+    await go("texts", { confirm: "texts", settings: { perDay: 9, price: 1 } });
+    const ids = async (viewer: Viewer) =>
+      (await api().recordsList({ viewer, client: "acme", record: "console.component" })).rows.map(
+        (r) => r.id,
+      );
+    expect(await ids(ops)).toContain("books");
+    await addMember(pg.db, "acme", "owner@acme.example", { role: "owner" });
+    expect(await ids({ email: "owner@acme.example" })).not.toContain("books");
+    const got = await api().recordsGet({
+      viewer: ops,
+      client: "acme",
+      record: "console.component",
+      id: "texts",
+    });
+    expect(got.detail).toMatchObject({ installed: true, values: { perDay: 9 } });
+    expect(JSON.stringify(got.detail)).not.toContain("price");
   });
 });

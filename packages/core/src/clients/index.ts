@@ -90,7 +90,11 @@ export interface ClientChange {
   products?: Record<string, unknown>;
 }
 
-export async function updateClient(main: Db, id: string, change: ClientChange): Promise<Client> {
+export async function updateClient(
+  main: Queryable,
+  id: string,
+  change: ClientChange,
+): Promise<Client> {
   const current = await getClient(main, id);
   const accounts = { ...current.accounts, ...change.accounts };
   for (const [site, account] of Object.entries(accounts)) if (!account) delete accounts[site];

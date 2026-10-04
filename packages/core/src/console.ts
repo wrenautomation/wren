@@ -13,17 +13,24 @@
  * are added after with DeliveryPortal's `invite` (`delivery.invite`), as anywhere else.
  *
  * `setLook` stores a client's portal look: an operator's for any client, an owner's for their own.
+ *
+ * Components (`./components.ts`): the catalog is `console.component`, every one for the team and
+ * what a client can have for anyone else. `install`, `configure` and `uninstall` write a client's
+ * `clients.products[id]`, operator only, each a runs row; `ask` is a client's "Ask for this".
  */
 import * as restate from "@restatedev/restate-sdk";
 import { CLIENT_ID, type Db, setAuditActor } from "@wren/db";
 import { eq, sql } from "drizzle-orm";
-import { addClient, clients, isOwner } from "./clients/index.js";
+import { z } from "zod";
+import { addClient, type Client, clients, isOwner, updateClient } from "./clients/index.js";
+import type { Component } from "./components.js";
 import {
   answer,
   isDemo,
   PortalRefusal,
   type PortalRequest,
   pickClient,
+  pickForWrite,
   type SignedViewer,
   seesInternal,
 } from "./portal.js";
@@ -111,6 +118,15 @@ export interface AddClientRequest extends PortalRequest {
 export interface SetLookRequest extends PortalRequest {
   /** A preset's name, `readTheme` input, or null for Wren's. */
   look: unknown;
+}
+
+export interface ComponentRequest extends PortalRequest {
+  component: string;
+}
+export interface InstallRequest extends ComponentRequest {
+  settings?: unknown;
+  /** The component's id, typed in when it has effects. */
+  confirm?: string;
 }
 
 /** A stored look stays small: inputs, not tokens. */
@@ -498,6 +514,124 @@ export const handlerRecord = (get: RestateAdminGet): RecordType =>
     },
   });
 
+const has = (client: Pick<Client, "products">, id: string) => Object.hasOwn(client.products, id);
+
+/** What `client` still lacks for `c`: components not installed, then accounts not set. */
+export const lacking = (c: Component, client: Pick<Client, "products" | "accounts">): string[] => [
+  ...c.requires.components.filter((id) => !has(client, id)),
+  ...c.requires.accounts.filter((site) => !client.accounts[site]),
+];
+
+/** A settings block as a page may show it: defaults filled, prices left out; null if it won't parse. */
+export function shownSettings(c: Component, block: unknown): Record<string, unknown> | null {
+  const out = c.settings.safeParse(block ?? {});
+  if (!out.success || typeof out.data !== "object" || out.data === null) return null;
+  const shown = { ...(out.data as Record<string, unknown>) };
+  for (const k of c.priced) delete shown[k];
+  return shown;
+}
+
+/** A component's settings as form boxes, prices left out. */
+export function settingsForm(c: Component): HandlerField[] | null {
+  const schema = z.toJSONSchema(c.settings, { io: "input", unrepresentable: "any" }) as Schema;
+  const properties = { ...schema.properties };
+  for (const k of c.priced) delete properties[k];
+  return formOf({ ...schema, properties });
+}
+
+const COMPONENT = "console.component";
+
+/**
+ * The catalog: `all` as records, each marked installed or not for `client` when there is one.
+ * The team's detail adds what it provides and its settings form, filled from the client's block.
+ */
+export const componentRecord = (
+  all: readonly Component[],
+  client: Client | null,
+  team: boolean,
+): RecordType =>
+  defineRecord({
+    id: COMPONENT,
+    name: { one: "component", many: "components" },
+    rows: async () =>
+      all.map((c) => ({
+        id: c.id,
+        name: c.name,
+        blurb: c.blurb,
+        for: c.for,
+        ready: c.ready ? "ready" : "coming",
+        installed: client ? (has(client, c.id) ? "yes" : "no") : null,
+        effects: c.effects.join(", ") || null,
+        needs: [...c.requires.components, ...c.requires.accounts].join(", ") || null,
+        missing: c.missing.join("; ") || null,
+      })),
+    key: "id",
+    title: "name",
+    subtitle: "blurb",
+    fields: {
+      name: text("Component"),
+      blurb: text("What it does"),
+      for: status(
+        {
+          client: { label: "For clients", tone: "neutral" },
+          wren: { label: "Wren's own", tone: "neutral" },
+        },
+        "For",
+      ),
+      ready: status(
+        { ready: { label: "Ready", tone: "good" }, coming: { label: "Coming", tone: "neutral" } },
+        "Ready",
+      ),
+      installed: status(
+        {
+          yes: { label: "Installed", tone: "good" },
+          no: { label: "Not installed", tone: "neutral" },
+        },
+        "Installed",
+      ),
+      effects: text("Effects"),
+      needs: text("Needs"),
+      missing: text("Missing"),
+    },
+    views: [
+      { id: "all", label: "All", sort: "name" },
+      { id: "ready", label: "Ready", where: { ready: "ready" }, sort: "name" },
+      { id: "coming", label: "Coming", where: { ready: "coming" }, sort: "name" },
+      ...(client
+        ? [{ id: "installed", label: "Installed", where: { installed: "yes" }, sort: "name" }]
+        : []),
+      { id: "effects", label: "With effects", where: { effects: { empty: false } }, sort: "name" },
+    ],
+    load: async (_db, id) => {
+      const c = all.find((x) => x.id === id);
+      if (!c) return null;
+      const name = (id: string) => all.find((x) => x.id === id)?.name ?? id;
+      const installed = !!client && has(client, c.id);
+      return {
+        needs: [
+          ...c.requires.components.map((id) => ({
+            label: name(id),
+            has: client ? has(client, id) : null,
+          })),
+          ...c.requires.accounts.map((site) => ({
+            label: `A ${site} account`,
+            has: client ? !!client.accounts[site] : null,
+          })),
+        ],
+        missing: c.missing,
+        effects: c.effects,
+        installed,
+        ...(team
+          ? {
+              provides: c.provides,
+              form: settingsForm(c),
+              values: shownSettings(c, installed ? client?.products[c.id] : {}),
+            }
+          : {}),
+      };
+    },
+  });
+
 /** The runs row's command: one line on the run trail, as a CLI command would be. */
 export const callCommand = (service: string, handler: string) =>
   `console ${service}/${handler}`.slice(0, 64);
@@ -509,6 +643,8 @@ export function consoleApi({
   adminGet,
   records = [],
   mainUrl,
+  components = [],
+  asked,
 }: {
   main: Db;
   /** The main database's URL, which `addClient` needs to reach the new one; absent, it refuses. */
@@ -520,6 +656,10 @@ export function consoleApi({
   adminGet?: RestateAdminGet | undefined;
   /** The team's record types; the loops join them when there's an admin. */
   records?: readonly RecordType[];
+  /** Every component, for the catalog and installs (`COMPONENTS` in the worker). */
+  components?: readonly Component[];
+  /** A client's person asked for `c`: tell Wren. Absent, `ask` refuses. */
+  asked?: ((client: Client, by: string, c: Component) => Promise<void>) | undefined;
 }) {
   const allowed = new Set(views);
   const types = [
@@ -530,10 +670,73 @@ export function consoleApi({
   const team = (req: PortalRequest) => {
     if (!seesInternal(req)) throw new PortalRefusal("that's for Wren's team", 403);
   };
+  /**
+   * The team's types and the catalog, or the catalog alone for anyone else: what a client can
+   * have, marked installed for the client picked.
+   */
+  const typesFor = async (req: PortalRequest): Promise<RecordType[]> => {
+    const internal = seesInternal(req);
+    const client = req.client || !internal ? await pickClient(main, req) : null;
+    const shown = internal ? components : components.filter((c) => c.for === "client");
+    return [...(internal ? types : []), componentRecord(shown, client, internal)];
+  };
   /** Records on the main database, read-only, unmasked: the team sees everything. */
-  const read = async <T>(req: PortalRequest, use: (api: RecordsApi) => Promise<T>): Promise<T> => {
+  const read = async <T>(
+    req: PortalRequest & { record?: unknown },
+    use: (api: RecordsApi) => Promise<T>,
+  ): Promise<T> => {
+    if (req.record !== COMPONENT) team(req);
+    const all = await typesFor(req);
+    return main.transaction((tx) => use(serveRecords(all, tx)), { accessMode: "read only" });
+  };
+  const componentOf = (req: ComponentRequest): Component => {
+    const c = components.find((x) => x.id === req.component);
+    if (!c) throw new PortalRefusal("no such component", 404);
+    return c;
+  };
+  /** A block that parses as `c`'s settings, or a 400 that says where it doesn't. */
+  const blockOf = (c: Component, block: unknown): Record<string, unknown> => {
+    if (block === undefined) return {};
+    if (!block || typeof block !== "object" || Array.isArray(block))
+      throw new PortalRefusal("settings are an object", 400);
+    const out = c.settings.safeParse(block);
+    if (!out.success)
+      throw new PortalRefusal(
+        `settings: ${out.error.issues.map((i) => `${i.path.join(".") || "(root)"}: ${i.message}`).join("; ")}`,
+        400,
+      );
+    return block as Record<string, unknown>;
+  };
+  /**
+   * One change to a client's components, by an operator, checked first and then a runs row:
+   * the block written, or null to remove it.
+   */
+  const change = async (
+    req: ComponentRequest,
+    verb: "install" | "configure" | "uninstall",
+    check: (c: Component, client: Client) => Record<string, unknown> | null,
+  ) => {
     team(req);
-    return main.transaction((tx) => use(serveRecords(types, tx)), { accessMode: "read only" });
+    const c = componentOf(req);
+    // An operator may pick any client, the demo too: its apps come from its components.
+    const client = await pickClient(main, req);
+    const block = check(c, client);
+    const by = (req.viewer as SignedViewer).email;
+    const run = await openRun(main, {
+      command: `console ${verb} ${c.id}`.slice(0, 64),
+      argv: { by, client: client.id, ...(block ? { settings: block } : {}) },
+    });
+    try {
+      await main.transaction(async (tx) => {
+        await setAuditActor(tx, by);
+        await updateClient(tx, client.id, { products: { [c.id]: block } });
+      });
+    } catch (err) {
+      await finishRun(main, run.id, { error: String(err).slice(0, 500) });
+      throw err;
+    }
+    await finishRun(main, run.id, { ok: true });
+    return { client: client.id, component: c.id, installed: block !== null };
   };
   /** Restate's admin for Wren's team; refused before any read, so a refusal never lands in a journaled step. */
   const adminFor = (req: PortalRequest): RestateAdmin => {
@@ -565,10 +768,8 @@ export function consoleApi({
     loops: async (req: PortalRequest): Promise<LoopRow[]> =>
       loopsOf(await adminFor(req)(LOOPS_SQL)),
 
-    recordsTypes: async (req: PortalRequest): Promise<RecordMeta[]> => {
-      team(req);
-      return types.map((t) => metaOf(t, false));
-    },
+    recordsTypes: async (req: PortalRequest): Promise<RecordMeta[]> =>
+      (await typesFor(req)).map((t) => metaOf(t, false)),
     recordsList: (req: PortalRequest & ListAsk): Promise<RecordsPage> =>
       read(req, (r) => r.list(req)),
     recordsGet: (req: PortalRequest & GetAsk): Promise<RecordAnswer> =>
@@ -613,6 +814,59 @@ export function consoleApi({
         await tx.update(clients).set({ look }).where(eq(clients.id, client.id));
       });
       return { client: client.id, look };
+    },
+
+    /**
+     * A component onto a client: ready, for clients, what it needs already there, settings that
+     * parse, and its id typed in when it has effects. The block is stored as given.
+     */
+    install: (req: InstallRequest) =>
+      change(req, "install", (c, client) => {
+        if (c.for === "wren") throw new PortalRefusal("that runs Wren's own business", 409);
+        if (!c.ready)
+          throw new PortalRefusal(`not ready for a client: ${c.missing.join("; ")}`, 409);
+        if (has(client, c.id)) throw new PortalRefusal("already installed: configure it", 409);
+        const lacks = lacking(c, client);
+        if (lacks.length) throw new PortalRefusal(`needs first: ${lacks.join(", ")}`, 409);
+        if (c.effects.length && req.confirm !== c.id)
+          throw new PortalRefusal(`it ${c.effects.join(" and ")}: type ${c.id} to confirm`, 400);
+        return blockOf(c, req.settings);
+      }),
+    /** New settings over the old: a field left out keeps its value (a price is never sent). */
+    configure: (req: InstallRequest) =>
+      change(req, "configure", (c, client) => {
+        if (!has(client, c.id)) throw new PortalRefusal("not installed", 404);
+        const old = client.products[c.id];
+        const merged = {
+          ...(old && typeof old === "object" ? old : {}),
+          ...blockOf(c, req.settings),
+        };
+        return blockOf(c, merged);
+      }),
+    /** Off the client; its data stays in the client's database. Refused while another needs it. */
+    uninstall: (req: ComponentRequest) =>
+      change(req, "uninstall", (c, client) => {
+        if (!has(client, c.id)) throw new PortalRefusal("not installed", 404);
+        const users = components.filter(
+          (o) => has(client, o.id) && o.requires.components.includes(c.id),
+        );
+        if (users.length)
+          throw new PortalRefusal(
+            `${users.map((o) => o.name).join(", ")} need${users.length === 1 ? "s" : ""} it: uninstall that first`,
+            409,
+          );
+        return null;
+      }),
+    /** A client's person asks for a component; installing it stays Wren's call. */
+    async ask(req: ComponentRequest): Promise<{ component: string }> {
+      if (seesInternal(req)) throw new PortalRefusal("the team installs it instead", 403);
+      const { client, viewer } = await pickForWrite(main, req);
+      const c = componentOf(req);
+      if (c.for !== "client") throw new PortalRefusal("no such component", 404);
+      if (has(client, c.id)) throw new PortalRefusal("you have it already", 409);
+      if (!asked) throw new PortalRefusal("asking isn't set up here", 503);
+      await asked(client, viewer.email, c);
+      return { component: c.id };
     },
 
     /** The loop `req` names, if `loops` listed it; anything else names no loop. */
@@ -730,6 +984,10 @@ export function makeConsolePortal(deps: Parameters<typeof consoleApi>[0]) {
           }
         }),
       setLook: (_: restate.Context, req: SetLookRequest) => answer(() => api.setLook(req)),
+      install: (_: restate.Context, req: InstallRequest) => answer(() => api.install(req)),
+      configure: (_: restate.Context, req: InstallRequest) => answer(() => api.configure(req)),
+      uninstall: (_: restate.Context, req: ComponentRequest) => answer(() => api.uninstall(req)),
+      ask: (_: restate.Context, req: ComponentRequest) => answer(() => api.ask(req)),
       addClient: (ctx: restate.Context, req: AddClientRequest) =>
         answer(async () => {
           const ask = api.newClient(req);

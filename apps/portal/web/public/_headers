@@ -1,6 +1,7 @@
-# connect-src: S3 takes client file uploads on a signed PUT (packages/delivery/src/files.ts).
+# connect-src: S3 takes client file uploads on a signed PUT (packages/delivery/src/files.ts);
+# npm's registry lists the browser mods (Marketplace).
 /*
-  Content-Security-Policy: default-src 'self'; img-src 'self' data:; style-src 'self' https://api.fontshare.com; font-src https://cdn.fontshare.com; script-src 'self'; connect-src 'self' https://auth.wrenautomation.com https://*.s3.us-east-1.amazonaws.com; frame-ancestors 'none'; base-uri 'none'; form-action 'self'
+  Content-Security-Policy: default-src 'self'; img-src 'self' data:; style-src 'self' https://api.fontshare.com; font-src https://cdn.fontshare.com; script-src 'self'; connect-src 'self' https://auth.wrenautomation.com https://*.s3.us-east-1.amazonaws.com https://registry.npmjs.org; frame-ancestors 'none'; base-uri 'none'; form-action 'self'
   X-Content-Type-Options: nosniff
   Referrer-Policy: no-referrer
   X-Robots-Tag: noindex

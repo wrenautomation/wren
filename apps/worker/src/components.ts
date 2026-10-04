@@ -39,10 +39,12 @@ export const PLATFORM = {
     loops: "every loop, whoever's it is",
     handlers: "every handler, as a form",
     clients: "the client registry",
+    marketplace: "every component, and the browser mods",
   },
   records: {
     "console.client": "the client registry",
     "console.loop": "every loop",
     "console.handler": "every handler",
+    "console.component": "every component",
   },
 } as const;

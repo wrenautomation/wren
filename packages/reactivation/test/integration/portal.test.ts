@@ -195,7 +195,7 @@ const leaks = (v: unknown) => {
 describe("the demo", () => {
   it("is named by DEMO_NAME, never by the agency", async () => {
     expect(await me(demo)).toEqual({
-      clients: [{ id: "demo", name: DEMO_NAME, demo: true }],
+      clients: [{ id: "demo", name: DEMO_NAME, demo: true, installed: [] }],
       demo: true,
       operator: false,
     });
@@ -317,9 +317,9 @@ describe("logins", () => {
   it("an operator sees every client by its real name, and real names on a real list", async () => {
     expect(await me(operator)).toEqual({
       clients: [
-        { id: "acme", name: "Acme Staffing" },
-        { id: "beta", name: "Beta Search" },
-        { id: "demo", name: "Northside Talent", demo: true },
+        { id: "acme", name: "Acme Staffing", installed: [] },
+        { id: "beta", name: "Beta Search", installed: [] },
+        { id: "demo", name: "Northside Talent", demo: true, installed: [] },
       ],
       demo: false,
       operator: true,
@@ -350,7 +350,7 @@ describe("logins", () => {
 
   it("a client login sees only its own clients, whatever the case of its email", async () => {
     expect(await me(owner)).toEqual({
-      clients: [{ id: "acme", name: "Acme Staffing" }],
+      clients: [{ id: "acme", name: "Acme Staffing", installed: [] }],
       demo: false,
       operator: false,
     });

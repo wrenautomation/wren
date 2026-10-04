@@ -57,6 +57,9 @@ export type {
   WorkView,
 } from "@wren/reactivation/restate";
 
+/** Sent when a look is saved or a component installed: the shell asks `me` again. */
+export const ME_CHANGED = "wren:me-changed";
+
 export class ApiError extends Error {
   constructor(
     message: string,

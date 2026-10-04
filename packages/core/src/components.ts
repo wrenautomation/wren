@@ -28,6 +28,8 @@ export interface Component {
   missing: string[];
   /** Parses its block in `clients.products`; `{}` is valid. */
   settings: z.ZodType;
+  /** Top-level settings that hold prices: kept, never shown on a page. */
+  priced: string[];
   requires: { components: string[]; accounts: AccountSite[] };
   provides: { services: string[]; loops: string[]; records: string[]; apps: string[] };
   effects: Effect[];
@@ -46,6 +48,7 @@ export const defineComponent = (c: Input): Component => ({
   ...c,
   missing: c.missing ?? [],
   settings: c.settings ?? NONE,
+  priced: c.priced ?? [],
   requires: { components: [], accounts: [], ...c.requires },
   provides: { services: [], loops: [], records: [], apps: [], ...c.provides },
   effects: c.effects ?? [],

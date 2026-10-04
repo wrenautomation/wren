@@ -17,17 +17,17 @@ import {
   PageHeader,
   type PaletteItem,
   readTheme,
+  Tag,
   type Theme,
   Toasts,
   type Viewer,
 } from "@wren/ui";
 import { Component, lazy, type ReactNode, Suspense, useEffect, useState } from "react";
-import { call, type Me, signOutUrl } from "./api.js";
+import { call, ME_CHANGED, type Me, signOutUrl } from "./api.js";
 import { useCall } from "./load.js";
 import { type Module, type ModulePage, type PageProps, WREN } from "./module.js";
-import { LOOK_SAVED } from "./modules/account/Look.js";
 import { useAccount } from "./modules/account/load.js";
-import { MODULES } from "./modules/index.js";
+import { appsIn, MODULES } from "./modules/index.js";
 import { REACTIVATION } from "./modules/reactivation/nav.js";
 import { TemplatePage } from "./records.js";
 import { navigate, useRoute } from "./route.js";
@@ -135,11 +135,11 @@ function useLook(params: URLSearchParams, look: unknown): Theme {
 export function App() {
   const route = useRoute();
   const me = useCall("me", () => call<Me>("delivery/me"));
-  // A saved look reaches the open workspace without a reload.
+  // A saved look or a changed install reaches the open workspace without a reload.
   useEffect(() => {
     const again = () => me.retry();
-    addEventListener(LOOK_SAVED, again);
-    return () => removeEventListener(LOOK_SAVED, again);
+    addEventListener(ME_CHANGED, again);
+    return () => removeEventListener(ME_CHANGED, again);
   });
   // A link in our mail names its client (`?client=acme`): open that one, and stay on it.
   const named = route.params.get("client");
@@ -154,7 +154,10 @@ export function App() {
     operator && (kind ? teamOnly(kind) : !named && (client === null || client === WREN.id));
   const team = operator && (wren || !asClient);
   const onDemo = me.data ? me.data.demo : null;
-  const apps = shown({ team, demo: onDemo !== false }).filter((m) => teamOnly(m) === wren);
+  const clients = me.data?.clients ?? [];
+  const current = wren ? WREN : (clients.find((c) => c.id === client) ?? clients[0] ?? null);
+  const installed = new Set(current && "installed" in current ? current.installed : []);
+  const apps = appsIn(shown({ team, demo: onDemo !== false }), { wren, team, installed });
   // Menu apps (the account) are reached from the client's name, not a card.
   const cards = apps.filter((m) => !m.menu);
   const [only] = cards;
@@ -175,8 +178,6 @@ export function App() {
     keep(WORKSPACE_KEY, named);
   }, [named]);
 
-  const clients = me.data?.clients ?? [];
-  const current = wren ? WREN : (clients.find((c) => c.id === client) ?? clients[0] ?? null);
   const theme = useLook(route.params, clients.find((c) => c.id === current?.id)?.look);
   const label = at.kind === "page" ? at.page.label : at.kind === "launcher" ? "Apps" : null;
   useEffect(() => {
@@ -313,7 +314,13 @@ export function App() {
             <AppGrid>{cards.map((m) => card(m))}</AppGrid>
           </>
         ) : (
-          <Launcher key={current.id} name={current.name} apps={cards} props={props(current.id)} />
+          <Launcher
+            key={current.id}
+            name={current.name}
+            apps={cards}
+            installed={installed}
+            props={props(current.id)}
+          />
         )}
       </AppShell>
       <Toasts />
@@ -331,9 +338,12 @@ export function App() {
   );
 }
 
-const card = (m: Module, props?: PageProps) => (
+/** `off`: the team sees an app whose component this client hasn't installed, marked. */
+const card = (m: Module, props?: PageProps, off = false) => (
   <AppCard key={m.id} name={m.name} icon={m.icon} href={firstOf(m)} blurb={m.blurb}>
-    {m.Glance && props ? (
+    {off ? (
+      <Tag>Not installed</Tag>
+    ) : m.Glance && props ? (
       <Contained quiet>
         <m.Glance {...props} />
       </Contained>
@@ -342,12 +352,26 @@ const card = (m: Module, props?: PageProps) => (
 );
 
 /** A client's "/": the app each service they bought runs in (its plan and paperwork inside), then the rest. */
-function Launcher({ name, apps, props }: { name: string; apps: Module[]; props: PageProps }) {
+function Launcher({
+  name,
+  apps,
+  installed,
+  props,
+}: {
+  name: string;
+  apps: Module[];
+  installed: ReadonlySet<string>;
+  props: PageProps;
+}) {
   const account = useAccount(props);
   if (!account.data && !account.error) return <Loading lines={8} heading />;
-  // One heading per offer, newest first; a finished one stays, it still has its paperwork.
-  const bought = [...new Map((account.data?.bought ?? []).map((b) => [b.offerId, b])).values()];
   const under = (app: string) => apps.filter((m) => m.id === app);
+  // One heading per offer with its app here, newest first; a finished one stays, it still has its paperwork.
+  const bought = [
+    ...new Map((account.data?.bought ?? []).map((b) => [b.offerId, b])).values(),
+  ].filter((b) => under(b.app).length);
+  const shown = (m: Module) =>
+    card(m, props, m.component !== undefined && !installed.has(m.component));
   const placed = new Set(bought.map((b) => b.app));
   const rest = apps.filter((m) => !m.fallback && !placed.has(m.id));
   return (
@@ -355,13 +379,11 @@ function Launcher({ name, apps, props }: { name: string; apps: Module[]; props: 
       <PageHeader title="Apps" lede={`Everything Wren runs for ${name}.`} />
       {bought.map((b) => (
         <AppGrid key={b.offerId} label={b.offer}>
-          {under(b.app).map((m) => card(m, props))}
+          {under(b.app).map(shown)}
         </AppGrid>
       ))}
       {rest.length ? (
-        <AppGrid label={bought.length ? "More from Wren" : undefined}>
-          {rest.map((m) => card(m, props))}
-        </AppGrid>
+        <AppGrid label={bought.length ? "More from Wren" : undefined}>{rest.map(shown)}</AppGrid>
       ) : null}
     </>
   );

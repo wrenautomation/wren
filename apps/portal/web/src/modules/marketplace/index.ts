@@ -1,0 +1,28 @@
+/**
+ * The Marketplace, in a client's workspace: every component (`console.component`), installed
+ * or not for this client. Wren's team installs; a client asks. Never on the demo host: what
+ * a sample firm could install says nothing about it. Browser mods list autobrowse's on npm.
+ */
+import type { Module } from "../../module.js";
+import { catalogExtras } from "./Catalog.js";
+import { Mods } from "./Mods.js";
+
+export const marketplace: Module = {
+  id: "marketplace",
+  name: "Marketplace",
+  icon: "apps",
+  blurb: "Everything Wren can run for you, and what each part needs.",
+  requires: { audience: "client" },
+  pages: [
+    {
+      id: "catalog",
+      label: "Catalog",
+      template: "list",
+      record: "console.component",
+      empty: { installed: "Nothing installed yet.", ready: "Nothing is ready yet." },
+      columns: ["name", "ready", "installed", "effects"],
+      extras: catalogExtras,
+    },
+    { id: "mods", label: "Browser mods", Page: Mods },
+  ],
+};

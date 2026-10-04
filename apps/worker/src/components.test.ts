@@ -13,7 +13,7 @@ import type { SendPolicy } from "@wren/channel-email/send/policy";
 import { loadSettings } from "@wren/config";
 import { type Client, clientRecord } from "@wren/core/clients";
 import { ACCOUNT_SITES } from "@wren/core/components";
-import { handlerRecord, loopRecord } from "@wren/core/console";
+import { componentRecord, handlerRecord, loopRecord } from "@wren/core/console";
 import type { Queryable } from "@wren/db";
 import { deliveryRecords } from "@wren/delivery/records";
 import { REACTIVATION_RECORDS, settingOf } from "@wren/reactivation/records";
@@ -74,6 +74,7 @@ const RECORDS = [
   clientRecord,
   loopRecord(async () => []),
   handlerRecord(async () => ({})),
+  componentRecord([], null, false),
   ...deliveryRecords({} as Queryable, "synthetic", true),
   ...REACTIVATION_RECORDS,
   settingOf({} as Client),

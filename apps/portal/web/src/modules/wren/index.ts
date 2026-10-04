@@ -6,6 +6,7 @@ import type { Action } from "@wren/ui";
 import { createElement } from "react";
 import type { Module } from "../../module.js";
 import { ClientLook } from "../account/Look.js";
+import { ClientComponents } from "../marketplace/Installed.js";
 import {
   CANDIDATE_ACTIONS,
   candidateExtras,
@@ -668,7 +669,10 @@ export const clients: Module = {
       actions: CLIENT_ACTIONS,
       // Its portal look: the demo's too, so the demo can show one.
       extras: (_, { row }) => ({
-        sections: [["Look", createElement(ClientLook, { client: String(row.id) })]],
+        sections: [
+          ["Components", createElement(ClientComponents, { client: String(row.id) })],
+          ["Look", createElement(ClientLook, { client: String(row.id) })],
+        ],
       }),
     },
   ],

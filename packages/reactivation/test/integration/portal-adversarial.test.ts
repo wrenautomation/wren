@@ -92,7 +92,7 @@ describe("who sees which client", () => {
   it("a member added with stray spaces still signs in", async () => {
     await addMember(pg.db, "beta", " Boss@Beta.example ");
     expect((await me({ viewer: { email: "boss@beta.example" } })).clients).toEqual([
-      { id: "beta", name: "Beta Search" },
+      { id: "beta", name: "Beta Search", installed: [] },
     ]);
   });
 });

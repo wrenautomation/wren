@@ -57,6 +57,7 @@ export function HandlerForm({
   keyed,
   effect,
   run,
+  verb = "Run",
 }: {
   /** Its last answer is kept under this. */
   id: string;
@@ -67,6 +68,8 @@ export function HandlerForm({
   keyed: boolean;
   effect: string | null;
   run: (call: HandlerCall) => Promise<unknown>;
+  /** What its button says: "Install". */
+  verb?: string;
 }) {
   const uid = useId();
   const [typed, setTyped] = useState<Record<string, string>>({});
@@ -131,7 +134,7 @@ export function HandlerForm({
         ) : null}
         <div className="flex flex-wrap items-center gap-3">
           <Button size="dense" type="submit" disabled={busy}>
-            {busy ? "Running…" : "Run"}
+            {busy ? "Working…" : verb}
           </Button>
           {warning ? <span className="text-[13px] text-(--ui-bad)">{warning}</span> : null}
         </div>
@@ -154,9 +157,11 @@ export function HandlerForm({
             className="grid gap-4"
           >
             <DialogHeader>
-              <DialogTitle>Run {name}?</DialogTitle>
+              <DialogTitle>
+                {verb} {name}?
+              </DialogTitle>
               <DialogDescription>
-                {warning} Type {name} to run it.
+                {warning} Type {name} to {verb.toLowerCase()} it.
               </DialogDescription>
             </DialogHeader>
             <Input
@@ -172,7 +177,7 @@ export function HandlerForm({
                 Cancel
               </Button>
               <Button size="dense" type="submit" disabled={confirm !== name || busy}>
-                Run
+                {verb}
               </Button>
             </DialogFooter>
           </form>

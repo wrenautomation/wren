@@ -19,6 +19,7 @@ Fifty clients must not mean fifty code paths. A client is data: its database, it
 
 - `clients` (`schema.ts:22`): `id`, `database` (unique), `accounts` (site → autobrowse account), `products` (per-product JSON the product owns), `demo`, `look` (`schema.ts:42`, the portal's look: a preset name or `readTheme` input, often just a brand color; null is Wren's); who signs in is [[clients/client-member]]
 - `ConsolePortal.setLook {client, look}` (`packages/core/src/console.ts:600`): an operator's for any client, the demo's too; an owner's for their own only (`isOwner`, `packages/core/src/clients/index.ts:177`). The portal reads it from `delivery/me` and themes the workspace with it; `?theme=` still tries a preset over it. It's edited with `LookEditor` (`packages/ui/src/look.tsx`): Account's Look page for an owner, the Clients app's record for the team
+- Each `products` key is an installed component (`packages/core/src/components.ts`, `COMPONENTS` in `apps/worker/src/components.ts`). `ConsolePortal.install|configure|uninstall {client, component, settings}` (operator, each a `runs` row) write it; `ask` lets a client's person ask for one. `delivery/me` lists them as `installed`; the portal shows a client only those apps (`appsIn`, `apps/portal/web/src/modules/index.ts`). The Marketplace app is the catalog (`console.component`)
 - `addClient` creates and migrates the database, then writes the row (`packages/core/src/clients/index.ts:42`). Safe to retry: a registered id comes back as it is, a half-made database is migrated again; callers refuse a taken id. `ConsolePortal.addClient {id, name}` runs it in one `ctx.run` step on the worker, which ships the migrations (`apps/worker/scripts/build-lambda.mjs:64`); people are added after with `DeliveryPortal.invite`
 - Loop keys: `<client>/<unit>`; a bare key is Wren's own (`packages/core/src/restate`, `clientKey` / `clientOfKey`)
 
@@ -43,8 +44,9 @@ Citations: `packages/core/src/clients/schema.ts:22`, `packages/core/src/clients/
 | `wren clients add\|list` | writes |
 | `ConsolePortal.addClient` (`console.addClient`) | writes |
 | `ConsolePortal.setLook` (operator, or the client's owner) | writes `look` |
+| `ConsolePortal.install\|configure\|uninstall` (operator), Marketplace | writes `products` |
 | `Reactivation/{client}`, portal | reads |
 
 ## See
 
-- Design: `designs/2026-09-29-client-reactivation.md`, `designs/2026-10-04-brand-palette.md` (look)
+- Design: `designs/2026-09-29-client-reactivation.md`, `designs/2026-10-04-brand-palette.md` (look), `designs/2026-10-04-components-and-marketplace.md` (installs)

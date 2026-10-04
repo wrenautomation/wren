@@ -116,6 +116,7 @@ import {
 } from "@wren/core/content/restate";
 import { clientKey, clientOfKey } from "@wren/core/restate";
 import { cachedDb, clientDatabaseName, clientDatabaseUrl, createDb } from "@wren/db";
+import { engagementOf, postUpdate } from "@wren/delivery";
 import { s3Files } from "@wren/delivery/files";
 import { makeDeliveryPortal, makeDeliveryWatch } from "@wren/delivery/restate";
 import { loadLlmEnv, makeLlm, makeTracer } from "@wren/llm";
@@ -141,6 +142,7 @@ import {
 import { s3PageStore } from "@wren/research/pages";
 import { makeDiscovery, makeEnrichment, makePageArchive } from "@wren/research/restate";
 import type { Logger } from "pino";
+import { COMPONENTS } from "./components.js";
 
 /** The worker's application_name on every connection, kept on each audit event. */
 const WORKER_APP = "wren-worker";
@@ -734,6 +736,17 @@ export async function buildServices(
       mainUrl: settings.databaseUrl,
       views: [...EMAIL_CONSOLE_VIEWS, ...BOOKS_CONSOLE_VIEWS],
       records: [...emailRecords(roster, policy), ...BOOKS_RECORDS, clientRecord],
+      components: COMPONENTS,
+      // "Ask for this": a line on the client's running project, where Wren answers, and a ping.
+      asked: async (client, by, c) => {
+        const e = await engagementOf(db, client.id).catch(() => null);
+        if (e) await postUpdate(db, e, { body: `Asked for ${c.name}.`, author: by });
+        await laneNotifier(settings.discordClientsWebhookUrl).notify(
+          `Clients: ${client.id} asks for ${c.name}`,
+          `${by} asked in the Marketplace.${e ? " It's on their project's updates: answer there." : ""}`,
+          "action",
+        );
+      },
       admin: settings.restateAdminUrl
         ? restateAdmin(settings.restateAdminUrl, settings.restateAuthToken)
         : undefined,

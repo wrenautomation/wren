@@ -11,6 +11,7 @@ export const REACTIVATION_COMPONENTS = [
     for: "client",
     ready: true,
     settings: reactivationSettingsSchema,
+    priced: ["offer"],
     provides: {
       services: ["Reactivation", "ReactivationPortal"],
       loops: ["Reactivation"],
