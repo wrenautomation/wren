@@ -26,7 +26,7 @@ A page is a declaration, not hand-built SQL or UI. Every column, op and sort com
 - reactivation types `reactivation.person`, `.email`, `.finding` (`packages/reactivation/src/portal/records.ts:42`, `:95`, `:137`) over views `reactivation_people`, `_emails`, `_findings`, `_person_activity` (`packages/reactivation/src/portal/record-views.ts:17`, `:62`, `:96`, `:118`; migration 0060)
 - drawn by `RecordList` and `RecordPage` (`packages/ui/src/records.tsx:413`, `:884`): views as tabs, a chip per filterable field, sort, columns, CSV, J/K, a side panel or full page with details, related, activity and sources; each kind's cell, filter and line in `packages/ui/src/fields.tsx`
 - a portal page is `{template: "list", record, empty?, columns?, extras?, legacy?}` (`apps/portal/web/src/module.ts:37`); `TemplatePage` gives it the four calls and the address (`apps/portal/web/src/records.tsx:31`). People is one (`apps/portal/web/src/modules/reactivation/index.ts`)
-- served as `ReactivationPortal{recordsTypes,recordsList,recordsGet,recordsExport,recordsStats}` in a read-only transaction (`packages/reactivation/src/portal/service.ts:96`, `:168`); open on the demo (`packages/reactivation/src/portal/routes.ts:16`)
+- served as `ReactivationPortal{recordsTypes,recordsList,recordsGet,recordsExport,recordsStats}` in a read-only transaction (`packages/reactivation/src/portal/service.ts:98`, `:168`); open on the demo (`packages/reactivation/src/portal/routes.ts:16`)
 
 Citations: `packages/core/src/records.ts:359`, `packages/core/src/records-serve.ts:301`, `packages/reactivation/src/portal/records.ts:160`, `packages/channel-email/src/records.ts:273`
 
