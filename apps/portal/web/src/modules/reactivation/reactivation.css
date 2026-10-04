@@ -115,57 +115,6 @@
   text-wrap: pretty;
 }
 
-/* One person, in the drawer */
-.rx-person > header {
-  margin-bottom: 22px;
-  padding-right: 40px;
-}
-.rx-person h2 {
-  font-family: var(--ui-font-display);
-  font-size: 26px;
-  font-weight: var(--ui-display-weight);
-  line-height: 1.15;
-  letter-spacing: calc(-0.03em * var(--ui-display-squeeze));
-}
-.rx-person > header p {
-  margin-top: 6px;
-  font-size: 14.5px;
-}
-.rx-person h3 {
-  margin: 32px 0 12px;
-  font-family: var(--ui-font-display);
-  font-size: 17px;
-  font-weight: var(--ui-display-weight);
-  letter-spacing: calc(-0.015em * var(--ui-display-squeeze));
-}
-.rx-brief {
-  padding: 16px 18px;
-  border-radius: var(--ui-radius-card);
-  background: var(--ui-tile);
-  font-size: 15.5px;
-  line-height: 1.6;
-  text-wrap: pretty;
-}
-.rx-cites {
-  white-space: nowrap;
-}
-
-/* People */
-.rx-people tbody tr {
-  cursor: pointer;
-}
-.rx-people td:first-child a {
-  text-decoration: none;
-}
-.rx-people td:first-child a:hover {
-  text-decoration: underline;
-}
-.rx-score-line {
-  display: flex;
-  align-items: flex-start;
-  gap: 14px;
-  margin-top: 16px;
-}
 /* Emails and replies */
 .rx-bulk {
   display: flex;
@@ -388,9 +337,6 @@
   .rx-next > li {
     grid-template-columns: minmax(0, 1fr);
     align-items: start;
-  }
-  .rx-person h2 {
-    font-size: 23px;
   }
 }
 

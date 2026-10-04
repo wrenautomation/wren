@@ -8,7 +8,6 @@ import * as restate from "@restatedev/restate-sdk";
 import type { Client } from "@wren/core/clients";
 import {
   answer,
-  isDemo,
   PortalRefusal,
   type PortalRequest,
   pickClient,
@@ -49,11 +48,8 @@ import { portalSetup, type Setup } from "./setup.js";
 import {
   listNames,
   type Overview,
-  type PeopleFilter,
-  type PeoplePage,
   type PersonView,
   portalOverview,
-  portalPeople,
   portalPerson,
   portalRaw,
   type RawPage,
@@ -202,17 +198,6 @@ export function portalApi(deps: PortalDeps) {
       if (!view) throw new PortalRefusal("nothing kept for that line", 404);
       return view;
     },
-    people: (
-      req: PortalRequest & { filter?: PeopleFilter; offset?: number; q?: string },
-    ): Promise<PeoplePage> =>
-      read(deps, req, (db) =>
-        portalPeople(db, {
-          ...opt("filter", textOf(req.filter) as PeopleFilter | undefined),
-          ...opt("offset", offsetOf(req.offset)),
-          ...opt("q", textOf(req.q)),
-          searchNames: !isDemo(req.viewer),
-        }),
-      ),
     person: async (req: PortalRequest & { personId: number }): Promise<PersonView> => {
       const id = idOf(req.personId);
       const view = await read(deps, req, (db) => portalPerson(db, id));
@@ -348,8 +333,6 @@ export type { Story } from "./story.js";
 export type {
   Now,
   Overview,
-  PeopleFilter,
-  PeoplePage,
   PersonRow,
   PersonView,
   RawFinding,
@@ -381,7 +364,6 @@ export function makeReactivationPortal(deps: PortalDeps) {
       setup: (_: restate.Context, req: Req<"setup">) => answer(() => api.setup(req)),
       run: (_: restate.Context, req: Req<"run">) => answer(() => api.run(req)),
       work: (_: restate.Context, req: Req<"work">) => answer(() => api.work(req)),
-      people: (_: restate.Context, req: Req<"people">) => answer(() => api.people(req)),
       person: (_: restate.Context, req: Req<"person">) => answer(() => api.person(req)),
       raw: (_: restate.Context, req: Req<"raw">) => answer(() => api.raw(req)),
       emails: (_: restate.Context, req: Req<"emails">) => answer(() => api.emails(req)),

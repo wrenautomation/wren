@@ -14,7 +14,6 @@ import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { seedDemo } from "../../src/demo/seed.js";
 import { EMAIL_FILTERS, REPLY_FILTERS } from "../../src/portal/outbox.js";
 import { DEMO_NAME, PortalRefusal, portalApi } from "../../src/portal/service.js";
-import { PEOPLE_FILTERS } from "../../src/portal/views.js";
 import { setClientProfile } from "../../src/profile.js";
 import { scoreCrmContacts } from "../../src/score.js";
 import { deps as seedDeps, today } from "./demo-fixture.js";
@@ -174,6 +173,7 @@ beforeAll(async () => {
 afterAll(() => pg.stop());
 
 const demo = { viewer: { demo: true as const } };
+const PERSON = "reactivation.person";
 const operator = { viewer: { email: "william@wren.example", operator: true } };
 const owner = { viewer: { email: "Owner@Acme.example" } };
 
@@ -214,8 +214,7 @@ describe("the demo", () => {
       ["work lookup", await api.work({ ...demo, step: "lookup", subject: "Cara L." })],
       ["work signals", await api.work({ ...demo, step: "signals", subject: "Umbrella Health" })],
     ];
-    for (const filter of PEOPLE_FILTERS)
-      answers.push([`people ${filter}`, await api.people({ ...demo, filter })]);
+    answers.push(["people", await api.recordsList({ ...demo, record: PERSON, limit: 200 })]);
     for (const filter of EMAIL_FILTERS)
       answers.push([`emails ${filter}`, await api.emails({ ...demo, filter })]);
     for (const filter of REPLY_FILTERS)
@@ -237,7 +236,7 @@ describe("the demo", () => {
     expect(view.brief?.text).toContain("Cara L. moved to Initech");
     expect(view.brief?.text).toContain("c•••@initech.example");
     expect(view.sources.map((s) => s.url)).toContain("https://www.linkedin.com/in/•••/");
-    const people = await api.people({ ...demo, filter: "moved" });
+    const people = await api.recordsList({ ...demo, record: PERSON, where: { now: ["moved"] } });
     expect(people.rows.map((r) => r.name)).toEqual(["Cara L."]);
   });
 
@@ -306,15 +305,10 @@ describe("the demo", () => {
     expect(stale.live?.lines).toHaveLength(3);
   });
 
-  it("search matches firms, never names", async () => {
-    expect((await api.people({ ...demo, q: "Doe" })).total).toBe(0);
-    expect((await api.people({ ...demo, q: "Umbrella" })).total).toBeGreaterThan(0);
-  });
-
   it("reads in a read-only transaction", async () => {
     opened.length = 0;
     await api.overview(demo);
-    await api.people({ ...operator, client: "acme" });
+    await api.recordsList({ ...operator, client: "acme", record: PERSON });
     expect(opened).toEqual([{ accessMode: "read only" }, { accessMode: "read only" }]);
   });
 });
@@ -330,7 +324,7 @@ describe("logins", () => {
       demo: false,
       operator: true,
     });
-    const acme = await api.people({ ...operator, client: "acme", q: "Doe" });
+    const acme = await api.recordsList({ ...operator, client: "acme", record: PERSON, q: "Doe" });
     expect(acme.rows.map((r) => r.name)).toEqual(["Jane Doe"]);
   });
 
@@ -349,7 +343,9 @@ describe("logins", () => {
   });
 
   it("an operator reading the demo still gets it masked", async () => {
-    expect(leaks(await api.people({ ...operator, client: "demo" }))).toEqual([]);
+    expect(leaks(await api.recordsList({ ...operator, client: "demo", record: PERSON }))).toEqual(
+      [],
+    );
   });
 
   it("a client login sees only its own clients, whatever the case of its email", async () => {

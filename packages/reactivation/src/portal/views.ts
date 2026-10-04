@@ -53,16 +53,6 @@ export interface PersonRow {
   email: { address: string; verdict: string | null } | null;
 }
 
-export const PEOPLE_FILTERS = ["all", "moved", "hiring", "there", "left", "unknown"] as const;
-export type PeopleFilter = (typeof PEOPLE_FILTERS)[number];
-
-export interface PeoplePage {
-  rows: PersonRow[];
-  total: number;
-  offset: number;
-  counts: Record<PeopleFilter, number>;
-}
-
 export interface Source {
   /** `f<id>` or `c<id>`: the mark the brief cites. */
   mark: string;
@@ -123,15 +113,6 @@ export const SUBJECTS = sql`
   subjects as (
     select l.*, ${whereFinding(sql`l.person_id`)} where_id, ${hiringFinding(sql`l.company_id`)} hiring_id
     from latest l)`;
-
-const FILTER_SQL: Record<PeopleFilter, SQL> = {
-  all: sql`true`,
-  moved: sql`w.kind = 'job_change'`,
-  hiring: sql`s.hiring_id is not null`,
-  there: sql`w.kind = 'still_there'`,
-  left: sql`w.kind = 'left'`,
-  unknown: sql`s.where_id is null`,
-};
 
 const day = (v: unknown): string | null =>
   v instanceof Date ? v.toISOString().slice(0, 10) : typeof v === "string" ? v.slice(0, 10) : null;
@@ -247,51 +228,6 @@ export async function portalOverview(db: Queryable, client: Client): Promise<Ove
     top: await rankedContacts(db, { limit: 5 }),
     pipeline: await portalPipeline(db, client),
   };
-}
-
-export interface PeopleQuery {
-  filter?: PeopleFilter;
-  offset?: number;
-  /** Matches the firm, and the name when `searchNames`. */
-  q?: string;
-  /** Off for the demo: a hit on a name would say a real person is on the list. */
-  searchNames?: boolean;
-}
-
-export async function portalPeople(db: Queryable, query: PeopleQuery = {}): Promise<PeoplePage> {
-  const filter = PEOPLE_FILTERS.includes(query.filter as PeopleFilter)
-    ? (query.filter as PeopleFilter)
-    : "all";
-  const offset = Number.isFinite(query.offset) ? Math.max(0, Math.floor(query.offset ?? 0)) : 0;
-  const q = query.q?.trim() ? `%${query.q.trim().replace(/[\\%_]/g, (m) => `\\${m}`)}%` : null;
-  const search = q
-    ? query.searchNames
-      ? sql`(coalesce(co.name, co.domain, '') ilike ${q} or p.full_name ilike ${q})`
-      : sql`coalesce(co.name, co.domain, '') ilike ${q}`
-    : sql`true`;
-  const rows = await db.execute<PersonSqlRow>(sql`
-    with ${SUBJECTS}
-    select ${PERSON_COLUMNS}
-    ${PERSON_JOINS}
-    where ${FILTER_SQL[filter]} and ${search}
-    order by sc.score desc nulls last, s.person_id
-    limit ${PAGE} offset ${offset}`);
-  const [n] = await db.execute<Record<PeopleFilter, number> & { total: number }>(sql`
-    with ${SUBJECTS}
-    select count(*) filter (where ${FILTER_SQL[filter]})::int total,
-      ${sql.join(
-        PEOPLE_FILTERS.map(
-          (f) => sql`count(*) filter (where ${FILTER_SQL[f]})::int ${sql.identifier(f)}`,
-        ),
-        sql`, `,
-      )}
-    ${PERSON_JOINS}
-    where ${search}`);
-  const counts = Object.fromEntries(PEOPLE_FILTERS.map((f) => [f, n?.[f] ?? 0])) as Record<
-    PeopleFilter,
-    number
-  >;
-  return { rows: rows.map(toRow), total: n?.total ?? 0, offset, counts };
 }
 
 interface CrmSqlRow extends Record<string, unknown> {

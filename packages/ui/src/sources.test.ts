@@ -3,9 +3,20 @@
  * elements they return are read. Tests that expose a bug assert the correct behavior and
  * are marked "Bug".
  */
-import { isValidElement, type ReactElement, type ReactNode } from "react";
+import { createElement, isValidElement, type ReactElement, type ReactNode } from "react";
+import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it } from "vitest";
-import { Cite, SourceCard, SURE_LEVELS, Sure, type SureLevel, Trail } from "./sources.js";
+import {
+  Cite,
+  Cited,
+  marksOf,
+  SourceCard,
+  SURE_LEVELS,
+  Sure,
+  type SureLevel,
+  stripMarks,
+  Trail,
+} from "./sources.js";
 
 type El = ReactElement<Record<string, unknown>>;
 const el = (n: ReactNode): El => {
@@ -183,5 +194,104 @@ describe("Cite and Trail", () => {
       }),
     ).filter((x) => x.type === "li");
     expect(steps.map((s) => s.key)).toEqual(["line", "brief"]);
+  });
+});
+
+describe("marksOf", () => {
+  it("reads every mark, lowercase, in order", () => {
+    expect(marksOf("A. [f1] B. [ F2 ; c3 ] C. [f4,c5][c6]")).toEqual([
+      "f1",
+      "f2",
+      "c3",
+      "f4",
+      "c5",
+      "c6",
+    ]);
+  });
+
+  it("a bracket that isn't all marks cites nothing", () => {
+    for (const s of ["[f1, x2]", "[f1,]", "[f 1]", "[1]", "(f1)", "f1", "[]", "[f]", "[f1.5]"])
+      expect(marksOf(s), s).toEqual([]);
+  });
+
+  it("is the same twice: the regex keeps no state between calls", () => {
+    const s = "One. [f1] Two. [c2]";
+    expect(marksOf(s)).toEqual(marksOf(s));
+    expect(marksOf(s)).toEqual(["f1", "c2"]);
+  });
+});
+
+describe("stripMarks", () => {
+  it("drops marks and the space they leave before a period, comma or semicolon", () => {
+    expect(stripMarks("Moved to Initech [f1]. Still hiring [f2, c3], and more [c4];")).toBe(
+      "Moved to Initech. Still hiring, and more;",
+    );
+  });
+
+  // Bug: stripMarks closes the gap only before . , ; so a mark before ? or !
+  // leaves "there ?". The server's stripMarks (compose.ts:370-374) handles . , ; ! ?.
+  it("Bug: a mark before ? or ! leaves no gap", () => {
+    expect(stripMarks("Still there [f1]? Hiring [f2]!")).toBe("Still there? Hiring!");
+  });
+});
+
+describe("Cited", () => {
+  type El = ReactElement<Record<string, unknown>>;
+  const chips = (text: string, order: string[]) => {
+    const out = (Cited({ text, order, onPick: () => {} }) as El).props.children as ReactNode[];
+    return out
+      .filter((n): n is El => isValidElement(n))
+      .map((span) =>
+        (span.props.children as ReactNode[]).filter((c): c is El => isValidElement(c)),
+      );
+  };
+  const html = (text: string, order: string[], lit?: string) =>
+    renderToStaticMarkup(createElement(Cited, { text, order, lit, onPick: () => {} }));
+
+  it("a chip's number is its mark's place in the order; case doesn't matter", () => {
+    const got = chips("A. [F2] B. [c3, f1]", ["c3", "f1", "f2"]);
+    expect(got.map((s) => s.map((c) => c.props.n))).toEqual([[3], [1, 2]]);
+    expect(got.flat().map((c) => c.props.href)).toEqual(["#src-f2", "#src-c3", "#src-f1"]);
+  });
+
+  it("an unknown mark shows no chip and no mark", () => {
+    const out = html("A. [f9] B. [f1, f9]", ["f1"]);
+    expect(out).not.toMatch(/f9|\[|\]/);
+    expect(out.match(/class="ui-cite/g)).toHaveLength(1);
+  });
+
+  it("the words around the marks stay whole, in order", () => {
+    const text = "Cara moved. [f1] Umbrella is hiring. [f2] Worth a note.";
+    expect(html(text, ["f1", "f2"]).replace(/<[^>]+>/g, "")).toBe(
+      "Cara moved.1 Umbrella is hiring.2 Worth a note.",
+    );
+    expect(html("No marks here.", [])).toBe("No marks here.");
+    expect(html("", [])).toBe("");
+  });
+
+  it("the lit mark's chip is on, the others aren't", () => {
+    const got = chips("[f1, f2]", ["f1", "f2"]).flat();
+    expect(got.map((c) => c.props.on)).toEqual([false, false]);
+    const out = html("[f1, f2]", ["f1", "f2"], "f2");
+    expect(out.match(/ui-cite-on/g)).toHaveLength(1);
+  });
+
+  it("a pick names the mark, lowercase", () => {
+    const picked: string[] = [];
+    const out = (Cited({ text: "[F1]", order: ["f1"], onPick: (m) => picked.push(m) }) as El).props
+      .children as ReactNode[];
+    const span = out.find((n): n is El => isValidElement(n));
+    if (!span) throw new Error("no chips");
+    const [chip] = (span.props.children as ReactNode[]).filter((c): c is El => isValidElement(c));
+    if (!chip) throw new Error("no chip");
+    (chip.props.onPick as () => void)();
+    expect(picked).toEqual(["f1"]);
+  });
+
+  // Bug: Cited makes one chip per id in the bracket, keyed by id, so a mark
+  // cited twice in one bracket ("[f1, F1]") shows the same number twice with a repeated key.
+  it("Bug: a mark repeated in one bracket shows one chip", () => {
+    const [span] = chips("Moved. [f1, F1]", ["f1"]);
+    expect(span).toHaveLength(1);
   });
 });

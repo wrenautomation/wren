@@ -5,9 +5,11 @@ import {
   Callout,
   Card,
   CardList,
+  Cited,
   Drawer,
   Empty,
   Loading,
+  marksOf,
   num,
   PageHeader,
   Pager,
@@ -16,6 +18,7 @@ import {
   type TagTone,
   Traced,
   Trail,
+  useSourcePick,
 } from "@wren/ui";
 import { useState } from "react";
 import {
@@ -28,7 +31,7 @@ import {
 } from "../../api.js";
 import { useCall } from "../../load.js";
 import type { PageProps } from "../../module.js";
-import { Cited, marksOf, SourceCards, useSourcePick, Who } from "./bits.js";
+import { SourceCards, Who } from "./bits.js";
 import { at, goto } from "./nav.js";
 
 const FILTERS: Record<EmailFilter, string> = {

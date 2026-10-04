@@ -1,6 +1,6 @@
 /**
  * The portal API: POST /api/<service>/<route> with JSON (`delivery/home`,
- * `reactivation/people`). On app.<domain> each call
+ * `reactivation/recordsList`). On app.<domain> each call
  * carries a short-lived token from our sign-in at auth.<domain>; no session
  * there sends the browser to sign in and back. The demo and the local preview
  * need none.
@@ -37,8 +37,6 @@ export type {
   LiveRun,
   Now,
   Overview,
-  PeopleFilter,
-  PeoplePage,
   PersonRow,
   PersonView,
   Pipeline,

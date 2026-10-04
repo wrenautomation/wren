@@ -43,6 +43,7 @@ afterAll(() => pg.stop());
 const demo = { viewer: { demo: true as const } };
 const operator = { viewer: { email: "william@wren.example", operator: true } };
 const owner = { viewer: { email: "owner@acme.example" } };
+const PERSON = "reactivation.person";
 
 /** Resolves, or refuses with a PortalRefusal: never a raw error. */
 const clean = async (p: Promise<unknown>) => {
@@ -59,12 +60,16 @@ const clean = async (p: Promise<unknown>) => {
 describe("who sees which client", () => {
   it("the demo viewer can't name a real client", async () => {
     await expect(api.overview({ ...demo, client: "acme" })).rejects.toBeInstanceOf(PortalRefusal);
-    await expect(api.people({ ...demo, client: "beta" })).rejects.toBeInstanceOf(PortalRefusal);
+    await expect(
+      api.recordsList({ ...demo, client: "beta", record: PERSON }),
+    ).rejects.toBeInstanceOf(PortalRefusal);
   });
 
   it("a login can't reach another client, or the demo, by id", async () => {
     for (const client of ["beta", "demo", "ACME", " acme"])
-      await expect(api.people({ ...owner, client })).rejects.toBeInstanceOf(PortalRefusal);
+      await expect(api.recordsList({ ...owner, client, record: PERSON })).rejects.toBeInstanceOf(
+        PortalRefusal,
+      );
     expect((await me(owner)).clients.map((c) => c.id)).toEqual(["acme"]);
   });
 
@@ -93,37 +98,25 @@ describe("who sees which client", () => {
 });
 
 describe("inputs", () => {
-  it("negative and fractional offsets clamp; an unknown filter is all", async () => {
-    const page = await api.people({ ...operator, client: "acme", offset: -5.5 });
-    expect(page.offset).toBe(0);
-    const all = await api.people({ ...operator, client: "acme" });
-    const odd = await api.people({
-      ...operator,
-      client: "acme",
-      filter: "constructor" as never,
-    });
-    expect(odd.total).toBe(all.total);
-  });
-
   it("% and _ in the search are literal", async () => {
-    expect((await api.people({ ...operator, client: "acme", q: "%" })).total).toBe(0);
-    expect((await api.people({ ...operator, client: "acme", q: "_" })).total).toBe(0);
-    expect((await api.people({ ...operator, client: "acme", q: "\\" })).total).toBe(0);
+    for (const q of ["%", "_", "\\"])
+      expect(
+        (await api.recordsList({ ...operator, client: "acme", record: PERSON, q })).total,
+      ).toBe(0);
   });
 
   // Was a bug: a non-numeric offset reaches Postgres as NaN; the raw error is retried by Restate forever.
   it("a non-numeric offset", async () => {
     expect({
-      people: await clean(api.people({ ...demo, offset: "x" as unknown as number })),
       raw: await clean(api.raw({ ...demo, offset: "x" as unknown as number })),
-    }).toEqual({ people: "answered", raw: "answered" });
+    }).toEqual({ raw: "answered" });
   });
 
   // Was a bug: an offset past bigint (1e20, or 1e999 which JSON parses to Infinity) errors in Postgres, then retries forever.
   it("an offset too large for Postgres", async () => {
     expect({
-      big: await clean(api.people({ ...demo, offset: 1e20 })),
-      infinity: await clean(api.people({ ...demo, offset: Number.POSITIVE_INFINITY })),
+      big: await clean(api.raw({ ...demo, offset: 1e20 })),
+      infinity: await clean(api.raw({ ...demo, offset: Number.POSITIVE_INFINITY })),
     }).toEqual({ big: "answered", infinity: "answered" });
   });
 
@@ -142,20 +135,7 @@ describe("inputs", () => {
     });
   });
 
-  // Was a bug: a non-string q throws a TypeError (`.trim` of a number), retried by Restate forever.
-  it("a non-string search", async () => {
-    expect(await clean(api.people({ ...demo, q: 123 as unknown as string }))).toBe("answered");
-    expect(await clean(api.people({ ...demo, q: ["Umbrella"] as unknown as string }))).toBe(
-      "answered",
-    );
-  });
-
   it("a non-string via or kind on raw", async () => {
     expect(await clean(api.raw({ ...demo, via: { a: 1 } as unknown as string }))).toBe("answered");
-  });
-
-  it("the demo search never matches a name, even with wildcards", async () => {
-    expect((await api.people({ ...demo, q: "Jane Doe" })).total).toBe(0);
-    expect((await api.people({ ...demo, q: "Do" })).total).toBe(0);
   });
 });

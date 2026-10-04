@@ -44,6 +44,14 @@ const STEPS: RunStep[] = [
     after: [],
   },
   {
+    id: "movers",
+    label: "Find new emails",
+    short: "New emails",
+    source: "Their new firm's site",
+    found: "found",
+    after: ["lookup"],
+  },
+  {
     id: "score",
     label: "Rank who to call",
     short: "Ranked",
@@ -62,7 +70,7 @@ const STEPS: RunStep[] = [
     label: "Draft emails",
     short: "Drafts",
     source: "AI, from the brief",
-    after: ["brief", "verify"],
+    after: ["brief", "verify", "movers"],
   },
 ];
 
@@ -94,6 +102,7 @@ const timeOf = (iso: string) =>
 const WORK_TITLES: Record<string, (who: string) => string> = {
   lookup: (who) => `How we found where ${who} is now`,
   signals: (who) => `How we checked if ${who} is hiring`,
+  movers: (who) => `How we found ${who}'s new email`,
   score: (who) => `Why ${who} ranks here`,
   brief: (who) => `What ${who}'s brief drew on`,
   compose: (who) => `How ${who}'s email was drafted`,

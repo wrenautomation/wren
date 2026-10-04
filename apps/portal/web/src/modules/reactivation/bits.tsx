@@ -1,21 +1,7 @@
 /** Pieces Reactivation's pages share: where someone is now, why they rank, and what we found. */
-import { Cite, hostOf, month, num, SourceCard, SourceList, Tag } from "@wren/ui";
-import { type ReactNode, useCallback, useState } from "react";
-import type { Now, Reason, Source } from "../../api.js";
+import { hostOf, month, num, type RecordSource, SourceCard, SourceList } from "@wren/ui";
+import type { Reason, Source } from "../../api.js";
 import { at } from "./nav.js";
-
-/** Where they are now, in words. */
-export function NowCell({ now }: { now: Now | null }) {
-  if (!now) return <span className="rx-quiet">Not looked up</span>;
-  if (now.kind === "still_there") return <span>Still there</span>;
-  if (now.kind === "left") return <Tag>Left</Tag>;
-  return (
-    <span>
-      <Tag tone="rust">Moved</Tag> {now.company ? <b>{now.company}</b> : "somewhere new"}
-      {now.title ? <span className="rx-quiet"> · {now.title}</span> : null}
-    </span>
-  );
-}
 
 /** What adds up to the score: "+30 Moved to a new company". */
 export function Reasons({ reasons }: { reasons: Reason[] }) {
@@ -75,73 +61,6 @@ const VIAS: Record<string, string> = {
 };
 export const viaLabel = (v: string) =>
   VIAS[v] ?? v.replace(/_/g, " ").replace(/^./, (c) => c.toUpperCase());
-
-/** A brief cites its sources with marks like [f12] or [f3, c7]. */
-export const MARKS = /\[\s*([fc]\d+(?:\s*[,;]\s*[fc]\d+)*)\s*\]/gi;
-/** The marks a line cites, lowercase, in order. */
-export const marksOf = (text: string): string[] =>
-  [...text.matchAll(MARKS)].flatMap((m) =>
-    (m[1] ?? "").split(/\s*[,;]\s*/).map((id) => id.toLowerCase()),
-  );
-/** The brief's words alone, for places too small for its sources. */
-export const stripMarks = (s: string) => s.replace(MARKS, "").replace(/\s+([.,;:!?])/g, "$1");
-
-/** Picks a source by its mark and scrolls its card into view. */
-export type PickSource = (mark: string) => void;
-
-/** The brief with its marks as numbered chips pointing at the sources below. */
-export function Cited({
-  text,
-  order,
-  lit,
-  onPick,
-}: {
-  text: string;
-  /** Marks in card order, lowercase: a chip's number is its place here. */
-  order: string[];
-  lit?: string | null | undefined;
-  onPick: PickSource;
-}) {
-  const out: ReactNode[] = [];
-  let last = 0;
-  for (const m of text.matchAll(MARKS)) {
-    out.push(text.slice(last, m.index).replace(/\s+$/, ""));
-    const ids = [...new Set(marksOf(m[0]))];
-    out.push(
-      <span key={m.index} className="rx-cites">
-        {ids.map((id) => {
-          const n = order.indexOf(id) + 1;
-          return n ? (
-            <Cite
-              key={id}
-              n={n}
-              href={`#src-${id}`}
-              label={`Source ${n}`}
-              on={lit === id}
-              onPick={() => onPick(id)}
-            />
-          ) : null;
-        })}
-      </span>,
-    );
-    last = (m.index ?? 0) + m[0].length;
-  }
-  out.push(text.slice(last));
-  return <>{out}</>;
-}
-
-/** Lights a source card and brings it into view, leaving the page's address alone. */
-export function useSourcePick(): [string | null, PickSource] {
-  const [lit, setLit] = useState<string | null>(null);
-  const pick = useCallback((mark: string) => {
-    setLit(mark);
-    const reduce = matchMedia("(prefers-reduced-motion: reduce)").matches;
-    document
-      .getElementById(`src-${mark}`)
-      ?.scrollIntoView({ behavior: reduce ? "auto" : "smooth", block: "center" });
-  }, []);
-  return [lit, pick];
-}
 
 const str = (v: unknown) => (typeof v === "string" && v.trim() ? v.trim() : null);
 /** A day as "Sep 2026", or null when it isn't one. */
@@ -207,38 +126,22 @@ export function detailOf(s: Source): [string, string][] {
   return rows.filter((r): r is [string, string] => r[1] !== null);
 }
 
-/** One source as a kit card. `n` matches its chips. */
-export function SourceItem({
-  source: s,
-  n,
-  lit = false,
-}: {
-  source: Source;
-  n: number;
-  lit?: boolean;
-}) {
+/** One source as a kit card's fields; its `mark` is what chips point at. */
+export function cardOf(s: Source): RecordSource {
   const host = hostOf(s.url);
   const when = s.observedAt ? month(s.observedAt.slice(0, 10)) : null;
-  return (
-    <SourceCard
-      id={`src-${s.mark.toLowerCase()}`}
-      n={n}
-      kind={kindLabel(s.kind)}
-      meta={[viaLabel(s.via) === kindLabel(s.kind) ? null : viaLabel(s.via), when]
-        .filter(Boolean)
-        .join(" · ")}
-      title={s.title}
-      sure={s.confidence}
-      detail={detailOf(s)}
-      lit={lit}
-      link={
-        s.url && host
-          ? // The demo hides profile names, so its profile links lead nowhere: shown, not linked.
-            { href: s.url.includes("•••") ? null : s.url, label: s.url }
-          : null
-      }
-    />
-  );
+  return {
+    mark: s.mark,
+    kind: kindLabel(s.kind),
+    meta: [viaLabel(s.via) === kindLabel(s.kind) ? null : viaLabel(s.via), when]
+      .filter(Boolean)
+      .join(" · "),
+    title: s.title,
+    sure: s.confidence,
+    detail: detailOf(s),
+    // The demo hides profile names, so its profile links lead nowhere: shown, not linked.
+    link: s.url && host ? { href: s.url.includes("•••") ? null : s.url, label: s.url } : null,
+  };
 }
 
 /** The sources as numbered cards, one lit when its chip was picked. */
@@ -252,7 +155,13 @@ export function SourceCards({
   return (
     <SourceList>
       {sources.map((s, i) => (
-        <SourceItem key={s.mark} source={s} n={i + 1} lit={lit === s.mark.toLowerCase()} />
+        <SourceCard
+          key={s.mark}
+          {...cardOf(s)}
+          id={`src-${s.mark.toLowerCase()}`}
+          n={i + 1}
+          lit={lit === s.mark.toLowerCase()}
+        />
       ))}
     </SourceList>
   );

@@ -56,7 +56,7 @@ export const person = defineRecord({
     lastContact: date("Last contact"),
     owner: name(),
     email: verdict(),
-    brief: cited(),
+    brief: cited("Why call now"),
   },
   views: [
     { id: "call", label: "Call first", where: { now: ["moved", "hiring"] }, sort: "-score" },

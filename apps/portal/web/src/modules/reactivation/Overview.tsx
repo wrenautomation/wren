@@ -10,6 +10,7 @@ import {
   Stat,
   StatStrip,
   soon,
+  stripMarks,
   Tag,
 } from "@wren/ui";
 import type { ReactNode } from "react";
@@ -17,7 +18,7 @@ import { call, type Overview as Data, type PipelineStep } from "../../api.js";
 import { useCall } from "../../load.js";
 import type { PageProps } from "../../module.js";
 import { EngagementBar } from "../work/index.js";
-import { Reasons, stripMarks } from "./bits.js";
+import { Reasons } from "./bits.js";
 import { at } from "./nav.js";
 import { railOf } from "./steps.js";
 
@@ -56,19 +57,19 @@ function Home({ d, demo }: { d: Data; demo: boolean }) {
             label="Moved to a new company"
             value={num(d.moved)}
             note={pct(d.moved)}
-            href={at("people", { filter: "moved" })}
+            href={at("people", { view: "all", now: "moved" })}
           />
           <Stat
             label="Work where there's hiring now"
             value={num(d.atHiring)}
             note={`${num(d.hiringCompanies)} companies hiring`}
-            href={at("people", { filter: "hiring" })}
+            href={at("people", { view: "all", now: "hiring" })}
           />
           <Stat
             label="Still at the same company"
             value={num(d.stillThere)}
             note={pct(d.stillThere)}
-            href={at("people", { filter: "there" })}
+            href={at("people", { view: "all", now: "there" })}
           />
           <Stat
             label="Briefs written"

@@ -119,7 +119,7 @@ describe("routes", () => {
 describe("the demo host", () => {
   it("is always the demo viewer, whatever the browser sends", async () => {
     const res = await worker.fetch(
-      post("demo.test", "reactivation/people", {
+      post("demo.test", "reactivation/recordsList", {
         viewer: { email: "william@wren.example", operator: true },
       }),
       env(),
@@ -127,7 +127,7 @@ describe("the demo host", () => {
     expect(res.status).toBe(200);
     expect(restate).toEqual([
       {
-        url: "https://restate.test:8080/ReactivationPortal/people",
+        url: "https://restate.test:8080/ReactivationPortal/recordsList",
         body: { viewer: { demo: true } },
       },
     ]);
@@ -259,16 +259,16 @@ describe("the demo cache", () => {
 
   it("answers the same request from the edge the second time", async () => {
     const a = await worker.fetch(
-      post("demo.test", "reactivation/people", { filter: "moved" }),
+      post("demo.test", "reactivation/recordsList", { view: "call" }),
       env(),
     );
     const b = await worker.fetch(
-      post("demo.test", "reactivation/people", { filter: "moved" }),
+      post("demo.test", "reactivation/recordsList", { view: "call" }),
       env(),
     );
     expect(await b.json()).toEqual(await a.json());
     expect(restate).toHaveLength(1);
-    await worker.fetch(post("demo.test", "reactivation/people", { filter: "hiring" }), env());
+    await worker.fetch(post("demo.test", "reactivation/recordsList", { view: "warm" }), env());
     expect(restate).toHaveLength(2);
   });
 

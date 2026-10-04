@@ -25,8 +25,8 @@ const PHASES: { id: string; label: string; steps: PipelineStepId[] }[] = [
 const OPENS: Record<PipelineStepId, string> = {
   list: at("people"),
   emails: at("health"),
-  where: at("people", { filter: "moved" }),
-  hiring: at("people", { filter: "hiring" }),
+  where: at("people", { view: "all", now: "moved" }),
+  hiring: at("people", { view: "all", now: "hiring" }),
   score: at("people"),
   briefs: at("people"),
   drafts: at("emails", { filter: "all" }),

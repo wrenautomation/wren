@@ -126,8 +126,8 @@ describe("railOf: shape", () => {
     expect(hrefs).toEqual({
       list: "/reactivation/people",
       emails: "/reactivation/health",
-      where: "/reactivation/people?filter=moved",
-      hiring: "/reactivation/people?filter=hiring",
+      where: "/reactivation/people?view=all&now=moved",
+      hiring: "/reactivation/people?view=all&now=hiring",
       score: "/reactivation/people",
       briefs: "/reactivation/people",
       drafts: "/reactivation/emails?filter=all",

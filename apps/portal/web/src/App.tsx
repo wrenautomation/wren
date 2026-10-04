@@ -26,6 +26,7 @@ import { useCall } from "./load.js";
 import type { Module, ModulePage, PageProps } from "./module.js";
 import { useAccount } from "./modules/account/load.js";
 import { MODULES } from "./modules/index.js";
+import { TemplatePage } from "./records.js";
 import { navigate, useRoute } from "./route.js";
 
 const STAMP = "/wren-icon.png";
@@ -276,13 +277,23 @@ export function App() {
         }
         page={open ? pathOf(open.module, open.page) : "/"}
         theme={theme}
+        wide={!!open && "template" in open.page}
       >
         {!current ? (
           <Loading lines={8} heading />
         ) : open ? (
           <Contained key={`${current.id}/${open.module.id}/${open.page.id}`}>
             <Suspense fallback={<Loading lines={8} heading />}>
-              <open.page.Page {...props(current.id)} />
+              {"Page" in open.page ? (
+                <open.page.Page {...props(current.id)} />
+              ) : (
+                <TemplatePage
+                  {...props(current.id)}
+                  page={open.page}
+                  path={pathOf(open.module, open.page)}
+                  id={route.path[2]}
+                />
+              )}
             </Suspense>
           </Contained>
         ) : (

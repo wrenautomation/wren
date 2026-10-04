@@ -19,6 +19,20 @@ export { BarList, Facts, Table, Tally } from "./data.js";
 export { Drawer } from "./drawer.js";
 export { Alert, Callout, Empty, Loading } from "./feedback.js";
 export {
+  type CiteTo,
+  dateOf,
+  exact,
+  FieldCell,
+  FieldFilter,
+  FieldLine,
+  filterLabel,
+  filterShape,
+  readFilter,
+  relative,
+  StateMark,
+  wilson,
+} from "./fields.js";
+export {
   type Box,
   edgePath,
   type FlowAxis,
@@ -45,6 +59,16 @@ export {
 export { Pager } from "./pager.js";
 export type { PaletteItem } from "./palette.js";
 export { RAIL_STATES, Rail, type RailGroup, type RailState, type RailStep } from "./rail.js";
+export {
+  type Place,
+  type RecordActs,
+  type RecordExtras,
+  RecordList,
+  RecordPage,
+  type RecordSource,
+  type RecordsApi,
+  type RecordTemplateProps,
+} from "./records.js";
 export {
   dwellOf,
   expectedOf,
@@ -74,14 +98,20 @@ export {
 } from "./shell.js";
 export {
   Cite,
+  Cited,
+  MARKS,
+  marksOf,
+  type PickSource,
   SourceCard,
   SourceList,
   SURE_LEVELS,
   Sure,
   type SureLevel,
+  stripMarks,
   Traced,
   Trail,
   type TrailStep,
+  useSourcePick,
 } from "./sources.js";
 export {
   applyTheme,

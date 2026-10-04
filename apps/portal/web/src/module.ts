@@ -1,5 +1,7 @@
 /** An app in the portal: a card on the launcher, and its pages as tabs at /<app>/<page>. */
-import type { Access, IconName } from "@wren/ui";
+
+import type { Row } from "@wren/core/records/serve";
+import type { Access, IconName, RecordExtras } from "@wren/ui";
 import type { ComponentType } from "react";
 
 /**
@@ -13,16 +15,40 @@ export interface PageProps {
   params: URLSearchParams;
 }
 
-export interface ModulePage {
+interface PageBase {
   /** The second path segment. */
   id: string;
   label: string;
-  Page: ComponentType<PageProps>;
   /** Reached by link only, never a tab. */
   hidden?: true;
   /** Who sees it: `{ audience: "client" }` is a signed-in client's own, never on the demo. */
   requires?: Access;
 }
+
+/** A page drawn by hand. */
+export interface HandPage extends PageBase {
+  Page: ComponentType<PageProps>;
+}
+
+/**
+ * A page declared as data: the List template over a record type, its records opening beside it
+ * or as their own page at /<app>/<page>/<id>. Everything else comes from the type's meta.
+ */
+export interface ListPage extends PageBase {
+  template: "list";
+  /** The record type's id, "<product>.<one>": its product serves it at /api/<product>/records*. */
+  record: string;
+  /** What fills the list, said while it's empty. */
+  empty?: string;
+  /** The columns shown until the viewer picks others; every one when left out. */
+  columns?: string[];
+  /** Lines and sources a record's detail adds under its fields. */
+  extras?: (detail: unknown, at: PageProps & { row: Row }) => RecordExtras;
+  /** Old params rewritten on arrival, so old links still land: the changes, or null. */
+  legacy?: (params: URLSearchParams) => Record<string, string | null> | null;
+}
+
+export type ModulePage = HandPage | ListPage;
 
 export interface Module {
   /** The first path segment. */

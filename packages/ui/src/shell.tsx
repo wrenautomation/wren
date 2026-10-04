@@ -75,6 +75,7 @@ export function AppShell({
   notice,
   page,
   theme,
+  wide = false,
   className,
   children,
 }: {
@@ -91,6 +92,8 @@ export function AppShell({
   page: string;
   /** The client's look; without one it's Wren's. */
   theme?: Theme | undefined;
+  /** The page takes the window's full width (a list of records). */
+  wide?: boolean | undefined;
   className?: string | undefined;
   children: ReactNode;
 }) {
@@ -125,7 +128,11 @@ export function AppShell({
         {app ? <AppSide app={app} launcher={launcher} /> : null}
         <div className="ui-window" ref={scroller}>
           {app ? <AppHead app={app} launcher={launcher} /> : null}
-          <main className="ui-main" id="main" tabIndex={-1}>
+          <main
+            className={cx("ui-main", wide && "max-w-none min-[901px]:px-8")}
+            id="main"
+            tabIndex={-1}
+          >
             {notice ? (
               <details className="ui-notice">
                 <summary>

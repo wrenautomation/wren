@@ -218,7 +218,7 @@ describe("requests", () => {
     await worker.fetch(
       post(
         "demo.test",
-        "reactivation/people",
+        "reactivation/recordsList",
         '{"__proto__":{"viewer":{"operator":true}},"viewer":{"x":1}}',
       ),
       env(),
@@ -229,7 +229,7 @@ describe("requests", () => {
   // Was a bug: the limit is 16 KiB but counts UTF-16 units, so a multi-byte body three times the size gets through.
   it("the size limit counts bytes", async () => {
     const res = await worker.fetch(
-      post("demo.test", "reactivation/people", { q: "€".repeat(10_000) }),
+      post("demo.test", "reactivation/recordsList", { q: "€".repeat(10_000) }),
       env(),
     );
     expect(res.status).toBe(413);
@@ -246,7 +246,7 @@ describe("requests", () => {
         c.enqueue(chunk);
       },
     });
-    const req = new Request("https://demo.test/api/reactivation/people", {
+    const req = new Request("https://demo.test/api/reactivation/recordsList", {
       method: "POST",
       headers: { "content-type": "application/json" },
       body: stream,

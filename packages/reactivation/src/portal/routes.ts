@@ -2,7 +2,6 @@
 export const PORTAL_ROUTES = [
   "overview",
   "health",
-  "people",
   "person",
   "raw",
   "emails",

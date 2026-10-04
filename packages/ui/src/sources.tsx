@@ -3,7 +3,7 @@
  * reading is, and a trail from a line back to the pages behind it. Callers map their own
  * records onto these props; nothing here knows what a source is about.
  */
-import type { MouseEvent, ReactNode } from "react";
+import { type MouseEvent, type ReactNode, useCallback, useState } from "react";
 import { cx } from "./format.js";
 import { Icon } from "./icons.js";
 
@@ -226,4 +226,71 @@ export function Traced({
       </button>
     </p>
   );
+}
+
+/** A text cites its sources with marks like [f12] or [f3, c7]. */
+export const MARKS = /\[\s*([fc]\d+(?:\s*[,;]\s*[fc]\d+)*)\s*\]/gi;
+/** The marks a line cites, lowercase, in order. */
+export const marksOf = (text: string): string[] =>
+  [...text.matchAll(MARKS)].flatMap((m) =>
+    (m[1] ?? "").split(/\s*[,;]\s*/).map((id) => id.toLowerCase()),
+  );
+/** The words alone, for places too small for their sources. */
+export const stripMarks = (s: string) => s.replace(MARKS, "").replace(/\s+([.,;:!?])/g, "$1");
+
+/** Picks a source by its mark and scrolls its card into view. */
+export type PickSource = (mark: string) => void;
+
+/** A cited text with its marks as numbered chips pointing at the source cards (`src-<mark>`). */
+export function Cited({
+  text,
+  order,
+  lit,
+  onPick,
+}: {
+  text: string;
+  /** Marks in card order, lowercase: a chip's number is its place here. */
+  order: string[];
+  lit?: string | null | undefined;
+  onPick: PickSource;
+}) {
+  const out: ReactNode[] = [];
+  let last = 0;
+  for (const m of text.matchAll(MARKS)) {
+    out.push(text.slice(last, m.index).replace(/\s+$/, ""));
+    const ids = [...new Set(marksOf(m[0]))];
+    out.push(
+      <span key={m.index} className="whitespace-nowrap">
+        {ids.map((id) => {
+          const n = order.indexOf(id) + 1;
+          return n ? (
+            <Cite
+              key={id}
+              n={n}
+              href={`#src-${id}`}
+              label={`Source ${n}`}
+              on={lit === id}
+              onPick={() => onPick(id)}
+            />
+          ) : null;
+        })}
+      </span>,
+    );
+    last = (m.index ?? 0) + m[0].length;
+  }
+  out.push(text.slice(last));
+  return <>{out}</>;
+}
+
+/** Lights a source card and brings it into view, leaving the page's address alone. */
+export function useSourcePick(): [string | null, PickSource] {
+  const [lit, setLit] = useState<string | null>(null);
+  const pick = useCallback((mark: string) => {
+    setLit(mark);
+    const reduce = matchMedia("(prefers-reduced-motion: reduce)").matches;
+    document
+      .getElementById(`src-${mark}`)
+      ?.scrollIntoView({ behavior: reduce ? "auto" : "smooth", block: "center" });
+  }, []);
+  return [lit, pick];
 }

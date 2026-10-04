@@ -38,7 +38,9 @@ export function ActionButton({
   viewer,
   call,
   after,
+  size = "sm",
 }: {
+  size?: "sm" | "dense";
   action: Action;
   input?: Record<string, unknown> | undefined;
   viewer: Viewer;
@@ -74,7 +76,7 @@ export function ActionButton({
 
   return (
     <>
-      <Button tone="secondary" size="sm" disabled={busy} onClick={press}>
+      <Button tone="secondary" size={size} disabled={busy} onClick={press}>
         {action.label}
       </Button>
       {action.confirm || action.ask ? (

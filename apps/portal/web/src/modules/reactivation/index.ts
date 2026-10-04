@@ -6,7 +6,7 @@ import { Glance } from "./Glance.js";
 import { Health } from "./Health.js";
 import { REACTIVATION } from "./nav.js";
 import { Overview } from "./Overview.js";
-import { People } from "./People.js";
+import { personExtras, personLegacy } from "./person.js";
 import { Replies } from "./Replies.js";
 import { Run } from "./Run.js";
 import { Setup } from "./Setup.js";
@@ -24,7 +24,16 @@ export const reactivation: Module = {
   pages: [
     { id: "overview", label: "Overview", Page: Overview },
     { id: "run", label: "Run", Page: Run },
-    { id: "people", label: "People", Page: People },
+    {
+      id: "people",
+      label: "People",
+      template: "list",
+      record: "reactivation.person",
+      empty: "Everyone on your list shows here once it loads, ranked by why to call now.",
+      columns: ["title", "company", "now", "score", "lastContact", "email"],
+      extras: personExtras,
+      legacy: personLegacy,
+    },
     { id: "emails", label: "Emails", Page: Emails },
     { id: "replies", label: "Replies", Page: Replies },
     { id: "health", label: "Data health", Page: Health },

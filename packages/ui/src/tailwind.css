@@ -49,6 +49,8 @@
   --sidebar-accent-foreground: var(--ui-ink);
   --sidebar-border: var(--ui-hair);
   --sidebar-ring: var(--ui-accent);
+  /* The status tones' amber: the kit has green and red only. */
+  --warn: #b7791f;
 }
 
 @theme inline {
