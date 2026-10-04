@@ -192,6 +192,18 @@ One implementer per phase, from this doc. Commit and push each step.
 1. Reactivation: Overview, Replies, Sources (into each record's Sources tab), Data health (into the Overview) and Setup (a form, read-only on the demo).
 2. The client's project pages: plan, updates, needs you, paperwork, deliverables.
 3. `kit.css`, `reactivation.css`, `work.css` and `ops.css` deleted.
+4. The token pass, so the look is ours and not shadcn's defaults. General Sans stays.
+   - Square corners everywhere, as Look says: buttons, inputs, tiles, the paper, dialogs, panels and menus. One `--ui-radius`, 0.
+   - Hairline borders in one gray. Shadows only on overlays.
+   - Tabular figures in tables and tiles. One number formatter: thousands separators, whole units in tiles, cents in lists, the currency shown one way everywhere.
+   - One row height for lists.
+5. Polish from S2's screenshots.
+   - Columns fit short values and their headers. "Follow-ups only", "10 minutes ago" and "Failures in a row" never truncate.
+   - A record hides empty fields. A campaign with no console override shows no "Set" rows.
+   - One name per thing. A campaign reads "Agencies" in its list, its panel and the Overview.
+   - Overview tiles fill their rows, with no lone tile.
+   - The record panel's padding at 390px.
+6. Leftovers: the Pipeline "Crawled, no person" count under 1s (it takes over 3s), `delivery.invite` as a client action, People's `reactivation.called` action, and no CSP errors from sonner in the browser console.
 
 ### S4. Demo and product depth
 
@@ -202,7 +214,7 @@ One implementer per phase, from this doc. Commit and push each step.
 
 - S1: People and Emails screenshot well on the demo and the app host. The finding type is under 80 lines with no JSX. Module line counts before and after are noted here. Gates pass.
 - S2: Every operator app screenshots on prod as the operator with real numbers. Every stat opens its rows.
-- S3: `kit.css` and the module CSS files are gone. No module file renders a `<table>` or imports CSS.
+- S3: `kit.css` and the module CSS files are gone. No module file renders a `<table>` or imports CSS. Every app screenshots at 1360 and 390 with square corners and no truncated short values.
 - S4: The demo's first screen shows who to call and why. Every demo action works and resets on reload. The copy test passes.
 
 ## Risks
