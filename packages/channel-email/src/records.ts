@@ -450,6 +450,19 @@ const SETTINGS_FORM = (formOf(z.toJSONSchema(settingsSchema, { io: "input" })) ?
   (f) => f.field !== "seeding",
 );
 
+/** Plain names where the schema's path reads badly ("Weights.Replies"). */
+const SETTING_LABELS: Record<string, string> = {
+  fitness: "Counts as a win",
+  fitnessByLocus: "Counts as a win, per point",
+  "weights.replies": "Weight of a reply",
+  "weights.interested": "Weight of an interested reply",
+  "weights.booked": "Weight of a booked call",
+  "guards.negativeRatio": "Negative ratio guard",
+  "models.strategist": "Strategist model",
+  "models.writer": "Writer model",
+  "models.judge": "Judge model",
+};
+
 /** The settings form, each box saying what it's set to now. */
 export function settingsForm(raw: unknown) {
   const now = parseSettings(raw);
@@ -457,8 +470,17 @@ export function settingsForm(raw: unknown) {
     const value = f.field
       .split(".")
       .reduce<unknown>((at, k) => (at as Record<string, unknown> | undefined)?.[k], now);
-    const said = typeof value === "string" ? value : JSON.stringify(value);
-    return { ...f, hint: `Now ${said}.${f.hint ? ` ${f.hint}.` : ""}` };
+    const said =
+      typeof value === "string"
+        ? value.replaceAll("_", " ")
+        : value && typeof value === "object" && !Object.keys(value).length
+          ? "not set"
+          : JSON.stringify(value);
+    return {
+      ...f,
+      label: SETTING_LABELS[f.field] ?? f.label,
+      hint: `Now ${said}.${f.hint ? ` ${f.hint}.` : ""}`,
+    };
   });
 }
 
@@ -468,7 +490,6 @@ export const experimentRecord = defineRecord({
   view: "email_experiment_records",
   key: "id",
   title: "name",
-  subtitle: "state",
   fields: {
     name: text("Experiment"),
     state: status(EXPERIMENT_STATES),
@@ -492,7 +513,12 @@ export const experimentRecord = defineRecord({
     { record: "email.candidate", by: "experiment_id" },
   ],
   activity: { view: "email_experiment_journal", by: "experiment_id" },
-  actions: ["email.pauseExperiment", "email.resumeExperiment", "email.stopExperiment"],
+  actions: [
+    "email.startExperiment",
+    "email.pauseExperiment",
+    "email.resumeExperiment",
+    "email.stopExperiment",
+  ],
   load: async (db, id) => {
     const [exp] = await db
       .select()

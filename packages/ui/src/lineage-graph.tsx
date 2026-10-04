@@ -4,7 +4,6 @@
  */
 import { type Edge, Handle, type Node, type NodeProps, Position, ReactFlow } from "@xyflow/react";
 import "@xyflow/react/dist/base.css";
-import { cx } from "./format.js";
 import type { LineageVersion } from "./lineage.js";
 
 /** Lines of copy shown per side before "and N more". */
@@ -39,13 +38,10 @@ function VersionNode({ data }: NodeProps<Node<Data>>) {
   const { v, first } = data;
   return (
     <div
-      className={cx(
-        "grid gap-1 rounded-(--ui-radius) border bg-(--ui-paper) px-3 py-2 text-[12.5px] leading-[19px] text-(--ui-ink)",
-        v.live ? "border-(--ui-ink)" : "border-(--ui-hair)",
-      )}
+      className="grid gap-1 rounded-(--ui-radius) border border-(--ui-hair) bg-(--ui-paper) px-3 py-2 text-[12.5px] leading-[19px] text-(--ui-ink)"
       style={{ width: WIDTH }}
     >
-      <Handle type="target" position={Position.Top} className="opacity-0" isConnectable={false} />
+      <Handle type="target" position={Position.Top} className="invisible" isConnectable={false} />
       <div className="flex items-baseline justify-between gap-2">
         <span className="font-mono text-[12px]">{v.version}</span>
         <span className="text-[11.5px] text-(--ui-ink-2)">
@@ -68,7 +64,7 @@ function VersionNode({ data }: NodeProps<Node<Data>>) {
       <Handle
         type="source"
         position={Position.Bottom}
-        className="opacity-0"
+        className="invisible"
         isConnectable={false}
       />
     </div>
