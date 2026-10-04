@@ -763,7 +763,15 @@ export async function queuedAtDomain(
   const queued = await db
     .select()
     .from(contactCandidates)
-    .where(and(eq(contactCandidates.state, "queued"), eq(contactCandidates.domain, domain)))
+    .where(
+      and(
+        eq(contactCandidates.state, "queued"),
+        eq(contactCandidates.domain, domain),
+        // One verified address per person is enough to send: a sister domain gains nothing.
+        sql`NOT EXISTS (SELECT 1 FROM contact_candidates r
+          WHERE r.person_id = ${contactCandidates.personId} AND r.state = 'verified')`,
+      ),
+    )
     .orderBy(asc(contactCandidates.rank), asc(contactCandidates.id));
   // A suppression recorded AFTER queueing must not spend a credit either.
   const suppressed = await activeSuppressions(
@@ -788,7 +796,7 @@ export async function selectResolutionTargets(db: Queryable): Promise<string[]> 
  * Domains a walk can make progress at, oldest queue first. It asks the walk's own
  * questions once per pass, so a domain comes back only when its walk would probe
  * something: a queued address nobody verified for someone else, with no verdict of its
- * own still standing, for a person not yet resolved, that is scraped, or matches the
+ * own still standing, for a person not yet resolved at any domain, that is scraped, or matches the
  * domain's proven pattern, or is a guess while the discovery budget lasts. A domain
  * whose server answered `risky` waits out that verdict (`riskyWait`) before any walk;
  * a known catch-all never comes back.
@@ -844,9 +852,9 @@ export async function selectNewResolutionTargets(
         -- Same address verified for someone else: a person decides whose mailbox it is.
         AND NOT EXISTS (SELECT 1 FROM contact_candidates t
           WHERE t.domain = c.domain AND t.email = c.email AND t.state = 'verified')
-        -- Person already resolved here.
+        -- Person already resolved, at any of the firm's domains.
         AND NOT EXISTS (SELECT 1 FROM contact_candidates r
-          WHERE r.person_id = c.person_id AND r.domain = c.domain AND r.state = 'verified')) q
+          WHERE r.person_id = c.person_id AND r.state = 'verified')) q
     WHERE q.first IS NOT NULL
     ORDER BY q.first
     LIMIT ${opts.limit}

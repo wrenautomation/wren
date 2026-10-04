@@ -579,6 +579,27 @@ describe("re-walk selection", () => {
     expect(await targets()).toEqual([]);
   });
 
+  it("a person verified at a sister domain is never checked again", async () => {
+    const {
+      people: [jane],
+    } = await prepare([["Jane", "Doe", {}]]);
+    await db()
+      .insert(contactCandidates)
+      .values({
+        personId: (jane as Person).id,
+        email: "jane@sister.example",
+        domain: "sister.example",
+        evidence: "scraped",
+        rank: 0,
+        state: "verified",
+        sourceRef: "test",
+      });
+    expect(await targets()).toEqual([]);
+    const verifier = new MapVerifier({});
+    await runResolution(db(), verifier, { checker: passChecker });
+    expect(verifier.calls).toEqual([]);
+  });
+
   it("an unprobed colleague does not bring back a domain whose server answered risky", async () => {
     const { company } = await prepare([
       ["Jane", "Doe", {}],
