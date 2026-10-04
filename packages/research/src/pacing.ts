@@ -35,6 +35,23 @@ export const refusedBy = (err: unknown): number | null =>
 export const failedRead = (err: unknown, site: string): boolean =>
   err instanceof SiteCallError && err.site === site && err.status >= 500;
 
+/** A search that said stop: until when (null = the rest of the day), and why. */
+export interface Stopped {
+  until: Date | null;
+  why: string;
+}
+
+/**
+ * Did this search (Google through `web`) say stop? A cap stops it until the
+ * cap lifts; a failed read (a sorry page, a CAPTCHA) for the day. Null for
+ * anything else. A stopped search is skipped, never fatal: Exa carries on.
+ */
+export function searchStopped(err: unknown, site: string): Stopped | null {
+  if (err instanceof Capped && err.site === site) return { until: err.retryAt, why: err.why };
+  if (failedRead(err, site)) return { until: null, why: (err as Error).message };
+  return null;
+}
+
 /** Seconds a 429 asks us to wait; null for any other error. No figure = an hour. */
 export function retryAfter(err: unknown): number | null {
   if (!(err instanceof SiteCallError) || err.status !== 429) return null;

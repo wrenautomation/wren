@@ -7,7 +7,8 @@ import { SiteCallError, type SiteClient } from "@wren/core/content";
 import { describe, expect, it } from "vitest";
 import { FetchError, type Fetcher, type FetchResponse } from "../fetch/fetcher.js";
 import { findBoards, readBoard } from "./boards.js";
-import { type CompanySubject, checkHiring, linkedinCompany } from "./hiring.js";
+import { type CompanySubject, checkHiring } from "./hiring.js";
+import { linkedinCompany } from "./profile.js";
 
 /** Pages by url; a missing page is a 404, a thrown one is a dead host. */
 function fetcher(pages: Record<string, string | Partial<FetchResponse> | Error>): Fetcher & {
@@ -243,34 +244,74 @@ describe("checkHiring: LinkedIn", () => {
     });
   });
 
-  it("a page found by search counts only when its website is the firm's", async () => {
+  it("a page found by search counts only when its cached page's website is the firm's", async () => {
+    const page = (handle: string, website: string) => ({
+      name: "Acme Staffing",
+      handle,
+      url: `https://www.linkedin.com/company/${handle}/`,
+      website,
+      text: "Acme Staffing",
+      source: "exa",
+    });
     const s = sites({
-      web: () => ({
-        hits: [
-          {
-            title: "Acme Staffing | LinkedIn",
-            url: "https://www.linkedin.com/company/acme-uk",
-            snippet: null,
-          },
-          {
-            title: "Acme Staffing - LinkedIn",
-            url: "https://www.linkedin.com/company/acme-staffing",
-            snippet: null,
-          },
-        ],
-      }),
+      web: (path, input) => {
+        if (path === "/search")
+          return {
+            hits: [
+              {
+                title: "Acme Staffing | LinkedIn",
+                url: "https://www.linkedin.com/company/acme-uk",
+                snippet: null,
+              },
+              {
+                title: "Acme Staffing - LinkedIn",
+                url: "https://www.linkedin.com/company/acme-staffing",
+                snippet: null,
+              },
+            ],
+          };
+        if (input.url === "https://www.linkedin.com/company/acme-uk/")
+          return page("acme-uk", "https://acme.co.uk");
+        if (input.url === "https://www.linkedin.com/company/acme-staffing/")
+          return page("acme-staffing", "http://careers.acmestaffing.com/");
+        throw new Error(`unexpected ${path}`);
+      },
       linkedin: (path) => {
-        if (path === "/company/acme-uk")
-          return { name: "Acme Staffing", website: "https://acme.co.uk" };
-        if (path === "/company/acme-staffing")
-          return { name: "Acme Staffing", website: "acmestaffing.com" };
         if (path === "/company/acme-staffing/jobs") return { jobs: [] };
         throw new Error(`unexpected ${path}`);
       },
     });
     const r = await checkHiring({ fetcher: null, sites: s }, acme, { linkedin: "research" });
     expect(r.state).toBe("no_openings");
-    expect(s.calls).toContain("linkedin /company/acme-staffing/jobs");
+    // The page is read from the cache; only the jobs need the account.
+    expect(s.calls).toEqual([
+      "web /search",
+      "web /linkedin/company",
+      "web /linkedin/company",
+      "linkedin /company/acme-staffing/jobs",
+    ]);
+  });
+
+  it("no cached copy of a candidate page: skipped, never trusted", async () => {
+    const s = sites({
+      web: (path) => {
+        if (path === "/search")
+          return {
+            hits: [
+              {
+                title: "Acme Staffing | LinkedIn",
+                url: "https://www.linkedin.com/company/acme-staffing",
+                snippet: null,
+              },
+            ],
+          };
+        throw new SiteCallError("web", "GET", path, 404, "no cached copy");
+      },
+    });
+    const r = await checkHiring({ fetcher: null, sites: s }, acme, { linkedin: "research" });
+    expect(r.state).toBe("unresolved");
+    expect(r.tried.at(-1)).toMatchObject({ step: "linkedin page", outcome: "no cached copy" });
+    expect(s.calls.filter((c) => c.startsWith("linkedin"))).toEqual([]);
   });
 
   it("no account: unresolved, nothing asked", async () => {

@@ -3,7 +3,7 @@ type: object
 cluster: leads
 universe: live
 status: verified
-verified: 2026-09-28 @ 83459e9
+verified: 2026-10-03 @ d66f695
 entity: packages/core/src/schema.ts:157
 ---
 
@@ -20,6 +20,7 @@ The company is the unit of outreach: one active email enrollment per company (`p
 - `id`, `domain`, `name`, `import_id`, `raw`, `source_key`, `social_url`, `linkedin_url`, `country`, `domain_verified_at`, `niche`, `timezone` (`packages/core/src/schema.ts:160`–`173`)
 - `decline_reason`: why the firm is no buyer (platform_site, chain, public_body, foreign, or the niche's rule); NULL = in play. Set by `runScreen` (`packages/core/src/ingest/screen.ts`); every stage filters with `inPlay`
 - `timezone` is filled per niche from location text, never guessed (`packages/channel-email/src/send/lead-timezone.ts:110`)
+- `linkedin_url`: the firm's LinkedIn page, canonical, written only by a company lookup whose cached page names a website on the firm's registrable domain (`packages/research/src/companies/profile.ts:307`, `:118`)
 - `domain` and `domain_verified_at` are set by discovery when a guessed host proves out (`packages/research/src/discovery/service.ts:247`)
 
 Citations: `packages/core/src/schema.ts:157`
@@ -43,6 +44,7 @@ Citations: `packages/core/src/schema.ts:157`
 | `wren email import` / `import-people` (CLI) | writes |
 | `wren email screen` | writes `decline_reason`, `country` |
 | `Discovery` service | writes domain fields |
+| `wren enrich profiles`, the `profiles` pool stage | writes `linkedin_url` |
 | `ComposeScheduler`, `SendScheduler` | read |
 | facts views | read |
 

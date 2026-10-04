@@ -67,12 +67,14 @@ interface Row extends Record<string, unknown> {
   name: string | null;
   domain: string | null;
   social_url: string | null;
+  linkedin_url: string | null;
   profile_page: string | null;
 }
 
 /**
  * Each company a CRM row points at, with its LinkedIn page when something we
- * trust already tied it to the firm: a matched profile's current role there
+ * trust already tied it to the firm: the page a company lookup confirmed by its
+ * website, else a matched profile's current role there
  * (freshest first; only people whose latest CRM row is this firm, since that
  * is the firm their lookup read), else the company's own social link.
  */
@@ -84,7 +86,7 @@ export async function crmSignalSubjects(
     with crm as (
       select company_id, count(distinct person_id) people from crm_contacts group by company_id
     )
-    select co.id company_id, co.name, co.domain, co.social_url,
+    select co.id company_id, co.name, co.domain, co.social_url, co.linkedin_url,
       (select f.value->>'companyUrl' from findings f
         where f.kind = 'still_there' and f.value->>'companyUrl' is not null
           and f.person_id in (select l.person_id from (${LATEST_CRM_ROW}) l where l.company_id = co.id)
@@ -96,7 +98,10 @@ export async function crmSignalSubjects(
   return rows.map((r) => ({
     companyId: r.company_id,
     firm: { name: r.name, domain: r.domain },
-    linkedinPage: linkedinCompany(r.profile_page) ?? linkedinCompany(r.social_url),
+    linkedinPage:
+      linkedinCompany(r.linkedin_url) ??
+      linkedinCompany(r.profile_page) ??
+      linkedinCompany(r.social_url),
   }));
 }
 

@@ -7,7 +7,8 @@ import { SiteCallError, type SiteClient } from "@wren/core/content";
 import { describe, expect, it } from "vitest";
 import { FetchError, type Fetcher, type FetchResponse } from "../fetch/fetcher.js";
 import { findBoards, readBoard } from "./boards.js";
-import { type CompanySubject, checkHiring, linkedinCompany } from "./hiring.js";
+import { type CompanySubject, checkHiring } from "./hiring.js";
+import { linkedinCompany } from "./profile.js";
 
 function fetcher(pages: Record<string, string | Partial<FetchResponse> | Error>): Fetcher & {
   asked: string[];
@@ -310,23 +311,26 @@ describe("checkHiring: board choice", () => {
 describe("checkHiring: LinkedIn search tie", () => {
   it("a same-named page whose website is a lookalike of the firm's is not the firm's", async () => {
     const s = sites({
-      web: () => ({
-        hits: [
-          {
-            title: "Acme Staffing | LinkedIn",
-            url: "https://www.linkedin.com/company/acme-x",
-            snippet: null,
-          },
-        ],
-      }),
+      web: (path) =>
+        path === "/search"
+          ? {
+              hits: [
+                {
+                  title: "Acme Staffing | LinkedIn",
+                  url: "https://www.linkedin.com/company/acme-x",
+                  snippet: null,
+                },
+              ],
+            }
+          : // The cached page: Exa merged a lookalike's site into it.
+            { name: "Acme Staffing", website: "https://acmestaffing.com.evil.io", text: "" },
       linkedin: (path) => {
-        if (path === "/company/acme-x") return { website: "https://acmestaffing.com.evil.io" };
         throw new Error(`unexpected ${path}`);
       },
     });
     const r = await checkHiring({ fetcher: null, sites: s }, acme, { linkedin: "research" });
     expect(r.state).toBe("unresolved");
-    expect(s.calls).not.toContain("linkedin /company/acme-x/jobs");
+    expect(s.calls).toEqual(["web /search", "web /linkedin/company"]);
   });
 
   it("a search cap parks the company as capped by web, with the cap's time", async () => {

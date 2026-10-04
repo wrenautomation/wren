@@ -28,7 +28,7 @@
 import { isFreemail } from "@wren/core";
 import type { SiteClient } from "@wren/core/content";
 import type { DocumentDraft, FindingDraft } from "../findings.js";
-import { Capped, failedRead, paced, realSleep, refusedBy } from "../pacing.js";
+import { Capped, paced, realSleep, refusedBy, type Stopped, searchStopped } from "../pacing.js";
 import type { FindingKind, LookupState } from "../schema.js";
 import {
   bareCompanyName,
@@ -76,7 +76,7 @@ export interface LookupResult {
   /** Every profile page read from the cache, theirs or not: nothing read is dropped. */
   pages: DocumentDraft[];
   /** Google stopped answering (a cap, a sorry page): until when, null = the rest of the day. */
-  googleStopped: { until: Date | null; why: string } | null;
+  googleStopped: Stopped | null;
 }
 
 export interface LookupOptions {
@@ -375,9 +375,8 @@ export async function lookUpPerson(
       res = await call<Serp>("web", "GET", "/google", { q, n: GOOGLE_RESULTS });
     } catch (err) {
       const refused = refusedBy(err);
-      if (err instanceof Capped) googleStopped = { until: err.retryAt, why: err.why };
-      else if (failedRead(err, "web")) googleStopped = { until: null, why: (err as Error).message };
-      else if (refused === null) throw err;
+      googleStopped = searchStopped(err, "web");
+      if (!googleStopped && refused === null) throw err;
       tried.push({
         step: "google",
         what: q,

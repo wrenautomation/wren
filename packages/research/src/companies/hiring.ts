@@ -6,7 +6,8 @@
  *    open roles. A board found on the firm's own site is the firm's.
  * 2. LinkedIn, only when the client allows it and step 1 found no board: the
  *    company's page (tied to the firm by a matched profile, or by a search
- *    hit whose About page names the firm's own website), then its jobs.
+ *    hit whose cached page, read from Exa and not LinkedIn, names the firm's
+ *    own website), then its jobs, logged in.
  *
  * No board and no LinkedIn = unresolved, never a guess. Pure over a Fetcher
  * and a SiteClient: it returns the finding and the trail, `store.ts` writes.
@@ -19,6 +20,7 @@ import { Capped, paced, realSleep, refusedBy } from "../pacing.js";
 import { type Firm, isFirm, sameCompany } from "../people/names.js";
 import type { CompanyCheckState } from "../schema.js";
 import { type Board, findBoards, type Job, readBoard } from "./boards.js";
+import { companyPageUrl, firmSite, linkedinCompany, readCompanyPage } from "./profile.js";
 
 export interface CompanySubject {
   companyId: number;
@@ -70,10 +72,6 @@ const CAREERS_PATHS = ["/careers", "/jobs"];
 const CAREERS_LINK =
   /\b(careers?|jobs|join[- ]us|work[- ](?:with|for)[- ]us|open[- ]positions|opportunities|hiring)\b/i;
 
-interface CompanyPage {
-  name?: string;
-  website?: string | null;
-}
 interface LinkedinJobs {
   jobs: { title: string; url?: string; location?: string; postedAt?: string }[];
 }
@@ -108,18 +106,6 @@ const hostAndPath = (u: string): string => {
     return "";
   }
 };
-
-/** The handle or id in a linkedin.com/company/<x> url; null for anything else. */
-export function linkedinCompany(url: string | null | undefined): string | null {
-  if (!url) return null;
-  const m = /^(?:https?:\/\/)?(?:[\w-]+\.)?linkedin\.com\/company\/([^/?#]+)/i.exec(url.trim());
-  if (!m?.[1]) return null;
-  try {
-    return decodeURIComponent(m[1]);
-  } catch {
-    return null;
-  }
-}
 
 /**
  * Several boards on one page (a portfolio page, a partner list): keep the one
@@ -225,7 +211,7 @@ export async function checkHiring(
     const until = opts.linkedinCappedUntil;
     if (until && until > clock())
       throw new Capped("linkedin", until, "linkedin cap hit earlier this run");
-    const page = s.linkedinPage ?? (await findPage(call, s, account, tried));
+    const page = s.linkedinPage ?? (await findPage(call, s, tried));
     if (!page) return done("unresolved");
     let res: LinkedinJobs;
     try {
@@ -324,13 +310,12 @@ async function boardOnSite(
 
 /**
  * The firm's LinkedIn page from a web search, tied to the firm only when its
- * About page names the firm's own website. A same-named firm elsewhere never
- * counts.
+ * page (read from Exa's cache, not LinkedIn) names a website on the firm's own
+ * registrable domain. A same-named firm elsewhere never counts.
  */
 async function findPage(
   call: ReturnType<typeof paced>,
   s: CompanySubject,
-  account: string,
   tried: CheckTried[],
 ): Promise<string | null> {
   const { name, domain } = s.firm;
@@ -354,23 +339,12 @@ async function findPage(
   ].slice(0, PAGE_CANDIDATES);
   tried.push({ step: "linkedin page", what: q, outcome: `${candidates.length} pages by name` });
   for (const c of candidates) {
-    let about: CompanyPage;
-    try {
-      about = await call<CompanyPage>(
-        "linkedin",
-        "GET",
-        `/company/${encodeURIComponent(c)}`,
-        {},
-        account,
-      );
-    } catch (err) {
-      const status = refusedBy(err);
-      if (status === null) throw err;
-      tried.push({ step: "linkedin page", what: c, outcome: `refused: ${status}` });
-      continue;
-    }
+    const trail: { what: string; outcome: string }[] = [];
+    const about = await readCompanyPage(call, companyPageUrl(c), trail);
+    for (const t of trail) tried.push({ step: "linkedin page", what: c, outcome: t.outcome });
+    if (!about) continue;
     const site = host(about.website ?? "");
-    const ours = onDomain(site, domain);
+    const ours = firmSite(about.website, domain);
     tried.push({
       step: "linkedin page",
       what: c,
