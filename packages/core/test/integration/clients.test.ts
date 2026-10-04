@@ -18,6 +18,8 @@ import {
   removeMember,
   updateClient,
 } from "../../src/clients/index.js";
+import { consoleApi } from "../../src/console.js";
+import { portalMe } from "../../src/portal.js";
 import { serveRecords } from "../../src/records-serve.js";
 
 let pg: TestPostgres;
@@ -130,5 +132,65 @@ describe("clients as a console record", () => {
     ]);
     const demo = await api.get({ record: "console.client", id: "show" });
     expect(demo.row).toMatchObject({ kind: "demo", members: 0, lastSeen: null });
+  });
+});
+
+describe("setLook", () => {
+  const look = { brand: { color: "#1d5a45" } };
+  const api = () => consoleApi({ main: pg.db, views: [] });
+  const lookOf = async (id: string) => (await findClient(pg.db, id))?.look;
+  beforeEach(async () => {
+    await pg.db.insert(clients).values([
+      { id: "other", name: "Other", database: "wren_client_other" },
+      { id: "show", name: "Show", database: "wren_client_show", demo: true },
+    ]);
+    await addMember(pg.db, "acme", "owner@acme.example", { role: "owner" });
+    await addMember(pg.db, "acme", "b@acme.example");
+    await addMember(pg.db, "other", "owner@other.example", { role: "owner" });
+  });
+
+  it("an owner sets their own client's look, and Me carries it", async () => {
+    const viewer = { email: "Owner@Acme.example" };
+    await api().setLook({ viewer, client: "acme", look });
+    expect(await lookOf("acme")).toEqual(look);
+    const me = await portalMe(pg.db, viewer, "Demo");
+    expect(me.clients).toEqual([{ id: "acme", name: "Acme", look }]);
+    await api().setLook({ viewer, client: "acme", look: null });
+    expect(await lookOf("acme")).toBeNull();
+  });
+
+  it("an owner can't set another client's look; a member can't set their own", async () => {
+    const owner = { email: "owner@acme.example" };
+    await expect(api().setLook({ viewer: owner, client: "other", look })).rejects.toMatchObject({
+      status: 403,
+    });
+    await expect(api().setLook({ viewer: owner, client: "show", look })).rejects.toMatchObject({
+      status: 403,
+    });
+    const member = { email: "b@acme.example" };
+    await expect(api().setLook({ viewer: member, client: "acme", look })).rejects.toMatchObject({
+      status: 403,
+    });
+    expect(await lookOf("other")).toBeNull();
+    expect(await lookOf("acme")).toBeNull();
+  });
+
+  it("an operator sets any client's, the demo's too; the demo viewer sets none", async () => {
+    const operator = { email: "ops@wren.example", operator: true };
+    await api().setLook({ viewer: operator, client: "other", look: "night" });
+    await api().setLook({ viewer: operator, client: "show", look });
+    expect(await lookOf("other")).toBe("night");
+    expect(await lookOf("show")).toEqual(look);
+    await expect(
+      api().setLook({ viewer: { demo: true }, client: "show", look: null }),
+    ).rejects.toMatchObject({ status: 403 });
+  });
+
+  it("refuses what isn't a look", async () => {
+    const operator = { email: "ops@wren.example", operator: true };
+    for (const bad of [undefined, 3, [look], { big: "x".repeat(5000) }])
+      await expect(
+        api().setLook({ viewer: operator, client: "acme", look: bad }),
+      ).rejects.toMatchObject({ status: 400 });
   });
 });

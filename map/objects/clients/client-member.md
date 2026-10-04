@@ -3,8 +3,8 @@ type: object
 cluster: clients
 universe: live
 status: verified
-verified: 2026-10-01 @ 378623c
-entity: packages/core/src/clients/schema.ts:53
+verified: 2026-10-04 @ 85fad62
+entity: packages/core/src/clients/schema.ts:58
 ---
 
 # client-member
@@ -17,13 +17,13 @@ Sign-in is invite-only. Our sign-in (Better Auth at auth.wrenautomation.com) ask
 
 ## Shape
 
-- `client_members` (`packages/core/src/clients/schema.ts:53`): `client_id` + `email` (key), `role` owner | member, `invited_by`, `invited_at`, `last_seen_at`; deleting the client deletes its members
+- `client_members` (`packages/core/src/clients/schema.ts:58`): `client_id` + `email` (key), `role` owner | member, `invited_by`, `invited_at`, `last_seen_at`; deleting the client deletes its members
 - `operators` (`:77`): `email`, `added_at`
 - `addMember` / `removeMember` / `listMembers`, `addOperator` / `isOperator`, `mayHaveAccount`, `touchMember` (`packages/core/src/clients/index.ts:120`, `:153`, `:165`, `:171`, `:181`); emails lowercased and trimmed (`:117`)
 - The sign-in: `makeAuth` (`packages/auth/src/index.ts:91`), schema `auth` in the main database; the Lambda (`apps/auth/lambda/index.ts`) behind the auth Worker (`apps/auth/src/worker.ts`)
 - Apps check the token with `verifyToken` (`packages/auth/src/verify.ts:82`): EdDSA, iss, aud `wren`, exp
 
-Citations: `packages/core/src/clients/schema.ts:53`, `packages/core/src/clients/index.ts:171`, `packages/auth/src/index.ts:91`, `packages/auth/src/verify.ts:82`
+Citations: `packages/core/src/clients/schema.ts:58`, `packages/core/src/clients/index.ts:171`, `packages/auth/src/index.ts:91`, `packages/auth/src/verify.ts:82`
 
 ## Connected to
 
@@ -43,6 +43,7 @@ Citations: `packages/core/src/clients/schema.ts:53`, `packages/core/src/clients/
 | `wren clients members add\|remove\|list`, `wren operators add\|remove\|list` | writes |
 | auth.wrenautomation.com, app.wrenautomation.com | reads |
 | portal Settings (`delivery/people`, `invite`, `remove`; `packages/delivery/src/service.ts`) | an owner or Wren invites and removes; the last owner stays |
+| `ConsolePortal.setLook` (`isOwner`, `packages/core/src/clients/index.ts:177`) | an owner sets their own client's look, never another's |
 
 ## See
 

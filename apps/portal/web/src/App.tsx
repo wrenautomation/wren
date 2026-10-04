@@ -119,13 +119,16 @@ const keep = (key: string, value: string) => {
   } catch {}
 };
 
-/** `?theme=night` tries a preset look and remembers it; `?theme=wren` goes back to Wren's. */
-function useLook(params: URLSearchParams): Theme {
+/**
+ * The workspace's look (`clients.look`), or Wren's. `?theme=night` tries a preset over it and
+ * remembers the try; `?theme=` drops the try.
+ */
+function useLook(params: URLSearchParams, look: unknown): Theme {
   const asked = params.get("theme");
   useEffect(() => {
     if (asked !== null) keep(THEME_KEY, asked);
   }, [asked]);
-  return readTheme(asked ?? recall(THEME_KEY));
+  return readTheme((asked ?? recall(THEME_KEY)) || look);
 }
 
 export function App() {
@@ -136,7 +139,6 @@ export function App() {
   const [client, setClient] = useState<string | null>(() => named ?? recall(WORKSPACE_KEY));
   // Wren's team can look as the client would: no internal notes, no team tools.
   const [asClient, setAsClient] = useState(() => recall(AS_CLIENT_KEY) === "1");
-  const theme = useLook(route.params);
   const [jump, setJump] = usePaletteKey();
   const operator = me.data?.operator ?? false;
   // An address names its app, and the app its workspace; else the last one picked (Wren first).
@@ -168,6 +170,7 @@ export function App() {
 
   const clients = me.data?.clients ?? [];
   const current = wren ? WREN : (clients.find((c) => c.id === client) ?? clients[0] ?? null);
+  const theme = useLook(route.params, clients.find((c) => c.id === current?.id)?.look);
   const label = at.kind === "page" ? at.page.label : at.kind === "launcher" ? "Apps" : null;
   useEffect(() => {
     if (label && current) document.title = `${label} · ${current.name} · Wren Client Portal`;

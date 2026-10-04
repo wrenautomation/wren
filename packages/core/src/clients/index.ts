@@ -174,6 +174,11 @@ export async function listMembers(main: Queryable, clientId: string): Promise<Cl
     .orderBy(asc(clientMembers.email));
 }
 
+export const isOwner = async (main: Queryable, clientId: string, email: string) =>
+  (await listMembers(main, clientId)).some(
+    (m) => m.email === normalEmail(email) && m.role === "owner",
+  );
+
 export async function addOperator(main: Db, email: string): Promise<void> {
   await main
     .insert(operators)

@@ -8,6 +8,7 @@ import * as restate from "@restatedev/restate-sdk";
 import {
   addMember,
   type Client,
+  isOwner,
   listMembers,
   MEMBER_ROLES,
   type MemberRole,
@@ -157,11 +158,6 @@ async function write<T>(
     throw err;
   }
 }
-
-const isOwner = async (db: Queryable, clientId: string, email: string) =>
-  (await listMembers(db, clientId)).some(
-    (m) => m.email === normalEmail(email) && m.role === "owner",
-  );
 
 /** A project always keeps an owner: someone has to be able to invite. */
 async function keepAnOwner(db: Queryable, clientId: string, email: string) {

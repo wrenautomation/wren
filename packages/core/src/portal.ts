@@ -78,7 +78,8 @@ export async function pickForWrite(
 
 export interface Me {
   /** `demo`: the demo firm, which refuses writes wherever it's looked at. */
-  clients: { id: string; name: string; demo?: true }[];
+  /** `look`: the portal's look for that client, when one is set (`clients.look`). */
+  clients: { id: string; name: string; demo?: true; look?: unknown }[];
   demo: boolean;
   /** Wren's team: every client, and the tools to post to them. */
   operator: boolean;
@@ -93,6 +94,7 @@ export async function portalMe(main: Db, viewer: Viewer, demoName: string): Prom
       id: c.id,
       name: isDemo(viewer) ? demoName : c.name,
       ...(c.demo ? { demo: true as const } : {}),
+      ...(c.look != null ? { look: c.look } : {}),
     })),
     demo: isDemo(viewer),
     operator: isOperator(viewer),

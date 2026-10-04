@@ -11,15 +11,19 @@
  *
  * `addClient` makes a client from the console: its database, migrated, then its row. Its people
  * are added after with DeliveryPortal's `invite` (`delivery.invite`), as anywhere else.
+ *
+ * `setLook` stores a client's portal look: an operator's for any client, an owner's for their own.
  */
 import * as restate from "@restatedev/restate-sdk";
-import { CLIENT_ID, type Db } from "@wren/db";
-import { sql } from "drizzle-orm";
-import { addClient } from "./clients/index.js";
+import { CLIENT_ID, type Db, setAuditActor } from "@wren/db";
+import { eq, sql } from "drizzle-orm";
+import { addClient, clients, isOwner } from "./clients/index.js";
 import {
   answer,
+  isDemo,
   PortalRefusal,
   type PortalRequest,
+  pickClient,
   type SignedViewer,
   seesInternal,
 } from "./portal.js";
@@ -103,6 +107,14 @@ export interface AddClientRequest extends PortalRequest {
   id: string;
   name: string;
 }
+
+export interface SetLookRequest extends PortalRequest {
+  /** A preset's name, `readTheme` input, or null for Wren's. */
+  look: unknown;
+}
+
+/** A stored look stays small: inputs, not tokens. */
+const LOOK_MAX = 4000;
 
 export interface CallRequest extends PortalRequest {
   service: string;
@@ -584,6 +596,25 @@ export function consoleApi({
       return { id: c.id, name: c.name, demo: c.demo };
     },
 
+    /** Checked here, read by `readTheme` in the browser, which drops what it can't use. */
+    async setLook(req: SetLookRequest): Promise<{ client: string; look: unknown }> {
+      const viewer = req.viewer;
+      if (isDemo(viewer)) throw new PortalRefusal("the demo is read-only", 403);
+      const look = req.look;
+      const shape = look === null || typeof look === "string" || typeof look === "object";
+      if (!shape || Array.isArray(look) || JSON.stringify(look).length > LOOK_MAX)
+        throw new PortalRefusal("a look is a preset's name or an object of tokens", 400);
+      // An operator may pick any client; anyone else only their own.
+      const client = await pickClient(main, req);
+      if (!viewer.operator && !(await isOwner(main, client.id, viewer.email)))
+        throw new PortalRefusal("only an owner of this account can do that", 403);
+      await main.transaction(async (tx) => {
+        await setAuditActor(tx, viewer.email);
+        await tx.update(clients).set({ look }).where(eq(clients.id, client.id));
+      });
+      return { client: client.id, look };
+    },
+
     /** The loop `req` names, if `loops` listed it; anything else names no loop. */
     /** The read `call` journals: the handler `req` names, as a list of 0 or 1. Refused before it, as `adminFor` is. */
     reader(req: CallRequest): () => Promise<HandlerRow[]> {
@@ -698,6 +729,7 @@ export function makeConsolePortal(deps: Parameters<typeof consoleApi>[0]) {
             throw err;
           }
         }),
+      setLook: (_: restate.Context, req: SetLookRequest) => answer(() => api.setLook(req)),
       addClient: (ctx: restate.Context, req: AddClientRequest) =>
         answer(async () => {
           const ask = api.newClient(req);

@@ -3,8 +3,8 @@ type: object
 cluster: clients
 universe: live
 status: verified
-verified: 2026-10-04 @ afd15eb
-entity: packages/core/src/clients/schema.ts:18
+verified: 2026-10-04 @ 85fad62
+entity: packages/core/src/clients/schema.ts:22
 ---
 
 # client
@@ -17,11 +17,12 @@ Fifty clients must not mean fifty code paths. A client is data: its database, it
 
 ## Shape
 
-- `clients` (`schema.ts:18`): `id`, `database` (unique), `accounts` (site → autobrowse account), `products` (per-product JSON the product owns), `demo`; who signs in is [[clients/client-member]]
+- `clients` (`schema.ts:22`): `id`, `database` (unique), `accounts` (site → autobrowse account), `products` (per-product JSON the product owns), `demo`, `look` (`schema.ts:42`, the portal's look: a preset name or `readTheme` input, often just a brand color; null is Wren's); who signs in is [[clients/client-member]]
+- `ConsolePortal.setLook {client, look}` (`packages/core/src/console.ts:600`): an operator's for any client, the demo's too; an owner's for their own only (`isOwner`, `packages/core/src/clients/index.ts:177`). The portal reads it from `delivery/me` and themes the workspace with it; `?theme=` still tries a preset over it
 - `addClient` creates and migrates the database, then writes the row (`packages/core/src/clients/index.ts:42`). Safe to retry: a registered id comes back as it is, a half-made database is migrated again; callers refuse a taken id. `ConsolePortal.addClient {id, name}` runs it in one `ctx.run` step on the worker, which ships the migrations (`apps/worker/scripts/build-lambda.mjs:64`); people are added after with `DeliveryPortal.invite`
 - Loop keys: `<client>/<unit>`; a bare key is Wren's own (`packages/core/src/restate`, `clientKey` / `clientOfKey`)
 
-Citations: `packages/core/src/clients/schema.ts:18`, `packages/core/src/clients/index.ts:31`
+Citations: `packages/core/src/clients/schema.ts:22`, `packages/core/src/clients/index.ts:31`
 
 ## Connected to
 
@@ -32,7 +33,7 @@ Citations: `packages/core/src/clients/schema.ts:18`, `packages/core/src/clients/
 
 ## If you change this
 
-- **Hits:** `wren clients` (`apps/cli`), the worker's per-client db pool and key routing (`apps/worker/src/services.ts:261`), the portal's login check, every product's settings parser; `client_records` (the `console.client` record, migration 0061)
+- **Hits:** `wren clients` (`apps/cli`), the worker's per-client db pool and key routing (`apps/worker/src/services.ts:261`), the portal's login check and its look (`apps/portal/web/src/App.tsx`, `useLook`), every product's settings parser; `client_records` (the `console.client` record, migration 0061)
 - **Does not hit:** Wren's own campaign (bare keys, main database)
 
 ## Surfaces
@@ -41,8 +42,9 @@ Citations: `packages/core/src/clients/schema.ts:18`, `packages/core/src/clients/
 |---|---|
 | `wren clients add\|list` | writes |
 | `ConsolePortal.addClient` (`console.addClient`) | writes |
+| `ConsolePortal.setLook` (operator, or the client's owner) | writes `look` |
 | `Reactivation/{client}`, portal | reads |
 
 ## See
 
-- Design: `designs/2026-09-29-client-reactivation.md`
+- Design: `designs/2026-09-29-client-reactivation.md`, `designs/2026-10-04-brand-palette.md` (look)

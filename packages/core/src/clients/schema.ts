@@ -38,6 +38,8 @@ export const clients = pgTable(
      * product parses its own block and owns the defaults; this layer never looks inside.
      */
     products: jsonb("products").$type<Record<string, unknown>>().default({}).notNull(),
+    /** The portal's look: a preset's name or `readTheme` input (`@wren/ui`). Null is Wren's. */
+    look: jsonb("look"),
     /** The demo: people masked on the way out, no login, no writes, no sends. */
     demo: boolean("demo").default(false).notNull(),
     createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
