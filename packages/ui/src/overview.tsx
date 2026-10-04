@@ -73,6 +73,7 @@ export function periodStart(period: Period, now = new Date()): string {
   if (period === "month") return day(new Date(now.getFullYear(), now.getMonth(), 1));
   return day(new Date(now.getFullYear(), now.getMonth(), now.getDate() - (period - 1)));
 }
+const daysIn = (d: Date) => new Date(d.getFullYear(), d.getMonth() + 1, 0).getDate();
 const periodName = (p: Period) =>
   p === "month" ? "This month" : p === 1 ? "Today" : p === 7 ? "This week" : `Last ${p} days`;
 const priorName = (p: Period) =>
@@ -101,7 +102,7 @@ export function RecordOverview({ title, api, tiles, top = [] }: OverviewProps) {
   return (
     <div className={cn(ROOT, "mx-auto grid w-full max-w-[1200px] gap-8")}>
       <h1 className="text-[20px] leading-7 font-semibold tracking-[-0.01em]">{title}</h1>
-      <div className="grid grid-cols-[repeat(auto-fill,minmax(220px,1fr))] gap-px border border-(--ui-hair) bg-(--ui-hair)">
+      <div className="grid grid-cols-[repeat(auto-fill,minmax(220px,1fr))] gap-px p-px">
         {tiles.map((t) => {
           const meta = metaOf(t.record);
           return meta ? (
@@ -123,7 +124,8 @@ export function RecordOverview({ title, api, tiles, top = [] }: OverviewProps) {
   );
 }
 
-const TILE = "grid content-start gap-1 bg-(--ui-paper) p-4";
+// Each tile draws its own hairline (an outline over the 1px gap), so cells past the last tile stay blank.
+const TILE = "grid content-start gap-1 bg-(--ui-paper) p-4 outline outline-(--ui-hair)";
 
 function TileGhost() {
   return (
@@ -195,7 +197,10 @@ function Tile({ tile, meta, api }: { tile: OverviewTile; meta: RecordMeta; api: 
                   ? `Same as ${priorName(period)}`
                   : `${delta > 0 ? "+" : "−"}${fmt(Math.abs(delta))} vs ${priorName(period)}`}
               </span>
-              <Bars series={s.series} />
+              <Bars
+                series={s.series}
+                slots={period === "month" ? daysIn(new Date()) : s.series.length}
+              />
             </>
           ) : null}
         </>
@@ -206,10 +211,11 @@ function Tile({ tile, meta, api }: { tile: OverviewTile; meta: RecordMeta; api: 
   );
 }
 
-/** A bar a day, the tallest at full height; a quiet line under days with none. */
-function Bars({ series }: { series: { at: string; value: number }[] }) {
+/** A bar a day, the tallest at full height; a quiet line under days with none. A month keeps a
+ * slot for each of its days, so the bars fill in as it goes. */
+function Bars({ series, slots }: { series: { at: string; value: number }[]; slots: number }) {
   const max = Math.max(0, ...series.map((p) => p.value));
-  const w = 100 / Math.max(1, series.length);
+  const w = 100 / Math.max(1, slots, series.length);
   return (
     <svg
       viewBox="0 0 100 28"
@@ -268,7 +274,7 @@ function Top({ top, meta, api }: { top: OverviewTop; meta: RecordMeta; api: Reco
           {top.empty}
         </p>
       ) : (
-        <ul className="grid text-[13px]">
+        <ul className="m-0 grid list-none p-0 text-[13px]">
           {rows.map((r) => (
             <li key={String(r.id)} className="border-t border-(--ui-hair)">
               <a
