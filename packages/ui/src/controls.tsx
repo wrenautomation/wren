@@ -1,16 +1,9 @@
-/** Things you press or pick: square buttons, underline tabs, pill tags for status, a search box. */
+/** Things you press: square buttons, and pill tags for status. */
 
 import { cn } from "cn";
-import {
-  type AnchorHTMLAttributes,
-  type ButtonHTMLAttributes,
-  type ReactNode,
-  useEffect,
-  useState,
-} from "react";
+import type { AnchorHTMLAttributes, ButtonHTMLAttributes, ReactNode } from "react";
 import { Badge } from "./components/ui/badge.js";
 import { buttonVariants, Button as ShadButton } from "./components/ui/button.js";
-import { cx, num } from "./format.js";
 import { Icon, type IconName } from "./icons.js";
 
 /** `primary` is the one action on a screen (rust); `secondary` is outlined; `quiet` is text. */
@@ -104,48 +97,11 @@ export function ButtonLink({
   );
 }
 
-export interface TabItem {
-  id: string;
-  label: string;
-  href: string;
-  count?: number | undefined;
-}
-
-/** Filters as underline tabs. Each is a link, so the URL keeps the choice. */
-export function Tabs({
-  items,
-  current,
-  label,
-  className,
-  children,
-}: {
-  items: TabItem[];
-  current: string;
-  label: string;
-  className?: string | undefined;
-  /** Beside the tabs, right-aligned: a search, an action. */
-  children?: ReactNode;
-}) {
-  return (
-    <div className={cx("ui-tabs-row", className)}>
-      <nav className="ui-tabs" aria-label={label}>
-        {items.map((t) => (
-          <a key={t.id} href={t.href} aria-current={t.id === current ? "true" : undefined}>
-            {t.label}
-            {t.count !== undefined ? <span className="ui-tabs-n">{num(t.count)}</span> : null}
-          </a>
-        ))}
-      </nav>
-      {children ? <div className="ui-tabs-extra">{children}</div> : null}
-    </div>
-  );
-}
-
 /** `rust` marks what needs you or what changed; `green` a result; `neutral` the rest. */
 export type TagTone = "neutral" | "rust" | "green";
 
 const TAG =
-  "ui-tag h-auto gap-1.5 px-[9px] py-0.5 border-0 rounded-(--ui-radius-tag) text-[12px]/[1.5] font-semibold align-[1px]";
+  "h-auto gap-1.5 px-[9px] py-0.5 border-0 rounded-(--ui-radius-tag) text-[12px]/[1.5] font-semibold align-[1px]";
 const TAG_TONE: Record<TagTone, string> = {
   neutral: "bg-(--ui-fill) text-(--ui-ink-2)",
   rust: "bg-(--ui-accent-tint) text-(--ui-accent)",
@@ -153,7 +109,7 @@ const TAG_TONE: Record<TagTone, string> = {
 };
 const DOT = "before:size-1.5 before:rounded-full before:bg-current before:content-['']";
 
-/** shadcn's badge as the kit's status pill. `ui-tag` stays as a hook for product CSS. */
+/** shadcn's badge as the kit's status pill. */
 export function Tag({
   tone = "neutral",
   dot = false,
@@ -171,41 +127,5 @@ export function Tag({
     <Badge className={cn(TAG, TAG_TONE[tone], dot && DOT, className)} title={title}>
       {children}
     </Badge>
-  );
-}
-
-/** A search box that asks on Enter, so each search is one request and one URL. */
-export function SearchField({
-  value,
-  label,
-  placeholder,
-  onSearch,
-  className,
-}: {
-  value: string;
-  label: string;
-  placeholder?: string | undefined;
-  onSearch: (value: string) => void;
-  className?: string | undefined;
-}) {
-  const [v, setV] = useState(value);
-  useEffect(() => setV(value), [value]);
-  return (
-    <form
-      className={cx("ui-search", className)}
-      onSubmit={(e) => {
-        e.preventDefault();
-        onSearch(v.trim());
-      }}
-    >
-      <Icon name="search" />
-      <input
-        type="search"
-        value={v}
-        placeholder={placeholder}
-        aria-label={label}
-        onChange={(e) => setV(e.target.value)}
-      />
-    </form>
   );
 }

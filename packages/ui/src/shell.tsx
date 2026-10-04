@@ -6,6 +6,7 @@
  * its pages tabs that scroll sideways, so nothing hides behind a menu.
  */
 import { type ReactNode, useEffect, useRef } from "react";
+import { Skeleton } from "./components/ui/skeleton.js";
 import { Tag } from "./controls.js";
 import { cx, initials, num } from "./format.js";
 import { Icon, type IconName } from "./icons.js";
@@ -107,40 +108,65 @@ export function AppShell({
   }, [page]);
 
   return (
-    <div className={cx("ui-app", className)}>
-      <a className="ui-skip" href="#main">
+    <div className={cx("flex h-dvh flex-col max-[900px]:block max-[900px]:h-auto", className)}>
+      <a
+        className="fixed top-2.5 left-2.5 z-60 -translate-y-[160%] bg-(--ui-ink) px-3.5 py-2.5 text-[14px] text-(--ui-on-ink) no-underline transition-transform duration-300 ease-(--ui-ease) focus:translate-y-0"
+        href="#main"
+      >
         Skip to content
       </a>
 
-      <header className="ui-bar">
-        <a className="ui-brand" href={brand.href}>
-          <img className="ui-stamp" src={brand.stamp} alt="" width={26} height={26} />
-          <span className="ui-brand-name">{brand.name}</span>
+      <header className="flex h-[54px] min-w-0 flex-none items-center gap-1.5 px-[calc(var(--ui-frame)+8px)] max-[900px]:h-[52px] max-[900px]:bg-(--ui-canvas) max-[900px]:px-2">
+        <a
+          className={cx(
+            HOVER,
+            "flex h-9 flex-none items-center gap-[9px] rounded-(--ui-radius-control) pr-2 pl-1 text-[15px] font-semibold tracking-[-0.01em] no-underline",
+          )}
+          href={brand.href}
+        >
+          <img className="flex-none" src={brand.stamp} alt="" width={26} height={26} />
+          <span className="max-[900px]:hidden">{brand.name}</span>
         </a>
-        <span className="ui-slash" aria-hidden="true">
+        <span className={cx(SLASH, "max-[900px]:hidden")} aria-hidden="true">
           /
         </span>
         <WorkspacePick workspace={workspace} />
-        {actions ? <div className="ui-bar-actions">{actions}</div> : null}
+        {actions ? (
+          <div className="ml-auto flex flex-none items-center gap-1.5">{actions}</div>
+        ) : null}
       </header>
 
-      <div className="ui-stage">
+      <div className="flex min-h-0 flex-1 max-[900px]:block">
         {app ? <AppSide app={app} launcher={launcher} /> : null}
-        <div className="ui-window" ref={scroller}>
+        <div
+          className={cx(
+            "min-h-0 flex-1 overflow-y-auto overscroll-contain rounded-(--ui-radius-window) bg-(--ui-paper) shadow-(--ui-shadow-window) [scrollbar-width:thin] max-[900px]:m-0 max-[900px]:overflow-visible max-[900px]:rounded-none max-[900px]:shadow-none",
+            app ? "mr-(--ui-frame) mb-(--ui-frame)" : "mx-(--ui-frame) mb-(--ui-frame)",
+          )}
+          ref={scroller}
+        >
           {app ? <AppHead app={app} launcher={launcher} /> : null}
           <main
-            className={cx("ui-main", wide && "max-w-none min-[901px]:px-8")}
+            className={cx(
+              "mx-auto px-11 pt-10 pb-20 outline-none max-[900px]:px-4 max-[900px]:pt-[22px] max-[900px]:pb-16",
+              // A new page, or its data after the loader, fades in. Opacity only, so a fixed
+              // panel inside keeps the window as its frame.
+              "[&>:not(details)]:animate-[ui-fade_0.4s_var(--ui-ease)_backwards]",
+              wide ? "max-w-none min-[901px]:px-8" : "max-w-(--ui-main-width)",
+            )}
             id="main"
             tabIndex={-1}
           >
             {notice ? (
-              <details className="ui-notice">
-                <summary>
+              <details className="group/notice mb-7 rounded-(--ui-radius-card) bg-(--ui-tile) px-3.5 py-2.5 text-[13.5px]/[1.5] text-(--ui-ink-2) max-[900px]:mb-[22px] max-[900px]:px-3 max-[900px]:text-[13px] [&_b]:text-(--ui-ink)">
+                <summary className="flex cursor-pointer list-none flex-wrap items-center gap-x-2.5 gap-y-1 [&::-webkit-details-marker]:hidden">
                   <Tag tone="rust">{notice.label}</Tag>
                   <span>{notice.lead}</span>
-                  <span className="ui-notice-more">{notice.more}</span>
+                  <span className="font-medium text-(--ui-ink) underline decoration-(--ui-ink-3) underline-offset-[0.24em] group-open/notice:hidden">
+                    {notice.more}
+                  </span>
                 </summary>
-                <p className="ui-notice-body">{notice.body}</p>
+                <p className="mt-2 max-w-[72ch]">{notice.body}</p>
               </details>
             ) : null}
             {children}
@@ -151,72 +177,91 @@ export function AppShell({
   );
 }
 
+const EASE = "transition-colors duration-250 ease-(--ui-ease)";
+const HOVER = `${EASE} hover:bg-(--ui-hover)`;
+const SLASH = "flex-none text-[17px] font-light text-(--ui-ink-3)";
+const BACK = `${HOVER} inline-flex h-[34px] items-center gap-2 rounded-(--ui-radius-control) text-[13.5px] font-medium whitespace-nowrap text-(--ui-ink-2) no-underline hover:text-(--ui-ink)`;
+const APPNAME =
+  "inline-flex min-w-0 items-center gap-2.5 px-1 font-(family-name:--ui-font-display) text-[17px] font-(--ui-display-weight) tracking-[-0.01em] no-underline";
+const APPMARK =
+  "grid size-[30px] flex-none place-items-center rounded-(--ui-radius-control) bg-(--ui-accent-wash) text-(--ui-accent)";
+/** The count after a tab's name. */
+const COUNT = "ml-auto text-[12.5px] text-(--ui-ink-2)";
+
 /** The open app beside the window: back to all apps, its name, its pages, its one button. */
 function AppSide({ app, launcher }: { app: OpenApp; launcher: string | undefined }) {
   return (
-    <aside className="ui-side">
+    <aside className="flex w-[236px] flex-none flex-col gap-3.5 overflow-y-auto pt-1 pr-2.5 pb-4 pl-[calc(var(--ui-frame)+6px)] [scrollbar-width:none] max-[900px]:hidden">
       {launcher ? (
-        <a className="ui-back" href={launcher}>
+        <a className={cx(BACK, "self-start px-2.5")} href={launcher}>
           <Icon name="apps" />
           <span>All apps</span>
         </a>
       ) : null}
-      <a className="ui-appname" href={app.href}>
-        <span className="ui-appmark" aria-hidden="true">
+      <a className={cx(APPNAME, "px-2.5 pt-0.5 pb-1")} href={app.href}>
+        <span className={APPMARK} aria-hidden="true">
           <Icon name={app.icon} />
         </span>
         {app.name}
       </a>
-      <nav className="ui-nav" aria-label={`${app.name} pages`}>
-        <ul>
+      <nav aria-label={`${app.name} pages`}>
+        <ul className="flex list-none flex-col gap-0.5">
           {app.tabs.map((t) => (
             <li key={t.id}>
-              <a href={t.href} aria-current={t.id === app.current ? "page" : undefined}>
+              <a
+                className={cx(
+                  HOVER,
+                  "flex h-[38px] items-center gap-[11px] rounded-(--ui-radius-control) px-2.5 text-[14.5px] font-medium text-(--ui-ink-2) no-underline transition-[background-color,color,box-shadow] hover:text-(--ui-ink) aria-[current=page]:bg-(--ui-paper) aria-[current=page]:text-(--ui-ink) aria-[current=page]:shadow-(--ui-shadow-node)",
+                )}
+                href={t.href}
+                aria-current={t.id === app.current ? "page" : undefined}
+              >
                 {t.label}
-                {t.count !== undefined ? (
-                  <span className="ui-nav-count">{num(t.count)}</span>
-                ) : null}
+                {t.count !== undefined ? <span className={COUNT}>{num(t.count)}</span> : null}
               </a>
             </li>
           ))}
         </ul>
       </nav>
-      {app.action ? <div className="ui-side-action">{app.action}</div> : null}
+      {app.action ? <div className="px-2.5">{app.action}</div> : null}
     </aside>
   );
 }
 
-/** The same on a phone, as the window's head: pages as tabs. */
+/** The same on a phone, as the window's head: pages as tabs that wrap, so none is cut off. */
 function AppHead({ app, launcher }: { app: OpenApp; launcher: string | undefined }) {
   return (
-    <header className="ui-apphead">
-      <div className="ui-apphead-row">
+    <header className="sticky top-0 z-5 hidden border-b border-(--ui-hair) bg-(--ui-glass) backdrop-blur-[12px] backdrop-saturate-[1.4] max-[900px]:block">
+      <div className="mx-auto flex min-h-[52px] items-center gap-1.5 px-4 pt-1.5">
         {launcher ? (
           <>
-            <a className="ui-back" href={launcher} aria-label="All apps">
+            <a className={cx(BACK, "-ml-2 px-2")} href={launcher} aria-label="All apps">
               <Icon name="apps" />
-              <span>All apps</span>
             </a>
-            <span className="ui-slash" aria-hidden="true">
+            <span className={SLASH} aria-hidden="true">
               /
             </span>
           </>
         ) : null}
-        <a className="ui-appname" href={app.href}>
-          <span className="ui-appmark" aria-hidden="true">
+        <a className={cx(APPNAME, "whitespace-nowrap")} href={app.href}>
+          <span className={APPMARK} aria-hidden="true">
             <Icon name={app.icon} />
           </span>
           {app.name}
         </a>
-        {app.action ? <div className="ui-apphead-action">{app.action}</div> : null}
+        {app.action ? <div className="ml-auto flex items-center gap-2">{app.action}</div> : null}
       </div>
-      <nav className="ui-apptabs" aria-label={`${app.name} pages`}>
-        <ul>
+      <nav className="px-4" aria-label={`${app.name} pages`}>
+        <ul className="-mb-px flex list-none flex-wrap gap-x-5">
           {app.tabs.map((t) => (
             <li key={t.id}>
-              <a href={t.href} aria-current={t.id === app.current ? "page" : undefined}>
+              <a
+                className="inline-flex items-center gap-2 border-b-2 border-transparent pt-[9px] pb-2 text-[14px] font-medium whitespace-nowrap text-(--ui-ink-2) no-underline transition-colors duration-200 ease-(--ui-ease) hover:text-(--ui-ink) focus-visible:-outline-offset-2 aria-[current=page]:border-(--ui-accent) aria-[current=page]:text-(--ui-ink)"
+                href={t.href}
+                aria-current={t.id === app.current ? "page" : undefined}
+              >
                 {t.label}
-                {t.count !== undefined ? <span className="ui-tabs-n">{num(t.count)}</span> : null}
+                {t.count !== undefined ? <span className={COUNT}>{num(t.count)}</span> : null}
               </a>
             </li>
           ))}
@@ -226,38 +271,53 @@ function AppHead({ app, launcher }: { app: OpenApp; launcher: string | undefined
   );
 }
 
+const WS =
+  "relative flex h-9 min-w-0 items-center gap-[9px] rounded-(--ui-radius-control) pr-2.5 pl-[5px]";
+const WS_PICK = `${WS} ${HOVER} cursor-pointer no-underline has-[select:focus-visible]:outline-2 has-[select:focus-visible]:outline-offset-2 has-[select:focus-visible]:outline-(--ui-accent)`;
+const WS_MARK =
+  "grid size-[26px] flex-none place-items-center rounded-(--ui-radius-control) text-[10.5px] font-semibold tracking-[0.04em]";
+
 /** Whose workspace this is: a name (a link when it has one), or a switcher when there's more than one. */
 function WorkspacePick({ workspace }: { workspace: Workspace }) {
   const { current, options, caption, href, label, onPick } = workspace;
   if (!current)
     return (
-      <span className="ui-ws" aria-busy="true">
-        <span className="ui-ws-mark ui-ws-ghost" />
-        <span className="ui-ghost" />
+      <span className={WS} aria-busy="true">
+        <Skeleton className={cx(WS_MARK, "bg-(--ui-fill)")} />
+        <Skeleton className="h-3 w-[110px]" />
       </span>
     );
   const face = (
     <>
-      <span className="ui-ws-mark" aria-hidden="true">
+      <span className={cx(WS_MARK, "bg-(--ui-ink) text-(--ui-on-ink)")} aria-hidden="true">
         {initials(current.name)}
       </span>
-      <span className="ui-ws-name">{current.name}</span>
-      {caption ? <span className="ui-ws-caption">{caption}</span> : null}
+      <span className="truncate text-[14px] font-semibold">{current.name}</span>
+      {caption ? (
+        <span className="flex-none rounded-(--ui-radius-tag) bg-(--ui-fill) px-[7px] py-px text-[12px] font-medium whitespace-nowrap text-(--ui-ink-2) max-[900px]:hidden">
+          {caption}
+        </span>
+      ) : null}
     </>
   );
   if (options.length < 2)
     return href ? (
-      <a className="ui-ws ui-ws-pick" href={href} title={label}>
+      <a className={WS_PICK} href={href} title={label}>
         {face}
       </a>
     ) : (
-      <span className="ui-ws">{face}</span>
+      <span className={WS}>{face}</span>
     );
   return (
-    <label className="ui-ws ui-ws-pick">
+    <label className={WS_PICK}>
       {face}
-      <Icon name="down" className="ui-ws-chev" />
-      <select value={current.id} onChange={(e) => onPick(e.target.value)} aria-label={label}>
+      <Icon name="down" className="flex-none text-(--ui-ink-2)" />
+      <select
+        className="absolute inset-0 w-full cursor-pointer opacity-0"
+        value={current.id}
+        onChange={(e) => onPick(e.target.value)}
+        aria-label={label}
+      >
         {options.map((o) => (
           <option key={o.id} value={o.id}>
             {o.name}
@@ -284,10 +344,12 @@ export function Gate({
 }) {
   usePageTheme(theme);
   return (
-    <main className={cx("ui-gate", className)}>
-      <div className="ui-gate-card">
-        <img className="ui-stamp" src={stamp} alt="" width={36} height={36} />
-        <h1>{title}</h1>
+    <main className={cx("grid min-h-dvh place-items-center px-4 py-6", className)}>
+      <div className="flex w-[min(440px,100%)] flex-col gap-3.5 rounded-(--ui-radius-window) bg-(--ui-paper) p-8 shadow-(--ui-shadow-lift) [&_form]:flex [&_form]:flex-col [&_form]:gap-3.5 [&_li]:flex [&_li]:items-center [&_li]:justify-between [&_li]:gap-3 [&_li]:border-b [&_li]:border-(--ui-line) [&_li]:py-1.5 [&_p]:text-(--ui-ink-2) [&_ul]:list-none [&_ul]:border-t [&_ul]:border-(--ui-line)">
+        <img className="mb-1.5 flex-none" src={stamp} alt="" width={36} height={36} />
+        <h1 className="font-(family-name:--ui-font-display) text-[24px]/[1.2] font-(--ui-display-weight) tracking-[calc(-0.025em*var(--ui-display-squeeze))]">
+          {title}
+        </h1>
         {children}
       </div>
     </main>

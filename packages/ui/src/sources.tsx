@@ -3,8 +3,8 @@
  * reading is, and a trail from a line back to the pages behind it. Callers map their own
  * records onto these props; nothing here knows what a source is about.
  */
+import { cn } from "cn";
 import { type MouseEvent, type ReactNode, useCallback, useState } from "react";
-import { cx } from "./format.js";
 import { Icon } from "./icons.js";
 
 /** A numbered chip in running text, pointing at a source card. */
@@ -32,7 +32,11 @@ export function Cite({
   };
   return (
     <a
-      className={cx("ui-cite", on && "ui-cite-on", className)}
+      className={cn(
+        "ml-[3px] inline-grid h-[18px] min-w-[18px] place-items-center rounded-[min(5px,var(--ui-radius-control))] bg-(--ui-accent-tint) px-[5px] align-[0.14em] text-[11px] leading-none font-semibold text-(--ui-accent) lining-nums tabular-nums no-underline transition-colors duration-200 ease-(--ui-ease) hover:bg-(--ui-accent) hover:text-(--ui-on-accent) data-on:bg-(--ui-accent) data-on:text-(--ui-on-accent)",
+        className,
+      )}
+      data-on={on || undefined}
       href={href ?? `#source-${n}`}
       aria-label={label ?? `Source ${n}`}
       onClick={pick}
@@ -74,12 +78,19 @@ export function Sure({
   const label = levels[at]?.label ?? "";
   return (
     // The words carry it for screen readers; the bars are for the eye.
-    <span className={cx("ui-sure", className)} data-level={filled}>
-      <span className="ui-sure-bars" aria-hidden="true">
+    <span
+      className={cn(
+        "inline-flex flex-none items-center gap-[7px] text-[12.5px] whitespace-nowrap text-(--ui-ink-2)",
+        className,
+      )}
+      data-level={filled}
+    >
+      <span className="inline-flex h-3 items-end gap-0.5" aria-hidden="true">
         {levels.map((l, i) => (
           <i
             key={l.label}
-            className={i < filled ? "ui-sure-on" : undefined}
+            className="w-[3px] rounded-[1px] bg-(--ui-fill) data-on:bg-(--ui-ink)"
+            data-on={i < filled || undefined}
             // Short to tall, like signal strength.
             style={{ height: `${4 + (8 * i) / Math.max(1, levels.length - 1)}px` }}
           />
@@ -98,7 +109,7 @@ export function SourceList({
   className?: string | undefined;
   children: ReactNode;
 }) {
-  return <ol className={cx("ui-sources", className)}>{children}</ol>;
+  return <ol className={cn("flex list-none flex-col gap-2", className)}>{children}</ol>;
 }
 
 export function SourceCard({
@@ -131,23 +142,40 @@ export function SourceCard({
   className?: string | undefined;
 }) {
   return (
-    <li id={id} className={cx("ui-source", lit && "ui-source-lit", className)}>
-      {n !== undefined ? <span className="ui-source-n">{n}</span> : null}
-      <div className="ui-source-body">
-        <div className="ui-source-head">
+    <li
+      id={id}
+      className={cn(
+        "grid scroll-m-6 grid-cols-[auto_minmax(0,1fr)] gap-3 rounded-(--ui-radius-card) bg-(--ui-paper) pt-[13px] pr-4 pb-3.5 pl-3.5 text-[14px] wrap-anywhere shadow-(--ui-shadow-node) transition-shadow duration-350 ease-(--ui-ease)",
+        lit && "ring-2 ring-(--ui-accent)",
+        className,
+      )}
+    >
+      {n !== undefined ? (
+        <span
+          className={cn(
+            "grid size-[22px] place-items-center rounded-[min(6px,var(--ui-radius-control))] text-[12px] font-semibold lining-nums tabular-nums transition-colors duration-350 ease-(--ui-ease)",
+            lit ? "bg-(--ui-accent) text-(--ui-on-accent)" : "bg-(--ui-tile) text-(--ui-ink-2)",
+          )}
+        >
+          {n}
+        </span>
+      ) : null}
+      <div>
+        {/* ui-source-head: a marker the demo video's walk zooms to (reactivation/src/video/walk.ts). */}
+        <div className="ui-source-head flex min-h-[22px] flex-wrap items-baseline justify-between gap-x-3 gap-y-1 pt-0.5">
           <p>
             <b>{kind}</b>
-            {meta ? <span className="ui-source-meta"> · {meta}</span> : null}
+            {meta ? <span className="text-(--ui-ink-2)"> · {meta}</span> : null}
           </p>
           {sure !== null && sure !== undefined ? <Sure value={sure} /> : null}
         </div>
-        {title ? <p className="ui-source-title">{title}</p> : null}
+        {title ? <p className="mt-0.5">{title}</p> : null}
         {detail.length ? (
-          <dl className="ui-source-detail">
+          <dl className="mt-2 grid gap-[3px] border-t border-(--ui-hair) pt-2 text-[13.5px]">
             {detail.map(([label, value], i) => (
               // biome-ignore lint/suspicious/noArrayIndexKey: labels repeat ("Role"); rows never reorder.
-              <div key={i}>
-                <dt>{label}</dt>
+              <div key={i} className="grid grid-cols-[minmax(84px,26%)_1fr] gap-3">
+                <dt className="text-(--ui-ink-2)">{label}</dt>
                 <dd>{value}</dd>
               </div>
             ))}
@@ -156,22 +184,24 @@ export function SourceCard({
         {link ? (
           link.href ? (
             <a
-              className="ui-source-link"
+              className={cn(LINK, "text-(--ui-ink)")}
               href={link.href}
               target="_blank"
               rel="noopener noreferrer"
             >
               {link.label}
-              <Icon name="external" />
+              <Icon name="external" size={12} className="text-(--ui-ink-2)" />
             </a>
           ) : (
-            <span className="ui-source-link">{link.label}</span>
+            <span className={cn(LINK, "text-(--ui-ink-2)")}>{link.label}</span>
           )
         ) : null}
       </div>
     </li>
   );
 }
+
+const LINK = "mt-2 inline-flex max-w-full items-center gap-[5px] text-[13px] wrap-anywhere";
 
 export interface TrailStep {
   id: string;
@@ -189,11 +219,22 @@ export function Trail({
   className?: string | undefined;
 }) {
   return (
-    <ol className={cx("ui-trail", className)}>
+    // ui-trail and ui-trail-step: markers the demo video's walk finds (reactivation/src/video/walk.ts).
+    <ol className={cn("ui-trail list-none", className)}>
       {steps.map((s) => (
-        <li key={s.id} className="ui-trail-step">
-          <p className="ui-trail-label">{s.label}</p>
-          <div className="ui-trail-body">{s.children}</div>
+        <li
+          key={s.id}
+          className={
+            "ui-trail-step relative pb-[26px] pl-[26px] last:pb-0 " +
+            // A dot per step, joined by a hairline down to the next.
+            "before:absolute before:top-1 before:left-0 before:size-[9px] before:rounded-full before:border-2 before:border-(--ui-accent) before:bg-(--ui-paper) before:content-[''] " +
+            "after:absolute after:top-[19px] after:bottom-0.5 after:left-[5.5px] after:w-0.5 after:rounded-[1px] after:bg-(--ui-accent-tint) after:content-[''] last:after:content-none"
+          }
+        >
+          <p className="mb-2.5 text-[11.5px] font-semibold tracking-(--ui-label-tracking) text-(--ui-ink-2) [text-transform:var(--ui-label-case)]">
+            {s.label}
+          </p>
+          <div>{s.children}</div>
         </li>
       ))}
     </ol>
@@ -219,9 +260,27 @@ export function Traced({
   children: ReactNode;
 }) {
   return (
-    <p className={cx("ui-traced", on && "ui-traced-on", className)}>
+    <p
+      className={cn(
+        "-mx-2 rounded-[min(6px,var(--ui-radius-control))] px-2 py-0.5 transition-colors duration-250 ease-(--ui-ease) hover:bg-(--ui-accent-wash)",
+        on && "bg-(--ui-accent-wash)",
+        className,
+      )}
+    >
       {children}{" "}
-      <button type="button" className="ui-traced-why" aria-label={title} onClick={onTrace}>
+      <button
+        type="button"
+        className={cn(
+          "inline-grid h-[19px] cursor-pointer place-items-center rounded-(--ui-radius-tag) border-0 px-[7px] align-[0.1em] [font-family:inherit] text-[11px] font-semibold tracking-[0.02em] whitespace-nowrap transition-colors duration-200 ease-(--ui-ease) hover:bg-(--ui-accent) hover:text-(--ui-on-accent)",
+          // A finger-sized target, same look.
+          "pointer-coarse:relative pointer-coarse:after:absolute pointer-coarse:after:-inset-x-1.5 pointer-coarse:after:-inset-y-2.5 pointer-coarse:after:content-['']",
+          on
+            ? "bg-(--ui-accent) text-(--ui-on-accent)"
+            : "bg-(--ui-accent-tint) text-(--ui-accent)",
+        )}
+        aria-label={title}
+        onClick={onTrace}
+      >
         {label}
       </button>
     </p>

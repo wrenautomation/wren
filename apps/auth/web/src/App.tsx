@@ -11,6 +11,9 @@ import { nextOf } from "./next.js";
 
 const STAMP = "/wren-icon.png";
 const TITLE = "Sign in to Wren";
+/** A labelled text field. */
+const FIELD =
+  "grid gap-1.5 text-[13px] font-medium [&_input]:h-[42px] [&_input]:rounded-(--ui-radius-control) [&_input]:border [&_input]:border-(--ui-line) [&_input]:bg-(--ui-paper) [&_input]:px-3 [&_input]:text-[15px] [&_input]:font-normal [&_input:focus]:border-(--ui-accent) [&_input:focus]:shadow-[0_0_0_4px_var(--ui-accent-tint)] [&_input:focus]:outline-none";
 /** auth.example.com → example.com. */
 const BASE = location.hostname.replace(/^auth\./, "");
 const PORTAL = `https://app.${BASE}/`;
@@ -201,7 +204,7 @@ function SignIn({ next, failed }: { next: string; failed: boolean }) {
       ) : null}
       {mode === "code" && sent ? (
         <form onSubmit={useCode}>
-          <label className="ui-field">
+          <label className={FIELD}>
             Code
             <input
               value={code}
@@ -230,7 +233,7 @@ function SignIn({ next, failed }: { next: string; failed: boolean }) {
         </form>
       ) : (
         <form onSubmit={mode === "code" ? sendCode : usePassword}>
-          <label className="ui-field">
+          <label className={FIELD}>
             Email
             <input
               type="email"
@@ -241,7 +244,7 @@ function SignIn({ next, failed }: { next: string; failed: boolean }) {
             />
           </label>
           {mode === "password" ? (
-            <label className="ui-field">
+            <label className={FIELD}>
               Password
               <input
                 type="password"
@@ -325,7 +328,7 @@ function Reset() {
     <Gate stamp={STAMP} title="Set your password">
       {problem ? <Alert>{problem}</Alert> : null}
       <form onSubmit={save}>
-        <label className="ui-field">
+        <label className={FIELD}>
           New password
           <input
             type="password"

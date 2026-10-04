@@ -1,6 +1,10 @@
-/** How a page is laid out: a title with its lede, sections, a strip of figures, and cards. */
+/** How a page is laid out: a title with its lede, and sections. */
 import type { ReactNode } from "react";
 import { cx } from "./format.js";
+
+/** A page title, the same size as the record templates' (20px). */
+const TITLE = "text-[20px] leading-7 font-semibold tracking-[-0.01em] text-balance";
+const ACTIONS = "flex flex-wrap items-center gap-2.5";
 
 export function PageHeader({
   title,
@@ -9,18 +13,22 @@ export function PageHeader({
   className,
 }: {
   title: string;
-  /** One sentence on what this page is for. */
+  /** One line, only when the page needs an instruction. */
   lede?: ReactNode;
   actions?: ReactNode;
   className?: string | undefined;
 }) {
   return (
-    <header className={cx("ui-page-head", className)}>
+    <header
+      className={cx("mb-6 flex flex-wrap items-end justify-between gap-x-6 gap-y-3", className)}
+    >
       <div>
-        <h1>{title}</h1>
-        {lede ? <p className="ui-lede">{lede}</p> : null}
+        <h1 className={TITLE}>{title}</h1>
+        {lede ? (
+          <p className="mt-1 max-w-[62ch] text-[14px] text-pretty text-(--ui-ink-2)">{lede}</p>
+        ) : null}
       </div>
-      {actions ? <div className="ui-page-actions">{actions}</div> : null}
+      {actions ? <div className={ACTIONS}>{actions}</div> : null}
     </header>
   );
 }
@@ -39,74 +47,19 @@ export function Section({
   children: ReactNode;
 }) {
   return (
-    <section className={cx("ui-section", className)}>
+    <section className={cx("[section+&]:mt-10", className)}>
       {title || note || actions ? (
-        <div className="ui-section-head">
+        <div className="mb-3 flex flex-wrap items-end justify-between gap-x-6 gap-y-3">
           <div>
-            {title ? <h2>{title}</h2> : null}
-            {note ? <p className="ui-note">{note}</p> : null}
+            {title ? <h2 className="text-[15px]/[1.3] font-semibold">{title}</h2> : null}
+            {note ? (
+              <p className="mt-1 max-w-[68ch] text-[14px] text-pretty text-(--ui-ink-2)">{note}</p>
+            ) : null}
           </div>
-          {actions ? <div className="ui-section-actions">{actions}</div> : null}
+          {actions ? <div className={ACTIONS}>{actions}</div> : null}
         </div>
       ) : null}
       {children}
     </section>
   );
-}
-
-/** Figures in a row under one black rule, like the lander's sourced numbers. */
-export function StatStrip({
-  className,
-  children,
-}: {
-  className?: string | undefined;
-  children: ReactNode;
-}) {
-  return <dl className={cx("ui-stats", className)}>{children}</dl>;
-}
-
-/** A figure with its label. With `href`, the whole figure opens the rows behind it. */
-export function Stat({
-  label,
-  value,
-  note,
-  href,
-  className,
-}: {
-  label: string;
-  value: ReactNode;
-  note?: ReactNode;
-  href?: string | undefined;
-  className?: string | undefined;
-}) {
-  return (
-    <div className={cx("ui-stat", href && "ui-stat-link", className)}>
-      <dt>{label}</dt>
-      <dd className="ui-stat-value">{href ? <a href={href}>{value}</a> : value}</dd>
-      {note ? <dd className="ui-stat-note">{note}</dd> : null}
-    </div>
-  );
-}
-
-/** A list of cards. `stale` dims it while the next page loads. */
-export function CardList({
-  stale = false,
-  className,
-  children,
-}: {
-  stale?: boolean;
-  className?: string | undefined;
-  children: ReactNode;
-}) {
-  return <ul className={cx("ui-cards", stale && "ui-stale", className)}>{children}</ul>;
-}
-
-export function Card({
-  children,
-  className,
-}: {
-  children: ReactNode;
-  className?: string | undefined;
-}) {
-  return <li className={cx("ui-card", className)}>{children}</li>;
 }

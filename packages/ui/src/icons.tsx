@@ -44,8 +44,13 @@ export function Icon({
 }) {
   return (
     <svg
-      className={cx("ui-icon", className)}
+      className={cx("flex-none", className)}
       viewBox="0 0 16 16"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth={1.4}
+      strokeLinecap="round"
+      strokeLinejoin="round"
       width={size}
       height={size}
       aria-hidden="true"

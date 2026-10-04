@@ -1,24 +1,14 @@
 /**
  * Wren's component kit: the lander's look as React pieces. A foundation, so it knows no product;
- * each product maps its own data onto these props. Styles ship in `@wren/ui/kit.css`;
- * every look in it is a token a Theme can set (theme.tsx).
+ * each product maps its own data onto these props. Styles are Tailwind classes over the `--ui-`
+ * tokens in `@wren/ui/tailwind.css`; every token is one a Theme can set (theme.tsx).
  */
 export { type Access, can, type Viewer } from "./access.js";
 export { type Action, type Call, type FormField, Toasts } from "./action.js";
 export { Input } from "./components/ui/input.js";
 export { Textarea } from "./components/ui/textarea.js";
-export {
-  Button,
-  ButtonLink,
-  type ButtonTone,
-  SearchField,
-  type TabItem,
-  Tabs,
-  Tag,
-  type TagTone,
-} from "./controls.js";
-export { BarList, Facts, Table, Tally } from "./data.js";
-export { Drawer } from "./drawer.js";
+export { Button, ButtonLink, type ButtonTone, Tag, type TagTone } from "./controls.js";
+export { Facts, Table } from "./data.js";
 export { Alert, Callout, Empty, Loading } from "./feedback.js";
 export {
   type CiteTo,
@@ -47,14 +37,13 @@ export {
 export { ago, cx, hostOf, initials, month, num, soon } from "./format.js";
 export { Icon, type IconName } from "./icons.js";
 export { AppCard, AppGlance, AppGrid, type GlanceFigure } from "./launcher.js";
-export { Card, CardList, PageHeader, Section, Stat, StatStrip } from "./layout.js";
+export { PageHeader, Section } from "./layout.js";
 export {
   type OverviewProps,
   type OverviewTile,
   type OverviewTop,
   RecordOverview,
 } from "./overview.js";
-export { Pager } from "./pager.js";
 export type { PaletteItem } from "./palette.js";
 export { RecordQueue } from "./queue.js";
 export { RAIL_STATES, Rail, type RailGroup, type RailState, type RailStep } from "./rail.js";
@@ -119,7 +108,6 @@ export {
   type PresetName,
   readTheme,
   type Theme,
-  ThemeScope,
   TOKENS,
   type Token,
   themeVars,

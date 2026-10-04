@@ -8,7 +8,6 @@
   ],
   "exports": {
     ".": "./src/index.ts",
-    "./kit.css": "./src/kit.css",
     "./tailwind.css": "./src/tailwind.css",
     "./palette": "./src/palette.tsx",
     "./components/ui/*": "./src/components/ui/*.tsx",

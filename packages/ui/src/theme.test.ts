@@ -1,5 +1,5 @@
 /// <reference types="node" />
-import { readFileSync } from "node:fs";
+import { readdirSync, readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 import { applyTheme, PRESETS, type PresetName, readTheme, TOKENS, themeVars } from "./theme.js";
 
@@ -437,18 +437,20 @@ describe("TOKENS and PRESETS", () => {
   });
 });
 
-describe("TOKENS match kit.css", () => {
-  const css = readFileSync(new URL("./kit.css", import.meta.url), "utf8");
-  /** Parts moved to shadcn read tokens in Tailwind classes: `bg-(--ui-accent)`. */
-  const classes = ["controls.tsx", "data.tsx"]
+describe("TOKENS match tailwind.css", () => {
+  const css = readFileSync(new URL("./tailwind.css", import.meta.url), "utf8");
+  /** The parts read tokens in Tailwind classes: `bg-(--ui-accent)`. */
+  const classes = readdirSync(new URL("./", import.meta.url), { recursive: true })
+    .map(String)
+    .filter((f) => f.endsWith(".tsx"))
     .map((f) => readFileSync(new URL(`./${f}`, import.meta.url), "utf8"))
     .join("\n");
 
-  it.each([...TOKENS])("kit.css or a kit class reads --ui-%s", (token) => {
+  it.each([...TOKENS])("tailwind.css or a class reads --ui-%s", (token) => {
     expect(`${css}\n${classes}`).toMatch(new RegExp(`(var\\(\\s*|\\()--ui-${token}(?![a-z0-9-])`));
   });
 
-  it("every --ui-* property kit.css declares is in TOKENS", () => {
+  it("every --ui-* property tailwind.css declares is in TOKENS", () => {
     const declared = new Set([...css.matchAll(/--ui-([a-z0-9-]+):/g)].map((m) => m[1]));
     expect(declared.size).toBeGreaterThan(0);
     const known = new Set<string>(TOKENS);

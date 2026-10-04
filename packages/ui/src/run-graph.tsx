@@ -25,12 +25,14 @@ import {
   layoutOf,
   OUTPUT,
 } from "./flow.js";
-import { num } from "./format.js";
+import { cx, num } from "./format.js";
 import { Icon } from "./icons.js";
 import {
   mixOf,
   type RunEnd,
   type RunLine,
+  type RunLineKind,
+  type RunMix,
   type RunStep,
   type RunStepState,
   type RunStepView,
@@ -85,6 +87,37 @@ const useGraph = () => {
 
 const edgeId = (from: string, to: string) => `${from}>${to}`;
 
+const DIM = "opacity-35";
+/** A step's shadow: working beats picked, picked beats hover. */
+const LIFT = {
+  active: "-translate-y-0.5 shadow-[inset_0_0_0_1.5px_var(--ui-accent),var(--ui-shadow-lift)]",
+  picked: "shadow-[inset_0_0_0_2px_var(--ui-ink),var(--ui-shadow-lift)]",
+  rest: "shadow-(--ui-shadow-node) hover:shadow-[inset_0_0_0_1px_var(--ui-ink-3),var(--ui-shadow-lift)]",
+};
+const INDEX: Record<RunStepState, string> = {
+  idle: "text-(--ui-ink-2) shadow-[inset_0_0_0_1.5px_var(--ui-line)]",
+  active: "bg-(--ui-accent) text-(--ui-on-accent)",
+  done: "bg-(--ui-good) text-(--ui-paper)",
+  waiting: "text-(--ui-ink-2) shadow-[inset_0_0_0_1.5px_var(--ui-ink-2)]",
+};
+const SOURCE = "row-2 text-[12px] leading-[1.3] text-(--ui-ink-2)";
+const MIX: Record<keyof RunMix, string> = {
+  found: "bg-(--ui-accent)",
+  did: "bg-(--ui-ink-3)",
+  failed: "bg-(--ui-bad)",
+  waiting: "bg-[repeating-linear-gradient(135deg,var(--ui-ink-3)_0_2px,transparent_2px_4px)]",
+};
+const CHIP: Partial<Record<RunLineKind, string>> = {
+  found: "bg-(--ui-accent) text-(--ui-on-accent)",
+  failed: "bg-(--ui-bad) text-(--ui-paper)",
+};
+const RING = "shadow-[0_0_0_3px_var(--ui-tile)]";
+const SPARK: Partial<Record<RunLineKind, string>> = {
+  found: `bg-(--ui-accent) ${RING}`,
+  failed: `bg-(--ui-bad) ${RING}`,
+  waiting: "bg-(--ui-tile) shadow-[inset_0_0_0_1.5px_var(--ui-ink-2)]",
+};
+
 /** React Flow draws a line between handles; ours are hidden, the path is our own. */
 function Handles({ axis }: { axis: FlowAxis }) {
   const across = axis === "across";
@@ -92,11 +125,13 @@ function Handles({ axis }: { axis: FlowAxis }) {
     <>
       <Handle
         type="target"
+        className="invisible"
         position={across ? Position.Left : Position.Top}
         isConnectable={false}
       />
       <Handle
         type="source"
+        className="invisible"
         position={across ? Position.Right : Position.Bottom}
         isConnectable={false}
       />
@@ -111,48 +146,118 @@ function StepNode({ id }: NodeProps) {
   if (!s || !n) return null;
   const v = g.views[id] ?? IDLE;
   const mix = mixOf(v, g.expected[id] ?? 0);
+  const split = g.axis === "down" && n.of > 1;
+  // Down, a step alone on its row: one line, the count at the end.
+  const alone = g.axis === "down" && !split;
+  // Sharing a row on a phone: short names, no sources.
+  const narrow = split ? "@max-[560px]/run:text-[11px]" : "";
   return (
     <div
-      className="ui-run-node"
+      className={cx(
+        "relative grid min-w-0 transition-opacity duration-350 ease-(--ui-ease) motion-reduce:transition-none",
+        g.lit && !g.lit.has(id) && DIM,
+      )}
       data-state={v.state}
       data-dim={g.lit && !g.lit.has(id) ? true : undefined}
-      data-split={g.axis === "down" && n.of > 1 ? true : undefined}
+      data-split={split || undefined}
       style={{ minHeight: g.stretch?.get(id) }}
     >
       <Handles axis={g.axis} />
       <button
         type="button"
-        className="ui-run-step"
+        className={cx(
+          // Name, source, then the spare room, so the counts and bars in a row line up.
+          "grid min-w-0 cursor-pointer grid-rows-[auto_auto_1fr_auto] gap-x-2 gap-y-0.5 rounded-(--ui-radius-card) border-0 bg-(--ui-paper) px-3 pt-3 pb-3.5 text-left font-[inherit] text-[length:inherit] leading-[inherit] text-(--ui-ink) transition-[box-shadow,translate] duration-350 ease-(--ui-ease) motion-reduce:transition-none",
+          alone ? "grid-cols-[auto_minmax(0,1fr)_auto]" : "grid-cols-[auto_minmax(0,1fr)]",
+          v.state === "active" ? LIFT.active : g.picked === id ? LIFT.picked : LIFT.rest,
+          split && "@max-[560px]/run:p-2.5",
+        )}
         aria-pressed={g.picked === id}
         onClick={() => g.onPick(id)}
       >
-        <span className="ui-run-index" aria-hidden="true">
+        <span
+          className={cx(
+            "grid size-5 place-items-center rounded-full text-[11px] font-semibold tabular-nums",
+            INDEX[v.state],
+          )}
+          aria-hidden="true"
+        >
           {v.state === "done" ? <Icon name="check" size={11} /> : g.ordinal.get(id)}
         </span>
-        <span className="ui-run-name">
-          <span className="ui-run-long">{s.label}</span>
-          <span className="ui-run-short" aria-hidden="true">
+        <span className="self-center text-[14px] leading-[1.25] font-semibold">
+          <span className={cx(split && "@max-[560px]/run:hidden")}>{s.label}</span>
+          <span className={cx("hidden", split && "@max-[560px]/run:inline")} aria-hidden="true">
             {s.short ?? s.label}
           </span>
         </span>
-        {s.source ? <span className="ui-run-source">{s.source}</span> : null}
-        <span className="ui-run-tally">
-          <span className="ui-run-count">{num(v.handled)}</span>
+        {s.source ? (
+          <span
+            className={cx(
+              SOURCE,
+              alone ? "col-2" : "col-span-full",
+              split && "@max-[560px]/run:hidden",
+            )}
+          >
+            {s.source}
+          </span>
+        ) : null}
+        <span
+          className={cx(
+            "flex flex-wrap gap-x-2",
+            alone
+              ? "col-3 row-[1/span_2] flex-col items-end self-center text-right"
+              : "col-span-full row-3 mt-1.5 items-baseline self-end",
+          )}
+        >
+          <span
+            className={cx(
+              "font-(family-name:--ui-font-display) text-[24px] leading-[1.1] font-(--ui-display-weight) tracking-[calc(-0.03em*var(--ui-display-squeeze))] lining-nums tabular-nums",
+              v.state === "idle" && "text-(--ui-ink-3)",
+              split && "@max-[560px]/run:text-[20px]",
+            )}
+          >
+            {num(v.handled)}
+          </span>
           {s.found && v.found ? (
-            <span className="ui-run-found">
+            <span className={cx("text-[12px] font-semibold text-(--ui-accent)", narrow)}>
               {num(v.found)} {s.found}
             </span>
           ) : null}
-          {v.waiting ? <span className="ui-run-parked">{num(v.waiting)} waiting</span> : null}
+          {v.waiting ? (
+            <span className={cx("text-[12px] text-(--ui-ink-2)", narrow)}>
+              {num(v.waiting)} waiting
+            </span>
+          ) : null}
         </span>
-        <span className="ui-run-mix" aria-hidden="true">
+        <span
+          className="col-span-full row-4 mt-2 flex h-1 overflow-hidden rounded-(--ui-radius-bar) bg-(--ui-fill)"
+          aria-hidden="true"
+        >
           {(["found", "did", "failed", "waiting"] as const).map((k) =>
-            mix[k] ? <i key={k} data-kind={k} style={{ width: `${mix[k] * 100}%` }} /> : null,
+            mix[k] ? (
+              <i
+                key={k}
+                className={cx(
+                  "block h-full flex-none transition-[width] duration-350 ease-(--ui-ease) motion-reduce:transition-none",
+                  MIX[k],
+                )}
+                data-kind={k}
+                style={{ width: `${mix[k] * 100}%` }}
+              />
+            ) : null,
           )}
         </span>
       </button>
       {g.chip?.step === id ? (
-        <span key={g.chip.id} className="ui-run-chip" data-kind={g.chip.kind}>
+        // The name being worked on, hung on the bottom edge of the step working on it.
+        <span
+          key={g.chip.id}
+          className={cx(
+            "absolute bottom-0 left-2.5 z-1 w-fit max-w-[calc(100%-20px)] translate-y-1/2 animate-in overflow-hidden rounded-(--ui-radius-tag) px-[9px] py-0.5 text-[12px] font-medium text-ellipsis whitespace-nowrap duration-350 ease-(--ui-ease) fade-in slide-in-from-left-[14px] motion-reduce:animate-none",
+            CHIP[g.chip.kind] ?? "bg-(--ui-ink) text-(--ui-on-ink)",
+          )}
+          data-kind={g.chip.kind}
+        >
           {g.chip.subject}
         </span>
       ) : null}
@@ -164,19 +269,38 @@ function EndNode({ id }: NodeProps) {
   const g = useGraph();
   const end = id === INPUT ? g.input : g.output;
   if (!end) return null;
+  const state = g.stateOf(id);
+  const down = g.axis === "down";
   return (
+    // Where the run starts and where it hands off.
     <div
-      className="ui-run-end"
+      className={cx(
+        "relative grid min-w-0 content-center gap-0.5 rounded-(--ui-radius-card) px-3 py-2.5 transition-[opacity,box-shadow] duration-350 ease-(--ui-ease) motion-reduce:transition-none",
+        state !== "done"
+          ? "shadow-[inset_0_0_0_1.5px_var(--ui-line)]"
+          : id === OUTPUT
+            ? "bg-(--ui-paper) shadow-[inset_0_0_0_1.5px_var(--ui-good)]"
+            : "bg-(--ui-paper) shadow-(--ui-shadow-node)",
+        down && "text-center",
+        g.lit && !g.lit.has(id) && DIM,
+      )}
       data-node={id}
-      data-state={g.stateOf(id)}
+      data-state={state}
       data-dim={g.lit && !g.lit.has(id) ? true : undefined}
     >
       <Handles axis={g.axis} />
-      <span className="ui-run-end-name">
-        {id === OUTPUT && g.over ? <Icon name="check" size={12} /> : null}
+      <span
+        className={cx(
+          "inline-flex items-center gap-1.5 text-[13px] font-semibold",
+          down && "justify-center",
+        )}
+      >
+        {id === OUTPUT && g.over ? (
+          <Icon name="check" size={12} className="text-(--ui-good-ink)" />
+        ) : null}
         {end.label}
       </span>
-      {end.note ? <span className="ui-run-source">{end.note}</span> : null}
+      {end.note ? <span className={cx(SOURCE, "col-span-full")}>{end.note}</span> : null}
     </div>
   );
 }
@@ -189,20 +313,34 @@ function RunEdge({ id, source, target }: EdgeProps) {
   const to = g.stateOf(target);
   const state = to === "active" ? "flowing" : g.stateOf(source) === "done" ? "done" : "idle";
   const sparks = g.recent.filter((l) => g.into.get(l.step) === id);
+  const traced = g.trace(source, target);
   return (
     <>
       <path
         d={d}
-        className="ui-run-edge"
+        className={cx(
+          "fill-none [stroke-linecap:round] transition-[stroke,opacity] duration-350 ease-(--ui-ease) motion-reduce:transition-none",
+          traced
+            ? "stroke-(--ui-accent) stroke-[2.5]"
+            : state === "flowing"
+              ? "animate-ui-run-flow stroke-(--ui-accent) stroke-[1.5] [stroke-dasharray:6_5] motion-reduce:animate-none"
+              : state === "done"
+                ? "stroke-(--ui-ink-3) stroke-[1.5]"
+                : "stroke-(--ui-line) stroke-[1.5] [stroke-dasharray:3_4]",
+          g.lit && !traced && "opacity-25",
+        )}
         data-state={state}
-        data-trace={g.trace(source, target) || undefined}
+        data-trace={traced || undefined}
       />
       {sparks.length ? (
         <EdgeLabelRenderer>
           {sparks.map((l) => (
             <span
               key={l.id}
-              className="ui-run-spark"
+              className={cx(
+                "pointer-events-none absolute top-0 left-0 size-[9px] animate-ui-run-spark rounded-full [offset-rotate:0deg] motion-reduce:hidden",
+                SPARK[l.kind] ?? `bg-(--ui-ink-2) ${RING}`,
+              )}
               data-kind={l.kind}
               style={{ offsetPath: `path("${d}")` }}
               aria-hidden="true"
@@ -307,12 +445,7 @@ export default function RunGraph(props: RunGraphProps) {
   }, [graph, boxes, axis, steps, loose, ready]);
 
   return (
-    <div
-      ref={box}
-      className="ui-run-graph"
-      data-axis={axis}
-      data-following={props.lit ? true : undefined}
-    >
+    <div ref={box} data-axis={axis} data-following={props.lit ? true : undefined}>
       <div
         style={{ height: height + 2 * PAD, margin: -PAD, visibility: ready ? undefined : "hidden" }}
       >

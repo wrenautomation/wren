@@ -304,3 +304,8 @@ One implementer per phase, from this doc. Commit and push each step.
 - 2026-10-04 (S3 pages): The contract prints alone through `data-print` and one print rule in `app.css`, not a module file. Biome now accepts the kit's `Input` and `Textarea` as label controls.
 - 2026-10-04 (S3 pages): `work.css` is deleted. Work module code went from 2,263 lines to 1,331. All modules went from 4,270 to 3,351.
 - 2026-10-04 (S3 pages): A record shows its Sources tab only when the page gives sources. Overview and Queue grids get `minmax(0,1fr)` columns so long titles truncate at 390 instead of widening the page.
+- 2026-10-04 (S3 look): `kit.css` is deleted. Its tokens and base moved into `tailwind.css`, and every part is Tailwind classes over the `--ui-` tokens. Themes still set those tokens on the root. The `ui-theme` scope class is gone; nothing used it.
+- 2026-10-04 (S3 look): Dead parts deleted: Drawer, Pager, Tabs, SearchField, BarList, Tally, Card, CardList, Stat, StatStrip and ThemeScope. Loading ghosts are shadcn's Skeleton. Overlays use `--ui-scrim`.
+- 2026-10-04 (S3 look): The auth app builds Tailwind too. Its buttons were shadcn parts with no Tailwind loaded.
+- 2026-10-04 (S3 look): `ui-trail`, `ui-trail-step` and `ui-source-head` stay as unstyled markers: the demo video script finds elements by them.
+- 2026-10-04 (S3 look): `@wren/ui` went from 8,193 code lines and 2,820 CSS lines to 8,380 and 302. Modules stay at 3,366.

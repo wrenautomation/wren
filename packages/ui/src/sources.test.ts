@@ -44,7 +44,7 @@ const sure = (value: number, levels?: SureLevel[]) => {
   return {
     level: e.props["data-level"],
     label: label.join(""),
-    on: bars.filter((b) => b.props.className === "ui-sure-on").length,
+    on: bars.filter((b) => b.props["data-on"]).length,
   };
 };
 
@@ -132,7 +132,7 @@ describe("SourceCard", () => {
   });
 
   it("n 0 still shows its number", () => {
-    expect(card({ kind: "Left", n: 0 }).some((x) => x.props.className === "ui-source-n")).toBe(
+    expect(card({ kind: "Left", n: 0 }).some((x) => x.type === "span" && kids(x).includes(0))).toBe(
       true,
     );
   });
@@ -256,8 +256,9 @@ describe("Cited", () => {
 
   it("an unknown mark shows no chip and no mark", () => {
     const out = html("A. [f9] B. [f1, f9]", ["f1"]);
-    expect(out).not.toMatch(/f9|\[|\]/);
-    expect(out.match(/class="ui-cite/g)).toHaveLength(1);
+    expect(out).not.toMatch(/f9/);
+    expect(out.replace(/<[^>]+>/g, "")).not.toMatch(/\[|\]/);
+    expect(out.match(/<a /g)).toHaveLength(1);
   });
 
   it("the words around the marks stay whole, in order", () => {
@@ -273,7 +274,7 @@ describe("Cited", () => {
     const got = chips("[f1, f2]", ["f1", "f2"]).flat();
     expect(got.map((c) => c.props.on)).toEqual([false, false]);
     const out = html("[f1, f2]", ["f1", "f2"], "f2");
-    expect(out.match(/ui-cite-on/g)).toHaveLength(1);
+    expect(out.match(/data-on=/g)).toHaveLength(1);
   });
 
   it("a pick names the mark, lowercase", () => {

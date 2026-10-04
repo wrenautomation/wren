@@ -1,9 +1,10 @@
 /*
- * Tailwind and the shadcn parts, without Tailwind's preflight reset, so pages still on kit.css
- * keep their look. Import it after kit.css: these layers then sit above kit's `ui` layer.
+ * Wren's look: the lander's (lander/DESIGN.md) for working screens. Tailwind and the shadcn
+ * parts, without Tailwind's preflight reset; the base below is the kit's.
  *
- * The theme tokens stay the source. Each shadcn variable reads a `--ui-` token, on :root and on
- * any `ui-theme` scope, so a client's theme restyles the shadcn parts too.
+ * Every color, face, radius and shadow is a `--ui-` token, so a client's look is a theme, not a
+ * fork: pass a Theme to AppShell, or set tokens on :root. Each shadcn variable reads a `--ui-`
+ * token too, so a theme restyles the shadcn parts as well.
  */
 @layer theme, base, components, utilities;
 @import "tailwindcss/theme.css" layer(theme);
@@ -14,11 +15,76 @@
 @import "sonner/dist/styles.css";
 @source "./";
 
+/* What a theme sets. Leave one out and it keeps Wren's. */
+:root {
+  --ui-scheme: light;
+  --ui-canvas: #f3f1ec; /* the ground the app sits on */
+  --ui-paper: #fff; /* windows and cards */
+  --ui-ink: #0e0e0e;
+  --ui-ink-2: #56564f; /* secondary text, 7.4:1 on white */
+  --ui-ink-3: #9c9c96; /* marks only, never text */
+  --ui-accent: #a83b12; /* rust, 6.4:1 on white */
+  --ui-on-accent: #faf7f2;
+  --ui-good: #17803d;
+  --ui-good-ink: #136b33;
+  --ui-bad: #d2281e;
+  --ui-shade: #0e0e0e; /* what shadows and the scrim are made of */
+  --ui-font: "General Sans", ui-sans-serif, system-ui, sans-serif;
+  --ui-font-display: var(--ui-font); /* headings and big figures */
+  --ui-display-weight: 500;
+  --ui-display-squeeze: 1; /* how tight headings sit: 1 is Wren's, 0 is none */
+  --ui-label-case: uppercase; /* the small labels over columns and nav groups */
+  --ui-label-tracking: 0.09em;
+  --ui-button-case: uppercase;
+  --ui-button-tracking: 0.08em;
+  --ui-button-weight: 600;
+  --ui-radius-window: 22px;
+  --ui-radius-card: 14px;
+  --ui-radius-control: 10px;
+  --ui-radius-button: 0px;
+  --ui-radius-tag: 999px;
+  --ui-radius-bar: 2px;
+  --ui-frame: 10px; /* the canvas around the window; 0px makes it flush */
+  --ui-main-width: 1240px;
+  --ui-ease: cubic-bezier(0.16, 1, 0.3, 1);
+  color-scheme: var(--ui-scheme);
+  scrollbar-color: var(--ui-ink-3) transparent;
+}
+/* Made from the tokens above, so they follow a theme. A theme can set any of these too. */
+:root {
+  --ui-tile: var(--ui-canvas); /* a well inside the paper */
+  --ui-wash: color-mix(in srgb, var(--ui-canvas) 50%, var(--ui-paper)); /* row hover */
+  --ui-on-ink: var(--ui-paper);
+  --ui-rule: color-mix(in srgb, var(--ui-ink) 13%, transparent);
+  --ui-hair: color-mix(in srgb, var(--ui-ink) 7%, transparent);
+  --ui-line: color-mix(in srgb, var(--ui-ink) 16%, transparent); /* a field's edge */
+  --ui-fill: color-mix(in srgb, var(--ui-ink) 6%, transparent); /* counts, tracks, ghosts */
+  --ui-hover: color-mix(in srgb, var(--ui-ink) 4.5%, transparent);
+  --ui-glass: color-mix(in srgb, var(--ui-paper) 88%, transparent);
+  --ui-accent-wash: color-mix(in srgb, var(--ui-accent) 7%, transparent);
+  --ui-accent-tint: color-mix(in srgb, var(--ui-accent) 10%, transparent);
+  --ui-good-tint: color-mix(in srgb, var(--ui-good) 10%, transparent);
+  --ui-bad-tint: color-mix(in srgb, var(--ui-bad) 6%, transparent);
+  --ui-scrim: color-mix(in srgb, var(--ui-shade) 16%, transparent);
+  --ui-shadow-node:
+    inset 0 0 0 1px var(--ui-hair), 0 1px 2px color-mix(in srgb, var(--ui-shade) 4%, transparent);
+  --ui-shadow-window:
+    0 0 0 1px color-mix(in srgb, var(--ui-ink) 5%, transparent),
+    0 1px 2px color-mix(in srgb, var(--ui-shade) 4%, transparent),
+    0 18px 50px -32px color-mix(in srgb, var(--ui-shade) 24%, transparent);
+  --ui-shadow-lift:
+    0 0 0 1px color-mix(in srgb, var(--ui-ink) 5%, transparent),
+    0 1px 2px color-mix(in srgb, var(--ui-shade) 4%, transparent),
+    0 24px 60px -28px color-mix(in srgb, var(--ui-shade) 28%, transparent);
+  --ui-shadow-drawer:
+    0 0 0 1px color-mix(in srgb, var(--ui-ink) 6%, transparent),
+    0 30px 80px -30px color-mix(in srgb, var(--ui-shade) 45%, transparent);
+}
+
 /* The night theme flips the tokens, so shadcn's own dark styles stay off. */
 @custom-variant dark (&:is(.dark *));
 
-:root,
-.ui-theme {
+:root {
   --background: var(--ui-canvas);
   --foreground: var(--ui-ink);
   --card: var(--ui-paper);
@@ -98,8 +164,95 @@
   --radius-4xl: calc(var(--radius) * 2.6);
 }
 
-/* Preflight for the shadcn parts only: each one carries data-slot. */
+/* The kit's base, under every utility. */
 @layer base {
+  *,
+  *::before,
+  *::after {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+  }
+  html {
+    -webkit-text-size-adjust: 100%;
+    text-size-adjust: 100%;
+  }
+  body {
+    background: var(--ui-canvas);
+    color: var(--ui-ink);
+    font: 400 15px / 1.55 var(--ui-font);
+    -webkit-font-smoothing: antialiased;
+    font-variant-numeric: tabular-nums;
+  }
+  /* On a phone the window is the page. */
+  @media (max-width: 900px) {
+    body {
+      background: var(--ui-paper);
+    }
+  }
+  ::selection {
+    background: var(--ui-accent);
+    color: var(--ui-on-accent);
+  }
+  a {
+    color: inherit;
+    text-decoration-thickness: 1px;
+    text-decoration-color: var(--ui-ink-3);
+    text-underline-offset: 0.24em;
+    transition:
+      text-decoration-color 0.2s var(--ui-ease),
+      color 0.2s var(--ui-ease);
+  }
+  a:hover {
+    text-decoration-color: currentColor;
+  }
+  button,
+  input,
+  select,
+  textarea {
+    font: inherit;
+    color: inherit;
+  }
+  input,
+  textarea {
+    caret-color: var(--ui-accent);
+  }
+  input[type="checkbox"] {
+    width: 16px;
+    height: 16px;
+    accent-color: var(--ui-ink);
+    cursor: pointer;
+  }
+  /* A finger needs a bigger target than a mouse. */
+  @media (pointer: coarse) {
+    input[type="checkbox"] {
+      width: 22px;
+      height: 22px;
+    }
+  }
+  :focus-visible {
+    outline: 2px solid var(--ui-accent);
+    outline-offset: 2px;
+  }
+  b,
+  strong {
+    font-weight: 600;
+  }
+  img,
+  svg {
+    display: block;
+  }
+  @media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+      /* biome-ignore lint/complexity/noImportantStyles: reduced motion must beat every rule */
+      animation: none !important;
+      /* biome-ignore lint/complexity/noImportantStyles: reduced motion must beat every rule */
+      transition: none !important;
+    }
+  }
+  /* Preflight for the shadcn parts only: each one carries data-slot. */
   [data-slot],
   [data-slot]::before,
   [data-slot]::after {
@@ -109,5 +262,41 @@
   button[data-slot] {
     background: none;
     cursor: pointer;
+  }
+}
+
+/* A new page fades in. */
+@keyframes ui-fade {
+  from {
+    opacity: 0;
+  }
+}
+
+/* The run view's motion: a live step pulses, a followed edge flows, a spark rides it. */
+@theme {
+  --animate-ui-run-pulse: ui-run-pulse 1.6s var(--ui-ease) infinite;
+  --animate-ui-run-flow: ui-run-flow 0.7s linear infinite;
+  --animate-ui-run-spark: ui-run-spark 0.75s var(--ui-ease) both;
+  @keyframes ui-run-pulse {
+    50% {
+      opacity: 0.35;
+    }
+  }
+  @keyframes ui-run-flow {
+    to {
+      stroke-dashoffset: -11;
+    }
+  }
+  @keyframes ui-run-spark {
+    from {
+      offset-distance: 0%;
+    }
+    80% {
+      opacity: 1;
+    }
+    to {
+      offset-distance: 100%;
+      opacity: 0;
+    }
   }
 }

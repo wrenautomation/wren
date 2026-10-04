@@ -1,8 +1,8 @@
-/** Data as tables, facts, tallies and bars. Callers bring the rows; nothing here knows what they mean. */
+/** Data as tables and facts. Callers bring the rows; nothing here knows what they mean. */
 import { cn } from "cn";
 import type { ReactNode } from "react";
 import { Table as ShadTable } from "./components/ui/table.js";
-import { cx, num } from "./format.js";
+import { cx } from "./format.js";
 
 /** The kit's table look on shadcn's table: label-case heads, hairline rows, a wash on hover. */
 const TABLE =
@@ -28,7 +28,14 @@ export function Table({
   children: ReactNode;
 }) {
   return (
-    <div className={cn("-mx-3", stack && STACK, stale && "ui-stale", className)}>
+    <div
+      className={cn(
+        "-mx-3",
+        stack && STACK,
+        stale && "opacity-55 transition-opacity duration-200",
+        className,
+      )}
+    >
       <ShadTable className={TABLE}>{children}</ShadTable>
     </div>
   );
@@ -43,58 +50,16 @@ export function Facts({
   className?: string | undefined;
 }) {
   return (
-    <dl className={cx("ui-facts", className)}>
+    <dl className={cx("grid text-[14px]", className)}>
       {items.map(([label, value]) => (
-        <div key={label}>
-          <dt>{label}</dt>
+        <div
+          key={label}
+          className="grid grid-cols-[minmax(120px,34%)_1fr] gap-4 border-b border-(--ui-hair) py-2 max-[640px]:grid-cols-1 max-[640px]:gap-0.5"
+        >
+          <dt className="text-(--ui-ink-2)">{label}</dt>
           <dd>{value}</dd>
         </div>
       ))}
     </dl>
-  );
-}
-
-/** Counts by label, the number on the right. */
-export function Tally({
-  rows,
-  className,
-}: {
-  rows: [label: string, count: number][];
-  className?: string | undefined;
-}) {
-  return (
-    <ul className={cx("ui-tally", className)}>
-      {rows.map(([label, n]) => (
-        <li key={label}>
-          <span>{label}</span>
-          <span className="ui-tally-n">{num(n)}</span>
-        </li>
-      ))}
-    </ul>
-  );
-}
-
-/** Counts as bars, each a share of `total`. */
-export function BarList({
-  rows,
-  total,
-  className,
-}: {
-  rows: [label: string, count: number][];
-  total: number;
-  className?: string | undefined;
-}) {
-  return (
-    <ul className={cx("ui-bars", className)}>
-      {rows.map(([label, n]) => (
-        <li key={label}>
-          <span className="ui-bar-label">{label}</span>
-          <span className="ui-bar-track">
-            <span className="ui-bar-fill" style={{ width: `${total ? (n / total) * 100 : 0}%` }} />
-          </span>
-          <span className="ui-bar-n">{num(n)}</span>
-        </li>
-      ))}
-    </ul>
   );
 }

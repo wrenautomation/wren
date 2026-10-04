@@ -3,10 +3,9 @@
  * a stylesheet uses; leave one out and it keeps Wren's. A client's brand is one of these, stored
  * with the client, not a fork of the kit.
  */
-import { type CSSProperties, type ReactNode, useLayoutEffect } from "react";
-import { cx } from "./format.js";
+import { useLayoutEffect } from "react";
 
-/** Every token kit.css reads. The first group is what a theme usually sets; the rest follow it. */
+/** Every token tailwind.css declares. The first group is what a theme usually sets; the rest follow it. */
 export const TOKENS = [
   "scheme",
   "canvas",
@@ -240,21 +239,4 @@ export function usePageTheme(theme: Theme | undefined) {
       if (bar && was !== undefined) bar.content = was;
     };
   }, [key]);
-}
-
-/** Part of a page in its own look: the made tokens (tints, lines, shadows) follow it inside. */
-export function ThemeScope({
-  theme,
-  className,
-  children,
-}: {
-  theme: Theme;
-  className?: string | undefined;
-  children: ReactNode;
-}) {
-  return (
-    <div className={cx("ui-theme", className)} style={themeVars(theme) as CSSProperties}>
-      {children}
-    </div>
-  );
 }

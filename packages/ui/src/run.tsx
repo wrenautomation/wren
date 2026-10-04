@@ -184,6 +184,42 @@ const typing = (t: EventTarget | null) =>
 /** React Flow draws the graph; it loads with the first run shown. */
 const RunGraph = lazy(() => import("./run-graph.js"));
 
+const BUTTON =
+  "inline-flex cursor-pointer items-center gap-2 rounded-(--ui-radius-button) border-0 bg-(--ui-paper) px-3 py-[7px] font-[inherit] text-[12px] leading-[inherit] font-(--ui-button-weight) tracking-(--ui-button-tracking) text-(--ui-ink) [text-transform:var(--ui-button-case)] shadow-(--ui-shadow-node) hover:text-(--ui-accent) disabled:cursor-default disabled:opacity-50";
+/** A button that reads as text: Show all, and a line's name to follow. */
+const LINK =
+  "cursor-pointer border-0 bg-transparent p-0 text-left font-[inherit] text-[length:inherit] leading-[inherit] decoration-(--ui-accent) underline-offset-3 hover:underline focus-visible:rounded-[2px]";
+/** Fades up into place: a feed line, the opened work, the results. */
+const RISE =
+  "animate-in fade-in slide-in-from-bottom-[6px] ease-(--ui-ease) motion-reduce:animate-none";
+/** Narrow, the source and How share one row under the text. */
+const LINE = cx(
+  RISE,
+  "grid grid-cols-[14px_minmax(0,1fr)_auto_auto] items-baseline gap-2.5 py-[3px] leading-[1.4] duration-300 @max-[420px]/run:grid-cols-[14px_auto_minmax(0,1fr)] @max-[420px]/run:gap-y-1",
+);
+const STAGE =
+  "text-[12px] font-semibold tracking-(--ui-label-tracking) [text-transform:var(--ui-label-case)]";
+const KIND: Record<RunLineKind, string> = {
+  started: `mt-2 ${STAGE}`,
+  done: `mt-0.5 text-(--ui-good-ink) ${STAGE}`,
+  did: "text-[14px] text-(--ui-ink-2)",
+  waiting: "text-[14px] text-(--ui-ink-2)",
+  found: "text-[14px] font-medium",
+  failed: "text-[14px]",
+};
+const DOT = "size-1.5 rounded-full";
+const DASH = "h-0.5 w-2.5 rounded-(--ui-radius-bar)";
+const MARK: Record<RunLineKind, string> = {
+  started: `${DASH} bg-(--ui-ink)`,
+  done: `${DASH} bg-(--ui-good)`,
+  found: `${DOT} bg-(--ui-accent)`,
+  failed: `${DOT} bg-(--ui-bad)`,
+  waiting: `${DOT} shadow-[inset_0_0_0_1.5px_var(--ui-ink-2)]`,
+  did: `${DOT} bg-(--ui-ink-3)`,
+};
+const CITE =
+  "rounded-(--ui-radius-tag) bg-(--ui-fill) px-2 py-px text-[11px] font-medium whitespace-nowrap text-(--ui-ink-2) no-underline @max-[420px]/run:col-2 @max-[420px]/run:justify-self-start";
+
 export function RunView({
   steps,
   lines,
@@ -331,38 +367,50 @@ export function RunView({
     setFocus((f) => (f && "step" in f && f.step === id ? null : { step: id }));
 
   return (
-    <div className={cx("ui-run", className)} data-live={live || undefined}>
-      <div className="ui-run-bar">
-        <p className="ui-run-label">
-          <span className="ui-run-dot" data-on={live || undefined} aria-hidden="true" />
+    <div
+      className={cx(
+        "@container/run grid gap-4 rounded-(--ui-radius-window) bg-(--ui-tile) p-5",
+        className,
+      )}
+      data-live={live || undefined}
+    >
+      <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-2">
+        <p className="flex items-center gap-2.5 text-[14px] font-semibold">
+          <span
+            className="size-2 rounded-full bg-(--ui-ink-3) data-on:animate-ui-run-pulse data-on:bg-(--ui-good) motion-reduce:animate-none"
+            data-on={live || undefined}
+            aria-hidden="true"
+          />
           {label}
         </p>
-        <div className="ui-run-controls">
-          <span className="ui-run-progress" aria-hidden="true">
+        <div className="flex items-center gap-3">
+          <span className="text-[13px] text-(--ui-ink-2) tabular-nums" aria-hidden="true">
             {num(shown)} / {num(total)}
           </span>
           {over && still ? null : over ? (
-            <button type="button" className="ui-run-button" onClick={replay}>
+            <button type="button" className={BUTTON} onClick={replay}>
               <Icon name="play" size={12} />
               Play again
             </button>
           ) : (
             <button
               type="button"
-              className="ui-run-button"
+              className={BUTTON}
               onClick={() => setPaused((p) => !p)}
               aria-pressed={paused}
               disabled={still}
             >
               <Icon name={paused ? "play" : "pause"} size={12} />
               {paused ? "Play" : "Pause"}
-              <kbd className="ui-run-key">Space</kbd>
+              <kbd className="rounded-[4px] bg-(--ui-fill) px-[5px] py-px font-[inherit] text-[10px] text-(--ui-ink-2) [@media(hover:none)]:hidden">
+                Space
+              </kbd>
             </button>
           )}
         </div>
       </div>
 
-      <Suspense fallback={<div className="ui-run-graph" style={{ minHeight: 160 }} />}>
+      <Suspense fallback={<div className="min-h-40" />}>
         <RunGraph
           graph={graph}
           steps={byId}
@@ -381,24 +429,35 @@ export function RunView({
         />
       </Suspense>
 
-      <p className="ui-run-focus" aria-live="polite">
+      <p
+        className="-mb-2 flex min-h-5 flex-wrap items-baseline gap-x-3 gap-y-1 text-[13px] text-(--ui-ink-2)"
+        aria-live="polite"
+      >
         {!focus ? (
-          <span className="ui-run-hint">Pick a step, or a line, to follow it through the run.</span>
+          <span className="text-(--ui-ink-3)">
+            Pick a step, or a line, to follow it through the run.
+          </span>
         ) : (
           <>
             <span>
               {"step" in focus ? (
                 <>
-                  Showing <b>{byId.get(focus.step)?.label ?? focus.step}</b> only
+                  Showing{" "}
+                  <b className="text-(--ui-ink)">{byId.get(focus.step)?.label ?? focus.step}</b>{" "}
+                  only
                 </>
               ) : (
                 <>
-                  Following <b>{focus.subject}</b> through {num(followed)}{" "}
-                  {followed === 1 ? "step" : "steps"}
+                  Following <b className="text-(--ui-ink)">{focus.subject}</b> through{" "}
+                  {num(followed)} {followed === 1 ? "step" : "steps"}
                 </>
               )}
             </span>
-            <button type="button" className="ui-run-clear" onClick={() => setFocus(null)}>
+            <button
+              type="button"
+              className={cx(LINK, "font-semibold text-(--ui-accent)")}
+              onClick={() => setFocus(null)}
+            >
               Show all
             </button>
           </>
@@ -406,13 +465,18 @@ export function RunView({
       </p>
 
       {sources.length ? (
-        <p className="ui-run-sources">
-          <span className="ui-run-sources-label">Sources</span>
+        <p className="mb-2 flex flex-wrap items-center gap-1.5 text-[12px] text-(--ui-ink-2)">
+          <span className="mr-0.5 font-semibold tracking-(--ui-label-tracking) [text-transform:var(--ui-label-case)]">
+            Sources
+          </span>
           {sources.map((x) => (
-            <span key={x.label} className="ui-run-site">
+            <span
+              key={x.label}
+              className="inline-flex items-center gap-1.5 rounded-(--ui-radius-tag) bg-(--ui-fill) py-0.5 pr-2 pl-[3px]"
+            >
               <SiteMark site={x.label} />
               {x.label}
-              <b>{num(x.count)}</b>
+              <b className="text-(--ui-ink) tabular-nums">{num(x.count)}</b>
             </span>
           ))}
         </p>
@@ -420,23 +484,28 @@ export function RunView({
 
       <ol
         ref={feed}
-        className="ui-run-feed"
+        className="grid h-75 list-none content-start gap-0.5 overflow-y-auto overscroll-contain scroll-smooth rounded-(--ui-radius-card) bg-(--ui-paper) px-3.5 py-3 shadow-(--ui-shadow-node) [mask-image:linear-gradient(to_bottom,transparent,#000_14px)] @max-[560px]/run:h-65"
         aria-label="What it did"
         aria-live={live ? "polite" : "off"}
       >
         {visible.map((l) => (
           <li
             key={l.id}
-            className="ui-run-line"
+            className={cx(
+              LINE,
+              KIND[l.kind],
+              opened?.id === l.id &&
+                "-mx-2 rounded-(--ui-radius-control) bg-(--ui-accent-tint) px-2",
+            )}
             data-kind={l.kind}
             data-open={opened?.id === l.id || undefined}
           >
-            <span className="ui-run-mark" aria-hidden="true" />
-            <span className="ui-run-text">
+            <span className={cx("-translate-y-0.5", MARK[l.kind])} aria-hidden="true" />
+            <span className="@max-[420px]/run:col-[2/-1]">
               {aboutOne(l) && l.subject ? (
                 <button
                   type="button"
-                  className="ui-run-follow"
+                  className={cx(LINK, "font-[weight:inherit] text-inherit")}
                   title={`Follow ${l.subject}`}
                   onClick={() => setFocus({ subject: l.subject ?? "" })}
                 >
@@ -445,12 +514,16 @@ export function RunView({
               ) : (
                 l.text
               )}
-              {l.detail ? <span className="ui-run-detail">{l.detail}</span> : null}
+              {l.detail ? (
+                <span className="block text-[12px] font-normal text-(--ui-ink-2) wrap-anywhere">
+                  {l.detail}
+                </span>
+              ) : null}
             </span>
             {l.source ? (
               l.source.href ? (
                 <a
-                  className="ui-run-cite"
+                  className={cx(CITE, "hover:bg-(--ui-accent-tint) hover:text-(--ui-accent)")}
                   href={l.source.href}
                   target="_blank"
                   rel="noreferrer noopener"
@@ -458,13 +531,16 @@ export function RunView({
                   {l.source.label}
                 </a>
               ) : (
-                <span className="ui-run-cite">{l.source.label}</span>
+                <span className={CITE}>{l.source.label}</span>
               )
             ) : null}
             {work && aboutOne(l) && work(l) !== null ? (
               <button
                 type="button"
-                className="ui-run-how"
+                className={cx(
+                  "cursor-pointer rounded-(--ui-radius-tag) border border-(--ui-hair) bg-(--ui-paper) px-2 py-px font-[inherit] text-[11px] leading-[inherit] font-semibold text-(--ui-ink-2) hover:border-(--ui-accent) hover:text-(--ui-accent) aria-expanded:border-(--ui-accent) aria-expanded:text-(--ui-accent) @max-[420px]/run:justify-self-start",
+                  l.source ? "@max-[420px]/run:col-3" : "@max-[420px]/run:col-2",
+                )}
                 aria-expanded={opened?.id === l.id}
                 aria-controls="ui-run-work"
                 onClick={() => open(l)}
@@ -474,14 +550,20 @@ export function RunView({
             ) : null}
           </li>
         ))}
-        {!shown ? <li className="ui-run-line ui-run-wait">Starting…</li> : null}
+        {!shown ? <li className={cx(LINE, "text-[14px] text-(--ui-ink-2)")}>Starting…</li> : null}
       </ol>
 
       {opened && panel ? (
-        <div id="ui-run-work" className="ui-run-work">
+        <div
+          id="ui-run-work"
+          className={cx(
+            RISE,
+            "relative mt-3 rounded-(--ui-radius-card) bg-(--ui-paper) px-[18px] py-4 shadow-(--ui-shadow-node) duration-300 @max-[420px]/run:px-3 @max-[420px]/run:py-3.5",
+          )}
+        >
           <button
             type="button"
-            className="ui-run-work-close"
+            className="absolute top-2.5 right-2.5 grid size-7 cursor-pointer place-items-center rounded-(--ui-radius-control) border-0 bg-transparent text-(--ui-ink-2) hover:bg-(--ui-hover) hover:text-(--ui-ink)"
             aria-label="Close"
             onClick={() => setOpened(null)}
           >
@@ -491,7 +573,7 @@ export function RunView({
         </div>
       ) : null}
 
-      {over && results ? <div className="ui-run-results">{results}</div> : null}
+      {over && results ? <div className={cx(RISE, "duration-600")}>{results}</div> : null}
     </div>
   );
 }
