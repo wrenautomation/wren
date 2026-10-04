@@ -9,8 +9,10 @@
  */
 import * as restate from "@restatedev/restate-sdk";
 import { type Company, companies, finishRun, openRun } from "@wren/core";
+import { exclusiveHandler } from "@wren/core/restate";
 import type { Db } from "@wren/db";
 import { eq } from "drizzle-orm";
+import { z } from "zod";
 import { politeHomepageFetcher } from "../discovery/homepage.js";
 import {
   addDiscoveryStats,
@@ -58,6 +60,10 @@ export interface DiscoveryDeps {
 export interface DiscoveryInput {
   limit?: number;
 }
+
+const LIMIT = z
+  .looseObject({ limit: z.number().nullish().describe("Companies this pass") })
+  .nullish();
 
 export function makeDiscovery(deps: DiscoveryDeps) {
   const fetchHomepage = (): HomepageFetcher => {
@@ -139,33 +145,36 @@ export function makeDiscovery(deps: DiscoveryDeps) {
   return restate.object({
     name: "Discovery",
     handlers: {
-      discover: async (
-        ctx: restate.ObjectContext,
-        input: DiscoveryInput = {},
-      ): Promise<DiscoveryStats> =>
-        pass<DiscoveryStats>(ctx, input, {
-          command: "discover run",
-          sourceType: DISCOVERY_SOURCE_TYPE,
-          empty: emptyDiscoveryStats,
-          add: addDiscoveryStats,
-          select: (o) => selectDiscoveryTargets(deps.db, o),
-          nicheNullSkipped: () => countDiscoveryNicheNullSkipped(deps.db),
-          unit: (c, o) => discoverCompany(deps.db, c, o),
-        }),
+      discover: exclusiveHandler(
+        { input: LIMIT },
+        async (ctx: restate.ObjectContext, input: DiscoveryInput = {}): Promise<DiscoveryStats> =>
+          pass<DiscoveryStats>(ctx, input, {
+            command: "discover run",
+            sourceType: DISCOVERY_SOURCE_TYPE,
+            empty: emptyDiscoveryStats,
+            add: addDiscoveryStats,
+            select: (o) => selectDiscoveryTargets(deps.db, o),
+            nicheNullSkipped: () => countDiscoveryNicheNullSkipped(deps.db),
+            unit: (c, o) => discoverCompany(deps.db, c, o),
+          }),
+      ),
 
-      verify: async (
-        ctx: restate.ObjectContext,
-        input: DiscoveryInput = {},
-      ): Promise<DomainVerificationStats> =>
-        pass<DomainVerificationStats>(ctx, input, {
-          command: "discover verify",
-          sourceType: VERIFICATION_SOURCE_TYPE,
-          empty: emptyVerificationStats,
-          add: addVerificationStats,
-          select: (o) => selectVerificationTargets(deps.db, o),
-          nicheNullSkipped: () => countVerificationNicheNullSkipped(deps.db),
-          unit: (c, o) => verifyCompanyDomain(deps.db, c, o),
-        }),
+      verify: exclusiveHandler(
+        { input: LIMIT },
+        async (
+          ctx: restate.ObjectContext,
+          input: DiscoveryInput = {},
+        ): Promise<DomainVerificationStats> =>
+          pass<DomainVerificationStats>(ctx, input, {
+            command: "discover verify",
+            sourceType: VERIFICATION_SOURCE_TYPE,
+            empty: emptyVerificationStats,
+            add: addVerificationStats,
+            select: (o) => selectVerificationTargets(deps.db, o),
+            nicheNullSkipped: () => countVerificationNicheNullSkipped(deps.db),
+            unit: (c, o) => verifyCompanyDomain(deps.db, c, o),
+          }),
+      ),
     },
   });
 }

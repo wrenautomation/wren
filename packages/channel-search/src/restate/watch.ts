@@ -16,9 +16,10 @@ import type { FetchLike } from "@wren/channel-email";
 import { recordedRun } from "@wren/core";
 import { SiteCallError, type SiteClient } from "@wren/core/content";
 import type { Notifier } from "@wren/core/notify";
-import { errorText, makeLoopObject, runPass } from "@wren/core/restate";
+import { errorText, makeLoopObject, runPass, serviceHandler } from "@wren/core/restate";
 import type { Db } from "@wren/db";
 import type { LlmClient } from "@wren/llm";
+import { z } from "zod";
 import { ask, dueKeywords, recordAnswer } from "../answers.js";
 import { type SearchConsoleClient, sitemapUrls } from "../console.js";
 import { discoverKeywords, fanOut } from "../keywords.js";
@@ -115,78 +116,81 @@ export function makeSearchWeek(deps: SearchWeekDeps) {
   return restate.service({
     name: "SearchWeek",
     handlers: {
-      run: async (ctx: restate.Context, req: { today: string }): Promise<WeekStats> => {
-        const today = req.today;
-        const grow = await ctx.run(
-          "fan out",
-          async () =>
-            (
-              await recordedRun(
-                deps.db,
-                { command: `${SEARCH_WEEK_COMMAND} fanout`, argv: { today } },
-                async (run) => {
-                  const about = await siteText(deps.fetch, deps.origin, []);
-                  const discovered = await discoverKeywords(deps.db, { today, runId: run.id });
-                  const f = await fanOut(deps.db, deps.llm, { about, runId: run.id });
-                  return {
-                    discovered,
-                    fanout: { seeds: f.seeds, added: f.added, failed: f.failed.length },
-                  };
-                },
-              )
-            ).stats,
-        );
-
-        const desk = deps.desk(ctx);
-        const asked: WeekStats["asked"] = {};
-        let questions = 0;
-        for (const engine of ENGINES as readonly Engine[]) {
-          const due = await ctx.run(`due ${engine}`, () =>
-            dueKeywords(deps.db, engine, today, ASKS_PER_ENGINE),
+      run: serviceHandler(
+        { input: z.looseObject({ today: z.iso.date().describe("The week's day, YYYY-MM-DD") }) },
+        async (ctx: restate.Context, req: { today: string }): Promise<WeekStats> => {
+          const today = req.today;
+          const grow = await ctx.run(
+            "fan out",
+            async () =>
+              (
+                await recordedRun(
+                  deps.db,
+                  { command: `${SEARCH_WEEK_COMMAND} fanout`, argv: { today } },
+                  async (run) => {
+                    const about = await siteText(deps.fetch, deps.origin, []);
+                    const discovered = await discoverKeywords(deps.db, { today, runId: run.id });
+                    const f = await fanOut(deps.db, deps.llm, { about, runId: run.id });
+                    return {
+                      discovered,
+                      fanout: { seeds: f.seeds, added: f.added, failed: f.failed.length },
+                    };
+                  },
+                )
+              ).stats,
           );
-          const e = { asked: 0, cited: 0, failed: null as string | null };
-          asked[engine] = e;
-          let misses = 0;
-          for (const k of due) {
-            try {
-              const a = await ask(desk, engine, k.phrase, host);
-              questions += await ctx.run(`record ${engine} ${k.id}`, () =>
-                recordAnswer(deps.db, k, engine, a, { today, runId: null }),
-              );
-              e.asked++;
-              if (a.cited) e.cited++;
-              misses = 0;
-            } catch (err) {
-              // A site's refusal, or a page shape the reader didn't know: this keyword is skipped.
-              // Anything else (the desk not up yet) is Restate's to retry, and the week waits.
-              if (!(err instanceof SiteCallError || err instanceof TypeError)) throw err;
-              e.failed = errorText(err);
-              if (++misses >= ENGINE_MISSES) break;
+
+          const desk = deps.desk(ctx);
+          const asked: WeekStats["asked"] = {};
+          let questions = 0;
+          for (const engine of ENGINES as readonly Engine[]) {
+            const due = await ctx.run(`due ${engine}`, () =>
+              dueKeywords(deps.db, engine, today, ASKS_PER_ENGINE),
+            );
+            const e = { asked: 0, cited: 0, failed: null as string | null };
+            asked[engine] = e;
+            let misses = 0;
+            for (const k of due) {
+              try {
+                const a = await ask(desk, engine, k.phrase, host);
+                questions += await ctx.run(`record ${engine} ${k.id}`, () =>
+                  recordAnswer(deps.db, k, engine, a, { today, runId: null }),
+                );
+                e.asked++;
+                if (a.cited) e.cited++;
+                misses = 0;
+              } catch (err) {
+                // A site's refusal, or a page shape the reader didn't know: this keyword is skipped.
+                // Anything else (the desk not up yet) is Restate's to retry, and the week waits.
+                if (!(err instanceof SiteCallError || err instanceof TypeError)) throw err;
+                e.failed = errorText(err);
+                if (++misses >= ENGINE_MISSES) break;
+              }
             }
           }
-        }
 
-        const stats: WeekStats = { ...grow, asked, questions };
-        const notifier = deps.notifier;
-        if (notifier) {
-          const lines = [
-            `keywords: ${grow.discovered} found in Search Console, ${grow.fanout.added} fan-out questions, ${questions} from Google's "People also ask"`,
-            ...Object.entries(asked).map(
-              ([e, a]) =>
-                `${e}: cited on ${a.cited} of ${a.asked} asked${a.failed ? ` (stopped: ${a.failed.slice(0, 120)})` : ""}`,
-            ),
-            "brief ready, run `/search-week`",
-          ];
-          await ctx.run("notify", () =>
-            notifier.notify(
-              `search: week of ${weekOf(new Date(`${today}T00:00:00Z`))}`,
-              lines.join("\n"),
-              "info",
-            ),
-          );
-        }
-        return stats;
-      },
+          const stats: WeekStats = { ...grow, asked, questions };
+          const notifier = deps.notifier;
+          if (notifier) {
+            const lines = [
+              `keywords: ${grow.discovered} found in Search Console, ${grow.fanout.added} fan-out questions, ${questions} from Google's "People also ask"`,
+              ...Object.entries(asked).map(
+                ([e, a]) =>
+                  `${e}: cited on ${a.cited} of ${a.asked} asked${a.failed ? ` (stopped: ${a.failed.slice(0, 120)})` : ""}`,
+              ),
+              "brief ready, run `/search-week`",
+            ];
+            await ctx.run("notify", () =>
+              notifier.notify(
+                `search: week of ${weekOf(new Date(`${today}T00:00:00Z`))}`,
+                lines.join("\n"),
+                "info",
+              ),
+            );
+          }
+          return stats;
+        },
+      ),
     },
   });
 }
