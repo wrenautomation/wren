@@ -66,11 +66,14 @@ Two things block progress. Revenue waits on inbox placement, and that is mostly 
 5. Turn on pg_stat_statements on the box. Moved into the database audit (`2026-10-03-database-audit.md`), which needs the same restart.
 6. Write client #1's fulfillment spec. It is the first real DSL: which products a client gets, wired to which foundations, plus the client's validated settings. Reactivation already has most of it.
 
-## Later (needs clients or volume)
+## Building now (William's call, 10-04)
 
-- Copy experiments. Telling a 3% reply rate from 5% takes about 1,500 sends per variant, which is 300 days at 10 a day. Order: placement fixed, then volume, then Thompson sampling over the variants `wren email variants` already makes, then model-written variants. That last step is the evolutionary part. Thompson sampling is a Beta posterior per variant, about twenty lines plus a view. GrowthBook analyzes A/B tests on Postgres for free, but its bandits are paid and it would be a second place to look.
-- CAC, LTV and churn in the Money app, after the first paid month.
-- Componentizing. The wren layer rule already covers it: a part moves down into a foundation the second time a client needs it, never before.
+These were Later or Parked. On 10-04 William moved all of them to now, each with its own doc:
+
+- Copy evolution: the full harness, not only Thompson sampling (`2026-10-04-copy-evolution.md`). It runs at any volume; at 10 a day it mostly explores, and a simulator compares strategies meanwhile.
+- CAC, LTV and churn (`2026-10-04-unit-economics.md`). Cost per reply and per booked call show now; the client figures fill in on the first paid invoice.
+- Componentizing and the marketplace (`2026-10-04-components-and-marketplace.md`, autobrowse `designs/2026-10-04-mods.md`).
+- Brand palette from one color, as an option next to the presets (`2026-10-04-brand-palette.md`).
 
 ## Parked
 
@@ -80,8 +83,6 @@ Two things block progress. Revenue waits on inbox placement, and that is mostly 
 | Airbyte | A client's CRM or ATS has no file export we parse. Try dlt first |
 | Redis or Valkey | pg_stat_statements shows a hot read an index can't fix, or two processes need a shared rate limit |
 | Rotating proxies, gateway | Crawl or autobrowse logs show IP blocks at a rate worth paying for |
-| Marketplace and mod system | Someone outside Wren runs autobrowse from npm |
-| Color theory styling | A second client wants their brand in the portal. Themes are already data, and Material Color Utilities turns one brand color into a full palette |
 | Remotion | The recorder's captures don't hold up in a sales video |
 | Simulated scrums | No trigger. The Friday review covers it |
 
@@ -102,7 +103,7 @@ These are already in and already save custom code: Restate, Drizzle, zod, the AI
 | Crawlee (Apache 2.0) | Crawling | Parked. We crawl 97% of firms with a domain |
 | Valkey (BSD) | Cache | Parked |
 | Remotion | Sales videos | Parked. Free for companies of up to three people |
-| Material Color Utilities (Apache 2.0) | Brand palette from one color | Parked |
+| Material Color Utilities (Apache 2.0) | Brand palette from one color | In, for the brand palette (10-04) |
 | Hetzner | Hosting | Skip. US prices rose as much as threefold in 2026, and CPX11 in Ashburn is about $20 a month |
 | Coolify or Kamal | Deploys on a VPS | Only with the DigitalOcean move |
 
@@ -147,3 +148,4 @@ One definition, many faces. A handler's zod schema is the DSL. The CLI command, 
 - 2026-10-03: created from William's notes. Prod numbers pulled the same day.
 - 2026-10-03: William named his own view of wren as the bottleneck, and that view is also the sales demo. The console moved to Now #1. Metabase was dropped because it would be a second place to look. The DigitalOcean move was parked, since it about doubles today's bill and Books already makes the bill readable. Open-source alternatives were checked, with verdicts under Tools.
 - 2026-10-03: before the console, a database audit (`2026-10-03-database-audit.md`). The console's stack and patterns are in `2026-10-03-console-ui.md`: shadcn/ui on Base UI, composite pages of widgets, one access check that can later carry paid features.
+- 2026-10-04: William changed the call on Later and Parked: copy evolution, CAC/LTV/churn, componentizing, the marketplace and the brand palette are built now, not deferred. Each has a doc dated 10-04. He also approved spending Cohere credits on simple model tasks, name extraction first.
