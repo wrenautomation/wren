@@ -635,6 +635,13 @@ function List({
         <h1 className="text-[20px] leading-7 font-semibold tracking-[-0.01em]">{cap(many)}</h1>
         <div className="flex flex-wrap items-center justify-end gap-2">
           {head?.(meta, acted)}
+          {actions.map((a) =>
+            a.form ? (
+              <Button key={a.id} tone="secondary" size="dense" onClick={() => run(a, [])}>
+                {a.label}
+              </Button>
+            ) : null,
+          )}
           <ColumnPicker meta={meta} place={place} columns={columns} />
           <Button
             tone="secondary"

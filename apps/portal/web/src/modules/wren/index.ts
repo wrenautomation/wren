@@ -5,7 +5,7 @@
 import type { Action } from "@wren/ui";
 import { createElement } from "react";
 import type { Module } from "../../module.js";
-import { AddClient, AI_SPEND, AiSpend } from "./heads.js";
+import { AI_SPEND, AiSpend, idOf } from "./heads.js";
 
 const TEAM = { audience: "team" } as const;
 const overview = { id: "overview", label: "Overview", template: "overview" } as const;
@@ -91,6 +91,25 @@ const REPLY_ACTIONS: Action[] = [
     key: "s",
     when: WAITING,
     done: said("Left unanswered"),
+  },
+];
+
+const CLIENT_ACTIONS: Action[] = [
+  {
+    id: "console.addClient",
+    label: "Add client",
+    handler: "console/addClient",
+    form: [
+      { field: "name", label: "Name" },
+      {
+        field: "id",
+        label: "Short name",
+        hint: "Lowercase letters, numbers and underscores. It can't change later.",
+        pattern: "[a-z][a-z0-9_]{0,39}",
+        from: ({ name = "" }) => idOf(name),
+      },
+    ],
+    done: (made) => `Added ${(made as { name?: string }).name ?? "the client"}`,
   },
 ];
 
@@ -441,8 +460,7 @@ export const clients: Module = {
       template: "list",
       record: "console.client",
       empty: "Clients show here once you add one.",
-      head: (meta, reload) =>
-        meta.actions.includes("console.addClient") ? createElement(AddClient, { reload }) : null,
+      actions: CLIENT_ACTIONS,
     },
   ],
 };

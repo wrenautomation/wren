@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { type Action, inputOf } from "./action.js";
+import { type Action, applies, inputOf, valuesOf } from "./action.js";
 
 const PAUSE: Action = {
   id: "pause",
@@ -25,5 +25,27 @@ describe("inputOf", () => {
       body: "Wednesday?",
     });
     expect(inputOf(STOP, { key: "k" }, "")).toEqual({ key: "k" });
+  });
+});
+
+describe("form actions", () => {
+  const ADD: Action = {
+    id: "add",
+    label: "Add",
+    handler: "console/addClient",
+    form: [
+      { field: "name", label: "Name" },
+      { field: "id", label: "Short name", from: ({ name = "" }) => name.toLowerCase() },
+    ],
+  };
+  it("fills a field from the ones before it until it's typed over", () => {
+    const form = ADD.form ?? [];
+    expect(valuesOf(form, { name: "Acme" })).toEqual({ name: "Acme", id: "acme" });
+    expect(valuesOf(form, { name: "Acme", id: "ac" })).toEqual({ name: "Acme", id: "ac" });
+    expect(valuesOf(form, {})).toEqual({ name: "", id: "" });
+  });
+  it("applies to no row", () => {
+    expect(applies(ADD, { id: "x" })).toBe(false);
+    expect(applies(STOP, { id: "x" })).toBe(true);
   });
 });
