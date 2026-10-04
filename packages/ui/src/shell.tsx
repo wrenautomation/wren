@@ -98,7 +98,7 @@ export function AppShell({
   return (
     <div className={cx("flex h-dvh flex-col max-[900px]:block max-[900px]:h-auto", className)}>
       <a
-        className="fixed top-2.5 left-2.5 z-60 -translate-y-[160%] bg-(--ui-ink) px-3.5 py-2.5 text-[14px] text-(--ui-on-ink) no-underline transition-transform duration-300 ease-(--ui-ease) focus:translate-y-0"
+        className="fixed top-2.5 left-2.5 z-60 -translate-y-[160%] bg-(--ui-ink) px-3.5 py-2.5 text-[14px] text-(--ui-on-ink) no-underline focus:translate-y-0"
         href="#main"
       >
         Skip to content
@@ -150,7 +150,7 @@ export function AppShell({
               "mx-auto px-11 pt-10 pb-20 outline-none max-[900px]:px-4 max-[900px]:pt-[22px] max-[900px]:pb-16",
               // A new page, or its data after the loader, fades in. Opacity only, so a fixed
               // panel inside keeps the window as its frame.
-              "[&>*]:animate-[ui-fade_0.4s_var(--ui-ease)_backwards]",
+              "[&>*]:animate-[ui-fade_0.2s_var(--ui-ease)_backwards]",
               wide ? "max-w-none min-[901px]:px-8" : "max-w-(--ui-main-width)",
             )}
             id="main"
@@ -164,7 +164,7 @@ export function AppShell({
   );
 }
 
-const EASE = "transition-colors duration-250 ease-(--ui-ease)";
+const EASE = "transition-colors duration-150 ease-(--ui-ease)";
 const HOVER = `${EASE} hover:bg-(--ui-hover)`;
 const SLASH = "flex-none text-[17px] font-light text-(--ui-ink-3)";
 const BACK = `${HOVER} inline-flex h-[34px] items-center gap-2 rounded-(--ui-radius) text-[13.5px] font-medium whitespace-nowrap text-(--ui-ink-2) no-underline hover:text-(--ui-ink)`;

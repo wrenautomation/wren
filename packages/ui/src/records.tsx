@@ -916,7 +916,7 @@ export function Kbd({ children }: { children: ReactNode }) {
 }
 
 const ICON =
-  "inline-flex size-8 border-0 bg-transparent items-center justify-center text-(--ui-ink-2) hover:bg-(--ui-hover) hover:text-(--ui-ink) disabled:opacity-30";
+  "inline-flex size-8 border-0 bg-transparent items-center justify-center text-(--ui-ink-2) hover:bg-(--ui-hover) hover:text-(--ui-ink) disabled:opacity-30 transition-[background-color,color,scale] duration-150 ease-(--ui-ease) active:scale-[0.94]";
 
 /** A record beside its list: up and down walk the list, a link opens it as a page. */
 function Panel({

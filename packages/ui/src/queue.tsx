@@ -35,7 +35,7 @@ import {
 } from "./records.js";
 
 const NAV =
-  "inline-flex size-8 items-center justify-center text-(--ui-ink-2) hover:bg-(--ui-hover) hover:text-(--ui-ink) disabled:opacity-30";
+  "inline-flex size-8 items-center justify-center text-(--ui-ink-2) hover:bg-(--ui-hover) hover:text-(--ui-ink) disabled:opacity-30 transition-[background-color,color,scale] duration-150 ease-(--ui-ease) active:scale-[0.94]";
 
 export function RecordQueue(props: RecordTemplateProps) {
   const types = useTypes(props.api);

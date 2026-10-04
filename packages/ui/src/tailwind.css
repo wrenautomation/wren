@@ -164,6 +164,8 @@
   html {
     -webkit-text-size-adjust: 100%;
     text-size-adjust: 100%;
+    /* Buttons show their own press, so the gray tap flash goes. */
+    -webkit-tap-highlight-color: transparent;
   }
   body {
     background: var(--ui-canvas);
@@ -217,6 +219,13 @@
       width: 22px;
       height: 22px;
     }
+    /* A phone zooms the page into any field set under 16px. */
+    input,
+    select,
+    textarea {
+      /* biome-ignore lint/complexity/noImportantStyles: beats each field's own text size */
+      font-size: 16px !important;
+    }
   }
   :focus-visible {
     outline: 2px solid var(--ui-accent);
@@ -230,14 +239,27 @@
   svg {
     display: block;
   }
+  /* Reduced motion drops movement, not feedback: fades and color changes stay, since they
+     show what changed. Popups lose their slide and zoom; a moving transition loses its move. */
   @media (prefers-reduced-motion: reduce) {
     *,
     *::before,
     *::after {
       /* biome-ignore lint/complexity/noImportantStyles: reduced motion must beat every rule */
-      animation: none !important;
+      transition-property:
+        opacity, color, background-color, border-color, text-decoration-color, fill, stroke !important;
       /* biome-ignore lint/complexity/noImportantStyles: reduced motion must beat every rule */
-      transition: none !important;
+      --tw-enter-translate-x: 0 !important;
+      /* biome-ignore lint/complexity/noImportantStyles: reduced motion must beat every rule */
+      --tw-enter-translate-y: 0 !important;
+      /* biome-ignore lint/complexity/noImportantStyles: reduced motion must beat every rule */
+      --tw-enter-scale: 1 !important;
+      /* biome-ignore lint/complexity/noImportantStyles: reduced motion must beat every rule */
+      --tw-exit-translate-x: 0 !important;
+      /* biome-ignore lint/complexity/noImportantStyles: reduced motion must beat every rule */
+      --tw-exit-translate-y: 0 !important;
+      /* biome-ignore lint/complexity/noImportantStyles: reduced motion must beat every rule */
+      --tw-exit-scale: 1 !important;
     }
   }
   /* Preflight for the shadcn parts only: each one carries data-slot. */
