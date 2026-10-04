@@ -500,20 +500,24 @@ export async function buildServices(
         : {}),
     }),
   );
-  // The digest's mail domains: every sending domain (a Google sender, DKIM at `google`),
-  // then the main site and any other domain a signature names. The DKIM selector, SMTP
-  // host and fleet (Route 53) flag fill in once the roster carries them.
+  // The digest's mail domains: every sending domain, then the main site and any other
+  // domain a signature names. A domain with a ramped inbox was bought for sending, so
+  // it must sit on Route 53; DKIM is at the roster's selector, else `google`.
   const siteDomains = new Set([
     new URL(settings.siteBaseUrl).hostname,
     ...roster.flatMap((s) => namedDomains(s.signature?.text ?? "")),
   ]);
   const mailDomains: DomainTarget[] = [
-    ...sendingDomains.map((domain) => ({
-      domain,
-      fleet: false,
-      dkimSelector: "google",
-      smtpHost: null,
-    })),
+    ...sendingDomains.map((domain) => {
+      const on = roster.filter((s) => senderDomain(s) === domain);
+      const smtp = on.find((s) => s.transport === "smtp");
+      return {
+        domain,
+        fleet: on.some((s) => s.ramp !== null),
+        dkimSelector: on.find((s) => s.dkim)?.dkim ?? "google",
+        smtpHost: smtp ? (mailboxes.get(smtp.address)?.smtp.host ?? null) : null,
+      };
+    }),
     ...[...siteDomains]
       .filter((d) => !sendingDomains.includes(d))
       .map((domain) => ({ domain, fleet: false, dkimSelector: null, smtpHost: null })),
