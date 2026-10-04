@@ -139,6 +139,21 @@ describe("validation", () => {
     expect(p.describe()).toContain("kill switch off for agencies");
     expect(() => policy({ nicheOpenersPerDay: "agencies:0" })).toThrow("NICHE_OPENERS_PER_DAY");
   });
+  it("console overrides lay over env in a new frozen policy; null keeps env", () => {
+    const env = policy({ nicheOpenersPerDay: "agencies=0", killSwitchOffFor: "agencies" });
+    const p = env.withCampaigns([
+      { campaign: "agencies", killSwitch: true, openersPerDay: 5 },
+      { campaign: "recruiting", killSwitch: false, openersPerDay: null },
+      { campaign: "sec_ria", killSwitch: null, openersPerDay: 0 },
+    ]);
+    expect([p.killSwitchOn("agencies"), p.nicheOpenerCap("agencies")]).toEqual([true, 5]);
+    expect([p.killSwitchOn("recruiting"), p.nicheOpenerCap("recruiting")]).toEqual([false, null]);
+    expect([p.killSwitchOn("sec_ria"), p.nicheOpenerCap("sec_ria")]).toEqual([true, 0]);
+    expect([env.killSwitchOn("agencies"), env.nicheOpenerCap("agencies")]).toEqual([false, 0]);
+    expect(Object.isFrozen(p)).toBe(true);
+    expect(p.perInboxCap(MONDAY_OPEN)).toBe(env.perInboxCap(MONDAY_OPEN));
+    expect(env.withCampaigns([])).toBe(env);
+  });
   it("cooldown must not be negative", () => {
     expect(() => policy({ resendCooldownDays: -1 })).toThrow(
       "RESEND_COOLDOWN_DAYS must not be negative",

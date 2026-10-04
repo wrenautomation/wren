@@ -3,6 +3,7 @@ import { oneOf } from "@wren/db/columns";
 import { sql } from "drizzle-orm";
 import {
   bigint,
+  boolean,
   check,
   date,
   doublePrecision,
@@ -556,6 +557,27 @@ export const senderPauses = pgTable(
     oneOf("ck_sender_pauses_pausesource", t.source, PAUSE_SOURCES),
   ],
 );
+
+/**
+ * The console's overrides of a campaign's send policy, read every tick (`SendPolicy.withCampaigns`).
+ * Null = the env default (`WREN_KILL_SWITCH_OFF_FOR`, `WREN_NICHE_OPENERS_PER_DAY`). Main database only.
+ */
+export const campaignControls = pgTable(
+  "campaign_controls",
+  {
+    campaign: text("campaign").notNull(),
+    killSwitch: boolean("kill_switch"),
+    /** 0 = follow-ups only. */
+    openersPerDay: integer("openers_per_day"),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
+    updatedBy: text("updated_by").notNull(),
+  },
+  (t) => [
+    primaryKey({ columns: [t.campaign], name: "pk_campaign_controls" }),
+    check("ck_campaign_controls_openers", sql`${t.openersPerDay} >= 0`),
+  ],
+);
+export type CampaignControlRow = typeof campaignControls.$inferSelect;
 
 export const postmasterDays = pgTable(
   "postmaster_days",

@@ -131,7 +131,7 @@ export function stagesToRun(
 /** What the `profiles` stage needs; absent = the stage is off. */
 export interface ProfilesStage {
   /** Firms to stay ahead of the queue by: a week of the niche's daily opener capacity. */
-  ahead: (niche: string, now: Date) => number;
+  ahead: (niche: string, now: Date) => number | Promise<number>;
   /** Compose's verdict horizon, so the queue read is compose's own. */
   horizonDays: number;
 }
@@ -262,11 +262,11 @@ export function makePoolScheduler(deps: PoolSchedulerDeps) {
       profiles: async () => {
         const p = deps.profiles;
         if (!p) throw new restate.TerminalError("profiles stage is off");
-        const personIds = await ctx.run("profile queue", () =>
+        const personIds = await ctx.run("profile queue", async () =>
           nextToEnroll(deps.db, {
             niche,
             verificationHorizonDays: p.horizonDays,
-            companies: p.ahead(niche, now),
+            companies: await p.ahead(niche, now),
           }),
         );
         return enrichment.profiles({

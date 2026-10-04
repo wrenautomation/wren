@@ -18,7 +18,7 @@ Cold start pulls the secret env and the roster from SSM, builds the services, ha
 ## Shape
 
 - `main.ts` (local), `lambda.ts:16`–`18` (SSM env + roster), `ssm-env.ts:35`, `services.ts:105`
-- build: `pnpm --filter @wren/worker build:lambda` (esbuild bundle; `createRequire` lesson in `deploy/`)
+- build: `pnpm --filter @wren/worker build:lambda` (esbuild bundle; `createRequire` lesson in `deploy/`). The zip carries `drizzle/` (SQL + journal) beside `app/`, so `app/lambda.mjs` and `app/box.mjs` can migrate a new client; the build fails if the journal and SQL files disagree
 - infra: `deploy/terraform/lambda.tf` (function, SSM params `:4`, `:16`, IAM `:56`)
 
 Citations: `apps/worker/src/lambda.ts:16`, `apps/worker/src/services.ts:110`

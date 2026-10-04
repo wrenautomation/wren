@@ -22,6 +22,7 @@ import {
   activeSenders,
   Broadcast,
   ConsoleTransport,
+  campaignPolicy,
   defaultLocalChecker,
   expandHome,
   GmailClient,
@@ -59,7 +60,7 @@ import {
   makeReportScheduler,
   makeResolution,
   makeSendScheduler,
-  oneScope,
+  type SendScope,
 } from "@wren/channel-email/restate";
 import { EMAIL_CONSOLE_VIEWS } from "@wren/channel-email/views";
 import { linkedinContent } from "@wren/channel-linkedin";
@@ -274,9 +275,10 @@ export async function buildServices(
     : null;
   if (!calendar)
     log.info('WREN_CALCOM_API_KEY unset: emails say "early next week" and no yes is proposed');
-  const wrenScope = oneScope({
+  // Each tick reads the console's campaign overrides, so a kill switch or opener stop needs no deploy.
+  const wrenScope = async (): Promise<SendScope> => ({
     db,
-    policy,
+    policy: await campaignPolicy(db, policy),
     fleet,
     calendar,
     // The pixel goes into mail only when asked; the host alone just enables the opens pull.
@@ -386,7 +388,7 @@ export async function buildServices(
     // its mailboxes are in Wren's Workspace, so the same transport and reader serve them).
     makeSendScheduler({
       transport,
-      scopeOf: (key) => (clientOfKey(key) ? clientSendScope(clients, key) : wrenScope(key)),
+      scopeOf: (key) => (clientOfKey(key) ? clientSendScope(clients, key) : wrenScope()),
       tickMs,
       ...emailNotify,
     }),
@@ -449,9 +451,14 @@ export async function buildServices(
       ...(settings.poolProfiles
         ? {
             profiles: {
-              ahead: (niche: string, now: Date) =>
+              ahead: async (niche: string, now: Date) =>
                 7 *
-                dailyOpenerCapacity(policy, niche, campaigns.get(niche)?.senders.length ?? 0, now),
+                dailyOpenerCapacity(
+                  await campaignPolicy(db, policy),
+                  niche,
+                  campaigns.get(niche)?.senders.length ?? 0,
+                  now,
+                ),
               horizonDays: settings.verificationHorizonDays,
             },
           }
@@ -626,13 +633,14 @@ export async function buildServices(
     makeReactivationPortal({ main: db, open: openClient }),
     makeConsolePortal({
       main: db,
+      mainUrl: settings.databaseUrl,
       views: [...EMAIL_CONSOLE_VIEWS, ...BOOKS_CONSOLE_VIEWS],
       records: [...emailRecords(roster, policy), ...BOOKS_RECORDS, clientRecord],
       admin: settings.restateAdminUrl
         ? restateAdmin(settings.restateAdminUrl, settings.restateAuthToken)
         : undefined,
     }),
-    makeEmailConsole({ db, senders: roster.map((s) => s.address) }),
+    makeEmailConsole({ db, senders: roster.map((s) => s.address), policy }),
     makeReactivation({
       main: db,
       open: openClient,

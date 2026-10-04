@@ -3,7 +3,7 @@ type: object
 cluster: clients
 universe: live
 status: verified
-verified: 2026-09-29 @ 23a6170
+verified: 2026-10-04 @ afd15eb
 entity: packages/core/src/clients/schema.ts:18
 ---
 
@@ -18,7 +18,7 @@ Fifty clients must not mean fifty code paths. A client is data: its database, it
 ## Shape
 
 - `clients` (`schema.ts:18`): `id`, `database` (unique), `accounts` (site → autobrowse account), `products` (per-product JSON the product owns), `demo`; who signs in is [[clients/client-member]]
-- `addClient` creates and migrates the database (`packages/core/src/clients/index.ts:31`); `clientUrl` (`:117`)
+- `addClient` creates and migrates the database, then writes the row (`packages/core/src/clients/index.ts:42`). Safe to retry: a registered id comes back as it is, a half-made database is migrated again; callers refuse a taken id. `ConsolePortal.addClient {id, name}` runs it in one `ctx.run` step on the worker, which ships the migrations (`apps/worker/scripts/build-lambda.mjs:64`); people are added after with `DeliveryPortal.invite`
 - Loop keys: `<client>/<unit>`; a bare key is Wren's own (`packages/core/src/restate`, `clientKey` / `clientOfKey`)
 
 Citations: `packages/core/src/clients/schema.ts:18`, `packages/core/src/clients/index.ts:31`
@@ -40,6 +40,7 @@ Citations: `packages/core/src/clients/schema.ts:18`, `packages/core/src/clients/
 | Surface | Role |
 |---|---|
 | `wren clients add\|list` | writes |
+| `ConsolePortal.addClient` (`console.addClient`) | writes |
 | `Reactivation/{client}`, portal | reads |
 
 ## See

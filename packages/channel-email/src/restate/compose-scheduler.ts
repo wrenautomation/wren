@@ -24,6 +24,7 @@ import { type RefreshStats, refreshQueue } from "../outreach/refresh.js";
 import type { Sequence } from "../outreach/sequences.js";
 import type { Template } from "../outreach/templates.js";
 import { AUDIENCES, type Audience, type RecontactPolicy } from "../recontact.js";
+import { campaignPolicy } from "../send/campaign-controls.js";
 import { fillTimezones, type TimezoneFillStats } from "../send/lead-timezone.js";
 import type { SendPolicy } from "../send/policy.js";
 import { untilNextLocalDay } from "./postmaster-scheduler.js";
@@ -228,7 +229,7 @@ export function makeComposeScheduler(deps: ComposeSchedulerDeps) {
         argv: { daemon: true, niche, days_ahead: deps.daysAhead, approve: true },
         niche,
       },
-      body: (runId) => {
+      body: async (runId) => {
         const campaign = deps.campaigns.get(niche);
         if (!campaign) {
           throw new Error(
@@ -239,7 +240,8 @@ export function makeComposeScheduler(deps: ComposeSchedulerDeps) {
           throw new Error(`niche '${niche}' has no active sender on the roster`);
         }
         return topUp(deps.db, campaign, {
-          policy: deps.policy,
+          // The console's overrides of this pass, so a stop or resume needs no deploy.
+          policy: await campaignPolicy(deps.db, deps.policy),
           now,
           daysAhead: deps.daysAhead,
           verificationHorizonDays: deps.verificationHorizonDays,

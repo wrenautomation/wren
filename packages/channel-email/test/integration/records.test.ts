@@ -10,7 +10,9 @@ import { eq, sql } from "drizzle-orm";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { pause } from "../../src/inbox/health.js";
 import { emailRecords } from "../../src/records.js";
+import { emailConsoleApi } from "../../src/restate/console.js";
 import { callInvites, enrollments, messages, threadEvents } from "../../src/schema.js";
+import { campaignPolicy } from "../../src/send/campaign-controls.js";
 import { SendPolicy } from "../../src/send/policy.js";
 import type { Sender } from "../../src/send/roster.js";
 import { transitionMessage } from "../../src/state.js";
@@ -117,6 +119,76 @@ describe("email records", () => {
       { record: "email.firm", count: 3 },
       { record: "email.reply", count: 1 },
     ]);
+  });
+
+  it("console controls: live on the next read, undo restores, null back to env, logged as who", async () => {
+    const env = policyOf();
+    const api = emailConsoleApi({ db: pg.db, senders: [SENDER], policy: env });
+    const op = { viewer: { email: "op@example.test", operator: true } };
+    const row = async () => (await serve(env).get({ record: "email.campaign", id: "sec_ria" })).row;
+    const ids = ["sec_ria", "nope"];
+
+    expect(await api.campaignAction("killSwitchOff", { ...op, ids })).toEqual({
+      done: ["sec_ria"],
+      skipped: ["nope"],
+    });
+    expect(await row()).toMatchObject({ killSwitch: "off", overrides: "kill switch" });
+    expect((await campaignPolicy(pg.db, env)).killSwitchOn("sec_ria")).toBe(false);
+    expect(await api.campaignAction("killSwitchOff", { ...op, ids })).toEqual({
+      done: [],
+      skipped: ids,
+    });
+    // The undo: back to env, so no override left.
+    await api.campaignAction("killSwitchOn", { ...op, ids: ["sec_ria"] });
+    expect(await row()).toMatchObject({ killSwitch: "on", overrides: null, setBy: null });
+
+    await api.campaignAction("stopOpeners", { ...op, ids: ["sec_ria"] });
+    expect(await row()).toMatchObject({
+      state: "follow_ups",
+      openersPerDay: 0,
+      overrides: "openers",
+      setBy: "console:op@example.test",
+    });
+    await api.campaignAction("resumeOpeners", { ...op, ids: ["sec_ria"] });
+    expect(await row()).toMatchObject({ state: "opening", openersPerDay: null, overrides: null });
+
+    // Env holds it at 0: Resume can't open it, Stop has nothing to do.
+    const held = emailConsoleApi({
+      db: pg.db,
+      senders: [SENDER],
+      policy: policyOf({ WREN_NICHE_OPENERS_PER_DAY: "sec_ria=0" }),
+    });
+    for (const action of ["resumeOpeners", "stopOpeners"] as const)
+      expect(await held.campaignAction(action, { ...op, ids: ["sec_ria"] })).toEqual({
+        done: [],
+        skipped: ["sec_ria"],
+      });
+
+    // setCampaign: a field left out stays, null clears, a value equal to env stores null.
+    expect(
+      await api.setCampaign({ ...op, campaign: "sec_ria", killSwitch: false, openersPerDay: 7 }),
+    ).toMatchObject({ killSwitch: false, openersPerDay: 7, updatedBy: "console:op@example.test" });
+    expect(
+      await api.setCampaign({ ...op, campaign: "sec_ria", openersPerDay: null }),
+    ).toMatchObject({ killSwitch: false, openersPerDay: null });
+    expect(await api.setCampaign({ ...op, campaign: "sec_ria", killSwitch: true })).toMatchObject({
+      killSwitch: null,
+    });
+    await expect(api.setCampaign({ ...op, campaign: "nope", killSwitch: false })).rejects.toThrow(
+      "no such campaign",
+    );
+    await expect(
+      api.setCampaign({ ...op, campaign: "sec_ria", openersPerDay: -1 }),
+    ).rejects.toThrow("whole number");
+    await expect(api.setCampaign({ ...op, campaign: "sec_ria" })).rejects.toThrow("say killSwitch");
+    await expect(
+      api.campaignAction("killSwitchOff", { viewer: { email: "amy@acme.test" }, ids }),
+    ).rejects.toThrow("Wren's team");
+
+    const actors = await pg.db.execute(
+      sql`select distinct actor from audit_events where table_name = 'campaign_controls'`,
+    );
+    expect(actors).toEqual([{ actor: "op@example.test" }]);
   });
 
   it("an inbox: sending or paused, today's sends against the cap", async () => {

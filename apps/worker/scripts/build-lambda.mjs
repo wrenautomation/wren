@@ -3,12 +3,22 @@
  * Bundle the Lambda handler: dist/lambda.zip with app/lambda.mjs (one ESM
  * file, handler `app/lambda.handler`) and app/box.mjs (the pool chain on the
  * Postgres box, `node app/box.mjs`), the niche templates beside it (the
- * niches resolve `../templates` from their module), the sender roster when
+ * niches resolve `../templates` from their module), the migrations (the db
+ * resolves `../drizzle`, so the worker can migrate a new client's database:
+ * the SQL files and the journal, not the snapshots), the sender roster when
  * the repo has one, and playwright-core for the Browserbase render tier.
  * Node 22 runtime; nothing in the bundle needs a native module.
  */
 import { execFileSync } from "node:child_process";
-import { cpSync, existsSync, mkdirSync, rmSync, writeFileSync } from "node:fs";
+import {
+  cpSync,
+  existsSync,
+  mkdirSync,
+  readdirSync,
+  readFileSync,
+  rmSync,
+  writeFileSync,
+} from "node:fs";
 import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { build } from "esbuild";
@@ -51,6 +61,22 @@ for (const app of ["lambda", "box"])
   execFileSync("node", ["--check", resolve(out, `app/${app}.mjs`)], { stdio: "inherit" });
 
 cpSync(resolve(repo, "packages/niches/templates"), resolve(out, "templates"), { recursive: true });
+// drizzle's migrator reads meta/_journal.json and each entry's <tag>.sql, nothing else.
+const migrations = resolve(repo, "packages/db/drizzle");
+const drizzle = resolve(out, "drizzle");
+mkdirSync(resolve(drizzle, "meta"), { recursive: true });
+cpSync(resolve(migrations, "meta/_journal.json"), resolve(drizzle, "meta/_journal.json"));
+for (const f of readdirSync(migrations).filter((f) => f.endsWith(".sql")))
+  cpSync(resolve(migrations, f), resolve(drizzle, f));
+const journal = JSON.parse(readFileSync(resolve(drizzle, "meta/_journal.json"), "utf8")).entries;
+const shipped = readdirSync(drizzle).filter((f) => f.endsWith(".sql"));
+const missing = journal.filter((e) => !existsSync(resolve(drizzle, `${e.tag}.sql`)));
+if (journal.length === 0 || journal.length !== shipped.length || missing.length)
+  throw new Error(
+    `bundle migrations: ${journal.length} journal entries, ${shipped.length} SQL files` +
+      (missing.length ? `, missing ${missing.map((e) => e.tag).join(", ")}` : ""),
+  );
+
 const roster = resolve(repo, "senders_config.toml");
 if (existsSync(roster)) cpSync(roster, resolve(out, "senders_config.toml"));
 else console.warn("no senders_config.toml at the repo root: the Lambda takes its roster from SSM");

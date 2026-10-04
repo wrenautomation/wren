@@ -2,13 +2,17 @@
  * ConsolePortal's loops against a real Restate: `loops` reads every object with a `running` key
  * through the admin SQL, with its next scheduled call, and `setLoop` stops and starts one. A loop
  * the read didn't list, or a viewer who isn't Wren's team, is refused. The same rows are the
- * `console.loop` record type, read through Postgres like any other.
+ * `console.loop` record type, read through Postgres like any other. `addClient` makes a client
+ * database from the console, team only, and finishes one a failed try left half made.
  */
 import type * as restate from "@restatedev/restate-sdk";
 import * as clients from "@restatedev/restate-sdk-clients";
 import { RestateTestEnvironment } from "@restatedev/restate-sdk-testcontainers";
+import { clientDatabaseUrl, createDatabase, createDb } from "@wren/db";
 import { startTestPostgres, type TestPostgres } from "@wren/db/testing";
+import { sql } from "drizzle-orm";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
+import { findClient } from "../../src/clients/index.js";
 import { type LoopRow, makeConsolePortal, restateAdmin } from "../../src/console.js";
 import { LAST, makeLoopObject, type PassOutcome } from "../../src/restate/loop.js";
 
@@ -41,6 +45,7 @@ beforeAll(async () => {
       tick,
       makeConsolePortal({
         main: pg.db,
+        mainUrl: pg.url,
         views: [],
         admin: async (query) => restateAdmin(env.adminAPIBaseUrl())(query),
       }),
@@ -123,5 +128,74 @@ describe("ConsolePortal loops", () => {
     await expect(consolePortal().recordsList({ viewer: { demo: true }, record })).rejects.toThrow(
       "that's for Wren's team",
     );
+  });
+});
+
+describe("ConsolePortal addClient", () => {
+  /** How many migrations the client's own database has applied. */
+  const applied = async (id: string) => {
+    const h = createDb(clientDatabaseUrl(pg.url, `wren_client_${id}`), { max: 1 });
+    try {
+      const [row] = await h.db.execute<{ n: number }>(
+        sql`select count(*)::int n from drizzle.__drizzle_migrations`,
+      );
+      return row?.n;
+    } finally {
+      await h.close();
+    }
+  };
+  const mainCount = async () =>
+    (
+      await pg.db.execute<{ n: number }>(
+        sql`select count(*)::int n from drizzle.__drizzle_migrations`,
+      )
+    )[0]?.n;
+
+  it("makes the database, migrated, then the row; again with the same name is the same client", async () => {
+    const started = Date.now();
+    const made = await consolePortal().addClient({ ...operator, id: "north_co", name: "North Co" });
+    const ms = Date.now() - started;
+    console.info(`addClient with a fresh migrate: ${ms} ms`);
+    expect(ms).toBeLessThan(300_000);
+    expect(made).toEqual({ id: "north_co", name: "North Co", demo: false });
+    expect(await applied("north_co")).toBe(await mainCount());
+    const actors = await pg.db.execute(
+      sql`select actor from audit_events where table_name = 'clients' and op = 'insert'`,
+    );
+    expect(actors).toEqual([{ actor: "op@example.test" }]);
+
+    expect(
+      await consolePortal().addClient({ ...operator, id: "north_co", name: "North Co" }),
+    ).toEqual(made);
+    await expect(
+      consolePortal().addClient({ ...operator, id: "north_co", name: "Someone Else" }),
+    ).rejects.toThrow("client north_co exists");
+  });
+
+  it("finishes an add that died after making the database", async () => {
+    await createDatabase(pg.db, "wren_client_half_made");
+    expect(await findClient(pg.db, "half_made")).toBeNull();
+    await consolePortal().addClient({ ...operator, id: "half_made", name: "Half Made" });
+    expect(await findClient(pg.db, "half_made")).toMatchObject({ name: "Half Made" });
+    expect(await applied("half_made")).toBe(await mainCount());
+  });
+
+  it("refuses a bad id or no name before any step, and anyone but Wren's team", async () => {
+    for (const id of ["North", "1st", "a-b", "x".repeat(41), ""])
+      await expect(consolePortal().addClient({ ...operator, id, name: "N" })).rejects.toThrow(
+        "id: a lowercase letter",
+      );
+    await expect(consolePortal().addClient({ ...operator, id: "ok", name: " " })).rejects.toThrow(
+      "say the client's name",
+    );
+    for (const viewer of [
+      { viewer: { email: "amy@acme.test" } },
+      { viewer: { demo: true as const } },
+      { ...operator, asClient: true },
+    ])
+      await expect(
+        consolePortal().addClient({ ...viewer, id: "sneaky", name: "S" }),
+      ).rejects.toThrow("that's for Wren's team");
+    expect(await findClient(pg.db, "sneaky")).toBeNull();
   });
 });

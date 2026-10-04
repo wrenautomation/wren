@@ -9,6 +9,7 @@ import {
   type Db,
   migrateClient,
   type Queryable,
+  setAuditActor,
 } from "@wren/db";
 import { and, asc, eq, sql } from "drizzle-orm";
 import { date, defineRecord, number, status, text } from "../records.js";
@@ -33,27 +34,37 @@ export interface NewClient {
 
 /**
  * Create the client's database, migrate it, then register it. The row is written
- * last, so a registered client always has a ready database. Re-running after a
- * half-done add picks up where it stopped.
+ * last, so a registered client always has a ready database. Safe to retry: a
+ * registered client comes back as it is, a database already made is kept and
+ * migrated again (idempotent), and the insert skips a row a racing add wrote.
+ * The caller refuses an id that's taken. `by` names who in the audit log.
  */
-export async function addClient(main: Db, mainUrl: string, input: NewClient): Promise<Client> {
+export async function addClient(
+  main: Db,
+  mainUrl: string,
+  input: NewClient,
+  by?: string,
+): Promise<Client> {
+  const found = await findClient(main, input.id);
+  if (found) return found;
   const database = clientDatabaseName(input.id);
-  if (await findClient(main, input.id)) throw new Error(`client ${input.id} exists`);
   await createDatabase(main, database);
   await migrateClient(mainUrl, database);
-  const [row] = await main
-    .insert(clients)
-    .values({
-      id: input.id,
-      name: input.name,
-      database,
-      accounts: input.accounts ?? {},
-      products: input.products ?? {},
-      demo: input.demo ?? false,
-    })
-    .returning();
-  if (!row) throw new Error(`client ${input.id}: insert returned nothing`);
-  return row;
+  await main.transaction(async (tx) => {
+    if (by) await setAuditActor(tx, by);
+    await tx
+      .insert(clients)
+      .values({
+        id: input.id,
+        name: input.name,
+        database,
+        accounts: input.accounts ?? {},
+        products: input.products ?? {},
+        demo: input.demo ?? false,
+      })
+      .onConflictDoNothing();
+  });
+  return getClient(main, input.id);
 }
 
 export async function listClients(main: Db): Promise<Client[]> {
@@ -234,4 +245,6 @@ export const clientRecord = defineRecord({
     { id: "clients", label: "Clients", where: { kind: "client" }, sort: "-added", at: "added" },
     { id: "all", label: "All", sort: "-added", at: "added" },
   ],
+  // addClient takes `{id, name}`; invite takes `{client, email, role}` (DeliveryPortal).
+  actions: ["console.addClient", "delivery.invite"],
 });

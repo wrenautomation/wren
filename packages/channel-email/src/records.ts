@@ -1,7 +1,8 @@
 /**
  * Wren's own email work as console records (`@wren/core/records`): campaigns, inboxes, warm
  * replies, the firms in the pipeline, model usage. Team only, on the main database, unmasked.
- * Campaigns and inboxes read the roster and the send policy, so they're built from them.
+ * Campaigns and inboxes read the roster and the send policy, so they're built from them; the
+ * policy each read is env with the console's campaign overrides on top (`campaign_controls`).
  */
 
 import {
@@ -19,6 +20,7 @@ import {
 import type { Queryable } from "@wren/db";
 import { sql } from "drizzle-orm";
 import { activePauses, domainHealth, domainOf, wouldTrip } from "./inbox/health.js";
+import { campaignPolicy, loadCampaignControls } from "./send/campaign-controls.js";
 import { todaysSends } from "./send/deliver.js";
 import type { SendPolicy } from "./send/policy.js";
 import type { Sender } from "./send/roster.js";
@@ -29,18 +31,33 @@ const AGES = {
   earlier: { label: "Earlier", tone: "neutral" },
 } as const;
 
-export const campaignRecord = (policy: SendPolicy): RecordType =>
+export const campaignRecord = (env: SendPolicy): RecordType =>
   defineRecord({
     id: "email.campaign",
     name: { one: "campaign", many: "campaigns" },
-    rows: async (db) =>
-      (await db.execute<Record<string, unknown>>(sql`select * from email_campaign_records`)).map(
-        (r) => ({
+    rows: async (db) => {
+      const controls = new Map((await loadCampaignControls(db)).map((c) => [c.campaign, c]));
+      const policy = env.withCampaigns([...controls.values()]);
+      return (
+        await db.execute<Record<string, unknown>>(sql`select * from email_campaign_records`)
+      ).map((r) => {
+        const id = String(r.id);
+        const c = controls.get(id);
+        const set = [
+          c?.killSwitch != null && "kill switch",
+          c?.openersPerDay != null && "openers",
+        ].filter(Boolean);
+        return {
           ...r,
-          state: policy.nicheOpenerCap(String(r.id)) === 0 ? "follow_ups" : "opening",
-          kill_switch: policy.killSwitchOn(String(r.id)) ? "on" : "off",
-        }),
-      ),
+          state: policy.nicheOpenerCap(id) === 0 ? "follow_ups" : "opening",
+          kill_switch: policy.killSwitchOn(id) ? "on" : "off",
+          openers_per_day: policy.nicheOpenerCap(id),
+          overrides: set.length ? set.join(", ") : null,
+          set_by: set.length ? c?.updatedBy : null,
+          set_at: set.length ? c?.updatedAt : null,
+        };
+      });
+    },
     key: "id",
     title: "campaign",
     fields: {
@@ -60,6 +77,10 @@ export const campaignRecord = (policy: SendPolicy): RecordType =>
       enrolled: number(),
       interested: number(),
       lastSent: date("Last send"),
+      openersPerDay: number("Openers a day"),
+      overrides: text("Set in the console"),
+      setBy: text("Set by"),
+      setAt: date("Set"),
     },
     views: [
       { id: "all", label: "All", sort: "-sent" },
@@ -69,14 +90,21 @@ export const campaignRecord = (policy: SendPolicy): RecordType =>
       { record: "email.firm", by: "niche" },
       { record: "email.reply", by: "niche" },
     ],
+    actions: [
+      "email.killSwitchOff",
+      "email.killSwitchOn",
+      "email.stopOpeners",
+      "email.resumeOpeners",
+    ],
   });
 
-export const inboxRecord = (roster: readonly Sender[], policy: SendPolicy): RecordType =>
+export const inboxRecord = (roster: readonly Sender[], env: SendPolicy): RecordType =>
   defineRecord({
     id: "email.inbox",
     name: { one: "inbox", many: "inboxes" },
     rows: async (db: Queryable) => {
       const now = new Date();
+      const policy = await campaignPolicy(db, env);
       const senders = roster.map((s) => s.address);
       const { sentToday } = await todaysSends(db, policy, now);
       const pauses = await activePauses(db);

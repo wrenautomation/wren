@@ -3,7 +3,7 @@ type: object
 cluster: email
 universe: live
 status: verified
-verified: 2026-10-03 @ 5e0aa19
+verified: 2026-10-04 @ afd15eb
 entity: packages/channel-email/src/inbox/health.ts:180
 ---
 
@@ -13,7 +13,7 @@ A sending address taken out of rotation, by a kill switch or by hand. Table `sen
 
 ## Why this shape
 
-The grain is the domain, not the inbox: a spam verdict earned by one inbox is spent by its neighbours, so a trip pauses every inbox on the domain. The evidence window floors at the last lift, so a human's resume is not undone by the same evidence (`health.ts:1`). A campaign in `WREN_KILL_SWITCH_OFF_FOR` is left out of the evidence, and a kill-switch pause does not stop its sends; an operator pause stops everything (`send/deliver.ts`). One active pause per sender (`uq_sender_pauses_active`, `packages/channel-email/src/schema.ts:555`).
+The grain is the domain, not the inbox: a spam verdict earned by one inbox is spent by its neighbours, so a trip pauses every inbox on the domain. The evidence window floors at the last lift, so a human's resume is not undone by the same evidence (`health.ts:1`). A campaign in `WREN_KILL_SWITCH_OFF_FOR`, or switched off in the console (`campaign_controls`, [[email/send-policy]]), is left out of the evidence, and a kill-switch pause does not stop its sends; an operator pause stops everything (`send/deliver.ts`). One active pause per sender (`uq_sender_pauses_active`, `packages/channel-email/src/schema.ts:555`).
 
 ## Shape
 

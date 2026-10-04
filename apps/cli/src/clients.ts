@@ -8,6 +8,7 @@ import {
   addMember,
   addOperator,
   type Client,
+  findClient,
   getClient,
   listClients,
   listMembers,
@@ -90,8 +91,9 @@ export function registerClients(program: Command, withMainDb: WithDb, settings: 
           demo?: boolean;
         },
       ) => {
-        const client = await withMainDb((db) =>
-          addClient(db, settings.databaseUrl, {
+        const client = await withMainDb(async (db) => {
+          if (await findClient(db, id)) throw new Error(`client ${id} exists`);
+          return addClient(db, settings.databaseUrl, {
             id,
             name: opts.name,
             accounts: accountPairs(opts.account),
@@ -99,8 +101,8 @@ export function registerClients(program: Command, withMainDb: WithDb, settings: 
               Object.entries(productChange({}, opts.set)).filter(([, b]) => b !== null),
             ),
             demo: opts.demo ?? false,
-          }),
-        );
+          });
+        });
         console.log(show(client));
         await warnShared(withMainDb);
       },

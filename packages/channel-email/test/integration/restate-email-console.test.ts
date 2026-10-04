@@ -7,11 +7,13 @@
 import * as restate from "@restatedev/restate-sdk";
 import * as clients from "@restatedev/restate-sdk-clients";
 import { RestateTestEnvironment } from "@restatedev/restate-sdk-testcontainers";
+import { loadSettings } from "@wren/config";
 import { startTestPostgres, type TestPostgres, truncate } from "@wren/db/testing";
 import { sql } from "drizzle-orm";
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 import { activePauses } from "../../src/inbox/health.js";
 import { makeEmailConsole } from "../../src/restate/console.js";
+import { SendPolicy } from "../../src/send/policy.js";
 
 const FLEET = ["ann@one.example", "bob@one.example", "cat@two.example"];
 const operator = { viewer: { email: "op@example.test", operator: true } };
@@ -43,7 +45,14 @@ let env: RestateTestEnvironment;
 beforeAll(async () => {
   pg = await startTestPostgres();
   env = await RestateTestEnvironment.start({
-    services: [disposition, makeEmailConsole({ db: pg.db, senders: FLEET })],
+    services: [
+      disposition,
+      makeEmailConsole({
+        db: pg.db,
+        senders: FLEET,
+        policy: SendPolicy.fromSettings(loadSettings({ WREN_DATABASE_URL: "postgresql://x" })),
+      }),
+    ],
     alwaysReplay: true,
   });
 });
@@ -72,9 +81,25 @@ describe("EmailConsole", () => {
       await expect(email().resume({ ...who, target: "one.example" })).rejects.toThrow(
         "that's for Wren's team",
       );
+      await expect(email().killSwitchOff({ ...who, ids: ["any"] })).rejects.toThrow(
+        "that's for Wren's team",
+      );
+      await expect(
+        email().setCampaign({ ...who, campaign: "any", openersPerDay: 0 }),
+      ).rejects.toThrow("that's for Wren's team");
     }
     expect(asked).toEqual([]);
     expect((await activePauses(pg.db)).size).toBe(0);
+  });
+
+  it("campaign controls answer through Restate: unknown campaigns skip or 404", async () => {
+    expect(await email().stopOpeners({ ...operator, ids: ["none_yet"] })).toEqual({
+      done: [],
+      skipped: ["none_yet"],
+    });
+    await expect(
+      email().setCampaign({ ...operator, campaign: "none_yet", killSwitch: false }),
+    ).rejects.toThrow("no such campaign");
   });
 
   it("lists what waits", async () => {

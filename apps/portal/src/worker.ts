@@ -49,8 +49,9 @@ const SERVICES: Readonly<Record<string, Service>> = {
       "recordsGet",
       "recordsExport",
       "recordsStats",
+      "addClient",
     ],
-    ["setLoop"],
+    ["setLoop", "addClient"],
   ),
   // Wren's team: warm replies to answer, inboxes to pause.
   email: service("EmailConsole", EMAIL_CONSOLE_ROUTES, EMAIL_CONSOLE_WRITES),

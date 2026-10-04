@@ -8,11 +8,21 @@
  *
  * Records (`./records.ts`) for the team: each package passes its types in, as with views, and
  * the loops ride along as one more type, `console.loop`, read from Restate instead of a view.
+ *
+ * `addClient` makes a client from the console: its database, migrated, then its row. Its people
+ * are added after with DeliveryPortal's `invite` (`delivery.invite`), as anywhere else.
  */
 import * as restate from "@restatedev/restate-sdk";
-import type { Db } from "@wren/db";
+import { CLIENT_ID, type Db } from "@wren/db";
 import { sql } from "drizzle-orm";
-import { answer, PortalRefusal, type PortalRequest, seesInternal } from "./portal.js";
+import { addClient } from "./clients/index.js";
+import {
+  answer,
+  PortalRefusal,
+  type PortalRequest,
+  type SignedViewer,
+  seesInternal,
+} from "./portal.js";
 import {
   date,
   defineRecord,
@@ -88,6 +98,11 @@ export interface SetLoopRequest extends PortalRequest {
 }
 
 /** SQL over Restate's own tables, through its admin API. */
+export interface AddClientRequest extends PortalRequest {
+  id: string;
+  name: string;
+}
+
 export type RestateAdmin = (query: string) => Promise<Record<string, unknown>[]>;
 
 export const restateAdmin =
@@ -199,8 +214,11 @@ export function consoleApi({
   views,
   admin,
   records = [],
+  mainUrl,
 }: {
   main: Db;
+  /** The main database's URL, which `addClient` needs to reach the new one; absent, it refuses. */
+  mainUrl?: string | undefined;
   views: readonly string[];
   /** Absent, `loops` refuses: this worker can't see Restate's state. */
   admin?: RestateAdmin | undefined;
@@ -260,6 +278,24 @@ export function consoleApi({
     recordsStats: (req: PortalRequest & StatsAsk): Promise<RecordsStat> =>
       read(req, (r) => r.stats(req)),
 
+    /** A new client from `req`, checked before any step runs: team only, a plain id, a name. */
+    newClient(req: AddClientRequest): { id: string; name: string; by: string } {
+      team(req);
+      if (!mainUrl) throw new PortalRefusal("this worker can't make databases", 503);
+      const id = typeof req.id === "string" ? req.id.trim() : "";
+      if (!CLIENT_ID.test(id))
+        throw new PortalRefusal("id: a lowercase letter, then up to 39 of a-z, 0-9, _", 400);
+      const name = typeof req.name === "string" ? req.name.trim() : "";
+      if (!name || name.length > 200) throw new PortalRefusal("say the client's name", 400);
+      return { id, name, by: (req.viewer as SignedViewer).email };
+    },
+    /** Make it, or finish a make that failed partway; a client already there comes back as it is. */
+    async addClient({ id, name, by }: { id: string; name: string; by: string }) {
+      if (!mainUrl) throw new PortalRefusal("this worker can't make databases", 503);
+      const c = await addClient(main, mainUrl, { id, name }, by);
+      return { id: c.id, name: c.name, demo: c.demo };
+    },
+
     /** The loop `req` names, if `loops` listed it; anything else names no loop. */
     pick(req: SetLoopRequest, loops: readonly LoopRow[]): LoopRow {
       if (typeof req.run !== "boolean") throw new PortalRefusal("say run: true or false", 400);
@@ -300,6 +336,18 @@ export function makeConsolePortal(deps: Parameters<typeof consoleApi>[0]) {
           const object = ctx.objectClient<LoopControl>({ name: loop.service }, loop.key);
           await (req.run ? object.start() : object.stop());
           return { ...loop, running: req.run };
+        }),
+      addClient: (ctx: restate.Context, req: AddClientRequest) =>
+        answer(async () => {
+          const ask = api.newClient(req);
+          // One step: a retry after a timeout finishes the same add, and the replay reads its answer.
+          const made = await ctx.run("add client", () => api.addClient(ask), {
+            maxRetryAttempts: 3,
+          });
+          // The id was taken before this ask: same name is the same client, else a clash.
+          if (made.name !== ask.name || made.demo)
+            throw new PortalRefusal(`client ${ask.id} exists`, 409);
+          return made;
         }),
     },
   });

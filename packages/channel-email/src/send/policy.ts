@@ -91,6 +91,13 @@ export interface SendPolicyFields {
   readonly healthWindowMs: number;
 }
 
+/** A console override of one campaign; null = the env default. */
+export interface CampaignControl {
+  readonly campaign: string;
+  readonly killSwitch: boolean | null;
+  readonly openersPerDay: number | null;
+}
+
 const MINUTE_MS = 60_000;
 const DAY_MS = 86_400_000;
 /** How far `nextWindowOpen` looks; past this the schedule is broken, not quiet. */
@@ -255,6 +262,19 @@ export class SendPolicy implements SendPolicyFields {
       bouncePauseMinBounces: s.bouncePauseMinBounces,
       healthWindowMs: s.healthWindowDays * DAY_MS,
     });
+  }
+
+  /** This policy with the console's campaign overrides merged in: a new frozen policy. */
+  withCampaigns(controls: readonly CampaignControl[]): SendPolicy {
+    if (!controls.length) return this;
+    const off = new Set(this.killSwitchOffFor);
+    const caps = new Map(this.nicheOpenersPerDay);
+    for (const c of controls) {
+      if (c.killSwitch === true) off.delete(c.campaign);
+      if (c.killSwitch === false) off.add(c.campaign);
+      if (c.openersPerDay !== null) caps.set(c.campaign, c.openersPerDay);
+    }
+    return new SendPolicy({ ...this, killSwitchOffFor: off, nicheOpenersPerDay: caps });
   }
 
   // ---- the local clock ---------------------------------------------
