@@ -5,6 +5,7 @@
 import type { Action } from "@wren/ui";
 import { createElement } from "react";
 import type { Module } from "../../module.js";
+import { handlers } from "./handlers.js";
 import { AI_SPEND, AiSpend, idOf } from "./heads.js";
 
 const TEAM = { audience: "team" } as const;
@@ -621,4 +622,4 @@ export const clients: Module = {
   ],
 };
 
-export const WREN_APPS = [outbound, inbox, loops, money, pipeline, clients];
+export const WREN_APPS = [outbound, inbox, loops, money, pipeline, clients, handlers];

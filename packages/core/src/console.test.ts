@@ -417,6 +417,7 @@ describe("formOf: a schema as form boxes", () => {
             dryRun: { type: "boolean" },
             policy: { type: "string", enum: ["skip", "recheck"] },
             ids: { type: "array", items: { type: "string" } },
+            personIds: { type: "array", items: { type: "integer" } },
             recheck: {
               type: "object",
               properties: { olderThanDays: { type: "integer", title: "Days" } },
@@ -437,6 +438,7 @@ describe("formOf: a schema as form boxes", () => {
       { field: "dryRun", label: "Dry run", type: "switch", optional: true },
       { field: "policy", label: "Policy", type: "select", options: ["skip", "recheck"] },
       { field: "ids", label: "Ids", type: "lines", optional: true },
+      { field: "personIds", label: "Person ids", type: "numbers", optional: true },
       { field: "recheck.olderThanDays", label: "Recheck.Days", type: "number", optional: true },
       { field: "extra", label: "Extra", type: "json", optional: true },
     ]);

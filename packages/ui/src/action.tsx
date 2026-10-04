@@ -19,11 +19,27 @@ import { Button } from "./controls.js";
 
 /** A box a form action asks for, required unless `optional`. */
 export interface FormField {
+  /** Its path in the input: `parent.child` sends `{ parent: { child } }`. */
   field: string;
   label: string;
-  /** Left out: a line of text. A file is sent as the `File`; the `Call` puts it up. */
-  type?: "long" | "date" | "number" | "url" | "file";
+  /**
+   * Left out: a line of text. A file is sent as the `File`; the `Call` puts it up. `lines` and
+   * `numbers` are one item per line, `json` any JSON value.
+   */
+  type?:
+    | "long"
+    | "date"
+    | "number"
+    | "url"
+    | "file"
+    | "switch"
+    | "select"
+    | "lines"
+    | "numbers"
+    | "json";
   optional?: true;
+  /** A select's choices. */
+  options?: readonly string[];
   /** Said under the box. */
   hint?: string;
   /** The pattern its value must match, as in HTML. */
@@ -117,6 +133,157 @@ export function valuesOf(form: readonly FormField[], typed: Record<string, strin
   return values;
 }
 
+/** One box's text as the value it sends; a bad number or JSON throws, naming the box. */
+function sentOf(f: FormField, text: string): unknown {
+  const bad = (what: string): never => {
+    throw new Error(`${f.label}: ${what}`);
+  };
+  switch (f.type) {
+    case "number":
+      return Number.isFinite(Number(text)) ? Number(text) : bad("not a number");
+    case "switch":
+      return text === "true";
+    case "lines":
+    case "numbers": {
+      const items = text
+        .split("\n")
+        .map((l) => l.trim())
+        .filter(Boolean);
+      if (f.type === "lines") return items;
+      return items.map((l) =>
+        Number.isFinite(Number(l)) ? Number(l) : bad(`${l} is not a number`),
+      );
+    }
+    case "json":
+      try {
+        return JSON.parse(text);
+      } catch {
+        return bad("not JSON");
+      }
+    default:
+      return text;
+  }
+}
+
+/**
+ * A form's values as the input it sends: each box typed (a number, a switch's true or false,
+ * lines as a list, parsed JSON), `a.b` nested, and an optional box left empty left out.
+ */
+export function typedOf(
+  form: readonly FormField[],
+  values: Record<string, string>,
+): Record<string, unknown> {
+  const out: Record<string, unknown> = {};
+  for (const f of form) {
+    const text = values[f.field] ?? "";
+    // An untouched switch is off; left out only when it's optional.
+    if (f.type === "file" || (text.trim() === "" && (f.optional || f.type !== "switch"))) continue;
+    const path = f.field.split(".");
+    const last = path.pop() as string;
+    let at = out;
+    for (const p of path) {
+      at[p] ??= {};
+      at = at[p] as Record<string, unknown>;
+    }
+    at[last] = sentOf(f, text);
+  }
+  return out;
+}
+
+const SELECT =
+  "h-8 w-full min-w-0 rounded-lg border border-input bg-transparent px-2 text-base outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 md:text-sm";
+
+/** One box of a form: its label, the control its type asks for, its hint. */
+export function FormBox({
+  f,
+  id,
+  value,
+  onText,
+  onFile,
+  autoFocus,
+}: {
+  f: FormField;
+  id: string;
+  value: string;
+  onText: (text: string) => void;
+  onFile?: ((file: File | undefined) => void) | undefined;
+  autoFocus?: boolean | undefined;
+}) {
+  const required = !f.optional;
+  const box =
+    f.type === "switch" ? (
+      <input
+        id={id}
+        type="checkbox"
+        role="switch"
+        aria-checked={value === "true"}
+        checked={value === "true"}
+        onChange={(e) => onText(String(e.target.checked))}
+      />
+    ) : f.type === "select" ? (
+      <select
+        id={id}
+        className={SELECT}
+        value={value}
+        onChange={(e) => onText(e.target.value)}
+        required={required}
+      >
+        <option value="">{required ? "Pick one" : "Not set"}</option>
+        {(f.options ?? []).map((o) => (
+          <option key={o} value={o}>
+            {o}
+          </option>
+        ))}
+      </select>
+    ) : f.type === "long" || f.type === "lines" || f.type === "numbers" || f.type === "json" ? (
+      <Textarea
+        id={id}
+        value={value}
+        onChange={(e) => onText(e.target.value)}
+        required={required}
+        autoFocus={autoFocus}
+        rows={4}
+        spellCheck={f.type === "long"}
+        className={f.type === "json" ? "font-mono" : undefined}
+      />
+    ) : (
+      <Input
+        id={id}
+        type={f.type ?? "text"}
+        {...(f.type === "file"
+          ? { onChange: (e) => onFile?.(e.target.files?.[0]) }
+          : { value, onChange: (e) => onText(e.target.value) })}
+        required={required}
+        autoFocus={autoFocus}
+        {...(f.type === "number" ? { step: "any" } : {})}
+        {...(f.pattern ? { pattern: f.pattern } : {})}
+      />
+    );
+  const hint =
+    f.hint ??
+    (f.type === "lines" || f.type === "numbers"
+      ? "One per line."
+      : f.type === "json"
+        ? "JSON."
+        : undefined);
+  return (
+    <div className="flex flex-col gap-1.5 text-sm">
+      {f.type === "switch" ? (
+        <label htmlFor={id} className="flex items-center gap-2">
+          {box}
+          {f.label}
+        </label>
+      ) : (
+        <>
+          <label htmlFor={id}>{f.label}</label>
+          {box}
+        </>
+      )}
+      {hint ? <p className="text-(--ui-ink-2)">{hint}</p> : null}
+    </div>
+  );
+}
+
 const plural = (n: number, one: string, many: string) => `${n} ${n === 1 ? one : many}`;
 
 /**
@@ -193,11 +360,16 @@ export function useRun(
     e.preventDefault();
     if (!asked) return;
     const { action, ids, start } = asked;
-    const input = form
-      ? { ...(action.each ? { ids } : {}), ...values, ...files }
-      : ask
-        ? inputOf(action, { ids, [ask.field]: start }, text)
-        : { ids };
+    let input: Record<string, unknown>;
+    try {
+      input = form
+        ? { ...(action.each ? { ids } : {}), ...typedOf(form, values), ...files }
+        : ask
+          ? inputOf(action, { ids, [ask.field]: start }, text)
+          : { ids };
+    } catch (err) {
+      return void toast.error(err instanceof Error ? err.message : String(err));
+    }
     void go(action, ids, input);
   };
 
@@ -229,42 +401,19 @@ export function useRun(
             </div>
           ) : null}
           {form?.map((f, i) => (
-            <div key={f.field} className="flex flex-col gap-1.5 text-sm">
-              <label htmlFor={`${textId}-${f.field}`}>{f.label}</label>
-              {f.type === "long" ? (
-                <Textarea
-                  id={`${textId}-${f.field}`}
-                  value={values[f.field] ?? ""}
-                  onChange={(e) => setTyped((t) => ({ ...t, [f.field]: e.target.value }))}
-                  required={!f.optional}
-                  autoFocus={i === 0}
-                  rows={4}
-                />
-              ) : (
-                <Input
-                  id={`${textId}-${f.field}`}
-                  type={f.type ?? "text"}
-                  {...(f.type === "file"
-                    ? {
-                        onChange: (e) => {
-                          const file = e.target.files?.[0];
-                          setFiles(({ [f.field]: _, ...rest }) =>
-                            file ? { ...rest, [f.field]: file } : rest,
-                          );
-                        },
-                      }
-                    : {
-                        value: values[f.field] ?? "",
-                        onChange: (e) => setTyped((t) => ({ ...t, [f.field]: e.target.value })),
-                      })}
-                  required={!f.optional}
-                  autoFocus={i === 0}
-                  {...(f.type === "number" ? { step: "any" } : {})}
-                  {...(f.pattern ? { pattern: f.pattern } : {})}
-                />
-              )}
-              {f.hint ? <p className="text-(--ui-ink-2)">{f.hint}</p> : null}
-            </div>
+            <FormBox
+              key={f.field}
+              f={f}
+              id={`${textId}-${f.field}`}
+              value={values[f.field] ?? ""}
+              onText={(text) => setTyped((t) => ({ ...t, [f.field]: text }))}
+              onFile={(file) =>
+                setFiles(({ [f.field]: _, ...rest }) =>
+                  file ? { ...rest, [f.field]: file } : rest,
+                )
+              }
+              autoFocus={i === 0}
+            />
           ))}
           <DialogFooter>
             <Button tone="quiet" size="dense" onClick={() => setAsked(null)}>

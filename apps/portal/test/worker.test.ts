@@ -142,6 +142,7 @@ describe("the demo host", () => {
       "delivery/post",
       "delivery/answer",
       "console/setLoop",
+      "console/call",
       "email/approve",
       "email/drop",
       "email/pause",

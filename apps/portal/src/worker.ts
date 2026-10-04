@@ -36,8 +36,8 @@ const service = (name: string, routes: readonly string[], writes: readonly strin
 const SERVICES: Readonly<Record<string, Service>> = {
   delivery: service("DeliveryPortal", DELIVERY_ROUTES, DELIVERY_WRITES),
   reactivation: service("ReactivationPortal", PORTAL_ROUTES, PORTAL_WRITES),
-  // Wren's team: views by name, records, and the loops (`@wren/core/console`), stopping or
-  // starting one. The service refuses anyone but the team.
+  // Wren's team: views by name, records, the loops (`@wren/core/console`), stopping or
+  // starting one, and any public handler by its form. The service refuses anyone but the team.
   console: service(
     "ConsolePortal",
     [
@@ -50,8 +50,9 @@ const SERVICES: Readonly<Record<string, Service>> = {
       "recordsExport",
       "recordsStats",
       "addClient",
+      "call",
     ],
-    ["setLoop", "addClient"],
+    ["setLoop", "addClient", "call"],
   ),
   // Wren's team: warm replies to answer, inboxes to pause.
   email: service("EmailConsole", EMAIL_CONSOLE_ROUTES, EMAIL_CONSOLE_WRITES),

@@ -42,8 +42,17 @@ export function go(path: string, params: Params, keep?: URLSearchParams) {
   navigate(href(path, params, keep));
 }
 
+/** A segment as its id: a record's page link encodes it, so an id may hold a slash. */
+const segment = (s: string) => {
+  try {
+    return decodeURIComponent(s);
+  } catch {
+    return s;
+  }
+};
+
 const read = (): Route => ({
-  path: location.pathname.split("/").filter(Boolean),
+  path: location.pathname.split("/").filter(Boolean).map(segment),
   params: new URLSearchParams(location.search),
 });
 

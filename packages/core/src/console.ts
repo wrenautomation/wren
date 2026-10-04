@@ -326,7 +326,7 @@ export interface HandlerField {
   /** Its path in the input: `parent.child` for a nested field. */
   field: string;
   label: string;
-  type?: "long" | "date" | "url" | "number" | "switch" | "select" | "lines" | "json";
+  type?: "long" | "date" | "url" | "number" | "switch" | "select" | "lines" | "numbers" | "json";
   optional?: true;
   hint?: string;
   /** A select's choices. */
@@ -399,9 +399,11 @@ export function formOf(input: unknown): HandlerField[] | null {
             ? "number"
             : s.type === "boolean"
               ? "switch"
-              : s.type === "array" && (item === "string" || item === "number" || item === "integer")
+              : s.type === "array" && item === "string"
                 ? "lines"
-                : "json";
+                : s.type === "array" && (item === "number" || item === "integer")
+                  ? "numbers"
+                  : "json";
       out.push({
         field,
         label: at,
