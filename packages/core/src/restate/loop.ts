@@ -13,8 +13,10 @@
  */
 import * as restate from "@restatedev/restate-sdk";
 import type { Db } from "@wren/db";
+import { z } from "zod";
 import type { Notifier } from "../notify.js";
 import { type RunOptions, recordedRun } from "../runs.js";
+import { exclusiveHandler, NO_INPUT, sharedHandler } from "./form.js";
 
 const RUNNING = "running";
 /**
@@ -189,6 +191,12 @@ export interface LoopHooks {
   onStop?: (ctx: restate.ObjectContext) => Promise<void>;
 }
 
+/** A loop's settings: any object (`{}` = back to defaults); none keeps the stored ones. */
+const START_INPUT = z
+  .record(z.string(), z.unknown())
+  .nullish()
+  .describe("Settings for this key; {} = back to defaults; empty keeps them");
+
 /** The start/stop/loop/status handlers around one `pass`. */
 export function makeLoopObject<S extends object>(
   name: string,
@@ -200,40 +208,49 @@ export function makeLoopObject<S extends object>(
     name,
     handlers: {
       /** One pass now; the loop (if any) is untouched. */
-      sync: async (ctx: restate.ObjectContext): Promise<PassOutcome<S>> => pass(ctx),
+      sync: exclusiveHandler(
+        { input: NO_INPUT },
+        async (ctx: restate.ObjectContext): Promise<PassOutcome<S>> => pass(ctx),
+      ),
 
       /**
        * Begin looping; a no-op when already running. A body replaces this key's
        * settings (`{}` = back to defaults) and applies from the next pass; no body
        * keeps them.
        */
-      start: async (
-        ctx: restate.ObjectContext,
-        settings?: Record<string, unknown> | null,
-      ): Promise<LoopStatus<S>> => {
-        if (settings !== undefined && settings !== null) {
-          if (Object.keys(settings).length > 0) ctx.set(SETTINGS, settings);
-          else ctx.clear(SETTINGS);
-        }
-        const running = (await ctx.get<boolean>(RUNNING)) ?? false;
-        if (!running) {
-          const generation = ((await ctx.get<number>(GENERATION)) ?? 0) + 1;
-          ctx.set(GENERATION, generation);
-          ctx.set(RUNNING, true);
-          self(ctx).loop(generation);
-        }
-        return status(ctx, true);
-      },
+      start: exclusiveHandler(
+        { input: START_INPUT },
+        async (
+          ctx: restate.ObjectContext,
+          settings?: Record<string, unknown> | null,
+        ): Promise<LoopStatus<S>> => {
+          if (settings !== undefined && settings !== null) {
+            if (Object.keys(settings).length > 0) ctx.set(SETTINGS, settings);
+            else ctx.clear(SETTINGS);
+          }
+          const running = (await ctx.get<boolean>(RUNNING)) ?? false;
+          if (!running) {
+            const generation = ((await ctx.get<number>(GENERATION)) ?? 0) + 1;
+            ctx.set(GENERATION, generation);
+            ctx.set(RUNNING, true);
+            self(ctx).loop(generation);
+          }
+          return status(ctx, true);
+        },
+      ),
 
       /** The loop stops after the pass in flight, if any. */
-      stop: async (ctx: restate.ObjectContext): Promise<LoopStatus<S>> => {
-        ctx.set(RUNNING, false);
-        if (hooks.onStop) await hooks.onStop(ctx);
-        return status(ctx, false);
-      },
+      stop: exclusiveHandler(
+        { input: NO_INPUT },
+        async (ctx: restate.ObjectContext): Promise<LoopStatus<S>> => {
+          ctx.set(RUNNING, false);
+          if (hooks.onStop) await hooks.onStop(ctx);
+          return status(ctx, false);
+        },
+      ),
 
       /** One iteration: pass, then the next one after a durable delay. Only the loop itself sends it. */
-      loop: restate.handlers.object.exclusive(
+      loop: exclusiveHandler(
         { ingressPrivate: true },
         async (ctx: restate.ObjectContext, generation?: number | null): Promise<void> => {
           if (!((await ctx.get<boolean>(RUNNING)) ?? false)) return;
@@ -246,7 +263,8 @@ export function makeLoopObject<S extends object>(
         },
       ),
 
-      status: restate.handlers.object.shared(
+      status: sharedHandler(
+        { input: NO_INPUT },
         async (ctx: restate.ObjectSharedContext): Promise<LoopStatus<S>> =>
           status(ctx, (await ctx.get<boolean>(RUNNING)) ?? false),
       ),

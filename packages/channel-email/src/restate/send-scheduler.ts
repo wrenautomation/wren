@@ -21,7 +21,7 @@ import * as restate from "@restatedev/restate-sdk";
 import { finishRun, openRun } from "@wren/core";
 import type { Calendar } from "@wren/core/calendar";
 import { type Notifier, plural } from "@wren/core/notify";
-import { unitOfKey } from "@wren/core/restate";
+import { exclusiveHandler, NO_INPUT, sharedHandler, unitOfKey } from "@wren/core/restate";
 import type { Db } from "@wren/db";
 import type { SendStats } from "../send/deliver.js";
 import type { SendPolicy } from "../send/policy.js";
@@ -141,32 +141,41 @@ export function makeSendScheduler(deps: SendSchedulerDeps) {
     name: "SendScheduler",
     handlers: {
       /** Run one tick now; the loop (if any) is untouched, unless the scope is gone: then it ends, as its own next tick would end it. */
-      tick: async (ctx: restate.ObjectContext): Promise<TickOutcome | null> => {
-        const outcome = await runTick(ctx);
-        if (!outcome && ((await ctx.get<boolean>(RUNNING)) ?? false)) ctx.set(RUNNING, false);
-        return outcome;
-      },
+      tick: exclusiveHandler(
+        { input: NO_INPUT, effect: "sends" },
+        async (ctx: restate.ObjectContext): Promise<TickOutcome | null> => {
+          const outcome = await runTick(ctx);
+          if (!outcome && ((await ctx.get<boolean>(RUNNING)) ?? false)) ctx.set(RUNNING, false);
+          return outcome;
+        },
+      ),
 
       /** Begin looping; a no-op when already running. */
-      start: async (ctx: restate.ObjectContext): Promise<SchedulerStatus> => {
-        const running = (await ctx.get<boolean>(RUNNING)) ?? false;
-        if (!running) {
-          const generation = ((await ctx.get<number>(GENERATION)) ?? 0) + 1;
-          ctx.set(GENERATION, generation);
-          ctx.set(RUNNING, true);
-          ctx.objectSendClient(scheduler, ctx.key).loop(generation);
-        }
-        return status(ctx, true);
-      },
+      start: exclusiveHandler(
+        { input: NO_INPUT },
+        async (ctx: restate.ObjectContext): Promise<SchedulerStatus> => {
+          const running = (await ctx.get<boolean>(RUNNING)) ?? false;
+          if (!running) {
+            const generation = ((await ctx.get<number>(GENERATION)) ?? 0) + 1;
+            ctx.set(GENERATION, generation);
+            ctx.set(RUNNING, true);
+            ctx.objectSendClient(scheduler, ctx.key).loop(generation);
+          }
+          return status(ctx, true);
+        },
+      ),
 
       /** The loop stops after the tick in flight, if any. */
-      stop: async (ctx: restate.ObjectContext): Promise<SchedulerStatus> => {
-        ctx.set(RUNNING, false);
-        return status(ctx, false);
-      },
+      stop: exclusiveHandler(
+        { input: NO_INPUT },
+        async (ctx: restate.ObjectContext): Promise<SchedulerStatus> => {
+          ctx.set(RUNNING, false);
+          return status(ctx, false);
+        },
+      ),
 
       /** One iteration: tick, then the next one after a durable delay. Only the loop itself sends it. */
-      loop: restate.handlers.object.exclusive(
+      loop: exclusiveHandler(
         { ingressPrivate: true },
         async (ctx: restate.ObjectContext, generation?: number | null): Promise<void> => {
           if (!((await ctx.get<boolean>(RUNNING)) ?? false)) return;
@@ -184,7 +193,8 @@ export function makeSendScheduler(deps: SendSchedulerDeps) {
         },
       ),
 
-      status: restate.handlers.object.shared(
+      status: sharedHandler(
+        { input: NO_INPUT },
         async (ctx: restate.ObjectSharedContext): Promise<SchedulerStatus> =>
           status(ctx, (await ctx.get<boolean>(RUNNING)) ?? false),
       ),
