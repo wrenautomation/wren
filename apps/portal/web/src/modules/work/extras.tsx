@@ -6,6 +6,8 @@ import { OpenFile, Thread } from "./bits.js";
 import { at } from "./nav.js";
 
 type Extras = NonNullable<ListPage["extras"]>;
+/** A link in the panel keeps its own width. */
+const START = "justify-self-start";
 
 /** The update's words are its title; the thread goes under. */
 export const updateExtras: Extras = (detail, props) => {
@@ -31,7 +33,15 @@ export const deliverableExtras: Extras = (detail, props) => {
   const d = detail as DeliverableView;
   return {
     lead: d.url ? (
-      <ButtonLink href={d.url} target="_blank" rel="noopener" tone="secondary" size="sm" arrow>
+      <ButtonLink
+        href={d.url}
+        target="_blank"
+        rel="noopener"
+        tone="secondary"
+        size="sm"
+        arrow
+        className={START}
+      >
         Open
       </ButtonLink>
     ) : d.file ? (
@@ -55,13 +65,14 @@ export const paperExtras: Extras = (_, { row, team }) => {
       <ButtonLink
         href={at("contract", { e: id.slice(1) })}
         tone={open && !team ? "primary" : "secondary"}
+        className={START}
         size="sm"
         arrow
       >
         {open && !team ? "Read and sign" : "Read it"}
       </ButtonLink>
     ) : id.startsWith("f") ? (
-      <ButtonLink href="/account/billing" tone="secondary" size="sm" arrow>
+      <ButtonLink href="/account/billing" tone="secondary" size="sm" arrow className={START}>
         Billing
       </ButtonLink>
     ) : null,
