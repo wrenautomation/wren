@@ -49,6 +49,7 @@ const ADDED = {
     "messages.offered_times",
     "documents.html_key",
     "documents.tel_hrefs",
+    "companies.linkedin_url",
   ]),
   constraints: new Set(["uq_messages_link_code"]),
   indexes: new Set([
