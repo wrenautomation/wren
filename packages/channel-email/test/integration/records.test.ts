@@ -105,6 +105,7 @@ describe("email records", () => {
     expect(page.rows).toMatchObject([
       {
         id: "sec_ria",
+        campaign: "Sec ria",
         sent: 1,
         replies: 1,
         replyRate: { n: 1, of: 1 },
@@ -209,7 +210,7 @@ describe("email records", () => {
     const page = await serve().list({ record: "email.reply", view: "waiting" });
     expect(page.counts).toEqual({ waiting: 1, booked: 0, all: 1 });
     expect(page.rows).toMatchObject([
-      { who: "Jane Doe", state: "proposed", campaign: "sec_ria", words: "a reply" },
+      { who: "Jane Doe", state: "proposed", campaign: "Sec ria", words: "a reply" },
     ]);
     const one = await serve().get({ record: "email.reply", id: String(page.rows[0]?.id) });
     expect(one.activity?.map((a) => a.kind).sort()).toEqual(["bounce", "reply", "sent"]);
@@ -226,7 +227,9 @@ describe("email records", () => {
       declined: 1,
     });
     const lead = await serve().list({ record: "email.firm", view: "lead" });
-    expect(lead.rows).toMatchObject([{ stage: "lead", domain: "oak.example" }]);
+    expect(lead.rows).toMatchObject([
+      { stage: "lead", domain: "oak.example", campaign: "Sec ria" },
+    ]);
   });
 
   it("model usage by month", async () => {

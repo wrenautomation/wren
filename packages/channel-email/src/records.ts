@@ -49,7 +49,6 @@ export const campaignRecord = (env: SendPolicy): RecordType =>
         ].filter(Boolean);
         return {
           ...r,
-          name: id.charAt(0).toUpperCase() + id.slice(1).replaceAll("_", " "),
           state: policy.nicheOpenerCap(id) === 0 ? "follow_ups" : "opening",
           kill_switch: policy.killSwitchOn(id) ? "on" : "off",
           openers_per_day: policy.nicheOpenerCap(id),
@@ -184,7 +183,7 @@ export const replyRecord = defineRecord({
     received: date(),
     start: date("Proposed time"),
     timeZone: text("Time zone"),
-    campaign: text("Campaign", { from: "niche" }),
+    campaign: text("Campaign"),
     subject: text(),
     words: cited("Their words"),
     draft: cited("Our draft"),
@@ -222,7 +221,7 @@ export const firmRecord = defineRecord({
   subtitle: "campaign",
   fields: {
     name: company("Firm", { domain: "domain" }),
-    campaign: text("Campaign", { from: "niche" }),
+    campaign: text("Campaign"),
     stage: status({
       lead: { label: "Verified lead", tone: "good" },
       named: { label: "Named person", tone: "neutral" },

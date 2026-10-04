@@ -11,9 +11,14 @@ const AGE = sql.raw(`case when month = date_trunc('month', current_date)::date t
     when month = (date_trunc('month', current_date) - interval '1 month')::date then 'last_month'
     else 'earlier' end`);
 
+/** A campaign's name from its niche key: "recruiting" is "Recruiting", "sec_ria" is "Sec ria". */
+const NAME = (key: string) =>
+  sql.raw(`upper(left(${key}, 1)) || replace(substr(${key}, 2), '_', ' ')`);
+
 /** Each campaign (niche): who it enrolled and reached, what went out, who answered. */
 export const emailCampaignRecords = pgView("email_campaign_records", {
   id: text("id"),
+  name: text("name"),
   enrolled: bigint("enrolled", { mode: "number" }),
   reached: bigint("reached", { mode: "number" }),
   sent: bigint("sent", { mode: "number" }),
@@ -22,7 +27,7 @@ export const emailCampaignRecords = pgView("email_campaign_records", {
   bounces: bigint("bounces", { mode: "number" }),
   lastSent: timestamp("last_sent", { withTimezone: true }),
 }).as(sql`
-  select e.niche::text id, count(*) enrolled,
+  select e.niche::text id, ${NAME("e.niche::text")} "name", count(*) enrolled,
     count(*) filter (where s.openers > 0) reached,
     coalesce(sum(s.openers + s.followups), 0)::bigint sent,
     count(*) filter (where i.replies > 0) replies,
@@ -56,6 +61,7 @@ export const emailReplyRecords = pgView("email_reply_records", {
   timeZone: text("time_zone"),
   detail: text("detail"),
   niche: text("niche"),
+  campaign: text("campaign"),
   received: timestamp("received", { withTimezone: true }),
 }).as(sql`
   select ci.id, ci.state::text state,
@@ -63,7 +69,8 @@ export const emailReplyRecords = pgView("email_reply_records", {
       p.full_name, te.from_address, ci.email)::text who,
     co.name::text company, co.domain::text domain, ci.email::text email, te.subject,
     coalesce(te.body_text, te.snippet) words, m.body draft, ci.start, ci.time_zone::text time_zone,
-    ci.detail, e.niche::text niche, coalesce(te.received_at, ci.created_at) received
+    ci.detail, e.niche::text niche, ${NAME("e.niche::text")} campaign,
+    coalesce(te.received_at, ci.created_at) received
   from call_invites ci
   join thread_events te on te.id = ci.thread_event_id
   left join messages m on m.id = ci.reply_message_id
@@ -97,6 +104,7 @@ export const emailFirmRecords = pgView("email_firm_records", {
   name: text("name"),
   domain: text("domain"),
   niche: text("niche"),
+  campaign: text("campaign"),
   stage: text("stage"),
   declined: text("declined"),
   added: timestamp("added", { withTimezone: true }),
@@ -105,7 +113,7 @@ export const emailFirmRecords = pgView("email_firm_records", {
   lead: timestamp("lead", { withTimezone: true }),
 }).as(sql`
   select c.id, coalesce(c.name, c.domain, '?')::text "name", c.domain::text domain,
-    c.niche::text niche,
+    c.niche::text niche, ${NAME("c.niche::text")} campaign,
     case when c.decline_reason is not null then 'declined' when l.first is not null then 'lead'
       when p.first is not null then 'named' when d.first is not null then 'crawled'
       when c.domain is not null then 'domain' else 'found' end stage,
