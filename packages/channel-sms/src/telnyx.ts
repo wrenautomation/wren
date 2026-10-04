@@ -318,13 +318,15 @@ export class TelnyxProvider implements SmsProvider {
         op: string;
         country_code: string;
       }[];
-      const mine = have.filter((c) => c.op === keyword);
+      // Telnyx names the HELP reply `info`.
+      const op = keyword === "help" ? "info" : keyword;
+      const mine = have.filter((c) => c.op === op);
       if (text === null) {
         for (const c of mine) await this.write("DELETE", `${base}/${c.id}`);
         return;
       }
       for (const country of PHONE_COUNTRIES) {
-        const body = { op: keyword, keywords: words, resp_text: text, country_code: country };
+        const body = { op, keywords: words, resp_text: text, country_code: country };
         const found = mine.find((c) => c.country_code === country);
         await (found
           ? this.write("PUT", `${base}/${found.id}`, body)

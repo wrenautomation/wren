@@ -225,3 +225,34 @@ describe("10DLC registration", () => {
     expect(seen[0]?.url).toContain("/10dlc/phone_number_campaigns/%2B13125550100");
   });
 });
+
+describe("TelnyxProvider.keywordReplies", () => {
+  it("sends the HELP reply as Telnyx's `info` op, one per country", async () => {
+    const seen: { url: string; init: RequestInit | undefined }[] = [];
+    const t = new TelnyxProvider({
+      apiKey: "k",
+      messagingProfileId: "mp",
+      fetch: fakeFetch(200, { data: [] }, seen),
+    });
+    await t.keywordReplies.set(
+      "help",
+      ["HELP", "INFO"],
+      "Email us for help. Reply STOP to opt out.",
+    );
+    const posts = seen.filter((s) => s.init?.method === "POST");
+    expect(posts.map((p) => JSON.parse(String(p.init?.body)))).toEqual([
+      {
+        op: "info",
+        keywords: ["HELP", "INFO"],
+        resp_text: "Email us for help. Reply STOP to opt out.",
+        country_code: "US",
+      },
+      {
+        op: "info",
+        keywords: ["HELP", "INFO"],
+        resp_text: "Email us for help. Reply STOP to opt out.",
+        country_code: "CA",
+      },
+    ]);
+  });
+});

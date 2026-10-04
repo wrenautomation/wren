@@ -141,8 +141,17 @@ export function makeSmsSender(deps: SmsDeps) {
   });
 }
 
+/** Say which US numbers just landed on the campaign. */
+async function noticeRegistered(notifier: Notifier | undefined, stats: RegistrationStats) {
+  if (!notifier || stats.registered.length === 0) return;
+  await notifier.notify(
+    "SMS: US numbers registered",
+    `${stats.registered.map(formatPhone).join(", ")} ${stats.registered.length === 1 ? "is" : "are"} on the 10DLC campaign and can text US phones now. The ramp starts today.`,
+  );
+}
+
 export function makeSmsEvents(
-  deps: Pick<SmsDeps, "db" | "provider" | "notifier" | "pusher" | "clock">,
+  deps: Pick<SmsDeps, "db" | "provider" | "notifier" | "pusher" | "clock" | "campaignId">,
 ) {
   return restate.service({
     name: "SmsEvents",
@@ -161,7 +170,7 @@ export function makeSmsEvents(
           );
         }
         const now = await nowFor(ctx, deps.clock);
-        return ctx.run("apply", () =>
+        const applied = await ctx.run("apply", () =>
           applyEvent(deps.db, body, event, {
             provider: deps.provider.name,
             now,
@@ -169,6 +178,16 @@ export function makeSmsEvents(
             pusher: deps.pusher ?? null,
           }),
         );
+        // Telnyx says when the campaign or a number's attachment changes: run the
+        // registration pass now, not at the next watch, so a US number is asked for
+        // the moment carriers approve and marked ready the moment it attaches.
+        if (!applied.duplicate && event.type.startsWith("10dlc.")) {
+          const stats = await ctx.run("register", () =>
+            watchRegistration(deps.db, deps.provider, deps.campaignId, now),
+          );
+          await ctx.run("registered notice", () => noticeRegistered(deps.notifier, stats));
+        }
+        return applied;
       },
     },
   });
@@ -499,11 +518,7 @@ export function makeSmsWatch(deps: SmsDeps) {
       ledger: { command: "sms watch", argv: {} },
       body: async (runId) => {
         const registration = await watchRegistration(deps.db, deps.provider, deps.campaignId, now);
-        if (deps.notifier && registration.registered.length > 0)
-          await deps.notifier.notify(
-            "SMS: US numbers registered",
-            `${registration.registered.map(formatPhone).join(", ")} ${registration.registered.length === 1 ? "is" : "are"} on the 10DLC campaign and can text US phones now. The ramp starts today.`,
-          );
+        await noticeRegistered(deps.notifier, registration);
         // A site outage costs this pass its form follow-up, not its health checks.
         let forms: FormStats | null = null;
         let formsError: string | undefined;
@@ -566,7 +581,7 @@ export function makeSmsWatch(deps: SmsDeps) {
           campaign.status === "rejected"
             ? `Rejected (${campaign.detail ?? "no reason given"}). Fix it and resubmit in Telnyx.`
             : campaign.status === "approved"
-              ? "Carriers approved it. US numbers get attached over the next few watch runs."
+              ? "Carriers approved it. US numbers get attached within minutes."
               : "Still in review.",
           campaign.status === "rejected" ? "warning" : "info",
         ),

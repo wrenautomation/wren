@@ -227,4 +227,27 @@ describe("sms on restate", () => {
     });
     expect(await desk.register()).toMatchObject({ skipped: "no US number waits" });
   });
+
+  it("a 10DLC webhook attaches a US number at once, without waiting for the watch", async () => {
+    await numbers(pg.db, provider, ["+13125550111"], "2026-09-01", { registered: false });
+    const svc = ingress().serviceClient<SmsEventsService>({ name: "SmsEvents" });
+    const update = (id: string, type: string) =>
+      svc.ingest({ kind: "ignored", eventId: id, type } as never);
+    provider.registration.campaignState = { status: "pending", raw: "MNO_PENDING", detail: null };
+    await update("c-1", "10dlc.campaign.update");
+    expect(provider.registration.assignments.has("+13125550111")).toBe(false);
+    provider.registration.campaignState = {
+      status: "approved",
+      raw: "MNO_PROVISIONED",
+      detail: null,
+    };
+    await update("c-2", "10dlc.campaign.update"); // asks the carriers
+    expect(provider.registration.assignments.get("+13125550111")?.status).toBe("pending");
+    provider.registration.settle();
+    await update("c-3", "10dlc.phone_number.update"); // the attachment landed
+    const desk = ingress().serviceClient<SmsDeskService>({ name: "SmsDesk" });
+    const row = (await desk.numbers()).numbers.find((x) => x.e164 === "+13125550111");
+    expect(row?.registeredAt).toBe(OPEN.toISOString());
+    expect(n.seen.map((s) => s.title)).toContain("SMS: US numbers registered");
+  });
 });
