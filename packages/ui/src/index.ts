@@ -82,7 +82,6 @@ export {
   Gate,
   type NavItem,
   type OpenApp,
-  type ShellNotice,
   type Workspace,
   type WorkspaceOption,
 } from "./shell.js";

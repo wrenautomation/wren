@@ -46,6 +46,8 @@ export interface ListPage extends PageBase {
   record: string;
   /** What fills the list, said while it's empty: one line, or one per view. */
   empty?: string | Record<string, string>;
+  /** The demo shows it while the queue is empty: a labeled walk-through of what lands there. */
+  example?: ReactNode;
   /** What can be done to its records; the type's meta says which apply, the demo runs them here. */
   actions?: Action[];
   /** The columns shown until the viewer picks others; every one when left out. */

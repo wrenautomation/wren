@@ -51,6 +51,7 @@ function Queue({
   api,
   place,
   empty,
+  example,
   extras,
   acts,
   title,
@@ -146,9 +147,11 @@ function Queue({
       ) : !page.data ? (
         <ListSkeleton />
       ) : !rows.length ? (
-        <p className="py-10 text-center text-[13px] text-(--ui-ink-2)">
-          {emptyOf(empty, ask.view, meta.name.many)}
-        </p>
+        (example ?? (
+          <p className="py-10 text-center text-[13px] text-(--ui-ink-2)">
+            {emptyOf(empty, ask.view, meta.name.many)}
+          </p>
+        ))
       ) : (
         <div className="grid min-w-0 gap-6 md:grid-cols-[minmax(240px,320px)_minmax(0,1fr)]">
           <div className={cn("grid content-start gap-2", inItem && "max-md:hidden")}>

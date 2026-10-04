@@ -43,6 +43,8 @@ export interface OverviewTop {
   href: string;
   /** The fields beside each title. */
   fields: string[];
+  /** A field read in full under each title: why this one is first. */
+  line?: string;
   /** Said while it's empty. */
   empty: string;
 }
@@ -253,6 +255,7 @@ function Top({ top, meta, api }: { top: OverviewTop; meta: RecordMeta; api: Reco
     api.list({ ...ask, ...(sort ? { sort } : {}), limit: TOP }),
   );
   const fields = top.fields.flatMap((k) => meta.fields.find((f) => f.key === k) ?? []);
+  const line = top.line ? meta.fields.find((f) => f.key === top.line) : undefined;
   const rows: Row[] = page.data?.rows ?? [];
   const open = (r: Row) => {
     const { path, params } = split(top.href);
@@ -282,10 +285,20 @@ function Top({ top, meta, api }: { top: OverviewTop; meta: RecordMeta; api: Reco
             <li key={String(r.id)} className="border-t border-(--ui-hair)">
               <a
                 href={open(r)}
-                className="flex h-10 items-center gap-4 px-1 text-(--ui-ink) no-underline hover:bg-(--ui-wash)"
+                className={cn(
+                  "flex items-center gap-4 px-1 text-(--ui-ink) no-underline hover:bg-(--ui-wash)",
+                  line ? "py-2.5" : "h-10",
+                )}
               >
-                <span className="min-w-0 flex-1 truncate font-medium">
-                  {cap(titleOf(meta, r) || textOf(r.id))}
+                <span className="grid min-w-0 flex-1 gap-0.5">
+                  <span className="truncate font-medium">
+                    {cap(titleOf(meta, r) || textOf(r.id))}
+                  </span>
+                  {line && r[line.key] ? (
+                    <span className="text-pretty text-(--ui-ink-2)">
+                      <FieldCell field={line} cell={r[line.key]} />
+                    </span>
+                  ) : null}
                 </span>
                 {fields.map((f) => (
                   <span

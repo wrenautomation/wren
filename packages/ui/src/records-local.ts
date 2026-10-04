@@ -84,7 +84,7 @@ export function localRecords(server: RecordsApi): LocalRecords {
       const ids = (input.ids as (string | number)[] | undefined) ?? [];
       const action = actions.find((a) => a.handler === handler);
       const undone = actions.find((a) => a.undo === handler);
-      if (!action && !undone) throw new Error("This works once your list is live.");
+      if (!action && !undone) throw new Error("That action isn't on this page.");
       const done: (string | number)[] = [];
       for (const id of ids) {
         const k = keyOf(record, id);

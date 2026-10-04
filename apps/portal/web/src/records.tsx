@@ -222,6 +222,7 @@ export function TemplatePage({
         }),
     },
     empty: page.empty,
+    example: props.demo ? page.example : undefined,
     columns: page.columns,
     extras: extras && ((detail: unknown, row: Row) => extras(detail, { ...props, row })),
     head: page.head,

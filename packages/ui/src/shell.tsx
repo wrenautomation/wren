@@ -7,7 +7,6 @@
  */
 import { type ReactNode, useEffect, useRef } from "react";
 import { Skeleton } from "./components/ui/skeleton.js";
-import { Tag } from "./controls.js";
 import { cx, initials, num } from "./format.js";
 import { Icon, type IconName } from "./icons.js";
 import { type Theme, usePageTheme } from "./theme.js";
@@ -42,22 +41,13 @@ export interface Workspace {
   /** Null while it loads. */
   current: WorkspaceOption | null;
   options: WorkspaceOption[];
-  /** A word after the name ("Demo"). */
-  caption?: string | undefined;
+  /** A chip after the name that links somewhere ("Sample firm", to what's real in it). */
+  chip?: { label: string; href: string } | undefined;
   /** With one option, the name links here (the client's account). */
   href?: string | undefined;
   /** What the name leads to, or the switcher picks ("Account", "Client"). */
   label: string;
   onPick: (id: string) => void;
-}
-
-/** A note that stays on every page, folded above it: the label and lead show, the body unfolds. */
-export interface ShellNotice {
-  label: string;
-  lead: ReactNode;
-  body: ReactNode;
-  /** The unfold link ("What's real"). */
-  more: string;
 }
 
 export interface Brand {
@@ -73,7 +63,6 @@ export function AppShell({
   launcher,
   app,
   actions,
-  notice,
   page,
   theme,
   wide = false,
@@ -88,7 +77,6 @@ export function AppShell({
   app: OpenApp | null;
   /** The viewer's own buttons, top right. */
   actions?: ReactNode;
-  notice?: ShellNotice | undefined;
   /** Changes when the page does, which scrolls back to the top. */
   page: string;
   /** The client's look; without one it's Wren's. */
@@ -131,6 +119,17 @@ export function AppShell({
           /
         </span>
         <WorkspacePick workspace={workspace} />
+        {workspace.chip ? (
+          <a
+            className={cx(
+              EASE,
+              "flex-none rounded-(--ui-radius) bg-(--ui-fill) px-[7px] py-px text-[12px] font-medium whitespace-nowrap text-(--ui-ink-2) no-underline hover:text-(--ui-ink)",
+            )}
+            href={workspace.chip.href}
+          >
+            {workspace.chip.label}
+          </a>
+        ) : null}
         {actions ? (
           <div className="ml-auto flex flex-none items-center gap-1.5">{actions}</div>
         ) : null}
@@ -151,24 +150,12 @@ export function AppShell({
               "mx-auto px-11 pt-10 pb-20 outline-none max-[900px]:px-4 max-[900px]:pt-[22px] max-[900px]:pb-16",
               // A new page, or its data after the loader, fades in. Opacity only, so a fixed
               // panel inside keeps the window as its frame.
-              "[&>:not(details)]:animate-[ui-fade_0.4s_var(--ui-ease)_backwards]",
+              "[&>*]:animate-[ui-fade_0.4s_var(--ui-ease)_backwards]",
               wide ? "max-w-none min-[901px]:px-8" : "max-w-(--ui-main-width)",
             )}
             id="main"
             tabIndex={-1}
           >
-            {notice ? (
-              <details className="group/notice mb-7 rounded-(--ui-radius) bg-(--ui-tile) px-3.5 py-2.5 text-[13.5px]/[1.5] text-(--ui-ink-2) max-[900px]:mb-[22px] max-[900px]:px-3 max-[900px]:text-[13px] [&_b]:text-(--ui-ink)">
-                <summary className="flex cursor-pointer list-none flex-wrap items-center gap-x-2.5 gap-y-1 [&::-webkit-details-marker]:hidden">
-                  <Tag tone="rust">{notice.label}</Tag>
-                  <span>{notice.lead}</span>
-                  <span className="font-medium text-(--ui-ink) underline decoration-(--ui-ink-3) underline-offset-[0.24em] group-open/notice:hidden">
-                    {notice.more}
-                  </span>
-                </summary>
-                <p className="mt-2 max-w-[72ch]">{notice.body}</p>
-              </details>
-            ) : null}
             {children}
           </main>
         </div>
@@ -278,7 +265,7 @@ const WS_MARK =
 
 /** Whose workspace this is: a name (a link when it has one), or a switcher when there's more than one. */
 function WorkspacePick({ workspace }: { workspace: Workspace }) {
-  const { current, options, caption, href, label, onPick } = workspace;
+  const { current, options, href, label, onPick } = workspace;
   if (!current)
     return (
       <span className={WS} aria-busy="true">
@@ -292,11 +279,6 @@ function WorkspacePick({ workspace }: { workspace: Workspace }) {
         {initials(current.name)}
       </span>
       <span className="truncate text-[14px] font-semibold">{current.name}</span>
-      {caption ? (
-        <span className="flex-none rounded-(--ui-radius) bg-(--ui-fill) px-[7px] py-px text-[12px] font-medium whitespace-nowrap text-(--ui-ink-2) max-[900px]:hidden">
-          {caption}
-        </span>
-      ) : null}
     </>
   );
   if (options.length < 2)

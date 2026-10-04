@@ -24,6 +24,11 @@ describe("can", () => {
     expect(can({ ...team, demo: true }, { audience: "client" })).toBe(false);
   });
 
+  it("keeps the demo's own on the demo", () => {
+    expect(can(demo, { audience: "demo" })).toBe(true);
+    for (const v of [team, client, owner]) expect(can(v, { audience: "demo" })).toBe(false);
+  });
+
   it("checks role and feature, which the team always passes", () => {
     expect(can(owner, { role: "owner" })).toBe(true);
     expect(can(client, { role: "owner" })).toBe(false);

@@ -334,3 +334,7 @@ One implementer per phase, from this doc. Commit and push each step.
 - 2026-10-04 (S4): A mover's Email is their address at the new firm with its verdict, or nothing until one checks out. Their CRM address shows as "Old email" under Where now. People's Email column reads the same.
 - 2026-10-04 (S4): A record's fact named like a field takes that field's place. The person's Email uses it to show the address beside its verdict.
 - 2026-10-04 (S4): Why this score lists the reasons in words, no points. The first reason is the `reason` field, so a list can show it.
+- 2026-10-04 (S4): An Overview list can read one field in full under each title (`line`). Call first shows each person's top reason there.
+- 2026-10-04 (S4): The demo banner is gone, and the shell's notice with it. The top bar's chip reads "Sample firm" and links to What's real, a hidden reactivation page only the demo sees (audience `demo`). It says what is real, what is made up, what Wren wrote, and that actions reset on reload.
+- 2026-10-04 (S4): A Queue takes an `example`, shown in place of its empty line. Only the demo passes one: Replies walks through what happens when someone replies, tagged Example, with a dashed frame and a quoted sample reply so it never reads as a real one.
+- 2026-10-04 (S4): A demo action the page doesn't know says "That action isn't on this page.", not that it works once the list is live.

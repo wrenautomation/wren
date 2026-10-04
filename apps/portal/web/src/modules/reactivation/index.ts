@@ -6,8 +6,9 @@ import { EMAIL_ACTIONS, EMAIL_EMPTY, emailExtras, emailLegacy } from "./email.js
 import { Glance } from "./Glance.js";
 import { REACTIVATION } from "./nav.js";
 import { personExtras, personLegacy } from "./person.js";
+import { Real } from "./Real.js";
 import { Run } from "./Run.js";
-import { REPLY_ACTIONS, REPLY_EMPTY, replyExtras } from "./reply.js";
+import { REPLY_ACTIONS, REPLY_EMPTY, REPLY_EXAMPLE, replyExtras } from "./reply.js";
 
 const PERSON = "reactivation.person";
 const EMAIL = "reactivation.email";
@@ -100,6 +101,7 @@ export const reactivation: Module = {
           record: PERSON,
           href: people("view=call"),
           fields: ["company", "score"],
+          line: "reason",
           empty: "People who moved or whose firm is hiring show here once research finds them.",
         },
         {
@@ -141,6 +143,7 @@ export const reactivation: Module = {
       template: "queue",
       record: REPLY,
       empty: REPLY_EMPTY,
+      example: REPLY_EXAMPLE,
       actions: REPLY_ACTIONS,
       extras: replyExtras,
     },
@@ -153,6 +156,8 @@ export const reactivation: Module = {
       columns: ["value"],
       actions: SETTING_ACTIONS,
     },
+    // The demo's own, from the top bar's "Sample firm" chip.
+    { id: "real", label: "What's real", Page: Real, hidden: true, requires: { audience: "demo" } },
     // The client's plan and paperwork, here and not in an app of their own.
     ...ENGAGEMENT_PAGES,
   ],

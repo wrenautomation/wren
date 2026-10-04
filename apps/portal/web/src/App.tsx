@@ -17,7 +17,6 @@ import {
   PageHeader,
   type PaletteItem,
   readTheme,
-  type ShellNotice,
   type Theme,
   Toasts,
   type Viewer,
@@ -28,6 +27,7 @@ import { useCall } from "./load.js";
 import { type Module, type ModulePage, type PageProps, WREN } from "./module.js";
 import { useAccount } from "./modules/account/load.js";
 import { MODULES } from "./modules/index.js";
+import { REACTIVATION } from "./modules/reactivation/nav.js";
 import { TemplatePage } from "./records.js";
 import { navigate, useRoute } from "./route.js";
 
@@ -105,19 +105,6 @@ function place(path: string[], apps: Module[], known: boolean): Place {
   if (module && path.length === 1) return { kind: "go", to: firstOf(module) };
   return known ? { kind: "go", to: home } : { kind: "wait" };
 }
-
-const DEMO: ShellNotice = {
-  label: "Demo",
-  lead: "Built from a real agency's public client list.",
-  body: (
-    <>
-      <b>Real:</b> the companies, the people (last names shortened), their job changes, who's
-      hiring, and every source. <b>Made up:</b> owners, statuses, dates and email addresses, since
-      those live in a CRM we don't have.
-    </>
-  ),
-  more: "What's real",
-};
 
 const recall = (key: string) => {
   try {
@@ -235,7 +222,7 @@ export function App() {
         workspace={{
           current,
           options: operator ? [WREN, ...clients] : clients,
-          caption: demo ? "Demo" : undefined,
+          chip: demo ? { label: "Sample firm", href: `/${REACTIVATION}/real` } : undefined,
           href: account ? firstOf(account) : undefined,
           label: operator ? "Workspace" : clients.length > 1 ? "Client" : "Account",
           onPick: pick,
@@ -269,7 +256,6 @@ export function App() {
               }
             : null
         }
-        notice={demo ? DEMO : undefined}
         actions={
           <>
             {operator && !wren ? (

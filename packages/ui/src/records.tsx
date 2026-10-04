@@ -107,6 +107,8 @@ export interface RecordTemplateProps {
   place: Place;
   /** What fills an empty list, said when nothing narrows it: one line, or one per view. */
   empty?: string | Readonly<Record<string, string>> | undefined;
+  /** The Queue shows it in place of the empty line: a labeled example of what lands there. */
+  example?: ReactNode;
   /** The columns shown until the viewer picks others; every one when left out. */
   columns?: string[] | undefined;
   extras?: ((detail: unknown, row: Row) => RecordExtras) | undefined;
