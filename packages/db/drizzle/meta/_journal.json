@@ -442,6 +442,13 @@
       "when": 1791085403722,
       "tag": "0062_linkedin_lookups",
       "breakpoints": true
+    },
+    {
+      "idx": 63,
+      "version": "7",
+      "when": 1791085448228,
+      "tag": "0063_lead_sheet",
+      "breakpoints": true
     }
   ]
 }

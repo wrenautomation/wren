@@ -28,7 +28,7 @@ Citations: `packages/llm/src/client.ts:30`, `packages/llm/src/stage.ts:62`
 
 ## If you change this
 
-- **Hits:** every caller of `completeAndParse`; the `email_llm_calls` view's JSON paths (`packages/channel-email/src/views.ts:15`); `wren content costs`
+- **Hits:** every caller of `completeAndParse`; the `email_llm_calls` view's JSON paths (`packages/channel-email/src/views.ts:16`); `wren content costs`
 - **Does not hit:** anything deterministic downstream of a gate
 
 ## Surfaces

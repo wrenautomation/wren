@@ -14,6 +14,7 @@
     "./content/ingress": "./src/content/ingress.ts",
     "./content/restate": "./src/content/restate.ts",
     "./content/renewal": "./src/content/renewal.ts",
+    "./emails": "./src/emails.ts",
     "./feed": "./src/feed.ts",
     "./notify": "./src/notify.ts",
     "./outreach": "./src/outreach/index.ts",

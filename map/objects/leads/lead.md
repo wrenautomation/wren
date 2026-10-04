@@ -3,8 +3,8 @@ type: object
 cluster: leads
 universe: live
 status: verified
-verified: 2026-09-28 @ 83459e9
-entity: packages/core/src/schema.ts:219
+verified: 2026-10-03 @ 3a7fb74
+entity: packages/core/src/schema.ts:277
 ---
 
 # lead
@@ -13,7 +13,7 @@ One email address we might send to, with a status. Table `leads`. Not a company:
 
 ## Why this shape
 
-Status is the funnel: `imported → verified | undeliverable`, and `suppressed` (`LEAD_STATUSES`, `packages/core/src/schema.ts:27`; transitions `packages/core/src/state.ts:43`). Only an authoritative verdict moves it (`packages/channel-email/src/verification/service.ts:72`), so compose can trust `verified` without re-checking.
+Status is the funnel: `imported → verified | undeliverable`, and `suppressed` (`LEAD_STATUSES`, `packages/core/src/schema.ts:34`; transitions `packages/core/src/state.ts:43`). Only an authoritative verdict moves it (`packages/channel-email/src/verification/service.ts:233`), so compose can trust `verified` without re-checking.
 
 ## Shape
 
@@ -31,7 +31,7 @@ Citations: `packages/core/src/schema.ts:219`
 
 ## If you change this
 
-- **Hits:** the lead importer (`packages/core/src/ingest/importer.ts:381`); verification (`packages/channel-email/src/verification/service.ts:145`); resolution's promotion (`packages/channel-email/src/resolution/service.ts:739`); `LEAD_TRANSITIONS` (`packages/core/src/state.ts:43`); `verification_yield` view (`packages/channel-email/src/views.ts:102`)
+- **Hits:** the lead importer (`packages/core/src/ingest/importer.ts:402`); verification (`packages/channel-email/src/verification/service.ts:162`); resolution's promotion (`packages/channel-email/src/resolution/service.ts:729`); `LEAD_TRANSITIONS` (`packages/core/src/state.ts:43`); `verification_yield` view (`packages/channel-email/src/views.ts:103`); `lead_sheet` view, one row per lead with person and firm columns (`packages/channel-email/src/views.ts:354`)
 - **Does not hit:** `enrollments` (they carry their own `to_email`); SMS
 
 ## Surfaces
@@ -42,6 +42,7 @@ Citations: `packages/core/src/schema.ts:219`
 | `Discovery.verify`, `Resolution.verifyLeads` | move status |
 | `PoolScheduler` | drives the above |
 | compose | reads `verified` |
+| `wren email sheet --niche <n> [--csv]` | reads `lead_sheet` |
 
 ## See
 

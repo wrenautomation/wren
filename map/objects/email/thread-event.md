@@ -28,7 +28,7 @@ Citations: `packages/channel-email/src/schema.ts:306`
 
 ## If you change this
 
-- **Hits:** `inbox/sync.ts:422`, `:762`; `inbox/inbound.ts:474` (the pure classifier's kinds mirror `THREAD_EVENT_KINDS` by value); `inbox/disposition.ts:337`; `inbox/health.ts:90`; views `reply_outcomes`, `reply_by_evidence`, `review_outcomes` (`views.ts:132`, `:215`, `:233`); the digest; the console views `email_campaign_records`, `email_reply_records`, `email_reply_thread` (migration 0061)
+- **Hits:** `inbox/sync.ts:422`, `:762`; `inbox/inbound.ts:474` (the pure classifier's kinds mirror `THREAD_EVENT_KINDS` by value); `inbox/disposition.ts:337`; `inbox/health.ts:90`; views `reply_outcomes`, `reply_by_evidence`, `review_outcomes` (`views.ts:133`, `:240`, `:258`); the digest; the console views `email_campaign_records`, `email_reply_records`, `email_reply_thread` (migration 0061)
 - **Does not hit:** `open_events`; the send tick
 
 ## Surfaces

@@ -25,7 +25,7 @@ Citations: `packages/research/src/schema.ts:68`
 
 - **owned-by:** [[research/document]], [[leads/company]], [[ledger/run]]
 - **owns:** nothing; applying writes [[leads/person]] and the email pick
-- **joins:** `email_llm_calls`, `email_stage_costs` views (`packages/channel-email/src/views.ts:15`, `:40`)
+- **joins:** `email_llm_calls`, `email_stage_costs` views (`packages/channel-email/src/views.ts:16`, `:41`)
 
 ## If you change this
 

@@ -34,7 +34,16 @@ import {
 } from "@wren/channel-email";
 import type { QueueRefresh } from "@wren/channel-email/restate";
 import { ingressOf, type Settings } from "@wren/config";
-import { runImport, runPeopleImport, runScreen, type Suppression, suppressions } from "@wren/core";
+import {
+  type Company,
+  companies,
+  runImport,
+  runPeopleImport,
+  runScreen,
+  type Suppression,
+  suppressions,
+} from "@wren/core";
+import { toCsv } from "@wren/core/console";
 import type { Db } from "@wren/db";
 import {
   LEAD_SOURCE_FORMATS,
@@ -46,7 +55,7 @@ import {
 } from "@wren/niches";
 import { sizeFromPpp } from "@wren/research/companies";
 import type { Command } from "commander";
-import { desc, gte, sql } from "drizzle-orm";
+import { desc, gte, inArray, sql } from "drizzle-orm";
 import { registerAnswers } from "./answers.js";
 
 type WithDb = <T>(fn: (db: Db) => Promise<T>) => Promise<T>;
@@ -585,6 +594,67 @@ export function registerEmail(
       if (niche === null) throw new Error(`unknown niche ${opts.niche}`);
       const stats = await withDb((db) => runListedContacts(db, niche));
       console.log(`contacts: ${JSON.stringify(stats)}`);
+    });
+
+  email
+    .command("sheet")
+    .description(
+      "The lead sheet: one row per lead of a niche, person and firm columns (view lead_sheet)",
+    )
+    .requiredOption("--niche <name>", `one of ${[...NICHE_NAMES].sort().join(", ")}`)
+    .option("--csv", "print every column as CSV (redirect it out of the repo)")
+    .action(async (opts: { niche: string; csv?: boolean }) => {
+      const niche = requireNiche(opts.niche);
+      if (niche === null) throw new Error(`unknown niche ${opts.niche}`);
+      const spec = NICHES.find((n) => n.name === niche);
+      const rows = await withDb(async (db) => {
+        const rows = Array.from(
+          (await db.execute(sql`SELECT company_id, person_name, result_title, linkedin_url, email,
+            valid_email_on::text AS valid_email_on, email_type, mail_status, company_name,
+            company_domain, company_linkedin, company_location, industry, description
+            FROM lead_sheet WHERE niche = ${niche} ORDER BY company_name, lead_id`)) as Iterable<
+            Record<string, string | number | null>
+          >,
+        );
+        // The view knows the import's `geo`; a niche keeping its location under its own key fills the rest.
+        const missing = [
+          ...new Set(
+            rows.filter((r) => r.company_location === null).map((r) => Number(r.company_id)),
+          ),
+        ];
+        const firms = missing.length
+          ? new Map(
+              (
+                (await db
+                  .select()
+                  .from(companies)
+                  .where(inArray(companies.id, missing))) as Company[]
+              ).map((c) => [c.id, c]),
+            )
+          : new Map<number, Company>();
+        return rows.map(({ company_id, ...r }): Record<string, string | number | null> => {
+          const firm = firms.get(Number(company_id));
+          return {
+            ...r,
+            company_location: r.company_location ?? (firm && spec?.companyLocation(firm)) ?? null,
+          };
+        });
+      });
+      if (opts.csv) {
+        const columns = Object.keys(rows[0] ?? {});
+        console.log(toCsv({ columns, rows: rows.map((r) => columns.map((c) => r[c] ?? null)) }));
+        return;
+      }
+      for (const r of rows) {
+        const who = r.person_name
+          ? `${r.person_name}${r.result_title ? `, ${r.result_title}` : ""}`
+          : "-";
+        console.log(
+          `${r.company_name ?? "-"} (${r.company_domain ?? "-"})  ${who}  ${r.email} ${r.email_type} ${r.mail_status}` +
+            `${r.valid_email_on ? ` ${r.valid_email_on}` : ""}  ${r.company_location ?? "-"}  ${r.industry ?? "-"}`,
+        );
+      }
+      console.log(`${rows.length} leads (--csv for every column)`);
     });
 
   email
