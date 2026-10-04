@@ -21,13 +21,16 @@ import {
   GmailClient,
   GmailTransport,
   liftSuppression,
+  loadMailboxes,
   loadRoster,
   openOutcomes,
   pause,
   postmasterDays,
+  RoutedTransport,
   replyByArmStep,
   resume,
   runListedContacts,
+  SmtpTransport,
   senderDays,
   siteExport,
   variantOutcomes,
@@ -392,16 +395,30 @@ export function registerEmail(
       "one test mail per inbox, to another inbox in the fleet (mail stays inside the fleet)",
     )
     .action(async (opts: { niche?: string; send?: boolean }) => {
-      const active = activeSenders(
-        loadRoster(resolve(rootDir, settings.sendersFile), NICHE_NAMES),
+      const mailboxes = loadMailboxes(settings.mailboxesFile);
+      const senders = activeSenders(
+        loadRoster(resolve(rootDir, settings.sendersFile), NICHE_NAMES, new Set(mailboxes.keys())),
         opts.niche ?? null,
-      ).map((s) => s.address);
+      );
+      const active = senders.map((s) => s.address);
       if (active.length === 0) throw new Error("no active senders in scope — nothing to check");
       const client = new GmailClient({ keyPath: expandHome(settings.googleServiceAccount) });
-      const transport = new GmailTransport(client);
+      const smtp = new Map(
+        senders.flatMap((s) => {
+          const mailbox = s.transport === "smtp" ? mailboxes.get(s.address) : undefined;
+          return mailbox ? [[s.address, new SmtpTransport(mailbox)] as const] : [];
+        }),
+      );
+      const transport = new RoutedTransport(new GmailTransport(client), smtp);
       let failures = 0;
       const minted: string[] = [];
       for (const address of active) {
+        if (smtp.has(address)) {
+          // Its own login, no token to mint: --send proves it.
+          minted.push(address);
+          console.log(`smtp       ${address}`);
+          continue;
+        }
         try {
           await client.ensureToken(address);
           minted.push(address);

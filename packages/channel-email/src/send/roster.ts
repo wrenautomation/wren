@@ -6,11 +6,14 @@
  * address or an unknown niche silently ignored would mean a campaign
  * sending through the wrong inboxes.
  *
- * This module never imports the niche registry; the composition root passes
- * the registered names in for validation.
+ * This module never imports the niche registry or reads the mailboxes file;
+ * the composition root passes the registered names and the addresses with an
+ * SMTP/IMAP login in for validation.
  */
 import { existsSync, readFileSync } from "node:fs";
 import { parse as parseToml, TomlError } from "smol-toml";
+import { PlainDate } from "./dates.js";
+import type { Ramp } from "./policy.js";
 import { fillPage, visibleText } from "./transport.js";
 
 /** The roster is missing or does not describe a usable fleet: stops a run before any send. */
@@ -52,13 +55,31 @@ export interface Sender {
   readonly displayName: string | null;
   /** The sign-off every message from this inbox carries, or null to sign nothing. */
   readonly signature: Signature | null;
+  /** How it sends and is read: Gmail delegation, or SMTP/IMAP with a mailboxes-file login. */
+  readonly transport: SenderTransport;
+  /** Its own ramp, replacing the fleet's; null = the fleet ramp. */
+  readonly ramp: Ramp | null;
+  /** The DKIM selector its domain signs with; null = not named. */
+  readonly dkim: string | null;
 }
+
+export type SenderTransport = "gmail" | "smtp";
 
 export function senderDomain(sender: Pick<Sender, "address">): string {
   return sender.address.slice(sender.address.lastIndexOf("@") + 1);
 }
 
-const KNOWN_KEYS = new Set(["address", "display_name", "niches", "except", "suspended"]);
+const KNOWN_KEYS = new Set([
+  "address",
+  "display_name",
+  "niches",
+  "except",
+  "suspended",
+  "transport",
+  "ramp",
+  "dkim",
+]);
+const RAMP_KEYS = ["start", "from", "step", "ceiling"] as const;
 
 function isRecord(v: unknown): v is Record<string, unknown> {
   return typeof v === "object" && v !== null && !Array.isArray(v);
@@ -99,15 +120,50 @@ function signatureOf(raw: unknown, where: string): Signature | null {
   return new Signature(forms.text, forms.html);
 }
 
+function rampOf(raw: unknown, at: string): Ramp | null {
+  if (raw === undefined || raw === null) return null;
+  if (!isRecord(raw)) throw new RosterError(`${at}: 'ramp' must be { start, from, step, ceiling }`);
+  const keys = Object.keys(raw).sort().join(",");
+  if (keys !== [...RAMP_KEYS].sort().join(",")) {
+    throw new RosterError(`${at}: 'ramp' takes exactly start, from, step, ceiling`);
+  }
+  let start: PlainDate;
+  try {
+    // A bare TOML date comes back as a Date whose toISOString is the plain day.
+    const day = raw.start instanceof Date ? raw.start.toISOString() : raw.start;
+    if (typeof day !== "string") throw new Error();
+    start = PlainDate.fromIso(day);
+  } catch {
+    throw new RosterError(`${at}: ramp.start must be a date like 2026-10-20`);
+  }
+  const n: Record<"from" | "step" | "ceiling", number> = { from: 0, step: 0, ceiling: 0 };
+  for (const key of ["from", "step", "ceiling"] as const) {
+    const value = raw[key];
+    if (typeof value !== "number" || !Number.isInteger(value) || value < 1) {
+      throw new RosterError(`${at}: ramp.${key} must be a whole number of at least 1`);
+    }
+    n[key] = value;
+  }
+  if (n.from > n.ceiling) {
+    throw new RosterError(`${at}: ramp.from (${n.from}) is above its ceiling (${n.ceiling})`);
+  }
+  return { start, ...n };
+}
+
 function unknownNiches(names: readonly string[], known: ReadonlySet<string>): string[] {
   return [...new Set(names.filter((n) => !known.has(n)))].sort();
 }
 
-/** Parse and validate the roster text (`where` names the source for messages). */
+/**
+ * Parse and validate the roster text (`where` names the source for messages).
+ * With `mailboxes` (the addresses that have an SMTP/IMAP login), an smtp
+ * sender missing from it is an error.
+ */
 export function parseRoster(
   text: string,
   where: string,
   knownNiches?: ReadonlySet<string>,
+  mailboxes?: ReadonlySet<string>,
 ): Sender[] {
   let data: Record<string, unknown>;
   try {
@@ -215,6 +271,17 @@ export function parseRoster(
     ) {
       throw new RosterError(`${at}: 'display_name' must be a non-blank string`);
     }
+    const transport = entry.transport ?? "gmail";
+    if (transport !== "gmail" && transport !== "smtp") {
+      throw new RosterError(`${at}: 'transport' must be "gmail" or "smtp"`);
+    }
+    if (transport === "smtp" && mailboxes && !mailboxes.has(address)) {
+      throw new RosterError(`${at}: ${address} sends over smtp but has no mailboxes-file row`);
+    }
+    const dkim = entry.dkim;
+    if (dkim !== undefined && (typeof dkim !== "string" || !/^[a-z0-9._-]+$/i.test(dkim))) {
+      throw new RosterError(`${at}: 'dkim' must be a selector name like "google"`);
+    }
     senders.push({
       address,
       niches,
@@ -222,17 +289,24 @@ export function parseRoster(
       suspended,
       displayName: typeof displayName === "string" ? displayName.trim() : null,
       signature,
+      transport,
+      ramp: rampOf(entry.ramp, at),
+      dkim: dkim ?? null,
     });
   });
   return senders;
 }
 
 /** Load the roster file, refusing loudly on anything off. */
-export function loadRoster(path: string, knownNiches?: ReadonlySet<string>): Sender[] {
+export function loadRoster(
+  path: string,
+  knownNiches?: ReadonlySet<string>,
+  mailboxes?: ReadonlySet<string>,
+): Sender[] {
   if (!existsSync(path)) {
     throw new RosterError(`sender roster not found at ${path} — see spec D43 for its shape`);
   }
-  return parseRoster(readFileSync(path, "utf8"), path, knownNiches);
+  return parseRoster(readFileSync(path, "utf8"), path, knownNiches, mailboxes);
 }
 
 /** The senders a campaign may use: not suspended, and (when scoped) assigned to the niche. Order preserved. */

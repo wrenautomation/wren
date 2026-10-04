@@ -443,6 +443,47 @@ describe("the ramp", () => {
   });
 });
 
+describe("an inbox's own ramp", () => {
+  // Monday 2026-09-14: from 2, +3 every send day, to 10. Weekends and holidays count nothing.
+  const OWN = { start: PlainDate.fromIso("2026-09-14"), from: 2, step: 3, ceiling: 10 };
+  it.each([
+    [[2026, 9, 11], 0], // before its start: no sends at all
+    [[2026, 9, 14], 2], // send day 1
+    [[2026, 9, 15], 5],
+    [[2026, 9, 18], 10 /* 2 + 3 × 4 = 14, capped */],
+    [[2026, 9, 21], 10],
+  ] as const)("climbs every send day (%j → cap %i)", (day, cap) => {
+    const [y, m, d] = day;
+    expect(policy(RAMP).perInboxCap(at(y, m, d), OWN)).toBe(cap);
+  });
+  it("skips the weekend and the fleet's own ramp", () => {
+    const p = policy(RAMP);
+    // Mon 21: Mon–Fri elapsed = 5, the same count the fleet ramp sees.
+    expect(p.sendDaysElapsed(at(2026, 9, 21), OWN)).toBe(5);
+    expect(
+      p.sendDaysElapsed(at(2026, 9, 21), { ...OWN, start: PlainDate.fromIso("2026-09-17") }),
+    ).toBe(2);
+    expect(p.perInboxCap(at(2026, 9, 15))).toBe(5); // the fleet's ramp, untouched
+  });
+  it("describes one line per ramped inbox", () => {
+    const p = policy();
+    expect(p.describeRamp("ann@example.com", OWN, at(2026, 9, 15))).toBe(
+      "ann@example.com 5/day (day 2 of ramp to 10)",
+    );
+    expect(p.describeRamp("ann@example.com", OWN, at(2026, 9, 11))).toBe(
+      "ann@example.com 0/day (ramp to 10 starts 2026-09-14)",
+    );
+  });
+  it("paces the day by its own cap", () => {
+    const p = policy();
+    const sent = at(2026, 9, 14);
+    // One left of a cap of 2 shares the rest of the window; the fleet's cap of 5 leaves four.
+    expect(p.earliestNextSend(sent, 1, OWN).getTime()).toBeGreaterThan(
+      p.earliestNextSend(sent, 1).getTime(),
+    );
+  });
+});
+
 // Monday 2026-09-14, fleet window 13:00–19:00 America/New_York (EDT, UTC-4):
 // 17:00–23:00 UTC. Lead window 13:00–16:00 on the lead's clock.
 const LEAD_WINDOW = {

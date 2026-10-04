@@ -32,6 +32,7 @@ docker run -d --name wren-worker --restart unless-stopped --init \
   -e WREN_BUNDLE_ROOT=/app \
   -e WREN_SSM_ENV_PARAM=/wren/prod/env \
   -e WREN_SSM_ROSTER_PARAM=/wren/prod/senders_config \
+  -e WREN_SSM_MAILBOXES_PARAM=/wren/prod/mailboxes \
   -e WREN_SSM_BOX_PARAM=/wren/prod/box \
   -e WREN_RENDERER=cdp \
   -e WREN_LOG_LEVEL=info \

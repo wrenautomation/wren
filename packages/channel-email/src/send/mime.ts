@@ -1,7 +1,8 @@
 /**
- * The message exactly as it goes on the wire: multipart/alternative, utf-8,
- * our Message-ID verbatim. Both parts carry the SAME words: the plain part is
- * the body pinned at compose, the HTML part is `toHtml` of that same string.
+ * The message exactly as it goes on the wire, utf-8, our Message-ID verbatim.
+ * An opener (no In-Reply-To) is one text/plain part: no HTML, no pixel, no
+ * `?r=`. Anything in a thread is multipart/alternative, both parts the SAME
+ * words: the body pinned at compose, and `toHtml` of that same string.
  */
 import { randomBytes } from "node:crypto";
 import { type OutgoingEmail, renderedSubject, toHtml } from "./transport.js";
@@ -83,8 +84,13 @@ export function buildMime(
   if (email.inReplyTo) headers.push(["In-Reply-To", email.inReplyTo]);
   if (email.references?.length) headers.push(["References", email.references.join(" ")]);
   headers.push(["MIME-Version", "1.0"]);
+  const head = (): string => headers.map(([n, v]) => `${n}: ${assertHeaderSafe(n, v)}`).join(CRLF);
+  if (!email.inReplyTo) {
+    headers.push(["Content-Type", 'text/plain; charset="utf-8"']);
+    headers.push(["Content-Transfer-Encoding", "base64"]);
+    return Buffer.from(`${head()}${CRLF}${CRLF}${base64Lines(email.body)}${CRLF}`, "utf8");
+  }
   headers.push(["Content-Type", `multipart/alternative; boundary="${boundary}"`]);
-  const head = headers.map(([n, v]) => `${n}: ${assertHeaderSafe(n, v)}`).join(CRLF);
   const html = toHtml(
     email.body,
     email.signatureHtml ?? null,
@@ -105,5 +111,5 @@ export function buildMime(
     `--${boundary}--`,
     "",
   ].join(CRLF);
-  return Buffer.from(`${head}${CRLF}${CRLF}${body}`, "utf8");
+  return Buffer.from(`${head()}${CRLF}${CRLF}${body}`, "utf8");
 }

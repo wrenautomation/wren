@@ -17,6 +17,7 @@ import { buildMime, formatAddress } from "./mime.js";
 import { type OutgoingEmail, TransportAmbiguous, TransportRefused } from "./transport.js";
 
 const SENDER = "will@wren-automation.com";
+const IN_THREAD = { inReplyTo: "<m0@wren-automation.com>" } as const;
 
 function mail(overrides: Partial<OutgoingEmail> = {}): OutgoingEmail {
   return {
@@ -104,6 +105,11 @@ function parseMime(text: string): {
   }
   const boundary = /boundary="([^"]+)"/.exec(headers["Content-Type"] ?? "")?.[1] ?? "";
   const body = rest.join("\r\n\r\n");
+  if (!boundary) {
+    const type = /^([^;]+)/.exec(headers["Content-Type"] ?? "")?.[1] ?? "";
+    const content = Buffer.from(body.replaceAll("\r\n", ""), "base64").toString("utf8");
+    return { headers, parts: [{ type, content }] };
+  }
   const parts = body
     .split(`--${boundary}`)
     .filter((p) => p.trim() && p.trim() !== "--")
@@ -120,7 +126,7 @@ function parseMime(text: string): {
 }
 
 describe("what goes on the wire", () => {
-  it("an opener is two parts with our own headers", async () => {
+  it("an opener is one plain part with our own headers", async () => {
     const { client, seen } = build(accepted);
     const receipt = await new GmailTransport(client).send(mail());
     expect(receipt).toEqual({
@@ -146,24 +152,41 @@ describe("what goes on the wire", () => {
     expect(msg.headers.Date).toBeTruthy();
     expect(msg.headers["In-Reply-To"]).toBeUndefined();
     expect(msg.headers.References).toBeUndefined();
+    expect(msg.headers["Content-Type"]).toBe('text/plain; charset="utf-8"');
+    expect(msg.parts).toEqual([{ type: "text/plain", content: "Hello there.\nTwo lines." }]);
+  });
+
+  it("an opener drops the pixel and the link code: no HTML at all", async () => {
+    const { client, seen } = build(accepted);
+    const url = "https://t.wrenautomation.com/p/PxJb3nQ7RtY2kLmW9dF4vAeH.gif";
+    const body = "Hi.\n\n--\nWill\nwrenautomation.com";
+    await new GmailTransport(client).send(mail({ body, pixelUrl: url, linkCode: "abcd1234" }));
+    const raw = Buffer.from(
+      (JSON.parse(seen[0]?.body ?? "{}") as { raw: string }).raw,
+      "base64url",
+    ).toString("utf8");
+    expect(raw).not.toContain("multipart");
+    expect(sentMime(seen[0]).parts).toEqual([{ type: "text/plain", content: body }]);
+  });
+
+  it("a follow-up is two parts, the same words, and nothing remote", async () => {
+    const { client, seen } = build(accepted);
+    await new GmailTransport(client).send(mail(IN_THREAD));
+    const msg = sentMime(seen[0]);
     expect(msg.headers["Content-Type"]).toMatch(/^multipart\/alternative; boundary=/);
     expect(msg.parts.map((p) => p.type)).toEqual(["text/plain", "text/html"]);
     expect(msg.parts[0]?.content).toBe("Hello there.\nTwo lines.");
     expect(msg.parts[1]?.content).toContain("Hello there.");
-    const raw = Buffer.from(body.raw as string, "base64url")
-      .toString("utf8")
-      .toLowerCase();
     const decodedHtml = msg.parts[1]?.content.toLowerCase() ?? "";
     for (const forbidden of ["<img", "<script", "<link", "<style", "background:url", "srcset"]) {
       expect(decodedHtml).not.toContain(forbidden);
-      expect(raw).not.toContain(forbidden);
     }
   });
 
-  it("a tracked message carries the pixel and still nothing else", async () => {
+  it("a tracked follow-up carries the pixel and still nothing else", async () => {
     const { client, seen } = build(accepted);
     const url = "https://t.wrenautomation.com/p/PxJb3nQ7RtY2kLmW9dF4vAeH.gif";
-    await new GmailTransport(client).send(mail({ pixelUrl: url }));
+    await new GmailTransport(client).send(mail({ ...IN_THREAD, pixelUrl: url }));
     const msg = sentMime(seen[0]);
     const html = msg.parts[1]?.content ?? "";
     expect(html).toContain(url);
@@ -211,7 +234,7 @@ describe("what goes on the wire", () => {
 
   it("a unicode body survives as utf-8 in both parts", async () => {
     const { client, seen } = build(accepted);
-    await new GmailTransport(client).send(mail({ body: "Hola — café, naïve, 😀" }));
+    await new GmailTransport(client).send(mail({ ...IN_THREAD, body: "Hola — café, naïve, 😀" }));
     const msg = sentMime(seen[0]);
     expect(msg.parts[0]?.content).toContain("café");
     expect(msg.parts[1]?.content).toContain("café");

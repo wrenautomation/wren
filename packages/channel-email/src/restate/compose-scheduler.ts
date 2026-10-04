@@ -1,8 +1,8 @@
 /**
  * The queue-keeper: `ComposeScheduler/{niche}` keeps the approved opener queue a few
  * send days ahead of what the fleet may send, so the send loops never starve and nobody
- * composes by hand. A pass measures tomorrow's capacity (active inboxes for this niche ×
- * today's per-inbox cap, under the fleet and niche opener brakes), counts approved openers not
+ * composes by hand. A pass measures tomorrow's capacity (today's caps summed over this niche's
+ * active inboxes, each on its own ramp if it has one, under the fleet and niche opener brakes), counts approved openers not
  * yet sent, and composes the shortfall through the niche's enrollment plan, rule by rule,
  * auto-approved: first-contact companies first, then returning ones (lead recycling) with
  * what is left. Before counting, it refreshes the queue (`refreshQueue`): queued email takes
@@ -25,6 +25,7 @@ import type { Sequence } from "../outreach/sequences.js";
 import type { Template } from "../outreach/templates.js";
 import { AUDIENCES, type Audience, type RecontactPolicy } from "../recontact.js";
 import { campaignPolicy } from "../send/campaign-controls.js";
+import type { RampMap } from "../send/deliver.js";
 import { fillTimezones, type TimezoneFillStats } from "../send/lead-timezone.js";
 import type { SendPolicy } from "../send/policy.js";
 import { untilNextLocalDay } from "./postmaster-scheduler.js";
@@ -46,6 +47,8 @@ export interface Campaign {
   readonly factsView: string | null;
   /** Active roster addresses this niche may send from, roster order. */
   readonly senders: readonly string[];
+  /** Those of them on their own ramp. */
+  readonly ramps?: RampMap;
   /** Plain sign-off per sender, page slot already filled. */
   readonly signatures: Readonly<Record<string, string>>;
   /** Where the company keeps office hours, as the source wrote it, for the lead's clock. */
@@ -102,17 +105,19 @@ export async function queuedOpeners(db: Db, niche: string): Promise<number> {
   return rows[0]?.n ?? 0;
 }
 
-/** Openers per day this niche's inboxes may open, under the fleet and niche brakes when set. */
+/** Openers per day this niche's inboxes may open (each at its own ramp), under the fleet and niche brakes when set. */
 export function dailyOpenerCapacity(
   policy: SendPolicy,
   niche: string,
-  senders: number,
+  senders: readonly string[],
   now: Date,
+  ramps?: RampMap,
 ): number {
   const brakes = [policy.newOpenersPerDay, policy.nicheOpenerCap(niche)].filter(
     (cap): cap is number => cap !== null,
   );
-  return Math.min(policy.perInboxCap(now) * senders, ...brakes);
+  const inboxes = senders.reduce((sum, s) => sum + policy.perInboxCap(now, ramps?.[s] ?? null), 0);
+  return Math.min(inboxes, ...brakes);
 }
 
 /** One top-up for `campaign`, as a plain function so an operator command and the loop agree. */
@@ -156,8 +161,9 @@ export async function topUp(
   const capacity = dailyOpenerCapacity(
     opts.policy,
     campaign.niche,
-    campaign.senders.length,
+    campaign.senders,
     opts.now,
+    campaign.ramps,
   );
   const refresh = await refreshCampaign(db, campaign, opts.trackOpens);
   const queued = await queuedOpeners(db, campaign.niche);

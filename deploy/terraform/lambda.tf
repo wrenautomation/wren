@@ -25,6 +25,19 @@ resource "aws_ssm_parameter" "roster" {
   }
 }
 
+# SMTP/IMAP logins for the roster's smtp inboxes, address → {smtp, imap}. autobrowse's
+# `credentials` step merges into it; Terraform only makes sure it exists.
+resource "aws_ssm_parameter" "mailboxes" {
+  name        = "${local.ssm_root}/mailboxes"
+  description = "JSON address -> {smtp, imap} logins; written by autobrowse credentials"
+  type        = "SecureString"
+  value       = "{}"
+
+  lifecycle {
+    ignore_changes = [value]
+  }
+}
+
 resource "aws_cloudwatch_log_group" "worker" {
   name              = "/aws/lambda/${local.prefix}-worker"
   retention_in_days = 30
@@ -54,7 +67,7 @@ data "aws_iam_policy_document" "worker" {
   statement {
     sid       = "ReadEnv"
     actions   = ["ssm:GetParameter"]
-    resources = [aws_ssm_parameter.env.arn, aws_ssm_parameter.roster.arn]
+    resources = [aws_ssm_parameter.env.arn, aws_ssm_parameter.roster.arn, aws_ssm_parameter.mailboxes.arn]
   }
   statement {
     sid       = "DecryptSsm"
@@ -123,12 +136,13 @@ resource "aws_lambda_function" "worker" {
   environment {
     variables = merge(
       {
-        WREN_SSM_ENV_PARAM    = aws_ssm_parameter.env.name
-        WREN_SSM_ROSTER_PARAM = aws_ssm_parameter.roster.name
-        WREN_RENDERER         = var.browser_token == "" ? "browserbase" : "cdp"
-        WREN_LOG_LEVEL        = "info"
-        WREN_MEDIA_BUCKET     = aws_s3_bucket.media.bucket
-        WREN_FILES_BUCKET     = aws_s3_bucket.files.bucket
+        WREN_SSM_ENV_PARAM       = aws_ssm_parameter.env.name
+        WREN_SSM_ROSTER_PARAM    = aws_ssm_parameter.roster.name
+        WREN_SSM_MAILBOXES_PARAM = aws_ssm_parameter.mailboxes.name
+        WREN_RENDERER            = var.browser_token == "" ? "browserbase" : "cdp"
+        WREN_LOG_LEVEL           = "info"
+        WREN_MEDIA_BUCKET        = aws_s3_bucket.media.bucket
+        WREN_FILES_BUCKET        = aws_s3_bucket.files.bucket
         # The pool chain runs on the Postgres box (deploy/scripts/box-worker.sh), not here.
         WREN_POOL_CHAIN_HOST = "box"
       },

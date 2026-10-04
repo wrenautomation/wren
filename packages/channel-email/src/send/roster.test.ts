@@ -3,7 +3,8 @@ import { mkdtempSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
-import { activeSenders, loadRoster, RosterError, senderDomain } from "./roster.js";
+import { PlainDate } from "./dates.js";
+import { activeSenders, loadRoster, parseRoster, RosterError, senderDomain } from "./roster.js";
 
 const NICHES: ReadonlySet<string> = new Set(["agencies", "sec_ria"]);
 
@@ -192,5 +193,47 @@ describe("the sign-off block", () => {
     const text =
       '[signature]\ntext = "--"\nhtml = "--"\nfooter = "x"\n\n[[senders]]\naddress = "a@x.com"\nniches = "all"\n';
     expect(() => loadRoster(rosterFile(text), NICHES)).toThrow("knows only 'text' and 'html'");
+  });
+});
+
+describe("transport, ramp and dkim", () => {
+  const LOGINS: ReadonlySet<string> = new Set(["ann@example.com"]);
+  const one = (extra: string, address = "Ann@example.com") =>
+    `[[senders]]\naddress = '${address}'\nniches = 'all'\n${extra}\n`;
+
+  it("gmail by default, no ramp, no selector", () => {
+    const [s] = parseRoster(one(""), "test", NICHES);
+    expect([s?.transport, s?.ramp, s?.dkim]).toEqual(["gmail", null, null]);
+  });
+
+  it("an smtp inbox with a login, its own ramp and selector", () => {
+    const text = one(
+      "transport = 'smtp'\ndkim = 'mail'\nramp = { start = 2026-10-20, from = 2, step = 2, ceiling = 30 }",
+    );
+    const [s] = parseRoster(text, "test", NICHES, LOGINS);
+    expect(s?.transport).toBe("smtp");
+    expect(s?.dkim).toBe("mail");
+    expect(s?.ramp).toEqual({
+      start: PlainDate.fromIso("2026-10-20"),
+      from: 2,
+      step: 2,
+      ceiling: 30,
+    });
+  });
+
+  it.each([
+    ["transport = 'sendgrid'", /'transport' must be "gmail" or "smtp"/],
+    ["transport = 'smtp'", /bo@example.com sends over smtp but has no mailboxes-file row/],
+    ["dkim = 'not a selector'", /'dkim' must be a selector/],
+    ["ramp = 5", /ramp/],
+    ["ramp = { start = 'soon', from = 1, step = 1, ceiling = 5 }", /ramp.start must be a date/],
+    ["ramp = { start = 2026-10-20, from = 1, step = 1 }", /ramp/],
+    ["ramp = { start = 2026-10-20, from = 0, step = 1, ceiling = 5 }", /ramp/],
+    ["ramp = { start = 2026-10-20, from = 9, step = 1, ceiling = 5 }", /ramp/],
+    ["ramp = { start = 2026-10-20, from = 1, step = 1, ceiling = 5, every = 2 }", /ramp/],
+  ])("refuses %j", (extra, match) => {
+    const text = one(extra, "bo@example.com");
+    expect(() => parseRoster(text, "test", NICHES, LOGINS)).toThrow(RosterError);
+    expect(() => parseRoster(text, "test", NICHES, LOGINS)).toThrow(match);
   });
 });

@@ -6,8 +6,8 @@ import type { Calendar } from "@wren/core/calendar";
 import type { Db } from "@wren/db";
 import { evaluateKillSwitches } from "../inbox/health.js";
 import type { SenderPause } from "../schema.js";
-import { nextSendAt, type SendStats, sendDue } from "./deliver.js";
-import type { SendPolicy } from "./policy.js";
+import { nextSendAt, type RampMap, type SendStats, sendDue } from "./deliver.js";
+import type { Ramp, SendPolicy } from "./policy.js";
 import type { Rng } from "./rng.js";
 import type { Sender } from "./roster.js";
 import type { Transport } from "./transport.js";
@@ -28,6 +28,8 @@ export interface Fleet {
   readonly signatureHtml: Readonly<Record<string, string>>;
   /** Each niche's page on the site ("/recruiting/lead-reactivation"), filled into the sign-off's `{page}` slot. */
   readonly pages: Readonly<Record<string, string>>;
+  /** Inboxes on their own ramp; the rest ride the fleet's. */
+  readonly ramps?: RampMap;
 }
 
 /** The roster's two lists (all, active) as a Fleet. */
@@ -37,13 +39,16 @@ export function rosterFleet(
   pages: Readonly<Record<string, string>> = {},
 ): Fleet {
   const signatureHtml: Record<string, string> = {};
+  const ramps: Record<string, Ramp> = {};
   for (const s of active) if (s.signature) signatureHtml[s.address] = s.signature.html;
+  for (const s of active) if (s.ramp) ramps[s.address] = s.ramp;
   return {
     senders: active.map((s) => s.address),
     domainFleet: rosterAll.map((s) => s.address),
     fromNames: Object.fromEntries(active.map((s) => [s.address, s.displayName])),
     signatureHtml,
     pages: { ...pages },
+    ramps,
   };
 }
 
@@ -104,8 +109,9 @@ export async function sendTick(db: Db, opts: TickOptions): Promise<TickResult> {
     pixelBaseUrl: opts.pixelBaseUrl ?? null,
     calendar: opts.calendar ?? null,
     senders: opts.fleet.senders,
+    ramps: opts.fleet.ramps ?? null,
     reconcileFirst: opts.reconcileFirst ?? true,
   });
-  const nextAt = await nextSendAt(db, opts.policy, opts.fleet.senders, opts.now);
+  const nextAt = await nextSendAt(db, opts.policy, opts.fleet.senders, opts.now, opts.fleet.ramps);
   return { stats, newPauses, nextSendAt: nextAt };
 }

@@ -174,8 +174,8 @@ data "aws_iam_policy_document" "pg" {
     resources = concat(
       [aws_ssm_parameter.pg_password.arn],
       aws_ssm_parameter.browser_token[*].arn,
-      # The box worker runs with the Lambda's env and roster, plus its own.
-      [aws_ssm_parameter.env.arn, aws_ssm_parameter.roster.arn, aws_ssm_parameter.box.arn],
+      # The box worker runs with the Lambda's env, roster and mailboxes, plus its own.
+      [aws_ssm_parameter.env.arn, aws_ssm_parameter.roster.arn, aws_ssm_parameter.mailboxes.arn, aws_ssm_parameter.box.arn],
     )
   }
   statement {

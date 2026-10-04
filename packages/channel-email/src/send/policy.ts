@@ -15,6 +15,8 @@
  * The ramp is data: `from + step × (send days elapsed ÷ every)`, never above
  * the ceiling, counted in the schedule's own days. Holidays (`holidays.ts`)
  * are not send days: the window stays shut, the ramp does not climb.
+ * An inbox with its own `Ramp` (roster `ramp`) climbs from its own start
+ * instead, by the same day rules, and sends nothing cold before it.
  * Every window question is answered on the operator's local clock and
  * returned as a UTC instant.
  */
@@ -39,6 +41,14 @@ const ABBREVIATIONS = DAY_NAMES.map((n) => n[0]?.toUpperCase() + n.slice(1, 3));
 // that silently means something other than what was typed is worse than a
 // startup error.
 const HHMM = /^([01][0-9]|2[0-3]):([0-5][0-9])$/;
+
+/** One inbox's own ramp: `from + step` per send day since `start`, its first cold day, to `ceiling`. */
+export interface Ramp {
+  readonly start: PlainDate;
+  readonly from: number;
+  readonly step: number;
+  readonly ceiling: number;
+}
 
 /** The settings block `SendPolicy` parses; `@wren/config` `Settings` satisfies it. */
 export interface SendPolicySettings {
@@ -412,20 +422,21 @@ export class SendPolicy implements SendPolicyFields {
 
   // ---- the ramp -----------------------------------------------------
 
-  /** Send days from `rampStart` up to, not including, the local day of `now`. */
-  sendDaysElapsed(now: Date): number {
-    if (this.rampStart === null) return 0;
+  /** Send days from the ramp's start (the inbox's own, else `rampStart`) up to, not including, the local day of `now`. */
+  sendDaysElapsed(now: Date, ramp?: Ramp | null): number {
+    const start = ramp ? ramp.start : this.rampStart;
+    if (start === null) return 0;
     const today = this.localDay(now);
-    if (today.compare(this.rampStart) <= 0) return 0;
-    const total = this.rampStart.daysUntil(today);
+    if (today.compare(start) <= 0) return 0;
+    const total = start.daysUntil(today);
     const weeks = Math.floor(total / 7);
     const rest = total % 7;
     let count = weeks * this.days.size;
-    const firstOfTail = this.rampStart.addDays(weeks * 7);
+    const firstOfTail = start.addDays(weeks * 7);
     for (let offset = 0; offset < rest; offset++) {
       if (this.days.has(firstOfTail.addDays(offset).weekday())) count += 1;
     }
-    return count - this.holidaysOnSendDays(this.rampStart, today);
+    return count - this.holidaysOnSendDays(start, today);
   }
 
   /** Holidays in `[from, to)` that fall on one of the schedule's days. */
@@ -440,8 +451,12 @@ export class SendPolicy implements SendPolicyFields {
     return n;
   }
 
-  /** Real sends one inbox may make on the local day of `now`. */
-  perInboxCap(now: Date): number {
+  /** Real sends one inbox may make on the local day of `now`; `ramp` is that inbox's own (0 before its start). */
+  perInboxCap(now: Date, ramp?: Ramp | null): number {
+    if (ramp) {
+      if (this.localDay(now).compare(ramp.start) < 0) return 0;
+      return Math.min(ramp.ceiling, ramp.from + ramp.step * this.sendDaysElapsed(now, ramp));
+    }
     if (this.rampStart === null) return this.perInboxCeiling;
     const steps = Math.floor(this.sendDaysElapsed(now) / this.rampEverySendDays);
     return Math.min(this.perInboxCeiling, this.rampFrom + this.rampStep * steps);
@@ -463,9 +478,9 @@ export class SendPolicy implements SendPolicyFields {
    * cap past what the floor fits sends at the floor and stops at the close.
    * Seeded by the send instant, so every tick and the scheduler agree.
    */
-  gapAfter(lastSent: Date, sentThatDay: number): number {
+  gapAfter(lastSent: Date, sentThatDay: number, ramp?: Ramp | null): number {
     const close = this.windowClose(lastSent);
-    const left = this.perInboxCap(lastSent) - sentThatDay;
+    const left = this.perInboxCap(lastSent, ramp) - sentThatDay;
     const spread = close !== null && left > 0 ? (close.getTime() - lastSent.getTime()) / left : 0;
     const low = Math.round(Math.max(this.gapMinMs, spread * 0.8) / 1000);
     const high = Math.round(Math.max(this.gapMaxMs, spread * 1.2) / 1000);
@@ -476,9 +491,9 @@ export class SendPolicy implements SendPolicyFields {
    * The soonest an inbox that last sent at `lastSent` may send again, having
    * sent `sentThatDay` that day. `null` (never sent) yields `EPOCH`.
    */
-  earliestNextSend(lastSent: Date | null, sentThatDay: number): Date {
+  earliestNextSend(lastSent: Date | null, sentThatDay: number, ramp?: Ramp | null): Date {
     if (lastSent === null) return EPOCH;
-    return new Date(assertInstant(lastSent).getTime() + this.gapAfter(lastSent, sentThatDay));
+    return new Date(assertInstant(lastSent).getTime() + this.gapAfter(lastSent, sentThatDay, ramp));
   }
 
   /** The niche's own opener brake; null = none (the fleet brake still applies). */
@@ -492,6 +507,17 @@ export class SendPolicy implements SendPolicyFields {
   }
 
   // ---- for humans ---------------------------------------------------
+
+  /** One inbox's ramp today: `a@example.com 4/day (day 4 of ramp to 30)`. */
+  describeRamp(address: string, ramp: Ramp, now: Date): string {
+    if (this.localDay(now).compare(ramp.start) < 0) {
+      return `${address} 0/day (ramp to ${ramp.ceiling} starts ${ramp.start})`;
+    }
+    return (
+      `${address} ${this.perInboxCap(now, ramp)}/day ` +
+      `(day ${this.sendDaysElapsed(now, ramp) + 1} of ramp to ${ramp.ceiling})`
+    );
+  }
 
   /** One line for the operator. With `now`, the ramp's position today. */
   describe(now?: Date): string {

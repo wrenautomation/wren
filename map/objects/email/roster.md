@@ -4,7 +4,7 @@ cluster: email
 universe: live
 status: verified
 verified: 2026-09-28 @ 28823cd
-entity: packages/channel-email/src/send/roster.ts:227
+entity: packages/channel-email/src/send/roster.ts:301
 ---
 
 # roster
@@ -17,15 +17,16 @@ A sender missing from the file cannot be sent through; every defect is a `Roster
 
 ## Shape
 
-- `loadRoster(path, knownNiches)` (`roster.ts:227`); `RosterError` (`:239`)
+- `loadRoster(path, knownNiches, mailboxes)` (`roster.ts:301`); `RosterError` (`:20`)
+- per sender, optional: `transport` (`gmail` default, `smtp`), `ramp = { start, from, step, ceiling }` (its own warmup, else the fleet's), `dkim` (selector, for the digest's DNS check). An smtp sender with no mailboxes-file row is a `RosterError`; the root passes the file's addresses in
 - prod copy lives in SSM `/wren/prod/senders_config`, pulled at Lambda cold start (`apps/worker/src/lambda.ts:18`; `deploy/terraform/lambda.tf:16`; `deploy/scripts/push-secrets.sh:42`)
 
-Citations: `packages/channel-email/src/send/roster.ts:227`
+Citations: `packages/channel-email/src/send/roster.ts:301`
 
 ## Connected to
 
 - **owns:** the set of keys for `SendScheduler/{sender}` and `InboxScheduler/{sender}`
-- **joins:** [[email/send-policy]] (caps are per inbox), [[email/sender-pause]] (keyed by sender)
+- **joins:** [[email/send-policy]] (caps are per inbox), [[email/sender-pause]] (keyed by sender), [[email/transport]] (which carrier)
 - **looks-like-but-is-not:** [[sms/sms-number]] (the SMS fleet lives in a table)
 
 ## If you change this

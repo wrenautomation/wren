@@ -13,6 +13,7 @@ import type { Notifier } from "@wren/core/notify";
 import { makeLoopObject, runPass } from "@wren/core/restate";
 import type { Db } from "@wren/db";
 import { sql } from "drizzle-orm";
+import type { RampMap } from "../send/deliver.js";
 import type { SendPolicy } from "../send/policy.js";
 import { zonedInstant } from "../send/tz.js";
 import {
@@ -35,6 +36,8 @@ export interface DigestSchedulerDeps {
   probers?: readonly string[];
   /** Sending, site and signature domains, each checked every morning. */
   domains?: readonly DomainTarget[];
+  /** Inboxes on their own ramp: one line each, with today's cap. */
+  ramps?: RampMap;
 }
 
 export interface DigestStats {
@@ -108,6 +111,8 @@ export function makeDigestScheduler(deps: DigestSchedulerDeps) {
       ledger: { command: DIGEST_COMMAND, argv: { daemon: true, day: yesterday } },
       body: async () => {
         const { lines, domains } = await digestLines(deps.db, yesterday);
+        for (const [address, ramp] of Object.entries(deps.ramps ?? {}))
+          lines.push(deps.policy.describeRamp(address, ramp, now));
         const [probers, standings] = await Promise.all([
           proberHealth(deps.db, deps.probers ?? [], new Date(now.getTime() - 24 * 3600 * 1000)),
           domainStandings(deps.domains ?? []),

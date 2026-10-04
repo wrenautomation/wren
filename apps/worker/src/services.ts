@@ -28,7 +28,9 @@ import {
   expandHome,
   GmailClient,
   GmailTransport,
+  ImapReader,
   type InboxReader,
+  loadMailboxes,
   loadRoster,
   loadServiceAccountKey,
   makeNotifier,
@@ -39,9 +41,12 @@ import {
   plainMailer,
   postmasterToken,
   proberHosts,
+  RoutedReader,
+  RoutedTransport,
   recheckLeads,
   rosterFleet,
   SendPolicy,
+  SmtpTransport,
   senderDomain,
   type Transport,
 } from "@wren/channel-email";
@@ -261,9 +266,22 @@ export async function buildServices(
   // The roster names the live fleet; without one nothing may send, so a missing
   // file degrades to an empty fleet rather than a worker that will not start.
   const policy = SendPolicy.fromSettings(settings);
+  // SMTP/IMAP logins for the roster's smtp inboxes; error messages never carry a value.
+  const mailboxes = (() => {
+    try {
+      return loadMailboxes(settings.mailboxesFile);
+    } catch (err) {
+      log.warn({ err: (err as Error).message }, "no mailboxes file: smtp inboxes cannot load");
+      return loadMailboxes(undefined);
+    }
+  })();
   const roster = (() => {
     try {
-      return loadRoster(resolve(rootDir, settings.sendersFile), new Set(NICHES.map((n) => n.name)));
+      return loadRoster(
+        resolve(rootDir, settings.sendersFile),
+        new Set(NICHES.map((n) => n.name)),
+        new Set(mailboxes.keys()),
+      );
     } catch (err) {
       log.warn({ err: (err as Error).message }, "no sender roster: the send loop sends nothing");
       return [];
@@ -309,6 +327,7 @@ export async function buildServices(
           templates: niche.templates,
           factsView: niche.factsView,
           senders: active.map((s) => s.address),
+          ramps: fleet.ramps ?? {},
           signatures: Object.fromEntries(
             active.flatMap((s) =>
               s.signature ? [[s.address, s.signature.forPage(niche.lander).text]] : [],
@@ -322,12 +341,25 @@ export async function buildServices(
   );
   const keyPath = expandHome(settings.googleServiceAccount);
   const gmail = new GmailClient({ keyPath });
+  // Inboxes on their own login send over SMTP and are read over IMAP; the rest go through Gmail.
+  const smtpInboxes = roster.flatMap((s) => {
+    const mailbox = s.transport === "smtp" ? mailboxes.get(s.address) : undefined;
+    return mailbox ? [[s.address, mailbox] as const] : [];
+  });
   const transport: Transport =
-    settings.sendTransport === "gmail" ? new GmailTransport(gmail) : new ConsoleTransport();
+    settings.sendTransport === "gmail"
+      ? new RoutedTransport(
+          new GmailTransport(gmail),
+          new Map(smtpInboxes.map(([address, m]) => [address, new SmtpTransport(m)])),
+        )
+      : new ConsoleTransport();
 
   // The inbox side reads the real mailboxes whatever the send transport: replies,
   // bounces and unsubscribes to the Python fleet's sends are still ours to act on.
-  const reader: InboxReader = gmail;
+  const reader: InboxReader = new RoutedReader(
+    gmail,
+    new Map(smtpInboxes.map(([address, m]) => [address, new ImapReader(m)])),
+  );
   // Reply disposition only pays for a real model; the fake would label nothing useful.
   const classify = settings.llm !== "fake";
   const tracer = makeTracer(settings.tracing);
@@ -458,8 +490,9 @@ export async function buildServices(
                 dailyOpenerCapacity(
                   await campaignPolicy(db, policy),
                   niche,
-                  campaigns.get(niche)?.senders.length ?? 0,
+                  campaigns.get(niche)?.senders ?? [],
                   now,
+                  fleet.ramps,
                 ),
               horizonDays: settings.verificationHorizonDays,
             },
@@ -493,6 +526,7 @@ export async function buildServices(
         policy,
         probers: proberHosts(settings.smtpProbeUrl),
         domains: mailDomains,
+        ramps: fleet.ramps ?? {},
       }),
     );
   // Bound only when configured: an object with nothing to pull is better absent than failing every pass.

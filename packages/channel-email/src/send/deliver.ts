@@ -56,12 +56,13 @@ import {
 import { transitionEnrollment, transitionMessage } from "../state.js";
 import { CALL_TIMES, fillCallTimes, LOOKAHEAD_MS } from "./call-times.js";
 import { addBusinessDays, PlainDate } from "./dates.js";
-import type { SendPolicy } from "./policy.js";
+import type { Ramp, SendPolicy } from "./policy.js";
 import { IN_FLIGHT, reconcile } from "./reconcile.js";
 import { type Rng, systemRng } from "./rng.js";
 import { ensureSuppression } from "./suppress.js";
 import {
   buildPixelUrl,
+  carrierOf,
   fillPage,
   type OutgoingEmail,
   type SendReceipt,
@@ -122,6 +123,11 @@ export function emptySendStats(): SendStats {
 
 export type NameMap = Readonly<Record<string, string | null>>;
 export type StringMap = Readonly<Record<string, string>>;
+/** Lowercased address → its own ramp (roster `ramp`); absent = the fleet ramp. */
+export type RampMap = Readonly<Record<string, Ramp>>;
+
+const rampOf = (ramps: RampMap | null | undefined, sender: string): Ramp | null =>
+  ramps?.[sender.toLowerCase()] ?? null;
 
 export interface SendDueOptions {
   transport: Transport;
@@ -143,6 +149,7 @@ export interface SendDueOptions {
    * `sender_not_on_roster`. null = no roster opinion, every pin allowed.
    */
   senders?: readonly string[] | null;
+  ramps?: RampMap | null;
   reconcileFirst?: boolean;
 }
 
@@ -297,12 +304,16 @@ export async function sendDue(db: Db, opts: SendDueOptions): Promise<SendStats> 
       continue;
     }
     if (sidelined.has(sender)) continue; // counted as a sender_error where it happened
-    if ((sentToday.get(sender) ?? 0) >= policy.perInboxCap(now)) {
+    const ramp = rampOf(opts.ramps, sender);
+    if ((sentToday.get(sender) ?? 0) >= policy.perInboxCap(now, ramp)) {
       stats.senders_capped += 1;
       continue;
     }
     const lastSent = lastSentPerSender.get(sender) ?? null;
-    if (lastSent !== null && now < policy.earliestNextSend(lastSent, sentToday.get(sender) ?? 0)) {
+    if (
+      lastSent !== null &&
+      now < policy.earliestNextSend(lastSent, sentToday.get(sender) ?? 0, ramp)
+    ) {
       stats.gap_waiting += 1;
       continue;
     }
@@ -332,6 +343,7 @@ export async function sendDue(db: Db, opts: SendDueOptions): Promise<SendStats> 
       signatureHtml: opts.signatureHtml ?? null,
       pages: opts.pages ?? null,
       pixelBaseUrl: opts.pixelBaseUrl ?? null,
+      ramp,
       openTimes,
       stats,
       sidelined,
@@ -444,6 +456,7 @@ export async function nextSendAt(
   policy: SendPolicy,
   senders: readonly string[],
   now: Date,
+  ramps?: RampMap | null,
 ): Promise<Date | null> {
   const wanted = new Set(senders.map((s) => s.toLowerCase()));
   const last = await lastSendPerSender(db);
@@ -451,7 +464,7 @@ export async function nextSendAt(
   let soonest: Date | null = null;
   for (const [sender, at] of last) {
     if (!wanted.has(sender.toLowerCase())) continue;
-    const next = policy.earliestNextSend(at, sentToday.get(sender) ?? 0);
+    const next = policy.earliestNextSend(at, sentToday.get(sender) ?? 0, rampOf(ramps, sender));
     if (soonest === null || next < soonest) soonest = next;
   }
   return soonest;
@@ -679,6 +692,8 @@ interface SendContext {
   signatureHtml: StringMap | null;
   pages: StringMap | null;
   pixelBaseUrl: string | null;
+  /** This inbox's own ramp, or null for the fleet's. */
+  ramp: Ramp | null;
   /** The calendar's open times for this pass, asked once; null when it couldn't say. */
   openTimes: () => Promise<Date[] | null>;
   stats: SendStats;
@@ -718,11 +733,11 @@ async function pacedUnderLock(
     );
   const last = (row?.last ?? null) as Date | null;
   const today = row?.today ?? 0;
-  if (last !== null && ctx.now < ctx.policy.earliestNextSend(last, today)) {
+  if (last !== null && ctx.now < ctx.policy.earliestNextSend(last, today, ctx.ramp)) {
     ctx.stats.gap_waiting += 1;
     return false;
   }
-  if (today >= ctx.policy.perInboxCap(ctx.now)) {
+  if (today >= ctx.policy.perInboxCap(ctx.now, ctx.ramp)) {
     ctx.stats.senders_capped += 1;
     return false;
   }
@@ -814,7 +829,7 @@ async function sendOne(
         messageId,
         state: transitionMessage(freshMessage.state, "sending"),
         attemptedAt: ctx.now,
-        transport: ctx.transport.name,
+        transport: carrierOf(ctx.transport, sender).name,
         sentRunId: ctx.runId,
       })
       .where(eq(messages.id, freshMessage.id))

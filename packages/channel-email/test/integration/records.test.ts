@@ -26,6 +26,9 @@ const sender = (address: string): Sender => ({
   suspended: false,
   displayName: null,
   signature: null,
+  transport: "gmail",
+  ramp: null,
+  dkim: null,
 });
 const ROSTER = [sender(SENDER), sender(OTHER)];
 const policyOf = (env: Record<string, string> = {}) =>

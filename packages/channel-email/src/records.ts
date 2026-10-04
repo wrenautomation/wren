@@ -120,7 +120,7 @@ export const inboxRecord = (roster: readonly Sender[], env: SendPolicy): RecordT
           state: s.suspended ? "suspended" : pause ? "paused" : "sending",
           reason: pause?.reason ?? null,
           paused_at: pause?.pausedAt ?? null,
-          cap: policy.perInboxCap(now),
+          cap: policy.perInboxCap(now, s.ramp),
           sent_today: sentToday.get(s.address) ?? 0,
           health: !h || h.sent === 0 ? "quiet" : wouldTrip(h, policy) ? "tripping" : "clean",
           bounces: h?.hardBounces ?? 0,

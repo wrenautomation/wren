@@ -9,7 +9,7 @@ entity: packages/channel-email/src/send/transport.ts:78
 
 # transport
 
-The way an email actually leaves: the `Transport` contract, `GmailTransport` over domain-wide delegation in prod, `ConsoleTransport` as the permanent dry run.
+The way an email actually leaves: the `Transport` contract, `GmailTransport` over domain-wide delegation in prod, `SmtpTransport` for an inbox on its own login, `ConsoleTransport` as the permanent dry run.
 
 ## Why this shape
 
@@ -18,14 +18,16 @@ Sending is the one irreversible act, so the contract answers two questions after
 ## Shape
 
 - `Transport` (`transport.ts:78`); `GmailTransport`, `GmailClient` (`send/gmail.ts`); `ConsoleTransport`
-- `messages.transport` names which one made the attempt; reconcile refuses to answer for another (`send/reconcile.ts:1`)
+- `SmtpTransport` (`send/smtp.ts:90`): our MIME over SMTP, then IMAP APPEND to Sent unless the server filed it; `find` = SEARCH HEADER Message-ID in Sent. Failure table in the file head: connect/login, MAIL FROM, DATA or the message refused = refused (inbox sidelined); RCPT TO = refused (this message); line lost once the envelope began = ambiguous
+- `RoutedTransport` (`transport.ts:92`) picks per sender: roster `transport = "smtp"` → its `SmtpTransport`, else Gmail. Logins from the mailboxes file (`send/mailboxes.ts`, `WREN_MAILBOXES_FILE`; SSM `/wren/prod/mailboxes`)
+- `messages.transport` names the inner transport that made the attempt (`carrierOf`); reconcile asks that one and refuses to answer for another (`send/reconcile.ts:1`)
 
 Citations: `packages/channel-email/src/send/transport.ts:78`
 
 ## Connected to
 
 - **joins:** [[email/message]] (`message_id`, `gmail_id`, `transport`), [[email/roster]] (which inbox)
-- **looks-like-but-is-not:** the inbox reader (`GmailReader`, same credential, read side); [[sms/sms-provider]]
+- **looks-like-but-is-not:** the inbox reader (`GmailReader`, or `ImapReader` on the same login: INBOX + spam, read-only, never sets \Seen); [[sms/sms-provider]]
 
 ## If you change this
 
@@ -41,4 +43,4 @@ Citations: `packages/channel-email/src/send/transport.ts:78`
 
 ## See
 
-- Source: `packages/channel-email/src/send/gmail.ts`
+- Source: `packages/channel-email/src/send/gmail.ts`, `send/smtp.ts`, `inbox/imap.ts`

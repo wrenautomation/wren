@@ -141,6 +141,8 @@ export const settingsSchema = z.object({
   cdpUrl: z.string().min(1).optional(),
   /** Path of the sender roster (TOML). */
   sendersFile: z.string().min(1).default("senders_config.toml"),
+  /** Path of the SMTP/IMAP logins (JSON, address → {smtp, imap}) for the roster's `transport = "smtp"` inboxes. A secret. */
+  mailboxesFile: z.string().min(1).optional(),
   /** "console" prints; "gmail" sends for real. Console until cutover. */
   sendTransport: z.enum(["console", "gmail"]).default("console"),
   daemonTickSeconds: z.coerce.number().int().default(60),
@@ -448,6 +450,7 @@ export const ENV_KEYS = {
   renderer: "WREN_RENDERER",
   cdpUrl: "WREN_CDP_URL",
   sendersFile: "WREN_SENDERS_FILE",
+  mailboxesFile: "WREN_MAILBOXES_FILE",
   sendTransport: "WREN_SEND_TRANSPORT",
   daemonTickSeconds: "WREN_DAEMON_TICK_SECONDS",
   daemonSyncSeconds: "WREN_DAEMON_SYNC_SECONDS",

@@ -3,8 +3,10 @@ import { describe, expect, it } from "vitest";
 import {
   buildPixelUrl,
   ConsoleTransport,
+  carrierOf,
   fillPage,
   type OutgoingEmail,
+  RoutedTransport,
   renderedSubject,
   TransportAmbiguous,
   TransportRefused,
@@ -134,6 +136,23 @@ describe("ConsoleTransport", () => {
   it("refusal is message-level unless the inbox itself is unusable", () => {
     expect(new TransportRefused("bad recipient").senderLevel).toBe(false);
     expect(new TransportRefused("token refused", { senderLevel: true }).senderLevel).toBe(true);
+  });
+});
+
+describe("RoutedTransport", () => {
+  it("each sender goes through its own carrier, the rest through the fallback", async () => {
+    const quiet = { write: () => {} };
+    const gmail = new ConsoleTransport(quiet);
+    const own = new ConsoleTransport(quiet);
+    const routed = new RoutedTransport(gmail, new Map([["ann@example.com", own]]));
+    await routed.send(mail({ fromAddress: "Ann@example.com" }));
+    await routed.send(mail());
+    expect([...own.mailbox.keys()]).toEqual(["Ann@example.com"]);
+    expect([...gmail.mailbox.keys()]).toEqual([SENDER]);
+    expect(carrierOf(routed, "ANN@example.com")).toBe(own);
+    expect(carrierOf(routed, SENDER)).toBe(gmail);
+    expect(carrierOf(gmail, SENDER)).toBe(gmail);
+    expect(await routed.find("Ann@example.com", "<m1@wren-automation.com>")).not.toBeNull();
   });
 });
 

@@ -19,6 +19,9 @@ await loadSsmEnv(process.env.WREN_SSM_ENV_PARAM);
 await loadSsmEnv(process.env.WREN_SSM_BOX_PARAM);
 const roster = await loadSsmFile(process.env.WREN_SSM_ROSTER_PARAM, "/tmp/senders_config.toml");
 if (roster && !process.env.WREN_SENDERS_FILE) process.env.WREN_SENDERS_FILE = roster;
+// The SMTP/IMAP logins autobrowse writes, for the roster's smtp inboxes.
+const mailboxes = await loadSsmFile(process.env.WREN_SSM_MAILBOXES_PARAM, "/tmp/mailboxes.json");
+if (mailboxes && !process.env.WREN_MAILBOXES_FILE) process.env.WREN_MAILBOXES_FILE = mailboxes;
 // Same database, this machine's door: TLS and credentials stay as the URL says.
 if (process.env.WREN_DATABASE_URL) {
   const url = new URL(process.env.WREN_DATABASE_URL);

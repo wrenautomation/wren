@@ -20,6 +20,7 @@ import { MissingFactError, render, type Template } from "../outreach/templates.j
 import { type Enrollment, type Message, messages, type ThreadEvent } from "../schema.js";
 import type { Fleet } from "../send/tick.js";
 import {
+  carrierOf,
   fillPage,
   type OutgoingEmail,
   type Transport,
@@ -181,7 +182,7 @@ export async function sendReply(
         approvedBy: "operator",
         messageId: ourId,
         attemptedAt: now,
-        transport: opts.transport.name,
+        transport: carrierOf(opts.transport, sender).name,
       })
       .where(eq(messages.id, messageId))
       .returning();

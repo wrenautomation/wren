@@ -80,6 +80,36 @@ export interface Transport {
   send(email: OutgoingEmail): Promise<SendReceipt>;
   /** Our Message-ID as the sender's mailbox knows it, or null. Used by reconcile. */
   find(sender: string, messageId: string): Promise<SendReceipt | null>;
+  /** The transport that actually carries `sender`'s mail, when this one routes. */
+  carrier?(sender: string): Transport;
+}
+
+/** Who carries `sender`'s mail: the name `messages.transport` records and reconcile checks. */
+export const carrierOf = (transport: Transport, sender: string): Transport =>
+  transport.carrier?.(sender) ?? transport;
+
+/** Each sender's mail through its own transport: `routes` by lowercased address, `fallback` for the rest. */
+export class RoutedTransport implements Transport {
+  readonly name: string;
+
+  constructor(
+    private readonly fallback: Transport,
+    private readonly routes: ReadonlyMap<string, Transport>,
+  ) {
+    this.name = [...new Set([fallback.name, ...[...routes.values()].map((t) => t.name)])].join("+");
+  }
+
+  carrier(sender: string): Transport {
+    return this.routes.get(sender.toLowerCase()) ?? this.fallback;
+  }
+
+  send(email: OutgoingEmail): Promise<SendReceipt> {
+    return this.carrier(email.fromAddress).send(email);
+  }
+
+  find(sender: string, messageId: string): Promise<SendReceipt | null> {
+    return this.carrier(sender).find(sender, messageId);
+  }
 }
 
 /** The Subject header as it goes on the wire; a riding step with no opener subject still gets "Re:". */

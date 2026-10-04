@@ -18,7 +18,7 @@ import { and, asc, eq, inArray } from "drizzle-orm";
 import { enrollments, type Message, messages } from "../schema.js";
 import { transitionMessage } from "../state.js";
 import type { SendPolicy } from "./policy.js";
-import type { Transport } from "./transport.js";
+import { carrierOf, type Transport } from "./transport.js";
 
 export const IN_FLIGHT = ["sending", "unknown"] as const;
 
@@ -58,7 +58,7 @@ export async function reconcile(
     .where(inArray(messages.state, [...IN_FLIGHT]))
     .orderBy(asc(messages.id));
   for (const { message, sender } of rows) {
-    if (message.transport !== transport.name) {
+    if (message.transport !== carrierOf(transport, sender).name) {
       stats.transport_mismatch += 1;
       continue;
     }
