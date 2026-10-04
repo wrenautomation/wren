@@ -99,11 +99,11 @@ One digest line per domain: `getwrenautomation.com ok (dbl, surbl, uribl clear; 
 
 `PlacementScheduler/fleet`, a Restate loop object, daily at the open of the send window:
 
-1. For each sender with a `ramp` and each seed in `WREN_PLACEMENT_SEEDS`, it sends one plain message through the sender's transport. The subject and body come from a small rotating set of short notes, never a campaign template, with no links. The Message-ID is recorded in `placement_checks` (sender, seed, message_id, sent_at, landed, checked_at).
+1. For each sender with a `ramp` and each seed in `WREN_PLACEMENT_SEEDS`, it sends one plain message through the sender's transport. The subject and body are the newest composed opener draft in that sender's campaign, exactly as a lead would get it, so the test reads the real copy. The send never touches the lead's rows or `messages`. With no draft yet, the sender skips that day and the digest says so. The Message-ID is recorded in `placement_checks` (sender, seed, message_id, sent_at, landed, checked_at).
 2. Two hours later it asks autobrowse `sites` → `gmail` (`--account <seed>`) to search `rfc822msgid:<id>` with spam included, and reads the labels: `INBOX`, `CATEGORY_PROMOTIONS`, `SPAM`, or not found.
 3. It writes `landed`. The digest prints one line per sender: `william@getwrenautomation.com: inbox 2/2`. Any spam or missing result is a warning.
 
-The seeds are William's personal Gmail accounts. Reading them needs his consent once per account (`autobrowse site setup gmail consent --account <seed>`). The Gmail API read changes nothing in the seed inbox.
+The seeds are William's personal Gmail accounts (jinwilliam.jin@gmail.com, will@williamjin.dev). Both already have autobrowse's Gmail consent. The Gmail API read changes nothing in the seed inbox.
 
 ## Build
 
@@ -127,3 +127,4 @@ The seeds are William's personal Gmail accounts. Reading them needs his consent 
 - 2026-10-04: The ramp is per inbox in the roster, so new inboxes climb without moving the live one's cap.
 - 2026-10-04: Placement reads through autobrowse's Gmail site API, per-account consent. The seeds are personal accounts, so nothing writes to them.
 - 2026-10-04: Domain lists = Spamhaus DBL, SURBL, URIBL ("spam checkers, srbl, all the other major ones"). The IP lists stay the five the prober check uses.
+- 2026-10-04: Placement sends the real opener draft, not a canned note. Filters judge the words, so a canned note would test the wrong message.
