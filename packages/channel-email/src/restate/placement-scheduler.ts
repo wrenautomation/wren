@@ -12,7 +12,7 @@ import { SiteCallError, type SiteClient } from "@wren/core/content";
 import { isRefusal } from "@wren/core/content/restate";
 import { errorText, makeLoopObject, runPass } from "@wren/core/restate";
 import type { Db } from "@wren/db";
-import { and, desc, eq, inArray, sql } from "drizzle-orm";
+import { and, desc, eq, inArray, type SQL, sql } from "drizzle-orm";
 import { enrollments, messages, type Placement, placementChecks } from "../schema.js";
 import { fillCallTimes } from "../send/call-times.js";
 import { mintMessageId } from "../send/deliver.js";
@@ -42,6 +42,8 @@ export interface PlacementSchedulerDeps {
   transport: Transport;
   /** Its `ramps` name the inboxes measured; `fromNames` what they send as. */
   fleet: Pick<Fleet, "ramps" | "fromNames">;
+  /** Each inbox's roster niches (null = all): where its opener comes from before it has leads. */
+  niches: Readonly<Record<string, readonly string[] | null>>;
   seeds: readonly string[];
   /** autobrowse's `sites` for this invocation. */
   sitesFor: (ctx: restate.Context) => SiteClient;
@@ -93,21 +95,31 @@ export async function landedAt(
   return landedFrom(message?.labelIds ?? []);
 }
 
-/** The sender's newest composed opener, as its lead gets it (sign-off already in the body). */
+/**
+ * The sender's newest composed opener, as its lead gets it (sign-off already in the body).
+ * An inbox still in warmup has no leads, so it borrows the newest in its niches.
+ */
 async function newestOpener(
   db: Db,
   sender: string,
+  niches: readonly string[] | null,
 ): Promise<{ subject: string | null; body: string } | null> {
-  const [row] = await db
-    .select({ subject: messages.subject, body: messages.body })
-    .from(messages)
-    .innerJoin(enrollments, eq(enrollments.id, messages.enrollmentId))
-    .where(
-      and(eq(enrollments.sender, sender), eq(messages.step, 0), inArray(messages.state, COMPOSED)),
-    )
-    .orderBy(desc(messages.id))
-    .limit(1);
-  return row ?? null;
+  const newest = async (whose: SQL | undefined) => {
+    const [row] = await db
+      .select({ subject: messages.subject, body: messages.body })
+      .from(messages)
+      .innerJoin(enrollments, eq(enrollments.id, messages.enrollmentId))
+      .where(and(whose, eq(messages.step, 0), inArray(messages.state, COMPOSED)))
+      .orderBy(desc(messages.id))
+      .limit(1);
+    return row ?? null;
+  };
+  return (
+    (await newest(eq(enrollments.sender, sender))) ??
+    (niches?.length === 0
+      ? null
+      : await newest(niches ? inArray(enrollments.niche, niches) : undefined))
+  );
 }
 
 /**
@@ -123,7 +135,7 @@ export async function sendPlacements(
   const stats = { sent: 0, noDraft: [] as string[], failed: 0 };
   if (deps.seeds.length === 0) return stats;
   for (const sender of Object.keys(deps.fleet.ramps ?? {})) {
-    const draft = await newestOpener(deps.db, sender);
+    const draft = await newestOpener(deps.db, sender, deps.niches[sender] ?? null);
     if (!draft) stats.noDraft.push(sender);
     for (const seed of deps.seeds) {
       const messageId = mintMessageId(sender);

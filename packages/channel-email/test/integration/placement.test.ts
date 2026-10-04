@@ -35,25 +35,23 @@ afterAll(() => pg.stop());
 beforeEach(() => truncate(pg.db, [...TABLES, "placement_checks"]));
 const db = (): Db => pg.db;
 
-function deps(transport: ConsoleTransport) {
+function deps(transport: ConsoleTransport, niches: readonly string[] | null = null) {
   return {
     db: db(),
     policy: POLICY,
     transport,
     fleet: { ramps: RAMPS, fromNames: { [SENDER]: "Will" } },
+    niches: { [SENDER]: niches },
     seeds: SEEDS,
   };
 }
 
-/** One firm composed and pinned to `SENDER`. */
-async function enrollOne(domain: string, first: string): Promise<void> {
+/** One firm composed and pinned to `sender`. */
+async function enrollOne(domain: string, first: string, sender = SENDER): Promise<void> {
   const company = await makeCompany(db(), { domain });
   await makePerson(db(), company, { first, email: `${first.toLowerCase()}@${domain}` });
   await runCompose(db());
-  await db()
-    .update(enrollments)
-    .set({ sender: SENDER })
-    .where(eq(enrollments.companyId, company.id));
+  await db().update(enrollments).set({ sender }).where(eq(enrollments.companyId, company.id));
 }
 
 describe("sendPlacements", () => {
@@ -67,6 +65,16 @@ describe("sendPlacements", () => {
       [SEEDS[0], null, NO_DRAFT],
       [SEEDS[1], null, NO_DRAFT],
     ]);
+  });
+
+  it("an inbox in warmup borrows the newest opener in its niches", async () => {
+    await enrollOne("first.example", "Ana", "live@example.com");
+    const [niche] = await db().selectDistinct({ n: enrollments.niche }).from(enrollments);
+    const none = new ConsoleTransport({ write: () => {} });
+    expect((await sendPlacements(deps(none, ["no-such-niche"]), NOW)).noDraft).toEqual([SENDER]);
+    await truncate(db(), ["placement_checks"]);
+    const transport = new ConsoleTransport({ write: () => {} });
+    expect((await sendPlacements(deps(transport, [niche?.n as string]), NOW)).sent).toBe(2);
   });
 
   it("mails the newest opener once per seed a day; a retry sends nothing; messages untouched", async () => {

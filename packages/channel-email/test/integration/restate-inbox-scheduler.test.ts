@@ -135,6 +135,7 @@ beforeAll(async () => {
         policy: POLICY,
         transport: new ConsoleTransport({ write: () => {} }),
         fleet: { ramps: {}, fromNames: {} },
+        niches: {},
         seeds: ["seed@example.com"],
         sitesFor: () => seedGmail,
       }),

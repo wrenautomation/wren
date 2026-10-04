@@ -543,6 +543,7 @@ export async function buildServices(
       policy,
       transport,
       fleet,
+      niches: Object.fromEntries(roster.map((s) => [s.address, s.niches])),
       seeds: settings.placementSeeds,
       sitesFor: (ctx) =>
         restateSites(ctx, {
