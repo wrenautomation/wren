@@ -16,6 +16,17 @@ import {
   type SignedViewer,
   seesInternal,
 } from "@wren/core/portal";
+import { metaOf, type RecordMeta } from "@wren/core/records";
+import {
+  type ExportAsk,
+  type GetAsk,
+  type ListAsk,
+  type RecordAnswer,
+  type RecordsApi,
+  type RecordsCsv,
+  type RecordsPage,
+  serveRecords,
+} from "@wren/core/records/serve";
 import { type Db, type Queryable, setAuditActor } from "@wren/db";
 import { approveDrafts, type ReviewResult, skipDrafts } from "../approve.js";
 import { type CrmHealth, crmHealth } from "../crm/health.js";
@@ -32,6 +43,7 @@ import {
   type RepliesPage,
   type ReplyFilter,
 } from "./outbox.js";
+import { REACTIVATION_RECORDS } from "./records.js";
 import { portalRun, type RunPage } from "./run.js";
 import { portalSetup, type Setup } from "./setup.js";
 import {
@@ -79,6 +91,22 @@ async function read<T>(
     async (tx) => {
       const out = await view(tx, client);
       return client.demo ? (await demoMask(tx, client))(out) : out;
+    },
+    { accessMode: "read only" },
+  );
+}
+
+/** Records over one client's database, read-only; on the demo the server masks every answer once. */
+async function records<T>(
+  deps: PortalDeps,
+  req: PortalRequest,
+  use: (api: RecordsApi) => Promise<T>,
+): Promise<T> {
+  const client = await pickClient(deps.main, req);
+  return deps.open(client).transaction(
+    async (tx) => {
+      const mask = client.demo ? await demoMask(tx, client) : undefined;
+      return use(serveRecords(REACTIVATION_RECORDS, tx, mask));
     },
     { accessMode: "read only" },
   );
@@ -138,6 +166,17 @@ const opt = <K extends string, V>(k: K, v: V | undefined) =>
 export function portalApi(deps: PortalDeps) {
   return {
     overview: (req: PortalRequest): Promise<Overview> => read(deps, req, portalOverview),
+    /** What each record type shows and lets this viewer filter, sort and search. */
+    recordsTypes: async (req: PortalRequest): Promise<RecordMeta[]> => {
+      const client = await pickClient(deps.main, req);
+      return REACTIVATION_RECORDS.map((t) => metaOf(t, client.demo));
+    },
+    recordsList: (req: PortalRequest & ListAsk): Promise<RecordsPage> =>
+      records(deps, req, (r) => r.list(req)),
+    recordsGet: (req: PortalRequest & GetAsk): Promise<RecordAnswer> =>
+      records(deps, req, (r) => r.get(req)),
+    recordsExport: (req: PortalRequest & ExportAsk): Promise<RecordsCsv> =>
+      records(deps, req, (r) => r.export(req)),
     health: (req: PortalRequest): Promise<CrmHealth> => read(deps, req, (db) => crmHealth(db)),
     setup: (req: PortalRequest): Promise<Setup> => read(deps, req, portalSetup),
     run: (req: PortalRequest & { run?: string; after?: number }): Promise<RunPage> =>
@@ -266,6 +305,26 @@ export function portalApi(deps: PortalDeps) {
 }
 
 export type PortalApi = ReturnType<typeof portalApi>;
+export type {
+  Cell,
+  FieldMeta,
+  Kind,
+  Op,
+  RecordMeta,
+  SavedView,
+  State,
+  Tone,
+} from "@wren/core/records";
+export type {
+  ActivityLine,
+  ExportAsk,
+  GetAsk,
+  ListAsk,
+  RecordAnswer,
+  RecordsCsv,
+  RecordsPage,
+  Row,
+} from "@wren/core/records/serve";
 export type { ReviewResult } from "../approve.js";
 export type { WhyLine } from "../compose.js";
 /** What the answers look like, for the portal's web app. */
@@ -311,6 +370,13 @@ export function makeReactivationPortal(deps: PortalDeps) {
     name: "ReactivationPortal",
     handlers: {
       overview: (_: restate.Context, req: Req<"overview">) => answer(() => api.overview(req)),
+      recordsTypes: (_: restate.Context, req: Req<"recordsTypes">) =>
+        answer(() => api.recordsTypes(req)),
+      recordsList: (_: restate.Context, req: Req<"recordsList">) =>
+        answer(() => api.recordsList(req)),
+      recordsGet: (_: restate.Context, req: Req<"recordsGet">) => answer(() => api.recordsGet(req)),
+      recordsExport: (_: restate.Context, req: Req<"recordsExport">) =>
+        answer(() => api.recordsExport(req)),
       health: (_: restate.Context, req: Req<"health">) => answer(() => api.health(req)),
       setup: (_: restate.Context, req: Req<"setup">) => answer(() => api.setup(req)),
       run: (_: restate.Context, req: Req<"run">) => answer(() => api.run(req)),

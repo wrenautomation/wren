@@ -15,6 +15,7 @@ export default defineConfig({
     "../channel-meta/src/schema.ts",
     "../channel-sms/src/schema.ts",
     "../reactivation/src/schema.ts",
+    "../reactivation/src/portal/record-views.ts",
     "../books/src/schema.ts",
     "../channel-search/src/schema.ts",
     "../auth/src/schema.ts",

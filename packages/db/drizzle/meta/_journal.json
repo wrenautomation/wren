@@ -421,6 +421,13 @@
       "when": 1791070024499,
       "tag": "0059_mover_addresses_next_step",
       "breakpoints": true
+    },
+    {
+      "idx": 60,
+      "version": "7",
+      "when": 1791071545080,
+      "tag": "0060_record_views",
+      "breakpoints": true
     }
   ]
 }

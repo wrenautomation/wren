@@ -122,7 +122,8 @@ const pageOf = <F extends string>(
 
 export async function portalEmails(
   db: Queryable,
-  query: { filter?: EmailFilter; offset?: number; approval: "first" | "every" },
+  /** `id`: just that pair, whatever its filter (a record's detail). */
+  query: { filter?: EmailFilter; offset?: number; approval: "first" | "every"; id?: number },
 ): Promise<EmailsPage> {
   const { filter, offset } = pageOf(EMAIL_FILTERS, "awaiting", query.filter, query.offset);
   const rows = await db.execute<{
@@ -142,7 +143,7 @@ export async function portalEmails(
     select e.id, e.person_id, p.full_name name, coalesce(co.name, co.domain) firm, e.to_email,
       e.sender, ${EMAIL_STATUS} status, e.stop_reason, m.sent, m.approved_by, e.created_at,
       m.last_sent_at
-    ${EMAIL_FROM} and ${EMAIL_WHERE[filter]}
+    ${EMAIL_FROM} and ${query.id === undefined ? EMAIL_WHERE[filter] : sql`e.id = ${query.id}`}
     order by e.created_at desc, e.id desc
     limit ${PAGE} offset ${offset}`);
   const steps = rows.length
