@@ -220,6 +220,9 @@ function sendable(horizonDays: number) {
     eq(contactCandidates.state, "verified"),
     eq(leads.status, "verified"),
     gt(latestValidCheckedAt(), sql`${horizon.toISOString()}::timestamptz`),
+    // Wrong person (lead_sheet's `verified`): the mailbox fits someone else, or they moved on.
+    sql`NOT EXISTS (SELECT 1 FROM lead_checks lc WHERE lc.lead_id = ${leads.id}
+      AND lc.kind IN ('mailbox_fits_name', 'works_there') AND lc.result = 'fail')`,
   );
 }
 

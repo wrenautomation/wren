@@ -1,3 +1,5 @@
+export * from "./checks.js";
+export * from "./lead-checks.js";
 export * from "./local.js";
 export * from "./mailifier.js";
 export * from "./prober-health.js";

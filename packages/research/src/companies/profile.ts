@@ -137,6 +137,7 @@ function profileFinding(s: ProfileSubject, page: CompanyPage, url: string): Comp
       employees: page.employees ?? page.size ?? null,
       founded: page.founded ?? null,
       homepage: page.website ?? null,
+      phone: page.phone ?? null,
     },
     confidence: SURE_PAGE,
     via: CACHE_VIA,

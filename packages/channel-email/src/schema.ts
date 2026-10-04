@@ -642,3 +642,43 @@ export type PostmasterDay = typeof postmasterDays.$inferSelect;
 export type NewPostmasterDay = typeof postmasterDays.$inferInsert;
 export type Report = typeof reports.$inferSelect;
 export type NewReport = typeof reports.$inferInsert;
+
+/** Cross-checks per lead (verification/checks.ts); `title_agrees` and `phone_agrees` are info only. */
+export const LEAD_CHECK_KINDS = [
+  "mailbox_fits_name",
+  "domain_is_firm",
+  "works_there",
+  "title_agrees",
+  "page_is_firm",
+  "phone_agrees",
+] as const;
+export type LeadCheckKind = (typeof LEAD_CHECK_KINDS)[number];
+export const LEAD_CHECK_RESULTS = ["pass", "fail", "unknown"] as const;
+export type LeadCheckResult = (typeof LEAD_CHECK_RESULTS)[number];
+
+/**
+ * Is this the right person at the right address: one row per lead and check,
+ * recomputed whole from data we hold (`recheckLeads`). A role mailbox has no
+ * `mailbox_fits_name` row: it skips that check.
+ */
+export const leadChecks = pgTable(
+  "lead_checks",
+  {
+    leadId: integer("lead_id").notNull(),
+    kind: varchar("kind", { length: 32, enum: LEAD_CHECK_KINDS }).notNull(),
+    result: varchar("result", { length: 16, enum: LEAD_CHECK_RESULTS }).notNull(),
+    evidence: jsonb("evidence").notNull(),
+    checkedAt: timestamp("checked_at", { withTimezone: true }).defaultNow().notNull(),
+  },
+  (t) => [
+    primaryKey({ columns: [t.leadId, t.kind], name: "pk_lead_checks" }),
+    foreignKey({
+      columns: [t.leadId],
+      foreignColumns: [leads.id],
+      name: "fk_lead_checks_lead_id_leads",
+    }).onDelete("cascade"),
+    oneOf("ck_lead_checks_leadcheckkind", t.kind, LEAD_CHECK_KINDS),
+    oneOf("ck_lead_checks_leadcheckresult", t.result, LEAD_CHECK_RESULTS),
+  ],
+);
+export type LeadCheck = typeof leadChecks.$inferSelect;

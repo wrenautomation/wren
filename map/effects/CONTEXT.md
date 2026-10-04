@@ -10,7 +10,7 @@ A catalog, not a waterfall. Each row names the cards whose **If you change this*
 | which firms are no buyer (`decline_reason`, chains, a niche's screen rule) | [[leads/company]] | `packages/core/src/ingest/screen.ts`, [[platform/niche]], [[processes/import]], [[processes/pool-feed]] (`inPlay`) |
 | how titles rank (`role_rank`) | [[leads/person]] | `packages/core/src/views.ts`, [[processes/compose]], [[processes/migrate]] |
 | what counts as suppressed | [[leads/suppression]] | [[processes/inbox-sync]], [[processes/sms-tick]], `packages/channel-email/src/guards.ts` |
-| a research stage or its spend | [[processes/pool-feed]] | [[research/enrichment]], [[research/contact-candidate]], [[research/verification]], [[platform/settings]] (`WREN_POOL_MODEL_STAGES`) |
+| a research stage or its spend | [[processes/pool-feed]] | [[research/enrichment]], [[research/contact-candidate]], [[research/verification]], [[research/lead-check]], [[platform/settings]] (`WREN_POOL_MODEL_STAGES`) |
 | an `.email` file or a `{key}` | [[email/template]] | [[email/sequence]], [[processes/compose]] |
 | a sequence, arm or plan rule | [[email/sequence]] | [[platform/niche]], [[processes/compose]] |
 | who sends, from which inbox | [[email/roster]] | [[email/send-policy]], [[processes/deploy]] (SSM roster), [[platform/loop-object]] (keys) |

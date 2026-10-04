@@ -24,6 +24,7 @@ Citations: `packages/channel-email/src/schema.ts:120`
 ## Connected to
 
 - **owned-by:** [[leads/lead]] or [[research/contact-candidate]]
+- **looks-like-but-is-not:** [[research/lead-check]] (is it the right person)
 - **joins:** `verification_yield` view (`packages/channel-email/src/views.ts:103`); the address provenance on [[email/message]]
 
 ## If you change this

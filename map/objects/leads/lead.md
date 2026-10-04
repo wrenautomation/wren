@@ -25,13 +25,13 @@ Citations: `packages/core/src/schema.ts:219`
 ## Connected to
 
 - **owned-by:** [[leads/company]], [[ledger/import]]
-- **owns:** [[research/verification]] (`lead_id`)
+- **owns:** [[research/verification]] (`lead_id`), [[research/lead-check]] (`lead_id`)
 - **joins:** [[research/contact-candidate]] (`lead_id` once promoted), [[leads/suppression]] (`suppression_id`)
 - **looks-like-but-is-not:** [[research/contact-candidate]] (a guess, not yet a lead); `Ads.leads` (Meta form fills)
 
 ## If you change this
 
-- **Hits:** the lead importer (`packages/core/src/ingest/importer.ts:402`); verification (`packages/channel-email/src/verification/service.ts:162`); resolution's promotion (`packages/channel-email/src/resolution/service.ts:729`); `LEAD_TRANSITIONS` (`packages/core/src/state.ts:43`); `verification_yield` view (`packages/channel-email/src/views.ts:103`); `lead_sheet` view, one row per lead with person and firm columns (`packages/channel-email/src/views.ts:354`)
+- **Hits:** the lead importer (`packages/core/src/ingest/importer.ts:402`); verification (`packages/channel-email/src/verification/service.ts:162`); resolution's promotion (`packages/channel-email/src/resolution/service.ts:729`); `LEAD_TRANSITIONS` (`packages/core/src/state.ts:43`); `verification_yield` view (`packages/channel-email/src/views.ts:103`); `lead_sheet` view, one row per lead with person and firm columns, `checks` and `verified` (`packages/channel-email/src/views.ts:357`)
 - **Does not hit:** `enrollments` (they carry their own `to_email`); SMS
 
 ## Surfaces
