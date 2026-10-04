@@ -621,7 +621,20 @@ describe("the demo", () => {
 
   it("reads the sample under its demo name, without internal notes", async () => {
     expect(await api.me({ viewer: DEMO })).toEqual({
-      clients: [{ id: "demo", name: "Demo recruiting firm", demo: true, installed: [] }],
+      clients: [
+        {
+          id: "demo",
+          name: "Demo recruiting firm",
+          demo: true,
+          // Its project installed delivery's four.
+          installed: [
+            "delivery.portal",
+            "delivery.reviews",
+            "delivery.contract",
+            "delivery.invoices",
+          ],
+        },
+      ],
       demo: true,
       operator: false,
     });

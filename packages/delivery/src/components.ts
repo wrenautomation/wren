@@ -1,8 +1,6 @@
 /** Client delivery: the portal's project, invoices, reviews and contract; and Wren's offers. */
 import { defineComponent } from "@wren/core/components";
 
-const NOT_GATED = "Shown to every client with a project, not yet by install";
-
 export const DELIVERY_COMPONENTS = [
   defineComponent({
     id: "delivery.portal",
@@ -10,8 +8,7 @@ export const DELIVERY_COMPONENTS = [
     blurb: "The project's plan, updates, asks and deliverables, in one place with Wren.",
     icon: "board",
     for: "client",
-    ready: false,
-    missing: [NOT_GATED],
+    ready: true,
     provides: {
       services: ["DeliveryPortal", "DeliveryWatch"],
       loops: ["DeliveryWatch"],
@@ -32,8 +29,7 @@ export const DELIVERY_COMPONENTS = [
     blurb: "Each invoice with a link to pay, and a nudge when one is due.",
     icon: "money",
     for: "client",
-    ready: false,
-    missing: [NOT_GATED],
+    ready: true,
     requires: { components: ["delivery.portal"] },
     provides: { records: ["delivery.invoice"] },
     effects: ["sends"],
@@ -44,8 +40,7 @@ export const DELIVERY_COMPONENTS = [
     blurb: "Asks the client's people how it's going at set moments.",
     icon: "pulse",
     for: "client",
-    ready: false,
-    missing: [NOT_GATED],
+    ready: true,
     requires: { components: ["delivery.portal"] },
   }),
   defineComponent({
@@ -54,8 +49,7 @@ export const DELIVERY_COMPONENTS = [
     blurb: "The contract to read and sign in the portal, with the signed copy by email.",
     icon: "check",
     for: "client",
-    ready: false,
-    missing: [NOT_GATED],
+    ready: true,
     requires: { components: ["delivery.portal"] },
     provides: { records: ["delivery.paperwork"] },
     effects: ["sends"],

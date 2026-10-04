@@ -10,6 +10,7 @@ import type { Queryable } from "@wren/db";
 import { OFFER_IDS, type Offer, offerFor } from "@wren/offers";
 import { and, asc, desc, eq, inArray, isNull, lt, type SQL, sql } from "drizzle-orm";
 import type { AnyPgColumn } from "drizzle-orm/pg-core";
+import { DELIVERY_COMPONENTS } from "./components.js";
 import { CONTRACT_VERSION, contractText, sha256 } from "./contract.js";
 import { fileNameOf } from "./files.js";
 import {
@@ -159,6 +160,8 @@ const ofClient = (db: Queryable, engagementId: AnyPgColumn, clientId: string) =>
 
 // --- writes ---------------------------------------------------------------------
 
+const CLIENT_DELIVERY = DELIVERY_COMPONENTS.filter((c) => c.for === "client");
+
 /** Week n of the plan runs from start + 7(n-1) days to start + 7n - 1. */
 export function datedPlan(offer: Offer, startsOn: string) {
   if (!offer.plan) throw bad(`${offer.id} has no plan to start`);
@@ -205,6 +208,12 @@ export async function startEngagement(
     })
     .returning();
   if (!e) throw new Error("engagement insert returned nothing");
+  // A project comes with its portal: the delivery components go on where missing, set blocks stay.
+  const on = Object.fromEntries(CLIENT_DELIVERY.map((c) => [c.id, {}]));
+  await db
+    .update(clients)
+    .set({ products: sql`${JSON.stringify(on)}::jsonb || ${clients.products}` })
+    .where(eq(clients.id, input.clientId));
   const ms = await db
     .insert(milestones)
     .values(

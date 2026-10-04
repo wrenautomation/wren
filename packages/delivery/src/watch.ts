@@ -157,19 +157,29 @@ const money = (unit: string, v: number) =>
       ? `${v.toLocaleString("en-US")} h`
       : v.toLocaleString("en-US");
 
-type Live = { e: Engagement; clientName: string };
+type Live = { e: Engagement; clientName: string; products: Record<string, unknown> };
 type Person = { m: ClientMember; mail: MemberMail | null; clientName: string };
 
-/** Every running engagement (onboarding or active) and every client person, the demo's left out. */
+/** Clients with component `id` installed: a key in `clients.products`. */
+const has = (id: string) => sql`${clients.products} ? ${id}`;
+
+/**
+ * Every running engagement (onboarding or active) and every client person, of the clients
+ * with the portal installed; the demo's left out.
+ */
 async function watched(main: Db): Promise<{ live: Live[]; people: Person[] }> {
-  const live: Live[] = (
-    await main
-      .select({ e: engagements, clientName: clients.name })
-      .from(engagements)
-      .innerJoin(clients, eq(clients.id, engagements.clientId))
-      .where(and(inArray(engagements.status, ["onboarding", "active"]), eq(clients.demo, false)))
-      .orderBy(asc(engagements.id))
-  ).map((r) => ({ e: r.e, clientName: r.clientName }));
+  const live: Live[] = await main
+    .select({ e: engagements, clientName: clients.name, products: clients.products })
+    .from(engagements)
+    .innerJoin(clients, eq(clients.id, engagements.clientId))
+    .where(
+      and(
+        inArray(engagements.status, ["onboarding", "active"]),
+        eq(clients.demo, false),
+        has("delivery.portal"),
+      ),
+    )
+    .orderBy(asc(engagements.id));
   const people: Person[] = await main
     .select({ m: clientMembers, mail: memberMail, clientName: clients.name })
     .from(clientMembers)
@@ -181,7 +191,7 @@ async function watched(main: Db): Promise<{ live: Live[]; people: Person[] }> {
         eq(memberMail.email, clientMembers.email),
       ),
     )
-    .where(eq(clients.demo, false));
+    .where(and(eq(clients.demo, false), has("delivery.portal")));
   return { live, people };
 }
 
@@ -230,7 +240,7 @@ async function markMoments(
   stats: WatchStats,
 ): Promise<void> {
   const { main, app, send } = deps;
-  const running = live.filter((l) => l.e.status === "active");
+  const running = live.filter((l) => l.e.status === "active" && "delivery.reviews" in l.products);
   if (running.length === 0) return;
   const ids = running.map((l) => l.e.id);
   const [rs, known] = await Promise.all([
@@ -334,6 +344,7 @@ async function remindInvoices(
         lte(invoices.dueOn, addDays(today, REMIND_DAYS)),
         lte(invoices.issuedOn, addDays(today, -REMIND_AFTER_DAYS)),
         eq(clients.demo, false),
+        has("delivery.invoices"),
       ),
     );
   for (const { i, clientId, clientName } of due) {
@@ -463,6 +474,7 @@ async function mailContracts(
         sql`${agreements.signedAt} is not null`,
         isNull(agreements.mailedAt),
         eq(clients.demo, false),
+        has("delivery.contract"),
       ),
     );
   for (const { a, clientId, offerId, clientName } of due) {

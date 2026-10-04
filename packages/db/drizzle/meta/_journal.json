@@ -540,6 +540,13 @@
       "when": 1791151696375,
       "tag": "0076_experiment_records",
       "breakpoints": true
+    },
+    {
+      "idx": 77,
+      "version": "7",
+      "when": 1791153654283,
+      "tag": "0077_delivery_installs",
+      "breakpoints": true
     }
   ]
 }

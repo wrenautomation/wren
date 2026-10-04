@@ -4,7 +4,7 @@
  * operator pings that fire once and clear, and the ops board. The demo is
  * never mailed and never on the board.
  */
-import { addMember, clients } from "@wren/core/clients";
+import { addMember, clients, updateClient } from "@wren/core/clients";
 import type { Notifier } from "@wren/core/notify";
 import { PortalRefusal, type Viewer } from "@wren/core/portal";
 import { startTestPostgres, type TestPostgres } from "@wren/db/testing";
@@ -438,5 +438,34 @@ describe("the 1st's bills (D15)", () => {
     await api.result({ viewer: OPS, client: "bolt", key: "meetings", value: 40 });
     // The $13.5k cap less $1.5k billed leaves 24 meetings.
     expect(await billsDue(pg.db, "2027-01")).toMatchObject([{ monthlyCents: 30_000, units: 24 }]);
+  });
+});
+
+describe("installs", () => {
+  it("a project installs the portal; uninstalled, its people get no mail", async () => {
+    await pg.db
+      .insert(clients)
+      .values({ id: "solo", name: "Solo Search", database: "wren_client_solo" });
+    await addMember(pg.db, "solo", "sam@solo.example", { role: "owner" });
+    await startEngagement(pg.db, {
+      clientId: "solo",
+      offerId: "reactivation",
+      startsOn: "2027-02-01",
+      by: "seed",
+    });
+    const [c] = await pg.db.select().from(clients).where(sql`${clients.id} = 'solo'`);
+    expect(Object.keys(c?.products ?? {}).sort()).toEqual([
+      "delivery.contract",
+      "delivery.invoices",
+      "delivery.portal",
+      "delivery.reviews",
+    ]);
+    await updateClient(pg.db, "solo", { products: { "delivery.portal": null } });
+    take(mail);
+    await pass("2027-02-01T10:00:00Z");
+    expect(take(mail).filter((m) => m.to === "sam@solo.example")).toEqual([]);
+    await updateClient(pg.db, "solo", { products: { "delivery.portal": {} } });
+    await pass("2027-02-01T10:30:00Z");
+    expect(take(mail).filter((m) => m.to === "sam@solo.example")).toHaveLength(1);
   });
 });
