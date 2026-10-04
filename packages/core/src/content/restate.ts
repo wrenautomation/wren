@@ -7,6 +7,8 @@
  * here.
  */
 import * as restate from "@restatedev/restate-sdk";
+import { z } from "zod";
+import { NO_INPUT, serviceHandler } from "../restate/form.js";
 import {
   SiteCallError,
   type SiteClient,
@@ -15,6 +17,7 @@ import {
   viaOf,
 } from "./autobrowse.js";
 import type { ContentChannel, ListQuery, Platform, Post } from "./index.js";
+import { PLATFORMS } from "./index.js";
 
 export type Channels = Partial<Record<Platform, ContentChannel>>;
 
@@ -165,6 +168,34 @@ async function refusalsFinal<T>(work: Promise<T>): Promise<T> {
 /** Build the channels for one invocation from its context (the `sites` calls need it). */
 export type ChannelsFor = (ctx: restate.Context) => Channels;
 
+const PLATFORM = z.enum(PLATFORMS as [Platform, ...Platform[]]);
+const QUERY = z
+  .looseObject({
+    limit: z.number().nullish(),
+    before: z.string().nullish().describe("The last row's publishedAt; older rows come back"),
+  })
+  .nullish();
+const PUBLISH = z.looseObject({
+  platform: PLATFORM,
+  post: z.looseObject({
+    text: z.string(),
+    media: z
+      .looseObject({
+        kind: z.string().describe("image or video"),
+        source: z.string().describe("A URL, or a file the media host stores"),
+        title: z.string().nullish().describe("Video title, image alt text"),
+      })
+      .nullish(),
+    scheduledFor: z.string().nullish().describe("ISO time to publish at; empty = now"),
+    extra: z
+      .record(z.string(), z.unknown())
+      .nullish()
+      .describe("Platform extras: YouTube title and tags, LinkedIn visibility, subreddit"),
+  }),
+});
+const ONE_POST = z.looseObject({ platform: PLATFORM, id: z.string() });
+const REPLY = z.looseObject({ platform: PLATFORM, commentId: z.string(), text: z.string() });
+
 export function makeContent(channelsFor: ChannelsFor) {
   const pick = (ctx: restate.Context, platform: Platform): ContentChannel => {
     const ch = channelsFor(ctx)[platform];
@@ -175,29 +206,47 @@ export function makeContent(channelsFor: ChannelsFor) {
   return restate.service({
     name: "Content",
     handlers: {
-      platforms: async (ctx: restate.Context): Promise<Platform[]> => {
-        const channels = channelsFor(ctx);
-        return (Object.keys(channels) as Platform[]).filter((p) => channels[p]);
-      },
-      publish: async (ctx: restate.Context, req: { platform: Platform; post: Post }) =>
-        refusalsFinal(pick(ctx, req.platform).publish(req.post)),
-      list: async (ctx: restate.Context, req: { platform: Platform; q?: ListQuery }) =>
-        refusalsFinal(pick(ctx, req.platform).list(req.q ?? {})),
-      metrics: async (ctx: restate.Context, req: { platform: Platform; id: string }) =>
-        refusalsFinal(pick(ctx, req.platform).metrics(req.id)),
-      comments: async (
-        ctx: restate.Context,
-        req: { platform: Platform; id: string; q?: ListQuery },
-      ) => refusalsFinal(pick(ctx, req.platform).comments(req.id, req.q ?? {})),
-      reply: async (
-        ctx: restate.Context,
-        req: { platform: Platform; commentId: string; text: string },
-      ) => {
-        const ch = pick(ctx, req.platform);
-        if (!ch.reply)
-          throw new restate.TerminalError(`${req.platform} cannot reply here`, { errorCode: 501 });
-        await refusalsFinal(ch.reply(req.commentId, req.text));
-      },
+      platforms: serviceHandler(
+        { input: NO_INPUT },
+        async (ctx: restate.Context): Promise<Platform[]> => {
+          const channels = channelsFor(ctx);
+          return (Object.keys(channels) as Platform[]).filter((p) => channels[p]);
+        },
+      ),
+      publish: serviceHandler(
+        { input: PUBLISH, effect: "posts" },
+        async (ctx: restate.Context, req: { platform: Platform; post: Post }) =>
+          refusalsFinal(pick(ctx, req.platform).publish(req.post)),
+      ),
+      list: serviceHandler(
+        { input: z.looseObject({ platform: PLATFORM, q: QUERY }) },
+        async (ctx: restate.Context, req: { platform: Platform; q?: ListQuery }) =>
+          refusalsFinal(pick(ctx, req.platform).list(req.q ?? {})),
+      ),
+      metrics: serviceHandler(
+        { input: ONE_POST },
+        async (ctx: restate.Context, req: { platform: Platform; id: string }) =>
+          refusalsFinal(pick(ctx, req.platform).metrics(req.id)),
+      ),
+      comments: serviceHandler(
+        { input: ONE_POST.extend({ q: QUERY }) },
+        async (ctx: restate.Context, req: { platform: Platform; id: string; q?: ListQuery }) =>
+          refusalsFinal(pick(ctx, req.platform).comments(req.id, req.q ?? {})),
+      ),
+      reply: serviceHandler(
+        { input: REPLY, effect: "posts" },
+        async (
+          ctx: restate.Context,
+          req: { platform: Platform; commentId: string; text: string },
+        ) => {
+          const ch = pick(ctx, req.platform);
+          if (!ch.reply)
+            throw new restate.TerminalError(`${req.platform} cannot reply here`, {
+              errorCode: 501,
+            });
+          await refusalsFinal(ch.reply(req.commentId, req.text));
+        },
+      ),
     },
   });
 }
