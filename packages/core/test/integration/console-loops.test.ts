@@ -66,7 +66,7 @@ const one = (loops: LoopRow[], key: string) => loops.find((l) => l.key === key);
 describe("ConsolePortal loops", () => {
   it("lists a running loop with its last pass and next call, then stops and starts it", async () => {
     await tickOf("a").start();
-    let loops = await loopsUntil((l) => one(l, "a")?.nextAt != null);
+    let loops = await loopsUntil((l) => one(l, "a")?.nextAt != null && one(l, "a")?.lastAt != null);
     const a = one(loops, "a");
     expect(a).toMatchObject({ service: "Tick", running: true, failures: 0, error: null });
     expect(Date.parse(a?.nextAt ?? "") - Date.parse(a?.lastAt ?? "")).toBeGreaterThan(HOUR - 5000);
