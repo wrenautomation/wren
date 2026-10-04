@@ -1,8 +1,9 @@
 /**
  * An `Action` as a button: it asks first when the action says to, calls the handler, says how
- * it went in a toast, then lets its widget read again so the row shows the change.
+ * it went in a toast, then lets its widget read again so the row shows the change. `useRun` does
+ * the same for a record's actions, by id, with undo.
  */
-import { useId, useState } from "react";
+import { type ReactNode, useId, useState } from "react";
 import { toast } from "sonner";
 import { can, type Viewer } from "./access.js";
 import {
@@ -12,6 +13,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "./components/ui/dialog.js";
+import { Toaster } from "./components/ui/sonner.js";
 import { Textarea } from "./components/ui/textarea.js";
 import { Button } from "./controls.js";
 import type { Action } from "./page.js";
@@ -109,4 +111,101 @@ export function ActionButton({
       ) : null}
     </>
   );
+}
+
+/** How long an undo is offered. */
+export const UNDO_MS = 10_000;
+
+/** The ids an answer says it changed (`done`), else all that were asked. */
+export function doneOf(answer: unknown, ids: readonly (string | number)[]) {
+  const done = (answer as { done?: unknown } | null)?.done;
+  return Array.isArray(done) ? (done as (string | number)[]) : [...ids];
+}
+
+/** Whether a record is in a state `action` applies to. */
+export function applies(action: Action, row: Record<string, unknown>): boolean {
+  return Object.entries(action.when ?? {}).every(([k, states]) => states.includes(String(row[k])));
+}
+
+const plural = (n: number, one: string, many: string) => `${n} ${n === 1 ? one : many}`;
+
+/**
+ * Runs a record's actions on ids: one with `undo` at once, with an undo toast for 10 seconds;
+ * any other asks first. `after` runs once each call settles, so the page reads again.
+ */
+export function useRun(
+  call: Call,
+  after: () => void,
+  names: { one: string; many: string },
+): { run: (action: Action, ids: (string | number)[]) => void; busy: boolean; dialog: ReactNode } {
+  const [asked, setAsked] = useState<{ action: Action; ids: (string | number)[] } | null>(null);
+  const [busy, setBusy] = useState(false);
+
+  const go = async (action: Action, ids: (string | number)[]) => {
+    setAsked(null);
+    setBusy(true);
+    try {
+      const answer = await call(action.handler, { ids });
+      const said = action.done?.(answer) ?? `${action.label}: done`;
+      const undo = action.undo;
+      const done = doneOf(answer, ids);
+      if (!undo || !done.length) toast.success(said);
+      else
+        toast.success(said, {
+          duration: UNDO_MS,
+          action: {
+            label: "Undo",
+            onClick: () =>
+              void call(undo, { ids: done }).then(
+                (back) => {
+                  if (doneOf(back, []).length) toast.success("Undone");
+                  else toast.error("Too late to undo.");
+                  after();
+                },
+                (err: unknown) => toast.error(err instanceof Error ? err.message : String(err)),
+              ),
+          },
+        });
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : String(err));
+    } finally {
+      setBusy(false);
+      after();
+    }
+  };
+  const run = (action: Action, ids: (string | number)[]) => {
+    if (!ids.length || busy) return;
+    if (action.undo) void go(action, ids);
+    else setAsked({ action, ids });
+  };
+
+  const n = asked?.ids.length ?? 0;
+  const dialog = (
+    <Dialog open={!!asked} onOpenChange={(open) => !open && setAsked(null)}>
+      <DialogContent>
+        <DialogHeader>
+          <DialogTitle>
+            {asked?.action.confirm ?? `${asked?.action.label} ${plural(n, names.one, names.many)}?`}
+          </DialogTitle>
+        </DialogHeader>
+        {n > 1 ? (
+          <p className="text-sm text-(--ui-ink-2)">{plural(n, names.one, names.many)}.</p>
+        ) : null}
+        <DialogFooter>
+          <Button tone="quiet" size="sm" onClick={() => setAsked(null)}>
+            Cancel
+          </Button>
+          <Button size="sm" onClick={() => asked && void go(asked.action, asked.ids)}>
+            {asked?.action.label}
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+  return { run, busy, dialog };
+}
+
+/** The one place toasts show; an app mounts it once. */
+export function Toasts() {
+  return <Toaster position="bottom-center" />;
 }

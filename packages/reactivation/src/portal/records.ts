@@ -120,8 +120,8 @@ export const email = defineRecord({
   async load(db, id) {
     const [e] = (await portalEmails(db, { id: Number(id), approval: "first" })).rows;
     if (!e) return null;
-    const { to, from, opener, followup, why, sources } = e;
-    return { to, from, opener, followup, why, sources };
+    const { personId, to, from, opener, followup, why, sources } = e;
+    return { personId, to, from, opener, followup, why, sources };
   },
 });
 

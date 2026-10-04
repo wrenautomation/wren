@@ -77,7 +77,8 @@ export async function pickForWrite(
 }
 
 export interface Me {
-  clients: { id: string; name: string }[];
+  /** `demo`: the demo firm, which refuses writes wherever it's looked at. */
+  clients: { id: string; name: string; demo?: true }[];
   demo: boolean;
   /** Wren's team: every client, and the tools to post to them. */
   operator: boolean;
@@ -88,7 +89,11 @@ export async function portalMe(main: Db, viewer: Viewer, demoName: string): Prom
   const mine = await clientsFor(main, viewer);
   if (!isDemo(viewer)) await touchMember(main, viewer.email);
   return {
-    clients: mine.map((c) => ({ id: c.id, name: isDemo(viewer) ? demoName : c.name })),
+    clients: mine.map((c) => ({
+      id: c.id,
+      name: isDemo(viewer) ? demoName : c.name,
+      ...(c.demo ? { demo: true as const } : {}),
+    })),
     demo: isDemo(viewer),
     operator: isOperator(viewer),
   };

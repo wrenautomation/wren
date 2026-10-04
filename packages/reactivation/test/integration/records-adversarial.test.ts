@@ -163,8 +163,8 @@ describe("the demo", () => {
   });
 
   it("still refuses approve, skip and book", async () => {
-    expect(await clean(api.approve({ ...demo, enrollmentIds: [pair] }))).toBe("refused");
-    expect(await clean(api.skip({ ...demo, enrollmentIds: [pair] }))).toBe("refused");
+    expect(await clean(api.approve({ ...demo, ids: [pair] }))).toBe("refused");
+    expect(await clean(api.skip({ ...demo, ids: [pair] }))).toBe("refused");
     expect(await clean(api.book({ ...demo, threadEventId: 1 }))).toBe("refused");
     expect(PORTAL_WRITES.filter((w) => w.startsWith("records"))).toEqual([]);
     expect(PORTAL_ROUTES).toEqual(

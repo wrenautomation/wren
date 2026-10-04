@@ -193,7 +193,7 @@ const leaks = (v: unknown) => {
 describe("the demo", () => {
   it("is named by DEMO_NAME, never by the agency", async () => {
     expect(await me(demo)).toEqual({
-      clients: [{ id: "demo", name: DEMO_NAME }],
+      clients: [{ id: "demo", name: DEMO_NAME, demo: true }],
       demo: true,
       operator: false,
     });
@@ -319,7 +319,7 @@ describe("logins", () => {
       clients: [
         { id: "acme", name: "Acme Staffing" },
         { id: "beta", name: "Beta Search" },
-        { id: "demo", name: "Northside Talent" },
+        { id: "demo", name: "Northside Talent", demo: true },
       ],
       demo: false,
       operator: true,
@@ -375,13 +375,12 @@ describe("writes", () => {
     expect.objectContaining({ constructor: PortalRefusal, status });
 
   it("the demo refuses every write, even from an operator", async () => {
-    await expect(api.approve({ ...demo, enrollmentIds: [enrollmentId] })).rejects.toEqual(
+    await expect(api.approve({ ...demo, ids: [enrollmentId] })).rejects.toEqual(refusal(403));
+    await expect(api.book({ ...demo, threadEventId: replyId })).rejects.toEqual(refusal(403));
+    await expect(api.unapprove({ ...demo, ids: [enrollmentId] })).rejects.toEqual(refusal(403));
+    await expect(api.skip({ ...operator, client: "demo", ids: [enrollmentId] })).rejects.toEqual(
       refusal(403),
     );
-    await expect(api.book({ ...demo, threadEventId: replyId })).rejects.toEqual(refusal(403));
-    await expect(
-      api.skip({ ...operator, client: "demo", enrollmentIds: [enrollmentId] }),
-    ).rejects.toEqual(refusal(403));
     expect((await api.emails({ ...owner, filter: "awaiting" })).total).toBe(1);
   });
 
@@ -391,12 +390,20 @@ describe("writes", () => {
   });
 
   it("a client approves, marks a meeting, and a second click changes nothing", async () => {
-    const first = await api.approve({ ...owner, enrollmentIds: [enrollmentId, 999_999] });
+    const first = await api.approve({ ...owner, ids: [enrollmentId, 999_999] });
     expect(first).toEqual({ done: [enrollmentId], skipped: [999_999] });
-    expect(await api.approve({ ...owner, enrollmentIds: [enrollmentId] })).toEqual({
+    expect(await api.approve({ ...owner, ids: [enrollmentId] })).toEqual({
       done: [],
       skipped: [enrollmentId],
     });
+    // Undo puts it back to approve, once; then approve it again for the rest.
+    expect(await api.unapprove({ ...owner, ids: [enrollmentId] })).toEqual({
+      done: [enrollmentId],
+      skipped: [],
+    });
+    expect((await api.emails({ ...owner, filter: "awaiting" })).total).toBe(1);
+    expect((await api.unapprove({ ...owner, ids: [enrollmentId] })).done).toEqual([]);
+    await api.approve({ ...owner, ids: [enrollmentId] });
     const emails = await api.emails({ ...owner, filter: "approved" });
     expect(emails.rows[0]).toMatchObject({ enrollmentId, approvedBy: "client" });
     expect(emails.approval.firstApproved).toBe(true);
@@ -420,7 +427,7 @@ describe("writes", () => {
     await api.book({ ...operator, client: "acme", threadEventId: replyId, booked: false });
     expect((await api.replies({ ...owner, filter: "booked" })).total).toBe(0);
     await expect(api.book({ ...owner, threadEventId: 999_999 })).rejects.toEqual(refusal(404));
-    await expect(api.approve({ ...owner, enrollmentIds: ["1; drop" as never] })).rejects.toEqual(
+    await expect(api.approve({ ...owner, ids: ["1; drop" as never] })).rejects.toEqual(
       refusal(404),
     );
   });

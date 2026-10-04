@@ -75,10 +75,7 @@ const STEPS: RunStep[] = [
 ];
 
 const INPUT = { label: "Your list", note: "From your CRM" };
-const outputOf = (demo: boolean) => ({
-  label: "Your OK",
-  note: demo ? "Off on the demo" : "Nothing sends without it",
-});
+const OUTPUT = { label: "Your OK", note: "Nothing sends without it" };
 
 type Line = NonNullable<RunPage["story"]>["lines"][number];
 
@@ -222,7 +219,7 @@ function useRun(client: string, team: boolean) {
   return { first, live, error };
 }
 
-export function Run({ client, demo, team }: PageProps) {
+export function Run({ client, team }: PageProps) {
   const { first, live, error } = useRun(client, team);
   // Watching live is a choice once the page is open; on load, a run going now wins.
   const [watch, setWatch] = useState<string | null>(null);
@@ -241,7 +238,7 @@ export function Run({ client, demo, team }: PageProps) {
           <Loading lines={8} />
         )
       ) : watching ? (
-        <Live run={watching} demo={demo} work={workOf(client, team)} />
+        <Live run={watching} work={workOf(client, team)} />
       ) : (
         <>
           {live?.open ? (
@@ -254,7 +251,7 @@ export function Run({ client, demo, team }: PageProps) {
               </Button>
             </div>
           ) : null}
-          <Replay page={first} demo={demo} work={workOf(client, team)} />
+          <Replay page={first} work={workOf(client, team)} />
         </>
       )}
     </>
@@ -267,7 +264,7 @@ const workOf =
   (line) =>
     withWork(line) ? <LineWork line={line} client={client} team={team} /> : null;
 
-function Live({ run, demo, work }: { run: LiveRun; demo: boolean; work: WorkOf }) {
+function Live({ run, work }: { run: LiveRun; work: WorkOf }) {
   const label = run.open
     ? `Live. Started at ${timeOf(run.startedAt)}.`
     : `Finished at ${timeOf(run.finishedAt ?? run.startedAt)}.`;
@@ -280,13 +277,13 @@ function Live({ run, demo, work }: { run: LiveRun; demo: boolean; work: WorkOf }
       label={label}
       work={work}
       input={INPUT}
-      output={outputOf(demo)}
-      results={<Results demo={demo} />}
+      output={OUTPUT}
+      results={<Results />}
     />
   );
 }
 
-function Replay({ page, demo, work }: { page: RunPage; demo: boolean; work: WorkOf }) {
+function Replay({ page, work }: { page: RunPage; work: WorkOf }) {
   const story = page.story;
   if (!story?.lines.length)
     return (
@@ -303,25 +300,24 @@ function Replay({ page, demo, work }: { page: RunPage; demo: boolean; work: Work
       label={`Replay of the work on your list${day ? ` as of ${day}` : ""}, sped up.`}
       work={work}
       input={INPUT}
-      output={outputOf(demo)}
-      results={<Results demo={demo} />}
+      output={OUTPUT}
+      results={<Results />}
     />
   );
 }
 
 /** Where the run leaves you: the people to call and the drafts to read. */
-function Results({ demo }: { demo: boolean }) {
+function Results() {
   return (
     <div className="rx-run-results">
       <p>
-        <b>That's the list, worked.</b>{" "}
-        {demo ? "Approving is off on the demo." : "Nothing sends until you approve it."}
+        <b>That's the list, worked.</b> Nothing sends until you approve it.
       </p>
       <span className="rx-run-actions">
         <ButtonLink href={at("people")} tone="quiet">
           Who to call first
         </ButtonLink>
-        <ButtonLink href={at("emails", { filter: "awaiting" })} tone="primary" arrow>
+        <ButtonLink href={at("emails")} tone="primary" arrow>
           Read the drafts
         </ButtonLink>
       </span>

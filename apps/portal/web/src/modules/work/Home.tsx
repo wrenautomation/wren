@@ -358,7 +358,7 @@ function Pulse({
       </div>
       <p className="wk-quiet">
         {props.demo
-          ? "Off on the demo."
+          ? "Works in your own workspace."
           : mine
             ? `You said ${PULSE_WORDS[mine]}. Tap another to change it.`
             : "One tap. Each one reaches us."}
@@ -428,7 +428,7 @@ function Review({
       </div>
       {score === null ? (
         <p className="wk-quiet">
-          {props.demo ? "Off on the demo." : "One tap. It reaches William."}
+          {props.demo ? "Works in your own workspace." : "One tap. It reaches William."}
         </p>
       ) : (
         <Form

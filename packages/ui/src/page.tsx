@@ -11,7 +11,6 @@ import { type Access, can, type Viewer } from "./access.js";
 import { ActionButton, type Call } from "./action.js";
 import { Card, CardAction, CardContent, CardHeader, CardTitle } from "./components/ui/card.js";
 import { Skeleton } from "./components/ui/skeleton.js";
-import { Toaster } from "./components/ui/sonner.js";
 import { Button } from "./controls.js";
 
 export type Size = "s" | "m" | "l" | "full";
@@ -71,6 +70,22 @@ export interface Action {
   ask?: { field: string; label: string };
   /** The toast after it worked, from the handler's answer. */
   done?: (answer: unknown) => string;
+  /**
+   * The rest is for a record's action, called as `{ids}`; an answer's `done` ids are the ones
+   * it changed. Its shortcut in a list or a queue: "a".
+   */
+  key?: string;
+  /** Offered on a selection. */
+  bulk?: true;
+  /**
+   * The handler that reverses it, on the same ids. Given, the action runs at once with 10 seconds
+   * to undo it; without one, it asks first (`confirm`, or its label).
+   */
+  undo?: string;
+  /** The states a record must be in for it to apply: `{ status: ["awaiting"] }`. */
+  when?: Readonly<Record<string, readonly string[]>>;
+  /** What it sets on a record, so the demo can do it in the browser: `{ status: "approved" }`. */
+  sets?: Readonly<Record<string, string>>;
 }
 
 type Answer = { data: unknown } | { error: string };
@@ -126,12 +141,7 @@ export function PageTree({
       answers.delete(JSON.stringify(source));
       redraw((n) => n + 1);
     });
-  return (
-    <>
-      <Tree node={node} viewer={viewer} read={read} reread={reread} csv={csv} call={call} />
-      {call ? <Toaster /> : null}
-    </>
-  );
+  return <Tree node={node} viewer={viewer} read={read} reread={reread} csv={csv} call={call} />;
 }
 
 function Tree({ node, ...tree }: TreeProps & { node: Node }) {

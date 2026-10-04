@@ -25,8 +25,8 @@ import {
   X,
 } from "lucide-react";
 import { type ReactNode, useEffect, useRef, useState } from "react";
-import type { Viewer } from "./access.js";
-import { ActionButton, type Call } from "./action.js";
+import { can, type Viewer } from "./access.js";
+import { applies, type Call, useRun } from "./action.js";
 import { Popover, PopoverContent, PopoverTrigger } from "./components/ui/popover.js";
 import { Button } from "./controls.js";
 import { Alert } from "./feedback.js";
@@ -79,6 +79,8 @@ export interface RecordSource {
 
 /** What a record's `detail` (its type's `load`) adds: lines under its fields, sections, sources. */
 export interface RecordExtras {
+  /** What leads the details, before the fields: an email's draft. */
+  lead?: ReactNode;
   facts?: [string, ReactNode][];
   /** Titled blocks after the fields, such as how the research went. */
   sections?: [string, ReactNode][];
@@ -87,7 +89,7 @@ export interface RecordExtras {
 
 /** Actions a record's head may show, by the ids its type lists. */
 export interface RecordActs {
-  actions: Action[];
+  actions: readonly Action[];
   viewer: Viewer;
   call: Call;
 }
@@ -96,8 +98,8 @@ export interface RecordTemplateProps {
   record: string;
   api: RecordsApi;
   place: Place;
-  /** What fills an empty list, said when nothing narrows it. */
-  empty?: string | undefined;
+  /** What fills an empty list, said when nothing narrows it: one line, or one per view. */
+  empty?: string | Readonly<Record<string, string>> | undefined;
   /** The columns shown until the viewer picks others; every one when left out. */
   columns?: string[] | undefined;
   extras?: ((detail: unknown, row: Row) => RecordExtras) | undefined;
@@ -107,7 +109,7 @@ export interface RecordTemplateProps {
 type Load<T> = { data: T | null; error: Error | null; loading: boolean; retry: () => void };
 
 /** `fn` whenever `key` changes; the last answer stays on screen while the next loads. */
-function useLoad<T>(key: string, fn: () => Promise<T>): Load<T> {
+export function useLoad<T>(key: string, fn: () => Promise<T>): Load<T> {
   const [state, setState] = useState<Omit<Load<T>, "retry">>({
     data: null,
     error: null,
@@ -137,7 +139,7 @@ function useLoad<T>(key: string, fn: () => Promise<T>): Load<T> {
 
 const TYPES = new WeakMap<RecordsApi, Promise<RecordMeta[]>>();
 /** The types, asked once per workspace's api. */
-function useTypes(api: RecordsApi): Load<RecordMeta[]> {
+export function useTypes(api: RecordsApi): Load<RecordMeta[]> {
   return useLoad("types", () => {
     let p = TYPES.get(api);
     if (!p) {
@@ -149,14 +151,14 @@ function useTypes(api: RecordsApi): Load<RecordMeta[]> {
   });
 }
 
-const cap = (s: string) => s.charAt(0).toUpperCase() + s.slice(1);
+export const cap = (s: string) => s.charAt(0).toUpperCase() + s.slice(1);
 const words = (s: string) => cap(s.replace(/_/g, " "));
-const titleOf = (meta: RecordMeta, row: Row) => {
+export const titleOf = (meta: RecordMeta, row: Row) => {
   const c = row[meta.title];
   return c && typeof c === "object" && "name" in c ? c.name : String(c ?? "");
 };
 /** Plain text of a cell, for a subtitle. */
-const textOf = (c: Cell | undefined) =>
+export const textOf = (c: Cell | undefined) =>
   c === null || c === undefined
     ? ""
     : typeof c === "object"
@@ -167,18 +169,86 @@ const textOf = (c: Cell | undefined) =>
 
 const WIDTH = { s: 108, m: 144, l: 200 } as const;
 const SKIP = new Set(["INPUT", "TEXTAREA", "SELECT"]);
-const typing = (e: KeyboardEvent) =>
+export const typing = (e: KeyboardEvent) =>
   e.metaKey ||
   e.ctrlKey ||
   e.altKey ||
   (e.target instanceof HTMLElement && (SKIP.has(e.target.tagName) || e.target.isContentEditable));
 
+/** What an empty list says in this view. */
+export const emptyOf = (
+  empty: RecordTemplateProps["empty"],
+  view: string | undefined,
+  many: string,
+) => (typeof empty === "string" ? empty : empty?.[view ?? ""]) ?? `${cap(many)} show here.`;
+
+/** The actions this record type lists that this viewer may run. */
+export const actsOf = (meta: RecordMeta, acts: RecordActs | undefined): readonly Action[] =>
+  acts
+    ? acts.actions.filter((a) => meta.actions.includes(a.id) && can(acts.viewer, a.requires))
+    : [];
+
+const NO_CALL: Call = () => Promise.reject(new Error("Nothing to run this."));
+
+/** The key that runs one of `actions` on `row`, if it applies. */
+export function keyed(e: KeyboardEvent, actions: readonly Action[], row: Row | undefined) {
+  const a = actions.find((x) => x.key && x.key === e.key.toLowerCase());
+  return a && row && applies(a, row) ? a : undefined;
+}
+
+/** "3 selected", what each bulk action would do to them, and a way out. */
+export function Bulk({
+  actions,
+  rows,
+  picked,
+  run,
+  busy,
+  clear,
+}: {
+  actions: readonly Action[];
+  rows: Row[];
+  picked: Set<string>;
+  run: (action: Action, ids: (string | number)[]) => void;
+  busy: boolean;
+  clear: () => void;
+}) {
+  const chosen = rows.filter((r) => picked.has(String(r.id)));
+  return (
+    <span className="inline-flex flex-wrap items-center gap-2">
+      <span>{num(picked.size)} selected</span>
+      {actions
+        .filter((a) => a.bulk)
+        .map((a) => {
+          const ids = chosen.filter((r) => applies(a, r)).map((r) => r.id);
+          return ids.length ? (
+            <Button
+              key={a.id}
+              tone="secondary"
+              size="dense"
+              disabled={busy}
+              onClick={() => run(a, ids)}
+            >
+              {a.label} {num(ids.length)}
+            </Button>
+          ) : null;
+        })}
+      <button
+        type="button"
+        onClick={clear}
+        className="text-(--ui-ink) underline decoration-(--ui-line) underline-offset-2"
+      >
+        Clear
+      </button>
+    </span>
+  );
+}
+
 /** Sentence-case 13px buttons inside the templates, and their type. */
-const ROOT =
+export const ROOT =
   "[--ui-button-case:none] [--ui-button-tracking:0] [--ui-button-weight:500] text-[14px] text-(--ui-ink) [font-variant-numeric:tabular-nums]";
 
 /** A saved view's tabs, with how many rows each holds under the current filters. */
-function ViewTabs({
+export function ViewTabs({
   meta,
   current,
   counts,
@@ -347,7 +417,7 @@ function ColumnPicker({
 }
 
 /** The ask a list's address makes. */
-function askOf(meta: RecordMeta, params: URLSearchParams): ListAsk {
+export function askOf(meta: RecordMeta, params: URLSearchParams): ListAsk {
   const view = params.get("view") ?? meta.views[0]?.id;
   const where: Record<string, unknown> = {};
   for (const f of meta.fields) {
@@ -430,7 +500,7 @@ export function RecordList(props: RecordTemplateProps) {
   );
 }
 
-function ListSkeleton() {
+export function ListSkeleton() {
   return (
     <div className={cn(ROOT, "grid gap-3")} role="status" aria-busy="true" aria-label="Loading">
       <div className="h-6 w-40 animate-pulse bg-(--ui-fill)" />
@@ -457,7 +527,7 @@ function List({
   types: RecordMeta[];
   api: RecordsApi;
   place: Place;
-  empty: string | undefined;
+  empty: RecordTemplateProps["empty"];
   columns: string[] | undefined;
   extras: RecordTemplateProps["extras"];
   acts: RecordActs | undefined;
@@ -478,8 +548,16 @@ function List({
   const [cursor, setCursor] = useState(-1);
   const [picked, setPicked] = useState<Set<string>>(new Set());
   const [busy, setBusy] = useState<string | null>(null);
+  const [rev, setRev] = useState(0);
   const body = useRef<HTMLTableSectionElement>(null);
   const many = meta.name.many;
+  const actions = actsOf(meta, acts);
+  const acted = () => {
+    page.retry();
+    setRev((n) => n + 1);
+    setPicked(new Set());
+  };
+  const { run, busy: acting, dialog } = useRun(acts?.call ?? NO_CALL, acted, meta.name);
 
   const openAt = (i: number, replace = false) => {
     const r = rows[i];
@@ -487,9 +565,9 @@ function List({
   };
   const openIndex = openId === null ? -1 : rows.findIndex((r) => String(r.id) === openId);
 
-  // J/K walk the rows (or the open records), Enter opens, Escape closes.
-  const keys = useRef({ cursor, openIndex, rows, openAt, place, one: meta.name.one });
-  keys.current = { cursor, openIndex, rows, openAt, place, one: meta.name.one };
+  // J/K walk the rows (or the open records), Enter opens, Escape closes, an action's key runs it.
+  const keys = useRef({ cursor, openIndex, rows, openAt, place, one: meta.name.one, actions, run });
+  keys.current = { cursor, openIndex, rows, openAt, place, one: meta.name.one, actions, run };
   useEffect(() => {
     const press = (e: KeyboardEvent) => {
       if (typing(e)) return;
@@ -503,6 +581,14 @@ function List({
       } else if (e.key === "Enter" && k.openIndex < 0 && at >= 0) k.openAt(at);
       else if (e.key === "Escape" && k.openIndex >= 0)
         k.place.go(k.place.link({ [k.one]: null, tab: null }), true);
+      else {
+        const row = k.rows[at];
+        const a = keyed(e, k.actions, row);
+        if (a && row) {
+          e.preventDefault();
+          k.run(a, [row.id]);
+        }
+      }
     };
     addEventListener("keydown", press);
     return () => removeEventListener("keydown", press);
@@ -565,16 +651,14 @@ function List({
           ) : null}
           <span className="ml-auto text-[13px] text-(--ui-ink-2)">
             {picked.size ? (
-              <>
-                {num(picked.size)} selected ·{" "}
-                <button
-                  type="button"
-                  onClick={() => setPicked(new Set())}
-                  className="text-(--ui-ink) underline decoration-(--ui-line) underline-offset-2"
-                >
-                  Clear
-                </button>
-              </>
+              <Bulk
+                actions={actions}
+                rows={rows}
+                picked={picked}
+                run={run}
+                busy={acting}
+                clear={() => setPicked(new Set())}
+              />
             ) : (
               (busy ??
               (page.data
@@ -717,7 +801,7 @@ function List({
           </table>
           {page.data && !rows.length ? (
             <div className="grid justify-items-start gap-2 px-3 py-10 text-[14px] text-(--ui-ink-2)">
-              {narrowed ? `No ${many} match these filters.` : (empty ?? `${cap(many)} show here.`)}
+              {narrowed ? `No ${many} match these filters.` : emptyOf(empty, ask.view, many)}
               {narrowed ? (
                 <a
                   href={place.link({
@@ -738,6 +822,13 @@ function List({
         {rows.length ? (
           <span className="max-sm:hidden">
             <Kbd>J</Kbd> <Kbd>K</Kbd> to move, <Kbd>Enter</Kbd> to open
+            {actions.map((a) =>
+              a.key ? (
+                <span key={a.id}>
+                  , <Kbd>{a.key.toUpperCase()}</Kbd> {a.label.toLowerCase()}
+                </span>
+              ) : null,
+            )}
           </span>
         ) : null}
         <span className="ml-auto flex gap-2">
@@ -775,13 +866,16 @@ function List({
           index={openIndex}
           count={rows.length}
           step={(d) => openAt(openIndex + d, true)}
+          rev={rev}
+          onActed={acted}
         />
       ) : null}
+      {dialog}
     </div>
   );
 }
 
-function Kbd({ children }: { children: ReactNode }) {
+export function Kbd({ children }: { children: ReactNode }) {
   return (
     <kbd className="inline-flex h-5 min-w-5 items-center justify-center border border-(--ui-line) px-1 font-[inherit] text-[11px] text-(--ui-ink-2)">
       {children}
@@ -804,6 +898,8 @@ function Panel({
   index,
   count,
   step,
+  rev,
+  onActed,
 }: {
   meta: RecordMeta;
   types: RecordMeta[];
@@ -815,6 +911,8 @@ function Panel({
   index: number;
   count: number;
   step: (by: number) => void;
+  rev: number;
+  onActed: () => void;
 }) {
   return (
     <aside
@@ -874,6 +972,8 @@ function Panel({
           place={place}
           extras={extras}
           acts={acts}
+          rev={rev}
+          onActed={onActed}
         />
       </div>
     </aside>
@@ -911,7 +1011,7 @@ const TAB =
   "-mb-px flex shrink-0 items-center gap-1.5 border-b-2 py-2.5 text-[13px] font-medium no-underline";
 
 /** One record: its head, then tabs for details, each related type, activity and sources. */
-function RecordBody({
+export function RecordBody({
   meta,
   types,
   id,
@@ -919,6 +1019,8 @@ function RecordBody({
   place,
   extras,
   acts,
+  rev = 0,
+  onActed,
 }: {
   meta: RecordMeta;
   types: RecordMeta[];
@@ -926,9 +1028,20 @@ function RecordBody({
   api: RecordsApi;
   place: Place;
   extras: RecordTemplateProps["extras"];
-  acts: RecordActs | undefined;
+  acts?: RecordActs | undefined;
+  /** Read again when it changes: something acted on this record. */
+  rev?: number | undefined;
+  onActed?: (() => void) | undefined;
 }) {
-  const got = useLoad(`${meta.id}:${id}`, () => api.get({ record: meta.id, id }));
+  const got = useLoad(`${meta.id}:${id}:${rev}`, () => api.get({ record: meta.id, id }));
+  const { run, busy, dialog } = useRun(
+    acts?.call ?? NO_CALL,
+    () => {
+      got.retry();
+      onActed?.();
+    },
+    meta.name,
+  );
   const [lit, pickMark] = useSourcePick();
   const tab = place.params.get("tab") ?? "details";
   const [want, setWant] = useState<string | null>(null);
@@ -974,7 +1087,7 @@ function RecordBody({
     .slice(0, 4);
   const cited = meta.fields.filter((f) => f.kind === "cited" && row[f.key]);
   const rest = meta.fields.filter((f) => f.kind !== "cited" && f.key !== meta.title);
-  const shown = acts?.actions.filter((a) => meta.actions.includes(a.id)) ?? [];
+  const shown = actsOf(meta, acts).filter((a) => applies(a, row));
   const tabs: { id: string; label: string; count?: number }[] = [
     { id: "details", label: "Details" },
     ...related.flatMap((r) => {
@@ -1000,19 +1113,20 @@ function RecordBody({
               <p className="mt-0.5 text-[14px] text-(--ui-ink-2)">{textOf(row[meta.subtitle])}</p>
             ) : null}
           </div>
-          {shown.length && acts ? (
+          {shown.length ? (
             <div className="flex shrink-0 gap-2">
-              {shown.map((a) => (
-                <ActionButton
+              {shown.map((a, i) => (
+                <Button
                   key={a.id}
-                  action={a}
-                  input={{ id: row.id }}
-                  viewer={acts.viewer}
-                  call={acts.call}
-                  after={got.retry}
+                  tone={i === 0 ? "primary" : "secondary"}
                   size="dense"
-                />
+                  disabled={busy}
+                  onClick={() => run(a, [row.id])}
+                >
+                  {a.label}
+                </Button>
               ))}
+              {dialog}
             </div>
           ) : null}
         </div>
@@ -1090,6 +1204,7 @@ function RecordBody({
         <Related meta={relatedType} of={{ record: meta.id, id }} api={api} one={meta.name.one} />
       ) : (
         <div className="grid gap-6">
+          {more.lead}
           {cited.map((f) => (
             <section key={f.key} className="grid gap-1.5">
               <h3 className="text-[13px] font-medium text-(--ui-ink-2)">{f.label}</h3>
@@ -1131,7 +1246,7 @@ function Line({ label, children }: { label: string; children: ReactNode }) {
   );
 }
 
-function Quiet({ children }: { children: ReactNode }) {
+export function Quiet({ children }: { children: ReactNode }) {
   return <p className="py-6 text-[14px] text-(--ui-ink-2)">{children}</p>;
 }
 

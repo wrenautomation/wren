@@ -29,7 +29,7 @@ import {
   serveRecords,
 } from "@wren/core/records/serve";
 import { type Db, type Queryable, setAuditActor } from "@wren/db";
-import { approveDrafts, type ReviewResult, skipDrafts } from "../approve.js";
+import { approveDrafts, type ReviewResult, skipDrafts, unapproveDrafts } from "../approve.js";
 import { type CrmHealth, crmHealth } from "../crm/health.js";
 import { feedDelivery } from "../delivery.js";
 import { HandoffRefusal, markMeetingBooked } from "../handoff.js";
@@ -240,22 +240,21 @@ export function portalApi(deps: PortalDeps) {
         }),
       ),
     /** Send these: approve the drafts of the chosen emails. */
-    approve: (req: PortalRequest & { enrollmentIds: number[] }): Promise<ReviewResult> =>
+    approve: (req: PortalRequest & { ids: number[] }): Promise<ReviewResult> =>
       write(deps, req, (db, _, viewer) =>
         approveDrafts(
           db,
-          { enrollmentIds: idsOf(req.enrollmentIds) },
+          { enrollmentIds: idsOf(req.ids) },
           viewer.operator ? "operator" : "client",
         ),
       ),
+    /** Undo an approve, while none of the email has started sending. */
+    unapprove: (req: PortalRequest & { ids: number[] }): Promise<ReviewResult> =>
+      write(deps, req, (db) => unapproveDrafts(db, idsOf(req.ids))),
     /** Don't send these: the drafts are struck and that person is left alone. */
-    skip: (req: PortalRequest & { enrollmentIds: number[] }): Promise<ReviewResult> =>
+    skip: (req: PortalRequest & { ids: number[] }): Promise<ReviewResult> =>
       write(deps, req, (db, _, viewer) =>
-        skipDrafts(
-          db,
-          { enrollmentIds: idsOf(req.enrollmentIds) },
-          viewer.operator ? "operator" : "client",
-        ),
+        skipDrafts(db, { enrollmentIds: idsOf(req.ids) }, viewer.operator ? "operator" : "client"),
       ),
     /** A meeting came of this reply, or (booked: false) it didn't after all. */
     book: async (
@@ -378,6 +377,7 @@ export function makeReactivationPortal(deps: PortalDeps) {
       emails: (_: restate.Context, req: Req<"emails">) => answer(() => api.emails(req)),
       replies: (_: restate.Context, req: Req<"replies">) => answer(() => api.replies(req)),
       approve: (_: restate.Context, req: Req<"approve">) => answer(() => api.approve(req)),
+      unapprove: (_: restate.Context, req: Req<"unapprove">) => answer(() => api.unapprove(req)),
       skip: (_: restate.Context, req: Req<"skip">) => answer(() => api.skip(req)),
       book: (_: restate.Context, req: Req<"book">) => answer(() => api.book(req)),
     },

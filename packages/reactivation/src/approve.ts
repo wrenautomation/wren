@@ -83,3 +83,37 @@ export async function skipDrafts(
     return result(ids, done);
   });
 }
+
+/**
+ * Undo an approve: approved steps go back to drafts while nothing of the email has started
+ * sending. Locks the steps first, so a send that took one already wins and this does nothing.
+ */
+export async function unapproveDrafts(
+  db: Queryable,
+  ids: readonly number[],
+): Promise<ReviewResult> {
+  const asked = idsOf({ enrollmentIds: ids }) ?? [];
+  if (!asked.length) return result(asked, []);
+  return db.transaction(async (tx) => {
+    const steps = await tx.execute<{ enrollment_id: number; state: string }>(sql`
+      SELECT m.enrollment_id, m.state FROM messages m JOIN enrollments e ON e.id = m.enrollment_id
+      WHERE e.niche = ${REACTIVATION} AND e.state = 'active' AND e.id IN (${list(asked)})
+      FOR UPDATE OF m`);
+    const of = new Map<number, { state: string }[]>();
+    for (const s of steps)
+      of.set(Number(s.enrollment_id), [...(of.get(Number(s.enrollment_id)) ?? []), s]);
+    const done = [...of]
+      .filter(
+        ([, ss]) =>
+          ss.every((s) => s.state === "draft" || s.state === "approved") &&
+          ss.some((s) => s.state === "approved"),
+      )
+      .map(([id]) => id)
+      .sort((a, b) => a - b);
+    if (done.length)
+      await tx.execute(sql`
+        UPDATE messages SET state = 'draft', approved_at = NULL, approved_by = NULL
+        WHERE state = 'approved' AND enrollment_id IN (${list(done)})`);
+    return result(asked, done);
+  });
+}

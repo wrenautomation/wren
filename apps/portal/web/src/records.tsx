@@ -1,9 +1,18 @@
 /**
- * A page declared as data (`template: "list"`), drawn by @wren/ui's List and Record templates.
+ * A page declared as data (`template: "list"` or `"queue"`), drawn by @wren/ui's templates.
  * The record type's product serves it at /api/<product>/records*; the address is the state.
+ * On the demo, actions run on a copy in the browser; a reload resets it.
  */
 import type { Row } from "@wren/core/records/serve";
-import { type Place, RecordList, RecordPage, type RecordsApi } from "@wren/ui";
+import {
+  type LocalRecords,
+  localRecords,
+  type Place,
+  RecordList,
+  RecordPage,
+  RecordQueue,
+  type RecordsApi,
+} from "@wren/ui";
 import { useEffect } from "react";
 import { call } from "./api.js";
 import type { ListPage, PageProps } from "./module.js";
@@ -28,6 +37,15 @@ function apiOf(product: string, client: string): RecordsApi {
   return api;
 }
 
+const LOCAL = new Map<string, LocalRecords>();
+/** The demo's copy: one per product and client, gone on reload. */
+function localOf(product: string, client: string): LocalRecords {
+  const key = `${product}:${client}`;
+  const local = LOCAL.get(key) ?? localRecords(apiOf(product, client));
+  LOCAL.set(key, local);
+  return local;
+}
+
 export function TemplatePage({
   page,
   path,
@@ -49,14 +67,25 @@ export function TemplatePage({
     list: path,
     go: navigate,
   };
-  const { extras } = page;
+  const { extras, actions = [] } = page;
+  const product = page.record.split(".")[0] ?? "";
+  const local = props.demo ? localOf(product, props.client) : null;
   const shared = {
     record: page.record,
-    api: apiOf(page.record.split(".")[0] ?? "", props.client),
+    api: local?.api ?? apiOf(product, props.client),
     place,
+    acts: {
+      actions,
+      viewer: { team: props.team, demo: props.demo },
+      call:
+        local?.callFor(page.record, actions) ??
+        ((handler: string, input: Record<string, unknown>) =>
+          call(handler, { client: props.client, ...input })),
+    },
     empty: page.empty,
     columns: page.columns,
     extras: extras && ((detail: unknown, row: Row) => extras(detail, { ...props, row })),
   };
-  return id ? <RecordPage {...shared} id={id} /> : <RecordList {...shared} />;
+  if (id) return <RecordPage {...shared} id={id} />;
+  return page.template === "queue" ? <RecordQueue {...shared} /> : <RecordList {...shared} />;
 }

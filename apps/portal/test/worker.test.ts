@@ -147,7 +147,7 @@ describe("the demo host", () => {
       "email/pause",
       "email/resume",
     ]) {
-      const res = await worker.fetch(post("demo.test", route, { enrollmentIds: [1] }), env());
+      const res = await worker.fetch(post("demo.test", route, { ids: [1] }), env());
       expect(res.status).toBe(403);
     }
     expect(restate).toEqual([]);

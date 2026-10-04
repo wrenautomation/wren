@@ -130,9 +130,9 @@ describe("railOf: shape", () => {
       hiring: "/reactivation/people?view=all&now=hiring",
       score: "/reactivation/people",
       briefs: "/reactivation/people",
-      drafts: "/reactivation/emails?filter=all",
-      approve: "/reactivation/emails?filter=awaiting",
-      sent: "/reactivation/emails?filter=sent",
+      drafts: "/reactivation/emails",
+      approve: "/reactivation/emails",
+      sent: "/reactivation/emails?view=sent",
       replies: "/reactivation/replies",
     });
   });
@@ -250,27 +250,27 @@ describe("railOf: done notes", () => {
 });
 
 describe("railOf: idle notes", () => {
-  it("says none yet on any step", () => {
-    for (const id of IDS) expect(noteOf(step(id), true, false), id).toBe("none yet");
+  it("says not started on any step", () => {
+    for (const id of IDS) expect(noteOf(step(id), true, false), id).toBe("not started");
   });
 
   it("sent with sending off on the demo says so", () => {
-    expect(noteOf(step("sent"), false, true)).toBe("off on the demo");
+    expect(noteOf(step("sent"), false, true)).toBe("never sends");
   });
 
   it("sent with sending off on a real client says off for now", () => {
     expect(noteOf(step("sent"), false, false)).toBe("off for now");
   });
 
-  it("sent with sending on says none yet, demo or not", () => {
-    expect(noteOf(step("sent"), true, false)).toBe("none yet");
-    expect(noteOf(step("sent"), true, true)).toBe("none yet");
+  it("sent with sending on says not started, demo or not", () => {
+    expect(noteOf(step("sent"), true, false)).toBe("not started");
+    expect(noteOf(step("sent"), true, true)).toBe("not started");
   });
 
   it("sending off only changes the sent step's note", () => {
     for (const id of IDS.filter((i) => i !== "sent")) {
-      expect(noteOf(step(id), false, true), id).toBe("none yet");
-      expect(noteOf(step(id), false, false), id).toBe("none yet");
+      expect(noteOf(step(id), false, true), id).toBe("not started");
+      expect(noteOf(step(id), false, false), id).toBe("not started");
     }
   });
 });

@@ -1,7 +1,7 @@
 /** Reactivation: past clients checked for a reason to call, with a brief and an email for each. */
 import type { Module } from "../../module.js";
 import { ENGAGEMENT_PAGES } from "../work/index.js";
-import { Emails } from "./Emails.js";
+import { EMAIL_ACTIONS, EMAIL_EMPTY, emailExtras, emailLegacy } from "./email.js";
 import { Glance } from "./Glance.js";
 import { Health } from "./Health.js";
 import { REACTIVATION } from "./nav.js";
@@ -34,7 +34,16 @@ export const reactivation: Module = {
       extras: personExtras,
       legacy: personLegacy,
     },
-    { id: "emails", label: "Emails", Page: Emails },
+    {
+      id: "emails",
+      label: "Emails",
+      template: "queue",
+      record: "reactivation.email",
+      empty: EMAIL_EMPTY,
+      actions: EMAIL_ACTIONS,
+      extras: emailExtras,
+      legacy: emailLegacy,
+    },
     { id: "replies", label: "Replies", Page: Replies },
     { id: "health", label: "Data health", Page: Health },
     { id: "sources", label: "Sources", Page: Sources },

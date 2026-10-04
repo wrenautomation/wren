@@ -77,7 +77,7 @@ export function Overview(props: PageProps) {
       >
         <Facts
           items={[
-            ["Owners", a.owners.length ? a.owners.join(", ") : "None yet"],
+            ["Owners", a.owners.length ? a.owners.join(", ") : "No owner set"],
             ["Others", more > 0 ? String(more) : "None"],
             ["You", [a.you.email, roleOf(a.you)].filter(Boolean).join(" · ")],
           ]}

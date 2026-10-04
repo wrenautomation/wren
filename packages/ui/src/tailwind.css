@@ -10,6 +10,8 @@
 @import "tailwindcss/utilities.css" layer(utilities) source(none);
 @import "tw-animate-css";
 @import "shadcn/tailwind.css";
+/* Sonner injects its styles at run time, which the portal's CSP (no inline styles) blocks. */
+@import "sonner/dist/styles.css";
 @source "./";
 
 /* The night theme flips the tokens, so shadcn's own dark styles stay off. */

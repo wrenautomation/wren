@@ -18,6 +18,7 @@ import {
   readTheme,
   type ShellNotice,
   type Theme,
+  Toasts,
   type Viewer,
 } from "@wren/ui";
 import { Component, lazy, type ReactNode, Suspense, useEffect, useState } from "react";
@@ -210,7 +211,13 @@ export function App() {
     setAsClient(team);
     keep(AS_CLIENT_KEY, team ? "1" : "0");
   };
-  const props = (id: string): PageProps => ({ client: id, demo, team, params: route.params });
+  // The demo firm stays the demo on the app host too: its actions run in the browser.
+  const props = (id: string): PageProps => ({
+    client: id,
+    demo: demo || !!clients.find((c) => c.id === id)?.demo,
+    team,
+    params: route.params,
+  });
   const open = at.kind === "page" ? at : null;
   const action = open?.module.action;
 
@@ -300,6 +307,7 @@ export function App() {
           <Launcher key={current.id} name={current.name} apps={cards} props={props(current.id)} />
         )}
       </AppShell>
+      <Toasts />
       {jump === null ? null : (
         <Suspense fallback={null}>
           <CommandPalette

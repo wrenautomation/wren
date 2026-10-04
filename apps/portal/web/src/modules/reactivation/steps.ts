@@ -29,9 +29,9 @@ const OPENS: Record<PipelineStepId, string> = {
   hiring: at("people", { view: "all", now: "hiring" }),
   score: at("people"),
   briefs: at("people"),
-  drafts: at("emails", { filter: "all" }),
-  approve: at("emails", { filter: "awaiting" }),
-  sent: at("emails", { filter: "sent" }),
+  drafts: at("emails"),
+  approve: at("emails"),
+  sent: at("emails", { view: "sent" }),
   replies: at("replies"),
 };
 
@@ -64,8 +64,8 @@ function noteOf(s: PipelineStep, sends: boolean, demo: boolean): string {
     case "done":
       return DONE[s.id](s);
     case "idle":
-      if (s.id === "sent" && !sends) return demo ? "off on the demo" : "off for now";
-      return "none yet";
+      if (s.id === "sent" && !sends) return demo ? "never sends" : "off for now";
+      return "not started";
   }
 }
 

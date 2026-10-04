@@ -10,7 +10,8 @@ export const MESSAGE_TRANSITIONS: TransitionTable<MessageState> = {
   // approved -> sending is the outbox walk committing intent before the act.
   // There is deliberately no approved -> sent edge: no code path can reach `sent`
   // without first committing a `sending` row carrying our Message-ID.
-  approved: set("sending", "skipped", "failed", "rejected"),
+  // Back to draft only by an undo, before any send took the row (unapproveDrafts locks it).
+  approved: set("draft", "sending", "skipped", "failed", "rejected"),
   // The transport has our message: landed (sent), refused before the request left
   // (failed, re-armable by approve), or answered nothing we can trust (unknown).
   // A sending row is an attempt on the record; it never goes back to approved.

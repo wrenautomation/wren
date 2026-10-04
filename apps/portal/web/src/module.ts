@@ -1,7 +1,7 @@
 /** An app in the portal: a card on the launcher, and its pages as tabs at /<app>/<page>. */
 
 import type { Row } from "@wren/core/records/serve";
-import type { Access, IconName, RecordExtras } from "@wren/ui";
+import type { Access, Action, IconName, RecordExtras } from "@wren/ui";
 import type { ComponentType } from "react";
 
 /**
@@ -31,15 +31,18 @@ export interface HandPage extends PageBase {
 }
 
 /**
- * A page declared as data: the List template over a record type, its records opening beside it
- * or as their own page at /<app>/<page>/<id>. Everything else comes from the type's meta.
+ * A page declared as data: a template over a record type. The List opens its records beside
+ * it or as their own page at /<app>/<page>/<id>; the Queue works through them one at a time.
+ * Everything else comes from the type's meta.
  */
 export interface ListPage extends PageBase {
-  template: "list";
+  template: "list" | "queue";
   /** The record type's id, "<product>.<one>": its product serves it at /api/<product>/records*. */
   record: string;
-  /** What fills the list, said while it's empty. */
-  empty?: string;
+  /** What fills the list, said while it's empty: one line, or one per view. */
+  empty?: string | Record<string, string>;
+  /** What can be done to its records; the type's meta says which apply, the demo runs them here. */
+  actions?: Action[];
   /** The columns shown until the viewer picks others; every one when left out. */
   columns?: string[];
   /** Lines and sources a record's detail adds under its fields. */

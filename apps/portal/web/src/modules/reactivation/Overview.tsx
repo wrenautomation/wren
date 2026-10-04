@@ -145,13 +145,11 @@ function Next({ steps, demo }: { steps: PipelineStep[]; demo: boolean }) {
           <b>
             {num(ok.count)} {ok.count === 1 ? "draft waits" : "drafts wait"} for your OK.
           </b>{" "}
-          {demo
-            ? "Each one shows the brief it came from. Approving is off on the demo."
-            : "Nothing sends until you approve it."}
+          {demo ? "Each one shows the brief it came from." : "Nothing sends until you approve it."}
         </>
       ),
       action: (
-        <ButtonLink href={at("emails", { filter: "awaiting" })} tone="primary" arrow>
+        <ButtonLink href={at("emails")} tone="primary" arrow>
           Read the drafts
         </ButtonLink>
       ),

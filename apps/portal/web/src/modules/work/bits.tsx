@@ -167,7 +167,7 @@ export function Form({
         <Button type="submit" size="sm" disabled={act.busy || demo}>
           {submit}
         </Button>
-        {demo ? <span className="wk-quiet">Off on the demo.</span> : null}
+        {demo ? <span className="wk-quiet">Works in your own workspace.</span> : null}
         {act.error ? (
           <span className="wk-error" role="alert">
             {act.error}

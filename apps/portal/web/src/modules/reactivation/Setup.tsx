@@ -14,7 +14,7 @@ export function Setup({ client, demo }: PageProps) {
         title="Setup"
         lede={
           demo
-            ? "What the sample firm plugged in. It's read-only on the demo."
+            ? "What the sample firm plugged in."
             : "What you plugged in. Wren sets it up with you; to change anything, just ask."
         }
       />
@@ -59,7 +59,7 @@ function Plugged({ d, demo }: { d: Data; demo: boolean }) {
           ? [["Exports so far", num(d.crm.imports)] as [string, ReactNode]]
           : []),
       ]
-    : [["Export", "None yet"]];
+    : [["Export", "Not loaded"]];
   const research: [string, ReactNode][] = [
     ...d.research.map((site): [string, ReactNode] => [
       named(site),
@@ -130,7 +130,7 @@ function Plugged({ d, demo }: { d: Data; demo: boolean }) {
           {p?.recruiters.length ? (
             <Facts items={p.recruiters.map((r): [string, ReactNode] => [r.name, r.email])} />
           ) : (
-            <p className="rx-quiet">None yet.</p>
+            <p className="rx-quiet">No recruiters added.</p>
           )}
         </Section>
         <Section title="Sending">

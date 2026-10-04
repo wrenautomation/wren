@@ -78,7 +78,7 @@ export function Clients() {
             </tbody>
           </Table>
         ) : (
-          <Empty>No clients yet. Add one: wren clients add &lt;id&gt; --name "&lt;firm&gt;"</Empty>
+          <Empty>No clients yet. Add one from the command line.</Empty>
         )
       ) : board.error ? null : (
         <Loading lines={8} shape="rows" />

@@ -48,6 +48,7 @@ describe("message rules", () => {
     expect(sourcesOf(MESSAGE_TRANSITIONS, MESSAGE_STATES, "sent")).toEqual(["sending", "unknown"]);
     expect(() => msg("approved", "sent")).toThrow(IllegalTransition);
     expect([...MESSAGE_TRANSITIONS.approved].sort()).toEqual([
+      "draft",
       "failed",
       "rejected",
       "sending",

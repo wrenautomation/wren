@@ -124,7 +124,7 @@ describe("a portal approve", () => {
     const marker = await maxId(acme);
     const res = await api.approve({
       viewer: { email: "owner@acme.example" },
-      enrollmentIds: [enrApprove],
+      ids: [enrApprove],
     });
     expect(res.done).toEqual([enrApprove]);
     const evs = await since(acme, marker, "messages");
@@ -154,7 +154,7 @@ describe("a portal skip", () => {
   it("logs the enrollment stop as the viewer who skipped it", async () => {
     const acme = open({ database: ACME });
     const marker = await maxId(acme);
-    const res = await api.skip({ viewer: { email: "ops@acme.example" }, enrollmentIds: [enrSkip] });
+    const res = await api.skip({ viewer: { email: "ops@acme.example" }, ids: [enrSkip] });
     expect(res.done).toEqual([enrSkip]);
     const evs = await since(acme, marker, "enrollments");
     expect(evs.length).toBeGreaterThan(0);
@@ -169,7 +169,7 @@ describe("the actor is the viewer's email verbatim", () => {
   it("logs mixed case as given, though the client is matched case-insensitively", async () => {
     const acme = open({ database: ACME });
     const marker = await maxId(acme);
-    await api.approve({ viewer: { email: "Owner@Acme.Example" }, enrollmentIds: [enrMixed] });
+    await api.approve({ viewer: { email: "Owner@Acme.Example" }, ids: [enrMixed] });
     const [e] = await since(acme, marker, "messages");
     expect(e?.actor).toBe("Owner@Acme.Example");
   });

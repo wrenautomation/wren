@@ -116,7 +116,7 @@ function Piece({
           </>
         ) : null}
         {props.demo && d.status === "waiting" ? (
-          <span className="wk-quiet">Off on the demo.</span>
+          <span className="wk-quiet">Works in your own workspace.</span>
         ) : null}
       </div>
       {asking ? (
