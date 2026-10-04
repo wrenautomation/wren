@@ -123,6 +123,7 @@ const MAX_Q = 100;
 const MAX_CURSOR = 1000;
 const ACTIVITY = 50;
 const MAX_DAYS = 92;
+const BARE_DAY = "^\\d{4}-\\d{2}-\\d{2}$";
 
 /** Midnight in `zone` of a calendar day; the day may run past its month either way. */
 const midnight = (zone: string, year: number, month: number, day: number): Date => {
@@ -527,7 +528,10 @@ export function serveRecords(types: readonly RecordType[], db: Queryable, mask?:
         if (!zone) throw new BadAsk("no such time zone");
 
         const w = statWindows(period, zone, now);
-        const at = valueSql(atField);
+        // A bare day ("2026-03-10") starts at midnight in `zone`, not at UTC's.
+        const atText = sql`(${ref(atField.from ?? "")})::text`;
+        const at = sql`(case when ${atText} ~ ${BARE_DAY} then ${atText}::timestamp at time zone ${zone}
+          else ${atText}::timestamptz end)`;
         const ts = (d: Date) => bind(d.toISOString(), "timestamptz");
         const within = (a: Date, b: Date) => sql`(${at} >= ${ts(a)} and ${at} < ${ts(b)})`;
         const agg = (when: SQL) =>

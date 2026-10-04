@@ -144,6 +144,26 @@ describe("recordsStats", () => {
     expect([s.value, s.prior, s.series.length]).toEqual([6, 0, 10]);
   });
 
+  it("a bare day counts from midnight in the asker's zone", async () => {
+    const day = defineRecord({
+      id: "test.day",
+      name: { one: "day", many: "days" },
+      rows: async () => [
+        { k: "a", day: "2026-03-10" },
+        { k: "b", day: "2026-03-09" },
+      ],
+      key: "k",
+      title: "k",
+      fields: { k: text(), day: date() },
+      views: [{ id: "all", label: "All", at: "day" }],
+    });
+    const s = await serveRecords([day], pg.db).stats(
+      { record: "test.day", view: "all", period: 1, zone: "America/Chicago" },
+      NOW,
+    );
+    expect([s.value, s.prior]).toEqual([1, 1]);
+  });
+
   it("refuses what it can't answer", async () => {
     await refused(api.stats({ record: "test.event", period: 7 }, NOW)); // no date
     await refused(api.stats({ ...ask, at: "n" }, NOW));
