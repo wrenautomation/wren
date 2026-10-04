@@ -115,9 +115,6 @@ export async function findMoverAddresses(
     if (r === "error") stats.errors += 1;
     else if (r === "held") stats.held += 1;
     else {
-      if (r.outcome === "found")
-        await db.execute(sql`insert into companies (domain, name) values (${r.domain}, ${m.new_firm})
-          on conflict (domain) do nothing`);
       await db
         .insert(moverAddresses)
         .values({ findingId: m.finding_id, personId: m.person_id, ...r })
@@ -139,6 +136,13 @@ export async function findMoverAddresses(
       stats[key[r.outcome]] += 1;
     }
   }
+  // Every found mover's new firm, earlier passes' too: compose files the mover under it.
+  await db.execute(sql`
+    insert into companies (domain, name)
+    select distinct on (ma.domain) ma.domain, btrim(f.value->>'to')
+    from mover_addresses ma join findings f on f.id = ma.finding_id
+    where ma.outcome = 'found' and ma.domain is not null
+    on conflict (domain) do nothing`);
   return stats;
 }
 
