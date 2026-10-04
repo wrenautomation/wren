@@ -258,6 +258,12 @@ describe("handler forms", () => {
         WREN_REPORT_TO: "r@example.test",
         WREN_REPORT_FROM: "f@example.test",
         WREN_PORTAL_ORIGIN: "https://app.example.test",
+        // Inline, so the test never reads a real key from this machine.
+        WREN_GOOGLE_SERVICE_ACCOUNT: JSON.stringify({
+          type: "service_account",
+          client_email: "sender@example.test",
+          private_key: "synthetic",
+        }),
       },
       { rootDir },
     );
