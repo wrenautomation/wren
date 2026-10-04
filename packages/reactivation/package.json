@@ -5,7 +5,9 @@
   "type": "module",
   "exports": {
     ".": "./src/index.ts",
+    "./components": "./src/components.ts",
     "./portal-routes": "./src/portal/routes.ts",
+    "./records": "./src/portal/records.ts",
     "./restate": "./src/restate.ts",
     "./schema": "./src/schema.ts",
     "./video": "./src/video/index.ts"

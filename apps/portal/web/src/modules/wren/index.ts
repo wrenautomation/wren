@@ -161,6 +161,7 @@ const LOOP_ACTIONS: Action[] = [
 export const outbound: Module = {
   id: "outbound",
   name: "Outbound",
+  component: "email.sequences",
   icon: "mail",
   blurb: "Campaigns, the inboxes that send them, and the copy experiments.",
   requires: TEAM,
@@ -277,6 +278,7 @@ export const outbound: Module = {
 export const inbox: Module = {
   id: "inbox",
   name: "Inbox",
+  component: "email.replies",
   icon: "reply",
   blurb: "Warm replies, each with a draft answer waiting for you.",
   requires: TEAM,
@@ -405,6 +407,7 @@ const figure = (label: string, pick: string, none = NO_CLIENTS) => ({
 export const money: Module = {
   id: "money",
   name: "Money",
+  component: "books",
   icon: "money",
   blurb: "What Wren spends, what renews soon, and what a client costs and earns.",
   requires: TEAM,
@@ -549,6 +552,7 @@ export const money: Module = {
 export const pipeline: Module = {
   id: "pipeline",
   name: "Pipeline",
+  component: "research.lead_sheet",
   icon: "pulse",
   blurb: "Firms from found to verified lead, and where they stall.",
   requires: TEAM,

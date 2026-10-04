@@ -51,6 +51,7 @@ const PERSON_ACTIONS: Action[] = [
 export const reactivation: Module = {
   id: REACTIVATION,
   name: "Reactivation",
+  component: "reactivation",
   icon: "cycle",
   blurb:
     "Checks your past clients for a reason to call now. Each gets a brief and an email that waits for your OK.",

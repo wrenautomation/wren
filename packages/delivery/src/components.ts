@@ -1,0 +1,72 @@
+/** Client delivery: the portal's project, invoices, reviews and contract; and Wren's offers. */
+import { defineComponent } from "@wren/core/components";
+
+const NOT_GATED = "Shown to every client with a project, not yet by install";
+
+export const DELIVERY_COMPONENTS = [
+  defineComponent({
+    id: "delivery.portal",
+    name: "Client portal",
+    blurb: "The project's plan, updates, asks and deliverables, in one place with Wren.",
+    icon: "board",
+    for: "client",
+    ready: false,
+    missing: [NOT_GATED],
+    provides: {
+      services: ["DeliveryPortal", "DeliveryWatch"],
+      loops: ["DeliveryWatch"],
+      records: [
+        "delivery.step",
+        "delivery.update",
+        "delivery.ask",
+        "delivery.deliverable",
+        "delivery.result",
+      ],
+      apps: ["work"],
+    },
+    effects: ["sends"],
+  }),
+  defineComponent({
+    id: "delivery.invoices",
+    name: "Invoices",
+    blurb: "Each invoice with a link to pay, and a nudge when one is due.",
+    icon: "money",
+    for: "client",
+    ready: false,
+    missing: [NOT_GATED],
+    requires: { components: ["delivery.portal"] },
+    provides: { records: ["delivery.invoice"] },
+    effects: ["sends"],
+  }),
+  defineComponent({
+    id: "delivery.reviews",
+    name: "Reviews",
+    blurb: "Asks the client's people how it's going at set moments.",
+    icon: "pulse",
+    for: "client",
+    ready: false,
+    missing: [NOT_GATED],
+    requires: { components: ["delivery.portal"] },
+  }),
+  defineComponent({
+    id: "delivery.contract",
+    name: "Contract",
+    blurb: "The contract to read and sign in the portal, with the signed copy by email.",
+    icon: "check",
+    for: "client",
+    ready: false,
+    missing: [NOT_GATED],
+    requires: { components: ["delivery.portal"] },
+    provides: { records: ["delivery.paperwork"] },
+    effects: ["sends"],
+  }),
+  defineComponent({
+    id: "offers",
+    name: "Offers",
+    blurb: "Every offer Wren pitches, the lander's pages and each deal's terms.",
+    icon: "flag",
+    for: "wren",
+    ready: false,
+    missing: ["Wren's own offers; never a client's"],
+  }),
+];

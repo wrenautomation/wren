@@ -5,6 +5,7 @@
   "type": "module",
   "exports": {
     ".": "./src/index.ts",
+    "./components": "./src/components.ts",
     "./restate": "./src/restate/index.ts",
     "./schema": "./src/schema.ts",
     "./webhook": "./src/webhook.ts"

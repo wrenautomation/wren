@@ -93,6 +93,8 @@ export interface Module {
    * sits under each bought offer that names it (the offer's `app`).
    */
   fallback?: true;
+  /** The component it belongs to (`@wren/core/components`); none for the platform's own. */
+  component?: string;
   /** The one button in its head, a page to go to. */
   action?: { page: string; label: string; icon: IconName };
 }

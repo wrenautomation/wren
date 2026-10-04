@@ -6,6 +6,7 @@
   "exports": {
     ".": "./src/index.ts",
     "./companies": "./src/companies/index.ts",
+    "./components": "./src/components.ts",
     "./discovery": "./src/discovery/index.ts",
     "./dossier": "./src/dossier.ts",
     "./fetch": "./src/fetch/index.ts",

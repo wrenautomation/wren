@@ -280,6 +280,7 @@ const page = (p: string, q: string) => `/${WORK}/${p}?${q}`;
 export const work: Module = {
   id: WORK,
   name: "Your project",
+  component: "delivery.portal",
   icon: "flag",
   blurb: "Your contract, the plan, how far along it is, and what we need from you next.",
   fallback: true,

@@ -1,0 +1,72 @@
+/** Research's components: firms found, pages kept, people named, addresses proven. */
+import { defineComponent } from "@wren/core/components";
+
+const FOR_WREN = "Runs on Wren's niches in the main database, not per client";
+
+export const RESEARCH_COMPONENTS = [
+  defineComponent({
+    id: "research.discovery",
+    name: "Firm discovery",
+    blurb: "Finds the firms in a niche from public lists and search.",
+    icon: "search",
+    for: "client",
+    ready: false,
+    missing: [FOR_WREN],
+    provides: { services: ["Discovery"] },
+    effects: ["spends"],
+  }),
+  defineComponent({
+    id: "research.crawl",
+    name: "Site crawl",
+    blurb: "Fetches each firm's site and keeps the pages it read.",
+    icon: "download",
+    for: "client",
+    ready: false,
+    missing: [FOR_WREN],
+    provides: { services: ["PageArchive"], loops: ["PageArchive"] },
+  }),
+  defineComponent({
+    id: "research.people",
+    name: "People finder",
+    blurb: "Reads each firm's pages for the people and roles worth writing to.",
+    icon: "people",
+    for: "client",
+    ready: false,
+    missing: [FOR_WREN],
+    requires: { components: ["research.crawl"] },
+    provides: { services: ["Enrichment"] },
+    effects: ["spends"],
+  }),
+  defineComponent({
+    id: "research.verify",
+    name: "Address check",
+    blurb: "Asks the mail servers whether each address takes mail before anyone writes.",
+    icon: "check",
+    for: "client",
+    ready: false,
+    missing: [FOR_WREN],
+    requires: { components: ["research.people"] },
+    provides: { services: ["Resolution"] },
+  }),
+  defineComponent({
+    id: "research.lead_sheet",
+    name: "Lead sheet",
+    blurb: "Keeps a niche's list of checked leads full, firm by firm, with who to write to.",
+    icon: "board",
+    for: "client",
+    ready: false,
+    missing: [FOR_WREN],
+    requires: { components: ["research.discovery", "research.people", "research.verify"] },
+    provides: { services: ["PoolScheduler"], loops: ["PoolScheduler"], apps: ["pipeline"] },
+  }),
+  defineComponent({
+    id: "research.dossier",
+    name: "Firm dossier",
+    blurb: "A sourced brief on one firm before a call.",
+    icon: "flag",
+    for: "client",
+    ready: false,
+    missing: ["A command for Wren's team; no client sees a dossier yet"],
+    effects: ["spends"],
+  }),
+];
