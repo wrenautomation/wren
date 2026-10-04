@@ -1,7 +1,7 @@
 /**
- * A component's record, below its fields: what it needs, what's missing, and what the viewer may
- * do. Wren's team installs, configures and uninstalls; a client asks. No prices: the server
- * leaves priced settings out of the form.
+ * A component's record, below its fields (what's missing is one): what it needs, what it
+ * provides, and what the viewer may do. Wren's team installs, configures and uninstalls; a
+ * client asks. No prices: the server leaves priced settings out of the form.
  */
 import {
   Alert,
@@ -19,7 +19,6 @@ import { LIST, QUIET, SPLIT } from "../work/bits.js";
 
 interface Detail {
   needs: { label: string; has: boolean | null }[];
-  missing: string[];
   effects: string[];
   installed: boolean;
   provides?: Record<"services" | "loops" | "records" | "apps", string[]>;
@@ -96,15 +95,6 @@ export function catalogExtras(
         ))}
       </ul>,
     ]);
-  if (d.missing.length)
-    sections.push([
-      "Before a client can have it",
-      <ul key="missing" className={LIST}>
-        {d.missing.map((m) => (
-          <li key={m}>{m}</li>
-        ))}
-      </ul>,
-    ]);
   if (d.provides)
     sections.push([
       "Provides",
@@ -125,27 +115,29 @@ export function catalogExtras(
       </p>
     ) : (
       <div className="grid gap-6">
-        <HandlerForm
-          key={`${client}/${id}/${d.installed}`}
-          id={`component:${client}/${id}`}
-          name={id}
-          verb={d.installed ? "Save" : "Install"}
-          fields={filled(d.form ?? [], d.values ?? {})}
-          keyed={false}
-          // Saving settings asks no confirm; installing one that acts outside Wren does.
-          effect={!d.installed && d.effects.length ? d.effects.join(" and ") : null}
-          run={async (c) => {
-            const to = d.installed ? "console/configure" : "console/install";
-            const out = await call(to, {
-              client,
-              component: id,
-              settings: c.input,
-              ...(c.confirm ? { confirm: c.confirm } : {}),
-            });
-            changed();
-            return out;
-          }}
-        />
+        {d.installed && !d.form?.length ? null : (
+          <HandlerForm
+            key={`${client}/${id}/${d.installed}`}
+            id={`component:${client}/${id}`}
+            name={id}
+            verb={d.installed ? "Save" : "Install"}
+            fields={filled(d.form ?? [], d.values ?? {})}
+            keyed={false}
+            // Saving settings asks no confirm; installing one that acts outside Wren does.
+            effect={!d.installed && d.effects.length ? d.effects.join(" and ") : null}
+            run={async (c) => {
+              const to = d.installed ? "console/configure" : "console/install";
+              const out = await call(to, {
+                client,
+                component: id,
+                settings: c.input,
+                ...(c.confirm ? { confirm: c.confirm } : {}),
+              });
+              changed();
+              return out;
+            }}
+          />
+        )}
         {d.installed ? (
           <Press
             label="Uninstall"

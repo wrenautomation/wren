@@ -618,7 +618,6 @@ export const componentRecord = (
             has: client ? !!client.accounts[site] : null,
           })),
         ],
-        missing: c.missing,
         effects: c.effects,
         installed,
         ...(team
