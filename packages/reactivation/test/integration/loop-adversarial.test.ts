@@ -7,7 +7,7 @@
  */
 import * as restate from "@restatedev/restate-sdk";
 import * as ingress from "@restatedev/restate-sdk-clients";
-import { RestateTestEnvironment } from "@restatedev/restate-sdk-testcontainers";
+import type { RestateTestEnvironment } from "@restatedev/restate-sdk-testcontainers";
 import {
   ConsoleTransport,
   FakeVerifier,
@@ -18,6 +18,7 @@ import { ingressOf, loadSettings } from "@wren/config";
 import { clients } from "@wren/core/clients";
 import type { Notifier } from "@wren/core/notify";
 import { makeLoopObject } from "@wren/core/restate";
+import { startTestRestate } from "@wren/core/testing";
 import type { Db } from "@wren/db";
 import { startTestPostgres, type TestPostgres } from "@wren/db/testing";
 import { eq } from "drizzle-orm";
@@ -98,7 +99,7 @@ let pg: TestPostgres;
 let env: RestateTestEnvironment;
 beforeAll(async () => {
   pg = await startTestPostgres();
-  env = await RestateTestEnvironment.start({
+  env = await startTestRestate({
     services: [
       makeReactivation({
         main: breakable(pg.db, () => registryDown),

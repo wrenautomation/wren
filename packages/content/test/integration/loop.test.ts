@@ -6,11 +6,12 @@
  */
 import * as restate from "@restatedev/restate-sdk";
 import * as clients from "@restatedev/restate-sdk-clients";
-import { RestateTestEnvironment } from "@restatedev/restate-sdk-testcontainers";
+import type { RestateTestEnvironment } from "@restatedev/restate-sdk-testcontainers";
 import { ingressOf } from "@wren/config";
 import { runs } from "@wren/core";
 import type { Platform, Post } from "@wren/core/content";
 import type { PassOutcome } from "@wren/core/restate";
+import { startTestRestate } from "@wren/core/testing";
 import { startTestPostgres, type TestPostgres, truncate } from "@wren/db/testing";
 import { FakeLlm } from "@wren/llm";
 import { eq } from "drizzle-orm";
@@ -90,7 +91,7 @@ let pg: TestPostgres;
 let env: RestateTestEnvironment;
 beforeAll(async () => {
   pg = await startTestPostgres();
-  env = await RestateTestEnvironment.start({
+  env = await startTestRestate({
     services: [
       fakeContent,
       makeContentDesk({ db: pg.db, llm, platforms: ["linkedin", "x", "youtube"] }),

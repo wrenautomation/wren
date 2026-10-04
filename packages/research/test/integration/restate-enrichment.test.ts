@@ -4,9 +4,10 @@
  * after every step, so any non-determinism outside ctx.run fails loudly.
  */
 import * as clients from "@restatedev/restate-sdk-clients";
-import { RestateTestEnvironment } from "@restatedev/restate-sdk-testcontainers";
+import type { RestateTestEnvironment } from "@restatedev/restate-sdk-testcontainers";
 import { ingressOf } from "@wren/config";
 import { leads, people, runs } from "@wren/core";
+import { startTestRestate } from "@wren/core/testing";
 import { startTestPostgres, type TestPostgres, truncate } from "@wren/db/testing";
 import { FakeLlm } from "@wren/llm";
 import { and, eq } from "drizzle-orm";
@@ -68,7 +69,7 @@ const renderer = async (): Promise<BrowserRenderer> => {
 
 beforeAll(async () => {
   pg = await startTestPostgres();
-  env = await RestateTestEnvironment.start({
+  env = await startTestRestate({
     services: [
       makeEnrichment({ db: pg.db, fetcher, llm, renderer, renderJitter: [0, 0], renderIdleMs: 50 }),
     ],

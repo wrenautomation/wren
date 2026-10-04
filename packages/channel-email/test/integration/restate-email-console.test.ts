@@ -6,8 +6,9 @@
  */
 import * as restate from "@restatedev/restate-sdk";
 import * as clients from "@restatedev/restate-sdk-clients";
-import { RestateTestEnvironment } from "@restatedev/restate-sdk-testcontainers";
+import type { RestateTestEnvironment } from "@restatedev/restate-sdk-testcontainers";
 import { ingressOf, loadSettings } from "@wren/config";
+import { startTestRestate } from "@wren/core/testing";
 import { startTestPostgres, type TestPostgres, truncate } from "@wren/db/testing";
 import { sql } from "drizzle-orm";
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
@@ -44,7 +45,7 @@ let pg: TestPostgres;
 let env: RestateTestEnvironment;
 beforeAll(async () => {
   pg = await startTestPostgres();
-  env = await RestateTestEnvironment.start({
+  env = await startTestRestate({
     services: [
       disposition,
       makeEmailConsole({

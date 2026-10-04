@@ -4,9 +4,10 @@
  * desk's reply nudges the sender and the text leaves, the loops report.
  */
 import * as clients from "@restatedev/restate-sdk-clients";
-import { RestateTestEnvironment } from "@restatedev/restate-sdk-testcontainers";
+import type { RestateTestEnvironment } from "@restatedev/restate-sdk-testcontainers";
 import { ingressOf } from "@wren/config";
 import type { PassOutcome } from "@wren/core/restate";
+import { startTestRestate } from "@wren/core/testing";
 import { startTestPostgres, type TestPostgres, truncate } from "@wren/db/testing";
 import { eq } from "drizzle-orm";
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
@@ -55,7 +56,7 @@ beforeAll(async () => {
     llm: null,
     clock: () => OPEN,
   };
-  env = await RestateTestEnvironment.start({
+  env = await startTestRestate({
     services: [makeSmsSender(deps), makeSmsEvents(deps), makeSmsDesk(deps), makeSmsWatch(deps)],
     alwaysReplay: true,
   });

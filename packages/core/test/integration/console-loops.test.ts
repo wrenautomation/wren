@@ -7,7 +7,7 @@
  */
 import type * as restate from "@restatedev/restate-sdk";
 import * as clients from "@restatedev/restate-sdk-clients";
-import { RestateTestEnvironment } from "@restatedev/restate-sdk-testcontainers";
+import type { RestateTestEnvironment } from "@restatedev/restate-sdk-testcontainers";
 import { ingressOf } from "@wren/config";
 import { clientDatabaseUrl, createDatabase, createDb } from "@wren/db";
 import { startTestPostgres, type TestPostgres } from "@wren/db/testing";
@@ -16,6 +16,7 @@ import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { findClient } from "../../src/clients/index.js";
 import { type LoopRow, makeConsolePortal, restateAdmin } from "../../src/console.js";
 import { LAST, makeLoopObject, type PassOutcome } from "../../src/restate/loop.js";
+import { startTestRestate } from "../../src/testing.js";
 
 const HOUR = 3_600_000;
 const tick = makeLoopObject("Tick", async (ctx: restate.ObjectContext) => {
@@ -41,7 +42,7 @@ const tickOf = (key: string) => ingress().objectClient<Tick>({ name: "Tick" }, k
 
 beforeAll(async () => {
   pg = await startTestPostgres();
-  env = await RestateTestEnvironment.start({
+  env = await startTestRestate({
     services: [
       tick,
       makeConsolePortal({

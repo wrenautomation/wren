@@ -1,8 +1,9 @@
 /** The SendScheduler virtual object: one tick per key, durable loop, status. */
 import * as clients from "@restatedev/restate-sdk-clients";
-import { RestateTestEnvironment } from "@restatedev/restate-sdk-testcontainers";
+import type { RestateTestEnvironment } from "@restatedev/restate-sdk-testcontainers";
 import { ingressOf, loadSettings } from "@wren/config";
 import { runs } from "@wren/core";
+import { startTestRestate } from "@wren/core/testing";
 import { startTestPostgres, type TestPostgres, truncate } from "@wren/db/testing";
 import { eq } from "drizzle-orm";
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
@@ -47,7 +48,7 @@ let env: RestateTestEnvironment;
 const transport = new ConsoleTransport({ write: () => {} });
 beforeAll(async () => {
   pg = await startTestPostgres();
-  env = await RestateTestEnvironment.start({
+  env = await startTestRestate({
     services: [
       makeSendScheduler({
         transport,

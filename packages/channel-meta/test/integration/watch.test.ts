@@ -6,10 +6,11 @@
  */
 import * as restate from "@restatedev/restate-sdk";
 import * as clients from "@restatedev/restate-sdk-clients";
-import { RestateTestEnvironment } from "@restatedev/restate-sdk-testcontainers";
+import type { RestateTestEnvironment } from "@restatedev/restate-sdk-testcontainers";
 import { ingressOf } from "@wren/config";
 import type { SiteClient } from "@wren/core/content";
 import type { PassOutcome } from "@wren/core/restate";
+import { startTestRestate } from "@wren/core/testing";
 import { startTestPostgres, type TestPostgres, truncate } from "@wren/db/testing";
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 import type { InsightRow, LaunchSpec } from "../../src/ads.js";
@@ -62,7 +63,7 @@ let pg: TestPostgres;
 let env: RestateTestEnvironment;
 beforeAll(async () => {
   pg = await startTestPostgres();
-  env = await RestateTestEnvironment.start({
+  env = await startTestRestate({
     services: [
       fakeDesk,
       makeAds({ sitesFor: journaled, adAccountId: "act_1", pageId: "p", db: pg.db }),

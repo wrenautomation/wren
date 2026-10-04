@@ -5,12 +5,13 @@
  * loop stop the moment the client can't send.
  */
 import * as ingress from "@restatedev/restate-sdk-clients";
-import { RestateTestEnvironment } from "@restatedev/restate-sdk-testcontainers";
+import type { RestateTestEnvironment } from "@restatedev/restate-sdk-testcontainers";
 import { ConsoleTransport, SendPolicy } from "@wren/channel-email";
 import { makeSendScheduler, oneScope, type SendScheduler } from "@wren/channel-email/restate";
 import { ingressOf, loadSettings } from "@wren/config";
 import { addClient, updateClient } from "@wren/core/clients";
 import { clientOfKey } from "@wren/core/restate";
+import { startTestRestate } from "@wren/core/testing";
 import { cachedDb, clientDatabaseUrl, type Db } from "@wren/db";
 import { startTestPostgres, type TestPostgres } from "@wren/db/testing";
 import { sql } from "drizzle-orm";
@@ -57,7 +58,7 @@ beforeAll(async () => {
     policy: OPEN,
     fleet: { senders: [ANN], domainFleet: [ANN], fromNames: {}, signatureHtml: {}, pages: {} },
   });
-  env = await RestateTestEnvironment.start({
+  env = await startTestRestate({
     services: [
       makeSendScheduler({
         transport,

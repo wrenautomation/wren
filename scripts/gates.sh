@@ -15,7 +15,7 @@ offers() {
   else echo "==> offers snapshot: no ../lander, skipped"; fi
 }
 unit() { echo "==> unit tests" && pnpm turbo run test:unit; }
-integration() { echo "==> integration tests (needs Docker)" && pnpm turbo run test:integration; }
+integration() { echo "==> integration tests (needs Docker)" && pnpm turbo run test:integration --concurrency=3; }
 case "${1:-all}" in
   lint) lint ;;
   unit) unit ;;

@@ -183,7 +183,7 @@ export function TemplatePage({
     return (
       <>
         <RecordOverview
-          title={app}
+          title={page.id === "overview" ? app : page.label}
           api={apiOf(product, client, scope)}
           tiles={page.tiles}
           top={page.top}

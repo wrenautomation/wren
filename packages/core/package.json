@@ -12,6 +12,7 @@
     "./content": "./src/content/index.ts",
     "./content/box": "./src/content/box.ts",
     "./content/ingress": "./src/content/ingress.ts",
+    "./testing": "./src/testing.ts",
     "./content/restate": "./src/content/restate.ts",
     "./content/renewal": "./src/content/renewal.ts",
     "./emails": "./src/emails.ts",
