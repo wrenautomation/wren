@@ -3,7 +3,7 @@ type: object
 cluster: books
 universe: live
 status: verified
-verified: 2026-10-04 @ d6098e4
+verified: 2026-10-04 @ 85fad62
 entity: packages/books/src/schema.ts:391
 ---
 
@@ -44,6 +44,8 @@ Citations: `packages/books/src/schema.ts:391`, `:429`, `:42`, `:371`, `packages/
 |---|---|
 | `wren books import` / `read` / `post` / `accept` / `personal` | write (each ends with a post) |
 | `wren books spend` / `bills` | read |
+| console Money app: Economics, Months, Channels, Cohorts (`apps/portal/web/src/modules/wren/index.ts`) | read (the `econ_*` records) |
+| `BooksConsole/setAccount` (console Money > Accounts; team only, audited as the operator, `packages/books/src/console.ts:42`) | writes an account's `bucket`, `channel` |
 
 ## See
 

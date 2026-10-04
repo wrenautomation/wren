@@ -55,6 +55,8 @@ const SERVICES: Readonly<Record<string, Service>> = {
   ),
   // Wren's team: warm replies to answer, inboxes to pause.
   email: service("EmailConsole", EMAIL_CONSOLE_ROUTES, EMAIL_CONSOLE_WRITES),
+  // Wren's team: where an account's spend counts (`@wren/books` console.ts).
+  books: service("BooksConsole", ["setAccount"], ["setAccount"]),
 };
 
 const MAX_BODY = 16 * 1024;

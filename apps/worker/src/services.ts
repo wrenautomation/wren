@@ -17,7 +17,7 @@ import {
   siteMailbox,
 } from "@wren/books";
 import { BOOKS_RECORDS } from "@wren/books/records";
-import { makeBooks } from "@wren/books/restate";
+import { makeBooks, makeBooksConsole } from "@wren/books/restate";
 import {
   activeSenders,
   Broadcast,
@@ -727,6 +727,7 @@ export async function buildServices(
         : undefined,
     }),
     makeEmailConsole({ db, senders: roster.map((s) => s.address), policy }),
+    makeBooksConsole(db),
     makeReactivation({
       main: db,
       open: openClient,

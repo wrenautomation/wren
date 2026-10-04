@@ -9,6 +9,8 @@ import type { Notifier } from "@wren/core/notify";
 import { loopSettings, makeLoopObject, type PassOutcome, runPass } from "@wren/core/restate";
 import { type BooksDay, type BooksDayDeps, booksDay } from "./daily.js";
 
+export * from "./console.js";
+
 export const BOOKS_KEY = "all";
 export const BOOKS_COMMAND = "books day";
 export const BOOKS_EVERY_MS = 24 * 3_600_000;

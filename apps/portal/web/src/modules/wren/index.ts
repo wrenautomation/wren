@@ -308,11 +308,60 @@ export const loops: Module = {
   ],
 };
 
+// The options are BUCKETS and CHANNELS (books, core clients); BooksConsole refuses anything else.
+const ACCOUNT_ACTIONS: Action[] = [
+  {
+    id: "books.setBucket",
+    label: "Set bucket",
+    handler: "books/setAccount",
+    each: true,
+    bulk: true,
+    form: [
+      {
+        field: "bucket",
+        label: "Bucket",
+        optional: true,
+        hint: "acquisition, delivery or overhead. Blank counts as overhead.",
+      },
+    ],
+    when: { type: ["expense"] },
+    done: said("Bucket set"),
+  },
+  {
+    id: "books.setChannel",
+    label: "Set channel",
+    handler: "books/setAccount",
+    each: true,
+    bulk: true,
+    form: [
+      {
+        field: "channel",
+        label: "Channel",
+        optional: true,
+        hint: "email, sms, ads, content, search or reach. Blank splits it across channels by new clients.",
+      },
+    ],
+    when: { type: ["expense"] },
+    done: said("Channel set"),
+  },
+];
+
+const MONTHS = "/money/months?view=all";
+const NO_CLIENTS = "No paying clients yet";
+/** A month's figure, the month before and a bar a month; `none` while it has no value. */
+const figure = (label: string, pick: string, none = NO_CLIENTS) => ({
+  label,
+  record: "books.month",
+  href: MONTHS,
+  pick,
+  none,
+});
+
 export const money: Module = {
   id: "money",
   name: "Money",
   icon: "money",
-  blurb: "What Wren spends and what renews soon.",
+  blurb: "What Wren spends, what renews soon, and what a client costs and earns.",
   requires: TEAM,
   pages: [
     {
@@ -385,6 +434,69 @@ export const money: Module = {
       template: "list",
       record: "books.subscription",
       empty: "Subscriptions show here once the books find them.",
+    },
+    {
+      id: "economics",
+      label: "Economics",
+      template: "overview",
+      tiles: [
+        figure("CAC", "cac6"),
+        figure("Predicted LTV", "ltv", "No churn yet"),
+        figure("LTV:CAC", "ltvCac", "No churn yet"),
+        figure("Payback (months)", "payback"),
+        figure("Logo churn", "logoChurn"),
+        figure("Revenue churn", "revenueChurn"),
+        figure("MRR", "mrr"),
+        figure("ARPA", "arpa"),
+        figure("Gross margin", "grossMargin"),
+      ],
+      top: [
+        {
+          label: "Cost per reply and per booked call this month",
+          record: "books.channel",
+          href: "/money/channels?view=this_month",
+          fields: ["perReply", "perBooked"],
+          empty: "No channel spent anything this month yet.",
+        },
+      ],
+      below: () =>
+        createElement(
+          "p",
+          { className: "mt-6 text-[13px] text-(--ui-ink-2)" },
+          "William's own time isn't a cost here.",
+        ),
+    },
+    {
+      id: "months",
+      label: "Months",
+      template: "list",
+      record: "books.month",
+      empty: "Months show here once the books have spend.",
+    },
+    {
+      id: "channels",
+      label: "Channels",
+      template: "list",
+      record: "books.channel",
+      empty: {
+        this_month: "No channel spent anything this month yet.",
+        all: "Channels show here once the books have spend.",
+      },
+    },
+    {
+      id: "cohorts",
+      label: "Cohorts",
+      template: "list",
+      record: "books.cohort",
+      empty: "Cohorts show here once a client pays.",
+    },
+    {
+      id: "accounts",
+      label: "Accounts",
+      template: "list",
+      record: "books.account",
+      empty: { expenses: "No expense accounts yet.", all: "No accounts yet." },
+      actions: ACCOUNT_ACTIONS,
     },
   ],
 };

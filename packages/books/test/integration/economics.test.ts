@@ -14,10 +14,12 @@
  *   day, so it never churns.
  * - demo: paid in Mar, never counts.
  */
+import type { PortalRefusal } from "@wren/core/portal";
 import { serveRecords } from "@wren/core/records/serve";
 import { startTestPostgres, type TestPostgres } from "@wren/db/testing";
 import { inArray, sql } from "drizzle-orm";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
+import { booksConsoleApi } from "../../src/console.js";
 import { econChannels, econCohorts, econMonths, seedBooks } from "../../src/index.js";
 import { BOOKS_RECORDS } from "../../src/records.js";
 
@@ -365,6 +367,38 @@ describe("as console records", () => {
       bucket: "acquisition",
       channel: "ads",
     });
+  });
+
+  it("the team sets an account's bucket and channel; a blank clears one, the other stays", async () => {
+    const { setAccount } = booksConsoleApi(pg.db);
+    const op = { viewer: { email: "op@example.test", operator: true } } as const;
+    const [fees] = await pg.db.execute<{ id: number }>(
+      sql`select id from books.accounts where key = 'fees'`,
+    );
+    const ids = [String(fees?.id)];
+    const now = async () =>
+      (
+        await pg.db.execute<{ bucket: string | null; channel: string | null }>(
+          sql`select bucket, channel from books.accounts where key = 'fees'`,
+        )
+      )[0];
+    expect(await setAccount({ ...op, ids, bucket: "overhead", channel: " Email " })).toEqual({
+      done: ids,
+    });
+    expect(await now()).toEqual({ bucket: "overhead", channel: "email" });
+    await setAccount({ ...op, ids, bucket: "" });
+    expect(await now()).toEqual({ bucket: null, channel: "email" });
+    await setAccount({ ...op, ids, channel: null });
+    expect(await now()).toEqual({ bucket: null, channel: null });
+    const status = (p: Promise<unknown>) =>
+      p.then(
+        () => 200,
+        (e: PortalRefusal) => e.status,
+      );
+    expect(await status(setAccount({ viewer: { demo: true }, ids, bucket: "overhead" }))).toBe(403);
+    expect(await status(setAccount({ ...op, ids, bucket: "marketing" }))).toBe(400);
+    expect(await status(setAccount({ ...op, ids }))).toBe(400);
+    expect(await now()).toEqual({ bucket: null, channel: null });
   });
 });
 

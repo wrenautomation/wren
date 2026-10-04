@@ -146,6 +146,7 @@ describe("the demo host", () => {
       "email/drop",
       "email/pause",
       "email/resume",
+      "books/setAccount",
     ]) {
       const res = await worker.fetch(post("demo.test", route, { ids: [1] }), env());
       expect(res.status).toBe(403);

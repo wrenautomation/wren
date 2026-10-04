@@ -216,7 +216,7 @@ function Tile({ tile, meta, api }: { tile: OverviewTile; meta: RecordMeta; api: 
               s.value === null && "text-[15px] leading-6 font-normal text-(--ui-ink-2)",
             )}
           >
-            {s.value === null ? (tile.none ?? "None yet") : fmt(s.value)}
+            {s.value === null ? (tile.none ?? "No figure yet") : fmt(s.value)}
           </span>
           {period || pick ? (
             <>
