@@ -219,3 +219,82 @@ describe("servicesFor: which side serves the pool chain", () => {
     expect(servicesFor(all, "lambda", undefined)).toHaveLength(all.length);
   });
 });
+
+describe("handler forms", () => {
+  /** Public handlers that take no schema, and why. */
+  const NO_SCHEMA: Record<string, string> = {
+    "SmsEvents/ingest": "the carrier's webhook: its payload is the carrier's shape, not a form",
+  };
+  const EFFECTS: Record<string, string> = {
+    "Ads/launch": "spends",
+    "Ads/start": "spends",
+    "EmailConsole/approve": "sends",
+    "SmsDesk/enroll": "sends",
+    "SmsDesk/reply": "sends",
+    "SmsDesk/start": "sends",
+    "Content/publish": "posts",
+    "Content/reply": "posts",
+    "ReachDesk/reply": "sends",
+    "ReachDesk/enroll": "sends",
+  };
+  type Options = { input?: unknown; ingressPrivate?: boolean; metadata?: { effect?: string } };
+  const optionsOf = (fn: object): Options => {
+    const sym = Object.getOwnPropertySymbols(fn).find((s) => s.description === "Handler");
+    return (sym ? (fn as Record<symbol, { options?: Options }>)[sym]?.options : undefined) ?? {};
+  };
+
+  /** Every handler of every wren service, built from an env that turns on all but Postmaster. */
+  async function handlers() {
+    const rootDir = mkdtempSync(join(tmpdir(), "wren-forms-"));
+    const settings = loadSettings(
+      {
+        WREN_DATABASE_URL: "postgres://wren:wren@127.0.0.1:1/wren",
+        WREN_SEARCH_SITE: "sc-domain:example.test",
+        WREN_SEARCH_ORIGIN: "https://example.test",
+        WREN_CONTENT_CHANNELS: "linkedin",
+        WREN_NOTIFY: "console",
+        WREN_PIXEL_BASE_URL: "https://pixel.example.test",
+        WREN_PIXEL_EXPORT_TOKEN: "t",
+        WREN_REPORT_TO: "r@example.test",
+        WREN_REPORT_FROM: "f@example.test",
+        WREN_PORTAL_ORIGIN: "https://app.example.test",
+      },
+      { rootDir },
+    );
+    const built = await buildServices(settings, logOf().log, { rootDir });
+    closers.push(() => built.close());
+    const out = new Map<string, Options>();
+    for (const def of built.services as unknown as {
+      name: string;
+      service?: object;
+      object?: object;
+      workflow?: object;
+    }[]) {
+      for (const [h, fn] of Object.entries(def.service ?? def.object ?? def.workflow ?? {}))
+        out.set(`${def.name}/${h}`, optionsOf(fn));
+    }
+    return out;
+  }
+
+  it("every public handler outside the portals declares its input, or says why not", async () => {
+    const all = await handlers();
+    const missing = [...all]
+      .filter(([id, o]) => !id.split("/")[0]?.endsWith("Portal") && !o.ingressPrivate && !o.input)
+      .map(([id]) => id);
+    expect(missing.sort()).toEqual(Object.keys(NO_SCHEMA).sort());
+  });
+
+  it("marks what spends, sends or posts", async () => {
+    const all = await handlers();
+    for (const [id, effect] of Object.entries(EFFECTS))
+      expect(all.get(id)?.metadata?.effect, id).toBe(effect);
+  });
+
+  it("resolve and every loop refuse at ingress", async () => {
+    const all = await handlers();
+    expect(all.get("Resolution/resolve")?.ingressPrivate).toBe(true);
+    const loops = [...all].filter(([id]) => id.endsWith("/loop"));
+    expect(loops.length).toBeGreaterThan(5);
+    for (const [id, o] of loops) expect(o.ingressPrivate, id).toBe(true);
+  });
+});

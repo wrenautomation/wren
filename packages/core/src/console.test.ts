@@ -179,6 +179,13 @@ describe("ConsolePortal records", () => {
 
 const handler = (name: string, more: Record<string, unknown> = {}) => ({ name, ...more });
 const SCHEMA = { type: "object", properties: { limit: { type: "integer" } } };
+/** A portal-style input: `call` fills the viewer. */
+const ASKS = {
+  type: "object",
+  properties: { viewer: { type: "object" }, id: { type: "number" } },
+  required: ["id"],
+};
+
 const SERVICES = {
   services: [
     {
@@ -191,6 +198,7 @@ const SERVICES = {
       ],
     },
     { name: "Tally", ty: "Service", handlers: [handler("count", { input_json_schema: SCHEMA })] },
+    { name: "Inbox", ty: "Service", handlers: [handler("approve", { input_json_schema: ASKS })] },
     { name: "WidgetsPortal", ty: "Service", handlers: [handler("view")] },
     { name: "Hidden", ty: "Service", public: false, handlers: [handler("any")] },
   ],
@@ -235,7 +243,9 @@ describe("ConsolePortal handlers", () => {
       public: true,
       effect: "spends",
       form: true,
+      viewer: false,
     });
+    expect(all.find((h) => h.handler === "approve")?.viewer).toBe(true);
     expect(all.filter((h) => !h.public).map((h) => `${h.service}/${h.handler}`)).toEqual([
       "Widgets/loop",
       "Hidden/any",
@@ -249,6 +259,7 @@ describe("ConsolePortal handlers", () => {
     const record = handlerRecord(get);
     const rows = (await record.rows?.(db)) ?? [];
     expect(rows.map((r) => r.id).sort()).toEqual([
+      "Inbox/approve",
       "Tally/count",
       "Widgets/launch",
       "Widgets/status",
@@ -351,6 +362,14 @@ describe("ConsolePortal.call", () => {
     ]);
   });
 
+  it("fills a portal handler's viewer with the operator, whatever the input says", async () => {
+    sent.length = 0;
+    const ctx = ctxOf(async () => ({ ok: true }));
+    const input = { id: 7, viewer: { email: "someone@else.test" } };
+    await call?.(ctx, { viewer: operator, service: "Inbox", handler: "approve", input });
+    expect(sent).toMatchObject([{ parameter: { id: 7, viewer: operator } }]);
+  });
+
   it("closes the row with the error when the handler refuses", async () => {
     ran.length = 0;
     const ctx = ctxOf(async () => {
@@ -427,5 +446,9 @@ describe("formOf: a schema as form boxes", () => {
     expect(formOf(null)).toBeNull();
     expect(formOf({})).toBeNull();
     expect(formOf({ type: "object", properties: {}, additionalProperties: {} })).toEqual([]);
+  });
+
+  it("never asks for the viewer: call fills it", () => {
+    expect(formOf(ASKS)?.map((f) => f.field)).toEqual(["id"]);
   });
 });

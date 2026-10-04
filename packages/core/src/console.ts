@@ -260,6 +260,8 @@ export interface HandlerRow {
   effect: string | null;
   /** It declares an input schema, so it opens to a form. */
   form: boolean;
+  /** Its input takes a portal `viewer`, which `call` fills with the operator. */
+  viewer: boolean;
 }
 
 const KIND_OF: Record<string, HandlerRow["kind"]> = {
@@ -288,6 +290,7 @@ export function handlersOf(services: unknown): HandlerRow[] {
       public: s.public !== false && h.public !== false,
       effect: h.metadata?.effect ?? null,
       form: h.input_json_schema !== undefined,
+      viewer: (h.input_json_schema as Schema | undefined)?.properties?.viewer !== undefined,
     })),
   );
 }
@@ -372,6 +375,8 @@ export function formOf(input: unknown): HandlerField[] | null {
   const out: HandlerField[] = [];
   const walk = (obj: Schema, path: string, label: string, parentOptional: boolean) => {
     for (const [name, raw] of Object.entries(obj.properties ?? {})) {
+      // `call` fills a portal handler's viewer with the operator; the form never asks for it.
+      if (!path && name === "viewer") continue;
       const s = nonNull(raw);
       const field = path ? `${path}.${name}` : name;
       const own = s.title ?? words(name);
@@ -678,7 +683,8 @@ export function makeConsolePortal(deps: Parameters<typeof consoleApi>[0]) {
               service: h.service,
               method: h.handler,
               ...(h.kind === "service" ? {} : { key: req.key as string }),
-              parameter: req.input,
+              // The operator is the viewer, whatever the input says.
+              parameter: h.viewer ? { ...(req.input as object), viewer: req.viewer } : req.input,
               inputSerde: JSON_SERDE,
               outputSerde: JSON_SERDE,
             });
