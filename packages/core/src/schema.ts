@@ -177,6 +177,10 @@ export const companies = pgTable(
   (t) => [
     primaryKey({ columns: [t.id], name: "pk_companies" }),
     index("ix_companies_import_id").on(t.importId),
+    // Covers `email_firm_records`: the console's firm counts read this, not the wide heap.
+    index("ix_companies_firm_records")
+      .on(t.id, t.niche, t.declineReason, t.domain, t.createdAt, t.name)
+      .where(sql`niche is not null`),
     foreignKey({
       columns: [t.importId],
       foreignColumns: [imports.id],
@@ -213,7 +217,7 @@ export const people = pgTable(
   (t) => [
     primaryKey({ columns: [t.id], name: "pk_people" }),
     index("ix_people_import_id").on(t.importId),
-    index("ix_people_company_id").on(t.companyId),
+    index("ix_people_company_created").on(t.companyId, t.createdAt),
     foreignKey({
       columns: [t.companyId],
       foreignColumns: [companies.id],
@@ -299,6 +303,9 @@ export const leads = pgTable(
     index("ix_leads_suppression_id").on(t.suppressionId),
     index("ix_leads_import_id").on(t.importId),
     index("ix_leads_company_id").on(t.companyId),
+    index("ix_leads_company_verified")
+      .on(t.companyId, t.createdAt)
+      .where(sql`status = 'verified' and first_name is not null`),
     foreignKey({
       columns: [t.companyId],
       foreignColumns: [companies.id],

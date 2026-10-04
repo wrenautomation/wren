@@ -60,7 +60,7 @@ export const documents = pgTable(
   },
   (t) => [
     primaryKey({ columns: [t.id], name: "pk_documents" }),
-    index("ix_documents_company_id").on(t.companyId),
+    index("ix_documents_company_fetched").on(t.companyId, t.fetchedAt),
     foreignKey({
       columns: [t.companyId],
       foreignColumns: [companies.id],

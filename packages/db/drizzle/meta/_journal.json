@@ -484,6 +484,13 @@
       "when": 1791099099275,
       "tag": "0068_reactivation_replies",
       "breakpoints": true
+    },
+    {
+      "idx": 69,
+      "version": "7",
+      "when": 1791103635024,
+      "tag": "0069_firm_record_indexes",
+      "breakpoints": true
     }
   ]
 }

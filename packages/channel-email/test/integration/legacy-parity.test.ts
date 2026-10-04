@@ -69,13 +69,20 @@ const ADDED = {
     "ix_sightings_import_id",
     "ix_thread_events_in_reply_to_message_id",
     "ix_verifications_email_domain",
+    // 2026-10-04: the console's firm view reads indexes only.
+    "ix_companies_firm_records",
+    "ix_documents_company_fetched",
+    "ix_leads_company_verified",
+    "ix_people_company_created",
   ]),
   /** Legacy views wren grew (lead recycling, recruiting ranks): still present, bodies free to differ. */
   views: new Set(["campaign_funnel", "enrollment_outcomes", "person_facts"]),
 };
 
-/** Legacy indexes wren dropped: each a prefix of a unique index that serves the same reads (2026-10-03 audit). */
+/** Legacy indexes wren dropped: each a prefix of an index that serves the same reads (2026-10-03 audit, 2026-10-04). */
 const DROPPED_INDEXES = new Set([
+  "ix_documents_company_id",
+  "ix_people_company_id",
   "ix_contact_candidates_person_id",
   "ix_enrichments_company_id",
   "ix_enrichments_document_id",

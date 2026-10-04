@@ -309,3 +309,4 @@ One implementer per phase, from this doc. Commit and push each step.
 - 2026-10-04 (S3 look): The auth app builds Tailwind too. Its buttons were shadcn parts with no Tailwind loaded.
 - 2026-10-04 (S3 look): `ui-trail`, `ui-trail-step` and `ui-source-head` stay as unstyled markers: the demo video script finds elements by them.
 - 2026-10-04 (S3 look): `@wren/ui` went from 8,193 code lines and 2,820 CSS lines to 8,380 and 302. Modules stay at 3,366.
+- 2026-10-04 (S3 look): Pipeline's Overview was slow from load, not one bad plan. Each firm tile scans companies, documents, people and leads whole (about 190 MB, 300 ms alone), nine run at once, and "Crawled, no person" came back last at 33 s. Covering indexes make `email_firm_records` read indexes only (about 12 times less). `ix_documents_company_id` and `ix_people_company_id` are dropped: the new indexes start with the same column.
