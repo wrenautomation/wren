@@ -17,8 +17,16 @@ import { finishRun, openRun } from "@wren/core";
 import type { SiteClient } from "@wren/core/content";
 import type { Notifier } from "@wren/core/notify";
 import type { Found, OutreachChannel, Profile } from "@wren/core/outreach";
-import { errorText, LAST, makeLoopObject, type PassOutcome } from "@wren/core/restate";
+import {
+  errorText,
+  LAST,
+  makeLoopObject,
+  NO_INPUT,
+  type PassOutcome,
+  serviceHandler,
+} from "@wren/core/restate";
 import type { Db } from "@wren/db";
+import { z } from "zod";
 import {
   type AccountView,
   accountById,
@@ -42,12 +50,14 @@ import { type EnrollStats, enroll } from "../enroll.js";
 import type { ReachPolicy } from "../policy.js";
 import { ReachRefusal } from "../refusal.js";
 import { pullReplies, type RepliesStats } from "../replies.js";
-import type {
-  AccountState,
-  ContactState,
-  Platform,
-  ReachAccount,
-  ReachContact,
+import {
+  ACCOUNT_STATES,
+  type AccountState,
+  CONTACT_STATES,
+  type ContactState,
+  type Platform,
+  type ReachAccount,
+  type ReachContact,
 } from "../schema.js";
 import { type ReachSequence, slotsOf } from "../sequences.js";
 import { listTemplates, type SetTemplate, type SlotView, setTemplate } from "../store.js";
@@ -221,6 +231,68 @@ export function makeReachWatch(deps: ReachDeps) {
   });
 }
 
+const PLATFORM = z.string().describe("reddit or linkedin");
+const NICHE = z.string().nullish();
+const CONTACT = z.looseObject({ contactId: z.number() });
+const ADD_ACCOUNT = z.looseObject({
+  platform: PLATFORM,
+  account: z.string().describe("The autobrowse credential, e.g. reddit@alt"),
+});
+const ACCOUNT_STATE = z.looseObject({
+  id: z.string(),
+  state: z.enum(ACCOUNT_STATES),
+  reason: z.string().nullish(),
+});
+const FIND = z.looseObject({
+  accountId: z.string(),
+  query: z.string(),
+  limit: z.number().nullish(),
+  cursor: z.string().nullish().describe("Where the last page stopped"),
+  niche: NICHE,
+});
+const ADD_CONTACT = z.looseObject({
+  platform: PLATFORM,
+  handle: z.string().describe("A profile URL or a handle"),
+  name: z.string().nullish(),
+  niche: NICHE,
+});
+const CONTACTS = z
+  .looseObject({
+    platform: PLATFORM.nullish(),
+    state: z.enum(CONTACT_STATES).nullish(),
+    limit: z.number().nullish(),
+  })
+  .nullish();
+const ENRICH = z.looseObject({
+  contactId: z.number(),
+  accountId: z.string().nullish().describe("Read as this account; default theirs, else the first"),
+});
+const ENROLL = z.looseObject({
+  sequence: z.string(),
+  limit: z.number().nullish(),
+  contactIds: z.array(z.number()).nullish(),
+  enrichedOnly: z.boolean().nullish(),
+  niche: NICHE,
+});
+const SET_TEMPLATE = z.looseObject({
+  key: z.string(),
+  body: z.string().nullish().describe("Empty clears it"),
+  by: z.string().describe("Who saved it"),
+});
+const THREADS = z
+  .looseObject({
+    platform: PLATFORM.nullish(),
+    state: z.enum(CONTACT_STATES).nullish(),
+    unread: z.boolean().nullish(),
+    limit: z.number().nullish(),
+  })
+  .nullish();
+const REPLY = CONTACT.extend({
+  body: z.string(),
+  subject: z.string().nullish().describe("Reddit only"),
+});
+const STATS = z.looseObject({ platform: PLATFORM.nullish(), days: z.number().nullish() }).nullish();
+
 export function makeReachDesk(deps: ReachDeps) {
   const terminal = async <T>(fn: () => Promise<T>): Promise<T> => {
     try {
@@ -242,201 +314,253 @@ export function makeReachDesk(deps: ReachDeps) {
   return restate.service({
     name: "ReachDesk",
     handlers: {
-      accounts: async (ctx: restate.Context): Promise<AccountView[]> => {
-        const now = await nowOf(ctx);
-        const rows = await ctx.run("accounts", () => listAccounts(deps.db));
-        return rows.map((a) => viewOf(a, deps.policy, now));
-      },
-      addAccount: async (
-        ctx: restate.Context,
-        req: { platform: string; account: string },
-      ): Promise<AccountView> => {
-        const now = await nowOf(ctx);
-        const row = await ctx.run("add account", () =>
-          terminal(() =>
-            addAccount(deps.db, { platform: platformOf(req.platform), account: req.account, now }),
-          ),
-        );
-        return viewOf(row, deps.policy, now);
-      },
-      setAccountState: async (
-        ctx: restate.Context,
-        req: { id: string; state: AccountState; reason?: string | null },
-      ): Promise<AccountView> => {
-        const now = await nowOf(ctx);
-        const row = await ctx.run("set state", () =>
-          terminal(() =>
-            setAccountState(deps.db, req.id, req.state, { reason: req.reason ?? null, now }),
-          ),
-        );
-        return viewOf(row, deps.policy, now);
-      },
+      accounts: serviceHandler(
+        { input: NO_INPUT },
+        async (ctx: restate.Context): Promise<AccountView[]> => {
+          const now = await nowOf(ctx);
+          const rows = await ctx.run("accounts", () => listAccounts(deps.db));
+          return rows.map((a) => viewOf(a, deps.policy, now));
+        },
+      ),
+      addAccount: serviceHandler(
+        { input: ADD_ACCOUNT },
+        async (
+          ctx: restate.Context,
+          req: { platform: string; account: string },
+        ): Promise<AccountView> => {
+          const now = await nowOf(ctx);
+          const row = await ctx.run("add account", () =>
+            terminal(() =>
+              addAccount(deps.db, {
+                platform: platformOf(req.platform),
+                account: req.account,
+                now,
+              }),
+            ),
+          );
+          return viewOf(row, deps.policy, now);
+        },
+      ),
+      setAccountState: serviceHandler(
+        { input: ACCOUNT_STATE },
+        async (
+          ctx: restate.Context,
+          req: { id: string; state: AccountState; reason?: string | null },
+        ): Promise<AccountView> => {
+          const now = await nowOf(ctx);
+          const row = await ctx.run("set state", () =>
+            terminal(() =>
+              setAccountState(deps.db, req.id, req.state, { reason: req.reason ?? null, now }),
+            ),
+          );
+          return viewOf(row, deps.policy, now);
+        },
+      ),
       /** One account's health now (platform read, then stored). */
-      health: async (ctx: restate.Context, req: { id: string }): Promise<AccountView> => {
-        const now = await nowOf(ctx);
-        const a = await ctx.run("account", () => terminal(() => accountById(deps.db, req.id)));
-        const ch = channelsFor(deps, ctx)(a);
-        if (!ch) throw new restate.TerminalError(`no channel for ${a.platform}`);
-        const h = await ch.health();
-        await ctx.run("store health", () =>
-          refreshHealth(deps.db, [a], () => ({ ...ch, health: async () => h }), now),
-        );
-        const fresh = await ctx.run("account again", () => accountById(deps.db, req.id));
-        return viewOf(fresh, deps.policy, now);
-      },
+      health: serviceHandler(
+        { input: z.looseObject({ id: z.string() }) },
+        async (ctx: restate.Context, req: { id: string }): Promise<AccountView> => {
+          const now = await nowOf(ctx);
+          const a = await ctx.run("account", () => terminal(() => accountById(deps.db, req.id)));
+          const ch = channelsFor(deps, ctx)(a);
+          if (!ch) throw new restate.TerminalError(`no channel for ${a.platform}`);
+          const h = await ch.health();
+          await ctx.run("store health", () =>
+            refreshHealth(deps.db, [a], () => ({ ...ch, health: async () => h }), now),
+          );
+          const fresh = await ctx.run("account again", () => accountById(deps.db, req.id));
+          return viewOf(fresh, deps.policy, now);
+        },
+      ),
       /** Search as an account; what it found is kept as `new` contacts. */
-      find: async (
-        ctx: restate.Context,
-        req: {
-          accountId: string;
-          query: string;
-          limit?: number;
-          cursor?: string | null;
-          niche?: string | null;
+      find: serviceHandler(
+        { input: FIND },
+        async (
+          ctx: restate.Context,
+          req: {
+            accountId: string;
+            query: string;
+            limit?: number;
+            cursor?: string | null;
+            niche?: string | null;
+          },
+        ): Promise<{ found: Found; added: AddStats }> => {
+          if (req.niche && deps.heldNiches.includes(req.niche))
+            throw new restate.TerminalError(`niche ${req.niche} is held`);
+          const a = await ctx.run("account", () =>
+            terminal(() => accountById(deps.db, req.accountId)),
+          );
+          const ch = channelsFor(deps, ctx)(a);
+          if (!ch) throw new restate.TerminalError(`no channel for ${a.platform}`);
+          const found = await ch.find({
+            query: req.query,
+            limit: Math.min(req.limit ?? 25, 100),
+            cursor: req.cursor ?? null,
+          });
+          const added = await ctx.run("add prospects", () =>
+            addProspects(deps.db, a.platform, found.prospects, { niche: req.niche ?? null }),
+          );
+          return { found, added };
         },
-      ): Promise<{ found: Found; added: AddStats }> => {
-        if (req.niche && deps.heldNiches.includes(req.niche))
-          throw new restate.TerminalError(`niche ${req.niche} is held`);
-        const a = await ctx.run("account", () =>
-          terminal(() => accountById(deps.db, req.accountId)),
-        );
-        const ch = channelsFor(deps, ctx)(a);
-        if (!ch) throw new restate.TerminalError(`no channel for ${a.platform}`);
-        const found = await ch.find({
-          query: req.query,
-          limit: Math.min(req.limit ?? 25, 100),
-          cursor: req.cursor ?? null,
-        });
-        const added = await ctx.run("add prospects", () =>
-          addProspects(deps.db, a.platform, found.prospects, { niche: req.niche ?? null }),
-        );
-        return { found, added };
-      },
-      addContact: async (
-        ctx: restate.Context,
-        req: { platform: string; handle: string; name?: string | null; niche?: string | null },
-      ): Promise<ReachContact> =>
-        ctx.run("add contact", () =>
-          terminal(() => addContact(deps.db, { ...req, platform: platformOf(req.platform) })),
-        ),
-      contacts: async (
-        ctx: restate.Context,
-        req: { platform?: string | null; state?: ContactState | null; limit?: number } = {},
-      ): Promise<ReachContact[]> =>
-        ctx.run("contacts", () =>
-          listContacts(deps.db, {
-            platform: req.platform ? platformOf(req.platform) : null,
-            state: req.state ?? null,
-            limit: req.limit ?? 50,
-          }),
-        ),
-      /** Read one person's page as an account (any active one on the platform when none is given). */
-      enrich: async (
-        ctx: restate.Context,
-        req: { contactId: number; accountId?: string | null },
-      ): Promise<Profile> => {
-        const now = await nowOf(ctx);
-        const c = await ctx.run("contact", () =>
-          terminal(() => contactById(deps.db, req.contactId)),
-        );
-        const a = await ctx.run("account", () =>
-          terminal(async () => {
-            if (req.accountId) return accountById(deps.db, req.accountId);
-            if (c.accountId) return accountById(deps.db, c.accountId);
-            const [first] = await listAccounts(deps.db, c.platform);
-            if (!first) throw new ReachRefusal(`no ${c.platform} account to read with`);
-            return first;
-          }),
-        );
-        const ch = channelsFor(deps, ctx)(a);
-        if (!ch) throw new restate.TerminalError(`no channel for ${a.platform}`);
-        const profile = await ch.enrich(c.handle);
-        await ctx.run("store profile", () =>
-          enrichContact(deps.db, c, { ...ch, enrich: async () => profile }, now),
-        );
-        return profile;
-      },
-      enroll: async (
-        ctx: restate.Context,
-        req: {
-          sequence: string;
-          limit?: number;
-          contactIds?: number[];
-          enrichedOnly?: boolean;
-          niche?: string | null;
-        },
-      ): Promise<EnrollStats> => {
-        const seq = deps.sequences.get(req.sequence);
-        if (!seq) throw new restate.TerminalError(`no sequence ${req.sequence}`);
-        if (req.niche && deps.heldNiches.includes(req.niche))
-          throw new restate.TerminalError(`niche ${req.niche} is held`);
-        const now = await nowOf(ctx);
-        const stats = await ctx.run("enroll", () =>
-          terminal(() =>
-            enroll(deps.db, {
-              sequence: seq,
-              sender: deps.senderName,
-              limit: req.limit ?? 20,
-              ...(req.contactIds ? { contactIds: req.contactIds } : {}),
-              ...(req.enrichedOnly ? { enrichedOnly: true } : {}),
-              now,
+      ),
+      addContact: serviceHandler(
+        { input: ADD_CONTACT },
+        async (
+          ctx: restate.Context,
+          req: { platform: string; handle: string; name?: string | null; niche?: string | null },
+        ): Promise<ReachContact> =>
+          ctx.run("add contact", () =>
+            terminal(() => addContact(deps.db, { ...req, platform: platformOf(req.platform) })),
+          ),
+      ),
+      contacts: serviceHandler(
+        { input: CONTACTS },
+        async (
+          ctx: restate.Context,
+          req: { platform?: string | null; state?: ContactState | null; limit?: number } = {},
+        ): Promise<ReachContact[]> =>
+          ctx.run("contacts", () =>
+            listContacts(deps.db, {
+              platform: req.platform ? platformOf(req.platform) : null,
+              state: req.state ?? null,
+              limit: req.limit ?? 50,
             }),
           ),
-        );
-        if (stats.enrolled > 0) nudge(ctx);
-        return stats;
-      },
-      templates: async (ctx: restate.Context): Promise<SlotView[]> =>
-        ctx.run("templates", () => listTemplates(deps.db, slots, deps.senderName)),
-      setTemplate: async (ctx: restate.Context, req: SetTemplate): Promise<SlotView> => {
-        const now = await nowOf(ctx);
-        return ctx.run("set template", () =>
-          terminal(() => setTemplate(deps.db, { slots, sender: deps.senderName, now }, req)),
-        );
-      },
-      threads: async (ctx: restate.Context, req: ThreadFilter = {}): Promise<ThreadSummary[]> =>
-        ctx.run("threads", () => listThreads(deps.db, req ?? {})),
-      thread: async (ctx: restate.Context, req: { contactId: number }): Promise<Thread> =>
-        ctx.run("thread", () => terminal(() => getThread(deps.db, req.contactId))),
-      markRead: async (ctx: restate.Context, req: { contactId: number }): Promise<void> => {
-        const now = await nowOf(ctx);
-        await ctx.run("mark read", () => markRead(deps.db, req.contactId, now));
-      },
+      ),
+      /** Read one person's page as an account (any active one on the platform when none is given). */
+      enrich: serviceHandler(
+        { input: ENRICH },
+        async (
+          ctx: restate.Context,
+          req: { contactId: number; accountId?: string | null },
+        ): Promise<Profile> => {
+          const now = await nowOf(ctx);
+          const c = await ctx.run("contact", () =>
+            terminal(() => contactById(deps.db, req.contactId)),
+          );
+          const a = await ctx.run("account", () =>
+            terminal(async () => {
+              if (req.accountId) return accountById(deps.db, req.accountId);
+              if (c.accountId) return accountById(deps.db, c.accountId);
+              const [first] = await listAccounts(deps.db, c.platform);
+              if (!first) throw new ReachRefusal(`no ${c.platform} account to read with`);
+              return first;
+            }),
+          );
+          const ch = channelsFor(deps, ctx)(a);
+          if (!ch) throw new restate.TerminalError(`no channel for ${a.platform}`);
+          const profile = await ch.enrich(c.handle);
+          await ctx.run("store profile", () =>
+            enrichContact(deps.db, c, { ...ch, enrich: async () => profile }, now),
+          );
+          return profile;
+        },
+      ),
+      enroll: serviceHandler(
+        { input: ENROLL, effect: "sends" },
+        async (
+          ctx: restate.Context,
+          req: {
+            sequence: string;
+            limit?: number;
+            contactIds?: number[];
+            enrichedOnly?: boolean;
+            niche?: string | null;
+          },
+        ): Promise<EnrollStats> => {
+          const seq = deps.sequences.get(req.sequence);
+          if (!seq) throw new restate.TerminalError(`no sequence ${req.sequence}`);
+          if (req.niche && deps.heldNiches.includes(req.niche))
+            throw new restate.TerminalError(`niche ${req.niche} is held`);
+          const now = await nowOf(ctx);
+          const stats = await ctx.run("enroll", () =>
+            terminal(() =>
+              enroll(deps.db, {
+                sequence: seq,
+                sender: deps.senderName,
+                limit: req.limit ?? 20,
+                ...(req.contactIds ? { contactIds: req.contactIds } : {}),
+                ...(req.enrichedOnly ? { enrichedOnly: true } : {}),
+                now,
+              }),
+            ),
+          );
+          if (stats.enrolled > 0) nudge(ctx);
+          return stats;
+        },
+      ),
+      templates: serviceHandler(
+        { input: NO_INPUT },
+        async (ctx: restate.Context): Promise<SlotView[]> =>
+          ctx.run("templates", () => listTemplates(deps.db, slots, deps.senderName)),
+      ),
+      setTemplate: serviceHandler(
+        { input: SET_TEMPLATE },
+        async (ctx: restate.Context, req: SetTemplate): Promise<SlotView> => {
+          const now = await nowOf(ctx);
+          return ctx.run("set template", () =>
+            terminal(() => setTemplate(deps.db, { slots, sender: deps.senderName, now }, req)),
+          );
+        },
+      ),
+      threads: serviceHandler(
+        { input: THREADS },
+        async (ctx: restate.Context, req: ThreadFilter = {}): Promise<ThreadSummary[]> =>
+          ctx.run("threads", () => listThreads(deps.db, req ?? {})),
+      ),
+      thread: serviceHandler(
+        { input: CONTACT },
+        async (ctx: restate.Context, req: { contactId: number }): Promise<Thread> =>
+          ctx.run("thread", () => terminal(() => getThread(deps.db, req.contactId))),
+      ),
+      markRead: serviceHandler(
+        { input: CONTACT },
+        async (ctx: restate.Context, req: { contactId: number }): Promise<void> => {
+          const now = await nowOf(ctx);
+          await ctx.run("mark read", () => markRead(deps.db, req.contactId, now));
+        },
+      ),
       /** Queue a message on a thread; the sender is nudged so it leaves on the next tick. */
-      reply: async (
-        ctx: restate.Context,
-        req: { contactId: number; body: string; subject?: string | null },
-      ): Promise<{ messageId: number }> => {
-        const now = await nowOf(ctx);
-        const msg = await ctx.run("queue", () =>
-          terminal(async () => {
-            const contact = await contactById(deps.db, req.contactId);
-            if (contact.state === "opted_out") throw new ReachRefusal("they asked to stop");
-            return queueManual(deps.db, {
-              contact,
-              body: req.body,
-              subject: req.subject ?? null,
+      reply: serviceHandler(
+        { input: REPLY, effect: "sends" },
+        async (
+          ctx: restate.Context,
+          req: { contactId: number; body: string; subject?: string | null },
+        ): Promise<{ messageId: number }> => {
+          const now = await nowOf(ctx);
+          const msg = await ctx.run("queue", () =>
+            terminal(async () => {
+              const contact = await contactById(deps.db, req.contactId);
+              if (contact.state === "opted_out") throw new ReachRefusal("they asked to stop");
+              return queueManual(deps.db, {
+                contact,
+                body: req.body,
+                subject: req.subject ?? null,
+                now,
+              });
+            }),
+          );
+          await ctx.run("mark read", () => markRead(deps.db, req.contactId, now));
+          nudge(ctx);
+          return { messageId: msg.id };
+        },
+      ),
+      stats: serviceHandler(
+        { input: STATS },
+        async (
+          ctx: restate.Context,
+          req: { platform?: string | null; days?: number } = {},
+        ): Promise<ReachStats> => {
+          const now = await nowOf(ctx);
+          return ctx.run("stats", () =>
+            reachStats(deps.db, {
+              platform: req.platform ? platformOf(req.platform) : null,
+              days: req.days ?? 7,
               now,
-            });
-          }),
-        );
-        await ctx.run("mark read", () => markRead(deps.db, req.contactId, now));
-        nudge(ctx);
-        return { messageId: msg.id };
-      },
-      stats: async (
-        ctx: restate.Context,
-        req: { platform?: string | null; days?: number } = {},
-      ): Promise<ReachStats> => {
-        const now = await nowOf(ctx);
-        return ctx.run("stats", () =>
-          reachStats(deps.db, {
-            platform: req.platform ? platformOf(req.platform) : null,
-            days: req.days ?? 7,
-            now,
-          }),
-        );
-      },
+            }),
+          );
+        },
+      ),
     },
   });
 }
