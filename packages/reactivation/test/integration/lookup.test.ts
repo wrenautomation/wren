@@ -178,8 +178,9 @@ describe("crm lookup", () => {
     );
     const { client } = sites({ searchDown: true });
     const stats = await lookUpCrmPeople(db(), client, { linkedin: null, concurrency: 1 });
-    expect(stats.errors).toBe(5);
-    expect(stats.aborted).toMatch(/5 errors in a row/);
+    // People search is metered (Exa): one failed read stops the run.
+    expect(stats.errors).toBe(1);
+    expect(stats.aborted).toMatch(/web failed a read/);
     expect((await db().select().from(personLookups)).length).toBe(0);
   });
 });

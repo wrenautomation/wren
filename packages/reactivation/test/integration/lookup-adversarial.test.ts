@@ -229,8 +229,9 @@ describe("lookUpCrmPeople: runner edges", () => {
         (n, i) => `${10 + i},${n} Test,,Hooli,https://hooli.com`,
       ),
     );
+    // Not a site's failed read (that stops at once): a plain error counts toward the streak.
     const { client } = sites(() => {
-      throw new SiteCallError("web", "GET", "/people", 502, "down");
+      throw new Error("down");
     });
     const stats = await lookUpCrmPeople(db(), client, { linkedin: null, concurrency: 2 });
     expect(stats.aborted).toMatch(/5 errors in a row/);

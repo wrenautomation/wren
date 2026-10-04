@@ -186,8 +186,9 @@ describe("crm run", () => {
   it("lookup errors leave people due for the next run", async () => {
     await importCsv();
     const stages = await runCrm(db(), deps(true), { linkedin: null });
-    expect(stages[1]?.stats).toMatchObject({ errors: 2, aborted: null });
-    expect((await crmStatus(db())).due).toEqual(["lookup"]);
+    // A failed metered read (Exa) stops the run there; later stages wait for the next run.
+    expect(stages[1]?.stats).toMatchObject({ aborted: expect.stringMatching(/web failed a read/) });
+    expect((await crmStatus(db())).due).toEqual(["lookup", "signals", "score"]);
   });
 
   it("no LLM: briefs stop the run and say why; the rest is done", async () => {
