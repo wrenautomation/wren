@@ -48,6 +48,27 @@ A current role at another firm is a `job_change` finding: the person left, so th
 3. **Trust** only when Homepage's registrable domain equals `companies.domain`. Exa merges look-alike firms into one entity (seen: a Portuguese agency carrying a US LLC's aliases). No match, no write.
 4. **No page:** location from the import (Overture or SBA address), industry from Overture category or NAICS, description from the homepage meta description in `documents`. $0.
 
+## Cross-checks: is this the right person at the right address?
+
+The SMTP verdict says the mailbox exists. It does not say the mailbox is this person's, or that they still work there. Each lead gets these checks from data we already hold or read above. No extra calls.
+
+| Check | Pass | Fail |
+|---|---|---|
+| `mailbox_fits_name` | the local part fits the person's name: first, last, first.last, firstlast, flast, f.last, firstl, first_last, first-last | fits another person we hold at the same firm: wrong person. Fits nobody: unknown |
+| `domain_is_firm` | the email's registrable domain equals `companies.domain` | another domain (a personal or old-firm address) |
+| `works_there` | newest lookup is `still_there` | `job_change` or `left` |
+| `title_agrees` | profile's current title at the firm shares a word with `people.title` (info) | they differ (info) |
+| `page_is_firm` | the company page's Homepage equals `companies.domain` | no page, or a different site |
+| `phone_agrees` | the company page's phone matches the import's phone, digits only (info) | they differ (info) |
+
+- A role mailbox (info@) skips `mailbox_fits_name`.
+- Results are stored per lead (`lead_checks`: lead, check, result pass, fail or unknown, evidence, checked_at) and recomputed when any input changes.
+- The sheet gets two columns: **Checks** (e.g. `mail ok · fits name · works there`) and **Verified**:
+  - `yes`: mail ok, `domain_is_firm`, `works_there`, and `mailbox_fits_name` pass or skip (role).
+  - `wrong person`: `mailbox_fits_name` fits someone else, or `works_there` fails.
+  - `partial`: anything else.
+- Compose skips `wrong person`, in addition to the job-change rule. The rest stays a column for William to judge.
+
 ## What each service sees
 
 - **LinkedIn:** nothing. Exa answers from its cache with `livecrawl: "never"`, so Exa does not fetch the page live either.
@@ -94,6 +115,7 @@ The cached profile holds about, roles with tenure, and education. The company pa
 5. `lead_sheet` view and `wren email sheet`.
 6. Compose skips people a lookup says left.
 7. `checkHiring`'s company-page step confirms through the cache read, so hiring checks stop needing a LinkedIn account.
+8. Cross-checks: `lead_checks` table, the six checks, the Checks and Verified columns in `lead_sheet`, and compose skips `wrong person`.
 
 **autobrowse** (landed c88a0ed, on the desk). All on site `web`:
 
@@ -128,3 +150,4 @@ Expect 40 to 50% of contacts to have a findable profile. Owners of 1 to 5 person
 - Just in time over the backlog: sends are 10 a day. Enriching 11.5k people now spends about $120 on people we will not email for months, and profiles go stale.
 - No logged-in LinkedIn: personal reads paused (2026-10-01), and account creation is ruled out (reach design).
 - Company pages need a Homepage match: Exa merges look-alike firms.
+- Cross-checks from data already read (William, 2026-10-03: "make sure this thing is actually verified"). LinkedIn contact info (email, phone) needs a login, so no check uses it.
