@@ -1,11 +1,13 @@
 /** What a person's record adds under its fields: where they are now, why they rank, how we looked. */
-import { month, num, type RecordExtras } from "@wren/ui";
+import { VERDICTS } from "@wren/core/records";
+import { month, num, type RecordExtras, StateMark } from "@wren/ui";
+import type { ReactNode } from "react";
 import type { PersonRow, PersonView } from "../../api.js";
 import type { ListPage } from "../../module.js";
 import { cardOf } from "./bits.js";
 import { LineWork } from "./Run.js";
 
-type PersonDetail = Pick<PersonRow, "reasons" | "now" | "hiring"> &
+type PersonDetail = Pick<PersonRow, "reasons" | "now" | "hiring" | "email" | "oldEmail"> &
   Pick<PersonView, "sources" | "crm">;
 
 const roleAt = (title: string | null, company: string | null) =>
@@ -21,6 +23,18 @@ function whereNow(now: PersonRow["now"]): string | null {
   return role || null;
 }
 
+/** An address beside its verdict. */
+function address(e: PersonRow["email"]): ReactNode {
+  const v = e?.verdict ? VERDICTS[e.verdict] : undefined;
+  if (!e) return null;
+  return (
+    <span className="inline-flex flex-wrap items-center gap-x-3">
+      <span className="break-all">{e.address}</span>
+      {v ? <StateMark state={v} /> : null}
+    </span>
+  );
+}
+
 const nameOf = (c: unknown) =>
   c && typeof c === "object" && "name" in c ? String(c.name) : typeof c === "string" ? c : "";
 
@@ -28,15 +42,13 @@ export const personExtras: NonNullable<ListPage["extras"]> = (detail, { client, 
   const d = detail as PersonDetail;
   const placed = d.crm.find((c) => c.lastPlacementOn)?.lastPlacementOn;
   const where = whereNow(d.now);
-  const facts: [string, string][] = [];
+  const facts: [string, ReactNode][] = [];
+  if (d.email) facts.push(["Email", address(d.email)]);
   if (where) facts.push(["Where now", where]);
+  if (d.oldEmail) facts.push(["Old email", address(d.oldEmail)]);
   facts.push(["Company hiring", d.hiring ? `${num(d.hiring.count)} open roles` : "Nothing found"]);
   if (placed) facts.push(["Last placement", month(placed)]);
-  if (d.reasons.length)
-    facts.push([
-      "Why this score",
-      d.reasons.map((r) => `${r.points > 0 ? "+" : ""}${r.points} ${r.reason}`).join(" · "),
-    ]);
+  if (d.reasons.length) facts.push(["Why this score", d.reasons.map((r) => r.reason).join(" · ")]);
   const name = nameOf(row.name);
   const firm = nameOf(row.company);
   return {

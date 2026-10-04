@@ -62,6 +62,7 @@ export const person = defineRecord({
     lastContact: date("Last contact"),
     owner: name(),
     email: verdict(),
+    reason: text("Why this score"),
     brief: cited("Why call now"),
   },
   views: [
@@ -78,8 +79,17 @@ export const person = defineRecord({
   async load(db, id) {
     const view = await portalPerson(db, Number(id));
     if (!view) return null;
-    const { reasons, now, hiring, email } = view.row;
-    return { reasons, now, hiring, email, brief: view.brief, sources: view.sources, crm: view.crm };
+    const { reasons, now, hiring, email, oldEmail } = view.row;
+    return {
+      reasons,
+      now,
+      hiring,
+      email,
+      oldEmail,
+      brief: view.brief,
+      sources: view.sources,
+      crm: view.crm,
+    };
   },
 });
 

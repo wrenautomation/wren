@@ -98,7 +98,7 @@ describe("buildBriefPrompt", () => {
     });
     expect(p).toContain("Contact: Jane Doe, last known at Acme.");
     for (const f of facts) expect(p).toContain(`[${f.mark}] ${f.text}`);
-    expect(p).toContain("The first is the reason to call now, from [f12], in one sentence.");
+    expect(p).toContain("The first is the reason to call now, from [f12], in one plain sentence");
   });
   it("no signal: it opens with where they are", () => {
     const p = buildBriefPrompt({
@@ -109,7 +109,7 @@ describe("buildBriefPrompt", () => {
       signal: null,
       inputsHash: "x",
     });
-    expect(p).toContain("The first is where they are now, in one sentence.");
+    expect(p).toContain("The first is where they are now, in one plain sentence");
   });
 });
 

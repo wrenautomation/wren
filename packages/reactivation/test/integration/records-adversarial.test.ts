@@ -127,6 +127,25 @@ describe("every type reads", () => {
     expect(leaks(shown)).toBe(false);
   });
 
+  it("a mover's email is the one at the new firm, never the old one's verdict", async () => {
+    const before = await api.recordsGet({ ...operator, record: PERSON, id: jane });
+    expect(before.row.email ?? null).toBeNull();
+    expect(before.detail).toMatchObject({ email: null });
+    await pg.db.execute(sql`
+      with c as (insert into contact_candidates (person_id, email, domain, evidence, pattern, rank, state, source_ref)
+        values (${jane}, 'jane@initech.example', 'initech.example', 'guessed_pattern', 'first', 1, 'verified', 'move:test')
+        returning id),
+      v as (insert into verifications (contact_candidate_id, email, verifier, result, raw)
+        select id, 'jane@initech.example', 'test', 'valid', '{}'::jsonb from c)
+      update mover_addresses set outcome = 'found', candidate_id = (select id from c)
+      where person_id = ${jane}`);
+    const after = await api.recordsGet({ ...operator, record: PERSON, id: jane });
+    expect(after.row.email).toBe("valid");
+    expect(after.detail).toMatchObject({
+      email: { address: "jane@initech.example", verdict: "valid" },
+    });
+  });
+
   it("the types say which fields the demo can filter", async () => {
     const mine = await api.recordsTypes(operator);
     const shown = await api.recordsTypes(demo);

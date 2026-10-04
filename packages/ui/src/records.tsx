@@ -85,6 +85,7 @@ export interface RecordSource {
 export interface RecordExtras {
   /** What leads the details, before the fields: an email's draft. */
   lead?: ReactNode;
+  /** Lines after the fields; one named like a field replaces it. */
   facts?: [string, ReactNode][];
   /** Titled blocks after the fields, such as how the research went. */
   sections?: [string, ReactNode][];
@@ -1115,9 +1116,18 @@ export function RecordBody({
     )
     .slice(0, 4);
   const cited = meta.fields.filter((f) => f.kind === "cited" && row[f.key]);
-  /** An empty field says nothing ("Why it stopped" on a draft), so it isn't drawn. */
+  /**
+   * An empty field says nothing ("Why it stopped" on a draft), so it isn't drawn. A fact named
+   * like a field says it better (an address beside its verdict) and takes its place.
+   */
+  const told = new Set((more.facts ?? []).map(([label]) => label));
   const rest = meta.fields.filter(
-    (f) => f.kind !== "cited" && f.key !== meta.title && row[f.key] != null && row[f.key] !== "",
+    (f) =>
+      f.kind !== "cited" &&
+      f.key !== meta.title &&
+      row[f.key] != null &&
+      row[f.key] !== "" &&
+      !told.has(f.label),
   );
   const shown = actsOf(meta, acts).filter((a) => applies(a, row));
   const tabs: { id: string; label: string; count?: number }[] = [

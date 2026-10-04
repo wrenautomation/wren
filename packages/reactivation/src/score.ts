@@ -90,15 +90,21 @@ const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "
 /** "2024-12-09" as "Dec 2024". */
 const monthOf = (day: string) => `${MONTHS[Number(day.slice(5, 7)) - 1] ?? "?"} ${day.slice(0, 4)}`;
 
+const START = /\b(Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)[a-z]*\.? (\d{4})\b/;
+
+/** The month a role began, from its dates as a profile shows them: "Sep 2025", or null. */
+export function startedIn(dates: unknown): string | null {
+  const m = text(dates)?.match(START);
+  return m?.[1] && m[2] ? `${m[1]} ${m[2]}` : null;
+}
+
 /**
  * How long ago a role began, from its dates as a profile shows them ("Feb 2026
  * - Present (7 months)"): " 7 months ago", " this month", " 4 years ago".
  * Empty when the dates name no month and year.
  */
 export function startedAgo(dates: unknown, today: Date): string {
-  const m = text(dates)?.match(
-    /\b(Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)[a-z]*\.? (\d{4})\b/,
-  );
+  const m = text(dates)?.match(START);
   if (!m?.[1] || !m[2]) return "";
   const n =
     (today.getUTCFullYear() - Number(m[2])) * 12 + today.getUTCMonth() - MONTHS.indexOf(m[1]);

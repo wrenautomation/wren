@@ -18,9 +18,9 @@ import { sql } from "drizzle-orm";
 import { z } from "zod";
 import { briefLine, failedLine } from "./feed.js";
 import { type BriefState, briefs } from "./schema.js";
-import { hiringFinding, LATEST_CRM_ROW, whereFinding } from "./score.js";
+import { hiringFinding, LATEST_CRM_ROW, startedIn, whereFinding } from "./score.js";
 
-export const BRIEF_VERSION = "v4";
+export const BRIEF_VERSION = "v5";
 export const STAGE_NAME = "reactivation_brief";
 const MAX_TOKENS = 2000;
 const MAX_SENTENCES = 4;
@@ -196,11 +196,12 @@ Facts, each with its mark:
 ${s.facts.map((f) => `[${f.mark}] ${f.text}`).join("\n")}
 
 Rules:
-- 2 to 4 sentences. The first is ${s.signal ? `the reason to call now, from [${s.signal}]` : "where they are now"}, in one sentence. Then the other facts, most useful first, history with the recruiter last.
+- 2 to 4 sentences. The first is ${s.signal ? `the reason to call now, from [${s.signal}]` : "where they are now"}, in one plain sentence, like "Moved to Acme in Sep 2025." Then the other facts, most useful first, history with the recruiter last.
 - End each sentence with the marks of the facts it rests on, like [f12] or [f12][c3].
 - Use only these facts. No guesses, no advice, no greetings, no outreach wording.
 - State the facts, never what they indicate, suggest or mean.
 - Copy names, numbers and dates exactly as written. Do not compute durations, ages or totals.
+- Never say where a fact came from or when it was read.
 
 Return ONLY a JSON object: {"sentences": ["...", "..."]}
 `;
@@ -248,16 +249,16 @@ function source(via: string): string {
 function factText(f: Fact, firm: string): string {
   const v = f.value;
   const how = `(${source(f.via)}, read ${f.observed})`;
-  const role = [str(v.title) ? `as ${v.title}` : null, str(v.dates) ? `(${v.dates})` : null]
-    .filter(Boolean)
-    .join(" ");
+  // The month the role began, not the profile's raw dates: no duration, no place.
+  const start = startedIn(v.dates);
+  const as = str(v.title) ? `, as ${v.title}` : "";
   switch (f.kind) {
     case "still_there":
       return str(v.reason)
         ? `still at ${firm}: ${v.reason} ${how}`
-        : `still at ${str(v.company) ?? firm}${role ? ` ${role}` : ""} ${how}`;
+        : `still at ${str(v.company) ?? firm}${start ? ` since ${start}` : ""}${as} ${how}`;
     case "job_change":
-      return `moved from ${str(v.from) ?? firm} to ${str(v.to) ?? "?"}${role ? ` ${role}` : ""} ${how}`;
+      return `moved from ${str(v.from) ?? firm} to ${str(v.to) ?? "?"}${start ? ` in ${start}` : ""}${as} ${how}`;
     case "hiring": {
       const roles = Array.isArray(v.roles) ? (v.roles as Record<string, unknown>[]) : [];
       const list = roles

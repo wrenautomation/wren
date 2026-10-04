@@ -27,6 +27,8 @@ export const reactivationPeople = pgView("reactivation_people", {
   lastPlacement: timestamp("last_placement", { withTimezone: true }),
   owner: text("owner"),
   email: text("email"),
+  /** The score's first reason, the one that counts most: "Moved to Acme 4 months ago". */
+  reason: text("reason"),
   brief: text("brief"),
 }).as(sql`
   with latest as (
@@ -46,9 +48,15 @@ export const reactivationPeople = pgView("reactivation_people", {
     greatest(s.last_contacted_on::timestamptz,
       (select max(k.called_at) from calls k where k.person_id = s.person_id)) last_contact,
     s.last_placement_on::timestamptz last_placement, s.owner,
-    (select v.result from contact_candidates cc join verifications v on v.contact_candidate_id = cc.id
-      where cc.evidence = 'crm' and lower(cc.email) = lower(s.email)
-      order by v.checked_at desc, v.id desc limit 1) email,
+    case when w.kind = 'job_change' then
+      (select v.result from mover_addresses m join verifications v on v.contact_candidate_id = m.candidate_id
+        where m.finding_id = s.where_id and m.outcome = 'found'
+        order by v.checked_at desc, v.id desc limit 1)
+    else
+      (select v.result from contact_candidates cc join verifications v on v.contact_candidate_id = cc.id
+        where cc.evidence = 'crm' and lower(cc.email) = lower(s.email)
+        order by v.checked_at desc, v.id desc limit 1) end email,
+    sc.reasons->0->>'reason' reason,
     case when b.state = 'written' and sc.score > 0 then b.text end brief
   from subjects s
   join people p on p.id = s.person_id

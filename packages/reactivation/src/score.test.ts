@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { POINTS, type ScoreInput, scoreContact, startedAgo } from "./score.js";
+import { POINTS, type ScoreInput, scoreContact, startedAgo, startedIn } from "./score.js";
 
 const today = new Date("2026-09-29T12:00:00Z");
 const base: ScoreInput = { firm: "Acme", where: null, hiring: null, placed: null, contacted: null };
@@ -161,5 +161,13 @@ describe("startedAgo", () => {
   it("says nothing it can't read, or a start in the future", () => {
     for (const d of [null, "", "2021 - Present", "Present", "Dec 2026 - Present", 42])
       expect(startedAgo(d, at)).toBe("");
+  });
+});
+
+describe("startedIn", () => {
+  it("keeps the start month, drops duration and place", () => {
+    expect(startedIn("Sep 2025 - Present (1 year) in Toronto, Ontario, Canada")).toBe("Sep 2025");
+    expect(startedIn("September 2024 - Present")).toBe("Sep 2024");
+    for (const d of [null, "", "2021 - Present", 42]) expect(startedIn(d)).toBeNull();
   });
 });

@@ -49,8 +49,13 @@ export interface PersonRow {
   owner: string | null;
   lastContactedOn: string | null;
   lastPlacementOn: string | null;
-  /** The latest verdict on the CRM address; null = no address or not checked. */
+  /**
+   * The address to write to, with its latest verdict: a mover's at the new firm (null until one
+   * checks out), anyone else's from the CRM.
+   */
   email: { address: string; verdict: string | null } | null;
+  /** A mover's CRM address, at the firm they left. */
+  oldEmail: { address: string; verdict: string | null } | null;
 }
 
 export interface Source {
@@ -126,6 +131,8 @@ interface PersonSqlRow extends Record<string, unknown> {
   last_placement_on: unknown;
   email: string | null;
   verdict: string | null;
+  new_email: string | null;
+  new_verdict: string | null;
 }
 
 const PERSON_COLUMNS = sql`
@@ -138,7 +145,12 @@ const PERSON_COLUMNS = sql`
   s.owner, s.last_contacted_on, s.last_placement_on, s.email,
   (select v.result from contact_candidates cc join verifications v on v.contact_candidate_id = cc.id
     where cc.evidence = 'crm' and lower(cc.email) = lower(s.email)
-    order by v.checked_at desc, v.id desc limit 1) verdict`;
+    order by v.checked_at desc, v.id desc limit 1) verdict,
+  (select cc.email from mover_addresses m join contact_candidates cc on cc.id = m.candidate_id
+    where m.finding_id = s.where_id and m.outcome = 'found') new_email,
+  (select v.result from mover_addresses m join verifications v on v.contact_candidate_id = m.candidate_id
+    where m.finding_id = s.where_id and m.outcome = 'found'
+    order by v.checked_at desc, v.id desc limit 1) new_verdict`;
 
 const PERSON_JOINS = sql`
   from subjects s
@@ -164,8 +176,15 @@ function toRow(r: PersonSqlRow): PersonRow {
     owner: r.owner,
     lastContactedOn: day(r.last_contacted_on),
     lastPlacementOn: day(r.last_placement_on),
-    email: r.email ? { address: r.email, verdict: r.verdict } : null,
+    ...emailsOf(r),
   };
+}
+
+function emailsOf(r: PersonSqlRow): Pick<PersonRow, "email" | "oldEmail"> {
+  const crm = r.email ? { address: r.email, verdict: r.verdict } : null;
+  if (r.where_kind !== "job_change") return { email: crm, oldEmail: null };
+  const found = r.new_email ? { address: r.new_email, verdict: r.new_verdict } : null;
+  return { email: found, oldEmail: crm };
 }
 
 export async function portalOverview(db: Queryable, client: Client): Promise<Overview> {
