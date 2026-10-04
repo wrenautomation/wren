@@ -1,6 +1,7 @@
 /**
  * The pool-feeder over stand-in Discovery/Enrichment objects: stage order, the
- * spend gate, progress → short delay, idle → next day, a refusing stage → retry.
+ * spend gate, progress → short delay, idle → next day, a refusing stage → retry,
+ * and `profiles` reading compose's queue.
  */
 import * as restate from "@restatedev/restate-sdk";
 import * as clients from "@restatedev/restate-sdk-clients";
@@ -13,6 +14,7 @@ import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 import { type FeedStats, makePoolScheduler } from "../../src/restate/pool-scheduler.js";
 import { untilNextLocalDay } from "../../src/restate/postmaster-scheduler.js";
 import { SendPolicy } from "../../src/send/policy.js";
+import { makeCompany, makePerson, TABLES } from "./compose-fixtures.js";
 
 const POLICY = SendPolicy.fromSettings(
   loadSettings({ WREN_DATABASE_URL: "postgresql://x", WREN_SEND_TIMEZONE: "UTC" }),
@@ -28,6 +30,8 @@ const answers = {
   crawlRefuses: false,
 };
 const called: string[] = [];
+/** What `profiles` was asked last. */
+let profilesInput: unknown = null;
 const stage =
   (name: string, answer: () => object) =>
   async (_ctx: restate.ObjectContext, _input: unknown = {}) => {
@@ -56,6 +60,11 @@ const fakeEnrichment = restate.object({
       return answers.pick;
     },
     applyPicks: stage("applyPicks", () => ({ picks_applied: 0 })),
+    profiles: async (_ctx: restate.ObjectContext, input: unknown) => {
+      called.push("profiles");
+      profilesInput = input;
+      return { selected: 0, people_matched: 0, people_unresolved: 0 };
+    },
   },
 });
 
@@ -81,6 +90,7 @@ beforeAll(async () => {
         policy: POLICY,
         modelStages: "none",
         freeVerifier: true,
+        profiles: { ahead: () => 2, horizonDays: 45 },
         busyMs: 5_000,
       }),
     ],
@@ -94,6 +104,7 @@ afterAll(async () => {
 beforeEach(async () => {
   await truncate(pg.db, ["runs"]);
   called.length = 0;
+  profilesInput = null;
   answers.discover = { companies_scanned: 0 };
   answers.crawl = { companies_crawled: 0, homepage_unreachable: 0, robots_blocked: 0 };
   answers.resolve = { domains_processed: 0, credits_spent: 0, dead_domains: 0 };
@@ -119,6 +130,7 @@ describe("PoolScheduler", () => {
       "applyPicks",
       "resolveNewDomains",
       "verifyLeads",
+      "profiles",
     ]);
     expect(out.stats?.stages.map((s) => [s.stage, s.skipped])).toEqual([
       ["discover", false],
@@ -131,6 +143,7 @@ describe("PoolScheduler", () => {
       ["applyPicks", false],
       ["resolveMailboxes", false],
       ["verifyMailboxes", false],
+      ["profiles", false],
     ]);
     expect(out.stats?.progress).toBe(0);
     // Sleeps to the policy's next local midnight after `now` (whatever day the test runs).
@@ -139,6 +152,27 @@ describe("PoolScheduler", () => {
     expect(ledger.map((r) => [r.command, r.niche, r.finishedAt !== null])).toEqual([
       ["pool feed", "sec_ria", true],
     ]);
+  });
+
+  it("profiles reads compose's queue a week ahead (here 2 firms) and passes the stage's limit and zone", async () => {
+    await truncate(pg.db, TABLES);
+    const oak = await makeCompany(pg.db);
+    const elm = await makeCompany(pg.db, { domain: "elmstreet.example", name: "Elm Advisors" });
+    const fir = await makeCompany(pg.db, { domain: "firlane.example", name: "Fir Advisors" });
+    const people = [
+      await makePerson(pg.db, oak, { email: "jane@oakbridge.example" }),
+      await makePerson(pg.db, elm, {
+        full: "Ann Poe",
+        first: "Ann",
+        email: "ann@elmstreet.example",
+      }),
+      await makePerson(pg.db, fir, { full: "Ray Lee", first: "Ray", email: "ray@firlane.example" }),
+    ];
+    await sync();
+    const input = profilesInput as { personIds: number[]; limit: number; timezone: string };
+    expect(input).toMatchObject({ limit: 5, timezone: "UTC" });
+    expect(input.personIds).toHaveLength(2);
+    expect(people.map((p) => p.id)).toEqual(expect.arrayContaining(input.personIds));
   });
 
   it("comes back in a minute while a stage still finds work", async () => {
@@ -185,6 +219,7 @@ describe("PoolScheduler", () => {
       "applyPicks",
       "resolveNewDomains",
       "verifyLeads",
+      "profiles",
     ]);
     expect(out.stats).toMatchObject({ failed: 1, progress: 25 });
     expect(out).toMatchObject({ failures: 1, delayMs: 15_000 });

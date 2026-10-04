@@ -45,6 +45,7 @@ import { emailRecords } from "@wren/channel-email/records";
 import {
   type Campaign,
   DISPOSITION_KEY,
+  dailyOpenerCapacity,
   makeComposeScheduler,
   makeDigestScheduler,
   makeDisposition,
@@ -360,6 +361,12 @@ export async function buildServices(
       robotsMode: settings.robotsMode,
       crawlHintsFor,
       pages,
+      // `profiles` runs inside the unit's ctx.run, so through the ingress; a Mac that is off fails fast.
+      sites: ingressSites(ingressOf(settings), {
+        caller: "wren:profiles",
+        ...sitesHost(settings.autobrowseInstanceId),
+        timeoutMs: BOOKS_DESK_TIMEOUT_MS,
+      }),
     }),
     // Discovery probes guessed hosts, most of them parked or dead: a short timeout and
     // one try per URL, or a single company's guesses can eat a Lambda invocation.
@@ -436,6 +443,17 @@ export async function buildServices(
         horizonDays: settings.verificationHorizonDays,
         policy: (niche) => campaigns.get(niche)?.recontact,
       },
+      // A week of the niche's sends ahead of compose; off unless WREN_POOL_PROFILES.
+      ...(settings.poolProfiles
+        ? {
+            profiles: {
+              ahead: (niche: string, now: Date) =>
+                7 *
+                dailyOpenerCapacity(policy, niche, campaigns.get(niche)?.senders.length ?? 0, now),
+              horizonDays: settings.verificationHorizonDays,
+            },
+          }
+        : {}),
     }),
   );
   if (settings.notify !== "none")
@@ -634,6 +652,7 @@ export async function buildServices(
       senders: fleet.senders.length,
       compose_days_ahead: settings.composeDaysAhead,
       pool_model_stages: settings.poolModelStages,
+      pool_profiles: settings.poolProfiles,
       notify: notifier.name,
       postmaster: postmaster !== null,
       opens: opens !== null,

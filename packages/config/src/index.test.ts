@@ -64,6 +64,13 @@ describe("loadSettings", () => {
     );
   });
 
+  it("keeps the profiles stage off unless WREN_POOL_PROFILES is on", () => {
+    const base = { WREN_DATABASE_URL: "postgresql://u:p@h:1/d" };
+    expect(loadSettings(base).poolProfiles).toBe(false);
+    expect(loadSettings({ ...base, WREN_POOL_PROFILES: "1" }).poolProfiles).toBe(true);
+    expect(() => loadSettings({ ...base, WREN_POOL_PROFILES: "on" })).toThrow(/WREN_POOL_PROFILES/);
+  });
+
   it("treats empty strings as unset", () => {
     const s = loadSettings({ WREN_DATABASE_URL: "postgresql://u:p@h:1/d", WREN_CONTENT_VOICE: "" });
     expect(s.contentVoicePath).toBeUndefined();

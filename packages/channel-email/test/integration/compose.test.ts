@@ -5,7 +5,7 @@ import { startTestPostgres, type TestPostgres, truncate } from "@wren/db/testing
 import { asc, eq, sql } from "drizzle-orm";
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 import { parseTemplate, toSource } from "../../src/outreach/authoring.js";
-import { compose } from "../../src/outreach/compose.js";
+import { compose, nextToEnroll } from "../../src/outreach/compose.js";
 import { halfOf } from "../../src/outreach/facts.js";
 import { sequence, sequenceStep, twoEmailSequence } from "../../src/outreach/sequences.js";
 import { field, template } from "../../src/outreach/templates.js";
@@ -124,6 +124,40 @@ describe("compose", () => {
     await fact(bob.id, "still_there", 0.9, "2026-09-10T00:00:00Z");
     expect((await runCompose(db())).enrolled).toBe(1);
     expect((await one(allEnrollments(db()))).personId).toBe(bob.id);
+  });
+
+  it("nextToEnroll: the person compose would take at each firm, in its order, a firm at most once", async () => {
+    const oak = await makeCompany(db());
+    const elm = await makeCompany(db(), { domain: "elmstreet.example", name: "Elm Advisors" });
+    const done = await makeCompany(db(), { domain: "donefirm.example", name: "Done Advisors" });
+    // Oak: Bob outranks Jane but has no address, so Jane is the one compose takes.
+    await makePerson(db(), oak, { full: "Bob Ops", first: "Bob", title: "Managing Partner" });
+    const jane = await makePerson(db(), oak, { email: "jane@oakbridge.example" });
+    const ann = await makePerson(db(), elm, {
+      full: "Ann Poe",
+      first: "Ann",
+      email: "ann@elmstreet.example",
+    });
+    const ray = await makePerson(db(), done, {
+      full: "Ray Lee",
+      first: "Ray",
+      email: "ray@donefirm.example",
+    });
+    await makeEnrollment(db(), done, { toEmail: "ray@donefirm.example", person: ray });
+    const next = (companies?: number) =>
+      nextToEnroll(db(), {
+        niche: "sec_ria",
+        verificationHorizonDays: VERIFICATION_HORIZON_DAYS,
+        companies: companies ?? null,
+      });
+    const all = await next();
+    expect([...all].sort()).toEqual([jane.id, ann.id].sort());
+    expect(await next(1)).toEqual(all.slice(0, 1));
+    expect(await next(0)).toEqual([]);
+    // Jane moves on: Oak has nobody else with an address, so Oak drops out.
+    await db().execute(sql`INSERT INTO findings (kind, person_id, fact_key, value, confidence, via)
+      VALUES ('left', ${jane.id}, 'moved', '{}'::jsonb, 0.9, 'test')`);
+    expect(await next()).toEqual([ann.id]);
   });
 
   it("an unsure move never keeps a person out", async () => {

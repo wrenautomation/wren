@@ -89,6 +89,14 @@ export const settingsSchema = z.object({
   composeDaysAhead: z.coerce.number().int().min(0).default(3),
   /** Which pool-feeder stages may call the model: none (free groundwork), pick, all (+extraction). */
   poolModelStages: z.enum(["none", "pick", "all"]).default("none"),
+  /**
+   * The pool-feeder's `profiles` stage: LinkedIn pages of the people next in the
+   * queue, from Exa's cache (metered) and Google. Off by default.
+   */
+  poolProfiles: z
+    .enum(["true", "false", "1", "0"])
+    .default("false")
+    .transform((v) => v === "true" || v === "1"),
   /** A lead whose only VALID check is older than this counts as unverified at compose. */
   verificationHorizonDays: z.coerce.number().int().default(45),
   resendCooldownDays: z.coerce.number().int().default(30),
@@ -419,6 +427,7 @@ export const ENV_KEYS = {
   operatorPhone: "WREN_OPERATOR_PHONE",
   composeDaysAhead: "WREN_COMPOSE_DAYS_AHEAD",
   poolModelStages: "WREN_POOL_MODEL_STAGES",
+  poolProfiles: "WREN_POOL_PROFILES",
   verificationHorizonDays: "WREN_VERIFICATION_HORIZON_DAYS",
   resendCooldownDays: "WREN_RESEND_COOLDOWN_DAYS",
   reconcileGraceMinutes: "WREN_RECONCILE_GRACE_MINUTES",

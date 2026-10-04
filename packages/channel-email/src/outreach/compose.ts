@@ -351,6 +351,30 @@ export async function eligiblePeople(
   return out;
 }
 
+/**
+ * The person compose would enroll at each of the next `companies` firms, in
+ * compose's own order (best reachable first): research reads ahead of the queue
+ * from this. Suppression and missing facts are compose's to find.
+ */
+export async function nextToEnroll(
+  db: Queryable,
+  opts: { niche: string; verificationHorizonDays: number; companies?: number | null },
+): Promise<number[]> {
+  const rows = rowsAs<EligibleRow>(await db.execute(eligibleSql(opts.niche, null, firstContact)));
+  const addressable = await peopleWithAddress(
+    db,
+    rows.map((r) => r.person_id),
+    opts.verificationHorizonDays,
+  );
+  const out: number[] = [];
+  for (const group of bestReachableFirst(byCompany(rows), addressable)) {
+    if (opts.companies != null && out.length >= opts.companies) break;
+    const first = group.find((r) => addressable.has(r.person_id));
+    if (first) out.push(first.person_id);
+  }
+  return out;
+}
+
 /** Every company the role-inbox pass would consider today, with the suppression gate pre-applied. */
 export async function eligibleRoleInboxes(
   db: Queryable,

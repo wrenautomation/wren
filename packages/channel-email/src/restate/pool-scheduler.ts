@@ -1,7 +1,7 @@
 /**
  * The pool-feeder: `PoolScheduler/{niche}` walks the research chain once per
  * pass — discover, verify, crawl, render, scan, extract, pick, applyPicks,
- * resolveMailboxes, verifyMailboxes — each stage one bounded call to its own object, journaled by
+ * resolveMailboxes, verifyMailboxes, profiles — each stage one bounded call to its own object, journaled by
  * Restate. While any stage still finds work the next pass follows in a minute;
  * when every stage reports nothing the loop sleeps until the next local day and
  * looks again (new imports, new domains). Role inboxes it proves become leads,
@@ -19,6 +19,10 @@
  * companies that may come back for another sequence (`recheck`, lead recycling). A
  * paid verifier resolves by hand.
  *
+ * `profiles` (off unless `profiles` is given: WREN_POOL_PROFILES) reads the
+ * LinkedIn pages of the people compose will reach next, a week of sends ahead,
+ * from Exa's cache: metered, so opt-in like the model stages.
+ *
  * `start({stages: [...]})` narrows one niche's loop to those stages (e.g. only the
  * two mailbox stages while the crawl stays off); `start({})` goes back to all.
  */
@@ -35,6 +39,7 @@ import {
 } from "@wren/core/restate";
 import type { Db } from "@wren/db";
 import type { Discovery, Enrichment } from "@wren/research/restate";
+import { nextToEnroll } from "../outreach/compose.js";
 import type { RecontactPolicy } from "../recontact.js";
 import type { SendPolicy } from "../send/policy.js";
 import { untilNextLocalDay } from "./postmaster-scheduler.js";
@@ -53,6 +58,7 @@ export const STAGES = [
   "applyPicks",
   "resolveMailboxes",
   "verifyMailboxes",
+  "profiles",
 ] as const;
 export type Stage = (typeof STAGES)[number];
 
@@ -68,6 +74,8 @@ export interface StageLimits {
   /** Domains whose person guesses are walked this pass. */
   resolveMailboxes: number;
   verifyMailboxes: number;
+  /** People whose LinkedIn pages are read this pass; each is several site calls. */
+  profiles: number;
 }
 export const DEFAULT_LIMITS: StageLimits = {
   discover: 10,
@@ -81,6 +89,7 @@ export const DEFAULT_LIMITS: StageLimits = {
   // a pass stays a few minutes, well inside one Lambda invocation.
   resolveMailboxes: 192,
   verifyMailboxes: 192,
+  profiles: 5,
 };
 
 /**
@@ -109,11 +118,22 @@ export function stagesToRun(
   settings: PoolSettings | null,
   modelStages: ModelStages,
   freeVerifier = false,
+  profiles = false,
 ): Set<Stage> {
   const chosen = settings?.stages ? new Set(settings.stages) : null;
   return new Set(
-    STAGES.filter((s) => stageEnabled(s, modelStages, freeVerifier) && (!chosen || chosen.has(s))),
+    STAGES.filter(
+      (s) => stageEnabled(s, modelStages, freeVerifier, profiles) && (!chosen || chosen.has(s)),
+    ),
   );
+}
+
+/** What the `profiles` stage needs; absent = the stage is off. */
+export interface ProfilesStage {
+  /** Firms to stay ahead of the queue by: a week of the niche's daily opener capacity. */
+  ahead: (niche: string, now: Date) => number;
+  /** Compose's verdict horizon, so the queue read is compose's own. */
+  horizonDays: number;
 }
 
 export interface PoolSchedulerDeps {
@@ -128,6 +148,7 @@ export interface PoolSchedulerDeps {
    */
   recheck?: { horizonDays: number; policy: (niche: string) => RecontactPolicy | undefined };
   limits?: Partial<StageLimits>;
+  profiles?: ProfilesStage;
   /** Between passes that found work. */
   busyMs?: number;
   /** The longest delay after passes in which a stage failed (backoff cap). */
@@ -177,14 +198,18 @@ export const progressOf: Record<Stage, (s: Record<string, number>) => number> = 
     (s.invalid ?? 0) +
     (s.risky ?? 0) +
     (s.catch_all ?? 0),
+  // A person written to person_lookups leaves the selection; an error or a cap does not.
+  profiles: (s) => (s.people_matched ?? 0) + (s.people_unresolved ?? 0),
 };
 
 export function stageEnabled(
   stage: Stage,
   modelStages: ModelStages,
   freeVerifier = false,
+  profiles = false,
 ): boolean {
   if (stage === "extract") return modelStages === "all";
+  if (stage === "profiles") return profiles;
   if (stage === "resolveMailboxes" || stage === "verifyMailboxes") return freeVerifier;
   return true;
 }
@@ -198,7 +223,12 @@ export function makePoolScheduler(deps: PoolSchedulerDeps) {
     const now = new Date(await ctx.date.now());
     const niche = ctx.key;
     const settings = await loopSettings<PoolSettings>(ctx);
-    const runnable = stagesToRun(settings, deps.modelStages, deps.freeVerifier);
+    const runnable = stagesToRun(
+      settings,
+      deps.modelStages,
+      deps.freeVerifier,
+      deps.profiles !== undefined,
+    );
     const discovery = ctx.objectClient<Discovery>({ name: "Discovery" }, niche);
     const enrichment = ctx.objectClient<Enrichment>({ name: "Enrichment" }, niche);
     const resolution = ctx.objectClient<Resolution>({ name: "Resolution" }, RESOLUTION_KEY);
@@ -229,6 +259,22 @@ export function makePoolScheduler(deps: PoolSchedulerDeps) {
             : {}),
         });
       },
+      profiles: async () => {
+        const p = deps.profiles;
+        if (!p) throw new restate.TerminalError("profiles stage is off");
+        const personIds = await ctx.run("profile queue", () =>
+          nextToEnroll(deps.db, {
+            niche,
+            verificationHorizonDays: p.horizonDays,
+            companies: p.ahead(niche, now),
+          }),
+        );
+        return enrichment.profiles({
+          personIds,
+          limit: limits.profiles,
+          timezone: deps.policy.timezone,
+        });
+      },
     };
 
     const runId = await ctx.run("open run", async () => {
@@ -239,6 +285,7 @@ export function makePoolScheduler(deps: PoolSchedulerDeps) {
           niche,
           model_stages: deps.modelStages,
           free_verifier: deps.freeVerifier ?? false,
+          profiles: deps.profiles !== undefined,
           stages: [...runnable],
           limits,
         },

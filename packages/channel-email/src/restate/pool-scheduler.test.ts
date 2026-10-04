@@ -15,10 +15,23 @@ describe("stageEnabled", () => {
       "pick",
       "applyPicks",
     ]);
-    expect(on("all", true)).toEqual([...STAGES]);
+    expect(on("all", true)).toEqual(STAGES.filter((s) => s !== "profiles"));
     expect(on("none", true)).toEqual(
       expect.arrayContaining(["resolveMailboxes", "verifyMailboxes"]),
     );
+  });
+});
+
+describe("the profiles stage", () => {
+  it("is off unless asked for, and then runs last, after the addresses it needs are proven", () => {
+    expect(STAGES.filter((s) => stageEnabled(s, "all", true))).not.toContain("profiles");
+    expect(STAGES.filter((s) => stageEnabled(s, "none", false, true)).at(-1)).toBe("profiles");
+    expect([...stagesToRun({ stages: ["profiles"] }, "none", false)]).toEqual([]);
+    expect([...stagesToRun({ stages: ["profiles"] }, "none", false, true)]).toEqual(["profiles"]);
+  });
+  it("progress is people written; errors and caps leave them due", () => {
+    expect(progressOf.profiles({ people_matched: 2, people_unresolved: 1, errors: 4 })).toBe(3);
+    expect(progressOf.profiles({ selected: 5, errors: 5 })).toBe(0);
   });
 });
 

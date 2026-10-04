@@ -5,7 +5,9 @@
  */
 
 import { existsSync, readdirSync, readFileSync, writeFileSync } from "node:fs";
+import { nextToEnroll } from "@wren/channel-email/outreach";
 import type { Settings } from "@wren/config";
+import { recordedRun } from "@wren/core";
 import type { Db } from "@wren/db";
 import { crawlHintsFor, NICHE_NAMES, requireNiche } from "@wren/niches";
 import {
@@ -15,12 +17,15 @@ import {
   emptyCrawlStats,
   exportReadings,
   loadReadings,
+  PROFILES_COMMAND,
   type ReadingFirm,
   ReadingResult,
+  runProfiles,
   selectCrawlTargets,
 } from "@wren/research/enrichment";
 import { PoliteFetcher, userAgent } from "@wren/research/fetch";
 import type { Command } from "commander";
+import { ingressSites } from "./sites.js";
 
 type WithDb = <T>(fn: (db: Db) => Promise<T>) => Promise<T>;
 
@@ -158,6 +163,42 @@ export function registerEnrich(program: Command, withDb: WithDb, settings: Setti
         ),
       );
       console.log(`read-load: ${JSON.stringify({ ...stats, unparsed_results: bad })}`);
+    });
+
+  enrich
+    .command("profiles")
+    .description(
+      "Read LinkedIn pages (Exa's cache, Google) for the people compose reaches next, in its order",
+    )
+    .requiredOption("--niche <name>", `one of ${[...NICHE_NAMES].sort().join(", ")}`)
+    .option("--limit <n>", "people this run", "25")
+    .option("--again", "look up people already done (a cap still holds)")
+    .action(async (opts: { niche: string; limit: string; again?: boolean }) => {
+      const niche = requireNiche(opts.niche);
+      if (niche === null) throw new Error(`unknown niche ${opts.niche}`);
+      const sites = ingressSites(settings, "wren:profiles");
+      await withDb(async (db) => {
+        const personIds = await nextToEnroll(db, {
+          niche,
+          verificationHorizonDays: settings.verificationHorizonDays,
+        });
+        const argv = { niche, limit: Number(opts.limit), again: opts.again ?? false };
+        // Each person is written as it finishes: Ctrl-C is a pause, a rerun resumes.
+        const { stats } = await recordedRun(db, { command: PROFILES_COMMAND, argv, niche }, (run) =>
+          runProfiles(db, sites, {
+            personIds,
+            limit: argv.limit,
+            again: argv.again,
+            timezone: settings.sendTimezone,
+            runId: run.id,
+            onUnit: (u) =>
+              console.log(
+                `person ${u.personId}: ${u.person} company ${u.company}${u.error ? ` (${u.error})` : ""}`,
+              ),
+          }),
+        );
+        console.log(`profiles: ${JSON.stringify({ queued: personIds.length, ...stats })}`);
+      });
     });
 
   return enrich;

@@ -162,6 +162,9 @@ model is `WREN_POOL_MODEL_STAGES`: `none` (default — discover, crawl, render, 
 only; no verdicts, so no new leads yet), `pick` (one model call per company with
 more than one address; this is what turns role inboxes into leads), `all`
 (extraction too, one call per stored page — the expensive one).
+`WREN_POOL_PROFILES=true` adds `profiles`: LinkedIn pages of the people compose
+reaches in the next week, read from Exa's cache through autobrowse `web` (metered;
+Google at most 200/day, 8–20 local). `wren enrich profiles --niche <n>` runs it by hand.
 
 ```sh
 curl -X POST -H "$H" $U/PoolScheduler/sec_ria/start    # /status shows per-stage progress and errors

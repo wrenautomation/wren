@@ -11,6 +11,7 @@
  */
 import * as restate from "@restatedev/restate-sdk";
 import { type Company, companies, finishRun, openRun } from "@wren/core";
+import type { SiteClient } from "@wren/core/content";
 import type { Db } from "@wren/db";
 import { type LlmClient, NULL_TRACER, type Tracer } from "@wren/llm";
 import { eq } from "drizzle-orm";
@@ -56,6 +57,16 @@ import {
   writeOpener,
 } from "../enrichment/opener.js";
 import {
+  countProfileUnit,
+  emptyProfileStats,
+  googleLeft,
+  PROFILES_COMMAND,
+  type ProfileStats,
+  profilesParkedUntil,
+  profileUnit,
+  profileWork,
+} from "../enrichment/profiles.js";
+import {
   addRenderStats,
   type BrowserRenderer,
   countRenderNicheNullSkipped,
@@ -93,6 +104,8 @@ export interface EnrichmentDeps {
   crawlHintsFor?: (niche: string | null) => ReadonlySet<string>;
   /** Where archived page HTML is; the scan reads it back for pages `PageArchive` moved. */
   pages?: PageStore | null;
+  /** autobrowse's sites, for `profiles` (Exa's cache, Google); null = that stage refuses. */
+  sites?: SiteClient | null;
 }
 
 /**
@@ -171,6 +184,15 @@ export interface EmailPickInput extends PickInput {
 export interface TagInput {
   limit?: number;
   dryRun?: boolean;
+}
+
+export interface ProfilesInput {
+  /** People in the order they will be emailed; the due ones are looked up. */
+  personIds: number[];
+  /** People this call; each is a few site calls, so a pass stays well inside one Lambda. */
+  limit?: number;
+  /** The zone Google's day and hours are kept in. */
+  timezone: string;
 }
 
 const parseShard = (text: string | undefined): Shard | null => {
@@ -468,6 +490,52 @@ export function makeEnrichment(deps: EnrichmentDeps) {
             break;
           }
           countOpener(stats, r.value);
+        }
+        await close(ctx, runId, stats);
+        return stats;
+      },
+
+      profiles: async (ctx: restate.ObjectContext, input: ProfilesInput): Promise<ProfileStats> => {
+        const sites = deps.sites;
+        if (!sites) throw new restate.TerminalError("no site client for profiles");
+        const niche = nicheOf(ctx);
+        const { personIds, ...rest } = input;
+        const runId = await open(ctx, PROFILES_COMMAND, {
+          ...rest,
+          people: personIds.length,
+          niche,
+        });
+        const now = new Date(await ctx.date.now());
+        const plan = await ctx.run("select", async () => {
+          const parked = await profilesParkedUntil(deps.db);
+          if (parked) return { parked: parked.toISOString(), work: [], google: 0 };
+          const work = await profileWork(deps.db, personIds, {
+            limit: input.limit ?? 5,
+            pages: deps.pages ?? null,
+          });
+          return {
+            parked: null,
+            work,
+            google: await googleLeft(deps.db, { now, timezone: input.timezone }),
+          };
+        });
+        const stats = emptyProfileStats();
+        stats.selected = plan.work.length;
+        if (plan.parked) stats.stopped = `parked by a cap until ${plan.parked}`;
+        let left = plan.google;
+        const streak = { errors: 0 };
+        for (const w of plan.work) {
+          // profileUnit returns site errors as data: a metered read is never retried.
+          const r = await unit(ctx, `profile person ${w.person.personId}`, () =>
+            profileUnit(deps.db, sites, w, { googleLeft: left, runId }),
+          );
+          if (!r.ok) {
+            stats.stopped = r.reason;
+            break;
+          }
+          left = r.value.googleStopped ? 0 : Math.max(0, left - r.value.google);
+          stats.stopped = countProfileUnit(stats, r.value, streak);
+          if (stats.stopped) break;
         }
         await close(ctx, runId, stats);
         return stats;
