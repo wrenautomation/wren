@@ -27,6 +27,16 @@ describe("draftPrompt", () => {
     expect(p).toContain('carries a video: "Spend gate demo"');
     expect(p).toContain("inside 100 characters");
   });
+  it("carries the platform's playbook after the voice, and nothing when there is none", () => {
+    const o = { voice: "v", brand: DEFAULT_BRAND };
+    const p = draftPrompt(idea, PLATFORM_SPECS.linkedin, {
+      ...o,
+      playbook: { text: "Open with a number." },
+    });
+    expect(p).toContain("The playbook for this platform");
+    expect(p.indexOf("Open with a number.")).toBeGreaterThan(p.indexOf("Write in this voice"));
+    expect(draftPrompt(idea, PLATFORM_SPECS.linkedin, o)).not.toContain("playbook");
+  });
 });
 
 describe("redraftPrompt", () => {

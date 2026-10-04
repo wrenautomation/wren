@@ -22,7 +22,7 @@ A catalog, not a waterfall. Each row names the cards whose **If you change this*
 | kill switches | [[email/sender-pause]] | [[processes/send-tick]], [[platform/notifier]] |
 | the wire (Gmail) | [[email/transport]] | [[processes/send-tick]], [[email/report]] |
 | a platform's API shape or limits | [[content/platform]] | [[content/draft]], [[processes/content-loop]], `apps/worker/src/services.ts` |
-| drafting, voice, slots | [[content/draft]] | [[content/idea]], [[content/content-metric]], [[processes/content-loop]] |
+| drafting, voice, slots | [[content/draft]] | [[content/idea]], [[content/content-metric]], [[content/playbook]], [[processes/content-loop]] |
 | media hosting | [[content/media]] | [[content/platform]], `deploy/terraform` |
 | Meta ads | [[ads/ad-launch]] | [[processes/ads-launch-watch]], [[content/idea]] |
 | SMS numbers, contacts, texts | the `sms/` cards | [[processes/sms-tick]], [[platform/phone-worker]] |

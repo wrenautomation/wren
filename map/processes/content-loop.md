@@ -2,7 +2,7 @@
 type: process
 status: verified
 verified: 2026-09-28 @ 83459e9
-consumes: ["[[content/idea]]", "[[content/platform]]", "[[content/media]]", "[[platform/llm-client]]"]
+consumes: ["[[content/idea]]", "[[content/platform]]", "[[content/media]]", "[[content/playbook]]", "[[platform/llm-client]]"]
 produces: ["[[content/draft]]", "[[content/content-metric]]", "[[content/idea]]"]
 ---
 

@@ -4,7 +4,7 @@ cluster: content
 universe: live
 status: verified
 verified: 2026-09-28 @ 83459e9
-entity: packages/content/src/schema.ts:104
+entity: packages/content/src/schema.ts:127
 ---
 
 # content-metric
@@ -17,9 +17,9 @@ One snapshot per post per day for its first 30 days (`metrics.ts:15`, `:17`), so
 
 ## Shape
 
-- `draft_id` (cascade), `as_of`, `views`, `reactions`, `comments`, `shares`, `fetched_with` (`schema.ts:108`–`117`)
+- `draft_id` (cascade), `as_of`, `views`, `reactions`, `comments`, `shares`, `fetched_with` (`schema.ts:131`–`140`)
 
-Citations: `packages/content/src/schema.ts:104`
+Citations: `packages/content/src/schema.ts:127`
 
 ## Connected to
 

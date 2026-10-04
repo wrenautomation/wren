@@ -12,11 +12,18 @@ import { and, eq, inArray } from "drizzle-orm";
 import { z } from "zod";
 import { type Lessons, lessonsBlock, lessonsFor, NO_LESSONS } from "./lessons.js";
 import { PLATFORM_SPECS, type PlatformSpec, unfitReason } from "./platforms.js";
-import { type ContentDraft, type ContentIdea, contentDrafts, contentIdeas } from "./schema.js";
+import { playbookBlock, playbookFor } from "./playbook.js";
+import {
+  type ContentDraft,
+  type ContentIdea,
+  type ContentPlaybook,
+  contentDrafts,
+  contentIdeas,
+} from "./schema.js";
 import { type Brand, DEFAULT_BRAND, DEFAULT_VOICE } from "./voice.js";
 
-// v1 (2026-09-22): first prompt. Bump when the prompt or the platform shapes change.
-export const DRAFT_PROMPT_VERSION = "v2";
+// v1 (2026-09-22): first prompt. v3 (2026-10-04): the platform's playbook. Bump when the prompt or the platform shapes change.
+export const DRAFT_PROMPT_VERSION = "v3";
 export const DRAFT_STAGE = "content_draft";
 // The answer is a few hundred tokens; a reasoning model thinks inside the same budget.
 const MAX_TOKENS = 4000;
@@ -44,7 +51,12 @@ export type DraftResult =
 export function draftPrompt(
   idea: Pick<ContentIdea, "text" | "media">,
   spec: PlatformSpec,
-  o: { voice: string; brand: Brand; lessons?: Lessons },
+  o: {
+    voice: string;
+    brand: Brand;
+    lessons?: Lessons;
+    playbook?: Pick<ContentPlaybook, "text"> | null;
+  },
 ): string {
   const media = idea.media
     ? `\nThe post carries a ${idea.media.kind}${idea.media.title ? `: "${idea.media.title}"` : ""}. Write for someone who will watch or look at it.`
@@ -55,7 +67,7 @@ export function draftPrompt(
   return `You write social posts for ${o.brand.name}, ${o.brand.about}.
 Write in this voice:
 ${o.voice}
-
+${playbookBlock(o.playbook ?? null)}
 Write ${spec.shape}. Stay inside ${spec.maxChars} characters.${spec.title ? ` The title stays inside ${spec.title.maxChars} characters.` : ""}
 Use only what the idea says; invent no numbers, names or events. Keep the author's wording where it already reads well.
 ${media}${lessonsBlock(o.lessons ?? NO_LESSONS)}
@@ -73,7 +85,12 @@ export function redraftPrompt(
   spec: PlatformSpec,
   previous: { text: string; title: string | null },
   note: string,
-  o: { voice: string; brand: Brand; lessons?: Lessons },
+  o: {
+    voice: string;
+    brand: Brand;
+    lessons?: Lessons;
+    playbook?: Pick<ContentPlaybook, "text"> | null;
+  },
 ): string {
   const base = draftPrompt(idea, spec, o);
   const cut = base.lastIndexOf("\nAnswer with JSON only");
@@ -135,10 +152,12 @@ export async function redraft(
   if (note.trim() === "") return { platform, ok: false, reason: "empty note" };
   if (!["draft", "approved", "failed"].includes(previous.status))
     return { platform, ok: false, reason: `cannot redraft a ${previous.status} draft` };
+  const playbook = await playbookFor(db, platform);
   const prompt = redraftPrompt(idea, spec, { text: previous.text, title: previous.title }, note, {
     voice: o.voice ?? DEFAULT_VOICE,
     brand: o.brand ?? DEFAULT_BRAND,
     lessons: await lessonsFor(db, platform),
+    playbook,
   });
   const outcome = await completeAndParse(llm, prompt, proposal, {
     maxTokens: MAX_TOKENS,
@@ -172,6 +191,7 @@ export async function redraft(
       redraftOf: previous.id,
       note: note.trim(),
       promptVersion: DRAFT_PROMPT_VERSION,
+      playbookId: playbook?.id ?? null,
       llm: outcome.envelope(),
     })
     .returning();
@@ -205,9 +225,10 @@ export async function draftIdea(
       results.push({ platform, ok: false, reason: unfit });
       continue;
     }
+    const playbook = await playbookFor(db, platform);
     const outcome = await completeAndParse(
       llm,
-      draftPrompt(idea, spec, { voice, brand, lessons: await lessonsFor(db, platform) }),
+      draftPrompt(idea, spec, { voice, brand, lessons: await lessonsFor(db, platform), playbook }),
       proposal,
       {
         maxTokens: MAX_TOKENS,
@@ -239,6 +260,7 @@ export async function draftIdea(
         title: spec.title ? (outcome.parsed.title?.trim() ?? null) : null,
         media: idea.media,
         promptVersion: DRAFT_PROMPT_VERSION,
+        playbookId: playbook?.id ?? null,
         llm: outcome.envelope(),
       })
       .returning();

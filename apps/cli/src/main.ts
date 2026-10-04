@@ -216,7 +216,7 @@ registerSms(program, withMainDb, settings);
 registerReach(program, withMainDb, settings);
 registerBooks(program, withMainDb, settings, rootDir);
 registerStudy(program, withMainDb, settings, rootDir);
-registerSop(program, settings, rootDir);
+registerSop(program, withMainDb, settings, rootDir);
 registerDossier(program, withMainDb, rootDir);
 registerVideo(program, withMainDb, settings, rootDir);
 registerSearch(program, withMainDb, settings, rootDir);

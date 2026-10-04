@@ -52,6 +52,27 @@ export const contentIdeas = pgTable(
   ],
 );
 
+/**
+ * A platform's playbook: an SOP from the private sops folder, pushed with
+ * `wren sop push <name> --platform <p>` and read into every draft prompt for
+ * that platform. Insert-only: the newest row per platform is the live one,
+ * older rows say what earlier drafts were written against.
+ */
+export const contentPlaybooks = pgTable(
+  "content_playbooks",
+  {
+    ...baseColumns,
+    platform: varchar("platform", { length: 16 }).$type<Platform>().notNull(),
+    /** The SOP's folder name, as in `wren sop ls`. */
+    sop: varchar("sop", { length: 64 }).notNull(),
+    text: text("text").notNull(),
+  },
+  (t) => [
+    index("ix_content_playbooks_platform_created_at").on(t.platform, t.createdAt),
+    oneOf("ck_content_playbooks_platform", t.platform, PLATFORMS),
+  ],
+);
+
 export const contentDrafts = pgTable(
   "content_drafts",
   {
@@ -84,6 +105,8 @@ export const contentDrafts = pgTable(
     }),
     note: text("note"),
     promptVersion: varchar("prompt_version", { length: 16 }).notNull(),
+    /** The playbook the prompt carried; null when the platform had none. */
+    playbookId: uuid("playbook_id").references(() => contentPlaybooks.id, { onDelete: "set null" }),
     /** The LLM stage's audit envelope (raw text, usage, model), or null for a hand-written draft. */
     llm: jsonb("llm").$type<Record<string, unknown>>(),
   },
@@ -92,6 +115,7 @@ export const contentDrafts = pgTable(
     index("ix_content_drafts_status_scheduled_for").on(t.status, t.scheduledFor),
     index("ix_content_drafts_platform_created_at").on(t.platform, t.createdAt),
     index("ix_content_drafts_redraft_of").on(t.redraftOf),
+    index("ix_content_drafts_playbook_id").on(t.playbookId),
     oneOf("ck_content_drafts_platform", t.platform, PLATFORMS),
     oneOf("ck_content_drafts_status", t.status, DRAFT_STATUSES),
   ],
@@ -132,3 +156,4 @@ export type NewContentIdea = typeof contentIdeas.$inferInsert;
 export type ContentDraft = typeof contentDrafts.$inferSelect;
 export type NewContentDraft = typeof contentDrafts.$inferInsert;
 export type ContentMetric = typeof contentMetrics.$inferSelect;
+export type ContentPlaybook = typeof contentPlaybooks.$inferSelect;

@@ -6,6 +6,7 @@ export * from "./media.js";
 export * from "./metrics.js";
 export * from "./plan.js";
 export * from "./platforms.js";
+export * from "./playbook.js";
 export * from "./queue.js";
 export * from "./review.js";
 export * from "./schema.js";

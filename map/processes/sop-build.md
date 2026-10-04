@@ -12,7 +12,7 @@ A video, a Drive folder or a file becomes a source file; one model call turns th
 
 ## Input → Movement → Output
 
-`wren sop add <name> <youtube url | other video url | drive:<folderId> | file>` writes `sources/<kind>-<id>.md` (front matter with `priority`) under `<sopsDir>/<name>/`, a private folder outside this repo (`../sops` by default). `wren sop build <name>` reads `notes.md`, the current `SOP.md` and every source, highest priority first, and asks Claude Code (Opus) for the next SOP.md. Nothing touches a database.
+`wren sop add <name> <youtube url | other video url | drive:<folderId> | file>` writes `sources/<kind>-<id>.md` (front matter with `priority`) under `<sopsDir>/<name>/`, a private folder outside this repo (`../sops` by default). `wren sop build <name>` reads `notes.md`, the current `SOP.md` and every source, highest priority first, and asks Claude Code (Opus) for the next SOP.md. Only `wren sop push <name> --platform <p>` touches a database: it stores SOP.md as that platform's [[content/playbook]], which every draft prompt then carries.
 
 ## Why this shape
 
@@ -35,7 +35,7 @@ SOPs change weekly, so the loop is edit `notes.md` or `SOP.md`, build again: the
 
 | Surface | Role |
 |---|---|
-| `wren sop` | add, build, ls |
+| `wren sop` | add, build, ls, push |
 | autobrowse `drive` site | exports Docs for `drive:` sources |
 | `~/.claude/skills/sop-<name>` | symlink from `sop link`; `SKILL.md` points at SOP.md and refs/ |
 

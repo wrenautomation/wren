@@ -2,14 +2,17 @@
  * `wren sop …`: SOPs built from videos, Drive Docs and files, kept as folders
  * under the SOPs directory (`SOP.md`, `notes.md`, `sources/`). `add` ingests
  * a source, `build` writes the next SOP.md on Claude Code, `ls` shows what is
- * there. Iterate by editing notes.md (your rules, top priority) and building
+ * there, `push` hands SOP.md to the content loop as a platform's playbook. Iterate by editing notes.md (your rules, top priority) and building
  * again. Drive reads go through autobrowse's `drive` site on this machine.
  */
 import { spawnSync } from "node:child_process";
-import { copyFile, mkdir, readdir, symlink, unlink } from "node:fs/promises";
+import { copyFile, mkdir, readdir, readFile, symlink, unlink } from "node:fs/promises";
 import { homedir } from "node:os";
 import { basename, join, resolve } from "node:path";
 import type { Settings } from "@wren/config";
+import { pushPlaybook } from "@wren/content";
+import { PLATFORMS, type Platform } from "@wren/core/content";
+import type { Db } from "@wren/db";
 import { ClaudeCodeLlm, fleetKeys, loadLlmEnv } from "@wren/llm";
 import {
   addSource,
@@ -27,6 +30,8 @@ import {
 } from "@wren/research/sops";
 import type { Command } from "commander";
 
+type WithDb = <T>(fn: (db: Db) => Promise<T>) => Promise<T>;
+
 const YOUTUBE = /^https?:\/\/(www\.|m\.)?(youtube\.com|youtu\.be)\//;
 
 /** autobrowse's CLI in its checkout: the Drive token lives in its .env, not ours. */
@@ -41,7 +46,12 @@ function autobrowseDrive(dir: string, account: string): DriveGet {
   };
 }
 
-export function registerSop(program: Command, settings: Settings, rootDir: string): void {
+export function registerSop(
+  program: Command,
+  withDb: WithDb,
+  settings: Settings,
+  rootDir: string,
+): void {
   const sopsDir = resolve(rootDir, settings.sopsDir);
   const sop = program
     .command("sop")
@@ -128,6 +138,25 @@ export function registerSop(program: Command, settings: Settings, rootDir: strin
       await unlink(to).catch(() => {});
       await symlink(join(sopsDir, name), to, "dir");
       console.log(to);
+    });
+
+  sop
+    .command("push <name>")
+    .description(
+      "hand SOP.md to the content loop: every draft for the platform reads it (prod: node scripts/prod-wren.mjs sop push …)",
+    )
+    .requiredOption("--platform <platform>", PLATFORMS.join(" | "))
+    .action(async (name: string, opts: { platform: string }) => {
+      if (!(PLATFORMS as readonly string[]).includes(opts.platform))
+        throw new Error(`platform must be one of ${PLATFORMS.join(", ")}`);
+      const platform = opts.platform as Platform;
+      const text = await readFile(join(sopsDir, name, "SOP.md"), "utf8");
+      const { playbook, changed } = await withDb((db) =>
+        pushPlaybook(db, { platform, sop: name, text }),
+      );
+      console.log(
+        `${platform}: ${name} ${changed ? "pushed" : "unchanged"} (${playbook.id}, ${text.length} chars)`,
+      );
     });
 
   sop

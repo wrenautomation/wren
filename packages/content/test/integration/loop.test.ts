@@ -27,6 +27,8 @@ import {
   editDraft,
   getDraft,
   listDrafts,
+  playbookFor,
+  pushPlaybook,
   whatWorked,
 } from "../../src/index.js";
 import { DESK_KEY, makeContentDesk, SCHEDULER_KEY } from "../../src/restate/index.js";
@@ -115,7 +117,13 @@ afterAll(async () => {
   await pg?.stop();
 });
 beforeEach(async () => {
-  await truncate(pg.db, ["content_ideas", "content_drafts", "content_metrics", "runs"]);
+  await truncate(pg.db, [
+    "content_ideas",
+    "content_drafts",
+    "content_metrics",
+    "content_playbooks",
+    "runs",
+  ]);
   posted.length = 0;
   notes.length = 0;
   prompts.length = 0;
@@ -322,6 +330,35 @@ describe("content loop", () => {
     const next = prompts.slice(-2);
     expect(next.find((p) => p.includes("one post on X"))).toContain("- shorter");
     expect(next.find((p) => !p.includes("one post on X"))).not.toContain("- shorter");
+  });
+
+  it("a pushed playbook rides that platform's prompt and is stamped on its draft", async () => {
+    const first = await pushPlaybook(pg.db, {
+      platform: "linkedin",
+      sop: "li",
+      text: "Hook in line one.",
+    });
+    expect(first.changed).toBe(true);
+    expect(
+      (await pushPlaybook(pg.db, { platform: "linkedin", sop: "li", text: "Hook in line one.\n" }))
+        .changed,
+    ).toBe(false);
+    const second = await pushPlaybook(pg.db, {
+      platform: "linkedin",
+      sop: "li",
+      text: "Odd numbers win.",
+    });
+    expect((await playbookFor(pg.db, "linkedin"))?.id).toBe(second.playbook.id);
+    const out = await desk().add({ text: "shipped the spend gate", platforms: ["linkedin", "x"] });
+    const li = prompts.find((p) => !p.includes("one post on X"));
+    expect(li).toContain("Odd numbers win.");
+    expect(li).not.toContain("Hook in line one.");
+    expect(prompts.find((p) => p.includes("one post on X"))).not.toContain("playbook");
+    const rows = await listDrafts(pg.db, { ideaId: out.idea.id });
+    expect(Object.fromEntries(rows.map((d) => [d.platform, d.playbookId]))).toEqual({
+      linkedin: second.playbook.id,
+      x: null,
+    });
   });
 
   it("status counts drafts, open ideas, and this month's drafting calls", async () => {

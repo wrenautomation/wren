@@ -4,7 +4,7 @@ cluster: content
 universe: live
 status: verified
 verified: 2026-09-28 @ 83459e9
-entity: packages/content/src/schema.ts:55
+entity: packages/content/src/schema.ts:76
 ---
 
 # draft
@@ -17,9 +17,9 @@ The model proposes, the code disposes: a draft over the platform's length, missi
 
 ## Shape
 
-- `idea_id`, `platform`, `text`, `title`, `media`, `extra` (e.g. reddit `subreddit`), `status` (`DRAFT_STATUSES`, `:28`), `edited`, `scheduled_for`, `approved_at`, `published_at`, `published_id`, `url`, `error`, `redraft_of`, `note`, `prompt_version`, `llm` (`schema.ts:59`–`88`)
+- `idea_id`, `platform`, `text`, `title`, `media`, `extra` (e.g. reddit `subreddit`), `status` (`DRAFT_STATUSES`, `:28`), `edited`, `scheduled_for`, `approved_at`, `published_at`, `published_id`, `url`, `error`, `redraft_of`, `note`, `prompt_version`, `playbook_id` (the [[content/playbook]] the prompt carried), `llm` (`schema.ts:76`–`112`)
 
-Citations: `packages/content/src/schema.ts:55`
+Citations: `packages/content/src/schema.ts:76`
 
 ## Connected to
 
@@ -29,7 +29,7 @@ Citations: `packages/content/src/schema.ts:55`
 
 ## If you change this
 
-- **Hits:** `draft.ts:164`, `review.ts:70`, `queue.ts`, `slots.ts`, `restate/scheduler.ts`, `restate/desk.ts`, `costs.ts`, `lessons.ts` (reads notes and winners), `wren content *`
+- **Hits:** `draft.ts:164`, `review.ts:70`, `queue.ts`, `slots.ts`, `restate/scheduler.ts`, `restate/desk.ts`, `costs.ts`, `lessons.ts` (reads notes and winners), `playbook.ts`, `wren content *`
 - **Does not hit:** the platform adapters (they take a `Post`, not a row: `packages/core/src/content/index.ts:122`)
 
 ## Surfaces
