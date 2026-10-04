@@ -34,7 +34,7 @@ export {
   type FlowStep,
   flowOf,
 } from "./flow.js";
-export { ago, cx, hostOf, initials, month, num, soon } from "./format.js";
+export { ago, cx, hostOf, initials, money, month, num, soon } from "./format.js";
 export { Icon, type IconName } from "./icons.js";
 export { AppCard, AppGlance, AppGrid, type GlanceFigure } from "./launcher.js";
 export { PageHeader, Section } from "./layout.js";

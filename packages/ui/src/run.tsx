@@ -185,7 +185,7 @@ const typing = (t: EventTarget | null) =>
 const RunGraph = lazy(() => import("./run-graph.js"));
 
 const BUTTON =
-  "inline-flex cursor-pointer items-center gap-2 rounded-(--ui-radius-button) border-0 bg-(--ui-paper) px-3 py-[7px] font-[inherit] text-[12px] leading-[inherit] font-(--ui-button-weight) tracking-(--ui-button-tracking) text-(--ui-ink) [text-transform:var(--ui-button-case)] shadow-(--ui-shadow-node) hover:text-(--ui-accent) disabled:cursor-default disabled:opacity-50";
+  "inline-flex cursor-pointer items-center gap-2 rounded-(--ui-radius) border-0 bg-(--ui-paper) px-3 py-[7px] font-[inherit] text-[12px] leading-[inherit] font-(--ui-button-weight) tracking-(--ui-button-tracking) text-(--ui-ink) [text-transform:var(--ui-button-case)] shadow-[inset_0_0_0_1px_var(--ui-hair)] hover:text-(--ui-accent) disabled:cursor-default disabled:opacity-50";
 /** A button that reads as text: Show all, and a line's name to follow. */
 const LINK =
   "cursor-pointer border-0 bg-transparent p-0 text-left font-[inherit] text-[length:inherit] leading-[inherit] decoration-(--ui-accent) underline-offset-3 hover:underline focus-visible:rounded-[2px]";
@@ -208,7 +208,7 @@ const KIND: Record<RunLineKind, string> = {
   failed: "text-[14px]",
 };
 const DOT = "size-1.5 rounded-full";
-const DASH = "h-0.5 w-2.5 rounded-(--ui-radius-bar)";
+const DASH = "h-0.5 w-2.5 rounded-(--ui-radius)";
 const MARK: Record<RunLineKind, string> = {
   started: `${DASH} bg-(--ui-ink)`,
   done: `${DASH} bg-(--ui-good)`,
@@ -218,7 +218,7 @@ const MARK: Record<RunLineKind, string> = {
   did: `${DOT} bg-(--ui-ink-3)`,
 };
 const CITE =
-  "rounded-(--ui-radius-tag) bg-(--ui-fill) px-2 py-px text-[11px] font-medium whitespace-nowrap text-(--ui-ink-2) no-underline @max-[420px]/run:col-2 @max-[420px]/run:justify-self-start";
+  "rounded-(--ui-radius) bg-(--ui-fill) px-2 py-px text-[11px] font-medium whitespace-nowrap text-(--ui-ink-2) no-underline @max-[420px]/run:col-2 @max-[420px]/run:justify-self-start";
 
 export function RunView({
   steps,
@@ -369,7 +369,7 @@ export function RunView({
   return (
     <div
       className={cx(
-        "@container/run grid gap-4 rounded-(--ui-radius-window) bg-(--ui-tile) p-5",
+        "@container/run grid gap-4 rounded-(--ui-radius) bg-(--ui-tile) p-5",
         className,
       )}
       data-live={live || undefined}
@@ -402,7 +402,7 @@ export function RunView({
             >
               <Icon name={paused ? "play" : "pause"} size={12} />
               {paused ? "Play" : "Pause"}
-              <kbd className="rounded-[4px] bg-(--ui-fill) px-[5px] py-px font-[inherit] text-[10px] text-(--ui-ink-2) [@media(hover:none)]:hidden">
+              <kbd className="rounded-(--ui-radius) bg-(--ui-fill) px-[5px] py-px font-[inherit] text-[10px] text-(--ui-ink-2) [@media(hover:none)]:hidden">
                 Space
               </kbd>
             </button>
@@ -472,7 +472,7 @@ export function RunView({
           {sources.map((x) => (
             <span
               key={x.label}
-              className="inline-flex items-center gap-1.5 rounded-(--ui-radius-tag) bg-(--ui-fill) py-0.5 pr-2 pl-[3px]"
+              className="inline-flex items-center gap-1.5 rounded-(--ui-radius) bg-(--ui-fill) py-0.5 pr-2 pl-[3px]"
             >
               <SiteMark site={x.label} />
               {x.label}
@@ -484,7 +484,7 @@ export function RunView({
 
       <ol
         ref={feed}
-        className="grid h-75 list-none content-start gap-0.5 overflow-y-auto overscroll-contain scroll-smooth rounded-(--ui-radius-card) bg-(--ui-paper) px-3.5 py-3 shadow-(--ui-shadow-node) [mask-image:linear-gradient(to_bottom,transparent,#000_14px)] @max-[560px]/run:h-65"
+        className="grid h-75 list-none content-start gap-0.5 overflow-y-auto overscroll-contain scroll-smooth rounded-(--ui-radius) bg-(--ui-paper) px-3.5 py-3 shadow-[inset_0_0_0_1px_var(--ui-hair)] [mask-image:linear-gradient(to_bottom,transparent,#000_14px)] @max-[560px]/run:h-65"
         aria-label="What it did"
         aria-live={live ? "polite" : "off"}
       >
@@ -494,8 +494,7 @@ export function RunView({
             className={cx(
               LINE,
               KIND[l.kind],
-              opened?.id === l.id &&
-                "-mx-2 rounded-(--ui-radius-control) bg-(--ui-accent-tint) px-2",
+              opened?.id === l.id && "-mx-2 rounded-(--ui-radius) bg-(--ui-accent-tint) px-2",
             )}
             data-kind={l.kind}
             data-open={opened?.id === l.id || undefined}
@@ -538,7 +537,7 @@ export function RunView({
               <button
                 type="button"
                 className={cx(
-                  "cursor-pointer rounded-(--ui-radius-tag) border border-(--ui-hair) bg-(--ui-paper) px-2 py-px font-[inherit] text-[11px] leading-[inherit] font-semibold text-(--ui-ink-2) hover:border-(--ui-accent) hover:text-(--ui-accent) aria-expanded:border-(--ui-accent) aria-expanded:text-(--ui-accent) @max-[420px]/run:justify-self-start",
+                  "cursor-pointer rounded-(--ui-radius) border border-(--ui-hair) bg-(--ui-paper) px-2 py-px font-[inherit] text-[11px] leading-[inherit] font-semibold text-(--ui-ink-2) hover:border-(--ui-accent) hover:text-(--ui-accent) aria-expanded:border-(--ui-accent) aria-expanded:text-(--ui-accent) @max-[420px]/run:justify-self-start",
                   l.source ? "@max-[420px]/run:col-3" : "@max-[420px]/run:col-2",
                 )}
                 aria-expanded={opened?.id === l.id}
@@ -558,12 +557,12 @@ export function RunView({
           id="ui-run-work"
           className={cx(
             RISE,
-            "relative mt-3 rounded-(--ui-radius-card) bg-(--ui-paper) px-[18px] py-4 shadow-(--ui-shadow-node) duration-300 @max-[420px]/run:px-3 @max-[420px]/run:py-3.5",
+            "relative mt-3 rounded-(--ui-radius) bg-(--ui-paper) px-[18px] py-4 shadow-[inset_0_0_0_1px_var(--ui-hair)] duration-300 @max-[420px]/run:px-3 @max-[420px]/run:py-3.5",
           )}
         >
           <button
             type="button"
-            className="absolute top-2.5 right-2.5 grid size-7 cursor-pointer place-items-center rounded-(--ui-radius-control) border-0 bg-transparent text-(--ui-ink-2) hover:bg-(--ui-hover) hover:text-(--ui-ink)"
+            className="absolute top-2.5 right-2.5 grid size-7 cursor-pointer place-items-center rounded-(--ui-radius) border-0 bg-transparent text-(--ui-ink-2) hover:bg-(--ui-hover) hover:text-(--ui-ink)"
             aria-label="Close"
             onClick={() => setOpened(null)}
           >

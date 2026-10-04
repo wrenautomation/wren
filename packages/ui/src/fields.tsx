@@ -6,7 +6,7 @@
 import type { Cell, FieldMeta, Filter, Op, State, Tone } from "@wren/core/records";
 import { cn } from "cn";
 import type { ReactNode } from "react";
-import { hostOf, num } from "./format.js";
+import { hostOf, money, num } from "./format.js";
 import { Cited, type PickSource, stripMarks } from "./sources.js";
 
 const TONE: Record<Tone, string> = {
@@ -75,14 +75,6 @@ export function wilson(n: number, of: number): [number, number] {
 export const FEW = 30;
 const pct = (x: number) => `${Math.round(x * 100)}%`;
 
-const money = (amount: number, currency: string) => {
-  try {
-    return amount.toLocaleString("en-US", { style: "currency", currency });
-  } catch {
-    return `${amount.toFixed(2)} ${currency}`;
-  }
-};
-
 const quiet = (s: ReactNode) => <span className="text-(--ui-ink-3)">{s}</span>;
 
 /** A link that opens apart from the row it sits in. The demo's hidden profiles show unlinked. */
@@ -94,7 +86,7 @@ function Out({ href, children }: { href: string; children: ReactNode }) {
       target="_blank"
       rel="noreferrer"
       onClick={(e) => e.stopPropagation()}
-      className="text-(--ui-ink) underline decoration-(--ui-line) underline-offset-2 hover:decoration-current"
+      className="text-(--ui-ink) underline decoration-(--ui-hair) underline-offset-2 hover:decoration-current"
     >
       {children}
     </a>
@@ -275,7 +267,7 @@ export function filterLabel(f: FieldMeta, s: string): string {
 }
 
 const INPUT =
-  "h-8 w-full border border-(--ui-line) bg-(--ui-paper) px-2 text-[13px] text-(--ui-ink) outline-none focus:border-(--ui-ink-2)";
+  "h-8 w-full border border-(--ui-hair) bg-(--ui-paper) px-2 text-[13px] text-(--ui-ink) outline-none focus:border-(--ui-ink-2)";
 
 /** A field's filter control, editing the address form above. */
 export function FieldFilter({
@@ -298,7 +290,7 @@ export function FieldFilter({
           type="button"
           onClick={() => onChange(v === s ? null : s)}
           className={cn(
-            "h-7 flex-1 border border-(--ui-line) text-[13px]",
+            "h-7 flex-1 border border-(--ui-hair) text-[13px]",
             v === s
               ? "border-(--ui-ink) bg-(--ui-ink) text-(--ui-on-ink)"
               : "hover:bg-(--ui-hover)",

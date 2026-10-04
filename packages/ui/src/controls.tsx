@@ -22,12 +22,12 @@ interface ButtonLook {
 
 /** shadcn's button, in the kit's look: square, uppercase, rust; ink on hover. */
 const BUTTON =
-  "h-auto gap-[0.8em] px-[1.6em] py-[1.15em] border-0 rounded-(--ui-radius-button) bg-(--ui-accent) text-(--ui-on-accent) font-(family-name:--ui-font) font-(--ui-button-weight) text-[13.5px]/none tracking-(--ui-button-tracking) [text-transform:var(--ui-button-case)] no-underline cursor-pointer transition-[background-color,color,box-shadow,transform] duration-350 ease-(--ui-ease) hover:bg-(--ui-ink) hover:text-(--ui-on-ink) disabled:opacity-40 focus-visible:ring-0 focus-visible:outline-2 focus-visible:outline-solid focus-visible:outline-offset-2 focus-visible:outline-(--ui-accent)";
+  "h-auto gap-[0.8em] px-[1.6em] py-[1.15em] border-0 rounded-(--ui-radius) bg-(--ui-accent) text-(--ui-on-accent) font-(family-name:--ui-font) font-(--ui-button-weight) text-[13.5px]/none tracking-(--ui-button-tracking) [text-transform:var(--ui-button-case)] no-underline cursor-pointer transition-[background-color,color,box-shadow,transform] duration-350 ease-(--ui-ease) hover:bg-(--ui-ink) hover:text-(--ui-on-ink) disabled:opacity-40 focus-visible:ring-0 focus-visible:outline-2 focus-visible:outline-solid focus-visible:outline-offset-2 focus-visible:outline-(--ui-accent)";
 const BUTTON_SIZE = { md: "", sm: "px-[1.3em] py-[1em] text-[12.5px]/none", dense: "" };
 const DENSE = "h-8 px-3 py-0 text-[13px]/none font-medium tracking-normal [text-transform:none]";
 const DENSE_TONE: Record<ButtonTone, string> = {
   primary: DENSE,
-  secondary: `${DENSE} shadow-[inset_0_0_0_1px_var(--ui-line)] hover:bg-(--ui-hover) hover:text-(--ui-ink)`,
+  secondary: `${DENSE} shadow-[inset_0_0_0_1px_var(--ui-hair)] hover:bg-(--ui-hover) hover:text-(--ui-ink)`,
   quiet: `${DENSE} px-2 no-underline hover:bg-(--ui-hover)`,
 };
 const BUTTON_TONE: Record<ButtonTone, string> = {
@@ -101,7 +101,7 @@ export function ButtonLink({
 export type TagTone = "neutral" | "rust" | "green";
 
 const TAG =
-  "h-auto gap-1.5 px-[9px] py-0.5 border-0 rounded-(--ui-radius-tag) text-[12px]/[1.5] font-semibold align-[1px]";
+  "h-auto gap-1.5 px-[9px] py-0.5 border-0 rounded-(--ui-radius) text-[12px]/[1.5] font-semibold align-[1px]";
 const TAG_TONE: Record<TagTone, string> = {
   neutral: "bg-(--ui-fill) text-(--ui-ink-2)",
   rust: "bg-(--ui-accent-tint) text-(--ui-accent)",

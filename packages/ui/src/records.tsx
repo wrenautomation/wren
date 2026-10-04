@@ -249,7 +249,7 @@ export function Bulk({
       <button
         type="button"
         onClick={clear}
-        className="border-0 bg-transparent p-0 text-(--ui-ink) underline decoration-(--ui-line) underline-offset-2"
+        className="border-0 bg-transparent p-0 text-(--ui-ink) underline decoration-(--ui-hair) underline-offset-2"
       >
         Clear
       </button>
@@ -300,7 +300,7 @@ export function ViewTabs({
 }
 
 const CHIP =
-  "inline-flex h-8 items-center gap-1.5 border border-(--ui-line) bg-(--ui-paper) px-2.5 text-[13px] text-(--ui-ink-2) hover:bg-(--ui-hover) hover:text-(--ui-ink)";
+  "inline-flex h-8 items-center gap-1.5 border border-(--ui-hair) bg-(--ui-paper) px-2.5 text-[13px] text-(--ui-ink-2) hover:bg-(--ui-hover) hover:text-(--ui-ink)";
 
 /** A field's filter as a chip: its label, what it's set to, and its control in a popover. */
 function FilterChip({ field, place }: { field: FieldMeta; place: Place }) {
@@ -326,7 +326,7 @@ function FilterChip({ field, place }: { field: FieldMeta; place: Place }) {
             <ChevronDown className="size-3.5 text-(--ui-ink-3)" />
           )}
         </PopoverTrigger>
-        <PopoverContent align="start" className="w-64 rounded-none p-2 ring-(--ui-line) shadow-lg">
+        <PopoverContent align="start" className="w-64 rounded-none p-2 ring-(--ui-hair) shadow-lg">
           <FieldFilter field={field} value={value} onChange={set} />
         </PopoverContent>
       </Popover>
@@ -365,7 +365,7 @@ function SearchBox({ place, label }: { place: Place; label: string }) {
         onChange={(e) => setText(e.target.value)}
         placeholder={`Search ${label}`}
         aria-label={`Search ${label}`}
-        className="h-8 w-full border border-(--ui-line) bg-(--ui-paper) pr-2 pl-8 text-[13px] text-(--ui-ink) outline-none placeholder:text-(--ui-ink-3) focus:border-(--ui-ink-2)"
+        className="h-8 w-full border border-(--ui-hair) bg-(--ui-paper) pr-2 pl-8 text-[13px] text-(--ui-ink) outline-none placeholder:text-(--ui-ink-3) focus:border-(--ui-ink-2)"
       />
     </label>
   );
@@ -409,7 +409,7 @@ function ColumnPicker({
       </PopoverTrigger>
       <PopoverContent
         align="end"
-        className="w-56 gap-0 rounded-none p-1.5 ring-(--ui-line) shadow-lg"
+        className="w-56 gap-0 rounded-none p-1.5 ring-(--ui-hair) shadow-lg"
       >
         {all.map((f) => (
           <label
@@ -833,7 +833,7 @@ function List({
                     q: null,
                     ...Object.fromEntries(filters.map((f) => [f.key, null])),
                   })}
-                  className="text-[13px] text-(--ui-ink) underline decoration-(--ui-line) underline-offset-2"
+                  className="text-[13px] text-(--ui-ink) underline decoration-(--ui-hair) underline-offset-2"
                 >
                   Clear filters
                 </a>
@@ -902,7 +902,7 @@ function List({
 
 export function Kbd({ children }: { children: ReactNode }) {
   return (
-    <kbd className="inline-flex h-5 min-w-5 items-center justify-center border border-(--ui-line) px-1 font-[inherit] text-[11px] text-(--ui-ink-2)">
+    <kbd className="inline-flex h-5 min-w-5 items-center justify-center border border-(--ui-hair) px-1 font-[inherit] text-[11px] text-(--ui-ink-2)">
       {children}
     </kbd>
   );
@@ -944,7 +944,7 @@ function Panel({
       aria-label={cap(meta.name.one)}
       className={cn(
         ROOT,
-        "fixed inset-y-0 right-0 z-40 flex w-full flex-col border-l border-(--ui-hair) bg-(--ui-paper) shadow-(--ui-shadow-drawer) sm:w-[560px]",
+        "fixed inset-y-0 right-0 z-40 flex w-full flex-col border-l border-(--ui-hair) bg-(--ui-paper) shadow-(--ui-shadow) sm:w-[560px]",
       )}
     >
       <div className="flex h-12 shrink-0 items-center gap-1 border-b border-(--ui-hair) px-3">

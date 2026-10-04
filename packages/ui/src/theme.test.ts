@@ -106,11 +106,9 @@ describe("readTheme", () => {
     });
 
     it("turns finite numbers into strings", () => {
-      expect(
-        readTheme({ "display-weight": 600, "radius-card": 0, "display-squeeze": 0.5 }),
-      ).toEqual({
+      expect(readTheme({ "display-weight": 600, radius: 0, "display-squeeze": 0.5 })).toEqual({
         "display-weight": "600",
-        "radius-card": "0",
+        radius: "0",
         "display-squeeze": "0.5",
       });
     });
@@ -124,7 +122,7 @@ describe("readTheme", () => {
         readTheme({
           frame: Number.NaN,
           "main-width": Number.POSITIVE_INFINITY,
-          "radius-bar": -Infinity,
+          radius: -Infinity,
         }),
       ).toEqual({});
     });
@@ -197,7 +195,7 @@ describe("readTheme", () => {
       const theme = {
         font: '"Iowan Old Style", Georgia, serif',
         scrim: "rgb(0 0 0 / 0.5)",
-        "shadow-window": "-1px 0 0 var(--ui-rule)",
+        shadow: "0 8px 24px var(--ui-scrim)",
         ease: "cubic-bezier(0.2, 0, 0, 1)",
       };
       expect(readTheme(theme)).toEqual(theme);
@@ -288,21 +286,15 @@ describe("themeVars", () => {
     expect(Object.getPrototypeOf(vars)).toBe(Object.prototype);
   });
 
-  it.each([
-    "radius-window",
-    "radius-card",
-    "radius-control",
-    "radius-button",
-    "radius-tag",
-    "radius-bar",
-    "frame",
-    "main-width",
-  ] as const)("turns a bare 0 into 0px for the length token %s", (key) => {
-    expect(themeVars({ [key]: "0" })).toEqual({ [`--ui-${key}`]: "0px" });
-  });
+  it.each(["radius", "frame", "main-width"] as const)(
+    "turns a bare 0 into 0px for the length token %s",
+    (key) => {
+      expect(themeVars({ [key]: "0" })).toEqual({ [`--ui-${key}`]: "0px" });
+    },
+  );
 
   it.each(["0.0", "00", ".0", "-0", "+0.00"])("treats %s as a zero length too", (zero) => {
-    expect(themeVars({ "radius-window": zero })).toEqual({ "--ui-radius-window": "0px" });
+    expect(themeVars({ radius: zero })).toEqual({ "--ui-radius": "0px" });
   });
 
   it("leaves a zero with a unit, and a non-zero, alone", () => {
@@ -323,8 +315,8 @@ describe("themeVars", () => {
   });
 
   it("leaves non-zero lengths alone", () => {
-    expect(themeVars({ "radius-card": "18px", frame: "0px", "main-width": "10" })).toEqual({
-      "--ui-radius-card": "18px",
+    expect(themeVars({ radius: "18px", frame: "0px", "main-width": "10" })).toEqual({
+      "--ui-radius": "18px",
       "--ui-frame": "0px",
       "--ui-main-width": "10",
     });
@@ -332,9 +324,7 @@ describe("themeVars", () => {
 
   it("gives calc-safe lengths for the editorial preset", () => {
     const vars = themeVars(PRESETS.editorial);
-    expect(vars["--ui-radius-window"]).toBe("0px");
     expect(vars["--ui-frame"]).toBe("0px");
-    expect(vars["--ui-radius-tag"]).toBe("2px");
   });
 
   it("keeps the soft preset's unitless trackings as 0", () => {

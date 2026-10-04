@@ -22,14 +22,3 @@ export const usePeople = (p: PageProps, nonce: number) =>
 
 export const useInvoices = (p: PageProps) =>
   useCall(`invoices:${p.client}:${p.team}`, () => ask<{ invoices: InvoiceView[] }>("invoices", p));
-
-/** Whole currency units unless there are cents: "$1,000", "$2,500.50", "EUR 900". */
-export function money(cents: number, currency: string): string {
-  const whole = cents % 100 === 0;
-  return new Intl.NumberFormat("en-US", {
-    style: "currency",
-    currency,
-    minimumFractionDigits: whole ? 0 : 2,
-    maximumFractionDigits: whole ? 0 : 2,
-  }).format(cents / 100);
-}

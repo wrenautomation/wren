@@ -1,5 +1,16 @@
 import { describe, expect, it } from "vitest";
-import { ago, cx, hostOf, initials, month, num, soon } from "./format.js";
+import { ago, cx, hostOf, initials, money, month, num, soon } from "./format.js";
+
+describe("money", () => {
+  it("shows cents in a list and whole units in a tile", () => {
+    expect(money(1250, "USD")).toBe("$1,250.00");
+    expect(money(1250.5, "USD", true)).toBe("$1,251");
+    expect(money(900, "EUR")).toBe("€900.00");
+  });
+  it("falls back to the code for a currency it can't read", () => {
+    expect(money(1250, "nope")).toBe("nope 1,250.00");
+  });
+});
 
 describe("num", () => {
   it("formats zero", () => {

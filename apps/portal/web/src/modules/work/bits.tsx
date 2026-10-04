@@ -29,7 +29,7 @@ export const FORM = "mt-3 flex flex-wrap items-end gap-3";
 export const FIELD = "flex flex-col gap-1.5 text-[13px] text-(--ui-ink-2) max-[480px]:basis-full";
 export const WIDE = "basis-full";
 export const SELECT =
-  "min-h-[38px] border border-(--ui-line) bg-(--ui-paper) px-3 py-2 text-[14.5px] text-(--ui-ink) focus:border-(--ui-accent) focus:outline-none";
+  "min-h-[38px] border border-(--ui-hair) bg-(--ui-paper) px-3 py-2 text-[14.5px] text-(--ui-ink) focus:border-(--ui-accent) focus:outline-none";
 const FOOT = "flex basis-full flex-wrap items-center gap-3";
 
 const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];

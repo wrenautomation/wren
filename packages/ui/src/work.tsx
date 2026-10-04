@@ -49,7 +49,7 @@ const seenOn = (iso: string) =>
   new Date(iso).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
 
 const QUERY =
-  "rounded-full bg-(--ui-fill) px-2.5 py-px text-[13px] font-normal text-(--ui-ink) wrap-anywhere before:content-['“'] after:content-['”']";
+  "rounded-(--ui-radius) bg-(--ui-fill) px-2.5 py-px text-[13px] font-normal text-(--ui-ink) wrap-anywhere before:content-['“'] after:content-['”']";
 const KEPT = "grid gap-2 border-t border-(--ui-hair) pt-3";
 const KEPT_TITLE =
   "text-[12px] font-semibold tracking-(--ui-label-tracking) text-(--ui-ink-2) [text-transform:var(--ui-label-case)]";
@@ -104,7 +104,7 @@ export function PageChip({
     </>
   );
   const chip = cx(
-    "inline-flex max-w-full items-center gap-1.5 rounded-full border bg-(--ui-paper) py-0.5 pr-2.5 pl-[3px] text-[12px] no-underline",
+    "inline-flex max-w-full items-center gap-1.5 rounded-(--ui-radius) border bg-(--ui-paper) py-0.5 pr-2.5 pl-[3px] text-[12px] no-underline",
     tone === "kept" ? "border-(--ui-accent)" : "border-(--ui-hair)",
     tone === "dropped" ? "text-(--ui-ink-2)" : "text-(--ui-ink)",
   );
@@ -206,7 +206,7 @@ function Step({ s }: { s: RunWorkStep }) {
 
 function Fact({ f }: { f: RunWorkFact }) {
   return (
-    <div className="grid gap-2 rounded-(--ui-radius-control) bg-(--ui-tile) px-3.5 py-3">
+    <div className="grid gap-2 rounded-(--ui-radius) bg-(--ui-tile) px-3.5 py-3">
       <div className="flex flex-wrap items-center justify-between gap-2">
         <span className="font-semibold">{f.kind}</span>
         {f.sure !== null ? <Sure value={f.sure} /> : null}

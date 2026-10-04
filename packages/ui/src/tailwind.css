@@ -38,12 +38,7 @@
   --ui-button-case: uppercase;
   --ui-button-tracking: 0.08em;
   --ui-button-weight: 600;
-  --ui-radius-window: 22px;
-  --ui-radius-card: 14px;
-  --ui-radius-control: 10px;
-  --ui-radius-button: 0px;
-  --ui-radius-tag: 999px;
-  --ui-radius-bar: 2px;
+  --ui-radius: 0px; /* every corner: Wren is square */
   --ui-frame: 10px; /* the canvas around the window; 0px makes it flush */
   --ui-main-width: 1240px;
   --ui-ease: cubic-bezier(0.16, 1, 0.3, 1);
@@ -55,9 +50,7 @@
   --ui-tile: var(--ui-canvas); /* a well inside the paper */
   --ui-wash: color-mix(in srgb, var(--ui-canvas) 50%, var(--ui-paper)); /* row hover */
   --ui-on-ink: var(--ui-paper);
-  --ui-rule: color-mix(in srgb, var(--ui-ink) 13%, transparent);
-  --ui-hair: color-mix(in srgb, var(--ui-ink) 7%, transparent);
-  --ui-line: color-mix(in srgb, var(--ui-ink) 16%, transparent); /* a field's edge */
+  --ui-hair: color-mix(in srgb, var(--ui-ink) 11%, transparent); /* every border and rule */
   --ui-fill: color-mix(in srgb, var(--ui-ink) 6%, transparent); /* counts, tracks, ghosts */
   --ui-hover: color-mix(in srgb, var(--ui-ink) 4.5%, transparent);
   --ui-glass: color-mix(in srgb, var(--ui-paper) 88%, transparent);
@@ -66,17 +59,7 @@
   --ui-good-tint: color-mix(in srgb, var(--ui-good) 10%, transparent);
   --ui-bad-tint: color-mix(in srgb, var(--ui-bad) 6%, transparent);
   --ui-scrim: color-mix(in srgb, var(--ui-shade) 16%, transparent);
-  --ui-shadow-node:
-    inset 0 0 0 1px var(--ui-hair), 0 1px 2px color-mix(in srgb, var(--ui-shade) 4%, transparent);
-  --ui-shadow-window:
-    0 0 0 1px color-mix(in srgb, var(--ui-ink) 5%, transparent),
-    0 1px 2px color-mix(in srgb, var(--ui-shade) 4%, transparent),
-    0 18px 50px -32px color-mix(in srgb, var(--ui-shade) 24%, transparent);
-  --ui-shadow-lift:
-    0 0 0 1px color-mix(in srgb, var(--ui-ink) 5%, transparent),
-    0 1px 2px color-mix(in srgb, var(--ui-shade) 4%, transparent),
-    0 24px 60px -28px color-mix(in srgb, var(--ui-shade) 28%, transparent);
-  --ui-shadow-drawer:
+  --ui-shadow: /* overlays only: dialogs, menus, the record panel */
     0 0 0 1px color-mix(in srgb, var(--ui-ink) 6%, transparent),
     0 30px 80px -30px color-mix(in srgb, var(--ui-shade) 45%, transparent);
 }
@@ -100,10 +83,10 @@
   --accent: var(--ui-hover);
   --accent-foreground: var(--ui-ink);
   --destructive: var(--ui-bad);
-  --border: var(--ui-rule);
-  --input: var(--ui-line);
+  --border: var(--ui-hair);
+  --input: var(--ui-hair);
   --ring: var(--ui-accent);
-  --radius: var(--ui-radius-control);
+  --radius: var(--ui-radius);
   --chart-1: var(--ui-accent);
   --chart-2: var(--ui-ink-2);
   --chart-3: var(--ui-good);
@@ -158,9 +141,9 @@
   --radius-sm: calc(var(--radius) * 0.6);
   --radius-md: calc(var(--radius) * 0.8);
   --radius-lg: var(--radius);
-  --radius-xl: var(--ui-radius-card);
+  --radius-xl: calc(var(--radius) * 1.4);
   --radius-2xl: calc(var(--radius) * 1.8);
-  --radius-3xl: var(--ui-radius-window);
+  --radius-3xl: calc(var(--radius) * 2.2);
   --radius-4xl: calc(var(--radius) * 2.6);
 }
 

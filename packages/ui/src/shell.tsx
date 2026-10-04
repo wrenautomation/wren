@@ -120,7 +120,7 @@ export function AppShell({
         <a
           className={cx(
             HOVER,
-            "flex h-9 flex-none items-center gap-[9px] rounded-(--ui-radius-control) pr-2 pl-1 text-[15px] font-semibold tracking-[-0.01em] no-underline",
+            "flex h-9 flex-none items-center gap-[9px] rounded-(--ui-radius) pr-2 pl-1 text-[15px] font-semibold tracking-[-0.01em] no-underline",
           )}
           href={brand.href}
         >
@@ -140,7 +140,7 @@ export function AppShell({
         {app ? <AppSide app={app} launcher={launcher} /> : null}
         <div
           className={cx(
-            "min-h-0 flex-1 overflow-y-auto overscroll-contain rounded-(--ui-radius-window) bg-(--ui-paper) shadow-(--ui-shadow-window) [scrollbar-width:thin] max-[900px]:m-0 max-[900px]:overflow-visible max-[900px]:rounded-none max-[900px]:shadow-none",
+            "min-h-0 flex-1 overflow-y-auto overscroll-contain rounded-(--ui-radius) bg-(--ui-paper) [scrollbar-width:thin] max-[900px]:m-0 max-[900px]:overflow-visible max-[900px]:rounded-none max-[900px]:shadow-none",
             app ? "mr-(--ui-frame) mb-(--ui-frame)" : "mx-(--ui-frame) mb-(--ui-frame)",
           )}
           ref={scroller}
@@ -158,7 +158,7 @@ export function AppShell({
             tabIndex={-1}
           >
             {notice ? (
-              <details className="group/notice mb-7 rounded-(--ui-radius-card) bg-(--ui-tile) px-3.5 py-2.5 text-[13.5px]/[1.5] text-(--ui-ink-2) max-[900px]:mb-[22px] max-[900px]:px-3 max-[900px]:text-[13px] [&_b]:text-(--ui-ink)">
+              <details className="group/notice mb-7 rounded-(--ui-radius) bg-(--ui-tile) px-3.5 py-2.5 text-[13.5px]/[1.5] text-(--ui-ink-2) max-[900px]:mb-[22px] max-[900px]:px-3 max-[900px]:text-[13px] [&_b]:text-(--ui-ink)">
                 <summary className="flex cursor-pointer list-none flex-wrap items-center gap-x-2.5 gap-y-1 [&::-webkit-details-marker]:hidden">
                   <Tag tone="rust">{notice.label}</Tag>
                   <span>{notice.lead}</span>
@@ -180,11 +180,11 @@ export function AppShell({
 const EASE = "transition-colors duration-250 ease-(--ui-ease)";
 const HOVER = `${EASE} hover:bg-(--ui-hover)`;
 const SLASH = "flex-none text-[17px] font-light text-(--ui-ink-3)";
-const BACK = `${HOVER} inline-flex h-[34px] items-center gap-2 rounded-(--ui-radius-control) text-[13.5px] font-medium whitespace-nowrap text-(--ui-ink-2) no-underline hover:text-(--ui-ink)`;
+const BACK = `${HOVER} inline-flex h-[34px] items-center gap-2 rounded-(--ui-radius) text-[13.5px] font-medium whitespace-nowrap text-(--ui-ink-2) no-underline hover:text-(--ui-ink)`;
 const APPNAME =
   "inline-flex min-w-0 items-center gap-2.5 px-1 font-(family-name:--ui-font-display) text-[17px] font-(--ui-display-weight) tracking-[-0.01em] no-underline";
 const APPMARK =
-  "grid size-[30px] flex-none place-items-center rounded-(--ui-radius-control) bg-(--ui-accent-wash) text-(--ui-accent)";
+  "grid size-[30px] flex-none place-items-center rounded-(--ui-radius) bg-(--ui-accent-wash) text-(--ui-accent)";
 /** The count after a tab's name. */
 const COUNT = "ml-auto text-[12.5px] text-(--ui-ink-2)";
 
@@ -211,7 +211,7 @@ function AppSide({ app, launcher }: { app: OpenApp; launcher: string | undefined
               <a
                 className={cx(
                   HOVER,
-                  "flex h-[38px] items-center gap-[11px] rounded-(--ui-radius-control) px-2.5 text-[14.5px] font-medium text-(--ui-ink-2) no-underline transition-[background-color,color,box-shadow] hover:text-(--ui-ink) aria-[current=page]:bg-(--ui-paper) aria-[current=page]:text-(--ui-ink) aria-[current=page]:shadow-(--ui-shadow-node)",
+                  "flex h-[38px] items-center gap-[11px] rounded-(--ui-radius) px-2.5 text-[14.5px] font-medium text-(--ui-ink-2) no-underline transition-[background-color,color,box-shadow] hover:text-(--ui-ink) aria-[current=page]:bg-(--ui-paper) aria-[current=page]:text-(--ui-ink) aria-[current=page]:shadow-[inset_0_0_0_1px_var(--ui-hair)]",
                 )}
                 href={t.href}
                 aria-current={t.id === app.current ? "page" : undefined}
@@ -271,11 +271,10 @@ function AppHead({ app, launcher }: { app: OpenApp; launcher: string | undefined
   );
 }
 
-const WS =
-  "relative flex h-9 min-w-0 items-center gap-[9px] rounded-(--ui-radius-control) pr-2.5 pl-[5px]";
+const WS = "relative flex h-9 min-w-0 items-center gap-[9px] rounded-(--ui-radius) pr-2.5 pl-[5px]";
 const WS_PICK = `${WS} ${HOVER} cursor-pointer no-underline has-[select:focus-visible]:outline-2 has-[select:focus-visible]:outline-offset-2 has-[select:focus-visible]:outline-(--ui-accent)`;
 const WS_MARK =
-  "grid size-[26px] flex-none place-items-center rounded-(--ui-radius-control) text-[10.5px] font-semibold tracking-[0.04em]";
+  "grid size-[26px] flex-none place-items-center rounded-(--ui-radius) text-[10.5px] font-semibold tracking-[0.04em]";
 
 /** Whose workspace this is: a name (a link when it has one), or a switcher when there's more than one. */
 function WorkspacePick({ workspace }: { workspace: Workspace }) {
@@ -294,7 +293,7 @@ function WorkspacePick({ workspace }: { workspace: Workspace }) {
       </span>
       <span className="truncate text-[14px] font-semibold">{current.name}</span>
       {caption ? (
-        <span className="flex-none rounded-(--ui-radius-tag) bg-(--ui-fill) px-[7px] py-px text-[12px] font-medium whitespace-nowrap text-(--ui-ink-2) max-[900px]:hidden">
+        <span className="flex-none rounded-(--ui-radius) bg-(--ui-fill) px-[7px] py-px text-[12px] font-medium whitespace-nowrap text-(--ui-ink-2) max-[900px]:hidden">
           {caption}
         </span>
       ) : null}
@@ -345,7 +344,7 @@ export function Gate({
   usePageTheme(theme);
   return (
     <main className={cx("grid min-h-dvh place-items-center px-4 py-6", className)}>
-      <div className="flex w-[min(440px,100%)] flex-col gap-3.5 rounded-(--ui-radius-window) bg-(--ui-paper) p-8 shadow-(--ui-shadow-lift) [&_form]:flex [&_form]:flex-col [&_form]:gap-3.5 [&_li]:flex [&_li]:items-center [&_li]:justify-between [&_li]:gap-3 [&_li]:border-b [&_li]:border-(--ui-line) [&_li]:py-1.5 [&_p]:text-(--ui-ink-2) [&_ul]:list-none [&_ul]:border-t [&_ul]:border-(--ui-line)">
+      <div className="flex w-[min(440px,100%)] flex-col gap-3.5 rounded-(--ui-radius) bg-(--ui-paper) p-8 [&_form]:flex [&_form]:flex-col [&_form]:gap-3.5 [&_li]:flex [&_li]:items-center [&_li]:justify-between [&_li]:gap-3 [&_li]:border-b [&_li]:border-(--ui-hair) [&_li]:py-1.5 [&_p]:text-(--ui-ink-2) [&_ul]:list-none [&_ul]:border-t [&_ul]:border-(--ui-hair)">
         <img className="mb-1.5 flex-none" src={stamp} alt="" width={36} height={36} />
         <h1 className="font-(family-name:--ui-font-display) text-[24px]/[1.2] font-(--ui-display-weight) tracking-[calc(-0.025em*var(--ui-display-squeeze))]">
           {title}

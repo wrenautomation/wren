@@ -42,12 +42,12 @@ export function AppCard({
   return (
     <li>
       <a
-        className="group/app flex h-full flex-col gap-2 rounded-(--ui-radius-card) bg-(--ui-paper) px-[22px] pt-5 pb-[22px] no-underline shadow-[inset_0_0_0_1px_var(--ui-line)] transition-[box-shadow,transform] duration-350 ease-(--ui-ease) hover:-translate-y-0.5 hover:shadow-[inset_0_0_0_1px_var(--ui-hair),var(--ui-shadow-lift)] active:translate-y-0"
+        className="group/app flex h-full flex-col gap-2 rounded-(--ui-radius) bg-(--ui-paper) px-[22px] pt-5 pb-[22px] no-underline shadow-[inset_0_0_0_1px_var(--ui-hair)] transition-colors duration-350 ease-(--ui-ease) hover:bg-(--ui-wash)"
         href={href}
       >
         <span className="mb-2 flex items-center justify-between">
           <span
-            className="grid size-10 flex-none place-items-center rounded-(--ui-radius-control) bg-(--ui-accent-wash) text-(--ui-accent)"
+            className="grid size-10 flex-none place-items-center rounded-(--ui-radius) bg-(--ui-accent-wash) text-(--ui-accent)"
             aria-hidden="true"
           >
             <Icon name={icon} size={20} />
@@ -72,7 +72,7 @@ export interface GlanceFigure {
   value: number | string;
 }
 
-const GLANCE = "flex flex-wrap gap-x-[26px] gap-y-2.5 border-t border-(--ui-rule) pt-3.5";
+const GLANCE = "flex flex-wrap gap-x-[26px] gap-y-2.5 border-t border-(--ui-hair) pt-3.5";
 
 /** An app's few numbers on its card, and what's waiting on the viewer. Null while they load. */
 export function AppGlance({ figures, note }: { figures: GlanceFigure[] | null; note?: ReactNode }) {

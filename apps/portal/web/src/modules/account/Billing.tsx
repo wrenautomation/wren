@@ -4,6 +4,7 @@ import {
   ButtonLink,
   Empty,
   Loading,
+  money,
   PageHeader,
   Section,
   Table,
@@ -13,7 +14,7 @@ import {
 import type { InvoiceView } from "../../api.js";
 import type { PageProps } from "../../module.js";
 import { BLOCK, dayLabel, QUIET } from "../work/bits.js";
-import { money, useInvoices } from "./load.js";
+import { useInvoices } from "./load.js";
 
 const STATUS: Record<InvoiceView["status"], [string, TagTone]> = {
   open: ["Due", "neutral"],
@@ -64,7 +65,7 @@ export function Billing(props: PageProps) {
                       {i.description}
                       <span className={`${QUIET} ${BLOCK}`}>{i.offer}</span>
                     </td>
-                    <td data-label="Amount">{money(i.cents, i.currency)}</td>
+                    <td data-label="Amount">{money(i.cents / 100, i.currency)}</td>
                     <td data-label="Due">{dayLabel(i.dueOn)}</td>
                     <td data-label="Status">
                       <Tag tone={tone}>{label}</Tag>

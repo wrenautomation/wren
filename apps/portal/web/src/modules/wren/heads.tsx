@@ -1,5 +1,6 @@
 /** What Wren's lists add beside their title (this month's AI spend), and a client's short name. */
 import type { RecordsStat } from "@wren/core/records/serve";
+import { money } from "@wren/ui";
 import { call } from "../../api.js";
 import { useCall } from "../../load.js";
 
@@ -29,7 +30,7 @@ export function AiSpend() {
   );
   const s = stat.data;
   if (!s?.currency) return null;
-  const amount = s.value.toLocaleString("en-US", { style: "currency", currency: s.currency });
+  const amount = money(s.value, s.currency);
   return (
     <a
       href={`/money/spend?view=this_month&${AI_SPEND}`}

@@ -46,7 +46,7 @@ export function Loading({
             className={
               shape === "rows"
                 ? "flex gap-7 border-b border-(--ui-hair) py-4"
-                : "flex flex-col gap-3.5 rounded-(--ui-radius-card) border border-(--ui-hair) p-[22px]"
+                : "flex flex-col gap-3.5 rounded-(--ui-radius) border border-(--ui-hair) p-[22px]"
             }
           >
             <Skeleton className={cx(GHOST, shape === "rows" ? "w-[22%]" : "h-3.5 w-[34%]")} />
@@ -80,7 +80,7 @@ export function Empty({
   return (
     <div
       className={cx(
-        "flex flex-col items-center gap-4 rounded-(--ui-radius-card) bg-(--ui-wash) px-6 py-12 text-center text-[14px] text-(--ui-ink-2)",
+        "flex flex-col items-center gap-4 rounded-(--ui-radius) bg-(--ui-wash) px-6 py-12 text-center text-[14px] text-(--ui-ink-2)",
         className,
       )}
     >
@@ -101,7 +101,7 @@ export function Callout({
   return (
     <p
       className={cx(
-        "mb-5 w-fit max-w-[72ch] rounded-(--ui-radius-card) bg-(--ui-tile) px-4 py-[11px] text-[14px] text-pretty text-(--ui-ink-2)",
+        "mb-5 w-fit max-w-[72ch] rounded-(--ui-radius) bg-(--ui-tile) px-4 py-[11px] text-[14px] text-pretty text-(--ui-ink-2)",
         className,
       )}
     >
@@ -123,7 +123,7 @@ export function Alert({
   return (
     <div
       className={cx(
-        "mb-4 flex items-start gap-2.5 rounded-(--ui-radius-card) bg-(--ui-bad-tint) px-3.5 py-3 text-[14px]",
+        "mb-4 flex items-start gap-2.5 rounded-(--ui-radius) bg-(--ui-bad-tint) px-3.5 py-3 text-[14px]",
         className,
       )}
       role="alert"

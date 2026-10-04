@@ -28,12 +28,7 @@ export const TOKENS = [
   "button-case",
   "button-tracking",
   "button-weight",
-  "radius-window",
-  "radius-card",
-  "radius-control",
-  "radius-button",
-  "radius-tag",
-  "radius-bar",
+  "radius",
   "frame",
   "main-width",
   "ease",
@@ -41,9 +36,7 @@ export const TOKENS = [
   "tile",
   "wash",
   "on-ink",
-  "rule",
   "hair",
-  "line",
   "fill",
   "hover",
   "glass",
@@ -52,10 +45,7 @@ export const TOKENS = [
   "good-tint",
   "bad-tint",
   "scrim",
-  "shadow-node",
-  "shadow-window",
-  "shadow-lift",
-  "shadow-drawer",
+  "shadow",
 ] as const;
 
 export type Token = (typeof TOKENS)[number];
@@ -64,16 +54,7 @@ export type Theme = Partial<Record<Token, string>>;
 const KNOWN: ReadonlySet<string> = new Set(TOKENS);
 
 /** Lengths the kit does math on: a bare 0 there breaks calc(), so it becomes 0px. */
-const LENGTHS: ReadonlySet<string> = new Set([
-  "radius-window",
-  "radius-card",
-  "radius-control",
-  "radius-button",
-  "radius-tag",
-  "radius-bar",
-  "frame",
-  "main-width",
-]);
+const LENGTHS: ReadonlySet<string> = new Set(["radius", "frame", "main-width"]);
 
 /** Ready-made looks. `wren` is the kit as it ships. */
 export const PRESETS = {
@@ -111,11 +92,7 @@ export const PRESETS = {
     "label-tracking": "0",
     "button-case": "none",
     "button-tracking": "0",
-    "radius-window": "28px",
-    "radius-card": "18px",
-    "radius-control": "12px",
-    "radius-button": "999px",
-    "radius-bar": "999px",
+    radius: "12px",
   },
   editorial: {
     canvas: "#f4f1ea",
@@ -128,14 +105,7 @@ export const PRESETS = {
     "font-display": '"Iowan Old Style", "Palatino Linotype", Palatino, Georgia, serif',
     "display-weight": "400",
     "display-squeeze": "0.2",
-    "radius-window": "0",
-    "radius-card": "0",
-    "radius-control": "0",
-    "radius-tag": "2px",
-    "radius-bar": "0",
     frame: "0",
-    "shadow-window": "-1px 0 0 var(--ui-rule)",
-    "shadow-node": "inset 0 0 0 1px var(--ui-rule)",
   },
 } satisfies Record<string, Theme>;
 

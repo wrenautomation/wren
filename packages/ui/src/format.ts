@@ -2,6 +2,21 @@
 
 export const num = (n: number) => n.toLocaleString("en-US");
 
+/** Money shown one way everywhere: "$1,250.00" in a list, "$1,250" in a tile (`whole`). */
+export function money(amount: number, currency: string, whole = false): string {
+  const d = whole ? 0 : 2;
+  try {
+    return amount.toLocaleString("en-US", {
+      style: "currency",
+      currency,
+      minimumFractionDigits: d,
+      maximumFractionDigits: d,
+    });
+  } catch {
+    return `${currency} ${amount.toLocaleString("en-US", { minimumFractionDigits: d, maximumFractionDigits: d })}`;
+  }
+}
+
 const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
 
 /**

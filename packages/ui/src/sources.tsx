@@ -33,7 +33,7 @@ export function Cite({
   return (
     <a
       className={cn(
-        "ml-[3px] inline-grid h-[18px] min-w-[18px] place-items-center rounded-[min(5px,var(--ui-radius-control))] bg-(--ui-accent-tint) px-[5px] align-[0.14em] text-[11px] leading-none font-semibold text-(--ui-accent) lining-nums tabular-nums no-underline transition-colors duration-200 ease-(--ui-ease) hover:bg-(--ui-accent) hover:text-(--ui-on-accent) data-on:bg-(--ui-accent) data-on:text-(--ui-on-accent)",
+        "ml-[3px] inline-grid h-[18px] min-w-[18px] place-items-center rounded-(--ui-radius) bg-(--ui-accent-tint) px-[5px] align-[0.14em] text-[11px] leading-none font-semibold text-(--ui-accent) lining-nums tabular-nums no-underline transition-colors duration-200 ease-(--ui-ease) hover:bg-(--ui-accent) hover:text-(--ui-on-accent) data-on:bg-(--ui-accent) data-on:text-(--ui-on-accent)",
         className,
       )}
       data-on={on || undefined}
@@ -145,7 +145,7 @@ export function SourceCard({
     <li
       id={id}
       className={cn(
-        "grid scroll-m-6 grid-cols-[auto_minmax(0,1fr)] gap-3 rounded-(--ui-radius-card) bg-(--ui-paper) pt-[13px] pr-4 pb-3.5 pl-3.5 text-[14px] wrap-anywhere shadow-(--ui-shadow-node) transition-shadow duration-350 ease-(--ui-ease)",
+        "grid scroll-m-6 grid-cols-[auto_minmax(0,1fr)] gap-3 rounded-(--ui-radius) bg-(--ui-paper) pt-[13px] pr-4 pb-3.5 pl-3.5 text-[14px] wrap-anywhere shadow-[inset_0_0_0_1px_var(--ui-hair)] transition-shadow duration-350 ease-(--ui-ease)",
         lit && "ring-2 ring-(--ui-accent)",
         className,
       )}
@@ -153,7 +153,7 @@ export function SourceCard({
       {n !== undefined ? (
         <span
           className={cn(
-            "grid size-[22px] place-items-center rounded-[min(6px,var(--ui-radius-control))] text-[12px] font-semibold lining-nums tabular-nums transition-colors duration-350 ease-(--ui-ease)",
+            "grid size-[22px] place-items-center rounded-(--ui-radius) text-[12px] font-semibold lining-nums tabular-nums transition-colors duration-350 ease-(--ui-ease)",
             lit ? "bg-(--ui-accent) text-(--ui-on-accent)" : "bg-(--ui-tile) text-(--ui-ink-2)",
           )}
         >
@@ -262,7 +262,7 @@ export function Traced({
   return (
     <p
       className={cn(
-        "-mx-2 rounded-[min(6px,var(--ui-radius-control))] px-2 py-0.5 transition-colors duration-250 ease-(--ui-ease) hover:bg-(--ui-accent-wash)",
+        "-mx-2 rounded-(--ui-radius) px-2 py-0.5 transition-colors duration-250 ease-(--ui-ease) hover:bg-(--ui-accent-wash)",
         on && "bg-(--ui-accent-wash)",
         className,
       )}
@@ -271,7 +271,7 @@ export function Traced({
       <button
         type="button"
         className={cn(
-          "inline-grid h-[19px] cursor-pointer place-items-center rounded-(--ui-radius-tag) border-0 px-[7px] align-[0.1em] [font-family:inherit] text-[11px] font-semibold tracking-[0.02em] whitespace-nowrap transition-colors duration-200 ease-(--ui-ease) hover:bg-(--ui-accent) hover:text-(--ui-on-accent)",
+          "inline-grid h-[19px] cursor-pointer place-items-center rounded-(--ui-radius) border-0 px-[7px] align-[0.1em] [font-family:inherit] text-[11px] font-semibold tracking-[0.02em] whitespace-nowrap transition-colors duration-200 ease-(--ui-ease) hover:bg-(--ui-accent) hover:text-(--ui-on-accent)",
           // A finger-sized target, same look.
           "pointer-coarse:relative pointer-coarse:after:absolute pointer-coarse:after:-inset-x-1.5 pointer-coarse:after:-inset-y-2.5 pointer-coarse:after:content-['']",
           on

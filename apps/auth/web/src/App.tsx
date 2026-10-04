@@ -13,7 +13,7 @@ const STAMP = "/wren-icon.png";
 const TITLE = "Sign in to Wren";
 /** A labelled text field. */
 const FIELD =
-  "grid gap-1.5 text-[13px] font-medium [&_input]:h-[42px] [&_input]:rounded-(--ui-radius-control) [&_input]:border [&_input]:border-(--ui-line) [&_input]:bg-(--ui-paper) [&_input]:px-3 [&_input]:text-[15px] [&_input]:font-normal [&_input:focus]:border-(--ui-accent) [&_input:focus]:shadow-[0_0_0_4px_var(--ui-accent-tint)] [&_input:focus]:outline-none";
+  "grid gap-1.5 text-[13px] font-medium [&_input]:h-[42px] [&_input]:rounded-(--ui-radius) [&_input]:border [&_input]:border-(--ui-hair) [&_input]:bg-(--ui-paper) [&_input]:px-3 [&_input]:text-[15px] [&_input]:font-normal [&_input:focus]:border-(--ui-accent) [&_input:focus]:shadow-[0_0_0_4px_var(--ui-accent-tint)] [&_input:focus]:outline-none";
 /** auth.example.com → example.com. */
 const BASE = location.hostname.replace(/^auth\./, "");
 const PORTAL = `https://app.${BASE}/`;

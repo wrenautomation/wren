@@ -9,7 +9,7 @@ import type { Period, RecordsStat, Row } from "@wren/core/records/serve";
 import { cn } from "cn";
 import { Alert } from "./feedback.js";
 import { FieldCell } from "./fields.js";
-import { num } from "./format.js";
+import { money, num } from "./format.js";
 import {
   askOf,
   cap,
@@ -162,14 +162,7 @@ function Tile({ tile, meta, api }: { tile: OverviewTile; meta: RecordMeta; api: 
   });
   if (!load.data && !load.error) return <TileGhost />;
   const s = load.data;
-  const fmt = (n: number) =>
-    s?.currency
-      ? n.toLocaleString("en-US", {
-          style: "currency",
-          currency: s.currency,
-          maximumFractionDigits: 0,
-        })
-      : num(n);
+  const fmt = (n: number) => (s?.currency ? money(n, s.currency, true) : num(n));
   const delta = s ? s.value - s.prior : 0;
   return (
     <a

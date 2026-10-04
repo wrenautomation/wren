@@ -90,12 +90,12 @@ const edgeId = (from: string, to: string) => `${from}>${to}`;
 const DIM = "opacity-35";
 /** A step's shadow: working beats picked, picked beats hover. */
 const LIFT = {
-  active: "-translate-y-0.5 shadow-[inset_0_0_0_1.5px_var(--ui-accent),var(--ui-shadow-lift)]",
-  picked: "shadow-[inset_0_0_0_2px_var(--ui-ink),var(--ui-shadow-lift)]",
-  rest: "shadow-(--ui-shadow-node) hover:shadow-[inset_0_0_0_1px_var(--ui-ink-3),var(--ui-shadow-lift)]",
+  active: "-translate-y-0.5 shadow-[inset_0_0_0_1.5px_var(--ui-accent)]",
+  picked: "shadow-[inset_0_0_0_2px_var(--ui-ink)]",
+  rest: "shadow-[inset_0_0_0_1px_var(--ui-hair)] hover:shadow-[inset_0_0_0_1px_var(--ui-ink-3)]",
 };
 const INDEX: Record<RunStepState, string> = {
-  idle: "text-(--ui-ink-2) shadow-[inset_0_0_0_1.5px_var(--ui-line)]",
+  idle: "text-(--ui-ink-2) shadow-[inset_0_0_0_1.5px_var(--ui-hair)]",
   active: "bg-(--ui-accent) text-(--ui-on-accent)",
   done: "bg-(--ui-good) text-(--ui-paper)",
   waiting: "text-(--ui-ink-2) shadow-[inset_0_0_0_1.5px_var(--ui-ink-2)]",
@@ -167,7 +167,7 @@ function StepNode({ id }: NodeProps) {
         type="button"
         className={cx(
           // Name, source, then the spare room, so the counts and bars in a row line up.
-          "grid min-w-0 cursor-pointer grid-rows-[auto_auto_1fr_auto] gap-x-2 gap-y-0.5 rounded-(--ui-radius-card) border-0 bg-(--ui-paper) px-3 pt-3 pb-3.5 text-left font-[inherit] text-[length:inherit] leading-[inherit] text-(--ui-ink) transition-[box-shadow,translate] duration-350 ease-(--ui-ease) motion-reduce:transition-none",
+          "grid min-w-0 cursor-pointer grid-rows-[auto_auto_1fr_auto] gap-x-2 gap-y-0.5 rounded-(--ui-radius) border-0 bg-(--ui-paper) px-3 pt-3 pb-3.5 text-left font-[inherit] text-[length:inherit] leading-[inherit] text-(--ui-ink) transition-[box-shadow,translate] duration-350 ease-(--ui-ease) motion-reduce:transition-none",
           alone ? "grid-cols-[auto_minmax(0,1fr)_auto]" : "grid-cols-[auto_minmax(0,1fr)]",
           v.state === "active" ? LIFT.active : g.picked === id ? LIFT.picked : LIFT.rest,
           split && "@max-[560px]/run:p-2.5",
@@ -230,7 +230,7 @@ function StepNode({ id }: NodeProps) {
           ) : null}
         </span>
         <span
-          className="col-span-full row-4 mt-2 flex h-1 overflow-hidden rounded-(--ui-radius-bar) bg-(--ui-fill)"
+          className="col-span-full row-4 mt-2 flex h-1 overflow-hidden rounded-(--ui-radius) bg-(--ui-fill)"
           aria-hidden="true"
         >
           {(["found", "did", "failed", "waiting"] as const).map((k) =>
@@ -253,7 +253,7 @@ function StepNode({ id }: NodeProps) {
         <span
           key={g.chip.id}
           className={cx(
-            "absolute bottom-0 left-2.5 z-1 w-fit max-w-[calc(100%-20px)] translate-y-1/2 animate-in overflow-hidden rounded-(--ui-radius-tag) px-[9px] py-0.5 text-[12px] font-medium text-ellipsis whitespace-nowrap duration-350 ease-(--ui-ease) fade-in slide-in-from-left-[14px] motion-reduce:animate-none",
+            "absolute bottom-0 left-2.5 z-1 w-fit max-w-[calc(100%-20px)] translate-y-1/2 animate-in overflow-hidden rounded-(--ui-radius) px-[9px] py-0.5 text-[12px] font-medium text-ellipsis whitespace-nowrap duration-350 ease-(--ui-ease) fade-in slide-in-from-left-[14px] motion-reduce:animate-none",
             CHIP[g.chip.kind] ?? "bg-(--ui-ink) text-(--ui-on-ink)",
           )}
           data-kind={g.chip.kind}
@@ -275,12 +275,12 @@ function EndNode({ id }: NodeProps) {
     // Where the run starts and where it hands off.
     <div
       className={cx(
-        "relative grid min-w-0 content-center gap-0.5 rounded-(--ui-radius-card) px-3 py-2.5 transition-[opacity,box-shadow] duration-350 ease-(--ui-ease) motion-reduce:transition-none",
+        "relative grid min-w-0 content-center gap-0.5 rounded-(--ui-radius) px-3 py-2.5 transition-[opacity,box-shadow] duration-350 ease-(--ui-ease) motion-reduce:transition-none",
         state !== "done"
-          ? "shadow-[inset_0_0_0_1.5px_var(--ui-line)]"
+          ? "shadow-[inset_0_0_0_1.5px_var(--ui-hair)]"
           : id === OUTPUT
             ? "bg-(--ui-paper) shadow-[inset_0_0_0_1.5px_var(--ui-good)]"
-            : "bg-(--ui-paper) shadow-(--ui-shadow-node)",
+            : "bg-(--ui-paper) shadow-[inset_0_0_0_1px_var(--ui-hair)]",
         down && "text-center",
         g.lit && !g.lit.has(id) && DIM,
       )}
@@ -326,7 +326,7 @@ function RunEdge({ id, source, target }: EdgeProps) {
               ? "animate-ui-run-flow stroke-(--ui-accent) stroke-[1.5] [stroke-dasharray:6_5] motion-reduce:animate-none"
               : state === "done"
                 ? "stroke-(--ui-ink-3) stroke-[1.5]"
-                : "stroke-(--ui-line) stroke-[1.5] [stroke-dasharray:3_4]",
+                : "stroke-(--ui-hair) stroke-[1.5] [stroke-dasharray:3_4]",
           g.lit && !traced && "opacity-25",
         )}
         data-state={state}
