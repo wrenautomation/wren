@@ -188,7 +188,7 @@ export function messUp(rng: Rng, rows: SeedRow[]): SeedRow[] {
 export async function resetCrmData(db: Queryable): Promise<void> {
   await db.execute(
     sql.raw(
-      `truncate table briefs, contact_scores, company_checks, findings, person_lookups, documents,
+      `truncate table briefs, contact_scores, company_checks, company_lookups, findings, person_lookups, documents,
         verifications, contact_candidates, crm_contacts, sightings, import_errors, people, companies, imports
         cascade`,
     ),

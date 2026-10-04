@@ -165,6 +165,8 @@ export const companies = pgTable(
     raw: jsonb("raw"),
     sourceKey: varchar("source_key", { length: 64 }),
     socialUrl: varchar("social_url", { length: 512 }),
+    /** The firm's LinkedIn page (`https://www.linkedin.com/company/<handle>/`), trusted only when its website is `domain`. */
+    linkedinUrl: varchar("linkedin_url", { length: 512 }),
     country: varchar("country", { length: 2 }),
     domainVerifiedAt: timestamp("domain_verified_at", { withTimezone: true }),
     niche: varchar("niche", { length: 32 }),

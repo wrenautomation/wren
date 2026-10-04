@@ -178,6 +178,7 @@ export const FINDING_KINDS = [
   "hiring",
   "post",
   "news",
+  "profile",
 ] as const;
 export type FindingKind = (typeof FINDING_KINDS)[number];
 
@@ -194,7 +195,7 @@ export const findings = pgTable(
     sourceUrl: text("source_url"),
     /** 0..1: how sure the reading is, not how good the news is. */
     confidence: real("confidence").notNull(),
-    /** How we know: `email`, `search`, `linkedin@research`, `x`, `instagram`, `crawl`. */
+    /** How we know: `email`, `search`, `exa-cache`, `linkedin@research`, `x`, `instagram`, `crawl`. */
     via: varchar("via", { length: 64 }).notNull(),
     /** Last time a read showed it; the first time is `created_at`. */
     observedAt: timestamp("observed_at", { withTimezone: true }).defaultNow().notNull(),
@@ -266,6 +267,41 @@ export const personLookups = pgTable(
   ],
 );
 export type PersonLookup = typeof personLookups.$inferSelect;
+
+/**
+ * Where a company's LinkedIn page lookup stands, one row per company, in the
+ * shape of `person_lookups`. `matched`: a page whose website is the firm's
+ * domain (its url is on `companies.linkedin_url`, its facts on a `profile`
+ * finding). `unresolved`: no page we trust, so the sheet falls back to the
+ * import and the homepage. `capped`: a daily cap stopped it until `retry_at`.
+ */
+export const companyLookups = pgTable(
+  "company_lookups",
+  {
+    companyId: integer("company_id").notNull(),
+    state: varchar("state", { length: 16, enum: LOOKUP_STATES }).notNull(),
+    tried: jsonb("tried").notNull(),
+    retryAt: timestamp("retry_at", { withTimezone: true }),
+    runId: uuid("run_id"),
+    lookedUpAt: timestamp("looked_up_at", { withTimezone: true }).defaultNow().notNull(),
+  },
+  (t) => [
+    primaryKey({ columns: [t.companyId], name: "pk_company_lookups" }),
+    index("ix_company_lookups_run_id").on(t.runId),
+    foreignKey({
+      columns: [t.companyId],
+      foreignColumns: [companies.id],
+      name: "fk_company_lookups_company_id_companies",
+    }),
+    foreignKey({
+      columns: [t.runId],
+      foreignColumns: [runs.id],
+      name: "fk_company_lookups_run_id_runs",
+    }),
+    oneOf("ck_company_lookups_lookupstate", t.state, LOOKUP_STATES),
+  ],
+);
+export type CompanyLookup = typeof companyLookups.$inferSelect;
 
 /**
  * Where a company's hiring check stands, one row per company. `hiring`: a

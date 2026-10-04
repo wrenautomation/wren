@@ -30,6 +30,7 @@ export const AUDIT_SKIPPED: Readonly<Record<string, string>> = {
   import_errors: "an import's own error log",
   company_checks: "lookup results with their own tried trail",
   person_lookups: "lookup results with their own tried trail",
+  company_lookups: "lookup results with their own tried trail",
   postmaster_days: "numbers pulled from Google",
   content_metrics: "numbers pulled from the platforms",
   search_days: "numbers pulled from Search Console",
