@@ -160,7 +160,8 @@ export const loopRecord = (admin: RestateAdmin): RecordType =>
         service: l.service,
         key: l.key,
         state: l.running ? "running" : "stopped",
-        health: l.failures > 0 || l.error !== null ? "failing" : "ok",
+        // A stopped loop keeps its old failure count; only a running one is failing.
+        health: l.running && (l.failures > 0 || l.error !== null) ? "failing" : "ok",
         last_at: l.lastAt,
         failures: l.failures,
         error: l.error,
