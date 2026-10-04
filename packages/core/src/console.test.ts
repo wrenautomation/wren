@@ -1,8 +1,20 @@
+import { TerminalError } from "@restatedev/restate-sdk";
 import type { Db } from "@wren/db";
 import type { SQL } from "drizzle-orm";
 import { PgDialect } from "drizzle-orm/pg-core";
-import { describe, expect, it } from "vitest";
-import { consoleApi, type LoopRow, loopsOf, toCsv } from "./console.js";
+import { describe, expect, it, vi } from "vitest";
+import {
+  consoleApi,
+  formOf,
+  handlerRecord,
+  handlersOf,
+  inputSchemaOf,
+  type LoopRow,
+  loopsOf,
+  makeConsolePortal,
+  restateAdminGet,
+  toCsv,
+} from "./console.js";
 import { PortalRefusal } from "./portal.js";
 
 const rows = Object.assign([{ niche: "widgets", in_play: "12", note: 'a "b", c' }], {
@@ -162,5 +174,258 @@ describe("ConsolePortal records", () => {
     const [loop] = await recs.recordsTypes({ viewer: operator });
     expect(loop).toMatchObject({ id: record, actions: ["console.startLoop", "console.stopLoop"] });
     expect(await consoleApi({ main, views: [] }).recordsTypes({ viewer: operator })).toEqual([]);
+  });
+});
+
+const handler = (name: string, more: Record<string, unknown> = {}) => ({ name, ...more });
+const SCHEMA = { type: "object", properties: { limit: { type: "integer" } } };
+const SERVICES = {
+  services: [
+    {
+      name: "Widgets",
+      ty: "VirtualObject",
+      handlers: [
+        handler("launch", { metadata: { effect: "spends" }, input_json_schema: SCHEMA }),
+        handler("status", { ty: "Shared" }),
+        handler("loop", { public: false }),
+      ],
+    },
+    { name: "Tally", ty: "Service", handlers: [handler("count", { input_json_schema: SCHEMA })] },
+    { name: "WidgetsPortal", ty: "Service", handlers: [handler("view")] },
+    { name: "Hidden", ty: "Service", public: false, handlers: [handler("any")] },
+  ],
+};
+
+describe("ConsolePortal handlers", () => {
+  const get = async (path: string) =>
+    path === "/services"
+      ? SERVICES
+      : {
+          paths: {
+            "/restate/call/Widgets/{key}/launch": {
+              post: {
+                requestBody: {
+                  content: { "application/json": { schema: { $ref: "#/components/schemas/L" } } },
+                },
+              },
+            },
+            "/restate/call/Widgets/{key}/launch/send": { post: {} },
+          },
+          components: { schemas: { L: SCHEMA } },
+        };
+  const ran: Record<string, unknown>[] = [];
+  const db = {
+    transaction: (fn: (tx: unknown) => unknown) => fn(db),
+    insert: () => ({
+      values: (v: Record<string, unknown>) => {
+        ran.push(v);
+        return { returning: async () => [{ id: v.id }] };
+      },
+    }),
+  } as unknown as Db;
+  const calls = consoleApi({ main: db, views: [], adminGet: get });
+  const all = handlersOf(SERVICES);
+  const ask = { viewer: operator, service: "Tally", handler: "count", input: { limit: 2 } };
+
+  it("reads kind, public, effect and form from /services", () => {
+    expect(all.find((h) => h.handler === "launch")).toEqual({
+      service: "Widgets",
+      handler: "launch",
+      kind: "object",
+      public: true,
+      effect: "spends",
+      form: true,
+    });
+    expect(all.filter((h) => !h.public).map((h) => `${h.service}/${h.handler}`)).toEqual([
+      "Widgets/loop",
+      "Hidden/any",
+    ]);
+  });
+
+  it("lists public handlers outside the Portals, with the input schema on the detail", async () => {
+    const [type] = await calls.recordsTypes({ viewer: operator });
+    expect(type).toMatchObject({ id: "console.handler" });
+    // The rows and the detail as records-serve reads them; its SQL over them needs Postgres.
+    const record = handlerRecord(get);
+    const rows = (await record.rows?.(db)) ?? [];
+    expect(rows.map((r) => r.id).sort()).toEqual([
+      "Tally/count",
+      "Widgets/launch",
+      "Widgets/status",
+    ]);
+    expect(rows.find((r) => r.id === "Widgets/launch")).toMatchObject({
+      needs_key: "yes",
+      effect: "spends",
+      form: "form",
+    });
+    expect(await record.load?.(db, "Widgets/launch")).toEqual({
+      input: SCHEMA,
+      form: [{ field: "limit", label: "Limit", type: "number", optional: true }],
+    });
+    expect(inputSchemaOf(await get("/services/Widgets/openapi"), "Widgets", "status")).toBeNull();
+  });
+
+  it("refuses anyone but the operator, a Portal, a private or unknown handler", async () => {
+    for (const viewer of [{ demo: true as const }, { email: "amy@acme.test" }])
+      expect(() => calls.reader({ ...ask, viewer })).toThrow(PortalRefusal);
+    expect(() => calls.reader({ ...ask, asClient: true })).toThrow(PortalRefusal);
+    expect(() => consoleApi({ main, views: [] }).reader(ask)).toThrow("no Restate admin URL");
+    const status = (f: () => unknown) => {
+      try {
+        f();
+      } catch (e) {
+        return (e as PortalRefusal).status;
+      }
+      return 200;
+    };
+    expect(
+      status(() => calls.target({ ...ask, service: "WidgetsPortal", handler: "view" }, all)),
+    ).toBe(403);
+    expect(
+      status(() => calls.target({ ...ask, service: "Widgets", handler: "loop", key: "a" }, all)),
+    ).toBe(403);
+    expect(status(() => calls.target({ ...ask, service: "Hidden", handler: "any" }, all))).toBe(
+      403,
+    );
+    expect(status(() => calls.target({ ...ask, handler: "nope" }, all))).toBe(404);
+    expect(status(() => calls.target(ask, all))).toBe(200);
+  });
+
+  it("asks a key for an object only, and the name typed in for an effect", () => {
+    const launch = { ...ask, service: "Widgets", handler: "launch" };
+    expect(() => calls.target(launch, all)).toThrow("say the key");
+    expect(() => calls.target({ ...ask, key: "a" }, all)).toThrow("a service takes no key");
+    expect(() => calls.target({ ...launch, key: "a" }, all)).toThrow("it spends: type launch");
+    expect(calls.target({ ...launch, key: "a", confirm: "launch" }, all).effect).toBe("spends");
+  });
+
+  it("opens a runs row with the command, who and the input", async () => {
+    const h = calls.target(ask, all);
+    await calls.openCall(ask, h);
+    expect(ran.at(-1)).toMatchObject({
+      command: "console Tally/count",
+      argv: { by: "op@example.test", input: { limit: 2 } },
+      niche: null,
+    });
+  });
+});
+
+describe("ConsolePortal.call", () => {
+  const ran: Record<string, unknown>[] = [];
+  const db = {
+    insert: () => ({
+      values: (v: Record<string, unknown>) => {
+        ran.push({ open: v });
+        return { returning: async () => [{ id: "run-1" }] };
+      },
+    }),
+    select: () => ({ from: () => ({ where: async () => [] }) }),
+    update: () => ({ set: (v: unknown) => ({ where: async () => ran.push({ close: v }) }) }),
+  } as unknown as Db;
+  const portal = makeConsolePortal({ main: db, views: [], adminGet: async () => SERVICES });
+  const call = (
+    portal as unknown as { service: Record<string, (c: unknown, r: unknown) => Promise<unknown>> }
+  ).service.call;
+  const sent: unknown[] = [];
+  const ctxOf = (answer: () => Promise<unknown>) => ({
+    run: (_: string, fn: () => unknown) => fn(),
+    genericCall: (opts: unknown) => {
+      sent.push(opts);
+      return answer();
+    },
+  });
+
+  it("refuses before any call, and calls the handler as one runs row", async () => {
+    const ctx = ctxOf(async () => ({ counted: 2 }));
+    const ask = { viewer: operator, service: "Tally", handler: "count", input: { limit: 2 } };
+    await expect(call?.(ctx, { ...ask, viewer: { email: "amy@acme.test" } })).rejects.toThrow();
+    await expect(
+      call?.(ctx, { ...ask, service: "WidgetsPortal", handler: "view" }),
+    ).rejects.toThrow();
+    expect(sent).toEqual([]);
+    expect(await call?.(ctx, ask)).toEqual({ counted: 2 });
+    expect(sent).toMatchObject([{ service: "Tally", method: "count", parameter: { limit: 2 } }]);
+    expect(ran).toMatchObject([
+      { open: { command: "console Tally/count", argv: { by: "op@example.test" } } },
+      { close: { stats: { ok: true } } },
+    ]);
+  });
+
+  it("closes the row with the error when the handler refuses", async () => {
+    ran.length = 0;
+    const ctx = ctxOf(async () => {
+      throw new TerminalError("bad input");
+    });
+    const ask = { viewer: operator, service: "Tally", handler: "count", input: {} };
+    await expect(call?.(ctx, ask)).rejects.toThrow("bad input");
+    expect(ran.at(-1)).toMatchObject({ close: { stats: { error: "bad input" } } });
+  });
+});
+
+describe("restateAdminGet", () => {
+  it("keeps each path 5 minutes, and never a failure", async () => {
+    let t = 0;
+    const fetch = vi
+      .fn()
+      .mockResolvedValueOnce(new Response("down", { status: 503 }))
+      .mockResolvedValue(new Response("{}"));
+    vi.stubGlobal("fetch", fetch);
+    const get = restateAdminGet("https://admin.example.test/", "tok", () => t);
+    await expect(get("/services")).rejects.toThrow("503");
+    await get("/services");
+    await get("/services");
+    expect(fetch).toHaveBeenCalledTimes(2);
+    expect(fetch.mock.calls[0]?.[0]).toBe("https://admin.example.test/services");
+    t = 5 * 60_000;
+    fetch.mockResolvedValue(new Response("{}"));
+    await get("/services");
+    expect(fetch).toHaveBeenCalledTimes(3);
+    vi.unstubAllGlobals();
+  });
+});
+
+describe("formOf: a schema as form boxes", () => {
+  it("maps each type in the doc's table, nested fields as parent.child", () => {
+    const schema = {
+      anyOf: [
+        {
+          type: "object",
+          properties: {
+            day: { type: "string", format: "date" },
+            site: { anyOf: [{ type: "string", format: "uri" }, { type: "null" }] },
+            note: { type: "string", description: "said under the box" },
+            openersPerDay: { type: ["number", "null"] },
+            dryRun: { type: "boolean" },
+            policy: { type: "string", enum: ["skip", "recheck"] },
+            ids: { type: "array", items: { type: "string" } },
+            recheck: {
+              type: "object",
+              properties: { olderThanDays: { type: "integer", title: "Days" } },
+              required: ["olderThanDays"],
+            },
+            extra: {},
+          },
+          required: ["day", "site", "policy"],
+        },
+        { type: "null" },
+      ],
+    };
+    expect(formOf(schema)).toEqual([
+      { field: "day", label: "Day", type: "date" },
+      { field: "site", label: "Site", type: "url", optional: true },
+      { field: "note", label: "Note", optional: true, hint: "said under the box" },
+      { field: "openersPerDay", label: "Openers per day", type: "number", optional: true },
+      { field: "dryRun", label: "Dry run", type: "switch", optional: true },
+      { field: "policy", label: "Policy", type: "select", options: ["skip", "recheck"] },
+      { field: "ids", label: "Ids", type: "lines", optional: true },
+      { field: "recheck.olderThanDays", label: "Recheck.Days", type: "number", optional: true },
+      { field: "extra", label: "Extra", type: "json", optional: true },
+    ]);
+  });
+
+  it("no schema, or an object with no fields, is the JSON box", () => {
+    expect(formOf(null)).toBeNull();
+    expect(formOf({})).toBeNull();
+    expect(formOf({ type: "object", properties: {}, additionalProperties: {} })).toEqual([]);
   });
 });

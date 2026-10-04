@@ -47,6 +47,7 @@ import {
   toCsv,
 } from "./records-serve.js";
 import type { PassOutcome } from "./restate/loop.js";
+import { finishRun, openRun } from "./runs.js";
 
 export { toCsv };
 
@@ -103,7 +104,47 @@ export interface AddClientRequest extends PortalRequest {
   name: string;
 }
 
+export interface CallRequest extends PortalRequest {
+  service: string;
+  handler: string;
+  /** The object's or workflow's key; a plain service takes none. */
+  key?: string;
+  input?: unknown;
+  /** The handler's name typed in: a handler with an effect runs only with it. */
+  confirm?: string;
+}
+
 export type RestateAdmin = (query: string) => Promise<Record<string, unknown>[]>;
+/** A GET on Restate's admin API: `/services`, `/services/<name>/openapi`. */
+export type RestateAdminGet = (path: string) => Promise<unknown>;
+
+const ADMIN_CACHE_MS = 5 * 60_000;
+
+/** GETs on the admin API, each path kept 5 minutes: the list changes only on a deploy. */
+export const restateAdminGet = (
+  url: string,
+  token?: string,
+  now: () => number = Date.now,
+): RestateAdminGet => {
+  const cache = new Map<string, { at: number; value: Promise<unknown> }>();
+  return (path) => {
+    const hit = cache.get(path);
+    if (hit && now() - hit.at < ADMIN_CACHE_MS) return hit.value;
+    const value = fetch(`${url.replace(/\/$/, "")}${path}`, {
+      headers: {
+        ...(token ? { authorization: `Bearer ${token}` } : {}),
+        accept: "application/json",
+      },
+    }).then(async (res) => {
+      if (!res.ok) throw new Error(`restate admin GET ${path}: ${res.status} ${await res.text()}`);
+      return res.json();
+    });
+    // A failed read is not kept: the next ask tries again.
+    value.catch(() => cache.delete(path));
+    cache.set(path, { at: now(), value });
+    return value;
+  };
+};
 
 export const restateAdmin =
   (url: string, token?: string): RestateAdmin =>
@@ -209,10 +250,244 @@ export const loopRecord = (admin: RestateAdmin): RecordType =>
     actions: ["console.startLoop", "console.stopLoop"],
   });
 
+/** One handler as `/services` tells it. */
+export interface HandlerRow {
+  service: string;
+  handler: string;
+  kind: "service" | "object" | "workflow";
+  /** Callable from outside: the service and the handler are both public. */
+  public: boolean;
+  effect: string | null;
+  /** It declares an input schema, so it opens to a form. */
+  form: boolean;
+}
+
+const KIND_OF: Record<string, HandlerRow["kind"]> = {
+  Service: "service",
+  VirtualObject: "object",
+  Workflow: "workflow",
+};
+
+/** `*Portal` services are the apps' own backends: their pages are their form. */
+const isPortal = (service: string) => service.endsWith("Portal");
+
+export function handlersOf(services: unknown): HandlerRow[] {
+  type H = {
+    name: string;
+    public?: boolean;
+    metadata?: Record<string, string>;
+    input_json_schema?: unknown;
+  };
+  type S = { name: string; ty: string; public?: boolean; handlers: H[] };
+  const list = (services as { services?: S[] }).services ?? [];
+  return list.flatMap((s) =>
+    s.handlers.map((h) => ({
+      service: s.name,
+      handler: h.name,
+      kind: KIND_OF[s.ty] ?? "service",
+      public: s.public !== false && h.public !== false,
+      effect: h.metadata?.effect ?? null,
+      form: h.input_json_schema !== undefined,
+    })),
+  );
+}
+
+/** The handler's input schema from the service's OpenAPI; null when it declares none. */
+export function inputSchemaOf(openapi: unknown, service: string, handler: string): unknown {
+  type Doc = {
+    paths?: Record<
+      string,
+      { post?: { requestBody?: { content?: Record<string, { schema?: unknown }> } } }
+    >;
+    components?: { schemas?: Record<string, unknown> };
+  };
+  const doc = openapi as Doc;
+  const call = `/restate/call/${service}/`;
+  const path = Object.keys(doc.paths ?? {}).find(
+    (p) =>
+      p.startsWith(call) &&
+      p.endsWith(`/${handler}`) &&
+      !p.slice(call.length).includes("/{idempotencyKey}"),
+  );
+  const schema = path
+    ? doc.paths?.[path]?.post?.requestBody?.content?.["application/json"]?.schema
+    : undefined;
+  const ref = (schema as { $ref?: string } | undefined)?.$ref;
+  if (ref?.startsWith("#/components/schemas/"))
+    return doc.components?.schemas?.[ref.slice("#/components/schemas/".length)] ?? null;
+  return schema ?? null;
+}
+
+/** One box of a handler's form; `type` left out is a line of text, as in the ui's `FormField`. */
+export interface HandlerField {
+  /** Its path in the input: `parent.child` for a nested field. */
+  field: string;
+  label: string;
+  type?: "long" | "date" | "url" | "number" | "switch" | "select" | "lines" | "json";
+  optional?: true;
+  hint?: string;
+  /** A select's choices. */
+  options?: readonly string[];
+}
+
+type Schema = {
+  type?: string | string[];
+  properties?: Record<string, Schema>;
+  required?: string[];
+  anyOf?: Schema[];
+  enum?: unknown[];
+  items?: Schema;
+  format?: string;
+  title?: string;
+  description?: string;
+};
+
+/** "openersPerDay" → "Openers per day". */
+const words = (name: string) => {
+  const w = name
+    .replace(/([a-z0-9])([A-Z])/g, "$1 $2")
+    .replace(/[_-]+/g, " ")
+    .toLowerCase();
+  return w.charAt(0).toUpperCase() + w.slice(1);
+};
+
+/** Drops a `null` branch: a nullable field is an optional one. */
+const nonNull = (s: Schema): Schema => {
+  const branches = s.anyOf?.filter((b) => b.type !== "null");
+  if (branches?.length === 1 && branches[0]) return branches[0];
+  if (Array.isArray(s.type)) {
+    const types = s.type.filter((t) => t !== "null");
+    if (types.length === 1) return { ...s, type: types[0] as string };
+  }
+  return s;
+};
+
+/**
+ * A handler's input schema as form boxes, per the doc's table; null when it declares no
+ * fields (the JSON box). Anything the table doesn't name is a JSON box for that field.
+ */
+export function formOf(input: unknown): HandlerField[] | null {
+  const root = nonNull((input ?? {}) as Schema);
+  if (root.type !== "object" || !root.properties) return null;
+  const out: HandlerField[] = [];
+  const walk = (obj: Schema, path: string, label: string, parentOptional: boolean) => {
+    for (const [name, raw] of Object.entries(obj.properties ?? {})) {
+      const s = nonNull(raw);
+      const field = path ? `${path}.${name}` : name;
+      const own = s.title ?? words(name);
+      const at = label ? `${label}.${own}` : own;
+      const optional = parentOptional || !obj.required?.includes(name) || s !== raw;
+      if (s.type === "object" && s.properties && Object.keys(s.properties).length) {
+        walk(s, field, at, optional);
+        continue;
+      }
+      const item = s.items?.type;
+      const type: HandlerField["type"] | undefined = s.enum
+        ? "select"
+        : s.type === "string"
+          ? s.format === "date"
+            ? "date"
+            : s.format === "uri"
+              ? "url"
+              : undefined
+          : s.type === "number" || s.type === "integer"
+            ? "number"
+            : s.type === "boolean"
+              ? "switch"
+              : s.type === "array" && (item === "string" || item === "number" || item === "integer")
+                ? "lines"
+                : "json";
+      out.push({
+        field,
+        label: at,
+        ...(type ? { type } : {}),
+        ...(optional ? { optional: true as const } : {}),
+        ...(s.description ? { hint: s.description } : {}),
+        ...(s.enum ? { options: s.enum.map(String) } : {}),
+      });
+    }
+  };
+  walk(root, "", "", false);
+  return out;
+}
+
+/**
+ * Every handler a form can call, as a record: public ones outside the `*Portal` services.
+ * Its id is "<service>/<handler>"; the detail carries the input schema from the OpenAPI.
+ */
+export const handlerRecord = (get: RestateAdminGet): RecordType =>
+  defineRecord({
+    id: "console.handler",
+    name: { one: "handler", many: "handlers" },
+    rows: async () =>
+      handlersOf(await get("/services"))
+        .filter((h) => h.public && !isPortal(h.service))
+        .map((h) => ({
+          id: `${h.service}/${h.handler}`,
+          service: h.service,
+          handler: h.handler,
+          kind: h.kind,
+          needs_key: h.kind === "service" ? "no" : "yes",
+          effect: h.effect,
+          form: h.form ? "form" : "json",
+        })),
+    key: "id",
+    title: "handler",
+    subtitle: "service",
+    fields: {
+      service: text("Service"),
+      handler: text("Handler"),
+      kind: status({
+        service: { label: "Service", tone: "neutral" },
+        object: { label: "Object", tone: "neutral" },
+        workflow: { label: "Workflow", tone: "neutral" },
+      }),
+      needsKey: status(
+        { yes: { label: "Asks a key", tone: "neutral" }, no: { label: "No key", tone: "neutral" } },
+        "Key",
+      ),
+      effect: status(
+        {
+          spends: { label: "Spends", tone: "bad" },
+          sends: { label: "Sends", tone: "warn" },
+          posts: { label: "Posts", tone: "warn" },
+        },
+        "Effect",
+      ),
+      form: status(
+        { form: { label: "Form", tone: "good" }, json: { label: "JSON box", tone: "neutral" } },
+        "Input",
+      ),
+    },
+    views: [
+      { id: "all", label: "All", sort: "service" },
+      { id: "forms", label: "With a form", where: { form: "form" }, sort: "service" },
+      {
+        id: "effects",
+        label: "Effects",
+        where: { effect: ["spends", "sends", "posts"] },
+        sort: "service",
+      },
+    ],
+    load: async (_db, id) => {
+      const slash = id.indexOf("/");
+      if (slash < 0) return null;
+      const service = id.slice(0, slash);
+      const openapi = await get(`/services/${encodeURIComponent(service)}/openapi`);
+      const input = inputSchemaOf(openapi, service, id.slice(slash + 1));
+      return { input, form: formOf(input) };
+    },
+  });
+
+/** The runs row's command: one line on the run trail, as a CLI command would be. */
+export const callCommand = (service: string, handler: string) =>
+  `console ${service}/${handler}`.slice(0, 64);
+
 export function consoleApi({
   main,
   views,
   admin,
+  adminGet,
   records = [],
   mainUrl,
 }: {
@@ -222,11 +497,17 @@ export function consoleApi({
   views: readonly string[];
   /** Absent, `loops` refuses: this worker can't see Restate's state. */
   admin?: RestateAdmin | undefined;
+  /** Absent, `call` refuses and there is no handler list. */
+  adminGet?: RestateAdminGet | undefined;
   /** The team's record types; the loops join them when there's an admin. */
   records?: readonly RecordType[];
 }) {
   const allowed = new Set(views);
-  const types = [...records, ...(admin ? [loopRecord(admin)] : [])];
+  const types = [
+    ...records,
+    ...(admin ? [loopRecord(admin)] : []),
+    ...(adminGet ? [handlerRecord(adminGet)] : []),
+  ];
   const team = (req: PortalRequest) => {
     if (!seesInternal(req)) throw new PortalRefusal("that's for Wren's team", 403);
   };
@@ -297,6 +578,48 @@ export function consoleApi({
     },
 
     /** The loop `req` names, if `loops` listed it; anything else names no loop. */
+    /** The read `call` journals: the handler `req` names, as a list of 0 or 1. Refused before it, as `adminFor` is. */
+    reader(req: CallRequest): () => Promise<HandlerRow[]> {
+      team(req);
+      const get = adminGet;
+      if (!get) throw new PortalRefusal("this worker has no Restate admin URL", 503);
+      return async () =>
+        handlersOf(await get("/services")).filter(
+          (h) => h.service === req.service && h.handler === req.handler,
+        );
+    },
+    /**
+     * The handler `req` names, if a form may call it: operator only, public, not a Portal
+     * backend, a key exactly when it needs one, and its name typed in when it has an effect.
+     */
+    target(req: CallRequest, all: readonly HandlerRow[]): HandlerRow {
+      team(req);
+      if (typeof req.service !== "string" || typeof req.handler !== "string")
+        throw new PortalRefusal("say service and handler", 400);
+      if (isPortal(req.service)) throw new PortalRefusal("a Portal's handlers are its app's", 403);
+      const h = all.find((x) => x.service === req.service && x.handler === req.handler);
+      if (!h) throw new PortalRefusal("no such handler", 404);
+      if (!h.public) throw new PortalRefusal("that handler is never called from outside", 403);
+      const keyed = h.kind !== "service";
+      if (keyed !== (typeof req.key === "string" && req.key !== ""))
+        throw new PortalRefusal(keyed ? "say the key" : "a service takes no key", 400);
+      if (h.effect && req.confirm !== h.handler)
+        throw new PortalRefusal(`it ${h.effect}: type ${h.handler} to confirm`, 400);
+      return h;
+    },
+    /** The runs row for one call: who, what, with what. Never the answer. */
+    openCall: (req: CallRequest, h: HandlerRow) =>
+      openRun(main, {
+        command: callCommand(h.service, h.handler),
+        argv: {
+          by: (req.viewer as SignedViewer).email,
+          ...(req.key ? { key: req.key } : {}),
+          input: req.input ?? null,
+        },
+      }).then((r) => r.id),
+    closeCall: (runId: string, error: string | null) =>
+      finishRun(main, runId, error === null ? { ok: true } : { error: error.slice(0, 500) }),
+
     pick(req: SetLoopRequest, loops: readonly LoopRow[]): LoopRow {
       if (typeof req.run !== "boolean") throw new PortalRefusal("say run: true or false", 400);
       const loop = loops.find((l) => l.service === req.service && l.key === req.key);
@@ -305,6 +628,9 @@ export function consoleApi({
     },
   };
 }
+
+// The SDK types `jsonSchema` as optional without `| undefined`; the json serde has it unset.
+const JSON_SERDE = restate.serde.json as unknown as restate.Serde<unknown>;
 
 /** What `setLoop` calls on any loop object; `start` with no body keeps its stored settings. */
 type LoopControl = {
@@ -336,6 +662,33 @@ export function makeConsolePortal(deps: Parameters<typeof consoleApi>[0]) {
           const object = ctx.objectClient<LoopControl>({ name: loop.service }, loop.key);
           await (req.run ? object.start() : object.stop());
           return { ...loop, running: req.run };
+        }),
+      /**
+       * Any public handler, by an operator, as one durable call: the target is checked
+       * against Restate's own list, and the call is a runs row with who made it.
+       */
+      call: (ctx: restate.Context, req: CallRequest) =>
+        answer(async (): Promise<unknown> => {
+          const read = api.reader(req);
+          // Journaled: the call below suspends the Lambda, and the replay must find the same target.
+          const h = api.target(req, await ctx.run("read handler", read));
+          const runId = await ctx.run("open run", () => api.openCall(req, h));
+          try {
+            const out = await ctx.genericCall<unknown, unknown>({
+              service: h.service,
+              method: h.handler,
+              ...(h.kind === "service" ? {} : { key: req.key as string }),
+              parameter: req.input,
+              inputSerde: JSON_SERDE,
+              outputSerde: JSON_SERDE,
+            });
+            await ctx.run("close run", () => api.closeCall(runId, null));
+            return out;
+          } catch (err) {
+            if (err instanceof restate.TerminalError)
+              await ctx.run("close run", () => api.closeCall(runId, err.message));
+            throw err;
+          }
         }),
       addClient: (ctx: restate.Context, req: AddClientRequest) =>
         answer(async () => {

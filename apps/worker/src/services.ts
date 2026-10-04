@@ -101,7 +101,7 @@ import {
 import { makeAuditSealer } from "@wren/core/audit";
 import { CalcomCalendar } from "@wren/core/calendar";
 import { clientRecord } from "@wren/core/clients";
-import { makeConsolePortal, restateAdmin } from "@wren/core/console";
+import { makeConsolePortal, restateAdmin, restateAdminGet } from "@wren/core/console";
 import type { SiteClient } from "@wren/core/content";
 import { sitesHost } from "@wren/core/content/box";
 import { ingressSites } from "@wren/core/content/ingress";
@@ -721,6 +721,9 @@ export async function buildServices(
       records: [...emailRecords(roster, policy), ...BOOKS_RECORDS, clientRecord],
       admin: settings.restateAdminUrl
         ? restateAdmin(settings.restateAdminUrl, settings.restateAuthToken)
+        : undefined,
+      adminGet: settings.restateAdminUrl
+        ? restateAdminGet(settings.restateAdminUrl, settings.restateAuthToken)
         : undefined,
     }),
     makeEmailConsole({ db, senders: roster.map((s) => s.address), policy }),
