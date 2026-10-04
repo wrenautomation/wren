@@ -49,7 +49,7 @@ function VersionNode({ data }: NodeProps<Node<Data>>) {
           {new Date(v.at).toLocaleDateString(undefined, { month: "short", day: "numeric" })}
         </span>
       </div>
-      <ul className="grid min-w-0">
+      <ul className="grid min-w-0 list-none">
         {first ? (
           <li className="text-(--ui-ink-2)">Started from the template</li>
         ) : v.added.length || v.retired.length ? (

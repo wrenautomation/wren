@@ -14,7 +14,7 @@ export const settingsSchema = z
     fitnessByLocus: z
       .record(z.string(), fitness)
       .default({})
-      .describe('Per point, overrides Fitness: {"subject": "opens"}'),
+      .describe('Per point, in place of the one above, like {"subject": "opens"}'),
     /** For `weighted`: each success counts by its weight. */
     weights: z
       .object({
