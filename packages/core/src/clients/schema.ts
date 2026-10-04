@@ -15,6 +15,10 @@ import {
   varchar,
 } from "drizzle-orm/pg-core";
 
+/** The channels a client can come in through: an engagement's source, a spend account's. */
+export const CHANNELS = ["email", "sms", "ads", "content", "search", "reach"] as const;
+export type Channel = (typeof CHANNELS)[number];
+
 /**
  * The client registry. Read only in the main database; client databases carry
  * the table (one migration folder for all) but leave it empty.

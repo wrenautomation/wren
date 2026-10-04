@@ -1,3 +1,4 @@
+import { CHANNELS } from "@wren/core/clients";
 import { runs } from "@wren/core/schema";
 import { oneOf } from "@wren/db/columns";
 import { sql } from "drizzle-orm";
@@ -30,7 +31,14 @@ export const books = pgSchema("books");
 export const ACCOUNT_TYPES = ["asset", "liability", "equity", "income", "expense"] as const;
 export type AccountType = (typeof ACCOUNT_TYPES)[number];
 
-/** The chart of accounts. Seeded from `CHART` in code; rows are never deleted. */
+/** What an expense is for, in unit economics: winning clients, serving them, or running Wren. */
+export const BUCKETS = ["acquisition", "delivery", "overhead"] as const;
+export type Bucket = (typeof BUCKETS)[number];
+
+/**
+ * The chart of accounts. Seeded from `CHART` in code; rows are never deleted. `bucket` and
+ * `channel` start from `CHART` and are William's to change after.
+ */
 export const accounts = books.table(
   "accounts",
   {
@@ -41,12 +49,18 @@ export const accounts = books.table(
     type: varchar("type", { length: 16, enum: ACCOUNT_TYPES }).notNull(),
     /** The T2125 line this rolls into at year-end; null off the income statement. */
     t2125Line: varchar("t2125_line", { length: 8 }),
+    /** An expense's bucket; null counts as overhead. */
+    bucket: varchar("bucket", { length: 16, enum: BUCKETS }),
+    /** The channel acquisition spend wins clients through; null is shared across channels. */
+    channel: varchar("channel", { length: 16, enum: CHANNELS }),
     createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
   },
   (t) => [
     primaryKey({ columns: [t.id], name: "pk_accounts" }),
     unique("uq_accounts_key").on(t.key),
     oneOf("ck_accounts_type", t.type, ACCOUNT_TYPES),
+    oneOf("ck_accounts_bucket", t.bucket, BUCKETS),
+    oneOf("ck_accounts_channel", t.channel, CHANNELS),
   ],
 );
 export type Account = typeof accounts.$inferSelect;

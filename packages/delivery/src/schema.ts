@@ -1,4 +1,4 @@
-import { clientMembers, clients } from "@wren/core/clients";
+import { CHANNELS, clientMembers, clients } from "@wren/core/clients";
 import { oneOf } from "@wren/db/columns";
 import { sql } from "drizzle-orm";
 import {
@@ -43,6 +43,12 @@ export const engagements = delivery.table(
     status: varchar("status", { length: 16, enum: ENGAGEMENT_STATUSES })
       .default("active")
       .notNull(),
+    /** The day it moved to `done`; cleared if it moves back. */
+    endedOn: date("ended_on"),
+    /** How the client came in; null is unknown. */
+    sourceChannel: varchar("source_channel", { length: 16, enum: CHANNELS }),
+    /** The campaign within that channel: a niche, a `/go/` campaign, an ad. */
+    sourceCampaign: varchar("source_campaign", { length: 120 }),
     createdBy: text("created_by").notNull(),
     createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
   },
@@ -55,6 +61,7 @@ export const engagements = delivery.table(
     }).onDelete("cascade"),
     index("ix_engagements_client").on(t.clientId),
     oneOf("ck_engagements_status", t.status, ENGAGEMENT_STATUSES),
+    oneOf("ck_engagements_source_channel", t.sourceChannel, CHANNELS),
   ],
 );
 export type Engagement = typeof engagements.$inferSelect;

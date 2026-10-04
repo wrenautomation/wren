@@ -16,6 +16,7 @@ import {
   engagementOf,
   markInvoice,
   postUpdate,
+  setEngagementStatus,
   startEngagement,
 } from "../../src/index.js";
 import { deliveryApi } from "../../src/service.js";
@@ -713,5 +714,32 @@ describe("the project as records", () => {
     ).toBe(404);
     const got = await api.recordsGet({ viewer: AMY, record: "delivery.ask", id: acmeAsk });
     expect(got.detail).toMatchObject({ id: acmeAsk });
+  });
+});
+
+describe("an engagement's end", () => {
+  it("done dates the end once and keeps that day; any other status clears it", async () => {
+    const id = (await engagementOf(pg.db, "beta")).id;
+    const endedOn = async () =>
+      (
+        await pg.db.execute<{ ended_on: string | null }>(
+          sql`select ended_on::text from delivery.engagements where id = ${id}`,
+        )
+      )[0]?.ended_on;
+    const today = (
+      await pg.db.execute<{ d: string }>(
+        sql`select ((now() at time zone 'America/Toronto')::date)::text d`,
+      )
+    )[0]?.d;
+
+    await setEngagementStatus(pg.db, "beta", id, "done");
+    expect(await endedOn()).toBe(today);
+    await pg.db.execute(
+      sql`update delivery.engagements set ended_on = '2026-01-31' where id = ${id}`,
+    );
+    await setEngagementStatus(pg.db, "beta", id, "done");
+    expect(await endedOn()).toBe("2026-01-31");
+    await setEngagementStatus(pg.db, "beta", id, "active");
+    expect(await endedOn()).toBeNull();
   });
 });

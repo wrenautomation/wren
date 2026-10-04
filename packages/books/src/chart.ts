@@ -1,6 +1,7 @@
+import type { Channel } from "@wren/core/clients";
 import type { Queryable } from "@wren/db";
 import { sql } from "drizzle-orm";
-import { type AccountType, accounts, type BillCycle, vendors } from "./schema.js";
+import { type AccountType, accounts, type BillCycle, type Bucket, vendors } from "./schema.js";
 
 export interface AccountSpec {
   key: string;
@@ -8,6 +9,9 @@ export interface AccountSpec {
   type: AccountType;
   /** T2125 line; my reading of CRA's guide, to be checked before the first return. */
   t2125Line?: string;
+  /** An expense's first bucket and channel; William's edits win after the first seed. */
+  bucket?: Bucket;
+  channel?: Channel;
 }
 
 /** The card every bill is paid with until statements say otherwise. */
@@ -20,17 +24,76 @@ export const CHART: readonly AccountSpec[] = [
   { key: CARD, name: "BMO Mastercard", type: "liability" },
   { key: GST_PAID, name: "GST/HST paid (input tax credits)", type: "asset" },
   { key: "owner", name: "Owner's equity", type: "equity" },
-  { key: "ai", name: "AI models", type: "expense", t2125Line: "8810" },
-  { key: "email", name: "Email and inboxes", type: "expense", t2125Line: "8810" },
-  { key: "outreach", name: "Outreach tools", type: "expense", t2125Line: "8521" },
-  { key: "ads", name: "Ads", type: "expense", t2125Line: "8521" },
-  { key: "hosting", name: "Hosting and servers", type: "expense", t2125Line: "8810" },
-  { key: "domains", name: "Domains", type: "expense", t2125Line: "8810" },
-  { key: "code", name: "Code hosting", type: "expense", t2125Line: "8810" },
-  { key: "phone", name: "Phone and SMS", type: "expense", t2125Line: "9220" },
-  { key: "software", name: "Other software", type: "expense", t2125Line: "8810" },
-  { key: "fees", name: "Bank and card fees", type: "expense", t2125Line: "8710" },
-  { key: "other", name: "Other expenses", type: "expense", t2125Line: "9270" },
+  { key: "ai", name: "AI models", type: "expense", t2125Line: "8810", bucket: "overhead" },
+  {
+    key: "email",
+    name: "Email and inboxes",
+    type: "expense",
+    t2125Line: "8810",
+    bucket: "acquisition",
+    channel: "email",
+  },
+  {
+    key: "outreach",
+    name: "Outreach tools",
+    type: "expense",
+    t2125Line: "8521",
+    bucket: "acquisition",
+    channel: "email",
+  },
+  {
+    key: "ads",
+    name: "Ads",
+    type: "expense",
+    t2125Line: "8521",
+    bucket: "acquisition",
+    channel: "ads",
+  },
+  {
+    key: "hosting",
+    name: "Hosting and servers",
+    type: "expense",
+    t2125Line: "8810",
+    bucket: "overhead",
+  },
+  {
+    key: "domains",
+    name: "Domains",
+    type: "expense",
+    t2125Line: "8810",
+    bucket: "acquisition",
+    channel: "email",
+  },
+  { key: "code", name: "Code hosting", type: "expense", t2125Line: "8810", bucket: "overhead" },
+  {
+    key: "phone",
+    name: "Phone and SMS",
+    type: "expense",
+    t2125Line: "9220",
+    bucket: "acquisition",
+    channel: "sms",
+  },
+  {
+    key: "software",
+    name: "Other software",
+    type: "expense",
+    t2125Line: "8810",
+    bucket: "overhead",
+  },
+  {
+    key: "fees",
+    name: "Bank and card fees",
+    type: "expense",
+    t2125Line: "8710",
+    bucket: "overhead",
+  },
+  {
+    key: "other",
+    name: "Other expenses",
+    type: "expense",
+    t2125Line: "9270",
+    bucket: "overhead",
+  },
 ];
 
 /** Where a vendor's bills arrive: its sender addresses (or domains) and, when it shares them, subject words. */
@@ -141,7 +204,17 @@ export function vendorSpec(key: string): VendorSpec | undefined {
 export async function seedBooks(db: Queryable): Promise<void> {
   await db
     .insert(accounts)
-    .values(CHART.map((a) => ({ key: a.key, name: a.name, type: a.type, t2125Line: a.t2125Line })))
+    .values(
+      CHART.map((a) => ({
+        key: a.key,
+        name: a.name,
+        type: a.type,
+        t2125Line: a.t2125Line,
+        bucket: a.bucket,
+        channel: a.channel,
+      })),
+    )
+    // Bucket and channel are set on the first seed only, so William's edits stay.
     .onConflictDoUpdate({
       target: accounts.key,
       set: {

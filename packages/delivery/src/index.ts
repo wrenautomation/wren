@@ -240,7 +240,12 @@ export async function setEngagementStatus(
   status: EngagementStatus,
 ): Promise<void> {
   await engagementOf(db, clientId, id);
-  await db.update(engagements).set({ status }).where(eq(engagements.id, id));
+  // `done` keeps the first day it ended; any other status clears it.
+  const endedOn =
+    status === "done"
+      ? sql`coalesce(${engagements.endedOn}, (now() at time zone 'America/Toronto')::date)`
+      : null;
+  await db.update(engagements).set({ status, endedOn }).where(eq(engagements.id, id));
 }
 
 /** A line on the timeline (D3). Internal ones are for Wren's team only. */

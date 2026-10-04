@@ -3,7 +3,7 @@ type: object
 cluster: clients
 universe: live
 status: verified
-verified: 2026-10-01 @ f342d75
+verified: 2026-10-04 @ fc7250d
 entity: packages/delivery/src/schema.ts:33
 ---
 
@@ -19,6 +19,7 @@ It sits in main, beside the registry, so an operator can read across clients and
 
 - Tables: `engagements`, `milestones`, `updates`, `deliverables`, `asks`, `results` (`packages/delivery/src/schema.ts:33`, `:61`, `:93`, `:130`, `:176`, `:209`)
 - Planned dates never move. A slip moves only `due_on` and needs a reason.
+- How it ends and where it came from (`schema.ts:47`, `:49`): `ended_on` is set the first time `setEngagementStatus` makes it `done` and cleared by any other status (`index.ts:236`); `source_channel` and `source_campaign` say how the client came in (null is unknown). Unit economics reads these for churn and per-channel CAC.
 - A new deliverable version is a new row pointing at the old one (`previous_id`). Home shows only the latest.
 - `startEngagement` turns the offer's `plan` into dated steps and opens its asks (`packages/delivery/src/index.ts:139`, `datedPlan` `:129`)
 - Writes: `postUpdate`, `hideUpdate`, `addDeliverable`, `decideDeliverable`, `addAsk`, `answerAsk`, `markDone`, `slipMilestone`, `recordResult` (`:207`–`:383`)
@@ -46,7 +47,7 @@ Citations: `packages/delivery/src/schema.ts:33`, `packages/delivery/src/index.ts
 
 ## If you change this
 
-- **Hits:** the portal's Home and its Worker route list (`packages/delivery/src/routes.ts`), the worker's service list (`apps/worker/src/services.ts:414`), [[processes/migrate]]
+- **Hits:** the portal's Home and its Worker route list (`packages/delivery/src/routes.ts`), the worker's service list (`apps/worker/src/services.ts:414`), [[processes/migrate]], the `books.econ_*` views (they read `engagements`, `invoices` and `agreements` by name; a renamed column fails `packages/books/test/integration/economics.test.ts`)
 - **Does not hit:** client databases. Products import delivery; delivery imports no product.
 
 ## Surfaces

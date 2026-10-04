@@ -18,6 +18,7 @@ export default defineConfig({
     "../reactivation/src/schema.ts",
     "../reactivation/src/portal/record-views.ts",
     "../books/src/schema.ts",
+    "../books/src/economics.ts",
     "../channel-search/src/schema.ts",
     "../auth/src/schema.ts",
     "../delivery/src/schema.ts",
