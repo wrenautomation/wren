@@ -61,6 +61,7 @@ import {
   makeEmailConsole,
   makeInboxScheduler,
   makeOpensScheduler,
+  makePlacementScheduler,
   makePoolScheduler,
   makePostmasterScheduler,
   makeQueueRefresh,
@@ -531,8 +532,25 @@ export async function buildServices(
         probers: proberHosts(settings.smtpProbeUrl),
         domains: mailDomains,
         ramps: fleet.ramps ?? {},
+        placement: settings.placementSeeds.length > 0,
       }),
     );
+  // Each ramped inbox's newest opener to the seed Gmails once a send day, read back from
+  // their labels; off until `PlacementScheduler/fleet/start`, idle with no seeds.
+  services.push(
+    makePlacementScheduler({
+      db,
+      policy,
+      transport,
+      fleet,
+      seeds: settings.placementSeeds,
+      sitesFor: (ctx) =>
+        restateSites(ctx, {
+          caller: "wren:placement",
+          ...sitesHost(settings.autobrowseInstanceId),
+        }),
+    }),
+  );
   // Bound only when configured: an object with nothing to pull is better absent than failing every pass.
   if (postmaster) {
     services.push(
@@ -730,6 +748,7 @@ export async function buildServices(
       notify: notifier.name,
       postmaster: postmaster !== null,
       opens: opens !== null,
+      placement_seeds: settings.placementSeeds.length,
       report: report !== null,
       content: settings.contentChannels.join(",") || "none",
       ads: settings.metaAdAccountId ?? "first account",

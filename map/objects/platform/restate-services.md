@@ -17,7 +17,7 @@ One composition root wires db, llm, verifier, transport, notifier, roster, box w
 
 ## Shape
 
-- always: `Discovery`, `Enrichment`, `Resolution`, `SendScheduler`, `InboxScheduler`, `Disposition`, `PoolScheduler`, `Ads`, `AdsWatch`, `ContentDesk`, `ContentScheduler`, `ContentMetrics`, `ContentPlanner`, `TokenRenewal`, `SmsSender`, `SmsEvents`, `SmsDesk`, `SmsWatch`
+- always: `Discovery`, `Enrichment`, `Resolution`, `SendScheduler`, `InboxScheduler`, `Disposition`, `PoolScheduler`, `PlacementScheduler` (idle until `WREN_PLACEMENT_SEEDS`), `Ads`, `AdsWatch`, `ContentDesk`, `ContentScheduler`, `ContentMetrics`, `ContentPlanner`, `TokenRenewal`, `SmsSender`, `SmsEvents`, `SmsDesk`, `SmsWatch`
 - conditional: `ComposeScheduler` (compose days ahead > 0), `DigestScheduler` (notify), `PostmasterScheduler`, `OpensScheduler`, `ReportScheduler`, `Content` (channels configured), `SearchWatch` + `SearchWeek` (`WREN_SEARCH_SITE` + `_ORIGIN`) (`:243`–`:292`)
 - outside this repo, same Restate: autobrowse's `sites` (the box) and `desk` (the Mac; Reddit) (`packages/core/src/content/restate.ts:21-23`)
 - plain handlers: `Discovery{discover,verify}`, `Enrichment{crawl,render,scan,extract,applyExtractions,pick,applyPicks,tagTestimonials,backfillCallRecords}`, `Resolution{build,queue,resolve,resolveNewDomains,verifyLeads}`, `Disposition{classify,status}`, `ContentDesk{add,draft,redraft}`, `Content{publish,list,metrics,comments,reply,platforms}`, `Ads{accounts,campaigns,insights,interests,launch,leadForm,leadForms,leads,start,stop}`, `SmsDesk`/`SmsEvents{addContact,enroll,ingest,label,lift,markRead,numbers,pause,reply,resume,stats,syncNumbers,thread,threads}`

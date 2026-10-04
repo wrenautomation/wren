@@ -104,6 +104,20 @@ export const settingsSchema = z.object({
   bouncePauseRate: z.coerce.number().default(0.02),
   bouncePauseMinBounces: z.coerce.number().int().default(2),
   healthWindowDays: z.coerce.number().int().default(7),
+  /**
+   * Seed Gmails each ramped inbox mails its newest opener to once a send day,
+   * comma-separated; each needs autobrowse Gmail consent. Empty = no placement checks.
+   */
+  placementSeeds: z
+    .string()
+    .default("")
+    .transform((s) =>
+      s
+        .split(",")
+        .map((x) => x.trim())
+        .filter(Boolean),
+    )
+    .pipe(z.array(z.string().email())),
   /** https://host of the open-pixel endpoint; unset = no pixel host at all. */
   pixelBaseUrl: z.string().min(1).optional(),
   /**
@@ -436,6 +450,7 @@ export const ENV_KEYS = {
   bouncePauseRate: "WREN_BOUNCE_PAUSE_RATE",
   bouncePauseMinBounces: "WREN_BOUNCE_PAUSE_MIN_BOUNCES",
   healthWindowDays: "WREN_HEALTH_WINDOW_DAYS",
+  placementSeeds: "WREN_PLACEMENT_SEEDS",
   pixelBaseUrl: "WREN_PIXEL_BASE_URL",
   openTracking: "WREN_OPEN_TRACKING",
   pixelExportToken: "WREN_PIXEL_EXPORT_TOKEN",

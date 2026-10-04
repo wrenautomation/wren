@@ -53,7 +53,7 @@ pass. `restate invocations list` shows what is sleeping and until when;
 | InboxScheduler | one per inbox | replies + bounces every few minutes |
 | ComposeScheduler | per niche | daily, local midnight |
 | PoolScheduler | per niche | a minute apart while any stage finds work, then daily |
-| PostmasterScheduler, OpensScheduler, DigestScheduler | fleet | daily |
+| PostmasterScheduler, OpensScheduler, DigestScheduler, PlacementScheduler | fleet | daily |
 | ReportScheduler | weekly | Friday 19:00 |
 | ContentScheduler | default | a minute while due drafts remain, else until the next slot |
 | ContentMetrics | default | every 6 h (one look per post per day); Monday report |

@@ -15,6 +15,7 @@ A catalog, not a waterfall. Each row names the cards whose **If you change this*
 | a sequence, arm or plan rule | [[email/sequence]] | [[platform/niche]], [[processes/compose]] |
 | who sends, from which inbox | [[email/roster]] | [[email/send-policy]], [[processes/deploy]] (SSM roster), [[platform/loop-object]] (keys) |
 | caps, windows, ramp | [[email/send-policy]] | [[processes/send-tick]], [[processes/compose]] |
+| seed placement checks | [[email/placement-check]] | [[email/roster]] (ramps), [[email/transport]], the digest |
 | message or enrollment states | [[email/message]], [[email/enrollment]] | `packages/channel-email/src/state.ts`, [[processes/send-tick]], every view in `packages/channel-email/src/views.ts` |
 | what a reply means | [[email/thread-event]] | [[processes/inbox-sync]], [[platform/llm-client]] |
 | kill switches | [[email/sender-pause]] | [[processes/send-tick]], [[platform/notifier]] |
@@ -55,6 +56,7 @@ Nothing in this repo references these; they break silently.
 | `../lander/functions/v/[id].ts` (`VIDEOS_ORIGIN` in `wrangler.toml`) | `<VIDEOS_ORIGIN>/v/<id>.json` as `packages/video/src/publish.ts` writes it; the CloudFront domain from `deploy/terraform/videos.tf` | [[reactivation/demo-video]] |
 | `../autobrowse/walkthrough/03-meta-app.md` | `walkthrough/02-meta-ads.md` (link) | [[ads/ad-launch]] |
 | autobrowse's `sites` service (same Restate Cloud) | called by name from `packages/core/src/content/restate.ts:21`; Meta, LinkedIn, YouTube, X, TikTok, Instagram go through it | [[content/platform]] |
+| autobrowse's `gmail` site, each seed's Gmail consent | `PlacementScheduler` reads `/gmail/v1/users/me/messages` as the seed (`restate/placement-scheduler.ts:72`) | [[email/placement-check]] |
 | Restate Cloud registrations | every service and handler name in `apps/worker/src/services.ts` | [[platform/restate-services]] |
 | SSM `/wren/prod/env`, `/wren/prod/senders_config` | `deploy/prod.env`, `senders_config.toml` via `deploy/scripts/push-secrets.sh` | [[platform/settings]], [[email/roster]] |
 | GitHub `production` environment | `deploy.yml` secrets (AWS, Restate, Cloudflare token) | [[processes/deploy]] |

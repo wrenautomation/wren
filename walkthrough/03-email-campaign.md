@@ -9,7 +9,7 @@ import / fetch ──► companies ──► PoolScheduler/{niche}: discover →
 ComposeScheduler/{niche} (daily): keeps 3 send days of approved openers queued ◄──────────────────────┘
 SendScheduler/{inbox}: sends inside the window at the ramp (5 → 25 per inbox per day)
 InboxScheduler/{inbox}: replies, bounces; kill switch pauses a domain at 2% bounces
-PostmasterScheduler/fleet, OpensScheduler/fleet, DigestScheduler/fleet (07:00 Discord), ReportScheduler/weekly
+PostmasterScheduler/fleet, OpensScheduler/fleet, DigestScheduler/fleet (07:00 Discord), PlacementScheduler/fleet, ReportScheduler/weekly
 ```
 
 ## Every morning

@@ -1,8 +1,9 @@
-/** The E7 virtual objects: inbox sync per sender, disposition on demand, the daily Postmaster pull, the opens pull. */
+/** The E7 virtual objects: inbox sync per sender, disposition on demand, the daily Postmaster pull, the opens pull, the placement checks. */
 import * as clients from "@restatedev/restate-sdk-clients";
 import { RestateTestEnvironment } from "@restatedev/restate-sdk-testcontainers";
 import { loadSettings } from "@wren/config";
 import { runs } from "@wren/core";
+import { SiteCallError, type SiteClient } from "@wren/core/content";
 import { startTestPostgres, type TestPostgres, truncate } from "@wren/db/testing";
 import { FakeLlm } from "@wren/llm";
 import { eq } from "drizzle-orm";
@@ -25,6 +26,12 @@ import {
   type OpensScheduler,
 } from "../../src/restate/opens-scheduler.js";
 import {
+  CHECK_AFTER_MS,
+  makePlacementScheduler,
+  PLACEMENT_KEY,
+  type PlacementScheduler,
+} from "../../src/restate/placement-scheduler.js";
+import {
   makePostmasterScheduler,
   POSTMASTER_KEY,
   type PostmasterScheduler,
@@ -34,10 +41,12 @@ import {
   type Enrollment,
   enrollments,
   messages,
+  placementChecks,
   postmasterDays,
   threadEvents,
 } from "../../src/schema.js";
 import { SendPolicy } from "../../src/send/policy.js";
+import { ConsoleTransport } from "../../src/send/transport.js";
 import { transitionMessage } from "../../src/state.js";
 import {
   makeCompany,
@@ -77,6 +86,20 @@ const postmaster: PostmasterClient = {
 };
 /** A pixel host that refuses every credential: the pass that throws. */
 const refusingHost = async () => new Response("no", { status: 401 });
+/** Seed Gmails: one finds the copy in Promotions, one refuses (no consent), one is down. */
+const seedGmail: SiteClient = {
+  async call(site, method, path, _input, account) {
+    if (account === "refuses@example.com")
+      throw new SiteCallError(site, method, path, 403, "no consent");
+    if (account === "down@example.com") throw new SiteCallError(site, method, path, 502, "down");
+    return (
+      path.endsWith("/messages")
+        ? { messages: [{ id: "m1" }] }
+        : { labelIds: ["INBOX", "CATEGORY_PROMOTIONS"] }
+    ) as never;
+  },
+  via: async () => "api",
+};
 
 let pg: TestPostgres;
 let env: RestateTestEnvironment;
@@ -106,6 +129,15 @@ beforeAll(async () => {
         syncMs: SYNC_MS,
         tickMs: TICK_MS,
       }),
+      // No ramps: a pass only reads back copies already sent.
+      makePlacementScheduler({
+        db: pg.db,
+        policy: POLICY,
+        transport: new ConsoleTransport({ write: () => {} }),
+        fleet: { ramps: {}, fromNames: {} },
+        seeds: ["seed@example.com"],
+        sitesFor: () => seedGmail,
+      }),
     ],
     alwaysReplay: true,
   });
@@ -115,7 +147,13 @@ afterAll(async () => {
   await pg?.stop();
 });
 beforeEach(async () => {
-  await truncate(pg.db, [...TABLES, "inbox_syncs", "postmaster_days", "open_syncs"]);
+  await truncate(pg.db, [
+    ...TABLES,
+    "inbox_syncs",
+    "postmaster_days",
+    "open_syncs",
+    "placement_checks",
+  ]);
   reader.mail.clear();
 });
 const db = () => pg.db;
@@ -127,6 +165,8 @@ const disposition = () =>
 const postmasterClient = () =>
   ingress().objectClient<PostmasterScheduler>({ name: "PostmasterScheduler" }, POSTMASTER_KEY);
 const opens = () => ingress().objectClient<OpensScheduler>({ name: "OpensScheduler" }, OPENS_KEY);
+const placement = () =>
+  ingress().objectClient<PlacementScheduler>({ name: "PlacementScheduler" }, PLACEMENT_KEY);
 
 async function enrollSent(domain: string, email: string): Promise<Enrollment> {
   const company = await makeCompany(db(), { domain });
@@ -251,5 +291,34 @@ describe("OpensScheduler", () => {
     expect(run?.argv).toEqual({ daemon: true, base_url: "https://t.example" });
     expect(JSON.stringify(run?.stats)).toContain("OpenSyncError");
     expect(JSON.stringify(run)).not.toContain("wrong");
+  });
+});
+
+describe("PlacementScheduler", () => {
+  it("reads back each due copy: a landing, a refusal recorded once, an outage asked again", async () => {
+    const sentAt = new Date(Date.now() - CHECK_AFTER_MS - 3_600_000);
+    const row = (seed: string) => ({
+      sender: SENDER,
+      seed,
+      day: "2026-09-21",
+      messageId: `<${seed.split("@")[0]}@wren-automation.test>`,
+      sentAt,
+    });
+    await db()
+      .insert(placementChecks)
+      .values([row("lands@example.com"), row("refuses@example.com"), row("down@example.com")]);
+
+    const outcome = await placement().sync();
+
+    expect(outcome.error).toBeNull();
+    expect(outcome.stats).toMatchObject({ checked: 1, retrying: 1, sent: 0 });
+    expect(outcome.stats?.refused).toHaveLength(1);
+    expect(outcome.delayMs).toBeLessThanOrEqual(30 * 60_000);
+    const rows = await db().select().from(placementChecks).orderBy(placementChecks.seed);
+    expect(rows.map((r) => [r.seed, r.landed, r.detail, r.checkedAt !== null])).toEqual([
+      ["down@example.com", null, null, false],
+      ["lands@example.com", "promotions", null, true],
+      ["refuses@example.com", null, "check refused", true],
+    ]);
   });
 });

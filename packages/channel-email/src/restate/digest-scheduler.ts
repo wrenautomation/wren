@@ -4,7 +4,8 @@
  * rate where Postmaster has one, and the queue (approved openers, follow-ups
  * waiting) once a day at `DIGEST_HOUR` on the fleet's clock, then each prober IP's
  * standing (PTR, blocklists, refusals) and each mail domain's (domain lists, SPF, DKIM,
- * DMARC, MX, NS); a prober or domain in trouble also pings. Counts only; the notifier
+ * DMARC, MX, NS), and where each ramped inbox's seed copies landed; a prober or
+ * domain in trouble, or a copy in spam or missing, also pings. Counts only; the notifier
  * never carries an address we mailed or a word anyone wrote back.
  * A digest that cannot be built is skipped, not retried into the afternoon.
  */
@@ -23,6 +24,7 @@ import {
   domainStandings,
 } from "../verification/domain-health.js";
 import { proberHealth, proberLine, proberProblems } from "../verification/prober-health.js";
+import { placementLines } from "./placement-scheduler.js";
 
 export const DIGEST_KEY = "fleet";
 export const DIGEST_COMMAND = "notify digest";
@@ -38,6 +40,8 @@ export interface DigestSchedulerDeps {
   domains?: readonly DomainTarget[];
   /** Inboxes on their own ramp: one line each, with today's cap. */
   ramps?: RampMap;
+  /** Seeds are set: one inbox-placement line per ramped inbox too. */
+  placement?: boolean;
 }
 
 export interface DigestStats {
@@ -113,6 +117,12 @@ export function makeDigestScheduler(deps: DigestSchedulerDeps) {
         const { lines, domains } = await digestLines(deps.db, yesterday);
         for (const [address, ramp] of Object.entries(deps.ramps ?? {}))
           lines.push(deps.policy.describeRamp(address, ramp, now));
+        if (deps.placement) {
+          const placement = await placementLines(deps.db, Object.keys(deps.ramps ?? {}));
+          lines.push(...placement.lines);
+          if (placement.trouble.length > 0)
+            await deps.notifier.notify("inbox placement", placement.trouble.join("\n"), "warning");
+        }
         const [probers, standings] = await Promise.all([
           proberHealth(deps.db, deps.probers ?? [], new Date(now.getTime() - 24 * 3600 * 1000)),
           domainStandings(deps.domains ?? []),

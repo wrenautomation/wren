@@ -129,6 +129,10 @@ export type RampMap = Readonly<Record<string, Ramp>>;
 const rampOf = (ramps: RampMap | null | undefined, sender: string): Ramp | null =>
   ramps?.[sender.toLowerCase()] ?? null;
 
+/** A fresh Message-ID on the sender's own domain (I11.1: ours, minted before the send). */
+export const mintMessageId = (sender: string): string =>
+  `<${randomUUID().replaceAll("-", "")}@${sender.slice(sender.lastIndexOf("@") + 1)}>`;
+
 export interface SendDueOptions {
   transport: Transport;
   policy: SendPolicy;
@@ -814,7 +818,7 @@ async function sendOne(
     if (!(await pacedUnderLock(tx, freshEnrollment, freshMessage, ctx))) return { kind: "paced" };
 
     const sender = freshEnrollment.sender;
-    const messageId = `<${randomUUID().replaceAll("-", "")}@${sender.slice(sender.lastIndexOf("@") + 1)}>`;
+    const messageId = mintMessageId(sender);
     // The row keeps the words that went out, times said, and the times it offered.
     const timed = fillCallTimes(freshMessage.body, open, zone, ctx.now);
     const [sending] = await tx

@@ -704,3 +704,32 @@ export const leadChecks = pgTable(
   ],
 );
 export type LeadCheck = typeof leadChecks.$inferSelect;
+
+/** Where a seed's copy of an opener landed, read from the seed's own Gmail labels. */
+export const PLACEMENTS = ["inbox", "promotions", "spam", "missing"] as const;
+export type Placement = (typeof PLACEMENTS)[number];
+
+/**
+ * One seed copy of a sender's newest opener per send day (`PlacementScheduler`).
+ * The key is the idempotency: a retried pass finds its row and never sends twice.
+ * `detail` says why a day has no landing (`no draft yet`, a refusal).
+ */
+export const placementChecks = pgTable(
+  "placement_checks",
+  {
+    sender: varchar("sender", { length: 320 }).notNull(),
+    seed: varchar("seed", { length: 320 }).notNull(),
+    /** The fleet-clock send day. */
+    day: date("day").notNull(),
+    messageId: varchar("message_id", { length: 255 }),
+    sentAt: timestamp("sent_at", { withTimezone: true }),
+    landed: varchar("landed", { length: 16, enum: PLACEMENTS }),
+    checkedAt: timestamp("checked_at", { withTimezone: true }),
+    detail: text("detail"),
+  },
+  (t) => [
+    primaryKey({ columns: [t.sender, t.seed, t.day], name: "pk_placement_checks" }),
+    oneOf("ck_placement_checks_placement", t.landed, PLACEMENTS),
+  ],
+);
+export type PlacementCheck = typeof placementChecks.$inferSelect;

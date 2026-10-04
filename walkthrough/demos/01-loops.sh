@@ -6,7 +6,7 @@ T=$(grep '^RESTATE_AUTH_TOKEN=' .env | cut -d= -f2-)
 [ -n "$T" ] || { echo "RESTATE_AUTH_TOKEN missing in .env" >&2; exit 1; }
 U=${WREN_PROD_INGRESS_URL:-https://201m2vp6sq3x11xdaatsmjej302.env.us.restate.cloud:8080}
 for o in ContentScheduler/default ContentMetrics/default AdsWatch/default ComposeScheduler/agencies \
-         PoolScheduler/agencies PostmasterScheduler/fleet OpensScheduler/fleet DigestScheduler/fleet ReportScheduler/weekly; do
+         PoolScheduler/agencies PostmasterScheduler/fleet OpensScheduler/fleet DigestScheduler/fleet PlacementScheduler/fleet ReportScheduler/weekly; do
   printf '%-32s ' "$o"
   curl -s -X POST -H "Authorization: Bearer $T" -H 'content-type: application/json' "$U/$o/status" -d '{}' \
     | python3 -c 'import json,sys
