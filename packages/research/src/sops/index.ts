@@ -135,7 +135,7 @@ export async function screenText(
               videoMetadata: { startOffset: `${start}s`, endOffset: `${end}s`, fps: 0.5 },
             },
             {
-              text: `Transcribe in full, verbatim, every document, list, table, slide, template or other text the speaker shows on screen in this clip, each under a [h:mm:ss] heading of the video time it appears (the clip starts at ${clock(start)}). Skip the speaker's face, chat windows and anything already shown earlier in the clip. Markdown. If nothing is shown, reply with the single word none.`,
+              text: `Transcribe in full, verbatim, every document, list, table, slide, template or other text the speaker shows on screen in this clip, each under a [h:mm:ss] heading of the video time it appears (the clip starts at ${clock(start)}). Also describe every visual that carries meaning: screenshots, UI settings and their values, charts and what they show, diagrams, example emails or pages as they look, highlights, arrows, circled or crossed-out items, colors that signal good or bad, and anything the speaker points at or zooms into. Write each as a short line starting with its [h:mm:ss] then [visual], saying what it shows and why it matters. Skip gestures that point at nothing new. Skip the speaker's face, chat windows, b-roll and stock footage, and anything already shown earlier in the clip. Markdown. If nothing is shown, reply with the single word none.`,
             },
           ],
         },
@@ -211,7 +211,7 @@ export async function youtubeSource(
   let md = captionsMarkdown(info, json, priority);
   const screen = await screenText(url, info.duration ?? 0, opts.geminiKeys ?? [], fetchFn);
   if (screen)
-    md += `\n## On screen\n\nWhat the video showed (documents, slides, tables), read from the frames; the transcript above has only the speech.\n\n${screen}\n`;
+    md += `\n## On screen\n\nWhat the video showed (documents, slides, tables, visuals), read from the frames; the transcript above has only the speech.\n\n${screen}\n`;
   return { name: `youtube-${info.id}.md`, md };
 }
 
