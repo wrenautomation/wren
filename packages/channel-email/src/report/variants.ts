@@ -7,7 +7,7 @@
 import type { Queryable } from "@wren/db";
 import { sql } from "drizzle-orm";
 import { parseTemplate } from "../outreach/authoring.js";
-import type { Block, Option } from "../outreach/templates.js";
+import { optionText, variantPoints } from "../outreach/templates.js";
 
 export interface VariantOutcome {
   readonly niche: string;
@@ -27,28 +27,13 @@ export interface VariantOutcome {
   readonly interested: number;
 }
 
-const optionText = (o: Option) =>
-  o
-    .map((b) => (b.kind === "text" ? b.text : `{${b.key}}`))
-    .join("")
-    .trim();
-
-function* points(
-  blocks: readonly Block[],
-): Generator<{ name: string; options: readonly Option[] }> {
-  for (const b of blocks) {
-    if (b.kind === "variants") yield b;
-    else if (b.kind === "group") yield* points(b.blocks);
-  }
-}
-
 /** Every option's text by variant name, and which names sit in the subject. */
 export function variantTexts(name: string, source: string) {
   const tpl = parseTemplate(name, source);
   const texts = new Map<string, string[]>();
   const subject = new Set<string>();
-  for (const p of points(tpl.subject ?? [])) subject.add(p.name);
-  for (const p of points([...(tpl.subject ?? []), ...tpl.body]))
+  for (const p of variantPoints(tpl.subject ?? [])) subject.add(p.name);
+  for (const p of variantPoints([...(tpl.subject ?? []), ...tpl.body]))
     texts.set(p.name, p.options.map(optionText));
   return { texts, subject };
 }

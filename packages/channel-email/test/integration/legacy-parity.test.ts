@@ -50,8 +50,11 @@ const ADDED = {
     "documents.html_key",
     "documents.tel_hrefs",
     "companies.linkedin_url",
+    // 2026-10-04: copy experiments; a genome's lineage.
+    "template_versions.parent_version",
+    "template_versions.experiment_id",
   ]),
-  constraints: new Set(["uq_messages_link_code"]),
+  constraints: new Set(["uq_messages_link_code", "fk_template_versions_experiment_id_experiments"]),
   indexes: new Set([
     "ix_enrollments_offer",
     "uq_messages_link_code",
@@ -74,6 +77,7 @@ const ADDED = {
     "ix_documents_company_fetched",
     "ix_leads_company_verified",
     "ix_people_company_created",
+    "ix_template_versions_experiment_id",
   ]),
   /** Legacy views wren grew (lead recycling, recruiting ranks): still present, bodies free to differ. */
   views: new Set(["campaign_funnel", "enrollment_outcomes", "person_facts"]),

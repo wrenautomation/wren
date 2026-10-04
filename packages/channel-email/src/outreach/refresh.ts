@@ -19,11 +19,13 @@ import { CALL_TIMES } from "../send/call-times.js";
 import { toSource } from "./authoring.js";
 import { linkFacts, mintLinkCode, mintOpenToken, signed } from "./compose.js";
 import { type Facts, factsFor, factsForCompany } from "./facts.js";
-import { MissingFactError, render, type Template } from "./templates.js";
+import { type Allocation, MissingFactError, render, type Template } from "./templates.js";
 
 export interface RefreshOptions {
   readonly niche: string;
   readonly templates: ReadonlyMap<string, Template>;
+  /** Per template under an experiment: the shares its loci are drawn by. */
+  readonly allocations?: ReadonlyMap<string, Allocation>;
   readonly factsView: string | null;
   /** Each offer's `offer.*` facts, by offer id. */
   readonly offerFacts: ReadonlyMap<string, Readonly<Record<string, string>>>;
@@ -142,6 +144,7 @@ export async function refreshQueue(db: Queryable, opts: RefreshOptions): Promise
                   ...linkFacts(opts.site, e.offer, facts.values, offerFacts, linkCode),
                 },
                 e.personId !== null ? `person:${e.personId}` : `company:${e.companyId}`,
+                opts.allocations?.get(tpl.name),
               )
             : null;
       } catch (err) {

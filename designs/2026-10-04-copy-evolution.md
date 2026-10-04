@@ -116,7 +116,7 @@ Every event is one row: start, seed, snapshot, strategist call, candidate, check
 - **channel-email.** The email binding: the stats query, genomes as template sources, the compose hook, the tiers' prompts, the `Evolution` loop, the records and the CLI.
 - **`Evolution`** is a loop on the loop factory. It ticks daily at 08:00 ET, after the night's reply sync. For each running experiment it snapshots, sets shares, checks convergence and guards, and when due runs the strategist, writer, checker and judge, then queues candidates. Every step runs in `ctx.run`.
 
-## Data (migration 0073)
+## Data (migration 0075)
 
 - `experiments`: id, niche, template, state (`running`, `paused`, `settled`, `stopped`), live_version, file_version (the last file version imported), settings jsonb, started_at, stopped_at, stop_reason.
 - `experiment_alleles`: experiment_id, locus, allele, text, state (`candidate`, `live`, `retired`, `rejected`), origin (`seed`, `mutation`, `manual`, `import`), journal_id, angle, judge_score, born_version, retired_reason, decided_by, decided_at, created_at.
@@ -148,7 +148,7 @@ In the Outbound app, on the console standard:
 
 1. `@wren/experiments`: the registries, selection, fitness, guards, convergence, seeded RNG. Tests on synthetic counts.
 2. Named loci in the parser (`[[#name …]]`), with allele hashing. Existing templates keep their versions until named.
-3. Migration 0073. The stats query (recipient unit, thread credit), parsing each version's source once.
+3. Migration 0075. The stats query (recipient unit, thread credit), parsing each version's source once.
 4. `render` allocation, `provenance.snapshot`, compose reading the live genome. A template with no experiment renders byte for byte as before (test).
 5. The `Evolution` loop with no LLM: snapshot, shares, retire, settle, file import. CLI `start`, `status`, `tick`, `switch`, `pause`, `resume`, `stop`.
 
@@ -185,3 +185,13 @@ Experiments, Copy candidates, lineage and journal, settings form. Screenshots at
 - 2026-10-04: The recipient is the unit, and an outcome credits every allele the recipient was sent. A reply to the follow-up still says something about the opener's subject.
 - 2026-10-04: Shares live outside the template, so a snapshot never makes a new version. Allele keys hash the words, so counts survive edits to other loci.
 - 2026-10-04: Cohere runs the default models: William named it for simple tasks, and the prod Lambda can't run the free claude-code path.
+- 2026-10-04 (E1): Defaults the doc left open: epsilon 0.1; `weighted` fitness weights reply 1, interested 2, booked 4, divided by their sum; `lexicographic` scores by the first of interested, replies, opens that the locus has any of; `maxAlleles` 12; `guards` is `{negativeRatio}`. P(best) is grid quadrature over the Beta posteriors, not seeded draws, so a tick is exact and repeatable.
+- 2026-10-04 (E1): Outcomes. Booked is a booked call invite or a `meeting_booked` disposition; reactivation handoffs stay out (channel-email can't import a product). Negatives are `not_interested`, unsubscribes and complaints. Sends made before the experiment started count when they carry the same option text: the allele is the words.
+- 2026-10-04 (E1): An automatic stop (`settled` or `budget`) sets state `settled`: the genome and its last shares keep rendering. Only `wren evolve stop` sets `stopped` and hands the template back to the file. `resume` works from paused or settled. `budget` fires when every unsettled locus is spent.
+- 2026-10-04 (E1): Start writes a genome with every point named. Picks don't move: unnamed points were already auto-named `v1..vN` by position, and a pinned digest test guards render byte for byte. `[[#` at the start of a point is reserved for the name.
+- 2026-10-04 (E1): File import. A point matches by name, else by a shared option, else becomes a new locus. New options go live with origin `import` (the doc said `manual`; `import` tells the two apart). Options dropped from the file retire. An option the engine retired stays retired unless the file brings it back as new text.
+- 2026-10-04 (E1): Compose and the queue refresh read the genome through one overlay (`experimentTemplates`). A tick that changes a genome refreshes that niche's queue at once, so no draft keeps a retired allele. The loop skips an experiment ticked in the last 20 hours, so a retried step can't tick twice. One non-stopped experiment per template is a partial unique index.
+- 2026-10-04 (E1): `Evolution/fleet` binds always and idles with nothing running; it starts by hand like the other fleet loops. `wren evolve tick` runs locally and prints a reminder to refresh the queue.
+- 2026-10-04 (E1): The migration is 0075 (`copy_experiments`): unit economics took 0073 and the client look 0074. `template_versions.experiment_id` gets a partial index, since every foreign key is indexed.
+- 2026-10-04 (E2): The simulator ticks daily like the loop. A recipient succeeds with the mean of its picked alleles' true rates, and one outcome credits every allele, as on real threads. Each run deals the rates to each locus in a shuffled order, the same truth for every strategy. A retired allele is replaced the same day by one whose rate is drawn from Beta(prior × mean rate, prior × (1 − mean rate)), up to `maxAlleles`; `retire_only` and `manual` replace nothing. Regret is expected, not sampled: the best rate present at each locus minus the picked one, summed per recipient. First run (3 loci × 4 alleles, 10 a day, 200 days): `epsilon` and `thompson` lose about 20 to 30% fewer successes than `even`; `ucb1` stays near `even`, since its bound is wide against rates near 2%.
+- 2026-10-04 (E2): The migration became 0075: the client look took 0074 on main first. Regenerated with drizzle-kit, same SQL.

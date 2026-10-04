@@ -71,16 +71,43 @@ export function hashPick(variant: string, eligible: readonly number[], seed: str
 }
 
 /** Choose one of `eligible` (indices into the variant's options). */
+/**
+ * A draw along an experiment's shares: u from the same digest as hashPick, over 2^256,
+ * walked along the eligible options' cumulative shares. The same seed and shares always
+ * give the same option. No share on any eligible option: the hash spread.
+ */
+export function sharePick(
+  variant: string,
+  eligible: readonly number[],
+  seed: string,
+  shares: readonly number[],
+): number {
+  const weights = eligible.map((i) => shares[i] ?? 0);
+  const total = weights.reduce((t, w) => t + w, 0);
+  if (!(total > 0)) return hashPick(variant, eligible, seed);
+  const digest = createHash("sha256").update(`${seed}\x00${variant}`, "utf8").digest("hex");
+  const u = (Number(BigInt(`0x${digest}`)) / 2 ** 256) * total;
+  let run = 0;
+  for (const [k, w] of weights.entries()) {
+    run += w;
+    if (u < run) return eligible[k] as number;
+  }
+  return eligible.at(-1) as number;
+}
+
 export function pickOption(
   picker: Picker,
   variant: string,
   eligible: readonly number[],
   seed: string,
   facts: FactValues,
+  shares?: readonly number[],
 ): number {
+  const spread = () =>
+    shares ? sharePick(variant, eligible, seed, shares) : hashPick(variant, eligible, seed);
   switch (picker.kind) {
     case "hash":
-      return hashPick(variant, eligible, seed);
+      return spread();
     case "rule": {
       for (const r of picker.rules) {
         const value = factText(facts[r.fact]);
@@ -89,7 +116,7 @@ export function pickOption(
           return r.option;
         }
       }
-      return hashPick(variant, eligible, seed);
+      return spread();
     }
     case "fixed": {
       const choice = picker.choices[variant];

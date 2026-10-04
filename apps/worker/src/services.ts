@@ -59,6 +59,7 @@ import {
   makeDigestScheduler,
   makeDisposition,
   makeEmailConsole,
+  makeEvolution,
   makeInboxScheduler,
   makeOpensScheduler,
   makePlacementScheduler,
@@ -471,6 +472,8 @@ export async function buildServices(
   }
   // Deploy calls it once the new version is registered: queued mail takes the new templates.
   services.push(makeQueueRefresh({ db, campaigns, trackOpens: settings.openTracking }));
+  // Copy experiments tick daily; with none running a pass does nothing.
+  services.push(makeEvolution({ db, campaigns, policy, trackOpens: settings.openTracking }));
   // The pool-feeder walks the research chain per niche; what may spend is a setting.
   services.push(
     makePoolScheduler({

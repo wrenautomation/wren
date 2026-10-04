@@ -18,6 +18,7 @@ import { type Notifier, plural } from "@wren/core/notify";
 import { makeLoopObject, runPass } from "@wren/core/restate";
 import type { Db } from "@wren/db";
 import { sql } from "drizzle-orm";
+import { experimentTemplates } from "../evolve/experiments.js";
 import { type ComposeStats, compose } from "../outreach/compose.js";
 import { type EnrollmentRule, ruleCovers } from "../outreach/plan.js";
 import { type RefreshStats, refreshQueue } from "../outreach/refresh.js";
@@ -121,16 +122,25 @@ export function dailyOpenerCapacity(
 }
 
 /** One top-up for `campaign`, as a plain function so an operator command and the loop agree. */
-/** The campaign's queue re-rendered from the templates this deployment carries. */
-export function refreshCampaign(
+/**
+ * The campaign's queue re-rendered from the templates this deployment carries, each
+ * experiment's live genome in place of its file.
+ */
+export async function refreshCampaign(
   db: Db,
   campaign: Campaign,
   trackOpens: boolean,
   staleOnly = false,
 ): Promise<RefreshStats> {
+  const { templates, allocations } = await experimentTemplates(
+    db,
+    campaign.niche,
+    campaign.templates,
+  );
   return refreshQueue(db, {
     niche: campaign.niche,
-    templates: campaign.templates,
+    templates,
+    allocations,
     factsView: campaign.factsView,
     offerFacts: campaign.offerFacts,
     site: campaign.site ?? null,
@@ -185,6 +195,11 @@ export async function topUp(
   const sweeps = AUDIENCES.flatMap((audience) =>
     campaign.plan.filter((rule) => ruleCovers(rule, audience)).map((rule) => ({ rule, audience })),
   );
+  const { templates, allocations } = await experimentTemplates(
+    db,
+    campaign.niche,
+    campaign.templates,
+  );
   for (const { rule, audience } of sweeps) {
     if (remaining <= 0) break;
     const sequence = campaign.sequences.get(rule.sequence);
@@ -198,7 +213,8 @@ export async function topUp(
       offer,
       offerFacts: campaign.offerFacts.get(offer) ?? {},
       site: campaign.site ?? null,
-      templates: campaign.templates,
+      templates,
+      allocations,
       verificationHorizonDays: opts.verificationHorizonDays,
       senders: campaign.senders,
       signatures: campaign.signatures,

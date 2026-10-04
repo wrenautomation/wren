@@ -17,7 +17,7 @@ Reads go straight to Postgres; writes that are one-row operator facts (approve, 
 
 ## Shape
 
-- `main.ts:37`–`90`: `status` (reads content, `packages/content/src/status.ts`), `db check`, `tokens`, `report weekly`; `email.ts`, `review.ts` (drafts, approve, reject, edit, stop, preview, reply, event), `content.ts`, `ads.ts`, `sms.ts`, `fetch.ts`, `books.ts` (`wren books`, registered at `main.ts:106`)
+- `main.ts:37`–`90`: `status` (reads content, `packages/content/src/status.ts`), `db check`, `tokens`, `report weekly`; `email.ts`, `review.ts` (drafts, approve, reject, edit, stop, preview, reply, event), `content.ts`, `ads.ts`, `sms.ts`, `fetch.ts`, `books.ts` (`wren books`, registered at `main.ts:106`), `evolve.ts` (`wren evolve`, copy experiments)
 - `walkthrough/demos/prod.sh` points one command at prod, read-only
 - `~/.local/bin/wren` links to `bin/wren` (outside the repo)
 

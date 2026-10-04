@@ -12,6 +12,7 @@ A catalog, not a waterfall. Each row names the cards whose **If you change this*
 | what counts as suppressed | [[leads/suppression]] | [[processes/inbox-sync]], [[processes/sms-tick]], `packages/channel-email/src/guards.ts` |
 | a research stage or its spend | [[processes/pool-feed]] | [[research/enrichment]], [[research/contact-candidate]], [[research/verification]], [[research/lead-check]], [[platform/settings]] (`WREN_POOL_MODEL_STAGES`) |
 | an `.email` file or a `{key}` | [[email/template]] | [[email/sequence]], [[processes/compose]] |
+| a copy experiment, its settings or the bandit | [[email/experiment]] | [[processes/evolution]], [[processes/compose]], [[email/template]], `packages/experiments` |
 | a sequence, arm or plan rule | [[email/sequence]] | [[platform/niche]], [[processes/compose]] |
 | who sends, from which inbox | [[email/roster]] | [[email/send-policy]], [[processes/deploy]] (SSM roster), [[platform/loop-object]] (keys) |
 | caps, windows, ramp | [[email/send-policy]] | [[processes/send-tick]], [[processes/compose]] |

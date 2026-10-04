@@ -3,6 +3,7 @@ export * from "./compose-scheduler.js";
 export * from "./console.js";
 export * from "./digest-scheduler.js";
 export * from "./disposition.js";
+export * from "./evolution.js";
 export * from "./inbox-scheduler.js";
 export * from "./opens-scheduler.js";
 export * from "./placement-scheduler.js";

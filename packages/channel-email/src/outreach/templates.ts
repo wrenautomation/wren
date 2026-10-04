@@ -37,6 +37,8 @@ export interface VariantsBlock {
   readonly name: string;
   readonly options: readonly Option[];
   readonly picker: Picker;
+  /** Authored as `[[#name ...]]`: the name is part of the version and survives edits. */
+  readonly named?: true;
 }
 export interface GroupBlock {
   readonly kind: "group";
@@ -79,6 +81,7 @@ export function variants(
   name: string,
   options: readonly OptionInput[],
   picker: Picker = HASH_PICK,
+  named = false,
 ): VariantsBlock {
   if (!name) throw new Error("a Variants block needs a name");
   const normalized = options.map(asOption);
@@ -93,7 +96,7 @@ export function variants(
       }
     }
   }
-  return { kind: "variants", name, options: normalized, picker };
+  return { kind: "variants", name, options: normalized, picker, ...(named ? { named } : {}) };
 }
 
 export function group(blocks: readonly (TextBlock | FieldBlock | VariantsBlock)[]): GroupBlock {
@@ -104,14 +107,26 @@ export function group(blocks: readonly (TextBlock | FieldBlock | VariantsBlock)[
   return { kind: "group", blocks: [...blocks] };
 }
 
-function* variantNames(blocks: readonly Block[]): Generator<string> {
+/** Every variant point, in document order. */
+export function* variantPoints(blocks: readonly Block[]): Generator<VariantsBlock> {
   for (const block of blocks) {
-    if (block.kind === "variants") yield block.name;
-    else if (block.kind === "group") yield* variantNames(block.blocks);
+    if (block.kind === "variants") yield block;
+    else if (block.kind === "group") yield* variantPoints(block.blocks);
   }
 }
 
-/** Structural projection: tagged AUTHORED content only — never a variant's auto-name. */
+/** An option's words with facts as `{key}`, trimmed: what an allele is. */
+export const optionText = (o: Option): string =>
+  o
+    .map((b) => (b.kind === "text" ? b.text : `{${b.key}}`))
+    .join("")
+    .trim();
+
+/** An allele's key: the same words are the same allele in any version. */
+export const alleleKey = (o: Option): string =>
+  createHash("sha256").update(optionText(o), "utf8").digest("hex").slice(0, 12);
+
+/** Structural projection: tagged AUTHORED content only — never a variant's auto-name, only a written one. */
 function project(block: Block): PyValue {
   switch (block.kind) {
     case "text":
@@ -119,7 +134,9 @@ function project(block: Block): PyValue {
     case "field":
       return ["f", block.key, block.fallback];
     case "variants":
-      return ["v", block.options.map((option) => option.map(project))];
+      return block.named
+        ? ["v", block.options.map((option) => option.map(project)), block.name]
+        : ["v", block.options.map((option) => option.map(project))];
     case "group":
       return ["g", block.blocks.map(project)];
   }
@@ -141,7 +158,7 @@ export function template(
     throw new Error(`template ${pyReprStr(name)}: empty subject — use None to ride the thread`);
   }
   const seen = new Set<string>();
-  for (const v of variantNames([...(subject ?? []), ...body])) {
+  for (const { name: v } of variantPoints([...(subject ?? []), ...body])) {
     if (seen.has(v)) {
       throw new Error(`template ${pyReprStr(name)}: variant ${pyReprStr(v)} appears twice`);
     }
@@ -160,6 +177,8 @@ export interface RenderProvenance {
   readonly version: string;
   readonly seed: string;
   readonly picks: Readonly<Record<string, number>>;
+  /** The experiment snapshot whose shares drew the picks; absent without an experiment. */
+  readonly snapshot?: number;
   readonly fields: readonly string[];
   readonly fallbacks: readonly string[];
 }
@@ -183,15 +202,33 @@ function merge(into: State, from: State): void {
   for (const f of from.fallbacks) into.fallbacks.add(f);
 }
 
+/** A running experiment's shares for one template: by locus name, one share per option. */
+export interface Allocation {
+  readonly snapshot: number;
+  readonly shares: Readonly<Record<string, readonly number[]>>;
+}
+
+/** What a variant point draws with: the template-scoped seed and any experiment's shares. */
+interface Draw {
+  readonly seed: string;
+  readonly shares: Allocation["shares"];
+}
+
 /**
- * Assemble one email for one recipient. Pure: the same template, facts and seed always
- * produce the same text, so a stored draft can be re-rendered and diffed instead of trusted.
+ * Assemble one email for one recipient. Pure: the same template, facts, seed and
+ * allocation always produce the same text, so a stored draft can be re-rendered and
+ * diffed instead of trusted.
  */
-export function render(tpl: Template, facts: FactValues, seed: string): Rendered {
+export function render(
+  tpl: Template,
+  facts: FactValues,
+  seed: string,
+  allocation?: Allocation,
+): Rendered {
   if (!seed) throw new Error("render needs a non-empty seed (the recipient identity)");
   // Scoped per template so one recipient's picks across a sequence don't all land on the
   // same option index just because every file's first variant point is auto-named "v1".
-  const pickSeed = `${tpl.name}\x00${seed}`;
+  const pickSeed: Draw = { seed: `${tpl.name}\x00${seed}`, shares: allocation?.shares ?? {} };
   const state = newState();
   const body = tidy(renderBlocks(tpl.body, facts, pickSeed, state));
   if (!body) throw new MissingFactError(`template ${pyReprStr(tpl.name)}: the body rendered empty`);
@@ -210,6 +247,7 @@ export function render(tpl: Template, facts: FactValues, seed: string): Rendered
       version: tpl.version,
       seed,
       picks: Object.fromEntries(state.picks),
+      ...(allocation ? { snapshot: allocation.snapshot } : {}),
       fields: [...state.fields].sort(),
       fallbacks: [...state.fallbacks].sort(),
     },
@@ -219,13 +257,13 @@ export function render(tpl: Template, facts: FactValues, seed: string): Rendered
 function renderBlocks(
   blocks: readonly Block[],
   facts: FactValues,
-  pickSeed: string,
+  pickSeed: Draw,
   state: State,
 ): string {
   return blocks.map((b) => renderBlock(b, facts, pickSeed, state)).join("");
 }
 
-function renderBlock(block: Block, facts: FactValues, pickSeed: string, state: State): string {
+function renderBlock(block: Block, facts: FactValues, pickSeed: Draw, state: State): string {
   switch (block.kind) {
     case "text":
       return block.text;
@@ -248,7 +286,14 @@ function renderBlock(block: Block, facts: FactValues, pickSeed: string, state: S
           `variant ${pyReprStr(block.name)}: every option needs a missing fact`,
         );
       }
-      const pick = pickOption(block.picker, block.name, eligible, pickSeed, facts);
+      const pick = pickOption(
+        block.picker,
+        block.name,
+        eligible,
+        pickSeed.seed,
+        facts,
+        pickSeed.shares[block.name],
+      );
       if (!eligible.includes(pick)) {
         throw new Error(`variant ${pyReprStr(block.name)}: picker chose ineligible option ${pick}`);
       }

@@ -1,11 +1,20 @@
 /** A file is the email; four marks parse into the block tree, anything else is refused with name and line. */
+import { createHash } from "node:crypto";
 import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
 import { AuthoringError, loadTemplates, parseTemplate, toSource } from "./authoring.js";
 import { enumerateRenders, fieldKeys, placeholderFacts, variantCounts } from "./preview.js";
-import { field, MissingFactError, render, text } from "./templates.js";
+import {
+  alleleKey,
+  field,
+  MissingFactError,
+  optionText,
+  render,
+  text,
+  variantPoints,
+} from "./templates.js";
 
 const FACTS = { first_name: "Jane", company_name: "Acme", "company.segment": "retirement" };
 const bodies = (t: ReturnType<typeof parseTemplate>, n = 20) =>
@@ -255,5 +264,90 @@ describe("toSource", () => {
     expect(toSource(t)).toBe(
       "subject: Hi {company_name}\n\n[[a | b]] {first_name|there}((, {x})).\n",
     );
+  });
+});
+
+describe("named loci", () => {
+  const plain =
+    "subject: [[Quick question | A question]] about {company_name}\n\n[[Hi | Hey]] {first_name|there}.";
+  it("keeps an unnamed template's version and auto-names", () => {
+    const t = parseTemplate("opener", plain);
+    // The version main computed for this source before named loci existed.
+    expect(t.version).toBe("13b78200b48e");
+    expect([...variantPoints(t.body)].map((p) => [p.name, p.named])).toEqual([["v2", undefined]]);
+  });
+  it("parses a name, counts it in the auto-names, and changes the version", () => {
+    const t = parseTemplate("opener", plain.replace("[[Hi", "[[#greet Hi"));
+    expect([...variantPoints([...(t.subject ?? []), ...t.body])].map((p) => p.name)).toEqual([
+      "v1",
+      "greet",
+    ]);
+    expect(t.version).not.toBe(parseTemplate("opener", plain).version);
+    expect(toSource(t)).toContain("[[#greet Hi | Hey]]");
+    expect(parseTemplate(t.name, toSource(t))).toEqual(t);
+  });
+  it("nameAll writes every point's name and picks stay the same", () => {
+    const t = parseTemplate("opener", plain);
+    const named = parseTemplate("opener", toSource(t, { nameAll: true }));
+    expect(toSource(named)).toContain("[[#v1 Quick question | A question]]");
+    for (const seed of ["person:1", "person:2", "person:3", "company:9"]) {
+      const facts = { company_name: "Acme", first_name: "Jane" };
+      expect(render(named, facts, seed).subject).toBe(render(t, facts, seed).subject);
+      expect(render(named, facts, seed).provenance.picks).toEqual(
+        render(t, facts, seed).provenance.picks,
+      );
+    }
+  });
+  it("refuses a bad name", () => {
+    expect(() => parseTemplate("opener", "[[#Greet Hi | Hey]] there")).toThrow(AuthoringError);
+    expect(() => parseTemplate("opener", "[[#greet]] there")).toThrow(AuthoringError);
+  });
+  it("an allele's key is its words, facts as {key}", () => {
+    const a = parseTemplate("a", "[[Hi {first_name} | Hey]] x");
+    const b = parseTemplate("b", "Intro. [[#hook Yo | Hi {first_name|there}]] x");
+    const [pa] = variantPoints(a.body);
+    const [pb] = variantPoints(b.body);
+    expect(alleleKey(pa?.options[0] ?? [])).toBe(alleleKey(pb?.options[1] ?? []));
+    expect(alleleKey(pa?.options[0] ?? [])).toMatch(/^[0-9a-f]{12}$/);
+    expect(optionText(pb?.options[1] ?? [])).toBe("Hi {first_name}");
+  });
+});
+
+describe("render allocation", () => {
+  it("renders exactly as before with no allocation (digest taken from main's code)", () => {
+    const plain = parseTemplate(
+      "opener",
+      "subject: [[Quick question | A question | One question]] about {company_name}\n\n" +
+        "[[Hi | Hey | Hello]] {first_name|there}.\n\n" +
+        "[[We build | I build]] [[automations | tools | systems]] for {company_name}.",
+    );
+    const out = Array.from({ length: 50 }, (_, i) =>
+      render(plain, { company_name: "Acme", first_name: i % 2 ? "Jo" : "" }, `person:${i}`),
+    );
+    expect(plain.version).toBe("1aa4154f5085");
+    expect(createHash("sha256").update(JSON.stringify(out)).digest("hex").slice(0, 16)).toBe(
+      "80e943baeebd4e17",
+    );
+  });
+  const t = parseTemplate("opener", "subject: [[#s A | B | C]] for {company_name}\n\nBody.");
+  const facts = { company_name: "Acme" };
+  const seeds = Array.from({ length: 600 }, (_, i) => `person:${i}`);
+  it("draws along the shares, the same seed giving the same pick", () => {
+    const allocation = { snapshot: 7, shares: { s: [0.8, 0.2, 0] } };
+    const picks = seeds.map((s) => render(t, facts, s, allocation).provenance.picks.s);
+    expect(picks.filter((p) => p === 2)).toHaveLength(0);
+    const first = picks.filter((p) => p === 0).length / seeds.length;
+    expect(first).toBeGreaterThan(0.72);
+    expect(first).toBeLessThan(0.88);
+    expect(render(t, facts, "person:5", allocation)).toEqual(
+      render(t, facts, "person:5", allocation),
+    );
+    expect(render(t, facts, "person:5", allocation).provenance.snapshot).toBe(7);
+  });
+  it("without an allocation renders exactly as before, with no snapshot key", () => {
+    const r = render(t, facts, "person:5");
+    expect(Object.keys(r.provenance)).not.toContain("snapshot");
+    expect(r).toEqual(render(t, facts, "person:5", undefined));
+    expect(render(t, facts, "person:5", { snapshot: 1, shares: {} }).subject).toBe(r.subject);
   });
 });

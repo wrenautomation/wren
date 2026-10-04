@@ -11,6 +11,8 @@
  * - `{key}` fills a fact; missing -> the draft is refused (never "Hi ,").
  * - `{key|fallback}` renders the fallback when the fact is missing (`{key|}` renders nothing).
  * - `[[a | b | c]]` is a variant point, auto-named v1, v2, ... in document order.
+ *   `[[#hook a | b]]` names it (a lowercase name, then a space): the name is its locus key
+ *   for experiments, and it stays put when points are added before it.
  * - `((...))` is an optional segment: vanishes when a fact inside is missing.
  *
  * A file without a leading `subject:` line is a thread-riding follow-up. A line starting
@@ -293,8 +295,21 @@ function parseVariant(
   counter: Counter,
   lineOf: LineOf,
 ): VariantsBlock {
+  counter.n += 1;
+  let locus: string | null = null;
+  let list = content;
+  if (content.startsWith("#")) {
+    const m = /^#([a-z][a-z0-9_]*) /.exec(content);
+    if (!m) {
+      throw new AuthoringError(
+        `${name}:${lineOf(line)}: a named point is [[#name a | b]]: a lowercase name, then a space`,
+      );
+    }
+    locus = m[1] as string;
+    list = content.slice(m[0].length);
+  }
   const options: (TextBlock | FieldBlock)[][] = [];
-  for (const raw of splitOptions(content)) {
+  for (const raw of splitOptions(list)) {
     const option = strip(raw);
     if (!option) {
       throw new AuthoringError(
@@ -308,8 +323,9 @@ function parseVariant(
       )[],
     );
   }
-  counter.n += 1;
-  return variants(`v${counter.n}`, options);
+  return locus === null
+    ? variants(`v${counter.n}`, options)
+    : variants(locus, options, undefined, true);
 }
 
 /** Split on | at the top level only — a | inside {key|fallback} belongs to the field. */
@@ -329,25 +345,32 @@ function splitOptions(content: string): string[] {
   return parts;
 }
 
-/** The inverse of parseTemplate: the minimal authoring text that reparses to an equal template. */
-export function toSource(tpl: Template): string {
+/**
+ * The inverse of parseTemplate: the minimal authoring text that reparses to an equal
+ * template. `nameAll` writes every point's name (`[[#v1 ...]]`), so its locus keeps its key.
+ */
+export function toSource(tpl: Template, opts: { nameAll?: boolean } = {}): string {
+  const all = opts.nameAll ?? false;
   let source = "";
-  if (tpl.subject !== null) source += `subject: ${sourceBlocks(tpl.subject)}\n\n`;
-  source += sourceBlocks(tpl.body);
+  if (tpl.subject !== null) source += `subject: ${sourceBlocks(tpl.subject, all)}\n\n`;
+  source += sourceBlocks(tpl.body, all);
   return source.endsWith("\n") ? source : `${source}\n`;
 }
 
-const sourceBlocks = (blocks: readonly Block[]) => blocks.map(sourceBlock).join("");
+const sourceBlocks = (blocks: readonly Block[], all: boolean): string =>
+  blocks.map((b) => sourceBlock(b, all)).join("");
 
-function sourceBlock(block: Block): string {
+function sourceBlock(block: Block, all: boolean): string {
   switch (block.kind) {
     case "text":
       return block.text;
     case "field":
       return block.fallback === null ? `{${block.key}}` : `{${block.key}|${block.fallback}}`;
     case "variants":
-      return `[[${block.options.map(sourceBlocks).join(" | ")}]]`;
+      return `[[${block.named || all ? `#${block.name} ` : ""}${block.options
+        .map((o) => sourceBlocks(o, all))
+        .join(" | ")}]]`;
     case "group":
-      return `((${sourceBlocks(block.blocks)}))`;
+      return `((${sourceBlocks(block.blocks, all)}))`;
   }
 }

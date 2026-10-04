@@ -186,6 +186,42 @@ export const verifications = pgTable(
   ],
 );
 
+/** Copy experiments (designs/2026-10-04-copy-evolution.md): one template under evolution. */
+export const EXPERIMENT_STATES = ["running", "paused", "settled", "stopped"] as const;
+export type ExperimentState = (typeof EXPERIMENT_STATES)[number];
+export const EXPERIMENT_STOP_REASONS = ["settled", "budget", "stopped"] as const;
+export const ALLELE_STATES = ["candidate", "live", "retired", "rejected"] as const;
+export type AlleleState = (typeof ALLELE_STATES)[number];
+export const ALLELE_ORIGINS = ["seed", "mutation", "manual", "import"] as const;
+export type AlleleOrigin = (typeof ALLELE_ORIGINS)[number];
+
+export const experiments = pgTable(
+  "experiments",
+  {
+    id: serial("id").notNull(),
+    niche: varchar("niche", { length: 32 }).notNull(),
+    template: varchar("template", { length: 64 }).notNull(),
+    state: varchar("state", { length: 16, enum: EXPERIMENT_STATES }).notNull(),
+    /** The genome compose renders: a template_versions version. */
+    liveVersion: varchar("live_version", { length: 12 }).notNull(),
+    /** The file's version last imported, so a file edit shows up as a new one. */
+    fileVersion: varchar("file_version", { length: 12 }).notNull(),
+    settings: jsonb("settings").notNull(),
+    startedAt: timestamp("started_at", { withTimezone: true }).defaultNow().notNull(),
+    stoppedAt: timestamp("stopped_at", { withTimezone: true }),
+    stopReason: varchar("stop_reason", { length: 16, enum: EXPERIMENT_STOP_REASONS }),
+  },
+  (t) => [
+    primaryKey({ columns: [t.id], name: "pk_experiments" }),
+    // At most one experiment holds a template at a time.
+    uniqueIndex("uq_experiments_open_template")
+      .on(t.niche, t.template)
+      .where(sql`(state)::text <> 'stopped'::text`),
+    oneOf("ck_experiments_state", t.state, EXPERIMENT_STATES),
+    oneOf("ck_experiments_stop_reason", t.stopReason, EXPERIMENT_STOP_REASONS),
+  ],
+);
+
 export const templateVersions = pgTable(
   "template_versions",
   {
@@ -194,13 +230,113 @@ export const templateVersions = pgTable(
     template: varchar("template", { length: 64 }).notNull(),
     version: varchar("version", { length: 12 }).notNull(),
     source: text("source").notNull(),
+    /** The genome this one was made from; null for a file's version. */
+    parentVersion: varchar("parent_version", { length: 12 }),
+    experimentId: integer("experiment_id"),
     createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
   },
   (t) => [
     primaryKey({ columns: [t.id], name: "pk_template_versions" }),
     unique("uq_template_versions_niche").on(t.niche, t.template, t.version),
+    foreignKey({
+      columns: [t.experimentId],
+      foreignColumns: [experiments.id],
+      name: "fk_template_versions_experiment_id_experiments",
+    }),
+    index("ix_template_versions_experiment_id")
+      .using("btree", t.experimentId.asc().nullsLast().op("int4_ops"))
+      .where(sql`(experiment_id IS NOT NULL)`),
   ],
 );
+
+/** One option at one locus of an experiment, keyed by the hash of its words. */
+export const experimentAlleles = pgTable(
+  "experiment_alleles",
+  {
+    id: serial("id").notNull(),
+    experimentId: integer("experiment_id").notNull(),
+    locus: varchar("locus", { length: 64 }).notNull(),
+    allele: varchar("allele", { length: 12 }).notNull(),
+    text: text("text").notNull(),
+    state: varchar("state", { length: 16, enum: ALLELE_STATES }).notNull(),
+    origin: varchar("origin", { length: 16, enum: ALLELE_ORIGINS }).notNull(),
+    /** The journal row that made it. */
+    journalId: integer("journal_id"),
+    angle: varchar("angle", { length: 32 }),
+    judgeScore: doublePrecision("judge_score"),
+    bornVersion: varchar("born_version", { length: 12 }),
+    retiredReason: varchar("retired_reason", { length: 32 }),
+    decidedBy: varchar("decided_by", { length: 32 }),
+    decidedAt: timestamp("decided_at", { withTimezone: true }),
+    createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+  },
+  (t) => [
+    primaryKey({ columns: [t.id], name: "pk_experiment_alleles" }),
+    unique("uq_experiment_alleles_locus").on(t.experimentId, t.locus, t.allele),
+    foreignKey({
+      columns: [t.experimentId],
+      foreignColumns: [experiments.id],
+      name: "fk_experiment_alleles_experiment_id_experiments",
+    }),
+    oneOf("ck_experiment_alleles_state", t.state, ALLELE_STATES),
+    oneOf("ck_experiment_alleles_origin", t.origin, ALLELE_ORIGINS),
+  ],
+);
+
+/** The stats, shares and P(best) at one tick. Its id rides on every message it shaped. */
+export const experimentSnapshots = pgTable(
+  "experiment_snapshots",
+  {
+    id: serial("id").notNull(),
+    experimentId: integer("experiment_id").notNull(),
+    generation: integer("generation").notNull(),
+    takenAt: timestamp("taken_at", { withTimezone: true }).defaultNow().notNull(),
+    /** Per locus, per allele: AlleleCounts. */
+    stats: jsonb("stats").notNull(),
+    /** Per locus, per live allele: its share of the next sends. */
+    shares: jsonb("shares").notNull(),
+    pBest: jsonb("p_best").notNull(),
+    /** The selection and fitness each locus ran under. */
+    strategies: jsonb("strategies").notNull(),
+  },
+  (t) => [
+    primaryKey({ columns: [t.id], name: "pk_experiment_snapshots" }),
+    unique("uq_experiment_snapshots_generation").on(t.experimentId, t.generation),
+    foreignKey({
+      columns: [t.experimentId],
+      foreignColumns: [experiments.id],
+      name: "fk_experiment_snapshots_experiment_id_experiments",
+    }),
+  ],
+);
+
+/** Every event of an experiment, one row each; `outcome` is filled in later. */
+export const experimentJournal = pgTable(
+  "experiment_journal",
+  {
+    id: serial("id").notNull(),
+    experimentId: integer("experiment_id").notNull(),
+    generation: integer("generation").notNull(),
+    kind: varchar("kind", { length: 32 }).notNull(),
+    locus: varchar("locus", { length: 64 }),
+    detail: jsonb("detail").notNull(),
+    outcome: jsonb("outcome"),
+    createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+  },
+  (t) => [
+    primaryKey({ columns: [t.id], name: "pk_experiment_journal" }),
+    index("ix_experiment_journal_experiment_id").on(t.experimentId, t.id),
+    foreignKey({
+      columns: [t.experimentId],
+      foreignColumns: [experiments.id],
+      name: "fk_experiment_journal_experiment_id_experiments",
+    }),
+  ],
+);
+
+export type Experiment = typeof experiments.$inferSelect;
+export type ExperimentAllele = typeof experimentAlleles.$inferSelect;
+export type ExperimentSnapshot = typeof experimentSnapshots.$inferSelect;
 
 export const enrollments = pgTable(
   "enrollments",
