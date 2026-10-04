@@ -16,9 +16,17 @@
 import * as restate from "@restatedev/restate-sdk";
 import { recordedRun } from "@wren/core";
 import type { Notifier } from "@wren/core/notify";
-import { LAST, makeLoopObject, type PassOutcome, runPass } from "@wren/core/restate";
+import {
+  LAST,
+  makeLoopObject,
+  NO_INPUT,
+  type PassOutcome,
+  runPass,
+  serviceHandler,
+} from "@wren/core/restate";
 import type { Db } from "@wren/db";
 import type { LlmClient } from "@wren/llm";
+import { z } from "zod";
 import type { Bookings } from "../bookings.js";
 import { type ClassifyStats, classifyReplies, labelReply } from "../classify.js";
 import { addContact, startThread } from "../contacts.js";
@@ -42,7 +50,7 @@ import {
 import { SmsRefusal } from "../refusal.js";
 import { type RegistrationStats, watchRegistration } from "../registration.js";
 import { type ReminderStats, remindBookings } from "../reminders.js";
-import type { ContactBasis, Disposition } from "../schema.js";
+import { CONTACT_BASES, type ContactBasis, DISPOSITIONS, type Disposition } from "../schema.js";
 import { type SmsStats, smsStats } from "../stats.js";
 import {
   listTemplates,
@@ -214,6 +222,50 @@ export interface NumbersView {
   }[];
 }
 
+const CONTACT = z.looseObject({ contactId: z.number() });
+const NUMBER = z.looseObject({ e164: z.string().describe("The number, as +15551234567") });
+const NICHE = z.string().nullish();
+const THREADS = z
+  .looseObject({
+    filter: z.enum(["all", "unread", "replied"]).nullish(),
+    limit: z.number().nullish(),
+    offset: z.number().nullish(),
+  })
+  .nullish();
+const START = z.looseObject({
+  phone: z.string(),
+  why: z.string().describe("Why this person may be texted; kept on the contact"),
+  body: z.string().describe("The first text"),
+});
+const SUBSCRIBE = z.looseObject({
+  subscription: z.looseObject({
+    endpoint: z.string(),
+    keys: z.looseObject({ p256dh: z.string(), auth: z.string() }),
+  }),
+  by: z.string().describe("The operator's email"),
+});
+const LABEL = z.looseObject({ messageId: z.number(), disposition: z.enum(DISPOSITIONS) });
+const SET_TEMPLATE = z.looseObject({
+  key: z.string(),
+  body: z.string().describe("Empty clears it"),
+  by: z.string().describe("Who saved it"),
+});
+const STATS = z.looseObject({ days: z.number().nullish(), niche: NICHE }).nullish();
+const ADD_CONTACT = z.looseObject({
+  phone: z.string(),
+  basis: z.enum(CONTACT_BASES).describe("Published on their site, or they opted in"),
+  why: z.string(),
+  niche: NICHE,
+});
+const LIFT = z
+  .looseObject({ niche: NICHE, limit: z.number().nullish().describe("Documents to read") })
+  .nullish();
+const ENROLL = z.looseObject({
+  sequence: z.string(),
+  niche: NICHE,
+  limit: z.number().describe("Contacts to enroll"),
+});
+
 export function makeSmsDesk(deps: SmsDeps) {
   const terminal = async <T>(fn: () => Promise<T>): Promise<T> => {
     try {
@@ -229,267 +281,327 @@ export function makeSmsDesk(deps: SmsDeps) {
   return restate.service({
     name: "SmsDesk",
     handlers: {
-      threads: async (
-        ctx: restate.Context,
-        req: { filter?: ThreadFilter; limit?: number; offset?: number } = {},
-      ): Promise<ThreadSummary[]> => ctx.run("threads", () => listThreads(deps.db, req ?? {})),
-      thread: async (ctx: restate.Context, req: { contactId: number }): Promise<Thread | null> => {
-        const now = await nowOf(ctx);
-        return ctx.run("thread", () =>
-          getThread(deps.db, req.contactId, { now, cap: deps.policy.monthlyPerContact }),
-        );
-      },
-      markRead: async (ctx: restate.Context, req: { contactId: number }): Promise<void> => {
-        const now = await nowOf(ctx);
-        await ctx.run("mark read", () => markRead(deps.db, req.contactId, now));
-      },
+      threads: serviceHandler(
+        { input: THREADS },
+        async (
+          ctx: restate.Context,
+          req: { filter?: ThreadFilter; limit?: number; offset?: number } = {},
+        ): Promise<ThreadSummary[]> => ctx.run("threads", () => listThreads(deps.db, req ?? {})),
+      ),
+      thread: serviceHandler(
+        { input: CONTACT },
+        async (ctx: restate.Context, req: { contactId: number }): Promise<Thread | null> => {
+          const now = await nowOf(ctx);
+          return ctx.run("thread", () =>
+            getThread(deps.db, req.contactId, { now, cap: deps.policy.monthlyPerContact }),
+          );
+        },
+      ),
+      markRead: serviceHandler(
+        { input: CONTACT },
+        async (ctx: restate.Context, req: { contactId: number }): Promise<void> => {
+          const now = await nowOf(ctx);
+          await ctx.run("mark read", () => markRead(deps.db, req.contactId, now));
+        },
+      ),
       /** Queue a text on a thread; the sender loop is nudged so it leaves within seconds. */
-      reply: async (
-        ctx: restate.Context,
-        req: { contactId: number; body: string },
-      ): Promise<{ messageId: number }> => {
-        const now = await nowOf(ctx);
-        const msg = await ctx.run("queue", () =>
-          terminal(() =>
-            queueManual(deps.db, {
-              contactId: req.contactId,
-              body: req.body,
-              now,
-              policy: deps.policy,
-            }),
-          ),
-        );
-        await ctx.run("mark read", () => markRead(deps.db, req.contactId, now));
-        ctx
-          .objectSendClient<{ sync: (c: restate.ObjectContext) => Promise<unknown> }>(
-            { name: "SmsSender" },
-            SENDER_KEY,
-          )
-          .sync();
-        return { messageId: msg.id };
-      },
-      /** A new thread from the app: someone who asked to be texted, why, the first words. */
-      start: async (
-        ctx: restate.Context,
-        req: { phone: string; why: string; body: string },
-      ): Promise<{ contactId: number; messageId: number }> => {
-        const now = await nowOf(ctx);
-        const got = await ctx.run("start", () =>
-          terminal(() => startThread(deps.db, { ...req, now, policy: deps.policy })),
-        );
-        ctx
-          .objectSendClient<{ sync: (c: restate.ObjectContext) => Promise<unknown> }>(
-            { name: "SmsSender" },
-            SENDER_KEY,
-          )
-          .sync();
-        return got;
-      },
-      /** The key a device subscribes with; null = alerts are off. */
-      pushKey: async (): Promise<{ publicKey: string | null }> => ({
-        publicKey: deps.pusher?.publicKey ?? null,
-      }),
-      /** Save this device for reply alerts, then send it one so it is known to work. */
-      subscribe: async (
-        ctx: restate.Context,
-        req: { subscription: PushSubscriptionInput; by: string },
-      ): Promise<{ pushed: boolean; error: string | null }> => {
-        const pusher = deps.pusher;
-        if (!pusher) throw new restate.TerminalError("reply alerts are off: no push keys");
-        await ctx.run("subscribe", () =>
-          terminal(() => subscribe(deps.db, req.subscription, req.by)),
-        );
-        return ctx.run("first alert", () =>
-          pushOne(deps.db, pusher, req.subscription.endpoint, {
-            title: "Reply alerts are on",
-            body: "You'll get one when someone texts back.",
-            url: "/#/",
-            tag: "alerts-on",
-          }),
-        );
-      },
-      unsubscribe: async (
-        ctx: restate.Context,
-        req: { endpoint: string },
-      ): Promise<{ removed: boolean }> => ({
-        removed: await ctx.run("unsubscribe", () => unsubscribe(deps.db, req.endpoint)),
-      }),
-      label: async (
-        ctx: restate.Context,
-        req: { messageId: number; disposition: Disposition },
-      ): Promise<void> => {
-        const now = await nowOf(ctx);
-        await ctx.run("label", () => terminal(() => labelReply(deps.db, { ...req, now })));
-      },
-      numbers: async (ctx: restate.Context): Promise<NumbersView> => {
-        const now = await nowOf(ctx);
-        return ctx.run("numbers", async () => {
-          const pool = await poolToday(deps.db, deps.policy, now);
-          return {
-            day: pool.day,
-            live: deps.live,
-            provider: deps.provider.name,
-            remaining: pool.remaining,
-            sentToday: pool.sentToday,
-            dailyCap: deps.policy.dailyCap,
-            numbers: pool.numbers.map((n) => ({
-              e164: n.number.e164,
-              display: formatPhone(n.number.e164),
-              state: n.number.state,
-              pausedReason: n.number.pausedReason,
-              country: n.number.country,
-              registeredAt: n.number.registeredAt?.toISOString() ?? null,
-              cap: n.cap,
-              sentToday: n.sentToday,
-              rampStartedOn: n.number.rampStartedOn,
-            })),
-          };
-        });
-      },
-      syncNumbers: async (ctx: restate.Context): Promise<SyncStats> => {
-        const now = await nowOf(ctx);
-        return ctx.run("sync numbers", () =>
-          terminal(() => syncNumbers(deps.db, deps.provider, deps.policy, now)),
-        );
-      },
-      /** Every text William writes, empty or filled. */
-      templates: async (ctx: restate.Context): Promise<SlotView[]> =>
-        ctx.run("templates", () => listTemplates(deps.db, slots, deps.senderName)),
-      /** Save or clear one; a keyword reply goes live on the provider first. */
-      setTemplate: async (ctx: restate.Context, req: SetTemplate): Promise<SlotView> => {
-        const now = await nowOf(ctx);
-        return ctx.run("set template", () =>
-          terminal(() =>
-            setTemplate(
-              deps.db,
-              { provider: deps.provider, slots, sender: deps.senderName, now },
-              req,
-            ),
-          ),
-        );
-      },
-      /** The registration pass now (SmsWatch runs it every 30 minutes). */
-      register: async (ctx: restate.Context): Promise<RegistrationStats> => {
-        const now = await nowOf(ctx);
-        return ctx.run("register", () =>
-          watchRegistration(deps.db, deps.provider, deps.campaignId, now),
-        );
-      },
-      pause: async (
-        ctx: restate.Context,
-        req: { e164: string; reason?: string },
-      ): Promise<boolean> => {
-        const now = await nowOf(ctx);
-        return ctx.run("pause", () =>
-          pauseNumber(deps.db, req.e164, req.reason ?? "paused by hand", now),
-        );
-      },
-      resume: async (ctx: restate.Context, req: { e164: string }): Promise<boolean> =>
-        ctx.run("resume", () => resumeNumber(deps.db, req.e164)),
-      stats: async (
-        ctx: restate.Context,
-        req: { days?: number; niche?: string } = {},
-      ): Promise<SmsStats> => {
-        const now = await nowOf(ctx);
-        const since = new Date(now.getTime() - (req?.days ?? 30) * 86_400_000);
-        return ctx.run("stats", () => smsStats(deps.db, { since, niche: req?.niche ?? null }));
-      },
-      /** A number added by hand, with the reason it may be texted. Enroll picks it up like any `new` contact. */
-      addContact: async (
-        ctx: restate.Context,
-        req: { phone: string; basis: ContactBasis; why: string; niche?: string },
-      ): Promise<{ contactId: number; e164: string; created: boolean }> =>
-        ctx.run("add contact", async () => {
-          const { contact, created } = await terminal(() => addContact(deps.db, req));
-          return { contactId: contact.id, e164: contact.e164, created };
-        }),
-      /** Lift numbers from crawled pages: plain rows, no spend. Held niches are never read. */
-      lift: async (
-        ctx: restate.Context,
-        req: { niche?: string; limit?: number } = {},
-      ): Promise<LiftStats> =>
-        ctx.run("lift", async () => {
-          const { stats } = await recordedRun(
-            deps.db,
-            { command: "sms lift", argv: { ...req }, niche: req?.niche ?? null },
-            () =>
-              liftPhones(deps.db, {
-                niche: req?.niche ?? null,
-                heldNiches: deps.heldNiches,
-                limit: req?.limit ?? null,
-              }),
-          );
-          return stats;
-        }),
-      /** The form follow-up now (SmsWatch runs it every 30 minutes). */
-      forms: async (ctx: restate.Context): Promise<FormStats> => {
-        const site = deps.site;
-        if (!site)
-          throw new restate.TerminalError("no form follow-up: WREN_SITE_EXPORT_TOKEN is unset");
-        const now = await nowOf(ctx);
-        return ctx.run("forms", async () => {
-          const { stats } = await terminal(() =>
-            recordedRun(deps.db, { command: "sms forms", argv: {} }, (run) =>
-              followUpForms(deps.db, formOptions(deps, site, now, run.id)),
-            ),
-          );
-          return stats;
-        });
-      },
-      /** The reminder pass now (SmsWatch runs it every 30 minutes). */
-      reminders: async (ctx: restate.Context): Promise<ReminderStats> => {
-        const bookings = deps.bookings;
-        if (!bookings)
-          throw new restate.TerminalError("no reminders: WREN_CALCOM_API_KEY is unset");
-        const now = await nowOf(ctx);
-        return ctx.run("reminders", async () => {
-          const { stats } = await terminal(() =>
-            recordedRun(deps.db, { command: "sms reminders", argv: {} }, (run) =>
-              remindBookings(deps.db, {
-                bookings,
-                policy: deps.policy,
-                senderName: deps.senderName,
+      reply: serviceHandler(
+        { input: CONTACT.extend({ body: z.string() }), effect: "sends" },
+        async (
+          ctx: restate.Context,
+          req: { contactId: number; body: string },
+        ): Promise<{ messageId: number }> => {
+          const now = await nowOf(ctx);
+          const msg = await ctx.run("queue", () =>
+            terminal(() =>
+              queueManual(deps.db, {
+                contactId: req.contactId,
+                body: req.body,
                 now,
-                runId: run.id,
+                policy: deps.policy,
               }),
             ),
           );
-          return stats;
-        });
-      },
-      /** Enroll: carrier lookups cost a fraction of a cent each, so it is journaled whole. */
-      enroll: async (
-        ctx: restate.Context,
-        req: { sequence: string; niche?: string; limit: number },
-      ): Promise<EnrollStats> => {
-        const sequence = deps.sequences.get(req.sequence);
-        if (!sequence)
-          throw new restate.TerminalError(
-            `no sms sequence ${req.sequence} (have: ${[...deps.sequences.keys()].join(", ")})`,
+          await ctx.run("mark read", () => markRead(deps.db, req.contactId, now));
+          ctx
+            .objectSendClient<{ sync: (c: restate.ObjectContext) => Promise<unknown> }>(
+              { name: "SmsSender" },
+              SENDER_KEY,
+            )
+            .sync();
+          return { messageId: msg.id };
+        },
+      ),
+      /** A new thread from the app: someone who asked to be texted, why, the first words. */
+      start: serviceHandler(
+        { input: START, effect: "sends" },
+        async (
+          ctx: restate.Context,
+          req: { phone: string; why: string; body: string },
+        ): Promise<{ contactId: number; messageId: number }> => {
+          const now = await nowOf(ctx);
+          const got = await ctx.run("start", () =>
+            terminal(() => startThread(deps.db, { ...req, now, policy: deps.policy })),
           );
-        const now = await nowOf(ctx);
-        return ctx.run("enroll", async () => {
-          const { stats } = await terminal(() =>
-            recordedRun(
+          ctx
+            .objectSendClient<{ sync: (c: restate.ObjectContext) => Promise<unknown> }>(
+              { name: "SmsSender" },
+              SENDER_KEY,
+            )
+            .sync();
+          return got;
+        },
+      ),
+      /** The key a device subscribes with; null = alerts are off. */
+      pushKey: serviceHandler(
+        { input: NO_INPUT },
+        async (): Promise<{ publicKey: string | null }> => ({
+          publicKey: deps.pusher?.publicKey ?? null,
+        }),
+      ),
+      /** Save this device for reply alerts, then send it one so it is known to work. */
+      subscribe: serviceHandler(
+        { input: SUBSCRIBE },
+        async (
+          ctx: restate.Context,
+          req: { subscription: PushSubscriptionInput; by: string },
+        ): Promise<{ pushed: boolean; error: string | null }> => {
+          const pusher = deps.pusher;
+          if (!pusher) throw new restate.TerminalError("reply alerts are off: no push keys");
+          await ctx.run("subscribe", () =>
+            terminal(() => subscribe(deps.db, req.subscription, req.by)),
+          );
+          return ctx.run("first alert", () =>
+            pushOne(deps.db, pusher, req.subscription.endpoint, {
+              title: "Reply alerts are on",
+              body: "You'll get one when someone texts back.",
+              url: "/#/",
+              tag: "alerts-on",
+            }),
+          );
+        },
+      ),
+      unsubscribe: serviceHandler(
+        { input: z.looseObject({ endpoint: z.string() }) },
+        async (ctx: restate.Context, req: { endpoint: string }): Promise<{ removed: boolean }> => ({
+          removed: await ctx.run("unsubscribe", () => unsubscribe(deps.db, req.endpoint)),
+        }),
+      ),
+      label: serviceHandler(
+        { input: LABEL },
+        async (
+          ctx: restate.Context,
+          req: { messageId: number; disposition: Disposition },
+        ): Promise<void> => {
+          const now = await nowOf(ctx);
+          await ctx.run("label", () => terminal(() => labelReply(deps.db, { ...req, now })));
+        },
+      ),
+      numbers: serviceHandler(
+        { input: NO_INPUT },
+        async (ctx: restate.Context): Promise<NumbersView> => {
+          const now = await nowOf(ctx);
+          return ctx.run("numbers", async () => {
+            const pool = await poolToday(deps.db, deps.policy, now);
+            return {
+              day: pool.day,
+              live: deps.live,
+              provider: deps.provider.name,
+              remaining: pool.remaining,
+              sentToday: pool.sentToday,
+              dailyCap: deps.policy.dailyCap,
+              numbers: pool.numbers.map((n) => ({
+                e164: n.number.e164,
+                display: formatPhone(n.number.e164),
+                state: n.number.state,
+                pausedReason: n.number.pausedReason,
+                country: n.number.country,
+                registeredAt: n.number.registeredAt?.toISOString() ?? null,
+                cap: n.cap,
+                sentToday: n.sentToday,
+                rampStartedOn: n.number.rampStartedOn,
+              })),
+            };
+          });
+        },
+      ),
+      syncNumbers: serviceHandler(
+        { input: NO_INPUT },
+        async (ctx: restate.Context): Promise<SyncStats> => {
+          const now = await nowOf(ctx);
+          return ctx.run("sync numbers", () =>
+            terminal(() => syncNumbers(deps.db, deps.provider, deps.policy, now)),
+          );
+        },
+      ),
+      /** Every text William writes, empty or filled. */
+      templates: serviceHandler(
+        { input: NO_INPUT },
+        async (ctx: restate.Context): Promise<SlotView[]> =>
+          ctx.run("templates", () => listTemplates(deps.db, slots, deps.senderName)),
+      ),
+      /** Save or clear one; a keyword reply goes live on the provider first. */
+      setTemplate: serviceHandler(
+        { input: SET_TEMPLATE },
+        async (ctx: restate.Context, req: SetTemplate): Promise<SlotView> => {
+          const now = await nowOf(ctx);
+          return ctx.run("set template", () =>
+            terminal(() =>
+              setTemplate(
+                deps.db,
+                { provider: deps.provider, slots, sender: deps.senderName, now },
+                req,
+              ),
+            ),
+          );
+        },
+      ),
+      /** The registration pass now (SmsWatch runs it every 30 minutes). */
+      register: serviceHandler(
+        { input: NO_INPUT },
+        async (ctx: restate.Context): Promise<RegistrationStats> => {
+          const now = await nowOf(ctx);
+          return ctx.run("register", () =>
+            watchRegistration(deps.db, deps.provider, deps.campaignId, now),
+          );
+        },
+      ),
+      pause: serviceHandler(
+        { input: NUMBER.extend({ reason: z.string().nullish() }) },
+        async (ctx: restate.Context, req: { e164: string; reason?: string }): Promise<boolean> => {
+          const now = await nowOf(ctx);
+          return ctx.run("pause", () =>
+            pauseNumber(deps.db, req.e164, req.reason ?? "paused by hand", now),
+          );
+        },
+      ),
+      resume: serviceHandler(
+        { input: NUMBER },
+        async (ctx: restate.Context, req: { e164: string }): Promise<boolean> =>
+          ctx.run("resume", () => resumeNumber(deps.db, req.e164)),
+      ),
+      stats: serviceHandler(
+        { input: STATS },
+        async (
+          ctx: restate.Context,
+          req: { days?: number; niche?: string } = {},
+        ): Promise<SmsStats> => {
+          const now = await nowOf(ctx);
+          const since = new Date(now.getTime() - (req?.days ?? 30) * 86_400_000);
+          return ctx.run("stats", () => smsStats(deps.db, { since, niche: req?.niche ?? null }));
+        },
+      ),
+      /** A number added by hand, with the reason it may be texted. Enroll picks it up like any `new` contact. */
+      addContact: serviceHandler(
+        { input: ADD_CONTACT },
+        async (
+          ctx: restate.Context,
+          req: { phone: string; basis: ContactBasis; why: string; niche?: string },
+        ): Promise<{ contactId: number; e164: string; created: boolean }> =>
+          ctx.run("add contact", async () => {
+            const { contact, created } = await terminal(() => addContact(deps.db, req));
+            return { contactId: contact.id, e164: contact.e164, created };
+          }),
+      ),
+      /** Lift numbers from crawled pages: plain rows, no spend. Held niches are never read. */
+      lift: serviceHandler(
+        { input: LIFT },
+        async (
+          ctx: restate.Context,
+          req: { niche?: string; limit?: number } = {},
+        ): Promise<LiftStats> =>
+          ctx.run("lift", async () => {
+            const { stats } = await recordedRun(
               deps.db,
-              { command: "sms enroll", argv: { ...req }, niche: req.niche ?? null },
-              (run) =>
-                enroll(deps.db, {
-                  sequence,
-                  policy: deps.policy,
-                  provider: deps.provider,
-                  senderName: deps.senderName,
-                  niche: req.niche ?? null,
+              { command: "sms lift", argv: { ...req }, niche: req?.niche ?? null },
+              () =>
+                liftPhones(deps.db, {
+                  niche: req?.niche ?? null,
                   heldNiches: deps.heldNiches,
-                  limit: req.limit,
+                  limit: req?.limit ?? null,
+                }),
+            );
+            return stats;
+          }),
+      ),
+      /** The form follow-up now (SmsWatch runs it every 30 minutes). */
+      forms: serviceHandler(
+        { input: NO_INPUT, effect: "sends" },
+        async (ctx: restate.Context): Promise<FormStats> => {
+          const site = deps.site;
+          if (!site)
+            throw new restate.TerminalError("no form follow-up: WREN_SITE_EXPORT_TOKEN is unset");
+          const now = await nowOf(ctx);
+          return ctx.run("forms", async () => {
+            const { stats } = await terminal(() =>
+              recordedRun(deps.db, { command: "sms forms", argv: {} }, (run) =>
+                followUpForms(deps.db, formOptions(deps, site, now, run.id)),
+              ),
+            );
+            return stats;
+          });
+        },
+      ),
+      /** The reminder pass now (SmsWatch runs it every 30 minutes). */
+      reminders: serviceHandler(
+        { input: NO_INPUT, effect: "sends" },
+        async (ctx: restate.Context): Promise<ReminderStats> => {
+          const bookings = deps.bookings;
+          if (!bookings)
+            throw new restate.TerminalError("no reminders: WREN_CALCOM_API_KEY is unset");
+          const now = await nowOf(ctx);
+          return ctx.run("reminders", async () => {
+            const { stats } = await terminal(() =>
+              recordedRun(deps.db, { command: "sms reminders", argv: {} }, (run) =>
+                remindBookings(deps.db, {
+                  bookings,
+                  policy: deps.policy,
+                  senderName: deps.senderName,
                   now,
                   runId: run.id,
                 }),
-            ),
-          );
-          return stats;
-        });
-      },
+              ),
+            );
+            return stats;
+          });
+        },
+      ),
+      /** Enroll: carrier lookups cost a fraction of a cent each, so it is journaled whole. */
+      enroll: serviceHandler(
+        { input: ENROLL, effect: "sends" },
+        async (
+          ctx: restate.Context,
+          req: { sequence: string; niche?: string; limit: number },
+        ): Promise<EnrollStats> => {
+          const sequence = deps.sequences.get(req.sequence);
+          if (!sequence)
+            throw new restate.TerminalError(
+              `no sms sequence ${req.sequence} (have: ${[...deps.sequences.keys()].join(", ")})`,
+            );
+          const now = await nowOf(ctx);
+          return ctx.run("enroll", async () => {
+            const { stats } = await terminal(() =>
+              recordedRun(
+                deps.db,
+                { command: "sms enroll", argv: { ...req }, niche: req.niche ?? null },
+                (run) =>
+                  enroll(deps.db, {
+                    sequence,
+                    policy: deps.policy,
+                    provider: deps.provider,
+                    senderName: deps.senderName,
+                    niche: req.niche ?? null,
+                    heldNiches: deps.heldNiches,
+                    limit: req.limit,
+                    now,
+                    runId: run.id,
+                  }),
+              ),
+            );
+            return stats;
+          });
+        },
+      ),
     },
   });
 }
