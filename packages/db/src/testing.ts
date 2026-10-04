@@ -6,10 +6,34 @@ export interface TestPostgres extends DbHandle {
   stop(): Promise<void>;
 }
 
+interface Configurable<C> {
+  withAutoRemove(on: boolean): C;
+  withEntrypoint(entrypoint: string[]): C;
+  withCommand(command: string[]): C;
+}
+
+/** A test container that cannot be left behind. Ryuk removes it when the test process dies, but
+ *  Ryuk dies too when the Docker VM is starved or restarted. So Docker deletes the container and
+ *  its volumes the moment it exits, and it kills itself after 30 minutes. `entrypoint` and
+ *  `command` are the image's own, since the lifetime runs in front of them. */
+export function selfRemoving<C extends Configurable<C>>(
+  container: C,
+  entrypoint: string[],
+  command: string[] = [],
+): C {
+  (container as unknown as { hostConfig: { AutoRemove?: boolean } }).hostConfig.AutoRemove = true;
+  return container
+    .withAutoRemove(false) // Docker removes it; a second remove from testcontainers would throw
+    .withEntrypoint(["timeout", "-s", "KILL", "30m", ...entrypoint])
+    .withCommand(command);
+}
+
 /** Start Postgres 17 in Docker, run all migrations, return a handle. One per test file. */
 export async function startTestPostgres(): Promise<TestPostgres> {
-  const container: StartedPostgreSqlContainer = await new PostgreSqlContainer(
-    "postgres:17",
+  const container: StartedPostgreSqlContainer = await selfRemoving(
+    new PostgreSqlContainer("postgres:17"),
+    ["docker-entrypoint.sh"],
+    ["postgres"],
   ).start();
   const url = container.getConnectionUri();
   const handle = createDb(url, { max: 2 });
