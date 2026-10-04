@@ -8,6 +8,7 @@
  */
 import * as restate from "@restatedev/restate-sdk";
 import { finishRun, openRun } from "@wren/core";
+import { NO_INPUT, serviceHandler } from "@wren/core/restate";
 import type { Db } from "@wren/db";
 import type { RefreshStats } from "../outreach/refresh.js";
 import { type Campaign, refreshCampaign } from "./compose-scheduler.js";
@@ -26,25 +27,28 @@ export function makeQueueRefresh(deps: QueueRefreshDeps) {
     name: "QueueRefresh",
     handlers: {
       /** Every niche with an active sender; one journaled step and one runs row each. */
-      all: async (ctx: restate.Context): Promise<Record<string, RefreshStats>> => {
-        const out: Record<string, RefreshStats> = {};
-        for (const [niche, campaign] of [...deps.campaigns].sort(([a], [b]) =>
-          a.localeCompare(b),
-        )) {
-          if (campaign.senders.length === 0) continue;
-          out[niche] = await ctx.run(`refresh ${niche}`, async () => {
-            const run = await openRun(deps.db, {
-              command: REFRESH_COMMAND,
-              argv: { niche },
-              niche,
+      all: serviceHandler(
+        { input: NO_INPUT },
+        async (ctx: restate.Context): Promise<Record<string, RefreshStats>> => {
+          const out: Record<string, RefreshStats> = {};
+          for (const [niche, campaign] of [...deps.campaigns].sort(([a], [b]) =>
+            a.localeCompare(b),
+          )) {
+            if (campaign.senders.length === 0) continue;
+            out[niche] = await ctx.run(`refresh ${niche}`, async () => {
+              const run = await openRun(deps.db, {
+                command: REFRESH_COMMAND,
+                argv: { niche },
+                niche,
+              });
+              const stats = await refreshCampaign(deps.db, campaign, trackOpens, true);
+              await finishRun(deps.db, run.id, stats);
+              return stats;
             });
-            const stats = await refreshCampaign(deps.db, campaign, trackOpens, true);
-            await finishRun(deps.db, run.id, stats);
-            return stats;
-          });
-        }
-        return out;
-      },
+          }
+          return out;
+        },
+      ),
     },
   });
 }

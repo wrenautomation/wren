@@ -7,8 +7,10 @@
  */
 import * as restate from "@restatedev/restate-sdk";
 import { finishRun, openRun } from "@wren/core";
+import { exclusiveHandler } from "@wren/core/restate";
 import type { Db, DbHandle } from "@wren/db";
 import { sql } from "drizzle-orm";
+import { z } from "zod";
 import { eachConcurrently } from "../concurrent.js";
 import type { RecontactPolicy } from "../recontact.js";
 import {
@@ -75,6 +77,41 @@ export interface VerifyLeadsInput {
 }
 export const DEFAULT_RETRY_RISKY_DAYS = 2;
 
+const NICHE = z.string().nullish().describe("One campaign's leads, e.g. agencies");
+const QUEUE = z
+  .looseObject({
+    domain: z.string().nullish(),
+    companySourceKey: z.string().nullish(),
+    companyDomain: z.string().nullish().describe("A keyless niche's firm, by its website domain"),
+    niche: NICHE,
+    limitPeople: z.number().nullish(),
+  })
+  .nullish();
+const RESOLVE = z
+  .looseObject({ domainBudget: z.number().nullish(), creditLimit: z.number().nullish() })
+  .nullish();
+const RESOLVE_NEW = z.looseObject({
+  niche: NICHE,
+  limitDomains: z.number().describe("Domains walked this pass"),
+  concurrency: z.number().nullish().describe("Domain walks at once"),
+  domainBudget: z.number().nullish(),
+});
+const VERIFY = z
+  .looseObject({
+    niche: NICHE,
+    limit: z.number().nullish(),
+    retryRiskyAfterDays: z
+      .number()
+      .nullish()
+      .describe("Days before a risky verdict is tried again (2)"),
+    concurrency: z.number().nullish().describe("Leads checked at once; free verifiers only (1)"),
+    recheckReturning: z
+      .looseObject({ policy: z.looseObject({}), olderThanDays: z.number() })
+      .nullish()
+      .describe("Also re-check proven addresses of companies due another sequence"),
+  })
+  .nullish();
+
 export function makeResolution(deps: ResolutionDeps) {
   const checker = deps.checker ?? defaultLocalChecker();
   const open = (ctx: restate.ObjectContext, command: string, argv: Record<string, unknown>) =>
@@ -88,27 +125,33 @@ export function makeResolution(deps: ResolutionDeps) {
   return restate.object({
     name: "Resolution",
     handlers: {
-      build: async (ctx: restate.ObjectContext, input: { limitPeople?: number } = {}) => {
-        const runId = await open(ctx, "resolve build", { ...input });
-        const stats = await ctx.run("build", () =>
-          deps.db.transaction((tx) => buildCandidates(tx, input)),
-        );
-        await close(ctx, runId, stats);
-        return stats;
-      },
+      build: exclusiveHandler(
+        { input: z.looseObject({ limitPeople: z.number().nullish() }).nullish() },
+        async (ctx: restate.ObjectContext, input: { limitPeople?: number } = {}) => {
+          const runId = await open(ctx, "resolve build", { ...input });
+          const stats = await ctx.run("build", () =>
+            deps.db.transaction((tx) => buildCandidates(tx, input)),
+          );
+          await close(ctx, runId, stats);
+          return stats;
+        },
+      ),
 
-      queue: async (ctx: restate.ObjectContext, input: QueueOptions = {}) => {
-        const runId = await open(ctx, "resolve queue", { ...input });
-        const stats = await ctx.run("queue", () =>
-          deps.db.transaction((tx) => queueCandidates(tx, input)),
-        );
-        await close(ctx, runId, stats);
-        return stats;
-      },
+      queue: exclusiveHandler(
+        { input: QUEUE },
+        async (ctx: restate.ObjectContext, input: QueueOptions = {}) => {
+          const runId = await open(ctx, "resolve queue", { ...input });
+          const stats = await ctx.run("queue", () =>
+            deps.db.transaction((tx) => queueCandidates(tx, input)),
+          );
+          await close(ctx, runId, stats);
+          return stats;
+        },
+      ),
 
       /** Paid verifier credits: never by hand (queue it), so never through the ingress. */
-      resolve: restate.handlers.object.exclusive(
-        { ingressPrivate: true },
+      resolve: exclusiveHandler(
+        { input: RESOLVE, effect: "spends", ingressPrivate: true },
         async (ctx: restate.ObjectContext, input: ResolveInput = {}): Promise<ResolutionStats> => {
           const domainBudget = input.domainBudget ?? DEFAULT_DOMAIN_BUDGET;
           const creditLimit = input.creditLimit ?? null;
@@ -155,103 +198,106 @@ export function makeResolution(deps: ResolutionDeps) {
        * VALID whose promotion was lost is repaired by the next `resolve` (stranded).
        * No credit limit here: a paid verifier goes through `resolve`, one at a time.
        */
-      resolveNewDomains: async (
-        ctx: restate.ObjectContext,
-        input: ResolveNewInput,
-      ): Promise<ResolutionStats> => {
-        if (deps.verifier.costsCredits)
-          throw new restate.TerminalError(
-            "resolveNewDomains spends without a limit: free verifiers only",
-          );
-        const domainBudget = input.domainBudget ?? DEFAULT_DOMAIN_BUDGET;
-        const runId = await open(ctx, "resolve new domains", { ...input });
-        const width = input.concurrency ?? 1;
-        const { stats, promotions } = await ctx.run("walk", async () => {
-          // One more connection than the walk's width: the lock holds it for the whole walk.
-          const pool = deps.openPool?.(width + 1) ?? null;
-          const db = pool?.db ?? deps.db;
-          try {
-            return await oneWalkAtATime(db, async () => {
-              const domains = await selectNewResolutionTargets(db, {
-                limit: input.limitDomains,
-                retryRiskyAfterDays: DEFAULT_RETRY_RISKY_DAYS,
-                domainBudget,
-                ...(input.niche !== undefined ? { niche: input.niche } : {}),
+      resolveNewDomains: exclusiveHandler(
+        { input: RESOLVE_NEW },
+        async (ctx: restate.ObjectContext, input: ResolveNewInput): Promise<ResolutionStats> => {
+          if (deps.verifier.costsCredits)
+            throw new restate.TerminalError(
+              "resolveNewDomains spends without a limit: free verifiers only",
+            );
+          const domainBudget = input.domainBudget ?? DEFAULT_DOMAIN_BUDGET;
+          const runId = await open(ctx, "resolve new domains", { ...input });
+          const width = input.concurrency ?? 1;
+          const { stats, promotions } = await ctx.run("walk", async () => {
+            // One more connection than the walk's width: the lock holds it for the whole walk.
+            const pool = deps.openPool?.(width + 1) ?? null;
+            const db = pool?.db ?? deps.db;
+            try {
+              return await oneWalkAtATime(db, async () => {
+                const domains = await selectNewResolutionTargets(db, {
+                  limit: input.limitDomains,
+                  retryRiskyAfterDays: DEFAULT_RETRY_RISKY_DAYS,
+                  domainBudget,
+                  ...(input.niche !== undefined ? { niche: input.niche } : {}),
+                });
+                let stats = emptyResolutionStats();
+                const promotions: PromotionRef[] = [];
+                await eachConcurrently(
+                  domains,
+                  width,
+                  async (domain) => {
+                    const r = await db.transaction((tx) =>
+                      resolveDomainUnit(tx, deps.verifier, domain, {
+                        domainBudget,
+                        checker,
+                        alreadySpent: 0,
+                        retryRiskyAfterDays: DEFAULT_RETRY_RISKY_DAYS,
+                        creditLimit: null,
+                      }),
+                    );
+                    stats = addResolutionStats(stats, r.stats);
+                    promotions.push(...r.promotions);
+                  },
+                  () => stats.aborted !== null,
+                );
+                return { stats, promotions };
               });
-              let stats = emptyResolutionStats();
-              const promotions: PromotionRef[] = [];
-              await eachConcurrently(
-                domains,
-                width,
-                async (domain) => {
-                  const r = await db.transaction((tx) =>
-                    resolveDomainUnit(tx, deps.verifier, domain, {
-                      domainBudget,
-                      checker,
-                      alreadySpent: 0,
-                      retryRiskyAfterDays: DEFAULT_RETRY_RISKY_DAYS,
-                      creditLimit: null,
-                    }),
-                  );
-                  stats = addResolutionStats(stats, r.stats);
-                  promotions.push(...r.promotions);
-                },
-                () => stats.aborted !== null,
-              );
-              return { stats, promotions };
-            });
-          } finally {
-            await pool?.close();
+            } finally {
+              await pool?.close();
+            }
+          });
+          if (promotions.length) {
+            await ctx.run("promote", () =>
+              deps.db.transaction((tx) => promoteCandidates(tx, promotions)),
+            );
           }
-        });
-        if (promotions.length) {
-          await ctx.run("promote", () =>
-            deps.db.transaction((tx) => promoteCandidates(tx, promotions)),
-          );
-        }
-        await close(ctx, runId, stats);
-        // Nothing walked and the verifier down: that is the stage's failure, not a quiet pass.
-        if (stats.aborted && stats.credits_spent === 0) {
-          throw new restate.TerminalError(`verifier: ${stats.aborted}`);
-        }
-        return stats;
-      },
+          await close(ctx, runId, stats);
+          // Nothing walked and the verifier down: that is the stage's failure, not a quiet pass.
+          if (stats.aborted && stats.credits_spent === 0) {
+            throw new restate.TerminalError(`verifier: ${stats.aborted}`);
+          }
+          return stats;
+        },
+      ),
 
       /**
        * The verification funnel over a niche's imported leads (role inboxes the picks
        * made, people from imports): one bounded pass, journaled as a whole. The
        * pool-feeder calls this only when the verifier is free; by hand it spends.
        */
-      verifyLeads: async (
-        ctx: restate.ObjectContext,
-        input: VerifyLeadsInput = {},
-      ): Promise<VerificationStats> => {
-        const runId = await open(ctx, "verify leads", { ...input });
-        const days = input.retryRiskyAfterDays ?? DEFAULT_RETRY_RISKY_DAYS;
-        const stats = await ctx.run("verify", () =>
-          runVerification(deps.db, deps.verifier, {
-            checker,
-            ...(input.niche !== undefined ? { niche: input.niche } : {}),
-            ...(input.limit !== undefined ? { limit: input.limit } : {}),
-            concurrency: deps.verifier.costsCredits ? 1 : (input.concurrency ?? 1),
-            retryRiskyOlderThanMs: days * 86_400_000,
-            ...(input.recheckReturning
-              ? {
-                  recheckReturning: {
-                    policy: input.recheckReturning.policy,
-                    olderThanMs: input.recheckReturning.olderThanDays * 86_400_000,
-                  },
-                }
-              : {}),
-          }),
-        );
-        await close(ctx, runId, stats);
-        // Nothing checked and the verifier down: that is the stage's failure, not a quiet pass.
-        if (stats.aborted && verifiedRows(stats) === 0) {
-          throw new restate.TerminalError(`verifier: ${stats.aborted}`);
-        }
-        return stats;
-      },
+      verifyLeads: exclusiveHandler(
+        { input: VERIFY, effect: "spends" },
+        async (
+          ctx: restate.ObjectContext,
+          input: VerifyLeadsInput = {},
+        ): Promise<VerificationStats> => {
+          const runId = await open(ctx, "verify leads", { ...input });
+          const days = input.retryRiskyAfterDays ?? DEFAULT_RETRY_RISKY_DAYS;
+          const stats = await ctx.run("verify", () =>
+            runVerification(deps.db, deps.verifier, {
+              checker,
+              ...(input.niche !== undefined ? { niche: input.niche } : {}),
+              ...(input.limit !== undefined ? { limit: input.limit } : {}),
+              concurrency: deps.verifier.costsCredits ? 1 : (input.concurrency ?? 1),
+              retryRiskyOlderThanMs: days * 86_400_000,
+              ...(input.recheckReturning
+                ? {
+                    recheckReturning: {
+                      policy: input.recheckReturning.policy,
+                      olderThanMs: input.recheckReturning.olderThanDays * 86_400_000,
+                    },
+                  }
+                : {}),
+            }),
+          );
+          await close(ctx, runId, stats);
+          // Nothing checked and the verifier down: that is the stage's failure, not a quiet pass.
+          if (stats.aborted && verifiedRows(stats) === 0) {
+            throw new restate.TerminalError(`verifier: ${stats.aborted}`);
+          }
+          return stats;
+        },
+      ),
     },
   });
 }

@@ -14,9 +14,10 @@ import * as restate from "@restatedev/restate-sdk";
 import { recordedRun } from "@wren/core";
 import type { Calendar } from "@wren/core/calendar";
 import type { Notifier } from "@wren/core/notify";
-import { errorText } from "@wren/core/restate";
+import { errorText, exclusiveHandler, NO_INPUT, sharedHandler } from "@wren/core/restate";
 import type { Db } from "@wren/db";
 import type { LlmClient, Tracer } from "@wren/llm";
+import { z } from "zod";
 import { type DispositionStats, runDisposition } from "../inbox/disposition.js";
 import {
   type ApproveOutcome,
@@ -58,12 +59,15 @@ export interface ClassifyOutcome {
 
 const LAST = "last";
 
+const INVITE = z.looseObject({ id: z.number().describe("The invite's id") });
+const BODY = z.string().nullish().describe("The reply as edited; empty sends the draft as written");
+
 export function makeDisposition(deps: DispositionDeps) {
   return restate.object({
     name: "Disposition",
     handlers: {
       /** Only InboxScheduler fires it, when a pass finds human replies. */
-      classify: restate.handlers.object.exclusive(
+      classify: exclusiveHandler(
         { ingressPrivate: true },
         async (ctx: restate.ObjectContext): Promise<ClassifyOutcome> => {
           const now = new Date(await ctx.date.now());
@@ -124,45 +128,52 @@ export function makeDisposition(deps: DispositionDeps) {
       ),
 
       /** William's yes on one invite: book its time if it has one, send the reply. */
-      approve: async (
-        ctx: restate.ObjectContext,
-        req: { id: number; body?: string | null },
-      ): Promise<ApproveOutcome> => {
-        const invites = deps.invites;
-        if (!invites?.send || ctx.key !== DISPOSITION_KEY) {
-          throw new restate.TerminalError("replies are not wired on this worker");
-        }
-        const send = invites.send;
-        const now = new Date(await ctx.date.now());
-        // A retry after a crash finds the rows moved on (booking, booked, sent) and refuses.
-        return ctx.run("approve invite", async () => {
-          try {
-            return await approveInvite(deps.dbOf(ctx.key), req.id, {
-              calendar: invites.calendar,
-              transport: send.transport,
-              fleet: send.fleet,
-              body: req.body ?? null,
-              now,
-            });
-          } catch (err) {
-            throw new restate.TerminalError(errorText(err));
+      approve: exclusiveHandler(
+        { input: INVITE.extend({ body: BODY }), effect: "sends" },
+        async (
+          ctx: restate.ObjectContext,
+          req: { id: number; body?: string | null },
+        ): Promise<ApproveOutcome> => {
+          const invites = deps.invites;
+          if (!invites?.send || ctx.key !== DISPOSITION_KEY) {
+            throw new restate.TerminalError("replies are not wired on this worker");
           }
-        });
-      },
+          const send = invites.send;
+          const now = new Date(await ctx.date.now());
+          // A retry after a crash finds the rows moved on (booking, booked, sent) and refuses.
+          return ctx.run("approve invite", async () => {
+            try {
+              return await approveInvite(deps.dbOf(ctx.key), req.id, {
+                calendar: invites.calendar,
+                transport: send.transport,
+                fleet: send.fleet,
+                body: req.body ?? null,
+                now,
+              });
+            } catch (err) {
+              throw new restate.TerminalError(errorText(err));
+            }
+          });
+        },
+      ),
 
       /** William passes on one invite: nothing books, nothing sends. */
-      drop: async (ctx: restate.ObjectContext, req: { id: number }): Promise<{ state: string }> => {
-        const state = await ctx.run("drop invite", async () => {
-          try {
-            return await dropInvite(deps.dbOf(ctx.key), req.id);
-          } catch (err) {
-            throw new restate.TerminalError(errorText(err));
-          }
-        });
-        return { state };
-      },
+      drop: exclusiveHandler(
+        { input: INVITE },
+        async (ctx: restate.ObjectContext, req: { id: number }): Promise<{ state: string }> => {
+          const state = await ctx.run("drop invite", async () => {
+            try {
+              return await dropInvite(deps.dbOf(ctx.key), req.id);
+            } catch (err) {
+              throw new restate.TerminalError(errorText(err));
+            }
+          });
+          return { state };
+        },
+      ),
 
-      status: restate.handlers.object.shared(
+      status: sharedHandler(
+        { input: NO_INPUT },
         async (ctx: restate.ObjectSharedContext): Promise<ClassifyOutcome | null> =>
           (await ctx.get<ClassifyOutcome>(LAST)) ?? null,
       ),

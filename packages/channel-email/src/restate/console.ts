@@ -14,8 +14,10 @@ import {
   type SignedViewer,
   seesInternal,
 } from "@wren/core/portal";
+import { PORTAL_FIELDS, serviceHandler } from "@wren/core/restate";
 import { type Db, type Queryable, setAuditActor } from "@wren/db";
 import { sql } from "drizzle-orm";
+import { z } from "zod";
 import { pause, resolveTarget, resume } from "../inbox/health.js";
 import { openInvites } from "../inbox/invite.js";
 import {
@@ -195,6 +197,17 @@ export function emailConsoleApi({ db, senders, policy }: EmailConsoleDeps) {
   };
 }
 
+const INVITE = z.looseObject({
+  ...PORTAL_FIELDS,
+  id: z.number().describe("The invite's id, as the reply record shows it"),
+});
+const BODY = z.string().nullish().describe("The reply as edited; empty sends the draft as written");
+const SENDER = z.looseObject({
+  ...PORTAL_FIELDS,
+  target: z.string().describe("An inbox address, or a bare domain for every inbox on it"),
+});
+const CAMPAIGNS = z.looseObject({ ...PORTAL_FIELDS, ids: z.array(z.string()) });
+
 export function makeEmailConsole(deps: EmailConsoleDeps) {
   const api = emailConsoleApi(deps);
   const disposition = (ctx: restate.Context) =>
@@ -202,28 +215,71 @@ export function makeEmailConsole(deps: EmailConsoleDeps) {
   return restate.service({
     name: "EmailConsole",
     handlers: {
-      answers: (_: restate.Context, req: PortalRequest) => answer(() => api.answers(req)),
-      approve: (ctx: restate.Context, req: InviteRequest) =>
-        answer(async () => {
-          const outcome = await disposition(ctx).approve(api.approval(req));
-          if (!outcome.ok) throw new PortalRefusal(outcome.reason, 409);
-          return outcome;
-        }),
-      drop: (ctx: restate.Context, req: InviteRequest) =>
+      answers: serviceHandler(
+        { input: z.looseObject(PORTAL_FIELDS) },
+        (_: restate.Context, req: PortalRequest) => answer(() => api.answers(req)),
+      ),
+      approve: serviceHandler(
+        { input: INVITE.extend({ body: BODY }), effect: "sends" },
+        (ctx: restate.Context, req: InviteRequest) =>
+          answer(async () => {
+            const outcome = await disposition(ctx).approve(api.approval(req));
+            if (!outcome.ok) throw new PortalRefusal(outcome.reason, 409);
+            return outcome;
+          }),
+      ),
+      drop: serviceHandler({ input: INVITE }, (ctx: restate.Context, req: InviteRequest) =>
         answer(() => disposition(ctx).drop(api.dropping(req))),
-      pause: (ctx: restate.Context, req: SenderRequest) =>
-        answer(async () => api.pause(req, new Date(await ctx.date.now()))),
-      resume: (ctx: restate.Context, req: SenderRequest) =>
+      ),
+      pause: serviceHandler(
+        {
+          input: SENDER.extend({
+            reason: z.string().optional().describe("Why; kept on the pause"),
+          }),
+        },
+        (ctx: restate.Context, req: SenderRequest) =>
+          answer(async () => api.pause(req, new Date(await ctx.date.now()))),
+      ),
+      resume: serviceHandler({ input: SENDER }, (ctx: restate.Context, req: SenderRequest) =>
         answer(async () => api.resume(req, new Date(await ctx.date.now()))),
-      setCampaign: (_: restate.Context, req: CampaignRequest) => answer(() => api.setCampaign(req)),
-      killSwitchOn: (_: restate.Context, req: CampaignsRequest) =>
-        answer(() => api.campaignAction("killSwitchOn", req)),
-      killSwitchOff: (_: restate.Context, req: CampaignsRequest) =>
-        answer(() => api.campaignAction("killSwitchOff", req)),
-      stopOpeners: (_: restate.Context, req: CampaignsRequest) =>
-        answer(() => api.campaignAction("stopOpeners", req)),
-      resumeOpeners: (_: restate.Context, req: CampaignsRequest) =>
-        answer(() => api.campaignAction("resumeOpeners", req)),
+      ),
+      setCampaign: serviceHandler(
+        {
+          input: z.looseObject({
+            ...PORTAL_FIELDS,
+            campaign: z.string(),
+            killSwitch: z
+              .boolean()
+              .nullish()
+              .describe("On stops its sends; empty = the env default"),
+            openersPerDay: z
+              .number()
+              .nullish()
+              .describe("0 = follow-ups only; empty = the env default"),
+          }),
+        },
+        (_: restate.Context, req: CampaignRequest) => answer(() => api.setCampaign(req)),
+      ),
+      killSwitchOn: serviceHandler(
+        { input: CAMPAIGNS },
+        (_: restate.Context, req: CampaignsRequest) =>
+          answer(() => api.campaignAction("killSwitchOn", req)),
+      ),
+      killSwitchOff: serviceHandler(
+        { input: CAMPAIGNS },
+        (_: restate.Context, req: CampaignsRequest) =>
+          answer(() => api.campaignAction("killSwitchOff", req)),
+      ),
+      stopOpeners: serviceHandler(
+        { input: CAMPAIGNS },
+        (_: restate.Context, req: CampaignsRequest) =>
+          answer(() => api.campaignAction("stopOpeners", req)),
+      ),
+      resumeOpeners: serviceHandler(
+        { input: CAMPAIGNS },
+        (_: restate.Context, req: CampaignsRequest) =>
+          answer(() => api.campaignAction("resumeOpeners", req)),
+      ),
     },
   });
 }
