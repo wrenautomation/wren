@@ -11,6 +11,7 @@ import {
   driveSources,
   readSopDir,
   sopPrompt,
+  videoSource,
 } from "./index.js";
 
 describe("sops", () => {
@@ -46,6 +47,47 @@ describe("sops", () => {
     expect(md).not.toContain("past the end");
     expect(clock(3725)).toBe("1:02:05");
   });
+
+  it("transcribes a captionless video: speech and screen apart, keys rotated, recitation paraphrased", async () => {
+    dir = await mkdtemp(join(tmpdir(), "sops-video-"));
+    // Stands in for yt-dlp: writes the -o file, prints the info JSON.
+    const fake = join(dir, "yt-dlp.mjs");
+    await writeFile(
+      fake,
+      `import { writeFileSync } from "node:fs";
+const a = process.argv.slice(2);
+writeFileSync(a[a.indexOf("-o") + 1].replace("%(ext)s", "mp4"), "vid");
+console.log(JSON.stringify({ id: "abc", title: "Video by x", extractor_key: "Instagram", channel: "x", upload_date: "20261003", description: "Four things\\nmore", webpage_url: "https://www.instagram.com/reel/abc/" }));`,
+    );
+    const keys: string[] = [];
+    const bodies: string[] = [];
+    const reply = (part: object) =>
+      new Response(JSON.stringify({ candidates: [{ finishReason: "STOP", ...part }] }));
+    const fetchFn = (async (_url: string, init: RequestInit) => {
+      keys.push((init.headers as Record<string, string>)["x-goog-api-key"] as string);
+      const body = String(init.body);
+      bodies.push(body);
+      if (keys.length === 1) return new Response("{}", { status: 429 });
+      if (body.includes("Transcribe the speech"))
+        return reply({ content: { parts: [{ text: "[0:00] hi" }] } });
+      return body.includes("in your own words")
+        ? reply({ content: { parts: [{ text: "[0:00:01] a post, paraphrased" }] } })
+        : reply({ finishReason: "RECITATION" });
+    }) as typeof fetch;
+    const s = await videoSource("https://www.instagram.com/reel/abc/", `node ${fake}`, 9, {
+      geminiKeys: ["k1", "k2"],
+      fetchFn,
+    });
+    expect(s.name).toBe("instagram-abc.md");
+    expect(s.md).toContain('source: "instagram:abc"\ntitle: "Four things"');
+    expect(s.md).toContain('uploaded: "2026-10-03"\npriority: 9');
+    expect(s.md).toContain(
+      "## Caption\n\nFour things\nmore\n\n## Speech\n\n[0:00] hi\n\n## On screen\n\n[0:00:01] a post, paraphrased\n",
+    );
+    expect(new Set(keys).size).toBe(2);
+    expect(bodies.filter((b) => !b.includes("speech") && !b.includes("own words"))).toHaveLength(3);
+    expect(bodies[0]).toContain(Buffer.from("vid").toString("base64"));
+  }, 10_000);
 
   it("walks a Drive folder and exports only Docs and text", async () => {
     const calls: string[] = [];

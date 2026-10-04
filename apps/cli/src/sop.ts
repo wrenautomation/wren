@@ -21,6 +21,7 @@ import {
   fileSource,
   readSopDir,
   type Source,
+  videoSource,
   writeSkill,
   youtubeSource,
 } from "@wren/research/sops";
@@ -49,7 +50,7 @@ export function registerSop(program: Command, settings: Settings, rootDir: strin
   sop
     .command("add <name> <what>")
     .description(
-      "ingest a source: a YouTube URL, `drive:<folderId>` (every Doc under it), or a text file",
+      "ingest a source: a YouTube URL, another video URL (Instagram reel, TikTok, X), `drive:<folderId>` (every Doc under it), or a text file",
     )
     .option("--account <address>", "whose Drive (an autobrowse `drive` consent)")
     .option("--priority <n>", "higher wins when sources disagree (notes.md always wins)", (v) =>
@@ -72,6 +73,11 @@ export function registerSop(program: Command, settings: Settings, rootDir: strin
           if (opts.screen !== false && !geminiKeys.length)
             console.warn("no GEMINI keys in llm.env: captions only, on-screen content skipped");
           sources = [await youtubeSource(what, settings.ytDlp, priority, { geminiKeys })];
+        } else if (/^https?:\/\//.test(what)) {
+          // Reels, TikTok, X: no captions, so Gemini hears and reads the download.
+          loadLlmEnv(settings.llmEnvPath, rootDir);
+          const geminiKeys = fleetKeys(process.env, "gemini");
+          sources = [await videoSource(what, settings.ytDlp, priority, { geminiKeys })];
         } else if (what.startsWith("drive:")) {
           if (!opts.account) throw new Error("drive: needs --account <address>");
           const drive = autobrowseDrive(resolve(rootDir, settings.autobrowseDir), opts.account);

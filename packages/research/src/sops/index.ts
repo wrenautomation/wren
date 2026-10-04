@@ -1,13 +1,14 @@
 /**
  * SOPs built from sources. One folder per SOP: `SOP.md` is the living doc,
  * `notes.md` holds the owner's own rules (top priority, never written by
- * code), `sources/*.md` is ingested text, one file per YouTube video, Drive
- * Doc or local file, with `priority` in its front matter. `buildSop` asks one
+ * code), `sources/*.md` is ingested text, one file per YouTube video, other
+ * video (Instagram reel, TikTok, X), Drive Doc or local file, with `priority` in its front matter. `buildSop` asks one
  * model for the next SOP.md from all of it; iterating is editing notes.md or
  * SOP.md and building again. Nothing here touches a database.
  */
 import { execFile } from "node:child_process";
-import { mkdir, readdir, readFile, writeFile } from "node:fs/promises";
+import { mkdir, mkdtemp, readdir, readFile, rm, writeFile } from "node:fs/promises";
+import { tmpdir } from "node:os";
 import { basename, join } from "node:path";
 import { promisify } from "node:util";
 import type { LlmClient } from "@wren/llm";
@@ -106,14 +107,84 @@ const captionTracks = (info: VideoInfo) =>
 
 const GEMINI = (model: string) =>
   `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent`;
-// flash first; 503 (model busy) hands the clip to lite.
-const GEMINI_MODELS = ["gemini-2.5-flash", "gemini-3.5-flash-lite"];
+// Rotated per try: a busy (503) or reciting model hands the ask to the next.
+const GEMINI_MODELS = ["gemini-3.8-flash", "gemini-3.5-flash", "gemini-3.5-flash-lite"];
 const CLIP_S = 600;
 
 /**
+ * What to read off the frames; shared by YouTube clips and downloaded videos. Gemini won't repeat
+ * text it knows from the web (RECITATION); `paraphrase` asks for what that text says instead.
+ */
+const SHOWN = (start: number, paraphrase: boolean) =>
+  `Transcribe in full, verbatim, every document, list, table, slide, template or other text the speaker shows on screen in this clip, each under a [h:mm:ss] heading of the video time it appears (the clip starts at ${clock(start)}). For every image, screenshot, chart, diagram or UI on screen, extract the information it carries, not what it looks like: the text in it, setting names and their values, numbers, prices, limits, labels, before and after states, and what is highlighted, circled, crossed out, ticked or pointed at. Write each as a line starting with its [h:mm:ss] then [visual], stating the fact as a reader would use it ("Instantly warmup settings: daily limit 10, slow ramp on, +1 per day, reply rate 95%"), not "a screenshot of the settings page". Skip visuals that carry no information (decoration, layout, gestures, transitions) and repeats of anything already captured. Skip the speaker's face, chat windows, b-roll and stock footage, and anything already shown earlier in the clip.${paraphrase ? " Where a shown passage is published text (a post, article, page), give its first line word for word, then every point it makes in your own words." : ""}`;
+
+let nextKey = 0;
+
+/**
+ * One Gemini call. Keys rotate on 429/403, a busy flash (503) hands to lite, backing off 2s
+ * doubling to 1 min. After 24 refusals it returns `unread` with the last one.
+ */
+async function askGemini(
+  body: unknown,
+  keys: readonly string[],
+  fetchFn: typeof fetch,
+  label: string,
+): Promise<{ text: string } | { unread: string }> {
+  let last = "";
+  let wait = 2000;
+  let recited = 0;
+  for (let i = 0; i < 24; i++) {
+    const key = keys[nextKey++ % keys.length] as string;
+    const model = GEMINI_MODELS[i % GEMINI_MODELS.length] as string;
+    const res = await fetchFn(GEMINI(model), {
+      method: "POST",
+      headers: { "content-type": "application/json", "x-goog-api-key": key },
+      body: JSON.stringify(body),
+    });
+    const json = (await res.json()) as {
+      candidates?: { finishReason?: string; content?: { parts?: { text?: string }[] } }[];
+      error?: { message?: string };
+    };
+    const text = (json.candidates?.[0]?.content?.parts ?? [])
+      .map((p) => p.text ?? "")
+      .join("")
+      .trim();
+    if (text) return { text };
+    const reason = json.candidates?.[0]?.finishReason;
+    // Recitation is per model and try, not per key: no backoff, and three strikes go back to the caller.
+    if (reason === "RECITATION") {
+      if (++recited === 3) return { unread: "RECITATION" };
+      continue;
+    }
+    // A 200 with no text (blocked, cut off) is a refusal too: try the next key and model.
+    last = res.ok
+      ? `${model} empty, ${reason ?? "no candidate"}`
+      : `${model} HTTP ${res.status} ${json.error?.message ?? ""}`.trim();
+    if (!res.ok && ![401, 402, 403, 429, 500, 503].includes(res.status))
+      throw new Error(`gemini ${label}: ${last}`);
+    await new Promise((r) => setTimeout(r, wait));
+    wait = Math.min(wait * 2, 60_000);
+  }
+  return { unread: last };
+}
+
+/** The on-screen ask, asked again as a paraphrase when Gemini won't recite. */
+async function askShown(
+  body: (paraphrase: boolean) => unknown,
+  keys: readonly string[],
+  fetchFn: typeof fetch,
+  label: string,
+): Promise<{ text: string } | { unread: string }> {
+  const r = await askGemini(body(false), keys, fetchFn, label);
+  return "unread" in r && r.unread === "RECITATION"
+    ? askGemini(body(true), keys, fetchFn, label)
+    : r;
+}
+
+/**
  * What the video shows on screen (documents, slides, tables, templates), read by Gemini straight
- * from the YouTube URL in `CLIP_S` clips, keys rotated on 429/403. One markdown block per clip,
- * timestamps absolute. Empty when `keys` is empty.
+ * from the YouTube URL in `CLIP_S` clips. One markdown block per clip, timestamps absolute.
+ * Empty when `keys` is empty.
  */
 export async function screenText(
   url: string,
@@ -123,10 +194,9 @@ export async function screenText(
 ): Promise<string> {
   if (!keys.length) return "";
   const clips = Array.from({ length: Math.ceil(durationS / CLIP_S) }, (_, i) => i * CLIP_S);
-  let next = 0;
   const read = async (start: number): Promise<string> => {
     const end = Math.min(start + CLIP_S, durationS);
-    const body = {
+    const body = (paraphrase: boolean) => ({
       contents: [
         {
           parts: [
@@ -135,43 +205,19 @@ export async function screenText(
               videoMetadata: { startOffset: `${start}s`, endOffset: `${end}s`, fps: 0.5 },
             },
             {
-              text: `Transcribe in full, verbatim, every document, list, table, slide, template or other text the speaker shows on screen in this clip, each under a [h:mm:ss] heading of the video time it appears (the clip starts at ${clock(start)}). For every image, screenshot, chart, diagram or UI on screen, extract the information it carries, not what it looks like: the text in it, setting names and their values, numbers, prices, limits, labels, before and after states, and what is highlighted, circled, crossed out, ticked or pointed at. Write each as a line starting with its [h:mm:ss] then [visual], stating the fact as a reader would use it ("Instantly warmup settings: daily limit 10, slow ramp on, +1 per day, reply rate 95%"), not "a screenshot of the settings page". Skip visuals that carry no information (decoration, layout, gestures, transitions) and repeats of anything already captured. Skip the speaker's face, chat windows, b-roll and stock footage, and anything already shown earlier in the clip. Markdown. If nothing is shown, reply with the single word none.`,
+              text: `${SHOWN(start, paraphrase)} Markdown. If nothing is shown, reply with the single word none.`,
             },
           ],
         },
       ],
       // Low resolution reads a shown document fine at a quarter of the tokens.
       generationConfig: { mediaResolution: "MEDIA_RESOLUTION_LOW" },
-    };
-    let last = "";
-    let wait = 2000;
-    for (let i = 0; i < 24; i++) {
-      const key = keys[next++ % keys.length] as string;
-      const model = GEMINI_MODELS[i % GEMINI_MODELS.length] as string;
-      const res = await fetchFn(GEMINI(model), {
-        method: "POST",
-        headers: { "content-type": "application/json", "x-goog-api-key": key },
-        body: JSON.stringify(body),
-      });
-      const json = (await res.json()) as {
-        candidates?: { content?: { parts?: { text?: string }[] } }[];
-        error?: { message?: string };
-      };
-      if (res.ok)
-        return (json.candidates?.[0]?.content?.parts ?? [])
-          .map((p) => p.text ?? "")
-          .join("")
-          .trim();
-      last = `${model} HTTP ${res.status} ${json.error?.message ?? ""}`.trim();
-      if (![401, 402, 403, 429, 500, 503].includes(res.status))
-        throw new Error(`gemini ${clock(start)}: ${last}`);
-      // Busy or throttled: back off (2s doubling to 1 min) before the next key and model.
-      await new Promise((r) => setTimeout(r, wait));
-      wait = Math.min(wait * 2, 60_000);
-    }
+    });
+    const r = await askShown(body, keys, fetchFn, clock(start));
+    if ("text" in r) return r.text;
     // One unread clip must not lose the other 23: leave a marker and carry on.
-    console.warn(`gemini ${clock(start)}: unread, last ${last}`);
-    return `[${clock(start)}] (not read: ${last})`;
+    console.warn(`gemini ${clock(start)}: unread, last ${r.unread}`);
+    return `[${clock(start)}] (not read: ${r.unread})`;
   };
   const out: string[] = [];
   // ponytail: 4 clips at a time; limits are per key, so go wider if it ever drags.
@@ -213,6 +259,94 @@ export async function youtubeSource(
   if (screen)
     md += `\n## On screen\n\nWhat the video showed (documents, slides, tables, visuals), read from the frames; the transcript above has only the speech.\n\n${screen}\n`;
   return { name: `youtube-${info.id}.md`, md };
+}
+
+// Gemini takes 20 MB a request inline, and base64 adds a third.
+const INLINE_MAX = 14_000_000;
+
+/**
+ * Any other video `yt-dlp` fetches (Instagram reel, TikTok, X). No captions there, so Gemini
+ * hears the speech and reads the screen from a 540p download (short side) sent inline.
+ */
+export async function videoSource(
+  url: string,
+  ytDlp: string,
+  priority = DEFAULT_PRIORITY,
+  opts: { geminiKeys: readonly string[]; fetchFn?: typeof fetch },
+): Promise<Source> {
+  if (!opts.geminiKeys.length)
+    throw new Error(`${url}: no captions off YouTube, so it needs GEMINI keys to transcribe`);
+  const fetchFn = opts.fetchFn ?? fetch;
+  const [cmd, ...pre] = ytDlp.split(/\s+/) as [string, ...string[]];
+  const dir = await mkdtemp(join(tmpdir(), "sop-video-"));
+  try {
+    const { stdout } = await run(
+      cmd,
+      [
+        ...pre,
+        ...["-j", "--no-simulate", "--no-warnings", "--no-playlist"],
+        // `res` is the short side, so a vertical reel gets 540x960, not its 1080x1920.
+        ...["-S", "res:540", "-f", "bv*+ba/b", "--remux-video", "mp4"],
+        ...["-o", join(dir, "video.%(ext)s"), url],
+      ],
+      { maxBuffer: 256 * 1024 * 1024 },
+    );
+    const info = JSON.parse(stdout) as VideoInfo & {
+      extractor_key?: string;
+      description?: string;
+      uploader?: string;
+    };
+    const file = (await readdir(dir)).find((f) => f.endsWith(".mp4"));
+    if (!file) throw new Error(`${url}: yt-dlp wrote no mp4`);
+    const bytes = await readFile(join(dir, file));
+    // ponytail: inline only, about 4 min at 540p. Longer needs the Files API, pinned to one key's project.
+    if (bytes.length > INLINE_MAX)
+      throw new Error(`${url}: ${(bytes.length / 1e6).toFixed(1)} MB at 540p, over the inline cap`);
+    const video = { inlineData: { mimeType: "video/mp4", data: bytes.toString("base64") } };
+    const ask = (text: string) => ({ contents: [{ parts: [video, { text }] }] });
+    // Two asks, so a screen Gemini won't recite never costs the speech.
+    const [speech, screen] = await Promise.all([
+      askGemini(
+        ask(
+          "Transcribe the speech in this video: every word spoken, in paragraphs, each starting with its [m:ss] video time. Fix only obvious mishearings. Markdown, no heading. If nobody speaks, reply with the single word none.",
+        ),
+        opts.geminiKeys,
+        fetchFn,
+        `${info.id} speech`,
+      ),
+      askShown(
+        (paraphrase) =>
+          ask(
+            `${SHOWN(0, paraphrase)} Markdown. If nothing is shown, reply with the single word none.`,
+          ),
+        opts.geminiKeys,
+        fetchFn,
+        `${info.id} screen`,
+      ),
+    ]);
+    if ("unread" in speech)
+      throw new Error(`gemini ${info.id} speech: unread, last ${speech.unread}`);
+    if ("unread" in screen) console.warn(`gemini ${info.id} screen: unread, last ${screen.unread}`);
+    const shown = "text" in screen ? screen.text : `(not read: ${screen.unread})`;
+    const kind = (info.extractor_key ?? "video").toLowerCase();
+    const caption = info.description?.trim() ?? "";
+    const title = caption.split("\n")[0]?.slice(0, 100) || info.title;
+    const uploaded = info.upload_date?.replace(/^(\d{4})(\d{2})(\d{2})$/, "$1-$2-$3");
+    const by = info.channel ?? info.uploader;
+    return {
+      name: `${kind}-${info.id}.md`,
+      md: `${frontMatter({
+        source: `${kind}:${info.id}`,
+        title,
+        url: info.webpage_url ?? url,
+        ...(by ? { channel: by } : {}),
+        ...(uploaded ? { uploaded } : {}),
+        priority,
+      })}# ${title}\n\n${caption ? `## Caption\n\n${caption}\n\n` : ""}## Speech\n\n${speech.text}\n\n## On screen\n\n${shown}\n`,
+    };
+  } finally {
+    await rm(dir, { recursive: true, force: true });
+  }
 }
 
 /** `GET /drive/v3/...` on autobrowse's `drive` site, as the CLI wires it. */
