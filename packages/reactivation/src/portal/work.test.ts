@@ -1,5 +1,13 @@
 import { describe, expect, it } from "vitest";
-import { checkSteps, factOf, hasWork, lookupSteps, pageOf, unlinkMasked } from "./work.js";
+import {
+  checkSteps,
+  factOf,
+  hasWork,
+  lookupSteps,
+  moverStep,
+  pageOf,
+  unlinkMasked,
+} from "./work.js";
 
 const CAP_WHY = "LinkedIn 429 for owner@example.com: daily limit";
 
@@ -198,13 +206,23 @@ describe("helpers", () => {
     expect(pageOf("not a url")).toBeNull();
   });
   it("hasWork covers the steps that keep work", () => {
-    expect(["verify", "lookup", "signals", "score", "brief", "compose"].filter(hasWork)).toEqual([
+    const steps = ["verify", "lookup", "signals", "movers", "score", "brief", "compose"];
+    expect(steps.filter(hasWork)).toEqual([
       "lookup",
       "signals",
+      "movers",
       "score",
       "brief",
       "compose",
     ]);
+  });
+  it("a mover's step says what came of the hunt", () => {
+    expect(moverStep("found", "globex.example")).toMatchObject({
+      did: "Looked for their email at globex.example",
+      tone: "kept",
+    });
+    expect(moverStep("no_domain", null).did).toBe("Looked for the new firm's website");
+    expect(moverStep("catch_all", "globex.example").tone).toBe("plain");
   });
 });
 

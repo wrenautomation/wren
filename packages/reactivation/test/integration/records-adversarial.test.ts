@@ -113,6 +113,20 @@ describe("every type reads", () => {
     expect(mail.detail).toMatchObject({ opener: "Hi Jane Doe." });
   });
 
+  it("a mover's run line opens the address hunt", async () => {
+    await pg.db.execute(sql`
+      with f as (insert into findings (kind, person_id, fact_key, value, confidence, via)
+        values ('job_change', ${jane}, 'test:jane-moved', '{"to": "Initech"}'::jsonb, 0.9, 'test')
+        returning id)
+      insert into mover_addresses (finding_id, person_id, domain, outcome)
+      select id, ${jane}, 'initech.example', 'not_found' from f`);
+    const work = await api.work({ ...operator, step: "movers", subject: "Jane Doe" });
+    expect(work.steps[0]?.did).toBe("Looked for their email at initech.example");
+    expect(work.facts).toHaveLength(1);
+    const shown = await api.work({ ...demo, step: "movers", subject: "Jane D." });
+    expect(leaks(shown)).toBe(false);
+  });
+
   it("the types say which fields the demo can filter", async () => {
     const mine = await api.recordsTypes(operator);
     const shown = await api.recordsTypes(demo);

@@ -8,6 +8,7 @@
 import type { Queryable } from "@wren/db";
 import { sql } from "drizzle-orm";
 import { fullName } from "../feed.js";
+import type { MoverOutcome } from "../schema.js";
 import type { Reason } from "../score.js";
 import { iso, SUBJECTS } from "./views.js";
 
@@ -74,7 +75,7 @@ interface Tried {
   outcome: string;
 }
 
-const STEPS_WITH_WORK = ["lookup", "signals", "score", "brief", "compose"] as const;
+const STEPS_WITH_WORK = ["lookup", "signals", "movers", "score", "brief", "compose"] as const;
 export type WorkStepId = (typeof STEPS_WITH_WORK)[number];
 export const hasWork = (step: string): step is WorkStepId =>
   (STEPS_WITH_WORK as readonly string[]).includes(step);
@@ -381,6 +382,22 @@ async function personOf(db: Queryable, subject: string, shown: (name: string) =>
   );
 }
 
+const MOVER_RESULT: Record<MoverOutcome, string> = {
+  found: "Found an address their mail server accepts",
+  no_domain: "Couldn't find the new firm's website",
+  catch_all: "Their mail server accepts any address, so none could be proven",
+  not_found: "No address there could be proven",
+};
+
+/** A mover's address hunt at their new firm, from its kept outcome. */
+export const moverStep = (outcome: MoverOutcome, domain: string | null): WorkStep =>
+  step({
+    icon: "mail",
+    did: domain ? `Looked for their email at ${domain}` : "Looked for the new firm's website",
+    result: MOVER_RESULT[outcome],
+    tone: outcome === "found" ? "kept" : "plain",
+  });
+
 async function factsOf(db: Queryable, ids: (number | null)[]): Promise<WorkFact[]> {
   const want = ids.filter((x): x is number => typeof x === "number");
   if (!want.length) return [];
@@ -465,6 +482,24 @@ export async function portalWork(
       steps: withDetail(lookupSteps(tried), tried, q.operator),
       facts: await factsOf(db, [p.where_id]),
       at: iso(r?.at),
+    };
+  }
+
+  if (q.step === "movers") {
+    const [r] = await db.execute<{
+      outcome: MoverOutcome;
+      domain: string | null;
+      finding_id: number;
+      at: unknown;
+    }>(sql`
+      select outcome, domain, finding_id, tried_at at from mover_addresses
+      where person_id = ${p.person_id} order by tried_at desc limit 1`);
+    if (!r) return null;
+    return {
+      ...person,
+      steps: [moverStep(r.outcome, r.domain)],
+      facts: await factsOf(db, [r.finding_id]),
+      at: iso(r.at),
     };
   }
 
