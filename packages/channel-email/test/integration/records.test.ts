@@ -238,6 +238,16 @@ describe("email records", () => {
     expect(page.rows).toMatchObject([{ model: "test-model", calls: 1, inputTokens: 10 }]);
   });
 
+  it("variants: the opener sent, with its campaign and step", async () => {
+    const page = await serve().list({ record: "email.variant", view: "all" });
+    expect(page.rows).toMatchObject([{ campaign: "Sec ria", step: "Opener", sent: 1 }]);
+  });
+
+  it("stalls: one row per campaign", async () => {
+    const page = await serve().list({ record: "email.stall", view: "all" });
+    expect(page.rows).toMatchObject([{ campaign: "Sec ria" }]);
+  });
+
   it("stats: replies waiting, this week", async () => {
     const s = await serve().stats({ record: "email.reply", view: "waiting", period: 7 });
     expect([s.value, s.prior]).toEqual([1, 0]);

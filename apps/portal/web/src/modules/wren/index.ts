@@ -194,6 +194,13 @@ export const outbound: Module = {
           fields: ["reason", "pausedAt"],
           empty: "Every inbox is sending.",
         },
+        {
+          label: "Variants",
+          record: "email.variant",
+          href: "/outbound/variants",
+          fields: ["step", "replyRate"],
+          empty: "No variant has sent yet.",
+        },
       ],
     },
     {
@@ -211,6 +218,13 @@ export const outbound: Module = {
       record: "email.inbox",
       empty: { paused: "Every inbox is sending.", sending: "No inbox is sending." },
       actions: INBOX_ACTIONS,
+    },
+    {
+      id: "variants",
+      label: "Variants",
+      template: "list",
+      record: "email.variant",
+      empty: "Variants show here once they send.",
     },
   ],
 };
@@ -435,6 +449,13 @@ export const pipeline: Module = {
           fields: ["campaign", "lead"],
           empty: "No verified leads yet.",
         },
+        {
+          label: "Where firms stall",
+          record: "email.stall",
+          href: "/pipeline/stalls",
+          fields: ["queuedFirms", "catchAllLeads", "riskyLeads"],
+          empty: "Nothing is stuck.",
+        },
       ],
     },
     {
@@ -443,6 +464,13 @@ export const pipeline: Module = {
       template: "list",
       record: "email.firm",
       empty: "Firms show here once a source finds them.",
+    },
+    {
+      id: "stalls",
+      label: "Stalls",
+      template: "list",
+      record: "email.stall",
+      empty: "Nothing is stuck.",
     },
   ],
 };

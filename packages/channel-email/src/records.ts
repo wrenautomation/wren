@@ -31,6 +31,10 @@ const AGES = {
   earlier: { label: "Earlier", tone: "neutral" },
 } as const;
 
+/** The views' rule (0072): "sec_ria" -> "Sec ria". */
+const campaignName = (niche: string) =>
+  niche.charAt(0).toUpperCase() + niche.slice(1).replaceAll("_", " ");
+
 export const campaignRecord = (env: SendPolicy): RecordType =>
   defineRecord({
     id: "email.campaign",
@@ -126,13 +130,7 @@ export const inboxRecord = (roster: readonly Sender[], env: SendPolicy): RecordT
           health: !h || h.sent === 0 ? "quiet" : wouldTrip(h, policy) ? "tripping" : "clean",
           bounces: h?.hardBounces ?? 0,
           sent_window: h?.sent ?? 0,
-          // The views' rule (0072): "sec_ria" -> "Sec ria".
-          campaigns:
-            s.niches === null
-              ? "every campaign"
-              : s.niches
-                  .map((n) => n.charAt(0).toUpperCase() + n.slice(1).replaceAll("_", " "))
-                  .join(", "),
+          campaigns: s.niches === null ? "every campaign" : s.niches.map(campaignName).join(", "),
         };
       });
     },
@@ -304,6 +302,56 @@ export const modelRecord = defineRecord({
   ],
 });
 
+/** One copy version of one step, with sends: `reply_by_arm_step`, versions never sent left out. */
+export const variantRecord = defineRecord({
+  id: "email.variant",
+  name: { one: "variant", many: "variants" },
+  rows: async (db) =>
+    (
+      await db.execute<Record<string, unknown>>(sql`select * from reply_by_arm_step where sent > 0`)
+    ).map((r) => ({
+      ...r,
+      id: `${r.template}@${r.template_version}`,
+      campaign: campaignName(String(r.niche)),
+      step: Number(r.step) === 0 ? "Opener" : `Follow-up ${r.step}`,
+    })),
+  key: "id",
+  title: "arm",
+  subtitle: "campaign",
+  fields: {
+    arm: text("Variant"),
+    campaign: text("Campaign"),
+    step: text(),
+    templateVersion: text("Copy version"),
+    sent: number("Sent"),
+    replyRate: rate("sent", "Reply rate", { from: "replies" }),
+    interested: number(),
+    bounces: rate("sent", "Hard bounces", { from: "hard_bounces" }),
+  },
+  views: [{ id: "all", label: "All", sort: "-sent" }],
+});
+
+/** Per campaign, the named people and firms stuck before a send: `pipeline_leaks`. */
+export const stallRecord = defineRecord({
+  id: "email.stall",
+  name: { one: "stall", many: "stalls" },
+  rows: async (db) =>
+    (await db.execute<Record<string, unknown>>(sql`select * from pipeline_leaks`)).map((r) => ({
+      ...r,
+      campaign: campaignName(String(r.niche)),
+    })),
+  key: "niche",
+  title: "campaign",
+  fields: {
+    campaign: text("Campaign"),
+    catchAllLeads: number("Catch-all leads"),
+    riskyLeads: number("Risky leads"),
+    queuedFirms: number("Firms in the resolution queue"),
+    crawledNoPersonFirms: number("Crawled, no person"),
+  },
+  views: [{ id: "all", label: "All", sort: "-queuedFirms" }],
+});
+
 /** Every email record type; the worker passes them to `makeConsolePortal`. */
 export const emailRecords = (roster: readonly Sender[], policy: SendPolicy): RecordType[] => [
   campaignRecord(policy),
@@ -311,4 +359,6 @@ export const emailRecords = (roster: readonly Sender[], policy: SendPolicy): Rec
   replyRecord,
   firmRecord,
   modelRecord,
+  variantRecord,
+  stallRecord,
 ];
