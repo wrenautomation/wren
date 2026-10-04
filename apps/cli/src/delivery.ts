@@ -7,6 +7,7 @@
 import { readFile } from "node:fs/promises";
 import { basename } from "node:path";
 import * as restateClients from "@restatedev/restate-sdk-clients";
+import { siteExport } from "@wren/channel-email";
 import { ingressOf, type Settings } from "@wren/config";
 import { getClient, listOperators, normalEmail } from "@wren/core/clients";
 import type { Db, Queryable } from "@wren/db";
@@ -20,7 +21,9 @@ import {
   DELIVERABLE_KINDS,
   type DeliverableKind,
   deliveryHome,
+  ENGAGEMENT_STATUSES,
   type Engagement,
+  type EngagementStatus,
   type EngagementView,
   engagementOf,
   hideUpdate,
@@ -33,7 +36,10 @@ import {
   postUpdate,
   recordResult,
   requestAccess,
+  setEngagementSource,
+  setEngagementStatus,
   slipMilestone,
+  sourceHints,
   startEngagement,
   todayUtc,
 } from "@wren/delivery";
@@ -44,6 +50,12 @@ import type { Command } from "commander";
 
 type WithDb = <T>(fn: (db: Db) => Promise<T>) => Promise<T>;
 type Opts = { by?: string; engagement?: string };
+
+/** "email (spring)", or "unknown". */
+const sourceOf = (e: Engagement) =>
+  e.sourceChannel
+    ? `${e.sourceChannel}${e.sourceCampaign ? ` (${e.sourceCampaign})` : ""}`
+    : "unknown";
 
 const idOf = (v: string) => {
   const n = Number(v);
@@ -268,6 +280,60 @@ export function registerDelivery(program: Command, withMainDb: WithDb, settings:
         ].join("\n"),
       );
     });
+
+  onEngagement(cmd.command("engagement <state>"))
+    .description(`Move the engagement on: ${ENGAGEMENT_STATUSES.join(", ")}; done dates its end`)
+    .action(async (state: string, opts: Opts) => {
+      if (!(ENGAGEMENT_STATUSES as readonly string[]).includes(state))
+        throw new Error(`a status is one of ${ENGAGEMENT_STATUSES.join(", ")}`);
+      const e = await change(opts, async (tx, e) => {
+        await setEngagementStatus(tx, e.clientId, e.id, state as EngagementStatus);
+        return engagementOf(tx, e.clientId, e.id);
+      });
+      console.log(`engagement #${e.id}: ${e.status}${e.endedOn ? `, ended ${e.endedOn}` : ""}`);
+    });
+
+  onEngagement(cmd.command("source [channel]"))
+    .description(
+      "How the client came in, for unit economics: set it, or with no channel see what the site and replies suggest",
+    )
+    .option("--campaign <name>", "the campaign it came through")
+    .option("--clear", "back to unknown")
+    .action(
+      async (channel: string | undefined, opts: Opts & { campaign?: string; clear?: boolean }) => {
+        if (channel || opts.clear) {
+          const e = await change(opts, async (tx, e) => {
+            await setEngagementSource(tx, e.clientId, e.id, {
+              channel: opts.clear ? null : (channel ?? null),
+              campaign: opts.clear ? null : (opts.campaign ?? null),
+            });
+            return engagementOf(tx, e.clientId, e.id);
+          });
+          return console.log(`engagement #${e.id}: source ${sourceOf(e)}`);
+        }
+        const applications = settings.siteExportToken
+          ? await siteExport("applications", {
+              baseUrl: settings.siteBaseUrl,
+              exportToken: settings.siteExportToken,
+            })
+          : [];
+        if (!settings.siteExportToken)
+          console.log("WREN_SITE_EXPORT_TOKEN is unset: no site hints");
+        const { e, hints } = await withMainDb(async (main) => ({
+          e: await engagementOf(
+            main,
+            clientId(),
+            opts.engagement ? idOf(opts.engagement) : undefined,
+          ),
+          hints: await sourceHints(main, clientId(), applications),
+        }));
+        console.log(`engagement #${e.id}: source ${sourceOf(e)}`);
+        if (!hints.length)
+          return console.log("no hints: nothing on the site or in replies matches its people");
+        for (const h of hints)
+          console.log(`  ${h.channel}${h.campaign ? ` --campaign ${h.campaign}` : ""}: ${h.why}`);
+      },
+    );
 
   onEngagement(cmd.command("access <system>"))
     .description("Ask, formally, for access to one of the client's systems")

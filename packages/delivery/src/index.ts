@@ -5,7 +5,7 @@
  * imports one. Every write names the client, and a row of another client's
  * is "not found", so one client can never reach another's by id.
  */
-import { clients } from "@wren/core/clients";
+import { CHANNELS, type Channel, clients } from "@wren/core/clients";
 import type { Queryable } from "@wren/db";
 import { OFFER_IDS, type Offer, offerFor } from "@wren/offers";
 import { and, asc, desc, eq, inArray, isNull, lt, type SQL, sql } from "drizzle-orm";
@@ -53,6 +53,7 @@ import {
 
 export { amount, CONTRACT_VERSION, contractText, WREN_PARTY } from "./contract.js";
 export * from "./schema.js";
+export * from "./source.js";
 
 /** Bad input (400), nothing of this client's by that id (404), or a clash with what's there (409). */
 export class DeliveryRefusal extends Error {
@@ -246,6 +247,26 @@ export async function setEngagementStatus(
       ? sql`coalesce(${engagements.endedOn}, (now() at time zone 'America/Toronto')::date)`
       : null;
   await db.update(engagements).set({ status, endedOn }).where(eq(engagements.id, id));
+}
+
+/** How a client came in, on its engagement: a channel and a campaign, or null for unknown. */
+export async function setEngagementSource(
+  db: Queryable,
+  clientId: string,
+  id: number,
+  source: { channel: string | null; campaign: string | null },
+): Promise<void> {
+  await engagementOf(db, clientId, id);
+  const channel = source.channel?.trim() || null;
+  if (channel !== null && !(CHANNELS as readonly string[]).includes(channel))
+    throw bad(`the channel is one of ${CHANNELS.join(", ")}`);
+  const campaign = source.campaign?.trim() || null;
+  if (campaign !== null && campaign.length > 120)
+    throw bad("the campaign is 120 characters at most");
+  await db
+    .update(engagements)
+    .set({ sourceChannel: channel as Channel | null, sourceCampaign: campaign })
+    .where(eq(engagements.id, id));
 }
 
 /** A line on the timeline (D3). Internal ones are for Wren's team only. */

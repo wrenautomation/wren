@@ -30,7 +30,7 @@ export function AiSpend() {
   );
   const s = stat.data;
   if (!s?.currency) return null;
-  const amount = money(s.value, s.currency);
+  const amount = money(s.value ?? 0, s.currency);
   return (
     <a
       href={`/money/spend?view=this_month&${AI_SPEND}`}

@@ -9,7 +9,7 @@ import type { Period, RecordsStat, Row } from "@wren/core/records/serve";
 import { cn } from "cn";
 import { Alert } from "./feedback.js";
 import { FieldCell } from "./fields.js";
-import { money, num } from "./format.js";
+import { money, month, num } from "./format.js";
 import {
   askOf,
   cap,
@@ -34,6 +34,13 @@ export interface OverviewTile {
   sum?: string;
   /** Rows waiting on someone: the number shows amber while above zero. */
   needs?: true;
+  /**
+   * A field read off the newest row, for a type with a row a month: its month, the change from
+   * the row before, and a bar a month. Takes no period.
+   */
+  pick?: string;
+  /** Said in place of a pick with no value: "No paying clients yet". */
+  none?: string;
 }
 
 export interface OverviewTop {
@@ -150,8 +157,12 @@ function TileGhost() {
 
 function Tile({ tile, meta, api }: { tile: OverviewTile; meta: RecordMeta; api: RecordsApi }) {
   const ask = askFor(meta, tile.href);
-  const { period } = tile;
+  const { period, pick } = tile;
   const load = useLoad(JSON.stringify([tile, ask]), async (): Promise<RecordsStat> => {
+    if (pick) {
+      if (!api.stats) throw new Error("No numbers here.");
+      return api.stats({ ...ask, pick, zone: ZONE, ...(tile.at ? { at: tile.at } : {}) });
+    }
     if (period) {
       if (!api.stats) throw new Error("No numbers here.");
       return api.stats({
@@ -174,8 +185,19 @@ function Tile({ tile, meta, api }: { tile: OverviewTile; meta: RecordMeta; api: 
   });
   if (!load.data && !load.error) return <TileGhost />;
   const s = load.data;
-  const fmt = (n: number) => (s?.currency ? money(n, s.currency, true) : num(n));
-  const delta = s ? s.value - s.prior : 0;
+  const kind = pick ? meta.fields.find((f) => f.key === pick)?.kind : undefined;
+  const fmt = (n: number) =>
+    s?.currency
+      ? money(n, s.currency, true)
+      : kind === "percent"
+        ? `${Math.round(n * 1000) / 10}%`
+        : pick
+          ? n.toLocaleString("en-US", { maximumFractionDigits: 1 })
+          : num(n);
+  const delta = s?.value != null && s.prior != null ? s.value - s.prior : null;
+  // A pick names its row's month and compares with the row before.
+  const newest = pick ? month(s?.series.at(-1)?.at ?? null) : "";
+  const before = pick ? month(s?.series.at(-2)?.at ?? null) : period ? priorName(period) : "";
   return (
     <a
       href={tileHref(tile, meta)}
@@ -183,24 +205,27 @@ function Tile({ tile, meta, api }: { tile: OverviewTile; meta: RecordMeta; api: 
     >
       <span className="flex flex-wrap items-baseline justify-between gap-x-2 text-[13px] text-(--ui-ink-2)">
         <span className="font-medium text-(--ui-ink)">{tile.label}</span>
-        <span>{period ? periodName(period) : "Now"}</span>
+        <span>{pick ? newest : period ? periodName(period) : "Now"}</span>
       </span>
       {s ? (
         <>
           <span
             className={cn(
               "text-[28px] leading-9 font-semibold tracking-[-0.02em]",
-              tile.needs && s.value > 0 && "text-(--warn)",
+              tile.needs && (s.value ?? 0) > 0 && "text-(--warn)",
+              s.value === null && "text-[15px] leading-6 font-normal text-(--ui-ink-2)",
             )}
           >
-            {fmt(s.value)}
+            {s.value === null ? (tile.none ?? "None yet") : fmt(s.value)}
           </span>
-          {period ? (
+          {period || pick ? (
             <>
               <span className="text-[13px] text-(--ui-ink-2)">
-                {delta === 0
-                  ? `Same as ${priorName(period)}`
-                  : `${delta > 0 ? "+" : "−"}${fmt(Math.abs(delta))} vs ${priorName(period)}`}
+                {delta === null || !before
+                  ? ""
+                  : delta === 0
+                    ? `Same as ${before}`
+                    : `${delta > 0 ? "+" : "−"}${fmt(Math.abs(delta))} vs ${before}`}
               </span>
               <Bars
                 series={s.series}
@@ -216,10 +241,10 @@ function Tile({ tile, meta, api }: { tile: OverviewTile; meta: RecordMeta; api: 
   );
 }
 
-/** A bar a day, the tallest at full height; a quiet line under days with none. A month keeps a
- * slot for each of its days, so the bars fill in as it goes. */
-function Bars({ series, slots }: { series: { at: string; value: number }[]; slots: number }) {
-  const max = Math.max(0, ...series.map((p) => p.value));
+/** A bar a day (a pick's, a month), the tallest at full height; a quiet line under days with
+ * none. A month keeps a slot for each of its days, so the bars fill in as it goes. */
+function Bars({ series, slots }: { series: RecordsStat["series"]; slots: number }) {
+  const max = Math.max(0, ...series.map((p) => p.value ?? 0));
   const w = 100 / Math.max(1, slots, series.length);
   return (
     <svg
@@ -231,7 +256,7 @@ function Bars({ series, slots }: { series: { at: string; value: number }[]; slot
       <rect x="0" y="27" width="100" height="1" fill="var(--ui-fill)" />
       {max
         ? series.map((p, i) => {
-            const h = p.value ? Math.max(2, (p.value / max) * 28) : 0;
+            const h = p.value && p.value > 0 ? Math.max(2, (p.value / max) * 28) : 0;
             return (
               <rect
                 key={p.at}

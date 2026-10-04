@@ -14,10 +14,12 @@
  *   day, so it never churns.
  * - demo: paid in Mar, never counts.
  */
+import { serveRecords } from "@wren/core/records/serve";
 import { startTestPostgres, type TestPostgres } from "@wren/db/testing";
 import { inArray, sql } from "drizzle-orm";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { econChannels, econCohorts, econMonths, seedBooks } from "../../src/index.js";
+import { BOOKS_RECORDS } from "../../src/records.js";
 
 let pg: TestPostgres;
 
@@ -313,6 +315,56 @@ describe("a cohort", () => {
     expect(c.get("2026-03/1")).toMatchObject({ stillPaying: 1, revenue: 0, revenueKept: 0 });
     expect(c.get("2026-03/2")).toMatchObject({ paying: 0, stillPaying: 0 });
     expect(c.get("2026-04/1")).toMatchObject({ stillPaying: 1, revenue: 400, revenueKept: 1 });
+  });
+});
+
+describe("as console records", () => {
+  // The Economics tiles on June 15th: June's figure and May's, as the Overview asks for them.
+  const JUNE = new Date("2026-06-15T12:00:00Z");
+  const tile = async (pick: string) => {
+    const s = await serveRecords(BOOKS_RECORDS, pg.db).stats(
+      { record: "books.month", view: "all", pick, zone: "America/Toronto" },
+      JUNE,
+    );
+    return { now: [s.value, s.prior], series: s.series.map((p) => p.value), currency: s.currency };
+  };
+
+  it("every tile matches the month's figures, with the month before and a bar a month", async () => {
+    expect(await tile("cac6")).toEqual({
+      now: [626.67, 626.67],
+      series: [null, 920, 610, 526.67, 626.67, 626.67],
+      currency: "CAD",
+    });
+    expect((await tile("ltv")).now).toEqual([2704, 2535]);
+    expect((await tile("ltvCac")).now).toEqual([4.31, 4.05]);
+    expect((await tile("payback")).now).toEqual([1.9, 1.5]);
+    expect((await tile("logoChurn")).now).toEqual([0, 0]);
+    expect((await tile("revenueChurn")).now).toEqual([0, 0]);
+    expect((await tile("mrr")).now).toEqual([700, 700]);
+    expect((await tile("arpa")).now).toEqual([0, 350]);
+    expect((await tile("grossMargin")).now).toEqual([null, 0.9286]);
+  });
+
+  it("months, cost per reply and per booked call by channel, cohorts and accounts list", async () => {
+    const api = serveRecords(BOOKS_RECORDS, pg.db);
+    const ch = await api.list({
+      record: "books.channel",
+      view: "all",
+      where: { channel: "email" },
+    });
+    expect(ch.rows.find((r) => r.id === "email/2026-05")).toMatchObject({
+      perReply: { amount: 150, currency: "CAD" },
+      perBooked: { amount: 300, currency: "CAD" },
+    });
+    const mo = await api.list({ record: "books.month", view: "all" });
+    expect(mo.rows.find((r) => r.id === "2026-04")).toMatchObject({ cac6: { amount: 526.67 } });
+    const co = await api.list({ record: "books.cohort", view: "all" });
+    expect(co.rows.find((r) => r.id === "2026-02/1")).toMatchObject({ stillPaying: 1 });
+    const ac = await api.list({ record: "books.account", view: "expenses" });
+    expect(ac.rows.find((r) => r.key === "ads")).toMatchObject({
+      bucket: "acquisition",
+      channel: "ads",
+    });
   });
 });
 

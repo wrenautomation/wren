@@ -46,6 +46,9 @@ export interface SiteApplication {
   offer: string;
   fit: number;
   r: string;
+  email?: string | null;
+  /** The visitor's first touch, JSON. */
+  first_touch?: string | null;
 }
 
 export interface SiteTables {

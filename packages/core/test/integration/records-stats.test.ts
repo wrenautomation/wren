@@ -164,6 +164,33 @@ describe("recordsStats", () => {
     expect([s.value, s.prior]).toEqual([1, 1]);
   });
 
+  it("a pick reads the newest row up to now, the row before, and the newest 12", async () => {
+    // A row a month, 2025-01 to 2026-04: April is still to come, March has no figure yet.
+    const rows = Array.from({ length: 16 }, (_, i) => ({
+      m: new Date(Date.UTC(2025, i, 1)).toISOString().slice(0, 10),
+      cac: i === 14 ? null : i,
+      cur: "CAD",
+      k: "x",
+    }));
+    const month = defineRecord({
+      id: "test.month",
+      name: { one: "month", many: "months" },
+      rows: async () => rows,
+      key: "m",
+      title: "k",
+      fields: { k: text(), m: date(), cac: money(undefined, { currency: "cur" }), cur: text() },
+      views: [{ id: "all", label: "All", at: "m" }],
+    });
+    const serve = serveRecords([month], pg.db);
+    const one = { record: "test.month", view: "all" };
+    const s = await serve.stats({ ...one, pick: "cac", zone: "America/Toronto" }, NOW);
+    expect([s.value, s.prior, s.currency]).toEqual([null, 13, "CAD"]);
+    expect(s.series.map((p) => p.value)).toEqual([3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, null]);
+    expect(s.series[0]?.at).toBe("2025-04-01T04:00:00.000Z");
+    await refused(serve.stats({ ...one, pick: "k" }, NOW));
+    await refused(serve.stats(one, NOW)); // no period and no pick
+  });
+
   it("refuses what it can't answer", async () => {
     await refused(api.stats({ record: "test.event", period: 7 }, NOW)); // no date
     await refused(api.stats({ ...ask, at: "n" }, NOW));

@@ -3,7 +3,7 @@ type: object
 cluster: clients
 universe: live
 status: verified
-verified: 2026-10-04 @ fc7250d
+verified: 2026-10-04 @ d6098e4
 entity: packages/delivery/src/schema.ts:33
 ---
 
@@ -19,7 +19,7 @@ It sits in main, beside the registry, so an operator can read across clients and
 
 - Tables: `engagements`, `milestones`, `updates`, `deliverables`, `asks`, `results` (`packages/delivery/src/schema.ts:33`, `:61`, `:93`, `:130`, `:176`, `:209`)
 - Planned dates never move. A slip moves only `due_on` and needs a reason.
-- How it ends and where it came from (`schema.ts:47`, `:49`): `ended_on` is set the first time `setEngagementStatus` makes it `done` and cleared by any other status (`index.ts:236`); `source_channel` and `source_campaign` say how the client came in (null is unknown). Unit economics reads these for churn and per-channel CAC.
+- How it ends and where it came from (`schema.ts:47`, `:49`): `ended_on` is set the first time `setEngagementStatus` (`wren delivery engagement <state>`) makes it `done` and cleared by any other status (`index.ts:237`); `source_channel` and `source_campaign` say how the client came in (null is unknown), set by `setEngagementSource` (`index.ts:253`) from `wren delivery source`, which suggests one from the lander's first touch on a member's application and a member's campaign replies (`sourceHints`, `touchSource`, `packages/delivery/src/source.ts:61`, `:35`; email's tables read by name). Unit economics reads these for churn and per-channel CAC.
 - A new deliverable version is a new row pointing at the old one (`previous_id`). Home shows only the latest.
 - `startEngagement` turns the offer's `plan` into dated steps and opens its asks (`packages/delivery/src/index.ts:139`, `datedPlan` `:129`)
 - Writes: `postUpdate`, `hideUpdate`, `addDeliverable`, `decideDeliverable`, `addAsk`, `answerAsk`, `markDone`, `slipMilestone`, `recordResult` (`:207`–`:383`)

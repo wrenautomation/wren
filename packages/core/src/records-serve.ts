@@ -88,21 +88,27 @@ export type Period = number | "month";
 export interface StatsAsk extends ExportAsk {
   /** A date field; absent, the view's `at`. */
   at?: string;
-  period: Period;
+  /** Needed unless `pick`. */
+  period?: Period;
   /** A number or money field to add up; absent, rows are counted. */
   sum?: string;
+  /**
+   * A number, money or percent field read off the newest row up to now, by `at`, for a type with
+   * a row per month: its value, the row before's, and the newest 12. Takes no period.
+   */
+  pick?: string;
   /** The IANA zone days start in; UTC when absent. */
   zone?: string;
 }
 export interface RecordsStat {
   record: string;
   view: string | null;
-  /** This period so far. */
-  value: number;
+  /** This period so far. A pick's is null when its row has none, or there is no row. */
+  value: number | null;
   /** The same stretch of the period before: last week to this hour, not all of last week. */
-  prior: number;
-  /** Each day of this period so far, oldest first: the day's start and its value. */
-  series: { at: string; value: number }[];
+  prior: number | null;
+  /** Each day of this period so far, oldest first: the day's start and its value. A pick's rows. */
+  series: { at: string; value: number | null }[];
   /** A money sum's currency; null otherwise or with no rows. */
   currency: string | null;
 }
@@ -123,6 +129,8 @@ const MAX_Q = 100;
 const MAX_CURSOR = 1000;
 const ACTIVITY = 50;
 const MAX_DAYS = 92;
+/** The rows a pick's series carries. */
+const PICKS = 12;
 const BARE_DAY = "^\\d{4}-\\d{2}-\\d{2}$";
 
 /** Midnight in `zone` of a calendar day; the day may run past its month either way. */
@@ -513,6 +521,47 @@ export function serveRecords(types: readonly RecordType[], db: Queryable, mask?:
         const sumField = ask.sum === undefined ? null : fieldOf(ask.sum);
         if (sumField !== null && sumField?.kind !== "number" && sumField?.kind !== "money")
           throw new BadAsk(`${p.t.name.many} can't add that up`);
+        const zone =
+          typeof ask.zone === "string" ? canonicalZone(ask.zone) : ask.zone ? null : "UTC";
+        if (!zone) throw new BadAsk("no such time zone");
+        // A bare day ("2026-03-10") starts at midnight in `zone`, not at UTC's.
+        const atText = sql`(${ref(atField.from ?? "")})::text`;
+        const at = sql`(case when ${atText} ~ ${BARE_DAY} then ${atText}::timestamp at time zone ${zone}
+          else ${atText}::timestamptz end)`;
+        const ts = (d: Date) => bind(d.toISOString(), "timestamptz");
+        const from = await source(p.t);
+        const stat = (
+          value: unknown,
+          prior: unknown,
+          series: RecordsStat["series"],
+          currency: unknown,
+        ) => ({
+          record: p.t.id,
+          view: p.view?.id ?? null,
+          value: value === null || value === undefined ? null : Number(value),
+          prior: prior === null || prior === undefined ? null : Number(prior),
+          series,
+          currency: typeof currency === "string" ? currency : null,
+        });
+
+        if (ask.pick !== undefined) {
+          const f = fieldOf(ask.pick);
+          if (!f || KINDS[f.kind].sql !== "numeric")
+            throw new BadAsk(`${p.t.name.many} have no number to pick there`);
+          const currency = f.kind === "money" ? ref(f.currency ?? "") : sql`null::text`;
+          const rows = await db.execute<Raw>(sql`
+            select ${at} "at", ${valueSql(f)}::numeric "value", ${currency} "currency"
+            from ${from} where ${p.base} and ${p.inView} and ${at} <= ${ts(now)}
+            order by 1 desc limit ${PICKS}`);
+          const series = rows
+            .map((r) => ({
+              at: new Date(r.at as string).toISOString(),
+              value: r.value === null ? null : Number(r.value),
+            }))
+            .reverse();
+          return stat(rows[0]?.value, rows[1]?.value, series, rows[0]?.currency);
+        }
+
         const { period } = ask;
         if (
           period !== "month" &&
@@ -523,16 +572,7 @@ export function serveRecords(types: readonly RecordType[], db: Queryable, mask?:
           )
         )
           throw new BadAsk(`period takes 1 to ${MAX_DAYS} days or "month"`);
-        const zone =
-          typeof ask.zone === "string" ? canonicalZone(ask.zone) : ask.zone ? null : "UTC";
-        if (!zone) throw new BadAsk("no such time zone");
-
-        const w = statWindows(period, zone, now);
-        // A bare day ("2026-03-10") starts at midnight in `zone`, not at UTC's.
-        const atText = sql`(${ref(atField.from ?? "")})::text`;
-        const at = sql`(case when ${atText} ~ ${BARE_DAY} then ${atText}::timestamp at time zone ${zone}
-          else ${atText}::timestamptz end)`;
-        const ts = (d: Date) => bind(d.toISOString(), "timestamptz");
+        const w = statWindows(period as Period, zone, now);
         const within = (a: Date, b: Date) => sql`(${at} >= ${ts(a)} and ${at} < ${ts(b)})`;
         const agg = (when: SQL) =>
           sumField
@@ -541,7 +581,6 @@ export function serveRecords(types: readonly RecordType[], db: Queryable, mask?:
         const both = sql`(${within(w.from, now)} or ${within(w.priorFrom, w.priorTo)})`;
         const currency =
           sumField?.kind === "money" ? ref(sumField.currency ?? "") : sql`null::text`;
-        const from = await source(p.t);
         const [n] = await db.execute<Raw>(sql`
           select ${agg(within(w.from, now))}::numeric "value",
             ${agg(within(w.priorFrom, w.priorTo))}::numeric "prior",
@@ -559,14 +598,7 @@ export function serveRecords(types: readonly RecordType[], db: Queryable, mask?:
           const point = series[Number(d.day) - 1];
           if (point) point.value = Number(d.value);
         }
-        return {
-          record: p.t.id,
-          view: p.view?.id ?? null,
-          value: Number(n?.value ?? 0),
-          prior: Number(n?.prior ?? 0),
-          series,
-          currency: typeof n?.currency === "string" ? n.currency : null,
-        };
+        return stat(n?.value ?? 0, n?.prior ?? 0, series, n?.currency);
       }),
   };
 }

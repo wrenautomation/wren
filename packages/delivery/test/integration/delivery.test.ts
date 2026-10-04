@@ -16,8 +16,11 @@ import {
   engagementOf,
   markInvoice,
   postUpdate,
+  setEngagementSource,
   setEngagementStatus,
+  sourceHints,
   startEngagement,
+  touchSource,
 } from "../../src/index.js";
 import { deliveryApi } from "../../src/service.js";
 
@@ -741,5 +744,72 @@ describe("an engagement's end", () => {
     expect(await endedOn()).toBe("2026-01-31");
     await setEngagementStatus(pg.db, "beta", id, "active");
     expect(await endedOn()).toBeNull();
+  });
+});
+
+describe("an engagement's source", () => {
+  it("reads a lander touch as a channel and its campaign", () => {
+    const t = (o: unknown) => touchSource(JSON.stringify(o));
+    expect(t({ r: "x1", utm_campaign: "Spring" })).toEqual({
+      channel: "email",
+      campaign: "spring",
+    });
+    expect(t({ utm_source: "sms", utm_medium: "outreach" })).toMatchObject({ channel: "sms" });
+    expect(t({ utm_source: "meta", utm_medium: "paid" })).toMatchObject({ channel: "ads" });
+    expect(t({ ref: "https://www.google.com/" })).toMatchObject({ channel: "search" });
+    expect(t({ utm_source: "recruiting", utm_medium: "outreach" })).toMatchObject({
+      channel: "email",
+    });
+    expect(t({ utm_source: "yt", utm_medium: "organic" })).toMatchObject({ channel: "content" });
+    expect(t({ page: "/" })).toBeNull();
+    expect(touchSource("")).toBeNull();
+    expect(touchSource("not json")).toBeNull();
+  });
+
+  it("suggests what the site and a member's replies say", async () => {
+    // Foreign keys are off for these rows only: the hints read addresses, kinds and times.
+    await pg.db.transaction(async (tx) => {
+      await tx.execute(sql`set local session_replication_role = replica`);
+      await tx.execute(sql`
+        insert into enrollments (id, niche, sequence_name, sequence_snapshot, offer, state,
+          company_id, kind, to_email, sender) values
+          (901, 'spring', 's', '{}', 'o', 'finished', 1, 'role_inbox', 'BO@beta.example', 'x@example.com'),
+          (902, 'fall', 's', '{}', 'o', 'finished', 1, 'role_inbox', 'someone@else.example', 'x@example.com')`);
+      await tx.execute(sql`
+        insert into thread_events (enrollment_id, kind, received_at) values
+          (901, 'reply', '2026-02-03T12:00:00Z'),
+          (901, 'reply', '2026-02-01T12:00:00Z'),
+          (902, 'reply', '2026-02-02T12:00:00Z')`);
+    });
+    const site = [
+      { ts: "2026-02-04T10:00:00Z", email: "Bo@Beta.example", first_touch: '{"r":"x1"}' },
+      { ts: "2026-02-05T10:00:00Z", email: "other@else.example", first_touch: '{"r":"x2"}' },
+      { ts: "2026-02-06T10:00:00Z", email: "bo@beta.example", first_touch: "" },
+    ];
+    expect(await sourceHints(pg.db, "beta", site)).toEqual([
+      {
+        channel: "email",
+        campaign: null,
+        why: "applied on the site 2026-02-04 as bo@beta.example",
+      },
+      { channel: "email", campaign: "spring", why: "replied to the spring campaign 2026-02-01" },
+    ]);
+  });
+
+  it("sets a channel and campaign, refuses another channel, and clears", async () => {
+    const id = (await engagementOf(pg.db, "beta")).id;
+    await setEngagementSource(pg.db, "beta", id, { channel: "email", campaign: " spring " });
+    expect(await engagementOf(pg.db, "beta", id)).toMatchObject({
+      sourceChannel: "email",
+      sourceCampaign: "spring",
+    });
+    await expect(
+      setEngagementSource(pg.db, "beta", id, { channel: "fax", campaign: null }),
+    ).rejects.toBeInstanceOf(DeliveryRefusal);
+    await setEngagementSource(pg.db, "beta", id, { channel: null, campaign: null });
+    expect(await engagementOf(pg.db, "beta", id)).toMatchObject({
+      sourceChannel: null,
+      sourceCampaign: null,
+    });
   });
 });

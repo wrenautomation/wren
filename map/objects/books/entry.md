@@ -3,7 +3,7 @@ type: object
 cluster: books
 universe: live
 status: verified
-verified: 2026-10-04 @ fc7250d
+verified: 2026-10-04 @ d6098e4
 entity: packages/books/src/schema.ts:391
 ---
 
@@ -23,7 +23,7 @@ The journal is the books; bills only explain it. An entry's lines sum to zero in
 - `rates` (`:371`): CAD per unit by day, currency and source
 - Triggers: balance (`packages/db/drizzle/0025_books.sql:211`, `:224`), never edited (`:227`)
 - View `spend` (`schema.ts:548`): expense per month, account and vendor
-- Unit economics views (`packages/books/src/economics.ts`, design `designs/2026-10-04-unit-economics.md`): `econ_paid` (paid invoices in CAD at the BoC rate), `econ_client_months`, `econ_months` (every figure per month), `econ_channels` (spend and cost per funnel stage per channel), `econ_cohorts` (`:20`, `:56`, `:111`, `:222`, `:320`). They read `delivery.*`, `public.clients` and the channel tables by name; `economics.test.ts` pins those columns
+- Unit economics views (`packages/books/src/economics.ts`, design `designs/2026-10-04-unit-economics.md`): `econ_paid` (paid invoices in CAD at the BoC rate), `econ_client_months`, `econ_months` (every figure per month), `econ_channels` (spend and cost per funnel stage per channel), `econ_cohorts` (`:20`, `:56`, `:111`, `:222`, `:320`), served as records `books.month`, `.channel`, `.cohort`, with `books.account` for each account's bucket and channel (`packages/books/src/records.ts:89`). They read `delivery.*`, `public.clients` and the channel tables by name; `economics.test.ts` pins those columns
 
 Citations: `packages/books/src/schema.ts:391`, `:429`, `:42`, `:371`, `packages/books/src/economics.ts:20`, `packages/db/drizzle/0025_books.sql:211`
 
