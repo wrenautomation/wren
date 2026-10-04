@@ -1,3 +1,20 @@
 @import "@wren/ui/kit.css";
 @import "@wren/ui/tailwind.css";
 @source "./";
+
+/* A page part marked `data-print` (the contract) prints alone. */
+@media print {
+  body:has([data-print]) * {
+    visibility: hidden;
+  }
+  body [data-print],
+  body [data-print] * {
+    visibility: visible;
+  }
+  body [data-print] {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+  }
+}

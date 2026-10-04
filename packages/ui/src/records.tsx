@@ -636,7 +636,7 @@ function List({
         <div className="flex flex-wrap items-center justify-end gap-2">
           {head?.(meta, acted)}
           {actions.map((a) =>
-            a.form ? (
+            a.form && !a.each ? (
               <Button key={a.id} tone="secondary" size="dense" onClick={() => run(a, [])}>
                 {a.label}
               </Button>

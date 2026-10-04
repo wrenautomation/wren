@@ -12,7 +12,7 @@ import {
 } from "@wren/ui";
 import type { InvoiceView } from "../../api.js";
 import type { PageProps } from "../../module.js";
-import { dayLabel } from "../work/bits.js";
+import { BLOCK, dayLabel, QUIET } from "../work/bits.js";
 import { money, useInvoices } from "./load.js";
 
 const STATUS: Record<InvoiceView["status"], [string, TagTone]> = {
@@ -58,18 +58,18 @@ export function Billing(props: PageProps) {
                   <tr key={i.id}>
                     <td>
                       <b>{i.number}</b>
-                      <span className="wk-quiet wk-block">Sent {dayLabel(i.issuedOn)}</span>
+                      <span className={`${QUIET} ${BLOCK}`}>Sent {dayLabel(i.issuedOn)}</span>
                     </td>
                     <td data-label="For">
                       {i.description}
-                      <span className="wk-quiet wk-block">{i.offer}</span>
+                      <span className={`${QUIET} ${BLOCK}`}>{i.offer}</span>
                     </td>
                     <td data-label="Amount">{money(i.cents, i.currency)}</td>
                     <td data-label="Due">{dayLabel(i.dueOn)}</td>
                     <td data-label="Status">
                       <Tag tone={tone}>{label}</Tag>
                       {i.paidOn ? (
-                        <span className="wk-quiet wk-block">{dayLabel(i.paidOn)}</span>
+                        <span className={`${QUIET} ${BLOCK}`}>{dayLabel(i.paidOn)}</span>
                       ) : null}
                     </td>
                     <td data-label="">

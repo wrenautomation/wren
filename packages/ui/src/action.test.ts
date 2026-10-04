@@ -44,8 +44,14 @@ describe("form actions", () => {
     expect(valuesOf(form, { name: "Acme", id: "ac" })).toEqual({ name: "Acme", id: "ac" });
     expect(valuesOf(form, {})).toEqual({ name: "", id: "" });
   });
-  it("applies to no row", () => {
+  it("applies to no row, unless asked on each", () => {
     expect(applies(ADD, { id: "x" })).toBe(false);
     expect(applies(STOP, { id: "x" })).toBe(true);
+    const SLIP: Action = { ...ADD, each: true, when: { state: ["now"] } };
+    expect(applies(SLIP, { state: "now" })).toBe(true);
+    expect(applies(SLIP, { state: "done" })).toBe(false);
+  });
+  it("leaves a file out of the typed values", () => {
+    expect(valuesOf([{ field: "file", label: "File", type: "file" }], {})).toEqual({});
   });
 });

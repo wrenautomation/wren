@@ -17,10 +17,13 @@ import { Toaster } from "./components/ui/sonner.js";
 import { Textarea } from "./components/ui/textarea.js";
 import { Button } from "./controls.js";
 
-/** A box a form action asks for. Every one is required. */
+/** A box a form action asks for, required unless `optional`. */
 export interface FormField {
   field: string;
   label: string;
+  /** Left out: a line of text. A file is sent as the `File`; the `Call` puts it up. */
+  type?: "long" | "date" | "number" | "url" | "file";
+  optional?: true;
   /** Said under the box. */
   hint?: string;
   /** The pattern its value must match, as in HTML. */
@@ -51,6 +54,8 @@ export interface Action {
    * title; a press asks for these fields and sends them as the input.
    */
   form?: readonly FormField[];
+  /** The form is asked on records instead, and sent with their `{ids}`. */
+  each?: true;
   /** The toast after it worked, from the handler's answer. */
   done?: (answer: unknown) => string;
   /**
@@ -99,7 +104,7 @@ export function doneOf(answer: unknown, ids: readonly (string | number)[]) {
 /** Whether a record is in a state `action` applies to. */
 export function applies(action: Action, row: Record<string, unknown>): boolean {
   return (
-    !action.form &&
+    (!action.form || !!action.each) &&
     Object.entries(action.when ?? {}).every(([k, states]) => states.includes(String(row[k])))
   );
 }
@@ -107,7 +112,8 @@ export function applies(action: Action, row: Record<string, unknown>): boolean {
 /** A form's values: each field as typed, else as its `from` makes it. */
 export function valuesOf(form: readonly FormField[], typed: Record<string, string>) {
   const values: Record<string, string> = {};
-  for (const f of form) values[f.field] = typed[f.field] ?? f.from?.(values) ?? "";
+  for (const f of form)
+    if (f.type !== "file") values[f.field] = typed[f.field] ?? f.from?.(values) ?? "";
   return values;
 }
 
@@ -134,6 +140,7 @@ export function useRun(
   } | null>(null);
   const [text, setText] = useState("");
   const [typed, setTyped] = useState<Record<string, string>>({});
+  const [files, setFiles] = useState<Record<string, File>>({});
   const [busy, setBusy] = useState(false);
   const textId = useId();
 
@@ -172,10 +179,11 @@ export function useRun(
     }
   };
   const run = (action: Action, ids: (string | number)[], start = "") => {
-    if ((!ids.length && !action.form) || busy) return;
+    if ((!ids.length && (!action.form || action.each)) || busy) return;
     if (action.undo && !action.ask && !action.form) return void go(action, ids, { ids });
     setText(start);
     setTyped({});
+    setFiles({});
     setAsked({ action, ids, start });
   };
   const ask = asked?.action.ask;
@@ -186,7 +194,7 @@ export function useRun(
     if (!asked) return;
     const { action, ids, start } = asked;
     const input = form
-      ? values
+      ? { ...(action.each ? { ids } : {}), ...values, ...files }
       : ask
         ? inputOf(action, { ids, [ask.field]: start }, text)
         : { ids };
@@ -223,14 +231,38 @@ export function useRun(
           {form?.map((f, i) => (
             <div key={f.field} className="flex flex-col gap-1.5 text-sm">
               <label htmlFor={`${textId}-${f.field}`}>{f.label}</label>
-              <Input
-                id={`${textId}-${f.field}`}
-                value={values[f.field] ?? ""}
-                onChange={(e) => setTyped((t) => ({ ...t, [f.field]: e.target.value }))}
-                required
-                autoFocus={i === 0}
-                {...(f.pattern ? { pattern: f.pattern } : {})}
-              />
+              {f.type === "long" ? (
+                <Textarea
+                  id={`${textId}-${f.field}`}
+                  value={values[f.field] ?? ""}
+                  onChange={(e) => setTyped((t) => ({ ...t, [f.field]: e.target.value }))}
+                  required={!f.optional}
+                  autoFocus={i === 0}
+                  rows={4}
+                />
+              ) : (
+                <Input
+                  id={`${textId}-${f.field}`}
+                  type={f.type ?? "text"}
+                  {...(f.type === "file"
+                    ? {
+                        onChange: (e) => {
+                          const file = e.target.files?.[0];
+                          setFiles(({ [f.field]: _, ...rest }) =>
+                            file ? { ...rest, [f.field]: file } : rest,
+                          );
+                        },
+                      }
+                    : {
+                        value: values[f.field] ?? "",
+                        onChange: (e) => setTyped((t) => ({ ...t, [f.field]: e.target.value })),
+                      })}
+                  required={!f.optional}
+                  autoFocus={i === 0}
+                  {...(f.type === "number" ? { step: "any" } : {})}
+                  {...(f.pattern ? { pattern: f.pattern } : {})}
+                />
+              )}
               {f.hint ? <p className="text-(--ui-ink-2)">{f.hint}</p> : null}
             </div>
           ))}

@@ -16,18 +16,23 @@ import {
   type RecordsApi,
 } from "@wren/ui";
 import { useEffect } from "react";
-import { call } from "./api.js";
+import { call, uploadFile } from "./api.js";
 import { type ListPage, type OverviewPage, type PageProps, WREN } from "./module.js";
 import { href, navigate } from "./route.js";
 
+type Scope = { app: string; asClient: boolean };
 const APIS = new Map<string, RecordsApi>();
-/** The record calls for a product and client (none for Wren's own), made once so types are asked once. */
-function apiOf(product: string, client: string | null): RecordsApi {
-  const key = `${product}:${client}`;
+/**
+ * The record calls for a product and client (none for Wren's own), made once so types are asked
+ * once. The app asking (a product's project pages show its own projects) and whether the team
+ * sees it as the client does go along.
+ */
+function apiOf(product: string, client: string | null, scope: Scope): RecordsApi {
+  const key = `${product}:${client}:${scope.app}:${scope.asClient}`;
   let api = APIS.get(key);
   if (!api) {
     const ask = <T,>(handler: string, body: Record<string, unknown>) =>
-      call<T>(`${product}/${handler}`, client ? { client, ...body } : body);
+      call<T>(`${product}/${handler}`, client ? { client, ...scope, ...body } : body);
     api = {
       types: () => ask("recordsTypes", {}),
       list: (a) => ask("recordsList", { ...a }),
@@ -42,14 +47,30 @@ function apiOf(product: string, client: string | null): RecordsApi {
 
 const LOCAL = new Map<string, LocalRecords>();
 /** The demo's copy: one per product and client, gone on reload. */
-function localOf(product: string, client: string): LocalRecords {
+function localOf(product: string, client: string, scope: Scope): LocalRecords {
   const key = `${product}:${client}`;
-  const local = LOCAL.get(key) ?? localRecords(apiOf(product, client));
+  const local = LOCAL.get(key) ?? localRecords(apiOf(product, client, scope));
   LOCAL.set(key, local);
   return local;
 }
 
 type Input = Record<string, unknown>;
+/** "12.setup" -> the project and the step (or result) key in it. */
+const partsOf = (id: string) => {
+  const at = id.indexOf(".");
+  return { engagementId: Number(id.slice(0, at)), key: id.slice(at + 1) };
+};
+const step = (id: string) => {
+  const { engagementId, key } = partsOf(id);
+  return { engagementId, step: key };
+};
+const access =
+  (status: string) =>
+  (id: string, { note }: Input) =>
+    ["delivery/access", { accessId: Number(id.slice(1)), status, ...(note ? { note } : {}) }] as [
+      string,
+      Input,
+    ];
 const loop = (id: string, run: boolean): [string, Input] => {
   const at = id.indexOf("/");
   return ["console/setLoop", { service: id.slice(0, at), key: id.slice(at + 1), run }];
@@ -68,17 +89,60 @@ const ONE: Record<string, (id: string, input: Input) => [string, Input]> = {
   "email/drop": (id) => ["email/drop", { id: Number(id) }],
   "email/pause": (id, { reason }) => ["email/pause", { target: id, reason }],
   "email/resume": (id) => ["email/resume", { target: id }],
+  "delivery/done": (id) => ["delivery/done", step(id)],
+  "delivery/undone": (id) => ["delivery/done", { ...step(id), on: null }],
+  "delivery/slip": (id, { to, reason }) => ["delivery/slip", { ...step(id), to, reason }],
+  "delivery/answer": (id, { answer, fileKey }) => [
+    "delivery/answer",
+    { askId: Number(id), answer, fileKey },
+  ],
+  "delivery/approve": (id) => [
+    "delivery/decide",
+    { deliverableId: Number(id), decision: "approved" },
+  ],
+  "delivery/changes": (id, { note }) => [
+    "delivery/decide",
+    { deliverableId: Number(id), decision: "changes", note },
+  ],
+  "delivery/version": (id, { title, url, fileKey }) => [
+    "delivery/deliver",
+    { replaces: Number(id), title, url, fileKey },
+  ],
+  "delivery/hide": (id) => ["delivery/hide", { updateId: Number(id) }],
+  "delivery/grant": access("granted"),
+  "delivery/revoke": access("revoked"),
+  "delivery/decline": access("declined"),
+  "delivery/result": (id, { value, note }) => {
+    const { engagementId, key } = partsOf(id);
+    return ["delivery/result", { engagementId, key, value: Number(value), note }];
+  },
+};
+/** Head actions that are another handler with something added. */
+const AS: Record<string, [string, Input]> = {
+  "delivery/note": ["delivery/post", { internal: true }],
 };
 
+/** A form's files go up first; the handler gets each one's key. */
+async function uploaded(client: string | null, input: Input): Promise<Input> {
+  const out = { ...input };
+  for (const [k, v] of Object.entries(input))
+    if (v instanceof File) out[k] = await uploadFile(client ?? undefined, v);
+  return out;
+}
+
 /** Each id in turn; one alone says why it failed, several say which were skipped. */
-async function eachOf(one: (id: string, input: Input) => [string, Input], input: Input) {
+async function eachOf(
+  one: (id: string, input: Input) => [string, Input],
+  input: Input,
+  client: string | null,
+) {
   const ids = (input.ids ?? []) as (string | number)[];
   const done: (string | number)[] = [];
   const skipped: (string | number)[] = [];
   for (const id of ids) {
     const [handler, body] = one(String(id), input);
     try {
-      await call(handler, body);
+      await call(handler, client ? { client, ...body } : body);
       done.push(id);
     } catch (err) {
       if (ids.length === 1) throw err;
@@ -111,10 +175,21 @@ export function TemplatePage({
   const client = wren ? null : props.client;
   const record = page.template === "overview" ? (page.tiles[0]?.record ?? "") : page.record;
   const product = wren ? "console" : (record.split(".")[0] ?? "");
-  if (page.template === "overview")
+  const scope = { app: path.split("/")[1] ?? "", asClient: !props.team };
+  if (page.template === "overview") {
+    const Below = page.below;
     return (
-      <RecordOverview title={app} api={apiOf(product, client)} tiles={page.tiles} top={page.top} />
+      <>
+        <RecordOverview
+          title={app}
+          api={apiOf(product, client, scope)}
+          tiles={page.tiles}
+          top={page.top}
+        />
+        {Below ? <Below {...props} /> : null}
+      </>
     );
+  }
 
   const here = id ? `${path}/${encodeURIComponent(id)}` : path;
   const place: Place = {
@@ -125,20 +200,22 @@ export function TemplatePage({
     go: navigate,
   };
   const { extras, actions = [] } = page;
-  const local = props.demo && client ? localOf(product, client) : null;
+  const local = props.demo && client ? localOf(product, client, scope) : null;
   const shared = {
     record: page.record,
-    api: local?.api ?? apiOf(product, client),
+    api: local?.api ?? apiOf(product, client, scope),
     place,
     acts: {
       actions,
       viewer: { team: props.team, demo: props.demo },
       call:
         local?.callFor(page.record, actions) ??
-        ((handler: string, input: Input) => {
+        (async (handler: string, input: Input) => {
+          const sent = await uploaded(client, input);
           const one = ONE[handler];
-          if (one) return eachOf(one, input);
-          return call(handler, client ? { client, ...input } : input);
+          if (one) return eachOf(one, sent, client);
+          const [to, add] = AS[handler] ?? [handler, {}];
+          return call(to, client ? { client, ...add, ...sent } : { ...add, ...sent });
         }),
     },
     empty: page.empty,

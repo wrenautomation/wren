@@ -12,7 +12,7 @@ import {
 } from "@wren/ui";
 import type { AccountView } from "../../api.js";
 import type { PageProps } from "../../module.js";
-import { dayLabel } from "../work/bits.js";
+import { BLOCK, dayLabel, LIST, QUIET, SPLIT } from "../work/bits.js";
 import { useAccount } from "./load.js";
 
 const STATUS: Record<AccountView["bought"][number]["status"], string> = {
@@ -50,14 +50,14 @@ export function Overview(props: PageProps) {
         {a.bought.length === 0 ? (
           <Empty>Nothing started yet.</Empty>
         ) : (
-          <ul className="wk-list">
+          <ul className={LIST}>
             {a.bought.map((b) => (
-              <li key={b.id} className="wk-person">
+              <li key={b.id} className={SPLIT}>
                 <span>
                   <a href={`/${b.app}/overview`}>
                     <b>{b.offer}</b>
                   </a>
-                  <span className="wk-quiet wk-block">
+                  <span className={`${QUIET} ${BLOCK}`}>
                     {b.status === "onboarding" ? "Starts" : "Started"} {dayLabel(b.startsOn)}
                   </span>
                 </span>
@@ -100,7 +100,7 @@ export function Overview(props: PageProps) {
               </Tag>
             </p>
           ) : null}
-          <p className="wk-quiet">
+          <p className={QUIET}>
             {a.billing.open > 0
               ? `${a.billing.open} ${a.billing.open === 1 ? "invoice" : "invoices"} due.`
               : "Nothing due right now."}

@@ -1,9 +1,8 @@
 /**
- * What every page of the work shares: the client's engagements loaded once per page, a
- * write that reloads them, and dates and figures as the client reads them.
+ * What the work's and the account's pages share: the client's engagements, a write that
+ * reloads them, a small form, dates as the client reads them, and the classes they draw with.
  */
-import { FILE_TYPES, MAX_FILE_BYTES, typeOfName } from "@wren/delivery/routes";
-import { Alert, Button, Callout, Empty, Loading, num, Tag, type TagTone } from "@wren/ui";
+import { Alert, Button, Empty, Loading, Textarea } from "@wren/ui";
 import { type FormEvent, type ReactNode, useState } from "react";
 import {
   ApiError,
@@ -11,12 +10,27 @@ import {
   call,
   type DeliveryHome,
   type EngagementView,
-  type MilestoneState,
-  type ResultView,
 } from "../../api.js";
 import { useCall } from "../../load.js";
 import type { PageProps } from "../../module.js";
 import { appHere, WORK } from "./nav.js";
+
+export const QUIET = "text-(--ui-ink-2)";
+export const ERROR = "text-[13.5px] text-(--ui-bad)";
+/** Ruled rows. */
+export const LIST =
+  "border-t border-(--ui-hair) [&>li]:border-b [&>li]:border-(--ui-hair) [&>li]:py-3 [&>li]:text-[15px] [&>li]:leading-normal";
+/** A row's name on the left, its controls on the right. */
+export const SPLIT = "flex items-center justify-between gap-3";
+export const BLOCK = "block text-[13.5px]";
+export const TOOLS = "mt-3 flex flex-wrap items-center gap-2";
+export const BODY = "max-w-[72ch] text-[15px] leading-[1.55] text-pretty whitespace-pre-wrap";
+export const FORM = "mt-3 flex flex-wrap items-end gap-3";
+export const FIELD = "flex flex-col gap-1.5 text-[13px] text-(--ui-ink-2) max-[480px]:basis-full";
+export const WIDE = "basis-full";
+export const SELECT =
+  "min-h-[38px] border border-(--ui-line) bg-(--ui-paper) px-3 py-2 text-[14.5px] text-(--ui-ink) focus:border-(--ui-accent) focus:outline-none";
+const FOOT = "flex basis-full flex-wrap items-center gap-3";
 
 const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
 
@@ -28,23 +42,6 @@ export function dayLabel(day: string | null, thisYear = new Date().getFullYear()
   return Number(y) === thisYear ? md : `${md}, ${y}`;
 }
 
-/** A measure's figure in its unit. */
-export const figure = (r: Pick<ResultView, "unit" | "value">): string =>
-  r.value === null
-    ? "-"
-    : r.unit === "usd"
-      ? `$${num(r.value)}`
-      : r.unit === "hours"
-        ? `${num(r.value)} h`
-        : num(r.value);
-
-export const STATE: Record<MilestoneState, [label: string, tone: TagTone]> = {
-  done: ["Done", "green"],
-  late: ["Running late", "rust"],
-  now: ["In progress", "neutral"],
-  next: ["Coming up", "neutral"],
-};
-
 /** The client's engagements, reloaded after a write (`reload`). */
 export function useWork({ client, team }: PageProps) {
   const [nonce, setNonce] = useState(0);
@@ -53,14 +50,6 @@ export function useWork({ client, team }: PageProps) {
   );
   return { ...home, reload: () => setNonce((n) => n + 1) };
 }
-
-/** D12: the demo's project is made up, and says so on every page. */
-export const SampleNote = () => (
-  <Callout>
-    <Tag tone="rust">Sample</Tag> A made-up project, a few weeks in, to show what you'd see here.
-    The names, dates and numbers are invented.
-  </Callout>
-);
 
 /** The engagements this app shows: a product's app its own, the work app all of them. */
 export function ofThisApp(es: EngagementView[]): EngagementView[] {
@@ -71,60 +60,33 @@ export function ofThisApp(es: EngagementView[]): EngagementView[] {
 /** The page's body once loaded: each engagement, headed by its offer when there's more than one. */
 export function Engagements({
   work,
-  props,
   children,
 }: {
   work: ReturnType<typeof useWork>;
-  props: PageProps;
   children: (e: EngagementView) => ReactNode;
 }) {
   if (work.error && !work.data) return <Alert onRetry={work.retry}>{work.error.message}</Alert>;
   if (!work.data) return <Loading lines={8} />;
   const es = ofThisApp(work.data.engagements);
-  if (es.length === 0)
-    return (
-      <Empty>
-        {props.team
-          ? `Nothing started yet. Start an offer: wren --client ${props.client} delivery start <offer> --on <date>`
-          : "Nothing started yet. Your plan shows here on day one."}
-      </Empty>
-    );
-  const sample = props.demo ? <SampleNote /> : null;
-  if (es.length === 1 && es[0])
-    return (
-      <>
-        {sample}
-        {children(es[0])}
-      </>
-    );
-  return (
-    <>
-      {sample}
-      {es.map((e) => (
-        <section key={e.id} className="wk-engagement">
-          <h2 className="wk-offer">{e.offer.name}</h2>
-          {children(e)}
-        </section>
-      ))}
-    </>
-  );
+  if (es.length === 0) return <Empty>Nothing started yet. Your plan shows here on day one.</Empty>;
+  if (es.length === 1 && es[0]) return children(es[0]);
+  return es.map((e) => (
+    <section key={e.id} className="mt-10 first:mt-0">
+      <h2 className="mb-2 text-[22px] font-semibold">{e.offer.name}</h2>
+      {children(e)}
+    </section>
+  ));
 }
 
 /** A write: busy while it runs, its refusal shown, the page reloaded after. */
 export function useAct(props: PageProps, reload: () => void) {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  /** With a file, it goes up first and its key rides along as `fileKey`. */
-  const run = async (
-    route: string,
-    body: Record<string, unknown>,
-    file?: File,
-  ): Promise<boolean> => {
+  const run = async (route: string, body: Record<string, unknown>): Promise<boolean> => {
     setBusy(true);
     setError(null);
     try {
-      const fileKey = file ? await upload(props.client, file) : undefined;
-      await call(`delivery/${route}`, { client: props.client, ...body, fileKey });
+      await call(`delivery/${route}`, { client: props.client, ...body });
       reload();
       return true;
     } catch (err) {
@@ -137,23 +99,19 @@ export function useAct(props: PageProps, reload: () => void) {
   return { busy, error, run };
 }
 
-/** A small form: submit runs `onSubmit`, cleared when it worked. The demo can't send. */
+/** A small form: submit runs `onSubmit`, cleared when it worked. */
 export function Form({
   label,
   submit,
   act,
-  demo,
   onSubmit,
   children,
-  className,
 }: {
   label: string;
   submit: string;
   act: ReturnType<typeof useAct>;
-  demo: boolean;
   onSubmit: (form: FormData) => Promise<boolean>;
   children: ReactNode;
-  className?: string;
 }) {
   const sent = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -161,15 +119,14 @@ export function Form({
     if (await onSubmit(new FormData(form))) form.reset();
   };
   return (
-    <form className={className ?? "wk-form"} aria-label={label} onSubmit={sent}>
+    <form className={FORM} aria-label={label} onSubmit={sent}>
       {children}
-      <div className="wk-form-foot">
-        <Button type="submit" size="sm" disabled={act.busy || demo}>
+      <div className={FOOT}>
+        <Button type="submit" size="sm" disabled={act.busy}>
           {submit}
         </Button>
-        {demo ? <span className="wk-quiet">Works in your own workspace.</span> : null}
         {act.error ? (
-          <span className="wk-error" role="alert">
+          <span className={ERROR} role="alert">
             {act.error}
           </span>
         ) : null}
@@ -178,98 +135,66 @@ export function Form({
   );
 }
 
+/** A form field's text, or undefined when blank. */
+export const field = (f: FormData, name: string): string | undefined => {
+  const v = f.get(name);
+  return typeof v === "string" && v.trim() ? v.trim() : undefined;
+};
+
 /**
- * The thread under an update or a deliverable, and a box to add to it. A client
- * sees Wren's lines as "Wren"; the team sees who wrote each.
+ * The thread under an update or a deliverable, and a box to add to it. A client sees Wren's
+ * lines as "Wren"; the team sees who wrote each. What's sent shows at once.
  */
 export function Thread({
   props,
-  act,
   on,
   comments,
 }: {
   props: PageProps;
-  act: ReturnType<typeof useAct>;
   on: { updateId: number } | { deliverableId: number };
   comments: CommentView[];
 }) {
-  const [open, setOpen] = useState(false);
-  if (comments.length === 0 && !open)
-    return (
-      <Button size="sm" tone="quiet" disabled={props.demo} onClick={() => setOpen(true)}>
-        Comment
-      </Button>
-    );
+  const [sent, setSent] = useState<string[]>([]);
+  const act = useAct(props, () => undefined);
   return (
-    <div className="wk-thread">
-      {comments.length > 0 ? (
-        <ol>
+    <div className="grid gap-3">
+      {comments.length || sent.length ? (
+        <ol className={LIST}>
           {comments.map((c) => (
             <li key={c.id}>
-              <span className="wk-quiet">
+              <span className={QUIET}>
                 {c.fromWren && !props.team ? "Wren" : c.author} · {dayLabel(c.at)}
               </span>
-              <p className="wk-body">{c.body}</p>
+              <p className={BODY}>{c.body}</p>
+            </li>
+          ))}
+          {sent.map((body) => (
+            <li key={body}>
+              <span className={QUIET}>You · just now</span>
+              <p className={BODY}>{body}</p>
             </li>
           ))}
         </ol>
       ) : null}
-      {open ? (
-        <Form
-          label="Comment"
-          submit="Send"
-          act={act}
-          demo={props.demo}
-          onSubmit={async (f) => {
-            const ok = await act.run("comment", { ...on, body: field(f, "body") });
-            if (ok) setOpen(false);
-            return ok;
-          }}
-        >
-          <label className="wk-field wk-wide">
-            <span>{comments.length > 0 ? "Reply" : "Comment"}</span>
-            <textarea name="body" required rows={2} maxLength={4000} />
-          </label>
-        </Form>
-      ) : (
-        <Button size="sm" tone="quiet" disabled={props.demo} onClick={() => setOpen(true)}>
-          Reply
-        </Button>
-      )}
+      <Form
+        label="Comment"
+        submit="Send"
+        act={act}
+        onSubmit={async (f) => {
+          const body = field(f, "body");
+          const ok = await act.run("comment", { ...on, body });
+          if (ok && body) setSent((s) => [...s, body]);
+          return ok;
+        }}
+      >
+        <label className={`${FIELD} ${WIDE}`}>
+          <span>{comments.length || sent.length ? "Reply" : "Comment"}</span>
+          <Textarea name="body" required rows={2} maxLength={4000} />
+        </label>
+      </Form>
     </div>
   );
 }
-
-/** Straight to the private bucket on a signed PUT; the portal only signs (D11). */
-async function upload(client: string | undefined, file: File): Promise<string> {
-  const type = FILE_TYPES[file.type] ? file.type : typeOfName(file.name);
-  if (!type)
-    throw new ApiError("That kind of file isn't taken. Send a PDF, image, sheet or doc.", 400);
-  if (file.size > MAX_FILE_BYTES)
-    throw new ApiError(`Files go up to ${MAX_FILE_BYTES / 1024 / 1024} MB.`, 400);
-  const { key, url } = await call<{ key: string; url: string }>("delivery/upload", {
-    client,
-    name: file.name,
-    type,
-    size: file.size,
-  });
-  const res = await fetch(url, {
-    method: "PUT",
-    headers: { "content-type": type },
-    body: file,
-  }).catch(() => null);
-  if (!res?.ok) throw new ApiError("The file didn't go up. Try again.", res?.status ?? 0);
-  return key;
-}
-
-/** What a file input accepts. */
-export const ACCEPT = [...Object.keys(FILE_TYPES), ...Object.values(FILE_TYPES), ".jpeg"].join(",");
-
-/** The picked file, or undefined when none. */
-export const fileOf = (f: FormData, name: string): File | undefined => {
-  const v = f.get(name);
-  return v instanceof File && v.size > 0 ? v : undefined;
-};
 
 /** Downloads a deliverable's or an answer's file on a link signed just now. */
 export function OpenFile({
@@ -298,39 +223,11 @@ export function OpenFile({
     }
   };
   return (
-    <>
+    <span className="inline-flex flex-wrap items-center gap-2">
       <Button size="sm" tone="secondary" icon="download" disabled={busy} onClick={open}>
         Download
       </Button>
-      {error ? <span className="wk-error">{error}</span> : null}
-    </>
+      {error ? <span className={ERROR}>{error}</span> : null}
+    </span>
   );
-}
-
-/** A form field's text, or undefined when blank. */
-export const field = (f: FormData, name: string): string | undefined => {
-  const v = f.get(name);
-  return typeof v === "string" && v.trim() ? v.trim() : undefined;
-};
-
-/** The plan's steps as options, for "which step is this part of". */
-export function StepPick({ e, name = "step" }: { e: EngagementView; name?: string }) {
-  return (
-    <label className="wk-field">
-      <span>Step</span>
-      <select name={name} defaultValue="">
-        <option value="">None</option>
-        {e.steps.map((s) => (
-          <option key={s.key} value={s.key}>
-            {s.name}
-          </option>
-        ))}
-      </select>
-    </label>
-  );
-}
-
-export function StateTag({ state }: { state: MilestoneState }) {
-  const [label, tone] = STATE[state];
-  return <Tag tone={tone}>{label}</Tag>;
 }

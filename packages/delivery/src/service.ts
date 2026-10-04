@@ -27,6 +27,19 @@ import {
   type SignedViewer,
   seesInternal,
 } from "@wren/core/portal";
+import { metaOf, type RecordMeta } from "@wren/core/records";
+import {
+  type ExportAsk,
+  type GetAsk,
+  type ListAsk,
+  type RecordAnswer,
+  type RecordsApi,
+  type RecordsCsv,
+  type RecordsPage,
+  type RecordsStat,
+  type StatsAsk,
+  serveRecords,
+} from "@wren/core/records/serve";
 import { type Db, type Queryable, setAuditActor } from "@wren/db";
 import { type FileStore, newFileKey } from "./files.js";
 import {
@@ -61,6 +74,7 @@ import {
   timeline,
   type UpdateView,
 } from "./index.js";
+import { deliveryRecords } from "./records.js";
 import { FILE_TYPES, MAX_FILE_BYTES } from "./routes.js";
 import { DELIVERABLE_KINDS, type DeliverableKind, type MailLevel, type Terms } from "./schema.js";
 import { type BoardRow, type DeliveryWatch, opsBoard, WATCH, WATCH_KEY } from "./watch.js";
@@ -103,6 +117,13 @@ async function read<T>(
   const client = await pickClient(deps.main, req);
   return view(deps.main, client, seesInternal(req));
 }
+
+/** The projects in the asking app (`app`), as records this viewer may see: a client never reads a team note. */
+type RecordsReq = PortalRequest & { app?: string };
+const recordsOf = (db: Queryable, c: Client, operator: boolean, req: RecordsReq) =>
+  deliveryRecords(db, c.id, operator, typeof req.app === "string" ? req.app : undefined);
+const records = <T>(deps: DeliveryDeps, req: RecordsReq, use: (api: RecordsApi) => Promise<T>) =>
+  read(deps, req, (db, c, operator) => use(serveRecords(recordsOf(db, c, operator, req), db)));
 
 /**
  * A change in one transaction, logged as this person's. `team` writes are
@@ -196,6 +217,15 @@ export interface ContractView {
   signed: { name: string; title: string | null; email: string; at: string } | null;
 }
 
+const kindOf = (url: unknown, fileKey: unknown): DeliverableKind =>
+  fileKey
+    ? "file"
+    : /^https:\/\/(www\.)?loom\.com\//.test(String(url))
+      ? "loom"
+      : /^https:\/\/docs\.google\.com\//.test(String(url))
+        ? "doc"
+        : "link";
+
 type EngagementReq = PortalRequest & { engagementId?: number };
 const engagementFor = (db: Queryable, client: Client, req: EngagementReq): Promise<Engagement> =>
   engagementOf(db, client.id, maybeId(req.engagementId, "engagement"));
@@ -216,6 +246,19 @@ export function deliveryApi(deps: DeliveryDeps) {
           email: isDemo(req.viewer) ? null : normalEmail(req.viewer.email),
         }),
       ),
+    /** What each record type shows and lets this viewer filter, sort and search. */
+    recordsTypes: (req: RecordsReq): Promise<RecordMeta[]> =>
+      read(deps, req, async (db, c, operator) =>
+        recordsOf(db, c, operator, req).map((t) => metaOf(t, false)),
+      ),
+    recordsList: (req: RecordsReq & ListAsk): Promise<RecordsPage> =>
+      records(deps, req, (r) => r.list(req)),
+    recordsGet: (req: RecordsReq & GetAsk): Promise<RecordAnswer> =>
+      records(deps, req, (r) => r.get(req)),
+    recordsExport: (req: RecordsReq & ExportAsk): Promise<RecordsCsv> =>
+      records(deps, req, (r) => r.export(req)),
+    recordsStats: (req: RecordsReq & StatsAsk): Promise<RecordsStat> =>
+      records(deps, req, (r) => r.stats(req)),
     updates: (
       req: EngagementReq & { before?: number },
     ): Promise<{ updates: UpdateView[]; more: boolean }> =>
@@ -293,7 +336,8 @@ export function deliveryApi(deps: DeliveryDeps) {
     deliver: (
       req: EngagementReq & {
         title: string;
-        kind: string;
+        /** Left out: a file, a Loom, a Google doc, else a link, by what was given. */
+        kind?: string;
         url?: string;
         fileKey?: string;
         step?: string;
@@ -301,12 +345,13 @@ export function deliveryApi(deps: DeliveryDeps) {
       },
     ) =>
       write(deps, req, "team", async (db, c, v) => {
-        if (!DELIVERABLE_KINDS.includes(req.kind as DeliverableKind))
+        const kind = req.kind ?? kindOf(req.url, req.fileKey);
+        if (!DELIVERABLE_KINDS.includes(kind as DeliverableKind))
           throw new PortalRefusal(`a deliverable is a ${DELIVERABLE_KINDS.join(", ")}`, 400);
         const replaces = maybeId(req.replaces, "deliverable");
         const d = await addDeliverable(db, await engagementFor(db, c, req), {
           title: needText(req.title, "the title"),
-          kind: req.kind as DeliverableKind,
+          kind: kind as DeliverableKind,
           url: textOf(req.url),
           fileKey: textOf(req.fileKey),
           milestone: textOf(req.step),
@@ -633,6 +678,15 @@ export function makeDeliveryPortal(deps: DeliveryDeps) {
       me: (_: restate.Context, req: Req<"me">) => answer(() => api.me(req)),
       board: (_: restate.Context, req: Req<"board">) => answer(() => api.board(req)),
       home: (_: restate.Context, req: Req<"home">) => answer(() => api.home(req)),
+      recordsTypes: (_: restate.Context, req: Req<"recordsTypes">) =>
+        answer(() => api.recordsTypes(req)),
+      recordsList: (_: restate.Context, req: Req<"recordsList">) =>
+        answer(() => api.recordsList(req)),
+      recordsGet: (_: restate.Context, req: Req<"recordsGet">) => answer(() => api.recordsGet(req)),
+      recordsExport: (_: restate.Context, req: Req<"recordsExport">) =>
+        answer(() => api.recordsExport(req)),
+      recordsStats: (_: restate.Context, req: Req<"recordsStats">) =>
+        answer(() => api.recordsStats(req)),
       updates: (_: restate.Context, req: Req<"updates">) => answer(() => api.updates(req)),
       answer: (_: restate.Context, req: Req<"answer">) => answer(() => api.answer(req)),
       decide: (_: restate.Context, req: Req<"decide">) => answer(() => api.decide(req)),

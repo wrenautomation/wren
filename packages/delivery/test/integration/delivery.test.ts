@@ -679,3 +679,36 @@ describe("every route a client reads", () => {
     expect(bo).not.toMatch(/ZQ acme|amy@acme/);
   });
 });
+
+describe("the project as records", () => {
+  const list = (viewer: Viewer, record: string, more: Record<string, unknown> = {}) =>
+    api.recordsList({ viewer, ...more, record } as Parameters<typeof api.recordsList>[0]);
+
+  it("the plan's steps in order, keyed by project and step", async () => {
+    const [e] = (await api.home({ viewer: AMY })).engagements;
+    const { rows } = await list(AMY, "delivery.step", { view: "all" });
+    expect(rows.map((r) => r.id)).toEqual(
+      ["set-up", "approve", "send", "wrap-up"].map((k) => `${e?.id}.${k}`),
+    );
+  });
+
+  it("a client never reads a team note; the team sees who sees each", async () => {
+    const amy = JSON.stringify((await list(AMY, "delivery.update", { view: "all" })).rows);
+    expect(amy).toContain("Kickoff booked");
+    expect(amy).not.toContain("ATS export");
+    const ops = (await list(OPS, "delivery.update", { ...acme, view: "all" })).rows;
+    expect(ops.find((r) => String(r.body).includes("ATS export"))?.seen).toBe("team");
+  });
+
+  it("only the asking app's projects, and never another client's row", async () => {
+    expect((await list(AMY, "delivery.step", { app: "reactivation" })).total).toBe(4);
+    expect((await list(AMY, "delivery.step", { app: "elsewhere" })).total).toBe(0);
+    expect(
+      await refused(
+        api.recordsGet({ viewer: AMY, record: "delivery.deliverable", id: betaDeliverable }),
+      ),
+    ).toBe(404);
+    const got = await api.recordsGet({ viewer: AMY, record: "delivery.ask", id: acmeAsk });
+    expect(got.detail).toMatchObject({ id: acmeAsk });
+  });
+});

@@ -5,6 +5,7 @@
  * there sends the browser to sign in and back. The demo and the local preview
  * need none.
  */
+import { FILE_TYPES, MAX_FILE_BYTES, typeOfName } from "@wren/delivery/routes";
 
 export type {
   AccessView,
@@ -151,4 +152,26 @@ export async function call<T>(
     );
   }
   return data as T;
+}
+
+/** Straight to the private bucket on a signed PUT; the portal only signs (D11). Answers its key. */
+export async function uploadFile(client: string | undefined, file: File): Promise<string> {
+  const type = FILE_TYPES[file.type] ? file.type : typeOfName(file.name);
+  if (!type)
+    throw new ApiError("That kind of file isn't taken. Send a PDF, image, sheet or doc.", 400);
+  if (file.size > MAX_FILE_BYTES)
+    throw new ApiError(`Files go up to ${MAX_FILE_BYTES / 1024 / 1024} MB.`, 400);
+  const { key, url } = await call<{ key: string; url: string }>("delivery/upload", {
+    client,
+    name: file.name,
+    type,
+    size: file.size,
+  });
+  const res = await fetch(url, {
+    method: "PUT",
+    headers: { "content-type": type },
+    body: file,
+  }).catch(() => null);
+  if (!res?.ok) throw new ApiError("The file didn't go up. Try again.", res?.status ?? 0);
+  return key;
 }

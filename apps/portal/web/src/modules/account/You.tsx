@@ -3,7 +3,7 @@ import { Alert, Button, ButtonLink, Loading, PageHeader, Section } from "@wren/u
 import { useState } from "react";
 import { AUTH_ORIGIN, type MailLevel } from "../../api.js";
 import type { PageProps } from "../../module.js";
-import { useAct } from "../work/bits.js";
+import { BODY, ERROR, QUIET, TOOLS, useAct } from "../work/bits.js";
 import { usePeople } from "./load.js";
 
 const MAIL: [MailLevel, string, string][] = [
@@ -30,10 +30,10 @@ export function You(props: PageProps) {
         ) : !people.data ? (
           <Loading lines={2} />
         ) : !mail ? (
-          <p className="wk-quiet">Only people on the account get email from us.</p>
+          <p className={QUIET}>Only people on the account get email from us.</p>
         ) : (
           <>
-            <div className="wk-tools">
+            <div className={TOOLS}>
               {MAIL.map(([level, label]) => (
                 <Button
                   key={level}
@@ -47,20 +47,20 @@ export function You(props: PageProps) {
                 </Button>
               ))}
             </div>
-            <p className="wk-quiet">{MAIL.find(([l]) => l === mail)?.[2]}</p>
-            {act.error ? <p className="wk-error">{act.error}</p> : null}
+            <p className={QUIET}>{MAIL.find(([l]) => l === mail)?.[2]}</p>
+            {act.error ? <p className={ERROR}>{act.error}</p> : null}
           </>
         )}
       </Section>
       <Section title="Signing in">
-        <p className="wk-body">
+        <p className={BODY}>
           Use the email you were invited with. You can sign in with a passkey, a code we email you,
           Google, Microsoft or a password. A passkey uses Face ID, Touch ID or your phone's screen
           lock, and you add one on each device. To set a password, pick "Set or reset my password"
           on the sign-in page.
         </p>
         {AUTH_ORIGIN ? (
-          <div className="wk-tools">
+          <div className={TOOLS}>
             <ButtonLink
               href={`${AUTH_ORIGIN}/passkeys?next=${encodeURIComponent(location.href)}`}
               size="sm"

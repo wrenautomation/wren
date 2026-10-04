@@ -5,9 +5,8 @@
 import { ButtonLink, PageHeader, Section } from "@wren/ui";
 import type { EngagementView } from "../../api.js";
 import type { PageProps } from "../../module.js";
-import { dayLabel, Engagements, useWork } from "./bits.js";
+import { BODY, dayLabel, Engagements, LIST, QUIET, useWork } from "./bits.js";
 import { at } from "./nav.js";
-import { waitingOn } from "./Paperwork.js";
 
 export function Welcome(props: PageProps) {
   const work = useWork(props);
@@ -22,11 +21,20 @@ export function Welcome(props: PageProps) {
           </ButtonLink>
         }
       />
-      <Engagements work={work} props={props}>
-        {(e) => <Guide e={e} />}
-      </Engagements>
+      <Engagements work={work}>{(e) => <Guide e={e} />}</Engagements>
     </>
   );
+}
+
+/** What's left before the plan starts. */
+function waitingOn(e: EngagementView): string[] {
+  const p = e.paperwork;
+  const out: string[] = [];
+  if (p.contract && !p.contract.signedAt) out.push("sign the contract");
+  if (p.setupPaid === false) out.push("pay the setup invoice");
+  const open = p.access.filter((a) => a.status === "open").length;
+  if (open) out.push(`answer ${open === 1 ? "our access request" : `${open} access requests`}`);
+  return out;
 }
 
 function Guide({ e }: { e: EngagementView }) {
@@ -35,11 +43,11 @@ function Guide({ e }: { e: EngagementView }) {
   return (
     <>
       <Section>
-        <p className="wk-body">{e.offer.promise}</p>
-        {e.offer.guarantee ? <p className="wk-quiet">{e.offer.guarantee}</p> : null}
+        <p className={BODY}>{e.offer.promise}</p>
+        {e.offer.guarantee ? <p className={QUIET}>{e.offer.guarantee}</p> : null}
       </Section>
       <Section title="1. Getting started">
-        <ol className="wk-list">
+        <ol className={LIST}>
           {e.paperwork.contract ? (
             <li>
               An owner of your account reads and signs the contract on the{" "}
@@ -71,7 +79,7 @@ function Guide({ e }: { e: EngagementView }) {
       </Section>
 
       <Section title="2. What we do">
-        <ul className="wk-list">
+        <ul className={LIST}>
           {e.offer.youGet.map((x) => (
             <li key={x}>{x}</li>
           ))}
@@ -79,19 +87,19 @@ function Guide({ e }: { e: EngagementView }) {
       </Section>
 
       <Section title="3. What we need from you">
-        <ul className="wk-list">
+        <ul className={LIST}>
           {e.offer.youGive.map((x) => (
             <li key={x}>{x}</li>
           ))}
         </ul>
-        <p className="wk-quiet">
+        <p className={QUIET}>
           When we're waiting on you, the dates move by the same amount. Anything we need shows under{" "}
           <a href={at("needs-you")}>Needs you</a>.
         </p>
       </Section>
 
       <Section title="4. Keeping in touch">
-        <ul className="wk-list">
+        <ul className={LIST}>
           <li>
             We post what we did on <a href={at("updates")}>Updates</a> as it happens. Comment on any
             of it and we'll answer there.

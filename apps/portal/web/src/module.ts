@@ -62,6 +62,8 @@ export interface OverviewPage extends PageBase {
   template: "overview";
   tiles: OverviewTile[];
   top?: OverviewTop[];
+  /** Drawn under the numbers by hand: the project's review, pulse and what's next. */
+  below?: ComponentType<PageProps>;
 }
 
 export type ModulePage = HandPage | ListPage | OverviewPage;

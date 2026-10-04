@@ -144,6 +144,13 @@ describe("onboarding", () => {
     expect(e?.paperwork.setupPaid).toBe(false);
     expect(e?.paperwork.access.map((a) => a.status)).toEqual(["open"]);
     expect(e?.offer.youGive.length).toBeGreaterThan(0);
+    // As records: the ids the paperwork's actions read.
+    const { rows } = await api.recordsList({ viewer: MO, record: "delivery.paperwork" });
+    expect(Object.fromEntries(rows.map((r) => [r.id, r.state]))).toEqual({
+      [`c${e?.id}`]: "sign",
+      [`f${e?.id}`]: "pay",
+      [`a${accessId}`]: "open",
+    });
   });
 
   it("the contract is for owners and Wren; it names the client and the fees", async () => {

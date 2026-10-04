@@ -126,9 +126,18 @@ function Queue({
 
   return (
     <div className={cn(ROOT, "grid min-w-0 gap-4")}>
-      <h1 className="text-[20px] leading-7 font-semibold tracking-[-0.01em]">
-        {cap(meta.name.many)}
-      </h1>
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <h1 className="text-[20px] leading-7 font-semibold tracking-[-0.01em]">
+          {cap(meta.name.many)}
+        </h1>
+        {actions.map((a) =>
+          a.form && !a.each ? (
+            <Button key={a.id} tone="secondary" size="dense" onClick={() => run(a, [])}>
+              {a.label}
+            </Button>
+          ) : null,
+        )}
+      </div>
       <ViewTabs meta={meta} current={ask.view} counts={page.data?.counts} place={place} />
 
       {page.error && !page.data ? (

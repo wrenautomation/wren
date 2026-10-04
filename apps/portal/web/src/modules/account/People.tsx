@@ -1,8 +1,20 @@
 /** People: who sees this account's projects. An owner invites and removes. */
-import { Alert, Button, Empty, Loading, PageHeader, Section, Tag } from "@wren/ui";
+import { Alert, Button, Empty, Input, Loading, PageHeader, Section, Tag } from "@wren/ui";
 import { useState } from "react";
 import type { PageProps } from "../../module.js";
-import { dayLabel, Form, field, useAct } from "../work/bits.js";
+import {
+  BLOCK,
+  dayLabel,
+  ERROR,
+  FIELD,
+  Form,
+  field,
+  LIST,
+  QUIET,
+  SELECT,
+  SPLIT,
+  useAct,
+} from "../work/bits.js";
 import { usePeople } from "./load.js";
 
 export function People(props: PageProps) {
@@ -25,12 +37,12 @@ export function People(props: PageProps) {
         ) : people.data.people.length === 0 ? (
           <Empty>Nobody yet.</Empty>
         ) : (
-          <ul className="wk-list">
+          <ul className={LIST}>
             {people.data.people.map((m) => (
-              <li key={m.email} className="wk-person">
+              <li key={m.email} className={SPLIT}>
                 <span>
                   <b>{m.email}</b> {m.role === "owner" ? <Tag tone="neutral">Owner</Tag> : null}
-                  <span className="wk-quiet wk-block">
+                  <span className={`${QUIET} ${BLOCK}`}>
                     {m.lastSeenAt ? `Last here ${dayLabel(m.lastSeenAt)}` : "Hasn't signed in yet"}
                     {m.invitedBy ? ` · invited by ${m.invitedBy}` : ""}
                   </span>
@@ -52,7 +64,7 @@ export function People(props: PageProps) {
             ))}
           </ul>
         )}
-        {act.error && !manage ? <p className="wk-error">{act.error}</p> : null}
+        {act.error && !manage ? <p className={ERROR}>{act.error}</p> : null}
       </Section>
       {manage ? (
         <Section
@@ -63,18 +75,17 @@ export function People(props: PageProps) {
             label="Invite someone"
             submit="Invite"
             act={act}
-            demo={props.demo}
             onSubmit={(f) =>
               act.run("invite", { email: field(f, "email"), role: field(f, "role") })
             }
           >
-            <label className="wk-field wk-grow">
+            <label className={`${FIELD} grow basis-[220px]`}>
               <span>Their work email</span>
-              <input name="email" type="email" required maxLength={254} />
+              <Input name="email" type="email" required maxLength={254} />
             </label>
-            <label className="wk-field">
+            <label className={FIELD}>
               <span>Role</span>
-              <select name="role" defaultValue="member">
+              <select className={SELECT} name="role" defaultValue="member">
                 <option value="member">Member</option>
                 <option value="owner">Owner</option>
               </select>
@@ -82,7 +93,7 @@ export function People(props: PageProps) {
           </Form>
         </Section>
       ) : people.data ? (
-        <p className="wk-quiet">Ask an owner to invite a teammate.</p>
+        <p className={QUIET}>Ask an owner to invite a teammate.</p>
       ) : null}
     </>
   );

@@ -5,6 +5,8 @@
  */
 export { type Access, can, type Viewer } from "./access.js";
 export { type Action, type Call, type FormField, Toasts } from "./action.js";
+export { Input } from "./components/ui/input.js";
+export { Textarea } from "./components/ui/textarea.js";
 export {
   Button,
   ButtonLink,

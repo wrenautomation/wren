@@ -1,7 +1,7 @@
 /** Reactivation: past clients checked for a reason to call, with a brief and an email for each. */
 import type { Action } from "@wren/ui";
 import type { Module } from "../../module.js";
-import { ENGAGEMENT_PAGES } from "../work/index.js";
+import { ENGAGEMENT_PAGES, Feedback } from "../work/index.js";
 import { EMAIL_ACTIONS, EMAIL_EMPTY, emailExtras, emailLegacy } from "./email.js";
 import { Glance } from "./Glance.js";
 import { REACTIVATION } from "./nav.js";
@@ -93,6 +93,8 @@ export const reactivation: Module = {
           empty: EMAIL_EMPTY.approve,
         },
       ],
+      // The review and the weekly pulse; the Friday mail's links land here.
+      below: Feedback,
     },
     { id: "run", label: "Run", Page: Run },
     {
