@@ -1,6 +1,5 @@
 /** The client's account, reached from their name at top left: the company, its people, each person's own settings, billing. */
 import type { Module } from "../../module.js";
-import { Billing } from "./Billing.js";
 import { Overview } from "./Overview.js";
 import { People } from "./People.js";
 import { You } from "./You.js";
@@ -17,6 +16,16 @@ export const account: Module = {
     { id: "overview", label: "Overview", Page: Overview },
     { id: "people", label: "People", Page: People },
     { id: "you", label: "Your settings", Page: You },
-    { id: "billing", label: "Billing", Page: Billing },
+    {
+      id: "billing",
+      label: "Billing",
+      template: "list",
+      record: "delivery.invoice",
+      empty: {
+        all: "No invoices yet. Each one also comes by email, with a link to pay in Wise.",
+        open: "Nothing to pay.",
+      },
+      columns: ["status", "amount", "due", "description", "link"],
+    },
   ],
 };

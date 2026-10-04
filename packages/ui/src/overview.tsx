@@ -95,20 +95,30 @@ export function tileHref(tile: OverviewTile, meta: RecordMeta, now = new Date())
   return `${path}?${params}`;
 }
 
+/** Tiles on each full-width row: at most four, as even as they go, so no tile sits alone. */
+export function perRow(n: number): number[] {
+  const rows = Math.ceil(n / 4);
+  return Array.from({ length: rows }, (_, r) => Math.floor(n / rows) + (r < n % rows ? 1 : 0));
+}
+const SPAN = ["", "lg:col-span-12", "lg:col-span-6", "lg:col-span-4", "lg:col-span-3"];
+
 export function RecordOverview({ title, api, tiles, top = [] }: OverviewProps) {
   const types = useTypes(api);
   if (types.error && !types.data) return <Alert onRetry={types.retry}>{types.error.message}</Alert>;
   const metaOf = (id: string) => types.data?.find((t) => t.id === id);
+  const spans = perRow(tiles.length).flatMap((k) => Array<string>(k).fill(SPAN[k] ?? ""));
   return (
     <div className={cn(ROOT, "mx-auto grid w-full max-w-[1200px] grid-cols-[minmax(0,1fr)] gap-8")}>
       <h1 className="text-[20px] leading-7 font-semibold tracking-[-0.01em]">{title}</h1>
-      <div className="grid grid-cols-2 gap-px p-px sm:grid-cols-[repeat(auto-fill,minmax(220px,1fr))]">
-        {tiles.map((t) => {
+      <div className="grid grid-cols-2 gap-px p-px lg:grid-cols-12">
+        {tiles.map((t, i) => {
           const meta = metaOf(t.record);
-          return meta ? (
-            <Tile key={t.label} tile={t} meta={meta} api={api} />
-          ) : (
-            <TileGhost key={t.label} />
+          // Two to a row on a phone; an odd last one takes the whole row.
+          const wide = i === tiles.length - 1 && tiles.length % 2 === 1;
+          return (
+            <div key={t.label} className={cn("grid", spans[i], wide && "max-lg:col-span-2")}>
+              {meta ? <Tile tile={t} meta={meta} api={api} /> : <TileGhost />}
+            </div>
           );
         })}
       </div>
@@ -124,7 +134,7 @@ export function RecordOverview({ title, api, tiles, top = [] }: OverviewProps) {
   );
 }
 
-// Each tile draws its own hairline (an outline over the 1px gap), so cells past the last tile stay blank.
+// Each tile draws its own hairline (an outline over the 1px gap).
 const TILE = "grid content-start gap-1 bg-(--ui-paper) p-4 outline outline-(--ui-hair)";
 
 function TileGhost() {

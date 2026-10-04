@@ -49,6 +49,7 @@ export const campaignRecord = (env: SendPolicy): RecordType =>
         ].filter(Boolean);
         return {
           ...r,
+          name: id.charAt(0).toUpperCase() + id.slice(1).replaceAll("_", " "),
           state: policy.nicheOpenerCap(id) === 0 ? "follow_ups" : "opening",
           kill_switch: policy.killSwitchOn(id) ? "on" : "off",
           openers_per_day: policy.nicheOpenerCap(id),
@@ -61,7 +62,8 @@ export const campaignRecord = (env: SendPolicy): RecordType =>
     key: "id",
     title: "campaign",
     fields: {
-      campaign: text("Campaign", { from: "id" }),
+      // "Agencies" in its list, panel and Overview alike; the id stays the niche's key.
+      campaign: text("Campaign", { from: "name" }),
       state: status({
         opening: { label: "Opening", tone: "good" },
         follow_ups: { label: "Follow-ups only", tone: "warn" },

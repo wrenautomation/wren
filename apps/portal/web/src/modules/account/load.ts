@@ -1,11 +1,5 @@
 /** The account's calls, keyed so a write's reload asks again. */
-import {
-  type AccountView,
-  call,
-  type InvoiceView,
-  type MailLevel,
-  type MemberView,
-} from "../../api.js";
+import { type AccountView, call, type MailLevel, type MemberView } from "../../api.js";
 import { useCall } from "../../load.js";
 import type { PageProps } from "../../module.js";
 
@@ -19,6 +13,3 @@ export const usePeople = (p: PageProps, nonce: number) =>
   useCall(`people:${p.client}:${p.team}:${nonce}`, () =>
     ask<{ people: MemberView[]; canManage: boolean; mail: MailLevel | null }>("people", p),
   );
-
-export const useInvoices = (p: PageProps) =>
-  useCall(`invoices:${p.client}:${p.team}`, () => ask<{ invoices: InvoiceView[] }>("invoices", p));

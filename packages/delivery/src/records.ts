@@ -4,9 +4,12 @@
  * note), so the portal's List, Queue and Overview draw them like any other record.
  */
 
+import { PortalRefusal } from "@wren/core/portal";
 import {
   date,
   defineRecord,
+  link,
+  money,
   number,
   type RecordType,
   type State,
@@ -14,7 +17,14 @@ import {
   text,
 } from "@wren/core/records";
 import type { Queryable } from "@wren/db";
-import { type DeliveryHome, deliveryHome, timeline, type UpdateView, WORK_APP } from "./index.js";
+import {
+  type DeliveryHome,
+  deliveryHome,
+  invoicesOf,
+  timeline,
+  type UpdateView,
+  WORK_APP,
+} from "./index.js";
 
 const STEP: Record<string, State> = {
   late: { label: "Late", tone: "bad" },
@@ -45,6 +55,12 @@ const PAPER: Record<string, State> = {
   revoked: { label: "Revoked", tone: "neutral" },
   done: { label: "Done", tone: "good" },
   granted: { label: "Granted", tone: "good" },
+};
+const BILL: Record<string, State> = {
+  open: { label: "Due", tone: "neutral" },
+  overdue: { label: "Overdue", tone: "bad" },
+  paid: { label: "Paid", tone: "good" },
+  void: { label: "Cancelled", tone: "neutral" },
 };
 const KIND: Record<string, string> = { link: "Link", loom: "Video", doc: "Document", file: "File" };
 const figure = (unit: string, v: number | null) =>
@@ -82,7 +98,8 @@ async function allUpdates(
 
 /**
  * The types for one client as this viewer sees them, read once per request: the projects run
- * in `app`, or all of them in the work app.
+ * in `app`, or all of them in the work app. Invoices are every project's, read only when
+ * `bills` says this viewer may: an owner or Wren.
  * ponytail: a client's projects share one list; split by project if one client ever runs two
  * in the same app at once.
  */
@@ -91,6 +108,7 @@ export function deliveryRecords(
   clientId: string,
   operator: boolean,
   app = WORK_APP,
+  bills: () => Promise<boolean> = async () => operator,
 ): RecordType[] {
   let home: Promise<DeliveryHome> | undefined;
   const es = async () => {
@@ -357,5 +375,44 @@ export function deliveryRecords(
     actions: ["delivery.result"],
   });
 
-  return [step, update, ask, deliverable, paperwork, result];
+  const invoice = defineRecord({
+    id: "delivery.invoice",
+    name: { one: "invoice", many: "invoices" },
+    rows: async () => {
+      if (!(await bills())) throw new PortalRefusal("billing is for this account's owners", 403);
+      return (await invoicesOf(db, clientId)).map((i) => ({
+        id: i.id,
+        number: i.number,
+        status: i.status,
+        amount: i.cents / 100,
+        currency: i.currency,
+        due: i.dueOn,
+        description: i.description,
+        offer: i.offer,
+        sent: i.issuedOn,
+        paid: i.paidOn,
+        link: i.link,
+      }));
+    },
+    key: "id",
+    title: "number",
+    subtitle: "description",
+    fields: {
+      number: text("Invoice"),
+      status: status(BILL, "State"),
+      amount: money("Amount"),
+      due: date("Due"),
+      description: text("For"),
+      offer: text("Offer"),
+      sent: date("Sent"),
+      paid: date("Paid"),
+      link: link("In Wise"),
+    },
+    views: [
+      { id: "all", label: "All invoices", sort: "-sent", at: "sent" },
+      { id: "open", label: "To pay", where: { status: ["open", "overdue"] }, sort: "due" },
+    ],
+  });
+
+  return [step, update, ask, deliverable, paperwork, result, invoice];
 }

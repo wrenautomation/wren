@@ -17,7 +17,6 @@ export type {
   DeliverableView,
   DeliveryHome,
   EngagementView,
-  InvoiceView,
   MailLevel,
   Me,
   MemberView,

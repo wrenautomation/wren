@@ -1,7 +1,16 @@
 /** Field kinds' address form: what a filter param reads as, and what its chip says. */
 import type { FieldMeta } from "@wren/core/records";
 import { describe, expect, it } from "vitest";
-import { dateOf, exact, filterLabel, filterShape, readFilter, relative, wilson } from "./fields.js";
+import {
+  dateOf,
+  exact,
+  filterLabel,
+  filterShape,
+  readFilter,
+  relative,
+  widthOf,
+  wilson,
+} from "./fields.js";
 
 const field = (over: Partial<FieldMeta>): FieldMeta => ({
   key: "f",
@@ -66,6 +75,21 @@ describe("rates and times", () => {
     const t = Date.UTC(2026, 9, 3);
     expect(relative(new Date(t - 3 * 86_400_000), t)).toBe("3 days ago");
     expect(relative(new Date(t), t)).toBe("just now");
+    expect(relative(new Date(t - 547 * 86_400_000), t)).toBe("1 year ago");
+    expect(relative(new Date(t - 86_400_000), t)).toBe("1 day ago");
+  });
+
+  it("widens a column till its head, states and dates fit", () => {
+    expect(widthOf(field({ label: "Sent" }))).toBe(144);
+    expect(widthOf(field({ label: "Sent" }), true)).toBe(173);
+    expect(
+      widthOf(field({ label: "Failures in a row", column: { align: "start", width: "s" } })),
+    ).toBe(161);
+    expect(
+      widthOf(field({ kind: "date", label: "At", column: { align: "start", width: "s" } })),
+    ).toBe(125);
+    const states = { follow_ups: { label: "Follow-ups only", tone: "neutral" as const } };
+    expect(widthOf(field({ kind: "status", label: "State", states }))).toBe(147);
   });
 });
 

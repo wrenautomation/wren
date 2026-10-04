@@ -9,6 +9,7 @@ import {
   type LocalRecords,
   localRecords,
   type Place,
+  RecordForm,
   RecordList,
   RecordOverview,
   RecordPage,
@@ -203,6 +204,7 @@ export function TemplatePage({
   const local = props.demo && client ? localOf(product, client, scope) : null;
   const shared = {
     record: page.record,
+    title: page.label,
     api: local?.api ?? apiOf(product, client, scope),
     place,
     acts: {
@@ -224,5 +226,6 @@ export function TemplatePage({
     head: page.head,
   };
   if (id) return <RecordPage {...shared} id={id} />;
+  if (page.template === "form") return <RecordForm {...shared} />;
   return page.template === "queue" ? <RecordQueue {...shared} /> : <RecordList {...shared} />;
 }

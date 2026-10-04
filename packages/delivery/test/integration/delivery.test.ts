@@ -48,6 +48,9 @@ async function refused(p: Promise<unknown>): Promise<number> {
 
 const acme = { client: "acme" };
 const beta = { client: "beta" };
+/** What we billed, as Billing reads it: the `delivery.invoice` record, newest first (a day's by id). */
+const bills = (viewer: Viewer, more: { client?: string } = {}) =>
+  api.recordsList({ viewer, ...more, record: "delivery.invoice", view: "all" });
 let acmeAsk = 0;
 let betaAsk = 0;
 let acmeDeliverable = 0;
@@ -541,23 +544,23 @@ describe("billing and the account", () => {
       cents: 250_050,
       dueOn: "2099-01-01",
     });
-    const seen = await api.invoices({ viewer: AMY });
-    expect(seen.invoices.map((i) => [i.number, i.status, i.cents, i.offer])).toEqual([
-      ["WREN-2", "open", 250_050, "Lead reactivation"],
-      ["WREN-1", "overdue", 100_000, "Lead reactivation"],
+    const seen = (await bills(AMY)).rows;
+    expect(seen.map((i) => [i.number, i.status, i.amount, i.offer])).toEqual([
+      ["WREN-1", "overdue", { amount: 1000, currency: "USD" }, "Lead reactivation"],
+      ["WREN-2", "open", { amount: 2500.5, currency: "USD" }, "Lead reactivation"],
     ]);
-    expect((await api.invoices({ viewer: OPS, ...acme })).invoices).toHaveLength(2);
-    expect((await api.invoices({ viewer: OPS, ...beta })).invoices).toEqual([]);
+    expect((await bills(OPS, acme)).rows).toHaveLength(2);
+    expect((await bills(OPS, beta)).rows).toEqual([]);
     await addMember(pg.db, "acme", "cy@acme.example");
-    expect(await refused(api.invoices({ viewer: CY }))).toBe(403);
-    expect(await refused(api.invoices({ viewer: BO, ...acme }))).toBe(403);
+    expect(await refused(bills(CY))).toBe(403);
+    expect(await refused(bills(BO, acme))).toBe(403);
   });
 
   it("paid, void and open again; never another client's", async () => {
     expect((await markInvoice(pg.db, "acme", "WREN-1", "paid", "2026-10-20")).paidOn).toBe(
       "2026-10-20",
     );
-    expect((await api.invoices({ viewer: AMY })).invoices[1]?.status).toBe("paid");
+    expect((await bills(AMY)).rows[0]?.status).toBe("paid");
     expect((await markInvoice(pg.db, "acme", "WREN-1", "open")).paidOn).toBeNull();
     expect((await markInvoice(pg.db, "acme", "WREN-1", "void")).status).toBe("void");
     expect(await status(markInvoice(pg.db, "beta", "WREN-1", "paid"))).toBe(404);
@@ -627,7 +630,7 @@ describe("the demo", () => {
       people: 0,
       billing: null,
     });
-    expect((await api.invoices({ viewer: DEMO })).invoices).toEqual([]);
+    expect(await refused(bills(DEMO))).toBe(403);
   });
 
   it("writes nothing, even as an operator naming the demo client", async () => {
@@ -667,7 +670,7 @@ describe("every route a client reads", () => {
           api.home({ viewer }),
           api.updates({ viewer }),
           api.account({ viewer }),
-          api.invoices({ viewer }),
+          bills(viewer).catch(() => null),
           api.people({ viewer }),
           api.contract({ viewer }).catch(() => null),
         ]),

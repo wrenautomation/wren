@@ -53,6 +53,7 @@ function Queue({
   empty,
   extras,
   acts,
+  title,
 }: RecordTemplateProps & { meta: RecordMeta; types: RecordMeta[] }) {
   const { params } = place;
   const one = meta.name.one;
@@ -128,7 +129,7 @@ function Queue({
     <div className={cn(ROOT, "grid min-w-0 gap-4")}>
       <div className="flex flex-wrap items-center justify-between gap-3">
         <h1 className="text-[20px] leading-7 font-semibold tracking-[-0.01em]">
-          {cap(meta.name.many)}
+          {title ?? cap(meta.name.many)}
         </h1>
         {actions.map((a) =>
           a.form && !a.each ? (

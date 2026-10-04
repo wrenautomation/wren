@@ -57,7 +57,6 @@ import {
   type Engagement,
   engagementOf,
   hideUpdate,
-  type InvoiceView,
   invoicesOf,
   mailLevelOf,
   markDone,
@@ -121,7 +120,13 @@ async function read<T>(
 /** The projects in the asking app (`app`), as records this viewer may see: a client never reads a team note. */
 type RecordsReq = PortalRequest & { app?: string };
 const recordsOf = (db: Queryable, c: Client, operator: boolean, req: RecordsReq) =>
-  deliveryRecords(db, c.id, operator, typeof req.app === "string" ? req.app : undefined);
+  deliveryRecords(
+    db,
+    c.id,
+    operator,
+    typeof req.app === "string" ? req.app : undefined,
+    async () => !isDemo(req.viewer) && (operator || (await isOwner(db, c.id, req.viewer.email))),
+  );
 const records = <T>(deps: DeliveryDeps, req: RecordsReq, use: (api: RecordsApi) => Promise<T>) =>
   read(deps, req, (db, c, operator) => use(serveRecords(recordsOf(db, c, operator, req), db)));
 
@@ -463,15 +468,6 @@ export function deliveryApi(deps: DeliveryDeps) {
         },
       };
     },
-    /** What we've billed through Wise: the account's owners and Wren see it. */
-    invoices: async (req: PortalRequest): Promise<{ invoices: InvoiceView[] }> => {
-      const client = await pickClient(deps.main, req);
-      const viewer = req.viewer;
-      if (isDemo(viewer)) return { invoices: [] };
-      if (!seesInternal(req) && !(await isOwner(deps.main, client.id, viewer.email)))
-        throw new PortalRefusal("billing is for this account's owners", 403);
-      return { invoices: await invoicesOf(deps.main, client.id) };
-    },
     /** The contract's text and terms: the account's owners and Wren. */
     contract: async (req: EngagementReq): Promise<ContractView> => {
       const client = await pickClient(deps.main, req);
@@ -700,7 +696,6 @@ export function makeDeliveryPortal(deps: DeliveryDeps) {
       result: (_: restate.Context, req: Req<"result">) => answer(() => api.result(req)),
       hide: (_: restate.Context, req: Req<"hide">) => answer(() => api.hide(req)),
       account: (_: restate.Context, req: Req<"account">) => answer(() => api.account(req)),
-      invoices: (_: restate.Context, req: Req<"invoices">) => answer(() => api.invoices(req)),
       people: (_: restate.Context, req: Req<"people">) => answer(() => api.people(req)),
       contract: (_: restate.Context, req: Req<"contract">) => answer(() => api.contract(req)),
       sign: async (ctx: restate.Context, req: Req<"sign">) => {

@@ -1,6 +1,6 @@
 import type { RecordMeta } from "@wren/core/records";
 import { describe, expect, it } from "vitest";
-import { periodStart, tileHref } from "./overview.js";
+import { periodStart, perRow, tileHref } from "./overview.js";
 
 const meta = {
   id: "x.reply",
@@ -26,5 +26,15 @@ describe("Overview tiles", () => {
       "/inbox/replies?view=all&sent=2026-09-28..",
     );
     expect(tileHref(tile, meta, now)).toBe("/inbox/replies?view=all");
+  });
+});
+
+describe("perRow", () => {
+  it("fills each row, four at most, none alone", () => {
+    expect(perRow(4)).toEqual([4]);
+    expect(perRow(5)).toEqual([3, 2]);
+    expect(perRow(6)).toEqual([3, 3]);
+    expect(perRow(7)).toEqual([4, 3]);
+    expect(perRow(9)).toEqual([3, 3, 3]);
   });
 });

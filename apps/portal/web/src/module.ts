@@ -40,7 +40,8 @@ export interface HandPage extends PageBase {
  * Everything else comes from the type's meta.
  */
 export interface ListPage extends PageBase {
-  template: "list" | "queue";
+  /** A Form reads the type as one form, a line per record (Setup). */
+  template: "list" | "queue" | "form";
   /** The record type's id, "<product>.<one>": its product serves it at /api/<product>/records*. */
   record: string;
   /** What fills the list, said while it's empty: one line, or one per view. */

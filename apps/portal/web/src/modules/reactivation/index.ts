@@ -129,10 +129,10 @@ export const reactivation: Module = {
     {
       id: "setup",
       label: "Setup",
-      template: "list",
+      template: "form",
       record: "reactivation.setting",
       empty: "Your setup shows here once Wren sets it up with you.",
-      columns: ["part", "value"],
+      columns: ["value"],
       actions: SETTING_ACTIONS,
     },
     // The client's plan and paperwork, here and not in an app of their own.

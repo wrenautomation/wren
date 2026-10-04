@@ -26,6 +26,18 @@ export function StateMark({ state }: { state: State }) {
   );
 }
 
+const WIDTH = { s: 108, m: 144, l: 200 } as const;
+/**
+ * A list column's width in px: its preset (a title's a fifth wider), or wider when its head, a
+ * state's label or a date's "10 minutes ago" needs it, so none of them truncate.
+ */
+export function widthOf(f: FieldMeta, title = false): number {
+  const states = Object.values(f.states ?? {}).map((s) => s.label.length + 2);
+  const chars = Math.max(f.label.length + 2, f.kind === "date" ? 14 : 0, ...states);
+  const preset = Math.round(WIDTH[f.column?.width ?? "m"] * (title ? 1.2 : 1));
+  return Math.max(preset, Math.ceil(chars * 7.2) + 24);
+}
+
 const stateOf = (f: FieldMeta, c: string): State => f.states?.[c] ?? { label: c, tone: "neutral" };
 
 /**
@@ -40,7 +52,7 @@ export function dateOf(s: string): Date | null {
   return Number.isNaN(d.getTime()) ? null : d;
 }
 
-const RELATIVE = new Intl.RelativeTimeFormat("en-US", { numeric: "auto" });
+const RELATIVE = new Intl.RelativeTimeFormat("en-US", { numeric: "always" });
 const UNITS: [Intl.RelativeTimeFormatUnit, number][] = [
   ["year", 365 * 864e5],
   ["month", 30 * 864e5],
@@ -49,11 +61,11 @@ const UNITS: [Intl.RelativeTimeFormatUnit, number][] = [
   ["hour", 36e5],
   ["minute", 6e4],
 ];
-/** "3 days ago", "next month", "just now". */
+/** "3 days ago", "in 1 month", "just now". Whole units, never rounded up: 18 months is "1 year ago". */
 export function relative(d: Date, now = Date.now()): string {
   const ms = d.getTime() - now;
   for (const [unit, size] of UNITS)
-    if (Math.abs(ms) >= size) return RELATIVE.format(Math.round(ms / size), unit);
+    if (Math.abs(ms) >= size) return RELATIVE.format(Math.trunc(ms / size), unit);
   return "just now";
 }
 /** "Sep 30, 2026, 5:08 PM"; a bare day without the time. */

@@ -43,6 +43,7 @@ import {
   filterShape,
   readFilter,
   relative,
+  widthOf,
 } from "./fields.js";
 import { num } from "./format.js";
 import { SourceCard, SourceList, stripMarks, useSourcePick } from "./sources.js";
@@ -99,6 +100,8 @@ export interface RecordActs {
 
 export interface RecordTemplateProps {
   record: string;
+  /** The page's name in the nav; the type's plural when left out. */
+  title?: string | undefined;
   api: RecordsApi;
   place: Place;
   /** What fills an empty list, said when nothing narrows it: one line, or one per view. */
@@ -176,7 +179,6 @@ export const textOf = (c: Cell | undefined) =>
 export const startOf = (a: Action, row: Row) =>
   a.ask ? stripMarks(textOf(row[a.ask.from ?? a.ask.field])) : "";
 
-const WIDTH = { s: 108, m: 144, l: 200 } as const;
 const SKIP = new Set(["INPUT", "TEXTAREA", "SELECT"]);
 export const typing = (e: KeyboardEvent) =>
   e.metaKey ||
@@ -495,7 +497,7 @@ function SortHead({
 
 /** The List template: views as tabs, search, a chip per filter, sortable columns, CSV, J/K. */
 export function RecordList(props: RecordTemplateProps) {
-  const { record, api, place, empty, columns, extras, acts, head } = props;
+  const { record, api, place, empty, columns, extras, acts, head, title } = props;
   const types = useTypes(api);
   const meta = types.data?.find((t) => t.id === record);
   if (types.error && !types.data) return <Alert onRetry={types.retry}>{types.error.message}</Alert>;
@@ -511,6 +513,7 @@ export function RecordList(props: RecordTemplateProps) {
       extras={extras}
       acts={acts}
       head={head}
+      title={title}
     />
   );
 }
@@ -538,6 +541,7 @@ function List({
   extras,
   acts,
   head,
+  title,
 }: {
   meta: RecordMeta;
   types: RecordMeta[];
@@ -548,6 +552,7 @@ function List({
   extras: RecordTemplateProps["extras"];
   acts: RecordActs | undefined;
   head: RecordTemplateProps["head"];
+  title: string | undefined;
 }) {
   const { params } = place;
   const ask = askOf(meta, params);
@@ -632,7 +637,9 @@ function List({
   return (
     <div className={cn(ROOT, "grid min-w-0 gap-4")}>
       <div className="flex flex-wrap items-center justify-between gap-3">
-        <h1 className="text-[20px] leading-7 font-semibold tracking-[-0.01em]">{cap(many)}</h1>
+        <h1 className="text-[20px] leading-7 font-semibold tracking-[-0.01em]">
+          {title ?? cap(many)}
+        </h1>
         <div className="flex flex-wrap items-center justify-end gap-2">
           {head?.(meta, acted)}
           {actions.map((a) =>
@@ -705,17 +712,14 @@ function List({
         >
           <table
             className="w-full table-fixed border-collapse text-[13px]"
-            style={{ minWidth: 72 + cols.reduce((n, f) => n + WIDTH[f.column?.width ?? "m"], 0) }}
+            style={{
+              minWidth: 72 + cols.reduce((n, f) => n + widthOf(f, f.key === meta.title), 0),
+            }}
           >
             <colgroup>
               <col style={{ width: 36 }} />
               {cols.map((f) => (
-                <col
-                  key={f.key}
-                  style={{
-                    width: WIDTH[f.column?.width ?? "m"] * (f.key === meta.title ? 1.2 : 1),
-                  }}
-                />
+                <col key={f.key} style={{ width: widthOf(f, f.key === meta.title) }} />
               ))}
               <col style={{ width: 36 }} />
             </colgroup>
@@ -988,7 +992,7 @@ function Panel({
           <X className="size-4" />
         </a>
       </div>
-      <div className="min-h-0 flex-1 overflow-y-auto px-6 pt-5 pb-10">
+      <div className="min-h-0 flex-1 overflow-y-auto px-4 pt-5 pb-10 sm:px-6">
         <RecordBody
           meta={meta}
           types={types}
@@ -1111,10 +1115,9 @@ export function RecordBody({
     )
     .slice(0, 4);
   const cited = meta.fields.filter((f) => f.kind === "cited" && row[f.key]);
-  /** An empty state says nothing ("Why it stopped" on a draft), so it isn't drawn. */
+  /** An empty field says nothing ("Why it stopped" on a draft), so it isn't drawn. */
   const rest = meta.fields.filter(
-    (f) =>
-      f.kind !== "cited" && f.key !== meta.title && !(f.kind === "status" && row[f.key] == null),
+    (f) => f.kind !== "cited" && f.key !== meta.title && row[f.key] != null && row[f.key] !== "",
   );
   const shown = actsOf(meta, acts).filter((a) => applies(a, row));
   const tabs: { id: string; label: string; count?: number }[] = [
@@ -1183,7 +1186,10 @@ export function RecordBody({
         ) : null}
       </header>
 
-      <nav className="flex gap-5 overflow-x-auto border-b border-(--ui-hair)" aria-label="Sections">
+      <nav
+        className="flex gap-5 overflow-x-auto border-b border-(--ui-hair) max-sm:justify-between max-sm:gap-2"
+        aria-label="Sections"
+      >
         {tabs.map((t) => (
           <a
             key={t.id}

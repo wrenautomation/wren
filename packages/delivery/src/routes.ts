@@ -22,7 +22,6 @@ export const DELIVERY_ROUTES = [
   "hide",
   "people",
   "account",
-  "invoices",
   "contract",
   "sign",
   "access",
