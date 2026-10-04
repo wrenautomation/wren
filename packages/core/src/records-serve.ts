@@ -174,7 +174,7 @@ const valueSql = (f: Field): SQL => {
   if (f.kind === "rate") return sql`((${c})::numeric / nullif((${ref(f.of ?? "")})::numeric, 0))`;
   return sql`(${c})::${sql.raw(castOf(f))}`;
 };
-/** The field as it sorts: a state by its place in the declaration. */
+/** The field as it sorts: a state by its place in the declaration, text with digits by value. */
 const sortSql = (f: Field): { expr: SQL; cast: Cast } =>
   KINDS[f.kind].sql === "state"
     ? {
@@ -184,7 +184,9 @@ const sortSql = (f: Field): { expr: SQL; cast: Cast } =>
         )}]::text[], (${ref(f.from ?? "")})::text)`,
         cast: "numeric",
       }
-    : { expr: valueSql(f), cast: castOf(f) };
+    : KINDS[f.kind].sql === "text"
+      ? { expr: sql`${valueSql(f)} collate "natural"`, cast: "text" }
+      : { expr: valueSql(f), cast: castOf(f) };
 const like = (s: string) => `%${s.replace(/[\\%_]/g, (m) => `\\${m}`)}%`;
 const and = (parts: SQL[]) => (parts.length ? sql.join(parts, sql` and `) : sql`true`);
 

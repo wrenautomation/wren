@@ -140,6 +140,12 @@ describe("paging", () => {
       expect(ids.slice(0, 200)).toEqual(one.rows.map((r) => r.id));
     });
 
+  it("text sorts its digits by value: 2 before 11", async () => {
+    const { rows } = await api.list({ record: "test.item", sort: "nm", limit: 200 });
+    const names = rows.map((r) => r.nm);
+    expect(names.indexOf("Sam Roe 2")).toBeLessThan(names.indexOf("Sam Roe 11"));
+  });
+
   it("a view filters, sorts and counts", async () => {
     const page = await api.list({ record: "test.item", view: "open", limit: 200 });
     expect(page.rows.every((r) => r.state === "open")).toBe(true);
