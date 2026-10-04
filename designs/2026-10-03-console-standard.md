@@ -202,7 +202,11 @@ One implementer per phase, from this doc. Commit and push each step.
    - A record hides empty fields. A campaign with no console override shows no "Set" rows.
    - One name per thing. A campaign reads "Agencies" in its list, its panel and the Overview.
    - Overview tiles fill their rows, with no lone tile.
-   - The record panel's padding at 390px.
+   - The record panel's padding at 390px, and record tabs that fit at 390 ("Sources" on a person is cut off).
+   - A page's title is its nav name. Setup reads "Setup", not "Settings"; Needs you reads "Needs you", not "Asks".
+   - Setup is a read-only form, as item 1 says, not a list: no checkboxes, no Export CSV, and values wrap.
+   - Relative times never round up a year. 18 months reads "1 year ago".
+   - Billing's `<Table>` moves onto a List.
 6. Leftovers: the Pipeline "Crawled, no person" count under 1s (it takes over 3s), `delivery.invite` as a client action, People's `reactivation.called` action, and no CSP errors from sonner in the browser console.
 
 ### S4. Demo and product depth
