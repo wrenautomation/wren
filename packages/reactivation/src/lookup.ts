@@ -145,6 +145,9 @@ export async function lookUpCrmPeople(
         stats.errors += 1;
         if (failedRead(err, "linkedin"))
           stats.aborted ??= `LinkedIn failed a read, so stopped asking it: ${(err as Error).message}`;
+        // Exa's cache and people search are metered: one failed read stops them too.
+        if (failedRead(err, "web"))
+          stats.aborted ??= `web failed a read, so stopped asking it: ${(err as Error).message}`;
         streak += 1;
         if (streak >= ERROR_STREAK)
           stats.aborted ??= `${ERROR_STREAK} errors in a row, last: ${err instanceof Error ? err.message : String(err)}`;

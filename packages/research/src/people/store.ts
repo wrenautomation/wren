@@ -1,13 +1,13 @@
 /**
- * Writes a lookup: each finding's source into `documents` (once per url and
- * text), the finding itself (seen again = `observed_at` moves), the person's
+ * Writes a lookup: every page read and each finding's source into `documents`
+ * (once per url and text), the finding itself (seen again = `observed_at` moves), the person's
  * trusted profile, and where the lookup stands. Every write is an upsert, so
  * re-running a person is safe.
  */
 import { people } from "@wren/core/schema";
 import type { Queryable } from "@wren/db";
 import { eq, sql } from "drizzle-orm";
-import { keepFinding, noNul } from "../findings.js";
+import { keepDocument, keepFinding, noNul } from "../findings.js";
 import { personLookups } from "../schema.js";
 import type { LookupResult } from "./lookup.js";
 
@@ -17,6 +17,7 @@ export async function recordLookup(
   r: LookupResult,
   runId: string | null = null,
 ): Promise<void> {
+  for (const page of r.pages) await keepDocument(db, page);
   for (const f of r.findings) await keepFinding(db, f);
   if (r.profile)
     await db.update(people).set({ linkedinUrl: r.profile.url }).where(eq(people.id, personId));

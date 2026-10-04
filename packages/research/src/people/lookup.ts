@@ -4,24 +4,34 @@
  *
  * 1. The email check already run. A work mailbox that rejects mail says they
  *    probably left; one that accepts says they may still be there.
- * 2. People search through autobrowse's `web` site (`/people`, an index of
- *    public profiles), no login: a profile whose name matches and which lists
- *    a role at the firm is them, and its current role says where they are now.
- *    The index can lag the profile by months, so it is trusted a little less
- *    than a logged-in read.
- * 3. LinkedIn logged in, only when the client allows it and search left the
+ * 2. Held links, read from Exa's cache of LinkedIn (`web` `/linkedin/profile`;
+ *    nothing reaches linkedin.com): the profile we already hold (its name
+ *    matching is enough), then links beside their name on the firm's own pages.
+ * 3. Google, only when the caller allows it (signed out, capped, daytime):
+ *    `site:linkedin.com/in "First Last" "Firm"`, name-matched hits read from
+ *    the cache. A Google that stops answering (a cap, a sorry page) is
+ *    reported in `googleStopped`, never fatal: the lookup goes on without it.
+ * 4. People search (`web` `/people`, an index of public profiles), only when
+ *    nothing above matched.
+ *
+ *    A reading is trusted by R7's rule: the name matches and a role is at the
+ *    firm. A cached or indexed copy can lag the profile by months, so it is
+ *    trusted a little less than a logged-in read.
+ * 5. LinkedIn logged in, only when the client allows it and search left the
  *    answer open: read the profiles search half-matched, else search LinkedIn
  *    itself, and trust a profile only when a role on it is at the firm. The
  *    account's daily caps are autobrowse's; a 429 parks the person until then.
  *
- * Pure over a SiteClient: it returns findings and the trail, `store.ts` writes.
+ * Pure over a SiteClient: it returns findings, every page read and the trail;
+ * `store.ts` writes.
  */
 import { isFreemail } from "@wren/core";
 import type { SiteClient } from "@wren/core/content";
 import type { DocumentDraft, FindingDraft } from "../findings.js";
-import { Capped, paced, realSleep, refusedBy } from "../pacing.js";
+import { Capped, failedRead, paced, realSleep, refusedBy } from "../pacing.js";
 import type { FindingKind, LookupState } from "../schema.js";
 import {
+  bareCompanyName,
   companyPhrase,
   domainLabel,
   type Firm,
@@ -42,12 +52,14 @@ export interface LookupSubject {
   firm: Firm;
   /** A profile an earlier read already tied to them. */
   linkedinUrl: string | null;
+  /** Profile links found beside their name on the firm's own pages (team pages). */
+  pageLinks?: string[];
   /** The latest check of the address we hold for them. */
   email: { address: string; result: string; verifier: string } | null;
 }
 
 export interface Tried {
-  step: "email" | "search" | "profile" | "linkedin search" | "capped";
+  step: "email" | "cache" | "google" | "search" | "profile" | "linkedin search" | "capped";
   what: string;
   outcome: string;
 }
@@ -61,11 +73,17 @@ export interface LookupResult {
   retryAt: Date | null;
   /** The site whose cap parked this person; null unless capped. */
   cappedBy: string | null;
+  /** Every profile page read from the cache, theirs or not: nothing read is dropped. */
+  pages: DocumentDraft[];
+  /** Google stopped answering (a cap, a sorry page): until when, null = the rest of the day. */
+  googleStopped: { until: Date | null; why: string } | null;
 }
 
 export interface LookupOptions {
   /** The account for logged-in LinkedIn reads (`linkedin@research`); null = never log in. */
   linkedin: string | null;
+  /** Search Google for the profile (step 3). The caller keeps its daily budget and hours. */
+  google?: boolean;
   /** A cap an earlier person in this run hit: park at step 3 instead of asking again. */
   linkedinCappedUntil?: Date | null;
   now?: () => Date;
@@ -95,7 +113,12 @@ const INDEXED: Sure = {
 };
 /** Profiles read per person at most: the profile cap is shared by the whole list. */
 const MAX_PROFILE_READS = 3;
+/** Cache reads per person at most, held links and Google hits together. */
+const MAX_CACHE_READS = 3;
 const SEARCH_PEOPLE = 5;
+const GOOGLE_RESULTS = 10;
+/** Who read the page: Exa's cache of LinkedIn. */
+export const CACHE_VIA = "exa-cache";
 
 interface Role {
   title: string;
@@ -112,6 +135,12 @@ interface Profile {
 interface People {
   people: (Profile & { url: string })[];
   via: string;
+}
+interface CachedProfile extends Profile {
+  text?: string;
+}
+interface Serp {
+  results: { title: string; url: string; snippet?: string }[];
 }
 interface PersonHit {
   name: string;
@@ -238,6 +267,8 @@ export async function lookUpPerson(
   const clock = opts.now ?? (() => new Date());
   const call = paced(sites, clock, opts.sleep ?? realSleep);
   const tried: Tried[] = [];
+  const pages: DocumentDraft[] = [];
+  let googleStopped: LookupResult["googleStopped"] = null;
   const findings = emailFindings(s);
   for (const f of findings)
     tried.push({
@@ -256,6 +287,8 @@ export async function lookUpPerson(
     tried,
     retryAt: capped?.retryAt ?? null,
     cappedBy: capped?.site ?? null,
+    pages,
+    googleStopped,
   });
 
   const names = firmNames(s.firm);
@@ -274,48 +307,158 @@ export async function lookUpPerson(
   let status: FindingDraft | null = null;
   /** Profiles whose name matched but whose result did not name the firm. */
   const maybe: ProfileLink[] = [];
-  const known = s.linkedinUrl ? linkedinProfile(s.linkedinUrl) : null;
+  const addMaybe = (link: ProfileLink) => {
+    if (!maybe.some((m) => m.vanity === link.vanity)) maybe.push(link);
+  };
+  let known = s.linkedinUrl ? linkedinProfile(s.linkedinUrl) : null;
   if (known) maybe.push(known);
-  try {
-    // Step 2: one people search; each profile carries its roles.
-    const q = `${who} ${firm}`;
-    const res = await call<People>("web", "GET", "/people", { q, n: SEARCH_PEOPLE });
-    const outcome: string[] = [`${res.people.length} people via ${res.via}`];
-    for (const p of res.people) {
-      const link = linkedinProfile(p.url);
-      if (!link) continue;
-      if (!sameName(s, p.name)) {
-        outcome.push(`${link.vanity}: name differs (${p.name})`);
-        continue;
-      }
-      // A role at the firm ties the profile to them; the one we already hold needs none.
-      const atFirm = (p.roles ?? []).some((r) => isFirm(r.company, s.firm));
-      if (!atFirm && link.vanity !== known?.vanity) {
-        if (!maybe.some((m) => m.vanity === link.vanity)) maybe.push(link);
-        outcome.push(`${link.vanity}: name matches, no role at the firm`);
-        continue;
-      }
-      profile = link;
-      status = profileFinding(
-        s,
-        p,
-        "search",
-        link,
-        {
-          url: link.url,
-          kind: "profile",
-          title: p.name,
-          text: JSON.stringify(p),
-          fetchTier: res.via.slice(0, 16),
-        },
-        INDEXED,
-      );
-      outcome.push(`${link.vanity}: matched`);
-      break;
+  const cacheRead = new Set<string>();
+  /**
+   * One profile from Exa's cache. Theirs when the name matches and a role is at
+   * the firm; the profile we already hold needs the name only. No cached copy
+   * (404) leaves the link a candidate.
+   */
+  const readCached = async (link: ProfileLink, from: string): Promise<boolean> => {
+    if (cacheRead.has(link.vanity) || cacheRead.size >= MAX_CACHE_READS) {
+      addMaybe(link);
+      return false;
     }
-    tried.push({ step: "search", what: q, outcome: outcome.join("; ") });
+    cacheRead.add(link.vanity);
+    let p: CachedProfile;
+    try {
+      p = await call<CachedProfile>("web", "GET", "/linkedin/profile", { url: link.url });
+    } catch (err) {
+      const refused = refusedBy(err);
+      if (refused === null) throw err;
+      tried.push({
+        step: "cache",
+        what: `${link.vanity} (${from})`,
+        outcome: refused === 404 ? "no cached copy" : `refused: ${refused}`,
+      });
+      addMaybe(link);
+      return false;
+    }
+    const doc: DocumentDraft = {
+      url: link.url,
+      kind: "profile",
+      title: p.name,
+      text: p.text || JSON.stringify(p),
+      fetchTier: CACHE_VIA,
+    };
+    pages.push(doc);
+    const named = sameName(s, p.name);
+    const atFirm = (p.roles ?? []).some((r) => isFirm(r.company, s.firm));
+    const ok = named && (atFirm || link.vanity === known?.vanity);
+    tried.push({
+      step: "cache",
+      what: `${link.vanity} (${from})`,
+      outcome: ok ? "matched" : !named ? `name differs (${p.name})` : "no role at the firm",
+    });
+    if (!named && link.vanity === known?.vanity) {
+      // The profile we held is someone else's: stop trusting it anywhere.
+      known = null;
+      maybe.splice(0, maybe.length, ...maybe.filter((m) => m.vanity !== link.vanity));
+    }
+    if (!ok) {
+      if (named) addMaybe(link);
+      return false;
+    }
+    profile = link;
+    status = profileFinding(s, p, CACHE_VIA, link, doc, INDEXED);
+    return true;
+  };
 
-    // Step 3: LinkedIn logged in, only while where they are now is still open.
+  async function googleStep(firmName: string): Promise<void> {
+    const q = `site:linkedin.com/in "${who}" "${bareCompanyName(firmName)}"`;
+    let res: Serp;
+    try {
+      res = await call<Serp>("web", "GET", "/google", { q, n: GOOGLE_RESULTS });
+    } catch (err) {
+      const refused = refusedBy(err);
+      if (err instanceof Capped) googleStopped = { until: err.retryAt, why: err.why };
+      else if (failedRead(err, "web")) googleStopped = { until: null, why: (err as Error).message };
+      else if (refused === null) throw err;
+      tried.push({
+        step: "google",
+        what: q,
+        outcome: googleStopped ? `stopped: ${googleStopped.why}` : `refused: ${refused}`,
+      });
+      return;
+    }
+    // Titles read "Name - Title - Company | LinkedIn".
+    const hits = (res.results ?? []).flatMap((h) => {
+      const link = linkedinProfile(h.url);
+      const name = h.title.split(/\s+[-–|]\s+/)[0] ?? "";
+      if (!link || !sameName(s, name)) return [];
+      return [{ link, says: mentionsFirm(`${h.title}\n${h.snippet ?? ""}`, s.firm, [who]) }];
+    });
+    // Hits that name the firm first; a bare name match only when none do.
+    const naming = hits.filter((h) => h.says);
+    tried.push({
+      step: "google",
+      what: q,
+      outcome: `${res.results?.length ?? 0} results, ${hits.length} by name, ${naming.length} naming the firm`,
+    });
+    for (const h of naming.length ? naming : hits)
+      if (!profile && (await readCached(h.link, "google"))) break;
+    for (const h of hits) if (h.link.vanity !== profile?.vanity) addMaybe(h.link);
+  }
+
+  try {
+    // Step 2: links we already hold.
+    const held = [
+      ...(known ? [{ link: known, from: "held" }] : []),
+      ...(s.pageLinks ?? []).flatMap((u) => {
+        const link = linkedinProfile(u);
+        return link ? [{ link, from: "their firm's page" }] : [];
+      }),
+    ];
+    for (const h of held) if (!profile && (await readCached(h.link, h.from))) break;
+
+    // Step 3: Google, signed out. Its failures stop Google, never the lookup.
+    if (!profile && opts.google) await googleStep(firm);
+
+    // Step 4: one people search, only when nothing above matched; each profile carries its roles.
+    const q = `${who} ${firm}`;
+    if (!profile) {
+      const res = await call<People>("web", "GET", "/people", { q, n: SEARCH_PEOPLE });
+      const outcome: string[] = [`${res.people.length} people via ${res.via}`];
+      for (const p of res.people) {
+        const link = linkedinProfile(p.url);
+        if (!link) continue;
+        if (!sameName(s, p.name)) {
+          outcome.push(`${link.vanity}: name differs (${p.name})`);
+          continue;
+        }
+        // A role at the firm ties the profile to them; the one we already hold needs none.
+        const atFirm = (p.roles ?? []).some((r) => isFirm(r.company, s.firm));
+        if (!atFirm && link.vanity !== known?.vanity) {
+          addMaybe(link);
+          outcome.push(`${link.vanity}: name matches, no role at the firm`);
+          continue;
+        }
+        profile = link;
+        status = profileFinding(
+          s,
+          p,
+          "search",
+          link,
+          {
+            url: link.url,
+            kind: "profile",
+            title: p.name,
+            text: JSON.stringify(p),
+            fetchTier: res.via.slice(0, 16),
+          },
+          INDEXED,
+        );
+        outcome.push(`${link.vanity}: matched`);
+        break;
+      }
+      tried.push({ step: "search", what: q, outcome: outcome.join("; ") });
+    }
+
+    // Step 5: LinkedIn logged in, only while where they are now is still open.
     if (!status && opts.linkedin) {
       const account = opts.linkedin;
       const until = opts.linkedinCappedUntil;
