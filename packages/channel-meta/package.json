@@ -17,12 +17,14 @@
     "@restatedev/restate-sdk": "1.17.1",
     "@wren/core": "workspace:*",
     "@wren/db": "workspace:*",
-    "drizzle-orm": "0.45.2"
+    "drizzle-orm": "0.45.2",
+    "zod": "4.6.5"
   },
   "devDependencies": {
     "@restatedev/restate-sdk-clients": "1.17.1",
     "@restatedev/restate-sdk-testcontainers": "1.17.1",
     "@testcontainers/postgresql": "12.1.0",
+    "@wren/config": "workspace:*",
     "typescript": "5.9.3",
     "vitest": "5.0.1"
   }

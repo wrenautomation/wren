@@ -6,7 +6,7 @@
 import * as restate from "@restatedev/restate-sdk";
 import * as clients from "@restatedev/restate-sdk-clients";
 import { RestateTestEnvironment } from "@restatedev/restate-sdk-testcontainers";
-import { loadSettings } from "@wren/config";
+import { ingressOf, loadSettings } from "@wren/config";
 import { runs } from "@wren/core";
 import type { LoopStatus, PassOutcome } from "@wren/core/restate";
 import { startTestPostgres, type TestPostgres, truncate } from "@wren/db/testing";
@@ -114,7 +114,9 @@ beforeEach(async () => {
 
 type Pool = ReturnType<typeof makePoolScheduler>;
 const client = (key = "sec_ria") =>
-  clients.connect({ url: env.baseUrl() }).objectClient<Pool>({ name: "PoolScheduler" }, key);
+  clients
+    .connect(ingressOf({ restateIngressUrl: env.baseUrl() }))
+    .objectClient<Pool>({ name: "PoolScheduler" }, key);
 const sync = (key?: string) => client(key).sync() as Promise<PassOutcome<FeedStats>>;
 
 describe("PoolScheduler", () => {

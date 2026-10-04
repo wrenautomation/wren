@@ -5,6 +5,7 @@
  */
 import * as clients from "@restatedev/restate-sdk-clients";
 import { RestateTestEnvironment } from "@restatedev/restate-sdk-testcontainers";
+import { ingressOf } from "@wren/config";
 import type { PassOutcome } from "@wren/core/restate";
 import { startTestPostgres, type TestPostgres, truncate } from "@wren/db/testing";
 import { eq } from "drizzle-orm";
@@ -36,7 +37,7 @@ const n = notes();
 // Tue 14:00 ET: inside every window, pinned so quiet hours never fail the suite at night.
 const OPEN = new Date("2026-09-29T18:00:00Z");
 const policy = POLICY;
-const ingress = () => clients.connect({ url: env.baseUrl() });
+const ingress = () => clients.connect(ingressOf({ restateIngressUrl: env.baseUrl() }));
 
 beforeAll(async () => {
   pg = await startTestPostgres();

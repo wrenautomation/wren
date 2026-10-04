@@ -2,6 +2,7 @@
 import * as restate from "@restatedev/restate-sdk";
 import * as clients from "@restatedev/restate-sdk-clients";
 import { RestateTestEnvironment } from "@restatedev/restate-sdk-testcontainers";
+import { ingressOf } from "@wren/config";
 import { type Company, companies, imports, leads, people, runs } from "@wren/core";
 import { createDb } from "@wren/db";
 import { startTestPostgres, type TestPostgres, truncate } from "@wren/db/testing";
@@ -87,7 +88,7 @@ beforeEach(async () => {
 });
 const db = () => pg.db;
 const client = () => {
-  const ingress = clients.connect({ url: env.baseUrl() });
+  const ingress = clients.connect(ingressOf({ restateIngressUrl: env.baseUrl() }));
   const object = ingress.objectClient<Resolution>({ name: "Resolution" }, RESOLUTION_KEY);
   const via = ingress.serviceClient<typeof inside>({ name: "ResolveInside" });
   return {

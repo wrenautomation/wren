@@ -27,6 +27,7 @@
     "@restatedev/restate-sdk-clients": "1.17.1",
     "@restatedev/restate-sdk-testcontainers": "1.17.1",
     "@testcontainers/postgresql": "12.1.0",
+    "@wren/config": "workspace:*",
     "typescript": "5.9.3",
     "vitest": "5.0.1"
   }

@@ -8,7 +8,7 @@ import * as ingress from "@restatedev/restate-sdk-clients";
 import { RestateTestEnvironment } from "@restatedev/restate-sdk-testcontainers";
 import { ConsoleTransport, SendPolicy } from "@wren/channel-email";
 import { makeSendScheduler, oneScope, type SendScheduler } from "@wren/channel-email/restate";
-import { loadSettings } from "@wren/config";
+import { ingressOf, loadSettings } from "@wren/config";
 import { addClient, updateClient } from "@wren/core/clients";
 import { clientOfKey } from "@wren/core/restate";
 import { cachedDb, clientDatabaseUrl, type Db } from "@wren/db";
@@ -105,7 +105,7 @@ const stateOf = async (db: Db, enrollment: number) =>
   )[0]?.state;
 const scheduler = (key: string) =>
   ingress
-    .connect({ url: env.baseUrl() })
+    .connect(ingressOf({ restateIngressUrl: env.baseUrl() }))
     .objectClient<SendScheduler>({ name: "SendScheduler" }, key);
 
 describe("a client mailbox's send loop", () => {

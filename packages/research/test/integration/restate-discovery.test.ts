@@ -1,6 +1,7 @@
 /** The Discovery virtual object on fakes: a domainless company gets its proven domain, once. */
 import * as clients from "@restatedev/restate-sdk-clients";
 import { RestateTestEnvironment } from "@restatedev/restate-sdk-testcontainers";
+import { ingressOf } from "@wren/config";
 import { companies, runs } from "@wren/core";
 import { startTestPostgres, type TestPostgres, truncate } from "@wren/db/testing";
 import { eq } from "drizzle-orm";
@@ -36,7 +37,9 @@ afterAll(async () => {
 beforeEach(() => truncate(pg.db, ["discovery_attempts", "imports", "companies", "runs"]));
 
 const client = () =>
-  clients.connect({ url: env.baseUrl() }).objectClient<Discovery>({ name: "Discovery" }, "sec_ria");
+  clients
+    .connect(ingressOf({ restateIngressUrl: env.baseUrl() }))
+    .objectClient<Discovery>({ name: "Discovery" }, "sec_ria");
 
 describe("Discovery", () => {
   it("attaches a gated domain, records the run, and finds nothing left on the next pass", async () => {

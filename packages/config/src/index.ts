@@ -389,12 +389,35 @@ export type Settings = z.infer<typeof settingsSchema>;
 export function ingressOf(s: Pick<Settings, "restateIngressUrl" | "restateAuthToken">): {
   url: string;
   headers?: Record<string, string>;
+  serde: typeof INGRESS_JSON;
 } {
   return {
     url: s.restateIngressUrl,
     ...(s.restateAuthToken ? { headers: { Authorization: `Bearer ${s.restateAuthToken}` } } : {}),
+    serde: INGRESS_JSON,
   };
 }
+
+let sentNothing = false;
+/**
+ * JSON both ways, but a call with no input sends no body and no content type. Restate's ingress
+ * refuses an empty body typed as JSON once a handler declares an input schema, and the stock
+ * client sends exactly that for `.status()`. The clients lib reads `contentType` right after
+ * `serialize`, in one synchronous step, so the flag never leaks between calls.
+ */
+export const INGRESS_JSON = {
+  get contentType(): string {
+    // Typed as the clients lib wants; undefined after no input makes it send no content type.
+    return (sentNothing ? undefined : "application/json") as string;
+  },
+  serialize(value: unknown): Uint8Array {
+    sentNothing = value === undefined;
+    return sentNothing ? new Uint8Array() : new TextEncoder().encode(JSON.stringify(value));
+  },
+  deserialize(bytes: Uint8Array): unknown {
+    return bytes.length === 0 ? undefined : JSON.parse(new TextDecoder().decode(bytes));
+  },
+};
 
 /** Env var name for each setting. One place, so `.env.example` and code can't drift. */
 export const ENV_KEYS = {

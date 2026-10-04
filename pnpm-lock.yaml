@@ -488,6 +488,9 @@ importers:
       drizzle-orm:
         specifier: 0.45.2
         version: 0.45.2(@cloudflare/workers-types@5.20260927.1)(kysely@0.29.6)(postgres@3.4.9)
+      zod:
+        specifier: 4.6.5
+        version: 4.6.5
     devDependencies:
       '@restatedev/restate-sdk-clients':
         specifier: 1.17.1
@@ -498,6 +501,9 @@ importers:
       '@testcontainers/postgresql':
         specifier: 12.1.0
         version: 12.1.0
+      '@wren/config':
+        specifier: workspace:*
+        version: link:../config
       typescript:
         specifier: 5.9.3
         version: 5.9.3
@@ -692,6 +698,9 @@ importers:
       '@testcontainers/postgresql':
         specifier: 12.1.0
         version: 12.1.0
+      '@wren/config':
+        specifier: workspace:*
+        version: link:../config
       typescript:
         specifier: 5.9.3
         version: 5.9.3
@@ -722,6 +731,9 @@ importers:
       tldts:
         specifier: 7.4.16
         version: 7.4.16
+      zod:
+        specifier: 4.6.5
+        version: 4.6.5
     devDependencies:
       '@restatedev/restate-sdk-testcontainers':
         specifier: 1.17.1
@@ -729,6 +741,9 @@ importers:
       '@testcontainers/postgresql':
         specifier: 12.1.0
         version: 12.1.0
+      '@wren/config':
+        specifier: workspace:*
+        version: link:../config
       typescript:
         specifier: 5.9.3
         version: 5.9.3
@@ -1003,6 +1018,9 @@ importers:
       '@testcontainers/postgresql':
         specifier: 12.1.0
         version: 12.1.0
+      '@wren/config':
+        specifier: workspace:*
+        version: link:../config
       typescript:
         specifier: 5.9.3
         version: 5.9.3

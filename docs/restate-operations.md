@@ -64,6 +64,8 @@ Total ≈ $15/month. Restate Cloud is on the free tier.
 
 ### Ingress (any HTTP client; API key from Developers → API keys)
 
+No input: send no body and no content type. A body: `content-type: application/json`. A handler with an input schema refuses an empty body typed as JSON; `ingressOf` and `scripts/ingress.mjs` already send nothing for no input.
+
 ```sh
 H="Authorization: Bearer $RESTATE_AUTH_TOKEN"     # in wren/.env
 U=https://201m2vp6sq3x11xdaatsmjej302.env.us.restate.cloud:8080
@@ -187,8 +189,8 @@ the queue for 30 days, so a head of unguessable names never blocks the rest.
 The stages by hand, keyed by niche (`all` = every niche); each reports what it moved:
 
 ```sh
-curl -X POST -H "$H" $U/Discovery/sec_ria/discover -d '{"limit":10}'   # name → domain, DoH + homepage gate, free; one unit per company
-curl -X POST -H "$H" $U/Discovery/sec_ria/verify   -d '{"limit":10}'   # prove asserted domains, free
+curl -X POST -H "$H" -H 'content-type: application/json' $U/Discovery/sec_ria/discover -d '{"limit":10}'   # name → domain, DoH + homepage gate, free; one unit per company
+curl -X POST -H "$H" -H 'content-type: application/json' $U/Discovery/sec_ria/verify   -d '{"limit":10}'   # prove asserted domains, free
 curl -X POST -H "$H" $U/Enrichment/sec_ria/crawl   -d '{"limit":10}'   # homepage + contact/team pages
 curl -X POST -H "$H" $U/Enrichment/sec_ria/render  -d '{"limit":10}'   # JS shells, through the CDP box
 curl -X POST -H "$H" $U/Enrichment/sec_ria/scan    -d '{}'             # addresses in stored pages, deterministic

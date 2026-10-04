@@ -13,6 +13,7 @@ import {
   type LocalCheckerLike,
   TransportRefused,
 } from "@wren/channel-email";
+import { ingressOf } from "@wren/config";
 import { clients } from "@wren/core/clients";
 import type { Notifier } from "@wren/core/notify";
 import type { Db } from "@wren/db";
@@ -152,7 +153,7 @@ beforeEach(async () => {
     values (${enr?.id}, 'reply', 'interested', 'llm', ${JANE}, 'Re: umbrella', 'Yes please.', now())`);
 });
 
-const connect = () => ingress.connect({ url: env.baseUrl() });
+const connect = () => ingress.connect(ingressOf({ restateIngressUrl: env.baseUrl() }));
 const loop = () => connect().objectClient<Reactivation>({ name: "Reactivation" }, id);
 const addClient = (stages: Record<string, boolean>) =>
   pg.db.insert(clients).values({

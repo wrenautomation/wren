@@ -7,6 +7,7 @@
 import * as restate from "@restatedev/restate-sdk";
 import * as clients from "@restatedev/restate-sdk-clients";
 import { RestateTestEnvironment } from "@restatedev/restate-sdk-testcontainers";
+import { ingressOf } from "@wren/config";
 import type { SiteClient } from "@wren/core/content";
 import type { PassOutcome } from "@wren/core/restate";
 import { startTestPostgres, type TestPostgres, truncate } from "@wren/db/testing";
@@ -93,10 +94,12 @@ beforeEach(async () => {
 });
 
 const ads = () =>
-  clients.connect({ url: env.baseUrl() }).serviceClient<AdsService>({ name: "Ads" });
+  clients
+    .connect(ingressOf({ restateIngressUrl: env.baseUrl() }))
+    .serviceClient<AdsService>({ name: "Ads" });
 const pass = () =>
   clients
-    .connect({ url: env.baseUrl() })
+    .connect(ingressOf({ restateIngressUrl: env.baseUrl() }))
     .objectClient<AdsWatch>({ name: "AdsWatch" }, WATCH_KEY)
     .sync() as Promise<PassOutcome<WatchStats>>;
 

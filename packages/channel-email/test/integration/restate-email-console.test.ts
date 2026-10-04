@@ -7,7 +7,7 @@
 import * as restate from "@restatedev/restate-sdk";
 import * as clients from "@restatedev/restate-sdk-clients";
 import { RestateTestEnvironment } from "@restatedev/restate-sdk-testcontainers";
-import { loadSettings } from "@wren/config";
+import { ingressOf, loadSettings } from "@wren/config";
 import { startTestPostgres, type TestPostgres, truncate } from "@wren/db/testing";
 import { sql } from "drizzle-orm";
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
@@ -67,7 +67,9 @@ beforeEach(async () => {
 
 type EmailConsole = ReturnType<typeof makeEmailConsole>;
 const email = () =>
-  clients.connect({ url: env.baseUrl() }).serviceClient<EmailConsole>({ name: "EmailConsole" });
+  clients
+    .connect(ingressOf({ restateIngressUrl: env.baseUrl() }))
+    .serviceClient<EmailConsole>({ name: "EmailConsole" });
 
 describe("EmailConsole", () => {
   it("refuses anyone but Wren's team, before anything moves", async () => {

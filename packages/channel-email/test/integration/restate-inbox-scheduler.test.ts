@@ -1,7 +1,7 @@
 /** The E7 virtual objects: inbox sync per sender, disposition on demand, the daily Postmaster pull, the opens pull, the placement checks. */
 import * as clients from "@restatedev/restate-sdk-clients";
 import { RestateTestEnvironment } from "@restatedev/restate-sdk-testcontainers";
-import { loadSettings } from "@wren/config";
+import { ingressOf, loadSettings } from "@wren/config";
 import { runs } from "@wren/core";
 import { SiteCallError, type SiteClient } from "@wren/core/content";
 import { startTestPostgres, type TestPostgres, truncate } from "@wren/db/testing";
@@ -158,7 +158,7 @@ beforeEach(async () => {
   reader.mail.clear();
 });
 const db = () => pg.db;
-const ingress = () => clients.connect({ url: env.baseUrl() });
+const ingress = () => clients.connect(ingressOf({ restateIngressUrl: env.baseUrl() }));
 const inbox = (sender: string) =>
   ingress().objectClient<InboxScheduler>({ name: "InboxScheduler" }, sender);
 const disposition = () =>

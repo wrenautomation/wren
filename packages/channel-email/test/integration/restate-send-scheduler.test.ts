@@ -1,7 +1,7 @@
 /** The SendScheduler virtual object: one tick per key, durable loop, status. */
 import * as clients from "@restatedev/restate-sdk-clients";
 import { RestateTestEnvironment } from "@restatedev/restate-sdk-testcontainers";
-import { loadSettings } from "@wren/config";
+import { ingressOf, loadSettings } from "@wren/config";
 import { runs } from "@wren/core";
 import { startTestPostgres, type TestPostgres, truncate } from "@wren/db/testing";
 import { eq } from "drizzle-orm";
@@ -69,7 +69,7 @@ beforeEach(async () => {
 const db = () => pg.db;
 const client = (sender: string) =>
   clients
-    .connect({ url: env.baseUrl() })
+    .connect(ingressOf({ restateIngressUrl: env.baseUrl() }))
     .objectClient<SendScheduler>({ name: "SendScheduler" }, sender);
 
 async function enrollOne(domain: string, email: string, sender: string) {

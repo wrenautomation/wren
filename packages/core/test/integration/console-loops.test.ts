@@ -8,6 +8,7 @@
 import type * as restate from "@restatedev/restate-sdk";
 import * as clients from "@restatedev/restate-sdk-clients";
 import { RestateTestEnvironment } from "@restatedev/restate-sdk-testcontainers";
+import { ingressOf } from "@wren/config";
 import { clientDatabaseUrl, createDatabase, createDb } from "@wren/db";
 import { startTestPostgres, type TestPostgres } from "@wren/db/testing";
 import { sql } from "drizzle-orm";
@@ -34,7 +35,7 @@ type Console = ReturnType<typeof makeConsolePortal>;
 const operator = { viewer: { email: "op@example.test", operator: true } };
 let env: RestateTestEnvironment;
 let pg: TestPostgres;
-const ingress = () => clients.connect({ url: env.baseUrl() });
+const ingress = () => clients.connect(ingressOf({ restateIngressUrl: env.baseUrl() }));
 const consolePortal = () => ingress().serviceClient<Console>({ name: "ConsolePortal" });
 const tickOf = (key: string) => ingress().objectClient<Tick>({ name: "Tick" }, key);
 

@@ -5,6 +5,7 @@
  */
 import * as clients from "@restatedev/restate-sdk-clients";
 import { RestateTestEnvironment } from "@restatedev/restate-sdk-testcontainers";
+import { ingressOf } from "@wren/config";
 import { leads, people, runs } from "@wren/core";
 import { startTestPostgres, type TestPostgres, truncate } from "@wren/db/testing";
 import { FakeLlm } from "@wren/llm";
@@ -84,7 +85,9 @@ beforeEach(async () => {
 });
 const db = () => pg.db;
 const client = (key = ALL_NICHES) =>
-  clients.connect({ url: env.baseUrl() }).objectClient<Enrichment>({ name: "Enrichment" }, key);
+  clients
+    .connect(ingressOf({ restateIngressUrl: env.baseUrl() }))
+    .objectClient<Enrichment>({ name: "Enrichment" }, key);
 const finishedRuns = () => db().select().from(runs).orderBy(runs.startedAt);
 
 describe("Enrichment virtual object", () => {

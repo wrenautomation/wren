@@ -14,7 +14,7 @@ import {
   type LocalCheckerLike,
   SendPolicy,
 } from "@wren/channel-email";
-import { loadSettings } from "@wren/config";
+import { ingressOf, loadSettings } from "@wren/config";
 import { clients } from "@wren/core/clients";
 import type { Notifier } from "@wren/core/notify";
 import { makeLoopObject } from "@wren/core/restate";
@@ -130,7 +130,7 @@ beforeEach(() => {
   notes.length = 0;
 });
 
-const connect = () => ingress.connect({ url: env.baseUrl() });
+const connect = () => ingress.connect(ingressOf({ restateIngressUrl: env.baseUrl() }));
 const loop = (key = id) => connect().objectClient<Reactivation>({ name: "Reactivation" }, key);
 const mailbox = (object: string, key: string) =>
   connect().objectClient<StandIn>({ name: object }, key);

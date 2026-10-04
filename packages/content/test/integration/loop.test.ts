@@ -7,6 +7,7 @@
 import * as restate from "@restatedev/restate-sdk";
 import * as clients from "@restatedev/restate-sdk-clients";
 import { RestateTestEnvironment } from "@restatedev/restate-sdk-testcontainers";
+import { ingressOf } from "@wren/config";
 import { runs } from "@wren/core";
 import type { Platform, Post } from "@wren/core/content";
 import type { PassOutcome } from "@wren/core/restate";
@@ -125,16 +126,18 @@ beforeEach(async () => {
 type Desk = ReturnType<typeof makeContentDesk>;
 type Sched = ReturnType<typeof makeContentScheduler>;
 const desk = () =>
-  clients.connect({ url: env.baseUrl() }).objectClient<Desk>({ name: "ContentDesk" }, DESK_KEY);
+  clients
+    .connect(ingressOf({ restateIngressUrl: env.baseUrl() }))
+    .objectClient<Desk>({ name: "ContentDesk" }, DESK_KEY);
 const sched = () =>
   clients
-    .connect({ url: env.baseUrl() })
+    .connect(ingressOf({ restateIngressUrl: env.baseUrl() }))
     .objectClient<Sched>({ name: "ContentScheduler" }, SCHEDULER_KEY);
 const sync = () => sched().sync() as Promise<PassOutcome<PublishStats>>;
 type Met = ReturnType<typeof makeContentMetrics>;
 const look = () =>
   clients
-    .connect({ url: env.baseUrl() })
+    .connect(ingressOf({ restateIngressUrl: env.baseUrl() }))
     .objectClient<Met>({ name: "ContentMetrics" }, METRICS_KEY)
     .sync() as Promise<PassOutcome<MetricsStats>>;
 

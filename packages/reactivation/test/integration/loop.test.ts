@@ -12,7 +12,7 @@ import {
   type LocalCheckerLike,
   SendPolicy,
 } from "@wren/channel-email";
-import { loadSettings } from "@wren/config";
+import { ingressOf, loadSettings } from "@wren/config";
 import { clients } from "@wren/core/clients";
 import { startTestPostgres, type TestPostgres } from "@wren/db/testing";
 import { eq } from "drizzle-orm";
@@ -87,7 +87,7 @@ beforeEach(() => {
   id = `acme${n}`;
 });
 
-const connect = () => ingress.connect({ url: env.baseUrl() });
+const connect = () => ingress.connect(ingressOf({ restateIngressUrl: env.baseUrl() }));
 const loop = (key = id) => connect().objectClient<Reactivation>({ name: "Reactivation" }, key);
 const running = (object: string, mailbox: string) =>
   connect().objectClient<StandIn>({ name: object }, `${id}/${mailbox}`).running();
