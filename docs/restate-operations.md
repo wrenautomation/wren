@@ -197,12 +197,12 @@ curl -X POST -H "$H" $U/Enrichment/sec_ria/applyExtractions -d '{}'
 curl -X POST -H "$H" $U/Enrichment/sec_ria/pick    -d '{"limit":50}'   # best send-to per company; a model call only when ambiguous
 curl -X POST -H "$H" $U/Enrichment/sec_ria/applyPicks -d '{}'          # role inboxes → leads (compose picks them up next pass)
 curl -X POST -H "$H" $U/Resolution/default/verifyLeads -d '{"niche":"agencies","limit":10}'  # ask the mail servers about new leads
-curl -X POST -H "$H" $U/Resolution/default/build; …/queue; …/resolve   # person guesses (pattern proving), by hand
+curl -X POST -H "$H" $U/Resolution/default/build; …/queue   # person guesses (pattern proving), by hand
 ```
 
 Pool on 2026-09-20: agencies 5,277 companies without a domain, 471 crawled with no
 sendable address (42 of them person guesses); sec_ria 19,237 domains, 5 crawled.
-Resolution's build/queue/resolve stays by hand.
+Resolution's build/queue stays by hand. `resolve` refuses at ingress (paid credits): queue, never call it.
 
 ## Verifying addresses (our own prober)
 

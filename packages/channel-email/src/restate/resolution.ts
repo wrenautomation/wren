@@ -106,46 +106,47 @@ export function makeResolution(deps: ResolutionDeps) {
         return stats;
       },
 
-      resolve: async (
-        ctx: restate.ObjectContext,
-        input: ResolveInput = {},
-      ): Promise<ResolutionStats> => {
-        const domainBudget = input.domainBudget ?? DEFAULT_DOMAIN_BUDGET;
-        const creditLimit = input.creditLimit ?? null;
-        const runId = await open(ctx, "resolve run", { ...input });
-        const promotions: PromotionRef[] = await ctx.run("stranded", () =>
-          strandedPromotions(deps.db),
-        );
-        const domains = await ctx.run("select", () => selectResolutionTargets(deps.db));
-        let stats = emptyResolutionStats();
-        stats.stranded_repaired = promotions.length;
-        let spent = 0;
-        for (const domain of domains) {
-          const alreadySpent = spent;
-          const r = await ctx.run(`resolve ${domain}`, () =>
-            deps.db.transaction((tx) =>
-              resolveDomainUnit(tx, deps.verifier, domain, {
-                domainBudget,
-                checker,
-                alreadySpent,
-                retryRiskyAfterDays: DEFAULT_RETRY_RISKY_DAYS,
-                creditLimit,
-              }),
-            ),
+      /** Paid verifier credits: never by hand (queue it), so never through the ingress. */
+      resolve: restate.handlers.object.exclusive(
+        { ingressPrivate: true },
+        async (ctx: restate.ObjectContext, input: ResolveInput = {}): Promise<ResolutionStats> => {
+          const domainBudget = input.domainBudget ?? DEFAULT_DOMAIN_BUDGET;
+          const creditLimit = input.creditLimit ?? null;
+          const runId = await open(ctx, "resolve run", { ...input });
+          const promotions: PromotionRef[] = await ctx.run("stranded", () =>
+            strandedPromotions(deps.db),
           );
-          stats = addResolutionStats(stats, r.stats);
-          promotions.push(...r.promotions);
-          spent += r.spent;
-          if (stats.aborted) break;
-        }
-        if (promotions.length) {
-          await ctx.run("promote", () =>
-            deps.db.transaction((tx) => promoteCandidates(tx, promotions)),
-          );
-        }
-        await close(ctx, runId, stats);
-        return stats;
-      },
+          const domains = await ctx.run("select", () => selectResolutionTargets(deps.db));
+          let stats = emptyResolutionStats();
+          stats.stranded_repaired = promotions.length;
+          let spent = 0;
+          for (const domain of domains) {
+            const alreadySpent = spent;
+            const r = await ctx.run(`resolve ${domain}`, () =>
+              deps.db.transaction((tx) =>
+                resolveDomainUnit(tx, deps.verifier, domain, {
+                  domainBudget,
+                  checker,
+                  alreadySpent,
+                  retryRiskyAfterDays: DEFAULT_RETRY_RISKY_DAYS,
+                  creditLimit,
+                }),
+              ),
+            );
+            stats = addResolutionStats(stats, r.stats);
+            promotions.push(...r.promotions);
+            spent += r.spent;
+            if (stats.aborted) break;
+          }
+          if (promotions.length) {
+            await ctx.run("promote", () =>
+              deps.db.transaction((tx) => promoteCandidates(tx, promotions)),
+            );
+          }
+          await close(ctx, runId, stats);
+          return stats;
+        },
+      ),
 
       /**
        * One bounded pass over domains never walked, many walks at once: what the

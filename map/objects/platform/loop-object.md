@@ -9,7 +9,7 @@ entity: packages/core/src/restate/loop.ts:179
 
 # loop-object
 
-The one way a recurring job runs: a Restate Virtual Object from `makeLoopObject` with handlers `start`, `stop`, `sync`, `loop`, `status`. Fourteen of them in prod.
+The one way a recurring job runs: a Restate Virtual Object from `makeLoopObject` with handlers `start`, `stop`, `sync`, `loop`, `status`. Fourteen of them in prod. `loop` refuses at ingress: only the loop sends it.
 
 ## Why this shape
 

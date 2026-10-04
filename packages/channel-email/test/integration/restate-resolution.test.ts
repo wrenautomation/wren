@@ -1,4 +1,5 @@
 /** The Resolution virtual object: build → queue → resolve on a stub verifier, journaled per domain. */
+import * as restate from "@restatedev/restate-sdk";
 import * as clients from "@restatedev/restate-sdk-clients";
 import { RestateTestEnvironment } from "@restatedev/restate-sdk-testcontainers";
 import { type Company, companies, imports, leads, people, runs } from "@wren/core";
@@ -44,6 +45,15 @@ const passChecker: LocalCheckerLike = {
   },
 };
 
+/** `resolve` refuses at ingress (paid credits), so the test reaches it as a service would. */
+const inside = restate.service({
+  name: "ResolveInside",
+  handlers: {
+    resolve: (ctx: restate.Context, input: { creditLimit?: number }) =>
+      ctx.objectClient<Resolution>({ name: "Resolution" }, RESOLUTION_KEY).resolve(input),
+  },
+});
+
 let pg: TestPostgres;
 let env: RestateTestEnvironment;
 const verifier = new MapVerifier();
@@ -57,6 +67,7 @@ beforeAll(async () => {
         checker: passChecker,
         openPool: (max) => createDb(pg.url, { max }),
       }),
+      inside,
     ],
     alwaysReplay: true,
   });
@@ -75,10 +86,19 @@ beforeEach(async () => {
   verifier.expectOpen = 0;
 });
 const db = () => pg.db;
-const client = () =>
-  clients
-    .connect({ url: env.baseUrl() })
-    .objectClient<Resolution>({ name: "Resolution" }, RESOLUTION_KEY);
+const client = () => {
+  const ingress = clients.connect({ url: env.baseUrl() });
+  const object = ingress.objectClient<Resolution>({ name: "Resolution" }, RESOLUTION_KEY);
+  const via = ingress.serviceClient<typeof inside>({ name: "ResolveInside" });
+  return {
+    build: object.build,
+    queue: object.queue,
+    resolveNewDomains: object.resolveNewDomains,
+    verifyLeads: object.verifyLeads,
+    resolve: via.resolve,
+    refused: object.resolve,
+  };
+};
 
 async function inboxLead(company: Company, email: string) {
   const [batch] = await db()
@@ -157,6 +177,8 @@ describe("Resolution virtual object", () => {
 
     // Nothing left to buy.
     expect((await c.resolve({})).credits_spent).toBe(0);
+    // Never by hand: the ingress refuses it.
+    await expect(c.refused({})).rejects.toThrow();
   });
 
   it("creditLimit caps spend across domains and records the abort", async () => {

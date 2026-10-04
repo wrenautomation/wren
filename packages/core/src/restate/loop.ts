@@ -232,16 +232,19 @@ export function makeLoopObject<S extends object>(
         return status(ctx, false);
       },
 
-      /** One iteration: pass, then the next one after a durable delay. */
-      loop: async (ctx: restate.ObjectContext, generation?: number | null): Promise<void> => {
-        if (!((await ctx.get<boolean>(RUNNING)) ?? false)) return;
-        const current = (await ctx.get<number>(GENERATION)) ?? 0;
-        // A call from before the last stop: its chain ended there.
-        if ((generation ?? 0) !== current) return;
-        const outcome = await pass(ctx);
-        if (outcome.stopped !== undefined) ctx.set(RUNNING, false);
-        else self(ctx).loop(current, restate.rpc.sendOpts({ delay: outcome.delayMs }));
-      },
+      /** One iteration: pass, then the next one after a durable delay. Only the loop itself sends it. */
+      loop: restate.handlers.object.exclusive(
+        { ingressPrivate: true },
+        async (ctx: restate.ObjectContext, generation?: number | null): Promise<void> => {
+          if (!((await ctx.get<boolean>(RUNNING)) ?? false)) return;
+          const current = (await ctx.get<number>(GENERATION)) ?? 0;
+          // A call from before the last stop: its chain ended there.
+          if ((generation ?? 0) !== current) return;
+          const outcome = await pass(ctx);
+          if (outcome.stopped !== undefined) ctx.set(RUNNING, false);
+          else self(ctx).loop(current, restate.rpc.sendOpts({ delay: outcome.delayMs }));
+        },
+      ),
 
       status: restate.handlers.object.shared(
         async (ctx: restate.ObjectSharedContext): Promise<LoopStatus<S>> =>

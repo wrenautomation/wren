@@ -86,3 +86,13 @@ The answer shows as a record when it is an object, else as JSON. An error shows 
 ## Decision log
 
 - 2026-10-04: Written. The list is read from Restate, not declared, so it can't drift. A handler marked `ingressPrivate` disappears from the page and stops answering at ingress.
+- 2026-10-04 (H1): `call` asks for the handler's name typed in (`confirm`) when it has an effect. The page asks it; the server checks it too, so no client skips it.
+- 2026-10-04 (H1): `call` asks a key for an object or workflow and refuses one for a plain service, before the call.
+- 2026-10-04 (H1): The record has no `public` column. It lists public handlers only, so the column would always say yes.
+- 2026-10-04 (H1): The detail carries the input schema and `form`, the schema mapped to boxes per the table above (`formOf`). H3 renders `form`. A nullable field is optional. No fields means the JSON box.
+- 2026-10-04 (H1): The handler list `call` checks is read in a journaled step, so a replay calls the same target. The refusal is thrown outside the step, so it is never retried.
+- 2026-10-04 (H1): The runs row's argv is `{by, key?, input}`. Its stats are `{ok: true}` or `{error}`, never the answer.
+- 2026-10-04 (H1): ingressPrivate: `Resolution/resolve`, `loop` in the loop factory, `SendScheduler/loop`, and `Disposition/classify`. Grep found no ingress caller of any of them. Only InboxScheduler sends `classify`.
+- 2026-10-04 (H1): `docs/restate-operations.md` showed `…/resolve` by hand. That line now stops at `queue`.
+- 2026-10-04 (H1): Every other handler another service calls stays public. Each one has a CLI or documented ingress caller (SearchWeek run, Ads, ContentDesk, Disposition approve and drop), or H2 names it for a form (Content, the loop factory's start, stop, status and sync).
+- 2026-10-04 (H1): Nothing inside wren calls `resolve`, so now nothing can run it. That is the rule's intent. A future caller must be a service. Its integration test reaches it through a test-only service and checks the ingress refuses it.

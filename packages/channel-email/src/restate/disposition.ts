@@ -62,62 +62,66 @@ export function makeDisposition(deps: DispositionDeps) {
   return restate.object({
     name: "Disposition",
     handlers: {
-      classify: async (ctx: restate.ObjectContext): Promise<ClassifyOutcome> => {
-        const now = new Date(await ctx.date.now());
-        const db = deps.dbOf(ctx.key);
-        const result = await ctx.run("reply disposition", async () => {
-          try {
-            const { stats } = await recordedRun(
-              db,
-              {
-                command: DISPOSITION_COMMAND,
-                argv: { daemon: true, llm: deps.llm.name, tracing: deps.tracing ?? "none" },
-                model: deps.llm.name,
-              },
-              (run) =>
-                runDisposition(db, deps.llm, {
-                  runId: run.id,
-                  tracer: deps.tracer ?? null,
-                  now,
-                }),
-            );
-            return { stats, error: null };
-          } catch (err) {
-            return { stats: null, error: errorText(err) };
-          }
-        });
-        const invites = deps.invites;
-        const booked =
-          invites && ctx.key === DISPOSITION_KEY
-            ? await ctx.run("call invites", async () => {
-                try {
-                  const { stats } = await recordedRun(
-                    db,
-                    {
-                      command: INVITE_COMMAND,
-                      argv: { daemon: true, llm: deps.llm.name, calendar: invites.calendar.name },
-                      model: deps.llm.name,
-                    },
-                    (run) =>
-                      runInvites(db, deps.llm, {
-                        calendar: invites.calendar,
-                        notifier: invites.notifier ?? null,
-                        copies: invites.copies ?? null,
-                        runId: run.id,
-                        tracer: deps.tracer ?? null,
-                        now,
-                      }),
-                  );
-                  return { stats, error: null };
-                } catch (err) {
-                  return { stats: null, error: errorText(err) };
-                }
-              })
-            : null;
-        const outcome: ClassifyOutcome = { ...result, invites: booked, now: now.toISOString() };
-        ctx.set(LAST, outcome);
-        return outcome;
-      },
+      /** Only InboxScheduler fires it, when a pass finds human replies. */
+      classify: restate.handlers.object.exclusive(
+        { ingressPrivate: true },
+        async (ctx: restate.ObjectContext): Promise<ClassifyOutcome> => {
+          const now = new Date(await ctx.date.now());
+          const db = deps.dbOf(ctx.key);
+          const result = await ctx.run("reply disposition", async () => {
+            try {
+              const { stats } = await recordedRun(
+                db,
+                {
+                  command: DISPOSITION_COMMAND,
+                  argv: { daemon: true, llm: deps.llm.name, tracing: deps.tracing ?? "none" },
+                  model: deps.llm.name,
+                },
+                (run) =>
+                  runDisposition(db, deps.llm, {
+                    runId: run.id,
+                    tracer: deps.tracer ?? null,
+                    now,
+                  }),
+              );
+              return { stats, error: null };
+            } catch (err) {
+              return { stats: null, error: errorText(err) };
+            }
+          });
+          const invites = deps.invites;
+          const booked =
+            invites && ctx.key === DISPOSITION_KEY
+              ? await ctx.run("call invites", async () => {
+                  try {
+                    const { stats } = await recordedRun(
+                      db,
+                      {
+                        command: INVITE_COMMAND,
+                        argv: { daemon: true, llm: deps.llm.name, calendar: invites.calendar.name },
+                        model: deps.llm.name,
+                      },
+                      (run) =>
+                        runInvites(db, deps.llm, {
+                          calendar: invites.calendar,
+                          notifier: invites.notifier ?? null,
+                          copies: invites.copies ?? null,
+                          runId: run.id,
+                          tracer: deps.tracer ?? null,
+                          now,
+                        }),
+                    );
+                    return { stats, error: null };
+                  } catch (err) {
+                    return { stats: null, error: errorText(err) };
+                  }
+                })
+              : null;
+          const outcome: ClassifyOutcome = { ...result, invites: booked, now: now.toISOString() };
+          ctx.set(LAST, outcome);
+          return outcome;
+        },
+      ),
 
       /** William's yes on one invite: book its time if it has one, send the reply. */
       approve: async (

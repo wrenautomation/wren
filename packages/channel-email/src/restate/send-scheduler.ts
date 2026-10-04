@@ -165,21 +165,24 @@ export function makeSendScheduler(deps: SendSchedulerDeps) {
         return status(ctx, false);
       },
 
-      /** One iteration: tick, then the next one after a durable delay. */
-      loop: async (ctx: restate.ObjectContext, generation?: number | null): Promise<void> => {
-        if (!((await ctx.get<boolean>(RUNNING)) ?? false)) return;
-        const current = (await ctx.get<number>(GENERATION)) ?? 0;
-        // A call from before the last stop: its chain ended there.
-        if ((generation ?? 0) !== current) return;
-        const outcome = await runTick(ctx);
-        if (!outcome) {
-          ctx.set(RUNNING, false);
-          return;
-        }
-        ctx
-          .objectSendClient(scheduler, ctx.key)
-          .loop(current, restate.rpc.sendOpts({ delay: outcome.delayMs }));
-      },
+      /** One iteration: tick, then the next one after a durable delay. Only the loop itself sends it. */
+      loop: restate.handlers.object.exclusive(
+        { ingressPrivate: true },
+        async (ctx: restate.ObjectContext, generation?: number | null): Promise<void> => {
+          if (!((await ctx.get<boolean>(RUNNING)) ?? false)) return;
+          const current = (await ctx.get<number>(GENERATION)) ?? 0;
+          // A call from before the last stop: its chain ended there.
+          if ((generation ?? 0) !== current) return;
+          const outcome = await runTick(ctx);
+          if (!outcome) {
+            ctx.set(RUNNING, false);
+            return;
+          }
+          ctx
+            .objectSendClient(scheduler, ctx.key)
+            .loop(current, restate.rpc.sendOpts({ delay: outcome.delayMs }));
+        },
+      ),
 
       status: restate.handlers.object.shared(
         async (ctx: restate.ObjectSharedContext): Promise<SchedulerStatus> =>
