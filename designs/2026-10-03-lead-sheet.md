@@ -57,7 +57,7 @@ A current role at another firm is a `job_change` finding: the person left, so th
 
 ## Budget and pace
 
-- **One Exa budget** in autobrowse, metered in mills ($0.001): people search 7, company search 7, cache read 1. A 404 (no entity) costs nothing at Exa. Default cap 330 a day: $0.33 a day, about $10 a month, the free credit.
+- **One Exa budget** in autobrowse, metered in mills ($0.001): people search 7, company search 7, cache read 1. Default cap 330 a day: $0.33 a day, about $10 a month, the free credit. A 429 from it parks the stage until the next UTC day.
 - **Google:** the `web` site's cap is 300 a day, shared with other callers. This stage takes at most 200.
 - **Throughput at $0:** about 40 people a day with company reads when Exa does the finding. More when Google or held links find them.
 - A failed metered read is terminal, never retried (existing rule).
@@ -95,12 +95,15 @@ The cached profile holds about, roles with tenure, and education. The company pa
 6. Compose skips people a lookup says left.
 7. `checkHiring`'s company-page step confirms through the cache read, so hiring checks stop needing a LinkedIn account.
 
-**autobrowse** (handed to the autobrowse session):
+**autobrowse** (landed c88a0ed, on the desk). All on site `web`:
 
-- A. `web/google`: Google's zero-result page returns `results: []`. Today it throws "no results page" and still spends a slot.
-- B. `web GET /linkedin/profile` and `GET /linkedin/company` (`url`): Exa `/contents`, `livecrawl: "never"`, parsed to the shapes of `linkedin GET /in/{vanity}` and `GET /company/{company}`, plus the raw text. 404 when Exa has no entity.
-- C. `web GET /companies` (`domain`): Exa company search, for step 1 of the company page.
-- D. The `exa` budget meter on the `web` site, cap 330 a day.
+- A. `GET /google`: Google's zero-result page (English) returns 200 with `results: []`. A sorry page or CAPTCHA still fails.
+- B1. `GET /linkedin/profile?url=` (any LinkedIn host, `/in/<vanity>`) returns `{name, vanity, url, headline?, location?, connections?, about?, roles: [{title, company, companyUrl?, dates?, location?, current}], education: [{school, schoolUrl?, degree?, dates?, location?}], text, source}`. `url` is canonical `https://www.linkedin.com/in/<vanity>/`.
+- B2. `GET /linkedin/company?url=` (`/company/<slug>`) returns `{name, handle, url, website?, phone?, industry?, size?, headquarters?, founded?, type?, employees?, about?, text, source}`. `url` is canonical `https://www.linkedin.com/company/<handle>/`.
+- C. `GET /companies?domain=&n=` (n 1 to 10, default 3) returns `{domain, via, companies: [{...B2 fields without text and url, linkedin: <canonical url> | null, url, homepageMatches}]}`. Keep only `homepageMatches: true`.
+- Optional fields are absent, never null.
+- Errors are terminal, never retried. 400 is a bad url or domain (no meter). 404 means Exa has no copy. 429 means the `exa` cap is hit. 501 means no key. 502 means Exa failed or the page is not a profile or company.
+- D. One `exa` bucket per UTC day: `/people` 7, `/companies` 7, `/linkedin/*` 1, cap 330. The facade meters before the call, so a 404 still spends 1 locally (Exa charges $0).
 
 ## Measured (2026-10-03)
 
