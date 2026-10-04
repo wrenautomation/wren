@@ -22,6 +22,8 @@
     "./mail": "./src/mail.ts",
     "./people": "./src/people/index.ts",
     "./portal": "./src/portal.ts",
+    "./records": "./src/records.ts",
+    "./records/serve": "./src/records-serve.ts",
     "./schema": "./src/schema.ts",
     "./stats": "./src/stats.ts",
     "./time": "./src/time.ts"
