@@ -192,10 +192,10 @@ export function useRun(
           <p className="text-sm text-(--ui-ink-2)">{plural(n, names.one, names.many)}.</p>
         ) : null}
         <DialogFooter>
-          <Button tone="quiet" size="sm" onClick={() => setAsked(null)}>
+          <Button tone="quiet" size="dense" onClick={() => setAsked(null)}>
             Cancel
           </Button>
-          <Button size="sm" onClick={() => asked && void go(asked.action, asked.ids)}>
+          <Button size="dense" onClick={() => asked && void go(asked.action, asked.ids)}>
             {asked?.action.label}
           </Button>
         </DialogFooter>

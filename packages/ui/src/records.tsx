@@ -235,7 +235,7 @@ export function Bulk({
       <button
         type="button"
         onClick={clear}
-        className="text-(--ui-ink) underline decoration-(--ui-line) underline-offset-2"
+        className="border-0 bg-transparent p-0 text-(--ui-ink) underline decoration-(--ui-line) underline-offset-2"
       >
         Clear
       </button>
@@ -1086,7 +1086,11 @@ export function RecordBody({
     )
     .slice(0, 4);
   const cited = meta.fields.filter((f) => f.kind === "cited" && row[f.key]);
-  const rest = meta.fields.filter((f) => f.kind !== "cited" && f.key !== meta.title);
+  /** An empty state says nothing ("Why it stopped" on a draft), so it isn't drawn. */
+  const rest = meta.fields.filter(
+    (f) =>
+      f.kind !== "cited" && f.key !== meta.title && !(f.kind === "status" && row[f.key] == null),
+  );
   const shown = actsOf(meta, acts).filter((a) => applies(a, row));
   const tabs: { id: string; label: string; count?: number }[] = [
     { id: "details", label: "Details" },
