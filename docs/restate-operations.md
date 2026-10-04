@@ -11,7 +11,7 @@ Checked 2026-10-03. Companion to `restate-durability.md` (why it survives crashe
 | Lambda `wren-prod-worker` (us-east-1, Node 22 arm64, 1 GB, 15 min max) | every service except the box's; one version per push | CI `deploy.yml` | `deploy/README.md` |
 | EC2 `wren-prod-pg` (`t4g.small`) | Postgres 17 + browserless Chromium in Docker; the **box worker**: `BOX_SERVICES` (PoolScheduler, Discovery, Enrichment, Resolution, PageArchive, Books) over Restate's tunnel (`WREN_POOL_CHAIN_HOST=box`) | CI over SSM (`deploy/scripts/box-worker.sh`) | `deploy/README.md`, `apps/worker/src/box.ts` |
 | RackNerd VPS (192.255.226.241, Buffalo) | mailifier SMTP prober behind Caddy (`probe.wrenautomation.com`) | `deploy/scripts/deploy-prober.sh` | "Verifying addresses" below |
-| RackNerd VPS (198.44.104.204, Los Angeles) | second prober (`probe2.wrenautomation.com`), not in `WREN_SMTP_PROBE_URL` until its PTR resolves | `PROBE_HOST=probe2.wrenautomation.com deploy/scripts/deploy-prober.sh` | "Verifying addresses" below |
+| RackNerd VPS (198.44.104.204, Los Angeles) | second prober (`probe2.wrenautomation.com`); in `WREN_SMTP_PROBE_URL`, probes once its PTR resolves | `PROBE_HOST=probe2.wrenautomation.com deploy/scripts/deploy-prober.sh` | "Verifying addresses" below |
 | William's Mac | autobrowse desk worker under launchd: every `sites` call (browser, logins, Chrome profiles, home IP) | `../autobrowse/deploy/desk/install.sh` | `../autobrowse/deploy/README.md` |
 | Lambda `wren-prod-auth` + Cloudflare Workers | sign-in (`apps/auth`), phone (`apps/phone`), portal (`apps/portal`) | CI `deploy.yml` | `deploy/phone.md`, `deploy/portal.md` |
 | Cloudflare Worker + D1 | open pixel `t.wrenautomation.com` (tracking off) | by hand, `wrangler deploy` | `deploy/pixel/README.md` |
@@ -241,8 +241,10 @@ domain, `ProbeFleet` in `verification/mailifier.ts`), so a mail server sees one 
 at half the pace. When that box's IP is refused (`blocked`, `no_ptr`,
 `unreachable`) or the box is down, the other asks once; greylisting stays on its
 first box. Each verdict carries `raw.prober`. A second box deploys with
-`PROBE_HOST=probe2.wrenautomation.com deploy/scripts/deploy-prober.sh`; keep it out
-of the list until its PTR names it (the script warns). The morning digest checks
+`PROBE_HOST=probe2.wrenautomation.com deploy/scripts/deploy-prober.sh`. Only boxes
+whose PTR names them probe (checked hourly per Lambda instance); with none, the first
+listed probes alone. So a new box can join the list at once and starts on its own
+when its PTR lands. The morning digest checks
 each box: PTR, five blocklists, and the share of checks refused for our IP
 (warning past 10% of 100+). The canary re-checks every ten minutes; with port 25
 closed `/verify` answers 503 and the pool stage retries hourly.

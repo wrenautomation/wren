@@ -1,6 +1,6 @@
 /** ProbeFleet: one home prober per recipient domain, a second opinion only when our IP is refused. */
 import { describe, expect, it } from "vitest";
-import { fleetOrder, ProbeFleet } from "./mailifier.js";
+import { fleetOrder, ProbeFleet, READY_TTL_MS } from "./mailifier.js";
 import type { Verdict } from "./verifier.js";
 
 type Answer = Verdict | Error;
@@ -110,5 +110,64 @@ describe("ProbeFleet", () => {
   it("one host: its error is the caller's", async () => {
     const only = host("a.example", new Error("HTTP 502"));
     await expect(new ProbeFleet([only.member]).verify("jo@acme.example")).rejects.toThrow("502");
+  });
+});
+
+describe("ProbeFleet readiness (PTR names the host)", () => {
+  const emails = Array.from({ length: 40 }, (_, i) => `jo@firm${i}.example`);
+  const askedBy = async (fleet: ProbeFleet) => {
+    const hosts = new Set<string>();
+    for (const e of emails) hosts.add(String((await fleet.verify(e)).raw.prober));
+    return hosts;
+  };
+
+  it("only ready hosts probe", async () => {
+    const a = host("a.example", valid);
+    const b = host("b.example", valid);
+    const fleet = new ProbeFleet([a.member, b.member], async (h) => h === "b.example");
+    expect(await askedBy(fleet)).toEqual(new Set(["b.example"]));
+    expect(a.asked).toEqual([]);
+  });
+
+  it("none ready: the first listed probes alone, with no second opinion", async () => {
+    const a = host("a.example", risky("no_ptr"));
+    const b = host("b.example", valid);
+    const fleet = new ProbeFleet([a.member, b.member], async () => false);
+    expect(await askedBy(fleet)).toEqual(new Set(["a.example"]));
+    expect(b.asked).toEqual([]);
+  });
+
+  it("a failed check reads as not ready", async () => {
+    const a = host("a.example", valid);
+    const b = host("b.example", valid);
+    const fleet = new ProbeFleet([a.member, b.member], async (h) => {
+      if (h === "b.example") throw new Error("SERVFAIL");
+      return true;
+    });
+    expect(await askedBy(fleet)).toEqual(new Set(["a.example"]));
+  });
+
+  it("re-checks once the cached answer is an hour old, so a new PTR joins on its own", async () => {
+    let clock = 0;
+    let bReady = false;
+    let checks = 0;
+    const a = host("a.example", valid);
+    const b = host("b.example", valid);
+    const fleet = new ProbeFleet(
+      [a.member, b.member],
+      async (h) => {
+        checks++;
+        return h === "a.example" || bReady;
+      },
+      () => clock,
+    );
+    expect(await askedBy(fleet)).toEqual(new Set(["a.example"]));
+    expect(checks).toBe(2);
+    bReady = true;
+    clock = READY_TTL_MS - 1;
+    expect(await askedBy(fleet)).toEqual(new Set(["a.example"]));
+    clock = READY_TTL_MS;
+    expect(await askedBy(fleet)).toEqual(new Set(["a.example", "b.example"]));
+    expect(checks).toBe(4);
   });
 });
