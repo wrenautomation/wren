@@ -86,7 +86,11 @@ function Queue({
     setRev((n) => n + 1);
     setPicked(new Set());
   };
-  const { run, busy, dialog } = useRun(acts?.call ?? (() => Promise.reject()), acted, meta.name);
+  const { run, busy, running, dialog } = useRun(
+    acts?.call ?? (() => Promise.reject()),
+    acted,
+    meta.name,
+  );
   const act = (a: Action) => {
     if (!row) return;
     const after = rows[at + 1] ?? rows[at - 1];
@@ -166,6 +170,7 @@ function Queue({
                     run(a, ids);
                   }}
                   busy={busy}
+                  running={running}
                   clear={() => setPicked(new Set())}
                 />
               ) : (
@@ -267,6 +272,7 @@ function Queue({
                     key={a.id}
                     tone={i === 0 ? "primary" : "secondary"}
                     size="dense"
+                    busy={running?.action === a.id}
                     disabled={busy}
                     onClick={() => act(a)}
                   >

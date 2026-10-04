@@ -124,7 +124,8 @@ export function LookEditor({
 }) {
   const [saved, setSaved] = useState(() => lookOf(look));
   const [draft, setDraft] = useState<Look>(saved);
-  const [busy, setBusy] = useState(false);
+  /** Which button's save is running: the new look, or the reset (null). */
+  const [busy, setBusy] = useState<"save" | "reset" | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [picks, setPicks] = useState<string[] | null>(null);
   const theme = useMemo(() => readTheme(draft), [draft]);
@@ -160,7 +161,7 @@ export function LookEditor({
   const setToken = (t: Token, v: string) => setDraft({ ...obj(), [t]: v });
 
   const save = async (next: Look) => {
-    setBusy(true);
+    setBusy(next === null ? "reset" : "save");
     setError(null);
     try {
       await onSave(next);
@@ -170,7 +171,7 @@ export function LookEditor({
     } catch (err) {
       setError(err instanceof Error ? err.message : String(err));
     } finally {
-      setBusy(false);
+      setBusy(null);
     }
   };
   const fromImage = async (file: File | undefined) => {
@@ -317,13 +318,19 @@ export function LookEditor({
           ) : null}
 
           <div className={ROW}>
-            <Button size="sm" disabled={busy || !changed} onClick={() => void save(draft)}>
+            <Button
+              size="sm"
+              busy={busy === "save"}
+              disabled={!!busy || !changed}
+              onClick={() => void save(draft)}
+            >
               Save
             </Button>
             <Button
               size="sm"
               tone="secondary"
-              disabled={busy || saved === null}
+              busy={busy === "reset"}
+              disabled={!!busy || saved === null}
               onClick={() => void save(null)}
             >
               Reset to Wren's

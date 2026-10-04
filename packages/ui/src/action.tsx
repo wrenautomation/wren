@@ -289,15 +289,18 @@ const plural = (n: number, one: string, many: string) => `${n} ${n === 1 ? one :
 /**
  * Runs a record's actions on ids: one with `undo` at once, with an undo toast for 10 seconds;
  * any other asks first. One that `ask`s always asks, its text starting from `start` (an edit's
- * current value). `after` runs once each call settles, so the page reads again.
+ * current value). `after` runs once each call settles, with the ids it changed, so the page
+ * reads again and can show what moved. `running` is the action at work and its ids, for its
+ * button.
  */
 export function useRun(
   call: Call,
-  after: () => void,
+  after: (changed: (string | number)[]) => void,
   names: { one: string; many: string },
 ): {
   run: (action: Action, ids: (string | number)[], start?: string) => void;
   busy: boolean;
+  running: { action: string; ids: (string | number)[] } | null;
   dialog: ReactNode;
 } {
   const [asked, setAsked] = useState<{
@@ -308,19 +311,22 @@ export function useRun(
   const [text, setText] = useState("");
   const [typed, setTyped] = useState<Record<string, string>>({});
   const [files, setFiles] = useState<Record<string, File>>({});
-  const [busy, setBusy] = useState(false);
+  const [running, setRunning] = useState<{ action: string; ids: (string | number)[] } | null>(null);
+  const busy = running !== null;
   const textId = useId();
 
   // A form stays open until it works, so a refusal doesn't lose what was typed.
   const go = async (action: Action, ids: (string | number)[], input: Record<string, unknown>) => {
     if (!action.form) setAsked(null);
-    setBusy(true);
+    setRunning({ action: action.id, ids });
+    let changed: (string | number)[] = [];
     try {
       const answer = await call(action.handler, input);
       setAsked(null);
       const line = action.done?.(answer) ?? `${action.label}: done`;
       const undo = action.undo;
       const done = doneOf(answer, ids);
+      changed = done;
       if (!undo || !done.length) toast.success(line);
       else
         toast.success(line, {
@@ -330,9 +336,10 @@ export function useRun(
             onClick: () =>
               void call(undo, { ids: done }).then(
                 (back) => {
-                  if (doneOf(back, []).length) toast.success("Undone");
+                  const undone = doneOf(back, []);
+                  if (undone.length) toast.success("Undone");
                   else toast.error("Too late to undo.");
-                  after();
+                  after(undone);
                 },
                 (err: unknown) => toast.error(err instanceof Error ? err.message : String(err)),
               ),
@@ -341,8 +348,8 @@ export function useRun(
     } catch (err) {
       toast.error(err instanceof Error ? err.message : String(err));
     } finally {
-      setBusy(false);
-      after();
+      setRunning(null);
+      after(changed);
     }
   };
   const run = (action: Action, ids: (string | number)[], start = "") => {
@@ -419,7 +426,7 @@ export function useRun(
             <Button tone="quiet" size="dense" onClick={() => setAsked(null)}>
               Cancel
             </Button>
-            <Button size="dense" type="submit" disabled={busy}>
+            <Button size="dense" type="submit" busy={busy}>
               {asked?.action.label}
             </Button>
           </DialogFooter>
@@ -427,7 +434,7 @@ export function useRun(
       </DialogContent>
     </Dialog>
   );
-  return { run, busy, dialog };
+  return { run, busy, running, dialog };
 }
 
 /** The one place toasts show; an app mounts it once. */

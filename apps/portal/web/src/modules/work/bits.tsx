@@ -122,7 +122,7 @@ export function Form({
     <form className={FORM} aria-label={label} onSubmit={sent}>
       {children}
       <div className={FOOT}>
-        <Button type="submit" size="sm" disabled={act.busy}>
+        <Button type="submit" size="sm" busy={act.busy}>
           {submit}
         </Button>
         {act.error ? (

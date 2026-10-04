@@ -145,7 +145,14 @@ export function useLoad<T>(key: string, fn: () => Promise<T>): Load<T> {
       live = false;
     };
   }, [key, attempt]);
-  return { ...state, retry: () => setAttempt((n) => n + 1) };
+  return {
+    ...state,
+    // Loading from this render on, so what reads it never paints the old data as new.
+    retry: () => {
+      setState((s) => ({ ...s, loading: true }));
+      setAttempt((n) => n + 1);
+    },
+  };
 }
 
 const TYPES = new WeakMap<RecordsApi, Promise<RecordMeta[]>>();
@@ -222,6 +229,7 @@ export function Bulk({
   picked,
   run,
   busy,
+  running,
   clear,
 }: {
   actions: readonly Action[];
@@ -229,6 +237,7 @@ export function Bulk({
   picked: Set<string>;
   run: (action: Action, ids: (string | number)[]) => void;
   busy: boolean;
+  running: { action: string } | null;
   clear: () => void;
 }) {
   const chosen = rows.filter((r) => picked.has(String(r.id)));
@@ -244,6 +253,7 @@ export function Bulk({
               key={a.id}
               tone="secondary"
               size="dense"
+              busy={running?.action === a.id}
               disabled={busy}
               onClick={() => run(a, ids)}
             >
@@ -574,15 +584,18 @@ function List({
   const [picked, setPicked] = useState<Set<string>>(new Set());
   const [busy, setBusy] = useState<string | null>(null);
   const [rev, setRev] = useState(0);
+  /** The rows the last action changed: they wash once the list has read them again. */
+  const [changed, setChanged] = useState<Set<string>>(new Set());
   const body = useRef<HTMLTableSectionElement>(null);
   const many = meta.name.many;
   const actions = actsOf(meta, acts);
-  const acted = () => {
+  const acted = (ids: (string | number)[]) => {
     page.retry();
     setRev((n) => n + 1);
     setPicked(new Set());
+    setChanged(new Set(ids.map(String)));
   };
-  const { run, busy: acting, dialog } = useRun(acts?.call ?? NO_CALL, acted, meta.name);
+  const { run, busy: acting, running, dialog } = useRun(acts?.call ?? NO_CALL, acted, meta.name);
 
   const openAt = (i: number, replace = false) => {
     const r = rows[i];
@@ -644,7 +657,7 @@ function List({
           {title ?? cap(many)}
         </h1>
         <div className="flex flex-wrap items-center justify-end gap-2">
-          {head?.(meta, acted)}
+          {head?.(meta, () => acted([]))}
           {actions.map((a) =>
             a.form && !a.each ? (
               <Button key={a.id} tone="secondary" size="dense" onClick={() => run(a, [])}>
@@ -692,6 +705,7 @@ function List({
                 picked={picked}
                 run={run}
                 busy={acting}
+                running={running}
                 clear={() => setPicked(new Set())}
               />
             ) : (
@@ -776,6 +790,9 @@ function List({
                           setCursor(i);
                           openAt(i);
                         }}
+                        onAnimationEnd={(e) => {
+                          if (e.animationName === "ui-changed") setChanged(new Set());
+                        }}
                         className={cn(
                           "group h-10 cursor-pointer border-b border-(--ui-hair)",
                           open
@@ -783,6 +800,7 @@ function List({
                             : i === cursor
                               ? "bg-(--ui-hover)"
                               : "hover:bg-(--ui-hover)",
+                          changed.has(id) && !page.loading && "animate-ui-changed",
                         )}
                       >
                         <td className="pl-2.5">
@@ -944,7 +962,7 @@ function Panel({
   count: number;
   step: (by: number) => void;
   rev: number;
-  onActed: () => void;
+  onActed: (changed: (string | number)[]) => void;
 }) {
   return (
     <aside
@@ -1063,14 +1081,17 @@ export function RecordBody({
   acts?: RecordActs | undefined;
   /** Read again when it changes: something acted on this record. */
   rev?: number | undefined;
-  onActed?: (() => void) | undefined;
+  onActed?: ((changed: (string | number)[]) => void) | undefined;
 }) {
   const got = useLoad(`${meta.id}:${id}:${rev}`, () => api.get({ record: meta.id, id }));
-  const { run, busy, dialog } = useRun(
+  /** An action changed this record: its states wash once they are read again. */
+  const [changed, setChanged] = useState(false);
+  const { run, busy, running, dialog } = useRun(
     acts?.call ?? NO_CALL,
-    () => {
+    (ids) => {
       got.retry();
-      onActed?.();
+      setChanged(ids.length > 0);
+      onActed?.(ids);
     },
     meta.name,
   );
@@ -1165,6 +1186,7 @@ export function RecordBody({
                   key={a.id}
                   tone={i === 0 ? "primary" : "secondary"}
                   size="dense"
+                  busy={running?.action === a.id}
                   disabled={busy}
                   onClick={() => run(a, [row.id], startOf(a, row))}
                 >
@@ -1176,7 +1198,15 @@ export function RecordBody({
           ) : null}
         </div>
         {states.length ? (
-          <div className="flex flex-wrap gap-x-4 gap-y-1 text-[13px]">
+          <div
+            onAnimationEnd={(e) => {
+              if (e.animationName === "ui-changed") setChanged(false);
+            }}
+            className={cn(
+              "-mx-2 -my-1 flex flex-wrap gap-x-4 gap-y-1 rounded-(--ui-radius) px-2 py-1 text-[13px]",
+              changed && !got.loading && "animate-ui-changed",
+            )}
+          >
             {states.map((f) => (
               <span key={f.key} className="inline-flex items-center gap-1.5">
                 <span className="text-(--ui-ink-3)">{f.label}</span>

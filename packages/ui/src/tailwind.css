@@ -313,3 +313,23 @@
     }
   }
 }
+
+/* What a user action is doing. A pressed button still at work runs a bar under its label,
+   after a beat so a quick one never flickers. The rows it changed wash, then settle. */
+@theme {
+  --animate-ui-busy: ui-busy 1.2s cubic-bezier(0.65, 0, 0.35, 1) 0.3s infinite backwards;
+  --animate-ui-changed: ui-changed 1.4s var(--ui-ease);
+  @keyframes ui-busy {
+    from {
+      translate: -100% 0;
+    }
+    to {
+      translate: 100% 0;
+    }
+  }
+  @keyframes ui-changed {
+    from {
+      background-color: color-mix(in srgb, var(--ui-accent) 14%, transparent);
+    }
+  }
+}

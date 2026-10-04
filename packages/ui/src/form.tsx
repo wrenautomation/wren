@@ -29,7 +29,7 @@ export function RecordForm({ record, api, columns, acts, empty, title }: RecordT
   // ponytail: one page of 200 lines; a form that long wants a List.
   const page = useLoad(record, () => api.list({ record, limit: 200 }));
   const names = meta?.name ?? { one: "item", many: "items" };
-  const { run, busy, dialog } = useRun(acts?.call ?? NO_CALL, page.retry, names);
+  const { run, busy, running, dialog } = useRun(acts?.call ?? NO_CALL, page.retry, names);
   const error = (types.error && !types.data) || (page.error && !page.data);
   if (error) return <Alert onRetry={types.retry}>{(types.error ?? page.error)?.message}</Alert>;
   if (!meta || !page.data) return <ListSkeleton />;
@@ -78,6 +78,7 @@ export function RecordForm({ record, api, columns, acts, empty, title }: RecordT
                           key={a.id}
                           tone="secondary"
                           size="dense"
+                          busy={running?.action === a.id && running.ids.includes(r.id)}
                           disabled={busy}
                           onClick={() => run(a, [r.id], startOf(a, r))}
                         >

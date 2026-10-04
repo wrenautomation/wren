@@ -60,8 +60,8 @@ function Press({ label, run, ask }: { label: string; run: () => Promise<string>;
   return (
     <div className="grid gap-2">
       <div>
-        <Button size="dense" tone="secondary" disabled={busy} onClick={() => void go()}>
-          {busy ? "Working…" : label}
+        <Button size="dense" tone="secondary" busy={busy} onClick={() => void go()}>
+          {label}
         </Button>
       </div>
       {said ? said.ok ? <p className={QUIET}>{said.text}</p> : <Alert>{said.text}</Alert> : null}

@@ -22,7 +22,7 @@ interface ButtonLook {
 
 /** shadcn's button, in the kit's look: square, uppercase, rust; ink on hover. */
 const BUTTON =
-  "h-auto gap-[0.8em] px-[1.6em] py-[1.15em] border-0 rounded-(--ui-radius) bg-(--ui-accent) text-(--ui-on-accent) font-(family-name:--ui-font) font-(--ui-button-weight) text-[13.5px]/none tracking-(--ui-button-tracking) [text-transform:var(--ui-button-case)] no-underline cursor-pointer transition-[background-color,color,box-shadow,scale] duration-200 ease-(--ui-ease) hover:bg-(--ui-ink) active:not-aria-[haspopup]:translate-y-0 active:not-aria-[haspopup]:scale-[0.97] hover:text-(--ui-on-ink) disabled:opacity-40 focus-visible:ring-0 focus-visible:outline-2 focus-visible:outline-solid focus-visible:outline-offset-2 focus-visible:outline-(--ui-accent)";
+  "h-auto gap-[0.8em] px-[1.6em] py-[1.15em] border-0 rounded-(--ui-radius) bg-(--ui-accent) text-(--ui-on-accent) font-(family-name:--ui-font) font-(--ui-button-weight) text-[13.5px]/none tracking-(--ui-button-tracking) [text-transform:var(--ui-button-case)] no-underline cursor-pointer transition-[background-color,color,box-shadow,scale,opacity] duration-200 ease-(--ui-ease) hover:bg-(--ui-ink) active:not-aria-[haspopup]:translate-y-0 active:not-aria-[haspopup]:scale-[0.97] hover:text-(--ui-on-ink) disabled:opacity-40 focus-visible:ring-0 focus-visible:outline-2 focus-visible:outline-solid focus-visible:outline-offset-2 focus-visible:outline-(--ui-accent)";
 const BUTTON_SIZE = { md: "", sm: "px-[1.3em] py-[1em] text-[12.5px]/none", dense: "" };
 const DENSE = "h-8 px-3 py-0 text-[13px]/none font-medium tracking-normal [text-transform:none]";
 const DENSE_TONE: Record<ButtonTone, string> = {
@@ -66,15 +66,40 @@ export function Button({
   size,
   icon,
   arrow,
+  busy,
+  disabled,
   children,
   className,
   type = "button",
   ...rest
-}: ButtonLook & Omit<ButtonHTMLAttributes<HTMLButtonElement>, "children" | "className">) {
-  const l: ButtonLook = { tone, size, icon, arrow, children, className };
+}: ButtonLook & {
+  /** It was pressed and its work is running: it stays solid, with a bar under the label. */
+  busy?: boolean | undefined;
+} & Omit<ButtonHTMLAttributes<HTMLButtonElement>, "children" | "className">) {
+  const l: ButtonLook = {
+    tone,
+    size,
+    icon,
+    arrow,
+    children,
+    className: cn(busy && "pointer-events-none relative overflow-hidden", className),
+  };
   return (
-    <ShadButton type={type} className={look(l)} {...rest}>
+    <ShadButton
+      type={type}
+      className={look(l)}
+      disabled={busy ? undefined : disabled}
+      aria-busy={busy || undefined}
+      aria-disabled={busy || undefined}
+      {...rest}
+    >
       {inside(l)}
+      {busy ? (
+        <span
+          aria-hidden="true"
+          className="absolute inset-x-0 bottom-0 h-0.5 animate-ui-busy bg-current opacity-60 motion-reduce:animate-none"
+        />
+      ) : null}
     </ShadButton>
   );
 }
