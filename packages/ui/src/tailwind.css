@@ -45,8 +45,10 @@
   color-scheme: var(--ui-scheme);
   scrollbar-color: var(--ui-ink-3) transparent;
 }
-/* Made from the tokens above, so they follow a theme. A theme can set any of these too. */
-:root {
+/* Made from the tokens above, so they follow a theme. A theme can set any of these too.
+   `data-ui-theme` makes them again under an element given its own tokens: a look's preview. */
+:root,
+[data-ui-theme] {
   --ui-tile: var(--ui-canvas); /* a well inside the paper */
   --ui-wash: color-mix(in srgb, var(--ui-canvas) 50%, var(--ui-paper)); /* row hover */
   --ui-on-ink: var(--ui-paper);
@@ -72,7 +74,8 @@
 /* The night theme flips the tokens, so shadcn's own dark styles stay off. */
 @custom-variant dark (&:is(.dark *));
 
-:root {
+:root,
+[data-ui-theme] {
   --background: var(--ui-canvas);
   --foreground: var(--ui-ink);
   --card: var(--ui-paper);

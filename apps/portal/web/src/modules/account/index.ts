@@ -1,5 +1,6 @@
 /** The client's account, reached from their name at top left: the company, its people, each person's own settings, billing. */
 import type { Module } from "../../module.js";
+import { Look } from "./Look.js";
 import { Overview } from "./Overview.js";
 import { People } from "./People.js";
 import { You } from "./You.js";
@@ -8,7 +9,8 @@ export const account: Module = {
   id: "account",
   name: "Account",
   icon: "sliders",
-  blurb: "Your company's details, who can see your projects, your email settings and invoices.",
+  blurb:
+    "Your company's details, who can see your projects, your email settings, your look and invoices.",
   menu: true,
   // The demo is nobody's account.
   requires: { audience: "client" },
@@ -16,6 +18,7 @@ export const account: Module = {
     { id: "overview", label: "Overview", Page: Overview },
     { id: "people", label: "People", Page: People },
     { id: "you", label: "Your settings", Page: You },
+    { id: "look", label: "Look", Page: Look },
     {
       id: "billing",
       label: "Billing",

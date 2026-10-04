@@ -5,6 +5,7 @@
 import type { Action } from "@wren/ui";
 import { createElement } from "react";
 import type { Module } from "../../module.js";
+import { ClientLook } from "../account/Look.js";
 import { handlers } from "./handlers.js";
 import { AI_SPEND, AiSpend, idOf } from "./heads.js";
 
@@ -618,6 +619,10 @@ export const clients: Module = {
       record: "console.client",
       empty: "Clients show here once you add one.",
       actions: CLIENT_ACTIONS,
+      // Its portal look: the demo's too, so the demo can show one.
+      extras: (_, { row }) => ({
+        sections: [["Look", createElement(ClientLook, { client: String(row.id) })]],
+      }),
     },
   ],
 };

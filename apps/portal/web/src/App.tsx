@@ -25,6 +25,7 @@ import { Component, lazy, type ReactNode, Suspense, useEffect, useState } from "
 import { call, type Me, signOutUrl } from "./api.js";
 import { useCall } from "./load.js";
 import { type Module, type ModulePage, type PageProps, WREN } from "./module.js";
+import { LOOK_SAVED } from "./modules/account/Look.js";
 import { useAccount } from "./modules/account/load.js";
 import { MODULES } from "./modules/index.js";
 import { REACTIVATION } from "./modules/reactivation/nav.js";
@@ -134,6 +135,12 @@ function useLook(params: URLSearchParams, look: unknown): Theme {
 export function App() {
   const route = useRoute();
   const me = useCall("me", () => call<Me>("delivery/me"));
+  // A saved look reaches the open workspace without a reload.
+  useEffect(() => {
+    const again = () => me.retry();
+    addEventListener(LOOK_SAVED, again);
+    return () => removeEventListener(LOOK_SAVED, again);
+  });
   // A link in our mail names its client (`?client=acme`): open that one, and stay on it.
   const named = route.params.get("client");
   const [client, setClient] = useState<string | null>(() => named ?? recall(WORKSPACE_KEY));
