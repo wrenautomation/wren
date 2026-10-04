@@ -506,10 +506,13 @@ function Report({ lines }: { lines: ContrastLine[] }) {
           {lines.map((l) => (
             <tr key={`${l.text}/${l.on}`} className="border-b border-(--ui-hair)">
               <td className="w-full py-1.5 pr-3">
-                {nameOf(l.text)} on {nameOf(l.on).toLowerCase()}
+                {/* "Text on accent" already names its ground. */}
+                {l.text === "on-accent" && l.on === "accent"
+                  ? nameOf(l.text)
+                  : `${nameOf(l.text)} on ${nameOf(l.on).toLowerCase()}`}
               </td>
               <td className="py-1.5 pr-3 text-right whitespace-nowrap">{l.ratio.toFixed(1)}:1</td>
-              <td className="py-1.5 text-(--ui-ink-2)">
+              <td className="py-1.5 whitespace-nowrap text-(--ui-ink-2)">
                 {l.was ? (
                   <span className="inline-flex items-center gap-1.5">
                     Stepped from <Swatch color={l.was} /> {l.was}
