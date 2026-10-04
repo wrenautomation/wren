@@ -36,6 +36,7 @@ import {
   plainMailer,
   postmasterToken,
   proberHosts,
+  recheckLeads,
   rosterFleet,
   SendPolicy,
   senderDomain,
@@ -367,6 +368,7 @@ export async function buildServices(
         ...sitesHost(settings.autobrowseInstanceId),
         timeoutMs: BOOKS_DESK_TIMEOUT_MS,
       }),
+      recheck: recheckLeads,
     }),
     // Discovery probes guessed hosts, most of them parked or dead: a short timeout and
     // one try per URL, or a single company's guesses can eat a Lambda invocation.

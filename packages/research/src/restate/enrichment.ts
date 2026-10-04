@@ -12,7 +12,7 @@
 import * as restate from "@restatedev/restate-sdk";
 import { type Company, companies, finishRun, openRun } from "@wren/core";
 import type { SiteClient } from "@wren/core/content";
-import type { Db } from "@wren/db";
+import type { Db, Queryable } from "@wren/db";
 import { type LlmClient, NULL_TRACER, type Tracer } from "@wren/llm";
 import { eq } from "drizzle-orm";
 import { backfillCallRecords } from "../enrichment/audit-backfill.js";
@@ -106,6 +106,11 @@ export interface EnrichmentDeps {
   pages?: PageStore | null;
   /** autobrowse's sites, for `profiles` (Exa's cache, Google); null = that stage refuses. */
   sites?: SiteClient | null;
+  /**
+   * Recompute a firm's lead cross-checks after `profiles` reads its person and
+   * page (channel-email's `recheckLeads`, injected: research never imports it).
+   */
+  recheck?: (db: Queryable, companyIds: number[]) => Promise<unknown>;
 }
 
 /**
@@ -533,6 +538,11 @@ export function makeEnrichment(deps: EnrichmentDeps) {
             stats.stopped = r.reason;
             break;
           }
+          const recheck = deps.recheck;
+          if (recheck)
+            await ctx.run(`recheck firm ${w.company.companyId}`, async () => {
+              await recheck(deps.db, [w.company.companyId]);
+            });
           left = r.value.googleStopped ? 0 : Math.max(0, left - r.value.google);
           stats.stopped = countProfileUnit(stats, r.value, streak);
           if (stats.stopped) break;

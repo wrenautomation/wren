@@ -389,6 +389,8 @@ export interface RunProfilesOptions {
   sleep?: (ms: number) => Promise<void>;
   /** One line per person, for an operator watching. */
   onUnit?: (u: ProfileUnit) => void;
+  /** Recompute the firm's lead cross-checks after each person (channel-email's `recheckLeads`). */
+  recheck?: (companyIds: number[]) => Promise<unknown>;
 }
 
 /** The stage as a plain loop, for the CLI; the Restate handler journals the same steps. */
@@ -419,6 +421,7 @@ export async function runProfiles(
       now: clock,
       ...(opts.sleep ? { sleep: opts.sleep } : {}),
     });
+    await opts.recheck?.([w.company.companyId]);
     opts.onUnit?.(u);
     left = u.googleStopped ? 0 : Math.max(0, left - u.google);
     stats.stopped = countProfileUnit(stats, u, streak);

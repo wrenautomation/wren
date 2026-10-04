@@ -196,10 +196,17 @@ describe("profileWork", () => {
 });
 
 describe("runProfiles", () => {
-  it("each person, then their firm once; every page read kept; a rerun picks nobody", async () => {
+  it("each person, then their firm once; every page read kept; the firm rechecked; a rerun picks nobody", async () => {
     const { jane, bob, ann, acme, globex } = await seed();
     const { sites, keys } = fakeSites(routes());
-    const stats = await run(sites, [jane, bob, ann]);
+    const rechecked: number[][] = [];
+    const stats = await run(sites, [jane, bob, ann], {
+      recheck: async (ids) => {
+        rechecked.push(ids);
+      },
+    });
+    // Each person's firm is rechecked once its reads are written.
+    expect(rechecked).toEqual([[acme.id], [acme.id], [globex.id]]);
     expect(stats).toMatchObject({
       selected: 3,
       people_matched: 1,

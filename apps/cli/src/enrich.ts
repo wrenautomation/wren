@@ -5,6 +5,7 @@
  */
 
 import { existsSync, readdirSync, readFileSync, writeFileSync } from "node:fs";
+import { recheckLeads, recheckNiche } from "@wren/channel-email";
 import { nextToEnroll } from "@wren/channel-email/outreach";
 import type { Settings } from "@wren/config";
 import { recordedRun } from "@wren/core";
@@ -191,6 +192,7 @@ export function registerEnrich(program: Command, withDb: WithDb, settings: Setti
             again: argv.again,
             timezone: settings.sendTimezone,
             runId: run.id,
+            recheck: (companyIds) => recheckLeads(db, companyIds),
             onUnit: (u) =>
               console.log(
                 `person ${u.personId}: ${u.person} company ${u.company}${u.error ? ` (${u.error})` : ""}`,
@@ -199,6 +201,24 @@ export function registerEnrich(program: Command, withDb: WithDb, settings: Setti
         );
         console.log(`profiles: ${JSON.stringify({ queued: personIds.length, ...stats })}`);
       });
+    });
+
+  enrich
+    .command("checks")
+    .description(
+      "Recompute every lead's cross-checks for a niche (right person, right address); free, no calls",
+    )
+    .requiredOption("--niche <name>", `one of ${[...NICHE_NAMES].sort().join(", ")}`)
+    .action(async (opts: { niche: string }) => {
+      const niche = requireNiche(opts.niche);
+      if (niche === null) throw new Error(`unknown niche ${opts.niche}`);
+      // Pure recompute from held rows: a rerun redoes it whole, nothing to resume.
+      const stats = await withDb((db) =>
+        recheckNiche(db, niche, {
+          onChunk: (s) => console.log(`chunk: ${JSON.stringify(s)}`),
+        }),
+      );
+      console.log(`checks: ${JSON.stringify(stats)}`);
     });
 
   return enrich;
