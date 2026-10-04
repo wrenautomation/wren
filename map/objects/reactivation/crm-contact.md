@@ -31,7 +31,7 @@ Citations: `packages/reactivation/src/schema.ts:29`, `packages/reactivation/src/
 
 ## If you change this
 
-- **Hits:** `crm import|verify|health|run`, movers, scoring, briefs, compose, the portal's ranked list and Keep warm
+- **Hits:** `crm import|verify|health|run`, movers, scoring, briefs, compose, the portal's ranked list and Keep warm, the `reactivation_people` record view ([[platform/records]]; a column change needs a migration)
 - **Does not hit:** Wren's own leads (main database)
 
 ## Surfaces

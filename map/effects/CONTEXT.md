@@ -36,6 +36,7 @@ A catalog, not a waterfall. Each row names the cards whose **If you change this*
 | CRM formats, import, scoring | [[reactivation/crm-contact]] | [[processes/reactivation-pass]] |
 | recruiters, firm facts | [[reactivation/client-profile]] | [[reactivation/handoff]], compose (`packages/reactivation/src/compose.ts`) |
 | forwarding, meetings, the bill | [[reactivation/handoff]] | [[platform/offer]] (`perUnit`), the portal (`packages/reactivation/src/portal/`) |
+| a record type, a field kind, or a portal table | [[platform/records]] | [[processes/migrate]] (its view), [[reactivation/crm-contact]], the portal Worker routes (`packages/reactivation/src/portal/routes.ts`) |
 | a bill, a vendor's rules, or how bills post | [[books/bill]], [[books/vendor]] | [[processes/books-import]], [[books/entry]], [[processes/migrate]] |
 | a keyword, the engine checks, or how proposals reach the site | [[search/keyword]], [[search/proposal]] | [[processes/search-loop]], [[processes/migrate]] |
 | a Restate service name or handler | [[platform/restate-services]] | [[platform/loop-object]], [[platform/cli]], [[platform/phone-worker]], `docs/restate-operations.md` |
