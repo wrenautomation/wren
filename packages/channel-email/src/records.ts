@@ -5,6 +5,7 @@
  * policy each read is env with the console's campaign overrides on top (`campaign_controls`).
  */
 
+import { formOf } from "@wren/core/console";
 import {
   cited,
   company,
@@ -12,14 +13,21 @@ import {
   defineRecord,
   name,
   number,
+  percent,
   type RecordType,
   rate,
+  score,
   status,
   text,
 } from "@wren/core/records";
 import type { Queryable } from "@wren/db";
-import { sql } from "drizzle-orm";
+import { parseSettings, settingsSchema } from "@wren/experiments";
+import { asc, eq, sql } from "drizzle-orm";
+import { z } from "zod";
+import { points, versionTemplate } from "./evolve/genome.js";
 import { activePauses, domainHealth, domainOf, wouldTrip } from "./inbox/health.js";
+import { alleleKey } from "./outreach/templates.js";
+import { experimentAlleles, experiments, templateVersions } from "./schema.js";
 import { campaignPolicy, loadCampaignControls } from "./send/campaign-controls.js";
 import { todaysSends } from "./send/deliver.js";
 import type { SendPolicy } from "./send/policy.js";
@@ -352,6 +360,238 @@ export const stallRecord = defineRecord({
   views: [{ id: "all", label: "All", sort: "-queuedFirms" }],
 });
 
+const EXPERIMENT_STATES = {
+  running: { label: "Running", tone: "good" },
+  paused: { label: "Paused", tone: "warn" },
+  settled: { label: "Settled", tone: "neutral" },
+  stopped: { label: "Stopped", tone: "neutral" },
+} as const;
+const ALLELE_STATES = {
+  candidate: { label: "Waiting on you", tone: "warn" },
+  live: { label: "Live", tone: "good" },
+  retired: { label: "Retired", tone: "neutral" },
+  rejected: { label: "Rejected", tone: "neutral" },
+} as const;
+const ORIGINS = {
+  seed: { label: "Model seed", tone: "neutral" },
+  mutation: { label: "Model", tone: "neutral" },
+  template: { label: "Template", tone: "neutral" },
+  import: { label: "File edit", tone: "neutral" },
+} as const;
+
+/** One version of a genome: what it added and retired against its parent. */
+export interface LineageNode {
+  version: string;
+  parent: string | null;
+  at: string;
+  live: boolean;
+  added: { locus: string; text: string }[];
+  retired: { locus: string; text: string }[];
+}
+
+/** An experiment's versions, oldest first, each diffed against its parent by allele key. */
+export async function experimentLineage(db: Queryable, id: number): Promise<LineageNode[]> {
+  const [exp] = await db.select().from(experiments).where(eq(experiments.id, id));
+  if (!exp) return [];
+  const rows = await db
+    .select({
+      version: templateVersions.version,
+      parent: templateVersions.parentVersion,
+      at: templateVersions.createdAt,
+    })
+    .from(templateVersions)
+    .where(eq(templateVersions.experimentId, id))
+    .orderBy(asc(templateVersions.id));
+  const texts = new Map(
+    (
+      await db
+        .select({
+          locus: experimentAlleles.locus,
+          allele: experimentAlleles.allele,
+          text: experimentAlleles.text,
+        })
+        .from(experimentAlleles)
+        .where(eq(experimentAlleles.experimentId, id))
+    ).map((a) => [`${a.locus}/${a.allele}`, a.text]),
+  );
+  const keysOf = async (version: string | null) => {
+    const tpl = version ? await versionTemplate(db, exp.niche, exp.template, version) : null;
+    const out = new Map<string, { locus: string; text: string }>();
+    for (const p of tpl ? points(tpl) : [])
+      for (const o of p.options) {
+        const k = `${p.name}/${alleleKey(o)}`;
+        out.set(k, { locus: p.name, text: texts.get(k) ?? k });
+      }
+    return out;
+  };
+  // A parent outside the experiment (the file it started from) is the first version's root.
+  const mine = new Set(rows.map((r) => r.version));
+  const nodes: LineageNode[] = [];
+  for (const r of rows) {
+    const [now, before] = await Promise.all([
+      keysOf(r.version),
+      keysOf(r.parent !== null && mine.has(r.parent) ? r.parent : null),
+    ]);
+    const first = nodes.length === 0;
+    nodes.push({
+      version: r.version,
+      parent: r.parent !== null && mine.has(r.parent) ? r.parent : null,
+      at: r.at.toISOString(),
+      live: r.version === exp.liveVersion,
+      added: first ? [] : [...now].filter(([k]) => !before.has(k)).map(([, v]) => v),
+      retired: first ? [] : [...before].filter(([k]) => !now.has(k)).map(([, v]) => v),
+    });
+  }
+  return nodes;
+}
+
+/** The settings as form boxes, all optional: only what's typed changes. Seeding is start only. */
+const SETTINGS_FORM = (formOf(z.toJSONSchema(settingsSchema, { io: "input" })) ?? []).filter(
+  (f) => f.field !== "seeding",
+);
+
+/** The settings form, each box saying what it's set to now. */
+export function settingsForm(raw: unknown) {
+  const now = parseSettings(raw);
+  return SETTINGS_FORM.map((f) => {
+    const value = f.field
+      .split(".")
+      .reduce<unknown>((at, k) => (at as Record<string, unknown> | undefined)?.[k], now);
+    const said = typeof value === "string" ? value : JSON.stringify(value);
+    return { ...f, hint: `Now ${said}.${f.hint ? ` ${f.hint}.` : ""}` };
+  });
+}
+
+export const experimentRecord = defineRecord({
+  id: "email.experiment",
+  name: { one: "experiment", many: "experiments" },
+  view: "email_experiment_records",
+  key: "id",
+  title: "name",
+  subtitle: "state",
+  fields: {
+    name: text("Experiment"),
+    state: status(EXPERIMENT_STATES),
+    waiting: number("Waiting on you"),
+    generation: number(),
+    loci: number("Points"),
+    live: number("Live options"),
+    retired: number("Retired"),
+    selection: text(),
+    fitness: text("Counts as a win"),
+    stopReason: text("Stopped because"),
+    lastTick: date("Last tick"),
+    started: date(),
+  },
+  views: [
+    { id: "running", label: "Running", where: { state: ["running", "paused"] }, sort: "-started" },
+    { id: "all", label: "All", sort: "-started", at: "started" },
+  ],
+  related: [
+    { record: "email.allele", by: "experiment_id" },
+    { record: "email.candidate", by: "experiment_id" },
+  ],
+  activity: { view: "email_experiment_journal", by: "experiment_id" },
+  actions: ["email.pauseExperiment", "email.resumeExperiment", "email.stopExperiment"],
+  load: async (db, id) => {
+    const [exp] = await db
+      .select()
+      .from(experiments)
+      .where(eq(experiments.id, Number(id)));
+    return exp
+      ? { lineage: await experimentLineage(db, exp.id), settings: settingsForm(exp.settings) }
+      : null;
+  },
+});
+
+export const alleleRecord = defineRecord({
+  id: "email.allele",
+  name: { one: "option", many: "options" },
+  view: "email_allele_records",
+  key: "id",
+  title: "text",
+  subtitle: "locus",
+  fields: {
+    text: text("Copy"),
+    locus: text("Point"),
+    state: status(ALLELE_STATES),
+    share: percent("Share"),
+    pBest: percent("Chance it's best"),
+    replyRate: rate("exposures", "Reply rate", { from: "replies" }),
+    interestedRate: rate("exposures", "Interested rate", { from: "interested" }),
+    exposures: number("Recipients"),
+    origin: status(ORIGINS, "From"),
+    angle: text(),
+    judgeScore: score("Judge score", { max: 10 }),
+    retiredReason: text("Retired because"),
+    experiment: text("Experiment"),
+    created: date("Added"),
+  },
+  views: [
+    { id: "live", label: "Live", where: { state: "live" }, sort: "locus" },
+    { id: "all", label: "All", sort: "locus" },
+  ],
+});
+
+/** A candidate's context: the live options at its point, best first. */
+async function winnersOf(db: Queryable, id: string) {
+  const rows = await db.execute<Record<string, unknown>>(sql`
+    select w.text, w.share, w.p_best, w.exposures, w.replies, w.interested
+    from email_allele_records c
+    join email_allele_records w on w.experiment_id = c.experiment_id and w.locus = c.locus
+      and w.state = 'live'
+    where c.id = ${Number(id)} order by w.p_best desc nulls last, w.id`);
+  return { winners: [...rows] };
+}
+
+export const candidateRecord = defineRecord({
+  id: "email.candidate",
+  name: { one: "copy candidate", many: "copy candidates" },
+  view: "email_candidate_records",
+  key: "id",
+  title: "text",
+  subtitle: "experiment",
+  fields: {
+    text: text("Copy"),
+    experiment: text("Experiment"),
+    locus: text("Point"),
+    state: status(ALLELE_STATES),
+    judgeScore: score("Judge score", { max: 10 }),
+    angle: text(),
+    reason: text("Why the model wrote it"),
+    origin: status(ORIGINS, "From"),
+    decidedBy: text("Decided by"),
+    decided: date(),
+    created: date("Written"),
+  },
+  views: [
+    {
+      id: "waiting",
+      label: "Waiting on you",
+      where: { state: "candidate" },
+      sort: "-created",
+      at: "created",
+    },
+    {
+      id: "approved",
+      label: "Approved",
+      where: { state: ["live", "retired"] },
+      sort: "-decided",
+      at: "decided",
+    },
+    {
+      id: "rejected",
+      label: "Rejected",
+      where: { state: "rejected" },
+      sort: "-decided",
+      at: "decided",
+    },
+    { id: "all", label: "All", sort: "-created", at: "created" },
+  ],
+  actions: ["email.approveCandidate", "email.editCandidate", "email.rejectCandidate"],
+  load: winnersOf,
+});
+
 /** Every email record type; the worker passes them to `makeConsolePortal`. */
 export const emailRecords = (roster: readonly Sender[], policy: SendPolicy): RecordType[] => [
   campaignRecord(policy),
@@ -361,4 +601,7 @@ export const emailRecords = (roster: readonly Sender[], policy: SendPolicy): Rec
   modelRecord,
   variantRecord,
   stallRecord,
+  experimentRecord,
+  alleleRecord,
+  candidateRecord,
 ];

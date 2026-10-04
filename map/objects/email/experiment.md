@@ -25,6 +25,8 @@ Sends shift toward the options that work without anyone editing a file. The band
 
 - candidates: the LLM tiers (strategist, writer, judge) around a no-LLM checker write `candidate` alleles that wait for William; approve puts one live in a new genome version, reject keeps it out (`packages/channel-email/src/evolve/candidates.ts:177`, `:416`, `:504`; tiers `evolve/tiers.ts:242`)
 - a candidate's journal row gets its outcome when it retires, settles or is rejected (`evolve/genome.ts:123`)
+- console records: `email.experiment` (load = lineage + settings form), `email.allele`, `email.candidate` (an allele whose journal row is `candidate`; load = the live options at its point) (`packages/channel-email/src/records.ts:465`, `:507`, `:547`); lineage diffs each version against its parent by `locus/allele key` (`records.ts:393`); views in migration 0076 (`record-views.ts:174`)
+- console handlers: approve/edit/reject, start, pause/resume/stop, switch; switch checks against the partial schema and never parses, so no default is switched in (`packages/channel-email/src/restate/console.ts:191`, `:249`)
 
 Citations: `packages/channel-email/src/evolve/experiments.ts:57`, `:272`, `packages/experiments/src/engine.ts:228`
 
@@ -47,6 +49,8 @@ Citations: `packages/channel-email/src/evolve/experiments.ts:57`, `:272`, `packa
 | `wren evolve start/status/tick/switch/pause/resume/stop` | operator (`apps/cli/src/evolve.ts`) |
 | `wren evolve candidates/approve/reject` | the approval queue; approve refreshes the niche's queue |
 | `wren evolve simulate` | compares selection strategies on synthetic truth (`packages/experiments/src/simulate.ts`) |
+| Outbound > Experiments, Copy candidates | console List and Queue; panel shows lineage graph (`packages/ui/src/lineage.tsx`), journal, settings form (`apps/portal/web/src/modules/wren/experiments.tsx`) |
+| `EmailConsole/*Experiment`, `approveCandidate`, `rejectCandidate` | the console's writes, by `console:<email>` |
 | `Evolution/fleet` | ticks daily |
 | compose, `QueueRefresh` | read the genome and shares |
 

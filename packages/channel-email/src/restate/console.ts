@@ -16,8 +16,16 @@ import {
 } from "@wren/core/portal";
 import { PORTAL_FIELDS, serviceHandler } from "@wren/core/restate";
 import { type Db, type Queryable, setAuditActor } from "@wren/db";
+import { parseSettings, settingsSchema } from "@wren/experiments";
 import { sql } from "drizzle-orm";
 import { z } from "zod";
+import {
+  approveCandidate,
+  type LlmFor,
+  rejectCandidate,
+  seedExperiment,
+} from "../evolve/candidates.js";
+import { moveExperiment, startExperiment, switchSetting } from "../evolve/experiments.js";
 import { pause, resolveTarget, resume } from "../inbox/health.js";
 import { openInvites } from "../inbox/invite.js";
 import {
@@ -26,7 +34,9 @@ import {
   setCampaignControl,
 } from "../send/campaign-controls.js";
 import type { SendPolicy } from "../send/policy.js";
+import type { Campaign } from "./compose-scheduler.js";
 import { DISPOSITION_KEY, type Disposition } from "./disposition.js";
+import type { QueueRefresh } from "./queue-refresh.js";
 
 export interface EmailConsoleDeps {
   db: Db;
@@ -34,6 +44,10 @@ export interface EmailConsoleDeps {
   senders: readonly string[];
   /** The env policy: what a campaign falls back to when the console clears an override. */
   policy: SendPolicy;
+  /** Each niche's campaign: the template files an experiment may start from. */
+  campaigns?: ReadonlyMap<string, Campaign>;
+  /** The models `llm_seed` writes with. */
+  llmFor?: LlmFor;
 }
 export interface InviteRequest extends PortalRequest {
   id: number;
@@ -59,6 +73,30 @@ export interface CampaignsRequest extends PortalRequest {
   ids: string[];
 }
 type Done = { done: string[]; skipped: string[] };
+/** A record action on experiments or candidates, by their numeric ids. */
+export interface IdsRequest extends PortalRequest {
+  ids: (string | number)[];
+}
+export interface CandidatesRequest extends IdsRequest {
+  /** Approve only: William's words in place of the model's. */
+  text?: string | null;
+}
+export interface SettingsRequest extends IdsRequest {
+  /** Only the settings to change; `guards.negativeRatio` sits under `guards`. */
+  settings: Record<string, unknown>;
+}
+export interface StartRequest extends PortalRequest {
+  niche: string;
+  template: string;
+  selection?: string | null;
+  fitness?: string | null;
+  seeding?: string | null;
+  /** from_winners: the experiment whose winners to take. */
+  from?: number | null;
+}
+export type ExperimentMove = "pause" | "resume" | "stop";
+/** Settings whose value is an object of settings: changed one leaf at a time. */
+const NESTED = new Set(["weights", "guards", "models"]);
 /** What a campaign action sets, or null when the campaign is already there (skipped). */
 type Step = (now: SendPolicy, env: SendPolicy, campaign: string) => CampaignChange | null;
 
@@ -85,7 +123,13 @@ export type CampaignAction = keyof typeof CAMPAIGN_STEPS;
 const textOf = (v: unknown): string | null => (typeof v === "string" && v.trim() ? v.trim() : null);
 
 /** The handlers as plain functions: the service wraps them, tests call them. */
-export function emailConsoleApi({ db, senders, policy }: EmailConsoleDeps) {
+export function emailConsoleApi({
+  db,
+  senders,
+  policy,
+  campaigns: files,
+  llmFor,
+}: EmailConsoleDeps) {
   /** Wren's team only; their email is who acted. */
   const team = (req: PortalRequest): string => {
     if (!seesInternal(req)) throw new PortalRefusal("that's for Wren's team", 403);
@@ -116,7 +160,113 @@ export function emailConsoleApi({ db, senders, policy }: EmailConsoleDeps) {
       ),
     );
 
+  const idsOf = (req: IdsRequest): number[] => {
+    const ids = Array.isArray(req.ids) ? req.ids.map(Number) : [];
+    if (!ids.length || ids.length > 100 || ids.some((id) => !Number.isSafeInteger(id) || id <= 0))
+      throw new PortalRefusal("say which: ids", 400);
+    return [...new Set(ids)];
+  };
+  /**
+   * Each id through `step`. One that throws is skipped; when none worked, the first reason is
+   * the refusal, so a lone approve says why ("edit refused: ...").
+   */
+  const each = async (ids: number[], step: (id: number) => Promise<unknown>): Promise<Done> => {
+    const out: Done = { done: [], skipped: [] };
+    let why: string | null = null;
+    for (const id of ids) {
+      try {
+        await step(id);
+        out.done.push(String(id));
+      } catch (err) {
+        why ??= err instanceof Error ? err.message : String(err);
+        out.skipped.push(String(id));
+      }
+    }
+    if (!out.done.length && why) throw new PortalRefusal(why, 409);
+    return out;
+  };
+
   return {
+    /** Approve or reject copy candidates; an approve with `text` goes live in William's words. */
+    async decideCandidates(move: "approve" | "reject", req: CandidatesRequest): Promise<Done> {
+      const who = team(req);
+      const ids = idsOf(req);
+      const by = `console:${who}`;
+      const text = textOf(req.text);
+      if (move === "approve" && text !== null && ids.length > 1)
+        throw new PortalRefusal("edit one candidate at a time", 400);
+      return each(ids, (id) =>
+        move === "reject"
+          ? rejectCandidate(db, id, { by })
+          : approveCandidate(db, id, { by, ...(text !== null ? { text } : {}) }),
+      );
+    },
+    /** One template of one campaign as a new experiment, seeded as `seeding` says. */
+    async startExperiment(req: StartRequest) {
+      team(req);
+      const niche = textOf(req.niche);
+      const name = textOf(req.template);
+      const file = niche && name ? files?.get(niche)?.templates.get(name) : undefined;
+      if (!niche || !file) throw new PortalRefusal("that campaign has no such template", 404);
+      const picked = Object.fromEntries(
+        (["selection", "fitness", "seeding"] as const).flatMap((k) => {
+          const v = textOf(req[k]);
+          return v ? [[k, v]] : [];
+        }),
+      );
+      const check = settingsSchema.safeParse(picked);
+      if (!check.success)
+        throw new PortalRefusal(
+          check.error.issues.map((i) => `${i.path.join(".")}: ${i.message}`).join("; "),
+          400,
+        );
+      const settings = parseSettings(picked);
+      const from = req.from ?? undefined;
+      if (settings.seeding === "from_winners" && from === undefined)
+        throw new PortalRefusal("from_winners needs the experiment to take winners from", 400);
+      if (settings.seeding === "llm_seed" && !llmFor)
+        throw new PortalRefusal("no model to seed with here", 409);
+      let exp: Awaited<ReturnType<typeof startExperiment>>;
+      try {
+        exp = await startExperiment(db, { niche, file, settings });
+      } catch (err) {
+        throw new PortalRefusal(err instanceof Error ? err.message : String(err), 409);
+      }
+      const seeded =
+        settings.seeding === "from_template"
+          ? { queued: 0, imported: 0, skipped: 0 }
+          : await seedExperiment(db, exp.id, {
+              ...(llmFor ? { llmFor } : {}),
+              ...(from !== undefined ? { from } : {}),
+            });
+      return { id: exp.id, version: exp.liveVersion, ...seeded };
+    },
+    async moveExperiments(move: ExperimentMove, req: IdsRequest): Promise<Done> {
+      team(req);
+      return each(idsOf(req), (id) => moveExperiment(db, id, move));
+    },
+    /** Each setting given, checked against the schema first, then journaled one by one. */
+    async switchExperiments(req: SettingsRequest): Promise<Done> {
+      team(req);
+      const ids = idsOf(req);
+      const given = req.settings && typeof req.settings === "object" ? req.settings : {};
+      const changes = Object.entries(given).flatMap(([k, v]): [string, unknown][] =>
+        NESTED.has(k) && v && typeof v === "object"
+          ? Object.entries(v as Record<string, unknown>).map(([leaf, x]) => [`${k}.${leaf}`, x])
+          : [[k, v]],
+      );
+      if (!changes.length) throw new PortalRefusal("say which settings to change", 400);
+      // Checked only: parsing fills defaults, and a default must never be switched in.
+      const check = settingsSchema.partial().safeParse(given);
+      if (!check.success)
+        throw new PortalRefusal(
+          check.error.issues.map((i) => `${i.path.join(".")}: ${i.message}`).join("; "),
+          400,
+        );
+      return each(ids, async (id) => {
+        for (const [key, value] of changes) await switchSetting(db, id, key, value);
+      });
+    },
     /** Warm replies waiting on William: who, their words, the proposed time and zone, the draft. */
     answers: async (req: PortalRequest) => {
       team(req);
@@ -207,6 +357,10 @@ const SENDER = z.looseObject({
   target: z.string().describe("An inbox address, or a bare domain for every inbox on it"),
 });
 const CAMPAIGNS = z.looseObject({ ...PORTAL_FIELDS, ids: z.array(z.string()) });
+const IDS = z.looseObject({
+  ...PORTAL_FIELDS,
+  ids: z.array(z.union([z.string(), z.number()])).describe("Their ids, as the record shows them"),
+});
 
 export function makeEmailConsole(deps: EmailConsoleDeps) {
   const api = emailConsoleApi(deps);
@@ -274,6 +428,64 @@ export function makeEmailConsole(deps: EmailConsoleDeps) {
         { input: CAMPAIGNS },
         (_: restate.Context, req: CampaignsRequest) =>
           answer(() => api.campaignAction("stopOpeners", req)),
+      ),
+      startExperiment: serviceHandler(
+        {
+          input: z.looseObject({
+            ...PORTAL_FIELDS,
+            niche: z.string().describe("The campaign: recruiting"),
+            template: z.string().describe("Its template: book-first/opener"),
+            selection: z.string().nullish(),
+            fitness: z.string().nullish(),
+            seeding: z.string().nullish(),
+            from: z
+              .number()
+              .nullish()
+              .describe("from_winners: the experiment to take winners from"),
+          }),
+        },
+        (ctx: restate.Context, req: StartRequest) =>
+          answer(async () => {
+            const started = await api.startExperiment(req);
+            if (started.imported > 0)
+              ctx.serviceSendClient<QueueRefresh>({ name: "QueueRefresh" }).all();
+            return started;
+          }),
+      ),
+      approveCandidate: serviceHandler(
+        {
+          input: IDS.extend({
+            text: z.string().nullish().describe("Your words in place of the model's; one id only"),
+          }),
+        },
+        (ctx: restate.Context, req: CandidatesRequest) =>
+          answer(async () => {
+            const done = await api.decideCandidates("approve", req);
+            // The new copy reaches the queue now, not at tomorrow's refresh.
+            ctx.serviceSendClient<QueueRefresh>({ name: "QueueRefresh" }).all();
+            return done;
+          }),
+      ),
+      rejectCandidate: serviceHandler({ input: IDS }, (_: restate.Context, req: IdsRequest) =>
+        answer(() => api.decideCandidates("reject", req)),
+      ),
+      pauseExperiment: serviceHandler({ input: IDS }, (_: restate.Context, req: IdsRequest) =>
+        answer(() => api.moveExperiments("pause", req)),
+      ),
+      resumeExperiment: serviceHandler({ input: IDS }, (_: restate.Context, req: IdsRequest) =>
+        answer(() => api.moveExperiments("resume", req)),
+      ),
+      stopExperiment: serviceHandler({ input: IDS }, (_: restate.Context, req: IdsRequest) =>
+        answer(() => api.moveExperiments("stop", req)),
+      ),
+      switchExperiment: serviceHandler(
+        {
+          input: IDS.extend({
+            // A record, not the settings schema: parsing that would fill in every default.
+            settings: z.record(z.string(), z.unknown()).describe("Only the settings to change"),
+          }),
+        },
+        (_: restate.Context, req: SettingsRequest) => answer(() => api.switchExperiments(req)),
       ),
       resumeOpeners: serviceHandler(
         { input: CAMPAIGNS },

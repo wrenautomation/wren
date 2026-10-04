@@ -237,6 +237,9 @@ importers:
       '@wren/db':
         specifier: workspace:*
         version: link:../../packages/db
+      '@wren/experiments':
+        specifier: workspace:*
+        version: link:../../packages/experiments
       tailwindcss:
         specifier: 4.3.3
         version: 4.3.3

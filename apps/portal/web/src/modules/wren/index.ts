@@ -6,6 +6,12 @@ import type { Action } from "@wren/ui";
 import { createElement } from "react";
 import type { Module } from "../../module.js";
 import { ClientLook } from "../account/Look.js";
+import {
+  CANDIDATE_ACTIONS,
+  candidateExtras,
+  EXPERIMENT_ACTIONS,
+  experimentExtras,
+} from "./experiments.js";
 import { handlers } from "./handlers.js";
 import { AI_SPEND, AiSpend, idOf } from "./heads.js";
 
@@ -156,7 +162,7 @@ export const outbound: Module = {
   id: "outbound",
   name: "Outbound",
   icon: "mail",
-  blurb: "Campaigns and the inboxes that send them.",
+  blurb: "Campaigns, the inboxes that send them, and the copy experiments.",
   requires: TEAM,
   pages: [
     {
@@ -179,6 +185,17 @@ export const outbound: Module = {
           label: "Campaigns opening",
           record: "email.campaign",
           href: "/outbound/campaigns?view=opening",
+        },
+        {
+          label: "Copy waiting on you",
+          record: "email.candidate",
+          href: "/outbound/candidates?view=waiting",
+          needs: true,
+        },
+        {
+          label: "Experiments running",
+          record: "email.experiment",
+          href: "/outbound/experiments?view=running",
         },
       ],
       top: [
@@ -227,6 +244,32 @@ export const outbound: Module = {
       template: "list",
       record: "email.variant",
       empty: "Variants show here once they send.",
+    },
+    {
+      id: "experiments",
+      label: "Experiments",
+      template: "list",
+      record: "email.experiment",
+      empty: {
+        running: "No experiment is running. Start one on a template.",
+        all: "Experiments show here once one starts.",
+      },
+      actions: EXPERIMENT_ACTIONS,
+      extras: experimentExtras,
+    },
+    {
+      id: "candidates",
+      label: "Copy candidates",
+      template: "queue",
+      record: "email.candidate",
+      empty: {
+        waiting: "Nothing to review. The model writes new copy every few ticks.",
+        approved: "Copy you approve shows here.",
+        rejected: "Copy you turn down shows here.",
+        all: "Model copy shows here once an experiment writes some.",
+      },
+      actions: CANDIDATE_ACTIONS,
+      extras: candidateExtras,
     },
   ],
 };

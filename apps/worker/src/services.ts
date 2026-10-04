@@ -741,7 +741,7 @@ export async function buildServices(
         ? restateAdminGet(settings.restateAdminUrl, settings.restateAuthToken)
         : undefined,
     }),
-    makeEmailConsole({ db, senders: roster.map((s) => s.address), policy }),
+    makeEmailConsole({ db, senders: roster.map((s) => s.address), policy, campaigns, llmFor }),
     makeBooksConsole(db),
     makeReactivation({
       main: db,

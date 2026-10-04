@@ -1,29 +1,9 @@
 /** An experiment's settings: one schema, every field defaulted, so `{}` is valid. */
 import { z } from "zod";
 
-export const SELECTION_NAMES = ["even", "thompson", "epsilon", "ucb1"] as const;
-export type SelectionName = (typeof SELECTION_NAMES)[number];
-export const FITNESS_NAMES = [
-  "replies",
-  "interested",
-  "booked",
-  "opens",
-  "weighted",
-  "lexicographic",
-] as const;
-export type FitnessName = (typeof FITNESS_NAMES)[number];
-/** New alleles. The writer's three need the LLM tiers (E3). */
-export const MUTATION_NAMES = [
-  "rewrite_loser",
-  "new_angle",
-  "crossover",
-  "retire_only",
-  "manual",
-] as const;
-export type MutationName = (typeof MUTATION_NAMES)[number];
-/** Generation 0. Only `from_template` runs without the LLM tiers (E3). */
-export const SEEDING_NAMES = ["from_template", "llm_seed", "from_winners"] as const;
-export type SeedingName = (typeof SEEDING_NAMES)[number];
+import { FITNESS_NAMES, MUTATION_NAMES, SEEDING_NAMES, SELECTION_NAMES } from "./names.js";
+
+export * from "./names.js";
 
 const fitness = z.enum(FITNESS_NAMES);
 
@@ -31,8 +11,10 @@ export const settingsSchema = z
   .object({
     selection: z.enum(SELECTION_NAMES).default("thompson"),
     fitness: fitness.default("interested"),
-    /** Per locus, overrides `fitness` (a subject locus may use `opens`). */
-    fitnessByLocus: z.record(z.string(), fitness).default({}),
+    fitnessByLocus: z
+      .record(z.string(), fitness)
+      .default({})
+      .describe('Per point, overrides Fitness: {"subject": "opens"}'),
     /** For `weighted`: each success counts by its weight. */
     weights: z
       .object({
@@ -44,20 +26,39 @@ export const settingsSchema = z
       .prefault({}),
     guards: z
       .object({
-        /** Retire an allele whose negative rate is above this many times its locus's. Null: off. */
-        negativeRatio: z.number().positive().nullable().default(2),
+        negativeRatio: z
+          .number()
+          .positive()
+          .nullable()
+          .default(2)
+          .describe("Retire an option whose negative rate is this many times its point's"),
       })
       .strict()
       .prefault({}),
-    /** The least share a live allele gets. */
-    floor: z.number().min(0).max(0.5).default(0.05),
-    /** Pooled prior: each allele starts at its locus's mean rate, weighted as this many sends. */
-    prior: z.number().positive().default(50),
-    /** Exposures before an allele may retire or settle a locus. */
-    minSends: z.number().int().min(1).default(300),
-    /** Snapshots with the same best before a locus counts as stagnant. */
-    window: z.number().int().min(2).default(14),
-    strategistEvery: z.number().int().min(1).default(7),
+    floor: z.number().min(0).max(0.5).default(0.05).describe("The least share a live option gets"),
+    prior: z
+      .number()
+      .positive()
+      .default(50)
+      .describe("A new option starts at its point's mean, weighted as this many sends"),
+    minSends: z
+      .number()
+      .int()
+      .min(1)
+      .default(300)
+      .describe("Sends before an option may retire or settle its point"),
+    window: z
+      .number()
+      .int()
+      .min(2)
+      .default(14)
+      .describe("Ticks with the same best before a point counts as stuck"),
+    strategistEvery: z
+      .number()
+      .int()
+      .min(1)
+      .default(7)
+      .describe("Ticks between the model's writing rounds"),
     mutation: z.enum(MUTATION_NAMES).default("rewrite_loser"),
     seeding: z.enum(SEEDING_NAMES).default("from_template"),
     models: z
@@ -68,10 +69,19 @@ export const settingsSchema = z
       })
       .strict()
       .prefault({}),
-    queueSize: z.number().int().min(1).default(3),
-    /** Alleles ever tried at one locus before it takes no more. */
-    maxAlleles: z.number().int().min(2).default(12),
-    autoApprove: z.boolean().default(false),
+    queueSize: z
+      .number()
+      .int()
+      .min(1)
+      .default(3)
+      .describe("Candidates waiting per point before the model stops writing"),
+    maxAlleles: z
+      .number()
+      .int()
+      .min(2)
+      .default(12)
+      .describe("Options ever tried at one point before it takes no more"),
+    autoApprove: z.boolean().default(false).describe("Model copy goes live without your approval"),
   })
   .strict();
 

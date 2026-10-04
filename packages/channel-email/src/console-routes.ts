@@ -6,11 +6,22 @@ const CAMPAIGN_WRITES = [
   "stopOpeners",
   "resumeOpeners",
 ] as const;
+/** Copy experiments and the candidates the model writes for them. */
+const EXPERIMENT_WRITES = [
+  "startExperiment",
+  "pauseExperiment",
+  "resumeExperiment",
+  "stopExperiment",
+  "switchExperiment",
+  "approveCandidate",
+  "rejectCandidate",
+] as const;
 export const EMAIL_CONSOLE_WRITES = [
   "approve",
   "drop",
   "pause",
   "resume",
   ...CAMPAIGN_WRITES,
+  ...EXPERIMENT_WRITES,
 ] as const;
 export const EMAIL_CONSOLE_ROUTES = ["answers", ...EMAIL_CONSOLE_WRITES] as const;
