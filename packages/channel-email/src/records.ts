@@ -126,7 +126,13 @@ export const inboxRecord = (roster: readonly Sender[], env: SendPolicy): RecordT
           health: !h || h.sent === 0 ? "quiet" : wouldTrip(h, policy) ? "tripping" : "clean",
           bounces: h?.hardBounces ?? 0,
           sent_window: h?.sent ?? 0,
-          campaigns: s.niches === null ? "every campaign" : s.niches.join(", "),
+          // The views' rule (0072): "sec_ria" -> "Sec ria".
+          campaigns:
+            s.niches === null
+              ? "every campaign"
+              : s.niches
+                  .map((n) => n.charAt(0).toUpperCase() + n.slice(1).replaceAll("_", " "))
+                  .join(", "),
         };
       });
     },
