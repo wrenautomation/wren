@@ -46,6 +46,18 @@ export {
   RecordOverview,
 } from "./overview.js";
 export type { PaletteItem } from "./palette.js";
+export {
+  type BrandInput,
+  brandColorsOf,
+  brandTheme,
+  CONTRASTS,
+  type ContrastLine,
+  HARMONIES,
+  type Harmony,
+  readBrand,
+  VARIANTS,
+  type Variant,
+} from "./palette-brand.js";
 export { RecordQueue } from "./queue.js";
 export { RAIL_STATES, Rail, type RailGroup, type RailState, type RailStep } from "./rail.js";
 export {

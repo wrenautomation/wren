@@ -59,6 +59,11 @@
   --ui-good-tint: color-mix(in srgb, var(--ui-good) 10%, transparent);
   --ui-bad-tint: color-mix(in srgb, var(--ui-bad) 6%, transparent);
   --ui-scrim: color-mix(in srgb, var(--ui-shade) 16%, transparent);
+  --ui-chart-1: var(--ui-accent); /* the five chart series */
+  --ui-chart-2: var(--ui-ink-2);
+  --ui-chart-3: var(--ui-good);
+  --ui-chart-4: color-mix(in srgb, var(--ui-accent) 45%, var(--ui-paper));
+  --ui-chart-5: var(--ui-ink-3);
   --ui-shadow: /* overlays only: dialogs, menus, the record panel */
     0 0 0 1px color-mix(in srgb, var(--ui-ink) 6%, transparent),
     0 30px 80px -30px color-mix(in srgb, var(--ui-shade) 45%, transparent);
@@ -87,11 +92,11 @@
   --input: var(--ui-hair);
   --ring: var(--ui-accent);
   --radius: var(--ui-radius);
-  --chart-1: var(--ui-accent);
-  --chart-2: var(--ui-ink-2);
-  --chart-3: var(--ui-good);
-  --chart-4: color-mix(in srgb, var(--ui-accent) 45%, var(--ui-paper));
-  --chart-5: var(--ui-ink-3);
+  --chart-1: var(--ui-chart-1);
+  --chart-2: var(--ui-chart-2);
+  --chart-3: var(--ui-chart-3);
+  --chart-4: var(--ui-chart-4);
+  --chart-5: var(--ui-chart-5);
   --sidebar: var(--ui-paper);
   --sidebar-foreground: var(--ui-ink);
   --sidebar-primary: var(--ui-accent);

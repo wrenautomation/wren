@@ -4,6 +4,7 @@
  * with the client, not a fork of the kit.
  */
 import { useLayoutEffect } from "react";
+import { brandTheme, readBrand } from "./palette-brand.js";
 
 /** Every token tailwind.css declares. The first group is what a theme usually sets; the rest follow it. */
 export const TOKENS = [
@@ -46,12 +47,19 @@ export const TOKENS = [
   "bad-tint",
   "scrim",
   "shadow",
+  "chart-1",
+  "chart-2",
+  "chart-3",
+  "chart-4",
+  "chart-5",
 ] as const;
 
 export type Token = (typeof TOKENS)[number];
 export type Theme = Partial<Record<Token, string>>;
 
 const KNOWN: ReadonlySet<string> = new Set(TOKENS);
+/** The tokens CSS makes from the others: a brand drops a preset's, so they follow its colors. */
+const DERIVED = TOKENS.slice(TOKENS.indexOf("tile"));
 
 /** Lengths the kit does math on: a bare 0 there breaks calc(), so it becomes 0px. */
 const LENGTHS: ReadonlySet<string> = new Set(["radius", "frame", "main-width"]);
@@ -142,14 +150,20 @@ const ZERO = /^[+-]?(0+\.?0*|\.0+)$/;
 
 /**
  * A theme from stored or typed-in data: a preset's name, or an object of tokens with an optional
- * `preset` to start from. What it can't use is dropped, never thrown on, so a bad value costs one
- * token, not the page.
+ * `preset` to start from and an optional `brand` (palette-brand.ts) to color it. Typed tokens
+ * beat the brand's, the brand's beat the preset's. What it can't use is dropped, never thrown on,
+ * so a bad value costs one token, not the page.
  */
 export function readTheme(raw: unknown): Theme {
   if (typeof raw === "string") return preset(raw);
   if (!raw || typeof raw !== "object" || Array.isArray(raw)) return {};
   const input = raw as Record<string, unknown>;
   const theme: Theme = { ...preset(input.preset) };
+  const brand = readBrand(input.brand);
+  if (brand) {
+    for (const t of DERIVED) delete theme[t];
+    Object.assign(theme, brandTheme(brand).theme);
+  }
   for (const [key, value] of Object.entries(input)) {
     if (!KNOWN.has(key)) continue;
     const v = typeof value === "number" && Number.isFinite(value) ? String(value) : value;

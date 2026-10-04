@@ -1033,6 +1033,9 @@ importers:
       '@base-ui/react':
         specifier: 1.8.0
         version: 1.8.0(@types/react@19.3.0)(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
+      '@material/material-color-utilities':
+        specifier: 0.3.0
+        version: 0.3.0
       '@wren/core':
         specifier: workspace:*
         version: link:../core
@@ -2464,6 +2467,9 @@ packages:
 
   '@levischuck/tiny-cbor@0.2.11':
     resolution: {integrity: sha512-llBRm4dT4Z89aRsm6u2oEZ8tfwL/2l6BwpZ7JcyieouniDECM5AqNgr/y08zalEIvW3RSK4upYyybDcmjXqAow==}
+
+  '@material/material-color-utilities@0.3.0':
+    resolution: {integrity: sha512-ztmtTd6xwnuh2/xu+Vb01btgV8SQWYCaK56CkRK8gEkWe5TuDyBcYJ0wgkMRn+2VcE9KUmhvkz+N9GHrqw/C0g==}
 
   '@modelcontextprotocol/sdk@1.32.0':
     resolution: {integrity: sha512-8BviX/hK4Gd2eL1KdTwm0gfl4d3wdoErW0Jd00h6nomUAtk6IJk5vwQJc6kfWtJTzN5OEV/lgIiJKI8fiDGAlA==}
@@ -6893,6 +6899,8 @@ snapshots:
       - supports-color
 
   '@levischuck/tiny-cbor@0.2.11': {}
+
+  '@material/material-color-utilities@0.3.0': {}
 
   '@modelcontextprotocol/sdk@1.32.0(zod@3.25.76)':
     dependencies:
