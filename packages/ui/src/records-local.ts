@@ -5,8 +5,7 @@
  */
 import type { RecordMeta, Where } from "@wren/core/records";
 import type { ListAsk, Row } from "@wren/core/records/serve";
-import { applies, type Call } from "./action.js";
-import type { Action } from "./page.js";
+import { type Action, applies, type Call } from "./action.js";
 import type { RecordsApi } from "./records.js";
 
 /** Whether a row meets a where; only fixed values and lists of them are checked. */

@@ -11,7 +11,9 @@ import type {
   RecordAnswer,
   RecordsCsv,
   RecordsPage,
+  RecordsStat,
   Row,
+  StatsAsk,
 } from "@wren/core/records/serve";
 import { cn } from "cn";
 import {
@@ -26,7 +28,7 @@ import {
 } from "lucide-react";
 import { type ReactNode, useEffect, useRef, useState } from "react";
 import { can, type Viewer } from "./access.js";
-import { applies, type Call, useRun } from "./action.js";
+import { type Action, applies, type Call, useRun } from "./action.js";
 import { Popover, PopoverContent, PopoverTrigger } from "./components/ui/popover.js";
 import { Button } from "./controls.js";
 import { Alert } from "./feedback.js";
@@ -43,8 +45,7 @@ import {
   relative,
 } from "./fields.js";
 import { num } from "./format.js";
-import type { Action } from "./page.js";
-import { SourceCard, SourceList, useSourcePick } from "./sources.js";
+import { SourceCard, SourceList, stripMarks, useSourcePick } from "./sources.js";
 
 /** The four record calls, bound to a workspace. */
 export interface RecordsApi {
@@ -52,6 +53,8 @@ export interface RecordsApi {
   list(ask: ListAsk): Promise<RecordsPage>;
   get(ask: GetAsk): Promise<RecordAnswer>;
   export(ask: ExportAsk): Promise<RecordsCsv>;
+  /** A number over a period against the one before, by day: the Overview's tiles. */
+  stats?(ask: StatsAsk): Promise<RecordsStat>;
 }
 
 /** Where a template sits. */
@@ -104,6 +107,8 @@ export interface RecordTemplateProps {
   columns?: string[] | undefined;
   extras?: ((detail: unknown, row: Row) => RecordExtras) | undefined;
   acts?: RecordActs | undefined;
+  /** What the page adds beside a list's title, such as a form that adds one; `reload` reads again. */
+  head?: ((meta: RecordMeta, reload: () => void) => ReactNode) | undefined;
 }
 
 type Load<T> = { data: T | null; error: Error | null; loading: boolean; retry: () => void };
@@ -167,6 +172,10 @@ export const textOf = (c: Cell | undefined) =>
         : ""
       : String(c);
 
+/** Where an action that asks starts its text: the record's own value of that field (an edit). */
+export const startOf = (a: Action, row: Row) =>
+  a.ask ? stripMarks(textOf(row[a.ask.from ?? a.ask.field])) : "";
+
 const WIDTH = { s: 108, m: 144, l: 200 } as const;
 const SKIP = new Set(["INPUT", "TEXTAREA", "SELECT"]);
 export const typing = (e: KeyboardEvent) =>
@@ -192,7 +201,12 @@ const NO_CALL: Call = () => Promise.reject(new Error("Nothing to run this."));
 
 /** The key that runs one of `actions` on `row`, if it applies. */
 export function keyed(e: KeyboardEvent, actions: readonly Action[], row: Row | undefined) {
-  const a = actions.find((x) => x.key && x.key === e.key.toLowerCase());
+  const k = e.key.toLowerCase();
+  // E edits: the action that asks for text, unless one has E for its own key.
+  const edit = k === "e" && !actions.some((x) => x.key === "e");
+  const a = actions.find(
+    (x) => (x.key && x.key === k) || (edit && x.ask && row && applies(x, row)),
+  );
   return a && row && applies(a, row) ? a : undefined;
 }
 
@@ -481,7 +495,7 @@ function SortHead({
 
 /** The List template: views as tabs, search, a chip per filter, sortable columns, CSV, J/K. */
 export function RecordList(props: RecordTemplateProps) {
-  const { record, api, place, empty, columns, extras, acts } = props;
+  const { record, api, place, empty, columns, extras, acts, head } = props;
   const types = useTypes(api);
   const meta = types.data?.find((t) => t.id === record);
   if (types.error && !types.data) return <Alert onRetry={types.retry}>{types.error.message}</Alert>;
@@ -496,6 +510,7 @@ export function RecordList(props: RecordTemplateProps) {
       columns={columns}
       extras={extras}
       acts={acts}
+      head={head}
     />
   );
 }
@@ -522,6 +537,7 @@ function List({
   columns,
   extras,
   acts,
+  head,
 }: {
   meta: RecordMeta;
   types: RecordMeta[];
@@ -531,6 +547,7 @@ function List({
   columns: string[] | undefined;
   extras: RecordTemplateProps["extras"];
   acts: RecordActs | undefined;
+  head: RecordTemplateProps["head"];
 }) {
   const { params } = place;
   const ask = askOf(meta, params);
@@ -586,7 +603,7 @@ function List({
         const a = keyed(e, k.actions, row);
         if (a && row) {
           e.preventDefault();
-          k.run(a, [row.id]);
+          k.run(a, [row.id], startOf(a, row));
         }
       }
     };
@@ -617,6 +634,7 @@ function List({
       <div className="flex items-center justify-between gap-3">
         <h1 className="text-[20px] leading-7 font-semibold tracking-[-0.01em]">{cap(many)}</h1>
         <div className="flex items-center gap-2">
+          {head?.(meta, acted)}
           <ColumnPicker meta={meta} place={place} columns={columns} />
           <Button
             tone="secondary"
@@ -1125,7 +1143,7 @@ export function RecordBody({
                   tone={i === 0 ? "primary" : "secondary"}
                   size="dense"
                   disabled={busy}
-                  onClick={() => run(a, [row.id])}
+                  onClick={() => run(a, [row.id], startOf(a, row))}
                 >
                   {a.label}
                 </Button>

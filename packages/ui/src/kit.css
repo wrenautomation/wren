@@ -1696,13 +1696,11 @@
     .ui-back span {
       display: none;
     }
-    /* Run the tabs off the screen's edge so a cut-off one reads as "scroll for more". */
-    .ui-apptabs {
-      padding-right: 0;
-    }
+    /* Every tab in view: a row too long for the phone wraps, never cuts one off. */
     .ui-apptabs ul {
-      gap: 22px;
-      padding-right: 16px;
+      flex-wrap: wrap;
+      column-gap: 20px;
+      overflow-x: visible;
     }
     .ui-main {
       padding: 22px 16px 64px;

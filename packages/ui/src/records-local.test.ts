@@ -1,7 +1,7 @@
 import type { RecordMeta } from "@wren/core/records";
 import type { ListAsk, Row } from "@wren/core/records/serve";
 import { describe, expect, it } from "vitest";
-import type { Action } from "./page.js";
+import type { Action } from "./action.js";
 import type { RecordsApi } from "./records.js";
 import { localRecords } from "./records-local.js";
 

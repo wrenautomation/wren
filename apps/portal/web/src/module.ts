@@ -1,8 +1,12 @@
 /** An app in the portal: a card on the launcher, and its pages as tabs at /<app>/<page>. */
 
+import type { RecordMeta } from "@wren/core/records";
 import type { Row } from "@wren/core/records/serve";
-import type { Access, Action, IconName, RecordExtras } from "@wren/ui";
-import type { ComponentType } from "react";
+import type { Access, Action, IconName, OverviewTile, OverviewTop, RecordExtras } from "@wren/ui";
+import type { ComponentType, ReactNode } from "react";
+
+/** Wren's own workspace: an operator's home, its apps on Wren's records (never a client's). */
+export const WREN = { id: "@wren", name: "Wren" } as const;
 
 /**
  * What every page gets: whose list, whether it's the read-only demo, whether Wren's team is
@@ -49,9 +53,18 @@ export interface ListPage extends PageBase {
   extras?: (detail: unknown, at: PageProps & { row: Row }) => RecordExtras;
   /** Old params rewritten on arrival, so old links still land: the changes, or null. */
   legacy?: (params: URLSearchParams) => Record<string, string | null> | null;
+  /** Beside the list's title, such as a form that adds one; `reload` reads the list again. */
+  head?: (meta: RecordMeta, reload: () => void) => ReactNode;
 }
 
-export type ModulePage = HandPage | ListPage;
+/** An app's numbers first, each a link to its rows, then its top records. */
+export interface OverviewPage extends PageBase {
+  template: "overview";
+  tiles: OverviewTile[];
+  top?: OverviewTop[];
+}
+
+export type ModulePage = HandPage | ListPage | OverviewPage;
 
 export interface Module {
   /** The first path segment. */

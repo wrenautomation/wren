@@ -1,11 +1,10 @@
 /**
- * An `Action` as a button: it asks first when the action says to, calls the handler, says how
- * it went in a toast, then lets its widget read again so the row shows the change. `useRun` does
- * the same for a record's actions, by id, with undo.
+ * A record's actions: `useRun` asks first when the action says to, calls the handler by id, says
+ * how it went in a toast, and offers undo.
  */
 import { type ReactNode, useId, useState } from "react";
 import { toast } from "sonner";
-import { can, type Viewer } from "./access.js";
+import type { Access } from "./access.js";
 import {
   Dialog,
   DialogContent,
@@ -16,7 +15,43 @@ import {
 import { Toaster } from "./components/ui/sonner.js";
 import { Textarea } from "./components/ui/textarea.js";
 import { Button } from "./controls.js";
-import type { Action } from "./page.js";
+
+/** Something to do. A button, the ⌘K palette and a form all read this one definition. */
+export interface Action {
+  id: string;
+  label: string;
+  /** The portal handler it calls: "delivery/approve". */
+  handler: string;
+  /** The handler's zod schema, for a generated form. */
+  input?: unknown;
+  requires?: Access;
+  /** Asked before it runs. */
+  confirm?: string;
+  /**
+   * A text asked before it runs, into `field` of the input: "why" for a pause, the draft for an
+   * approve. It starts from the record's `from` field (else `field`) and goes only when changed,
+   * so an untouched draft isn't sent as an edit. E opens it when no action has E for its key.
+   */
+  ask?: { field: string; label: string; from?: string };
+  /** The toast after it worked, from the handler's answer. */
+  done?: (answer: unknown) => string;
+  /**
+   * The rest is for a record's action, called as `{ids}`; an answer's `done` ids are the ones
+   * it changed. Its shortcut in a list or a queue: "a".
+   */
+  key?: string;
+  /** Offered on a selection. */
+  bulk?: true;
+  /**
+   * The handler that reverses it, on the same ids. Given, the action runs at once with 10 seconds
+   * to undo it; without one, it asks first (`confirm`, or its label).
+   */
+  undo?: string;
+  /** The states a record must be in for it to apply: `{ status: ["awaiting"] }`. */
+  when?: Readonly<Record<string, readonly string[]>>;
+  /** What it sets on a record, so the demo can do it in the browser: `{ status: "approved" }`. */
+  sets?: Readonly<Record<string, string>>;
+}
 
 /** Calls a portal handler ("email/pause") with its input; rejects with the refusal's words. */
 export type Call = (handler: string, input: Record<string, unknown>) => Promise<unknown>;
@@ -32,85 +67,6 @@ export function inputOf(
   const { [field]: start, ...rest } = input;
   const said = text.trim();
   return said && said !== String(start ?? "").trim() ? { ...rest, [field]: said } : rest;
-}
-
-export function ActionButton({
-  action,
-  input = {},
-  viewer,
-  call,
-  after,
-  size = "sm",
-}: {
-  size?: "sm" | "dense";
-  action: Action;
-  input?: Record<string, unknown> | undefined;
-  viewer: Viewer;
-  call: Call;
-  /** Runs once the call settles, worked or not: the widget reads again. */
-  after?: () => void;
-}) {
-  const [open, setOpen] = useState(false);
-  const [busy, setBusy] = useState(false);
-  const [text, setText] = useState("");
-  const textId = useId();
-  if (!can(viewer, action.requires)) return null;
-  const field = action.ask?.field;
-
-  const run = async () => {
-    setOpen(false);
-    setBusy(true);
-    try {
-      const answer = await call(action.handler, inputOf(action, input, text));
-      toast.success(action.done?.(answer) ?? `${action.label}: done`);
-    } catch (err) {
-      toast.error(err instanceof Error ? err.message : String(err));
-    } finally {
-      setBusy(false);
-      after?.();
-    }
-  };
-  const press = () => {
-    if (!action.confirm && !action.ask) return void run();
-    setText(field ? String(input[field] ?? "") : "");
-    setOpen(true);
-  };
-
-  return (
-    <>
-      <Button tone="secondary" size={size} disabled={busy} onClick={press}>
-        {action.label}
-      </Button>
-      {action.confirm || action.ask ? (
-        <Dialog open={open} onOpenChange={setOpen}>
-          <DialogContent>
-            <DialogHeader>
-              <DialogTitle>{action.confirm ?? action.label}</DialogTitle>
-            </DialogHeader>
-            {action.ask ? (
-              <div className="flex flex-col gap-1.5 text-sm">
-                <label htmlFor={textId}>{action.ask.label}</label>
-                <Textarea
-                  id={textId}
-                  value={text}
-                  onChange={(e) => setText(e.target.value)}
-                  rows={6}
-                />
-              </div>
-            ) : null}
-            <DialogFooter>
-              <Button tone="quiet" size="sm" onClick={() => setOpen(false)}>
-                Cancel
-              </Button>
-              <Button size="sm" onClick={() => void run()}>
-                {action.label}
-              </Button>
-            </DialogFooter>
-          </DialogContent>
-        </Dialog>
-      ) : null}
-    </>
-  );
 }
 
 /** How long an undo is offered. */
@@ -131,27 +87,43 @@ const plural = (n: number, one: string, many: string) => `${n} ${n === 1 ? one :
 
 /**
  * Runs a record's actions on ids: one with `undo` at once, with an undo toast for 10 seconds;
- * any other asks first. `after` runs once each call settles, so the page reads again.
+ * any other asks first. One that `ask`s always asks, its text starting from `start` (an edit's
+ * current value). `after` runs once each call settles, so the page reads again.
  */
 export function useRun(
   call: Call,
   after: () => void,
   names: { one: string; many: string },
-): { run: (action: Action, ids: (string | number)[]) => void; busy: boolean; dialog: ReactNode } {
-  const [asked, setAsked] = useState<{ action: Action; ids: (string | number)[] } | null>(null);
+): {
+  run: (action: Action, ids: (string | number)[], start?: string) => void;
+  busy: boolean;
+  dialog: ReactNode;
+} {
+  const [asked, setAsked] = useState<{
+    action: Action;
+    ids: (string | number)[];
+    start: string;
+  } | null>(null);
+  const [text, setText] = useState("");
   const [busy, setBusy] = useState(false);
+  const textId = useId();
 
-  const go = async (action: Action, ids: (string | number)[]) => {
+  const go = async (action: Action, ids: (string | number)[], said?: string) => {
     setAsked(null);
     setBusy(true);
     try {
-      const answer = await call(action.handler, { ids });
-      const said = action.done?.(answer) ?? `${action.label}: done`;
+      const field = action.ask?.field;
+      const input =
+        field && said !== undefined
+          ? inputOf(action, { ids, [field]: asked?.start ?? "" }, said)
+          : { ids };
+      const answer = await call(action.handler, input);
+      const line = action.done?.(answer) ?? `${action.label}: done`;
       const undo = action.undo;
       const done = doneOf(answer, ids);
-      if (!undo || !done.length) toast.success(said);
+      if (!undo || !done.length) toast.success(line);
       else
-        toast.success(said, {
+        toast.success(line, {
           duration: UNDO_MS,
           action: {
             label: "Undo",
@@ -173,11 +145,13 @@ export function useRun(
       after();
     }
   };
-  const run = (action: Action, ids: (string | number)[]) => {
+  const run = (action: Action, ids: (string | number)[], start = "") => {
     if (!ids.length || busy) return;
-    if (action.undo) void go(action, ids);
-    else setAsked({ action, ids });
+    if (action.undo && !action.ask) return void go(action, ids);
+    setText(start);
+    setAsked({ action, ids, start });
   };
+  const ask = asked?.action.ask;
 
   const n = asked?.ids.length ?? 0;
   const dialog = (
@@ -191,11 +165,20 @@ export function useRun(
         {n > 1 ? (
           <p className="text-sm text-(--ui-ink-2)">{plural(n, names.one, names.many)}.</p>
         ) : null}
+        {ask ? (
+          <div className="flex flex-col gap-1.5 text-sm">
+            <label htmlFor={textId}>{ask.label}</label>
+            <Textarea id={textId} value={text} onChange={(e) => setText(e.target.value)} rows={6} />
+          </div>
+        ) : null}
         <DialogFooter>
           <Button tone="quiet" size="dense" onClick={() => setAsked(null)}>
             Cancel
           </Button>
-          <Button size="dense" onClick={() => asked && void go(asked.action, asked.ids)}>
+          <Button
+            size="dense"
+            onClick={() => asked && void go(asked.action, asked.ids, ask ? text : undefined)}
+          >
             {asked?.action.label}
           </Button>
         </DialogFooter>

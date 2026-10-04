@@ -8,12 +8,11 @@ import type { RecordMeta } from "@wren/core/records";
 import { cn } from "cn";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
-import { applies, useRun } from "./action.js";
+import { type Action, applies, useRun } from "./action.js";
 import { Button } from "./controls.js";
 import { Alert } from "./feedback.js";
 import { relative } from "./fields.js";
 import { num } from "./format.js";
-import type { Action } from "./page.js";
 import {
   actsOf,
   askOf,
@@ -26,6 +25,7 @@ import {
   RecordBody,
   type RecordTemplateProps,
   ROOT,
+  startOf,
   textOf,
   titleOf,
   typing,
@@ -89,7 +89,7 @@ function Queue({
     if (!row) return;
     const after = rows[at + 1] ?? rows[at - 1];
     next.current = after ? String(after.id) : null;
-    run(a, [row.id]);
+    run(a, [row.id], startOf(a, row));
   };
 
   const keys = useRef({ at, open, act, actions, row, n: rows.length });

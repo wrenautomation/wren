@@ -9,7 +9,7 @@ entity: packages/core/src/records.ts:359
 
 # records
 
-A record type: one SQL view (or rows from code) declared as typed fields, saved views, related types, actions and an optional detail loader. `serveRecords` answers list, get, export and stats from the declaration alone; the portal's List, Record and Queue templates and the console standard's Overview numbers read it.
+A record type: one SQL view (or rows from code) declared as typed fields, saved views, related types, actions and an optional detail loader. `serveRecords` answers list, get, export and stats from the declaration alone; the portal's List, Record, Queue and Overview templates read it.
 
 ## Why this shape
 
@@ -25,8 +25,10 @@ A page is a declaration, not hand-built SQL or UI. Every column, op and sort com
 - Wren's types, team only on the main database through `ConsolePortal{recordsTypes,recordsList,recordsGet,recordsExport,recordsStats}` (`packages/core/src/console.ts:249`): `email.campaign`, `.inbox`, `.reply`, `.firm`, `.model` (`packages/channel-email/src/records.ts:273`), `books.spend`, `.subscription` (`packages/books/src/records.ts:75`), `console.client` (`packages/core/src/clients/index.ts:215`), `console.loop` (`packages/core/src/console.ts:153`); views `email_campaign_records`, `_reply_records`, `_reply_thread`, `_firm_records`, `_model_records` (`packages/channel-email/src/record-views.ts`), `books.spend_records`, `books.subscription_records`, `client_records` (migration 0061). Inbox rows come from the roster and policy, campaign rows merge the policy's opener cap and kill switch
 - reactivation types `reactivation.person`, `.email`, `.finding` (`packages/reactivation/src/portal/records.ts:42`, `:95`, `:137`) over views `reactivation_people`, `_emails`, `_findings`, `_person_activity` (`packages/reactivation/src/portal/record-views.ts:17`, `:62`, `:96`, `:118`; migration 0060)
 - drawn by `RecordList` and `RecordPage` (`packages/ui/src/records.tsx:483`, `:984`) and `RecordQueue` (`packages/ui/src/queue.tsx:40`: items left, the open one right, next opens after each action): views as tabs, a chip per filterable field, sort, columns, CSV, J/K, a side panel or full page with details, related, activity and sources; each kind's cell, filter and line in `packages/ui/src/fields.tsx`
-- a portal page is `{template: "list" | "queue", record, empty?, columns?, actions?, extras?, legacy?}` (`apps/portal/web/src/module.ts:39`); `TemplatePage` gives it the four calls, the actions and the address (`apps/portal/web/src/records.tsx`). People is a List, Emails a Queue (`apps/portal/web/src/modules/reactivation/index.ts`, `email.tsx`)
-- actions: `{handler, key?, bulk?, undo?, when?, sets?, confirm?}`; input `{ids}`, answer `{done, skipped}`; `useRun` confirms, or runs then offers Undo for 10s (`packages/ui/src/action.tsx:136`). Email has approve (undo `unapprove`, `packages/reactivation/src/approve.ts`) and skip (confirms)
+- a portal page is `{template: "list" | "queue", record, empty?, columns?, actions?, extras?, head?, legacy?}` or `{template: "overview", tiles, top?}` (`apps/portal/web/src/module.ts`); `TemplatePage` gives it the record calls, the actions and the address (`apps/portal/web/src/records.tsx`). People is a List, Emails a Queue (`apps/portal/web/src/modules/reactivation/index.ts`, `email.tsx`)
+- `RecordOverview` (`packages/ui/src/overview.tsx`): a tile with a period reads `stats` (this period, the one before, a bar a day); one without counts the view's rows now. Each tile links to its rows, narrowed to the period's days by the view's `at`. Top lists show a view's first 5 rows
+- Wren's workspace (`apps/portal/web/src/modules/wren/index.ts`): Outbound, Inbox (a Queue on `email.reply`), Loops, Money, Pipeline and Clients, team only, each an Overview then its lists, all served by `console`. Actions that take one record (`email.approve`, `.drop`, `.pause`, `.resume`, `console.startLoop`, `.stopLoop`) are called once per id by `ONE` in `records.tsx`, which answers `{done, skipped}`
+- actions: `{handler, key?, bulk?, undo?, when?, sets?, confirm?, ask?}`; input `{ids}`, answer `{done, skipped}`; `useRun` confirms or asks for text, or runs then offers Undo for 10s (`packages/ui/src/action.tsx`). `ask.from` prefills the text from a field; E opens the first action that asks when no action is keyed E. Email has approve (undo `unapprove`, `packages/reactivation/src/approve.ts`) and skip (confirms)
 - demo: `localRecords` lays each action's `sets` over the server's rows in the browser; a reload resets (`packages/ui/src/records-local.ts:29`). The server refuses the writes for a demo viewer or the demo client (`PORTAL_WRITES`, `packages/reactivation/src/portal/routes.ts:24`)
 - served as `ReactivationPortal{recordsTypes,recordsList,recordsGet,recordsExport,recordsStats}` in a read-only transaction (`packages/reactivation/src/portal/service.ts:98`, `:168`); open on the demo (`packages/reactivation/src/portal/routes.ts:16`)
 
@@ -50,10 +52,10 @@ Citations: `packages/core/src/records.ts:359`, `packages/core/src/records-serve.
 |---|---|
 | portal Worker (`/api/reactivation/records*`) | reads; the demo is edge-cached |
 | portal Worker (`/api/console/records*`) | reads; the service refuses all but Wren's team |
-| portal web | `TemplatePage` reads `recordsTypes`, lists, gets and exports; no page code per type |
+| portal web | `TemplatePage` reads `recordsTypes`, lists, gets, exports and stats; no page code per type |
 
 ## See
 
 - Source: `packages/core/src/records.ts`, `packages/core/src/records-serve.ts`, `packages/reactivation/src/portal/records.ts`, `packages/channel-email/src/records.ts`, `packages/books/src/records.ts`
-- Tests: `packages/core/test/integration/records.test.ts`, `records-stats.test.ts`, `console-loops.test.ts`, `packages/core/src/records-serve.test.ts`, `packages/channel-email/test/integration/records.test.ts`, `packages/reactivation/test/integration/records-adversarial.test.ts`, `portal.test.ts` (demo writes refused, unapprove), `packages/ui/src/fields.test.ts`, `records-local.test.ts`, `apps/portal/web/src/copy.test.ts`
+- Tests: `packages/core/test/integration/records.test.ts`, `records-stats.test.ts`, `console-loops.test.ts`, `packages/core/src/records-serve.test.ts`, `packages/channel-email/test/integration/records.test.ts`, `packages/reactivation/test/integration/records-adversarial.test.ts`, `portal.test.ts` (demo writes refused, unapprove), `packages/ui/src/fields.test.ts`, `records-local.test.ts`, `overview.test.ts`, `action.test.ts`, `apps/portal/web/src/copy.test.ts`
 - Design: `designs/2026-10-03-console-standard.md`

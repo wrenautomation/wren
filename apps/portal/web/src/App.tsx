@@ -1,7 +1,8 @@
 /**
  * The portal: who's signed in, whose workspace, and Wren's apps for it. "/" is the launcher, a
  * card per app. An open app lists its pages (/<app>/<page>) in a sidebar, as tabs on a phone. A
- * viewer with one app (the demo) skips the launcher and lands in it.
+ * viewer with one app (the demo) skips the launcher and lands in it. Wren's team starts in Wren's
+ * own workspace, its apps on Wren's records; the switcher moves to the demo or a client.
  */
 import {
   Alert,
@@ -24,14 +25,14 @@ import {
 import { Component, lazy, type ReactNode, Suspense, useEffect, useState } from "react";
 import { call, type Me, signOutUrl } from "./api.js";
 import { useCall } from "./load.js";
-import type { Module, ModulePage, PageProps } from "./module.js";
+import { type Module, type ModulePage, type PageProps, WREN } from "./module.js";
 import { useAccount } from "./modules/account/load.js";
 import { MODULES } from "./modules/index.js";
 import { TemplatePage } from "./records.js";
 import { navigate, useRoute } from "./route.js";
 
 const STAMP = "/wren-icon.png";
-const CLIENT_KEY = "wren.portal.client";
+const WORKSPACE_KEY = "wren.portal.workspace";
 const THEME_KEY = "wren.portal.theme";
 const AS_CLIENT_KEY = "wren.portal.asClient";
 
@@ -145,15 +146,19 @@ export function App() {
   const me = useCall("me", () => call<Me>("delivery/me"));
   // A link in our mail names its client (`?client=acme`): open that one, and stay on it.
   const named = route.params.get("client");
-  const [client, setClient] = useState<string | null>(() => named ?? recall(CLIENT_KEY));
+  const [client, setClient] = useState<string | null>(() => named ?? recall(WORKSPACE_KEY));
   // Wren's team can look as the client would: no internal notes, no team tools.
   const [asClient, setAsClient] = useState(() => recall(AS_CLIENT_KEY) === "1");
   const theme = useLook(route.params);
   const [jump, setJump] = usePaletteKey();
   const operator = me.data?.operator ?? false;
-  const team = operator && !asClient;
+  // An address names its app, and the app its workspace; else the last one picked (Wren first).
+  const kind = MODULES.find((m) => m.id === route.path[0]);
+  const wren =
+    operator && (kind ? teamOnly(kind) : !named && (client === null || client === WREN.id));
+  const team = operator && (wren || !asClient);
   const onDemo = me.data ? me.data.demo : null;
-  const apps = shown({ team, demo: onDemo !== false });
+  const apps = shown({ team, demo: onDemo !== false }).filter((m) => teamOnly(m) === wren);
   // Menu apps (the account) are reached from the client's name, not a card.
   const cards = apps.filter((m) => !m.menu);
   const [only] = cards;
@@ -171,11 +176,11 @@ export function App() {
   useEffect(() => {
     if (!named) return;
     setClient(named);
-    keep(CLIENT_KEY, named);
+    keep(WORKSPACE_KEY, named);
   }, [named]);
 
   const clients = me.data?.clients ?? [];
-  const current = clients.find((c) => c.id === client) ?? clients[0] ?? null;
+  const current = wren ? WREN : (clients.find((c) => c.id === client) ?? clients[0] ?? null);
   const label = at.kind === "page" ? at.page.label : at.kind === "launcher" ? "Apps" : null;
   useEffect(() => {
     if (label && current) document.title = `${label} · ${current.name} · Wren Client Portal`;
@@ -204,7 +209,9 @@ export function App() {
 
   const pick = (id: string) => {
     setClient(id);
-    keep(CLIENT_KEY, id);
+    keep(WORKSPACE_KEY, id);
+    // Wren's apps and a client's never share an address: the other kind starts at its launcher.
+    if ((id === WREN.id) !== wren) navigate("/");
   };
   const demo = onDemo ?? false;
   const flip = () => {
@@ -227,10 +234,10 @@ export function App() {
         brand={{ name: "Wren", href: home, stamp: STAMP }}
         workspace={{
           current,
-          options: clients,
+          options: operator ? [WREN, ...clients] : clients,
           caption: demo ? "Demo" : undefined,
           href: account ? firstOf(account) : undefined,
-          label: clients.length > 1 ? "Client" : "Account",
+          label: operator ? "Workspace" : clients.length > 1 ? "Client" : "Account",
           onPick: pick,
         }}
         launcher={launcher}
@@ -265,7 +272,7 @@ export function App() {
         notice={demo ? DEMO : undefined}
         actions={
           <>
-            {operator ? (
+            {operator && !wren ? (
               <Button tone="quiet" size="sm" onClick={flip}>
                 {team ? "View as client" : "Back to team view"}
               </Button>
@@ -296,6 +303,7 @@ export function App() {
               ) : (
                 <TemplatePage
                   {...props(current.id)}
+                  app={open.module.name}
                   page={open.page}
                   path={pathOf(open.module, open.page)}
                   id={route.path[2]}
@@ -303,6 +311,11 @@ export function App() {
               )}
             </Suspense>
           </Contained>
+        ) : wren ? (
+          <>
+            <PageHeader title="Wren" lede="Wren's own outreach, replies, loops and money." />
+            <AppGrid>{cards.map((m) => card(m))}</AppGrid>
+          </>
         ) : (
           <Launcher key={current.id} name={current.name} apps={cards} props={props(current.id)} />
         )}
@@ -322,40 +335,38 @@ export function App() {
   );
 }
 
-/**
- * "/": the app each service the client bought runs in (its plan and paperwork inside);
- * then the rest; then Wren's own in team view.
- */
+const card = (m: Module, props?: PageProps) => (
+  <AppCard key={m.id} name={m.name} icon={m.icon} href={firstOf(m)} blurb={m.blurb}>
+    {m.Glance && props ? (
+      <Contained quiet>
+        <m.Glance {...props} />
+      </Contained>
+    ) : null}
+  </AppCard>
+);
+
+/** A client's "/": the app each service they bought runs in (its plan and paperwork inside), then the rest. */
 function Launcher({ name, apps, props }: { name: string; apps: Module[]; props: PageProps }) {
   const account = useAccount(props);
-  const card = (m: Module) => (
-    <AppCard key={m.id} name={m.name} icon={m.icon} href={firstOf(m)} blurb={m.blurb}>
-      {m.Glance ? (
-        <Contained quiet>
-          <m.Glance {...props} />
-        </Contained>
-      ) : null}
-    </AppCard>
-  );
   if (!account.data && !account.error) return <Loading lines={8} heading />;
   // One heading per offer, newest first; a finished one stays, it still has its paperwork.
   const bought = [...new Map((account.data?.bought ?? []).map((b) => [b.offerId, b])).values()];
-  const under = (app: string) => apps.filter((m) => !teamOnly(m) && m.id === app);
+  const under = (app: string) => apps.filter((m) => m.id === app);
   const placed = new Set(bought.map((b) => b.app));
-  const rest = apps.filter((m) => !teamOnly(m) && !m.fallback && !placed.has(m.id));
-  const ours = apps.filter(teamOnly);
+  const rest = apps.filter((m) => !m.fallback && !placed.has(m.id));
   return (
     <>
       <PageHeader title="Apps" lede={`Everything Wren runs for ${name}.`} />
       {bought.map((b) => (
         <AppGrid key={b.offerId} label={b.offer}>
-          {under(b.app).map(card)}
+          {under(b.app).map((m) => card(m, props))}
         </AppGrid>
       ))}
       {rest.length ? (
-        <AppGrid label={bought.length ? "More from Wren" : undefined}>{rest.map(card)}</AppGrid>
+        <AppGrid label={bought.length ? "More from Wren" : undefined}>
+          {rest.map((m) => card(m, props))}
+        </AppGrid>
       ) : null}
-      {ours.length ? <AppGrid label="Wren team">{ours.map(card)}</AppGrid> : null}
     </>
   );
 }

@@ -35,7 +35,7 @@ One pass over the database finds everything, so a missed hour costs nothing: the
 | `wren delivery watch start/stop/status/sync` | the loop |
 | portal Account → Your settings (`delivery/mail`); the mail's footer links there | each person's level |
 | portal Home pulse, digest links `?pulse=N&e=ID` (`delivery/pulse`) | the weekly tap |
-| portal `/ops/clients` (`delivery/board`, operators only) | every client: phase, next date, last update, open asks, last seen, pulse, risks |
+| `delivery/board` (operators only; no page since the console standard's S2, the Clients app lists `console.client`) | every client: phase, next date, last update, open asks, last seen, pulse, risks |
 
 ## See
 
