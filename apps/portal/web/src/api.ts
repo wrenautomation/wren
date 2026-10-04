@@ -30,7 +30,6 @@ export type {
   UpdateView,
 } from "@wren/delivery/restate";
 export type {
-  CrmHealth,
   EmailFilter,
   EmailRow,
   EmailsPage,
@@ -43,15 +42,9 @@ export type {
   PipelineStep,
   PipelineStepId,
   RankedContact,
-  RawFinding,
-  RawPage,
   Reason,
-  RepliesPage,
-  ReplyFilter,
-  ReplyRow,
   ReviewResult,
   RunPage,
-  Setup,
   Source,
   StepState,
   Story,

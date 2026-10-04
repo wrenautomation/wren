@@ -60,6 +60,11 @@ export const EMAIL_EMPTY = {
   skipped: "Emails you chose not to send show here.",
 };
 
+/** An email or a reply, as it reads in an inbox. */
+export const MAIL = "bg-(--ui-wash) px-4 py-3.5";
+export const MAIL_BODY =
+  "max-w-[72ch] text-[14.5px] leading-[1.6] whitespace-pre-wrap [&>*+*]:mt-[0.75em]";
+
 const nameOf = (c: unknown) =>
   c && typeof c === "object" && "name" in c ? String(c.name) : typeof c === "string" ? c : "";
 
@@ -97,14 +102,16 @@ function Draft({
   const flip = (w: WhyLine) => setOpen((o) => (o?.text === w.text ? null : w));
   return (
     <div className="grid gap-4">
-      <div className="rx-mail">
-        {subject ? <p className="rx-mail-subject">{String(subject)}</p> : null}
+      <div className={MAIL}>
+        {subject ? <p className="mb-1.5 font-semibold">{String(subject)}</p> : null}
         <Body text={d.opener} why={d.why?.opener ?? []} open={open} onWhy={flip} />
       </div>
       {d.followup ? (
-        <details className="rx-followup">
-          <summary>Follow-up, 4 days later if no reply</summary>
-          <div className="rx-mail">
+        <details>
+          <summary className="w-fit cursor-pointer text-[13.5px] font-medium text-(--ui-ink-2) hover:text-(--ui-ink)">
+            Follow-up, 4 days later if no reply
+          </summary>
+          <div className={`${MAIL} mt-2.5`}>
             <Body text={d.followup} why={d.why?.followup ?? []} open={open} onWhy={flip} />
           </div>
         </details>
@@ -133,7 +140,7 @@ function Body({
 }) {
   const byText = new Map(why.map((w) => [w.text, w]));
   return (
-    <div className="rx-mail-body">
+    <div className={MAIL_BODY}>
       {text.split(/\n{2,}/).map((para, i) => {
         const w = byText.get(para.trim());
         return w?.lines.length ? (
@@ -168,9 +175,12 @@ function Why({ d, line }: { d: EmailDetail; line: WhyLine }) {
                 ? "Written from this line of the brief"
                 : "Written from these lines of the brief",
             children: (
-              <ul className="rx-brief-lines">
+              <ul className="m-0 grid list-none gap-2 p-0">
                 {brief.map((b) => (
-                  <li key={b} className="rx-brief-line">
+                  <li
+                    key={b}
+                    className="bg-(--ui-tile) px-4 py-3 text-[14.5px] leading-[1.6] text-pretty"
+                  >
                     <Cited text={b} order={order} lit={lit} onPick={pick} />
                   </li>
                 ))}
@@ -183,7 +193,7 @@ function Why({ d, line }: { d: EmailDetail; line: WhyLine }) {
             children: sources.length ? (
               <SourceCards sources={sources} lit={lit} />
             ) : (
-              <p className="rx-quiet">These lines cite nothing we found.</p>
+              <p className="text-(--ui-ink-2)">These lines cite nothing we found.</p>
             ),
           },
         ]}

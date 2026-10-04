@@ -24,7 +24,7 @@ const PHASES: { id: string; label: string; steps: PipelineStepId[] }[] = [
 
 const OPENS: Record<PipelineStepId, string> = {
   list: at("people"),
-  emails: at("health"),
+  emails: at("overview"),
   where: at("people", { view: "all", now: "moved" }),
   hiring: at("people", { view: "all", now: "hiring" }),
   score: at("people"),
@@ -32,7 +32,7 @@ const OPENS: Record<PipelineStepId, string> = {
   drafts: at("emails"),
   approve: at("emails"),
   sent: at("emails", { view: "sent" }),
-  replies: at("replies"),
+  replies: at("replies", { view: "all" }),
 };
 
 /** What finishing looks like for each step, said under it once it's done. */

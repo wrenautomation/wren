@@ -108,15 +108,15 @@ describe("inputs", () => {
   // Was a bug: a non-numeric offset reaches Postgres as NaN; the raw error is retried by Restate forever.
   it("a non-numeric offset", async () => {
     expect({
-      raw: await clean(api.raw({ ...demo, offset: "x" as unknown as number })),
-    }).toEqual({ raw: "answered" });
+      emails: await clean(api.emails({ ...demo, offset: "x" as unknown as number })),
+    }).toEqual({ emails: "answered" });
   });
 
   // Was a bug: an offset past bigint (1e20, or 1e999 which JSON parses to Infinity) errors in Postgres, then retries forever.
   it("an offset too large for Postgres", async () => {
     expect({
-      big: await clean(api.raw({ ...demo, offset: 1e20 })),
-      infinity: await clean(api.raw({ ...demo, offset: Number.POSITIVE_INFINITY })),
+      big: await clean(api.emails({ ...demo, offset: 1e20 })),
+      infinity: await clean(api.emails({ ...demo, offset: Number.POSITIVE_INFINITY })),
     }).toEqual({ big: "answered", infinity: "answered" });
   });
 
@@ -135,7 +135,7 @@ describe("inputs", () => {
     });
   });
 
-  it("a non-string via or kind on raw", async () => {
-    expect(await clean(api.raw({ ...demo, via: { a: 1 } as unknown as string }))).toBe("answered");
+  it("a non-string filter on emails", async () => {
+    expect(await clean(api.emails({ ...demo, filter: { a: 1 } as never }))).toBe("answered");
   });
 });

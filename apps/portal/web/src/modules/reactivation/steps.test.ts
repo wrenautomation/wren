@@ -125,7 +125,7 @@ describe("railOf: shape", () => {
     );
     expect(hrefs).toEqual({
       list: "/reactivation/people",
-      emails: "/reactivation/health",
+      emails: "/reactivation/overview",
       where: "/reactivation/people?view=all&now=moved",
       hiring: "/reactivation/people?view=all&now=hiring",
       score: "/reactivation/people",
@@ -133,7 +133,7 @@ describe("railOf: shape", () => {
       drafts: "/reactivation/emails",
       approve: "/reactivation/emails",
       sent: "/reactivation/emails?view=sent",
-      replies: "/reactivation/replies",
+      replies: "/reactivation/replies?view=all",
     });
   });
 });

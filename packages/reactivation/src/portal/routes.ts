@@ -1,16 +1,14 @@
 /** The portal API's handlers: the service serves these, the edge Worker opens only these. No imports, so the Worker bundles it alone. */
 export const PORTAL_ROUTES = [
   "overview",
-  "health",
   "person",
-  "raw",
   "emails",
-  "replies",
   "approve",
   "unapprove",
   "skip",
   "book",
-  "setup",
+  "unbook",
+  "change",
   "run",
   "work",
   "recordsTypes",
@@ -21,4 +19,11 @@ export const PORTAL_ROUTES = [
 ] as const;
 export type PortalRoute = (typeof PORTAL_ROUTES)[number];
 /** The ones that change a list: never cached, never on the demo. */
-export const PORTAL_WRITES: readonly PortalRoute[] = ["approve", "unapprove", "skip", "book"];
+export const PORTAL_WRITES: readonly PortalRoute[] = [
+  "approve",
+  "unapprove",
+  "skip",
+  "book",
+  "unbook",
+  "change",
+];

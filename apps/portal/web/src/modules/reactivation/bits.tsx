@@ -1,45 +1,6 @@
 /** Pieces Reactivation's pages share: where someone is now, why they rank, and what we found. */
 import { hostOf, month, num, type RecordSource, SourceCard, SourceList } from "@wren/ui";
-import type { Reason, Source } from "../../api.js";
-import { at } from "./nav.js";
-
-/** What adds up to the score: "+30 Moved to a new company". */
-export function Reasons({ reasons }: { reasons: Reason[] }) {
-  if (!reasons.length) return null;
-  return (
-    <ul className="rx-reasons">
-      {reasons.map((r) => (
-        <li key={r.reason}>
-          <span className="rx-pts">{r.points > 0 ? `+${r.points}` : r.points}</span> {r.reason}
-        </li>
-      ))}
-    </ul>
-  );
-}
-
-/** A name, linked to their brief when we know who it is, and their company. */
-export function Who({
-  name,
-  firm,
-  personId,
-}: {
-  name: string;
-  firm: string;
-  personId: number | null;
-}) {
-  return (
-    <span className="rx-who">
-      {personId ? (
-        <a href={at("people", { person: personId })}>
-          <b>{name}</b>
-        </a>
-      ) : (
-        <b>{name}</b>
-      )}
-      <span className="rx-quiet"> · {firm}</span>
-    </span>
-  );
-}
+import type { Source } from "../../api.js";
 
 const KINDS: Record<string, string> = {
   job_change: "Job change",

@@ -10,15 +10,18 @@ import {
   ButtonLink,
   Loading,
   PageHeader,
+  Rail,
   type RunLine,
   type RunStep,
   RunView,
   RunWorkTrail,
 } from "@wren/ui";
 import { type ReactNode, useEffect, useRef, useState } from "react";
-import { call, type LiveRun, type RunPage, type WorkView } from "../../api.js";
+import { call, type LiveRun, type Overview, type RunPage, type WorkView } from "../../api.js";
+import { useCall } from "../../load.js";
 import type { PageProps } from "../../module.js";
 import { at } from "./nav.js";
+import { railOf } from "./steps.js";
 
 /** How often to ask for new lines: while a run is going, and while nothing is. */
 const POLL_LIVE_MS = 1500;
@@ -147,13 +150,15 @@ export function LineWork({
   const title = (WORK_TITLES[line.step] ?? ((who: string) => who))(line.subject ?? "");
   if (!got || got.key !== key) return <Loading lines={4} />;
   if (!got.view)
-    return <p className="rx-quiet">{got.error ?? "Nothing more to show for this line."}</p>;
+    return (
+      <p className="text-(--ui-ink-2)">{got.error ?? "Nothing more to show for this line."}</p>
+    );
   const view = got.view;
   return (
     <>
       <RunWorkTrail work={view} title={title} />
       {more && view.personId ? (
-        <p className="rx-run-work-more">
+        <p className="mt-3 text-[13px] font-semibold">
           <a href={at("people", { person: view.personId })}>Open {view.subject}'s page</a>
         </p>
       ) : null}
@@ -219,8 +224,12 @@ function useRun(client: string, team: boolean) {
   return { first, live, error };
 }
 
-export function Run({ client, team }: PageProps) {
+export function Run({ client, team, demo }: PageProps) {
   const { first, live, error } = useRun(client, team);
+  // Shared with the launcher card, so it's read once.
+  const o = useCall(`overview:${client}`, () =>
+    call<Overview>("reactivation/overview", { client }),
+  );
   // Watching live is a choice once the page is open; on load, a run going now wins.
   const [watch, setWatch] = useState<string | null>(null);
   const openOnLoad = first?.live?.open ? first.live.run : null;
@@ -228,10 +237,10 @@ export function Run({ client, team }: PageProps) {
 
   return (
     <>
-      <PageHeader
-        title="Run"
-        lede="The work on your list, step by step: who was checked, what was found, and where it came from."
-      />
+      <PageHeader title="Run" />
+      {o.data ? (
+        <Rail groups={railOf(o.data.pipeline, demo)} label="Reactivation steps" className="mb-6" />
+      ) : null}
       {error && !first ? <Alert>{error}</Alert> : null}
       {!first ? (
         error ? null : (
@@ -242,7 +251,7 @@ export function Run({ client, team }: PageProps) {
       ) : (
         <>
           {live?.open ? (
-            <div className="rx-run-now">
+            <div className="mb-4 flex flex-wrap items-center justify-between gap-x-5 gap-y-3 bg-(--ui-accent-tint) px-4.5 py-3.5">
               <p>
                 <b>A run is going now.</b> It started at {timeOf(live.startedAt)}.
               </p>
@@ -287,7 +296,7 @@ function Replay({ page, work }: { page: RunPage; work: WorkOf }) {
   const story = page.story;
   if (!story?.lines.length)
     return (
-      <p className="rx-quiet">
+      <p className="text-(--ui-ink-2)">
         Nothing to show yet. Once your list loads and the first checks run, this page plays them
         back.
       </p>
@@ -309,11 +318,11 @@ function Replay({ page, work }: { page: RunPage; work: WorkOf }) {
 /** Where the run leaves you: the people to call and the drafts to read. */
 function Results() {
   return (
-    <div className="rx-run-results">
+    <div className="flex flex-wrap items-center justify-between gap-x-6 gap-y-3 border border-(--ui-hair) bg-(--ui-paper) px-5 py-4.5">
       <p>
         <b>That's the list, worked.</b> Nothing sends until you approve it.
       </p>
-      <span className="rx-run-actions">
+      <span className="flex flex-wrap gap-2">
         <ButtonLink href={at("people")} tone="quiet">
           Who to call first
         </ButtonLink>

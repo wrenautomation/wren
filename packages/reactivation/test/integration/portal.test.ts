@@ -12,7 +12,7 @@ import { startTestPostgres, type TestPostgres } from "@wren/db/testing";
 import { sql } from "drizzle-orm";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { seedDemo } from "../../src/demo/seed.js";
-import { EMAIL_FILTERS, REPLY_FILTERS } from "../../src/portal/outbox.js";
+import { EMAIL_FILTERS } from "../../src/portal/outbox.js";
 import { DEMO_NAME, PortalRefusal, portalApi } from "../../src/portal/service.js";
 import { setClientProfile } from "../../src/profile.js";
 import { scoreCrmContacts } from "../../src/score.js";
@@ -174,6 +174,8 @@ afterAll(() => pg.stop());
 
 const demo = { viewer: { demo: true as const } };
 const PERSON = "reactivation.person";
+const REPLY = "reactivation.reply";
+const SETTING = "reactivation.setting";
 const operator = { viewer: { email: "william@wren.example", operator: true } };
 const owner = { viewer: { email: "Owner@Acme.example" } };
 
@@ -203,10 +205,6 @@ describe("the demo", () => {
     const cara = await personId("Cara Lim");
     const answers: [string, unknown][] = [
       ["overview", await api.overview(demo)],
-      ["health", await api.health(demo)],
-      ["setup", await api.setup(demo)],
-      ["raw", await api.raw(demo)],
-      ["raw search", await api.raw({ ...demo, via: "search" })],
       ["person", await api.person({ ...demo, personId: cara })],
       ["person jane", await api.person({ ...demo, personId: await personId("Jane Doe") })],
       ["run", await api.run(demo)],
@@ -217,10 +215,11 @@ describe("the demo", () => {
     answers.push(["people", await api.recordsList({ ...demo, record: PERSON, limit: 200 })]);
     for (const filter of EMAIL_FILTERS)
       answers.push([`emails ${filter}`, await api.emails({ ...demo, filter })]);
-    for (const filter of REPLY_FILTERS)
-      answers.push([`replies ${filter}`, await api.replies({ ...demo, filter })]);
+    for (const record of [REPLY, SETTING, "reactivation.finding"])
+      answers.push([record, await api.recordsList({ ...demo, record, view: "all", limit: 200 })]);
+    answers.push(["reply", await api.recordsGet({ ...demo, record: REPLY, id: replyId })]);
     expect((await api.emails({ ...demo, filter: "all" })).rows).toHaveLength(1);
-    expect((await api.replies({ ...demo, filter: "all" })).rows).toHaveLength(1);
+    expect((await api.recordsList({ ...demo, record: REPLY, view: "all" })).rows).toHaveLength(1);
     for (const [route, answer] of answers) expect(leaks(answer), route).toEqual([]);
     const work = answers.find(([r]) => r === "work lookup")?.[1] as Awaited<
       ReturnType<typeof api.work>
@@ -241,15 +240,16 @@ describe("the demo", () => {
   });
 
   it("setup says what was plugged in, never whose or from which file", async () => {
-    const setup = await api.setup(demo);
-    expect(setup.crm).toMatchObject({ format: "bullhorn", imports: 1 });
-    expect(setup.research).toEqual(["linkedin"]);
-    expect(setup.profile?.firm).toBe(DEMO_NAME);
-    expect(setup.profile?.signature).toBe(`{name}\n${DEMO_NAME}`);
-    expect(setup.profile?.recruiters).toEqual([
-      { name: "Sam Rivera", email: "s•••@acme-talent.example" },
-    ]);
-    expect(setup.sending.live).toBe(false);
+    const setup = await api.recordsList({ ...demo, record: SETTING, limit: 200 });
+    const value = (id: string) => setup.rows.find((r) => r.id === id)?.value;
+    expect(value("crm.format")).toMatch(/^Bullhorn, \d+ rows$/);
+    expect(value("research.linkedin")).toBe("A LinkedIn research account");
+    expect(value("emails.signature")).toBe(`{name}\n${DEMO_NAME}`);
+    expect(setup.rows.find((r) => r.id === "recruiters.0")).toMatchObject({
+      label: "Sam Rivera",
+      value: "s•••@acme-talent.example",
+    });
+    expect(value("sending.live")).toBe("Off until you say go");
     expect(JSON.stringify(setup)).not.toMatch(/\.csv|export/i);
   });
 
@@ -376,17 +376,15 @@ describe("writes", () => {
 
   it("the demo refuses every write, even from an operator", async () => {
     await expect(api.approve({ ...demo, ids: [enrollmentId] })).rejects.toEqual(refusal(403));
-    await expect(api.book({ ...demo, threadEventId: replyId })).rejects.toEqual(refusal(403));
+    await expect(api.book({ ...demo, ids: [replyId] })).rejects.toEqual(refusal(403));
+    await expect(api.change({ ...demo, ids: ["emails.voice"], value: "Loud" })).rejects.toEqual(
+      refusal(403),
+    );
     await expect(api.unapprove({ ...demo, ids: [enrollmentId] })).rejects.toEqual(refusal(403));
     await expect(api.skip({ ...operator, client: "demo", ids: [enrollmentId] })).rejects.toEqual(
       refusal(403),
     );
     expect((await api.emails({ ...owner, filter: "awaiting" })).total).toBe(1);
-  });
-
-  it("a demo reply carries no bill: prices stay off public pages", async () => {
-    expect((await api.replies(demo)).bill).toBeNull();
-    expect((await api.replies(owner)).bill).toMatchObject({ meetings: 0, total: 1000 });
   });
 
   it("a client approves, marks a meeting, and a second click changes nothing", async () => {
@@ -408,27 +406,50 @@ describe("writes", () => {
     expect(emails.rows[0]).toMatchObject({ enrollmentId, approvedBy: "client" });
     expect(emails.approval.firstApproved).toBe(true);
 
-    const booked = await api.book({ ...owner, threadEventId: replyId });
-    expect(booked.by).toBe("owner@acme.example");
-    const again = await api.book({ ...operator, client: "acme", threadEventId: replyId });
-    expect(again).toEqual(booked);
-    const replies = await api.replies({ ...owner, filter: "booked" });
-    expect(replies.rows[0]?.handoff?.recruiter).toBe("sam@acme-talent.example");
-    expect(replies.bill).toMatchObject({ meetings: 1, meetingFees: 500, total: 1500 });
+    expect(await api.book({ ...owner, ids: [replyId] })).toEqual({ done: [replyId], skipped: [] });
+    // Marked already: the first mark stays, so it isn't this call's to undo.
+    expect(await api.book({ ...operator, client: "acme", ids: [replyId] })).toEqual({
+      done: [],
+      skipped: [replyId],
+    });
+    const booked = () => api.recordsList({ ...owner, record: REPLY, view: "booked" });
+    expect((await booked()).rows[0]).toMatchObject({
+      id: replyId,
+      status: "booked",
+      handedTo: "sam@acme-talent.example",
+    });
 
     // Each mark is a meeting billed: another login can't take it back; the marker or Wren can.
     const ops = { viewer: { email: "ops@acme.example" } };
-    await expect(api.book({ ...ops, threadEventId: replyId, booked: false })).rejects.toEqual(
-      refusal(403),
-    );
-    await api.book({ ...owner, threadEventId: replyId, booked: false });
-    expect((await api.replies({ ...owner, filter: "booked" })).total).toBe(0);
-    await api.book({ ...ops, threadEventId: replyId });
-    await api.book({ ...operator, client: "acme", threadEventId: replyId, booked: false });
-    expect((await api.replies({ ...owner, filter: "booked" })).total).toBe(0);
-    await expect(api.book({ ...owner, threadEventId: 999_999 })).rejects.toEqual(refusal(404));
+    await expect(api.unbook({ ...ops, ids: [replyId] })).rejects.toEqual(refusal(403));
+    await api.unbook({ ...owner, ids: [replyId] });
+    expect((await booked()).total).toBe(0);
+    await api.book({ ...ops, ids: [replyId] });
+    await api.unbook({ ...operator, client: "acme", ids: [replyId] });
+    expect((await booked()).total).toBe(0);
+    await expect(api.book({ ...owner, ids: [999_999] })).rejects.toEqual(refusal(404));
+    expect(await api.book({ ...owner, ids: [replyId, 999_999] })).toEqual({
+      done: [replyId],
+      skipped: [999_999],
+    });
     await expect(api.approve({ ...owner, ids: ["1; drop" as never] })).rejects.toEqual(
       refusal(404),
+    );
+  });
+
+  it("a client rewords its profile, never its sending rules", async () => {
+    expect(await api.change({ ...owner, ids: ["emails.voice"], value: " Warm, short. " })).toEqual({
+      done: ["emails.voice"],
+      skipped: [],
+    });
+    const setup = await api.recordsList({ ...owner, record: SETTING, limit: 200 });
+    expect(setup.rows.find((r) => r.id === "emails.voice")?.value).toBe("Warm, short.");
+    for (const ids of [["sending.live"], ["emails.voice", "emails.sells"], "emails.voice"])
+      await expect(api.change({ ...owner, ids: ids as string[], value: "x" })).rejects.toEqual(
+        refusal(404),
+      );
+    await expect(api.change({ ...owner, ids: ["emails.voice"], value: " " })).rejects.toEqual(
+      refusal(400),
     );
   });
 });

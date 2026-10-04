@@ -82,28 +82,6 @@ export interface PersonView {
   }[];
 }
 
-export interface RawFinding {
-  id: number;
-  kind: string;
-  /** The person's name or the company's. */
-  subject: string;
-  personId: number | null;
-  via: string;
-  url: string | null;
-  title: string | null;
-  confidence: number;
-  observedAt: string;
-  value: Record<string, unknown>;
-}
-
-export interface RawPage {
-  rows: RawFinding[];
-  total: number;
-  offset: number;
-  /** Findings per `via`, for the platform tabs. */
-  vias: { via: string; count: number }[];
-}
-
 /** Each CRM person with their latest row, where they are now and whether their firm hires. */
 export const SUBJECTS = sql`
   latest as (
@@ -343,71 +321,6 @@ export async function portalPerson(db: Queryable, personId: number): Promise<Per
       lastContactedOn: day(c.last_contacted_on),
       lastPlacementOn: day(c.last_placement_on),
     })),
-  };
-}
-
-export interface RawQuery {
-  via?: string;
-  kind?: string;
-  offset?: number;
-}
-
-export async function portalRaw(db: Queryable, query: RawQuery = {}): Promise<RawPage> {
-  const offset = Number.isFinite(query.offset) ? Math.max(0, Math.floor(query.offset ?? 0)) : 0;
-  const where = sql.join(
-    [
-      query.via ? sql`f.via = ${query.via}` : sql`true`,
-      query.kind ? sql`f.kind = ${query.kind}` : sql`true`,
-    ],
-    sql` and `,
-  );
-  // Only facts about this client's list: its people and their firms.
-  const scope = sql`(f.person_id in (select person_id from crm_contacts)
-    or f.company_id in (select company_id from crm_contacts))`;
-  const rows = await db.execute<{
-    id: number;
-    kind: string;
-    person_id: number | null;
-    subject: string;
-    via: string;
-    source_url: string | null;
-    title: string | null;
-    confidence: number;
-    observed_at: unknown;
-    value: Record<string, unknown>;
-  }>(sql`
-    select f.id, f.kind, f.person_id,
-      coalesce(nullif(concat_ws(' ', p.first_name, p.last_name), ''), p.full_name, co.name, co.domain, '?') subject,
-      f.via, f.source_url, d.title, f.confidence, f.observed_at, f.value
-    from findings f
-    left join people p on p.id = f.person_id
-    left join companies co on co.id = f.company_id
-    left join documents d on d.id = f.document_id
-    where ${scope} and ${where}
-    order by f.observed_at desc, f.id desc
-    limit ${PAGE} offset ${offset}`);
-  const [n] = await db.execute<{ total: number }>(
-    sql`select count(*)::int total from findings f where ${scope} and ${where}`,
-  );
-  const vias = await db.execute<{ via: string; count: number }>(sql`
-    select f.via, count(*)::int count from findings f where ${scope}
-    group by f.via order by count desc, f.via`);
-  return {
-    rows: rows.map((f) => ({
-      id: f.id,
-      kind: f.kind,
-      subject: f.subject,
-      personId: f.person_id,
-      via: f.via,
-      url: f.source_url,
-      title: f.title,
-      confidence: f.confidence,
-      observedAt: iso(f.observed_at) ?? "",
-      value: f.value,
-    })),
-    total: n?.total ?? 0,
-    offset,
-    vias: [...vias],
   };
 }
 

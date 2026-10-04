@@ -7,7 +7,6 @@ import type { Queryable } from "@wren/db";
 import { type SQL, sql } from "drizzle-orm";
 import { MARKS } from "../brief.js";
 import { REACTIVATION, type WhyLine } from "../compose.js";
-import { billOf } from "../handoff.js";
 import { iso, PAGE, type Source, sourcesOf } from "./views.js";
 
 export const EMAIL_FILTERS = ["awaiting", "approved", "sent", "stopped", "all"] as const;
@@ -52,36 +51,6 @@ export interface EmailsPage {
   /** `first`: approve the first batch, then it flows; `every`: each batch waits. */
   approval: { mode: "first" | "every"; firstApproved: boolean };
 }
-
-export const REPLY_FILTERS = ["interested", "booked", "all"] as const;
-export type ReplyFilter = (typeof REPLY_FILTERS)[number];
-
-export interface ReplyRow {
-  threadEventId: number;
-  enrollmentId: number;
-  personId: number | null;
-  name: string;
-  firm: string;
-  from: string | null;
-  subject: string | null;
-  text: string;
-  receivedAt: string;
-  disposition: string | null;
-  handoff: { recruiter: string; forwardedAt: string | null } | null;
-  booked: { at: string; by: string } | null;
-}
-
-export interface RepliesPage {
-  rows: ReplyRow[];
-  total: number;
-  offset: number;
-  counts: Record<ReplyFilter, number>;
-  /** Null on the demo: prices stay off public pages. */
-  bill: ReturnType<typeof billOf> | null;
-}
-
-/** Longer replies are cut; the full thread is in the recruiter's inbox. */
-const REPLY_CHARS = 2000;
 
 export const EMAIL_STATUS = sql`case
   when e.state = 'stopped' then 'stopped'
@@ -250,93 +219,5 @@ export function whyOf(opener: unknown, followup: unknown): EmailRow["why"] {
     brief: lines,
     opener: read(p.why),
     followup: read((followup as { why?: unknown } | undefined)?.why),
-  };
-}
-
-const INTERESTED = sql`t.disposition in ('interested', 'meeting_booked')`;
-const REPLY_WHERE: Record<ReplyFilter, SQL> = {
-  interested: sql`(${INTERESTED} or h.meeting_booked_at is not null)`,
-  booked: sql`h.meeting_booked_at is not null`,
-  all: sql`true`,
-};
-
-const REPLY_FROM = sql`
-  from thread_events t
-  join enrollments e on e.id = t.enrollment_id
-  left join handoffs h on h.thread_event_id = t.id
-  left join people p on p.id = e.person_id
-  left join companies co on co.id = e.company_id
-  where t.kind = 'reply' and e.niche = ${REACTIVATION}`;
-
-export async function portalReplies(
-  db: Queryable,
-  query: {
-    filter?: ReplyFilter;
-    offset?: number;
-    /** Null leaves the bill off. */
-    offer: { upfront: number; perMeeting: number; cap: number } | null;
-  },
-): Promise<RepliesPage> {
-  const { filter, offset } = pageOf(REPLY_FILTERS, "interested", query.filter, query.offset);
-  const rows = await db.execute<{
-    id: number;
-    enrollment_id: number;
-    person_id: number | null;
-    name: string | null;
-    firm: string | null;
-    to_email: string;
-    from_address: string | null;
-    subject: string | null;
-    text: string | null;
-    received_at: unknown;
-    disposition: string | null;
-    recruiter_email: string | null;
-    forwarded_at: unknown;
-    meeting_booked_at: unknown;
-    booked_by: string | null;
-  }>(sql`
-    select t.id, t.enrollment_id, e.person_id, p.full_name name,
-      coalesce(co.name, co.domain) firm, e.to_email, t.from_address, t.subject,
-      left(coalesce(t.body_text, t.snippet, ''), ${REPLY_CHARS}) text, t.received_at,
-      t.disposition, h.recruiter_email, h.forwarded_at, h.meeting_booked_at, h.booked_by
-    ${REPLY_FROM} and ${REPLY_WHERE[filter]}
-    order by t.received_at desc, t.id desc
-    limit ${PAGE} offset ${offset}`);
-  const [n] = await db.execute<Record<ReplyFilter, number>>(sql`
-    select ${sql.join(
-      REPLY_FILTERS.map(
-        (f) => sql`count(*) filter (where ${REPLY_WHERE[f]})::int ${sql.identifier(f)}`,
-      ),
-      sql`, `,
-    )}
-    ${REPLY_FROM}`);
-  const counts = Object.fromEntries(REPLY_FILTERS.map((f) => [f, n?.[f] ?? 0])) as Record<
-    ReplyFilter,
-    number
-  >;
-  return {
-    rows: rows.map((r) => ({
-      threadEventId: Number(r.id),
-      enrollmentId: Number(r.enrollment_id),
-      personId: r.person_id === null ? null : Number(r.person_id),
-      name: r.name ?? r.to_email,
-      firm: r.firm ?? "",
-      from: r.from_address,
-      subject: r.subject,
-      text: r.text ?? "",
-      receivedAt: iso(r.received_at) ?? "",
-      disposition: r.disposition,
-      handoff: r.recruiter_email
-        ? { recruiter: r.recruiter_email, forwardedAt: iso(r.forwarded_at) }
-        : null,
-      booked:
-        r.meeting_booked_at && r.booked_by
-          ? { at: iso(r.meeting_booked_at) ?? "", by: r.booked_by }
-          : null,
-    })),
-    total: counts[filter],
-    offset,
-    counts,
-    bill: query.offer ? billOf(counts.booked, query.offer) : null,
   };
 }

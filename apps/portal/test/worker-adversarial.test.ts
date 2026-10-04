@@ -283,7 +283,7 @@ describe("the demo cache", () => {
 
   it("different routes with the same body never share an answer", async () => {
     await worker.fetch(post("demo.test", "reactivation/overview"), env());
-    await worker.fetch(post("demo.test", "reactivation/health"), env());
+    await worker.fetch(post("demo.test", "reactivation/run"), env());
     expect(restate).toHaveLength(2);
   });
 
