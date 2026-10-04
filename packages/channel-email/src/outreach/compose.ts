@@ -141,8 +141,13 @@ interface RoleInboxRow {
   pick_method: string | null;
 }
 
+/** A lookup this sure the person moved on keeps them out of compose. */
+const MOVED_ON_CONFIDENCE = 0.8;
+
 // One row per (company, person) whose company passes the audience gate, best rank first
-// within each company. First contact: a company with ANY enrollment is out.
+// within each company. First contact: a company with ANY enrollment is out. A person whose
+// newest lookup finding says they moved on (job_change or left, sure enough) is out; the
+// firm falls to its next person.
 const eligibleSql = (niche: string, companyMatch: string | null, gate: Gate) => sql`
   SELECT pf.person_id, pf.company_id, pf.full_name, pf.title, pf.role_rank,
          pf.company_name, pf.company_domain
@@ -151,6 +156,14 @@ const eligibleSql = (niche: string, companyMatch: string | null, gate: Gate) => 
     AND NOT EXISTS (SELECT 1 FROM companies dc WHERE dc.id = pf.company_id AND dc.decline_reason IS NOT NULL)
     AND NOT pf.avoid_emailing_first
     AND pf.role_rank IS NOT NULL
+    AND NOT EXISTS (
+      SELECT 1 FROM (
+        SELECT f.kind, f.confidence FROM findings f
+        WHERE f.person_id = pf.person_id AND f.kind IN ('still_there', 'job_change', 'left')
+        ORDER BY f.observed_at DESC, f.id DESC LIMIT 1
+      ) newest
+      WHERE newest.kind IN ('job_change', 'left') AND newest.confidence >= ${MOVED_ON_CONFIDENCE}
+    )
     AND ${gate(sql`pf.company_id`)}
     ${
       companyMatch === null

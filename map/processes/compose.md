@@ -1,7 +1,7 @@
 ---
 type: process
 status: verified
-verified: 2026-09-28 @ 28823cd
+verified: 2026-10-03 @ dd1d1b4
 consumes: ["[[leads/lead]]", "[[leads/person]]", "[[email/template]]", "[[email/sequence]]", "[[email/roster]]", "[[email/send-policy]]", "[[platform/offer]]"]
 produces: ["[[email/enrollment]]", "[[email/message]]"]
 ---
@@ -22,9 +22,9 @@ The whole sequence renders before anything can send; a missing fact refuses the 
 
 1. Fill `companies.timezone` (`packages/channel-email/src/restate/compose-scheduler.ts:116`; `send/lead-timezone.ts:110`).
 2. Capacity and shortfall (`compose-scheduler.ts:116`, `:87`).
-3. `compose()` per plan rule and audience (`packages/channel-email/src/outreach/compose.ts:382`): person pass, then role-inbox pass. The person pass takes companies best-ranked first (`bestReachableFirst`: the best `role_rank` among people with an address), so a limited day reaches owners before untitled registry contacts. The audience gate is `audienceGate` (`packages/channel-email/src/recontact.ts:123`); addresses that ended wrong_person, referral, bounced or opted_out are skipped (`compose.ts:467`, `:517`).
+3. `compose()` per plan rule and audience (`packages/channel-email/src/outreach/compose.ts:417`): person pass, then role-inbox pass. The person pass takes companies best-ranked first (`bestReachableFirst`: the best `role_rank` among people with an address), so a limited day reaches owners before untitled registry contacts. The audience gate is `audienceGate` (`packages/channel-email/src/recontact.ts:123`); a person whose newest lookup finding is `job_change` or `left` at confidence 0.8 or more is skipped and the firm falls to its next person (`compose.ts:151`); addresses that ended wrong_person, referral, bounced or opted_out are skipped (`compose.ts:503`, `:553`).
 4. Facts from `factsFor` (`outreach/facts.ts:125`); render (`outreach/templates.ts`); provenance (`outreach/provenance.ts:66`).
-5. Insert enrollment and messages, store the template version (`compose.ts:598`, `:682`, `:744`, `:754`).
+5. Insert enrollment and messages, store the template version (`compose.ts:689`, `:767`, `:836`, `:841`).
 
 ## If you change this
 

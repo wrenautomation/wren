@@ -48,6 +48,7 @@ export const TABLES = [
   "documents",
   "enrichments",
   "enrollments",
+  "findings",
   "template_versions",
 ];
 

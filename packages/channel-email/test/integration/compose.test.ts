@@ -2,7 +2,7 @@
 import { randomUUID } from "node:crypto";
 import { companies, leads, runs, suppressions } from "@wren/core";
 import { startTestPostgres, type TestPostgres, truncate } from "@wren/db/testing";
-import { asc, eq } from "drizzle-orm";
+import { asc, eq, sql } from "drizzle-orm";
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 import { parseTemplate, toSource } from "../../src/outreach/authoring.js";
 import { compose } from "../../src/outreach/compose.js";
@@ -102,6 +102,36 @@ describe("compose", () => {
     expect(stats.enrolled).toBe(1);
     expect(stats.skipped_no_address).toBe(1);
     expect((await one(allEnrollments(db()))).personId).toBe(bob.id);
+  });
+
+  it("a person whose newest lookup says they moved on is skipped; the firm falls to its next", async () => {
+    const company = await makeCompany(db());
+    const jane = await makePerson(db(), company, { email: "jane@oakbridge.example" });
+    const bob = await makePerson(db(), company, {
+      full: "Bob Ops",
+      first: "Bob",
+      title: "Managing Partner",
+      email: "bob@oakbridge.example",
+    });
+    const fact = (personId: number, kind: string, confidence: number, observed: string) =>
+      db().execute(sql`INSERT INTO findings (kind, person_id, fact_key, value, confidence, via, observed_at)
+        VALUES (${kind}, ${personId}, ${`p${personId}:${kind}:${observed}`}, '{}'::jsonb, ${confidence}, 'test', ${observed}::timestamptz)`);
+    // Jane: there once, newer read says she left. Out.
+    await fact(jane.id, "still_there", 0.9, "2026-09-01T00:00:00Z");
+    await fact(jane.id, "job_change", 0.8, "2026-09-20T00:00:00Z");
+    // Bob: an old unsure move, a newer read says he is still there. In.
+    await fact(bob.id, "left", 0.95, "2026-08-01T00:00:00Z");
+    await fact(bob.id, "still_there", 0.9, "2026-09-10T00:00:00Z");
+    expect((await runCompose(db())).enrolled).toBe(1);
+    expect((await one(allEnrollments(db()))).personId).toBe(bob.id);
+  });
+
+  it("an unsure move never keeps a person out", async () => {
+    const company = await makeCompany(db());
+    const jane = await makePerson(db(), company, { email: "jane@oakbridge.example" });
+    await db().execute(sql`INSERT INTO findings (kind, person_id, fact_key, value, confidence, via)
+      VALUES ('job_change', ${jane.id}, 'unsure', '{}'::jsonb, 0.6, 'test')`);
+    expect((await runCompose(db())).enrolled).toBe(1);
   });
 
   it("skips suppressed addresses", async () => {
