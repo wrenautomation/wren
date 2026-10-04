@@ -23,6 +23,7 @@ import {
   Broadcast,
   ConsoleTransport,
   campaignPolicy,
+  type DomainTarget,
   defaultLocalChecker,
   expandHome,
   GmailClient,
@@ -33,6 +34,7 @@ import {
   makeNotifier,
   makeVerifier,
   type Notifier,
+  namedDomains,
   type PostmasterClient,
   plainMailer,
   postmasterToken,
@@ -465,9 +467,33 @@ export async function buildServices(
         : {}),
     }),
   );
+  // The digest's mail domains: every sending domain (a Google sender, DKIM at `google`),
+  // then the main site and any other domain a signature names. The DKIM selector, SMTP
+  // host and fleet (Route 53) flag fill in once the roster carries them.
+  const siteDomains = new Set([
+    new URL(settings.siteBaseUrl).hostname,
+    ...roster.flatMap((s) => namedDomains(s.signature?.text ?? "")),
+  ]);
+  const mailDomains: DomainTarget[] = [
+    ...sendingDomains.map((domain) => ({
+      domain,
+      fleet: false,
+      dkimSelector: "google",
+      smtpHost: null,
+    })),
+    ...[...siteDomains]
+      .filter((d) => !sendingDomains.includes(d))
+      .map((domain) => ({ domain, fleet: false, dkimSelector: null, smtpHost: null })),
+  ];
   if (settings.notify !== "none")
     services.push(
-      makeDigestScheduler({ db, notifier, policy, probers: proberHosts(settings.smtpProbeUrl) }),
+      makeDigestScheduler({
+        db,
+        notifier,
+        policy,
+        probers: proberHosts(settings.smtpProbeUrl),
+        domains: mailDomains,
+      }),
     );
   // Bound only when configured: an object with nothing to pull is better absent than failing every pass.
   if (postmaster) {
