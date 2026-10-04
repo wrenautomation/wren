@@ -1,0 +1,88 @@
+# Handler forms
+
+Living doc. Started 2026-10-04. Item 4 ("Next") of `2026-10-03-direction.md`. It builds on `2026-10-03-console-standard.md` (records, templates, actions) and logs changes at the bottom.
+
+## Why
+
+Prod has 49 Restate services and 316 handlers. The portal reaches a few dozen through the apps. Everything else needs `node scripts/ingress.mjs` and the right JSON from memory. One page that turns any handler into a form makes the whole system usable from the portal, and gives an agent the same list.
+
+## What it is
+
+- **Handlers**, a team-only app in Wren's workspace. A List of every handler, grouped by service. Opening one shows its form, and the last answer under it.
+- The list comes live from Restate's admin API (`/services`), so a new handler shows up with no list to update. Each handler's input schema comes from `/services/<name>/openapi`.
+- A handler declares its input with zod through `restate.serde.schema(...)`. Restate then validates the input and publishes the schema. The form is built from that schema. A handler with no schema gets one JSON box.
+- A press calls `ConsolePortal.call`, which invokes the handler with `ctx.genericCall`. The call is durable, journaled, and the admin token never leaves the worker.
+
+## Rules
+
+1. **Operator only.** The app and `call` require the operator, as `addClient` does. The demo and clients never see it.
+2. **Never by hand stays never.** Handlers that must not be called from outside get `ingressPrivate: true`, so Restate itself refuses them at ingress:
+   - `Resolution/resolve` (wren's hard rule: queue it).
+   - Every loop's `loop` handler (the factory in `packages/core/src/restate/loop.ts`, and any loop not built on it).
+   - A handler only another service calls, when grep shows no ingress caller. List each one in the decision log.
+
+   An internal call skips `ingressPrivate`. So `call` reads the handler's `public` flag from the admin API and refuses one that isn't, and the list hides it.
+3. **Effects are marked.** A handler that spends money, sends to a person, or posts in public carries `metadata: { effect: "spends" | "sends" | "posts" }`. Its form names the effect and asks for the handler's name typed in before it runs. Existing guards (spend grants, send gate, kill switch) still apply inside the handler.
+4. **Portal backends are hidden.** `*Portal` services are the apps' own backends. Their pages are their form.
+5. **Every call is a run.** `call` writes a `runs` row: command `console <Service>/<handler>`, the input as argv, the viewer's email, the outcome. It shows on the run trail like a CLI command.
+6. **Schemas never change what a handler gets.** Objects are `z.looseObject`, so a field the schema forgets still reaches the handler. Each schema mirrors the handler's TypeScript input type, with `.describe()` on any field whose name doesn't explain it.
+7. **autobrowse's services** (`sites`, `desk`, `do`, `browser`, `domain`, `bootstrap`, `Compiled`) are listed like the rest. Their schemas belong to autobrowse (seam: platform calls), so until it adds them they get the JSON box.
+
+## The form
+
+`FormField` (`packages/ui/src/action.tsx`) already drives form actions. A JSON schema maps onto it:
+
+| Schema | Box |
+|---|---|
+| string | text; `format: date` a date, `uri` a url, long `description` hint |
+| number, integer | number |
+| boolean | a switch |
+| enum | a select |
+| array of strings or numbers | one per line |
+| object | its fields, labelled `parent.child` |
+| anything else | a JSON box for that field |
+
+Required fields come from `required`. A field's label is its `title`, else its name in words ("openersPerDay" → "Openers per day"). A virtual object's handler asks for its key first.
+
+The answer shows as a record when it is an object, else as JSON. An error shows Restate's message as-is.
+
+## Phases
+
+### H1. The server
+
+1. A GET helper beside `restateAdmin` for `/services` and `/services/<name>/openapi`, cached 5 minutes in the worker.
+2. Record type `console.handler`: service, handler, kind (service, object, workflow), needs key, public, effect, has schema. Views: All, With a form, Effects.
+3. `ConsolePortal.call {service, handler, key?, input}`: operator only, refuses non-public and `*Portal` handlers, invokes with `ctx.genericCall`, writes the runs row.
+4. `ingressPrivate` on rule 2's handlers. Each change is checked against callers first (`scripts/`, the CLI, autobrowse, the lander).
+5. Tests on synthetic data: refusals (not operator, not public, a Portal service), the runs row, the schema-to-fields mapping.
+
+### H2. Schemas and effects
+
+1. zod input schemas for the handlers William uses: EmailConsole, SmsDesk, ReachDesk, Ads, Content, ContentDesk, Disposition, Runs, Resolution, Enrichment, Discovery, LinkedinInbox, QueueRefresh, SearchWeek.
+2. The loop factory's `start`, `stop`, `status` and `sync`, once, so every loop gets them.
+3. `effect` metadata, at least on: Ads `launch` and `start` (spends), EmailConsole `approve` (sends), SmsDesk `enroll` and sends (sends), Content `publish` and `reply` (posts), ReachDesk `reply` and `enroll` (sends).
+4. A test that every public wren handler outside the Portal services declares an input schema, or is named in an allowlist with the reason.
+
+### H3. The app
+
+1. The Handlers app on the standard: List, Record panel with the form, the last answer.
+2. `FormField` gains the types in the table above. The Clients form keeps working.
+3. The effect confirm.
+4. Screenshots at 1360 and 390 as the operator: the list, a loop's `status`, an EmailConsole form, an effect confirm (cancelled, never sent).
+
+## Done when
+
+- Every public wren handler outside the Portal services opens to a form built from its schema.
+- `Resolution/resolve` and every `loop` refuse at ingress and are missing from the list.
+- A call from the page shows on the run trail with who made it.
+- Gates pass. No email, SMS, post or spend happened while testing.
+
+## Risks
+
+- A schema stricter than the callers. Loose objects, schemas copied from the types, and the deploy's own loops passing are the check. Watch the worker log for serde errors for a day.
+- `ingressPrivate` on a handler a script calls. Grep before each one; the CLI's errors would name it.
+- One page that can call anything. Operator only, public only, effects confirmed, every call a run.
+
+## Decision log
+
+- 2026-10-04: Written. The list is read from Restate, not declared, so it can't drift. A handler marked `ingressPrivate` disappears from the page and stops answering at ingress.
