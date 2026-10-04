@@ -72,8 +72,16 @@ function moversSql(opts: { limit?: number; count?: boolean }) {
     ${opts.count ? sql`` : sql`order by m.person_id limit ${opts.limit ?? 1_000_000}`}`;
 }
 
+/** Found movers whose new firm isn't in `companies` yet. */
+const UNFILED = sql`(select count(distinct ma.domain)::int from mover_addresses ma
+  where ma.outcome = 'found' and ma.domain is not null
+    and not exists (select 1 from companies c where c.domain = ma.domain))`;
+
+/** Movers to try, plus found ones whose new firm still needs filing. */
 export async function moversDue(db: Queryable): Promise<number> {
-  const [r] = await db.execute<{ n: number }>(moversSql({ count: true }));
+  const [r] = await db.execute<{ n: number }>(
+    sql`select (${moversSql({ count: true })}) + ${UNFILED} n`,
+  );
   return r?.n ?? 0;
 }
 

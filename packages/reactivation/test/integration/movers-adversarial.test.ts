@@ -286,8 +286,15 @@ describe("no signal, no draft", () => {
       resolves,
     });
     const beta = await cid("Beta Labs");
+    // A firm row lost (or a pass from before filing) makes the stage due again, and it refiles.
+    await db().execute(sql`delete from companies where id = ${beta}`);
+    expect(await moversDue(db())).toBe(1);
+    await findMoverAddresses(db(), { verifier: prober([]), checker, fetchHomepage, resolves });
+    expect(await moversDue(db())).toBe(0);
+    const refiled = await cid("Beta Labs");
     expect(
-      (await one<{ domain: string }>(sql`select domain from companies where id = ${beta}`)).domain,
+      (await one<{ domain: string }>(sql`select domain from companies where id = ${refiled}`))
+        .domain,
     ).toBe("betalabs.com");
     await db().execute(sql`
       insert into enrollments (person_id, niche, sequence_name, sequence_snapshot, offer, state,
@@ -297,7 +304,7 @@ describe("no signal, no draft", () => {
     await scoreCrmContacts(db());
     await briefAll();
     const [jane] = await composeSubjects(db());
-    expect(jane).toMatchObject({ firstName: "Jane", companyId: beta, firm: "Acme Staffing" });
+    expect(jane).toMatchObject({ firstName: "Jane", companyId: refiled, firm: "Acme Staffing" });
   });
 
   it("a mover's old CRM address is never used, verified or not", async () => {
