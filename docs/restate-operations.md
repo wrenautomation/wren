@@ -10,7 +10,8 @@ Checked 2026-10-03. Companion to `restate-durability.md` (why it survives crashe
 | Restate Cloud, env `wren-automation` (`env_201m2vp6sq3x11xdaatsmjej302`), region `us` | every loop's journal, timers, object state; the ingress | always on, free tier | this file |
 | Lambda `wren-prod-worker` (us-east-1, Node 22 arm64, 1 GB, 15 min max) | every service except the box's; one version per push | CI `deploy.yml` | `deploy/README.md` |
 | EC2 `wren-prod-pg` (`t4g.small`) | Postgres 17 + browserless Chromium in Docker; the **box worker**: `BOX_SERVICES` (PoolScheduler, Discovery, Enrichment, Resolution, PageArchive, Books) over Restate's tunnel (`WREN_POOL_CHAIN_HOST=box`) | CI over SSM (`deploy/scripts/box-worker.sh`) | `deploy/README.md`, `apps/worker/src/box.ts` |
-| RackNerd VPS (192.255.226.241) | mailifier SMTP prober behind Caddy (`probe.wrenautomation.com`) | `deploy/scripts/deploy-prober.sh` | "Verifying addresses" below |
+| RackNerd VPS (192.255.226.241, Buffalo) | mailifier SMTP prober behind Caddy (`probe.wrenautomation.com`) | `deploy/scripts/deploy-prober.sh` | "Verifying addresses" below |
+| RackNerd VPS (198.44.104.204, Los Angeles) | second prober (`probe2.wrenautomation.com`), not in `WREN_SMTP_PROBE_URL` until its PTR resolves | `PROBE_HOST=probe2.wrenautomation.com deploy/scripts/deploy-prober.sh` | "Verifying addresses" below |
 | William's Mac | autobrowse desk worker under launchd: every `sites` call (browser, logins, Chrome profiles, home IP) | `../autobrowse/deploy/desk/install.sh` | `../autobrowse/deploy/README.md` |
 | Lambda `wren-prod-auth` + Cloudflare Workers | sign-in (`apps/auth`), phone (`apps/phone`), portal (`apps/portal`) | CI `deploy.yml` | `deploy/phone.md`, `deploy/portal.md` |
 | Cloudflare Worker + D1 | open pixel `t.wrenautomation.com` (tracking off) | by hand, `wrangler deploy` | `deploy/pixel/README.md` |
@@ -227,8 +228,10 @@ curl -s https://probe.wrenautomation.com/healthz     # {"ok":true,"port_25":true
 ```
 
 The A record `probe.wrenautomation.com` (Cloudflare, DNS only) points at the VPS.
-Reverse DNS is RackNerd's: support ticket #EF57722 asks for the PTR (check with
-`dig -x 192.255.226.241`). Each box's name is also its HELO and MAIL FROM domain
+Reverse DNS is RackNerd's and ticket-only (the ctrl panel's rDNS button says so):
+#EF57722 for 192.255.226.241, #TA25613 for 198.44.104.204 (check with `dig -x <ip>`).
+Both boxes share the SSH key, ufw (22/80/443 only), key-only root login and
+unattended upgrades; box 2's root password is SSM `/wren/prod/probe2_root_password`. Each box's name is also its HELO and MAIL FROM domain
 (`postmaster@<host>`), so each name has an SPF TXT naming only its own IP
 (`v=spf1 ip4:<ip> -all`).
 
