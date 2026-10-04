@@ -289,6 +289,27 @@ describe("what it rewrites", () => {
   });
 });
 
+describe("a mover", () => {
+  it("is redrafted as moved from the old firm to the new, though filed under the new", async () => {
+    const [beta] = await rows<{ id: number }>(sql`
+      insert into companies (domain, name) values ('betalabs.example', 'Beta Labs') returning id`);
+    await db().execute(sql`update enrollments set company_id = ${beta?.id} where id = ${enr.Jane}`);
+    await db().execute(sql`
+      update messages set provenance = provenance
+        || '{"moved":{"from":"Acme Staffing","to":"Beta Labs"}}'::jsonb
+      where enrollment_id = ${enr.Jane} and step = 0`);
+    const prompts: string[] = [];
+    answer = (p, first) => {
+      prompts.push(p);
+      return JSON.stringify(secondDraft(first));
+    };
+    expect((await redraft({ enrollmentIds: [enr.Jane ?? -1] })).redrafted).toBe(1);
+    expect(prompts[0]).toContain("who moved from Acme Staffing to Beta Labs.");
+    const [opener] = await messagesOf(enr.Jane);
+    expect(opener?.provenance.moved).toEqual({ from: "Acme Staffing", to: "Beta Labs" });
+  });
+});
+
 describe("what it never touches", () => {
   it("a pair with a sent opener, even named, even with its followup still a draft", async () => {
     await db().execute(sql`

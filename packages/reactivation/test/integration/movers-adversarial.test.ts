@@ -277,6 +277,29 @@ describe("no signal, no draft", () => {
     ]);
   });
 
+  it("a mover counts at the new firm: a live thread at the old one doesn't hold them", async () => {
+    await moved("Jane", "Acme Staffing", "Beta Labs");
+    await findMoverAddresses(db(), {
+      verifier: prober(["jane.doe@betalabs.com"]),
+      checker,
+      fetchHomepage,
+      resolves,
+    });
+    const beta = await cid("Beta Labs");
+    expect(
+      (await one<{ domain: string }>(sql`select domain from companies where id = ${beta}`)).domain,
+    ).toBe("betalabs.com");
+    await db().execute(sql`
+      insert into enrollments (person_id, niche, sequence_name, sequence_snapshot, offer, state,
+        company_id, kind, to_email, sender)
+      values (${await pid("Bob")}, 'reactivation', 'reactivation', '{}'::jsonb, 'reactivation',
+        'active', ${await cid("Acme Staffing")}, 'person', 'bob@acmestaffing.com', 'x@mail.example')`);
+    await scoreCrmContacts(db());
+    await briefAll();
+    const [jane] = await composeSubjects(db());
+    expect(jane).toMatchObject({ firstName: "Jane", companyId: beta, firm: "Acme Staffing" });
+  });
+
   it("a mover's old CRM address is never used, verified or not", async () => {
     await moved("Jane", "Acme Staffing", "Beta Labs");
     await scoreCrmContacts(db());

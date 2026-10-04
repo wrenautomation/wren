@@ -6,7 +6,9 @@
  * the pattern the domain is known to use or the three common ones, then the
  * local check and the verifier, best guess first, stopping at the first that
  * passes. A catch-all server proves nothing, so that stops with no address.
- * Each move is tried once; a miss again after a month.
+ * A found address puts the new firm in `companies` (by domain), so compose
+ * counts the mover's thread at the firm they work at now. Each move is tried
+ * once; a miss again after a month.
  */
 import {
   COMMON_GUESS_RANKS,
@@ -113,6 +115,9 @@ export async function findMoverAddresses(
     if (r === "error") stats.errors += 1;
     else if (r === "held") stats.held += 1;
     else {
+      if (r.outcome === "found")
+        await db.execute(sql`insert into companies (domain, name) values (${r.domain}, ${m.new_firm})
+          on conflict (domain) do nothing`);
       await db
         .insert(moverAddresses)
         .values({ findingId: m.finding_id, personId: m.person_id, ...r })

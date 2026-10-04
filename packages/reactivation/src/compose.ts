@@ -9,7 +9,8 @@
  * or open roles; the rest are kept warm), a verified address, never enrolled,
  * their company not in a live thread, and one per company per pass. A mover's
  * address is the one found at the new firm for that move, never the CRM's (it
- * is at the old firm); someone who left has none. At most `compose.perDay` a
+ * is at the old firm), and their company is the new firm; someone who left has
+ * none. At most `compose.perDay` a
  * day, and none while that many openers wait for approval.
  */
 import { createHash } from "node:crypto";
@@ -371,7 +372,8 @@ function subjectsSql(opts: { limit?: number; count?: boolean; catchAll: boolean 
       select distinct on (c.person_id) c.person_id, c.owner from crm_contacts c
       where nullif(btrim(c.owner), '') is not null order by c.person_id, c.id desc),
     due as (
-      select l.person_id, l.company_id, coalesce(co.name, co.domain, 'their firm') firm,
+      select l.person_id, coalesce(nc.id, l.company_id) company_id,
+        coalesce(co.name, co.domain, 'their firm') firm,
         n.moved_to, pe.first_name, pe.last_name, b.text brief, b.inputs_hash brief_hash,
         b.citations, a.candidate_id, a.email, a.evidence, o.owner, s.score
       from latest l
@@ -382,12 +384,15 @@ function subjectsSql(opts: { limit?: number; count?: boolean; catchAll: boolean 
       join contact_scores s on s.person_id = l.person_id and s.next_step = 'reach_out'
       join briefs b on b.person_id = l.person_id and b.state = 'written'
       join addr a on a.person_id = l.person_id
+      -- A mover works at the new firm now: its threads are the ones that count.
+      left join companies nc on n.moved_to is not null and nc.domain = split_part(a.email, '@', 2)
       left join owner o on o.person_id = l.person_id
       -- A score older than the news that they left must not write to them.
       where coalesce(n.where_kind, '') <> 'left'
         and not exists (select 1 from enrollments e where e.person_id = l.person_id)
         and not exists (select 1 from enrollments e
-          where e.state = 'active' and (e.company_id = l.company_id or lower(e.to_email) = a.email))
+          where e.state = 'active'
+            and (e.company_id = coalesce(nc.id, l.company_id) or lower(e.to_email) = a.email))
         and not exists (select 1 from suppressions sp where sp.revoked_at is null
           and ((sp.kind = 'email' and sp.value = a.email)
             or (sp.kind = 'domain' and sp.value = split_part(a.email, '@', 2))))
@@ -694,7 +699,7 @@ function provenanceOf(
     // The lines as written from: a brief redone later can't move the "why".
     brief: { inputs_hash: s.briefHash, citations: s.citations, lines: s.lines },
     address: { candidate_id: s.candidateId, email: s.email, evidence: s.evidence },
-    moved_to: s.movedTo,
+    moved: s.movedTo ? { from: s.firm, to: s.movedTo } : null,
     owner: s.owner,
     recruiter: recruiter?.email ?? null,
     why,
@@ -816,11 +821,12 @@ export async function redraftAwaiting(
     Row & { enrollment_id: number; sender: string; recruiter: string | null }
   >(sql`
     select e.id enrollment_id, e.person_id, e.company_id,
-      coalesce(co.name, co.domain, 'their firm') firm, pe.first_name, pe.last_name,
+      coalesce(m.provenance->'moved'->>'from', co.name, co.domain, 'their firm') firm,
+      pe.first_name, pe.last_name,
       b.text brief, b.inputs_hash brief_hash, b.citations,
       (m.provenance->'address'->>'candidate_id')::int candidate_id, e.to_email email,
       coalesce(m.provenance->'address'->>'evidence', 'crm') evidence,
-      m.provenance->>'moved_to' moved_to,
+      m.provenance->'moved'->>'to' moved_to,
       m.provenance->>'owner' owner, m.provenance->>'recruiter' recruiter, e.sender
     from enrollments e
     join people pe on pe.id = e.person_id
