@@ -12,7 +12,7 @@ const NAME = (p: string) =>
 
 /**
  * Each CRM person with their latest row. `now` is the first that holds: moved, left, their firm
- * hiring, still there, unknown.
+ * hiring, still there, unknown. Last contact is the CRM's or a call marked here, the later one.
  */
 export const reactivationPeople = pgView("reactivation_people", {
   id: integer("id"),
@@ -42,7 +42,9 @@ export const reactivationPeople = pgView("reactivation_people", {
     case when w.kind = 'job_change' then 'moved' when w.kind = 'left' then 'left'
       when s.hiring_id is not null then 'hiring' when w.kind = 'still_there' then 'there'
       else 'unknown' end "now",
-    sc.score, sc.next_step, s.last_contacted_on::timestamptz last_contact,
+    sc.score, sc.next_step,
+    greatest(s.last_contacted_on::timestamptz,
+      (select max(k.called_at) from calls k where k.person_id = s.person_id)) last_contact,
     s.last_placement_on::timestamptz last_placement, s.owner,
     (select v.result from contact_candidates cc join verifications v on v.contact_candidate_id = cc.id
       where cc.evidence = 'crm' and lower(cc.email) = lower(s.email)
@@ -161,4 +163,6 @@ export const reactivationPersonActivity = pgView("reactivation_person_activity",
   union all
   select f.person_id, f.observed_at, f.kind, concat_ws(' · ', f.via, d.title)
   from findings f left join documents d on d.id = f.document_id
-  where f.person_id is not null`);
+  where f.person_id is not null
+  union all
+  select k.person_id, k.called_at, 'called', k.called_by from calls k`);

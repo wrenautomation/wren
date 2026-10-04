@@ -110,6 +110,7 @@ const ONE: Record<string, (id: string, input: Input) => [string, Input]> = {
     { replaces: Number(id), title, url, fileKey },
   ],
   "delivery/hide": (id) => ["delivery/hide", { updateId: Number(id) }],
+  "delivery/invite": (id, { email }) => ["delivery/invite", { client: id, email, role: "owner" }],
   "delivery/grant": access("granted"),
   "delivery/revoke": access("revoked"),
   "delivery/decline": access("declined"),

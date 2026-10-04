@@ -9,6 +9,8 @@ export const PORTAL_ROUTES = [
   "book",
   "unbook",
   "change",
+  "called",
+  "uncalled",
   "run",
   "work",
   "recordsTypes",
@@ -26,4 +28,6 @@ export const PORTAL_WRITES: readonly PortalRoute[] = [
   "book",
   "unbook",
   "change",
+  "called",
+  "uncalled",
 ];

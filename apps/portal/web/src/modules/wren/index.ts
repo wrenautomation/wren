@@ -111,6 +111,22 @@ const CLIENT_ACTIONS: Action[] = [
     ],
     done: (made) => `Added ${(made as { name?: string }).name ?? "the client"}`,
   },
+  {
+    // An owner, so they can invite the rest of their team from Account.
+    id: "delivery.invite",
+    label: "Invite",
+    handler: "delivery/invite",
+    each: true,
+    form: [
+      {
+        field: "email",
+        label: "Their work email",
+        hint: "They sign in with it, as an owner: they invite the rest of their team.",
+      },
+    ],
+    when: { kind: ["client"] },
+    done: () => "Invited",
+  },
 ];
 
 const LOOP_ACTIONS: Action[] = [

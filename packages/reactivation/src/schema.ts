@@ -361,3 +361,28 @@ export const handoffs = pgTable(
   ],
 );
 export type Handoff = typeof handoffs.$inferSelect;
+
+/**
+ * A call to someone on the list, marked in the portal ("Mark called"). Their Last contact is
+ * the later of this and the CRM's, and their history shows who called. The CRM rows stay as the
+ * CRM holds them.
+ */
+export const calls = pgTable(
+  "calls",
+  {
+    id: serial("id").notNull(),
+    personId: integer("person_id").notNull(),
+    /** A portal login's email. */
+    calledBy: varchar("called_by", { length: 320 }).notNull(),
+    calledAt: timestamp("called_at", { withTimezone: true }).defaultNow().notNull(),
+  },
+  (t) => [
+    primaryKey({ columns: [t.id], name: "pk_calls" }),
+    index("ix_calls_person_id").on(t.personId, t.calledAt),
+    foreignKey({
+      columns: [t.personId],
+      foreignColumns: [people.id],
+      name: "fk_calls_person_id_people",
+    }),
+  ],
+);

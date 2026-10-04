@@ -29,6 +29,7 @@ import {
   serveRecords,
 } from "@wren/core/records/serve";
 import { type Db, type Queryable, setAuditActor } from "@wren/db";
+import { sql } from "drizzle-orm";
 import { approveDrafts, type ReviewResult, skipDrafts, unapproveDrafts } from "../approve.js";
 import { feedDelivery } from "../delivery.js";
 import { HandoffRefusal, markMeetingBooked } from "../handoff.js";
@@ -118,10 +119,11 @@ async function write<T>(
   });
 }
 
+const PLURAL: Record<string, string> = { reply: "replies", person: "people" };
 /** Enrollment ids from a browser: whole positive numbers, at most one page's worth. */
 const idsOf = (v: unknown, what = "email"): number[] => {
   if (!Array.isArray(v) || v.length === 0 || v.length > 500)
-    throw new PortalRefusal(`pick the ${what === "email" ? "emails" : "replies"} first`, 404);
+    throw new PortalRefusal(`pick the ${PLURAL[what] ?? `${what}s`} first`, 404);
   return v.map((x) => {
     const n = typeof x === "number" ? x : Number.NaN;
     if (!Number.isSafeInteger(n) || n <= 0) throw new PortalRefusal(`no such ${what}`, 404);
@@ -152,6 +154,15 @@ const opt = <K extends string, V>(k: K, v: V | undefined) =>
   (v === undefined ? {} : { [k]: v }) as Partial<Record<K, V>>;
 
 type Done = { done: (number | string)[]; skipped: (number | string)[] };
+const doneOf = (ids: number[], rows: { person_id: number }[]): Done => {
+  const done = rows.map((r) => r.person_id);
+  return { done, skipped: ids.filter((id) => !done.includes(id)) };
+};
+const listOf = (ids: number[]) =>
+  sql.join(
+    ids.map((id) => sql`${id}`),
+    sql`, `,
+  );
 
 /**
  * Mark replies booked, or take marks back. One reply alone says why it failed; several answer
@@ -273,6 +284,34 @@ export function portalApi(deps: PortalDeps) {
     book: (req: PortalRequest & { ids: number[] }) => booking(deps, req, true),
     /** Take a mark back: a client login only its own, since each mark is a meeting billed. */
     unbook: (req: PortalRequest & { ids: number[] }) => booking(deps, req, false),
+    /** They called these people: Last contact reads now, and their history says who called. */
+    called: (req: PortalRequest & { ids: number[] }): Promise<Done> => {
+      const ids = idsOf(req.ids, "person");
+      return write(deps, req, async (db, _, viewer) =>
+        doneOf(
+          ids,
+          await db.execute<{ person_id: number }>(sql`
+            insert into calls (person_id, called_by)
+            select distinct person_id, lower(${viewer.email}) from crm_contacts
+            where person_id in (${listOf(ids)}) returning person_id`),
+        ),
+      );
+    },
+    /** Take a mark back: each person's newest call from this login. */
+    uncalled: (req: PortalRequest & { ids: number[] }): Promise<Done> => {
+      const ids = idsOf(req.ids, "person");
+      return write(deps, req, async (db, _, viewer) =>
+        doneOf(
+          ids,
+          await db.execute<{ person_id: number }>(sql`
+            delete from calls where id in (
+              select max(id) from calls
+              where person_id in (${listOf(ids)}) and called_by = lower(${viewer.email})
+              group by person_id)
+            returning person_id`),
+        ),
+      );
+    },
     /** Reword one of the profile lines the drafts are written from. */
     change: (req: PortalRequest & { ids: string[]; value?: string }): Promise<Done> =>
       write(deps, req, async (db) => {
@@ -362,6 +401,8 @@ export function makeReactivationPortal(deps: PortalDeps) {
       book: (_: restate.Context, req: Req<"book">) => answer(() => api.book(req)),
       unbook: (_: restate.Context, req: Req<"unbook">) => answer(() => api.unbook(req)),
       change: (_: restate.Context, req: Req<"change">) => answer(() => api.change(req)),
+      called: (_: restate.Context, req: Req<"called">) => answer(() => api.called(req)),
+      uncalled: (_: restate.Context, req: Req<"uncalled">) => answer(() => api.uncalled(req)),
     },
   });
 }

@@ -74,6 +74,7 @@ export const person = defineRecord({
     { record: "reactivation.finding", by: "person" },
   ],
   activity: { view: "reactivation_person_activity", by: "person" },
+  actions: ["reactivation.called"],
   async load(db, id) {
     const view = await portalPerson(db, Number(id));
     if (!view) return null;

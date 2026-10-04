@@ -30,6 +30,23 @@ const SETTING_ACTIONS: Action[] = [
   },
 ];
 
+/** After a call. The demo marks it in the browser, as of when the page loaded. */
+const PERSON_ACTIONS: Action[] = [
+  {
+    id: "reactivation.called",
+    label: "Mark called",
+    handler: "reactivation/called",
+    undo: "reactivation/uncalled",
+    key: "c",
+    bulk: true,
+    sets: { lastContact: new Date().toISOString() },
+    done: (answer) => {
+      const n = (answer as { done?: unknown[] }).done?.length ?? 0;
+      return n ? (n === 1 ? "Marked called" : `${n} marked called`) : "Nothing marked";
+    },
+  },
+];
+
 export const reactivation: Module = {
   id: REACTIVATION,
   name: "Reactivation",
@@ -104,6 +121,7 @@ export const reactivation: Module = {
       record: PERSON,
       empty: "Everyone on your list shows here once it loads, ranked by why to call now.",
       columns: ["title", "company", "now", "score", "lastContact", "email"],
+      actions: PERSON_ACTIONS,
       extras: personExtras,
       legacy: personLegacy,
     },

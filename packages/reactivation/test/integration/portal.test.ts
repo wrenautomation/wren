@@ -437,6 +437,23 @@ describe("writes", () => {
     );
   });
 
+  it("a call moves Last contact and shows in the history; undo takes back only your own", async () => {
+    const cara = await personId("Cara Lim");
+    const get = () => api.recordsGet({ ...owner, record: PERSON, id: String(cara) });
+    const before = (await get()).row.lastContact;
+    expect(await api.called({ ...owner, ids: [cara, 999_999] })).toEqual({
+      done: [cara],
+      skipped: [999_999],
+    });
+    const got = await get();
+    expect(Date.parse(String(got.row.lastContact))).toBeGreaterThan(Date.now() - 60_000);
+    expect(got.activity?.[0]).toMatchObject({ kind: "called", what: "owner@acme.example" });
+    await expect(api.called({ ...demo, ids: [cara] })).rejects.toEqual(refusal(403));
+    expect((await api.uncalled({ ...operator, client: "acme", ids: [cara] })).done).toEqual([]);
+    expect((await api.uncalled({ ...owner, ids: [cara] })).done).toEqual([cara]);
+    expect((await get()).row.lastContact).toEqual(before);
+  });
+
   it("a client rewords its profile, never its sending rules", async () => {
     expect(await api.change({ ...owner, ids: ["emails.voice"], value: " Warm, short. " })).toEqual({
       done: ["emails.voice"],
