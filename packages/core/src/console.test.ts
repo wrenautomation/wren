@@ -440,7 +440,7 @@ describe("formOf: a schema as form boxes", () => {
       { field: "policy", label: "Policy", type: "select", options: ["skip", "recheck"] },
       { field: "ids", label: "Ids", type: "lines", optional: true },
       { field: "personIds", label: "Person ids", type: "numbers", optional: true },
-      { field: "recheck.olderThanDays", label: "Recheck.Days", type: "number", optional: true },
+      { field: "recheck.olderThanDays", label: "Recheck: days", type: "number", optional: true },
       { field: "extra", label: "Extra", type: "json", optional: true },
     ]);
   });

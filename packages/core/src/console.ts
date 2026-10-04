@@ -408,7 +408,8 @@ export function formOf(input: unknown): HandlerField[] | null {
       const s = nonNull(raw);
       const field = path ? `${path}.${name}` : name;
       const own = s.title ?? words(name);
-      const at = label ? `${label}.${own}` : own;
+      // A nested box reads "Stages: research", never "Stages.Research".
+      const at = label ? `${label}: ${own.charAt(0).toLowerCase()}${own.slice(1)}` : own;
       const optional = parentOptional || !obj.required?.includes(name) || s !== raw;
       if (s.type === "object" && s.properties && Object.keys(s.properties).length) {
         walk(s, field, at, optional);
