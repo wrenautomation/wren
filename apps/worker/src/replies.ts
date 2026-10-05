@@ -1,6 +1,6 @@
 /**
- * Replies: every lead's answer, on any channel, in one queue in the Inbox app. Email replies,
- * text threads and DM threads whose lead wrote back, in the same states. Each row links to its
+ * Replies: every lead's answer, on any channel, in one queue in the Inbox app. Every human
+ * email reply, text threads and DM threads whose lead wrote back, in the same states. Each row links to its
  * channel's page, where it's answered; every answer still waits on William's yes.
  */
 import { date, defineRecord, link, name, status, text } from "@wren/core/records";
@@ -10,8 +10,8 @@ import { sql } from "drizzle-orm";
 /** ponytail: rows, not a view: Wren's channels hold a few hundred answers; a view past that. */
 const ROWS = 500;
 
-/** An email reply's state, in the queue's words. */
-const EMAIL: Record<string, string> = {
+/** An email reply's state, in the queue's words: its call invite's, when it has one. */
+const INVITE: Record<string, string> = {
   needs_you: "needs_you",
   proposed: "draft",
   booking: "answered",
@@ -19,6 +19,16 @@ const EMAIL: Record<string, string> = {
   already_booked: "answered",
   sent: "answered",
   dropped: "left",
+};
+/** With no invite, its disposition's; unread or a question for a person needs you. */
+const DISPOSITION: Record<string, string> = {
+  interested: "needs_you",
+  referral: "needs_you",
+  other: "needs_you",
+  meeting_booked: "answered",
+  not_interested: "left",
+  not_now: "left",
+  wrong_person: "left",
 };
 
 type Got = Record<string, unknown>;
@@ -34,8 +44,18 @@ export const replyQueueRecord = defineRecord({
     const [email, texts, dms] = await Promise.all([
       rowsOf(
         db,
-        sql`SELECT id, who, company, state, received AS at, words FROM email_reply_records
-            ORDER BY received DESC LIMIT ${ROWS}`,
+        sql`SELECT te.id, ci.id invite, ci.state invite_state, te.disposition,
+              coalesce(nullif(concat_ws(' ', p.first_name, p.last_name), ''), p.full_name,
+                te.from_address) who,
+              co.name company, coalesce(te.received_at, te.created_at) at,
+              coalesce(te.body_text, te.snippet) words
+            FROM thread_events te
+            LEFT JOIN call_invites ci ON ci.thread_event_id = te.id
+            LEFT JOIN enrollments e ON e.id = te.enrollment_id
+            LEFT JOIN people p ON p.id = e.person_id
+            LEFT JOIN companies co ON co.id = e.company_id
+            WHERE te.kind = 'reply'
+            ORDER BY 7 DESC LIMIT ${ROWS}`,
       ),
       rowsOf(
         db,
@@ -63,12 +83,15 @@ export const replyQueueRecord = defineRecord({
       ),
     ]);
     return [
-      ...email.map((r) => ({
+      // ponytail: a reply with no invite has no page to answer from; it shows, unlinked.
+      ...email.map(({ invite, invite_state, disposition, ...r }) => ({
         ...r,
         id: `email-${r.id}`,
         channel: "email",
-        state: EMAIL[String(r.state)] ?? "left",
-        open: `/inbox/replies/${r.id}`,
+        state: invite
+          ? (INVITE[String(invite_state)] ?? "left")
+          : (DISPOSITION[String(disposition)] ?? "needs_you"),
+        open: invite ? `/inbox/replies/${invite}` : null,
       })),
       ...texts.map((r) => ({
         ...r,
