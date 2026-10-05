@@ -52,3 +52,4 @@
 ## Decision log
 
 - 2026-10-05: YouTube first, enrichment before source. Service account over an API key: no new secret, own quota. Findings over a new table: the facts are what downstream reads.
+- 2026-10-05 trial: 105 recruiting firms read (210 units, $0). 22 had a non-Short upload in 90 days, 11 in 30. Three slot prompts on those 22 titles (≈ $0.10 of Cohere): asking for the phrase "after your recent video on" made the model echo it; asking for lowercase broke the word cap. The prompt that shipped gives one mid-sentence example and refuses anything not about work. 11 of 22 passed, and all of them read naturally; a refusal only drops the option.
