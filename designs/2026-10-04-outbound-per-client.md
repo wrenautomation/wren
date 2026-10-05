@@ -47,3 +47,4 @@
 ## Decision log
 
 - 2026-10-04: Written at the end of components C3. No code yet.
+- 2026-10-04: Building now with defaults that cost nothing and match today, so William's three answers become settings changes, not code. Senders: the addresses in the client's settings, logins from `clients.accounts.gmail`; the code never buys a domain. Answers: wait on Wren's approve, as today. Caps: settings fields, defaulting to Wren's current values.
