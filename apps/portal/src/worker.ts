@@ -215,6 +215,9 @@ export default {
   async fetch(req: Request, env: Env, ctx?: ExecutionContext): Promise<Response> {
     const { pathname } = new URL(req.url);
     if (pathname.startsWith("/api/")) return api(req, env, pathname.slice("/api/".length), ctx);
+    // A record page whose id holds a slash (/handlers/all/Ads%2Fstart): the asset server would
+    // 307 it to the decoded path, a different page. The app reads the id from the address.
+    if (/%2f/i.test(pathname)) return env.ASSETS.fetch(new Request(new URL("/", req.url), req));
     return env.ASSETS.fetch(req);
   },
 } satisfies ExportedHandler<Env>;

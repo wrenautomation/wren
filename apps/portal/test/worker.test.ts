@@ -116,6 +116,16 @@ describe("routes", () => {
     const res = await worker.fetch(new Request("https://app.test/people"), env());
     expect(await res.text()).toBe("app");
   });
+
+  it("a record id with a slash gets the app shell, not the asset server's redirect", async () => {
+    const asked: string[] = [];
+    const assets = { fetch: async (r: Request) => (asked.push(r.url), new Response("app")) };
+    await worker.fetch(
+      new Request("https://app.test/handlers/all/Ads%2Fstart"),
+      env({ ASSETS: assets as unknown as Fetcher }),
+    );
+    expect(asked).toEqual(["https://app.test/"]);
+  });
 });
 
 describe("the demo host", () => {
