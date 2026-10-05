@@ -396,6 +396,7 @@ export async function buildServices(
     // A dead firm site at 30s × 3 tries held one shard ~90s a page; a live one answers in seconds.
     makeEnrichment({
       db,
+      clientDb,
       fetcher: ua ? new PoliteFetcher(ua, { timeout: 10, retries: 2 }) : null,
       llm,
       renderer,
@@ -415,13 +416,21 @@ export async function buildServices(
     // one try per URL, or a single company's guesses can eat a Lambda invocation.
     makeDiscovery({
       db,
+      clientDb,
       fetcher: ua ? new PoliteFetcher(ua, { timeout: 8, retries: 1 }) : null,
       genericWordsFor: discoveryWordsFor,
     }),
     makeResolution({
       db,
+      clientDb,
       verifier,
-      openPool: (max) => createDb(settings.databaseUrl, { max, app: WORKER_APP }),
+      openPool: (max, client) =>
+        createDb(
+          client
+            ? clientDatabaseUrl(settings.databaseUrl, clientDatabaseName(client))
+            : settings.databaseUrl,
+          { max, app: WORKER_APP },
+        ),
     }),
     // A plain key is one of Wren's inboxes; `<client>/<mailbox>` is a client's (R4, R12:
     // its mailboxes are in Wren's Workspace, so the same transport and reader serve them).
@@ -495,6 +504,7 @@ export async function buildServices(
   services.push(
     makePoolScheduler({
       db,
+      clientDb,
       policy,
       modelStages: settings.poolModelStages,
       freeVerifier: freeVerdicts,
@@ -757,7 +767,14 @@ export async function buildServices(
         ? restateAdminGet(settings.restateAdminUrl, settings.restateAuthToken)
         : undefined,
     }),
-    makeEmailConsole({ db, senders: roster.map((s) => s.address), policy, campaigns, llmFor }),
+    makeEmailConsole({
+      db,
+      senders: roster.map((s) => s.address),
+      policy,
+      campaigns,
+      llmFor,
+      clients,
+    }),
     makeBooksConsole(db),
     makeReactivation({
       main: db,

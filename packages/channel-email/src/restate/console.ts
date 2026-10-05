@@ -5,18 +5,32 @@
  * change goes live with no deploy. Approve and drop go
  * to `Disposition/fleet`, so only its journaled steps book or send. Every handler refuses whoever
  * `seesInternal` rejects; the Worker also keeps the writes off the demo (`console-routes.ts`).
+ * The `records*` reads are a client's lead sheet (O1): its firms and stalls, from its own
+ * database, for anyone who may open that client, once `research.lead_sheet` is installed.
  */
 import * as restate from "@restatedev/restate-sdk";
+import type { Client } from "@wren/core/clients";
 import {
   answer,
   PortalRefusal,
   type PortalRequest,
+  pickClient,
   type SignedViewer,
   seesInternal,
 } from "@wren/core/portal";
+import { metaOf } from "@wren/core/records";
+import {
+  type ExportAsk,
+  type GetAsk,
+  type ListAsk,
+  type RecordsApi,
+  type StatsAsk,
+  serveRecords,
+} from "@wren/core/records/serve";
 import { PORTAL_FIELDS, serviceHandler } from "@wren/core/restate";
 import { type Db, type Queryable, setAuditActor } from "@wren/db";
 import { parseSettings, settingsSchema } from "@wren/experiments";
+import { LEAD_SHEET } from "@wren/research/components";
 import { sql } from "drizzle-orm";
 import { z } from "zod";
 import {
@@ -28,6 +42,7 @@ import {
 import { moveExperiment, startExperiment, switchSetting } from "../evolve/experiments.js";
 import { pause, resolveTarget, resume } from "../inbox/health.js";
 import { openInvites } from "../inbox/invite.js";
+import { firmRecord, stallRecord } from "../records.js";
 import {
   type CampaignChange,
   campaignPolicy,
@@ -48,7 +63,12 @@ export interface EmailConsoleDeps {
   campaigns?: ReadonlyMap<string, Campaign>;
   /** The models `llm_seed` writes with. */
   llmFor?: LlmFor;
+  /** Main's client registry and each client's database: the lead sheet reads. Absent, they refuse. */
+  clients?: { main: Db; open: (client: Pick<Client, "database">) => Db } | null;
 }
+
+/** What a client's Pipeline app reads. */
+const SHEET_RECORDS = [firmRecord, stallRecord];
 export interface InviteRequest extends PortalRequest {
   id: number;
   /** Approve only: the reply as edited; absent, the draft goes as written. */
@@ -129,6 +149,7 @@ export function emailConsoleApi({
   policy,
   campaigns: files,
   llmFor,
+  clients,
 }: EmailConsoleDeps) {
   /** Wren's team only; their email is who acted. */
   const team = (req: PortalRequest): string => {
@@ -150,6 +171,20 @@ export function emailConsoleApi({
     db.transaction(async (tx) => {
       await setAuditActor(tx, who);
       return change(tx);
+    });
+
+  /** The database of a client this viewer may open, with the lead sheet installed. */
+  const sheetDb = async (req: PortalRequest): Promise<Db> => {
+    if (!clients) throw new PortalRefusal("not found", 404);
+    const client = await pickClient(clients.main, req);
+    if (!client.products || !(LEAD_SHEET in client.products))
+      throw new PortalRefusal("the lead sheet is not installed", 404);
+    return clients.open(client);
+  };
+  /** The client's sheet, read-only. */
+  const sheet = async <T>(req: PortalRequest, use: (api: RecordsApi) => Promise<T>) =>
+    (await sheetDb(req)).transaction((tx) => use(serveRecords(SHEET_RECORDS, tx)), {
+      accessMode: "read only",
     });
 
   /** The campaigns `email_campaign_records` lists: what a campaign control may name. */
@@ -267,6 +302,15 @@ export function emailConsoleApi({
         for (const [key, value] of changes) await switchSetting(db, id, key, value);
       });
     },
+    /** The client's lead-sheet record types. */
+    recordsTypes: async (req: PortalRequest) => {
+      await sheetDb(req);
+      return SHEET_RECORDS.map((t) => metaOf(t, false));
+    },
+    recordsList: (req: PortalRequest & ListAsk) => sheet(req, (r) => r.list(req)),
+    recordsGet: (req: PortalRequest & GetAsk) => sheet(req, (r) => r.get(req)),
+    recordsExport: (req: PortalRequest & ExportAsk) => sheet(req, (r) => r.export(req)),
+    recordsStats: (req: PortalRequest & StatsAsk) => sheet(req, (r) => r.stats(req)),
     /** Warm replies waiting on William: who, their words, the proposed time and zone, the draft. */
     answers: async (req: PortalRequest) => {
       team(req);
@@ -372,6 +416,27 @@ export function makeEmailConsole(deps: EmailConsoleDeps) {
       answers: serviceHandler(
         { input: z.looseObject(PORTAL_FIELDS) },
         (_: restate.Context, req: PortalRequest) => answer(() => api.answers(req)),
+      ),
+      recordsTypes: serviceHandler(
+        { input: z.looseObject(PORTAL_FIELDS) },
+        (_: restate.Context, req: PortalRequest) => answer(() => api.recordsTypes(req)),
+      ),
+      recordsList: serviceHandler(
+        { input: z.looseObject(PORTAL_FIELDS) },
+        (_: restate.Context, req: PortalRequest & ListAsk) => answer(() => api.recordsList(req)),
+      ),
+      recordsGet: serviceHandler(
+        { input: z.looseObject(PORTAL_FIELDS) },
+        (_: restate.Context, req: PortalRequest & GetAsk) => answer(() => api.recordsGet(req)),
+      ),
+      recordsExport: serviceHandler(
+        { input: z.looseObject(PORTAL_FIELDS) },
+        (_: restate.Context, req: PortalRequest & ExportAsk) =>
+          answer(() => api.recordsExport(req)),
+      ),
+      recordsStats: serviceHandler(
+        { input: z.looseObject(PORTAL_FIELDS) },
+        (_: restate.Context, req: PortalRequest & StatsAsk) => answer(() => api.recordsStats(req)),
       ),
       approve: serviceHandler(
         { input: INVITE.extend({ body: BODY }), effect: "sends" },

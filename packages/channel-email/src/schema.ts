@@ -182,9 +182,10 @@ export const verifications = pgTable(
       foreignColumns: [leads.id],
       name: "fk_verifications_lead_id_leads",
     }),
+    // A verdict shared on main for clients' walks names only its address.
     check(
       "ck_verifications_attributed",
-      sql`(lead_id IS NOT NULL) OR (contact_candidate_id IS NOT NULL)`,
+      sql`(lead_id IS NOT NULL) OR (contact_candidate_id IS NOT NULL) OR (email IS NOT NULL)`,
     ),
     oneOf("ck_verifications_verificationresult", t.result, VERIFICATION_RESULTS),
   ],

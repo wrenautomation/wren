@@ -28,11 +28,15 @@ const WIDENED: Record<string, string[]> = {
   ck_enrichments_enrichmentkind: ["opener", "video"],
   ck_enrollments_stopreason: ["undeliverable", "booked"],
 };
+/** Checks given one more way to pass (2026-10-04: a shared verdict names only its address). */
+const LOOSENED: Record<string, string> = {
+  ck_verifications_attributed: " OR (email IS NOT NULL)",
+};
 const unwiden = (c: Catalog["constraints"][number]) => ({
   ...c,
   def: (WIDENED[c.name] ?? []).reduce(
     (d, v) => d.replace(`, ('${v}'::character varying)::text`, ""),
-    c.def,
+    c.def.replace(LOOSENED[c.name] ?? "", ""),
   ),
 });
 /**

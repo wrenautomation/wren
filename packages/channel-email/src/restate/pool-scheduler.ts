@@ -25,10 +25,17 @@
  *
  * `start({stages: [...]})` narrows one niche's loop to those stages (e.g. only the
  * two mailbox stages while the crawl stays off); `start({})` goes back to all.
+ *
+ * `PoolScheduler/<client>/<niche|all>` is a client's pool (designs/2026-10-04-outbound-per-client.md,
+ * O1): the same chain on `Discovery`/`Enrichment` keyed alike, in the client's database,
+ * sized by its `research.lead_sheet` block. Each pass reads the block from main; a client
+ * gone, the demo, or the component uninstalled stops the loop. No profiles, no re-checks.
  */
 import * as restate from "@restatedev/restate-sdk";
 import { finishRun, openRun } from "@wren/core";
+import { findClient } from "@wren/core/clients";
 import {
+  clientOfKey,
   errorText,
   failuresInARow,
   LAST,
@@ -38,9 +45,16 @@ import {
   retryDelayMs,
 } from "@wren/core/restate";
 import type { Db } from "@wren/db";
+import {
+  LEAD_SHEET,
+  type LeadSheetSettings,
+  leadSheetSettingsSchema,
+} from "@wren/research/components";
 import type { Discovery, Enrichment } from "@wren/research/restate";
+import { and, count, gt, ne, sql } from "drizzle-orm";
 import { nextToEnroll } from "../outreach/compose.js";
 import type { RecontactPolicy } from "../recontact.js";
+import { verifications } from "../schema.js";
 import type { SendPolicy } from "../send/policy.js";
 import { untilNextLocalDay } from "./postmaster-scheduler.js";
 import { RESOLUTION_KEY, type Resolution } from "./resolution.js";
@@ -153,6 +167,37 @@ export interface PoolSchedulerDeps {
   busyMs?: number;
   /** The longest delay after passes in which a stage failed (backoff cap). */
   retryMs?: number;
+  /** A client's database, for `<client>/...` keys; absent, those keys refuse. */
+  clientDb?: ((client: string) => Db) | null;
+}
+
+/** One client's pool this pass, or why it stops. */
+type ClientPlan = { kind: "gone"; why: string } | { kind: "work"; settings: LeadSheetSettings };
+
+async function clientPlan(main: Db, id: string): Promise<ClientPlan> {
+  const client = await findClient(main, id);
+  if (!client) return { kind: "gone", why: "no such client" };
+  if (client.demo) return { kind: "gone", why: "the demo is never worked" };
+  const block = (client.products as Record<string, unknown> | null)?.[LEAD_SHEET];
+  if (block === undefined) return { kind: "gone", why: "the lead sheet is not installed" };
+  const parsed = leadSheetSettingsSchema.safeParse(block);
+  if (!parsed.success) return { kind: "gone", why: "the lead sheet settings do not parse" };
+  return { kind: "work", settings: parsed.data };
+}
+
+/** Mail-server checks the client's walks asked for in the last 24 hours; main's shared verdicts cost none. */
+async function checksToday(db: Db, now: Date): Promise<number> {
+  const [row] = await db
+    .select({ n: count() })
+    .from(verifications)
+    .where(
+      and(
+        ne(verifications.verifier, "local"),
+        gt(verifications.checkedAt, new Date(now.getTime() - 86_400_000)),
+        sql`${verifications.raw}->>'shared' IS NULL`,
+      ),
+    );
+  return row?.n ?? 0;
 }
 
 export interface StageOutcome {
@@ -202,6 +247,11 @@ export const progressOf: Record<Stage, (s: Record<string, number>) => number> = 
   profiles: (s) => (s.people_matched ?? 0) + (s.people_unresolved ?? 0),
 };
 
+const definedOnly = <T extends object>(o: T): { [K in keyof T]?: Exclude<T[K], undefined> } =>
+  Object.fromEntries(Object.entries(o).filter(([, v]) => v !== undefined)) as {
+    [K in keyof T]?: Exclude<T[K], undefined>;
+  };
+
 export function stageEnabled(
   stage: Stage,
   modelStages: ModelStages,
@@ -215,43 +265,87 @@ export function stageEnabled(
 }
 
 export function makePoolScheduler(deps: PoolSchedulerDeps) {
-  const limits: StageLimits = { ...DEFAULT_LIMITS, ...deps.limits };
+  const base: StageLimits = { ...DEFAULT_LIMITS, ...deps.limits };
   const busyMs = deps.busyMs ?? DEFAULT_BUSY_MS;
   const retryMs = deps.retryMs ?? DEFAULT_RETRY_MS;
 
   return makeLoopObject("PoolScheduler", async (ctx: restate.ObjectContext) => {
     const now = new Date(await ctx.date.now());
-    const niche = ctx.key;
+    const owner = clientOfKey(ctx.key);
+    const client = owner?.client ?? null;
+    // Wren's key is its niche; a client's is `<client>/<niche>`, "all" its whole pool.
+    const niche = owner ? (owner.unit === "all" ? null : owner.unit) : ctx.key;
+    let sheet: LeadSheetSettings | null = null;
+    let db = deps.db;
+    if (client !== null) {
+      if (!deps.clientDb) throw new restate.TerminalError("no client databases here");
+      const plan = await ctx.run("client", () => clientPlan(deps.db, client));
+      if (plan.kind === "gone") {
+        const outcome: PassOutcome<FeedStats> = {
+          stats: {
+            niche: ctx.key,
+            model_stages: deps.modelStages,
+            stages: [],
+            progress: 0,
+            failed: 0,
+          },
+          error: null,
+          failures: 0,
+          delayMs: busyMs,
+          now: now.toISOString(),
+          stopped: plan.why,
+        };
+        ctx.set(LAST, outcome);
+        return outcome;
+      }
+      sheet = plan.settings;
+      db = deps.clientDb(client);
+    }
+    const limits: StageLimits = { ...base, ...definedOnly(sheet?.perPass ?? {}) };
+    // A day's cap on mail-server checks: a pass may run past it by at most its own size.
+    // ponytail: rolling count, not a reservation; a per-check budget if overshoot matters.
+    if (sheet?.verificationsPerDay != null) {
+      const cap = sheet.verificationsPerDay;
+      const left = Math.max(0, cap - (await ctx.run("checks today", () => checksToday(db, now))));
+      limits.resolveMailboxes = Math.min(limits.resolveMailboxes, left);
+      limits.verifyMailboxes = Math.min(limits.verifyMailboxes, left);
+    }
     const settings = await loopSettings<PoolSettings>(ctx);
     const runnable = stagesToRun(
       settings,
       deps.modelStages,
       deps.freeVerifier,
-      deps.profiles !== undefined,
+      client === null && deps.profiles !== undefined,
     );
-    const discovery = ctx.objectClient<Discovery>({ name: "Discovery" }, niche);
-    const enrichment = ctx.objectClient<Enrichment>({ name: "Enrichment" }, niche);
+    if (limits.resolveMailboxes === 0) runnable.delete("resolveMailboxes");
+    if (limits.verifyMailboxes === 0) runnable.delete("verifyMailboxes");
+    const discovery = ctx.objectClient<Discovery>({ name: "Discovery" }, ctx.key);
+    const enrichment = ctx.objectClient<Enrichment>({ name: "Enrichment" }, ctx.key);
     const resolution = ctx.objectClient<Resolution>({ name: "Resolution" }, RESOLUTION_KEY);
+    const words = sheet?.genericWords.length ? { genericWords: sheet.genericWords } : {};
+    const hints = sheet?.crawlHints.length ? { extraHints: sheet.crawlHints } : {};
+    // Absent niche = every niche's leads, which is a client's `all`.
+    const on = { ...(client !== null ? { client } : {}), ...(niche !== null ? { niche } : {}) };
     const calls: Record<Stage, () => Promise<object>> = {
-      discover: () => discovery.discover({ limit: limits.discover }),
-      verify: () => discovery.verify({ limit: limits.verify }),
-      crawl: () => enrichment.crawl({ limit: limits.crawl }),
-      render: () => enrichment.render({ limit: limits.render }),
+      discover: () => discovery.discover({ limit: limits.discover, ...words }),
+      verify: () => discovery.verify({ limit: limits.verify, ...words }),
+      crawl: () => enrichment.crawl({ limit: limits.crawl, ...hints }),
+      render: () => enrichment.render({ limit: limits.render, ...hints }),
       scan: () => enrichment.scan({ limit: limits.scan }),
       extract: () => enrichment.extract({ limit: limits.extract }),
       pick: () => enrichment.pick({ limit: limits.pick, rules: deps.modelStages === "none" }),
       applyPicks: () => enrichment.applyPicks({}),
       resolveMailboxes: () =>
         resolution.resolveNewDomains({
-          niche,
+          ...on,
           limitDomains: limits.resolveMailboxes,
           concurrency: PROBE_WIDTH,
           domainBudget: FREE_DOMAIN_BUDGET,
         }),
       verifyMailboxes: () => {
-        const policy = deps.recheck?.policy(niche);
+        const policy = client === null && niche !== null ? deps.recheck?.policy(niche) : undefined;
         return resolution.verifyLeads({
-          niche,
+          ...on,
           limit: limits.verifyMailboxes,
           concurrency: PROBE_WIDTH,
           ...(deps.recheck && policy
@@ -261,7 +355,7 @@ export function makePoolScheduler(deps: PoolSchedulerDeps) {
       },
       profiles: async () => {
         const p = deps.profiles;
-        if (!p) throw new restate.TerminalError("profiles stage is off");
+        if (!p || niche === null) throw new restate.TerminalError("profiles stage is off");
         const personIds = await ctx.run("profile queue", async () =>
           nextToEnroll(deps.db, {
             niche,
@@ -278,11 +372,12 @@ export function makePoolScheduler(deps: PoolSchedulerDeps) {
     };
 
     const runId = await ctx.run("open run", async () => {
-      const run = await openRun(deps.db, {
+      const run = await openRun(db, {
         command: POOL_COMMAND,
         argv: {
           daemon: true,
           niche,
+          ...on,
           model_stages: deps.modelStages,
           free_verifier: deps.freeVerifier ?? false,
           profiles: deps.profiles !== undefined,
@@ -294,7 +389,7 @@ export function makePoolScheduler(deps: PoolSchedulerDeps) {
       return run.id;
     });
     const stats: FeedStats = {
-      niche,
+      niche: ctx.key,
       model_stages: deps.modelStages,
       stages: [],
       progress: 0,
@@ -324,7 +419,7 @@ export function makePoolScheduler(deps: PoolSchedulerDeps) {
         stats.failed += 1;
       }
     }
-    await ctx.run("finish run", () => finishRun(deps.db, runId, stats));
+    await ctx.run("finish run", () => finishRun(db, runId, stats));
 
     const failures = await failuresInARow(ctx, stats.failed > 0);
     const delayMs =

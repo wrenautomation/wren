@@ -48,3 +48,9 @@
 
 - 2026-10-04: Written at the end of components C3. No code yet.
 - 2026-10-04: Building now with defaults that cost nothing and match today, so William's three answers become settings changes, not code. Senders: the addresses in the client's settings, logins from `clients.accounts.gmail`; the code never buys a domain. Answers: wait on Wren's approve, as today. Caps: settings fields, defaulting to Wren's current values.
+- 2026-10-04 (O1 built): Settings live on `research.lead_sheet` only: `genericWords`, `crawlHints` (empty = Wren's), `perPass` (over Wren's per-pass sizes), `verificationsPerDay` (null = no cap, as Wren today). The other four take `{}`. "Which roles" (`mailsRoleInboxes`) is a compose rule: O2.
+- 2026-10-04: A client's pool is `PoolScheduler/<client>/all`, started by hand like Wren's niches; `Discovery`/`Enrichment` take the same `<client>/...` keys, `Resolution` takes `client` in its input. Walks stay one at a time through the single `Resolution/default` key.
+- 2026-10-04: Clients get no `profiles` (Exa is metered, its queue is compose's) and no re-checks; `modelStages` stays the worker's setting.
+- 2026-10-04: Verdicts: a client's walk reads main's recent verdict per address (30 days, never `risky`) and writes fresh probes to main unattributed (migration relaxes `ck_verifications_attributed`). The daily cap counts only fresh probes.
+- 2026-10-04: Pages: a client's crawl reads main's 200s under 30 days by URL and keeps fresh ones on main with no company. The client still keeps its own copy: extraction joins on it. `PageArchive` stays main's only.
+- 2026-10-04: The Pipeline in a client's workspace is the app `leads` (same pages as `pipeline`), read through `EmailConsole.records*` on the client's database, refused unless `research.lead_sheet` is installed.

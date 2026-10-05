@@ -31,6 +31,7 @@ import {
 import type { LocalCheckerLike } from "../verification/local.js";
 import { defaultLocalChecker } from "../verification/mailifier.js";
 import { runVerification, type VerificationStats } from "../verification/service.js";
+import { sharedVerdicts } from "../verification/shared.js";
 import type { EmailVerifier } from "../verification/verifier.js";
 
 export interface ResolutionDeps {
@@ -41,19 +42,26 @@ export interface ResolutionDeps {
   /**
    * A pool of `max` connections for one `resolveNewDomains` pass, closed after it:
    * each domain walk holds a transaction while it probes, so the process's small
-   * pool would cap the width. Absent = walk on `db`.
+   * pool would cap the width. Absent = walk on `db`. `client` names whose database.
    */
-  openPool?: (max: number) => DbHandle;
+  openPool?: (max: number, client?: string) => DbHandle;
+  /** A client's database, for calls that name `client`; absent, those calls refuse. */
+  clientDb?: ((client: string) => Db) | null;
+}
+
+/** Any call may name a client: its work then runs in that client's database, its verdicts shared on main. */
+export interface ClientInput {
+  client?: string | null;
 }
 
 export const RESOLUTION_KEY = "default";
 
-export interface ResolveInput {
+export interface ResolveInput extends ClientInput {
   domainBudget?: number;
   creditLimit?: number | null;
 }
 
-export interface ResolveNewInput {
+export interface ResolveNewInput extends ClientInput {
   niche?: string;
   /** Domains walked this pass. */
   limitDomains: number;
@@ -62,7 +70,7 @@ export interface ResolveNewInput {
   domainBudget?: number;
 }
 
-export interface VerifyLeadsInput {
+export interface VerifyLeadsInput extends ClientInput {
   niche?: string;
   limit?: number;
   /** Days after which a `risky` verdict is tried again (default 2). */
@@ -78,6 +86,7 @@ export interface VerifyLeadsInput {
 export const DEFAULT_RETRY_RISKY_DAYS = 2;
 
 const NICHE = z.string().nullish().describe("One campaign's leads, e.g. agencies");
+const CLIENT = z.string().nullish().describe("A client's id: work in its database");
 const QUEUE = z
   .looseObject({
     domain: z.string().nullish(),
@@ -85,13 +94,19 @@ const QUEUE = z
     companyDomain: z.string().nullish().describe("A keyless niche's firm, by its website domain"),
     niche: NICHE,
     limitPeople: z.number().nullish(),
+    client: CLIENT,
   })
   .nullish();
 const RESOLVE = z
-  .looseObject({ domainBudget: z.number().nullish(), creditLimit: z.number().nullish() })
+  .looseObject({
+    domainBudget: z.number().nullish(),
+    creditLimit: z.number().nullish(),
+    client: CLIENT,
+  })
   .nullish();
 const RESOLVE_NEW = z.looseObject({
   niche: NICHE,
+  client: CLIENT,
   limitDomains: z.number().describe("Domains walked this pass"),
   concurrency: z.number().nullish().describe("Domain walks at once"),
   domainBudget: z.number().nullish(),
@@ -99,6 +114,7 @@ const RESOLVE_NEW = z.looseObject({
 const VERIFY = z
   .looseObject({
     niche: NICHE,
+    client: CLIENT,
     limit: z.number().nullish(),
     retryRiskyAfterDays: z
       .number()
@@ -114,37 +130,52 @@ const VERIFY = z
 
 export function makeResolution(deps: ResolutionDeps) {
   const checker = deps.checker ?? defaultLocalChecker();
-  const open = (ctx: restate.ObjectContext, command: string, argv: Record<string, unknown>) =>
+  const shared = sharedVerdicts(deps.db, deps.verifier);
+  /** Where a call works and what it asks: Wren's on main, a client's in its database through main's verdicts. */
+  const scope = (input: ClientInput | null | undefined) => {
+    const client = input?.client ?? null;
+    if (client === null) return { db: deps.db, verifier: deps.verifier, client };
+    if (!deps.clientDb) throw new restate.TerminalError("no client databases here");
+    return { db: deps.clientDb(client), verifier: shared, client };
+  };
+  const open = (
+    ctx: restate.ObjectContext,
+    db: Db,
+    command: string,
+    argv: Record<string, unknown>,
+  ) =>
     ctx.run("open run", async () => {
-      const run = await openRun(deps.db, { command, argv, model: deps.verifier.name });
+      const run = await openRun(db, { command, argv, model: deps.verifier.name });
       return run.id;
     });
-  const close = (ctx: restate.ObjectContext, runId: string, stats: object) =>
-    ctx.run("finish run", () => finishRun(deps.db, runId, stats));
+  const close = (ctx: restate.ObjectContext, db: Db, runId: string, stats: object) =>
+    ctx.run("finish run", () => finishRun(db, runId, stats));
 
   return restate.object({
     name: "Resolution",
     handlers: {
       build: exclusiveHandler(
-        { input: z.looseObject({ limitPeople: z.number().nullish() }).nullish() },
-        async (ctx: restate.ObjectContext, input: { limitPeople?: number } = {}) => {
-          const runId = await open(ctx, "resolve build", { ...input });
+        { input: z.looseObject({ limitPeople: z.number().nullish(), client: CLIENT }).nullish() },
+        async (ctx: restate.ObjectContext, input: { limitPeople?: number } & ClientInput = {}) => {
+          const { db } = scope(input);
+          const runId = await open(ctx, db, "resolve build", { ...input });
           const stats = await ctx.run("build", () =>
-            deps.db.transaction((tx) => buildCandidates(tx, input)),
+            db.transaction((tx) => buildCandidates(tx, input)),
           );
-          await close(ctx, runId, stats);
+          await close(ctx, db, runId, stats);
           return stats;
         },
       ),
 
       queue: exclusiveHandler(
         { input: QUEUE },
-        async (ctx: restate.ObjectContext, input: QueueOptions = {}) => {
-          const runId = await open(ctx, "resolve queue", { ...input });
+        async (ctx: restate.ObjectContext, input: QueueOptions & ClientInput = {}) => {
+          const { db } = scope(input);
+          const runId = await open(ctx, db, "resolve queue", { ...input });
           const stats = await ctx.run("queue", () =>
-            deps.db.transaction((tx) => queueCandidates(tx, input)),
+            db.transaction((tx) => queueCandidates(tx, input)),
           );
-          await close(ctx, runId, stats);
+          await close(ctx, db, runId, stats);
           return stats;
         },
       ),
@@ -155,19 +186,20 @@ export function makeResolution(deps: ResolutionDeps) {
         async (ctx: restate.ObjectContext, input: ResolveInput = {}): Promise<ResolutionStats> => {
           const domainBudget = input.domainBudget ?? DEFAULT_DOMAIN_BUDGET;
           const creditLimit = input.creditLimit ?? null;
-          const runId = await open(ctx, "resolve run", { ...input });
+          const { db, verifier } = scope(input);
+          const runId = await open(ctx, db, "resolve run", { ...input });
           const promotions: PromotionRef[] = await ctx.run("stranded", () =>
-            strandedPromotions(deps.db),
+            strandedPromotions(db),
           );
-          const domains = await ctx.run("select", () => selectResolutionTargets(deps.db));
+          const domains = await ctx.run("select", () => selectResolutionTargets(db));
           let stats = emptyResolutionStats();
           stats.stranded_repaired = promotions.length;
           let spent = 0;
           for (const domain of domains) {
             const alreadySpent = spent;
             const r = await ctx.run(`resolve ${domain}`, () =>
-              deps.db.transaction((tx) =>
-                resolveDomainUnit(tx, deps.verifier, domain, {
+              db.transaction((tx) =>
+                resolveDomainUnit(tx, verifier, domain, {
                   domainBudget,
                   checker,
                   alreadySpent,
@@ -183,10 +215,10 @@ export function makeResolution(deps: ResolutionDeps) {
           }
           if (promotions.length) {
             await ctx.run("promote", () =>
-              deps.db.transaction((tx) => promoteCandidates(tx, promotions)),
+              db.transaction((tx) => promoteCandidates(tx, promotions)),
             );
           }
-          await close(ctx, runId, stats);
+          await close(ctx, db, runId, stats);
           return stats;
         },
       ),
@@ -206,12 +238,13 @@ export function makeResolution(deps: ResolutionDeps) {
               "resolveNewDomains spends without a limit: free verifiers only",
             );
           const domainBudget = input.domainBudget ?? DEFAULT_DOMAIN_BUDGET;
-          const runId = await open(ctx, "resolve new domains", { ...input });
+          const { db: home, verifier, client } = scope(input);
+          const runId = await open(ctx, home, "resolve new domains", { ...input });
           const width = input.concurrency ?? 1;
           const { stats, promotions } = await ctx.run("walk", async () => {
             // One more connection than the walk's width: the lock holds it for the whole walk.
-            const pool = deps.openPool?.(width + 1) ?? null;
-            const db = pool?.db ?? deps.db;
+            const pool = deps.openPool?.(width + 1, client ?? undefined) ?? null;
+            const db = pool?.db ?? home;
             try {
               return await oneWalkAtATime(db, async () => {
                 const domains = await selectNewResolutionTargets(db, {
@@ -227,7 +260,7 @@ export function makeResolution(deps: ResolutionDeps) {
                   width,
                   async (domain) => {
                     const r = await db.transaction((tx) =>
-                      resolveDomainUnit(tx, deps.verifier, domain, {
+                      resolveDomainUnit(tx, verifier, domain, {
                         domainBudget,
                         checker,
                         alreadySpent: 0,
@@ -248,10 +281,10 @@ export function makeResolution(deps: ResolutionDeps) {
           });
           if (promotions.length) {
             await ctx.run("promote", () =>
-              deps.db.transaction((tx) => promoteCandidates(tx, promotions)),
+              home.transaction((tx) => promoteCandidates(tx, promotions)),
             );
           }
-          await close(ctx, runId, stats);
+          await close(ctx, home, runId, stats);
           // Nothing walked and the verifier down: that is the stage's failure, not a quiet pass.
           if (stats.aborted && stats.credits_spent === 0) {
             throw new restate.TerminalError(`verifier: ${stats.aborted}`);
@@ -271,10 +304,11 @@ export function makeResolution(deps: ResolutionDeps) {
           ctx: restate.ObjectContext,
           input: VerifyLeadsInput = {},
         ): Promise<VerificationStats> => {
-          const runId = await open(ctx, "verify leads", { ...input });
+          const { db, verifier } = scope(input);
+          const runId = await open(ctx, db, "verify leads", { ...input });
           const days = input.retryRiskyAfterDays ?? DEFAULT_RETRY_RISKY_DAYS;
           const stats = await ctx.run("verify", () =>
-            runVerification(deps.db, deps.verifier, {
+            runVerification(db, verifier, {
               checker,
               ...(input.niche !== undefined ? { niche: input.niche } : {}),
               ...(input.limit !== undefined ? { limit: input.limit } : {}),
@@ -290,7 +324,7 @@ export function makeResolution(deps: ResolutionDeps) {
                 : {}),
             }),
           );
-          await close(ctx, runId, stats);
+          await close(ctx, db, runId, stats);
           // Nothing checked and the verifier down: that is the stage's failure, not a quiet pass.
           if (stats.aborted && verifiedRows(stats) === 0) {
             throw new restate.TerminalError(`verifier: ${stats.aborted}`);

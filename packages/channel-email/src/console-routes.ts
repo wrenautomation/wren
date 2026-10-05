@@ -24,4 +24,12 @@ export const EMAIL_CONSOLE_WRITES = [
   ...CAMPAIGN_WRITES,
   ...EXPERIMENT_WRITES,
 ] as const;
-export const EMAIL_CONSOLE_ROUTES = ["answers", ...EMAIL_CONSOLE_WRITES] as const;
+/** A client's lead sheet (O1): reads, open to whoever may see that client. */
+const SHEET_READS = [
+  "recordsTypes",
+  "recordsList",
+  "recordsGet",
+  "recordsExport",
+  "recordsStats",
+] as const;
+export const EMAIL_CONSOLE_ROUTES = ["answers", ...SHEET_READS, ...EMAIL_CONSOLE_WRITES] as const;

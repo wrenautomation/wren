@@ -15,6 +15,8 @@ One fetched page or PDF of a company's site, stored with its text and html. Tabl
 
 Everything downstream reads stored pages, never the live web: extraction, email scan, phone lift and provenance all cite a `document_id`. `fetch_tier` says how it was got (plain fetch or rendered), `is_shell` marks a page that needs rendering, `robots_disallowed` records that we fetched past a disallow (warn mode). HTML was ~85% of the database and of each nightly dump, read once by the scan, so it lives in S3 once scanned; `htmlOf` reads it from either place, and nothing is dropped.
 
+A client's crawl reads and feeds main through `sharedPages` (`packages/research/src/enrichment/shared-pages.ts`): a 200 under 30 days old for the same URL is served from main, a fresh one is kept on main with `company_id` null. The client's own row is still written in its database. robots.txt always goes to the network.
+
 ## Shape
 
 - `company_id`, `url`, `final_url`, `kind` (webpage | pdf), `status_code`, `content_hash`, `title`, `text`, `html` (null once archived), `html_key`, `tel_hrefs`, `fetch_tier`, `is_shell`, `robots_disallowed` (`packages/research/src/schema.ts`)

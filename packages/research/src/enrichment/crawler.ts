@@ -124,27 +124,36 @@ export async function storePage(
   seenHashes: Set<string>,
   opts: { robotsDisallowed?: boolean } = {},
 ): Promise<StoredPage> {
-  const contentHash = createHash("sha256").update(resp.text).digest("hex");
-  if (seenHashes.has(contentHash)) return { stored: false, shell: false };
-  seenHashes.add(contentHash);
+  const row = pageRow(companyId, url, resp, opts);
+  if (seenHashes.has(row.contentHash)) return { stored: false, shell: false };
+  seenHashes.add(row.contentHash);
+  await db.insert(documents).values(row);
+  return { stored: true, shell: row.isShell };
+}
+
+/** One fetched page as a `documents` row; `companyId` null is a page kept for anyone (the shared cache). */
+export function pageRow(
+  companyId: number | null,
+  url: string,
+  resp: FetchResponse,
+  opts: { robotsDisallowed?: boolean } = {},
+) {
   const html = stripNul(resp.text);
   const page = readPage(html, resp.url);
-  const shell = looksLikeJsShell(html, page.text);
-  await db.insert(documents).values({
+  return {
     companyId,
     url,
     finalUrl: resp.url !== url ? resp.url : null,
-    kind: "webpage",
+    kind: "webpage" as const,
     statusCode: resp.status,
-    contentHash,
+    contentHash: createHash("sha256").update(resp.text).digest("hex"),
     title: page.title || null,
     text: page.text,
     html,
     fetchTier: HTTP_TIER,
-    isShell: shell,
+    isShell: looksLikeJsShell(html, page.text),
     robotsDisallowed: opts.robotsDisallowed ?? false,
-  });
-  return { stored: true, shell };
+  };
 }
 
 export interface CrawlCompanyOptions {

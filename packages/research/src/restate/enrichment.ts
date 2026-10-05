@@ -12,7 +12,7 @@
 import * as restate from "@restatedev/restate-sdk";
 import { type Company, companies, finishRun, openRun } from "@wren/core";
 import type { SiteClient } from "@wren/core/content";
-import { exclusiveHandler } from "@wren/core/restate";
+import { clientOfKey, exclusiveHandler } from "@wren/core/restate";
 import type { Db, Queryable } from "@wren/db";
 import { type LlmClient, NULL_TRACER, type Tracer } from "@wren/llm";
 import { eq } from "drizzle-orm";
@@ -78,6 +78,7 @@ import {
   selectRenderTargets,
 } from "../enrichment/render.js";
 import { Shard } from "../enrichment/shard.js";
+import { sharedPages } from "../enrichment/shared-pages.js";
 import { tagTestimonials } from "../enrichment/testimonials.js";
 import type { Fetcher } from "../fetch/fetcher.js";
 import type { RobotsCache } from "../fetch/robots.js";
@@ -85,6 +86,8 @@ import type { PageStore } from "../pages.js";
 
 export interface EnrichmentDeps {
   db: Db;
+  /** A client's database, for `<client>/...` keys; absent, those keys refuse. */
+  clientDb?: ((client: string) => Db) | null;
   /** null when WREN_FETCH_CONTACT is unset: crawl and render then refuse instead of the worker refusing to start. */
   fetcher: Fetcher | null;
   llm: LlmClient;
@@ -153,12 +156,23 @@ function browserPool(launch: () => Promise<BrowserRenderer>, idleMs: number) {
 export const ALL_NICHES = "all";
 /**
  * A key is a niche, or `niche@i/n` for one shard of it: each key runs one handler at
- * a time, so shard keys are how a backlog crawls side by side.
+ * a time, so shard keys are how a backlog crawls side by side. `<client>/<niche>` (and
+ * `<client>/all`) is the same in that client's database; a bare key is Wren's, on main.
  */
-const nicheOf = (ctx: restate.ObjectContext): string | null => {
-  const niche = ctx.key.split("@")[0] as string;
-  return niche === ALL_NICHES ? null : niche;
-};
+export function keyScope(
+  key: string,
+  main: Db,
+  clientDb?: ((client: string) => Db) | null,
+): { db: Db; niche: string | null } {
+  const base = key.split("@")[0] as string;
+  const owner = clientOfKey(base);
+  if (owner && !clientDb) throw new restate.TerminalError(`no client databases here: ${key}`);
+  const unit = owner?.unit ?? base;
+  return {
+    db: owner && clientDb ? clientDb(owner.client) : main,
+    niche: unit === ALL_NICHES ? null : unit,
+  };
+}
 const keyShard = (ctx: restate.ObjectContext): string | undefined => ctx.key.split("@")[1];
 
 export interface CrawlInput {
@@ -254,8 +268,15 @@ export function makeEnrichment(deps: EnrichmentDeps) {
   };
   const hintsFor = (niche: string | null, input: CrawlInput): string[] =>
     input.extraHints ?? [...(deps.crawlHintsFor?.(niche) ?? [])];
-  const companyRef = async (id: number): Promise<Pick<Company, "id" | "domain">> => {
-    const [row] = await deps.db
+  const scope = (ctx: restate.ObjectContext) => {
+    const at = keyScope(ctx.key, deps.db, deps.clientDb);
+    // A client's crawl reads and feeds main's shared pages; Wren's crawl is main's already.
+    const fetch = () =>
+      at.db === deps.db ? fetcher() : sharedPages(deps.db, fetcher(), deps.pages ?? null);
+    return { ...at, fetch };
+  };
+  const companyRef = async (db: Db, id: number): Promise<Pick<Company, "id" | "domain">> => {
+    const [row] = await db
       .select({ id: companies.id, domain: companies.domain })
       .from(companies)
       .where(eq(companies.id, id));
@@ -269,11 +290,12 @@ export function makeEnrichment(deps: EnrichmentDeps) {
     model: string | null = null,
   ) =>
     ctx.run("open run", async () => {
-      const run = await openRun(deps.db, { command, argv, niche: nicheOf(ctx), model });
+      const { db, niche } = scope(ctx);
+      const run = await openRun(db, { command, argv, niche, model });
       return run.id;
     });
   const close = (ctx: restate.ObjectContext, runId: string, stats: object) =>
-    ctx.run("finish run", () => finishRun(deps.db, runId, stats));
+    ctx.run("finish run", () => finishRun(scope(ctx).db, runId, stats));
   /** A unit that exhausted its retries aborts the run with its reason instead of failing the handler. */
   const unit = async <T>(ctx: restate.ObjectContext, name: string, fn: () => Promise<T>) => {
     try {
@@ -290,20 +312,20 @@ export function makeEnrichment(deps: EnrichmentDeps) {
       crawl: exclusiveHandler(
         { input: CRAWL },
         async (ctx: restate.ObjectContext, input: CrawlInput = {}): Promise<CrawlStats> => {
-          const niche = nicheOf(ctx);
+          const { db, niche, fetch } = scope(ctx);
           const shard = parseShard(input.shard ?? keyShard(ctx));
           const runId = await open(ctx, "enrich crawl", { ...input, niche });
           const ids = await ctx.run("select", async () =>
-            (await selectCrawlTargets(deps.db, { limit: input.limit ?? 10, niche, shard })).map(
+            (await selectCrawlTargets(db, { limit: input.limit ?? 10, niche, shard })).map(
               (c) => c.id,
             ),
           );
           let stats = emptyCrawlStats();
           for (const id of ids) {
             const r = await unit(ctx, `crawl company ${id}`, async () => {
-              const company = await companyRef(id);
-              return deps.db.transaction((tx) =>
-                crawlCompany(tx, fetcher(), company, {
+              const company = await companyRef(db, id);
+              return db.transaction((tx) =>
+                crawlCompany(tx, fetch(), company, {
                   pagesPerSite: input.pagesPerSite ?? 5,
                   extraHints: hintsFor(niche, input),
                   robotsMode,
@@ -315,7 +337,7 @@ export function makeEnrichment(deps: EnrichmentDeps) {
           }
           if (niche !== null) {
             stats.niche_null_skipped = await ctx.run("count niche-null", () =>
-              countCrawlNicheNullSkipped(deps.db),
+              countCrawlNicheNullSkipped(db),
             );
           }
           await close(ctx, runId, stats);
@@ -327,11 +349,11 @@ export function makeEnrichment(deps: EnrichmentDeps) {
         { input: CRAWL },
         async (ctx: restate.ObjectContext, input: RenderInput = {}): Promise<RenderStats> => {
           if (!withBrowser) throw new restate.TerminalError("no browser renderer configured");
-          const niche = nicheOf(ctx);
+          const { db, niche, fetch } = scope(ctx);
           const shard = parseShard(input.shard ?? keyShard(ctx));
           const runId = await open(ctx, "enrich render", { ...input, niche });
           const ids = await ctx.run("select", async () =>
-            (await selectRenderTargets(deps.db, { limit: input.limit ?? 10, niche, shard })).map(
+            (await selectRenderTargets(db, { limit: input.limit ?? 10, niche, shard })).map(
               (c) => c.id,
             ),
           );
@@ -339,10 +361,10 @@ export function makeEnrichment(deps: EnrichmentDeps) {
           const robots: RobotsCache = new Map();
           for (const id of ids) {
             const r = await unit(ctx, `render company ${id}`, async () => {
-              const company = await companyRef(id);
+              const company = await companyRef(db, id);
               return withBrowser((browser) =>
-                deps.db.transaction((tx) =>
-                  renderCompany(tx, browser.render, fetcher(), company, robots, {
+                db.transaction((tx) =>
+                  renderCompany(tx, browser.render, fetch(), company, robots, {
                     pagesPerSite: input.pagesPerSite ?? 5,
                     extraHints: hintsFor(niche, input),
                     robotsMode,
@@ -356,7 +378,7 @@ export function makeEnrichment(deps: EnrichmentDeps) {
           }
           if (niche !== null) {
             stats.niche_null_skipped = await ctx.run("count niche-null", () =>
-              countRenderNicheNullSkipped(deps.db),
+              countRenderNicheNullSkipped(db),
             );
           }
           await close(ctx, runId, stats);
@@ -367,10 +389,10 @@ export function makeEnrichment(deps: EnrichmentDeps) {
       scan: exclusiveHandler(
         { input: LIMIT },
         async (ctx: restate.ObjectContext, input: ScanInput = {}): Promise<ScanStats> => {
-          const niche = nicheOf(ctx);
+          const { db, niche } = scope(ctx);
           const runId = await open(ctx, "enrich scan", { ...input, niche }, SCAN_MODEL);
           const ids = await ctx.run("select", async () =>
-            (await selectScanTargets(deps.db, { limit: input.limit, niche })).map((d) => d.id),
+            (await selectScanTargets(db, { limit: input.limit, niche })).map((d) => d.id),
           );
           const stats: ScanStats = {
             selected: ids.length,
@@ -380,10 +402,10 @@ export function makeEnrichment(deps: EnrichmentDeps) {
           };
           for (const id of ids) {
             const signals = await ctx.run(`scan document ${id}`, async () => {
-              const doc = await loadScanTarget(deps.db, id);
+              const doc = await loadScanTarget(db, id);
               if (!doc) return 0;
               return (
-                await deps.db.transaction((tx) => scanDocument(tx, doc, runId, deps.pages ?? null))
+                await db.transaction((tx) => scanDocument(tx, doc, runId, deps.pages ?? null))
               ).length;
             });
             stats.scanned += 1;
@@ -398,21 +420,17 @@ export function makeEnrichment(deps: EnrichmentDeps) {
       extract: exclusiveHandler(
         { input: EXTRACT },
         async (ctx: restate.ObjectContext, input: ExtractInput = {}): Promise<ExtractionStats> => {
-          const niche = nicheOf(ctx);
+          const { db, niche } = scope(ctx);
           const shard = parseShard(input.shard ?? keyShard(ctx));
           const runId = await open(ctx, "enrich extract", { ...input, niche }, deps.llm.name);
           const selected = await ctx.run("select", async () => {
-            const { targets, skippedOlderVersion } = await selectExtractionTargets(
-              deps.db,
-              deps.llm,
-              {
-                limit: input.limit,
-                niche,
-                shard,
-                reextract: input.reextract,
-                spec,
-              },
-            );
+            const { targets, skippedOlderVersion } = await selectExtractionTargets(db, deps.llm, {
+              limit: input.limit,
+              niche,
+              shard,
+              reextract: input.reextract,
+              spec,
+            });
             return { ids: targets.map((d) => d.id), skippedOlderVersion };
           });
           const stats: ExtractionStats = {
@@ -426,9 +444,9 @@ export function makeEnrichment(deps: EnrichmentDeps) {
           };
           for (const id of selected.ids) {
             const r = await unit(ctx, `extract document ${id}`, async () => {
-              const doc = await loadExtractionTarget(deps.db, id);
+              const doc = await loadExtractionTarget(db, id);
               if (!doc) return null;
-              return deps.db.transaction((tx) =>
+              return db.transaction((tx) =>
                 extractDocument(tx, deps.llm, doc, { runId, tracer, spec }),
               );
             });
@@ -450,9 +468,10 @@ export function makeEnrichment(deps: EnrichmentDeps) {
       applyExtractions: exclusiveHandler(
         { input: LIMIT },
         async (ctx: restate.ObjectContext, input: LimitInput = {}) => {
+          const { db } = scope(ctx);
           const runId = await open(ctx, "enrich apply-extractions", { ...input });
           const stats = await ctx.run("apply", () =>
-            deps.db.transaction((tx) => applyExtractions(tx, { ...input, spec })),
+            db.transaction((tx) => applyExtractions(tx, { ...input, spec })),
           );
           await close(ctx, runId, stats);
           return stats;
@@ -462,7 +481,7 @@ export function makeEnrichment(deps: EnrichmentDeps) {
       pick: exclusiveHandler(
         { input: PICK },
         async (ctx: restate.ObjectContext, input: EmailPickInput = {}): Promise<EmailPickStats> => {
-          const niche = nicheOf(ctx);
+          const { db, niche } = scope(ctx);
           const shard = parseShard(input.shard ?? keyShard(ctx));
           const llm = input.rules ? null : deps.llm;
           const runId = await open(
@@ -472,7 +491,7 @@ export function makeEnrichment(deps: EnrichmentDeps) {
             llm?.name ?? RULES_PICKER,
           );
           const ids = await ctx.run("select", async () =>
-            (await selectPickTargets(deps.db, llm, { limit: input.limit, niche, shard })).map(
+            (await selectPickTargets(db, llm, { limit: input.limit, niche, shard })).map(
               (c) => c.id,
             ),
           );
@@ -491,9 +510,9 @@ export function makeEnrichment(deps: EnrichmentDeps) {
           };
           for (const id of ids) {
             const r = await unit(ctx, `pick company ${id}`, async () => {
-              const [company] = await deps.db.select().from(companies).where(eq(companies.id, id));
+              const [company] = await db.select().from(companies).where(eq(companies.id, id));
               if (!company) return null;
-              return deps.db.transaction((tx) => pickCompany(tx, llm, company, { runId, tracer }));
+              return db.transaction((tx) => pickCompany(tx, llm, company, { runId, tracer }));
             });
             if (!r.ok) {
               stats.aborted = r.reason;
@@ -519,7 +538,7 @@ export function makeEnrichment(deps: EnrichmentDeps) {
       opener: exclusiveHandler(
         { input: SHARDED },
         async (ctx: restate.ObjectContext, input: PickInput = {}): Promise<OpenerStats> => {
-          const niche = nicheOf(ctx);
+          const { db, niche } = scope(ctx);
           const shard = parseShard(input.shard ?? keyShard(ctx));
           const runId = await open(
             ctx,
@@ -528,12 +547,12 @@ export function makeEnrichment(deps: EnrichmentDeps) {
             deps.llm.name,
           );
           const ids = await ctx.run("select", () =>
-            selectOpenerTargets(deps.db, deps.llm, { limit: input.limit, niche, shard }),
+            selectOpenerTargets(db, deps.llm, { limit: input.limit, niche, shard }),
           );
           const stats = emptyOpenerStats(ids.length);
           for (const id of ids) {
             const r = await unit(ctx, `opener company ${id}`, () =>
-              deps.db.transaction((tx) => writeOpener(tx, deps.llm, id, { runId, tracer })),
+              db.transaction((tx) => writeOpener(tx, deps.llm, id, { runId, tracer })),
             );
             if (!r.ok) {
               stats.aborted = r.reason;
@@ -549,9 +568,12 @@ export function makeEnrichment(deps: EnrichmentDeps) {
       profiles: exclusiveHandler(
         { input: PROFILES },
         async (ctx: restate.ObjectContext, input: ProfilesInput): Promise<ProfileStats> => {
+          // Exa is metered and its cache is main's: a client's people wait for compose (O2).
+          if (clientOfKey(ctx.key.split("@")[0] as string))
+            throw new restate.TerminalError("profiles run on Wren's niches only");
           const sites = deps.sites;
           if (!sites) throw new restate.TerminalError("no site client for profiles");
-          const niche = nicheOf(ctx);
+          const { db, niche } = scope(ctx);
           const { personIds, ...rest } = input;
           const runId = await open(ctx, PROFILES_COMMAND, {
             ...rest,
@@ -560,16 +582,16 @@ export function makeEnrichment(deps: EnrichmentDeps) {
           });
           const now = new Date(await ctx.date.now());
           const plan = await ctx.run("select", async () => {
-            const parked = await profilesParkedUntil(deps.db);
+            const parked = await profilesParkedUntil(db);
             if (parked) return { parked: parked.toISOString(), work: [], google: 0 };
-            const work = await profileWork(deps.db, personIds, {
+            const work = await profileWork(db, personIds, {
               limit: input.limit ?? 5,
               pages: deps.pages ?? null,
             });
             return {
               parked: null,
               work,
-              google: await googleLeft(deps.db, { now, timezone: input.timezone }),
+              google: await googleLeft(db, { now, timezone: input.timezone }),
             };
           });
           const stats = emptyProfileStats();
@@ -580,7 +602,7 @@ export function makeEnrichment(deps: EnrichmentDeps) {
           for (const w of plan.work) {
             // profileUnit returns site errors as data: a metered read is never retried.
             const r = await unit(ctx, `profile person ${w.person.personId}`, () =>
-              profileUnit(deps.db, sites, w, { googleLeft: left, runId }),
+              profileUnit(db, sites, w, { googleLeft: left, runId }),
             );
             if (!r.ok) {
               stats.stopped = r.reason;
@@ -589,7 +611,7 @@ export function makeEnrichment(deps: EnrichmentDeps) {
             const recheck = deps.recheck;
             if (recheck)
               await ctx.run(`recheck firm ${w.company.companyId}`, async () => {
-                await recheck(deps.db, [w.company.companyId]);
+                await recheck(db, [w.company.companyId]);
               });
             left = r.value.googleStopped ? 0 : Math.max(0, left - r.value.google);
             stats.stopped = countProfileUnit(stats, r.value, streak);
@@ -603,10 +625,9 @@ export function makeEnrichment(deps: EnrichmentDeps) {
       applyPicks: exclusiveHandler(
         { input: LIMIT },
         async (ctx: restate.ObjectContext, input: LimitInput = {}) => {
+          const { db } = scope(ctx);
           const runId = await open(ctx, "enrich apply-picks", { ...input });
-          const stats = await ctx.run("apply", () =>
-            deps.db.transaction((tx) => applyPicks(tx, input)),
-          );
+          const stats = await ctx.run("apply", () => db.transaction((tx) => applyPicks(tx, input)));
           await close(ctx, runId, stats);
           return stats;
         },
@@ -615,11 +636,11 @@ export function makeEnrichment(deps: EnrichmentDeps) {
       tagTestimonials: exclusiveHandler(
         { input: TAG },
         async (ctx: restate.ObjectContext, input: TagInput = {}) => {
-          const niche = nicheOf(ctx);
+          const { db, niche } = scope(ctx);
           if (niche === null) throw new restate.TerminalError("tagTestimonials needs a niche key");
           const runId = await open(ctx, "enrich tag-testimonials", { ...input, niche });
           const stats = await ctx.run("tag", () =>
-            deps.db.transaction((tx) =>
+            db.transaction((tx) =>
               tagTestimonials(tx, {
                 niche,
                 runId,
@@ -636,9 +657,10 @@ export function makeEnrichment(deps: EnrichmentDeps) {
       backfillCallRecords: exclusiveHandler(
         { input: LIMIT },
         async (ctx: restate.ObjectContext, input: LimitInput = {}) => {
+          const { db } = scope(ctx);
           const runId = await open(ctx, "audit backfill", { ...input });
           const stats = await ctx.run("backfill", () =>
-            deps.db.transaction((tx) => backfillCallRecords(tx, input)),
+            db.transaction((tx) => backfillCallRecords(tx, input)),
           );
           await close(ctx, runId, stats);
           return stats;

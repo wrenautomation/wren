@@ -24,7 +24,8 @@ describe("apps and components", () => {
       appsIn(MODULES, { wren: false, team, installed: new Set(installed) }).map((m) => m.id);
     expect(ids(false, ["reactivation"])).toEqual(["reactivation", "marketplace", "account"]);
     expect(ids(false, [])).toEqual(["marketplace", "account"]);
-    expect(ids(true, [])).toEqual(["work", "reactivation", "marketplace", "account"]);
+    expect(ids(true, [])).toEqual(["work", "reactivation", "leads", "marketplace", "account"]);
+    expect(ids(false, ["research.lead_sheet"])).toEqual(["leads", "marketplace", "account"]);
     expect(
       appsIn(MODULES, { wren: true, team: true, installed: new Set() }).map((m) => m.id),
     ).not.toContain("work");

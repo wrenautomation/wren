@@ -10,6 +10,7 @@ export * from "./readings.js";
 export * from "./remote-browser.js";
 export * from "./render.js";
 export * from "./shard.js";
+export * from "./shared-pages.js";
 export * from "./store.js";
 export * from "./testimonials.js";
 export * from "./urls.js";

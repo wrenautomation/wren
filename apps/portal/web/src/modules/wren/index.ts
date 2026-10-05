@@ -561,6 +561,86 @@ export const money: Module = {
   ],
 };
 
+/** The lead sheet's pages, under `base`: Wren's niches in Wren's workspace, a client's own in its. */
+const sheetPages = (base: string): Module["pages"] => [
+  {
+    ...overview,
+    tiles: [
+      {
+        label: "Firms found",
+        record: "email.firm",
+        href: `${base}/firms?view=in_play`,
+        period: 30,
+      },
+      {
+        label: "With a domain",
+        record: "email.firm",
+        href: `${base}/firms?view=with_domain`,
+        period: 30,
+      },
+      {
+        label: "Crawled",
+        record: "email.firm",
+        href: `${base}/firms?view=crawled`,
+        period: 30,
+      },
+      {
+        label: "Named a person",
+        record: "email.firm",
+        href: `${base}/firms?view=named`,
+        period: 30,
+      },
+      {
+        label: "Verified leads",
+        record: "email.firm",
+        href: `${base}/firms?view=lead`,
+        period: 30,
+      },
+      {
+        label: "Crawled, no person",
+        record: "email.firm",
+        href: `${base}/firms?view=crawled&named=-`,
+        needs: true,
+      },
+      {
+        label: "No domain yet",
+        record: "email.firm",
+        href: `${base}/firms?view=in_play&domain=-`,
+      },
+    ],
+    top: [
+      {
+        label: "Newest verified leads",
+        record: "email.firm",
+        href: `${base}/firms?view=lead&sort=-lead`,
+        fields: ["campaign", "lead"],
+        empty: "No verified leads yet.",
+      },
+      {
+        label: "Where firms stall",
+        record: "email.stall",
+        href: `${base}/stalls`,
+        fields: ["queuedFirms", "catchAllLeads", "riskyLeads"],
+        empty: "Nothing is stuck.",
+      },
+    ],
+  },
+  {
+    id: "firms",
+    label: "Firms",
+    template: "list",
+    record: "email.firm",
+    empty: "Firms show here once a source finds them.",
+  },
+  {
+    id: "stalls",
+    label: "Stalls",
+    template: "list",
+    record: "email.stall",
+    empty: "Nothing is stuck.",
+  },
+];
+
 export const pipeline: Module = {
   id: "pipeline",
   name: "Pipeline",
@@ -568,84 +648,17 @@ export const pipeline: Module = {
   icon: "pulse",
   blurb: "Firms from found to verified lead, and where they stall.",
   requires: TEAM,
-  pages: [
-    {
-      ...overview,
-      tiles: [
-        {
-          label: "Firms found",
-          record: "email.firm",
-          href: "/pipeline/firms?view=in_play",
-          period: 30,
-        },
-        {
-          label: "With a domain",
-          record: "email.firm",
-          href: "/pipeline/firms?view=with_domain",
-          period: 30,
-        },
-        {
-          label: "Crawled",
-          record: "email.firm",
-          href: "/pipeline/firms?view=crawled",
-          period: 30,
-        },
-        {
-          label: "Named a person",
-          record: "email.firm",
-          href: "/pipeline/firms?view=named",
-          period: 30,
-        },
-        {
-          label: "Verified leads",
-          record: "email.firm",
-          href: "/pipeline/firms?view=lead",
-          period: 30,
-        },
-        {
-          label: "Crawled, no person",
-          record: "email.firm",
-          href: "/pipeline/firms?view=crawled&named=-",
-          needs: true,
-        },
-        {
-          label: "No domain yet",
-          record: "email.firm",
-          href: "/pipeline/firms?view=in_play&domain=-",
-        },
-      ],
-      top: [
-        {
-          label: "Newest verified leads",
-          record: "email.firm",
-          href: "/pipeline/firms?view=lead&sort=-lead",
-          fields: ["campaign", "lead"],
-          empty: "No verified leads yet.",
-        },
-        {
-          label: "Where firms stall",
-          record: "email.stall",
-          href: "/pipeline/stalls",
-          fields: ["queuedFirms", "catchAllLeads", "riskyLeads"],
-          empty: "Nothing is stuck.",
-        },
-      ],
-    },
-    {
-      id: "firms",
-      label: "Firms",
-      template: "list",
-      record: "email.firm",
-      empty: "Firms show here once a source finds them.",
-    },
-    {
-      id: "stalls",
-      label: "Stalls",
-      template: "list",
-      record: "email.stall",
-      empty: "Nothing is stuck.",
-    },
-  ],
+  pages: sheetPages("/pipeline"),
+};
+
+/** The same sheet in a client's workspace, read from its own database (O1). */
+export const leads: Module = {
+  id: "leads",
+  name: "Lead sheet",
+  component: "research.lead_sheet",
+  icon: "pulse",
+  blurb: "Firms from found to verified lead, and where they stall.",
+  pages: sheetPages("/leads"),
 };
 
 export const clients: Module = {

@@ -14,6 +14,8 @@ The research chain, one bounded stage per pass, until every stage reports nothin
 
 Companies of one niche with a domain or a guessable name. `PoolScheduler/{niche}` calls, in order, `discover, verify, crawl, render, scan, extract, pick, applyPicks, resolveMailboxes, verifyMailboxes, profiles`, each one call to its own Restate object, journaled. Output is leads with `status = verified` (role inboxes and picked people) and the evidence rows beneath them.
 
+A client's pool is `PoolScheduler/<client>/all` (or `<client>/<niche>`), started by hand like Wren's (`node scripts/ingress.mjs PoolScheduler/<client>/all/start`). It calls `Discovery`/`Enrichment` on the same key, which work in `wren_client_<id>`, and `Resolution/default` with `client`. Each pass reads the client's `research.lead_sheet` block from main (words, crawl hints, per-pass sizes, `verificationsPerDay`); a client gone, the demo, or the component uninstalled stops the loop. No `profiles`, no re-checks for clients (`pool-scheduler.ts`, `clientPlan`). Its runs rows land in the client's database.
+
 ## Why this shape
 
 Spend is opt-in by stage (`WREN_POOL_MODEL_STAGES`: none | pick | all) and the two mailbox stages run only with a free verifier; a paid verifier resolves by hand (`pool-scheduler.ts:1`). `profiles` (metered Exa reads) runs only with `WREN_POOL_PROFILES=true`. Who to reach stays a person's call: `Resolution.queue` is never run by the loop.
@@ -31,12 +33,15 @@ Spend is opt-in by stage (`WREN_POOL_MODEL_STAGES`: none | pick | all) and the t
 
 - **Hits:** every research card; the queue-keeper's pool (`[[processes/compose]]`); `verification_yield`
 - **Does not hit:** enrollments already composed
+- **Client pools:** verdicts and pages are shared through main ([[research/verification]], [[research/document]]); the client's firms, people and leads stay in its database
 
 ## Surfaces
 
 | Surface | Role |
 |---|---|
 | `PoolScheduler/{niche}` | runs daily, then hourly while work remains |
+| `PoolScheduler/<client>/all` | a client's pool, sized by its lead sheet block |
+| Portal app `leads` (client workspace) | reads the client's `email.firm`/`email.stall` through `EmailConsole.records*` |
 | `wren email status` | reads |
 | `wren enrich profiles --niche <n>` | the `profiles` stage by hand |
 
