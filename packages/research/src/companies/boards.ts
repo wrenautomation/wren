@@ -334,6 +334,20 @@ const boardOf = (a: Ats, token: string): Board => ({
   api: a.api(token),
 });
 
+/**
+ * The board page a person opens for a board's API address, or null when `url` is no board's
+ * API. Trails keep the address the machine read; this is the one to check it against.
+ */
+export function boardPageOf(url: string): string | null {
+  for (const a of ATS) {
+    const [head = "", tail = ""] = a.api("\u0000").split("\u0000");
+    if (!url.startsWith(head) || !url.endsWith(tail)) continue;
+    const token = url.slice(head.length, url.length - tail.length);
+    if (token && !/[/?#]/.test(token)) return a.page(token);
+  }
+  return null;
+}
+
 /** Every board a page names, once each, in the order the page names them. */
 export function findBoards(page: string): Board[] {
   // Scripts ship urls JSON-escaped (https:\/\/jobs.lever.co\/acme).

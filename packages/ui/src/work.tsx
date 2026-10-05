@@ -23,6 +23,8 @@ export interface RunWorkStep {
   /** The same search, for the reader to run again. */
   queryHref?: string | null | undefined;
   page: RunWorkLink | null;
+  /** The address the machine read, when it isn't `page` (an API): shown under it, to compare. */
+  read?: RunWorkLink | null | undefined;
   result: string | null;
   options: { page: RunWorkLink; verdict: string; kept: boolean }[];
   tone: "kept" | "dropped" | "plain";
@@ -162,6 +164,19 @@ function Step({ s }: { s: RunWorkStep }) {
           ) : null}
         </p>
         {s.page ? <PageChip page={s.page} tone={s.tone === "plain" ? undefined : s.tone} /> : null}
+        {s.read?.href ? (
+          <p className="text-[12px] text-(--ui-ink-3) wrap-anywhere">
+            Read by the machine at{" "}
+            <a
+              className="text-(--ui-ink-2) hover:text-(--ui-accent)"
+              href={s.read.href}
+              target="_blank"
+              rel="noreferrer noopener"
+            >
+              {s.read.label}
+            </a>
+          </p>
+        ) : null}
         {s.result ? (
           <p
             className={cx(

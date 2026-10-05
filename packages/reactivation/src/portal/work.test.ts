@@ -98,14 +98,32 @@ describe("checkSteps", () => {
       result: "Links to their Greenhouse job board",
       tone: "kept",
     });
+    // The page a person checks, with the API the machine read under it.
     expect(steps[1]).toMatchObject({
-      page: {
-        label: "https://boards-api.greenhouse.io/v1/boards/acme/jobs",
-        href: "https://boards-api.greenhouse.io/v1/boards/acme/jobs",
-      },
+      page: { href: "https://job-boards.greenhouse.io/acme" },
+      read: { href: "https://boards-api.greenhouse.io/v1/boards/acme/jobs" },
       result: "3 open roles",
       tone: "kept",
     });
+  });
+
+  it("links every board API and LinkedIn jobs slug to a page a person can open", () => {
+    const pages = checkSteps([
+      {
+        step: "board",
+        what: "https://api.lever.co/v0/postings/acme?mode=json",
+        outcome: "1 open role",
+      },
+      { step: "board", what: "https://acme.bamboohr.com/careers/list", outcome: "1 open role" },
+      { step: "board", what: "https://jobs.lever.co/acme", outcome: "1 open role" },
+      { step: "linkedin jobs", what: "acme-co", outcome: "2 open roles" },
+    ]).map((s) => [s.page?.href, s.read?.href ?? null]);
+    expect(pages).toEqual([
+      ["https://jobs.lever.co/acme", "https://api.lever.co/v0/postings/acme?mode=json"],
+      ["https://acme.bamboohr.com/careers", "https://acme.bamboohr.com/careers/list"],
+      ["https://jobs.lever.co/acme", null],
+      ["https://www.linkedin.com/company/acme-co/jobs/", null],
+    ]);
   });
 
   it("says what each dead end was", () => {

@@ -6,6 +6,7 @@
  * so a client never gets it; operators get it as `detail`, emails cut.
  */
 import type { Queryable } from "@wren/db";
+import { boardPageOf } from "@wren/research/companies";
 import { sql } from "drizzle-orm";
 import { fullName } from "../feed.js";
 import type { MoverOutcome } from "../schema.js";
@@ -34,8 +35,10 @@ export interface WorkStep {
   query: string | null;
   /** The same search, for anyone to run again. */
   queryHref: string | null;
-  /** The page it read. */
+  /** The page it read, as a person opens it. */
   page: WorkLink | null;
+  /** The address the machine read, when it isn't `page`: an API behind the page. */
+  read: WorkLink | null;
   /** What came of it. */
   result: string | null;
   options: WorkOption[];
@@ -95,6 +98,9 @@ export const pageOf = (url: string | null | undefined): WorkLink | null => {
   }
 };
 
+const linkedinJobsAt = (slug: string) =>
+  `https://www.linkedin.com/company/${encodeURIComponent(slug)}/jobs/`;
+
 const profileOf = (vanity: string): WorkLink => {
   const href = `https://www.linkedin.com/in/${encodeURIComponent(vanity)}`;
   return { label: href, href };
@@ -120,6 +126,7 @@ const step = (s: Partial<WorkStep> & Pick<WorkStep, "icon" | "did">): WorkStep =
   query: null,
   queryHref: null,
   page: null,
+  read: null,
   result: null,
   options: [],
   tone: "plain",
@@ -237,10 +244,12 @@ export function checkSteps(tried: readonly Tried[]): WorkStep[] {
         });
       case "board": {
         const ok = /^\d+ open roles?$/.test(t.outcome);
+        const human = boardPageOf(t.what);
         return step({
           icon: "board",
           did: "Read their job board",
-          page: pageOf(t.what),
+          page: pageOf(human ?? t.what),
+          read: human ? pageOf(t.what) : null,
           result: ok ? cap(t.outcome) : "Couldn't read it",
           tone: ok ? "kept" : "dropped",
         });
@@ -279,7 +288,8 @@ export function checkSteps(tried: readonly Tried[]): WorkStep[] {
         return step({
           icon: "board",
           did: "Read their LinkedIn jobs",
-          page: pageOf(t.what),
+          // The trail keeps the page's slug, read through our LinkedIn service.
+          page: pageOf(t.what) ?? pageOf(linkedinJobsAt(t.what)),
           result: refused(t.outcome) ? "LinkedIn didn't answer" : cap(t.outcome),
           tone: refused(t.outcome) ? "dropped" : "kept",
         });
