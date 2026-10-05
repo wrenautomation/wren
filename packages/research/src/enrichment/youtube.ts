@@ -3,7 +3,8 @@
  * and its newest uploads, kept as findings. The channel is a `profile` finding, each upload a
  * `post` with its watch link; a link that leads to no channel is a `profile` marked missing, so
  * it isn't read again before READ_EVERY_DAYS. Each firm is written before the next is read, so a
- * stop is a pause and a rerun resumes.
+ * stop is a pause and a rerun resumes. Every finding keeps the API's whole answer as `raw`, every
+ * part asked for, text uncut: what to use is decided when it is read.
  *
  * Calls go straight to the Data API as Wren's service account (`youtube.readonly`): no `sites`
  * hop, and the `wrenautomation` project's own daily units, apart from the uploads'.
@@ -17,9 +18,10 @@ export const YOUTUBE_COMMAND = "enrich youtube";
 export const YOUTUBE_READ_SCOPE = "https://www.googleapis.com/auth/youtube.readonly";
 const API = "https://www.googleapis.com/youtube/v3";
 /**
- * Firms read a day. A read is about 2 of the project's 10,000 daily units: at most 3,000 firms
- * in any 24 hours is 6,000 units, and the rest stays for channel search (100 units a call). The
- * pool sleeps to the next day once idle, so the burst is most of a quiet day's reads.
+ * Firms read a day. A read is 3 of the project's 10,000 daily units (channel, one page of uploads,
+ * their videos): at most 3,000 firms in any 24 hours is 9,000 units. Channel search (100 units a
+ * call) is not wired in. The pool sleeps to the next day once idle, so the burst is most of a
+ * quiet day's reads.
  */
 export const YOUTUBE_BUCKET: Bucket = { perDay: 2000, burst: 1000 };
 /**
@@ -28,10 +30,13 @@ export const YOUTUBE_BUCKET: Bucket = { perDay: 2000, burst: 1000 };
  */
 export const YOUTUBE_MIN_BATCH = 100;
 export const READ_EVERY_DAYS = 30;
-const UPLOADS = 5;
+/** Newest uploads read a firm: a page is 50 and costs a unit, as does each 50 videos' details. */
+export const UPLOADS = 50;
+const PAGE = 50;
 const ERROR_STREAK = 5;
-const ABOUT_CHARS = 1000;
-const DESCRIPTION_CHARS = 500;
+const CHANNEL_PARTS =
+  "snippet,contentDetails,statistics,brandingSettings,topicDetails,status,localizations";
+const VIDEO_PARTS = "snippet,statistics,contentDetails,topicDetails,status,liveStreamingDetails";
 
 export class YouTubeError extends Error {
   constructor(
@@ -100,8 +105,14 @@ export interface Channel {
   country: string | null;
   subscribers: number | null;
   videos: number | null;
+  views: number | null;
+  keywords: string | null;
+  /** Wikipedia links YouTube files the channel under. */
+  topics: string[];
   publishedAt: string | null;
   uploads: string | null;
+  /** The channel resource as the API sent it. */
+  raw: unknown;
 }
 
 export interface Upload {
@@ -109,15 +120,29 @@ export interface Upload {
   title: string;
   description: string;
   publishedAt: string;
+  views: number | null;
+  likes: number | null;
+  comments: number | null;
+  seconds: number | null;
+  tags: string[];
+  /** Streamed live (or scheduled to be). */
+  live: boolean;
+  /** The video resource as the API sent it; the playlist item when the video gave none. */
+  raw: unknown;
 }
 
 const count = (v: unknown) => (v === undefined || v === null ? null : Number(v));
 
+/** ISO 8601 `PT1H2M3S` as seconds; null for anything else. */
+export function seconds(iso: string | undefined): number | null {
+  const m = /^P(?:(\d+)D)?(?:T(?:(\d+)H)?(?:(\d+)M)?(?:(\d+)S)?)?$/.exec(iso ?? "");
+  if (!m || iso === "P") return null;
+  const [d, h, min, s] = m.slice(1).map((x) => Number(x ?? 0)) as [number, number, number, number];
+  return ((d * 24 + h) * 60 + min) * 60 + s;
+}
+
 export async function readChannel(get: YouTubeGet, ref: ChannelRef): Promise<Channel | null> {
-  const body = (await get("channels", {
-    part: "snippet,contentDetails,statistics",
-    [ref.by]: ref.value,
-  })) as {
+  const body = (await get("channels", { part: CHANNEL_PARTS, [ref.by]: ref.value })) as {
     items?: {
       id?: string;
       snippet?: {
@@ -131,8 +156,11 @@ export async function readChannel(get: YouTubeGet, ref: ChannelRef): Promise<Cha
       statistics?: {
         subscriberCount?: string;
         videoCount?: string;
+        viewCount?: string;
         hiddenSubscriberCount?: boolean;
       };
+      brandingSettings?: { channel?: { keywords?: string } };
+      topicDetails?: { topicCategories?: string[] };
     }[];
   };
   const c = body.items?.[0];
@@ -141,44 +169,94 @@ export async function readChannel(get: YouTubeGet, ref: ChannelRef): Promise<Cha
     id: c.id,
     title: c.snippet?.title ?? "",
     handle: c.snippet?.customUrl ?? null,
-    about: (c.snippet?.description ?? "").slice(0, ABOUT_CHARS),
+    about: c.snippet?.description ?? "",
     country: c.snippet?.country ?? null,
     subscribers: c.statistics?.hiddenSubscriberCount ? null : count(c.statistics?.subscriberCount),
     videos: count(c.statistics?.videoCount),
+    views: count(c.statistics?.viewCount),
+    keywords: c.brandingSettings?.channel?.keywords || null,
+    topics: c.topicDetails?.topicCategories ?? [],
     publishedAt: c.snippet?.publishedAt ?? null,
     uploads: c.contentDetails?.relatedPlaylists?.uploads || null,
+    raw: c,
   };
 }
 
 /** A removed or hidden video keeps its slot under one of these titles. */
 const GONE = /^(private|deleted) video$/i;
 
-/** The newest uploads, newest first; a channel with none (the playlist 404s) has []. */
-export async function readUploads(get: YouTubeGet, playlistId: string): Promise<Upload[]> {
-  let body: {
-    items?: {
-      snippet?: { title?: string; description?: string; resourceId?: { videoId?: string } };
-      contentDetails?: { videoId?: string; videoPublishedAt?: string };
-    }[];
-  };
-  try {
-    body = (await get("playlistItems", {
-      part: "snippet,contentDetails",
-      playlistId,
-      maxResults: String(UPLOADS),
-    })) as typeof body;
-  } catch (err) {
-    if (err instanceof YouTubeError && err.status === 404) return [];
-    throw err;
-  }
-  return (body.items ?? [])
+type PlaylistItem = {
+  snippet?: { title?: string; description?: string; resourceId?: { videoId?: string } };
+  contentDetails?: { videoId?: string; videoPublishedAt?: string };
+};
+type Video = {
+  id?: string;
+  snippet?: { tags?: string[]; liveBroadcastContent?: string };
+  statistics?: { viewCount?: string; likeCount?: string; commentCount?: string };
+  contentDetails?: { duration?: string };
+  liveStreamingDetails?: unknown;
+};
+
+/**
+ * Up to `limit` newest uploads, newest first, each with its video's details; a channel with none
+ * (the playlist 404s) has [].
+ */
+export async function readUploads(
+  get: YouTubeGet,
+  playlistId: string,
+  limit = UPLOADS,
+): Promise<Upload[]> {
+  const items: PlaylistItem[] = [];
+  let pageToken: string | undefined;
+  do {
+    let body: { items?: PlaylistItem[]; nextPageToken?: string };
+    try {
+      body = (await get("playlistItems", {
+        part: "snippet,contentDetails",
+        playlistId,
+        maxResults: String(Math.min(PAGE, limit - items.length)),
+        ...(pageToken ? { pageToken } : {}),
+      })) as typeof body;
+    } catch (err) {
+      if (err instanceof YouTubeError && err.status === 404) break;
+      throw err;
+    }
+    items.push(...(body.items ?? []));
+    pageToken = body.nextPageToken;
+  } while (pageToken && items.length < limit);
+  const kept = items
     .map((i) => ({
+      item: i,
       videoId: i.contentDetails?.videoId ?? i.snippet?.resourceId?.videoId ?? "",
       title: (i.snippet?.title ?? "").trim(),
-      description: (i.snippet?.description ?? "").slice(0, DESCRIPTION_CHARS),
       publishedAt: i.contentDetails?.videoPublishedAt ?? "",
     }))
-    .filter((u) => u.videoId && u.title && u.publishedAt && !GONE.test(u.title))
+    .filter((u) => u.videoId && u.title && u.publishedAt && !GONE.test(u.title));
+  const videos = new Map<string, Video>();
+  for (let at = 0; at < kept.length; at += PAGE) {
+    const ids = kept.slice(at, at + PAGE).map((u) => u.videoId);
+    const body = (await get("videos", { part: VIDEO_PARTS, id: ids.join(",") })) as {
+      items?: Video[];
+    };
+    for (const v of body.items ?? []) if (v.id) videos.set(v.id, v);
+  }
+  return kept
+    .map(({ item, videoId, title, publishedAt }): Upload => {
+      const v = videos.get(videoId);
+      return {
+        videoId,
+        title,
+        description: item.snippet?.description ?? "",
+        publishedAt,
+        views: count(v?.statistics?.viewCount),
+        likes: count(v?.statistics?.likeCount),
+        comments: count(v?.statistics?.commentCount),
+        seconds: seconds(v?.contentDetails?.duration),
+        tags: v?.snippet?.tags ?? [],
+        live: Boolean(v?.liveStreamingDetails) || v?.snippet?.liveBroadcastContent === "upcoming",
+        raw: v ?? item,
+      };
+    })
     .sort((a, b) => b.publishedAt.localeCompare(a.publishedAt));
 }
 
@@ -214,8 +292,12 @@ export function youtubeFindings(
         country: c.country,
         subscribers: c.subscribers,
         videos: c.videos,
+        views: c.views,
+        keywords: c.keywords,
+        topics: c.topics,
         published_at: c.publishedAt,
         link,
+        raw: c.raw,
       },
       sourceUrl: `https://www.youtube.com/channel/${c.id}`,
     },
@@ -232,6 +314,13 @@ export function youtubeFindings(
           title: u.title,
           description: u.description,
           published_at: u.publishedAt,
+          views: u.views,
+          likes: u.likes,
+          comments: u.comments,
+          seconds: u.seconds,
+          tags: u.tags,
+          live: u.live,
+          raw: u.raw,
         },
         sourceUrl: `https://www.youtube.com/watch?v=${u.videoId}`,
       }),
@@ -239,10 +328,14 @@ export function youtubeFindings(
   ];
 }
 
-/** Read within READ_EVERY_DAYS, channel or missing: not due. */
+/**
+ * Read within READ_EVERY_DAYS, channel or missing: not due. A channel kept before `raw` was is
+ * due again, so the reads from before it fill themselves in.
+ */
 export const youtubeDue = (id: SQL) =>
   sql`not exists (select 1 from findings f where f.company_id = ${id} and f.kind = 'profile'
-    and f.via = 'youtube' and f.observed_at > now() - make_interval(days => ${READ_EVERY_DAYS}))`;
+    and f.via = 'youtube' and f.observed_at > now() - make_interval(days => ${READ_EVERY_DAYS})
+    and (f.value ? 'raw' or f.value ? 'missing'))`;
 
 export interface YouTubeWork {
   companyId: number;

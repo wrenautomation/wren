@@ -5,6 +5,7 @@ import {
   emptyYouTubeStats,
   readChannel,
   readUploads,
+  seconds,
   YouTubeError,
   type YouTubeGet,
   youtubeFindings,
@@ -76,6 +77,15 @@ describe("reads", () => {
     expect(await readChannel(fakeApi({ channels: {} }).get, { by: "id", value: "x" })).toBeNull();
   });
 
+  it("asks for every part, and keeps the channel's whole answer", async () => {
+    const api = fakeApi({ channels: CHANNEL });
+    const c = await readChannel(api.get, { by: "id", value: "UCabcdefghijklmnopqrstuv" });
+    expect(api.calls[0]?.query.part?.split(",")).toEqual(
+      expect.arrayContaining(["brandingSettings", "topicDetails", "status", "localizations"]),
+    );
+    expect(c?.raw).toBe(CHANNEL.items[0]);
+  });
+
   it("uploads newest first, gone videos dropped, a 404 playlist is none", async () => {
     const api = fakeApi({
       playlistItems: {
@@ -85,10 +95,61 @@ describe("reads", () => {
           item("new", "Placing nurses fast", "2026-09-20T00:00:00Z"),
         ],
       },
+      videos: {},
     });
     expect((await readUploads(api.get, "UUx")).map((u) => u.videoId)).toEqual(["new", "old"]);
     const none = fakeApi({ playlistItems: new YouTubeError(404, "playlistNotFound", "gone") });
     expect(await readUploads(none.get, "UUx")).toEqual([]);
+  });
+
+  it("pages to the limit, then joins each video's details, text uncut", async () => {
+    const long = "x".repeat(4000);
+    const page = (from: number, n: number, next?: string) => ({
+      items: Array.from({ length: n }, (_, k) =>
+        item(`v${from + k}`, "Hi", "2026-09-20T00:00:00Z"),
+      ),
+      nextPageToken: next,
+    });
+    const calls: { resource: string; query: Record<string, string> }[] = [];
+    const get: YouTubeGet = async (resource, query) => {
+      calls.push({ resource, query });
+      if (resource === "videos")
+        return {
+          items: query.id?.split(",").map((id) => ({
+            id,
+            snippet: { description: long, tags: ["nurses"] },
+            statistics: { viewCount: "10", likeCount: "2", commentCount: "1" },
+            contentDetails: { duration: "PT1M5S" },
+          })),
+        };
+      const n = Number(query.maxResults);
+      return query.pageToken ? page(50, n, "p3") : page(0, n, "p2");
+    };
+    const ups = await readUploads(get, "UUx", 60);
+    expect(
+      calls.map((c) => [c.resource, c.query.maxResults ?? c.query.id?.split(",").length]),
+    ).toEqual([
+      ["playlistItems", "50"],
+      ["playlistItems", "10"],
+      ["videos", 50],
+      ["videos", 10],
+    ]);
+    expect(ups).toHaveLength(60);
+    expect(ups[0]).toMatchObject({
+      views: 10,
+      likes: 2,
+      comments: 1,
+      seconds: 65,
+      tags: ["nurses"],
+    });
+    expect(ups[0]?.raw).toMatchObject({ snippet: { description: long } });
+  });
+
+  it("durations as seconds", () => {
+    expect([seconds("PT1H2M3S"), seconds("PT45S"), seconds("P1DT1S"), seconds("P0D")]).toEqual([
+      3723, 45, 86401, 0,
+    ]);
+    expect([seconds(undefined), seconds("P"), seconds("soon")]).toEqual([null, null, null]);
   });
 });
 
@@ -103,13 +164,30 @@ describe("findings", () => {
         country: null,
         subscribers: null,
         videos: 1,
+        views: null,
+        keywords: null,
+        topics: [],
         publishedAt: null,
         uploads: "UUabcdefghijklmnopqrstuv",
+        raw: { id: "UCabcdefghijklmnopqrstuv" },
       },
       uploads: [
-        { videoId: "v1", title: "Hi", description: "", publishedAt: "2026-09-20T00:00:00Z" },
+        {
+          videoId: "v1",
+          title: "Hi",
+          description: "",
+          publishedAt: "2026-09-20T00:00:00Z",
+          views: 3,
+          likes: null,
+          comments: null,
+          seconds: 30,
+          tags: [],
+          live: false,
+          raw: { id: "v1" },
+        },
       ],
     });
+    expect(fs.map((f) => f.value.raw)).toEqual([{ id: "UCabcdefghijklmnopqrstuv" }, { id: "v1" }]);
     expect(fs.map((f) => [f.kind, f.factKey, f.via])).toEqual([
       ["profile", "c7:profile:youtube:UCabcdefghijklmnopqrstuv", "youtube"],
       ["post", "c7:post:youtube:v1", "youtube"],
