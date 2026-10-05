@@ -13,7 +13,7 @@ import type { Queryable } from "@wren/db";
 import { completeAndParse, type LlmClient, LlmError, type Tracer } from "@wren/llm";
 import { and, asc, eq, gte, inArray } from "drizzle-orm";
 import type { ZodType } from "zod";
-import { keepDocument } from "../findings.js";
+import { keepDocument, keepingAnswers } from "../findings.js";
 import type { EvidencePage } from "../grounding.js";
 import { Capped, paced, realSleep, refusedBy } from "../pacing.js";
 import {
@@ -176,7 +176,7 @@ export async function runStudy(
 ): Promise<StudyStats> {
   const study = await studyBySlug(db, slug);
   const now = deps.now ?? (() => new Date());
-  const call = paced(deps.sites, now, deps.sleep ?? realSleep);
+  const call = paced(keepingAnswers(deps.sites, db), now, deps.sleep ?? realSleep);
   const say = opts.onProgress ?? (() => {});
   const runId = opts.runId ?? null;
   const readsPerAngle = opts.readsPerAngle ?? READS_PER_ANGLE;

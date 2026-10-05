@@ -10,6 +10,7 @@ import { type Feed, NO_FEED } from "@wren/core";
 import type { SiteClient } from "@wren/core/content";
 import type { Queryable } from "@wren/db";
 import type { LlmClient } from "@wren/llm";
+import { keepingAnswers } from "@wren/research";
 import { politeHomepageFetcher } from "@wren/research/discovery";
 import type { Fetcher } from "@wren/research/fetch";
 import { type CrmBriefStats, writeCrmBriefs } from "./brief.js";
@@ -101,7 +102,7 @@ export async function runCrm(
         if (!deps.sites) return { stage, stats: { ...NO_LOOKUPS, aborted: NO_SITES } };
         return {
           stage,
-          stats: await lookUpCrmPeople(db, deps.sites, {
+          stats: await lookUpCrmPeople(db, keepingAnswers(deps.sites, db), {
             linkedin: opts.linkedin,
             runId: opts.runId ?? null,
             ...watched,
@@ -114,7 +115,7 @@ export async function runCrm(
           stage,
           stats: await checkCrmCompanies(
             db,
-            { fetcher: deps.fetcher, sites: deps.sites },
+            { fetcher: deps.fetcher, sites: keepingAnswers(deps.sites, db) },
             { linkedin: opts.linkedin, runId: opts.runId ?? null, ...watched, ...limit },
           ),
         };

@@ -112,6 +112,7 @@ import {
 } from "../enrichment/youtube.js";
 import type { Fetcher } from "../fetch/fetcher.js";
 import type { RobotsCache } from "../fetch/robots.js";
+import { keepingAnswers } from "../findings.js";
 import type { PageStore } from "../pages.js";
 import { UNITS_PER_RUN, unitBatches } from "./units.js";
 
@@ -670,9 +671,9 @@ export function makeEnrichment(deps: EnrichmentDeps) {
           // Exa is metered and its cache is main's: a client's people wait for compose (O2).
           if (clientOfKey(ctx.key.split("@")[0] as string))
             throw new restate.TerminalError("profiles run on Wren's niches only");
-          const sites = deps.sites;
-          if (!sites) throw new restate.TerminalError("no site client for profiles");
+          if (!deps.sites) throw new restate.TerminalError("no site client for profiles");
           const { db, niche } = scope(ctx);
+          const sites = keepingAnswers(deps.sites, db);
           const { personIds, ...rest } = input;
           const runId = await open(ctx, PROFILES_COMMAND, {
             ...rest,
@@ -736,9 +737,9 @@ export function makeEnrichment(deps: EnrichmentDeps) {
           // Metered, and the people land on main: Wren's niches only (O2).
           if (clientOfKey(ctx.key.split("@")[0] as string))
             throw new restate.TerminalError("team search runs on Wren's niches only");
-          const sites = deps.sites;
-          if (!sites) throw new restate.TerminalError("no site client for team search");
+          if (!deps.sites) throw new restate.TerminalError("no site client for team search");
           const { db, niche } = scope(ctx);
+          const sites = keepingAnswers(deps.sites, db);
           const { companyIds, ...rest } = input;
           const runId = await open(ctx, TEAM_COMMAND, {
             ...rest,

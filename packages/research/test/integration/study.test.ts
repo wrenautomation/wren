@@ -111,7 +111,9 @@ describe("runStudy", () => {
       drafted: 1,
     });
     expect(stats.waiting).toBe(0);
-    expect(await db().select().from(documents)).toHaveLength(4);
+    // Four pages read; every site answer is kept beside them as a snippet.
+    const docs = await db().select().from(documents);
+    expect(docs.filter((d) => d.kind !== "snippet")).toHaveLength(4);
 
     const md = studyReport(await studyView(db(), "placements"));
     expect(md).toContain("A 2025 survey says 38% of placements are repeat clients. [1]");

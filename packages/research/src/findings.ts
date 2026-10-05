@@ -5,6 +5,7 @@
  * write through here.
  */
 import { createHash } from "node:crypto";
+import type { SiteClient } from "@wren/core/content";
 import type { Queryable } from "@wren/db";
 import { and, eq, sql } from "drizzle-orm";
 import { type DocumentKind, documents, type FindingKind, findings } from "./schema.js";
@@ -77,6 +78,32 @@ export async function keepDocument(db: Queryable, draft: DocumentDraft): Promise
     .where(and(eq(documents.url, d.url), eq(documents.contentHash, contentHash)));
   if (!had) throw new Error(`document ${d.url} neither inserted nor found`);
   return had.id;
+}
+
+/**
+ * `sites` that keeps every read's whole answer as a document (kind `snippet`, at
+ * `autobrowse:<site><path>?<input>`): nothing a source returns is lost, and what to use is
+ * decided when reading. The same answer to the same read is one row.
+ */
+export function keepingAnswers(sites: SiteClient, db: Queryable): SiteClient {
+  return {
+    via: (site, method, path) => sites.via(site, method, path),
+    async call<T>(...args: Parameters<SiteClient["call"]>): Promise<T> {
+      const answer = await sites.call<T>(...args);
+      const [site, method, path, input] = args;
+      if (method === "GET") {
+        const query = Object.entries(input ?? {}).map(([k, v]): [string, string] => [k, String(v)]);
+        await keepDocument(db, {
+          url: `autobrowse:${site}${path}?${new URLSearchParams(query)}`,
+          kind: "snippet",
+          title: `${site} ${path}`,
+          text: JSON.stringify(answer) ?? "null",
+          fetchTier: site.slice(0, 16),
+        });
+      }
+      return answer;
+    },
+  };
 }
 
 /** Upsert one finding and its source; returns the finding's id. */
