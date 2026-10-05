@@ -5,7 +5,7 @@ import { ClutchPagesSource } from "./agencies/clutch-pages.js";
 import { AgencyDirectoryCsvSource, DIRECTORY_DOMAINS } from "./agencies/directory.js";
 import { shopifyProfileDataset } from "./agencies/profiles.js";
 import { ShopifyPagesSource } from "./agencies/shopify-pages.js";
-import { defineNiche, leadFormat, rawLocation, templatesDir } from "./niche.js";
+import { defineNiche, leadFormat, rawLocation, templatesDir, US_METROS } from "./niche.js";
 
 const NICHE = "agencies";
 
@@ -111,6 +111,8 @@ export const agencies = defineNiche({
     "social media agency",
     "web design business",
   ],
+  exaQueries: ["digital marketing agency in {city}", "web design agency in {city}"],
+  exaCities: US_METROS,
   platformDomains: DIRECTORY_DOMAINS,
   // The one fetch: profile pages for slugs a human already saved under <data>/agencies/shopify.
   datasets: (dataDir) => [shopifyProfileDataset(join(dataDir, NICHE, "shopify"))],

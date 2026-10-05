@@ -21,6 +21,7 @@ import {
   crawlHintsFor,
   defineNiche,
   discoveryWordsFor,
+  exaSearchFor,
   FACTS_VIEWS,
   NICHES,
   nicheFor,
@@ -220,5 +221,17 @@ describe("sms sequences", () => {
       { step: 1, afterDays: 0 },
       { step: 2, afterDays: 3 },
     ]);
+  });
+});
+
+describe("exaSearchFor", () => {
+  it("Wren's niches list searches with a city slot and the 25 largest US metros; sec_ria lists none", () => {
+    for (const niche of ["recruiting", "agencies"]) {
+      const { queries, cities } = exaSearchFor(niche);
+      expect(queries.length).toBeGreaterThan(0);
+      expect(queries.every((q) => q.includes("{city}"))).toBe(true);
+      expect(new Set(cities).size).toBe(25);
+    }
+    expect(exaSearchFor("sec_ria").queries).toEqual([]);
   });
 });

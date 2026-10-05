@@ -149,6 +149,7 @@ describe("PoolScheduler", () => {
     ]);
     expect(out.stats?.stages.map((s) => [s.stage, s.skipped])).toEqual([
       ["adLibrary", true],
+      ["exaSearch", true],
       ["fbGroups", true],
       ["discover", false],
       ["verify", false],

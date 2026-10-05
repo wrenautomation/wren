@@ -70,7 +70,40 @@ export interface Niche {
   readonly adKeywords: readonly string[];
   /** Facebook group searches (`fb-public GET /groups`): the groups and their public posts are kept, and a post that names a firm is a finding on it (the `fbGroups` stage). */
   readonly groupKeywords: readonly string[];
+  /** Exa company searches, `{city}` filled from `exaCities`: each pair is one search (the `exaSearch` stage). */
+  readonly exaQueries: readonly string[];
+  /** The cities `exaQueries` run in. */
+  readonly exaCities: readonly string[];
 }
+
+/** The 25 largest US metro areas, by principal city, as a search names them. */
+export const US_METROS: readonly string[] = [
+  "New York, NY",
+  "Los Angeles, CA",
+  "Chicago, IL",
+  "Dallas, TX",
+  "Houston, TX",
+  "Washington, DC",
+  "Philadelphia, PA",
+  "Miami, FL",
+  "Atlanta, GA",
+  "Boston, MA",
+  "Phoenix, AZ",
+  "San Francisco, CA",
+  "Riverside, CA",
+  "Detroit, MI",
+  "Seattle, WA",
+  "Minneapolis, MN",
+  "San Diego, CA",
+  "Tampa, FL",
+  "Denver, CO",
+  "Baltimore, MD",
+  "St. Louis, MO",
+  "Orlando, FL",
+  "Charlotte, NC",
+  "San Antonio, TX",
+  "Portland, OR",
+];
 
 export interface NicheSpec {
   readonly name: string;
@@ -102,6 +135,8 @@ export interface NicheSpec {
   readonly screen?: CompanyScreen;
   readonly adKeywords?: readonly string[];
   readonly groupKeywords?: readonly string[];
+  readonly exaQueries?: readonly string[];
+  readonly exaCities?: readonly string[];
 }
 
 /** A niche-owned import format: `build` and `help` here, name and niche from the caller. */
@@ -240,6 +275,8 @@ export function defineNiche(spec: NicheSpec): Niche {
     screen: spec.screen ?? null,
     adKeywords: spec.adKeywords ?? [],
     groupKeywords: spec.groupKeywords ?? [],
+    exaQueries: spec.exaQueries ?? [],
+    exaCities: spec.exaCities ?? [],
   };
 }
 

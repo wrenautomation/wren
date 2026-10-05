@@ -1,6 +1,6 @@
 /** Recruiting and staffing firms: the dead lead reactivation pilot, sold to the owner or MD. */
 import { twoEmailSequence } from "@wren/channel-email";
-import { defineNiche, rawLocation, templatesDir } from "./niche.js";
+import { defineNiche, rawLocation, templatesDir, US_METROS } from "./niche.js";
 import {
   recruitingDatasets,
   recruitingLeadFormats,
@@ -54,6 +54,12 @@ export const recruiting = defineNiche({
     "healthcare staffing agency",
     "staffing business",
   ],
+  exaQueries: [
+    "staffing agency in {city}",
+    "recruiting firm in {city}",
+    "executive search firm in {city}",
+  ],
+  exaCities: US_METROS,
   templatesDir: templatesDir(import.meta.url, "recruiting"),
   // Every firm gets book-first for now (William, 10-02). The demo arm stays defined so
   // switching it back on is one plan line. Each arm's `reply` copy is drafted for

@@ -23,7 +23,8 @@ describe("stageEnabled", () => {
           s !== "team" &&
           s !== "youtube" &&
           s !== "adLibrary" &&
-          s !== "fbGroups",
+          s !== "fbGroups" &&
+          s !== "exaSearch",
       ),
     );
     expect(STAGES.filter((s) => stageEnabled(s, "none", false, false, true))).toContain("youtube");
@@ -31,11 +32,20 @@ describe("stageEnabled", () => {
     expect(STAGES.filter((s) => stageEnabled(s, "none", false, false, false, true))[0]).toBe(
       "adLibrary",
     );
-    // Right after it, then the same pass has the new firms to map posts to.
+    // Right after Ad Library, then groups: all three bring firms in before anything reads them,
+    // and groups map posts onto the firms the other two just added.
+    expect(
+      STAGES.filter((s) => stageEnabled(s, "none", false, false, false, true, true, true)).slice(
+        0,
+        3,
+      ),
+    ).toEqual(["adLibrary", "exaSearch", "fbGroups"]);
     expect(STAGES.filter((s) => stageEnabled(s, "none", false, false, false, false, true))).toEqual(
       ["fbGroups", ...on("none", false)],
     );
-    expect(STAGES.indexOf("fbGroups")).toBe(STAGES.indexOf("adLibrary") + 1);
+    expect(
+      STAGES.filter((s) => stageEnabled(s, "none", false, false, false, false, false, true))[0],
+    ).toBe("exaSearch");
     expect(on("none", true)).toEqual(
       expect.arrayContaining(["resolveMailboxes", "verifyMailboxes"]),
     );

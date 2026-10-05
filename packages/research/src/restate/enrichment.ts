@@ -66,6 +66,16 @@ import {
   selectScanTargets,
 } from "../enrichment/email-scan.js";
 import {
+  countExaSearchUnit,
+  EXA_SEARCH_COMMAND,
+  type ExaSearchStats,
+  emptyExaSearchStats,
+  exaSearches,
+  exaSearchesDue,
+  exaSearchRoom,
+  exaSearchUnit,
+} from "../enrichment/exa-search.js";
+import {
   applyExtractions,
   DEFAULT_EXTRACTION_SPEC,
   type ExtractionSpec,
@@ -192,6 +202,15 @@ export interface EnrichmentDeps {
   } | null;
   /** A niche's Facebook group searches (the niche registry's); the same `desk` reads them. */
   groupsFor?: (niche: string) => { keywords: readonly string[] } | null;
+  /** autobrowse's `sites` service (`web GET /exa/companies`, Exa's company index); null = `exaSearch` refuses. */
+  exaSites?: SiteClient | null;
+  /** A niche's Exa queries (`{city}` slots), their cities, its platform hosts and its screen. */
+  exaFor?: (niche: string) => {
+    queries: readonly string[];
+    cities: readonly string[];
+    platforms: Iterable<string>;
+    screen: CompanyScreen | null;
+  } | null;
 }
 
 /**
@@ -918,6 +937,57 @@ export function makeEnrichment(deps: EnrichmentDeps) {
         },
       ),
 
+      exaSearch: exclusiveHandler(
+        { input: LIMIT },
+        async (ctx: restate.ObjectContext, input: LimitInput = {}): Promise<ExaSearchStats> => {
+          // The firms land on main: Wren's niches only.
+          if (clientOfKey(ctx.key.split("@")[0] as string))
+            throw new restate.TerminalError("Exa searches run on Wren's niches only");
+          const sites = deps.exaSites;
+          if (!sites) throw new restate.TerminalError("no sites client for Exa search");
+          const { db, niche } = scope(ctx);
+          if (niche === null) throw new restate.TerminalError("Exa searches need a niche key");
+          const exa = deps.exaFor?.(niche) ?? null;
+          const limit = input?.limit ?? 3;
+          const runId = await open(ctx, EXA_SEARCH_COMMAND, { limit, niche });
+          const plan = await ctx.run("select", async () => {
+            const now = new Date();
+            const { room, nextInMs } = await exaSearchRoom(db, now);
+            if (room === 0)
+              return {
+                why: `bucket empty: next search in ${Math.ceil(nextInMs / 1000)}s`,
+                work: [],
+              };
+            const searches = exaSearches(exa?.queries ?? [], exa?.cities ?? []);
+            return {
+              why: null,
+              work: await exaSearchesDue(db, searches, { now, limit: Math.min(limit, room) }),
+            };
+          });
+          const stats = emptyExaSearchStats();
+          stats.selected = plan.work.length;
+          stats.stopped = plan.why;
+          for (const q of plan.work) {
+            const r = await unit(ctx, `exa ${q}`, () =>
+              exaSearchUnit(db, sites, { q, niche, platforms: exa?.platforms ?? [] }),
+            );
+            if (!r.ok) {
+              stats.stopped = r.reason;
+              break;
+            }
+            stats.stopped = countExaSearchUnit(stats, r.value);
+            if (stats.stopped) break;
+          }
+          // New firms get the niche's screen (chains, foreign, its own rule) before any stage reads them.
+          const screen = exa?.screen;
+          if (stats.created > 0 && screen)
+            await ctx.run("screen", async () => {
+              await runScreen(db, niche, screen);
+            });
+          await close(ctx, runId, stats);
+          return stats;
+        },
+      ),
       fbGroups: exclusiveHandler(
         { input: LIMIT },
         async (ctx: restate.ObjectContext, input: LimitInput = {}): Promise<FbGroupsStats> => {

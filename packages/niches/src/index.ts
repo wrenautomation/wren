@@ -57,6 +57,17 @@ export function fbGroupsFor(niche: string) {
   return { keywords: nicheFor(niche).groupKeywords };
 }
 
+/** What the `exaSearch` stage needs from a niche: its searches, their cities, its platform hosts, its screen. */
+export function exaSearchFor(niche: string) {
+  const n = nicheFor(niche);
+  return {
+    queries: n.exaQueries,
+    cities: n.exaCities,
+    platforms: n.platformDomains,
+    screen: n.screen,
+  };
+}
+
 /** One niche's discovery vocabulary, or the union when unscoped. */
 export function discoveryWordsFor(niche: string | null): ReadonlySet<string> {
   requireNiche(niche);

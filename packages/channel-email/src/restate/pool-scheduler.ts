@@ -70,6 +70,7 @@ export const POOL_COMMAND = "pool feed";
 export type ModelStages = "none" | "pick" | "all";
 export const STAGES = [
   "adLibrary",
+  "exaSearch",
   "fbGroups",
   "discover",
   "verify",
@@ -94,6 +95,8 @@ export interface StageLimits {
   adLibrary: number;
   /** Searches and page reads of Facebook groups this pass; free, paced by two buckets over the stored rows. */
   fbGroups: number;
+  /** Exa company searches this pass (niche and city); about $0.007 each on the keys' free credit, paced by its bucket. */
+  exaSearch: number;
   discover: number;
   verify: number;
   crawl: number;
@@ -116,6 +119,7 @@ export interface StageLimits {
 export const DEFAULT_LIMITS: StageLimits = {
   adLibrary: 3,
   fbGroups: 10,
+  exaSearch: 3,
   discover: 10,
   verify: 10,
   crawl: 10,
@@ -163,12 +167,22 @@ export function stagesToRun(
   youtube = false,
   adLibrary = false,
   fbGroups = false,
+  exaSearch = false,
 ): Set<Stage> {
   const chosen = settings?.stages ? new Set(settings.stages) : null;
   return new Set(
     STAGES.filter(
       (s) =>
-        stageEnabled(s, modelStages, freeVerifier, profiles, youtube, adLibrary, fbGroups) &&
+        stageEnabled(
+          s,
+          modelStages,
+          freeVerifier,
+          profiles,
+          youtube,
+          adLibrary,
+          fbGroups,
+          exaSearch,
+        ) &&
         (!chosen || chosen.has(s)),
     ),
   );
@@ -222,6 +236,8 @@ export interface PoolSchedulerDeps {
   adLibrary?: boolean;
   /** The Mac's desk and the niche group keywords are wired (Enrichment's `fbGroups`): the stage runs on Wren's niches. */
   fbGroups?: boolean;
+  /** autobrowse's `sites` service is wired (Enrichment's `exaSearch`): the stage runs on Wren's niches. */
+  exaSearch?: boolean;
   /** Between passes that found work. */
   busyMs?: number;
   /** The longest delay after passes in which a stage failed (backoff cap). */
@@ -311,6 +327,8 @@ export const progressOf: Record<Stage, (s: Record<string, number>) => number> = 
   adLibrary: (s) => s.read ?? 0,
   // A search, a page read or a refused one (kept as data) leaves the queue; a cap does not.
   fbGroups: (s) => (s.searches ?? 0) + (s.abouts ?? 0) + (s.posts ?? 0) + (s.errors ?? 0),
+  // A search read is an import, which leaves the selection for 30 days.
+  exaSearch: (s) => s.read ?? 0,
   // A person written to person_lookups leaves the selection; an error or a cap does not.
   profiles: (s) => (s.people_matched ?? 0) + (s.people_unresolved ?? 0),
 };
@@ -328,11 +346,13 @@ export function stageEnabled(
   youtube = false,
   adLibrary = false,
   fbGroups = false,
+  exaSearch = false,
 ): boolean {
   if (stage === "extract") return modelStages === "all";
   if (stage === "youtube") return youtube;
   if (stage === "adLibrary") return adLibrary;
   if (stage === "fbGroups") return fbGroups;
+  if (stage === "exaSearch") return exaSearch;
   // Both spend the same Exa budget: one switch.
   if (stage === "profiles" || stage === "team") return profiles;
   if (stage === "resolveMailboxes" || stage === "verifyMailboxes") return freeVerifier;
@@ -394,6 +414,7 @@ export function makePoolScheduler(deps: PoolSchedulerDeps) {
       client === null && niche !== null && (deps.youtube ?? false),
       client === null && niche !== null && (deps.adLibrary ?? false),
       client === null && niche !== null && (deps.fbGroups ?? false),
+      client === null && niche !== null && (deps.exaSearch ?? false),
     );
     if (limits.resolveMailboxes === 0) runnable.delete("resolveMailboxes");
     if (limits.verifyMailboxes === 0) runnable.delete("verifyMailboxes");
@@ -407,6 +428,7 @@ export function makePoolScheduler(deps: PoolSchedulerDeps) {
     const calls: Record<Stage, () => Promise<object>> = {
       adLibrary: () => enrichment.adLibrary({ limit: limits.adLibrary }),
       fbGroups: () => enrichment.fbGroups({ limit: limits.fbGroups }),
+      exaSearch: () => enrichment.exaSearch({ limit: limits.exaSearch }),
       discover: () => discovery.discover({ limit: limits.discover, ...words }),
       verify: () => discovery.verify({ limit: limits.verify, ...words }),
       crawl: () => enrichment.crawl({ limit: limits.crawl, ...hints }),
@@ -481,6 +503,7 @@ export function makePoolScheduler(deps: PoolSchedulerDeps) {
           youtube: deps.youtube ?? false,
           ad_library: deps.adLibrary ?? false,
           fb_groups: deps.fbGroups ?? false,
+          exa_search: deps.exaSearch ?? false,
           stages: [...runnable],
           limits,
         },

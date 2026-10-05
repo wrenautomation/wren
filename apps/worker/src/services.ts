@@ -141,6 +141,7 @@ import {
   adLibraryFor,
   crawlHintsFor,
   discoveryWordsFor,
+  exaSearchFor,
   fbGroupsFor,
   LANDERS_BY_NICHE,
   NICHES,
@@ -492,6 +493,13 @@ export async function buildServices(
       }),
       adsFor: adLibraryFor,
       groupsFor: fbGroupsFor,
+      // Exa's company index through `web` (an api route, so the sites service, not the desk).
+      exaSites: ingressSites(ingressOf(settings), {
+        caller: "wren:exa-search",
+        ...sitesHost(settings.autobrowseInstanceId),
+        timeoutMs: BOOKS_DESK_TIMEOUT_MS,
+      }),
+      exaFor: exaSearchFor,
     }),
     // Discovery probes guessed hosts, most of them parked or dead: a short timeout and
     // one try per URL, or a single company's guesses can eat a Lambda invocation.
@@ -640,6 +648,7 @@ export async function buildServices(
       youtube: true,
       adLibrary: true,
       fbGroups: true,
+      exaSearch: true,
       recheck: {
         horizonDays: settings.verificationHorizonDays,
         policy: (niche) => campaigns.get(niche)?.recontact,
