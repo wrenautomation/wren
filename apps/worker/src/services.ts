@@ -159,6 +159,7 @@ import { s3PageStore } from "@wren/research/pages";
 import { makeDiscovery, makeEnrichment, makePageArchive } from "@wren/research/restate";
 import type { Logger } from "pino";
 import { COMPONENTS } from "./components.js";
+import { MARKETING_NUMBERS } from "./marketing.js";
 
 /** The worker's application_name on every connection, kept on each audit event. */
 const WORKER_APP = "wren-worker";
@@ -847,7 +848,12 @@ export async function buildServices(
       mainUrl: settings.databaseUrl,
       views: EMAIL_CONSOLE_VIEWS,
       moneyViews: [...EMAIL_COST_VIEWS, ...BOOKS_CONSOLE_VIEWS],
-      records: [...emailRecords(roster, policy), ...BOOKS_RECORDS, clientRecord],
+      records: [
+        ...emailRecords(roster, policy),
+        ...BOOKS_RECORDS,
+        ...MARKETING_NUMBERS,
+        clientRecord,
+      ],
       components: COMPONENTS,
       // A component's client loops start and stop with it, when this worker binds them.
       bound: (service) => services.some((x) => x.name === service),

@@ -1,5 +1,8 @@
-/** The console's SMS records: a client's texting threads (O4), read from its own database. */
-import { date, defineRecord, name, number, status, text } from "@wren/core/records";
+/**
+ * The console's SMS records: a client's texting threads (O4), read from its own database, and
+ * texted contacts for the Marketing app (`marketing_text_contact_records`).
+ */
+import { date, defineRecord, name, number, rate, status, text } from "@wren/core/records";
 import { getThread, listThreads } from "./threads.js";
 
 /** ponytail: rows, not a view: a client's desk holds hundreds of threads; a view past that. */
@@ -80,3 +83,64 @@ export const threadRecord = defineRecord({
 });
 
 export const SMS_RECORDS = [threadRecord];
+
+const neutral = (label: string) => ({ label, tone: "neutral" as const });
+
+export const textContactRecord = defineRecord({
+  id: "marketing.text_contact",
+  name: { one: "texted contact", many: "texted contacts" },
+  view: "marketing_text_contact_records",
+  key: "id",
+  title: "name",
+  subtitle: "lastText",
+  fields: {
+    name: name(),
+    state: status({
+      new: neutral("New"),
+      enrolled: neutral("Texting"),
+      replied: { label: "Replied", tone: "good" },
+      opted_out: { label: "Opted out", tone: "warn" },
+      finished: neutral("Finished"),
+      stopped: neutral("Stopped"),
+      unreachable: { label: "Unreachable", tone: "bad" },
+    }),
+    basis: status({ published: neutral("Published number"), opt_in: neutral("Opted in") }, "Base"),
+    lastText: text("Last text"),
+    lastAt: date("Last"),
+    disposition: status(
+      {
+        interested: { label: "Interested", tone: "good" },
+        not_interested: neutral("Not interested"),
+        question: neutral("Question"),
+        wrong_person: neutral("Wrong person"),
+        opt_out: { label: "Opt-out", tone: "warn" },
+        other: neutral("Other"),
+      },
+      "Reply",
+    ),
+    sent: number("Texts sent"),
+    replies: number(),
+    replyRate: rate("texted", "Replied", { from: "replied" }),
+    waiting: status({ waiting: { label: "Unread", tone: "warn" }, read: neutral("Read") }, "Read"),
+    enrolled: date("Started"),
+  },
+  views: [
+    {
+      id: "texted",
+      label: "All texted",
+      where: { sent: { gte: 1 } },
+      sort: "-lastAt",
+      at: "lastAt",
+    },
+    {
+      id: "waiting",
+      label: "Waiting",
+      where: { waiting: "waiting" },
+      sort: "-lastAt",
+      at: "lastAt",
+    },
+    { id: "replied", label: "Replied", where: { state: "replied" }, sort: "-lastAt", at: "lastAt" },
+    { id: "opted_out", label: "Opted out", where: { state: "opted_out" }, sort: "-lastAt" },
+  ],
+  actions: ["marketing.markRead"],
+});

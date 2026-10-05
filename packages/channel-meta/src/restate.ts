@@ -19,7 +19,7 @@ import {
   metaAds,
   type Tree,
 } from "./ads.js";
-import { markStarted, markStopped, recordLaunch } from "./launches.js";
+import { launchesByCampaign, markStarted, markStopped, recordLaunch } from "./launches.js";
 
 export interface AdsDeps {
   /** The site client for one invocation (`restateSites(ctx, { caller })` in the worker). */
@@ -136,6 +136,31 @@ export function makeAds(deps: AdsDeps) {
           await ads(ctx).stop(req.campaignId);
           if (db)
             await ctx.run("record stop", () => markStopped(db, req.campaignId, req.reason ?? null));
+        },
+      ),
+      /** Start a stopped or paused launch again at its own budget, read from `ad_launches`. */
+      resume: serviceHandler(
+        { input: z.looseObject({ campaignId: z.string() }), effect: "spends" },
+        async (ctx: restate.Context, req: { campaignId: string }) => {
+          if (!db)
+            throw new restate.TerminalError("resume reads ad_launches: no database", {
+              errorCode: 400,
+            });
+          const launch = await ctx.run("read launch", async () => {
+            const [l] = await launchesByCampaign(db, [req.campaignId]);
+            return l
+              ? {
+                  campaignId: l.campaignId,
+                  adsetId: l.adsetId,
+                  adId: l.adId,
+                  budget: l.dailyBudgetUsd,
+                }
+              : null;
+          });
+          if (!launch)
+            throw new restate.TerminalError("Wren didn't launch that campaign", { errorCode: 404 });
+          await ads(ctx).start(launch, launch.budget);
+          await ctx.run("record start", () => markStarted(db, launch.campaignId, launch.budget));
         },
       ),
       leadForm: serviceHandler(

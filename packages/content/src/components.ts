@@ -31,4 +31,26 @@ export const CONTENT_COMPONENTS = [
     provides: { services: ["ContentPlanner"], loops: ["ContentPlanner"] },
     effects: ["spends"],
   }),
+  /** The Marketing app's numbers: content, ads, search, texts and the site, read only. */
+  defineComponent({
+    id: "marketing.stats",
+    name: "Marketing numbers",
+    blurb: "Every post, ad set, search page, text and site visit as one funnel.",
+    icon: "chart",
+    for: "client",
+    ready: false,
+    missing: ["Not ready until a client runs content"],
+    provides: {
+      records: [
+        "marketing.post",
+        "marketing.ad_day",
+        "marketing.search_page",
+        "marketing.keyword",
+        "marketing.search_day",
+        "marketing.answer",
+        "marketing.text_contact",
+        "marketing.site_day",
+      ],
+    },
+  }),
 ];

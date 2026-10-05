@@ -4,6 +4,7 @@
  * person reads the rest back without Ads Manager.
  */
 import { baseColumns, oneOf } from "@wren/db/columns";
+import { sql } from "drizzle-orm";
 import {
   date,
   doublePrecision,
@@ -11,6 +12,7 @@ import {
   integer,
   jsonb,
   pgTable,
+  pgView,
   primaryKey,
   real,
   text,
@@ -82,3 +84,34 @@ export const adDays = pgTable(
 );
 
 export type AdDay = typeof adDays.$inferSelect;
+
+/**
+ * Each ad set's day (`marketing.ad_day`), keyed `<campaign>/<ad set>/<day>` so an action knows the
+ * campaign. `state` is the launch's when Wren launched it, else null. `age` buckets the day:
+ * `week` is the last 7 days, today counting, `month` the 23 before.
+ */
+export const marketingAdDayRecords = pgView("marketing_ad_day_records", {
+  id: text("id"),
+  day: date("day"),
+  campaign: text("campaign"),
+  adset: text("adset"),
+  currency: text("currency"),
+  spend: doublePrecision("spend"),
+  impressions: integer("impressions"),
+  reach: integer("reach"),
+  clicks: integer("clicks"),
+  leads: integer("leads"),
+  costPerLead: doublePrecision("cost_per_lead"),
+  state: text("state"),
+  age: text("age"),
+}).as(sql`
+  select concat_ws('/', d.campaign_id, d.adset_id, d.day) id, d.day, d.campaign_name campaign,
+    d.adset_name adset, d.currency::text currency, d.spend, d.impressions, d.reach, d.clicks,
+    d.leads, round((d.spend / nullif(d.leads, 0))::numeric, 2)::float cost_per_lead,
+    l.status::text state,
+    case when d.day > current_date - 7 then 'week'
+      when d.day > current_date - 30 then 'month' else 'earlier' end age
+  from ad_days d
+  left join lateral (
+    select a.status from ad_launches a where a.campaign_id = d.campaign_id
+    order by a.created_at desc limit 1) l on true`);

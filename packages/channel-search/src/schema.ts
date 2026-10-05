@@ -1,5 +1,6 @@
 import { runs } from "@wren/core/schema";
 import { oneOf } from "@wren/db/columns";
+import { sql } from "drizzle-orm";
 import {
   boolean,
   date,
@@ -9,6 +10,7 @@ import {
   integer,
   jsonb,
   pgTable,
+  pgView,
   primaryKey,
   serial,
   text,
@@ -243,3 +245,111 @@ export const siteDays = pgTable(
   ],
 );
 export type SiteDay = typeof siteDays.$inferSelect;
+
+/**
+ * A week of Search Console: the 7 days up to its newest day (Google is 2 or 3 days behind, so
+ * today would undercount), against the 7 before, grouped `by` page or query.
+ */
+const searchWeek = (by: "page" | "query") =>
+  sql.raw(`select ${by} k,
+    sum(clicks) filter (where day > w.d - 7)::int clicks,
+    sum(impressions) filter (where day > w.d - 7)::int impressions,
+    round((sum(position * impressions) filter (where day > w.d - 7)
+      / nullif(sum(impressions) filter (where day > w.d - 7), 0))::numeric, 1)::float "position",
+    sum(clicks) filter (where day <= w.d - 7)::int clicks_before,
+    sum(impressions) filter (where day <= w.d - 7)::int impressions_before
+  from search_days, (select max(day) d from search_days) w
+  where day > w.d - 14 group by ${by}`);
+
+/** Each sitemap page (`marketing.search_page`): its index state and its week in Google. */
+export const marketingSearchPageRecords = pgView("marketing_search_page_records", {
+  id: text("id"),
+  url: text("url"),
+  indexed: text("indexed"),
+  coverage: text("coverage"),
+  checked: date("checked"),
+  clicks: integer("clicks"),
+  impressions: integer("impressions"),
+  position: doublePrecision("position"),
+  clicksChange: integer("clicks_change"),
+  impressionsChange: integer("impressions_change"),
+}).as(sql`
+  select p.url id, p.url, case when p.verdict = 'PASS' then 'indexed' else 'not_indexed' end indexed,
+    p.coverage, p.checked_on checked, coalesce(w.clicks, 0) clicks,
+    coalesce(w.impressions, 0) impressions, w.position,
+    coalesce(w.clicks, 0) - coalesce(w.clicks_before, 0) clicks_change,
+    coalesce(w.impressions, 0) - coalesce(w.impressions_before, 0) impressions_change
+  from (select distinct on (url) url, verdict, coverage, checked_on from search_pages
+        order by url, checked_on desc) p
+  left join (${searchWeek("page")}) w on w.k = p.url`);
+
+/** Each keyword (`marketing.keyword`): its week in Google, by the query that is its phrase. */
+export const marketingKeywordRecords = pgView("marketing_keyword_records", {
+  id: integer("id"),
+  phrase: text("phrase"),
+  source: text("source"),
+  page: text("page"),
+  state: text("state"),
+  clicks: integer("clicks"),
+  impressions: integer("impressions"),
+  position: doublePrecision("position"),
+  clicksChange: integer("clicks_change"),
+  impressionsChange: integer("impressions_change"),
+  added: timestamp("added", { withTimezone: true }),
+}).as(sql`
+  select k.id, k.phrase, k.source::text source, k.page,
+    case when k.retired_at is null then 'active' else 'retired' end state,
+    coalesce(w.clicks, 0) clicks, coalesce(w.impressions, 0) impressions, w.position,
+    coalesce(w.clicks, 0) - coalesce(w.clicks_before, 0) clicks_change,
+    coalesce(w.impressions, 0) - coalesce(w.impressions_before, 0) impressions_change,
+    k.added_at added
+  from search_keywords k left join (${searchWeek("query")}) w on w.k = k.phrase`);
+
+/** Each day in Google (`marketing.search_day`), all pages and queries added up. */
+export const marketingSearchDayRecords = pgView("marketing_search_day_records", {
+  id: text("id"),
+  day: date("day"),
+  clicks: integer("clicks"),
+  impressions: integer("impressions"),
+  position: doublePrecision("position"),
+}).as(sql`
+  select day::text id, day, sum(clicks)::int clicks, sum(impressions)::int impressions,
+    round((sum(position * impressions) / nullif(sum(impressions), 0))::numeric, 1)::float "position"
+  from search_days group by day`);
+
+/** Each answer an engine gave (`marketing.answer`); `latest` marks the newest per engine and keyword. */
+export const marketingAnswerRecords = pgView("marketing_answer_records", {
+  id: text("id"),
+  phrase: text("phrase"),
+  engine: text("engine"),
+  asked: date("asked"),
+  cited: text("cited"),
+  rank: integer("rank"),
+  overview: text("overview"),
+  latest: text("latest"),
+}).as(sql`
+  select concat_ws('/', a.engine, a.keyword_id, a.asked_on) id, k.phrase, a.engine::text engine,
+    a.asked_on asked, case when a.cited then 'cited' else 'not_cited' end cited, a.rank,
+    case when a.overview then 'shown' when not a.overview then 'none' end overview,
+    case when a.asked_on = max(a.asked_on) over (partition by a.engine, a.keyword_id)
+      then 'latest' else 'older' end latest
+  from search_answers a join search_keywords k on k.id = a.keyword_id`);
+
+/** Each day, channel and campaign on the site (`marketing.site_day`), by first touch. */
+export const marketingSiteDayRecords = pgView("marketing_site_day_records", {
+  id: text("id"),
+  day: date("day"),
+  channel: text("channel"),
+  campaign: text("campaign"),
+  visits: integer("visits"),
+  firstTouches: integer("first_touches"),
+  forms: integer("forms"),
+  bookings: integer("bookings"),
+  watchPlays: integer("watch_plays"),
+  age: text("age"),
+}).as(sql`
+  select concat_ws('/', day, channel, campaign) id, day, channel::text channel,
+    nullif(campaign, '')::text campaign, visits, first_touches, forms, bookings, watch_plays,
+    case when day > current_date - 7 then 'week'
+      when day > current_date - 30 then 'month' else 'earlier' end age
+  from site_days`);

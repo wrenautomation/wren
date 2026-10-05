@@ -6,8 +6,9 @@
   "exports": {
     ".": "./src/index.ts",
     "./components": "./src/components.ts",
-    "./schema": "./src/schema.ts",
-    "./restate": "./src/restate/index.ts"
+    "./records": "./src/records.ts",
+    "./restate": "./src/restate/index.ts",
+    "./schema": "./src/schema.ts"
   },
   "scripts": {
     "test:unit": "vitest run src",

@@ -29,6 +29,7 @@ import {
   integer,
   jsonb,
   pgTable,
+  pgView,
   serial,
   smallint,
   text,
@@ -358,3 +359,47 @@ export type SmsMessage = typeof smsMessages.$inferSelect;
 export type SmsEventRow = typeof smsEvents.$inferSelect;
 export type SmsTemplateRow = typeof smsTemplates.$inferSelect;
 export type SmsPushSubscription = typeof smsPushSubscriptions.$inferSelect;
+
+/**
+ * Each contact as a marketing record (`marketing.text_contact`): its texts out and in, the
+ * newest text either way, the newest reply's disposition, and replies not yet read (`waiting`).
+ * Sent counts as `SmsDesk/stats` does: every text handed to the provider.
+ */
+export const marketingTextContactRecords = pgView("marketing_text_contact_records", {
+  id: integer("id"),
+  name: text("name"),
+  state: text("state"),
+  basis: text("basis"),
+  niche: text("niche"),
+  sent: integer("sent"),
+  replies: integer("replies"),
+  texted: integer("texted"),
+  replied: integer("replied"),
+  lastText: text("last_text"),
+  lastAt: timestamp("last_at", { withTimezone: true }),
+  disposition: text("disposition"),
+  waiting: text("waiting"),
+  enrolled: timestamp("enrolled", { withTimezone: true }),
+}).as(sql`
+  select c.id, coalesce(c.name, c.e164)::text "name", c.state::text state, c.basis::text basis,
+    c.niche::text niche, coalesce(m.sent, 0) sent, coalesce(m.replies, 0) replies,
+    (coalesce(m.sent, 0) > 0)::int texted, (coalesce(m.replies, 0) > 0)::int replied,
+    l.body last_text, l.at last_at, r.disposition::text disposition,
+    case when coalesce(m.unread, 0) > 0 then 'waiting' else 'read' end waiting,
+    c.enrolled_at enrolled
+  from sms_contacts c
+  left join (
+    select s.contact_id,
+      count(*) filter (where s.direction = 'out' and s.state in ('sent', 'delivered', 'failed', 'unknown'))::int sent,
+      count(*) filter (where s.direction = 'in')::int replies,
+      count(*) filter (where s.direction = 'in' and (x.read_at is null or s.received_at > x.read_at))::int unread
+    from sms_messages s join sms_contacts x on x.id = s.contact_id group by s.contact_id) m
+    on m.contact_id = c.id
+  left join lateral (
+    select body, coalesce(received_at, sent_at, created_at) at from sms_messages
+    where contact_id = c.id and state not in ('queued', 'skipped')
+    order by coalesce(received_at, sent_at, created_at) desc limit 1) l on true
+  left join lateral (
+    select disposition from sms_messages
+    where contact_id = c.id and direction = 'in' and disposition is not null
+    order by received_at desc limit 1) r on true`);

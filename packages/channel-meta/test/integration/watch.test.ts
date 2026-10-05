@@ -9,12 +9,14 @@ import * as clients from "@restatedev/restate-sdk-clients";
 import type { RestateTestEnvironment } from "@restatedev/restate-sdk-testcontainers";
 import { ingressOf } from "@wren/config";
 import type { SiteClient } from "@wren/core/content";
+import { serveRecords } from "@wren/core/records/serve";
 import type { PassOutcome } from "@wren/core/restate";
 import { startTestRestate } from "@wren/core/testing";
 import { startTestPostgres, type TestPostgres, truncate } from "@wren/db/testing";
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 import type { InsightRow, LaunchSpec } from "../../src/ads.js";
 import { listLaunches } from "../../src/launches.js";
+import { adDayRecord } from "../../src/records.js";
 import { type AdsService, makeAds } from "../../src/restate.js";
 import { adDays } from "../../src/schema.js";
 import { type AdsWatch, makeAdsWatch, WATCH_KEY, type WatchStats } from "../../src/watch.js";
@@ -114,7 +116,7 @@ const spec: LaunchSpec = {
 };
 
 describe("ads ledger and watch", () => {
-  it("launch → start → stop is three rows' worth of state on one row", async () => {
+  it("launch → start → stop → resume is state on one row", async () => {
     const made = await ads().launch(spec);
     let [row] = await listLaunches(pg.db);
     expect(row).toMatchObject({
@@ -136,6 +138,10 @@ describe("ads ledger and watch", () => {
     [row] = await listLaunches(pg.db);
     expect(row).toMatchObject({ status: "stopped", stopReason: null });
     expect(row?.stoppedAt).toBeInstanceOf(Date);
+    await ads().resume({ campaignId: made.campaignId });
+    [row] = await listLaunches(pg.db);
+    expect(row).toMatchObject({ status: "active", dailyBudgetUsd: 12, stoppedAt: null });
+    await expect(ads().resume({ campaignId: "999" })).rejects.toThrow(/didn't launch/);
   });
 
   it("a pass with nothing active reads nothing and says nothing", async () => {
@@ -227,5 +233,16 @@ describe("ads ledger and watch", () => {
       ["2026-01-01", 30, 0],
       ["2026-01-02", 26, 3],
     ]);
+    // The Marketing app's rows: the launch's state for pause and resume, spend summed below.
+    const api = serveRecords([adDayRecord], pg.db);
+    for (const v of adDayRecord.views)
+      await api.list({ record: adDayRecord.id, view: v.id, limit: 9 });
+    const all = await api.list({ record: adDayRecord.id, view: "campaign", limit: 9 });
+    expect(all.rows.map((r) => [r.state, r.costPerLead])).toEqual([
+      ["active", 30],
+      ["active", 26],
+    ]);
+    expect(all.totals.spend).toEqual({ sum: 56, currency: "USD" });
+    expect(all.totals.ctr).toEqual({ n: 3, of: expect.any(Number) });
   });
 });

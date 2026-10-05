@@ -20,6 +20,7 @@ import { REACTIVATION_RECORDS, settingOf } from "@wren/reactivation/records";
 import type { Logger } from "pino";
 import { afterAll, describe, expect, it } from "vitest";
 import { COMPONENTS, PLATFORM } from "./components.js";
+import { MARKETING_NUMBERS } from "./marketing.js";
 import { buildServices } from "./services.js";
 
 const quiet = () => {};
@@ -71,6 +72,7 @@ async function bound() {
 const RECORDS = [
   ...emailRecords([], {} as SendPolicy),
   ...BOOKS_RECORDS,
+  ...MARKETING_NUMBERS,
   clientRecord,
   loopRecord(async () => []),
   handlerRecord(async () => ({})),

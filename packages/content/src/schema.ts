@@ -7,6 +7,7 @@
  */
 import { type Media, PLATFORMS, type Platform } from "@wren/core/content";
 import { baseColumns, nonNegative, oneOf } from "@wren/db/columns";
+import { sql } from "drizzle-orm";
 import {
   type AnyPgColumn,
   boolean,
@@ -14,6 +15,7 @@ import {
   integer,
   jsonb,
   pgTable,
+  pgView,
   text,
   timestamp,
   uuid,
@@ -157,3 +159,33 @@ export type ContentDraft = typeof contentDrafts.$inferSelect;
 export type NewContentDraft = typeof contentDrafts.$inferInsert;
 export type ContentMetric = typeof contentMetrics.$inferSelect;
 export type ContentPlaybook = typeof contentPlaybooks.$inferSelect;
+
+/**
+ * Each published post with its newest numbers (`marketing.post`), keyed `<idea>/<platform>/<draft>`
+ * so drafting again knows the idea. `engaged` is reactions, comments
+ * and shares; `recent` is the last 7 days, as `wren content results` reads them.
+ */
+export const marketingPostRecords = pgView("marketing_post_records", {
+  id: text("id"),
+  platform: text("platform"),
+  title: text("title"),
+  published: timestamp("published", { withTimezone: true }),
+  views: integer("views"),
+  reactions: integer("reactions"),
+  comments: integer("comments"),
+  shares: integer("shares"),
+  engaged: integer("engaged"),
+  measured: timestamp("measured", { withTimezone: true }),
+  url: text("url"),
+  recent: text("recent"),
+}).as(sql`
+  select concat_ws('/', d.idea_id, d.platform, d.id) id, d.platform::text platform,
+    coalesce(d.title, left(split_part(d.text, chr(10), 1), 120))::text title,
+    d.published_at published, m.views, m.reactions, m.comments, m.shares,
+    m.reactions + m.comments + m.shares engaged, m.as_of measured, d.url::text url,
+    case when d.published_at >= now() - interval '7 days' then 'recent' else 'earlier' end recent
+  from content_drafts d
+  left join lateral (
+    select c.views, c.reactions, c.comments, c.shares, c.as_of from content_metrics c
+    where c.draft_id = d.id order by c.created_at desc limit 1) m on true
+  where d.status = 'published'`);
