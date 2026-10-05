@@ -39,18 +39,24 @@ export interface CompanyFindingDraft extends Draft {
   companyId: number;
 }
 
-/** Postgres text and jsonb refuse NUL; pages and snippets sometimes carry one. */
-export const noNul = <T>(v: T): T =>
+/** Half an emoji: a UTF-16 surrogate without its pair, left by a string cut mid-character. */
+const LONE_SURROGATE = /[\uD800-\uDBFF](?![\uDC00-\uDFFF])|(?<![\uD800-\uDBFF])[\uDC00-\uDFFF]/g;
+
+/**
+ * Text Postgres takes: text and jsonb refuse NUL, and jsonb a lone surrogate. Pages, snippets and
+ * cut descriptions carry both, and one refused row would fail its unit on every retry.
+ */
+export const pgSafe = <T>(v: T): T =>
   typeof v === "string"
-    ? (v.replaceAll("\u0000", "") as T)
+    ? (v.replaceAll("\u0000", "").replace(LONE_SURROGATE, "") as T)
     : Array.isArray(v)
-      ? (v.map(noNul) as T)
+      ? (v.map(pgSafe) as T)
       : v && typeof v === "object"
-        ? (Object.fromEntries(Object.entries(v).map(([k, x]) => [k, noNul(x)])) as T)
+        ? (Object.fromEntries(Object.entries(v).map(([k, x]) => [k, pgSafe(x)])) as T)
         : v;
 
 export async function keepDocument(db: Queryable, draft: DocumentDraft): Promise<number> {
-  const d = noNul(draft);
+  const d = pgSafe(draft);
   const contentHash = createHash("sha256").update(d.text).digest("hex");
   const [made] = await db
     .insert(documents)
@@ -78,7 +84,7 @@ export async function keepFinding(
   db: Queryable,
   draft: FindingDraft | CompanyFindingDraft,
 ): Promise<number> {
-  const f = noNul(draft);
+  const f = pgSafe(draft);
   const documentId = f.document ? await keepDocument(db, f.document) : null;
   const row = {
     kind: f.kind,

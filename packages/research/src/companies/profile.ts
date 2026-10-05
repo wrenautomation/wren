@@ -22,7 +22,7 @@ import {
   type DocumentDraft,
   keepDocument,
   keepFinding,
-  noNul,
+  pgSafe,
 } from "../findings.js";
 import { Capped, paced, realSleep, refusedBy, type Stopped, searchStopped } from "../pacing.js";
 import { bareCompanyName, type Firm, isFirm } from "../people/names.js";
@@ -315,7 +315,7 @@ export async function recordCompanyLookup(
   if (r.finding) await keepFinding(db, r.finding);
   if (r.url)
     await db.update(companies).set({ linkedinUrl: r.url }).where(eq(companies.id, companyId));
-  const state = { state: r.state, tried: noNul(r.tried), retryAt: r.retryAt, runId };
+  const state = { state: r.state, tried: pgSafe(r.tried), retryAt: r.retryAt, runId };
   await db
     .insert(companyLookups)
     .values({ companyId, ...state })

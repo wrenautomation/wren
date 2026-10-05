@@ -8,7 +8,7 @@
  */
 import type { Queryable } from "@wren/db";
 import { sql } from "drizzle-orm";
-import { keepFinding, noNul } from "../findings.js";
+import { keepFinding, pgSafe } from "../findings.js";
 import { companyChecks } from "../schema.js";
 import type { HiringResult } from "./hiring.js";
 
@@ -19,7 +19,7 @@ export async function recordCompanyCheck(
   runId: string | null = null,
 ): Promise<void> {
   const findingId = r.finding ? await keepFinding(db, r.finding) : null;
-  const state = { state: r.state, findingId, tried: noNul(r.tried), retryAt: r.retryAt, runId };
+  const state = { state: r.state, findingId, tried: pgSafe(r.tried), retryAt: r.retryAt, runId };
   await db
     .insert(companyChecks)
     .values({ companyId, ...state })

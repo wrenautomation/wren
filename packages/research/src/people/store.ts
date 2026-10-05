@@ -7,7 +7,7 @@
 import { people } from "@wren/core/schema";
 import type { Queryable } from "@wren/db";
 import { eq, sql } from "drizzle-orm";
-import { keepDocument, keepFinding, noNul } from "../findings.js";
+import { keepDocument, keepFinding, pgSafe } from "../findings.js";
 import { personLookups } from "../schema.js";
 import type { LookupResult } from "./lookup.js";
 
@@ -21,7 +21,7 @@ export async function recordLookup(
   for (const f of r.findings) await keepFinding(db, f);
   if (r.profile)
     await db.update(people).set({ linkedinUrl: r.profile.url }).where(eq(people.id, personId));
-  const state = { state: r.state, tried: noNul(r.tried), retryAt: r.retryAt, runId };
+  const state = { state: r.state, tried: pgSafe(r.tried), retryAt: r.retryAt, runId };
   await db
     .insert(personLookups)
     .values({ personId, ...state })

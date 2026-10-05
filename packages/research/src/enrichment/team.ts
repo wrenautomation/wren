@@ -12,7 +12,7 @@ import type { SiteClient } from "@wren/core/content";
 import { people } from "@wren/core/schema";
 import type { Queryable } from "@wren/db";
 import { eq, type SQL, sql } from "drizzle-orm";
-import { noNul } from "../findings.js";
+import { pgSafe } from "../findings.js";
 import { type Bucket, bucketRoom, Capped, failedRead } from "../pacing.js";
 import { sameName } from "../people/names.js";
 import { searchTeam, type TeamMember } from "../people/team.js";
@@ -179,7 +179,7 @@ export async function keepMembers(
         origin: "linkedin",
         originRef: m.linkedin,
         linkedinUrl: m.linkedin,
-        raw: noNul({ via: "team search", query: ref.query, title: m.title }),
+        raw: pgSafe({ via: "team search", query: ref.query, title: m.title }),
       })
       .onConflictDoNothing({ target: people.sourceKey })
       .returning({ id: people.id });
@@ -202,7 +202,7 @@ async function mark(
   companyId: number,
   row: Omit<typeof teamSearches.$inferInsert, "companyId">,
 ): Promise<void> {
-  const values = { ...row, profiles: noNul(row.profiles) };
+  const values = { ...row, profiles: pgSafe(row.profiles) };
   await db
     .insert(teamSearches)
     .values({ companyId, ...values })
