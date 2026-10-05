@@ -17,13 +17,22 @@ if (missing.length) {
   console.error(`deploy/prod.env lacks ${missing.join(", ")}`);
   process.exit(1);
 }
+// Prod's verifier and contact fetcher when the shell sets none: without them the CLI falls back to the fake
+// verifier, whose verdicts the movers stage refuses.
+const OPTIONAL = [
+  "RESTATE_AUTH_TOKEN",
+  "WREN_VERIFIER",
+  "WREN_SMTP_PROBE_URL",
+  "WREN_SMTP_PROBE_TOKEN",
+  "WREN_FETCH_CONTACT",
+];
 const env = {
+  ...Object.fromEntries(OPTIONAL.filter((k) => prod[k]).map((k) => [k, prod[k]])),
   ...process.env,
   ...Object.fromEntries(KEYS.map((k) => [k, prod[k]])),
   WREN_RESTATE_INGRESS_URL:
     process.env.WREN_PROD_INGRESS_URL ??
     "https://201m2vp6sq3x11xdaatsmjej302.env.us.restate.cloud:8080",
-  ...(prod.RESTATE_AUTH_TOKEN ? { RESTATE_AUTH_TOKEN: prod.RESTATE_AUTH_TOKEN } : {}),
 };
 const r = spawnSync(join(root, "bin/wren"), process.argv.slice(2), { env, stdio: "inherit" });
 process.exit(r.status ?? 1);
