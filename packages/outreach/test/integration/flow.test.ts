@@ -29,7 +29,7 @@ import {
 } from "../../src/sequences.js";
 import { setTemplate } from "../../src/store.js";
 import { getThread, listThreads, reachStats } from "../../src/threads.js";
-import { queueManual, reconcile, STALE_SENDING_MS, tick } from "../../src/tick.js";
+import { queueManual, reconcile, STALE_SENDING_MS, tick, touch } from "../../src/tick.js";
 
 const TABLES = ["reach_messages", "reach_contacts", "reach_accounts", "reach_templates"];
 const POLICY: ReachPolicy = { ...DEFAULT_POLICY, gapSeconds: 0 };
@@ -99,8 +99,8 @@ async function account(platform: "reddit" | "linkedin", key: string, now = at(-4
   return setAccountState(db(), a.id, "active", { reason: null, now });
 }
 
-const tickAt = (now: Date, live = true) =>
-  tick(db(), {
+const tickAt = async (now: Date, live = true) => {
+  const stats = await tick(db(), {
     channelFor,
     policy: POLICY,
     sequences: REACH_SEQUENCES,
@@ -108,6 +108,19 @@ const tickAt = (now: Date, live = true) =>
     live,
     now,
   });
+  // The spine, by hand: each sent step's next touch, as its wire's wait ends.
+  for (const s of stats.stepped) {
+    const next = seqOf(s.sequence).steps.find((x) => x.step === s.step + 1);
+    if (!next) continue;
+    const due = at(next.afterDays, now);
+    await touch(db(), s.contactId, next.step, {
+      sequences: REACH_SEQUENCES,
+      sender: "William",
+      now: due,
+    });
+  }
+  return stats;
+};
 
 const messagesOf = (contactId: number) =>
   db()
@@ -170,6 +183,11 @@ describe("reddit sequence", () => {
       [2, "queued"],
     ]);
     expect(rows[1]?.dueAt?.getTime()).toBe(at(5).getTime());
+    expect(sent.stepped).toEqual([{ contactId: c.id, sequence: REDDIT.name, step: 1 }]);
+    // A retried touch queues nothing more; a reply answers instead.
+    const o = { sequences: REACH_SEQUENCES, sender: "William", now: OPEN };
+    expect(await touch(db(), c.id, 2, o)).toBe("queued");
+    expect(await messagesOf(c.id)).toHaveLength(2);
 
     expect((await tickAt(at(1))).sent).toBe(0);
     const step2 = await tickAt(at(5));

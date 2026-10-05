@@ -22,10 +22,20 @@ export interface SpineEvent {
   data: Record<string, unknown>;
 }
 
+/** Where a step runs: whose database, which node, and that node's settings. */
+export interface StepAt {
+  client: string | null;
+  workflow: string;
+  /** Dotted from the top workflow. */
+  node: string;
+  with: Record<string, string | number>;
+}
+
 /** A part's code on the spine: an event at one of its inputs in, events on its outputs out. */
 export type Step = (
   port: string,
   e: SpineEvent,
+  at: StepAt,
 ) => Promise<Array<{ port: string; event: SpineEvent }>>;
 
 /** An event at a node's input: `node` is the dotted path from `workflow` down. */
@@ -54,6 +64,8 @@ export interface Walk {
   /** By part id, or a custom step's registered name. */
   steps: Readonly<Record<string, Step>>;
   store: SpineStore;
+  /** Whose database the store is in; null is Wren's. */
+  client: string | null;
   /** This call's id: who owns what it claims. */
   by: string;
   /** Journaled once (ctx.run); `capped` gives up after a few tries with a TerminalError. */
@@ -198,7 +210,8 @@ async function walkMoves(w: Walk, workflow: string, queue: Move[]): Promise<Tall
         `${a.node}.${port} ${m.e.subject}`,
         async () => {
           if (!(await w.store.claim(a, w.by))) return null;
-          return step ? step(port, a.event) : [];
+          const at = { client: w.client, workflow, node: a.node, with: node.with ?? {} };
+          return step ? step(port, a.event, at) : [];
         },
         true,
       );
@@ -343,6 +356,12 @@ type SpineService = {
   release: (ctx: restate.Context, req: Target & { id: string }) => Promise<Tally | null>;
 };
 
+/** Events leaving `from` in a workflow, sent by a part's own code: a sender that sent a step. */
+export const spineEmit = (
+  ctx: restate.Context,
+  req: Target & { workflow: string; from: string; events: SpineEvent[] },
+) => ctx.serviceSendClient<SpineService>(SPINE).emit(req);
+
 export interface SpineDeps {
   main: Db;
   clientDb(id: string): Db;
@@ -362,6 +381,7 @@ export function makeSpine(d: SpineDeps) {
     parts,
     steps: d.steps,
     store: pgSpineStore(t.client ? d.clientDb(t.client) : d.main),
+    client: t.client,
     by: ctx.request().id,
     run: (name, fn, capped) => ctx.run(name, fn, capped ? STEP_RETRY : {}),
     later: (id, ms) =>

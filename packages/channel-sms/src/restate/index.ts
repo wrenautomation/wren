@@ -35,6 +35,8 @@ import {
   setLastPass,
   stoppedPass,
 } from "@wren/core/restate";
+import { spineEmit } from "@wren/core/spine";
+import { cadenceId } from "@wren/core/workflows";
 import type { Db } from "@wren/db";
 import type { LlmClient } from "@wren/llm";
 import { z } from "zod";
@@ -45,6 +47,7 @@ import { addContact, startThread } from "../contacts.js";
 import { queueManual, type TickStats, tick } from "../deliver.js";
 import { type EnrollStats, enroll } from "../enroll.js";
 import { applyEvent } from "../events.js";
+import { textLead } from "../follow.js";
 import { type FormOptions, type FormStats, followUpForms, type SiteSource } from "../form.js";
 import { checkHealth, type HealthPolicy, type HealthReport } from "../health.js";
 import { type LiftStats, liftPhones } from "../lift.js";
@@ -183,9 +186,10 @@ function wakeSender(ctx: restate.Context) {
 export function makeSmsSender(wren: SmsDeps) {
   return makeLoopObject<TickStats>("SmsSender", async (ctx) => {
     const now = await nowFor(ctx, wren.clock);
-    const deps = await depsOf(ctx, wren, clientOfKey(ctx.key)?.client ?? null);
+    const client = clientOfKey(ctx.key)?.client ?? null;
+    const deps = await depsOf(ctx, wren, client);
     if (typeof deps === "string") return stoppedPass<TickStats>(ctx, now, deps);
-    return runPass(ctx, deps.db, now, {
+    const pass = await runPass(ctx, deps.db, now, {
       name: "sms tick",
       ledger: { command: "sms tick", argv: { provider: deps.provider.name, live: deps.live } },
       body: (runId) =>
@@ -202,6 +206,15 @@ export function makeSmsSender(wren: SmsDeps) {
       retryMs: RETRY_MS,
       ...(deps.notifier ? { notifier: deps.notifier } : {}),
     });
+    // Each sent step leaves its node; the cadence's wire waits, then queues the next (follow.ts).
+    for (const s of pass.stats?.stepped ?? [])
+      spineEmit(ctx, {
+        client,
+        workflow: cadenceId(s.sequence),
+        from: `s${s.step}.sent`,
+        events: [textLead(s.contactId)],
+      });
+    return pass;
   });
 }
 

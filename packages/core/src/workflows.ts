@@ -27,6 +27,8 @@ export interface WorkflowNode {
   own?: Own;
   /** What it does here, over its blurb. */
   note?: string;
+  /** Its settings at this node, handed to its step: which copy, which step. */
+  with?: Record<string, string | number>;
 }
 
 export interface Wire {
@@ -58,6 +60,61 @@ export interface Workflow {
 type Input = Omit<Workflow, "in" | "out"> & Partial<Pick<Workflow, "in" | "out">>;
 
 export const defineWorkflow = (w: Input): Workflow => ({ ...w, in: w.in ?? [], out: w.out ?? [] });
+
+/** One follow-up step: after its wait, one touch by a channel's part, in one copy slot. */
+export interface CadenceStep {
+  /** The wait after the previous step went ("2 days"); none = right away. */
+  after?: string;
+  /** The part that makes the touch: `sms.touch`. */
+  touch: string;
+  with: Record<string, string | number>;
+}
+
+/** A follow-up cadence's workflow id. */
+export const cadenceId = (name: string) => `follow_up.${name}`;
+
+/**
+ * A follow-up cadence as a workflow of touches (designs/2026-10-05-workflows.md, Follow-ups). A
+ * lead enters the first; each touch's `sent` leaves when the channel's sender sends it and waits
+ * on the next one's wire; any touch answers `replied` instead once they have; the last `sent`
+ * leaves as `quiet`. Node `s<n>` is step n, so a sender knows where a sent step leaves from.
+ */
+export function cadenceWorkflow(c: {
+  name: string;
+  label: string;
+  blurb: string;
+  for: Workflow["for"];
+  steps: readonly CadenceStep[];
+}): Workflow {
+  const at = (i: number) => `s${i + 1}`;
+  const wait = (s: CadenceStep) => (s.after ? { wait: s.after } : {});
+  return defineWorkflow({
+    id: cadenceId(c.name),
+    name: c.label,
+    blurb: c.blurb,
+    icon: "cycle",
+    for: c.for,
+    stage: "follow",
+    in: [{ id: "leads", label: "leads", kind: "lead" }],
+    out: [
+      { id: "replied", label: "replies", kind: "reply" },
+      { id: "quiet", label: "every step sent", kind: "lead" },
+    ],
+    nodes: c.steps.map((s, i) => ({ id: at(i), uses: s.touch, with: s.with })),
+    wires: c.steps.flatMap((s, i) => [
+      {
+        from: i === 0 ? "in.leads" : `${at(i - 1)}.sent`,
+        to: `${at(i)}.lead`,
+        via: "events" as const,
+        ...wait(s),
+      },
+      { from: `${at(i)}.replied`, to: "out.replied", via: "events" as const },
+      ...(i === c.steps.length - 1
+        ? [{ from: `${at(i)}.sent`, to: "out.quiet", via: "events" as const }]
+        : []),
+    ]),
+  });
+}
 
 const NODE_ID = /^[a-z][a-z0-9_]*$/;
 const WAIT = /^(\d+ (minute|hour|day|week)s?|until [a-z]+)$/;

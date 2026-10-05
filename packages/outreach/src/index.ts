@@ -2,6 +2,7 @@ export { type Warmup, type WarmupStage, warmupOf } from "@wren/channel-reddit";
 export * from "./accounts.js";
 export * from "./contacts.js";
 export * from "./enroll.js";
+export * from "./follow.js";
 export * from "./policy.js";
 export * from "./refusal.js";
 export * from "./replies.js";

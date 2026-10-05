@@ -29,14 +29,15 @@ Citations: `packages/channel-sms/src/schema.ts:200`
 
 ## If you change this
 
-- **Hits:** `deliver.ts` (tick, reconcile, `queueManual`); `reminders.ts`; `enroll.ts:172`; `events.ts:168`; `classify.ts`; `threads.ts`; `templates.ts` (step bodies); `SmsSender`, `SmsDesk.reply`, the phone app
+- **Hits:** `deliver.ts` (tick, reconcile, `queueManual`); `follow.ts` (`touch` queues steps 2+ from the spine); `reminders.ts`; `enroll.ts:172` (the opener); `events.ts:168`; `classify.ts`; `threads.ts`; `templates.ts` (step bodies); `SmsSender`, `SmsDesk.reply`, the phone app
 - **Does not hit:** email's state machine
 
 ## Surfaces
 
 | Surface | Role |
 |---|---|
-| `SmsSender/fleet` | writes sends |
+| `SmsSender/fleet` | writes sends; each sent step leaves its cadence node on the spine (`stepped`) |
+| `Spine` (`sms.touch`) | writes the next step, due now, when its wait ends |
 | `SmsEvents.ingest` | writes inbound and receipts |
 | `SmsDesk.reply` | writes manual |
 | `SmsWatch/daily` | labels, queues reminders |

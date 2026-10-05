@@ -7,11 +7,15 @@ import * as clients from "@restatedev/restate-sdk-clients";
 import type { RestateTestEnvironment } from "@restatedev/restate-sdk-testcontainers";
 import { ingressOf } from "@wren/config";
 import type { PassOutcome } from "@wren/core/restate";
+import { events } from "@wren/core/schema";
+import { makeSpine } from "@wren/core/spine";
 import { startTestRestate } from "@wren/core/testing";
 import { startTestPostgres, type TestPostgres, truncate } from "@wren/db/testing";
 import { eq } from "drizzle-orm";
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
+import { SMS_COMPONENTS, TOUCH } from "../../src/components.js";
 import type { TickStats } from "../../src/deliver.js";
+import { textCadence, touchStep } from "../../src/follow.js";
 import { DEFAULT_HEALTH } from "../../src/health.js";
 import { FakeProvider, type SmsEvent } from "../../src/provider.js";
 import {
@@ -35,6 +39,7 @@ import {
   notes,
   numbers,
   POLICY,
+  SEQ,
   SEQUENCES,
   TABLES,
 } from "./fixtures.js";
@@ -65,7 +70,20 @@ beforeAll(async () => {
     clock: () => OPEN,
   };
   env = await startTestRestate({
-    services: [makeSmsSender(deps), makeSmsEvents(deps), makeSmsDesk(deps), makeSmsWatch(deps)],
+    services: [
+      makeSmsSender(deps),
+      makeSmsEvents(deps),
+      makeSmsDesk(deps),
+      makeSmsWatch(deps),
+      makeSpine({
+        main: pg.db,
+        clientDb: () => pg.db,
+        workflows: [textCadence(SEQ)],
+        components: SMS_COMPONENTS,
+        steps: { [TOUCH]: touchStep(() => pg.db, deps) },
+        rule: async () => false,
+      }),
+    ],
     alwaysReplay: true,
   });
 });
@@ -74,7 +92,7 @@ afterAll(async () => {
   await pg?.stop();
 });
 beforeEach(async () => {
-  await truncate(pg.db, TABLES);
+  await truncate(pg.db, [...TABLES, "events"]);
   await fillTemplates(pg.db);
   provider.sent.length = 0;
   n.seen.length = 0;
@@ -120,6 +138,14 @@ describe("sms on restate", () => {
     const sender = ingress().objectClient<SmsSender>({ name: "SmsSender" }, SENDER_KEY);
     const pass = (await sender.sync()) as PassOutcome<TickStats>;
     expect(pass.stats).toMatchObject({ sent: 1 });
+    // The sent opener leaves s1 on the spine and waits 3 days at step 2.
+    let waiting: Array<typeof events.$inferSelect> = [];
+    for (let i = 0; i < 50 && waiting.length === 0; i += 1) {
+      waiting = await pg.db.select().from(events).where(eq(events.node, "s2"));
+      if (waiting.length === 0) await new Promise((r) => setTimeout(r, 100));
+    }
+    expect(waiting).toMatchObject([{ workflow: "follow_up.recruiting-sms", port: "lead" }]);
+    expect(waiting[0]?.due?.getTime()).toBeGreaterThan(Date.now() + 2.9 * 86_400_000);
     const [thread] = await desk.threads({});
     expect(thread).toMatchObject({ e164: "+12125550187", lastDirection: "out" });
     const { messageId } = await desk.reply({

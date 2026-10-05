@@ -14,8 +14,10 @@
  * LinkedIn: a sequence step goes only once the invite is accepted. When the
  * step is due the tick reads the relationship: connected = send (and mark the
  * contact connected), pending = ask again tomorrow, past `connectWaitDays` =
- * `unreachable`. After a step the next is queued `afterDays` out; after the
- * last, the contact is `finished`. The live gate off holds every due row.
+ * `unreachable`. An accepted invite's send queues step 1. A sent step is listed
+ * in `stepped`: the sender hands it to the spine, whose wire waits `afterDays`
+ * and queues the next (`touch`). After the last, the contact is `finished`.
+ * The live gate off holds every due row.
  * A 429 from the worker (its caps) holds the row an hour; any other 4xx fails
  * it and ends the contact as `unreachable`; anything else leaves `unknown`.
  */
@@ -62,6 +64,8 @@ export interface TickStats {
   reconciled: number;
   finished: number;
   unreachable: number;
+  /** Sequence steps sent, each leaving its cadence node on the spine. */
+  stepped: Array<{ contactId: number; sequence: string; step: number }>;
 }
 
 /** One due row the plan picked, with what it needs. Dates travel as ISO through a journal. */
@@ -81,6 +85,7 @@ export const emptyStats = (): TickStats => ({
   reconciled: 0,
   finished: 0,
   unreachable: 0,
+  stepped: [],
 });
 
 const hold = (stats: TickStats, why: string) => {
@@ -279,31 +284,26 @@ export async function markSending(db: Queryable, rowId: number): Promise<void> {
     .where(eq(reachMessages.id, rowId));
 }
 
-async function queueNext(
+/** Queue step `step`, due `dueAt`; an emptied step finishes the contact instead. False if it ended. */
+async function queueStep(
   db: Queryable,
-  o: Pick<TickOptions, "sender" | "now" | "runId">,
+  o: Pick<TickOptions, "sender" | "now"> & { runId?: string | null },
   seq: ReachSequence,
   contact: ReachContact,
-  afterStep: number,
-  stats: TickStats,
-) {
-  const next = seq.steps.find((s) => s.step === afterStep + 1);
-  if (!next) {
-    await setContactState(db, contact.id, "finished", { now: o.now });
-    stats.finished++;
-    return;
-  }
-  const keys = [stepKey(seq, next.step), ...(next.subject ? [subjectKey(seq, next.step)] : [])];
+  step: number,
+  dueAt: Date,
+): Promise<boolean> {
+  const next = seq.steps.find((s) => s.step === step);
+  const keys = next ? [stepKey(seq, step), ...(next.subject ? [subjectKey(seq, step)] : [])] : [];
   const bodies = await templateBodies(db, keys);
-  const body = bodies.get(stepKey(seq, next.step));
-  if (!body) {
+  const body = bodies.get(stepKey(seq, step));
+  if (!next || !body) {
     // Emptied since enroll: the contact ends here rather than waiting on a blank.
     await setContactState(db, contact.id, "finished", {
-      reason: `${stepKey(seq, next.step)} is empty`,
+      reason: next ? `${stepKey(seq, step)} is empty` : `${seq.name} has no step ${step}`,
       now: o.now,
     });
-    stats.finished++;
-    return;
+    return false;
   }
   const fields = fieldsFor(contact, o.sender);
   await db.insert(reachMessages).values({
@@ -311,14 +311,48 @@ async function queueNext(
     accountId: contact.accountId,
     direction: "out",
     kind: "sequence",
-    step: next.step,
-    template: stepKey(seq, next.step),
-    subject: next.subject ? render(bodies.get(subjectKey(seq, next.step)) ?? "", fields) : null,
+    step,
+    template: stepKey(seq, step),
+    subject: next.subject ? render(bodies.get(subjectKey(seq, step)) ?? "", fields) : null,
     body: render(body, fields),
     state: "queued",
-    dueAt: new Date(o.now.getTime() + next.afterDays * DAY_MS),
+    dueAt,
     runId: o.runId ?? null,
   });
+  return true;
+}
+
+/**
+ * Queue step `step` of a contact's sequence, due now: the spine's `reach.touch`, once its wait
+ * is over. A contact who replied answers "replied"; any other end, or an emptied step, sends
+ * nothing. Queueing a step twice is a no-op.
+ */
+export async function touch(
+  db: Queryable,
+  contactId: number,
+  step: number,
+  o: Pick<TickOptions, "sequences" | "sender" | "now">,
+): Promise<"queued" | "replied" | "ended"> {
+  const [contact] = await db.select().from(reachContacts).where(eq(reachContacts.id, contactId));
+  if (contact?.state === "replied") return "replied";
+  if (contact?.state !== "enrolled" && contact?.state !== "connected") return "ended";
+  const seq = contact.sequence ? o.sequences.get(contact.sequence) : undefined;
+  if (!seq) {
+    await setContactState(db, contact.id, "finished", { reason: "no sequence", now: o.now });
+    return "ended";
+  }
+  const [queued] = await db
+    .select({ id: reachMessages.id })
+    .from(reachMessages)
+    .where(
+      and(
+        eq(reachMessages.contactId, contactId),
+        eq(reachMessages.kind, "sequence"),
+        eq(reachMessages.step, step),
+      ),
+    );
+  if (queued) return "queued";
+  return (await queueStep(db, o, seq, contact, step, o.now)) ? "queued" : "ended";
 }
 
 /** Step 4a: the platform took it. The next step is queued, or the contact finished. */
@@ -336,9 +370,16 @@ export async function recordSent(
   stats.sent++;
   const seq = c.contact.sequence ? o.sequences.get(c.contact.sequence) : undefined;
   if (!seq) return;
-  if (c.row.kind === "connect") await queueNext(db, o, seq, c.contact, 0, stats);
-  else if (c.row.kind === "sequence" && c.row.step)
-    await queueNext(db, o, seq, c.contact, c.row.step, stats);
+  if (c.row.kind === "connect") {
+    const first = seq.steps[0]?.step ?? 1;
+    if (!(await queueStep(db, o, seq, c.contact, first, o.now))) stats.finished++;
+  } else if (c.row.kind === "sequence" && c.row.step) {
+    const step = c.row.step;
+    stats.stepped.push({ contactId: c.contact.id, sequence: seq.name, step });
+    if (seq.steps.some((s) => s.step > step)) return;
+    await setContactState(db, c.contact.id, "finished", { now: o.now });
+    stats.finished++;
+  }
 }
 
 /** Step 4b: the platform did not take it, or we do not know. */
@@ -437,6 +478,7 @@ function merge(into: TickStats, from: TickStats) {
   into.failed += from.failed;
   into.finished += from.finished;
   into.unreachable += from.unreachable;
+  into.stepped.push(...from.stepped);
   for (const [k, v] of Object.entries(from.held)) into.held[k] = (into.held[k] ?? 0) + v;
 }
 

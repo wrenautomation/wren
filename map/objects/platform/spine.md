@@ -20,7 +20,8 @@ A workflow is data (`packages/core/src/workflows.ts`), so one walker runs any of
 - `events`: `uq_events_entry (workflow, node, port, subject)`; `node` is dotted from the top workflow ("warm.follow"), "out" for its own output. In main and in every client's database.
 - `hooks`: main only; `token_hash` (sha256 of a 43-char token), `client` (null is Wren), `workflow`, `input`, `subject` (the payload field, dotted).
 - `Spine/emit` (private): events leaving `node.port` or `in.port`. `Spine/release` (private, delayed): a wait is over. `Spine/hook` (public): the phone Worker's door.
-- Steps register by part id or custom step name in the worker; none yet. A node with no step keeps the arrival and stops. A custom step at an https URL is POSTed `{port, event}` and answers `{out}`.
+- Steps register by part id or custom step name in the worker, and get `{client, workflow, node, with}` (`with`: the node's settings). Registered: `sms.touch`, `reach.touch`. A node with no step keeps the arrival and stops.
+- Follow-ups: `cadenceWorkflow` (`workflows.ts`) makes a cadence a workflow `follow_up.<name>` of touch nodes `s<n>`, waits on the wires. Each text sequence is one (`textCadence`, `packages/channel-sms/src/follow.ts`), and each DM sequence (`reachCadence`, `packages/outreach/src/follow.ts`). A part's own code emits a node's output with `spineEmit`: `SmsSender` and `ReachSender` send `s<n>.sent` for every step they sent, so a wait counts from the send, not the queue. A custom step at an https URL is POSTed `{port, event}` and answers `{out}`.
 - "until <kind>" waits refuse (`waitMs`): nothing uses them yet.
 
 Citations: `packages/core/src/schema.ts:123`, `packages/core/src/schema.ts:156`, `packages/core/src/spine.ts:134`, `packages/core/src/spine.ts:242`, `packages/core/src/spine.ts:298`, `packages/core/src/spine.ts:343`, `apps/phone/src/worker.ts:319`, `apps/worker/src/services.ts:873`
@@ -34,7 +35,7 @@ Citations: `packages/core/src/schema.ts:123`, `packages/core/src/schema.ts:156`,
 
 ## If you change this
 
-- **Hits:** every workflow with routed wires; renaming a node or port strands waiting rows (release fails terminal) and old arrivals stop counting.
+- **Hits:** every workflow with routed wires; renaming a node or port strands waiting rows (release fails terminal) and old arrivals stop counting. Renaming a text sequence or its steps strands its cadence's waits the same way. Wherever `SmsSender` or `ReachSender` runs, `Spine` must be bound: their sends go there.
 - **Does not hit:** wires `via: "code"`; those parts move work themselves.
 
 ## Surfaces

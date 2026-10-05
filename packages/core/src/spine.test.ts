@@ -12,7 +12,7 @@ import {
   waitMs,
   walk,
 } from "./spine.js";
-import { defineWorkflow, type Workflow } from "./workflows.js";
+import { cadenceWorkflow, defineWorkflow, type Workflow } from "./workflows.js";
 
 const hypothesis = { from: "a test", guesses: [{ is: "fixed" as const, says: "x" }] };
 const part = (id: string) =>
@@ -60,7 +60,25 @@ const FLOWS: Workflow[] = [
       { from: "x.replied", to: "out.replied", via: "events", wait: "2 days" },
     ],
   }),
+  cadenceWorkflow({
+    name: "t",
+    label: "t",
+    blurb: "",
+    for: "client",
+    steps: [
+      { touch: "touch", with: { step: 1 } },
+      { touch: "touch", with: { step: 2 }, after: "2 days" },
+    ],
+  }),
 ];
+const TOUCH = defineComponent({
+  ...part("touch"),
+  in: [{ id: "lead", label: "lead", kind: "lead" }],
+  out: [
+    { id: "sent", label: "sent", kind: "lead" },
+    { id: "replied", label: "replies", kind: "reply" },
+  ],
+});
 
 /** The Postgres store's rules: one row per arrival, owned by the call that kept it. */
 function memStore() {
@@ -94,6 +112,12 @@ function memStore() {
   return { store, rows };
 }
 
+const touched: unknown[] = [];
+/** Queues its step (nothing leaves now: the sender sends `sent` later), or answers a reply. */
+const touch: Step = async (_port, e, at) => {
+  touched.push(at);
+  return e.data.replied ? [{ port: "replied", event: { ...e, kind: "reply" } }] : [];
+};
 const lead = (n: string): SpineEvent => ({ subject: `lead:${n}`, kind: "lead", data: { n } });
 const answer: Step = async (_port, e) => {
   if (e.subject === "lead:bad") throw new Error("the model is down");
@@ -104,9 +128,10 @@ function walkWith(store: SpineStore, by: string, rule = async () => false) {
   const later: Array<{ id: string; ms: number }> = [];
   const w: Walk = {
     flows: new Map(FLOWS.map((f) => [f.id, f])),
-    parts: new Map([part("answer"), part("planned")].map((c) => [c.id, c])),
-    steps: { answer },
+    parts: new Map([part("answer"), part("planned"), TOUCH].map((c) => [c.id, c])),
+    steps: { answer, touch },
     store,
+    client: null,
     by,
     // A capped run gives up at once here, as ctx.run does after its retries.
     run: async (_name, fn, capped) => {
@@ -176,6 +201,28 @@ describe("walk", () => {
     expect([...rows.values()].find((r) => r.a.event.subject === "lead:bad")?.error).toBe(
       "the model is down",
     );
+  });
+
+  it("runs a cadence: each touch gets its node, the next waits on the sender's sent", async () => {
+    const { store } = memStore();
+    const { w, later } = walkWith(store, "c1");
+    const at = (step: number) => ({
+      client: null,
+      workflow: "follow_up.t",
+      node: `s${step}`,
+      with: { step },
+    });
+    expect(await walk(w, "follow_up.t", "in.leads", [lead("1")])).toMatchObject({ arrived: 1 });
+    expect(touched).toEqual([at(1)]);
+    expect(await walk(w, "follow_up.t", "s1.sent", [lead("1")])).toMatchObject({ waiting: 1 });
+    expect(later).toEqual([{ id: expect.any(String), ms: 2 * 86_400_000 }]);
+    expect(await resume(w, later[0]?.id as string)).toMatchObject({ arrived: 1 });
+    expect(touched).toEqual([at(1), at(2)]);
+    expect(await walk(w, "follow_up.t", "s2.sent", [lead("1")])).toMatchObject({ out: 1 });
+
+    const replied = { ...lead("2"), data: { replied: true } };
+    await walk(w, "follow_up.t", "s1.sent", [replied]);
+    expect(await resume(w, later[1]?.id as string)).toMatchObject({ arrived: 1, out: 1 });
   });
 
   it("knows timed waits and refuses until waits", () => {

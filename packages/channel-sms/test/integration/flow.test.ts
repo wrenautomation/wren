@@ -17,6 +17,7 @@ import { addContact, startThread } from "../../src/contacts.js";
 import { queueManual, reconcile, tick } from "../../src/deliver.js";
 import { enroll } from "../../src/enroll.js";
 import { applyEvent } from "../../src/events.js";
+import { touch } from "../../src/follow.js";
 import { checkHealth, DEFAULT_HEALTH } from "../../src/health.js";
 import { fleetDay } from "../../src/policy.js";
 import { poolToday, syncNumbers } from "../../src/pool.js";
@@ -62,8 +63,8 @@ beforeEach(async () => {
   provider = new FakeProvider();
 });
 
-const tickAt = (now: Date, extra: Partial<Parameters<typeof tick>[1]> = {}) =>
-  tick(db(), {
+const tickAt = async (now: Date, extra: Partial<Parameters<typeof tick>[1]> = {}) => {
+  const stats = await tick(db(), {
     provider,
     policy: POLICY,
     live: false,
@@ -72,6 +73,19 @@ const tickAt = (now: Date, extra: Partial<Parameters<typeof tick>[1]> = {}) =>
     now,
     ...extra,
   });
+  // The spine, by hand: each sent step's next touch, as its wire's wait ends.
+  for (const s of stats.stepped) {
+    const next = SEQUENCES.get(s.sequence)?.steps.find((x) => x.step === s.step + 1);
+    if (!next) continue;
+    const at = new Date(now.getTime() + next.afterDays * 86_400_000);
+    await touch(db(), s.contactId, next.step, {
+      sequences: SEQUENCES,
+      senderName: "William",
+      now: at,
+    });
+  }
+  return stats;
+};
 const enrollAt = (now: Date, limit = 10, policy = POLICY) =>
   enroll(db(), {
     sequence: SEQ,
@@ -486,6 +500,36 @@ describe("enroll → send → receipts → reply", () => {
     const thread = await getThread(db(), threads[0]?.contactId as number, { now: OPEN, cap: 4 });
     expect(thread?.messages.map((m) => m.direction)).toEqual(["out", "in"]);
     expect(thread?.month).toEqual({ sent: 1, cap: 4 });
+  });
+
+  it("lists each sent step for the spine; a touch queues once, answers a reply, ends on an emptied step", async () => {
+    await enrollAt(OPEN);
+    const t = await tick(db(), {
+      provider,
+      policy: POLICY,
+      live: false,
+      sequences: SEQUENCES,
+      senderName: "William",
+      now: OPEN,
+    });
+    expect(t.stepped).toHaveLength(2);
+    expect(t.stepped[0]).toMatchObject({ sequence: SEQ.name, step: 1 });
+    expect((await messages()).filter((m) => m.step === 2)).toHaveLength(0);
+    const [a, b] = t.stepped.map((s) => s.contactId) as [number, number];
+    const opts = { sequences: SEQUENCES, senderName: "William", now: OPEN };
+    expect(await touch(db(), a, 2, opts)).toBe("queued");
+    expect(await touch(db(), a, 2, opts)).toBe("queued");
+    expect((await messages()).filter((m) => m.contactId === a && m.step === 2)).toMatchObject([
+      { state: "queued", dueAt: OPEN, body: "William again, worth a quick chat?" },
+    ]);
+    await db().update(smsContacts).set({ state: "replied" }).where(eq(smsContacts.id, b));
+    expect(await touch(db(), b, 2, opts)).toBe("replied");
+    await db().delete(smsTemplates).where(eq(smsTemplates.key, "recruiting-sms#2"));
+    expect(await touch(db(), a, 2, opts)).toBe("ended");
+    expect((await db().select().from(smsContacts).where(eq(smsContacts.id, a)))[0]).toMatchObject({
+      state: "finished",
+      stateReason: "template recruiting-sms#2 is empty",
+    });
   });
 
   it("STOP suppresses on every channel, START lifts, no text follows", async () => {

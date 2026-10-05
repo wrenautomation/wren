@@ -5,8 +5,9 @@
  * a `sending` row, which `reconcile` turns into `unknown` and nothing ever
  * resends. Texting a stranger twice is worse than missing one.
  *
- * After a sequence step is sent, the next step is queued `afterDays` later;
- * after the last, the contact is `finished`. The live gate: with a real
+ * A sent sequence step is listed in `stepped`: the sender hands it to the spine,
+ * whose wire waits `afterDays` and queues the next (follow.ts). After the last,
+ * the contact is `finished`. The live gate: with a real
  * provider nothing leaves unless `live` is set (the registered campaign is
  * approved); the fake provider always sends, for tests and dry runs; with no
  * provider every due text is held as gated. A text whose number cannot reach
@@ -34,7 +35,7 @@ import {
   smsNumbers,
 } from "./schema.js";
 import { fieldsFor, templateBodies } from "./template-store.js";
-import { render, type SmsSequence, segments, stepKey } from "./templates.js";
+import { render, type SmsSequence, segments } from "./templates.js";
 
 /** A `sending` row older than this lost its provider call to a crash. */
 export const STALE_SENDING_MS = 10 * 60 * 1000;
@@ -74,6 +75,8 @@ export interface TickStats {
   remainingToday: number;
   /** Numbers in the pool that are active (not paused or retired). 0 = the loop sleeps long. */
   activeNumbers: number;
+  /** Sequence steps sent this tick, each leaving its cadence node on the spine. */
+  stepped: Array<{ contactId: number; sequence: string; step: number }>;
 }
 
 /** `sending` rows past the stale mark → `unknown`. Never resent. */
@@ -107,7 +110,7 @@ export async function skipQueued(db: Queryable, contactId: number, why: string):
   return rows.length;
 }
 
-async function endContact(
+export async function endContact(
   db: Queryable,
   contactId: number,
   state: SmsContact["state"],
@@ -121,45 +124,22 @@ async function endContact(
   await skipQueued(db, contactId, `contact ${state}: ${reason}`);
 }
 
-/** Queue the step after `sent`, or finish the contact after the last step (or at a step emptied since enroll). */
-async function queueNext(
+/** A sequence step went: list it for the spine, and finish the contact after the last. */
+async function stepped(
   db: Queryable,
   msg: SmsMessage,
   contact: SmsContact,
   opts: TickOptions,
-): Promise<void> {
-  if (msg.kind !== "sequence" || msg.step === null) return;
-  const seq = contact.sequence ? opts.sequences.get(contact.sequence) : undefined;
-  const next = seq?.steps.find((s) => s.step === (msg.step as number) + 1);
-  const key = seq && next ? stepKey(seq.name, next.step) : null;
-  const template = key ? (await templateBodies(db, [key])).get(key) : undefined;
-  if (!seq || !next || template === undefined) {
-    await db
-      .update(smsContacts)
-      .set({
-        state: "finished",
-        stateReason: next ? `template ${key} is empty` : "every step sent",
-        endedAt: opts.now,
-      })
-      .where(and(eq(smsContacts.id, contact.id), eq(smsContacts.state, "enrolled")));
-    return;
-  }
+  stats: TickStats,
+) {
+  if (msg.kind !== "sequence" || msg.step === null || !contact.sequence) return;
+  const step = msg.step;
+  stats.stepped.push({ contactId: contact.id, sequence: contact.sequence, step });
+  if (opts.sequences.get(contact.sequence)?.steps.some((s) => s.step > step)) return;
   await db
-    .insert(smsMessages)
-    .values({
-      contactId: contact.id,
-      direction: "out",
-      kind: "sequence",
-      step: next.step,
-      template: key,
-      numberId: contact.numberId,
-      toE164: contact.e164,
-      body: render(template, await fieldsFor(db, contact, opts.senderName)),
-      state: "queued",
-      dueAt: new Date(opts.now.getTime() + next.afterDays * 86_400_000),
-      runId: opts.runId ?? null,
-    })
-    .onConflictDoNothing();
+    .update(smsContacts)
+    .set({ state: "finished", stateReason: "every step sent", endedAt: opts.now })
+    .where(and(eq(smsContacts.id, contact.id), eq(smsContacts.state, "enrolled")));
 }
 
 // Any calendar month fits inside 31 days, so a cap over every 31 days holds every month too.
@@ -245,6 +225,7 @@ export async function tick(db: Db, opts: TickOptions): Promise<TickStats> {
     reconciled: await reconcile(db, now),
     remainingToday: 0,
     activeNumbers: 0,
+    stepped: [],
   };
   const pool = await poolToday(db, policy, now);
   stats.activeNumbers = pool.numbers.filter((n) => n.number.state === "active").length;
@@ -396,7 +377,7 @@ export async function tick(db: Db, opts: TickOptions): Promise<TickStats> {
           costUsd: result.costUsd,
         })
         .where(eq(smsMessages.id, msg.id));
-      await queueNext(db, msg, contact, opts);
+      await stepped(db, msg, contact, opts, stats);
       stats.sent += 1;
     } else if (result.retry) {
       await db

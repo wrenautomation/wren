@@ -3,9 +3,12 @@
  * cross packages. Shared blocks first, then what's sold, then Wren's own business on top.
  * `components.test.ts` checks them against the catalog.
  */
+import { textCadence } from "@wren/channel-sms";
 import { CONTENT_WORKFLOWS } from "@wren/content/components";
 import { defineWorkflow, type Workflow } from "@wren/core/workflows";
 import { DELIVERY_WORKFLOWS } from "@wren/delivery/components";
+import { SMS_SEQUENCES } from "@wren/niches";
+import { REACH_SEQUENCES, reachCadence } from "@wren/outreach";
 import { RESEARCH_WORKFLOWS } from "@wren/research/components";
 
 /** Shared blocks: what every funnel needs. */
@@ -203,6 +206,9 @@ export const WORKFLOWS: readonly Workflow[] = [
   ...RESEARCH_WORKFLOWS,
   ...DELIVERY_WORKFLOWS,
   ...CONTENT_WORKFLOWS,
+  // Follow-ups on the spine: each text sequence is its cadence.
+  ...[...SMS_SEQUENCES.values()].map(textCadence),
+  ...[...REACH_SEQUENCES.values()].map(reachCadence),
   ...BLOCKS,
   ...FUNNELS,
   WREN,

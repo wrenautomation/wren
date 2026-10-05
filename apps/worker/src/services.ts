@@ -97,7 +97,9 @@ import {
   pusherFrom,
   SmsNotifier,
   TelnyxProvider,
+  touchStep,
 } from "@wren/channel-sms";
+import { TOUCH } from "@wren/channel-sms/components";
 import { textCopyRecord } from "@wren/channel-sms/records";
 import {
   makeSmsConsole,
@@ -149,7 +151,11 @@ import {
   NICHES,
   SMS_SEQUENCES,
 } from "@wren/niches";
-import { REACH_SEQUENCES, policyFrom as reachPolicyFrom } from "@wren/outreach";
+import {
+  REACH_SEQUENCES,
+  policyFrom as reachPolicyFrom,
+  touchStep as reachTouchStep,
+} from "@wren/outreach";
 import { dmCopyRecord } from "@wren/outreach/records";
 import { makeReachDesk, makeReachSender, makeReachWatch } from "@wren/outreach/restate";
 import { clientSendScope } from "@wren/reactivation";
@@ -883,7 +889,10 @@ export async function buildServices(
       workflows: WORKFLOWS,
       components: COMPONENTS,
       // Parts register here as they move onto the spine; the rest keep arrivals and stop.
-      steps: {},
+      steps: {
+        [TOUCH]: touchStep((client) => (client ? clientDb(client) : db), sms),
+        "reach.touch": reachTouchStep(db, { sequences: reach.sequences, sender: reach.senderName }),
+      },
       rule: async (when: string, e: SpineEvent) => {
         const r = await llm.complete(
           `Rule: ${when}\n\nEvent (${e.kind}, ${e.subject}):\n${JSON.stringify(e.data).slice(0, 4000)}`,

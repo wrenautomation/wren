@@ -5,6 +5,7 @@ export * from "./contacts.js";
 export * from "./deliver.js";
 export * from "./enroll.js";
 export * from "./events.js";
+export * from "./follow.js";
 export * from "./form.js";
 export * from "./health.js";
 export * from "./lift.js";

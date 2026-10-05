@@ -27,6 +27,8 @@ import {
   serviceHandler,
   setLastPass,
 } from "@wren/core/restate";
+import { spineEmit } from "@wren/core/spine";
+import { cadenceId } from "@wren/core/workflows";
 import type { Db } from "@wren/db";
 import { z } from "zod";
 import {
@@ -49,6 +51,7 @@ import {
   listContacts,
 } from "../contacts.js";
 import { type EnrollStats, enroll } from "../enroll.js";
+import { reachLead } from "../follow.js";
 import type { ReachPolicy } from "../policy.js";
 import { ReachRefusal } from "../refusal.js";
 import { pullReplies, type RepliesStats } from "../replies.js";
@@ -150,6 +153,14 @@ export function makeReachSender(deps: ReachDeps) {
       error = errorText(err);
     }
     await ctx.run("finish run", () => finishRun(deps.db, runId, stats ?? { error }));
+    // Each sent step leaves its node; the cadence's wire waits, then queues the next (follow.ts).
+    for (const s of stats?.stepped ?? [])
+      spineEmit(ctx, {
+        client: null,
+        workflow: cadenceId(s.sequence),
+        from: `s${s.step}.sent`,
+        events: [reachLead(s.contactId)],
+      });
     const previous = await lastPass<PassOutcome<TickStats>>(ctx);
     const failures = stats ? 0 : (previous?.failures ?? 0) + 1;
     const delayMs = stats && stats.sent > 0 ? deps.policy.gapSeconds * 1000 : IDLE_MS;
