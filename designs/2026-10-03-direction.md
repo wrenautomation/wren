@@ -1,6 +1,6 @@
 # Direction: service first, substrate second
 
-Living doc. Started 2026-10-03 from William's notes. Revise in place and log changes at the bottom.
+Living doc. Started 2026-10-03 from William's notes. Revise in place and log changes at the bottom. Where this ends up: `2026-10-05-end-goal.md`.
 
 ## The bet
 
@@ -144,3 +144,4 @@ One definition, many faces. A handler's zod schema is the DSL. The CLI command, 
 - 2026-10-04: William changed the call on Later and Parked: copy evolution, CAC/LTV/churn, componentizing, the marketplace and the brand palette are built now, not deferred. Each has a doc dated 10-04. He also approved spending Cohere credits on simple model tasks, name extraction first.
 - 2026-10-05: audit against William's notes. Now #3 closed except the PTR re-probe. Catch-alls skipped until the fleet. Next #6 covered by outbound-per-client. New docs from his 10-05 asks: `2026-10-05-access.md` (roles and RBAC), `2026-10-05-marketing-app.md`, `2026-10-05-restate-self-host.md` (Restate moves to the pg box, with the cuts), and autobrowse `designs/2026-10-05-teach-mode.md` (teach a chore by hand, replay it as a walk).
 - 2026-10-05: the Friday review moved into the console (Wren > Review). Parked ideas are rows in `apps/worker/src/review.ts`, three with live checks; simulated scrums fold into it. The crawl now keeps the status that refused a homepage, so blocks read apart from dead sites.
+- 2026-10-05: William set the end goal (GHL, full stack, on scraping, browsers and AI). Positions and build order in `2026-10-05-end-goal.md`.
