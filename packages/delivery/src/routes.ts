@@ -27,6 +27,7 @@ export const DELIVERY_ROUTES = {
   result: "act",
   hide: "act",
   people: "read",
+  recap: "read",
   account: "read",
   contract: "money",
   sign: "money",

@@ -297,7 +297,7 @@ async function markMoments(
           ]
         : []),
       "",
-      `Change what we email you: ${app}/account/you?client=${e.clientId}`,
+      mailSettings(app, e.clientId),
     ].join("\n");
     let ok = true;
     for (const p of to) {
@@ -539,8 +539,7 @@ async function mailPeople(
       return false;
     }
   };
-  const settings = (clientId: string) =>
-    `Change what we email you: ${app}/account/you?client=${clientId}`;
+  const settings = (clientId: string) => mailSettings(app, clientId);
 
   for (const p of people) {
     const c = { id: p.m.clientId, name: p.clientName };
@@ -647,7 +646,7 @@ async function mailPeople(
       if (!body) continue;
       const sent = await trySend({
         to: p.m.email,
-        subject: `${c.name}: your week with Wren`,
+        subject: recapSubject(c.name),
         text: `${body}\n\n${settings(c.id)}`,
       });
       if (sent) {
@@ -684,9 +683,32 @@ function repliesSince(main: Db, es: number[], since: Date, now: Date) {
     .orderBy(asc(comments.id));
 }
 
+const mailSettings = (app: string, clientId: string) =>
+  `Change what we email you: ${app}/account/you?client=${clientId}`;
+const recapSubject = (client: string) => `${client}: your week with Wren`;
+
+/** This Friday's digest for one client as it would go now; null when nothing's active. */
+export async function recapOf(
+  deps: Pick<WatchDeps, "main" | "app" | "zone">,
+  clientId: string,
+  now: Date,
+): Promise<{ subject: string; text: string } | null> {
+  const live: Live[] = await deps.main
+    .select({ e: engagements, clientName: clients.name, products: clients.products })
+    .from(engagements)
+    .innerJoin(clients, eq(clients.id, engagements.clientId))
+    .where(and(eq(engagements.clientId, clientId), eq(engagements.status, "active")))
+    .orderBy(asc(engagements.id));
+  const name = live[0]?.clientName;
+  const body = name ? await digestOf(deps, clientId, live, now, dayIn(deps.zone, now)) : null;
+  return name && body
+    ? { subject: recapSubject(name), text: `${body}\n\n${mailSettings(deps.app, clientId)}` }
+    : null;
+}
+
 /** The Friday digest for one client: the week, what's next, what we need, results, the pulse. */
 async function digestOf(
-  deps: WatchDeps,
+  deps: Pick<WatchDeps, "main" | "app">,
   clientId: string,
   live: Live[],
   now: Date,

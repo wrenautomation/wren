@@ -1,10 +1,10 @@
 /** Your settings: the mail this person gets from us (D9), and how they sign in. */
-import { Alert, Button, ButtonLink, Loading, PageHeader, Section } from "@wren/ui";
+import { Alert, Button, ButtonLink, Loading, MessagePreview, PageHeader, Section } from "@wren/ui";
 import { useState } from "react";
 import { AUTH_ORIGIN, type MailLevel } from "../../api.js";
 import type { PageProps } from "../../module.js";
 import { BODY, ERROR, QUIET, TOOLS, useAct } from "../work/bits.js";
-import { usePeople } from "./load.js";
+import { usePeople, useRecap } from "./load.js";
 
 const MAIL: [MailLevel, string, string][] = [
   ["all", "Everything", "An email when something needs you, plus a recap on Friday."],
@@ -17,6 +17,7 @@ export function You(props: PageProps) {
   const people = usePeople(props, nonce);
   const act = useAct(props, () => setNonce((n) => n + 1));
   const mail = people.data?.mail ?? null;
+  const recap = useRecap(props);
 
   return (
     <>
@@ -49,6 +50,26 @@ export function You(props: PageProps) {
             </div>
             <p className={QUIET}>{MAIL.find(([l]) => l === mail)?.[2]}</p>
             {act.error ? <p className={ERROR}>{act.error}</p> : null}
+          </>
+        )}
+      </Section>
+      <Section title="The Friday recap">
+        {recap.error && !recap.data ? (
+          <Alert onRetry={recap.retry}>{recap.error.message}</Alert>
+        ) : !recap.data ? (
+          <Loading lines={2} />
+        ) : !recap.data.recap ? (
+          <p className={QUIET}>No recap yet. It starts once the work is under way.</p>
+        ) : (
+          <>
+            <p className={QUIET}>
+              This week's, as it would go now. It goes Friday afternoon to everyone who gets email
+              from us.
+            </p>
+            <MessagePreview
+              message={{ kind: "email", from: "Wren", subject: recap.data.recap.subject }}
+              body={recap.data.recap.text}
+            />
           </>
         )}
       </Section>

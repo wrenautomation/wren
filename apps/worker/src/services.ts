@@ -841,6 +841,7 @@ export async function buildServices(
       files: settings.filesBucket ? s3Files({ bucket: settings.filesBucket }) : undefined,
       watched: portal !== null,
       zone: settings.sendTimezone,
+      app: portal ?? undefined,
     }),
     makeReactivationPortal({ main: db, open: openClient }),
     makeConsolePortal({

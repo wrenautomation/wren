@@ -20,7 +20,7 @@ import {
   startEngagement,
 } from "../../src/index.js";
 import { deliveryApi } from "../../src/service.js";
-import { opsBoard, type PortalMail, watchPass, workdaysAfter } from "../../src/watch.js";
+import { opsBoard, type PortalMail, recapOf, watchPass, workdaysAfter } from "../../src/watch.js";
 
 let pg: TestPostgres;
 let api: ReturnType<typeof deliveryApi>;
@@ -174,8 +174,12 @@ describe("the Friday digest", () => {
   it("goes Friday afternoon to everyone not off, once, with the pulse links", async () => {
     await pass("2026-10-09T10:00:00Z");
     expect(take(mail).filter((m) => m.subject.includes("week"))).toEqual([]);
+    const at = { main: pg.db, app: "https://app.example", zone: "UTC" };
+    // The portal's preview is the mail itself.
+    const preview = await recapOf(at, "acme", new Date("2026-10-09T16:00:00Z"));
     await pass("2026-10-09T16:00:00Z");
     const digests = take(mail);
+    expect(preview).toEqual({ subject: digests[0]?.subject, text: digests[0]?.text });
     expect(digests.map((m) => [m.to, m.subject]).sort()).toEqual([
       ["amy@acme.example", "Acme Staffing: your week with Wren"],
       ["cal@acme.example", "Acme Staffing: your week with Wren"],

@@ -81,7 +81,7 @@ import {
 import { deliveryRecords } from "./records.js";
 import { DELIVERY_ROUTES, FILE_TYPES, MAX_FILE_BYTES } from "./routes.js";
 import { DELIVERABLE_KINDS, type DeliverableKind, type MailLevel, type Terms } from "./schema.js";
-import { type BoardRow, type DeliveryWatch, opsBoard, WATCH, WATCH_KEY } from "./watch.js";
+import { type BoardRow, type DeliveryWatch, opsBoard, recapOf, WATCH, WATCH_KEY } from "./watch.js";
 
 export interface DeliveryDeps {
   /** The main database: the registry and the delivery schema. */
@@ -94,6 +94,8 @@ export interface DeliveryDeps {
   watched?: boolean;
   /** The fleet's clock, for the ops board's business days; UTC when unset. */
   zone?: string;
+  /** The portal (`https://app.<domain>`), for the links in a recap's preview; none without it. */
+  app?: string | undefined;
 }
 
 /** A browser can send anything: these turn it into what the domain takes, or refuse. */
@@ -559,6 +561,15 @@ export function deliveryApi(deps: DeliveryDeps) {
         mail: rows.some((m) => m.email === me) ? await mailLevelOf(deps.main, client.id, me) : null,
       };
     },
+    /** This Friday's recap as it would go now: what this client's people get. */
+    recap: async (
+      req: PortalRequest,
+    ): Promise<{ recap: { subject: string; text: string } | null }> => {
+      const client = await pickClient(deps.main, req);
+      if (isDemo(req.viewer) || !deps.app) return { recap: null };
+      const at = { main: deps.main, app: deps.app, zone: deps.zone ?? "UTC" };
+      return { recap: await recapOf(at, client.id, new Date()) };
+    },
     /** Let an email sign in and see this client; again changes their role. */
     invite: (req: PortalRequest & { email: string; role?: MemberRole }) =>
       write(deps, req, "owner", async (db, c, v) => {
@@ -715,6 +726,7 @@ export function makeDeliveryPortal(deps: DeliveryDeps) {
       hide: (_: restate.Context, req: Req<"hide">) => answer(() => api.hide(req)),
       account: (_: restate.Context, req: Req<"account">) => answer(() => api.account(req)),
       people: (_: restate.Context, req: Req<"people">) => answer(() => api.people(req)),
+      recap: (_: restate.Context, req: Req<"recap">) => answer(() => api.recap(req)),
       contract: (_: restate.Context, req: Req<"contract">) => answer(() => api.contract(req)),
       sign: async (ctx: restate.Context, req: Req<"sign">) => {
         const out = await answer(() => api.sign(req));
