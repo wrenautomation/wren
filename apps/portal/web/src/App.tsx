@@ -12,6 +12,7 @@ import {
   Button,
   ButtonLink,
   can,
+  Empty,
   Gate,
   Loading,
   PageHeader,
@@ -282,6 +283,11 @@ export function App() {
     params: route.params,
   });
   const open = at.kind === "page" ? at : null;
+  // The team sees every app; one this client hasn't installed points at its Marketplace row.
+  const missing =
+    !wren && open?.module.component && !installed.has(open.module.component)
+      ? open.module.component
+      : null;
   const action = open?.module.action;
 
   return (
@@ -350,6 +356,16 @@ export function App() {
       >
         {!current ? (
           <Loading lines={8} heading />
+        ) : open && missing ? (
+          <Empty
+            action={
+              <ButtonLink href={`/marketplace/catalog/${encodeURIComponent(missing)}`}>
+                Open in Marketplace
+              </ButtonLink>
+            }
+          >
+            {open.module.name} isn't installed for {current.name}.
+          </Empty>
         ) : open ? (
           <Contained key={`${current.id}/${open.module.id}/${open.page.id}`}>
             <Suspense fallback={<Loading lines={8} heading />}>
