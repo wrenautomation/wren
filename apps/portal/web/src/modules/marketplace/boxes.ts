@@ -95,6 +95,9 @@ export interface Drawn {
     /** The workflow it opens into: one it uses, or a part's own steps. */
     opens?: string | null;
     count?: (CountRef & { label: string }) | null;
+    /** Its ports, for wiring on the canvas. */
+    in?: Port[];
+    out?: Port[];
   }[];
   wires: (Wire & { label?: string; count?: CountRef | null })[];
 }
@@ -123,6 +126,8 @@ export function flowBoxes(
   w: Drawn,
   at: (n: Drawn["nodes"][number]) => string | undefined,
   counts: ReadonlyMap<string, number> = new Map(),
+  /** Every output, wired or not: something to wire to while editing. */
+  allOut = false,
 ): MapBox[] {
   const nodeOf = (end: string) => end.split(".")[0] ?? "";
   const idOf = (end: string) => (["in", "out"].includes(nodeOf(end)) ? end : nodeOf(end));
@@ -184,7 +189,7 @@ export function flowBoxes(
       };
     }),
     ...w.out
-      .filter((p) => after.has(`out.${p.id}`))
+      .filter((p) => allOut || after.has(`out.${p.id}`))
       .map(
         (p): MapBox => ({ id: `out.${p.id}`, label: p.label, input: true, ...box(`out.${p.id}`) }),
       ),

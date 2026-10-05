@@ -44,7 +44,14 @@ import {
   teamRecord,
   updateClient,
 } from "./clients/index.js";
-import { CHANNELS, type Component, type LoopKey, type Port, STAGES } from "./components.js";
+import {
+  CHANNELS,
+  type Component,
+  EVENT_KINDS,
+  type LoopKey,
+  type Port,
+  STAGES,
+} from "./components.js";
 import { CONSOLE_ROUTES } from "./console-routes.js";
 import {
   answer,
@@ -84,7 +91,9 @@ import {
 } from "./records-serve.js";
 import type { PassOutcome } from "./restate/loop.js";
 import { finishRun, openRun } from "./runs.js";
-import { partsIn, type Workflow } from "./workflows.js";
+import { workflowSaves } from "./schema.js";
+import { editsOf, type SavedWorkflow, savedWorkflows } from "./spine.js";
+import { flowsWith, partsIn, type Workflow, type WorkflowEdits } from "./workflows.js";
 
 export { toCsv };
 
@@ -163,6 +172,54 @@ export interface InstallRequest extends ComponentRequest {
   /** The component's id, typed in when it has effects. */
   confirm?: string;
 }
+
+/** A workflow's routed wires and custom steps from the canvas; `reset` goes back to the code's. */
+export interface WorkflowSaveRequest extends PortalRequest {
+  workflow: string;
+  wires?: unknown;
+  steps?: unknown;
+  reset?: boolean;
+}
+
+const NAME = z
+  .string()
+  .regex(/^[a-z][a-z0-9_]*$/, "is no id")
+  .max(40);
+const PORT = z.object({
+  id: NAME,
+  label: z.string().trim().min(1).max(60),
+  kind: z.enum(Object.keys(EVENT_KINDS) as [string, ...string[]]),
+});
+/** What the canvas sends; unknown fields (a drawn wire's label and count) are dropped. */
+const EDITS = z.object({
+  wires: z
+    .array(
+      z.object({
+        from: z.string().max(200),
+        to: z.string().max(200),
+        via: z.enum(["code", "events"]),
+        when: z.string().trim().min(1).max(300).optional(),
+        wait: z.string().trim().min(1).max(40).optional(),
+      }),
+    )
+    .max(200),
+  steps: z
+    .array(
+      z.object({
+        id: NAME,
+        note: z.string().trim().max(200).optional(),
+        own: z.object({
+          name: z.string().trim().min(1).max(60),
+          blurb: z.string().trim().max(200),
+          icon: z.string().max(40),
+          in: z.array(PORT).max(8),
+          out: z.array(PORT).max(8),
+          run: z.string().max(500),
+        }),
+      }),
+    )
+    .max(20),
+});
 
 /** A stored look stays small: inputs, not tokens. */
 const LOOK_MAX = 4000;
@@ -600,6 +657,11 @@ export const componentRecord = (
   client: Client | null,
   team: boolean,
   workflows: readonly Workflow[] = [],
+  /** The client's saves, and why one was left out: the team's, for the canvas's editing. */
+  saves: { saved: Record<string, SavedWorkflow>; broken: Record<string, string[]> } = {
+    saved: {},
+    broken: {},
+  },
 ): RecordType => {
   const flows = workflows.filter((w) => team || w.for === "client");
   /** A workflow that is a part's inside shows as that part, never twice. */
@@ -641,11 +703,15 @@ export const componentRecord = (
       const main = portsOf(n.uses)
         .map((p) => ({ label: p.label, count: countOf(n.uses, p.id) }))
         .find((p) => p.count);
+      const ports = n.own ?? c ?? f;
       return {
         id: n.id,
         uses: n.uses ?? null,
+        /** Its ports, for wiring on the canvas. */
+        in: ports?.in ?? [],
+        out: ports?.out ?? [],
         name: n.own?.name ?? named(n.uses ?? n.id),
-        note: n.note ?? null,
+        note: n.note ?? (n.own ? "Custom step" : null),
         ready: c ? readyOf(c) : f ? flowReady(partsIn(f.id, flows, all)) : null,
         /** The workflow it opens into: one it uses, or the part's own steps. */
         opens: f ? f.id : (c?.inside ?? null),
@@ -744,7 +810,12 @@ export const componentRecord = (
     ],
     load: async (_db, id) => {
       const w = flows.find((x) => x.id === id);
-      if (w) return { workflow: drawn(w), usedIn: usedIn(id) };
+      if (w)
+        return {
+          workflow: drawn(w),
+          usedIn: usedIn(id),
+          ...(team ? { saved: saves.saved[id] ?? null, broken: saves.broken[id] ?? [] } : {}),
+        };
       const c = all.find((x) => x.id === id);
       if (!c) return null;
       const installed = !!client && has(client, c.id);
@@ -839,7 +910,11 @@ export function consoleApi({
     const shown = internal ? components : components.filter((c) => c.for === "client");
     // Wren's own records, each for whoever holds what it needs at Wren (Money: `money`).
     const mine = internal ? types.filter((t) => teamCan(req, t.needs ?? "read", WREN)) : [];
-    return [...mine, componentRecord(shown, client, internal, workflows)];
+    // The client's own wiring, as the spine runs it: only one catalog item draws a workflow.
+    const one = (req as { record?: unknown; id?: unknown }).record === COMPONENT && "id" in req;
+    const saved = one ? await savedWorkflows(main, client?.id ?? null) : {};
+    const { flows, broken } = flowsWith(workflows, editsOf(saved), components);
+    return [...mine, componentRecord(shown, client, internal, flows, { saved, broken })];
   };
   /** Records on the main database, read-only, unmasked: the team sees everything. */
   const read = async <T>(
@@ -1097,6 +1172,41 @@ export function consoleApi({
           );
         return null;
       }),
+    /**
+     * A workflow's wiring from the canvas, for Wren or a client: checked as the spine would run it,
+     * then kept as a new version. A client gets only workflows for clients.
+     */
+    async workflowSave(req: WorkflowSaveRequest): Promise<{ id: number }> {
+      team(req);
+      if (isDemo(req.viewer)) throw new PortalRefusal("the demo is read-only", 403);
+      // No client is Wren's own, as the catalog reads it.
+      const client = req.client ? (await pickForWrite(main, req)).client : null;
+      const w = workflows.find((x) => x.id === req.workflow);
+      if (!w) throw new PortalRefusal("no such workflow", 404);
+      if (client && w.for === "wren") throw new PortalRefusal("that runs Wren's own business", 409);
+      let edits: WorkflowEdits | null = null;
+      if (!req.reset) {
+        const got = EDITS.safeParse({ wires: req.wires, steps: req.steps });
+        if (!got.success) {
+          const i = got.error.issues[0];
+          throw new PortalRefusal(`that doesn't read: ${i?.path.join(".")} ${i?.message}`, 400);
+        }
+        edits = got.data as WorkflowEdits;
+        const bad = flowsWith(workflows, { [w.id]: edits }, components).broken[w.id];
+        if (bad) throw new PortalRefusal(bad.join("; "), 400);
+      }
+      const [row] = await main
+        .insert(workflowSaves)
+        .values({
+          client: client?.id ?? null,
+          workflow: w.id,
+          edits,
+          by: (req.viewer as SignedViewer).email,
+        })
+        .returning({ id: workflowSaves.id });
+      return { id: row?.id ?? 0 };
+    },
+
     /** A client's person asks for a component; installing it stays Wren's call. */
     async ask(req: ComponentRequest): Promise<{ component: string }> {
       if (seesInternal(req)) throw new PortalRefusal("the team installs it instead", 403);
@@ -1253,6 +1363,8 @@ export function makeConsolePortal(deps: Parameters<typeof consoleApi>[0]) {
       uninstall: (ctx: restate.Context, req: ComponentRequest) =>
         changeLoops(ctx, "uninstall", () => api.uninstall(req)),
       ask: (_: restate.Context, req: ComponentRequest) => answer(() => api.ask(req)),
+      workflowSave: (_: restate.Context, req: WorkflowSaveRequest) =>
+        answer(() => api.workflowSave(req)),
       question: (ctx: restate.Context, req: QuestionRequest) =>
         answer(() => ask(ctx, deps.main, req)),
       addClient: (ctx: restate.Context, req: AddClientRequest) =>

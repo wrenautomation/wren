@@ -9,7 +9,7 @@ entity: packages/core/src/spine.ts:1
 
 # spine
 
-The Workflows spine: events move along a workflow's routed wires (`via: "events"`) and run each node's step. Tables `events` (every arrival) and `hooks` (the door's webhooks); Restate service `Spine`.
+The Workflows spine: events move along a workflow's routed wires (`via: "events"`) and run each node's step. Tables `events` (every arrival), `hooks` (the door's webhooks) and `workflow_saves` (wiring saved on the canvas); Restate service `Spine`.
 
 ## Why this shape
 
@@ -22,20 +22,22 @@ A workflow is data (`packages/core/src/workflows.ts`), so one walker runs any of
 - `Spine/emit` (private): events leaving `node.port` or `in.port`. `Spine/release` (private, delayed): a wait is over. `Spine/hook` (public): the phone Worker's door.
 - Steps register by part id or custom step name in the worker, and get `{client, workflow, node, with}` (`with`: the node's settings). Registered: `sms.touch`, `reach.touch`, `watch.triage` ([[watch/mail]]). A node with no step keeps the arrival and stops.
 - Follow-ups: `cadenceWorkflow` (`workflows.ts`) makes a cadence a workflow `follow_up.<name>` of touch nodes `s<n>`, waits on the wires. Each text sequence is one (`textCadence`, `packages/channel-sms/src/follow.ts`), and each DM sequence (`reachCadence`, `packages/outreach/src/follow.ts`). A part's own code emits a node's output with `spineEmit`: `SmsSender` and `ReachSender` send `s<n>.sent` for every step they sent, so a wait counts from the send, not the queue. A custom step at an https URL is POSTed `{port, event}` and answers `{out}`.
+- `workflow_saves`: main only; one row per save from the canvas, `client` (null is Wren), `workflow`, `edits` (`WorkflowEdits`: the routed wires and custom steps, whole; null is back to the code's), `by`, `at`. The newest per client and workflow runs; older rows are its history. `flowsWith` (`workflows.ts`) merges a save over the code's nodes and built-in wires and checks it. A save that stops passing after a code change is skipped, and the canvas says why. The spine reads the client's saves once per `emit` or `release` call, journaled.
+- Saving: `ConsolePortal/workflowSave` (`wren:manage`) refuses a built-in wire, an added step that isn't a custom step at an https URL, an "until" wait, and anything `checkWorkflows` names. A client gets only workflows for clients.
 - "until <kind>" waits refuse (`waitMs`): nothing uses them yet.
 
-Citations: `packages/core/src/schema.ts:123`, `packages/core/src/schema.ts:156`, `packages/core/src/spine.ts:134`, `packages/core/src/spine.ts:242`, `packages/core/src/spine.ts:298`, `packages/core/src/spine.ts:343`, `apps/phone/src/worker.ts:319`, `apps/worker/src/services.ts:873`
+Citations: `packages/core/src/schema.ts:123`, `packages/core/src/schema.ts:156`, `packages/core/src/schema.ts:185`, `packages/core/src/workflows.ts:263`, `packages/core/src/spine.ts:353`, `packages/core/src/spine.ts:404`, `packages/core/src/console.ts:1178`, `packages/core/src/spine.ts:134`, `packages/core/src/spine.ts:242`, `packages/core/src/spine.ts:298`, `packages/core/src/spine.ts:343`, `apps/phone/src/worker.ts:319`, `apps/worker/src/services.ts:873`
 
 ## Connected to
 
-- **owns:** `events`, `hooks`
+- **owns:** `events`, `hooks`, `workflow_saves`
 - **owned-by:** restate-services
-- **joins:** workflows by id (code, not a table); `hooks.client` names `clients.id`
+- **joins:** workflows by id (code, not a table); `hooks.client` and `workflow_saves.client` name `clients.id`
 - **looks-like-but-is-not:** `run_events` (a run's feed lines), `sms_events` (Telnyx deliveries)
 
 ## If you change this
 
-- **Hits:** every workflow with routed wires; renaming a node or port strands waiting rows (release fails terminal) and old arrivals stop counting. Renaming a text sequence or its steps strands its cadence's waits the same way. Wherever `SmsSender` or `ReachSender` runs, `Spine` must be bound: their sends go there.
+- **Hits:** every workflow with routed wires, and every saved copy of it (a removed node or port makes a save fail its check, so the built-in wiring runs); renaming a node or port strands waiting rows (release fails terminal) and old arrivals stop counting. Renaming a text sequence or its steps strands its cadence's waits the same way. Wherever `SmsSender` or `ReachSender` runs, `Spine` must be bound: their sends go there.
 - **Does not hit:** wires `via: "code"`; those parts move work themselves.
 
 ## Surfaces
@@ -45,6 +47,7 @@ Citations: `packages/core/src/schema.ts:123`, `packages/core/src/schema.ts:156`,
 | `wren hooks add/list` (`apps/cli/src/hooks.ts`) | writes hooks; prints the URL once |
 | phone Worker `POST /hooks/<token>` | forwards to `Spine/hook` |
 | worker (`apps/worker/src/services.ts`) | serves `Spine`; supplies steps and the rule model |
+| Workflows app, Canvas (`apps/portal/web/src/modules/wren/workflows.tsx`) | Edit wiring: drag an output onto an input, a wire's condition and wait, custom steps; `?client=` for a client |
 
 ## See
 

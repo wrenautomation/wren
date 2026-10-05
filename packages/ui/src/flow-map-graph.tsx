@@ -1,6 +1,6 @@
 /**
- * A FlowMap on React Flow, read-only: `flow.ts` places the columns and draws the lines, each box
- * is a link. Always left to right, each start just before what uses it; narrower than its columns, it scrolls sideways in its own box.
+ * A FlowMap on React Flow: `flow.ts` places the columns and draws the lines, each box is a link.
+ * With `edit`, a box shows handles to drag a line from and onto, and a line can be clicked. Always left to right, each start just before what uses it; narrower than its columns, it scrolls sideways in its own box.
  * Labeled lines widen the gaps so the labels sit between the columns.
  */
 import {
@@ -16,7 +16,7 @@ import {
 import "@xyflow/react/dist/base.css";
 import { useLayoutEffect, useMemo, useRef, useState } from "react";
 import { edgePath, flowOf, LABEL_INSET, labelAt, layoutOf } from "./flow.js";
-import type { MapBox } from "./flow-map.js";
+import type { FlowEdit, MapBox } from "./flow-map.js";
 import { cx } from "./format.js";
 
 /** A column's width, at least and at most: past the most, a short map leaves room on the right. */
@@ -37,12 +37,21 @@ function heightOf(b: MapBox, w: number): number {
   return Math.max(HEIGHT, PAD.y + ROW.label * rows(b.label, CHAR.label) + ROW.small * small);
 }
 
-function BoxNode({ data }: NodeProps<Node<{ box: MapBox; height: number }>>) {
+type BoxData = { box: MapBox; height: number; ends?: { from: boolean; to: boolean } | undefined };
+const HANDLE =
+  "size-3! rounded-full! border! border-(--ui-ink-3)! bg-(--ui-paper)! hover:bg-(--ui-accent)!";
+
+function BoxNode({ data }: NodeProps<Node<BoxData>>) {
   const b = data.box;
   const Tag = b.href ? "a" : "div";
   return (
     <>
-      <Handle type="target" position={Position.Left} className="invisible" isConnectable={false} />
+      <Handle
+        type="target"
+        position={Position.Left}
+        className={data.ends?.to ? HANDLE : "invisible"}
+        isConnectable={!!data.ends?.to}
+      />
       <Tag
         href={b.href}
         title={[b.label, b.note, b.count].filter(Boolean).join(". ")}
@@ -67,13 +76,20 @@ function BoxNode({ data }: NodeProps<Node<{ box: MapBox; height: number }>>) {
           </span>
         ) : null}
       </Tag>
-      <Handle type="source" position={Position.Right} className="invisible" isConnectable={false} />
+      <Handle
+        type="source"
+        position={Position.Right}
+        className={data.ends?.from ? HANDLE : "invisible"}
+        isConnectable={!!data.ends?.from}
+      />
     </>
   );
 }
 
 type LineData = {
   d: string;
+  /** Clickable: a wide clear stroke over the line. */
+  wide?: boolean;
   label?: { text: string; x: number; y: number; anchor: "start" | "end"; max: number } | undefined;
 };
 
@@ -86,6 +102,9 @@ function Line({ data }: EdgeProps<Edge<LineData>>) {
         d={data.d}
         className="fill-none stroke-(--ui-ink-3) stroke-[1.5] [stroke-linecap:round]"
       />
+      {data.wide ? (
+        <path d={data.d} className="cursor-pointer fill-none stroke-transparent stroke-[14]" />
+      ) : null}
       {l ? (
         // Above every line, its bottom row resting on the spot; long ones wrap upward in the gap.
         <EdgeLabelRenderer>
@@ -111,9 +130,11 @@ const EDGE_TYPES = { line: Line };
 export default function FlowMapGraph({
   boxes,
   label,
+  edit,
 }: {
   boxes: readonly MapBox[];
   label: string;
+  edit?: FlowEdit | undefined;
 }) {
   const ref = useRef<HTMLDivElement>(null);
   const [room, setRoom] = useState(0);
@@ -144,7 +165,7 @@ export default function FlowMapGraph({
     return {
       height: laid.height,
       nodes: graph.nodes.map(
-        (n): Node<{ box: MapBox; height: number }> => ({
+        (n): Node<BoxData> => ({
           id: n.id,
           type: "box",
           position: { x: at(n.id).x, y: at(n.id).y },
@@ -155,6 +176,7 @@ export default function FlowMapGraph({
           data: {
             box: byId.get(n.id) ?? { id: n.id, label: n.id, after: [] },
             height: at(n.id).h,
+            ends: edit?.ends(n.id),
           },
         }),
       ),
@@ -167,6 +189,7 @@ export default function FlowMapGraph({
           target: e.to,
           type: "line",
           data: {
+            wide: !!edit,
             // The turn sits at the end away from the label, so the label has the long side.
             d: edgePath(
               at(e.from),
@@ -183,7 +206,7 @@ export default function FlowMapGraph({
         };
       }),
     };
-  }, [boxes, graph, width, gapX, labeled]);
+  }, [boxes, graph, width, gapX, labeled, edit]);
   const { nodes, edges } = drawn;
 
   return (
@@ -197,7 +220,13 @@ export default function FlowMapGraph({
           edgeTypes={EDGE_TYPES}
           defaultViewport={{ x: 0, y: 1, zoom: 1 }}
           nodesDraggable={false}
-          nodesConnectable={false}
+          nodesConnectable={!!edit}
+          onConnect={(c) => edit?.connect(c.source, c.target)}
+          isValidConnection={(c) => !!edit?.fits(c.source, c.target)}
+          {...(edit ? { onEdgeClick: (_, e) => edit.pick(e.source, e.target) } : {})}
+          connectionLineStyle={{ stroke: "var(--ui-ink-3)", strokeWidth: 1.5 }}
+          // The map never pans: a line dragged near its edge would slide the boxes away.
+          autoPanOnConnect={false}
           nodesFocusable={false}
           edgesFocusable={false}
           elementsSelectable={false}

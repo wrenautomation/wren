@@ -225,6 +225,67 @@ export function checkWorkflows(
 }
 
 /**
+ * A workflow as one client saved it on the canvas (designs/2026-10-05-workflows.md, Editing): its
+ * routed wires and its custom steps, whole. The code's nodes and built-in wires always come from
+ * code, so a change there still reaches every saved copy.
+ */
+export interface WorkflowEdits {
+  wires: Wire[];
+  steps: WorkflowNode[];
+}
+
+export const withEdits = (w: Workflow, e: WorkflowEdits): Workflow => ({
+  ...w,
+  nodes: [...w.nodes, ...e.steps],
+  wires: [...w.wires.filter((x) => x.via === "code"), ...e.wires],
+});
+
+/** What a save may not do that the check allows: rewire a built-in wire, add a part, wait "until". */
+function editRules(w: Workflow, e: WorkflowEdits): string[] {
+  return [
+    ...e.wires
+      .filter((x) => x.via !== "events")
+      .map((x) => `${w.id}: ${x.from} to ${x.to} is built in, so it can't be rewired yet`),
+    ...e.wires
+      .filter((x) => x.wait?.startsWith("until "))
+      .map((x) => `${w.id}: waits until an event aren't built yet (${x.from} to ${x.to})`),
+    ...e.steps
+      .filter((s) => s.uses || !s.own?.run.startsWith("https://"))
+      .map((s) => `${w.id}.${s.id}: an added step is a custom step at an https URL`),
+  ];
+}
+
+/**
+ * Every workflow with its saved edits in (null: back to the code's), and why a save was left
+ * out: it fails the check, after a code change or before saving. Edits touch one workflow's
+ * insides, never its ports, so each is checked against the code alone.
+ */
+export function flowsWith(
+  workflows: readonly Workflow[],
+  saves: Readonly<Record<string, WorkflowEdits | null>>,
+  components: readonly Component[],
+): { flows: Workflow[]; broken: Record<string, string[]> } {
+  const flows = [...workflows];
+  const broken: Record<string, string[]> = {};
+  for (const [id, e] of Object.entries(saves)) {
+    const i = workflows.findIndex((w) => w.id === id);
+    const w = workflows[i];
+    if (!w || !e) continue;
+    const next = withEdits(w, e);
+    const lines = [
+      ...editRules(w, e),
+      ...checkWorkflows(
+        workflows.map((x) => (x === w ? next : x)),
+        components,
+      ),
+    ];
+    if (lines.length) broken[id] = lines;
+    else flows[i] = next;
+  }
+  return { flows, broken };
+}
+
+/**
  * Every part a workflow runs, through the workflows it nests but not into a part's own inside:
  * the part already speaks for it. Its channels, effects and readiness are theirs.
  */

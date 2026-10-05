@@ -17,6 +17,7 @@ import {
   uuid,
   varchar,
 } from "drizzle-orm/pg-core";
+import type { WorkflowEdits } from "./workflows.js";
 
 // ---- Ported from emails_gen (exact DDL; integer ids kept for data continuity) ----
 
@@ -175,6 +176,29 @@ export const hooks = pgTable(
   ],
 );
 export type Hook = typeof hooks.$inferSelect;
+
+/**
+ * Workflows saved on the canvas: one row per save of a workflow's routed wires and custom steps
+ * for a client. The newest per client and workflow is the one that runs; the older ones are its
+ * history. Main only.
+ */
+export const workflowSaves = pgTable(
+  "workflow_saves",
+  {
+    id: serial("id").notNull(),
+    /** Whose; null is Wren's. */
+    client: varchar("client", { length: 40 }),
+    workflow: varchar("workflow", { length: 64 }).notNull(),
+    /** `WorkflowEdits`; null: back to the code's. */
+    edits: jsonb("edits").$type<WorkflowEdits | null>(),
+    by: text("by").notNull(),
+    at: timestamp("at", { withTimezone: true }).defaultNow().notNull(),
+  },
+  (t) => [
+    primaryKey({ columns: [t.id], name: "pk_workflow_saves" }),
+    index("ix_workflow_saves_client_workflow").on(t.client, t.workflow, t.id),
+  ],
+);
 
 export const imports = pgTable(
   "imports",

@@ -23,6 +23,8 @@ export const CONSOLE_ROUTES = {
   configure: "manage",
   uninstall: "manage",
   ask: "manage",
+  // A workflow's wiring, saved for Wren or a client from the canvas: the team's.
+  workflowSave: "wren:manage",
   // Ask: a question to Claude Code on William's Mac, read only (`ask.ts`).
   question: "wren:run",
   // The Team page: an admin's.
@@ -40,6 +42,7 @@ export const CONSOLE_WRITES: readonly ConsoleRoute[] = [
   "configure",
   "uninstall",
   "ask",
+  "workflowSave",
   "question",
   "teamSet",
   "teamRemove",

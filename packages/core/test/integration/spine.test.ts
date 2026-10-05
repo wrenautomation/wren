@@ -2,8 +2,12 @@
 import { startTestPostgres, type TestPostgres } from "@wren/db/testing";
 import { eq } from "drizzle-orm";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
-import { events, hooks } from "../../src/schema.js";
-import { addHook, pgSpineStore } from "../../src/spine.js";
+import { defineComponent } from "../../src/components.js";
+import { consoleApi } from "../../src/console.js";
+import type { PortalRequest } from "../../src/portal.js";
+import { events, hooks, workflowSaves } from "../../src/schema.js";
+import { addHook, pgSpineStore, savedWorkflows } from "../../src/spine.js";
+import { defineWorkflow } from "../../src/workflows.js";
 
 let pg: TestPostgres;
 beforeAll(async () => {
@@ -60,5 +64,70 @@ describe("addHook", () => {
     const [row] = await pg.db.select().from(hooks);
     expect(row?.tokenHash).toMatch(/^[0-9a-f]{64}$/);
     expect(JSON.stringify(row)).not.toContain(token);
+  });
+});
+
+describe("workflow saves", () => {
+  const hypothesis = { from: "a test", guesses: [{ is: "fixed" as const, says: "x" }] };
+  const part = defineComponent({
+    id: "a",
+    name: "A",
+    blurb: "a",
+    icon: "mail",
+    for: "client",
+    stage: "reach",
+    ready: true,
+    hypothesis,
+    inside: null,
+    in: [{ id: "leads", label: "leads", kind: "lead" }],
+    out: [{ id: "replied", label: "replies", kind: "reply" }],
+  });
+  const flow = defineWorkflow({
+    id: "f",
+    name: "F",
+    blurb: "f",
+    icon: "mail",
+    for: "wren",
+    stage: "reach",
+    in: [{ id: "leads", label: "leads", kind: "lead" }],
+    out: [{ id: "replied", label: "replies", kind: "reply" }],
+    nodes: [{ id: "n", uses: "a" }],
+    wires: [
+      { from: "in.leads", to: "n.leads", via: "code" },
+      { from: "n.replied", to: "out.replied", via: "events" },
+    ],
+  });
+  const operator = { viewer: { email: "op@example.test", operator: true } } as PortalRequest;
+  it("checks a save, keeps every version, and draws the newest", async () => {
+    const api = consoleApi({ main: pg.db, views: [], components: [part], workflows: [flow] });
+    const wait = { from: "n.replied", to: "out.replied", via: "events", wait: "2 days" };
+    await expect(
+      api.workflowSave({ ...operator, workflow: "f", wires: [], steps: [] }),
+    ).rejects.toThrow("f: out.replied gets nothing");
+    await expect(
+      api.workflowSave({ ...operator, workflow: "nope", wires: [], steps: [] }),
+    ).rejects.toThrow("no such workflow");
+    await expect(
+      api.workflowSave({ viewer: { email: "x@client.example" }, workflow: "f" } as never),
+    ).rejects.toThrow("that's for Wren's team");
+    await api.workflowSave({
+      ...operator,
+      workflow: "f",
+      wires: [{ ...wait, label: "replies" }],
+      steps: [],
+    });
+    expect((await savedWorkflows(pg.db, null)).f).toMatchObject({
+      edits: { wires: [wait], steps: [] },
+      by: "op@example.test",
+    });
+    const got = await api.recordsGet({ ...operator, record: "console.component", id: "f" });
+    const detail = got.detail as { workflow: { wires: unknown[] }; broken: string[] };
+    expect(detail.workflow.wires).toMatchObject([flow.wires[0], wait]);
+    expect(detail.broken).toEqual([]);
+
+    await api.workflowSave({ ...operator, workflow: "f", reset: true });
+    expect((await savedWorkflows(pg.db, null)).f?.edits).toBeNull();
+    expect(await savedWorkflows(pg.db, "someone")).toEqual({});
+    expect(await pg.db.select().from(workflowSaves)).toHaveLength(2);
   });
 });

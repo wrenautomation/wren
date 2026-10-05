@@ -35,7 +35,7 @@ export {
   type FlowStep,
   flowOf,
 } from "./flow.js";
-export { FlowMap, type MapBox } from "./flow-map.js";
+export { type FlowEdit, FlowMap, type MapBox } from "./flow-map.js";
 export { RecordForm } from "./form.js";
 export { ago, cx, hostOf, initials, money, month, num, soon } from "./format.js";
 export { type HandlerCall, HandlerForm } from "./handler.js";

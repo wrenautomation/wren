@@ -10,10 +10,10 @@ import { createHash, randomBytes } from "node:crypto";
 import * as restate from "@restatedev/restate-sdk";
 import type { Db } from "@wren/db";
 import { pgSafe } from "@wren/db/columns";
-import { eq, sql } from "drizzle-orm";
+import { desc, eq, isNull, sql } from "drizzle-orm";
 import type { Component, EventKind } from "./components.js";
-import { hooks } from "./schema.js";
-import type { Workflow, WorkflowNode } from "./workflows.js";
+import { hooks, workflowSaves } from "./schema.js";
+import { flowsWith, type Workflow, type WorkflowEdits, type WorkflowNode } from "./workflows.js";
 
 export interface SpineEvent {
   /** Who or what it is about, unique per thing: "lead:42". */
@@ -342,6 +342,31 @@ export function hookEvent(
   return { port: port.id, event: { subject, kind: port.kind, data } };
 }
 
+/** A workflow's newest save for a client. */
+export interface SavedWorkflow {
+  edits: WorkflowEdits | null;
+  by: string;
+  at: string;
+}
+
+/** The newest save of each workflow for `client` (null: Wren's), by workflow id. */
+export async function savedWorkflows(
+  db: Db,
+  client: string | null,
+): Promise<Record<string, SavedWorkflow>> {
+  const rows = await db
+    .selectDistinctOn([workflowSaves.workflow])
+    .from(workflowSaves)
+    .where(client === null ? isNull(workflowSaves.client) : eq(workflowSaves.client, client))
+    .orderBy(workflowSaves.workflow, desc(workflowSaves.id));
+  return Object.fromEntries(
+    rows.map((r) => [r.workflow, { edits: r.edits, by: r.by, at: r.at.toISOString() }]),
+  );
+}
+
+export const editsOf = (saved: Readonly<Record<string, SavedWorkflow>>) =>
+  Object.fromEntries(Object.entries(saved).map(([id, s]) => [id, s.edits]));
+
 export const SPINE = { name: "Spine" } as const;
 
 interface Target {
@@ -376,8 +401,15 @@ const STEP_RETRY = { maxRetryAttempts: 3 };
 export function makeSpine(d: SpineDeps) {
   const flows = new Map(d.workflows.map((f) => [f.id, f]));
   const parts = new Map(d.components.map((c) => [c.id, c]));
-  const walkFor = (ctx: restate.Context, t: Target): Walk => ({
-    flows,
+  const walkFor = async (ctx: restate.Context, t: Target): Promise<Walk> => ({
+    // The client's saved wiring, read once per call and journaled, so a replay walks the same wires.
+    flows: new Map(
+      flowsWith(
+        d.workflows,
+        editsOf(await ctx.run("saved workflows", () => savedWorkflows(d.main, t.client))),
+        d.components,
+      ).flows.map((f) => [f.id, f]),
+    ),
     parts,
     steps: d.steps,
     store: pgSpineStore(t.client ? d.clientDb(t.client) : d.main),
@@ -400,12 +432,13 @@ export function makeSpine(d: SpineDeps) {
         (
           ctx: restate.Context,
           req: Target & { workflow: string; from: string; events: SpineEvent[] },
-        ) => walk(walkFor(ctx, req), req.workflow, req.from, req.events),
+        ) => walkFor(ctx, req).then((w) => walk(w, req.workflow, req.from, req.events)),
       ),
       /** A wire's wait is over. Only the spine sends it, delayed. */
       release: restate.handlers.handler(
         { ingressPrivate: true },
-        (ctx: restate.Context, req: Target & { id: string }) => resume(walkFor(ctx, req), req.id),
+        (ctx: restate.Context, req: Target & { id: string }) =>
+          walkFor(ctx, req).then((w) => resume(w, req.id)),
       ),
       /**
        * The door: the phone Worker's `POST /hooks/<token>`. Answers a status for the sender; the
