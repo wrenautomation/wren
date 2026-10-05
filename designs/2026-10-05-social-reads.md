@@ -97,11 +97,19 @@ Firms by niche and city from Exa's index, on the shared Exa allowance.
 
 - **autobrowse.** `web GET /exa/companies?q=&n=` (n up to 25, default 10): Exa `/search` with `category: "company"`, every result whole (`raw`) plus url, title, and the registrable domain. Meter it in the `exa` mills cap at what Exa charges a search. Use the key ring like the other Exa routes (`src/reach/web.ts`).
 - **wren.** An `exaSearch` pool stage, Wren's niches only: each niche lists `exaQueries` (recruiting: "staffing agency in {city}", "recruiting firm in {city}", "executive search firm in {city}"; agencies: "digital marketing agency in {city}", "web design agency in {city}"), crossed with a niche city list (the 25 largest US metros). One query is one call and one import of source `exa_search`, one row per result, `website` = its domain. Imports dedupe by domain, a known firm gets a sighting, and the niche's screen runs on new firms, as in `ad-library.ts`. A query is due again after 30 days. The bucket is 30 searches a day (burst 5), over the imports. A spent key ring (402) stops the pass. Cost: about $0.005 a search, so 30 a day is about $4.50 a month of the keys' free credits; a spent ring stops, never pays.
-- **Instagram `business_discovery`** is not in this brief: it needs a check of which login our Instagram app uses, done in the main session.
+- **Instagram `business_discovery`** is its own brief, below.
+
+### Instagram enrichment: build brief (2026-10-05)
+
+Checked 2026-10-05: `business_discovery` works on the `meta` site's Facebook Login token today. Wren's Page links an IG business account, and the token has `instagram_basic` and `pages_read_engagement`. One call returns a business or creator account's bio, website, counts and recent media with captions, dates and links. It costs $0. The `instagram` site (Instagram Login) can't do it, because Meta only serves it with Facebook Login. 7,951 firms on prod have an Instagram link from their own site.
+
+- **autobrowse.** `meta GET /instagram/{username}`: one `business_discovery` call with every profile field and the newest 25 media (every media field). The IG user id is the Page's `instagram_business_account`, looked up once per process. The answer is `{found: true, profile, media}`. A personal account, or a username that doesn't exist, answers `{found: false, reason}` rather than an error. A Graph rate-limit error (codes 4, 17, 32, 613, 80002) becomes a 429 with `retryAfter`. Caps: `reads` 300 a day on the route.
+- **wren.** An `instagram` enrichment stage, modeled on `youtube.ts`: firms with an `instagram` contact point, read every 30 days, firms with a lead we can still mail first. The profile is a `profile` finding (`via instagram`, raw kept whole), and each media item is a `post` finding with its permalink and `published_at`. A `found: false` is a `profile` finding marked missing, so the firm waits 30 days. The bucket is 300 firms a day (burst 30). It covers the 7,951 in about a month, so the steady rate is about 265 a day. A 429 stops the pass.
+- **The hook.** `postFacts` stays YouTube-only (`value->>'site' = 'YouTube'`). The recruiting slot prompt asks for "the topic of this video", so Instagram captions in hooks wait for William's copy.
 
 ## Rules
 
-- Never read through Wren's own logged-in Meta or Instagram accounts, or William's personal ones. Those accounts run our ads, and Meta bans accounts that scrape. Use official APIs or logged-out reads only, of firm pages and channels, never a person's private profile.
+- Never scrape with a browser signed in to Wren's own Meta or Instagram accounts, or William's personal ones. Those accounts run our ads, and Meta bans accounts that scrape. Official API calls on Wren's app token are fine (`business_discovery`). Otherwise use logged-out reads only, of firm pages and channels, never a person's private profile.
 - Free official APIs first. A browser only where no API exists.
 - Store everything a source returns (every field, the raw response, the page HTML for a browser read) and filter when reading. Never drop data at write time to fit a schema.
 - Dedupe identity, not reach. One person is one row, and every source that found them is a sighting. The send-time guard is what matters: no person in two active sequences, and no two first touches on one day.
