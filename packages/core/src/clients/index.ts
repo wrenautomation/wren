@@ -3,6 +3,7 @@
  * Every function here runs on the main database.
  */
 import {
+  atomic,
   clientDatabaseName,
   clientDatabaseUrl,
   createDatabase,
@@ -50,7 +51,8 @@ export async function addClient(
   const database = clientDatabaseName(input.id);
   await createDatabase(main, database);
   await migrateClient(mainUrl, database);
-  await main.transaction(async (tx) => {
+  // Level 2: the primary key stops a second row.
+  await atomic(main, async (tx) => {
     if (by) await setAuditActor(tx, by);
     await tx
       .insert(clients)
