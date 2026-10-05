@@ -1,13 +1,19 @@
 /**
  * The contacts stage against the migrated schema: one `contact_scan` per page,
  * one point per (firm, kind, value) counting the pages that carry it, a team
- * card's profile tied to its person, and an archived page read from the store.
+ * card's profile tied to its person, an archived page read from the store, and
+ * two runs that picked the same page counting it once.
  */
 import { people } from "@wren/core";
 import { startTestPostgres, type TestPostgres, truncate } from "@wren/db/testing";
 import { asc } from "drizzle-orm";
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
-import { runContacts } from "../../src/enrichment/contacts.js";
+import {
+  loadContactTarget,
+  runContacts,
+  scanContacts,
+  selectContactTargets,
+} from "../../src/enrichment/contacts.js";
 import { archivePages, memoryPageStore } from "../../src/pages.js";
 import { contactPoints, documents } from "../../src/schema.js";
 import { makeCompany } from "./fixtures.js";
@@ -96,6 +102,18 @@ describe("runContacts", () => {
       },
     ]);
     expect((await runContacts(db())).selected).toBe(0);
+  });
+
+  it("a page two runs picked is read once: the second adds nothing", async () => {
+    const firm = await makeCompany(db());
+    await page(firm.id, "", FOOTER);
+    const [id] = await selectContactTargets(db(), {});
+    const target = id === undefined ? null : await loadContactTarget(db(), id);
+    if (!target) throw new Error("no target");
+    expect(await scanContacts(db(), target)).toHaveLength(2);
+    expect(await scanContacts(db(), target)).toEqual([]);
+    const pages = await db().select({ pages: contactPoints.pages }).from(contactPoints);
+    expect(pages).toEqual([{ pages: 1 }, { pages: 1 }]);
   });
 
   it("reads an archived page back from the store", async () => {

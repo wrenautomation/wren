@@ -303,14 +303,20 @@ export async function scanContacts(
           .where(eq(people.companyId, doc.companyId))
           .limit(MAX_PEOPLE + 1);
   const points = contactsInPage(html, doc.text, { tels: doc.telHrefs, people: team });
-  await db.insert(enrichments).values({
-    documentId: doc.id,
-    kind: "contact_scan",
-    model: CONTACTS_MODEL,
-    promptVersion: CONTACTS_VERSION,
-    output: { points, html: html !== null },
-    runId,
-  });
+  const read = await db
+    .insert(enrichments)
+    .values({
+      documentId: doc.id,
+      kind: "contact_scan",
+      model: CONTACTS_MODEL,
+      promptVersion: CONTACTS_VERSION,
+      output: { points, html: html !== null },
+      runId,
+    })
+    .onConflictDoNothing()
+    .returning({ id: enrichments.id });
+  // Another run read this page first (two keys over one backlog): its points are in.
+  if (read.length === 0) return [];
   if (doc.companyId !== null && points.length > 0) {
     await db
       .insert(contactPoints)
