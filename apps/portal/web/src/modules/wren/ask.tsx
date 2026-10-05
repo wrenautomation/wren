@@ -5,10 +5,11 @@
  */
 import type { RecordsPage } from "@wren/core/records/serve";
 import { Alert, Button, Empty, Loading, PageHeader, Tag, Textarea } from "@wren/ui";
-import { type FormEvent, useEffect, useState } from "react";
+import { type FormEvent, type ReactNode, useEffect, useState } from "react";
 import { call } from "../../api.js";
 import { useCall } from "../../load.js";
 import { navigate } from "../../route.js";
+import { sourceOf } from "./cite.js";
 
 const POLL_MS = 4000;
 const STATES = {
@@ -16,6 +17,26 @@ const STATES = {
   answered: { label: "Answered", tone: "green" },
   failed: { label: "Failed", tone: "rust" },
 } as const;
+
+/** The answer as plain text: `code` in mono, a cited file linked, ** dropped. */
+function Answer({ text }: { text: string }): ReactNode {
+  return text.split(/(`[^`\n]+`)/).map((part, i) => {
+    if (!part.startsWith("`")) return part.replaceAll("**", "");
+    const code = part.slice(1, -1);
+    const href = sourceOf(code);
+    return href ? (
+      // biome-ignore lint/suspicious/noArrayIndexKey: parts of one fixed string.
+      <a key={i} href={href} target="_blank" rel="noreferrer" className="font-mono text-[12.5px]">
+        {code}
+      </a>
+    ) : (
+      // biome-ignore lint/suspicious/noArrayIndexKey: parts of one fixed string.
+      <code key={i} className="font-mono text-[12.5px]">
+        {code}
+      </code>
+    );
+  });
+}
 
 /** Ask Claude Code `question`, as asked from `page`, then show the thread. */
 export async function askClaude(question: string, page: string) {
@@ -106,7 +127,7 @@ export function Ask() {
                 </p>
                 {r.answer ? (
                   <p className="mt-2 whitespace-pre-wrap text-[14px] text-(--ui-ink-2) wrap-anywhere">
-                    {String(r.answer)}
+                    <Answer text={String(r.answer)} />
                   </p>
                 ) : null}
               </li>

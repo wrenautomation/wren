@@ -43,7 +43,7 @@ export const LEAD_SHEET = "research.lead_sheet";
 
 const LEADS: Port = {
   id: "leads",
-  label: "firms with a checked lead",
+  label: "firms with a verified lead",
   kind: "lead",
   count: { record: "email.firm", view: "lead" },
 };
