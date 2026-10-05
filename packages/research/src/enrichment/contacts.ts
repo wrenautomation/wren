@@ -32,6 +32,10 @@ export const CONTACTS_VERSION = "v1";
 export const CONTACTS_MODEL = "deterministic";
 /** A firm with more people than this is a registry, not a team page: no name matching. */
 const MAX_PEOPLE = 300;
+/** `contact_points.value` is varchar(512); a longer "profile" is a broken link. */
+const MAX_VALUE = 512;
+/** LinkedIn caps a company page's public URL name at 100 characters. */
+const MAX_LINKEDIN_HANDLE = 100;
 
 export interface PagePoint {
   kind: ContactKind;
@@ -157,6 +161,7 @@ export function contactsInPage(
 ): PagePoint[] {
   const points = new Map<string, PagePoint>();
   const add = (p: PagePoint) => {
+    if (p.value.length > MAX_VALUE) return;
     const key = `${p.kind} ${p.value}`;
     if (!points.has(key)) points.set(key, p);
   };
@@ -177,7 +182,11 @@ export function contactsInPage(
     const found = m[0].replace(/&amp;/gi, "&");
     const url = found.startsWith("//") ? `https:${found}` : found;
     const handle = linkedinCompany(url);
-    if (handle && TEMPLATE_HANDLES.has(handle.toLowerCase())) continue;
+    if (
+      handle &&
+      (handle.length > MAX_LINKEDIN_HANDLE || TEMPLATE_HANDLES.has(handle.toLowerCase()))
+    )
+      continue;
     if (handle) {
       add({
         kind: "linkedin_company",

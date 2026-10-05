@@ -52,6 +52,11 @@ describe("contactsInPage", () => {
     ]);
   });
 
+  it("a company link with an overlong name is a broken link, not a page", () => {
+    const html = `<a href="https://www.linkedin.com/company/${"a%20".repeat(200)}">in</a>`;
+    expect(values(html)).toEqual([]);
+  });
+
   it("a profile by two held people's names is nobody's", () => {
     const html = `<p>Jane Roe and Jane Roe</p><a href="https://www.linkedin.com/in/ACoAAB12345678">in</a>`;
     const twins = [
