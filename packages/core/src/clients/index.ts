@@ -21,6 +21,8 @@ import {
   clients,
   type MemberRole,
   operators,
+  TEAM_ROLES,
+  type TeamRole,
 } from "./schema.js";
 
 export * from "./schema.js";
@@ -204,6 +206,70 @@ export async function removeOperator(main: Db, email: string): Promise<boolean> 
   );
 }
 
+/**
+ * Put `email` on Wren's team, or change their seat: a role, and `clients` (null is every
+ * client; `wren` in the list is Wren's own apps). A field left out keeps its value; a new
+ * seat without a role is an operator. Taking someone below admin ends their sessions.
+ */
+export async function setTeamSeat(
+  db: Queryable,
+  email: string,
+  seat: { role?: TeamRole; clients?: readonly string[] | null },
+): Promise<{ email: string; role: TeamRole; clients: string[] | null }> {
+  const e = normalEmail(email);
+  const [was] = await db.select().from(operators).where(eq(operators.email, e));
+  const role = seat.role ?? was?.role ?? "operator";
+  const list = seat.clients === undefined ? (was?.clients ?? null) : seat.clients;
+  const clientsOf = list === null ? null : [...new Set(list)].sort();
+  if (was?.role === "admin" && role !== "admin") await keepAnAdmin(db, e);
+  const [row] = await db
+    .insert(operators)
+    .values({ email: e, role, clients: clientsOf })
+    .onConflictDoUpdate({ target: operators.email, set: { role, clients: clientsOf } })
+    .returning();
+  const demoted = was && TEAM_ROLES.indexOf(role) > TEAM_ROLES.indexOf(was.role);
+  if (was && (demoted || narrower(was.clients, clientsOf))) await endSessions(db, e);
+  return { email: e, role: row?.role ?? role, clients: row?.clients ?? null };
+}
+
+/** `to` sees less than `from`: a client dropped from the list, or every client cut to some. */
+const narrower = (from: string[] | null, to: string[] | null) =>
+  to !== null && (from === null || from.some((c) => !to.includes(c)));
+
+/** Take `email` off Wren's team, ending their sessions. The last admin stays. */
+export async function removeTeamSeat(db: Queryable, email: string): Promise<boolean> {
+  const e = normalEmail(email);
+  await keepAnAdmin(db, e);
+  const gone = await db.delete(operators).where(eq(operators.email, e)).returning();
+  if (gone.length) await endSessions(db, e);
+  return gone.length > 0;
+}
+
+/** Refused (`LastAdmin`) when `email` is the only admin: someone has to run the team. */
+async function keepAnAdmin(db: Queryable, email: string): Promise<void> {
+  const admins = await db
+    .select({ email: operators.email })
+    .from(operators)
+    .where(eq(operators.role, "admin"));
+  if (admins.length === 1 && admins[0]?.email === email) throw new LastAdmin();
+}
+export class LastAdmin extends Error {
+  constructor() {
+    super("the last admin stays; make someone else an admin first");
+  }
+}
+
+/**
+ * Sign `email` out everywhere: their Better Auth sessions go, so the next token refresh fails.
+ * A token already out lives its 15 minutes, but every call reads the role fresh anyway.
+ */
+export async function endSessions(db: Queryable, email: string): Promise<void> {
+  await db.execute(
+    sql`delete from auth.session where user_id in
+          (select id from auth."user" where lower(email) = ${normalEmail(email)})`,
+  );
+}
+
 export async function listOperators(main: Db): Promise<string[]> {
   return (await main.select().from(operators).orderBy(asc(operators.email))).map((o) => o.email);
 }
@@ -233,6 +299,38 @@ export async function touchMember(main: Db, email: string): Promise<void> {
     .set({ lastSeenAt: new Date() })
     .where(eq(clientMembers.email, normalEmail(email)));
 }
+
+/** Wren's team as a console record: each seat, and when they last signed in. The Team page. */
+export const teamRecord = defineRecord({
+  id: "console.team",
+  name: { one: "teammate", many: "team" },
+  needs: "team",
+  rows: async (db) =>
+    (
+      await db.execute<Record<string, unknown>>(
+        sql`select o.email, o.role, coalesce(array_to_string(o.clients, ', '), 'All') clients,
+              o.added_at added, (select max(s.updated_at) from auth.session s
+                join auth."user" u on u.id = s.user_id where lower(u.email) = o.email) last_seen
+            from operators o order by o.email`,
+      )
+    ).map((r) => ({ ...r, id: r.email })),
+  key: "id",
+  title: "email",
+  subtitle: "role",
+  fields: {
+    email: text("Email"),
+    role: status({
+      admin: { label: "Admin", tone: "good" },
+      operator: { label: "Operator", tone: "neutral" },
+      viewer: { label: "Viewer", tone: "neutral" },
+    }),
+    clients: text("Clients"),
+    added: date(),
+    lastSeen: date("Last sign-in"),
+  },
+  views: [{ id: "all", label: "All", sort: "email" }],
+  actions: ["console.teamInvite", "console.teamRole", "console.teamClients", "console.teamRemove"],
+});
 
 /** Wren's clients as a console record, over `client_records`. */
 export const clientRecord = defineRecord({

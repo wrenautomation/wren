@@ -23,6 +23,9 @@ export const CONSOLE_ROUTES = {
   configure: "manage",
   uninstall: "manage",
   ask: "manage",
+  // The Team page: an admin's.
+  teamSet: "wren:team",
+  teamRemove: "wren:team",
 } as const satisfies Record<string, Need>;
 export type ConsoleRoute = keyof typeof CONSOLE_ROUTES;
 /** The ones that change something: never cached, never on the demo. */
@@ -35,4 +38,6 @@ export const CONSOLE_WRITES: readonly ConsoleRoute[] = [
   "configure",
   "uninstall",
   "ask",
+  "teamSet",
+  "teamRemove",
 ];

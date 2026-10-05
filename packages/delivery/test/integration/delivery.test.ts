@@ -626,6 +626,8 @@ describe("the demo", () => {
           id: "demo",
           name: "Demo recruiting firm",
           demo: true,
+          // It reads and changes nothing.
+          can: ["read"],
           // Its project installed delivery's four.
           installed: [
             "delivery.portal",

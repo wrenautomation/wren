@@ -39,6 +39,7 @@ export const PLATFORM = {
     loops: "every loop, whoever's it is",
     handlers: "every handler, as a form",
     clients: "the client registry",
+    team: "Wren's team and their roles",
     marketplace: "every component, and the browser mods",
   },
   records: {
@@ -46,5 +47,6 @@ export const PLATFORM = {
     "console.loop": "every loop",
     "console.handler": "every handler",
     "console.component": "every component",
+    "console.team": "Wren's team",
   },
 } as const;

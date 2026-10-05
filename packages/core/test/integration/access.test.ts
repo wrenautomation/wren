@@ -6,7 +6,7 @@ import * as clients from "@restatedev/restate-sdk-clients";
 import type { RestateTestEnvironment } from "@restatedev/restate-sdk-testcontainers";
 import { ingressOf } from "@wren/config";
 import { startTestPostgres, type TestPostgres } from "@wren/db/testing";
-import { eq } from "drizzle-orm";
+import { eq, sql } from "drizzle-orm";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import {
   addClient,
@@ -133,5 +133,63 @@ describe("access, read fresh per call", () => {
     expect(await portal().recordsTypes(OPERATOR)).not.toHaveLength(0);
     await removeOperator(pg.db, OPERATOR.viewer.email);
     await expect(portal().recordsTypes(OPERATOR)).rejects.toThrow("no access");
+  });
+});
+
+describe("the Team page", () => {
+  const NEW = "nina@example.test";
+  const signedIn = async (email: string) => {
+    await pg.db.execute(sql`insert into auth."user" (id, name, email) values (${email}, 'x', ${email})
+      on conflict do nothing`);
+    await pg.db.execute(sql`insert into auth.session (id, token, user_id, expires_at)
+      values (${`s-${email}`}, ${`t-${email}`}, ${email}, now() + interval '1 day')
+      on conflict do nothing`);
+  };
+  const sessions = async (email: string) =>
+    (await pg.db.execute(sql`select 1 from auth.session where user_id = ${email}`)).length;
+
+  it("only an admin sees it and changes it", async () => {
+    const ids = async (v: { viewer: { email: string } }) =>
+      (await portal().recordsTypes(v)).map((t) => t.id);
+    expect(await ids(ADMIN)).toContain("console.team");
+    expect(await ids(TEAM_VIEWER)).not.toContain("console.team");
+    await expect(portal().teamSet({ ...TEAM_VIEWER, email: NEW })).rejects.toThrow(
+      "your role can't do that",
+    );
+    await expect(portal().teamSet({ ...OWNER, email: NEW })).rejects.toThrow();
+    const rows = (await portal().recordsList({ ...ADMIN, record: "console.team" })).rows;
+    expect(rows.map((r) => r.email)).toContain(ADMIN.viewer.email);
+  });
+
+  it("invites, scopes and removes, signing the person out when they lose access", async () => {
+    expect(await portal().teamSet({ ...ADMIN, email: NEW, role: "viewer", clients: "" })).toEqual({
+      email: NEW,
+      role: "viewer",
+      clients: null,
+    });
+    await signedIn(NEW);
+    // Wider keeps the session; narrower ends it.
+    await portal().teamSet({ ...ADMIN, email: NEW, role: "operator" });
+    expect(await sessions(NEW)).toBe(1);
+    await expect(portal().teamSet({ ...ADMIN, email: NEW, clients: "acme, nope" })).rejects.toThrow(
+      "no such client: nope",
+    );
+    expect(await portal().teamSet({ ...ADMIN, email: NEW, clients: "acme, wren" })).toMatchObject({
+      clients: ["acme", "wren"],
+    });
+    expect(await sessions(NEW)).toBe(0);
+    await signedIn(NEW);
+    expect(await portal().teamRemove({ ...ADMIN, email: NEW })).toEqual({ removed: NEW });
+    expect(await sessions(NEW)).toBe(0);
+    await expect(portal().recordsTypes(as(NEW))).rejects.toThrow("no access");
+  });
+
+  it("keeps the last admin", async () => {
+    await expect(
+      portal().teamSet({ ...ADMIN, email: ADMIN.viewer.email, role: "viewer" }),
+    ).rejects.toThrow("the last admin stays");
+    await expect(portal().teamRemove({ ...ADMIN, email: ADMIN.viewer.email })).rejects.toThrow(
+      "the last admin stays",
+    );
   });
 });

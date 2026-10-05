@@ -20,8 +20,11 @@ export const handlers: Module = {
         forms: "No handler has a form.",
         effects: "No handler spends, sends or posts.",
       },
-      extras: (detail, { row }): RecordExtras => {
+      extras: (detail, { row, can }): RecordExtras => {
         const form = (detail as { form?: FormField[] | null } | undefined)?.form ?? null;
+        // A form with an effect needs `effect`, any other `run` (the console checks it again).
+        const effect = typeof row.effect === "string" ? row.effect : null;
+        if (can && !can.includes(effect ? "effect" : "run")) return {};
         const id = String(row.id);
         const service = String(row.service);
         const handler = String(row.handler);
@@ -32,7 +35,7 @@ export const handlers: Module = {
             name: handler,
             fields: form,
             keyed: row.kind !== "service",
-            effect: typeof row.effect === "string" ? row.effect : null,
+            effect,
             run: (c) =>
               call("console/call", {
                 service,

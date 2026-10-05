@@ -6,18 +6,21 @@ import type { Settings } from "@wren/config";
 import {
   addClient,
   addMember,
-  addOperator,
   type Client,
+  endSessions,
   findClient,
   getClient,
   listClients,
   listMembers,
-  listOperators,
   MEMBER_ROLES,
   type MemberRole,
+  operators,
   removeMember,
-  removeOperator,
+  removeTeamSeat,
+  setTeamSeat,
   sharedAccounts,
+  TEAM_ROLES,
+  type TeamRole,
   updateClient,
 } from "@wren/core/clients";
 import type { Db } from "@wren/db";
@@ -176,26 +179,56 @@ export function registerClients(program: Command, withMainDb: WithDb, settings: 
     });
 
   members.command("remove <id> <email>").action(async (id: string, email: string) => {
-    const gone = await withMainDb((db) => removeMember(db, id, email));
-    console.log(gone ? `${email} no longer sees ${id}` : `${email} was not a member of ${id}`);
-  });
-
-  const ops = program
-    .command("operators")
-    .description("Wren's own people: they see every client and the operator tools");
-  ops.command("list").action(async () => {
-    for (const e of await withMainDb((db) => listOperators(db))) console.log(e);
-  });
-  ops.command("add <email>").action(async (email: string) => {
-    await withMainDb((db) => addOperator(db, email));
-    console.log(`${email} is an operator (takes effect on their next token, within 15 minutes)`);
-  });
-  ops.command("remove <email>").action(async (email: string) => {
-    const gone = await withMainDb((db) => removeOperator(db, email));
+    const gone = await withMainDb(async (db) => {
+      const out = await removeMember(db, id, email);
+      if (out) await endSessions(db, email);
+      return out;
+    });
     console.log(
-      gone
-        ? `${email} is no longer an operator (within 15 minutes)`
-        : `${email} was not an operator`,
+      gone ? `${email} no longer sees ${id}, signed out` : `${email} was not a member of ${id}`,
     );
   });
+
+  const team = program
+    .command("team")
+    .description(
+      "Wren's own people: admin (everything), operator (no money, effects, installs or team), viewer (reads)",
+    );
+  team.command("ls").action(async () => {
+    const seats = await withMainDb((db) => db.select().from(operators).orderBy(operators.email));
+    for (const o of seats)
+      console.log([o.email.padEnd(36), o.role.padEnd(8), o.clients?.join(",") ?? "all"].join("  "));
+  });
+  const seat = (opts: { role?: string; clients?: string }) => {
+    if (opts.role !== undefined && !TEAM_ROLES.includes(opts.role as TeamRole))
+      throw new Error(`--role is one of ${TEAM_ROLES.join(", ")}`);
+    return {
+      ...(opts.role ? { role: opts.role as TeamRole } : {}),
+      ...(opts.clients === undefined
+        ? {}
+        : {
+            clients: opts.clients === "all" ? null : opts.clients.split(",").map((c) => c.trim()),
+          }),
+    };
+  };
+  for (const [name, what] of [
+    ["add", "Put this email on the team (an operator unless --role)"],
+    ["set", "Change a seat: --role, --clients; a narrower seat signs them out"],
+  ] as const)
+    team
+      .command(`${name} <email>`)
+      .description(what)
+      .option("--role <role>", TEAM_ROLES.join(" | "))
+      .option("--clients <ids>", "client ids split by commas, wren for Wren's apps, or all")
+      .action(async (email: string, opts: { role?: string; clients?: string }) => {
+        const s = await withMainDb((db) => setTeamSeat(db, email, seat(opts)));
+        console.log(`${s.email} is ${s.role} over ${s.clients?.join(", ") ?? "every client"}`);
+      });
+  team
+    .command("rm <email>")
+    .description("Take them off the team and sign them out; the last admin stays")
+    .action(async (email: string) => {
+      const gone = await withMainDb((db) => removeTeamSeat(db, email));
+      console.log(gone ? `${email} is off the team, signed out` : `${email} was not on the team`);
+    });
 }

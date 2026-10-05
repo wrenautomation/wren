@@ -24,7 +24,7 @@ booking is billed, so only the login that marked it, or Wren, takes it back.
 
     wren clients members add <id> a@firm.com [--role owner]   # sees that client
     wren clients members remove <id> a@firm.com
-    wren operators add a@wrenautomation.com                   # sees every client
+    wren team add a@wrenautomation.com --role admin        # sees every client
 
 Only these emails get an account; anyone else is sent nothing. Against prod,
 point the CLI at prod's `WREN_DATABASE_URL`. Operator changes land on the next

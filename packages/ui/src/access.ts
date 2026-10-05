@@ -6,11 +6,16 @@
  * - audience `demo`: the public demo's own (what in it is real), never a signed-in workspace.
  * - role `owner`: the workspace's owner, as the delivery service's `read()` checks.
  * - feature: the client's offers grant it. Wren's team passes every role and feature.
+ * - needs: a permission (`@wren/core/access`) this login holds in this workspace, as `delivery/me`
+ *   says. What a login can't do is hidden, not greyed out.
  */
+import type { Permission } from "@wren/core/access";
+
 export interface Access {
   audience?: "team" | "client" | "demo";
   role?: "owner";
   feature?: string;
+  needs?: Permission;
 }
 
 export interface Viewer {
@@ -18,8 +23,10 @@ export interface Viewer {
   team: boolean;
   /** The public demo, or not known yet: shown only what the demo shows. */
   demo: boolean;
-  role?: "owner" | "member";
+  role?: "owner" | "member" | "viewer";
   features?: readonly string[];
+  /** What this login may do here; left out (the demo, a preview), `needs` isn't checked. */
+  can?: readonly string[];
 }
 
 export function can(viewer: Viewer, access: Access | undefined): boolean {
@@ -27,6 +34,7 @@ export function can(viewer: Viewer, access: Access | undefined): boolean {
   if (access.audience === "team" && !viewer.team) return false;
   if (access.audience === "client" && viewer.demo) return false;
   if (access.audience === "demo" && !viewer.demo) return false;
+  if (access.needs && viewer.can && !viewer.can.includes(access.needs)) return false;
   if (viewer.team) return true;
   if (access.role === "owner" && viewer.role !== "owner") return false;
   if (access.feature !== undefined && !viewer.features?.includes(access.feature)) return false;

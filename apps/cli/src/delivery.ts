@@ -67,15 +67,14 @@ const idOf = (v: string) => {
 async function authorOf(db: Db, by: string | undefined): Promise<string> {
   const ops = await listOperators(db);
   if (by) {
-    if (!ops.includes(normalEmail(by)))
-      throw new Error(`${by} isn't an operator (wren operators list)`);
+    if (!ops.includes(normalEmail(by))) throw new Error(`${by} isn't an operator (wren team ls)`);
     return normalEmail(by);
   }
   if (ops.length === 1) return ops[0] as string;
   throw new Error(
     ops.length
       ? `say who it's from: --by ${ops.join(" | ")}`
-      : "no operators yet: wren operators add <email>",
+      : "no operators yet: wren team add <email>",
   );
 }
 

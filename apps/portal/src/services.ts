@@ -7,7 +7,7 @@
 import { BOOKS_CONSOLE_ROUTES, BOOKS_CONSOLE_WRITES } from "@wren/books/console-routes";
 import { EMAIL_CONSOLE_ROUTES, EMAIL_CONSOLE_WRITES } from "@wren/channel-email/console-routes";
 import { SMS_CONSOLE_ROUTES, SMS_CONSOLE_WRITES } from "@wren/channel-sms/console-routes";
-import type { Need } from "@wren/core/access";
+import { type Need, needOf, type Permission } from "@wren/core/access";
 import { CONSOLE_ROUTES, CONSOLE_WRITES } from "@wren/core/console-routes";
 import { DELIVERY_ROUTES, DELIVERY_WRITES } from "@wren/delivery/routes";
 import { PORTAL_ROUTES, PORTAL_WRITES } from "@wren/reactivation/portal-routes";
@@ -37,3 +37,13 @@ export const SERVICES: Readonly<Record<string, Service>> = {
   // Where an account's spend counts.
   books: service("BooksConsole", BOOKS_CONSOLE_ROUTES, BOOKS_CONSOLE_WRITES),
 };
+
+/**
+ * The permission a call to `<service>/<route>` needs, which the web hides a button behind
+ * (a `wren:` need is the same permission, read in Wren's own workspace). Unknown: undefined.
+ */
+export function permissionOf(path: string): Permission | undefined {
+  const [svc = "", route = ""] = path.split("/");
+  const need = SERVICES[svc]?.needs[route];
+  return need && needOf(need).permission;
+}

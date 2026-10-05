@@ -4,6 +4,8 @@
  * viewer with one app (the demo) skips the launcher and lands in it. Wren's team starts in Wren's
  * own workspace, its apps on Wren's records; the switcher moves to the demo or a client.
  */
+
+import type { Permission } from "@wren/core/access";
 import {
   Alert,
   AppCard,
@@ -138,6 +140,8 @@ const shown = (viewer: Viewer) =>
     pages: m.pages.filter((p) => can(viewer, p.requires)),
   }));
 
+const withCan = (can: readonly Permission[] | undefined) => (can ? { can } : {});
+
 /** Where an address goes: an app's page, the launcher, or elsewhere (`to`) once the viewer is known. */
 type Place =
   | { kind: "page"; module: Module; page: ModulePage }
@@ -211,7 +215,19 @@ export function App() {
   const clients = me.data?.clients ?? [];
   const current = wren ? WREN : (clients.find((c) => c.id === client) ?? clients[0] ?? null);
   const installed = new Set(current && "installed" in current ? current.installed : []);
-  const apps = appsIn(shown({ team, demo: onDemo !== false }), { wren, team, installed });
+  // What this login holds here: in Wren's apps its team role's, in a client's that client's.
+  const canAt = (id: string | undefined) =>
+    onDemo !== false
+      ? undefined
+      : id === WREN.id
+        ? me.data?.team?.wren
+        : clients.find((c) => c.id === id)?.can;
+  const held = canAt(current?.id);
+  const apps = appsIn(shown({ team, demo: onDemo !== false, ...withCan(held) }), {
+    wren,
+    team,
+    installed,
+  });
   const here = apps.find((m) => m.id === route.path[0]);
   const pages = here?.pages.map((p) => p.id).join(",");
   // biome-ignore lint/correctness/useExhaustiveDependencies: `pages` names what `here` gives.
@@ -281,6 +297,7 @@ export function App() {
     demo: demo || !!clients.find((c) => c.id === id)?.demo,
     team,
     params: route.params,
+    ...withCan(canAt(id)),
   });
   const open = at.kind === "page" ? at : null;
   // The team sees every app; one this client hasn't installed points at its Marketplace row.

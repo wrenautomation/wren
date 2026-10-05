@@ -422,7 +422,7 @@ export const money: Module = {
   component: "books",
   icon: "money",
   blurb: "What Wren spends, what renews soon, and what a client costs and earns.",
-  requires: TEAM,
+  requires: { ...TEAM, needs: "money" },
   pages: [
     {
       ...overview,
@@ -702,4 +702,64 @@ export const clients: Module = {
   ],
 };
 
-export const WREN_APPS = [outbound, inbox, loops, money, pipeline, clients, handlers];
+const ROLES = ["operator", "viewer", "admin"] as const;
+const CLIENTS_HINT =
+  'Client ids split by commas, and "wren" for Wren\'s own apps. Blank is every client.';
+const TEAM_ACTS: Action[] = [
+  {
+    id: "console.teamInvite",
+    label: "Invite",
+    handler: "console/teamSet",
+    form: [
+      { field: "email", label: "Their work email", hint: "They sign in with it." },
+      { field: "role", label: "Role", options: ROLES },
+      { field: "clients", label: "Clients", optional: true, hint: CLIENTS_HINT },
+    ],
+    done: () => "Invited",
+  },
+  {
+    id: "console.teamRole",
+    label: "Change role",
+    handler: "console/teamRole",
+    each: true,
+    form: [{ field: "role", label: "Role", options: ROLES }],
+    done: said("Role changed"),
+  },
+  {
+    id: "console.teamClients",
+    label: "Set clients",
+    handler: "console/teamClients",
+    each: true,
+    form: [{ field: "clients", label: "Clients", optional: true, hint: CLIENTS_HINT }],
+    done: said("Clients set"),
+  },
+  {
+    id: "console.teamRemove",
+    label: "Remove",
+    handler: "console/teamRemove",
+    confirm: "Remove them from the team? They're signed out at once.",
+    done: said("Removed"),
+  },
+];
+const TEAM_ACTIONS = TEAM_ACTS.map((a): Action => ({ ...a, requires: { needs: "team" } }));
+
+/** Wren's team: who signs in, as what, over which clients. An admin's alone. */
+export const team: Module = {
+  id: "team",
+  name: "Team",
+  icon: "people",
+  blurb: "Who on Wren's team signs in, their role and which clients they see.",
+  requires: { ...TEAM, needs: "team" },
+  pages: [
+    {
+      id: "all",
+      label: "Team",
+      template: "list",
+      record: "console.team",
+      empty: "Nobody yet.",
+      actions: TEAM_ACTIONS,
+    },
+  ],
+};
+
+export const WREN_APPS = [outbound, inbox, loops, money, pipeline, clients, team, handlers];

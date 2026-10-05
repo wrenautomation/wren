@@ -11,10 +11,13 @@ export function ClientLook({ client }: { client: string }) {
   const me = useCall(`look:${client}`, () => call<Me>("delivery/me"));
   if (me.error && !me.data) return <Alert onRetry={me.retry}>{me.error.message}</Alert>;
   if (!me.data) return <Loading lines={4} />;
+  const here = me.data.clients.find((c) => c.id === client);
+  if (here && !here.can.includes("manage"))
+    return <p className={QUIET}>Only an admin or an owner can change the look.</p>;
   return (
     <LookEditor
       key={client}
-      look={me.data.clients.find((c) => c.id === client)?.look ?? null}
+      look={here?.look ?? null}
       onSave={async (look) => {
         await call("console/setLook", { client, look });
         dispatchEvent(new Event(ME_CHANGED));

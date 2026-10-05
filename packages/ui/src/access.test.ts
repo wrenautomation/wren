@@ -36,4 +36,14 @@ describe("can", () => {
     expect(can(client, { feature: "forecast" })).toBe(false);
     expect(can(team, { role: "owner", feature: "forecast" })).toBe(true);
   });
+
+  it("checks needs against what the login holds here, the team too", () => {
+    const viewerTeam: Viewer = { ...team, can: ["read"] };
+    expect(can(viewerTeam, { needs: "read" })).toBe(true);
+    expect(can(viewerTeam, { needs: "act" })).toBe(false);
+    expect(can({ ...owner, can: ["read", "money"] }, { needs: "money" })).toBe(true);
+    expect(can({ ...client, can: ["read", "act"] }, { needs: "money" })).toBe(false);
+    // Unknown (the demo, a preview): not checked.
+    expect(can(demo, { needs: "act" })).toBe(true);
+  });
 });

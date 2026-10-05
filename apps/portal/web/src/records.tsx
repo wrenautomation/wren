@@ -17,6 +17,7 @@ import {
   type RecordsApi,
 } from "@wren/ui";
 import { useEffect } from "react";
+import { permissionOf } from "../../src/services.js";
 import { call, uploadFile } from "./api.js";
 import { type ListPage, type OverviewPage, type PageProps, WREN } from "./module.js";
 import { href, navigate } from "./route.js";
@@ -112,6 +113,12 @@ const ONE: Record<string, (id: string, input: Input) => [string, Input]> = {
   ],
   "delivery/hide": (id) => ["delivery/hide", { updateId: Number(id) }],
   "delivery/invite": (id, { email }) => ["delivery/invite", { client: id, email, role: "owner" }],
+  "console/teamRole": (id, { role }) => ["console/teamSet", { email: id, role }],
+  "console/teamClients": (id, { clients }) => [
+    "console/teamSet",
+    { email: id, clients: clients ?? "" },
+  ],
+  "console/teamRemove": (id) => ["console/teamRemove", { email: id }],
   "delivery/grant": access("granted"),
   "delivery/revoke": access("revoked"),
   "delivery/decline": access("declined"),
@@ -226,7 +233,13 @@ export function TemplatePage({
     list: path,
     go: navigate,
   };
-  const { extras, actions = [] } = page;
+  const { extras } = page;
+  // Each action needs what its route needs, unless it says otherwise: a button the login can't
+  // press is hidden.
+  const actions = (page.actions ?? []).map((a) => {
+    const needs = a.requires?.needs ?? permissionOf(AS[a.handler]?.[0] ?? a.handler);
+    return needs ? { ...a, requires: { ...a.requires, needs } } : a;
+  });
   const local = props.demo && client ? localOf(product, client, scope) : null;
   const shared = {
     record: page.record,
@@ -235,7 +248,7 @@ export function TemplatePage({
     place,
     acts: {
       actions,
-      viewer: { team: props.team, demo: props.demo },
+      viewer: { team: props.team, demo: props.demo, ...(props.can ? { can: props.can } : {}) },
       call:
         local?.callFor(page.record, actions) ??
         (async (handler: string, input: Input) => {

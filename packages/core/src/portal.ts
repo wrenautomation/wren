@@ -8,6 +8,8 @@ import type { Db } from "@wren/db";
 import { and, asc, eq, inArray } from "drizzle-orm";
 import {
   can,
+  granted,
+  type MemberRole,
   type Need,
   needOf,
   type Permission,
@@ -235,26 +237,63 @@ export interface Me {
   /** `demo`: the demo firm, which refuses writes wherever it's looked at. */
   /** `look`: the portal's look for that client, when one is set (`clients.look`). */
   /** `installed`: its components (`clients.products` keys); an app shows only for these. */
-  clients: { id: string; name: string; demo?: true; look?: unknown; installed: string[] }[];
+  /** `can`: what this login may do there (`@wren/core/access`); `role`: a member's role there. */
+  clients: {
+    id: string;
+    name: string;
+    demo?: true;
+    look?: unknown;
+    installed: string[];
+    can: Permission[];
+    role?: MemberRole;
+  }[];
   demo: boolean;
   /** Wren's team: every client, and the tools to post to them. */
   operator: boolean;
+  /** A team login's role, and what it may do in Wren's own apps. */
+  team?: { role: TeamRole; wren: Permission[] };
 }
 
 /** Who you are to the portal. The demo host sees its client as `demoName`, never its real name. */
 export async function portalMe(main: Db, viewer: Viewer, demoName: string): Promise<Me> {
   const mine = await clientsFor(main, viewer);
   if (!isDemo(viewer)) await touchMember(main, viewer.email);
+  const team = isDemo(viewer) ? undefined : viewer.team;
+  const seat = isOperator(viewer)
+    ? { team: team?.role ?? ("admin" as const), clients: team?.clients ?? null }
+    : null;
+  const roles = new Map(
+    seat || isDemo(viewer)
+      ? []
+      : (
+          await main
+            .select({ client: clientMembers.clientId, role: clientMembers.role })
+            .from(clientMembers)
+            .where(eq(clientMembers.email, normalEmail(viewer.email)))
+        ).map((r) => [r.client, r.role]),
+  );
+  const whoAt = (id: string): Who => {
+    if (isDemo(viewer)) return { demo: true };
+    if (seat) return seat;
+    const role = roles.get(id);
+    return role ? { member: role, client: id } : null;
+  };
   return {
-    clients: mine.map((c) => ({
-      id: c.id,
-      name: isDemo(viewer) ? demoName : c.name,
-      ...(c.demo ? { demo: true as const } : {}),
-      ...(c.look != null ? { look: c.look } : {}),
-      installed: Object.keys(c.products),
-    })),
+    clients: mine.map((c) => {
+      const role = roles.get(c.id);
+      return {
+        id: c.id,
+        name: isDemo(viewer) ? demoName : c.name,
+        ...(c.demo ? { demo: true as const } : {}),
+        ...(c.look != null ? { look: c.look } : {}),
+        installed: Object.keys(c.products),
+        can: granted(whoAt(c.id), c.id),
+        ...(role ? { role } : {}),
+      };
+    }),
     demo: isDemo(viewer),
     operator: isOperator(viewer),
+    ...(seat ? { team: { role: seat.team, wren: granted(seat, WREN) } } : {}),
   };
 }
 

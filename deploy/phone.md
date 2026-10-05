@@ -44,7 +44,7 @@ The worker (Lambda) must already serve `SmsDesk` and `SmsEvents`, and migration
 ## Add a device
 
 Open `https://phone.wrenautomation.com` on the device and tap "Sign in": Wren's
-sign-in, as an operator (`wren operators add`). Then "Add a passkey on this device"
+sign-in, as an operator (`wren team add`). Then "Add a passkey on this device"
 so the next sign-in is Face ID / fingerprint alone, and "Add to Home Screen" (Safari
 share sheet on iPhone, Chrome menu on the Seeker). The sign-in lasts as long as the
 auth session; the app fetches a fresh 15-minute token itself.

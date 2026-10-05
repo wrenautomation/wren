@@ -18,10 +18,11 @@ export const account: Module = {
     { id: "overview", label: "Overview", Page: Overview },
     { id: "people", label: "People", Page: People },
     { id: "you", label: "Your settings", Page: You },
-    { id: "look", label: "Look", Page: Look },
+    { id: "look", label: "Look", Page: Look, requires: { needs: "manage" } },
     {
       id: "billing",
       label: "Billing",
+      requires: { needs: "money" },
       template: "list",
       record: "delivery.invoice",
       empty: {

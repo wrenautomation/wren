@@ -8,6 +8,7 @@ import type * as restate from "@restatedev/restate-sdk";
 import {
   addMember,
   type Client,
+  endSessions,
   isOwner,
   listMembers,
   MEMBER_ROLES,
@@ -29,6 +30,7 @@ import {
   portalService,
   type SignedViewer,
   seesInternal,
+  teamCan,
 } from "@wren/core/portal";
 import { metaOf, type RecordMeta } from "@wren/core/records";
 import {
@@ -128,7 +130,9 @@ const recordsOf = (db: Queryable, c: Client, operator: boolean, req: RecordsReq)
     c.id,
     operator,
     typeof req.app === "string" ? req.app : undefined,
-    async () => !isDemo(req.viewer) && (operator || (await isOwner(db, c.id, req.viewer.email))),
+    async () =>
+      !isDemo(req.viewer) &&
+      (operator ? teamCan(req, "money", c.id) : await isOwner(db, c.id, req.viewer.email)),
   );
 const records = <T>(deps: DeliveryDeps, req: RecordsReq, use: (api: RecordsApi) => Promise<T>) =>
   read(deps, req, (db, c, operator) => use(serveRecords(recordsOf(db, c, operator, req), db)));
@@ -453,8 +457,9 @@ export function deliveryApi(deps: DeliveryDeps) {
       const rows = demo ? [] : await listMembers(deps.main, client.id);
       const me = isDemo(viewer) ? null : normalEmail(viewer.email);
       const role = rows.find((m) => m.email === me)?.role ?? null;
-      const owed =
-        seesInternal(req) || role === "owner" ? await invoicesOf(deps.main, client.id) : null;
+      const owed = (seesInternal(req) ? teamCan(req, "money", client.id) : role === "owner")
+        ? await invoicesOf(deps.main, client.id)
+        : null;
       return {
         name: demo ? deps.demoName : client.name,
         since: client.createdAt.toISOString(),
@@ -545,7 +550,9 @@ export function deliveryApi(deps: DeliveryDeps) {
           invitedAt: m.invitedAt.toISOString(),
           lastSeenAt: m.lastSeenAt?.toISOString() ?? null,
         })),
-        canManage: seesInternal(req) || rows.some((m) => m.email === me && m.role === "owner"),
+        canManage: seesInternal(req)
+          ? teamCan(req, "manage", client.id)
+          : rows.some((m) => m.email === me && m.role === "owner"),
         mail: rows.some((m) => m.email === me) ? await mailLevelOf(deps.main, client.id, me) : null,
       };
     },
@@ -555,7 +562,11 @@ export function deliveryApi(deps: DeliveryDeps) {
         const email = emailOf(req.email);
         const role = roleOf(req.role);
         if (role !== "owner") await keepAnOwner(db, c.id, email);
+        const was = (await listMembers(db, c.id)).find((m) => m.email === email)?.role;
         const m = await addMember(db, c.id, email, { role, invitedBy: v.email });
+        // Demoted: signed out, so the next token carries the new role.
+        if (was && MEMBER_ROLES.indexOf(role) > MEMBER_ROLES.indexOf(was))
+          await endSessions(db, email);
         return { email: m.email, role: m.role };
       }),
     remove: (req: PortalRequest & { email: string }) =>
@@ -564,6 +575,7 @@ export function deliveryApi(deps: DeliveryDeps) {
         await keepAnOwner(db, c.id, email);
         if (!(await removeMember(db, c.id, email)))
           throw new PortalRefusal("they don't see this project", 404);
+        await endSessions(db, email);
         return { removed: email };
       }),
     /** The client person's one tap for the week (D10). */

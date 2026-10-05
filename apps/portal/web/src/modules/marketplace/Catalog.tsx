@@ -73,7 +73,7 @@ const changed = () => dispatchEvent(new Event(ME_CHANGED));
 
 export function catalogExtras(
   detail: unknown,
-  { row, client, team }: PageProps & { row: Record<string, unknown> },
+  { row, client, team, can }: PageProps & { row: Record<string, unknown> },
 ): RecordExtras {
   const d = detail as Detail | undefined;
   if (!d) return {};
@@ -106,7 +106,13 @@ export function catalogExtras(
       />,
     ]);
 
-  const lead = team ? (
+  // Installs and asks both need `manage`: an admin on the team, an owner on the client.
+  const manages = can?.includes("manage") ?? true;
+  const lead = !manages ? (
+    d.installed ? (
+      <p className={QUIET}>Installed.</p>
+    ) : null
+  ) : team ? (
     !installable ? (
       <p className={QUIET}>
         {row.for === "wren"

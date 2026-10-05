@@ -41,7 +41,10 @@ export function People(props: PageProps) {
             {people.data.people.map((m) => (
               <li key={m.email} className={SPLIT}>
                 <span>
-                  <b>{m.email}</b> {m.role === "owner" ? <Tag tone="neutral">Owner</Tag> : null}
+                  <b>{m.email}</b>{" "}
+                  {m.role === "member" ? null : (
+                    <Tag tone="neutral">{m.role === "owner" ? "Owner" : "Viewer"}</Tag>
+                  )}
                   <span className={`${QUIET} ${BLOCK}`}>
                     {m.lastSeenAt ? `Last here ${dayLabel(m.lastSeenAt)}` : "Hasn't signed in yet"}
                     {m.invitedBy ? ` · invited by ${m.invitedBy}` : ""}
@@ -69,7 +72,7 @@ export function People(props: PageProps) {
       {manage ? (
         <Section
           title="Invite someone"
-          note="They sign in with this email. Owners can invite others and see billing."
+          note="They sign in with this email. Owners invite others and see billing. Viewers only read."
         >
           <Form
             label="Invite someone"
@@ -87,6 +90,7 @@ export function People(props: PageProps) {
               <span>Role</span>
               <select className={SELECT} name="role" defaultValue="member">
                 <option value="member">Member</option>
+                <option value="viewer">Viewer</option>
                 <option value="owner">Owner</option>
               </select>
             </label>

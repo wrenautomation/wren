@@ -206,10 +206,12 @@ export const emptyOf = (
   many: string,
 ) => (typeof empty === "string" ? empty : empty?.[view ?? ""]) ?? `${cap(many)} show here.`;
 
-/** The actions this record type lists that this viewer may run. */
+/** The actions this record type lists that this viewer may run: `act` unless one says otherwise. */
 export const actsOf = (meta: RecordMeta, acts: RecordActs | undefined): readonly Action[] =>
   acts
-    ? acts.actions.filter((a) => meta.actions.includes(a.id) && can(acts.viewer, a.requires))
+    ? acts.actions.filter(
+        (a) => meta.actions.includes(a.id) && can(acts.viewer, { needs: "act", ...a.requires }),
+      )
     : [];
 
 const NO_CALL: Call = () => Promise.reject(new Error("Nothing to run this."));

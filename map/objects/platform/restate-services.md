@@ -3,7 +3,7 @@ type: object
 cluster: platform
 universe: live
 status: verified
-verified: 2026-10-05 @ f1187d6
+verified: 2026-10-05 @ 8432ec5
 entity: apps/worker/src/services.ts:110
 ---
 
@@ -22,7 +22,7 @@ One composition root wires db, llm, verifier, transport, notifier, roster, box w
 - outside this repo, same Restate: autobrowse's `sites` (the box) and `desk` (the Mac; Reddit) (`packages/core/src/content/restate.ts:21-23`)
 - plain handlers: `Discovery{discover,verify}`, `Enrichment{crawl,render,scan,extract,applyExtractions,pick,applyPicks,tagTestimonials,backfillCallRecords}`, `Resolution{build,queue,resolve,resolveNewDomains,verifyLeads}`, `Disposition{classify,status}`, `CallBookings{ingest}`, `Marketing{signUp,confirm,prefs,set}` ([[leads/consent]]), `ContentDesk{add,draft,redraft}`, `Content{publish,list,metrics,comments,reply,platforms}`, `Ads{accounts,campaigns,insights,interests,launch,leadForm,leadForms,leads,start,stop}`, `SmsDesk`/`SmsEvents{addContact,enroll,ingest,label,lift,markRead,numbers,pause,reply,resume,stats,syncNumbers,thread,threads}`
 - portal services are built with `portalService` (`packages/core/src/portal.ts:140`): each handler sits behind `guard` (`:105`), which reads the caller's role fresh and checks the route's need from its routes map (`DELIVERY_ROUTES`, `PORTAL_ROUTES`, `CONSOLE_ROUTES` in `packages/core/src/console-routes.ts`, `EMAIL_CONSOLE_ROUTES`, `BOOKS_CONSOLE_ROUTES`); a route with no need fails `apps/portal/test/inventory.test.ts`
-- console (Wren's team, and a client's people for their own catalog, look and asks; the portal Worker refuses the writes on the demo): `ConsolePortal{view,loops,setLoop,addClient,call,setLook,install,configure,uninstall,ask,recordsTypes,recordsList,recordsGet,recordsExport,recordsStats}` (`packages/core/src/console.ts`; `call` runs any public non-Portal handler by its form, the effect's name typed in, one runs row each, and a handler with an effect needs `effect`; Money records and cost views need `money`), `EmailConsole{answers,approve,drop,pause,resume,setCampaign,killSwitchOn,killSwitchOff,stopOpeners,resumeOpeners,...}` (kill switch and opener stops need `effect`) (`packages/channel-email/src/restate/console.ts`), `BooksConsole{setAccount}` (`packages/books/src/console.ts`)
+- console (Wren's team, and a client's people for their own catalog, look and asks; the portal Worker refuses the writes on the demo): `ConsolePortal{view,loops,setLoop,addClient,call,setLook,install,configure,uninstall,ask,teamSet,teamRemove,recordsTypes,recordsList,recordsGet,recordsExport,recordsStats}` (`packages/core/src/console.ts`; `call` runs any public non-Portal handler by its form, the effect's name typed in, one runs row each, and a handler with an effect needs `effect`; Money records and cost views need `money`), `EmailConsole{answers,approve,drop,pause,resume,setCampaign,killSwitchOn,killSwitchOff,stopOpeners,resumeOpeners,...}` (kill switch and opener stops need `effect`) (`packages/channel-email/src/restate/console.ts`), `BooksConsole{setAccount}` (`packages/books/src/console.ts`)
 
 Citations: `apps/worker/src/services.ts:110`
 

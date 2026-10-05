@@ -1,5 +1,6 @@
 /** An app in the portal: a card on the launcher, and its pages as tabs at /<app>/<page>. */
 
+import type { Permission } from "@wren/core/access";
 import type { RecordMeta } from "@wren/core/records";
 import type { Row } from "@wren/core/records/serve";
 import type { Access, Action, IconName, OverviewTile, OverviewTop, RecordExtras } from "@wren/ui";
@@ -17,6 +18,8 @@ export interface PageProps {
   demo: boolean;
   team: boolean;
   params: URLSearchParams;
+  /** What this login may do in this workspace (`delivery/me`); left out on the demo. */
+  can?: readonly Permission[];
 }
 
 interface PageBase {

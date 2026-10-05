@@ -195,7 +195,14 @@ describe("setLook", () => {
     expect(await lookOf("acme")).toEqual(look);
     const me = await portalMe(pg.db, viewer, "Demo");
     expect(me.clients).toEqual([
-      { id: "acme", name: "Acme", look, installed: ["other", "reactivation"] },
+      {
+        id: "acme",
+        name: "Acme",
+        look,
+        installed: ["other", "reactivation"],
+        role: "owner",
+        can: ["read", "act", "money", "manage"],
+      },
     ]);
     await api().setLook({ viewer, client: "acme", look: null });
     expect(await lookOf("acme")).toBeNull();

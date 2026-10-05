@@ -19,11 +19,29 @@
  * `clients.products[id]`, operator only, each a runs row; `ask` is a client's "Ask for this".
  */
 import * as restate from "@restatedev/restate-sdk";
-import { CLIENT_ID, type Db, serializable, setAuditActor, snapshot } from "@wren/db";
+import {
+  CLIENT_ID,
+  type Db,
+  type Queryable,
+  serializable,
+  setAuditActor,
+  snapshot,
+} from "@wren/db";
 import { eq, sql } from "drizzle-orm";
 import { z } from "zod";
-import { WREN } from "./access.js";
-import { addClient, type Client, clients, isOwner, updateClient } from "./clients/index.js";
+import { TEAM_ROLES, type TeamRole, WREN } from "./access.js";
+import {
+  addClient,
+  type Client,
+  clients,
+  isOwner,
+  LastAdmin,
+  normalEmail,
+  removeTeamSeat,
+  setTeamSeat,
+  teamRecord,
+  updateClient,
+} from "./clients/index.js";
 import type { Component, LoopKey } from "./components.js";
 import { CONSOLE_ROUTES } from "./console-routes.js";
 import {
@@ -122,6 +140,15 @@ export interface AddClientRequest extends PortalRequest {
 export interface SetLookRequest extends PortalRequest {
   /** A preset's name, `readTheme` input, or null for Wren's. */
   look: unknown;
+}
+
+const EMAIL = /^[^@\s]+@[^@\s]+\.[^@\s]+$/;
+/** A seat on Wren's team: a field left out keeps its value; `clients` null is every client. */
+export interface TeamSeatRequest extends PortalRequest {
+  email: string;
+  role?: TeamRole;
+  /** Ids, or a form's comma list; null, blank or "all" is every client. */
+  clients?: string[] | string | null;
 }
 
 export interface ComponentRequest extends PortalRequest {
@@ -679,6 +706,7 @@ export function consoleApi({
     ...records,
     ...(admin ? [loopRecord(admin)] : []),
     ...(adminGet ? [handlerRecord(adminGet)] : []),
+    teamRecord,
   ];
   const team = (req: PortalRequest) => {
     if (!seesInternal(req)) throw new PortalRefusal("that's for Wren's team", 403);
@@ -703,6 +731,49 @@ export function consoleApi({
     if (req.record !== COMPONENT) team(req);
     const all = await typesFor(req);
     return snapshot(main, (tx) => use(serveRecords(all, tx)));
+  };
+  /** A team change in one transaction, logged as the admin's. */
+  const teamWrite = async <T>(
+    req: TeamSeatRequest,
+    change: (tx: Queryable, email: string) => Promise<T>,
+  ): Promise<T> => {
+    team(req);
+    const email = typeof req.email === "string" ? normalEmail(req.email) : "";
+    if (!EMAIL.test(email) || email.length > 254)
+      throw new PortalRefusal("that isn't an email", 400);
+    try {
+      return await serializable(main, async (tx) => {
+        await setAuditActor(tx, (req.viewer as SignedViewer).email);
+        return change(tx, email);
+      });
+    } catch (err) {
+      if (err instanceof LastAdmin) throw new PortalRefusal(err.message, 409);
+      throw err;
+    }
+  };
+  /**
+   * A seat's client list, each a client or `wren`; undefined leaves it as it is. A form's text
+   * ("acme, wren") splits on commas; blank or "all" is every client.
+   */
+  const clientsOf = async (tx: Queryable, given: unknown): Promise<string[] | null | undefined> => {
+    const list =
+      typeof given === "string"
+        ? given.trim() === "" || given.trim().toLowerCase() === "all"
+          ? null
+          : given
+              .split(",")
+              .map((c) => c.trim())
+              .filter(Boolean)
+        : given;
+    if (list === undefined || list === null) return list;
+    if (!Array.isArray(list) || !list.every((c) => typeof c === "string"))
+      throw new PortalRefusal("clients: a list of client ids, or null for all", 400);
+    const known = new Set(
+      (await tx.select({ id: clients.id }).from(clients)).map((c) => c.id).concat(WREN),
+    );
+    const unknown = list.filter((c) => !known.has(c));
+    if (unknown.length) throw new PortalRefusal(`no such client: ${unknown.join(", ")}`, 400);
+    return list;
   };
   const componentOf = (req: ComponentRequest): Component => {
     const c = components.find((x) => x.id === req.component);
@@ -825,6 +896,28 @@ export function consoleApi({
       const c = await addClient(main, mainUrl, { id, name }, by);
       return { id: c.id, name: c.name, demo: c.demo };
     },
+
+    /**
+     * Wren's team, by an admin (the guard checks `team`): invite or change a seat, or remove one.
+     * The last admin stays; a narrower seat or a removal signs the person out.
+     */
+    teamSet: (req: TeamSeatRequest) =>
+      teamWrite(req, async (tx, email) => {
+        const role = req.role;
+        if (role !== undefined && !TEAM_ROLES.includes(role))
+          throw new PortalRefusal(`role: one of ${TEAM_ROLES.join(", ")}`, 400);
+        const list = await clientsOf(tx, req.clients);
+        return setTeamSeat(tx, email, {
+          ...(role ? { role } : {}),
+          ...(list === undefined ? {} : { clients: list }),
+        });
+      }),
+    teamRemove: (req: TeamSeatRequest) =>
+      teamWrite(req, async (tx, email) => {
+        if (!(await removeTeamSeat(tx, email)))
+          throw new PortalRefusal("they aren't on the team", 404);
+        return { removed: email };
+      }),
 
     /** Checked here, read by `readTheme` in the browser, which drops what it can't use. */
     async setLook(req: SetLookRequest): Promise<{ client: string; look: unknown }> {
@@ -1033,6 +1126,8 @@ export function makeConsolePortal(deps: Parameters<typeof consoleApi>[0]) {
           }
         }),
       setLook: (_: restate.Context, req: SetLookRequest) => answer(() => api.setLook(req)),
+      teamSet: (_: restate.Context, req: TeamSeatRequest) => answer(() => api.teamSet(req)),
+      teamRemove: (_: restate.Context, req: TeamSeatRequest) => answer(() => api.teamRemove(req)),
       install: (ctx: restate.Context, req: InstallRequest) =>
         changeLoops(ctx, "install", () => api.install(req)),
       configure: (ctx: restate.Context, req: InstallRequest) =>
