@@ -87,10 +87,10 @@ describe("exaSearchUnit", () => {
 });
 
 describe("exaSearchRoom", () => {
-  it("lets a burst of 5 through, then one an interval (30 a day)", async () => {
+  it("lets a burst through, then one an interval", async () => {
     const now = new Date();
     expect((await exaSearchRoom(db(), now)).room).toBe(EXA_SEARCH_BUCKET.burst);
-    for (let i = 0; i < 5; i++)
+    for (let i = 0; i < EXA_SEARCH_BUCKET.burst; i++)
       await exaSearchUnit(db(), answering([]), { q: `search ${i}`, niche: "n" });
     const after = await exaSearchRoom(db(), new Date());
     expect(after.room).toBe(0);

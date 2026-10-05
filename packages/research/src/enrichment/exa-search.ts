@@ -22,8 +22,12 @@ import { type Bucket, bucketRoom, refusedBy, retryAfter } from "../pacing.js";
 
 export const EXA_SEARCH_COMMAND = "enrich exa-search";
 export const EXA_SEARCH_SOURCE = "exa_search";
-/** Searches a day: 30 x 7 mills is $0.21 of autobrowse's 330-mill daily `exa` cap a key, about $6.30 a month. */
-export const EXA_SEARCH_BUCKET: Bucket = { perDay: 30, burst: 5 };
+/**
+ * Searches a day: 30 x 7 mills is $0.21 of autobrowse's 330-mill daily `exa` cap a key, about $6.30 a
+ * month. The pool sleeps to the next local day once a pass finds nothing, so on an idle pool a
+ * bucket only gets its burst a day: the burst is the daily amount, and autobrowse's pace spaces the calls.
+ */
+export const EXA_SEARCH_BUCKET: Bucket = { perDay: 30, burst: 30 };
 /** A city's firms change slowly: a search is read again after this. */
 export const EXA_SEARCH_EVERY_DAYS = 30;
 /** Results a search asks for: one price up to 25. */
