@@ -259,6 +259,9 @@ export const econChannels = books
       union all select 'email', te.received_at, 'interested' from thread_events te
         where te.kind = 'reply' and te.disposition in ('interested', 'meeting_booked')
       union all select 'email', ci.updated_at, 'booked' from call_invites ci where ci.state in ('booked', 'already_booked')
+      union all select 'email', cb.booked_at, 'booked' from call_bookings cb
+        where cb.state = 'booked' and cb.enrollment_id is not null and not exists (
+          select 1 from call_invites ci where ci.enrollment_id = cb.enrollment_id and ci.state in ('booked', 'already_booked'))
       union all select 'sms', c.created_at, 'lead' from sms_contacts c
       union all select 'sms', m.sent_at, 'send' from sms_messages m where m.direction = 'out' and m.sent_at is not null
       union all select 'sms', coalesce(m.received_at, m.created_at), 'reply' from sms_messages m where m.direction = 'in'

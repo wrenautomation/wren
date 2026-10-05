@@ -5,6 +5,8 @@ export interface Env {
   AUTH_ORIGIN?: string;
   /** Telnyx portal → Account → Public Key (base64). Unset = every webhook refused. */
   TELNYX_PUBLIC_KEY?: string;
+  /** The secret Wren's cal.com webhook signs with. Unset = every booking webhook refused. */
+  CALCOM_WEBHOOK_SECRET?: string;
   /** Restate Cloud ingress, e.g. https://<env>.env.<region>.restate.cloud:8080 */
   RESTATE_INGRESS_URL: string;
   RESTATE_AUTH_TOKEN?: string;

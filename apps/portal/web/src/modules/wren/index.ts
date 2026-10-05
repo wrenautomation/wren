@@ -171,7 +171,7 @@ export const outbound: Module = {
       ...overview,
       tiles: [
         { label: "Replies", record: "email.reply", href: "/inbox/replies?view=all", period: 30 },
-        { label: "Booked", record: "email.reply", href: "/inbox/replies?view=booked", period: 30 },
+        { label: "Booked", record: "email.call", href: "/inbox/calls?view=booked", period: 30 },
         {
           label: "Inboxes sending",
           record: "email.inbox",
@@ -294,7 +294,7 @@ export const inbox: Module = {
           needs: true,
         },
         { label: "Replies", record: "email.reply", href: "/inbox/replies?view=all", period: 30 },
-        { label: "Booked", record: "email.reply", href: "/inbox/replies?view=booked", period: 30 },
+        { label: "Booked", record: "email.call", href: "/inbox/calls?view=booked", period: 30 },
       ],
       top: [
         {
@@ -313,10 +313,21 @@ export const inbox: Module = {
       record: "email.reply",
       empty: {
         waiting: "Warm replies wait here, each with a draft answer.",
-        booked: "Booked calls show here.",
+        booked: "Calls booked from a reply show here.",
         all: "Warm replies show here.",
       },
       actions: REPLY_ACTIONS,
+    },
+    {
+      id: "calls",
+      label: "Calls",
+      template: "list",
+      record: "email.call",
+      empty: {
+        booked: "Calls booked on cal.com show here.",
+        cancelled: "No call was cancelled.",
+        all: "Calls booked on cal.com show here.",
+      },
     },
   ],
 };

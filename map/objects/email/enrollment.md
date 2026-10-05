@@ -24,7 +24,7 @@ Citations: `packages/channel-email/src/schema.ts:172`
 
 ## Connected to
 
-- **owns:** [[email/message]] (one per step), [[email/thread-event]]
+- **owns:** [[email/message]] (one per step), [[email/thread-event]], [[email/call-booking]] (a matched one stops it with `stop_reason` `booked`, outcome warm)
 - **owned-by:** [[leads/company]], [[leads/person]] (person kind), [[email/sequence]], [[platform/offer]] by name
 - **looks-like-but-is-not:** [[sms/sms-contact]] in state `enrolled`
 

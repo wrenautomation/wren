@@ -26,7 +26,7 @@ const WIDENED: Record<string, string[]> = {
   ck_documents_documentkind: ["snippet", "profile"],
   ck_messages_approvalsource: ["client"],
   ck_enrichments_enrichmentkind: ["opener", "video"],
-  ck_enrollments_stopreason: ["undeliverable"],
+  ck_enrollments_stopreason: ["undeliverable", "booked"],
 };
 const unwiden = (c: Catalog["constraints"][number]) => ({
   ...c,

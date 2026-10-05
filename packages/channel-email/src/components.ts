@@ -38,9 +38,9 @@ export const EMAIL_COMPONENTS = [
     missing: [FOR_WREN],
     requires: { components: ["email.sequences"] },
     provides: {
-      services: ["InboxScheduler", "Disposition"],
+      services: ["InboxScheduler", "Disposition", "CallBookings"],
       loops: ["InboxScheduler"],
-      records: ["email.reply"],
+      records: ["email.reply", "email.call"],
       apps: ["inbox"],
     },
     effects: ["sends"],

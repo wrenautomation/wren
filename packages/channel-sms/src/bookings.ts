@@ -30,13 +30,17 @@ const CALCOM = "https://api.cal.com/v2/bookings";
 const PAGE = 100;
 const MAX_PAGES = 10;
 
-interface CalcomBooking {
+/** One booking as cal.com's v2 list returns it. */
+export interface CalcomBooking {
   uid: string;
   status: string;
   start: string;
   createdAt: string;
   attendees?: { name?: string; email?: string; timeZone?: string }[];
   metadata?: Record<string, unknown> | null;
+  rescheduledFromUid?: string | null;
+  rescheduledToUid?: string | null;
+  rescheduled?: boolean | null;
 }
 
 export class CalcomBookings implements Bookings {
@@ -95,6 +99,22 @@ export class CalcomBookings implements Bookings {
       if (rows.length < PAGE) return out.filter((b) => b.start >= from && b.start < to);
     }
     throw new Error(`more than ${PAGE * MAX_PAGES} upcoming calls on cal.com`);
+  }
+
+  /** Every booking starting from `since`, any status, as cal.com lists it. Throws when it cannot tell. */
+  async history(since: Date): Promise<CalcomBooking[]> {
+    const out: CalcomBooking[] = [];
+    for (let page = 0; page < MAX_PAGES; page++) {
+      const rows = await this.list({
+        afterStart: since.toISOString(),
+        sortStart: "asc",
+        take: String(PAGE),
+        skip: String(page * PAGE),
+      });
+      out.push(...rows);
+      if (rows.length < PAGE) return out;
+    }
+    throw new Error(`more than ${PAGE * MAX_PAGES} calls on cal.com since ${since.toISOString()}`);
   }
 }
 

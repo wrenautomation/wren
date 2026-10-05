@@ -18,6 +18,7 @@ A catalog, not a waterfall. Each row names the cards whose **If you change this*
 | caps, windows, ramp | [[email/send-policy]] | [[processes/send-tick]], [[processes/compose]] |
 | seed placement checks | [[email/placement-check]] | [[email/roster]] (ramps), [[email/transport]], the digest |
 | message or enrollment states | [[email/message]], [[email/enrollment]] | `packages/channel-email/src/state.ts`, [[processes/send-tick]], every view in `packages/channel-email/src/views.ts` |
+| a call booked on cal.com | [[email/call-booking]] | [[platform/phone-worker]], [[email/enrollment]], `packages/books/src/economics.ts`, `evolve/stats.ts` |
 | what a reply means | [[email/thread-event]] | [[processes/inbox-sync]], [[platform/llm-client]] |
 | kill switches | [[email/sender-pause]] | [[processes/send-tick]], [[platform/notifier]] |
 | the wire (Gmail) | [[email/transport]] | [[processes/send-tick]], [[email/report]] |
@@ -63,6 +64,7 @@ Nothing in this repo references these; they break silently.
 | SSM `/wren/prod/env`, `/wren/prod/senders_config` | `deploy/prod.env`, `senders_config.toml` via `deploy/scripts/push-secrets.sh` | [[platform/settings]], [[email/roster]] |
 | GitHub `production` environment | `deploy.yml` secrets (AWS, Restate, Cloudflare token) | [[processes/deploy]] |
 | Telnyx portal | webhook URL on `phone.wrenautomation.com`, public key | [[platform/phone-worker]] |
+| cal.com webhook (Wren's account, beside the lander's) | `phone.wrenautomation.com/webhooks/calcom`, `CALCOM_WEBHOOK_SECRET` | [[email/call-booking]], [[platform/phone-worker]] |
 | Google Postmaster, Gmail domain-wide delegation | the service account in `WREN_GOOGLE_SERVICE_ACCOUNT` and `WREN_SEND_TRANSPORT` | [[email/transport]], [[email/postmaster-day]] |
 | mailifier VPS (`deploy/prober`) | `WREN_VERIFIER` + `WREN_SMTP_PROBE_URL` and token | [[research/verification]] |
 | `deploy/pixel` Cloudflare Worker | the open export read by `inbox/opens.ts` | [[email/open-event]] |

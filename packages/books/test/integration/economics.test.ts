@@ -146,6 +146,14 @@ beforeAll(async () => {
       insert into call_invites (thread_event_id, enrollment_id, state, email, booking_uid, start, updated_at) values
         (1, 1, 'booked', 'x@example.com', 'b1', '2026-05-25T15:00:00Z', '2026-05-20T12:00:00Z'),
         (2, 1, 'proposed', 'x@example.com', null, null, '2026-05-20T12:00:00Z')`);
+    // cal.com's webhook: enrollment 1's call is the invite's (counted once), 2's is new,
+    // a cancelled one and one no email led to never count.
+    await tx.execute(sql`
+      insert into call_bookings (uid, state, enrollment_id, booked_at) values
+        ('b1', 'booked', 1, '2026-05-20T12:00:00Z'),
+        ('c2', 'booked', 2, '2026-05-21T12:00:00Z'),
+        ('c3', 'cancelled', 3, '2026-05-21T12:00:00Z'),
+        ('c4', 'booked', null, '2026-05-21T12:00:00Z')`);
   });
 });
 
@@ -291,12 +299,12 @@ describe("a channel", () => {
       sends: 4,
       replies: 2,
       interested: 1,
-      booked: 1,
+      booked: 2,
       perLead: 100,
       perSend: 75,
       perReply: 150,
       perInterested: 300,
-      perBooked: 300,
+      perBooked: 150,
     });
     expect(c.get("sms/2026-05")).toMatchObject({ spend: 0, replies: 0, perReply: null });
     expect(c.get("unknown/2026-05")).toMatchObject({ spend: 0, newClients: 0, cac3: null });
@@ -356,7 +364,7 @@ describe("as console records", () => {
     });
     expect(ch.rows.find((r) => r.id === "email/2026-05")).toMatchObject({
       perReply: { amount: 150, currency: "CAD" },
-      perBooked: { amount: 300, currency: "CAD" },
+      perBooked: { amount: 150, currency: "CAD" },
     });
     const mo = await api.list({ record: "books.month", view: "all" });
     expect(mo.rows.find((r) => r.id === "2026-04")).toMatchObject({ cac6: { amount: 526.67 } });
@@ -430,7 +438,8 @@ describe("what the views read", () => {
       "public.leads": ["created_at"],
       "public.messages": ["state", "sent_at"],
       "public.thread_events": ["kind", "received_at", "disposition"],
-      "public.call_invites": ["state", "updated_at"],
+      "public.call_invites": ["state", "updated_at", "enrollment_id"],
+      "public.call_bookings": ["state", "booked_at", "enrollment_id"],
       "public.sms_contacts": ["created_at"],
       "public.sms_messages": ["direction", "sent_at", "received_at", "created_at", "disposition"],
       "public.reach_contacts": ["created_at"],

@@ -224,6 +224,7 @@ describe("handler forms", () => {
   /** Public handlers that take no schema, and why. */
   const NO_SCHEMA: Record<string, string> = {
     "SmsEvents/ingest": "the carrier's webhook: its payload is the carrier's shape, not a form",
+    "CallBookings/ingest": "cal.com's webhook: its payload is cal.com's shape, not a form",
   };
   const EFFECTS: Record<string, string> = {
     "Ads/launch": "spends",

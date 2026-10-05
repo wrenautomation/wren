@@ -40,3 +40,9 @@ Per-client cal.com (outbound O4) adds `/webhooks/calcom/<client>` with that clie
 ## Decision log
 
 - 2026-10-04: Written from William's ask to find where a webhook shape beats the current call. The phone Worker over the lander as the door: wren owns the ingest, and the Worker already holds the Restate token and the signed-forward pattern.
+- 2026-10-04 build: migration `0080_call_bookings`. `call_bookings.booked_at` is cal.com's `createdAt`, else the time it arrived; the row also keeps the link's `code`.
+- 2026-10-04 build: a late BOOKING_CREATED never revives a cancelled row; only a reschedule or cancel sets the state. Sync lists by `afterStart` from the first email sent (or `--since`), oldest booked first, and skips the old half of a reschedule.
+- 2026-10-04 build: attendee-email match takes that address's newest enrollment.
+- 2026-10-04 build: `contact_outcomes` reads a `booked` stop or any matched booking as warm, so recycling never mails a firm that booked.
+- 2026-10-04 build: economics counts only matched bookings, and skips an enrollment whose `call_invites` row already counts as booked. Evolution unions both, one per recipient.
+- 2026-10-04 build: console record `email.call`, an inbox "Calls" page; the Booked tiles point at it. A missing `CALCOM_WEBHOOK_SECRET` is 503, as Telnyx's key is.

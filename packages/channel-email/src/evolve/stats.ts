@@ -59,10 +59,14 @@ export async function alleleStats(
       FROM thread_events te WHERE te.enrollment_id IN (SELECT enrollment_id FROM sent)
       GROUP BY 1
     ), calls AS (
-      SELECT ci.enrollment_id, max(ci.created_at) AS booked
-      FROM call_invites ci
-      WHERE ci.state IN ('booked', 'already_booked')
-        AND ci.enrollment_id IN (SELECT enrollment_id FROM sent)
+      SELECT b.enrollment_id, max(b.at) AS booked
+      FROM (
+        SELECT ci.enrollment_id, ci.created_at AS at FROM call_invites ci
+        WHERE ci.state IN ('booked', 'already_booked')
+        UNION ALL
+        SELECT cb.enrollment_id, cb.booked_at FROM call_bookings cb WHERE cb.state = 'booked'
+      ) b
+      WHERE b.enrollment_id IN (SELECT enrollment_id FROM sent)
       GROUP BY 1
     ), opened AS (
       SELECT DISTINCT oe.message_id AS id

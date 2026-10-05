@@ -223,6 +223,45 @@ export const replyRecord = defineRecord({
   actions: ["email.approve", "email.drop"],
 });
 
+/** Calls booked on cal.com, from its webhook (`call_bookings`), matched to an enrollment or not. */
+export const callRecord = defineRecord({
+  id: "email.call",
+  name: { one: "call", many: "calls" },
+  rows: async (db) =>
+    (
+      await db.execute<Record<string, unknown>>(sql`
+        select cb.id, cb.state::text state, cb.start, cb.booked_at booked, cb.email::text email,
+          cb.offer::text offer, e.niche::text niche, co.name::text company, co.domain::text domain,
+          coalesce(nullif(concat_ws(' ', nullif(p.first_name, ''), nullif(p.last_name, '')), ''),
+            p.full_name, cb.name, cb.email)::text who
+        from call_bookings cb
+        left join enrollments e on e.id = cb.enrollment_id
+        left join people p on p.id = e.person_id
+        left join companies co on co.id = e.company_id`)
+    ).map((r) => ({ ...r, campaign: r.niche ? campaignName(String(r.niche)) : null })),
+  key: "id",
+  title: "who",
+  subtitle: "company",
+  fields: {
+    who: name("Who"),
+    company: company("Company", { domain: "domain" }),
+    state: status({
+      booked: { label: "Booked", tone: "good" },
+      cancelled: { label: "Cancelled", tone: "neutral" },
+    }),
+    start: date("Call"),
+    booked: date("Booked"),
+    campaign: text("Campaign"),
+    offer: text("Offer"),
+    email: text("Email"),
+  },
+  views: [
+    { id: "booked", label: "Booked", where: { state: "booked" }, sort: "-booked", at: "booked" },
+    { id: "cancelled", label: "Cancelled", where: { state: "cancelled" }, sort: "-booked" },
+    { id: "all", label: "All", sort: "-booked", at: "booked" },
+  ],
+});
+
 const IN_PLAY = { declined: { empty: true } } as const;
 export const firmRecord = defineRecord({
   id: "email.firm",
@@ -623,6 +662,7 @@ export const emailRecords = (roster: readonly Sender[], policy: SendPolicy): Rec
   campaignRecord(policy),
   inboxRecord(roster, policy),
   replyRecord,
+  callRecord,
   firmRecord,
   modelRecord,
   variantRecord,

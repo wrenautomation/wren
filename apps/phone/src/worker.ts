@@ -6,6 +6,9 @@
  *   (`SmsEvents/ingest/send`) with the event id as the idempotency key, so a
  *   webhook Telnyx sends twice is applied once. Restate down = 502, and Telnyx
  *   retries.
+ * - `/webhooks/calcom`: cal.com's booking webhook, HMAC checked against
+ *   `CALCOM_WEBHOOK_SECRET`, then `CallBookings/ingest/send` keyed by trigger + uid +
+ *   start. Unsigned = 401, PING = 200 and goes no further, Restate down = 502.
  * - `/api/<handler>`: Wren's operators only, by the token from Wren's sign-in
  *   (auth.wrenautomation.com, any method incl. passkeys); forwarded to the `SmsDesk`
  *   service. Only the handlers the app needs are open; enroll and lift stay on the CLI.
@@ -88,6 +91,66 @@ async function telnyxWebhook(req: Request, env: Env): Promise<Response> {
   return json({ ok: true });
 }
 
+/** Hex HMAC-SHA256 of the raw body, as cal.com signs it; `crypto.subtle.verify` compares in constant time. */
+async function calcomSigned(
+  secret: string,
+  raw: string,
+  signature: string | null,
+): Promise<boolean> {
+  const hex = (signature ?? "").trim().toLowerCase();
+  if (!/^[0-9a-f]{64}$/.test(hex)) return false;
+  const sig = new Uint8Array(hex.match(/../g)?.map((b) => Number.parseInt(b, 16)) ?? []);
+  const enc = new TextEncoder();
+  const key = await crypto.subtle.importKey(
+    "raw",
+    enc.encode(secret),
+    { name: "HMAC", hash: "SHA-256" },
+    false,
+    ["verify"],
+  );
+  return crypto.subtle.verify("HMAC", key, sig, enc.encode(raw));
+}
+
+/**
+ * cal.com's booking webhook: signature checked here, then `CallBookings/ingest/send` keyed
+ * by trigger + uid + start, so a delivery cal.com repeats is applied once. PING stops here.
+ */
+async function calcomWebhook(req: Request, env: Env): Promise<Response> {
+  if (!env.CALCOM_WEBHOOK_SECRET)
+    return json({ error: "webhooks off: no CALCOM_WEBHOOK_SECRET" }, 503);
+  const raw = await req.text();
+  if (raw.length > MAX_BODY) return json({ error: "too large" }, 413);
+  if (
+    !(await calcomSigned(env.CALCOM_WEBHOOK_SECRET, raw, req.headers.get("x-cal-signature-256")))
+  ) {
+    return json({ error: "bad signature" }, 401);
+  }
+  let body: { triggerEvent?: unknown; payload?: { uid?: unknown; startTime?: unknown } };
+  try {
+    body = JSON.parse(raw) as typeof body;
+  } catch {
+    return json({ error: "not json" }, 400);
+  }
+  const trigger = String(body.triggerEvent ?? "");
+  if (trigger === "PING") return json({ ok: true });
+  const uid = body.payload?.uid;
+  if (typeof uid !== "string" || uid === "") return json({ error: "no booking uid" }, 400);
+  let res: Response;
+  try {
+    res = await fetch(ingress(env, "CallBookings/ingest/send"), {
+      method: "POST",
+      headers: restateHeaders(env, {
+        "idempotency-key": `calcom-${trigger}-${uid}-${String(body.payload?.startTime ?? "")}`,
+      }),
+      body: raw,
+    });
+  } catch {
+    return json({ error: "restate unreachable" }, 502);
+  }
+  if (!res.ok) return json({ error: `restate ${res.status}` }, 502);
+  return json({ ok: true });
+}
+
 /** The signed-in operator, or the refusal. */
 async function operator(req: Request, env: Env): Promise<Signed | Response> {
   if (!env.AUTH_ORIGIN) return json({ error: "sign-in is not set up" }, 503);
@@ -144,6 +207,9 @@ export default {
     const { pathname } = new URL(req.url);
     if (pathname === "/webhooks/telnyx") {
       return req.method === "POST" ? telnyxWebhook(req, env) : json({ error: "POST only" }, 405);
+    }
+    if (pathname === "/webhooks/calcom") {
+      return req.method === "POST" ? calcomWebhook(req, env) : json({ error: "POST only" }, 405);
     }
     if (pathname.startsWith("/api/")) {
       if (req.method !== "POST") return json({ error: "POST only" }, 405);

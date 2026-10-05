@@ -55,6 +55,7 @@ import {
   type Campaign,
   DISPOSITION_KEY,
   dailyOpenerCapacity,
+  makeCallBookings,
   makeComposeScheduler,
   makeDigestScheduler,
   makeDisposition,
@@ -456,6 +457,8 @@ export async function buildServices(
         ? { calendar, notifier: replyNotifier, copies: campaigns, send: { transport, fleet } }
         : null,
     }),
+    // cal.com's booking webhook, through the phone Worker: a booked lead stops getting mail.
+    makeCallBookings({ db }),
   ];
   // The queue-keeper is bound only when asked to hold a queue; 0 means every enrollment is by hand.
   if (settings.composeDaysAhead > 0) {

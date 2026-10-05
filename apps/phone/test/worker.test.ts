@@ -139,6 +139,69 @@ describe("telnyx webhook", () => {
   });
 });
 
+describe("cal.com webhook", () => {
+  const SECRET = "test-secret";
+  const booking = JSON.stringify({
+    triggerEvent: "BOOKING_CREATED",
+    payload: { uid: "bk-1", startTime: "2026-10-06T15:00:00Z", attendees: [] },
+  });
+  const sign = async (body: string, secret = SECRET) => {
+    const enc = new TextEncoder();
+    const key = await crypto.subtle.importKey(
+      "raw",
+      enc.encode(secret),
+      { name: "HMAC", hash: "SHA-256" },
+      false,
+      ["sign"],
+    );
+    const mac = new Uint8Array(await crypto.subtle.sign("HMAC", key, enc.encode(body)));
+    return [...mac].map((b) => b.toString(16).padStart(2, "0")).join("");
+  };
+  const send = (body: string, signature?: string) =>
+    call("/webhooks/calcom", {
+      method: "POST",
+      headers: signature ? { "x-cal-signature-256": signature } : {},
+      body,
+    });
+  beforeEach(() => {
+    env.CALCOM_WEBHOOK_SECRET = SECRET;
+  });
+
+  it("forwards a signed booking to Restate, keyed by trigger + uid + start, the same key twice", async () => {
+    expect((await send(booking, await sign(booking))).status).toBe(200);
+    expect((await send(booking, await sign(booking))).status).toBe(200);
+    expect(restateCalls).toHaveLength(2);
+    expect(restateCalls[0]?.url).toBe("https://restate.test/CallBookings/ingest/send");
+    expect(restateCalls[0]?.headers.get("idempotency-key")).toBe(
+      "calcom-BOOKING_CREATED-bk-1-2026-10-06T15:00:00Z",
+    );
+    expect(restateCalls[1]?.headers.get("idempotency-key")).toBe(
+      restateCalls[0]?.headers.get("idempotency-key"),
+    );
+    expect(restateCalls[0]?.body).toBe(booking);
+  });
+
+  it("refuses an unsigned or wrongly signed booking and forwards nothing", async () => {
+    expect((await send(booking)).status).toBe(401);
+    expect((await send(booking, await sign(booking, "other"))).status).toBe(401);
+    expect((await send(booking, "zz")).status).toBe(401);
+    expect(restateCalls).toHaveLength(0);
+  });
+
+  it("answers a signed PING with 200 and goes no further", async () => {
+    const ping = JSON.stringify({ triggerEvent: "PING", payload: {} });
+    expect((await send(ping, await sign(ping))).status).toBe(200);
+    expect(restateCalls).toHaveLength(0);
+  });
+
+  it("answers 502 when Restate fails; 503 with no secret configured", async () => {
+    restateStatus = 500;
+    expect((await send(booking, await sign(booking))).status).toBe(502);
+    delete env.CALCOM_WEBHOOK_SECRET;
+    expect((await send(booking, await sign(booking))).status).toBe(503);
+  });
+});
+
 describe("the desk", () => {
   it("is closed without a token, and shut when sign-in isn't set up", async () => {
     expect((await post("/api/threads", {})).status).toBe(401);

@@ -1,4 +1,4 @@
-# Deploy: see deploy/phone.md. Nothing secret lives here: TELNYX_PUBLIC_KEY,
+# Deploy: see deploy/phone.md. Nothing secret lives here: TELNYX_PUBLIC_KEY, CALCOM_WEBHOOK_SECRET,
 # RESTATE_INGRESS_URL and RESTATE_AUTH_TOKEN are `wrangler secret put`,
 # and the account id comes from CLOUDFLARE_ACCOUNT_ID in the environment.
 name = "wren-phone"

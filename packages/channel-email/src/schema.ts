@@ -33,7 +33,10 @@ export const ENROLLMENT_KINDS = ["person", "role_inbox"] as const;
 export type EnrollmentKind = (typeof ENROLLMENT_KINDS)[number];
 export const ENROLLMENT_STATES = ["active", "finished", "stopped"] as const;
 export type EnrollmentState = (typeof ENROLLMENT_STATES)[number];
-/** `undeliverable`: the address's newest verdict turned invalid before a step went out. */
+/**
+ * `undeliverable`: the address's newest verdict turned invalid before a step went out.
+ * `booked`: someone at the firm booked a call on cal.com (`call_bookings`).
+ */
 export const STOP_REASONS = [
   "reply",
   "bounce",
@@ -41,6 +44,7 @@ export const STOP_REASONS = [
   "complaint",
   "manual",
   "undeliverable",
+  "booked",
 ] as const;
 export type StopReason = (typeof STOP_REASONS)[number];
 /** `client`: approved by the client in the portal (their own list, their own name on it). */
@@ -620,6 +624,55 @@ export const callInvites = pgTable(
 );
 
 export type CallInvite = typeof callInvites.$inferSelect;
+
+/**
+ * A call booked on Wren's cal.com, one row per booking (designs/2026-10-04-booking-webhook.md).
+ * cal.com's webhook (through the phone Worker) and `wren email bookings sync` both write it.
+ * A reschedule moves the row to the new uid and time; a cancel only marks it. The message and
+ * enrollment are what it matched: the link's `r` code, else the attendee's address. No match
+ * still keeps the row.
+ */
+export const CALL_BOOKING_STATES = ["booked", "cancelled"] as const;
+export type CallBookingState = (typeof CALL_BOOKING_STATES)[number];
+
+export const callBookings = pgTable(
+  "call_bookings",
+  {
+    id: serial("id").notNull(),
+    uid: varchar("uid", { length: 64 }).notNull(),
+    state: varchar("state", { length: 16, enum: CALL_BOOKING_STATES }).notNull(),
+    start: timestamp("start", { withTimezone: true }),
+    email: varchar("email", { length: 320 }),
+    name: text("name"),
+    offer: varchar("offer", { length: 64 }),
+    /** The link's `?r=` code, as cal.com hands it back in `metadata.r`. */
+    code: varchar("code", { length: 40 }),
+    messageId: integer("message_id"),
+    enrollmentId: integer("enrollment_id"),
+    /** When it was booked on cal.com: what the counts date it by. */
+    bookedAt: timestamp("booked_at", { withTimezone: true }).notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
+  },
+  (t) => [
+    primaryKey({ columns: [t.id], name: "pk_call_bookings" }),
+    unique("uq_call_bookings_uid").on(t.uid),
+    index("ix_call_bookings_enrollment_id").on(t.enrollmentId),
+    index("ix_call_bookings_message_id").on(t.messageId),
+    foreignKey({
+      columns: [t.messageId],
+      foreignColumns: [messages.id],
+      name: "fk_call_bookings_message_id_messages",
+    }),
+    foreignKey({
+      columns: [t.enrollmentId],
+      foreignColumns: [enrollments.id],
+      name: "fk_call_bookings_enrollment_id_enrollments",
+    }),
+    oneOf("ck_call_bookings_callbookingstate", t.state, CALL_BOOKING_STATES),
+  ],
+);
+export type CallBooking = typeof callBookings.$inferSelect;
 
 export const openEvents = pgTable(
   "open_events",

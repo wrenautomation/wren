@@ -9,16 +9,16 @@ entity: apps/phone/src/worker.ts:1
 
 # phone-worker
 
-`phone.wrenautomation.com`: a Cloudflare Worker that is the SMS inbox PWA for the iPhone, Seeker and Mac, and the door Telnyx webhooks come in by. Holds nothing; texts live in Postgres behind Restate.
+`phone.wrenautomation.com`: a Cloudflare Worker that is the SMS inbox PWA for the iPhone, Seeker and Mac, and the door Telnyx and cal.com webhooks come in by. Holds nothing; texts live in Postgres behind Restate.
 
 ## Why this shape
 
-The Worker holds no data (`worker.ts:1`). Webhooks are signature-checked there and handed to `SmsEvents/ingest/send` with the event id as idempotency key; `/api/<handler>` forwards calls to `SmsDesk` for Wren's operators only, and only the handlers the app needs are open. Sign-in is Wren's shared one (auth.wrenautomation.com, any method, passkeys too): the app sends the 15-minute token and the Worker checks it and its operator flag (`worker.ts:86`), as the portal does. A client's token is turned away.
+The Worker holds no data (`worker.ts:1`). Webhooks are signature-checked there and handed to `SmsEvents/ingest/send` with the event id as idempotency key; `/webhooks/calcom` checks cal.com's HMAC and hands bookings to `CallBookings/ingest/send` keyed by trigger + uid + start ([[email/call-booking]]); `/api/<handler>` forwards calls to `SmsDesk` for Wren's operators only, and only the handlers the app needs are open. Sign-in is Wren's shared one (auth.wrenautomation.com, any method, passkeys too): the app sends the 15-minute token and the Worker checks it and its operator flag (`worker.ts:86`), as the portal does. A client's token is turned away.
 
 ## Shape
 
 - `worker.ts`, `public/` (the app), `wrangler.toml` (domain, `AUTH_ORIGIN`)
-- secrets: Restate's and Telnyx's (`deploy/phone.md`); `CLOUDFLARE_API_TOKEN` in the `production` GitHub environment
+- secrets: Restate's, Telnyx's and `CALCOM_WEBHOOK_SECRET` (`deploy/phone.md`); `CLOUDFLARE_API_TOKEN` in the `production` GitHub environment
 - deployed by `deploy.yml:65`
 
 Citations: `apps/phone/src/worker.ts:1`, `deploy/phone.md`
@@ -37,6 +37,7 @@ Citations: `apps/phone/src/worker.ts:1`, `deploy/phone.md`
 | Surface | Role |
 |---|---|
 | Telnyx | posts webhooks |
+| cal.com | posts booking webhooks |
 | William's devices | read the inbox, reply |
 
 ## See

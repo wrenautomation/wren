@@ -561,6 +561,13 @@
       "when": 1791157241068,
       "tag": "0079_content_playbooks",
       "breakpoints": true
+    },
+    {
+      "idx": 80,
+      "version": "7",
+      "when": 1791161697851,
+      "tag": "0080_call_bookings",
+      "breakpoints": true
     }
   ]
 }

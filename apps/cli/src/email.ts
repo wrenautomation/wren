@@ -13,7 +13,9 @@ import {
   activeSenders,
   activeSuppression,
   addSuppression,
+  applyBooking,
   audienceGate,
+  bookingFromList,
   campaignFunnel,
   classifyValue,
   emailClicks,
@@ -36,6 +38,7 @@ import {
   variantOutcomes,
 } from "@wren/channel-email";
 import type { QueueRefresh } from "@wren/channel-email/restate";
+import { CalcomBookings } from "@wren/channel-sms";
 import { ingressOf, type Settings } from "@wren/config";
 import {
   type Company,
@@ -285,6 +288,51 @@ export function registerEmail(
           `  ${c.firstClick.slice(0, 16)} · ${who} · ${c.visitors} ${c.views} ${c.secs}s · ${c.reachedForm ? "form" : "–"} · ${applied}`,
         );
       }
+    });
+
+  email
+    .command("bookings")
+    .description("Calls booked on cal.com (its webhook keeps this current; sync catches up)")
+    .command("sync")
+    .description(
+      "List cal.com's bookings and apply each the way its webhook would: match, stop, count",
+    )
+    .option("--since <date>", "bookings starting from (default: the first email sent)")
+    .action(async (opts: { since?: string }) => {
+      if (!settings.calcomApiKey) {
+        console.log("WREN_CALCOM_API_KEY is unset");
+        return;
+      }
+      const key = settings.calcomApiKey;
+      await withDb(async (db) => {
+        let since = opts.since ? new Date(opts.since) : null;
+        if (!since) {
+          const [first] = await db.execute<{ at: string | null }>(
+            sql`select min(sent_at)::text at from messages where state = 'sent'`,
+          );
+          since = first?.at ? new Date(first.at) : new Date();
+        }
+        if (Number.isNaN(since.getTime())) throw new Error(`--since: not a date: ${opts.since}`);
+        // Oldest booked first, so a reschedule finds the row it moves.
+        const listed = (await new CalcomBookings(key).history(since)).sort((a, b) =>
+          a.createdAt.localeCompare(b.createdAt),
+        );
+        let applied = 0;
+        let matched = 0;
+        let stopped = 0;
+        for (const b of listed) {
+          const event = bookingFromList(b);
+          if (!event) continue;
+          const out = await applyBooking(db, event, { now: new Date() });
+          applied += 1;
+          if (out.enrollmentId !== null) matched += 1;
+          stopped += out.stopped;
+        }
+        console.log(
+          `since ${since.toISOString().slice(0, 10)}: ${listed.length} found on cal.com, ` +
+            `${applied} applied, ${matched} matched an email, ${stopped} enrollments stopped`,
+        );
+      });
     });
 
   email
