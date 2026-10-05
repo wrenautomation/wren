@@ -73,6 +73,8 @@ beforeAll(async () => {
     startsOn: "2026-10-05",
     by: "seed",
   });
+  // The offer's own asks are stamped now(); keep them off the test clock, or a run on its day mails them.
+  await pg.db.execute(sql`update delivery.asks set created_at = '2026-10-04T00:00:00Z'`);
   const deps = {
     main: pg.db,
     send: async (m: PortalMail) => {
