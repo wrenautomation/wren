@@ -1,4 +1,4 @@
-import type { Db, Tx } from "@wren/db";
+import { type Db, serializable, type Tx } from "@wren/db";
 import { completeAndParse, type LlmClient, type Tracer } from "@wren/llm";
 import {
   and,
@@ -189,8 +189,11 @@ export async function readDocuments(
     }
     const corpus = [doc.subject ?? "", doc.text ?? "", ...attachments.map((a) => a.text ?? "")];
     const checked = check(outcome.parsed, { text: corpus.join("\n\n"), sentAt: doc.sentAt }, facts);
-    await db.transaction(async (tx) => {
+    // Level 4: the bill's number and payments decide what's voided and linked. The body
+    // can rerun, so counts and logs wait for the commit.
+    const { saved, payments, voided } = await serializable(db, async (tx) => {
       let saved: Saved | null = null;
+      let payments = 0;
       if (checked.bill) {
         saved = await saveBill(tx, checked.bill, doc.id, vendor, runId);
         await tx
@@ -205,7 +208,7 @@ export async function readDocuments(
           .onConflictDoNothing()
           .returning({ id: billPayments.id });
         if (row) {
-          report.payments++;
+          payments++;
           continue;
         }
         if (!p.invoiceNumber) continue;
@@ -226,10 +229,7 @@ export async function readDocuments(
             .values({ billId: known.billId, documentId: doc.id })
             .onConflictDoNothing();
       }
-      for (const v of await voidStale(tx, doc.id, saved?.id ?? null)) {
-        report.voided++;
-        opts.log?.(`  ${vendor.key} ${v.number}: void`);
-      }
+      const voided = await voidStale(tx, doc.id, saved?.id ?? null);
       await tx
         .update(documents)
         .set({
@@ -241,17 +241,23 @@ export async function readDocuments(
           }),
         })
         .where(inArray(documents.id, family));
-      report.read++;
-      if (saved) {
-        report.bills++;
-        if (saved.review === "needs_review") report.review++;
-        opts.log?.(
-          `  ${vendor.key} ${checked.bill?.number}: ${saved.saved}, ${saved.review}${
-            checked.bill?.reasons.length ? ` (${checked.bill.reasons.join("; ")})` : ""
-          }`,
-        );
-      } else opts.log?.(`  document ${doc.id}: ${checked.kind}`);
+      return { saved, payments, voided };
     });
+    report.payments += payments;
+    for (const v of voided) {
+      report.voided++;
+      opts.log?.(`  ${vendor.key} ${v.number}: void`);
+    }
+    report.read++;
+    if (saved) {
+      report.bills++;
+      if (saved.review === "needs_review") report.review++;
+      opts.log?.(
+        `  ${vendor.key} ${checked.bill?.number}: ${saved.saved}, ${saved.review}${
+          checked.bill?.reasons.length ? ` (${checked.bill.reasons.join("; ")})` : ""
+        }`,
+      );
+    } else opts.log?.(`  document ${doc.id}: ${checked.kind}`);
   }
   await linkPayments(db);
   return report;

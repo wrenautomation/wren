@@ -13,7 +13,7 @@ import {
   seesInternal,
 } from "@wren/core/portal";
 import { PORTAL_FIELDS, serviceHandler } from "@wren/core/restate";
-import { type Db, setAuditActor } from "@wren/db";
+import { type Db, serializable, setAuditActor } from "@wren/db";
 import { inArray } from "drizzle-orm";
 import { z } from "zod";
 import { accounts, BUCKETS } from "./schema.js";
@@ -47,7 +47,7 @@ export function booksConsoleApi(db: Db) {
         throw new PortalRefusal("say a bucket or a channel", 400);
       const ids = (req.ids ?? []).map(Number).filter((n) => Number.isSafeInteger(n) && n > 0);
       if (!ids.length) throw new PortalRefusal("no such account", 404);
-      const rows = await db.transaction(async (tx) => {
+      const rows = await serializable(db, async (tx) => {
         await setAuditActor(tx, (req.viewer as SignedViewer).email);
         return tx
           .update(accounts)

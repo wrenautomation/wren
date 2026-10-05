@@ -35,8 +35,10 @@ export function createDb(databaseUrl: string, opts: DbOptions = {}): DbHandle {
   const url = opts.app
     ? databaseUrl.replace(/([?&])application_name=[^&]*(&|$)/, (_, sep, end) => (end ? sep : ""))
     : databaseUrl;
-  // A process killed mid-transaction (a Lambda timeout) frees its locks within 2 min, not when TCP notices.
-  const connection: Record<string, string> = { idle_in_transaction_session_timeout: "2min" };
+  // A process killed mid-transaction (a Lambda timeout) frees its locks within 10 min, not when TCP notices.
+  // ponytail: 10 min because research stage units hold their transaction across a fetch or an LLM
+  // call (claude-code waits up to 5 min); move that I/O out of the transaction, then drop to 2 min.
+  const connection: Record<string, string> = { idle_in_transaction_session_timeout: "10min" };
   // Postgres keeps 63 bytes of a name; cut here so the stored one is predictable.
   if (opts.app) connection.application_name = opts.app.slice(0, 63);
   if (opts.actor) connection["wren.actor"] = opts.actor;

@@ -18,7 +18,7 @@
  */
 import { activeSuppressionsOf, addSuppression, liftSuppression } from "@wren/core";
 import type { Notifier } from "@wren/core/notify";
-import type { Db, Queryable } from "@wren/db";
+import { atomic, type Db, type Queryable } from "@wren/db";
 import { and, desc, eq, sql } from "drizzle-orm";
 import { skipQueued } from "./deliver.js";
 import { formatPhone } from "./phone.js";
@@ -275,7 +275,7 @@ export async function applyEvent(
 ): Promise<ApplyResult> {
   let notify: string | null = null;
   let alert: PushAlert | null = null;
-  const result = await db.transaction(async (tx): Promise<ApplyResult> => {
+  const result = await atomic(db, async (tx): Promise<ApplyResult> => {
     const claimed = await tx
       .insert(smsEvents)
       .values({

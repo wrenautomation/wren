@@ -22,7 +22,7 @@ import {
   personRowError,
   runPeopleImport,
 } from "@wren/core";
-import type { Queryable } from "@wren/db";
+import { atomic, type Queryable } from "@wren/db";
 import { completeAndParse, type LlmClient, LlmError, parseModel, type Tracer } from "@wren/llm";
 import { and, asc, count, eq, inArray, isNotNull, isNull, ne, notInArray, sql } from "drizzle-orm";
 import { z } from "zod";
@@ -326,7 +326,7 @@ export async function runExtraction(
   for (const doc of targets) {
     let unit: Awaited<ReturnType<typeof extractDocument>>;
     try {
-      unit = await db.transaction((tx) => extractDocument(tx, llm, doc, opts));
+      unit = await atomic(db, (tx) => extractDocument(tx, llm, doc, opts));
     } catch (err) {
       if (err instanceof LlmError) {
         stats.aborted = err.message;

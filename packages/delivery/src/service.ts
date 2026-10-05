@@ -41,7 +41,7 @@ import {
   type StatsAsk,
   serveRecords,
 } from "@wren/core/records/serve";
-import { type Db, type Queryable, setAuditActor } from "@wren/db";
+import { type Db, type Queryable, serializable, setAuditActor } from "@wren/db";
 import { type FileStore, newFileKey } from "./files.js";
 import {
   addAsk,
@@ -149,7 +149,7 @@ async function write<T>(
   if (who === "owner" && !viewer.operator && !(await isOwner(deps.main, client.id, viewer.email)))
     throw new PortalRefusal("only an owner of this account can do that", 403);
   try {
-    return await deps.main.transaction(async (tx) => {
+    return await serializable(deps.main, async (tx) => {
       await setAuditActor(tx, viewer.email);
       return change(tx, client, viewer);
     });

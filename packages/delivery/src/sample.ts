@@ -6,7 +6,7 @@
  * nothing on it ever runs late.
  */
 import { clients } from "@wren/core/clients";
-import type { Db, Queryable } from "@wren/db";
+import { atomic, type Db, type Queryable } from "@wren/db";
 import { and, eq } from "drizzle-orm";
 import { addDays, DeliveryRefusal, recordResult, startEngagement } from "./index.js";
 import { asks, comments, deliverables, engagements, milestones, updates } from "./schema.js";
@@ -137,6 +137,6 @@ export async function keepSampleFresh(db: Db, today: string): Promise<boolean> {
     .where(eq(engagements.clientId, demo.id))
     .limit(1);
   if (e && e.startsOn >= addDays(today, -(SAMPLE_DAY + SAMPLE_REFRESH_DAYS))) return false;
-  await db.transaction((tx) => seedSample(tx, demo.id, today));
+  await atomic(db, (tx) => seedSample(tx, demo.id, today));
   return true;
 }

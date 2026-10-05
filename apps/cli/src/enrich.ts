@@ -9,7 +9,7 @@ import { recheckLeads, recheckNiche } from "@wren/channel-email";
 import { nextToEnroll } from "@wren/channel-email/outreach";
 import type { Settings } from "@wren/config";
 import { recordedRun } from "@wren/core";
-import type { Db } from "@wren/db";
+import { atomic, type Db } from "@wren/db";
 import { crawlHintsFor, NICHE_NAMES, requireNiche } from "@wren/niches";
 import {
   addCrawlStats,
@@ -154,7 +154,7 @@ export function registerEnrich(program: Command, withDb: WithDb, settings: Setti
         }
       }
       const stats = await withDb((db) =>
-        db.transaction((tx) =>
+        atomic(db, (tx) =>
           loadReadings(tx, {
             reader: opts.reader,
             promptVersion: DEFAULT_EXTRACTION_SPEC.promptVersion,

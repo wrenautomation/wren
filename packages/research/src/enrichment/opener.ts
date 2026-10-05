@@ -9,7 +9,7 @@
  * only pays for new firms. A parse failure is retried; a "no line" is not.
  */
 import { companies, inPlay, leads } from "@wren/core";
-import type { Queryable } from "@wren/db";
+import { atomic, type Queryable } from "@wren/db";
 import { completeAndParse, type LlmClient, LlmError, type Tracer } from "@wren/llm";
 import { and, asc, desc, eq, exists, inArray, notInArray, sql } from "drizzle-orm";
 import { z } from "zod";
@@ -356,7 +356,7 @@ export async function runOpener(
   const stats = emptyOpenerStats(ids.length);
   for (const id of ids) {
     try {
-      countOpener(stats, await db.transaction((tx) => writeOpener(tx, llm, id, opts)));
+      countOpener(stats, await atomic(db, (tx) => writeOpener(tx, llm, id, opts)));
     } catch (err) {
       if (err instanceof LlmError) {
         stats.aborted = err.message;

@@ -11,7 +11,7 @@
  */
 import { createHash } from "node:crypto";
 import { type Company, companies, inPlay } from "@wren/core";
-import type { Queryable } from "@wren/db";
+import { atomic, type Queryable } from "@wren/db";
 import { and, asc, count, eq, inArray, isNotNull, isNull, notInArray } from "drizzle-orm";
 import type { Fetcher } from "../fetch/fetcher.js";
 import { looksLikeJsShell, readPage } from "../fetch/htmltext.js";
@@ -355,7 +355,7 @@ export async function runRender(
   let stats = emptyRenderStats();
   const robots: RobotsCache = new Map();
   for (const company of targets) {
-    const unit = await db.transaction((tx) =>
+    const unit = await atomic(db, (tx) =>
       renderCompany(tx, renderer, robotsFetcher, company, robots, opts),
     );
     stats = addRenderStats(stats, unit);

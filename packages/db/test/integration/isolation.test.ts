@@ -102,10 +102,10 @@ describe("isolation levels", () => {
     expect(level).toBe("read committed");
   });
 
-  it("every connection drops a transaction left idle for 2 minutes", async () => {
+  it("every connection drops a transaction left idle for 10 minutes", async () => {
     const [row] = await pg.db.execute<{ t: string }>(
       sql`SELECT current_setting('idle_in_transaction_session_timeout') AS t`,
     );
-    expect(row?.t).toBe("2min");
+    expect(row?.t).toBe("10min");
   });
 });

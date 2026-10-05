@@ -8,7 +8,7 @@
  */
 import { createHash } from "node:crypto";
 import { type Company, companies, inPlay } from "@wren/core";
-import type { Queryable } from "@wren/db";
+import { atomic, type Queryable } from "@wren/db";
 import { and, asc, count, eq, isNotNull, isNull, sql } from "drizzle-orm";
 import { FetchError, type Fetcher, type FetchResponse } from "../fetch/fetcher.js";
 import { looksLikeJsShell, readPage } from "../fetch/htmltext.js";
@@ -290,7 +290,7 @@ export async function runCrawl(
   let stats = emptyCrawlStats();
   if (opts.niche != null) stats.niche_null_skipped = await countCrawlNicheNullSkipped(db);
   for (const company of targets) {
-    const unit = await db.transaction((tx) => crawlCompany(tx, fetcher, company, opts));
+    const unit = await atomic(db, (tx) => crawlCompany(tx, fetcher, company, opts));
     stats = addCrawlStats(stats, unit);
     if (opts.checkpoint) await opts.checkpoint(company);
   }

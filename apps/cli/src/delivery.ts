@@ -10,7 +10,7 @@ import * as restateClients from "@restatedev/restate-sdk-clients";
 import { siteExport } from "@wren/channel-email";
 import { ingressOf, type Settings } from "@wren/config";
 import { getClient, listOperators, normalEmail } from "@wren/core/clients";
-import type { Db, Queryable } from "@wren/db";
+import { atomic, type Db, type Queryable, serializable } from "@wren/db";
 import {
   addAsk,
   addComment,
@@ -155,7 +155,7 @@ export function registerDelivery(program: Command, withMainDb: WithDb, settings:
       if (!id) throw new Error("delivery needs --client <id>");
       const client = await getClient(main, id);
       const author = await authorOf(main, opts.by);
-      return main.transaction(async (tx) => {
+      return serializable(main, async (tx) => {
         const e = await engagementOf(
           tx,
           client.id,
@@ -184,7 +184,7 @@ export function registerDelivery(program: Command, withMainDb: WithDb, settings:
       const e = await withMainDb(async (main) => {
         const client = await getClient(main, clientId());
         const author = await authorOf(main, opts.by);
-        return main.transaction((tx) =>
+        return serializable(main, (tx) =>
           startEngagement(tx, { clientId: client.id, offerId, startsOn: opts.on, by: author }),
         );
       });
@@ -224,7 +224,7 @@ export function registerDelivery(program: Command, withMainDb: WithDb, settings:
         const { engagement: e, agreement: a } = await withMainDb(async (main) => {
           const client = await getClient(main, clientId());
           const author = await authorOf(main, opts.by);
-          return main.transaction((tx) =>
+          return serializable(main, (tx) =>
             onboard(tx, {
               clientId: client.id,
               offerId,
@@ -401,17 +401,20 @@ export function registerDelivery(program: Command, withMainDb: WithDb, settings:
         if (given.length !== 1) throw new Error("give one of --link, --loom, --doc, --file");
         const kind = given[0] as DeliverableKind;
         if (!DELIVERABLE_KINDS.includes(kind)) throw new Error(`not a kind: ${kind}`);
-        const d = await change(opts, async (db, e, author) =>
-          addDeliverable(db, e, {
+        // Level 4 can rerun the body: upload once.
+        let fileKey: string | undefined;
+        const d = await change(opts, async (db, e, author) => {
+          if (opts.file) fileKey ??= await upload(e.clientId, opts.file);
+          return addDeliverable(db, e, {
             title,
             kind,
             url: kind === "file" ? undefined : opts[kind as "link" | "loom" | "doc"],
-            fileKey: opts.file ? await upload(e.clientId, opts.file) : undefined,
+            fileKey,
             milestone: opts.step,
             replaces: opts.replaces ? idOf(opts.replaces) : undefined,
             by: author,
-          }),
-        );
+          });
+        });
         console.log(`delivered #${d.id} v${d.version}, waiting on the client`);
       },
     );
@@ -469,7 +472,7 @@ export function registerDelivery(program: Command, withMainDb: WithDb, settings:
         throw new Error("give one of --update, --deliverable");
       const c = await withMainDb(async (main) => {
         const author = await authorOf(main, opts.by);
-        return main.transaction((tx) =>
+        return serializable(main, (tx) =>
           addComment(tx, clientId(), {
             on: opts.update
               ? { updateId: idOf(opts.update) }
@@ -536,7 +539,7 @@ export function registerDelivery(program: Command, withMainDb: WithDb, settings:
     .option("--undo", "it isn't paid after all")
     .action(async (number: string, opts: { on?: string; undo?: boolean }) => {
       const i = await withMainDb((main) =>
-        main.transaction((tx) =>
+        serializable(main, (tx) =>
           markInvoice(tx, clientId(), number, opts.undo ? "open" : "paid", opts.on),
         ),
       );
@@ -581,7 +584,7 @@ export function registerDelivery(program: Command, withMainDb: WithDb, settings:
     .description("Reseed the demo's sample project from today (DeliveryWatch does it weekly)")
     .action(async () => {
       const id = await withMainDb((main) =>
-        main.transaction((tx) => seedSample(tx, clientId(), todayUtc())),
+        atomic(main, (tx) => seedSample(tx, clientId(), todayUtc())),
       );
       console.log(`sample engagement #${id}`);
     });

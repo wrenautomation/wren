@@ -27,7 +27,7 @@ import {
   runImport,
   runPeopleImport,
 } from "@wren/core";
-import type { Queryable } from "@wren/db";
+import { atomic, type Queryable } from "@wren/db";
 import { type LlmClient, LlmError, type Tracer, wellFormed } from "@wren/llm";
 import { and, asc, eq, inArray, isNotNull, isNull, ne, notInArray, or, sql } from "drizzle-orm";
 import { documents, type Enrichment, enrichments } from "../../schema.js";
@@ -256,7 +256,7 @@ export async function runEmailPick(
   for (const company of targets) {
     let result: PickOutcome;
     try {
-      result = await db.transaction((tx) => pickCompany(tx, llm, company, opts));
+      result = await atomic(db, (tx) => pickCompany(tx, llm, company, opts));
     } catch (err) {
       if (err instanceof LlmError) {
         stats.aborted = err.message;

@@ -5,7 +5,7 @@ import {
   parseDate,
   parseMessage,
 } from "@wren/core/mail";
-import type { Db } from "@wren/db";
+import { type Db, serializable } from "@wren/db";
 import { and, eq, inArray } from "drizzle-orm";
 import { VENDORS, type VendorSpec } from "./chart.js";
 import { shiftDay } from "./day.js";
@@ -119,7 +119,7 @@ async function keepEmail(db: Db, store: DocumentStore, raw: Uint8Array, keep: Ke
   }
   const pdfTexts = await Promise.all(pdfs.map((p) => pdfText(p.bytes)));
 
-  await db.transaction(async (tx) => {
+  await serializable(db, async (tx) => {
     const [email] = await tx
       .insert(documents)
       .values({

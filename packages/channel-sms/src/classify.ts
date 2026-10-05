@@ -9,7 +9,7 @@
  * operator labels are never overwritten.
  */
 import { addSuppression, companies } from "@wren/core";
-import type { Db } from "@wren/db";
+import { type Db, serializable } from "@wren/db";
 import { completeAndParse, type Envelope, type LlmClient, LlmError } from "@wren/llm";
 import { and, asc, desc, eq, isNull, lt, not, sql } from "drizzle-orm";
 import { z } from "zod";
@@ -159,7 +159,8 @@ export async function classifyReplies(
       stats.aborted = err.message;
       break;
     }
-    await db.transaction(async (tx) => {
+    // Level 4: the stored disposition decides the label. The body can rerun, so stats wait.
+    const outcome = await serializable(db, async (tx) => {
       const [fresh] = await tx
         .select({ disposition: smsMessages.disposition })
         .from(smsMessages)
@@ -179,11 +180,7 @@ export async function classifyReplies(
           ...(apply ? { disposition: verdict.disposition, dispositionSource: "llm" as const } : {}),
         })
         .where(eq(smsMessages.id, msg.id));
-      if (!apply) {
-        if (!verdict.grounded) stats.ungrounded += 1;
-        return;
-      }
-      stats.labelled += 1;
+      if (!apply) return verdict.grounded ? null : "ungrounded";
       if (verdict.disposition === "opt_out" && msg.fromE164) {
         await addSuppression(tx, {
           kind: "phone",
@@ -200,9 +197,13 @@ export async function classifyReplies(
           .set({ state: "opted_out", stateReason: "asked not to be texted", endedAt: opts.now })
           .where(eq(smsContacts.e164, msg.fromE164));
         await skipQueued(tx, msg.contactId, "opted out");
-        stats.optOuts += 1;
+        return "optOut";
       }
+      return "labelled";
     });
+    if (outcome === "ungrounded") stats.ungrounded += 1;
+    if (outcome === "labelled" || outcome === "optOut") stats.labelled += 1;
+    if (outcome === "optOut") stats.optOuts += 1;
   }
   return stats;
 }
@@ -212,7 +213,7 @@ export async function labelReply(
   db: Db,
   input: { messageId: number; disposition: Disposition; now: Date },
 ): Promise<void> {
-  await db.transaction(async (tx) => {
+  await serializable(db, async (tx) => {
     const [msg] = await tx
       .update(smsMessages)
       .set({ disposition: input.disposition, dispositionSource: "operator" })

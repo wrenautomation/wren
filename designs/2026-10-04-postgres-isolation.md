@@ -60,3 +60,4 @@ Cost: $0. No new infra.
 
 - 2026-10-04: William: "level 3 or 4 definitely", then "where could we do 2, 3, and 4?" Picked per transaction: 4 where a read decides a write, 3 for reads, 2 where code relies on Read Committed or a unique index already guards. Default stays 2 so no plain statement becomes abortable.
 - 2026-10-04: Helpers and gaps 1 and 4 first (`packages/db`, `packages/books`). Site moves and gaps 2 and 3 wait for outbound O2 to O4, which touches the same send and compose files.
+- 2026-10-05: Idle timeout 2 min → 10 min. Research stage units hold their transaction across a fetch or an LLM call, and claude-code waits up to 5 min. Back to 2 min once that I/O moves out. Sites outside the outbound files (books, delivery, SMS, research, CLI) moved to the helpers; books `readDocuments` and SMS `classifyReplies` now count after commit, since a level 4 body can rerun.

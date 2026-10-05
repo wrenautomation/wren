@@ -9,7 +9,7 @@
  * bracketed at-marker AND a dot-marker required, never guessed).
  */
 import { companies, emailDomain, emailSyntaxError, inPlay, normalizeEmail } from "@wren/core";
-import type { Queryable } from "@wren/db";
+import { atomic, type Queryable } from "@wren/db";
 import { wellFormed } from "@wren/llm";
 import { and, asc, eq, ne, notInArray } from "drizzle-orm";
 import { readPage } from "../fetch/htmltext.js";
@@ -274,7 +274,7 @@ export async function runScan(db: Queryable, opts: ScanRunOptions = {}): Promise
     pages_with_signals: 0,
   };
   for (const doc of targets) {
-    const signals = await db.transaction((tx) =>
+    const signals = await atomic(db, (tx) =>
       scanDocument(tx, doc, opts.runId ?? null, opts.pages ?? null),
     );
     stats.scanned += 1;

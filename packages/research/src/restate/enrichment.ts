@@ -13,7 +13,7 @@ import * as restate from "@restatedev/restate-sdk";
 import { type Company, companies, finishRun, openRun } from "@wren/core";
 import type { SiteClient } from "@wren/core/content";
 import { clientOfKey, exclusiveHandler } from "@wren/core/restate";
-import type { Db, Queryable } from "@wren/db";
+import { atomic, type Db, type Queryable } from "@wren/db";
 import { type LlmClient, NULL_TRACER, type Tracer } from "@wren/llm";
 import { eq } from "drizzle-orm";
 import { z } from "zod";
@@ -324,7 +324,7 @@ export function makeEnrichment(deps: EnrichmentDeps) {
           for (const id of ids) {
             const r = await unit(ctx, `crawl company ${id}`, async () => {
               const company = await companyRef(db, id);
-              return db.transaction((tx) =>
+              return atomic(db, (tx) =>
                 crawlCompany(tx, fetch(), company, {
                   pagesPerSite: input.pagesPerSite ?? 5,
                   extraHints: hintsFor(niche, input),
@@ -363,7 +363,7 @@ export function makeEnrichment(deps: EnrichmentDeps) {
             const r = await unit(ctx, `render company ${id}`, async () => {
               const company = await companyRef(db, id);
               return withBrowser((browser) =>
-                db.transaction((tx) =>
+                atomic(db, (tx) =>
                   renderCompany(tx, browser.render, fetch(), company, robots, {
                     pagesPerSite: input.pagesPerSite ?? 5,
                     extraHints: hintsFor(niche, input),
@@ -404,9 +404,8 @@ export function makeEnrichment(deps: EnrichmentDeps) {
             const signals = await ctx.run(`scan document ${id}`, async () => {
               const doc = await loadScanTarget(db, id);
               if (!doc) return 0;
-              return (
-                await db.transaction((tx) => scanDocument(tx, doc, runId, deps.pages ?? null))
-              ).length;
+              return (await atomic(db, (tx) => scanDocument(tx, doc, runId, deps.pages ?? null)))
+                .length;
             });
             stats.scanned += 1;
             stats.signals += signals;
@@ -446,7 +445,7 @@ export function makeEnrichment(deps: EnrichmentDeps) {
             const r = await unit(ctx, `extract document ${id}`, async () => {
               const doc = await loadExtractionTarget(db, id);
               if (!doc) return null;
-              return db.transaction((tx) =>
+              return atomic(db, (tx) =>
                 extractDocument(tx, deps.llm, doc, { runId, tracer, spec }),
               );
             });
@@ -471,7 +470,7 @@ export function makeEnrichment(deps: EnrichmentDeps) {
           const { db } = scope(ctx);
           const runId = await open(ctx, "enrich apply-extractions", { ...input });
           const stats = await ctx.run("apply", () =>
-            db.transaction((tx) => applyExtractions(tx, { ...input, spec })),
+            atomic(db, (tx) => applyExtractions(tx, { ...input, spec })),
           );
           await close(ctx, runId, stats);
           return stats;
@@ -512,7 +511,7 @@ export function makeEnrichment(deps: EnrichmentDeps) {
             const r = await unit(ctx, `pick company ${id}`, async () => {
               const [company] = await db.select().from(companies).where(eq(companies.id, id));
               if (!company) return null;
-              return db.transaction((tx) => pickCompany(tx, llm, company, { runId, tracer }));
+              return atomic(db, (tx) => pickCompany(tx, llm, company, { runId, tracer }));
             });
             if (!r.ok) {
               stats.aborted = r.reason;
@@ -552,7 +551,7 @@ export function makeEnrichment(deps: EnrichmentDeps) {
           const stats = emptyOpenerStats(ids.length);
           for (const id of ids) {
             const r = await unit(ctx, `opener company ${id}`, () =>
-              db.transaction((tx) => writeOpener(tx, deps.llm, id, { runId, tracer })),
+              atomic(db, (tx) => writeOpener(tx, deps.llm, id, { runId, tracer })),
             );
             if (!r.ok) {
               stats.aborted = r.reason;
@@ -627,7 +626,7 @@ export function makeEnrichment(deps: EnrichmentDeps) {
         async (ctx: restate.ObjectContext, input: LimitInput = {}) => {
           const { db } = scope(ctx);
           const runId = await open(ctx, "enrich apply-picks", { ...input });
-          const stats = await ctx.run("apply", () => db.transaction((tx) => applyPicks(tx, input)));
+          const stats = await ctx.run("apply", () => atomic(db, (tx) => applyPicks(tx, input)));
           await close(ctx, runId, stats);
           return stats;
         },
@@ -640,7 +639,7 @@ export function makeEnrichment(deps: EnrichmentDeps) {
           if (niche === null) throw new restate.TerminalError("tagTestimonials needs a niche key");
           const runId = await open(ctx, "enrich tag-testimonials", { ...input, niche });
           const stats = await ctx.run("tag", () =>
-            db.transaction((tx) =>
+            atomic(db, (tx) =>
               tagTestimonials(tx, {
                 niche,
                 runId,
@@ -660,7 +659,7 @@ export function makeEnrichment(deps: EnrichmentDeps) {
           const { db } = scope(ctx);
           const runId = await open(ctx, "audit backfill", { ...input });
           const stats = await ctx.run("backfill", () =>
-            db.transaction((tx) => backfillCallRecords(tx, input)),
+            atomic(db, (tx) => backfillCallRecords(tx, input)),
           );
           await close(ctx, runId, stats);
           return stats;

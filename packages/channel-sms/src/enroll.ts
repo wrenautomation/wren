@@ -10,7 +10,7 @@
  * enrolled only by name, by the form follow-up (form.ts), never by a cold run.
  */
 import { activeSuppressionsOf } from "@wren/core";
-import type { Db } from "@wren/db";
+import { atomic, type Db } from "@wren/db";
 import { and, asc, eq, inArray, isNull, ne, notInArray, or, sql } from "drizzle-orm";
 import { countryOf } from "./phone.js";
 import type { SmsPolicy } from "./policy.js";
@@ -162,7 +162,7 @@ export async function enroll(db: Db, opts: EnrollOptions): Promise<EnrollStats> 
     }
     const body = render(opener, await fieldsFor(db, c, opts.senderName));
     try {
-      await db.transaction(async (tx) => {
+      await atomic(db, async (tx) => {
         await tx
           .update(smsContacts)
           .set({
