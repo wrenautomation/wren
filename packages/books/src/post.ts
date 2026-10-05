@@ -1,4 +1,4 @@
-import type { Db, Tx } from "@wren/db";
+import { type Db, serializable, type Tx } from "@wren/db";
 import { and, asc, eq, inArray, isNotNull, isNull, sql } from "drizzle-orm";
 import { CARD, GST_PAID } from "./chart.js";
 import { toCad } from "./money.js";
@@ -96,6 +96,13 @@ export interface Posted {
   unchanged: number;
 }
 
+/** A bill's entry that stands: not a reversal, not reversed. */
+const isLive = and(
+  isNotNull(entries.billId),
+  isNull(entries.reversesId),
+  sql`NOT EXISTS (SELECT 1 FROM ${entries} r WHERE r.reverses_id = ${entries.id})`,
+);
+
 /**
  * Make the journal match the bills. Every bill that is `ok` or `accepted`
  * with a total has one live entry with its current amounts; every other bill
@@ -115,16 +122,7 @@ export async function post(db: Db, opts: PostOptions): Promise<Posted> {
   if (card === undefined || gst === undefined)
     throw new Error("books accounts missing: seed the chart first");
 
-  const live = await db
-    .select()
-    .from(entries)
-    .where(
-      and(
-        isNotNull(entries.billId),
-        isNull(entries.reversesId),
-        sql`NOT EXISTS (SELECT 1 FROM ${entries} r WHERE r.reverses_id = ${entries.id})`,
-      ),
-    );
+  const live = await db.select().from(entries).where(isLive);
   const liveLines = live.length
     ? await db
         .select()
@@ -171,20 +169,29 @@ export async function post(db: Db, opts: PostOptions): Promise<Posted> {
       out.unchanged++;
       continue;
     }
-    await db.transaction(async (tx) => {
-      if (current) {
-        await reverse(tx, current.entry, current.lines, runId);
-        out.reversed++;
-      }
-      if (plan) {
+    // Level 4: a pass that overlaps this one (the daily loop and a CLI run) moved
+    // the bill since the read above; it is left to that pass, never posted twice.
+    const moved = await serializable(db, async (tx) => {
+      const [now] = await tx
+        .select({ id: entries.id })
+        .from(entries)
+        .where(and(isLive, eq(entries.billId, bill.id)));
+      if ((now?.id ?? null) !== (current?.entry.id ?? null)) return true;
+      if (current) await reverse(tx, current.entry, current.lines, runId);
+      if (plan)
         await insertEntry(
           tx,
           { postedOn: bill.issuedOn, memo: `${vendorName} ${bill.number}`, billId: bill.id, runId },
           plan,
         );
-        out.posted++;
-      }
+      return false;
     });
+    if (moved) {
+      opts.log?.(`  ${vendorName} ${bill.number}: moved by another pass, left to it`);
+      continue;
+    }
+    if (current) out.reversed++;
+    if (plan) out.posted++;
     opts.log?.(
       `  ${vendorName} ${bill.number}: ${current ? (plan ? "reposted" : "reversed") : "posted"}`,
     );

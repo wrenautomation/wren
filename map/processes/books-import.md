@@ -16,7 +16,7 @@ Each mailbox in `WREN_BOOKS_MAILBOXES` (delegated Gmail or autobrowse) and a fir
 
 ## Why this shape
 
-The model is never trusted with a number: each figure must be printed in the document and add up, or the bill is held. Posting reconciles instead of appending, so a re-read or a review decision is safe any time: what changed is reversed on the same date and posted again.
+The model is never trusted with a number: each figure must be printed in the document and add up, or the bill is held. Posting reconciles instead of appending, so a re-read or a review decision is safe any time: what changed is reversed on the same date and posted again. Each bill posts in a serializable transaction that re-reads its live entry, so two overlapping passes never post it twice.
 
 ## Steps
 

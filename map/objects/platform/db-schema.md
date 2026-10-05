@@ -19,6 +19,7 @@ Postgres 17 through Drizzle: every package owns its `src/schema.ts` (and `views.
 
 - schema files (`drizzle.config.ts:8`–`18`): core, core views, clients, research, channel-email (+views), content, channel-meta, channel-sms, reactivation, books (its own `books` schema)
 - `createDb`, `migrate` (`packages/db/src/index.ts:33`, `:77`); `pnpm db:generate`, `pnpm db:migrate` (`package.json:18`)
+- Isolation per transaction (`packages/db/src/isolation.ts`): `atomic` (read committed), `snapshot` (repeatable read, read only), `serializable` (retries 40001/40P01, 5 tries). Pick by `designs/2026-10-04-postgres-isolation.md`. Every connection drops a transaction idle 2 min.
 - CI migrates before it bundles (`.github/workflows/deploy.yml:29`)
 
 Citations: `packages/db/drizzle.config.ts:7`
@@ -30,7 +31,7 @@ Citations: `packages/db/drizzle.config.ts:7`
 
 ## If you change this
 
-- **Hits:** a schema edit needs `db:generate` (a new SQL file) and lands in prod on the next push; a dropped column breaks any view naming it; a new enum value needs its `oneOf`
+- **Hits:** a `serializable` body can run up to 5 times: database work only, no network. A schema edit needs `db:generate` (a new SQL file) and lands in prod on the next push; a dropped column breaks any view naming it; a new enum value needs its `oneOf`
 - **Does not hit:** Restate state (journal and object state live in Restate Cloud, not Postgres)
 
 ## Surfaces

@@ -558,6 +558,24 @@ describe("review", () => {
     expect((await listBills(pg.db))[0]?.entryId).toBeNull();
   });
 
+  it("posts a bill once when two passes overlap", async () => {
+    answers.set(GITHUB.subject, githubBill({ number: "GH-9999" }));
+    await capture(pg.db, mailbox({ a: GITHUB }).mb, { since: "2026-08-01", store: dirStore(root) });
+    await readDocuments(pg.db, llm());
+    await setReview(pg.db, await billId("GH-9999"), "accepted");
+    const logs: string[] = [];
+    const runs = await Promise.all([
+      post(pg.db, { feed, log: (l) => logs.push(l) }),
+      post(pg.db, { feed, log: (l) => logs.push(l) }),
+    ]);
+    expect(runs.map((r) => r.posted).sort()).toEqual([0, 1]);
+    expect(logs.some((l) => l.includes("moved by another pass"))).toBe(true);
+    const [row] = await pg.db.execute<{ n: number }>(
+      sql`SELECT count(*)::int AS n FROM books.entries WHERE reverses_id IS NULL`,
+    );
+    expect(row?.n).toBe(1);
+  });
+
   it("holds a posted bill when another document prints another total", async () => {
     await importAll({ a: GITHUB });
     // Adds up on its own, to another total.

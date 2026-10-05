@@ -35,7 +35,8 @@ export function createDb(databaseUrl: string, opts: DbOptions = {}): DbHandle {
   const url = opts.app
     ? databaseUrl.replace(/([?&])application_name=[^&]*(&|$)/, (_, sep, end) => (end ? sep : ""))
     : databaseUrl;
-  const connection: Record<string, string> = {};
+  // A process killed mid-transaction (a Lambda timeout) frees its locks within 2 min, not when TCP notices.
+  const connection: Record<string, string> = { idle_in_transaction_session_timeout: "2min" };
   // Postgres keeps 63 bytes of a name; cut here so the stored one is predictable.
   if (opts.app) connection.application_name = opts.app.slice(0, 63);
   if (opts.actor) connection["wren.actor"] = opts.actor;
@@ -44,7 +45,7 @@ export function createDb(databaseUrl: string, opts: DbOptions = {}): DbHandle {
     prepare: false,
     onnotice: () => {},
     ...(opts.idleSeconds ? { idle_timeout: opts.idleSeconds } : {}),
-    ...(Object.keys(connection).length ? { connection } : {}),
+    connection,
   });
   return { db: drizzle(client), close: () => client.end({ timeout: 5 }) };
 }
@@ -81,3 +82,4 @@ export async function migrate(db: Db): Promise<void> {
 
 export * from "./audit/index.js";
 export * from "./clients.js";
+export * from "./isolation.js";
