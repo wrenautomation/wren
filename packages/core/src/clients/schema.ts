@@ -14,6 +14,7 @@ import {
   unique,
   varchar,
 } from "drizzle-orm/pg-core";
+import { MEMBER_ROLES, TEAM_ROLES } from "../access.js";
 
 /** The channels a client can come in through: an engagement's source, a spend account's. */
 export const CHANNELS = ["email", "sms", "ads", "content", "search", "reach"] as const;
@@ -52,8 +53,7 @@ export const clients = pgTable(
 
 export type Client = typeof clients.$inferSelect;
 
-export const MEMBER_ROLES = ["owner", "member"] as const;
-export type MemberRole = (typeof MEMBER_ROLES)[number];
+export { MEMBER_ROLES, type MemberRole, TEAM_ROLES, type TeamRole } from "../access.js";
 
 /**
  * Who sees which client in the portal, by sign-in email (lowercase). Auth says
@@ -84,14 +84,22 @@ export const clientMembers = pgTable(
 
 export type ClientMember = typeof clientMembers.$inferSelect;
 
-/** Wren's own people: they see every client and the operator tools. */
+/**
+ * Wren's own people (`@wren/core/access`): an admin does everything, an operator works its
+ * clients, a viewer reads them. `clients` null is every client; `wren` in it is Wren's own apps.
+ */
 export const operators = pgTable(
   "operators",
   {
     email: text("email").notNull(),
+    role: varchar("role", { length: 16, enum: TEAM_ROLES }).default("admin").notNull(),
+    clients: text("clients").array(),
     addedAt: timestamp("added_at", { withTimezone: true }).defaultNow().notNull(),
   },
-  (t) => [primaryKey({ columns: [t.email], name: "pk_operators" })],
+  (t) => [
+    primaryKey({ columns: [t.email], name: "pk_operators" }),
+    oneOf("ck_operators_role", t.role, TEAM_ROLES),
+  ],
 );
 
 /** Each client as a console record (`clientRecord`): its products, members and last sign-in. */

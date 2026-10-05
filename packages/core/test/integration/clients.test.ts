@@ -21,7 +21,7 @@ import {
 } from "../../src/clients/index.js";
 import { defineComponent } from "../../src/components.js";
 import { consoleApi } from "../../src/console.js";
-import { portalMe, type Viewer } from "../../src/portal.js";
+import { clientsFor, portalMe, type Viewer, whoIs } from "../../src/portal.js";
 import { serveRecords } from "../../src/records-serve.js";
 import { runs } from "../../src/schema.js";
 
@@ -117,6 +117,43 @@ describe("who may sign in", () => {
     await addMember(pg.db, "acme", "b@acme.example");
     await pg.db.delete(clients);
     expect(await mayHaveAccount(pg.db, "b@acme.example")).toBe(false);
+  });
+});
+
+describe("who is asking, read fresh", () => {
+  it("a team row, a membership per client, the demo, or nobody", async () => {
+    await pg.db.insert(clients).values({ id: "beta", name: "Beta", database: "wren_client_beta" });
+    await addOperator(pg.db, "ops@wren.example");
+    await addMember(pg.db, "acme", "b@acme.example", { role: "viewer" });
+    await addMember(pg.db, "beta", "b@acme.example", { role: "owner" });
+    const signed = (email: string): Viewer => ({ email });
+    expect(await whoIs(pg.db, signed("Ops@Wren.Example"))).toEqual({
+      team: "admin",
+      clients: null,
+    });
+    expect(await whoIs(pg.db, signed("b@acme.example"))).toEqual({
+      member: "viewer",
+      client: "acme",
+    });
+    expect(await whoIs(pg.db, signed("b@acme.example"), "beta")).toEqual({
+      member: "owner",
+      client: "beta",
+    });
+    expect(await whoIs(pg.db, signed("b@acme.example"), "gamma")).toBeNull();
+    expect(await whoIs(pg.db, signed("x@nowhere.example"))).toBeNull();
+    expect(await whoIs(pg.db, { demo: true })).toEqual({ demo: true });
+  });
+
+  it("a scoped operator lists only their clients; an admin all of them", async () => {
+    await pg.db.insert(clients).values({ id: "beta", name: "Beta", database: "wren_client_beta" });
+    const ids = async (team: { role: "admin" | "operator"; clients: string[] | null }) =>
+      (await clientsFor(pg.db, { email: "ops@wren.example", operator: true, team })).map(
+        (c) => c.id,
+      );
+    expect(await ids({ role: "operator", clients: ["beta", "wren"] })).toEqual(["beta"]);
+    expect(await ids({ role: "operator", clients: [] })).toEqual([]);
+    expect(await ids({ role: "operator", clients: null })).toEqual(["acme", "beta"]);
+    expect(await ids({ role: "admin", clients: ["beta"] })).toEqual(["acme", "beta"]);
   });
 });
 

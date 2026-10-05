@@ -5,12 +5,22 @@
  */
 import * as restate from "@restatedev/restate-sdk";
 import type { Db } from "@wren/db";
-import { and, asc, eq } from "drizzle-orm";
+import { and, asc, eq, inArray } from "drizzle-orm";
+import type { TeamRole, Who } from "./access.js";
 import { normalEmail, touchMember } from "./clients/index.js";
-import { type Client, clientMembers, clients } from "./clients/schema.js";
+import { type Client, clientMembers, clients, operators } from "./clients/schema.js";
 
-/** An email our sign-in vouched for (operators see every client), or anyone on the demo host. */
-export type Viewer = { email: string; operator?: boolean } | { demo: true };
+/** A team login's row, read fresh: its role and its clients (null = every client). */
+export interface TeamSeat {
+  role: TeamRole;
+  clients: string[] | null;
+}
+
+/**
+ * An email our sign-in vouched for, or anyone on the demo host. `operator` comes from the token;
+ * the access guard overwrites it, and sets `team`, from a fresh read before any handler runs.
+ */
+export type Viewer = { email: string; operator?: boolean; team?: TeamSeat } | { demo: true };
 export type SignedViewer = Exclude<Viewer, { demo: true }>;
 
 export interface PortalRequest {
@@ -37,11 +47,54 @@ export const isOperator = (v: Viewer): boolean => !isDemo(v) && v.operator === t
 export const seesInternal = (req: PortalRequest): boolean =>
   isOperator(req.viewer) && req.asClient !== true;
 
-/** The clients this viewer may open: the demo's, every one for an operator, else their memberships. */
+/** This email's `operators` row, or null: Wren's team. */
+export async function teamSeat(main: Db, email: string): Promise<TeamSeat | null> {
+  const [row] = await main
+    .select({ role: operators.role, clients: operators.clients })
+    .from(operators)
+    .where(eq(operators.email, normalEmail(email)));
+  return row ?? null;
+}
+
+/**
+ * Who this viewer is, read fresh (`can` in `@wren/core/access` takes it): the demo, a team row,
+ * the membership at `client` (their first when left out), or null. Demo clients have no members.
+ */
+export async function whoIs(main: Db, viewer: Viewer, client?: string): Promise<Who> {
+  if (isDemo(viewer)) return { demo: true };
+  const seat = await teamSeat(main, viewer.email);
+  if (seat) return { team: seat.role, clients: seat.clients };
+  const [row] = await main
+    .select({ role: clientMembers.role, client: clientMembers.clientId })
+    .from(clientMembers)
+    .innerJoin(clients, eq(clientMembers.clientId, clients.id))
+    .where(
+      and(
+        eq(clients.demo, false),
+        eq(clientMembers.email, normalEmail(viewer.email)),
+        client === undefined ? undefined : eq(clientMembers.clientId, client),
+      ),
+    )
+    .orderBy(asc(clients.id))
+    .limit(1);
+  return row ? { member: row.role, client: row.client } : null;
+}
+
+/**
+ * The clients this viewer may open: the demo's; for an operator every one, or only their
+ * `team.clients` (an admin sees all); else their memberships.
+ */
 export async function clientsFor(main: Db, viewer: Viewer): Promise<Client[]> {
   if (isDemo(viewer))
     return main.select().from(clients).where(eq(clients.demo, true)).orderBy(asc(clients.id));
-  if (viewer.operator) return main.select().from(clients).orderBy(asc(clients.id));
+  if (viewer.operator) {
+    const scope = viewer.team?.role === "admin" ? null : viewer.team?.clients;
+    return main
+      .select()
+      .from(clients)
+      .where(scope ? inArray(clients.id, scope.length ? scope : [""]) : undefined)
+      .orderBy(asc(clients.id));
+  }
   const email = normalEmail(viewer.email);
   if (!email) return [];
   const rows = await main

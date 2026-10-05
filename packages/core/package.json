@@ -5,6 +5,7 @@
   "type": "module",
   "exports": {
     ".": "./src/index.ts",
+    "./access": "./src/access.ts",
     "./audit": "./src/audit.ts",
     "./calendar": "./src/calendar.ts",
     "./clients": "./src/clients/index.ts",
