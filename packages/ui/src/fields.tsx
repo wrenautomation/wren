@@ -124,6 +124,15 @@ export function FieldCell({ field: f, cell: c }: { field: FieldMeta; cell: Cell 
     case "status":
     case "verdict":
       return <StateMark state={stateOf(f, String(c))} />;
+    case "tags":
+      return (
+        <span>
+          {String(c)
+            .split(",")
+            .map((s) => stateOf(f, s).label)
+            .join(", ")}
+        </span>
+      );
     case "number":
       return <span>{num(Number(c))}</span>;
     case "percent":

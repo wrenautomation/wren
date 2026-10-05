@@ -12,6 +12,7 @@ import { RESEARCH_WORKFLOWS } from "@wren/research/components";
 const BLOCKS = [
   defineWorkflow({
     id: "signals",
+    stage: "find",
     name: "Trigger leads",
     blurb: "Site visitors and buying signals, each turned into a lead with its reason.",
     icon: "pulse",
@@ -28,6 +29,7 @@ const BLOCKS = [
   }),
   defineWorkflow({
     id: "keep_warm",
+    stage: "follow",
     name: "Keep warm",
     blurb: "Follows up on a quiet lead, then nurtures them for months, until they answer and book.",
     icon: "cycle",
@@ -49,6 +51,7 @@ const BLOCKS = [
   }),
   defineWorkflow({
     id: "close",
+    stage: "book",
     name: "Booked call",
     blurb: "Reminds them, briefs us, marks how it went, and keeps a not-yet warm.",
     icon: "check",
@@ -77,6 +80,7 @@ const BLOCKS = [
 const FUNNELS = [
   defineWorkflow({
     id: "speed_to_lead.steps",
+    stage: "follow",
     name: "Speed to lead",
     blurb: "A text within a minute, a call, a voicemail, then follow-up until they book.",
     icon: "clock",
@@ -100,6 +104,7 @@ const FUNNELS = [
   }),
   defineWorkflow({
     id: "outbound",
+    stage: "reach",
     name: "Outbound",
     blurb: "Finds leads, writes to them by email, text and DM, and books the ones who answer.",
     icon: "mail",
@@ -134,6 +139,7 @@ const FUNNELS = [
   }),
   defineWorkflow({
     id: "paid",
+    stage: "reach",
     name: "Paid leads",
     blurb: "Meta lead forms, answered by speed to lead.",
     icon: "money",
@@ -152,6 +158,7 @@ const FUNNELS = [
   }),
   defineWorkflow({
     id: "win_back",
+    stage: "reach",
     name: "Win back old leads",
     blurb: "Writes to the client's old leads as their own people and books the ones who answer.",
     icon: "cycle",
@@ -173,6 +180,7 @@ const FUNNELS = [
 /** Wren's own business, all on one canvas. */
 const WREN = defineWorkflow({
   id: "wren",
+  stage: "run",
   name: "Wren",
   blurb: "How Wren wins clients, delivers, and runs itself.",
   icon: "home",

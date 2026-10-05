@@ -4,6 +4,7 @@ import { defineComponent } from "@wren/core/components";
 export const BOOKS_COMPONENTS = [
   defineComponent({
     id: "books",
+    stage: "run",
     name: "Books",
     blurb: "Wren's spend, subscriptions and economics, imported daily.",
     icon: "money",

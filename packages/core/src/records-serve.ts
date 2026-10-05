@@ -46,6 +46,8 @@ export interface ListAsk {
   limit?: number;
   /** Only rows pointing at this record, as its type's `related` says: a person's emails. */
   of?: { record: string; id: string | number };
+  /** Also count each state of every status and tags field: a shop's sidebar. */
+  facets?: boolean;
 }
 export interface RecordsPage {
   record: string;
@@ -57,6 +59,11 @@ export interface RecordsPage {
   next: string | null;
   /** One figure per field over this view and search, by kind (`totalsOf`); a field with none is left out. */
   totals: Record<string, Total>;
+  /**
+   * Asked for: rows in this view per state of each status and tags field, under every filter but
+   * that field's own, so a picked state never zeroes its siblings.
+   */
+  facets?: Record<string, Record<string, number>>;
 }
 /**
  * A list column's footer: money sums (one currency), a rate pools n of m, a verdict is valid of
@@ -183,6 +190,7 @@ const castOf = (f: Field): Cast => {
 const valueSql = (f: Field): SQL => {
   const c = ref(f.from ?? "");
   if (f.kind === "rate") return sql`((${c})::numeric / nullif((${ref(f.of ?? "")})::numeric, 0))`;
+  if (f.kind === "tags") return sql`string_to_array(nullif((${c})::text, ''), ',')`;
   return sql`(${c})::${sql.raw(castOf(f))}`;
 };
 /** The field as it sorts: a state by its place in the declaration, text with digits by value. */
@@ -295,6 +303,11 @@ function clauseSql(type: RecordType, c: Clause): SQL {
     case "eq":
       return sql`${v} = ${bind(c.value, cast)}`;
     case "in":
+      if (f.kind === "tags")
+        return sql`${v} && array[${sql.join(
+          (c.value as string[]).map((x) => sql`${x}`),
+          sql`, `,
+        )}]::text[]`;
       return sql`${v} in (${sql.join(
         (c.value as (string | number)[]).map((x) => bind(x, cast)),
         sql`, `,
@@ -438,11 +451,12 @@ export function serveRecords(types: readonly RecordType[], db: Queryable, mask?:
       if (!view) throw new BadAsk(`${t.name.many} have no such view`);
     }
     const asked = clausesOf(t, ask.where);
-    const base: SQL[] = asked.map((c) => {
+    /** Each filter with the field it narrows; search and `of` narrow none. */
+    const parts: { field: string | null; sql: SQL }[] = asked.map((c) => {
       const f = t.fields[c.field] as Field;
       if (!allowed(f, demo).ops.includes(c.op))
         throw new BadAsk(`the demo doesn't filter ${f.label} that way`);
-      return hides(mask, c.value) ? sql`false` : clauseSql(t, c);
+      return { field: c.field, sql: hides(mask, c.value) ? sql`false` : clauseSql(t, c) };
     });
     if (ask.q !== undefined) {
       if (typeof ask.q !== "string" || ask.q.length > MAX_Q) throw new BadAsk("search is too long");
@@ -450,12 +464,13 @@ export function serveRecords(types: readonly RecordType[], db: Queryable, mask?:
       if (q) {
         const over = Object.values(t.fields).filter((f) => allowed(f, demo).searchable);
         if (!over.length) throw new BadAsk(`${t.name.many} can't be searched here`);
-        base.push(
-          sql`(${sql.join(
+        parts.push({
+          field: null,
+          sql: sql`(${sql.join(
             over.map((f) => sql`${valueSql(f)} ilike ${like(q)}`),
             sql` or `,
           )})`,
-        );
+        });
       }
     }
     if (ask.of !== undefined) {
@@ -463,7 +478,7 @@ export function serveRecords(types: readonly RecordType[], db: Queryable, mask?:
       const parent = typeOf(of?.record);
       const rel = parent.related?.find((r) => r.record === t.id);
       if (!rel) throw new BadAsk(`${parent.name.many} have no ${t.name.many}`);
-      base.push(sql`(${ref(rel.by)})::text = ${idOf(of?.id)}`);
+      parts.push({ field: null, sql: sql`(${ref(rel.by)})::text = ${idOf(of?.id)}` });
     }
     const sortName = ask.sort ?? view?.sort;
     let sort = sortName === undefined ? null : sortOf(t, sortName);
@@ -477,7 +492,46 @@ export function serveRecords(types: readonly RecordType[], db: Queryable, mask?:
       ? sql`(${by.expr}) is null, ${by.expr} ${by.desc ? sql`desc` : sql`asc`}, ${keyText(t)}`
       : keyText(t);
     const inView = and(view ? clausesOf(t, view.where).map((c) => clauseSql(t, c)) : []);
-    return { t, view, base: and(base), inView, by, order, sortKey: sort ? (sortName ?? "") : "" };
+    /** Every filter but one field's: what that field's facet counts under. */
+    const but = (field: string | null) =>
+      and(parts.filter((x) => field === null || x.field !== field).map((x) => x.sql));
+    return {
+      t,
+      view,
+      base: but(null),
+      but,
+      inView,
+      by,
+      order,
+      sortKey: sort ? (sortName ?? "") : "",
+    };
+  }
+
+  /** One count per state of each status and tags field, each under the other fields' filters. */
+  async function facetsOf(p: ReturnType<typeof plan>) {
+    const cols: SQL[] = [];
+    const reads: [string, string, string][] = [];
+    for (const [key, f] of Object.entries(p.t.fields)) {
+      if (f.kind !== "status" && f.kind !== "tags") continue;
+      const v = valueSql(f);
+      for (const s of Object.keys(f.states ?? {})) {
+        const name = `f${cols.length}`;
+        const hit = f.kind === "tags" ? sql`${s} = any(${v})` : sql`${v} = ${s}`;
+        cols.push(
+          sql`count(*) filter (where ${p.but(key)} and ${hit})::int ${sql.identifier(name)}`,
+        );
+        reads.push([key, s, name]);
+      }
+    }
+    if (!cols.length) return {};
+    const [r] = await db.execute<Raw>(sql`
+      select ${sql.join(cols, sql`, `)} from ${await source(p.t)} where ${p.inView}`);
+    const out: Record<string, Record<string, number>> = {};
+    for (const [key, s, name] of reads) {
+      out[key] ??= {};
+      out[key][s] = Number(r?.[name] ?? 0);
+    }
+    return out;
   }
 
   return {
@@ -525,6 +579,7 @@ export function serveRecords(types: readonly RecordType[], db: Queryable, mask?:
               sql`, `,
             )}
           from ${await source(p.t)} where ${p.base}`);
+        const facets = ask.facets ? await facetsOf(p) : undefined;
         const page = raw.slice(0, limit);
         const last = raw.length > limit ? page.at(-1) : undefined;
         return {
@@ -534,6 +589,7 @@ export function serveRecords(types: readonly RecordType[], db: Queryable, mask?:
           total: Number(n?.__total ?? 0),
           counts: Object.fromEntries(views.map((v, i) => [v.id, Number(n?.[`c${i}`] ?? 0)])),
           totals: n ? totals.read(n) : {},
+          ...(facets ? { facets } : {}),
           next: last
             ? encode([
                 p.sortKey,

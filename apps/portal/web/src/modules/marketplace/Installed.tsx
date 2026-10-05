@@ -52,7 +52,7 @@ export function ClientComponents({ client }: { client: string }) {
         <Empty>Nothing installed.</Empty>
       )}
       <div>
-        <ButtonLink href={`${at("")}&view=ready`} size="sm" tone="quiet" arrow>
+        <ButtonLink href={`${at("")}&type=part&ready=ready`} size="sm" tone="quiet" arrow>
           Install
         </ButtonLink>
       </div>

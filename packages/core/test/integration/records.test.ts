@@ -19,6 +19,7 @@ import {
   percent,
   rate,
   status,
+  tags,
   text,
   verdict,
 } from "../../src/records.js";
@@ -28,6 +29,11 @@ const STATES = {
   open: { label: "Open", tone: "good" },
   held: { label: "Held", tone: "warn" },
   shut: { label: "Shut", tone: "neutral" },
+} as const;
+const CHANNELS = {
+  email: { label: "Email", tone: "neutral" },
+  text: { label: "Text", tone: "neutral" },
+  voice: { label: "Voice", tone: "neutral" },
 } as const;
 
 const item = defineRecord({
@@ -49,6 +55,7 @@ const item = defineRecord({
     verdict: verdict(),
     url: link(),
     note: text(),
+    chan: tags(CHANNELS),
   },
   views: [
     { id: "open", label: "Open", where: { state: ["open"] }, sort: "-n" },
@@ -95,7 +102,8 @@ beforeAll(async () => {
       (i % 4) * 100.5 amt, 'USD' cur, (i % 10) / 10.0 pct, i % 4 hits, 4 tries,
       case when i % 13 = 0 then null else timestamptz '2026-01-01' + (i % 6) * interval '1 day' end seen,
       (array['valid','risky','invalid','catch_all'])[1 + i % 4] verdict,
-      'https://x.example/' || i url, 'note ' || (i % 9) || case when i % 5 = 0 then ' Doe' else '' end note
+      'https://x.example/' || i url, 'note ' || (i % 9) || case when i % 5 = 0 then ' Doe' else '' end note,
+      (array['email,text','email','','voice'])[1 + i % 4] chan
     from generate_series(1, ${N}) i`);
   await pg.db.execute(sql`create view rec_items as select * from rec_items_t`);
   await pg.db.execute(sql`create view rec_kids as
@@ -202,6 +210,41 @@ describe("totals", () => {
   });
 });
 
+describe("facets", () => {
+  const ids = Array.from({ length: N }, (_, k) => k + 1);
+  const state = (i: number) => ["open", "held", "shut"][i % 3];
+  const chans = (i: number) => ["email,text", "email", "", "voice"][i % 4]?.split(",") ?? [];
+  const count = (pick: (i: number) => boolean) => ids.filter(pick).length;
+
+  it("counts each state under every filter but its own field's", async () => {
+    const page = await api.list({
+      record: "test.item",
+      view: "all",
+      where: { state: ["open"], chan: ["email"] },
+      facets: true,
+    });
+    const both = (i: number) => state(i) === "open" && chans(i).includes("email");
+    expect(page.total).toBe(count(both));
+    expect(page.facets?.state).toEqual({
+      open: count((i) => state(i) === "open" && chans(i).includes("email")),
+      held: count((i) => state(i) === "held" && chans(i).includes("email")),
+      shut: count((i) => state(i) === "shut" && chans(i).includes("email")),
+    });
+    expect(page.facets?.chan).toEqual({
+      email: count((i) => state(i) === "open" && chans(i).includes("email")),
+      text: count((i) => state(i) === "open" && chans(i).includes("text")),
+      voice: count((i) => state(i) === "open" && chans(i).includes("voice")),
+    });
+  });
+
+  it("tags match any picked one; none unasked", async () => {
+    const page = await api.list({ record: "test.item", where: { chan: ["text", "voice"] } });
+    expect(page.total).toBe(count((i) => i % 4 === 0 || i % 4 === 3));
+    expect(page.facets).toBeUndefined();
+    expect((await api.get({ record: "test.item", id: 4 })).row.chan).toBe("email,text");
+  });
+});
+
 describe("hostile input", () => {
   const evil = `x"; drop table rec_items_t; --`;
   const asks: [string, ListAsk][] = [
@@ -213,6 +256,7 @@ describe("hostile input", () => {
     ["a sort on a field that doesn't sort", { record: "test.item", sort: "url" }],
     ["a view", { record: "test.item", view: evil }],
     ["a state outside the set", { record: "test.item", where: { state: evil } }],
+    ["a tag outside the set", { record: "test.item", where: { chan: [evil] } }],
     ["a number that isn't", { record: "test.item", where: { n: evil } }],
     ["a date that isn't", { record: "test.item", where: { seen: { gte: evil } } }],
     ["a cursor", { record: "test.item", cursor: evil }],

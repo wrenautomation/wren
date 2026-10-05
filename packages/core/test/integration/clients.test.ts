@@ -252,6 +252,7 @@ describe("install, configure, uninstall", () => {
     blurb: "Sends texts.",
     icon: "mail",
     for: "client",
+    stage: "reach",
     ready: true,
     settings: z.object({ perDay: z.number().default(5), price: z.number().optional() }),
     priced: ["price"],

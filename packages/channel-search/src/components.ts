@@ -4,6 +4,8 @@ import { defineComponent } from "@wren/core/components";
 export const SEARCH_COMPONENTS = [
   defineComponent({
     id: "search.watch",
+    stage: "content",
+    channels: ["web"],
     name: "Search watch",
     blurb: "Reads the site's Google search numbers daily and sums up each week.",
     icon: "search",

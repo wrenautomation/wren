@@ -133,6 +133,25 @@ export const KINDS = {
     column: right,
     csv: plain,
   },
+  /**
+   * Several of its `states` at once ("email,text"): a filter matches a row with any picked one.
+   * ponytail: kept as comma-joined text, so a state can't hold a comma; a text[] column if one must.
+   */
+  tags: {
+    sql: "state",
+    ops: ["in"],
+    sortable: false,
+    searchable: false,
+    masked: false,
+    column: left,
+    csv: (c, f) =>
+      typeof c === "string" && c
+        ? c
+            .split(",")
+            .map((s) => f.states?.[s]?.label ?? s)
+            .join(", ")
+        : null,
+  },
   /** An email check: valid, risky, catch_all, invalid. */
   verdict: {
     sql: "state",
@@ -249,6 +268,8 @@ export const score = (label?: string, opts: Opts = {}) =>
   kind("score")(label, { max: 100, ...opts });
 export const status = (states: Record<string, State>, label?: string, opts: Opts = {}) =>
   kind("status")(label, { states, ...opts });
+export const tags = (states: Record<string, State>, label?: string, opts: Opts = {}) =>
+  kind("tags")(label, { states, ...opts });
 export const verdict = (label?: string, opts: Opts = {}) =>
   kind("verdict")(label, { states: VERDICTS, ...opts });
 export const rate = (of: string, label?: string, opts: Opts = {}) =>

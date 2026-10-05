@@ -1,14 +1,20 @@
 /**
- * A component's record, below its fields (what's missing is one): what it needs, what it
- * provides, and what the viewer may do. Wren's team installs, configures and uninstalls; a
- * client asks. No prices: the server leaves priced settings out of the form.
+ * A component's record, below its fields (what's missing is one): what it takes and gives, what
+ * runs inside it, how we expect it to generalize, where it's used, what it needs and provides,
+ * and what the viewer may do. Wren's team installs, configures and uninstalls; a client asks.
+ * No prices: the server leaves priced settings out of the form. A workflow shows its drawing
+ * and where it's used; it installs part by part until templates.
  */
+import type { Guess, Hypothesis, Port } from "@wren/core/components";
+import type { Wire } from "@wren/core/workflows";
 import {
   Alert,
   Button,
   Facts,
+  FlowMap,
   type FormField,
   HandlerForm,
+  type MapBox,
   type RecordExtras,
   Tag,
 } from "@wren/ui";
@@ -17,13 +23,104 @@ import { call, ME_CHANGED } from "../../api.js";
 import type { PageProps } from "../../module.js";
 import { LIST, QUIET, SPLIT } from "../work/bits.js";
 
-interface Detail {
+/** A workflow as the server draws it: each node named, with how built what it uses is. */
+interface Drawn {
+  id: string;
+  name: string;
+  in: Port[];
+  out: Port[];
+  nodes: {
+    id: string;
+    uses: string | null;
+    name: string;
+    note: string | null;
+    ready: "ready" | "coming" | "planned" | null;
+  }[];
+  wires: Wire[];
+}
+
+type Used = { id: string; name: string }[];
+
+interface Part {
   needs: { label: string; has: boolean | null }[];
   effects: string[];
   installed: boolean;
+  in: Port[];
+  out: Port[];
+  hypothesis?: Hypothesis;
+  inside: Drawn | null;
+  usedIn: Used;
   provides?: Record<"services" | "loops" | "records" | "apps", string[]>;
   form?: FormField[] | null;
   values?: Record<string, unknown> | null;
+}
+
+type Detail = Part | { workflow: Drawn; usedIn: Used };
+
+const READY = { coming: "Coming", planned: "In development" } as const;
+
+/**
+ * A workflow's nodes as boxes, fed by its own inputs (dashed). Each box links to what it uses;
+ * one not built yet is faded and says so.
+ */
+function boxesOf(w: Drawn, at: (id: string) => string): MapBox[] {
+  const after = new Map<string, string[]>(w.nodes.map((n) => [n.id, []]));
+  for (const wire of w.wires) {
+    const [from = "", port] = wire.from.split(".");
+    const to = wire.to.split(".")[0] ?? "";
+    after.get(to)?.push(from === "in" ? `in.${port}` : from);
+  }
+  return [
+    ...w.in.map((p) => ({ id: `in.${p.id}`, label: p.label, after: [], input: true })),
+    ...w.nodes.map((n) => ({
+      id: n.id,
+      label: n.name,
+      note: n.ready && n.ready !== "ready" ? READY[n.ready] : undefined,
+      after: [...new Set(after.get(n.id))],
+      href: n.uses ? at(n.uses) : undefined,
+      input: !n.uses,
+      dim: n.ready !== null && n.ready !== "ready",
+    })),
+  ];
+}
+
+const portsLine = (ps: Port[]) => ps.map((p) => p.label).join(", ") || "Nothing";
+
+const GUESS: Record<Guess["is"], string> = {
+  change: "Expect to change",
+  needs: "Next use needs",
+  fixed: "Stays fixed",
+};
+
+/** The hypothesis, a line per guess: what it says, whether the code has it, and its checks. */
+function Guesses({ h }: { h: Hypothesis }) {
+  return (
+    <div className="grid gap-3">
+      <p className={QUIET}>Written after: {h.from}.</p>
+      <ul className={LIST}>
+        {h.guesses.map((g) => {
+          const held = g.checked?.filter((c) => c.held).length ?? 0;
+          const failed = (g.checked?.length ?? 0) - held;
+          return (
+            <li key={g.says} className="grid gap-1">
+              <span className={SPLIT}>
+                <span>{g.says}</span>
+                {g.is === "fixed" ? null : (
+                  <Tag tone={g.built ? "green" : "neutral"}>{g.built ? "Built" : "Not yet"}</Tag>
+                )}
+              </span>
+              <span className={QUIET}>
+                {GUESS[g.is]}
+                {g.is !== "fixed" && g.built ? ` · ${g.built}` : ""}
+                {held ? ` · held ${held}` : ""}
+                {failed ? ` · broke ${failed}` : ""}
+              </span>
+            </li>
+          );
+        })}
+      </ul>
+    </div>
+  );
 }
 
 /** A stored value as its box's text: what `typedOf` reads back as the same value. */
@@ -75,12 +172,60 @@ export function catalogExtras(
   detail: unknown,
   { row, client, team, can }: PageProps & { row: Record<string, unknown> },
 ): RecordExtras {
-  const d = detail as Detail | undefined;
-  if (!d) return {};
+  const got = detail as Detail | undefined;
+  if (!got) return {};
   const id = String(row.id);
   const name = String(row.name);
+  const at = (to: string) =>
+    `/marketplace/catalog?client=${encodeURIComponent(client)}&component=${encodeURIComponent(to)}`;
+  const usedIn = (u: Used): [string, ReactNode] => [
+    "Used in",
+    <p key="used">
+      {u.map((w, i) => (
+        <span key={w.id}>
+          {i ? ", " : ""}
+          <a href={at(w.id)}>{w.name}</a>
+        </span>
+      ))}
+    </p>,
+  ];
+  const drawing = (w: Drawn): ReactNode => (
+    <FlowMap key="inside" boxes={boxesOf(w, at)} label={`What runs inside ${w.name}`} />
+  );
+  if ("workflow" in got) {
+    const sections: [string, ReactNode][] = [
+      ["Inside", drawing(got.workflow)],
+      [
+        "Takes and gives",
+        <Facts
+          key="ports"
+          items={[
+            ["Takes", portsLine(got.workflow.in)],
+            ["Gives", portsLine(got.workflow.out)],
+          ]}
+        />,
+      ],
+    ];
+    if (got.usedIn.length) sections.push(usedIn(got.usedIn));
+    return { sections };
+  }
+  const d = got;
   const installable = row.for === "client" && row.ready === "ready";
-  const sections: [string, ReactNode][] = [];
+  const sections: [string, ReactNode][] = [
+    [
+      "Takes and gives",
+      <Facts
+        key="ports"
+        items={[
+          ["Takes", portsLine(d.in)],
+          ["Gives", portsLine(d.out)],
+        ]}
+      />,
+    ],
+  ];
+  if (d.inside) sections.push(["Inside", drawing(d.inside)]);
+  if (d.hypothesis) sections.push(["How it generalizes", <Guesses key="h" h={d.hypothesis} />]);
+  if (d.usedIn.length) sections.push(usedIn(d.usedIn));
   if (d.needs.length)
     sections.push([
       "Needs",

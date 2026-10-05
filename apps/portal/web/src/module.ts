@@ -43,8 +43,8 @@ export interface HandPage extends PageBase {
  * Everything else comes from the type's meta.
  */
 export interface ListPage extends PageBase {
-  /** A Form reads the type as one form, a line per record (Setup). */
-  template: "list" | "queue" | "form";
+  /** A Form reads the type as one form, a line per record (Setup); a Shop, as cards with facets. */
+  template: "list" | "queue" | "form" | "shop";
   /** The record type's id, "<product>.<one>": its product serves it at /api/<product>/records*. */
   record: string;
   /** What fills the list, said while it's empty: one line, or one per view. */
@@ -53,7 +53,7 @@ export interface ListPage extends PageBase {
   example?: ReactNode;
   /** What can be done to its records; the type's meta says which apply, the demo runs them here. */
   actions?: Action[];
-  /** The columns shown until the viewer picks others; every one when left out. */
+  /** The columns shown until the viewer picks others; every one when left out. A Shop's chips. */
   columns?: string[];
   /** Lines and sources a record's detail adds under its fields. */
   extras?: (detail: unknown, at: PageProps & { row: Row }) => RecordExtras;

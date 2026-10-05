@@ -43,7 +43,7 @@ import {
   teamRecord,
   updateClient,
 } from "./clients/index.js";
-import type { Component, LoopKey } from "./components.js";
+import { CHANNELS, type Component, type LoopKey, STAGES } from "./components.js";
 import { CONSOLE_ROUTES } from "./console-routes.js";
 import {
   answer,
@@ -65,6 +65,7 @@ import {
   type RecordMeta,
   type RecordType,
   status,
+  tags,
   text,
 } from "./records.js";
 import {
@@ -82,6 +83,7 @@ import {
 } from "./records-serve.js";
 import type { PassOutcome } from "./restate/loop.js";
 import { finishRun, openRun } from "./runs.js";
+import { partsIn, type Workflow } from "./workflows.js";
 
 export { toCsv };
 
@@ -576,50 +578,117 @@ export function settingsForm(c: Component): HandlerField[] | null {
 
 const COMPONENT = "console.component";
 
+const neutral = (labels: Readonly<Record<string, string>>) =>
+  Object.fromEntries(
+    Object.entries(labels).map(([k, label]) => [k, { label, tone: "neutral" as const }]),
+  );
+const readyOf = (c: Component) => (c.planned ? "planned" : c.ready ? "ready" : "coming");
+/** A workflow is as far along as its least built part. */
+const flowReady = (parts: readonly Component[]) =>
+  (["planned", "coming"] as const).find((s) => parts.some((c) => readyOf(c) === s)) ?? "ready";
+const union = <T>(lists: readonly (readonly T[])[]) => [...new Set(lists.flat())];
+
 /**
- * The catalog: `all` as records, each marked installed or not for `client` when there is one.
- * The team's detail adds what it provides and its settings form, filled from the client's block.
+ * The shop: every part in `all` and every workflow over them, each marked installed or not for
+ * `client` when there is one (a workflow installs part by part until templates). The detail
+ * carries ports, the hypothesis, what's inside and where it's used; the team's adds what a part
+ * provides and its settings form, filled from the client's block.
  */
 export const componentRecord = (
   all: readonly Component[],
   client: Client | null,
   team: boolean,
-): RecordType =>
-  defineRecord({
+  workflows: readonly Workflow[] = [],
+): RecordType => {
+  const flows = workflows.filter((w) => team || w.for === "client");
+  /** A workflow that is a part's inside shows as that part, never twice. */
+  const shownAs = (w: Workflow) => all.find((c) => c.inside === w.id) ?? w;
+  const named = (id: string) =>
+    all.find((x) => x.id === id)?.name ?? flows.find((w) => w.id === id)?.name ?? id;
+  const usedIn = (id: string) =>
+    flows
+      .filter((w) => w.nodes.some((n) => n.uses === id))
+      .map((w) => ({ id: shownAs(w).id, name: shownAs(w).name }));
+  /** A workflow's nodes, each with what it uses, for the item page's drawing. */
+  const drawn = (w: Workflow) => ({
+    id: w.id,
+    name: w.name,
+    in: w.in,
+    out: w.out,
+    nodes: w.nodes.map((n) => ({
+      id: n.id,
+      uses: n.uses ?? null,
+      name: n.own?.name ?? named(n.uses ?? n.id),
+      note: n.note ?? null,
+      ready: n.uses
+        ? (() => {
+            const c = all.find((x) => x.id === n.uses);
+            const f = flows.find((x) => x.id === n.uses);
+            return c ? readyOf(c) : f ? flowReady(partsIn(f.id, flows, all)) : null;
+          })()
+        : null,
+    })),
+    wires: w.wires,
+  });
+  return defineRecord({
     id: COMPONENT,
     name: { one: "component", many: "components" },
-    rows: async () =>
-      all.map((c) => ({
+    rows: async () => [
+      ...all.map((c) => ({
         id: c.id,
+        type: "part",
         name: c.name,
         blurb: c.blurb,
+        icon: c.icon,
+        stage: c.stage,
+        channels: c.channels.join(",") || null,
         for: c.for,
-        ready: c.planned ? "planned" : c.ready ? "ready" : "coming",
+        ready: readyOf(c),
         installed: client ? (has(client, c.id) ? "yes" : "no") : null,
-        effects: c.effects.join(", ") || null,
+        effects: c.effects.join(",") || null,
         needs: [...c.requires.components, ...c.requires.accounts].join(", ") || null,
         missing: c.missing.join("; ") || null,
       })),
+      ...flows
+        .filter((w) => shownAs(w) === w)
+        .map((w) => {
+          const parts = partsIn(w.id, flows, all);
+          const behind = parts.filter((c) => !c.ready);
+          return {
+            id: w.id,
+            type: "workflow",
+            name: w.name,
+            blurb: w.blurb,
+            icon: w.icon,
+            stage: w.stage,
+            channels: union(parts.map((c) => c.channels)).join(",") || null,
+            for: w.for,
+            ready: flowReady(parts),
+            installed: null,
+            effects: union(parts.map((c) => c.effects)).join(",") || null,
+            needs: null,
+            missing: behind.length
+              ? `${behind.map((c) => c.name).join(", ")} ${behind.length > 1 ? "aren't" : "isn't"} ready`
+              : null,
+          };
+        }),
+    ],
     key: "id",
     title: "name",
     subtitle: "blurb",
     fields: {
-      name: text("Component"),
+      name: text("Name"),
       blurb: text("What it does"),
-      for: status(
-        {
-          client: { label: "For clients", tone: "neutral" },
-          wren: { label: "Wren's own", tone: "neutral" },
-        },
-        "For",
-      ),
+      type: status(neutral({ part: "Part", workflow: "Workflow" }), "Type"),
+      stage: status(neutral(STAGES), "Stage"),
+      channels: tags(neutral(CHANNELS), "Channels"),
       ready: status(
         {
           ready: { label: "Ready", tone: "good" },
           coming: { label: "Coming", tone: "neutral" },
           planned: { label: "In development", tone: "neutral" },
         },
-        "Ready",
+        "Status",
       ),
       installed: status(
         {
@@ -628,29 +697,32 @@ export const componentRecord = (
         },
         "Installed",
       ),
-      effects: text("Effects"),
+      effects: tags(
+        neutral({ sends: "Sends messages", spends: "Spends money", posts: "Posts publicly" }),
+        "Effects",
+      ),
+      for: status(neutral({ client: "For clients", wren: "Wren's own" }), "For"),
+      icon: text("Icon", { group: "System" }),
       needs: text("Needs"),
       missing: text("Missing"),
     },
     views: [
       { id: "all", label: "All", sort: "name" },
-      { id: "ready", label: "Ready", where: { ready: "ready" }, sort: "name" },
-      { id: "coming", label: "Coming", where: { ready: "coming" }, sort: "name" },
-      { id: "planned", label: "In development", where: { ready: "planned" }, sort: "name" },
       ...(client
         ? [{ id: "installed", label: "Installed", where: { installed: "yes" }, sort: "name" }]
         : []),
-      { id: "effects", label: "With effects", where: { effects: { empty: false } }, sort: "name" },
     ],
     load: async (_db, id) => {
+      const w = flows.find((x) => x.id === id);
+      if (w) return { workflow: drawn(w), usedIn: usedIn(id) };
       const c = all.find((x) => x.id === id);
       if (!c) return null;
-      const name = (id: string) => all.find((x) => x.id === id)?.name ?? id;
       const installed = !!client && has(client, c.id);
+      const inside = c.inside ? workflows.find((x) => x.id === c.inside) : undefined;
       return {
         needs: [
           ...c.requires.components.map((id) => ({
-            label: name(id),
+            label: named(id),
             has: client ? has(client, id) : null,
           })),
           ...c.requires.accounts.map((site) => ({
@@ -660,6 +732,11 @@ export const componentRecord = (
         ],
         effects: c.effects,
         installed,
+        in: c.in,
+        out: c.out,
+        hypothesis: c.hypothesis,
+        inside: inside ? drawn(inside) : null,
+        usedIn: usedIn(id),
         ...(team
           ? {
               provides: c.provides,
@@ -670,6 +747,7 @@ export const componentRecord = (
       };
     },
   });
+};
 
 /** The runs row's command: one line on the run trail, as a CLI command would be. */
 export const callCommand = (service: string, handler: string) =>
@@ -684,6 +762,7 @@ export function consoleApi({
   records = [],
   mainUrl,
   components = [],
+  workflows = [],
   asked,
   bound = () => true,
 }: {
@@ -701,6 +780,8 @@ export function consoleApi({
   records?: readonly RecordType[];
   /** Every component, for the catalog and installs (`COMPONENTS` in the worker). */
   components?: readonly Component[];
+  /** Every workflow over them, shown in the catalog beside its parts (`WORKFLOWS`). */
+  workflows?: readonly Workflow[];
   /** A client's person asked for `c`: tell Wren. Absent, `ask` refuses. */
   asked?: ((client: Client, by: string, c: Component) => Promise<void>) | undefined;
   /** Whether this worker binds `service`: a component's loop on one it doesn't is skipped. */
@@ -728,7 +809,7 @@ export function consoleApi({
     const shown = internal ? components : components.filter((c) => c.for === "client");
     // Wren's own records, each for whoever holds what it needs at Wren (Money: `money`).
     const mine = internal ? types.filter((t) => teamCan(req, t.needs ?? "read", WREN)) : [];
-    return [...mine, componentRecord(shown, client, internal)];
+    return [...mine, componentRecord(shown, client, internal, workflows)];
   };
   /** Records on the main database, read-only, unmasked: the team sees everything. */
   const read = async <T>(

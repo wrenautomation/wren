@@ -29,6 +29,8 @@ function sequencesLoops(client: string, s: SequencesSettings): LoopKey[] {
 export const EMAIL_COMPONENTS = [
   defineComponent({
     id: SEQUENCES,
+    stage: "reach",
+    channels: ["email"],
     name: "Email sequences",
     blurb: "Writes each lead's opener and follow-ups and sends them from warmed inboxes.",
     icon: "mail",
@@ -97,6 +99,8 @@ export const EMAIL_COMPONENTS = [
   }),
   defineComponent({
     id: REPLIES,
+    stage: "follow",
+    channels: ["email"],
     name: "Replies",
     blurb: "Reads every reply, sorts it, and queues an answer for approval.",
     icon: "reply",
@@ -138,6 +142,8 @@ export const EMAIL_COMPONENTS = [
   }),
   defineComponent({
     id: "email.inbox_health",
+    stage: "reach",
+    channels: ["email"],
     name: "Inbox health",
     blurb: "Watches each inbox's placement and reputation, and says when one slips.",
     icon: "pulse",
@@ -166,6 +172,8 @@ export const EMAIL_COMPONENTS = [
   }),
   defineComponent({
     id: "email.experiments",
+    stage: "reach",
+    channels: ["email"],
     name: "Copy experiments",
     blurb: "Tries new copy against the old and keeps what gets replies.",
     icon: "cycle",
@@ -198,6 +206,8 @@ export const EMAIL_COMPONENTS = [
   }),
   defineComponent({
     id: "email.marketing",
+    stage: "follow",
+    channels: ["email"],
     name: "Opt-in marketing",
     blurb: "Signups with proof, a preference center, and one rule for who may get mail.",
     icon: "people",

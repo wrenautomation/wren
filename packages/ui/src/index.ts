@@ -105,6 +105,7 @@ export {
   type Workspace,
   type WorkspaceOption,
 } from "./shell.js";
+export { RecordShop } from "./shop.js";
 export {
   Cite,
   Cited,

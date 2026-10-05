@@ -31,6 +31,30 @@ export const EVENT_KINDS = {
 } as const;
 export type EventKind = keyof typeof EVENT_KINDS;
 
+/** Where a part sits in the business: the shop's first filter. */
+export const STAGES = {
+  find: "Find leads",
+  reach: "Reach out",
+  follow: "Follow up",
+  book: "Book",
+  deliver: "Deliver",
+  content: "Content",
+  run: "Run Wren",
+} as const;
+export type Stage = keyof typeof STAGES;
+
+/** How a part reaches people. */
+export const CHANNELS = {
+  email: "Email",
+  text: "Texts",
+  voice: "Calls",
+  dm: "DMs",
+  ads: "Ads",
+  social: "Social",
+  web: "Web",
+} as const;
+export type Channel = keyof typeof CHANNELS;
+
 /** One input or output of a part. */
 export interface Port {
   /** Unique among the part's inputs, or among its outputs: "booked". */
@@ -89,6 +113,8 @@ export interface Component {
   icon: string;
   /** "client": installable per client; "wren": runs Wren's own business. */
   for: "client" | "wren";
+  stage: Stage;
+  channels: Channel[];
   /** False: runs for Wren, not yet per client; `missing` says what stands between. */
   ready: boolean;
   missing: string[];
@@ -117,7 +143,10 @@ export interface Component {
   clientLoops: (client: string, settings: Record<string, unknown>) => LoopKey[];
 }
 
-type Input = Pick<Component, "id" | "name" | "blurb" | "icon" | "for" | "ready" | "hypothesis"> &
+type Input = Pick<
+  Component,
+  "id" | "name" | "blurb" | "icon" | "for" | "stage" | "ready" | "hypothesis"
+> &
   Partial<Omit<Component, "requires" | "provides">> & {
     requires?: Partial<Component["requires"]>;
     provides?: Partial<Component["provides"]>;
@@ -130,6 +159,7 @@ export const defineComponent = (c: Input): Component => ({
   ...c,
   missing: c.missing ?? [],
   planned: c.planned ?? false,
+  channels: c.channels ?? [],
   settings: c.settings ?? NONE,
   priced: c.priced ?? [],
   requires: { components: [], accounts: [], ...c.requires },

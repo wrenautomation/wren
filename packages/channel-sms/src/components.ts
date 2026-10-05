@@ -8,6 +8,8 @@ const FOR_WREN = "Texts from Wren's numbers and reads Wren's main database, not 
 export const SMS_COMPONENTS = [
   defineComponent({
     id: TEXTS,
+    stage: "reach",
+    channels: ["text"],
     name: "Texts",
     blurb: "Texts leads from local numbers, paced, with replies sorted.",
     icon: "reply",
@@ -56,6 +58,8 @@ export const SMS_COMPONENTS = [
   }),
   defineComponent({
     id: REMINDERS,
+    stage: "book",
+    channels: ["text"],
     name: "Call reminders",
     blurb: "Texts each booked call the day before.",
     icon: "clock",
@@ -82,6 +86,8 @@ export const SMS_COMPONENTS = [
   }),
   defineComponent({
     id: "sms.forms",
+    stage: "follow",
+    channels: ["text"],
     name: "Form follow-up",
     blurb: "Texts a site applicant who asked for texts.",
     icon: "flag",

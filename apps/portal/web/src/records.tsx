@@ -14,6 +14,7 @@ import {
   RecordOverview,
   RecordPage,
   RecordQueue,
+  RecordShop,
   type RecordsApi,
 } from "@wren/ui";
 import { useEffect } from "react";
@@ -287,5 +288,6 @@ export function TemplatePage({
   };
   if (id) return <RecordPage {...shared} id={id} />;
   if (page.template === "form") return <RecordForm {...shared} />;
+  if (page.template === "shop") return <RecordShop {...shared} />;
   return page.template === "queue" ? <RecordQueue {...shared} /> : <RecordList {...shared} />;
 }

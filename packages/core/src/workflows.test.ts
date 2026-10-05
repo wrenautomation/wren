@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { defineComponent } from "./components.js";
-import { checkWorkflows, defineWorkflow, type Wire } from "./workflows.js";
+import { checkWorkflows, defineWorkflow, partsIn, type Wire } from "./workflows.js";
 
 const hypothesis = { from: "a test", guesses: [{ is: "fixed" as const, says: "x" }] };
 const part = (id: string, inside: string | null = null) =>
@@ -10,6 +10,7 @@ const part = (id: string, inside: string | null = null) =>
     blurb: id,
     icon: "mail",
     for: "client",
+    stage: "reach",
     ready: true,
     hypothesis,
     inside,
@@ -23,6 +24,7 @@ const flow = (id: string, wires: Wire[], uses = "a") =>
     blurb: id,
     icon: "mail",
     for: "client",
+    stage: "reach",
     in: [{ id: "leads", label: "leads", kind: "lead" }],
     out: [{ id: "replied", label: "replies", kind: "reply" }],
     nodes: [{ id: "n", uses }],
@@ -59,5 +61,19 @@ describe("checkWorkflows", () => {
       "ghost: n.replied: n has no output replied",
       "loop: holds itself",
     ]);
+  });
+
+  it("finds the parts a workflow runs, through nested workflows, once each", () => {
+    const outer = defineWorkflow({
+      ...flow("outer", []),
+      nodes: [
+        { id: "f", uses: "f" },
+        { id: "g", uses: "b" },
+      ],
+    });
+    const ids = partsIn("outer", [flow("f", ok), outer], [part("a"), part("b", "f")]).map(
+      (c) => c.id,
+    );
+    expect(ids.sort()).toEqual(["a", "b"]);
   });
 });

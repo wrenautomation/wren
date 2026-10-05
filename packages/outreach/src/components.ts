@@ -4,6 +4,8 @@ import { defineComponent } from "@wren/core/components";
 export const OUTREACH_COMPONENTS = [
   defineComponent({
     id: "reach.outreach",
+    stage: "reach",
+    channels: ["dm"],
     name: "Social outreach",
     blurb: "Writes to people on social sites from a warmed account, paced.",
     icon: "people",

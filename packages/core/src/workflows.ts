@@ -3,7 +3,7 @@
  * another workflow as a node (designs/2026-10-05-workflows.md). This module knows the shape and
  * the check, never a workflow; the worker collects Wren's.
  */
-import { type Component, EVENT_KINDS, type Port } from "./components.js";
+import { type Component, EVENT_KINDS, type Port, type Stage } from "./components.js";
 
 /**
  * A custom step: the escape hatch for a one-off integration, kept out of the catalog. Anything
@@ -48,6 +48,7 @@ export interface Workflow {
   blurb: string;
   icon: string;
   for: "client" | "wren";
+  stage: Stage;
   in: Port[];
   out: Port[];
   nodes: WorkflowNode[];
@@ -164,6 +165,32 @@ export function checkWorkflows(
     }
   }
   return out;
+}
+
+/**
+ * Every part a workflow runs, through the workflows it nests but not into a part's own inside:
+ * the part already speaks for it. Its channels, effects and readiness are theirs.
+ */
+export function partsIn(
+  id: string,
+  workflows: readonly Workflow[],
+  components: readonly Component[],
+): Component[] {
+  const parts = new Map(components.map((c) => [c.id, c]));
+  const flows = new Map(workflows.map((w) => [w.id, w]));
+  const out = new Map<string, Component>();
+  const seen = new Set<string>();
+  const walk = (w: Workflow | undefined) => {
+    if (!w || seen.has(w.id)) return;
+    seen.add(w.id);
+    for (const n of w.nodes) {
+      const c = n.uses ? parts.get(n.uses) : undefined;
+      if (c) out.set(c.id, c);
+      else if (n.uses) walk(flows.get(n.uses));
+    }
+  };
+  walk(flows.get(id));
+  return [...out.values()];
 }
 
 const key = (ps: readonly Port[]) =>

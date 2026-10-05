@@ -5,6 +5,8 @@ import { PRODUCT, reactivationSettingsSchema } from "./settings.js";
 export const REACTIVATION_COMPONENTS = [
   defineComponent({
     id: PRODUCT,
+    stage: "reach",
+    channels: ["email"],
     name: "Lead reactivation",
     blurb: "Wakes old leads in the client's CRM and books them in.",
     icon: "cycle",
@@ -53,6 +55,8 @@ export const REACTIVATION_COMPONENTS = [
   }),
   defineComponent({
     id: "video.demo",
+    stage: "reach",
+    channels: ["web"],
     name: "Demo videos",
     blurb: "Records a short demo video for one lead's firm, with a page to watch it.",
     icon: "play",

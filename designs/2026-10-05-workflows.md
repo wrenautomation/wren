@@ -79,7 +79,18 @@ The Workflows app draws any workflow on React Flow, with the layout code the Map
 
 The first canvas is `wren`, opening into outbound, drawn the way William's diagram meant it. Research and close are nested workflows. The no-reply path waits 90 days and goes back into sequences. Reach and the SMS sequence sit on it, held and faded. Planned parts show as "In development" cards.
 
-Beside the canvas, the catalog lists every part grouped by stage with its ports, its hypothesis and whether each line is built. That's where the parts get designed and normalized.
+Beside the canvas, the catalog shows every part and workflow with its ports, its hypothesis and whether each line is built. That's where the parts get designed and normalized.
+
+## The shop
+
+The catalog reads like an app store: filters down the side, search on top, a card per part or workflow. It is the records layer's Shop template, so any record with status or tags fields can use it.
+
+- **Filters:** type (part, workflow), stage, channel, status (ready, coming, in development), installed, effects, and who it's for. Picks within one filter widen the results; filters together narrow them. Each choice shows how many it would return under every other filter but its own. The URL holds every pick, so a filtered shop is a link.
+- **Stages:** find leads, reach out, follow up, book, deliver, content, run Wren.
+- **A workflow's channels, effects and status** come from the parts it runs, through nested workflows. It is only as ready as its least ready part.
+- **A part's inside** shows as that part, never as a second card.
+- **Item page:** what it takes and gives, its inside drawn as a map, how it generalizes (each guess, built or not, and how later uses held), and the workflows it's used in. Parts add needs, settings and install.
+- 30-day counts per port wait for the canvas.
 
 ## The Watch
 
@@ -144,3 +155,4 @@ The end-goal list continues on this base afterwards: custom domains, voice, Sign
 
 - 2026-10-05: Written. William: "unify these ideas, make a beautiful product." Generalization is a hypothesis written after first use, then confirmed or rejected by each later use. Escape hatches: workflows in workflows, parts in parts, one-off integrations. The Watch reads his personal Gmail and wrenautomation.com. Same day: the hypothesis covers expected changes and config needs, and the code ships with those knobs (speed to lead: copy, call wait and call plan as settings, follow-up as a sub-part).
 - 2026-10-05, seed: William asked to seed the catalog with every workflow he has described or we've built, composed from shared sub-parts, and for a full UI to work on the design and normalization of parts with me (speed to lead, power dialers, voicemail, SMS, follow-ups, nurture, organic content). Parts not built yet are catalog components shown as "In development". `Own` became only the custom step. Kinds `text` and `visit` dropped: a text reply is a reply, a visit becomes a lead.
+- 2026-10-05, shop: William wanted the catalog to look like a shop. His picks: sidebar and card grid, parts and workflows together with a type filter, every filter (stage, channel, status, type, effects), and an item page with takes and gives, inside, hypothesis and knobs, and used in.

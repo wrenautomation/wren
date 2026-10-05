@@ -7,6 +7,8 @@ const FOR_WREN = "Posts to Wren's own channels, not per client";
 export const CONTENT_COMPONENTS = [
   defineComponent({
     id: "content.posting",
+    stage: "content",
+    channels: ["social"],
     name: "Posting",
     blurb:
       "Posts to YouTube, LinkedIn, Instagram, TikTok, X and Reddit, and reads back the numbers.",
@@ -35,6 +37,8 @@ export const CONTENT_COMPONENTS = [
   }),
   defineComponent({
     id: "content.planner",
+    stage: "content",
+    channels: ["social"],
     name: "Content plan",
     blurb: "Plans each day's posts per channel.",
     icon: "board",
@@ -57,6 +61,7 @@ export const CONTENT_COMPONENTS = [
   /** The Marketing app's numbers: content, ads, search, texts and the site, read only. */
   defineComponent({
     id: "marketing.stats",
+    stage: "content",
     name: "Marketing numbers",
     blurb: "Every post, ad set, search page, text and site visit as one funnel.",
     icon: "chart",
@@ -93,6 +98,7 @@ export const CONTENT_COMPONENTS = [
 export const CONTENT_WORKFLOWS = [
   defineWorkflow({
     id: "content",
+    stage: "content",
     name: "Organic content",
     blurb: "Plans each day's posts, posts them on every channel and reads the numbers back.",
     icon: "play",

@@ -20,6 +20,7 @@ import { type FileStore, fileNameOf } from "@wren/delivery/files";
 import { DELIVERY_ROUTES, deliveryApi } from "@wren/delivery/restate";
 import { DEMO_NAME, PORTAL_ROUTES, portalApi } from "@wren/reactivation/restate";
 import { COMPONENTS } from "../../worker/src/components.js";
+import { WORKFLOWS } from "../../worker/src/workflows.js";
 
 const demo = process.argv.includes("--demo");
 const port = Number(process.env.PORT ?? 8788);
@@ -45,7 +46,12 @@ const SERVICES: Record<string, { routes: readonly string[]; api: object }> = {
   },
   console: {
     routes: Object.keys(CONSOLE_ROUTES),
-    api: consoleApi({ main, views: EMAIL_CONSOLE_VIEWS, components: COMPONENTS }),
+    api: consoleApi({
+      main,
+      views: EMAIL_CONSOLE_VIEWS,
+      components: COMPONENTS,
+      workflows: WORKFLOWS,
+    }),
   },
 };
 const as = process.argv[process.argv.indexOf("--as") + 1];

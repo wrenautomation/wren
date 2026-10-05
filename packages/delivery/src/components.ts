@@ -5,6 +5,8 @@ import { defineWorkflow } from "@wren/core/workflows";
 export const DELIVERY_COMPONENTS = [
   defineComponent({
     id: "delivery.portal",
+    stage: "deliver",
+    channels: ["web"],
     name: "Client portal",
     blurb: "The project's plan, updates, asks and deliverables, in one place with Wren.",
     icon: "board",
@@ -38,6 +40,8 @@ export const DELIVERY_COMPONENTS = [
   }),
   defineComponent({
     id: "delivery.invoices",
+    stage: "deliver",
+    channels: ["email"],
     name: "Invoices",
     blurb: "Each invoice with a link to pay, and a nudge when one is due.",
     icon: "money",
@@ -66,6 +70,7 @@ export const DELIVERY_COMPONENTS = [
   }),
   defineComponent({
     id: "delivery.reviews",
+    stage: "deliver",
     name: "Reviews",
     blurb: "Asks the client's people how it's going at set moments.",
     icon: "pulse",
@@ -84,6 +89,8 @@ export const DELIVERY_COMPONENTS = [
   }),
   defineComponent({
     id: "delivery.contract",
+    stage: "deliver",
+    channels: ["email"],
     name: "Contract",
     blurb: "The contract to read and sign in the portal, with the signed copy by email.",
     icon: "check",
@@ -104,6 +111,8 @@ export const DELIVERY_COMPONENTS = [
   }),
   defineComponent({
     id: "offers",
+    stage: "run",
+    channels: ["web"],
     name: "Offers",
     blurb: "Every offer Wren pitches, the lander's pages and each deal's terms.",
     icon: "flag",
@@ -127,6 +136,7 @@ export const DELIVERY_COMPONENTS = [
 export const DELIVERY_WORKFLOWS = [
   defineWorkflow({
     id: "onboarding",
+    stage: "deliver",
     name: "Client onboarding",
     blurb:
       "A won client signs, gets the portal and the first invoice, and is asked how it's going.",

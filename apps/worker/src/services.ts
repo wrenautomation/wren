@@ -165,6 +165,7 @@ import type { Logger } from "pino";
 import { COMPONENTS } from "./components.js";
 import { MARKETING_NUMBERS } from "./marketing.js";
 import { reviewRecord } from "./review.js";
+import { WORKFLOWS } from "./workflows.js";
 
 /** The worker's application_name on every connection, kept on each audit event. */
 const WORKER_APP = "wren-worker";
@@ -867,6 +868,7 @@ export async function buildServices(
         reviewRecord(),
       ],
       components: COMPONENTS,
+      workflows: WORKFLOWS,
       // A component's client loops start and stop with it, when this worker binds them.
       bound: (service) => services.some((x) => x.name === service),
       // "Ask for this": a line on the client's running project, where Wren answers, and a ping.

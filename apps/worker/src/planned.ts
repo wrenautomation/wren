@@ -12,6 +12,8 @@ export const PLANNED_COMPONENTS = [
   defineComponent({
     ...planned,
     id: "speed_to_lead",
+    stage: "follow",
+    channels: ["text", "voice"],
     name: "Speed to lead",
     blurb: "Texts a new lead within a minute, calls them, and follows up until they book.",
     icon: "clock",
@@ -43,6 +45,8 @@ export const PLANNED_COMPONENTS = [
   defineComponent({
     ...planned,
     id: "voice.dialer",
+    stage: "reach",
+    channels: ["voice"],
     name: "Power dialer",
     blurb:
       "Calls leads on a call plan and puts whoever answers through to a rep or the voice agent.",
@@ -72,6 +76,8 @@ export const PLANNED_COMPONENTS = [
   defineComponent({
     ...planned,
     id: "voice.voicemail",
+    stage: "reach",
+    channels: ["voice"],
     name: "Voicemail drop",
     blurb: "Leaves a recorded voicemail, straight to the inbox or after no answer.",
     icon: "phone",
@@ -100,6 +106,8 @@ export const PLANNED_COMPONENTS = [
   defineComponent({
     ...planned,
     id: "voice.agent",
+    stage: "follow",
+    channels: ["voice"],
     name: "Voice agent",
     blurb: "Answers and makes calls for the client, qualifies the lead and books the call.",
     icon: "phone",
@@ -127,6 +135,8 @@ export const PLANNED_COMPONENTS = [
   defineComponent({
     ...planned,
     id: "follow_up",
+    stage: "follow",
+    channels: ["email", "text"],
     name: "Follow-up",
     blurb: "Works a quiet lead through touches on every channel: texts, email, voicemail, calls.",
     icon: "cycle",
@@ -150,6 +160,8 @@ export const PLANNED_COMPONENTS = [
   defineComponent({
     ...planned,
     id: "nurture",
+    stage: "follow",
+    channels: ["email"],
     name: "Nurture",
     blurb: "Keeps not-yet leads warm for months with something useful, until they answer.",
     icon: "mail",
@@ -169,6 +181,8 @@ export const PLANNED_COMPONENTS = [
   defineComponent({
     ...planned,
     id: "signals.visitors",
+    stage: "find",
+    channels: ["web"],
     name: "Visitor ID",
     blurb: "Names the firm behind a site visit and finds the right person to write to.",
     icon: "search",
@@ -191,6 +205,8 @@ export const PLANNED_COMPONENTS = [
   defineComponent({
     ...planned,
     id: "signals.triggers",
+    stage: "find",
+    channels: ["social", "web"],
     name: "Triggers",
     blurb:
       "Job changes, hiring, funding and recent posts, each turned into a lead with its reason.",
@@ -210,6 +226,8 @@ export const PLANNED_COMPONENTS = [
   defineComponent({
     ...planned,
     id: "research.social",
+    stage: "find",
+    channels: ["social"],
     name: "Social reads",
     blurb:
       "Reads a firm's recent Instagram and LinkedIn posts, so the dossier and first line can use them.",
@@ -227,6 +245,7 @@ export const PLANNED_COMPONENTS = [
   defineComponent({
     ...planned,
     id: "calls.brief",
+    stage: "book",
     name: "Pre-call brief",
     blurb: "A dossier on the firm, their demo video and an agenda, ready before the call.",
     icon: "board",
@@ -245,6 +264,7 @@ export const PLANNED_COMPONENTS = [
   defineComponent({
     ...planned,
     id: "calls.outcome",
+    stage: "book",
     name: "Call outcome",
     blurb: "Marks how each call went: won, or not yet with the reason.",
     icon: "check",
@@ -265,6 +285,8 @@ export const PLANNED_COMPONENTS = [
   defineComponent({
     ...planned,
     id: "watch",
+    stage: "run",
+    channels: ["email"],
     name: "The Watch",
     blurb: "Reads the inboxes and feeds and shows only what needs you, by rules in plain words.",
     icon: "mail",

@@ -515,7 +515,7 @@ function FilterPicker({
 }
 
 /** The search box: it asks once typing stops. */
-function SearchBox({ place, label }: { place: Place; label: string }) {
+export function SearchBox({ place, label }: { place: Place; label: string }) {
   const [text, setText] = useState(place.params.get("q") ?? "");
   const asked = place.params.get("q") ?? "";
   useEffect(() => {
@@ -1162,7 +1162,7 @@ const ICON =
   "inline-flex size-8 border-0 bg-transparent items-center justify-center text-(--ui-ink-2) hover:bg-(--ui-hover) hover:text-(--ui-ink) disabled:opacity-30 transition-[background-color,color,scale] duration-150 ease-(--ui-ease) active:scale-[0.94]";
 
 /** A record beside its list: up and down walk the list, a link opens it as a page. */
-function Panel({
+export function Panel({
   meta,
   types,
   id,
@@ -1361,6 +1361,7 @@ export function RecordBody({
         f.key !== meta.title &&
         f.key !== meta.subtitle &&
         f.kind !== "status" &&
+        f.group !== SYSTEM &&
         row[f.key] != null,
     )
     .slice(0, 4);

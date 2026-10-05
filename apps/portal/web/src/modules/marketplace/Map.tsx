@@ -18,6 +18,7 @@ export function ComponentMap({ client, team }: PageProps) {
       app: "marketplace",
       asClient: !team,
       record: "console.component",
+      where: { type: ["part"] },
       limit: 200,
     }),
   );

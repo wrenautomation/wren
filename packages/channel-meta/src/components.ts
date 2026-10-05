@@ -4,6 +4,8 @@ import { defineComponent } from "@wren/core/components";
 export const META_COMPONENTS = [
   defineComponent({
     id: "ads.meta",
+    stage: "reach",
+    channels: ["ads"],
     name: "Meta ads",
     blurb: "Launches Meta ads with lead forms and watches their spend and leads.",
     icon: "money",

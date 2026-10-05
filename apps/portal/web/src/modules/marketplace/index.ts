@@ -1,6 +1,7 @@
 /**
- * The Marketplace, in a client's workspace: every component (`console.component`), installed
- * or not for this client. Wren's team installs; a client asks. Never on the demo host: what
+ * The Marketplace, in a client's workspace: a shop of every part and workflow
+ * (`console.component`), filtered by stage, channel, status, type and effects, installed or not
+ * for this client. Wren's team installs; a client asks. Never on the demo host: what
  * a sample firm could install says nothing about it. The Map draws what builds on
  * what. Browser mods list autobrowse's on npm.
  */
@@ -19,10 +20,10 @@ export const marketplace: Module = {
     {
       id: "catalog",
       label: "Catalog",
-      template: "list",
+      template: "shop",
       record: "console.component",
-      empty: { installed: "Nothing installed yet.", ready: "Nothing is ready yet." },
-      columns: ["name", "ready", "installed", "effects"],
+      empty: { installed: "Nothing installed yet." },
+      columns: ["type", "ready", "installed"],
       extras: catalogExtras,
     },
     { id: "map", label: "Map", Page: ComponentMap },

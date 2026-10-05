@@ -57,6 +57,7 @@ const PEOPLE: Port = {
 export const RESEARCH_COMPONENTS = [
   defineComponent({
     id: "research.discovery",
+    stage: "find",
     name: "Firm discovery",
     blurb: "Finds the firms in a niche from public lists and search.",
     icon: "search",
@@ -93,6 +94,7 @@ export const RESEARCH_COMPONENTS = [
   }),
   defineComponent({
     id: "research.crawl",
+    stage: "find",
     name: "Site crawl",
     blurb: "Fetches each firm's site and keeps the pages it read.",
     icon: "download",
@@ -131,6 +133,7 @@ export const RESEARCH_COMPONENTS = [
   }),
   defineComponent({
     id: "research.people",
+    stage: "find",
     name: "People finder",
     blurb: "Reads each firm's pages for the people and roles worth writing to.",
     icon: "people",
@@ -161,6 +164,7 @@ export const RESEARCH_COMPONENTS = [
   }),
   defineComponent({
     id: "research.verify",
+    stage: "find",
     name: "Address check",
     blurb: "Asks the mail servers whether each address takes mail before anyone writes.",
     icon: "check",
@@ -193,6 +197,7 @@ export const RESEARCH_COMPONENTS = [
   }),
   defineComponent({
     id: LEAD_SHEET,
+    stage: "find",
     name: "Lead sheet",
     blurb: "Keeps a niche's list of checked leads full, firm by firm, with who to write to.",
     icon: "board",
@@ -230,6 +235,7 @@ export const RESEARCH_COMPONENTS = [
   }),
   defineComponent({
     id: "research.dossier",
+    stage: "find",
     name: "Firm dossier",
     blurb: "A sourced brief on one firm before a call.",
     icon: "flag",
@@ -261,6 +267,7 @@ export const RESEARCH_COMPONENTS = [
 export const RESEARCH_WORKFLOWS = [
   defineWorkflow({
     id: "research.leads",
+    stage: "find",
     name: "Find leads",
     blurb: "Finds firms, reads their sites, names the people and checks each address.",
     icon: "search",
