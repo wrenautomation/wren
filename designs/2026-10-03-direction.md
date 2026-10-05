@@ -54,17 +54,17 @@ Two things block progress. Revenue waits on inbox placement, and that is mostly 
    - Buttons cover only what William does daily: approve a reply, approve or skip a draft, pause a campaign. Each one calls a handler that already exists.
    - Build each app against a client id, the way reactivation reads a client's own database, so Outbound for Wren can become Outbound for client #1 without a rewrite.
 2. Inbox placement. William's inbound-activity work on the one inbox is in progress. While it heals, the 163 best recruiting firms parked for new domains could get a phone call, since most firms in the list have an office phone.
-3. Free lead fixes, about a day in total:
-   - Add an index for the catch-all lookup. `domainKnowledge` in resolution searches verifications by the part of the email after the @, which no index covers, so each domain it checks reads the whole table. Prod shows 772,592 full scans of verifications, about 14 billion rows read. An expression index removes them and should speed up the 2,007 firms waiting in the queue.
-   - Re-probe the 840 risky leads once the prober's PTR record lands (ticket #EF57722).
-   - Decide a policy for the 910 catch-all leads: send under a small daily cap, or skip.
-   - Decide on model name extraction for the crawled firms with no named person. The 10-01 estimate was about $40 on Gemini Flash. Re-price it on a 200-firm sample first.
+3. Free lead fixes:
+   - Done: the catch-all lookup index (`ix_verifications_email_domain`, on prod).
+   - Done 10-04: name extraction for crawled firms with no named person, on Cohere credits (`cohere-name-extraction` in memory; recruiting and agencies both run).
+   - Waiting: re-probe the 840 risky leads once the prober's PTR record lands (ticket #EF57722).
+   - Decided 10-05: skip the 910 catch-all leads while one inbox sends 10 a day. Revisit when the inbox fleet lands.
 
 ## Next
 
 4. A form for every handler. Declare each Restate handler's input with its zod schema through the SDK's `serde.schema`. Restate's admin API then serves an OpenAPI spec per service, and one portal page renders a form from it. Every handler becomes usable from the portal without a page of its own. The five apps above stay the curated views, and this page reaches everything else.
 5. Turn on pg_stat_statements on the box. Moved into the database audit (`2026-10-03-database-audit.md`), which needs the same restart.
-6. Write client #1's fulfillment spec. It is the first real DSL: which products a client gets, wired to which foundations, plus the client's validated settings. Reactivation already has most of it.
+6. Done as `2026-10-04-outbound-per-client.md` (built). Client #1's fulfillment spec. It is the first real DSL: which products a client gets, wired to which foundations, plus the client's validated settings. Reactivation already has most of it.
 
 ## Building now (William's call, 10-04)
 
@@ -149,3 +149,4 @@ One definition, many faces. A handler's zod schema is the DSL. The CLI command, 
 - 2026-10-03: William named his own view of wren as the bottleneck, and that view is also the sales demo. The console moved to Now #1. Metabase was dropped because it would be a second place to look. The DigitalOcean move was parked, since it about doubles today's bill and Books already makes the bill readable. Open-source alternatives were checked, with verdicts under Tools.
 - 2026-10-03: before the console, a database audit (`2026-10-03-database-audit.md`). The console's stack and patterns are in `2026-10-03-console-ui.md`: shadcn/ui on Base UI, composite pages of widgets, one access check that can later carry paid features.
 - 2026-10-04: William changed the call on Later and Parked: copy evolution, CAC/LTV/churn, componentizing, the marketplace and the brand palette are built now, not deferred. Each has a doc dated 10-04. He also approved spending Cohere credits on simple model tasks, name extraction first.
+- 2026-10-05: audit against William's notes. Now #3 closed except the PTR re-probe. Catch-alls skipped until the fleet. Next #6 covered by outbound-per-client. New docs from his 10-05 asks: `2026-10-05-access.md` (roles and RBAC), `2026-10-05-marketing-app.md`, `2026-10-05-restate-self-host.md` (Restate moves to the pg box, with the cuts), and autobrowse `designs/2026-10-05-teach-mode.md` (teach a chore by hand, replay it as a walk).
