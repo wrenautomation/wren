@@ -75,6 +75,12 @@ or ten clicks) becomes one open idea for the content loop (`wren content ideas`,
 <draftId>` turns a published post into a spec. Design:
 `designs/2026-09-22-meta-ads.md`.
 
+## SMS
+
+`wren sms` runs Wren's texts; `wren --client <id> sms ...` runs a client's, on its
+database, once `sms.texts` is installed. Steps: `walkthrough/05-sms.md`. Design:
+`designs/2026-09-27-phone-channel.md`, `designs/2026-10-04-outbound-per-client.md`.
+
 ## Chores through autobrowse
 
 `restateDo(ctx, wake)({ goal: "upload this to youtube", inputs: { file } })` from a

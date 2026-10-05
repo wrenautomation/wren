@@ -6,6 +6,7 @@
   "exports": {
     ".": "./src/index.ts",
     "./components": "./src/components.ts",
+    "./console-routes": "./src/console-routes.ts",
     "./restate": "./src/restate/index.ts",
     "./schema": "./src/schema.ts",
     "./webhook": "./src/webhook.ts"

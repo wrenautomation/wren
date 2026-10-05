@@ -3,6 +3,8 @@
  * straight to Postgres; writes go through the SmsDesk / SmsSender / SmsWatch
  * Restate services, so every one is journaled. Nothing here sends by itself:
  * the SmsSender loop does, and only when WREN_SMS_LIVE lets a real provider.
+ * With `--client`, a client's texts: its database, its desk calls, its
+ * `SmsSender/<client>/fleet` and `SmsWatch/<client>/daily` (`sms.texts` installed).
  */
 import { readFile } from "node:fs/promises";
 import * as clients from "@restatedev/restate-sdk-clients";
@@ -30,6 +32,7 @@ import {
   WATCH_KEY,
 } from "@wren/channel-sms/restate";
 import { ingressOf, type Settings } from "@wren/config";
+import { clientKey } from "@wren/core/restate";
 import type { Db } from "@wren/db";
 import { SMS_SEQUENCES } from "@wren/niches";
 import type { Command } from "commander";
@@ -53,8 +56,20 @@ function oneOf<T extends string>(what: string, value: string, allowed: readonly 
 export function registerSms(program: Command, withDb: WithDb, settings: Settings): Command {
   const ingress = () => clients.connect(ingressOf(settings));
   const desk = () => ingress().serviceClient<SmsDeskService>({ name: "SmsDesk" });
-  const sender = () => ingress().objectClient<SmsSender>({ name: "SmsSender" }, SENDER_KEY);
-  const watch = () => ingress().objectClient<SmsWatchObject>({ name: "SmsWatch" }, WATCH_KEY);
+  /** `wren --client <id>`: that client's texts; none = Wren's. */
+  const client = () => program.opts<{ client?: string }>().client;
+  /** Spread into a desk request: the client, when there is one. */
+  const scope = () => {
+    const id = client();
+    return id ? { client: id } : {};
+  };
+  const keyOf = (unit: string) => {
+    const id = client();
+    return id ? clientKey(id, unit) : unit;
+  };
+  const sender = () => ingress().objectClient<SmsSender>({ name: "SmsSender" }, keyOf(SENDER_KEY));
+  const watch = () =>
+    ingress().objectClient<SmsWatchObject>({ name: "SmsWatch" }, keyOf(WATCH_KEY));
 
   const cmd = program
     .command("sms")
@@ -120,9 +135,12 @@ export function registerSms(program: Command, withDb: WithDb, settings: Settings
     .command("list", { isDefault: true })
     .description("Each one, filled or empty, rendered with a sample name and its segment count")
     .action(async () => {
-      const views = await withDb((db) =>
-        listTemplates(db, slotsOf(SMS_SEQUENCES.values()), settings.smsSenderName),
-      );
+      // A client's sign their own name, so its desk renders them.
+      const views = client()
+        ? await desk().templates(scope())
+        : await withDb((db) =>
+            listTemplates(db, slotsOf(SMS_SEQUENCES.values()), settings.smsSenderName),
+          );
       for (const v of views) {
         console.log(`${v.key}\t${v.purpose}`);
         if (!v.body) {
@@ -146,12 +164,14 @@ export function registerSms(program: Command, withDb: WithDb, settings: Settings
       if ((o.body === undefined) === (o.file === undefined))
         throw new Error("give exactly one of --body or --file");
       const body = o.file ? await readFile(o.file, "utf8") : (o.body as string);
-      json(await desk().setTemplate({ key, body, by: "cli" }));
+      json(await desk().setTemplate({ key, body, by: "cli", ...scope() }));
     });
   tpl
     .command("clear <key>")
     .description("Empty one: that text stops being sent (a keyword reply falls back to Telnyx's)")
-    .action(async (key: string) => json(await desk().setTemplate({ key, body: "", by: "cli" })));
+    .action(async (key: string) =>
+      json(await desk().setTemplate({ key, body: "", by: "cli", ...scope() })),
+    );
 
   cmd
     .command("forms")
@@ -165,7 +185,7 @@ export function registerSms(program: Command, withDb: WithDb, settings: Settings
     .description(
       "Queue day-before texts for calls booked on cal.com, now (SmsWatch does this every 30 min)",
     )
-    .action(async () => json(await desk().reminders()));
+    .action(async () => json(await desk().reminders(scope())));
 
   cmd
     .command("add <phone>")
@@ -180,6 +200,7 @@ export function registerSms(program: Command, withDb: WithDb, settings: Settings
         basis,
         why: o.why,
         ...(o.niche ? { niche: o.niche } : {}),
+        ...scope(),
       });
       console.log(
         `${r.created ? "added" : "already there"}: contact ${r.contactId} ${formatPhone(r.e164)}`,
@@ -198,6 +219,7 @@ export function registerSms(program: Command, withDb: WithDb, settings: Settings
         await desk().lift({
           ...(o.niche ? { niche: o.niche } : {}),
           ...(o.limit ? { limit: Number(o.limit) } : {}),
+          ...scope(),
         }),
       ),
     );
@@ -216,6 +238,7 @@ export function registerSms(program: Command, withDb: WithDb, settings: Settings
           sequence: o.sequence,
           limit,
           ...(o.niche ? { niche: o.niche } : {}),
+          ...scope(),
         }),
       );
     });
@@ -311,7 +334,7 @@ export function registerSms(program: Command, withDb: WithDb, settings: Settings
     .command("reply <contactId> <body...>")
     .description("Text a thread from its sticky number (leaves on the next tick)")
     .action(async (id: string, body: string[]) => {
-      const r = await desk().reply({ contactId: Number(id), body: body.join(" ") });
+      const r = await desk().reply({ contactId: Number(id), body: body.join(" "), ...scope() });
       console.log(`queued message ${r.messageId}`);
     });
 
@@ -322,6 +345,7 @@ export function registerSms(program: Command, withDb: WithDb, settings: Settings
       await desk().label({
         messageId: Number(id),
         disposition: oneOf<Disposition>("disposition", d, DISPOSITIONS),
+        ...scope(),
       });
       console.log("labelled");
     });

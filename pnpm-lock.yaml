@@ -231,6 +231,9 @@ importers:
       '@wren/channel-email':
         specifier: workspace:*
         version: link:../../packages/channel-email
+      '@wren/channel-sms':
+        specifier: workspace:*
+        version: link:../../packages/channel-sms
       '@wren/config':
         specifier: workspace:*
         version: link:../../packages/config

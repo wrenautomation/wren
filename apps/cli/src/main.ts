@@ -91,9 +91,9 @@ async function withClientDb<T>(fn: (db: Db, client: Client) => Promise<T>): Prom
  * Commands that honour `--client`. Everything else runs Wren's own loops or the
  * registry, so `--client` there is refused rather than silently ignored.
  */
-const CLIENT_SCOPED = new Set(["db", "email", "crm", "audit", "delivery"]);
-/** Under a client-scoped command, the parts that still cover every database. */
-const EVERY_DATABASE = new Set(["audit sealer"]);
+const CLIENT_SCOPED = new Set(["db", "email", "crm", "audit", "delivery", "sms"]);
+/** Under a client-scoped command, the parts that cover every database or only Wren's. */
+const NOT_PER_CLIENT = new Set(["audit sealer", "sms numbers", "sms forms"]);
 
 const program = new Command("wren")
   .description("Wren automation ops")
@@ -106,7 +106,7 @@ program.hook("preAction", (_root, action) => {
   app = `wren-cli:${path.join(" ")}`;
   if (!program.opts<{ client?: string }>().client) return;
   const top = path[0] ?? "";
-  if (!CLIENT_SCOPED.has(top) || EVERY_DATABASE.has(path.slice(0, 2).join(" ")))
+  if (!CLIENT_SCOPED.has(top) || NOT_PER_CLIENT.has(path.slice(0, 2).join(" ")))
     throw new Error(`\`wren ${path.slice(0, 2).join(" ")}\` does not take --client`);
 });
 
@@ -212,7 +212,7 @@ registerEvolve(program, withMainDb, settings, rootDir);
 registerPages(program, withMainDb, settings);
 registerContent(program, withMainDb, settings);
 registerAds(program, withMainDb, settings);
-registerSms(program, withMainDb, settings);
+registerSms(program, withDb, settings);
 registerReach(program, withMainDb, settings);
 registerBooks(program, withMainDb, settings, rootDir);
 registerStudy(program, withMainDb, settings, rootDir);

@@ -88,6 +88,7 @@ const ONE: Record<string, (id: string, input: Input) => [string, Input]> = {
     { id: Number(id), ...(body ? { body } : {}) },
   ],
   "email/drop": (id) => ["email/drop", { id: Number(id) }],
+  "sms/reply": (id, { body }) => ["sms/reply", { id: Number(id), body }],
   "email/pause": (id, { reason }) => ["email/pause", { target: id, reason }],
   "email/resume": (id) => ["email/resume", { target: id }],
   "delivery/done": (id) => ["delivery/done", step(id)],

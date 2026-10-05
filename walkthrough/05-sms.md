@@ -65,6 +65,14 @@ alert comes right away. After that, each reply or STOP alerts every device that 
 it on, and a tap opens the thread. Needs `WREN_SMS_PUSH_PUBLIC_KEY` and
 `WREN_SMS_PUSH_PRIVATE_KEY` (`npx web-push generate-vapid-keys`).
 
+## A client's texts
+
+`wren --client <id> sms ...` runs templates, add, lift, enroll, threads, thread, reply,
+stats, queue and watch on that client's database. Its loops are `SmsSender/<id>/fleet`
+and `SmsWatch/<id>/daily`. Each is refused until `sms.texts` is installed. Numbers,
+forms and push stay Wren's. In the portal, the client's Texts app lists its threads;
+only Wren's team texts back.
+
 ## Knobs
 
 `WREN_SMS_WINDOW` (10:00-17:00 lead's clock), `WREN_SMS_DAYS` (1-5),

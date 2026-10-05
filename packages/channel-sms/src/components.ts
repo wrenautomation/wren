@@ -17,8 +17,9 @@ export const SMS_COMPONENTS = [
     settings: textsSettingsSchema,
     requires: { accounts: ["telnyx"] },
     provides: {
-      services: ["SmsSender", "SmsEvents", "SmsDesk", "SmsWatch"],
+      services: ["SmsSender", "SmsEvents", "SmsDesk", "SmsWatch", "SmsConsole"],
       loops: ["SmsSender", "SmsWatch"],
+      apps: ["texts"],
     },
     effects: ["sends", "spends"],
     clientLoops: (client) => [

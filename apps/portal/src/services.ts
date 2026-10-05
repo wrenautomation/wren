@@ -6,6 +6,7 @@
  */
 import { BOOKS_CONSOLE_ROUTES, BOOKS_CONSOLE_WRITES } from "@wren/books/console-routes";
 import { EMAIL_CONSOLE_ROUTES, EMAIL_CONSOLE_WRITES } from "@wren/channel-email/console-routes";
+import { SMS_CONSOLE_ROUTES, SMS_CONSOLE_WRITES } from "@wren/channel-sms/console-routes";
 import type { Need } from "@wren/core/access";
 import { CONSOLE_ROUTES, CONSOLE_WRITES } from "@wren/core/console-routes";
 import { DELIVERY_ROUTES, DELIVERY_WRITES } from "@wren/delivery/routes";
@@ -31,6 +32,8 @@ export const SERVICES: Readonly<Record<string, Service>> = {
   console: service("ConsolePortal", CONSOLE_ROUTES, CONSOLE_WRITES),
   // Warm replies, inboxes, campaigns and copy experiments; a client's lead sheet.
   email: service("EmailConsole", EMAIL_CONSOLE_ROUTES, EMAIL_CONSOLE_WRITES),
+  // A client's texting threads (O4); replies are Wren's team only.
+  sms: service("SmsConsole", SMS_CONSOLE_ROUTES, SMS_CONSOLE_WRITES),
   // Where an account's spend counts.
   books: service("BooksConsole", BOOKS_CONSOLE_ROUTES, BOOKS_CONSOLE_WRITES),
 };

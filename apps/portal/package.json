@@ -27,6 +27,7 @@
     "@vitejs/plugin-react": "6.1.1",
     "@wren/books": "workspace:*",
     "@wren/channel-email": "workspace:*",
+    "@wren/channel-sms": "workspace:*",
     "@wren/config": "workspace:*",
     "@wren/core": "workspace:*",
     "@wren/db": "workspace:*",

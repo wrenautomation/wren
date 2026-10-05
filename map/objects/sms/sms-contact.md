@@ -38,10 +38,11 @@ Citations: `packages/channel-sms/src/schema.ts:149`
 
 | Surface | Role |
 |---|---|
-| `SmsDesk.lift/addContact/enroll` | writes |
+| `SmsDesk.lift/addContact/enroll` (with `client`: that client's database, needs `sms.texts`) | writes |
 | `SmsWatch` form pass, `SmsDesk.forms`, `wren sms forms` | writes form applicants |
 | `SmsEvents.ingest` | writes state on STOP/reply |
-| phone PWA, `wren sms threads` | read, mark read |
+| phone PWA, `wren [--client X] sms threads` | read, mark read |
+| portal app `texts`, `SmsConsole.records*` / `reply` (team only) | reads `sms.thread`, replies |
 
 ## See
 

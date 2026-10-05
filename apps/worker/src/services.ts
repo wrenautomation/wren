@@ -96,7 +96,13 @@ import {
   SmsNotifier,
   TelnyxProvider,
 } from "@wren/channel-sms";
-import { makeSmsDesk, makeSmsEvents, makeSmsSender, makeSmsWatch } from "@wren/channel-sms/restate";
+import {
+  makeSmsConsole,
+  makeSmsDesk,
+  makeSmsEvents,
+  makeSmsSender,
+  makeSmsWatch,
+} from "@wren/channel-sms/restate";
 import { tiktokContent } from "@wren/channel-tiktok";
 import { xContent } from "@wren/channel-x";
 import { youtubeContent } from "@wren/channel-youtube";
@@ -764,6 +770,7 @@ export async function buildServices(
     makeSmsEvents(sms),
     makeSmsDesk(clientTexts),
     makeSmsWatch(clientTexts),
+    makeSmsConsole({ db, open: openClient }),
   );
   // Cold outreach on Reddit and LinkedIn, over the Mac's desk worker as each
   // reach account. Always bound: the sender and watch are off until

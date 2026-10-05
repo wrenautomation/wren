@@ -7,7 +7,7 @@ import * as clients from "@restatedev/restate-sdk-clients";
 import type { RestateTestEnvironment } from "@restatedev/restate-sdk-testcontainers";
 import { ingressOf } from "@wren/config";
 import { runs } from "@wren/core";
-import { addClient } from "@wren/core/clients";
+import { addClient, addOperator } from "@wren/core/clients";
 import type { PassOutcome } from "@wren/core/restate";
 import { startTestRestate } from "@wren/core/testing";
 import { cachedDb, clientDatabaseUrl, type Db } from "@wren/db";
@@ -18,18 +18,22 @@ import { clientSms } from "../../src/clients.js";
 import { DEFAULT_HEALTH } from "../../src/health.js";
 import { FakeProvider } from "../../src/provider.js";
 import {
+  makeSmsConsole,
   makeSmsDesk,
   makeSmsEvents,
+  makeSmsSender,
   makeSmsWatch,
+  type SmsConsoleService,
   type SmsDeps,
   type SmsDeskService,
   type SmsEventsService,
   type SmsWatchObject,
+  smsConsoleApi,
   type WatchStats,
 } from "../../src/restate/index.js";
 import { smsContacts, smsEvents, smsMessages, smsTemplates } from "../../src/schema.js";
 import { DAY_BEFORE } from "../../src/templates.js";
-import { numbers, OPEN, POLICY, SEQUENCES } from "./fixtures.js";
+import { fillTemplates, numbers, OPEN, POLICY, SEQUENCES } from "./fixtures.js";
 
 let pg: TestPostgres;
 let env: RestateTestEnvironment;
@@ -82,7 +86,13 @@ beforeAll(async () => {
     }),
   };
   env = await startTestRestate({
-    services: [makeSmsEvents(deps), makeSmsDesk(deps), makeSmsWatch(deps)],
+    services: [
+      makeSmsEvents(deps),
+      makeSmsDesk(deps),
+      makeSmsSender(deps),
+      makeSmsWatch(deps),
+      makeSmsConsole({ db: pg.db, open: (c) => open(c.id) }),
+    ],
     alwaysReplay: true,
   });
 }, 180_000);
@@ -160,5 +170,70 @@ describe("texts per client", () => {
     expect(await acme.select().from(smsEvents)).toHaveLength(1);
     expect(await pg.db.select().from(smsEvents)).toEqual([]);
     await expect(svc.ingestFor({ client: "ghost", body: ev })).rejects.toThrow("no such client");
+  });
+});
+
+describe("the desk on a client's texts", () => {
+  const desk = () => ingress().serviceClient<SmsDeskService>({ name: "SmsDesk" });
+
+  it("adds, enrolls and replies in the client's database; refused without texts", async () => {
+    await fillTemplates(acme);
+    const added = await desk().addContact({
+      client: "acme",
+      phone: "+12125550142",
+      basis: "opt_in",
+      why: "ticked the texts box",
+    });
+    expect(added.created).toBe(true);
+    const stats = await desk().enroll({ client: "acme", sequence: "agencies-sms", limit: 5 });
+    expect(stats.enrolled).toBe(1);
+    const mine = await acme.select().from(smsContacts);
+    expect(mine.find((c) => c.e164 === "+12125550142")?.state).toBe("enrolled");
+    expect(await pg.db.select().from(smsContacts)).toEqual([]);
+
+    await desk().reply({ client: "acme", contactId: added.contactId, body: "synthetic hello" });
+    const sent = await acme.select().from(smsMessages);
+    expect(sent.map((m) => m.body)).toContain("synthetic hello");
+    // A thread shows once a text is past the queue, or a hand-typed one is in it.
+    const threads = await desk().threads({ client: "acme" });
+    expect(threads.map((t) => t.e164)).toContain("+12125550142");
+
+    await expect(
+      desk().enroll({ client: "beta", sequence: "agencies-sms", limit: 5 }),
+    ).rejects.toThrow("texts are not installed");
+    await expect(
+      desk().addContact({ client: "beta", phone: "+12125550143", basis: "opt_in", why: "x" }),
+    ).rejects.toThrow("texts are not installed");
+  });
+
+  it("the portal reads the client's threads; replies are the team's", async () => {
+    const operator = { viewer: { email: "op@example.test", operator: true } };
+    const api = smsConsoleApi({ db: pg.db, open: (c) => open(c.id) });
+    const page = await api.recordsList({ ...operator, client: "acme", record: "sms.thread" });
+    expect(page.rows.length).toBeGreaterThan(0);
+    await expect(api.recordsTypes({ ...operator, client: "beta" })).rejects.toMatchObject({
+      status: 404,
+    });
+    await expect(
+      api.recordsList({ viewer: { email: "amy@beta.test" }, client: "acme", record: "sms.thread" }),
+    ).rejects.toMatchObject({ status: 403 });
+    await expect(
+      api.replying({ viewer: { email: "amy@acme.test" }, client: "acme", id: 1, body: "hi" }),
+    ).rejects.toMatchObject({ status: 403 });
+    await expect(
+      api.replying({ ...operator, client: "acme", id: 1, body: "  " }),
+    ).rejects.toMatchObject({ status: 400 });
+    // Through Restate the guard reads the team fresh: an operators row.
+    await addOperator(pg.db, "op@example.test");
+    const id = Number(page.rows.find((r) => r.state === "enrolled")?.id);
+    const stopped = Number(page.rows.find((r) => r.state === "opted_out")?.id);
+    const svc = ingress().serviceClient<SmsConsoleService>({ name: "SmsConsole" });
+    // The desk's refusal is the viewer's answer: a STOP is never texted.
+    await expect(
+      svc.reply({ ...operator, client: "acme", id: stopped, body: "synthetic" }),
+    ).rejects.toThrow("opted out");
+    await svc.reply({ ...operator, client: "acme", id, body: "synthetic from the portal" });
+    const sent = await acme.select().from(smsMessages);
+    expect(sent.map((m) => m.body)).toContain("synthetic from the portal");
   });
 });

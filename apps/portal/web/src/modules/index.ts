@@ -6,10 +6,19 @@ import type { Module } from "../module.js";
 import { account } from "./account/index.js";
 import { marketplace } from "./marketplace/index.js";
 import { reactivation } from "./reactivation/index.js";
+import { texts } from "./texts/index.js";
 import { work } from "./work/index.js";
 import { leads, WREN_APPS } from "./wren/index.js";
 
-export const MODULES: Module[] = [work, reactivation, leads, marketplace, ...WREN_APPS, account];
+export const MODULES: Module[] = [
+  work,
+  reactivation,
+  leads,
+  texts,
+  marketplace,
+  ...WREN_APPS,
+  account,
+];
 
 /**
  * A workspace's apps: Wren's own in Wren's. In a client's, the platform's and those of the

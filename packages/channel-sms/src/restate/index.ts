@@ -15,13 +15,16 @@
  *
  * A client's texts (`sms.texts`) run as `SmsSender/<client>/fleet` and
  * `SmsWatch/<client>/daily` on its database and numbers; its webhooks come in
- * through `SmsEvents.ingestFor`. The desk's templates and reminders take `client`.
+ * through `SmsEvents.ingestFor`. Every desk handler on a client's data takes `client`:
+ * its database and numbers, refused unless `sms.texts` is installed. Wren's own numbers,
+ * forms and the phone app's push stay Wren's.
  */
 import * as restate from "@restatedev/restate-sdk";
 import { recordedRun } from "@wren/core";
 import { findClient } from "@wren/core/clients";
 import { type Notifier, namedFor } from "@wren/core/notify";
 import {
+  clientKey,
   clientOfKey,
   makeLoopObject,
   NO_INPUT,
@@ -311,7 +314,9 @@ export interface NumbersView {
   }[];
 }
 
-const CONTACT = z.looseObject({ contactId: z.number() });
+/** Empty = Wren's; a client id = that client's texts (`sms.texts` installed). */
+const CLIENT_ID = z.string().nullish().describe("A client's texts; empty = Wren's");
+const CONTACT = z.looseObject({ contactId: z.number(), client: CLIENT_ID });
 const NUMBER = z.looseObject({ e164: z.string().describe("The number, as +15551234567") });
 const NICHE = z.string().nullish();
 const THREADS = z
@@ -319,6 +324,7 @@ const THREADS = z
     filter: z.enum(["all", "unread", "replied"]).nullish(),
     limit: z.number().nullish(),
     offset: z.number().nullish(),
+    client: CLIENT_ID,
   })
   .nullish();
 const START = z.looseObject({
@@ -333,32 +339,42 @@ const SUBSCRIBE = z.looseObject({
   }),
   by: z.string().describe("The operator's email"),
 });
-const LABEL = z.looseObject({ messageId: z.number(), disposition: z.enum(DISPOSITIONS) });
-/** Empty = Wren's; a client id = that client's texts (`sms.texts` installed). */
-const CLIENT = z
-  .looseObject({ client: z.string().nullish().describe("A client's texts; empty = Wren's") })
-  .nullish();
+const LABEL = z.looseObject({
+  messageId: z.number(),
+  disposition: z.enum(DISPOSITIONS),
+  client: CLIENT_ID,
+});
+const CLIENT = z.looseObject({ client: CLIENT_ID }).nullish();
 const SET_TEMPLATE = z.looseObject({
   key: z.string(),
   body: z.string().describe("Empty clears it"),
   by: z.string().describe("Who saved it"),
-  client: z.string().nullish().describe("A client's texts; empty = Wren's"),
+  client: CLIENT_ID,
 });
-const STATS = z.looseObject({ days: z.number().nullish(), niche: NICHE }).nullish();
+const STATS = z
+  .looseObject({ days: z.number().nullish(), niche: NICHE, client: CLIENT_ID })
+  .nullish();
 const ADD_CONTACT = z.looseObject({
   phone: z.string(),
   basis: z.enum(CONTACT_BASES).describe("Published on their site, or they opted in"),
   why: z.string(),
   niche: NICHE,
+  client: CLIENT_ID,
 });
 const LIFT = z
-  .looseObject({ niche: NICHE, limit: z.number().nullish().describe("Documents to read") })
+  .looseObject({
+    niche: NICHE,
+    limit: z.number().nullish().describe("Documents to read"),
+    client: CLIENT_ID,
+  })
   .nullish();
 const ENROLL = z.looseObject({
   sequence: z.string(),
   niche: NICHE,
   limit: z.number().describe("Contacts to enroll"),
+  client: CLIENT_ID,
 });
+type ForClient = { client?: string | null };
 
 export function makeSmsDesk(deps: SmsDeps) {
   const terminal = async <T>(fn: () => Promise<T>): Promise<T> => {
@@ -379,23 +395,32 @@ export function makeSmsDesk(deps: SmsDeps) {
         { input: THREADS },
         async (
           ctx: restate.Context,
-          req: { filter?: ThreadFilter; limit?: number; offset?: number } = {},
-        ): Promise<ThreadSummary[]> => ctx.run("threads", () => listThreads(deps.db, req ?? {})),
+          req: { filter?: ThreadFilter; limit?: number; offset?: number } & ForClient = {},
+        ): Promise<ThreadSummary[]> => {
+          const d = await deskDeps(ctx, deps, req?.client);
+          const { client: _, ...ask } = req ?? {};
+          return ctx.run("threads", () => listThreads(d.db, ask));
+        },
       ),
       thread: serviceHandler(
         { input: CONTACT },
-        async (ctx: restate.Context, req: { contactId: number }): Promise<Thread | null> => {
+        async (
+          ctx: restate.Context,
+          req: { contactId: number } & ForClient,
+        ): Promise<Thread | null> => {
+          const d = await deskDeps(ctx, deps, req.client);
           const now = await nowOf(ctx);
           return ctx.run("thread", () =>
-            getThread(deps.db, req.contactId, { now, cap: deps.policy.monthlyPerContact }),
+            getThread(d.db, req.contactId, { now, cap: d.policy.monthlyPerContact }),
           );
         },
       ),
       markRead: serviceHandler(
         { input: CONTACT },
-        async (ctx: restate.Context, req: { contactId: number }): Promise<void> => {
+        async (ctx: restate.Context, req: { contactId: number } & ForClient): Promise<void> => {
+          const d = await deskDeps(ctx, deps, req.client);
           const now = await nowOf(ctx);
-          await ctx.run("mark read", () => markRead(deps.db, req.contactId, now));
+          await ctx.run("mark read", () => markRead(d.db, req.contactId, now));
         },
       ),
       /** Queue a text on a thread; the sender loop is nudged so it leaves within seconds. */
@@ -403,24 +428,25 @@ export function makeSmsDesk(deps: SmsDeps) {
         { input: CONTACT.extend({ body: z.string() }), effect: "sends" },
         async (
           ctx: restate.Context,
-          req: { contactId: number; body: string },
+          req: { contactId: number; body: string } & ForClient,
         ): Promise<{ messageId: number }> => {
+          const d = await deskDeps(ctx, deps, req.client);
           const now = await nowOf(ctx);
           const msg = await ctx.run("queue", () =>
             terminal(() =>
-              queueManual(deps.db, {
+              queueManual(d.db, {
                 contactId: req.contactId,
                 body: req.body,
                 now,
-                policy: deps.policy,
+                policy: d.policy,
               }),
             ),
           );
-          await ctx.run("mark read", () => markRead(deps.db, req.contactId, now));
+          await ctx.run("mark read", () => markRead(d.db, req.contactId, now));
           ctx
             .objectSendClient<{ sync: (c: restate.ObjectContext) => Promise<unknown> }>(
               { name: "SmsSender" },
-              SENDER_KEY,
+              req.client ? clientKey(req.client, SENDER_KEY) : SENDER_KEY,
             )
             .sync();
           return { messageId: msg.id };
@@ -485,10 +511,14 @@ export function makeSmsDesk(deps: SmsDeps) {
         { input: LABEL },
         async (
           ctx: restate.Context,
-          req: { messageId: number; disposition: Disposition },
+          req: { messageId: number; disposition: Disposition } & ForClient,
         ): Promise<void> => {
+          const d = await deskDeps(ctx, deps, req.client);
           const now = await nowOf(ctx);
-          await ctx.run("label", () => terminal(() => labelReply(deps.db, { ...req, now })));
+          const { messageId, disposition } = req;
+          await ctx.run("label", () =>
+            terminal(() => labelReply(d.db, { messageId, disposition, now })),
+          );
         },
       ),
       numbers: serviceHandler(
@@ -585,11 +615,12 @@ export function makeSmsDesk(deps: SmsDeps) {
         { input: STATS },
         async (
           ctx: restate.Context,
-          req: { days?: number; niche?: string } = {},
+          req: { days?: number; niche?: string } & ForClient = {},
         ): Promise<SmsStats> => {
+          const d = await deskDeps(ctx, deps, req?.client);
           const now = await nowOf(ctx);
           const since = new Date(now.getTime() - (req?.days ?? 30) * 86_400_000);
-          return ctx.run("stats", () => smsStats(deps.db, { since, niche: req?.niche ?? null }));
+          return ctx.run("stats", () => smsStats(d.db, { since, niche: req?.niche ?? null }));
         },
       ),
       /** A number added by hand, with the reason it may be texted. Enroll picks it up like any `new` contact. */
@@ -597,33 +628,38 @@ export function makeSmsDesk(deps: SmsDeps) {
         { input: ADD_CONTACT },
         async (
           ctx: restate.Context,
-          req: { phone: string; basis: ContactBasis; why: string; niche?: string },
-        ): Promise<{ contactId: number; e164: string; created: boolean }> =>
-          ctx.run("add contact", async () => {
-            const { contact, created } = await terminal(() => addContact(deps.db, req));
-            return { contactId: contact.id, e164: contact.e164, created };
-          }),
+          req: { phone: string; basis: ContactBasis; why: string; niche?: string } & ForClient,
+        ): Promise<{ contactId: number; e164: string; created: boolean }> => {
+          const d = await deskDeps(ctx, deps, req.client);
+          const { client: _, ...contact } = req;
+          return ctx.run("add contact", async () => {
+            const got = await terminal(() => addContact(d.db, contact));
+            return { contactId: got.contact.id, e164: got.contact.e164, created: got.created };
+          });
+        },
       ),
       /** Lift numbers from crawled pages: plain rows, no spend. Held niches are never read. */
       lift: serviceHandler(
         { input: LIFT },
         async (
           ctx: restate.Context,
-          req: { niche?: string; limit?: number } = {},
-        ): Promise<LiftStats> =>
-          ctx.run("lift", async () => {
+          req: { niche?: string; limit?: number } & ForClient = {},
+        ): Promise<LiftStats> => {
+          const d = await deskDeps(ctx, deps, req?.client);
+          return ctx.run("lift", async () => {
             const { stats } = await recordedRun(
-              deps.db,
+              d.db,
               { command: "sms lift", argv: { ...req }, niche: req?.niche ?? null },
               () =>
-                liftPhones(deps.db, {
+                liftPhones(d.db, {
                   niche: req?.niche ?? null,
-                  heldNiches: deps.heldNiches,
+                  heldNiches: d.heldNiches,
                   limit: req?.limit ?? null,
                 }),
             );
             return stats;
-          }),
+          });
+        },
       ),
       /** The form follow-up now (SmsWatch runs it every 30 minutes). */
       forms: serviceHandler(
@@ -672,32 +708,36 @@ export function makeSmsDesk(deps: SmsDeps) {
           });
         },
       ),
-      /** Enroll: carrier lookups cost a fraction of a cent each, so it is journaled whole. */
+      /**
+       * Enroll: carrier lookups cost a fraction of a cent each, so it is journaled whole. A
+       * client's runs on its database and messaging profile, refused unless texts are installed.
+       */
       enroll: serviceHandler(
         { input: ENROLL, effect: "sends" },
         async (
           ctx: restate.Context,
-          req: { sequence: string; niche?: string; limit: number },
+          req: { sequence: string; niche?: string; limit: number } & ForClient,
         ): Promise<EnrollStats> => {
-          const sequence = deps.sequences.get(req.sequence);
+          const d = await deskDeps(ctx, deps, req.client);
+          const sequence = d.sequences.get(req.sequence);
           if (!sequence)
             throw new restate.TerminalError(
-              `no sms sequence ${req.sequence} (have: ${[...deps.sequences.keys()].join(", ")})`,
+              `no sms sequence ${req.sequence} (have: ${[...d.sequences.keys()].join(", ")})`,
             );
           const now = await nowOf(ctx);
           return ctx.run("enroll", async () => {
             const { stats } = await terminal(() =>
               recordedRun(
-                deps.db,
+                d.db,
                 { command: "sms enroll", argv: { ...req }, niche: req.niche ?? null },
                 (run) =>
-                  enroll(deps.db, {
+                  enroll(d.db, {
                     sequence,
-                    policy: deps.policy,
-                    provider: deps.provider,
-                    senderName: deps.senderName,
+                    policy: d.policy,
+                    provider: d.provider,
+                    senderName: d.senderName,
                     niche: req.niche ?? null,
-                    heldNiches: deps.heldNiches,
+                    heldNiches: d.heldNiches,
                     limit: req.limit,
                     now,
                     runId: run.id,
@@ -842,4 +882,5 @@ export function makeSmsWatch(wren: SmsDeps) {
 export type SmsSender = ReturnType<typeof makeSmsSender>;
 export type SmsEventsService = ReturnType<typeof makeSmsEvents>;
 export type SmsDeskService = ReturnType<typeof makeSmsDesk>;
+export { makeSmsConsole, type SmsConsoleService, smsConsoleApi } from "./console.js";
 export type SmsWatchObject = ReturnType<typeof makeSmsWatch>;
