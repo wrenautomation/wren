@@ -9,7 +9,7 @@ Checked 2026-10-03. Companion to `restate-durability.md` (why it survives crashe
 |---|---|---|---|
 | Restate Cloud, env `wren-automation` (`env_201m2vp6sq3x11xdaatsmjej302`), region `us` | every loop's journal, timers, object state; the ingress | always on, free tier (100k actions/mo; past it, throttled, never billed). `restate-lag` posts to Discord when timers run late: then the box takes over, `designs/2026-10-05-restate-self-host.md` "Switch day" | this file |
 | Lambda `wren-prod-worker` (us-east-1, Node 22 arm64, 1 GB, 15 min max) | every service except the box's; one version per push | CI `deploy.yml` | `deploy/README.md` |
-| EC2 `wren-prod-pg` (`t4g.small`) | Postgres 17 + browserless Chromium in Docker; the **box worker**: `BOX_SERVICES` (PoolScheduler, Discovery, Enrichment, Resolution, PageArchive, Books) over Restate's tunnel (`WREN_POOL_CHAIN_HOST=box`) | CI over SSM (`deploy/scripts/box-worker.sh`) | `deploy/README.md`, `apps/worker/src/box.ts` |
+| EC2 `wren-prod-pg` (`t4g.small`) | Postgres 17, PgBouncer (6432, transaction mode) and browserless Chromium in Docker; the **box worker**: `BOX_SERVICES` (PoolScheduler, Discovery, Enrichment, Resolution, PageArchive, Books) over Restate's tunnel (`WREN_POOL_CHAIN_HOST=box`) | CI over SSM (`deploy/scripts/box-worker.sh`) | `deploy/README.md`, `apps/worker/src/box.ts` |
 | RackNerd VPS (192.255.226.241, Buffalo) | mailifier SMTP prober behind Caddy (`probe.wrenautomation.com`) | `deploy/scripts/deploy-prober.sh` | "Verifying addresses" below |
 | RackNerd VPS (198.44.104.204, Los Angeles) | second prober (`probe2.wrenautomation.com`); in `WREN_SMTP_PROBE_URL`, probes once its PTR resolves | `PROBE_HOST=probe2.wrenautomation.com deploy/scripts/deploy-prober.sh` | "Verifying addresses" below |
 | William's Mac | autobrowse desk worker under launchd: every `sites` call (browser, logins, Chrome profiles, home IP) | `../autobrowse/deploy/desk/install.sh` | `../autobrowse/deploy/README.md` |
@@ -34,7 +34,8 @@ restate invocations list --service Enrichment --key recruiting   # stuck work; c
 you / CLI / curl ──ingress :8080, API key──▶ Restate Cloud (journal, timers, object state)
 Restate Cloud ──assume wren-prod-restate-invoker──▶ Lambda wren-prod-worker
 Restate Cloud ──tunnel──▶ box worker (EC2) and desk worker (Mac)
-Lambda, box ──TLS 5432──▶ Postgres on EC2
+Lambda, box ──TLS 6432──▶ PgBouncer ──▶ Postgres on EC2
+CLI, migrations ──TLS 5432──▶ Postgres on EC2
 Lambda, box ──CDP :3000──▶ browserless
 Resolution (box) ──HTTPS──▶ prober (RackNerd) ──port 25──▶ mail servers
 Lambda ──Gmail API (domain-wide delegation)──▶ Gmail
@@ -52,7 +53,7 @@ costs nothing and has no process to crash.
 | EC2 `t4g.small` (AL2023 ARM) | Postgres + browserless in Docker | $12 |
 | EBS gp3 20 GB | DB data, survives instance rebuild | $2 |
 | Elastic IP | fixed DB address | $0 while attached |
-| Security group | 5432 (TLS Postgres) and 3000 (browser, token) only | $0 |
+| Security group | 5432 (TLS Postgres), 6432 (TLS PgBouncer) and 3000 (browser, token) only | $0 |
 | S3 bucket | nightly `pg_dump -Fc`, 30-day lifecycle | pennies |
 | Lambda `wren-prod-worker` + log group | the worker | ≈ $0 at this volume |
 | SSM params `/wren/prod/{pg_password,browser_token,env}` | secrets | $0 |
@@ -116,6 +117,14 @@ cd deploy/terraform
 aws ssm start-session --target "$(tofu output -raw pg_instance_id)"   # shell, no SSH keys
 # on the box: docker ps; tail /var/log/wren-user-data.log; tail /var/log/wren-pg-backup.log
 ```
+
+Pooling: PgBouncer (`wren-pgbouncer`, transaction mode) listens on 6432 and owns at most 40 of
+Postgres's 60 connections; the rest are for the CLI, migrations and backups on 5432. CI runs
+`deploy/scripts/box-pgbouncer.sh` each deploy (unchanged config is left running). The worker
+uses it through `WREN_DATABASE_POOL_PORT=6432`, set in `deploy/terraform/lambda.tf` and
+`deploy/scripts/box-worker.sh` (not `prod.env`, so the CLI never sees it); remove both to go
+straight to Postgres. Logins: main's from the container, every other role's SCRAM secret by `auth_query`.
+`docker logs wren-pgbouncer` shows each refused login and pool limit.
 
 Migrations from a laptop (URL never echoed):
 

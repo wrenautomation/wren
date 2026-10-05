@@ -221,13 +221,22 @@ export interface BuildOptions {
   dbPoolMax?: number;
 }
 
+/** Through PgBouncer on the box when a pool port is set; each client database's URL follows. */
+function pooled({ databaseUrl, databasePoolPort }: Settings): string {
+  if (!databasePoolPort) return databaseUrl;
+  const url = new URL(databaseUrl);
+  url.port = String(databasePoolPort);
+  return url.toString();
+}
+
 export async function buildServices(
   settings: Settings,
   log: Logger,
   opts: BuildOptions,
 ): Promise<Services> {
   const { rootDir } = opts;
-  const handle = createDb(settings.databaseUrl, {
+  const databaseUrl = pooled(settings);
+  const handle = createDb(databaseUrl, {
     app: WORKER_APP,
     ...(opts.dbPoolMax ? { max: opts.dbPoolMax } : {}),
   });
@@ -338,7 +347,7 @@ export async function buildServices(
   });
   // Each client's own database, pooled per client; its name follows from the id.
   const openClient = (client: { database: string }) =>
-    cachedDb(clientDatabaseUrl(settings.databaseUrl, client.database), { app: WORKER_APP });
+    cachedDb(clientDatabaseUrl(databaseUrl, client.database), { app: WORKER_APP });
   const clientDb = (id: string) => openClient({ database: clientDatabaseName(id) });
   const clients = { main: db, open: openClient, policy };
   // A client's cal.com is its autobrowse login (`clients.accounts.calcom`), read through the desk.
@@ -486,9 +495,7 @@ export async function buildServices(
       verifier,
       openPool: (max, client) =>
         createDb(
-          client
-            ? clientDatabaseUrl(settings.databaseUrl, clientDatabaseName(client))
-            : settings.databaseUrl,
+          client ? clientDatabaseUrl(databaseUrl, clientDatabaseName(client)) : databaseUrl,
           { max, app: WORKER_APP },
         ),
     }),
@@ -887,7 +894,7 @@ export async function buildServices(
     }),
     makeConsolePortal({
       main: db,
-      mainUrl: settings.databaseUrl,
+      mainUrl: databaseUrl,
       views: EMAIL_CONSOLE_VIEWS,
       moneyViews: [...EMAIL_COST_VIEWS, ...BOOKS_CONSOLE_VIEWS],
       records: [

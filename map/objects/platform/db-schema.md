@@ -9,7 +9,7 @@ entity: packages/db/drizzle.config.ts:7
 
 # db-schema
 
-Postgres 17 through Drizzle: every package owns its `src/schema.ts` (and `views.ts`), and `drizzle.config.ts` is the only place they meet. Migrations in `packages/db/drizzle/`, 26 so far.
+Postgres 17 through Drizzle: every package owns its `src/schema.ts` (and `views.ts`), and `drizzle.config.ts` is the only place they meet. Migrations in `packages/db/drizzle/`.
 
 ## Why this shape
 
@@ -19,7 +19,8 @@ Postgres 17 through Drizzle: every package owns its `src/schema.ts` (and `views.
 
 - schema files (`drizzle.config.ts:8`–`18`): core, core views, clients, research, channel-email (+views), content, channel-meta, channel-sms, reactivation, books (its own `books` schema)
 - `createDb`, `migrate` (`packages/db/src/index.ts:33`, `:77`); `pnpm db:generate`, `pnpm db:migrate` (`package.json:18`)
-- Isolation per transaction (`packages/db/src/isolation.ts`): `atomic` (read committed), `snapshot` (repeatable read, read only), `serializable` (retries 40001/40P01, 5 tries); inside a transaction, a savepoint. Pick by `designs/2026-10-04-postgres-isolation.md`. Every connection drops a transaction idle 10 min (research units hold one across fetch and LLM calls).
+- Isolation per transaction (`packages/db/src/isolation.ts`): `atomic` (read committed), `snapshot` (repeatable read, read only), `serializable` (retries 40001/40P01, 5 tries); inside a transaction, a savepoint. Pick by `designs/2026-10-04-postgres-isolation.md`. Every connection drops a transaction idle 10 min (research units hold one across fetch and LLM calls); prod sets it server-wide (`deploy/pg-settings.sql`).
+- Pooling: the worker (Lambda and box) reaches prod through PgBouncer on the box, port 6432, transaction mode, when `WREN_DATABASE_POOL_PORT` is set (`apps/worker/src/services.ts:225`, `deploy/scripts/box-pgbouncer.sh`). The CLI and migrations stay on 5432: a pooled connection can't keep session state, so nothing may use `SET` (session), session advisory locks, `LISTEN` or prepared statements (`prepare: false`). `wren.actor` at startup is refused there; inside a transaction use `setAuditActor`.
 - CI migrates before it bundles (`.github/workflows/deploy.yml:29`)
 
 Citations: `packages/db/drizzle.config.ts:7`

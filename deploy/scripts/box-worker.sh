@@ -47,6 +47,7 @@ docker run -d --name wren-worker --restart unless-stopped --init \
   -e WREN_SSM_MAILBOXES_PARAM=/wren/prod/mailboxes \
   -e WREN_SSM_BOX_PARAM=/wren/prod/box \
   -e WREN_RENDERER=cdp \
+  -e WREN_DATABASE_POOL_PORT=6432 \
   -e WREN_LOG_LEVEL=info \
   -e NODE_OPTIONS=--max-old-space-size=448 \
   node:22-slim node app/box.mjs >/dev/null

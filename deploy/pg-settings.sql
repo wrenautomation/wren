@@ -26,3 +26,8 @@ ALTER SYSTEM SET jit = off;
 --   docker restart wren-pg
 -- SELECT pg_reload_conf() is not enough: shared_preload_libraries loads only at server start.
 -- Check after: SHOW shared_preload_libraries; SELECT count(*) FROM pg_stat_statements;
+
+-- 2026-10-05, before PgBouncer: a transaction idle 10 min is dropped server-wide, since a pooled
+-- connection can't carry createDb's per-connection setting. Live on reload, no restart:
+ALTER SYSTEM SET idle_in_transaction_session_timeout = '10min';
+SELECT pg_reload_conf();

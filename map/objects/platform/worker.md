@@ -13,7 +13,7 @@ entity: apps/worker/src/lambda.ts:16
 
 ## Why this shape
 
-Cold start pulls the secret env and the roster from SSM, builds the services, hands the handler to Restate; every invocation is one journaled step (`lambda.ts:1`). The pool is per instance and small. `@wren/core/content/box` wakes the autobrowse EC2 box before a `sites` call and tags who booted it (`box.ts:41`).
+Cold start pulls the secret env and the roster from SSM, builds the services, hands the handler to Restate; every invocation is one journaled step (`lambda.ts:1`). The pool is per instance and small, through PgBouncer when `WREN_DATABASE_POOL_PORT` is set (`services.ts:225`). `@wren/core/content/box` wakes the autobrowse EC2 box before a `sites` call and tags who booted it (`box.ts:41`).
 
 ## Shape
 

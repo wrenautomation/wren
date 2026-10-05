@@ -6,6 +6,12 @@ export { loadEnvFile } from "./env-file.js";
 /** All process settings. Read once at startup, passed down explicitly. */
 export const settingsSchema = z.object({
   databaseUrl: z.string().url(),
+  /**
+   * The worker's port through PgBouncer on the database box (transaction mode); unset connects
+   * straight to Postgres. Only the worker uses it: the CLI and migrations stay direct, since
+   * they set session parameters (the audit actor) a pooled connection can't keep.
+   */
+  databasePoolPort: z.coerce.number().int().positive().optional(),
   restateIngressUrl: z.string().url().default("http://127.0.0.1:8080"),
   /** Bearer for the ingress (Restate Cloud API key); unset for a local Restate. */
   restateAuthToken: z.string().min(1).optional(),
@@ -441,6 +447,7 @@ export const INGRESS_JSON = {
 /** Env var name for each setting. One place, so `.env.example` and code can't drift. */
 export const ENV_KEYS = {
   databaseUrl: "WREN_DATABASE_URL",
+  databasePoolPort: "WREN_DATABASE_POOL_PORT",
   restateIngressUrl: "WREN_RESTATE_INGRESS_URL",
   restateAuthToken: "RESTATE_AUTH_TOKEN",
   restateAdminUrl: "WREN_RESTATE_ADMIN_URL",

@@ -84,6 +84,13 @@ resource "aws_security_group" "pg" {
     protocol    = "tcp"
     cidr_blocks = ["0.0.0.0/0"]
   }
+  ingress {
+    description = "pgbouncer, transaction mode (TLS required)"
+    from_port   = 6432
+    to_port     = 6432
+    protocol    = "tcp"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
   dynamic "ingress" {
     for_each = var.browser_token == "" ? [] : [1]
     content {
