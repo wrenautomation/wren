@@ -1,7 +1,9 @@
 /**
- * ⌘K: jump to any app or page. Actions join as they're built. Import it from `@wren/ui/palette`
- * and load it on the first ⌘K: cmdk and the dialog stay out of the first load.
+ * ⌘K: what you can do here first (this view, the open record: `./palette-scope.ts`), then jump
+ * to any app or page. Import it from `@wren/ui/palette` and load it on the first ⌘K: cmdk and
+ * the dialog stay out of the first load.
  */
+import { useState } from "react";
 import {
   Command,
   CommandDialog,
@@ -13,6 +15,7 @@ import {
   CommandShortcut,
 } from "./components/ui/command.js";
 import { Icon, type IconName } from "./icons.js";
+import { type ScopeItem, useScoped } from "./palette-scope.js";
 
 export interface PaletteItem {
   label: string;
@@ -35,18 +38,52 @@ export function CommandPalette({
   open: boolean;
   onOpenChange: (open: boolean) => void;
 }) {
+  const scope = useScoped();
+  const [q, setQ] = useState("");
   const groups = [...new Set(items.map((i) => i.group))];
+  const here = [...new Set(scope.items.map((i) => i.group))];
+  const run = (i: Pick<ScopeItem, "run">) => () => {
+    onOpenChange(false);
+    i.run();
+  };
   return (
     <CommandDialog
       open={open}
       onOpenChange={onOpenChange}
       title="Go to"
-      description="An app or a page"
+      description="Do something here, or go to an app or page"
     >
       <Command>
-        <CommandInput placeholder="Go to an app or page…" />
+        <CommandInput placeholder="Do or go to…" value={q} onValueChange={setQ} />
         <CommandList>
           <CommandEmpty>Nothing by that name.</CommandEmpty>
+          {scope.search && q.trim() ? (
+            <CommandGroup heading="Search">
+              <CommandItem
+                value={`search ${q}`}
+                forceMount
+                onSelect={run({ run: () => scope.search?.run(q.trim()) })}
+              >
+                <Icon name="search" />
+                <span>
+                  {scope.search.label} for “{q.trim()}”
+                </span>
+              </CommandItem>
+            </CommandGroup>
+          ) : null}
+          {here.map((g) => (
+            <CommandGroup key={`here ${g}`} heading={g}>
+              {scope.items
+                .filter((i) => i.group === g)
+                .map((i) => (
+                  <CommandItem key={i.label} value={`${g} ${i.label}`} onSelect={run(i)}>
+                    {i.icon ? <Icon name={i.icon} /> : null}
+                    <span>{i.label}</span>
+                    {i.hint ? <CommandShortcut>{i.hint}</CommandShortcut> : null}
+                  </CommandItem>
+                ))}
+            </CommandGroup>
+          ))}
           {groups.map((g) => (
             <CommandGroup key={g} heading={g}>
               {items

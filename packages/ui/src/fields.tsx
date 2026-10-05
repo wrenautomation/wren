@@ -4,6 +4,7 @@
  * built there, so there is one copy of it.
  */
 import type { Cell, FieldMeta, Filter, Op, State, Tone } from "@wren/core/records";
+import type { Total } from "@wren/core/records/serve";
 import { cn } from "cn";
 import type { ReactNode } from "react";
 import { hostOf, money, num } from "./format.js";
@@ -141,9 +142,92 @@ export function FieldCell({ field: f, cell: c }: { field: FieldMeta; cell: Cell 
       return <Out href={String(c)}>{hostOf(String(c)) ?? String(c)}</Out>;
     case "cited":
       return <span>{stripMarks(String(c))}</span>;
+    case "actor":
+      return <Actor value={String(c)} />;
     default:
       return <span>{c}</span>;
   }
+}
+
+/**
+ * Who or what made a row: a person's address as it is; a machine's "pipeline:compose" as its
+ * kind, faint, then its name.
+ */
+function Actor({ value }: { value: string }) {
+  const at = value.indexOf(":");
+  if (at < 1 || value.includes("@")) return <span>{value}</span>;
+  return (
+    <span>
+      {quiet(`${value.charAt(0).toUpperCase()}${value.slice(1, at)} · `)}
+      {value.slice(at + 1)}
+    </span>
+  );
+}
+
+/**
+ * A column's footer figure (`Total` from the server), linked to the rows it counts when this
+ * viewer may filter or sort that way. `to` builds the list's address with these params changed.
+ */
+export function FieldTotal({
+  field: f,
+  total: t,
+  to,
+}: {
+  field: FieldMeta;
+  total: Total | undefined;
+  to: (change: Record<string, string | null>) => string;
+}) {
+  if (!t) return null;
+  const link = (text: ReactNode, change: Record<string, string> | null, title?: string) =>
+    change ? (
+      <a
+        href={to({ ...change, after: null })}
+        title={title}
+        className="text-inherit no-underline hover:text-(--ui-ink) hover:underline"
+      >
+        {text}
+      </a>
+    ) : (
+      <span title={title}>{text}</span>
+    );
+  const may = (op: Op) => f.ops.includes(op);
+  if ("sum" in t)
+    return link(money(t.sum, t.currency), may("empty") ? { [f.key]: "+" } : null, "Sum");
+  if ("newest" in t) {
+    const d = dateOf(t.newest);
+    return d
+      ? link(`Newest ${relative(d)}`, f.sortable ? { sort: `-${f.key}` } : null, exact(d))
+      : null;
+  }
+  if ("most" in t)
+    return link(
+      `${stateOf(f, t.most).label} ${pct(t.n / t.of)}`,
+      may("in") ? { [f.key]: t.most } : null,
+      `Most common: ${num(t.n)} of ${num(t.of)}`,
+    );
+  if (f.kind === "rate")
+    return link(
+      t.of < FEW ? quiet(`${num(t.n)} of ${num(t.of)}`) : pct(t.n / t.of),
+      f.sortable ? { sort: `-${f.key}` } : null,
+      t.of < FEW
+        ? "All rows, too few to tell"
+        : `All rows: ${num(t.n)} of ${num(t.of)}, likely ${range(t.n, t.of)}`,
+    );
+  if (f.kind === "verdict")
+    return link(
+      `${pct(t.n / t.of)} valid`,
+      may("in") ? { [f.key]: "valid" } : null,
+      `${num(t.n)} of ${num(t.of)}`,
+    );
+  // Text: what's missing is the news, so the figure opens the empty rows.
+  const empty = t.of - t.n;
+  return empty
+    ? link(
+        `${pct(empty / t.of)} empty`,
+        may("empty") ? { [f.key]: "-" } : null,
+        `${num(empty)} of ${num(t.of)} empty`,
+      )
+    : quiet("All filled");
 }
 
 const range = (n: number, of: number) => {

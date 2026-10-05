@@ -55,7 +55,18 @@ export interface RecordsPage {
   total: number;
   counts: Record<string, number>;
   next: string | null;
+  /** One figure per field over this view and search, by kind (`totalsOf`); a field with none is left out. */
+  totals: Record<string, Total>;
 }
+/**
+ * A list column's footer: money sums (one currency), a rate pools n of m, a verdict is valid of
+ * the rows, text filled of the rows, a date its newest, a status its commonest state.
+ */
+export type Total =
+  | { sum: number; currency: string }
+  | { n: number; of: number }
+  | { newest: string }
+  | { most: string; n: number; of: number };
 export interface GetAsk {
   record: string;
   id: string | number;
@@ -187,6 +198,84 @@ const sortSql = (f: Field): { expr: SQL; cast: Cast } =>
     : KINDS[f.kind].sql === "text"
       ? { expr: sql`${valueSql(f)} collate "natural"`, cast: "text" }
       : { expr: valueSql(f), cast: castOf(f) };
+/** Text kinds whose footer says how many rows have one. */
+const FILLED = new Set(["text", "name", "company", "actor"]);
+
+/**
+ * The footer's aggregates, read in the count query: `in` is the view's filter, the rest of the
+ * where (filters, search) is already the query's. Returns the select list and a reader.
+ */
+function totalsOf(t: RecordType, inView: SQL) {
+  const cols: SQL[] = [];
+  const col = (expr: SQL) => {
+    const name = `t${cols.length}`;
+    cols.push(sql`${expr} ${sql.identifier(name)}`);
+    return name;
+  };
+  const when = (extra: SQL) => sql`filter (where (${inView}) and ${extra})`;
+  const all = col(sql`count(*) filter (where ${inView})::int`);
+  const reads: [string, (r: Raw) => Total | null][] = [];
+  for (const [key, f] of Object.entries(t.fields)) {
+    const v = valueSql(f);
+    if (f.kind === "money") {
+      const cur = ref(f.currency ?? "");
+      const has = sql`${v} is not null`;
+      const s = col(sql`sum(${v}) ${when(has)}`);
+      const k = col(sql`count(distinct ${cur}) ${when(has)}::int`);
+      const c = col(sql`min((${cur})::text) ${when(has)}`);
+      reads.push([
+        key,
+        (r) =>
+          r[s] == null || Number(r[k]) !== 1 ? null : { sum: Number(r[s]), currency: String(r[c]) },
+      ]);
+    } else if (f.kind === "rate") {
+      const n = sql`(${ref(f.from ?? "")})::numeric`;
+      const of = sql`(${ref(f.of ?? "")})::numeric`;
+      const both = sql`${n} is not null and ${of} is not null`;
+      const a = col(sql`sum(${n}) ${when(both)}`);
+      const b = col(sql`sum(${of}) ${when(both)}`);
+      reads.push([
+        key,
+        (r) => (Number(r[b] ?? 0) > 0 ? { n: Number(r[a]), of: Number(r[b]) } : null),
+      ]);
+    } else if (f.kind === "verdict" || FILLED.has(f.kind)) {
+      const hit = f.kind === "verdict" ? sql`${v} = 'valid'` : sql`coalesce(${v}, '') <> ''`;
+      const a = col(sql`count(*) ${when(hit)}::int`);
+      reads.push([
+        key,
+        (r) => (Number(r[all]) > 0 ? { n: Number(r[a]), of: Number(r[all]) } : null),
+      ]);
+    } else if (f.kind === "date") {
+      const a = col(sql`max(${v}) filter (where ${inView})`);
+      reads.push([
+        key,
+        (r) => (r[a] == null ? null : { newest: new Date(r[a] as string).toISOString() }),
+      ]);
+    } else if (f.kind === "status") {
+      const states = Object.keys(f.states ?? {});
+      const each = states.map((s) => col(sql`count(*) ${when(sql`${v} = ${s}`)}::int`));
+      reads.push([
+        key,
+        (r) => {
+          const counts = each.map((a) => Number(r[a]));
+          const top = Math.max(0, ...counts);
+          const most = states[counts.indexOf(top)];
+          return top > 0 && most ? { most, n: top, of: Number(r[all]) } : null;
+        },
+      ]);
+    }
+  }
+  const read = (r: Raw): Record<string, Total> => {
+    const out: Record<string, Total> = {};
+    for (const [k, fn] of reads) {
+      const got = fn(r);
+      if (got) out[k] = got;
+    }
+    return out;
+  };
+  return { cols, read };
+}
+
 const like = (s: string) => `%${s.replace(/[\\%_]/g, (m) => `\\${m}`)}%`;
 const and = (parts: SQL[]) => (parts.length ? sql.join(parts, sql` and `) : sql`true`);
 
@@ -423,8 +512,10 @@ export function serveRecords(types: readonly RecordType[], db: Queryable, mask?:
           order by ${p.order}
           limit ${limit + 1}`);
         const views = p.t.views;
+        const totals = totalsOf(p.t, p.inView);
         const [n] = await db.execute<Raw>(sql`
           select count(*) filter (where ${p.inView})::int "__total",
+            ${sql.join(totals.cols, sql`, `)},
             ${sql.join(
               views.map(
                 (v, i) =>
@@ -441,6 +532,7 @@ export function serveRecords(types: readonly RecordType[], db: Queryable, mask?:
           rows: page.map((r) => rowOf(p.t, r)),
           total: Number(n?.__total ?? 0),
           counts: Object.fromEntries(views.map((v, i) => [v.id, Number(n?.[`c${i}`] ?? 0)])),
+          totals: n ? totals.read(n) : {},
           next: last
             ? encode([
                 p.sortKey,

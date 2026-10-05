@@ -7,6 +7,7 @@
 
 import { formOf } from "@wren/core/console";
 import {
+  actor,
   cited,
   company,
   date,
@@ -92,7 +93,7 @@ export const campaignRecord = (env: SendPolicy): RecordType =>
       lastSent: date("Last send"),
       openersPerDay: number("Openers a day"),
       overrides: text("Set in the console"),
-      setBy: text("Set by"),
+      setBy: actor("Set by"),
       setAt: date("Set"),
     },
     views: [
@@ -625,7 +626,7 @@ export const candidateRecord = defineRecord({
     angle: text(),
     reason: text("Why the model wrote it"),
     origin: status(ORIGINS, "From"),
-    decidedBy: text("Decided by"),
+    decidedBy: actor("Decided by"),
     decided: date(),
     created: date("Written"),
   },

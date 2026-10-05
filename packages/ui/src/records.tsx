@@ -3,7 +3,7 @@
  * from what the server's `recordsTypes` says, never per page. The address is the state: the
  * view, filters, search, sort, columns, page and open record each ride in it.
  */
-import type { Cell, FieldMeta, RecordMeta } from "@wren/core/records";
+import { type Cell, type FieldMeta, type RecordMeta, SYSTEM } from "@wren/core/records";
 import type {
   ExportAsk,
   GetAsk,
@@ -22,6 +22,7 @@ import {
   ChevronDown,
   ChevronUp,
   Columns3,
+  ListFilter,
   Maximize2,
   Search,
   X,
@@ -39,6 +40,7 @@ import {
   FieldCell,
   FieldFilter,
   FieldLine,
+  FieldTotal,
   filterLabel,
   filterShape,
   readFilter,
@@ -46,6 +48,7 @@ import {
   widthOf,
 } from "./fields.js";
 import { num } from "./format.js";
+import { useScope } from "./palette-scope.js";
 import { SourceCard, SourceList, stripMarks, useSourcePick } from "./sources.js";
 
 /** The four record calls, bound to a workspace. */
@@ -359,6 +362,124 @@ function FilterChip({ field, place }: { field: FieldMeta; place: Place }) {
   );
 }
 
+/**
+ * "Filter": pick a field, then its control. Typing narrows the fields; the ones on screen come
+ * first, then the hidden ones, then a search for the typed text.
+ */
+function FilterPicker({
+  filters,
+  shown,
+  place,
+  many,
+}: {
+  filters: FieldMeta[];
+  shown: Set<string>;
+  place: Place;
+  /** The list's plural, when it searches. */
+  many: string | null;
+}) {
+  const [open, setOpen] = useState(false);
+  const [text, setText] = useState("");
+  const [field, setField] = useState<FieldMeta | null>(null);
+  const shut = (o: boolean) => {
+    setOpen(o);
+    if (!o) {
+      setText("");
+      setField(null);
+    }
+  };
+  const t = text.trim().toLowerCase();
+  const match = filters.filter((f) => f.label.toLowerCase().includes(t));
+  const groups: [string, FieldMeta[]][] = [
+    ["On screen", match.filter((f) => shown.has(f.key))],
+    ["Hidden", match.filter((f) => !shown.has(f.key))],
+  ];
+  const ITEM =
+    "flex h-8 w-full items-center px-1.5 text-left text-[13px] text-(--ui-ink) hover:bg-(--ui-hover)";
+  return (
+    <Popover open={open} onOpenChange={shut}>
+      <PopoverTrigger className={CHIP}>
+        <ListFilter className="size-3.5" />
+        Filter
+      </PopoverTrigger>
+      <PopoverContent
+        align="start"
+        className="w-64 gap-0 rounded-none p-1.5 ring-(--ui-hair) shadow-lg"
+      >
+        {field ? (
+          <div className="grid gap-2">
+            <button
+              type="button"
+              onClick={() => setField(null)}
+              className="flex items-center gap-1 px-1 text-left text-[12px] text-(--ui-ink-2) hover:text-(--ui-ink)"
+            >
+              <ChevronDown className="size-3.5 rotate-90" />
+              {field.label}
+            </button>
+            <FieldFilter
+              field={field}
+              value={place.params.get(field.key)}
+              onChange={(next) => {
+                place.go(place.link({ [field.key]: next, after: null }), true);
+                shut(false);
+              }}
+            />
+          </div>
+        ) : (
+          <div className="grid">
+            <input
+              // biome-ignore lint/a11y/noAutofocus: the popover opened to type in this.
+              autoFocus
+              value={text}
+              onChange={(e) => setText(e.target.value)}
+              onKeyDown={(e) => {
+                const [first] = match;
+                if (e.key === "Enter" && first) setField(first);
+              }}
+              placeholder="Filter by…"
+              aria-label="Filter by"
+              className="mb-1 h-8 border border-(--ui-hair) bg-(--ui-paper) px-2 text-[13px] outline-none placeholder:text-(--ui-ink-3) focus:border-(--ui-ink-2)"
+            />
+            {groups.map(([label, fields]) =>
+              fields.length ? (
+                <div key={label} className="grid">
+                  <span className="px-1.5 pt-1.5 pb-0.5 text-[11px] text-(--ui-ink-3)">
+                    {label}
+                  </span>
+                  {fields.map((f) => (
+                    <button key={f.key} type="button" onClick={() => setField(f)} className={ITEM}>
+                      {f.label}
+                    </button>
+                  ))}
+                </div>
+              ) : null,
+            )}
+            {many && t ? (
+              <button
+                type="button"
+                onClick={() => {
+                  place.go(place.link({ q: text.trim(), after: null }), true);
+                  shut(false);
+                }}
+                className={cn(ITEM, "mt-1 border-t border-(--ui-hair) text-(--ui-ink-2)")}
+              >
+                <Search className="mr-2 size-3.5" />
+                <span className="truncate">
+                  Search {many} for “{text.trim()}”
+                </span>
+              </button>
+            ) : !match.length ? (
+              <span className="px-1.5 py-2 text-[13px] text-(--ui-ink-2)">
+                No field by that name.
+              </span>
+            ) : null}
+          </div>
+        )}
+      </PopoverContent>
+    </Popover>
+  );
+}
+
 /** The search box: it asks once typing stops. */
 function SearchBox({ place, label }: { place: Place; label: string }) {
   const [text, setText] = useState(place.params.get("q") ?? "");
@@ -641,6 +762,47 @@ function List({
       setBusy(err instanceof Error ? err.message : String(err));
     }
   };
+  const openRow = rows.find((r) => String(r.id) === openId);
+  // ⌘K offers this view, the open record's actions, and a search of this list.
+  useScope(
+    `${meta.id} ${place.link({})} ${openRow ? JSON.stringify(openRow) : ""} ${page.data?.total}`,
+    () => ({
+      items: [
+        ...(openRow
+          ? actions
+              .filter((a) => applies(a, openRow))
+              .map((a) => ({
+                label: a.label,
+                group: titleOf(meta, openRow),
+                hint: a.key?.toUpperCase(),
+                run: () => run(a, [openRow.id], startOf(a, openRow)),
+              }))
+          : []),
+        ...actions
+          .filter((a) => a.form && !a.each)
+          .map((a) => ({ label: a.label, group: cap(many), run: () => run(a, []) })),
+        ...(page.data?.total
+          ? [
+              {
+                label: "Export CSV",
+                group: "This view",
+                icon: "download" as const,
+                run: () => void exportCsv(),
+              },
+            ]
+          : []),
+        {
+          label: "Copy link",
+          group: "This view",
+          icon: "link",
+          run: () => void navigator.clipboard?.writeText(location.href),
+        },
+      ],
+      search: searchable
+        ? { label: `Search ${many}`, run: (q: string) => place.go(place.link({ q, after: null })) }
+        : undefined,
+    }),
+  );
   const allPicked = rows.length > 0 && rows.every((r) => picked.has(String(r.id)));
   const pick = (id: string) =>
     setPicked((s) => {
@@ -682,9 +844,19 @@ function List({
         <ViewTabs meta={meta} current={ask.view} counts={page.data?.counts} place={place} />
         <div className="flex flex-wrap items-center gap-2">
           {searchable ? <SearchBox place={place} label={many} /> : null}
-          {filters.map((f) => (
-            <FilterChip key={f.key} field={f} place={place} />
-          ))}
+          {filters.length ? (
+            <FilterPicker
+              filters={filters}
+              shown={new Set(cols.map((f) => f.key))}
+              place={place}
+              many={searchable ? many : null}
+            />
+          ) : null}
+          {filters
+            .filter((f) => params.get(f.key))
+            .map((f) => (
+              <FilterChip key={f.key} field={f} place={place} />
+            ))}
           {narrowed ? (
             <a
               href={place.link({
@@ -848,6 +1020,25 @@ function List({
                     );
                   })}
             </tbody>
+            {rows.length && page.data?.totals ? (
+              <tfoot>
+                <tr className="text-[12px] text-(--ui-ink-2)">
+                  <td className="sticky bottom-0 h-9 border-t border-(--ui-hair) bg-(--ui-paper)" />
+                  {cols.map((f) => (
+                    <td
+                      key={f.key}
+                      className={cn(
+                        "sticky bottom-0 truncate border-t border-(--ui-hair) bg-(--ui-paper) px-3",
+                        f.column?.align === "end" ? "text-right" : "text-left",
+                      )}
+                    >
+                      <FieldTotal field={f} total={page.data?.totals[f.key]} to={place.link} />
+                    </td>
+                  ))}
+                  <td className="sticky bottom-0 border-t border-(--ui-hair) bg-(--ui-paper)" />
+                </tr>
+              </tfoot>
+            ) : null}
           </table>
           {page.data && !rows.length ? (
             <div className="grid justify-items-start gap-2 px-3 py-10 text-[14px] text-(--ui-ink-2)">
@@ -1153,6 +1344,17 @@ export function RecordBody({
       row[f.key] !== "" &&
       !told.has(f.label),
   );
+  // Grouped fields after the loose ones, in the order declared; "System" (who, when) folded last.
+  const named = [...new Set(rest.map((f) => f.group))].filter(
+    (g): g is string => !!g && g !== SYSTEM,
+  );
+  const system = rest.filter((f) => f.group === SYSTEM);
+  const lines = (fields: FieldMeta[]) =>
+    fields.map((f) => (
+      <Line key={f.key} label={f.label}>
+        <FieldLine field={f} cell={row[f.key]} cite={cite} />
+      </Line>
+    ));
   const shown = actsOf(meta, acts).filter((a) => applies(a, row));
   const tabs: { id: string; label: string; count?: number }[] = [
     { id: "details", label: "Details" },
@@ -1291,18 +1493,28 @@ export function RecordBody({
               </p>
             </section>
           ))}
-          <dl className="grid grid-cols-[minmax(0,140px)_minmax(0,1fr)] gap-x-4 text-[14px]">
-            {rest.map((f) => (
-              <Line key={f.key} label={f.label}>
-                <FieldLine field={f} cell={row[f.key]} cite={cite} />
-              </Line>
-            ))}
+          <dl className={DL}>
+            {lines(rest.filter((f) => !f.group))}
             {(more.facts ?? []).map(([label, value]) => (
               <Line key={label} label={label}>
                 {value}
               </Line>
             ))}
           </dl>
+          {named.map((g) => (
+            <section key={g} className="grid gap-1.5">
+              <h3 className="text-[13px] font-medium text-(--ui-ink-2)">{g}</h3>
+              <dl className={DL}>{lines(rest.filter((f) => f.group === g))}</dl>
+            </section>
+          ))}
+          {system.length ? (
+            <details className="group/system">
+              <summary className="w-fit cursor-pointer text-[13px] text-(--ui-ink-2) hover:text-(--ui-ink)">
+                {SYSTEM}
+              </summary>
+              <dl className={cn(DL, "mt-1.5")}>{lines(system)}</dl>
+            </details>
+          ) : null}
           {(more.sections ?? []).map(([title, body]) => (
             <section key={title} className="grid gap-2">
               <h3 className="text-[13px] font-medium text-(--ui-ink-2)">{title}</h3>
@@ -1314,6 +1526,8 @@ export function RecordBody({
     </article>
   );
 }
+
+const DL = "grid grid-cols-[minmax(0,140px)_minmax(0,1fr)] gap-x-4 text-[14px]";
 
 function Line({ label, children }: { label: string; children: ReactNode }) {
   return (

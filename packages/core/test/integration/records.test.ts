@@ -174,6 +174,34 @@ describe("paging", () => {
   });
 });
 
+describe("totals", () => {
+  it("sum, pool, count and newest over the view and search, not the page", async () => {
+    const ids = Array.from({ length: N }, (_, k) => k + 1).filter(
+      (i) => i % 3 === 0 && i % 5 === 0,
+    );
+    const page = await api.list({ record: "test.item", view: "open", q: "Doe", limit: 2 });
+    expect(page.total).toBe(ids.length);
+    const t = page.totals;
+    expect(t.amt).toEqual({ sum: ids.reduce((s, i) => s + (i % 4) * 100.5, 0), currency: "USD" });
+    expect(t.hits).toEqual({ n: ids.reduce((s, i) => s + (i % 4), 0), of: 4 * ids.length });
+    expect(t.verdict).toEqual({ n: ids.filter((i) => i % 4 === 0).length, of: ids.length });
+    expect(t.state).toEqual({ most: "open", n: ids.length, of: ids.length });
+    expect(t.nm).toEqual({ n: ids.length, of: ids.length });
+    const newest = Math.max(...ids.filter((i) => i % 13 !== 0).map((i) => i % 6));
+    expect(t.seen).toEqual({ newest: new Date(Date.UTC(2026, 0, 1 + newest)).toISOString() });
+    // Numbers and percents have no footer; neither does an empty list.
+    expect(t.n).toBeUndefined();
+    const none = await api.list({ record: "test.item", q: "nobody at all" });
+    expect(none.totals).toEqual({});
+  });
+
+  it("the commonest state wins", async () => {
+    const t = (await api.list({ record: "test.item", view: "all" })).totals;
+    // 1..250: i % 3 = 1 (held) has 84 rows, open and shut 83.
+    expect(t.state).toEqual({ most: "held", n: 84, of: N });
+  });
+});
+
 describe("hostile input", () => {
   const evil = `x"; drop table rec_items_t; --`;
   const asks: [string, ListAsk][] = [

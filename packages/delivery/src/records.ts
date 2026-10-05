@@ -6,6 +6,7 @@
 
 import { PortalRefusal } from "@wren/core/portal";
 import {
+  actor,
   date,
   defineRecord,
   link,
@@ -247,7 +248,7 @@ export function deliveryRecords(
       step: text("Step"),
       answer: text("Answer"),
       file: text("File"),
-      by: text("Answered by"),
+      by: actor("Answered by"),
       answered: date("Answered"),
     },
     views: [
@@ -272,7 +273,7 @@ export function deliveryRecords(
       version: number("Version"),
       at: date("Handed over"),
       step: text("Step"),
-      by: text("Decided by"),
+      by: actor("Decided by"),
       decided: date("Decided"),
       note: text("Note"),
       comments: number("Comments"),
@@ -338,7 +339,7 @@ export function deliveryRecords(
       why: text("Why"),
       revoke: text("To take it back"),
       note: text("Note"),
-      by: text("By"),
+      by: actor("By"),
       answered: date("Done on"),
     },
     views: [

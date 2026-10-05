@@ -160,6 +160,19 @@ export const KINDS = {
     column: { align: "start", width: "s" },
     csv: plain,
   },
+  /**
+   * Who or what made a row: a person's email ("ana@firm.example"), or a machine as "<what>:<which>"
+   * ("pipeline:compose", "import:leads.csv", "form:lander"). It can name someone: masked.
+   */
+  actor: {
+    sql: "text",
+    ops: ["eq", "in", "contains", "empty"],
+    sortable: true,
+    searchable: true,
+    masked: true,
+    column: left,
+    csv: plain,
+  },
   /** Text with source marks (`[f12]`); the record's `load` answers the sources they name. */
   cited: {
     sql: "text",
@@ -195,6 +208,11 @@ export interface Field {
   of?: string;
   /** score: its top. */
   max?: number;
+  /**
+   * Its heading on a record's page; ungrouped fields come first. An actor and the created and
+   * updated dates default to "System", drawn last and folded.
+   */
+  group?: string;
 }
 type Opts = Partial<Omit<Field, "kind" | "label">>;
 type Draft = Omit<Field, "label"> & { label?: string };
@@ -212,6 +230,7 @@ export const percent = kind("percent");
 export const date = kind("date");
 export const link = kind("link");
 export const cited = kind("cited");
+export const actor = kind("actor");
 export const score = (label?: string, opts: Opts = {}) =>
   kind("score")(label, { max: 100, ...opts });
 export const status = (states: Record<string, State>, label?: string, opts: Opts = {}) =>
@@ -351,6 +370,12 @@ const words = (s: string) => {
   return w.charAt(0).toUpperCase() + w.slice(1);
 };
 const IDENT = /^[a-z_][a-z0-9_]*(\.[a-z_][a-z0-9_]*)?$/;
+/** The group that folds last on a record's page. */
+export const SYSTEM = "System";
+const SYSTEM_KEYS = new Set(["created", "updated", "createdAt", "updatedAt"]);
+const groupOf = (key: string, d: Draft) =>
+  d.group ??
+  (d.kind === "actor" || (d.kind === "date" && SYSTEM_KEYS.has(key)) ? SYSTEM : undefined);
 
 /**
  * A record type from its declaration: labels filled from keys, columns named, and every name,
@@ -360,7 +385,13 @@ export function defineRecord<F extends Record<string, Draft>>(decl: RecordDecl<F
   const fields: Record<string, Field> = {};
   for (const [key, d] of Object.entries(decl.fields)) {
     if (key === "id") throw new Error(`${decl.id}: "id" is the key; name the field otherwise`);
-    fields[key] = { ...d, label: d.label ?? words(key), from: d.from ?? snake(key) };
+    const group = groupOf(key, d);
+    fields[key] = {
+      ...d,
+      label: d.label ?? words(key),
+      from: d.from ?? snake(key),
+      ...(group ? { group } : {}),
+    };
   }
   const type: RecordType = { ...decl, fields };
   if (!decl.view === !decl.rows) throw new Error(`${decl.id}: needs a view or rows, not both`);
@@ -403,6 +434,7 @@ export interface FieldMeta {
   sortable: boolean;
   searchable: boolean;
   column: KindFacts["column"];
+  group?: string;
 }
 export interface RecordMeta {
   id: string;
@@ -450,6 +482,7 @@ export function metaOf(type: RecordType, demo: boolean): RecordMeta {
         ...(f.max !== undefined ? { max: f.max } : {}),
         ...may,
         column: KINDS[f.kind].column,
+        ...(f.group ? { group: f.group } : {}),
       };
     }),
     views: type.views,

@@ -157,7 +157,8 @@ const PAPER_ACTIONS: Action[] = [
     id: "delivery.grant",
     label: "I've given it",
     handler: "delivery/grant",
-    key: "g",
+    // Not G: G then a letter goes to a page (⌘K's go-to).
+    key: "i",
     confirm: "Mark this access as given?",
     when: { state: ["open"] },
     done: () => "Thanks. We'll check it works.",

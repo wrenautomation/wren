@@ -6,6 +6,7 @@
 
 import type { Client } from "@wren/core/clients";
 import {
+  actor,
   cited,
   company,
   date,
@@ -123,7 +124,7 @@ export const email = defineRecord({
     status: status(STATUS),
     stopReason: status(STOPPED, "Why it stopped"),
     sent: number("Steps sent"),
-    approvedBy: text("Approved by"),
+    approvedBy: actor("Approved by"),
     written: date(),
     lastSent: date("Last sent"),
   },
