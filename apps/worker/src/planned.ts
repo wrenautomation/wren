@@ -225,25 +225,6 @@ export const PLANNED_COMPONENTS = [
   }),
   defineComponent({
     ...planned,
-    id: "research.social",
-    stage: "find",
-    channels: ["social"],
-    name: "Social reads",
-    blurb:
-      "Reads a firm's recent Instagram and LinkedIn posts, so the dossier and first line can use them.",
-    icon: "search",
-    for: "client",
-    in: [{ id: "firms", label: "firms", kind: "firm" }],
-    hypothesis: {
-      from,
-      guesses: [
-        { is: "change", says: "Which networks, per niche.", built: null },
-        { is: "fixed", says: "Public posts only, read and never posted to." },
-      ],
-    },
-  }),
-  defineComponent({
-    ...planned,
     id: "calls.brief",
     stage: "book",
     name: "Pre-call brief",

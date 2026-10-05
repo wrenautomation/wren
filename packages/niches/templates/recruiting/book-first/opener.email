@@ -2,7 +2,8 @@ subject: (({first_name}, ))[[something interesting about your clients | about yo
 
 Hi {first_name|there},
 
-[[I've been following {company_short|your firm} for a while. | I've followed {company_short|your firm} for a while now.]] [[I'm a college student who's always recruiting for co-ops, so I get the work you do. | As a college student always recruiting for my next co-op, I get the work you do.]]
+## The third option needs a post under 90 days old (post.*); a firm without one never gets it.
+[[I've been following {company_short|your firm} for a while. | I've followed {company_short|your firm} for a while now. | I caught {company_short|your firm}'s recent {post.kind} on <<In 3 to 8 words, the topic of this video as you'd say it after "your recent video on": {post.title}>>.]] [[I'm a college student who's always recruiting for co-ops, so I get the work you do. | As a college student always recruiting for my next co-op, I get the work you do.]]
 
 [[I'm guessing you have years of past clients nobody's called in a while, | You likely have years of past clients nobody's called in a while,]] and a lot of them are hiring right now. I think you're missing out on hundreds of thousands in revenue.
 

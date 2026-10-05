@@ -23,7 +23,9 @@
  * LinkedIn pages of the people compose will reach next, a week of sends ahead,
  * from Exa's cache: metered, so opt-in like the model stages. `team` runs on the
  * same switch, just before: one people search per firm, everyone with a current
- * role there kept as a person (designs/2026-10-05-team-search.md).
+ * role there kept as a person (designs/2026-10-05-team-search.md). `youtube` (on when
+ * `youtube` is given: the service account) reads the channel each firm links and its recent
+ * uploads, free, on the YouTube bucket (designs/2026-10-05-social-reads.md).
  *
  * `start({stages: [...]})` narrows one niche's loop to those stages (e.g. only the
  * two mailbox stages while the crawl stays off); `start({})` goes back to all.
@@ -77,6 +79,7 @@ export const STAGES = [
   "resolveMailboxes",
   "verifyMailboxes",
   "team",
+  "youtube",
   "profiles",
 ] as const;
 export type Stage = (typeof STAGES)[number];
@@ -97,6 +100,8 @@ export interface StageLimits {
   verifyMailboxes: number;
   /** Firms whose public team is searched this pass; one metered search each. */
   team: number;
+  /** Firms whose YouTube channel is read this pass; free, paced by the YouTube bucket. */
+  youtube: number;
   /** People whose LinkedIn pages are read this pass; each is several site calls. */
   profiles: number;
 }
@@ -114,6 +119,7 @@ export const DEFAULT_LIMITS: StageLimits = {
   resolveMailboxes: 192,
   verifyMailboxes: 192,
   team: 10,
+  youtube: 200,
   profiles: 5,
 };
 
@@ -144,11 +150,13 @@ export function stagesToRun(
   modelStages: ModelStages,
   freeVerifier = false,
   profiles = false,
+  youtube = false,
 ): Set<Stage> {
   const chosen = settings?.stages ? new Set(settings.stages) : null;
   return new Set(
     STAGES.filter(
-      (s) => stageEnabled(s, modelStages, freeVerifier, profiles) && (!chosen || chosen.has(s)),
+      (s) =>
+        stageEnabled(s, modelStages, freeVerifier, profiles, youtube) && (!chosen || chosen.has(s)),
     ),
   );
 }
@@ -195,6 +203,8 @@ export interface PoolSchedulerDeps {
   recheck?: { horizonDays: number; policy: (niche: string) => RecontactPolicy | undefined };
   limits?: Partial<StageLimits>;
   profiles?: ProfilesStage;
+  /** The YouTube reader is wired (Enrichment's `youtube`): the stage runs on Wren's niches. */
+  youtube?: boolean;
   /** Between passes that found work. */
   busyMs?: number;
   /** The longest delay after passes in which a stage failed (backoff cap). */
@@ -278,6 +288,8 @@ export const progressOf: Record<Stage, (s: Record<string, number>) => number> = 
     (s.catch_all ?? 0),
   // A firm written to team_searches leaves the selection; an error or a cap does not.
   team: (s) => (s.firms_matched ?? 0) + (s.firms_unresolved ?? 0) + (s.firms_skipped ?? 0),
+  // A read or a missing channel is a profile finding, which leaves the selection for 30 days.
+  youtube: (s) => (s.read ?? 0) + (s.missing ?? 0),
   // A person written to person_lookups leaves the selection; an error or a cap does not.
   profiles: (s) => (s.people_matched ?? 0) + (s.people_unresolved ?? 0),
 };
@@ -292,8 +304,10 @@ export function stageEnabled(
   modelStages: ModelStages,
   freeVerifier = false,
   profiles = false,
+  youtube = false,
 ): boolean {
   if (stage === "extract") return modelStages === "all";
+  if (stage === "youtube") return youtube;
   // Both spend the same Exa budget: one switch.
   if (stage === "profiles" || stage === "team") return profiles;
   if (stage === "resolveMailboxes" || stage === "verifyMailboxes") return freeVerifier;
@@ -352,6 +366,7 @@ export function makePoolScheduler(deps: PoolSchedulerDeps) {
       deps.modelStages,
       deps.freeVerifier,
       client === null && deps.profiles !== undefined,
+      client === null && niche !== null && (deps.youtube ?? false),
     );
     if (limits.resolveMailboxes === 0) runnable.delete("resolveMailboxes");
     if (limits.verifyMailboxes === 0) runnable.delete("verifyMailboxes");
@@ -398,6 +413,7 @@ export function makePoolScheduler(deps: PoolSchedulerDeps) {
         );
         return enrichment.team({ companyIds, limit: n });
       },
+      youtube: () => enrichment.youtube({ limit: limits.youtube }),
       profiles: async () => {
         const p = deps.profiles;
         if (!p || niche === null) throw new restate.TerminalError("profiles stage is off");
@@ -426,6 +442,7 @@ export function makePoolScheduler(deps: PoolSchedulerDeps) {
           model_stages: deps.modelStages,
           free_verifier: deps.freeVerifier ?? false,
           profiles: deps.profiles !== undefined,
+          youtube: deps.youtube ?? false,
           stages: [...runnable],
           limits,
         },

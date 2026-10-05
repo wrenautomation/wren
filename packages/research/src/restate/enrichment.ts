@@ -98,6 +98,17 @@ import {
   teamWork,
 } from "../enrichment/team.js";
 import { tagTestimonials } from "../enrichment/testimonials.js";
+import {
+  countYouTubeUnit,
+  emptyYouTubeStats,
+  YOUTUBE_COMMAND,
+  YOUTUBE_MIN_BATCH,
+  type YouTubeGet,
+  type YouTubeStats,
+  youtubeRoom,
+  youtubeUnit,
+  youtubeWork,
+} from "../enrichment/youtube.js";
 import type { Fetcher } from "../fetch/fetcher.js";
 import type { RobotsCache } from "../fetch/robots.js";
 import type { PageStore } from "../pages.js";
@@ -135,6 +146,8 @@ export interface EnrichmentDeps {
    * page (channel-email's `recheckLeads`, injected: research never imports it).
    */
   recheck?: (db: Queryable, companyIds: number[]) => Promise<unknown>;
+  /** The YouTube Data API as Wren's service account; null = `youtube` refuses. */
+  youtube?: YouTubeGet | null;
 }
 
 /**
@@ -746,6 +759,52 @@ export function makeEnrichment(deps: EnrichmentDeps) {
               break;
             }
             stats.stopped = countTeamUnit(stats, r.value, streak);
+            if (stats.stopped) break;
+          }
+          await close(ctx, runId, stats);
+          return stats;
+        },
+      ),
+
+      youtube: exclusiveHandler(
+        { input: LIMIT },
+        async (ctx: restate.ObjectContext, input: LimitInput = {}): Promise<YouTubeStats> => {
+          // The findings land on main: Wren's niches only.
+          if (clientOfKey(ctx.key.split("@")[0] as string))
+            throw new restate.TerminalError("YouTube reads run on Wren's niches only");
+          const get = deps.youtube;
+          if (!get)
+            throw new restate.TerminalError("no YouTube reader (WREN_GOOGLE_SERVICE_ACCOUNT)");
+          const { db, niche } = scope(ctx);
+          if (niche === null) throw new restate.TerminalError("YouTube reads need a niche key");
+          const limit = input?.limit ?? 20;
+          const runId = await open(ctx, YOUTUBE_COMMAND, { limit, niche });
+          const plan = await ctx.run("select", async () => {
+            const { room, nextInMs } = await youtubeRoom(db, new Date());
+            if (room < Math.min(limit, YOUTUBE_MIN_BATCH))
+              return {
+                why: `bucket low (${room} reads): next in ${Math.ceil(nextInMs / 1000)}s`,
+                work: [],
+              };
+            return {
+              why: null,
+              work: await youtubeWork(db, { niche, limit: Math.min(limit, room) }),
+            };
+          });
+          const stats = emptyYouTubeStats();
+          stats.selected = plan.work.length;
+          stats.stopped = plan.why;
+          const byId = new Map(plan.work.map((w) => [w.companyId, w]));
+          const streak = { errors: 0 };
+          // Free reads, so they batch: a crash re-reads at most one batch.
+          for await (const r of unitBatches(ctx, "youtube", [...byId.keys()], (id) =>
+            youtubeUnit(db, get, byId.get(id) as (typeof plan.work)[number]),
+          )) {
+            if (!r.ok) {
+              stats.stopped = r.reason;
+              break;
+            }
+            stats.stopped = countYouTubeUnit(stats, r.value, streak);
             if (stats.stopped) break;
           }
           await close(ctx, runId, stats);

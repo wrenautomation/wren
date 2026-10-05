@@ -52,6 +52,7 @@ import {
   senderDomain,
   senderFleet,
   sequencesSendScope,
+  serviceAccountToken,
   sharedFor,
   type Transport,
 } from "@wren/channel-email";
@@ -159,6 +160,7 @@ import {
   PoliteFetcher,
   userAgent,
 } from "@wren/research";
+import { YOUTUBE_READ_SCOPE, youtubeApi } from "@wren/research/enrichment";
 import { s3PageStore } from "@wren/research/pages";
 import { makeDiscovery, makeEnrichment, makePageArchive } from "@wren/research/restate";
 import type { Logger } from "pino";
@@ -436,6 +438,15 @@ export async function buildServices(
     log.warn("WREN_PIXEL_BASE_URL set without WREN_PIXEL_EXPORT_TOKEN: opens are not pulled");
 
   const pages = settings.pagesBucket ? s3PageStore(settings.pagesBucket) : null;
+  // Read-only YouTube as the service account, minted on first read: a worker without the
+  // key still starts, and the stage then stops on its errors.
+  let youtubeToken: (() => Promise<string>) | null = null;
+  const youtube = youtubeApi(() => {
+    youtubeToken ??= serviceAccountToken(loadServiceAccountKey(keyPath), {
+      scopes: [YOUTUBE_READ_SCOPE],
+    });
+    return youtubeToken();
+  });
   const services: AnyService[] = [
     // A dead firm site at 30s × 3 tries held one shard ~90s a page; a live one answers in seconds.
     makeEnrichment({
@@ -455,6 +466,7 @@ export async function buildServices(
         timeoutMs: BOOKS_DESK_TIMEOUT_MS,
       }),
       recheck: recheckLeads,
+      youtube,
     }),
     // Discovery probes guessed hosts, most of them parked or dead: a short timeout and
     // one try per URL, or a single company's guesses can eat a Lambda invocation.
@@ -602,6 +614,7 @@ export async function buildServices(
       policy,
       modelStages: settings.poolModelStages,
       freeVerifier: freeVerdicts,
+      youtube: true,
       recheck: {
         horizonDays: settings.verificationHorizonDays,
         policy: (niche) => campaigns.get(niche)?.recontact,

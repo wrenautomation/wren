@@ -160,6 +160,7 @@ describe("PoolScheduler", () => {
       ["resolveMailboxes", false],
       ["verifyMailboxes", false],
       ["team", false],
+      ["youtube", true],
       ["profiles", false],
     ]);
     expect(out.stats?.progress).toBe(0);

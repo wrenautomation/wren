@@ -15,6 +15,11 @@ are this email's own tracked links: `{link.book}` (Cal.com via
 else the offer's video). An email that quotes a link the firm can't
 get is not composed.
 
+`post.*` is the firm's newest public post under 90 days old: `post.title`,
+`post.kind` ("video"), `post.site` ("YouTube"), `post.url`, `post.days`
+(designs/2026-10-05-social-reads.md). The opener's third first-line option
+names it; a firm with no post never gets that option.
+
 `{call.times}` is two open times on Wren's Cal.com call, said in the
 lead's clock ("Tuesday at 10am or Wednesday at 2pm ET"). It is filled
 when the email sends, not when it is composed, and reads "early next

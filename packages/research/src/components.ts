@@ -234,6 +234,44 @@ export const RESEARCH_COMPONENTS = [
     },
   }),
   defineComponent({
+    id: "research.social",
+    stage: "find",
+    channels: ["social"],
+    name: "Social reads",
+    blurb:
+      "Reads the public channel a firm links from its site and keeps its recent posts, so a first line can mention one.",
+    icon: "search",
+    for: "client",
+    ready: false,
+    missing: ["Runs on Wren's niches; a client's pool doesn't read networks yet"],
+    requires: { components: ["research.crawl"] },
+    in: [{ id: "firms", label: "firms with a channel link", kind: "firm" }],
+    out: [{ id: "posts", label: "firms with recent posts", kind: "firm" }],
+    hypothesis: {
+      from: "Wren's recruiting firms on YouTube, 2026-10",
+      guesses: [
+        {
+          is: "change",
+          says: "Which networks, per niche: YouTube first, Instagram and the Ad Library next.",
+          built: null,
+        },
+        { is: "change", says: "Firms read a day.", built: "PoolScheduler limits.youtube" },
+        {
+          is: "change",
+          says: "How fresh a post must be to open an email.",
+          built: "POST_FRESH_DAYS in the email facts",
+        },
+        {
+          is: "needs",
+          says: "Search a network by niche, so it finds firms too, not only reads them.",
+          built: null,
+        },
+        { is: "fixed", says: "Public posts only, by official API or logged out. Never posted to." },
+        { is: "fixed", says: "A hook quotes a real post, or there is no hook." },
+      ],
+    },
+  }),
+  defineComponent({
     id: "research.dossier",
     stage: "find",
     name: "Firm dossier",
@@ -278,10 +316,12 @@ export const RESEARCH_WORKFLOWS = [
       { id: "crawl", uses: "research.crawl" },
       { id: "people", uses: "research.people" },
       { id: "verify", uses: "research.verify" },
+      { id: "social", uses: "research.social" },
     ],
     wires: [
       { from: "discovery.firms", to: "crawl.firms", via: "code" },
       { from: "crawl.crawled", to: "people.firms", via: "code" },
+      { from: "crawl.crawled", to: "social.firms", via: "code" },
       { from: "people.people", to: "verify.people", via: "code" },
       { from: "verify.leads", to: "out.leads", via: "code" },
       { from: "people.people", to: "out.people", via: "code" },

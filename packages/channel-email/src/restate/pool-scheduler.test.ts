@@ -16,7 +16,10 @@ describe("stageEnabled", () => {
       "pick",
       "applyPicks",
     ]);
-    expect(on("all", true)).toEqual(STAGES.filter((s) => s !== "profiles" && s !== "team"));
+    expect(on("all", true)).toEqual(
+      STAGES.filter((s) => s !== "profiles" && s !== "team" && s !== "youtube"),
+    );
+    expect(STAGES.filter((s) => stageEnabled(s, "none", false, false, true))).toContain("youtube");
     expect(on("none", true)).toEqual(
       expect.arrayContaining(["resolveMailboxes", "verifyMailboxes"]),
     );

@@ -5,7 +5,7 @@
  * niche's facts-view row is namespaced as company.<column> so view columns can never shadow
  * person facts. `half` is the company's side of a 50/50 test (`halfOf`). `factsFor` is the
  * merge, in exactly one place; compose and preview both call it, so what you preview IS what
- * composes.
+ * composes. `post.*` is the firm's newest public post (`postFacts`), for every niche.
  */
 import { createHash } from "node:crypto";
 import type { Queryable } from "@wren/db";
@@ -122,6 +122,29 @@ export async function companyFacts(
   return Object.fromEntries(Object.entries(row).map(([k, v]) => [`company.${k}`, v]));
 }
 
+/** A post this many days old or newer may open an email. */
+export const POST_FRESH_DAYS = 90;
+
+/**
+ * The firm's newest public post as `post.*`: title, kind ("video"), site ("YouTube"), url and
+ * days since it went up. From `post` findings (designs/2026-10-05-social-reads.md); Shorts are
+ * skipped. None fresh = no post keys, so an option that needs one is never picked.
+ */
+export async function postFacts(db: Queryable, companyId: number): Promise<FactRow> {
+  const rows = (await db.execute(sql`
+    SELECT value->>'title' AS title, value->>'kind' AS kind, value->>'site' AS site,
+      source_url AS url,
+      floor(extract(epoch FROM now() - (value->>'published_at')::timestamptz) / 86400)::int AS days
+    FROM findings
+    WHERE company_id = ${companyId} AND kind = 'post' AND value ? 'published_at'
+      AND (value->>'published_at')::timestamptz > now() - make_interval(days => ${POST_FRESH_DAYS})
+      AND concat_ws(' ', value->>'title', value->>'description') !~* '#shorts?\\M'
+    ORDER BY (value->>'published_at')::timestamptz DESC
+    LIMIT 1`)) as FactRow[];
+  const row = rows[0];
+  return row ? Object.fromEntries(Object.entries(row).map(([k, v]) => [`post.${k}`, v])) : {};
+}
+
 /**
  * The full render-ready facts row for one person: person_facts merged with their company's
  * facts view. A testimonial author is refused outright — the invariant's enforcement point.
@@ -135,8 +158,10 @@ export async function factsFor(
   if (facts.is_testimonial) {
     throw new Error(`person ${personId} is a testimonial author, not staff`);
   }
-  const company = await companyFacts(db, factsView, Number(facts.company_id));
-  return sentenceReady({ ...facts, ...company, half: halfOf(facts.company_id) });
+  const companyId = Number(facts.company_id);
+  const company = await companyFacts(db, factsView, companyId);
+  const post = await postFacts(db, companyId);
+  return sentenceReady({ ...facts, ...company, ...post, half: halfOf(facts.company_id) });
 }
 
 /**
@@ -156,5 +181,6 @@ export async function factsForCompany(
   const row = rows[0];
   if (row === undefined) throw new Error(`no company ${companyId}`);
   const company = await companyFacts(db, factsView, companyId);
-  return sentenceReady({ ...row, ...company, half: halfOf(companyId) });
+  const post = await postFacts(db, companyId);
+  return sentenceReady({ ...row, ...company, ...post, half: halfOf(companyId) });
 }
