@@ -297,7 +297,7 @@ export const inbox: Module = {
   name: "Inbox",
   component: "email.replies",
   icon: "reply",
-  blurb: "Warm replies, each with a draft answer waiting for you.",
+  blurb: "Every lead's answer, by email, text or DM, waiting for you.",
   requires: TEAM,
   pages: [
     {
@@ -305,8 +305,8 @@ export const inbox: Module = {
       tiles: [
         {
           label: "Waiting on you",
-          record: "email.reply",
-          href: "/inbox/replies?view=waiting",
+          record: "inbox.reply",
+          href: "/inbox/waiting?view=waiting",
           needs: true,
         },
         { label: "Replies", record: "email.reply", href: "/inbox/replies?view=all", period: 30 },
@@ -315,16 +315,26 @@ export const inbox: Module = {
       top: [
         {
           label: "Waiting on you",
-          record: "email.reply",
-          href: "/inbox/replies?view=waiting",
-          fields: ["company", "received"],
+          record: "inbox.reply",
+          href: "/inbox/waiting?view=waiting",
+          fields: ["channel", "at"],
           empty: "Nothing is waiting on you.",
         },
       ],
     },
     {
+      id: "waiting",
+      label: "Every channel",
+      template: "list",
+      record: "inbox.reply",
+      empty: {
+        waiting: "Answers from leads wait here, by email, text or DM.",
+        all: "Every lead's answer shows here.",
+      },
+    },
+    {
       id: "replies",
-      label: "Replies",
+      label: "Email replies",
       template: "queue",
       record: "email.reply",
       empty: {

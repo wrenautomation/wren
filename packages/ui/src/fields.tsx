@@ -91,13 +91,17 @@ const pct = (x: number) => `${Math.round(x * 100)}%`;
 const quiet = (s: ReactNode) => <span className="text-(--ui-ink-3)">{s}</span>;
 
 /** A link that opens apart from the row it sits in. The demo's hidden profiles show unlinked. */
+const linkLabel = (href: string) => (href.startsWith("/") ? "Open" : (hostOf(href) ?? href));
+
 function Out({ href, children }: { href: string; children: ReactNode }) {
   if (href.includes("•••")) return <span>{children}</span>;
+  // A page of this app ("/inbox/replies/12") opens in place; anything else in a new tab.
+  const away = !href.startsWith("/");
   return (
     <a
       href={href}
-      target="_blank"
-      rel="noreferrer"
+      target={away ? "_blank" : undefined}
+      rel={away ? "noreferrer" : undefined}
       onClick={(e) => e.stopPropagation()}
       className="text-(--ui-ink) underline decoration-(--ui-hair) underline-offset-2 hover:decoration-current"
     >
@@ -148,7 +152,7 @@ export function FieldCell({ field: f, cell: c }: { field: FieldMeta; cell: Cell 
       ) : null;
     }
     case "link":
-      return <Out href={String(c)}>{hostOf(String(c)) ?? String(c)}</Out>;
+      return <Out href={String(c)}>{linkLabel(String(c))}</Out>;
     case "cited":
       return <span>{stripMarks(String(c))}</span>;
     case "actor":
@@ -310,7 +314,8 @@ export function FieldLine({
     ) : null;
   }
   if (f.kind === "score" && f.max) return <Score value={Number(c)} max={f.max} />;
-  if (f.kind === "link") return <Out href={String(c)}>{String(c)}</Out>;
+  if (f.kind === "link")
+    return <Out href={String(c)}>{String(c).startsWith("/") ? "Open" : String(c)}</Out>;
   if (f.kind === "cited")
     return cite ? (
       <Cited text={String(c)} order={cite.order} lit={cite.lit} onPick={cite.pick} />

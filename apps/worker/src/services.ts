@@ -166,6 +166,7 @@ import { makeDiscovery, makeEnrichment, makePageArchive } from "@wren/research/r
 import type { Logger } from "pino";
 import { COMPONENTS } from "./components.js";
 import { MARKETING_NUMBERS } from "./marketing.js";
+import { replyQueueRecord } from "./replies.js";
 import { reviewRecord } from "./review.js";
 import { WORKFLOWS } from "./workflows.js";
 
@@ -879,6 +880,7 @@ export async function buildServices(
         ...MARKETING_RECORDS,
         clientRecord,
         reviewRecord(),
+        replyQueueRecord,
       ],
       components: COMPONENTS,
       workflows: WORKFLOWS,
