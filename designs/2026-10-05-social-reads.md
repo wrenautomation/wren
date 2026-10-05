@@ -60,7 +60,9 @@ Meta removed the Graph Groups API from every version on 2024-04-22, so no app ca
 **What a logged-out browser sees** (checked 2026-10-05 on three recruiting groups, all private):
 
 - A private group shows only its About panel: name, privacy, member count, posts today and in the last month, created date, admin rules. No posts, no members.
-- A public group's posts are indexed by Google. Facebook should show its feed to visitors up to a login wall. Not seen yet, because all three groups checked were private.
+- A public group's posts are indexed by Google. Signed out, a public group's page shows its About and only the featured post, not the feed. A single post's page shows all of it: author (no profile link), badge, time, text, reaction and comment counts, and the top three or so comments (checked 2026-10-05 on three public staffing groups).
+
+**Built 2026-10-05 in autobrowse, logged out, $0:** `fb-public GET /groups?q=` (Google, grouped by group), `GET /groups/{group}` (About), `GET /groups/{group}/posts/{post}` (a post and its top comments). Each read archives the page's HTML on the Mac. Step 3 became one walk per post found through Google, since the feed is not shown signed out. Step 4, storing reads in wren and turning posts into findings on firms, is not built: an author has no profile link signed out, so a post reaches a firm only through a link or a name in its text.
 
 **Plan, logged out, $0:**
 
@@ -91,3 +93,4 @@ Meta removed the Graph Groups API from every version on 2024-04-22, so no app ca
 - 2026-10-05: Facebook groups (William: "make sure to add facebook group scraping too"). Meta removed the Groups API from all versions on 2024-04-22, so groups are logged-out browser reads for now. A logged-in reading account is William's call because of the ban risk above.
 - 2026-10-05 trial: 105 recruiting firms read (210 units, $0). 22 had a non-Short upload in 90 days, 11 in 30. Three slot prompts on those 22 titles (≈ $0.10 of Cohere): asking for the phrase "after your recent video on" made the model echo it; asking for lowercase broke the word cap. The prompt that shipped gives one mid-sentence example and refuses anything not about work. 11 of 22 passed, and all of them read naturally; a refusal only drops the option.
 - 2026-10-05: Ad Library advertisers become firms (`adLibrary` stage, peer ask relaying William). Domain first, page key only when there's no domain, every ad kept. The walk now keeps the link each ad sends to; the first version kept only the button label.
+- 2026-10-05: Facebook group reads built under `fb-public`, logged out. Signed out, a group feed shows only the featured post, so posts come from Google's index, one walk per post.
