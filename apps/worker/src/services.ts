@@ -485,6 +485,12 @@ export async function buildServices(
       linkedin: settings.poolLinkedin ?? null,
       recheck: recheckLeads,
       youtube,
+      // autobrowse's `meta` site (Graph business_discovery); inside a unit's ctx.run, so the ingress.
+      instagram: ingressSites(ingressOf(settings), {
+        caller: "wren:instagram",
+        ...sitesHost(settings.autobrowseInstanceId),
+        timeoutMs: BOOKS_DESK_TIMEOUT_MS,
+      }),
       // Meta's Ad Library and public groups signed out (`fb-public`), on the Mac's home IP; a Mac that is off fails the stage fast.
       desk: ingressSites(ingressOf(settings), {
         caller: "wren:ad-library",
@@ -646,6 +652,7 @@ export async function buildServices(
       modelStages: settings.poolModelStages,
       freeVerifier: freeVerdicts,
       youtube: true,
+      instagram: true,
       adLibrary: true,
       fbGroups: true,
       exaSearch: true,

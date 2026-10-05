@@ -99,6 +99,16 @@ import {
   mapPosts,
 } from "../enrichment/fb-groups.js";
 import {
+  countInstagramUnit,
+  emptyInstagramStats,
+  INSTAGRAM_COMMAND,
+  INSTAGRAM_MIN_BATCH,
+  type InstagramStats,
+  instagramRoom,
+  instagramUnit,
+  instagramWork,
+} from "../enrichment/instagram.js";
+import {
   countOpener,
   emptyOpenerStats,
   OPENER_VERSION,
@@ -192,6 +202,8 @@ export interface EnrichmentDeps {
   recheck?: (db: Queryable, companyIds: number[]) => Promise<unknown>;
   /** The YouTube Data API as Wren's service account; null = `youtube` refuses. */
   youtube?: YouTubeGet | null;
+  /** autobrowse's `meta` site, for the `instagram` reads; null = `instagram` refuses. */
+  instagram?: SiteClient | null;
   /** autobrowse on the Mac (`desk`), for the signed-out `fb-public` reads; null = `adLibrary` refuses. */
   desk?: SiteClient | null;
   /** A niche's Ad Library keywords, its platform hosts and its screen (the niche registry's). */
@@ -881,6 +893,55 @@ export function makeEnrichment(deps: EnrichmentDeps) {
               ? r.value
               : { companyId: r.id, outcome: "error" as const, uploads: 0, error: r.reason };
             stats.stopped = countYouTubeUnit(stats, u, streak);
+            if (stats.stopped) break;
+          }
+          await close(ctx, runId, stats);
+          return stats;
+        },
+      ),
+
+      instagram: exclusiveHandler(
+        { input: LIMIT },
+        async (ctx: restate.ObjectContext, input: LimitInput = {}): Promise<InstagramStats> => {
+          // The findings land on main: Wren's niches only.
+          if (clientOfKey(ctx.key.split("@")[0] as string))
+            throw new restate.TerminalError("Instagram reads run on Wren's niches only");
+          const sites = deps.instagram;
+          if (!sites) throw new restate.TerminalError("no sites client for Instagram");
+          const { db, niche } = scope(ctx);
+          if (niche === null) throw new restate.TerminalError("Instagram reads need a niche key");
+          const limit = input?.limit ?? 30;
+          const runId = await open(ctx, INSTAGRAM_COMMAND, { limit, niche });
+          const plan = await ctx.run("select", async () => {
+            const { room, nextInMs } = await instagramRoom(db, new Date());
+            if (room < Math.min(limit, INSTAGRAM_MIN_BATCH))
+              return {
+                why: `bucket low (${room} reads): next in ${Math.ceil(nextInMs / 1000)}s`,
+                work: [],
+              };
+            return {
+              why: null,
+              work: await instagramWork(db, { niche, limit: Math.min(limit, room) }),
+            };
+          });
+          const stats = emptyInstagramStats();
+          stats.selected = plan.work.length;
+          stats.stopped = plan.why;
+          const byId = new Map(plan.work.map((w) => [w.companyId, w]));
+          const streak = { errors: 0 };
+          // A read is spent whether it worked or not, so a unit never throws (it answers an error
+          // as data); a crash re-reads at most one batch.
+          for await (const r of unitBatches(
+            ctx,
+            "instagram",
+            [...byId.keys()],
+            (id) => instagramUnit(db, sites, byId.get(id) as (typeof plan.work)[number]),
+            { retry: UNIT_RETRY },
+          )) {
+            const u = r.ok
+              ? r.value
+              : { companyId: r.id, outcome: "error" as const, posts: 0, error: r.reason };
+            stats.stopped = countInstagramUnit(stats, u, streak);
             if (stats.stopped) break;
           }
           await close(ctx, runId, stats);

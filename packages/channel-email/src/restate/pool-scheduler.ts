@@ -28,6 +28,8 @@
  * uploads, free, on the YouTube bucket (designs/2026-10-05-social-reads.md). `fbGroups` (on for
  * Wren's niches, as `adLibrary`) searches Facebook groups by the niche's keywords and reads their
  * public posts, free, on its own two buckets; a post that names a firm becomes a finding on it.
+ * `instagram` (on when `instagram` is given: autobrowse's `meta` site) reads the Instagram
+ * account each firm links and its newest posts, free, on its own bucket, right after `youtube`.
  *
  * `start({stages: [...]})` narrows one niche's loop to those stages (e.g. only the
  * two mailbox stages while the crawl stays off); `start({})` goes back to all.
@@ -56,7 +58,13 @@ import {
   type LeadSheetSettings,
   leadSheetSettingsSchema,
 } from "@wren/research/components";
-import { teamDue, YOUTUBE_MIN_BATCH, youtubeRoom } from "@wren/research/enrichment";
+import {
+  INSTAGRAM_MIN_BATCH,
+  instagramRoom,
+  teamDue,
+  YOUTUBE_MIN_BATCH,
+  youtubeRoom,
+} from "@wren/research/enrichment";
 import type { Discovery, Enrichment } from "@wren/research/restate";
 import { and, count, gt, ne, sql } from "drizzle-orm";
 import { nextToEnroll } from "../outreach/compose.js";
@@ -85,9 +93,14 @@ export const STAGES = [
   "verifyMailboxes",
   "team",
   "youtube",
+  "instagram",
   "profiles",
 ] as const;
 export type Stage = (typeof STAGES)[number];
+/** Stages that run only once their client is wired (Wren's niches); `profiles` also turns on `team`. */
+const WIRED = ["adLibrary", "exaSearch", "fbGroups", "youtube", "instagram", "profiles"] as const;
+type WiredStage = (typeof WIRED)[number];
+export type Wired = Partial<Record<WiredStage, boolean>>;
 
 /** How many units one pass hands each stage; the chain's per-pass ceiling. */
 export interface StageLimits {
@@ -113,6 +126,8 @@ export interface StageLimits {
   team: number;
   /** Firms whose YouTube channel is read this pass; free, paced by the YouTube bucket. */
   youtube: number;
+  /** Firms whose Instagram account is read this pass; free, paced by the Instagram bucket. */
+  instagram: number;
   /** People whose LinkedIn pages are read this pass; each is several site calls. */
   profiles: number;
 }
@@ -134,6 +149,7 @@ export const DEFAULT_LIMITS: StageLimits = {
   verifyMailboxes: 192,
   team: 10,
   youtube: 200,
+  instagram: 30,
   profiles: 5,
 };
 
@@ -163,27 +179,12 @@ export function stagesToRun(
   settings: PoolSettings | null,
   modelStages: ModelStages,
   freeVerifier = false,
-  profiles = false,
-  youtube = false,
-  adLibrary = false,
-  fbGroups = false,
-  exaSearch = false,
+  wired: Wired = {},
 ): Set<Stage> {
   const chosen = settings?.stages ? new Set(settings.stages) : null;
   return new Set(
     STAGES.filter(
-      (s) =>
-        stageEnabled(
-          s,
-          modelStages,
-          freeVerifier,
-          profiles,
-          youtube,
-          adLibrary,
-          fbGroups,
-          exaSearch,
-        ) &&
-        (!chosen || chosen.has(s)),
+      (s) => stageEnabled(s, modelStages, freeVerifier, wired) && (!chosen || chosen.has(s)),
     ),
   );
 }
@@ -232,6 +233,8 @@ export interface PoolSchedulerDeps {
   profiles?: ProfilesStage;
   /** The YouTube reader is wired (Enrichment's `youtube`): the stage runs on Wren's niches. */
   youtube?: boolean;
+  /** autobrowse's `meta` site is wired (Enrichment's `instagram`): the stage runs on Wren's niches. */
+  instagram?: boolean;
   /** The Mac's desk is wired (Enrichment's `adLibrary`): the stage runs on Wren's niches. */
   adLibrary?: boolean;
   /** The Mac's desk and the niche group keywords are wired (Enrichment's `fbGroups`): the stage runs on Wren's niches. */
@@ -323,6 +326,8 @@ export const progressOf: Record<Stage, (s: Record<string, number>) => number> = 
   team: (s) => (s.firms_matched ?? 0) + (s.firms_unresolved ?? 0) + (s.firms_skipped ?? 0),
   // A read or a missing channel is a profile finding, which leaves the selection for 30 days.
   youtube: (s) => (s.read ?? 0) + (s.missing ?? 0),
+  // As YouTube: a read or a missing account is a profile finding, which leaves the selection for 30 days.
+  instagram: (s) => (s.read ?? 0) + (s.missing ?? 0),
   // A keyword read is an import, which leaves the selection for a week.
   adLibrary: (s) => s.read ?? 0,
   // A search, a page read or a refused one (kept as data) leaves the queue; a cap does not.
@@ -342,19 +347,12 @@ export function stageEnabled(
   stage: Stage,
   modelStages: ModelStages,
   freeVerifier = false,
-  profiles = false,
-  youtube = false,
-  adLibrary = false,
-  fbGroups = false,
-  exaSearch = false,
+  wired: Wired = {},
 ): boolean {
   if (stage === "extract") return modelStages === "all";
-  if (stage === "youtube") return youtube;
-  if (stage === "adLibrary") return adLibrary;
-  if (stage === "fbGroups") return fbGroups;
-  if (stage === "exaSearch") return exaSearch;
   // Both spend the same Exa budget: one switch.
-  if (stage === "profiles" || stage === "team") return profiles;
+  if (stage === "team") return wired.profiles ?? false;
+  if ((WIRED as readonly string[]).includes(stage)) return wired[stage as WiredStage] ?? false;
   if (stage === "resolveMailboxes" || stage === "verifyMailboxes") return freeVerifier;
   return true;
 }
@@ -406,16 +404,15 @@ export function makePoolScheduler(deps: PoolSchedulerDeps) {
       limits.verifyMailboxes = Math.min(limits.verifyMailboxes, left);
     }
     const settings = await loopSettings<PoolSettings>(ctx);
-    const runnable = stagesToRun(
-      settings,
-      deps.modelStages,
-      deps.freeVerifier,
-      client === null && deps.profiles !== undefined,
-      client === null && niche !== null && (deps.youtube ?? false),
-      client === null && niche !== null && (deps.adLibrary ?? false),
-      client === null && niche !== null && (deps.fbGroups ?? false),
-      client === null && niche !== null && (deps.exaSearch ?? false),
-    );
+    const wren = client === null && niche !== null;
+    const runnable = stagesToRun(settings, deps.modelStages, deps.freeVerifier, {
+      profiles: client === null && deps.profiles !== undefined,
+      youtube: wren && (deps.youtube ?? false),
+      instagram: wren && (deps.instagram ?? false),
+      adLibrary: wren && (deps.adLibrary ?? false),
+      fbGroups: wren && (deps.fbGroups ?? false),
+      exaSearch: wren && (deps.exaSearch ?? false),
+    });
     if (limits.resolveMailboxes === 0) runnable.delete("resolveMailboxes");
     if (limits.verifyMailboxes === 0) runnable.delete("verifyMailboxes");
     const discovery = ctx.objectClient<Discovery>({ name: "Discovery" }, ctx.key);
@@ -472,6 +469,13 @@ export function makePoolScheduler(deps: PoolSchedulerDeps) {
         if (room < Math.min(n, YOUTUBE_MIN_BATCH)) return { read: 0, missing: 0, room };
         return enrichment.youtube({ limit: n });
       },
+      instagram: async () => {
+        // As youtube: skip the Enrichment call while the bucket is low.
+        const n = limits.instagram;
+        const { room } = await ctx.run("instagram room", () => instagramRoom(deps.db, now));
+        if (room < Math.min(n, INSTAGRAM_MIN_BATCH)) return { read: 0, missing: 0, room };
+        return enrichment.instagram({ limit: n });
+      },
       profiles: async () => {
         const p = deps.profiles;
         if (!p || niche === null) throw new restate.TerminalError("profiles stage is off");
@@ -501,6 +505,7 @@ export function makePoolScheduler(deps: PoolSchedulerDeps) {
           free_verifier: deps.freeVerifier ?? false,
           profiles: deps.profiles !== undefined,
           youtube: deps.youtube ?? false,
+          instagram: deps.instagram ?? false,
           ad_library: deps.adLibrary ?? false,
           fb_groups: deps.fbGroups ?? false,
           exa_search: deps.exaSearch ?? false,

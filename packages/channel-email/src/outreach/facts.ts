@@ -127,8 +127,9 @@ export const POST_FRESH_DAYS = 90;
 
 /**
  * The firm's newest public post as `post.*`: title, kind ("video"), site ("YouTube"), url and
- * days since it went up. From `post` findings (designs/2026-10-05-social-reads.md); Shorts are
- * skipped. None fresh = no post keys, so an option that needs one is never picked.
+ * days since it went up. From YouTube `post` findings (designs/2026-10-05-social-reads.md); Shorts
+ * are skipped. Instagram posts are kept as findings too but never open an email yet (their
+ * `title` is empty). None fresh = no post keys, so an option that needs one is never picked.
  */
 export async function postFacts(db: Queryable, companyId: number): Promise<FactRow> {
   const rows = (await db.execute(sql`
@@ -136,7 +137,8 @@ export async function postFacts(db: Queryable, companyId: number): Promise<FactR
       source_url AS url,
       floor(extract(epoch FROM now() - (value->>'published_at')::timestamptz) / 86400)::int AS days
     FROM findings
-    WHERE company_id = ${companyId} AND kind = 'post' AND value ? 'published_at'
+    WHERE company_id = ${companyId} AND kind = 'post' AND value->>'site' = 'YouTube'
+      AND value ? 'published_at'
       AND (value->>'published_at')::timestamptz > now() - make_interval(days => ${POST_FRESH_DAYS})
       AND concat_ws(' ', value->>'title', value->>'description') !~* '#shorts?\\M'
     ORDER BY (value->>'published_at')::timestamptz DESC
