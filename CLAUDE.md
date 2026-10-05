@@ -9,6 +9,7 @@ New session: read in this order, stop when you have enough.
 
 Prod from here: `node scripts/prod-sql.mjs "<sql>"` (read only), `node scripts/ingress.mjs <Service/key/handler> [json]`,
 `node scripts/prod-wren.mjs <cmd>`. Never print `deploy/prod.env`, the database URL or tokens; never source an env file.
+Secrets: `node scripts/secrets.mjs keys <file|/ssm/name>` (names only) or `run <source> -- <cmd>` (output masked).
 
 Shipping: `./scripts/gates.sh`, commit with `git commit -- <paths>` (other sessions stage files here), push.
 CI deploys `main`. An env change: `deploy/scripts/push-secrets.sh` (diff SSM first, it overwrites the whole parameter),
