@@ -1,12 +1,12 @@
 /**
- * The morning digest: `DigestScheduler/fleet` posts yesterday's numbers per sending
- * domain (sent, hard bounces, replies, unsubscribes), Google's newest complaint
- * rate where Postmaster has one, and the queue (approved openers, follow-ups
- * waiting) once a day at `DIGEST_HOUR` on the fleet's clock, then each prober IP's
- * standing (PTR, blocklists, refusals) and each mail domain's (domain lists, SPF, DKIM,
- * DMARC, MX, NS), and where each ramped inbox's seed copies landed; a prober or
- * domain in trouble, or a copy in spam or missing, also pings. Counts only; the notifier
- * never carries an address we mailed or a word anyone wrote back.
+ * The morning email digest: `DigestScheduler/fleet` posts to the email lane once a day
+ * at `DIGEST_HOUR` on the fleet's clock. Yesterday's sends in one line (a domain gets its
+ * own line only when it bounced, lost an unsubscribe or nears Google's spam line), the
+ * queue, then the fleet's health as counts: inboxes on ramp, seed placement, probers
+ * (PTR, blocklists, refusals) and mail domains (lists, SPF, DKIM, DMARC, MX, NS). Healthy
+ * rows collapse into those counts; anything in trouble goes out once more, all together,
+ * as one "email health" warning that pings. Counts only; the notifier never carries an
+ * address we mailed or a word anyone wrote back.
  * A digest that cannot be built is skipped, not retried into the afternoon.
  */
 import type * as restate from "@restatedev/restate-sdk";
@@ -19,16 +19,17 @@ import type { SendPolicy } from "../send/policy.js";
 import { zonedInstant } from "../send/tz.js";
 import {
   type DomainTarget,
-  domainLine,
   domainProblems,
   domainStandings,
 } from "../verification/domain-health.js";
-import { proberHealth, proberLine, proberProblems } from "../verification/prober-health.js";
+import { proberHealth, proberProblems } from "../verification/prober-health.js";
 import { placementLines } from "./placement-scheduler.js";
 
 export const DIGEST_KEY = "fleet";
 export const DIGEST_COMMAND = "notify digest";
 export const DIGEST_HOUR = 7;
+/** Google's guidance keeps spam under 0.1%; a domain at or past it gets its own line. */
+const SPAM_WATCH = 0.001;
 
 export interface DigestSchedulerDeps {
   db: Db;
@@ -71,7 +72,10 @@ export function nextDigestAt(policy: SendPolicy, now: Date): Date {
   throw new Error("no digest hour within two days: the local clock is broken");
 }
 
-/** Yesterday (UTC day, the grain of `send_health`) per domain, with the newest Postmaster rate at or before it. */
+const spamOf = (r: DomainDay) => (r.spam_rate === null ? null : Number(r.spam_rate));
+const pct = (rate: number) => `${(rate * 100).toFixed(2)}%`;
+
+/** Yesterday (UTC day, the grain of `send_health`) summed over domains, with the newest Postmaster rate at or before it. */
 export async function digestLines(
   db: Db,
   day: string,
@@ -87,10 +91,23 @@ export async function digestLines(
     WHERE h.day = ${day}::date
     GROUP BY h.domain ORDER BY h.domain
   `)) as unknown as DomainDay[];
-  const lines = rows.map((r) => {
-    const spam = r.spam_rate === null ? "" : `, spam ${(Number(r.spam_rate) * 100).toFixed(2)}%`;
-    return `${r.domain}: sent ${r.sent}, hard bounces ${r.hard}, replies ${r.replies}, unsubscribes ${r.unsub}${spam}`;
-  });
+  const sum = (k: "sent" | "hard" | "replies" | "unsub") =>
+    rows.reduce((n, r) => n + Number(r[k]), 0);
+  const rates = rows.map(spamOf).filter((r): r is number => r !== null);
+  const spam = rates.length === 0 ? "" : `, worst spam ${pct(Math.max(...rates))}`;
+  const across = rows.length > 1 ? ` across ${rows.length} domains` : "";
+  const lines =
+    rows.length === 0
+      ? ["nothing sent"]
+      : [
+          `sent ${sum("sent")}, replies ${sum("replies")}, hard bounces ${sum("hard")}, unsubscribes ${sum("unsub")}${across}${spam}`,
+          ...rows
+            .filter((r) => r.hard > 0 || r.unsub > 0 || (spamOf(r) ?? 0) >= SPAM_WATCH)
+            .map((r) => {
+              const rate = spamOf(r);
+              return `  ${r.domain}: sent ${r.sent}, hard bounces ${r.hard}, unsubscribes ${r.unsub}${rate === null ? "" : `, spam ${pct(rate)}`}`;
+            }),
+        ];
   const [queue] = (await db.execute(sql`
     SELECT count(*) FILTER (WHERE step = 0)::int AS openers,
            count(*) FILTER (WHERE step > 0)::int AS followups
@@ -99,11 +116,23 @@ export async function digestLines(
   lines.push(
     `queue: ${queue?.openers ?? 0} openers approved, ${queue?.followups ?? 0} follow-ups waiting`,
   );
-  return {
-    lines: rows.length === 0 ? ["nothing sent", ...lines.slice(-1)] : lines,
-    domains: rows.length,
-  };
+  return { lines, domains: rows.length };
 }
+
+/** The ramped inboxes in one line: how many send today, their summed cap, how many start later. */
+export function rampSummary(policy: SendPolicy, ramps: RampMap, now: Date): string | null {
+  const all = Object.values(ramps);
+  if (all.length === 0) return null;
+  const today = policy.localDay(now);
+  const live = all.filter((r) => today.compare(r.start) >= 0);
+  const cap = live.reduce((n, r) => n + policy.perInboxCap(now, r), 0);
+  const later = all.length - live.length;
+  return `inboxes: ${live.length} sending, ${cap}/day today${later > 0 ? `, ${later} start later` : ""}`;
+}
+
+/** "probers: 1 of 2 ok": a health row as a count. */
+const okCount = (label: string, total: number, bad: number) =>
+  `${label}: ${total - bad} of ${total} ok`;
 
 export function makeDigestScheduler(deps: DigestSchedulerDeps) {
   return makeLoopObject("DigestScheduler", async (ctx: restate.ObjectContext) => {
@@ -115,27 +144,29 @@ export function makeDigestScheduler(deps: DigestSchedulerDeps) {
       ledger: { command: DIGEST_COMMAND, argv: { daemon: true, day: yesterday } },
       body: async () => {
         const { lines, domains } = await digestLines(deps.db, yesterday);
-        for (const [address, ramp] of Object.entries(deps.ramps ?? {}))
-          lines.push(deps.policy.describeRamp(address, ramp, now));
-        if (deps.placement) {
-          const placement = await placementLines(deps.db, Object.keys(deps.ramps ?? {}));
-          lines.push(...placement.lines);
-          if (placement.trouble.length > 0)
-            await deps.notifier.notify("inbox placement", placement.trouble.join("\n"), "warning");
+        const ramps = deps.ramps ?? {};
+        const ramp = rampSummary(deps.policy, ramps, now);
+        if (ramp) lines.push(ramp);
+        const trouble: string[] = [];
+        if (deps.placement && Object.keys(ramps).length > 0) {
+          const placement = await placementLines(deps.db, Object.keys(ramps));
+          lines.push(okCount("placement", placement.lines.length, placement.trouble.length));
+          trouble.push(...placement.trouble.map((l) => `placement ${l}`));
         }
         const [probers, standings] = await Promise.all([
           proberHealth(deps.db, deps.probers ?? [], new Date(now.getTime() - 24 * 3600 * 1000)),
           domainStandings(deps.domains ?? []),
         ]);
-        lines.push(...probers.map(proberLine));
-        const problems = probers.flatMap(proberProblems);
-        if (problems.length > 0)
-          await deps.notifier.notify("prober reputation", problems.join("\n"), "warning");
-        lines.push(...standings.map(domainLine));
+        const proberTrouble = probers.flatMap(proberProblems);
+        const badProbers = probers.filter((p) => proberProblems(p).length > 0).length;
+        if (probers.length > 0) lines.push(okCount("probers", probers.length, badProbers));
         const domainTrouble = standings.flatMap(domainProblems);
-        if (domainTrouble.length > 0)
-          await deps.notifier.notify("domain health", domainTrouble.join("\n"), "warning");
-        const sent = await deps.notifier.notify(`digest for ${yesterday}`, lines.join("\n"));
+        const badDomains = standings.filter((d) => domainProblems(d).length > 0).length;
+        if (standings.length > 0) lines.push(okCount("domains", standings.length, badDomains));
+        trouble.push(...proberTrouble, ...domainTrouble);
+        if (trouble.length > 0)
+          await deps.notifier.notify("email health", trouble.join("\n"), "warning");
+        const sent = await deps.notifier.notify(`email digest for ${yesterday}`, lines.join("\n"));
         return { day: yesterday, domains, lines, sent };
       },
       delayAfter: () => delay,

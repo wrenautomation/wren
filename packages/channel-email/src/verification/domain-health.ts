@@ -164,30 +164,6 @@ export function domainProblems(h: DomainStanding): string[] {
   return problems;
 }
 
-/** `example.com ok (dbl, surbl, uribl clear; spf, dkim, dmarc, mx ok; ns route53)`. */
-export function domainLine(h: DomainStanding): string {
-  const checks = dnsChecks(h);
-  const groups: [string[], string][] = [
-    ...(["listed", "clear", "not checked"] as const).map((s): [string[], string] => [
-      LIST_NAMES.filter((l) => h.lists[l] === s),
-      s,
-    ]),
-    [checks.filter(([, ok]) => ok).map(([name]) => name), "ok"],
-    [checks.filter(([, ok]) => !ok).map(([name]) => name), "failed"],
-  ];
-  const parts = groups
-    .filter(([names]) => names.length > 0)
-    .map(([n, s]) => `${n.join(", ")} ${s}`);
-  parts.push(`ns ${onRoute53(h.ns) ? "route53" : h.ns.join(", ") || "none"}`);
-  if (h.smtp)
-    parts.push(
-      !h.smtp.ip
-        ? `smtp ${h.smtp.host} unresolved`
-        : `smtp ${h.smtp.ip} ${h.smtp.listed.length > 0 ? `listed on ${h.smtp.listed.join(", ")}` : "not listed"}`,
-    );
-  return `${h.domain} ${domainProblems(h).length === 0 ? "ok" : "warning"} (${parts.join("; ")})`;
-}
-
 /** Domain names a signature's text mentions (`wrenautomation.com{page}`, an address), lowercased. */
 export const namedDomains = (text: string): string[] => [
   ...new Set((text.match(/\b(?:[a-z0-9-]+\.)+[a-z]{2,}\b/gi) ?? []).map((d) => d.toLowerCase())),

@@ -3,7 +3,6 @@ import { describe, expect, it } from "vitest";
 import {
   type DomainResolver,
   type DomainTarget,
-  domainLine,
   domainProblems,
   domainStanding,
   namedDomains,
@@ -74,12 +73,9 @@ describe("readListAnswer", () => {
 });
 
 describe("domainStanding", () => {
-  it("a healthy fleet domain: the digest line says ok", async () => {
+  it("a healthy fleet domain has no problems", async () => {
     const h = await standing({});
     expect(domainProblems(h)).toEqual([]);
-    expect(domainLine(h)).toBe(
-      "example.com ok (dbl, surbl, uribl clear; spf, dkim, dmarc, mx ok; ns route53)",
-    );
   });
 
   it("a DBL listing warns; a refused and a timed-out list read not checked, not clear", async () => {
@@ -89,9 +85,6 @@ describe("domainStanding", () => {
     });
     expect(h.lists).toEqual({ dbl: "listed", surbl: "not checked", uribl: "not checked" });
     expect(domainProblems(h)).toEqual(["example.com listed on dbl.spamhaus.org"]);
-    expect(domainLine(h)).toBe(
-      "example.com warning (dbl listed; surbl, uribl not checked; spf, dkim, dmarc, mx ok; ns route53)",
-    );
   });
 
   it("SURBL and URIBL listings; a refused DBL is not a problem", async () => {
@@ -115,9 +108,6 @@ describe("domainStanding", () => {
       "example.com has 0 DMARC records, not one",
       "example.com has no MX",
     ]);
-    expect(domainLine(h)).toBe(
-      "example.com warning (dbl, surbl, uribl clear; spf, dkim, dmarc, mx failed; ns none)",
-    );
   });
 
   it("two SPF records, two DMARC records, a fleet domain off Route 53, DKIM at its own selector", async () => {
@@ -145,9 +135,6 @@ describe("domainStanding", () => {
       { fleet: false, dkimSelector: null },
     );
     expect(domainProblems(h)).toEqual([]);
-    expect(domainLine(h)).toBe(
-      "example.com ok (dbl, surbl, uribl clear; spf, dmarc, mx ok; ns a.ns.example.net, b.ns.example.net)",
-    );
   });
 
   it("an SMTP host's IP goes through the IP lists", async () => {
@@ -161,7 +148,6 @@ describe("domainStanding", () => {
       { smtpHost: "smtp.example.net" },
     );
     expect(domainProblems(h)).toEqual(["192.0.2.25 (smtp.example.net) listed on bl.spamcop.net"]);
-    expect(domainLine(h)).toMatch(/; smtp 192.0.2.25 listed on bl.spamcop.net\)$/);
     const gone = await standing({}, { smtpHost: "gone.example.net" });
     expect(domainProblems(gone)).toEqual(["SMTP host gone.example.net does not resolve"]);
   });

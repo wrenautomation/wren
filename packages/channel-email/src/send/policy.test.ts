@@ -465,15 +465,6 @@ describe("an inbox's own ramp", () => {
     ).toBe(2);
     expect(p.perInboxCap(at(2026, 9, 15))).toBe(5); // the fleet's ramp, untouched
   });
-  it("describes one line per ramped inbox", () => {
-    const p = policy();
-    expect(p.describeRamp("ann@example.com", OWN, at(2026, 9, 15))).toBe(
-      "ann@example.com 5/day (day 2 of ramp to 10)",
-    );
-    expect(p.describeRamp("ann@example.com", OWN, at(2026, 9, 11))).toBe(
-      "ann@example.com 0/day (ramp to 10 starts 2026-09-14)",
-    );
-  });
   it("paces the day by its own cap", () => {
     const p = policy();
     const sent = at(2026, 9, 14);

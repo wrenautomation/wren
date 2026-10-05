@@ -13,7 +13,7 @@ The one way a loop talks to a person: `Notifier.notify(title, body, level)`, wit
 
 ## Why this shape
 
-Counts only, never content: the digest, health trips, ads pauses, the planner's shortfall and "what worked" all go through this seam, and none carries an address we mailed or a word anyone wrote back (`packages/channel-email/src/restate/digest-scheduler.ts:1`).
+Counts only, never content: the digest (email lane: one summary, healthy rows as counts, trouble in one `email health` warning), health trips, ads pauses, the planner's shortfall and "what worked" all go through this seam, and none carries an address we mailed or a word anyone wrote back (`packages/channel-email/src/restate/digest-scheduler.ts:1`).
 
 ## Shape
 

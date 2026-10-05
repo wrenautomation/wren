@@ -29,7 +29,7 @@ Citations: `packages/channel-email/src/schema.ts:717`, `packages/channel-email/s
 
 ## If you change this
 
-- **Hits:** `PlacementScheduler`, the digest's placement lines and its `inbox placement` warning, `mintMessageId` (`send/deliver.ts:133`, shared with the send path)
+- **Hits:** `PlacementScheduler`, the digest's placement count and its `email health` warning, `mintMessageId` (`send/deliver.ts:133`, shared with the send path)
 - **Does not hit:** `messages`, `enrollments`, `send_health`, the caps, `sender_pauses`
 
 ## Surfaces

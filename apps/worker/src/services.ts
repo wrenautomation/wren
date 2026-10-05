@@ -618,7 +618,7 @@ export async function buildServices(
     services.push(
       makeDigestScheduler({
         db,
-        notifier,
+        notifier: laneNotifier(settings.discordEmailWebhookUrl),
         policy,
         probers: proberHosts(settings.smtpProbeUrl),
         domains: mailDomains,

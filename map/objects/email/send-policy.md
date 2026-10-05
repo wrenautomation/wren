@@ -30,7 +30,7 @@ Citations: `packages/channel-email/src/send/policy.ts:79`
 
 ## If you change this
 
-- **Hits:** `sendDue` pacing and windows; `ComposeScheduler`'s shortfall; digest hour and its one line per ramped inbox; a new per-campaign reader must take the merged policy from `campaignPolicy`, or it ignores the console
+- **Hits:** `sendDue` pacing and windows; `ComposeScheduler`'s shortfall; digest hour and its one fleet ramp line (`rampSummary`); a new per-campaign reader must take the merged policy from `campaignPolicy`, or it ignores the console
 - **Does not hit:** which message goes (the walk decides), the SMS window
 
 ## Surfaces

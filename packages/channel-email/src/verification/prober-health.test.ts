@@ -5,7 +5,6 @@ import {
   isListing,
   type ProberHealth,
   proberHosts,
-  proberLine,
   proberProblems,
   type Resolver,
 } from "./prober-health.js";
@@ -79,10 +78,6 @@ describe("proberProblems", () => {
   });
   it("a high share on a thin day is not a warning", () =>
     expect(proberProblems({ ...healthy, checks: 20, refused: 10 })).toEqual([]));
-  it("the digest line says ok", () =>
-    expect(proberLine(healthy)).toBe(
-      "prober probe2.example.com: 500 checks, 2.0% refused for our IP; ok",
-    ));
 });
 
 describe("proberHosts", () => {

@@ -508,17 +508,6 @@ export class SendPolicy implements SendPolicyFields {
 
   // ---- for humans ---------------------------------------------------
 
-  /** One inbox's ramp today: `a@example.com 4/day (day 4 of ramp to 30)`. */
-  describeRamp(address: string, ramp: Ramp, now: Date): string {
-    if (this.localDay(now).compare(ramp.start) < 0) {
-      return `${address} 0/day (ramp to ${ramp.ceiling} starts ${ramp.start})`;
-    }
-    return (
-      `${address} ${this.perInboxCap(now, ramp)}/day ` +
-      `(day ${this.sendDaysElapsed(now, ramp) + 1} of ramp to ${ramp.ceiling})`
-    );
-  }
-
   /** One line for the operator. With `now`, the ramp's position today. */
   describe(now?: Date): string {
     const openers = this.newOpenersPerDay === null ? "unlimited" : String(this.newOpenersPerDay);

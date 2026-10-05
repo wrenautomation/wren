@@ -116,12 +116,6 @@ export function proberProblems(h: ProberHealth): string[] {
 const share = (h: ProberHealth) =>
   h.checks === 0 ? "0%" : `${((h.refused / h.checks) * 100).toFixed(1)}%`;
 
-export function proberLine(h: ProberHealth): string {
-  const problems = proberProblems(h);
-  const state = problems.length === 0 ? "ok" : problems.join("; ");
-  return `prober ${h.host}: ${h.checks} checks, ${share(h)} refused for our IP; ${state}`;
-}
-
 /** Prober hosts from WREN_SMTP_PROBE_URL (one URL or a comma list). */
 export const proberHosts = (urls: string | null | undefined): string[] =>
   (urls ?? "")
