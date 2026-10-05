@@ -103,6 +103,11 @@ export const settingsSchema = z.object({
     .enum(["true", "false", "1", "0"])
     .default("false")
     .transform((v) => v === "true" || v === "1"),
+  /**
+   * The LinkedIn account `profiles` reads logged in as (step 5), by its address:
+   * a research alt, never William's own. Unset = the stage never logs in.
+   */
+  poolLinkedin: z.string().min(1).optional(),
   /** A lead whose only VALID check is older than this counts as unverified at compose. */
   verificationHorizonDays: z.coerce.number().int().default(45),
   resendCooldownDays: z.coerce.number().int().default(30),
@@ -474,6 +479,7 @@ export const ENV_KEYS = {
   composeDaysAhead: "WREN_COMPOSE_DAYS_AHEAD",
   poolModelStages: "WREN_POOL_MODEL_STAGES",
   poolProfiles: "WREN_POOL_PROFILES",
+  poolLinkedin: "WREN_POOL_LINKEDIN",
   verificationHorizonDays: "WREN_VERIFICATION_HORIZON_DAYS",
   resendCooldownDays: "WREN_RESEND_COOLDOWN_DAYS",
   reconcileGraceMinutes: "WREN_RECONCILE_GRACE_MINUTES",

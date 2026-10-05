@@ -55,6 +55,8 @@ export interface ProfileUnit {
   googleStopped: boolean;
   /** An Exa cap parked the stage. */
   capped: boolean;
+  /** LinkedIn's daily cap parked this person: later people skip step 5 until then. */
+  linkedinCappedUntil: string | null;
   /** A metered read failed: stop asking for the run. */
   failedRead: boolean;
   error: string | null;
@@ -87,6 +89,9 @@ const due = (table: "person_lookups" | "company_lookups", column: string, id: SQ
   sql`not exists (select 1 from ${sql.raw(table)} l where l.${sql.raw(column)} = ${id}
     and (l.state <> 'capped' or l.retry_at > now()))`;
 const personDue = (id: SQL) => due("person_lookups", "person_id", id);
+/** A person lookup that LinkedIn's daily cap parked (step 5): it stops LinkedIn, not the stage. */
+const byLinkedin = sql`exists (select 1 from jsonb_array_elements(tried) t
+  where t ->> 'step' = 'capped' and t ->> 'what' like 'linkedin:%')`;
 const companyDue = (id: SQL) => due("company_lookups", "company_id", id);
 
 /**
@@ -96,11 +101,20 @@ const companyDue = (id: SQL) => due("company_lookups", "company_id", id);
 export async function profilesParkedUntil(db: Queryable): Promise<Date | null> {
   const [row] = await db.execute<{ until: string | null }>(sql`
     select max(l.retry_at) as until from (
-      select retry_at, run_id from person_lookups where state = 'capped' and retry_at > now()
+      select retry_at, run_id from person_lookups
+      where state = 'capped' and retry_at > now() and not ${byLinkedin}
       union all
       select retry_at, run_id from company_lookups where state = 'capped' and retry_at > now()
     ) l join runs r on r.id = l.run_id
     where r.command = ${PROFILES_COMMAND}`);
+  return row?.until ? new Date(row.until) : null;
+}
+
+/** Until when LinkedIn's daily cap holds for this stage's logged-in reads; null = open. */
+export async function linkedinParkedUntil(db: Queryable): Promise<Date | null> {
+  const [row] = await db.execute<{ until: string | null }>(sql`
+    select max(retry_at) as until from person_lookups
+    where state = 'capped' and retry_at > now() and ${byLinkedin}`);
   return row?.until ? new Date(row.until) : null;
 }
 
@@ -290,6 +304,9 @@ export async function profileUnit(
   work: ProfileWork,
   opts: {
     googleLeft: number;
+    /** The LinkedIn account for step 5; null or still capped = never log in. */
+    linkedin?: string | null;
+    linkedinCappedUntil?: Date | null;
     runId?: string | null;
     now?: () => Date;
     sleep?: (ms: number) => Promise<void>;
@@ -302,6 +319,7 @@ export async function profileUnit(
     google: 0,
     googleStopped: false,
     capped: false,
+    linkedinCappedUntil: null,
     failedRead: false,
     error: null,
   };
@@ -311,8 +329,10 @@ export async function profileUnit(
   };
   const runId = opts.runId ?? null;
   try {
+    const now = opts.now?.() ?? new Date();
+    const linkedinOpen = !opts.linkedinCappedUntil || opts.linkedinCappedUntil <= now;
     const person = await lookUpPerson(sites, work.person, {
-      linkedin: null,
+      linkedin: linkedinOpen ? (opts.linkedin ?? null) : null,
       google: opts.googleLeft > 0,
       ...timing,
     });
@@ -321,7 +341,9 @@ export async function profileUnit(
     unit.google += googleSpent(person.tried);
     unit.googleStopped = person.googleStopped !== null;
     if (person.state === "capped") {
-      unit.capped = true;
+      if (person.cappedBy === "linkedin")
+        unit.linkedinCappedUntil = person.retryAt?.toISOString() ?? null;
+      else unit.capped = true;
       return unit;
     }
     const [open] = await db.execute<{ due: boolean }>(
@@ -382,6 +404,8 @@ export interface RunProfilesOptions {
   /** The zone Google's day and hours are kept in. */
   timezone: string;
   googlePerDay?: number;
+  /** The LinkedIn account for step 5 (`WREN_POOL_LINKEDIN`); absent = never log in. */
+  linkedin?: string | null;
   again?: boolean;
   pages?: PageStore | null;
   runId?: string | null;
@@ -413,10 +437,13 @@ export async function runProfiles(
     timezone: opts.timezone,
     ...(opts.googlePerDay !== undefined ? { perDay: opts.googlePerDay } : {}),
   });
+  let linkedinUntil = await linkedinParkedUntil(db);
   const streak = { errors: 0 };
   for (const w of work) {
     const u = await profileUnit(db, sites, w, {
       googleLeft: left,
+      linkedin: opts.linkedin ?? null,
+      linkedinCappedUntil: linkedinUntil,
       runId: opts.runId ?? null,
       now: clock,
       ...(opts.sleep ? { sleep: opts.sleep } : {}),
@@ -424,6 +451,7 @@ export async function runProfiles(
     await opts.recheck?.([w.company.companyId]);
     opts.onUnit?.(u);
     left = u.googleStopped ? 0 : Math.max(0, left - u.google);
+    if (u.linkedinCappedUntil) linkedinUntil = new Date(u.linkedinCappedUntil);
     stats.stopped = countProfileUnit(stats, u, streak);
     if (stats.stopped) break;
   }

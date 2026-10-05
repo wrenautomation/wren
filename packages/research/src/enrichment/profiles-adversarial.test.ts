@@ -97,6 +97,7 @@ const unit = (over: Partial<ProfileUnit> = {}): ProfileUnit => ({
   google: 0,
   googleStopped: false,
   capped: false,
+  linkedinCappedUntil: null,
   failedRead: false,
   error: null,
   ...over,

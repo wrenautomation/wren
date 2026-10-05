@@ -546,7 +546,7 @@ export async function lookUpPerson(
     if (err instanceof Capped) {
       tried.push({
         step: "capped",
-        what: err.why,
+        what: `${err.site}: ${err.why}`,
         outcome: `retry at ${err.retryAt.toISOString()}`,
       });
       if (status) findings.push(status);

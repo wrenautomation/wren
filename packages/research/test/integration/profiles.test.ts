@@ -12,6 +12,7 @@ import { sql } from "drizzle-orm";
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 import {
   googleLeft,
+  linkedinParkedUntil,
   PROFILES_COMMAND,
   profilesParkedUntil,
   profileWork,
@@ -281,6 +282,48 @@ describe("runProfiles", () => {
     await db().execute(sql`insert into person_lookups (person_id, state, tried, retry_at, run_id)
       values (${bob}, 'capped', '[]'::jsonb, now() + interval '1 hour', ${other.id})`);
     expect(await profilesParkedUntil(db())).toBeNull();
+  });
+
+  it("the LinkedIn alt reads only when set; its cap stops LinkedIn, not the stage", async () => {
+    const { jane, bob, ann } = await seed();
+    const off = fakeSites(routes());
+    await run(off.sites, [bob]);
+    expect(off.keys().filter((k) => k.startsWith("linkedin"))).toEqual([]);
+
+    await truncate(db(), ["person_lookups", "company_lookups"]);
+    const ledger = await openRun(db(), { command: PROFILES_COMMAND, argv: {} });
+    const capped = fakeSites(
+      routes({
+        "linkedin GET /search/results/people": () => {
+          throw new SiteCallError(
+            "linkedin",
+            "GET",
+            "/search/results/people",
+            429,
+            "cap reached, retry after 3600s",
+          );
+        },
+      }),
+    );
+    // Bob and Ann have no link: Bob's LinkedIn search hits the cap, Ann is looked up without LinkedIn.
+    const stats = await run(capped.sites, [bob, jane, ann], {
+      linkedin: "alt@example.com",
+      runId: ledger.id,
+      now: () => new Date(),
+    });
+    expect(stats.stopped).toBeNull();
+    expect(stats.people_matched + stats.people_unresolved).toBe(2);
+    const li = capped.calls.filter((c) => c.key.startsWith("linkedin"));
+    expect(li).toHaveLength(1);
+    expect(await profilesParkedUntil(db())).toBeNull();
+    expect((await linkedinParkedUntil(db()))?.getTime()).toBeGreaterThan(Date.now());
+
+    // The next run carries the cap: nobody asks LinkedIn until it lifts.
+    await db().execute(sql`delete from person_lookups where person_id = ${ann}`);
+    const next = fakeSites(routes());
+    const later = await run(next.sites, [ann], { linkedin: "alt@example.com" });
+    expect(later.stopped).toBeNull();
+    expect(next.keys().filter((k) => k.startsWith("linkedin"))).toEqual([]);
   });
 
   it("a failed Exa read stops the run at that person; nobody after is asked", async () => {

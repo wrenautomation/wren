@@ -169,7 +169,7 @@ export function registerEnrich(program: Command, withDb: WithDb, settings: Setti
   enrich
     .command("profiles")
     .description(
-      "Read LinkedIn pages (Exa's cache, Google) for the people compose reaches next, in its order",
+      "Read LinkedIn pages (Exa's cache, Google, the WREN_POOL_LINKEDIN alt) for the people compose reaches next, in its order",
     )
     .requiredOption("--niche <name>", `one of ${[...NICHE_NAMES].sort().join(", ")}`)
     .option("--limit <n>", "people this run", "25")
@@ -191,6 +191,7 @@ export function registerEnrich(program: Command, withDb: WithDb, settings: Setti
             limit: argv.limit,
             again: argv.again,
             timezone: settings.sendTimezone,
+            linkedin: settings.poolLinkedin ?? null,
             runId: run.id,
             recheck: (companyIds) => recheckLeads(db, companyIds),
             onUnit: (u) =>

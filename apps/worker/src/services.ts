@@ -466,6 +466,7 @@ export async function buildServices(
         ...sitesHost(settings.autobrowseInstanceId),
         timeoutMs: BOOKS_DESK_TIMEOUT_MS,
       }),
+      linkedin: settings.poolLinkedin ?? null,
       recheck: recheckLeads,
       youtube,
     }),

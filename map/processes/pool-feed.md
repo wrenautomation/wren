@@ -18,7 +18,7 @@ A client's pool is `PoolScheduler/<client>/all` (or `<client>/<niche>`), started
 
 ## Why this shape
 
-Spend is opt-in by stage (`WREN_POOL_MODEL_STAGES`: none | pick | all) and the two mailbox stages run only with a free verifier; a paid verifier resolves by hand (`pool-scheduler.ts:1`). `team` and `profiles` (metered Exa reads) run only with `WREN_POOL_PROFILES=true`. `youtube` is free and runs on Wren's niches whenever the worker has the service account. Who to reach stays a person's call: `Resolution.queue` is never run by the loop.
+Spend is opt-in by stage (`WREN_POOL_MODEL_STAGES`: none | pick | all) and the two mailbox stages run only with a free verifier; a paid verifier resolves by hand (`pool-scheduler.ts:1`). `team` and `profiles` (metered Exa reads) run only with `WREN_POOL_PROFILES=true`. `profiles` also reads LinkedIn logged in when `WREN_POOL_LINKEDIN` names a research alt; that cap skips the step, not the stage. `youtube` is free and runs on Wren's niches whenever the worker has the service account. Who to reach stays a person's call: `Resolution.queue` is never run by the loop.
 
 ## Steps
 

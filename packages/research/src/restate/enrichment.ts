@@ -70,6 +70,7 @@ import {
   countProfileUnit,
   emptyProfileStats,
   googleLeft,
+  linkedinParkedUntil,
   PROFILES_COMMAND,
   type ProfileStats,
   profilesParkedUntil,
@@ -141,6 +142,8 @@ export interface EnrichmentDeps {
   pages?: PageStore | null;
   /** autobrowse's sites, for `profiles` (Exa's cache, Google); null = that stage refuses. */
   sites?: SiteClient | null;
+  /** The LinkedIn account `profiles` reads logged in as (`WREN_POOL_LINKEDIN`); null = never. */
+  linkedin?: string | null;
   /**
    * Recompute a firm's lead cross-checks after `profiles` reads its person and
    * page (channel-email's `recheckLeads`, injected: research never imports it).
@@ -679,7 +682,8 @@ export function makeEnrichment(deps: EnrichmentDeps) {
           const now = new Date(await ctx.date.now());
           const plan = await ctx.run("select", async () => {
             const parked = await profilesParkedUntil(db);
-            if (parked) return { parked: parked.toISOString(), work: [], google: 0 };
+            if (parked)
+              return { parked: parked.toISOString(), work: [], google: 0, linkedin: null };
             const work = await profileWork(db, personIds, {
               limit: input.limit ?? 5,
               pages: deps.pages ?? null,
@@ -688,17 +692,24 @@ export function makeEnrichment(deps: EnrichmentDeps) {
               parked: null,
               work,
               google: await googleLeft(db, { now, timezone: input.timezone }),
+              linkedin: (await linkedinParkedUntil(db))?.toISOString() ?? null,
             };
           });
           const stats = emptyProfileStats();
           stats.selected = plan.work.length;
           if (plan.parked) stats.stopped = `parked by a cap until ${plan.parked}`;
           let left = plan.google;
+          let linkedinUntil = plan.linkedin;
           const streak = { errors: 0 };
           for (const w of plan.work) {
             // profileUnit returns site errors as data: a metered read is never retried.
             const r = await unit(ctx, `profile person ${w.person.personId}`, () =>
-              profileUnit(db, sites, w, { googleLeft: left, runId }),
+              profileUnit(db, sites, w, {
+                googleLeft: left,
+                linkedin: deps.linkedin ?? null,
+                linkedinCappedUntil: linkedinUntil ? new Date(linkedinUntil) : null,
+                runId,
+              }),
             );
             if (!r.ok) {
               stats.stopped = r.reason;
@@ -710,6 +721,7 @@ export function makeEnrichment(deps: EnrichmentDeps) {
                 await recheck(db, [w.company.companyId]);
               });
             left = r.value.googleStopped ? 0 : Math.max(0, left - r.value.google);
+            linkedinUntil = r.value.linkedinCappedUntil ?? linkedinUntil;
             stats.stopped = countProfileUnit(stats, r.value, streak);
             if (stats.stopped) break;
           }
