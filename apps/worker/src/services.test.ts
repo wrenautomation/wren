@@ -227,6 +227,7 @@ describe("handler forms", () => {
     "CallBookings/ingest": "cal.com's webhook: its payload is cal.com's shape, not a form",
     "SmsEvents/ingestFor": "a client's carrier webhook, wrapped by the phone Worker",
     "CallBookings/ingestFor": "a client's cal.com webhook, wrapped by the phone Worker",
+    "Spine/hook": "the door: any sender's payload, wrapped with its token by the phone Worker",
   };
   const EFFECTS: Record<string, string> = {
     "Ads/launch": "spends",

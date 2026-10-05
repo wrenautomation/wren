@@ -659,6 +659,13 @@
       "when": 1791209478494,
       "tag": "0093_fills",
       "breakpoints": true
+    },
+    {
+      "idx": 94,
+      "version": "7",
+      "when": 1791233667175,
+      "tag": "0094_events_and_hooks",
+      "breakpoints": true
     }
   ]
 }

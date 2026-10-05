@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { pgSafe } from "./findings.js";
+import { pgSafe } from "./columns.js";
 
 describe("pgSafe", () => {
   it("drops NUL and half an emoji, keeps whole ones, at any depth", () => {

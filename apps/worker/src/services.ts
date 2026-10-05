@@ -136,6 +136,7 @@ import {
 import { MARKETING_RECORDS } from "@wren/core/marketing/records";
 import { namedFor } from "@wren/core/notify";
 import { clientKey, clientOfKey } from "@wren/core/restate";
+import { makeSpine, type SpineEvent } from "@wren/core/spine";
 import { cachedDb, clientDatabaseName, clientDatabaseUrl, createDb } from "@wren/db";
 import { engagementOf, postUpdate } from "@wren/delivery";
 import { s3Files } from "@wren/delivery/files";
@@ -869,6 +870,21 @@ export async function buildServices(
     }),
     makeReactivationPortal({ main: db, open: openClient }),
     makeAsk(db),
+    makeSpine({
+      main: db,
+      clientDb,
+      workflows: WORKFLOWS,
+      components: COMPONENTS,
+      // Parts register here as they move onto the spine; the rest keep arrivals and stop.
+      steps: {},
+      rule: async (when: string, e: SpineEvent) => {
+        const r = await llm.complete(
+          `Rule: ${when}\n\nEvent (${e.kind}, ${e.subject}):\n${JSON.stringify(e.data).slice(0, 4000)}`,
+          { system: "Does the event pass the rule? Answer yes or no.", maxTokens: 5 },
+        );
+        return /^\s*yes/i.test(r.text);
+      },
+    }),
     makeConsolePortal({
       main: db,
       mainUrl: settings.databaseUrl,

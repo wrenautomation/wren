@@ -81,6 +81,13 @@ or ten clicks) becomes one open idea for the content loop (`wren content ideas`,
 database, once `sms.texts` is installed. Steps: `walkthrough/05-sms.md`. Design:
 `designs/2026-09-27-phone-channel.md`, `designs/2026-10-04-outbound-per-client.md`.
 
+## Webhooks (the door)
+
+`wren [--client <id>] hooks add <workflow> <input> --subject <field> [--name ...]` prints a
+`https://phone.wrenautomation.com/hooks/<token>` URL once. Anything that POSTs JSON or a form to
+it enters that workflow's input, about the payload's `<field>`. `wren hooks list` shows each
+hook's calls. Design: `designs/2026-10-05-workflows.md` (The spine).
+
 ## Chores through autobrowse
 
 `restateDo(ctx, wake)({ goal: "upload this to youtube", inputs: { file } })` from a

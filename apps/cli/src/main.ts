@@ -35,6 +35,7 @@ import { registerEmail } from "./email.js";
 import { registerEnrich } from "./enrich.js";
 import { registerEvolve } from "./evolve.js";
 import { registerFetch } from "./fetch.js";
+import { registerHooks } from "./hooks.js";
 import { registerPages } from "./pages.js";
 import { registerReach } from "./reach.js";
 import { registerReview } from "./review.js";
@@ -91,7 +92,7 @@ async function withClientDb<T>(fn: (db: Db, client: Client) => Promise<T>): Prom
  * Commands that honour `--client`. Everything else runs Wren's own loops or the
  * registry, so `--client` there is refused rather than silently ignored.
  */
-const CLIENT_SCOPED = new Set(["db", "email", "crm", "audit", "delivery", "sms"]);
+const CLIENT_SCOPED = new Set(["db", "email", "crm", "audit", "delivery", "sms", "hooks"]);
 /** Under a client-scoped command, the parts that cover every database or only Wren's. */
 const NOT_PER_CLIENT = new Set(["audit sealer", "sms numbers", "sms forms"]);
 
@@ -207,6 +208,7 @@ registerDelivery(program, withMainDb, settings);
 registerCrm(program, withClientDb, settings, rootDir);
 registerReview(registerEmail(program, withDb, settings, rootDir), withDb);
 registerFetch(program, settings);
+registerHooks(program, withMainDb);
 registerEnrich(program, withMainDb, settings);
 registerEvolve(program, withMainDb, settings, rootDir);
 registerPages(program, withMainDb, settings);

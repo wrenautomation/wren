@@ -114,6 +114,68 @@ export const runEvents = pgTable(
 );
 export type RunEvent = typeof runEvents.$inferSelect;
 
+/**
+ * The spine's log (designs/2026-10-05-workflows.md, src/spine.ts): one row per event arriving at
+ * a node's input, keyed by workflow, node path and port and subject, so nothing enters twice. A
+ * row with `due` is an event waiting on a wire until then. Main holds Wren's; each client's
+ * database holds theirs.
+ */
+export const events = pgTable(
+  "events",
+  {
+    id: uuid("id").defaultRandom().notNull(),
+    /** The workflow the walk started in. */
+    workflow: varchar("workflow", { length: 64 }).notNull(),
+    /** Node ids from that workflow down, dotted ("warm.follow"); "out" is the workflow's own output. */
+    node: varchar("node", { length: 200 }).notNull(),
+    port: varchar("port", { length: 64 }).notNull(),
+    /** Who or what it is about, unique per thing: "lead:42", "mail:<message id>". */
+    subject: varchar("subject", { length: 200 }).notNull(),
+    kind: varchar("kind", { length: 16 }).notNull(),
+    data: jsonb("data").notNull(),
+    at: timestamp("at", { withTimezone: true }).defaultNow().notNull(),
+    /** Waiting on a wire until this time; null once it passed on. */
+    due: timestamp("due", { withTimezone: true }),
+    /** The Restate invocation that owns it, so a retried step runs again instead of skipping. */
+    by: varchar("by", { length: 64 }).notNull(),
+    /** Why its step failed after its retries: the event stopped here. */
+    error: text("error"),
+  },
+  (t) => [
+    primaryKey({ columns: [t.id], name: "pk_events" }),
+    unique("uq_events_entry").on(t.workflow, t.node, t.port, t.subject),
+    index("ix_events_subject").on(t.subject),
+  ],
+);
+export type SpineRow = typeof events.$inferSelect;
+
+/**
+ * The door's hooks: `POST /hooks/<token>` on the phone Worker enters `workflow` at its input
+ * `input`, the payload as the event's data. Main only. The token is shown once; kept as its hash.
+ */
+export const hooks = pgTable(
+  "hooks",
+  {
+    id: uuid("id").defaultRandom().notNull(),
+    tokenHash: varchar("token_hash", { length: 64 }).notNull(),
+    name: text("name").notNull(),
+    /** Whose database the events land in; null is Wren's. */
+    client: varchar("client", { length: 40 }),
+    workflow: varchar("workflow", { length: 64 }).notNull(),
+    input: varchar("input", { length: 64 }).notNull(),
+    /** The payload field that says who it is about, dotted ("data.email"). */
+    subject: varchar("subject", { length: 200 }).notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+    lastAt: timestamp("last_at", { withTimezone: true }),
+    calls: integer("calls").default(0).notNull(),
+  },
+  (t) => [
+    primaryKey({ columns: [t.id], name: "pk_hooks" }),
+    unique("uq_hooks_token_hash").on(t.tokenHash),
+  ],
+);
+export type Hook = typeof hooks.$inferSelect;
+
 export const imports = pgTable(
   "imports",
   {

@@ -23,3 +23,19 @@ export function oneOf(name: string, col: { name: string }, values: readonly stri
   const list = values.map((v) => `'${v.replaceAll("'", "''")}'::character varying`).join(", ");
   return check(name, sql.raw(`("${col.name}")::text = ANY ((ARRAY[${list}])::text[])`));
 }
+
+/** Half an emoji: a UTF-16 surrogate without its pair, left by a string cut mid-character. */
+const LONE_SURROGATE = /[\uD800-\uDBFF](?![\uDC00-\uDFFF])|(?<![\uD800-\uDBFF])[\uDC00-\uDFFF]/g;
+
+/**
+ * Text Postgres takes: text and jsonb refuse NUL, and jsonb a lone surrogate. Pages, snippets and
+ * cut descriptions carry both, and one refused row would fail its unit on every retry.
+ */
+export const pgSafe = <T>(v: T): T =>
+  typeof v === "string"
+    ? (v.replaceAll("\u0000", "").replace(LONE_SURROGATE, "") as T)
+    : Array.isArray(v)
+      ? (v.map(pgSafe) as T)
+      : v && typeof v === "object"
+        ? (Object.fromEntries(Object.entries(v).map(([k, x]) => [k, pgSafe(x)])) as T)
+        : v;

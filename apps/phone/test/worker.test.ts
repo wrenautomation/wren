@@ -344,3 +344,43 @@ describe("the lander's marketing calls", () => {
     expect(restateCalls).toHaveLength(0);
   });
 });
+
+describe("the door", () => {
+  const TOKEN = "a".repeat(43);
+
+  it("passes a hook's JSON or form to the Spine and answers its status", async () => {
+    vi.stubGlobal("fetch", async (url: string, init: RequestInit) => {
+      restateCalls.push({ url, headers: new Headers(init.headers), body: String(init.body) });
+      return Response.json({ status: 202, subject: "form:jane@example.com" });
+    });
+    const res = await post(`/hooks/${TOKEN}`, { email: "jane@example.com" });
+    expect(res.status).toBe(202);
+    expect(await res.json()).toEqual({ subject: "form:jane@example.com" });
+    expect(restateCalls[0]?.url).toBe("https://restate.test/Spine/hook");
+    expect(JSON.parse(restateCalls[0]?.body ?? "")).toEqual({
+      token: TOKEN,
+      payload: { email: "jane@example.com" },
+    });
+    await call(`/hooks/${TOKEN}`, {
+      method: "POST",
+      headers: { "content-type": "application/x-www-form-urlencoded" },
+      body: "email=jane%40example.com&name=Jane",
+    });
+    expect(JSON.parse(restateCalls[1]?.body ?? "").payload).toEqual({
+      email: "jane@example.com",
+      name: "Jane",
+    });
+  });
+
+  it("turns away a malformed token, a bad body and a GET before Restate", async () => {
+    expect((await post("/hooks/short", {})).status).toBe(404);
+    expect((await call(`/hooks/${TOKEN}`, { method: "POST", body: "{nope" })).status).toBe(415);
+    expect((await call(`/hooks/${TOKEN}`)).status).toBe(405);
+    expect(restateCalls).toHaveLength(0);
+  });
+
+  it("answers 502 when Restate fails", async () => {
+    restateStatus = 500;
+    expect((await post(`/hooks/${TOKEN}`, { email: "x" })).status).toBe(502);
+  });
+});

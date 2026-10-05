@@ -312,6 +312,39 @@ async function marketing(req: Request, env: Env, handler: string): Promise<Respo
   });
 }
 
+/**
+ * The door (designs/2026-10-05-workflows.md): any webhook into a workflow's input, by a token
+ * `wren hooks add` made. JSON or a form; the Spine checks the token and answers the status.
+ */
+async function door(req: Request, env: Env, token: string): Promise<Response> {
+  if (!/^[A-Za-z0-9_-]{43}$/.test(token)) return json({ error: "no such hook" }, 404);
+  const raw = await req.text();
+  if (raw.length > MAX_BODY) return json({ error: "too large" }, 413);
+  let payload: unknown;
+  try {
+    payload = (req.headers.get("content-type") ?? "").startsWith(
+      "application/x-www-form-urlencoded",
+    )
+      ? Object.fromEntries(new URLSearchParams(raw))
+      : JSON.parse(raw || "{}");
+  } catch {
+    return json({ error: "send JSON or a form" }, 415);
+  }
+  let res: Response;
+  try {
+    res = await fetch(ingress(env, "Spine/hook"), {
+      method: "POST",
+      headers: restateHeaders(env),
+      body: JSON.stringify({ token, payload }),
+    });
+  } catch {
+    return json({ error: "restate unreachable" }, 502);
+  }
+  if (!res.ok) return json({ error: `restate ${res.status}` }, 502);
+  const { status, ...rest } = (await res.json()) as { status?: number };
+  return json(rest, status ?? 200);
+}
+
 export default {
   async fetch(req: Request, env: Env): Promise<Response> {
     const { pathname } = new URL(req.url);
@@ -326,6 +359,10 @@ export default {
     }
     if (pathname === "/webhooks/gmail") {
       return req.method === "POST" ? gmailWebhook(req, env) : json({ error: "POST only" }, 405);
+    }
+    if (pathname.startsWith("/hooks/")) {
+      if (req.method !== "POST") return json({ error: "POST only" }, 405);
+      return door(req, env, pathname.slice("/hooks/".length));
     }
     if (pathname.startsWith("/marketing/")) {
       if (req.method !== "POST") return json({ error: "POST only" }, 405);

@@ -34,6 +34,7 @@ export const PLATFORM = {
   services: {
     ConsolePortal: "the console: loops, handlers, records, clients and installs",
     Ask: "a question to Claude Code on the Mac, answered on its runs row",
+    Spine: "events along every workflow's routed wires, and the door's webhooks",
     AuditSealer: "seals the audit log every write lands in",
     TokenRenewal: "renews every site's tokens, for content and ads alike",
   },

@@ -35,6 +35,7 @@
     "./schema": "./src/schema.ts",
     "./stats": "./src/stats.ts",
     "./time": "./src/time.ts",
+    "./spine": "./src/spine.ts",
     "./workflows": "./src/workflows.ts"
   },
   "scripts": {
