@@ -119,7 +119,31 @@ const ONE: Record<string, (id: string, input: Input) => [string, Input]> = {
     const { engagementId, key } = partsOf(id);
     return ["delivery/result", { engagementId, key, value: Number(value), note }];
   },
+  "marketing/draftAgain": (id) => {
+    const [ideaId, platform] = head(id, 2);
+    return handlerCall(
+      "ContentDesk",
+      "draft",
+      { ideaId, platforms: [platform], again: true },
+      { key: "default" },
+    );
+  },
+  "marketing/pause": (id, { reason }) =>
+    handlerCall("Ads", "stop", { campaignId: head(id, 1)[0], ...(reason ? { reason } : {}) }),
+  // It spends: the console asks for the handler's name, the action's confirm is the human's.
+  "marketing/resume": (id) =>
+    handlerCall("Ads", "resume", { campaignId: head(id, 1)[0] }, { confirm: "resume" }),
+  "marketing/markRead": (id) => handlerCall("SmsDesk", "markRead", { contactId: Number(id) }),
 };
+/** A Marketing record's action: a console call to the handler behind it (`console/call`). */
+const handlerCall = (
+  service: string,
+  handler: string,
+  input: Input,
+  more: Input = {},
+): [string, Input] => ["console/call", { service, handler, input, ...more }];
+/** "idea/platform/draft": a post's idea and platform. "campaign/adset/day": an ad day's campaign. */
+const head = (id: string, n: number) => id.split("/").slice(0, n);
 /** Head actions that are another handler with something added. */
 const AS: Record<string, [string, Input]> = {
   "delivery/note": ["delivery/post", { internal: true }],

@@ -4,6 +4,7 @@
  */
 import type { Module } from "../module.js";
 import { account } from "./account/index.js";
+import { marketing } from "./marketing/index.js";
 import { marketplace } from "./marketplace/index.js";
 import { reactivation } from "./reactivation/index.js";
 import { texts } from "./texts/index.js";
@@ -16,6 +17,7 @@ export const MODULES: Module[] = [
   leads,
   texts,
   marketplace,
+  marketing,
   ...WREN_APPS,
   account,
 ];

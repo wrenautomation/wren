@@ -51,6 +51,7 @@ export const CONTENT_COMPONENTS = [
         "marketing.text_contact",
         "marketing.site_day",
       ],
+      apps: ["marketing"],
     },
   }),
 ];
