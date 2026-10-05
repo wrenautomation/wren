@@ -24,13 +24,14 @@ import {
   clientKey,
   errorText,
   failuresInARow,
-  LAST,
+  lastPass,
   MIN_DELAY_MS,
   makeLoopObject,
   notifyErrorEdges,
   type PassOutcome,
   retryDelayMs,
   runPass,
+  setLastPass,
 } from "@wren/core/restate";
 import type { Db } from "@wren/db";
 import { type FeedStats, feedDelivery } from "./delivery.js";
@@ -145,7 +146,7 @@ export function makeReactivation(deps: ReactivationLoopDeps) {
     outcome: PassOutcome<ReactivationPassStats>,
   ): Promise<PassOutcome<ReactivationPassStats>> => {
     const settled = { ...outcome, delayMs: Math.max(outcome.delayMs, MIN_DELAY_MS) };
-    ctx.set(LAST, settled);
+    await setLastPass(ctx, settled);
     if (deps.notifier) await notifyErrorEdges(ctx, deps.notifier, PASS, previous, settled);
     return settled;
   };
@@ -154,7 +155,7 @@ export function makeReactivation(deps: ReactivationLoopDeps) {
     "Reactivation",
     async (ctx: restate.ObjectContext): Promise<PassOutcome<ReactivationPassStats>> => {
       const now = new Date(await ctx.date.now());
-      const previous = (await ctx.get<PassOutcome<ReactivationPassStats>>(LAST)) ?? null;
+      const previous = await lastPass<PassOutcome<ReactivationPassStats>>(ctx);
       // A long gap: a mailbox loop may have stopped itself meanwhile, so start them all.
       const resumed = !previous || now.getTime() - Date.parse(previous.now) > 2 * passMs;
       const plan = await ctx.run(
@@ -228,7 +229,7 @@ export function makeReactivation(deps: ReactivationLoopDeps) {
         ...outcome,
         stats: { off: null, stages: [], handoff: null, loops: plan.loops },
       };
-      ctx.set(LAST, failed);
+      await setLastPass(ctx, failed);
       return failed;
     },
     { onStop: stopLoops },

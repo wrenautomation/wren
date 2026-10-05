@@ -195,9 +195,9 @@ const LOOPS_SQL = `SELECT s.service_name, s.service_key, s.key, s.value_utf8, i.
 FROM state s
 LEFT JOIN sys_invocation i ON i.target_service_name = s.service_name AND i.target_service_key = s.service_key
   AND i.target_handler_name = 'loop' AND i.status = 'scheduled'
-WHERE s.key IN ('running', 'last')`;
+WHERE s.key IN ('loop', 'running', 'last')`;
 
-/** One row per object with a `running` key, failing first, then by name. */
+/** One row per loop object (a `loop` key, or the `running` key before it), failing first, then by name. */
 export function loopsOf(rows: Record<string, unknown>[]): LoopRow[] {
   const objects = new Map<string, { state: Record<string, unknown>; next: string | null }>();
   for (const r of rows) {
@@ -209,7 +209,9 @@ export function loopsOf(rows: Record<string, unknown>[]): LoopRow[] {
     objects.set(id, o);
   }
   const loops: LoopRow[] = [];
-  for (const [id, { state, next }] of objects) {
+  for (const [id, { state: keys, next }] of objects) {
+    // The one loop key (2026-10-05) carries what `running` and `last` did; it wins.
+    const state = (keys.loop ?? keys) as Record<string, unknown>;
     if (!("running" in state)) continue;
     const slash = id.indexOf("/");
     const last = (state.last ?? null) as Partial<PassOutcome<unknown>> | null;

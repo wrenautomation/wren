@@ -7,7 +7,7 @@
  */
 import * as restate from "@restatedev/restate-sdk";
 import type { Notifier } from "@wren/core/notify";
-import { errorText, LAST, makeLoopObject, type PassOutcome } from "@wren/core/restate";
+import { errorText, makeLoopObject, type PassOutcome, setLastPass } from "@wren/core/restate";
 import type { Db } from "@wren/db";
 import type { InsightRow } from "./ads.js";
 import { ideaFromVerdict, isWinner } from "./bridge.js";
@@ -124,7 +124,7 @@ export function makeAdsWatch(deps: AdsWatchDeps) {
       delayMs: everyMs,
       now: now.toISOString(),
     };
-    ctx.set(LAST, outcome);
+    await setLastPass(ctx, outcome);
     return outcome;
   });
 }

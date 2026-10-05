@@ -38,11 +38,11 @@ import {
   clientOfKey,
   errorText,
   failuresInARow,
-  LAST,
   loopSettings,
   makeLoopObject,
   type PassOutcome,
   retryDelayMs,
+  setLastPass,
 } from "@wren/core/restate";
 import type { Db } from "@wren/db";
 import {
@@ -295,7 +295,7 @@ export function makePoolScheduler(deps: PoolSchedulerDeps) {
           now: now.toISOString(),
           stopped: plan.why,
         };
-        ctx.set(LAST, outcome);
+        await setLastPass(ctx, outcome);
         return outcome;
       }
       sheet = plan.settings;
@@ -435,7 +435,7 @@ export function makePoolScheduler(deps: PoolSchedulerDeps) {
       delayMs,
       now: now.toISOString(),
     };
-    ctx.set(LAST, outcome);
+    await setLastPass(ctx, outcome);
     return outcome;
   });
 }

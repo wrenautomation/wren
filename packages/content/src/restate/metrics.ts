@@ -7,7 +7,7 @@
 import * as restate from "@restatedev/restate-sdk";
 import type { Metrics, Platform } from "@wren/core/content";
 import type { Notifier } from "@wren/core/notify";
-import { errorText, LAST, makeLoopObject, type PassOutcome } from "@wren/core/restate";
+import { errorText, makeLoopObject, type PassOutcome, setLastPass } from "@wren/core/restate";
 import type { Db } from "@wren/db";
 import { formatWhatWorked, metricsDue, recordMetrics, whatWorked } from "../metrics.js";
 
@@ -81,7 +81,7 @@ export function makeContentMetrics(deps: ContentMetricsDeps) {
       delayMs: everyMs,
       now: now.toISOString(),
     };
-    ctx.set(LAST, outcome);
+    await setLastPass(ctx, outcome);
     return outcome;
   });
 }

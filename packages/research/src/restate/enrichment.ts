@@ -3,9 +3,10 @@
  * One key → one writer, so the stages of one population serialize instead of
  * racing (this replaces the Python per-stage advisory locks). Every unit of work
  * (one company crawled, one document scanned or extracted, one company picked or
- * given its opener line) is its own journaled step over its own transaction, so a
- * crash resumes after the last finished unit and never buys a completion twice. Stats accumulate from
- * journaled unit results, so replay is deterministic.
+ * given its opener line) runs over its own transaction. Free units share a journaled
+ * step in batches (`unitBatches`): a crash re-runs the batch it hit. A unit that buys
+ * a model call or a metered read is its own step, so a completion is never bought
+ * twice. Stats accumulate from journaled unit results, so replay is deterministic.
  *
  * Each handler is one ledger run: opened before the first unit, closed with stats.
  */
@@ -83,6 +84,7 @@ import { tagTestimonials } from "../enrichment/testimonials.js";
 import type { Fetcher } from "../fetch/fetcher.js";
 import type { RobotsCache } from "../fetch/robots.js";
 import type { PageStore } from "../pages.js";
+import { UNITS_PER_RUN, unitBatches } from "./units.js";
 
 export interface EnrichmentDeps {
   db: Db;
@@ -321,8 +323,11 @@ export function makeEnrichment(deps: EnrichmentDeps) {
             ),
           );
           let stats = emptyCrawlStats();
-          for (const id of ids) {
-            const r = await unit(ctx, `crawl company ${id}`, async () => {
+          const units = unitBatches(
+            ctx,
+            "crawl company",
+            ids,
+            async (id) => {
               const company = await companyRef(db, id);
               return atomic(db, (tx) =>
                 crawlCompany(tx, fetch(), company, {
@@ -331,7 +336,10 @@ export function makeEnrichment(deps: EnrichmentDeps) {
                   robotsMode,
                 }),
               );
-            });
+            },
+            { retry: UNIT_RETRY },
+          );
+          for await (const r of units) {
             if (!r.ok) break;
             stats = addCrawlStats(stats, r.value);
           }
@@ -359,8 +367,11 @@ export function makeEnrichment(deps: EnrichmentDeps) {
           );
           let stats = emptyRenderStats();
           const robots: RobotsCache = new Map();
-          for (const id of ids) {
-            const r = await unit(ctx, `render company ${id}`, async () => {
+          const units = unitBatches(
+            ctx,
+            "render company",
+            ids,
+            async (id) => {
               const company = await companyRef(db, id);
               return withBrowser((browser) =>
                 atomic(db, (tx) =>
@@ -372,7 +383,10 @@ export function makeEnrichment(deps: EnrichmentDeps) {
                   }),
                 ),
               );
-            });
+            },
+            { retry: UNIT_RETRY },
+          );
+          for await (const r of units) {
             if (!r.ok) break;
             stats = addRenderStats(stats, r.value);
           }
@@ -400,13 +414,15 @@ export function makeEnrichment(deps: EnrichmentDeps) {
             signals: 0,
             pages_with_signals: 0,
           };
-          for (const id of ids) {
-            const signals = await ctx.run(`scan document ${id}`, async () => {
-              const doc = await loadScanTarget(db, id);
-              if (!doc) return 0;
-              return (await atomic(db, (tx) => scanDocument(tx, doc, runId, deps.pages ?? null)))
-                .length;
-            });
+          const units = unitBatches(ctx, "scan document", ids, async (id) => {
+            const doc = await loadScanTarget(db, id);
+            if (!doc) return 0;
+            return (await atomic(db, (tx) => scanDocument(tx, doc, runId, deps.pages ?? null)))
+              .length;
+          });
+          for await (const r of units) {
+            // No retry cap here: a unit retries until it lands, so every result is ok.
+            const signals = r.ok ? r.value : 0;
             stats.scanned += 1;
             stats.signals += signals;
             if (signals) stats.pages_with_signals += 1;
@@ -507,12 +523,19 @@ export function makeEnrichment(deps: EnrichmentDeps) {
             ungrounded_names: 0,
             aborted: null,
           };
-          for (const id of ids) {
-            const r = await unit(ctx, `pick company ${id}`, async () => {
+          const units = unitBatches(
+            ctx,
+            "pick company",
+            ids,
+            async (id) => {
               const [company] = await db.select().from(companies).where(eq(companies.id, id));
               if (!company) return null;
               return atomic(db, (tx) => pickCompany(tx, llm, company, { runId, tracer }));
-            });
+            },
+            // A model pick is bought once: one unit per step. Rules picks are free and batch.
+            { retry: UNIT_RETRY, perRun: llm ? 1 : UNITS_PER_RUN },
+          );
+          for await (const r of units) {
             if (!r.ok) {
               stats.aborted = r.reason;
               break;

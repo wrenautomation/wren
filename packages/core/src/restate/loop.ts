@@ -18,16 +18,88 @@ import type { Notifier } from "../notify.js";
 import { type RunOptions, recordedRun } from "../runs.js";
 import { exclusiveHandler, NO_INPUT, sharedHandler } from "./form.js";
 
-const RUNNING = "running";
 /**
- * Bumped by each `start` that begins a loop; every `loop` call carries the one it
- * was sent under. A stop then start inside one delay would otherwise leave the old
- * delayed call to fire beside the new one: two chains, twice the passes. A call
- * with none (sent before this existed) counts as 0.
+ * The one state key a loop keeps: running, generation and the last pass. A pass reads
+ * it once and writes it once (it was three keys, three reads: 12 journal entries a
+ * pass, now 10). `status` reads it too.
+ *
+ * `generation` is bumped by each `start` that begins a loop; every `loop` call carries
+ * the one it was sent under. A stop then start inside one delay would otherwise leave
+ * the old delayed call to fire beside the new one: two chains, twice the passes. A
+ * call with none (sent before this existed) counts as 0.
  */
-export const GENERATION = "generation";
-/** Object state key holding the last pass outcome; `status` reads it. */
-export const LAST = "last";
+export const LOOP = "loop";
+/** The three keys `LOOP` replaced (2026-10-05): read once when `LOOP` is absent, cleared on its first write. */
+const LEGACY = { running: "running", generation: "generation", last: "last" } as const;
+
+export interface LoopState<L = PassOutcome<unknown>> {
+  running: boolean;
+  generation: number;
+  /** The last pass outcome; `status` shows it. */
+  last: L | null;
+}
+
+type AnyObjectContext = restate.ObjectContext | restate.ObjectSharedContext;
+interface Held {
+  state: LoopState<unknown>;
+  /** Read from the legacy keys: the first write clears them. */
+  legacy: boolean;
+}
+/** Per invocation (a ctx lives for one attempt): later reads in the same pass journal nothing. */
+const held = new WeakMap<object, Promise<Held>>();
+
+async function readHeld(ctx: AnyObjectContext): Promise<Held> {
+  const state = await ctx.get<LoopState<unknown>>(LOOP);
+  if (state) return { state, legacy: false };
+  const running = await ctx.get<boolean>(LEGACY.running);
+  const generation = await ctx.get<number>(LEGACY.generation);
+  const last = await ctx.get<unknown>(LEGACY.last);
+  return {
+    state: { running: running ?? false, generation: generation ?? 0, last: last ?? null },
+    legacy: running !== null || generation !== null || last !== null,
+  };
+}
+
+function hold(ctx: AnyObjectContext): Promise<Held> {
+  let h = held.get(ctx);
+  if (!h) {
+    h = readHeld(ctx);
+    held.set(ctx, h);
+  }
+  return h;
+}
+
+/** This key's loop state; read from the journal once per invocation. */
+export async function loopState<L = PassOutcome<unknown>>(
+  ctx: AnyObjectContext,
+): Promise<LoopState<L>> {
+  return (await hold(ctx)).state as LoopState<L>;
+}
+
+/** Change part of this key's loop state: one `set` of the one key. */
+export async function writeLoop<L = PassOutcome<unknown>>(
+  ctx: restate.ObjectContext,
+  patch: Partial<LoopState<L>>,
+): Promise<LoopState<L>> {
+  const h = await hold(ctx);
+  h.state = { ...h.state, ...patch };
+  ctx.set(LOOP, h.state);
+  if (h.legacy) {
+    for (const key of Object.values(LEGACY)) ctx.clear(key);
+    h.legacy = false;
+  }
+  return h.state as LoopState<L>;
+}
+
+/** The last pass outcome, or null. */
+export async function lastPass<L = PassOutcome<unknown>>(ctx: AnyObjectContext): Promise<L | null> {
+  return (await loopState<L>(ctx)).last;
+}
+
+/** Keep `outcome` as the last pass; `status` shows it. */
+export async function setLastPass<L>(ctx: restate.ObjectContext, outcome: L): Promise<void> {
+  await writeLoop<L>(ctx, { last: outcome });
+}
 /** Object state key holding what `start` was last given; a pass reads it with `loopSettings`. */
 const SETTINGS = "settings";
 export const MIN_DELAY_MS = 1_000;
@@ -40,7 +112,11 @@ export function retryDelayMs(failures: number, capMs: number): number {
 }
 
 /** A pass that found its work gone (a client off or removed): kept as `last`, and the loop stops. */
-export function stoppedPass<S>(ctx: restate.ObjectContext, now: Date, why: string): PassOutcome<S> {
+export async function stoppedPass<S>(
+  ctx: restate.ObjectContext,
+  now: Date,
+  why: string,
+): Promise<PassOutcome<S>> {
   const outcome: PassOutcome<S> = {
     stats: null,
     error: null,
@@ -49,14 +125,14 @@ export function stoppedPass<S>(ctx: restate.ObjectContext, now: Date, why: strin
     now: now.toISOString(),
     stopped: why,
   };
-  ctx.set(LAST, outcome);
+  await setLastPass(ctx, outcome);
   return outcome;
 }
 
 /** Failed passes in a row, this one included (0 when it succeeded). */
 export async function failuresInARow(ctx: restate.ObjectContext, failed: boolean): Promise<number> {
   if (!failed) return 0;
-  const previous = await ctx.get<PassOutcome<unknown>>(LAST);
+  const previous = await lastPass(ctx);
   return (previous?.failures ?? 0) + 1;
 }
 
@@ -162,14 +238,14 @@ export async function runPass<S extends object>(
       }
     },
   );
-  const previous = (await ctx.get<PassOutcome<S>>(LAST)) ?? null;
+  const previous = await lastPass<PassOutcome<S>>(ctx);
   const failures = result.stats === null ? (previous?.failures ?? 0) + 1 : 0;
   const delayMs = Math.max(
     result.stats === null ? retryDelayMs(failures, spec.retryMs) : spec.delayAfter(result.stats),
     MIN_DELAY_MS,
   );
   const outcome: PassOutcome<S> = { ...result, failures, delayMs, now: now.toISOString() };
-  ctx.set(LAST, outcome);
+  await setLastPass(ctx, outcome);
   if (spec.notifier) await notifyErrorEdges(ctx, spec.notifier, spec.name, previous, outcome);
   return outcome;
 }
@@ -242,14 +318,29 @@ export function makeLoopObject<S extends object>(
             if (Object.keys(settings).length > 0) ctx.set(SETTINGS, settings);
             else ctx.clear(SETTINGS);
           }
-          const running = (await ctx.get<boolean>(RUNNING)) ?? false;
-          if (!running) {
-            const generation = ((await ctx.get<number>(GENERATION)) ?? 0) + 1;
-            ctx.set(GENERATION, generation);
-            ctx.set(RUNNING, true);
+          const state = await loopState(ctx);
+          if (!state.running) {
+            const generation = state.generation + 1;
+            await writeLoop(ctx, { running: true, generation });
             self(ctx).loop(generation);
           }
           return status(ctx, true);
+        },
+      ),
+
+      /**
+       * A running loop passes now instead of after its delay (a long idle sleep ends);
+       * a stopped one stays stopped. The sleeping call is dropped by its old generation.
+       */
+      wake: exclusiveHandler(
+        { input: NO_INPUT },
+        async (ctx: restate.ObjectContext): Promise<boolean> => {
+          const state = await loopState(ctx);
+          if (!state.running) return false;
+          const generation = state.generation + 1;
+          await writeLoop(ctx, { generation });
+          self(ctx).loop(generation);
+          return true;
         },
       ),
 
@@ -257,7 +348,7 @@ export function makeLoopObject<S extends object>(
       stop: exclusiveHandler(
         { input: NO_INPUT },
         async (ctx: restate.ObjectContext): Promise<LoopStatus<S>> => {
-          ctx.set(RUNNING, false);
+          await writeLoop(ctx, { running: false });
           if (hooks.onStop) await hooks.onStop(ctx);
           return status(ctx, false);
         },
@@ -267,12 +358,12 @@ export function makeLoopObject<S extends object>(
       loop: exclusiveHandler(
         { ingressPrivate: true },
         async (ctx: restate.ObjectContext, generation?: number | null): Promise<void> => {
-          if (!((await ctx.get<boolean>(RUNNING)) ?? false)) return;
-          const current = (await ctx.get<number>(GENERATION)) ?? 0;
+          const { running, generation: current } = await loopState(ctx);
+          if (!running) return;
           // A call from before the last stop: its chain ended there.
           if ((generation ?? 0) !== current) return;
           const outcome = await pass(ctx);
-          if (outcome.stopped !== undefined) ctx.set(RUNNING, false);
+          if (outcome.stopped !== undefined) await writeLoop(ctx, { running: false });
           else self(ctx).loop(current, restate.rpc.sendOpts({ delay: outcome.delayMs }));
         },
       ),
@@ -280,7 +371,7 @@ export function makeLoopObject<S extends object>(
       status: sharedHandler(
         { input: NO_INPUT },
         async (ctx: restate.ObjectSharedContext): Promise<LoopStatus<S>> =>
-          status(ctx, (await ctx.get<boolean>(RUNNING)) ?? false),
+          status(ctx, (await loopState(ctx)).running),
       ),
     },
   });
@@ -292,7 +383,7 @@ export function makeLoopObject<S extends object>(
     return {
       key: ctx.key,
       running,
-      last: (await ctx.get<PassOutcome<S>>(LAST)) ?? null,
+      last: await lastPass<PassOutcome<S>>(ctx),
       settings: await loopSettings(ctx),
     };
   }

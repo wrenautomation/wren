@@ -19,11 +19,12 @@ import type { Notifier } from "@wren/core/notify";
 import type { Found, OutreachChannel, Profile } from "@wren/core/outreach";
 import {
   errorText,
-  LAST,
+  lastPass,
   makeLoopObject,
   NO_INPUT,
   type PassOutcome,
   serviceHandler,
+  setLastPass,
 } from "@wren/core/restate";
 import type { Db } from "@wren/db";
 import { z } from "zod";
@@ -148,7 +149,7 @@ export function makeReachSender(deps: ReachDeps) {
       error = errorText(err);
     }
     await ctx.run("finish run", () => finishRun(deps.db, runId, stats ?? { error }));
-    const previous = (await ctx.get<PassOutcome<TickStats>>(LAST)) ?? null;
+    const previous = await lastPass<PassOutcome<TickStats>>(ctx);
     const failures = stats ? 0 : (previous?.failures ?? 0) + 1;
     const delayMs = stats && stats.sent > 0 ? deps.policy.gapSeconds * 1000 : IDLE_MS;
     const outcome: PassOutcome<TickStats> = {
@@ -158,7 +159,7 @@ export function makeReachSender(deps: ReachDeps) {
       delayMs,
       now: now.toISOString(),
     };
-    ctx.set(LAST, outcome);
+    await setLastPass(ctx, outcome);
     if (deps.notifier && error && previous?.error !== error) {
       const notifier = deps.notifier;
       await ctx.run("notify error", () =>
@@ -216,7 +217,7 @@ export function makeReachWatch(deps: ReachDeps) {
       delayMs: WATCH_EVERY_MS,
       now: now.toISOString(),
     };
-    ctx.set(LAST, outcome);
+    await setLastPass(ctx, outcome);
     const notifier = deps.notifier;
     if (notifier && (replies.received > 0 || health.frozen.length > 0)) {
       await ctx.run("notify", () =>

@@ -23,12 +23,12 @@ import { findClient } from "@wren/core/clients";
 import { type Notifier, namedFor } from "@wren/core/notify";
 import {
   clientOfKey,
-  LAST,
   makeLoopObject,
   NO_INPUT,
   type PassOutcome,
   runPass,
   serviceHandler,
+  setLastPass,
   stoppedPass,
 } from "@wren/core/restate";
 import type { Db } from "@wren/db";
@@ -80,6 +80,14 @@ import {
 export const SENDER_KEY = "fleet";
 export const WATCH_KEY = "daily";
 const IDLE_MS = 5 * 60 * 1000;
+/** No active number: nothing can send, so the loop sleeps long. A new or resumed number wakes it. */
+const NO_NUMBER_MS = 6 * 60 * 60 * 1000;
+
+/** The wait after a send pass: the gap while sending, 6 h with no number to send from, else idle. */
+export function senderDelayMs(s: TickStats, gapSeconds: number): number {
+  if (s.sent > 0 || s.retried > 0) return gapSeconds * 1000;
+  return s.activeNumbers === 0 ? NO_NUMBER_MS : IDLE_MS;
+}
 const RETRY_MS = 15 * 60 * 1000;
 const WATCH_EVERY_MS = 30 * 60 * 1000;
 
@@ -158,6 +166,16 @@ function formOptions(
   };
 }
 
+/** A new or resumed number: the sender may be in its 6 h sleep. */
+function wakeSender(ctx: restate.Context) {
+  ctx
+    .objectSendClient<{ wake: (c: restate.ObjectContext) => Promise<boolean> }>(
+      { name: "SmsSender" },
+      SENDER_KEY,
+    )
+    .wake();
+}
+
 export function makeSmsSender(wren: SmsDeps) {
   return makeLoopObject<TickStats>("SmsSender", async (ctx) => {
     const now = await nowFor(ctx, wren.clock);
@@ -176,7 +194,7 @@ export function makeSmsSender(wren: SmsDeps) {
           now,
           runId,
         }),
-      delayAfter: (s) => (s.sent > 0 || s.retried > 0 ? deps.policy.gapSeconds * 1000 : IDLE_MS),
+      delayAfter: (s) => senderDelayMs(s, deps.policy.gapSeconds),
       retryMs: RETRY_MS,
       ...(deps.notifier ? { notifier: deps.notifier } : {}),
     });
@@ -505,9 +523,11 @@ export function makeSmsDesk(deps: SmsDeps) {
         { input: NO_INPUT },
         async (ctx: restate.Context): Promise<SyncStats> => {
           const now = await nowOf(ctx);
-          return ctx.run("sync numbers", () =>
+          const stats = await ctx.run("sync numbers", () =>
             terminal(() => syncNumbers(deps.db, deps.provider, deps.policy, now)),
           );
+          if (stats.added.length > 0) wakeSender(ctx);
+          return stats;
         },
       ),
       /** Every text William writes, empty or filled. */
@@ -555,8 +575,11 @@ export function makeSmsDesk(deps: SmsDeps) {
       ),
       resume: serviceHandler(
         { input: NUMBER },
-        async (ctx: restate.Context, req: { e164: string }): Promise<boolean> =>
-          ctx.run("resume", () => resumeNumber(deps.db, req.e164)),
+        async (ctx: restate.Context, req: { e164: string }): Promise<boolean> => {
+          const resumed = await ctx.run("resume", () => resumeNumber(deps.db, req.e164));
+          if (resumed) wakeSender(ctx);
+          return resumed;
+        },
       ),
       stats: serviceHandler(
         { input: STATS },
@@ -810,7 +833,7 @@ export function makeSmsWatch(wren: SmsDeps) {
       });
       ctx.set(SUMMARIZED, day);
       outcome.stats.summarized = line;
-      ctx.set(LAST, outcome);
+      await setLastPass(ctx, outcome);
     }
     return outcome;
   });

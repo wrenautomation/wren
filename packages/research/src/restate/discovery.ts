@@ -38,6 +38,7 @@ import {
 } from "../discovery/service.js";
 import type { Fetcher } from "../fetch/fetcher.js";
 import { keyScope } from "./enrichment.js";
+import { unitBatches } from "./units.js";
 
 export const DEFAULT_DISCOVERY_LIMIT = 10;
 /** Bounded retries per company; when exhausted the unit is skipped, not the pass. */
@@ -118,29 +119,23 @@ export function makeDiscovery(deps: DiscoveryDeps) {
       (await shape.select(db, { limit, niche })).map((c) => c.id),
     );
     let stats = shape.empty();
-    let rowNumber = 0;
-    for (const id of ids) {
-      rowNumber += 1;
-      const row = rowNumber;
-      try {
-        const unit = await ctx.run(
-          `${shape.command} company ${id}`,
-          async () =>
-            shape.unit(db, await companyById(db, id), {
-              batchId: opened.batchId,
-              rowNumber: row,
-              genericWords,
-              fetchHomepage: homepage,
-              ...(deps.resolves ? { resolves: deps.resolves } : {}),
-            }),
-          UNIT_RETRY,
-        );
-        stats = shape.add(stats, unit);
-      } catch (err) {
-        // A unit out of retries is skipped: the pass still closes with what it has.
-        if (!(err instanceof restate.TerminalError)) throw err;
-      }
-    }
+    const rowOf = new Map(ids.map((id, i) => [id, i + 1]));
+    const units = unitBatches(
+      ctx,
+      `${shape.command} company`,
+      ids,
+      async (id) =>
+        shape.unit(db, await companyById(db, id), {
+          batchId: opened.batchId,
+          rowNumber: rowOf.get(id) ?? 0,
+          genericWords,
+          fetchHomepage: homepage,
+          ...(deps.resolves ? { resolves: deps.resolves } : {}),
+        }),
+      { retry: UNIT_RETRY },
+    );
+    // A unit out of retries is skipped: the pass still closes with what it has.
+    for await (const r of units) if (r.ok) stats = shape.add(stats, r.value);
     if (niche !== null) {
       stats.niche_null_skipped = await ctx.run("count niche-null", () =>
         shape.nicheNullSkipped(db),

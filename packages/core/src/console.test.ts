@@ -134,6 +134,28 @@ describe("ConsolePortal loops", () => {
     ]);
   });
 
+  it("reads the one loop key, which wins over a stale running key", () => {
+    const rows = [
+      state("Delta", "d", "running", false),
+      state("Delta", "d", "loop", {
+        running: true,
+        generation: 2,
+        last: pass("2026-01-02T09:00:00.000Z", 1, "boom"),
+      }),
+    ];
+    expect(loopsOf(rows)).toEqual<LoopRow[]>([
+      {
+        service: "Delta",
+        key: "d",
+        running: true,
+        lastAt: "2026-01-02T09:00:00.000Z",
+        failures: 1,
+        error: "boom",
+        nextAt: null,
+      },
+    ]);
+  });
+
   it("refuses anyone but Wren's team, and a worker with no admin URL", async () => {
     await refused(loops.loops({ viewer: { email: "amy@acme.test" } }), 403);
     await refused(loops.loops({ viewer: operator, asClient: true }), 403);

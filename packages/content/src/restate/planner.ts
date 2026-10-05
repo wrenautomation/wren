@@ -8,7 +8,7 @@
 import type * as restate from "@restatedev/restate-sdk";
 import { PLATFORMS, type Platform } from "@wren/core/content";
 import type { Notifier } from "@wren/core/notify";
-import { LAST, loopSettings, makeLoopObject, type PassOutcome } from "@wren/core/restate";
+import { loopSettings, makeLoopObject, type PassOutcome, setLastPass } from "@wren/core/restate";
 import { wallClock, zonedInstant } from "@wren/core/time";
 import type { Db } from "@wren/db";
 import { type DayPlan, formatPlan, planFor, shortfallOf, tomorrowOf } from "../plan.js";
@@ -67,7 +67,7 @@ export function makeContentPlanner(deps: ContentPlannerDeps) {
       delayMs: nextRunAt(now, deps.zone, hour).getTime() - now.getTime(),
       now: now.toISOString(),
     };
-    ctx.set(LAST, outcome);
+    await setLastPass(ctx, outcome);
     return outcome;
   });
 }

@@ -22,7 +22,16 @@ import * as restate from "@restatedev/restate-sdk";
 import { finishRun, openRun } from "@wren/core";
 import type { Calendar } from "@wren/core/calendar";
 import { type Notifier, plural } from "@wren/core/notify";
-import { exclusiveHandler, NO_INPUT, sharedHandler, unitOfKey } from "@wren/core/restate";
+import {
+  exclusiveHandler,
+  lastPass,
+  loopState,
+  NO_INPUT,
+  setLastPass,
+  sharedHandler,
+  unitOfKey,
+  writeLoop,
+} from "@wren/core/restate";
 import type { Db } from "@wren/db";
 import type { SharedSuppressions } from "../guards.js";
 import type { SendStats } from "../send/deliver.js";
@@ -75,10 +84,6 @@ export interface SchedulerStatus {
   last: TickOutcome | null;
 }
 
-const RUNNING = "running";
-const LAST = "last";
-/** As in `makeLoopObject`: a stop then start never leaves two chains. */
-const GENERATION = "generation";
 const MIN_DELAY_MS = 1_000;
 
 export function makeSendScheduler(deps: SendSchedulerDeps) {
@@ -128,7 +133,7 @@ export function makeSendScheduler(deps: SendSchedulerDeps) {
     if (!result) return null;
     const { paused, ...rest } = result;
     const outcome: TickOutcome = { ...rest, now: now.toISOString() };
-    ctx.set(LAST, outcome);
+    await setLastPass(ctx, outcome);
     const notifier = deps.notifier;
     if (notifier && paused.length > 0) {
       await ctx.run("notify pauses", () =>
@@ -150,7 +155,7 @@ export function makeSendScheduler(deps: SendSchedulerDeps) {
         { input: NO_INPUT, effect: "sends" },
         async (ctx: restate.ObjectContext): Promise<TickOutcome | null> => {
           const outcome = await runTick(ctx);
-          if (!outcome && ((await ctx.get<boolean>(RUNNING)) ?? false)) ctx.set(RUNNING, false);
+          if (!outcome && (await loopState(ctx)).running) await writeLoop(ctx, { running: false });
           return outcome;
         },
       ),
@@ -159,11 +164,11 @@ export function makeSendScheduler(deps: SendSchedulerDeps) {
       start: exclusiveHandler(
         { input: NO_INPUT },
         async (ctx: restate.ObjectContext): Promise<SchedulerStatus> => {
-          const running = (await ctx.get<boolean>(RUNNING)) ?? false;
-          if (!running) {
-            const generation = ((await ctx.get<number>(GENERATION)) ?? 0) + 1;
-            ctx.set(GENERATION, generation);
-            ctx.set(RUNNING, true);
+          const state = await loopState(ctx);
+          if (!state.running) {
+            // As in `makeLoopObject`: a stop then start never leaves two chains.
+            const generation = state.generation + 1;
+            await writeLoop(ctx, { running: true, generation });
             ctx.objectSendClient(scheduler, ctx.key).loop(generation);
           }
           return status(ctx, true);
@@ -174,7 +179,7 @@ export function makeSendScheduler(deps: SendSchedulerDeps) {
       stop: exclusiveHandler(
         { input: NO_INPUT },
         async (ctx: restate.ObjectContext): Promise<SchedulerStatus> => {
-          ctx.set(RUNNING, false);
+          await writeLoop(ctx, { running: false });
           return status(ctx, false);
         },
       ),
@@ -183,13 +188,13 @@ export function makeSendScheduler(deps: SendSchedulerDeps) {
       loop: exclusiveHandler(
         { ingressPrivate: true },
         async (ctx: restate.ObjectContext, generation?: number | null): Promise<void> => {
-          if (!((await ctx.get<boolean>(RUNNING)) ?? false)) return;
-          const current = (await ctx.get<number>(GENERATION)) ?? 0;
+          const { running, generation: current } = await loopState(ctx);
+          if (!running) return;
           // A call from before the last stop: its chain ended there.
           if ((generation ?? 0) !== current) return;
           const outcome = await runTick(ctx);
           if (!outcome) {
-            ctx.set(RUNNING, false);
+            await writeLoop(ctx, { running: false });
             return;
           }
           ctx
@@ -201,7 +206,7 @@ export function makeSendScheduler(deps: SendSchedulerDeps) {
       status: sharedHandler(
         { input: NO_INPUT },
         async (ctx: restate.ObjectSharedContext): Promise<SchedulerStatus> =>
-          status(ctx, (await ctx.get<boolean>(RUNNING)) ?? false),
+          status(ctx, (await loopState(ctx)).running),
       ),
     },
   });
@@ -217,7 +222,7 @@ export function makeSendScheduler(deps: SendSchedulerDeps) {
       sender: ctx.key,
       running,
       onRoster: listed,
-      last: (await ctx.get<TickOutcome>(LAST)) ?? null,
+      last: await lastPass<TickOutcome>(ctx),
     };
   }
 

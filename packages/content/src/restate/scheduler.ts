@@ -12,7 +12,7 @@
 import * as restate from "@restatedev/restate-sdk";
 import type { Platform, Post, Published } from "@wren/core/content";
 import type { Notifier } from "@wren/core/notify";
-import { errorText, LAST, makeLoopObject, type PassOutcome } from "@wren/core/restate";
+import { errorText, makeLoopObject, type PassOutcome, setLastPass } from "@wren/core/restate";
 import type { Db } from "@wren/db";
 import { postLink, postOf } from "../platforms.js";
 import { claim, dueDrafts, markFailed, markPublished, nextDue } from "../queue.js";
@@ -85,7 +85,7 @@ export function makeContentScheduler(deps: ContentSchedulerDeps) {
       delayMs,
       now: now.toISOString(),
     };
-    ctx.set(LAST, outcome);
+    await setLastPass(ctx, outcome);
     const notifier = deps.notifier;
     if (notifier && (stats.published.length > 0 || stats.failed.length > 0)) {
       const lines = [

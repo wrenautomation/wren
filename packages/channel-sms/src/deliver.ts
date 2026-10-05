@@ -72,6 +72,8 @@ export interface TickStats {
   unreachable: number;
   reconciled: number;
   remainingToday: number;
+  /** Numbers in the pool that are active (not paused or retired). 0 = the loop sleeps long. */
+  activeNumbers: number;
 }
 
 /** `sending` rows past the stale mark → `unknown`. Never resent. */
@@ -242,8 +244,10 @@ export async function tick(db: Db, opts: TickOptions): Promise<TickStats> {
     unreachable: 0,
     reconciled: await reconcile(db, now),
     remainingToday: 0,
+    activeNumbers: 0,
   };
   const pool = await poolToday(db, policy, now);
+  stats.activeNumbers = pool.numbers.filter((n) => n.number.state === "active").length;
   let remaining = pool.remaining;
   const ready = new Map(
     pool.numbers.filter((n) => numberReady(n, now, policy)).map((n) => [n.number.id, n]),

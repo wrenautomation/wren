@@ -15,7 +15,7 @@ import { sql } from "drizzle-orm";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { findClient } from "../../src/clients/index.js";
 import { type LoopRow, makeConsolePortal, restateAdmin } from "../../src/console.js";
-import { LAST, makeLoopObject, type PassOutcome } from "../../src/restate/loop.js";
+import { makeLoopObject, type PassOutcome, setLastPass } from "../../src/restate/loop.js";
 import { startTestRestate } from "../../src/testing.js";
 
 const HOUR = 3_600_000;
@@ -27,7 +27,7 @@ const tick = makeLoopObject("Tick", async (ctx: restate.ObjectContext) => {
     delayMs: HOUR,
     now: new Date(await ctx.date.now()).toISOString(),
   };
-  ctx.set(LAST, outcome);
+  await setLastPass(ctx, outcome);
   return outcome;
 });
 type Tick = typeof tick;
