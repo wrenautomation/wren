@@ -2,8 +2,9 @@
  * Wren's own apps, in Wren's workspace only (team view): each an Overview of its numbers, then
  * its records on the templates. The console serves every record here.
  */
-import type { Action } from "@wren/ui";
+import type { Action, MessageKind } from "@wren/ui";
 import { createElement } from "react";
+import { call } from "../../api.js";
 import type { Module } from "../../module.js";
 import { ClientLook } from "../account/Look.js";
 import { ClientComponents } from "../marketplace/Installed.js";
@@ -83,12 +84,24 @@ const INBOX_ACTIONS: Action[] = [
 ];
 
 const WAITING = { state: ["needs_you", "proposed"] };
+/** Our answer rides their thread: the subject they replied under, as "Re: ...". */
+const replyPreview = (id: string | number) =>
+  call<{ row?: { subject?: string | null } }>("console/recordsGet", {
+    record: "email.reply",
+    id: String(id),
+  }).then((r): MessageKind => {
+    const subject = r.row?.subject?.trim();
+    return {
+      kind: "email",
+      subject: subject ? (/^re:/i.test(subject) ? subject : `Re: ${subject}`) : "Re:",
+    };
+  });
 const REPLY_ACTIONS: Action[] = [
   {
     id: "email.approve",
     label: "Send",
     handler: "email/approve",
-    ask: { field: "body", label: "Your reply", from: "draft", preview: { kind: "email" } },
+    ask: { field: "body", label: "Your reply", from: "draft", preview: replyPreview },
     key: "a",
     when: WAITING,
     done: said("Sent"),

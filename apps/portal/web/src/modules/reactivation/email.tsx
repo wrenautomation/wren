@@ -122,11 +122,24 @@ function Draft({
         <summary className="w-fit cursor-pointer text-[13.5px] font-medium text-(--ui-ink-2) hover:text-(--ui-ink)">
           How it looks on a laptop and a phone
         </summary>
-        <div className="mt-2.5">
+        <div className="mt-2.5 grid gap-6">
           <MessagePreview
             message={{ kind: "email", from: d.from, subject: subject ? String(subject) : null }}
             body={d.opener}
           />
+          {d.followup ? (
+            <>
+              <p className="text-[13.5px] font-medium">The follow-up, in the same thread</p>
+              <MessagePreview
+                message={{
+                  kind: "email",
+                  from: d.from,
+                  subject: subject ? `Re: ${subject}` : "Re:",
+                }}
+                body={d.followup}
+              />
+            </>
+          ) : null}
         </div>
       </details>
       {d.personId ? (
