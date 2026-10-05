@@ -937,3 +937,35 @@ export const placementChecks = pgTable(
   ],
 );
 export type PlacementCheck = typeof placementChecks.$inferSelect;
+
+export const FILL_KINDS = ["company", "person", "slot"] as const;
+
+/**
+ * Every answer a model gave for a fact, refusals too (designs/2026-10-05-ai-fills.md).
+ * Keyed by kind, prompt version and input: the same firm name costs one call ever, and a
+ * changed system prompt or check starts a fresh cache.
+ */
+export const fills = pgTable(
+  "fills",
+  {
+    id: serial("id").notNull(),
+    kind: varchar("kind", { length: 16 }).notNull(),
+    promptVersion: varchar("prompt_version", { length: 12 }).notNull(),
+    /** The text sent: the filed name, or the slot's prompt with its facts in. */
+    input: text("input").notNull(),
+    /** sha256 of kind, prompt version and input. */
+    key: varchar("key", { length: 64 }).notNull(),
+    /** The answer after the check; null when refused. */
+    value: jsonb("value").$type<Record<string, string>>(),
+    refused: text("refused"),
+    model: varchar("model", { length: 128 }).notNull(),
+    /** The `@wren/llm` envelope: raw_text, api, call. */
+    envelope: jsonb("envelope").notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+  },
+  (t) => [
+    primaryKey({ columns: [t.id], name: "pk_fills" }),
+    unique("uq_fills_key").on(t.key),
+    oneOf("ck_fills_kind", t.kind, FILL_KINDS),
+  ],
+);

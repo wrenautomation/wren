@@ -37,7 +37,6 @@ const SIGNATURE = "Will";
 const SAMPLE: Record<string, unknown> = {
   ...sentenceReady({ first_name: "Dana", company_name: "Tulsa Nurse Partners", title: "Owner" })
     .values,
-  "company.opener": "You have placed ICU nurses in Tulsa hospitals since 1999.",
   "company.aum": "$420 million",
   "company.ind_clients": "300",
   "call.times": CALL_TIMES,

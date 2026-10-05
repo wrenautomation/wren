@@ -2,8 +2,6 @@ subject: (({first_name}, ))[[something interesting about your clients | about yo
 
 Hi {first_name|there},
 
-(({company.opener}))
-
 I've been following {company_short|your firm} for a while. I'm a college student who's constantly recruiting for co-op internships, so I resonate with the work you're doing.
 
 I know for a fact you've got years of past clients sitting in your CRM that nobody's called in a while. [[Guess what a lot of them are probably doing right now? Hiring. | A lot of them are probably hiring right now.]] I think you're missing out on hundreds of thousands in revenue, to be frank.

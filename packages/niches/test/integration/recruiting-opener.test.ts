@@ -1,4 +1,4 @@
-/** recruiting_facts → factsForCompany → the reactivation opener: the stored line reaches the email. */
+/** recruiting_facts → factsForCompany → the book-first opener: a stored research line never reaches the email. */
 import { CALL_TIMES, factsForCompany, linkFacts, render } from "@wren/channel-email";
 import { companies } from "@wren/core";
 import { startTestPostgres, type TestPostgres, truncate } from "@wren/db/testing";
@@ -14,7 +14,7 @@ afterAll(() => pg.stop());
 beforeEach(() => truncate(pg.db, ["imports", "companies"]));
 const db = () => pg.db;
 
-const LINE = "You have placed ICU nurses in Tulsa hospitals since 1999.";
+const LINE = "A line about the firm from research.";
 
 async function firm(domain: string, line: string | null): Promise<number> {
   const [row] = await db()
@@ -58,12 +58,11 @@ describe("recruiting opener through the facts view", () => {
     expect(recruiting.factsView).toBe("recruiting_facts");
   });
 
-  it("a stored line opens the email; no line leaves no gap", async () => {
+  it("a stored line stays out: personalization is templated (William, 2026-10-05)", async () => {
     const lined = await email(await firm("lined.example", LINE));
-    expect(lined.startsWith(`Hi there,\n\n${LINE}\n\n`)).toBe(true);
     const bare = await email(await firm("bare.example", null));
-    expect(bare).toMatch(/^Hi there,\n\n[^\n]/);
-    expect(bare).not.toContain(LINE);
-    expect(bare).not.toMatch(/\n{3,}/);
+    expect(lined).not.toContain(LINE);
+    expect(lined).toBe(bare);
+    expect(bare).toMatch(/^Hi there,\n\nI've /);
   });
 });

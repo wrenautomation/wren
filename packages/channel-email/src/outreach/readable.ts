@@ -256,8 +256,9 @@ const NAME_JOINERS = new Set(["&", "and", "of", "the", "+"]);
 /**
  * A firm as a person would call it in a sentence: `readableCompany` less the words that
  * say what it does. "Grove Technical Resources" is Grove, "Briggs & Associates" is Briggs;
- * a name left with only a plain word ("Superior Resource Specialists") goes by its initials
- * (SRS). A name made only of such words, or too short to cut, stays whole.
+ * a name left with only a plain word ("Superior Resource Specialists"), or too short to
+ * cut, stays whole. Never initials. The model's casual name (fills.ts) replaces this one
+ * wherever compose has a filler; this is the database-free fallback.
  */
 export function shortCompany(value: unknown): string | null {
   const full = readableCompany(value);
@@ -274,12 +275,9 @@ export function shortCompany(value: unknown): string | null {
   )
     end--;
   const core = words.slice(0, end);
-  const named = words.filter((w) => !NAME_JOINERS.has(key(w)));
   const plain = core.every((w) => isPlain(key(w)) || DESCRIPTORS.has(key(w)));
-  if (plain || core.length === 0) {
-    if (named.length < 3) return full;
-    return named.map((w) => (w[0] ?? "").toUpperCase()).join("");
-  }
+  // Never initials: "Assertive Staffing Services" is not "ASS" (William, 2026-10-05).
+  if (plain || core.length === 0) return full;
   const short = core.join(" ");
   return letters(short).length >= 2 ? short : full;
 }

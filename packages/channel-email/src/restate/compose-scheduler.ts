@@ -21,6 +21,7 @@ import { sql } from "drizzle-orm";
 import { experimentTemplates } from "../evolve/experiments.js";
 import type { SharedSuppressions } from "../guards.js";
 import { type ComposeStats, compose } from "../outreach/compose.js";
+import type { Filler } from "../outreach/fills.js";
 import { type EnrollmentRule, ruleCovers } from "../outreach/plan.js";
 import { type RefreshStats, refreshQueue } from "../outreach/refresh.js";
 import type { Sequence } from "../outreach/sequences.js";
@@ -58,6 +59,8 @@ export interface Campaign {
   readonly companyLocation: (company: Company) => string | null;
   /** When a company may get another cold sequence. */
   readonly recontact: RecontactPolicy;
+  /** Casual names and prompt slots by a model (outreach/fills.ts), for compose, refresh and replies. */
+  readonly fill?: Filler;
 }
 
 export interface ComposeSchedulerDeps {
@@ -152,6 +155,7 @@ export async function refreshCampaign(
     signatures: campaign.signatures,
     trackOpens,
     staleOnly,
+    ...(campaign.fill ? { fill: campaign.fill } : {}),
   });
 }
 
@@ -235,6 +239,7 @@ export async function topUp(
       recontact: campaign.recontact,
       shared: opts.shared ?? null,
       ...(rule.where ? { where: rule.where } : {}),
+      ...(campaign.fill ? { fill: campaign.fill } : {}),
     });
     stats.passes.push({ sequence: rule.sequence, audience, stats: pass });
     stats.enrolled += pass.enrolled;

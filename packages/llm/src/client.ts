@@ -27,6 +27,8 @@ export interface LlmResponse {
 
 export interface CompleteOptions {
   maxTokens?: number;
+  /** The system prompt: the standing instructions, apart from this call's input. */
+  system?: string;
 }
 
 export interface LlmClient {
@@ -64,7 +66,7 @@ export class LlmInputRejected extends Error {
 
 const INPUT_REJECTED_STATUSES: ReadonlySet<number> = new Set([400, 422]);
 
-export type FakeResponder = (prompt: string) => string | Promise<string>;
+export type FakeResponder = (prompt: string, system?: string) => string | Promise<string>;
 
 /**
  * Fixture-driven stub: answers from a callable or a fixed string. Outputs flow
@@ -79,8 +81,8 @@ export class FakeLlm implements LlmClient {
     this.respond = opts.respond;
     this.fallback = opts.default ?? '{"people": []}';
   }
-  async complete(prompt: string): Promise<LlmResponse> {
-    const text = this.respond ? await this.respond(prompt) : this.fallback;
+  async complete(prompt: string, opts: CompleteOptions = {}): Promise<LlmResponse> {
+    const text = this.respond ? await this.respond(prompt, opts.system) : this.fallback;
     return { text, raw: { fake: true }, latencyMs: 0 };
   }
 }
@@ -111,6 +113,7 @@ export class AiSdkLlm implements LlmClient {
     try {
       result = await generateText({
         model: this.model,
+        ...(opts.system ? { system: wellFormed(opts.system) } : {}),
         prompt: wellFormed(prompt),
         maxOutputTokens: opts.maxTokens ?? DEFAULT_MAX_TOKENS,
       });

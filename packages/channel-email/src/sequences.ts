@@ -89,8 +89,10 @@ export async function clientSequences(main: Db, id: string): Promise<ClientSeque
  */
 export function clientCampaign(base: Campaign, settings: SequencesSettings): Campaign {
   const active = settings.senders.filter((s) => !s.suspended);
+  // The filler caches in main's database: a client's names stay in the client's.
+  const { fill: _, ...rest } = base;
   return {
-    ...base,
+    ...rest,
     senders: active.map((s) => s.address),
     ramps: {},
     signatures: Object.fromEntries(

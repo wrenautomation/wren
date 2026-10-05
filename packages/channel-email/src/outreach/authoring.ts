@@ -14,6 +14,8 @@
  *   `[[#hook a | b]]` names it (a lowercase name, then a space): the name is its locus key
  *   for experiments, and it stays put when points are added before it.
  * - `((...))` is an optional segment: vanishes when a fact inside is missing.
+ * - `<<prompt>>` is a prompt slot: a model writes it from the prompt (which may quote
+ *   `{key}` facts), checked before render; missing like a `{key}` when it can't be filled.
  *
  * A file without a leading `subject:` line is a thread-riding follow-up. A line starting
  * with `##` is a comment, stripped before parsing. A line opening with `# ` (or a lone `#`)
@@ -27,6 +29,7 @@ import {
   type FieldBlock,
   field,
   group,
+  slot,
   type Template,
   type TextBlock,
   template,
@@ -210,7 +213,7 @@ function parse(
   let counted = 0;
   let line = baseLine;
   while (i < src.length) {
-    const found = (["((", "[[", "{"] as const)
+    const found = (["((", "[[", "<<", "{"] as const)
       .map((token) => ({ pos: src.indexOf(token, i), token }))
       .filter((f) => f.pos !== -1)
       .sort((a, b) => a.pos - b.pos);
@@ -223,7 +226,14 @@ function parse(
     appendText(blocks, src.slice(i, pos));
     line += countNewlines(src, counted, pos);
     counted = pos;
-    if (token === "{") {
+    if (token === "<<") {
+      const end = src.indexOf(">>", pos);
+      if (end === -1) throw new AuthoringError(`${name}:${lineOf(line)}: unclosed << >>`);
+      const prompt = strip(src.slice(pos + 2, end));
+      if (!prompt) throw new AuthoringError(`${name}:${lineOf(line)}: empty << >> prompt`);
+      blocks.push(slot(prompt));
+      i = end + 2;
+    } else if (token === "{") {
       const end = src.indexOf("}", pos);
       if (end === -1) throw new AuthoringError(`${name}:${lineOf(line)}: unclosed { }`);
       blocks.push(parseField(src.slice(pos + 1, end), name, lineOf(line)));
@@ -328,15 +338,20 @@ function parseVariant(
     : variants(locus, options, undefined, true);
 }
 
-/** Split on | at the top level only — a | inside {key|fallback} belongs to the field. */
+/** Split on | at the top level only — a | inside {key|fallback} or <<prompt>> belongs to it. */
 function splitOptions(content: string): string[] {
   const parts: string[] = [];
   let current = "";
   let depth = 0;
-  for (const ch of content) {
+  let prompt = false;
+  for (let i = 0; i < content.length; i++) {
+    const ch = content[i] as string;
+    const pair = content.slice(i, i + 2);
+    if (pair === "<<") prompt = true;
+    else if (pair === ">>") prompt = false;
     if (ch === "{") depth++;
     else if (ch === "}") depth = Math.max(0, depth - 1);
-    if (ch === "|" && depth === 0) {
+    if (ch === "|" && depth === 0 && !prompt) {
       parts.push(current);
       current = "";
     } else current += ch;
@@ -365,6 +380,7 @@ function sourceBlock(block: Block, all: boolean): string {
     case "text":
       return block.text;
     case "field":
+      if (block.prompt !== undefined) return `<<${block.prompt}>>`;
       return block.fallback === null ? `{${block.key}}` : `{${block.key}|${block.fallback}}`;
     case "variants":
       return `[[${block.named || all ? `#${block.name} ` : ""}${block.options

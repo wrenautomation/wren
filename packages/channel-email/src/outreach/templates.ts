@@ -2,9 +2,11 @@
  * Email templates as pure data.
  *
  * A template is a tree of three block types — text, field, variants — plus group, the
- * structural absence boundary. Every word a rendered email can contain is human-authored;
- * render() only assembles and records what it chose. No callables live in the tree, so a
- * template is content-hashable: `version` changes exactly when the authored words change.
+ * structural absence boundary. Every word a rendered email can contain is human-authored
+ * or a fact; render() only assembles and records what it chose. A model's words enter only
+ * as facts: a prompt slot is a field keyed by its prompt's hash, filled (and checked) before
+ * render by `fills.ts`. No callables live in the tree, so a template is content-hashable:
+ * `version` changes exactly when the authored words, prompts included, change.
  *
  * Absence is structural, never stringly:
  * - a bare field with no value refuses the draft (MissingFactError)
@@ -29,6 +31,8 @@ export interface FieldBlock {
   readonly kind: "field";
   readonly key: string;
   readonly fallback: string | null;
+  /** A prompt slot: the model fills `key` from this prompt (designs/2026-10-05-ai-fills.md). */
+  readonly prompt?: string;
 }
 /** One variant option: a non-empty run of text/field blocks. */
 export type Option = readonly (TextBlock | FieldBlock)[];
@@ -63,6 +67,17 @@ export function text(value: string): TextBlock {
 export function field(key: string, fallback: string | null = null): FieldBlock {
   if (!key) throw new Error("a Field block needs a fact key");
   return { kind: "field", key, fallback };
+}
+
+/** The fact key a prompt slot fills: changes iff the prompt does, so the version follows it. */
+export const slotKey = (prompt: string): string =>
+  `ai.${createHash("sha256").update(prompt, "utf8").digest("hex").slice(0, 12)}`;
+
+/** A prompt slot: a required field the model fills before render. */
+export function slot(prompt: string): FieldBlock {
+  const text = prompt.trim();
+  if (!text) throw new Error("a prompt slot needs a prompt");
+  return { kind: "field", key: slotKey(text), fallback: null, prompt: text };
 }
 
 /** A variant option given as a bare string is one text block. */
@@ -118,7 +133,9 @@ export function* variantPoints(blocks: readonly Block[]): Generator<VariantsBloc
 /** An option's words with facts as `{key}`, trimmed: what an allele is. */
 export const optionText = (o: Option): string =>
   o
-    .map((b) => (b.kind === "text" ? b.text : `{${b.key}}`))
+    .map((b) =>
+      b.kind === "text" ? b.text : b.prompt !== undefined ? `<<${b.prompt}>>` : `{${b.key}}`,
+    )
     .join("")
     .trim();
 
@@ -344,6 +361,21 @@ export function tidy(input: string): string {
     .replace(LEADING_ORPHAN_PUNCT, "")
     .replace(BLANK_STACK, "\n\n")
     .trim();
+}
+
+/** Every prompt slot in the template, by its key, inside optional runs too. */
+export function slots(tpl: Template): ReadonlyMap<string, string> {
+  const out = new Map<string, string>();
+  const walk = (blocks: readonly Block[]): void => {
+    for (const b of blocks) {
+      if (b.kind === "field" && b.prompt !== undefined) out.set(b.key, b.prompt);
+      else if (b.kind === "group") walk(b.blocks);
+      else if (b.kind === "variants") for (const o of b.options) walk(o);
+    }
+  };
+  walk(tpl.subject ?? []);
+  walk(tpl.body);
+  return out;
 }
 
 /** Every fact key the template quotes, in the subject or body, inside optional runs too. */

@@ -19,6 +19,7 @@ import { CALL_TIMES } from "../send/call-times.js";
 import { toSource } from "./authoring.js";
 import { linkFacts, mintLinkCode, mintOpenToken, signed } from "./compose.js";
 import { type Facts, factsFor, factsForCompany } from "./facts.js";
+import type { Filler } from "./fills.js";
 import { type Allocation, MissingFactError, render, type Template } from "./templates.js";
 
 export interface RefreshOptions {
@@ -41,6 +42,8 @@ export interface RefreshOptions {
    * changes are picked up too.
    */
   readonly staleOnly?: boolean;
+  /** Casual names and prompt slots by a model (fills.ts), as compose has them. */
+  readonly fill?: Filler;
 }
 
 export interface RefreshStats {
@@ -101,7 +104,36 @@ export async function refreshQueue(db: Queryable, opts: RefreshOptions): Promise
         ).map((r) => r.id),
   );
   const active = new Set(opts.senders);
+  const untouched = (m: (typeof queued)[number]["m"]) =>
+    m.approvedBy === "auto" && m.editedAt === null;
+  const rerenders = ({ m, e }: (typeof queued)[number]) =>
+    untouched(m) &&
+    !started.has(e.id) &&
+    active.has(e.sender) &&
+    !(opts.staleOnly && opts.templates.get(m.template)?.version === m.templateVersion) &&
+    opts.templates.has(m.template);
+  // Facts for every enrollment a message of which re-renders, filled before the first write:
+  // a deploy's refresh asks the model for the whole queue at once, not one email at a time.
   const factsByEnrollment = new Map<number, Facts>();
+  const templatesByEnrollment = new Map<number, Template[]>();
+  for (const q of queued.filter(rerenders)) {
+    const list = templatesByEnrollment.get(q.e.id) ?? [];
+    list.push(opts.templates.get(q.m.template) as Template);
+    templatesByEnrollment.set(q.e.id, list);
+    if (!factsByEnrollment.has(q.e.id))
+      factsByEnrollment.set(
+        q.e.id,
+        q.e.personId !== null
+          ? await factsFor(db, q.e.personId, opts.factsView)
+          : await factsForCompany(db, q.e.companyId, opts.factsView),
+      );
+  }
+  if (opts.fill) {
+    const fill = opts.fill;
+    await fill.warm([...factsByEnrollment.values()], opts.templates.values());
+    for (const [id, facts] of factsByEnrollment)
+      factsByEnrollment.set(id, await fill.fill(facts, templatesByEnrollment.get(id) ?? []));
+  }
   const recorded = new Set<string>();
   for (const { m, e } of queued) {
     const update: Partial<typeof messages.$inferInsert> = {};
@@ -109,26 +141,19 @@ export async function refreshQueue(db: Queryable, opts: RefreshOptions): Promise
     if (opts.trackOpens && m.openToken === null && m.approvedBy === "auto") {
       update.openToken = mintOpenToken();
     }
-    const untouched = m.approvedBy === "auto" && m.editedAt === null;
-    if (untouched) stats.checked++;
-    if (untouched && (started.has(e.id) || !active.has(e.sender))) {
+    const mine = untouched(m);
+    if (mine) stats.checked++;
+    if (mine && (started.has(e.id) || !active.has(e.sender))) {
       stats.kept_started_or_inactive++;
     } else if (
-      untouched &&
+      mine &&
       opts.staleOnly &&
       opts.templates.get(m.template)?.version === m.templateVersion
     ) {
       stats.kept_current++;
-    } else if (untouched) {
+    } else if (mine) {
       const tpl = opts.templates.get(m.template);
-      let facts = factsByEnrollment.get(e.id) ?? null;
-      if (tpl && facts === null) {
-        facts =
-          e.personId !== null
-            ? await factsFor(db, e.personId, opts.factsView)
-            : await factsForCompany(db, e.companyId, opts.factsView);
-        factsByEnrollment.set(e.id, facts);
-      }
+      const facts = factsByEnrollment.get(e.id) ?? null;
       const offerFacts = opts.offerFacts.get(e.offer) ?? {};
       const linkCode = m.linkCode ?? mintLinkCode();
       let rendered: ReturnType<typeof render> | null = null;

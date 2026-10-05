@@ -1,4 +1,4 @@
-/** The recruiting opener template with and without the company's opener line. */
+/** The recruiting templates as a lead reads them. */
 import { CALL_TIMES, render, sentenceReady } from "@wren/channel-email";
 import { describe, expect, it } from "vitest";
 import { recruiting } from "./index.js";
@@ -8,7 +8,6 @@ const tpl = () => {
   if (t === undefined) throw new Error("missing book-first/opener");
   return t;
 };
-const LINE = "You have placed ICU nurses in Tulsa hospitals since 1999.";
 const terms: Readonly<Record<string, string>> = recruiting.offerFacts.get("reactivation") ?? {};
 // Through sentenceReady, as compose does: `company_short` is derived there.
 const base: Record<string, unknown> = {
@@ -20,31 +19,12 @@ const base: Record<string, unknown> = {
 const body = (facts: Record<string, unknown>) => render(tpl(), facts, "person:7").body;
 
 describe("recruiting book-first opener", () => {
-  it("puts the line in its own paragraph after the greeting", () => {
-    const b = body({ ...base, "company.opener": LINE });
-    expect(b.startsWith(`Hi Dana,\n\n${LINE}\n\n`)).toBe(true);
-    expect(b).not.toMatch(/\n{3,}/);
-  });
-
-  it("no line leaves no gap, whether the fact is absent, null or blank", () => {
-    const without = body(base);
-    expect(without).toMatch(/^Hi Dana,\n\n[^\n]/);
-    expect(without).not.toContain(LINE);
-    expect(without).not.toMatch(/\n{3,}/);
-    for (const opener of [null, "", "   "]) {
-      expect(body({ ...base, "company.opener": opener })).toBe(without);
-    }
-  });
-
-  it("a role inbox gets the fallback greeting and still the line", () => {
-    const { first_name: _, title: __, ...company } = base;
-    const b = body({ ...company, "company.opener": LINE });
-    expect(b.startsWith(`Hi there,\n\n${LINE}\n\n`)).toBe(true);
-  });
-
-  it("the line only changes its own paragraph", () => {
-    const withLine = body({ ...base, "company.opener": LINE });
-    expect(withLine.replace(`${LINE}\n\n`, "")).toBe(body(base));
+  it("never prints a free-form company line: personalization is templated", () => {
+    const line = "A line about the firm from research.";
+    for (const name of ["book-first/opener", "watch-first/opener"])
+      expect(
+        render(named(name), { ...base, "company.opener": line }, "person:7").body,
+      ).not.toContain(line);
   });
 
   it("opens on the cold read, names the problem, then says who William is", () => {
@@ -53,7 +33,9 @@ describe("recruiting book-first opener", () => {
       /^Hi Dana,\n\nI've (been following Tulsa Nurse for a while|followed Tulsa Nurse for a while now)\. (I'm a college student|As a college student)/,
     );
     expect(b).toContain("University of Waterloo");
-    expect(b).toMatch(/built tools for the Government of Canada/);
+    expect(b).toMatch(
+      /built internal production tools for the Government of Canada\. I.ve also worked with Microsoft.s and Google.s backend systems\./,
+    );
     expect(b).toContain("I think you're missing out on hundreds of thousands in revenue.");
     expect(b).toMatch(/hiring/i);
     expect(b.indexOf("hundreds of thousands")).toBeLessThan(b.indexOf("University of Waterloo"));

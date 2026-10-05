@@ -39,6 +39,7 @@ import { CALL_TIMES } from "../send/call-times.js";
 import { transitionMessage } from "../state.js";
 import { toSource } from "./authoring.js";
 import { type FactRow, type Facts, factsFor, factsForCompany } from "./facts.js";
+import type { Filler } from "./fills.js";
 import type { FactValues } from "./pickers.js";
 import {
   type AddressRecord,
@@ -59,6 +60,8 @@ export type ComposeKind = "person" | "role_inbox" | "all";
 
 export interface ComposeOptions {
   readonly niche: string;
+  /** Casual names and prompt slots by a model (fills.ts); absent, the rule-based names stand. */
+  readonly fill?: Filler;
   readonly sequence: Sequence;
   /** The offer this sequence pitches, stamped on every enrollment (an @wren/offers id). */
   readonly offer: string;
@@ -444,6 +447,7 @@ interface Shared {
   /** Addresses never written to again (lowercased). */
   readonly done: ReadonlySet<string>;
   readonly suppressions: SharedSuppressions | null;
+  readonly fill: Filler | null;
 }
 
 /**
@@ -493,6 +497,7 @@ export async function compose(db: Queryable, opts: ComposeOptions): Promise<Comp
     }),
     done: await doneAddresses(db),
     suppressions: opts.shared ?? null,
+    fill: opts.fill ?? null,
   };
   const kind = opts.kind ?? "all";
   const limit = opts.limit ?? null;
@@ -545,11 +550,12 @@ async function personPass(
         stats.skipped_suppressed++;
         continue;
       }
-      const facts = await factsFor(db, row.person_id, shared.factsView);
-      if (!passesWhere(facts.values, shared.where)) {
+      const filed = await factsFor(db, row.person_id, shared.factsView);
+      if (!passesWhere(filed.values, shared.where)) {
         stats.skipped_where++;
         break; // the company, not the person, is outside the gate
       }
+      const facts = await filled(shared, filed);
       const drafts = renderAll(shared, facts, `person:${row.person_id}`);
       if (drafts === null) {
         stats.skipped_missing_facts++;
@@ -596,11 +602,12 @@ async function roleInboxPass(db: Queryable, shared: Shared, limit: number | null
       stats.skipped_suppressed++;
       continue;
     }
-    const facts = await factsForCompany(db, row.company_id, shared.factsView);
-    if (!passesWhere(facts.values, shared.where)) {
+    const filed = await factsForCompany(db, row.company_id, shared.factsView);
+    if (!passesWhere(filed.values, shared.where)) {
       stats.skipped_where++;
       continue;
     }
+    const facts = await filled(shared, filed);
     const drafts = renderAll(shared, facts, `company:${row.company_id}`);
     if (drafts === null) {
       stats.skipped_missing_facts++;
@@ -669,6 +676,13 @@ interface Drafts {
 }
 
 /** Every step rendered against one facts row, or null when a bare fact the copy needs is absent. */
+/** The facts with the model's casual names and the sequence's slots in, when compose has a filler. */
+function filled(shared: Shared, facts: Facts): Promise<Facts> | Facts {
+  if (shared.fill === null) return facts;
+  const steps = shared.sequence.steps.map((s) => shared.templates.get(s.template) as Template);
+  return shared.fill.fill(facts, steps);
+}
+
 function renderAll(shared: Shared, facts: Facts, seed: string): Drafts | null {
   const linkCodes = shared.sequence.steps.map(() => mintLinkCode());
   try {

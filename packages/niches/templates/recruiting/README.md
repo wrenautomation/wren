@@ -79,8 +79,8 @@ by arm.
   offer, the ask. William's voice: short, plain, direct.
   - Personalization is a hard cold read: William has followed the firm
     for a while and, as a software student always recruiting for
-    internships, relates to their work. The firm's own line
-    (`{company.opener}`) goes first when there is one.
+    internships, relates to their work. Never a free-form company line
+    (`{company.opener}`): personalization is always templated.
   - Who William is, one clause: a software engineering student at the
     University of Waterloo who has built tools for the Government of
     Canada.

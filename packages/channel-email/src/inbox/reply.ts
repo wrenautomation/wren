@@ -15,6 +15,7 @@ import { type Db, type Queryable, serializable } from "@wren/db";
 import { and, asc, eq, max } from "drizzle-orm";
 import { linkFacts, mintLinkCode, signed } from "../outreach/compose.js";
 import { factsFor, factsForCompany } from "../outreach/facts.js";
+import type { Filler } from "../outreach/fills.js";
 import type { Sequence } from "../outreach/sequences.js";
 import { MissingFactError, render, type Template } from "../outreach/templates.js";
 import { type Enrollment, type Message, messages, type ThreadEvent } from "../schema.js";
@@ -38,6 +39,8 @@ export interface ReplyCopy {
   readonly factsView: string | null;
   /** Plain sign-off per sender, page slot already filled. */
   readonly signatures: Readonly<Record<string, string>>;
+  /** Casual names and prompt slots by a model, as compose had them. */
+  readonly fill?: Filler;
 }
 
 /** `<arm>/reply` for the enrollment's sequence, or null when the arm has none. */
@@ -61,9 +64,10 @@ export async function draftReply(
 ): Promise<Message | null> {
   const tpl = replyTemplate(copy, enrollment);
   if (tpl === null) return null;
-  const facts = enrollment.personId
+  const filed = enrollment.personId
     ? await factsFor(db, enrollment.personId, copy.factsView)
     : await factsForCompany(db, enrollment.companyId, copy.factsView);
+  const facts = copy.fill ? await copy.fill.fill(filed, [tpl]) : filed;
   const offerFacts = copy.offerFacts.get(enrollment.offer) ?? {};
   const code = mintLinkCode();
   let rendered: ReturnType<typeof render>;

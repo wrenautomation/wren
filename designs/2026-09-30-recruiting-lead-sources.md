@@ -88,7 +88,7 @@ One sentence at the top of the email, about the firm, true, and checkable.
 - **Output:** `{line, quote, source_url}`. The line is at most 25 words and speaks to the firm, not about us.
 - **Evidence-bound:** the quote must appear word for word on a page, every number in the line must be in the quote, and every capitalized name must be a word on the pages or the firm's name. No dashes, `!` or `?`, one line. Otherwise there is no line, and the reason is stored.
 - **Stored** in `enrichments` (kind `opener`, per company, model and prompt version), so a re-run only pays for new firms.
-- **Used** in templates as `(({company.opener}))` through `recruiting_facts`: no line, the paragraph drops.
+- **Used** in templates as `(({company.opener}))` through `recruiting_facts`: no line, the paragraph drops. *(2026-10-05, William: dropped from every template. A free-form line reads badly; personalization is always templated.)*
 - **Run:** `Enrichment/recruiting/opener` (Restate), `{limit, shard}`. Not in the pool: every run is a spend.
 - **Cost:** prod runs Cohere Command A (~$2.50/M in, $10/M out). Measured on a 60-firm sample: ~2k tokens in, ~74 out, ~$0.006 a firm, so ~$70 for 12k. 29 lines from 42 firms with pages; the rest were rejected by the grounding checks. The full run is William's call.
 

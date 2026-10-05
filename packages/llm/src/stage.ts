@@ -51,6 +51,7 @@ export class Outcome<T> {
 
 export interface StageOptions {
   maxTokens: number;
+  system?: string;
   runId?: string | null;
   tracer?: Tracer | null;
   /** Labels the span (a stage's EnrichmentKind). */
@@ -73,7 +74,10 @@ export async function completeAndParse<T>(
   });
   let response: LlmResponse;
   try {
-    response = await llm.complete(prompt, { maxTokens: opts.maxTokens });
+    response = await llm.complete(prompt, {
+      maxTokens: opts.maxTokens,
+      ...(opts.system ? { system: opts.system } : {}),
+    });
   } catch (err) {
     if (err instanceof LlmInputRejected) {
       const rejection = new Outcome<T>(

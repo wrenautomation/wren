@@ -68,8 +68,8 @@ export class ClaudeCodeLlm implements LlmClient {
     this.timeoutMs = opts.timeoutMs ?? 300_000;
   }
 
-  /** `maxTokens` has no flag in headless mode; the prompt bounds the answer. */
-  async complete(prompt: string, _opts?: CompleteOptions): Promise<LlmResponse> {
+  /** `maxTokens` has no flag in headless mode; the prompt bounds the answer. `system` replaces SYSTEM. */
+  async complete(prompt: string, opts: CompleteOptions = {}): Promise<LlmResponse> {
     const args = [
       "-p",
       "--output-format",
@@ -77,7 +77,7 @@ export class ClaudeCodeLlm implements LlmClient {
       "--model",
       this.modelId,
       "--system-prompt",
-      SYSTEM,
+      opts.system ?? SYSTEM,
       "--tools",
       "",
       "--strict-mcp-config",

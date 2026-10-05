@@ -22,6 +22,12 @@ export const settingsSchema = z.object({
   llmModel: z.string().min(1).default("claude-haiku-4-5-20251001"),
   /** Path of the key-fleet env file, relative to the project root. */
   llmEnvPath: z.string().min(1).default("llm.env"),
+  /**
+   * The model behind AI fills: casual names and template prompt slots
+   * (designs/2026-10-05-ai-fills.md). A `makeLlm` spec (prod: "cohere"); "none" keeps the
+   * rule-based names. Never defaults to a paid provider.
+   */
+  fillLlm: z.string().min(1).default("none"),
   tracing: z.enum(["none"]).default("none"),
   /**
    * Mailbox verifier: `smtp` = our prober service on the database box (Lambda has no
@@ -431,6 +437,7 @@ export const ENV_KEYS = {
   llm: "WREN_LLM",
   llmModel: "WREN_LLM_MODEL",
   llmEnvPath: "WREN_LLM_ENV_PATH",
+  fillLlm: "WREN_FILL_LLM",
   tracing: "WREN_TRACING",
   verifier: "WREN_VERIFIER",
   smtpProbeUrl: "WREN_SMTP_PROBE_URL",

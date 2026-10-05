@@ -28,6 +28,8 @@ export type FactRow = Record<string, unknown>;
 export interface Facts {
   readonly values: Readonly<FactRow>;
   readonly refused: Readonly<FactRow>;
+  /** What was stored for every key `readable` rewrote: the input a model fill reads. */
+  readonly filed?: Readonly<FactRow>;
 }
 
 type Rule = (value: unknown) => string | null;
@@ -62,9 +64,11 @@ const filed = (value: unknown) =>
 export function sentenceReady(facts: Readonly<FactRow>): Facts {
   const out: FactRow = { ...facts };
   const refused: FactRow = {};
+  const stored: FactRow = {};
   for (const [key, rule] of READABLE) {
     if (key in out) {
       const value = out[key];
+      stored[key] = value;
       out[key] = rule(value);
       if (filed(value) && out[key] === null) refused[key] = value;
     }
@@ -76,7 +80,7 @@ export function sentenceReady(facts: Readonly<FactRow>): Facts {
       if (filed(value) && out[key] === null) refused[key] = value;
     }
   }
-  return { values: out, refused };
+  return { values: out, refused, filed: stored };
 }
 
 /**

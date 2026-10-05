@@ -35,6 +35,7 @@ import {
   loadRoster,
   loadServiceAccountKey,
   mailDomainTargets,
+  makeFiller,
   makeNotifier,
   makeVerifier,
   type Notifier,
@@ -343,6 +344,10 @@ export async function buildServices(
     new CalcomBookings((q) => calcomSites.call("calcom", "GET", "/v2/bookings", q, account));
   // One campaign per registered niche: its plan, copy and the inboxes it may send from,
   // each sign-off already pointing at the niche's page. The queue-keeper reads these.
+  // Casual names and prompt slots, cached in `fills`. No keys for it is a loud start, not
+  // a quiet fallback to the rule-based names.
+  const fill =
+    settings.fillLlm === "none" ? null : makeFiller(db, makeLlm(settings.fillLlm, process.env));
   const campaigns = new Map<string, Campaign>(
     NICHES.map((niche) => {
       const active = activeSenders(roster, niche.name);
@@ -367,6 +372,7 @@ export async function buildServices(
           ),
           companyLocation: niche.companyLocation,
           recontact: niche.recontact,
+          ...(fill ? { fill } : {}),
         },
       ];
     }),

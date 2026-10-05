@@ -2,13 +2,13 @@ subject: (({first_name}, ))[[something interesting about your clients | about yo
 
 Hi {first_name|there},
 
-(({company.opener}))
-
 [[I've been following {company_short|your firm} for a while. | I've followed {company_short|your firm} for a while now.]] [[I'm a college student who's always recruiting for co-ops, so I get the work you do. | As a college student always recruiting for my next co-op, I get the work you do.]]
 
-[[I know for a fact you have years of past clients nobody's called in a while, | You likely have years of past clients nobody's called in a while,]] and a lot of them are hiring right now. I think you're missing out on hundreds of thousands in revenue.
+[[I'm guessing you have years of past clients nobody's called in a while, | You likely have years of past clients nobody's called in a while,]] and a lot of them are hiring right now. I think you're missing out on hundreds of thousands in revenue.
 
-[[I study software engineering at the University of Waterloo | I'm a software engineering student at the University of Waterloo]] and have built tools for the Government of Canada. I'll build you a system that reaches your past clients in your voice and books you {offer.goal} meetings in {offer.days} days, or you don't pay me at all.
+[[I study software engineering at the University of Waterloo | I'm a software engineering student at the University of Waterloo]] and have built internal production tools for the Government of Canada. I've also worked with Microsoft's and Google's backend systems.
+
+[[I'll build you a system that reaches your past clients in your voice | I'll set up a system that reaches out to your past clients in your voice]] and books you {offer.goal} meetings in {offer.days} days. If I don't get you any results, you don't pay me at all.
 
 [[Are you down to hop on a 30 min call {call.times}? | Are you open to a quick 30 min call {call.times}?]] I'll send a Google Meet invite.
 
