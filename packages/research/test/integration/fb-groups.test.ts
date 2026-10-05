@@ -9,6 +9,8 @@ import { startTestPostgres, type TestPostgres, truncate } from "@wren/db/testing
 import { eq } from "drizzle-orm";
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 import {
+  GROUP_READ_BUCKET,
+  GROUP_SEARCH_BUCKET,
   groupAboutUnit,
   groupKeywordsDue,
   groupPostUnit,
@@ -148,7 +150,7 @@ describe("groupSearchUnit", () => {
     expect(await due(now)).toEqual(["b"]);
     expect(await due(new Date(now.getTime() + 8 * 86_400_000))).toEqual(["b", "a"]);
     expect(await due(now, "other")).toEqual(["a", "b"]);
-    expect((await groupSearchRoom(db(), now)).room).toBe(2);
+    expect((await groupSearchRoom(db(), new Date())).room).toBe(GROUP_SEARCH_BUCKET.burst - 1);
   });
 });
 
@@ -201,7 +203,7 @@ describe("page reads", () => {
     expect(await groupReadsDue(db(), "n", { now, limit: 10 })).toEqual([
       { kind: "about", groupId: expect.any(Number), group: "123456789" },
     ]);
-    expect((await groupReadRoom(db(), now)).room).toBe(7);
+    expect((await groupReadRoom(db(), new Date())).room).toBe(GROUP_READ_BUCKET.burst - 3);
   });
 
   it("a refusal is kept with the read; a cap leaves the read in the queue; an About is due again after 30 days", async () => {
