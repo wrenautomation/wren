@@ -22,8 +22,10 @@ import * as restate from "@restatedev/restate-sdk";
 import { CLIENT_ID, type Db, serializable, setAuditActor, snapshot } from "@wren/db";
 import { eq, sql } from "drizzle-orm";
 import { z } from "zod";
+import { WREN } from "./access.js";
 import { addClient, type Client, clients, isOwner, updateClient } from "./clients/index.js";
 import type { Component, LoopKey } from "./components.js";
+import { CONSOLE_ROUTES } from "./console-routes.js";
 import {
   answer,
   isDemo,
@@ -31,8 +33,10 @@ import {
   type PortalRequest,
   pickClient,
   pickForWrite,
+  portalService,
   type SignedViewer,
   seesInternal,
+  teamCan,
 } from "./portal.js";
 import {
   date,
@@ -641,6 +645,7 @@ export const callCommand = (service: string, handler: string) =>
 export function consoleApi({
   main,
   views,
+  moneyViews = [],
   admin,
   adminGet,
   records = [],
@@ -653,6 +658,8 @@ export function consoleApi({
   /** The main database's URL, which `addClient` needs to reach the new one; absent, it refuses. */
   mainUrl?: string | undefined;
   views: readonly string[];
+  /** Views of costs and spend: for whoever holds `money` at Wren. */
+  moneyViews?: readonly string[];
   /** Absent, `loops` refuses: this worker can't see Restate's state. */
   admin?: RestateAdmin | undefined;
   /** Absent, `call` refuses and there is no handler list. */
@@ -666,7 +673,8 @@ export function consoleApi({
   /** Whether this worker binds `service`: a component's loop on one it doesn't is skipped. */
   bound?: ((service: string) => boolean) | undefined;
 }) {
-  const allowed = new Set(views);
+  const allowed = new Set([...views, ...moneyViews]);
+  const money = new Set(moneyViews);
   const types = [
     ...records,
     ...(admin ? [loopRecord(admin)] : []),
@@ -683,7 +691,9 @@ export function consoleApi({
     const internal = seesInternal(req);
     const client = req.client || !internal ? await pickClient(main, req) : null;
     const shown = internal ? components : components.filter((c) => c.for === "client");
-    return [...(internal ? types : []), componentRecord(shown, client, internal)];
+    // Wren's own records, each for whoever holds what it needs at Wren (Money: `money`).
+    const mine = internal ? types.filter((t) => teamCan(req, t.needs ?? "read", WREN)) : [];
+    return [...mine, componentRecord(shown, client, internal)];
   };
   /** Records on the main database, read-only, unmasked: the team sees everything. */
   const read = async <T>(
@@ -767,6 +777,8 @@ export function consoleApi({
       team(req);
       if (typeof req.view !== "string" || !allowed.has(req.view))
         throw new PortalRefusal("no such view", 404);
+      if (money.has(req.view) && !teamCan(req, "money", WREN))
+        throw new PortalRefusal("your role can't see that", 403);
       // "books.spend" is schema books, view spend: each part quoted on its own.
       const name = sql.join(
         req.view.split(".").map((part) => sql.identifier(part)),
@@ -912,6 +924,8 @@ export function consoleApi({
       const keyed = h.kind !== "service";
       if (keyed !== (typeof req.key === "string" && req.key !== ""))
         throw new PortalRefusal(keyed ? "say the key" : "a service takes no key", 400);
+      if (h.effect && !teamCan(req, "effect", WREN))
+        throw new PortalRefusal(`it ${h.effect}: your role can't do that`, 403);
       if (h.effect && req.confirm !== h.handler)
         throw new PortalRefusal(`it ${h.effect}: type ${h.handler} to confirm`, 400);
       return h;
@@ -964,8 +978,11 @@ async function changeLoops(
 
 export function makeConsolePortal(deps: Parameters<typeof consoleApi>[0]) {
   const api = consoleApi(deps);
-  return restate.service({
+  return portalService({
     name: "ConsolePortal",
+    main: deps.main,
+    routes: CONSOLE_ROUTES,
+    unnamed: "wren",
     handlers: {
       view: (_: restate.Context, req: ViewRequest) => answer(() => api.view(req)),
       loops: (_: restate.Context, req: PortalRequest) => answer(() => api.loops(req)),

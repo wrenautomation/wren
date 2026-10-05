@@ -440,6 +440,6 @@ export const EMAIL_CONSOLE_VIEWS = [
   "send_health",
   "reply_by_arm_step",
   "verification_yield",
-  "email_stage_costs",
-  "llm_usage_by_month",
 ] as const;
+/** The console's cost views: for whoever holds `money` at Wren. */
+export const EMAIL_COST_VIEWS = ["email_stage_costs", "llm_usage_by_month"] as const;

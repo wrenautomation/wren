@@ -1,40 +1,47 @@
-/** The delivery API's handlers: the service serves these, the edge Worker opens only these. No imports, so the Worker bundles it alone. */
-export const DELIVERY_ROUTES = [
-  "me",
-  "board",
-  "home",
-  "recordsTypes",
-  "recordsList",
-  "recordsGet",
-  "recordsExport",
-  "recordsStats",
-  "updates",
-  "answer",
-  "decide",
-  "comment",
-  "start",
-  "post",
-  "deliver",
-  "ask",
-  "done",
-  "slip",
-  "result",
-  "hide",
-  "people",
-  "account",
-  "contract",
-  "sign",
-  "access",
-  "invite",
-  "remove",
-  "upload",
-  "file",
-  "pulse",
-  "review",
-  "interest",
-  "mail",
-] as const;
-export type DeliveryRoute = (typeof DELIVERY_ROUTES)[number];
+import type { Need } from "@wren/core/access";
+
+/**
+ * The delivery API's handlers and what each needs (`@wren/core/access`): the service serves
+ * these behind the guard, the edge Worker opens only these. Type imports only, so the Worker
+ * bundles it alone.
+ */
+export const DELIVERY_ROUTES = {
+  me: "read",
+  board: "read",
+  home: "read",
+  recordsTypes: "read",
+  recordsList: "read",
+  recordsGet: "read",
+  recordsExport: "read",
+  recordsStats: "read",
+  updates: "read",
+  answer: "act",
+  decide: "act",
+  comment: "act",
+  start: "money",
+  post: "act",
+  deliver: "act",
+  ask: "act",
+  done: "act",
+  slip: "act",
+  result: "act",
+  hide: "act",
+  people: "read",
+  account: "read",
+  contract: "money",
+  sign: "money",
+  access: "act",
+  invite: "manage",
+  remove: "manage",
+  upload: "act",
+  file: "read",
+  pulse: "act",
+  review: "act",
+  interest: "act",
+  // A login's own mail settings: anyone who may read.
+  mail: "read",
+} as const satisfies Record<string, Need>;
+export type DeliveryRoute = keyof typeof DELIVERY_ROUTES;
 /** The ones that change something: never cached, never on the demo. */
 export const DELIVERY_WRITES: readonly DeliveryRoute[] = [
   "answer",

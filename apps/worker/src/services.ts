@@ -78,7 +78,7 @@ import {
   makeSendScheduler,
   type SendScope,
 } from "@wren/channel-email/restate";
-import { EMAIL_CONSOLE_VIEWS } from "@wren/channel-email/views";
+import { EMAIL_CONSOLE_VIEWS, EMAIL_COST_VIEWS } from "@wren/channel-email/views";
 import { linkedinContent } from "@wren/channel-linkedin";
 import { facebookContent, instagramContent, instagramWebContent } from "@wren/channel-meta";
 import { makeAds, makeAdsWatch } from "@wren/channel-meta/restate";
@@ -838,7 +838,8 @@ export async function buildServices(
     makeConsolePortal({
       main: db,
       mainUrl: settings.databaseUrl,
-      views: [...EMAIL_CONSOLE_VIEWS, ...BOOKS_CONSOLE_VIEWS],
+      views: EMAIL_CONSOLE_VIEWS,
+      moneyViews: [...EMAIL_COST_VIEWS, ...BOOKS_CONSOLE_VIEWS],
       records: [...emailRecords(roster, policy), ...BOOKS_RECORDS, clientRecord],
       components: COMPONENTS,
       // A component's client loops start and stop with it, when this worker binds them.

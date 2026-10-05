@@ -3,6 +3,7 @@ import type { Db } from "@wren/db";
 import type { SQL } from "drizzle-orm";
 import { PgDialect } from "drizzle-orm/pg-core";
 import { describe, expect, it, vi } from "vitest";
+import { operators } from "./clients/index.js";
 import {
   consoleApi,
   formOf,
@@ -353,7 +354,16 @@ describe("ConsolePortal.call", () => {
         return { returning: async () => [{ id: "run-1" }] };
       },
     }),
-    select: () => ({ from: () => ({ where: async () => [] }) }),
+    // The guard's fresh read: op@ is an admin on the team, anyone else nobody.
+    select: () => ({
+      from: (t: unknown) => ({
+        where: async (w: SQL) =>
+          t === operators && new PgDialect().sqlToQuery(w).params.includes("op@example.test")
+            ? [{ role: "admin", clients: null }]
+            : [],
+        innerJoin: () => ({ where: () => ({ orderBy: () => ({ limit: async () => [] }) }) }),
+      }),
+    }),
     update: () => ({ set: (v: unknown) => ({ where: async () => ran.push({ close: v }) }) }),
   } as unknown as Db;
   const portal = makeConsolePortal({ main: db, views: [], adminGet: async () => SERVICES });

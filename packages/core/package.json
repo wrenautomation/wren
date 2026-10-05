@@ -11,6 +11,7 @@
     "./clients": "./src/clients/index.ts",
     "./components": "./src/components.ts",
     "./console": "./src/console.ts",
+    "./console-routes": "./src/console-routes.ts",
     "./content": "./src/content/index.ts",
     "./content/box": "./src/content/box.ts",
     "./content/ingress": "./src/content/ingress.ts",

@@ -4,7 +4,7 @@
  * picks the client. Clients answer asks and decide deliverables; the rest is
  * Wren's team. The demo reads its sample and writes nothing.
  */
-import * as restate from "@restatedev/restate-sdk";
+import type * as restate from "@restatedev/restate-sdk";
 import {
   addMember,
   type Client,
@@ -17,6 +17,7 @@ import {
 } from "@wren/core/clients";
 import {
   answer,
+  clientsFor,
   isDemo,
   isOperator,
   type Me,
@@ -25,6 +26,7 @@ import {
   pickClient,
   pickForWrite,
   portalMe,
+  portalService,
   type SignedViewer,
   seesInternal,
 } from "@wren/core/portal";
@@ -75,7 +77,7 @@ import {
   type UpdateView,
 } from "./index.js";
 import { deliveryRecords } from "./records.js";
-import { FILE_TYPES, MAX_FILE_BYTES } from "./routes.js";
+import { DELIVERY_ROUTES, FILE_TYPES, MAX_FILE_BYTES } from "./routes.js";
 import { DELIVERABLE_KINDS, type DeliverableKind, type MailLevel, type Terms } from "./schema.js";
 import { type BoardRow, type DeliveryWatch, opsBoard, WATCH, WATCH_KEY } from "./watch.js";
 
@@ -238,7 +240,9 @@ export function deliveryApi(deps: DeliveryDeps) {
     /** Wren's ops board: every client, at risk first. */
     board: async (req: PortalRequest): Promise<BoardRow[]> => {
       if (!isOperator(req.viewer)) throw new PortalRefusal("that's for Wren's team", 403);
-      return opsBoard(deps.main, deps.zone ?? "UTC", new Date());
+      const mine = new Set((await clientsFor(deps.main, req.viewer)).map((c) => c.id));
+      const rows = await opsBoard(deps.main, deps.zone ?? "UTC", new Date());
+      return rows.filter((r) => mine.has(r.clientId));
     },
     home: (req: PortalRequest): Promise<DeliveryHome> =>
       read(deps, req, (db, c, operator) =>
@@ -664,8 +668,11 @@ export {
 export function makeDeliveryPortal(deps: DeliveryDeps) {
   const api = deliveryApi(deps);
   type Req<K extends keyof DeliveryApi> = Parameters<DeliveryApi[K]>[0];
-  return restate.service({
+  return portalService({
     name: "DeliveryPortal",
+    main: deps.main,
+    routes: DELIVERY_ROUTES,
+    unnamed: "first",
     handlers: {
       me: (_: restate.Context, req: Req<"me">) => answer(() => api.me(req)),
       board: (_: restate.Context, req: Req<"board">) => answer(() => api.board(req)),

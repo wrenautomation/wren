@@ -326,6 +326,7 @@ export const firmRecord = defineRecord({
 
 export const modelRecord = defineRecord({
   id: "email.model",
+  needs: "money",
   name: { one: "model usage", many: "model usage" },
   view: "email_model_records",
   key: "id",

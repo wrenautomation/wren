@@ -43,10 +43,18 @@ export const formOptions = (form: Form) => ({
 });
 
 type Wrap = (opts: unknown, fn: unknown) => unknown;
+/** Each wrapped handler's form, so `portalService` can wrap it again behind the guard. */
+const FORMS = new WeakMap<object, Form>();
 const wrap =
   (w: Wrap) =>
-  <F>(form: Form, fn: F): F =>
-    w(formOptions(form), fn) as F;
+  <F>(form: Form, fn: F): F => {
+    const handler = w(formOptions(form), fn) as F;
+    FORMS.set(handler as object, form);
+    return handler;
+  };
+/** The form a handler was wrapped with, if any. */
+export const handlerForm = (handler: unknown): Form | undefined =>
+  typeof handler === "function" ? FORMS.get(handler) : undefined;
 
 /** A service's handler with its form. */
 export const serviceHandler = wrap(restate.handlers.handler as Wrap);

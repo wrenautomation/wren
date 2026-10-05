@@ -6,9 +6,9 @@
  * - app.<domain>: people sign in at AUTH_ORIGIN (our own sign-in); the app
  *   sends its short-lived token as a bearer, the Worker checks it and passes
  *   the email. The token marks Wren's operators: they see every client.
- * - `/api/<service>/<route>`: forwarded to that portal service (`delivery`
- *   for every client, then one per product) with the viewer set here, never
- *   by the browser. Writes are refused on the demo.
+ * - `/api/<service>/<route>`: forwarded to that portal service (`./services.ts`)
+ *   with the viewer set here, never by the browser. Writes are refused on the
+ *   demo. The service's guard decides who may call each route.
  * - everything else: the built app in dist/.
  *
  * The Worker holds no data: each client's list is its own Postgres database,
@@ -16,56 +16,8 @@
  */
 
 import { AUDIENCE, bearer, verifyToken } from "@wren/auth/verify";
-import { EMAIL_CONSOLE_ROUTES, EMAIL_CONSOLE_WRITES } from "@wren/channel-email/console-routes";
-import { DELIVERY_ROUTES, DELIVERY_WRITES } from "@wren/delivery/routes";
-import { PORTAL_ROUTES, PORTAL_WRITES } from "@wren/reactivation/portal-routes";
 import type { Env } from "./env.js";
-
-interface Service {
-  /** The Restate service. */
-  name: string;
-  routes: ReadonlySet<string>;
-  writes: ReadonlySet<string>;
-}
-const service = (name: string, routes: readonly string[], writes: readonly string[]): Service => ({
-  name,
-  routes: new Set(routes),
-  writes: new Set(writes),
-});
-/** The first path part after /api/: the portal's services. A new product adds a line. */
-const SERVICES: Readonly<Record<string, Service>> = {
-  delivery: service("DeliveryPortal", DELIVERY_ROUTES, DELIVERY_WRITES),
-  reactivation: service("ReactivationPortal", PORTAL_ROUTES, PORTAL_WRITES),
-  // Wren's team: views by name, records, the loops (`@wren/core/console`), stopping or
-  // starting one, any public handler by its form, and a client's components. The service
-  // refuses anyone but the team, except `setLook` (an owner's too), the catalog's records and
-  // `ask` (a client's).
-  console: service(
-    "ConsolePortal",
-    [
-      "view",
-      "loops",
-      "setLoop",
-      "recordsTypes",
-      "recordsList",
-      "recordsGet",
-      "recordsExport",
-      "recordsStats",
-      "addClient",
-      "call",
-      "setLook",
-      "install",
-      "configure",
-      "uninstall",
-      "ask",
-    ],
-    ["setLoop", "addClient", "call", "setLook", "install", "configure", "uninstall", "ask"],
-  ),
-  // Wren's team: warm replies to answer, inboxes to pause.
-  email: service("EmailConsole", EMAIL_CONSOLE_ROUTES, EMAIL_CONSOLE_WRITES),
-  // Wren's team: where an account's spend counts (`@wren/books` console.ts).
-  books: service("BooksConsole", ["setAccount"], ["setAccount"]),
-};
+import { SERVICES } from "./services.js";
 
 const MAX_BODY = 16 * 1024;
 const DEMO_CACHE_SECONDS = 300;

@@ -7,6 +7,7 @@ import { UNKNOWN_CHANNEL } from "./economics.js";
 
 export const spendRecord = defineRecord({
   id: "books.spend",
+  needs: "money",
   name: { one: "spend line", many: "spend" },
   view: "books.spend_records",
   key: "id",
@@ -42,6 +43,7 @@ export const spendRecord = defineRecord({
 
 export const subscriptionRecord = defineRecord({
   id: "books.subscription",
+  needs: "money",
   name: { one: "subscription", many: "subscriptions" },
   view: "books.subscription_records",
   key: "id",
@@ -88,6 +90,7 @@ const cad = (label: string, from?: string) => money(`${label} (CAD)`, from ? { f
 /** Every unit economics figure per month (`books.econ_months`): one row a month, newest first. */
 export const monthRecord = defineRecord({
   id: "books.month",
+  needs: "money",
   name: { one: "month", many: "months" },
   view: "books.econ_months",
   key: "id",
@@ -125,6 +128,7 @@ export const monthRecord = defineRecord({
 /** Per channel and month (`books.econ_channels`): spend, each funnel stage and its cost, CAC. */
 export const channelRecord = defineRecord({
   id: "books.channel",
+  needs: "money",
   name: { one: "channel month", many: "channel months" },
   view: "books.econ_channels",
   key: "id",
@@ -163,6 +167,7 @@ export const channelRecord = defineRecord({
 /** Clients by the month they first paid, per month since (`books.econ_cohorts`). */
 export const cohortRecord = defineRecord({
   id: "books.cohort",
+  needs: "money",
   name: { one: "cohort month", many: "cohort months" },
   view: "books.econ_cohorts",
   key: "id",
@@ -183,6 +188,7 @@ export const cohortRecord = defineRecord({
 /** The chart of accounts: an expense's bucket and channel set where its spend counts. */
 export const accountRecord = defineRecord({
   id: "books.account",
+  needs: "money",
   name: { one: "account", many: "accounts" },
   view: "books.accounts",
   key: "id",

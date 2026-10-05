@@ -188,7 +188,7 @@ describe("the demo", () => {
     expect(await clean(api.unbook({ ...demo, ids: [1] }))).toBe("refused");
     expect(await clean(api.change({ ...demo, ids: ["emails.voice"], value: "x" }))).toBe("refused");
     expect(PORTAL_WRITES.filter((w) => w.startsWith("records"))).toEqual([]);
-    expect(PORTAL_ROUTES).toEqual(
+    expect(Object.keys(PORTAL_ROUTES)).toEqual(
       expect.arrayContaining(["recordsTypes", "recordsList", "recordsGet", "recordsExport"]),
     );
   });

@@ -4,7 +4,8 @@
   "private": true,
   "type": "module",
   "exports": {
-    "./components": "./src/components.ts"
+    "./components": "./src/components.ts",
+    "./services": "./src/services.ts"
   },
   "scripts": {
     "typecheck": "tsc --noEmit",

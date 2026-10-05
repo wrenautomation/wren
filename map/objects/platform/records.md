@@ -52,7 +52,7 @@ Citations: `packages/core/src/records.ts:359`, `packages/core/src/records-serve.
 | Surface | Role |
 |---|---|
 | portal Worker (`/api/reactivation/records*`) | reads; the demo is edge-cached |
-| portal Worker (`/api/console/records*`) | reads; the service refuses all but Wren's team |
+| portal Worker (`/api/console/records*`) | reads; Wren's types for the team in scope, Money ones (`needs: "money"`) for an admin |
 | portal web | `TemplatePage` reads `recordsTypes`, lists, gets, exports and stats; no page code per type |
 
 ## See

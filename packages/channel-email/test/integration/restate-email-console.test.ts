@@ -8,6 +8,7 @@ import * as restate from "@restatedev/restate-sdk";
 import * as clients from "@restatedev/restate-sdk-clients";
 import type { RestateTestEnvironment } from "@restatedev/restate-sdk-testcontainers";
 import { ingressOf, loadSettings } from "@wren/config";
+import { addOperator } from "@wren/core/clients";
 import { startTestRestate } from "@wren/core/testing";
 import { startTestPostgres, type TestPostgres, truncate } from "@wren/db/testing";
 import { sql } from "drizzle-orm";
@@ -18,6 +19,8 @@ import { SendPolicy } from "../../src/send/policy.js";
 
 const FLEET = ["ann@one.example", "bob@one.example", "cat@two.example"];
 const operator = { viewer: { email: "op@example.test", operator: true } };
+/** The guard's refusal, or the handler's own when the guard lets the role through. */
+const REFUSED = /that's for Wren's team|no access|read-only/;
 const outsiders = [
   { viewer: { email: "amy@acme.test" } },
   { viewer: { demo: true as const } },
@@ -45,6 +48,7 @@ let pg: TestPostgres;
 let env: RestateTestEnvironment;
 beforeAll(async () => {
   pg = await startTestPostgres();
+  await addOperator(pg.db, "op@example.test");
   env = await startTestRestate({
     services: [
       disposition,
@@ -75,21 +79,17 @@ const email = () =>
 describe("EmailConsole", () => {
   it("refuses anyone but Wren's team, before anything moves", async () => {
     for (const who of outsiders) {
-      await expect(email().answers(who)).rejects.toThrow("that's for Wren's team");
-      await expect(email().approve({ ...who, id: 1 })).rejects.toThrow("that's for Wren's team");
-      await expect(email().drop({ ...who, id: 1 })).rejects.toThrow("that's for Wren's team");
+      await expect(email().answers(who)).rejects.toThrow(REFUSED);
+      await expect(email().approve({ ...who, id: 1 })).rejects.toThrow(REFUSED);
+      await expect(email().drop({ ...who, id: 1 })).rejects.toThrow(REFUSED);
       await expect(
         email().pause({ ...who, target: FLEET[0] as string, reason: "test" }),
-      ).rejects.toThrow("that's for Wren's team");
-      await expect(email().resume({ ...who, target: "one.example" })).rejects.toThrow(
-        "that's for Wren's team",
-      );
-      await expect(email().killSwitchOff({ ...who, ids: ["any"] })).rejects.toThrow(
-        "that's for Wren's team",
-      );
+      ).rejects.toThrow(REFUSED);
+      await expect(email().resume({ ...who, target: "one.example" })).rejects.toThrow(REFUSED);
+      await expect(email().killSwitchOff({ ...who, ids: ["any"] })).rejects.toThrow(REFUSED);
       await expect(
         email().setCampaign({ ...who, campaign: "any", openersPerDay: 0 }),
-      ).rejects.toThrow("that's for Wren's team");
+      ).rejects.toThrow(REFUSED);
     }
     expect(asked).toEqual([]);
     expect((await activePauses(pg.db)).size).toBe(0);

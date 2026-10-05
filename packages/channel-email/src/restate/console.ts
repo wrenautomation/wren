@@ -11,13 +11,14 @@
  * kill switch and opener cap (`email.sequences`), its answers (`email.replies`, approve and
  * drop through `Disposition/<client>/replies`).
  */
-import * as restate from "@restatedev/restate-sdk";
+import type * as restate from "@restatedev/restate-sdk";
 import type { Client } from "@wren/core/clients";
 import {
   answer,
   PortalRefusal,
   type PortalRequest,
   pickClient,
+  portalService,
   type SignedViewer,
   seesInternal,
 } from "@wren/core/portal";
@@ -36,6 +37,7 @@ import { parseSettings, settingsSchema } from "@wren/experiments";
 import { LEAD_SHEET } from "@wren/research/components";
 import { sql } from "drizzle-orm";
 import { z } from "zod";
+import { EMAIL_CONSOLE_ROUTES } from "../console-routes.js";
 import {
   approveCandidate,
   type LlmFor,
@@ -450,8 +452,11 @@ export function makeEmailConsole(deps: EmailConsoleDeps) {
   // The key first: an object client is a proxy, so it must never be awaited (its `then` is a call).
   const disposition = (ctx: restate.Context, key: string) =>
     ctx.objectClient<Disposition>({ name: "Disposition" }, key);
-  return restate.service({
+  return portalService({
     name: "EmailConsole",
+    main: deps.db,
+    routes: EMAIL_CONSOLE_ROUTES,
+    unnamed: "wren",
     handlers: {
       answers: serviceHandler(
         { input: z.looseObject(PORTAL_FIELDS) },

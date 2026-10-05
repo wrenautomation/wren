@@ -13,7 +13,7 @@ import { clientDatabaseUrl, createDatabase, createDb } from "@wren/db";
 import { startTestPostgres, type TestPostgres } from "@wren/db/testing";
 import { sql } from "drizzle-orm";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
-import { findClient } from "../../src/clients/index.js";
+import { addOperator, findClient } from "../../src/clients/index.js";
 import { type LoopRow, makeConsolePortal, restateAdmin } from "../../src/console.js";
 import { makeLoopObject, type PassOutcome, setLastPass } from "../../src/restate/loop.js";
 import { startTestRestate } from "../../src/testing.js";
@@ -34,6 +34,8 @@ type Tick = typeof tick;
 type Console = ReturnType<typeof makeConsolePortal>;
 
 const operator = { viewer: { email: "op@example.test", operator: true } };
+/** The guard's refusal, or the handler's own when the guard lets the role through. */
+const REFUSED = /that's for Wren's team|no access|read-only/;
 let env: RestateTestEnvironment;
 let pg: TestPostgres;
 const ingress = () => clients.connect(ingressOf({ restateIngressUrl: env.baseUrl() }));
@@ -42,6 +44,7 @@ const tickOf = (key: string) => ingress().objectClient<Tick>({ name: "Tick" }, k
 
 beforeAll(async () => {
   pg = await startTestPostgres();
+  await addOperator(pg.db, "op@example.test");
   env = await startTestRestate({
     services: [
       tick,
@@ -100,10 +103,8 @@ describe("ConsolePortal loops", () => {
         key: "a",
         run: false,
       }),
-    ).rejects.toThrow("that's for Wren's team");
-    await expect(consolePortal().loops({ viewer: { demo: true } })).rejects.toThrow(
-      "that's for Wren's team",
-    );
+    ).rejects.toThrow(REFUSED);
+    await expect(consolePortal().loops({ viewer: { demo: true } })).rejects.toThrow(REFUSED);
     expect((await tickOf("a").status()).running).toBe(true);
   });
 
@@ -128,7 +129,7 @@ describe("ConsolePortal loops", () => {
     const got = await consolePortal().recordsGet({ ...operator, record, id: "Tick/b" });
     expect(got.row).toMatchObject({ state: "stopped" });
     await expect(consolePortal().recordsList({ viewer: { demo: true }, record })).rejects.toThrow(
-      "that's for Wren's team",
+      REFUSED,
     );
   });
 });
@@ -197,7 +198,7 @@ describe("ConsolePortal addClient", () => {
     ])
       await expect(
         consolePortal().addClient({ ...viewer, id: "sneaky", name: "S" }),
-      ).rejects.toThrow("that's for Wren's team");
+      ).rejects.toThrow(REFUSED);
     expect(await findClient(pg.db, "sneaky")).toBeNull();
   });
 });

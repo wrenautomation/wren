@@ -4,7 +4,7 @@
  * this picks the client and reads its database in a read-only transaction.
  * The demo (R15) needs no login and every answer goes through the mask.
  */
-import * as restate from "@restatedev/restate-sdk";
+import type * as restate from "@restatedev/restate-sdk";
 import type { Client } from "@wren/core/clients";
 import {
   answer,
@@ -12,6 +12,7 @@ import {
   type PortalRequest,
   pickClient,
   pickForWrite,
+  portalService,
   type SignedViewer,
   seesInternal,
 } from "@wren/core/portal";
@@ -38,6 +39,7 @@ import { reactivationSettingsOf } from "../settings.js";
 import { makeMask } from "./mask.js";
 import { type EmailFilter, type EmailsPage, portalEmails } from "./outbox.js";
 import { EDITABLE, REACTIVATION_RECORDS, settingOf } from "./records.js";
+import { PORTAL_ROUTES } from "./routes.js";
 import { portalRun, type RunPage } from "./run.js";
 import {
   listNames,
@@ -372,8 +374,11 @@ export type { WorkFact, WorkIcon, WorkLink, WorkOption, WorkStep, WorkView } fro
 export function makeReactivationPortal(deps: PortalDeps) {
   const api = portalApi(deps);
   type Req<K extends keyof PortalApi> = Parameters<PortalApi[K]>[0];
-  return restate.service({
+  return portalService({
     name: "ReactivationPortal",
+    main: deps.main,
+    routes: PORTAL_ROUTES,
+    unnamed: "first",
     handlers: {
       overview: (_: restate.Context, req: Req<"overview">) => answer(() => api.overview(req)),
       recordsTypes: (_: restate.Context, req: Req<"recordsTypes">) =>

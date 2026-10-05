@@ -6,14 +6,23 @@
 import * as restate from "@restatedev/restate-sdk";
 import type { Db } from "@wren/db";
 import { and, asc, eq, inArray } from "drizzle-orm";
-import type { TeamRole, Who } from "./access.js";
+import {
+  can,
+  type Need,
+  needOf,
+  type Permission,
+  type TeamRole,
+  type Who,
+  WREN,
+} from "./access.js";
 import { normalEmail, touchMember } from "./clients/index.js";
 import { type Client, clientMembers, clients, operators } from "./clients/schema.js";
+import { handlerForm, serviceHandler } from "./restate/form.js";
 
 /** A team login's row, read fresh: its role and its clients (null = every client). */
 export interface TeamSeat {
   role: TeamRole;
-  clients: string[] | null;
+  clients: readonly string[] | null;
 }
 
 /**
@@ -78,6 +87,99 @@ export async function whoIs(main: Db, viewer: Viewer, client?: string): Promise<
     .orderBy(asc(clients.id))
     .limit(1);
   return row ? { member: row.role, client: row.client } : null;
+}
+
+/**
+ * What a route's need is checked at when the request names no client: `first`, the login's own
+ * (a member's first client; a team login by role alone, `pickClient` keeps it in scope), or
+ * `wren`, Wren's own apps for a team login (the console, the email and books consoles) and still
+ * the member's own client for anyone else.
+ */
+export type Unnamed = "first" | "wren";
+
+/**
+ * The access guard: reads who is asking fresh, refuses what `can` refuses, and hands the
+ * handler the request with the fresh `operator` and `team` on its viewer. `wren:` needs are
+ * checked at Wren's own apps whatever client is named.
+ */
+export async function guard<R extends PortalRequest>(
+  main: Db,
+  need: Need,
+  req: R,
+  unnamed: Unnamed,
+): Promise<R> {
+  const { permission, wren } = needOf(need);
+  const named = typeof req.client === "string" ? req.client : undefined;
+  const viewer = req.viewer;
+  if (!viewer || typeof viewer !== "object") throw new PortalRefusal("sign in", 403);
+  const who = await whoIs(main, viewer, wren ? undefined : named);
+  // `wren` is for the team: a client's people naming no client stay on their own.
+  const team = who !== null && "team" in who;
+  const client = wren ? WREN : (named ?? (unnamed === "wren" && team ? WREN : undefined));
+  if (!can(who, permission, client))
+    throw new PortalRefusal(
+      isDemo(viewer)
+        ? "the demo is read-only"
+        : can(who, "read", client)
+          ? "your role can't do that"
+          : "no access",
+      403,
+    );
+  if (isDemo(viewer)) return req;
+  const fresh: SignedViewer =
+    who && "team" in who
+      ? { email: viewer.email, operator: true, team: { role: who.team, clients: who.clients } }
+      : { email: viewer.email };
+  return { ...req, viewer: fresh };
+}
+
+/** A portal handler as Restate calls it; `never` takes any request type. */
+type PortalHandler = (ctx: restate.Context, req: never) => Promise<unknown>;
+
+/**
+ * A portal service: every handler behind the guard, each with its need from `routes`; a handler
+ * made with `serviceHandler` keeps its form. A handler with no need doesn't type-check; one not
+ * in `routes` throws here, so the worker won't start.
+ */
+export function portalService<
+  N extends string,
+  R extends Readonly<Record<string, Need>>,
+  H extends { [K in keyof R]: PortalHandler },
+>(o: {
+  name: N;
+  main: Db;
+  routes: R;
+  unnamed: Unnamed;
+  handlers: H;
+}): restate.ServiceDefinition<N, H> {
+  const extra = Object.keys(o.handlers).filter((k) => !Object.hasOwn(o.routes, k));
+  if (extra.length) throw new Error(`${o.name}: no need for ${extra.join(", ")}`);
+  const handlers: Record<string, unknown> = {};
+  for (const key of Object.keys(o.routes) as (keyof R & string)[]) {
+    const fn = o.handlers[key] as unknown as (
+      ctx: restate.Context,
+      req: PortalRequest,
+    ) => Promise<unknown>;
+    const need = o.routes[key] as Need;
+    const run = async (ctx: restate.Context, req: PortalRequest) =>
+      fn(ctx, await answer(() => guard(o.main, need, req, o.unnamed)));
+    const form = handlerForm(fn);
+    handlers[key] = form ? serviceHandler(form, run) : run;
+  }
+  return restate.service({
+    name: o.name,
+    handlers: handlers as never,
+  }) as unknown as restate.ServiceDefinition<N, H>;
+}
+
+/**
+ * May this team viewer do `p` at `client`? Their fresh `team` (set by the guard), or an admin
+ * when a handler is called straight (tests, the CLI). Never a client's people.
+ */
+export function teamCan(req: PortalRequest, p: Permission, client: string): boolean {
+  if (!seesInternal(req) || isDemo(req.viewer)) return false;
+  const team = req.viewer.team;
+  return can({ team: team?.role ?? "admin", clients: team?.clients ?? null }, p, client);
 }
 
 /**

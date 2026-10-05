@@ -7,6 +7,7 @@
  * and a page cursor compare the same values.
  */
 import type { Queryable } from "@wren/db";
+import type { Permission } from "./access.js";
 
 /** good green, warn amber, bad red, neutral gray. */
 export type Tone = "good" | "warn" | "bad" | "neutral";
@@ -281,6 +282,8 @@ export interface RecordDecl<F extends Record<string, Draft>> {
   activity?: { view: string; by: string };
   /** Action ids the web offers on it. */
   actions?: readonly string[];
+  /** What opening it needs past `read` (`@wren/core/access`): Wren's Money records need `money`. */
+  needs?: Permission;
   /** What the detail adds past the row (a brief's sources); null when there's none. */
   load?: (db: Queryable, id: string) => Promise<object | null>;
 }

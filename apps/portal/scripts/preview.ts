@@ -33,9 +33,12 @@ const files: FileStore = {
 };
 /** The same services as the Worker's `/api/<service>/<route>`, called in-process. */
 const SERVICES: Record<string, { routes: readonly string[]; api: object }> = {
-  delivery: { routes: DELIVERY_ROUTES, api: deliveryApi({ main, demoName: DEMO_NAME, files }) },
+  delivery: {
+    routes: Object.keys(DELIVERY_ROUTES),
+    api: deliveryApi({ main, demoName: DEMO_NAME, files }),
+  },
   reactivation: {
-    routes: PORTAL_ROUTES,
+    routes: Object.keys(PORTAL_ROUTES),
     api: portalApi({ main, open: (c) => cachedDb(clientUrl(settings.databaseUrl, c)) }),
   },
   console: { routes: ["view"], api: consoleApi({ main, views: EMAIL_CONSOLE_VIEWS }) },
