@@ -54,7 +54,7 @@ import {
   type LeadSheetSettings,
   leadSheetSettingsSchema,
 } from "@wren/research/components";
-import { teamDue } from "@wren/research/enrichment";
+import { teamDue, YOUTUBE_MIN_BATCH, youtubeRoom } from "@wren/research/enrichment";
 import type { Discovery, Enrichment } from "@wren/research/restate";
 import { and, count, gt, ne, sql } from "drizzle-orm";
 import { nextToEnroll } from "../outreach/compose.js";
@@ -413,7 +413,14 @@ export function makePoolScheduler(deps: PoolSchedulerDeps) {
         );
         return enrichment.team({ companyIds, limit: n });
       },
-      youtube: () => enrichment.youtube({ limit: limits.youtube }),
+      youtube: async () => {
+        // A busy loop passes every minute and the bucket refills a firm at a time: one step
+        // here instead of a whole Enrichment call while it does.
+        const n = limits.youtube;
+        const { room } = await ctx.run("youtube room", () => youtubeRoom(deps.db, now));
+        if (room < Math.min(n, YOUTUBE_MIN_BATCH)) return { read: 0, missing: 0, room };
+        return enrichment.youtube({ limit: n });
+      },
       profiles: async () => {
         const p = deps.profiles;
         if (!p || niche === null) throw new restate.TerminalError("profiles stage is off");
