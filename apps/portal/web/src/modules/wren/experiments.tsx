@@ -9,9 +9,10 @@ import {
   HandlerForm,
   Lineage,
   type LineageVersion,
+  MessagePreview,
   type RecordExtras,
 } from "@wren/ui";
-import { createElement } from "react";
+import { createElement, type ReactNode } from "react";
 import { call } from "../../api.js";
 import type { ListPage } from "../../module.js";
 
@@ -159,11 +160,33 @@ type Winner = {
 };
 const pct = (n: number | null) => (n === null ? "no data" : `${Math.round(n * 100)}%`);
 
-/** A candidate beside the live copy at its point, best first. */
+type Sample = { subject: string | null; body: string } | null;
+
+/** The sample email the server rendered, on a laptop and a phone. */
+const looks = (email: Sample | undefined): [string, ReactNode] => [
+  "How it looks",
+  email ? (
+    <MessagePreview
+      key="looks"
+      message={{ kind: "email", subject: email.subject }}
+      body={email.body}
+    />
+  ) : (
+    "This copy doesn't render on its template."
+  ),
+];
+
+/** A copy version: one email it writes, «placeholders» for the recipient's facts. */
+export const variantExtras: NonNullable<ListPage["extras"]> = (detail) =>
+  ({ sections: [looks((detail as { email?: Sample } | null)?.email)] }) satisfies RecordExtras;
+
+/** A candidate as the email it makes, then beside the live copy at its point, best first. */
 export const candidateExtras: NonNullable<ListPage["extras"]> = (detail) => {
-  const winners = (detail as { winners?: Winner[] } | null)?.winners ?? [];
+  const d = detail as { winners?: Winner[]; email?: Sample } | null;
+  const winners = d?.winners ?? [];
   return {
     sections: [
+      looks(d?.email),
       [
         "Live at this point",
         winners.length ? (

@@ -12,6 +12,7 @@ import {
   candidateExtras,
   EXPERIMENT_ACTIONS,
   experimentExtras,
+  variantExtras,
 } from "./experiments.js";
 import { handlers } from "./handlers.js";
 import { AI_SPEND, AiSpend, idOf } from "./heads.js";
@@ -246,6 +247,7 @@ export const outbound: Module = {
       template: "list",
       record: "email.variant",
       empty: "Variants show here once they send.",
+      extras: variantExtras,
     },
     {
       id: "experiments",

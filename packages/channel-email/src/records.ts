@@ -26,9 +26,12 @@ import type { Queryable } from "@wren/db";
 import { parseSettings, settingsSchema } from "@wren/experiments";
 import { asc, eq, sql } from "drizzle-orm";
 import { z } from "zod";
-import { points, versionTemplate } from "./evolve/genome.js";
+import { mapPoints, points, versionTemplate } from "./evolve/genome.js";
+import { parseOption } from "./evolve/tiers.js";
 import { activePauses, domainHealth, domainOf, wouldTrip } from "./inbox/health.js";
-import { alleleKey } from "./outreach/templates.js";
+import { parseTemplate } from "./outreach/authoring.js";
+import { placeholderFacts } from "./outreach/preview.js";
+import { type Allocation, alleleKey, render, type Template } from "./outreach/templates.js";
 import { experimentAlleles, experiments, templateVersions } from "./schema.js";
 import { campaignPolicy, loadCampaignControls } from "./send/campaign-controls.js";
 import { todaysSends } from "./send/deliver.js";
@@ -352,6 +355,29 @@ export const modelRecord = defineRecord({
   ],
 });
 
+/** One email from a template, «placeholder» facts in: its length and shape, not a recipient's words. */
+function sampleEmail(tpl: Template, shares?: Allocation["shares"]) {
+  try {
+    const r = render(tpl, placeholderFacts(tpl), "preview", shares && { snapshot: 0, shares });
+    return { subject: r.subject, body: r.body };
+  } catch {
+    return null;
+  }
+}
+
+/** A copy version's sample email. Its id is `template@version`. */
+async function variantEmail(db: Queryable, id: string) {
+  const at = id.lastIndexOf("@");
+  const [row] = await db
+    .select({ source: templateVersions.source })
+    .from(templateVersions)
+    .where(
+      sql`${templateVersions.template} = ${id.slice(0, at)} and ${templateVersions.version} = ${id.slice(at + 1)}`,
+    )
+    .limit(1);
+  return { email: row ? sampleEmail(parseTemplate(id.slice(0, at), row.source)) : null };
+}
+
 /** One copy version of one step, with sends and its text: `reply_by_arm_step`, versions never sent left out. */
 export const variantRecord = defineRecord({
   id: "email.variant",
@@ -384,6 +410,7 @@ export const variantRecord = defineRecord({
     copy: prose("Copy"),
   },
   views: [{ id: "all", label: "All", sort: "-sent" }],
+  load: variantEmail,
 });
 
 /** Per campaign, the named people and firms stuck before a send: `pipeline_leaks`. */
@@ -606,7 +633,7 @@ export const alleleRecord = defineRecord({
   ],
 });
 
-/** A candidate's context: the live options at its point, best first. */
+/** A candidate's context: the live options at its point, best first, and the email it makes. */
 async function winnersOf(db: Queryable, id: string) {
   const rows = await db.execute<Record<string, unknown>>(sql`
     select w.text, w.share, w.p_best, w.exposures, w.replies, w.interested
@@ -614,7 +641,44 @@ async function winnersOf(db: Queryable, id: string) {
     join email_allele_records w on w.experiment_id = c.experiment_id and w.locus = c.locus
       and w.state = 'live'
     where c.id = ${Number(id)} order by w.p_best desc nulls last, w.id`);
-  return { winners: [...rows] };
+  return { winners: [...rows], email: await candidateEmail(db, Number(id)) };
+}
+
+/** The live genome with the candidate at its point and the likeliest best live option at every other. */
+async function candidateEmail(db: Queryable, id: number) {
+  const [c] = await db.select().from(experimentAlleles).where(eq(experimentAlleles.id, id));
+  const [exp] = c
+    ? await db.select().from(experiments).where(eq(experiments.id, c.experimentId))
+    : [];
+  const genome = exp && (await versionTemplate(db, exp.niche, exp.template, exp.liveVersion));
+  if (!c || !genome) return null;
+  const best = new Map<string, string>();
+  for (const a of await db.execute<{ locus: string; allele: string }>(sql`
+    select locus, allele from email_allele_records where experiment_id = ${c.experimentId}
+      and state = 'live' order by p_best desc nulls last, id`))
+    if (!best.has(a.locus)) best.set(a.locus, a.allele);
+  let tpl: Template;
+  try {
+    const option = parseOption(c.text);
+    tpl = mapPoints(genome, (p) =>
+      p.name === c.locus ? { ...p, options: [...p.options, option] } : p,
+    );
+  } catch {
+    return null;
+  }
+  const shares = Object.fromEntries(
+    points(tpl).map((p) => {
+      const pick =
+        p.name === c.locus
+          ? p.options.length - 1
+          : Math.max(
+              0,
+              p.options.findIndex((o) => alleleKey(o) === best.get(p.name)),
+            );
+      return [p.name, p.options.map((_, i) => (i === pick ? 1 : 0))];
+    }),
+  );
+  return sampleEmail(tpl, shares);
 }
 
 export const candidateRecord = defineRecord({

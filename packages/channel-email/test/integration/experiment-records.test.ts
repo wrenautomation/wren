@@ -86,6 +86,10 @@ describe("experiment records", () => {
     expect(
       (one.detail as { winners: { text: string }[] }).winners.map((w) => w.text).sort(),
     ).toEqual(["I saw {company_name} grew this year", "your team at {company_name} grew a lot"]);
+    expect((one.detail as { email: unknown }).email).toEqual({
+      subject: "Quick question for «company_name»",
+      body: "I noticed «company_name» is growing.",
+    });
     const exp = await serve().get({ record: "email.experiment", id: String(expId) });
     expect(exp.related).toEqual([
       { record: "email.allele", count: 7 },
