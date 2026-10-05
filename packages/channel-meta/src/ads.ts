@@ -88,7 +88,11 @@ export interface Lead {
   ad_id?: string;
   campaign_id?: string;
   field_data?: { name: string; values: string[] }[];
+  /** The form's own boxes (a marketing consent box), as Meta returns them. */
+  custom_disclaimer_responses?: { checkbox_key: string; is_checked: boolean | string }[];
 }
+
+const LEAD_FIELDS = "id,created_time,ad_id,campaign_id,field_data,custom_disclaimer_responses";
 
 export const DEFAULT_LEAD_QUESTIONS: Record<string, unknown>[] = [
   { type: "EMAIL" },
@@ -356,7 +360,11 @@ export function metaAds(sites: SiteClient, o: MetaAdsOptions = {}) {
         const r = await call<Edge<Lead> & { paging?: { cursors?: { after?: string } } }>(
           "GET",
           `/${encodeURIComponent(formId)}/leads`,
-          { limit: Math.min(100, limit - out.length), ...(after ? { after } : {}) },
+          {
+            fields: LEAD_FIELDS,
+            limit: Math.min(100, limit - out.length),
+            ...(after ? { after } : {}),
+          },
         );
         const page = r.data ?? [];
         out.push(...page);

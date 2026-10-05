@@ -19,6 +19,7 @@ import {
   metaAds,
   type Tree,
 } from "./ads.js";
+import { consentFromLeads, type LeadConsent } from "./consent.js";
 import { launchesByCampaign, markStarted, markStopped, recordLaunch } from "./launches.js";
 
 export interface AdsDeps {
@@ -174,6 +175,23 @@ export function makeAds(deps: AdsDeps) {
         { input: z.looseObject({ formId: z.string(), limit: z.number().nullish() }) },
         async (ctx: restate.Context, req: { formId: string; limit?: number }) =>
           ads(ctx).leads(req.formId, req.limit),
+      ),
+      /** A form's ticked consent boxes become marketing consent (M4). Needs the db. */
+      leadConsents: serviceHandler(
+        {
+          input: z.looseObject({
+            formId: z.string(),
+            topic: z.string().describe("The marketing topic the box signs up for"),
+            checkbox: z.string().describe("The box's key on the form"),
+            text: z.string().describe("The words beside the box, exactly"),
+            limit: z.number().nullish(),
+          }),
+        },
+        async (ctx: restate.Context, req: LeadConsent & { limit?: number }) => {
+          if (!db) throw new restate.TerminalError("Ads has no database here", { errorCode: 501 });
+          const leads = await ads(ctx).leads(req.formId, req.limit ?? 500);
+          return ctx.run("record consents", () => consentFromLeads(db, leads, req));
+        },
       ),
       interests: serviceHandler(
         { input: z.looseObject({ q: z.string(), limit: z.number().nullish() }) },

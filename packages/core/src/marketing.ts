@@ -51,6 +51,20 @@ export type Verdict =
       consent?: Consent;
     };
 
+/** The SMS topic a whole message names by its keyword ("join", " Join! "), or null. */
+export async function topicByKeyword(db: Queryable, text: string) {
+  const word = text
+    .toUpperCase()
+    .replace(/[^A-Z0-9\s]/g, "")
+    .trim();
+  if (!/^[A-Z0-9]{2,32}$/.test(word)) return null;
+  const [t] = await db
+    .select()
+    .from(topics)
+    .where(and(eq(topics.keyword, word), eq(topics.channel, "sms")));
+  return t ?? null;
+}
+
 async function topicId(db: Queryable, name: string, channel: MarketingChannel): Promise<number> {
   const [t] = await db
     .select({ id: topics.id, channel: topics.channel })

@@ -397,12 +397,19 @@ export const topics = pgTable(
     cadence: varchar("cadence", { length: 64 }).notNull(),
     /** Shows in the preference center. */
     public: boolean("public").default(false).notNull(),
+    /** SMS only: texting this word alone (any case) signs up. Upper case letters and digits. */
+    keyword: varchar("keyword", { length: 32 }),
     createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
   },
   (t) => [
     primaryKey({ columns: [t.id], name: "pk_topics" }),
     unique("uq_topics_name").on(t.name),
+    unique("uq_topics_keyword").on(t.keyword),
     oneOf("ck_topics_channel", t.channel, MARKETING_CHANNELS),
+    check(
+      "ck_topics_keyword",
+      sql`${t.keyword} IS NULL OR (${t.channel} = 'sms' AND ${t.keyword} ~ '^[A-Z0-9]{2,32}$')`,
+    ),
   ],
 );
 
@@ -429,6 +436,7 @@ export const consents = pgTable(
   (t) => [
     primaryKey({ columns: [t.id], name: "pk_consents" }),
     unique("uq_consents_channel").on(t.channel, t.address, t.topicId),
+    index("ix_consents_topic_id").on(t.topicId),
     foreignKey({
       columns: [t.topicId],
       foreignColumns: [topics.id],

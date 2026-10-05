@@ -17,13 +17,15 @@ Marketing to people who signed up runs on provable consent (CASL, GDPR, TCPA for
 
 ## Shape
 
-- `topics`: `name`, `public_name`, `line`, `channel` (email | sms), `cadence`, `public` (`packages/core/src/schema.ts:389`)
+- `topics`: `name`, `public_name`, `line`, `channel` (email | sms), `cadence`, `public`, `keyword` (sms only, unique, upper case) (`packages/core/src/schema.ts:389`)
 - `consents`: one per `channel` + `address` + `topic_id`; `state` (pending | confirmed | withdrawn), `source` (lander_form | meta_lead_form | sms_keyword | calcom_booking | preference_center), `text_version`, a time per state, `frequency`, `paused_until`, `last_sent_at` (`:410`)
 - `consent_events`: `consent_id`, `kind` (the states, frequency, paused, sent), `by`, `evidence` jsonb (`:445`)
 
 `mayMarket` (`packages/core/src/marketing.ts:97`): no suppression on the address or its domain, a confirmed consent for the topic, not paused, under the person's frequency, and on SMS 4 in 31 days. Pending expires at confirm time after 7 days; no loop.
 
 Citations: `packages/core/src/marketing.ts:97`, `packages/core/src/schema.ts:389`
+
+Two one-step sources confirm without a click (`giveConsent`), and neither lifts an opt-out: a Meta lead form's ticked box (`Ads.leadConsents`, `packages/channel-meta/src/consent.ts:1`, skips leads already recorded for the form) and a text that is only a topic's keyword (rule 3 in `packages/channel-sms/src/events.ts:1`).
 
 ## Connected to
 
@@ -41,6 +43,7 @@ Citations: `packages/core/src/marketing.ts:97`, `packages/core/src/schema.ts:389
 | Surface | Role |
 |---|---|
 | `Marketing{signUp,confirm,prefs,set}` | writes |
+| `Ads.leadConsents`, an SMS keyword through `SmsEvents.ingest` | writes |
 | console records `marketing.subscriber`, `marketing.topic` | read |
 
 ## See

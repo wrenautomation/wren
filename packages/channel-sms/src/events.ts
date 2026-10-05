@@ -10,13 +10,17 @@
  * 2. START/UNSTOP → the suppression lifted. The thread does not restart. A
  *    bare YES counts as START only from an opted-out phone (it is a registered
  *    opt-in word); from anyone else it is a reply.
- * 3. Anything else from a lead → `replied`: its sequence stops, the operator is
+ * 3. A topic's keyword alone (JOIN) → marketing consent for that topic, the
+ *    message as proof (designs/2026-10-04-borrowed-ui.md, M4). It never lifts
+ *    an opt-out; START does that. Then it counts as a reply, as below.
+ * 4. Anything else from a lead → `replied`: its sequence stops, the operator is
  *    told. The LLM classifier labels it later; it never suppresses on its own
  *    say (a grounded `opt_out` label does, see classify.ts).
  * A stranger who texts one of our numbers gets a contact row (basis `opt_in`,
  * they wrote first) so the thread shows in the inbox.
  */
 import { activeSuppressionsOf, addSuppression, liftSuppression } from "@wren/core";
+import { giveConsent, topicByKeyword } from "@wren/core/marketing";
 import type { Notifier } from "@wren/core/notify";
 import { atomic, type Db, type Queryable } from "@wren/db";
 import { and, desc, eq, sql } from "drizzle-orm";
@@ -256,6 +260,19 @@ async function applyInbound(
       alert: null,
     };
   }
+  const topic = await topicByKeyword(db, e.text);
+  if (topic) {
+    await giveConsent(db, {
+      channel: "sms",
+      address: e.from,
+      topic: topic.name,
+      source: "sms_keyword",
+      textVersion: `keyword:${topic.keyword}`,
+      evidence: { sms_message_id: msgId, provider_message_id: e.messageId, text: e.text, to: e.to },
+      by: "subscriber",
+      now: e.at,
+    });
+  }
   if (contact.state === "enrolled" || contact.state === "finished") {
     await db
       .update(smsContacts)
@@ -263,6 +280,12 @@ async function applyInbound(
       .where(eq(smsContacts.id, contact.id));
     await skipQueued(db, contact.id, "they replied");
   }
+  if (topic)
+    return {
+      outcome: `keyword ${topic.keyword}: signed up to ${topic.name} (#${msgId})`,
+      notify: `SMS signup to ${topic.publicName} from ${who}`,
+      alert: alert(`${name} signed up`),
+    };
   return { outcome: `reply #${msgId}`, notify: `SMS reply from ${who}`, alert: alert(name) };
 }
 

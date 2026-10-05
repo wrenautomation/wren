@@ -5,6 +5,8 @@
  * gate, quiet hours, caps).
  */
 import { activeSuppressionOf, addSuppression } from "@wren/core";
+import { mayMarket } from "@wren/core/marketing";
+import { consentEvents, topics } from "@wren/core/schema";
 import { startTestPostgres, type TestPostgres, truncate } from "@wren/db/testing";
 import { FakeLlm } from "@wren/llm";
 import { archivePages, memoryPageStore } from "@wren/research/pages";
@@ -553,6 +555,49 @@ describe("enroll → send → receipts → reply", () => {
       /^start: lifted/,
     );
     expect(await activeSuppressionOf(db(), "phone", to)).toBeNull();
+  });
+
+  it("a topic's keyword alone signs up with the text as proof, never lifting an opt-out", async () => {
+    await db().insert(topics).values({
+      name: "sms-deals",
+      publicName: "Text deals",
+      line: "A text when there's a deal.",
+      channel: "sms",
+      cadence: "now and then",
+      keyword: "JOIN",
+    });
+    const say = (from: string, id: string, text: string) =>
+      event({
+        kind: "inbound",
+        eventId: id,
+        type: "message.received",
+        messageId: `in-${id}`,
+        from,
+        to: "+13652428903",
+        text,
+        at: OPEN,
+      });
+    const fan = "+15550100101";
+    expect((await say(fan, "k0", "join us")).outcome).toMatch(/^reply/);
+    expect((await say(fan, "k1", " Join! ")).outcome).toMatch(/^keyword JOIN: signed up/);
+    expect(
+      await mayMarket(db(), { channel: "sms", address: fan, topic: "sms-deals", now: OPEN }),
+    ).toMatchObject({
+      send: true,
+    });
+    const [proof] = await db().select().from(consentEvents);
+    expect(proof?.evidence).toMatchObject({ text: " Join! " });
+    expect(proof?.by).toBe("subscriber");
+    // An opted-out phone gets the consent recorded but stays unsendable until START.
+    const gone = "+15550100102";
+    await say(gone, "k2", "STOP");
+    await say(gone, "k3", "JOIN");
+    expect(
+      await mayMarket(db(), { channel: "sms", address: gone, topic: "sms-deals", now: OPEN }),
+    ).toMatchObject({
+      send: false,
+      why: "suppressed",
+    });
   });
 
   it("a short-code text is kept and readable, with no contact made", async () => {

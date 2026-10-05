@@ -9,6 +9,9 @@ import { smsNumbers, smsTemplates } from "../../src/schema.js";
 import { checkSequence, type SmsSequence } from "../../src/templates.js";
 
 export const TABLES = [
+  "consent_events",
+  "consents",
+  "topics",
   "sms_push_subscriptions",
   "sms_templates",
   "sms_events",

@@ -149,7 +149,11 @@ describe("metaAds", () => {
     // Leads page by cursor until the asked-for count.
     const leads = await ads.leads("f1", 2);
     expect(leads).toHaveLength(2);
-    expect(calls.slice(-2).map((c) => c.input)).toEqual([{ limit: 2 }, { limit: 1, after: "x" }]);
+    const fields = "id,created_time,ad_id,campaign_id,field_data,custom_disclaimer_responses";
+    expect(calls.slice(-2).map((c) => c.input)).toEqual([
+      { fields, limit: 2 },
+      { fields, limit: 1, after: "x" },
+    ]);
   });
 
   it("a video creative uploads by URL first; ACTIVE carries the budget so the gate can name it", async () => {

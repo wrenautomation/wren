@@ -13,7 +13,7 @@ One provider webhook as received, keyed by the provider's event id. Table `sms_e
 
 ## Why this shape
 
-A webhook delivered twice, or replayed by Restate, applies once (`events.ts:1`). The phone Worker checks the Ed25519 signature and forwards with the event id as the idempotency key (`apps/phone/src/worker.ts:1`, `webhook.ts:1`); the rules that act on it are deterministic and ordered: STOP, START, else reply.
+A webhook delivered twice, or replayed by Restate, applies once (`events.ts:1`). The phone Worker checks the Ed25519 signature and forwards with the event id as the idempotency key (`apps/phone/src/worker.ts:1`, `webhook.ts:1`); the rules that act on it are deterministic and ordered: STOP, START, a topic's keyword (marketing consent, [[leads/consent]]), else reply.
 
 ## Shape
 
