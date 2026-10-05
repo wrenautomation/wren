@@ -21,9 +21,9 @@ variable "pg_password" {
 }
 
 variable "pg_instance_type" {
-  description = "ARM; t4g.small is 2 GB, enough for this schema at this volume."
+  description = "ARM; t4g.medium is 4 GB: Postgres, browserless, the box worker and the Restate server."
   type        = string
-  default     = "t4g.small"
+  default     = "t4g.medium"
 }
 
 variable "pg_volume_gb" {

@@ -59,6 +59,19 @@ resource "aws_ssm_parameter" "box" {
   }
 }
 
+# The self-hosted Restate server (deploy/scripts/box-restate.sh): the ingress bearer Caddy
+# checks and the key the server signs calls with, as JSON {token, identity_pem}. Set by hand.
+resource "aws_ssm_parameter" "restate" {
+  name        = "${local.ssm_root}/restate"
+  description = "JSON for the box's Restate server: token (ingress bearer), identity_pem (request-signing key)"
+  type        = "SecureString"
+  value       = "{}"
+
+  lifecycle {
+    ignore_changes = [value]
+  }
+}
+
 resource "aws_security_group" "pg" {
   name        = "${local.prefix}-pg"
   description = "Postgres over TLS from anywhere; no SSH (use SSM Session Manager)"
@@ -77,6 +90,17 @@ resource "aws_security_group" "pg" {
       description = "browserless CDP (token in the URL)"
       from_port   = 3000
       to_port     = 3000
+      protocol    = "tcp"
+      cidr_blocks = ["0.0.0.0/0"]
+    }
+  }
+  # Caddy: Restate's ingress over TLS (bearer-checked); 80 answers ACME and redirects.
+  dynamic "ingress" {
+    for_each = [80, 443]
+    content {
+      description = "caddy (restate ingress)"
+      from_port   = ingress.value
+      to_port     = ingress.value
       protocol    = "tcp"
       cidr_blocks = ["0.0.0.0/0"]
     }
@@ -113,6 +137,16 @@ resource "aws_s3_bucket_lifecycle_configuration" "backups" {
     }
     expiration {
       days = var.backup_retention_days
+    }
+  }
+  rule {
+    id     = "expire-restate-backups"
+    status = "Enabled"
+    filter {
+      prefix = "restate/"
+    }
+    expiration {
+      days = 7
     }
   }
   rule {
@@ -176,6 +210,7 @@ data "aws_iam_policy_document" "pg" {
       aws_ssm_parameter.browser_token[*].arn,
       # The box worker runs with the Lambda's env, roster and mailboxes, plus its own.
       [aws_ssm_parameter.env.arn, aws_ssm_parameter.roster.arn, aws_ssm_parameter.mailboxes.arn, aws_ssm_parameter.box.arn],
+      [aws_ssm_parameter.restate.arn],
     )
   }
   statement {
@@ -192,6 +227,18 @@ data "aws_iam_policy_document" "pg" {
     sid       = "WriteBackups"
     actions   = ["s3:PutObject", "s3:ListBucket"]
     resources = [aws_s3_bucket.backups.arn, "${aws_s3_bucket.backups.arn}/*"]
+  }
+  # The Restate server reads its partition snapshots back on start.
+  statement {
+    sid       = "ReadRestateSnapshots"
+    actions   = ["s3:GetObject"]
+    resources = ["${aws_s3_bucket.backups.arn}/restate/*"]
+  }
+  # The Restate server on this box invokes the worker, as Restate Cloud's invoker role did.
+  statement {
+    sid       = "InvokeWorker"
+    actions   = ["lambda:InvokeFunction"]
+    resources = [aws_lambda_function.worker.arn, "${aws_lambda_function.worker.arn}:*"]
   }
   # The books' day (Books/all) reads kept bills back from `books/`.
   statement {
@@ -254,6 +301,8 @@ resource "aws_instance" "pg" {
     db_name             = var.name
     db_user             = var.name
     pg_image            = "postgres:17"
+    restate_param       = aws_ssm_parameter.restate.name
+    restate_script      = file("${path.module}/../scripts/box-restate.sh")
   })
 
   tags = { Name = "${local.prefix}-pg" }

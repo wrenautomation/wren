@@ -1,7 +1,8 @@
 #!/bin/bash
 # Runs ON the Postgres box (CI sends it over SSM): install a worker bundle and
 # (re)start the pool chain's worker. Usage: box-worker.sh <bucket> <key>
-# The container dials Restate Cloud's tunnel and registers itself; no port opens.
+# The container registers itself with the box's Restate server (loopback only), or dials
+# Restate Cloud's tunnel when /wren/prod/box names one.
 set -euo pipefail
 bucket="$1" key="$2"
 dir=/opt/wren-worker

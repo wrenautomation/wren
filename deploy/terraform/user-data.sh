@@ -78,3 +78,11 @@ fi
 BK
 chmod +x /usr/local/bin/wren-pg-backup
 echo "0 8 * * * root /usr/local/bin/wren-pg-backup >> /var/log/wren-pg-backup.log 2>&1" > /etc/cron.d/wren-pg-backup
+
+# The Restate server, Caddy and the desk hop (deploy/scripts/box-restate.sh, verbatim).
+# Its SSM param must hold {token, identity_pem} first; until then this step fails alone.
+cat > /usr/local/bin/wren-box-restate <<'RS'
+${restate_script}
+RS
+chmod +x /usr/local/bin/wren-box-restate
+/usr/local/bin/wren-box-restate "${region}" "${backups}" "${restate_param}" || echo "restate not started: set the restate SSM param, then run wren-box-restate"
