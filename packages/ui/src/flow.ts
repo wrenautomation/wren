@@ -152,6 +152,8 @@ const px = (n: number) => Math.round(n * 10) / 10;
 
 /** How far from a box a line turns when it turns `near` that box. */
 const BEND = 18;
+/** A label's gap from a box: past where any line turns near it, so no label covers a turn. */
+export const LABEL_INSET = BEND + 6;
 
 /**
  * The line from node `a` to node `b`, as SVG path data: square turns with soft
@@ -207,7 +209,7 @@ export function edgePath(
  * Where a line's label sits, across, its last row resting just above the line: at `a`'s side
  * when the line is the only one leaving `a`, else at `b`'s, so labels on lines that fan out or
  * in never share a spot. A line that runs on past columns enters `b` from above or below, so
- * its label stays at `a`'s side.
+ * its label stays at `a`'s side. Either way it clears the turns of other lines at that box.
  */
 export function labelAt(
   a: Box,
@@ -217,8 +219,8 @@ export function labelAt(
 ): { x: number; y: number; anchor: "start" | "end" } {
   const sy = a.y + a.h / 2;
   if (end === "from" || (span > 1 && (sy < b.y || sy > b.y + b.h)))
-    return { x: a.x + a.w + 10, y: sy - 4, anchor: "start" };
-  return { x: b.x - 6, y: b.y + b.h / 2 - 4, anchor: "end" };
+    return { x: a.x + a.w + LABEL_INSET, y: sy - 4, anchor: "start" };
+  return { x: b.x - LABEL_INSET, y: b.y + b.h / 2 - 4, anchor: "end" };
 }
 
 /** Room between nodes: across, between columns then rows; down, side by side then between rows. */

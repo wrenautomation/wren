@@ -15,7 +15,7 @@ import {
 } from "@xyflow/react";
 import "@xyflow/react/dist/base.css";
 import { useLayoutEffect, useMemo, useRef, useState } from "react";
-import { edgePath, flowOf, labelAt, layoutOf } from "./flow.js";
+import { edgePath, flowOf, LABEL_INSET, labelAt, layoutOf } from "./flow.js";
 import type { MapBox } from "./flow-map.js";
 import { cx } from "./format.js";
 
@@ -23,17 +23,17 @@ import { cx } from "./format.js";
 const COLUMN = { min: 110, max: 200 };
 const HEIGHT = 58;
 const GAP_X = 40;
-const LABELED_GAP_X = 150;
+const LABELED_GAP_X = 160;
 /** A box's padding and rows (px), and about how wide a character of each is. */
 const PAD = { x: 24, y: 18 };
 const ROW = { label: 16.25, small: 15.6 };
 const CHAR = { label: 7.4, small: 6.6 };
 
-/** Tall enough for the label and number (two rows each at most) and the note (three). */
+/** Tall enough for the label (two rows at most), the note and the number (three each). */
 function heightOf(b: MapBox, w: number): number {
   const rows = (s: string | undefined, char: number, most = 2) =>
     s ? Math.min(most, Math.ceil((s.length * char) / (w - PAD.x))) : 0;
-  const small = rows(b.note, CHAR.small, 3) + rows(b.count, CHAR.small);
+  const small = rows(b.note, CHAR.small, 3) + rows(b.count, CHAR.small, 3);
   return Math.max(HEIGHT, PAD.y + ROW.label * rows(b.label, CHAR.label) + ROW.small * small);
 }
 
@@ -62,7 +62,7 @@ function BoxNode({ data }: NodeProps<Node<{ box: MapBox; height: number }>>) {
           <span className="line-clamp-3 text-[12px] leading-[1.3] text-(--ui-ink-2)">{b.note}</span>
         ) : null}
         {b.count ? (
-          <span className="line-clamp-2 text-[12px] leading-[1.3] text-(--ui-ink) tabular-nums">
+          <span className="line-clamp-3 text-[12px] leading-[1.3] text-(--ui-ink) tabular-nums">
             {b.count}
           </span>
         ) : null}
@@ -177,7 +177,7 @@ export default function FlowMapGraph({
               labeled ? (end === "from" ? "to" : "from") : undefined,
             ),
             label: text
-              ? { text, max: gapX - 32, ...labelAt(at(e.from), at(e.to), e.span, end) }
+              ? { text, max: gapX - 2 * LABEL_INSET, ...labelAt(at(e.from), at(e.to), e.span, end) }
               : undefined,
           },
         };
