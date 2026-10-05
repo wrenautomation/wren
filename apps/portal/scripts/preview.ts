@@ -13,11 +13,13 @@ import { EMAIL_CONSOLE_VIEWS } from "@wren/channel-email/views";
 import { loadEnvFile, loadSettings } from "@wren/config";
 import { clientUrl } from "@wren/core/clients";
 import { consoleApi } from "@wren/core/console";
+import { CONSOLE_ROUTES } from "@wren/core/console-routes";
 import { PortalRefusal, type Viewer } from "@wren/core/portal";
 import { cachedDb, createDb } from "@wren/db";
 import { type FileStore, fileNameOf } from "@wren/delivery/files";
 import { DELIVERY_ROUTES, deliveryApi } from "@wren/delivery/restate";
 import { DEMO_NAME, PORTAL_ROUTES, portalApi } from "@wren/reactivation/restate";
+import { COMPONENTS } from "../../worker/src/components.js";
 
 const demo = process.argv.includes("--demo");
 const port = Number(process.env.PORT ?? 8788);
@@ -41,7 +43,10 @@ const SERVICES: Record<string, { routes: readonly string[]; api: object }> = {
     routes: Object.keys(PORTAL_ROUTES),
     api: portalApi({ main, open: (c) => cachedDb(clientUrl(settings.databaseUrl, c)) }),
   },
-  console: { routes: ["view"], api: consoleApi({ main, views: EMAIL_CONSOLE_VIEWS }) },
+  console: {
+    routes: Object.keys(CONSOLE_ROUTES),
+    api: consoleApi({ main, views: EMAIL_CONSOLE_VIEWS, components: COMPONENTS }),
+  },
 };
 const as = process.argv[process.argv.indexOf("--as") + 1];
 const viewer: Viewer = demo

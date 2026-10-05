@@ -102,6 +102,12 @@ describe("flowOf", () => {
     );
     expect(g.nodes).toHaveLength(2);
   });
+
+  it("late: a step that builds on nothing sits just before its first user", () => {
+    const g = flowOf(RUN, all, undefined, true);
+    expect(colsOf(g)).toEqual({ verify: 2, lookup: 0, signals: 0, score: 1, brief: 2, compose: 3 });
+    expect(g.edges).toContainEqual({ from: "verify", to: "compose", span: 1 });
+  });
 });
 
 describe("layoutOf", () => {

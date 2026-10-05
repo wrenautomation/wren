@@ -47,6 +47,8 @@ export function flowOf(
   steps: readonly FlowStep[],
   keep: (id: string) => boolean,
   ends: { input: boolean; output: boolean } = { input: false, output: false },
+  /** Steps that build on nothing sit one column before their first user, not at the start. */
+  late = false,
 ): FlowGraph {
   // The first of a repeated id wins; the ends' own ids aren't steps.
   const seenIds = new Set<string>();
@@ -91,6 +93,14 @@ export function flowOf(
     return c;
   };
   for (const s of kept) colOf(s.id, new Set());
+  if (late)
+    for (const s of kept) {
+      if (deps.get(s.id)?.length) continue;
+      const users = kept
+        .filter((t) => deps.get(t.id)?.includes(s.id))
+        .map((t) => cols.get(t.id) ?? first);
+      if (users.length) cols.set(s.id, Math.max(first, Math.min(...users) - 1));
+    }
   // A loop can leave a column empty; close the gap.
   const used = [...new Set(cols.values())].sort((a, b) => a - b);
   for (const [id, c] of cols) cols.set(id, used.indexOf(c) + first);
