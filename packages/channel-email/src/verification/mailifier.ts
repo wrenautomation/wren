@@ -12,7 +12,13 @@
  */
 import { createHash } from "node:crypto";
 import { promises as dns } from "node:dns";
-import { LocalChecker, type MailboxProbe, RemoteProbe, SmtpProbe } from "mailifier";
+import {
+  LocalChecker,
+  type MailboxProbe,
+  RemoteProbe,
+  RemoteProbeTimeout,
+  SmtpProbe,
+} from "mailifier";
 import type { LocalCheckerLike } from "./local.js";
 import type { EmailVerifier, Verdict } from "./verifier.js";
 
@@ -23,17 +29,24 @@ export const defaultLocalChecker = (): LocalCheckerLike => new LocalChecker();
 
 /**
  * Any mailifier probe as an EmailVerifier. Authoritative and free: the mail server
- * itself answered, and no one billed us for asking.
+ * itself answered, and no one billed us for asking. A prober that gave no verdict in
+ * time is a slow mail server's queue, not a dead prober: that address is `risky`
+ * (`timeout`), retried later, and the pass goes on.
  */
-class ProbeVerifier implements EmailVerifier {
+export class ProbeVerifier implements EmailVerifier {
   readonly name: string;
   readonly authoritative = true;
   readonly costsCredits = false;
   constructor(private readonly probe: MailboxProbe) {
     this.name = probe.name;
   }
-  verify(email: string): Promise<Verdict> {
-    return this.probe.verify(email);
+  async verify(email: string): Promise<Verdict> {
+    try {
+      return await this.probe.verify(email);
+    } catch (err) {
+      if (err instanceof RemoteProbeTimeout) return { result: "risky", raw: { reason: "timeout" } };
+      throw err;
+    }
   }
 }
 

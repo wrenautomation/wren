@@ -439,8 +439,8 @@ importers:
         specifier: 2.2.4
         version: 2.2.4
       mailifier:
-        specifier: 0.3.7
-        version: 0.3.7
+        specifier: 0.3.8
+        version: 0.3.8
       nodemailer:
         specifier: 10.0.14
         version: 10.0.14
@@ -4639,8 +4639,8 @@ packages:
   magic-string@1.4.1:
     resolution: {integrity: sha512-8lyCu36ErXR0J9uaGKlKQoiLZKmtI63YGLE8G2o9jyRPdr4X47LusSOwgOJOzcVtp81fTAAjxR7BwKz682Jhow==}
 
-  mailifier@0.3.7:
-    resolution: {integrity: sha512-9o6wheupS88hS3CCY7v0KHanCb2OqBQtOSyhkyAHKkCx0k/cTOXxNfju6hB7OxnfS3rXFtJTR1HMgXtDSsNDhA==}
+  mailifier@0.3.8:
+    resolution: {integrity: sha512-3pxq7bg3M+xNRQapCs39BGb/TXpMKFpF5UXTKqRyEqsLU6gX/P+JC1+wDKM+h1J8SEcDTaZODkAODMVdlG5mqg==}
     engines: {node: '>=22'}
     hasBin: true
 
@@ -8947,7 +8947,7 @@ snapshots:
     dependencies:
       '@jridgewell/sourcemap-codec': 1.6.0
 
-  mailifier@0.3.7: {}
+  mailifier@0.3.8: {}
 
   math-intrinsics@1.1.0: {}
 

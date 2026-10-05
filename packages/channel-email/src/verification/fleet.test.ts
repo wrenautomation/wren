@@ -1,6 +1,8 @@
 /** ProbeFleet: one home prober per recipient domain, a second opinion only when our IP is refused. */
+
+import { RemoteProbeError, RemoteProbeTimeout } from "mailifier";
 import { describe, expect, it } from "vitest";
-import { fleetOrder, ProbeFleet, READY_TTL_MS } from "./mailifier.js";
+import { fleetOrder, ProbeFleet, ProbeVerifier, READY_TTL_MS } from "./mailifier.js";
 import type { Verdict } from "./verifier.js";
 
 type Answer = Verdict | Error;
@@ -169,5 +171,14 @@ describe("ProbeFleet readiness (PTR names the host)", () => {
     clock = READY_TTL_MS;
     expect(await askedBy(fleet)).toEqual(new Set(["a.example", "b.example"]));
     expect(checks).toBe(4);
+  });
+});
+
+describe("ProbeVerifier", () => {
+  it("a verdict that never came is risky for that address; a dead prober still stops the pass", async () => {
+    const slow = new ProbeVerifier(host("a.example", new RemoteProbeTimeout("slow")).member.probe);
+    expect(await slow.verify("jane@firm.example")).toEqual(risky("timeout"));
+    const dead = new ProbeVerifier(host("a.example", new RemoteProbeError("down")).member.probe);
+    await expect(dead.verify("jane@firm.example")).rejects.toThrow("down");
   });
 });

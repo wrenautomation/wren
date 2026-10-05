@@ -31,7 +31,7 @@
     "@wren/research": "workspace:*",
     "drizzle-orm": "0.45.2",
     "imapflow": "2.2.4",
-    "mailifier": "0.3.7",
+    "mailifier": "0.3.8",
     "nodemailer": "10.0.14",
     "smol-toml": "1.8.0",
     "zod": "4.6.5"
