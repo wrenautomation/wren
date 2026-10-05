@@ -218,7 +218,7 @@ registerAds(program, withMainDb, settings);
 registerSms(program, withDb, settings);
 registerReach(program, withMainDb, settings);
 registerBooks(program, withMainDb, settings, rootDir);
-registerWatch(program, settings);
+registerWatch(program, withMainDb, settings, rootDir);
 registerStudy(program, withMainDb, settings, rootDir);
 registerSop(program, withMainDb, settings, rootDir);
 registerDossier(program, withMainDb, rootDir);

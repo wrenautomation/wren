@@ -52,7 +52,7 @@ export const mailRecord = defineRecord({
     { id: "done", label: "Done", where: { queue: "done" }, sort: "-at", at: "at" },
     { id: "all", label: "All", sort: "-at", at: "at" },
   ],
-  actions: ["watch.done", "watch.hide", "watch.show"],
+  actions: ["watch.done", "watch.hide", "watch.show", "watch.sort"],
 });
 
 export const ruleRecord = defineRecord({

@@ -767,8 +767,9 @@ export async function buildServices(
   const watchBoxes = settings.watchMailboxes.length
     ? settings.watchMailboxes
     : settings.booksMailboxes;
+  const watchLlm = settings.watchLlm === "none" ? null : makeLlm(settings.watchLlm, process.env);
   services.push(makeWatch({ db, mailboxes: watchBoxes.map(mailboxOf("wren:watch")) }));
-  services.push(makeWatchConsole(db));
+  services.push(makeWatchConsole(db, watchLlm));
   // Cold SMS. Always bound: the sender is off until `wren sms queue start`.
   const sms = {
     db,
@@ -896,10 +897,7 @@ export async function buildServices(
       steps: {
         [TOUCH]: touchStep((client) => (client ? clientDb(client) : db), sms),
         "reach.touch": reachTouchStep(db, { sequences: reach.sequences, sender: reach.senderName }),
-        "watch.triage": triageStep(
-          db,
-          settings.watchLlm === "none" ? null : makeLlm(settings.watchLlm, process.env),
-        ),
+        "watch.triage": triageStep(db, watchLlm),
       },
       rule: async (when: string, e: SpineEvent) => {
         const r = await llm.complete(

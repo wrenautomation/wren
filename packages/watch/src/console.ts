@@ -1,7 +1,8 @@
 /**
  * WatchConsole: the Inbox app's hands on the Watch. Done clears an email. Hide like this writes a
  * rule that holds the sender's mail (subject words narrow it) and clears what's waiting from
- * them; Show like this writes one that shows it. Rules can also be written or removed by hand.
+ * them; Show like this writes one that shows it. Sort again re-triages what's waiting under today's
+ * rules. Rules can also be written or removed by hand.
  */
 import type * as restate from "@restatedev/restate-sdk";
 import {
@@ -13,10 +14,12 @@ import {
 } from "@wren/core/portal";
 import { PORTAL_FIELDS, serviceHandler } from "@wren/core/restate";
 import { atomic, type Db, setAuditActor, type Tx } from "@wren/db";
+import type { LlmClient } from "@wren/llm";
 import { and, eq, ilike, inArray, isNull, or, type SQL } from "drizzle-orm";
 import { z } from "zod";
 import { WATCH_CONSOLE_ROUTES } from "./console-routes.js";
 import { mail, rules, VERDICTS, type Verdict } from "./schema.js";
+import { sortAgain } from "./triage.js";
 
 export interface IdsRequest extends PortalRequest {
   ids: string[];
@@ -41,7 +44,7 @@ const blank = (v: string | null | undefined) => v?.trim() || null;
 const by = (req: PortalRequest) => (req.viewer as SignedViewer).email;
 
 /** The handlers as plain functions: the service wraps them, tests call them. */
-export function watchConsoleApi(db: Db) {
+export function watchConsoleApi(db: Db, llm: LlmClient | null = null) {
   const write = <T>(req: PortalRequest, fn: (tx: Tx) => Promise<T>) =>
     atomic(db, async (tx) => {
       await setAuditActor(tx, by(req));
@@ -124,6 +127,11 @@ export function watchConsoleApi(db: Db) {
       }),
     hide: (req: LikeRequest) => like(req, "hold"),
     show: (req: LikeRequest) => like(req, "show"),
+    /** Re-triage the picked mail under today's rules; answers how many went where. */
+    sort: async (req: IdsRequest) => {
+      const ids = idsOf(req);
+      return { done: ids.map(String), ...(await sortAgain(db, llm, ids)) };
+    },
     addRule: (req: RuleRequest) =>
       write(req, async (tx) => {
         const words = blank(req.words);
@@ -157,8 +165,8 @@ export function watchConsoleApi(db: Db) {
 const IDS = { ...PORTAL_FIELDS, ids: z.array(z.string()) };
 const SUBJECT = z.string().nullish().describe("Words the subject must hold too; blank is any");
 
-export function makeWatchConsole(db: Db) {
-  const api = watchConsoleApi(db);
+export function makeWatchConsole(db: Db, llm: LlmClient | null) {
+  const api = watchConsoleApi(db, llm);
   return portalService({
     name: "WatchConsole",
     main: db,
@@ -178,6 +186,10 @@ export function makeWatchConsole(db: Db) {
       show: serviceHandler(
         { input: z.looseObject({ ...IDS, subject: SUBJECT }) },
         (_: restate.Context, req: LikeRequest) => answer(() => api.show(req)),
+      ),
+      sort: serviceHandler({ input: z.looseObject(IDS) }, (ctx: restate.Context, req: IdsRequest) =>
+        // The refusal for an empty pick comes before the run, which would retry it forever.
+        answer(async () => (idsOf(req), ctx.run("sort", () => api.sort(req)))),
       ),
       addRule: serviceHandler(
         {

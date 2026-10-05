@@ -20,7 +20,7 @@ The Watch is Wren's first routed workflow: `Watch/all` reads, the spine carries 
 - `mail` (`schema.ts:42`): one per (mailbox, Gmail message id); `verdict` null until triage, `done_at` when William clears it
 - `rules` (`schema.ts:25`): words, optional sender (address or domain) and subject words, optional verdict. Migration 0095 seeds the Inbox Insiders rule
 - Read: `readMail` (`packages/watch/src/read.ts:25`) searches `in:inbox` minus promotions and social, from an hour before the newest kept
-- Triage: `settle` (`packages/watch/src/triage.ts:26`), `triage` (`:65`), step `triageStep` (`:104`); events are `mail:<row id>`
+- Triage: `settle` (`packages/watch/src/triage.ts:26`), `triage` (`:68`), `sortAgain` (`:110`), step `triageStep` (`:129`); events are `mail:<row id>`
 - Mailbox access is core's (`packages/core/src/mailbox.ts`), shared with the books
 
 Citations: `packages/watch/src/schema.ts:25`, `:42`, `:78`; `packages/watch/src/restate.ts:28`
@@ -42,7 +42,7 @@ Citations: `packages/watch/src/schema.ts:25`, `:42`, `:78`; `packages/watch/src/
 |---|---|
 | `Watch/all` on the box, every 15 min (`wren watch start`) | writes rows, emits to Spine |
 | Spine `watch.triage` (Lambda, `WREN_WATCH_LLM`) | writes verdicts |
-| WatchConsole (Inbox app: Done, Hide like this, Show like this, rules) | writes |
+| WatchConsole (Inbox app: Done, Hide like this, Show like this, Sort again, rules) | writes |
 | Inbox app, admins only (`needs: team`) | reads |
 
 ## See

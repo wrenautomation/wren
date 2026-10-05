@@ -9,6 +9,7 @@ export const WATCH_CONSOLE_ROUTES = {
   undone: "wren:team",
   hide: "wren:team",
   show: "wren:team",
+  sort: "wren:team",
   addRule: "wren:team",
   removeRule: "wren:team",
 } as const satisfies Record<string, Need>;
@@ -17,6 +18,7 @@ export const WATCH_CONSOLE_WRITES: readonly (keyof typeof WATCH_CONSOLE_ROUTES)[
   "undone",
   "hide",
   "show",
+  "sort",
   "addRule",
   "removeRule",
 ];

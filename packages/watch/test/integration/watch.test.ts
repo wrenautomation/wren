@@ -12,7 +12,15 @@ import { eq, sql } from "drizzle-orm";
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 import { WATCH_COMPONENTS, WATCH_WORKFLOWS } from "../../src/components.js";
 import { watchConsoleApi } from "../../src/console.js";
-import { mail, mailEvent, readMail, rules, triage, triageStep } from "../../src/index.js";
+import {
+  mail,
+  mailEvent,
+  readMail,
+  rules,
+  sortAgain,
+  triage,
+  triageStep,
+} from "../../src/index.js";
 
 let pg: TestPostgres;
 beforeAll(async () => {
@@ -147,6 +155,14 @@ describe("triage on the spine", () => {
       "No model is set, so it shows.",
       "The model's answer didn't read, so it shows.",
     ]);
+    // A rule written later re-sorts what's waiting; done mail stays put.
+    await pg.db.insert(rules).values({ words: "Hold x.", sender: "x.example", verdict: "hold" });
+    await pg.db
+      .update(mail)
+      .set({ doneAt: NOW })
+      .where(eq(mail.id, kept[1] as number));
+    expect(await sortAgain(pg.db, null, kept)).toEqual({ hold: 1 });
+    expect((await rows()).map((r) => r.verdict)).toEqual(["hold", "show"]);
   });
 });
 

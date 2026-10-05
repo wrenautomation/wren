@@ -8,7 +8,7 @@ import { senderMatches } from "@wren/core/mailbox";
 import type { SpineEvent, Step } from "@wren/core/spine";
 import type { Db } from "@wren/db";
 import { completeAndParse, type LlmClient } from "@wren/llm";
-import { and, asc, eq, isNull } from "drizzle-orm";
+import { and, asc, eq, inArray, isNull } from "drizzle-orm";
 import { z } from "zod";
 import { mail, rules, VERDICTS, type Verdict } from "./schema.js";
 
@@ -42,7 +42,9 @@ export function settle(
 const SYSTEM = `You sort William's email. Answer "show" when it needs him: a person writing to him, \
 money owed or at risk, an account or security problem, a deadline. "hold" when it's worth keeping \
 but not now: receipts, paid invoices, notices. "drop" when it's noise. His rules come first; follow \
-them. A rule that names a sender covers only that sender's mail. An order confirmation is a receipt; \
+them. A rule that names a sender covers only that sender's mail. Wren's own agents sign up, buy and \
+log in for him, so sign-in codes, "verify your email", welcomes, order received or finished, and \
+published notices are hold, unless a step is still his to take. An order confirmation is a receipt; \
 shipped, delayed or cancelled is a status change. Answer JSON only: {"verdict": "show" | "hold" | "drop", "why": "<one short line>", \
 "summary": "<one short line on what it says>"}`;
 
@@ -96,9 +98,31 @@ export async function triage(db: Db, llm: LlmClient | null, id: number): Promise
   }
   await db
     .update(mail)
-    .set({ ...got, snippet: null })
+    .set({ ...got, summary: got.summary ?? m.summary, snippet: null })
     .where(and(eq(mail.id, id), isNull(mail.verdict)));
   return got.verdict;
+}
+
+/**
+ * Sort waiting mail again under today's rules and prompt; done mail is left alone. The preview is
+ * gone by now, so the model reads sender and subject. A row whose model call fails waits as unread.
+ */
+export async function sortAgain(
+  db: Db,
+  llm: LlmClient | null,
+  ids: readonly number[],
+): Promise<Partial<Record<Verdict, number>>> {
+  const back = await db
+    .update(mail)
+    .set({ verdict: null, why: null, ruleId: null })
+    .where(and(inArray(mail.id, [...ids]), isNull(mail.doneAt)))
+    .returning({ id: mail.id });
+  const tally: Partial<Record<Verdict, number>> = {};
+  for (const { id } of back) {
+    const v = await triage(db, llm, id);
+    if (v) tally[v] = (tally[v] ?? 0) + 1;
+  }
+  return tally;
 }
 
 /** `watch.triage` on the spine: the email leaves by its verdict's port. Wren's own, in main. */

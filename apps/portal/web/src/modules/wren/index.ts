@@ -339,6 +339,14 @@ const MAIL_ACTIONS: Action[] = [
     when: { queue: ["held", "dropped"] },
     done: said("Shown. A rule shows mail like it from now on."),
   },
+  {
+    id: "watch.sort",
+    label: "Sort again",
+    handler: "watch/sort",
+    bulk: true,
+    when: { queue: ["needs_you"] },
+    done: said("Sorted again under today's rules."),
+  },
 ];
 
 const RULE_ACTIONS: Action[] = [

@@ -94,7 +94,8 @@ hook's calls. Design: `designs/2026-10-05-workflows.md` (The spine).
 every 15 minutes (`WREN_WATCH_MAILBOXES`, else the books' own), skipping promotions and social.
 Each email goes along the `watch` workflow to triage: a rule with a sender and a verdict settles it
 for $0, the model in `WREN_WATCH_LLM` (Cohere, set in `lambda.tf`) reads the rest. What needs him
-shows in the Inbox app under Your mail; Hide like this writes a rule. No bodies are kept.
+shows in the Inbox app under Your mail; Hide like this writes a rule, Sort again (or `wren watch sort`)
+re-triages what's waiting under today's rules. No bodies are kept.
 
 ## Chores through autobrowse
 
