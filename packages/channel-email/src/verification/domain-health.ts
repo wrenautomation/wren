@@ -9,6 +9,8 @@
  * "clear". Every lookup has its own timeout, so a slow list cannot stall the digest.
  */
 import { promises as dns } from "node:dns";
+import type { Mailboxes } from "../send/mailboxes.js";
+import { type Sender, senderDomain } from "../send/roster.js";
 import { ipStanding, type Resolver } from "./prober-health.js";
 
 export const DOMAIN_LISTS = {
@@ -168,3 +170,35 @@ export function domainProblems(h: DomainStanding): string[] {
 export const namedDomains = (text: string): string[] => [
   ...new Set((text.match(/\b(?:[a-z0-9-]+\.)+[a-z]{2,}\b/gi) ?? []).map((d) => d.toLowerCase())),
 ];
+
+/**
+ * The mail domains to watch: every sending domain, then the main site and any other
+ * domain a signature names. A domain with a ramped inbox was bought for sending, so it
+ * must sit on Route 53; DKIM is at the roster's selector, else `google`.
+ */
+export function mailDomainTargets(
+  roster: readonly Sender[],
+  mailboxes: Mailboxes,
+  siteBaseUrl: string,
+): DomainTarget[] {
+  const sending = [...new Set(roster.map((s) => senderDomain(s)))];
+  const sites = new Set([
+    new URL(siteBaseUrl).hostname,
+    ...roster.flatMap((s) => namedDomains(s.signature?.text ?? "")),
+  ]);
+  return [
+    ...sending.map((domain) => {
+      const on = roster.filter((s) => senderDomain(s) === domain);
+      const smtp = on.find((s) => s.transport === "smtp");
+      return {
+        domain,
+        fleet: on.some((s) => s.ramp !== null),
+        dkimSelector: on.find((s) => s.dkim)?.dkim ?? "google",
+        smtpHost: smtp ? (mailboxes.get(smtp.address)?.smtp.host ?? null) : null,
+      };
+    }),
+    ...[...sites]
+      .filter((d) => !sending.includes(d))
+      .map((domain) => ({ domain, fleet: false, dkimSelector: null, smtpHost: null })),
+  ];
+}

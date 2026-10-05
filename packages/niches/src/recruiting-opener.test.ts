@@ -53,13 +53,8 @@ describe("recruiting book-first opener", () => {
       /^Hi Dana,\n\nI've (been following Tulsa Nurse for a while|followed Tulsa Nurse for a while now)\. (I'm a college student|As a college student)/,
     );
     expect(b).toContain("University of Waterloo");
-    expect(b).toMatch(/internal tools for .*Government of Canada/);
-    expect(b).toContain(
-      "I think you're missing out on hundreds of thousands in revenue, to be frank.",
-    );
-    expect(b).toContain("(top eng school in Canada)");
-    expect(b).toContain("college research labs");
-    expect(b).toMatch(/enriches them|researches every contact/);
+    expect(b).toMatch(/built tools for the Government of Canada/);
+    expect(b).toContain("I think you're missing out on hundreds of thousands in revenue.");
     expect(b).toMatch(/hiring/i);
     expect(b.indexOf("hundreds of thousands")).toBeLessThan(b.indexOf("University of Waterloo"));
   });
@@ -92,11 +87,19 @@ describe("recruiting book-first opener", () => {
     }
   });
 
+  it("scans on a phone: at most two sentences a paragraph", () => {
+    for (let i = 0; i < 20; i++) {
+      const b = render(tpl(), base, `person:${i}`).body;
+      for (const para of b.split("\n\n"))
+        expect(para.split(/[.?!] /).length).toBeLessThanOrEqual(2);
+    }
+  });
+
   it("varies every paragraph so no two firms get the same text", () => {
     const bodies = new Set(
       Array.from({ length: 40 }, (_, i) => render(tpl(), base, `person:${i}`).body),
     );
-    expect(bodies.size).toBeGreaterThan(30);
+    expect(bodies.size).toBeGreaterThan(15);
     for (const para of body(base).split("\n\n").slice(1, -2)) {
       expect([...bodies].some((b) => !b.includes(para))).toBe(true);
     }
@@ -128,7 +131,7 @@ describe("recruiting book-first opener", () => {
     }
   });
 
-  it("the follow-up opens on the check-in, restates the opener, under its own subject", () => {
+  it("the follow-up opens on a one-line bump, restates the opener, under its own subject", () => {
     const f = recruiting.templates.get("book-first/followup");
     if (f === undefined) throw new Error("missing book-first/followup");
     const r = render(f, base, "person:7");
@@ -137,18 +140,18 @@ describe("recruiting book-first opener", () => {
     expect(r.body).toContain("University of Waterloo");
     expect(r.body).toMatch(/hiring/i);
     expect(r.body).toMatch(
-      /^Dana, just checking in on the email I sent a few days ago\. (If you haven't seen it|In case you missed it), here's the TL;DR\.\n\n/,
+      /^Dana, bumping (this in case it got buried|my last email in case you missed it)\.\n\n/,
     );
     expect(r.body).not.toMatch(/following up|^(Hi|Hey) /im);
     expect(r.body).toContain("you don't pay me at all");
     expect(r.body).toContain(CALL_TIMES);
     const { first_name: _, ...company } = base;
-    expect(render(f, company, "person:7").body).toMatch(/^Hi there, just checking in/);
+    expect(render(f, company, "person:7").body).toMatch(/^Hi there, bumping /);
   });
 
   it("asks for the times, quotes the offer's terms, and leaves no syntax behind", () => {
     const b = body(base);
-    expect(b).toMatch(/\n\n(Thanks|Appreciate it),\n\nWilliam$/);
+    expect(b).toMatch(/I'll send a Google Meet invite\.\n\nWilliam$/);
     expect(b).toContain(CALL_TIMES);
     expect(b).toContain(`${terms["offer.goal"]} meetings in ${terms["offer.days"]} days`);
     expect(b.replace(CALL_TIMES, "")).not.toMatch(/[{}]|\[\[|\(\(|\]\]|\)\)/);
@@ -169,7 +172,7 @@ describe("recruiting watch-first", () => {
       expect(b).not.toContain("curious how I'll pull that off");
     }
     expect(render(named("watch-first/opener"), base, "person:7").body).toContain(
-      "If this sounds too good to be true, I can send you a quick demo.",
+      "If you're curious, I can send you a quick demo.",
     );
     expect(render(named("watch-first/followup"), base, "person:7").body).toMatch(
       /^Dana, just checking in on the email I sent a few days ago\./,

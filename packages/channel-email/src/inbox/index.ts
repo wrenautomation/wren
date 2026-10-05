@@ -15,6 +15,7 @@ export {
   runInvites,
 } from "./invite.js";
 export * from "./opens.js";
+export * from "./placement.js";
 export * from "./postmaster.js";
 export * from "./reply.js";
 export * from "./sync.js";

@@ -63,6 +63,7 @@ import { sizeFromPpp } from "@wren/research/companies";
 import type { Command } from "commander";
 import { desc, gte, inArray, sql } from "drizzle-orm";
 import { registerAnswers } from "./answers.js";
+import { registerDeliverability } from "./deliverability.js";
 
 type WithDb = <T>(fn: (db: Db) => Promise<T>) => Promise<T>;
 
@@ -733,6 +734,7 @@ export function registerEmail(
       console.log(`size: ${JSON.stringify(stats)}`);
     });
   registerAnswers(email, withDb, settings);
+  registerDeliverability(email, withDb, settings, rootDir);
   return email;
 }
 

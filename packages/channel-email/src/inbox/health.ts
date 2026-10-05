@@ -27,12 +27,26 @@
  * `deliver` lets them send past a kill-switch pause. Every other campaign on
  * the same domains is still guarded by its own numbers.
  *
- * Pausing is automatic; **resuming is a human**. Nothing in this module lifts
- * a pause on its own, and no timer does either — `resume` is called by the
- * operator and by nothing else.
+ * Pausing is automatic; **resuming a bounce or complaint pause is a human**.
+ * Nothing in this module lifts a pause on its own — `resume` is called by the
+ * operator and by nothing else. The one self-lifting pause is `placement`
+ * (`placement.ts`), whose evidence is measured afresh every send day; its lift
+ * is not a human weighing bounces, so it never floors this window.
  */
 import { type Db, type Queryable, snapshot } from "@wren/db";
-import { and, count, eq, gte, inArray, isNotNull, isNull, max, notInArray, sql } from "drizzle-orm";
+import {
+  and,
+  count,
+  eq,
+  gte,
+  inArray,
+  isNotNull,
+  isNull,
+  max,
+  ne,
+  notInArray,
+  sql,
+} from "drizzle-orm";
 import {
   type BounceClass,
   enrollments,
@@ -117,7 +131,13 @@ export async function domainHealth(
       const [lift] = await tx
         .select({ lastLift: max(senderPauses.liftedAt) })
         .from(senderPauses)
-        .where(and(inArray(senderPauses.sender, addresses), isNotNull(senderPauses.liftedAt)));
+        .where(
+          and(
+            inArray(senderPauses.sender, addresses),
+            isNotNull(senderPauses.liftedAt),
+            ne(senderPauses.source, "placement"),
+          ),
+        );
       const lastLift = lift?.lastLift ?? null;
       const windowStart = lastLift !== null && lastLift > floor ? lastLift : floor;
       const [sentRow] = await tx

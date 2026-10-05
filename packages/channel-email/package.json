@@ -15,7 +15,8 @@
     "./restate": "./src/restate/index.ts",
     "./send": "./src/send/index.ts",
     "./send/*": "./src/send/*.ts",
-    "./inbox": "./src/inbox/index.ts"
+    "./inbox": "./src/inbox/index.ts",
+    "./spam": "./src/spam/index.ts"
   },
   "scripts": {
     "test:integration": "vitest run test/integration",

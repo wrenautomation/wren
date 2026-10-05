@@ -17,7 +17,8 @@ A catalog, not a waterfall. Each row names the cards whose **If you change this*
 | a sequence, arm or plan rule | [[email/sequence]] | [[platform/niche]], [[processes/compose]] |
 | who sends, from which inbox | [[email/roster]] | [[email/send-policy]], [[processes/deploy]] (SSM roster), [[platform/loop-object]] (keys) |
 | caps, windows, ramp | [[email/send-policy]] | [[processes/send-tick]], [[processes/compose]] |
-| seed placement checks | [[email/placement-check]] | [[email/roster]] (ramps), [[email/transport]], the digest |
+| seed placement checks (plain + real, auth, verdict) | [[email/placement-check]] | [[email/roster]] (ramps), [[email/transport]], [[email/sender-pause]], the digest |
+| spam score | [[email/spam-score]] | [[email/template]], the gates |
 | message or enrollment states | [[email/message]], [[email/enrollment]] | `packages/channel-email/src/state.ts`, [[processes/send-tick]], every view in `packages/channel-email/src/views.ts` |
 | a call booked on cal.com | [[email/call-booking]] | [[platform/phone-worker]], [[email/enrollment]], `packages/books/src/economics.ts`, `evolve/stats.ts` |
 | what a reply means | [[email/thread-event]] | [[processes/inbox-sync]], [[platform/llm-client]] |

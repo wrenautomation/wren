@@ -229,7 +229,7 @@ export async function sendDue(db: Db, opts: SendDueOptions): Promise<SendStats> 
     return stats;
   }
 
-  // Sender → who paused it: a kill-switch pause does not stop a niche the switch is off for.
+  // Sender → who paused it: an automatic pause (kill switch, placement) does not stop a niche the switch is off for.
   const paused = new Map(
     (
       await db
@@ -310,7 +310,7 @@ export async function sendDue(db: Db, opts: SendDueOptions): Promise<SendStats> 
     const pausedBy = paused.get(sender);
     if (
       pausedBy !== undefined &&
-      !(pausedBy === "kill_switch" && !policy.killSwitchOn(enrollment.niche))
+      !(pausedBy !== "operator" && !policy.killSwitchOn(enrollment.niche))
     ) {
       stats.senders_paused += 1;
       continue;

@@ -24,7 +24,9 @@ offers() {
 unit() { echo "==> unit tests" && pnpm turbo run test:unit; }
 # Every integration file starts its own Postgres and migrates it. Vitest's default (cpus - 1 files at once)
 # times 3 packages put ~27 containers on the Docker VM together, and setup hooks timed out at 180 s.
-integration() { echo "==> integration tests (needs Docker)" && pnpm turbo run test:integration --concurrency=3 -- --maxWorkers=3; }
+integration() { echo "==> integration tests (needs Docker)" && pnpm turbo run test:integration --concurrency=3 -- --maxWorkers=3 && spam; }
+# Every template option through SpamAssassin (designs/2026-10-05-deliverability-tests.md); one over 2.0 fails.
+spam() { echo "==> spam score (needs Docker)" && ./bin/wren email spamcheck; }
 case "${1:-all}" in
   lint) lint ;;
   unit) unit ;;

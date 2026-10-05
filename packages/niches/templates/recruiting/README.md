@@ -49,14 +49,16 @@ Every firm gets `book-first/` for now (William, 10-02), sequence
   ("Dana, about your clients", "Dana, love your work", "Dana, cool
   company"). The follow-up's own set adds "one more thing". A role inbox
   drops the name.
-- Follow-up (day 5): the opener restated (personalization, who William
-  is, the pain), the offer opening "Following up on my last email", and
-  the same ask, under a new subject as a fresh thread (outbound-copy
-  SOP). Slight `[[ ]]` variants keep it from reading as a copy.
+- Follow-up (day 5): a one-line bump ("bumping this in case it got
+  buried"), then the opener restated without the firm's line, under a
+  new subject as a fresh thread (outbound-copy SOP).
+- Skimmable (William, 10-05): at most two sentences a paragraph, so it
+  scans on a phone. Cut technical detail first; keep the personalization
+  and the hook. Length is a knob tuned per variant, not a rule.
 
 `watch-first/` (demo ask, no call) is defined but off, sequence
-`watch-first-days-0-5`: the same opener and follow-up, ending "If this
-sounds too good to be true, I can send you a quick demo." Turning it
+`watch-first-days-0-5`: the same opener and follow-up, ending "If you're
+curious, I can send you a quick demo." Turning it
 back on is one plan line in `src/recruiting.ts`.
 
 Each email's clicks and bookings carry its link code, so results split
@@ -79,18 +81,18 @@ by arm.
     for a while and, as a software student always recruiting for
     internships, relates to their work. The firm's own line
     (`{company.opener}`) goes first when there is one.
-  - Who William is: a software engineer at a top Canadian university
-    (University of Waterloo), with production systems at the Government
-    of Canada (one used by 17,000 staff) and a U of A lab.
+  - Who William is, one clause: a software engineering student at the
+    University of Waterloo who has built tools for the Government of
+    Canada.
   - The pain is cold read and problem aware: "I'm sure you've got years of
     past clients in your CRM", probably hiring right now; the firm is
     missing out on hundreds of thousands in potential revenue.
-  - The offer is plain words: a system that tracks past clients and books
-    `{offer.goal}` meetings in `{offer.days}` days; no results, no pay.
+  - The offer, same paragraph: a system that reaches past clients in his
+    voice and books `{offer.goal}` meetings in `{offer.days}` days, or no
+    pay. How it works stays out.
     No "I know you're busy", no domain pre-objection, no scarcity line.
-  - The ask holds frame: "Are you down to hop on a 30-minute call?", then
-    `{call.times}`; William sends a Google Meet invite for one, or they
-    name a time.
+  - The ask holds frame: "Are you down to hop on a 30 min call", then
+    `{call.times}`; William sends a Google Meet invite.
 
 Every `[[a | b]]` is tracked: `wren email variants --niche recruiting`
 shows each option's sends, opens, replies and interested per version.

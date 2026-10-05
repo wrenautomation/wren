@@ -41,7 +41,7 @@ export interface DigestSchedulerDeps {
   domains?: readonly DomainTarget[];
   /** Inboxes on their own ramp: one line each, with today's cap. */
   ramps?: RampMap;
-  /** Seeds are set: one inbox-placement line per ramped inbox too. */
+  /** Seeds are set: one placement line per sending domain too. */
   placement?: boolean;
 }
 
@@ -149,8 +149,8 @@ export function makeDigestScheduler(deps: DigestSchedulerDeps) {
         if (ramp) lines.push(ramp);
         const trouble: string[] = [];
         if (deps.placement && Object.keys(ramps).length > 0) {
-          const placement = await placementLines(deps.db, Object.keys(ramps));
-          lines.push(okCount("placement", placement.lines.length, placement.trouble.length));
+          const placement = await placementLines(deps.db, Object.keys(ramps), now);
+          lines.push(...placement.lines.map((l) => `placement ${l}`));
           trouble.push(...placement.trouble.map((l) => `placement ${l}`));
         }
         const [probers, standings] = await Promise.all([

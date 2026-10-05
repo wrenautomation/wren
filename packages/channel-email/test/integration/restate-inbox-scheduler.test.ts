@@ -108,7 +108,17 @@ const seedGmail: SiteClient = {
     return (
       path.endsWith("/messages")
         ? { messages: [{ id: "m1" }] }
-        : { labelIds: ["INBOX", "CATEGORY_PROMOTIONS"] }
+        : {
+            labelIds: ["INBOX", "CATEGORY_PROMOTIONS"],
+            payload: {
+              headers: [
+                {
+                  name: "Authentication-Results",
+                  value: "mx.google.com; dkim=pass header.i=@x.test; spf=softfail; dmarc=pass",
+                },
+              ],
+            },
+          }
     ) as never;
   },
   via: async () => "api",
@@ -346,6 +356,7 @@ describe("PlacementScheduler", () => {
       sender: SENDER,
       seed,
       day: "2026-09-21",
+      kind: "real" as const,
       messageId: `<${seed.split("@")[0]}@wren-automation.test>`,
       sentAt,
     });
@@ -365,5 +376,6 @@ describe("PlacementScheduler", () => {
       ["lands@example.com", "promotions", null, true],
       ["refuses@example.com", null, "check refused", true],
     ]);
+    expect(rows[1]?.auth).toEqual({ spf: "softfail", dkim: "pass", dmarc: "pass" });
   });
 });

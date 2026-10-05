@@ -94,7 +94,7 @@ export const THREAD_EVENT_KINDS = [
   "note",
 ] as const;
 export type ThreadEventKind = (typeof THREAD_EVENT_KINDS)[number];
-export const PAUSE_SOURCES = ["kill_switch", "operator"] as const;
+export const PAUSE_SOURCES = ["kill_switch", "operator", "placement"] as const;
 export type PauseSource = (typeof PAUSE_SOURCES)[number];
 
 export const contactCandidates = pgTable(
@@ -899,8 +899,19 @@ export type LeadCheck = typeof leadChecks.$inferSelect;
 export const PLACEMENTS = ["inbox", "promotions", "spam", "missing"] as const;
 export type Placement = (typeof PLACEMENTS)[number];
 
+/** What a seed copy carries: a short personal note (tests the domain) or the newest opener (tests the copy). */
+export const PROBE_KINDS = ["plain", "real"] as const;
+export type ProbeKind = (typeof PROBE_KINDS)[number];
+
+/** The receiver's word on each check, from the seed copy's `Authentication-Results` (`pass`, `fail`, `none`, …). */
+export interface AuthResults {
+  spf: string | null;
+  dkim: string | null;
+  dmarc: string | null;
+}
+
 /**
- * One seed copy of a sender's newest opener per send day (`PlacementScheduler`).
+ * One seed copy per sender, seed, send day and kind (`PlacementScheduler`).
  * The key is the idempotency: a retried pass finds its row and never sends twice.
  * `detail` says why a day has no landing (`no draft yet`, a refusal).
  */
@@ -911,15 +922,18 @@ export const placementChecks = pgTable(
     seed: varchar("seed", { length: 320 }).notNull(),
     /** The fleet-clock send day. */
     day: date("day").notNull(),
+    kind: varchar("kind", { length: 8, enum: PROBE_KINDS }).notNull(),
     messageId: varchar("message_id", { length: 255 }),
     sentAt: timestamp("sent_at", { withTimezone: true }),
     landed: varchar("landed", { length: 16, enum: PLACEMENTS }),
+    auth: jsonb("auth").$type<AuthResults>(),
     checkedAt: timestamp("checked_at", { withTimezone: true }),
     detail: text("detail"),
   },
   (t) => [
-    primaryKey({ columns: [t.sender, t.seed, t.day], name: "pk_placement_checks" }),
+    primaryKey({ columns: [t.sender, t.seed, t.day, t.kind], name: "pk_placement_checks" }),
     oneOf("ck_placement_checks_placement", t.landed, PLACEMENTS),
+    oneOf("ck_placement_checks_kind", t.kind, PROBE_KINDS),
   ],
 );
 export type PlacementCheck = typeof placementChecks.$inferSelect;

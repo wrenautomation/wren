@@ -3,21 +3,21 @@ type: object
 cluster: email
 universe: live
 status: verified
-verified: 2026-10-04 @ afd15eb
+verified: 2026-10-05 @ f21d65f
 entity: packages/channel-email/src/inbox/health.ts:180
 ---
 
 # sender-pause
 
-A sending address taken out of rotation, by a kill switch or by hand. Table `sender_pauses`; the switches live in `inbox/health.ts`.
+A sending address taken out of rotation, by a kill switch, by the seed placement test, or by hand. Table `sender_pauses`; the switches live in `inbox/health.ts`.
 
 ## Why this shape
 
-The grain is the domain, not the inbox: a spam verdict earned by one inbox is spent by its neighbours, so a trip pauses every inbox on the domain. The evidence window floors at the last lift, so a human's resume is not undone by the same evidence (`health.ts:1`). A campaign in `WREN_KILL_SWITCH_OFF_FOR`, or switched off in the console (`campaign_controls`, [[email/send-policy]]), is left out of the evidence, and a kill-switch pause does not stop its sends; an operator pause stops everything (`send/deliver.ts`). One active pause per sender (`uq_sender_pauses_active`, `packages/channel-email/src/schema.ts:555`).
+The grain is the domain, not the inbox: a spam verdict earned by one inbox is spent by its neighbours, so a trip pauses every inbox on the domain. The evidence window floors at the last lift that is not a placement self-lift, so a human's resume is not undone by the same evidence (`health.ts:1`). A placement pause lifts itself (`lifted_by = 'placement'`): its evidence is measured again every send day ([[email/placement-check]]). A campaign in `WREN_KILL_SWITCH_OFF_FOR`, or switched off in the console (`campaign_controls`, [[email/send-policy]]), is left out of the evidence, and a kill-switch or placement pause does not stop its sends; an operator pause stops everything (`send/deliver.ts`). One active pause per sender (`uq_sender_pauses_active`, `packages/channel-email/src/schema.ts:555`).
 
 ## Shape
 
-- `sender`, `domain`, `reason`, `source` (kill_switch | operator), `paused_at`, `lifted_at`, `lifted_by`, `detail` (`schema.ts:539`–`551`)
+- `sender`, `domain`, `reason`, `source` (kill_switch | operator | placement), `paused_at`, `lifted_at`, `lifted_by`, `detail` (`schema.ts:539`–`551`)
 - `evaluateKillSwitches`, `pause`, `resume`, `wouldTrip`, `resolveTarget` (`health.ts:180`, `:260`, `:294`, `:221`, `:309`)
 
 Citations: `packages/channel-email/src/inbox/health.ts:180`
@@ -37,6 +37,7 @@ Citations: `packages/channel-email/src/inbox/health.ts:180`
 | Surface | Role |
 |---|---|
 | `SendScheduler` (kill switch) | writes |
+| `PlacementScheduler` (`evaluatePlacement`) | writes, lifts its own |
 | `wren email senders pause/resume` | writes |
 | `EmailConsole/pause`, `/resume` (console; one transaction as the operator, `detail.by` = `console:<email>`) | writes |
 

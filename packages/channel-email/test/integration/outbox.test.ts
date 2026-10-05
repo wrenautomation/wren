@@ -789,40 +789,49 @@ describe("pacing", () => {
     expect((await step(opening, 0)).state).toBe("sent");
   });
 
-  it("a kill-switch pause does not stop a niche the switch is off for; an operator pause does", async () => {
-    const agency = await enrollOne("ks-a.example", "one@ks-a.example");
-    const recruit = await enrollOne("ks-b.example", "two@ks-b.example");
-    await db().update(enrollments).set({ niche: "agencies" }).where(eq(enrollments.id, agency.id));
-    await db()
-      .update(enrollments)
-      .set({ niche: "recruiting" })
-      .where(eq(enrollments.id, recruit.id));
-    const [pause] = await db()
-      .insert(senderPauses)
-      .values({
-        sender: SENDER_A,
-        domain: SENDER_A.slice(SENDER_A.lastIndexOf("@") + 1),
-        reason: "hard bounces 2/80",
-        source: "kill_switch",
-      })
-      .returning();
-    const policy = policyFrom({ WREN_KILL_SWITCH_OFF_FOR: "agencies" });
+  it.each(["kill_switch", "placement"] as const)(
+    "a %s pause does not stop a niche the switch is off for; an operator pause does",
+    async (source) => {
+      const agency = await enrollOne("ks-a.example", "one@ks-a.example");
+      const recruit = await enrollOne("ks-b.example", "two@ks-b.example");
+      await db()
+        .update(enrollments)
+        .set({ niche: "agencies" })
+        .where(eq(enrollments.id, agency.id));
+      await db()
+        .update(enrollments)
+        .set({ niche: "recruiting" })
+        .where(eq(enrollments.id, recruit.id));
+      const [pause] = await db()
+        .insert(senderPauses)
+        .values({
+          sender: SENDER_A,
+          domain: SENDER_A.slice(SENDER_A.lastIndexOf("@") + 1),
+          reason: "hard bounces 2/80",
+          source,
+        })
+        .returning();
+      const policy = policyFrom({ WREN_KILL_SWITCH_OFF_FOR: "agencies" });
 
-    const stats = await tick(console_(), { policy });
-    expect(stats.senders_paused).toBe(1);
-    expect((await step(agency, 0)).state).toBe("sent");
-    expect((await step(recruit, 0)).state).toBe("approved");
+      const stats = await tick(console_(), { policy });
+      expect(stats.senders_paused).toBe(1);
+      expect((await step(agency, 0)).state).toBe("sent");
+      expect((await step(recruit, 0)).state).toBe("approved");
 
-    await db()
-      .update(senderPauses)
-      .set({ source: "operator" })
-      .where(eq(senderPauses.id, (pause as { id: number }).id));
-    const another = await enrollOne("ks-c.example", "three@ks-c.example");
-    await db().update(enrollments).set({ niche: "agencies" }).where(eq(enrollments.id, another.id));
-    const held = await tick(console_(), { policy });
-    expect(held.sent).toBe(0);
-    expect((await step(another, 0)).state).toBe("approved");
-  });
+      await db()
+        .update(senderPauses)
+        .set({ source: "operator" })
+        .where(eq(senderPauses.id, (pause as { id: number }).id));
+      const another = await enrollOne("ks-c.example", "three@ks-c.example");
+      await db()
+        .update(enrollments)
+        .set({ niche: "agencies" })
+        .where(eq(enrollments.id, another.id));
+      const held = await tick(console_(), { policy });
+      expect(held.sent).toBe(0);
+      expect((await step(another, 0)).state).toBe("approved");
+    },
+  );
 
   it("a paused inbox sends nothing until the pause is lifted", async () => {
     const enrollment = await enrollOne("paused.example", "jane@paused.example");

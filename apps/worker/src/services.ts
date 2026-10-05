@@ -24,7 +24,6 @@ import {
   ConsoleTransport,
   campaignPolicy,
   clientReplies,
-  type DomainTarget,
   defaultLocalChecker,
   expandHome,
   GmailClient,
@@ -35,10 +34,10 @@ import {
   loadMailboxes,
   loadRoster,
   loadServiceAccountKey,
+  mailDomainTargets,
   makeNotifier,
   makeVerifier,
   type Notifier,
-  namedDomains,
   type PostmasterClient,
   plainMailer,
   postmasterToken,
@@ -616,28 +615,7 @@ export async function buildServices(
         : {}),
     }),
   );
-  // The digest's mail domains: every sending domain, then the main site and any other
-  // domain a signature names. A domain with a ramped inbox was bought for sending, so
-  // it must sit on Route 53; DKIM is at the roster's selector, else `google`.
-  const siteDomains = new Set([
-    new URL(settings.siteBaseUrl).hostname,
-    ...roster.flatMap((s) => namedDomains(s.signature?.text ?? "")),
-  ]);
-  const mailDomains: DomainTarget[] = [
-    ...sendingDomains.map((domain) => {
-      const on = roster.filter((s) => senderDomain(s) === domain);
-      const smtp = on.find((s) => s.transport === "smtp");
-      return {
-        domain,
-        fleet: on.some((s) => s.ramp !== null),
-        dkimSelector: on.find((s) => s.dkim)?.dkim ?? "google",
-        smtpHost: smtp ? (mailboxes.get(smtp.address)?.smtp.host ?? null) : null,
-      };
-    }),
-    ...[...siteDomains]
-      .filter((d) => !sendingDomains.includes(d))
-      .map((domain) => ({ domain, fleet: false, dkimSelector: null, smtpHost: null })),
-  ];
+  const mailDomains = mailDomainTargets(roster, mailboxes, settings.siteBaseUrl);
   if (settings.notify !== "none")
     services.push(
       makeDigestScheduler({
@@ -650,8 +628,9 @@ export async function buildServices(
         placement: settings.placementSeeds.length > 0,
       }),
     );
-  // Each ramped inbox's newest opener to the seed Gmails once a send day, read back from
-  // their labels; off until `PlacementScheduler/fleet/start`, idle with no seeds.
+  // A plain note and the newest opener from each ramped inbox to the seed Gmails once a send
+  // day, read back from their labels; a failing plain test pauses the domain.
+  // Off until `PlacementScheduler/fleet/start`, idle with no seeds.
   services.push(
     makePlacementScheduler({
       db,
@@ -660,6 +639,7 @@ export async function buildServices(
       fleet,
       niches: Object.fromEntries(roster.map((s) => [s.address, s.niches])),
       seeds: settings.placementSeeds,
+      notifier: laneNotifier(settings.discordEmailWebhookUrl),
       sitesFor: (ctx) =>
         restateSites(ctx, {
           caller: "wren:placement",
