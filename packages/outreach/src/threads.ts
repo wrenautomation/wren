@@ -1,5 +1,5 @@
 /** The operator's reads: threads, one thread, counts. */
-import type { Queryable } from "@wren/db";
+import { type Queryable, snapshot } from "@wren/db";
 import { and, desc, eq, gte, inArray, sql } from "drizzle-orm";
 import { contactById } from "./contacts.js";
 import {
@@ -99,39 +99,42 @@ export async function reachStats(
   db: Queryable,
   o: { platform?: Platform | null; days: number; now: Date },
 ): Promise<ReachStats> {
-  const since = new Date(o.now.getTime() - o.days * 86_400_000);
-  const byState = await db
-    .select({ state: reachContacts.state, n: sql<number>`count(*)::int` })
-    .from(reachContacts)
-    .where(o.platform ? eq(reachContacts.platform, o.platform) : undefined)
-    .groupBy(reachContacts.state);
-  const out = await db
-    .select({ state: reachMessages.state, n: sql<number>`count(*)::int` })
-    .from(reachMessages)
-    .innerJoin(reachContacts, eq(reachContacts.id, reachMessages.contactId))
-    .where(
-      and(
-        eq(reachMessages.direction, "out"),
-        gte(reachMessages.createdAt, since),
-        o.platform ? eq(reachContacts.platform, o.platform) : undefined,
-      ),
-    )
-    .groupBy(reachMessages.state);
-  const [replies] = await db
-    .select({ n: sql<number>`count(*)::int` })
-    .from(reachMessages)
-    .innerJoin(reachContacts, eq(reachContacts.id, reachMessages.contactId))
-    .where(
-      and(
-        eq(reachMessages.direction, "in"),
-        gte(reachMessages.createdAt, since),
-        o.platform ? eq(reachContacts.platform, o.platform) : undefined,
-      ),
-    );
-  return {
-    contacts: Object.fromEntries(byState.map((r) => [r.state, r.n])),
-    out: Object.fromEntries(out.map((r) => [r.state, r.n])),
-    replies: replies?.n ?? 0,
-    days: o.days,
-  };
+  // Level 3: contacts, messages and replies come from one snapshot, so they add up.
+  return snapshot(db, async (tx) => {
+    const since = new Date(o.now.getTime() - o.days * 86_400_000);
+    const byState = await tx
+      .select({ state: reachContacts.state, n: sql<number>`count(*)::int` })
+      .from(reachContacts)
+      .where(o.platform ? eq(reachContacts.platform, o.platform) : undefined)
+      .groupBy(reachContacts.state);
+    const out = await tx
+      .select({ state: reachMessages.state, n: sql<number>`count(*)::int` })
+      .from(reachMessages)
+      .innerJoin(reachContacts, eq(reachContacts.id, reachMessages.contactId))
+      .where(
+        and(
+          eq(reachMessages.direction, "out"),
+          gte(reachMessages.createdAt, since),
+          o.platform ? eq(reachContacts.platform, o.platform) : undefined,
+        ),
+      )
+      .groupBy(reachMessages.state);
+    const [replies] = await tx
+      .select({ n: sql<number>`count(*)::int` })
+      .from(reachMessages)
+      .innerJoin(reachContacts, eq(reachContacts.id, reachMessages.contactId))
+      .where(
+        and(
+          eq(reachMessages.direction, "in"),
+          gte(reachMessages.createdAt, since),
+          o.platform ? eq(reachContacts.platform, o.platform) : undefined,
+        ),
+      );
+    return {
+      contacts: Object.fromEntries(byState.map((r) => [r.state, r.n])),
+      out: Object.fromEntries(out.map((r) => [r.state, r.n])),
+      replies: replies?.n ?? 0,
+      days: o.days,
+    };
+  });
 }

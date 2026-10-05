@@ -31,7 +31,7 @@
  * a pause on its own, and no timer does either — `resume` is called by the
  * operator and by nothing else.
  */
-import type { Db, Queryable } from "@wren/db";
+import { type Db, type Queryable, snapshot } from "@wren/db";
 import { and, count, eq, gte, inArray, isNotNull, isNull, max, notInArray, sql } from "drizzle-orm";
 import {
   type BounceClass,
@@ -96,77 +96,80 @@ export async function domainHealth(
   db: Queryable,
   opts: { policy: SendPolicy; now: Date; senders: readonly string[] },
 ): Promise<DomainHealth[]> {
-  const byDomain = new Map<string, string[]>();
-  for (const sender of opts.senders) {
-    const address = sender.trim().toLowerCase();
-    const list = byDomain.get(domainOf(address)) ?? [];
-    list.push(address);
-    byDomain.set(domainOf(address), list);
-  }
-  if (!byDomain.size) return [];
+  // Level 3: sends and bounces come from one snapshot, so they add up.
+  return snapshot(db, async (tx) => {
+    const byDomain = new Map<string, string[]>();
+    for (const sender of opts.senders) {
+      const address = sender.trim().toLowerCase();
+      const list = byDomain.get(domainOf(address)) ?? [];
+      list.push(address);
+      byDomain.set(domainOf(address), list);
+    }
+    if (!byDomain.size) return [];
 
-  const paused = await activePauses(db);
-  const floor = new Date(opts.now.getTime() - opts.policy.healthWindowMs);
-  const off = [...opts.policy.killSwitchOffFor];
-  const counted = off.length ? notInArray(enrollments.niche, off) : undefined;
-  const health: DomainHealth[] = [];
-  for (const domain of [...byDomain.keys()].sort()) {
-    const addresses = byDomain.get(domain) ?? [];
-    const [lift] = await db
-      .select({ lastLift: max(senderPauses.liftedAt) })
-      .from(senderPauses)
-      .where(and(inArray(senderPauses.sender, addresses), isNotNull(senderPauses.liftedAt)));
-    const lastLift = lift?.lastLift ?? null;
-    const windowStart = lastLift !== null && lastLift > floor ? lastLift : floor;
-    const [sentRow] = await db
-      .select({ n: count() })
-      .from(messages)
-      .innerJoin(enrollments, eq(enrollments.id, messages.enrollmentId))
-      .where(
-        and(
-          inArray(enrollments.sender, addresses),
-          eq(messages.state, "sent"),
-          gte(messages.sentAt, windowStart),
-          counted,
-        ),
-      );
-    const sent = sentRow?.n ?? 0;
-    const grouped = await db
-      .select({ kind: threadEvents.kind, bounceClass: threadEvents.bounceClass, n: count() })
-      .from(threadEvents)
-      .innerJoin(enrollments, eq(enrollments.id, threadEvents.enrollmentId))
-      .where(
-        and(
-          inArray(enrollments.sender, addresses),
-          gte(threadEvents.receivedAt, windowStart),
-          counted,
-        ),
-      )
-      .groupBy(threadEvents.kind, threadEvents.bounceClass);
-    const total = (kind: ThreadEventKind, bounceClass?: BounceClass): number =>
-      grouped
-        .filter(
-          (g) => g.kind === kind && (bounceClass === undefined || g.bounceClass === bounceClass),
+    const paused = await activePauses(tx);
+    const floor = new Date(opts.now.getTime() - opts.policy.healthWindowMs);
+    const off = [...opts.policy.killSwitchOffFor];
+    const counted = off.length ? notInArray(enrollments.niche, off) : undefined;
+    const health: DomainHealth[] = [];
+    for (const domain of [...byDomain.keys()].sort()) {
+      const addresses = byDomain.get(domain) ?? [];
+      const [lift] = await tx
+        .select({ lastLift: max(senderPauses.liftedAt) })
+        .from(senderPauses)
+        .where(and(inArray(senderPauses.sender, addresses), isNotNull(senderPauses.liftedAt)));
+      const lastLift = lift?.lastLift ?? null;
+      const windowStart = lastLift !== null && lastLift > floor ? lastLift : floor;
+      const [sentRow] = await tx
+        .select({ n: count() })
+        .from(messages)
+        .innerJoin(enrollments, eq(enrollments.id, messages.enrollmentId))
+        .where(
+          and(
+            inArray(enrollments.sender, addresses),
+            eq(messages.state, "sent"),
+            gte(messages.sentAt, windowStart),
+            counted,
+          ),
+        );
+      const sent = sentRow?.n ?? 0;
+      const grouped = await tx
+        .select({ kind: threadEvents.kind, bounceClass: threadEvents.bounceClass, n: count() })
+        .from(threadEvents)
+        .innerJoin(enrollments, eq(enrollments.id, threadEvents.enrollmentId))
+        .where(
+          and(
+            inArray(enrollments.sender, addresses),
+            gte(threadEvents.receivedAt, windowStart),
+            counted,
+          ),
         )
-        .reduce((sum, g) => sum + g.n, 0);
-    const hard = total("bounce", "hard");
-    health.push({
-      domain,
-      senders: addresses,
-      windowStart,
-      sent,
-      hardBounces: hard,
-      softBounces: total("bounce", "soft"),
-      complaints: total("complaint"),
-      replies: total("reply"),
-      autoReplies: total("auto_reply"),
-      unsubscribes: total("unsubscribe"),
-      bounceRate: sent ? hard / sent : null,
-      paused: addresses.some((address) => paused.has(address)),
-      lastLift,
-    });
-  }
-  return health;
+        .groupBy(threadEvents.kind, threadEvents.bounceClass);
+      const total = (kind: ThreadEventKind, bounceClass?: BounceClass): number =>
+        grouped
+          .filter(
+            (g) => g.kind === kind && (bounceClass === undefined || g.bounceClass === bounceClass),
+          )
+          .reduce((sum, g) => sum + g.n, 0);
+      const hard = total("bounce", "hard");
+      health.push({
+        domain,
+        senders: addresses,
+        windowStart,
+        sent,
+        hardBounces: hard,
+        softBounces: total("bounce", "soft"),
+        complaints: total("complaint"),
+        replies: total("reply"),
+        autoReplies: total("auto_reply"),
+        unsubscribes: total("unsubscribe"),
+        bounceRate: sent ? hard / sent : null,
+        paused: addresses.some((address) => paused.has(address)),
+        lastLift,
+      });
+    }
+    return health;
+  });
 }
 
 /**
