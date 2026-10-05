@@ -261,7 +261,9 @@ once and the prober admits `PROBE_MAX_IN_FLIGHT` (64): the slack holds probes a
 timed-out client left running, so they never push the next pass into 429. The prober paces each MX host
 with a 1.5 s gap: one conversation at a time, 3 for the big shared hosts (Google,
 Microsoft, Proofpoint, Mimecast; `PROBE_BIG_HOST_LANES`). Measured 2026-09-25 at 16
-wide: ~1,000 domains an hour, VPS load near 0.
+wide: ~1,000 domains an hour, VPS load near 0. A host that takes no connection on any
+MX name is left alone for an hour; probes queued behind it answer `unreachable` at once.
+A probe the client gave up on (60 s) is `risky` `timeout` and the pass goes on.
 `resolveMailboxes` walks only the person guesses someone queued (`Resolution/default/queue`).
 
 Meaning of the verdicts: `valid` = the MX accepted the address and refused a random
