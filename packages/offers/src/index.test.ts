@@ -252,6 +252,7 @@ describe("snapshot", () => {
           upsell: ____,
           app: _____,
           perUnitMeasure: ______,
+          addOn: _______,
           ...o
         }) => o,
       ),

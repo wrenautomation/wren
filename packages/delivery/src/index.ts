@@ -1601,6 +1601,8 @@ export async function boughtBy(
     offer: string;
     /** The portal app it runs in. */
     app: string;
+    /** The component offered with it at setup, if any (`Offer.addOn`). */
+    addOn: string | null;
     startsOn: string;
     status: EngagementStatus;
   }[]
@@ -1615,6 +1617,7 @@ export async function boughtBy(
     offerId: e.offerId,
     offer: offerFor(e.offerId).name,
     app: appOf(e.offerId),
+    addOn: offerFor(e.offerId).addOn ?? null,
     startsOn: e.startsOn,
     status: e.status,
   }));

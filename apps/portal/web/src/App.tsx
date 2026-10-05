@@ -22,12 +22,13 @@ import {
   Toasts,
   type Viewer,
 } from "@wren/ui";
-import { Component, lazy, type ReactNode, Suspense, useEffect, useState } from "react";
+import { Component, lazy, type ReactNode, Suspense, useEffect, useMemo, useState } from "react";
 import { call, ME_CHANGED, type Me, signOutUrl } from "./api.js";
 import { useCall } from "./load.js";
 import { type Module, type ModulePage, type PageProps, WREN } from "./module.js";
 import { useAccount } from "./modules/account/load.js";
 import { appsIn, MODULES } from "./modules/index.js";
+import { AddOn } from "./modules/marketplace/AddOn.js";
 import { REACTIVATION } from "./modules/reactivation/nav.js";
 import { TemplatePage } from "./records.js";
 import { navigate, useRoute } from "./route.js";
@@ -61,17 +62,69 @@ function usePaletteKey() {
   return [open, setOpen] as const;
 }
 
-/** ⌘K's list: home, then every page this viewer may open, by app. */
-const jumps = (apps: Module[], launcher: string | undefined): PaletteItem[] => [
-  ...(launcher
-    ? [{ label: "All apps", group: "Wren", href: launcher, icon: "apps" as const }]
-    : []),
-  ...apps.flatMap((m) =>
-    m.pages
-      .filter((p) => !p.hidden)
-      .map((p) => ({ label: p.label, group: m.name, href: pathOf(m, p), icon: m.icon })),
-  ),
-];
+/**
+ * G then a letter opens a page of the app you're in: each page takes the first letter of its
+ * label no page before it took, so the letters hold while the pages do.
+ */
+export function goKeys(m: Module | undefined): Map<string, string> {
+  const keys = new Map<string, string>();
+  for (const p of m?.pages.filter((x) => !x.hidden) ?? []) {
+    const free = [...p.label.toLowerCase()].find((c) => /[a-z]/.test(c) && !keys.has(c));
+    if (free) keys.set(free, pathOf(m as Module, p));
+  }
+  return keys;
+}
+
+function useGoKeys(keys: Map<string, string>) {
+  useEffect(() => {
+    let armed = 0;
+    const onKey = (e: KeyboardEvent) => {
+      const t = e.target as HTMLElement | null;
+      if (
+        e.metaKey ||
+        e.ctrlKey ||
+        e.altKey ||
+        t?.closest("input, textarea, select, [contenteditable]")
+      )
+        return;
+      const k = e.key.toLowerCase();
+      if (Date.now() - armed < 1000 && keys.has(k)) {
+        armed = 0;
+        e.preventDefault();
+        e.stopImmediatePropagation();
+        navigate(keys.get(k) as string);
+      } else armed = k === "g" ? Date.now() : 0;
+    };
+    // Capture: the letter after G is the jump's, not a list action's.
+    addEventListener("keydown", onKey, true);
+    return () => removeEventListener("keydown", onKey, true);
+  }, [keys]);
+}
+
+/** ⌘K's list: home, then every page this viewer may open, by app, with its G key if it has one. */
+const jumps = (
+  apps: Module[],
+  launcher: string | undefined,
+  keys: Map<string, string>,
+): PaletteItem[] => {
+  const keyOf = new Map([...keys].map(([k, href]) => [href, `G ${k.toUpperCase()}`]));
+  return [
+    ...(launcher
+      ? [{ label: "All apps", group: "Wren", href: launcher, icon: "apps" as const }]
+      : []),
+    ...apps.flatMap((m) =>
+      m.pages
+        .filter((p) => !p.hidden)
+        .map((p) => ({
+          label: p.label,
+          group: m.name,
+          href: pathOf(m, p),
+          icon: m.icon,
+          hint: keyOf.get(pathOf(m, p)),
+        })),
+    ),
+  ];
+};
 
 /**
  * The apps and pages this viewer may see (`requires`): the team's own only in team view, a
@@ -158,6 +211,11 @@ export function App() {
   const current = wren ? WREN : (clients.find((c) => c.id === client) ?? clients[0] ?? null);
   const installed = new Set(current && "installed" in current ? current.installed : []);
   const apps = appsIn(shown({ team, demo: onDemo !== false }), { wren, team, installed });
+  const here = apps.find((m) => m.id === route.path[0]);
+  const pages = here?.pages.map((p) => p.id).join(",");
+  // biome-ignore lint/correctness/useExhaustiveDependencies: `pages` names what `here` gives.
+  const keys = useMemo(() => goKeys(here), [here?.id, pages]);
+  useGoKeys(keys);
   // Menu apps (the account) are reached from the client's name, not a card.
   const cards = apps.filter((m) => !m.menu);
   const [only] = cards;
@@ -329,7 +387,7 @@ export function App() {
           <CommandPalette
             open={jump}
             onOpenChange={setJump}
-            items={jumps(apps, launcher)}
+            items={jumps(apps, launcher, keys)}
             onPick={(href) => navigate(href)}
           />
         </Suspense>
@@ -377,6 +435,13 @@ function Launcher({
   return (
     <>
       <PageHeader title="Apps" lede={`Everything Wren runs for ${name}.`} />
+      {props.team || props.demo ? null : (
+        <AddOn
+          offered={(account.data?.bought ?? []).map((b) => b.addOn)}
+          installed={installed}
+          props={props}
+        />
+      )}
       {bought.map((b) => (
         <AppGrid key={b.offerId} label={b.offer}>
           {under(b.app).map(shown)}

@@ -127,6 +127,8 @@ export const recruitingReactivation = defineOffer({
     { measure: "job_orders", moment: "Your first job order came in" },
   ],
   app: "reactivation",
+  // Booked calls are the product; a reminder the day before keeps them.
+  addOn: "sms.reminders",
   page: "/recruiting/lead-reactivation",
   // Cal.com event "Pilot call" (autobrowse site `calcom`), 30 min on Meet, Mon-Fri 10-17 ET.
   booking: "https://cal.com/wrenautomation/call",
@@ -217,6 +219,8 @@ export const recruitingReactivationPilot = defineOffer({
   ],
   next: ["recruiting-candidate-reactivation", "ops-automation-build"],
   app: "reactivation",
+  // Booked calls are the product; a reminder the day before keeps them.
+  addOn: "sms.reminders",
   page: "/recruiting/lead-reactivation",
   // Cal.com event "Pilot call" (autobrowse site `calcom`), 30 min on Meet, Mon-Fri 10-17 ET.
   booking: "https://cal.com/wrenautomation/call",

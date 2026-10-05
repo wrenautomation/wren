@@ -240,6 +240,9 @@ importers:
       '@wren/experiments':
         specifier: workspace:*
         version: link:../../packages/experiments
+      '@wren/offers':
+        specifier: workspace:*
+        version: link:../../packages/offers
       '@wren/worker':
         specifier: workspace:*
         version: link:../worker

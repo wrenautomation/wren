@@ -3,8 +3,8 @@ type: object
 cluster: platform
 universe: live
 status: verified
-verified: 2026-09-29 @ 23a6170
-entity: packages/offers/src/offer.ts:107
+verified: 2026-10-05 @ 65b4693
+entity: packages/offers/src/offer.ts:129
 ---
 
 # offer
@@ -17,12 +17,13 @@ One home for the pitch: email enrollments name the offer (`enrollments.offer`), 
 
 ## Shape
 
-- `Offer` (`offer.ts:107`), `defineOffer` (`:221`), `OFFERS` (`index.ts:78`), `snapshot.ts` (export)
+- `Offer` (`offer.ts:129`), `defineOffer` (`:272`), `OFFERS` (`index.ts:78`), `snapshot.ts` (export)
 - Price kinds: free, quoted, fixed, performance (setup + per unit, capped). Ids never change: retire and add.
 - `plan` (`Phase`, `offer.ts:94`): the weeks a bought offer runs, each with what we hand over and what we need. [[clients/engagement]] dates it on start. Never on the lander snapshot.
+- `addOn` (`offer.ts:191`): one component id the portal's Apps page offers once, checked, with Install and Skip (`apps/portal/web/src/modules/marketplace/AddOn.tsx`). A client's Install is an ask; the team installs. Never on the snapshot.
 - `pnpm offers:export ../lander/src/data/offers.json` (`package.json:23`)
 
-Citations: `packages/offers/src/offer.ts:107`, `packages/offers/src/index.ts:78`
+Citations: `packages/offers/src/offer.ts:129`, `packages/offers/src/index.ts:78`
 
 ## Connected to
 

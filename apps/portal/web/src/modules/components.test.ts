@@ -1,4 +1,5 @@
 /** Every portal app is in exactly one component, or the platform's own; a module names its component. */
+import { OFFERS } from "@wren/offers";
 import { COMPONENTS, PLATFORM } from "@wren/worker/components";
 import { describe, expect, it } from "vitest";
 
@@ -12,6 +13,15 @@ describe("apps and components", () => {
       const owners = COMPONENTS.filter((c) => c.provides.apps.includes(m.id)).map((c) => c.id);
       expect(owners, m.id).toEqual(m.id in PLATFORM.apps ? [] : [m.component]);
     }
+  });
+
+  it("an offer's add-on is a ready client component", () => {
+    for (const o of OFFERS)
+      if (o.addOn)
+        expect(
+          COMPONENTS.find((c) => c.id === o.addOn && c.for === "client" && c.ready),
+          o.id,
+        ).toBeDefined();
   });
 
   it("every app a component provides is a module", () => {

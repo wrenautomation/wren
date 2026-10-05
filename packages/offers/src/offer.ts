@@ -184,6 +184,11 @@ export interface Offer {
    * generic `work` app, for an offer with no app of its own.
    */
   readonly app?: string;
+  /**
+   * The one component offered to a client on this offer when they first open the portal,
+   * preselected, with Install and Skip. Left out: none.
+   */
+  readonly addOn?: string;
   /** A performance price's measure: the count its per-unit fee bills ("meetings"). */
   readonly perUnitMeasure?: string;
 }
