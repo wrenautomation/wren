@@ -130,7 +130,10 @@ const SEEN = new WeakMap<object, Map<string, unknown>>();
 const SEEN_MAX = 200;
 function seenIn(scope: object) {
   let m = SEEN.get(scope);
-  if (!m) SEEN.set(scope, (m = new Map()));
+  if (!m) {
+    m = new Map();
+    SEEN.set(scope, m);
+  }
   return m;
 }
 /** Keep `data` as the newest answer; the oldest goes past `max`. */
