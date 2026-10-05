@@ -13,12 +13,18 @@ import { people } from "@wren/core/schema";
 import type { Queryable } from "@wren/db";
 import { eq, type SQL, sql } from "drizzle-orm";
 import { noNul } from "../findings.js";
-import { Capped, failedRead } from "../pacing.js";
+import { type Bucket, bucketRoom, Capped, failedRead } from "../pacing.js";
 import { sameName } from "../people/names.js";
 import { searchTeam, type TeamMember } from "../people/team.js";
 import { type LookupState, teamSearches } from "../schema.js";
 
 export const TEAM_COMMAND = "enrich team";
+/**
+ * Searches spent from Exa's free daily allowance (~140 searches over three keys),
+ * at an even pace: the rest stays for lead sheets, profiles and answers. One
+ * search is 7 mills, so 100 a day is $0.70 of the free $0.99.
+ */
+export const TEAM_BUCKET: Bucket = { perDay: 100, burst: 10 };
 /** Errors in a row that stop the run: something is down, not one odd firm. */
 const ERROR_STREAK = 5;
 /** `people.source_key` is varchar(64). */
@@ -76,6 +82,25 @@ export async function teamParkedUntil(db: Queryable): Promise<Date | null> {
   const [row] = await db.execute<{ until: string | null }>(sql`
     select max(retry_at) as until from team_searches where state = 'capped' and retry_at > now()`);
   return row?.until ? new Date(row.until) : null;
+}
+
+/** Searches the bucket allows now (every niche's count), and when the next one is. */
+export async function teamRoom(
+  db: Queryable,
+  now: Date,
+  bucket: Bucket = TEAM_BUCKET,
+): Promise<{ room: number; nextInMs: number }> {
+  // A search spent: matched or unresolved with a query. Two days covers any refill.
+  const rows = await db.execute<{ at: string }>(sql`
+    select searched_at as at from team_searches
+    where state in ('matched', 'unresolved') and query <> ''
+      and searched_at > ${now.toISOString()}::timestamptz - interval '2 days'
+    order by searched_at`);
+  return bucketRoom(
+    rows.map((r) => new Date(r.at).getTime()),
+    now.getTime(),
+    bucket,
+  );
 }
 
 /** The due firms among `companyIds`, in that order, at most `limit`. */

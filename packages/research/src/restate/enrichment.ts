@@ -93,6 +93,7 @@ import {
   TEAM_COMMAND,
   type TeamStats,
   teamParkedUntil,
+  teamRoom,
   teamUnit,
   teamWork,
 } from "../enrichment/team.js";
@@ -721,15 +722,19 @@ export function makeEnrichment(deps: EnrichmentDeps) {
           });
           const plan = await ctx.run("select", async () => {
             const parked = await teamParkedUntil(db);
-            if (parked) return { parked: parked.toISOString(), work: [] };
-            return {
-              parked: null,
-              work: await teamWork(db, companyIds, { limit: input.limit ?? 10 }),
-            };
+            if (parked) return { why: `parked by a cap until ${parked.toISOString()}`, work: [] };
+            const { room, nextInMs } = await teamRoom(db, new Date());
+            if (room === 0)
+              return {
+                why: `bucket empty: next search in ${Math.ceil(nextInMs / 1000)}s`,
+                work: [],
+              };
+            const limit = Math.min(input.limit ?? 10, room);
+            return { why: null, work: await teamWork(db, companyIds, { limit }) };
           });
           const stats = emptyTeamStats();
           stats.selected = plan.work.length;
-          if (plan.parked) stats.stopped = `parked by a cap until ${plan.parked}`;
+          stats.stopped = plan.why;
           const streak = { errors: 0 };
           for (const w of plan.work) {
             // teamUnit returns site errors as data: a metered search is never retried.

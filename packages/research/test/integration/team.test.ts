@@ -2,7 +2,8 @@
  * The `team` stage against the migrated schema, with a fake `web` site: one
  * search per firm, current staff kept as people, a held person filled not
  * doubled, a profile held elsewhere a sighting, every profile kept on the
- * marker row, a searched firm never picked again, and an Exa cap parking it.
+ * marker row, a searched firm never picked again, an Exa cap parking it, and
+ * the bucket counting only searches spent.
  */
 import { SiteCallError, type SiteClient } from "@wren/core/content";
 import { people } from "@wren/core/schema";
@@ -13,6 +14,7 @@ import {
   countTeamUnit,
   emptyTeamStats,
   teamParkedUntil,
+  teamRoom,
   teamUnit,
   teamWork,
 } from "../../src/enrichment/team.js";
@@ -161,5 +163,30 @@ describe("team stage", () => {
     expect(countTeamUnit(stats, u, { errors: 0 })).toMatch(/cap/);
     expect(await teamParkedUntil(db())).toBeInstanceOf(Date);
     expect(await teamWork(db(), [acme.id])).toEqual([]);
+  });
+
+  it("the bucket counts searches spent, not skips or caps", async () => {
+    const bucket = { perDay: 96, burst: 2 };
+    const now = new Date();
+    expect(await teamRoom(db(), now, bucket)).toEqual({ room: 2, nextInMs: 0 });
+    const firms = await Promise.all(
+      ["a", "b", "c", "d"].map((key) =>
+        makeCompany(db(), { key, domain: `${key}.example`, name: `Firm ${key}` }),
+      ),
+    );
+    const [a, b, c, d] = firms.map((f) => f.id) as [number, number, number, number];
+    await db()
+      .insert(teamSearches)
+      .values([
+        { companyId: a, state: "matched", query: "Firm a", profiles: [] },
+        { companyId: b, state: "unresolved", query: "Firm b", profiles: [] },
+        { companyId: c, state: "unresolved", query: "", profiles: [] },
+        { companyId: d, state: "capped", query: "", profiles: [], retryAt: now },
+      ]);
+    // searched_at is the database's now, just after ours.
+    const r = await teamRoom(db(), new Date(now.getTime() + 1000), bucket);
+    expect(r.room).toBe(0);
+    expect(r.nextInMs).toBeGreaterThan(14 * 60_000);
+    expect(r.nextInMs).toBeLessThanOrEqual(15 * 60_000);
   });
 });

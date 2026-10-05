@@ -27,7 +27,8 @@ About half the firms hit, and a hit brings most of the staff. Small firms with n
 - `Enrichment/<niche>/team` by ingress for a set number of firms.
 - Picks firms with a domain that were never searched, verified inboxes first.
 - One row per firm in `team_searches`: `matched` (kept someone), `unresolved` (kept no one), `capped` (Exa's daily cap; `retry_at`). Every profile returned is kept on the row (name, url, headline, roles), kept or not.
-- Exa's cap (330 mills a day per key, 3 keys) parks the stage until it lifts. That is about 140 firms a day at $0. More is William's call.
+- A token bucket paces it: 100 searches a day, refilled one every ~14 minutes, at most 10 at once (`TEAM_BUCKET`, counted from `team_searches`, every niche). Exa's free cap (330 mills a day per key, 3 keys, ~140 searches) resets at UTC midnight. Without the bucket the stage would spend it all in the first passes after the reset and starve the lead sheets, `profiles` and answers for the rest of the day.
+- Exa's cap still parks the stage if something else spent the allowance first.
 
 ## Who is kept
 
@@ -39,9 +40,9 @@ About half the firms hit, and a hit brings most of the staff. Small firms with n
 
 | Scope | Firms | At $0.007 |
 |---|---|---|
-| Free cap | ~140/day | $0 |
-| Recruiting, verified inbox | 7,874 | ~$55 |
-| Recruiting, any domain | 26,722 | ~$187 |
+| Bucket (free cap) | 100/day | $0 |
+| Recruiting, verified inbox | 7,874 | ~79 days at $0 |
+| Recruiting, any domain | 26,722 | ~267 days at $0 |
 
 ## Decision log
 
@@ -49,3 +50,5 @@ About half the firms hit, and a hit brings most of the staff. Small firms with n
 - Firm name alone as the query. The HR-words query (`findContacts`) finds hiring staff at a client. Here we want the owners and leaders too.
 - `people.linkedin_url` is written: the profile names the person and lists a current role at the firm, R7's rule. The `profiles` stage still reads them from the cache later ($0.001) and can overrule.
 - Same switch as `profiles`, no new env flag: both spend the same Exa budget.
+- The backlog drains from the free refills only, never paid. William, 2026-10-05: "the backlog can just be like a standard rate limiter bucket system where as it fills up we just use the refreshes on the free limits".
+- 100 of the ~140 free searches a day go to team search; the rest is left for client lead sheets, `profiles` and answers, which share the keys.
