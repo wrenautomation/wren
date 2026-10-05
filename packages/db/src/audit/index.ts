@@ -161,7 +161,7 @@ async function syncAuditTriggers(db: Db): Promise<{ added: number; removed: numb
     }
     if (t.truncateEnabled === null)
       await run(
-        `CREATE TRIGGER ${TRUNCATE_TRIGGER} AFTER TRUNCATE ${on} ` +
+        `CREATE OR REPLACE TRIGGER ${TRUNCATE_TRIGGER} AFTER TRUNCATE ${on} ` +
           "FOR EACH STATEMENT EXECUTE FUNCTION audit_row()",
       );
     else if (!firing(t.truncateEnabled))
