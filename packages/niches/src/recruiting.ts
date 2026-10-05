@@ -46,6 +46,14 @@ export const recruiting = defineNiche({
     "healthcare staffing",
     "IT staffing",
   ],
+  // Groups where the people who run staffing firms talk shop; their posts name firms and ask for help.
+  groupKeywords: [
+    "staffing agency owners",
+    "recruiting agency owners",
+    "recruitment business owners",
+    "healthcare staffing agency",
+    "staffing business",
+  ],
   templatesDir: templatesDir(import.meta.url, "recruiting"),
   // Every firm gets book-first for now (William, 10-02). The demo arm stays defined so
   // switching it back on is one plan line. Each arm's `reply` copy is drafted for

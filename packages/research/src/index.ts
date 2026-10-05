@@ -4,3 +4,4 @@ export * from "./fetch/index.js";
 export * from "./findings.js";
 export * from "./pacing.js";
 export * from "./schema.js";
+export * from "./social-schema.js";

@@ -10,6 +10,7 @@ export default defineConfig({
     "../core/src/marketing-views.ts",
     "../core/src/clients/schema.ts",
     "../research/src/schema.ts",
+    "../research/src/social-schema.ts",
     "../channel-email/src/schema.ts",
     "../channel-email/src/views.ts",
     "../channel-email/src/record-views.ts",

@@ -18,7 +18,12 @@ describe("stageEnabled", () => {
     ]);
     expect(on("all", true)).toEqual(
       STAGES.filter(
-        (s) => s !== "profiles" && s !== "team" && s !== "youtube" && s !== "adLibrary",
+        (s) =>
+          s !== "profiles" &&
+          s !== "team" &&
+          s !== "youtube" &&
+          s !== "adLibrary" &&
+          s !== "fbGroups",
       ),
     );
     expect(STAGES.filter((s) => stageEnabled(s, "none", false, false, true))).toContain("youtube");
@@ -26,9 +31,21 @@ describe("stageEnabled", () => {
     expect(STAGES.filter((s) => stageEnabled(s, "none", false, false, false, true))[0]).toBe(
       "adLibrary",
     );
+    // Right after it, then the same pass has the new firms to map posts to.
+    expect(STAGES.filter((s) => stageEnabled(s, "none", false, false, false, false, true))).toEqual(
+      ["fbGroups", ...on("none", false)],
+    );
+    expect(STAGES.indexOf("fbGroups")).toBe(STAGES.indexOf("adLibrary") + 1);
     expect(on("none", true)).toEqual(
       expect.arrayContaining(["resolveMailboxes", "verifyMailboxes"]),
     );
+  });
+});
+
+describe("the fbGroups stage", () => {
+  it("progress is searches and page reads, refused ones included; a cap leaves them due", () => {
+    expect(progressOf.fbGroups({ searches: 1, abouts: 2, posts: 3, errors: 1 })).toBe(7);
+    expect(progressOf.fbGroups({ selected: 4, mapped: 2 })).toBe(0);
   });
 });
 

@@ -52,6 +52,11 @@ export function adLibraryFor(niche: string) {
   return { keywords: n.adKeywords, platforms: n.platformDomains, screen: n.screen };
 }
 
+/** What the `fbGroups` stage needs from a niche: its group searches. */
+export function fbGroupsFor(niche: string) {
+  return { keywords: nicheFor(niche).groupKeywords };
+}
+
 /** One niche's discovery vocabulary, or the union when unscoped. */
 export function discoveryWordsFor(niche: string | null): ReadonlySet<string> {
   requireNiche(niche);

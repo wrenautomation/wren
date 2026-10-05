@@ -15,6 +15,7 @@
     "./phones": "./src/phones.ts",
     "./people": "./src/people/index.ts",
     "./schema": "./src/schema.ts",
+    "./social-schema": "./src/social-schema.ts",
     "./studies": "./src/studies/index.ts",
     "./sops": "./src/sops/index.ts",
     "./enrichment": "./src/enrichment/index.ts",

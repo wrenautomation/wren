@@ -6,6 +6,7 @@ export * from "./email-pick/graph.js";
 export * from "./email-pick/run.js";
 export * from "./email-scan.js";
 export * from "./extraction.js";
+export * from "./fb-groups.js";
 export * from "./opener.js";
 export * from "./profiles.js";
 export * from "./readings.js";

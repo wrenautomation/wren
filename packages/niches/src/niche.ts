@@ -68,6 +68,8 @@ export interface Niche {
   readonly screen: CompanyScreen | null;
   /** Meta Ad Library searches whose advertisers become this niche's firms (the `adLibrary` stage). */
   readonly adKeywords: readonly string[];
+  /** Facebook group searches (`fb-public GET /groups`): the groups and their public posts are kept, and a post that names a firm is a finding on it (the `fbGroups` stage). */
+  readonly groupKeywords: readonly string[];
 }
 
 export interface NicheSpec {
@@ -99,6 +101,7 @@ export interface NicheSpec {
   readonly datasets?: (dataDir: string) => readonly Dataset[];
   readonly screen?: CompanyScreen;
   readonly adKeywords?: readonly string[];
+  readonly groupKeywords?: readonly string[];
 }
 
 /** A niche-owned import format: `build` and `help` here, name and niche from the caller. */
@@ -236,6 +239,7 @@ export function defineNiche(spec: NicheSpec): Niche {
     datasets: spec.datasets ?? (() => []),
     screen: spec.screen ?? null,
     adKeywords: spec.adKeywords ?? [],
+    groupKeywords: spec.groupKeywords ?? [],
   };
 }
 

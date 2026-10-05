@@ -75,6 +75,20 @@ import {
   selectExtractionTargets,
 } from "../enrichment/extraction.js";
 import {
+  countFbGroupsUnit,
+  emptyFbGroupsStats,
+  FB_GROUPS_COMMAND,
+  type FbGroupsStats,
+  groupAboutUnit,
+  groupKeywordsDue,
+  groupPostUnit,
+  groupReadRoom,
+  groupReadsDue,
+  groupSearchRoom,
+  groupSearchUnit,
+  mapPosts,
+} from "../enrichment/fb-groups.js";
+import {
   countOpener,
   emptyOpenerStats,
   OPENER_VERSION,
@@ -176,6 +190,8 @@ export interface EnrichmentDeps {
     platforms: Iterable<string>;
     screen: CompanyScreen | null;
   } | null;
+  /** A niche's Facebook group searches (the niche registry's); the same `desk` reads them. */
+  groupsFor?: (niche: string) => { keywords: readonly string[] } | null;
 }
 
 /**
@@ -897,6 +913,77 @@ export function makeEnrichment(deps: EnrichmentDeps) {
             await ctx.run("screen", async () => {
               await runScreen(db, niche, screen);
             });
+          await close(ctx, runId, stats);
+          return stats;
+        },
+      ),
+
+      fbGroups: exclusiveHandler(
+        { input: LIMIT },
+        async (ctx: restate.ObjectContext, input: LimitInput = {}): Promise<FbGroupsStats> => {
+          // The posts become findings on main: Wren's niches only.
+          if (clientOfKey(ctx.key.split("@")[0] as string))
+            throw new restate.TerminalError("Facebook group reads run on Wren's niches only");
+          const desk = deps.desk;
+          if (!desk) throw new restate.TerminalError("no desk client for fb-public");
+          const { db, niche } = scope(ctx);
+          if (niche === null)
+            throw new restate.TerminalError("Facebook group reads need a niche key");
+          const keywords = deps.groupsFor?.(niche)?.keywords ?? [];
+          const limit = input?.limit ?? 10;
+          const runId = await open(ctx, FB_GROUPS_COMMAND, { limit, niche });
+          const stats = emptyFbGroupsStats();
+          // Searches first, so their groups and posts are in the queue the reads draw on.
+          const searches = await ctx.run("select searches", async () => {
+            const now = new Date();
+            const { room } = await groupSearchRoom(db, now);
+            return groupKeywordsDue(db, niche, keywords, { now, limit: Math.min(limit, room) });
+          });
+          stats.selected = searches.length;
+          for (const q of searches) {
+            const r = await unit(ctx, `group search ${q}`, () =>
+              groupSearchUnit(db, desk, { q, niche }),
+            );
+            if (!r.ok) {
+              stats.stopped = r.reason;
+              break;
+            }
+            stats.stopped = countFbGroupsUnit(stats, r.value);
+            if (stats.stopped) break;
+          }
+          if (!stats.stopped) {
+            const plan = await ctx.run("select reads", async () => {
+              const now = new Date();
+              const { room, nextInMs } = await groupReadRoom(db, now);
+              const budget = Math.min(limit - stats.selected, room);
+              return {
+                why:
+                  room === 0 && stats.selected === 0
+                    ? `read bucket empty: next read in ${Math.ceil(nextInMs / 1000)}s`
+                    : null,
+                work: await groupReadsDue(db, niche, { now, limit: budget }),
+              };
+            });
+            stats.stopped = plan.why;
+            stats.selected += plan.work.length;
+            for (const w of plan.work) {
+              const r = await unit(
+                ctx,
+                w.kind === "about" ? `group about ${w.group}` : `group post ${w.post}`,
+                () =>
+                  w.kind === "about" ? groupAboutUnit(db, desk, w) : groupPostUnit(db, desk, w),
+              );
+              if (!r.ok) {
+                stats.stopped = r.reason;
+                break;
+              }
+              stats.stopped = countFbGroupsUnit(stats, r.value);
+              if (stats.stopped) break;
+            }
+          }
+          // Posts read before a firm was known, or new firms: map again, whatever stopped the reads.
+          const map = await ctx.run("map posts", () => mapPosts(db, niche, new Date()));
+          stats.mapped = map.mapped;
           await close(ctx, runId, stats);
           return stats;
         },

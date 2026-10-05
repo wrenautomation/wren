@@ -141,6 +141,7 @@ import {
   adLibraryFor,
   crawlHintsFor,
   discoveryWordsFor,
+  fbGroupsFor,
   LANDERS_BY_NICHE,
   NICHES,
   SMS_SEQUENCES,
@@ -483,13 +484,14 @@ export async function buildServices(
       linkedin: settings.poolLinkedin ?? null,
       recheck: recheckLeads,
       youtube,
-      // Meta's Ad Library signed out, on the Mac's home IP; a Mac that is off fails the stage fast.
+      // Meta's Ad Library and public groups signed out (`fb-public`), on the Mac's home IP; a Mac that is off fails the stage fast.
       desk: ingressSites(ingressOf(settings), {
         caller: "wren:ad-library",
         service: DESK,
         timeoutMs: BOOKS_DESK_TIMEOUT_MS,
       }),
       adsFor: adLibraryFor,
+      groupsFor: fbGroupsFor,
     }),
     // Discovery probes guessed hosts, most of them parked or dead: a short timeout and
     // one try per URL, or a single company's guesses can eat a Lambda invocation.
@@ -637,6 +639,7 @@ export async function buildServices(
       freeVerifier: freeVerdicts,
       youtube: true,
       adLibrary: true,
+      fbGroups: true,
       recheck: {
         horizonDays: settings.verificationHorizonDays,
         policy: (niche) => campaigns.get(niche)?.recontact,
