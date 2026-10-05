@@ -25,6 +25,7 @@ const OPTIONAL = [
   "WREN_SMTP_PROBE_URL",
   "WREN_SMTP_PROBE_TOKEN",
   "WREN_FETCH_CONTACT",
+  "WREN_CALCOM_API_KEY",
 ];
 const env = {
   ...Object.fromEntries(OPTIONAL.filter((k) => prod[k]).map((k) => [k, prod[k]])),
