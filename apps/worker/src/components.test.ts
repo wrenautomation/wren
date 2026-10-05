@@ -24,6 +24,7 @@ import type { Logger } from "pino";
 import { afterAll, describe, expect, it } from "vitest";
 import { COMPONENTS, PLATFORM } from "./components.js";
 import { MARKETING_NUMBERS } from "./marketing.js";
+import { reviewRecord } from "./review.js";
 import { buildServices } from "./services.js";
 
 const quiet = () => {};
@@ -88,6 +89,7 @@ const RECORDS = [
   ...REACTIVATION_RECORDS,
   ...MARKETING_RECORDS,
   settingOf({} as Client),
+  reviewRecord(),
 ].map((t) => t.id);
 
 /** Who claims each name in `pick`, platform first. */

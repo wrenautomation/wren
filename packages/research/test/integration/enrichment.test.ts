@@ -73,6 +73,8 @@ describe("crawl", () => {
     const docs = await db().select().from(documents).where(eq(documents.companyId, company.id));
     expect(docs).toHaveLength(1);
     expect(docs[0]?.text).toBe("");
+    // The refusal is kept, so a run of 403s and 429s reads as blocks, not dead sites.
+    expect(docs[0]?.statusCode).toBe(404);
     const again = await runCrawl(db(), new FakeFetcher({}), { limit: 10 });
     expect(again.companies_crawled).toBe(0);
     expect(again.homepage_unreachable).toBe(0);

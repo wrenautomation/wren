@@ -164,6 +164,7 @@ import { makeDiscovery, makeEnrichment, makePageArchive } from "@wren/research/r
 import type { Logger } from "pino";
 import { COMPONENTS } from "./components.js";
 import { MARKETING_NUMBERS } from "./marketing.js";
+import { reviewRecord } from "./review.js";
 
 /** The worker's application_name on every connection, kept on each audit event. */
 const WORKER_APP = "wren-worker";
@@ -863,6 +864,7 @@ export async function buildServices(
         textCopyRecord(SMS_SEQUENCES.values(), settings.smsSenderName),
         ...MARKETING_RECORDS,
         clientRecord,
+        reviewRecord(),
       ],
       components: COMPONENTS,
       // A component's client loops start and stop with it, when this worker binds them.

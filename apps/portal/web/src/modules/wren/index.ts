@@ -785,4 +785,43 @@ export const team: Module = {
   ],
 };
 
-export const WREN_APPS = [outbound, inbox, loops, money, pipeline, clients, team, handlers];
+/** The Friday review: each parked idea and whether what unparks it happened. */
+export const review: Module = {
+  id: "review",
+  name: "Review",
+  icon: "check",
+  blurb: "Every parked idea, what unparks it, and a live check. Read it on Fridays.",
+  requires: { ...TEAM, needs: "money" },
+  pages: [
+    {
+      ...overview,
+      tiles: [
+        {
+          label: "Needs a look",
+          record: "wren.parked",
+          href: "/review/parked?view=look",
+          needs: true,
+        },
+        { label: "You judge", record: "wren.parked", href: "/review/parked?view=manual" },
+      ],
+      top: [
+        {
+          label: "Needs a look",
+          record: "wren.parked",
+          href: "/review/parked?view=look",
+          fields: ["state", "now"],
+          empty: "No trigger fired.",
+        },
+      ],
+    },
+    {
+      id: "parked",
+      label: "Parked",
+      template: "list",
+      record: "wren.parked",
+      empty: { look: "No trigger fired.", manual: "Nothing to judge by hand." },
+    },
+  ],
+};
+
+export const WREN_APPS = [outbound, inbox, loops, money, pipeline, clients, team, handlers, review];

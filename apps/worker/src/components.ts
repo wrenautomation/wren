@@ -41,6 +41,7 @@ export const PLATFORM = {
     clients: "the client registry",
     team: "Wren's team and their roles",
     marketplace: "every component, and the browser mods",
+    review: "the Friday review of parked ideas",
   },
   records: {
     "console.client": "the client registry",
@@ -50,5 +51,6 @@ export const PLATFORM = {
     "console.team": "Wren's team",
     "console.change": "who changed what, from the audit log",
     "delivery.change": "who changed an account's rows, from the audit log",
+    "wren.parked": "parked ideas and their triggers",
   },
 } as const;

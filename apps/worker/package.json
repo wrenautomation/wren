@@ -37,6 +37,7 @@
     "@wren/outreach": "workspace:*",
     "@wren/reactivation": "workspace:*",
     "@wren/research": "workspace:*",
+    "drizzle-orm": "0.45.2",
     "pino": "10.3.1",
     "tsx": "4.23.13"
   },

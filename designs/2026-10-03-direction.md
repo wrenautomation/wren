@@ -38,7 +38,7 @@ Two things block progress. Revenue waits on inbox placement, and that is mostly 
 - One build item at a time, taken from Now in order.
 - One learning item on the side. Right now that is DSL design.
 - A new idea goes into Parked with a trigger before anyone works on it.
-- Every Friday, refresh the numbers above and move items whose trigger fired. Once the console exists, the review happens there.
+- Every Friday, open Review in the console and move items whose trigger fired. The numbers above live in Pipeline, Outbound and Money.
 
 ## Now
 
@@ -77,14 +77,7 @@ These were Later or Parked. On 10-04 William moved all of them to now, each with
 
 ## Parked
 
-| Idea | Unpark when |
-|---|---|
-| DigitalOcean move | The pg box starts billing at on-demand rates, or the AWS bill takes more than an hour a month to understand |
-| Airbyte | A client's CRM or ATS has no file export we parse. Try dlt first |
-| Redis or Valkey | pg_stat_statements shows a hot read an index can't fix, or two processes need a shared rate limit |
-| Rotating proxies, gateway | Crawl or autobrowse logs show IP blocks at a rate worth paying for |
-| Remotion | The recorder's captures don't hold up in a sales video |
-| Simulated scrums | No trigger. The Friday review covers it |
+Lives in the console: Wren > Review (`apps/worker/src/review.ts`). Each parked idea, what unparks it, and a live check where prod keeps the number: EC2 compute in Books for DigitalOcean, the costliest read in pg_stat_statements for Redis, homepage refusals (403, 429, 503) for proxies. The rest are marked for a person to judge. Park a new idea by adding a row there.
 
 ## Tools
 
@@ -150,3 +143,4 @@ One definition, many faces. A handler's zod schema is the DSL. The CLI command, 
 - 2026-10-03: before the console, a database audit (`2026-10-03-database-audit.md`). The console's stack and patterns are in `2026-10-03-console-ui.md`: shadcn/ui on Base UI, composite pages of widgets, one access check that can later carry paid features.
 - 2026-10-04: William changed the call on Later and Parked: copy evolution, CAC/LTV/churn, componentizing, the marketplace and the brand palette are built now, not deferred. Each has a doc dated 10-04. He also approved spending Cohere credits on simple model tasks, name extraction first.
 - 2026-10-05: audit against William's notes. Now #3 closed except the PTR re-probe. Catch-alls skipped until the fleet. Next #6 covered by outbound-per-client. New docs from his 10-05 asks: `2026-10-05-access.md` (roles and RBAC), `2026-10-05-marketing-app.md`, `2026-10-05-restate-self-host.md` (Restate moves to the pg box, with the cuts), and autobrowse `designs/2026-10-05-teach-mode.md` (teach a chore by hand, replay it as a walk).
+- 2026-10-05: the Friday review moved into the console (Wren > Review). Parked ideas are rows in `apps/worker/src/review.ts`, three with live checks; simulated scrums fold into it. The crawl now keeps the status that refused a homepage, so blocks read apart from dead sites.

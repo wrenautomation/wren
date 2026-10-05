@@ -96,15 +96,23 @@ export async function robotsAllows(
   return { proceed: true, disallowed: true };
 }
 
-async function get(fetcher: Fetcher, url: string): Promise<FetchResponse | null> {
+/** A page under 400, else null; `refused` keeps the status that turned it away (403, 429). */
+async function get(
+  fetcher: Fetcher,
+  url: string,
+  refused?: { status: number | null },
+): Promise<FetchResponse | null> {
   let resp: FetchResponse;
   try {
     resp = await fetcher.get(url);
   } catch (err) {
-    if (err instanceof FetchError) return null;
-    throw err;
+    if (!(err instanceof FetchError)) throw err;
+    if (refused && err.status !== null) refused.status = err.status;
+    return null;
   }
-  return resp.status < 400 ? resp : null;
+  if (resp.status < 400) return resp;
+  if (refused) refused.status = resp.status;
+  return null;
 }
 
 export interface StoredPage {
@@ -181,10 +189,11 @@ export async function crawlCompany(
   let homepage: FetchResponse | null = null;
   let homepageUrl = "";
   let homepageDisallowed = false;
+  const refused: { status: number | null } = { status: null };
   for (const url of [`https://${domain}`, `https://www.${domain}`, `http://${domain}`]) {
     const { proceed, disallowed } = await robotsAllows(fetcher, url, robots, mode, stats);
     if (!proceed) continue;
-    homepage = await get(fetcher, url);
+    homepage = await get(fetcher, url, refused);
     if (homepage) {
       homepageUrl = url;
       homepageDisallowed = disallowed;
@@ -194,12 +203,13 @@ export async function crawlCompany(
   if (!homepage) {
     stats.homepage_unreachable += 1;
     // Tombstone: an empty-text attempt marker so the crawl-once query skips this
-    // company next run. Extraction skips empty text; delete the row to retry.
+    // company next run. Extraction skips empty text; delete the row to retry. Its status is
+    // the last refusal (403, 429: a block) or null when nothing answered.
     await db.insert(documents).values({
       companyId: company.id,
       url: `https://${domain}`,
       kind: "webpage",
-      statusCode: null,
+      statusCode: refused.status,
       contentHash: EMPTY_HASH,
       title: null,
       text: "",
