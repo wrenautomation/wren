@@ -1,4 +1,5 @@
 /** Texts: a client's texting threads (O4), from its own database; Wren's team replies. */
+import { segments } from "@wren/channel-sms/templates";
 import type { Action, RecordExtras } from "@wren/ui";
 import type { ListPage, Module } from "../../module.js";
 
@@ -11,7 +12,7 @@ const THREAD_ACTIONS: Action[] = [
     label: "Text back",
     handler: "sms/reply",
     requires: { audience: "team" },
-    ask: { field: "body", label: "Your text" },
+    ask: { field: "body", label: "Your text", preview: { kind: "sms", parts: segments } },
     key: "r",
     done: () => "Queued. It leaves on the next tick.",
   },

@@ -87,7 +87,7 @@ const REPLY_ACTIONS: Action[] = [
     id: "email.approve",
     label: "Send",
     handler: "email/approve",
-    ask: { field: "body", label: "Your reply", from: "draft" },
+    ask: { field: "body", label: "Your reply", from: "draft", preview: { kind: "email" } },
     key: "a",
     when: WAITING,
     done: said("Sent"),

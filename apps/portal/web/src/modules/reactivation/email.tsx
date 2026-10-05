@@ -5,6 +5,7 @@
 import {
   type Action,
   Cited,
+  MessagePreview,
   marksOf,
   type RecordExtras,
   Traced,
@@ -117,6 +118,17 @@ function Draft({
         </details>
       ) : null}
       {open ? <Why d={d} line={open} /> : null}
+      <details>
+        <summary className="w-fit cursor-pointer text-[13.5px] font-medium text-(--ui-ink-2) hover:text-(--ui-ink)">
+          How it looks on a laptop and a phone
+        </summary>
+        <div className="mt-2.5">
+          <MessagePreview
+            message={{ kind: "email", from: d.from, subject: subject ? String(subject) : null }}
+            body={d.opener}
+          />
+        </div>
+      </details>
       {d.personId ? (
         <p className="text-[13px]">
           <a href={at("people", { person: d.personId })}>See {first}'s full brief</a>

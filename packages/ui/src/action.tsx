@@ -16,6 +16,7 @@ import { Input } from "./components/ui/input.js";
 import { Toaster } from "./components/ui/sonner.js";
 import { Textarea } from "./components/ui/textarea.js";
 import { Button } from "./controls.js";
+import { type MessageKind, MessagePreview } from "./preview.js";
 
 /** A box a form action asks for, required unless `optional`. */
 export interface FormField {
@@ -63,8 +64,9 @@ export interface Action {
    * A text asked before it runs, into `field` of the input: "why" for a pause, the draft for an
    * approve. It starts from the record's `from` field (else `field`) and goes only when changed,
    * so an untouched draft isn't sent as an edit. E opens it when no action has E for its key.
+   * With `preview`, the text shows as it will look on a laptop and a phone while it's typed.
    */
-  ask?: { field: string; label: string; from?: string };
+  ask?: { field: string; label: string; from?: string; preview?: MessageKind };
   /**
    * Makes a record, so it takes no ids and applies to no row. The list shows its button by the
    * title; a press asks for these fields and sends them as the input.
@@ -383,8 +385,12 @@ export function useRun(
   const n = asked?.ids.length ?? 0;
   const dialog = (
     <Dialog open={!!asked} onOpenChange={(open) => !open && setAsked(null)}>
-      <DialogContent>
-        <form onSubmit={submit} className="grid gap-4">
+      <DialogContent
+        className={
+          ask?.preview ? "max-h-[calc(100dvh-2rem)] overflow-y-auto sm:max-w-3xl" : undefined
+        }
+      >
+        <form onSubmit={submit} className="grid min-w-0 gap-4">
           <DialogHeader>
             <DialogTitle>
               {asked?.action.confirm ??
@@ -405,6 +411,7 @@ export function useRun(
                 onChange={(e) => setText(e.target.value)}
                 rows={6}
               />
+              {ask.preview ? <MessagePreview message={ask.preview} body={text} /> : null}
             </div>
           ) : null}
           {form?.map((f, i) => (

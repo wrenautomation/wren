@@ -10,6 +10,7 @@
     "./records": "./src/records.ts",
     "./restate": "./src/restate/index.ts",
     "./schema": "./src/schema.ts",
+    "./templates": "./src/templates.ts",
     "./webhook": "./src/webhook.ts"
   },
   "scripts": {
