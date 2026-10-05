@@ -43,6 +43,18 @@ export const recruiting = defineNiche({
     twoEmailSequence("book-first/opener", "book-first/followup"),
     twoEmailSequence("watch-first/opener", "watch-first/followup"),
   ],
+  // Two texts, three days apart. The words are William's, in sms_templates (recruiting-sms#1, #2):
+  // nothing enrolls until both are filled. Only contacts whose basis the registered campaign
+  // covers ever get them (WREN_SMS_BASES).
+  smsSequences: [
+    {
+      name: "recruiting-sms",
+      steps: [
+        { step: 1, afterDays: 0 },
+        { step: 2, afterDays: 3 },
+      ],
+    },
+  ],
   offers: { "book-first": "reactivation", "watch-first": "reactivation" },
   plan: [{ sequence: "book-first-days-0-5" }],
   // Real named people only (William, 10-02): an info@ is not a person.

@@ -58,18 +58,6 @@ export const agencies = defineNiche({
     threeEmailSequence(`${arm}/opener`, `${arm}/followup`, "final_followup"),
     twoEmailSequence(`${arm}/opener`, `${arm}/followup`),
   ]),
-  // Two texts, three days apart. The words are William's, in sms_templates (agencies-sms#1, #2):
-  // nothing enrolls until both are filled. Only contacts whose basis the registered campaign
-  // covers ever get them (WREN_SMS_BASES).
-  smsSequences: [
-    {
-      name: "agencies-sms",
-      steps: [
-        { step: 1, afterDays: 0 },
-        { step: 2, afterDays: 3 },
-      ],
-    },
-  ],
   offers: { marketing: "ops-audit", build: "ops-audit" },
   // The arm follows the firm's own service mix (`agency_facts.segment`, from the directory
   // listing): marketing shops hear about month end, build shops about the invoice. A firm

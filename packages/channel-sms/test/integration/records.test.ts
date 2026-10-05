@@ -82,17 +82,17 @@ describe("marketing.text_contact", () => {
 describe("marketing.text_copy", () => {
   it("lists every slot with its billed parts, and loads the sample facts", async () => {
     await fillTemplates(pg.db, {
-      "agencies-sms#1": "hi {first_name|there}, {sender} here. STOP to opt out",
+      "recruiting-sms#1": "hi {first_name|there}, {sender} here. STOP to opt out",
     });
     const record = textCopyRecord(SEQUENCES.values(), "William");
     const api = serveRecords([record], pg.db);
     for (const v of record.views) await api.list({ record: record.id, view: v.id, limit: 50 });
     const all = await api.list({ record: record.id, view: "all", limit: 50 });
-    const first = all.rows.find((r) => r.id === "agencies-sms#1");
+    const first = all.rows.find((r) => r.id === "recruiting-sms#1");
     expect(first).toMatchObject({ filled: "filled", parts: 1 });
     const empty = await api.list({ record: record.id, view: "empty", limit: 50 });
-    expect(empty.rows.map((r) => r.id)).toContain("agencies-sms#2");
-    const one = await api.get({ record: record.id, id: "agencies-sms#1" });
+    expect(empty.rows.map((r) => r.id)).toContain("recruiting-sms#2");
+    const one = await api.get({ record: record.id, id: "recruiting-sms#1" });
     expect(one.detail).toMatchObject({ sample: { first_name: "Dana", sender: "William" } });
   });
 });

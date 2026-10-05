@@ -12,9 +12,9 @@ synced. Telnyx is settings. Why and what is owed: `designs/2026-09-27-phone-chan
     pnpm worker && pnpm register            # SmsSender, SmsEvents, SmsDesk, SmsWatch bound
     wren sms numbers sync                   # the fake's one number, (201) 555-0100
     wren sms templates                      # the empty slots; fill them first
-    wren sms templates set agencies-sms#1 "…"   # your words, STOP line included
+    wren sms templates set recruiting-sms#1 "…"   # your words, STOP line included
     wren sms add "(212) 555-0101" --why "my own phone, test"
-    wren sms enroll --sequence agencies-sms --limit 1
+    wren sms enroll --sequence recruiting-sms --limit 1
     wren sms queue tick                     # one pass: sends inside the window only
     wren sms threads
     wren sms thread 1
@@ -34,7 +34,7 @@ from a real provider's webhooks.
 
     wren sms numbers sync                   # the pool, at most 5
     wren sms lift --niche agencies          # published numbers from crawled pages (free)
-    wren sms enroll --sequence agencies-sms --limit 50   # one lookup each
+    wren sms enroll --sequence recruiting-sms --limit 50   # one lookup each
     wren sms queue start                    # the loop; `stop` to halt
     wren sms watch start                    # labels, health, site applicants, reminders every 30 min
 

@@ -113,7 +113,7 @@ describe("sms on restate", () => {
     await company(pg.db, "Acme", { html: '<a href="tel:+12125550187">x</a>' });
     await lift(pg.db, { heldNiches: [] });
     const desk = ingress().serviceClient<SmsDeskService>({ name: "SmsDesk" });
-    expect(await desk.enroll({ sequence: "agencies-sms", limit: 5 })).toMatchObject({
+    expect(await desk.enroll({ sequence: "recruiting-sms", limit: 5 })).toMatchObject({
       enrolled: 1,
     });
     await expect(desk.enroll({ sequence: "nope", limit: 1 })).rejects.toThrow(/no sms sequence/);
@@ -151,8 +151,8 @@ describe("sms on restate", () => {
     await pg.db.delete(smsTemplates);
     const empty = await desk.templates();
     expect(empty.map((t) => t.key)).toEqual([
-      "agencies-sms#1",
-      "agencies-sms#2",
+      "recruiting-sms#1",
+      "recruiting-sms#2",
       "reminder.day-before",
       "keyword.help",
       "keyword.start",
@@ -160,7 +160,7 @@ describe("sms on restate", () => {
     ]);
     expect(empty.every((t) => t.body === "" && t.segments === null)).toBe(true);
     const saved = await desk.setTemplate({
-      key: "agencies-sms#1",
+      key: "recruiting-sms#1",
       body: "  hi {first_name|there}, {sender} at {company}. STOP to opt out ",
       by: "w@x.test",
     });
@@ -171,16 +171,16 @@ describe("sms on restate", () => {
       segments: { encoding: "GSM-7", parts: 1 },
     });
     await expect(
-      desk.setTemplate({ key: "agencies-sms#1", body: "hi {name}. STOP", by: "w" }),
+      desk.setTemplate({ key: "recruiting-sms#1", body: "hi {name}. STOP", by: "w" }),
     ).rejects.toThrow(/unknown field \{name\}/);
     await expect(
-      desk.setTemplate({ key: "agencies-sms#1", body: "hi there", by: "w" }),
+      desk.setTemplate({ key: "recruiting-sms#1", body: "hi there", by: "w" }),
     ).rejects.toThrow(/must say how to stop/);
     await expect(desk.setTemplate({ key: "nope", body: "x", by: "w" })).rejects.toThrow(
       /no SMS template nope/,
     );
     expect((await desk.templates())[0]?.body).toContain("STOP to opt out"); // refusals kept the old words
-    expect((await desk.setTemplate({ key: "agencies-sms#1", body: " ", by: "w" })).body).toBe("");
+    expect((await desk.setTemplate({ key: "recruiting-sms#1", body: " ", by: "w" })).body).toBe("");
     expect(await pg.db.select().from(smsTemplates)).toHaveLength(0);
   });
 

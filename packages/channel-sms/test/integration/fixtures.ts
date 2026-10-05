@@ -31,7 +31,7 @@ export const TABLES = [
 ];
 
 export const SEQ: SmsSequence = checkSequence({
-  name: "agencies-sms",
+  name: "recruiting-sms",
   steps: [
     { step: 1, afterDays: 0 },
     { step: 2, afterDays: 3 },
@@ -41,9 +41,9 @@ export const SEQUENCES = new Map([[SEQ.name, SEQ]]);
 
 /** Test words for SEQ's two steps (the real ones are William's, in prod's sms_templates). */
 export const BODIES: Record<string, string> = {
-  "agencies-sms#1":
+  "recruiting-sms#1":
     "hi {first_name|there}, {sender} here. saw {company|your site}. reply STOP to opt out",
-  "agencies-sms#2": "{sender} again, worth a quick chat?",
+  "recruiting-sms#2": "{sender} again, worth a quick chat?",
 };
 
 export async function fillTemplates(

@@ -82,7 +82,7 @@ SMS only. Everything runs on the fake provider today; Telnyx is one setting away
 - **`apps/phone`:** Cloudflare Worker on `phone.wrenautomation.com`. Telnyx webhook door
   (Ed25519 checked, forwarded to Restate keyed by event id), passkey sign-in, static PWA
   (inbox, thread + reply, labels, numbers pause/resume, stats). Works on iPhone, Seeker, Mac.
-- **Copy:** none in code since 2026-10-01 (PH-D15). `agencies-sms` declares 2 steps;
+- **Copy:** none in code since 2026-10-01 (PH-D15). `recruiting-sms` declares 2 steps;
   the words are William's, in `sms_templates`.
 - **Tests:** unit + 18 Postgres integration + 4 Restate + 9 Worker tests.
 
@@ -105,7 +105,7 @@ SMS only. Everything runs on the fake provider today; Telnyx is one setting away
 - **US registration.** Telnyx 10DLC brand + campaign filed; campaign id in
   `WREN_TELNYX_CAMPAIGN_ID`. SmsWatch attaches waiting US numbers once carriers approve
   it. The pool never sends from an unregistered US number. Canadian numbers send now.
-- **Templates (PH-D15).** Code declares slots: each sequence step (`agencies-sms#1`),
+- **Templates (PH-D15).** Code declares slots: each sequence step (`recruiting-sms#1`),
   and the HELP/START/STOP replies (`keyword.help` …). William fills them in the phone
   app's Templates tab or `wren sms templates set`. Keyword replies are pushed to Telnyx
   before they are saved. Telnyx sends the START reply to a bare YES too.
@@ -397,11 +397,10 @@ Superseded list (2026-09-27, SMS):
 5. **Go live:** `WREN_SMS_LIVE=true` after approval, `wren sms queue start`, `wren sms watch start`.
 6. **Cloudflare token** with Workers Scripts + KV + Routes edit (the one in prod.env can't
    create KV), then deploy the phone Worker.
-7. **Copy pass** on `agencies-sms`.
+7. **Copy pass** on `recruiting-sms` (moved from `agencies-sms` 2026-10-05: cold SMS targets recruiting firms).
 
-Now (2026-10-01): fill the templates (`agencies-sms#1`, `#2`, `form-fit#1`,
-`form-not-fit#1`, the three keyword replies). Items 1–6 are done; the US number waits on
-carrier approval of the campaign.
+Now (2026-10-05): campaign provisioned, US number registered, keyword replies set. Fill
+`recruiting-sms#1`, `#2`, `form-fit#1`, `form-not-fit#1`, `reminder.day-before`.
 
 ## Where to attack
 

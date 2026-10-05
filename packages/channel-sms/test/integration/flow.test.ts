@@ -341,8 +341,8 @@ describe("templates", () => {
   });
 
   it("enroll refuses until every step is filled, and spends nothing", async () => {
-    await db().delete(smsTemplates).where(eq(smsTemplates.key, "agencies-sms#2"));
-    await expect(enrollAt(OPEN)).rejects.toThrow(/fill agencies-sms#2 first/);
+    await db().delete(smsTemplates).where(eq(smsTemplates.key, "recruiting-sms#2"));
+    await expect(enrollAt(OPEN)).rejects.toThrow(/fill recruiting-sms#2 first/);
     expect(await contact("+12125550187")).toMatchObject({ state: "new", lookedUpAt: null });
     expect(await messages()).toHaveLength(0);
   });
@@ -350,12 +350,12 @@ describe("templates", () => {
   it("a queued text goes out in the words saved now, and an emptied step ends the thread", async () => {
     await enrollAt(OPEN);
     await fillTemplates(db(), {
-      "agencies-sms#1": "{first_name|hey}, {sender} again. STOP ends these",
+      "recruiting-sms#1": "{first_name|hey}, {sender} again. STOP ends these",
     });
     await tickAt(OPEN);
     expect(provider.sent[0]?.text).toBe("hey, William again. STOP ends these");
     expect((await messages())[0]?.body).toBe("hey, William again. STOP ends these");
-    await db().delete(smsTemplates).where(eq(smsTemplates.key, "agencies-sms#2"));
+    await db().delete(smsTemplates).where(eq(smsTemplates.key, "recruiting-sms#2"));
     expect(await tickAt(new Date(OPEN.getTime() + 3 * 86_400_000))).toMatchObject({
       sent: 0,
       skipped: 1,
@@ -363,7 +363,7 @@ describe("templates", () => {
     expect(provider.sent).toHaveLength(1);
     expect(await contact("+12125550187")).toMatchObject({
       state: "finished",
-      stateReason: "template agencies-sms#2 is empty",
+      stateReason: "template recruiting-sms#2 is empty",
     });
     expect((await messages())[1]?.state).toBe("skipped");
   });

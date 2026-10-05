@@ -185,7 +185,7 @@ describe("the desk on a client's texts", () => {
       why: "ticked the texts box",
     });
     expect(added.created).toBe(true);
-    const stats = await desk().enroll({ client: "acme", sequence: "agencies-sms", limit: 5 });
+    const stats = await desk().enroll({ client: "acme", sequence: "recruiting-sms", limit: 5 });
     expect(stats.enrolled).toBe(1);
     const mine = await acme.select().from(smsContacts);
     expect(mine.find((c) => c.e164 === "+12125550142")?.state).toBe("enrolled");
@@ -199,7 +199,7 @@ describe("the desk on a client's texts", () => {
     expect(threads.map((t) => t.e164)).toContain("+12125550142");
 
     await expect(
-      desk().enroll({ client: "beta", sequence: "agencies-sms", limit: 5 }),
+      desk().enroll({ client: "beta", sequence: "recruiting-sms", limit: 5 }),
     ).rejects.toThrow("texts are not installed");
     await expect(
       desk().addContact({ client: "beta", phone: "+12125550143", basis: "opt_in", why: "x" }),
