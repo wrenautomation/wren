@@ -4,7 +4,7 @@
  * `crm approve` both land here; a second click finds nothing left to do.
  */
 import type { ApprovalSource } from "@wren/channel-email";
-import type { Queryable } from "@wren/db";
+import { type Queryable, serializable } from "@wren/db";
 import { sql } from "drizzle-orm";
 import { REACTIVATION } from "./compose.js";
 
@@ -69,7 +69,7 @@ export async function skipDrafts(
 ): Promise<ReviewResult> {
   const ids = idsOf(selector);
   if (ids?.length === 0) return result(ids, []);
-  return db.transaction(async (tx) => {
+  return serializable(db, async (tx) => {
     const stopped = await tx.execute<{ id: number }>(sql`
       UPDATE enrollments SET state = 'stopped', stop_reason = 'manual', stopped_at = ${now.toISOString()}::timestamptz
       WHERE id IN (${waiting(ids)})
@@ -94,7 +94,7 @@ export async function unapproveDrafts(
 ): Promise<ReviewResult> {
   const asked = idsOf({ enrollmentIds: ids }) ?? [];
   if (!asked.length) return result(asked, []);
-  return db.transaction(async (tx) => {
+  return serializable(db, async (tx) => {
     const steps = await tx.execute<{ enrollment_id: number; state: string }>(sql`
       SELECT m.enrollment_id, m.state FROM messages m JOIN enrollments e ON e.id = m.enrollment_id
       WHERE e.niche = ${REACTIVATION} AND e.state = 'active' AND e.id IN (${list(asked)})

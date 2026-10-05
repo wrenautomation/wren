@@ -14,7 +14,7 @@ import type { InboxScheduler, SendScheduler } from "@wren/channel-email/restate"
 import { ingressOf, type Settings } from "@wren/config";
 import { recordedRun, runFeed } from "@wren/core";
 import type { Client } from "@wren/core/clients";
-import type { Db } from "@wren/db";
+import { atomic, type Db } from "@wren/db";
 import { loadLlmEnv, makeLlm } from "@wren/llm";
 import {
   approveDrafts,
@@ -325,7 +325,7 @@ export function registerCrm(
     .action(async (args: string[], opts: { all?: boolean }) => {
       if (!opts.all && !args.length) throw new Error("give ids, or --all");
       const out = await withClientDb((db) =>
-        db.transaction((tx) =>
+        atomic(db, (tx) =>
           approveDrafts(tx, opts.all ? { all: true } : { enrollmentIds: ids(args) }, "operator"),
         ),
       );

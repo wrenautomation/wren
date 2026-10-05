@@ -102,6 +102,19 @@ describe("isolation levels", () => {
     expect(level).toBe("read committed");
   });
 
+  it("a nested helper that throws undoes only its own writes; the outer goes on", async () => {
+    await atomic(pg.db, async (outer) => {
+      await outer.execute(sql`INSERT INTO seats (who) VALUES ('a')`);
+      await serializable(outer, async (tx) => {
+        await tx.execute(sql`INSERT INTO seats (who) VALUES ('b')`);
+        throw new Error("caught by the caller");
+      }).catch(() => {});
+      await outer.execute(sql`INSERT INTO seats (who) VALUES ('c')`);
+    });
+    const rows = await pg.db.execute<{ who: string }>(sql`SELECT who FROM seats ORDER BY id`);
+    expect(rows.map((r) => r.who)).toEqual(["a", "c"]);
+  });
+
   it("every connection drops a transaction left idle for 10 minutes", async () => {
     const [row] = await pg.db.execute<{ t: string }>(
       sql`SELECT current_setting('idle_in_transaction_session_timeout') AS t`,

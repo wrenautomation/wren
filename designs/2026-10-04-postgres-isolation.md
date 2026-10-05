@@ -42,7 +42,7 @@ Starting point for the build. A site not listed goes to 4 if a read decides a wr
 
 - `@wren/db` exports `atomic(db, fn)` (2), `snapshot(db, fn)` (3, read only) and `serializable(db, fn)` (4).
 - `serializable` retries `40001` and `40P01` up to 5 tries, 10 to 200 ms jittered, and logs each retry. It reads the code from the error or its `cause` (drizzle wraps it).
-- Given an open transaction, each helper runs `fn` on it: the outer level wins.
+- Given an open transaction, each helper runs `fn` in a savepoint on it: the outer level wins, and an error the caller catches undoes only `fn`.
 - A level 4 body holds database work only, since it can run more than once.
 - Restate retries a failed `ctx.run` too: a second net, not the first.
 - A test fails on `.transaction(` outside `packages/db`.
@@ -61,3 +61,4 @@ Cost: $0. No new infra.
 - 2026-10-04: William: "level 3 or 4 definitely", then "where could we do 2, 3, and 4?" Picked per transaction: 4 where a read decides a write, 3 for reads, 2 where code relies on Read Committed or a unique index already guards. Default stays 2 so no plain statement becomes abortable.
 - 2026-10-04: Helpers and gaps 1 and 4 first (`packages/db`, `packages/books`). Site moves and gaps 2 and 3 wait for outbound O2 to O4, which touches the same send and compose files.
 - 2026-10-05: Idle timeout 2 min → 10 min. Research stage units hold their transaction across a fetch or an LLM call, and claude-code waits up to 5 min. Back to 2 min once that I/O moves out. Sites outside the outbound files (books, delivery, SMS, research, CLI) moved to the helpers; books `readDocuments` and SMS `classifyReplies` now count after commit, since a level 4 body can rerun.
+- 2026-10-05: Reactivation sites moved. A nested helper now opens a savepoint, as a nested `.transaction` did: compose catches a unique violation and research catches an LLM error mid-unit, and both need that rollback. Gap 3 declined: forward's row lock is what stops two passes both sending, a lease would need a new column, forwards are rare and a send takes seconds.

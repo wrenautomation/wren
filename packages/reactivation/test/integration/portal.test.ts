@@ -305,11 +305,12 @@ describe("the demo", () => {
     expect(stale.live?.lines).toHaveLength(3);
   });
 
-  it("reads in a read-only transaction", async () => {
+  it("reads in a read-only snapshot", async () => {
     opened.length = 0;
     await api.overview(demo);
     await api.recordsList({ ...operator, client: "acme", record: PERSON });
-    expect(opened).toEqual([{ accessMode: "read only" }, { accessMode: "read only" }]);
+    const readOnly = { isolationLevel: "repeatable read", accessMode: "read only" };
+    expect(opened).toEqual([readOnly, readOnly]);
   });
 });
 

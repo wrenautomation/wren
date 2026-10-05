@@ -19,7 +19,7 @@ Postgres 17 through Drizzle: every package owns its `src/schema.ts` (and `views.
 
 - schema files (`drizzle.config.ts:8`–`18`): core, core views, clients, research, channel-email (+views), content, channel-meta, channel-sms, reactivation, books (its own `books` schema)
 - `createDb`, `migrate` (`packages/db/src/index.ts:33`, `:77`); `pnpm db:generate`, `pnpm db:migrate` (`package.json:18`)
-- Isolation per transaction (`packages/db/src/isolation.ts`): `atomic` (read committed), `snapshot` (repeatable read, read only), `serializable` (retries 40001/40P01, 5 tries). Pick by `designs/2026-10-04-postgres-isolation.md`. Every connection drops a transaction idle 10 min (research units hold one across fetch and LLM calls).
+- Isolation per transaction (`packages/db/src/isolation.ts`): `atomic` (read committed), `snapshot` (repeatable read, read only), `serializable` (retries 40001/40P01, 5 tries); inside a transaction, a savepoint. Pick by `designs/2026-10-04-postgres-isolation.md`. Every connection drops a transaction idle 10 min (research units hold one across fetch and LLM calls).
 - CI migrates before it bundles (`.github/workflows/deploy.yml:29`)
 
 Citations: `packages/db/drizzle.config.ts:7`

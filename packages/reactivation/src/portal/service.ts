@@ -28,7 +28,7 @@ import {
   type StatsAsk,
   serveRecords,
 } from "@wren/core/records/serve";
-import { type Db, type Queryable, setAuditActor } from "@wren/db";
+import { type Db, type Queryable, serializable, setAuditActor, snapshot } from "@wren/db";
 import { sql } from "drizzle-orm";
 import { approveDrafts, type ReviewResult, skipDrafts, unapproveDrafts } from "../approve.js";
 import { feedDelivery } from "../delivery.js";
@@ -75,13 +75,10 @@ async function read<T>(
 ): Promise<T> {
   const client = await pickClient(deps.main, req);
   const db = deps.open(client);
-  return db.transaction(
-    async (tx) => {
-      const out = await view(tx, client);
-      return client.demo ? (await demoMask(tx, client))(out) : out;
-    },
-    { accessMode: "read only" },
-  );
+  return snapshot(db, async (tx) => {
+    const out = await view(tx, client);
+    return client.demo ? (await demoMask(tx, client))(out) : out;
+  });
 }
 
 const typesOf = (client: Client) => [...REACTIVATION_RECORDS, settingOf(client)];
@@ -93,13 +90,10 @@ async function records<T>(
   use: (api: RecordsApi) => Promise<T>,
 ): Promise<T> {
   const client = await pickClient(deps.main, req);
-  return deps.open(client).transaction(
-    async (tx) => {
-      const mask = client.demo ? await demoMask(tx, client) : undefined;
-      return use(serveRecords(typesOf(client), tx, mask));
-    },
-    { accessMode: "read only" },
-  );
+  return snapshot(deps.open(client), async (tx) => {
+    const mask = client.demo ? await demoMask(tx, client) : undefined;
+    return use(serveRecords(typesOf(client), tx, mask));
+  });
 }
 
 /**
@@ -112,7 +106,7 @@ async function write<T>(
   change: (db: Queryable, client: Client, viewer: SignedViewer) => Promise<T>,
 ): Promise<T> {
   const { client, viewer } = await pickForWrite(deps.main, req);
-  return deps.open(client).transaction(async (tx) => {
+  return serializable(deps.open(client), async (tx) => {
     // Every row this changes is logged as this person's (audit_events.actor).
     await setAuditActor(tx, viewer.email);
     return change(tx, client, viewer);

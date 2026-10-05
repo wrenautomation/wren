@@ -5,7 +5,7 @@
  * marks it: the recruiter in the portal, or us.
  */
 import { randomUUID } from "node:crypto";
-import type { Queryable } from "@wren/db";
+import { type Queryable, serializable } from "@wren/db";
 import { sql } from "drizzle-orm";
 import { REACTIVATION } from "./compose.js";
 import { type ClientProfile, handoffs } from "./schema.js";
@@ -120,7 +120,7 @@ export async function markMeetingBooked(
 ): Promise<{ bookedAt: Date | null; by: string | null }> {
   const by = booking.by.trim().toLowerCase();
   if (!by) throw new HandoffRefusal("say who marked it");
-  return db.transaction(async (tx) => {
+  return serializable(db, async (tx) => {
     const reply = await replyRef(tx, booking.threadEventId);
     if (!reply) throw new HandoffRefusal("no such reply");
     if (booking.booked) await ensureHandoff(tx, reply, profile);

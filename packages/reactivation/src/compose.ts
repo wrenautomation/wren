@@ -23,7 +23,7 @@ import {
   signed,
 } from "@wren/channel-email";
 import { type Feed, NO_FEED } from "@wren/core";
-import type { Queryable } from "@wren/db";
+import { atomic, type Queryable, serializable } from "@wren/db";
 import { completeAndParse, type LlmClient, LlmError } from "@wren/llm";
 import { and, eq, sql } from "drizzle-orm";
 import { z } from "zod";
@@ -727,7 +727,7 @@ async function enroll(
   const draft = w.draft as Draft;
   const signature = profile.signature.replaceAll("{name}", picked.sender.name);
   try {
-    await db.transaction(async (tx) => {
+    await atomic(db, async (tx) => {
       const [row] = await tx
         .insert(enrollments)
         .values({
@@ -894,7 +894,7 @@ export async function redraftAwaiting(
       continue;
     }
     const signature = profile.signature.replaceAll("{name}", sender.name);
-    const done = await db.transaction(async (tx) => {
+    const done = await serializable(db, async (tx) => {
       const held = await tx.execute<{ state: string; edited: boolean }>(
         sql`select state, edited_at is not null edited from messages
           where enrollment_id = ${r.enrollment_id} for update`,

@@ -7,7 +7,7 @@
  * row is locked while it is sent, so two overlapping passes never both send it.
  */
 import type { OutgoingEmail, Transport } from "@wren/channel-email";
-import type { Queryable } from "@wren/db";
+import { atomic, type Queryable } from "@wren/db";
 import { sql } from "drizzle-orm";
 import { REACTIVATION } from "./compose.js";
 import { ensureHandoff, handoffRecruiter, replyRef } from "./handoff.js";
@@ -113,7 +113,7 @@ export async function forwardHandoffs(
       await db.execute(
         sql`UPDATE handoffs SET attempted_at = ${now}::timestamptz WHERE id = ${row.id}`,
       );
-      const went = await db.transaction(async (tx) => {
+      const went = await atomic(db, async (tx) => {
         // Another pass holds it, or it went or stopped counting since the read.
         const [held] = await tx.execute<{ id: number }>(sql`
           SELECT h.id FROM handoffs h JOIN thread_events t ON t.id = h.thread_event_id
