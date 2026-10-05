@@ -1,5 +1,31 @@
 /** Ad set days as a console record for the Marketing app (`marketing_ad_day_records`). */
 import { date, defineRecord, money, number, rate, status, text } from "@wren/core/records";
+import type { Queryable } from "@wren/db";
+import { desc, eq } from "drizzle-orm";
+import { adLaunches } from "./schema.js";
+
+/**
+ * The ad as the feed shows it: its primary text, cut where Meta's feeds cut it in 2026.
+ * ponytail: the headline draws above the text, Meta puts it under the media; split it out
+ * when a check needs the media's place.
+ */
+async function adOf(db: Queryable, campaignId: string) {
+  const [launch] = await db
+    .select({ spec: adLaunches.spec })
+    .from(adLaunches)
+    .where(eq(adLaunches.campaignId, campaignId))
+    .orderBy(desc(adLaunches.createdAt))
+    .limit(1);
+  const c = launch?.spec.creative;
+  return c
+    ? {
+        site: "Facebook ad",
+        title: c.headline ?? null,
+        text: c.message,
+        feed: { laptop: 3, phone: 3 },
+      }
+    : null;
+}
 
 export const adDayRecord = defineRecord({
   id: "marketing.ad_day",
@@ -42,4 +68,5 @@ export const adDayRecord = defineRecord({
     { id: "campaign", label: "By campaign", sort: "campaign", at: "day" },
   ],
   actions: ["marketing.pause", "marketing.resume"],
+  load: async (db, id) => ({ post: await adOf(db, id.split("/")[0] ?? "") }),
 });

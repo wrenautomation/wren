@@ -244,5 +244,9 @@ describe("ads ledger and watch", () => {
     ]);
     expect(all.totals.spend).toEqual({ sum: 56, currency: "USD" });
     expect(all.totals.ctr).toEqual({ n: 3, of: expect.any(Number) });
+    const one = await api.get({ record: adDayRecord.id, id: String(all.rows[0]?.id) });
+    expect(one.detail).toEqual({
+      post: { site: "Facebook ad", title: null, text: "hi", feed: { laptop: 3, phone: 3 } },
+    });
   });
 });

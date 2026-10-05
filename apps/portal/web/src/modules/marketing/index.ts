@@ -215,6 +215,7 @@ export const marketing: Module = {
       record: "marketing.ad_day",
       empty: "Ad days show here once an ad runs.",
       actions: AD_ACTIONS,
+      extras: postExtras,
     },
     {
       id: "search",

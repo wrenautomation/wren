@@ -3,12 +3,12 @@ import { type MessageKind, MessagePreview, type RecordExtras } from "@wren/ui";
 import { call } from "../../api.js";
 import type { ListPage } from "../../module.js";
 
-/** `@wren/content`'s preview data: the whole text, the platform's name, cap and feed cut. */
+/** A channel's preview data (`@wren/content`, `@wren/channel-meta`): the whole text, the app, its cap and feed cut. */
 type Post = {
   site: string;
   title: string | null;
   text: string;
-  max: number;
+  max?: number;
   feed: { laptop: number | null; phone: number | null };
 };
 
@@ -17,7 +17,7 @@ const kindOf = (p: Post): MessageKind => ({
   site: p.site,
   from: "Wren Automation",
   title: p.title,
-  max: p.max,
+  ...(p.max ? { max: p.max } : {}),
   feed: p.feed,
 });
 
