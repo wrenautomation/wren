@@ -66,6 +66,8 @@ export interface Niche {
   readonly datasets: (dataDir: string) => readonly Dataset[];
   /** Which stored firms are no buyer (`wren email screen`, and after every import), or null. */
   readonly screen: CompanyScreen | null;
+  /** Meta Ad Library searches whose advertisers become this niche's firms (the `adLibrary` stage). */
+  readonly adKeywords: readonly string[];
 }
 
 export interface NicheSpec {
@@ -96,6 +98,7 @@ export interface NicheSpec {
   readonly platformDomains?: Iterable<string>;
   readonly datasets?: (dataDir: string) => readonly Dataset[];
   readonly screen?: CompanyScreen;
+  readonly adKeywords?: readonly string[];
 }
 
 /** A niche-owned import format: `build` and `help` here, name and niche from the caller. */
@@ -232,6 +235,7 @@ export function defineNiche(spec: NicheSpec): Niche {
     platformDomains: new Set(spec.platformDomains ?? []),
     datasets: spec.datasets ?? (() => []),
     screen: spec.screen ?? null,
+    adKeywords: spec.adKeywords ?? [],
   };
 }
 

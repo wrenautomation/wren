@@ -17,9 +17,15 @@ describe("stageEnabled", () => {
       "applyPicks",
     ]);
     expect(on("all", true)).toEqual(
-      STAGES.filter((s) => s !== "profiles" && s !== "team" && s !== "youtube"),
+      STAGES.filter(
+        (s) => s !== "profiles" && s !== "team" && s !== "youtube" && s !== "adLibrary",
+      ),
     );
     expect(STAGES.filter((s) => stageEnabled(s, "none", false, false, true))).toContain("youtube");
+    // New firms first, so the same pass discovers and crawls them.
+    expect(STAGES.filter((s) => stageEnabled(s, "none", false, false, false, true))[0]).toBe(
+      "adLibrary",
+    );
     expect(on("none", true)).toEqual(
       expect.arrayContaining(["resolveMailboxes", "verifyMailboxes"]),
     );

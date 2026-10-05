@@ -35,6 +35,17 @@ export const recruiting = defineNiche({
     "partners",
     "associates",
   ],
+  // Staffing firms advertise roles and their services; both name the firm.
+  adKeywords: [
+    "staffing agency",
+    "recruiting firm",
+    "recruitment agency",
+    "executive search",
+    "staffing services",
+    "temp agency",
+    "healthcare staffing",
+    "IT staffing",
+  ],
   templatesDir: templatesDir(import.meta.url, "recruiting"),
   // Every firm gets book-first for now (William, 10-02). The demo arm stays defined so
   // switching it back on is one plan line. Each arm's `reply` copy is drafted for

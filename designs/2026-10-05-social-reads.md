@@ -39,10 +39,19 @@
 ## Next, in order
 
 1. **Exa niche search as a source:** people and companies by niche, title and city, on the shared Exa bucket.
-2. **Meta Ad Library, logged out,** as a source: firms running ads in a niche now. The Ad Library API only covers political ads outside the EU, so it's a browser read. Built 2026-10-05 as autobrowse walk `fb-public/ad-library` (records op, `designs/2026-10-05-records-and-ai-steps.md` there): Library ID, advertiser, start date, ad text and call to action, 25 to 30 ads a keyword in about 9s with no model. Next: a wren stage that runs it per niche keyword and turns advertisers into firms.
+2. **Meta Ad Library, logged out,** as a source: firms running ads in a niche now. The Ad Library API only covers political ads outside the EU, so it's a browser read. Built 2026-10-05 as autobrowse walk `fb-public/ad-library` (records op, `designs/2026-10-05-records-and-ai-steps.md` there): Library ID, advertiser, start date, ad text and call to action, 25 to 30 ads a keyword in about 9s with no model. Built 2026-10-05 as the `adLibrary` pool stage, below.
 3. **Instagram `business_discovery`:** bio, site and recent captions of business accounts, officially. It needs our Instagram business account and app permissions.
 4. **YouTube channel search** as a source, on the reserved units.
 5. **Facebook groups**, below.
+
+## Ad Library as a source
+
+- **Read.** autobrowse `fb-public GET /ads?q=&country=US` runs the walk on the Mac (signed out, home IP). Each ad comes back whole: Library ID, advertiser, its page, start date, text, call to action, the link it sends to (unwrapped from `l.facebook.com`), every outbound link, the shown domain, and the card's whole text.
+- **Firms.** Each read is one import of source `ad_library`, one row per ad. A firm is its ad's link domain (registrable, so `lp.` and `go.` hosts fold in). Forms, chats and funnel hosts (`leadconnectorhq.com`, `wa.me`, `typeform.com`...) don't count. An advertiser that never links home is keyed `fb:<page>`, so nothing is dropped. A firm already on file is seen again, never rewritten. A new firm keeps its first ad as `raw`, and every later ad is a sighting.
+- **Keywords.** Each niche lists its own (`adKeywords`): 8 for recruiting, 8 for agencies, none for sec_ria. A keyword is read again after 7 days.
+- **Pacing.** A bucket over the imports: 48 reads a day, burst 6. autobrowse also caps `fb-public` at 200 a day and spaces reads 20 to 40s apart. A read takes about 9s. $0.
+- **Where it runs.** First in `PoolScheduler/<niche>`, so the same pass discovers and crawls the new firms; the niche's screen runs on them first. By hand: `Enrichment/<niche>/adLibrary`. It needs the Mac on; when it's off the stage fails fast and the rest of the pass goes on.
+- **Not yet.** A firm first keyed by its page and later seen with a domain stays two firms. Merging them is a later pass.
 
 ## Facebook groups
 
@@ -81,3 +90,4 @@ Meta removed the Graph Groups API from every version on 2024-04-22, so no app ca
 - 2026-10-05: Store everything (William, via the lead-list session). YouTube asks for every part and keeps the raw resources. Uploads go 50 deep with videos.list stats, and old reads backfill on their own. That's 3 units a firm, so the bucket dropped to 2,000 firms a day. Every autobrowse answer that wren reads is kept whole as a document.
 - 2026-10-05: Facebook groups (William: "make sure to add facebook group scraping too"). Meta removed the Groups API from all versions on 2024-04-22, so groups are logged-out browser reads for now. A logged-in reading account is William's call because of the ban risk above.
 - 2026-10-05 trial: 105 recruiting firms read (210 units, $0). 22 had a non-Short upload in 90 days, 11 in 30. Three slot prompts on those 22 titles (≈ $0.10 of Cohere): asking for the phrase "after your recent video on" made the model echo it; asking for lowercase broke the word cap. The prompt that shipped gives one mid-sentence example and refuses anything not about work. 11 of 22 passed, and all of them read naturally; a refusal only drops the option.
+- 2026-10-05: Ad Library advertisers become firms (`adLibrary` stage, peer ask relaying William). Domain first, page key only when there's no domain, every ad kept. The walk now keeps the link each ad sends to; the first version kept only the button label.

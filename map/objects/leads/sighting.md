@@ -35,7 +35,7 @@ Citations: `packages/core/src/schema.ts:175`
 
 | Surface | Role |
 |---|---|
-| importers, `Discovery` | write |
+| importers, `Discovery`, the `adLibrary` pool stage (one sighting per ad after a firm's first) | write |
 | nobody in prod | reads (audit only) |
 
 ## See

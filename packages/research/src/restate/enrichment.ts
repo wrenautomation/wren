@@ -11,13 +11,29 @@
  * Each handler is one ledger run: opened before the first unit, closed with stats.
  */
 import * as restate from "@restatedev/restate-sdk";
-import { type Company, companies, finishRun, openRun } from "@wren/core";
+import {
+  type Company,
+  type CompanyScreen,
+  companies,
+  finishRun,
+  openRun,
+  runScreen,
+} from "@wren/core";
 import type { SiteClient } from "@wren/core/content";
 import { clientOfKey, exclusiveHandler } from "@wren/core/restate";
 import { atomic, type Db, type Queryable } from "@wren/db";
 import { type LlmClient, NULL_TRACER, type Tracer } from "@wren/llm";
 import { eq } from "drizzle-orm";
 import { z } from "zod";
+import {
+  AD_LIBRARY_COMMAND,
+  type AdLibraryStats,
+  adKeywordsDue,
+  adLibraryRoom,
+  adLibraryUnit,
+  countAdLibraryUnit,
+  emptyAdLibraryStats,
+} from "../enrichment/ad-library.js";
 import { backfillCallRecords } from "../enrichment/audit-backfill.js";
 import {
   CONTACTS_MODEL,
@@ -152,6 +168,14 @@ export interface EnrichmentDeps {
   recheck?: (db: Queryable, companyIds: number[]) => Promise<unknown>;
   /** The YouTube Data API as Wren's service account; null = `youtube` refuses. */
   youtube?: YouTubeGet | null;
+  /** autobrowse on the Mac (`desk`), for the signed-out `fb-public` reads; null = `adLibrary` refuses. */
+  desk?: SiteClient | null;
+  /** A niche's Ad Library keywords, its platform hosts and its screen (the niche registry's). */
+  adsFor?: (niche: string) => {
+    keywords: readonly string[];
+    platforms: Iterable<string>;
+    screen: CompanyScreen | null;
+  } | null;
 }
 
 /**
@@ -824,6 +848,55 @@ export function makeEnrichment(deps: EnrichmentDeps) {
             stats.stopped = countYouTubeUnit(stats, u, streak);
             if (stats.stopped) break;
           }
+          await close(ctx, runId, stats);
+          return stats;
+        },
+      ),
+
+      adLibrary: exclusiveHandler(
+        { input: LIMIT },
+        async (ctx: restate.ObjectContext, input: LimitInput = {}): Promise<AdLibraryStats> => {
+          // The firms land on main: Wren's niches only.
+          if (clientOfKey(ctx.key.split("@")[0] as string))
+            throw new restate.TerminalError("Ad Library reads run on Wren's niches only");
+          const desk = deps.desk;
+          if (!desk) throw new restate.TerminalError("no desk client for fb-public");
+          const { db, niche } = scope(ctx);
+          if (niche === null) throw new restate.TerminalError("Ad Library reads need a niche key");
+          const ads = deps.adsFor?.(niche) ?? null;
+          const limit = input?.limit ?? 3;
+          const runId = await open(ctx, AD_LIBRARY_COMMAND, { limit, niche });
+          const plan = await ctx.run("select", async () => {
+            const now = new Date();
+            const { room, nextInMs } = await adLibraryRoom(db, now);
+            if (room === 0)
+              return { why: `bucket empty: next read in ${Math.ceil(nextInMs / 1000)}s`, work: [] };
+            const keywords = ads?.keywords ?? [];
+            return {
+              why: null,
+              work: await adKeywordsDue(db, keywords, { now, limit: Math.min(limit, room) }),
+            };
+          });
+          const stats = emptyAdLibraryStats();
+          stats.selected = plan.work.length;
+          stats.stopped = plan.why;
+          for (const q of plan.work) {
+            const r = await unit(ctx, `ads ${q}`, () =>
+              adLibraryUnit(db, desk, { q, niche, platforms: ads?.platforms ?? [] }),
+            );
+            if (!r.ok) {
+              stats.stopped = r.reason;
+              break;
+            }
+            stats.stopped = countAdLibraryUnit(stats, r.value);
+            if (stats.stopped) break;
+          }
+          // New firms get the niche's screen (chains, foreign, its own rule) before any stage reads them.
+          const screen = ads?.screen;
+          if (stats.created > 0 && screen)
+            await ctx.run("screen", async () => {
+              await runScreen(db, niche, screen);
+            });
           await close(ctx, runId, stats);
           return stats;
         },

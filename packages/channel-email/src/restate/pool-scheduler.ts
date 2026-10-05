@@ -67,6 +67,7 @@ import { RESOLUTION_KEY, type Resolution } from "./resolution.js";
 export const POOL_COMMAND = "pool feed";
 export type ModelStages = "none" | "pick" | "all";
 export const STAGES = [
+  "adLibrary",
   "discover",
   "verify",
   "crawl",
@@ -86,6 +87,8 @@ export type Stage = (typeof STAGES)[number];
 
 /** How many units one pass hands each stage; the chain's per-pass ceiling. */
 export interface StageLimits {
+  /** Keywords whose Ad Library advertisers are read this pass; free, paced by its bucket. */
+  adLibrary: number;
   discover: number;
   verify: number;
   crawl: number;
@@ -106,6 +109,7 @@ export interface StageLimits {
   profiles: number;
 }
 export const DEFAULT_LIMITS: StageLimits = {
+  adLibrary: 3,
   discover: 10,
   verify: 10,
   crawl: 10,
@@ -151,12 +155,14 @@ export function stagesToRun(
   freeVerifier = false,
   profiles = false,
   youtube = false,
+  adLibrary = false,
 ): Set<Stage> {
   const chosen = settings?.stages ? new Set(settings.stages) : null;
   return new Set(
     STAGES.filter(
       (s) =>
-        stageEnabled(s, modelStages, freeVerifier, profiles, youtube) && (!chosen || chosen.has(s)),
+        stageEnabled(s, modelStages, freeVerifier, profiles, youtube, adLibrary) &&
+        (!chosen || chosen.has(s)),
     ),
   );
 }
@@ -205,6 +211,8 @@ export interface PoolSchedulerDeps {
   profiles?: ProfilesStage;
   /** The YouTube reader is wired (Enrichment's `youtube`): the stage runs on Wren's niches. */
   youtube?: boolean;
+  /** The Mac's desk is wired (Enrichment's `adLibrary`): the stage runs on Wren's niches. */
+  adLibrary?: boolean;
   /** Between passes that found work. */
   busyMs?: number;
   /** The longest delay after passes in which a stage failed (backoff cap). */
@@ -290,6 +298,8 @@ export const progressOf: Record<Stage, (s: Record<string, number>) => number> = 
   team: (s) => (s.firms_matched ?? 0) + (s.firms_unresolved ?? 0) + (s.firms_skipped ?? 0),
   // A read or a missing channel is a profile finding, which leaves the selection for 30 days.
   youtube: (s) => (s.read ?? 0) + (s.missing ?? 0),
+  // A keyword read is an import, which leaves the selection for a week.
+  adLibrary: (s) => s.read ?? 0,
   // A person written to person_lookups leaves the selection; an error or a cap does not.
   profiles: (s) => (s.people_matched ?? 0) + (s.people_unresolved ?? 0),
 };
@@ -305,9 +315,11 @@ export function stageEnabled(
   freeVerifier = false,
   profiles = false,
   youtube = false,
+  adLibrary = false,
 ): boolean {
   if (stage === "extract") return modelStages === "all";
   if (stage === "youtube") return youtube;
+  if (stage === "adLibrary") return adLibrary;
   // Both spend the same Exa budget: one switch.
   if (stage === "profiles" || stage === "team") return profiles;
   if (stage === "resolveMailboxes" || stage === "verifyMailboxes") return freeVerifier;
@@ -367,6 +379,7 @@ export function makePoolScheduler(deps: PoolSchedulerDeps) {
       deps.freeVerifier,
       client === null && deps.profiles !== undefined,
       client === null && niche !== null && (deps.youtube ?? false),
+      client === null && niche !== null && (deps.adLibrary ?? false),
     );
     if (limits.resolveMailboxes === 0) runnable.delete("resolveMailboxes");
     if (limits.verifyMailboxes === 0) runnable.delete("verifyMailboxes");
@@ -378,6 +391,7 @@ export function makePoolScheduler(deps: PoolSchedulerDeps) {
     // Absent niche = every niche's leads, which is a client's `all`.
     const on = { ...(client !== null ? { client } : {}), ...(niche !== null ? { niche } : {}) };
     const calls: Record<Stage, () => Promise<object>> = {
+      adLibrary: () => enrichment.adLibrary({ limit: limits.adLibrary }),
       discover: () => discovery.discover({ limit: limits.discover, ...words }),
       verify: () => discovery.verify({ limit: limits.verify, ...words }),
       crawl: () => enrichment.crawl({ limit: limits.crawl, ...hints }),
@@ -450,6 +464,7 @@ export function makePoolScheduler(deps: PoolSchedulerDeps) {
           free_verifier: deps.freeVerifier ?? false,
           profiles: deps.profiles !== undefined,
           youtube: deps.youtube ?? false,
+          ad_library: deps.adLibrary ?? false,
           stages: [...runnable],
           limits,
         },

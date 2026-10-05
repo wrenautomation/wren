@@ -94,6 +94,16 @@ export const agencies = defineNiche({
       { directory: true },
     ),
   ],
+  adKeywords: [
+    "marketing agency",
+    "digital marketing agency",
+    "social media marketing agency",
+    "SEO agency",
+    "web design agency",
+    "Shopify agency",
+    "lead generation agency",
+    "branding agency",
+  ],
   platformDomains: DIRECTORY_DOMAINS,
   // The one fetch: profile pages for slugs a human already saved under <data>/agencies/shopify.
   datasets: (dataDir) => [shopifyProfileDataset(join(dataDir, NICHE, "shopify"))],

@@ -46,6 +46,12 @@ export function nicheFor(niche: string): Niche {
 const union = (pick: (n: Niche) => ReadonlySet<string>): ReadonlySet<string> =>
   new Set(NICHES.flatMap((n) => [...pick(n)]));
 
+/** What the `adLibrary` stage needs from a niche: its searches, its platform hosts, its screen. */
+export function adLibraryFor(niche: string) {
+  const n = nicheFor(niche);
+  return { keywords: n.adKeywords, platforms: n.platformDomains, screen: n.screen };
+}
+
 /** One niche's discovery vocabulary, or the union when unscoped. */
 export function discoveryWordsFor(niche: string | null): ReadonlySet<string> {
   requireNiche(niche);
