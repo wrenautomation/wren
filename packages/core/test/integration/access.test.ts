@@ -184,6 +184,18 @@ describe("the Team page", () => {
     await expect(portal().recordsTypes(as(NEW))).rejects.toThrow("no access");
   });
 
+  it("shows an admin who changed what, as a field diff; nobody else", async () => {
+    expect((await portal().recordsTypes(TEAM_VIEWER)).map((t) => t.id)).not.toContain(
+      "console.change",
+    );
+    const list = await portal().recordsList({ ...ADMIN, record: "console.change", view: "people" });
+    const role = list.rows.find(
+      (r) => r.table === "operators" && /^role: \w+ → \w+$/.test(String(r.change)),
+    );
+    expect(role).toMatchObject({ who: ADMIN.viewer.email, madeBy: "person", op: "update" });
+    expect(list.totals).not.toHaveProperty("change");
+  });
+
   it("keeps the last admin", async () => {
     await expect(
       portal().teamSet({ ...ADMIN, email: ADMIN.viewer.email, role: "viewer" }),

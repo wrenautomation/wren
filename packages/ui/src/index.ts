@@ -74,6 +74,7 @@ export {
   type RecordSource,
   type RecordsApi,
   type RecordTemplateProps,
+  useLoad,
 } from "./records.js";
 export { type LocalRecords, localRecords } from "./records-local.js";
 export {

@@ -59,7 +59,7 @@ function Queue({
   const { params } = place;
   const one = meta.name.one;
   const ask = askOf(meta, params);
-  const page = useLoad(JSON.stringify(ask), () => api.list(ask));
+  const page = useLoad(JSON.stringify(ask), () => api.list(ask), api);
   const rows = page.data?.rows ?? [];
   const asked = params.get(one);
   const at = Math.max(

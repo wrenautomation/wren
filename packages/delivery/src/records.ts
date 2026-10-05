@@ -4,6 +4,7 @@
  * note), so the portal's List, Queue and Overview draw them like any other record.
  */
 
+import { CHANGE_FIELDS, CHANGE_VIEWS } from "@wren/core/clients";
 import { PortalRefusal } from "@wren/core/portal";
 import {
   actor,
@@ -18,6 +19,7 @@ import {
   text,
 } from "@wren/core/records";
 import type { Queryable } from "@wren/db";
+import { sql } from "drizzle-orm";
 import {
   type DeliveryHome,
   deliveryHome,
@@ -26,6 +28,74 @@ import {
   type UpdateView,
   WORK_APP,
 } from "./index.js";
+
+/** Wren's own notes on a project: a client's people never see a change to them. */
+const TEAM_TABLES = ["delivery.pings", "delivery.pulses", "delivery.moments"];
+type Event = {
+  id: string;
+  table_name: string;
+  row_key: Record<string, unknown> | null;
+  old_values: Record<string, unknown> | null;
+  new_values: Record<string, unknown> | null;
+};
+
+/**
+ * One client's changes from main's log, the last 7 days, as `audit_changes` lines: its row, its
+ * people, and its projects' rows. An insert logs only the key, so a row's project is read from
+ * the row; a row deleted since is matched by what its delete logged. A team-only update is left out.
+ */
+export async function clientChanges(db: Queryable, clientId: string) {
+  const events = await db.execute<Event>(sql`
+    select id::text id, table_name, row_key, old_values, new_values from audit_events
+    where at > now() - interval '7 days'
+      and (table_name like 'delivery.%' or table_name in ('clients', 'client_members'))
+      and not table_name = any(${`{${TEAM_TABLES}}`}::text[])`);
+  const mine = new Set(
+    (
+      await db.execute<{ id: number }>(
+        sql`select id from delivery.engagements where client_id = ${clientId}`,
+      )
+    ).map((r) => String(r.id)),
+  );
+  const field = (e: Event, k: string) => e.row_key?.[k] ?? e.new_values?.[k] ?? e.old_values?.[k];
+  // Rows logged by id alone: their project and team flag, read once per table.
+  const live = new Map<string, Map<string, { engagement: string; internal: boolean }>>();
+  for (const table of new Set(events.map((e) => e.table_name))) {
+    if (!/^delivery\.[a-z_]+$/.test(table) || table === "delivery.member_mail") continue;
+    const ids = events
+      .filter((e) => e.table_name === table && e.row_key?.id != null)
+      .map((e) => Number(e.row_key?.id));
+    if (!ids.length) continue;
+    const engagement = table === "delivery.engagements" ? "id" : "engagement_id";
+    const internal = table === "delivery.updates" ? "internal" : "false";
+    const rows = await db.execute<{ id: number; engagement: number; internal: boolean }>(
+      sql`select id, ${sql.raw(engagement)} engagement, ${sql.raw(internal)} internal
+          from ${sql.raw(table)} where id = any(${`{${ids}}`}::int[])`,
+    );
+    live.set(
+      table,
+      new Map(
+        rows.map((r) => [String(r.id), { engagement: String(r.engagement), internal: r.internal }]),
+      ),
+    );
+  }
+  const ours = (e: Event) => {
+    if (e.table_name === "clients") return String(e.row_key?.id) === clientId;
+    if (e.table_name === "client_members" || e.table_name === "delivery.member_mail")
+      return String(field(e, "client_id")) === clientId;
+    const row = live.get(e.table_name)?.get(String(e.row_key?.id));
+    if (row?.internal || e.old_values?.internal === true || e.new_values?.internal === true)
+      return false;
+    const engagement =
+      e.table_name === "delivery.engagements" ? e.row_key?.id : field(e, "engagement_id");
+    return mine.has(String(engagement ?? row?.engagement));
+  };
+  const ids = events.filter(ours).map((e) => e.id);
+  if (!ids.length) return [];
+  return db.execute<Record<string, unknown>>(
+    sql`select * from audit_changes where id = any(${`{${ids}}`}::text[])`,
+  );
+}
 
 const STEP: Record<string, State> = {
   late: { label: "Late", tone: "bad" },
@@ -100,7 +170,7 @@ async function allUpdates(
 /**
  * The types for one client as this viewer sees them, read once per request: the projects run
  * in `app`, or all of them in the work app. Invoices are every project's, read only when
- * `bills` says this viewer may: an owner or Wren.
+ * `bills` says this viewer may: an owner or Wren. Changes likewise, when `manages` says so.
  * ponytail: a client's projects share one list; split by project if one client ever runs two
  * in the same app at once.
  */
@@ -110,6 +180,7 @@ export function deliveryRecords(
   operator: boolean,
   app = WORK_APP,
   bills: () => Promise<boolean> = async () => operator,
+  manages: () => Promise<boolean> = async () => operator,
 ): RecordType[] {
   let home: Promise<DeliveryHome> | undefined;
   const es = async () => {
@@ -415,5 +486,19 @@ export function deliveryRecords(
     ],
   });
 
-  return [step, update, ask, deliverable, paperwork, result, invoice];
+  const change = defineRecord({
+    id: "delivery.change",
+    name: { one: "change", many: "changes" },
+    rows: async () => {
+      if (!(await manages())) throw new PortalRefusal("changes are for this account's owners", 403);
+      return clientChanges(db, clientId);
+    },
+    key: "id",
+    title: "change",
+    subtitle: "who",
+    fields: CHANGE_FIELDS,
+    views: CHANGE_VIEWS,
+  });
+
+  return [step, update, ask, deliverable, paperwork, result, invoice, change];
 }

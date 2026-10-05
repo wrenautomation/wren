@@ -198,6 +198,10 @@ describe("check", () => {
     expect(checked(reading({ plan: null }), INVOICE, one).bill?.plan).toBe("Suite");
     expect(checked(reading({ plan: "Suite Plus" }), INVOICE, one).bill?.plan).toBe("Suite");
     expect(checked(reading({ plan: "Suite Plus" })).bill?.plan).toBe("Suite Plus");
+    // A one-off purchase from the same vendor (API credits) keeps its own name.
+    expect(checked(reading({ plan: "Credits", cycle: "once" }), INVOICE, one).bill?.plan).toBe(
+      "Credits",
+    );
   });
 
   it("turns a credit note negative", () => {

@@ -48,5 +48,7 @@ export const PLATFORM = {
     "console.handler": "every handler",
     "console.component": "every component",
     "console.team": "Wren's team",
+    "console.change": "who changed what, from the audit log",
+    "delivery.change": "who changed an account's rows, from the audit log",
   },
 } as const;

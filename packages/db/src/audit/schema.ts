@@ -50,6 +50,7 @@ export const auditEvents = pgTable(
   (t) => [
     index("ix_audit_events_era_tx").on(t.era, t.tx, t.id),
     index("ix_audit_events_table_at").on(t.tableName, t.at),
+    index("ix_audit_events_at").on(t.at),
   ],
 );
 

@@ -1,34 +1,28 @@
 /** Loading a portal call into a component. */
-import { useEffect, useState } from "react";
+import { useLoad } from "@wren/ui";
 import { ApiError } from "./api.js";
 
-type State<T> = { data: T | null; error: ApiError | null; loading: boolean };
-export type Load<T> = State<T> & { retry: () => void };
+export type Load<T> = {
+  data: T | null;
+  error: ApiError | null;
+  loading: boolean;
+  retry: () => void;
+};
+
+/** Every portal call's last answers; each key names its client. */
+const PORTAL = {};
 
 /**
- * Run `fn` whenever `key` changes, or on `retry`; the last answer stays on
- * screen while the next loads.
+ * Run `fn` whenever `key` changes, or on `retry`; the last answer stays on screen while the
+ * next loads, and one seen before in this tab shows at once while it refreshes.
  */
 export function useCall<T>(key: string, fn: () => Promise<T>): Load<T> {
-  const [state, setState] = useState<State<T>>({ data: null, error: null, loading: true });
-  const [attempt, setAttempt] = useState(0);
-  // biome-ignore lint/correctness/useExhaustiveDependencies: `key` names everything `fn` reads; `attempt` asks again.
-  useEffect(() => {
-    let live = true;
-    setState((s) => ({ ...s, error: null, loading: true }));
-    fn().then(
-      (data) => live && setState({ data, error: null, loading: false }),
-      (err: unknown) =>
-        live &&
-        setState((s) => ({
-          data: s.data,
-          error: err instanceof ApiError ? err : new ApiError(String(err), 0),
-          loading: false,
-        })),
-    );
-    return () => {
-      live = false;
-    };
-  }, [key, attempt]);
-  return { ...state, retry: () => setAttempt((n) => n + 1) };
+  return useLoad(
+    key,
+    () =>
+      fn().catch((err: unknown) => {
+        throw err instanceof ApiError ? err : new ApiError(String(err), 0);
+      }),
+    PORTAL,
+  ) as Load<T>;
 }

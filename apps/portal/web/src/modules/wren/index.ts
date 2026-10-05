@@ -748,7 +748,7 @@ export const team: Module = {
   id: "team",
   name: "Team",
   icon: "people",
-  blurb: "Who on Wren's team signs in, their role and which clients they see.",
+  blurb: "Who on Wren's team signs in, their role, which clients they see, and who changed what.",
   requires: { ...TEAM, needs: "team" },
   pages: [
     {
@@ -758,6 +758,14 @@ export const team: Module = {
       record: "console.team",
       empty: "Nobody yet.",
       actions: TEAM_ACTIONS,
+    },
+    {
+      id: "changes",
+      label: "Changes",
+      template: "list",
+      record: "console.change",
+      empty: { today: "No changes today.", people: "Nobody changed anything by hand this week." },
+      columns: ["at", "who", "op", "table", "row", "change"],
     },
   ],
 };

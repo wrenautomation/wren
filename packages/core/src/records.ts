@@ -174,6 +174,16 @@ export const KINDS = {
     column: left,
     csv: plain,
   },
+  /** Long text with its line breaks (an email's copy): its own section on the page, never a column. */
+  prose: {
+    sql: "text",
+    ops: ["contains", "empty"],
+    sortable: false,
+    searchable: true,
+    masked: false,
+    column: null,
+    csv: plain,
+  },
   /** Text with source marks (`[f12]`); the record's `load` answers the sources they name. */
   cited: {
     sql: "text",
@@ -209,6 +219,8 @@ export interface Field {
   of?: string;
   /** score: its top. */
   max?: number;
+  /** false: no footer total, for a column too costly to compute over every row. */
+  total?: false;
   /**
    * Its heading on a record's page; ungrouped fields come first. An actor and the created and
    * updated dates default to "System", drawn last and folded.
@@ -231,6 +243,7 @@ export const percent = kind("percent");
 export const date = kind("date");
 export const link = kind("link");
 export const cited = kind("cited");
+export const prose = kind("prose");
 export const actor = kind("actor");
 export const score = (label?: string, opts: Opts = {}) =>
   kind("score")(label, { max: 100, ...opts });

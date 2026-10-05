@@ -27,7 +27,7 @@ export function RecordForm({ record, api, columns, acts, empty, title }: RecordT
   const types = useTypes(api);
   const meta = types.data?.find((t) => t.id === record);
   // ponytail: one page of 200 lines; a form that long wants a List.
-  const page = useLoad(record, () => api.list({ record, limit: 200 }));
+  const page = useLoad(record, () => api.list({ record, limit: 200 }), api);
   const names = meta?.name ?? { one: "item", many: "items" };
   const { run, busy, running, dialog } = useRun(acts?.call ?? NO_CALL, page.retry, names);
   const error = (types.error && !types.data) || (page.error && !page.data);

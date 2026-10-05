@@ -11,7 +11,7 @@ import { BOOKS_RECORDS } from "@wren/books/records";
 import { emailRecords } from "@wren/channel-email/records";
 import type { SendPolicy } from "@wren/channel-email/send/policy";
 import { loadSettings } from "@wren/config";
-import { type Client, clientRecord, teamRecord } from "@wren/core/clients";
+import { type Client, changeRecord, clientRecord, teamRecord } from "@wren/core/clients";
 import { ACCOUNT_SITES } from "@wren/core/components";
 import { componentRecord, handlerRecord, loopRecord } from "@wren/core/console";
 import { MARKETING_RECORDS } from "@wren/core/marketing/records";
@@ -76,6 +76,7 @@ const RECORDS = [
   ...MARKETING_NUMBERS,
   clientRecord,
   teamRecord,
+  changeRecord,
   loopRecord(async () => []),
   handlerRecord(async () => ({})),
   componentRecord([], null, false),

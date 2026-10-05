@@ -23,6 +23,8 @@ One trigger function on every table of every schema (`public`, `books`, any new 
 - `sealAudit`, `verifyAudit`, `setAuditActor` (`:190`, `:222`, `:249`)
 - `AuditSealer/all`: every database, 4 at a time, every 15 min (`packages/core/src/audit.ts:47`, `:78`); registered in `apps/worker/src/services.ts:369`, off until started
 - CLI `wren [--client id] audit show|seal|verify|sealer` (`apps/cli/src/main.ts:127`)
+- `audit_changes` view (`packages/db/src/audit/install.ts:221`, rebuilt each migrate; index on `at`, `:218`): the last 7 days as who, made by (person, agent, pipeline), area (money, client, team, data) and an update's field diff
+- Read as records: `console.change` (`packages/core/src/clients/index.ts:387`, need `team`) for main; `delivery.change` (`packages/delivery/src/records.ts:490`, need `manage`) for one client's rows via `clientChanges` (`:47`), never team notes or pings
 
 Citations: `packages/db/src/audit/schema.ts:26`, `packages/db/src/audit/install.ts:76`, `packages/core/src/audit.ts:47`
 
@@ -44,6 +46,7 @@ Citations: `packages/db/src/audit/schema.ts:26`, `packages/db/src/audit/install.
 | every write, any login | appends (trigger) |
 | `AuditSealer/all`, `wren audit seal` | seals |
 | `wren audit verify [--all]`, `wren audit show` | reads |
+| Wren → Team → Changes, Account → Changes | reads the last 7 days |
 | worker log (CloudWatch) | keeps each seal's hash |
 
 ## See

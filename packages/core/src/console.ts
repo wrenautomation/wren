@@ -33,6 +33,7 @@ import { TEAM_ROLES, type TeamRole, WREN } from "./access.js";
 import {
   addClient,
   type Client,
+  changeRecord,
   clients,
   isOwner,
   LastAdmin,
@@ -707,6 +708,7 @@ export function consoleApi({
     ...(admin ? [loopRecord(admin)] : []),
     ...(adminGet ? [handlerRecord(adminGet)] : []),
     teamRecord,
+    changeRecord,
   ];
   const team = (req: PortalRequest) => {
     if (!seesInternal(req)) throw new PortalRefusal("that's for Wren's team", 403);

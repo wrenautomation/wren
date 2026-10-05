@@ -158,31 +158,35 @@ function TileGhost() {
 function Tile({ tile, meta, api }: { tile: OverviewTile; meta: RecordMeta; api: RecordsApi }) {
   const ask = askFor(meta, tile.href);
   const { period, pick } = tile;
-  const load = useLoad(JSON.stringify([tile, ask]), async (): Promise<RecordsStat> => {
-    if (pick) {
-      if (!api.stats) throw new Error("No numbers here.");
-      return api.stats({ ...ask, pick, zone: ZONE, ...(tile.at ? { at: tile.at } : {}) });
-    }
-    if (period) {
-      if (!api.stats) throw new Error("No numbers here.");
-      return api.stats({
-        ...ask,
-        period,
-        zone: ZONE,
-        ...(tile.at ? { at: tile.at } : {}),
-        ...(tile.sum ? { sum: tile.sum } : {}),
-      });
-    }
-    const page = await api.list({ ...ask, limit: 1 });
-    return {
-      record: meta.id,
-      view: page.view,
-      value: page.total,
-      prior: 0,
-      series: [],
-      currency: null,
-    };
-  });
+  const load = useLoad(
+    JSON.stringify([tile, ask]),
+    async (): Promise<RecordsStat> => {
+      if (pick) {
+        if (!api.stats) throw new Error("No numbers here.");
+        return api.stats({ ...ask, pick, zone: ZONE, ...(tile.at ? { at: tile.at } : {}) });
+      }
+      if (period) {
+        if (!api.stats) throw new Error("No numbers here.");
+        return api.stats({
+          ...ask,
+          period,
+          zone: ZONE,
+          ...(tile.at ? { at: tile.at } : {}),
+          ...(tile.sum ? { sum: tile.sum } : {}),
+        });
+      }
+      const page = await api.list({ ...ask, limit: 1 });
+      return {
+        record: meta.id,
+        view: page.view,
+        value: page.total,
+        prior: 0,
+        series: [],
+        currency: null,
+      };
+    },
+    api,
+  );
   if (!load.data && !load.error) return <TileGhost />;
   const s = load.data;
   const kind = pick ? meta.fields.find((f) => f.key === pick)?.kind : undefined;
@@ -276,8 +280,10 @@ function Bars({ series, slots }: { series: RecordsStat["series"]; slots: number 
 function Top({ top, meta, api }: { top: OverviewTop; meta: RecordMeta; api: RecordsApi }) {
   const ask = askFor(meta, top.href);
   const sort = split(top.href).params.get("sort");
-  const page = useLoad(JSON.stringify([top.href, ask]), () =>
-    api.list({ ...ask, ...(sort ? { sort } : {}), limit: TOP }),
+  const page = useLoad(
+    JSON.stringify([top.href, ask]),
+    () => api.list({ ...ask, ...(sort ? { sort } : {}), limit: TOP }),
+    api,
   );
   const fields = top.fields.flatMap((k) => meta.fields.find((f) => f.key === k) ?? []);
   const line = top.line ? meta.fields.find((f) => f.key === top.line) : undefined;

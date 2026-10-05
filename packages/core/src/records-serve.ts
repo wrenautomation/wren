@@ -216,6 +216,7 @@ function totalsOf(t: RecordType, inView: SQL) {
   const all = col(sql`count(*) filter (where ${inView})::int`);
   const reads: [string, (r: Raw) => Total | null][] = [];
   for (const [key, f] of Object.entries(t.fields)) {
+    if (f.total === false) continue;
     const v = valueSql(f);
     if (f.kind === "money") {
       const cur = ref(f.currency ?? "");

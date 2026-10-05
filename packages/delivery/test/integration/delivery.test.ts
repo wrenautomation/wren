@@ -733,6 +733,41 @@ describe("the project as records", () => {
     const got = await api.recordsGet({ viewer: AMY, record: "delivery.ask", id: acmeAsk });
     expect(got.detail).toMatchObject({ id: acmeAsk });
   });
+
+  it("an owner reads who changed their account's rows, never another's or a team note", async () => {
+    const { rows } = await list(AMY, "delivery.change", { view: "all" });
+    const tables = new Set(rows.map((r) => r.table));
+    expect(tables).toContain("delivery.asks");
+    expect(tables).toContain("delivery.deliverables");
+    expect(rows.find((r) => r.table === "delivery.deliverables")).toMatchObject({
+      who: OPS.email,
+      madeBy: "person",
+      op: "insert",
+      change: "added",
+    });
+    const rowsOf = (rs: typeof rows, table: string) =>
+      new Set(rs.filter((r) => r.table === table).map((r) => r.row));
+    const bo = (await list(BO, "delivery.change", { view: "all" })).rows;
+    const amys = rowsOf(rows, "delivery.deliverables");
+    const bos = rowsOf(bo, "delivery.deliverables");
+    expect(amys).toContain(String(acmeDeliverable));
+    expect(bos).toContain(String(betaDeliverable));
+    expect([...amys].filter((id) => bos.has(id))).toEqual([]);
+    const notes = await pg.db.execute<{ id: number }>(
+      sql`select id from delivery.updates where internal`,
+    );
+    expect(notes.length).toBeGreaterThan(0);
+    const updates = rowsOf(rows, "delivery.updates");
+    expect(updates).toContain(String(acmeUpdate));
+    for (const n of notes) expect(updates).not.toContain(String(n.id));
+  });
+
+  it("a member who isn't an owner is refused the changes", async () => {
+    await addMember(pg.db, "acme", "cy@acme.example", { role: "member" });
+    expect(
+      await refused(list({ email: "cy@acme.example" }, "delivery.change", { view: "all" })),
+    ).toBe(403);
+  });
 });
 
 describe("an engagement's end", () => {

@@ -122,20 +122,49 @@ export interface RecordTemplateProps {
 
 type Load<T> = { data: T | null; error: Error | null; loading: boolean; retry: () => void };
 
-/** `fn` whenever `key` changes; the last answer stays on screen while the next loads. */
-export function useLoad<T>(key: string, fn: () => Promise<T>): Load<T> {
-  const [state, setState] = useState<Omit<Load<T>, "retry">>({
-    data: null,
+/**
+ * Last answers per workspace (`scope`, its api) and key, in this tab only: a page seen before
+ * draws at once, then refreshes. Signing out reloads the page, so nothing outlives the person.
+ */
+const SEEN = new WeakMap<object, Map<string, unknown>>();
+const SEEN_MAX = 200;
+function seenIn(scope: object) {
+  let m = SEEN.get(scope);
+  if (!m) SEEN.set(scope, (m = new Map()));
+  return m;
+}
+/** Keep `data` as the newest answer; the oldest goes past `max`. */
+export function remember(seen: Map<string, unknown>, key: string, data: unknown, max = SEEN_MAX) {
+  seen.delete(key);
+  seen.set(key, data);
+  if (seen.size > max) seen.delete(seen.keys().next().value as string);
+}
+
+/**
+ * `fn` whenever `key` changes; the last answer stays on screen while the next loads. With a
+ * `scope` (whatever `fn` asks: its api), an answer seen before shows at once while it refreshes.
+ */
+export function useLoad<T>(key: string, fn: () => Promise<T>, scope?: object): Load<T> {
+  const seen = scope ? seenIn(scope) : null;
+  const [state, setState] = useState<Omit<Load<T>, "retry">>(() => ({
+    data: (seen?.get(key) as T | undefined) ?? null,
     error: null,
     loading: true,
-  });
+  }));
   const [attempt, setAttempt] = useState(0);
   // biome-ignore lint/correctness/useExhaustiveDependencies: `key` names everything `fn` reads.
   useEffect(() => {
     let live = true;
-    setState((s) => ({ ...s, error: null, loading: true }));
+    setState((s) => ({
+      data: seen?.has(key) ? (seen.get(key) as T) : s.data,
+      error: null,
+      loading: true,
+    }));
     fn().then(
-      (data) => live && setState({ data, error: null, loading: false }),
+      (data) => {
+        if (seen) remember(seen, key, data);
+        if (live) setState({ data, error: null, loading: false });
+      },
       (err: unknown) =>
         live &&
         setState((s) => ({
@@ -692,7 +721,7 @@ function List({
 }) {
   const { params } = place;
   const ask = askOf(meta, params);
-  const page = useLoad(JSON.stringify(ask), () => api.list(ask));
+  const page = useLoad(JSON.stringify(ask), () => api.list(ask), api);
   const rows = page.data?.rows ?? [];
   const cols = columnsOf(meta, params, columns);
   const filters = meta.fields.filter(
@@ -1276,7 +1305,7 @@ export function RecordBody({
   rev?: number | undefined;
   onActed?: ((changed: (string | number)[]) => void) | undefined;
 }) {
-  const got = useLoad(`${meta.id}:${id}:${rev}`, () => api.get({ record: meta.id, id }));
+  const got = useLoad(`${meta.id}:${id}:${rev}`, () => api.get({ record: meta.id, id }), api);
   /** An action changed this record: its states wash once they are read again. */
   const [changed, setChanged] = useState(false);
   const { run, busy, running, dialog } = useRun(
@@ -1332,7 +1361,8 @@ export function RecordBody({
         row[f.key] != null,
     )
     .slice(0, 4);
-  const cited = meta.fields.filter((f) => f.kind === "cited" && row[f.key]);
+  // Long text reads as its own section, above the facts.
+  const cited = meta.fields.filter((f) => (f.kind === "cited" || f.kind === "prose") && row[f.key]);
   /**
    * An empty field says nothing ("Why it stopped" on a draft), so it isn't drawn. A fact named
    * like a field says it better (an address beside its verdict) and takes its place.
@@ -1341,6 +1371,7 @@ export function RecordBody({
   const rest = meta.fields.filter(
     (f) =>
       f.kind !== "cited" &&
+      f.kind !== "prose" &&
       f.key !== meta.title &&
       row[f.key] != null &&
       row[f.key] !== "" &&
@@ -1490,7 +1521,7 @@ export function RecordBody({
           {cited.map((f) => (
             <section key={f.key} className="grid gap-1.5">
               <h3 className="text-[13px] font-medium text-(--ui-ink-2)">{f.label}</h3>
-              <p className="text-[14px] leading-[1.65] text-pretty">
+              <p className="text-[14px] leading-[1.65] text-pretty whitespace-pre-line">
                 <FieldLine field={f} cell={row[f.key]} cite={cite} />
               </p>
             </section>
@@ -1591,7 +1622,7 @@ function Related({
 }) {
   const sort = meta.views[0]?.sort;
   const ask: ListAsk = { record: meta.id, of, limit: 25, ...(sort ? { sort } : {}) };
-  const page = useLoad(JSON.stringify(ask), () => api.list(ask));
+  const page = useLoad(JSON.stringify(ask), () => api.list(ask), api);
   if (page.error && !page.data) return <Alert onRetry={page.retry}>{page.error.message}</Alert>;
   if (!page.data) return <div className="h-24 w-full animate-pulse bg-(--ui-wash)" />;
   if (!page.data.rows.length)

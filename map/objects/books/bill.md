@@ -19,7 +19,7 @@ Every figure must be printed on a document we keep, so a bill is the vendor's re
 
 - `bills` (`schema.ts:171`): number, kind (invoice | receipt | credit_note), issued, due, period, currency, subtotal, tax, total, `charged_cad_cents`, plan, cycle, payment method, billed-to, vendor tax number, account, review and reasons, the document read
 - `bill_lines` (`:240`), `bill_taxes` (`:268`, `claimable` per tax), `bill_payments` (`:301`, one row per reference or day and amount, linked by invoice number; none printed = on account, left for statements to place), `bill_documents` (`:345`)
-- Views: `bill_costs` (`:468`, CAD from the live entry), `subscriptions` (`:503`, per vendor and plan, a plan-less yearly bill alone; renews a cycle after the last bill that cost something; leaves out personal and void)
+- Views: `bill_costs` (`:468`, CAD from the live entry), `subscriptions` (`:503`, per vendor and plan, a plan-less yearly bill alone; renews a cycle after the last bill that cost something; leaves out personal and void); `subscription_records` adds "Billed for", the last bill's charged lines (the edition a one-plan vendor hides: Anthropic "Max plan - 20x"). A vendor `plan` holds monthly and yearly bills only, so one-off credits keep their own name
 
 Citations: `packages/books/src/schema.ts:171`, `:240`, `:268`, `:301`, `:345`, `:468`, `:503`, `packages/books/src/read.ts:388`
 

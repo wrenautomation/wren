@@ -133,6 +133,9 @@ const recordsOf = (db: Queryable, c: Client, operator: boolean, req: RecordsReq)
     async () =>
       !isDemo(req.viewer) &&
       (operator ? teamCan(req, "money", c.id) : await isOwner(db, c.id, req.viewer.email)),
+    async () =>
+      !isDemo(req.viewer) &&
+      (operator ? teamCan(req, "manage", c.id) : await isOwner(db, c.id, req.viewer.email)),
   );
 const records = <T>(deps: DeliveryDeps, req: RecordsReq, use: (api: RecordsApi) => Promise<T>) =>
   read(deps, req, (db, c, operator) => use(serveRecords(recordsOf(db, c, operator, req), db)));

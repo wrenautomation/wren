@@ -215,6 +215,34 @@ export const AUDIT_FUNCTION_STATEMENTS = [
     RETURN NEXT;
   END
   $fn$`,
+  "CREATE INDEX IF NOT EXISTS ix_audit_events_at ON audit_events (at)",
+  // The Changes page (`console.change`): the last 7 days as lines a person reads. Older: `wren audit`.
+  "DROP VIEW IF EXISTS audit_changes",
+  `CREATE VIEW audit_changes AS
+  SELECT e.id::text id, e.at,
+    CASE WHEN e.actor LIKE '%@%' THEN e.actor
+      WHEN e.actor LIKE 'claude%' THEN 'agent:' || e.actor
+      WHEN e.actor IS NOT NULL THEN 'person:' || e.actor
+      ELSE 'pipeline:' || split_part(e.app, ':', 1) END who,
+    CASE WHEN e.actor IS NULL THEN 'pipeline' WHEN e.actor LIKE 'claude%' THEN 'agent'
+      ELSE 'person' END made_by,
+    e.app via,
+    e.table_name "table",
+    CASE WHEN e.table_name LIKE 'books.%'
+        OR e.table_name IN ('delivery.invoices', 'delivery.agreements', 'ad_launches') THEN 'money'
+      WHEN e.table_name LIKE 'delivery.%' OR e.table_name IN ('clients', 'client_members') THEN 'client'
+      WHEN e.table_name = 'operators' THEN 'team'
+      ELSE 'data' END area,
+    e.op,
+    coalesce(e.row_key ->> 'id', e.row_key::text) "row",
+    CASE e.op WHEN 'update' THEN (
+        SELECT string_agg(n.k || ': ' || left(coalesce(e.old_values ->> n.k, 'empty'), 40)
+          || ' → ' || left(coalesce(n.v, 'empty'), 40), '; ' ORDER BY n.k)
+        FROM jsonb_each_text(e.new_values) n(k, v))
+      WHEN 'delete' THEN 'removed' WHEN 'truncate' THEN 'emptied' ELSE 'added' END change,
+    CASE WHEN e.at >= date_trunc('day', now()) THEN 'today' ELSE 'week' END age
+  FROM audit_events e
+  WHERE e.at > now() - interval '7 days'`,
 ];
 
 /** The guard on each log table, made when missing. */

@@ -114,7 +114,7 @@ export interface VendorSpec {
   cycle?: BillCycle;
   /** It sells plans only: every bill is on `cycle`, whatever it calls its charges (Google prints seats as "Usage"). */
   plansOnly?: boolean;
-  /** One subscription per account, whatever edition a bill names: every bill is on this plan (Workspace bills two editions the month it switches). */
+  /** One subscription per account, whatever edition a bill names: every monthly or yearly bill is on this plan (Workspace bills two editions the month it switches). */
   plan?: string;
   /** Whether its GST/HST is claimable; false for the simplified regime. Absent = unknown. */
   gstClaimable?: boolean;
@@ -131,6 +131,8 @@ export const VENDORS: readonly VendorSpec[] = [
     account: "ai",
     mail: { from: ["invoice+statements@mail.anthropic.com"] },
     cycle: "monthly",
+    // An upgrade (5x to 20x) bills the new edition and credits the old: still one subscription.
+    plan: "Max plan",
     gstClaimable: false,
   },
   {

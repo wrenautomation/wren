@@ -10,7 +10,7 @@ export const account: Module = {
   name: "Account",
   icon: "sliders",
   blurb:
-    "Your company's details, who can see your projects, your email settings, your look and invoices.",
+    "Your company's details, who can see your projects, your email settings, your look, invoices and who changed what.",
   menu: true,
   // The demo is nobody's account.
   requires: { audience: "client" },
@@ -30,6 +30,15 @@ export const account: Module = {
         open: "Nothing to pay.",
       },
       columns: ["status", "amount", "due", "description", "link"],
+    },
+    {
+      id: "changes",
+      label: "Changes",
+      requires: { needs: "manage" },
+      template: "list",
+      record: "delivery.change",
+      empty: { today: "No changes today.", people: "Nobody changed anything by hand this week." },
+      columns: ["at", "who", "op", "table", "change"],
     },
   ],
 };

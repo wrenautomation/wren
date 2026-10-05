@@ -15,6 +15,7 @@ import {
   name,
   number,
   percent,
+  prose,
   type RecordType,
   rate,
   score,
@@ -351,13 +352,17 @@ export const modelRecord = defineRecord({
   ],
 });
 
-/** One copy version of one step, with sends: `reply_by_arm_step`, versions never sent left out. */
+/** One copy version of one step, with sends and its text: `reply_by_arm_step`, versions never sent left out. */
 export const variantRecord = defineRecord({
   id: "email.variant",
   name: { one: "variant", many: "variants" },
   rows: async (db) =>
     (
-      await db.execute<Record<string, unknown>>(sql`select * from reply_by_arm_step where sent > 0`)
+      await db.execute<Record<string, unknown>>(sql`
+        select r.*, v.source copy from reply_by_arm_step r
+        left join template_versions v on v.niche = r.niche and v.template = r.template
+          and v.version = r.template_version
+        where r.sent > 0`)
     ).map((r) => ({
       ...r,
       id: `${r.template}@${r.template_version}`,
@@ -376,6 +381,7 @@ export const variantRecord = defineRecord({
     replyRate: rate("sent", "Reply rate", { from: "replies" }),
     interested: number(),
     bounces: rate("sent", "Hard bounces", { from: "hard_bounces" }),
+    copy: prose("Copy"),
   },
   views: [{ id: "all", label: "All", sort: "-sent" }],
 });

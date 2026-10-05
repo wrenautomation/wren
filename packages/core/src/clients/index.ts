@@ -13,7 +13,7 @@ import {
   setAuditActor,
 } from "@wren/db";
 import { and, asc, eq, sql } from "drizzle-orm";
-import { date, defineRecord, number, status, text } from "../records.js";
+import { actor, date, defineRecord, number, status, text } from "../records.js";
 import {
   type Client,
   type ClientMember,
@@ -330,6 +330,70 @@ export const teamRecord = defineRecord({
   },
   views: [{ id: "all", label: "All", sort: "email" }],
   actions: ["console.teamInvite", "console.teamRole", "console.teamClients", "console.teamRemove"],
+});
+
+/** A change's fields and tabs, shared by Wren's Changes page and a client's (`delivery.change`). */
+export const CHANGE_FIELDS = {
+  at: date("When"),
+  who: actor("Who"),
+  madeBy: status(
+    {
+      person: { label: "Person", tone: "good" },
+      agent: { label: "Agent", tone: "neutral" },
+      pipeline: { label: "Pipeline", tone: "neutral" },
+    },
+    "Made by",
+  ),
+  op: status(
+    {
+      insert: { label: "Added", tone: "good" },
+      update: { label: "Changed", tone: "neutral" },
+      delete: { label: "Removed", tone: "bad" },
+      truncate: { label: "Emptied", tone: "bad" },
+    },
+    "What",
+  ),
+  table: text("Table"),
+  row: text("Row"),
+  change: text("Change", { total: false }),
+  area: status(
+    {
+      money: { label: "Money", tone: "neutral" },
+      client: { label: "Client", tone: "neutral" },
+      team: { label: "Team", tone: "neutral" },
+      data: { label: "Data", tone: "neutral" },
+    },
+    "Area",
+  ),
+  via: text("Via"),
+  age: status(
+    { today: { label: "Today", tone: "good" }, week: { label: "This week", tone: "neutral" } },
+    "Age",
+  ),
+};
+export const CHANGE_VIEWS = [
+  { id: "today", label: "Today", where: { age: ["today"] }, sort: "-at", at: "at" },
+  { id: "people", label: "People", where: { madeBy: ["person"] }, sort: "-at", at: "at" },
+  { id: "money", label: "Money tables", where: { area: ["money"] }, sort: "-at", at: "at" },
+  { id: "all", label: "This week", sort: "-at", at: "at" },
+] as const;
+
+/**
+ * Who changed what in main, the last 7 days (`audit_changes`): the "who did that" answer. Admins
+ * only (`team`): a change shows the values it wrote.
+ * ponytail: main only; a client database's own log (its lists) stays in `wren --client <id> audit`
+ * until someone asks for it here.
+ */
+export const changeRecord = defineRecord({
+  id: "console.change",
+  name: { one: "change", many: "changes" },
+  needs: "team",
+  view: "audit_changes",
+  key: "id",
+  title: "change",
+  subtitle: "who",
+  fields: CHANGE_FIELDS,
+  views: CHANGE_VIEWS,
 });
 
 /** Wren's clients as a console record, over `client_records`. */

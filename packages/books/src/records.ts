@@ -67,6 +67,7 @@ export const subscriptionRecord = defineRecord({
     lastBilledOn: date("Last billed"),
     since: date(),
     bills: number(),
+    billedFor: text("Billed for"),
   },
   views: [
     { id: "all", label: "All", sort: "-monthly", at: "lastBilledOn" },
