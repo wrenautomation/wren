@@ -1,0 +1,23 @@
+# Hourly: are Restate's loop timers firing on time? Late ones post to Discord, the sign to
+# move off Restate Cloud's free plan (scripts/restate-lag.mjs, designs/2026-10-05-restate-self-host.md).
+# Secrets (production environment): RESTATE_HOST, RESTATE_AUTH_TOKEN, WREN_DISCORD_WEBHOOK_URL.
+name: restate-lag
+on:
+  schedule: [{ cron: "17 * * * *" }]
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  lag:
+    runs-on: ubuntu-latest
+    environment: production
+    steps:
+      - uses: actions/checkout@v5
+        with: { sparse-checkout: scripts/restate-lag.mjs, sparse-checkout-cone-mode: false }
+      - uses: actions/setup-node@v5
+        with: { node-version: 22 }
+      - run: node scripts/restate-lag.mjs
+        env:
+          RESTATE_HOST: ${{ secrets.RESTATE_HOST }}
+          RESTATE_AUTH_TOKEN: ${{ secrets.RESTATE_AUTH_TOKEN }}
+          WREN_DISCORD_WEBHOOK_URL: ${{ secrets.WREN_DISCORD_WEBHOOK_URL }}

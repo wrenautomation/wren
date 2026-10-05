@@ -4,6 +4,7 @@ Living doc. Started 2026-10-05. William: "Self hosting restate is fine, that alo
 
 ## Answer first
 
+- 2026-10-05: we stay on Cloud's free plan until it throttles us. Over quota with no card on file means rate limited, not billed. Everything below is built. The switch is "Switch day", about an hour.
 - Restate moves from Restate Cloud to the Postgres box. The box goes from `t4g.small` to `t4g.medium`: +$12/month, about $27/month in all.
 - We stop running about 2.9M journal entries a month on a 50k-action free tier, and we never face the $75+/month plans.
 - Nothing about the services changes. Only where they register, and the ingress URL, change.
@@ -42,10 +43,10 @@ State is small: 24 services, about 140 keys (`select ... from state` on Cloud). 
 1. Resize the box and start `restate-server` and Caddy. They're Terraform plus `user-data.sh`, so a rebuilt box comes up the same way.
 2. Register the Lambda's live version, the box worker and the desk on the new server. Nothing is sent to it yet.
 3. Run `scripts/restate-move.mjs`:
-   - On Cloud, it stops every running loop and waits for in-flight invocations to drain (`sys_invocation` empty, except loops' delayed sends).
-   - It reads every state row from Cloud and writes each to the new server through the admin state API, with `RUNNING` forced to false.
+   - On Cloud, it stops every running loop and waits up to 10 minutes for in-flight invocations to drain. A loop's pending timer and a paused invocation (waiting on a person) don't count. `--force` moves past the rest.
+   - It reads every state row from Cloud and writes each to the new server through the admin state API (over SSM: the admin API is loopback only), with every loop's `running` forced to false.
    - On the new server, it calls `start` on every loop that was running.
-   - It prints a before and after table of loop keys and running.
+   - It saves the snapshot to `~/.config/wren/restate-snapshot.json` (0600, never the repo).
 4. Flip the ingress URL everywhere it lives, in one commit plus one secrets push:
    - SSM `/wren/prod/env`;
    - GitHub secrets `RESTATE_HOST` and `RESTATE_AUTH_TOKEN`;
@@ -61,7 +62,24 @@ Webhooks lose nothing in the gap. Telnyx, cal.com and Gmail push all retry, and 
 
 The nightly backup job that dumps Postgres also takes a Restate snapshot: `restatectl snapshots create`, then the data dir is synced to the same S3 bucket under `restate/`, with a 7-day lifecycle.
 
-Losing Restate entirely is survivable. Every loop's settings can be re-made with `start` and its body, and work in flight is idempotent by design (the run durability principle). `scripts/restate-move.mjs --rearm` restarts every loop from a list in code, for that day.
+Losing Restate entirely is survivable. Every loop's settings can be re-made with `start` and its body, and work in flight is idempotent by design (the run durability principle). `scripts/restate-move.mjs --rearm` writes the last snapshot back to the box and starts the loops it lists, for that day.
+
+## Switch day
+
+When: the `restate-lag` workflow posts "Restate is late" to Discord (a loop timer over 15 minutes past due), or Cloud's ingress starts answering 429. Cost: +$12/month for the box.
+
+1. `node scripts/restate-move.mjs`: the dry run. Read the in-flight list.
+2. Box to `t4g.medium`: `pg_instance_type = "t4g.medium"` in `deploy/terraform/terraform.tfvars`, `tofu plan`, then `tofu apply`. The stop and start takes a few minutes. Postgres is down for them, and loops retry.
+3. Start the server. The live box predates `box-restate.sh` in user-data, so send it once over SSM, the way CI sends `box-worker.sh`. Its args: `us-east-1 $(tofu output -raw backups_bucket)`. It prints `restate up`. `restate.wrenautomation.com` already points at the box's EIP (DNS only, so Caddy gets its own certificate).
+4. SSM `/wren/prod/box`: drop `RESTATE_TUNNEL_NAME`, `RESTATE_ENVIRONMENT_ID` and `RESTATE_CLOUD_REGION`. Append the box server's `public_key` (from `/wren/prod/restate`) to `WREN_RESTATE_IDENTITY_KEY` with a comma. Set `WREN_RESTATE_INGRESS_URL` and `RESTATE_AUTH_TOKEN` to the box's.
+5. GitHub `production` secrets: `RESTATE_HOST=restate.wrenautomation.com`, `RESTATE_AUTH_TOKEN` = the box's token. Then `gh workflow run deploy.yml --ref main`. CI sees a non-Cloud host and registers the Lambda over SSM. The box worker comes up on loopback HTTP and registers itself. From here the pool chain answers only on the box.
+6. Desk: in `autobrowse/.env`, drop `RESTATE_TUNNEL_NAME`, `RESTATE_ENVIRONMENT_ID` and `RESTATE_CLOUD_REGION`. Set `RESTATE_INGRESS_URL` and `RESTATE_AUTH_TOKEN` to the box's. Restart the desk. It logs `desk up` with `on: listen` and registers over SSM.
+7. `node scripts/restate-move.mjs --go`.
+8. The rest of the flip:
+   - `/wren/prod/env`: `WREN_RESTATE_ADMIN_URL=https://restate.wrenautomation.com/admin` and `RESTATE_AUTH_TOKEN`, through `deploy/scripts/push-secrets.sh`.
+   - `wren/.env`: `WREN_PROD_INGRESS_URL=https://restate.wrenautomation.com` and `RESTATE_AUTH_TOKEN`.
+   - Then `gh workflow run deploy.yml --ref main` again, so the portal Worker gets the new ingress.
+9. Check: the console's loops page lists every loop as running, and `gh workflow run restate-lag.yml` is quiet. Then "Done when".
 
 ## Cuts
 
@@ -95,3 +113,5 @@ Losing Restate entirely is survivable. Every loop's settings can be re-made with
 - 2026-10-05 (R1): Caddy opens two admin reads under the same bearer: `POST /admin/query` and `GET /admin/services*`. The console in the Lambda reads loops and services from the admin API (`WREN_RESTATE_ADMIN_URL`). Every other admin call stays on loopback; CI and the desk register over SSM.
 - 2026-10-05 (R1): The `restate-invoker` role stays until Cloud is deleted: it is the way back. The box's instance role invokes the worker. The Lambda still enforces no identity key (it never did); IAM is its gate.
 - 2026-10-05 (R1): The Restate backup is its own cron at 08:30, after the 08:00 Postgres dump. The live box's dump script came from user-data, which never re-runs. The data dir goes up as one dated tarball, not a sync: a 7-day expiry would delete unchanged files of a synced dir. With a snapshot destination set, partitions read S3 on start, so the role gets `GetObject` on `restate/`.
+- 2026-10-05: Stay on Cloud's free plan until it throttles. It is 675k actions into a 100k month with no card on file, so it rate limits and never bills. Everything is prebuilt so the switch takes an hour: the desk's tunnel (live, an unsigned call gets 401), `restate-move.mjs` (dry run read 47 objects, 22 running loops), CI that registers on Cloud or the box by `RESTATE_HOST`, and the `restate` DNS record. The box stays `t4g.small` until that day.
+- 2026-10-05: The throttle signal is loop timers, not ingress errors. Every running loop keeps one scheduled `loop` call. When one sits over 15 minutes past its `scheduled_start_at`, Restate is behind. An inboxed call waits on its key, not the platform, so it doesn't count. GitHub Actions runs the check hourly, outside Restate, so the alarm can't be throttled with the thing it watches.

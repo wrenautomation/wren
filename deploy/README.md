@@ -64,8 +64,9 @@ Lambda version, register it. Repo secrets, from `tofu output` and the Restate UI
 | `AWS_INVOKE_ROLE_ARN` | `restate_invoker_role_arn` |
 | `LAMBDA_NAME` | `lambda_name` |
 | `WREN_DATABASE_URL` | `database_url` |
-| `RESTATE_HOST` | `<env id>.env.us.restate.cloud` |
-| `RESTATE_AUTH_TOKEN` | an API key from Developers > API keys |
+| `RESTATE_HOST` | `<env id>.env.us.restate.cloud`, or `restate.wrenautomation.com` once self-hosted (CI then registers over SSM) |
+| `RESTATE_AUTH_TOKEN` | an API key from Developers > API keys, or the box's `token` in `/wren/prod/restate` |
+| `WREN_DISCORD_WEBHOOK_URL` | the ops webhook, for `restate-lag.yml` |
 
 If the deploy job fails at `configure-aws-credentials` with "Not authorized to perform
 sts:AssumeRoleWithWebIdentity", the repo uses GitHub's immutable OIDC subjects:

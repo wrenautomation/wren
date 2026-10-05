@@ -7,7 +7,7 @@ Checked 2026-10-03. Companion to `restate-durability.md` (why it survives crashe
 
 | Host | What runs there | Shipped by | Runbook |
 |---|---|---|---|
-| Restate Cloud, env `wren-automation` (`env_201m2vp6sq3x11xdaatsmjej302`), region `us` | every loop's journal, timers, object state; the ingress | always on, free tier | this file |
+| Restate Cloud, env `wren-automation` (`env_201m2vp6sq3x11xdaatsmjej302`), region `us` | every loop's journal, timers, object state; the ingress | always on, free tier (100k actions/mo; past it, throttled, never billed). `restate-lag` posts to Discord when timers run late: then the box takes over, `designs/2026-10-05-restate-self-host.md` "Switch day" | this file |
 | Lambda `wren-prod-worker` (us-east-1, Node 22 arm64, 1 GB, 15 min max) | every service except the box's; one version per push | CI `deploy.yml` | `deploy/README.md` |
 | EC2 `wren-prod-pg` (`t4g.small`) | Postgres 17 + browserless Chromium in Docker; the **box worker**: `BOX_SERVICES` (PoolScheduler, Discovery, Enrichment, Resolution, PageArchive, Books) over Restate's tunnel (`WREN_POOL_CHAIN_HOST=box`) | CI over SSM (`deploy/scripts/box-worker.sh`) | `deploy/README.md`, `apps/worker/src/box.ts` |
 | RackNerd VPS (192.255.226.241, Buffalo) | mailifier SMTP prober behind Caddy (`probe.wrenautomation.com`) | `deploy/scripts/deploy-prober.sh` | "Verifying addresses" below |
