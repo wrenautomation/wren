@@ -7,7 +7,13 @@
 import { type ReactNode, useState } from "react";
 
 export type MessageKind =
-  | { kind: "email"; from?: string; subject?: string | null }
+  | {
+      kind: "email";
+      from?: string;
+      subject?: string | null;
+      /** The whole email around the text, when the text is one part of it (a line of copy). */
+      fill?: (text: string) => { subject: string | null; body: string };
+    }
   | {
       kind: "sms";
       from?: string;
@@ -43,8 +49,17 @@ export function shapeOf(kind: MessageKind, body: string): string[] {
 /** What an inbox row shows after the subject: the body on one line. */
 const snippetOf = (body: string) => body.replace(/\s+/g, " ").trim();
 
-export function MessagePreview({ message, body }: { message: MessageKind; body: string }) {
+export function MessagePreview({
+  message: kind,
+  body: text,
+}: {
+  message: MessageKind;
+  body: string;
+}) {
   const [opened, setOpened] = useState<"laptop" | "phone">("phone");
+  const whole = kind.kind === "email" && kind.fill?.(text);
+  const message = whole ? { ...kind, subject: whole.subject } : kind;
+  const body = whole ? whole.body : text;
   const from = message.from || "You";
   const shape = shapeOf(message, body);
   return (

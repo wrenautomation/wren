@@ -633,7 +633,7 @@ export const alleleRecord = defineRecord({
   ],
 });
 
-/** A candidate's context: the live options at its point, best first, and the email it makes. */
+/** A candidate's context: the live options at its point, best first, and the email around it. */
 async function winnersOf(db: Queryable, id: string) {
   const rows = await db.execute<Record<string, unknown>>(sql`
     select w.text, w.share, w.p_best, w.exposures, w.replies, w.interested
@@ -641,11 +641,14 @@ async function winnersOf(db: Queryable, id: string) {
     join email_allele_records w on w.experiment_id = c.experiment_id and w.locus = c.locus
       and w.state = 'live'
     where c.id = ${Number(id)} order by w.p_best desc nulls last, w.id`);
-  return { winners: [...rows], email: await candidateEmail(db, Number(id)) };
+  return { winners: [...rows], frame: await candidateFrame(db, Number(id)) };
 }
 
-/** The live genome with the candidate at its point and the likeliest best live option at every other. */
-async function candidateEmail(db: Queryable, id: number) {
+/** Marks the candidate's point in its frame; the page puts the words in, the model's or an edit. */
+const SLOT = "WRENSLOT";
+
+/** The live genome with `SLOT` at the candidate's point and the likeliest best live option at every other. */
+async function candidateFrame(db: Queryable, id: number) {
   const [c] = await db.select().from(experimentAlleles).where(eq(experimentAlleles.id, id));
   const [exp] = c
     ? await db.select().from(experiments).where(eq(experiments.id, c.experimentId))
@@ -657,15 +660,10 @@ async function candidateEmail(db: Queryable, id: number) {
     select locus, allele from email_allele_records where experiment_id = ${c.experimentId}
       and state = 'live' order by p_best desc nulls last, id`))
     if (!best.has(a.locus)) best.set(a.locus, a.allele);
-  let tpl: Template;
-  try {
-    const option = parseOption(c.text);
-    tpl = mapPoints(genome, (p) =>
-      p.name === c.locus ? { ...p, options: [...p.options, option] } : p,
-    );
-  } catch {
-    return null;
-  }
+  const slot = parseOption(SLOT);
+  const tpl = mapPoints(genome, (p) =>
+    p.name === c.locus ? { ...p, options: [...p.options, slot] } : p,
+  );
   const shares = Object.fromEntries(
     points(tpl).map((p) => {
       const pick =
@@ -678,7 +676,8 @@ async function candidateEmail(db: Queryable, id: number) {
       return [p.name, p.options.map((_, i) => (i === pick ? 1 : 0))];
     }),
   );
-  return sampleEmail(tpl, shares);
+  const email = sampleEmail(tpl, shares);
+  return email && { ...email, slot: SLOT };
 }
 
 export const candidateRecord = defineRecord({

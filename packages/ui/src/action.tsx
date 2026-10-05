@@ -2,7 +2,7 @@
  * A record's actions: `useRun` asks first when the action says to, calls the handler by id, says
  * how it went in a toast, and offers undo.
  */
-import { type FormEvent, type ReactNode, useId, useState } from "react";
+import { type FormEvent, type ReactNode, useId, useRef, useState } from "react";
 import { toast } from "sonner";
 import type { Access } from "./access.js";
 import {
@@ -66,7 +66,13 @@ export interface Action {
    * so an untouched draft isn't sent as an edit. E opens it when no action has E for its key.
    * With `preview`, the text shows as it will look on a laptop and a phone while it's typed.
    */
-  ask?: { field: string; label: string; from?: string; preview?: MessageKind };
+  ask?: {
+    field: string;
+    label: string;
+    from?: string;
+    /** Or loaded for the record when the box opens: a line of copy needs its email around it. */
+    preview?: MessageKind | ((id: string | number) => Promise<MessageKind | null>);
+  };
   /**
    * Makes a record, so it takes no ids and applies to no row. The list shows its button by the
    * title; a press asks for these fields and sends them as the input.
@@ -314,6 +320,8 @@ export function useRun(
   const [typed, setTyped] = useState<Record<string, string>>({});
   const [files, setFiles] = useState<Record<string, File>>({});
   const [running, setRunning] = useState<{ action: string; ids: (string | number)[] } | null>(null);
+  const [shown, setShown] = useState<MessageKind | null>(null);
+  const opened = useRef(0);
   const busy = running !== null;
   const textId = useId();
 
@@ -361,6 +369,14 @@ export function useRun(
     setTyped({});
     setFiles({});
     setAsked({ action, ids, start });
+    const preview = action.ask?.preview;
+    const mine = ++opened.current;
+    setShown(typeof preview === "function" ? null : (preview ?? null));
+    if (typeof preview === "function" && ids[0] !== undefined)
+      void preview(ids[0]).then(
+        (kind) => mine === opened.current && setShown(kind),
+        () => undefined,
+      );
   };
   const ask = asked?.action.ask;
   const form = asked?.action.form;
@@ -411,7 +427,7 @@ export function useRun(
                 onChange={(e) => setText(e.target.value)}
                 rows={6}
               />
-              {ask.preview ? <MessagePreview message={ask.preview} body={text} /> : null}
+              {shown ? <MessagePreview message={shown} body={text} /> : null}
             </div>
           ) : null}
           {form?.map((f, i) => (

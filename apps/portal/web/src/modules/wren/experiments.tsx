@@ -9,6 +9,7 @@ import {
   HandlerForm,
   Lineage,
   type LineageVersion,
+  type MessageKind,
   MessagePreview,
   type RecordExtras,
 } from "@wren/ui";
@@ -106,7 +107,16 @@ export const CANDIDATE_ACTIONS: Action[] = [
     id: "email.editCandidate",
     label: "Edit and approve",
     handler: "email/approveCandidate",
-    ask: { field: "text", label: "Your words", from: "text" },
+    ask: {
+      field: "text",
+      label: "Your words",
+      from: "text",
+      preview: (id) =>
+        call<{ detail?: { frame?: Frame } }>("console/recordsGet", {
+          record: "email.candidate",
+          id: String(id),
+        }).then((r) => kindOf(r.detail?.frame)),
+    },
     key: "e",
     when: WAITING,
     done: said("Your words are live"),
@@ -160,33 +170,48 @@ type Winner = {
 };
 const pct = (n: number | null) => (n === null ? "no data" : `${Math.round(n * 100)}%`);
 
-type Sample = { subject: string | null; body: string } | null;
+type Sample = { subject: string | null; body: string };
+/** An email with `slot` where a candidate's words go, «placeholders» for the recipient's facts. */
+type Frame = Sample & { slot: string };
 
-/** The sample email the server rendered, on a laptop and a phone. */
-const looks = (email: Sample | undefined): [string, ReactNode] => [
+/** A line of copy in its email: its {fields} as «placeholders», as the frame shows the rest. */
+export function kindOf(frame: Frame | null | undefined): MessageKind | null {
+  if (!frame) return null;
+  const fill = (text: string) => {
+    const words = text.trim().replace(/\{\s*([\w.]+)[^}]*\}/g, "«$1»");
+    return {
+      subject: frame.subject?.replace(frame.slot, words) ?? null,
+      body: frame.body.replace(frame.slot, words),
+    };
+  };
+  return { kind: "email", fill };
+}
+
+/** The email on a laptop and a phone, or why there's none. */
+const looks = (kind: MessageKind | null, body: string): [string, ReactNode] => [
   "How it looks",
-  email ? (
-    <MessagePreview
-      key="looks"
-      message={{ kind: "email", subject: email.subject }}
-      body={email.body}
-    />
+  kind ? (
+    <MessagePreview key="looks" message={kind} body={body} />
   ) : (
     "This copy doesn't render on its template."
   ),
 ];
 
 /** A copy version: one email it writes, «placeholders» for the recipient's facts. */
-export const variantExtras: NonNullable<ListPage["extras"]> = (detail) =>
-  ({ sections: [looks((detail as { email?: Sample } | null)?.email)] }) satisfies RecordExtras;
+export const variantExtras: NonNullable<ListPage["extras"]> = (detail) => {
+  const email = (detail as { email?: Sample | null } | null)?.email;
+  return {
+    sections: [looks(email ? { kind: "email", subject: email.subject } : null, email?.body ?? "")],
+  } satisfies RecordExtras;
+};
 
-/** A candidate as the email it makes, then beside the live copy at its point, best first. */
-export const candidateExtras: NonNullable<ListPage["extras"]> = (detail) => {
-  const d = detail as { winners?: Winner[]; email?: Sample } | null;
+/** A candidate in the email it makes, then beside the live copy at its point, best first. */
+export const candidateExtras: NonNullable<ListPage["extras"]> = (detail, { row }) => {
+  const d = detail as { winners?: Winner[]; frame?: Frame | null } | null;
   const winners = d?.winners ?? [];
   return {
     sections: [
-      looks(d?.email),
+      looks(kindOf(d?.frame), String(row.text ?? "")),
       [
         "Live at this point",
         winners.length ? (
