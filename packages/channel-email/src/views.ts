@@ -370,6 +370,8 @@ export const leadSheet = pgView("lead_sheet", {
   companyName: varchar("company_name"),
   companyDomain: varchar("company_domain"),
   companyLinkedin: varchar("company_linkedin", { length: 512 }),
+  phone: varchar({ length: 512 }),
+  socials: text("socials"),
   companyLocation: text("company_location"),
   industry: text("industry"),
   description: text("description"),
@@ -379,10 +381,11 @@ export const leadSheet = pgView("lead_sheet", {
   sql`SELECT l.id AS lead_id, c.niche, p.id AS person_id, c.id AS company_id,
   COALESCE(NULLIF(p.full_name, ''), NULLIF(concat_ws(' ', l.first_name, l.last_name), '')) AS person_name,
   COALESCE(NULLIF(p.title, ''), there.title, NULLIF(l.title, '')) AS result_title,
-  p.linkedin_url, l.email,
+  COALESCE(p.linkedin_url, pub.person_linkedin) AS linkedin_url, l.email,
   (v.checked_at AT TIME ZONE 'UTC')::date AS valid_email_on,
   m.email_type, m.mail_status,
-  c.name AS company_name, c.domain AS company_domain, c.linkedin_url AS company_linkedin,
+  c.name AS company_name, c.domain AS company_domain,
+  COALESCE(c.linkedin_url, pub.company_linkedin) AS company_linkedin, pub.phone, pub.socials,
   COALESCE(NULLIF(prof.value ->> 'location', ''), NULLIF(c.raw ->> 'geo', ''), NULLIF(l.geo, '')) AS company_location,
   COALESCE(NULLIF(prof.value ->> 'industry', ''),
     NULLIF(replace(c.raw -> 'overture' -> 'categories' ->> 'primary', '_', ' '), ''),
@@ -429,7 +432,17 @@ LEFT JOIN LATERAL (SELECT NULLIF(btrim(COALESCE(
     substring(d.html FROM '(?i)<meta[^>]*name=["'']description["''][^>]*content="([^"]*)"'),
     substring(d.html FROM '(?i)<meta[^>]*content="([^"]*)"[^>]*name=["'']description["'']'))), '') AS description
   FROM documents d WHERE d.company_id = c.id AND d.kind = 'webpage' AND d.html IS NOT NULL
-  ORDER BY length(COALESCE(d.final_url, d.url)), d.id LIMIT 1) home ON true`,
+  ORDER BY length(COALESCE(d.final_url, d.url)), d.id LIMIT 1) home ON true
+LEFT JOIN LATERAL (SELECT
+  (SELECT cp.value FROM contact_points cp WHERE cp.company_id = c.id AND cp.kind = 'phone'
+    ORDER BY cp.value ~ '^[+]18(00|33|44|55|66|77|88)', cp.source, cp.pages DESC, cp.id LIMIT 1) AS phone,
+  (SELECT cp.value FROM contact_points cp WHERE cp.company_id = c.id AND cp.kind = 'linkedin_company'
+    ORDER BY cp.pages DESC, cp.id LIMIT 1) AS company_linkedin,
+  (SELECT cp.value FROM contact_points cp WHERE cp.person_id = p.id AND cp.kind = 'linkedin_person'
+    ORDER BY cp.pages DESC, cp.id LIMIT 1) AS person_linkedin,
+  (SELECT string_agg(s.value, ' ' ORDER BY s.kind) FROM (SELECT DISTINCT ON (cp.kind) cp.kind, cp.value
+    FROM contact_points cp WHERE cp.company_id = c.id AND cp.kind IN ('x', 'instagram', 'facebook', 'youtube', 'tiktok')
+    ORDER BY cp.kind, cp.pages DESC, cp.id) s) AS socials) pub ON true`,
 );
 
 /** What the console may read by name (`ConsolePortal/view`): numbers only, no rows about a person. */

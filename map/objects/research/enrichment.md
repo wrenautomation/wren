@@ -29,14 +29,14 @@ Citations: `packages/research/src/schema.ts:68`
 
 ## If you change this
 
-- **Hits:** `packages/research/src/enrichment/store.ts:24`, `email-scan.ts:245`, `email-pick/`, `extraction.ts`, `opener.ts`; the two cost views; `recruiting_facts` (reads `firmographics`/`ppp-foia`, `opener` and `video`, `packages/core/src/views.ts:79`); disposition's audit record (`packages/channel-email/src/inbox/disposition.ts`)
+- **Hits:** `packages/research/src/enrichment/store.ts:24`, `email-scan.ts:245`, `contacts.ts:265` (`contact_scan`, deterministic), `email-pick/`, `extraction.ts`, `opener.ts`; the two cost views; `recruiting_facts` (reads `firmographics`/`ppp-foia`, `opener` and `video`, `packages/core/src/views.ts:79`); disposition's audit record (`packages/channel-email/src/inbox/disposition.ts`)
 - **Does not hit:** `content_drafts.llm` (the content loop keeps its own record)
 
 ## Surfaces
 
 | Surface | Role |
 |---|---|
-| `Enrichment.scan/extract/pick/opener` | write |
+| `Enrichment.scan/contacts/extract/pick/opener` | write |
 | `wren email size <dir> --niche <n>` | write `firmographics` from PPP loans (`packages/research/src/companies/ppp-size.ts:139`) |
 | `wren video render` | write `video` ([[reactivation/demo-video]]) |
 | `Enrichment.applyExtractions/applyPicks` | read, set `applied_at` |

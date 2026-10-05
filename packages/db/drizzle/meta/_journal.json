@@ -617,6 +617,13 @@
       "when": 1791199709943,
       "tag": "0087_subscription_billed_for",
       "breakpoints": true
+    },
+    {
+      "idx": 88,
+      "version": "7",
+      "when": 1791201006672,
+      "tag": "0088_contact_points",
+      "breakpoints": true
     }
   ]
 }

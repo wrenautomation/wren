@@ -676,7 +676,7 @@ export function registerEmail(
         const rows = Array.from(
           (await db.execute(sql`SELECT company_id, person_name, result_title, linkedin_url, email,
             valid_email_on::text AS valid_email_on, email_type, mail_status, company_name,
-            company_domain, company_linkedin, company_location, industry, description
+            company_domain, company_linkedin, phone, socials, company_location, industry, description
             FROM lead_sheet WHERE niche = ${niche} ORDER BY company_name, lead_id`)) as Iterable<
             Record<string, string | number | null>
           >,

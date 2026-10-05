@@ -1,7 +1,9 @@
 import { companies } from "@wren/core";
 import type { NotifyLevel } from "@wren/core/notify";
 import type { Db } from "@wren/db";
+import { runContacts } from "@wren/research/enrichment";
 import { documents } from "@wren/research/schema";
+import { type LiftOptions, type LiftStats, liftPhones } from "../../src/lift.js";
 import { countryOf } from "../../src/phone.js";
 import { DEFAULT_POLICY, type SmsPolicy } from "../../src/policy.js";
 import type { FakeProvider } from "../../src/provider.js";
@@ -20,6 +22,8 @@ export const TABLES = [
   "sms_numbers",
   "suppression_events",
   "suppressions",
+  "contact_points",
+  "enrichments",
   "documents",
   "people",
   "companies",
@@ -91,6 +95,12 @@ export async function company(
     });
   }
   return id;
+}
+
+/** The pool's `contacts` stage, then the lift: prod runs them in two loops. */
+export async function lift(db: Db, opts: LiftOptions): Promise<LiftStats> {
+  await runContacts(db);
+  return liftPhones(db, opts);
 }
 
 /** Numbers in the pool, US ones already on the campaign unless `registered: false`. */

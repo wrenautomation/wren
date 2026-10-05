@@ -29,6 +29,7 @@ export const ENRICHMENT_KINDS = [
   "people_extraction",
   "firmographics",
   "email_scan",
+  "contact_scan",
   "email_pick",
   "opener",
   "video",
@@ -228,6 +229,75 @@ export const findings = pgTable(
   ],
 );
 export type Finding = typeof findings.$inferSelect;
+
+/**
+ * Every way to reach a firm or one of its people that its own pages published:
+ * a phone, its LinkedIn page, a person's LinkedIn profile, its other socials.
+ * One row per (firm, kind, value); `pages` counts the firm's pages that carry
+ * it, so the firm's own handle (in every footer) outranks a partner's (on one
+ * page). A profile link sits by a person's name on a team page when `person_id`
+ * is set; an unmatched one is kept for whoever we meet later. Nothing read is
+ * dropped: a toll-free number and a second handle stay rows.
+ */
+export const CONTACT_KINDS = [
+  "phone",
+  "linkedin_company",
+  "linkedin_person",
+  "x",
+  "instagram",
+  "facebook",
+  "youtube",
+  "tiktok",
+] as const;
+export type ContactKind = (typeof CONTACT_KINDS)[number];
+/** `link`: a `tel:` or an href said so. `text`: read out of the page's words. */
+export const CONTACT_SOURCES = ["link", "text"] as const;
+export type ContactSource = (typeof CONTACT_SOURCES)[number];
+
+export const contactPoints = pgTable(
+  "contact_points",
+  {
+    id: serial("id").notNull(),
+    companyId: integer("company_id").notNull(),
+    personId: integer("person_id"),
+    kind: varchar("kind", { length: 32, enum: CONTACT_KINDS }).notNull(),
+    /** E.164 for a phone; one canonical URL per profile or page otherwise. */
+    value: varchar("value", { length: 512 }).notNull(),
+    source: varchar("source", { length: 16, enum: CONTACT_SOURCES }).notNull(),
+    pages: integer("pages").default(1).notNull(),
+    /** The first page that showed it: the evidence. */
+    documentId: integer("document_id"),
+    sourceUrl: text("source_url").notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+    seenAt: timestamp("seen_at", { withTimezone: true }).defaultNow().notNull(),
+  },
+  (t) => [
+    primaryKey({ columns: [t.id], name: "pk_contact_points" }),
+    unique("uq_contact_points_company_kind_value").on(t.companyId, t.kind, t.value),
+    index("ix_contact_points_person_id").on(t.personId),
+    index("ix_contact_points_document_id").on(t.documentId),
+    // The lift walks one kind by id.
+    index("ix_contact_points_kind_id").on(t.kind, t.id),
+    foreignKey({
+      columns: [t.companyId],
+      foreignColumns: [companies.id],
+      name: "fk_contact_points_company_id_companies",
+    }),
+    foreignKey({
+      columns: [t.personId],
+      foreignColumns: [people.id],
+      name: "fk_contact_points_person_id_people",
+    }),
+    foreignKey({
+      columns: [t.documentId],
+      foreignColumns: [documents.id],
+      name: "fk_contact_points_document_id_documents",
+    }),
+    oneOf("ck_contact_points_kind", t.kind, CONTACT_KINDS),
+    oneOf("ck_contact_points_source", t.source, CONTACT_SOURCES),
+  ],
+);
+export type ContactPoint = typeof contactPoints.$inferSelect;
 
 /**
  * Where a person lookup (R7) stands, one row per person. `matched`: we trust a

@@ -67,6 +67,7 @@ export const STAGES = [
   "crawl",
   "render",
   "scan",
+  "contacts",
   "extract",
   "pick",
   "applyPicks",
@@ -83,6 +84,8 @@ export interface StageLimits {
   crawl: number;
   render: number;
   scan: number;
+  /** Pages read for phones, LinkedIn and socials. */
+  contacts: number;
   extract: number;
   pick: number;
   /** Domains whose person guesses are walked this pass. */
@@ -97,6 +100,7 @@ export const DEFAULT_LIMITS: StageLimits = {
   crawl: 10,
   render: 5,
   scan: 200,
+  contacts: 200,
   extract: 20,
   pick: 50,
   // Each probe is a live SMTP conversation, seconds apiece, run PROBE_WIDTH at once:
@@ -231,6 +235,7 @@ export const progressOf: Record<Stage, (s: Record<string, number>) => number> = 
   // A render that fails stays a shell and is picked again; only a stored page moves the pool.
   render: (s) => s.companies_rendered ?? 0,
   scan: (s) => s.scanned ?? 0,
+  contacts: (s) => s.scanned ?? 0,
   extract: (s) => s.extracted ?? 0,
   pick: (s) => s.picked ?? 0,
   applyPicks: (s) => s.picks_applied ?? 0,
@@ -332,6 +337,7 @@ export function makePoolScheduler(deps: PoolSchedulerDeps) {
       crawl: () => enrichment.crawl({ limit: limits.crawl, ...hints }),
       render: () => enrichment.render({ limit: limits.render, ...hints }),
       scan: () => enrichment.scan({ limit: limits.scan }),
+      contacts: () => enrichment.contacts({ limit: limits.contacts }),
       extract: () => enrichment.extract({ limit: limits.extract }),
       pick: () => enrichment.pick({ limit: limits.pick, rules: deps.modelStages === "none" }),
       applyPicks: () => enrichment.applyPicks({}),

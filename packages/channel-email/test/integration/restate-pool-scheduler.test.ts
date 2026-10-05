@@ -55,6 +55,7 @@ const fakeEnrichment = restate.object({
     }),
     render: stage("render", () => ({ companies_rendered: 0 })),
     scan: stage("scan", () => ({ scanned: 0 })),
+    contacts: stage("contacts", () => ({ scanned: 0 })),
     extract: stage("extract", () => ({ extracted: 0 })),
     pick: async (_ctx: restate.ObjectContext, input: { rules?: boolean }) => {
       called.push(input.rules ? "pick" : "pick by model");
@@ -129,6 +130,7 @@ describe("PoolScheduler", () => {
       "crawl",
       "render",
       "scan",
+      "contacts",
       "pick",
       "applyPicks",
       "resolveNewDomains",
@@ -141,6 +143,7 @@ describe("PoolScheduler", () => {
       ["crawl", false],
       ["render", false],
       ["scan", false],
+      ["contacts", false],
       ["extract", true],
       ["pick", false],
       ["applyPicks", false],
@@ -218,6 +221,7 @@ describe("PoolScheduler", () => {
       "crawl",
       "render",
       "scan",
+      "contacts",
       "pick",
       "applyPicks",
       "resolveNewDomains",

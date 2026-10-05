@@ -16,14 +16,16 @@ Both LinkedIn paths are rate limited on a logged-in account. Free accounts hit a
 |---|---|---|
 | Person Name | `people.full_name` (registry, website); checked against the profile | $0 |
 | Result Title | `people.title`; else the profile's current role at the firm | in the lookup |
-| LinkedIn URL | `people.linkedin_url`, written by the lookup | $0 to $0.008 |
+| LinkedIn URL | `people.linkedin_url`, written by the lookup; else the firm site's link to them (`contact_points`) | $0 to $0.008 |
 | Email | `leads.email` | $0 |
 | Valid Email On | date of the newest verdict (`verifications.checked_at`) | $0 |
 | Email Type | `person` (named mailbox) or `role` (info@, `isRoleLocalpart`) | $0 |
 | Mail Status | valid → ok; risky, catch_all → risky; invalid → bad; none → unchecked | $0 |
 | Company Name | `companies.name` | $0 |
 | Company Domain | `companies.domain` | $0 |
-| Company LinkedIn | `companies.linkedin_url` (new) | $0 to $0.007 |
+| Company LinkedIn | `companies.linkedin_url` (new); else the page the firm's site links most | $0 to $0.007 |
+| Phone | the firm site's phone: toll-free last, `tel:` link before text, most pages (2026-10-05) | $0 |
+| Socials | the firm site's X, Instagram, Facebook, YouTube, TikTok, one each (2026-10-05) | $0 |
 | Company Location | the company page's Headquarters; else the import's address | $0.001 |
 | Industry | the company page's Industry; else Overture category or NAICS | same read |
 | Description | the company page's About; else the homepage meta description | same read |
@@ -151,3 +153,4 @@ Expect 40 to 50% of contacts to have a findable profile. Owners of 1 to 5 person
 - No logged-in LinkedIn: personal reads paused (2026-10-01), and account creation is ruled out (reach design).
 - Company pages need a Homepage match: Exa merges look-alike firms.
 - Cross-checks from data already read (William, 2026-10-03: "make sure this thing is actually verified"). LinkedIn contact info (email, phone) needs a login, so no check uses it.
+- 2026-10-05: phone and socials columns, and published LinkedIn links as fallbacks, from `contact_points` (`designs/2026-10-05-contact-points.md`). Published links never overwrite the confirmed ones.

@@ -25,7 +25,7 @@ const WIDENED: Record<string, string[]> = {
   ck_contact_candidates_candidateevidence: ["crm"],
   ck_documents_documentkind: ["snippet", "profile"],
   ck_messages_approvalsource: ["client"],
-  ck_enrichments_enrichmentkind: ["opener", "video"],
+  ck_enrichments_enrichmentkind: ["contact_scan", "opener", "video"],
   ck_enrollments_stopreason: ["undeliverable", "booked"],
 };
 /** Checks given one more way to pass (2026-10-04: a shared verdict names only its address). */

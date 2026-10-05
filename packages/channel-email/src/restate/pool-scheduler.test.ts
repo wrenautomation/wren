@@ -12,6 +12,7 @@ describe("stageEnabled", () => {
       "crawl",
       "render",
       "scan",
+      "contacts",
       "pick",
       "applyPicks",
     ]);

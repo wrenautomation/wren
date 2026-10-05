@@ -20,6 +20,13 @@ import { eq } from "drizzle-orm";
 import { z } from "zod";
 import { backfillCallRecords } from "../enrichment/audit-backfill.js";
 import {
+  CONTACTS_MODEL,
+  type ContactsStats,
+  loadContactTarget,
+  scanContacts,
+  selectContactTargets,
+} from "../enrichment/contacts.js";
+import {
   addCrawlStats,
   type CrawlStats,
   countCrawlNicheNullSkipped,
@@ -426,6 +433,38 @@ export function makeEnrichment(deps: EnrichmentDeps) {
             stats.scanned += 1;
             stats.signals += signals;
             if (signals) stats.pages_with_signals += 1;
+          }
+          await close(ctx, runId, stats);
+          return stats;
+        },
+      ),
+
+      /** Phones, LinkedIn and socials off every page not read yet (free; archived pages from the bucket). */
+      contacts: exclusiveHandler(
+        { input: LIMIT },
+        async (ctx: restate.ObjectContext, input: ScanInput = {}): Promise<ContactsStats> => {
+          const { db, niche } = scope(ctx);
+          const runId = await open(ctx, "enrich contacts", { ...input, niche }, CONTACTS_MODEL);
+          const ids = await ctx.run("select", () =>
+            selectContactTargets(db, { limit: input.limit, niche }),
+          );
+          const stats: ContactsStats = {
+            selected: ids.length,
+            scanned: 0,
+            points: 0,
+            pages_with_points: 0,
+          };
+          const units = unitBatches(ctx, "read contacts", ids, async (id) => {
+            const doc = await loadContactTarget(db, id);
+            if (!doc) return 0;
+            return (await atomic(db, (tx) => scanContacts(tx, doc, runId, deps.pages ?? null)))
+              .length;
+          });
+          for await (const r of units) {
+            const points = r.ok ? r.value : 0;
+            stats.scanned += 1;
+            stats.points += points;
+            if (points) stats.pages_with_points += 1;
           }
           await close(ctx, runId, stats);
           return stats;

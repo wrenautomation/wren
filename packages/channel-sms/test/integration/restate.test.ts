@@ -13,7 +13,6 @@ import { eq } from "drizzle-orm";
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 import type { TickStats } from "../../src/deliver.js";
 import { DEFAULT_HEALTH } from "../../src/health.js";
-import { liftPhones } from "../../src/lift.js";
 import { FakeProvider, type SmsEvent } from "../../src/provider.js";
 import {
   makeSmsDesk,
@@ -29,7 +28,16 @@ import {
   type WatchStats,
 } from "../../src/restate/index.js";
 import { smsContacts, smsEvents, smsMessages, smsTemplates } from "../../src/schema.js";
-import { company, fillTemplates, notes, numbers, POLICY, SEQUENCES, TABLES } from "./fixtures.js";
+import {
+  company,
+  fillTemplates,
+  lift,
+  notes,
+  numbers,
+  POLICY,
+  SEQUENCES,
+  TABLES,
+} from "./fixtures.js";
 
 let pg: TestPostgres;
 let env: RestateTestEnvironment;
@@ -103,7 +111,7 @@ describe("sms on restate", () => {
   it("enroll, sender pass, reply from the desk, threads", async () => {
     await numbers(pg.db, provider, ["+13125550100"]);
     await company(pg.db, "Acme", { html: '<a href="tel:+12125550187">x</a>' });
-    await liftPhones(pg.db, { heldNiches: [] });
+    await lift(pg.db, { heldNiches: [] });
     const desk = ingress().serviceClient<SmsDeskService>({ name: "SmsDesk" });
     expect(await desk.enroll({ sequence: "agencies-sms", limit: 5 })).toMatchObject({
       enrolled: 1,

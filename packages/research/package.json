@@ -12,6 +12,7 @@
     "./fetch": "./src/fetch/index.ts",
     "./pacing": "./src/pacing.ts",
     "./pages": "./src/pages.ts",
+    "./phones": "./src/phones.ts",
     "./people": "./src/people/index.ts",
     "./schema": "./src/schema.ts",
     "./studies": "./src/studies/index.ts",
@@ -33,6 +34,7 @@
     "@wren/llm": "workspace:*",
     "csv-parse": "7.0.2",
     "drizzle-orm": "0.45.2",
+    "libphonenumber-js": "1.13.14",
     "playwright": "1.63.0",
     "playwright-core": "1.63.0",
     "zod": "4.6.5"

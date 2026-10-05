@@ -1,12 +1,13 @@
 /**
  * The `lead_sheet` view against real rows: one row per lead, the person through
  * its candidate, the newest verdict, role vs person, and each company column's
- * fallback (LinkedIn page, then the import, then the homepage).
+ * fallback (LinkedIn page, then the import, then the homepage), and the
+ * contact points the firm publishes.
  */
-import { leads } from "@wren/core";
+import { companies, leads } from "@wren/core";
 import type { Db } from "@wren/db";
 import { startTestPostgres, type TestPostgres, truncate } from "@wren/db/testing";
-import { documents, findings } from "@wren/research/schema";
+import { contactPoints, documents, findings } from "@wren/research/schema";
 import { eq } from "drizzle-orm";
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 import { verifications } from "../../src/schema.js";
@@ -152,5 +153,49 @@ describe("lead_sheet", () => {
       });
     const [row] = await sheet();
     expect(row?.resultTitle).toBe("Principal");
+  });
+
+  it("published points fill phone, socials and both LinkedIn links; a trusted link wins", async () => {
+    const oak = await makeCompany(db());
+    const jane = await makePerson(db(), oak, { email: "jane@oakbridge.example" });
+    const point = (
+      kind: string,
+      value: string,
+      more: { pages?: number; source?: string } = {},
+    ) => ({
+      companyId: oak.id,
+      kind: kind as "phone",
+      value,
+      source: (more.source ?? "link") as "link",
+      pages: more.pages ?? 1,
+      sourceUrl: "https://oakbridge.example/",
+    });
+    await db()
+      .insert(contactPoints)
+      .values([
+        point("phone", "+18005550100", { pages: 9 }),
+        point("phone", "+12125550187", { source: "text", pages: 3 }),
+        point("phone", "+13125550111", { pages: 2 }),
+        point("linkedin_company", "https://www.linkedin.com/company/oak/", { pages: 5 }),
+        point("linkedin_company", "https://www.linkedin.com/company/partner/"),
+        point("instagram", "https://www.instagram.com/oak/"),
+        point("x", "https://x.com/oakold"),
+        point("x", "https://x.com/oak", { pages: 4 }),
+        { ...point("linkedin_person", "https://www.linkedin.com/in/janedoe/"), personId: jane.id },
+      ]);
+    const [row] = await sheet();
+    expect(row).toMatchObject({
+      phone: "+13125550111",
+      companyLinkedin: "https://www.linkedin.com/company/oak/",
+      linkedinUrl: "https://www.linkedin.com/in/janedoe/",
+      socials: "https://www.instagram.com/oak/ https://x.com/oak",
+    });
+
+    await db()
+      .update(companies)
+      .set({ linkedinUrl: "https://www.linkedin.com/company/oak-trusted/" });
+    expect((await sheet())[0]?.companyLinkedin).toBe(
+      "https://www.linkedin.com/company/oak-trusted/",
+    );
   });
 });

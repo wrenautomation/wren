@@ -1036,6 +1036,9 @@ importers:
       drizzle-orm:
         specifier: 0.45.2
         version: 0.45.2(@cloudflare/workers-types@5.20260927.1)(kysely@0.29.6)(postgres@3.4.9)
+      libphonenumber-js:
+        specifier: 1.13.14
+        version: 1.13.14
       playwright:
         specifier: 1.63.0
         version: 1.63.0

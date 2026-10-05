@@ -50,6 +50,7 @@ const fakes = [
       crawl: stage("crawl"),
       render: stage("render"),
       scan: stage("scan"),
+      contacts: stage("contacts"),
       extract: stage("extract"),
       pick: stage("pick"),
       applyPicks: stage("applyPicks"),
@@ -121,6 +122,7 @@ describe("PoolScheduler per client", () => {
       "crawl",
       "render",
       "scan",
+      "contacts",
       "pick",
       "applyPicks",
     ]);

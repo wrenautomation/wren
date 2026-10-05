@@ -25,6 +25,7 @@ export const leadSheetSettingsSchema = z
         crawl: perPass,
         render: perPass,
         scan: perPass,
+        contacts: perPass,
         extract: perPass,
         pick: perPass,
         resolveMailboxes: perPass,

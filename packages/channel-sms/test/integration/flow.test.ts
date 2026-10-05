@@ -18,7 +18,6 @@ import { queueManual, reconcile, tick } from "../../src/deliver.js";
 import { enroll } from "../../src/enroll.js";
 import { applyEvent } from "../../src/events.js";
 import { checkHealth, DEFAULT_HEALTH } from "../../src/health.js";
-import { liftPhones } from "../../src/lift.js";
 import { fleetDay } from "../../src/policy.js";
 import { poolToday, syncNumbers } from "../../src/pool.js";
 import { FakeProvider, NoProvider, type SmsEvent } from "../../src/provider.js";
@@ -36,6 +35,7 @@ import { getThread, listThreads } from "../../src/threads.js";
 import {
   company,
   fillTemplates,
+  lift,
   notes,
   numbers,
   OPEN,
@@ -98,7 +98,7 @@ describe("lift", () => {
       text: "or 1-800-555-0199",
     });
     await company(db(), "Advisors", { niche: "sec_ria", html: '<a href="tel:+12125550142">x</a>' });
-    const stats = await liftPhones(db(), { heldNiches: ["sec_ria"] });
+    const stats = await lift(db(), { heldNiches: ["sec_ria"] });
     expect(stats).toMatchObject({ added: 2, tollFree: 1, companies: 1 });
     const acme = await contact("+12125550187");
     expect(acme).toMatchObject({
@@ -113,14 +113,14 @@ describe("lift", () => {
       lineType: "toll_free",
     });
     expect(await contact("+12125550142")).toBeUndefined();
-    expect((await liftPhones(db(), { heldNiches: ["sec_ria"] })).added).toBe(0); // re-run is a no-op
+    expect((await lift(db(), { heldNiches: ["sec_ria"] })).added).toBe(0); // re-run is a no-op
   });
 
   it("reads an archived page's kept tel targets, never the bucket", async () => {
     await company(db(), "Acme", { html: '<a href="tel:+12125550187">call</a>', text: "hi" });
     const store = memoryPageStore();
     await archivePages(db(), store, { before: new Date(Date.now() + 86_400_000) });
-    expect(await liftPhones(db(), { heldNiches: [] })).toMatchObject({ added: 1 });
+    expect(await lift(db(), { heldNiches: [] })).toMatchObject({ added: 1 });
     expect(await contact("+12125550187")).toMatchObject({ sourceKind: "tel_link" });
   });
 });
@@ -248,7 +248,7 @@ describe("US and Canada", () => {
   beforeEach(async () => {
     await numbers(db(), provider, [US, CA], "2026-09-01", { registered: false });
     await company(db(), "Acme", { html: '<a href="tel:+12125550187">x</a>' });
-    await liftPhones(db(), { heldNiches: [] });
+    await lift(db(), { heldNiches: [] });
     await addContact(db(), { phone: "647 555 0101", basis: "opt_in", why: "form, 2026-09-28" });
   });
 
@@ -337,7 +337,7 @@ describe("templates", () => {
   beforeEach(async () => {
     await numbers(db(), provider, ["+13125550100"]);
     await company(db(), "Acme Studio", { html: '<a href="tel:+12125550187">x</a>' });
-    await liftPhones(db(), { heldNiches: [] });
+    await lift(db(), { heldNiches: [] });
   });
 
   it("enroll refuses until every step is filled, and spends nothing", async () => {
@@ -379,7 +379,7 @@ describe("enroll → send → receipts → reply", () => {
     });
     await company(db(), "Gamma LLC", { html: '<a href="tel:+12125550111">x</a>' });
     provider.landlines.add("+12125550111");
-    await liftPhones(db(), { heldNiches: [] });
+    await lift(db(), { heldNiches: [] });
   });
 
   it("enrolls mobiles on balanced sticky numbers, parks landlines", async () => {
@@ -668,7 +668,7 @@ describe("failure paths", () => {
   beforeEach(async () => {
     await numbers(db(), provider, ["+13125550100"]);
     await company(db(), "Acme", { html: '<a href="tel:+12125550187">x</a>' });
-    await liftPhones(db(), { heldNiches: [] });
+    await lift(db(), { heldNiches: [] });
     await enrollAt(OPEN);
   });
 
@@ -751,7 +751,7 @@ describe("pool, caps, health, stats", () => {
     for (let i = 0; i < 25; i += 1) {
       await company(db(), `Co${i}`, { html: `<a href="tel:+1212555${String(1000 + i)}">x</a>` });
     }
-    await liftPhones(db(), { heldNiches: [] });
+    await lift(db(), { heldNiches: [] });
     await enrollAt(OPEN, 25, { ...POLICY, rampStart: 3 });
     const policy = { ...POLICY, rampStart: 3 };
     let sent = 0;
@@ -782,7 +782,7 @@ describe("pool, caps, health, stats", () => {
     for (let i = 0; i < 40; i += 1) {
       await company(db(), `Co${i}`, { html: `<a href="tel:+1212555${String(2000 + i)}">x</a>` });
     }
-    await liftPhones(db(), { heldNiches: [] });
+    await lift(db(), { heldNiches: [] });
     await enrollAt(OPEN, 40);
     for (let i = 0; i < 40; i += 1) await tickAt(new Date(OPEN.getTime() + i * 1000));
     const sent = (await messages()).filter((m) => m.state === "sent");
@@ -823,7 +823,7 @@ describe("pool, caps, health, stats", () => {
     await numbers(db(), provider, ["+13125550100"]);
     await company(db(), "Acme", { html: '<a href="tel:+12125550187">x</a>' });
     await company(db(), "Beta", { html: '<a href="tel:+12125550142">x</a>' });
-    await liftPhones(db(), { heldNiches: [] });
+    await lift(db(), { heldNiches: [] });
     await enrollAt(OPEN);
     await tickAt(OPEN);
     await tickAt(new Date(OPEN.getTime() + 1000));
