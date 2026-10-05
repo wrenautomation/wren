@@ -588,7 +588,9 @@ export async function buildServices(
       makePostmasterScheduler({ db, client: postmaster, domains: sendingDomains, policy }),
     );
   }
-  if (opens) services.push(makeOpensScheduler({ db, ...opens, syncMs, tickMs }));
+  // Tracking off: only mail sent while it was on can still open, so hourly is enough.
+  const opensMs = settings.openTracking ? syncMs : 3_600_000;
+  if (opens) services.push(makeOpensScheduler({ db, ...opens, syncMs: opensMs, tickMs }));
   // The Friday report mails from a fleet inbox by default: the one mailbox the
   // service account is known to be able to impersonate.
   const reportFrom = settings.reportFrom ?? fleet.senders[0] ?? null;
