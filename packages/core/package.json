@@ -26,6 +26,7 @@
     "./restate": "./src/restate/index.ts",
     "./ingest": "./src/ingest/index.ts",
     "./mail": "./src/mail.ts",
+    "./mailbox": "./src/mailbox.ts",
     "./marketing": "./src/marketing.ts",
     "./marketing/records": "./src/marketing-records.ts",
     "./people": "./src/people/index.ts",

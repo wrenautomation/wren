@@ -109,6 +109,7 @@ const llm = () => new FakeLlm({ respond: () => JSON.stringify(githubBill) });
 function mailbox(down = { now: false }): Mailbox {
   return {
     address: "books@test.example",
+    meta: () => Promise.reject(new Error("the books read whole messages")),
     async search() {
       if (down.now) throw new Error("desk is off");
       return ["gh-1"];

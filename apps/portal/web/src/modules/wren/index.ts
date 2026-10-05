@@ -293,12 +293,97 @@ export const outbound: Module = {
   ],
 };
 
+// The Watch's hands (WatchConsole); William's own mail, so admins only.
+const MAIL_ACTIONS: Action[] = [
+  {
+    id: "watch.done",
+    label: "Done",
+    handler: "watch/done",
+    undo: "watch/undone",
+    bulk: true,
+    key: "e",
+    when: { queue: ["needs_you"] },
+    done: said("Done"),
+  },
+  {
+    id: "watch.hide",
+    label: "Hide like this",
+    handler: "watch/hide",
+    each: true,
+    bulk: true,
+    form: [
+      {
+        field: "subject",
+        label: "Subject has",
+        optional: true,
+        hint: "Blank hides everything from this sender.",
+      },
+    ],
+    when: { queue: ["needs_you", "done"] },
+    done: said("Hidden. A rule holds mail like it from now on."),
+  },
+  {
+    id: "watch.show",
+    label: "Show like this",
+    handler: "watch/show",
+    each: true,
+    bulk: true,
+    form: [
+      {
+        field: "subject",
+        label: "Subject has",
+        optional: true,
+        hint: "Blank shows everything from this sender.",
+      },
+    ],
+    when: { queue: ["held", "dropped"] },
+    done: said("Shown. A rule shows mail like it from now on."),
+  },
+];
+
+const RULE_ACTIONS: Action[] = [
+  {
+    id: "watch.addRule",
+    label: "Add rule",
+    handler: "watch/addRule",
+    form: [
+      {
+        field: "words",
+        label: "Rule",
+        hint: 'In plain words: "Inbox Insiders: hold invoices and receipts. Show order status changes."',
+      },
+      {
+        field: "sender",
+        label: "Sender",
+        optional: true,
+        hint: "An address or a domain. With a verdict, code settles it for $0.",
+      },
+      { field: "subject", label: "Subject has", optional: true },
+      {
+        field: "verdict",
+        label: "Verdict",
+        optional: true,
+        hint: "show, hold or drop. Blank leaves it to the model.",
+      },
+    ],
+    done: said("Rule added"),
+  },
+  {
+    id: "watch.removeRule",
+    label: "Remove",
+    handler: "watch/removeRule",
+    bulk: true,
+    confirm: "Remove this rule? Mail it settled keeps its verdict.",
+    done: said("Removed"),
+  },
+];
+
 export const inbox: Module = {
   id: "inbox",
   name: "Inbox",
   component: "email.replies",
   icon: "reply",
-  blurb: "Every lead's answer, by email, text or DM, waiting for you.",
+  blurb: "Every lead's answer, by email, text or DM, and the mail that needs you.",
   requires: TEAM,
   pages: [
     {
@@ -312,6 +397,12 @@ export const inbox: Module = {
         },
         { label: "Replies", record: "email.reply", href: "/inbox/replies?view=all", period: 30 },
         { label: "Booked", record: "email.call", href: "/inbox/calls?view=booked", period: 30 },
+        {
+          label: "Mail that needs you",
+          record: "watch.mail",
+          href: "/inbox/mail?view=needs_you",
+          needs: true,
+        },
       ],
       top: [
         {
@@ -320,6 +411,13 @@ export const inbox: Module = {
           href: "/inbox/waiting?view=waiting",
           fields: ["channel", "at"],
           empty: "Nothing is waiting on you.",
+        },
+        {
+          label: "Mail that needs you",
+          record: "watch.mail",
+          href: "/inbox/mail?view=needs_you",
+          fields: ["sender", "at"],
+          empty: "Nothing in your inboxes needs you.",
         },
       ],
     },
@@ -355,6 +453,27 @@ export const inbox: Module = {
         cancelled: "No call was cancelled.",
         all: "Calls booked on cal.com show here.",
       },
+    },
+    {
+      id: "mail",
+      label: "Your mail",
+      template: "list",
+      record: "watch.mail",
+      empty: {
+        needs_you: "Nothing in your inboxes needs you.",
+        held: "Mail the Watch holds shows here, searchable.",
+        done: "Mail you mark done shows here.",
+        all: "Mail the Watch reads shows here.",
+      },
+      actions: MAIL_ACTIONS,
+    },
+    {
+      id: "rules",
+      label: "Mail rules",
+      template: "list",
+      record: "watch.rule",
+      empty: { all: "No rules yet. Hide like this on any email writes one." },
+      actions: RULE_ACTIONS,
     },
   ],
 };

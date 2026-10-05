@@ -152,12 +152,13 @@ describe("sms on restate", () => {
       contactId: thread?.contactId as number,
       body: "one more thing",
     });
-    // The reply nudges the sender; wait for the text to leave.
-    for (let i = 0; i < 50 && provider.sent.length < 2; i += 1)
+    // The reply nudges the sender; wait for the text to leave and its row to say so.
+    const state = async () =>
+      (await pg.db.select().from(smsMessages).where(eq(smsMessages.id, messageId)))[0]?.state;
+    for (let i = 0; i < 50 && (await state()) !== "sent"; i += 1)
       await new Promise((r) => setTimeout(r, 100));
     expect(provider.sent.at(-1)?.text).toBe("one more thing");
-    const [row] = await pg.db.select().from(smsMessages).where(eq(smsMessages.id, messageId));
-    expect(row?.state).toBe("sent");
+    expect(await state()).toBe("sent");
     await expect(desk.reply({ contactId: 999, body: "x" })).rejects.toThrow(/no sms contact/);
     const view = await desk.numbers();
     expect(view).toMatchObject({ provider: "fake", live: false, sentToday: 2 });

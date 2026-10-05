@@ -142,6 +142,7 @@ function mailbox(mails: Record<string, Mail>) {
   const queries: string[] = [];
   const mb: Mailbox = {
     address: "books@test.example",
+    meta: () => Promise.reject(new Error("the books read whole messages")),
     async search(q) {
       queries.push(q);
       return [...box.keys()];

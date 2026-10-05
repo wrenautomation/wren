@@ -144,6 +144,9 @@ importers:
       '@wren/video':
         specifier: workspace:*
         version: link:../../packages/video
+      '@wren/watch':
+        specifier: workspace:*
+        version: link:../../packages/watch
       commander:
         specifier: 15.0.0
         version: 15.0.0
@@ -203,6 +206,9 @@ importers:
       '@wren/ui':
         specifier: workspace:*
         version: link:../../packages/ui
+      '@wren/watch':
+        specifier: workspace:*
+        version: link:../../packages/watch
       react:
         specifier: 19.3.0
         version: 19.3.0
@@ -342,6 +348,9 @@ importers:
       '@wren/research':
         specifier: workspace:*
         version: link:../../packages/research
+      '@wren/watch':
+        specifier: workspace:*
+        version: link:../../packages/watch
       drizzle-orm:
         specifier: 0.45.2
         version: 0.45.2(@cloudflare/workers-types@5.20260927.1)(kysely@0.29.6)(postgres@3.4.9)
@@ -1141,6 +1150,37 @@ importers:
         specifier: 1.63.0
         version: 1.63.0
     devDependencies:
+      typescript:
+        specifier: 5.9.3
+        version: 5.9.3
+      vitest:
+        specifier: 5.0.1
+        version: 5.0.1(@types/node@22.20.3)(vite@8.3.0(@types/node@22.20.3)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.13)(yaml@2.9.1))
+
+  packages/watch:
+    dependencies:
+      '@restatedev/restate-sdk':
+        specifier: 1.17.1
+        version: 1.17.1
+      '@wren/core':
+        specifier: workspace:*
+        version: link:../core
+      '@wren/db':
+        specifier: workspace:*
+        version: link:../db
+      '@wren/llm':
+        specifier: workspace:*
+        version: link:../llm
+      drizzle-orm:
+        specifier: 0.45.2
+        version: 0.45.2(@cloudflare/workers-types@5.20260927.1)(kysely@0.29.6)(postgres@3.4.9)
+      zod:
+        specifier: 4.6.5
+        version: 4.6.5
+    devDependencies:
+      '@testcontainers/postgresql':
+        specifier: 12.1.0
+        version: 12.1.0
       typescript:
         specifier: 5.9.3
         version: 5.9.3

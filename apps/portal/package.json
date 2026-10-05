@@ -16,6 +16,7 @@
     "@wren/delivery": "workspace:*",
     "@wren/reactivation": "workspace:*",
     "@wren/ui": "workspace:*",
+    "@wren/watch": "workspace:*",
     "react": "19.3.0",
     "react-dom": "19.3.0"
   },

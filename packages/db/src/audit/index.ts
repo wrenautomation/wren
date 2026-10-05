@@ -37,6 +37,7 @@ export const AUDIT_SKIPPED: Readonly<Record<string, string>> = {
   search_pages: "index states pulled from Search Console",
   search_answers: "what the answer engines said, with its own date",
   open_events: "pixel hits, append-only",
+  "watch.mail": "William's own mail, read by machine: previews never go in a permanent log",
 };
 
 /** Schemas left out besides Postgres's own (`pg_*`, `information_schema`); a new schema is audited. */

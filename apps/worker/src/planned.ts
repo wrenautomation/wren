@@ -263,32 +263,4 @@ export const PLANNED_COMPONENTS = [
       ],
     },
   }),
-  defineComponent({
-    ...planned,
-    id: "watch",
-    stage: "run",
-    channels: ["email"],
-    name: "The Watch",
-    blurb: "Reads the inboxes and feeds and shows only what needs you, by rules in plain words.",
-    icon: "mail",
-    for: "wren",
-    effects: ["spends"],
-    hypothesis: {
-      from,
-      guesses: [
-        {
-          is: "change",
-          says: "Rules, added from any row with Hide like this or Show like this.",
-          built: null,
-        },
-        { is: "change", says: "More inboxes and feeds.", built: null },
-        {
-          is: "needs",
-          says: "A model for what rules can't settle; Cohere by default.",
-          built: null,
-        },
-        { is: "fixed", says: "Keeps sender, subject and a summary, never bodies." },
-      ],
-    },
-  }),
 ];

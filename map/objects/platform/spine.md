@@ -20,7 +20,7 @@ A workflow is data (`packages/core/src/workflows.ts`), so one walker runs any of
 - `events`: `uq_events_entry (workflow, node, port, subject)`; `node` is dotted from the top workflow ("warm.follow"), "out" for its own output. In main and in every client's database.
 - `hooks`: main only; `token_hash` (sha256 of a 43-char token), `client` (null is Wren), `workflow`, `input`, `subject` (the payload field, dotted).
 - `Spine/emit` (private): events leaving `node.port` or `in.port`. `Spine/release` (private, delayed): a wait is over. `Spine/hook` (public): the phone Worker's door.
-- Steps register by part id or custom step name in the worker, and get `{client, workflow, node, with}` (`with`: the node's settings). Registered: `sms.touch`, `reach.touch`. A node with no step keeps the arrival and stops.
+- Steps register by part id or custom step name in the worker, and get `{client, workflow, node, with}` (`with`: the node's settings). Registered: `sms.touch`, `reach.touch`, `watch.triage` ([[watch/mail]]). A node with no step keeps the arrival and stops.
 - Follow-ups: `cadenceWorkflow` (`workflows.ts`) makes a cadence a workflow `follow_up.<name>` of touch nodes `s<n>`, waits on the wires. Each text sequence is one (`textCadence`, `packages/channel-sms/src/follow.ts`), and each DM sequence (`reachCadence`, `packages/outreach/src/follow.ts`). A part's own code emits a node's output with `spineEmit`: `SmsSender` and `ReachSender` send `s<n>.sent` for every step they sent, so a wait counts from the send, not the queue. A custom step at an https URL is POSTed `{port, event}` and answers `{out}`.
 - "until <kind>" waits refuse (`waitMs`): nothing uses them yet.
 

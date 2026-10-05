@@ -23,6 +23,7 @@ import { deliveryRecords } from "@wren/delivery/records";
 import { NICHES } from "@wren/niches";
 import { dmCopyRecord } from "@wren/outreach/records";
 import { REACTIVATION_RECORDS, settingOf } from "@wren/reactivation/records";
+import { WATCH_RECORDS } from "@wren/watch/records";
 import type { Logger } from "pino";
 import { afterAll, describe, expect, it } from "vitest";
 import { COMPONENTS, PLATFORM } from "./components.js";
@@ -81,6 +82,7 @@ async function bound() {
 const RECORD_TYPES = [
   ...emailRecords([], {} as SendPolicy),
   ...BOOKS_RECORDS,
+  ...WATCH_RECORDS,
   ...MARKETING_NUMBERS,
   dmCopyRecord("x"),
   textCopyRecord([], "x"),

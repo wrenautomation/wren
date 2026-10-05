@@ -7,15 +7,7 @@
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
 import type { Context, ServiceDefinition, VirtualObjectDefinition } from "@restatedev/restate-sdk";
-import {
-  awsCostExplorer,
-  BOOKS_CONSOLE_VIEWS,
-  bankOfCanada,
-  delegatedMailbox,
-  dirStore,
-  s3Store,
-  siteMailbox,
-} from "@wren/books";
+import { awsCostExplorer, BOOKS_CONSOLE_VIEWS, bankOfCanada, dirStore, s3Store } from "@wren/books";
 import { BOOKS_RECORDS } from "@wren/books/records";
 import { makeBooks, makeBooksConsole } from "@wren/books/restate";
 import {
@@ -135,6 +127,7 @@ import {
   makeContent,
   restateSites,
 } from "@wren/core/content/restate";
+import { delegatedMailbox, type Mailbox, siteMailbox } from "@wren/core/mailbox";
 import { MARKETING_RECORDS } from "@wren/core/marketing/records";
 import { namedFor } from "@wren/core/notify";
 import { clientKey, clientOfKey } from "@wren/core/restate";
@@ -171,6 +164,9 @@ import {
 import { YOUTUBE_READ_SCOPE, youtubeApi } from "@wren/research/enrichment";
 import { s3PageStore } from "@wren/research/pages";
 import { makeDiscovery, makeEnrichment, makePageArchive } from "@wren/research/restate";
+import { triageStep } from "@wren/watch";
+import { WATCH_RECORDS } from "@wren/watch/records";
+import { makeWatch, makeWatchConsole } from "@wren/watch/restate";
 import type { Logger } from "pino";
 import { COMPONENTS } from "./components.js";
 import { MARKETING_NUMBERS } from "./marketing.js";
@@ -208,7 +204,7 @@ export const POOL_CHAIN = ["PoolScheduler", "Discovery", "Enrichment", "Resoluti
  * Everything the box serves: the chain; the page archive, which moves rows out of
  * its own disk; and the books' day, which waits on the model and the Mac's desk.
  */
-export const BOX_SERVICES = [...POOL_CHAIN, "PageArchive", "Books"];
+export const BOX_SERVICES = [...POOL_CHAIN, "PageArchive", "Books", "Watch"];
 
 export function servicesFor(
   all: AnyService[],
@@ -737,25 +733,27 @@ export async function buildServices(
   services.push(makeAuditSealer({ main: db, open: openClient, ...notify }));
   // Page HTML a day old moves to the pages bucket; off until `wren pages archive start`.
   services.push(makePageArchive({ db, pages, ...notify }));
+  const mailboxOf =
+    (caller: string) =>
+    (m: Settings["booksMailboxes"][number]): Mailbox =>
+      m.via === "delegated"
+        ? delegatedMailbox(gmail, m.address)
+        : // Inside the pass's one step, so through the ingress; a Mac that is off is an alert, not a hang.
+          siteMailbox(
+            ingressSites(ingressOf(settings), {
+              caller,
+              service: DESK,
+              timeoutMs: BOOKS_DESK_TIMEOUT_MS,
+            }),
+            m.address,
+          );
   // The books' day: billing mail kept, read and posted, AWS spend in, alerts out;
   // off until `wren books loop start`.
   services.push(
     makeBooks({
       db,
       llm,
-      mailboxes: settings.booksMailboxes.map((m) =>
-        m.via === "delegated"
-          ? delegatedMailbox(gmail, m.address)
-          : // Inside the pass's one step, so through the ingress; a Mac that is off is an alert, not a hang.
-            siteMailbox(
-              ingressSites(ingressOf(settings), {
-                caller: "wren:books",
-                service: DESK,
-                timeoutMs: BOOKS_DESK_TIMEOUT_MS,
-              }),
-              m.address,
-            ),
-      ),
+      mailboxes: settings.booksMailboxes.map(mailboxOf("wren:books")),
       store: settings.booksBucket
         ? s3Store(settings.booksBucket)
         : dirStore(resolve(rootDir, ".books")),
@@ -765,6 +763,12 @@ export async function buildServices(
       ...notify,
     }),
   );
+  // The Watch: new mail every 15 minutes, onto the `watch` workflow; off until `wren watch start`.
+  const watchBoxes = settings.watchMailboxes.length
+    ? settings.watchMailboxes
+    : settings.booksMailboxes;
+  services.push(makeWatch({ db, mailboxes: watchBoxes.map(mailboxOf("wren:watch")) }));
+  services.push(makeWatchConsole(db));
   // Cold SMS. Always bound: the sender is off until `wren sms queue start`.
   const sms = {
     db,
@@ -892,6 +896,10 @@ export async function buildServices(
       steps: {
         [TOUCH]: touchStep((client) => (client ? clientDb(client) : db), sms),
         "reach.touch": reachTouchStep(db, { sequences: reach.sequences, sender: reach.senderName }),
+        "watch.triage": triageStep(
+          db,
+          settings.watchLlm === "none" ? null : makeLlm(settings.watchLlm, process.env),
+        ),
       },
       rule: async (when: string, e: SpineEvent) => {
         const r = await llm.complete(
@@ -909,6 +917,7 @@ export async function buildServices(
       records: [
         ...emailRecords(roster, policy),
         ...BOOKS_RECORDS,
+        ...WATCH_RECORDS,
         ...MARKETING_NUMBERS,
         dmCopyRecord(settings.smsSenderName),
         textCopyRecord(SMS_SEQUENCES.values(), settings.smsSenderName),

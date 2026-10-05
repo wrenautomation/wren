@@ -10,6 +10,7 @@ import { DELIVERY_WORKFLOWS } from "@wren/delivery/components";
 import { SMS_SEQUENCES } from "@wren/niches";
 import { REACH_SEQUENCES, reachCadence } from "@wren/outreach";
 import { RESEARCH_WORKFLOWS } from "@wren/research/components";
+import { WATCH_WORKFLOWS } from "@wren/watch/components";
 
 /** Shared blocks: what every funnel needs. */
 const BLOCKS = [
@@ -206,6 +207,7 @@ export const WORKFLOWS: readonly Workflow[] = [
   ...RESEARCH_WORKFLOWS,
   ...DELIVERY_WORKFLOWS,
   ...CONTENT_WORKFLOWS,
+  ...WATCH_WORKFLOWS,
   // Follow-ups on the spine: each text sequence is its cadence.
   ...[...SMS_SEQUENCES.values()].map(textCadence),
   ...[...REACH_SEQUENCES.values()].map(reachCadence),

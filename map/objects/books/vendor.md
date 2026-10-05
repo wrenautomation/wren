@@ -18,7 +18,7 @@ Capture asks Gmail only for known billing senders, so the personal inbox is neve
 ## Shape
 
 - `vendors` (`schema.ts:58`): key, name, `account_id`, cycle, `gst_claimable`
-- Mail rules, code only (`packages/books/src/chart.ts:62`): `from` senders and `subject` words; `billingQuery` builds the one search (`packages/books/src/mailbox.ts:92`), `vendorFor` matches a message (`:107`)
+- Mail rules, code only (`packages/books/src/chart.ts:62`): `from` senders and `subject` words; `billingQuery` builds the one search (`packages/books/src/mailbox.ts:22`), `vendorFor` matches a message (`:28`)
 - `seedBooks` upserts chart and vendors before every import (`chart.ts:138`)
 
 Citations: `packages/books/src/schema.ts:58`, `packages/books/src/chart.ts:62`, `:138`

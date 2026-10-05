@@ -147,6 +147,8 @@ resource "aws_lambda_function" "worker" {
         WREN_POOL_CHAIN_HOST = "box"
         # Postgres through PgBouncer on the box (deploy/scripts/box-pgbouncer.sh); the CLI stays on 5432.
         WREN_DATABASE_POOL_PORT = "6432"
+        # The Watch's triage, on Spine: Cohere Command A on our credits (designs/2026-10-05-workflows.md, Costs).
+        WREN_WATCH_LLM = "cohere"
       },
       var.restate_identity_key == "" ? {} : { WREN_RESTATE_IDENTITY_KEY = var.restate_identity_key },
       var.autobrowse_instance_id == "" ? {} : { WREN_AUTOBROWSE_INSTANCE_ID = var.autobrowse_instance_id },

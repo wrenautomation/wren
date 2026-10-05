@@ -29,6 +29,7 @@ Twins `AGENTS.md` and `routing.md` are generated from this file by `_meta/build.
 | `clients/` | who we work for: the registry row, its own database, its logins and what we deliver |
 | `reactivation/` | the lead reactivation product: CRM contacts, client profile, handoffs, demo videos |
 | `books/` | the money: vendors, bills, their documents, the journal |
+| `watch/` | the Watch: William's mail, triaged by rules and a model into Needs you |
 | `platform/` | what everything stands on: settings, niches, offers, loop objects, Restate services, schema, worker, CLI, phone |
 
 ## Colliding names (short form; full list in CONTEXT.md)

@@ -666,6 +666,13 @@
       "when": 1791233667175,
       "tag": "0094_events_and_hooks",
       "breakpoints": true
+    },
+    {
+      "idx": 95,
+      "version": "7",
+      "when": 1791237412082,
+      "tag": "0095_watch",
+      "breakpoints": true
     }
   ]
 }

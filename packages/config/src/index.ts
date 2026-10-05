@@ -3,6 +3,27 @@ import { z } from "zod";
 
 export { loadEnvFile } from "./env-file.js";
 
+/**
+ * Inboxes to read, `address:via` comma-separated. `delegated` reads a Workspace inbox through the
+ * service account; `autobrowse` reads a personal Gmail, read-only, through autobrowse's `gmail` site.
+ */
+const mailboxes = z
+  .string()
+  .default("")
+  .transform((s) =>
+    s
+      .split(",")
+      .map((x) => x.trim())
+      .filter(Boolean)
+      .map((x) => {
+        const at = x.lastIndexOf(":");
+        return { address: x.slice(0, at), via: x.slice(at + 1) };
+      }),
+  )
+  .pipe(
+    z.array(z.object({ address: z.string().email(), via: z.enum(["delegated", "autobrowse"]) })),
+  );
+
 /** All process settings. Read once at startup, passed down explicitly. */
 export const settingsSchema = z.object({
   databaseUrl: z.string().url(),
@@ -231,27 +252,12 @@ export const settingsSchema = z.object({
   autobrowseDir: z.string().min(1).default("../autobrowse"),
   /** The private S3 bucket that keeps every email and PDF the books read (under `books/`); unset = the local `.books/` directory. */
   booksBucket: z.string().min(1).optional(),
-  /**
-   * Inboxes the books read bills from, `address:via` comma-separated. `delegated`
-   * reads a Workspace inbox through the service account; `autobrowse` reads a
-   * personal Gmail, read-only, through autobrowse's `gmail` site.
-   */
-  booksMailboxes: z
-    .string()
-    .default("")
-    .transform((s) =>
-      s
-        .split(",")
-        .map((x) => x.trim())
-        .filter(Boolean)
-        .map((x) => {
-          const at = x.lastIndexOf(":");
-          return { address: x.slice(0, at), via: x.slice(at + 1) };
-        }),
-    )
-    .pipe(
-      z.array(z.object({ address: z.string().email(), via: z.enum(["delegated", "autobrowse"]) })),
-    ),
+  /** Inboxes the books read bills from. */
+  booksMailboxes: mailboxes,
+  /** Inboxes the Watch reads, as `booksMailboxes`; unset, the books' own. */
+  watchMailboxes: mailboxes,
+  /** The model for mail the Watch's rules can't settle (`makeLlm`); `none` shows it all. */
+  watchLlm: z.string().min(1).default("none"),
   /** The first day the books cover; imports look no further back. */
   booksSince: z
     .string()
@@ -541,6 +547,8 @@ export const ENV_KEYS = {
   autobrowseDir: "WREN_AUTOBROWSE_DIR",
   booksBucket: "WREN_BOOKS_BUCKET",
   booksMailboxes: "WREN_BOOKS_MAILBOXES",
+  watchMailboxes: "WREN_WATCH_MAILBOXES",
+  watchLlm: "WREN_WATCH_LLM",
   booksSince: "WREN_BOOKS_SINCE",
   booksAwsUsage: "WREN_BOOKS_AWS_USAGE",
   metaPageId: "WREN_META_PAGE_ID",

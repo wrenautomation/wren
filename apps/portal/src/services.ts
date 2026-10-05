@@ -11,6 +11,7 @@ import { type Need, needOf, type Permission } from "@wren/core/access";
 import { CONSOLE_ROUTES, CONSOLE_WRITES } from "@wren/core/console-routes";
 import { DELIVERY_ROUTES, DELIVERY_WRITES } from "@wren/delivery/routes";
 import { PORTAL_ROUTES, PORTAL_WRITES } from "@wren/reactivation/portal-routes";
+import { WATCH_CONSOLE_ROUTES, WATCH_CONSOLE_WRITES } from "@wren/watch/console-routes";
 
 export interface Service {
   /** The Restate service. */
@@ -36,6 +37,8 @@ export const SERVICES: Readonly<Record<string, Service>> = {
   sms: service("SmsConsole", SMS_CONSOLE_ROUTES, SMS_CONSOLE_WRITES),
   // Where an account's spend counts.
   books: service("BooksConsole", BOOKS_CONSOLE_ROUTES, BOOKS_CONSOLE_WRITES),
+  // The Watch: William's mail and its rules.
+  watch: service("WatchConsole", WATCH_CONSOLE_ROUTES, WATCH_CONSOLE_WRITES),
 };
 
 /**
