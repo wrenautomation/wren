@@ -17,6 +17,9 @@
  * are not send days: the window stays shut, the ramp does not climb.
  * An inbox with its own `Ramp` (roster `ramp`) climbs from its own start
  * instead, by the same day rules, and sends nothing cold before it.
+ * A ramp that names `warmupStart` is also held to its warmup: Instantly climbs
+ * `warmupStep` a day (weekends too) to `warmupLimit`, and cold is at most that
+ * day's warmup ÷ `warmupPerCold` (2 to 1 by the email-infra SOP).
  * Every window question is answered on the operator's local clock and
  * returned as a UTC instant.
  */
@@ -48,6 +51,8 @@ export interface Ramp {
   readonly from: number;
   readonly step: number;
   readonly ceiling: number;
+  /** The day its Instantly warmup began; set = cold never passes warmup ÷ `warmupPerCold`. */
+  readonly warmupStart?: PlainDate | null;
 }
 
 /** The settings block `SendPolicy` parses; `@wren/config` `Settings` satisfies it. */
@@ -64,6 +69,9 @@ export interface SendPolicySettings {
   readonly coldSendsRampFrom: number;
   readonly coldSendsRampStep: number;
   readonly coldSendsRampEveryDays: number;
+  readonly warmupPerCold?: number;
+  readonly warmupStep?: number;
+  readonly warmupLimit?: number;
   readonly sendGapMinMinutes: number;
   readonly sendGapMaxMinutes: number;
   readonly newOpenersPerDay?: number | undefined;
@@ -89,6 +97,9 @@ export interface SendPolicyFields {
   readonly rampFrom: number;
   readonly rampStep: number;
   readonly rampEverySendDays: number;
+  readonly warmupPerCold: number;
+  readonly warmupStep: number;
+  readonly warmupLimit: number;
   readonly gapMinMs: number;
   readonly gapMaxMs: number;
   readonly newOpenersPerDay: number | null;
@@ -127,6 +138,9 @@ export class SendPolicy implements SendPolicyFields {
   readonly rampFrom: number;
   readonly rampStep: number;
   readonly rampEverySendDays: number;
+  readonly warmupPerCold: number;
+  readonly warmupStep: number;
+  readonly warmupLimit: number;
   readonly gapMinMs: number;
   readonly gapMaxMs: number;
   readonly newOpenersPerDay: number | null;
@@ -151,6 +165,9 @@ export class SendPolicy implements SendPolicyFields {
     this.rampFrom = fields.rampFrom;
     this.rampStep = fields.rampStep;
     this.rampEverySendDays = fields.rampEverySendDays;
+    this.warmupPerCold = fields.warmupPerCold;
+    this.warmupStep = fields.warmupStep;
+    this.warmupLimit = fields.warmupLimit;
     this.gapMinMs = fields.gapMinMs;
     this.gapMaxMs = fields.gapMaxMs;
     this.newOpenersPerDay = fields.newOpenersPerDay;
@@ -190,6 +207,9 @@ export class SendPolicy implements SendPolicyFields {
       [ENV_KEYS.coldSendsRampFrom, s.coldSendsRampFrom],
       [ENV_KEYS.coldSendsRampStep, s.coldSendsRampStep],
       [ENV_KEYS.coldSendsRampEveryDays, s.coldSendsRampEveryDays],
+      [ENV_KEYS.warmupPerCold, s.warmupPerCold ?? 2],
+      [ENV_KEYS.warmupStep, s.warmupStep ?? 2],
+      [ENV_KEYS.warmupLimit, s.warmupLimit ?? 60],
     ] as const) {
       if (value < 1) throw new Error(`${key} must be at least 1, got ${value}`);
     }
@@ -256,6 +276,9 @@ export class SendPolicy implements SendPolicyFields {
       rampFrom: s.coldSendsRampFrom,
       rampStep: s.coldSendsRampStep,
       rampEverySendDays: s.coldSendsRampEveryDays,
+      warmupPerCold: s.warmupPerCold ?? 2,
+      warmupStep: s.warmupStep ?? 2,
+      warmupLimit: s.warmupLimit ?? 60,
       gapMinMs: s.sendGapMinMinutes * MINUTE_MS,
       gapMaxMs: s.sendGapMaxMinutes * MINUTE_MS,
       newOpenersPerDay: s.newOpenersPerDay ?? null,
@@ -455,11 +478,28 @@ export class SendPolicy implements SendPolicyFields {
   perInboxCap(now: Date, ramp?: Ramp | null): number {
     if (ramp) {
       if (this.localDay(now).compare(ramp.start) < 0) return 0;
-      return Math.min(ramp.ceiling, ramp.from + ramp.step * this.sendDaysElapsed(now, ramp));
+      const climbed = Math.min(
+        ramp.ceiling,
+        ramp.from + ramp.step * this.sendDaysElapsed(now, ramp),
+      );
+      const warm = this.warmupOn(now, ramp);
+      return warm === null ? climbed : Math.min(climbed, Math.floor(warm / this.warmupPerCold));
     }
     if (this.rampStart === null) return this.perInboxCeiling;
     const steps = Math.floor(this.sendDaysElapsed(now) / this.rampEverySendDays);
     return Math.min(this.perInboxCeiling, this.rampFrom + this.rampStep * steps);
+  }
+
+  /**
+   * Warmup mails the inbox sends on the local day of `now`: `warmupStep` per
+   * calendar day since `warmupStart` (Instantly warms weekends too, from 0), to
+   * `warmupLimit`. null = the ramp names no warmup.
+   */
+  warmupOn(now: Date, ramp?: Ramp | null): number | null {
+    const start = ramp?.warmupStart;
+    if (!start) return null;
+    const days = Math.max(0, start.daysUntil(this.localDay(now)));
+    return Math.min(this.warmupLimit, this.warmupStep * days);
   }
 
   // ---- the gap ------------------------------------------------------

@@ -30,11 +30,11 @@ Two optional keys per sender in `senders_config.toml`:
 address = "william@getwrenautomation.com"
 display_name = "William Jin"
 transport = "smtp"                       # default "gmail"
-ramp = { start = "2026-10-20", from = 1, step = 1, ceiling = 30 }
+ramp = { start = "2026-10-20", from = 1, step = 1, ceiling = 30, warmup_start = "2026-10-06" }
 ```
 
 - `transport = "smtp"` needs a row in the mailboxes file. If it is missing, that is a `RosterError` at load, never a skip.
-- `ramp` replaces the fleet ramp for that inbox only. `start` is the first day it sends cold. That is William's call, after at least 14 days of warmup. With no `ramp`, the fleet ramp applies as today.
+- `ramp` replaces the fleet ramp for that inbox only. `start` is the first day it sends cold. That is William's call, after at least 14 days of warmup. With no `ramp`, the fleet ramp applies as today. `warmup_start` is the day Instantly warmup went on; with it, the inbox's cold sends never pass half that day's warmup (2 to 1).
 
 ## 3. Send: `SmtpTransport`
 
@@ -128,3 +128,4 @@ The seeds are William's personal Gmail accounts (jinwilliam.jin@gmail.com, will@
 - 2026-10-04: Placement reads through autobrowse's Gmail site API, per-account consent. The seeds are personal accounts, so nothing writes to them.
 - 2026-10-04: Domain lists = Spamhaus DBL, SURBL, URIBL ("spam checkers, srbl, all the other major ones"). The IP lists stay the five the prober check uses.
 - 2026-10-04: Placement sends the real opener draft, not a canned note. Filters judge the words, so a canned note would test the wrong message.
+- 2026-10-05: Warmup to cold is 2 to 1 (William, email-infra SOP). Instantly climbs +2 a day to 60, about 30 days; `SendPolicy.perInboxCap` holds a ramp with `warmup_start` to floor(warmup ÷ 2). Ratio, step and limit are settings (`WREN_WARMUP_PER_COLD` 2, `WREN_WARMUP_STEP` 2, `WREN_WARMUP_LIMIT` 60).

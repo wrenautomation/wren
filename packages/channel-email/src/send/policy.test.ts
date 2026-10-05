@@ -475,6 +475,39 @@ describe("an inbox's own ramp", () => {
   });
 });
 
+describe("warmup to cold, 2 to 1", () => {
+  // Warmup began Mon 2026-08-31 (+2 a calendar day to 60); cold starts Mon 09-14 at 1, +1 a send day, to 30.
+  const WARM = {
+    start: PlainDate.fromIso("2026-09-14"),
+    from: 1,
+    step: 1,
+    ceiling: 30,
+    warmupStart: PlainDate.fromIso("2026-08-31"),
+  };
+  it("counts warmup by calendar day, weekends too, to the limit", () => {
+    const p = policy();
+    expect(p.warmupOn(at(2026, 8, 31), WARM)).toBe(0);
+    expect(p.warmupOn(at(2026, 9, 14), WARM)).toBe(28);
+    expect(p.warmupOn(at(2026, 10, 30), WARM)).toBe(60);
+    expect(p.warmupOn(at(2026, 9, 14), { ...WARM, warmupStart: null })).toBeNull();
+  });
+  it("cold never passes half the day's warmup", () => {
+    const p = policy();
+    // Warmup a day before the cold start: 2 warm, so 1 cold, though the ramp says 1 anyway.
+    const late = { ...WARM, from: 20, warmupStart: PlainDate.fromIso("2026-09-13") };
+    expect(p.perInboxCap(at(2026, 9, 14), late)).toBe(1);
+    expect(p.perInboxCap(at(2026, 9, 21), late)).toBe(8); // 16 warm ÷ 2; the ramp alone says 25
+    expect(p.perInboxCap(at(2026, 9, 14), WARM)).toBe(1); // the ramp is the lower one
+    expect(p.perInboxCap(at(2026, 12, 1), WARM)).toBe(30); // 60 warm, 30 cold: the peak
+  });
+  it("the ratio and climb are settings", () => {
+    const p = policy({ warmupPerCold: 3, warmupStep: 3, warmupLimit: 90 });
+    const late = { ...WARM, from: 20, warmupStart: PlainDate.fromIso("2026-09-13") };
+    expect(p.perInboxCap(at(2026, 9, 21), late)).toBe(8); // 24 warm ÷ 3
+    expect(() => policy({ warmupPerCold: 0 })).toThrow(/WREN_WARMUP_PER_COLD/);
+  });
+});
+
 // Monday 2026-09-14, fleet window 13:00–19:00 America/New_York (EDT, UTC-4):
 // 17:00–23:00 UTC. Lead window 13:00–16:00 on the lead's clock.
 const LEAD_WINDOW = {

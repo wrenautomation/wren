@@ -59,6 +59,14 @@ export const settingsSchema = z.object({
   coldSendsRampFrom: z.coerce.number().int().default(5),
   coldSendsRampStep: z.coerce.number().int().default(2),
   coldSendsRampEveryDays: z.coerce.number().int().default(3),
+  /**
+   * Warmup emails for each cold one (email-infra SOP: 2 to 1). An inbox whose roster
+   * ramp names `warmup_start` sends at most its day's warmup ÷ this, cold.
+   */
+  warmupPerCold: z.coerce.number().int().default(2),
+  /** Instantly's warmup climb on fleet inboxes: +step a day to limit (autobrowse `WARMUP`). */
+  warmupStep: z.coerce.number().int().default(2),
+  warmupLimit: z.coerce.number().int().default(60),
   sendGapMinMinutes: z.coerce.number().default(8),
   sendGapMaxMinutes: z.coerce.number().default(20),
   /** Fleet-wide brake on new conversations per day; unset = unlimited. */
@@ -460,6 +468,9 @@ export const ENV_KEYS = {
   coldSendsRampFrom: "WREN_COLD_SENDS_RAMP_FROM",
   coldSendsRampStep: "WREN_COLD_SENDS_RAMP_STEP",
   coldSendsRampEveryDays: "WREN_COLD_SENDS_RAMP_EVERY_DAYS",
+  warmupPerCold: "WREN_WARMUP_PER_COLD",
+  warmupStep: "WREN_WARMUP_STEP",
+  warmupLimit: "WREN_WARMUP_LIMIT",
   sendGapMinMinutes: "WREN_SEND_GAP_MIN_MINUTES",
   sendGapMaxMinutes: "WREN_SEND_GAP_MAX_MINUTES",
   newOpenersPerDay: "WREN_NEW_OPENERS_PER_DAY",

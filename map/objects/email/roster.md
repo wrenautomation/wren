@@ -18,7 +18,7 @@ A sender missing from the file cannot be sent through; every defect is a `Roster
 ## Shape
 
 - `loadRoster(path, knownNiches, mailboxes)` (`roster.ts:301`); `RosterError` (`:20`)
-- per sender, optional: `transport` (`gmail` default, `smtp`), `ramp = { start, from, step, ceiling }` (its own warmup, else the fleet's), `dkim` (selector, for the digest's DNS check). An smtp sender with no mailboxes-file row is a `RosterError`; the root passes the file's addresses in
+- per sender, optional: `transport` (`gmail` default, `smtp`), `ramp = { start, from, step, ceiling, warmup_start? }` (its own cold ramp, else the fleet's; with `warmup_start`, cold is also held to that day's warmup ÷ `WREN_WARMUP_PER_COLD`, warmup climbing `WREN_WARMUP_STEP` a calendar day to `WREN_WARMUP_LIMIT`), `dkim` (selector, for the digest's DNS check). An smtp sender with no mailboxes-file row is a `RosterError`; the root passes the file's addresses in
 - prod copy lives in SSM `/wren/prod/senders_config`, pulled at Lambda cold start (`apps/worker/src/lambda.ts:18`; `deploy/terraform/lambda.tf:16`; `deploy/scripts/push-secrets.sh:42`)
 
 Citations: `packages/channel-email/src/send/roster.ts:301`

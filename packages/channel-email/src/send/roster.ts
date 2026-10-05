@@ -123,18 +123,32 @@ function signatureOf(raw: unknown, where: string): Signature | null {
 function rampOf(raw: unknown, at: string): Ramp | null {
   if (raw === undefined || raw === null) return null;
   if (!isRecord(raw)) throw new RosterError(`${at}: 'ramp' must be { start, from, step, ceiling }`);
-  const keys = Object.keys(raw).sort().join(",");
+  const keys = Object.keys(raw)
+    .filter((k) => k !== "warmup_start")
+    .sort()
+    .join(",");
   if (keys !== [...RAMP_KEYS].sort().join(",")) {
-    throw new RosterError(`${at}: 'ramp' takes exactly start, from, step, ceiling`);
+    throw new RosterError(
+      `${at}: 'ramp' takes exactly start, from, step, ceiling (and warmup_start if warming)`,
+    );
   }
-  let start: PlainDate;
-  try {
-    // A bare TOML date comes back as a Date whose toISOString is the plain day.
-    const day = raw.start instanceof Date ? raw.start.toISOString() : raw.start;
-    if (typeof day !== "string") throw new Error();
-    start = PlainDate.fromIso(day);
-  } catch {
-    throw new RosterError(`${at}: ramp.start must be a date like 2026-10-20`);
+  const dayOf = (value: unknown, key: string): PlainDate => {
+    try {
+      // A bare TOML date comes back as a Date whose toISOString is the plain day.
+      const day = value instanceof Date ? value.toISOString() : value;
+      if (typeof day !== "string") throw new Error();
+      return PlainDate.fromIso(day);
+    } catch {
+      throw new RosterError(`${at}: ramp.${key} must be a date like 2026-10-20`);
+    }
+  };
+  const start = dayOf(raw.start, "start");
+  const warmupStart =
+    raw.warmup_start === undefined ? null : dayOf(raw.warmup_start, "warmup_start");
+  if (warmupStart && warmupStart.compare(start) > 0) {
+    throw new RosterError(
+      `${at}: ramp.warmup_start (${warmupStart}) is after its first cold day (${start})`,
+    );
   }
   const n: Record<"from" | "step" | "ceiling", number> = { from: 0, step: 0, ceiling: 0 };
   for (const key of ["from", "step", "ceiling"] as const) {
@@ -147,7 +161,7 @@ function rampOf(raw: unknown, at: string): Ramp | null {
   if (n.from > n.ceiling) {
     throw new RosterError(`${at}: ramp.from (${n.from}) is above its ceiling (${n.ceiling})`);
   }
-  return { start, ...n };
+  return { start, ...n, ...(warmupStart ? { warmupStart } : {}) };
 }
 
 function unknownNiches(names: readonly string[], known: ReadonlySet<string>): string[] {

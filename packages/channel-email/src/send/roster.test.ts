@@ -221,6 +221,14 @@ describe("transport, ramp and dkim", () => {
     });
   });
 
+  it("a ramp may name the day its warmup began", () => {
+    const text = one(
+      "transport = 'smtp'\nramp = { start = 2026-10-20, from = 1, step = 1, ceiling = 30, warmup_start = 2026-10-06 }",
+    );
+    const [s] = parseRoster(text, "test", NICHES, LOGINS);
+    expect(s?.ramp?.warmupStart).toEqual(PlainDate.fromIso("2026-10-06"));
+  });
+
   it.each([
     ["transport = 'sendgrid'", /'transport' must be "gmail" or "smtp"/],
     ["transport = 'smtp'", /bo@example.com sends over smtp but has no mailboxes-file row/],
@@ -231,6 +239,10 @@ describe("transport, ramp and dkim", () => {
     ["ramp = { start = 2026-10-20, from = 0, step = 1, ceiling = 5 }", /ramp/],
     ["ramp = { start = 2026-10-20, from = 9, step = 1, ceiling = 5 }", /ramp/],
     ["ramp = { start = 2026-10-20, from = 1, step = 1, ceiling = 5, every = 2 }", /ramp/],
+    [
+      "ramp = { start = 2026-10-20, from = 1, step = 1, ceiling = 5, warmup_start = 2026-10-21 }",
+      /warmup_start .* is after its first cold day/,
+    ],
   ])("refuses %j", (extra, match) => {
     const text = one(extra, "bo@example.com");
     expect(() => parseRoster(text, "test", NICHES, LOGINS)).toThrow(RosterError);
