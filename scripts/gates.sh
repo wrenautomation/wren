@@ -26,7 +26,8 @@ unit() { echo "==> unit tests" && pnpm turbo run test:unit; }
 # times 3 packages put ~27 containers on the Docker VM together, and setup hooks timed out at 180 s.
 integration() { echo "==> integration tests (needs Docker)" && pnpm turbo run test:integration --concurrency=3 -- --maxWorkers=3 && spam; }
 # Every template option through SpamAssassin (designs/2026-10-05-deliverability-tests.md); one over 2.0 fails.
-spam() { echo "==> spam score (needs Docker)" && ./bin/wren email spamcheck; }
+# The CLI wants a database URL at start; spamcheck reads none without --drafts, and CI has none.
+spam() { echo "==> spam score (needs Docker)" && WREN_DATABASE_URL="${WREN_DATABASE_URL:-postgres://unused@127.0.0.1:1/unused}" ./bin/wren email spamcheck; }
 case "${1:-all}" in
   lint) lint ;;
   unit) unit ;;
