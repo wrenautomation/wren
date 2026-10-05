@@ -24,7 +24,7 @@ Citations: `packages/channel-meta/src/schema.ts:13`
 
 ## Connected to
 
-- **produces:** [[content/idea]] (source ads)
+- **produces:** [[content/idea]] (source ads), [[ads/ad-day]] (via `AdsWatch`)
 - **joins:** [[platform/settings]] (`WREN_META_*`), autobrowse's `meta` site
 
 ## If you change this
@@ -36,7 +36,8 @@ Citations: `packages/channel-meta/src/schema.ts:13`
 
 | Surface | Role |
 |---|---|
-| `Ads.launch/start/stop` | writes |
+| `Ads.launch/start/stop/resume` | writes; `resume` restarts a stopped launch at its budget (`restate.ts:142`) |
+| Marketing app (`/marketing/ads`) | pause and resume per ad day |
 | `AdsWatch/default` | pauses |
 | `wren ads launches/insights/leads` | read |
 
