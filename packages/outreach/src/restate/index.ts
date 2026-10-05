@@ -23,6 +23,7 @@ import {
   makeLoopObject,
   NO_INPUT,
   type PassOutcome,
+  PORTAL_FIELDS,
   serviceHandler,
   setLastPass,
 } from "@wren/core/restate";
@@ -278,7 +279,8 @@ const ENROLL = z.looseObject({
 const SET_TEMPLATE = z.looseObject({
   key: z.string(),
   body: z.string().nullish().describe("Empty clears it"),
-  by: z.string().describe("Who saved it"),
+  by: z.string().nullish().describe("Who saved it; from the console, the operator"),
+  viewer: PORTAL_FIELDS.viewer,
 });
 const THREADS = z
   .looseObject({
@@ -497,10 +499,16 @@ export function makeReachDesk(deps: ReachDeps) {
       ),
       setTemplate: serviceHandler(
         { input: SET_TEMPLATE },
-        async (ctx: restate.Context, req: SetTemplate): Promise<SlotView> => {
+        async (
+          ctx: restate.Context,
+          req: Omit<SetTemplate, "by"> & { by?: string | null; viewer?: { email?: string } },
+        ): Promise<SlotView> => {
           const now = await nowOf(ctx);
+          const by = req.by ?? req.viewer?.email ?? "console";
           return ctx.run("set template", () =>
-            terminal(() => setTemplate(deps.db, { slots, sender: deps.senderName, now }, req)),
+            terminal(() =>
+              setTemplate(deps.db, { slots, sender: deps.senderName, now }, { ...req, by }),
+            ),
           );
         },
       ),

@@ -3,7 +3,7 @@
  * screen (what shows before the click, cut where those apps cut it), then the message opened.
  * Each frame is drawn at its device's real width, so length and shape read true; the laptop
  * ones are scaled down to fit. A foundation: the channel counts SMS parts, and knows a post's
- * cap and where its feed cuts, and passes them in.
+ * or a DM's cap and where a feed cuts, and passes them in.
  */
 import { type ReactNode, useState } from "react";
 
@@ -31,6 +31,17 @@ export type MessageKind =
       max?: number;
       /** Lines its feed shows before "see more" (null: all of it, 0: none). */
       feed: { laptop: number | null; phone: number | null };
+    }
+  | {
+      kind: "dm";
+      /** The app it goes through: "Reddit". */
+      site: string;
+      from?: string;
+      /** A Reddit message's subject line. */
+      subject?: string | null;
+      max?: number;
+      /** The whole message around the text, when the text is one part of it (a template slot). */
+      fill?: (text: string) => { subject: string | null; body: string };
     };
 
 // Gmail in a laptop window with its nav open; iPhone 15's width.
@@ -39,6 +50,8 @@ const LAPTOP_ZOOM = 0.72;
 const PHONE = 393;
 // LinkedIn's feed column; the other apps' are within a few dozen pixels.
 const FEED = 555;
+// LinkedIn's and Reddit's conversation list on a laptop.
+const DM_LIST = 340;
 const WPM = 238;
 
 /** The numbers a skim checks: subject length, words, time to read; for a text, its parts. */
@@ -55,8 +68,11 @@ export function shapeOf(kind: MessageKind, body: string): string[] {
   const secs = Math.max(1, Math.round((words / WPM) * 60));
   const chars = [...text].length;
   return [
-    ...(kind.kind === "email" && kind.subject
+    ...((kind.kind === "email" || kind.kind === "dm") && kind.subject
       ? [`subject ${[...kind.subject].length} characters`]
+      : []),
+    ...(kind.kind === "dm"
+      ? [kind.max ? `${chars} of ${kind.max} characters` : `${chars} characters`]
       : []),
     ...(kind.kind === "post"
       ? [
@@ -80,7 +96,7 @@ export function MessagePreview({
   body: string;
 }) {
   const [opened, setOpened] = useState<"laptop" | "phone">("phone");
-  const whole = kind.kind === "email" && kind.fill?.(text);
+  const whole = (kind.kind === "email" || kind.kind === "dm") && kind.fill?.(text);
   const message = whole ? { ...kind, subject: whole.subject } : kind;
   const body = whole ? whole.body : text;
   const from = message.from || "You";
@@ -104,7 +120,36 @@ export function MessagePreview({
   return (
     <section aria-label="How it looks" className="grid min-w-0 gap-3 text-[13px]">
       <p className="text-(--ui-ink-2)">{shape.join(" · ")}</p>
-      {message.kind === "post" ? (
+      {message.kind === "dm" ? (
+        <>
+          <Frame label={`Messages, laptop (${message.site})`} width={DM_LIST}>
+            <div className="flex items-center gap-3 px-3 py-2.5 text-[14px] leading-[1.3]">
+              <span className="size-10 shrink-0 rounded-full bg-[#d9d9de]" />
+              <span className="grid min-w-0 flex-1">
+                <span className="flex justify-between gap-2 font-semibold">
+                  <span className="truncate">{from}</span>
+                  <span className="shrink-0 font-normal text-[#6b6b70]">now</span>
+                </span>
+                <span className="truncate text-[#6b6b70]">
+                  {message.subject ? `${message.subject}: ` : ""}
+                  {snippetOf(body)}
+                </span>
+              </span>
+            </div>
+          </Frame>
+          <Frame label={`Lock screen (${message.site})`} width={PHONE}>
+            <LockScreen
+              from={from}
+              body={`${message.subject ? `${message.subject}\n` : ""}${body}`}
+            />
+          </Frame>
+          {openedOn}
+          <Frame label={`Opened, ${opened}`} width={opened === "phone" ? PHONE : FEED}>
+            {message.subject ? <p className="px-3 pt-3 font-semibold">{message.subject}</p> : null}
+            <Bubble body={body} size={opened === "phone" ? 17 : 14} />
+          </Frame>
+        </>
+      ) : message.kind === "post" ? (
         <>
           {(["laptop", "phone"] as const).map((d) => (
             <Frame
@@ -154,26 +199,39 @@ export function MessagePreview({
       ) : (
         <>
           <Frame label="Lock screen" width={PHONE}>
-            <div className="m-2 rounded-2xl bg-[#e9e9ee] p-3 text-[15px] leading-[1.3] text-black">
-              <p className="flex justify-between font-semibold">
-                <span className="truncate">{from}</span>
-                <span className="font-normal text-[#6b6b70]">now</span>
-              </p>
-              <p className="line-clamp-4 break-words">{snippetOf(body)}</p>
-            </div>
+            <LockScreen from={from} body={body} />
           </Frame>
           <Frame label="Opened, phone (Messages)" width={PHONE}>
-            <div className="flex justify-end p-3">
-              <p className="max-w-[75%] rounded-[18px] bg-[#0b84fe] px-3 py-1.5 text-[17px] leading-[1.3] break-words whitespace-pre-wrap text-white">
-                {body.trim()}
-              </p>
-            </div>
+            <Bubble body={body} size={17} />
           </Frame>
         </>
       )}
     </section>
   );
 }
+
+/** A phone's notification: who, then four lines of it. */
+const LockScreen = ({ from, body }: { from: string; body: string }) => (
+  <div className="m-2 rounded-2xl bg-[#e9e9ee] p-3 text-[15px] leading-[1.3] text-black">
+    <p className="flex justify-between font-semibold">
+      <span className="truncate">{from}</span>
+      <span className="font-normal text-[#6b6b70]">now</span>
+    </p>
+    <p className="line-clamp-4 break-words">{snippetOf(body)}</p>
+  </div>
+);
+
+/** Ours, in a chat: right side, blue. */
+const Bubble = ({ body, size }: { body: string; size: number }) => (
+  <div className="flex justify-end p-3">
+    <p
+      style={{ fontSize: size }}
+      className="max-w-[75%] rounded-[18px] bg-[#0b84fe] px-3 py-1.5 leading-[1.3] break-words whitespace-pre-wrap text-white"
+    >
+      {body.trim()}
+    </p>
+  </div>
+);
 
 /** A device's width, in white like the apps; scaled when it is a laptop's. */
 function Frame({

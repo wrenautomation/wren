@@ -68,7 +68,7 @@ const ALL_FIELDS: readonly RenderField[] = [
 ];
 /** LinkedIn's note cap; a Reddit PM is long enough for anyone. */
 const NOTE_MAX = 200;
-const MESSAGE_MAX = 2000;
+export const MESSAGE_MAX = 2000;
 const SUBJECT_MAX = 100;
 
 export const CONNECT_NOTE = "linkedin:connect-note";

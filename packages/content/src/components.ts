@@ -50,6 +50,8 @@ export const CONTENT_COMPONENTS = [
         "marketing.search_day",
         "marketing.answer",
         "marketing.text_contact",
+        "marketing.dm",
+        "marketing.dm_copy",
         "marketing.site_day",
       ],
       apps: ["marketing"],

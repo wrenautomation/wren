@@ -249,6 +249,9 @@ importers:
       '@wren/offers':
         specifier: workspace:*
         version: link:../../packages/offers
+      '@wren/outreach':
+        specifier: workspace:*
+        version: link:../../packages/outreach
       '@wren/worker':
         specifier: workspace:*
         version: link:../worker

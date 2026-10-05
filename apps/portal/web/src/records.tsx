@@ -146,6 +146,11 @@ const ONE: Record<string, (id: string, input: Input) => [string, Input]> = {
   "marketing/rejectDraft": (id) => desk("reject", { ids: [id] }),
   "marketing/editDraft": (id, { text }) => desk("edit", { draftId: id, text }),
   "marketing/redraft": (id, { note }) => desk("redraft", { draftId: id, note }),
+  // A reply sends: the console asks for the handler's name.
+  "marketing/dmReply": (id, { body }) =>
+    handlerCall("ReachDesk", "reply", { contactId: Number(id), body }, { confirm: "reply" }),
+  "marketing/dmRead": (id) => handlerCall("ReachDesk", "markRead", { contactId: Number(id) }),
+  "marketing/dmCopy": (id, { body }) => handlerCall("ReachDesk", "setTemplate", { key: id, body }),
 };
 /** A Marketing record's action: a console call to the handler behind it (`console/call`). */
 const handlerCall = (

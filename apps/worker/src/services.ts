@@ -145,6 +145,7 @@ import {
   SMS_SEQUENCES,
 } from "@wren/niches";
 import { REACH_SEQUENCES, policyFrom as reachPolicyFrom } from "@wren/outreach";
+import { dmCopyRecord } from "@wren/outreach/records";
 import { makeReachDesk, makeReachSender, makeReachWatch } from "@wren/outreach/restate";
 import { clientSendScope } from "@wren/reactivation";
 import { DEMO_NAME, makeReactivation, makeReactivationPortal } from "@wren/reactivation/restate";
@@ -850,6 +851,7 @@ export async function buildServices(
         ...emailRecords(roster, policy),
         ...BOOKS_RECORDS,
         ...MARKETING_NUMBERS,
+        dmCopyRecord(settings.smsSenderName),
         ...MARKETING_RECORDS,
         clientRecord,
       ],

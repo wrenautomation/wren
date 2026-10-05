@@ -33,6 +33,7 @@
     "@wren/db": "workspace:*",
     "@wren/experiments": "workspace:*",
     "@wren/offers": "workspace:*",
+    "@wren/outreach": "workspace:*",
     "@wren/worker": "workspace:*",
     "tailwindcss": "4.3.3",
     "tsx": "4.23.13",

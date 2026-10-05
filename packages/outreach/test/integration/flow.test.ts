@@ -7,6 +7,7 @@
 
 import { SiteCallError } from "@wren/core/content";
 import { fakeOutreachChannel } from "@wren/core/outreach";
+import { serveRecords } from "@wren/core/records/serve";
 import { startTestPostgres, type TestPostgres, truncate } from "@wren/db/testing";
 import { eq } from "drizzle-orm";
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
@@ -14,6 +15,7 @@ import { addAccount, listAccounts, refreshHealth, setAccountState } from "../../
 import { addContact, contactById } from "../../src/contacts.js";
 import { enroll } from "../../src/enroll.js";
 import { DEFAULT_POLICY, type ReachPolicy } from "../../src/policy.js";
+import { dmCopyRecord, dmRecord } from "../../src/records.js";
 import { ReachRefusal } from "../../src/refusal.js";
 import { pullReplies } from "../../src/replies.js";
 import { type ReachAccount, reachMessages } from "../../src/schema.js";
@@ -373,6 +375,43 @@ describe("failures", () => {
     await expect(
       enroll(db(), { sequence: REDDIT, sender: "William", limit: 10, now: OPEN }),
     ).rejects.toThrow(ReachRefusal);
+  });
+});
+
+describe("console records", () => {
+  it("a thread loads its messages and the reply preview's app", async () => {
+    await account("reddit", "reddit@alt");
+    const c = await addContact(db(), { platform: "reddit", handle: "dana_dev" });
+    await enroll(db(), { sequence: REDDIT, sender: "William", limit: 10, now: OPEN });
+    await tickAt(OPEN);
+    const api = serveRecords([dmRecord], db());
+    for (const v of dmRecord.views) await api.list({ record: dmRecord.id, view: v.id, limit: 9 });
+    const all = await api.list({ record: dmRecord.id, view: "all", limit: 9 });
+    expect(all.rows.map((r) => r.id)).toEqual([String(c.id)]);
+    const one = await api.get({ record: dmRecord.id, id: String(c.id) });
+    const detail = one.detail as { messages: { body: string }[]; dm: unknown };
+    expect(detail.messages[0]?.body).toContain("Hi there");
+    expect(detail.dm).toEqual({ site: "Reddit", from: "alt", max: 2000 });
+  });
+
+  it("a slot loads the message around it, filled with sample facts", async () => {
+    await account("reddit", "reddit@alt");
+    const record = dmCopyRecord("William");
+    const api = serveRecords([record], db());
+    for (const v of record.views) await api.list({ record: record.id, view: v.id, limit: 9 });
+    const body = await api.get({ record: record.id, id: stepKey(REDDIT, 1) });
+    expect(body.detail).toMatchObject({
+      sample: { first_name: "Dana", sender: "William" },
+      dm: {
+        site: "Reddit",
+        from: "alt",
+        frame: { subject: "quick one from r/recruiting", body: "WRENSLOT" },
+      },
+    });
+    const subject = await api.get({ record: record.id, id: subjectKey(REDDIT, 1) });
+    expect(subject.detail).toMatchObject({
+      dm: { frame: { subject: "WRENSLOT", body: expect.stringContaining("Hi Dana") } },
+    });
   });
 });
 

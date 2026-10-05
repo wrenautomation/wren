@@ -27,4 +27,9 @@ describe("shapeOf", () => {
       ),
     ).toEqual(["title 10 characters", "12 of 5000 characters", "3 words", "1 s to read"]);
   });
+  it("counts a DM's subject and characters against its cap", () => {
+    expect(
+      shapeOf({ kind: "dm", site: "Reddit", subject: "Saw your post", max: 2000 }, "hi there"),
+    ).toEqual(["subject 13 characters", "8 of 2000 characters", "2 words", "1 s to read"]);
+  });
 });

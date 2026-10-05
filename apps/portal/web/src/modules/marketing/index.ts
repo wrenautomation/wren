@@ -5,6 +5,7 @@
 import type { Action } from "@wren/ui";
 import type { Module } from "../../module.js";
 import { WeeklyBookings } from "./chart.js";
+import { copyExtras, copyPreview, dmExtras, dmPreview } from "./dms.js";
 import { draftPreview, postExtras } from "./posts.js";
 
 const said = (line: string) => () => line;
@@ -93,6 +94,37 @@ const TEXT_ACTIONS: Action[] = [
   },
 ];
 
+const DM_ACTIONS: Action[] = [
+  {
+    id: "marketing.dmReply",
+    label: "Reply",
+    handler: "marketing/dmReply",
+    ask: { field: "body", label: "Your reply", preview: dmPreview },
+    key: "r",
+    done: said("Queued. It leaves on the next tick."),
+  },
+  {
+    id: "marketing.dmRead",
+    label: "Mark read",
+    handler: "marketing/dmRead",
+    bulk: true,
+    key: "e",
+    when: { waiting: ["waiting"] },
+    done: said("Marked read"),
+  },
+];
+
+const DM_COPY_ACTIONS: Action[] = [
+  {
+    id: "marketing.dmCopy",
+    label: "Edit",
+    handler: "marketing/dmCopy",
+    ask: { field: "body", label: "Your words", from: "body", preview: copyPreview },
+    key: "e",
+    done: said("Saved"),
+  },
+];
+
 export const marketing: Module = {
   id: "marketing",
   name: "Marketing",
@@ -165,6 +197,12 @@ export const marketing: Module = {
           label: "Texts waiting",
           record: "marketing.text_contact",
           href: "/marketing/texts?view=waiting",
+          needs: true,
+        },
+        {
+          label: "DMs waiting",
+          record: "marketing.dm",
+          href: "/marketing/dms?view=waiting",
           needs: true,
         },
       ],
@@ -245,6 +283,28 @@ export const marketing: Module = {
       record: "marketing.text_contact",
       empty: { waiting: "No reply waits on you.", texted: "No one texted yet." },
       actions: TEXT_ACTIONS,
+    },
+    {
+      id: "dms",
+      label: "DMs",
+      template: "list",
+      record: "marketing.dm",
+      empty: {
+        waiting: "No DM waits on you.",
+        replied: "No one replied yet.",
+        all: "Threads show here once reach messages someone.",
+      },
+      actions: DM_ACTIONS,
+      extras: dmExtras,
+    },
+    {
+      id: "dm-copy",
+      label: "DM copy",
+      template: "list",
+      record: "marketing.dm_copy",
+      empty: { empty: "Every slot has words.", all: "No reach sequence has slots." },
+      actions: DM_COPY_ACTIONS,
+      extras: copyExtras,
     },
     {
       id: "site",

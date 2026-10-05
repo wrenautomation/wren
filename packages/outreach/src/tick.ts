@@ -26,6 +26,7 @@ import { and, asc, eq, gte, inArray, isNull, lt, lte, or, sql } from "drizzle-or
 import { activeAccounts, healthOf } from "./accounts.js";
 import { contactsById, fieldsFor, setContactState } from "./contacts.js";
 import { FLEET_ZONE, fleetDay, inWindow, type ReachPolicy, standingOf } from "./policy.js";
+import { ReachRefusal } from "./refusal.js";
 import {
   type ReachAccount,
   type ReachContact,
@@ -444,7 +445,8 @@ export async function queueManual(
   db: Queryable,
   req: { contact: ReachContact; body: string; subject?: string | null; now: Date },
 ): Promise<ReachMessage> {
-  if (!req.contact.accountId) throw new Error("the contact has no account yet: enroll first");
+  if (!req.contact.accountId)
+    throw new ReachRefusal("the contact has no account yet: enroll first");
   const [row] = await db
     .insert(reachMessages)
     .values({
