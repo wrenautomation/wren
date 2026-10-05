@@ -96,6 +96,7 @@ import {
   SmsNotifier,
   TelnyxProvider,
 } from "@wren/channel-sms";
+import { textCopyRecord } from "@wren/channel-sms/records";
 import {
   makeSmsConsole,
   makeSmsDesk,
@@ -852,6 +853,7 @@ export async function buildServices(
         ...BOOKS_RECORDS,
         ...MARKETING_NUMBERS,
         dmCopyRecord(settings.smsSenderName),
+        textCopyRecord(SMS_SEQUENCES.values(), settings.smsSenderName),
         ...MARKETING_RECORDS,
         clientRecord,
       ],

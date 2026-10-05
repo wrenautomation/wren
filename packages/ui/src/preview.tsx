@@ -20,6 +20,8 @@ export type MessageKind =
       from?: string;
       /** Billed parts, from the SMS channel's counter. */
       parts?: (text: string) => { parts: number; encoding: string };
+      /** The text as sent, when what's typed is a template (`subject` unused). */
+      fill?: (text: string) => { subject: string | null; body: string };
     }
   | {
       kind: "post";
@@ -96,8 +98,8 @@ export function MessagePreview({
   body: string;
 }) {
   const [opened, setOpened] = useState<"laptop" | "phone">("phone");
-  const whole = (kind.kind === "email" || kind.kind === "dm") && kind.fill?.(text);
-  const message = whole ? { ...kind, subject: whole.subject } : kind;
+  const whole = "fill" in kind ? kind.fill?.(text) : undefined;
+  const message = whole && kind.kind !== "sms" ? { ...kind, subject: whole.subject } : kind;
   const body = whole ? whole.body : text;
   const from = message.from || "You";
   const shape = shapeOf(message, body);

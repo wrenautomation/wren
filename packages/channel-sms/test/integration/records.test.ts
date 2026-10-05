@@ -5,8 +5,9 @@
 import { serveRecords } from "@wren/core/records/serve";
 import { startTestPostgres, type TestPostgres } from "@wren/db/testing";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
-import { textContactRecord } from "../../src/records.js";
+import { textContactRecord, textCopyRecord } from "../../src/records.js";
 import { smsContacts, smsMessages } from "../../src/schema.js";
+import { fillTemplates, SEQUENCES } from "./fixtures.js";
 
 let pg: TestPostgres;
 beforeAll(async () => {
@@ -75,5 +76,23 @@ describe("marketing.text_contact", () => {
     await pg.db.update(smsContacts).set({ readAt: new Date("2026-01-04T00:00:00Z") });
     const waiting = await api.list({ record: textContactRecord.id, view: "waiting", limit: 9 });
     expect(waiting.rows).toEqual([]);
+  });
+});
+
+describe("marketing.text_copy", () => {
+  it("lists every slot with its billed parts, and loads the sample facts", async () => {
+    await fillTemplates(pg.db, {
+      "agencies-sms#1": "hi {first_name|there}, {sender} here. STOP to opt out",
+    });
+    const record = textCopyRecord(SEQUENCES.values(), "William");
+    const api = serveRecords([record], pg.db);
+    for (const v of record.views) await api.list({ record: record.id, view: v.id, limit: 50 });
+    const all = await api.list({ record: record.id, view: "all", limit: 50 });
+    const first = all.rows.find((r) => r.id === "agencies-sms#1");
+    expect(first).toMatchObject({ filled: "filled", parts: 1 });
+    const empty = await api.list({ record: record.id, view: "empty", limit: 50 });
+    expect(empty.rows.map((r) => r.id)).toContain("agencies-sms#2");
+    const one = await api.get({ record: record.id, id: "agencies-sms#1" });
+    expect(one.detail).toMatchObject({ sample: { first_name: "Dana", sender: "William" } });
   });
 });

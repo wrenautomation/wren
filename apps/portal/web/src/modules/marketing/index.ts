@@ -7,6 +7,7 @@ import type { Module } from "../../module.js";
 import { WeeklyBookings } from "./chart.js";
 import { copyExtras, copyPreview, dmExtras, dmPreview } from "./dms.js";
 import { draftPreview, postExtras } from "./posts.js";
+import { textCopyExtras, textCopyPreview } from "./texts.js";
 
 const said = (line: string) => () => line;
 
@@ -111,6 +112,17 @@ const DM_ACTIONS: Action[] = [
     key: "e",
     when: { waiting: ["waiting"] },
     done: said("Marked read"),
+  },
+];
+
+const TEXT_COPY_ACTIONS: Action[] = [
+  {
+    id: "marketing.textCopy",
+    label: "Edit",
+    handler: "marketing/textCopy",
+    ask: { field: "body", label: "Your words", from: "body", preview: textCopyPreview },
+    key: "e",
+    done: said("Saved"),
   },
 ];
 
@@ -283,6 +295,15 @@ export const marketing: Module = {
       record: "marketing.text_contact",
       empty: { waiting: "No reply waits on you.", texted: "No one texted yet." },
       actions: TEXT_ACTIONS,
+    },
+    {
+      id: "text-copy",
+      label: "Text copy",
+      template: "list",
+      record: "marketing.text_copy",
+      empty: { empty: "Every text has words.", all: "No sequence has texts." },
+      actions: TEXT_COPY_ACTIONS,
+      extras: textCopyExtras,
     },
     {
       id: "dms",

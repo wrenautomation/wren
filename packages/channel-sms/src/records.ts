@@ -1,8 +1,10 @@
 /**
  * The console's SMS records: a client's texting threads (O4), read from its own database, and
- * texted contacts for the Marketing app (`marketing_text_contact_records`).
+ * for the Marketing app texted contacts (`marketing_text_contact_records`) and William's words.
  */
-import { date, defineRecord, name, number, rate, status, text } from "@wren/core/records";
+import { date, defineRecord, name, number, prose, rate, status, text } from "@wren/core/records";
+import { listTemplates, slotsOf } from "./template-store.js";
+import { type SmsSequence, sampleFields } from "./templates.js";
 import { getThread, listThreads } from "./threads.js";
 
 /** ponytail: rows, not a view: a client's desk holds hundreds of threads; a view past that. */
@@ -144,3 +146,50 @@ export const textContactRecord = defineRecord({
   ],
   actions: ["marketing.markRead"],
 });
+
+/** Every text William writes; the preview fills `{fields}` with `sender` and sample facts. */
+export function textCopyRecord(sequences: Iterable<SmsSequence>, sender: string) {
+  const slots = slotsOf(sequences);
+  const sample = sampleFields(sender);
+  return defineRecord({
+    id: "marketing.text_copy",
+    name: { one: "text template", many: "text templates" },
+    rows: async (db) =>
+      (await listTemplates(db, slots, sender)).map((v) => ({
+        id: v.key,
+        purpose: v.purpose,
+        body: v.body,
+        filled: v.body ? "filled" : "empty",
+        parts: v.segments?.parts ?? null,
+        fields: [
+          ...v.fields.map((f) => `{${f}}`),
+          ...(v.mustSayStop ? ["must say STOP"] : []),
+          ...(v.minLength ? [`at least ${v.minLength} characters`] : []),
+        ].join(", "),
+        updated_at: v.updatedAt,
+        updated_by: v.updatedBy,
+      })),
+    key: "id",
+    title: "purpose",
+    subtitle: "body",
+    fields: {
+      purpose: text("Text"),
+      body: prose("Your words"),
+      filled: status(
+        { filled: { label: "Written", tone: "good" }, empty: neutral("Empty: never goes") },
+        "State",
+      ),
+      parts: number("Billed parts"),
+      fields: text("Rules"),
+      updatedAt: date("Saved"),
+      updatedBy: text("By"),
+    },
+    // No sort: each sequence's steps, then reminders, then keyword replies.
+    views: [
+      { id: "all", label: "All" },
+      { id: "empty", label: "Empty", where: { filled: "empty" } },
+    ],
+    actions: ["marketing.textCopy"],
+    load: async () => ({ sample }),
+  });
+}

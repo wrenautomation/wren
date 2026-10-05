@@ -29,6 +29,7 @@ import {
   makeLoopObject,
   NO_INPUT,
   type PassOutcome,
+  PORTAL_FIELDS,
   runPass,
   serviceHandler,
   setLastPass,
@@ -348,7 +349,8 @@ const CLIENT = z.looseObject({ client: CLIENT_ID }).nullish();
 const SET_TEMPLATE = z.looseObject({
   key: z.string(),
   body: z.string().describe("Empty clears it"),
-  by: z.string().describe("Who saved it"),
+  by: z.string().nullish().describe("Who saved it; from the console, the operator"),
+  viewer: PORTAL_FIELDS.viewer,
   client: CLIENT_ID,
 });
 const STATS = z
@@ -573,13 +575,22 @@ export function makeSmsDesk(deps: SmsDeps) {
         { input: SET_TEMPLATE },
         async (
           ctx: restate.Context,
-          req: SetTemplate & { client?: string | null },
+          req: Omit<SetTemplate, "by"> & {
+            by?: string | null;
+            viewer?: { email?: string };
+            client?: string | null;
+          },
         ): Promise<SlotView> => {
           const now = await nowOf(ctx);
           const d = await deskDeps(ctx, deps, req.client);
+          const by = req.by ?? req.viewer?.email ?? "console";
           return ctx.run("set template", () =>
             terminal(() =>
-              setTemplate(d.db, { provider: d.provider, slots, sender: d.senderName, now }, req),
+              setTemplate(
+                d.db,
+                { provider: d.provider, slots, sender: d.senderName, now },
+                { ...req, by },
+              ),
             ),
           );
         },

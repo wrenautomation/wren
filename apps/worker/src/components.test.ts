@@ -10,6 +10,7 @@ import { join } from "node:path";
 import { BOOKS_RECORDS } from "@wren/books/records";
 import { emailRecords } from "@wren/channel-email/records";
 import type { SendPolicy } from "@wren/channel-email/send/policy";
+import { textCopyRecord } from "@wren/channel-sms/records";
 import { loadSettings } from "@wren/config";
 import { type Client, changeRecord, clientRecord, teamRecord } from "@wren/core/clients";
 import { ACCOUNT_SITES } from "@wren/core/components";
@@ -76,6 +77,7 @@ const RECORDS = [
   ...BOOKS_RECORDS,
   ...MARKETING_NUMBERS,
   dmCopyRecord("x"),
+  textCopyRecord([], "x"),
   clientRecord,
   teamRecord,
   changeRecord,

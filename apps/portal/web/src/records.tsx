@@ -150,7 +150,15 @@ const ONE: Record<string, (id: string, input: Input) => [string, Input]> = {
   "marketing/dmReply": (id, { body }) =>
     handlerCall("ReachDesk", "reply", { contactId: Number(id), body }, { confirm: "reply" }),
   "marketing/dmRead": (id) => handlerCall("ReachDesk", "markRead", { contactId: Number(id) }),
-  "marketing/dmCopy": (id, { body }) => handlerCall("ReachDesk", "setTemplate", { key: id, body }),
+  "marketing/dmCopy": (id, input) =>
+    handlerCall("ReachDesk", "setTemplate", { key: id, body: changed(input) }),
+  "marketing/textCopy": (id, input) =>
+    handlerCall("SmsDesk", "setTemplate", { key: id, body: changed(input) }),
+};
+/** A template's new words. The box leaves out unchanged text, and an empty body clears it. */
+const changed = ({ body }: Input) => {
+  if (typeof body !== "string") throw new Error("Nothing changed.");
+  return body;
 };
 /** A Marketing record's action: a console call to the handler behind it (`console/call`). */
 const handlerCall = (
