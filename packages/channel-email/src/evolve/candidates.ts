@@ -7,7 +7,7 @@
  * its parent and experiment, the experiment pointed at it. The caller re-renders the
  * niche's queue (`QueueRefresh`, or `refreshCampaign` in the loop).
  */
-import type { Db, Queryable } from "@wren/db";
+import { type Db, type Queryable, serializable } from "@wren/db";
 import { FITNESS, parseSettings, type Settings } from "@wren/experiments";
 import type { CallRecord, LlmClient } from "@wren/llm";
 import { and, desc, eq, inArray, sql } from "drizzle-orm";
@@ -280,7 +280,8 @@ export async function proposeCandidates(
   }
 
   const origin = opts.origin ?? "mutation";
-  await db.transaction(async (tx) => {
+  await serializable(db, async (tx) => {
+    out.queued = []; // level 4 can rerun the body
     const [exp] = await tx.select().from(experiments).where(eq(experiments.id, id)).for("update");
     if (!exp || !(GENOME_STATES as readonly string[]).includes(exp.state)) return;
     const generation = await generationOf(tx, id);
@@ -418,7 +419,7 @@ export async function approveCandidate(
   alleleId: number,
   opts: { by: string; text?: string },
 ): Promise<Decision> {
-  return db.transaction(async (tx) => {
+  return serializable(db, async (tx) => {
     const row = await candidateRow(tx, alleleId);
     const [exp] = await tx
       .select()
@@ -506,7 +507,7 @@ export async function rejectCandidate(
   alleleId: number,
   opts: { by: string },
 ): Promise<Decision> {
-  return db.transaction(async (tx) => {
+  return serializable(db, async (tx) => {
     const row = await candidateRow(tx, alleleId);
     const exp = await getExperiment(tx, row.experimentId);
     await tx
@@ -665,7 +666,7 @@ async function importWinners(
   from: number,
 ): Promise<{ queued: number; imported: number; skipped: number }> {
   const source = await contextOf(db, from);
-  return db.transaction(async (tx) => {
+  return serializable(db, async (tx) => {
     const [exp] = await tx.select().from(experiments).where(eq(experiments.id, id)).for("update");
     if (!exp) throw new Error(`no experiment ${id}`);
     const genome = await versionTemplate(tx, exp.niche, exp.template, exp.liveVersion);

@@ -19,7 +19,7 @@
  * `clients.products[id]`, operator only, each a runs row; `ask` is a client's "Ask for this".
  */
 import * as restate from "@restatedev/restate-sdk";
-import { CLIENT_ID, type Db, setAuditActor } from "@wren/db";
+import { CLIENT_ID, type Db, serializable, setAuditActor, snapshot } from "@wren/db";
 import { eq, sql } from "drizzle-orm";
 import { z } from "zod";
 import { addClient, type Client, clients, isOwner, updateClient } from "./clients/index.js";
@@ -690,7 +690,7 @@ export function consoleApi({
   ): Promise<T> => {
     if (req.record !== COMPONENT) team(req);
     const all = await typesFor(req);
-    return main.transaction((tx) => use(serveRecords(all, tx)), { accessMode: "read only" });
+    return snapshot(main, (tx) => use(serveRecords(all, tx)));
   };
   const componentOf = (req: ComponentRequest): Component => {
     const c = components.find((x) => x.id === req.component);
@@ -730,7 +730,7 @@ export function consoleApi({
       argv: { by, client: client.id, ...(block ? { settings: block } : {}) },
     });
     try {
-      await main.transaction(async (tx) => {
+      await serializable(main, async (tx) => {
         await setAuditActor(tx, by);
         await updateClient(tx, client.id, { products: { [c.id]: block } });
       });
@@ -824,7 +824,7 @@ export function consoleApi({
       const client = await pickClient(main, req);
       if (!viewer.operator && !(await isOwner(main, client.id, viewer.email)))
         throw new PortalRefusal("only an owner of this account can do that", 403);
-      await main.transaction(async (tx) => {
+      await serializable(main, async (tx) => {
         await setAuditActor(tx, viewer.email);
         await tx.update(clients).set({ look }).where(eq(clients.id, client.id));
       });

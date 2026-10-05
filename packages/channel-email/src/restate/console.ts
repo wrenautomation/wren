@@ -31,7 +31,7 @@ import {
   serveRecords,
 } from "@wren/core/records/serve";
 import { clientKey, PORTAL_FIELDS, serviceHandler } from "@wren/core/restate";
-import { type Db, type Queryable, setAuditActor } from "@wren/db";
+import { type Db, type Queryable, serializable, setAuditActor, snapshot } from "@wren/db";
 import { parseSettings, settingsSchema } from "@wren/experiments";
 import { LEAD_SHEET } from "@wren/research/components";
 import { sql } from "drizzle-orm";
@@ -173,7 +173,7 @@ export function emailConsoleApi({
   };
   /** One transaction, every row it changes logged as this person's (audit_events.actor). */
   const asThem = <T>(who: string, change: (tx: Queryable) => Promise<T>, on: Db = db) =>
-    on.transaction(async (tx) => {
+    serializable(on, async (tx) => {
       await setAuditActor(tx, who);
       return change(tx);
     });
@@ -188,9 +188,7 @@ export function emailConsoleApi({
   };
   /** The client's sheet, read-only. */
   const sheet = async <T>(req: PortalRequest, use: (api: RecordsApi) => Promise<T>) =>
-    (await sheetDb(req)).transaction((tx) => use(serveRecords(SHEET_RECORDS, tx)), {
-      accessMode: "read only",
-    });
+    snapshot(await sheetDb(req), (tx) => use(serveRecords(SHEET_RECORDS, tx)));
 
   /** With `client` set, that client (Wren's team, `component` installed); else null = Wren's. */
   const clientOf = async (req: PortalRequest, component: string) => {

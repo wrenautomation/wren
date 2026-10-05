@@ -18,7 +18,7 @@
  * one), so a lost race on the partial unique indexes costs one company, not the run.
  */
 import { randomBytes } from "node:crypto";
-import type { Queryable } from "@wren/db";
+import { atomic, type Queryable } from "@wren/db";
 import { type SQL, sql } from "drizzle-orm";
 import { activeSuppression, activeSuppressions, type SharedSuppressions } from "../guards.js";
 import {
@@ -735,7 +735,7 @@ async function enrollCompany(db: Queryable, shared: Shared, input: EnrollInput):
   const sender = pinSender(shared.senders, shared.livePerSender);
   let counted: Pick<ComposeStats, "messages_drafted" | "auto_approved">;
   try {
-    counted = await db.transaction((tx) =>
+    counted = await atomic(db, (tx) =>
       enroll(tx, shared, { ...input, sender, signature: shared.signatures[sender] ?? "" }),
     );
   } catch (err) {

@@ -6,7 +6,7 @@
  * firm's sequences the way a reply does. A cancel only marks the row: it never restarts
  * a sequence.
  */
-import type { Db, Queryable } from "@wren/db";
+import { type Db, type Queryable, serializable } from "@wren/db";
 import { desc, eq, sql } from "drizzle-orm";
 import { callBookings, enrollments, messages } from "../schema.js";
 import { stopCompany } from "../send/deliver.js";
@@ -141,7 +141,7 @@ export async function applyBooking(
   e: BookingEvent,
   opts: { now: Date },
 ): Promise<BookingOutcome> {
-  return db.transaction(async (tx) => {
+  return serializable(db, async (tx) => {
     const state = e.change === "cancelled" ? "cancelled" : "booked";
     const fields = {
       ...(e.start ? { start: e.start } : {}),

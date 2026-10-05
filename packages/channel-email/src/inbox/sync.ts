@@ -37,7 +37,7 @@
  */
 
 import { parseAddr } from "@wren/core/mail";
-import type { Db, Queryable } from "@wren/db";
+import { atomic, type Db, type Queryable } from "@wren/db";
 import { and, desc, eq, inArray, sql } from "drizzle-orm";
 import type { SharedSuppressions } from "../guards.js";
 import {
@@ -606,7 +606,7 @@ async function handleMessage(
   const threadId = typeof metadata.threadId === "string" ? metadata.threadId : null;
   const seenMs = internalMs(metadata);
 
-  return db.transaction(async (tx) => {
+  return atomic(db, async (tx) => {
     const m = await match(tx, { reader, sender, gmailId, headers, threadId });
     if (m === null) {
       // Warmup traffic, fleet test mail, personal mail: not ours, not stored,

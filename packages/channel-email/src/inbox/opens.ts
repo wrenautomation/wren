@@ -17,7 +17,7 @@
  * reads these rows. They exist to be counted by `open_outcomes`, which is
  * also where the machine-vs-person judgement is made — at read time.
  */
-import type { Db, Queryable } from "@wren/db";
+import { atomic, type Db, type Queryable } from "@wren/db";
 import { eq, inArray, max, sql } from "drizzle-orm";
 import type { FetchLike } from "../fetch-like.js";
 import { messages, openEvents, openSyncs } from "../schema.js";
@@ -114,7 +114,7 @@ export async function syncOpens(db: Db, opts: SyncOpensOptions): Promise<OpenSyn
     stats.fetched += hits.length;
     // Over every row READ, not every row kept: the whole point of the explicit cursor.
     since = Math.max(...hits.map((hit) => Number(hit.id)));
-    await db.transaction(async (tx) => {
+    await atomic(db, async (tx) => {
       await store(tx, hits, { runId: opts.runId ?? null, stats });
       await advance(tx, opts.baseUrl, since, stats);
     });

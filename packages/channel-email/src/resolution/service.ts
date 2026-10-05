@@ -41,7 +41,7 @@ import {
   sightings,
   transitionLead,
 } from "@wren/core";
-import type { Queryable } from "@wren/db";
+import { atomic, type Queryable } from "@wren/db";
 import { and, asc, count, desc, eq, inArray, isNotNull, isNull, ne, or, sql } from "drizzle-orm";
 import { activeSuppressions } from "../guards.js";
 import {
@@ -989,7 +989,7 @@ export async function runResolution(
   stats.stranded_repaired = promotions.length;
   let spent = 0;
   for (const domain of await selectResolutionTargets(db)) {
-    const unit = await db.transaction((tx) =>
+    const unit = await atomic(db, (tx) =>
       resolveDomainUnit(tx, verifier, domain, {
         domainBudget,
         checker,
@@ -1004,7 +1004,7 @@ export async function runResolution(
     if (stats.aborted) break;
   }
   if (promotions.length) {
-    await db.transaction((tx) => promoteCandidates(tx, promotions));
+    await atomic(db, (tx) => promoteCandidates(tx, promotions));
     if (opts.checkpoint) await opts.checkpoint(null);
   }
   return stats;

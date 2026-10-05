@@ -3,8 +3,15 @@
 # suspends `set -e` inside functions called from an && list.
 set -euo pipefail
 cd "$(dirname "$0")/.."
-lint() { echo "==> biome check" && pnpm biome check . && echo "==> typecheck" && pnpm turbo run typecheck && cli && offers && map; }
+lint() { echo "==> biome check" && pnpm biome check . && echo "==> typecheck" && pnpm turbo run typecheck && cli && offers && map && isolation; }
 map() { echo "==> map" && map/_meta/build.sh --check; }
+# Every transaction names its level through @wren/db's atomic/snapshot/serializable
+# (designs/2026-10-04-postgres-isolation.md); a bare .transaction( outside packages/db fails.
+isolation() {
+  echo "==> isolation levels" &&
+    ! git grep --untracked -n '\.transaction(' -- 'packages/*.ts' 'packages/*.tsx' 'apps/*.ts' 'apps/*.tsx' \
+      ':!packages/db/*' ':!*/test/*' ':!*.test.ts' ':!*.test.tsx'
+}
 # The CLI ships as one esbuild bundle (bin/wren); a bundle that won't parse is caught here, not at first use.
 cli() { echo "==> cli bundle" && pnpm --filter @wren/cli build; }
 # The lander builds from a snapshot of the offer registry. Checked when the lander sits beside

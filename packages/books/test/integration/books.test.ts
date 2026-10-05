@@ -569,7 +569,9 @@ describe("review", () => {
       post(pg.db, { feed, log: (l) => logs.push(l) }),
     ]);
     expect(runs.map((r) => r.posted).sort()).toEqual([0, 1]);
-    expect(logs.some((l) => l.includes("moved by another pass"))).toBe(true);
+    // The other pass either raced it (moved) or read after its commit (unchanged).
+    const moved = logs.some((l) => l.includes("moved by another pass"));
+    expect(moved || runs.some((r) => r.unchanged === 1)).toBe(true);
     const [row] = await pg.db.execute<{ n: number }>(
       sql`SELECT count(*)::int AS n FROM books.entries WHERE reverses_id IS NULL`,
     );

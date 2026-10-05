@@ -11,7 +11,7 @@
  * own: replies are unpredictable, so every one waits for a person's yes (William, 10-02).
  */
 import { randomUUID } from "node:crypto";
-import type { Db, Queryable } from "@wren/db";
+import { type Db, type Queryable, serializable } from "@wren/db";
 import { and, asc, eq, max } from "drizzle-orm";
 import { linkFacts, mintLinkCode, signed } from "../outreach/compose.js";
 import { factsFor, factsForCompany } from "../outreach/facts.js";
@@ -164,7 +164,7 @@ export async function sendReply(
   const now = opts.now ?? new Date();
   const sender = enrollment.sender;
   const ourId = `<${randomUUID().replaceAll("-", "")}@${sender.slice(sender.lastIndexOf("@") + 1)}>`;
-  const sending = await db.transaction(async (tx) => {
+  const sending = await serializable(db, async (tx) => {
     const [draft] = await tx
       .select()
       .from(messages)

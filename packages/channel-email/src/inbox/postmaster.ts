@@ -28,7 +28,7 @@
  * the column stays and goes NULL going forward, and a re-sync never writes
  * over the v1 history that is still the only reputation Google ever gave us.
  */
-import type { Db, Queryable } from "@wren/db";
+import { atomic, type Db, type Queryable } from "@wren/db";
 import { sql } from "drizzle-orm";
 import type { FetchLike } from "../fetch-like.js";
 import { postmasterDays } from "../schema.js";
@@ -399,7 +399,7 @@ export async function syncPostmaster(
       continue;
     }
     stats.days_with_data += records.size;
-    stats.stored += await db.transaction((tx) => store(tx, domain, records, opts.runId ?? null));
+    stats.stored += await atomic(db, (tx) => store(tx, domain, records, opts.runId ?? null));
   }
   const firstFailure = Object.values(stats.failed)[0];
   if (firstFailure !== undefined && !stats.domains) throw new PostmasterError(firstFailure);

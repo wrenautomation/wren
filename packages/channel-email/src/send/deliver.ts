@@ -24,7 +24,7 @@
 import { randomUUID } from "node:crypto";
 import { companies, type Suppression } from "@wren/core";
 import type { Calendar } from "@wren/core/calendar";
-import type { Db, Queryable } from "@wren/db";
+import { atomic, type Db, type Queryable } from "@wren/db";
 import {
   and,
   asc,
@@ -249,7 +249,7 @@ export async function sendDue(db: Db, opts: SendDueOptions): Promise<SendStats> 
 
   // Classify every ACTIVE enrollment into at most one due message, under
   // FOR UPDATE SKIP LOCKED so an overlapping tick skips what this one walks.
-  const { followups, openers } = await db.transaction(async (tx) => {
+  const { followups, openers } = await atomic(db, async (tx) => {
     const followups: Candidate[] = [];
     const openers: Candidate[] = [];
     const rows = await tx
@@ -345,7 +345,7 @@ export async function sendDue(db: Db, opts: SendDueOptions): Promise<SendStats> 
     }
     const conflict = await cooldownConflict(db, enrollment, policy, now);
     if (conflict !== null) {
-      await db.transaction((tx) => stopForCooldown(tx, enrollment, message, conflict, now));
+      await atomic(db, (tx) => stopForCooldown(tx, enrollment, message, conflict, now));
       stats.stopped_cooldown += 1;
       continue;
     }
@@ -813,7 +813,7 @@ async function sendOne(
   const asksTimes = candidate.message.body.includes(CALL_TIMES);
   const open = asksTimes ? await ctx.openTimes() : null;
   const zone = asksTimes ? await companyZone(db, candidate.enrollment.companyId) : null;
-  const intent: Intent = await db.transaction(async (tx) => {
+  const intent: Intent = await atomic(db, async (tx) => {
     const [freshMessage] = await tx
       .select()
       .from(messages)

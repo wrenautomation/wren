@@ -6,7 +6,7 @@
  * and settles, and journals every step. No LLM here: the tiers are candidates.ts.
  */
 
-import type { Db, Queryable } from "@wren/db";
+import { type Db, type Queryable, serializable } from "@wren/db";
 import {
   type AlleleCounts,
   evaluateLocus,
@@ -63,7 +63,7 @@ export async function startExperiment(
   if (points(genome).length === 0) {
     throw new Error(`template ${opts.file.name} has no [[variant]] point to evolve`);
   }
-  return db.transaction(async (tx) => {
+  return serializable(db, async (tx) => {
     const [open] = await tx
       .select({ id: experiments.id })
       .from(experiments)
@@ -274,7 +274,7 @@ export async function tickExperiment(
   id: number,
   file: Template | undefined,
 ): Promise<EvolveTick | null> {
-  return db.transaction(async (tx) => {
+  return serializable(db, async (tx) => {
     const [exp] = await tx.select().from(experiments).where(eq(experiments.id, id)).for("update");
     if (exp?.state !== "running") return null;
     const settings = parseSettings(exp.settings);
@@ -517,7 +517,7 @@ export async function switchSetting(
   key: string,
   value: unknown,
 ): Promise<Settings> {
-  return db.transaction(async (tx) => {
+  return serializable(db, async (tx) => {
     const exp = await getExperiment(tx, id);
     const current = parseSettings(exp.settings);
     const settings = withSetting(current, key, value);
@@ -546,7 +546,7 @@ export async function moveExperiment(
   id: number,
   move: keyof typeof MOVES,
 ): Promise<Experiment> {
-  return db.transaction(async (tx) => {
+  return serializable(db, async (tx) => {
     const exp = await getExperiment(tx, id);
     const { from, to } = MOVES[move];
     if (!(from as readonly string[]).includes(exp.state)) {

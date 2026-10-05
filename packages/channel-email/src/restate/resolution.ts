@@ -8,7 +8,7 @@
 import * as restate from "@restatedev/restate-sdk";
 import { finishRun, openRun } from "@wren/core";
 import { exclusiveHandler } from "@wren/core/restate";
-import type { Db, DbHandle } from "@wren/db";
+import { atomic, type Db, type DbHandle } from "@wren/db";
 import { sql } from "drizzle-orm";
 import { z } from "zod";
 import { eachConcurrently } from "../concurrent.js";
@@ -160,7 +160,7 @@ export function makeResolution(deps: ResolutionDeps) {
           const { db } = scope(input);
           const runId = await open(ctx, db, "resolve build", { ...input });
           const stats = await ctx.run("build", () =>
-            db.transaction((tx) => buildCandidates(tx, input)),
+            atomic(db, (tx) => buildCandidates(tx, input)),
           );
           await close(ctx, db, runId, stats);
           return stats;
@@ -173,7 +173,7 @@ export function makeResolution(deps: ResolutionDeps) {
           const { db } = scope(input);
           const runId = await open(ctx, db, "resolve queue", { ...input });
           const stats = await ctx.run("queue", () =>
-            db.transaction((tx) => queueCandidates(tx, input)),
+            atomic(db, (tx) => queueCandidates(tx, input)),
           );
           await close(ctx, db, runId, stats);
           return stats;
@@ -198,7 +198,7 @@ export function makeResolution(deps: ResolutionDeps) {
           for (const domain of domains) {
             const alreadySpent = spent;
             const r = await ctx.run(`resolve ${domain}`, () =>
-              db.transaction((tx) =>
+              atomic(db, (tx) =>
                 resolveDomainUnit(tx, verifier, domain, {
                   domainBudget,
                   checker,
@@ -214,9 +214,7 @@ export function makeResolution(deps: ResolutionDeps) {
             if (stats.aborted) break;
           }
           if (promotions.length) {
-            await ctx.run("promote", () =>
-              db.transaction((tx) => promoteCandidates(tx, promotions)),
-            );
+            await ctx.run("promote", () => atomic(db, (tx) => promoteCandidates(tx, promotions)));
           }
           await close(ctx, db, runId, stats);
           return stats;
@@ -259,7 +257,7 @@ export function makeResolution(deps: ResolutionDeps) {
                   domains,
                   width,
                   async (domain) => {
-                    const r = await db.transaction((tx) =>
+                    const r = await atomic(db, (tx) =>
                       resolveDomainUnit(tx, verifier, domain, {
                         domainBudget,
                         checker,
@@ -280,9 +278,7 @@ export function makeResolution(deps: ResolutionDeps) {
             }
           });
           if (promotions.length) {
-            await ctx.run("promote", () =>
-              home.transaction((tx) => promoteCandidates(tx, promotions)),
-            );
+            await ctx.run("promote", () => atomic(home, (tx) => promoteCandidates(tx, promotions)));
           }
           await close(ctx, home, runId, stats);
           // Nothing walked and the verifier down: that is the stage's failure, not a quiet pass.
@@ -351,7 +347,7 @@ export type Resolution = ReturnType<typeof makeResolution>;
  * connection closing releases it.
  */
 async function oneWalkAtATime<T>(db: Db, walk: () => Promise<T>): Promise<T> {
-  return db.transaction(async (tx) => {
+  return atomic(db, async (tx) => {
     const [row] = (await tx.execute(
       sql`SELECT pg_try_advisory_xact_lock(hashtext('resolution: new-domain walk')) AS ok`,
     )) as unknown as { ok: boolean }[];

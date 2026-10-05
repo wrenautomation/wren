@@ -25,7 +25,7 @@
  * prompt version) unless that attempt was a parse failure.
  */
 import { companies } from "@wren/core";
-import type { Db, Queryable } from "@wren/db";
+import { type Db, type Queryable, serializable } from "@wren/db";
 import { completeAndParse, type Envelope, type LlmClient, LlmError, type Tracer } from "@wren/llm";
 import { and, asc, eq, isNull, not, sql } from "drizzle-orm";
 import { z } from "zod";
@@ -369,7 +369,8 @@ export async function runDisposition(
       break;
     }
     const now = opts.now ?? new Date();
-    await db.transaction(async (tx) => {
+    // Level 4 can rerun the body: it says what happened, stats count after commit.
+    const outcome = await serializable(db, async (tx) => {
       // The paid call took seconds; the label column may have moved.
       const [fresh] = await tx
         .select({ disposition: threadEvents.disposition })
@@ -395,25 +396,22 @@ export async function runDisposition(
           },
         })
         .where(eq(threadEvents.id, event.id));
-      stats.classified += 1;
-      if (result.parse_error) stats.parse_errors += 1;
-      if (result.provider_rejected) stats.provider_rejected += 1;
-      if (result.verdict.grounded && fresh?.disposition) {
-        stats.skipped_labelled_meanwhile += 1;
-      } else if (result.verdict.grounded && result.verdict.disposition) {
+      if (result.verdict.grounded && fresh?.disposition) return "skipped_labelled_meanwhile";
+      if (result.verdict.grounded && result.verdict.disposition) {
         await labelEvent(tx, {
           event,
           disposition: result.verdict.disposition,
           now,
           source: "llm",
         });
-        stats.labelled += 1;
-      } else if (!state.event.text.trim()) {
-        stats.no_text += 1;
-      } else {
-        stats.ungrounded += 1;
+        return "labelled";
       }
+      return state.event.text.trim() ? "ungrounded" : "no_text";
     });
+    stats.classified += 1;
+    if (result.parse_error) stats.parse_errors += 1;
+    if (result.provider_rejected) stats.provider_rejected += 1;
+    stats[outcome] += 1;
   }
   return stats;
 }

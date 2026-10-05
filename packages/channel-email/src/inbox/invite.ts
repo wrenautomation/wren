@@ -26,7 +26,7 @@ import { companies, people } from "@wren/core";
 import type { Calendar } from "@wren/core/calendar";
 import type { Notifier, NotifyLevel } from "@wren/core/notify";
 import { canonicalZone, wallClock, zonedInstant } from "@wren/core/time";
-import type { Db } from "@wren/db";
+import { type Db, serializable } from "@wren/db";
 import { completeAndParse, type Envelope, type LlmClient, LlmError, type Tracer } from "@wren/llm";
 import { and, desc, eq, gte, inArray, isNotNull, isNull } from "drizzle-orm";
 import { z } from "zod";
@@ -328,7 +328,7 @@ export async function runInvites(
       extra: Record<string, string>,
     ) => {
       const copy = opts.copies?.get(enrollment.niche) ?? null;
-      return db.transaction(async (tx) => {
+      return serializable(db, async (tx) => {
         const [row] = await tx
           .insert(callInvites)
           .values({
@@ -578,7 +578,7 @@ export async function approveInvite(
 
 /** William passes: nothing books, nothing sends, the draft is rejected. */
 export async function dropInvite(db: Db, id: number): Promise<CallInviteState> {
-  return db.transaction(async (tx) => {
+  return serializable(db, async (tx) => {
     const [row] = await tx
       .update(callInvites)
       .set({ state: "dropped", updatedAt: new Date() })
