@@ -42,6 +42,7 @@ export const CONTENT_COMPONENTS = [
     missing: ["Not ready until a client runs content"],
     provides: {
       records: [
+        "marketing.draft",
         "marketing.post",
         "marketing.ad_day",
         "marketing.search_page",

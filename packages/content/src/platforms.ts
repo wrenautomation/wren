@@ -25,6 +25,11 @@ export interface PlatformSpec {
    * costs no reach; elsewhere the profile's `/go/<code>/bio` link counts it.
    */
   readonly linkInText?: boolean;
+  /**
+   * Lines a feed shows before "see more", on a laptop and on a phone; null shows the whole post,
+   * 0 none of it. As the apps cut them in 2026: tune here when one changes.
+   */
+  readonly feed: { readonly laptop: number | null; readonly phone: number | null };
 }
 
 export const PLATFORM_SPECS: Readonly<Record<Platform, PlatformSpec>> = {
@@ -35,6 +40,7 @@ export const PLATFORM_SPECS: Readonly<Record<Platform, PlatformSpec>> = {
       "a LinkedIn post: a one-line hook, short paragraphs with blank lines between them, no hashtags, no emoji, ends with one plain question or take, under 1300 characters",
     goCode: "li",
     linkInText: true,
+    feed: { laptop: 3, phone: 3 },
   },
   reddit: {
     platform: "reddit",
@@ -44,12 +50,14 @@ export const PLATFORM_SPECS: Readonly<Record<Platform, PlatformSpec>> = {
     shape:
       "a Reddit text post: a plain title that states the point or the question (under 120 characters), then a body written like a practitioner sharing what they did and learned, specifics and numbers, no pitch, no links, no emoji, no hashtags, under 2000 characters",
     goCode: "rd",
+    feed: { laptop: 3, phone: 3 },
   },
   x: {
     platform: "x",
     maxChars: 280,
     shape: "one post on X: a single sharp point in plain words, no hashtags, under 240 characters",
     goCode: "x",
+    feed: { laptop: null, phone: null },
   },
   youtube: {
     platform: "youtube",
@@ -60,6 +68,7 @@ export const PLATFORM_SPECS: Readonly<Record<Platform, PlatformSpec>> = {
       "a YouTube title (under 70 characters, plain, says what the viewer gets) and a description: two short paragraphs of what the video shows and why it matters, no hashtags, no timestamps",
     goCode: "yt",
     linkInText: true,
+    feed: { laptop: 3, phone: 0 },
   },
   instagram: {
     platform: "instagram",
@@ -68,6 +77,7 @@ export const PLATFORM_SPECS: Readonly<Record<Platform, PlatformSpec>> = {
     shape:
       "an Instagram Reel caption: a first line that stands alone, two or three short lines after it, then up to five relevant hashtags on the last line",
     goCode: "ig",
+    feed: { laptop: 2, phone: 2 },
   },
   tiktok: {
     platform: "tiktok",
@@ -75,6 +85,7 @@ export const PLATFORM_SPECS: Readonly<Record<Platform, PlatformSpec>> = {
     needsMedia: "video",
     shape: "a TikTok caption: one or two short lines in plain words, then up to four hashtags",
     goCode: "tt",
+    feed: { laptop: 2, phone: 1 },
   },
   facebook: {
     platform: "facebook",
@@ -83,6 +94,7 @@ export const PLATFORM_SPECS: Readonly<Record<Platform, PlatformSpec>> = {
       "a Facebook Page post: two or three short paragraphs in plain words, no hashtags, one question at the end",
     goCode: "fb",
     linkInText: true,
+    feed: { laptop: 5, phone: 3 },
   },
 };
 

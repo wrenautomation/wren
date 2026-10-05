@@ -96,7 +96,7 @@ beforeAll(async () => {
   env = await startTestRestate({
     services: [
       fakeContent,
-      makeContentDesk({ db: pg.db, llm, platforms: ["linkedin", "x", "youtube"] }),
+      makeContentDesk({ db: pg.db, llm, platforms: ["linkedin", "x", "youtube"], zone: "UTC" }),
       makeContentScheduler({ db: pg.db, idleMs: 60_000 }),
       makeContentMetrics({
         db: pg.db,
@@ -299,6 +299,23 @@ describe("content loop", () => {
     });
     await expect(editDraft(pg.db, row.id, { text: "a".repeat(281) })).rejects.toThrow(/over 280/);
     expect((await getDraft(pg.db, row.id)).text).toBe("new text");
+  });
+
+  it("the console's verdicts: approve takes a slot, an edit over the cap is refused", async () => {
+    const idea = await addIdea(pg.db, "console me", "cli");
+    const [row] = await pg.db
+      .insert(contentDrafts)
+      .values({ ideaId: idea.id, platform: "x", text: "old", promptVersion: "v1" })
+      .returning();
+    if (!row) throw new Error("no row");
+    expect(await desk().approve({ ids: [row.id] })).toEqual({ done: [row.id] });
+    expect((await getDraft(pg.db, row.id)).scheduledFor).toEqual(expect.any(Date));
+    await expect(desk().edit({ draftId: row.id, text: "a".repeat(281) })).rejects.toThrow(
+      /over 280/,
+    );
+    expect(await desk().edit({ draftId: row.id, text: "new" })).toEqual({ done: [row.id] });
+    expect(await desk().reject({ ids: [row.id] })).toEqual({ done: [row.id] });
+    expect((await getDraft(pg.db, row.id)).status).toBe("rejected");
   });
 
   it("a redraft takes the note, supersedes the old row, and links back", async () => {

@@ -5,7 +5,7 @@
 import { serveRecords } from "@wren/core/records/serve";
 import { startTestPostgres, type TestPostgres } from "@wren/db/testing";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
-import { postRecord } from "../../src/records.js";
+import { draftRecord, postRecord } from "../../src/records.js";
 import { contentDrafts, contentIdeas, contentMetrics } from "../../src/schema.js";
 
 let pg: TestPostgres;
@@ -60,5 +60,45 @@ describe("marketing.post", () => {
       }),
     ]);
     expect(week.totals.engagement).toEqual({ n: 10, of: 200 });
+  });
+});
+
+describe("marketing.draft", () => {
+  it("lists drafts not yet out by state, and loads what the preview needs", async () => {
+    const [idea] = await pg.db
+      .insert(contentIdeas)
+      .values({ text: "synthetic draft idea", source: "cli" })
+      .returning();
+    if (!idea) throw new Error("no idea");
+    const [waiting, gone] = await pg.db
+      .insert(contentDrafts)
+      .values(
+        (["draft", "published"] as const).map((status) => ({
+          ideaId: idea.id,
+          platform: "x" as const,
+          text: `a ${status} post`,
+          status,
+          promptVersion: "t",
+        })),
+      )
+      .returning();
+    const api = serveRecords([draftRecord], pg.db);
+    for (const v of draftRecord.views)
+      await api.list({ record: draftRecord.id, view: v.id, limit: 9 });
+    const ids = (await api.list({ record: draftRecord.id, view: "waiting", limit: 9 })).rows.map(
+      (r) => r.id,
+    );
+    expect(ids).toContain(waiting?.id);
+    expect(ids).not.toContain(gone?.id);
+    const one = await api.get({ record: draftRecord.id, id: String(waiting?.id) });
+    expect(one.detail).toEqual({
+      post: {
+        site: "X",
+        title: null,
+        text: "a draft post",
+        max: 280,
+        feed: { laptop: null, phone: null },
+      },
+    });
   });
 });

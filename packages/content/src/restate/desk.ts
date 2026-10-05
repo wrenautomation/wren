@@ -2,7 +2,8 @@
  * `ContentDesk/default`: the loop's writes that must not run twice. Drafting
  * is paid, so each platform's draft is one journaled step; a retry after a
  * crash resumes at the next platform instead of paying again. Ideas and
- * review verdicts are plain rows and go straight to Postgres from the CLI.
+ * review verdicts are plain rows: the CLI writes them straight to Postgres,
+ * the console through `approve`, `edit` and `reject` here.
  */
 import * as restate from "@restatedev/restate-sdk";
 import { finishRun, openRun } from "@wren/core";
@@ -14,7 +15,7 @@ import type { LlmClient, Tracer } from "@wren/llm";
 import { z } from "zod";
 import { DRAFT_STAGE, type DraftOptions, type DraftResult, draftIdea, redraft } from "../draft.js";
 import { addIdea, getIdea } from "../ideas.js";
-import { getDraft } from "../review.js";
+import { approveDrafts, editDraft, getDraft, rejectDrafts } from "../review.js";
 import { type ContentIdea, IDEA_SOURCES, type IdeaSource } from "../schema.js";
 import type { Brand } from "../voice.js";
 
@@ -25,6 +26,8 @@ export interface ContentDeskDeps {
   llm: LlmClient;
   /** Platforms drafted when a request names none: the configured channels. */
   platforms: readonly Platform[];
+  /** Approved drafts take their platform's next slot on this clock (`WREN_SEND_TIMEZONE`). */
+  zone: string;
   voice?: string;
   brand?: Brand;
   tracer?: Tracer | null;
@@ -62,6 +65,25 @@ const REDRAFT = z.looseObject({
   draftId: z.string(),
   note: z.string().describe("What to change"),
 });
+
+const IDS = z.looseObject({ ids: z.array(z.string()).describe("Draft ids") });
+const EDIT = z.looseObject({
+  draftId: z.string(),
+  text: z.string().describe("The whole post"),
+  title: z.string().nullish().describe("Left out: unchanged"),
+});
+
+/**
+ * A verdict the review refuses (not waiting, over the cap) is the person's to fix, so it fails
+ * the call instead of retrying. ponytail: a database blip fails it too; the person clicks again.
+ */
+const verdict = async (f: () => Promise<{ id: string }[]>): Promise<{ done: string[] }> => {
+  try {
+    return { done: (await f()).map((d) => d.id) };
+  } catch (err) {
+    throw new restate.TerminalError((err as Error).message, { errorCode: 409 });
+  }
+};
 
 export function makeContentDesk(deps: ContentDeskDeps) {
   const options = (runId: string, again: boolean): DraftOptions => ({
@@ -129,6 +151,35 @@ export function makeContentDesk(deps: ContentDeskDeps) {
           );
           return { ideaId: idea.id, results: [result], runId };
         },
+      ),
+      /** A person's yes from the console: each draft posts at its platform's next slot. */
+      approve: exclusiveHandler(
+        { input: IDS },
+        (ctx: restate.ObjectContext, req: { ids: string[] }) =>
+          ctx.run("approve", () =>
+            verdict(() => approveDrafts(deps.db, req.ids, { now: new Date(), zone: deps.zone })),
+          ),
+      ),
+      reject: exclusiveHandler(
+        { input: IDS },
+        (ctx: restate.ObjectContext, req: { ids: string[] }) =>
+          ctx.run("reject", () => verdict(() => rejectDrafts(deps.db, req.ids))),
+      ),
+      /** The person's own words; the draft waits for a fresh yes. */
+      edit: exclusiveHandler(
+        { input: EDIT },
+        (
+          ctx: restate.ObjectContext,
+          req: { draftId: string; text: string; title?: string | null },
+        ) =>
+          ctx.run("edit", () =>
+            verdict(async () => [
+              await editDraft(deps.db, req.draftId, {
+                text: req.text,
+                ...(req.title !== undefined ? { title: req.title } : {}),
+              }),
+            ]),
+          ),
       ),
     },
   });

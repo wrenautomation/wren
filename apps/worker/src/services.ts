@@ -680,6 +680,7 @@ export async function buildServices(
       db,
       llm,
       platforms: settings.contentChannels,
+      zone: settings.sendTimezone,
       tracer,
       ...(voice !== null ? { voice } : {}),
     }),

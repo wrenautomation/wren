@@ -18,4 +18,13 @@ describe("shapeOf", () => {
       "2 texts (GSM-7)",
     ]);
   });
+  it("counts a post's title and characters against its cap", () => {
+    const feed = { laptop: 3, phone: 0 };
+    expect(
+      shapeOf(
+        { kind: "post", site: "YouTube", title: "Spend gate", max: 5000, feed },
+        "what it does",
+      ),
+    ).toEqual(["title 10 characters", "12 of 5000 characters", "3 words", "1 s to read"]);
+  });
 });

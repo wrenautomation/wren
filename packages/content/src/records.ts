@@ -1,4 +1,7 @@
-/** Published posts as a console record for the Marketing app (`marketing_post_records`). */
+/**
+ * Posts as console records for the Marketing app: drafts waiting on a person
+ * (`marketing_draft_records`) and published ones (`marketing_post_records`).
+ */
 import type { Platform } from "@wren/core/content";
 import {
   date,
@@ -10,6 +13,10 @@ import {
   status,
   text,
 } from "@wren/core/records";
+import type { Queryable } from "@wren/db";
+import { eq } from "drizzle-orm";
+import { PLATFORM_SPECS } from "./platforms.js";
+import { contentDrafts, type DraftStatus } from "./schema.js";
 
 const NAMES: Record<Platform, string> = {
   linkedin: "LinkedIn",
@@ -23,6 +30,94 @@ const NAMES: Record<Platform, string> = {
 const PLATFORM_STATES: Record<string, State> = Object.fromEntries(
   Object.entries(NAMES).map(([p, label]) => [p, { label, tone: "neutral" }]),
 );
+
+/** What a preview needs past the row: the whole text, the platform's name, cap and feed cut. */
+async function postOf(db: Queryable, draftId: string) {
+  const [d] = await db
+    .select({
+      platform: contentDrafts.platform,
+      text: contentDrafts.text,
+      title: contentDrafts.title,
+    })
+    .from(contentDrafts)
+    .where(eq(contentDrafts.id, draftId))
+    .limit(1);
+  if (!d) return null;
+  const spec = PLATFORM_SPECS[d.platform];
+  return {
+    site: NAMES[d.platform],
+    title: d.title,
+    text: d.text,
+    max: spec.maxChars,
+    feed: spec.feed,
+  };
+}
+
+const DRAFT_STATES: Record<DraftStatus, State> = {
+  draft: { label: "Waiting on you", tone: "warn" },
+  failed: { label: "Failed to post", tone: "bad" },
+  approved: { label: "Scheduled", tone: "good" },
+  publishing: { label: "Posting", tone: "neutral" },
+  published: { label: "Posted", tone: "good" },
+  rejected: { label: "Rejected", tone: "neutral" },
+};
+
+export const draftRecord = defineRecord({
+  id: "marketing.draft",
+  name: { one: "draft", many: "drafts" },
+  view: "marketing_draft_records",
+  key: "id",
+  title: "title",
+  subtitle: "platform",
+  fields: {
+    title: text("Post"),
+    platform: status(PLATFORM_STATES),
+    state: status(DRAFT_STATES),
+    text: text("Text"),
+    chars: number("Characters"),
+    written: status(
+      {
+        model: { label: "Model", tone: "neutral" },
+        edited: { label: "You edited it", tone: "neutral" },
+      },
+      "Written by",
+    ),
+    note: text("Your redraft note"),
+    error: text("Last error"),
+    scheduled: date("Posts at"),
+    created: date("Drafted"),
+  },
+  views: [
+    {
+      id: "waiting",
+      label: "Waiting on you",
+      where: { state: ["draft", "failed"] },
+      sort: "-created",
+      at: "created",
+    },
+    {
+      id: "scheduled",
+      label: "Scheduled",
+      where: { state: ["approved", "publishing"] },
+      sort: "scheduled",
+      at: "scheduled",
+    },
+    {
+      id: "rejected",
+      label: "Rejected",
+      where: { state: "rejected" },
+      sort: "-created",
+      at: "created",
+    },
+  ],
+  actions: [
+    "marketing.approveDraft",
+    "marketing.editDraft",
+    "marketing.redraft",
+    "marketing.rejectDraft",
+  ],
+  load: async (db, id) => ({ post: await postOf(db, id) }),
+});
 
 export const postRecord = defineRecord({
   id: "marketing.post",
@@ -63,6 +158,7 @@ export const postRecord = defineRecord({
     { id: "platform", label: "By platform", sort: "platform", at: "published" },
   ],
   actions: ["marketing.draftAgain"],
+  load: async (db, id) => ({ post: await postOf(db, id.split("/")[2] ?? "") }),
 });
 
-export const CONTENT_RECORDS = [postRecord];
+export const CONTENT_RECORDS = [draftRecord, postRecord];

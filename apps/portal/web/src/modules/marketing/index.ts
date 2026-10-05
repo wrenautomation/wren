@@ -5,6 +5,7 @@
 import type { Action } from "@wren/ui";
 import type { Module } from "../../module.js";
 import { WeeklyBookings } from "./chart.js";
+import { draftPreview, postExtras } from "./posts.js";
 
 const said = (line: string) => () => line;
 
@@ -15,6 +16,48 @@ const POST_ACTIONS: Action[] = [
     handler: "marketing/draftAgain",
     confirm: "Draft this idea again for this platform?",
     done: said("Drafting. It shows in the content desk."),
+  },
+];
+
+const WAITING = { state: ["draft", "failed"] };
+const OPEN = { state: ["draft", "failed", "approved"] };
+const DRAFT_ACTIONS: Action[] = [
+  {
+    id: "marketing.approveDraft",
+    label: "Approve",
+    handler: "marketing/approveDraft",
+    confirm: "Post this at its platform's next slot?",
+    key: "a",
+    bulk: true,
+    when: WAITING,
+    done: said("Scheduled at its next slot"),
+  },
+  {
+    id: "marketing.editDraft",
+    label: "Edit",
+    handler: "marketing/editDraft",
+    ask: { field: "text", label: "Your words", from: "text", preview: draftPreview },
+    key: "e",
+    when: OPEN,
+    done: said("Saved. It waits for your yes again."),
+  },
+  {
+    id: "marketing.redraft",
+    label: "Redraft",
+    handler: "marketing/redraft",
+    ask: { field: "note", label: "What to change" },
+    when: OPEN,
+    done: said("Redrafting. The new one shows here."),
+  },
+  {
+    id: "marketing.rejectDraft",
+    label: "Reject",
+    handler: "marketing/rejectDraft",
+    confirm: "Turn this draft down?",
+    key: "r",
+    bulk: true,
+    when: OPEN,
+    done: said("Rejected"),
   },
 ];
 
@@ -113,6 +156,12 @@ export const marketing: Module = {
           sum: "spend",
         },
         {
+          label: "Drafts waiting",
+          record: "marketing.draft",
+          href: "/marketing/drafts?view=waiting",
+          needs: true,
+        },
+        {
           label: "Texts waiting",
           record: "marketing.text_contact",
           href: "/marketing/texts?view=waiting",
@@ -144,6 +193,20 @@ export const marketing: Module = {
       record: "marketing.post",
       empty: "Posts show here once one is published.",
       actions: POST_ACTIONS,
+      extras: postExtras,
+    },
+    {
+      id: "drafts",
+      label: "Drafts",
+      template: "list",
+      record: "marketing.draft",
+      empty: {
+        waiting: "No draft waits on you.",
+        scheduled: "Nothing is scheduled.",
+        rejected: "Nothing was turned down.",
+      },
+      actions: DRAFT_ACTIONS,
+      extras: postExtras,
     },
     {
       id: "ads",

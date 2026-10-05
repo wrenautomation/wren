@@ -2,7 +2,8 @@
  * A message as its reader meets it, on a laptop and on a phone: first the inbox row or lock
  * screen (what shows before the click, cut where those apps cut it), then the message opened.
  * Each frame is drawn at its device's real width, so length and shape read true; the laptop
- * ones are scaled down to fit. A foundation: the channel counts SMS parts and passes them in.
+ * ones are scaled down to fit. A foundation: the channel counts SMS parts, and knows a post's
+ * cap and where its feed cuts, and passes them in.
  */
 import { type ReactNode, useState } from "react";
 
@@ -19,12 +20,25 @@ export type MessageKind =
       from?: string;
       /** Billed parts, from the SMS channel's counter. */
       parts?: (text: string) => { parts: number; encoding: string };
+    }
+  | {
+      kind: "post";
+      /** The app it posts to: "LinkedIn". */
+      site: string;
+      from?: string;
+      title?: string | null;
+      /** The platform's cap on the text. */
+      max?: number;
+      /** Lines its feed shows before "see more" (null: all of it, 0: none). */
+      feed: { laptop: number | null; phone: number | null };
     };
 
 // Gmail in a laptop window with its nav open; iPhone 15's width.
 const LAPTOP = 960;
 const LAPTOP_ZOOM = 0.72;
 const PHONE = 393;
+// LinkedIn's feed column; the other apps' are within a few dozen pixels.
+const FEED = 555;
 const WPM = 238;
 
 /** The numbers a skim checks: subject length, words, time to read; for a text, its parts. */
@@ -39,8 +53,17 @@ export function shapeOf(kind: MessageKind, body: string): string[] {
     ];
   }
   const secs = Math.max(1, Math.round((words / WPM) * 60));
+  const chars = [...text].length;
   return [
-    ...(kind.subject ? [`subject ${[...kind.subject].length} characters`] : []),
+    ...(kind.kind === "email" && kind.subject
+      ? [`subject ${[...kind.subject].length} characters`]
+      : []),
+    ...(kind.kind === "post"
+      ? [
+          ...(kind.title ? [`title ${[...kind.title].length} characters`] : []),
+          kind.max ? `${chars} of ${kind.max} characters` : `${chars} characters`,
+        ]
+      : []),
     `${words} ${words === 1 ? "word" : "words"}`,
     `${secs < 60 ? `${secs} s` : `${Math.round(secs / 6) / 10} min`} to read`,
   ];
@@ -62,10 +85,54 @@ export function MessagePreview({
   const body = whole ? whole.body : text;
   const from = message.from || "You";
   const shape = shapeOf(message, body);
+  const openedOn = (
+    <div className="flex items-center gap-3">
+      <span className="text-(--ui-ink-2)">Opened on</span>
+      {(["phone", "laptop"] as const).map((d) => (
+        <button
+          key={d}
+          type="button"
+          aria-pressed={opened === d}
+          onClick={() => setOpened(d)}
+          className="cursor-pointer text-(--ui-ink-2) underline-offset-4 aria-pressed:text-(--ui-ink) aria-pressed:underline"
+        >
+          {d}
+        </button>
+      ))}
+    </div>
+  );
   return (
     <section aria-label="How it looks" className="grid min-w-0 gap-3 text-[13px]">
       <p className="text-(--ui-ink-2)">{shape.join(" · ")}</p>
-      {message.kind === "email" ? (
+      {message.kind === "post" ? (
+        <>
+          {(["laptop", "phone"] as const).map((d) => (
+            <Frame
+              key={d}
+              label={`Feed, ${d} (${message.site}${cutOf(message.feed[d])})`}
+              width={d === "phone" ? PHONE : FEED}
+            >
+              <FeedPost
+                from={from}
+                title={message.title}
+                body={body}
+                lines={message.feed[d]}
+                size={d === "phone" ? 15 : 14}
+              />
+            </Frame>
+          ))}
+          {openedOn}
+          <Frame label={`Opened, ${opened}`} width={opened === "phone" ? PHONE : FEED}>
+            <FeedPost
+              from={from}
+              title={message.title}
+              body={body}
+              lines={null}
+              size={opened === "phone" ? 15 : 14}
+            />
+          </Frame>
+        </>
+      ) : message.kind === "email" ? (
         <>
           <Frame label="Inbox, laptop (Gmail)" width={LAPTOP} zoom={LAPTOP_ZOOM}>
             <GmailRow from={from} subject={message.subject} body={body} />
@@ -73,20 +140,7 @@ export function MessagePreview({
           <Frame label="Inbox, phone (iPhone Mail)" width={PHONE}>
             <IosMailRow from={from} subject={message.subject} body={body} />
           </Frame>
-          <div className="flex items-center gap-3">
-            <span className="text-(--ui-ink-2)">Opened on</span>
-            {(["phone", "laptop"] as const).map((d) => (
-              <button
-                key={d}
-                type="button"
-                aria-pressed={opened === d}
-                onClick={() => setOpened(d)}
-                className="cursor-pointer text-(--ui-ink-2) underline-offset-4 aria-pressed:text-(--ui-ink) aria-pressed:underline"
-              >
-                {d}
-              </button>
-            ))}
-          </div>
+          {openedOn}
           {opened === "phone" ? (
             <Frame label="Opened, phone" width={PHONE}>
               <Opened from={from} subject={message.subject} body={body} size={17} pad={16} />
@@ -211,6 +265,52 @@ function Opened({
       {subject ? <p className="text-[1.3em] font-semibold leading-[1.25]">{subject}</p> : null}
       <p className="font-semibold">{from}</p>
       <div className="break-words whitespace-pre-wrap">{body.trim()}</div>
+    </div>
+  );
+}
+
+/** Where a feed cuts, for a frame's label. */
+const cutOf = (lines: number | null) =>
+  lines === null
+    ? ", the whole post"
+    : lines === 0
+      ? ", text behind more"
+      : `, ${lines} lines then more`;
+
+/** A post in a feed: who, its title, its text cut at `lines` (null: all of it, 0: none). */
+function FeedPost({
+  from,
+  title,
+  body,
+  lines,
+  size,
+}: {
+  from: string;
+  title?: string | null | undefined;
+  body: string;
+  lines: number | null;
+  size: number;
+}) {
+  return (
+    <div style={{ fontSize: size }} className="grid gap-2 p-4 leading-[1.4]">
+      <p className="flex items-center gap-2 font-semibold">
+        <span className="size-8 shrink-0 rounded-full bg-[#d9d9de]" />
+        <span className="truncate">{from}</span>
+        <span className="ml-auto shrink-0 font-normal text-[#6b6b70]">now</span>
+      </p>
+      {title ? <p className="text-[1.15em] font-semibold leading-[1.25]">{title}</p> : null}
+      {lines === 0 ? null : (
+        <div
+          style={
+            lines === null
+              ? undefined
+              : { display: "-webkit-box", WebkitBoxOrient: "vertical", WebkitLineClamp: lines }
+          }
+          className="overflow-hidden break-words whitespace-pre-wrap"
+        >
+          {body.trim()}
+        </div>
+      )}
     </div>
   );
 }

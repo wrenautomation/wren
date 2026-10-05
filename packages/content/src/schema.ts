@@ -189,3 +189,28 @@ export const marketingPostRecords = pgView("marketing_post_records", {
     select c.views, c.reactions, c.comments, c.shares, c.as_of from content_metrics c
     where c.draft_id = d.id order by c.created_at desc limit 1) m on true
   where d.status = 'published'`);
+
+/**
+ * Every draft not yet out (`marketing.draft`): waiting on a person, scheduled, failed or turned
+ * down. `title` reads as a post's does; `written` says whether a person changed the model's words.
+ */
+export const marketingDraftRecords = pgView("marketing_draft_records", {
+  id: text("id"),
+  platform: text("platform"),
+  title: text("title"),
+  text: text("text"),
+  state: text("state"),
+  chars: integer("chars"),
+  written: text("written"),
+  note: text("note"),
+  error: text("error"),
+  scheduled: timestamp("scheduled", { withTimezone: true }),
+  created: timestamp("created", { withTimezone: true }),
+}).as(sql`
+  select d.id::text id, d.platform::text platform,
+    coalesce(d.title, left(split_part(d.text, chr(10), 1), 120))::text title, d.text,
+    d.status::text state, length(d.text) chars,
+    case when d.edited then 'edited' else 'model' end written, d.note, d.error,
+    d.scheduled_for scheduled, d.created_at created
+  from content_drafts d
+  where d.status <> 'published'`);

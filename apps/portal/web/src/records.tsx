@@ -141,6 +141,11 @@ const ONE: Record<string, (id: string, input: Input) => [string, Input]> = {
   "marketing/resume": (id) =>
     handlerCall("Ads", "resume", { campaignId: head(id, 1)[0] }, { confirm: "resume" }),
   "marketing/markRead": (id) => handlerCall("SmsDesk", "markRead", { contactId: Number(id) }),
+  // A draft's review: ContentDesk's one key, as the CLI's verdicts are one table.
+  "marketing/approveDraft": (id) => desk("approve", { ids: [id] }),
+  "marketing/rejectDraft": (id) => desk("reject", { ids: [id] }),
+  "marketing/editDraft": (id, { text }) => desk("edit", { draftId: id, text }),
+  "marketing/redraft": (id, { note }) => desk("redraft", { draftId: id, note }),
 };
 /** A Marketing record's action: a console call to the handler behind it (`console/call`). */
 const handlerCall = (
@@ -149,6 +154,8 @@ const handlerCall = (
   input: Input,
   more: Input = {},
 ): [string, Input] => ["console/call", { service, handler, input, ...more }];
+const desk = (handler: string, input: Input) =>
+  handlerCall("ContentDesk", handler, input, { key: "default" });
 /** "idea/platform/draft": a post's idea and platform. "campaign/adset/day": an ad day's campaign. */
 const head = (id: string, n: number) => id.split("/").slice(0, n);
 /** Head actions that are another handler with something added. */

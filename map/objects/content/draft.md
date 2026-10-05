@@ -37,7 +37,8 @@ Citations: `packages/content/src/schema.ts:76`
 | Surface | Role |
 |---|---|
 | `ContentDesk.draft/redraft` | writes |
-| `wren content approve/reject/edit` | writes |
+| `wren content approve/reject/edit`, `ContentDesk.approve/reject/edit` (the console) | writes |
+| `marketing.draft` (`marketing_draft_records`, every status but published), `marketing.post` | read; their `load` adds the preview's text, cap and feed cut (`PLATFORM_SPECS.feed`) |
 | `ContentScheduler/default` | moves to published/failed |
 | `ContentPlanner`, `ContentMetrics` | read |
 | `wren status` (`packages/content/src/status.ts`) | reads counts, oldest draft, this month's tokens |
