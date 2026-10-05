@@ -328,7 +328,9 @@ function briefSubjectsSql(opts: { limit?: number; count?: boolean }) {
             from jsonb_array_elements(i.facts) with ordinality e(x, n))::text
         || i.crm::text || i.firm) inputs_hash
       from inputs i
+      -- No facts: nothing to write, but a brief written from facts since gone is retired.
       where jsonb_array_length(i.facts) > 0
+        or exists (select 1 from briefs b where b.person_id = i.person_id and b.state = 'written')
     )
     ${
       opts.count
@@ -402,19 +404,23 @@ export async function writeCrmBriefs(
   for (const s of subjects) {
     let state: BriefState;
     let gated: Gated = { kept: [], dropped: [], cites: { findings: [], crm: [] } };
-    let envelope: Envelope;
+    let envelope: Envelope | null = null;
     try {
-      const outcome = await completeAndParse(llm, buildBriefPrompt(s), briefSchema, {
-        maxTokens: MAX_TOKENS,
-        runId: opts.runId ?? null,
-        name: STAGE_NAME,
-        metadata: { person_id: s.personId },
-      });
-      envelope = outcome.envelope();
-      if (outcome.parsed) {
-        gated = gateBrief(outcome.parsed.sentences, s.facts, s.signal);
-        state = gated.kept.length ? "written" : "empty";
-      } else state = "failed";
+      // Findings are marked f, CRM rows c: with no finding left there is nothing new to say.
+      if (!s.facts.some((f) => f.mark.startsWith("f"))) state = "empty";
+      else {
+        const outcome = await completeAndParse(llm, buildBriefPrompt(s), briefSchema, {
+          maxTokens: MAX_TOKENS,
+          runId: opts.runId ?? null,
+          name: STAGE_NAME,
+          metadata: { person_id: s.personId },
+        });
+        envelope = outcome.envelope();
+        if (outcome.parsed) {
+          gated = gateBrief(outcome.parsed.sentences, s.facts, s.signal);
+          state = gated.kept.length ? "written" : "empty";
+        } else state = "failed";
+      }
     } catch (err) {
       // The provider is down or refusing us: every later call would fail too.
       if (err instanceof LlmError) {

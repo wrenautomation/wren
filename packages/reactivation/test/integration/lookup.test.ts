@@ -106,6 +106,12 @@ describe("crm lookup", () => {
     ]);
   });
 
+  it("a stub verifier's verdict is not a fact", async () => {
+    await db().execute(sql`update verifications set raw = raw || '{"authoritative": false}'`);
+    const subjects = await crmLookupSubjects(db());
+    expect(subjects.map((s) => s.email)).toEqual([null, null, null]);
+  });
+
   it("writes findings, the profile and where each lookup stands; a re-run picks nobody", async () => {
     const { client } = sites();
     const stats = await lookUpCrmPeople(db(), client, { linkedin: null, concurrency: 1 });

@@ -8,6 +8,7 @@ import type * as restate from "@restatedev/restate-sdk";
 import type { Client } from "@wren/core/clients";
 import {
   answer,
+  isDemo,
   PortalRefusal,
   type PortalRequest,
   pickClient,
@@ -62,7 +63,13 @@ export interface PortalDeps {
 /** The demo's name on screen; the agency it was built from is never named. */
 export const DEMO_NAME = "Sample recruiting firm";
 
-/** Read one client's database, read-only, masked when it is the demo. */
+/**
+ * The demo is masked only for a visitor with no login: its list is a real agency's, so the open
+ * link never publishes a person. Anyone signed in sees real names and profile links, to check
+ * a finding.
+ */
+const masked = (client: Client, req: PortalRequest) => client.demo && isDemo(req.viewer);
+
 /** The demo's mask: list surnames to initials, the agency's name to the demo's. */
 async function demoMask(tx: Queryable, client: Client) {
   const firm = (await readClientProfile(tx))?.firm;
@@ -79,13 +86,13 @@ async function read<T>(
   const db = deps.open(client);
   return snapshot(db, async (tx) => {
     const out = await view(tx, client);
-    return client.demo ? (await demoMask(tx, client))(out) : out;
+    return masked(client, req) ? (await demoMask(tx, client))(out) : out;
   });
 }
 
 const typesOf = (client: Client) => [...REACTIVATION_RECORDS, settingOf(client)];
 
-/** Records over one client's database, read-only; on the demo the server masks every answer once. */
+/** Records over one client's database, read-only; a masked demo is masked once, on the server. */
 async function records<T>(
   deps: PortalDeps,
   req: PortalRequest,
@@ -93,7 +100,7 @@ async function records<T>(
 ): Promise<T> {
   const client = await pickClient(deps.main, req);
   return snapshot(deps.open(client), async (tx) => {
-    const mask = client.demo ? await demoMask(tx, client) : undefined;
+    const mask = masked(client, req) ? await demoMask(tx, client) : undefined;
     return use(serveRecords(typesOf(client), tx, mask));
   });
 }
@@ -235,7 +242,8 @@ export function portalApi(deps: PortalDeps) {
       if (!step || !subject) throw new PortalRefusal("no such line in this run", 404);
       // The demo's lines name people as masked, so a name matches as the demo shows it.
       const view = await read(deps, req, async (db, client) => {
-        if (!client.demo) return portalWork(db, { step, subject, operator: seesInternal(req) });
+        if (!masked(client, req))
+          return portalWork(db, { step, subject, operator: seesInternal(req) });
         const shown = await demoMask(db, client);
         const work = await portalWork(db, { step, subject, operator: seesInternal(req), shown });
         return work && unlinkMasked(work, shown);

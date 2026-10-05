@@ -345,10 +345,10 @@ describe("logins", () => {
     expect(asClient.live?.lines.map((l) => l.detail)).toEqual([null, null, null]);
   });
 
-  it("an operator reading the demo still gets it masked", async () => {
-    expect(leaks(await api.recordsList({ ...operator, client: "demo", record: PERSON }))).toEqual(
-      [],
-    );
+  it("an operator reading the demo sees real names and profiles, to check a finding", async () => {
+    expect(
+      leaks(await api.recordsList({ ...operator, client: "demo", record: PERSON })),
+    ).not.toEqual([]);
   });
 
   it("a client login sees only its own clients, whatever the case of its email", async () => {

@@ -54,7 +54,7 @@ const importCsv = async (rows: string[], name = "export.csv") => {
 const verdict = async (email: string, result: string, verifier: string, at: string) => {
   await db().execute(sql`
     insert into verifications (contact_candidate_id, email, verifier, result, raw, checked_at)
-    select id, email, ${verifier}, ${result}, '{}'::jsonb, ${at}::timestamptz
+    select id, email, ${verifier}, ${result}, '{"authoritative": true}'::jsonb, ${at}::timestamptz
     from contact_candidates where email = ${email}`);
 };
 

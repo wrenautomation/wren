@@ -291,6 +291,28 @@ describe("briefs: which facts", () => {
     expect(await briefsDue(db())).toBe(1);
   });
 
+  it("a brief whose facts are all gone is retired, with no model call", async () => {
+    const jane = await personId("Jane");
+    await finding({ kind: "still_there", person: jane, value: {} });
+    await lookedUp(jane);
+    await scoreCrmContacts(db());
+    await writeCrmBriefs(db(), citesFirstFinding("Still at Acme Staffing."));
+    await db().execute(sql`delete from findings`);
+    await scoreCrmContacts(db());
+    expect(await briefsDue(db())).toBe(1);
+    const silent = new FakeLlm({
+      respond: () => {
+        throw new Error("no call expected");
+      },
+    });
+    await writeCrmBriefs(db(), silent);
+    const b = await one<{ state: string; text: string }>(
+      sql`select state, text from briefs where person_id = ${jane}`,
+    );
+    expect(b).toEqual({ state: "empty", text: "" });
+    expect(await briefsDue(db())).toBe(0);
+  });
+
   it("a brief isn't due again when the same facts are read again on a later day", async () => {
     const jane = await personId("Jane");
     await finding({ kind: "still_there", person: jane, value: {}, daysAgo: 3 });

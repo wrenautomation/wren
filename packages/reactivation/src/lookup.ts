@@ -90,7 +90,9 @@ export async function crmLookupSubjects(
     left join lateral (
       select cc.email, v.result, v.verifier
       from contact_candidates cc join verifications v on v.contact_candidate_id = cc.id
+      -- Only a verdict that can mint a fact: a stub verifier calls every mailbox live. Local is authoritative.
       where cc.person_id = p.id and cc.evidence = 'crm'
+        and (v.verifier = 'local' or (v.raw->>'authoritative')::boolean)
       order by (lower(split_part(cc.email, '@', 2)) = lower(co.domain)) desc nulls last,
         v.checked_at desc, v.id desc
       limit 1
