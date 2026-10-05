@@ -117,6 +117,7 @@ import {
   makeContentPlanner,
   makeContentScheduler,
 } from "@wren/content/restate";
+import { askRecord, makeAsk } from "@wren/core/ask";
 import { makeAuditSealer } from "@wren/core/audit";
 import { CalcomCalendar, type Calendar } from "@wren/core/calendar";
 import { clientRecord } from "@wren/core/clients";
@@ -867,6 +868,7 @@ export async function buildServices(
       app: portal ?? undefined,
     }),
     makeReactivationPortal({ main: db, open: openClient }),
+    makeAsk(db),
     makeConsolePortal({
       main: db,
       mainUrl: settings.databaseUrl,
@@ -882,6 +884,7 @@ export async function buildServices(
         clientRecord,
         reviewRecord(),
         replyQueueRecord,
+        askRecord,
       ],
       components: COMPONENTS,
       workflows: WORKFLOWS,

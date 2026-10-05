@@ -30,6 +30,7 @@ import {
 import { eq, sql } from "drizzle-orm";
 import { z } from "zod";
 import { TEAM_ROLES, type TeamRole, WREN } from "./access.js";
+import { ask, type QuestionRequest } from "./ask.js";
 import {
   addClient,
   type Client,
@@ -1252,6 +1253,8 @@ export function makeConsolePortal(deps: Parameters<typeof consoleApi>[0]) {
       uninstall: (ctx: restate.Context, req: ComponentRequest) =>
         changeLoops(ctx, "uninstall", () => api.uninstall(req)),
       ask: (_: restate.Context, req: ComponentRequest) => answer(() => api.ask(req)),
+      question: (ctx: restate.Context, req: QuestionRequest) =>
+        answer(() => ask(ctx, deps.main, req)),
       addClient: (ctx: restate.Context, req: AddClientRequest) =>
         answer(async () => {
           const ask = api.newClient(req);

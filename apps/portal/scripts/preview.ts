@@ -11,6 +11,7 @@ import { createServer } from "node:http";
 import { extname, join, normalize } from "node:path";
 import { EMAIL_CONSOLE_VIEWS } from "@wren/channel-email/views";
 import { loadEnvFile, loadSettings } from "@wren/config";
+import { askRecord } from "@wren/core/ask";
 import { clientUrl } from "@wren/core/clients";
 import { consoleApi } from "@wren/core/console";
 import { CONSOLE_ROUTES } from "@wren/core/console-routes";
@@ -51,6 +52,7 @@ const SERVICES: Record<string, { routes: readonly string[]; api: object }> = {
       views: EMAIL_CONSOLE_VIEWS,
       components: COMPONENTS,
       workflows: WORKFLOWS,
+      records: [askRecord],
     }),
   },
 };

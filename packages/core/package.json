@@ -10,6 +10,7 @@
     "./calendar": "./src/calendar.ts",
     "./clients": "./src/clients/index.ts",
     "./components": "./src/components.ts",
+    "./ask": "./src/ask.ts",
     "./console": "./src/console.ts",
     "./console-routes": "./src/console-routes.ts",
     "./content": "./src/content/index.ts",

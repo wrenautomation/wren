@@ -8,6 +8,7 @@ import { call } from "../../api.js";
 import type { Module } from "../../module.js";
 import { ClientLook } from "../account/Look.js";
 import { ClientComponents } from "../marketplace/Installed.js";
+import { Ask } from "./ask.js";
 import {
   CANDIDATE_ACTIONS,
   candidateExtras,
@@ -845,6 +846,15 @@ export const workflows: Module = {
   pages: [{ id: "canvas", label: "Canvas", Page: Workflows }],
 };
 
+export const ask: Module = {
+  id: "ask",
+  name: "Ask",
+  icon: "search",
+  blurb: "Ask Claude Code about the system. It reads the code and prod; it changes nothing.",
+  requires: { ...TEAM, needs: "run" },
+  pages: [{ id: "questions", label: "Questions", Page: Ask }],
+};
+
 export const WREN_APPS = [
   workflows,
   outbound,
@@ -856,4 +866,5 @@ export const WREN_APPS = [
   team,
   handlers,
   review,
+  ask,
 ];

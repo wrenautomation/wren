@@ -23,6 +23,8 @@ export const CONSOLE_ROUTES = {
   configure: "manage",
   uninstall: "manage",
   ask: "manage",
+  // Ask: a question to Claude Code on William's Mac, read only (`ask.ts`).
+  question: "wren:run",
   // The Team page: an admin's.
   teamSet: "wren:team",
   teamRemove: "wren:team",
@@ -38,6 +40,7 @@ export const CONSOLE_WRITES: readonly ConsoleRoute[] = [
   "configure",
   "uninstall",
   "ask",
+  "question",
   "teamSet",
   "teamRemove",
 ];

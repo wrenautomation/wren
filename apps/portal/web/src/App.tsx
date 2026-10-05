@@ -33,6 +33,7 @@ import { useAccount } from "./modules/account/load.js";
 import { appsIn, MODULES } from "./modules/index.js";
 import { AddOn } from "./modules/marketplace/AddOn.js";
 import { REACTIVATION } from "./modules/reactivation/nav.js";
+import { askClaude } from "./modules/wren/ask.js";
 import { TemplatePage } from "./records.js";
 import { navigate, useRoute } from "./route.js";
 
@@ -422,6 +423,11 @@ export function App() {
             onOpenChange={setJump}
             items={jumps(apps, launcher, keys)}
             onPick={(href) => navigate(href)}
+            ask={
+              me.data?.team?.wren.includes("run")
+                ? (q) => void askClaude(q, location.pathname + location.search)
+                : undefined
+            }
           />
         </Suspense>
       )}

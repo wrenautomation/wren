@@ -5,6 +5,7 @@
  */
 import {
   type Edge,
+  EdgeLabelRenderer,
   type EdgeProps,
   Handle,
   type Node,
@@ -21,10 +22,20 @@ import { cx } from "./format.js";
 /** A column's width, at least and at most: past the most, a short map leaves room on the right. */
 const COLUMN = { min: 110, max: 200 };
 const HEIGHT = 58;
-/** With a number line under the note. */
-const COUNTED = 76;
 const GAP_X = 40;
 const LABELED_GAP_X = 150;
+/** A box's padding and rows (px), and about how wide a character of each is. */
+const PAD = { x: 24, y: 18 };
+const ROW = { label: 16.25, small: 15.6 };
+const CHAR = { label: 7.4, small: 6.6 };
+
+/** Tall enough for the label and number (two rows each at most) and the note (three). */
+function heightOf(b: MapBox, w: number): number {
+  const rows = (s: string | undefined, char: number, most = 2) =>
+    s ? Math.min(most, Math.ceil((s.length * char) / (w - PAD.x))) : 0;
+  const small = rows(b.note, CHAR.small, 3) + rows(b.count, CHAR.small);
+  return Math.max(HEIGHT, PAD.y + ROW.label * rows(b.label, CHAR.label) + ROW.small * small);
+}
 
 function BoxNode({ data }: NodeProps<Node<{ box: MapBox; height: number }>>) {
   const b = data.box;
@@ -48,10 +59,10 @@ function BoxNode({ data }: NodeProps<Node<{ box: MapBox; height: number }>>) {
       >
         <span className="line-clamp-2 text-[13px] leading-[1.25] font-semibold">{b.label}</span>
         {b.note ? (
-          <span className="truncate text-[12px] leading-[1.3] text-(--ui-ink-2)">{b.note}</span>
+          <span className="line-clamp-3 text-[12px] leading-[1.3] text-(--ui-ink-2)">{b.note}</span>
         ) : null}
         {b.count ? (
-          <span className="truncate text-[12px] leading-[1.3] text-(--ui-ink) tabular-nums">
+          <span className="line-clamp-2 text-[12px] leading-[1.3] text-(--ui-ink) tabular-nums">
             {b.count}
           </span>
         ) : null}
@@ -63,7 +74,7 @@ function BoxNode({ data }: NodeProps<Node<{ box: MapBox; height: number }>>) {
 
 type LineData = {
   d: string;
-  label?: { text: string; x: number; y: number; anchor: "start" | "end" } | undefined;
+  label?: { text: string; x: number; y: number; anchor: "start" | "end"; max: number } | undefined;
 };
 
 function Line({ data }: EdgeProps<Edge<LineData>>) {
@@ -76,20 +87,19 @@ function Line({ data }: EdgeProps<Edge<LineData>>) {
         className="fill-none stroke-(--ui-ink-3) stroke-[1.5] [stroke-linecap:round]"
       />
       {l ? (
-        // The paper-colored stroke under the letters keeps a label legible over the lines.
-        <text
-          x={l.x}
-          y={l.y}
-          textAnchor={l.anchor}
-          className="fill-(--ui-ink-2) stroke-(--ui-paper) stroke-[4px] text-[11px] [paint-order:stroke]"
-        >
-          {l.text.split("\n").map((line, i, all) => (
-            // Each line a row, the last on the spot: the rows stack up from the line.
-            <tspan key={line} x={l.x} dy={i ? "1.25em" : `${-(all.length - 1) * 1.25}em`}>
-              {line}
-            </tspan>
-          ))}
-        </text>
+        // Above every line, its bottom row resting on the spot; long ones wrap upward in the gap.
+        <EdgeLabelRenderer>
+          <div
+            className="pointer-events-none absolute bg-(--ui-paper) px-0.5 text-[11px] leading-[1.25] whitespace-pre-line text-(--ui-ink-2)"
+            style={{
+              maxWidth: l.max,
+              textAlign: l.anchor === "end" ? "right" : "left",
+              transform: `translate(${l.anchor === "end" ? "-100%" : "0"}, -100%) translate(${l.x}px, ${l.y}px)`,
+            }}
+          >
+            {l.text}
+          </div>
+        </EdgeLabelRenderer>
       ) : null}
     </>
   );
@@ -121,11 +131,13 @@ export default function FlowMapGraph({
   const graph = useMemo(() => flowOf(boxes, () => true, undefined, true), [boxes]);
   const labeled = boxes.some((b) => b.labels && Object.keys(b.labels).length);
   const gapX = labeled ? LABELED_GAP_X : GAP_X;
-  const height = boxes.some((b) => b.count) ? COUNTED : HEIGHT;
   const across = (w: number) => graph.cols * w + (graph.cols - 1) * gapX;
   const width = Math.max(across(COLUMN.min), Math.min(room, across(COLUMN.max)));
   const drawn = useMemo(() => {
     const byId = new Map(boxes.map((b) => [b.id, b]));
+    const column = (width - (graph.cols - 1) * gapX) / graph.cols;
+    // Every box as tall as the tallest, so the lines between boxes stay straight.
+    const height = Math.max(HEIGHT, ...boxes.map((b) => heightOf(b, column)));
     const heights = Object.fromEntries(boxes.map((b) => [b.id, height]));
     const laid = layoutOf(graph, "across", width, heights, gapX);
     const at = (id: string) => laid.boxes[id] ?? { x: 0, y: 0, w: 0, h: 0 };
@@ -137,30 +149,41 @@ export default function FlowMapGraph({
           type: "box",
           position: { x: at(n.id).x, y: at(n.id).y },
           width: at(n.id).w,
-          height,
+          height: at(n.id).h,
           // Nothing selects or drags, so React Flow would let clicks through to the pane.
           style: { pointerEvents: "all" },
-          data: { box: byId.get(n.id) ?? { id: n.id, label: n.id, after: [] }, height },
+          data: {
+            box: byId.get(n.id) ?? { id: n.id, label: n.id, after: [] },
+            height: at(n.id).h,
+          },
         }),
       ),
       edges: graph.edges.map((e): Edge<LineData> => {
         const text = byId.get(e.to)?.labels?.[e.from];
-        const alone = graph.edges.filter((x) => x.from === e.from).length === 1;
+        const end = graph.edges.filter((x) => x.from === e.from).length === 1 ? "from" : "to";
         return {
           id: `${e.from}>${e.to}`,
           source: e.from,
           target: e.to,
           type: "line",
           data: {
-            d: edgePath(at(e.from), at(e.to), e.span, "across"),
+            // The turn sits at the end away from the label, so the label has the long side.
+            d: edgePath(
+              at(e.from),
+              at(e.to),
+              e.span,
+              "across",
+              6,
+              labeled ? (end === "from" ? "to" : "from") : undefined,
+            ),
             label: text
-              ? { text, ...labelAt(at(e.from), at(e.to), e.span, alone ? "from" : "to") }
+              ? { text, max: gapX - 32, ...labelAt(at(e.from), at(e.to), e.span, end) }
               : undefined,
           },
         };
       }),
     };
-  }, [boxes, graph, width, height, gapX]);
+  }, [boxes, graph, width, gapX, labeled]);
   const { nodes, edges } = drawn;
 
   return (

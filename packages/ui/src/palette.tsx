@@ -32,11 +32,14 @@ export function CommandPalette({
   onPick,
   open,
   onOpenChange,
+  ask,
 }: {
   items: PaletteItem[];
   onPick: (href: string) => void;
   open: boolean;
   onOpenChange: (open: boolean) => void;
+  /** Wren's team: what's typed can go to Claude Code as a question, from this page. */
+  ask?: ((question: string) => void) | undefined;
 }) {
   const scope = useScoped();
   const [q, setQ] = useState("");
@@ -68,6 +71,18 @@ export function CommandPalette({
                 <span>
                   {scope.search.label} for “{q.trim()}”
                 </span>
+              </CommandItem>
+            </CommandGroup>
+          ) : null}
+          {ask && q.trim() ? (
+            <CommandGroup heading="Ask">
+              <CommandItem
+                value={`ask ${q}`}
+                forceMount
+                onSelect={run({ run: () => ask(q.trim()) })}
+              >
+                <Icon name="reply" />
+                <span>Ask Claude Code “{q.trim()}”</span>
               </CommandItem>
             </CommandGroup>
           ) : null}

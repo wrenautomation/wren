@@ -150,13 +150,24 @@ export type FlowAxis = "across" | "down";
 const TURN = 10;
 const px = (n: number) => Math.round(n * 10) / 10;
 
+/** How far from a box a line turns when it turns `near` that box. */
+const BEND = 18;
+
 /**
  * The line from node `a` to node `b`, as SVG path data: square turns with soft
- * corners. To the next column it turns halfway across the gap. Further, it runs
- * on past the columns between: across, level with `a` then into `b` from above
- * or below; down, out along the left edge at `gutter` and back in.
+ * corners. To the next column it turns halfway across the gap, or `near` one end so
+ * a label has the long side. Further, it runs on past the columns between: across,
+ * level with `a` then into `b` from above or below; down, out along the left edge
+ * at `gutter` and back in.
  */
-export function edgePath(a: Box, b: Box, span: number, axis: FlowAxis, gutter = 6): string {
+export function edgePath(
+  a: Box,
+  b: Box,
+  span: number,
+  axis: FlowAxis,
+  gutter = 6,
+  near?: "from" | "to",
+): string {
   if (axis === "across") {
     const sx = a.x + a.w;
     const sy = a.y + a.h / 2;
@@ -170,9 +181,9 @@ export function edgePath(a: Box, b: Box, span: number, axis: FlowAxis, gutter = 
     }
     const tx = b.x;
     if (Math.abs(ty - sy) < 1) return `M${px(sx)} ${px(sy)}H${px(tx)}`;
-    const mx = (sx + tx) / 2;
+    const mx = near === "from" ? sx + BEND : near === "to" ? tx - BEND : (sx + tx) / 2;
     const dir = ty > sy ? 1 : -1;
-    const r = Math.min(TURN, Math.abs(ty - sy) / 2, Math.abs(tx - sx) / 2);
+    const r = Math.min(TURN, Math.abs(ty - sy) / 2, Math.abs(mx - sx), Math.abs(tx - mx));
     return `M${px(sx)} ${px(sy)}H${px(mx - r)}Q${px(mx)} ${px(sy)} ${px(mx)} ${px(sy + dir * r)}V${px(ty - dir * r)}Q${px(mx)} ${px(ty)} ${px(mx + r)} ${px(ty)}H${px(tx)}`;
   }
   if (span > 1) {

@@ -12,6 +12,7 @@ import { emailRecords } from "@wren/channel-email/records";
 import type { SendPolicy } from "@wren/channel-email/send/policy";
 import { textCopyRecord } from "@wren/channel-sms/records";
 import { loadSettings } from "@wren/config";
+import { askRecord } from "@wren/core/ask";
 import { type Client, changeRecord, clientRecord, teamRecord } from "@wren/core/clients";
 import { ACCOUNT_SITES } from "@wren/core/components";
 import { componentRecord, handlerRecord, loopRecord } from "@wren/core/console";
@@ -95,6 +96,7 @@ const RECORD_TYPES = [
   settingOf({} as Client),
   reviewRecord(),
   replyQueueRecord,
+  askRecord,
 ];
 const RECORDS = RECORD_TYPES.map((t) => t.id);
 

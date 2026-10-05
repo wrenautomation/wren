@@ -33,6 +33,7 @@ export const COMPONENTS: readonly Component[] = [
 export const PLATFORM = {
   services: {
     ConsolePortal: "the console: loops, handlers, records, clients and installs",
+    Ask: "a question to Claude Code on the Mac, answered on its runs row",
     AuditSealer: "seals the audit log every write lands in",
     TokenRenewal: "renews every site's tokens, for content and ads alike",
   },
@@ -44,9 +45,11 @@ export const PLATFORM = {
     team: "Wren's team and their roles",
     marketplace: "every component, and the browser mods",
     workflows: "every workflow, drawn with live numbers",
+    ask: "questions to Claude Code about the system, read only",
     review: "the Friday review of parked ideas",
   },
   records: {
+    "console.ask": "every question asked of Claude Code",
     "console.client": "the client registry",
     "console.loop": "every loop",
     "console.handler": "every handler",
