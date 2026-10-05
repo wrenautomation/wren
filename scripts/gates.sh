@@ -15,7 +15,9 @@ offers() {
   else echo "==> offers snapshot: no ../lander, skipped"; fi
 }
 unit() { echo "==> unit tests" && pnpm turbo run test:unit; }
-integration() { echo "==> integration tests (needs Docker)" && pnpm turbo run test:integration --concurrency=3; }
+# Every integration file starts its own Postgres and migrates it. Vitest's default (cpus - 1 files at once)
+# times 3 packages put ~27 containers on the Docker VM together, and setup hooks timed out at 180 s.
+integration() { echo "==> integration tests (needs Docker)" && pnpm turbo run test:integration --concurrency=3 -- --maxWorkers=3; }
 case "${1:-all}" in
   lint) lint ;;
   unit) unit ;;
