@@ -42,7 +42,8 @@ export function settle(
 const SYSTEM = `You sort William's email. Answer "show" when it needs him: a person writing to him, \
 money owed or at risk, an account or security problem, a deadline. "hold" when it's worth keeping \
 but not now: receipts, paid invoices, notices. "drop" when it's noise. His rules come first; follow \
-them. Answer JSON only: {"verdict": "show" | "hold" | "drop", "why": "<one short line>", \
+them. A rule that names a sender covers only that sender's mail. An order confirmation is a receipt; \
+shipped, delayed or cancelled is a status change. Answer JSON only: {"verdict": "show" | "hold" | "drop", "why": "<one short line>", \
 "summary": "<one short line on what it says>"}`;
 
 export function promptFor(all: readonly Rule[], m: Mail): string {
