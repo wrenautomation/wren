@@ -20,6 +20,17 @@ aws s3 cp --only-show-errors "s3://$bucket/$key" /tmp/wren-worker.zip
 rm -rf "$dir.new" && mkdir -p "$dir.new"
 python3 -m zipfile -e /tmp/wren-worker.zip "$dir.new"
 rm -f /tmp/wren-worker.zip
+
+# The same bundle and script as the running worker: leave it be. A restart cuts any call
+# mid-run, and Restate can leave such a call stuck, holding its object's lock.
+script="$(sha256sum "$0" | cut -c1-64)"
+if [ -d "$dir" ] && [ "$(cat "$dir.script" 2>/dev/null)" = "$script" ] &&
+  diff -rq "$dir" "$dir.new" >/dev/null 2>&1 &&
+  [ "$(docker inspect -f '{{.State.Running}}' wren-worker 2>/dev/null)" = true ]; then
+  rm -rf "$dir.new"
+  echo "box worker unchanged, left running"
+  exit 0
+fi
 rm -rf "$dir.old" && { [ -d "$dir" ] && mv "$dir" "$dir.old" || true; } && mv "$dir.new" "$dir"
 
 # stop, not rm -f: SIGTERM lets the tunnel drain in-flight invocations first.
@@ -39,6 +50,7 @@ docker run -d --name wren-worker --restart unless-stopped --init \
   -e WREN_LOG_LEVEL=info \
   -e NODE_OPTIONS=--max-old-space-size=448 \
   node:22-slim node app/box.mjs >/dev/null
+echo "$script" > "$dir.script"
 
 # Up = registered with Restate. CI logs are public: print names and messages only.
 brief='import json,sys
