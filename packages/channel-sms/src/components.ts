@@ -26,6 +26,33 @@ export const SMS_COMPONENTS = [
       { service: "SmsSender", key: clientKey(client, "fleet") },
       { service: "SmsWatch", key: clientKey(client, "daily") },
     ],
+    in: [{ id: "leads", label: "leads", kind: "lead" }],
+    out: [
+      {
+        id: "replied",
+        label: "texts answered",
+        kind: "reply",
+        count: { record: "marketing.text_contact", view: "replied" },
+      },
+    ],
+    hypothesis: {
+      from: "Wren's recruiting text sequence, 2026-10",
+      guesses: [
+        { is: "change", says: "Copy and steps per niche.", built: "niche.smsSequences" },
+        {
+          is: "change",
+          says: "A text becomes one step of a cadence across channels, beside email, voicemail and calls.",
+          built: "follow_up",
+        },
+        { is: "change", says: "The name a text signs with.", built: "settings.senderName" },
+        {
+          is: "needs",
+          says: "The client's own registered campaign for US numbers.",
+          built: "settings.campaignId",
+        },
+        { is: "fixed", says: "Texts are paced, and STOP opts a number out of everything." },
+      ],
+    },
   }),
   defineComponent({
     id: REMINDERS,
@@ -38,6 +65,20 @@ export const SMS_COMPONENTS = [
     settings: remindersSettingsSchema,
     requires: { components: [TEXTS], accounts: ["calcom"] },
     effects: ["sends"],
+    in: [{ id: "calls", label: "booked calls", kind: "call" }],
+    out: [{ id: "reminded", label: "calls reminded", kind: "call" }],
+    hypothesis: {
+      from: "Wren's booked calls, 2026-10",
+      guesses: [
+        { is: "change", says: "How long before the call, and how many reminders.", built: null },
+        {
+          is: "change",
+          says: "The copy, per client.",
+          built: "the client's reminder.day-before template",
+        },
+        { is: "fixed", says: "Only a call still on the calendar gets a reminder." },
+      ],
+    },
   }),
   defineComponent({
     id: "sms.forms",
@@ -49,5 +90,19 @@ export const SMS_COMPONENTS = [
     missing: [FOR_WREN, "Reads Wren's own site's form"],
     requires: { components: ["sms.texts"] },
     effects: ["sends"],
+    in: [{ id: "forms", label: "forms", kind: "form" }],
+    out: [{ id: "texted", label: "applicants texted", kind: "lead" }],
+    hypothesis: {
+      from: "Wren's site applicants, 2026-10",
+      guesses: [
+        {
+          is: "change",
+          says: "Which form: the client's site, Meta lead forms, a CRM. This becomes speed to lead's first text.",
+          built: null,
+        },
+        { is: "change", says: "How fast the first text goes.", built: null },
+        { is: "fixed", says: "Only someone who asked for texts gets one." },
+      ],
+    },
   }),
 ];

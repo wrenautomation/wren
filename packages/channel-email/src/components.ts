@@ -52,6 +52,48 @@ export const EMAIL_COMPONENTS = [
     },
     effects: ["sends", "spends"],
     clientLoops: (client, settings) => sequencesLoops(client, settings as SequencesSettings),
+    in: [{ id: "leads", label: "leads", kind: "lead" }],
+    out: [
+      {
+        id: "replied",
+        label: "replies",
+        kind: "reply",
+        count: { record: "email.reply", view: "all" },
+      },
+      { id: "quiet", label: "leads that never replied", kind: "lead" },
+    ],
+    hypothesis: {
+      from: "Wren's agency and recruiting campaigns, 2026-09",
+      guesses: [
+        {
+          is: "change",
+          says: "Copy, steps and timing per niche and offer.",
+          built: "niche.sequences",
+        },
+        {
+          is: "change",
+          says: "Which sequence a lead gets, by what we know about it.",
+          built: "niche.plan",
+        },
+        {
+          is: "change",
+          says: "The senders, their names and sign-offs.",
+          built: "settings.senders",
+        },
+        { is: "change", says: "Daily caps and the ramp.", built: "settings.sending" },
+        {
+          is: "change",
+          says: "How long a quiet lead rests before we write again.",
+          built: "niche.recontact",
+        },
+        {
+          is: "needs",
+          says: "Warmed inboxes on the client's own domains, and a niche.",
+          built: "settings.niche",
+        },
+        { is: "fixed", says: "Every send passes one gate: suppression, caps, the kill switch." },
+      ],
+    },
   }),
   defineComponent({
     id: REPLIES,
@@ -70,6 +112,29 @@ export const EMAIL_COMPONENTS = [
       apps: ["inbox"],
     },
     effects: ["sends"],
+    in: [{ id: "replies", label: "replies", kind: "reply" }],
+    out: [
+      {
+        id: "booked",
+        label: "booked calls",
+        kind: "call",
+        count: { record: "email.call", view: "booked" },
+      },
+    ],
+    hypothesis: {
+      from: "Wren's campaign replies, 2026-09",
+      guesses: [
+        {
+          is: "change",
+          says: "Who approves answers: Wren now, the client's own team later.",
+          built: null,
+        },
+        { is: "change", says: "Text and DM replies land in the same desk as email.", built: null },
+        { is: "change", says: "What counts as warm depends on the offer.", built: null },
+        { is: "change", says: "The calendar each client books on.", built: null },
+        { is: "fixed", says: "Every answer to a lead waits on a person's yes." },
+      ],
+    },
   }),
   defineComponent({
     id: "email.inbox_health",
@@ -86,6 +151,18 @@ export const EMAIL_COMPONENTS = [
       records: ["email.inbox"],
     },
     effects: ["sends"],
+    hypothesis: {
+      from: "Wren's sending inboxes, 2026-09",
+      guesses: [
+        {
+          is: "change",
+          says: "How far an inbox may slip before it pauses, by how much risk the client takes.",
+          built: null,
+        },
+        { is: "needs", says: "Seed inboxes to test placement per client domain.", built: null },
+        { is: "fixed", says: "An inbox that slips pauses itself before it burns the domain." },
+      ],
+    },
   }),
   defineComponent({
     id: "email.experiments",
@@ -102,6 +179,22 @@ export const EMAIL_COMPONENTS = [
       records: ["email.variant", "email.experiment", "email.allele", "email.candidate"],
     },
     effects: ["spends"],
+    hypothesis: {
+      from: "Wren's opener tests, 2026-09",
+      guesses: [
+        {
+          is: "change",
+          says: "Which parts of the copy get tested: subject, opener, ask.",
+          built: null,
+        },
+        {
+          is: "change",
+          says: "How sure it must be before keeping a variant, by volume.",
+          built: null,
+        },
+        { is: "fixed", says: "A variant wins on replies, never on opens." },
+      ],
+    },
   }),
   defineComponent({
     id: "email.marketing",
@@ -117,5 +210,18 @@ export const EMAIL_COMPONENTS = [
       records: ["marketing.subscriber", "marketing.topic"],
     },
     effects: ["sends"],
+    in: [{ id: "signups", label: "signups", kind: "person" }],
+    hypothesis: {
+      from: "Wren's own opt-in lists, 2026-10",
+      guesses: [
+        { is: "change", says: "Each client's topics and preference center.", built: null },
+        {
+          is: "needs",
+          says: "A postal address in every mail and a sender for marketing.",
+          built: null,
+        },
+        { is: "fixed", says: "One rule decides who may get mail, and a signup keeps its proof." },
+      ],
+    },
   }),
 ];

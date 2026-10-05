@@ -33,7 +33,8 @@
     "./records/serve": "./src/records-serve.ts",
     "./schema": "./src/schema.ts",
     "./stats": "./src/stats.ts",
-    "./time": "./src/time.ts"
+    "./time": "./src/time.ts",
+    "./workflows": "./src/workflows.ts"
   },
   "scripts": {
     "test:integration": "vitest run test/integration",

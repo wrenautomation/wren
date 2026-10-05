@@ -1,0 +1,63 @@
+import { describe, expect, it } from "vitest";
+import { defineComponent } from "./components.js";
+import { checkWorkflows, defineWorkflow, type Wire } from "./workflows.js";
+
+const hypothesis = { from: "a test", guesses: [{ is: "fixed" as const, says: "x" }] };
+const part = (id: string, inside: string | null = null) =>
+  defineComponent({
+    id,
+    name: id,
+    blurb: id,
+    icon: "mail",
+    for: "client",
+    ready: true,
+    hypothesis,
+    inside,
+    in: [{ id: "leads", label: "leads", kind: "lead" }],
+    out: [{ id: "replied", label: "replies", kind: "reply" }],
+  });
+const flow = (id: string, wires: Wire[], uses = "a") =>
+  defineWorkflow({
+    id,
+    name: id,
+    blurb: id,
+    icon: "mail",
+    for: "client",
+    in: [{ id: "leads", label: "leads", kind: "lead" }],
+    out: [{ id: "replied", label: "replies", kind: "reply" }],
+    nodes: [{ id: "n", uses }],
+    wires,
+  });
+const ok: Wire[] = [
+  { from: "in.leads", to: "n.leads", via: "events" },
+  { from: "n.replied", to: "out.replied", via: "events", wait: "3 days" },
+];
+
+describe("checkWorkflows", () => {
+  it("passes a sound workflow, and a part whose inside matches it", () => {
+    expect(checkWorkflows([flow("f", ok)], [part("a"), part("b", "f")])).toEqual([]);
+  });
+
+  it("names each break", () => {
+    const bad = checkWorkflows(
+      [
+        flow("a", ok),
+        flow("kinds", [{ from: "in.leads", to: "out.replied", via: "code" }]),
+        flow("wait", [...ok.slice(0, 1), { ...ok[1], wait: "soon" } as Wire]),
+        flow("ghost", ok, "nope"),
+        flow("loop", ok, "loop"),
+      ],
+      [part("a"), part("b", "missing")],
+    );
+    expect(bad).toEqual([
+      "a: id taken",
+      "b: inside missing is no workflow",
+      "kinds: in.leads carries lead, out.replied takes reply",
+      'wait: wait "soon" is not "<n> days" or "until <kind>"',
+      "ghost.n: uses nope, which isn't one",
+      "ghost: n.leads: n has no input leads",
+      "ghost: n.replied: n has no output replied",
+      "loop: holds itself",
+    ]);
+  });
+});

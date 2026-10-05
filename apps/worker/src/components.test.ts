@@ -16,8 +16,10 @@ import { type Client, changeRecord, clientRecord, teamRecord } from "@wren/core/
 import { ACCOUNT_SITES } from "@wren/core/components";
 import { componentRecord, handlerRecord, loopRecord } from "@wren/core/console";
 import { MARKETING_RECORDS } from "@wren/core/marketing/records";
+import { checkWorkflows } from "@wren/core/workflows";
 import type { Queryable } from "@wren/db";
 import { deliveryRecords } from "@wren/delivery/records";
+import { NICHES } from "@wren/niches";
 import { dmCopyRecord } from "@wren/outreach/records";
 import { REACTIVATION_RECORDS, settingOf } from "@wren/reactivation/records";
 import type { Logger } from "pino";
@@ -26,6 +28,7 @@ import { COMPONENTS, PLATFORM } from "./components.js";
 import { MARKETING_NUMBERS } from "./marketing.js";
 import { reviewRecord } from "./review.js";
 import { buildServices } from "./services.js";
+import { WORKFLOWS } from "./workflows.js";
 
 const quiet = () => {};
 const log = { info: quiet, warn: quiet, error: quiet, debug: quiet } as unknown as Logger;
@@ -72,8 +75,8 @@ async function bound() {
   );
 }
 
-/** Every record type id the worker serves, built without a database. */
-const RECORDS = [
+/** Every record type the worker serves, built without a database. */
+const RECORD_TYPES = [
   ...emailRecords([], {} as SendPolicy),
   ...BOOKS_RECORDS,
   ...MARKETING_NUMBERS,
@@ -90,7 +93,8 @@ const RECORDS = [
   ...MARKETING_RECORDS,
   settingOf({} as Client),
   reviewRecord(),
-].map((t) => t.id);
+];
+const RECORDS = RECORD_TYPES.map((t) => t.id);
 
 /** Who claims each name in `pick`, platform first. */
 function owners(pick: (c: (typeof COMPONENTS)[number]) => string[], platform: object) {
@@ -156,5 +160,55 @@ describe("the component inventory", () => {
 
   it("every settings block takes {}", () => {
     for (const c of COMPONENTS) expect(c.settings.safeParse({}).success, c.id).toBe(true);
+  });
+});
+
+describe("workflows and hypotheses", () => {
+  it("every workflow wires real ports of matching kinds", () => {
+    expect(checkWorkflows(WORKFLOWS, COMPONENTS)).toEqual([]);
+  });
+
+  it("a port's count is a served record's view that counts by date", () => {
+    for (const p of [...COMPONENTS, ...WORKFLOWS])
+      for (const port of [...p.in, ...p.out]) {
+        if (!port.count) continue;
+        const { record, view } = port.count;
+        const v = RECORD_TYPES.find((t) => t.id === record)?.views.find((x) => x.id === view);
+        expect(v?.at, `${p.id}.${port.id}: ${record}/${view}`).toBeTruthy();
+      }
+  });
+
+  it("every part has a hypothesis, and what it says is built is there", () => {
+    const ids = new Set(COMPONENTS.map((c) => c.id));
+    const niche = new Set(NICHES.flatMap((n) => Object.keys(n)));
+    for (const c of COMPONENTS) {
+      expect(c.hypothesis.from, c.id).not.toBe("");
+      expect(c.hypothesis.guesses.length, c.id).toBeGreaterThan(0);
+      const settings = Object.keys((c.settings as { shape?: object }).shape ?? {});
+      for (const g of c.hypothesis.guesses) {
+        // Prose (with spaces) names something outside the code; a bare ref must resolve.
+        if (g.is === "fixed" || !g.built || /\s/.test(g.built)) continue;
+        const [head, ...rest] = g.built.split(".");
+        const key = rest.join(".");
+        const found =
+          g.built === "inside"
+            ? c.inside !== null
+            : head === "settings"
+              ? settings.includes(key)
+              : head === "niche"
+                ? niche.has(key)
+                : head === "in" || head === "out"
+                  ? c[head].some((p) => p.id === key)
+                  : ids.has(g.built);
+        expect(found, `${c.id}: ${g.built}`).toBe(true);
+      }
+    }
+  });
+
+  it("a part in development is never ready and provides nothing yet", () => {
+    for (const c of COMPONENTS.filter((x) => x.planned)) {
+      expect(c.ready, c.id).toBe(false);
+      expect(Object.values(c.provides).flat(), c.id).toEqual([]);
+    }
   });
 });

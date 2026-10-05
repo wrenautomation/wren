@@ -11,5 +11,12 @@ export const SEARCH_COMPONENTS = [
     ready: false,
     missing: ["Reads Wren's own site, not per client"],
     provides: { services: ["SearchWatch", "SearchWeek"], loops: ["SearchWatch"] },
+    hypothesis: {
+      from: "Wren's site, 2026-09",
+      guesses: [
+        { is: "change", says: "The site, per client.", built: null },
+        { is: "fixed", says: "Numbers come from Search Console once a day." },
+      ],
+    },
   }),
 ];

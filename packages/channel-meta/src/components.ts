@@ -13,5 +13,14 @@ export const META_COMPONENTS = [
     requires: { accounts: ["meta"] },
     provides: { services: ["Ads", "AdsWatch"], loops: ["AdsWatch"] },
     effects: ["spends", "posts"],
+    out: [{ id: "forms", label: "lead forms filled", kind: "form" }],
+    hypothesis: {
+      from: "Wren's ad tests, 2026-09",
+      guesses: [
+        { is: "change", says: "The ad account, per client.", built: null },
+        { is: "change", says: "The lead form's questions, per offer.", built: null },
+        { is: "fixed", says: "Every launch is logged with what it spent." },
+      ],
+    },
   }),
 ];

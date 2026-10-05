@@ -15,5 +15,17 @@ export const OUTREACH_COMPONENTS = [
       loops: ["ReachSender", "ReachWatch"],
     },
     effects: ["sends"],
+    in: [{ id: "people", label: "people", kind: "person" }],
+    out: [{ id: "replied", label: "DM replies", kind: "reply" }],
+    hypothesis: {
+      from: "Wren's DM tests, 2026-10",
+      guesses: [
+        { is: "change", says: "Which sites: LinkedIn, Reddit, X.", built: null },
+        { is: "change", says: "Caps and ramp per account.", built: "the caps ledger" },
+        { is: "change", says: "Who to write to.", built: null },
+        { is: "needs", says: "Warmed accounts the client owns.", built: null },
+        { is: "fixed", says: "Each account is paced by its own caps." },
+      ],
+    },
   }),
 ];

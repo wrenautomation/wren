@@ -43,9 +43,11 @@ export function mapOf(rows: readonly Row[], at: (id: string) => string) {
           ? "Installed"
           : r.ready === "coming"
             ? "Coming"
-            : r.for === "wren"
-              ? "Wren's own"
-              : undefined,
+            : r.ready === "planned"
+              ? "In development"
+              : r.for === "wren"
+                ? "Wren's own"
+                : undefined,
       after: after.get(id) ?? [],
       href: at(id),
       dim: r.installed === "no",

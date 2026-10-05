@@ -256,6 +256,7 @@ describe("install, configure, uninstall", () => {
     settings: z.object({ perDay: z.number().default(5), price: z.number().optional() }),
     priced: ["price"],
     effects: ["sends"],
+    hypothesis: { from: "a test", guesses: [{ is: "fixed", says: "It sends texts." }] },
     // One loop per day of cap: configure changes which run.
     clientLoops: (client, s) =>
       s.perDay === 9

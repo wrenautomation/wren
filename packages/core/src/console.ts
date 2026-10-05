@@ -594,7 +594,7 @@ export const componentRecord = (
         name: c.name,
         blurb: c.blurb,
         for: c.for,
-        ready: c.ready ? "ready" : "coming",
+        ready: c.planned ? "planned" : c.ready ? "ready" : "coming",
         installed: client ? (has(client, c.id) ? "yes" : "no") : null,
         effects: c.effects.join(", ") || null,
         needs: [...c.requires.components, ...c.requires.accounts].join(", ") || null,
@@ -614,7 +614,11 @@ export const componentRecord = (
         "For",
       ),
       ready: status(
-        { ready: { label: "Ready", tone: "good" }, coming: { label: "Coming", tone: "neutral" } },
+        {
+          ready: { label: "Ready", tone: "good" },
+          coming: { label: "Coming", tone: "neutral" },
+          planned: { label: "In development", tone: "neutral" },
+        },
         "Ready",
       ),
       installed: status(
@@ -632,6 +636,7 @@ export const componentRecord = (
       { id: "all", label: "All", sort: "name" },
       { id: "ready", label: "Ready", where: { ready: "ready" }, sort: "name" },
       { id: "coming", label: "Coming", where: { ready: "coming" }, sort: "name" },
+      { id: "planned", label: "In development", where: { ready: "planned" }, sort: "name" },
       ...(client
         ? [{ id: "installed", label: "Installed", where: { installed: "yes" }, sort: "name" }]
         : []),

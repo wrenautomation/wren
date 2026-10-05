@@ -13,6 +13,7 @@ import { DELIVERY_COMPONENTS } from "@wren/delivery/components";
 import { OUTREACH_COMPONENTS } from "@wren/outreach/components";
 import { REACTIVATION_COMPONENTS } from "@wren/reactivation/components";
 import { RESEARCH_COMPONENTS } from "@wren/research/components";
+import { PLANNED_COMPONENTS } from "./planned.js";
 
 export const COMPONENTS: readonly Component[] = [
   ...RESEARCH_COMPONENTS,
@@ -25,6 +26,7 @@ export const COMPONENTS: readonly Component[] = [
   ...SEARCH_COMPONENTS,
   ...OUTREACH_COMPONENTS,
   ...BOOKS_COMPONENTS,
+  ...PLANNED_COMPONENTS,
 ];
 
 /** Services and apps that are the platform itself, not a feature anyone installs. */

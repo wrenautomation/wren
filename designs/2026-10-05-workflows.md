@@ -19,7 +19,8 @@ The dashboard, composition, webhooks, long pauses, the mail checker, trigger lea
 | Event | One thing that happened: kind, subject, data, time. Kept in `events` |
 | Wire | Output to input, with an optional condition (a rule) and wait ("3 days", "until they reply") |
 | Workflow | Nodes and wires, with ports of its own. A node uses a component, another workflow or a custom step |
-| Custom step | The escape hatch for a one-off integration: code or a webhook URL, ports declared inline. Drawn and logged like any part |
+| Custom step | The escape hatch for a one-off integration: a registered step name or an https URL, ports declared inline. Drawn and logged like any part. Anything reusable is a component instead |
+| Planned part | A component not built yet. Its ports and hypothesis are the design, so workflows wire it today. The catalog shows it as "In development"; once built it keeps its id |
 | Rule | Plain words. Code checks what it can (sender, subject) and a model applies the rest |
 | Template | A workflow plus settings and copy. Installing one on a client is GHL's snapshot. An infra template has the same shape, with servers as parts |
 | Hypothesis | Written after a part's first use: expected changes, what stays fixed, the config and requirements the next use needs. Each line says whether the code has it yet. Each later use confirms or rejects each line |
@@ -30,6 +31,22 @@ The dashboard, composition, webhooks, long pauses, the mail checker, trigger lea
 2. **Generalize by hypothesis.** After a part's first use we write its hypothesis on the manifest: what we expect to change, what stays fixed, and what config the next use will need. Each later use marks each line confirmed or rejected, and we generalize to match. The catalog shows it, and a test fails any part without one.
 3. **Build the knobs, not just the notes.** The code ships with what the hypothesis names. A part with a pipeline inside is built as a small workflow of steps, and each step's copy, timing and plan is a setting. A piece that could stand alone is its own sub-part. Speed to lead, for example: its steps are the first text, the wait before calling, the call plan and the follow-up. The copy, the wait and the plan are settings, and the follow-up is a sub-part another template can reuse. Opening a part on the canvas shows those steps.
 4. **Escape hatches are parts.** A workflow inside a workflow, a part built from parts, a custom step for a one-off. The map, counts and audit cover them too.
+
+## Event kinds
+
+A port carries one kind: firm, person, lead, reply (a lead's answer on any channel), call, form, post, video, client, invoice. Add a kind when a part needs one, never a near-synonym.
+
+## The seed
+
+Every workflow lives in code beside its parts and is checked by `checkWorkflows` against the catalog in the worker's tests.
+
+| Layer | Workflows |
+|---|---|
+| Shared blocks | `research.leads` (discovery, crawl, people, verify), `signals` (visitor ID, triggers), `keep_warm` (follow-up, nurture, replies), `close` (reminders, pre-call brief, outcome, a not-yet back to keep warm after 30 days), `onboarding` (contract, portal, invoices, reviews) |
+| Funnels, sold as templates | `outbound` (research, signals, email, texts, DMs, replies, close), `speed_to_lead.steps` (first text, wait 2 minutes, dial, voicemail, keep warm), `paid` (Meta forms into speed to lead), `win_back` (reactivation into close), `content` (planner, posting) |
+| Wren | `wren`: outbound, paid, content, onboarding, the Watch, books |
+
+Planned parts, all "In development": speed to lead (its inside is `speed_to_lead.steps`), power dialer, voicemail drop, voice agent, follow-up, nurture, visitor ID, triggers, social reads, pre-call brief, call outcome, the Watch.
 
 ## Wires
 
@@ -60,13 +77,15 @@ The Workflows app draws any workflow on React Flow, with the layout code the Map
 - On a phone it runs top to bottom, like the run view.
 - Editing: drag an output onto an input (the kinds must match), click a wire to set its condition or wait, add a custom step. Saved per client and checked before saving.
 
-The first workflow is Wren's outbound funnel, drawn the way William's diagram meant it. Research is a nested workflow (discovery, crawl, people, verify). Then sequences, replies, booking, reminders and the call, with the no-reply path going through recycling back into sequences. Reach and the SMS sequence sit on it, held and faded. Parts the funnel lacks show as planned cards: visitor ID, speed to lead, the pre-call flow and the 30-day follow-up.
+The first canvas is `wren`, opening into outbound, drawn the way William's diagram meant it. Research and close are nested workflows. The no-reply path waits 90 days and goes back into sequences. Reach and the SMS sequence sit on it, held and faded. Planned parts show as "In development" cards.
+
+Beside the canvas, the catalog lists every part grouped by stage with its ports, its hypothesis and whether each line is built. That's where the parts get designed and normalized.
 
 ## The Watch
 
 The mail checker and the radar are one workflow, Wren's first routed one. It lives in the Inbox app. Nothing goes to Discord.
 
-- **Sources:** jinwilliam.jin@gmail.com (read only, through autobrowse's `gmail` site) and william@wrenautomation.com (domain-wide delegation). Books already reads both. Feeds come next, from the radar code (RSS and Atom).
+- **Sources:** William's personal Gmail (read only, through autobrowse's `gmail` site) and william@wrenautomation.com (domain-wide delegation). Books already reads both. Feeds come next, from the radar code (RSS and Atom).
 - **Triage:** rules in plain words. Code settles a rule that names a sender or subject, for $0. A model reads the rest with every rule in its prompt and answers show, hold or drop, with one line on why. Promotions and social mail never reach the model.
 - **Out:** "Needs you" is a queue in the Inbox app. Held mail stays searchable, and a shown email lists held mail from the same sender beside it. The first rule: "Inbox Insiders: hold invoices and receipts. Show order status changes."
 - **Hide like this** on any row writes a rule for its sender, plus subject words if you add them. **Show like this** does the opposite.
@@ -124,3 +143,4 @@ The end-goal list continues on this base afterwards: custom domains, voice, Sign
 ## Decision log
 
 - 2026-10-05: Written. William: "unify these ideas, make a beautiful product." Generalization is a hypothesis written after first use, then confirmed or rejected by each later use. Escape hatches: workflows in workflows, parts in parts, one-off integrations. The Watch reads his personal Gmail and wrenautomation.com. Same day: the hypothesis covers expected changes and config needs, and the code ships with those knobs (speed to lead: copy, call wait and call plan as settings, follow-up as a sub-part).
+- 2026-10-05, seed: William asked to seed the catalog with every workflow he has described or we've built, composed from shared sub-parts, and for a full UI to work on the design and normalization of parts with me (speed to lead, power dialers, voicemail, SMS, follow-ups, nurture, organic content). Parts not built yet are catalog components shown as "In development". `Own` became only the custom step. Kinds `text` and `visit` dropped: a text reply is a reply, a visit becomes a lead.

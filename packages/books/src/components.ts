@@ -23,5 +23,12 @@ export const BOOKS_COMPONENTS = [
       ],
       apps: ["money"],
     },
+    hypothesis: {
+      from: "Wren's own books, 2026-10",
+      guesses: [
+        { is: "change", says: "More banks and cards as Wren adds them.", built: null },
+        { is: "fixed", says: "Statements are the truth; receipts only explain them." },
+      ],
+    },
   }),
 ];
