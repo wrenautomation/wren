@@ -4,15 +4,10 @@
  * fill what a client never set. Everything off until `on`, sending off until
  * `stages.send`, so adding a client never emails anyone.
  */
+import { sendingOverridesSchema } from "@wren/channel-email/sequences-settings";
 import { z } from "zod";
 
 const email = z.string().trim().toLowerCase().email();
-
-/** "2026-02-30" matches the pattern but is no day. */
-const isCalendarDay = (d: string) => {
-  const at = new Date(`${d}T00:00:00Z`);
-  return !Number.isNaN(at.getTime()) && at.toISOString().startsWith(d);
-};
 
 export const reactivationSettingsSchema = z
   .object({
@@ -37,20 +32,7 @@ export const reactivationSettingsSchema = z
       .strict()
       .prefault({}),
     /** Overrides on Wren's send policy; null keeps Wren's. */
-    sending: z
-      .object({
-        perInboxPerDay: z.number().int().min(1).max(100).nullable().default(null),
-        openersPerDay: z.number().int().min(0).max(1000).nullable().default(null),
-        /** YYYY-MM-DD: day one of this client's ramp. */
-        rampStart: z
-          .string()
-          .regex(/^\d{4}-\d{2}-\d{2}$/)
-          .refine(isCalendarDay, "not a calendar day")
-          .nullable()
-          .default(null),
-      })
-      .strict()
-      .prefault({}),
+    sending: sendingOverridesSchema,
     /** `first`: the client approves the first batch, then it flows. `every`: each batch. */
     approval: z.enum(["first", "every"]).default("first"),
     /** The client's mailboxes Wren sends from, each as one recruiter. */

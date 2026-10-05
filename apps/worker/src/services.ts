@@ -23,6 +23,7 @@ import {
   Broadcast,
   ConsoleTransport,
   campaignPolicy,
+  clientReplies,
   type DomainTarget,
   defaultLocalChecker,
   expandHome,
@@ -48,6 +49,9 @@ import {
   SendPolicy,
   SmtpTransport,
   senderDomain,
+  senderFleet,
+  sequencesSendScope,
+  sharedFor,
   type Transport,
 } from "@wren/channel-email";
 import { emailRecords } from "@wren/channel-email/records";
@@ -81,12 +85,14 @@ import { searchConsoleClient } from "@wren/channel-search";
 import { makeSearchWatch, makeSearchWeek } from "@wren/channel-search/restate";
 import {
   CalcomBookings,
+  type ClientSms,
   healthFrom,
   NoProvider,
   policyFrom,
   providerFrom,
   pusherFrom,
   SmsNotifier,
+  TelnyxProvider,
 } from "@wren/channel-sms";
 import { makeSmsDesk, makeSmsEvents, makeSmsSender, makeSmsWatch } from "@wren/channel-sms/restate";
 import { tiktokContent } from "@wren/channel-tiktok";
@@ -101,7 +107,7 @@ import {
   makeContentScheduler,
 } from "@wren/content/restate";
 import { makeAuditSealer } from "@wren/core/audit";
-import { CalcomCalendar } from "@wren/core/calendar";
+import { CalcomCalendar, type Calendar } from "@wren/core/calendar";
 import { clientRecord } from "@wren/core/clients";
 import { makeConsolePortal, restateAdmin, restateAdminGet } from "@wren/core/console";
 import type { SiteClient } from "@wren/core/content";
@@ -115,6 +121,7 @@ import {
   makeContent,
   restateSites,
 } from "@wren/core/content/restate";
+import { namedFor } from "@wren/core/notify";
 import { clientKey, clientOfKey } from "@wren/core/restate";
 import { cachedDb, clientDatabaseName, clientDatabaseUrl, createDb } from "@wren/db";
 import { engagementOf, postUpdate } from "@wren/delivery";
@@ -314,6 +321,14 @@ export async function buildServices(
     cachedDb(clientDatabaseUrl(settings.databaseUrl, client.database), { app: WORKER_APP });
   const clientDb = (id: string) => openClient({ database: clientDatabaseName(id) });
   const clients = { main: db, open: openClient, policy };
+  // A client's cal.com is its autobrowse login (`clients.accounts.calcom`), read through the desk.
+  const calcomSites = ingressSites(ingressOf(settings), {
+    caller: "wren:calcom",
+    ...sitesHost(settings.autobrowseInstanceId),
+    timeoutMs: BOOKS_DESK_TIMEOUT_MS,
+  });
+  const clientBookings = (account: string) =>
+    new CalcomBookings((q) => calcomSites.call("calcom", "GET", "/v2/bookings", q, account));
   // One campaign per registered niche: its plan, copy and the inboxes it may send from,
   // each sign-off already pointing at the niche's page. The queue-keeper reads these.
   const campaigns = new Map<string, Campaign>(
@@ -436,7 +451,11 @@ export async function buildServices(
     // its mailboxes are in Wren's Workspace, so the same transport and reader serve them).
     makeSendScheduler({
       transport,
-      scopeOf: (key) => (clientOfKey(key) ? clientSendScope(clients, key) : wrenScope()),
+      // Email sequences first (its caps), else reactivation's; neither = the loop stops.
+      scopeOf: async (key) =>
+        clientOfKey(key)
+          ? ((await sequencesSendScope(clients, key)) ?? (await clientSendScope(clients, key)))
+          : wrenScope(),
       tickMs,
       ...emailNotify,
     }),
@@ -445,7 +464,12 @@ export async function buildServices(
       scopeOf: (key) => {
         const owner = clientOfKey(key);
         return owner
-          ? { db: clientDb(owner.client), disposition: clientKey(owner.client, "replies") }
+          ? {
+              db: clientDb(owner.client),
+              disposition: clientKey(owner.client, "replies"),
+              // A bounce or opt-out in a client's inbox suppresses everywhere.
+              shared: sharedFor(db, owner.client),
+            }
           : { db, disposition: DISPOSITION_KEY };
       },
       syncMs,
@@ -465,9 +489,32 @@ export async function buildServices(
       invites: calendar
         ? { calendar, notifier: replyNotifier, copies: campaigns, send: { transport, fleet } }
         : null,
+      // A client's warm replies on its sequences (email.replies): the same proposals, its
+      // mailboxes, Wren's approve. Its mail offers no times, so nothing is booked by code.
+      clientInvites: async (client) => {
+        const on = await clientReplies(db, client);
+        if (!on?.settings.niche) return null;
+        const bookings = on.calcom ? clientBookings(on.calcom) : null;
+        const clientCalendar: Calendar = {
+          name: bookings ? "cal.com (client)" : "none",
+          open: async () => [],
+          book: async () => {
+            throw new Error("a client's mail offers no times: nothing to book");
+          },
+          booked: async (email) => (bookings ? bookings.booked(email) : false),
+        };
+        return {
+          calendar: clientCalendar,
+          notifier: replyNotifier,
+          copies: campaigns,
+          send: { transport, fleet: senderFleet(on.settings) },
+          niches: [on.settings.niche],
+        };
+      },
     }),
     // cal.com's booking webhook, through the phone Worker: a booked lead stops getting mail.
-    makeCallBookings({ db }),
+    // A client's comes in by its own path and secret, into its database.
+    makeCallBookings({ db, clientDb }),
   ];
   // The queue-keeper is bound only when asked to hold a queue; 0 means every enrollment is by hand.
   if (settings.composeDaysAhead > 0) {
@@ -480,6 +527,7 @@ export async function buildServices(
         verificationHorizonDays: settings.verificationHorizonDays,
         trackOpens: settings.openTracking,
         roleInboxNeedsVerdict: freeVerdicts,
+        clientDb,
         ...emailNotify,
       }),
     );
@@ -677,8 +725,33 @@ export async function buildServices(
     pusher: pusherFrom(settings),
     llm: classify ? llm : null,
     ...smsNotify,
+    clientDb,
   };
-  services.push(makeSmsSender(sms), makeSmsEvents(sms), makeSmsDesk(sms), makeSmsWatch(sms));
+  // A client's texts: its database and messaging profile in Wren's Telnyx account, its
+  // cal.com login for reminders, Wren's rules. No site forms, no phone-app pushes.
+  const clientTexts = {
+    ...sms,
+    forClient: (plan: Extract<ClientSms, { kind: "work" }>) => ({
+      ...sms,
+      db: clientDb(plan.client.id),
+      provider:
+        smsProvider.name === "telnyx" && settings.telnyxApiKey
+          ? new TelnyxProvider({ apiKey: settings.telnyxApiKey, messagingProfileId: plan.profile })
+          : smsProvider,
+      campaignId: plan.campaignId,
+      senderName: plan.senderName ?? sms.senderName,
+      site: null,
+      bookings: plan.calcom ? clientBookings(plan.calcom) : null,
+      pusher: null,
+      ...(sms.notifier ? { notifier: namedFor(sms.notifier, plan.client.id) } : {}),
+    }),
+  };
+  services.push(
+    makeSmsSender(clientTexts),
+    makeSmsEvents(sms),
+    makeSmsDesk(clientTexts),
+    makeSmsWatch(clientTexts),
+  );
   // Cold outreach on Reddit and LinkedIn, over the Mac's desk worker as each
   // reach account. Always bound: the sender and watch are off until
   // `wren reach queue start` / `wren reach watch start`, and nothing leaves
@@ -752,6 +825,8 @@ export async function buildServices(
       views: [...EMAIL_CONSOLE_VIEWS, ...BOOKS_CONSOLE_VIEWS],
       records: [...emailRecords(roster, policy), ...BOOKS_RECORDS, clientRecord],
       components: COMPONENTS,
+      // A component's client loops start and stop with it, when this worker binds them.
+      bound: (service) => services.some((x) => x.name === service),
       // "Ask for this": a line on the client's running project, where Wren answers, and a ping.
       asked: async (client, by, c) => {
         const e = await engagementOf(db, client.id).catch(() => null);

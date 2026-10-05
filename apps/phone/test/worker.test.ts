@@ -85,13 +85,17 @@ const as = async (claims: Record<string, unknown> = {}) => ({
   authorization: `Bearer ${await token(claims)}`,
 });
 
-async function signedWebhook(body: string, at = Math.floor(Date.now() / 1000)) {
+async function signedWebhook(
+  body: string,
+  at = Math.floor(Date.now() / 1000),
+  path = "/webhooks/telnyx",
+) {
   const sig = await crypto.subtle.sign(
     { name: "Ed25519" },
     keys.privateKey,
     new TextEncoder().encode(`${at}|${body}`),
   );
-  return call("/webhooks/telnyx", {
+  return call(path, {
     method: "POST",
     headers: {
       "telnyx-signature-ed25519": b64(sig as ArrayBuffer),
@@ -114,6 +118,17 @@ describe("telnyx webhook", () => {
     expect(restateCalls[0]?.headers.get("idempotency-key")).toBe("telnyx-evt-1");
     expect(restateCalls[0]?.headers.get("authorization")).toBe("Bearer rt");
     expect(restateCalls[0]?.body).toBe(body);
+  });
+
+  it("a client's messaging profile lands through ingestFor, wrapped with its id", async () => {
+    const res = await signedWebhook(body, undefined, "/webhooks/telnyx/acme");
+    expect(res.status).toBe(200);
+    expect(restateCalls[0]?.url).toBe("https://restate.test/SmsEvents/ingestFor/send");
+    expect(restateCalls[0]?.headers.get("idempotency-key")).toBe("telnyx-evt-1");
+    expect(JSON.parse(restateCalls[0]?.body as string)).toEqual({
+      client: "acme",
+      body: JSON.parse(body),
+    });
   });
 
   it("refuses a forged, stale or unsigned event and forwards nothing", async () => {
@@ -199,6 +214,29 @@ describe("cal.com webhook", () => {
     expect((await send(booking, await sign(booking))).status).toBe(502);
     delete env.CALCOM_WEBHOOK_SECRET;
     expect((await send(booking, await sign(booking))).status).toBe(503);
+  });
+
+  it("a client's booking checks that client's own secret and lands through ingestFor", async () => {
+    env.CALCOM_WEBHOOK_SECRETS = JSON.stringify({ acme: "acme-secret" });
+    const to = (path: string, signature: string) =>
+      call(path, { method: "POST", headers: { "x-cal-signature-256": signature }, body: booking });
+    // Wren's secret does not open a client's door; a client with no secret is not found.
+    expect((await to("/webhooks/calcom/acme", await sign(booking))).status).toBe(401);
+    expect((await to("/webhooks/calcom/other", await sign(booking, "acme-secret"))).status).toBe(
+      404,
+    );
+    expect(restateCalls).toHaveLength(0);
+    expect((await to("/webhooks/calcom/acme", await sign(booking, "acme-secret"))).status).toBe(
+      200,
+    );
+    expect(restateCalls[0]?.url).toBe("https://restate.test/CallBookings/ingestFor/send");
+    expect(restateCalls[0]?.headers.get("idempotency-key")).toBe(
+      "calcom-acme-BOOKING_CREATED-bk-1-2026-10-06T15:00:00Z",
+    );
+    expect(JSON.parse(restateCalls[0]?.body as string)).toEqual({
+      client: "acme",
+      body: JSON.parse(booking),
+    });
   });
 });
 

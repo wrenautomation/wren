@@ -3,44 +3,15 @@
  * and Wren's send rules with the client's caps. Wren's window, days and gaps
  * carry over; Wren's opener caps, kill-switch exemptions and ramp are Wren's campaigns' and do not.
  */
-import { type Fleet, PlainDate, SendPolicy } from "@wren/channel-email";
+import { type SendPolicy, senderFleet, sendPolicyFor, sharedFor } from "@wren/channel-email";
 import type { SendScope } from "@wren/channel-email/restate";
 import { type Client, findClient } from "@wren/core/clients";
 import { clientOfKey } from "@wren/core/restate";
 import type { Db } from "@wren/db";
 import { type ReactivationSettings, reactivationSettingsOf } from "./settings.js";
 
-/** The client's mailboxes as a fleet: the suspended ones measured, never sending. */
-export function senderFleet(settings: Pick<ReactivationSettings, "senders">): Fleet {
-  const active = settings.senders.filter((s) => !s.suspended);
-  return {
-    senders: active.map((s) => s.address),
-    domainFleet: settings.senders.map((s) => s.address),
-    fromNames: Object.fromEntries(active.map((s) => [s.address, s.name])),
-    signatureHtml: {},
-    pages: {},
-  };
-}
-
-/**
- * Wren's rules with this client's caps: its per-inbox ceiling (else Wren's), its
- * daily openers (else no cap past the per-inbox one), its ramp (else none).
- */
-export function sendPolicyFor(
-  settings: Pick<ReactivationSettings, "sending">,
-  base: SendPolicy,
-): SendPolicy {
-  const ceiling = settings.sending.perInboxPerDay ?? base.perInboxCeiling;
-  return new SendPolicy({
-    ...base,
-    perInboxCeiling: ceiling,
-    newOpenersPerDay: settings.sending.openersPerDay,
-    nicheOpenersPerDay: new Map(),
-    killSwitchOffFor: new Set(),
-    rampStart: settings.sending.rampStart ? PlainDate.fromIso(settings.sending.rampStart) : null,
-    rampFrom: Math.min(base.rampFrom, ceiling),
-  });
-}
+// Moved to channel-email with email sequences (O2); the same rules serve both.
+export { senderFleet, sendPolicyFor };
 
 /** A block that no longer parses sends nothing; `clients set` refuses one, so this is a hand edit. */
 export function settingsOrNull(products: Record<string, unknown>): ReactivationSettings | null {
@@ -96,5 +67,7 @@ export async function clientSendScope(
     fleet: senderFleet(settings),
     // The pixel's opens land in Wren's database; a client's mail carries none.
     pixelBaseUrl: null,
+    // An opt-out anywhere is an opt-out everywhere.
+    shared: sharedFor(deps.main, client.id),
   };
 }

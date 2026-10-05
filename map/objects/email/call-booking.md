@@ -3,7 +3,7 @@ type: object
 cluster: email
 universe: live
 status: verified
-verified: 2026-10-04 @ 23a138f
+verified: 2026-10-04 @ 4beff56
 entity: packages/channel-email/src/schema.ts:638
 ---
 
@@ -19,6 +19,7 @@ A lead who books from an email's link must stop getting mail, and the booking mu
 
 - `uid` (unique), `state` (booked | cancelled), `start`, `email`, `name`, `offer`, `code`, `message_id`, `enrollment_id` (both nullable), `booked_at` (`schema.ts:638`)
 - in: `CallBookings/ingest` (`restate/call-bookings.ts`), fed by the phone Worker's `/webhooks/calcom` (`apps/phone/src/worker.ts:114`); `wren email bookings sync [--since]` (`apps/cli/src/email.ts`)
+- a client's cal.com: `CallBookings/ingestFor {client, body}` (`restate/call-bookings.ts:37`), same rules, into its database
 - `call_invites` is the other source of "booked": a slot William approved from a reply
 
 Citations: `packages/channel-email/src/schema.ts:638`, `packages/channel-email/src/inbox/bookings.ts:66`

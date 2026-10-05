@@ -225,6 +225,8 @@ describe("handler forms", () => {
   const NO_SCHEMA: Record<string, string> = {
     "SmsEvents/ingest": "the carrier's webhook: its payload is the carrier's shape, not a form",
     "CallBookings/ingest": "cal.com's webhook: its payload is cal.com's shape, not a form",
+    "SmsEvents/ingestFor": "a client's carrier webhook, wrapped by the phone Worker",
+    "CallBookings/ingestFor": "a client's cal.com webhook, wrapped by the phone Worker",
   };
   const EFFECTS: Record<string, string> = {
     "Ads/launch": "spends",

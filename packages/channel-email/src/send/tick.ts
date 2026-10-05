@@ -2,8 +2,10 @@
  * One send tick — kill switches, reconcile, the paced walk — as a function, so
  * the scheduler and any operator command cannot drift.
  */
+
 import type { Calendar } from "@wren/core/calendar";
 import type { Db } from "@wren/db";
+import type { SharedSuppressions } from "../guards.js";
 import { evaluateKillSwitches } from "../inbox/health.js";
 import type { SenderPause } from "../schema.js";
 import { nextSendAt, type RampMap, type SendStats, sendDue } from "./deliver.js";
@@ -75,6 +77,8 @@ export interface TickOptions {
   reconcileFirst?: boolean;
   rng?: Rng;
   killSwitches?: KillSwitches;
+  /** A client's database: main's suppressions gate too (`SendDueOptions.shared`). */
+  shared?: SharedSuppressions | null;
 }
 
 export interface TickResult {
@@ -111,6 +115,7 @@ export async function sendTick(db: Db, opts: TickOptions): Promise<TickResult> {
     senders: opts.fleet.senders,
     ramps: opts.fleet.ramps ?? null,
     reconcileFirst: opts.reconcileFirst ?? true,
+    shared: opts.shared ?? null,
   });
   const nextAt = await nextSendAt(db, opts.policy, opts.fleet.senders, opts.now, opts.fleet.ramps);
   return { stats, newPauses, nextSendAt: nextAt };

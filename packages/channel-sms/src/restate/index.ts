@@ -12,23 +12,31 @@
  *   ticked the texts box (form.ts), queues day-before reminders for booked
  *   calls (reminders.ts), labels new replies and runs the health checks; once
  *   a fleet day, one summary line.
+ *
+ * A client's texts (`sms.texts`) run as `SmsSender/<client>/fleet` and
+ * `SmsWatch/<client>/daily` on its database and numbers; its webhooks come in
+ * through `SmsEvents.ingestFor`. The desk's templates and reminders take `client`.
  */
 import * as restate from "@restatedev/restate-sdk";
 import { recordedRun } from "@wren/core";
-import type { Notifier } from "@wren/core/notify";
+import { findClient } from "@wren/core/clients";
+import { type Notifier, namedFor } from "@wren/core/notify";
 import {
+  clientOfKey,
   LAST,
   makeLoopObject,
   NO_INPUT,
   type PassOutcome,
   runPass,
   serviceHandler,
+  stoppedPass,
 } from "@wren/core/restate";
 import type { Db } from "@wren/db";
 import type { LlmClient } from "@wren/llm";
 import { z } from "zod";
 import type { Bookings } from "../bookings.js";
 import { type ClassifyStats, classifyReplies, labelReply } from "../classify.js";
+import { type ClientSms, clientSms } from "../clients.js";
 import { addContact, startThread } from "../contacts.js";
 import { queueManual, type TickStats, tick } from "../deliver.js";
 import { type EnrollStats, enroll } from "../enroll.js";
@@ -98,6 +106,30 @@ export interface SmsDeps {
   llm?: LlmClient | null;
   /** A pinned clock (tests: quiet hours are real). Must return the same instant on replay. Unset = Restate's. */
   clock?: () => Date;
+  /** A client's deps from its plan, for `<client>/…` keys and `client` requests; absent, those refuse. */
+  forClient?: ((plan: Extract<ClientSms, { kind: "work" }>) => SmsDeps) | null;
+  /** A client's database, for its webhooks (they land even after texts come off). */
+  clientDb?: ((client: string) => Db) | null;
+}
+
+/** The deps `client` runs on (Wren's for null), or why it has none now. `deps.db` is main. */
+async function depsOf(
+  ctx: restate.Context | restate.ObjectContext,
+  deps: SmsDeps,
+  client: string | null,
+): Promise<SmsDeps | string> {
+  if (!client) return deps;
+  const forClient = deps.forClient;
+  if (!forClient) throw new restate.TerminalError("client texts are not wired on this worker");
+  const plan = await ctx.run("client", () => clientSms(deps.db, client));
+  return plan.kind === "gone" ? plan.why : forClient(plan);
+}
+
+/** `depsOf` for a desk request: a client with no work is a refusal. */
+async function deskDeps(ctx: restate.Context, deps: SmsDeps, client: string | null | undefined) {
+  const d = await depsOf(ctx, deps, client ?? null);
+  if (typeof d === "string") throw new restate.TerminalError(`${client}: ${d}`);
+  return d;
 }
 
 async function nowFor(
@@ -126,9 +158,11 @@ function formOptions(
   };
 }
 
-export function makeSmsSender(deps: SmsDeps) {
+export function makeSmsSender(wren: SmsDeps) {
   return makeLoopObject<TickStats>("SmsSender", async (ctx) => {
-    const now = await nowFor(ctx, deps.clock);
+    const now = await nowFor(ctx, wren.clock);
+    const deps = await depsOf(ctx, wren, clientOfKey(ctx.key)?.client ?? null);
+    if (typeof deps === "string") return stoppedPass<TickStats>(ctx, now, deps);
     return runPass(ctx, deps.db, now, {
       name: "sms tick",
       ledger: { command: "sms tick", argv: { provider: deps.provider.name, live: deps.live } },
@@ -159,7 +193,10 @@ async function noticeRegistered(notifier: Notifier | undefined, stats: Registrat
 }
 
 export function makeSmsEvents(
-  deps: Pick<SmsDeps, "db" | "provider" | "notifier" | "pusher" | "clock" | "campaignId">,
+  deps: Pick<
+    SmsDeps,
+    "db" | "provider" | "notifier" | "pusher" | "clock" | "campaignId" | "clientDb"
+  >,
 ) {
   return restate.service({
     name: "SmsEvents",
@@ -196,6 +233,40 @@ export function makeSmsEvents(
           await ctx.run("registered notice", () => noticeRegistered(deps.notifier, stats));
         }
         return applied;
+      },
+      /**
+       * One webhook from a client's messaging profile, into its database. It lands even
+       * with texts off: a STOP is kept whatever is installed. Registration waits for its watch.
+       */
+      ingestFor: async (
+        ctx: restate.Context,
+        req: { client: string; body: unknown },
+      ): Promise<{ duplicate: boolean; outcome: string }> => {
+        const clientDb = deps.clientDb;
+        if (!clientDb) throw new restate.TerminalError("client texts are not wired on this worker");
+        const id = req?.client;
+        if (!id) throw new restate.TerminalError("no client");
+        const known = await ctx.run("client", async () => (await findClient(deps.db, id)) !== null);
+        if (!known) throw new restate.TerminalError(`no such client: ${id}`);
+        let event: ReturnType<SmsProvider["parseEvent"]>;
+        try {
+          event = deps.provider.parseEvent(req.body);
+        } catch (err) {
+          throw new restate.TerminalError(
+            `unreadable webhook: ${err instanceof Error ? err.message : String(err)}`,
+          );
+        }
+        const now = await nowFor(ctx, deps.clock);
+        const notifier = deps.notifier ? namedFor(deps.notifier, req.client) : null;
+        return ctx.run("apply", () =>
+          // The phone app reads Wren's threads only: no push for a client's reply.
+          applyEvent(clientDb(req.client), req.body, event, {
+            provider: deps.provider.name,
+            now,
+            notifier,
+            pusher: null,
+          }),
+        );
       },
     },
   });
@@ -245,10 +316,15 @@ const SUBSCRIBE = z.looseObject({
   by: z.string().describe("The operator's email"),
 });
 const LABEL = z.looseObject({ messageId: z.number(), disposition: z.enum(DISPOSITIONS) });
+/** Empty = Wren's; a client id = that client's texts (`sms.texts` installed). */
+const CLIENT = z
+  .looseObject({ client: z.string().nullish().describe("A client's texts; empty = Wren's") })
+  .nullish();
 const SET_TEMPLATE = z.looseObject({
   key: z.string(),
   body: z.string().describe("Empty clears it"),
   by: z.string().describe("Who saved it"),
+  client: z.string().nullish().describe("A client's texts; empty = Wren's"),
 });
 const STATS = z.looseObject({ days: z.number().nullish(), niche: NICHE }).nullish();
 const ADD_CONTACT = z.looseObject({
@@ -436,22 +512,24 @@ export function makeSmsDesk(deps: SmsDeps) {
       ),
       /** Every text William writes, empty or filled. */
       templates: serviceHandler(
-        { input: NO_INPUT },
-        async (ctx: restate.Context): Promise<SlotView[]> =>
-          ctx.run("templates", () => listTemplates(deps.db, slots, deps.senderName)),
+        { input: CLIENT },
+        async (ctx: restate.Context, req?: { client?: string | null }): Promise<SlotView[]> => {
+          const d = await deskDeps(ctx, deps, req?.client);
+          return ctx.run("templates", () => listTemplates(d.db, slots, d.senderName));
+        },
       ),
       /** Save or clear one; a keyword reply goes live on the provider first. */
       setTemplate: serviceHandler(
         { input: SET_TEMPLATE },
-        async (ctx: restate.Context, req: SetTemplate): Promise<SlotView> => {
+        async (
+          ctx: restate.Context,
+          req: SetTemplate & { client?: string | null },
+        ): Promise<SlotView> => {
           const now = await nowOf(ctx);
+          const d = await deskDeps(ctx, deps, req.client);
           return ctx.run("set template", () =>
             terminal(() =>
-              setTemplate(
-                deps.db,
-                { provider: deps.provider, slots, sender: deps.senderName, now },
-                req,
-              ),
+              setTemplate(d.db, { provider: d.provider, slots, sender: d.senderName, now }, req),
             ),
           );
         },
@@ -544,19 +622,24 @@ export function makeSmsDesk(deps: SmsDeps) {
       ),
       /** The reminder pass now (SmsWatch runs it every 30 minutes). */
       reminders: serviceHandler(
-        { input: NO_INPUT, effect: "sends" },
-        async (ctx: restate.Context): Promise<ReminderStats> => {
-          const bookings = deps.bookings;
+        { input: CLIENT, effect: "sends" },
+        async (ctx: restate.Context, req?: { client?: string | null }): Promise<ReminderStats> => {
+          const d = await deskDeps(ctx, deps, req?.client);
+          const bookings = d.bookings;
           if (!bookings)
-            throw new restate.TerminalError("no reminders: WREN_CALCOM_API_KEY is unset");
+            throw new restate.TerminalError(
+              req?.client
+                ? "no reminders: sms.reminders or its cal.com account is missing"
+                : "no reminders: WREN_CALCOM_API_KEY is unset",
+            );
           const now = await nowOf(ctx);
           return ctx.run("reminders", async () => {
             const { stats } = await terminal(() =>
-              recordedRun(deps.db, { command: "sms reminders", argv: {} }, (run) =>
-                remindBookings(deps.db, {
+              recordedRun(d.db, { command: "sms reminders", argv: {} }, (run) =>
+                remindBookings(d.db, {
                   bookings,
-                  policy: deps.policy,
-                  senderName: deps.senderName,
+                  policy: d.policy,
+                  senderName: d.senderName,
                   now,
                   runId: run.id,
                 }),
@@ -622,9 +705,11 @@ export interface WatchStats {
 const SUMMARIZED = "summarized";
 const CAMPAIGN = "campaign";
 
-export function makeSmsWatch(deps: SmsDeps) {
+export function makeSmsWatch(wren: SmsDeps) {
   return makeLoopObject<WatchStats>("SmsWatch", async (ctx) => {
-    const now = await nowFor(ctx, deps.clock);
+    const now = await nowFor(ctx, wren.clock);
+    const deps = await depsOf(ctx, wren, clientOfKey(ctx.key)?.client ?? null);
+    if (typeof deps === "string") return stoppedPass<WatchStats>(ctx, now, deps);
     const outcome: PassOutcome<WatchStats> = await runPass(ctx, deps.db, now, {
       name: "sms watch",
       ledger: { command: "sms watch", argv: {} },

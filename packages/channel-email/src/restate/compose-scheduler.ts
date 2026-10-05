@@ -12,13 +12,14 @@
  * retry safe, so the whole pass is one journaled step. An empty pool is not an error:
  * `exhausted` says so and the next pass looks again (a new import shows up on its own).
  */
-import type * as restate from "@restatedev/restate-sdk";
+import * as restate from "@restatedev/restate-sdk";
 import type { Company } from "@wren/core";
 import { type Notifier, plural } from "@wren/core/notify";
-import { makeLoopObject, runPass } from "@wren/core/restate";
+import { clientOfKey, makeLoopObject, runPass, stoppedPass } from "@wren/core/restate";
 import type { Db } from "@wren/db";
 import { sql } from "drizzle-orm";
 import { experimentTemplates } from "../evolve/experiments.js";
+import type { SharedSuppressions } from "../guards.js";
 import { type ComposeStats, compose } from "../outreach/compose.js";
 import { type EnrollmentRule, ruleCovers } from "../outreach/plan.js";
 import { type RefreshStats, refreshQueue } from "../outreach/refresh.js";
@@ -29,6 +30,7 @@ import { campaignPolicy } from "../send/campaign-controls.js";
 import type { RampMap } from "../send/deliver.js";
 import { fillTimezones, type TimezoneFillStats } from "../send/lead-timezone.js";
 import type { SendPolicy } from "../send/policy.js";
+import { clientCampaign, clientPolicy, clientSequences, sharedFor } from "../sequences.js";
 import { untilNextLocalDay } from "./postmaster-scheduler.js";
 
 /** Everything compose needs for one niche, assembled by the composition root. */
@@ -72,6 +74,8 @@ export interface ComposeSchedulerDeps {
   retryMs?: number;
   /** Told when the plan ran dry (the pool needs an import) and when a pass fails. */
   notifier?: Notifier;
+  /** A client's database, for `<client>/<niche>` keys (email sequences); absent, those keys refuse. */
+  clientDb?: ((client: string) => Db) | null;
 }
 
 export interface TopUpStats {
@@ -162,6 +166,8 @@ export async function topUp(
     trackOpens: boolean;
     roleInboxNeedsVerdict: boolean;
     runId: string | null;
+    /** A client's database: main's suppressions gate too. */
+    shared?: SharedSuppressions | null;
   },
 ): Promise<TopUpStats> {
   const timezones = await fillTimezones(db, {
@@ -227,6 +233,7 @@ export async function topUp(
       runId: opts.runId,
       audience,
       recontact: campaign.recontact,
+      shared: opts.shared ?? null,
       ...(rule.where ? { where: rule.where } : {}),
     });
     stats.passes.push({ sequence: rule.sequence, audience, stats: pass });
@@ -243,8 +250,35 @@ export function makeComposeScheduler(deps: ComposeSchedulerDeps) {
   const trackOpens = deps.trackOpens ?? false;
   return makeLoopObject("ComposeScheduler", async (ctx: restate.ObjectContext) => {
     const now = new Date(await ctx.date.now());
-    const niche = ctx.key;
-    const outcome = await runPass<TopUpStats>(ctx, deps.db, now, {
+    // Wren's key is its niche; a client's is `<client>/<niche>`, on its database under its caps.
+    const owner = clientOfKey(ctx.key);
+    const niche = owner?.unit ?? ctx.key;
+    let db = deps.db;
+    let campaignOf = (): Campaign | undefined => deps.campaigns.get(niche);
+    let policyOf = () => campaignPolicy(deps.db, deps.policy);
+    let shared: SharedSuppressions | null = null;
+    if (owner) {
+      const clientDb = deps.clientDb;
+      if (!clientDb) throw new restate.TerminalError("no client databases here");
+      const plan = await ctx.run("client", () => clientSequences(deps.db, owner.client));
+      if (plan.kind === "gone") return stoppedPass<TopUpStats>(ctx, now, plan.why);
+      const { settings } = plan;
+      if (settings.niche !== niche)
+        return stoppedPass<TopUpStats>(
+          ctx,
+          now,
+          `the client's niche is ${settings.niche ?? "unset"}`,
+        );
+      const cdb = clientDb(owner.client);
+      db = cdb;
+      campaignOf = () => {
+        const base = deps.campaigns.get(niche);
+        return base && clientCampaign(base, settings);
+      };
+      policyOf = () => clientPolicy(cdb, settings, deps.policy);
+      shared = sharedFor(deps.db, owner.client);
+    }
+    const outcome = await runPass<TopUpStats>(ctx, db, now, {
       name: "compose top-up",
       ledger: {
         command: COMPOSE_COMMAND,
@@ -252,7 +286,7 @@ export function makeComposeScheduler(deps: ComposeSchedulerDeps) {
         niche,
       },
       body: async (runId) => {
-        const campaign = deps.campaigns.get(niche);
+        const campaign = campaignOf();
         if (!campaign) {
           throw new Error(
             `no campaign for niche '${niche}' (known: ${[...deps.campaigns.keys()].sort().join(", ")})`,
@@ -261,9 +295,10 @@ export function makeComposeScheduler(deps: ComposeSchedulerDeps) {
         if (campaign.senders.length === 0) {
           throw new Error(`niche '${niche}' has no active sender on the roster`);
         }
-        return topUp(deps.db, campaign, {
+        return topUp(db, campaign, {
           // The console's overrides of this pass, so a stop or resume needs no deploy.
-          policy: await campaignPolicy(deps.db, deps.policy),
+          policy: await policyOf(),
+          shared,
           now,
           daysAhead: deps.daysAhead,
           verificationHorizonDays: deps.verificationHorizonDays,
@@ -281,7 +316,7 @@ export function makeComposeScheduler(deps: ComposeSchedulerDeps) {
     if (notifier && stats?.exhausted) {
       await ctx.run("notify exhausted", () =>
         notifier.notify(
-          `${niche}: the pool ran dry`,
+          `${ctx.key}: the pool ran dry`,
           `${stats.queued + stats.enrolled} of ${stats.target} openers queued after ` +
             `${plural(stats.enrolled, "new enrollment")}; import more leads or verify more addresses`,
           "warning",

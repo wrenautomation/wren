@@ -282,6 +282,35 @@ describe("call invites", () => {
     expect(sent[0]?.body).toContain("Sent you the invite.");
   });
 
+  it("a client's pass reads only its sequences' niche and names the client", async () => {
+    const enrollment = await offered();
+    await db()
+      .update(messages)
+      .set({ offeredTimes: null })
+      .where(eq(messages.enrollmentId, enrollment.id));
+    await warmReply(enrollment, "Sure, send it over.");
+    const never = new FakeLlm({
+      respond: () => {
+        throw new Error("never read");
+      },
+    });
+    const run = (niches: string[]) =>
+      runInvites(db(), never, {
+        calendar: new FakeCalendar([]),
+        notifier,
+        copies: COPIES,
+        now: NOW,
+        niches,
+        client: "acme",
+      });
+    const { sent, notifier } = pings();
+
+    expect((await run(["agencies"])).selected).toBe(0);
+    expect((await run(["sec_ria"])).proposed).toBe(1);
+    expect(sent[0]?.title).toMatch(/^acme: Warm reply/);
+    expect(sent[0]?.body).toContain("wren --client acme email answers approve");
+  });
+
   it("a yes with no time pings William and books nothing", async () => {
     const enrollment = await offered();
     await warmReply(enrollment, "Sure, happy to chat.");

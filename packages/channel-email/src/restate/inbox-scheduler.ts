@@ -18,6 +18,7 @@ import type * as restate from "@restatedev/restate-sdk";
 import { type Notifier, plural } from "@wren/core/notify";
 import { makeLoopObject, runPass, unitOfKey } from "@wren/core/restate";
 import type { Db } from "@wren/db";
+import type { SharedSuppressions } from "../guards.js";
 import { DAY_MS, type InboxReader, type SyncStats, syncInbox } from "../inbox/sync.js";
 import type { Disposition } from "./disposition.js";
 
@@ -25,6 +26,8 @@ import type { Disposition } from "./disposition.js";
 export interface InboxScope {
   db: Db;
   disposition: string;
+  /** A client's mailbox: its opt-outs and bounces also land on main's list. */
+  shared?: SharedSuppressions | null;
 }
 
 export interface InboxSchedulerDeps {
@@ -67,6 +70,7 @@ export function makeInboxScheduler(deps: InboxSchedulerDeps) {
           now,
           runId,
           firstSyncLookbackMs: lookbackMs,
+          shared: scope.shared ?? null,
         }),
       delayAfter: () => syncMs,
       retryMs: tickMs,

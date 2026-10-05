@@ -212,6 +212,11 @@ describe("install, configure, uninstall", () => {
     settings: z.object({ perDay: z.number().default(5), price: z.number().optional() }),
     priced: ["price"],
     effects: ["sends"],
+    // One loop per day of cap: configure changes which run.
+    clientLoops: (client, s) =>
+      s.perDay === 9
+        ? [{ service: "Tick", key: `${client}/nine` }]
+        : [{ service: "Tick", key: `${client}/x` }],
   });
   const all = [
     base,
@@ -272,7 +277,10 @@ describe("install, configure, uninstall", () => {
   });
 
   it("installs, configures and uninstalls, each on the run trail", async () => {
-    await go("texts", { confirm: "texts", settings: { perDay: 9 } });
+    expect(await go("texts", { confirm: "texts", settings: { perDay: 9 } })).toMatchObject({
+      start: [{ service: "Tick", key: "acme/nine" }],
+      stop: [],
+    });
     await expect(go("texts", { confirm: "texts" })).rejects.toMatchObject({ status: 409 });
     await go("reminders");
     expect((await productsOf()).texts).toEqual({ perDay: 9 });
@@ -283,17 +291,29 @@ describe("install, configure, uninstall", () => {
       settings: { price: 1 },
     });
     expect((await productsOf()).texts).toEqual({ perDay: 9, price: 1 });
+    // A loop the new block drops stops; one it keeps is not stopped.
+    expect(
+      await api().configure({
+        viewer: ops,
+        client: "acme",
+        component: "texts",
+        settings: { perDay: 3 },
+      }),
+    ).toMatchObject({ start: [{ key: "acme/x" }], stop: [{ key: "acme/nine" }] });
     // Required by reminders: it stays until reminders goes.
     await expect(
       api().uninstall({ viewer: ops, client: "acme", component: "texts" }),
     ).rejects.toMatchObject({ status: 409, message: expect.stringContaining("Reminders") });
     await api().uninstall({ viewer: ops, client: "acme", component: "reminders" });
-    await api().uninstall({ viewer: ops, client: "acme", component: "texts" });
+    expect(
+      await api().uninstall({ viewer: ops, client: "acme", component: "texts" }),
+    ).toMatchObject({ start: [], stop: [{ key: "acme/x" }] });
     expect(await productsOf()).not.toHaveProperty("texts");
     const trail = (await pg.db.select().from(runs))
       .map((r) => `${r.command} ${JSON.stringify(r.stats)}`)
       .sort();
     expect(trail).toEqual([
+      'console configure texts {"ok":true}',
       'console configure texts {"ok":true}',
       'console install reminders {"ok":true}',
       'console install texts {"ok":true}',

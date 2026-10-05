@@ -2,12 +2,14 @@
  * `wren email answers …`: William's yes on every answer to a warm reply. Code
  * proposes (a time and a drafted reply); nothing books or sends until `approve`.
  * The writes go through the worker's `Disposition` object, which holds the
- * calendar and the inboxes.
+ * calendar and the inboxes. With `--client`, a client's answers: its database,
+ * its `Disposition/<client>/replies` (email replies installed).
  */
 import * as clients from "@restatedev/restate-sdk-clients";
 import { openInvites } from "@wren/channel-email";
 import { DISPOSITION_KEY, type Disposition } from "@wren/channel-email/restate";
 import { ingressOf, type Settings } from "@wren/config";
+import { clientKey } from "@wren/core/restate";
 import type { Db } from "@wren/db";
 import type { Command } from "commander";
 
@@ -21,10 +23,15 @@ const indent = (text: string) =>
     .join("\n");
 
 export function registerAnswers(email: Command, withDb: WithDb, settings: Settings): Command {
-  const disposition = () =>
-    clients
+  const disposition = () => {
+    const client = email.parent?.opts<{ client?: string }>().client;
+    return clients
       .connect(ingressOf(settings))
-      .objectClient<Disposition>({ name: "Disposition" }, DISPOSITION_KEY);
+      .objectClient<Disposition>(
+        { name: "Disposition" },
+        client ? clientKey(client, "replies") : DISPOSITION_KEY,
+      );
+  };
 
   const answers = email
     .command("answers")

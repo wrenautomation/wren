@@ -41,7 +41,7 @@ import {
   or,
   sql,
 } from "drizzle-orm";
-import { activeSuppressions } from "../guards.js";
+import { activeSuppressions, type SharedSuppressions } from "../guards.js";
 import { pyReprStr } from "../outreach/pyrepr.js";
 import {
   type Enrollment,
@@ -155,6 +155,8 @@ export interface SendDueOptions {
   senders?: readonly string[] | null;
   ramps?: RampMap | null;
   reconcileFirst?: boolean;
+  /** A client's database: main's suppressions gate too, and its stops land there. */
+  shared?: SharedSuppressions | null;
 }
 
 interface Candidate {
@@ -262,11 +264,21 @@ export async function sendDue(db: Db, opts: SendDueOptions): Promise<SendStats> 
       rows.map((e) => e.id),
     );
     const addresses = rows.flatMap((e) => byEnrollment.get(e.id)?.[0]?.toEmail ?? []);
-    const suppressed = await activeSuppressions(tx, addresses);
+    const suppressed = await activeSuppressions(tx, addresses, opts.shared);
     const invalid = await invalidNow(tx, addresses);
     for (const enrollment of rows) {
       const msgs = byEnrollment.get(enrollment.id) ?? [];
-      const due = await nextDue(tx, enrollment, msgs, now, stats, suppressed, invalid, policy);
+      const due = await nextDue(
+        tx,
+        enrollment,
+        msgs,
+        now,
+        stats,
+        suppressed,
+        invalid,
+        policy,
+        opts.shared ?? null,
+      );
       if (due === null) continue;
       const candidate: Candidate = { enrollment, messages: msgs, ...due };
       if (due.anchor === null) openers.push(candidate);
@@ -523,6 +535,7 @@ async function nextDue(
   suppressed: (email: string) => Suppression | null,
   invalid: ReadonlySet<string>,
   policy: SendPolicy,
+  shared: SharedSuppressions | null,
 ): Promise<{ message: Message; anchor: Message | null } | null> {
   const first = msgs[0];
   if (first === undefined) return null; // compose never does this; refuse to guess
@@ -531,6 +544,7 @@ async function nextDue(
     await recordStop(tx, enrollment, SUPPRESSION_STOP[suppression.reason] ?? "manual", {
       detail: `suppressed: ${suppression.kind}:${suppression.value}`,
       messages: msgs,
+      shared,
     });
     stats.stopped_suppressed += 1;
     return null;
@@ -964,7 +978,12 @@ export async function recordStop(
   db: Queryable,
   enrollment: Enrollment,
   reason: StopReason,
-  opts: { detail?: string | null; now?: Date; messages?: Message[] } = {},
+  opts: {
+    detail?: string | null;
+    now?: Date;
+    messages?: Message[];
+    shared?: SharedSuppressions | null;
+  } = {},
 ): Promise<number> {
   const detail = opts.detail ?? null;
   await db
@@ -989,11 +1008,13 @@ export async function recordStop(
   }
   const first = msgs[0];
   if (first !== undefined) {
-    await ensureSuppression(db, first.toEmail, reason, {
-      enrollment_id: enrollment.id,
-      stop_reason: reason,
-      detail,
-    });
+    await ensureSuppression(
+      db,
+      first.toEmail,
+      reason,
+      { enrollment_id: enrollment.id, stop_reason: reason, detail },
+      opts.shared,
+    );
   }
   return skipped;
 }
@@ -1005,7 +1026,13 @@ export async function recordStop(
  */
 export async function stopCompany(
   db: Queryable,
-  opts: { companyId: number; reason: StopReason; detail?: string | null; now?: Date },
+  opts: {
+    companyId: number;
+    reason: StopReason;
+    detail?: string | null;
+    now?: Date;
+    shared?: SharedSuppressions | null;
+  },
 ): Promise<number> {
   const rows = await db
     .select()
@@ -1016,6 +1043,7 @@ export async function stopCompany(
     await recordStop(db, enrollment, opts.reason, {
       detail: opts.detail ?? null,
       ...(opts.now ? { now: opts.now } : {}),
+      shared: opts.shared ?? null,
     });
   }
   return rows.length;

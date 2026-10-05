@@ -18,6 +18,7 @@ import {
 } from "@wren/core";
 import type { Queryable } from "@wren/db";
 import { and, eq } from "drizzle-orm";
+import type { SharedSuppressions } from "../guards.js";
 import { pyReprStr as pyRepr } from "../outreach/pyrepr.js";
 import type { StopReason } from "../schema.js";
 
@@ -58,15 +59,22 @@ export async function ensureSuppression(
   email: string,
   reason: StopReason,
   evidence?: Evidence,
+  shared?: SharedSuppressions | null,
 ): Promise<Suppression | null> {
   const suppressionReason = STOP_TO_SUPPRESSION_REASON[reason];
   if (suppressionReason === undefined) return null;
-  const { row } = await addSuppression(db, {
-    kind: "email",
+  const input = {
+    kind: "email" as const,
     value: email.trim().toLowerCase(),
     reason: suppressionReason,
-    evidence: evidence ?? null,
-  });
+  };
+  const { row } = await addSuppression(db, { ...input, evidence: evidence ?? null });
+  // A client's stop binds everyone: main gets it too, saying whose it was.
+  if (shared)
+    await addSuppression(shared.main, {
+      ...input,
+      evidence: { ...evidence, client: shared.client },
+    });
   return row;
 }
 

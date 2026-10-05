@@ -7,6 +7,9 @@
  * `seesInternal` rejects; the Worker also keeps the writes off the demo (`console-routes.ts`).
  * The `records*` reads are a client's lead sheet (O1): its firms and stalls, from its own
  * database, for anyone who may open that client, once `research.lead_sheet` is installed.
+ * With `client` set, Wren's team works that client's sequences instead (O2/O3): its campaigns'
+ * kill switch and opener cap (`email.sequences`), its answers (`email.replies`, approve and
+ * drop through `Disposition/<client>/replies`).
  */
 import * as restate from "@restatedev/restate-sdk";
 import type { Client } from "@wren/core/clients";
@@ -27,7 +30,7 @@ import {
   type StatsAsk,
   serveRecords,
 } from "@wren/core/records/serve";
-import { PORTAL_FIELDS, serviceHandler } from "@wren/core/restate";
+import { clientKey, PORTAL_FIELDS, serviceHandler } from "@wren/core/restate";
 import { type Db, type Queryable, setAuditActor } from "@wren/db";
 import { parseSettings, settingsSchema } from "@wren/experiments";
 import { LEAD_SHEET } from "@wren/research/components";
@@ -49,6 +52,8 @@ import {
   setCampaignControl,
 } from "../send/campaign-controls.js";
 import type { SendPolicy } from "../send/policy.js";
+import { sendPolicyFor } from "../sequences.js";
+import { REPLIES, SEQUENCES, sequencesSettingsSchema } from "../sequences-settings.js";
 import type { Campaign } from "./compose-scheduler.js";
 import { DISPOSITION_KEY, type Disposition } from "./disposition.js";
 import type { QueueRefresh } from "./queue-refresh.js";
@@ -167,8 +172,8 @@ export function emailConsoleApi({
     return target;
   };
   /** One transaction, every row it changes logged as this person's (audit_events.actor). */
-  const asThem = <T>(who: string, change: (tx: Queryable) => Promise<T>) =>
-    db.transaction(async (tx) => {
+  const asThem = <T>(who: string, change: (tx: Queryable) => Promise<T>, on: Db = db) =>
+    on.transaction(async (tx) => {
       await setAuditActor(tx, who);
       return change(tx);
     });
@@ -186,6 +191,25 @@ export function emailConsoleApi({
     (await sheetDb(req)).transaction((tx) => use(serveRecords(SHEET_RECORDS, tx)), {
       accessMode: "read only",
     });
+
+  /** With `client` set, that client (Wren's team, `component` installed); else null = Wren's. */
+  const clientOf = async (req: PortalRequest, component: string) => {
+    if (!req.client) return null;
+    if (!clients) throw new PortalRefusal("not found", 404);
+    const client = await pickClient(clients.main, req);
+    if (!client.products || !(component in client.products))
+      throw new PortalRefusal(`${component} is not installed`, 404);
+    return client;
+  };
+  /** The database and env policy a campaign control works on: Wren's, or a client's under its caps. */
+  const controlsOf = async (req: PortalRequest): Promise<{ on: Db; env: SendPolicy }> => {
+    const client = await clientOf(req, SEQUENCES);
+    if (!client || !clients) return { on: db, env: policy };
+    const settings = sequencesSettingsSchema.safeParse(client.products[SEQUENCES]);
+    if (!settings.success)
+      throw new PortalRefusal("the email sequences settings do not parse", 409);
+    return { on: clients.open(client), env: sendPolicyFor(settings.data, policy) };
+  };
 
   /** The campaigns `email_campaign_records` lists: what a campaign control may name. */
   const campaigns = async (tx: Queryable): Promise<Set<string>> =>
@@ -314,7 +338,14 @@ export function emailConsoleApi({
     /** Warm replies waiting on William: who, their words, the proposed time and zone, the draft. */
     answers: async (req: PortalRequest) => {
       team(req);
-      return openInvites(db);
+      const client = await clientOf(req, REPLIES);
+      return openInvites(client && clients ? clients.open(client) : db);
+    },
+    /** Which Disposition answers: Wren's, or the client's with replies installed. */
+    dispositionKey: async (req: PortalRequest): Promise<string> => {
+      team(req);
+      const client = await clientOf(req, REPLIES);
+      return client ? clientKey(client.id, "replies") : DISPOSITION_KEY;
     },
     /** What approve hands Disposition; refused before any call. */
     approval: (req: InviteRequest) => {
@@ -359,16 +390,21 @@ export function emailConsoleApi({
         throw new PortalRefusal("openersPerDay is a whole number from 0, or null", 400);
       if (killSwitch === undefined && openersPerDay === undefined)
         throw new PortalRefusal("say killSwitch or openersPerDay", 400);
-      return asThem(who, async (tx) => {
-        if (!campaign || !(await campaigns(tx)).has(campaign))
-          throw new PortalRefusal("no such campaign", 404);
-        return setCampaignControl(
-          tx,
-          policy,
-          { campaign, killSwitch, openersPerDay },
-          `console:${who}`,
-        );
-      });
+      const { on, env } = await controlsOf(req);
+      return asThem(
+        who,
+        async (tx) => {
+          if (!campaign || !(await campaigns(tx)).has(campaign))
+            throw new PortalRefusal("no such campaign", 404);
+          return setCampaignControl(
+            tx,
+            env,
+            { campaign, killSwitch, openersPerDay },
+            `console:${who}`,
+          );
+        },
+        on,
+      );
     },
     /** A record action on `{ids}`: `done` are the campaigns it changed, the rest `skipped`. */
     async campaignAction(action: CampaignAction, req: CampaignsRequest): Promise<Done> {
@@ -376,17 +412,22 @@ export function emailConsoleApi({
       const ids = Array.isArray(req.ids) ? req.ids.map(textOf) : [];
       if (!ids.length || ids.length > 100 || ids.some((id) => id === null))
         throw new PortalRefusal("say which campaigns: ids", 400);
-      return asThem(who, async (tx) => {
-        const known = await campaigns(tx);
-        const now = await campaignPolicy(tx, policy);
-        const answer: Done = { done: [], skipped: [] };
-        for (const id of new Set(ids as string[])) {
-          const change = known.has(id) ? CAMPAIGN_STEPS[action](now, policy, id) : null;
-          if (change) await setCampaignControl(tx, policy, change, `console:${who}`);
-          answer[change ? "done" : "skipped"].push(id);
-        }
-        return answer;
-      });
+      const { on, env } = await controlsOf(req);
+      return asThem(
+        who,
+        async (tx) => {
+          const known = await campaigns(tx);
+          const now = await campaignPolicy(tx, env);
+          const answer: Done = { done: [], skipped: [] };
+          for (const id of new Set(ids as string[])) {
+            const change = known.has(id) ? CAMPAIGN_STEPS[action](now, env, id) : null;
+            if (change) await setCampaignControl(tx, env, change, `console:${who}`);
+            answer[change ? "done" : "skipped"].push(id);
+          }
+          return answer;
+        },
+        on,
+      );
     },
   };
 }
@@ -408,8 +449,9 @@ const IDS = z.looseObject({
 
 export function makeEmailConsole(deps: EmailConsoleDeps) {
   const api = emailConsoleApi(deps);
-  const disposition = (ctx: restate.Context) =>
-    ctx.objectClient<Disposition>({ name: "Disposition" }, DISPOSITION_KEY);
+  // The key first: an object client is a proxy, so it must never be awaited (its `then` is a call).
+  const disposition = (ctx: restate.Context, key: string) =>
+    ctx.objectClient<Disposition>({ name: "Disposition" }, key);
   return restate.service({
     name: "EmailConsole",
     handlers: {
@@ -442,13 +484,17 @@ export function makeEmailConsole(deps: EmailConsoleDeps) {
         { input: INVITE.extend({ body: BODY }), effect: "sends" },
         (ctx: restate.Context, req: InviteRequest) =>
           answer(async () => {
-            const outcome = await disposition(ctx).approve(api.approval(req));
+            const approval = api.approval(req);
+            const outcome = await disposition(ctx, await api.dispositionKey(req)).approve(approval);
             if (!outcome.ok) throw new PortalRefusal(outcome.reason, 409);
             return outcome;
           }),
       ),
       drop: serviceHandler({ input: INVITE }, (ctx: restate.Context, req: InviteRequest) =>
-        answer(() => disposition(ctx).drop(api.dropping(req))),
+        answer(async () => {
+          const dropping = api.dropping(req);
+          return disposition(ctx, await api.dispositionKey(req)).drop(dropping);
+        }),
       ),
       pause: serviceHandler(
         {

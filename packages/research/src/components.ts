@@ -1,5 +1,6 @@
 /** Research's components: firms found, pages kept, people named, addresses proven. */
 import { defineComponent } from "@wren/core/components";
+import { clientKey } from "@wren/core/restate";
 import { z } from "zod";
 
 const word = z.string().trim().toLowerCase().min(1);
@@ -98,6 +99,7 @@ export const RESEARCH_COMPONENTS = [
       loops: ["PoolScheduler"],
       apps: ["pipeline", "leads"],
     },
+    clientLoops: (client) => [{ service: "PoolScheduler", key: clientKey(client, "all") }],
   }),
   defineComponent({
     id: "research.dossier",

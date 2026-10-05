@@ -3,7 +3,7 @@ type: object
 cluster: platform
 universe: live
 status: verified
-verified: 2026-10-01 @ 8e110f7
+verified: 2026-10-04 @ 4beff56
 entity: apps/phone/src/worker.ts:1
 ---
 
@@ -13,12 +13,12 @@ entity: apps/phone/src/worker.ts:1
 
 ## Why this shape
 
-The Worker holds no data (`worker.ts:1`). Webhooks are signature-checked there and handed to `SmsEvents/ingest/send` with the event id as idempotency key; `/webhooks/calcom` checks cal.com's HMAC and hands bookings to `CallBookings/ingest/send` keyed by trigger + uid + start ([[email/call-booking]]); `/api/<handler>` forwards calls to `SmsDesk` for Wren's operators only, and only the handlers the app needs are open. Sign-in is Wren's shared one (auth.wrenautomation.com, any method, passkeys too): the app sends the 15-minute token and the Worker checks it and its operator flag (`worker.ts:86`), as the portal does. A client's token is turned away.
+The Worker holds no data (`worker.ts:1`). Webhooks are signature-checked there and handed to `SmsEvents/ingest/send` with the event id as idempotency key; `/webhooks/calcom` checks cal.com's HMAC and hands bookings to `CallBookings/ingest/send` keyed by trigger + uid + start ([[email/call-booking]]); a client's come in at `/webhooks/telnyx/<client>` and `/webhooks/calcom/<client>` (`clientIn`, `worker.ts:66`), wrapped as `{client, body}` for `SmsEvents/ingestFor` and `CallBookings/ingestFor`, cal.com's checked against that client's secret; `/api/<handler>` forwards calls to `SmsDesk` for Wren's operators only, and only the handlers the app needs are open. Sign-in is Wren's shared one (auth.wrenautomation.com, any method, passkeys too): the app sends the 15-minute token and the Worker checks it and its operator flag (`worker.ts:86`), as the portal does. A client's token is turned away.
 
 ## Shape
 
 - `worker.ts`, `public/` (the app), `wrangler.toml` (domain, `AUTH_ORIGIN`)
-- secrets: Restate's, Telnyx's and `CALCOM_WEBHOOK_SECRET` (`deploy/phone.md`); `CLOUDFLARE_API_TOKEN` in the `production` GitHub environment
+- secrets: Restate's, Telnyx's, `CALCOM_WEBHOOK_SECRET` and clients' `CALCOM_WEBHOOK_SECRETS` JSON (`worker.ts:133`, `deploy/phone.md`); `CLOUDFLARE_API_TOKEN` in the `production` GitHub environment
 - deployed by `deploy.yml:65`
 
 Citations: `apps/phone/src/worker.ts:1`, `deploy/phone.md`

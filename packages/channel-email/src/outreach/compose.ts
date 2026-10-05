@@ -20,7 +20,7 @@
 import { randomBytes } from "node:crypto";
 import type { Queryable } from "@wren/db";
 import { type SQL, sql } from "drizzle-orm";
-import { activeSuppression, activeSuppressions } from "../guards.js";
+import { activeSuppression, activeSuppressions, type SharedSuppressions } from "../guards.js";
 import {
   type Audience,
   audienceGate,
@@ -93,6 +93,8 @@ export interface ComposeOptions {
   readonly audience?: Audience;
   /** When a company may come back: the niche's rest periods and yearly cap. */
   readonly recontact?: RecontactPolicy;
+  /** A client's database: main's suppressions gate too (an opt-out anywhere). */
+  readonly shared?: SharedSuppressions | null;
 }
 
 export interface ComposeStats {
@@ -441,6 +443,7 @@ interface Shared {
   readonly gate: Gate;
   /** Addresses never written to again (lowercased). */
   readonly done: ReadonlySet<string>;
+  readonly suppressions: SharedSuppressions | null;
 }
 
 /**
@@ -489,6 +492,7 @@ export async function compose(db: Queryable, opts: ComposeOptions): Promise<Comp
       offer: opts.offer,
     }),
     done: await doneAddresses(db),
+    suppressions: opts.shared ?? null,
   };
   const kind = opts.kind ?? "all";
   const limit = opts.limit ?? null;
@@ -537,7 +541,7 @@ async function personPass(
         stats.skipped_address_done++;
         continue;
       }
-      if ((await activeSuppression(db, record.email)) !== null) {
+      if ((await activeSuppression(db, record.email, shared.suppressions)) !== null) {
         stats.skipped_suppressed++;
         continue;
       }
@@ -580,6 +584,7 @@ async function roleInboxPass(db: Queryable, shared: Shared, limit: number | null
   const suppressed = await activeSuppressions(
     db,
     rows.map((r) => r.email),
+    shared.suppressions,
   );
   for (const row of rows) {
     if (limit !== null && stats.enrolled >= limit) break;

@@ -13,6 +13,12 @@ export type Effect = "spends" | "sends" | "posts";
 export const ACCOUNT_SITES = ["gmail", "linkedin", "calcom", "telnyx", "meta"] as const;
 export type AccountSite = (typeof ACCOUNT_SITES)[number];
 
+/** One loop object a client's component runs: `service`, keyed by `key`. */
+export interface LoopKey {
+  service: string;
+  key: string;
+}
+
 export interface Component {
   /** The key in `clients.products`; `product.feature` for new ones. */
   id: string;
@@ -33,6 +39,11 @@ export interface Component {
   requires: { components: string[]; accounts: AccountSite[] };
   provides: { services: string[]; loops: string[]; records: string[]; apps: string[] };
   effects: Effect[];
+  /**
+   * The loop keys this client runs with this block (parsed, defaults filled). Install and
+   * configure start them; configure and uninstall stop the ones no longer listed.
+   */
+  clientLoops: (client: string, settings: Record<string, unknown>) => LoopKey[];
 }
 
 type Input = Pick<Component, "id" | "name" | "blurb" | "icon" | "for" | "ready"> &
@@ -52,4 +63,5 @@ export const defineComponent = (c: Input): Component => ({
   requires: { components: [], accounts: [], ...c.requires },
   provides: { services: [], loops: [], records: [], apps: [], ...c.provides },
   effects: c.effects ?? [],
+  clientLoops: c.clientLoops ?? (() => []),
 });

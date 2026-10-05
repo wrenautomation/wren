@@ -43,22 +43,33 @@ export interface CalcomBooking {
   rescheduled?: boolean | null;
 }
 
-export class CalcomBookings implements Bookings {
-  readonly name = "cal.com";
-  constructor(
-    private readonly apiKey: string,
-    private readonly fetchImpl: typeof fetch = globalThis.fetch,
-  ) {}
+/** cal.com's bookings list for some query: the response body (`{data: [...]}`). */
+export type BookingsQuery = (params: Record<string, string>) => Promise<unknown>;
 
-  private async list(params: Record<string, string>): Promise<CalcomBooking[]> {
+/** Wren's own cal.com, by its API key. */
+export const calcomByKey =
+  (apiKey: string, fetchImpl: typeof fetch = globalThis.fetch): BookingsQuery =>
+  async (params) => {
     const url = new URL(CALCOM);
     for (const [k, v] of Object.entries(params)) url.searchParams.set(k, v);
-    const res = await this.fetchImpl(url, {
-      headers: { authorization: `Bearer ${this.apiKey}`, "cal-api-version": "2024-08-13" },
+    const res = await fetchImpl(url, {
+      headers: { authorization: `Bearer ${apiKey}`, "cal-api-version": "2024-08-13" },
     });
     if (!res.ok) throw new Error(`cal.com answered ${res.status}`);
-    const body = (await res.json()) as { data?: unknown };
-    if (!Array.isArray(body.data)) throw new Error("cal.com answered with no bookings list");
+    return res.json();
+  };
+
+export class CalcomBookings implements Bookings {
+  readonly name = "cal.com";
+  /** An API key (Wren's), or any query that reaches a cal.com (a client's, through autobrowse). */
+  private readonly query: BookingsQuery;
+  constructor(source: string | BookingsQuery, fetchImpl: typeof fetch = globalThis.fetch) {
+    this.query = typeof source === "string" ? calcomByKey(source, fetchImpl) : source;
+  }
+
+  private async list(params: Record<string, string>): Promise<CalcomBooking[]> {
+    const body = (await this.query(params)) as { data?: unknown } | null;
+    if (!Array.isArray(body?.data)) throw new Error("cal.com answered with no bookings list");
     return body.data as CalcomBooking[];
   }
 

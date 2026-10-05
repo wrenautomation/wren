@@ -131,3 +131,9 @@ export function makeNotifier(
 }
 
 export const plural = (n: number, one: string, many = `${one}s`) => `${n} ${n === 1 ? one : many}`;
+
+/** `notifier`, every title led by whose it is (`<client>: …`), so a client's pings read apart from Wren's. */
+export const namedFor = (notifier: Notifier, who: string): Notifier => ({
+  name: notifier.name,
+  notify: (title, body, level) => notifier.notify(`${who}: ${title}`, body, level),
+});

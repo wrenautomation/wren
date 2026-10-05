@@ -192,10 +192,14 @@ export interface RunInvitesOptions {
   runId?: string | null;
   tracer?: Tracer | null;
   now?: Date;
+  /** Only these niches' replies (a client's sequences, not its reactivation mail); null = all. */
+  niches?: readonly string[] | null;
+  /** Whose replies these are: pings name it and the commands take `--client`; null = Wren's. */
+  client?: string | null;
 }
 
 /** Warm replies the model labelled, fresh, with no invite row yet, oldest first. */
-async function pending(db: Db, now: Date) {
+async function pending(db: Db, now: Date, niches: readonly string[] | null) {
   return db
     .select({ event: threadEvents, enrollment: enrollments })
     .from(threadEvents)
@@ -209,6 +213,7 @@ async function pending(db: Db, now: Date) {
         eq(threadEvents.dispositionSource, "llm"),
         gte(threadEvents.receivedAt, new Date(now.getTime() - FRESH_MS)),
         isNull(callInvites.id),
+        niches ? inArray(enrollments.niche, [...niches]) : undefined,
       ),
     )
     .orderBy(threadEvents.receivedAt, threadEvents.id);
@@ -251,9 +256,13 @@ async function whoWrote(db: Db, enrollment: Enrollment, email: string) {
 }
 
 /** The two commands a ping ends on. */
-export const approveLine = (id: number, drafted: boolean) =>
-  `${drafted ? `Send as drafted: wren email answers approve ${id}\nIn your words: ` : "Answer: "}` +
-  `wren email answers approve ${id} --body "..."\nDrop: wren email answers drop ${id}`;
+export const approveLine = (id: number, drafted: boolean, client: string | null = null) => {
+  const cmd = `wren ${client ? `--client ${client} ` : ""}email answers`;
+  return (
+    `${drafted ? `Send as drafted: ${cmd} approve ${id}\nIn your words: ` : "Answer: "}` +
+    `${cmd} approve ${id} --body "..."\nDrop: ${cmd} drop ${id}`
+  );
+};
 
 /**
  * One pass: every fresh warm reply gets one row, proposed or handed to William.
@@ -267,7 +276,7 @@ export async function runInvites(
   opts: RunInvitesOptions,
 ): Promise<InviteStats> {
   const now = opts.now ?? new Date();
-  const rows = await pending(db, now);
+  const rows = await pending(db, now, opts.niches ?? null);
   const stats: InviteStats = {
     selected: rows.length,
     proposed: 0,
@@ -275,8 +284,9 @@ export async function runInvites(
     needs_you: 0,
     aborted: null,
   };
+  const client = opts.client ?? null;
   const tell = async (title: string, body: string, level: NotifyLevel) => {
-    await opts.notifier?.notify(title, body, level);
+    await opts.notifier?.notify(client ? `${client}: ${title}` : title, body, level);
   };
 
   for (const { event, enrollment } of rows) {
@@ -308,7 +318,7 @@ export async function runInvites(
       stats.needs_you += 1;
       await tell(
         `Warm reply: answer ${who} now`,
-        `${reason}. ${theyWrote}\n\n${approveLine(row.id, false)}`,
+        `${reason}. ${theyWrote}\n\n${approveLine(row.id, false, client)}`,
         "action",
       );
     };
@@ -369,7 +379,7 @@ export async function runInvites(
         stats.needs_you += 1;
         await tell(
           `Warm reply: answer ${who} now`,
-          `No reply copy for this arm. ${theyWrote}\n\n${approveLine(made.id, false)}`,
+          `No reply copy for this arm. ${theyWrote}\n\n${approveLine(made.id, false, client)}`,
           "action",
         );
         continue;
@@ -377,7 +387,7 @@ export async function runInvites(
       stats.proposed += 1;
       await tell(
         `Warm reply from ${who}: approve the answer`,
-        `${theyWrote}\n\nDraft:\n${made.draft.body}\n\n${approveLine(made.id, true)}`,
+        `${theyWrote}\n\nDraft:\n${made.draft.body}\n\n${approveLine(made.id, true, client)}`,
         "action",
       );
       continue;
@@ -432,7 +442,7 @@ export async function runInvites(
       `Warm reply from ${who}: approve ${said}`,
       `${theyWrote}\n\nApprove books ${said} on cal.com (it emails the invite)` +
         (made.draft ? ` and sends:\n${made.draft.body}` : ". No reply drafted.") +
-        `\n\n${approveLine(made.id, made.draft !== null)}`,
+        `\n\n${approveLine(made.id, made.draft !== null, client)}`,
       "action",
     );
   }

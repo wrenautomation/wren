@@ -39,6 +39,20 @@ export function retryDelayMs(failures: number, capMs: number): number {
   return Math.min(FIRST_RETRY_MS * 2 ** Math.max(failures - 1, 0), capMs);
 }
 
+/** A pass that found its work gone (a client off or removed): kept as `last`, and the loop stops. */
+export function stoppedPass<S>(ctx: restate.ObjectContext, now: Date, why: string): PassOutcome<S> {
+  const outcome: PassOutcome<S> = {
+    stats: null,
+    error: null,
+    failures: 0,
+    delayMs: 0,
+    now: now.toISOString(),
+    stopped: why,
+  };
+  ctx.set(LAST, outcome);
+  return outcome;
+}
+
 /** Failed passes in a row, this one included (0 when it succeeded). */
 export async function failuresInARow(ctx: restate.ObjectContext, failed: boolean): Promise<number> {
   if (!failed) return 0;

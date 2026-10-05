@@ -14,7 +14,13 @@ import * as restate from "@restatedev/restate-sdk";
 import { recordedRun } from "@wren/core";
 import type { Calendar } from "@wren/core/calendar";
 import type { Notifier } from "@wren/core/notify";
-import { errorText, exclusiveHandler, NO_INPUT, sharedHandler } from "@wren/core/restate";
+import {
+  clientOfKey,
+  errorText,
+  exclusiveHandler,
+  NO_INPUT,
+  sharedHandler,
+} from "@wren/core/restate";
 import type { Db } from "@wren/db";
 import type { LlmClient, Tracer } from "@wren/llm";
 import { z } from "zod";
@@ -40,14 +46,23 @@ export interface DispositionDeps {
   /** Named on the ledger row's argv, never the key. */
   tracing?: string;
   /** Proposes answers to the fleet's warm replies; absent, a warm reply waits for William. */
-  invites?: {
-    calendar: Calendar;
-    notifier?: Notifier | null;
-    /** Each niche's reply copy, for the drafts. */
-    copies?: ReadonlyMap<string, ReplyCopy> | null;
-    /** How an approved reply goes out; absent, approve refuses. */
-    send?: Omit<SendReplyOptions, "now"> | null;
-  } | null;
+  invites?: Invites | null;
+  /**
+   * A client's (`<client>/replies`): its invites while it has email replies, else null.
+   * Read inside the step; absent, a client's replies are labelled and nothing more.
+   */
+  clientInvites?: ((client: string) => Promise<Invites | null>) | null;
+}
+
+export interface Invites {
+  calendar: Calendar;
+  notifier?: Notifier | null;
+  /** Each niche's reply copy, for the drafts. */
+  copies?: ReadonlyMap<string, ReplyCopy> | null;
+  /** How an approved reply goes out; absent, approve refuses. */
+  send?: Omit<SendReplyOptions, "now"> | null;
+  /** Only these niches' replies get answers (a client's sequences, not its other mail); null = all. */
+  niches?: readonly string[] | null;
 }
 
 export interface ClassifyOutcome {
@@ -63,6 +78,15 @@ const INVITE = z.looseObject({ id: z.number().describe("The invite's id") });
 const BODY = z.string().nullish().describe("The reply as edited; empty sends the draft as written");
 
 export function makeDisposition(deps: DispositionDeps) {
+  const wired = (key: string) =>
+    key === DISPOSITION_KEY
+      ? Boolean(deps.invites)
+      : Boolean(clientOfKey(key) && deps.clientInvites);
+  const invitesFor = async (key: string): Promise<Invites | null> => {
+    if (key === DISPOSITION_KEY) return deps.invites ?? null;
+    const owner = clientOfKey(key);
+    return owner && deps.clientInvites ? deps.clientInvites(owner.client) : null;
+  };
   return restate.object({
     name: "Disposition",
     handlers: {
@@ -93,34 +117,36 @@ export function makeDisposition(deps: DispositionDeps) {
               return { stats: null, error: errorText(err) };
             }
           });
-          const invites = deps.invites;
-          const booked =
-            invites && ctx.key === DISPOSITION_KEY
-              ? await ctx.run("call invites", async () => {
-                  try {
-                    const { stats } = await recordedRun(
-                      db,
-                      {
-                        command: INVITE_COMMAND,
-                        argv: { daemon: true, llm: deps.llm.name, calendar: invites.calendar.name },
-                        model: deps.llm.name,
-                      },
-                      (run) =>
-                        runInvites(db, deps.llm, {
-                          calendar: invites.calendar,
-                          notifier: invites.notifier ?? null,
-                          copies: invites.copies ?? null,
-                          runId: run.id,
-                          tracer: deps.tracer ?? null,
-                          now,
-                        }),
-                    );
-                    return { stats, error: null };
-                  } catch (err) {
-                    return { stats: null, error: errorText(err) };
-                  }
-                })
-              : null;
+          const booked = wired(ctx.key)
+            ? await ctx.run("call invites", async () => {
+                const invites = await invitesFor(ctx.key);
+                if (!invites) return null;
+                try {
+                  const { stats } = await recordedRun(
+                    db,
+                    {
+                      command: INVITE_COMMAND,
+                      argv: { daemon: true, llm: deps.llm.name, calendar: invites.calendar.name },
+                      model: deps.llm.name,
+                    },
+                    (run) =>
+                      runInvites(db, deps.llm, {
+                        calendar: invites.calendar,
+                        notifier: invites.notifier ?? null,
+                        copies: invites.copies ?? null,
+                        niches: invites.niches ?? null,
+                        client: clientOfKey(ctx.key)?.client ?? null,
+                        runId: run.id,
+                        tracer: deps.tracer ?? null,
+                        now,
+                      }),
+                  );
+                  return { stats, error: null };
+                } catch (err) {
+                  return { stats: null, error: errorText(err) };
+                }
+              })
+            : null;
           const outcome: ClassifyOutcome = { ...result, invites: booked, now: now.toISOString() };
           ctx.set(LAST, outcome);
           return outcome;
@@ -134,14 +160,16 @@ export function makeDisposition(deps: DispositionDeps) {
           ctx: restate.ObjectContext,
           req: { id: number; body?: string | null },
         ): Promise<ApproveOutcome> => {
-          const invites = deps.invites;
-          if (!invites?.send || ctx.key !== DISPOSITION_KEY) {
+          if (!wired(ctx.key)) {
             throw new restate.TerminalError("replies are not wired on this worker");
           }
-          const send = invites.send;
           const now = new Date(await ctx.date.now());
           // A retry after a crash finds the rows moved on (booking, booked, sent) and refuses.
           return ctx.run("approve invite", async () => {
+            const invites = await invitesFor(ctx.key);
+            const send = invites?.send;
+            if (!invites || !send)
+              throw new restate.TerminalError("replies are not on for this key");
             try {
               return await approveInvite(deps.dbOf(ctx.key), req.id, {
                 calendar: invites.calendar,

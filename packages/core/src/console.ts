@@ -23,7 +23,7 @@ import { CLIENT_ID, type Db, setAuditActor } from "@wren/db";
 import { eq, sql } from "drizzle-orm";
 import { z } from "zod";
 import { addClient, type Client, clients, isOwner, updateClient } from "./clients/index.js";
-import type { Component } from "./components.js";
+import type { Component, LoopKey } from "./components.js";
 import {
   answer,
   isDemo,
@@ -645,6 +645,7 @@ export function consoleApi({
   mainUrl,
   components = [],
   asked,
+  bound = () => true,
 }: {
   main: Db;
   /** The main database's URL, which `addClient` needs to reach the new one; absent, it refuses. */
@@ -660,6 +661,8 @@ export function consoleApi({
   components?: readonly Component[];
   /** A client's person asked for `c`: tell Wren. Absent, `ask` refuses. */
   asked?: ((client: Client, by: string, c: Component) => Promise<void>) | undefined;
+  /** Whether this worker binds `service`: a component's loop on one it doesn't is skipped. */
+  bound?: ((service: string) => boolean) | undefined;
 }) {
   const allowed = new Set(views);
   const types = [
@@ -736,7 +739,19 @@ export function consoleApi({
       throw err;
     }
     await finishRun(main, run.id, { ok: true });
-    return { client: client.id, component: c.id, installed: block !== null };
+    // Every loop the new block lists starts (a running one ignores it); the ones it dropped stop.
+    const loopsOf = (b: unknown): LoopKey[] => {
+      // A hand-edited old block that no longer parses names no loops.
+      const parsed = b === undefined || b === null ? null : c.settings.safeParse(b);
+      return parsed?.success
+        ? c.clientLoops(client.id, parsed.data as Record<string, unknown>)
+        : [];
+    };
+    const id = (l: LoopKey) => `${l.service} ${l.key}`;
+    const start = loopsOf(block).filter((l) => bound(l.service));
+    const kept = new Set(start.map(id));
+    const stop = loopsOf(client.products[c.id]).filter((l) => bound(l.service) && !kept.has(id(l)));
+    return { client: client.id, component: c.id, installed: block !== null, start, stop };
   };
   /** Restate's admin for Wren's team; refused before any read, so a refusal never lands in a journaled step. */
   const adminFor = (req: PortalRequest): RestateAdmin => {
@@ -930,6 +945,21 @@ type LoopControl = {
   stop: (ctx: restate.ObjectContext) => Promise<unknown>;
 };
 
+/**
+ * A component change, journaled so a replay never installs twice, then its loops: the ones
+ * its block lists started, the ones it dropped stopped. The sends land after the answer.
+ */
+async function changeLoops(
+  ctx: restate.Context,
+  verb: string,
+  change: () => Promise<{ start: LoopKey[]; stop: LoopKey[] }>,
+) {
+  const out = await ctx.run(verb, () => answer(change));
+  for (const l of out.start) ctx.objectSendClient<LoopControl>({ name: l.service }, l.key).start();
+  for (const l of out.stop) ctx.objectSendClient<LoopControl>({ name: l.service }, l.key).stop();
+  return out;
+}
+
 export function makeConsolePortal(deps: Parameters<typeof consoleApi>[0]) {
   const api = consoleApi(deps);
   return restate.service({
@@ -984,9 +1014,12 @@ export function makeConsolePortal(deps: Parameters<typeof consoleApi>[0]) {
           }
         }),
       setLook: (_: restate.Context, req: SetLookRequest) => answer(() => api.setLook(req)),
-      install: (_: restate.Context, req: InstallRequest) => answer(() => api.install(req)),
-      configure: (_: restate.Context, req: InstallRequest) => answer(() => api.configure(req)),
-      uninstall: (_: restate.Context, req: ComponentRequest) => answer(() => api.uninstall(req)),
+      install: (ctx: restate.Context, req: InstallRequest) =>
+        changeLoops(ctx, "install", () => api.install(req)),
+      configure: (ctx: restate.Context, req: InstallRequest) =>
+        changeLoops(ctx, "configure", () => api.configure(req)),
+      uninstall: (ctx: restate.Context, req: ComponentRequest) =>
+        changeLoops(ctx, "uninstall", () => api.uninstall(req)),
       ask: (_: restate.Context, req: ComponentRequest) => answer(() => api.ask(req)),
       addClient: (ctx: restate.Context, req: AddClientRequest) =>
         answer(async () => {

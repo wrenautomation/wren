@@ -17,12 +17,14 @@
  * own inboxes share one; a client's mailbox gets its client's. A key whose
  * scope is gone (the client stopped sending) stops its own loop.
  */
+
 import * as restate from "@restatedev/restate-sdk";
 import { finishRun, openRun } from "@wren/core";
 import type { Calendar } from "@wren/core/calendar";
 import { type Notifier, plural } from "@wren/core/notify";
 import { exclusiveHandler, NO_INPUT, sharedHandler, unitOfKey } from "@wren/core/restate";
 import type { Db } from "@wren/db";
+import type { SharedSuppressions } from "../guards.js";
 import type { SendStats } from "../send/deliver.js";
 import type { SendPolicy } from "../send/policy.js";
 import { seededRng } from "../send/rng.js";
@@ -37,6 +39,8 @@ export interface SendScope {
   pixelBaseUrl?: string | null;
   /** Where `{call.times}` finds open times; a client's scope has none. */
   calendar?: Calendar | null;
+  /** A client's scope: main's suppressions gate its sends too. */
+  shared?: SharedSuppressions | null;
 }
 
 export interface SendSchedulerDeps {
@@ -109,6 +113,7 @@ export function makeSendScheduler(deps: SendSchedulerDeps) {
         fleet,
         pixelBaseUrl: scope.pixelBaseUrl ?? null,
         calendar: scope.calendar ?? null,
+        shared: scope.shared ?? null,
         rng: seededRng(seed),
         ...(deps.killSwitches ? { killSwitches: deps.killSwitches } : {}),
       });

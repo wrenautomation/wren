@@ -1,5 +1,6 @@
 export * from "./bookings.js";
 export * from "./classify.js";
+export * from "./clients.js";
 export * from "./contacts.js";
 export * from "./deliver.js";
 export * from "./enroll.js";

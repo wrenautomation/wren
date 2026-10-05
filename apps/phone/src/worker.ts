@@ -9,6 +9,10 @@
  * - `/webhooks/calcom`: cal.com's booking webhook, HMAC checked against
  *   `CALCOM_WEBHOOK_SECRET`, then `CallBookings/ingest/send` keyed by trigger + uid +
  *   start. Unsigned = 401, PING = 200 and goes no further, Restate down = 502.
+ * - `/webhooks/telnyx/<client>`, `/webhooks/calcom/<client>`: the same for a client's
+ *   messaging profile and cal.com, into its database (`SmsEvents/ingestFor`,
+ *   `CallBookings/ingestFor`). A client's cal.com signs with its own secret, from
+ *   `CALCOM_WEBHOOK_SECRETS`; a client with none there is 404.
  * - `/api/<handler>`: Wren's operators only, by the token from Wren's sign-in
  *   (auth.wrenautomation.com, any method incl. passkeys); forwarded to the `SmsDesk`
  *   service. Only the handlers the app needs are open; enroll and lift stay on the CLI.
@@ -58,7 +62,18 @@ function restateHeaders(env: Env, extra: Record<string, string> = {}): Record<st
 const ingress = (env: Env, path: string) =>
   `${env.RESTATE_INGRESS_URL.replace(/\/+$/, "")}/${path}`;
 
-async function telnyxWebhook(req: Request, env: Env): Promise<Response> {
+/** `<client>` from `/webhooks/<site>/<client>`; null when the path is not one. */
+const clientIn = (pathname: string, site: string): string | null => {
+  const prefix = `/webhooks/${site}/`;
+  if (!pathname.startsWith(prefix)) return null;
+  return /^[a-z0-9][a-z0-9_-]{0,62}$/.exec(pathname.slice(prefix.length))?.[0] ?? null;
+};
+
+/** A body for Restate: Wren's as sent, a client's wrapped with its id. */
+const forwarded = (raw: string, client: string | null) =>
+  client ? `{"client":${JSON.stringify(client)},"body":${raw}}` : raw;
+
+async function telnyxWebhook(req: Request, env: Env, client: string | null): Promise<Response> {
   if (!env.TELNYX_PUBLIC_KEY) return json({ error: "webhooks off: no TELNYX_PUBLIC_KEY" }, 503);
   const raw = await req.text();
   if (raw.length > MAX_BODY) return json({ error: "too large" }, 413);
@@ -79,10 +94,10 @@ async function telnyxWebhook(req: Request, env: Env): Promise<Response> {
   if (typeof id !== "string" || id === "") return json({ error: "no event id" }, 400);
   let res: Response;
   try {
-    res = await fetch(ingress(env, "SmsEvents/ingest/send"), {
+    res = await fetch(ingress(env, `SmsEvents/${client ? "ingestFor" : "ingest"}/send`), {
       method: "POST",
       headers: restateHeaders(env, { "idempotency-key": `telnyx-${id}` }),
-      body: raw,
+      body: forwarded(raw, client),
     });
   } catch {
     return json({ error: "restate unreachable" }, 502);
@@ -115,14 +130,23 @@ async function calcomSigned(
  * cal.com's booking webhook: signature checked here, then `CallBookings/ingest/send` keyed
  * by trigger + uid + start, so a delivery cal.com repeats is applied once. PING stops here.
  */
-async function calcomWebhook(req: Request, env: Env): Promise<Response> {
-  if (!env.CALCOM_WEBHOOK_SECRET)
-    return json({ error: "webhooks off: no CALCOM_WEBHOOK_SECRET" }, 503);
+async function calcomWebhook(req: Request, env: Env, client: string | null): Promise<Response> {
+  let secret = env.CALCOM_WEBHOOK_SECRET;
+  if (client) {
+    let secrets: Record<string, unknown>;
+    try {
+      secrets = JSON.parse(env.CALCOM_WEBHOOK_SECRETS ?? "{}") as Record<string, unknown>;
+    } catch {
+      return json({ error: "webhooks off: CALCOM_WEBHOOK_SECRETS is not json" }, 503);
+    }
+    const own = Object.hasOwn(secrets, client) ? secrets[client] : undefined;
+    if (typeof own !== "string" || own === "") return json({ error: "not found" }, 404);
+    secret = own;
+  }
+  if (!secret) return json({ error: "webhooks off: no CALCOM_WEBHOOK_SECRET" }, 503);
   const raw = await req.text();
   if (raw.length > MAX_BODY) return json({ error: "too large" }, 413);
-  if (
-    !(await calcomSigned(env.CALCOM_WEBHOOK_SECRET, raw, req.headers.get("x-cal-signature-256")))
-  ) {
+  if (!(await calcomSigned(secret, raw, req.headers.get("x-cal-signature-256")))) {
     return json({ error: "bad signature" }, 401);
   }
   let body: { triggerEvent?: unknown; payload?: { uid?: unknown; startTime?: unknown } };
@@ -137,12 +161,12 @@ async function calcomWebhook(req: Request, env: Env): Promise<Response> {
   if (typeof uid !== "string" || uid === "") return json({ error: "no booking uid" }, 400);
   let res: Response;
   try {
-    res = await fetch(ingress(env, "CallBookings/ingest/send"), {
+    res = await fetch(ingress(env, `CallBookings/${client ? "ingestFor" : "ingest"}/send`), {
       method: "POST",
       headers: restateHeaders(env, {
-        "idempotency-key": `calcom-${trigger}-${uid}-${String(body.payload?.startTime ?? "")}`,
+        "idempotency-key": `calcom-${client ? `${client}-` : ""}${trigger}-${uid}-${String(body.payload?.startTime ?? "")}`,
       }),
-      body: raw,
+      body: forwarded(raw, client),
     });
   } catch {
     return json({ error: "restate unreachable" }, 502);
@@ -205,11 +229,14 @@ async function desk(req: Request, env: Env, handler: string): Promise<Response> 
 export default {
   async fetch(req: Request, env: Env): Promise<Response> {
     const { pathname } = new URL(req.url);
-    if (pathname === "/webhooks/telnyx") {
-      return req.method === "POST" ? telnyxWebhook(req, env) : json({ error: "POST only" }, 405);
-    }
-    if (pathname === "/webhooks/calcom") {
-      return req.method === "POST" ? calcomWebhook(req, env) : json({ error: "POST only" }, 405);
+    for (const [site, hook] of [
+      ["telnyx", telnyxWebhook],
+      ["calcom", calcomWebhook],
+    ] as const) {
+      const wren = pathname === `/webhooks/${site}`;
+      const client = wren ? null : clientIn(pathname, site);
+      if (!wren && !client) continue;
+      return req.method === "POST" ? hook(req, env, client) : json({ error: "POST only" }, 405);
     }
     if (pathname.startsWith("/api/")) {
       if (req.method !== "POST") return json({ error: "POST only" }, 405);

@@ -39,6 +39,7 @@
 import { parseAddr } from "@wren/core/mail";
 import type { Db, Queryable } from "@wren/db";
 import { and, desc, eq, inArray, sql } from "drizzle-orm";
+import type { SharedSuppressions } from "../guards.js";
 import {
   type BounceClass,
   type DispositionSource,
@@ -462,20 +463,22 @@ async function stopOrSuppress(
     counts: SyncCounts;
     stoppedKey: SyncCounter;
     now: Date;
+    shared: SharedSuppressions | null;
   },
 ): Promise<void> {
-  const { enrollment, reason, detail, event } = opts;
+  const { enrollment, reason, detail, event, shared } = opts;
   if (enrollment.state === "active") {
-    await recordStop(db, enrollment, reason, { detail, now: opts.now });
+    await recordStop(db, enrollment, reason, { detail, now: opts.now, shared });
     opts.counts[opts.stoppedKey] += 1;
     return;
   }
-  await ensureSuppression(db, enrollment.toEmail, reason, {
-    thread_event_id: event.id,
-    enrollment_id: enrollment.id,
+  await ensureSuppression(
+    db,
+    enrollment.toEmail,
     reason,
-    detail,
-  });
+    { thread_event_id: event.id, enrollment_id: enrollment.id, reason, detail },
+    shared,
+  );
   opts.counts.suppressed_post_finish += 1;
 }
 
@@ -493,9 +496,10 @@ async function act(
     mismatch: boolean;
     away: PlainDate | null;
     now: Date;
+    shared: SharedSuppressions | null;
   },
 ): Promise<void> {
-  const { enrollment, inbound, event, counts: c, away, now } = opts;
+  const { enrollment, inbound, event, counts: c, away, now, shared } = opts;
   if (away !== null) {
     if (enrollment.state !== "active") return;
     // The latest return day wins: an older auto-reply synced late never shortens a hold.
@@ -524,6 +528,7 @@ async function act(
       counts: c,
       stoppedKey: "stopped_bounce",
       now,
+      shared,
     });
   } else if (inbound.kind === "unsubscribe") {
     await stopOrSuppress(db, {
@@ -534,6 +539,7 @@ async function act(
       counts: c,
       stoppedKey: "stopped_opt_out",
       now,
+      shared,
     });
   } else if (inbound.kind === "reply") {
     // Company-scoped: a human answering from anywhere in the firm stops every
@@ -543,6 +549,7 @@ async function act(
       reason: "reply",
       detail: `reply from ${inbound.fromAddress ?? "unknown"} (event ${event.id})`,
       now,
+      shared,
     });
   }
 }
@@ -590,6 +597,7 @@ async function handleMessage(
     now: Date;
     runId: string | null;
     counts: SyncCounts;
+    shared: SharedSuppressions | null;
   },
 ): Promise<number | null> {
   const { reader, sender, gmailId, now, counts: c } = opts;
@@ -659,7 +667,16 @@ async function handleMessage(
       c[CLASS_COUNTER[inbound.kind]] += 1;
     }
 
-    await act(tx, { enrollment: m.enrollment, inbound, event, counts: c, mismatch, away, now });
+    await act(tx, {
+      enrollment: m.enrollment,
+      inbound,
+      event,
+      counts: c,
+      mismatch,
+      away,
+      now,
+      shared: opts.shared,
+    });
     return seenMs;
   });
 }
@@ -675,6 +692,8 @@ export interface SyncInboxOptions {
   overlapMs?: number;
   /** Where a read or listing failure goes; the walk continues either way. */
   onWarn?: (message: string, err: unknown) => void;
+  /** A client's inboxes: their opt-outs and bounces also land on main's list. */
+  shared?: SharedSuppressions | null;
 }
 
 export const DAY_MS = 86_400_000;
@@ -736,7 +755,15 @@ export async function syncInbox(db: Db, opts: SyncInboxOptions): Promise<SyncSta
         }
         let seenMs: number | null;
         try {
-          seenMs = await handleMessage(db, { reader, sender, gmailId, now, runId, counts: c });
+          seenMs = await handleMessage(db, {
+            reader,
+            sender,
+            gmailId,
+            now,
+            runId,
+            counts: c,
+            shared: opts.shared ?? null,
+          });
         } catch (err) {
           warn(`inbox sync: reading ${sender}/${gmailId} failed`, err);
           c.read_errors += 1;

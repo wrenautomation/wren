@@ -1,18 +1,42 @@
 /** The email channel's components: sequences out, replies in, the inboxes' health, copy tests. */
-import { defineComponent } from "@wren/core/components";
+import { defineComponent, type LoopKey } from "@wren/core/components";
+import { clientKey } from "@wren/core/restate";
+import {
+  REPLIES,
+  repliesSettingsSchema,
+  SEQUENCES,
+  type SequencesSettings,
+  sequencesSettingsSchema,
+} from "./sequences-settings.js";
 
 const FOR_WREN = "Runs on Wren's niches and inboxes in the main database, not per client";
 
+/**
+ * A client's sequences run as: one queue-keeper for its niche, and per active mailbox a send
+ * loop and an inbox read (bounces and opt-outs stop threads, so a mailbox that sends is read).
+ */
+function sequencesLoops(client: string, s: SequencesSettings): LoopKey[] {
+  const active = s.senders.filter((x) => !x.suspended);
+  return [
+    ...(s.niche ? [{ service: "ComposeScheduler", key: clientKey(client, s.niche) }] : []),
+    ...active.flatMap((x) => [
+      { service: "SendScheduler", key: clientKey(client, x.address) },
+      { service: "InboxScheduler", key: clientKey(client, x.address) },
+    ]),
+  ];
+}
+
 export const EMAIL_COMPONENTS = [
   defineComponent({
-    id: "email.sequences",
+    id: SEQUENCES,
     name: "Email sequences",
     blurb: "Writes each lead's opener and follow-ups and sends them from warmed inboxes.",
     icon: "mail",
     for: "client",
-    ready: false,
-    missing: [FOR_WREN],
-    requires: { components: ["research.lead_sheet"] },
+    ready: true,
+    missing: [],
+    settings: sequencesSettingsSchema,
+    requires: { components: ["research.lead_sheet"], accounts: ["gmail"] },
     provides: {
       services: [
         "ComposeScheduler",
@@ -27,16 +51,18 @@ export const EMAIL_COMPONENTS = [
       apps: ["outbound"],
     },
     effects: ["sends", "spends"],
+    clientLoops: (client, settings) => sequencesLoops(client, settings as SequencesSettings),
   }),
   defineComponent({
-    id: "email.replies",
+    id: REPLIES,
     name: "Replies",
     blurb: "Reads every reply, sorts it, and queues an answer for approval.",
     icon: "reply",
     for: "client",
-    ready: false,
-    missing: [FOR_WREN],
-    requires: { components: ["email.sequences"] },
+    ready: true,
+    missing: [],
+    settings: repliesSettingsSchema,
+    requires: { components: [SEQUENCES] },
     provides: {
       services: ["InboxScheduler", "Disposition", "CallBookings"],
       loops: ["InboxScheduler"],

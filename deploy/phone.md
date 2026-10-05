@@ -34,6 +34,8 @@ By hand, from `apps/phone/`:
     printf %s "$TELNYX_PUBLIC_KEY" | npx wrangler secret put TELNYX_PUBLIC_KEY
     # The secret Wren's cal.com webhook signs with. Until set, /webhooks/calcom gets 503.
     printf %s "$CALCOM_WEBHOOK_SECRET" | npx wrangler secret put CALCOM_WEBHOOK_SECRET
+    # Clients' cal.com secrets, one JSON object {"<client>": "<secret>"}. A client not in it gets 404.
+    printf %s "$CALCOM_WEBHOOK_SECRETS" | npx wrangler secret put CALCOM_WEBHOOK_SECRETS
     npx wrangler deploy
 
 The worker (Lambda) must already serve `SmsDesk` and `SmsEvents`, and migration
@@ -53,12 +55,20 @@ Messaging profile → webhook URL `https://phone.wrenautomation.com/webhooks/tel
 API v2. Put the profile id in `WREN_TELNYX_MESSAGING_PROFILE_ID` and the 10DLC
 campaign id in `WREN_TELNYX_CAMPAIGN_ID`.
 
+A client with `sms.texts`: its own messaging profile in Wren's account (the id in
+`clients.accounts.telnyx`), webhook URL `https://phone.wrenautomation.com/webhooks/telnyx/<client>`.
+Events go to `SmsEvents/ingestFor`, into its database.
+
 ## cal.com
 
 A second webhook on Wren's cal.com (the lander's stays): `https://phone.wrenautomation.com/webhooks/calcom`,
 BOOKING_CREATED / RESCHEDULED / CANCELLED, signed with `CALCOM_WEBHOOK_SECRET`. Made 2026-10-04
 through cal.com's API with `WREN_CALCOM_API_KEY`. Each booking goes to `CallBookings/ingest`
 (designs/2026-10-04-booking-webhook.md). Catch up with `wren email bookings sync [--since]`.
+
+A client's cal.com: webhook `https://phone.wrenautomation.com/webhooks/calcom/<client>`, same
+triggers, signed with its own secret in `CALCOM_WEBHOOK_SECRETS`. Each booking goes to
+`CallBookings/ingestFor`, into its database (designs/2026-10-04-outbound-per-client.md).
 
 ## Check
 

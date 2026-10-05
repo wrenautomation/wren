@@ -3,7 +3,7 @@ type: object
 cluster: clients
 universe: live
 status: verified
-verified: 2026-10-04 @ 85fad62
+verified: 2026-10-04 @ 4beff56
 entity: packages/core/src/clients/schema.ts:22
 ---
 
@@ -22,6 +22,8 @@ Fifty clients must not mean fifty code paths. A client is data: its database, it
 - Each `products` key is an installed component (`packages/core/src/components.ts`, `COMPONENTS` in `apps/worker/src/components.ts`). `ConsolePortal.install|configure|uninstall {client, component, settings}` (operator, each a `runs` row) write it; `ask` lets a client's person ask for one. `delivery/me` lists them as `installed`; the portal shows a client only those apps (`appsIn`, `apps/portal/web/src/modules/index.ts`). The Marketplace app is the catalog (`console.component`)
 - `addClient` creates and migrates the database, then writes the row (`packages/core/src/clients/index.ts:42`). Safe to retry: a registered id comes back as it is, a half-made database is migrated again; callers refuse a taken id. `ConsolePortal.addClient {id, name}` runs it in one `ctx.run` step on the worker, which ships the migrations (`apps/worker/scripts/build-lambda.mjs:64`); people are added after with `DeliveryPortal.invite`
 - Loop keys: `<client>/<unit>`; a bare key is Wren's own (`packages/core/src/restate`, `clientKey` / `clientOfKey`)
+- A component's `clientLoops` (`packages/core/src/components.ts:46`) lists the loop keys its block runs; install and configure start them, configure and uninstall stop the dropped ones (`changeLoops`, `packages/core/src/console.ts:952`). Outbound per client: `PoolScheduler/<c>/all` (lead sheet), `ComposeScheduler/<c>/<niche>`, `SendScheduler|InboxScheduler/<c>/<addr>` (email.sequences, `packages/channel-email/src/sequences.ts:119`), `Disposition/<c>/replies` (email.replies), `SmsSender/<c>/fleet`, `SmsWatch/<c>/daily` (sms.texts, `packages/channel-sms/src/clients.ts:40`)
+- Suppression stays global: a client's work reads and writes main's list too (`sharedFor`, `packages/channel-email/src/sequences.ts:60`)
 
 Citations: `packages/core/src/clients/schema.ts:22`, `packages/core/src/clients/index.ts:31`
 
@@ -34,7 +36,7 @@ Citations: `packages/core/src/clients/schema.ts:22`, `packages/core/src/clients/
 
 ## If you change this
 
-- **Hits:** `wren clients` (`apps/cli`), the worker's per-client db pool and key routing (`apps/worker/src/services.ts:261`), the portal's login check and its look (`apps/portal/web/src/App.tsx`, `useLook`), every product's settings parser; `client_records` (the `console.client` record, migration 0061)
+- **Hits:** `wren clients` (`apps/cli`), the worker's per-client db pool and key routing (`apps/worker/src/services.ts:455`), the portal's login check and its look (`apps/portal/web/src/App.tsx`, `useLook`), every product's settings parser; `client_records` (the `console.client` record, migration 0061)
 - **Does not hit:** Wren's own campaign (bare keys, main database)
 
 ## Surfaces
@@ -49,4 +51,4 @@ Citations: `packages/core/src/clients/schema.ts:22`, `packages/core/src/clients/
 
 ## See
 
-- Design: `designs/2026-09-29-client-reactivation.md`, `designs/2026-10-04-brand-palette.md` (look), `designs/2026-10-04-components-and-marketplace.md` (installs)
+- Design: `designs/2026-09-29-client-reactivation.md`, `designs/2026-10-04-brand-palette.md` (look), `designs/2026-10-04-components-and-marketplace.md` (installs), `designs/2026-10-04-outbound-per-client.md` (outbound loops)

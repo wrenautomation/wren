@@ -6,6 +6,7 @@
   "exports": {
     ".": "./src/index.ts",
     "./components": "./src/components.ts",
+    "./sequences-settings": "./src/sequences-settings.ts",
     "./schema": "./src/schema.ts",
     "./views": "./src/views.ts",
     "./records": "./src/records.ts",
