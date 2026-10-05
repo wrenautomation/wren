@@ -65,6 +65,7 @@ Nothing in this repo references these; they break silently.
 | GitHub `production` environment | `deploy.yml` secrets (AWS, Restate, Cloudflare token) | [[processes/deploy]] |
 | Telnyx portal | webhook URL on `phone.wrenautomation.com`, public key | [[platform/phone-worker]] |
 | cal.com webhook (Wren's account, beside the lander's) | `phone.wrenautomation.com/webhooks/calcom`, `CALCOM_WEBHOOK_SECRET` | [[email/call-booking]], [[platform/phone-worker]] |
+| GCP project of the service account: Pub/Sub topic `gmail-push` (Gmail's push account may publish), push subscription `gmail-push-phone` | `GmailClient.watch` (`send/gmail.ts`) names the topic from the key's project; the subscription posts to `phone.wrenautomation.com/webhooks/gmail?token=` | [[processes/inbox-sync]], [[platform/phone-worker]] |
 | Google Postmaster, Gmail domain-wide delegation | the service account in `WREN_GOOGLE_SERVICE_ACCOUNT` and `WREN_SEND_TRANSPORT` | [[email/transport]], [[email/postmaster-day]] |
 | mailifier VPS (`deploy/prober`) | `WREN_VERIFIER` + `WREN_SMTP_PROBE_URL` and token | [[research/verification]] |
 | `deploy/pixel` Cloudflare Worker | the open export read by `inbox/opens.ts` | [[email/open-event]] |

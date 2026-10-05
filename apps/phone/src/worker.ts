@@ -13,6 +13,9 @@
  *   messaging profile and cal.com, into its database (`SmsEvents/ingestFor`,
  *   `CallBookings/ingestFor`). A client's cal.com signs with its own secret, from
  *   `CALCOM_WEBHOOK_SECRETS`; a client with none there is 404.
+ * - `/webhooks/gmail`: Gmail's push through Pub/Sub, `?token=` checked against
+ *   `GMAIL_PUSH_TOKEN`, then `InboxPush/<address>/notify/send` keyed by Pub/Sub's message
+ *   id: the mailbox's inbox loop runs a pass now.
  * - `/api/<handler>`: Wren's operators only, by the token from Wren's sign-in
  *   (auth.wrenautomation.com, any method incl. passkeys); forwarded to the `SmsDesk`
  *   service. Only the handlers the app needs are open; enroll and lift stay on the CLI.
@@ -175,6 +178,52 @@ async function calcomWebhook(req: Request, env: Env, client: string | null): Pro
   return json({ ok: true });
 }
 
+/** Constant time: both sides hashed first, so length leaks nothing either. */
+async function sameSecret(a: string, b: string): Promise<boolean> {
+  const enc = new TextEncoder();
+  const [x, y] = await Promise.all(
+    [a, b].map(async (v) => new Uint8Array(await crypto.subtle.digest("SHA-256", enc.encode(v)))),
+  );
+  let diff = 0;
+  for (let i = 0; i < 32; i++) diff |= (x?.[i] ?? 0) ^ (y?.[i] ?? 1);
+  return diff === 0;
+}
+
+/** Gmail's push: `{message: {data: base64 {emailAddress, historyId}, messageId}}`. */
+async function gmailWebhook(req: Request, env: Env): Promise<Response> {
+  if (!env.GMAIL_PUSH_TOKEN) return json({ error: "webhooks off: no GMAIL_PUSH_TOKEN" }, 503);
+  const token = new URL(req.url).searchParams.get("token") ?? "";
+  if (!(await sameSecret(token, env.GMAIL_PUSH_TOKEN))) return json({ error: "bad token" }, 401);
+  const raw = await req.text();
+  if (raw.length > MAX_BODY) return json({ error: "too large" }, 413);
+  let id: unknown;
+  let address: unknown;
+  try {
+    const { message } = JSON.parse(raw) as { message?: { data?: string; messageId?: unknown } };
+    id = message?.messageId;
+    address = (JSON.parse(atob(message?.data ?? "")) as { emailAddress?: unknown }).emailAddress;
+  } catch {
+    return json({ error: "not a Gmail push" }, 400);
+  }
+  if (typeof id !== "string" || id === "" || typeof address !== "string" || !address.includes("@"))
+    return json({ error: "not a Gmail push" }, 400);
+  let res: Response;
+  try {
+    res = await fetch(
+      ingress(env, `InboxPush/${encodeURIComponent(address.toLowerCase())}/notify/send`),
+      {
+        method: "POST",
+        headers: restateHeaders(env, { "idempotency-key": `gmail-${id}` }),
+        body: "{}",
+      },
+    );
+  } catch {
+    return json({ error: "restate unreachable" }, 502);
+  }
+  if (!res.ok) return json({ error: `restate ${res.status}` }, 502);
+  return json({ ok: true });
+}
+
 /** The signed-in operator, or the refusal. */
 async function operator(req: Request, env: Env): Promise<Signed | Response> {
   if (!env.AUTH_ORIGIN) return json({ error: "sign-in is not set up" }, 503);
@@ -237,6 +286,9 @@ export default {
       const client = wren ? null : clientIn(pathname, site);
       if (!wren && !client) continue;
       return req.method === "POST" ? hook(req, env, client) : json({ error: "POST only" }, 405);
+    }
+    if (pathname === "/webhooks/gmail") {
+      return req.method === "POST" ? gmailWebhook(req, env) : json({ error: "POST only" }, 405);
     }
     if (pathname.startsWith("/api/")) {
       if (req.method !== "POST") return json({ error: "POST only" }, 405);

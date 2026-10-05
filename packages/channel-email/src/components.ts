@@ -64,7 +64,7 @@ export const EMAIL_COMPONENTS = [
     settings: repliesSettingsSchema,
     requires: { components: [SEQUENCES] },
     provides: {
-      services: ["InboxScheduler", "Disposition", "CallBookings"],
+      services: ["InboxScheduler", "InboxPush", "Disposition", "CallBookings"],
       loops: ["InboxScheduler"],
       records: ["email.reply", "email.call"],
       apps: ["inbox"],

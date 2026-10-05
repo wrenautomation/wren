@@ -4,7 +4,13 @@
  */
 import { generateKeyPairSync } from "node:crypto";
 import { describe, expect, it } from "vitest";
-import { GmailApiError, GmailClient, GmailTransport, SEND_AND_READ_SCOPES } from "./gmail.js";
+import {
+  GmailApiError,
+  GmailClient,
+  GmailTransport,
+  gmailPushTopic,
+  SEND_AND_READ_SCOPES,
+} from "./gmail.js";
 import {
   GMAIL_MODIFY_SCOPE,
   GMAIL_SEND_SCOPE,
@@ -425,6 +431,21 @@ describe("the client: tokens and the read side", () => {
     const { client, seen } = build(() => jsonResponse(200, { raw: body.toString("base64url") }));
     expect((await client.getRaw(SENDER, "gmail-9")).equals(body)).toBe(true);
     expect(seen[0]?.url.searchParams.get("format")).toBe("raw");
+  });
+  it("watch asks for inbox changes on the service account's project topic", async () => {
+    const topic = gmailPushTopic("wren-sender@acme-proj.iam.gserviceaccount.com");
+    expect(topic).toBe("projects/acme-proj/topics/gmail-push");
+    const { client, seen } = build(() =>
+      jsonResponse(200, { historyId: "9", expiration: "1760000000000" }),
+    );
+    expect(await client.watch(SENDER, topic)).toBe(1_760_000_000_000);
+    expect(seen[0]?.method).toBe("POST");
+    expect(seen[0]?.url.pathname).toBe("/gmail/v1/users/me/watch");
+    expect(JSON.parse(seen[0]?.body ?? "")).toEqual({
+      topicName: topic,
+      labelIds: ["INBOX"],
+      labelFilterBehavior: "INCLUDE",
+    });
   });
   it("the read side asks for modify, not readonly", () => {
     expect(SEND_AND_READ_SCOPES).toEqual([GMAIL_SEND_SCOPE, GMAIL_MODIFY_SCOPE]);

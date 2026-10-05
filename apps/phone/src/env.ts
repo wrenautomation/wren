@@ -9,6 +9,8 @@ export interface Env {
   CALCOM_WEBHOOK_SECRET?: string;
   /** Each client's cal.com webhook secret, as JSON `{"<client>": "<secret>"}`. Unset = every client's refused. */
   CALCOM_WEBHOOK_SECRETS?: string;
+  /** The token in the Pub/Sub push subscription's URL (`?token=`). Unset = Gmail's push refused. */
+  GMAIL_PUSH_TOKEN?: string;
   /** Restate Cloud ingress, e.g. https://<env>.env.<region>.restate.cloud:8080 */
   RESTATE_INGRESS_URL: string;
   RESTATE_AUTH_TOKEN?: string;

@@ -18,7 +18,9 @@ import {
 } from "../../src/restate/disposition.js";
 import {
   INBOX_SYNC_COMMAND,
+  type InboxPush,
   type InboxScheduler,
+  inboxPush,
   makeInboxScheduler,
 } from "../../src/restate/inbox-scheduler.js";
 import {
@@ -64,6 +66,16 @@ const POLICY = SendPolicy.fromSettings(
 );
 const SYNC_MS = 7_000;
 const TICK_MS = 3_000;
+const NET_MS = 60_000;
+/** Gmail push: `WATCHED` takes a 7-day watch, `REFUSED` is refused, the rest have none (IMAP). */
+const WATCHED = "watched@example.com";
+const REFUSED = "refused@example.com";
+const watchCalls: string[] = [];
+const watch = async (sender: string) => {
+  watchCalls.push(sender);
+  if (sender === REFUSED) throw new Error("topic not found");
+  return sender === WATCHED ? Date.now() + 7 * 86_400_000 : null;
+};
 
 const reader = new FakeReader();
 const llm = new FakeLlm({
@@ -114,7 +126,10 @@ beforeAll(async () => {
         syncMs: SYNC_MS,
         tickMs: TICK_MS,
         classify: true,
+        watch,
+        netMs: NET_MS,
       }),
+      inboxPush,
       makeDisposition({ dbOf: () => pg.db, llm }),
       makePostmasterScheduler({
         db: pg.db,
@@ -243,6 +258,34 @@ describe("InboxScheduler", () => {
     const status = await inbox(SENDER).status();
     expect(status.running).toBe(false);
     expect(status.last?.stats?.replies).toBe(1);
+  });
+
+  it("a watched inbox renews its watch once, polls as a net, and a push runs its pass", async () => {
+    const key = `acme/${WATCHED}`;
+    watchCalls.length = 0;
+    expect((await inbox(key).sync()).delayMs).toBe(NET_MS);
+    expect((await inbox(key).sync()).delayMs).toBe(NET_MS);
+    expect(watchCalls).toEqual([WATCHED]); // 7 days left: no second renewal
+
+    // Gmail names the address only; the claim routes the push to the client's key.
+    const before = (await inbox(key).status()).last?.now;
+    await waitFor(
+      async () => {
+        await ingress().objectClient<InboxPush>({ name: "InboxPush" }, WATCHED).notify();
+        return (await inbox(key).status()).last?.now;
+      },
+      (now) => now !== before,
+    );
+    expect((await inbox(key).status()).last?.now).not.toBe(before);
+  });
+
+  it("a refused watch keeps the usual poll and asks again next pass", async () => {
+    watchCalls.length = 0;
+    const outcome = await inbox(REFUSED).sync();
+    expect(outcome.error).toBeNull();
+    expect(outcome.delayMs).toBe(SYNC_MS);
+    await inbox(REFUSED).sync();
+    expect(watchCalls).toEqual([REFUSED, REFUSED]);
   });
 
   it("start loops until stop", async () => {

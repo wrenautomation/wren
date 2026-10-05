@@ -13,10 +13,21 @@
  *
  * A key's scope names the database its mailbox's replies land in and the
  * `Disposition` key that labels them: Wren's own, or its client's.
+ *
+ * Gmail push: each pass keeps the mailbox's `users.watch` alive, so a change
+ * reaches `InboxPush/<address>/notify` (the phone Worker's `/webhooks/gmail`)
+ * and runs a pass at once. While the watch lives, the loop polls only as a net.
  */
-import type * as restate from "@restatedev/restate-sdk";
+import * as restate from "@restatedev/restate-sdk";
 import { type Notifier, plural } from "@wren/core/notify";
-import { makeLoopObject, runPass, unitOfKey } from "@wren/core/restate";
+import {
+  exclusiveHandler,
+  makeLoopObject,
+  NO_INPUT,
+  runPass,
+  sharedHandler,
+  unitOfKey,
+} from "@wren/core/restate";
 import type { Db } from "@wren/db";
 import type { SharedSuppressions } from "../guards.js";
 import { DAY_MS, type InboxReader, type SyncStats, syncInbox } from "../inbox/sync.js";
@@ -44,6 +55,13 @@ export interface InboxSchedulerDeps {
   classify?: boolean;
   /** Told the counts a pass found (replies; hard bounces and unsubscribes), never the text. */
   notifier?: Notifier;
+  /**
+   * Renew this mailbox's Gmail watch; when it lapses (ms), or null for a mailbox with
+   * no push (IMAP). Unset = no push, the loop polls at `syncMs`.
+   */
+  watch?: (sender: string) => Promise<number | null>;
+  /** Between passes while the watch is live: the net under the push (default 30 min). */
+  netMs?: number;
 }
 
 export const INBOX_SYNC_COMMAND = "outreach inbox sync";
@@ -52,11 +70,13 @@ export function makeInboxScheduler(deps: InboxSchedulerDeps) {
   const syncMs = deps.syncMs ?? 120_000;
   const tickMs = deps.tickMs ?? 60_000;
   const lookbackMs = deps.firstSyncLookbackMs ?? 30 * DAY_MS;
+  const netMs = deps.netMs ?? 30 * 60_000;
 
   return makeLoopObject("InboxScheduler", async (ctx: restate.ObjectContext) => {
     const sender = unitOfKey(ctx.key);
     const scope = deps.scopeOf(ctx.key);
     const now = new Date(await ctx.date.now());
+    const watched = deps.watch ? await keepWatch(ctx, deps.watch, sender, now.getTime()) : false;
     const outcome = await runPass<SyncStats>(ctx, scope.db, now, {
       name: "inbox sync",
       ledger: {
@@ -72,7 +92,7 @@ export function makeInboxScheduler(deps: InboxSchedulerDeps) {
           firstSyncLookbackMs: lookbackMs,
           shared: scope.shared ?? null,
         }),
-      delayAfter: () => syncMs,
+      delayAfter: () => (watched ? netMs : syncMs),
       retryMs: tickMs,
       ...(deps.notifier ? { notifier: deps.notifier } : {}),
     });
@@ -83,6 +103,59 @@ export function makeInboxScheduler(deps: InboxSchedulerDeps) {
     return outcome;
   });
 }
+
+const WATCH_UNTIL = "watch until";
+const LOOP_KEY = "loop key";
+
+/** Gmail drops a watch after 7 days: renewed once under a day is left. True while one is live. */
+async function keepWatch(
+  ctx: restate.ObjectContext,
+  watch: (sender: string) => Promise<number | null>,
+  sender: string,
+  now: number,
+): Promise<boolean> {
+  const until = (await ctx.get<number>(WATCH_UNTIL)) ?? 0;
+  if (until - now > DAY_MS) return true;
+  // A refusal is not retried here: the loop polls at its usual pace and the next pass asks again.
+  const renewed = await ctx.run("renew watch", () =>
+    watch(sender).then(
+      (next) => ({ next, error: null }),
+      (e: unknown) => ({ next: null, error: e instanceof Error ? e.message : String(e) }),
+    ),
+  );
+  if (renewed.error) ctx.console.warn(`gmail watch for ${sender}: ${renewed.error}`);
+  if (renewed.next === null) return until > now;
+  ctx.set(WATCH_UNTIL, renewed.next);
+  ctx.objectSendClient<InboxPush>({ name: "InboxPush" }, sender.toLowerCase()).claim(ctx.key);
+  return true;
+}
+
+/**
+ * Gmail's push by address: Pub/Sub names the mailbox only, so its state holds the
+ * `InboxScheduler` key that watches it (a client's is `<client>/<address>`).
+ */
+export const inboxPush = restate.object({
+  name: "InboxPush",
+  handlers: {
+    /** Set by that loop each time it renews the watch. */
+    claim: exclusiveHandler(
+      { ingressPrivate: true },
+      async (ctx: restate.ObjectContext, key: string): Promise<void> => {
+        ctx.set(LOOP_KEY, key);
+      },
+    ),
+    /** The mailbox changed: one pass now. Before any claim, the address is the key. */
+    notify: sharedHandler(
+      { input: NO_INPUT },
+      async (ctx: restate.ObjectSharedContext): Promise<void> => {
+        const key = (await ctx.get<string>(LOOP_KEY)) ?? ctx.key;
+        ctx.objectSendClient<InboxScheduler>({ name: "InboxScheduler" }, key).sync();
+      },
+    ),
+  },
+});
+
+export type InboxPush = typeof inboxPush;
 
 /** A pointer to the mailbox, not a mirror of it: counts only, journaled so a replay stays quiet. */
 async function tell(

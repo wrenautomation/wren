@@ -70,6 +70,23 @@ A client's cal.com: webhook `https://phone.wrenautomation.com/webhooks/calcom/<c
 triggers, signed with its own secret in `CALCOM_WEBHOOK_SECRETS`. Each booking goes to
 `CallBookings/ingestFor`, into its database (designs/2026-10-04-outbound-per-client.md).
 
+## Gmail push
+
+Made 2026-10-04 in the service account's project (`wrenautomation`) with gcloud as
+william@ (`cd ../autobrowse && pnpm -s autobrowse gcloud-login` when it lapses):
+topic `gmail-push`, publisher `gmail-api-push@system.gserviceaccount.com` (the org's
+domain-restricted sharing was lifted on the project for that one binding, then put
+back), and a push subscription to the Worker:
+
+    T=$(openssl rand -hex 24)
+    printf %s "$T" | npx wrangler secret put GMAIL_PUSH_TOKEN
+    gcloud pubsub subscriptions create gmail-push-phone --project wrenautomation \
+      --topic gmail-push --push-endpoint "https://phone.wrenautomation.com/webhooks/gmail?token=$T" \
+      --ack-deadline 30 --message-retention-duration 1d --expiration-period never
+
+Rotate: the same two steps, `subscriptions update ... --push-endpoint`. Each
+`InboxScheduler` renews its own watch (designs/2026-10-04-webhooks-serverless-round-2.md).
+
 ## Check
 
     curl -s -X POST https://phone.wrenautomation.com/api/threads   # {"error":"sign in"}

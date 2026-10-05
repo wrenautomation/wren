@@ -94,6 +94,10 @@ export function plainMailer(
   };
 }
 
+/** Gmail publishes only to a topic in the API client's own project: the service account's. */
+export const gmailPushTopic = (clientEmail: string): string =>
+  `projects/${clientEmail.split("@")[1]?.split(".")[0]}/topics/gmail-push`;
+
 /**
  * Gmail REST for one service-account key, acting as many senders. One token
  * supplier is cached per sender (never the bearer string): it refreshes
@@ -214,6 +218,14 @@ export class GmailClient {
     return this.request("GET", sender, `/messages/${messageId}`, {
       params: { format: "metadata", metadataHeaders: [...headers] },
     });
+  }
+
+  /** Gmail pushes this inbox's changes to `topicName` (Pub/Sub); returns when the watch lapses (ms). */
+  async watch(sender: string, topicName: string): Promise<number> {
+    const r = await this.request("POST", sender, "/watch", {
+      json: { topicName, labelIds: ["INBOX"], labelFilterBehavior: "INCLUDE" },
+    });
+    return Number(r.expiration);
   }
 
   /** The full RFC 5322 message as bytes. */

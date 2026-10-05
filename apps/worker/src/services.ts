@@ -29,6 +29,7 @@ import {
   expandHome,
   GmailClient,
   GmailTransport,
+  gmailPushTopic,
   ImapReader,
   type InboxReader,
   loadMailboxes,
@@ -59,6 +60,7 @@ import {
   type Campaign,
   DISPOSITION_KEY,
   dailyOpenerCapacity,
+  inboxPush,
   makeCallBookings,
   makeComposeScheduler,
   makeDigestScheduler,
@@ -385,6 +387,15 @@ export async function buildServices(
   const tracer = makeTracer(settings.tracing);
   const syncMs = settings.daemonSyncSeconds * 1000;
   const tickMs = settings.daemonTickSeconds * 1000;
+  // Gmail push for the inboxes Gmail reads (prod only: a local run must not move prod's watches).
+  const imap = new Set(smtpInboxes.map(([address]) => address));
+  const watch =
+    settings.sendTransport === "gmail"
+      ? async (sender: string) =>
+          imap.has(sender)
+            ? null
+            : gmail.watch(sender, gmailPushTopic(loadServiceAccountKey(keyPath).clientEmail))
+      : undefined;
 
   // Postmaster answers for the account that registered the domains; without
   // one named there is no daily pull, and the worker says so once at start.
@@ -475,8 +486,10 @@ export async function buildServices(
       syncMs,
       tickMs,
       classify,
+      ...(watch ? { watch } : {}),
       ...emailNotify,
     }),
+    inboxPush,
     makeDisposition({
       dbOf: (key) => {
         const owner = clientOfKey(key);

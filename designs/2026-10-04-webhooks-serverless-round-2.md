@@ -43,7 +43,7 @@ If Restate bills per action, the options are William's call:
 
 | Seam | Verdict |
 |---|---|
-| Gmail replies (Wren's Workspace inboxes and clients' mailboxes, all on the Gmail API) | **Push next.** `users.watch` → Pub/Sub → push subscription to the phone Worker (`/webhooks/gmail`, a secret in the URL) → `InboxScheduler/<inbox>/sync`. The poll drops to 30 min as a net, and a daily pass renews the watch (it lapses after 7 days). Pub/Sub free tier, $0. Saves about 8,400 entries a day per inbox and brings replies in within seconds. Blocked on `gcloud auth login`. |
+| Gmail replies (Wren's Workspace inboxes and clients' mailboxes, all on the Gmail API) | **Push, built 2026-10-04.** `users.watch` → Pub/Sub → push subscription to the phone Worker (`/webhooks/gmail`, a secret in the URL) → `InboxPush/<address>/notify` → `InboxScheduler/<key>/sync`. The poll drops to 30 min as a net, and each pass renews the watch once under a day is left (it lapses after 7 days). Pub/Sub free tier, $0. Saves about 8,400 entries a day per inbox and brings replies in within seconds. |
 | Fleet inboxes (9, SMTP/IMAP on Inbox Insiders' Workspace) | No Gmail API there, so no watch. IMAP IDLE needs a held connection: the box can hold one when those inboxes start cold sends (14+ days of warmup). Until then, leave their inbox loops unstarted. |
 | Approving a reply | Already direct: `approve` books and sends in the call. No awakeable needed. |
 | Telnyx, cal.com doors | Signed, an idempotency key at Restate, and a unique row in Postgres (`provider_event_id`, booking uid). A replay past Restate's key window still applies once. |
@@ -54,8 +54,9 @@ If Restate bills per action, the options are William's call:
 
 - The opens loop runs hourly on prod (deployed with this doc).
 - William answers the Restate billing question; the matching option above gets its own design.
-- Gmail push is built after `gcloud auth login`.
+- Gmail push is built after `gcloud auth login`. Done 2026-10-04.
 
 ## Decision log
 
 - 2026-10-04: William: "investigate more webhook stuff, and serverless function stuff." Measured from CloudWatch, Logs Insights and Restate's `sys_invocation`. Built only the opens cadence: it is free and removes 9% of journal entries. Gmail push reverses round 1's "keep polling": the poll costs Restate entries, not just latency, and per-client mailboxes multiply it.
+- 2026-10-04: Gmail push built. gcloud signs in by itself now (`autobrowse gcloud-login`). Pub/Sub only tells you the address, so a small `InboxPush` object keyed by address holds the loop key that watches it (a client's is `<client>/<address>`). Each `InboxScheduler` pass renews its watch when under a day is left, so no separate renewal loop. A refused watch keeps the 2 min poll, and the next pass asks again. The 30 min net polls catch anything Pub/Sub drops. The watch is set on prod only (Gmail transport), so a local run never moves prod's watch. The Pub/Sub token sits in the subscription URL and the Worker secret only. Rotate both together (`deploy/phone.md`).

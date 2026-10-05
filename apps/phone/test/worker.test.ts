@@ -240,6 +240,40 @@ describe("cal.com webhook", () => {
   });
 });
 
+describe("gmail push", () => {
+  const push = (data: unknown, id = "pm-1") => ({
+    message: { data: btoa(JSON.stringify(data)), messageId: id },
+    subscription: "projects/p/subscriptions/gmail-push-phone",
+  });
+  const change = { emailAddress: "William@Wren-Automation.net", historyId: "42" };
+  beforeEach(() => {
+    env.GMAIL_PUSH_TOKEN = "tok";
+  });
+
+  it("a push with the token runs the mailbox's pass, keyed by Pub/Sub's message id", async () => {
+    expect((await post("/webhooks/gmail?token=tok", push(change))).status).toBe(200);
+    expect(restateCalls[0]?.url).toBe(
+      "https://restate.test/InboxPush/william%40wren-automation.net/notify/send",
+    );
+    expect(restateCalls[0]?.headers.get("idempotency-key")).toBe("gmail-pm-1");
+  });
+
+  it("refuses a wrong or missing token, and a body that is not a push", async () => {
+    expect((await post("/webhooks/gmail?token=nope", push(change))).status).toBe(401);
+    expect((await post("/webhooks/gmail", push(change))).status).toBe(401);
+    expect((await post("/webhooks/gmail?token=tok", { message: { data: "!!" } })).status).toBe(400);
+    expect((await post("/webhooks/gmail?token=tok", push({ historyId: "1" }))).status).toBe(400);
+    expect(restateCalls).toHaveLength(0);
+  });
+
+  it("answers 502 when Restate fails, so Pub/Sub retries; 503 with no token set", async () => {
+    restateStatus = 500;
+    expect((await post("/webhooks/gmail?token=tok", push(change))).status).toBe(502);
+    delete env.GMAIL_PUSH_TOKEN;
+    expect((await post("/webhooks/gmail?token=tok", push(change))).status).toBe(503);
+  });
+});
+
 describe("the desk", () => {
   it("is closed without a token, and shut when sign-in isn't set up", async () => {
     expect((await post("/api/threads", {})).status).toBe(401);
