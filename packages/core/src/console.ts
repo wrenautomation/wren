@@ -43,7 +43,7 @@ import {
   teamRecord,
   updateClient,
 } from "./clients/index.js";
-import { CHANNELS, type Component, type LoopKey, STAGES } from "./components.js";
+import { CHANNELS, type Component, type LoopKey, type Port, STAGES } from "./components.js";
 import { CONSOLE_ROUTES } from "./console-routes.js";
 import {
   answer,
@@ -609,26 +609,55 @@ export const componentRecord = (
     flows
       .filter((w) => w.nodes.some((n) => n.uses === id))
       .map((w) => ({ id: shownAs(w).id, name: shownAs(w).name }));
-  /** A workflow's nodes, each with what it uses, for the item page's drawing. */
+  /**
+   * Where the number on `uses`'s out port comes from: the part's own, or, for a workflow, the
+   * port of the inner node whose wire feeds it. The team's only: a client's records aren't here.
+   */
+  const countOf = (uses: string | undefined, port: string, seen = new Set<string>()) => {
+    if (!team || !uses || seen.has(uses)) return null;
+    seen.add(uses);
+    const c = all.find((x) => x.id === uses);
+    if (c) return c.out.find((p) => p.id === port)?.count ?? null;
+    const f = workflows.find((x) => x.id === uses);
+    const [node = "", inner = ""] =
+      f?.wires.find((x) => x.to === `out.${port}`)?.from.split(".") ?? [];
+    return countOf(f?.nodes.find((n) => n.id === node)?.uses, inner, seen);
+  };
+  const portsOf = (uses: string | undefined): readonly Port[] =>
+    all.find((x) => x.id === uses)?.out ?? workflows.find((x) => x.id === uses)?.out ?? [];
+  /**
+   * A workflow's nodes, each with what it uses and its main number's source (its first counted
+   * port), and its wires with what moves on each and that number's source, for the drawings.
+   */
   const drawn = (w: Workflow) => ({
     id: w.id,
     name: w.name,
     in: w.in,
     out: w.out,
-    nodes: w.nodes.map((n) => ({
-      id: n.id,
-      uses: n.uses ?? null,
-      name: n.own?.name ?? named(n.uses ?? n.id),
-      note: n.note ?? null,
-      ready: n.uses
-        ? (() => {
-            const c = all.find((x) => x.id === n.uses);
-            const f = flows.find((x) => x.id === n.uses);
-            return c ? readyOf(c) : f ? flowReady(partsIn(f.id, flows, all)) : null;
-          })()
-        : null,
-    })),
-    wires: w.wires,
+    nodes: w.nodes.map((n) => {
+      const c = all.find((x) => x.id === n.uses);
+      const f = workflows.find((x) => x.id === n.uses);
+      const main = portsOf(n.uses)
+        .map((p) => ({ label: p.label, count: countOf(n.uses, p.id) }))
+        .find((p) => p.count);
+      return {
+        id: n.id,
+        uses: n.uses ?? null,
+        name: n.own?.name ?? named(n.uses ?? n.id),
+        note: n.note ?? null,
+        ready: c ? readyOf(c) : f ? flowReady(partsIn(f.id, flows, all)) : null,
+        /** The workflow it opens into: one it uses, or the part's own steps. */
+        opens: f ? f.id : (c?.inside ?? null),
+        count: main ? { ...main.count, label: main.label } : null,
+      };
+    }),
+    wires: w.wires.map((x) => {
+      const [node = "", port = ""] = x.from.split(".");
+      const uses = w.nodes.find((n) => n.id === node)?.uses;
+      const label =
+        (node === "in" ? w.in : portsOf(uses)).find((p) => p.id === port)?.label ?? port;
+      return { ...x, label, count: node === "in" ? null : countOf(uses, port) };
+    }),
   });
   return defineRecord({
     id: COMPONENT,

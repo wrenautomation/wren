@@ -43,6 +43,7 @@ export const PLATFORM = {
     clients: "the client registry",
     team: "Wren's team and their roles",
     marketplace: "every component, and the browser mods",
+    workflows: "every workflow, drawn with live numbers",
     review: "the Friday review of parked ideas",
   },
   records: {

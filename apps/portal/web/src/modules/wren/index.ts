@@ -17,6 +17,7 @@ import {
 } from "./experiments.js";
 import { handlers } from "./handlers.js";
 import { AI_SPEND, AiSpend, idOf } from "./heads.js";
+import { Workflows } from "./workflows.js";
 
 const TEAM = { audience: "team" } as const;
 const overview = { id: "overview", label: "Overview", template: "overview" } as const;
@@ -824,4 +825,25 @@ export const review: Module = {
   ],
 };
 
-export const WREN_APPS = [outbound, inbox, loops, money, pipeline, clients, team, handlers, review];
+/** Wren's business as its workflows, read only, with live numbers. */
+export const workflows: Module = {
+  id: "workflows",
+  name: "Workflows",
+  icon: "board",
+  blurb: "How Wren wins clients and runs, drawn with live numbers.",
+  requires: TEAM,
+  pages: [{ id: "canvas", label: "Canvas", Page: Workflows }],
+};
+
+export const WREN_APPS = [
+  workflows,
+  outbound,
+  inbox,
+  loops,
+  money,
+  pipeline,
+  clients,
+  team,
+  handlers,
+  review,
+];

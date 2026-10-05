@@ -13,6 +13,12 @@ export interface MapBox {
   input?: boolean | undefined;
   /** Faded: not had, not ready. */
   dim?: boolean | undefined;
+  /** Its main number, as a line ("1,204 checked leads"). */
+  count?: string | undefined;
+  /** Opens into more boxes (a workflow inside): drawn as a stack. */
+  stacked?: boolean | undefined;
+  /** What moves on the line from each box in `after`, by that box's id; a newline starts a row. */
+  labels?: Readonly<Record<string, string>> | undefined;
 }
 
 const FlowMapGraph = lazy(() => import("./flow-map-graph.js"));

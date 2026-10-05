@@ -6,7 +6,6 @@
  * and where it's used; it installs part by part until templates.
  */
 import type { Guess, Hypothesis, Port } from "@wren/core/components";
-import type { Wire } from "@wren/core/workflows";
 import {
   Alert,
   Button,
@@ -14,7 +13,6 @@ import {
   FlowMap,
   type FormField,
   HandlerForm,
-  type MapBox,
   type RecordExtras,
   Tag,
 } from "@wren/ui";
@@ -22,22 +20,7 @@ import { type ReactNode, useState } from "react";
 import { call, ME_CHANGED } from "../../api.js";
 import type { PageProps } from "../../module.js";
 import { LIST, QUIET, SPLIT } from "../work/bits.js";
-
-/** A workflow as the server draws it: each node named, with how built what it uses is. */
-interface Drawn {
-  id: string;
-  name: string;
-  in: Port[];
-  out: Port[];
-  nodes: {
-    id: string;
-    uses: string | null;
-    name: string;
-    note: string | null;
-    ready: "ready" | "coming" | "planned" | null;
-  }[];
-  wires: Wire[];
-}
+import { type Drawn, flowBoxes } from "./boxes.js";
 
 type Used = { id: string; name: string }[];
 
@@ -56,33 +39,6 @@ interface Part {
 }
 
 type Detail = Part | { workflow: Drawn; usedIn: Used };
-
-const READY = { coming: "Coming", planned: "In development" } as const;
-
-/**
- * A workflow's nodes as boxes, fed by its own inputs (dashed). Each box links to what it uses;
- * one not built yet is faded and says so.
- */
-function boxesOf(w: Drawn, at: (id: string) => string): MapBox[] {
-  const after = new Map<string, string[]>(w.nodes.map((n) => [n.id, []]));
-  for (const wire of w.wires) {
-    const [from = "", port] = wire.from.split(".");
-    const to = wire.to.split(".")[0] ?? "";
-    after.get(to)?.push(from === "in" ? `in.${port}` : from);
-  }
-  return [
-    ...w.in.map((p) => ({ id: `in.${p.id}`, label: p.label, after: [], input: true })),
-    ...w.nodes.map((n) => ({
-      id: n.id,
-      label: n.name,
-      note: n.ready && n.ready !== "ready" ? READY[n.ready] : undefined,
-      after: [...new Set(after.get(n.id))],
-      href: n.uses ? at(n.uses) : undefined,
-      input: !n.uses,
-      dim: n.ready !== null && n.ready !== "ready",
-    })),
-  ];
-}
 
 const portsLine = (ps: Port[]) => ps.map((p) => p.label).join(", ") || "Nothing";
 
@@ -190,7 +146,11 @@ export function catalogExtras(
     </p>,
   ];
   const drawing = (w: Drawn): ReactNode => (
-    <FlowMap key="inside" boxes={boxesOf(w, at)} label={`What runs inside ${w.name}`} />
+    <FlowMap
+      key="inside"
+      boxes={flowBoxes(w, (n) => (n.uses ? at(n.uses) : undefined))}
+      label={`What runs inside ${w.name}`}
+    />
   );
   if ("workflow" in got) {
     const sections: [string, ReactNode][] = [
