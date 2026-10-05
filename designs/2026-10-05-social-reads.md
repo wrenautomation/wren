@@ -78,6 +78,27 @@ Meta removed the Graph Groups API from every version on 2024-04-22, so no app ca
 - A separate account made for reading risks a ban. Meta checks new accounts with no friends or history, and an account that only joins groups and scrolls reads as a scraper. Expect a checkpoint (phone or ID) within days, then a disable. Joining asks admins to approve, and many groups ask questions first.
 - If it goes ahead, it should be one account made by hand on a real phone number, aged a few weeks with normal use before it reads, capped low (a few groups a day), and run on the desk's realistic Chrome. Until William says yes, groups stay logged out.
 
+### Groups in wren: build brief (2026-10-05, peer ask relaying William)
+
+Groups are a lead source and enrichment. Every group and post we read is wren data; a post that maps to a firm is also a finding on it.
+
+- **Stage.** A `fbGroups` pool stage, Wren's niches only, after `adLibrary`. Each niche lists `groupKeywords` (recruiting: "staffing agency owners", "recruiting agency owners", "recruitment business owners", "healthcare staffing agency", "staffing business"; agencies: "marketing agency owners", "digital agency owners", "agency owners", "social media agency", "web design business"). Per due keyword: one `fb-public GET /groups?q=&n=20`, then the About of each group not read in 30 days, then each post Google showed that we don't hold. A keyword is due again after 7 days.
+- **Pacing.** Two buckets, both over stored rows: 12 searches a day (burst 3) and 80 page reads a day (burst 10), About and posts together. The `adLibrary` stage's 48 reads plus these stay under autobrowse's 200 a day for `fb-public`. Each call is a `unit`, so the journal keeps every read. A 429 stops the pass, and a 4xx is kept as data, as in `ad-library.ts`.
+- **Tables** (main, a new `packages/research/src/social-schema.ts` added to `packages/db/drizzle.config.ts`, since another session holds edits to `research/src/schema.ts`):
+  - `social_groups`: network (`facebook`), ref (the id in the URL), niche, keyword, name, url, `about` jsonb (the About row whole, every field), `hit` jsonb (Google's result), `read_at`, `created_at`. Unique on (network, ref).
+  - `social_posts`: network, group id (FK), ref, url, author, `posted` (as shown), text, `raw` jsonb (post row, comments, Google's hit), `company_id` and `person_id` (nullable FKs), `mapped_by` (`link` | `author` | `name` | null), `read_at`. Unique on (network, ref). An unmapped post is kept with its group, never dropped.
+- **Mapping a post to a firm.** First, a link in the post (`links`, every out-link) whose registrable domain is a firm's `domain`. Second, the author's full name equals exactly one person we hold (first and last name, case-insensitive) in the niche, which gives that person and their firm. Third, a firm's name, of two or more words and unique in the niche, appears in the text as whole words. Otherwise unmapped. Mapping runs on new posts and again when a stage pass finds unmapped posts newer than 90 days, so new firms pick up old posts.
+- **Findings.** A mapped post is a finding: kind `post`, via `facebook-group`, `fact_key` `fbgroup:post:<ref>`, the company and person, `source_url` the post's link. The value holds the group name and url, the author, text, as-shown time, counts, links and comments. It does not set `published_at`, so `postFacts` (the video hook) never picks it. Group-post facts for templates come later, with William's copy.
+- **Out of scope.** Logged-in reads (William's open decision), hooks from group posts, a portal view.
+
+### Exa niche search: build brief (2026-10-05)
+
+Firms by niche and city from Exa's index, on the shared Exa allowance.
+
+- **autobrowse.** `web GET /exa/companies?q=&n=` (n up to 25, default 10): Exa `/search` with `category: "company"`, every result whole (`raw`) plus url, title, and the registrable domain. Meter it in the `exa` mills cap at what Exa charges a search. Use the key ring like the other Exa routes (`src/reach/web.ts`).
+- **wren.** An `exaSearch` pool stage, Wren's niches only: each niche lists `exaQueries` (recruiting: "staffing agency in {city}", "recruiting firm in {city}", "executive search firm in {city}"; agencies: "digital marketing agency in {city}", "web design agency in {city}"), crossed with a niche city list (the 25 largest US metros). One query is one call and one import of source `exa_search`, one row per result, `website` = its domain. Imports dedupe by domain, a known firm gets a sighting, and the niche's screen runs on new firms, as in `ad-library.ts`. A query is due again after 30 days. The bucket is 30 searches a day (burst 5), over the imports. A spent key ring (402) stops the pass. Cost: about $0.005 a search, so 30 a day is about $4.50 a month of the keys' free credits; a spent ring stops, never pays.
+- **Instagram `business_discovery`** is not in this brief: it needs a check of which login our Instagram app uses, done in the main session.
+
 ## Rules
 
 - Never read through Wren's own logged-in Meta or Instagram accounts, or William's personal ones. Those accounts run our ads, and Meta bans accounts that scrape. Use official APIs or logged-out reads only, of firm pages and channels, never a person's private profile.
