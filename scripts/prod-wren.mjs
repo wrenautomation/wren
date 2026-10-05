@@ -17,7 +17,7 @@ if (missing.length) {
   console.error(`deploy/prod.env lacks ${missing.join(", ")}`);
   process.exit(1);
 }
-// Prod's verifier and contact fetcher when the shell sets none: without them the CLI falls back to the fake
+// Prod's verifier, contact fetcher and placement seeds when the shell sets none: without them the CLI falls back to the fake
 // verifier, whose verdicts the movers stage refuses.
 const OPTIONAL = [
   "RESTATE_AUTH_TOKEN",
@@ -26,6 +26,7 @@ const OPTIONAL = [
   "WREN_SMTP_PROBE_TOKEN",
   "WREN_FETCH_CONTACT",
   "WREN_CALCOM_API_KEY",
+  "WREN_PLACEMENT_SEEDS",
 ];
 const env = {
   ...Object.fromEntries(OPTIONAL.filter((k) => prod[k]).map((k) => [k, prod[k]])),
