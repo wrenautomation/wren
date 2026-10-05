@@ -14,6 +14,7 @@ import { loadSettings } from "@wren/config";
 import { type Client, clientRecord } from "@wren/core/clients";
 import { ACCOUNT_SITES } from "@wren/core/components";
 import { componentRecord, handlerRecord, loopRecord } from "@wren/core/console";
+import { MARKETING_RECORDS } from "@wren/core/marketing/records";
 import type { Queryable } from "@wren/db";
 import { deliveryRecords } from "@wren/delivery/records";
 import { REACTIVATION_RECORDS, settingOf } from "@wren/reactivation/records";
@@ -79,6 +80,7 @@ const RECORDS = [
   componentRecord([], null, false),
   ...deliveryRecords({} as Queryable, "synthetic", true),
   ...REACTIVATION_RECORDS,
+  ...MARKETING_RECORDS,
   settingOf({} as Client),
 ].map((t) => t.id);
 

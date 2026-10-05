@@ -70,6 +70,7 @@ export interface PlainMail {
   to: string;
   subject: string;
   text: string;
+  headers?: readonly (readonly [string, string])[];
 }
 
 /**
@@ -89,6 +90,7 @@ export function plainMailer(
       replySubject: null,
       body: m.text,
       messageId: `<${crypto.randomUUID()}@${o.from.split("@")[1]}>`,
+      ...(m.headers ? { headers: m.headers } : {}),
     });
     await gmail.sendRaw(o.mailbox, mime);
   };

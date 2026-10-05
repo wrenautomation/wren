@@ -3,7 +3,7 @@ type: object
 cluster: leads
 universe: live
 status: verified
-verified: 2026-09-28 @ 83459e9
+verified: 2026-10-05 @ 6573a02
 entity: packages/core/src/suppress.ts:72
 ---
 
@@ -25,12 +25,12 @@ Citations: `packages/core/src/suppress.ts:72`, `packages/core/src/schema.ts:261`
 ## Connected to
 
 - **owns:** `suppression_events`
-- **joins:** [[leads/lead]] (`suppression_id`), [[email/thread-event]] (the evidence), [[sms/sms-event]]
+- **joins:** [[leads/consent]] (beats every consent), [[leads/lead]] (`suppression_id`), [[email/thread-event]] (the evidence), [[sms/sms-event]]
 - **looks-like-but-is-not:** [[email/sender-pause]] (our side is paused, theirs is not suppressed)
 
 ## If you change this
 
-- **Hits:** the read gate `activeSuppression` (`packages/channel-email/src/guards.ts`) used by compose, resolution and the send tick; the inbox sync (`packages/channel-email/src/inbox/sync.ts`); SMS STOP handling (`packages/channel-sms/src/events.ts:230`) and grounded opt-outs (`packages/channel-sms/src/classify.ts`); email's bulk import and CSV (`packages/channel-email/src/send/suppress.ts`)
+- **Hits:** the read gate `activeSuppression` (`packages/channel-email/src/guards.ts`) used by compose, resolution and the send tick; the inbox sync (`packages/channel-email/src/inbox/sync.ts`); SMS STOP handling (`packages/channel-sms/src/events.ts:230`) and grounded opt-outs (`packages/channel-sms/src/classify.ts`); email's bulk import and CSV (`packages/channel-email/src/send/suppress.ts`); marketing's `mayMarket`, unsubscribe-everything and the double opt-in lift ([[leads/consent]])
 - **Does not hit:** `leads.status = suppressed` is set separately; the LLM classifiers never write here on their own say
 
 ## Surfaces

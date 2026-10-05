@@ -7,6 +7,7 @@ export default defineConfig({
   schema: [
     "../core/src/schema.ts",
     "../core/src/views.ts",
+    "../core/src/marketing-views.ts",
     "../core/src/clients/schema.ts",
     "../research/src/schema.ts",
     "../channel-email/src/schema.ts",

@@ -83,6 +83,7 @@ export function buildMime(
   ];
   if (email.inReplyTo) headers.push(["In-Reply-To", email.inReplyTo]);
   if (email.references?.length) headers.push(["References", email.references.join(" ")]);
+  for (const [n, v] of email.headers ?? []) headers.push([n, v]);
   headers.push(["MIME-Version", "1.0"]);
   const head = (): string => headers.map(([n, v]) => `${n}: ${assertHeaderSafe(n, v)}`).join(CRLF);
   if (!email.inReplyTo) {

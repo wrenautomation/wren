@@ -38,6 +38,26 @@ export type SuppressionKind = (typeof SUPPRESSION_KINDS)[number];
 export const SUPPRESSION_REASONS = ["opt_out", "bounce", "complaint", "manual", "lifted"] as const;
 export type SuppressionReason = (typeof SUPPRESSION_REASONS)[number];
 
+// Opt-in marketing (designs/2026-10-04-borrowed-ui.md): consent per address, channel and topic.
+export const MARKETING_CHANNELS = ["email", "sms"] as const;
+export type MarketingChannel = (typeof MARKETING_CHANNELS)[number];
+export const CONSENT_STATES = ["pending", "confirmed", "withdrawn"] as const;
+export type ConsentState = (typeof CONSENT_STATES)[number];
+export const CONSENT_SOURCES = [
+  "lander_form",
+  "meta_lead_form",
+  "sms_keyword",
+  "calcom_booking",
+  "preference_center",
+] as const;
+export type ConsentSource = (typeof CONSENT_SOURCES)[number];
+/** How often a person lets one channel market to them: as sent, or at most once a week or month. */
+export const FREQUENCIES = ["as_sent", "weekly", "monthly"] as const;
+export type Frequency = (typeof FREQUENCIES)[number];
+/** A consent's history: its three states, plus the person's own settings and each send. */
+export const CONSENT_EVENTS = [...CONSENT_STATES, "frequency", "paused", "sent"] as const;
+export type ConsentEventKind = (typeof CONSENT_EVENTS)[number];
+
 export const runs = pgTable(
   "runs",
   {
@@ -365,6 +385,89 @@ export const suppressionEvents = pgTable(
   ],
 );
 
+/** What someone can sign up for. `name` is ours; subscribers only ever see `publicName`. */
+export const topics = pgTable(
+  "topics",
+  {
+    id: serial("id").notNull(),
+    name: varchar("name", { length: 64 }).notNull(),
+    publicName: varchar("public_name", { length: 120 }).notNull(),
+    line: text("line").notNull(),
+    channel: varchar("channel", { length: 16, enum: MARKETING_CHANNELS }).notNull(),
+    cadence: varchar("cadence", { length: 64 }).notNull(),
+    /** Shows in the preference center. */
+    public: boolean("public").default(false).notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+  },
+  (t) => [
+    primaryKey({ columns: [t.id], name: "pk_topics" }),
+    unique("uq_topics_name").on(t.name),
+    oneOf("ck_topics_channel", t.channel, MARKETING_CHANNELS),
+  ],
+);
+
+/** One per address, channel and topic. Only `../marketing.ts` writes it. */
+export const consents = pgTable(
+  "consents",
+  {
+    id: serial("id").notNull(),
+    channel: varchar("channel", { length: 16, enum: MARKETING_CHANNELS }).notNull(),
+    address: varchar("address", { length: 320 }).notNull(),
+    topicId: integer("topic_id").notNull(),
+    state: varchar("state", { length: 16, enum: CONSENT_STATES }).notNull(),
+    source: varchar("source", { length: 32, enum: CONSENT_SOURCES }).notNull(),
+    /** The version of the words the person agreed to. */
+    textVersion: varchar("text_version", { length: 64 }).notNull(),
+    frequency: varchar("frequency", { length: 16, enum: FREQUENCIES }).default("as_sent").notNull(),
+    pausedUntil: timestamp("paused_until", { withTimezone: true }),
+    pendingAt: timestamp("pending_at", { withTimezone: true }),
+    confirmedAt: timestamp("confirmed_at", { withTimezone: true }),
+    withdrawnAt: timestamp("withdrawn_at", { withTimezone: true }),
+    lastSentAt: timestamp("last_sent_at", { withTimezone: true }),
+    createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+  },
+  (t) => [
+    primaryKey({ columns: [t.id], name: "pk_consents" }),
+    unique("uq_consents_channel").on(t.channel, t.address, t.topicId),
+    foreignKey({
+      columns: [t.topicId],
+      foreignColumns: [topics.id],
+      name: "fk_consents_topic_id_topics",
+    }),
+    oneOf("ck_consents_channel", t.channel, MARKETING_CHANNELS),
+    oneOf("ck_consents_state", t.state, CONSENT_STATES),
+    oneOf("ck_consents_source", t.source, CONSENT_SOURCES),
+    oneOf("ck_consents_frequency", t.frequency, FREQUENCIES),
+  ],
+);
+
+/** Append only: every change to a consent, with its proof. Same pattern as `suppression_events`. */
+export const consentEvents = pgTable(
+  "consent_events",
+  {
+    id: serial("id").notNull(),
+    consentId: integer("consent_id").notNull(),
+    kind: varchar("kind", { length: 16, enum: CONSENT_EVENTS }).notNull(),
+    /** Who did it: "subscriber", "lander:form", "meta:lead-form", an operator's email. */
+    by: varchar("by", { length: 320 }).notNull(),
+    evidence: jsonb("evidence"),
+    createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+  },
+  (t) => [
+    primaryKey({ columns: [t.id], name: "pk_consent_events" }),
+    index("ix_consent_events_consent_id").on(t.consentId, t.createdAt),
+    foreignKey({
+      columns: [t.consentId],
+      foreignColumns: [consents.id],
+      name: "fk_consent_events_consent_id_consents",
+    }),
+    oneOf("ck_consent_events_kind", t.kind, CONSENT_EVENTS),
+  ],
+);
+
+export type Topic = typeof topics.$inferSelect;
+export type Consent = typeof consents.$inferSelect;
+export type ConsentEvent = typeof consentEvents.$inferSelect;
 export type Run = typeof runs.$inferSelect;
 export type ImportBatch = typeof imports.$inferSelect;
 export type ImportError = typeof importErrors.$inferSelect;

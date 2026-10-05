@@ -19,6 +19,9 @@
  * - `/api/<handler>`: Wren's operators only, by the token from Wren's sign-in
  *   (auth.wrenautomation.com, any method incl. passkeys); forwarded to the `SmsDesk`
  *   service. Only the handlers the app needs are open; enroll and lift stay on the CLI.
+ * - `/marketing/<handler>`: the lander's signup form and preference center, forwarded to the
+ *   `Marketing` service. No sign-in: a signup carries the lander's signature and a
+ *   preference change its signed link, both checked by the service.
  * - everything else: the static app in public/.
  *
  * The Worker holds no data: the inbox is Postgres, read through Restate.
@@ -43,6 +46,13 @@ export const DESK_HANDLERS: ReadonlySet<string> = new Set([
   "pushKey",
   "subscribe",
   "unsubscribe",
+]);
+
+export const MARKETING_HANDLERS: ReadonlySet<string> = new Set([
+  "signUp",
+  "confirm",
+  "prefs",
+  "set",
 ]);
 
 const MAX_BODY = 64 * 1024;
@@ -275,6 +285,33 @@ async function desk(req: Request, env: Env, handler: string): Promise<Response> 
   });
 }
 
+/** The lander's marketing calls, passed through as they are; the service checks each one. */
+async function marketing(req: Request, env: Env, handler: string): Promise<Response> {
+  if (!MARKETING_HANDLERS.has(handler)) return json({ error: "not found" }, 404);
+  if (!(req.headers.get("content-type") ?? "").startsWith("application/json")) {
+    return json({ error: "json only" }, 415);
+  }
+  const body = await req.text();
+  if (body.length > MAX_BODY) return json({ error: "too large" }, 413);
+  let res: Response;
+  try {
+    res = await fetch(ingress(env, `Marketing/${handler}`), {
+      method: "POST",
+      headers: restateHeaders(env),
+      body: body || "{}",
+    });
+  } catch {
+    return json({ error: "restate unreachable" }, 502);
+  }
+  return new Response(res.body, {
+    status: res.status,
+    headers: {
+      "content-type": res.headers.get("content-type") ?? "application/json",
+      "cache-control": "no-store",
+    },
+  });
+}
+
 export default {
   async fetch(req: Request, env: Env): Promise<Response> {
     const { pathname } = new URL(req.url);
@@ -289,6 +326,10 @@ export default {
     }
     if (pathname === "/webhooks/gmail") {
       return req.method === "POST" ? gmailWebhook(req, env) : json({ error: "POST only" }, 405);
+    }
+    if (pathname.startsWith("/marketing/")) {
+      if (req.method !== "POST") return json({ error: "POST only" }, 405);
+      return marketing(req, env, pathname.slice("/marketing/".length));
     }
     if (pathname.startsWith("/api/")) {
       if (req.method !== "POST") return json({ error: "POST only" }, 405);

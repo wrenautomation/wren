@@ -3,7 +3,7 @@ type: object
 cluster: platform
 universe: live
 status: verified
-verified: 2026-10-04 @ 4beff56
+verified: 2026-10-05 @ 6573a02
 entity: apps/phone/src/worker.ts:1
 ---
 
@@ -13,7 +13,7 @@ entity: apps/phone/src/worker.ts:1
 
 ## Why this shape
 
-The Worker holds no data (`worker.ts:1`). Webhooks are signature-checked there and handed to `SmsEvents/ingest/send` with the event id as idempotency key; `/webhooks/calcom` checks cal.com's HMAC and hands bookings to `CallBookings/ingest/send` keyed by trigger + uid + start ([[email/call-booking]]); a client's come in at `/webhooks/telnyx/<client>` and `/webhooks/calcom/<client>` (`clientIn`, `worker.ts:66`), wrapped as `{client, body}` for `SmsEvents/ingestFor` and `CallBookings/ingestFor`, cal.com's checked against that client's secret; `/webhooks/gmail` takes Gmail's push through Pub/Sub, checks `?token=` against `GMAIL_PUSH_TOKEN` and hands the address to `InboxPush/<address>/notify/send` keyed by Pub/Sub's message id ([[processes/inbox-sync]]); `/api/<handler>` forwards calls to `SmsDesk` for Wren's operators only, and only the handlers the app needs are open. Sign-in is Wren's shared one (auth.wrenautomation.com, any method, passkeys too): the app sends the 15-minute token and the Worker checks it and its operator flag (`worker.ts:86`), as the portal does. A client's token is turned away.
+The Worker holds no data (`worker.ts:1`). Webhooks are signature-checked there and handed to `SmsEvents/ingest/send` with the event id as idempotency key; `/webhooks/calcom` checks cal.com's HMAC and hands bookings to `CallBookings/ingest/send` keyed by trigger + uid + start ([[email/call-booking]]); a client's come in at `/webhooks/telnyx/<client>` and `/webhooks/calcom/<client>` (`clientIn`, `worker.ts:66`), wrapped as `{client, body}` for `SmsEvents/ingestFor` and `CallBookings/ingestFor`, cal.com's checked against that client's secret; `/webhooks/gmail` takes Gmail's push through Pub/Sub, checks `?token=` against `GMAIL_PUSH_TOKEN` and hands the address to `InboxPush/<address>/notify/send` keyed by Pub/Sub's message id ([[processes/inbox-sync]]); `/api/<handler>` forwards calls to `SmsDesk` for Wren's operators only, and only the handlers the app needs are open. `/marketing/<handler>` passes the lander's signup and preference-center calls to `Marketing` with no sign-in (`worker.ts:289`): the service checks the lander's signature or the signed link ([[leads/consent]]). Sign-in is Wren's shared one (auth.wrenautomation.com, any method, passkeys too): the app sends the 15-minute token and the Worker checks it and its operator flag (`worker.ts:86`), as the portal does. A client's token is turned away.
 
 ## Shape
 

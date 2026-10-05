@@ -253,6 +253,14 @@ describe("what goes on the wire", () => {
     expect(() => buildMime(mail({ to: "x@y.com\r\nBcc: z@w.com" }))).toThrow("line break");
   });
 
+  it("carries a marketing mail's own headers, and refuses one with a line break", () => {
+    const one = ["List-Unsubscribe-Post", "List-Unsubscribe=One-Click"] as const;
+    expect(buildMime(mail({ headers: [one] })).toString()).toContain(
+      "\r\nList-Unsubscribe-Post: List-Unsubscribe=One-Click\r\n",
+    );
+    expect(() => buildMime(mail({ headers: [["X", "a\r\nBcc: z@w.com"]] }))).toThrow("line break");
+  });
+
   it("a message without our id is refused before anything leaves", async () => {
     const { client, seen } = build(accepted);
     await expect(new GmailTransport(client).send(mail({ messageId: "  " }))).rejects.toMatchObject({

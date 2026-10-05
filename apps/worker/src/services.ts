@@ -68,6 +68,7 @@ import {
   makeEmailConsole,
   makeEvolution,
   makeInboxScheduler,
+  makeMarketing,
   makeOpensScheduler,
   makePlacementScheduler,
   makePoolScheduler,
@@ -129,6 +130,7 @@ import {
   makeContent,
   restateSites,
 } from "@wren/core/content/restate";
+import { MARKETING_RECORDS } from "@wren/core/marketing/records";
 import { namedFor } from "@wren/core/notify";
 import { clientKey, clientOfKey } from "@wren/core/restate";
 import { cachedDb, clientDatabaseName, clientDatabaseUrl, createDb } from "@wren/db";
@@ -535,6 +537,21 @@ export async function buildServices(
     // cal.com's booking webhook, through the phone Worker: a booked lead stops getting mail.
     // A client's comes in by its own path and secret, into its database.
     makeCallBookings({ db, clientDb }),
+    // The lander's signup form and preference center, through the phone Worker. Wren's own
+    // lists only; the confirm email goes from portal@.
+    makeMarketing({
+      db,
+      shared: settings.siteExportToken ?? null,
+      site: settings.siteBaseUrl.replace(/\/+$/, ""),
+      send:
+        settings.portalFrom && settings.portalMailbox
+          ? plainMailer(gmail, {
+              mailbox: settings.portalMailbox,
+              from: settings.portalFrom,
+              name: "Wren",
+            })
+          : null,
+    }),
   ];
   // The queue-keeper is bound only when asked to hold a queue; 0 means every enrollment is by hand.
   if (settings.composeDaysAhead > 0) {
@@ -852,6 +869,7 @@ export async function buildServices(
         ...emailRecords(roster, policy),
         ...BOOKS_RECORDS,
         ...MARKETING_NUMBERS,
+        ...MARKETING_RECORDS,
         clientRecord,
       ],
       components: COMPONENTS,

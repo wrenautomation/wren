@@ -323,3 +323,24 @@ describe("the desk", () => {
     expect(await (await call("/")).text()).toContain("app");
   });
 });
+
+describe("the lander's marketing calls", () => {
+  it("pass to the Marketing service as they are, without a sign-in", async () => {
+    const res = await post("/marketing/prefs", { token: "t" });
+    expect(res.status).toBe(200);
+    expect(restateCalls[0]?.url).toBe("https://restate.test/Marketing/prefs");
+    expect(restateCalls[0]?.headers.get("authorization")).toBe("Bearer rt");
+  });
+
+  it("only its four handlers, only POSTed JSON", async () => {
+    expect((await post("/marketing/withdraw", {})).status).toBe(404);
+    expect((await call("/marketing/prefs")).status).toBe(405);
+    const form = await call("/marketing/set", {
+      method: "POST",
+      headers: { "content-type": "application/x-www-form-urlencoded" },
+      body: "a=1",
+    });
+    expect(form.status).toBe(415);
+    expect(restateCalls).toHaveLength(0);
+  });
+});

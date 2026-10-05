@@ -37,6 +37,8 @@ export interface OutgoingEmail {
   readonly pixelUrl?: string | null;
   /** Added as `?r=` to the sign-off's site link, so a visit names this message. */
   readonly linkCode?: string | null;
+  /** More headers, as named: a marketing mail's `List-Unsubscribe` and `List-Unsubscribe-Post`. */
+  readonly headers?: readonly (readonly [string, string])[];
 }
 
 /** What came back: our id, plus the provider's handles on it. */

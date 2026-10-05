@@ -9,6 +9,7 @@ A catalog, not a waterfall. Each row names the cards whose **If you change this*
 | a column on `companies`, `people`, `leads` | [[leads/company]], [[leads/person]], [[leads/lead]] | `packages/core/src/views.ts`, [[processes/import]], [[processes/migrate]] |
 | which firms are no buyer (`decline_reason`, chains, a niche's screen rule) | [[leads/company]] | `packages/core/src/ingest/screen.ts`, [[platform/niche]], [[processes/import]], [[processes/pool-feed]] (`inPlay`) |
 | how titles rank (`role_rank`) | [[leads/person]] | `packages/core/src/views.ts`, [[processes/compose]], [[processes/migrate]] |
+| who may get marketing | [[leads/consent]] | [[leads/suppression]], [[platform/phone-worker]] |
 | what counts as suppressed | [[leads/suppression]] | [[processes/inbox-sync]], [[processes/sms-tick]], `packages/channel-email/src/guards.ts` |
 | a research stage or its spend | [[processes/pool-feed]] | [[research/enrichment]], [[research/contact-candidate]], [[research/verification]], [[research/lead-check]], [[platform/settings]] (`WREN_POOL_MODEL_STAGES`) |
 | an `.email` file or a `{key}` | [[email/template]] | [[email/sequence]], [[processes/compose]] |
@@ -56,6 +57,7 @@ Nothing in this repo references these; they break silently.
 | Consumer | Points at | Recorded on |
 |---|---|---|
 | `../lander` (`README.md:11`, `src/data/offers.json`, `PRODUCT.md`) | `packages/offers` via `pnpm offers:export`; `scripts/gates.sh:13` checks the snapshot | [[platform/offer]] |
+| `../lander/functions/api/subscribe.ts`, `../lander/functions/prefs/` (`WREN_MARKETING_URL` in `wrangler.toml`, `EXPORT_TOKEN`) | `phone.wrenautomation.com/marketing/<handler>` → `Marketing`; the signup signature and the link key both derive from `WREN_SITE_EXPORT_TOKEN` | [[leads/consent]], [[platform/phone-worker]] |
 | `../lander/functions/v/[id].ts` (`VIDEOS_ORIGIN` in `wrangler.toml`) | `<VIDEOS_ORIGIN>/v/<id>.json` as `packages/video/src/publish.ts` writes it; the CloudFront domain from `deploy/terraform/videos.tf` | [[reactivation/demo-video]] |
 | `../autobrowse/walkthrough/03-meta-app.md` | `walkthrough/02-meta-ads.md` (link) | [[ads/ad-launch]] |
 | autobrowse's `sites` service (same Restate Cloud) | called by name from `packages/core/src/content/restate.ts:21`; Meta, LinkedIn, YouTube, X, TikTok, Instagram go through it | [[content/platform]] |

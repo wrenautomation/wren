@@ -240,6 +240,7 @@ describe("handler forms", () => {
     "Content/reply": "posts",
     "ReachDesk/reply": "sends",
     "ReachDesk/enroll": "sends",
+    "Marketing/signUp": "sends",
   };
   type Options = { input?: unknown; ingressPrivate?: boolean; metadata?: { effect?: string } };
   const optionsOf = (fn: object): Options => {

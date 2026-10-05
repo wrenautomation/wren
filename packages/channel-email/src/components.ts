@@ -103,4 +103,19 @@ export const EMAIL_COMPONENTS = [
     },
     effects: ["spends"],
   }),
+  defineComponent({
+    id: "email.marketing",
+    name: "Opt-in marketing",
+    blurb: "Signups with proof, a preference center, and one rule for who may get mail.",
+    icon: "people",
+    for: "client",
+    ready: false,
+    missing: ["Wren's own lists only; no marketing sender yet"],
+    requires: { components: [] },
+    provides: {
+      services: ["Marketing"],
+      records: ["marketing.subscriber", "marketing.topic"],
+    },
+    effects: ["sends"],
+  }),
 ];
