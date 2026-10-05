@@ -15,7 +15,7 @@ import { randomUUID } from "node:crypto";
 import { loadSettings } from "@wren/config";
 import { type Company, companies, leads, type Suppression, suppressions } from "@wren/core";
 import { FakeCalendar } from "@wren/core/calendar";
-import type { Db } from "@wren/db";
+import { atomic, createDb, type Db, type Queryable } from "@wren/db";
 import { startTestPostgres, type TestPostgres, truncate } from "@wren/db/testing";
 import { eq, sql } from "drizzle-orm";
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
@@ -29,7 +29,13 @@ import {
   verifications,
 } from "../../src/schema.js";
 import { addBusinessDays, PlainDate } from "../../src/send/dates.js";
-import { recordStop, type SendDueOptions, sendDue, stopCompany } from "../../src/send/deliver.js";
+import {
+  lockSender,
+  recordStop,
+  type SendDueOptions,
+  sendDue,
+  stopCompany,
+} from "../../src/send/deliver.js";
 import { SendPolicy } from "../../src/send/policy.js";
 import { reconcile } from "../../src/send/reconcile.js";
 import { seededRng } from "../../src/send/rng.js";
@@ -149,9 +155,9 @@ async function patchMessage(id: number, patch: Partial<Message>): Promise<void> 
 async function addSentMessage(
   enrollment: Enrollment,
   sentAt: Date,
-  opts: { subject?: string; stepIndex?: number } = {},
+  opts: { subject?: string; stepIndex?: number; on?: Queryable } = {},
 ): Promise<Message> {
-  const [row] = await db()
+  const [row] = await (opts.on ?? db())
     .insert(messages)
     .values({
       enrollmentId: enrollment.id,
@@ -1023,6 +1029,50 @@ describe("overlapping ticks", () => {
     expect(rows.map((r) => r.state)).toEqual(["sent", "sent", "sent"]);
     expect(new Set(all.map((e) => e.messageId)).size).toBe(3);
     expect(new Set(rows.map((r) => r.messageId))).toEqual(new Set(all.map((e) => e.messageId)));
+  });
+
+  it("a claim waits for another claim on its inbox and counts that send", async () => {
+    const live = await enrollOne("lock.example", "jane@lock.example");
+    const { enrollment: past } = await stoppedEnrollmentThatAlreadySent(
+      "lock-history.example",
+      "old@lock-history.example",
+      plus(NOW, -10 * DAY),
+    );
+    // A zombie attempt's claim on the same inbox: written its send, not yet committed.
+    const zombie = createDb(pg.url, { max: 1 });
+    let release!: () => void;
+    const held = new Promise<void>((r) => {
+      release = r;
+    });
+    let holding!: () => void;
+    const holds = new Promise<void>((r) => {
+      holding = r;
+    });
+    const claim = atomic(zombie.db, async (tx) => {
+      await lockSender(tx, SENDER_A);
+      await addSentMessage(past, NOW, { stepIndex: 1, on: tx });
+      holding();
+      await held;
+    });
+    await holds;
+    const ticking = tick(console_(), {
+      policy: policyFrom({ WREN_COLD_SENDS_PER_INBOX_PER_DAY: "1" }),
+    });
+    for (let i = 0; i < 100; i++) {
+      const [row] = await db().execute<{ n: number }>(
+        sql`SELECT count(*)::int AS n FROM pg_locks WHERE locktype = 'advisory' AND NOT granted`,
+      );
+      if (row?.n === 1) break;
+      await new Promise((r) => setTimeout(r, 50));
+    }
+    release();
+    await claim;
+    await zombie.close();
+
+    const stats = await ticking;
+    expect(stats.sent).toBe(0);
+    expect(stats.senders_capped).toBe(1);
+    expect((await step(live, 0)).state).toBe("approved");
   });
 
   it("a stop by another tick holds back the step this walk still thinks is live", async () => {

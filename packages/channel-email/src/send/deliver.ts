@@ -730,6 +730,7 @@ async function pacedUnderLock(
   message: Message,
   ctx: SendContext,
 ): Promise<boolean> {
+  await lockSender(tx, enrollment.sender);
   const instant = sql`coalesce(${messages.sentAt}, ${messages.attemptedAt})`;
   const [dayStart, dayEnd] = ctx.policy.localDayBounds(ctx.now);
   const [row] = await tx
@@ -760,6 +761,15 @@ async function pacedUnderLock(
     return false;
   }
   return true;
+}
+
+/**
+ * One claim per inbox at a time, to commit. Two claims on one inbox (a zombie Lambda
+ * attempt beside its retry) would both count the day's sends before either writes,
+ * and one message would pass the cap. Held only for the claim; no network inside.
+ */
+export async function lockSender(tx: Queryable, sender: string): Promise<void> {
+  await tx.execute(sql`SELECT pg_advisory_xact_lock(hashtext(${`send: ${sender}`}))`);
 }
 
 /** The calendar asked at most once a pass, and only when an email needs times. */
