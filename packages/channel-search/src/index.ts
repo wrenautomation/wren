@@ -6,4 +6,5 @@ export * from "./keywords.js";
 export * from "./propose.js";
 export * from "./schema.js";
 export * from "./site.js";
+export * from "./site-days.js";
 export * from "./sync.js";

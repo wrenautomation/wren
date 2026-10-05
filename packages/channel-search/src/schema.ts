@@ -199,3 +199,47 @@ export const searchProposals = pgTable(
   ],
 );
 export type SearchProposal = typeof searchProposals.$inferSelect;
+
+/** A site day's channel: the visitor's first touch, `other` for a touch that names none, `direct` for no touch. */
+export const SITE_CHANNELS = [
+  "email",
+  "sms",
+  "ads",
+  "content",
+  "search",
+  "reach",
+  "other",
+  "direct",
+] as const;
+export type SiteChannel = (typeof SITE_CHANNELS)[number];
+
+/**
+ * The lander's visits rolled up per day, first-touch channel and campaign. Counts only: a
+ * visitor id never lands here. Each daily pass recomputes from the export and upserts, so a
+ * re-read overwrites and never adds.
+ */
+export const siteDays = pgTable(
+  "site_days",
+  {
+    day: date("day").notNull(),
+    channel: varchar("channel", { length: 16, enum: SITE_CHANNELS }).notNull(),
+    /** `utm_campaign` of the first touch, "" when none. */
+    campaign: varchar("campaign", { length: 100 }).notNull(),
+    /** Visitors seen that day. */
+    visits: integer("visits").notNull(),
+    /** Visitors seen for the first time that day. */
+    firstTouches: integer("first_touches").notNull(),
+    /** Pitch-page applications. */
+    forms: integer("forms").notNull(),
+    /** Clicks on a booking link (`/book/<offer>`). */
+    bookings: integer("bookings").notNull(),
+    /** Views of an offer's video page (`/watch/<offer>`). */
+    watchPlays: integer("watch_plays").notNull(),
+    syncedAt: timestamp("synced_at", { withTimezone: true }).defaultNow().notNull(),
+  },
+  (t) => [
+    primaryKey({ columns: [t.day, t.channel, t.campaign], name: "pk_site_days" }),
+    oneOf("ck_site_days_channel", t.channel, SITE_CHANNELS),
+  ],
+);
+export type SiteDay = typeof siteDays.$inferSelect;

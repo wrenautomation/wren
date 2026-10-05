@@ -85,7 +85,7 @@ export function formatLaunches(rows: AdLaunch[]): string[] {
   );
 }
 
-/** What an ad set did over the watched window, from one adset-level insight row. */
+/** What an ad set did over the watched window, from adset-level insight rows. */
 export interface AdsetResult {
   adsetId: string;
   campaignId: string | null;
@@ -125,9 +125,22 @@ export function judge(
   o: { pauseAfterUsd: number },
 ): Verdict[] {
   const byAdset = new Map<string, AdsetResult>();
+  // Daily rows (one per ad set per day) sum to the window.
   for (const row of rows) {
     const r = resultOf(row);
-    if (r) byAdset.set(r.adsetId, r);
+    if (!r) continue;
+    const had = byAdset.get(r.adsetId);
+    byAdset.set(
+      r.adsetId,
+      had
+        ? {
+            ...had,
+            spendUsd: had.spendUsd + r.spendUsd,
+            clicks: had.clicks + r.clicks,
+            results: had.results + r.results,
+          }
+        : r,
+    );
   }
   const out: Verdict[] = [];
   for (const launch of launches) {

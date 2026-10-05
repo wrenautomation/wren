@@ -85,6 +85,7 @@ const INSIGHTS = z
   .looseObject({
     preset: z.string().nullish().describe("today, yesterday, last_7d, last_30d or maximum"),
     level: z.string().nullish().describe("account, campaign, adset or ad"),
+    daily: z.boolean().nullish().describe("One row per day"),
   })
   .nullish();
 
@@ -158,7 +159,11 @@ export function makeAds(deps: AdsDeps) {
         { input: INSIGHTS },
         async (
           ctx: restate.Context,
-          req: { preset?: string; level?: "account" | "campaign" | "adset" | "ad" } = {},
+          req: {
+            preset?: string;
+            level?: "account" | "campaign" | "adset" | "ad";
+            daily?: boolean;
+          } = {},
         ) => ads(ctx).insights(req),
       ),
     },

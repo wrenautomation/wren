@@ -1,7 +1,8 @@
 /**
  * `SearchWatch/default`: once a day, Search Console into `search_days` and
  * each sitemap page's index state into `search_pages`; a page that leaves or
- * enters the index is one notice. On the first pass of a Monday it sends
+ * enters the index is one notice. One more step rolls the lander's export
+ * into `site_days`. On the first pass of a Monday it sends
  * `SearchWeek.run` once: that one waits on the Mac's desk (Google and
  * Perplexity refuse the box), so the daily read never waits on it.
  *
@@ -12,7 +13,7 @@
  * its desk, then carries on.
  */
 import * as restate from "@restatedev/restate-sdk";
-import type { FetchLike } from "@wren/channel-email";
+import { type FetchLike, SiteExportError, siteExport } from "@wren/channel-email";
 import { recordedRun } from "@wren/core";
 import { SiteCallError, type SiteClient } from "@wren/core/content";
 import type { Notifier } from "@wren/core/notify";
@@ -25,6 +26,7 @@ import { type SearchConsoleClient, sitemapUrls } from "../console.js";
 import { discoverKeywords, fanOut } from "../keywords.js";
 import { ENGINES, type Engine } from "../schema.js";
 import { siteText } from "../site.js";
+import { rollupSite, upsertSiteDays } from "../site-days.js";
 import { formatChanges, type SyncStats, syncSearch } from "../sync.js";
 
 export const SEARCH_KEY = "default";
@@ -47,6 +49,8 @@ export interface SearchDeps {
   origin: string;
   fetch: FetchLike;
   notifier?: Notifier;
+  /** The lander's `/api/export`, rolled into `site_days` each pass; unset = no site days. */
+  siteExport?: { baseUrl: string; exportToken: string };
 }
 
 export interface SearchWeekDeps extends SearchDeps {
@@ -61,8 +65,10 @@ export const weekOf = (d: Date) =>
 
 type SearchWeekApi = { run: (ctx: restate.Context, req: { today: string }) => Promise<unknown> };
 
+type WatchStats = SyncStats & { week: string | null; site?: { days: number } | { error: string } };
+
 export function makeSearchWatch(deps: SearchDeps) {
-  return makeLoopObject<SyncStats & { week: string | null }>("SearchWatch", async (ctx) => {
+  return makeLoopObject<WatchStats>("SearchWatch", async (ctx) => {
     const now = new Date(await ctx.date.now());
     const today = dayOf(now);
     const outcome = await runPass(ctx, deps.db, now, {
@@ -77,12 +83,30 @@ export function makeSearchWatch(deps: SearchDeps) {
           today,
           runId,
         });
-        return { ...stats, week: null as string | null };
+        return { ...stats, week: null } as WatchStats;
       },
       delayAfter: () => DAY_MS,
       retryMs: DAY_MS / 4,
       ...(deps.notifier ? { notifier: deps.notifier } : {}),
     });
+    const site = deps.siteExport;
+    if (site) {
+      // The lander's visits, per day and first touch: one step, never failing the pass.
+      const got = await ctx.run("site days", async () => {
+        try {
+          const o = { ...site, fetch: deps.fetch };
+          const [hits, apps] = await Promise.all([
+            siteExport("hits", o),
+            siteExport("applications", o),
+          ]);
+          return { days: await upsertSiteDays(deps.db, rollupSite(hits, apps)) };
+        } catch (err) {
+          if (!(err instanceof SiteExportError)) throw err;
+          return { error: err.message };
+        }
+      });
+      if (outcome.stats) outcome.stats.site = got;
+    }
     const changes = outcome.stats?.changes ?? [];
     if (deps.notifier && changes.length) {
       const notifier = deps.notifier;

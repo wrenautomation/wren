@@ -791,6 +791,9 @@ export async function buildServices(
       origin: settings.searchOrigin,
       fetch: (url: string, init?: RequestInit) => fetch(url, init),
       ...searchNotify,
+      ...(settings.siteExportToken
+        ? { siteExport: { baseUrl: settings.siteBaseUrl, exportToken: settings.siteExportToken } }
+        : {}),
     };
     services.push(
       makeSearchWatch(search),

@@ -3,7 +3,8 @@
  * against `ad_launches`. An active launch that spent the guard amount with
  * no clicks and no results is stopped through `Ads.stop` (journaled, so a
  * retry never stops twice), and every pass with active launches is one
- * message to the channel. It only ever stops spend.
+ * message to the channel. It only ever stops spend. The 7 days it reads are
+ * kept in `ad_days`, one row per ad set and day, for the Marketing app.
  */
 import * as restate from "@restatedev/restate-sdk";
 import type { Notifier } from "@wren/core/notify";
@@ -11,6 +12,7 @@ import { errorText, makeLoopObject, type PassOutcome, setLastPass } from "@wren/
 import type { Db } from "@wren/db";
 import type { InsightRow } from "./ads.js";
 import { ideaFromVerdict, isWinner } from "./bridge.js";
+import { upsertAdDays } from "./days.js";
 import { activeLaunches, formatVerdicts, judge, type Verdict } from "./launches.js";
 
 export const WATCH_KEY = "default";
@@ -24,7 +26,7 @@ export const DEFAULT_PAUSE_AFTER_USD = 50;
 type AdsService = {
   insights: (
     ctx: restate.Context,
-    req: { preset?: string; level?: "account" | "campaign" | "adset" | "ad" },
+    req: { preset?: string; level?: "account" | "campaign" | "adset" | "ad"; daily?: boolean },
   ) => Promise<InsightRow[]>;
   stop: (ctx: restate.Context, req: { campaignId: string; reason?: string }) => Promise<void>;
 };
@@ -47,6 +49,8 @@ export interface AdsWatchDeps {
 
 export interface WatchStats {
   active: number;
+  /** Ad set days written to `ad_days`. */
+  days: number;
   verdicts: {
     campaignId: string;
     name: string;
@@ -67,10 +71,17 @@ export function makeAdsWatch(deps: AdsWatchDeps) {
     const now = new Date(await ctx.date.now());
     const ads = ctx.serviceClient<AdsService>({ name: "Ads" });
     const launches = await ctx.run("active launches", () => activeLaunches(deps.db));
-    const stats: WatchStats = { active: launches.length, verdicts: [], failed: [], ideas: [] };
+    const stats: WatchStats = {
+      active: launches.length,
+      days: 0,
+      verdicts: [],
+      failed: [],
+      ideas: [],
+    };
     let verdicts: Verdict[] = [];
     if (launches.length > 0) {
-      const rows = await ads.insights({ preset: "last_7d", level: "adset" });
+      const rows = await ads.insights({ preset: "last_7d", level: "adset", daily: true });
+      stats.days = await ctx.run("ad days", () => upsertAdDays(deps.db, rows));
       verdicts = judge(launches, rows, { pauseAfterUsd });
       for (const v of verdicts) {
         let paused = false;

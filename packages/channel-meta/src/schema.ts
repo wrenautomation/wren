@@ -4,7 +4,19 @@
  * person reads the rest back without Ads Manager.
  */
 import { baseColumns, oneOf } from "@wren/db/columns";
-import { index, jsonb, pgTable, real, timestamp, varchar } from "drizzle-orm/pg-core";
+import {
+  date,
+  doublePrecision,
+  index,
+  integer,
+  jsonb,
+  pgTable,
+  primaryKey,
+  real,
+  text,
+  timestamp,
+  varchar,
+} from "drizzle-orm/pg-core";
 import type { LaunchSpec } from "./ads.js";
 
 export const LAUNCH_STATUSES = ["paused", "active", "stopped"] as const;
@@ -36,3 +48,37 @@ export const adLaunches = pgTable(
 );
 
 export type AdLaunch = typeof adLaunches.$inferSelect;
+
+/**
+ * What each ad set did each day, as Meta's insights said it on the last read. Meta forgets
+ * nothing, but a read is a call: `AdsWatch` keeps the 7 days it reads, so the Marketing app
+ * reads rows. Upserted per ad set and day, so a re-read overwrites and never adds.
+ */
+export const adDays = pgTable(
+  "ad_days",
+  {
+    day: date("day").notNull(),
+    adsetId: varchar("adset_id", { length: 32 }).notNull(),
+    campaignId: varchar("campaign_id", { length: 32 }).notNull(),
+    campaignName: text("campaign_name").notNull(),
+    adsetName: text("adset_name").notNull(),
+    /** The ad account's currency (Meta's `account_currency`). */
+    currency: varchar("currency", { length: 3 }).notNull(),
+    spend: doublePrecision("spend").notNull(),
+    impressions: integer("impressions").notNull(),
+    reach: integer("reach").notNull(),
+    clicks: integer("clicks").notNull(),
+    /** Lead actions: instant forms and pixel leads. */
+    leads: integer("leads").notNull(),
+    /** Every counted action, as `AdsWatch` judges. */
+    results: integer("results").notNull(),
+    syncedAt: timestamp("synced_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [
+    primaryKey({ columns: [t.adsetId, t.day], name: "pk_ad_days" }),
+    index("ix_ad_days_day").on(t.day),
+    index("ix_ad_days_campaign_id").on(t.campaignId),
+  ],
+);
+
+export type AdDay = typeof adDays.$inferSelect;

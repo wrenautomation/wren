@@ -16,6 +16,7 @@ import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 import type { InsightRow, LaunchSpec } from "../../src/ads.js";
 import { listLaunches } from "../../src/launches.js";
 import { type AdsService, makeAds } from "../../src/restate.js";
+import { adDays } from "../../src/schema.js";
 import { type AdsWatch, makeAdsWatch, WATCH_KEY, type WatchStats } from "../../src/watch.js";
 
 const writes: { path: string; input: Record<string, unknown> }[] = [];
@@ -87,7 +88,7 @@ afterAll(async () => {
   await pg?.stop();
 });
 beforeEach(async () => {
-  await truncate(pg.db, ["ad_launches"]);
+  await truncate(pg.db, ["ad_launches", "ad_days"]);
   writes.length = 0;
   notes.length = 0;
   ideas.length = 0;
@@ -139,7 +140,7 @@ describe("ads ledger and watch", () => {
 
   it("a pass with nothing active reads nothing and says nothing", async () => {
     const out = await pass();
-    expect(out.stats).toEqual({ active: 0, verdicts: [], failed: [], ideas: [] });
+    expect(out.stats).toEqual({ active: 0, days: 0, verdicts: [], failed: [], ideas: [] });
     expect(notes).toEqual([]);
   });
 
@@ -185,5 +186,46 @@ describe("ads ledger and watch", () => {
     expect(again.stats?.verdicts.every((v) => !v.paused)).toBe(true);
     expect(again.stats?.ideas).toEqual([]);
     expect(ideas).toHaveLength(1);
+  });
+
+  it("keeps each ad set day in ad_days, sums days to judge, and a re-read never adds", async () => {
+    const live = await ads().launch(spec);
+    await ads().start({ ...live, dailyBudgetUsd: 10 });
+    const day = (date: string, spend: string, clicks: string): InsightRow => ({
+      date_start: date,
+      date_stop: date,
+      campaign_id: live.campaignId,
+      campaign_name: "founders",
+      adset_id: live.adsetId,
+      adset_name: "founders set",
+      spend,
+      impressions: "1000",
+      reach: "800",
+      clicks,
+      account_currency: "USD",
+      actions: [
+        { action_type: "link_click", value: clicks },
+        { action_type: "lead", value: "1" },
+      ],
+    });
+    insights = [day("2026-01-01", "30", "0"), day("2026-01-02", "25.10", "0")];
+    // Two days of no clicks but a lead each: summed, it isn't dead, so it stays on.
+    const out = await pass();
+    expect(out.stats?.days).toBe(2);
+    expect(out.stats?.verdicts).toEqual([
+      expect.objectContaining({ spendUsd: 55.1, clicks: 0, results: 2, paused: false }),
+    ]);
+    const rows = () => pg.db.select().from(adDays).orderBy(adDays.day);
+    expect((await rows()).map((r) => [r.day, r.spend, r.clicks, r.leads, r.currency])).toEqual([
+      ["2026-01-01", 30, 0, 1, "USD"],
+      ["2026-01-02", 25.1, 0, 1, "USD"],
+    ]);
+    // Meta revises a day: the row is overwritten, not added to.
+    insights = [day("2026-01-02", "26", "3")];
+    await pass();
+    expect((await rows()).map((r) => [r.day, r.spend, r.clicks])).toEqual([
+      ["2026-01-01", 30, 0],
+      ["2026-01-02", 26, 3],
+    ]);
   });
 });

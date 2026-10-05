@@ -137,6 +137,7 @@ export interface InsightRow {
   cpc?: string;
   ctr?: string;
   actions?: { action_type: string; value: string }[];
+  account_currency?: string;
 }
 export interface Interest {
   id: string;
@@ -152,7 +153,7 @@ interface Made {
   id: string;
 }
 
-const MEASURES = "spend,impressions,reach,clicks,cpc,ctr,actions";
+const MEASURES = "spend,impressions,reach,clicks,cpc,ctr,actions,account_currency";
 /** The id/name fields Graph allows per level (adset ids only at adset or ad). */
 const INSIGHT_FIELDS = {
   account: MEASURES,
@@ -160,6 +161,9 @@ const INSIGHT_FIELDS = {
   adset: `campaign_id,campaign_name,adset_id,adset_name,${MEASURES}`,
   ad: `campaign_id,campaign_name,adset_id,adset_name,ad_id,ad_name,${MEASURES}`,
 } as const;
+
+/** Insight pages per read: a ceiling, so a bad cursor can't loop against Graph. */
+const INSIGHT_PAGES = 20;
 
 export const toMinor = (usd: number): number => Math.round(usd * 100);
 export const accountIdOf = (id: string): string => id.replace(/^act_/, "");
@@ -384,17 +388,31 @@ export function metaAds(sites: SiteClient, o: MetaAdsOptions = {}) {
       const r = await call<Edge<Interest>>("GET", "/search", { type: "adinterest", q, limit });
       return r.data ?? [];
     },
-    /** Results by `level` for a Graph `date_preset` (today, yesterday, last_7d, last_30d, maximum …). */
+    /**
+     * Results by `level` for a Graph `date_preset` (today, yesterday, last_7d, last_30d, maximum …).
+     * `daily` splits each row per day (`time_increment=1`), paged through `next`.
+     */
     async insights(
-      q: { preset?: string; level?: "account" | "campaign" | "adset" | "ad" } = {},
+      q: { preset?: string; level?: "account" | "campaign" | "adset" | "ad"; daily?: boolean } = {},
     ): Promise<InsightRow[]> {
       const level = q.level ?? "campaign";
-      const r = await call<Edge<InsightRow>>("GET", `/act_${await adAccountId()}/insights`, {
-        level,
-        date_preset: q.preset ?? "last_7d",
-        fields: INSIGHT_FIELDS[level],
-      });
-      return r.data ?? [];
+      const out: InsightRow[] = [];
+      let after: string | undefined;
+      for (let page = 0; page < INSIGHT_PAGES; page++) {
+        const r = await call<
+          Edge<InsightRow> & { paging?: { next?: string; cursors?: { after?: string } } }
+        >("GET", `/act_${await adAccountId()}/insights`, {
+          level,
+          date_preset: q.preset ?? "last_7d",
+          fields: INSIGHT_FIELDS[level],
+          ...(q.daily ? { time_increment: 1, limit: 500 } : {}),
+          ...(after ? { after } : {}),
+        });
+        out.push(...(r.data ?? []));
+        after = r.paging?.cursors?.after;
+        if (!r.paging?.next || !after) return out;
+      }
+      return out;
     },
   };
 }

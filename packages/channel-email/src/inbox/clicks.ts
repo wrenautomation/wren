@@ -36,6 +36,10 @@ export interface SiteHit {
   cta: number;
   touched: number;
   r: string;
+  utm_source?: string;
+  utm_medium?: string;
+  utm_campaign?: string;
+  ref?: string;
 }
 
 /** One pitch-page application (`applications`), tied to its visitor. */

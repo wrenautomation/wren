@@ -3,7 +3,7 @@
  * first touch on an application sent from a member's email, and a member's reply to a campaign.
  * Email's tables are read by SQL name: delivery never imports a channel's code.
  */
-import type { Channel } from "@wren/core/clients";
+import { type Channel, touchChannel } from "@wren/core/clients";
 import type { Queryable } from "@wren/db";
 import { sql } from "drizzle-orm";
 
@@ -22,16 +22,7 @@ export interface SiteApplicationTouch {
   first_touch?: string | null;
 }
 
-const SEARCH = new Set(["google", "bing", "duckduckgo", "yahoo", "ecosia", "brave"]);
-const hostWords = (ref: string) => {
-  try {
-    return new URL(ref).hostname.split(".");
-  } catch {
-    return [];
-  }
-};
-
-/** A lander touch as a channel: an email link, a text, an ad, a search, a post. Else null. */
+/** A lander touch, as JSON, as a channel (`touchChannel`). Else null. */
 export function touchSource(raw: string): { channel: Channel; campaign: string | null } | null {
   let t: unknown;
   try {
@@ -39,22 +30,7 @@ export function touchSource(raw: string): { channel: Channel; campaign: string |
   } catch {
     return null;
   }
-  if (!t || typeof t !== "object") return null;
-  const s = (k: string) => {
-    const v = (t as Record<string, unknown>)[k];
-    return typeof v === "string" ? v.trim().toLowerCase() : "";
-  };
-  const campaign = s("utm_campaign") || null;
-  const source = s("utm_source");
-  const medium = s("utm_medium");
-  if (s("r")) return { channel: "email", campaign };
-  if (source === "sms") return { channel: "sms", campaign };
-  if (medium === "paid" || medium === "cpc") return { channel: "ads", campaign };
-  if (SEARCH.has(source) || hostWords(s("ref")).some((w) => SEARCH.has(w)))
-    return { channel: "search", campaign };
-  if (medium === "outreach") return { channel: "email", campaign };
-  if (medium === "organic" || medium === "social") return { channel: "content", campaign };
-  return null;
+  return t && typeof t === "object" ? touchChannel(t as Record<string, unknown>) : null;
 }
 
 /** What the site and the replies say about how a client came in: applications, then replies by campaign, oldest first. */

@@ -24,6 +24,7 @@ import {
 } from "./schema.js";
 
 export * from "./schema.js";
+export * from "./touch.js";
 
 export interface NewClient {
   id: string;
