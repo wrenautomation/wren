@@ -104,6 +104,36 @@ The mail checker and the radar are one workflow, Wren's first routed one. It liv
 - **Runs:** every 15 minutes on the box worker.
 - Feed items are scored against our SOPs with the radar prompt and land in the same queue. A flagged one can go deeper with Claude Code on the Mac later. That's the "containerized Claude Code" idea, minus the container.
 
+## Follow-ups
+
+Texts, DMs and email each run their own sequence today, with the same step shape (a step, days after the last). They become one follow-up part.
+
+- **Steps:** each is `{after, channel, slot}`. The channel is email, text, DM or call, and the slot is the copy. One sequence can mix channels: email, then a text two days later, then a call.
+- **Stops** on a reply, a booking or an opt-out, on any channel.
+- **Runs on the spine.** Each step's wait is a Restate delayed call, so nothing polls.
+- **Moves over by use.** The SMS and DM sequences move first, since they're small and held. Email moves last, after a test run proves it sends the same mail.
+- A call step is a task until the power dialer exists.
+
+## Replies
+
+One queue for every lead's answer, on any channel, in the Inbox app.
+
+- **Rows:** email replies, text threads and DM threads whose last message is theirs. Each row shows the channel, who, their words and when.
+- **States:** the same everywhere. Needs you, draft ready, answered, left.
+- **Answering:** every answer waits on William's approval (as today). Send uses the channel's own path: email approve, a text reply, a DM reply.
+- **Reading:** the panel shows the whole thread, whatever the channel. The channel pages stay for detail.
+- A client's texts live in their own database, so a client's queue reads theirs and Wren's reads Wren's.
+
+## Ask
+
+A box in the console where William talks to Claude Code about the system, from any page.
+
+- **Runs** on this Mac, as Claude Code under William's Max plan ($0 per question), in `wren_automation`. The desk worker picks up each question and writes the answer back.
+- **Read only.** It can read code, designs, the catalog and prod through read-only SQL. It can't edit, send or spend.
+- **Team only.** Clients never see it.
+- **Context:** the page you asked from goes with the question. Asking from a part's page brings its manifest, hypothesis and wiring.
+- **Later:** it proposes a change as a diff for William to approve. It applies and commits only after his yes.
+
 ## Templates
 
 A template is a workflow marked for clients, with default settings and copy. Installing it on a client installs each part it uses with those settings and saves the workflow for that client. Speed to lead comes first (lead door, a text within 60 seconds, a call after a set wait, the follow-up sub-part, booking, reminders), then lead reactivation, which exists. Free templates elsewhere (n8n, GHL snapshots) are a list of what to build. We rebuild their steps and never copy their drawings or words.
@@ -143,6 +173,8 @@ Each step ships and is committed on its own.
 6. Templates, speed to lead first.
 7. Play.
 
+Added 2026-10-05, after the canvas: Replies (needs no spine), then Ask, then the spine, then follow-ups on the spine, then the Watch.
+
 The end-goal list continues on this base afterwards: custom domains, voice, Signals, infra.
 
 ## Costs
@@ -156,3 +188,4 @@ The end-goal list continues on this base afterwards: custom domains, voice, Sign
 - 2026-10-05: Written. William: "unify these ideas, make a beautiful product." Generalization is a hypothesis written after first use, then confirmed or rejected by each later use. Escape hatches: workflows in workflows, parts in parts, one-off integrations. The Watch reads his personal Gmail and wrenautomation.com. Same day: the hypothesis covers expected changes and config needs, and the code ships with those knobs (speed to lead: copy, call wait and call plan as settings, follow-up as a sub-part).
 - 2026-10-05, seed: William asked to seed the catalog with every workflow he has described or we've built, composed from shared sub-parts, and for a full UI to work on the design and normalization of parts with me (speed to lead, power dialers, voicemail, SMS, follow-ups, nurture, organic content). Parts not built yet are catalog components shown as "In development". `Own` became only the custom step. Kinds `text` and `visit` dropped: a text reply is a reply, a visit becomes a lead.
 - 2026-10-05, shop: William wanted the catalog to look like a shop. His picks: sidebar and card grid, parts and workflows together with a type filter, every filter (stage, channel, status, type, effects), and an item page with takes and gives, inside, hypothesis and knobs, and used in.
+- 2026-10-05, normalization: William left three to me. All three are yes. One follow-up part replaces the three sequence engines. One Replies queue covers every channel. Ask lets him talk to Claude Code from the console, read only at first.
