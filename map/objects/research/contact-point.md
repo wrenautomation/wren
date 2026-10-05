@@ -13,7 +13,7 @@ One way to reach a firm that its own site publishes: a phone, its LinkedIn compa
 
 ## Why this shape
 
-Every stored page is read once by the free `contacts` stage (`packages/research/src/enrichment/contacts.ts:265`), so every channel reads one store instead of re-parsing pages: the SMS lift reads phones from here (`packages/channel-sms/src/lift.ts:40`), the lead sheet reads the rest. `pages` counts the pages carrying the value; a footer link on every page outranks a one-off mention. A profile is tied to a person only when exactly one held person's name sits near it. Published links are never written to `companies.linkedin_url` or `people.linkedin_url`: those stay Exa-confirmed, and the sheet prefers them.
+Every stored page is read once by the free `contacts` stage (`packages/research/src/enrichment/contacts.ts:265`), so every channel reads one store instead of re-parsing pages: the SMS lift reads phones from here (`packages/channel-sms/src/lift.ts:40`), the lead sheet reads the rest. `pages` counts the pages carrying the value; a footer link on every page outranks a one-off mention. Readers read the view `own_contact_points`: a value on more than `OWN_CONTACT_MAX_FIRMS` (5) firms' sites is a parked domain's seller, a host or a builder's footer, never the firm's. A profile is tied to a person only when exactly one held person's name sits near it. Published links are never written to `companies.linkedin_url` or `people.linkedin_url`: those stay Exa-confirmed, and the sheet prefers them.
 
 ## Shape
 
@@ -37,6 +37,7 @@ Citations: `packages/research/src/schema.ts:257`
 | Surface | Role |
 |---|---|
 | `Enrichment.contacts` (pool stage after `scan`) | writes |
+| `own_contact_points` view | every reader's entry |
 | `SmsDesk.lift`, `wren sms lift` | read phones |
 | `lead_sheet`, `wren email sheet` | read phone, socials, LinkedIn fallbacks |
 

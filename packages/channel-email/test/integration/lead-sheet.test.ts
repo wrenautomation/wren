@@ -191,6 +191,15 @@ describe("lead_sheet", () => {
       socials: "https://www.instagram.com/oak/ https://x.com/oak",
     });
 
+    // A number on six firms' sites is a seller's or a host's: nobody's own.
+    for (let i = 0; i < 6; i++) {
+      const other = i ? (await makeCompany(db(), { domain: `other${i}.example` })).id : oak.id;
+      await db()
+        .insert(contactPoints)
+        .values({ ...point("phone", "+13125550999", { pages: 50 }), companyId: other });
+    }
+    expect((await sheet())[0]?.phone).toBe("+13125550111");
+
     await db()
       .update(companies)
       .set({ linkedinUrl: "https://www.linkedin.com/company/oak-trusted/" });

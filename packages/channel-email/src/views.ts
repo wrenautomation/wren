@@ -434,14 +434,14 @@ LEFT JOIN LATERAL (SELECT NULLIF(btrim(COALESCE(
   FROM documents d WHERE d.company_id = c.id AND d.kind = 'webpage' AND d.html IS NOT NULL
   ORDER BY length(COALESCE(d.final_url, d.url)), d.id LIMIT 1) home ON true
 LEFT JOIN LATERAL (SELECT
-  (SELECT cp.value FROM contact_points cp WHERE cp.company_id = c.id AND cp.kind = 'phone'
+  (SELECT cp.value FROM own_contact_points cp WHERE cp.company_id = c.id AND cp.kind = 'phone'
     ORDER BY cp.value ~ '^[+]18(00|33|44|55|66|77|88)', cp.source, cp.pages DESC, cp.id LIMIT 1) AS phone,
-  (SELECT cp.value FROM contact_points cp WHERE cp.company_id = c.id AND cp.kind = 'linkedin_company'
+  (SELECT cp.value FROM own_contact_points cp WHERE cp.company_id = c.id AND cp.kind = 'linkedin_company'
     ORDER BY cp.pages DESC, cp.id LIMIT 1) AS company_linkedin,
-  (SELECT cp.value FROM contact_points cp WHERE cp.person_id = p.id AND cp.kind = 'linkedin_person'
+  (SELECT cp.value FROM own_contact_points cp WHERE cp.person_id = p.id AND cp.kind = 'linkedin_person'
     ORDER BY cp.pages DESC, cp.id LIMIT 1) AS person_linkedin,
   (SELECT string_agg(s.value, ' ' ORDER BY s.kind) FROM (SELECT DISTINCT ON (cp.kind) cp.kind, cp.value
-    FROM contact_points cp WHERE cp.company_id = c.id AND cp.kind IN ('x', 'instagram', 'facebook', 'youtube', 'tiktok')
+    FROM own_contact_points cp WHERE cp.company_id = c.id AND cp.kind IN ('x', 'instagram', 'facebook', 'youtube', 'tiktok')
     ORDER BY cp.kind, cp.pages DESC, cp.id) s) AS socials) pub ON true`,
 );
 

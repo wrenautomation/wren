@@ -74,6 +74,7 @@ describe("socialProfile", () => {
       "https://platform.twitter.com/widgets.js",
       "https://www.instagram.com/p/Cx123/",
       "https://www.facebook.com/wix",
+      "http://www.facebook.com/2008/fbml",
       "https://www.box.com/acme",
     ]) {
       expect(socialProfile(url), url).toBeNull();

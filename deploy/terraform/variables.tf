@@ -21,9 +21,10 @@ variable "pg_password" {
 }
 
 variable "pg_instance_type" {
-  description = "ARM; t4g.medium is 4 GB: Postgres, browserless, the box worker and the Restate server."
+  # t4g.medium (4 GB, +$12/mo) only on the Restate switch day: the server needs the room.
+  description = "ARM; t4g.small is 2 GB: Postgres, browserless and the box worker. t4g.medium adds the Restate server."
   type        = string
-  default     = "t4g.medium"
+  default     = "t4g.small"
 }
 
 variable "pg_volume_gb" {

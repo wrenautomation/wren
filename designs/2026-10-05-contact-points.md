@@ -24,6 +24,8 @@ Every stored page is read once, free, for phones, LinkedIn links and social prof
 
 ## Who reads it
 
+Every reader goes through the view `own_contact_points`. It drops any value found on more than 5 firms' sites.
+
 - `liftPhones` (SMS) reads `kind = 'phone'` instead of parsing pages.
 - `lead_sheet`: new `phone` and `socials` columns. LinkedIn columns fall back to the published link.
 
@@ -34,4 +36,5 @@ Every stored page is read once, free, for phones, LinkedIn links and social prof
 - A profile goes to a person only on a unique name match. Two people with the same name, or no name nearby: the link stays on the firm with `person_id` null.
 - The phone parser moved to `@wren/research/phones`. research cannot import channel-sms, which depends on research.
 - Deterministic and free, so it runs every pass with no spend gate.
+- Shared values dropped at read time, not write time (2026-10-05, first 18k pages). One number sat on 64 firms' sites, one Facebook "profile" on 263 (the old `xmlns:fb` namespace URL), and a domain seller's whole social set on 11 parked domains. Rows are kept, so the cutoff can move.
 - No email column here: `email_scan` already owns addresses.

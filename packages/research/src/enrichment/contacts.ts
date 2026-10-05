@@ -66,7 +66,7 @@ const RESERVED: Record<Social, ReadonlySet<string>> = {
     "p reel reels explore accounts stories tv about developer legal direct web".split(" "),
   ),
   facebook: new Set(
-    "sharer sharer.php share share.php dialog plugins tr login login.php home.php groups events watch photo photo.php photos story.php permalink.php hashtag help policies privacy legal business ads pages people".split(
+    "sharer sharer.php share share.php dialog plugins tr 2008 login login.php home.php groups events watch photo photo.php photos story.php permalink.php hashtag help policies privacy legal business ads pages people".split(
       " ",
     ),
   ),
@@ -75,7 +75,7 @@ const RESERVED: Record<Social, ReadonlySet<string>> = {
 };
 /** Site builders' and platforms' own handles: a template's default footer, not the firm. */
 const TEMPLATE_HANDLES: ReadonlySet<string> = new Set(
-  "wix wixcom squarespace wordpress wordpressdotcom godaddy weebly hubspot elementor shopify webflow duda facebook instagram twitter youtube tiktok linkedin x".split(
+  "wix wixcom wix-com squarespace wordpress wordpressdotcom godaddy weebly hubspot elementor shopify webflow duda facebook instagram twitter youtube tiktok linkedin x".split(
     " ",
   ),
 );
@@ -177,6 +177,7 @@ export function contactsInPage(
     const found = m[0].replace(/&amp;/gi, "&");
     const url = found.startsWith("//") ? `https:${found}` : found;
     const handle = linkedinCompany(url);
+    if (handle && TEMPLATE_HANDLES.has(handle.toLowerCase())) continue;
     if (handle) {
       add({
         kind: "linkedin_company",

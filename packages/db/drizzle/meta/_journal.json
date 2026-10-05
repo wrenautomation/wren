@@ -624,6 +624,13 @@
       "when": 1791201006672,
       "tag": "0088_contact_points",
       "breakpoints": true
+    },
+    {
+      "idx": 89,
+      "version": "7",
+      "when": 1791202726324,
+      "tag": "0089_own_contact_points",
+      "breakpoints": true
     }
   ]
 }

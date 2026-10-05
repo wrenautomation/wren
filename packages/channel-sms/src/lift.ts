@@ -1,6 +1,6 @@
 /**
  * Lift the phone numbers the pool's `contacts` stage read off firms' own pages
- * (`contact_points`, kind phone) into texting contacts. A number a business put
+ * (`own_contact_points`, kind phone: never a number on many firms' sites) into texting contacts. A number a business put
  * on its own site is the `published` basis: the page and its URL are the
  * evidence, stored with the contact. Toll-free numbers are stored (we keep what
  * we find) but land as `unreachable`: they are switchboards, never a person's
@@ -8,7 +8,7 @@
  */
 import { companies } from "@wren/core/schema";
 import type { Db } from "@wren/db";
-import { contactPoints } from "@wren/research/schema";
+import { ownContactPoints } from "@wren/research/schema";
 import { and, asc, eq, gt, notInArray, or, type SQL, sql } from "drizzle-orm";
 import { isTollFree } from "./phone.js";
 import { smsContacts } from "./schema.js";
@@ -44,8 +44,8 @@ export async function liftPhones(db: Db, opts: LiftOptions): Promise<LiftStats> 
   let after = 0;
   for (;;) {
     const where: (SQL | undefined)[] = [
-      gt(contactPoints.id, after),
-      eq(contactPoints.kind, "phone"),
+      gt(ownContactPoints.id, after),
+      eq(ownContactPoints.kind, "phone"),
     ];
     if (opts.niche) where.push(eq(companies.niche, opts.niche));
     if (opts.heldNiches.length > 0) {
@@ -57,18 +57,18 @@ export async function liftPhones(db: Db, opts: LiftOptions): Promise<LiftStats> 
     if (room <= 0) break;
     const rows = await db
       .select({
-        id: contactPoints.id,
-        e164: contactPoints.value,
-        companyId: contactPoints.companyId,
-        documentId: contactPoints.documentId,
-        url: contactPoints.sourceUrl,
-        source: contactPoints.source,
+        id: ownContactPoints.id,
+        e164: ownContactPoints.value,
+        companyId: ownContactPoints.companyId,
+        documentId: ownContactPoints.documentId,
+        url: ownContactPoints.sourceUrl,
+        source: ownContactPoints.source,
         niche: companies.niche,
       })
-      .from(contactPoints)
-      .innerJoin(companies, eq(companies.id, contactPoints.companyId))
+      .from(ownContactPoints)
+      .innerJoin(companies, eq(companies.id, ownContactPoints.companyId))
       .where(and(...where))
-      .orderBy(asc(contactPoints.id))
+      .orderBy(asc(ownContactPoints.id))
       .limit(room);
     if (rows.length === 0) break;
     after = rows[rows.length - 1]?.id ?? after;

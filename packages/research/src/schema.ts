@@ -9,6 +9,7 @@ import {
   integer,
   jsonb,
   pgTable,
+  pgView,
   primaryKey,
   real,
   serial,
@@ -276,8 +277,9 @@ export const contactPoints = pgTable(
     unique("uq_contact_points_company_kind_value").on(t.companyId, t.kind, t.value),
     index("ix_contact_points_person_id").on(t.personId),
     index("ix_contact_points_document_id").on(t.documentId),
-    // The lift walks one kind by id.
+    // The lift walks one kind by id; `own_contact_points` counts a value's firms.
     index("ix_contact_points_kind_id").on(t.kind, t.id),
+    index("ix_contact_points_kind_value").on(t.kind, t.value),
     foreignKey({
       columns: [t.companyId],
       foreignColumns: [companies.id],
@@ -298,6 +300,29 @@ export const contactPoints = pgTable(
   ],
 );
 export type ContactPoint = typeof contactPoints.$inferSelect;
+
+/**
+ * A value on more than this many firms' sites is not any one firm's: a parked
+ * domain's seller, a host, a site builder's footer. Readers skip it.
+ */
+export const OWN_CONTACT_MAX_FIRMS = 5;
+
+/** The contact points a firm alone publishes. Every reader reads this, not the table. */
+export const ownContactPoints = pgView("own_contact_points", {
+  id: integer("id").notNull(),
+  companyId: integer("company_id").notNull(),
+  personId: integer("person_id"),
+  kind: varchar("kind", { length: 32, enum: CONTACT_KINDS }).notNull(),
+  value: varchar("value", { length: 512 }).notNull(),
+  source: varchar("source", { length: 16, enum: CONTACT_SOURCES }).notNull(),
+  pages: integer("pages").notNull(),
+  documentId: integer("document_id"),
+  sourceUrl: text("source_url").notNull(),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull(),
+  seenAt: timestamp("seen_at", { withTimezone: true }).notNull(),
+}).as(
+  sql`SELECT cp.* FROM contact_points cp WHERE (SELECT count(*) FROM contact_points o WHERE o.kind = cp.kind AND o.value = cp.value) <= ${sql.raw(String(OWN_CONTACT_MAX_FIRMS))}`,
+);
 
 /**
  * Where a person lookup (R7) stands, one row per person. `matched`: we trust a
