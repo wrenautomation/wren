@@ -22,8 +22,11 @@ import { type Bucket, bucketRoom, refusedBy, retryAfter } from "../pacing.js";
 
 export const AD_LIBRARY_COMMAND = "enrich ad-library";
 export const AD_LIBRARY_SOURCE = "ad_library";
-/** Keyword reads a day; autobrowse caps `fb-public` at 200 and spaces each 20 to 40s. */
-export const AD_LIBRARY_BUCKET: Bucket = { perDay: 48, burst: 6 };
+/**
+ * Keyword reads a day; autobrowse caps `fb-public` at 200 and spaces each 20 to 40s. The burst is
+ * the daily amount: an idle pool sleeps to the next local day, so it only ever gets a burst a day.
+ */
+export const AD_LIBRARY_BUCKET: Bucket = { perDay: 48, burst: 48 };
 /** Ads come and go; a keyword's advertisers are read again after this. */
 export const AD_KEYWORD_EVERY_DAYS = 7;
 export const AD_COUNTRY = "US";
