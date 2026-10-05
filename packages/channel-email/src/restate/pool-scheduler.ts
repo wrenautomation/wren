@@ -21,7 +21,9 @@
  *
  * `profiles` (off unless `profiles` is given: WREN_POOL_PROFILES) reads the
  * LinkedIn pages of the people compose will reach next, a week of sends ahead,
- * from Exa's cache: metered, so opt-in like the model stages.
+ * from Exa's cache: metered, so opt-in like the model stages. `team` runs on the
+ * same switch, just before: one people search per firm, everyone with a current
+ * role there kept as a person (designs/2026-10-05-team-search.md).
  *
  * `start({stages: [...]})` narrows one niche's loop to those stages (e.g. only the
  * two mailbox stages while the crawl stays off); `start({})` goes back to all.
@@ -44,12 +46,13 @@ import {
   retryDelayMs,
   setLastPass,
 } from "@wren/core/restate";
-import type { Db } from "@wren/db";
+import type { Db, Queryable } from "@wren/db";
 import {
   LEAD_SHEET,
   type LeadSheetSettings,
   leadSheetSettingsSchema,
 } from "@wren/research/components";
+import { teamDue } from "@wren/research/enrichment";
 import type { Discovery, Enrichment } from "@wren/research/restate";
 import { and, count, gt, ne, sql } from "drizzle-orm";
 import { nextToEnroll } from "../outreach/compose.js";
@@ -73,6 +76,7 @@ export const STAGES = [
   "applyPicks",
   "resolveMailboxes",
   "verifyMailboxes",
+  "team",
   "profiles",
 ] as const;
 export type Stage = (typeof STAGES)[number];
@@ -91,6 +95,8 @@ export interface StageLimits {
   /** Domains whose person guesses are walked this pass. */
   resolveMailboxes: number;
   verifyMailboxes: number;
+  /** Firms whose public team is searched this pass; one metered search each. */
+  team: number;
   /** People whose LinkedIn pages are read this pass; each is several site calls. */
   profiles: number;
 }
@@ -107,6 +113,7 @@ export const DEFAULT_LIMITS: StageLimits = {
   // a pass stays a few minutes, well inside one Lambda invocation.
   resolveMailboxes: 192,
   verifyMailboxes: 192,
+  team: 10,
   profiles: 5,
 };
 
@@ -144,6 +151,27 @@ export function stagesToRun(
       (s) => stageEnabled(s, modelStages, freeVerifier, profiles) && (!chosen || chosen.has(s)),
     ),
   );
+}
+
+/**
+ * Firms next for a team search: a domain, never searched, a verified inbox
+ * first (its mail server answers, so the guesses can be proven), then the
+ * firms we hold no one at.
+ */
+export async function nextTeamFirms(
+  db: Queryable,
+  opts: { niche: string; limit: number },
+): Promise<number[]> {
+  const rows = await db.execute<{ id: number }>(sql`
+    select c.id from companies c
+    where c.niche = ${opts.niche} and c.domain is not null and ${teamDue(sql`c.id`)}
+    order by
+      exists (select 1 from leads l join verifications v on v.lead_id = l.id
+        where l.company_id = c.id and v.result = 'valid') desc,
+      exists (select 1 from people p where p.company_id = c.id) asc,
+      c.id
+    limit ${opts.limit}`);
+  return rows.map((r) => Number(r.id));
 }
 
 /** What the `profiles` stage needs; absent = the stage is off. */
@@ -248,6 +276,8 @@ export const progressOf: Record<Stage, (s: Record<string, number>) => number> = 
     (s.invalid ?? 0) +
     (s.risky ?? 0) +
     (s.catch_all ?? 0),
+  // A firm written to team_searches leaves the selection; an error or a cap does not.
+  team: (s) => (s.firms_matched ?? 0) + (s.firms_unresolved ?? 0) + (s.firms_skipped ?? 0),
   // A person written to person_lookups leaves the selection; an error or a cap does not.
   profiles: (s) => (s.people_matched ?? 0) + (s.people_unresolved ?? 0),
 };
@@ -264,7 +294,8 @@ export function stageEnabled(
   profiles = false,
 ): boolean {
   if (stage === "extract") return modelStages === "all";
-  if (stage === "profiles") return profiles;
+  // Both spend the same Exa budget: one switch.
+  if (stage === "profiles" || stage === "team") return profiles;
   if (stage === "resolveMailboxes" || stage === "verifyMailboxes") return freeVerifier;
   return true;
 }
@@ -358,6 +389,14 @@ export function makePoolScheduler(deps: PoolSchedulerDeps) {
             ? { recheckReturning: { policy, olderThanDays: deps.recheck.horizonDays } }
             : {}),
         });
+      },
+      team: async () => {
+        if (!deps.profiles || niche === null) throw new restate.TerminalError("team stage is off");
+        const n = limits.team;
+        const companyIds = await ctx.run("team queue", () =>
+          nextTeamFirms(deps.db, { niche, limit: n }),
+        );
+        return enrichment.team({ companyIds, limit: n });
       },
       profiles: async () => {
         const p = deps.profiles;

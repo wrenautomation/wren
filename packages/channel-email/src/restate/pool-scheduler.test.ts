@@ -16,7 +16,7 @@ describe("stageEnabled", () => {
       "pick",
       "applyPicks",
     ]);
-    expect(on("all", true)).toEqual(STAGES.filter((s) => s !== "profiles"));
+    expect(on("all", true)).toEqual(STAGES.filter((s) => s !== "profiles" && s !== "team"));
     expect(on("none", true)).toEqual(
       expect.arrayContaining(["resolveMailboxes", "verifyMailboxes"]),
     );
@@ -33,6 +33,20 @@ describe("the profiles stage", () => {
   it("progress is people written; errors and caps leave them due", () => {
     expect(progressOf.profiles({ people_matched: 2, people_unresolved: 1, errors: 4 })).toBe(3);
     expect(progressOf.profiles({ selected: 5, errors: 5 })).toBe(0);
+  });
+});
+
+describe("the team stage", () => {
+  it("rides the profiles switch, just before it", () => {
+    expect(STAGES.filter((s) => stageEnabled(s, "all", true))).not.toContain("team");
+    expect(STAGES.filter((s) => stageEnabled(s, "none", false, true)).slice(-2)).toEqual([
+      "team",
+      "profiles",
+    ]);
+  });
+  it("progress is firms marked; errors and caps leave them due", () => {
+    expect(progressOf.team({ firms_matched: 2, firms_unresolved: 1, firms_skipped: 1 })).toBe(4);
+    expect(progressOf.team({ selected: 3, errors: 3 })).toBe(0);
   });
 });
 

@@ -399,6 +399,43 @@ export const companyLookups = pgTable(
 export type CompanyLookup = typeof companyLookups.$inferSelect;
 
 /**
+ * One people search per firm (the `team` stage), one row per company.
+ * `matched`: someone with a current role at the firm was kept as a person.
+ * `unresolved`: the search kept no one. `capped`: Exa's daily cap stopped it
+ * until `retry_at`. `profiles` holds every profile the search returned (name,
+ * url, headline, roles), kept or not; `kept` counts the people it gave.
+ */
+export const teamSearches = pgTable(
+  "team_searches",
+  {
+    companyId: integer("company_id").notNull(),
+    state: varchar("state", { length: 16, enum: LOOKUP_STATES }).notNull(),
+    query: text("query").notNull(),
+    profiles: jsonb("profiles").notNull(),
+    kept: integer("kept").default(0).notNull(),
+    retryAt: timestamp("retry_at", { withTimezone: true }),
+    runId: uuid("run_id"),
+    searchedAt: timestamp("searched_at", { withTimezone: true }).defaultNow().notNull(),
+  },
+  (t) => [
+    primaryKey({ columns: [t.companyId], name: "pk_team_searches" }),
+    index("ix_team_searches_run_id").on(t.runId),
+    foreignKey({
+      columns: [t.companyId],
+      foreignColumns: [companies.id],
+      name: "fk_team_searches_company_id_companies",
+    }),
+    foreignKey({
+      columns: [t.runId],
+      foreignColumns: [runs.id],
+      name: "fk_team_searches_run_id_runs",
+    }),
+    oneOf("ck_team_searches_lookupstate", t.state, LOOKUP_STATES),
+  ],
+);
+export type TeamSearch = typeof teamSearches.$inferSelect;
+
+/**
  * Where a company's hiring check stands, one row per company. `hiring`: a
  * board or LinkedIn lists open roles (the `hiring` finding holds them).
  * `no_openings`: a board was read and lists none. `unresolved`: no board found

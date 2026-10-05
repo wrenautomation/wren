@@ -11,6 +11,7 @@ import { runs } from "@wren/core";
 import type { LoopStatus, PassOutcome } from "@wren/core/restate";
 import { startTestRestate } from "@wren/core/testing";
 import { startTestPostgres, type TestPostgres, truncate } from "@wren/db/testing";
+import { sql } from "drizzle-orm";
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 import { type FeedStats, makePoolScheduler } from "../../src/restate/pool-scheduler.js";
 import { untilNextLocalDay } from "../../src/restate/postmaster-scheduler.js";
@@ -33,6 +34,8 @@ const answers = {
 const called: string[] = [];
 /** What `profiles` was asked last. */
 let profilesInput: unknown = null;
+/** What `team` was asked last. */
+let teamInput: unknown = null;
 const stage =
   (name: string, answer: () => object) =>
   async (_ctx: restate.ObjectContext, _input: unknown = {}) => {
@@ -62,6 +65,11 @@ const fakeEnrichment = restate.object({
       return answers.pick;
     },
     applyPicks: stage("applyPicks", () => ({ picks_applied: 0 })),
+    team: async (_ctx: restate.ObjectContext, input: unknown) => {
+      called.push("team");
+      teamInput = input;
+      return { selected: 0, firms_matched: 0, firms_unresolved: 0 };
+    },
     profiles: async (_ctx: restate.ObjectContext, input: unknown) => {
       called.push("profiles");
       profilesInput = input;
@@ -107,6 +115,7 @@ beforeEach(async () => {
   await truncate(pg.db, ["runs"]);
   called.length = 0;
   profilesInput = null;
+  teamInput = null;
   answers.discover = { companies_scanned: 0 };
   answers.crawl = { companies_crawled: 0, homepage_unreachable: 0, robots_blocked: 0 };
   answers.resolve = { domains_processed: 0, credits_spent: 0, dead_domains: 0 };
@@ -135,6 +144,7 @@ describe("PoolScheduler", () => {
       "applyPicks",
       "resolveNewDomains",
       "verifyLeads",
+      "team",
       "profiles",
     ]);
     expect(out.stats?.stages.map((s) => [s.stage, s.skipped])).toEqual([
@@ -149,6 +159,7 @@ describe("PoolScheduler", () => {
       ["applyPicks", false],
       ["resolveMailboxes", false],
       ["verifyMailboxes", false],
+      ["team", false],
       ["profiles", false],
     ]);
     expect(out.stats?.progress).toBe(0);
@@ -179,6 +190,21 @@ describe("PoolScheduler", () => {
     expect(input).toMatchObject({ limit: 5, timezone: "UTC" });
     expect(input.personIds).toHaveLength(2);
     expect(people.map((p) => p.id)).toEqual(expect.arrayContaining(input.personIds));
+  });
+
+  it("team searches firms with a verified inbox first, then firms we hold no one at", async () => {
+    await truncate(pg.db, [...TABLES, "team_searches"]);
+    const held = await makeCompany(pg.db, { domain: "held.example", name: "Held Advisors" });
+    await makePerson(pg.db, held);
+    const empty = await makeCompany(pg.db, { domain: "empty.example", name: "Empty Advisors" });
+    const proven = await makeCompany(pg.db, { domain: "proven.example", name: "Proven Advisors" });
+    await makePerson(pg.db, proven, { email: "jane@proven.example" });
+    const searched = await makeCompany(pg.db, { domain: "done.example", name: "Done Advisors" });
+    await pg.db.execute(
+      sql`insert into team_searches (company_id, state, query, profiles) values (${searched.id}, 'unresolved', 'Done Advisors', '[]')`,
+    );
+    await sync();
+    expect(teamInput).toEqual({ companyIds: [proven.id, empty.id, held.id], limit: 10 });
   });
 
   it("comes back in a minute while a stage still finds work", async () => {
@@ -226,6 +252,7 @@ describe("PoolScheduler", () => {
       "applyPicks",
       "resolveNewDomains",
       "verifyLeads",
+      "team",
       "profiles",
     ]);
     expect(out.stats).toMatchObject({ failed: 1, progress: 25 });

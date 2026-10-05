@@ -29,6 +29,7 @@ A catalog, not a waterfall. Each row names the cards whose **If you change this*
 | media hosting | [[content/media]] | [[content/platform]], `deploy/terraform` |
 | Meta ads | [[ads/ad-launch]] | [[processes/ads-launch-watch]], [[content/idea]] |
 | what a firm's site publishes (phones, LinkedIn, socials) | [[research/contact-point]] | [[research/document]], [[sms/sms-contact]], `lead_sheet` |
+| a firm's public team (one people search per firm) | [[research/team-search]] | [[leads/person]], [[processes/pool-feed]] |
 | SMS numbers, contacts, texts | the `sms/` cards | [[processes/sms-tick]], [[platform/phone-worker]] |
 | the carrier | [[sms/sms-provider]] | [[sms/sms-event]], [[platform/phone-worker]], [[platform/settings]] (`WREN_SMS_*`) |
 | a `WREN_*` key | [[platform/settings]] | [[platform/worker]] (SSM), [[processes/deploy]] |

@@ -13,5 +13,6 @@ export * from "./render.js";
 export * from "./shard.js";
 export * from "./shared-pages.js";
 export * from "./store.js";
+export * from "./team.js";
 export * from "./testimonials.js";
 export * from "./urls.js";

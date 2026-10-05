@@ -87,6 +87,15 @@ import {
 } from "../enrichment/render.js";
 import { Shard } from "../enrichment/shard.js";
 import { sharedPages } from "../enrichment/shared-pages.js";
+import {
+  countTeamUnit,
+  emptyTeamStats,
+  TEAM_COMMAND,
+  type TeamStats,
+  teamParkedUntil,
+  teamUnit,
+  teamWork,
+} from "../enrichment/team.js";
 import { tagTestimonials } from "../enrichment/testimonials.js";
 import type { Fetcher } from "../fetch/fetcher.js";
 import type { RobotsCache } from "../fetch/robots.js";
@@ -225,6 +234,13 @@ export interface ProfilesInput {
   timezone: string;
 }
 
+export interface TeamInput {
+  /** Firms in the order they should be searched; the due ones are. */
+  companyIds: number[];
+  /** Firms this call; each is one metered search. */
+  limit?: number;
+}
+
 const LIMIT_FIELD = z.number().nullish().describe("Units this pass");
 const SHARD = z.string().nullish().describe('"i/n": this worker\'s slice');
 const LIMIT = z.looseObject({ limit: LIMIT_FIELD }).nullish();
@@ -252,6 +268,11 @@ const PROFILES = z.looseObject({
   personIds: z.array(z.number()).describe("People in send order; the due ones are looked up"),
   limit: z.number().nullish().describe("People this call"),
   timezone: z.string().describe("The zone Google's day and hours are kept in"),
+});
+
+const TEAM = z.looseObject({
+  companyIds: z.array(z.number()).describe("Firms in search order; the due ones are searched"),
+  limit: z.number().nullish().describe("Firms this call"),
 });
 
 const parseShard = (text: string | undefined): Shard | null => {
@@ -676,6 +697,50 @@ export function makeEnrichment(deps: EnrichmentDeps) {
               });
             left = r.value.googleStopped ? 0 : Math.max(0, left - r.value.google);
             stats.stopped = countProfileUnit(stats, r.value, streak);
+            if (stats.stopped) break;
+          }
+          await close(ctx, runId, stats);
+          return stats;
+        },
+      ),
+
+      team: exclusiveHandler(
+        { input: TEAM },
+        async (ctx: restate.ObjectContext, input: TeamInput): Promise<TeamStats> => {
+          // Metered, and the people land on main: Wren's niches only (O2).
+          if (clientOfKey(ctx.key.split("@")[0] as string))
+            throw new restate.TerminalError("team search runs on Wren's niches only");
+          const sites = deps.sites;
+          if (!sites) throw new restate.TerminalError("no site client for team search");
+          const { db, niche } = scope(ctx);
+          const { companyIds, ...rest } = input;
+          const runId = await open(ctx, TEAM_COMMAND, {
+            ...rest,
+            firms: companyIds.length,
+            niche,
+          });
+          const plan = await ctx.run("select", async () => {
+            const parked = await teamParkedUntil(db);
+            if (parked) return { parked: parked.toISOString(), work: [] };
+            return {
+              parked: null,
+              work: await teamWork(db, companyIds, { limit: input.limit ?? 10 }),
+            };
+          });
+          const stats = emptyTeamStats();
+          stats.selected = plan.work.length;
+          if (plan.parked) stats.stopped = `parked by a cap until ${plan.parked}`;
+          const streak = { errors: 0 };
+          for (const w of plan.work) {
+            // teamUnit returns site errors as data: a metered search is never retried.
+            const r = await unit(ctx, `team firm ${w.companyId}`, () =>
+              teamUnit(db, sites, w, { runId }),
+            );
+            if (!r.ok) {
+              stats.stopped = r.reason;
+              break;
+            }
+            stats.stopped = countTeamUnit(stats, r.value, streak);
             if (stats.stopped) break;
           }
           await close(ctx, runId, stats);
