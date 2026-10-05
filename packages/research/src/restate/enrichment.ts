@@ -809,15 +809,19 @@ export function makeEnrichment(deps: EnrichmentDeps) {
           stats.stopped = plan.why;
           const byId = new Map(plan.work.map((w) => [w.companyId, w]));
           const streak = { errors: 0 };
-          // Free reads, so they batch: a crash re-reads at most one batch.
-          for await (const r of unitBatches(ctx, "youtube", [...byId.keys()], (id) =>
-            youtubeUnit(db, get, byId.get(id) as (typeof plan.work)[number]),
+          // Free reads, so they batch: a crash re-reads at most one batch. A unit that throws
+          // the same way every time counts as an error after its retries, never blocks the pool.
+          for await (const r of unitBatches(
+            ctx,
+            "youtube",
+            [...byId.keys()],
+            (id) => youtubeUnit(db, get, byId.get(id) as (typeof plan.work)[number]),
+            { retry: UNIT_RETRY },
           )) {
-            if (!r.ok) {
-              stats.stopped = r.reason;
-              break;
-            }
-            stats.stopped = countYouTubeUnit(stats, r.value, streak);
+            const u = r.ok
+              ? r.value
+              : { companyId: r.id, outcome: "error" as const, uploads: 0, error: r.reason };
+            stats.stopped = countYouTubeUnit(stats, u, streak);
             if (stats.stopped) break;
           }
           await close(ctx, runId, stats);
