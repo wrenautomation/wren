@@ -2,6 +2,8 @@
 // Is Restate keeping up? Every loop's next pass is a timer; one still waiting well past its
 // time means Restate is late (Cloud throttles its free plan past 100k actions a month).
 // Late loops go to Discord: the sign to move to the box (designs/2026-10-05-restate-self-host.md).
+// A call that stopped moving goes too: one cut off mid-run by a worker restart can sit "ready"
+// for good, holding its object's lock, so its loop and every later call to that key wait.
 // CI runs it hourly (.github/workflows/restate-lag.yml). Env: RESTATE_HOST (default prod's, as
 // scripts/ingress.mjs), RESTATE_AUTH_TOKEN, WREN_DISCORD_WEBHOOK_URL (unset: print only),
 // LAG_MINUTES (default 15).
@@ -14,6 +16,8 @@ const hook = process.env.WREN_DISCORD_WEBHOOK_URL;
 // `scheduled_at` rides along: without it Restate leaves `scheduled_start_at` out (console.ts).
 const SQL = `SELECT target_service_name, target_service_key, scheduled_at, scheduled_start_at
 FROM sys_invocation WHERE target_handler_name = 'loop' AND status = 'scheduled'`;
+const STUCK = `SELECT id, target, status, modified_at FROM sys_invocation
+WHERE status IN ('ready', 'running', 'backing-off', 'paused')`;
 
 async function say(text) {
   console.log(text);
@@ -26,8 +30,7 @@ async function say(text) {
   if (!res.ok) throw new Error(`discord: ${res.status}`);
 }
 
-let rows;
-try {
+async function query(sql) {
   const res = await fetch(`${admin}/query`, {
     method: "POST",
     headers: {
@@ -35,10 +38,16 @@ try {
       "content-type": "application/json",
       accept: "application/json",
     },
-    body: JSON.stringify({ query: SQL }),
+    body: JSON.stringify({ query: sql }),
   });
   if (!res.ok) throw new Error(`${res.status} ${(await res.text()).slice(0, 200)}`);
-  rows = (await res.json()).rows;
+  return (await res.json()).rows;
+}
+
+let rows;
+let open;
+try {
+  [rows, open] = await Promise.all([query(SQL), query(STUCK)]);
 } catch (err) {
   await say(
     `Restate admin did not answer: ${err.message}. Throttled? See the self-host design doc.`,
@@ -58,3 +67,15 @@ if (late.length)
     `Restate is late: ${late.length} loop timers past due by over ${slackMs / 60_000} min.\n${late.slice(0, 20).join("\n")}\nTime to move to the box: \`node scripts/restate-move.mjs\` (designs/2026-10-05-restate-self-host.md).`,
   );
 else console.log(`${rows.length} loop timers, none late`);
+
+const stuck = open
+  .filter((r) => now - Date.parse(r.modified_at) > slackMs)
+  .map((r) => {
+    const min = Math.round((now - Date.parse(r.modified_at)) / 60_000);
+    return `${r.target} ${r.status}, still for ${min} min (${r.id})`;
+  });
+if (stuck.length)
+  await say(
+    `Restate has ${stuck.length} calls that stopped moving.\n${stuck.slice(0, 20).join("\n")}\nResume or kill each on the admin API: PATCH /invocations/<id>/resume or /kill. A kill fails its caller's step, which retries on its next pass.`,
+  );
+else console.log(`${open.length} open calls, none stuck`);
