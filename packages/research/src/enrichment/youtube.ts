@@ -19,11 +19,11 @@ export const YOUTUBE_READ_SCOPE = "https://www.googleapis.com/auth/youtube.reado
 const API = "https://www.googleapis.com/youtube/v3";
 /**
  * Firms read a day. A read is 3 of the project's 10,000 daily units (channel, one page of uploads,
- * their videos): at most 3,000 firms in any 24 hours is 9,000 units. Channel search (100 units a
- * call) is not wired in. The pool sleeps to the next day once idle, so the burst is most of a
- * quiet day's reads.
+ * their videos): at most 2,000 firms in any 24 hours is 6,000 units, and the rest stays for
+ * channel search (100 units a call). About 4,100 firms have a link and each is read every 30 days,
+ * so a steady day is ~140. The pool sleeps to the next day once idle.
  */
-export const YOUTUBE_BUCKET: Bucket = { perDay: 2000, burst: 1000 };
+export const YOUTUBE_BUCKET: Bucket = { perDay: 1500, burst: 500 };
 /**
  * A pass waits for this much room. Without it a busy pool would read the one firm that refilled
  * each minute and never go idle.

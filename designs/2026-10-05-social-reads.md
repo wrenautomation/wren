@@ -19,13 +19,14 @@
 
 | Call | Units | Use |
 |---|---|---|
-| `channels.list` by id, handle or username | 1 | the channel: title, about text, country, counts, uploads playlist |
-| `playlistItems.list` on uploads, 5 items | 1 | the newest uploads: title, description, date |
+| `channels.list` by id, handle or username, all 7 parts | 1 | the channel: title, about text, country, counts, keywords, topics, uploads playlist |
+| `playlistItems.list` on uploads, 50 a page | 1 a page | the newest 50 uploads |
+| `videos.list` on those ids, all parts | 1 per 50 | views, likes, comments, duration, tags, live details |
 | `search.list` type channel | 100 | the source role, later |
 
 - **Links:** `/channel/UC…`, `/@handle` and `/user/name` resolve in one call. A `/c/name` link has no lookup, so it is kept as a missing read (209 firms).
-- **Kept as findings:** the channel is a `profile` finding (`via youtube`), and each upload is a `post` finding with its watch link. A link that leads to no channel is a `profile` finding marked missing, so the firm isn't read again for 30 days.
-- **Pacing:** a token bucket over the profile findings: 2,000 firms a day, burst 1,000, so at most 3,000 firms (6,000 units) in any 24 hours. The rest of the quota is kept for channel search. A pass waits for 100 firms of room, or a busy pool would read one firm a minute and never go idle. A channel is read again after 30 days.
+- **Kept as findings:** the channel is a `profile` finding (`via youtube`), and each upload is a `post` finding with its watch link. Each keeps the whole API resource as `raw`, and text is never cut. A link that leads to no channel is a `profile` finding marked missing, so the firm isn't read again for 30 days. A finding kept before `raw` counts as due again, so old reads fill in on their own.
+- **Pacing:** a token bucket over the profile findings: 1,500 firms a day, burst 500, so at most 2,000 firms (6,000 units) in any 24 hours. The rest of the quota is kept for channel search. About 4,100 firms have a link and each is read every 30 days, so a steady day is about 140 firms. A pass waits for 100 firms of room, or a busy pool would read one firm a minute and never go idle.
 - **Order:** firms with a lead we can still mail come first.
 - **Where it runs:** `Enrichment/<niche>/youtube`, and the `youtube` stage in `PoolScheduler/<niche>`, which runs whenever the service account is set. Wren's niches only for now: the findings land on main.
 
@@ -38,18 +39,45 @@
 ## Next, in order
 
 1. **Exa niche search as a source:** people and companies by niche, title and city, on the shared Exa bucket.
-2. **Meta Ad Library, logged out,** as a source: firms running ads in a niche now. The Ad Library API only covers political ads outside the EU, so it's a browser read on the desk, paced.
+2. **Meta Ad Library, logged out,** as a source: firms running ads in a niche now. The Ad Library API only covers political ads outside the EU, so it's a browser read. Built 2026-10-05 as autobrowse walk `fb-public/ad-library` (records op, `designs/2026-10-05-records-and-ai-steps.md` there): Library ID, advertiser, start date, ad text and call to action, 25 to 30 ads a keyword in about 9s with no model. Next: a wren stage that runs it per niche keyword and turns advertisers into firms.
 3. **Instagram `business_discovery`:** bio, site and recent captions of business accounts, officially. It needs our Instagram business account and app permissions.
 4. **YouTube channel search** as a source, on the reserved units.
+5. **Facebook groups**, below.
+
+## Facebook groups
+
+Meta removed the Graph Groups API from every version on 2024-04-22, so no app can read a group through an API.
+
+**What a logged-out browser sees** (checked 2026-10-05 on three recruiting groups, all private):
+
+- A private group shows only its About panel: name, privacy, member count, posts today and in the last month, created date, admin rules. No posts, no members.
+- A public group's posts are indexed by Google. Facebook should show its feed to visitors up to a login wall. Not seen yet, because all three groups checked were private.
+
+**Plan, logged out, $0:**
+
+1. **Find groups** by Google search through the `web` site's `/google` route: `site:facebook.com/groups "<niche words>"`. The snippets carry post text for public groups.
+2. **Read each group's About** with a records walk under `fb-public` (no login). Keep name, URL, description, privacy, member count, posts per month, created date and rules. Activity per month ranks groups worth watching.
+3. **Read public posts** with a second records walk (a feed: `max` set, it scrolls). Keep post text, author name and profile link, time, reaction and comment counts, and links in the post. Where the login wall stops the feed is noted with the rows.
+4. **Store everything.** Each read is kept whole as a document: rows plus the page HTML. When a post's author or link resolves to a firm, the post becomes a finding on that firm.
+
+**Use:** a post by a firm owner asking for help is a lead signal. An author's profile link or a site in the post resolves to a firm through the usual pool.
+
+**Open decision for William: a logged-in account.** Posts in private groups need a member account, and joining a group needs one too.
+- Never Wren's Meta accounts (they run our ads) or William's personal one.
+- A separate account made for reading risks a ban. Meta checks new accounts with no friends or history, and an account that only joins groups and scrolls reads as a scraper. Expect a checkpoint (phone or ID) within days, then a disable. Joining asks admins to approve, and many groups ask questions first.
+- If it goes ahead, it should be one account made by hand on a real phone number, aged a few weeks with normal use before it reads, capped low (a few groups a day), and run on the desk's realistic Chrome. Until William says yes, groups stay logged out.
 
 ## Rules
 
 - Never read through Wren's own logged-in Meta or Instagram accounts, or William's personal ones. Those accounts run our ads, and Meta bans accounts that scrape. Use official APIs or logged-out reads only, of firm pages and channels, never a person's private profile.
 - Free official APIs first. A browser only where no API exists.
+- Store everything a source returns (every field, the raw response, the page HTML for a browser read) and filter when reading. Never drop data at write time to fit a schema.
 - Dedupe identity, not reach. One person is one row, and every source that found them is a sighting. The send-time guard is what matters: no person in two active sequences, and no two first touches on one day.
 - Every metered stage gets a bucket, and buckets share a network's allowance rather than each assuming the whole.
 
 ## Decision log
 
 - 2026-10-05: YouTube first, enrichment before source. Service account over an API key: no new secret, own quota. Findings over a new table: the facts are what downstream reads.
+- 2026-10-05: Store everything (William, via the lead-list session). YouTube asks for every part and keeps the raw resources. Uploads go 50 deep with videos.list stats, and old reads backfill on their own. That's 3 units a firm, so the bucket dropped to 2,000 firms a day. Every autobrowse answer that wren reads is kept whole as a document.
+- 2026-10-05: Facebook groups (William: "make sure to add facebook group scraping too"). Meta removed the Groups API from all versions on 2024-04-22, so groups are logged-out browser reads for now. A logged-in reading account is William's call because of the ban risk above.
 - 2026-10-05 trial: 105 recruiting firms read (210 units, $0). 22 had a non-Short upload in 90 days, 11 in 30. Three slot prompts on those 22 titles (≈ $0.10 of Cohere): asking for the phrase "after your recent video on" made the model echo it; asking for lowercase broke the word cap. The prompt that shipped gives one mid-sentence example and refuses anything not about work. 11 of 22 passed, and all of them read naturally; a refusal only drops the option.
