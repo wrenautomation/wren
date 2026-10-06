@@ -1166,7 +1166,8 @@ function List({
                                 href={place.link({ [meta.name.one]: id, tab: null })}
                                 className={cn(
                                   "font-medium text-(--ui-ink) no-underline",
-                                  narrow && "line-clamp-2",
+                                  // Cut inside the link, so focusing it never scrolls the cell sideways.
+                                  narrow ? "line-clamp-2" : "block truncate",
                                 )}
                               >
                                 {titleOf(meta, r)}
