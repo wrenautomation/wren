@@ -141,6 +141,7 @@ export const PLANNED_COMPONENTS = [
     blurb: "Works a quiet lead through touches on every channel: texts, email, voicemail, calls.",
     icon: "cycle",
     for: "client",
+    missing: ["A client's own cadence. The touches run Wren's sequences today."],
     in: [{ id: "leads", label: "leads who went quiet", kind: "lead" }],
     out: [
       { id: "replied", label: "replies", kind: "reply" },
@@ -150,9 +151,21 @@ export const PLANNED_COMPONENTS = [
     hypothesis: {
       from,
       guesses: [
-        { is: "change", says: "The steps: each one's channel, copy and wait.", built: null },
-        { is: "change", says: "When it stops: a reply, a booking, the last step.", built: null },
-        { is: "needs", says: "The channel parts its steps use.", built: null },
+        {
+          is: "change",
+          says: "The steps: each one's channel, copy and wait.",
+          built: "cadenceWorkflow in @wren/core/workflows, one touch node per step",
+        },
+        {
+          is: "change",
+          says: "When it stops: a reply, a booking, the last step.",
+          built: "each touch's replied port ends it",
+        },
+        {
+          is: "needs",
+          says: "The channel parts its steps use.",
+          built: "email.touch, sms.touch and reach.touch, mixed in one cadence",
+        },
         { is: "fixed", says: "A lead is in one cadence at a time." },
       ],
     },
@@ -212,13 +225,18 @@ export const PLANNED_COMPONENTS = [
       "Job changes, hiring, funding and recent posts, each turned into a lead with its reason.",
     icon: "flag",
     for: "client",
+    missing: ["Job changes and company news are read for reactivation, not yet as new leads"],
     out: [{ id: "leads", label: "leads with a reason", kind: "lead" }],
     effects: ["spends"],
     hypothesis: {
       from,
       guesses: [
         { is: "change", says: "Which triggers matter, per niche.", built: null },
-        { is: "change", says: "Sources: LinkedIn, Instagram, news, job boards.", built: null },
+        {
+          is: "change",
+          says: "Sources: LinkedIn, Instagram, news, job boards.",
+          built: "reactivation's movers (job changes) and the company-events check (news)",
+        },
         { is: "fixed", says: "Every lead carries the trigger that made it." },
       ],
     },
