@@ -2,8 +2,12 @@
  * LinkedIn as a `ContentChannel`, over autobrowse's site API in LinkedIn's
  * own shape (Posts API, Social Actions). Whether a call is answered by the
  * API or a browser flow is the worker's business; rows say which.
+ * Activity reads the notifications page (a browser read, capped per day).
  */
 import {
+  type ActivityKind,
+  type ActivityQuery,
+  type ActivityRow,
   type CommentRow,
   type ContentChannel,
   type FetchedWith,
@@ -14,6 +18,7 @@ import {
   type PublishedRow,
   pageOf,
   previewOf,
+  SiteCallError,
   type SiteClient,
 } from "@wren/core/content";
 
@@ -42,6 +47,25 @@ interface LiComment {
   created?: { time?: number };
   object?: string;
 }
+
+/** autobrowse `GET /notifications`: newest first, `at` from the age label. */
+interface LiNotification {
+  id: string;
+  kind: "follow" | "reaction" | "comment" | "mention" | "connection" | "view" | "other";
+  actor?: string;
+  actorUrl?: string;
+  text: string;
+  url?: string;
+  at?: string;
+}
+/** `view` and `other` are LinkedIn's suggestions and news: dropped. */
+const ACTIVITY_OF: Partial<Record<LiNotification["kind"], ActivityKind>> = {
+  follow: "follow",
+  reaction: "reaction",
+  mention: "mention",
+  comment: "notification",
+  connection: "notification",
+};
 
 export function linkedinContent(sites: SiteClient, o: LinkedInContentOptions = {}): ContentChannel {
   const now = o.now ?? (() => new Date());
@@ -138,6 +162,35 @@ export function linkedinContent(sites: SiteClient, o: LinkedInContentOptions = {
           message: { text },
         },
       );
+    },
+    // No audience: no cheap follower route yet.
+    async activity(q: ActivityQuery = {}): Promise<ActivityRow[]> {
+      let out: { notifications?: LiNotification[] };
+      try {
+        out = await sites.call("linkedin", "GET", "/notifications", { max: q.limit ?? 40 });
+      } catch (err) {
+        // Over the day's cap: nothing read this pass, not a failure.
+        if (err instanceof SiteCallError && err.status === 429) return [];
+        throw err;
+      }
+      const { since } = q;
+      return (out.notifications ?? []).flatMap((n) => {
+        const kind = ACTIVITY_OF[n.kind];
+        const at = n.at ?? null;
+        if (!kind || (since && at !== null && at < since)) return [];
+        return [
+          {
+            id: n.id,
+            kind,
+            actor: n.actor ?? null,
+            actorUrl: n.actorUrl ?? null,
+            text: n.text,
+            url: n.url ?? null,
+            at,
+            raw: n,
+          },
+        ];
+      });
     },
   };
 }

@@ -1,4 +1,4 @@
-import type { SiteClient } from "@wren/core/content";
+import { SiteCallError, type SiteClient } from "@wren/core/content";
 import { describe, expect, it } from "vitest";
 import { linkedinContent } from "./content.js";
 
@@ -100,5 +100,77 @@ describe("linkedin content channel", () => {
     await expect(
       ch.publish({ text: "x", media: { kind: "image", source: "/tmp/a.png" } }),
     ).rejects.toThrow(/uploaded urn:li:image/);
+  });
+
+  it("activity maps notification kinds, drops views and news, since filters, a capped day reads nothing", async () => {
+    const n = (id: string, kind: string, at?: string) => ({
+      id,
+      kind,
+      actor: "Test Person",
+      actorUrl: "https://www.linkedin.com/in/test-person/",
+      text: `Test Person ${kind} line`,
+      url: "https://www.linkedin.com/feed/update/urn:li:activity:1/",
+      ...(at ? { at, approx: true } : {}),
+      raw: { text: "synthetic", links: [], bold: ["Test Person"] },
+    });
+    const page = [
+      n("h1", "mention", "2026-10-06T10:00:00.000Z"),
+      n("h2", "view", "2026-10-06T09:00:00.000Z"),
+      n("h3", "follow", "2026-10-05T00:00:00.000Z"),
+      n("h4", "comment"),
+      n("h5", "other", "2026-10-04T00:00:00.000Z"),
+      n("h6", "reaction", "2026-09-01T00:00:00.000Z"),
+    ];
+    const { sites, calls } = fakeSites({
+      "GET /notifications": (i) => {
+        expect(i).toEqual({ max: 40 });
+        return { notifications: page };
+      },
+    });
+    const ch = linkedinContent(sites, { author: "urn:li:person:abc" });
+    const rows = await ch.activity?.({ since: "2026-10-01T00:00:00Z" });
+    expect(rows?.map((r) => [r.id, r.kind, r.at])).toEqual([
+      ["h1", "mention", "2026-10-06T10:00:00.000Z"],
+      ["h3", "follow", "2026-10-05T00:00:00.000Z"],
+      ["h4", "notification", null],
+    ]);
+    expect(rows?.[0]).toEqual({
+      id: "h1",
+      kind: "mention",
+      actor: "Test Person",
+      actorUrl: "https://www.linkedin.com/in/test-person/",
+      text: "Test Person mention line",
+      url: "https://www.linkedin.com/feed/update/urn:li:activity:1/",
+      at: "2026-10-06T10:00:00.000Z",
+      raw: page[0],
+    });
+    expect((await ch.activity?.())?.map((r) => r.id)).toEqual(["h1", "h3", "h4", "h6"]);
+    expect(calls).toHaveLength(2);
+    expect(ch.audience).toBeUndefined();
+
+    const capped = linkedinContent(
+      {
+        async call() {
+          throw new SiteCallError("linkedin", "GET", "/notifications", 429, "notifications cap");
+        },
+        async via() {
+          return "browser";
+        },
+      },
+      { author: "urn:li:person:abc" },
+    );
+    expect(await capped.activity?.()).toEqual([]);
+    const broken = linkedinContent(
+      {
+        async call() {
+          throw new SiteCallError("linkedin", "GET", "/notifications", 500, "boom");
+        },
+        async via() {
+          return "browser";
+        },
+      },
+      { author: "urn:li:person:abc" },
+    );
+    await expect(broken.activity?.()).rejects.toThrow(/500/);
   });
 });
