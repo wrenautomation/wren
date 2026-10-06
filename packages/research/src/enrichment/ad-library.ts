@@ -7,6 +7,7 @@
  * every AD_KEYWORD_EVERY_DAYS, paced by a bucket over the imports. $0: a browser on the Mac.
  */
 import {
+  companies,
   extractDomain,
   IDENTITY_KEY,
   isPlatformDomain,
@@ -14,10 +15,11 @@ import {
   type RawRow,
   registrableDomain,
   runImport,
+  sightings,
 } from "@wren/core";
 import type { SiteClient } from "@wren/core/content";
 import { atomic, type Queryable } from "@wren/db";
-import { sql } from "drizzle-orm";
+import { eq, sql } from "drizzle-orm";
 import { type Bucket, bucketRoom, refusedBy, retryAfter } from "../pacing.js";
 
 export const AD_LIBRARY_COMMAND = "enrich ad-library";
@@ -85,12 +87,7 @@ export function pageKey(ad: Ad): string {
  * links home is enough for all of them, so the page key is only for one that never does.
  */
 export function adRows(ads: readonly Ad[], q: string, platforms: Iterable<string> = []): RawRow[] {
-  const extra = [...platforms];
-  const homes = new Map<string, string>();
-  for (const ad of ads) {
-    const d = adDomain(ad, extra);
-    if (d && !homes.has(pageKey(ad))) homes.set(pageKey(ad), d);
-  }
+  const homes = adHomes(ads, platforms);
   return ads.map((ad) => {
     const domain = homes.get(pageKey(ad)) ?? null;
     return {
@@ -100,6 +97,98 @@ export function adRows(ads: readonly Ad[], q: string, platforms: Iterable<string
       ad,
       ...(domain ? {} : { [IDENTITY_KEY]: { source_key: pageKey(ad) } }),
     };
+  });
+}
+
+/** Each page's home: the first domain any of its ads links. */
+export function adHomes(ads: Iterable<Ad>, platforms: Iterable<string> = []): Map<string, string> {
+  const extra = [...platforms];
+  const homes = new Map<string, string>();
+  for (const ad of ads) {
+    const d = adDomain(ad, extra);
+    if (d && !homes.has(pageKey(ad))) homes.set(pageKey(ad), d);
+  }
+  return homes;
+}
+
+export type PageMerge = "none" | "took-domain" | "folded";
+
+/**
+ * A page-keyed firm whose page now links `domain` is that domain's firm. With no firm on the
+ * domain it takes the domain and keeps its key. Else it folds in: every row with a company FK
+ * moves to the domain firm, the old firm is kept whole as a sighting there, and its key becomes
+ * the domain firm's when that has none. One transaction; a second run finds nothing to do.
+ */
+export async function mergePageFirm(
+  db: Queryable,
+  key: string,
+  domain: string,
+): Promise<PageMerge> {
+  return atomic(db, async (tx) => {
+    const [from] = await tx.select().from(companies).where(eq(companies.sourceKey, key)).limit(1);
+    if (!from || from.domain !== null) return "none";
+    const [to] = await tx.select().from(companies).where(eq(companies.domain, domain)).limit(1);
+    if (!to) {
+      await tx.update(companies).set({ domain }).where(eq(companies.id, from.id));
+      return "took-domain";
+    }
+    // Every FK to companies, from the catalog, so a table added later moves too.
+    const refs = await tx.execute<{ tbl: string; col: string }>(sql`
+      select c.conrelid::regclass::text as tbl, a.attname as col
+      from pg_constraint c
+      join pg_attribute a on a.attrelid = c.conrelid and a.attnum = any(c.conkey)
+      where c.contype = 'f' and c.confrelid = 'companies'::regclass`);
+    for (const r of refs)
+      await tx.execute(
+        sql`update ${sql.raw(r.tbl)} set ${sql.identifier(r.col)} = ${to.id} where ${sql.identifier(r.col)} = ${from.id}`,
+      );
+    await tx.insert(sightings).values({
+      companyId: to.id,
+      // ponytail: a firm with no import of its own borrows the survivor's; both null rolls back.
+      importId: (from.importId ?? to.importId) as number,
+      rowNumber: 0,
+      raw: { merged_from: from },
+    });
+    await tx.delete(companies).where(eq(companies.id, from.id));
+    // Fill blanks, never overwrite; the page key stays the alias later page-only ads match on.
+    // ponytail: a survivor with its own key keeps only the sighting; the next linking ad re-merges.
+    await tx
+      .update(companies)
+      .set({
+        sourceKey: to.sourceKey ?? key,
+        name: to.name ?? from.name,
+        socialUrl: to.socialUrl ?? from.socialUrl,
+        linkedinUrl: to.linkedinUrl ?? from.linkedinUrl,
+        country: to.country ?? from.country,
+        niche: to.niche ?? from.niche,
+        timezone: to.timezone ?? from.timezone,
+      })
+      .where(eq(companies.id, to.id));
+    return "folded";
+  });
+}
+
+/** Page-keyed firms on file whose page a held Ad Library ad links to a domain firm. */
+export async function pageFirmPairs(db: Queryable): Promise<{ key: string; domain: string }[]> {
+  const rows = await db.execute<{ domain: string; ad: Ad }>(sql`
+    select c.domain, x.raw->'ad' as ad
+    from (
+      select s.company_id, s.raw from sightings s join imports i on i.id = s.import_id
+      where i.source_type = ${AD_LIBRARY_SOURCE}
+      union all
+      select c.id, c.raw from companies c join imports i on i.id = c.import_id
+      where i.source_type = ${AD_LIBRARY_SOURCE}
+    ) x
+    join companies c on c.id = x.company_id
+    where c.domain is not null and x.raw ? 'ad'
+    order by c.id`);
+  const homes = new Map<string, string>();
+  for (const r of rows) if (!homes.has(pageKey(r.ad))) homes.set(pageKey(r.ad), r.domain);
+  const keyed = await db.execute<{ key: string }>(sql`
+    select source_key as key from companies where source_key like 'fb:%' and domain is null`);
+  return keyed.flatMap(({ key }) => {
+    const domain = homes.get(key);
+    return domain ? [{ key, domain }] : [];
   });
 }
 
@@ -183,9 +272,13 @@ export async function adLibraryUnit(
     sourceRef: adRef(w.q, country),
     rows: () => adRows(ads, w.q, platforms),
   };
-  const { batch, stats } = await atomic(db, (tx) =>
-    runImport(tx, source, { niche: w.niche, extraPlatformDomains: platforms }),
-  );
+  const { batch, stats } = await atomic(db, async (tx) => {
+    // A page held by its key that now links home merges first, so its ads land on one firm.
+    // A failed merge leaves both firms as they were; `enrich merge-pages` retries and says why.
+    for (const [key, domain] of adHomes(ads, platforms))
+      await mergePageFirm(tx, key, domain).catch(() => "none");
+    return runImport(tx, source, { niche: w.niche, extraPlatformDomains: platforms });
+  });
   return {
     q: w.q,
     outcome: "read",

@@ -20,7 +20,9 @@ import {
   emptyCrawlStats,
   exportReadings,
   loadReadings,
+  mergePageFirm,
   PROFILES_COMMAND,
+  pageFirmPairs,
   type ReadingFirm,
   ReadingResult,
   runProfiles,
@@ -324,6 +326,24 @@ export function registerEnrich(
         }),
       );
       console.log(`checks: ${JSON.stringify(stats)}`);
+    });
+
+  enrich
+    .command("merge-pages")
+    .description("Fold each page-keyed Ad Library firm into the domain its page's ads link")
+    .option("--dry", "print the pairs; write nothing")
+    .action(async (opts: { dry?: boolean }) => {
+      await withDb(async (db) => {
+        const pairs = await pageFirmPairs(db);
+        // One transaction a pair: a failure leaves that pair as it was and the rest go on.
+        for (const { key, domain } of pairs) {
+          const done = opts.dry
+            ? "dry"
+            : await mergePageFirm(db, key, domain).catch((e: Error) => `failed: ${e.message}`);
+          console.log(`${key} -> ${domain}: ${done}`);
+        }
+        console.log(`merge-pages: ${pairs.length} pairs`);
+      });
     });
 
   return enrich;
