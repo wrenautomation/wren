@@ -34,6 +34,8 @@ export interface ContentSchedulerDeps {
   notifier?: Notifier;
   /** The lander host posts link to (`/go/<code>/<draft>`); unset = posts carry no link. */
   linkSite?: string | null;
+  /** A post just went out on `platform`: whoever reads its replies starts reading warm. */
+  posted?: (ctx: restate.ObjectContext, platform: Platform) => void;
 }
 
 export interface PublishStats {
@@ -62,6 +64,7 @@ export function makeContentScheduler(deps: ContentSchedulerDeps) {
         });
         await ctx.run(`published ${draft.id}`, () => markPublished(deps.db, draft.id, published));
         stats.published.push({ id: draft.id, platform: draft.platform, url: published.url });
+        deps.posted?.(ctx, draft.platform);
       } catch (err) {
         // A terminal refusal (no channel, the platform said no) is this draft's
         // problem: recorded on the row, the pass moves on. Anything else retries.

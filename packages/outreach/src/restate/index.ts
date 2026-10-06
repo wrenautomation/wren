@@ -5,10 +5,12 @@
  *   the journal: database steps in `ctx.run`, platform calls as journaled
  *   calls to the Mac's desk. Next pass after the gap when it sent, five
  *   minutes when nothing could go. Off until `wren reach queue start`.
- * - `ReachWatch/daily`: every 30 minutes, reads each account's inbox once:
+ * - `ReachWatch/daily`: reads each account's inbox on the warm cadence
+ *   (`@wren/core/warm`): every 2 minutes right after a touch, easing to 30.
  *   DMs become replies, comments on our posts and under our comments become
  *   `comments` rows and events on the `reach.comments` workflow. Then each
- *   account's health (the warmup ladder runs on it).
+ *   account's health (the warmup ladder runs on it). A send, an answer or a
+ *   post wakes it, so the first check comes at once.
  * - `ReachDesk`: the operator's reads and writes (accounts, finds, enrich,
  *   enroll, templates, threads), each one journaled.
  */
@@ -30,6 +32,7 @@ import {
   setLastPass,
 } from "@wren/core/restate";
 import { spineEmit } from "@wren/core/spine";
+import { COLD_EVERY_MS, warmEveryMs } from "@wren/core/warm";
 import { cadenceId } from "@wren/core/workflows";
 import type { Db } from "@wren/db";
 import { z } from "zod";
@@ -38,6 +41,7 @@ import {
   accountById,
   addAccount,
   type HealthStats,
+  lastTouches,
   listAccounts,
   platformOf,
   refreshHealth,
@@ -94,7 +98,12 @@ import { queueManual, type TickStats, tick } from "../tick.js";
 export const SENDER_KEY = "fleet";
 export const WATCH_KEY = "daily";
 const IDLE_MS = 5 * 60 * 1000;
-const WATCH_EVERY_MS = 30 * 60 * 1000;
+/** The soonest the watch comes back, whatever is due. */
+const WATCH_FLOOR_MS = 60 * 1000;
+/** Restate state on `ReachWatch/daily`: each account's last read, epoch ms by account id. */
+const READS = "reads";
+/** The same for health: it stays on the cold cadence, whatever the inbox does. */
+const HEALTH = "health";
 
 export interface ReachDeps {
   db: Db;
@@ -109,7 +118,18 @@ export interface ReachDeps {
   sitesFor: (ctx: restate.Context) => SiteClient;
   notifier?: Notifier;
   clock?: () => Date;
+  /** When Wren last posted on `platform` (content's channel): a post warms that site's accounts. */
+  postedAt?: (platform: Platform) => Promise<string | null>;
 }
+
+/** Wake the watch so a touch's first check comes now, not after a cold sleep. */
+export const wakeWatch = (ctx: restate.Context) =>
+  ctx
+    .objectSendClient<{ wake: (c: restate.ObjectContext) => Promise<unknown> }>(
+      { name: "ReachWatch" },
+      WATCH_KEY,
+    )
+    .wake();
 
 async function nowFor(ctx: restate.Context, clock?: () => Date): Promise<Date> {
   return clock ? clock() : new Date(await ctx.date.now());
@@ -174,6 +194,7 @@ export function makeReachSender(deps: ReachDeps) {
         from: `s${s.step}.sent`,
         events: [reachLead(s.contactId)],
       });
+    if (stats && stats.sent > 0) wakeWatch(ctx);
     const previous = await lastPass<PassOutcome<TickStats>>(ctx);
     const failures = stats ? 0 : (previous?.failures ?? 0) + 1;
     const delayMs = stats && stats.sent > 0 ? deps.policy.gapSeconds * 1000 : IDLE_MS;
@@ -207,14 +228,36 @@ export function makeReachWatch(deps: ReachDeps) {
     const channelFor = channelsFor(deps, ctx);
     const accounts = await ctx.run("accounts", () => listAccounts(deps.db));
     const live = accounts.filter((a) => a.state === "active" || a.state === "warming");
+    // Each account reads on its own warm cadence: often after a touch, easing off as it goes quiet.
+    const touches = await ctx.run("touches", async () => {
+      const t = await lastTouches(deps.db);
+      for (const p of new Set(live.map((a) => a.platform))) {
+        const posted = await deps.postedAt?.(p);
+        if (!posted) continue;
+        for (const a of live)
+          if (a.platform === p && (!t[a.id] || posted > (t[a.id] as string))) t[a.id] = posted;
+      }
+      return t;
+    });
+    const reads = (await ctx.get<Record<string, number>>(READS)) ?? {};
+    const checked = (await ctx.get<Record<string, number>>(HEALTH)) ?? {};
+    const everyOf = new Map(
+      live.map((a) => {
+        const t = touches[a.id];
+        return [a.id, warmEveryMs(t ? new Date(t) : null, now, ctx.rand.random())];
+      }),
+    );
+    const isDue = (a: ReachAccount) =>
+      now.getTime() - (reads[a.id] ?? 0) >= (everyOf.get(a.id) ?? 0);
     // Platform reads happen inside these helpers; each account's result is applied in its own step.
     const replies: RepliesStats = { checked: 0, received: 0, optedOut: 0, errors: [] };
     const health: HealthStats = { checked: 0, frozen: [], errors: [] };
     const kept: WatchStats["comments"] = { kept: 0, errors: [] };
     const ours = accounts.flatMap((a) => (a.handle ? [a.handle] : []));
-    for (const a of live) {
+    for (const a of live.filter(isDue)) {
       const ch = channelFor(a);
       if (!ch) continue;
+      reads[a.id] = now.getTime();
       try {
         const got = await ch.replies(null);
         const r = await ctx.run(`replies ${a.account}`, () =>
@@ -244,6 +287,8 @@ export function makeReachWatch(deps: ReachDeps) {
         } catch (err) {
           kept.errors.push(`${a.account}: ${errorText(err)}`);
         }
+      if (now.getTime() - (checked[a.id] ?? 0) < COLD_EVERY_MS) continue;
+      checked[a.id] = now.getTime();
       try {
         const h = await ch.health();
         const r = await ctx.run(`health ${a.account}`, () =>
@@ -255,12 +300,15 @@ export function makeReachWatch(deps: ReachDeps) {
         health.errors.push(`${a.account}: ${errorText(err)}`);
       }
     }
+    ctx.set(READS, reads);
+    ctx.set(HEALTH, checked);
     const stats: WatchStats = { replies, comments: kept, health };
+    const next = live.map((a) => (reads[a.id] ?? 0) + (everyOf.get(a.id) ?? 0) - now.getTime());
     const outcome: PassOutcome<WatchStats> = {
       stats,
       error: null,
       failures: 0,
-      delayMs: WATCH_EVERY_MS,
+      delayMs: Math.max(WATCH_FLOOR_MS, next.length ? Math.min(...next) : COLD_EVERY_MS),
       now: now.toISOString(),
     };
     await setLastPass(ctx, outcome);
@@ -636,6 +684,7 @@ export function makeReachDesk(deps: ReachDeps) {
           await ctx.run("answered", () =>
             markAnswered(deps.db, req.id, { body, ref: sent.ref, now }),
           );
+          wakeWatch(ctx);
           return { ref: sent.ref };
         },
       ),

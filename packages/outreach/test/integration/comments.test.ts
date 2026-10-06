@@ -9,7 +9,7 @@ import { startTestPostgres, type TestPostgres, truncate } from "@wren/db/testing
 import { FakeLlm } from "@wren/llm";
 import { eq } from "drizzle-orm";
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
-import { addAccount, refreshHealth, setAccountState } from "../../src/accounts.js";
+import { addAccount, lastTouches, refreshHealth, setAccountState } from "../../src/accounts.js";
 import {
   answerComment,
   commentById,
@@ -82,6 +82,18 @@ const comment = (n: number, over: Partial<CommentIn> = {}): CommentIn => ({
 });
 
 describe("comments", () => {
+  it("last touch per account: the newest comment or answer, DMs too", async () => {
+    const a = await account("reddit@a", "ok_crow", 60, 100);
+    expect(await lastTouches(db())).toEqual({});
+    const [c] = await keepComments(db(), a, [comment(1)], []);
+    expect((await lastTouches(db()))[a.id]).toBe(comment(1).at);
+    await db()
+      .update(comments)
+      .set({ answeredAt: NOW })
+      .where(eq(comments.id, c?.id as number));
+    expect((await lastTouches(db()))[a.id]).toBe(NOW.toISOString());
+  });
+
   it("kept once; ours closed; the rest returned oldest first", async () => {
     const a = await account("reddit@wren", "WrenAutomation", 10, 5);
     const items = [comment(1), comment(2), comment(3, { handle: "Ok_Crow" })];

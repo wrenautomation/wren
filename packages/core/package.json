@@ -39,6 +39,7 @@
     "./stats": "./src/stats.ts",
     "./time": "./src/time.ts",
     "./spine": "./src/spine.ts",
+    "./warm": "./src/warm.ts",
     "./workflows": "./src/workflows.ts"
   },
   "scripts": {

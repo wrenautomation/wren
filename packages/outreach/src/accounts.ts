@@ -6,7 +6,7 @@
  */
 import type { AccountHealth, OutreachChannel } from "@wren/core/outreach";
 import type { Queryable } from "@wren/db";
-import { and, asc, eq, inArray } from "drizzle-orm";
+import { and, asc, eq, inArray, sql } from "drizzle-orm";
 import { fleetDay, type ReachPolicy, type Standing, standingOf } from "./policy.js";
 import { ReachRefusal } from "./refusal.js";
 import {
@@ -73,6 +73,21 @@ export async function listAccounts(
     .from(reachAccounts)
     .where(platform ? eq(reachAccounts.platform, platform) : undefined)
     .orderBy(asc(reachAccounts.platform), asc(reachAccounts.createdAt));
+}
+
+/**
+ * Each account's last touch, by account id: a DM sent or received, a comment on us or our answer.
+ * The warm cadence reads it (`@wren/core/warm`).
+ */
+export async function lastTouches(db: Queryable): Promise<Record<string, string>> {
+  const rows = (await db.execute(sql`
+    select account_id, max(at) at from (
+      select account_id, coalesce(sent_at, created_at) at from reach_messages
+        where account_id is not null and (sent_at is not null or direction = 'in')
+      union all select account_id, at from comments
+      union all select account_id, answered_at from comments where answered_at is not null
+    ) t group by account_id`)) as unknown as Array<{ account_id: string; at: Date | string }>;
+  return Object.fromEntries(rows.map((r) => [r.account_id, new Date(r.at).toISOString()]));
 }
 
 export async function accountById(db: Queryable, id: string): Promise<ReachAccount> {

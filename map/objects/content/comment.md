@@ -13,14 +13,14 @@ Every comment on our posts and every answer to our comments, as each reach accou
 
 ## Why this shape
 
-Comments work like a webhook (William, 2026-10-05): the reader is a source, reach is one subscriber. One inbox read per account every 30 minutes serves DMs and comments, and marks nothing read. Our two Reddit accounts never write in one thread, so an answer reads the thread's authors first.
+Comments work like a webhook (William, 2026-10-05): the reader is a source, reach is one subscriber. One inbox read per account serves DMs and comments, and marks nothing read. Reads follow the warm cadence (William, 2026-10-06: "frequent checks at first, then decays"): every 2 minutes for 15 minutes after the account's last touch (a DM either way, a comment, our answer, a post on its platform), every 5 to the hour, every 15 to 6 hours, then every 30, each ±20%. A send, an answer or a post wakes the watch. Health stays every 30. Our two Reddit accounts never write in one thread, so an answer reads the thread's authors first.
 
 ## Shape
 
 - `comments` (`schema.ts:242`): unique (platform, ref); `sort` asked/question/chat/hostile/ours; `state` new/waiting/answered/dropped; `draft`, `answer`, `contact_id` once DMed
 - Reader: `redditOutreach().comments` (`packages/channel-reddit/src/outreach.ts`), shared inbox read with `replies`
 - Code: `packages/outreach/src/comments.ts`: `keepComments` (`:45`), `sortComment` (`:119`, words then the Watch's model), `sortStep` (`:152`, spine step `comments.sort`), `planAnswer` (`:199`, rung caps), `checkThread` (`:218`), `answerComment` (`:235`), `dmCommenter` (`:254`, one DM per person, rung must allow messages)
-- Loop: `ReachWatch/daily` (`restate/index.ts:230`); desk handlers `ReachDesk/answerComment|dmComment|dropComment` (`:619`)
+- Loop: `ReachWatch/daily` (`restate/index.ts:225`), cadence `@wren/core/warm` (`warmEveryMs`), touches `lastTouches` (`accounts.ts`) plus content's `published_at` via the worker; state `reads`, `health`; desk handlers `ReachDesk/answerComment|dmComment|dropComment` (`:667`)
 - Console: record `marketing.comment` (Marketing → Comments), rows in `inbox.reply` (`apps/worker/src/replies.ts`)
 
 ## Connected to

@@ -114,7 +114,7 @@ import {
   makeContentPlanner,
   makeContentScheduler,
 } from "@wren/content/restate";
-import { contentPlaybooks } from "@wren/content/schema";
+import { contentDrafts, contentPlaybooks } from "@wren/content/schema";
 import { askRecord, makeAsk } from "@wren/core/ask";
 import { makeAuditSealer } from "@wren/core/audit";
 import { CalcomCalendar, type Calendar } from "@wren/core/calendar";
@@ -158,7 +158,7 @@ import {
   sortStep,
 } from "@wren/outreach";
 import { dmCopyRecord } from "@wren/outreach/records";
-import { makeReachDesk, makeReachSender, makeReachWatch } from "@wren/outreach/restate";
+import { makeReachDesk, makeReachSender, makeReachWatch, wakeWatch } from "@wren/outreach/restate";
 import { clientSendScope } from "@wren/reactivation";
 import { DEMO_NAME, makeReactivation, makeReactivationPortal } from "@wren/reactivation/restate";
 import {
@@ -175,7 +175,7 @@ import { makeDiscovery, makeEnrichment, makePageArchive } from "@wren/research/r
 import { type Practice, practiceOf, scoreStep, triageStep } from "@wren/watch";
 import { WATCH_RECORDS } from "@wren/watch/records";
 import { makeWatch, makeWatchConsole } from "@wren/watch/restate";
-import { desc } from "drizzle-orm";
+import { desc, eq, max } from "drizzle-orm";
 import type { Logger } from "pino";
 import { COMPONENTS } from "./components.js";
 import { MARKETING_NUMBERS } from "./marketing.js";
@@ -754,7 +754,15 @@ export async function buildServices(
       tracer,
       ...(voice !== null ? { voice } : {}),
     }),
-    makeContentScheduler({ db, linkSite: settings.contentLinkSite ?? null, ...contentNotify }),
+    makeContentScheduler({
+      db,
+      linkSite: settings.contentLinkSite ?? null,
+      // A post's replies come in through reach's watch: it reads warm from now.
+      posted: (ctx, p) => {
+        if (p === "reddit" || p === "linkedin") wakeWatch(ctx);
+      },
+      ...contentNotify,
+    }),
     makeContentMetrics({ db, ...contentNotify }),
     // Tomorrow's slots vs scheduled drafts, said once a day; off until `wren content planner start`.
     makeContentPlanner({ db, zone: settings.sendTimezone, ...contentNotify }),
@@ -863,6 +871,13 @@ export async function buildServices(
     senderName: settings.smsSenderName,
     heldNiches: settings.reachHeldNiches,
     sitesFor: (ctx: Context) => restateSites(ctx, { caller: "wren:reach", service: DESK }),
+    postedAt: async (p: "reddit" | "linkedin") => {
+      const [r] = await db
+        .select({ at: max(contentDrafts.publishedAt) })
+        .from(contentDrafts)
+        .where(eq(contentDrafts.platform, p));
+      return r?.at ? r.at.toISOString() : null;
+    },
     ...reachNotify,
   };
   services.push(makeReachSender(reach), makeReachWatch(reach), makeReachDesk(reach));
