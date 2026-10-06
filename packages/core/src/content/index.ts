@@ -109,6 +109,52 @@ export interface CommentRow {
   at: string;
   /** Set when we answered it (the reply's id). */
   repliedWith?: string;
+  /** The comment it answers; absent or the post's id = on the post itself. */
+  parentId?: string;
+  /** A link to the comment itself, when the platform gives one. */
+  url?: string;
+  /** Written by our own account. */
+  mine?: boolean;
+  /** The platform's whole answer for this comment. */
+  raw?: unknown;
+}
+
+/** What `activity` reads: follows, subscribes, mentions, reactions and other notices. */
+export const ACTIVITY_KINDS = [
+  "follow",
+  "subscribe",
+  "mention",
+  "reaction",
+  "notification",
+] as const;
+export type ActivityKind = (typeof ACTIVITY_KINDS)[number];
+
+/** One thing that happened to our account (designs/2026-10-06-social-inbox.md). */
+export interface ActivityRow {
+  /** The platform's id for it, unique per platform. */
+  id: string;
+  kind: ActivityKind;
+  actor: string | null;
+  actorUrl: string | null;
+  /** One line, the platform's words. */
+  text: string;
+  url: string | null;
+  /** When it happened; null = the platform doesn't say (the read time is kept). */
+  at: string | null;
+  raw: unknown;
+}
+
+export interface ActivityQuery {
+  /** ISO time: only rows at or after it. Absent = whatever the platform lists. */
+  since?: string;
+  limit?: number;
+}
+
+/** Our account's size now: followers, or subscribers on YouTube. */
+export interface Audience {
+  followers: number;
+  asOf: string;
+  raw: unknown;
 }
 
 export interface ListQuery {
@@ -128,6 +174,10 @@ export interface ContentChannel {
   comments(id: string, q?: ListQuery): Promise<CommentRow[]>;
   /** Absent when the platform gives no way to answer (LinkedIn without the partner API). */
   reply?(commentId: string, text: string): Promise<void>;
+  /** Follows, subscribes, mentions and notices on our account, newest first. Absent = not read. */
+  activity?(q?: ActivityQuery): Promise<ActivityRow[]>;
+  /** Our follower count now. Absent = not read. */
+  audience?(): Promise<Audience>;
 }
 
 /** One page of rows newest first, from a full newest-first array: the paging rule every adapter follows. */
@@ -153,16 +203,36 @@ export function fakeContentChannel(
   posts: Array<Published & { post: Post }>;
   count(id: string, m: Partial<Omit<Metrics, "id" | "asOf" | "fetchedWith">>): void;
   receive(c: Omit<CommentRow, "repliedWith">): void;
+  happen(a: ActivityRow): void;
+  follow(followers: number): void;
 } {
   const now = o.now ?? (() => new Date());
   const urlOf = o.urlOf ?? ((id: string) => `https://${platform}.test/p/${id}`);
   const posts: Array<Published & { post: Post }> = [];
   const metrics = new Map<string, Metrics>();
   const comments: CommentRow[] = [];
+  const activity: ActivityRow[] = [];
+  let followers = 0;
   let n = 0;
   return {
     platform,
     posts,
+    happen(a) {
+      activity.push({ ...a });
+    },
+    follow(count) {
+      followers = count;
+    },
+    async activity(q = {}) {
+      const { since } = q;
+      const rows = since ? activity.filter((a) => (a.at ?? "") >= since) : activity;
+      return [...rows]
+        .sort((a, b) => (b.at ?? "").localeCompare(a.at ?? ""))
+        .slice(0, q.limit ?? CONTENT_LIST_LIMIT);
+    },
+    async audience() {
+      return { followers, asOf: now().toISOString(), raw: { followers } };
+    },
     count(id, m) {
       const cur = metrics.get(id) ?? {
         id,
