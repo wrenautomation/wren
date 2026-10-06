@@ -219,8 +219,9 @@ describe("SocialWatch", () => {
   it("Inbox lists every type; mark seen; followers per platform", async () => {
     await published("linkedin", "li-p2", 1);
     li.receive({ id: "li-c9", postId: "li-p2", author: "Cy", text: "Question?", at: iso(1000) });
-    li.happen(follow("f9", 1000));
-    li.happen(follow("f10", 2000));
+    // YouTube: LinkedIn activity waits 2 hours from the last test's read.
+    yt.happen(follow("f9", 1000));
+    yt.happen(follow("f10", 2000));
     await sync();
     const inbox = (await inboxRecord.rows?.(pg.db)) ?? [];
     expect(inbox.map((r) => r.id).sort()).toEqual(
