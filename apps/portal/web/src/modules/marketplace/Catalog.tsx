@@ -135,7 +135,7 @@ export function catalogExtras(
   const id = String(row.id);
   const name = String(row.name);
   const at = (to: string) =>
-    `/marketplace/catalog?client=${encodeURIComponent(client)}&component=${encodeURIComponent(to)}`;
+    `/marketplace/catalog/${encodeURIComponent(to)}?client=${encodeURIComponent(client)}`;
   const usedIn = (u: Used): [string, ReactNode] => [
     "Used in",
     <p key="used">
