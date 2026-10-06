@@ -7,7 +7,9 @@ transcript, auto captions, a face cam corner layout, Shorts and Reels cut from t
 thumbnail, 1080p export, upload to Wren's YouTube with his yes. Input: separate screen and camera
 tracks from Cap's studio mode or OBS.
 
-Status: proposal. Nothing is built until he agrees.
+Status: agreed 10-06 ("Agree, captions on all, I'll do OBS"). Building in the order below. His
+10-06 asks on top: cuts must be consistent and never cut what he said; a Gemini option like the SOP
+video reader has; TwelveLabs as a second option.
 
 ## Answer first
 
@@ -29,7 +31,7 @@ Status: proposal. Nothing is built until he agrees.
 ## Flow
 
 ```
-Cap studio project (screen, camera, mic as separate files)
+OBS recording (one file, or screen + camera via Source Record)
   │ wren video add <dir> [--script <google doc url>]
   v
 ingest: probe tracks, audio → whisper.cpp (Metal) → words with timestamps
@@ -70,6 +72,20 @@ tags, thumbnail (frame, text), state (added, edited, rendered, approved, uploade
 `wren video show <id>` prints the edit as JSON; `wren video set <id>` writes it, checked, and
 records a `runs` row, as `wren drafts set` does. Claude Code works through these two commands.
 
+**Cuts he can trust.** His worry: an automatic pass cuts things it shouldn't. So:
+- Silence cuts need two signals to agree: no word in the transcript there AND ffmpeg
+  `silencedetect` hears silence there (noise floor measured from the track, not fixed). A transcript
+  gap alone never cuts; Whisper's word times drift by a few hundred ms.
+- Only gaps of 0.7 s or more are cut, and 0.2 s of air stays on each side. A cut never lands
+  inside a word; each edge snaps to the quietest 20 ms in its window.
+- Fillers and retakes are proposals, not cuts: they show struck through in yellow, and apply only
+  when he or Claude (with him) accepts them. Silence cuts apply by default.
+- Same tracks + same settings = the same cut list. No model in the silence pass, so reruns match.
+- `wren video cuts <id>` prints every cut with the words either side, its reason and length. Any cut
+  over 2 s, or one touching a word, is flagged for a look. `wren video keep <id> <n>` undoes one.
+- Knobs in settings (`studio.cuts`): min gap, air kept, noise margin. Defaults above; the first
+  videos tune them.
+
 **Cut pass (ffmpeg).** It trims both tracks by the cut list, adds a 10 ms audio fade at each cut so
 there are no clicks, scales to 1080p and encodes with VideoToolbox. Two synced files go out.
 Changing cuts reruns it in about a minute; nothing else does. Remotion's timeline then stays one
@@ -96,6 +112,21 @@ the rest: channel-youtube → autobrowse `POST /upload/youtube/v3/videos` (priva
 then `thumbnails/set`. Custom thumbnails need Wren's channel phone-verified; I check once before
 building. One fix in the upload: it reads the whole file into memory, so it should stream from
 disk.
+
+## Looking at the picture: Gemini or TwelveLabs (option)
+
+Claude Code reads only the transcript by default ($0). For picks that need the picture (thumbnail
+frames, Shorts that work visually, chapters at screen changes), `wren video look <id> --with
+gemini|twelvelabs` adds a pass. Both write the same shape onto the edit: `looks` = moments
+(`at`, `why`), Shorts ideas, chapter marks, thumbnail frames, a one-line summary. Claude Code
+reads them like the transcript; nothing applies them without the edit being set.
+- **Gemini:** the cut file at 360p goes to Gemini's Files API with the same fleet keys and model
+  order the SOP video reader uses (`fleetKeys(process.env, "gemini")`, rotate on 429). Free tier.
+- **TwelveLabs:** one index (`wren-videos`, Pegasus + Marengo). The cut file uploads once; Pegasus
+  answers the same ask, and `wren video find <id> "<words>"` searches it ("where I show the
+  dashboard"). Free plan: 600 minutes of video in total, index kept 90 days, so about 75 eight
+  minute videos. Key `TWELVELABS_API_KEY` on the Mac only. Past the free 600 minutes it costs
+  $0.042 a minute to index; that is William's call, so the CLI stops at the cap.
 
 ## Where it shows
 
@@ -128,12 +159,17 @@ $100 a month. ffmpeg alone has no such cost.
 the look, so no new seam. It moves to its own repo when someone other than Wren uses it, as
 credvault did. Only the CLI imports it; the worker never does.
 
-## Input
+## Input: OBS
 
-Cap studio mode (free) saves screen, camera and mic as separate files in a `.cap` project, on one
-clock, so no sync is needed. `wren video add` reads that folder. OBS works when it records separate
-files (Source Record plugin). Their start times can differ, so the sync offset comes from matching
-the two audio tracks. That is built only if he records with OBS.
+He records with OBS. Two shapes, both read by `wren video add`:
+- **Two files** (screen and camera, via OBS's free Source Record plugin): their start times can
+  differ, so the sync offset comes from cross-correlating the two audio tracks (ffmpeg pulls 16 kHz
+  mono, a few lines of math). Corner cam and Shorts layouts need this shape.
+- **One file** (OBS's own scene, cam already placed): no sync. The long video keeps OBS's layout;
+  Shorts crop the cam box (`--cam x,y,w,h`, once per scene) to put the cam on top.
+
+Setup note for him (in `wren video add --help`): OBS → Tools → Source Record on the camera source,
+same folder as the main recording.
 
 ## Cost
 
@@ -158,10 +194,10 @@ deleted.
 
 ## For William
 
-1. Agree or change: ffmpeg cuts + Remotion draws, in `packages/studio`.
-2. Cap studio mode or OBS for recording? Cap needs no sync work.
-3. Captions on the long video too, or only on Shorts?
+Answered 10-06: agreed; OBS; captions on the long video and Shorts.
 
 ## Decision log
 
 - 2026-10-06: proposed. Not built.
+- 2026-10-06: William agreed: OBS, captions on all. Added: cuts need transcript and audio to agree,
+  fillers and retakes are proposals, `cuts`/`keep` review; Gemini and TwelveLabs as look options.

@@ -89,6 +89,27 @@ dialog with a model draft, and Ask Claude works on it. It adds the contact (`fou
 and queues through `ReachDesk.reply`'s path. The lead guard still refuses a lead another channel
 holds.
 
+## 6. Editing first class (10-06)
+
+William, 10-06: "SOPs for dm is just content outbound, need human intervention editing and claude
+code guided by human editing to be first class (as easy fast and cheap as possible)."
+
+- **DM drafts read `outbound-copy`.** No `dm` SOP. The DM guide is the `outbound-copy` SOP (his
+  outbound rules), read the same way as now; the fixed brief stays only as the fallback.
+- **Edit in place.** On every item with a draft (post, comment, DM, thread, invite), the detail
+  shows the draft as a text box, not a dialog. Typing saves (on blur and ⌘S, as `draft-set` with
+  who = him). ⌘Enter sends through the item's existing send action, after the same confirm.
+- **Ask Claude in place.** A one-line box under the draft: Enter asks, the turns show above it,
+  Undo beside the last change. Same `DraftAsk`; only the dialog goes.
+- **His edits guide every draft.** Each time he changes a draft (in place, `wren drafts set`, or
+  the sent text differs from the model's draft), the before and after are kept (the `draft-set`
+  run already holds both). Every drafting call for that kind (DM drafts, comment drafts, Ask
+  Claude) gets his last 5 edits of that kind as examples: "How he edited earlier drafts". No new
+  call; a few hundred tokens more per draft.
+- **Claude Code in the terminal.** `wren drafts edits [--type t] [--limit n]` prints those pairs,
+  so a Claude Code session drafting with him reads how he edits before it writes.
+- $0: the same calls as before, slightly longer.
+
 ## Gaps closed beside this (on demand, never scheduled)
 
 - **LinkedIn audience.** An autobrowse read of `linkedin@wren`'s followers and connections (and the
