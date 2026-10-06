@@ -9,6 +9,7 @@ export { Input } from "./components/ui/input.js";
 export { Textarea } from "./components/ui/textarea.js";
 export { Button, ButtonLink, type ButtonTone, Tag, type TagTone } from "./controls.js";
 export { Facts } from "./data.js";
+export { type DraftTurnLine, DraftTurns, type RecordDraft } from "./draft.js";
 export { Alert, Callout, Empty, Loading } from "./feedback.js";
 export {
   type CiteTo,

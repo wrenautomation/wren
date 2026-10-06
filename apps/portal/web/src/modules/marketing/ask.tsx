@@ -1,81 +1,69 @@
 /**
- * Ask Claude on a draft (designs/2026-10-06-content-desk.md, 3): the actions, and the item's
- * thread oldest first. While Claude works the detail reads again every few seconds.
+ * Drafts finished in place (designs/2026-10-06-content-desk.md, 3 and 6): each page declares where
+ * its rows hold a draft and what sends it, and the detail draws it as `@wren/ui`'s draft box:
+ * typed and saved there, Ask Claude under it, the turns above, Undo beside the newest change.
+ * While Claude works the detail reads again every few seconds.
  */
 import type { DraftTurn } from "@wren/core/ask";
-import type { Action, RecordExtras } from "@wren/ui";
+import type { Row } from "@wren/core/records/serve";
+import type { Action, MessageKind, RecordExtras } from "@wren/ui";
 import type { ListPage } from "../../module.js";
 
 const POLL_MS = 4000;
 
+/** The box's actions, ids the records list: save, ask and undo, run from inside the detail only. */
+export const DRAFT_SET = "marketing.draftSet";
+export const DRAFT_ASK = "marketing.draftAsk";
+export const DRAFT_UNDO = "marketing.draftUndo";
+export const DRAFT_BOX = [DRAFT_SET, DRAFT_ASK, DRAFT_UNDO];
+
 /**
- * Ask Claude and Undo on one page's drafts. `handler` names the page's kind: the Inbox's ids carry
- * theirs (`inbox`), a page's own don't (`post`, `comment`, `thread`).
+ * Save, Ask Claude and Undo on one page's drafts. `handler` names the page's kind: the Inbox's ids
+ * carry theirs (`inbox`), a page's own don't (`post`, `comment`, `thread`).
  */
-export const askActions = (handler: string, when: NonNullable<Action["when"]>): Action[] => [
-  {
-    id: "marketing.draftAsk",
-    label: "Ask Claude",
-    handler: `marketing/${handler}Ask`,
-    ask: { field: "message", label: "What to change, or ask" },
-    key: "c",
-    when,
-    done: () => "Asked. Claude's answer shows on the item.",
-  },
-  {
-    id: "marketing.draftUndo",
-    label: "Undo",
-    handler: `marketing/${handler}Undo`,
-    confirm: "Put back the draft from before the last change?",
-    when,
-    done: () => "Put back",
-  },
+export const draftActions = (handler: string, when: NonNullable<Action["when"]>): Action[] => [
+  { id: DRAFT_SET, label: "Save", handler: `marketing/${handler}Set`, inline: true, when },
+  { id: DRAFT_ASK, label: "Ask Claude", handler: `marketing/${handler}Ask`, inline: true, when },
+  { id: DRAFT_UNDO, label: "Undo", handler: `marketing/${handler}Undo`, inline: true, when },
 ];
 
-const said = (t: DraftTurn) =>
-  t.command === "draft-ask"
-    ? `${t.by ?? "Someone"} asked`
-    : t.command === "draft-set"
-      ? `Set by ${t.by ?? "a terminal"}`
-      : `Undone by ${t.by ?? "someone"}`;
-
-function Thread({ turns }: { turns: DraftTurn[] }) {
-  return (
-    <ol className="grid list-none gap-4 p-0 text-[14px]">
-      {turns.map((t) => (
-        <li key={t.id} className="grid gap-1">
-          <span className="text-[13px] text-(--ui-ink-2)">
-            {said(t)} · {new Date(t.at).toLocaleString()}
-          </span>
-          {t.message ? <span className="whitespace-pre-wrap">{t.message}</span> : null}
-          {t.state === "thinking" ? (
-            <span className="text-(--ui-ink-3)">Claude is working on it…</span>
-          ) : null}
-          {t.reply ? (
-            <span className="whitespace-pre-wrap text-(--ui-ink-2)">Claude: {t.reply}</span>
-          ) : null}
-          {t.draft ? (
-            <span className="whitespace-pre-wrap border-(--ui-hair) border-l-2 pl-3">
-              {t.draft}
-            </span>
-          ) : null}
-          {t.error ? <span className="text-(--ui-bad)">{t.error}</span> : null}
-        </li>
-      ))}
-    </ol>
-  );
+/** Where a page's rows hold their draft, and the head action that sends it (⌘Enter). */
+export interface DraftOf {
+  field: string;
+  label: string;
+  send?: string;
+  /** How it looks where it goes, from the record's detail. */
+  preview?: (detail: unknown) => MessageKind | null;
 }
 
-/** A page's extras, with the item's Ask Claude thread after them. */
-export const withAsk =
-  (extras?: ListPage["extras"]): NonNullable<ListPage["extras"]> =>
+/**
+ * A page's extras with its draft box: `of` names the draft per row (null: this row holds none).
+ * The turns are the detail's `ask` (`draftTurns`).
+ */
+export const withDraft =
+  (
+    of: DraftOf | ((row: Row) => DraftOf | null),
+    extras?: ListPage["extras"],
+  ): NonNullable<ListPage["extras"]> =>
   (detail, at) => {
     const base: RecordExtras = extras ? extras(detail, at) : {};
-    const turns = (detail as { ask?: DraftTurn[] } | null)?.ask;
-    if (!turns?.length) return base;
+    const d = typeof of === "function" ? of(at.row) : of;
+    if (!d) return base;
+    const turns = (detail as { ask?: DraftTurn[] } | null)?.ask ?? [];
+    const text = at.row[d.field];
     return {
       ...base,
-      sections: [...(base.sections ?? []), ["Claude", <Thread key="claude" turns={turns} />]],
+      draft: {
+        field: d.field,
+        label: d.label,
+        text: typeof text === "string" ? text : null,
+        turns,
+        preview: d.preview?.(detail) ?? null,
+        save: DRAFT_SET,
+        ask: DRAFT_ASK,
+        undo: DRAFT_UNDO,
+        send: d.send,
+      },
       ...(turns.some((t) => t.state === "thinking") ? { poll: POLL_MS } : {}),
     };
   };

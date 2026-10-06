@@ -1,6 +1,5 @@
 /** A post as its feed shows it on a laptop and a phone, from the record's detail. */
 import { type MessageKind, MessagePreview, type RecordExtras } from "@wren/ui";
-import { call } from "../../api.js";
 import type { ListPage } from "../../module.js";
 
 /** A channel's preview data (`@wren/content`, `@wren/channel-meta`): the whole text, the app, its cap and feed cut. */
@@ -21,6 +20,7 @@ const kindOf = (p: Post): MessageKind => ({
   feed: p.feed,
 });
 
+/** A published post as it looked. */
 export const postExtras: NonNullable<ListPage["extras"]> = (detail) => {
   const post = (detail as { post?: Post | null } | null)?.post;
   return {
@@ -30,9 +30,8 @@ export const postExtras: NonNullable<ListPage["extras"]> = (detail) => {
   } satisfies RecordExtras;
 };
 
-/** The edit box's preview: the draft's platform, loaded when the box opens. */
-export const draftPreview = (id: string | number) =>
-  call<{ detail?: { post?: Post | null } }>("console/recordsGet", {
-    record: "marketing.draft",
-    id: String(id),
-  }).then((r) => (r.detail?.post ? kindOf(r.detail.post) : null));
+/** The draft box's preview, drawn as he types: the draft's platform, from the detail. */
+export const postLooks = (detail: unknown) => {
+  const post = (detail as { post?: Post | null } | null)?.post;
+  return post ? kindOf(post) : null;
+};

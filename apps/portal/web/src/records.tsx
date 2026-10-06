@@ -144,7 +144,6 @@ const ONE: Record<string, (id: string, input: Input) => [string, Input]> = {
   // A draft's review: ContentDesk's one key, as the CLI's verdicts are one table.
   "marketing/approveDraft": (id) => desk("approve", { ids: [bare(id)] }),
   "marketing/rejectDraft": (id) => desk("reject", { ids: [bare(id)] }),
-  "marketing/editDraft": (id, { text }) => desk("edit", { draftId: bare(id), text }),
   "marketing/redraft": (id, { note }) => desk("redraft", { draftId: bare(id), note }),
   // A reply sends: the console asks for the handler's name. An untouched draft is the desk's.
   "marketing/dmReply": (id, { body }) =>
@@ -201,8 +200,9 @@ const ONE: Record<string, (id: string, input: Input) => [string, Input]> = {
     handlerCall("SmsDesk", "setTemplate", { key: id, body: changed(input) }),
 };
 /**
- * Ask Claude on a draft, and Undo (`DraftAsk`): `record` is the draft's kind. An Inbox id carries
- * it ("comment:12"); a page's own id doesn't, so the page says it.
+ * A draft's box (`DraftAsk`): save his words, Ask Claude, Undo. `record` is the draft's kind. An
+ * Inbox id carries it ("comment:12"); a page's own id doesn't, so the page says it. A save writes
+ * only over the text the box started from (`expect`), so Claude's change meanwhile isn't lost.
  */
 function drafting(page: string, record: string | null) {
   const item = (id: string) =>
@@ -210,6 +210,8 @@ function drafting(page: string, record: string | null) {
       ? { record, id }
       : { record: id.slice(0, id.indexOf(":")), id: id.slice(id.indexOf(":") + 1) };
   return {
+    [`marketing/${page}Set`]: (id: string, { text, expect }: Input) =>
+      handlerCall("DraftAsk", "set", { ...item(id), text, expect }),
     [`marketing/${page}Ask`]: (id: string, { message }: Input) =>
       handlerCall("DraftAsk", "ask", { ...item(id), message }),
     [`marketing/${page}Undo`]: (id: string) => handlerCall("DraftAsk", "undo", item(id)),

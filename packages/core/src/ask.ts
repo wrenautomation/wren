@@ -170,6 +170,80 @@ export const draftTurns = async (db: Queryable, record: string, id: string) =>
       AND argv->>'record' = ${record} AND argv->>'id' = ${id}
     ORDER BY started_at, id`)) as unknown as DraftTurn[];
 
+/** One human change to a draft: what it said, what he made it (designs/2026-10-06-content-desk.md, 6). */
+export interface DraftEdit {
+  record: string;
+  id: string;
+  by: string | null;
+  at: string;
+  before: string;
+  after: string;
+}
+
+/**
+ * His newest changes to drafts of these kinds (`record` as the Inbox ids say it), newest first:
+ * every `draft-set` that replaced one text with another. Claude's own writes and undos aren't his.
+ */
+export const draftEdits = async (
+  db: Queryable,
+  o: { records?: readonly string[]; limit?: number } = {},
+) =>
+  (await db.execute(sql`
+    SELECT argv->>'record' AS record, argv->>'id' AS id, argv->>'by' AS by, started_at AS at,
+      stats->>'before' AS before, stats->>'draft' AS after
+    FROM runs WHERE command = 'draft-set' AND finished_at IS NOT NULL
+      AND stats->>'before' IS NOT NULL AND stats->>'draft' IS NOT NULL
+      AND stats->>'before' <> stats->>'draft'
+      ${
+        o.records?.length
+          ? sql`AND argv->>'record' IN (${sql.join(
+              o.records.map((r) => sql`${r}`),
+              sql`, `,
+            )})`
+          : sql``
+      }
+    ORDER BY started_at DESC, id DESC LIMIT ${Math.min(Math.max(o.limit ?? 5, 1), 200)}`)) as unknown as DraftEdit[];
+
+/** One side of an edit in a prompt: a few hundred characters is enough to show the move. */
+const EDIT_CHARS = 400;
+const cut = (s: string) => (s.length > EDIT_CHARS ? `${s.slice(0, EDIT_CHARS)}…` : s);
+
+/** The edits as a prompt block, oldest first; "" with none. */
+export function editsBlock(edits: readonly DraftEdit[]): string {
+  if (!edits.length) return "";
+  const pairs = [...edits]
+    .reverse()
+    .map(
+      (e, i) =>
+        `${i + 1}. Draft:\n"""\n${cut(e.before)}\n"""\nHe made it:\n"""\n${cut(e.after)}\n"""`,
+    );
+  return `How he edited earlier drafts (write the way he edits):\n${pairs.join("\n")}`;
+}
+
+/** His last 5 edits of these kinds as a prompt block; "" with none. */
+export const editsFor = async (db: Queryable, records: readonly string[]) =>
+  editsBlock(await draftEdits(db, { records, limit: 5 }));
+
+/** Who a console call came from: the signed-in person's email, else "console". */
+export const byOf = (req: unknown) =>
+  (req as { viewer?: { email?: string } } | null)?.viewer?.email ?? "console";
+
+/**
+ * Sent words that differ from the draft held are his edit: kept as a `draft-set` turn on the item,
+ * so later drafts learn from it. Nothing when there was no draft or he sent it as it was.
+ */
+export async function keepSentEdit(
+  db: Queryable,
+  o: { record: string; id: string; by: string; before: string | null; after: string },
+) {
+  if (!o.before?.trim() || o.before.trim() === o.after.trim()) return;
+  const run = await openRun(db, {
+    command: "draft-set",
+    argv: { record: o.record, id: o.id, by: o.by, sent: true },
+  });
+  await finishRun(db, run.id, { draft: o.after.trim(), before: o.before });
+}
+
 const DRAFT_ANSWER = z.object({ reply: z.string(), draft: z.string().nullable() });
 
 /**

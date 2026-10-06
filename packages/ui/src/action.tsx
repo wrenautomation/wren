@@ -98,6 +98,11 @@ export interface Action {
   when?: Readonly<Record<string, readonly string[]>>;
   /** What it sets on a record, so the demo can do it in the browser: `{ status: "approved" }`. */
   sets?: Readonly<Record<string, string>>;
+  /**
+   * Run from inside the record's detail only (its draft box: save, ask, undo): never a button, a
+   * key or a palette line.
+   */
+  inline?: true;
 }
 
 /** Calls a portal handler ("email/pause") with its input; rejects with the refusal's words. */

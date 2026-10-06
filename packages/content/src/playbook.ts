@@ -5,7 +5,7 @@
  */
 import type { Platform } from "@wren/core/content";
 import type { Queryable } from "@wren/db";
-import { and, desc, eq, notInArray } from "drizzle-orm";
+import { and, desc, eq, notInArray, sql } from "drizzle-orm";
 import { type ContentPlaybook, contentPlaybooks } from "./schema.js";
 
 /** About 2,000 words: an SOP past this is too long to steer a 1,300-character post. */
@@ -13,8 +13,11 @@ export const MAX_PLAYBOOK_CHARS = 16_000;
 
 /** The SOP pushed as `comments` steers answers to comments, never post drafts. */
 export const COMMENTS_SOP = "comments";
-/** The SOP pushed as `dm` steers DM drafts (`@wren/outreach` drafts.ts), never post drafts. */
-export const DM_SOP = "dm";
+/**
+ * The SOP pushed as `outbound-copy` (his outbound rules) steers DM drafts (`@wren/outreach`
+ * drafts.ts), never post drafts. There is no separate `dm` SOP (content desk, 6).
+ */
+export const DM_SOP = "outbound-copy";
 const NOT_POSTS = [COMMENTS_SOP, DM_SOP];
 
 /** The platform's post playbook: its newest row that isn't the comments or DM SOP. */
@@ -52,9 +55,18 @@ async function sopFor(
 export const commentsSopFor = (db: Queryable, platform: Platform) =>
   sopFor(db, platform, COMMENTS_SOP);
 
-/** What a DM draft follows: the platform's `dm` SOP; "" = none, and the draft keeps its brief. */
+/**
+ * What a DM draft follows: the `outbound-copy` SOP pushed for the platform, else the newest pushed
+ * for any (it is one set of rules); "" = none, and the draft keeps its brief.
+ */
 export async function dmGuide(db: Queryable, platform: Platform): Promise<string> {
-  return (await sopFor(db, platform, DM_SOP))?.text ?? "";
+  const [row] = await db
+    .select({ text: contentPlaybooks.text })
+    .from(contentPlaybooks)
+    .where(eq(contentPlaybooks.sop, DM_SOP))
+    .orderBy(sql`${contentPlaybooks.platform} = ${platform} desc`, desc(contentPlaybooks.createdAt))
+    .limit(1);
+  return row?.text ?? "";
 }
 
 /**

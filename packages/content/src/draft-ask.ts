@@ -8,7 +8,7 @@
  * replaced, so the item's thread shows it and Undo puts it back.
  */
 import { finishRun, openRun } from "@wren/core";
-import { type DraftCommand, draftTurns } from "@wren/core/ask";
+import { type DraftCommand, draftEdits, draftTurns, editsFor } from "@wren/core/ask";
 import type { Platform } from "@wren/core/content";
 import { atomic, type Queryable } from "@wren/db";
 import { comments, DRAFT_MAX, dmContext, reachContacts, redditThreads } from "@wren/outreach";
@@ -36,6 +36,8 @@ export interface DraftItem {
   context: string;
   /** The platform's playbook and comments SOP; "" = none. */
   guide: string;
+  /** His last 5 edits of this kind as a prompt block (`readDraft` adds it); "" = none. */
+  edits?: string;
 }
 
 export interface Waiting {
@@ -322,7 +324,7 @@ export async function readDraft(db: Queryable, item: string) {
   const { kind, id, record } = itemOf(item);
   const got = await kind.read(db, id);
   if (!got) throw new Error(`no ${record} ${id}`);
-  return got;
+  return { ...got, edits: await editsFor(db, editRecords(record)) };
 }
 
 /** Drafts waiting on William, every kind or one, newest first. */
@@ -332,6 +334,18 @@ export async function listWaiting(db: Queryable, o: { type?: DraftType; limit?: 
   const all = (await Promise.all(kinds.map((k) => k.waiting(db, limit)))).flat();
   return all.sort((a, b) => b.at.getTime() - a.at.getTime()).slice(0, limit);
 }
+
+/**
+ * The kinds whose edits teach a kind's drafts (content desk, 6): a DM reply and a first message
+ * are one kind; the rest are their own. Keyed by the Inbox prefix and by `DraftType`.
+ */
+const DM_EDITS = ["dm", "invite"] as const;
+export const editRecords = (kind: string): readonly string[] =>
+  kind === "dm" || kind === "invite" ? DM_EDITS : [kind === "post" ? "draft" : kind];
+
+/** His newest edits of one type (or every type), newest first, for `wren drafts edits`. */
+export const listEdits = (db: Queryable, o: { type?: DraftType; limit?: number } = {}) =>
+  draftEdits(db, { ...(o.type ? { records: editRecords(o.type) } : {}), limit: o.limit ?? 5 });
 
 /**
  * Write `text` over the draft as one `runs` row that keeps what it replaced: `run` when one is
@@ -408,9 +422,11 @@ export function askPrompt(
   const head = `${SYSTEM}\n\nIt is a ${d.what}, at most ${d.max} characters.\n\nThe draft now:\n${
     d.draft ? `"""\n${d.draft}\n"""` : "(none yet)"
   }`;
+  // His edits before the SOP: the cut takes the end, and his edits say the most.
+  const edits = d.edits ? `\n\n${d.edits}` : "";
   const guide = d.guide ? `\n\nHow we write here:\n${d.guide}` : "";
   return {
     question: `${ask.by} asks: ${ask.message}\n\n${d.context}`.slice(0, QUESTION_MAX),
-    system: (head + guide).slice(0, SYSTEM_MAX),
+    system: (head + edits + guide).slice(0, SYSTEM_MAX),
   };
 }

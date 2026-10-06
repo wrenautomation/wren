@@ -6,6 +6,7 @@
  * read back: the place's hit rate.
  */
 import { warmupOf } from "@wren/channel-reddit";
+import { editsFor } from "@wren/core/ask";
 import type { AccountHealth } from "@wren/core/outreach";
 import type { Queryable } from "@wren/db";
 import { completeAndParse, type LlmClient } from "@wren/llm";
@@ -309,11 +310,17 @@ export async function draftThread(
     .join("\n");
   const ours = factsFor(`${t.title} ${t.body} ${said}`, o.facts);
   const opLine = o.op ? personLine(o.op) : null;
+  // His last 5 edits of thread comments (content desk, 6).
+  const edits = await editsFor(db, ["thread"]);
   const out = await completeAndParse(
     llm,
     `Post ${t.id} in r/${t.subreddit} by u/${t.author}${opLine ? ` (${opLine})` : ""}:\n${t.title}\n${t.body.slice(0, 2000)}\n\nAngle: ${t.angle ?? "-"}\n\nComments so far:\n${said || "(none)"}\n\n${ours.map((f) => `Our notes, ${f.label}:\n${f.text}`).join("\n\n")}`,
     DRAFT,
-    { maxTokens: 400, system: DRAFT_SYSTEM(o.voice), name: "reddit.draft" },
+    {
+      maxTokens: 400,
+      system: edits ? `${DRAFT_SYSTEM(o.voice)}\n\n${edits}` : DRAFT_SYSTEM(o.voice),
+      name: "reddit.draft",
+    },
   );
   if (!out.parsed) return "unread";
   const target = top.find((c) => c.name === out.parsed?.target);

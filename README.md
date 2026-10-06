@@ -119,6 +119,7 @@ draft has Claude Code on William's Mac rewrite it ($0), and Undo puts the old te
 wren drafts list [--type post|comment|thread] [--limit 50]   # newest first
 wren drafts show comment:3          # the whole draft, what it answers, its Ask Claude thread
 wren drafts set comment:3 --file answer.md   # or pipe it in; the same field the console edits
+wren drafts edits --type dm --limit 5        # how William changed drafts, before and after
 node scripts/prod-wren.mjs drafts list       # on prod
 ```
 

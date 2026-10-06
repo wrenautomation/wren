@@ -92,9 +92,11 @@ export const dmExtras: NonNullable<ListPage["extras"]> = (detail) => {
   } satisfies RecordExtras;
 };
 
-/** The reply box's preview: the thread's app and our handle on it. */
-export const dmPreview = (id: string | number) =>
-  get<{ dm?: Dm }>("marketing.dm", id).then((d) => (d?.dm ? kindOf(d.dm) : null));
+/** The draft box's preview: the thread's app and our handle on it, from the detail. */
+export const dmLooks = (detail: unknown) => {
+  const dm = (detail as { dm?: Dm } | null)?.dm;
+  return dm ? kindOf(dm) : null;
+};
 
 /** A slot in its message with sample facts, or that it's empty. */
 export const copyExtras: NonNullable<ListPage["extras"]> = (detail, { row }) => {

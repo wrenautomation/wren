@@ -7,6 +7,7 @@
  */
 
 import { warmupOf } from "@wren/channel-reddit";
+import { editsFor } from "@wren/core/ask";
 import type { CommentIn, OutreachChannel } from "@wren/core/outreach";
 import type { SpineEvent, Step } from "@wren/core/spine";
 import type { Db, Queryable } from "@wren/db";
@@ -156,9 +157,14 @@ export async function sortComment(
   let why = sort ? "Asked in words" : "No model is set, so it waits unsorted.";
   let draft: string | null = null;
   if (llm) {
+    // The SOPs, then his last 5 edits of comment answers (content desk, 6).
+    const [sops, edits] = await Promise.all([
+      guide ? guide(c.platform) : "",
+      editsFor(db, ["comment"]),
+    ]);
     const out = await completeAndParse(llm, promptFor(c), ANSWER, {
       maxTokens: 300,
-      system: systemFor(c.platform, guide ? await guide(c.platform) : ""),
+      system: systemFor(c.platform, [sops.trim(), edits].filter(Boolean).join("\n\n")),
       name: "comments.sort",
     });
     if (out.parsed) {

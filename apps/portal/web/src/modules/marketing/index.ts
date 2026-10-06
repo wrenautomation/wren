@@ -6,10 +6,10 @@ import type { Action } from "@wren/ui";
 import type { ListPage, Module } from "../../module.js";
 import { threadExtras } from "../texts/index.js";
 import { REPLY_ACTIONS, REPLY_WAITING } from "../wren/replies.js";
-import { askActions, withAsk } from "./ask.js";
+import { DRAFT_BOX, type DraftOf, draftActions, withDraft } from "./ask.js";
 import { WeeklyBookings } from "./chart.js";
-import { copyExtras, copyPreview, dmExtras, dmPreview } from "./dms.js";
-import { draftPreview, postExtras } from "./posts.js";
+import { copyExtras, copyPreview, dmExtras, dmLooks } from "./dms.js";
+import { postExtras, postLooks } from "./posts.js";
 import { sessionExtras } from "./sessions.js";
 import { textCopyExtras, textCopyPreview } from "./texts.js";
 
@@ -39,15 +39,6 @@ const DRAFT_ACTIONS: Action[] = [
     done: said("Scheduled at its next slot"),
   },
   {
-    id: "marketing.editDraft",
-    label: "Edit",
-    handler: "marketing/editDraft",
-    ask: { field: "text", label: "Your words", from: "text", preview: draftPreview },
-    key: "e",
-    when: OPEN,
-    done: said("Saved. It waits for your yes again."),
-  },
-  {
     id: "marketing.redraft",
     label: "Redraft",
     handler: "marketing/redraft",
@@ -65,7 +56,7 @@ const DRAFT_ACTIONS: Action[] = [
     when: OPEN,
     done: said("Rejected"),
   },
-  ...askActions("post", OPEN),
+  ...draftActions("post", OPEN),
 ];
 
 const AD_ACTIONS: Action[] = [
@@ -105,7 +96,8 @@ const DM_ACTIONS: Action[] = [
     id: "marketing.dmReply",
     label: "Reply",
     handler: "marketing/dmReply",
-    ask: { field: "body", label: "Your reply", from: "draft", preview: dmPreview },
+    // The draft box holds the words; this sends what it saved.
+    confirm: "Send this reply?",
     key: "r",
     done: said("Queued. It leaves on the next tick."),
   },
@@ -125,7 +117,7 @@ const COMMENT_ACTIONS: Action[] = [
     id: "marketing.commentAnswer",
     label: "Answer",
     handler: "marketing/commentAnswer",
-    ask: { field: "body", label: "Your answer, posted under their comment", from: "draft" },
+    confirm: "Post this answer under their comment?",
     key: "r",
     when: { state: ["new", "waiting"] },
     done: said("Answered in the thread"),
@@ -149,8 +141,8 @@ const COMMENT_ACTIONS: Action[] = [
     done: said("Dropped"),
   },
 ];
-/** Comments waiting on him: Ask Claude on the draft answer. */
-const COMMENT_ASK = askActions("comment", { state: ["new", "waiting"] });
+/** Comments waiting on him: the draft answer in its box. */
+const COMMENT_ASK = draftActions("comment", { state: ["new", "waiting"] });
 
 const ACTIVITY_ACTIONS: Action[] = [
   {
@@ -234,7 +226,7 @@ const INVITE_ACTIONS: Action[] = [
     id: "marketing.inviteMessage",
     label: "Message",
     handler: "marketing/dmReply",
-    ask: { field: "body", label: "Your message", from: "draft", preview: dmPreview },
+    confirm: "Send this message?",
     key: "r",
     when: { status: ["accepted"] },
     done: said("Queued. It leaves on the next tick."),
@@ -263,7 +255,7 @@ const THREAD_ACTIONS: Action[] = [
     id: "marketing.threadComment",
     label: "Comment",
     handler: "marketing/threadComment",
-    ask: { field: "body", label: "Your comment, posted in the thread", from: "draft" },
+    confirm: "Post this comment in the thread?",
     key: "r",
     when: { state: ["queued"] },
     done: said("Commented"),
@@ -277,7 +269,7 @@ const THREAD_ACTIONS: Action[] = [
     when: { state: ["new", "ranked", "queued"] },
     done: said("Skipped"),
   },
-  ...askActions("thread", { state: ["new", "ranked", "queued"] }),
+  ...draftActions("thread", { state: ["new", "ranked", "queued"] }),
   DISCOVERY_READ,
 ];
 
@@ -297,29 +289,69 @@ const only = (type: string, a: Action, when: Action["when"] = a.when): Action =>
 };
 /** Every Inbox row but activity reads as waiting or not; each page's states are mapped to it. */
 const WAITS = { state: ["waiting"] };
-/** A page's own Ask Claude and its Read now stay there; the Inbox has one of each kind. */
-const own = (a: Action) => !a.form && !["marketing.draftAsk", "marketing.draftUndo"].includes(a.id);
+/** A page's own draft box and its Read now stay there; the Inbox has one box of each kind. */
+const own = (a: Action) => !a.form && !DRAFT_BOX.includes(a.id);
 const INBOX_ACTIONS: Action[] = [
   // A post's words are the row's body here.
   ...DRAFT_ACTIONS.filter(own).map((a) =>
     only("draft", a.ask?.from ? { ...a, ask: { ...a.ask, from: "body" } } : a, WAITS),
   ),
   ...COMMENT_ACTIONS.map((a) => only("comment", a)),
-  ...DM_ACTIONS.filter(own).map((a) => only("dm", a, a.ask ? a.when : WAITS)),
+  ...DM_ACTIONS.filter(own).map((a) =>
+    only("dm", a, a.id === "marketing.dmReply" ? a.when : WAITS),
+  ),
   ...THREAD_ACTIONS.filter(own).map((a) => only("thread", a, WAITS)),
   ...INVITE_ACTIONS.filter((a) => own(a) && a.id !== "marketing.inviteWithdraw").map((a) =>
-    only("invite", a, a.ask ? { state: ["waiting", "read"] } : WAITS),
+    only("invite", a, a.id === "marketing.inviteMessage" ? { state: ["waiting", "read"] } : WAITS),
   ),
   // SMS copy is William's: Mark read only, no Ask Claude.
   ...TEXT_ACTIONS.map((a) => only("text", a, WAITS)),
   // A reply's call invite, as its replies page answers it; a reply with none has no actions.
   ...REPLY_ACTIONS.map((a) => only("email", a, { answer: REPLY_WAITING.state })),
   ...ACTIVITY_ACTIONS.map((a) => (a.form ? a : only("activity", a))),
-  ...askActions("inbox", {
+  ...draftActions("inbox", {
     type: ["comment", "draft", "thread", "dm", "invite"],
     state: ["new", "waiting", "read"],
   }),
 ];
+
+/** Each page's draft box: its field, its words' label and what sends it. */
+const POST_DRAFT: DraftOf = {
+  field: "text",
+  label: "The post",
+  send: "marketing.approveDraft",
+  preview: postLooks,
+};
+const COMMENT_DRAFT: DraftOf = {
+  field: "draft",
+  label: "Your answer, posted under their comment",
+  send: "marketing.commentAnswer",
+};
+const DM_DRAFT: DraftOf = {
+  field: "draft",
+  label: "Your reply",
+  send: "marketing.dmReply",
+  preview: dmLooks,
+};
+const INVITE_DRAFT: DraftOf = {
+  field: "draft",
+  label: "Your message",
+  send: "marketing.inviteMessage",
+  preview: dmLooks,
+};
+const THREAD_DRAFT: DraftOf = {
+  field: "draft",
+  label: "Your comment, posted in the thread",
+  send: "marketing.threadComment",
+};
+/** The Inbox row's type picks its box; a post's words are the row's body there. */
+const INBOX_DRAFT: Record<string, DraftOf> = {
+  draft: { ...POST_DRAFT, field: "body" },
+  comment: COMMENT_DRAFT,
+  dm: DM_DRAFT,
+  invite: INVITE_DRAFT,
+  thread: THREAD_DRAFT,
+};
 
 /**
  * The one queue (`marketing.inbox`): Marketing → Inbox and the Inbox app's "Waiting on you" are
@@ -342,12 +374,14 @@ export const INBOX_PAGE: Omit<ListPage, "id"> = {
     all: "Drafts, comments, DMs, threads, invites, replies, texts and activity show here.",
   },
   actions: INBOX_ACTIONS,
-  extras: withAsk((detail, at) =>
-    at.row.type === "text"
-      ? threadExtras(detail, at)
-      : (detail as { messages?: unknown } | null)?.messages
-        ? dmExtras(detail, at)
-        : { sections: [] },
+  extras: withDraft(
+    (row) => INBOX_DRAFT[String(row.type)] ?? null,
+    (detail, at) =>
+      at.row.type === "text"
+        ? threadExtras(detail, at)
+        : (detail as { messages?: unknown } | null)?.messages
+          ? dmExtras(detail, at)
+          : { sections: [] },
   ),
   count: { state: ["new", "waiting"] },
 };
@@ -424,7 +458,7 @@ export const marketing: Module = {
         rejected: "Nothing was turned down.",
       },
       actions: DRAFT_ACTIONS,
-      extras: withAsk(postExtras),
+      extras: withDraft(POST_DRAFT),
     },
     {
       id: "content",
@@ -448,7 +482,7 @@ export const marketing: Module = {
         all: "Comments on our posts and under our comments show here.",
       },
       actions: [...COMMENT_ACTIONS, ...COMMENT_ASK],
-      extras: withAsk(),
+      extras: withDraft(COMMENT_DRAFT),
     },
     {
       id: "topics",
@@ -484,9 +518,9 @@ export const marketing: Module = {
       },
       actions: [
         ...DM_ACTIONS,
-        ...askActions("dm", { state: ["new", "enrolled", "connected", "replied", "finished"] }),
+        ...draftActions("dm", { state: ["new", "enrolled", "connected", "replied", "finished"] }),
       ],
-      extras: withAsk(dmExtras),
+      extras: withDraft(DM_DRAFT, dmExtras),
     },
     {
       id: "invites",
@@ -501,8 +535,8 @@ export const marketing: Module = {
         withdrawn: "Nothing withdrawn yet.",
         all: "LinkedIn invites show here.",
       },
-      actions: [...INVITE_ACTIONS, ...askActions("invite", { status: ["accepted"] })],
-      extras: withAsk(),
+      actions: [...INVITE_ACTIONS, ...draftActions("invite", { status: ["accepted"] })],
+      extras: withDraft(INVITE_DRAFT),
     },
     {
       id: "followers",
@@ -547,7 +581,7 @@ export const marketing: Module = {
         all: "New posts in watched places show here.",
       },
       actions: THREAD_ACTIONS,
-      extras: withAsk(),
+      extras: withDraft(THREAD_DRAFT),
     },
     {
       id: "places",

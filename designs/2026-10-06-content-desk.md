@@ -147,3 +147,11 @@ desk page loads on the Mac.
   Draft and Message, no Ask (its ids aren't contacts).
 - 2026-10-06: one queue: Inbox app and Marketing show marketing.inbox, now with email replies and
   texts; inbox.reply removed.
+- 2026-10-06: Built 6. One generic box (`packages/ui/src/draft.tsx`): a page declares its draft
+  with `withDraft`; save/ask/undo are `inline` actions (never buttons, keys or palette lines).
+  The box saves with `expect` (the text it started from), so a Claude write meanwhile fails the save
+  and his words stay in the box. Edit dialogs gone (Edit on posts; Reply, Answer, Comment and
+  Message now confirm and send the saved draft). Edits are the `draft-set` runs (no new table); a
+  send that differs from the draft adds one (`keepSentEdit`). dm and invite share edits. The
+  `outbound-copy` SOP isn't on prod yet: push it per platform (`sop push outbound-copy --platform
+  linkedin`, then reddit) or DMs keep the brief.
