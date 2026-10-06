@@ -10,7 +10,7 @@ import { asc, sql } from "drizzle-orm";
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 import { SEARCH_RECORDS, sessionRecord } from "../../src/records.js";
 import { siteDays } from "../../src/schema.js";
-import { rollupSite, upsertSiteDays } from "../../src/site-days.js";
+import { callsAndPaid, rollupSite, upsertSiteDays } from "../../src/site-days.js";
 
 let pg: TestPostgres;
 beforeAll(async () => {
@@ -77,6 +77,10 @@ const read = () =>
     .then((rows) => rows.map(({ syncedAt: _, ...r }) => r));
 
 describe("site days", () => {
+  it("reads booked calls and paid engagements (a bare `day` alias is a syntax error on prod)", async () => {
+    expect(await callsAndPaid(pg.db)).toEqual({ calls: [], paid: [] });
+  });
+
   it("counts each visit, form and booking click under the visitor's first touch", async () => {
     await upsertSiteDays(pg.db, rollupSite(hits, apps));
     const zero = {

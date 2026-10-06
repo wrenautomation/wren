@@ -141,9 +141,9 @@ export async function callsAndPaid(
   db: Queryable,
 ): Promise<{ calls: BookedCall[]; paid: PaidEngagement[] }> {
   const [calls, paid] = await Promise.all([
-    db.execute(sql`SELECT to_char(booked_at AT TIME ZONE 'UTC', 'YYYY-MM-DD') day, code, email
+    db.execute(sql`SELECT to_char(booked_at AT TIME ZONE 'UTC', 'YYYY-MM-DD') AS day, code, email
       FROM call_bookings WHERE state <> 'cancelled'`),
-    db.execute(sql`SELECT to_char(min(i.paid_on), 'YYYY-MM-DD') day, e.source_channel channel,
+    db.execute(sql`SELECT to_char(min(i.paid_on), 'YYYY-MM-DD') AS day, e.source_channel channel,
         left(coalesce(e.source_campaign, ''), 100) campaign
       FROM delivery.engagements e JOIN delivery.invoices i ON i.engagement_id = e.id
       WHERE i.status = 'paid' AND i.paid_on IS NOT NULL AND e.source_channel IS NOT NULL

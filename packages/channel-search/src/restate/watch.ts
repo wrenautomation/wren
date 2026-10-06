@@ -13,7 +13,7 @@
  * its desk, then carries on.
  */
 import * as restate from "@restatedev/restate-sdk";
-import { type FetchLike, SiteExportError, siteExport } from "@wren/channel-email";
+import { type FetchLike, siteExport } from "@wren/channel-email";
 import { recordedRun } from "@wren/core";
 import { SiteCallError, type SiteClient } from "@wren/core/content";
 import type { Notifier } from "@wren/core/notify";
@@ -103,8 +103,8 @@ export function makeSearchWatch(deps: SearchDeps) {
           const rows = rollupSite(hits, apps, ours.calls, ours.paid);
           return { days: await upsertSiteDays(deps.db, rows) };
         } catch (err) {
-          if (!(err instanceof SiteExportError)) throw err;
-          return { error: err.message };
+          // Any error, not just the export's: a throw here retried the pass into a pause (10-06).
+          return { error: err instanceof Error ? err.message : String(err) };
         }
       });
       if (outcome.stats) outcome.stats.site = got;
