@@ -1,12 +1,13 @@
 /**
  * The Worker with fake bindings: webhooks are signature-checked and forwarded
  * once per event id, and the desk opens only for a valid token from Wren's
- * sign-in that names an operator.
+ * sign-in that names an operator. A credential link is minted only signed and
+ * taken once, by an operator.
  */
 import { forgetKeys } from "@wren/auth/verify";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { Env } from "../src/env.js";
-import worker, { DESK_HANDLERS } from "../src/worker.js";
+import worker, { DESK_HANDLERS, LINK_SIGNATURE } from "../src/worker.js";
 
 const HOST = "https://phone.test";
 const AUTH = "https://auth.test";
@@ -14,6 +15,8 @@ let restateCalls: { url: string; headers: Headers; body: string }[] = [];
 let restateStatus = 200;
 let keys: CryptoKeyPair;
 let env: Env;
+/** The fake KV: what was put, and with which options. */
+let kv: Map<string, { value: string; ttl: number | undefined }>;
 
 function b64(bytes: ArrayBuffer): string {
   let bin = "";
@@ -53,7 +56,18 @@ beforeEach(async () => {
     "verify",
   ])) as CryptoKeyPair;
   const pub = (await crypto.subtle.exportKey("raw", keys.publicKey)) as ArrayBuffer;
+  kv = new Map();
   env = {
+    CRED_LINKS: {
+      get: async (k: string) => kv.get(k)?.value ?? null,
+      put: async (k: string, value: string, o?: { expirationTtl?: number }) => {
+        kv.set(k, { value, ttl: o?.expirationTtl });
+      },
+      delete: async (k: string) => {
+        kv.delete(k);
+      },
+    } as unknown as KVNamespace,
+    CRED_LINK_SECRET: "link-secret",
     ASSETS: { fetch: async () => new Response("<html>app</html>") } as unknown as Fetcher,
     AUTH_ORIGIN: AUTH,
     TELNYX_PUBLIC_KEY: b64(pub),
@@ -382,5 +396,76 @@ describe("the door", () => {
   it("answers 502 when Restate fails", async () => {
     restateStatus = 500;
     expect((await post(`/hooks/${TOKEN}`, { email: "x" })).status).toBe(502);
+  });
+});
+
+describe("credential links", () => {
+  const sealed = { site: "example", iv: "AAAAAAAAAAAAAAAA", data: "c2VhbGVk" };
+  async function mint(body: unknown, secret = "link-secret") {
+    const raw = JSON.stringify(body);
+    const key = await crypto.subtle.importKey(
+      "raw",
+      new TextEncoder().encode(secret),
+      { name: "HMAC", hash: "SHA-256" },
+      false,
+      ["sign"],
+    );
+    const sig = new Uint8Array(
+      await crypto.subtle.sign("HMAC", key, new TextEncoder().encode(raw)),
+    );
+    const hex = [...sig].map((b) => b.toString(16).padStart(2, "0")).join("");
+    return call("/links", { method: "POST", headers: { [LINK_SIGNATURE]: hex }, body: raw });
+  }
+
+  it("a signed mint keeps the ciphertext 10 minutes under a random id", async () => {
+    const res = await mint({ ...sealed, at: Date.now() });
+    expect(res.status).toBe(200);
+    const { id } = (await res.json()) as { id: string };
+    expect(id).toMatch(/^[A-Za-z0-9_-]{22}$/);
+    expect(kv.get(id)).toEqual({ value: JSON.stringify(sealed), ttl: 600 });
+  });
+
+  it("refuses a bad signature, a stale body, a bad shape, and minting with no secret", async () => {
+    expect((await mint({ ...sealed, at: Date.now() }, "wrong")).status).toBe(401);
+    expect((await mint({ ...sealed, at: Date.now() - 10 * 60_000 })).status).toBe(401);
+    expect((await mint({ ...sealed, data: "<html>", at: Date.now() })).status).toBe(400);
+    expect((await mint({ ...sealed, site: "a/b", at: Date.now() })).status).toBe(400);
+    expect((await call("/links")).status).toBe(405);
+    delete env.CRED_LINK_SECRET;
+    expect((await mint({ ...sealed, at: Date.now() })).status).toBe(503);
+    expect(kv.size).toBe(0);
+  });
+
+  it("the page loads for any id and consumes nothing", async () => {
+    const { id } = (await (await mint({ ...sealed, at: Date.now() })).json()) as { id: string };
+    let served = "";
+    env.ASSETS = {
+      fetch: async (r: Request) => {
+        served = new URL(r.url).pathname;
+        return new Response("<html>link</html>");
+      },
+    } as unknown as Fetcher;
+    expect(await (await call(`/c/${id}`)).text()).toContain("link");
+    expect(served).toBe("/c");
+    expect(kv.has(id)).toBe(true);
+  });
+
+  it("an operator sees the site, then takes it once; nobody else learns it exists", async () => {
+    const { id } = (await (await mint({ ...sealed, at: Date.now() })).json()) as { id: string };
+    expect((await post(`/api/links/${id}/take`, {})).status).toBe(401);
+    expect((await post(`/api/links/${id}/take`, {}, await as({ operator: false }))).status).toBe(
+      403,
+    );
+    expect(kv.has(id)).toBe(true);
+    const peek = await post(`/api/links/${id}`, {}, await as());
+    expect(await peek.json()).toEqual({ site: "example" });
+    const take = await post(`/api/links/${id}/take`, {}, await as());
+    expect(take.status).toBe(200);
+    expect(await take.json()).toEqual(sealed);
+    expect(kv.has(id)).toBe(false);
+    expect((await post(`/api/links/${id}/take`, {}, await as())).status).toBe(404);
+    expect((await post("/api/links/nope/take", {}, await as())).status).toBe(404);
+    expect((await post(`/api/links/${id}/drop`, {}, await as())).status).toBe(404);
+    expect(restateCalls).toHaveLength(0);
   });
 });

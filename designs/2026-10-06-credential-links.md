@@ -50,3 +50,8 @@ second could both read it. Move to a Durable Object if that ever matters.
 
 - 2026-10-06: built from William's ask; shape is my call (fragment key + operator sign-in + POST
   to consume). He can redirect.
+- 2026-10-06: built. Added `POST /api/links/<id>` (operator) so the page can name the site before
+  Reveal without consuming it. The mint body carries `at`; one older than 5 minutes is refused, so
+  a captured mint can't be replayed. Signature header `x-wren-signature-256`. Before the sign-in
+  round trip the page moves the key from the fragment to the tab's sessionStorage, so the sign-in
+  server's `next` never carries it.

@@ -19,12 +19,16 @@
  * - `/api/<handler>`: Wren's operators only, by the token from Wren's sign-in
  *   (auth.wrenautomation.com, any method incl. passkeys); forwarded to the `SmsDesk`
  *   service. Only the handlers the app needs are open; enroll and lift stay on the CLI.
+ * - `/links`, `/api/links/<id>[/take]`, `/c/<id>`: credential links
+ *   (designs/2026-10-06-credential-links.md). The Mac posts AES-GCM ciphertext, HMAC signed
+ *   with `CRED_LINK_SECRET`; it lives 10 minutes in KV. The key is only in the link's fragment.
+ *   `/c/<id>` is the reveal page and consumes nothing; an operator's `take` returns it once.
  * - `/marketing/<handler>`: the lander's signup form and preference center, forwarded to the
  *   `Marketing` service. No sign-in: a signup carries the lander's signature and a
  *   preference change its signed link, both checked by the service.
  * - everything else: the static app in public/.
  *
- * The Worker holds no data: the inbox is Postgres, read through Restate.
+ * The Worker holds no data but a credential link's ciphertext: the inbox is Postgres, read through Restate.
  */
 import { AUDIENCE, bearer, type Signed, verifyToken } from "@wren/auth/verify";
 import { SIGNATURE_HEADER, TIMESTAMP_HEADER, verifyTelnyx } from "@wren/channel-sms/webhook";
@@ -120,11 +124,7 @@ async function telnyxWebhook(req: Request, env: Env, client: string | null): Pro
 }
 
 /** Hex HMAC-SHA256 of the raw body, as cal.com signs it; `crypto.subtle.verify` compares in constant time. */
-async function calcomSigned(
-  secret: string,
-  raw: string,
-  signature: string | null,
-): Promise<boolean> {
+async function hmacSigned(secret: string, raw: string, signature: string | null): Promise<boolean> {
   const hex = (signature ?? "").trim().toLowerCase();
   if (!/^[0-9a-f]{64}$/.test(hex)) return false;
   const sig = new Uint8Array(hex.match(/../g)?.map((b) => Number.parseInt(b, 16)) ?? []);
@@ -159,7 +159,7 @@ async function calcomWebhook(req: Request, env: Env, client: string | null): Pro
   if (!secret) return json({ error: "webhooks off: no CALCOM_WEBHOOK_SECRET" }, 503);
   const raw = await req.text();
   if (raw.length > MAX_BODY) return json({ error: "too large" }, 413);
-  if (!(await calcomSigned(secret, raw, req.headers.get("x-cal-signature-256")))) {
+  if (!(await hmacSigned(secret, raw, req.headers.get("x-cal-signature-256")))) {
     return json({ error: "bad signature" }, 401);
   }
   let body: { triggerEvent?: unknown; payload?: { uid?: unknown; startTime?: unknown } };
@@ -312,6 +312,75 @@ async function marketing(req: Request, env: Env, handler: string): Promise<Respo
   });
 }
 
+/** A credential link's id: 128 random bits, base64url. */
+const LINK_ID = /^[A-Za-z0-9_-]{22}$/;
+const LINK_TTL_S = 600;
+/** Standard base64, as Node's `toString("base64")` writes it. */
+const B64 = /^[A-Za-z0-9+/]+={0,2}$/;
+export const LINK_SIGNATURE = "x-wren-signature-256";
+
+/**
+ * A credential link from the Mac (`autobrowse creds link`): `{site, iv, data, at}`, hex
+ * HMAC-SHA256 of the body in `x-wren-signature-256`, as cal.com signs. Only ciphertext
+ * arrives; a body older than 5 minutes is refused, so a captured one can't be replayed.
+ */
+async function mintLink(req: Request, env: Env): Promise<Response> {
+  if (!env.CRED_LINK_SECRET) return json({ error: "links off: no CRED_LINK_SECRET" }, 503);
+  const raw = await req.text();
+  if (raw.length > 16 * 1024) return json({ error: "too large" }, 413);
+  if (!(await hmacSigned(env.CRED_LINK_SECRET, raw, req.headers.get(LINK_SIGNATURE)))) {
+    return json({ error: "bad signature" }, 401);
+  }
+  let body: { site?: unknown; iv?: unknown; data?: unknown; at?: unknown };
+  try {
+    body = JSON.parse(raw) as typeof body;
+  } catch {
+    return json({ error: "not json" }, 400);
+  }
+  const { site, iv, data, at } = body;
+  if (typeof at !== "number" || Math.abs(Date.now() - at) > 5 * 60_000) {
+    return json({ error: "stale" }, 401);
+  }
+  if (
+    typeof site !== "string" ||
+    !/^[\w.@+-]{1,100}$/.test(site) ||
+    typeof iv !== "string" ||
+    !B64.test(iv) ||
+    typeof data !== "string" ||
+    !B64.test(data)
+  ) {
+    return json({ error: "want {site, iv, data, at}" }, 400);
+  }
+  const id = btoa(String.fromCharCode(...crypto.getRandomValues(new Uint8Array(16))))
+    .replace(/\+/g, "-")
+    .replace(/\//g, "_")
+    .replace(/=+$/, "");
+  await env.CRED_LINKS.put(id, JSON.stringify({ site, iv, data }), { expirationTtl: LINK_TTL_S });
+  return json({ id });
+}
+
+/**
+ * An operator's look at a link: `/api/links/<id>` names its site, `/api/links/<id>/take`
+ * returns `{site, iv, data}` and deletes it. The sign-in is checked before KV is read, so
+ * nobody else learns whether an id exists.
+ */
+async function link(req: Request, env: Env, rest: string): Promise<Response> {
+  const [id, take, ...more] = rest.split("/");
+  if (!id || !LINK_ID.test(id) || more.length || (take !== undefined && take !== "take")) {
+    return json({ error: "not found" }, 404);
+  }
+  const who = await operator(req, env);
+  if (who instanceof Response) return who;
+  const held = await env.CRED_LINKS.get(id);
+  if (!held) return json({ error: "This link is used or expired." }, 404);
+  if (!take) return json({ site: (JSON.parse(held) as { site: string }).site });
+  // ponytail: get-then-delete is not atomic; two operators racing one link could both read it. A Durable Object if that matters.
+  await env.CRED_LINKS.delete(id);
+  return new Response(held, {
+    headers: { "content-type": "application/json", "cache-control": "no-store" },
+  });
+}
+
 /**
  * The door (designs/2026-10-05-workflows.md): any webhook into a workflow's input, by a token
  * `wren hooks add` made. JSON or a form; the Spine checks the token and answers the status.
@@ -364,12 +433,20 @@ export default {
       if (req.method !== "POST") return json({ error: "POST only" }, 405);
       return door(req, env, pathname.slice("/hooks/".length));
     }
+    if (pathname === "/links") {
+      return req.method === "POST" ? mintLink(req, env) : json({ error: "POST only" }, 405);
+    }
+    // The reveal page: static, for any id. A GET never touches KV, so a link preview burns nothing.
+    if (pathname.startsWith("/c/") && LINK_ID.test(pathname.slice(3))) {
+      return env.ASSETS.fetch(new Request(new URL("/c", req.url), req));
+    }
     if (pathname.startsWith("/marketing/")) {
       if (req.method !== "POST") return json({ error: "POST only" }, 405);
       return marketing(req, env, pathname.slice("/marketing/".length));
     }
     if (pathname.startsWith("/api/")) {
       if (req.method !== "POST") return json({ error: "POST only" }, 405);
+      if (pathname.startsWith("/api/links/")) return link(req, env, pathname.slice(11));
       return desk(req, env, pathname.slice("/api/".length));
     }
     return env.ASSETS.fetch(req);

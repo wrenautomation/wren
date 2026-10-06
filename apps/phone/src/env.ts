@@ -1,6 +1,10 @@
 /** The Worker's bindings. Secrets are set with `wrangler secret put`; see deploy/phone.md. */
 export interface Env {
   ASSETS: Fetcher;
+  /** Credential links: ciphertext only, each key lives 10 minutes (designs/2026-10-06-credential-links.md). */
+  CRED_LINKS: KVNamespace;
+  /** The secret autobrowse signs a new credential link with. Unset = minting refused. */
+  CRED_LINK_SECRET?: string;
   /** Wren's sign-in, e.g. https://auth.wrenautomation.com: the token's issuer. Unset = the API is shut. */
   AUTH_ORIGIN?: string;
   /** Telnyx portal → Account → Public Key (base64). Unset = every webhook refused. */

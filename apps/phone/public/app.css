@@ -374,6 +374,11 @@ textarea.tpl {
   max-width: 320px;
   cursor: pointer;
 }
+/* The credential link page (c.html): buttons one under another. */
+.stack .primary {
+  display: block;
+  margin: 12px auto 0;
+}
 .field {
   display: block;
   width: 100%;

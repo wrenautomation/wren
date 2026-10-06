@@ -1,5 +1,5 @@
 # Deploy: see deploy/phone.md. Nothing secret lives here: TELNYX_PUBLIC_KEY, CALCOM_WEBHOOK_SECRET,
-# RESTATE_INGRESS_URL and RESTATE_AUTH_TOKEN are `wrangler secret put`,
+# CRED_LINK_SECRET, RESTATE_INGRESS_URL and RESTATE_AUTH_TOKEN are `wrangler secret put`,
 # and the account id comes from CLOUDFLARE_ACCOUNT_ID in the environment.
 name = "wren-phone"
 main = "src/worker.ts"
@@ -17,3 +17,8 @@ run_worker_first = true
 [vars]
 # Wren's sign-in; the app's token comes from here (deploy/portal.md).
 AUTH_ORIGIN = "https://auth.wrenautomation.com"
+
+# Credential links: ciphertext only, 10 minutes each (designs/2026-10-06-credential-links.md).
+[[kv_namespaces]]
+binding = "CRED_LINKS"
+id = "02727d50e8914f7595d17a8207d0ea7b"

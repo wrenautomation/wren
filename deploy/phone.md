@@ -41,6 +41,23 @@ By hand, from `apps/phone/`:
 The worker (Lambda) must already serve `SmsDesk` and `SmsEvents`, and migration
 `0013_sms_channel` must be applied, or the app shows errors from Restate.
 
+## Credential links
+
+`autobrowse creds link <site>` mints a one-time link to a stored login
+(designs/2026-10-06-credential-links.md). Ciphertext lives in the KV `wren-phone-cred-links`
+(binding `CRED_LINKS`, made 2026-10-06 with `npx wrangler kv namespace create`, id in
+`wrangler.toml`), 10 minutes each. The Mac signs each mint with `CRED_LINK_SECRET`; the same
+value is in `deploy/prod.env`, autobrowse's env store and the Worker. Made 2026-10-06, from the
+repo root, the value never printed:
+
+    node scripts/secrets.mjs run deploy/prod.env -- sh -c '
+      S=$(openssl rand -hex 32); export S
+      node scripts/secrets.mjs set CRED_LINK_SECRET=S
+      printf %s "$S" | (cd ../autobrowse && env -i HOME="$HOME" PATH="$PATH" pnpm -s autobrowse env set CRED_LINK_SECRET)
+      cd apps/phone && printf %s "$S" | CLOUDFLARE_ACCOUNT_ID=$WREN_CLOUDFLARE_ACCOUNT_ID npx wrangler secret put CRED_LINK_SECRET'
+
+Rotate: run it again. Until set, `POST /links` gets 503.
+
 ## Add a device
 
 Open `https://phone.wrenautomation.com` on the device and tap "Sign in": Wren's
@@ -91,6 +108,7 @@ Rotate: the same two steps, `subscriptions update ... --push-endpoint`. Each
 
     curl -s -X POST https://phone.wrenautomation.com/api/threads   # {"error":"sign in"}
     curl -s -X POST https://phone.wrenautomation.com/webhooks/telnyx -d '{}'   # 401 once the key is set
+    curl -s -X POST https://phone.wrenautomation.com/links -d '{}'             # 401: unsigned
 
 Local: `npx wrangler dev` with `.dev.vars` (RESTATE_INGRESS_URL). The app only
 signs in on a `phone.` host, so locally every call is 401. Tests: `pnpm --filter @wren/phone test:unit`.
