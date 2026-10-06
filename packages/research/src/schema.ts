@@ -226,7 +226,7 @@ export const findings = pgTable(
     createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
     /** A signal's own date: when it happened, or when we first saw it. Null = not a signal. */
     signalAt: timestamp("signal_at", { withTimezone: true }),
-    signalDated: varchar("signal_dated", { length: 8, enum: SIGNAL_DATED }),
+    signalDated: varchar("signal_dated", { length: 12, enum: SIGNAL_DATED }),
   },
   (t) => [
     primaryKey({ columns: [t.id], name: "pk_findings" }),

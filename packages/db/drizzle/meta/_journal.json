@@ -841,6 +841,13 @@
       "when": 1791303220947,
       "tag": "0119_social_inbox",
       "breakpoints": true
+    },
+    {
+      "idx": 120,
+      "version": "7",
+      "when": 1791305220633,
+      "tag": "0120_signals",
+      "breakpoints": true
     }
   ]
 }

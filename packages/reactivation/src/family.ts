@@ -132,7 +132,7 @@ export async function settleMoves(db: Queryable, judge: Judge | null): Promise<n
     // A stay already kept under the new key keeps it; this one takes its id along.
     const key = m.fact_key.replace(":job_change:", ":still_there:");
     await db.execute(sql`
-      update findings set kind = 'still_there',
+      update findings set kind = 'still_there', signal_at = null, signal_dated = null,
         fact_key = case when exists (select 1 from findings where fact_key = ${key})
           then left(${key}, 380) || ':settled:' || id else ${key} end,
         value = ${JSON.stringify(asStay(m.value, relation))}::jsonb
