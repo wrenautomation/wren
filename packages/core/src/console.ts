@@ -295,6 +295,14 @@ LEFT JOIN sys_invocation i ON i.target_service_name = s.service_name AND i.targe
   AND i.target_handler_name = 'loop' AND i.status = 'scheduled'
 WHERE s.key IN ('loop', 'running', 'last')`;
 
+/** The services with a loop object running: the Shop's "Off" for a part whose loops all stopped. */
+export const runningLoops = (admin: RestateAdmin) => async (): Promise<ReadonlySet<string>> =>
+  new Set(
+    loopsOf(await admin(LOOPS_SQL))
+      .filter((l) => l.running)
+      .map((l) => l.service),
+  );
+
 /** One row per loop object (a `loop` key, or the `running` key before it), failing first, then by name. */
 export function loopsOf(rows: Record<string, unknown>[]): LoopRow[] {
   const objects = new Map<string, { state: Record<string, unknown>; next: string | null }>();
@@ -764,6 +772,11 @@ export const componentRecord = (
     saved: {},
     broken: {},
   },
+  /**
+   * The loop services running now, read when the list is: a part that runs for Wren with every
+   * loop stopped reads "Off" to the team. Null or a failed read: no one is marked off.
+   */
+  running?: () => Promise<ReadonlySet<string>>,
 ): RecordType => {
   const flows = workflows.filter((w) => team || w.for === "client");
   /** A workflow that is a part's inside shows as that part, never twice. */
@@ -831,47 +844,63 @@ export const componentRecord = (
   return defineRecord({
     id: COMPONENT,
     name: { one: "component", many: "components" },
-    rows: async () => [
-      ...all.map((c) => ({
-        id: c.id,
-        type: "part",
-        name: c.name,
-        blurb: c.blurb,
-        icon: c.icon,
-        stage: c.stage,
-        channels: c.channels.join(",") || null,
-        for: c.for,
-        ready: readyOf(c),
-        // Wren's own parts are never on a client: no "not installed" for them.
-        installed: client && c.for === "client" ? (has(client, c.id) ? "yes" : "no") : null,
-        effects: c.effects.join(",") || null,
-        needs: [...c.requires.components, ...c.requires.accounts].join(", ") || null,
-        missing: c.missing.join("; ") || null,
-      })),
-      ...flows
-        .filter((w) => shownAs(w) === w)
-        .map((w) => {
-          const parts = partsIn(w.id, flows, all);
-          const behind = parts.filter((c) => !c.ready);
-          return {
-            id: w.id,
-            type: "workflow",
-            name: w.name,
-            blurb: w.blurb,
-            icon: w.icon,
-            stage: w.stage,
-            channels: union(parts.map((c) => c.channels)).join(",") || null,
-            for: w.for,
-            ready: flowReady(parts),
-            installed: null,
-            effects: union(parts.map((c) => c.effects)).join(",") || null,
-            needs: null,
-            missing: behind.length
-              ? `${behind.map((c) => c.name).join(", ")} ${behind.length > 1 ? "aren't" : "isn't"} ready`
-              : null,
-          };
-        }),
-    ],
+    rows: async () => {
+      const on = team && running ? await running().catch(() => null) : null;
+      const off = (c: Component) =>
+        !!on &&
+        readyOf(c) === "coming" &&
+        c.provides.loops.length > 0 &&
+        !c.provides.loops.some((l) => on.has(l));
+      return [
+        ...all.map((c) => ({
+          id: c.id,
+          type: "part",
+          name: c.name,
+          blurb: c.blurb,
+          icon: c.icon,
+          stage: c.stage,
+          channels: c.channels.join(",") || null,
+          for: c.for,
+          ready: off(c) ? "off" : readyOf(c),
+          // Wren's own parts are never on a client: no "not installed" for them.
+          installed: client && c.for === "client" ? (has(client, c.id) ? "yes" : "no") : null,
+          effects: c.effects.join(",") || null,
+          needs: [...c.requires.components, ...c.requires.accounts].join(", ") || null,
+          missing:
+            [
+              ...(off(c)
+                ? [
+                    `Off: ${c.provides.loops.join(" and ")} ${c.provides.loops.length > 1 ? "are" : "is"} stopped. Start it in Loops`,
+                  ]
+                : []),
+              ...c.missing,
+            ].join("; ") || null,
+        })),
+        ...flows
+          .filter((w) => shownAs(w) === w)
+          .map((w) => {
+            const parts = partsIn(w.id, flows, all);
+            const behind = parts.filter((c) => !c.ready);
+            return {
+              id: w.id,
+              type: "workflow",
+              name: w.name,
+              blurb: w.blurb,
+              icon: w.icon,
+              stage: w.stage,
+              channels: union(parts.map((c) => c.channels)).join(",") || null,
+              for: w.for,
+              ready: flowReady(parts),
+              installed: null,
+              effects: union(parts.map((c) => c.effects)).join(",") || null,
+              needs: null,
+              missing: behind.length
+                ? `${behind.map((c) => c.name).join(", ")} ${behind.length > 1 ? "aren't" : "isn't"} ready`
+                : null,
+            };
+          }),
+      ];
+    },
     key: "id",
     title: "name",
     subtitle: "blurb",
@@ -889,6 +918,8 @@ export const componentRecord = (
             ? { label: "Runs for Wren", tone: "good" }
             : { label: "Coming", tone: "neutral" },
           planned: { label: "In development", tone: "neutral" },
+          // Built, but its loop is stopped: nothing runs until the team starts it.
+          ...(team ? { off: { label: "Off", tone: "neutral" as const } } : {}),
         },
         "Status",
       ),
@@ -947,9 +978,16 @@ export const componentRecord = (
         ...(team
           ? {
               provides: c.provides,
+              // Saving goes to Wren's block (`configure` with no client): the part isn't the client's.
+              wrenSettings: c.wrenSettings && !installed,
               form: settingsForm(c),
-              // A client's block, or Wren's own (`wren_settings`) when no client is picked.
-              values: shownSettings(c, (await settingsFor(db, client?.id ?? null))[c.id]),
+              // The block a save writes: the client's when installed, else Wren's (`wren_settings`).
+              values: shownSettings(
+                c,
+                (await settingsFor(db, installed || !c.wrenSettings ? (client?.id ?? null) : null))[
+                  c.id
+                ],
+              ),
             }
           : {}),
       };
@@ -1025,7 +1063,17 @@ export function consoleApi({
     const one = (req as { record?: unknown; id?: unknown }).record === COMPONENT && "id" in req;
     const saved = one ? await savedWorkflows(main, client?.id ?? null) : {};
     const { flows, broken } = flowsWith(workflows, editsOf(saved), components);
-    return [...mine, componentRecord(shown, client, internal, flows, { saved, broken })];
+    return [
+      ...mine,
+      componentRecord(
+        shown,
+        client,
+        internal,
+        flows,
+        { saved, broken },
+        internal && admin ? runningLoops(admin) : undefined,
+      ),
+    ];
   };
   /** Records on the main database, read-only, unmasked: the team sees everything. */
   const read = async <T>(
@@ -1143,7 +1191,7 @@ export function consoleApi({
   /** New settings over the old: a field left out keeps its value. */
   const merged = (c: Component, old: unknown, settings: unknown) =>
     blockOf(c, { ...(old && typeof old === "object" ? old : {}), ...blockOf(c, settings) });
-  /** `configure` for Wren's own part: the team's `wren:manage`, kept in `wren_settings`, a runs row. */
+  /** `configure` for Wren's own run: the team's `wren:manage`, kept in `wren_settings`, a runs row. */
   const configureWren = async (req: InstallRequest, c: Component) => {
     team(req);
     if (!teamCan(req, "manage", WREN)) throw new PortalRefusal("your role can't do that", 403);
@@ -1285,8 +1333,8 @@ export function consoleApi({
       }),
     /** New settings over the old: a field left out keeps its value (a price is never sent). */
     configure: (req: InstallRequest) =>
-      // A part that runs Wren's own business has no client: its block is `wren_settings`.
-      componentOf(req).for === "wren" && (!req.client || req.client === WREN)
+      // Wren's own run has no client: its block is `wren_settings`.
+      componentOf(req).wrenSettings && (!req.client || req.client === WREN)
         ? configureWren(req, componentOf(req))
         : change(req, "configure", (c, client) => {
             if (!has(client, c.id)) throw new PortalRefusal("not installed", 404);

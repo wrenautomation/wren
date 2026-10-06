@@ -290,6 +290,16 @@ describe("install, configure, uninstall", () => {
       missing: ["per client db"],
     }),
     defineComponent({ ...base, id: "books", name: "Books", for: "wren" }),
+    // A client part that runs only for Wren so far: its loop reads Wren's block.
+    defineComponent({
+      ...base,
+      id: "audit",
+      name: "Audit",
+      ready: false,
+      missing: ["Wren's account only"],
+      wrenSettings: true,
+      provides: { loops: ["Audit"] },
+    }),
   ];
   const asked: string[] = [];
   const api = () =>
@@ -445,6 +455,58 @@ describe("install, configure, uninstall", () => {
     expect(got.detail).toMatchObject({ values: { perDay: 4 } });
     expect(JSON.stringify(got.detail)).not.toContain("price");
     await expect(go("books")).rejects.toMatchObject({ status: 409 });
+  });
+
+  it("a client part Wren runs saves to wren_settings, and shows Wren's values in a client's Shop", async () => {
+    await api().configure({ viewer: ops, component: "audit", settings: { perDay: 3 } });
+    expect(await settingsFor(pg.db, null)).toMatchObject({ audit: { perDay: 3 } });
+    expect(await productsOf()).not.toHaveProperty("audit");
+    // With a client named it is that client's install, which it can't have.
+    await expect(
+      api().configure({ viewer: ops, client: "acme", component: "audit", settings: {} }),
+    ).rejects.toMatchObject({ status: 404 });
+    const got = await api().recordsGet({
+      viewer: ops,
+      client: "acme",
+      record: "console.component",
+      id: "audit",
+    });
+    expect(got.detail).toMatchObject({ wrenSettings: true, values: { perDay: 3 } });
+    // A part only a client saves keeps the client's block.
+    const soon = await api().recordsGet({
+      viewer: ops,
+      client: "acme",
+      record: "console.component",
+      id: "soon",
+    });
+    expect(soon.detail).toMatchObject({ wrenSettings: false, values: { perDay: 5 } });
+  });
+
+  it("a part that runs for Wren reads Off to the team while its loops are all stopped", async () => {
+    const loop = (service: string, running: boolean) => ({
+      service_name: service,
+      service_key: "all",
+      key: "loop",
+      value_utf8: JSON.stringify({ running }),
+    });
+    const audit = async (admin: () => Promise<Record<string, unknown>[]>) =>
+      (
+        await consoleApi({ main: pg.db, views: [], components: all, admin }).recordsList({
+          viewer: ops,
+          record: "console.component",
+        })
+      ).rows.find((r) => r.id === "audit");
+    expect(await audit(async () => [loop("Audit", false)])).toMatchObject({
+      ready: "off",
+      missing: expect.stringMatching(/^Off: Audit is stopped/),
+    });
+    expect(await audit(async () => [loop("Audit", true)])).toMatchObject({ ready: "coming" });
+    // A failed read marks no one off.
+    expect(
+      await audit(async () => {
+        throw new Error("down");
+      }),
+    ).toMatchObject({ ready: "coming" });
   });
 
   it("settingsFor reads a client's products or Wren's blocks, and no one's for an unknown client", async () => {

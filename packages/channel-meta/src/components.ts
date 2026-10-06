@@ -14,6 +14,8 @@ export const META_COMPONENTS = [
     ready: false,
     missing: ["Runs on Wren's ad account, not per client"],
     settings: auditSettingsSchema,
+    // The audit reads Wren's block: saved in Wren's workspace.
+    wrenSettings: true,
     requires: { accounts: ["meta"] },
     provides: { services: ["Ads", "AdsWatch"], loops: ["AdsWatch"] },
     effects: ["spends", "posts"],

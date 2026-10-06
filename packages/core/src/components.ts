@@ -128,6 +128,11 @@ export interface Component {
   planned: boolean;
   /** Parses its block in `clients.products`; `{}` is valid. */
   settings: z.ZodType;
+  /**
+   * Wren's own run reads its block from `wren_settings`, so a save with no client lands there.
+   * Always true for a part for Wren; a client part sets it while it runs only for Wren.
+   */
+  wrenSettings: boolean;
   /** Top-level settings that hold prices: kept, never shown on a page. */
   priced: string[];
   requires: { components: string[]; accounts: AccountSite[] };
@@ -164,6 +169,8 @@ export const defineComponent = (c: Input): Component => ({
   planned: c.planned ?? false,
   channels: c.channels ?? [],
   settings: c.settings ?? NONE,
+  // A part for Wren has no client to save to, whatever a spread copied.
+  wrenSettings: c.for === "wren" || (c.wrenSettings ?? false),
   priced: c.priced ?? [],
   requires: { components: [], accounts: [], ...c.requires },
   provides: { services: [], loops: [], records: [], apps: [], ...c.provides },

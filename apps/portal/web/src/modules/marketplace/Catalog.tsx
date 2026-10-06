@@ -36,6 +36,8 @@ interface Part {
   provides?: Record<"services" | "loops" | "records" | "apps", string[]>;
   form?: FormField[] | null;
   values?: Record<string, unknown> | null;
+  /** Its settings are Wren's own run's: a save goes to Wren, not this client. */
+  wrenSettings?: boolean;
 }
 
 type Detail = Part | { workflow: Drawn; usedIn: Used };
@@ -219,18 +221,21 @@ export function catalogExtras(
     ) : null
   ) : team ? (
     !installable ? (
-      row.for === "wren" && client === WREN.id && d.form?.length ? (
-        // Wren's own part: no install, but its settings are saved in Wren's workspace.
-        <HandlerForm
-          key={`${client}/${id}`}
-          id={`component:${client}/${id}`}
-          name={id}
-          verb="Save"
-          fields={filled(d.form, d.values ?? {})}
-          keyed={false}
-          effect={null}
-          run={(c) => call("console/configure", { component: id, settings: c.input })}
-        />
+      d.wrenSettings && d.form?.length ? (
+        // Wren's own run reads these from `wren_settings`: no client is sent, so it saves there.
+        <div className="grid gap-3">
+          <p className={QUIET}>Wren's own run uses these settings. A save here changes Wren's.</p>
+          <HandlerForm
+            key={`${WREN.id}/${id}`}
+            id={`component:${WREN.id}/${id}`}
+            name={id}
+            verb="Save"
+            fields={filled(d.form, d.values ?? {})}
+            keyed={false}
+            effect={null}
+            run={(c) => call("console/configure", { component: id, settings: c.input })}
+          />
+        </div>
       ) : (
         <p className={QUIET}>
           {row.for === "wren"
