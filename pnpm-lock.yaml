@@ -843,6 +843,9 @@ importers:
       entities:
         specifier: 8.1.0
         version: 8.1.0
+      free-email-domains:
+        specifier: 1.12.20
+        version: 1.12.20
       postal-mime:
         specifier: 4.0.4
         version: 4.0.4
@@ -4859,6 +4862,10 @@ packages:
   forwarded@0.2.0:
     resolution: {integrity: sha512-buRG0fpBtRHSTCOASe6hD258tEubFoRLb4ZNA6NxMVHNw2gOcwHo9wyablzMzOA5z9xA9L1KNjk/Nt6MT9aYow==}
     engines: {node: '>= 0.6'}
+
+  free-email-domains@1.12.20:
+    resolution: {integrity: sha512-4+BT7x8yiSX/2EbVog/8u46fpH/hznQK4CIV/bNI/523eSbTpeWFeH4DRdgpSrmXKrfAsKs8vKVWFZKKibcV9A==}
+    engines: {node: '>= 18'}
 
   fresh@2.0.0:
     resolution: {integrity: sha512-Rx/WycZ60HOaqLKAi6cHRKKI7zxWbJ31MhntmtwMoaTeF7XFH9hhBp8vITaMidfljRQ6eYWCKkaTK+ykVJHP2A==}
@@ -10236,6 +10243,8 @@ snapshots:
       signal-exit: 4.1.0
 
   forwarded@0.2.0: {}
+
+  free-email-domains@1.12.20: {}
 
   fresh@2.0.0: {}
 

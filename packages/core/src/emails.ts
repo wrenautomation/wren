@@ -5,64 +5,20 @@
  * don't survive real B2B mail anyway.
  */
 
+import freeEmailDomains from "free-email-domains";
 import { getDomain } from "tldts";
 
-/** Providers where the email domain identifies a person, not a business. Never keys a company. */
+/**
+ * Providers where the email domain identifies a person, not a business. Never keys a company.
+ * HubSpot's list (free-email-domains) plus the ISP mailboxes it lacks.
+ */
 export const FREEMAIL_DOMAINS: ReadonlySet<string> = new Set([
-  "gmail.com",
-  "googlemail.com",
-  "yahoo.com",
-  "yahoo.co.uk",
-  "ymail.com",
-  "aol.com",
-  "outlook.com",
-  "hotmail.com",
-  "hotmail.co.uk",
-  "live.com",
-  "msn.com",
-  "icloud.com",
-  "me.com",
-  "mac.com",
-  "proton.me",
-  "protonmail.com",
-  "pm.me",
-  "gmx.com",
-  "gmx.net",
-  "mail.com",
-  "zoho.com",
-  "yandex.com",
-  "netscape.net",
-  "juno.com",
-  "netzero.net",
-  // Consumer ISPs, national and regional.
-  "att.net",
-  "bellsouth.net",
+  ...freeEmailDomains,
   "centurylink.net",
-  "centurytel.net",
-  "charter.net",
-  "comcast.net",
-  "cox.net",
-  "earthlink.net",
-  "embarqmail.com",
-  "frontier.com",
-  "frontiernet.net",
   "gpcom.net",
-  "hughes.net",
-  "mchsi.com",
   "midconetwork.com",
   "optimum.net",
-  "optonline.net",
-  "ptd.net",
-  "q.com",
-  "roadrunner.com",
-  "rr.com",
-  "sbcglobal.net",
   "suddenlink.net",
-  "twc.com",
-  "verizon.net",
-  "windstream.net",
-  "wowway.com",
-  "zoominternet.net",
 ]);
 
 /**

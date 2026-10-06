@@ -121,3 +121,14 @@ describe("registrableDomain", () => {
     expect(registrableDomain("acme.blogspot.com")).toBe("acme.blogspot.com");
   });
 });
+
+describe("isFreemail breadth", () => {
+  it("knows freemail beyond the US majors, and keeps our ISP additions", () => {
+    for (const d of ["web.de", "mail.ru", "yahoo.fr", "hotmail.fr", "outlook.de", "qq.com"]) {
+      expect(isFreemail(d), d).toBe(true);
+    }
+    expect(isFreemail("gpcom.net")).toBe(true);
+    expect(isFreemail("midconetwork.com")).toBe(true);
+    expect(isFreemail("acme-staffing.com")).toBe(false);
+  });
+});
