@@ -1,7 +1,7 @@
 /**
  * Replies: every lead's answer, on any channel, in one queue in the Inbox app. Every human
- * email reply, text threads and DM threads whose lead wrote back, and comments on our posts, in the
- * same states. Each row links to its
+ * email reply, text threads and DM threads whose lead wrote back, comments on our posts, and
+ * accepted LinkedIn invites not yet written to, in the same states. Each row links to its
  * channel's page, where it's answered; every answer still waits on William's yes.
  */
 import { date, defineRecord, link, name, status, text } from "@wren/core/records";
@@ -50,7 +50,7 @@ export const replyQueueRecord = defineRecord({
   id: "inbox.reply",
   name: { one: "reply", many: "replies" },
   rows: async (db) => {
-    const [email, texts, dms, said] = await Promise.all([
+    const [email, texts, dms, said, accepted] = await Promise.all([
       rowsOf(
         db,
         sql`SELECT te.id, ci.id invite, ci.state invite_state, te.disposition,
@@ -99,6 +99,18 @@ export const replyQueueRecord = defineRecord({
             WHERE c.sort IS DISTINCT FROM 'ours'
             ORDER BY c.at DESC LIMIT ${ROWS}`,
       ),
+      // An accepted invite is an opening: it waits on William until he messages or reads it.
+      rowsOf(
+        db,
+        sql`SELECT c.id, coalesce(c.name, c.handle) who, c.headline company, c.connected_at at,
+              EXISTS (SELECT 1 FROM reach_messages o WHERE o.contact_id = c.id AND o.direction = 'out'
+                AND o.kind <> 'connect') answered,
+              (c.read_at IS NULL OR c.read_at < c.connected_at) unread
+            FROM reach_contacts c
+            WHERE c.connected_at IS NOT NULL
+              AND NOT EXISTS (SELECT 1 FROM reach_messages i WHERE i.contact_id = c.id AND i.direction = 'in')
+            ORDER BY c.connected_at DESC LIMIT ${ROWS}`,
+      ),
     ]);
     return [
       // ponytail: a reply with no invite has no page to answer from; it shows, unlinked.
@@ -135,6 +147,14 @@ export const replyQueueRecord = defineRecord({
         state: COMMENT[String(state)] === "needs_you" && draft ? "draft" : COMMENT[String(state)],
         open: `/marketing/comments/${r.id}`,
       })),
+      ...accepted.map((r) => ({
+        ...r,
+        id: `invite-${r.id}`,
+        channel: "invite",
+        words: "Accepted your invite",
+        state: stateOf(r),
+        open: `/marketing/invites/${r.id}`,
+      })),
     ];
   },
   key: "id",
@@ -147,6 +167,7 @@ export const replyQueueRecord = defineRecord({
         text: { label: "Text", tone: "neutral" },
         dm: { label: "DM", tone: "neutral" },
         comment: { label: "Comment", tone: "neutral" },
+        invite: { label: "LinkedIn invite", tone: "neutral" },
       },
       "Channel",
     ),

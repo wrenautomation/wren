@@ -27,6 +27,7 @@ import {
   integer,
   jsonb,
   pgTable,
+  pgView,
   primaryKey,
   serial,
   smallint,
@@ -135,6 +136,8 @@ export const reachContacts = pgTable(
     enrolledAt: timestamp("enrolled_at", { withTimezone: true }),
     /** LinkedIn: when the invite was accepted (relationship read as connected). */
     connectedAt: timestamp("connected_at", { withTimezone: true }),
+    /** LinkedIn: when we withdrew the invite (still pending after `withdrawAfterDays`). */
+    withdrawnAt: timestamp("withdrawn_at", { withTimezone: true }),
     endedAt: timestamp("ended_at", { withTimezone: true }),
     /** Last time the operator opened this thread; inbound after it is unread. */
     readAt: timestamp("read_at", { withTimezone: true }),
@@ -306,6 +309,35 @@ export const comments = pgTable(
 );
 
 export type ReachAccount = typeof reachAccounts.$inferSelect;
+/**
+ * One row per LinkedIn invite: the connect row and its contact, with where it stands. Accepted
+ * and withdrawn come from the contact (`connected_at`, `withdrawn_at`); pending is a sent invite
+ * whose contact still waits; ended is one whose contact moved on (declined, opted out); queued is
+ * one not yet sent; else the row's own state (failed, unknown, skipped). Marketing → Invites.
+ */
+export const reachInvites = pgView("reach_invites", {
+  id: integer("id"),
+  contactId: integer("contact_id"),
+  accountId: uuid("account_id"),
+  handle: varchar("handle", { length: 120 }),
+  url: text("url"),
+  name: text("name"),
+  headline: text("headline"),
+  niche: varchar("niche", { length: 32 }),
+  personId: integer("person_id"),
+  companyId: integer("company_id"),
+  foundIn: varchar("found_in", { length: 200 }),
+  note: text("note"),
+  status: varchar("status", { length: 16 }),
+  stateReason: text("state_reason"),
+  queuedAt: timestamp("queued_at", { withTimezone: true }),
+  sentAt: timestamp("sent_at", { withTimezone: true }),
+  connectedAt: timestamp("connected_at", { withTimezone: true }),
+  withdrawnAt: timestamp("withdrawn_at", { withTimezone: true }),
+}).as(
+  sql`SELECT m.id, m.contact_id, m.account_id, c.handle, c.url, c.name, c.headline, c.niche, c.person_id, c.company_id, c.found_in, NULLIF(m.body, '') AS note, CASE WHEN c.connected_at IS NOT NULL THEN 'accepted' WHEN c.withdrawn_at IS NOT NULL THEN 'withdrawn' WHEN m.state = 'sent' AND c.state = 'enrolled' THEN 'pending' WHEN m.state = 'sent' THEN 'ended' WHEN m.state IN ('queued', 'sending') THEN 'queued' ELSE m.state END AS status, coalesce(m.state_reason, c.state_reason) AS state_reason, m.created_at AS queued_at, m.sent_at, c.connected_at, c.withdrawn_at FROM reach_messages m JOIN reach_contacts c ON c.id = m.contact_id WHERE m.kind = 'connect' AND m.direction = 'out'`,
+);
+
 export type ReachContact = typeof reachContacts.$inferSelect;
 export type ReachMessage = typeof reachMessages.$inferSelect;
 export type Comment = typeof comments.$inferSelect;

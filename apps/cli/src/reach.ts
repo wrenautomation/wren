@@ -13,6 +13,7 @@ import type { Db } from "@wren/db";
 import {
   CONTACT_STATES,
   type ContactState,
+  inviteSettings,
   listAccounts,
   listTemplates,
   listThreads,
@@ -35,6 +36,7 @@ import {
   WATCH_KEY,
 } from "@wren/outreach/restate";
 import type { Command } from "commander";
+import { sql } from "drizzle-orm";
 
 type WithDb = <T>(fn: (db: Db) => Promise<T>) => Promise<T>;
 
@@ -267,6 +269,29 @@ export function registerReach(program: Command, withDb: WithDb, settings: Settin
   w.command("sync")
     .description("One pass now")
     .action(async () => json(await watch().sync()));
+
+  const inv = cmd
+    .command("invites")
+    .description(
+      "LinkedIn invites from our people: settings in Shop → LinkedIn invites, swept every 6 h by the watch",
+    );
+  inv
+    .command("status", { isDefault: true })
+    .description("The settings, and invites by status")
+    .action(async () =>
+      json(
+        await withDb(async (db) => ({
+          settings: await inviteSettings(db),
+          invites: await db.execute(
+            sql`select status, count(*)::int n from reach_invites group by 1 order by 2 desc`,
+          ),
+        })),
+      ),
+    );
+  inv
+    .command("sweep")
+    .description("Accepts, stale invites withdrawn, tomorrow's queued: now")
+    .action(async () => json(await desk().invites()));
 
   const reads = () => ingress().objectClient<RedditReadsObject>({ name: "RedditReads" }, READS_KEY);
   const d = cmd

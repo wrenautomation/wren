@@ -1,7 +1,7 @@
 /**
  * DMs as console records for the Marketing app: each person's thread (`marketing.dm`), each
  * template slot William writes (`marketing.dm_copy`), with what the preview needs to draw them,
- * and each comment on our posts (`marketing.comment`).
+ * each comment on our posts (`marketing.comment`), and each LinkedIn invite (`marketing.invite`).
  */
 import {
   date,
@@ -401,4 +401,67 @@ export const threadRecord = defineRecord({
     { id: "all", label: "All", sort: "-postedAt", at: "postedAt" },
   ],
   actions: ["marketing.threadComment", "marketing.threadSkip"],
+});
+
+/** LinkedIn invites, one per contact: queued, pending, accepted, withdrawn (`reach_invites`). */
+export const inviteRecord = defineRecord({
+  id: "marketing.invite",
+  name: { one: "invite", many: "invites" },
+  rows: async (db) =>
+    (
+      (await db.execute(sql`
+      select i.contact_id id, coalesce(i.name, i.handle) who, i.headline, i.niche, i.status,
+        i.state_reason, i.note, a.account, i.queued_at, i.sent_at, i.connected_at, i.withdrawn_at,
+        i.url, extract(day from coalesce(i.connected_at, i.withdrawn_at, now()) - i.sent_at)::int days
+      from reach_invites i
+      left join reach_accounts a on a.id = i.account_id
+      order by coalesce(i.connected_at, i.withdrawn_at, i.sent_at, i.queued_at) desc
+      limit ${THREAD_ROWS}`)) as unknown as Array<Record<string, unknown>>
+    ).map((r) => ({ ...r, days: r.sent_at ? r.days : null })),
+  key: "id",
+  title: "who",
+  subtitle: "headline",
+  fields: {
+    who: name("Who"),
+    headline: text(),
+    niche: text("Niche"),
+    status: status({
+      queued: neutral("To send"),
+      pending: { label: "Pending", tone: "warn" },
+      accepted: { label: "Accepted", tone: "good" },
+      withdrawn: neutral("Withdrawn"),
+      ended: neutral("Ended"),
+      failed: { label: "Failed", tone: "bad" },
+      unknown: { label: "Unknown", tone: "bad" },
+      skipped: neutral("Skipped"),
+    }),
+    stateReason: text("Why"),
+    note: prose("Note"),
+    account: text("From"),
+    days: number("Days pending"),
+    queuedAt: date("Queued"),
+    sentAt: date("Sent"),
+    connectedAt: date("Accepted"),
+    withdrawnAt: date("Withdrawn"),
+    url: link("On LinkedIn"),
+  },
+  views: [
+    { id: "queued", label: "To send", where: { status: "queued" }, sort: "queuedAt" },
+    { id: "pending", label: "Pending", where: { status: "pending" }, sort: "sentAt", at: "sentAt" },
+    {
+      id: "accepted",
+      label: "Accepted",
+      where: { status: "accepted" },
+      sort: "-connectedAt",
+      at: "connectedAt",
+    },
+    {
+      id: "withdrawn",
+      label: "Withdrawn",
+      where: { status: ["withdrawn", "ended"] },
+      sort: "-withdrawnAt",
+    },
+    { id: "all", label: "All", sort: "-queuedAt", at: "queuedAt" },
+  ],
+  actions: ["marketing.inviteMessage", "marketing.inviteRead", "marketing.inviteWithdraw"],
 });

@@ -182,6 +182,35 @@ const PLACE_ACTIONS: Action[] = [
   },
 ];
 
+const INVITE_ACTIONS: Action[] = [
+  {
+    id: "marketing.inviteMessage",
+    label: "Message",
+    handler: "marketing/dmReply",
+    ask: { field: "body", label: "Your message", preview: dmPreview },
+    key: "r",
+    when: { status: ["accepted"] },
+    done: said("Queued. It leaves on the next tick."),
+  },
+  {
+    id: "marketing.inviteRead",
+    label: "Mark read",
+    handler: "marketing/dmRead",
+    bulk: true,
+    key: "e",
+    when: { status: ["accepted"] },
+    done: said("Marked read"),
+  },
+  {
+    id: "marketing.inviteWithdraw",
+    label: "Withdraw",
+    handler: "marketing/inviteWithdraw",
+    key: "w",
+    when: { status: ["pending"] },
+    done: said("Withdrawn"),
+  },
+];
+
 const THREAD_ACTIONS: Action[] = [
   {
     id: "marketing.threadComment",
@@ -467,6 +496,20 @@ export const marketing: Module = {
         all: "New posts in watched places show here.",
       },
       actions: THREAD_ACTIONS,
+    },
+    {
+      id: "invites",
+      label: "Invites",
+      template: "list",
+      record: "marketing.invite",
+      empty: {
+        queued: "Nothing to send. Invites queue once an account is set in Shop → LinkedIn invites.",
+        pending: "No invite waits on an answer.",
+        accepted: "No one accepted yet.",
+        withdrawn: "Nothing withdrawn yet.",
+        all: "LinkedIn invites show here.",
+      },
+      actions: INVITE_ACTIONS,
     },
     {
       id: "places",

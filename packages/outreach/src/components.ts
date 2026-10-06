@@ -2,6 +2,7 @@
 import { defineComponent } from "@wren/core/components";
 import { defineWorkflow } from "@wren/core/workflows";
 import { discoverySettingsSchema } from "./discovery/places.js";
+import { invitesSettingsSchema } from "./invites.js";
 
 export const OUTREACH_COMPONENTS = [
   defineComponent({
@@ -179,6 +180,50 @@ export const OUTREACH_COMPONENTS = [
         },
         { is: "fixed", says: "Every read is signed out; our accounts only comment." },
         { is: "fixed", says: "Every comment waits on William's click; two of ours never meet." },
+      ],
+    },
+  }),
+  defineComponent({
+    id: "linkedin.invites",
+    stage: "reach",
+    channels: ["dm"],
+    name: "LinkedIn invites",
+    blurb:
+      "Invites people from your lists on LinkedIn, up to 20 a weekday. Accepts land in Replies; every message after is your click.",
+    icon: "people",
+    for: "wren",
+    ready: false,
+    missing: ["Sends from the account named in settings; none named yet"],
+    requires: { components: ["reach.outreach"] },
+    settings: invitesSettingsSchema,
+    provides: { records: ["marketing.invite"] },
+    effects: ["sends"],
+    in: [{ id: "people", label: "people", kind: "person" }],
+    out: [
+      {
+        id: "accepted",
+        label: "accepted",
+        kind: "person",
+        count: { record: "marketing.invite", view: "accepted" },
+      },
+    ],
+    hypothesis: {
+      from: "Wren's LinkedIn, 2026-10",
+      guesses: [
+        { is: "change", says: "Which account sends.", built: "settings.account" },
+        { is: "change", says: "Who: niches and title words.", built: "settings.niches, titles" },
+        {
+          is: "change",
+          says: "How many a day, under the account's ramp.",
+          built: "settings.perDay, policy.linkedin",
+        },
+        {
+          is: "change",
+          says: "When a pending invite is withdrawn.",
+          built: "settings.withdrawAfterDays",
+        },
+        { is: "needs", says: "People with a LinkedIn page in the lists.", built: null },
+        { is: "fixed", says: "No message goes after an accept without a click." },
       ],
     },
   }),

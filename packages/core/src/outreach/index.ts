@@ -119,6 +119,10 @@ export interface OutreachChannel {
   relationship?(handle: string): Promise<Relationship>;
   /** Irreversible. Absent when the platform has no connect step. */
   connect?(handle: string, note: string | null): Promise<Sent>;
+  /** Recently added connections, newest first: one read finds every accepted invite. */
+  connections?(): Promise<string[]>;
+  /** Irreversible. Withdraws a pending invite; anything else withdraws nothing and says what it read. */
+  withdraw?(handle: string): Promise<{ withdrawn: boolean; relationship: Relationship }>;
   /** Irreversible. `subject` is used where the platform has one (Reddit). */
   message(handle: string, text: string, subject?: string | null): Promise<Sent>;
   /** Replies to this account newer than `since`; the caller dedupes by `ref`. */
@@ -257,6 +261,15 @@ export function fakeOutreachChannel(
           sent.push({ kind: "connect", handle, text: note });
           relationships.set(handle, "pending");
           return sentNow();
+        },
+        async connections() {
+          return [...relationships].filter(([, r]) => r === "connected").map(([h]) => h);
+        },
+        async withdraw(handle) {
+          const relationship = relationships.get(handle) ?? "none";
+          if (relationship !== "pending") return { withdrawn: false, relationship };
+          relationships.set(handle, "none");
+          return { withdrawn: true, relationship: "none" as const };
         },
       }
     : {};

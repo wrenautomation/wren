@@ -10,7 +10,9 @@
  *   DMs become replies, comments on our posts and under our comments become
  *   `comments` rows and events on the `reach.comments` workflow. Then each
  *   account's health (the warmup ladder runs on it). A send, an answer or a
- *   post wakes it, so the first check comes at once.
+ *   post wakes it, so the first check comes at once. Every 6 hours the
+ *   LinkedIn invites account (Shop → LinkedIn invites) is swept for accepts
+ *   and stale invites, then topped up (invites.ts).
  * - `ReachDesk`: the operator's reads and writes (accounts, finds, enrich,
  *   enroll, templates, threads), each one journaled.
  */
@@ -69,6 +71,15 @@ import {
 } from "../contacts.js";
 import { type EnrollStats, enroll } from "../enroll.js";
 import { reachLead } from "../follow.js";
+import {
+  applyWithdraw,
+  type InviteSettings,
+  inviteSettings,
+  type SweepStats,
+  sweepInvites,
+  type TopUpStats,
+  topUp,
+} from "../invites.js";
 import type { ReachPolicy } from "../policy.js";
 import { ReachRefusal } from "../refusal.js";
 import { pullReplies, type RepliesStats } from "../replies.js";
@@ -105,6 +116,9 @@ const WATCH_FLOOR_MS = 60 * 1000;
 const READS = "reads";
 /** The same for health: it stays on the cold cadence, whatever the inbox does. */
 const HEALTH = "health";
+/** And for the invites sweep, every 6 hours. */
+const INVITES = "invites";
+const INVITES_EVERY_MS = 6 * 60 * 60 * 1000;
 
 export interface ReachDeps {
   db: Db;
@@ -217,10 +231,51 @@ export function makeReachSender(deps: ReachDeps) {
   });
 }
 
+export interface InvitesPass {
+  account: string;
+  sweep: SweepStats;
+  topUp: TopUpStats | null;
+}
+
 export interface WatchStats {
   replies: RepliesStats;
   comments: { kept: number; errors: string[] };
   health: HealthStats;
+  invites: InvitesPass | null;
+}
+
+/** The invites account (settings) when it's an active LinkedIn row, else null. */
+const invitesAccount = (accounts: readonly ReachAccount[], s: InviteSettings) =>
+  (s.account &&
+    accounts.find(
+      (a) => a.platform === "linkedin" && a.account === s.account && a.state === "active",
+    )) ||
+  null;
+
+/** Sweep one account's invites, then queue tomorrow's. Platform calls between journaled steps. */
+async function invitesPass(
+  deps: ReachDeps,
+  ctx: restate.Context,
+  a: ReachAccount,
+  s: InviteSettings,
+  now: Date,
+): Promise<InvitesPass> {
+  const ch = channelsFor(deps, ctx)(a);
+  const sweep = ch
+    ? await sweepInvites(deps.db, ch, a, s, now, (name, fn) => ctx.run(name, fn))
+    : { accepted: [], withdrawn: 0, gone: 0, errors: ["no channel"] };
+  const top = await ctx.run(`top up ${a.account}`, () =>
+    topUp(deps.db, {
+      settings: s,
+      account: a,
+      policy: deps.policy,
+      sequences: deps.sequences,
+      sender: deps.senderName,
+      held: deps.heldNiches,
+      now,
+    }),
+  );
+  return { account: a.account, sweep, topUp: top };
 }
 
 export function makeReachWatch(deps: ReachDeps) {
@@ -301,9 +356,23 @@ export function makeReachWatch(deps: ReachDeps) {
         health.errors.push(`${a.account}: ${errorText(err)}`);
       }
     }
+    let invites: InvitesPass | null = null;
+    const swept = (await ctx.get<number>(INVITES)) ?? 0;
+    if (now.getTime() - swept >= INVITES_EVERY_MS) {
+      const settings = await ctx.run("invite settings", () => inviteSettings(deps.db));
+      const a = invitesAccount(live, settings);
+      if (a) {
+        ctx.set(INVITES, now.getTime());
+        try {
+          invites = await invitesPass(deps, ctx, a, settings, now);
+        } catch (err) {
+          health.errors.push(`invites ${a.account}: ${errorText(err)}`);
+        }
+      }
+    }
     ctx.set(READS, reads);
     ctx.set(HEALTH, checked);
-    const stats: WatchStats = { replies, comments: kept, health };
+    const stats: WatchStats = { replies, comments: kept, health, invites };
     const next = live.map((a) => (reads[a.id] ?? 0) + (everyOf.get(a.id) ?? 0) - now.getTime());
     const outcome: PassOutcome<WatchStats> = {
       stats,
@@ -314,10 +383,15 @@ export function makeReachWatch(deps: ReachDeps) {
     };
     await setLastPass(ctx, outcome);
     const notifier = deps.notifier;
-    if (notifier && (replies.received > 0 || kept.kept > 0 || health.frozen.length > 0)) {
+    const accepted = invites?.sweep.accepted.length ?? 0;
+    if (
+      notifier &&
+      (replies.received > 0 || kept.kept > 0 || accepted > 0 || health.frozen.length > 0)
+    ) {
       const news = [
         replies.received ? `${replies.received} new DMs` : null,
         kept.kept ? `${kept.kept} new comments` : null,
+        accepted ? `${accepted} accepted invites` : null,
       ].filter(Boolean);
       await ctx.run("notify", () =>
         notifier.notify(
@@ -708,6 +782,45 @@ export function makeReachDesk(deps: ReachDeps) {
         { input: COMMENT },
         async (ctx: restate.Context, req: { id: number }): Promise<void> => {
           await ctx.run("drop", () => dropComment(deps.db, req.id));
+        },
+      ),
+      /** Withdraw one pending LinkedIn invite now. It reads the profile first. */
+      withdrawInvite: serviceHandler(
+        { input: CONTACT, effect: "sends" },
+        async (ctx: restate.Context, req: { contactId: number }): Promise<{ outcome: string }> => {
+          const now = await nowOf(ctx);
+          const { contact, account, days } = await ctx.run("contact", () =>
+            terminal(async () => {
+              const contact = await contactById(deps.db, req.contactId);
+              if (!contact.accountId) throw new ReachRefusal("never invited");
+              const account = await accountById(deps.db, contact.accountId);
+              return { contact, account, days: (await inviteSettings(deps.db)).withdrawAfterDays };
+            }),
+          );
+          const ch = channelsFor(deps, ctx)(account);
+          if (!ch?.withdraw) throw new restate.TerminalError("this site has no invites");
+          const r = await ch.withdraw(contact.handle);
+          const outcome = await ctx.run("apply", () =>
+            applyWithdraw(deps.db, contact.id, r, days, now),
+          );
+          return { outcome };
+        },
+      ),
+      /** The invites pass now: accepts, stale withdrawn, tomorrow's queued. */
+      invites: serviceHandler(
+        { input: NO_INPUT, effect: "sends" },
+        async (ctx: restate.Context): Promise<InvitesPass | { off: string }> => {
+          const now = await nowOf(ctx);
+          const settings = await ctx.run("invite settings", () => inviteSettings(deps.db));
+          const accounts = await ctx.run("accounts", () => listAccounts(deps.db));
+          const a = invitesAccount(accounts, settings);
+          if (!a)
+            return {
+              off: settings.account
+                ? `${settings.account} is not an active LinkedIn account in reach`
+                : "no account set in Shop → LinkedIn invites",
+            };
+          return invitesPass(deps, ctx, a, settings, now);
         },
       ),
       ...discoveryHandlers(deps),

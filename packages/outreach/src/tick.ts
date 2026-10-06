@@ -144,6 +144,25 @@ async function sentToday(
   return out;
 }
 
+/** Invites with a note this account sent this fleet month. */
+async function notesThisMonth(db: Queryable, accountId: string, now: Date): Promise<number> {
+  const month = fleetDay(now).slice(0, 7);
+  const [r] = await db
+    .select({ n: sql<number>`count(*)::int` })
+    .from(reachMessages)
+    .where(
+      and(
+        eq(reachMessages.accountId, accountId),
+        eq(reachMessages.kind, "connect"),
+        inArray(reachMessages.state, ["sent", "sending", "unknown"]),
+        sql`${reachMessages.body} <> ''`,
+        gte(reachMessages.createdAt, new Date(now.getTime() - 32 * DAY_MS)),
+        sql`to_char(coalesce(${reachMessages.sentAt}, ${reachMessages.createdAt}) at time zone ${FLEET_ZONE}, 'YYYY-MM') = ${month}`,
+      ),
+    );
+  return r?.n ?? 0;
+}
+
 /**
  * Step 1 (database only): reconcile, then pick at most one due row per active
  * account that may go now. Rows for a contact no longer enrolled are skipped
@@ -230,6 +249,15 @@ export async function planTick(
     if (left <= 0) {
       hold(stats, "cap");
       continue;
+    }
+    if (
+      row.kind === "connect" &&
+      row.body &&
+      (await notesThisMonth(db, account.id, o.now)) >= o.policy.linkedin.notesPerMonth
+    ) {
+      // The month's notes are spent: the invite goes bare rather than failing.
+      await db.update(reachMessages).set({ body: "" }).where(eq(reachMessages.id, row.id));
+      row.body = "";
     }
     const seq = contact.sequence ? o.sequences.get(contact.sequence) : undefined;
     taken.add(account.id);
@@ -379,6 +407,8 @@ export async function recordSent(
   const seq = c.contact.sequence ? o.sequences.get(c.contact.sequence) : undefined;
   if (!seq) return;
   if (c.row.kind === "connect") {
+    // Invite only: the contact waits enrolled; the invites sweep finds the accept.
+    if (seq.steps.length === 0) return;
     const first = seq.steps[0]?.step ?? 1;
     if (!(await queueStep(db, o, seq, c.contact, first, o.now))) stats.finished++;
   } else if (c.row.kind === "sequence" && c.row.step) {

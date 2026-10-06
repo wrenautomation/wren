@@ -8,6 +8,7 @@ export * from "./discovery/reads.js";
 export * from "./discovery/threads.js";
 export * from "./enroll.js";
 export * from "./follow.js";
+export * from "./invites.js";
 export * from "./policy.js";
 export * from "./refusal.js";
 export * from "./replies.js";

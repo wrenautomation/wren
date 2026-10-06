@@ -25,6 +25,10 @@ export interface EnrollOptions {
   /** Only contacts whose page was read (richer first lines). */
   enrichedOnly?: boolean;
   limit: number;
+  /** Stop once this many are enrolled (a lead another channel holds doesn't count). */
+  take?: number;
+  /** Send from this account (its credential) rather than the lightest active one. */
+  account?: string;
   now: Date;
   runId?: string | null;
 }
@@ -58,7 +62,9 @@ export async function sequenceBodies(
 export async function enroll(db: Queryable, o: EnrollOptions): Promise<EnrollStats> {
   const seq = o.sequence;
   const bodies = await sequenceBodies(db, seq);
-  const accounts = await activeAccounts(db, seq.platform);
+  const accounts = (await activeAccounts(db, seq.platform)).filter(
+    (a) => !o.account || a.account === o.account,
+  );
   if (accounts.length === 0) return { considered: 0, enrolled: 0, noAccount: true, leadBusy: 0 };
   const load = await loadByAccount(db, seq.platform);
   const lightest = () =>
@@ -83,6 +89,7 @@ export async function enroll(db: Queryable, o: EnrollOptions): Promise<EnrollSta
   let enrolled = 0;
   let leadBusy = 0;
   for (const c of candidates) {
+    if (o.take !== undefined && enrolled >= o.take) break;
     const busy = await leadRefusal(db, c, "dm", o.now);
     if (busy) {
       await db.update(reachContacts).set({ stateReason: busy }).where(eq(reachContacts.id, c.id));
@@ -92,38 +99,37 @@ export async function enroll(db: Queryable, o: EnrollOptions): Promise<EnrollSta
     const account = lightest();
     const fields = fieldsFor(c, o.sender);
     const first = seq.steps[0];
-    if (!first) continue;
     let queued: typeof reachMessages.$inferInsert;
     try {
-      queued = seq.connectFirst
-        ? {
-            contactId: c.id,
-            accountId: account.id,
-            direction: "out",
-            kind: "connect",
-            template: CONNECT_NOTE,
-            body: bodies.has(CONNECT_NOTE)
-              ? render(bodies.get(CONNECT_NOTE) as string, fields)
-              : "",
-            state: "queued",
-            dueAt: o.now,
-            runId: o.runId ?? null,
-          }
-        : {
-            contactId: c.id,
-            accountId: account.id,
-            direction: "out",
-            kind: "sequence",
-            step: first.step,
-            template: stepKey(seq, first.step),
-            subject: first.subject
-              ? render(bodies.get(subjectKey(seq, first.step)) as string, fields)
-              : null,
-            body: render(bodies.get(stepKey(seq, first.step)) as string, fields),
-            state: "queued",
-            dueAt: o.now,
-            runId: o.runId ?? null,
-          };
+      if (seq.connectFirst)
+        queued = {
+          contactId: c.id,
+          accountId: account.id,
+          direction: "out",
+          kind: "connect",
+          template: CONNECT_NOTE,
+          body: bodies.has(CONNECT_NOTE) ? render(bodies.get(CONNECT_NOTE) as string, fields) : "",
+          state: "queued",
+          dueAt: o.now,
+          runId: o.runId ?? null,
+        };
+      else if (first)
+        queued = {
+          contactId: c.id,
+          accountId: account.id,
+          direction: "out",
+          kind: "sequence",
+          step: first.step,
+          template: stepKey(seq, first.step),
+          subject: first.subject
+            ? render(bodies.get(subjectKey(seq, first.step)) as string, fields)
+            : null,
+          body: render(bodies.get(stepKey(seq, first.step)) as string, fields),
+          state: "queued",
+          dueAt: o.now,
+          runId: o.runId ?? null,
+        };
+      else continue;
     } catch (err) {
       // A field with no fallback and no value: left `new`, said why.
       await db

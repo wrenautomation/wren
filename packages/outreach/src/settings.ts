@@ -17,6 +17,7 @@ export function policyFrom(s: Settings): ReachPolicy {
       rampEveryDays: DEFAULT_POLICY.linkedin.rampEveryDays,
       connectsCap: s.reachLinkedinConnectsCap,
       messagesPerDay: s.reachLinkedinMessagesPerDay,
+      notesPerMonth: DEFAULT_POLICY.linkedin.notesPerMonth,
     },
   };
 }

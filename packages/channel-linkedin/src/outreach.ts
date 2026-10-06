@@ -7,7 +7,9 @@
  * find: people search (`founder recruiting agency`), or `company/<handle>
  * [words]` for one company's people. enrich: the profile with experience.
  * relationship: from the profile's buttons (connected, pending, none).
- * connect: an invite, with a note when given. message: a 1st-degree message;
+ * connect: an invite, with a note when given. connections: the recently
+ * added, which is where accepts show. withdraw: a pending invite, read first.
+ * message: a 1st-degree message;
  * the loop asks `relationship` first and never messages a pending invite.
  * replies: the unread conversations in the inbox (one row per thread; the
  * preview is the text we have).
@@ -165,6 +167,19 @@ export function linkedinOutreach(sites: SiteClient, o: LinkedInOutreachOptions):
         at: now().toISOString(),
         fetchedWith: await via("POST", "/in/{vanity}/connect"),
       };
+    },
+
+    async connections(): Promise<string[]> {
+      const r = await call<{ connections: Person[] }>("GET", "/connections", { max: 40 });
+      return r.connections.map((c) => c.vanity);
+    },
+
+    async withdraw(handle) {
+      return call<{ withdrawn: boolean; relationship: Relationship }>(
+        "POST",
+        `/in/${vanityOf(handle)}/withdraw`,
+        {},
+      );
     },
 
     async message(handle, text): Promise<Sent> {

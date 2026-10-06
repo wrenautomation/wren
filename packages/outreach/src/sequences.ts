@@ -87,6 +87,14 @@ export const REACH_SEQUENCES: ReadonlyMap<string, ReachSequence> = new Map(
           { step: 2, afterDays: 5 },
         ],
       },
+      // Invite only: an accept lands in Replies and every message after it is William's click.
+      {
+        name: "linkedin-invite",
+        platform: "linkedin",
+        connectFirst: true,
+        connectWaitDays: 21,
+        steps: [],
+      },
       {
         name: "linkedin-connect",
         platform: "linkedin",

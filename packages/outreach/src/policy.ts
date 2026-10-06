@@ -36,6 +36,8 @@ export interface ReachPolicy {
     rampEveryDays: number;
     connectsCap: number;
     messagesPerDay: number;
+    /** Invites with a note a month (a free account gets 5); past it an invite goes bare. */
+    notesPerMonth: number;
   };
 }
 
@@ -51,6 +53,7 @@ export const DEFAULT_POLICY: ReachPolicy = {
     rampEveryDays: 7,
     connectsCap: 20,
     messagesPerDay: 20,
+    notesPerMonth: 5,
   },
 };
 

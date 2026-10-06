@@ -211,10 +211,10 @@ export const WORKFLOWS: readonly Workflow[] = [
   ...CONTENT_WORKFLOWS,
   ...WATCH_WORKFLOWS,
   ...OUTREACH_WORKFLOWS,
-  // Follow-ups on the spine: each email and text sequence is its cadence.
+  // Follow-ups on the spine: each email and text sequence is its cadence; invite-only DMs have none.
   ...NICHES.flatMap((n) => [...n.sequences.values()].map((s) => emailCadence(n.name, s))),
   ...[...SMS_SEQUENCES.values()].map(textCadence),
-  ...[...REACH_SEQUENCES.values()].map(reachCadence),
+  ...[...REACH_SEQUENCES.values()].filter((s) => s.steps.length > 0).map(reachCadence),
   ...BLOCKS,
   ...FUNNELS,
   WREN,

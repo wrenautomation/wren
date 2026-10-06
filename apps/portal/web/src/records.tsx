@@ -164,6 +164,14 @@ const ONE: Record<string, (id: string, input: Input) => [string, Input]> = {
   "marketing/commentDm": (id, { body }) =>
     handlerCall("ReachDesk", "dmComment", { id: Number(id), body }, { confirm: "dmComment" }),
   "marketing/commentDrop": (id) => handlerCall("ReachDesk", "dropComment", { id: Number(id) }),
+  // Withdrawing can't be undone: the console asks first.
+  "marketing/inviteWithdraw": (id) =>
+    handlerCall(
+      "ReachDesk",
+      "withdrawInvite",
+      { contactId: Number(id) },
+      { confirm: "withdrawInvite" },
+    ),
   "marketing/placeWatch": (id) => handlerCall("ReachDesk", "watchPlace", { subreddit: id }),
   "marketing/placeSkip": (id) => handlerCall("ReachDesk", "skipPlace", { subreddit: id }),
   "marketing/placeMove": (id, { account }) =>
