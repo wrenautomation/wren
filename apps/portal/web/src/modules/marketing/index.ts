@@ -4,6 +4,7 @@
  */
 import type { Action } from "@wren/ui";
 import type { Module } from "../../module.js";
+import { askActions, withAsk } from "./ask.js";
 import { WeeklyBookings } from "./chart.js";
 import { copyExtras, copyPreview, dmExtras, dmPreview } from "./dms.js";
 import { draftPreview, postExtras } from "./posts.js";
@@ -62,6 +63,7 @@ const DRAFT_ACTIONS: Action[] = [
     when: OPEN,
     done: said("Rejected"),
   },
+  ...askActions("post", OPEN),
 ];
 
 const AD_ACTIONS: Action[] = [
@@ -145,6 +147,8 @@ const COMMENT_ACTIONS: Action[] = [
     done: said("Dropped"),
   },
 ];
+/** Comments waiting on him: Ask Claude on the draft answer. */
+const COMMENT_ASK = askActions("comment", { state: ["new", "waiting"] });
 
 const ACTIVITY_ACTIONS: Action[] = [
   {
@@ -164,6 +168,27 @@ const ACTIVITY_ACTIONS: Action[] = [
     done: said("Every new activity marked seen"),
   },
 ];
+
+/** One read on his click; the loops behind these pages stay as they are. */
+const readNow = (id: string, handler: string, done: (answer: unknown) => string): Action => ({
+  id,
+  label: "Read now",
+  handler,
+  form: [],
+  done,
+});
+const AUDIENCE_ACTIONS: Action[] = [
+  readNow(
+    "marketing.audienceRead",
+    "marketing/audienceRead",
+    (a) => `LinkedIn: ${(a as { followers?: number } | null)?.followers ?? "no"} followers`,
+  ),
+];
+const DISCOVERY_READ = readNow(
+  "marketing.discoveryRead",
+  "marketing/discoveryRead",
+  () => "Reading. Places and Threads fill in over a few minutes.",
+);
 
 const PLACE_ACTIONS: Action[] = [
   {
@@ -199,6 +224,7 @@ const PLACE_ACTIONS: Action[] = [
     when: { state: ["watching"] },
     done: said("Moved"),
   },
+  DISCOVERY_READ,
 ];
 
 const INVITE_ACTIONS: Action[] = [
@@ -249,6 +275,8 @@ const THREAD_ACTIONS: Action[] = [
     when: { state: ["new", "ranked", "queued"] },
     done: said("Skipped"),
   },
+  ...askActions("thread", { state: ["new", "ranked", "queued"] }),
+  DISCOVERY_READ,
 ];
 
 /** An Inbox id carries its type (`dm:5`); a preview reads the row's own id after the colon. */
@@ -267,18 +295,24 @@ const only = (type: string, a: Action, when: Action["when"] = a.when): Action =>
 };
 /** Every Inbox row but activity reads as waiting or not; each page's states are mapped to it. */
 const WAITS = { state: ["waiting"] };
+/** A page's own Ask Claude and its Read now stay there; the Inbox has one of each kind. */
+const own = (a: Action) => !a.form && !["marketing.draftAsk", "marketing.draftUndo"].includes(a.id);
 const INBOX_ACTIONS: Action[] = [
   // A post's words are the row's body here.
-  ...DRAFT_ACTIONS.map((a) =>
+  ...DRAFT_ACTIONS.filter(own).map((a) =>
     only("draft", a.ask?.from ? { ...a, ask: { ...a.ask, from: "body" } } : a, WAITS),
   ),
   ...COMMENT_ACTIONS.map((a) => only("comment", a)),
-  ...DM_ACTIONS.map((a) => only("dm", a, a.ask ? a.when : WAITS)),
-  ...THREAD_ACTIONS.map((a) => only("thread", a, WAITS)),
-  ...INVITE_ACTIONS.filter((a) => a.id !== "marketing.inviteWithdraw").map((a) =>
+  ...DM_ACTIONS.filter(own).map((a) => only("dm", a, a.ask ? a.when : WAITS)),
+  ...THREAD_ACTIONS.filter(own).map((a) => only("thread", a, WAITS)),
+  ...INVITE_ACTIONS.filter((a) => own(a) && a.id !== "marketing.inviteWithdraw").map((a) =>
     only("invite", a, a.ask ? { state: ["waiting", "read"] } : WAITS),
   ),
   ...ACTIVITY_ACTIONS.map((a) => (a.form ? a : only("activity", a))),
+  ...askActions("inbox", {
+    type: ["comment", "draft", "thread", "dm", "invite"],
+    state: ["new", "waiting", "read"],
+  }),
 ];
 
 const PERSON_ACTIONS: Action[] = [
@@ -356,10 +390,11 @@ export const marketing: Module = {
         all: "Drafts, comments, DMs, threads, invites and activity show here.",
       },
       actions: INBOX_ACTIONS,
-      extras: (detail, at) =>
+      extras: withAsk((detail, at) =>
         (detail as { messages?: unknown } | null)?.messages
           ? dmExtras(detail, at)
           : { sections: [] },
+      ),
       count: { state: ["new", "waiting"] },
     },
     {
@@ -506,7 +541,7 @@ export const marketing: Module = {
         rejected: "Nothing was turned down.",
       },
       actions: DRAFT_ACTIONS,
-      extras: postExtras,
+      extras: withAsk(postExtras),
     },
     {
       id: "ads",
@@ -583,15 +618,19 @@ export const marketing: Module = {
         replied: "No one replied yet.",
         all: "Threads show here once reach messages someone.",
       },
-      actions: DM_ACTIONS,
-      extras: dmExtras,
+      actions: [
+        ...DM_ACTIONS,
+        ...askActions("dm", { state: ["new", "enrolled", "connected", "replied", "finished"] }),
+      ],
+      extras: withAsk(dmExtras),
     },
     {
       id: "followers",
       label: "Followers",
       template: "list",
       record: "marketing.audience",
-      empty: "No follower count yet. SocialWatch reads one a day.",
+      empty: "No follower count yet. SocialWatch reads one a day; LinkedIn's on Read now.",
+      actions: AUDIENCE_ACTIONS,
     },
     {
       id: "comments",
@@ -603,7 +642,8 @@ export const marketing: Module = {
         answered: "Nothing answered yet.",
         all: "Comments on our posts and under our comments show here.",
       },
-      actions: COMMENT_ACTIONS,
+      actions: [...COMMENT_ACTIONS, ...COMMENT_ASK],
+      extras: withAsk(),
     },
     {
       id: "threads",
@@ -616,6 +656,7 @@ export const marketing: Module = {
         all: "New posts in watched places show here.",
       },
       actions: THREAD_ACTIONS,
+      extras: withAsk(),
     },
     {
       id: "invites",
@@ -629,7 +670,8 @@ export const marketing: Module = {
         withdrawn: "Nothing withdrawn yet.",
         all: "LinkedIn invites show here.",
       },
-      actions: INVITE_ACTIONS,
+      actions: [...INVITE_ACTIONS, ...askActions("invite", { status: ["accepted"] })],
+      extras: withAsk(),
     },
     {
       id: "people",

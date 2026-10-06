@@ -4,6 +4,7 @@
  * threads to answer, accepted invites and activity. Activity alone (`marketing.activity`), and
  * followers per platform (`marketing.audience`).
  */
+import { draftTurns } from "@wren/core/ask";
 import { date, defineRecord, link, name, number, prose, status, text } from "@wren/core/records";
 import type { Queryable } from "@wren/db";
 import { commentRecord, dmRecord, PLATFORM_LABELS, threadRecord } from "@wren/outreach/records";
@@ -266,12 +267,19 @@ export const inboxRecord = defineRecord({
     "marketing.inviteRead",
     "marketing.activitySeen",
     "marketing.activityAllSeen",
+    "marketing.draftAsk",
+    "marketing.draftUndo",
   ],
-  /** A DM thread's or an accepted invite's messages; nothing past the row for the rest. */
-  load: async (db, id) =>
-    /^(dm|invite):/.test(id)
-      ? ((await dmRecord.load?.(db, id.slice(id.indexOf(":") + 1))) ?? null)
-      : null,
+  /** A DM thread's or an accepted invite's messages; a draft's Ask Claude thread; nothing for activity. */
+  load: async (db, id) => {
+    const at = id.indexOf(":");
+    const [type, rest] = [id.slice(0, at), id.slice(at + 1)];
+    if (type === "activity") return null;
+    const ask = { ask: await draftTurns(db, type, rest) };
+    return type === "dm" || type === "invite"
+      ? { ...(await dmRecord.load?.(db, rest)), ...ask }
+      : ask;
+  },
 });
 
 /** Followers per platform: the newest day kept, and the change from a week before it. */
@@ -297,6 +305,7 @@ export const audienceRecord = defineRecord({
     day: date("As of"),
   },
   views: [{ id: "all", label: "All", sort: "-followers", at: "day" }],
+  actions: ["marketing.audienceRead"],
 });
 
 export const SOCIAL_RECORDS = [inboxRecord, activityRecord, audienceRecord];

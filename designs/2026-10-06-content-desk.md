@@ -106,6 +106,21 @@ desk page loads on the Mac.
 
 - 2026-10-06: William asked for the queue, DM drafts with Claude and on-demand gap fixes. Built as
   above. The Inbox becomes the landing page; the other pages stay for depth.
+- 2026-10-06: Built the two gaps. LinkedIn: autobrowse `GET /audience` (own profile + Wren's Page, 4 a
+  day, 0 for `linkedin` and `linkedin@alt`); `SocialDesk.readAudience` keeps it, replacing the day's
+  row; SocialWatch skips LinkedIn's count (`AUDIENCE_ON_DEMAND`). Reddit: `run` is `sync`'s alias,
+  and Read now calls `RedditReads/wren/sync`; nothing starts the loop.
+- 2026-10-06: Built 3 and 4 (branch content-desk-ask). `DraftAsk{ask,undo}` + private `answer`
+  (`packages/content/src/restate/draft-ask.ts`) over one kind per draft (`draft-ask.ts`: post,
+  comment, thread); turns are `runs` rows (`draft-ask`/`draft-set`/`draft-undo`) read by
+  `draftTurns` (`packages/core/src/ask.ts`). Ask Claude and Undo on Drafts, Comments, Threads and
+  the Inbox; the detail polls while Claude works (`RecordExtras.poll`). `wren drafts list|show|set`.
+  Wren writes only over the text Claude read. DM and invite kinds wait on `reach_contacts.draft`
+  (content-desk-queue).
 - 2026-10-06: Built 1, 2 and 5 (branch `content-desk-queue`, migration 0121). No People record
   existed, so `marketing.person` is new (LinkedIn people with a page, Reddit people read). An
   untouched draft is left out by the console; the desk sends the one it holds.
+- 2026-10-06: Merged main into content-desk-queue. Ask Claude now has `dm` and `invite` kinds on
+  `reach_contacts.draft` (`draft-ask.ts`); a write stamps `draft_at` and answers their newest word
+  (`draft_for`), so the watch doesn't write over it. Ask on the Inbox, DMs and Invites; People has
+  Draft and Message, no Ask (its ids aren't contacts).

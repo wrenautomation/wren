@@ -105,8 +105,22 @@ reading, 4 to 6 holds. Follow a feed from Inbox → Feeds.
 `wren social start|stop|status|sync`: `SocialWatch/wren` on the box, every 30 minutes 07:00-23:00
 New York. It reads comments on our posts of the last 14 days (older than 3 days every 2 hours),
 activity since the newest kept row (LinkedIn every 2 hours), and the follower count once a day.
+LinkedIn's count only on demand: `wren social audience linkedin` or Followers → Read now.
 New comments go on the `reach.comments` spine. One Discord ping per pass that kept something; a text
 only when a comment asks. Work them in Marketing → Inbox; answers go out only on William's click.
+
+## Drafts
+
+Every draft waiting on William, by its Inbox id (`draft:<id>` a post, `comment:3`, `thread:t3_x`).
+Nothing sends; each write is a `runs` row the item's thread shows. In the console, Ask Claude on a
+draft has Claude Code on William's Mac rewrite it ($0), and Undo puts the old text back.
+
+```bash
+wren drafts list [--type post|comment|thread] [--limit 50]   # newest first
+wren drafts show comment:3          # the whole draft, what it answers, its Ask Claude thread
+wren drafts set comment:3 --file answer.md   # or pipe it in; the same field the console edits
+node scripts/prod-wren.mjs drafts list       # on prod
+```
 
 ## Chores through autobrowse
 

@@ -4,6 +4,8 @@
  * each comment on our posts (`marketing.comment`), each LinkedIn invite (`marketing.invite`), and
  * the people we can write to from Marketing → People (`marketing.person`).
  */
+
+import { draftTurns } from "@wren/core/ask";
 import {
   date,
   defineRecord,
@@ -111,7 +113,7 @@ export const dmRecord = defineRecord({
     { id: "replied", label: "Replied", where: { state: "replied" }, sort: "-lastAt", at: "lastAt" },
     { id: "all", label: "All", sort: "-lastAt", at: "lastAt" },
   ],
-  actions: ["marketing.dmReply", "marketing.dmRead"],
+  actions: ["marketing.dmReply", "marketing.dmRead", "marketing.draftAsk", "marketing.draftUndo"],
   /** The thread oldest first, and the preview's app, sender and cap for a reply. */
   load: async (db, id) => {
     const t = await getThread(db, Number(id));
@@ -129,6 +131,7 @@ export const dmRecord = defineRecord({
         state: m.state,
       })),
       dm: { site: SITES[t.contact.platform], from, max: MESSAGE_MAX },
+      ask: await draftTurns(db, "dm", id),
     };
   },
 });
@@ -214,7 +217,15 @@ export const commentRecord = defineRecord({
     { id: "answered", label: "Answered", where: { state: "answered" }, sort: "-at", at: "at" },
     { id: "all", label: "All", sort: "-at", at: "at" },
   ],
-  actions: ["marketing.commentAnswer", "marketing.commentDm", "marketing.commentDrop"],
+  actions: [
+    "marketing.commentAnswer",
+    "marketing.commentDm",
+    "marketing.commentDrop",
+    "marketing.draftAsk",
+    "marketing.draftUndo",
+  ],
+  /** Ask Claude's thread on the draft answer. */
+  load: async (db, id) => ({ ask: await draftTurns(db, "comment", id) }),
 });
 
 /** The slots and their words; the preview fills `{fields}` with `sender` and sample facts. */
@@ -344,7 +355,12 @@ export const placeRecord = defineRecord({
     { id: "watching", label: "Watching", where: { state: "watching" }, sort: "-fit" },
     { id: "all", label: "All", sort: "-fit" },
   ],
-  actions: ["marketing.placeWatch", "marketing.placeSkip", "marketing.placeMove"],
+  actions: [
+    "marketing.placeWatch",
+    "marketing.placeSkip",
+    "marketing.placeMove",
+    "marketing.discoveryRead",
+  ],
 });
 
 /** New posts in watched places: ranked, the day's best queued with a draft. */
@@ -427,7 +443,15 @@ export const threadRecord = defineRecord({
     },
     { id: "all", label: "All", sort: "-postedAt", at: "postedAt" },
   ],
-  actions: ["marketing.threadComment", "marketing.threadSkip"],
+  actions: [
+    "marketing.threadComment",
+    "marketing.threadSkip",
+    "marketing.draftAsk",
+    "marketing.draftUndo",
+    "marketing.discoveryRead",
+  ],
+  /** Ask Claude's thread on the draft comment. */
+  load: async (db, id) => ({ ask: await draftTurns(db, "thread", id) }),
 });
 
 /** LinkedIn invites, one per contact: queued, pending, accepted, withdrawn (`reach_invites`). */
@@ -493,7 +517,14 @@ export const inviteRecord = defineRecord({
     },
     { id: "all", label: "All", sort: "-queuedAt", at: "queuedAt" },
   ],
-  actions: ["marketing.inviteMessage", "marketing.inviteRead", "marketing.inviteWithdraw"],
+  actions: [
+    "marketing.inviteMessage",
+    "marketing.inviteRead",
+    "marketing.inviteWithdraw",
+    "marketing.draftAsk",
+    "marketing.draftUndo",
+  ],
+  load: async (db, id) => ({ ask: await draftTurns(db, "invite", id) }),
 });
 
 /** ponytail: rows, not a view: the newest 1,000 of each; a view with search past that. */

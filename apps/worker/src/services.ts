@@ -113,6 +113,7 @@ import {
   makeContentMetrics,
   makeContentPlanner,
   makeContentScheduler,
+  makeDraftAsk,
   makeSocialDesk,
   makeSocialWatch,
 } from "@wren/content/restate";
@@ -791,7 +792,9 @@ export async function buildServices(
       ...contentNotify,
       ...(operatorText && settings.notify !== "none" ? { texter: operatorText } : {}),
     }),
-    makeSocialDesk({ db }),
+    makeSocialDesk({ db, zone: SOCIAL_ZONE }),
+    // Ask Claude on any draft: the desk's Claude Code rewrites, Wren writes. Nothing sends.
+    makeDraftAsk(db),
   );
   // autobrowse's tokens made again before they lapse (LinkedIn's 60 days, npm's 90).
   services.push(

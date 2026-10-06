@@ -236,6 +236,8 @@ export interface CallRequest extends PortalRequest {
   input?: unknown;
   /** The handler's name typed in: a handler with an effect runs only with it. */
   confirm?: string;
+  /** Start it and answer at once: a read that takes minutes would outlast the page's request. */
+  send?: boolean;
 }
 
 export type RestateAdmin = (query: string) => Promise<Record<string, unknown>[]>;
@@ -1488,14 +1490,22 @@ export function makeConsolePortal(deps: Parameters<typeof consoleApi>[0]) {
           // Journaled: the call below suspends the Lambda, and the replay must find the same target.
           const h = api.target(req, await ctx.run("read handler", read));
           const runId = await ctx.run("open run", () => api.openCall(req, h));
+          const target = {
+            service: h.service,
+            method: h.handler,
+            ...(h.kind === "service" ? {} : { key: req.key as string }),
+            // The operator is the viewer, whatever the input says.
+            parameter: h.viewer ? { ...(req.input as object), viewer: req.viewer } : req.input,
+            inputSerde: JSON_SERDE,
+          };
+          if (req.send) {
+            ctx.genericSend(target);
+            await ctx.run("close run", () => api.closeCall(runId, null));
+            return { sent: true };
+          }
           try {
             const out = await ctx.genericCall<unknown, unknown>({
-              service: h.service,
-              method: h.handler,
-              ...(h.kind === "service" ? {} : { key: req.key as string }),
-              // The operator is the viewer, whatever the input says.
-              parameter: h.viewer ? { ...(req.input as object), viewer: req.viewer } : req.input,
-              inputSerde: JSON_SERDE,
+              ...target,
               outputSerde: JSON_SERDE,
             });
             await ctx.run("close run", () => api.closeCall(runId, null));

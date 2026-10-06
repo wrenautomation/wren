@@ -6,7 +6,7 @@ connection requests, 20 a day … make a plan and implement that."
 ## Answer first
 
 Most of it was built on 10-01 inside reach and never armed: the `/in/{vanity}/connect` route and
-flow, autobrowse's `connect: 20` site cap, the invite ramp (5 a day, +5 a week, up to 20), the
+flow, autobrowse's `connect: 20` site cap, the invite ramp (1 on the first send day, +3 each send day after, up to 20; weekends don't count), the
 10:00-17:00 New York weekday window, and journaled sends. What's missing:
 
 1. **Targets.** Contacts come from our own people: `people.linkedin_url` (Exa team search and the
@@ -78,13 +78,13 @@ accepted → Replies "Accepted your invite" → Message (manual DM, his click)
 - Marketing → Invites. Tabs: To send, Pending, Accepted, Withdrawn, All. Withdraw on pending,
   Message on accepted.
 - Replies: an accepted invite with no messages yet is an item "Accepted your invite".
-- CLI: `wren reach invites status|sweep` (sweep = the watch's pass now: accepts, withdraws,
-  top-up).
+- CLI: `wren reach invites status|set|sweep` (set = Shop's settings from a terminal; sweep = the
+  watch's pass now: accepts, withdraws, top-up).
 
 ## Limits and cost
 
 - 20 a day on weekdays is 100 a week. That is at LinkedIn's usual weekly ceiling for a free
-  account, so the ramp starts at 5.
+  account, so the ramp starts at 1: 1, 4, 7, 10, 13, 16, 19, then 20 from the eighth send day.
 - Page loads on the Mac: 20 invites, 4 connection reads and up to 20 withdraws, about 45 a day.
   $0. Restate: about 30 actions a day on top of the free 100k a month.
 - A withdrawn invite can't be sent to the same person again for 3 weeks. We never re-invite.
@@ -105,3 +105,6 @@ accepted → Replies "Accepted your invite" → Message (manual DM, his click)
 - 2026-10-06: correction: the account exists. It is `linkedin@wren` (william@wrenautomation.com,
   "William Jin", also Wren's posting token). No new signup. Profile basics set by the autobrowse
   flow `linkedin-profile-basics`.
+- 2026-10-06: William said go: "linkedin should start doing 20 invites a day with a rampup. do 1,
+  then 4, then 7 all the way until we get to 20." The ramp counts send days (weekdays), so a
+  weekend doesn't jump it.
