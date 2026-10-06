@@ -5,6 +5,7 @@
  * gate, quiet hours, caps).
  */
 import { activeSuppressionOf, addSuppression } from "@wren/core";
+import { operators } from "@wren/core/clients";
 import { mayMarket } from "@wren/core/marketing";
 import { consentEvents, topics } from "@wren/core/schema";
 import { startTestPostgres, type TestPostgres, truncate } from "@wren/db/testing";
@@ -202,7 +203,8 @@ describe("reply alerts", () => {
       policy: POLICY,
     });
     const keys = { p256dh: "p", auth: "a" };
-    await subscribe(db(), { endpoint: "https://push.example/phone", keys }, "w@wren");
+    await db().insert(operators).values({ email: "w@wren" }).onConflictDoNothing();
+    await subscribe(db(), { endpoint: "https://push.example/phone", keys }, "W@wren");
     await subscribe(db(), { endpoint: "https://push.example/old", keys }, "w@wren");
     await expect(
       subscribe(db(), { endpoint: "http://push.example/x", keys }, "w@wren"),
@@ -241,6 +243,7 @@ describe("reply alerts", () => {
     const left = await db().select().from(smsPushSubscriptions);
     expect(left.map((s) => s.endpoint)).toEqual(["https://push.example/phone"]);
     expect(left[0]?.lastPushedAt).not.toBeNull();
+    expect(left[0]?.operator).toBe("w@wren");
     await inbound("r2", "STOP");
     await inbound("r3", "START");
     expect(pusher.sent.map((s) => s.alert.title)).toEqual([

@@ -15,6 +15,7 @@ export const TABLES = [
   "consents",
   "topics",
   "sms_push_subscriptions",
+  "operators",
   "sms_templates",
   "sms_events",
   "sms_messages",

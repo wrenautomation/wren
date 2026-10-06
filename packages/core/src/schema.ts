@@ -19,6 +19,7 @@ import {
   uuid,
   varchar,
 } from "drizzle-orm/pg-core";
+import { clients } from "./clients/schema.js";
 import type { WorkflowEdits } from "./workflows.js";
 
 // ---- Ported from emails_gen (exact DDL; integer ids kept for data continuity) ----
@@ -282,6 +283,12 @@ export const hooks = pgTable(
   (t) => [
     primaryKey({ columns: [t.id], name: "pk_hooks" }),
     unique("uq_hooks_token_hash").on(t.tokenHash),
+    index("ix_hooks_client").on(t.client),
+    foreignKey({
+      columns: [t.client],
+      foreignColumns: [clients.id],
+      name: "fk_hooks_client_clients",
+    }).onDelete("cascade"),
   ],
 );
 export type Hook = typeof hooks.$inferSelect;
@@ -306,6 +313,11 @@ export const workflowSaves = pgTable(
   (t) => [
     primaryKey({ columns: [t.id], name: "pk_workflow_saves" }),
     index("ix_workflow_saves_client_workflow").on(t.client, t.workflow, t.id),
+    foreignKey({
+      columns: [t.client],
+      foreignColumns: [clients.id],
+      name: "fk_workflow_saves_client_clients",
+    }).onDelete("cascade"),
   ],
 );
 

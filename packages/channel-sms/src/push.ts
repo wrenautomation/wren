@@ -84,7 +84,12 @@ export async function subscribe(
   const endpoint = new URL(sub.endpoint);
   if (endpoint.protocol !== "https:") throw new Error("a push endpoint is https");
   if (!sub.keys?.p256dh || !sub.keys?.auth) throw new Error("a push subscription needs its keys");
-  const row = { p256dh: sub.keys.p256dh, auth: sub.keys.auth, operator };
+  // `operators.email` is stored trimmed and lowercase.
+  const row = {
+    p256dh: sub.keys.p256dh,
+    auth: sub.keys.auth,
+    operator: operator.trim().toLowerCase(),
+  };
   await db
     .insert(smsPushSubscriptions)
     .values({ endpoint: endpoint.toString(), ...row })

@@ -278,6 +278,12 @@ export const experimentAlleles = pgTable(
   (t) => [
     primaryKey({ columns: [t.id], name: "pk_experiment_alleles" }),
     unique("uq_experiment_alleles_locus").on(t.experimentId, t.locus, t.allele),
+    index("ix_experiment_alleles_journal_id").on(t.journalId),
+    foreignKey({
+      columns: [t.journalId],
+      foreignColumns: [experimentJournal.id],
+      name: "fk_experiment_alleles_journal_id_experiment_journal",
+    }),
     foreignKey({
       columns: [t.experimentId],
       foreignColumns: [experiments.id],

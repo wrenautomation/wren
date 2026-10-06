@@ -16,6 +16,7 @@
  * Opt-outs are `suppressions` rows of kind `phone` (core), the same table every
  * channel reads.
  */
+import { operators } from "@wren/core/clients";
 import { companies, people, runs } from "@wren/core/schema";
 import { baseColumns, oneOf } from "@wren/db/columns";
 import { documents } from "@wren/research/schema";
@@ -341,16 +342,27 @@ export const smsTemplates = pgTable("sms_templates", {
 });
 
 /** A device that gets a notification when a text comes in (web push from the phone app). */
-export const smsPushSubscriptions = pgTable("sms_push_subscriptions", {
-  ...baseColumns,
-  /** The browser's push service URL for this device: its identity. */
-  endpoint: text("endpoint").notNull().unique("uq_sms_push_subscriptions_endpoint"),
-  p256dh: text("p256dh").notNull(),
-  auth: text("auth").notNull(),
-  /** The operator who turned it on. */
-  operator: varchar("operator", { length: 200 }).notNull(),
-  lastPushedAt: timestamp("last_pushed_at", { withTimezone: true }),
-});
+export const smsPushSubscriptions = pgTable(
+  "sms_push_subscriptions",
+  {
+    ...baseColumns,
+    /** The browser's push service URL for this device: its identity. */
+    endpoint: text("endpoint").notNull().unique("uq_sms_push_subscriptions_endpoint"),
+    p256dh: text("p256dh").notNull(),
+    auth: text("auth").notNull(),
+    /** The operator who turned it on. */
+    operator: varchar("operator", { length: 200 }).notNull(),
+    lastPushedAt: timestamp("last_pushed_at", { withTimezone: true }),
+  },
+  (t) => [
+    index("ix_sms_push_subscriptions_operator").on(t.operator),
+    foreignKey({
+      columns: [t.operator],
+      foreignColumns: [operators.email],
+      name: "fk_sms_push_subscriptions_operator_operators",
+    }).onDelete("cascade"),
+  ],
+);
 
 export type SmsNumber = typeof smsNumbers.$inferSelect;
 export type SmsContact = typeof smsContacts.$inferSelect;
