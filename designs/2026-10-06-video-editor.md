@@ -222,7 +222,8 @@ Answered 10-06: agreed; OBS; captions on the long video and Shorts.
   page) writes one YouTube draft per video or Short, approved with no slot, private, with the file's
   path on the Mac; a second Approve answers the same draft. The worker's media host leaves a path it
   doesn't have as a path, so the desk reads it from disk. The picked thumbnail goes up after the
-  video; a refused one doesn't fail the post. Chapters are not written into the description yet.
+  video; a refused one doesn't fail the post. Chapters go under the long video's description on
+  the cut timeline (`chapterLines`), dropped when YouTube would ignore them (under 3, under 10 s apart).
   The autobrowse upload streams from disk with one attempt and a 2 hour PUT timeout (autobrowse
   cd3db46). Checked: Wren's channel is not phone-verified
   (`longUploadsStatus: eligible`), so custom thumbnails are refused until he verifies it.

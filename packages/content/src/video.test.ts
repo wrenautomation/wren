@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { clock, cutSeconds, longOf, markWords, numbered, videoRef } from "./video.js";
+import { chapterLines, clock, cutSeconds, longOf, markWords, numbered, videoRef } from "./video.js";
 
 describe("videos", () => {
   it("reads numbered outputs in order, from 0 or 1, whatever the separator", () => {
@@ -39,5 +39,23 @@ describe("videos", () => {
     expect(clock(59.6)).toBe("1:00");
     expect(videoRef(3)).toBe("video:3");
     expect(videoRef(3, 2)).toBe("video:3/short:2");
+  });
+
+  it("writes chapters on the cut timeline, or none YouTube would ignore", () => {
+    const tracks = { main: { path: "/v.mp4", durationS: 120, width: 1920, height: 1080, fps: 30 } };
+    const cuts = [{ from: 10, to: 20, why: "silence", state: "cut" }] as const;
+    const chapters = [
+      { at: 2, title: "Intro" },
+      { at: 30, title: "Setup" },
+      { at: 15, title: "Inside a cut" },
+      { at: 90, title: "Wrap" },
+    ];
+    expect(chapterLines({ tracks, cuts: [...cuts], chapters })).toBe(
+      "0:00 Intro\n0:10 Inside a cut\n0:20 Setup\n1:20 Wrap",
+    );
+    expect(chapterLines({ tracks, cuts: [], chapters: chapters.slice(0, 2) })).toBe("");
+    expect(
+      chapterLines({ tracks, cuts: [], chapters: [...chapters, { at: 35, title: "Too close" }] }),
+    ).toBe("");
   });
 });

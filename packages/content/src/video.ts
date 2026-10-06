@@ -6,6 +6,7 @@
  */
 import { date, defineRecord, link, number, type State, status, text } from "@wren/core/records";
 import { atomic, type Queryable } from "@wren/db";
+import { keepSegments, onCut } from "@wren/studio/cuts";
 import { type Cut, type VideoEdit, videoEdits, type Word } from "@wren/studio/schema";
 import { desc, eq, like, sql } from "drizzle-orm";
 import { contentDrafts, contentIdeas, type DraftStatus, type IdeaSource } from "./schema.js";
@@ -41,6 +42,21 @@ export const clock = (s: number) => {
   const r = Math.max(0, Math.round(s));
   return `${Math.floor(r / 60)}:${String(r % 60).padStart(2, "0")}`;
 };
+
+/**
+ * The chapters as YouTube reads them in a description, on the cut timeline: `0:00 Intro` lines,
+ * the first forced to 0:00. None when YouTube would ignore them (under 3, or two under 10 s apart).
+ */
+export function chapterLines(e: Pick<VideoEdit, "chapters" | "cuts" | "tracks">): string {
+  const keep = keepSegments(e.cuts, e.tracks.main.durationS);
+  const marks = e.chapters
+    .map((c) => ({ at: Math.round(onCut(c.at, keep)), title: c.title.trim() }))
+    .sort((a, b) => a.at - b.at)
+    .map((c, i) => (i ? c : { ...c, at: 0 }));
+  const close = marks.some((c, i) => i > 0 && c.at - (marks[i - 1]?.at ?? 0) < 10);
+  if (marks.length < 3 || close) return "";
+  return marks.map((c) => `${clock(c.at)} ${c.title}`).join("\n");
+}
 
 /** Each word with the cut over its middle: applied, proposed (yellow), or none. */
 export function markWords(words: readonly Word[], cuts: readonly Cut[]) {
@@ -81,11 +97,16 @@ export async function approveVideo(
     if (!["rendered", "approved", "uploaded"].includes(e.state))
       throw new Error(`video ${id} is ${e.state}: render it first (wren video render ${id})`);
     const { file, title, thumbnail } = target(e, o.short);
+    // The long video's chapters go under its description; a Short has none.
+    const body = [e.description, o.short ? "" : chapterLines(e)]
+      .filter(Boolean)
+      .join("\n\n")
+      .slice(0, 5000);
     const now = o.now ?? new Date();
     const [idea] = await tx
       .insert(contentIdeas)
       .values({
-        text: `${title}\n\n${e.description}`,
+        text: `${title}\n\n${body}`,
         source: o.source,
         ref,
         status: "drafted",
@@ -98,7 +119,7 @@ export async function approveVideo(
       .values({
         ideaId: idea.id,
         platform: "youtube",
-        text: e.description,
+        text: body,
         title,
         media: { kind: "video", source: file, title },
         extra: {
