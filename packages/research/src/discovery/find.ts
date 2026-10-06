@@ -4,6 +4,7 @@
  * firm (the ownership gate) before it counts.
  */
 import { decodeEntities } from "../fetch/htmltext.js";
+import { domainLabel } from "../people/names.js";
 import { domainCandidates } from "./candidates.js";
 import { type GateEvidence, gatePage } from "./gate.js";
 import { dohResolves, type HomepageFetcher, type Resolves } from "./service.js";
@@ -74,7 +75,7 @@ export function siteName(html: string, domain: string): string | null {
   const declared = decodeEntities(content?.[1] ?? content?.[2] ?? "").trim();
   if (declared) return declared;
   const squash = (s: string) => s.toLowerCase().replace(/[^a-z0-9]/g, "");
-  const label = squash(domain.replace(/^www\./, "").split(".")[0] ?? "");
+  const label = squash(domainLabel(domain));
   if (!label) return null;
   const title = decodeEntities(html.match(/<title[^>]*>([^<]*)<\/title>/i)?.[1] ?? "");
   const parts = title.split(/\s+[|–—-]\s+|\s*[|:·]\s*/).map((p) => p.trim());

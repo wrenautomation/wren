@@ -68,3 +68,11 @@ describe("siteName", () => {
     ).toBeNull();
   });
 });
+
+describe("siteName on a subdomain", () => {
+  it("matches the title to the registrable label, not the first one", () => {
+    expect(
+      siteName("<title>Jobs | Northside Talent</title>", "careers.northsidetalent.co.uk"),
+    ).toBe("Northside Talent");
+  });
+});

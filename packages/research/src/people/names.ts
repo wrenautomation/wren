@@ -3,7 +3,9 @@
  * past employer or the email domain, so both halves must be strict: a miss
  * leaves a contact unresolved, a false hit cites a stranger.
  */
+
 import { parseName } from "@wren/core";
+import { getDomainWithoutSuffix } from "tldts";
 
 /** Lowercase letters and digits, accents and apostrophes dropped (O'Brien = OBrien), everything else one space. */
 export const plain = (s: string): string =>
@@ -80,28 +82,12 @@ export const companyPhrase = (name: string): string => {
   return w.join(" ");
 };
 
-/** Second-level labels under a country code that are part of the suffix: co.uk, com.au. */
-const SECOND_LEVEL = new Set([
-  "co",
-  "com",
-  "net",
-  "org",
-  "gov",
-  "edu",
-  "ac",
-  "ltd",
-  "plc",
-  "or",
-  "ne",
-]);
-
-/** "acme-staffing.co.uk" -> "acme staffing", "careers.ibm.com" -> "ibm": the registrable label, as words. */
-export const domainLabel = (domain: string): string => {
-  const parts = domain.toLowerCase().replace(/\.+$/, "").split(".");
-  const tld = parts.at(-1) ?? "";
-  const cut = parts.length > 2 && tld.length === 2 && SECOND_LEVEL.has(parts.at(-2) ?? "") ? 2 : 1;
-  return plain(parts.slice(0, -cut).at(-1) ?? "");
-};
+/**
+ * "acme-staffing.co.uk" -> "acme staffing", "careers.ibm.com" -> "ibm": the registrable
+ * label, as words, by the public suffix list (private suffixes too: acme.myshopify.com is acme).
+ */
+export const domainLabel = (domain: string): string =>
+  plain(getDomainWithoutSuffix(domain.replace(/\.+$/, ""), { allowPrivateDomains: true }) ?? "");
 
 /**
  * One firm under two spellings: equal after legal words go, equal with the

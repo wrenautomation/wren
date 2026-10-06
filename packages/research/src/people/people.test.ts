@@ -286,3 +286,11 @@ describe("lookUpPerson", () => {
     expect(calls).toEqual([]);
   });
 });
+
+describe("domainLabel by the public suffix list", () => {
+  it("reads the registrable label under any suffix, private ones too", () => {
+    expect(domainLabel("acme.on.ca")).toBe("acme");
+    expect(domainLabel("acme-staffing.myshopify.com")).toBe("acme staffing");
+    expect(domainLabel("careers.acme.com.br")).toBe("acme");
+  });
+});
