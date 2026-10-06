@@ -1,7 +1,8 @@
 /**
  * DMs as console records for the Marketing app: each person's thread (`marketing.dm`), each
  * template slot William writes (`marketing.dm_copy`), with what the preview needs to draw them,
- * each comment on our posts (`marketing.comment`), and each LinkedIn invite (`marketing.invite`).
+ * each comment on our posts (`marketing.comment`), each LinkedIn invite (`marketing.invite`), and
+ * the people we can write to from Marketing → People (`marketing.person`).
  */
 import {
   date,
@@ -17,6 +18,7 @@ import {
 import { inArray, sql } from "drizzle-orm";
 import { accountById, listAccounts } from "./accounts.js";
 import { personLine } from "./discovery/people.js";
+import { VANITY } from "./invites.js";
 import { type PlaceJudged, type Platform, type RedditPerson, redditPeople } from "./schema.js";
 import {
   MESSAGE_MAX,
@@ -68,6 +70,7 @@ export const dmRecord = defineRecord({
       last_at: t.last?.sentAt ?? t.last?.createdAt ?? null,
       direction: t.last?.direction ?? null,
       waiting: t.unread ? "waiting" : "read",
+      draft: t.contact.draft,
     }));
   },
   key: "id",
@@ -95,6 +98,7 @@ export const dmRecord = defineRecord({
     lastBody: text("Last message"),
     lastAt: date("When"),
     waiting: status({ waiting: { label: "Unread", tone: "warn" }, read: neutral("Read") }, "Read"),
+    draft: prose("Draft reply"),
   },
   views: [
     {
@@ -435,8 +439,10 @@ export const inviteRecord = defineRecord({
       (await db.execute(sql`
       select i.contact_id id, coalesce(i.name, i.handle) who, i.headline, i.niche, i.status,
         i.state_reason, i.note, a.account, i.queued_at, i.sent_at, i.connected_at, i.withdrawn_at,
-        i.url, extract(day from coalesce(i.connected_at, i.withdrawn_at, now()) - i.sent_at)::int days
+        i.url, extract(day from coalesce(i.connected_at, i.withdrawn_at, now()) - i.sent_at)::int days,
+        c.draft
       from reach_invites i
+      join reach_contacts c on c.id = i.contact_id
       left join reach_accounts a on a.id = i.account_id
       order by coalesce(i.connected_at, i.withdrawn_at, i.sent_at, i.queued_at) desc
       limit ${THREAD_ROWS}`)) as unknown as Array<Record<string, unknown>>
@@ -467,6 +473,7 @@ export const inviteRecord = defineRecord({
     connectedAt: date("Accepted"),
     withdrawnAt: date("Withdrawn"),
     url: link("On LinkedIn"),
+    draft: prose("Draft message"),
   },
   views: [
     { id: "queued", label: "To send", where: { status: "queued" }, sort: "queuedAt" },
@@ -487,4 +494,67 @@ export const inviteRecord = defineRecord({
     { id: "all", label: "All", sort: "-queuedAt", at: "queuedAt" },
   ],
   actions: ["marketing.inviteMessage", "marketing.inviteRead", "marketing.inviteWithdraw"],
+});
+
+/** ponytail: rows, not a view: the newest 1,000 of each; a view with search past that. */
+const PEOPLE_ROWS = 1000;
+
+/**
+ * People we can write to without the platform: ours with a LinkedIn page (`li:<people.id>`) and
+ * Reddit people we read (`reddit:<handle>`). `can` says what's open: Message once a LinkedIn
+ * invite is accepted (any Reddit user), Invite before.
+ */
+export const personRecord = defineRecord({
+  id: "marketing.person",
+  name: { one: "person", many: "people" },
+  rows: async (db) =>
+    (await db.execute(sql`
+      (select 'li:' || p.id id, 'linkedin' platform, p.full_name who, p.title headline,
+        co.name company, p.linkedin_url url, rc.state contact, rc.draft, p.created_at at,
+        case when rc.state in ('opted_out', 'blocked') then 'stopped'
+          when rc.connected_at is not null then 'message'
+          when rc.id is null or rc.state = 'new' then 'invite' else 'invited' end can
+      from people p
+      join companies co on co.id = p.company_id
+      left join reach_contacts rc on rc.platform = 'linkedin' and lower(rc.handle) = ${VANITY}
+      where p.linkedin_url ~* 'linkedin\\.com/in/[^/?#]+'
+      order by p.id desc limit ${PEOPLE_ROWS})
+      union all
+      (select 'reddit:' || rp.handle, 'reddit', rp.name, rp.read #>> '{role,value}',
+        rp.read #>> '{business,value}', 'https://www.reddit.com/user/' || rp.handle, rc.state,
+        rc.draft, rp.read_at,
+        case when rc.state in ('opted_out', 'blocked') then 'stopped' else 'message' end
+      from reddit_people rp
+      left join reach_contacts rc on rc.platform = 'reddit' and lower(rc.handle) = rp.handle
+      order by rp.read_at desc limit ${PEOPLE_ROWS})`)) as unknown as Array<
+      Record<string, unknown>
+    >,
+  key: "id",
+  title: "who",
+  subtitle: "headline",
+  fields: {
+    who: name("Who"),
+    headline: text(),
+    company: text("Company"),
+    platform: status({ reddit: neutral("Reddit"), linkedin: neutral("LinkedIn") }, "Site"),
+    can: status(
+      {
+        message: { label: "Can message", tone: "good" },
+        invite: neutral("Can invite"),
+        invited: neutral("Invited"),
+        stopped: { label: "Asked to stop", tone: "warn" },
+      },
+      "Open to",
+    ),
+    contact: text("In reach"),
+    draft: prose("Draft message"),
+    at: date("Added"),
+    url: link("Their page"),
+  },
+  views: [
+    { id: "message", label: "Can message", where: { can: "message" }, sort: "-at", at: "at" },
+    { id: "invite", label: "Can invite", where: { can: "invite" }, sort: "-at", at: "at" },
+    { id: "all", label: "All", sort: "-at", at: "at" },
+  ],
+  actions: ["marketing.personDraft", "marketing.personMessage", "marketing.personInvite"],
 });

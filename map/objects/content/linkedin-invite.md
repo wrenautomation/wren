@@ -24,6 +24,8 @@ William, 2026-10-06 (relayed): 20 a day, a plan then the build. The sender is `l
 - Notes cap: `notesThisMonth` in `tick.ts`, policy `linkedin.notesPerMonth` (5)
 - Loop: ReachWatch every 6 h (`restate/index.ts:121`, `invitesPass` `:256`); desk handlers `withdrawInvite` (`:788`), `invites` (`:823`)
 - autobrowse: `GET /connections`, `POST /in/{vanity}/withdraw` (`src/sites/linkedin.ts`), via `packages/channel-linkedin/src/outreach.ts`
+- DM drafts (designs/2026-10-06-content-desk.md): `reach_contacts.draft`, `draft_at`, `draft_for` (`schema.ts:149`, migration 0121); `packages/outreach/src/drafts.ts` (`contactsToDraft` `:53`, `draftDm` `:143`, `queueDraft` `:165`, 30 model calls a day, the `dm` SOP via `dmGuide` in `@wren/content`); written by `draftsPass` (`restate/index.ts:308`) after the invites pass; a new inbound clears it (`replies.ts` `receive`). Reply and Message open with it
+- Message/Invite from People: record `marketing.person` (`records.ts:507`, ids `li:<people.id>`, `reddit:<handle>`), `packages/outreach/src/from-people.ts` (`personContact`, `messageAccount`: lead guard, `linkedin@wren` once connected, else `reddit@wren`); desk `draftPerson`, `messagePerson`, `invitePerson` (`restate/index.ts:901`, `:933`, `:958`; invite enrolls `linkedin-invite` under the ramp)
 - Console: component `linkedin.invites` (settings in `wren_settings`), record `marketing.invite` (Marketing → Invites), Replies item "Accepted your invite" (`apps/worker/src/replies.ts`); CLI `wren reach invites status|sweep`
 
 ## Connected to

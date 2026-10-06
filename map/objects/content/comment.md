@@ -23,7 +23,7 @@ Comments work like a webhook (William, 2026-10-05): the reader is a source, reac
 - Answer: a content comment goes through `Content.reply` (`ReachDesk/answerComment`); reach's DM path refuses it (no account)
 - Code: `packages/outreach/src/comments.ts`: `keepComments` (`:45`), `sortComment` (`:119`, words then the Watch's model), `sortStep` (`:152`, spine step `comments.sort`), `planAnswer` (`:199`, rung caps), `checkThread` (`:218`), `answerComment` (`:235`), `dmCommenter` (`:254`, one DM per person, rung must allow messages)
 - Loop: `ReachWatch/daily` (`restate/index.ts:225`), cadence `@wren/core/warm` (`warmEveryMs`), touches `lastTouches` (`accounts.ts`) plus content's `published_at` via the worker; state `reads`, `health`; desk handlers `ReachDesk/answerComment|dmComment|dropComment` (`:667`)
-- Console: record `marketing.comment` (Marketing → Comments, platform/channel/kind filters) and `marketing.inbox` (Marketing → Inbox: comments, DMs, activity; `packages/content/src/social/records.ts`), rows in `inbox.reply` (`apps/worker/src/replies.ts`)
+- Console: record `marketing.comment` (Marketing → Comments, platform/channel/kind filters) and `marketing.inbox` (Marketing's first page: post drafts, comments, DMs, Reddit threads, accepted invites, activity; default view "Waiting on you", soonest `due` first; `packages/content/src/social/records.ts:87`), rows in `inbox.reply` (`apps/worker/src/replies.ts`)
 
 ## Connected to
 

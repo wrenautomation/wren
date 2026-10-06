@@ -145,13 +145,13 @@ const ONE: Record<string, (id: string, input: Input) => [string, Input]> = {
     handlerCall("Ads", "resume", { campaignId: head(id, 1)[0] }, { confirm: "resume" }),
   "marketing/markRead": (id) => handlerCall("SmsDesk", "markRead", { contactId: Number(id) }),
   // A draft's review: ContentDesk's one key, as the CLI's verdicts are one table.
-  "marketing/approveDraft": (id) => desk("approve", { ids: [id] }),
-  "marketing/rejectDraft": (id) => desk("reject", { ids: [id] }),
-  "marketing/editDraft": (id, { text }) => desk("edit", { draftId: id, text }),
-  "marketing/redraft": (id, { note }) => desk("redraft", { draftId: id, note }),
-  // A reply sends: the console asks for the handler's name.
+  "marketing/approveDraft": (id) => desk("approve", { ids: [bare(id)] }),
+  "marketing/rejectDraft": (id) => desk("reject", { ids: [bare(id)] }),
+  "marketing/editDraft": (id, { text }) => desk("edit", { draftId: bare(id), text }),
+  "marketing/redraft": (id, { note }) => desk("redraft", { draftId: bare(id), note }),
+  // A reply sends: the console asks for the handler's name. An untouched draft is the desk's.
   "marketing/dmReply": (id, { body }) =>
-    handlerCall("ReachDesk", "reply", { contactId: num(id), body }, { confirm: "reply" }),
+    handlerCall("ReachDesk", "reply", { contactId: num(id), ...words(body) }, { confirm: "reply" }),
   "marketing/dmRead": (id) => handlerCall("ReachDesk", "markRead", { contactId: num(id) }),
   // An untouched draft isn't sent: the desk answers with the draft it holds.
   "marketing/commentAnswer": (id, { body }) =>
@@ -182,10 +182,16 @@ const ONE: Record<string, (id: string, input: Input) => [string, Input]> = {
     handlerCall(
       "ReachDesk",
       "commentThread",
-      { id, ...(typeof body === "string" ? { body } : {}) },
+      { id: bare(id), ...words(body) },
       { confirm: "commentThread" },
     ),
-  "marketing/threadSkip": (id) => handlerCall("ReachDesk", "skipThread", { id }),
+  "marketing/threadSkip": (id) => handlerCall("ReachDesk", "skipThread", { id: bare(id) }),
+  // A person from People: `li:<id>` or `reddit:<handle>`, read by the desk.
+  "marketing/personDraft": (id) => handlerCall("ReachDesk", "draftPerson", { id }),
+  "marketing/personMessage": (id, { body }) =>
+    handlerCall("ReachDesk", "messagePerson", { id, ...words(body) }, { confirm: "messagePerson" }),
+  "marketing/personInvite": (id) =>
+    handlerCall("ReachDesk", "invitePerson", { id }, { confirm: "invitePerson" }),
   "marketing/dmCopy": (id, input) =>
     handlerCall("ReachDesk", "setTemplate", { key: id, body: changed(input) }),
   "marketing/textCopy": (id, input) =>
@@ -205,8 +211,11 @@ const handlerCall = (
 ): [string, Input] => ["console/call", { service, handler, input, ...more }];
 const desk = (handler: string, input: Input) =>
   handlerCall("ContentDesk", handler, input, { key: "default" });
-/** An Inbox id carries its type ("comment:12"); the number after the colon is the row. */
-const num = (id: string) => Number(id.slice(id.indexOf(":") + 1));
+/** An Inbox id carries its type ("comment:12", "draft:3"); after the colon is the row's own id. */
+const bare = (id: string) => id.slice(id.indexOf(":") + 1);
+const num = (id: string) => Number(bare(id));
+/** The words when typed; an untouched draft is left out and the desk sends the one it holds. */
+const words = (body: unknown) => (typeof body === "string" ? { body } : {});
 /** "idea/platform/draft": a post's idea and platform. "campaign/adset/day": an ad day's campaign. */
 const head = (id: string, n: number) => id.split("/").slice(0, n);
 /** Head actions that are another handler with something added. */

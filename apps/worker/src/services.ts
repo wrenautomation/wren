@@ -107,7 +107,7 @@ import { tiktokContent } from "@wren/channel-tiktok";
 import { xContent } from "@wren/channel-x";
 import { youtubeContent } from "@wren/channel-youtube";
 import { ingressOf, type Settings } from "@wren/config";
-import { commentGuide, DEFAULT_VOICE, s3MediaHost } from "@wren/content";
+import { commentGuide, DEFAULT_VOICE, dmGuide, s3MediaHost } from "@wren/content";
 import {
   makeContentDesk,
   makeContentMetrics,
@@ -904,6 +904,8 @@ export async function buildServices(
         .where(eq(contentDrafts.platform, p));
       return r?.at ? r.at.toISOString() : null;
     },
+    // DM drafts in the watch's model, steered by the platform's `dm` SOP.
+    drafts: { llm: watchLlm, guide: (p: "reddit" | "linkedin") => dmGuide(db, p) },
     ...reachNotify,
   };
   services.push(

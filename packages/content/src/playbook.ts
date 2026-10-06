@@ -5,7 +5,7 @@
  */
 import type { Platform } from "@wren/core/content";
 import type { Queryable } from "@wren/db";
-import { and, desc, eq, ne } from "drizzle-orm";
+import { and, desc, eq, notInArray } from "drizzle-orm";
 import { type ContentPlaybook, contentPlaybooks } from "./schema.js";
 
 /** About 2,000 words: an SOP past this is too long to steer a 1,300-character post. */
@@ -13,8 +13,11 @@ export const MAX_PLAYBOOK_CHARS = 16_000;
 
 /** The SOP pushed as `comments` steers answers to comments, never post drafts. */
 export const COMMENTS_SOP = "comments";
+/** The SOP pushed as `dm` steers DM drafts (`@wren/outreach` drafts.ts), never post drafts. */
+export const DM_SOP = "dm";
+const NOT_POSTS = [COMMENTS_SOP, DM_SOP];
 
-/** The platform's post playbook: its newest row that isn't the comments SOP. */
+/** The platform's post playbook: its newest row that isn't the comments or DM SOP. */
 export async function playbookFor(
   db: Queryable,
   platform: Platform,
@@ -22,24 +25,36 @@ export async function playbookFor(
   const [row] = await db
     .select()
     .from(contentPlaybooks)
-    .where(and(eq(contentPlaybooks.platform, platform), ne(contentPlaybooks.sop, COMMENTS_SOP)))
+    .where(
+      and(eq(contentPlaybooks.platform, platform), notInArray(contentPlaybooks.sop, NOT_POSTS)),
+    )
+    .orderBy(desc(contentPlaybooks.createdAt))
+    .limit(1);
+  return row ?? null;
+}
+
+/** The newest SOP pushed as `sop` for the platform. */
+async function sopFor(
+  db: Queryable,
+  platform: Platform,
+  sop: string,
+): Promise<ContentPlaybook | null> {
+  const [row] = await db
+    .select()
+    .from(contentPlaybooks)
+    .where(and(eq(contentPlaybooks.platform, platform), eq(contentPlaybooks.sop, sop)))
     .orderBy(desc(contentPlaybooks.createdAt))
     .limit(1);
   return row ?? null;
 }
 
 /** The newest `comments` SOP pushed for the platform. */
-export async function commentsSopFor(
-  db: Queryable,
-  platform: Platform,
-): Promise<ContentPlaybook | null> {
-  const [row] = await db
-    .select()
-    .from(contentPlaybooks)
-    .where(and(eq(contentPlaybooks.platform, platform), eq(contentPlaybooks.sop, COMMENTS_SOP)))
-    .orderBy(desc(contentPlaybooks.createdAt))
-    .limit(1);
-  return row ?? null;
+export const commentsSopFor = (db: Queryable, platform: Platform) =>
+  sopFor(db, platform, COMMENTS_SOP);
+
+/** What a DM draft follows: the platform's `dm` SOP; "" = none, and the draft keeps its brief. */
+export async function dmGuide(db: Queryable, platform: Platform): Promise<string> {
+  return (await sopFor(db, platform, DM_SOP))?.text ?? "";
 }
 
 /**
@@ -69,7 +84,9 @@ export async function pushPlaybook(
     throw new Error(
       `${p.sop}: ${text.length} chars, over ${MAX_PLAYBOOK_CHARS}; cut the SOP first`,
     );
-  const live = await (p.sop === COMMENTS_SOP ? commentsSopFor : playbookFor)(db, p.platform);
+  const live = NOT_POSTS.includes(p.sop)
+    ? await sopFor(db, p.platform, p.sop)
+    : await playbookFor(db, p.platform);
   if (live && live.sop === p.sop && live.text === text) return { playbook: live, changed: false };
   const [row] = await db
     .insert(contentPlaybooks)

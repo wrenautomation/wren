@@ -106,3 +106,6 @@ desk page loads on the Mac.
 
 - 2026-10-06: William asked for the queue, DM drafts with Claude and on-demand gap fixes. Built as
   above. The Inbox becomes the landing page; the other pages stay for depth.
+- 2026-10-06: Built 1, 2 and 5 (branch `content-desk-queue`, migration 0121). No People record
+  existed, so `marketing.person` is new (LinkedIn people with a page, Reddit people read). An
+  untouched draft is left out by the console; the desk sends the one it holds.

@@ -270,6 +270,15 @@ export async function answerComment(
   return { ref: sent.ref };
 }
 
+/** A Reddit account still warming up may not DM yet, or is frozen: refused with why. */
+export function checkCanDm(account: ReachAccount, now: Date) {
+  if (account.platform !== "reddit" || !account.health) return;
+  const w = warmupOf(account.health as Parameters<typeof warmupOf>[0], now);
+  if (w.frozen) throw new ReachRefusal(`${account.account}: ${w.frozen}`);
+  if (w.caps.messages === 0)
+    throw new ReachRefusal(`${account.account} can't DM yet: ${w.next || w.stage}`);
+}
+
 /**
  * A DM to the comment's author from the account that read it, queued for the sender. Once per
  * person: after that, only their reply opens the thread again, and it's answered there.
@@ -283,12 +292,7 @@ export async function dmCommenter(
   const c = await commentById(db, req.id);
   if (c.sort === "ours") throw new ReachRefusal("that one is ours");
   const account = await accountOf(db, c);
-  if (account.platform === "reddit" && account.health) {
-    const w = warmupOf(account.health as Parameters<typeof warmupOf>[0], req.now);
-    if (w.frozen) throw new ReachRefusal(`${account.account}: ${w.frozen}`);
-    if (w.caps.messages === 0)
-      throw new ReachRefusal(`${account.account} can't DM yet: ${w.next || w.stage}`);
-  }
+  checkCanDm(account, req.now);
   await addProspects(db, account.platform, [
     {
       handle: c.author,
