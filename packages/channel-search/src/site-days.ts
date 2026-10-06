@@ -1,7 +1,9 @@
 /**
  * `site_days`: the lander's export rolled up per day, first-touch channel and campaign. Every
- * visit, form and booking click counts under the channel its visitor first came from. The
- * whole export is re-read and each day upserted, so a re-read never double counts.
+ * visit, form and booking click counts under the channel its visitor first came from. A booked
+ * call counts as email when its link carried a code, else under the first touch of the
+ * application with its email; a paid engagement counts under its own source. The whole export
+ * is re-read and each day upserted, so a re-read never double counts.
  */
 import type { SiteApplication, SiteHit } from "@wren/channel-email";
 import { touchChannel } from "@wren/core/clients";
@@ -9,7 +11,7 @@ import type { Queryable } from "@wren/db";
 import { sql } from "drizzle-orm";
 import { type SiteChannel, siteDays } from "./schema.js";
 
-export type SiteDayRow = Omit<typeof siteDays.$inferInsert, "syncedAt">;
+export type SiteDayRow = Omit<typeof siteDays.$inferSelect, "syncedAt">;
 interface Source {
   channel: SiteChannel;
   campaign: string;
@@ -24,10 +26,25 @@ const sourceOf = (t: Record<string, unknown>): Source => {
 };
 const DIRECT: Source = { channel: "direct", campaign: "" };
 
-/** Day rows from every hit and application the lander holds. */
+/** A cal.com booking that wasn't cancelled (`call_bookings`). */
+export interface BookedCall {
+  day: string;
+  code: string | null;
+  email: string | null;
+}
+/** An engagement's first paid invoice, with the source it was set to (`delivery.engagements`). */
+export interface PaidEngagement {
+  day: string;
+  channel: SiteChannel;
+  campaign: string;
+}
+
+/** Day rows from every hit and application the lander holds, and our calls and payments. */
 export function rollupSite(
   hits: readonly SiteHit[],
   applications: readonly SiteApplication[],
+  calls: readonly BookedCall[] = [],
+  paid: readonly PaidEngagement[] = [],
 ): SiteDayRow[] {
   const sorted = [...hits].sort((a, b) => a.id - b.id);
   // A hit without a visitor (no cookie) is its own visitor.
@@ -46,7 +63,17 @@ export function rollupSite(
     const key = `${day}|${s.channel}|${s.campaign}`;
     let r = rows.get(key);
     if (!r) {
-      r = { day, ...s, visits: 0, firstTouches: 0, forms: 0, bookings: 0, watchPlays: 0 };
+      r = {
+        day,
+        ...s,
+        visits: 0,
+        firstTouches: 0,
+        forms: 0,
+        bookings: 0,
+        watchPlays: 0,
+        calls: 0,
+        paid: 0,
+      };
       rows.set(key, r);
     }
     return r;
@@ -64,6 +91,7 @@ export function rollupSite(
     if (h.page.startsWith("/book/")) r.bookings += 1;
     if (h.page.startsWith("/watch/")) r.watchPlays += 1;
   }
+  const byEmail = new Map<string, Source>();
   for (const a of applications) {
     let own: Record<string, unknown> | null = null;
     try {
@@ -71,7 +99,16 @@ export function rollupSite(
     } catch {}
     const s = own ? sourceOf(own) : (first.get(who(a, "app")) ?? DIRECT);
     row(a.ts.slice(0, 10), s).forms += 1;
+    const email = a.email?.trim().toLowerCase();
+    if (email && !byEmail.has(email)) byEmail.set(email, s);
   }
+  for (const c of calls) {
+    const s = c.code
+      ? sourceOf({ r: c.code })
+      : (byEmail.get(c.email?.trim().toLowerCase() ?? "") ?? { channel: "other", campaign: "" });
+    row(c.day, s).calls += 1;
+  }
+  for (const p of paid) row(p.day, { channel: p.channel, campaign: p.campaign }).paid += 1;
   return [...rows.values()].sort((a, b) => (a.day < b.day ? -1 : a.day > b.day ? 1 : 0));
 }
 
@@ -91,8 +128,29 @@ export async function upsertSiteDays(db: Queryable, rows: readonly SiteDayRow[])
           forms: x("forms"),
           bookings: x("bookings"),
           watchPlays: x("watch_plays"),
+          calls: x("calls"),
+          paid: x("paid"),
           syncedAt: sql`now()`,
         },
       });
   return rows.length;
+}
+
+/** Our booked calls and first payments, for `rollupSite`. Email's and delivery's tables, by name. */
+export async function callsAndPaid(
+  db: Queryable,
+): Promise<{ calls: BookedCall[]; paid: PaidEngagement[] }> {
+  const [calls, paid] = await Promise.all([
+    db.execute(sql`SELECT to_char(booked_at AT TIME ZONE 'UTC', 'YYYY-MM-DD') day, code, email
+      FROM call_bookings WHERE state <> 'cancelled'`),
+    db.execute(sql`SELECT to_char(min(i.paid_on), 'YYYY-MM-DD') day, e.source_channel channel,
+        left(coalesce(e.source_campaign, ''), 100) campaign
+      FROM delivery.engagements e JOIN delivery.invoices i ON i.engagement_id = e.id
+      WHERE i.status = 'paid' AND i.paid_on IS NOT NULL AND e.source_channel IS NOT NULL
+      GROUP BY e.id, e.source_channel, e.source_campaign`),
+  ]);
+  return {
+    calls: calls as unknown as BookedCall[],
+    paid: paid as unknown as PaidEngagement[],
+  };
 }

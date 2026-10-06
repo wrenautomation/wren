@@ -26,7 +26,7 @@ import { type SearchConsoleClient, sitemapUrls } from "../console.js";
 import { discoverKeywords, fanOut } from "../keywords.js";
 import { ENGINES, type Engine } from "../schema.js";
 import { siteText } from "../site.js";
-import { rollupSite, upsertSiteDays } from "../site-days.js";
+import { callsAndPaid, rollupSite, upsertSiteDays } from "../site-days.js";
 import { formatChanges, type SyncStats, syncSearch } from "../sync.js";
 
 export const SEARCH_KEY = "default";
@@ -95,11 +95,13 @@ export function makeSearchWatch(deps: SearchDeps) {
       const got = await ctx.run("site days", async () => {
         try {
           const o = { ...site, fetch: deps.fetch };
-          const [hits, apps] = await Promise.all([
+          const [hits, apps, ours] = await Promise.all([
             siteExport("hits", o),
             siteExport("applications", o),
+            callsAndPaid(deps.db),
           ]);
-          return { days: await upsertSiteDays(deps.db, rollupSite(hits, apps)) };
+          const rows = rollupSite(hits, apps, ours.calls, ours.paid);
+          return { days: await upsertSiteDays(deps.db, rows) };
         } catch (err) {
           if (!(err instanceof SiteExportError)) throw err;
           return { error: err.message };

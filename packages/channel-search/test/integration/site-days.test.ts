@@ -8,7 +8,7 @@ import { serveRecords } from "@wren/core/records/serve";
 import { startTestPostgres, type TestPostgres, truncate } from "@wren/db/testing";
 import { asc, sql } from "drizzle-orm";
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
-import { SEARCH_RECORDS } from "../../src/records.js";
+import { SEARCH_RECORDS, sessionRecord } from "../../src/records.js";
 import { siteDays } from "../../src/schema.js";
 import { rollupSite, upsertSiteDays } from "../../src/site-days.js";
 
@@ -40,7 +40,7 @@ const hit = (
   r: "",
   ...o,
 });
-const app = (ts: string, visitor: string, first_touch = ""): SiteApplication => ({
+const app = (ts: string, visitor: string, first_touch = "", email = ""): SiteApplication => ({
   id: ++id,
   ts: `${ts}T12:00:00.000Z`,
   visitor,
@@ -48,6 +48,7 @@ const app = (ts: string, visitor: string, first_touch = ""): SiteApplication => 
   fit: 1,
   r: "",
   first_touch,
+  email,
 });
 
 const hits = [
@@ -65,7 +66,7 @@ const hits = [
 ];
 const apps = [
   app("2026-01-02", "v1"),
-  app("2026-01-02", "v3", JSON.stringify({ utm_source: "sms" })),
+  app("2026-01-02", "v3", JSON.stringify({ utm_source: "sms" }), "lead@firm.example"),
 ];
 
 const read = () =>
@@ -78,7 +79,15 @@ const read = () =>
 describe("site days", () => {
   it("counts each visit, form and booking click under the visitor's first touch", async () => {
     await upsertSiteDays(pg.db, rollupSite(hits, apps));
-    const zero = { visits: 0, firstTouches: 0, forms: 0, bookings: 0, watchPlays: 0 };
+    const zero = {
+      visits: 0,
+      firstTouches: 0,
+      forms: 0,
+      bookings: 0,
+      watchPlays: 0,
+      calls: 0,
+      paid: 0,
+    };
     expect(await read()).toEqual([
       {
         ...zero,
@@ -110,6 +119,30 @@ describe("site days", () => {
       { ...zero, day: "2026-01-02", channel: "search", campaign: "", visits: 1, firstTouches: 1 },
       { ...zero, day: "2026-01-02", channel: "sms", campaign: "", forms: 1 },
     ]);
+  });
+
+  it("a booked call counts by its link code, else by its email's form; paid by its source", async () => {
+    const calls = [
+      { day: "2026-01-03", code: "code12345", email: null },
+      { day: "2026-01-03", code: null, email: "Lead@Firm.example" },
+      { day: "2026-01-03", code: null, email: "stranger@else.example" },
+    ];
+    const paid = [{ day: "2026-01-09", channel: "sms" as const, campaign: "" }];
+    await upsertSiteDays(pg.db, rollupSite(hits, apps, calls, paid));
+    const later = (await read()).filter((r) => r.day >= "2026-01-03");
+    expect(later.map((r) => [r.day, r.channel, r.calls, r.paid])).toEqual([
+      ["2026-01-03", "email", 1, 0],
+      ["2026-01-03", "other", 1, 0],
+      ["2026-01-03", "sms", 1, 0],
+      ["2026-01-09", "sms", 0, 1],
+    ]);
+    const api = serveRecords(SEARCH_RECORDS, pg.db);
+    const funnel = await api.list({ record: "marketing.funnel", view: "all", limit: 50 });
+    expect(funnel.rows.find((r) => r.channel === "sms")).toMatchObject({
+      forms: 1,
+      calls: 1,
+      paid: 1,
+    });
   });
 
   it("a re-read never double counts; a longer export overwrites the day", async () => {
@@ -146,5 +179,50 @@ describe("site days", () => {
     });
     const answers = await api.list({ record: "marketing.answer", view: "cited", limit: 5 });
     expect(answers.rows).toHaveLength(1);
+  });
+
+  it("sessions read live from the export; opening one signs each chunk", async () => {
+    const tables: Record<string, unknown[]> = {
+      replays: [
+        {
+          id: 1,
+          view: "vw1",
+          visitor: "v3",
+          page: "/",
+          started: "2026-01-02T12:00:00.000Z",
+          last: "2026-01-02T12:01:30.000Z",
+          chunks: 2,
+          bytes: 4096,
+          w: 390,
+          country: "US",
+          capped: 0,
+          first_touch: JSON.stringify({ utm_source: "sms" }),
+        },
+      ],
+      applications: apps,
+    };
+    const fetch = async (url: string) => {
+      const u = new URL(url);
+      const table = u.searchParams.get("table") ?? "";
+      const rows = u.searchParams.get("since") === "0" ? (tables[table] ?? []) : [];
+      return new Response(JSON.stringify({ [table]: rows }), { status: 200 });
+    };
+    const record = sessionRecord({
+      site: { baseUrl: "https://site.example", exportToken: "t", fetch },
+      signGet: async (key) => `https://signed.example/${key}`,
+    });
+    const api = serveRecords([record], pg.db);
+    const { rows } = await api.list({ record: "marketing.session", view: "applied", limit: 5 });
+    expect(rows).toMatchObject([
+      { id: "vw1", secs: 90, device: "phone", channel: "sms", applied: "demo", kb: 4 },
+    ]);
+    expect(await record.load?.(pg.db, "vw1")).toEqual({
+      replay: {
+        urls: [
+          "https://signed.example/site/replays/vw1/0000.json",
+          "https://signed.example/site/replays/vw1/0001.json",
+        ],
+      },
+    });
   });
 });

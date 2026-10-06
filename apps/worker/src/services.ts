@@ -80,6 +80,7 @@ import { facebookContent, instagramContent, instagramWebContent } from "@wren/ch
 import { makeAds, makeAdsWatch } from "@wren/channel-meta/restate";
 import { redditApi, redditContent } from "@wren/channel-reddit";
 import { searchConsoleClient } from "@wren/channel-search";
+import { sessionRecord } from "@wren/channel-search/records";
 import { makeSearchWatch, makeSearchWeek } from "@wren/channel-search/restate";
 import {
   CalcomBookings,
@@ -951,6 +952,15 @@ export async function buildServices(
         ...BOOKS_RECORDS,
         ...WATCH_RECORDS,
         ...MARKETING_NUMBERS,
+        // Replays: read live from the lander, chunks signed from the files bucket.
+        ...(settings.siteExportToken && settings.filesBucket
+          ? [
+              sessionRecord({
+                site: { baseUrl: settings.siteBaseUrl, exportToken: settings.siteExportToken },
+                signGet: s3Files({ bucket: settings.filesBucket }).getUrl,
+              }),
+            ]
+          : []),
         dmCopyRecord(settings.smsSenderName),
         textCopyRecord(SMS_SEQUENCES.values(), settings.smsSenderName),
         ...MARKETING_RECORDS,

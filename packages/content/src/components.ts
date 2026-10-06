@@ -82,6 +82,8 @@ export const CONTENT_COMPONENTS = [
         "marketing.dm_copy",
         "marketing.text_copy",
         "marketing.site_day",
+        "marketing.funnel",
+        "marketing.session",
       ],
       apps: ["marketing"],
     },

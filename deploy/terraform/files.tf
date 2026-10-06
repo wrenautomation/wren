@@ -31,12 +31,13 @@ resource "aws_s3_bucket_server_side_encryption_configuration" "files" {
   }
 }
 
-# The portal's browser PUTs an upload straight here with the signed URL.
+# The portal's browser PUTs an upload straight here with the signed URL, and
+# GETs replay chunks for the player.
 resource "aws_s3_bucket_cors_configuration" "files" {
   bucket = aws_s3_bucket.files.id
   cors_rule {
     allowed_origins = ["https://app.${var.auth_domain}"]
-    allowed_methods = ["PUT"]
+    allowed_methods = ["PUT", "GET"]
     allowed_headers = ["content-type"]
     max_age_seconds = 3600
   }
@@ -54,4 +55,72 @@ resource "aws_iam_role_policy" "worker_files" {
   name   = "worker-files"
   role   = aws_iam_role.worker.id
   policy = data.aws_iam_policy_document.worker_files.json
+}
+
+# Session replay (designs/2026-10-06-signals.md): the lander's Pages Function
+# writes rrweb chunks under site/replays/<view>/ with a put-only key; the worker
+# signs a short GET per chunk for the console's player. Kept 90 days.
+
+resource "aws_s3_bucket_lifecycle_configuration" "files" {
+  bucket = aws_s3_bucket.files.id
+  rule {
+    id     = "replays-90d"
+    status = "Enabled"
+    filter {
+      prefix = "site/replays/"
+    }
+    expiration {
+      days = 90
+    }
+  }
+}
+
+resource "aws_iam_user" "lander_replays" {
+  name = "${local.prefix}-lander-replays"
+}
+
+data "aws_iam_policy_document" "lander_replays" {
+  statement {
+    sid       = "PutReplayChunks"
+    actions   = ["s3:PutObject"]
+    resources = ["${aws_s3_bucket.files.arn}/site/replays/*"]
+  }
+}
+
+resource "aws_iam_user_policy" "lander_replays" {
+  name   = "put-replays"
+  user   = aws_iam_user.lander_replays.name
+  policy = data.aws_iam_policy_document.lander_replays.json
+}
+
+# The key, bucket and region go to SSM, and from there to the lander's REPLAY_*
+# Pages secrets through scripts/secrets.mjs run. A leak can only upload junk that expires.
+resource "aws_iam_access_key" "lander_replays" {
+  user = aws_iam_user.lander_replays.name
+}
+
+resource "aws_ssm_parameter" "lander_replays" {
+  name        = "${local.ssm_root}/lander-replays"
+  description = "The lander's REPLAY_* Pages secrets: bucket, region, put-only key"
+  type        = "SecureString"
+  value = jsonencode({
+    REPLAY_BUCKET = aws_s3_bucket.files.bucket
+    REPLAY_REGION = data.aws_region.here.region
+    REPLAY_KEY_ID = aws_iam_access_key.lander_replays.id
+    REPLAY_SECRET = aws_iam_access_key.lander_replays.secret
+  })
+}
+
+data "aws_iam_policy_document" "worker_replays" {
+  statement {
+    sid       = "ReadReplays"
+    actions   = ["s3:GetObject"]
+    resources = ["${aws_s3_bucket.files.arn}/site/replays/*"]
+  }
+}
+
+resource "aws_iam_role_policy" "worker_replays" {
+  name   = "worker-replays"
+  role   = aws_iam_role.worker.id
+  policy = data.aws_iam_policy_document.worker_replays.json
 }

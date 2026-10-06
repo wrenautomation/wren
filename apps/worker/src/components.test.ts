@@ -10,6 +10,7 @@ import { join } from "node:path";
 import { BOOKS_RECORDS } from "@wren/books/records";
 import { emailRecords } from "@wren/channel-email/records";
 import type { SendPolicy } from "@wren/channel-email/send/policy";
+import { sessionRecord } from "@wren/channel-search/records";
 import { textCopyRecord } from "@wren/channel-sms/records";
 import { loadSettings } from "@wren/config";
 import { askRecord } from "@wren/core/ask";
@@ -84,6 +85,7 @@ const RECORD_TYPES = [
   ...BOOKS_RECORDS,
   ...WATCH_RECORDS,
   ...MARKETING_NUMBERS,
+  sessionRecord({ site: { baseUrl: "", exportToken: "" }, signGet: async () => "" }),
   dmCopyRecord("x"),
   textCopyRecord([], "x"),
   clientRecord,

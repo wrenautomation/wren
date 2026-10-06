@@ -237,6 +237,10 @@ export const siteDays = pgTable(
     bookings: integer("bookings").notNull(),
     /** Views of an offer's video page (`/watch/<offer>`). */
     watchPlays: integer("watch_plays").notNull(),
+    /** Calls booked on cal.com (not cancelled), by when they were booked. */
+    calls: integer("calls").default(0).notNull(),
+    /** Engagements whose first invoice was paid that day, under the engagement's source. */
+    paid: integer("paid").default(0).notNull(),
     syncedAt: timestamp("synced_at", { withTimezone: true }).defaultNow().notNull(),
   },
   (t) => [
@@ -346,10 +350,34 @@ export const marketingSiteDayRecords = pgView("marketing_site_day_records", {
   forms: integer("forms"),
   bookings: integer("bookings"),
   watchPlays: integer("watch_plays"),
+  calls: integer("calls"),
+  paid: integer("paid"),
   age: text("age"),
 }).as(sql`
   select concat_ws('/', day, channel, campaign) id, day, channel::text channel,
     nullif(campaign, '')::text campaign, visits, first_touches, forms, bookings, watch_plays,
+    calls, paid,
     case when day > current_date - 7 then 'week'
       when day > current_date - 30 then 'month' else 'earlier' end age
   from site_days`);
+
+/**
+ * Each channel's funnel (`marketing.funnel`) over the last 30 days, 90 days and all time: new
+ * visitors, then forms, calls booked and engagements paid, all under first touch.
+ */
+export const marketingFunnelRecords = pgView("marketing_funnel_records", {
+  id: text("id"),
+  window: text("window"),
+  channel: text("channel"),
+  visitors: integer("visitors"),
+  forms: integer("forms"),
+  calls: integer("calls"),
+  paid: integer("paid"),
+}).as(sql`
+  select w.name || '/' || d.channel id, w.name "window", d.channel::text channel,
+    sum(d.first_touches)::int visitors, sum(d.forms)::int forms, sum(d.calls)::int calls,
+    sum(d.paid)::int paid
+  from site_days d
+  join (values ('30d', 30), ('90d', 90), ('all', 100000)) w(name, days)
+    on d.day > current_date - w.days
+  group by w.name, d.channel`);

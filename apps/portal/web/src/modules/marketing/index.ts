@@ -7,6 +7,7 @@ import type { Module } from "../../module.js";
 import { WeeklyBookings } from "./chart.js";
 import { copyExtras, copyPreview, dmExtras, dmPreview } from "./dms.js";
 import { draftPreview, postExtras } from "./posts.js";
+import { sessionExtras } from "./sessions.js";
 import { textCopyExtras, textCopyPreview } from "./texts.js";
 
 const said = (line: string) => () => line;
@@ -223,6 +224,20 @@ export const marketing: Module = {
           sum: "bookings",
         },
         {
+          label: "Calls booked",
+          record: "marketing.site_day",
+          href: "/marketing/funnel?view=30d",
+          period: "month",
+          sum: "calls",
+        },
+        {
+          label: "Paid",
+          record: "marketing.site_day",
+          href: "/marketing/funnel?view=30d",
+          period: "month",
+          sum: "paid",
+        },
+        {
           label: "Ad spend",
           record: "marketing.ad_day",
           href: "/marketing/ads?view=campaign",
@@ -381,6 +396,24 @@ export const marketing: Module = {
       template: "list",
       record: "marketing.site_day",
       empty: "Site days show here once the lander export is read.",
+    },
+    {
+      id: "funnel",
+      label: "Funnel",
+      template: "list",
+      record: "marketing.funnel",
+      empty: "Funnels show here once the lander export is read.",
+    },
+    {
+      id: "sessions",
+      label: "Sessions",
+      template: "list",
+      record: "marketing.session",
+      empty: {
+        applied: "No recorded visitor applied yet.",
+        recent: "Replays show here once a visitor says yes to cookies.",
+      },
+      extras: sessionExtras,
     },
     {
       id: "search-days",

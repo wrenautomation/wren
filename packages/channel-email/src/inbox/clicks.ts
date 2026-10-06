@@ -55,9 +55,27 @@ export interface SiteApplication {
   first_touch?: string | null;
 }
 
+/** One recorded view (`replays`): its rrweb chunks live in S3 under `site/replays/<view>/`. */
+export interface SiteReplay {
+  id: number;
+  view: string;
+  visitor: string | null;
+  page: string;
+  started: string;
+  last: string;
+  chunks: number;
+  bytes: number;
+  w: number | null;
+  country: string | null;
+  capped: number;
+  /** The visitor's first touch when recording began, JSON. */
+  first_touch?: string | null;
+}
+
 export interface SiteTables {
   hits: SiteHit;
   applications: SiteApplication;
+  replays: SiteReplay;
 }
 
 /** Every row of one lander table, paged forward by id. */
