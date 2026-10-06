@@ -22,9 +22,9 @@ flow, autobrowse's `connect: 20` site cap, the invite ramp (5 a day, +5 a week, 
 6. **The sender is a setting.** Component `linkedin.invites` names the autobrowse credential.
    Empty = nothing tops up.
 
-The sender is a new account in William's real name, as Wren's founder. It isn't made yet. Never
-his personal account (kept for his job search) or `linkedin@alt` (research only). Nothing arms
-until that account exists and he says go.
+The sender is `linkedin@wren`: the member account on william@wrenautomation.com, in his name, as
+Wren's founder. It also holds Wren's posting token. Never his personal account (kept for his job
+search) or `linkedin@alt` (research only). Nothing arms until he says go.
 
 ## Flow
 
@@ -91,12 +91,10 @@ accepted → Replies "Accepted your invite" → Message (manual DM, his click)
 
 ## For William
 
-1. Make the new account ("Will Jin"). LinkedIn removes duplicate profiles of one person, so it
-   must be the only one in that name he uses for outreach.
-2. Say go. Then: `wren reach accounts add linkedin <key>`, set the account in Shop →
-   LinkedIn invites, `activate`, set that credential's autobrowse connect cap to 20, and turn on
+1. Say go. Then: `wren reach accounts add linkedin linkedin@wren`, set the account in Shop →
+   LinkedIn invites, `activate`, set `linkedin@wren`'s autobrowse connect cap to 20, and turn on
    `WREN_REACH_LIVE`.
-3. A note or not. Default: no note (5 a month free). A note = fill the connect-note template.
+2. A note or not. Default: no note (5 a month free). A note = fill the connect-note template.
 
 ## Decision log
 
@@ -104,3 +102,6 @@ accepted → Replies "Accepted your invite" → Message (manual DM, his click)
   click.
 - 2026-10-06: the sender is a new account in his real name, not yet made. Not his personal
   account, not `linkedin@alt`. `account` stays empty until he says go.
+- 2026-10-06: correction: the account exists. It is `linkedin@wren` (william@wrenautomation.com,
+  "William Jin", also Wren's posting token). No new signup. Profile basics set by the autobrowse
+  flow `linkedin-profile-basics`.

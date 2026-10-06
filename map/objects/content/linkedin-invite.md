@@ -9,11 +9,11 @@ entity: packages/outreach/src/schema.ts:318
 
 # linkedin-invite (LinkedIn connection requests from our people)
 
-Invites to people we already hold with a LinkedIn page, up to 20 a weekday from the account named in settings. An accept lands in Replies; every message after it is William's click. Built dark: no account named.
+Invites to people we already hold with a LinkedIn page, up to 20 a weekday from the account named in settings. An accept lands in Replies; every message after it is William's click. Built dark: no account named until he says go.
 
 ## Why this shape
 
-William, 2026-10-06 (relayed): 20 a day, a plan then the build. The sender is a new account in his real name, made later; never his personal account or `linkedin@alt`. Accepts are found in one read of recent connections every 6 h, not one profile read per pending invite (about 400 a day at 20 a day). A free account gets 5 notes a month, so the sixth invite goes bare instead of failing. See `designs/2026-10-06-linkedin-invites.md`.
+William, 2026-10-06 (relayed): 20 a day, a plan then the build. The sender is `linkedin@wren` (william@wrenautomation.com, also Wren's posting token); never his personal account or `linkedin@alt`. Accepts are found in one read of recent connections every 6 h, not one profile read per pending invite (about 400 a day at 20 a day). A free account gets 5 notes a month, so the sixth invite goes bare instead of failing. See `designs/2026-10-06-linkedin-invites.md`.
 
 ## Shape
 
