@@ -124,7 +124,7 @@ let nextKey = 0;
  * One Gemini call. Keys rotate on 429/403, a busy flash (503) hands to lite, backing off 2s
  * doubling to 1 min. After 24 refusals it returns `unread` with the last one.
  */
-async function askGemini(
+export async function askGemini(
   body: unknown,
   keys: readonly string[],
   fetchFn: typeof fetch,

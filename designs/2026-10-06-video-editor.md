@@ -201,3 +201,12 @@ Answered 10-06: agreed; OBS; captions on the long video and Shorts.
 - 2026-10-06: proposed. Not built.
 - 2026-10-06: William agreed: OBS, captions on all. Added: cuts need transcript and audio to agree,
   fillers and retakes are proposals, `cuts`/`keep` review; Gemini and TwelveLabs as look options.
+- 2026-10-06: step 1 built (`packages/studio`, `video_edits` 0122), with cuts and both looks. The
+  per-lead demo commands moved to `wren video demo try|render|show`, freeing `wren video show` for
+  the editor. Knobs in `wren_settings` `studio.cuts` (`wren video knobs`). whisper runs with Silero
+  VAD, and a word edge that falls inside a detected silence moves to its edge (`fitWords`): whisper
+  smears the word next to a long pause across it, which hid every gap on the first smoke. The noise
+  floor uses 20 ms frame peaks, not RMS, since silencedetect tests samples. TwelveLabs: one index
+  `wren-videos` holds Marengo only (the API allows no Pegasus in an index); Pegasus 1.6 reads the
+  uploaded asset. No usage endpoint, so the 600 free minutes are counted from our looks (indexing
+  and analysis each count the cut's minutes); a re-look of the same cut reuses the index.
