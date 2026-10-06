@@ -18,7 +18,7 @@ import {
 } from "@wren/ui";
 import { type ReactNode, useState } from "react";
 import { call, ME_CHANGED } from "../../api.js";
-import type { PageProps } from "../../module.js";
+import { type PageProps, WREN } from "../../module.js";
 import { LIST, QUIET, SPLIT } from "../work/bits.js";
 import { type Drawn, flowBoxes } from "./boxes.js";
 
@@ -219,11 +219,25 @@ export function catalogExtras(
     ) : null
   ) : team ? (
     !installable ? (
-      <p className={QUIET}>
-        {row.for === "wren"
-          ? "Runs Wren's own business: no client installs it."
-          : "Not ready for a client yet."}
-      </p>
+      row.for === "wren" && client === WREN.id && d.form?.length ? (
+        // Wren's own part: no install, but its settings are saved in Wren's workspace.
+        <HandlerForm
+          key={`${client}/${id}`}
+          id={`component:${client}/${id}`}
+          name={id}
+          verb="Save"
+          fields={filled(d.form, d.values ?? {})}
+          keyed={false}
+          effect={null}
+          run={(c) => call("console/configure", { component: id, settings: c.input })}
+        />
+      ) : (
+        <p className={QUIET}>
+          {row.for === "wren"
+            ? "Runs Wren's own business: no client installs it."
+            : "Not ready for a client yet."}
+        </p>
+      )
     ) : (
       <div className="grid gap-6">
         {d.installed && !d.form?.length ? null : (

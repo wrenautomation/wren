@@ -53,6 +53,24 @@ export const clients = pgTable(
 
 export type Client = typeof clients.$inferSelect;
 
+/**
+ * Wren's own settings, one block per component: the same shape a client keeps in
+ * `clients.products[id]`. Wren has no `clients` row (that would be a client with a database,
+ * a watch and a portal login), so the components that run Wren's own business keep theirs here.
+ */
+export const wrenSettings = pgTable(
+  "wren_settings",
+  {
+    /** The component's id, as in `clients.products`. */
+    component: varchar("component", { length: 64 }).notNull(),
+    settings: jsonb("settings").$type<Record<string, unknown>>().default({}).notNull(),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
+    /** The team login that last saved it. */
+    updatedBy: varchar("updated_by", { length: 320 }),
+  },
+  (t) => [primaryKey({ columns: [t.component], name: "pk_wren_settings" })],
+);
+
 export { MEMBER_ROLES, type MemberRole, TEAM_ROLES, type TeamRole } from "../access.js";
 
 /**

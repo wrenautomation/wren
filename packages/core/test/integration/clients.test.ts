@@ -17,7 +17,9 @@ import {
   listMembers,
   mayHaveAccount,
   removeMember,
+  settingsFor,
   updateClient,
+  wrenSettings,
 } from "../../src/clients/index.js";
 import { defineComponent } from "../../src/components.js";
 import { consoleApi } from "../../src/console.js";
@@ -31,7 +33,7 @@ beforeAll(async () => {
 });
 afterAll(() => pg.stop());
 beforeEach(async () => {
-  await truncate(pg.db, ["clients", "client_members", "operators", "runs"]);
+  await truncate(pg.db, ["clients", "client_members", "operators", "runs", "wren_settings"]);
   await pg.db.insert(clients).values({
     id: "acme",
     name: "Acme",
@@ -404,5 +406,50 @@ describe("install, configure, uninstall", () => {
     });
     expect(got.detail).toMatchObject({ installed: true, values: { perDay: 9 } });
     expect(JSON.stringify(got.detail)).not.toContain("price");
+  });
+
+  it("Wren's own part keeps its settings in wren_settings, for the team's admin only", async () => {
+    // No client: `books` runs Wren's own business. Merged, validated, on the run trail.
+    await api().configure({ viewer: ops, component: "books", settings: { perDay: 4 } });
+    await api().configure({
+      viewer: ops,
+      client: "wren",
+      component: "books",
+      settings: { price: 2 },
+    });
+    expect(await settingsFor(pg.db, null)).toEqual({ books: { perDay: 4, price: 2 } });
+    expect(await productsOf()).not.toHaveProperty("books");
+    await expect(
+      api().configure({ viewer: ops, component: "books", settings: { perDay: "x" } }),
+    ).rejects.toMatchObject({ status: 400 });
+    const operator = { ...ops, team: { role: "operator" as const, clients: null } };
+    await expect(
+      api().configure({ viewer: operator, component: "books", settings: { perDay: 9 } }),
+    ).rejects.toMatchObject({ status: 403 });
+    await addMember(pg.db, "acme", "owner@acme.example", { role: "owner" });
+    await expect(
+      api().configure({
+        viewer: { email: "owner@acme.example" },
+        component: "books",
+        settings: { perDay: 9 },
+      }),
+    ).rejects.toMatchObject({ status: 403 });
+    const [row] = await pg.db.select().from(wrenSettings);
+    expect(row).toMatchObject({ component: "books", updatedBy: "ops@wren.example" });
+    expect((await pg.db.select().from(runs)).map((r) => r.command)).toEqual([
+      "console configure books",
+      "console configure books",
+    ]);
+    // The page reads it back through settingsFor, price hidden; install stays client-only.
+    const got = await api().recordsGet({ viewer: ops, record: "console.component", id: "books" });
+    expect(got.detail).toMatchObject({ values: { perDay: 4 } });
+    expect(JSON.stringify(got.detail)).not.toContain("price");
+    await expect(go("books")).rejects.toMatchObject({ status: 409 });
+  });
+
+  it("settingsFor reads a client's products or Wren's blocks, and no one's for an unknown client", async () => {
+    expect(await settingsFor(pg.db, "acme")).toEqual(await productsOf());
+    expect(await settingsFor(pg.db, "nobody")).toEqual({});
+    expect(await settingsFor(pg.db, null)).toEqual({});
   });
 });

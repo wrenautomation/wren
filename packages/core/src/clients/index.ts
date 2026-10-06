@@ -23,6 +23,7 @@ import {
   operators,
   TEAM_ROLES,
   type TeamRole,
+  wrenSettings,
 } from "./schema.js";
 
 export * from "./schema.js";
@@ -119,6 +120,40 @@ export async function updateClient(
     .returning();
   if (!row) throw new Error(`client ${id}: update returned nothing`);
   return row;
+}
+
+/**
+ * Each component's settings block, for a client (`clients.products`) or, with `null`, for Wren
+ * (`wren_settings`). One read for both, so a page shows either the same way. An unknown client
+ * has none.
+ */
+export async function settingsFor(
+  db: Queryable,
+  client: string | null,
+): Promise<Record<string, unknown>> {
+  if (client !== null) {
+    const [row] = await db
+      .select({ products: clients.products })
+      .from(clients)
+      .where(eq(clients.id, client));
+    return row?.products ?? {};
+  }
+  const rows = await db.select().from(wrenSettings);
+  return Object.fromEntries(rows.map((r) => [r.component, r.settings]));
+}
+
+/** Wren's block for one component, replaced whole: the caller merges and validates. */
+export async function setWrenSettings(
+  db: Queryable,
+  component: string,
+  settings: Record<string, unknown>,
+  by: string,
+): Promise<void> {
+  const row = { settings, updatedAt: new Date(), updatedBy: by };
+  await db
+    .insert(wrenSettings)
+    .values({ component, ...row })
+    .onConflictDoUpdate({ target: wrenSettings.component, set: row });
 }
 
 /**

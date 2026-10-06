@@ -42,6 +42,8 @@ import {
   normalEmail,
   removeTeamSeat,
   setTeamSeat,
+  settingsFor,
+  setWrenSettings,
   teamRecord,
   updateClient,
 } from "./clients/index.js";
@@ -906,7 +908,7 @@ export const componentRecord = (
         ? [{ id: "installed", label: "Installed", where: { installed: "yes" }, sort: "name" }]
         : []),
     ],
-    load: async (_db, id) => {
+    load: async (db, id) => {
       const w = flows.find((x) => x.id === id);
       if (w)
         return {
@@ -940,7 +942,8 @@ export const componentRecord = (
           ? {
               provides: c.provides,
               form: settingsForm(c),
-              values: shownSettings(c, installed ? client?.products[c.id] : {}),
+              // A client's block, or Wren's own (`wren_settings`) when no client is picked.
+              values: shownSettings(c, (await settingsFor(db, client?.id ?? null))[c.id]),
             }
           : {}),
       };
@@ -1007,7 +1010,8 @@ export function consoleApi({
    */
   const typesFor = async (req: PortalRequest): Promise<RecordType[]> => {
     const internal = seesInternal(req);
-    const client = req.client || !internal ? await pickClient(main, req) : null;
+    const client =
+      (req.client && req.client !== WREN) || !internal ? await pickClient(main, req) : null;
     const shown = internal ? components : components.filter((c) => c.for === "client");
     // Wren's own records, each for whoever holds what it needs at Wren (Money: `money`).
     const mine = internal ? types.filter((t) => teamCan(req, t.needs ?? "read", WREN)) : [];
@@ -1130,6 +1134,31 @@ export function consoleApi({
     const stop = loopsOf(client.products[c.id]).filter((l) => bound(l.service) && !kept.has(id(l)));
     return { client: client.id, component: c.id, installed: block !== null, start, stop };
   };
+  /** New settings over the old: a field left out keeps its value. */
+  const merged = (c: Component, old: unknown, settings: unknown) =>
+    blockOf(c, { ...(old && typeof old === "object" ? old : {}), ...blockOf(c, settings) });
+  /** `configure` for Wren's own part: the team's `wren:manage`, kept in `wren_settings`, a runs row. */
+  const configureWren = async (req: InstallRequest, c: Component) => {
+    team(req);
+    if (!teamCan(req, "manage", WREN)) throw new PortalRefusal("your role can't do that", 403);
+    const by = (req.viewer as SignedViewer).email;
+    const block = merged(c, (await settingsFor(main, null))[c.id], req.settings);
+    const run = await openRun(main, {
+      command: `console configure ${c.id}`.slice(0, 64),
+      argv: { by, client: WREN, settings: block },
+    });
+    try {
+      await serializable(main, async (tx) => {
+        await setAuditActor(tx, by);
+        await setWrenSettings(tx, c.id, block, by);
+      });
+    } catch (err) {
+      await finishRun(main, run.id, { error: String(err).slice(0, 500) });
+      throw err;
+    }
+    await finishRun(main, run.id, { ok: true });
+    return { client: WREN, component: c.id, installed: false, start: [], stop: [] };
+  };
   /** Restate's admin for Wren's team; refused before any read, so a refusal never lands in a journaled step. */
   const adminFor = (req: PortalRequest): RestateAdmin => {
     team(req);
@@ -1250,15 +1279,13 @@ export function consoleApi({
       }),
     /** New settings over the old: a field left out keeps its value (a price is never sent). */
     configure: (req: InstallRequest) =>
-      change(req, "configure", (c, client) => {
-        if (!has(client, c.id)) throw new PortalRefusal("not installed", 404);
-        const old = client.products[c.id];
-        const merged = {
-          ...(old && typeof old === "object" ? old : {}),
-          ...blockOf(c, req.settings),
-        };
-        return blockOf(c, merged);
-      }),
+      // A part that runs Wren's own business has no client: its block is `wren_settings`.
+      componentOf(req).for === "wren" && (!req.client || req.client === WREN)
+        ? configureWren(req, componentOf(req))
+        : change(req, "configure", (c, client) => {
+            if (!has(client, c.id)) throw new PortalRefusal("not installed", 404);
+            return merged(c, client.products[c.id], req.settings);
+          }),
     /** Off the client; its data stays in the client's database. Refused while another needs it. */
     uninstall: (req: ComponentRequest) =>
       change(req, "uninstall", (c, client) => {
