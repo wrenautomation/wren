@@ -22,6 +22,7 @@ The company is the unit of outreach: one active email enrollment per company (`p
 - `timezone` is filled per niche from location text, never guessed (`packages/channel-email/src/send/lead-timezone.ts:110`)
 - `linkedin_url`: the firm's LinkedIn page, canonical, written only by a company lookup whose cached page names a website on the firm's registrable domain (`packages/research/src/companies/profile.ts:307`, `:118`)
 - `domain` and `domain_verified_at` are set by discovery when a guessed host proves out (`packages/research/src/discovery/service.ts:247`)
+- `ix_companies_unassigned` (partial, `niche IS NULL`) serves the enrich selectors, which anti-join with `NOT EXISTS`
 
 Citations: `packages/core/src/schema.ts:157`
 

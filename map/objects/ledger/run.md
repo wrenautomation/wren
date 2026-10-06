@@ -18,6 +18,7 @@ Every paid or long step leaves a row before it starts and its stats when it ends
 ## Shape
 
 - `id` (uuid), `command`, `argv`, `niche`, `model`, `started_at`, `finished_at`, `stats` (`packages/core/src/schema.ts:37`–`44`)
+- retention: the Evolution loop deletes finished inbox-sync and send-tick runs older than 30 days that no table references (`packages/core/src/retention.ts`; blocking FKs read from `pg_constraint`)
 
 Citations: `packages/core/src/runs.ts:21`, `:36`, `:49`
 

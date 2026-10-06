@@ -25,6 +25,7 @@ One trigger function on every table of every schema (`public`, `books`, any new 
 - CLI `wren [--client id] audit show|seal|verify|sealer` (`apps/cli/src/main.ts:127`)
 - `audit_changes` view (`packages/db/src/audit/install.ts:221`, rebuilt each migrate; index on `at`, `:218`): the last 7 days as who, made by (person, agent, pipeline), area (money, client, team, data) and an update's field diff
 - Read as records: `console.change` (`packages/core/src/clients/index.ts:387`, need `team`) for main; `delivery.change` (`packages/delivery/src/records.ts:490`, need `manage`) for one client's rows via `clientChanges` (`:47`), never team notes or pings
+- `AUDIT_SKIPPED` lists machine-written tables (nine more since 2026-10-06: about 109k to 32k events a day); Friday review reports `audit_events` size and flags 10M rows, when to partition by month. Audit PKs are named `pk_audit_*`; `installAudit` renames legacy `*_pkey` keys
 
 Citations: `packages/db/src/audit/schema.ts:26`, `packages/db/src/audit/install.ts:76`, `packages/core/src/audit.ts:47`
 

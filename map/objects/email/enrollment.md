@@ -19,6 +19,7 @@ Compose writes the whole sequence before anything can send (`packages/channel-em
 
 - `person_id`, `company_id`, `niche`, `sequence_name`, `sequence_snapshot`, `offer`, `state` (active | finished | stopped), `stop_reason`, `kind` (person | role_inbox), `to_email`, `sender`, `run_id`, `contact_round` (`:176`–`192`)
 - transitions: `ENROLLMENT_TRANSITIONS` (`packages/channel-email/src/state.ts:29`)
+- `lead_id` and `candidate_id` (FKs, indexed, set at enrollment: the address and its evidence; null on rows older than 2026-10-06 that no lead matched). View `lead_channels`: one row per channel enrollment, per lead (`packages/core`). `enrollment_outcomes` now carries `last_touch_at` and `outcome`; `contact_outcomes` is a plain select from it, so recycling and the funnel read one definition
 
 Citations: `packages/channel-email/src/schema.ts:172`
 

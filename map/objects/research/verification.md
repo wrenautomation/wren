@@ -20,6 +20,7 @@ Verdicts are public facts, so main keeps them for every client: a client's walk 
 ## Shape
 
 - `lead_id` or `contact_candidate_id`, `verifier`, `result`, `raw`, `checked_at`, `email` (`packages/channel-email/src/schema.ts:123`–`130`)
+- `email` is NOT NULL and lowercase (`ck_verifications_email_lowercase`); `ck_verifications_attributed` was dropped as always true. View `latest_verifications` (`packages/channel-email/src/views.ts:22`): newest verdict per address, with an index on `(email, checked_at desc, id desc)`; the lead re-check and the send walk read it
 
 Citations: `packages/channel-email/src/schema.ts:120`
 

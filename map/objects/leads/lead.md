@@ -19,6 +19,7 @@ Status is the funnel: `imported → verified | undeliverable`, and `suppressed` 
 
 - `email`, names, `title`, `persona`, `source`, `geo`, `status`, `raw`, `company_id`, `import_id`, `country`, `suppression_id`, `social_url` (`packages/core/src/schema.ts:222`–`237`)
 - check on status (`:290`)
+- `person_id` (FK to `people`, indexed, backfilled by email match: the person this address belongs to)
 
 Citations: `packages/core/src/schema.ts:219`
 
