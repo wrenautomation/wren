@@ -1,6 +1,6 @@
+import { alleleKey } from "@wren/core/slots";
 import { FakeLlm } from "@wren/llm";
 import { describe, expect, it } from "vitest";
-import { alleleKey } from "@wren/core/slots";
 import {
   checkCandidate,
   fallbackPlan,

@@ -3,10 +3,16 @@
  * judge. Prompts and parsing only; no database. The checker is code, not a model: a
  * candidate that fails it never reaches the judge or William.
  */
+
+import {
+  AuthoringError,
+  alleleKey,
+  type Option,
+  optionText,
+  parseTemplate,
+} from "@wren/core/slots";
 import { type CallRecord, completeAndParse, type LlmClient } from "@wren/llm";
 import { z } from "zod";
-import { AuthoringError, parseTemplate } from "@wren/core/slots";
-import { alleleKey, type Option, optionText } from "@wren/core/slots";
 
 export const MODES = ["explore", "exploit", "diversify", "fix"] as const;
 export const WRITER_MUTATIONS = ["rewrite_loser", "new_angle", "crossover"] as const;

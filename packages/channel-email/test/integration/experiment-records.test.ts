@@ -5,13 +5,12 @@
 
 import { loadSettings } from "@wren/config";
 import { serveRecords } from "@wren/core/records/serve";
+import { alleleKey, parseTemplate } from "@wren/core/slots";
 import { startTestPostgres, type TestPostgres } from "@wren/db/testing";
 import { eq } from "drizzle-orm";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { startExperiment, tickExperiment } from "../../src/evolve/experiments.js";
 import { parseOption } from "../../src/evolve/tiers.js";
-import { parseTemplate } from "@wren/core/slots";
-import { alleleKey } from "@wren/core/slots";
 import { emailRecords } from "../../src/records.js";
 import { emailConsoleApi } from "../../src/restate/console.js";
 import { experimentAlleles, experimentJournal, experiments } from "../../src/schema.js";

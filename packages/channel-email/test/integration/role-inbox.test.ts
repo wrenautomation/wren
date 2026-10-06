@@ -1,12 +1,12 @@
 /** Role-inbox pass: general inboxes from email picks, gates, and the pinned address chain. */
 import { leads, people, suppressions } from "@wren/core";
+import { field, template, text } from "@wren/core/slots";
 import { startTestPostgres, type TestPostgres, truncate } from "@wren/db/testing";
 import { eq } from "drizzle-orm";
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 import { compose, eligibleRoleInboxes } from "../../src/outreach/compose.js";
 import { factsForCompany, halfOf } from "../../src/outreach/facts.js";
 import { sequence, sequenceStep } from "../../src/outreach/sequences.js";
-import { field, template, text } from "@wren/core/slots";
 import { contactCandidates, verifications } from "../../src/schema.js";
 import {
   allEnrollments,

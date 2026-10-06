@@ -2,18 +2,20 @@
  * Genome plumbing shared by experiments and candidates: points, versions, the journal.
  * Internal to the evolve binding; not exported from the package.
  */
-import type { Queryable } from "@wren/db";
-import type { AlleleCounts } from "@wren/experiments";
-import { and, eq, sql } from "drizzle-orm";
-import { parseTemplate, toSource } from "@wren/core/slots";
+
 import {
   type Block,
   group,
+  parseTemplate,
   type Template,
   template,
+  toSource,
   type VariantsBlock,
   variantPoints,
 } from "@wren/core/slots";
+import type { Queryable } from "@wren/db";
+import type { AlleleCounts } from "@wren/experiments";
+import { and, eq, sql } from "drizzle-orm";
 import { experimentJournal, experimentSnapshots, templateVersions } from "../schema.js";
 
 export const ZERO: AlleleCounts = {

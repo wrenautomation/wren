@@ -6,6 +6,14 @@
  * and settles, and journals every step. No LLM here: the tiers are candidates.ts.
  */
 
+import {
+  type Allocation,
+  alleleKey,
+  optionText,
+  type Template,
+  type VariantsBlock,
+  variants,
+} from "@wren/core/slots";
 import { type Db, type Queryable, serializable } from "@wren/db";
 import {
   type AlleleCounts,
@@ -17,14 +25,6 @@ import {
   withSetting,
 } from "@wren/experiments";
 import { and, desc, eq, inArray, ne, sql } from "drizzle-orm";
-import {
-  type Allocation,
-  alleleKey,
-  optionText,
-  type Template,
-  type VariantsBlock,
-  variants,
-} from "@wren/core/slots";
 import { type Experiment, experimentAlleles, experimentSnapshots, experiments } from "../schema.js";
 import {
   asGenome,

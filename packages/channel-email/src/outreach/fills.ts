@@ -11,6 +11,7 @@
  * is cached in `fills`, so a name costs one call ever.
  */
 import { createHash } from "node:crypto";
+import { slots, type Template } from "@wren/core/slots";
 import type { Queryable } from "@wren/db";
 import { completeAndParse, type LlmClient } from "@wren/llm";
 import { eq, inArray } from "drizzle-orm";
@@ -18,7 +19,6 @@ import { type ZodType, z } from "zod";
 import { eachConcurrently } from "../concurrent.js";
 import { type FILL_KINDS, fills } from "../schema.js";
 import type { FactRow, Facts } from "./facts.js";
-import { slots, type Template } from "@wren/core/slots";
 
 export type FillKind = (typeof FILL_KINDS)[number];
 type Answer = Record<string, string>;

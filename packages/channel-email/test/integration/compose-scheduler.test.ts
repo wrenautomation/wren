@@ -1,11 +1,11 @@
 /** The queue-keeper's top-up: capacity × days ahead, minus what is queued, through the plan. */
 import { loadSettings } from "@wren/config";
 import { companies } from "@wren/core";
+import { field, template, text } from "@wren/core/slots";
 import { startTestPostgres, type TestPostgres, truncate } from "@wren/db/testing";
 import { eq } from "drizzle-orm";
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 import { sequence, sequenceStep } from "../../src/outreach/sequences.js";
-import { field, template, text } from "@wren/core/slots";
 import { DEFAULT_RECONTACT } from "../../src/recontact.js";
 import {
   type Campaign,

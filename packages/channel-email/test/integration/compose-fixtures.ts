@@ -8,12 +8,12 @@ import {
   type Person,
   people,
 } from "@wren/core";
+import { field, type Template, template, text } from "@wren/core/slots";
 import type { Db } from "@wren/db";
 import { documents, enrichments } from "@wren/research/schema";
 import { asc, eq } from "drizzle-orm";
 import { type ComposeOptions, compose } from "../../src/outreach/compose.js";
 import { sequence, sequenceStep } from "../../src/outreach/sequences.js";
-import { field, type Template, template, text } from "@wren/core/slots";
 import {
   contactCandidates,
   type Enrollment,

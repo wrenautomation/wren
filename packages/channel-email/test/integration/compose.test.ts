@@ -1,14 +1,13 @@
 /** Compose against the migrated schema: enrollments, pinned drafts, sender pinning, provenance. */
 import { randomUUID } from "node:crypto";
 import { companies, leads, runs, suppressions } from "@wren/core";
+import { field, parseTemplate, template, toSource } from "@wren/core/slots";
 import { startTestPostgres, type TestPostgres, truncate } from "@wren/db/testing";
 import { asc, eq, sql } from "drizzle-orm";
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
-import { parseTemplate, toSource } from "@wren/core/slots";
 import { compose, nextToEnroll } from "../../src/outreach/compose.js";
 import { halfOf } from "../../src/outreach/facts.js";
 import { sequence, sequenceStep, twoEmailSequence } from "../../src/outreach/sequences.js";
-import { field, template } from "@wren/core/slots";
 import { templateVersions } from "../../src/schema.js";
 import {
   addVerifiedAddress,

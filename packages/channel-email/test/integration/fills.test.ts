@@ -1,8 +1,9 @@
 /** AI fills against the migrated schema: compose, refresh and the cache, with a scripted model. */
+
+import { parseTemplate } from "@wren/core/slots";
 import { startTestPostgres, type TestPostgres, truncate } from "@wren/db/testing";
 import { FakeLlm } from "@wren/llm";
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
-import { parseTemplate } from "@wren/core/slots";
 import { factsFor } from "../../src/outreach/facts.js";
 import { CASUAL_COMPANY, CASUAL_PERSON, makeFiller } from "../../src/outreach/fills.js";
 import { refreshQueue } from "../../src/outreach/refresh.js";

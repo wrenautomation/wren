@@ -1,6 +1,14 @@
 /** Copy experiments on a real database: start, counts with thread credit, tick, import, moves. */
 import { randomUUID } from "node:crypto";
 import { companies } from "@wren/core";
+import {
+  alleleKey,
+  parseTemplate,
+  render,
+  type Template,
+  toSource,
+  variantPoints,
+} from "@wren/core/slots";
 import type { Db } from "@wren/db";
 import { startTestPostgres, type TestPostgres, truncate } from "@wren/db/testing";
 import { FakeLlm } from "@wren/llm";
@@ -21,8 +29,6 @@ import {
   tickExperiment,
 } from "../../src/evolve/experiments.js";
 import { alleleStats } from "../../src/evolve/stats.js";
-import { parseTemplate, toSource } from "@wren/core/slots";
-import { alleleKey, render, type Template, variantPoints } from "@wren/core/slots";
 import { tickAll } from "../../src/restate/evolution.js";
 import {
   enrollments,

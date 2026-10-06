@@ -25,6 +25,7 @@ import { randomUUID } from "node:crypto";
 import { companies, type Suppression } from "@wren/core";
 import type { Calendar } from "@wren/core/calendar";
 import { firstTouchElsewhere } from "@wren/core/leads";
+import { pyReprStr } from "@wren/core/slots";
 import { atomic, type Db, type Queryable } from "@wren/db";
 import {
   and,
@@ -43,7 +44,6 @@ import {
   sql,
 } from "drizzle-orm";
 import { activeSuppressions, type SharedSuppressions } from "../guards.js";
-import { pyReprStr } from "@wren/core/slots";
 import {
   type Enrollment,
   enrollments,

@@ -6,6 +6,7 @@
  */
 import { FakeCalendar } from "@wren/core/calendar";
 import type { Notifier } from "@wren/core/notify";
+import { parseTemplate } from "@wren/core/slots";
 import type { Db } from "@wren/db";
 import { startTestPostgres, type TestPostgres, truncate } from "@wren/db/testing";
 import { FakeLlm } from "@wren/llm";
@@ -13,7 +14,6 @@ import { eq } from "drizzle-orm";
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 import { approveInvite, dropInvite, runInvites } from "../../src/inbox/invite.js";
 import type { ReplyCopy } from "../../src/inbox/reply.js";
-import { parseTemplate } from "@wren/core/slots";
 import { sequence, sequenceStep } from "../../src/outreach/sequences.js";
 import {
   callInvites,

@@ -19,6 +19,15 @@
  */
 import { randomBytes } from "node:crypto";
 import { activeElsewhere } from "@wren/core/leads";
+import type { FactValues } from "@wren/core/slots";
+import {
+  type Allocation,
+  MissingFactError,
+  type Rendered,
+  render,
+  type Template,
+  toSource,
+} from "@wren/core/slots";
 import { atomic, type Queryable } from "@wren/db";
 import { type SQL, sql } from "drizzle-orm";
 import { activeSuppression, activeSuppressions, type SharedSuppressions } from "../guards.js";
@@ -38,10 +47,8 @@ import {
 } from "../schema.js";
 import { CALL_TIMES } from "../send/call-times.js";
 import { transitionMessage } from "../state.js";
-import { toSource } from "@wren/core/slots";
 import { type FactRow, type Facts, factsFor, factsForCompany } from "./facts.js";
 import type { Filler } from "./fills.js";
-import type { FactValues } from "@wren/core/slots";
 import {
   type AddressRecord,
   peopleWithAddress,
@@ -49,13 +56,6 @@ import {
   roleInboxAddress,
 } from "./provenance.js";
 import type { Sequence } from "./sequences.js";
-import {
-  type Allocation,
-  MissingFactError,
-  type Rendered,
-  render,
-  type Template,
-} from "@wren/core/slots";
 
 export type ComposeKind = "person" | "role_inbox" | "all";
 

@@ -7,19 +7,20 @@
  * its parent and experiment, the experiment pointed at it. The caller re-renders the
  * niche's queue (`QueueRefresh`, or `refreshCampaign` in the loop).
  */
-import { type Db, type Queryable, serializable } from "@wren/db";
-import { FITNESS, parseSettings, type Settings } from "@wren/experiments";
-import type { CallRecord, LlmClient } from "@wren/llm";
-import { and, desc, eq, inArray, sql } from "drizzle-orm";
-import { toSource } from "@wren/core/slots";
+
 import {
   alleleKey,
   factKeys,
   type Option,
   optionText,
   type Template,
+  toSource,
   variants,
 } from "@wren/core/slots";
+import { type Db, type Queryable, serializable } from "@wren/db";
+import { FITNESS, parseSettings, type Settings } from "@wren/experiments";
+import type { CallRecord, LlmClient } from "@wren/llm";
+import { and, desc, eq, inArray, sql } from "drizzle-orm";
 import {
   type Experiment,
   experimentAlleles,

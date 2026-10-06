@@ -4,10 +4,10 @@
  * rate against its siblings at the same point is a fair comparison. Counted per
  * template@version: an edit makes a new version and starts the count over.
  */
+
+import { optionText, parseTemplate, variantPoints } from "@wren/core/slots";
 import type { Queryable } from "@wren/db";
 import { sql } from "drizzle-orm";
-import { parseTemplate } from "@wren/core/slots";
-import { optionText, variantPoints } from "@wren/core/slots";
 
 export interface VariantOutcome {
   readonly niche: string;

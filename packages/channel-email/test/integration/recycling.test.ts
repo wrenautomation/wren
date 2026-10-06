@@ -6,12 +6,12 @@
  */
 import { loadSettings } from "@wren/config";
 import { type Company, imports, type Lead, leads, type Person } from "@wren/core";
+import { field, template, text } from "@wren/core/slots";
 import { startTestPostgres, type TestPostgres, truncate } from "@wren/db/testing";
 import { asc, eq, sql } from "drizzle-orm";
 import { LocalChecker } from "mailifier";
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 import { sequence, sequenceStep } from "../../src/outreach/sequences.js";
-import { field, template, text } from "@wren/core/slots";
 import { DEFAULT_RECONTACT, recontactPolicy } from "../../src/recontact.js";
 import { type Campaign, topUp } from "../../src/restate/compose-scheduler.js";
 import {

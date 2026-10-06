@@ -6,11 +6,10 @@
  * version's source is parsed once to turn them into allele keys.
  */
 
+import { alleleKey, parseTemplate, variantPoints } from "@wren/core/slots";
 import type { Queryable } from "@wren/db";
 import type { AlleleCounts } from "@wren/experiments";
 import { sql } from "drizzle-orm";
-import { parseTemplate } from "@wren/core/slots";
-import { alleleKey, variantPoints } from "@wren/core/slots";
 
 type Counts = { -readonly [K in keyof AlleleCounts]: AlleleCounts[K] };
 /** locus → allele → counts. */
