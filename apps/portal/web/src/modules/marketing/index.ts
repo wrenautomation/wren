@@ -319,6 +319,24 @@ export const marketing: Module = {
       extras: postExtras,
     },
     {
+      id: "subscribers",
+      label: "Subscribers",
+      template: "list",
+      record: "marketing.subscriber",
+      empty: {
+        confirmed: "No one has confirmed yet.",
+        pending: "No signup waits on a confirm.",
+        all: "Signups show here from the site, forms and texts.",
+      },
+    },
+    {
+      id: "topics",
+      label: "Topics",
+      template: "list",
+      record: "marketing.topic",
+      empty: "No topic yet.",
+    },
+    {
       id: "search",
       label: "Search",
       template: "list",
