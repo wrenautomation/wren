@@ -1,12 +1,13 @@
 /**
  * Tiny HTML reading: visible text, links, title, mailto/tel hrefs in one pass.
- * Deliberately not a DOM: enrichment needs the words and the links, not the tree,
- * and a tolerant tokenizer never chokes on the malformed markup small-business
- * sites actually serve. Never throws: a pathological page degrades to whatever was
- * read so far, never sinks a crawl.
+ * Deliberately not a DOM: enrichment needs the words and the links, not the tree.
+ * htmlparser2's streaming parser feeds the Extractor; it is tolerant of the malformed
+ * markup small-business sites serve and closes what HTML implies closed. Never throws:
+ * a pathological page degrades to whatever was read so far, never sinks a crawl.
  */
 
 import { decodeHtml } from "@wren/core/html";
+import { Parser } from "htmlparser2";
 
 const SKIP_CONTENT: ReadonlySet<string> = new Set([
   "script",
@@ -14,10 +15,7 @@ const SKIP_CONTENT: ReadonlySet<string> = new Set([
   "noscript",
   "template",
   "svg",
-  "head",
 ]);
-/** Raw-text elements: their content holds no tags to parse. */
-const RAW_TEXT: ReadonlySet<string> = new Set(["script", "style"]);
 /** Elements that end a run of inline text; a newline keeps extracted text readable. */
 const BLOCK: ReadonlySet<string> = new Set([
   "p",
@@ -33,6 +31,26 @@ const BLOCK: ReadonlySet<string> = new Set([
   "h6",
   "section",
   "article",
+  "header",
+  "footer",
+  "nav",
+  "main",
+  "aside",
+  "table",
+  "td",
+  "th",
+  "ul",
+  "ol",
+  "dl",
+  "dt",
+  "dd",
+  "blockquote",
+  "pre",
+  "address",
+  "figure",
+  "figcaption",
+  "form",
+  "hr",
 ]);
 
 export interface PageLink {
@@ -52,18 +70,6 @@ export interface PageContent {
 
 /** HTML character references to text (the WHATWG table). */
 export const decodeEntities = decodeHtml;
-
-function parseAttrs(s: string): Map<string, string> {
-  const attrs = new Map<string, string>();
-  const re = /([^\s"'=<>/]+)(?:\s*=\s*(?:"([^"]*)"|'([^']*)'|([^\s"'=<>`]+)))?/g;
-  for (const m of s.matchAll(re)) {
-    const name = (m[1] ?? "").toLowerCase();
-    if (!name) continue;
-    const value = m[2] ?? m[3] ?? m[4] ?? "";
-    if (!attrs.has(name)) attrs.set(name, decodeEntities(value));
-  }
-  return attrs;
-}
 
 /** Absolute URL for a link, or the raw href when neither it nor the base parses. */
 function joinUrl(base: string, href: string): string {
@@ -89,11 +95,11 @@ class Extractor {
 
   constructor(private readonly baseUrl: string) {}
 
-  startTag(tag: string, attrs: Map<string, string>): void {
+  startTag(tag: string, attrs: Readonly<Record<string, string>>): void {
     if (SKIP_CONTENT.has(tag)) this.skipDepth++;
     else if (tag === "title") this.inTitle = true;
     else if (tag === "a") {
-      const href = attrs.get("href");
+      const href = attrs.href;
       if (href?.startsWith("mailto:")) {
         const list = safeDecode(href.slice(7).split("?", 1)[0] ?? "");
         for (const addr of list.split(",")) {
@@ -124,9 +130,10 @@ class Extractor {
     if (BLOCK.has(tag)) this.parts.push("\n");
   }
 
-  data(raw: string): void {
-    const text = decodeEntities(raw);
-    // Title first: <title> sits inside <head>, which is otherwise a skipped container.
+  /** Text as the parser hands it: entities already decoded once. */
+  data(decoded: string): void {
+    const text = decoded.replaceAll("\u00a0", " ");
+    // The page's title, never words of the body.
     if (this.inTitle) {
       this.title += text;
       return;
@@ -145,81 +152,16 @@ function safeDecode(s: string): string {
   }
 }
 
-/** Feed `html` through the extractor. Tolerant: unterminated constructs end at EOF. */
-function tokenize(html: string, out: Extractor): void {
-  let i = 0;
-  const n = html.length;
-  while (i < n) {
-    const lt = html.indexOf("<", i);
-    if (lt < 0) {
-      out.data(html.slice(i));
-      return;
-    }
-    if (lt > i) out.data(html.slice(i, lt));
-    const rest = html.slice(lt, lt + 4);
-    if (rest.startsWith("<!--")) {
-      const end = html.indexOf("-->", lt + 4);
-      i = end < 0 ? n : end + 3;
-      continue;
-    }
-    if (rest.startsWith("<!") || rest.startsWith("<?")) {
-      const end = html.indexOf(">", lt + 2);
-      i = end < 0 ? n : end + 1;
-      continue;
-    }
-    const m = /^<(\/?)([a-zA-Z][a-zA-Z0-9:-]*)/.exec(html.slice(lt, lt + 64));
-    if (!m) {
-      out.data("<");
-      i = lt + 1;
-      continue;
-    }
-    const closing = m[1] === "/";
-    const tag = (m[2] ?? "").toLowerCase();
-    const end = findTagEnd(html, lt + m[0].length);
-    const inside = html.slice(lt + m[0].length, end < 0 ? n : end);
-    i = end < 0 ? n : end + 1;
-    if (closing) {
-      out.endTag(tag);
-      continue;
-    }
-    const selfClosing = /\/\s*$/.test(inside);
-    out.startTag(tag, parseAttrs(selfClosing ? inside.replace(/\/\s*$/, "") : inside));
-    if (selfClosing) {
-      out.endTag(tag);
-      continue;
-    }
-    if (RAW_TEXT.has(tag)) {
-      const close = html.slice(i).search(new RegExp(`</${tag}\\s*>`, "i"));
-      if (close < 0) {
-        out.data(html.slice(i));
-        return;
-      }
-      out.data(html.slice(i, i + close));
-      i += close;
-      const closeEnd = html.indexOf(">", i);
-      i = closeEnd < 0 ? n : closeEnd + 1;
-      out.endTag(tag);
-    }
-  }
-}
-
-/** Index of the `>` closing a tag whose name ends at `from`, honoring quoted attribute values. */
-function findTagEnd(html: string, from: number): number {
-  let quote: string | null = null;
-  for (let i = from; i < html.length; i++) {
-    const ch = html[i];
-    if (quote) {
-      if (ch === quote) quote = null;
-    } else if (ch === '"' || ch === "'") quote = ch;
-    else if (ch === ">") return i;
-  }
-  return -1;
-}
-
 export function readPage(html: string, baseUrl = ""): PageContent {
   const out = new Extractor(baseUrl);
   try {
-    tokenize(html, out);
+    const parser = new Parser({
+      onopentag: (name, attrs) => out.startTag(name, attrs),
+      onclosetag: (name) => out.endTag(name),
+      ontext: (text) => out.data(text),
+    });
+    parser.write(html);
+    parser.end();
   } catch {
     // degrade to whatever was extracted so far
   }

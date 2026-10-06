@@ -37,6 +37,7 @@
     "@wren/llm": "workspace:*",
     "csv-parse": "7.0.2",
     "drizzle-orm": "0.45.2",
+    "htmlparser2": "12.0.0",
     "libphonenumber-js": "1.13.14",
     "playwright": "1.63.0",
     "playwright-core": "1.63.0",

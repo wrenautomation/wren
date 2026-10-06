@@ -107,3 +107,24 @@ describe("decodeEntities named table", () => {
     expect(decodeEntities("&Aacute;&hearts;&rarr;&nbsp;x &#99999999;")).toBe("Á♥→ x �");
   });
 });
+
+describe("readPage structure", () => {
+  it("reads the body when </head> is omitted", () => {
+    const page = readPage(
+      "<html><head><title>Acme</title><meta charset=utf-8><p>Call us today</p>",
+    );
+    expect(page.title).toBe("Acme");
+    expect(page.text).toBe("Call us today");
+  });
+
+  it("keeps table cells and list items apart", () => {
+    const page = readPage(
+      "<table><tr><td>team@acme.test</td><td>Careers</td></tr></table><ul><li>One</li></ul><nav>Home</nav><footer>Legal</footer>",
+    );
+    expect(page.text.split("\n")).toEqual(["team@acme.test", "Careers", "One", "Home", "Legal"]);
+  });
+
+  it("decodes an entity once, not twice", () => {
+    expect(readPage("<p>&amp;lt;b&amp;gt;</p>").text).toBe("&lt;b&gt;");
+  });
+});
