@@ -2,9 +2,13 @@
  * YouTube as a `ContentChannel`, over autobrowse's site API in the Data
  * API v3's shape. Publish = a resumable upload of a file the worker can
  * read (a path on the worker or a URL); list = the channel's uploads
- * playlist (cheap in quota); metrics = `videos?part=statistics`.
+ * playlist (cheap in quota); metrics = `videos?part=statistics`;
+ * activity = recent public subscribers; audience = the subscriber count.
  */
 import {
+  type ActivityQuery,
+  type ActivityRow,
+  type Audience,
   type CommentRow,
   type ContentChannel,
   type FetchedWith,
@@ -57,6 +61,11 @@ interface CommentThread {
       };
     };
   };
+}
+
+interface Subscription {
+  id?: string;
+  subscriberSnippet?: { title?: string; channelId?: string; description?: string };
 }
 
 export function youtubeContent(sites: SiteClient, o: YouTubeContentOptions = {}): ContentChannel {
@@ -171,6 +180,41 @@ export function youtubeContent(sites: SiteClient, o: YouTubeContentOptions = {})
       await sites.call("youtube", "POST", "/youtube/v3/comments", {
         snippet: { parentId: commentId, textOriginal: text },
       });
+    },
+    // Only subscribers who keep their subscriptions public show up; the API gives no time.
+    async activity(q: ActivityQuery = {}): Promise<ActivityRow[]> {
+      const r = await read<{ items?: Subscription[] }>("subscriptions", {
+        part: "subscriberSnippet",
+        myRecentSubscribers: true,
+        maxResults: Math.min(q.limit ?? 50, 50),
+      });
+      return (r.items ?? []).flatMap((s) => {
+        const ch = s.subscriberSnippet?.channelId;
+        const id = s.id ?? ch;
+        if (!id) return [];
+        const actor = s.subscriberSnippet?.title ?? null;
+        return [
+          {
+            id,
+            kind: "subscribe" as const,
+            actor,
+            actorUrl: ch ? `https://www.youtube.com/channel/${ch}` : null,
+            text: `${actor ?? "Someone"} subscribed`,
+            url: null,
+            at: null,
+            raw: s,
+          },
+        ];
+      });
+    },
+    async audience(): Promise<Audience> {
+      const r = await read<{ items?: Array<{ statistics?: { subscriberCount?: string } }> }>(
+        "channels",
+        { part: "statistics", mine: true },
+      );
+      const s = r.items?.[0]?.statistics;
+      if (!s) throw new Error("youtube: the token's account has no channel");
+      return { followers: Number(s.subscriberCount ?? 0), asOf: now().toISOString(), raw: r };
     },
   };
 }

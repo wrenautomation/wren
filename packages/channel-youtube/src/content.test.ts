@@ -114,4 +114,43 @@ describe("youtube content channel", () => {
     ).rejects.toThrow(/title/);
     expect(calls).toEqual([]);
   });
+
+  it("activity reads recent public subscribers with no time; audience reads the subscriber count", async () => {
+    const { sites } = fakeSites({
+      "GET /youtube/v3/subscriptions": (i) => {
+        expect(i).toEqual({ part: "subscriberSnippet", myRecentSubscribers: true, maxResults: 5 });
+        return {
+          items: [
+            { id: "s1", subscriberSnippet: { title: "Test Channel", channelId: "UCtest1" } },
+            { subscriberSnippet: { channelId: "UCtest2" } },
+            { subscriberSnippet: {} },
+          ],
+        };
+      },
+      "GET /youtube/v3/channels": (i) => {
+        expect(i).toEqual({ part: "statistics", mine: true });
+        return { items: [{ statistics: { subscriberCount: "42" } }] };
+      },
+    });
+    const ch = youtubeContent(sites, { now: () => new Date("2026-10-06T00:00:00Z") });
+    const rows = await ch.activity?.({ limit: 5, since: "2026-10-01T00:00:00Z" });
+    expect(rows).toEqual([
+      {
+        id: "s1",
+        kind: "subscribe",
+        actor: "Test Channel",
+        actorUrl: "https://www.youtube.com/channel/UCtest1",
+        text: "Test Channel subscribed",
+        url: null,
+        at: null,
+        raw: { id: "s1", subscriberSnippet: { title: "Test Channel", channelId: "UCtest1" } },
+      },
+      expect.objectContaining({ id: "UCtest2", actor: null, text: "Someone subscribed" }),
+    ]);
+    expect(await ch.audience?.()).toEqual({
+      followers: 42,
+      asOf: "2026-10-06T00:00:00.000Z",
+      raw: { items: [{ statistics: { subscriberCount: "42" } }] },
+    });
+  });
 });
