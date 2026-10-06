@@ -76,7 +76,7 @@ export function Mods() {
               <span className="flex flex-wrap items-center gap-2">
                 <b className="[overflow-wrap:anywhere]">{m.name}</b>
                 <span className={QUIET}>{m.version}</span>
-                {m.code ? <Tag tone="rust">Runs code</Tag> : <Tag>Data only</Tag>}
+                {m.code ? <Tag tone="accent">Runs code</Tag> : <Tag>Data only</Tag>}
               </span>
               {m.description ? <span className={BLOCK}>{m.description}</span> : null}
               {line("Sites", m.sites)}

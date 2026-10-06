@@ -94,7 +94,7 @@ export function Overview(props: PageProps) {
         >
           {a.billing.overdue > 0 ? (
             <p>
-              <Tag tone="rust">
+              <Tag tone="accent">
                 {a.billing.overdue} {a.billing.overdue === 1 ? "invoice is" : "invoices are"}{" "}
                 overdue
               </Tag>

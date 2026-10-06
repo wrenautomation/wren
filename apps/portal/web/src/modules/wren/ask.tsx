@@ -15,7 +15,7 @@ const POLL_MS = 4000;
 const STATES = {
   thinking: { label: "Thinking", tone: "neutral" },
   answered: { label: "Answered", tone: "green" },
-  failed: { label: "Failed", tone: "rust" },
+  failed: { label: "Failed", tone: "accent" },
 } as const;
 
 /** The answer as plain text: `code` in mono, a cited file linked, ** dropped. */

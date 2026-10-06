@@ -30,7 +30,7 @@ export const WREN_COLORS: Partial<Record<Token, string>> = {
   paper: "#ffffff",
   ink: "#0e0e0e",
   "ink-2": "#56564f",
-  accent: "#a83b12",
+  accent: "#7969a3",
   "on-accent": "#faf7f2",
   good: "#17803d",
   bad: "#d2281e",
@@ -150,7 +150,7 @@ export function LookEditor({
         ...withBase(base),
         ...Object.fromEntries(TYPED.map((t) => [t, color(t)])),
       });
-    setDraft({ ...withBase(base), brand: { color: hex6(color("accent")) ?? "#a83b12" } });
+    setDraft({ ...withBase(base), brand: { color: hex6(color("accent")) ?? "#7969a3" } });
   };
   const setBase = (p: PresetName) => {
     const { preset: _, ...rest } = obj();
@@ -481,7 +481,7 @@ function Preview({ vars }: { vars: Record<string, string> }) {
           {(
             [
               ["Dana Ruiz", "Booked", "green", "2h ago"],
-              ["Sam Patel", "Needs you", "rust", "4h ago"],
+              ["Sam Patel", "Needs you", "accent", "4h ago"],
               ["Lee Chen", "Bounced", "bad", "1d ago"],
             ] as const
           ).map(([name, state, tone, when]) => (

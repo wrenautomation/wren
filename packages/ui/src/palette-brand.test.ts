@@ -25,7 +25,7 @@ const COLORS = {
   "very dark": "#0b0d14",
   "saturated red": "#ff0000",
   gray: "#808080",
-  "the Wren accent": "#a83b12",
+  "the Wren accent": "#7969a3",
 };
 
 /** Contrast read back from the theme itself, not from the report. */

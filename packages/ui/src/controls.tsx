@@ -6,7 +6,7 @@ import { Badge } from "./components/ui/badge.js";
 import { buttonVariants, Button as ShadButton } from "./components/ui/button.js";
 import { Icon, type IconName } from "./icons.js";
 
-/** `primary` is the one action on a screen (rust); `secondary` is outlined; `quiet` is text. */
+/** `primary` is the one action on a screen (the accent); `secondary` is outlined; `quiet` is text. */
 export type ButtonTone = "primary" | "secondary" | "quiet";
 
 interface ButtonLook {
@@ -20,7 +20,7 @@ interface ButtonLook {
   className?: string | undefined;
 }
 
-/** shadcn's button, in the kit's look: square, uppercase, rust; ink on hover. */
+/** shadcn's button, in the kit's look: square, uppercase, accent; ink on hover. */
 const BUTTON =
   "h-auto gap-[0.8em] px-[1.6em] py-[1.15em] border-0 rounded-(--ui-radius) bg-(--ui-accent) text-(--ui-on-accent) font-(family-name:--ui-font) font-(--ui-button-weight) text-[13.5px]/none tracking-(--ui-button-tracking) [text-transform:var(--ui-button-case)] no-underline cursor-pointer transition-[background-color,color,box-shadow,scale,opacity] duration-200 ease-(--ui-ease) hover:bg-(--ui-ink) active:not-aria-[haspopup]:translate-y-0 active:not-aria-[haspopup]:scale-[0.97] hover:text-(--ui-on-ink) disabled:opacity-40 focus-visible:ring-0 focus-visible:outline-2 focus-visible:outline-solid focus-visible:outline-offset-2 focus-visible:outline-(--ui-accent)";
 const BUTTON_SIZE = { md: "", sm: "px-[1.3em] py-[1em] text-[12.5px]/none", dense: "" };
@@ -122,14 +122,14 @@ export function ButtonLink({
   );
 }
 
-/** `rust` marks what needs you or what changed; `green` a result; `neutral` the rest. */
-export type TagTone = "neutral" | "rust" | "green";
+/** `accent` marks what needs you or what changed; `green` a result; `neutral` the rest. */
+export type TagTone = "neutral" | "accent" | "green";
 
 const TAG =
   "h-auto gap-1.5 px-[9px] py-0.5 border-0 rounded-(--ui-radius) text-[12px]/[1.5] font-semibold align-[1px]";
 const TAG_TONE: Record<TagTone, string> = {
   neutral: "bg-(--ui-fill) text-(--ui-ink-2)",
-  rust: "bg-(--ui-accent-tint) text-(--ui-accent)",
+  accent: "bg-(--ui-accent-tint) text-(--ui-accent)",
   green: "bg-(--ui-good-tint) text-(--ui-good-ink)",
 };
 const DOT = "before:size-1.5 before:rounded-full before:bg-current before:content-['']";

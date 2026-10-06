@@ -20,7 +20,7 @@ export function Glance(props: PageProps) {
       ]}
       note={
         open > 0 ? (
-          <Tag tone="rust">
+          <Tag tone="accent">
             {num(open)} {open === 1 ? "thing needs" : "things need"} you
           </Tag>
         ) : null

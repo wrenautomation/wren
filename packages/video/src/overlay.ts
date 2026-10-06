@@ -15,12 +15,12 @@ export interface Look {
   font: string;
 }
 
-/** Wren's: the portal's canvas, ink and rust. */
+/** Wren's: the portal's canvas, ink and lavender. */
 export const DEFAULT_LOOK: Look = {
   background: "#f3f1ec",
   foreground: "#0e0e0e",
   muted: "#56564f",
-  accent: "#a83b12",
+  accent: "#7969a3",
   font: '"General Sans", ui-sans-serif, system-ui, sans-serif',
 };
 

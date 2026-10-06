@@ -21,7 +21,7 @@ export function Glance({ client }: PageProps) {
       ]}
       note={
         ok?.state === "yours" && ok.count > 0 ? (
-          <Tag tone="rust">
+          <Tag tone="accent">
             {num(ok.count)} {ok.count === 1 ? "draft waits" : "drafts wait"} for your OK
           </Tag>
         ) : null
