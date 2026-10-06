@@ -10,19 +10,27 @@ export const WATCH_COMPONENTS = [
     id: "watch.read",
     stage: "run",
     channels: ["email"],
-    name: "Mail reader",
-    blurb: "Reads new mail in each inbox every 15 minutes, skipping promotions and social.",
+    name: "Mail and feed reader",
+    blurb:
+      "Reads new mail in each inbox every 15 minutes, skipping promotions and social, and each feed Wren follows hourly.",
     icon: "mail",
     for: "wren",
     ready: false,
     missing: [OWN],
     provides: { services: ["Watch"], loops: ["Watch"] },
-    out: [{ id: "mail", label: "new mail", kind: "mail" }],
+    out: [
+      { id: "mail", label: "new mail", kind: "mail" },
+      { id: "items", label: "new feed items", kind: "item" },
+    ],
     hypothesis: {
       from,
       guesses: [
         { is: "change", says: "Which inboxes.", built: "env WREN_WATCH_MAILBOXES" },
-        { is: "change", says: "Feeds, RSS and Atom, from the radar.", built: null },
+        {
+          is: "change",
+          says: "Feeds, RSS and Atom, from the radar.",
+          built: "watch.feeds, followed from Inbox → Feeds",
+        },
         { is: "fixed", says: "Promotions and social mail are never read." },
       ],
     },
@@ -68,6 +76,42 @@ export const WATCH_COMPONENTS = [
       ],
     },
   }),
+  defineComponent({
+    id: "watch.score",
+    stage: "run",
+    channels: ["web"],
+    name: "Feed scoring",
+    blurb:
+      "Scores each new feed item 0 to 10 on how much it should change how Wren works, against its SOPs.",
+    icon: "search",
+    for: "wren",
+    ready: false,
+    missing: ["Scores against Wren's own SOPs; a client's would need theirs"],
+    requires: { components: ["watch.read"] },
+    effects: ["spends"],
+    // Its hands are WatchConsole's, which triage owns.
+    provides: { records: ["watch.item", "watch.feed"] },
+    in: [{ id: "item", label: "feed items", kind: "item" }],
+    out: [
+      { id: "show", label: "worth reading", kind: "item" },
+      { id: "hold", label: "worth knowing", kind: "item" },
+      { id: "drop", label: "dropped", kind: "item" },
+    ],
+    hypothesis: {
+      from: "Wren's radar, 2026-10",
+      guesses: [
+        { is: "change", says: "Which feeds.", built: "watch.feeds, from Inbox → Feeds" },
+        {
+          is: "change",
+          says: "What it scores against: the SOPs pushed with wren sop push.",
+          built: "content_playbooks, from wren sop push",
+        },
+        { is: "needs", says: "A model; Cohere by default.", built: "env WREN_WATCH_LLM" },
+        { is: "fixed", says: "7 and up shows, 4 to 6 holds, the rest drops." },
+        { is: "fixed", says: "Following a feed scores what comes next, not its back catalog." },
+      ],
+    },
+  }),
 ];
 
 export const WATCH_WORKFLOWS = [
@@ -75,21 +119,26 @@ export const WATCH_WORKFLOWS = [
     id: "watch",
     stage: "run",
     name: "The Watch",
-    blurb: "Reads the inboxes and shows only what needs you, by rules in plain words.",
+    blurb:
+      "Reads the inboxes and the feeds Wren follows, and shows only what needs you or should change how Wren works.",
     icon: "mail",
     for: "wren",
     out: [
       { id: "needs_you", label: "needs you", kind: "mail" },
       { id: "held", label: "held", kind: "mail" },
+      { id: "to_read", label: "worth reading", kind: "item" },
     ],
     nodes: [
       { id: "read", uses: "watch.read" },
       { id: "triage", uses: "watch.triage" },
+      { id: "score", uses: "watch.score" },
     ],
     wires: [
       { from: "read.mail", to: "triage.mail", via: "events" },
       { from: "triage.show", to: "out.needs_you", via: "events" },
       { from: "triage.hold", to: "out.held", via: "events" },
+      { from: "read.items", to: "score.item", via: "events" },
+      { from: "score.show", to: "out.to_read", via: "events" },
     ],
   }),
 ];

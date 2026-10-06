@@ -1,15 +1,19 @@
 /**
  * The Watch's tables (designs/2026-10-05-workflows.md, The Watch): mail it read and the rules it
- * reads mail by. A mail row keeps sender, subject, a summary and the verdict, never a body: the
- * snippet stays only until triage reads it.
+ * reads mail by, and the feeds it follows with their items (the radar). A mail row keeps sender,
+ * subject, a summary and the verdict, never a body: the snippet stays only until triage reads it.
+ * A feed item is public, so its text is kept.
  */
 import { oneOf } from "@wren/db/columns";
 import { sql } from "drizzle-orm";
 import {
+  check,
   index,
   integer,
+  jsonb,
   pgSchema,
   serial,
+  smallint,
   text,
   timestamp,
   unique,
@@ -122,3 +126,107 @@ export const ruleRecords = watch
       case when r.sender is not null and r.verdict is not null then 'code' else 'model' end settles,
       r.by::text by, r.created_at
     from watch.rules r`);
+
+/** A feed the Watch follows: RSS or Atom (Substack, YouTube channels, GitHub releases, blogs). */
+export const feeds = watch.table(
+  "feeds",
+  {
+    id: serial("id").primaryKey(),
+    url: text("url").notNull(),
+    name: text("name").notNull(),
+    /** The last read that worked. */
+    fetchedAt: timestamp("fetched_at", { withTimezone: true }),
+    /** The last read's error; null once one works. */
+    failure: text("failure"),
+    /** Unfollowed: no more reads, its items kept. */
+    stoppedAt: timestamp("stopped_at", { withTimezone: true }),
+    by: varchar("by", { length: 320 }),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [unique("uq_watch_feeds_url").on(t.url)],
+);
+
+/**
+ * One feed item, kept before it's scored. `score` (0-10) is how much it should change how Wren
+ * works today, against the SOPs; it sets the verdict: 7 and up shows, 4 to 6 holds, the rest drops.
+ */
+export const items = watch.table(
+  "items",
+  {
+    id: serial("id").primaryKey(),
+    feedId: integer("feed_id")
+      .notNull()
+      .references(() => feeds.id),
+    url: text("url").notNull(),
+    title: text("title").notNull(),
+    text: text("text").notNull(),
+    publishedAt: timestamp("published_at", { withTimezone: true }),
+    score: smallint("score"),
+    /** Null until scored. */
+    verdict: varchar("verdict", { length: 8, enum: VERDICTS }),
+    summary: text("summary"),
+    /** The SOPs it would change, by name. */
+    changes: jsonb("changes").$type<string[]>().notNull().default([]),
+    why: text("why"),
+    /** Reads of the model's answer; it stops asking after 3. */
+    tries: smallint("tries").notNull().default(0),
+    scoredAt: timestamp("scored_at", { withTimezone: true }),
+    doneAt: timestamp("done_at", { withTimezone: true }),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [
+    unique("uq_watch_items_url").on(t.url),
+    index("ix_watch_items_feed").on(t.feedId),
+    index("ix_watch_items_created").on(t.createdAt),
+    check("ck_watch_items_score", sql`${t.score} between 0 and 10`),
+    oneOf("ck_watch_items_verdict", t.verdict, VERDICTS),
+  ],
+);
+
+/** `items` as console records: `queue` as mail's, plus `waiting` while it isn't scored. */
+export const itemRecords = watch
+  .view("item_records", {
+    id: integer("id"),
+    title: text("title"),
+    feed: text("feed"),
+    score: integer("score"),
+    summary: text("summary"),
+    changes: text("changes"),
+    why: text("why"),
+    verdict: text("verdict"),
+    queue: text("queue"),
+    at: timestamp("at", { withTimezone: true }),
+    open: text("open"),
+  })
+  .as(sql`
+    select i.id, i.title, f.name feed, i.score::int score, i.summary,
+      (select string_agg(c, ', ') from jsonb_array_elements_text(i.changes) c) changes,
+      i.why, i.verdict::text verdict,
+      case when i.done_at is not null then 'done' when i.verdict is null then 'waiting'
+        when i.verdict = 'show' then 'needs_you' when i.verdict = 'hold' then 'held'
+        else 'dropped' end queue,
+      coalesce(i.published_at, i.created_at) at, i.url open
+    from watch.items i join watch.feeds f on f.id = i.feed_id`);
+
+/** `feeds` as console records, with what each brought. */
+export const feedRecords = watch
+  .view("feed_records", {
+    id: integer("id"),
+    name: text("name"),
+    url: text("url"),
+    state: text("state"),
+    items: integer("items"),
+    shown: integer("shown"),
+    fetchedAt: timestamp("fetched_at", { withTimezone: true }),
+    failure: text("failure"),
+    by: text("by"),
+    createdAt: timestamp("created_at", { withTimezone: true }),
+  })
+  .as(sql`
+    select f.id, f.name, f.url,
+      case when f.stopped_at is not null then 'stopped' when f.failure is not null then 'failing'
+        else 'following' end state,
+      count(i.id)::int items, (count(i.id) filter (where i.verdict = 'show'))::int shown,
+      f.fetched_at, f.failure, f.by::text by, f.created_at
+    from watch.feeds f left join watch.items i on i.feed_id = f.id
+    group by f.id`);

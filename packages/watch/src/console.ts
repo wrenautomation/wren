@@ -2,7 +2,8 @@
  * WatchConsole: the Inbox app's hands on the Watch. Done clears an email. Hide like this writes a
  * rule that holds the sender's mail (subject words narrow it) and clears what's waiting from
  * them; Show like this writes one that shows it. Sort again re-triages what's waiting under today's
- * rules. Rules can also be written or removed by hand.
+ * rules. Rules can also be written or removed by hand. Feeds are followed and unfollowed here, and
+ * a feed item is marked done.
  */
 import type * as restate from "@restatedev/restate-sdk";
 import {
@@ -18,7 +19,8 @@ import type { LlmClient } from "@wren/llm";
 import { and, eq, ilike, inArray, isNull, or, type SQL } from "drizzle-orm";
 import { z } from "zod";
 import { WATCH_CONSOLE_ROUTES } from "./console-routes.js";
-import { mail, rules, VERDICTS, type Verdict } from "./schema.js";
+import { type FetchFn, follow } from "./feeds.js";
+import { feeds, items, mail, rules, VERDICTS, type Verdict } from "./schema.js";
 import { sortAgain } from "./triage.js";
 
 export interface IdsRequest extends PortalRequest {
@@ -27,6 +29,10 @@ export interface IdsRequest extends PortalRequest {
 export interface LikeRequest extends IdsRequest {
   /** Words the subject must hold too; blank is any subject. */
   subject?: string | null;
+}
+export interface FollowRequest extends PortalRequest {
+  url: string;
+  name?: string | null;
 }
 export interface RuleRequest extends PortalRequest {
   words: string;
@@ -44,7 +50,7 @@ const blank = (v: string | null | undefined) => v?.trim() || null;
 const by = (req: PortalRequest) => (req.viewer as SignedViewer).email;
 
 /** The handlers as plain functions: the service wraps them, tests call them. */
-export function watchConsoleApi(db: Db, llm: LlmClient | null = null) {
+export function watchConsoleApi(db: Db, llm: LlmClient | null = null, fetchFn: FetchFn = fetch) {
   const write = <T>(req: PortalRequest, fn: (tx: Tx) => Promise<T>) =>
     atomic(db, async (tx) => {
       await setAuditActor(tx, by(req));
@@ -159,6 +165,43 @@ export function watchConsoleApi(db: Db, llm: LlmClient | null = null) {
           .returning({ id: rules.id });
         return { done: rows.map((r) => String(r.id)) };
       }),
+    itemDone: (req: IdsRequest) =>
+      write(req, async (tx) => {
+        const rows = await tx
+          .update(items)
+          .set({ doneAt: new Date() })
+          .where(and(inArray(items.id, idsOf(req)), isNull(items.doneAt)))
+          .returning({ id: items.id });
+        return { done: rows.map((r) => String(r.id)) };
+      }),
+    itemUndone: (req: IdsRequest) =>
+      write(req, async (tx) => {
+        const rows = await tx
+          .update(items)
+          .set({ doneAt: null })
+          .where(inArray(items.id, idsOf(req)))
+          .returning({ id: items.id });
+        return { done: rows.map((r) => String(r.id)) };
+      }),
+    follow: async (req: FollowRequest) => {
+      const url = blank(req.url);
+      if (!url || !/^https?:\/\//.test(url)) throw new PortalRefusal("a feed's https address", 400);
+      try {
+        const got = await follow(db, fetchFn, { url, name: req.name ?? null, by: by(req) });
+        return { id: String(got.id), name: got.name, items: got.items };
+      } catch (err) {
+        throw new PortalRefusal(err instanceof Error ? err.message : String(err), 400);
+      }
+    },
+    unfollow: (req: IdsRequest) =>
+      write(req, async (tx) => {
+        const rows = await tx
+          .update(feeds)
+          .set({ stoppedAt: new Date() })
+          .where(and(inArray(feeds.id, idsOf(req)), isNull(feeds.stoppedAt)))
+          .returning({ id: feeds.id });
+        return { done: rows.map((r) => String(r.id)) };
+      }),
   };
 }
 
@@ -212,6 +255,30 @@ export function makeWatchConsole(db: Db, llm: LlmClient | null) {
       removeRule: serviceHandler(
         { input: z.looseObject(IDS) },
         (_: restate.Context, req: IdsRequest) => answer(() => api.removeRule(req)),
+      ),
+      itemDone: serviceHandler(
+        { input: z.looseObject(IDS) },
+        (_: restate.Context, req: IdsRequest) => answer(() => api.itemDone(req)),
+      ),
+      itemUndone: serviceHandler(
+        { input: z.looseObject(IDS) },
+        (_: restate.Context, req: IdsRequest) => answer(() => api.itemUndone(req)),
+      ),
+      follow: serviceHandler(
+        {
+          input: z.looseObject({
+            ...PORTAL_FIELDS,
+            url: z.string().describe("The feed's address: RSS or Atom"),
+            name: z.string().nullish().describe("Blank takes the feed's own title"),
+          }),
+        },
+        // Not in a run: a bad address is a refusal, which a run would retry forever. A retry reads
+        // again and upserts the same row.
+        (_: restate.Context, req: FollowRequest) => answer(() => api.follow(req)),
+      ),
+      unfollow: serviceHandler(
+        { input: z.looseObject(IDS) },
+        (_: restate.Context, req: IdsRequest) => answer(() => api.unfollow(req)),
       ),
     },
   });

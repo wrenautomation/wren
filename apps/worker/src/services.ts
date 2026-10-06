@@ -114,6 +114,7 @@ import {
   makeContentPlanner,
   makeContentScheduler,
 } from "@wren/content/restate";
+import { contentPlaybooks } from "@wren/content/schema";
 import { askRecord, makeAsk } from "@wren/core/ask";
 import { makeAuditSealer } from "@wren/core/audit";
 import { CalcomCalendar, type Calendar } from "@wren/core/calendar";
@@ -135,7 +136,7 @@ import { MARKETING_RECORDS } from "@wren/core/marketing/records";
 import { namedFor } from "@wren/core/notify";
 import { clientKey, clientOfKey } from "@wren/core/restate";
 import { makeSpine, type SpineEvent } from "@wren/core/spine";
-import { cachedDb, clientDatabaseName, clientDatabaseUrl, createDb } from "@wren/db";
+import { cachedDb, clientDatabaseName, clientDatabaseUrl, createDb, type Db } from "@wren/db";
 import { engagementOf, postUpdate } from "@wren/delivery";
 import { s3Files } from "@wren/delivery/files";
 import { makeDeliveryPortal, makeDeliveryWatch } from "@wren/delivery/restate";
@@ -171,9 +172,10 @@ import {
 import { YOUTUBE_READ_SCOPE, youtubeApi } from "@wren/research/enrichment";
 import { s3PageStore } from "@wren/research/pages";
 import { makeDiscovery, makeEnrichment, makePageArchive } from "@wren/research/restate";
-import { triageStep } from "@wren/watch";
+import { type Practice, practiceOf, scoreStep, triageStep } from "@wren/watch";
 import { WATCH_RECORDS } from "@wren/watch/records";
 import { makeWatch, makeWatchConsole } from "@wren/watch/restate";
+import { desc } from "drizzle-orm";
 import type { Logger } from "pino";
 import { COMPONENTS } from "./components.js";
 import { MARKETING_NUMBERS } from "./marketing.js";
@@ -931,6 +933,7 @@ export async function buildServices(
         [EMAIL_TOUCH]: emailTouchStep((client) => (client ? clientDb(client) : db)),
         "reach.touch": reachTouchStep(db, { sequences: reach.sequences, sender: reach.senderName }),
         "watch.triage": triageStep(db, watchLlm),
+        "watch.score": scoreStep(db, watchLlm, () => practicesOf(db)),
         // The Watch's model: both read a few lines and answer in one.
         "comments.sort": sortStep(db, watchLlm),
       },
@@ -1043,6 +1046,18 @@ export async function buildServices(
  * when WREN_REDDIT_* is set, else the Mac's desk worker (Reddit refused Wren
  * an API client on 2026-09-29; its browser legs need a home IP). Null when off.
  */
+/** The radar scores against each pushed SOP's newest text. */
+async function practicesOf(db: Db): Promise<Practice[]> {
+  const rows = await db
+    .selectDistinctOn([contentPlaybooks.sop], {
+      sop: contentPlaybooks.sop,
+      text: contentPlaybooks.text,
+    })
+    .from(contentPlaybooks)
+    .orderBy(contentPlaybooks.sop, desc(contentPlaybooks.createdAt));
+  return rows.map((r) => practiceOf(r.sop, r.text));
+}
+
 function redditFrom(
   settings: Settings,
   on: readonly string[],

@@ -22,7 +22,9 @@ export function registerWatch(
     clients.connect(ingressOf(settings)).objectClient<Watch>({ name: "Watch" }, WATCH_KEY);
   const watch = program
     .command("watch")
-    .description("Watch/all on the Postgres box: new mail every 15 minutes, triaged on the spine");
+    .description(
+      "Watch/all on the Postgres box: new mail every 15 minutes and feeds hourly, sorted on the spine",
+    );
   watch.command("status").action(async () => json(await loop().status()));
   watch
     .command("start")
