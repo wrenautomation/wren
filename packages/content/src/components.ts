@@ -58,6 +58,37 @@ export const CONTENT_COMPONENTS = [
       ],
     },
   }),
+  defineComponent({
+    id: "content.social",
+    stage: "content",
+    channels: ["social"],
+    name: "Social inbox",
+    blurb:
+      "Reads comments on our posts, follows, mentions and follower counts every 30 minutes into Marketing → Inbox.",
+    icon: "people",
+    for: "wren",
+    ready: false,
+    missing: [FOR_WREN],
+    requires: { components: ["content.posting"] },
+    provides: {
+      services: ["SocialWatch", "SocialDesk"],
+      loops: ["SocialWatch"],
+      records: ["marketing.inbox", "marketing.activity", "marketing.audience"],
+    },
+    out: [{ id: "comment", label: "new comments", kind: "comment" }],
+    hypothesis: {
+      from: "designs/2026-10-06-social-inbox.md",
+      guesses: [
+        { is: "change", says: "Which platforms.", built: "the WREN_CONTENT_CHANNELS setting" },
+        {
+          is: "change",
+          says: "How often: 30 minutes, posts past 3 days and LinkedIn activity every 2 hours.",
+          built: "SOCIAL_EVERY_MS, SLOW_EVERY_MS, ACTIVITY_EVERY_MS",
+        },
+        { is: "fixed", says: "It reads only; every answer waits on William's click." },
+      ],
+    },
+  }),
   /** The Marketing app's numbers: content, ads, search, texts and the site, read only. */
   defineComponent({
     id: "marketing.stats",
