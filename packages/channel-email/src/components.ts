@@ -151,7 +151,7 @@ export const EMAIL_COMPONENTS = [
     provides: {
       services: ["InboxScheduler", "InboxPush", "Disposition", "CallBookings"],
       loops: ["InboxScheduler"],
-      records: ["email.reply", "email.call", "inbox.reply"],
+      records: ["email.reply", "email.call"],
       apps: ["inbox"],
     },
     effects: ["sends"],

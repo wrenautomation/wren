@@ -3,7 +3,7 @@
  * as one funnel, in Wren's workspace. Records and templates only; the console serves them.
  */
 import type { Action } from "@wren/ui";
-import type { Module } from "../../module.js";
+import type { ListPage, Module } from "../../module.js";
 import { askActions, withAsk } from "./ask.js";
 import { WeeklyBookings } from "./chart.js";
 import { copyExtras, copyPreview, dmExtras, dmPreview } from "./dms.js";
@@ -308,12 +308,41 @@ const INBOX_ACTIONS: Action[] = [
   ...INVITE_ACTIONS.filter((a) => own(a) && a.id !== "marketing.inviteWithdraw").map((a) =>
     only("invite", a, a.ask ? { state: ["waiting", "read"] } : WAITS),
   ),
+  // SMS copy is William's: Mark read only, no Ask Claude.
+  ...TEXT_ACTIONS.map((a) => only("text", a, WAITS)),
   ...ACTIVITY_ACTIONS.map((a) => (a.form ? a : only("activity", a))),
   ...askActions("inbox", {
     type: ["comment", "draft", "thread", "dm", "invite"],
     state: ["new", "waiting", "read"],
   }),
 ];
+
+/**
+ * The one queue (`marketing.inbox`): Marketing → Inbox and the Inbox app's "Waiting on you" are
+ * this page, each under its own id.
+ */
+export const INBOX_PAGE: Omit<ListPage, "id"> = {
+  label: "Inbox",
+  template: "list",
+  record: "marketing.inbox",
+  empty: {
+    waiting: "Nothing waits on you.",
+    posts: "No post draft waits on you.",
+    comments: "Comments on our posts show here.",
+    dms: "Threads show here once reach messages someone.",
+    threads: "No thread to answer.",
+    invites: "No accepted invite waits on a first message.",
+    email: "Email replies from leads show here.",
+    texts: "Text threads show here once someone texts back.",
+    activity: "Follows, mentions and notices show here.",
+    all: "Drafts, comments, DMs, threads, invites, replies, texts and activity show here.",
+  },
+  actions: INBOX_ACTIONS,
+  extras: withAsk((detail, at) =>
+    (detail as { messages?: unknown } | null)?.messages ? dmExtras(detail, at) : { sections: [] },
+  ),
+  count: { state: ["new", "waiting"] },
+};
 
 const PERSON_ACTIONS: Action[] = [
   {
@@ -374,29 +403,7 @@ export const marketing: Module = {
   blurb: "Every platform in one place: what waits on you, drafts, people and the numbers.",
   requires: { audience: "team" },
   pages: [
-    {
-      id: "inbox",
-      label: "Inbox",
-      template: "list",
-      record: "marketing.inbox",
-      empty: {
-        waiting: "Nothing waits on you.",
-        posts: "No post draft waits on you.",
-        comments: "Comments on our posts show here.",
-        dms: "Threads show here once reach messages someone.",
-        threads: "No thread to answer.",
-        invites: "No accepted invite waits on a first message.",
-        activity: "Follows, mentions and notices show here.",
-        all: "Drafts, comments, DMs, threads, invites and activity show here.",
-      },
-      actions: INBOX_ACTIONS,
-      extras: withAsk((detail, at) =>
-        (detail as { messages?: unknown } | null)?.messages
-          ? dmExtras(detail, at)
-          : { sections: [] },
-      ),
-      count: { state: ["new", "waiting"] },
-    },
+    { id: "inbox", ...INBOX_PAGE },
     {
       id: "drafts",
       label: "Drafts",

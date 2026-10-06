@@ -7,6 +7,7 @@ import { createElement } from "react";
 import { call } from "../../api.js";
 import type { Module } from "../../module.js";
 import { ClientLook } from "../account/Look.js";
+import { INBOX_PAGE } from "../marketing/index.js";
 import { ClientComponents } from "../marketplace/Installed.js";
 import { Ask } from "./ask.js";
 import {
@@ -445,7 +446,7 @@ export const inbox: Module = {
       tiles: [
         {
           label: "Waiting on you",
-          record: "inbox.reply",
+          record: "marketing.inbox",
           href: "/inbox/waiting?view=waiting",
           needs: true,
         },
@@ -467,9 +468,9 @@ export const inbox: Module = {
       top: [
         {
           label: "Waiting on you",
-          record: "inbox.reply",
+          record: "marketing.inbox",
           href: "/inbox/waiting?view=waiting",
-          fields: ["channel", "at"],
+          fields: ["type", "at"],
           empty: "Nothing is waiting on you.",
         },
         {
@@ -481,16 +482,8 @@ export const inbox: Module = {
         },
       ],
     },
-    {
-      id: "waiting",
-      label: "Every channel",
-      template: "list",
-      record: "inbox.reply",
-      empty: {
-        waiting: "Answers from leads wait here, by email, text or DM.",
-        all: "Every lead's answer shows here.",
-      },
-    },
+    // The one queue, Marketing → Inbox's page; "waiting" keeps old links landing.
+    { ...INBOX_PAGE, id: "waiting", label: "Waiting on you" },
     {
       id: "replies",
       label: "Email replies",

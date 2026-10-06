@@ -124,3 +124,5 @@ desk page loads on the Mac.
   `reach_contacts.draft` (`draft-ask.ts`); a write stamps `draft_at` and answers their newest word
   (`draft_for`), so the watch doesn't write over it. Ask on the Inbox, DMs and Invites; People has
   Draft and Message, no Ask (its ids aren't contacts).
+- 2026-10-06: one queue: Inbox app and Marketing show marketing.inbox, now with email replies and
+  texts; inbox.reply removed.
