@@ -35,6 +35,13 @@ describe("mapOf", () => {
     ]);
   });
 
+  it("a part that runs for Wren says so to the team, and 'Coming' to a client", () => {
+    const one = [row("w.part", "a.base", { ready: "coming" }), row("a.base", null)];
+    const note = (team: boolean) =>
+      mapOf(one, (id) => id, team).groups[0]?.find((b) => b.id === "w.part")?.note;
+    expect([note(true), note(false)]).toEqual(["Runs for Wren", "Coming"]);
+  });
+
   it("not installed is dim; parts with no edges stand alone", () => {
     expect(boxes.find((b) => b.id === "a.top")?.dim).toBe(true);
     expect(boxes.find((b) => b.id === "a.base")?.dim).toBe(false);
@@ -106,5 +113,8 @@ describe("flowBoxes", () => {
       dim: false,
     });
     expect(won).toMatchObject({ id: "out.won", after: ["close"], input: true });
+    // Built for Wren, not yet per client: drawn as built.
+    const running = { ...w, nodes: [{ ...w.nodes[1], ready: "coming" } as Drawn["nodes"][number]] };
+    expect(flowBoxes(running, () => undefined)[0]).toMatchObject({ note: undefined, dim: false });
   });
 });

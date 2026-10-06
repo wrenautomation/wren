@@ -26,7 +26,7 @@ export function ComponentMap({ client, team }: PageProps) {
     `/marketplace/catalog/${encodeURIComponent(id)}?client=${encodeURIComponent(client)}`;
   if (got.error && !got.data) return <Alert onRetry={got.retry}>{got.error.message}</Alert>;
   if (!got.data) return <Loading lines={6} />;
-  const { groups, alone } = mapOf(got.data.rows, at);
+  const { groups, alone } = mapOf(got.data.rows, at, team);
   return (
     <>
       <PageHeader

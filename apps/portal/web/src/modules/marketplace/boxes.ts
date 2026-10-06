@@ -16,7 +16,7 @@ const ACCOUNTS: Record<string, string> = {
  * The connected parts and their accounts as boxes, in groups that share no line, biggest
  * first, and the parts nothing touches.
  */
-export function mapOf(rows: readonly Row[], at: (id: string) => string) {
+export function mapOf(rows: readonly Row[], at: (id: string) => string, team = false) {
   const ids = new Set(rows.map((r) => String(r.id)));
   const after = new Map(
     rows.map((r) => [
@@ -44,7 +44,9 @@ export function mapOf(rows: readonly Row[], at: (id: string) => string) {
         r.installed === "yes"
           ? "Installed"
           : r.ready === "coming"
-            ? "Coming"
+            ? team
+              ? "Runs for Wren"
+              : "Coming"
             : r.ready === "planned"
               ? "In development"
               : r.for === "wren"
@@ -102,10 +104,8 @@ export interface Drawn {
   wires: (Wire & { label?: string; count?: CountRef | null })[];
 }
 
-const READY = { coming: "coming", planned: "in development" } as const;
 export const countKey = (c: CountRef) => `${c.record}:${c.view}`;
 const num = (n: number) => n.toLocaleString("en-US");
-const cap = (s: string) => s[0]?.toUpperCase() + s.slice(1);
 
 /** Every number a drawing needs, once each. */
 export const countsIn = (w: Drawn): CountRef[] => [
@@ -163,18 +163,15 @@ export function flowBoxes(
     ...w.in.map((p): MapBox => ({ id: `in.${p.id}`, label: p.label, input: true, ...box("") })),
     ...w.nodes.map((n): MapBox => {
       const v = n.count ? counts.get(countKey(n.count)) : undefined;
-      // A workflow fades only through its parts: a few unbuilt ones don't fade the rest.
+      // A workflow fades only through its parts: a few unbuilt ones don't fade the rest. A part
+      // that runs for Wren but not yet per client is built, so it doesn't fade.
       const flow = !!n.uses && n.opens === n.uses;
       return {
         id: n.id,
         label: n.name,
         note:
           [
-            n.ready && n.ready !== "ready"
-              ? flow
-                ? `Parts ${READY[n.ready]}`
-                : cap(READY[n.ready])
-              : null,
+            n.ready === "planned" ? (flow ? "Parts in development" : "In development") : null,
             n.note,
             ...(loops.get(n.id) ?? []),
           ]
@@ -184,7 +181,7 @@ export function flowBoxes(
         ...box(n.id),
         href: at(n),
         input: !n.uses,
-        dim: !flow && n.ready !== null && n.ready !== "ready",
+        dim: !flow && n.ready === "planned",
         stacked: !!n.opens,
       };
     }),

@@ -842,7 +842,8 @@ export const componentRecord = (
         channels: c.channels.join(",") || null,
         for: c.for,
         ready: readyOf(c),
-        installed: client ? (has(client, c.id) ? "yes" : "no") : null,
+        // Wren's own parts are never on a client: no "not installed" for them.
+        installed: client && c.for === "client" ? (has(client, c.id) ? "yes" : "no") : null,
         effects: c.effects.join(",") || null,
         needs: [...c.requires.components, ...c.requires.accounts].join(", ") || null,
         missing: c.missing.join("; ") || null,
@@ -883,7 +884,10 @@ export const componentRecord = (
       ready: status(
         {
           ready: { label: "Ready", tone: "good" },
-          coming: { label: "Coming", tone: "neutral" },
+          // Built and running for Wren, not yet per client: the team sees it run, a client waits.
+          coming: team
+            ? { label: "Runs for Wren", tone: "good" }
+            : { label: "Coming", tone: "neutral" },
           planned: { label: "In development", tone: "neutral" },
         },
         "Status",
