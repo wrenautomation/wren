@@ -6,6 +6,7 @@ export * from "./feed.js";
 export * from "./ingest/index.js";
 export * from "./notify.js";
 export * from "./people/index.js";
+export * from "./retention.js";
 export * from "./runs.js";
 export * from "./schema.js";
 export * from "./state.js";

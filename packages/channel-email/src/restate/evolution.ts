@@ -5,6 +5,7 @@
  * genome re-renders that niche's queue so no draft keeps a retired allele.
  */
 import type * as restate from "@restatedev/restate-sdk";
+import { pruneRuns } from "@wren/core";
 import { makeLoopObject, runPass } from "@wren/core/restate";
 import type { Db } from "@wren/db";
 import { parseSettings } from "@wren/experiments";
@@ -38,6 +39,8 @@ export interface EvolutionStats {
   ticked: EvolveTick[];
   skipped: number;
   proposed: { experiment: number; queued: number; approved: number; error?: string }[];
+  /** Old inbox-sync and send-tick runs nothing references, deleted (see `pruneRuns`). */
+  pruned: number;
 }
 
 /** The next 08:00 local strictly after `now`. */
@@ -57,7 +60,7 @@ export async function tickAll(
   campaigns: ReadonlyMap<string, Campaign>,
   opts: { now: Date; trackOpens: boolean; skipRecent?: boolean; llmFor?: LlmFor },
 ): Promise<EvolutionStats> {
-  const stats: EvolutionStats = { ticked: [], skipped: 0, proposed: [] };
+  const stats: EvolutionStats = { ticked: [], skipped: 0, proposed: [], pruned: 0 };
   const changed = new Set<string>();
   const since = new Date(opts.now.getTime() - TICKED_WITHIN_MS);
   for (const exp of await runningExperiments(db)) {
@@ -87,6 +90,8 @@ export async function tickAll(
     const campaign = campaigns.get(niche);
     if (campaign) await refreshCampaign(db, campaign, opts.trackOpens, true);
   }
+  // Housekeeping on the fleet's one daily pass; the ledger is core's, so any loop could host it.
+  stats.pruned = await pruneRuns(db, opts.now);
   return stats;
 }
 
