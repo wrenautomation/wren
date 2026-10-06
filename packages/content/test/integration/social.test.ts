@@ -74,7 +74,7 @@ beforeAll(async () => {
         notifier: sink(pings),
         texter: sink(texts),
       }),
-      makeSocialDesk({ db: pg.db }),
+      makeSocialDesk({ db: pg.db, zone: "America/New_York" }),
     ],
     alwaysReplay: true,
   });
@@ -145,6 +145,7 @@ const follow = (id: string, msAgo: number | null): ActivityRow => ({
 
 describe("SocialWatch", () => {
   it("keeps comments, activity and followers once; pings once; texts only when one asks", async () => {
+    const desk = ingress().serviceClient<ReturnType<typeof makeSocialDesk>>({ name: "SocialDesk" });
     await published("linkedin", "li-p1", 1);
     await published("youtube", "yt-p1", 5);
     li.receive({ id: "li-c1", postId: "li-p1", author: "Ana", text: "Nice one", at: iso(60_000) });
@@ -175,7 +176,14 @@ describe("SocialWatch", () => {
 
     const first = await sync();
     expect(first.stats).toMatchObject({ posts: 2, comments: 2, asked: 1, activity: 2 });
-    expect(first.stats?.audience).toEqual(["linkedin"]);
+    // LinkedIn's count is never the loop's: it waits for Read now.
+    expect(first.stats?.audience).toEqual([]);
+    expect(first.stats?.missed).toEqual(["youtube audience: no profile"]);
+    expect(await pg.db.select().from(socialDays)).toHaveLength(0);
+    expect(await desk.readAudience({ platform: "linkedin" })).toMatchObject({
+      platform: "linkedin",
+      followers: 120,
+    });
     expect(first.error).toBeNull();
     expect(pings).toEqual(["social: 2 comments (1 LinkedIn, 1 YouTube), 2 follows"]);
     expect(texts).toEqual(pings);
@@ -201,8 +209,11 @@ describe("SocialWatch", () => {
     expect(second.stats).toMatchObject({ posts: 1, comments: 0, activity: 0, audience: [] });
     expect(ytReads).toEqual(["yt-p1"]);
     expect(pings).toHaveLength(1);
-    const days = await pg.db.select().from(socialDays).where(eq(socialDays.platform, "linkedin"));
-    expect(days.map((d) => d.followers)).toEqual([120]);
+    const days = () => pg.db.select().from(socialDays).where(eq(socialDays.platform, "linkedin"));
+    expect((await days()).map((d) => d.followers)).toEqual([120]);
+    // A second read on demand replaces the day's count.
+    await desk.readAudience({ platform: "linkedin" });
+    expect((await days()).map((d) => d.followers)).toEqual([130]);
 
     // Follows alone ping Discord, never a text. LinkedIn's activity waits 2 hours (its daily cap).
     li.happen(follow("f4", 0));
@@ -241,6 +252,7 @@ describe("SocialWatch", () => {
     expect(await desk.markSeen({ ids: [Number(acts[0]?.id)] })).toEqual({ seen: 1 });
     expect(await desk.markAllSeen()).toEqual({ seen: 1 });
     expect(await desk.markAllSeen()).toEqual({ seen: 0 });
+    await desk.readAudience({ platform: "linkedin" });
     const audience = (await audienceRecord.rows?.(pg.db)) ?? [];
     expect(audience.find((r) => r.id === "linkedin")).toMatchObject({ site: "LinkedIn" });
   });

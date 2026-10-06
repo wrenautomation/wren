@@ -195,6 +195,7 @@ export const audienceRecord = defineRecord({
     day: date("As of"),
   },
   views: [{ id: "all", label: "All", sort: "-followers", at: "day" }],
+  actions: ["marketing.audienceRead"],
 });
 
 export const SOCIAL_RECORDS = [inboxRecord, activityRecord, audienceRecord];

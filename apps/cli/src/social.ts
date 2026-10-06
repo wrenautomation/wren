@@ -4,7 +4,7 @@
  */
 import * as clients from "@restatedev/restate-sdk-clients";
 import { ingressOf, type Settings } from "@wren/config";
-import { SOCIAL_KEY, type SocialWatch } from "@wren/content/restate";
+import { SOCIAL_KEY, type SocialDesk, type SocialWatch } from "@wren/content/restate";
 import type { Command } from "commander";
 
 const json = (v: unknown) => console.log(JSON.stringify(v, null, 2));
@@ -29,4 +29,15 @@ export function registerSocial(program: Command, settings: Settings): void {
     .command("sync")
     .description("One pass now")
     .action(async () => json(await loop().sync()));
+  social
+    .command("audience <platform>")
+    .description("Read the follower count once now, as today's (LinkedIn's is only read this way)")
+    .action(async (platform: string) =>
+      json(
+        await clients
+          .connect(ingressOf(settings))
+          .serviceClient<SocialDesk>({ name: "SocialDesk" })
+          .readAudience({ platform: platform as never }),
+      ),
+    );
 }

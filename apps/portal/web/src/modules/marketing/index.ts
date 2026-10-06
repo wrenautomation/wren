@@ -183,6 +183,28 @@ const INBOX_ACTIONS: Action[] = [
   ...ACTIVITY_ACTIONS.map((a) => (a.form ? a : only("activity", a))),
 ];
 
+/** One read on his click; the loops behind these pages stay as they are. */
+const readNow = (id: string, handler: string, done: (answer: unknown) => string): Action => ({
+  id,
+  label: "Read now",
+  handler,
+  form: [],
+  done,
+});
+const AUDIENCE_ACTIONS: Action[] = [
+  readNow(
+    "marketing.audienceRead",
+    "marketing/audienceRead",
+    (a) => `LinkedIn: ${(a as { followers?: number } | null)?.followers ?? "no"} followers`,
+  ),
+];
+const DISCOVERY_READ = readNow("marketing.discoveryRead", "marketing/discoveryRead", (a) => {
+  const s = (a as { stats?: { kept?: number; queued?: number; drafted?: number } } | null)?.stats;
+  return s
+    ? `Read. ${s.kept ?? 0} places kept, ${s.queued ?? 0} threads queued, ${s.drafted ?? 0} drafted.`
+    : "Read";
+});
+
 const PLACE_ACTIONS: Action[] = [
   {
     id: "marketing.placeWatch",
@@ -217,6 +239,7 @@ const PLACE_ACTIONS: Action[] = [
     when: { state: ["watching"] },
     done: said("Moved"),
   },
+  DISCOVERY_READ,
 ];
 
 const INVITE_ACTIONS: Action[] = [
@@ -267,6 +290,7 @@ const THREAD_ACTIONS: Action[] = [
     when: { state: ["new", "ranked", "queued"] },
     done: said("Skipped"),
   },
+  DISCOVERY_READ,
 ];
 
 const TEXT_COPY_ACTIONS: Action[] = [
@@ -546,7 +570,8 @@ export const marketing: Module = {
       label: "Followers",
       template: "list",
       record: "marketing.audience",
-      empty: "No follower count yet. SocialWatch reads one a day.",
+      empty: "No follower count yet. SocialWatch reads one a day; LinkedIn's on Read now.",
+      actions: AUDIENCE_ACTIONS,
     },
     {
       id: "comments",

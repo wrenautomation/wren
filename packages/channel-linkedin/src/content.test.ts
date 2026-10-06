@@ -146,7 +146,6 @@ describe("linkedin content channel", () => {
     });
     expect((await ch.activity?.())?.map((r) => r.id)).toEqual(["h1", "h3", "h4", "h6"]);
     expect(calls).toHaveLength(2);
-    expect(ch.audience).toBeUndefined();
 
     const capped = linkedinContent(
       {
@@ -172,5 +171,29 @@ describe("linkedin content channel", () => {
       { author: "urn:li:person:abc" },
     );
     await expect(broken.activity?.()).rejects.toThrow(/500/);
+  });
+
+  it("audience reads Wren's own account only, the whole answer kept", async () => {
+    const answer = { followers: 57, connections: { n: 48, label: "48" }, page: { followers: 9 } };
+    const accounts: Array<string | undefined> = [];
+    const ch = linkedinContent(
+      {
+        async call(_site, method, path, input, account) {
+          expect([method, path, input]).toEqual(["GET", "/audience", {}]);
+          accounts.push(account);
+          return answer as never;
+        },
+        async via() {
+          return "browser";
+        },
+      },
+      { author: "urn:li:person:abc", now: () => new Date("2026-10-06T12:00:00.000Z") },
+    );
+    expect(await ch.audience?.()).toEqual({
+      followers: 57,
+      asOf: "2026-10-06T12:00:00.000Z",
+      raw: answer,
+    });
+    expect(accounts).toEqual(["linkedin@wren"]);
   });
 });

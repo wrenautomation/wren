@@ -303,7 +303,8 @@ export function registerReach(program: Command, withDb: WithDb, settings: Settin
   d.command("start").action(async () => json(await reads().start()));
   d.command("stop").action(async () => json(await reads().stop()));
   d.command("sync")
-    .description("One pass now")
+    .alias("run")
+    .description("One pass now; the loop stays as it is")
     .action(async () => json(await reads().sync()));
 
   cmd

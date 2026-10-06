@@ -106,3 +106,7 @@ desk page loads on the Mac.
 
 - 2026-10-06: William asked for the queue, DM drafts with Claude and on-demand gap fixes. Built as
   above. The Inbox becomes the landing page; the other pages stay for depth.
+- 2026-10-06: Built the two gaps. LinkedIn: autobrowse `GET /audience` (own profile + Wren's Page, 4 a
+  day, 0 for `linkedin` and `linkedin@alt`); `SocialDesk.readAudience` keeps it, replacing the day's
+  row; SocialWatch skips LinkedIn's count (`AUDIENCE_ON_DEMAND`). Reddit: `run` is `sync`'s alias,
+  and Read now calls `RedditReads/wren/sync`; nothing starts the loop.

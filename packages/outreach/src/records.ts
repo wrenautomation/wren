@@ -340,7 +340,12 @@ export const placeRecord = defineRecord({
     { id: "watching", label: "Watching", where: { state: "watching" }, sort: "-fit" },
     { id: "all", label: "All", sort: "-fit" },
   ],
-  actions: ["marketing.placeWatch", "marketing.placeSkip", "marketing.placeMove"],
+  actions: [
+    "marketing.placeWatch",
+    "marketing.placeSkip",
+    "marketing.placeMove",
+    "marketing.discoveryRead",
+  ],
 });
 
 /** New posts in watched places: ranked, the day's best queued with a draft. */
@@ -423,7 +428,7 @@ export const threadRecord = defineRecord({
     },
     { id: "all", label: "All", sort: "-postedAt", at: "postedAt" },
   ],
-  actions: ["marketing.threadComment", "marketing.threadSkip"],
+  actions: ["marketing.threadComment", "marketing.threadSkip", "marketing.discoveryRead"],
 });
 
 /** LinkedIn invites, one per contact: queued, pending, accepted, withdrawn (`reach_invites`). */
