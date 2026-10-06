@@ -21,8 +21,8 @@ next visit unless he bookmarks it. Nothing on the portal is his to arrange.
    Overview's tiles. Kept per viewer in `viewer_prefs`. Reset puts the defaults back.
 4. **Library app.** One place for everything reusable, as a Shop-style grid with tags, facets
    and search. Each kind opens its full content (never just a name):
-   - Copy: email, text and DM templates and cadence steps, each version with its sends and
-     replies (read from the tables that hold them today).
+   - Templates and Sequences: every outreach template, version, variant and step with its
+     numbers, as `2026-10-06-edits-claude-templates.md` lays out.
    - Snippets: saved replies and blocks, new table `snippets` (title, body, tags, channel).
      "Insert" from any draft editor and reply box.
    - Media: videos, Shorts, thumbnails and images from the media bucket, with where each was
@@ -44,9 +44,10 @@ next visit unless he bookmarks it. Nothing on the portal is his to arrange.
 
 1. Saved views, sticky columns, last-used view.
 2. Filters on every list and the phone sheet.
-3. Library app: Copy, Snippets with Insert, Media, SOPs, Workflows.
+3. Library app: Templates and Sequences, Snippets with Insert, Media, SOPs, Workflows.
 4. Customize: rail pins and order, Overview tiles.
 
 ## Decision log
 
 - 2026-10-06: written from his ask; building on his "go on everything".
+- 2026-10-06: Copy became Templates and Sequences, from `2026-10-06-edits-claude-templates.md`.
