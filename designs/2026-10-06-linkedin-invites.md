@@ -78,8 +78,8 @@ accepted → Replies "Accepted your invite" → Message (manual DM, his click)
 - Marketing → Invites. Tabs: To send, Pending, Accepted, Withdrawn, All. Withdraw on pending,
   Message on accepted.
 - Replies: an accepted invite with no messages yet is an item "Accepted your invite".
-- CLI: `wren reach invites status|sweep` (sweep = the watch's pass now: accepts, withdraws,
-  top-up).
+- CLI: `wren reach invites status|set|sweep` (set = Shop's settings from a terminal; sweep = the
+  watch's pass now: accepts, withdraws, top-up).
 
 ## Limits and cost
 

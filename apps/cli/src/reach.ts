@@ -9,11 +9,14 @@
 import { readFile } from "node:fs/promises";
 import * as clients from "@restatedev/restate-sdk-clients";
 import { ingressOf, type Settings } from "@wren/config";
-import type { Db } from "@wren/db";
+import { setWrenSettings } from "@wren/core/clients";
+import { atomic, type Db, setAuditActor } from "@wren/db";
 import {
   CONTACT_STATES,
   type ContactState,
+  INVITES_COMPONENT,
   inviteSettings,
+  invitesSettingsSchema,
   listAccounts,
   listTemplates,
   listThreads,
@@ -287,6 +290,50 @@ export function registerReach(program: Command, withDb: WithDb, settings: Settin
           ),
         })),
       ),
+    );
+  inv
+    .command("set")
+    .description(
+      "Change the settings (as Shop → LinkedIn invites does); a field left out keeps its value",
+    )
+    .option("--account <key>", "the autobrowse credential that sends (linkedin@wren); empty = off")
+    .option("--per-day <n>", "invites a day at most (the ramp may allow fewer)")
+    .option("--niches <list>", "comma separated; empty = every niche not held")
+    .option("--titles <list>", "comma separated words a title must hold; empty = any")
+    .option("--withdraw-after-days <n>")
+    .action(
+      async (o: {
+        account?: string;
+        perDay?: string;
+        niches?: string;
+        titles?: string;
+        withdrawAfterDays?: string;
+      }) => {
+        const list = (v: string) =>
+          v
+            .split(",")
+            .map((x) => x.trim())
+            .filter(Boolean);
+        const change = {
+          ...(o.account !== undefined && { account: o.account }),
+          ...(o.perDay !== undefined && { perDay: Number(o.perDay) }),
+          ...(o.niches !== undefined && { niches: list(o.niches) }),
+          ...(o.titles !== undefined && { titles: list(o.titles) }),
+          ...(o.withdrawAfterDays !== undefined && {
+            withdrawAfterDays: Number(o.withdrawAfterDays),
+          }),
+        };
+        json(
+          await withDb(async (db) => {
+            const next = invitesSettingsSchema.parse({ ...(await inviteSettings(db)), ...change });
+            await atomic(db, async (tx) => {
+              await setAuditActor(tx, "cli");
+              await setWrenSettings(tx, INVITES_COMPONENT, next, "cli");
+            });
+            return next;
+          }),
+        );
+      },
     );
   inv
     .command("sweep")

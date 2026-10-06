@@ -193,7 +193,7 @@ export const OUTREACH_COMPONENTS = [
     icon: "people",
     for: "wren",
     ready: false,
-    missing: ["Sends from the account named in settings; none named yet"],
+    missing: ["Sends from Wren's own LinkedIn account; a client's would need theirs"],
     requires: { components: ["reach.outreach"] },
     settings: invitesSettingsSchema,
     provides: { records: ["marketing.invite"] },
