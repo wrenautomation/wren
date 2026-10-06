@@ -5,7 +5,7 @@
  * line type comes from a carrier lookup later. Toll-free is the one type the
  * digits do say.
  */
-import { parsePhoneNumberFromString } from "libphonenumber-js/max";
+import { findNumbers, parsePhoneNumberFromString } from "libphonenumber-js/max";
 
 export type FoundKind = "tel_link" | "page_text";
 
@@ -27,9 +27,6 @@ export function isTollFree(e164: string): boolean {
   return /^\+18(00|33|44|55|66|77|88)\d{7}$/.test(e164);
 }
 
-// NANP shapes as people type them: optional +1, area code (parens optional), 3, 4.
-const TEXT_PHONE = /(?<![\d+])(?:\+?1[\s.-]?)?\(?[2-9]\d{2}\)?[\s.-]?[2-9]\d{2}[\s.-]?\d{4}(?!\d)/g;
-
 function decode(text: string): string {
   try {
     return decodeURIComponent(text);
@@ -45,8 +42,15 @@ export function phonesOf(tels: readonly string[], text: string | null): FoundPho
     const e164 = toUsE164(decode(tel).split(/[;,?]/)[0] as string);
     if (e164 && !seen.has(e164)) seen.set(e164, "tel_link");
   }
-  for (const m of (text ?? "").matchAll(TEXT_PHONE)) {
-    const e164 = toUsE164(m[0]);
+  const page = text ?? "";
+  let found: ReturnType<typeof findNumbers> = [];
+  try {
+    found = findNumbers(page, { defaultCountry: "US", v2: true });
+  } catch {
+    // a page libphonenumber cannot scan has no phones we can trust
+  }
+  for (const m of found) {
+    const e164 = toUsE164(page.slice(m.startsAt, m.endsAt));
     if (e164 && !seen.has(e164)) seen.set(e164, "page_text");
   }
   return [...seen].map(([e164, kind]) => ({ e164, kind }));

@@ -20,4 +20,12 @@ describe("phonesOf", () => {
       phonesInPage(null, "Order 12125550187999 · zip 10001 · ©2024 · +44 20 7946 0958"),
     ).toEqual([]);
   });
+  it("reads the shapes people type beyond plain separators", () => {
+    const text = "Main 212–555–0187 · Sales 646 - 555 - 0100 · Desk +1 718 555 0142 ext. 12";
+    expect(phonesInPage(null, text)).toEqual([
+      { e164: "+12125550187", kind: "page_text" },
+      { e164: "+16465550100", kind: "page_text" },
+      { e164: "+17185550142", kind: "page_text" },
+    ]);
+  });
 });
