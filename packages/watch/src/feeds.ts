@@ -5,6 +5,7 @@
  * RSS and Atom only: Substack, YouTube channels, GitHub releases, Reddit, HN and most blogs publish
  * one. Items are kept before they're scored, so a pass that dies loses no reads.
  */
+import { decodeHtml } from "@wren/core/html";
 import type { SpineEvent, Step } from "@wren/core/spine";
 import type { Db } from "@wren/db";
 import { completeAndParse, type LlmClient } from "@wren/llm";
@@ -32,22 +33,7 @@ export const FEED_EVERY_MS = 60 * 60_000;
 /** Failed reads of the model's answer before an item is left unscored. */
 const MAX_TRIES = 3;
 
-const NAMED: Record<string, string> = {
-  amp: "&",
-  lt: "<",
-  gt: ">",
-  quot: '"',
-  apos: "'",
-  nbsp: " ",
-};
-
-export function decode(s: string): string {
-  return s.replace(/&(#x[0-9a-f]+|#\d+|[a-z]+);/gi, (m, e: string) => {
-    if (e[0] !== "#") return NAMED[e.toLowerCase()] ?? m;
-    const n = e[1] === "x" || e[1] === "X" ? Number.parseInt(e.slice(2), 16) : Number(e.slice(1));
-    return n > 0 && n <= 0x10ffff ? String.fromCodePoint(n) : m;
-  });
-}
+export const decode = decodeHtml;
 
 /** An element's text as plain words: CDATA unwrapped, escaped HTML read, tags dropped. */
 function plain(raw: string): string {

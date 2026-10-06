@@ -24,6 +24,7 @@
 import { createHash } from "node:crypto";
 import { readdirSync, readFileSync, statSync } from "node:fs";
 import { basename, extname, join } from "node:path";
+import { decodeHtml } from "@wren/core/html";
 import {
   canonicalize,
   decodeCsvBytes,
@@ -142,26 +143,8 @@ export class AgencyDirectoryCsvSource implements LeadSource {
 
 const SKIP_ELEMENTS = /<(script|style|noscript|svg)\b[\s\S]*?<\/\1\s*>/gi;
 const TAG = /<[^>]+>/g;
-const ENTITIES: Readonly<Record<string, string>> = {
-  amp: "&",
-  lt: "<",
-  gt: ">",
-  quot: '"',
-  apos: "'",
-  nbsp: " ",
-};
-
-/** HTML entities to text: the named handful plus numeric forms. */
-export function unescapeHtml(text: string): string {
-  return text.replace(/&(#x[0-9a-f]+|#\d+|[a-z]+);/gi, (whole, body: string) => {
-    if (body[0] === "#") {
-      const code =
-        body[1]?.toLowerCase() === "x" ? Number.parseInt(body.slice(2), 16) : Number(body.slice(1));
-      return Number.isFinite(code) ? String.fromCodePoint(code) : whole;
-    }
-    return ENTITIES[body.toLowerCase()] ?? whole;
-  });
-}
+/** HTML entities to text. */
+export const unescapeHtml = decodeHtml;
 
 /**
  * Visible text of an HTML fragment as ordered, tag-delimited tokens. Directory cards

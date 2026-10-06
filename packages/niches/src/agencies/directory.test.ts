@@ -4,7 +4,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { mintedIdentity, type RawRow } from "@wren/core";
 import { describe, expect, it } from "vitest";
-import { AgencyDirectoryCsvSource } from "./directory.js";
+import { AgencyDirectoryCsvSource, unescapeHtml } from "./directory.js";
 
 const quote = (cell: string) => `"${cell.replaceAll('"', '""')}"`;
 
@@ -139,5 +139,11 @@ describe("AgencyDirectoryCsvSource", () => {
     );
     expect(mintedIdentity(row)).toBeNull();
     expect(row.source_key).toBe("crd:999");
+  });
+});
+
+describe("unescapeHtml", () => {
+  it("reads an out-of-range reference as U+FFFD and knows the full named table", () => {
+    expect(unescapeHtml("a &#99999999; &eacute;&hearts;&nbsp;b")).toBe("a � é♥ b");
   });
 });

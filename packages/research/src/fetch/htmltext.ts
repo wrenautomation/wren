@@ -6,6 +6,8 @@
  * read so far, never sinks a crawl.
  */
 
+import { decodeHtml } from "@wren/core/html";
+
 const SKIP_CONTENT: ReadonlySet<string> = new Set([
   "script",
   "style",
@@ -48,63 +50,8 @@ export interface PageContent {
   tels: string[];
 }
 
-const NAMED_ENTITIES: Readonly<Record<string, string>> = {
-  amp: "&",
-  lt: "<",
-  gt: ">",
-  quot: '"',
-  apos: "'",
-  nbsp: " ",
-  copy: "©",
-  reg: "®",
-  trade: "™",
-  mdash: "—",
-  ndash: "–",
-  hellip: "…",
-  lsquo: "‘",
-  rsquo: "’",
-  ldquo: "“",
-  rdquo: "”",
-  bull: "•",
-  middot: "·",
-  laquo: "«",
-  raquo: "»",
-  deg: "°",
-  eacute: "é",
-  egrave: "è",
-  agrave: "à",
-  aacute: "á",
-  ccedil: "ç",
-  ntilde: "ñ",
-  ouml: "ö",
-  uuml: "ü",
-  auml: "ä",
-  szlig: "ß",
-  euro: "€",
-  pound: "£",
-  times: "×",
-};
-
-/** A code point from a character reference; a surrogate alone is U+FFFD, as browsers read it. */
-const fromReference = (code: number): string =>
-  code >= 0xd800 && code <= 0xdfff ? "\uFFFD" : String.fromCodePoint(code);
-
-/** Decode numeric and common named character references. Unknown names are left as-is. */
-export function decodeEntities(s: string): string {
-  if (!s.includes("&")) return s;
-  return s.replace(/&(#x[0-9a-fA-F]+|#\d+|[a-zA-Z][a-zA-Z0-9]*);?/g, (whole, body: string) => {
-    if (body.startsWith("#x") || body.startsWith("#X")) {
-      const code = Number.parseInt(body.slice(2), 16);
-      return Number.isFinite(code) && code > 0 && code <= 0x10ffff ? fromReference(code) : whole;
-    }
-    if (body.startsWith("#")) {
-      const code = Number.parseInt(body.slice(1), 10);
-      return Number.isFinite(code) && code > 0 && code <= 0x10ffff ? fromReference(code) : whole;
-    }
-    const named = NAMED_ENTITIES[body] ?? NAMED_ENTITIES[body.toLowerCase()];
-    return named ?? whole;
-  });
-}
+/** HTML character references to text (the WHATWG table). */
+export const decodeEntities = decodeHtml;
 
 function parseAttrs(s: string): Map<string, string> {
   const attrs = new Map<string, string>();

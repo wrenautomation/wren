@@ -13,6 +13,7 @@
  * `ConsoleTransport` implements the same contract over an in-memory mailbox:
  * the permanent dry run, and the fixture every outbox test sends through.
  */
+import { decodeHtml } from "@wren/core/html";
 import { randomUUID } from "node:crypto";
 
 /** One message, fully addressed, ready for the wire. */
@@ -179,32 +180,12 @@ function derivedSignatureHtml(lines: readonly string[]): string {
 
 const TAG = /<[^>]+>/g;
 const BREAK = /<br\s*\/?>|<\/p\s*>|<\/div\s*>|<\/tr\s*>/gi;
-const ENTITIES: Record<string, string> = {
-  amp: "&",
-  lt: "<",
-  gt: ">",
-  quot: '"',
-  apos: "'",
-  nbsp: " ",
-};
-
-function unescapeHtml(text: string): string {
-  return text.replace(/&(#x[0-9a-f]+|#[0-9]+|[a-z]+);/gi, (whole, name: string) => {
-    if (name[0] === "#") {
-      const code =
-        name[1]?.toLowerCase() === "x" ? Number.parseInt(name.slice(2), 16) : Number(name.slice(1));
-      return Number.isFinite(code) ? String.fromCodePoint(code) : whole;
-    }
-    return ENTITIES[name.toLowerCase()] ?? whole;
-  });
-}
-
 /**
  * The words a reader actually sees, markup removed and entities resolved:
  * the function that decides whether an HTML part and a plain part agree.
  */
 export function visibleText(html: string): string {
-  const text = unescapeHtml(html.replace(BREAK, "\n").replace(TAG, ""));
+  const text = decodeHtml(html.replace(BREAK, "\n").replace(TAG, ""));
   return text
     .split("\n")
     .map((l) => l.trim())
@@ -247,7 +228,7 @@ export function withLinkCode(html: string, code: string | null | undefined): str
   if (!LINK_CODE.test(code))
     throw new Error(`refusing a link code of this shape: ${JSON.stringify(code)}`);
   return html.replace(LINK, (whole, pre: string, target: string, post: string, text: string) => {
-    const shown = unescapeHtml(text).trim();
+    const shown = decodeHtml(text).trim();
     return shown === target && BARE_DOMAIN.test(shown)
       ? `<a${pre}href="https://${target}?r=${code}"${post}>${text}</a>`
       : whole;

@@ -101,3 +101,9 @@ describe("decodeEntities surrogates", () => {
     expect(decodeEntities("a&#xD83D;b&#55357;c")).toBe("a\uFFFDb\uFFFDc");
   });
 });
+
+describe("decodeEntities named table", () => {
+  it("knows names beyond the common handful", () => {
+    expect(decodeEntities("&Aacute;&hearts;&rarr;&nbsp;x &#99999999;")).toBe("Á♥→ x �");
+  });
+});

@@ -334,3 +334,9 @@ describe("the pixel", () => {
     expect(toHtml("Hi.", null, URL)).not.toContain("display:none");
   });
 });
+
+describe("visibleText entities", () => {
+  it("reads an out-of-range reference as U+FFFD and knows the full named table", () => {
+    expect(visibleText("<p>a &#99999999; &eacute;&hearts;&nbsp;b</p>")).toBe("a � é♥ b");
+  });
+});

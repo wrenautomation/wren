@@ -1,40 +1,5 @@
+import { decodeHtml } from "@wren/core/html";
 import type { MimePart } from "@wren/core/mail";
-
-const ENTITIES: Record<string, string> = {
-  amp: "&",
-  lt: "<",
-  gt: ">",
-  quot: '"',
-  apos: "'",
-  nbsp: " ",
-  ndash: "–",
-  mdash: "—",
-  euro: "€",
-  pound: "£",
-  copy: "©",
-  reg: "®",
-  trade: "™",
-  hellip: "…",
-  rsquo: "’",
-  lsquo: "‘",
-  rdquo: "”",
-  ldquo: "“",
-  bull: "•",
-  middot: "·",
-};
-
-function decodeEntities(text: string): string {
-  return text.replace(/&(#x[0-9a-f]+|#\d+|[a-z]+);/gi, (whole, name: string) => {
-    if (name[0] === "#") {
-      const code =
-        name[1] === "x" || name[1] === "X"
-          ? Number.parseInt(name.slice(2), 16)
-          : Number.parseInt(name.slice(1), 10);
-      return Number.isFinite(code) ? String.fromCodePoint(code) : whole;
-    }
-    return ENTITIES[name.toLowerCase()] ?? whole;
-  });
-}
 
 /** Postgres text refuses NUL; a PDF glyph with no text mapping comes out as one. */
 export const withoutNul = (text: string) => text.replaceAll("\u0000", " ");
@@ -61,7 +26,7 @@ export function htmlText(html: string): string {
     .replace(/<\/(p|div|tr|li|h[1-6]|table|section|header|footer|blockquote)\s*>/gi, "\n")
     .replace(/<\/(td|th)\s*>/gi, " \t ")
     .replace(/<[^>]+>/g, "");
-  return tidy(decodeEntities(text));
+  return tidy(decodeHtml(text));
 }
 
 /**

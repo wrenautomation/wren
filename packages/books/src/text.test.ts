@@ -14,7 +14,8 @@ describe("htmlText", () => {
   });
 
   it("turns NUL into a space, since Postgres text refuses it", () => {
-    expect(htmlText("<p>Sep 6\u0000Oct 6, 2026 &#0;</p>")).toBe("Sep 6 Oct 6, 2026");
+    // &#0; reads as U+FFFD (WHATWG); a raw NUL still becomes a space.
+    expect(htmlText("<p>Sep 6\u0000Oct 6, 2026 &#0;</p>")).toBe("Sep 6 Oct 6, 2026 \uFFFD");
   });
 });
 
@@ -39,5 +40,11 @@ describe("bodyText", () => {
     expect(bodyText(parseMessage(Buffer.from(raw)))).toBe(
       "Receipt INV-1\nTotal $20.00\n\nPaid with your card on file.",
     );
+  });
+});
+
+describe("htmlText entities", () => {
+  it("reads an out-of-range reference as U+FFFD and knows the full named table", () => {
+    expect(htmlText("<p>a &#99999999; b &eacute;&hearts;&rarr;</p>")).toBe("a � b é♥→");
   });
 });
