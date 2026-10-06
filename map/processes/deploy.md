@@ -8,11 +8,11 @@ produces: ["[[platform/restate-services]]"]
 
 # deploy
 
-A green push to main is a deploy: migrate, bundle, publish a Lambda version, register it with Restate Cloud, deploy the phone Worker.
+A green push to main is a deploy: migrate, bundle, publish a Lambda version, register it with Restate on the box, deploy the phone Worker.
 
 ## Input → Movement → Output
 
-The `ci` workflow (lint, unit, integration gates) succeeding on `main`. `deploy` runs `pnpm db:migrate`, `build:lambda`, publishes a new function version, registers the endpoint with Restate Cloud, then `wrangler deploy` for `apps/phone`. Output: the new services live, loops resume where their journals left them.
+The `ci` workflow (lint, unit, integration gates) succeeding on `main`. `deploy` runs `pnpm db:migrate`, `build:lambda`, publishes a new function version, registers the endpoint with Restate on the box (over SSM), then `wrangler deploy` for `apps/phone`. Output: the new services live, loops resume where their journals left them.
 
 ## Why this shape
 

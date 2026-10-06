@@ -34,7 +34,7 @@ Citations: `packages/db/drizzle.config.ts:7`
 ## If you change this
 
 - **Hits:** a `serializable` body can run up to 5 times: database work only, no network. A schema edit needs `db:generate` (a new SQL file) and lands in prod on the next push; a dropped column breaks any view naming it; a new enum value needs its `oneOf`
-- **Does not hit:** Restate state (journal and object state live in Restate Cloud, not Postgres)
+- **Does not hit:** Restate state (journal and object state live in Restate's own data dir on the box, not Postgres)
 
 ## Surfaces
 

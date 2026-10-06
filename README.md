@@ -142,4 +142,4 @@ Edit a package's `src/schema.ts`, then `pnpm db:generate` (writes `packages/db/d
 
 ## Deploy
 
-Restate Cloud → Lambda → Postgres on EC2. `deploy/README.md` is the runbook; `deploy/terraform` the infrastructure; CI ships `main` after `ci` is green.
+Restate (self-hosted on the EC2 box) → Lambda → Postgres on the same box. `deploy/README.md` is the runbook; `deploy/terraform` the infrastructure; CI ships `main` after `ci` is green.

@@ -1,6 +1,6 @@
 # How to walk this map
 
-Verified against commit `83459e9` on 2026-09-28. The repo is a TypeScript monorepo (pnpm + turbo): Restate Cloud calls a Lambda (`apps/worker`), which runs every channel's services over Postgres 17 (Drizzle). Deps point down: `config` ← `db` ← `core` ← `research`, `content`, `channel-*`; `niches` sits on the channels; `books` sits on `core`, `db` and `llm`; `cli` and `worker` sit on everything; `llm` and `offers` are leaves. Channels never import each other.
+Verified against commit `83459e9` on 2026-09-28. The repo is a TypeScript monorepo (pnpm + turbo): Restate (self-hosted on the box) calls a Lambda (`apps/worker`), which runs every channel's services over Postgres 17 (Drizzle). Deps point down: `config` ← `db` ← `core` ← `research`, `content`, `channel-*`; `niches` sits on the channels; `books` sits on `core`, `db` and `llm`; `cli` and `worker` sit on everything; `llm` and `offers` are leaves. Channels never import each other.
 
 ## Walk
 

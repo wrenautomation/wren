@@ -63,9 +63,9 @@ Nothing in this repo references these; they break silently.
 | `../lander/functions/api/subscribe.ts`, `../lander/functions/prefs/` (`WREN_MARKETING_URL` in `wrangler.toml`, `EXPORT_TOKEN`) | `phone.wrenautomation.com/marketing/<handler>` → `Marketing`; the signup signature and the link key both derive from `WREN_SITE_EXPORT_TOKEN` | [[leads/consent]], [[platform/phone-worker]] |
 | `../lander/functions/v/[id].ts` (`VIDEOS_ORIGIN` in `wrangler.toml`) | `<VIDEOS_ORIGIN>/v/<id>.json` as `packages/video/src/publish.ts` writes it; the CloudFront domain from `deploy/terraform/videos.tf` | [[reactivation/demo-video]] |
 | `../autobrowse/walkthrough/03-meta-app.md` | `walkthrough/02-meta-ads.md` (link) | [[ads/ad-launch]] |
-| autobrowse's `sites` service (same Restate Cloud) | called by name from `packages/core/src/content/restate.ts:21`; Meta, LinkedIn, YouTube, X, TikTok, Instagram go through it | [[content/platform]] |
+| autobrowse's `sites` service (same Restate, on the box) | called by name from `packages/core/src/content/restate.ts:21`; Meta, LinkedIn, YouTube, X, TikTok, Instagram go through it | [[content/platform]] |
 | autobrowse's `gmail` site, each seed's Gmail consent | `PlacementScheduler` reads `/gmail/v1/users/me/messages` as the seed (`restate/placement-scheduler.ts:72`) | [[email/placement-check]] |
-| Restate Cloud registrations | every service and handler name in `apps/worker/src/services.ts` | [[platform/restate-services]] |
+| Restate registrations | every service and handler name in `apps/worker/src/services.ts` | [[platform/restate-services]] |
 | SSM `/wren/prod/env`, `/wren/prod/senders_config` | `deploy/prod.env`, `senders_config.toml` via `deploy/scripts/push-secrets.sh` | [[platform/settings]], [[email/roster]] |
 | GitHub `production` environment | `deploy.yml` secrets (AWS, Restate, Cloudflare token) | [[processes/deploy]] |
 | Telnyx portal | webhook URL on `phone.wrenautomation.com`, public key | [[platform/phone-worker]] |

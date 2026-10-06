@@ -9,7 +9,7 @@ entity: apps/worker/src/services.ts:110
 
 # restate-services
 
-The set of services one worker serves, built by `buildServices` from settings. The names are the contract with Restate Cloud: rename one and every ingress URL and CLI call breaks.
+The set of services one worker serves, built by `buildServices` from settings. The names are the contract with Restate: rename one and every ingress URL and CLI call breaks.
 
 ## Why this shape
 
@@ -29,7 +29,7 @@ Citations: `apps/worker/src/services.ts:110`
 ## Connected to
 
 - **owns:** every [[platform/loop-object]]
-- **joins:** [[platform/worker]] (serves them), [[platform/settings]] (decides what binds), Restate Cloud registration (`.github/workflows/deploy.yml:47`)
+- **joins:** [[platform/worker]] (serves them), [[platform/settings]] (decides what binds), Restate registration (`.github/workflows/deploy.yml:47`)
 
 ## If you change this
 
@@ -40,7 +40,7 @@ Citations: `apps/worker/src/services.ts:110`
 
 | Surface | Role |
 |---|---|
-| Restate Cloud | invokes |
+| Restate (box) | invokes |
 | CLI, phone Worker | call by name |
 
 ## See

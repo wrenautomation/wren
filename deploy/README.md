@@ -1,10 +1,12 @@
 # Deploy
 
-Restate Cloud → AWS Lambda (the worker) → Postgres in Docker on one EC2 box.
+Restate → AWS Lambda (the worker) → Postgres, all but the Lambda in Docker on one EC2 box.
+Since 2026-10-06 Restate runs on the box (`deploy/scripts/box-restate.sh`, `https://restate.wrenautomation.com`);
+the Restate Cloud steps below are the way back. Why and how: `designs/2026-10-05-restate-self-host.md`.
 Everything here is general wren infrastructure; nothing knows about niches or channels.
 
 ```
-Restate Cloud (us)  --assume invoker role-->  Lambda wren-prod-worker  --TLS-->  EC2 wren-prod-pg :5432
+Restate (box)  --instance role-->  Lambda wren-prod-worker  --TLS-->  EC2 wren-prod-pg :5432
        ^                                          |                                |
   restate CLI / ingress                     SSM /wren/prod/env                nightly pg_dump → S3
 ```

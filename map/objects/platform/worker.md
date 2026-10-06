@@ -9,7 +9,7 @@ entity: apps/worker/src/lambda.ts:16
 
 # worker
 
-`apps/worker`: the Restate endpoint. `main.ts` serves on :9080 locally; `lambda.ts` serves the same services to Restate Cloud from AWS Lambda. Not the Cloudflare Workers.
+`apps/worker`: the Restate endpoint. `main.ts` serves on :9080 locally; `lambda.ts` serves the same services to Restate from AWS Lambda; `box.ts` serves the box's on 127.0.0.1:9080. Not the Cloudflare Workers.
 
 ## Why this shape
 
@@ -37,7 +37,7 @@ Citations: `apps/worker/src/lambda.ts:16`, `apps/worker/src/services.ts:110`
 
 | Surface | Role |
 |---|---|
-| Restate Cloud | invokes |
+| Restate (box) | invokes |
 | CI | builds and publishes a version |
 
 ## See
