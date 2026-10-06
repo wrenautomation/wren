@@ -3,7 +3,7 @@
  * person when we know them, else the firm. Every channel row already carries `company_id` and a
  * nullable `person_id` (`enrollments`, `sms_contacts`, `reach_contacts`), so the lead needs no id of
  * its own. Each channel guards itself (email's unique indexes, texts' busy firm); this adds the
- * other two. Raw SQL over the three tables, so core imports no channel.
+ * other two. Reads the `lead_channels` view over the three tables, so core imports no channel.
  */
 import type { Queryable } from "@wren/db";
 import { sql } from "drizzle-orm";
@@ -53,15 +53,9 @@ export async function activeElsewhere(
     lead.personId !== null
       ? sql`person_id = ${lead.personId}`
       : sql`company_id = ${lead.companyId} AND person_id IS NULL`;
-  const arms = [
-    channel !== "email" &&
-      sql`SELECT 'email' AS channel, id FROM enrollments WHERE state = 'active' AND ${match}`,
-    channel !== "text" &&
-      sql`SELECT 'text' AS channel, id FROM sms_contacts WHERE state IN ('enrolled', 'replied') AND ${match}`,
-    channel !== "dm" &&
-      sql`SELECT 'dm' AS channel, id FROM reach_contacts WHERE state IN ('enrolled', 'connected', 'replied') AND ${match}`,
-  ].filter((a) => a !== false);
-  const [row] = (await db.execute(sql`${sql.join(arms, sql` UNION ALL `)} LIMIT 1`)) as unknown as {
+  const [row] = (await db.execute(
+    sql`SELECT channel, id FROM lead_channels WHERE active AND channel <> ${channel} AND ${match} LIMIT 1`,
+  )) as unknown as {
     channel: LeadChannel;
     id: number;
   }[];
@@ -77,21 +71,11 @@ export async function firstTouchElsewhere(
 ): Promise<string | null> {
   const since = new Date(now.getTime() - FIRST_TOUCH_GAP_MS).toISOString();
   const until = now.toISOString();
-  const arms = [
-    channel !== "email" &&
-      sql`SELECT 'email' AS channel, m.sent_at AS at FROM messages m
-          JOIN enrollments e ON e.id = m.enrollment_id
-          WHERE e.company_id = ${companyId} AND m.step = 0 AND m.state = 'sent'
-            AND m.sent_at > ${since}::timestamptz AND m.sent_at <= ${until}::timestamptz`,
-    channel !== "text" &&
-      sql`SELECT 'text' AS channel, enrolled_at AS at FROM sms_contacts
-          WHERE company_id = ${companyId} AND enrolled_at > ${since}::timestamptz AND enrolled_at <= ${until}::timestamptz`,
-    channel !== "dm" &&
-      sql`SELECT 'dm' AS channel, enrolled_at AS at FROM reach_contacts
-          WHERE company_id = ${companyId} AND enrolled_at > ${since}::timestamptz AND enrolled_at <= ${until}::timestamptz`,
-  ].filter((a) => a !== false);
   const [row] = (await db.execute(
-    sql`${sql.join(arms, sql` UNION ALL `)} ORDER BY at DESC LIMIT 1`,
+    sql`SELECT channel, first_touch_at AS at FROM lead_channels
+        WHERE company_id = ${companyId} AND channel <> ${channel}
+          AND first_touch_at > ${since}::timestamptz AND first_touch_at <= ${until}::timestamptz
+        ORDER BY at DESC LIMIT 1`,
   )) as unknown as { channel: LeadChannel; at: Date | string }[];
   if (!row) return null;
   const hours = Math.floor((now.getTime() - new Date(row.at).getTime()) / 3_600_000);

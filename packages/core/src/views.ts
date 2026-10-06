@@ -11,6 +11,26 @@ import {
   varchar,
 } from "drizzle-orm/pg-core";
 
+/**
+ * One row per channel enrollment: an email sequence, a text contact or a DM contact, with the
+ * lead it is for (the person when known, else the firm), where it stands, whether it holds the
+ * lead now and when it first touched them. The cross-channel rules (`leads.ts`) and the
+ * per-channel funnel (`books.econ_channels`) read it, so the three tables' states are named once.
+ * An email's first touch is its sent opener; a text or DM is touched when its opener queues.
+ */
+export const leadChannels = pgView("lead_channels", {
+  channel: text("channel"),
+  id: integer("id"),
+  companyId: integer("company_id"),
+  personId: integer("person_id"),
+  state: text("state"),
+  active: boolean("active"),
+  createdAt: timestamp("created_at", { withTimezone: true }),
+  firstTouchAt: timestamp("first_touch_at", { withTimezone: true }),
+}).as(
+  sql`SELECT 'email'::text AS channel, e.id, e.company_id, e.person_id, e.state::text AS state, e.state = 'active' AS active, e.created_at, (SELECT min(m.sent_at) FROM messages m WHERE m.enrollment_id = e.id AND m.step = 0 AND m.state = 'sent') AS first_touch_at FROM enrollments e UNION ALL SELECT 'text', c.id, c.company_id, c.person_id, c.state::text, c.state IN ('enrolled', 'replied'), c.created_at, c.enrolled_at FROM sms_contacts c UNION ALL SELECT 'dm', c.id, c.company_id, c.person_id, c.state::text, c.state IN ('enrolled', 'connected', 'replied'), c.created_at, c.enrolled_at FROM reach_contacts c`,
+);
+
 export const personFacts = pgView("person_facts", {
   personId: integer("person_id"),
   companyId: integer("company_id"),

@@ -262,12 +262,12 @@ export const econChannels = books
       union all select 'email', cb.booked_at, 'booked' from call_bookings cb
         where cb.state = 'booked' and cb.enrollment_id is not null and not exists (
           select 1 from call_invites ci where ci.enrollment_id = cb.enrollment_id and ci.state in ('booked', 'already_booked'))
-      union all select 'sms', c.created_at, 'lead' from sms_contacts c
+      union all select 'sms', c.created_at, 'lead' from public.lead_channels c where c.channel = 'text'
       union all select 'sms', m.sent_at, 'send' from sms_messages m where m.direction = 'out' and m.sent_at is not null
       union all select 'sms', coalesce(m.received_at, m.created_at), 'reply' from sms_messages m where m.direction = 'in'
       union all select 'sms', coalesce(m.received_at, m.created_at), 'interested' from sms_messages m
         where m.direction = 'in' and m.disposition = 'interested'
-      union all select 'reach', c.created_at, 'lead' from reach_contacts c
+      union all select 'reach', c.created_at, 'lead' from public.lead_channels c where c.channel = 'dm'
       union all select 'reach', m.sent_at, 'send' from reach_messages m where m.direction = 'out' and m.sent_at is not null
       union all select 'reach', m.created_at, 'reply' from reach_messages m where m.direction = 'in'),
     funnel as (
