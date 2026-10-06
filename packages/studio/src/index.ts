@@ -24,6 +24,7 @@ export {
   setEdit,
   setFiles,
   setLook,
+  setRendered,
   twelvelabsMinutes,
 } from "./edit.js";
 export {
@@ -37,7 +38,16 @@ export {
   twelvelabsFind,
   twelvelabsLooker,
 } from "./look.js";
-export { cutTracks, FPS, proxy360 } from "./media.js";
-export { type LongProps, longProps } from "./props.js";
-export { openStudio, renderStill } from "./remotion.js";
+export { cutTracks, FPS, preview, proxy360 } from "./media.js";
+export {
+  type LongProps,
+  longProps,
+  SHORT_COUNT,
+  SHORT_S,
+  type ShortProps,
+  shortProps,
+  type ThumbnailProps,
+  thumbnailProps,
+} from "./props.js";
+export { openStudio, type RenderJob, renderAll, renderStill } from "./remotion.js";
 export * from "./schema.js";

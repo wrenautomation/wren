@@ -193,6 +193,16 @@ export function toCutTime(t: number, keep: readonly Span[]): number | null {
   return null;
 }
 
+/** A raw time on the cut timeline; a time inside a cut lands where the next kept part starts. */
+export function onCut(t: number, keep: readonly Span[]): number {
+  let before = 0;
+  for (const k of keep) {
+    if (t <= k.e) return before + Math.max(0, t - k.s);
+    before += k.e - k.s;
+  }
+  return before;
+}
+
 /** A cut-timeline time back on the raw timeline. */
 export function fromCutTime(t: number, keep: readonly Span[]): number {
   let before = 0;

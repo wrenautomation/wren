@@ -250,6 +250,17 @@ export async function cutTracks(
   return files;
 }
 
+/** A low-res copy of a render for the S3 preview: 540 on the short side. */
+export async function preview(input: string, out: string, ffmpeg: string): Promise<string> {
+  const { width, height } = await probe(input, ffmpeg);
+  await run(ffmpeg, [
+    ...["-v", "error", "-y", "-i", input, "-vf", width >= height ? "scale=-2:540" : "scale=540:-2"],
+    ...["-c:v", "h264_videotoolbox", "-b:v", "1500k", "-c:a", "aac", "-b:a", "96k"],
+    ...["-movflags", "+faststart", out],
+  ]);
+  return out;
+}
+
 /** A 360p copy for a look pass, the cam in the corner when there is one. */
 export async function proxy360(
   main: string,

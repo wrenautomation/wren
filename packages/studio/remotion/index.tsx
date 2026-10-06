@@ -1,8 +1,8 @@
 /**
  * Remotion compositions (designs/2026-10-06-video-editor.md, Composition). One file: Remotion's
- * bundler resolves no `.js` specifiers, and nothing here imports @wren/* code, only types.
- * Props come from `longProps` through `--props`; the cut files are served from the edit's folder.
- * Shorts and Thumbnail are step 2.
+ * bundler resolves no `.js` specifiers, so the one value import (Wren's look, for Studio's
+ * placeholder) names its `.ts` file; the rest is types. Props come from `longProps`, `shortProps`
+ * and `thumbnailProps` through `--props`; the cut files are served from `<edit dir>/public`.
  */
 import type { CSSProperties, FC } from "react";
 import {
@@ -14,7 +14,8 @@ import {
   useCurrentFrame,
   useVideoConfig,
 } from "remotion";
-import type { LongProps } from "../src/props.js";
+import { DEFAULT_LOOK } from "../../video/src/overlay.ts";
+import type { Face, LongProps, ShortProps, ThumbnailProps } from "../src/props.js";
 
 type Word = LongProps["words"][number];
 
@@ -38,11 +39,15 @@ export function pages(words: readonly Word[]): Word[][] {
   return out;
 }
 
-const Captions: FC<{ words: Word[]; look: LongProps["look"]; t: number }> = ({
-  words,
-  look,
-  t,
-}) => {
+const Captions: FC<{
+  words: Word[];
+  look: LongProps["look"];
+  t: number;
+  /** Shorts: bigger type, narrower, placed by the layout. */
+  size?: number;
+  width?: number;
+  place?: CSSProperties;
+}> = ({ words, look, t, size = 54, width = 1180, place }) => {
   const all = pages(words);
   const page = all.find((p, i) => {
     const first = p[0] as Word;
@@ -53,12 +58,14 @@ const Captions: FC<{ words: Word[]; look: LongProps["look"]; t: number }> = ({
   });
   if (!page) return null;
   return (
-    <AbsoluteFill style={{ justifyContent: "flex-end", alignItems: "center", paddingBottom: 90 }}>
+    <AbsoluteFill
+      style={{ justifyContent: "flex-end", alignItems: "center", paddingBottom: 90, ...place }}
+    >
       <div
         style={{
-          maxWidth: 1180,
+          maxWidth: width,
           textAlign: "center",
-          font: `700 54px/1.25 ${look.font}`,
+          font: `700 ${size}px/1.25 ${look.font}`,
           color: "#fff",
           textShadow: "0 2px 12px rgba(0,0,0,0.7)",
         }}
@@ -70,6 +77,8 @@ const Captions: FC<{ words: Word[]; look: LongProps["look"]; t: number }> = ({
               // biome-ignore lint/suspicious/noArrayIndexKey: words repeat; position is the identity
               key={i}
               style={{
+                // inline-block: the words carry no spaces, so this is where a line may break.
+                display: "inline-block",
                 padding: "0 8px",
                 borderRadius: 8,
                 background: on ? look.accent : "transparent",
@@ -115,6 +124,149 @@ export const Long: FC<LongProps> = ({ main, cam, words, layout, captions, look }
   );
 };
 
+/** His face in a w x h box: the camera file, or the cam box cropped out of the recording. */
+const FaceBox: FC<{ face: Face; main: string; w: number; h: number; from: number }> = ({
+  face,
+  main,
+  w,
+  h,
+  from,
+}) => {
+  const file = face.file ?? main;
+  const [fw, fh] = face.size;
+  const [bx, by, bw, bh] = face.box ?? [0, 0, fw, fh];
+  const k = Math.max(w / bw, h / bh);
+  return (
+    <div style={{ position: "relative", width: w, height: h, overflow: "hidden" }}>
+      <OffthreadVideo
+        src={staticFile(file)}
+        muted
+        trimBefore={from}
+        style={{
+          position: "absolute",
+          left: (w - bw * k) / 2 - bx * k,
+          top: (h - bh * k) / 2 - by * k,
+          width: fw * k,
+          height: fh * k,
+          maxWidth: "none",
+        }}
+      />
+    </div>
+  );
+};
+
+/**
+ * 9:16: his face on top and the screen below (corner layout), his face alone (cam), or the screen
+ * alone (screen, or no face). The recording plays under every layout: it carries the sound.
+ */
+export const Short: FC<ShortProps> = ({
+  main,
+  face,
+  startFrame,
+  words,
+  layout,
+  captions,
+  look,
+}) => {
+  const frame = useCurrentFrame();
+  const { fps } = useVideoConfig();
+  const t = frame / fps;
+  const want = layout.find((r) => t >= r.from && t < r.to)?.show ?? "corner";
+  const show = face.file || face.box ? want : "screen";
+  const half = show === "corner";
+  return (
+    <AbsoluteFill style={{ background: look.foreground }}>
+      <div style={{ position: "absolute", left: 0, right: 0, top: half ? 960 : 0, bottom: 0 }}>
+        <OffthreadVideo
+          src={staticFile(main)}
+          trimBefore={startFrame}
+          style={{ width: "100%", height: "100%", objectFit: "contain" }}
+        />
+      </div>
+      {show !== "screen" ? (
+        <div style={{ position: "absolute", left: 0, top: 0 }}>
+          <FaceBox face={face} main={main} w={1080} h={half ? 960 : 1920} from={startFrame} />
+        </div>
+      ) : null}
+      {captions.on ? (
+        <Captions
+          words={words}
+          look={look}
+          t={t}
+          size={76}
+          width={960}
+          place={half ? { justifyContent: "center", paddingBottom: 0 } : { paddingBottom: 380 }}
+        />
+      ) : null}
+    </AbsoluteFill>
+  );
+};
+
+/** 1280x720, three looks: text beside his face, text on a bar over the frame, text over his face. */
+export const Thumbnail: FC<ThumbnailProps> = ({ main, face, frame, text, variant, look }) => {
+  const size = text.length <= 20 ? 116 : text.length <= 40 ? 92 : 70;
+  const words = text.split(/\s+/);
+  const title = (color: string, last?: string) => (
+    <div style={{ font: `800 ${size}px/1.04 ${look.font}`, color, letterSpacing: -1 }}>
+      {words.map((w, i) => (
+        // biome-ignore lint/suspicious/noArrayIndexKey: words repeat; position is the identity
+        <span key={i} style={{ color: last && i === words.length - 1 ? last : color }}>
+          {i ? " " : ""}
+          {w}
+        </span>
+      ))}
+    </div>
+  );
+  if (variant === 1)
+    return (
+      <AbsoluteFill style={{ background: look.background, flexDirection: "row" }}>
+        <div style={{ width: 720, padding: "0 56px", display: "flex", alignItems: "center" }}>
+          <div style={{ borderLeft: `14px solid ${look.accent}`, paddingLeft: 32 }}>
+            {title(look.foreground)}
+          </div>
+        </div>
+        <FaceBox face={face} main={main} w={560} h={720} from={frame} />
+      </AbsoluteFill>
+    );
+  if (variant === 2)
+    return (
+      <AbsoluteFill style={{ background: look.foreground }}>
+        <OffthreadVideo
+          src={staticFile(main)}
+          muted
+          trimBefore={frame}
+          style={{ width: "100%", height: "100%", objectFit: "cover" }}
+        />
+        <div
+          style={{
+            position: "absolute",
+            left: 0,
+            right: 0,
+            bottom: 0,
+            padding: "28px 48px",
+            background: look.accent,
+          }}
+        >
+          {title(look.background)}
+        </div>
+      </AbsoluteFill>
+    );
+  return (
+    <AbsoluteFill style={{ background: look.foreground }}>
+      <FaceBox face={face} main={main} w={1280} h={720} from={frame} />
+      <AbsoluteFill
+        style={{
+          background: `linear-gradient(90deg, ${look.foreground} 0%, ${look.foreground}cc 45%, transparent 75%)`,
+          justifyContent: "center",
+          padding: "0 64px",
+        }}
+      >
+        <div style={{ maxWidth: 760 }}>{title(look.background, look.accent)}</div>
+      </AbsoluteFill>
+    </AbsoluteFill>
+  );
+};
+
 const PLACEHOLDER: LongProps = {
   main: "cut-main.mp4",
   cam: null,
@@ -123,29 +275,56 @@ const PLACEHOLDER: LongProps = {
   words: [],
   layout: [],
   captions: { on: true, style: "word" },
-  look: {
-    background: "#f3f1ec",
-    foreground: "#0e0e0e",
-    muted: "#56564f",
-    accent: "#a83b12",
-    font: "system-ui",
-  },
+  look: DEFAULT_LOOK,
 };
 
+const NO_FACE: Face = { file: null, box: null, size: [1920, 1080] };
+
 const Root: FC = () => (
-  <Composition
-    id="Long"
-    component={Long}
-    width={1920}
-    height={1080}
-    fps={30}
-    durationInFrames={300}
-    defaultProps={PLACEHOLDER}
-    calculateMetadata={({ props }) => ({
-      durationInFrames: props.durationInFrames,
-      fps: props.fps,
-    })}
-  />
+  <>
+    <Composition
+      id="Long"
+      component={Long}
+      width={1920}
+      height={1080}
+      fps={30}
+      durationInFrames={300}
+      defaultProps={PLACEHOLDER}
+      calculateMetadata={({ props }) => ({
+        durationInFrames: props.durationInFrames,
+        fps: props.fps,
+      })}
+    />
+    <Composition
+      id="Short"
+      component={Short}
+      width={1080}
+      height={1920}
+      fps={30}
+      durationInFrames={300}
+      defaultProps={{ ...PLACEHOLDER, face: NO_FACE, startFrame: 0, title: "" }}
+      calculateMetadata={({ props }) => ({
+        durationInFrames: props.durationInFrames,
+        fps: props.fps,
+      })}
+    />
+    <Composition
+      id="Thumbnail"
+      component={Thumbnail}
+      width={1280}
+      height={720}
+      fps={30}
+      durationInFrames={1}
+      defaultProps={{
+        main: PLACEHOLDER.main,
+        face: NO_FACE,
+        frame: 0,
+        text: "Title",
+        variant: 1 as const,
+        look: PLACEHOLDER.look,
+      }}
+    />
+  </>
 );
 
 registerRoot(Root);

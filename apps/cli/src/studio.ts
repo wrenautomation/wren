@@ -1,11 +1,12 @@
 /**
- * `wren video add|list|show|set|cuts|keep|knobs|cut|studio|look|find`: the video editor
+ * `wren video add|list|show|set|cuts|keep|knobs|cut|studio|render|look|find`: the video editor
  * (designs/2026-10-06-video-editor.md). Claude Code edits through `show` and `set`; every write
  * leaves a runs row. Runs on William's Mac: whisper.cpp, ffmpeg (VideoToolbox), Remotion.
  */
 import { stat } from "node:fs/promises";
 import { join, resolve } from "node:path";
 import type { Settings } from "@wren/config";
+import { uploadMedia } from "@wren/content";
 import { recordedRun } from "@wren/core";
 import type { Db } from "@wren/db";
 import { fleetKeys, loadLlmEnv } from "@wren/llm";
@@ -24,14 +25,20 @@ import {
   type Looker,
   longProps,
   openStudio,
+  preview,
   proxy360,
+  type RenderJob,
   redoSilence,
+  renderAll,
   renderStill,
   reviewCuts,
   setCutKnobs,
   setEdit,
   setFiles,
   setLook,
+  setRendered,
+  shortProps,
+  thumbnailProps,
   toRaw,
   twelvelabsFind,
   twelvelabsLooker,
@@ -242,6 +249,66 @@ export function registerStudio(
       if (o.still !== undefined) console.log(await renderStill(studioDir, e.dir, props, o.still));
       else await openStudio(studioDir, e.dir, props);
     });
+
+  video
+    .command("render <id>")
+    .description(
+      "Remotion render to <dir>/out: long 16:9, Shorts 9:16, 3 thumbnails; previews and stills to S3",
+    )
+    .option("--short <n>", "only Short n", id)
+    .option("--only <part>", "long, shorts or thumbs")
+    .action((v: string, o: { short?: number; only?: string }) =>
+      withDb(async (db) => {
+        const e = await getEdit(db, id(v));
+        if (o.only && !["long", "shorts", "thumbs"].includes(o.only))
+          throw new Error("--only is long, shorts or thumbs");
+        const part = o.short ? "shorts" : o.only;
+        const want = (p: string) => !part || part === p;
+        const numbers = o.short ? [o.short] : e.shorts.map((_, i) => i + 1);
+        const thumbs = want("thumbs") ? thumbnailProps(e) : null;
+        if (want("thumbs") && !thumbs)
+          console.log(`no thumbnail set; skipped (wren video set ${e.id} with "thumbnail")`);
+        const job: RenderJob = {
+          ...(want("long") ? { long: longProps(e) } : {}),
+          ...(want("shorts") ? { shorts: new Map(numbers.map((n) => [n, shortProps(e, n)])) } : {}),
+          ...(thumbs ? { thumbnails: thumbs } : {}),
+        };
+        const started = Date.now();
+        const { stats } = await recordedRun(
+          db,
+          {
+            command: "video render",
+            argv: { id: e.id, short: o.short ?? null, only: part ?? null },
+          },
+          async () => {
+            const { files, seconds } = await renderAll(studioDir, e.dir, job, (l) =>
+              console.log(l),
+            );
+            // Previews (540p) and stills to the private media bucket, keyed by content hash.
+            const keys: Record<string, string> = {};
+            if (settings.mediaBucket)
+              for (const [name, file] of Object.entries(files)) {
+                const up = file.endsWith(".mp4")
+                  ? await preview(file, join(e.dir, "out", `${name}-540.mp4`), settings.ffmpeg)
+                  : file;
+                keys[name] = await uploadMedia(up, { bucket: settings.mediaBucket });
+              }
+            else console.log("WREN_MEDIA_BUCKET unset: previews not uploaded");
+            await setRendered(db, e.id, files, keys);
+            return {
+              files,
+              seconds,
+              keys: Object.keys(keys),
+              total: (Date.now() - started) / 1000,
+            };
+          },
+        );
+        for (const f of Object.values(stats.files)) console.log(f);
+        console.log(
+          `video ${e.id}: rendered in ${stats.total.toFixed(1)}s; ${stats.keys.length} previews/stills in S3`,
+        );
+      }),
+    );
 
   video
     .command("look <id>")

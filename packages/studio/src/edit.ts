@@ -14,12 +14,16 @@ import {
   type CutKnobs,
   cutKnobsSchema,
   fillerProposals,
+  keepSegments,
+  onCut,
   withSilence,
 } from "./cuts.js";
-import { pcm, probe, silencePass, syncOffset, wav16k } from "./media.js";
+import { FPS, pcm, probe, silencePass, syncOffset, wav16k } from "./media.js";
+import { SHORT_COUNT, SHORT_S } from "./props.js";
 import {
   CUT_STATES,
   CUT_WHYS,
+  type Cut,
   LAYOUTS,
   type Tracks,
   type VideoEdit,
@@ -171,7 +175,7 @@ export const editPatchSchema = z
     cuts: z.array(z.object({ ...span, why: z.enum(CUT_WHYS), state: z.enum(CUT_STATES) }).strict()),
     layout: z.array(z.object({ ...span, show: z.enum(LAYOUTS) }).strict()),
     captions: z.object({ on: z.boolean(), style: z.string().min(1).max(32) }).strict(),
-    shorts: z.array(z.object({ ...span, title: z.string().max(100) }).strict()).max(10),
+    shorts: z.array(z.object({ ...span, title: z.string().max(100) }).strict()),
     thumbnail: z
       .object({ at: sec, text: z.string().max(60) })
       .strict()
@@ -181,8 +185,15 @@ export const editPatchSchema = z
   .strict();
 export type EditPatch = z.infer<typeof editPatchSchema>;
 
-/** Refuse a range backwards or past the end, and overlapping applied cuts. */
-export function checkPatch(patch: EditPatch, durationS: number): string[] {
+/**
+ * Refuse a range backwards or past the end, and Shorts off the rules: none, or 2 to 4 of 20 to 60 s
+ * each once cut (`cuts`: the edit's, unless the patch sets them too).
+ */
+export function checkPatch(
+  patch: EditPatch,
+  durationS: number,
+  cuts: readonly Cut[] = [],
+): string[] {
   const bad: string[] = [];
   const ranges = (name: string, xs: readonly { from: number; to: number }[] | undefined) =>
     xs?.forEach((r, i) => {
@@ -197,6 +208,15 @@ export function checkPatch(patch: EditPatch, durationS: number): string[] {
     ...(patch.thumbnail ? [["thumbnail", patch.thumbnail.at] as const] : []),
   ])
     if (at > durationS) bad.push(`${name}: past the end (${durationS}s)`);
+  const shorts = patch.shorts ?? [];
+  if (shorts.length && (shorts.length < SHORT_COUNT.min || shorts.length > SHORT_COUNT.max))
+    bad.push(`shorts: ${shorts.length} picked; want ${SHORT_COUNT.min} to ${SHORT_COUNT.max}`);
+  const keep = keepSegments(patch.cuts ?? cuts, durationS, FPS);
+  shorts.forEach((r, i) => {
+    const len = onCut(r.to, keep) - onCut(r.from, keep);
+    if (len < SHORT_S.min || len > SHORT_S.max)
+      bad.push(`shorts[${i}]: ${len.toFixed(1)}s once cut; want ${SHORT_S.min} to ${SHORT_S.max}`);
+  });
   return bad;
 }
 
@@ -216,7 +236,7 @@ export async function setEdit(
   if (patch.cuts) patch.cuts = [...patch.cuts].sort((a, b) => a.from - b.from || a.to - b.to);
   return atomic(db, async (tx) => {
     const now = await getEdit(tx, id);
-    const bad = checkPatch(patch, now.tracks.main.durationS);
+    const bad = checkPatch(patch, now.tracks.main.durationS, now.cuts);
     if (bad.length) throw new Error(`not set: ${bad.join("; ")}`);
     const before = Object.fromEntries(
       Object.keys(patch).map((k) => [k, now[k as keyof EditPatch]]),
@@ -254,6 +274,25 @@ export async function redoSilence(db: Queryable, id: number, ffmpeg: string, by:
     await cutKnobs(db),
   );
   return setEdit(db, id, { cuts: withSilence(e.cuts, fresh) }, { by, command: "video cuts" });
+}
+
+/** A render's files and S3 keys, merged into the row's; the state moves to rendered. */
+export async function setRendered(
+  db: Queryable,
+  id: number,
+  files: Record<string, string>,
+  keys: Record<string, string>,
+) {
+  const e = await getEdit(db, id);
+  await db
+    .update(videoEdits)
+    .set({
+      files: { ...e.files, ...files },
+      keys: { ...e.keys, ...keys },
+      state: e.state === "added" || e.state === "edited" ? "rendered" : e.state,
+      updatedAt: new Date(),
+    })
+    .where(eq(videoEdits.id, id));
 }
 
 /** Local files the cut pass or a render wrote. */
