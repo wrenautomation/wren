@@ -161,7 +161,7 @@ export const verifications = pgTable(
     result: varchar("result", { length: 32, enum: VERIFICATION_RESULTS }).notNull(),
     raw: jsonb("raw").notNull(),
     checkedAt: timestamp("checked_at", { withTimezone: true }).defaultNow().notNull(),
-    email: varchar("email", { length: 320 }),
+    email: varchar("email", { length: 320 }).notNull(),
     contactCandidateId: integer("contact_candidate_id"),
   },
   (t) => [
@@ -182,11 +182,7 @@ export const verifications = pgTable(
       foreignColumns: [leads.id],
       name: "fk_verifications_lead_id_leads",
     }),
-    // A verdict shared on main for clients' walks names only its address.
-    check(
-      "ck_verifications_attributed",
-      sql`(lead_id IS NOT NULL) OR (contact_candidate_id IS NOT NULL) OR (email IS NOT NULL)`,
-    ),
+    check("ck_verifications_email_lowercase", sql`email = lower(email)`),
     oneOf("ck_verifications_verificationresult", t.result, VERIFICATION_RESULTS),
   ],
 );

@@ -18,7 +18,8 @@ export function sharedVerdicts(main: Db, inner: EmailVerifier): EmailVerifier {
     name: inner.name,
     authoritative: inner.authoritative,
     costsCredits: inner.costsCredits,
-    async verify(email: string): Promise<Verdict> {
+    async verify(address: string): Promise<Verdict> {
+      const email = address.toLowerCase();
       const since = new Date(Date.now() - SHARED_VERDICT_DAYS * 86_400_000);
       const [known] = await main
         .select({ result: verifications.result, raw: verifications.raw })
