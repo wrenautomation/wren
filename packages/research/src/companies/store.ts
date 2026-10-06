@@ -9,7 +9,8 @@
 import type { Queryable } from "@wren/db";
 import { sql } from "drizzle-orm";
 import { keepFinding, pgSafe } from "../findings.js";
-import { companyChecks } from "../schema.js";
+import { companyChecks, companyEventChecks } from "../schema.js";
+import { type EventsResult, eventFinding } from "./events.js";
 import type { HiringResult } from "./hiring.js";
 
 export async function recordCompanyCheck(
@@ -33,5 +34,29 @@ export async function recordCompanyCheck(
             : findingId,
         checkedAt: sql`now()`,
       },
+    });
+}
+
+/** Writes a news search: each event as a `news` finding, then where the search stands. */
+export async function recordCompanyEvents(
+  db: Queryable,
+  companyId: number,
+  r: EventsResult,
+  runId: string | null = null,
+): Promise<void> {
+  for (const e of r.events) await keepFinding(db, eventFinding(companyId, e));
+  const state = {
+    state: r.state,
+    events: r.events.length,
+    tried: pgSafe(r.tried),
+    retryAt: r.retryAt,
+    runId,
+  };
+  await db
+    .insert(companyEventChecks)
+    .values({ companyId, ...state })
+    .onConflictDoUpdate({
+      target: companyEventChecks.companyId,
+      set: { ...state, checkedAt: sql`now()` },
     });
 }

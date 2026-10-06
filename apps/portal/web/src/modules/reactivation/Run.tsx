@@ -55,11 +55,19 @@ const STEPS: RunStep[] = [
     after: ["lookup"],
   },
   {
+    id: "events",
+    label: "Check firm news",
+    short: "News",
+    source: "Google, Exa",
+    found: "with news",
+    after: ["movers"],
+  },
+  {
     id: "score",
     label: "Rank who to call",
     short: "Ranked",
-    source: "Moves and hiring",
-    after: ["lookup", "signals"],
+    source: "Moves, hiring and news",
+    after: ["lookup", "signals", "events"],
   },
   {
     id: "brief",

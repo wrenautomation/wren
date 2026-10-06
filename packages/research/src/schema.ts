@@ -482,6 +482,42 @@ export const companyChecks = pgTable(
 export type CompanyCheck = typeof companyChecks.$inferSelect;
 
 /**
+ * Where a company's news search stands (`companies/events.ts`), one row per company. `found`: a
+ * dated event in the last 6 months, each a `news` finding. `none`: nothing dated. `unresolved`:
+ * no name to search, or both sources refused. `capped`: Exa's daily cap, until `retry_at`.
+ * `tried` keeps every search, so Google's daily budget counts these too.
+ */
+export const EVENT_CHECK_STATES = ["found", "none", "unresolved", "capped"] as const;
+
+export const companyEventChecks = pgTable(
+  "company_event_checks",
+  {
+    companyId: integer("company_id").notNull(),
+    state: varchar("state", { length: 16, enum: EVENT_CHECK_STATES }).notNull(),
+    events: integer("events").default(0).notNull(),
+    tried: jsonb("tried").notNull(),
+    retryAt: timestamp("retry_at", { withTimezone: true }),
+    runId: uuid("run_id"),
+    checkedAt: timestamp("checked_at", { withTimezone: true }).defaultNow().notNull(),
+  },
+  (t) => [
+    primaryKey({ columns: [t.companyId], name: "pk_company_event_checks" }),
+    index("ix_company_event_checks_run_id").on(t.runId),
+    foreignKey({
+      columns: [t.companyId],
+      foreignColumns: [companies.id],
+      name: "fk_company_event_checks_company_id_companies",
+    }),
+    foreignKey({
+      columns: [t.runId],
+      foreignColumns: [runs.id],
+      name: "fk_company_event_checks_run_id_runs",
+    }),
+    oneOf("ck_company_event_checks_state", t.state, EVENT_CHECK_STATES),
+  ],
+);
+
+/**
  * A study: one question researched from the open web into a cited report.
  * `angles` are its sub-questions, one report section each (a plain question is
  * its own single angle). Anything can be studied: a vertical before we sell to

@@ -193,6 +193,7 @@ export function registerCrm(
                 compose,
                 runId: r.id,
                 feed: runFeed(db, r.id),
+                timezone: settings.sendTimezone,
                 ...(opts.limit ? { limit: opts.limit } : {}),
                 ...(only ? { only } : {}),
               },

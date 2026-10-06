@@ -144,6 +144,8 @@ export async function googleLeft(
       select t from person_lookups l, jsonb_array_elements(l.tried) t where l.looked_up_at >= ${midnight}
       union all
       select t from company_lookups l, jsonb_array_elements(l.tried) t where l.looked_up_at >= ${midnight}
+      union all
+      select t from company_event_checks l, jsonb_array_elements(l.tried) t where l.checked_at >= ${midnight}
     )
     select count(*)::int as spent, coalesce(bool_or(t ->> 'outcome' like 'stopped%'), false) as stopped
     from today where t ->> 'step' = 'google'`);

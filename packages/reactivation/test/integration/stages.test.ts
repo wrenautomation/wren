@@ -14,6 +14,7 @@ import { briefSubjects, briefsDue, writeCrmBriefs } from "../../src/brief.js";
 import { CRM_FORMATS } from "../../src/crm/formats.js";
 import { runCrmImport } from "../../src/crm/import.js";
 import { CrmCsvSource } from "../../src/crm/source.js";
+import { checkCrmEvents } from "../../src/events.js";
 import { crmLookupSubjects } from "../../src/lookup.js";
 import { rankedContacts } from "../../src/ranked.js";
 import { POINTS, scoreCrmContacts, scoreDue } from "../../src/score.js";
@@ -27,6 +28,8 @@ afterAll(() => pg.stop());
 beforeEach(async () => {
   await truncate(pg.db, [
     "unit_holds",
+    "company_event_checks",
+    "mover_addresses",
     "briefs",
     "contact_scores",
     "company_checks",
@@ -268,6 +271,84 @@ describe("score", () => {
     expect(await holdOf(jane)).toEqual({ state: "released", released_by: "checks" });
     expect(await holdOf(bob)).toEqual({ state: "released", released_by: "op@example.com" });
     expect(await scored(bob)).toMatchObject({ next_step: "reach_out" });
+  });
+
+  it("dated news at the firm they work at now is a reason to call; news over 6 months old isn't", async () => {
+    const [jane, carl] = [await personId("Jane"), await personId("Carl")];
+    const day = (ago: number) => new Date(Date.now() - ago * 86_400_000).toISOString().slice(0, 10);
+    const news = (company: number, date: string, title: string) =>
+      finding({
+        kind: "news",
+        company,
+        value: { event: "acquisition", date, title },
+        via: "google",
+      });
+    await finding({ kind: "still_there", person: jane, value: {}, confidence: 0.9 });
+    const acme = await news(
+      await companyId("Acme Staffing"),
+      day(20),
+      "Acme Staffing acquired by Globex",
+    );
+    await news(await companyId("Beta Recruit"), day(240), "Beta Recruit acquired by Initech");
+    await scoreCrmContacts(db());
+    expect(await scoreOf("Jane")).toBe(POINTS.stillThere + POINTS.news);
+    const why = await one<{ next_step: string; reasons: { reason: string; cites: string[] }[] }>(
+      sql`select next_step, reasons from contact_scores where person_id = ${jane}`,
+    );
+    expect(why.next_step).toBe("reach_out");
+    const said = why.reasons.find((r) => r.cites.includes(`f${acme}`));
+    expect(said?.reason).toMatch(
+      /^Acme Staffing in the news \(\w{3} 2026\): Acme Staffing acquired by Globex$/,
+    );
+    expect(await scoreOf("Carl")).toBe(POINTS.unknown);
+
+    // A mover's news is their new firm's, once their address there is found.
+    const move = await finding({ kind: "job_change", person: carl, value: { to: "Gamma Talent" } });
+    const gamma = await one<{ id: number }>(
+      sql`insert into companies (domain, name) values ('gamma.example', 'Gamma Talent') returning id`,
+    );
+    await news(gamma.id, day(10), "Gamma Talent raises $5M");
+    await scoreCrmContacts(db());
+    expect(await scoreOf("Carl")).toBe(POINTS.moved);
+    await db().execute(sql`
+      with c as (insert into contact_candidates (person_id, email, domain, evidence, pattern, rank, state, source_ref)
+        values (${carl}, 'carl@gamma.example', 'gamma.example', 'guessed_pattern', 'first', 1, 'verified', 'move:test')
+        returning id)
+      insert into mover_addresses (finding_id, person_id, domain, outcome, candidate_id)
+      select ${move}, ${carl}, 'gamma.example', 'found', id from c`);
+    await scoreCrmContacts(db());
+    expect(await scoreOf("Carl")).toBe(POINTS.moved + POINTS.news);
+  });
+
+  it("the news stage searches each firm once a month, and the mover's new firm too", async () => {
+    const searched: string[] = [];
+    const sites: SiteClient = {
+      async call(_site, _method, path, input) {
+        searched.push(`${path} ${String((input as { q: string }).q).split('"')[1] ?? ""}`);
+        return {
+          results: [
+            {
+              title: "Acme Staffing acquired by Globex",
+              url: "https://news.example/acme",
+              snippet: null,
+              raw: { publishedDate: new Date().toISOString() },
+            },
+          ],
+        } as never;
+      },
+      async via() {
+        return "api";
+      },
+    };
+    // Outside Google's hours or not, Exa answers: the test doesn't depend on the clock.
+    const stats = await checkCrmEvents(db(), sites, { timezone: "UTC" });
+    expect(stats).toMatchObject({ selected: 2, found: 1, none: 1, errors: 0 });
+    const kept = await one<{ n: number }>(
+      sql`select count(*)::int n from findings where kind = 'news'`,
+    );
+    expect(kept.n).toBe(1);
+    expect((await checkCrmEvents(db(), sites, { timezone: "UTC" })).selected).toBe(0);
+    expect(searched).toHaveLength(2);
   });
 
   it("a hiring reading over a month old doesn't count", async () => {

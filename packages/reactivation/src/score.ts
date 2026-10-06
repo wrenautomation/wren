@@ -22,6 +22,8 @@ export const POINTS = {
   stillThere: 40,
   /** Nothing new about them yet. */
   unknown: 10,
+  /** Dated news at the firm they work at now: an acquisition, merger, funding or new leader. */
+  news: 25,
   placedRecently: 15,
   contactedRecently: 10,
 } as const;
@@ -85,6 +87,20 @@ export const hiringFinding = (companyId: SQL) =>
   sql`(select h.id from company_checks k join findings h on h.id = k.finding_id
     where k.company_id = ${companyId} and h.observed_at > now() - interval '30 days')`;
 
+/**
+ * The latest dated news in 6 months at the firm they work at now: a found mover's new firm, else
+ * their CRM firm (designs/2026-10-06-company-events.md).
+ */
+export const newsFinding = (companyId: SQL, whereId: SQL) => sql`(
+  select n.id from findings n
+  where n.kind = 'news' and n.value->>'date' >= to_char(now() - interval '6 months', 'YYYY-MM-DD')
+    and n.company_id = case
+      when exists (select 1 from findings w where w.id = ${whereId} and w.kind = 'job_change')
+      then (select co.id from mover_addresses m join companies co on co.domain = m.domain
+        where m.finding_id = ${whereId} and m.outcome = 'found' limit 1)
+      else ${companyId} end
+  order by n.value->>'date' desc, n.id desc limit 1)`;
+
 /** Each person's latest CRM row names their firm; `crm lookup` reads the same. */
 export const LATEST_CRM_ROW = sql`select distinct on (c.person_id) c.person_id, c.company_id
   from crm_contacts c order by c.person_id, c.id desc`;
@@ -102,6 +118,8 @@ export interface ScoreInput {
   /** Sources that disagree on where they work (`whereConflict`); null when none do. */
   conflict?: Reading[] | null;
   hiring: { id: number; count: number } | null;
+  /** The news finding's id and value (`event`, `date`, `title`). */
+  news?: { id: number; value: Record<string, unknown> } | null;
   /** YYYY-MM-DD and the CRM row that says so. */
   placed: { on: string; crmId: number } | null;
   contacted: { on: string; crmId: number } | null;
@@ -253,6 +271,15 @@ export function scoreContact(s: ScoreInput, today = new Date()): Scored {
       signal = true;
     }
   }
+  if (s.news) {
+    const date = text(s.news.value.date);
+    reasons.push({
+      reason: `${to ?? s.firm} in the news${date ? ` (${monthOf(date)})` : ""}: ${text(s.news.value.title) ?? "a dated event"}`,
+      points: POINTS.news,
+      cites: [f(s.news.id)],
+    });
+    signal = true;
+  }
   if (s.placed && s.placed.on >= monthsBefore(today, PLACED_MONTHS))
     reasons.push({
       reason: `Last placement ${monthOf(s.placed.on)}`,
@@ -297,6 +324,8 @@ interface Row extends Record<string, unknown> {
   conflict: Reading[] | null;
   hiring_id: number | null;
   hiring_count: number | null;
+  news_id: number | null;
+  news_value: Record<string, unknown> | null;
   placed_on: string | null;
   placed_row: number | null;
   contacted_on: string | null;
@@ -317,19 +346,23 @@ export async function loadScoreInputs(
       from crm_contacts group by person_id
     ),
     picked as (
-      select l.person_id, coalesce(co.name, co.domain, 'their firm') firm,
+      select l.person_id, l.company_id, coalesce(co.name, co.domain, 'their firm') firm,
         ${whereFinding(sql`l.person_id`)} where_id,
         ${whereConflict(sql`l.person_id`)} conflict,
         ${hiringFinding(sql`l.company_id`)} hiring_id
       from latest l join companies co on co.id = l.company_id
+    ),
+    newsed as (
+      select p.*, ${newsFinding(sql`p.company_id`, sql`p.where_id`)} news_id from picked p
     )
     select p.person_id, p.firm, p.where_id, w.kind where_kind, w.value where_value, p.conflict,
-      p.hiring_id, (h.value->>'count')::int hiring_count,
+      p.hiring_id, (h.value->>'count')::int hiring_count, p.news_id, n.value news_value,
       crm.placed_on, crm.placed_row, crm.contacted_on, crm.contacted_row
-    from picked p
+    from newsed p
     join crm on crm.person_id = p.person_id
     left join findings w on w.id = p.where_id
     left join findings h on h.id = p.hiring_id
+    left join findings n on n.id = p.news_id
     order by p.person_id`);
   return rows.map((r) => ({
     personId: r.person_id,
@@ -341,6 +374,7 @@ export async function loadScoreInputs(
           : null,
       conflict: r.conflict,
       hiring: r.hiring_id !== null ? { id: r.hiring_id, count: r.hiring_count ?? 0 } : null,
+      news: r.news_id !== null ? { id: r.news_id, value: r.news_value ?? {} } : null,
       placed:
         r.placed_on && r.placed_row !== null ? { on: r.placed_on, crmId: r.placed_row } : null,
       contacted:

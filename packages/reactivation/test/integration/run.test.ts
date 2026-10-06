@@ -96,7 +96,7 @@ const deps = (down = false) => ({
   fetcher: nothingThere,
   llm,
 });
-const ALL = ["verify", "lookup", "signals", "score", "brief"];
+const ALL = ["verify", "lookup", "signals", "events", "score", "brief"];
 
 describe("crm status", () => {
   it("empty: import first, nothing due", async () => {
@@ -108,11 +108,11 @@ describe("crm status", () => {
   it("after import: verify, look up, check companies, score; briefs wait for findings", async () => {
     await importCsv();
     const s = await crmStatus(db());
-    expect(s.due).toEqual(["verify", "lookup", "signals", "score"]);
+    expect(s.due).toEqual(["verify", "lookup", "signals", "events", "score"]);
     expect(s.lookup).toMatchObject({ due: 2, matched: 0 });
     expect(s.signals).toMatchObject({ due: 1, hiring: 0 });
     expect(s.next).toBe(
-      "`wren --client <id> crm run`: verify 2 addresses, then look up 2 people, then check 1 companies for open roles, then score 2 people",
+      "`wren --client <id> crm run`: verify 2 addresses, then look up 2 people, then check 1 companies for open roles, then search 1 firms for dated news, then score 2 people",
     );
   });
 
@@ -141,8 +141,9 @@ describe("crm run", () => {
     expect(seen).toEqual(ALL);
     expect(stages[1]?.stats).toMatchObject({ selected: 2, unresolved: 2, aborted: null });
     expect(stages[2]?.stats).toMatchObject({ selected: 1, unresolved: 1 });
-    expect(stages[3]?.stats).toMatchObject({ selected: 2, stillThere: 2 });
-    expect(stages[4]?.stats).toMatchObject({ selected: 2, written: 2, dropped: 0 });
+    expect(stages[3]?.stats).toMatchObject({ selected: 1, none: 1, errors: 0 });
+    expect(stages[4]?.stats).toMatchObject({ selected: 2, stillThere: 2 });
+    expect(stages[5]?.stats).toMatchObject({ selected: 2, written: 2, dropped: 0 });
     const s = await crmStatus(db());
     expect(s.due).toEqual([]);
     expect(s.next).toMatch(/^nothing due/);
@@ -156,6 +157,7 @@ describe("crm run", () => {
       ["verify", 1],
       ["lookup", 1],
       ["signals", 1],
+      ["events", 1],
       ["score", 2],
       ["brief", 1],
     ]);
@@ -180,7 +182,7 @@ describe("crm run", () => {
     const stages = await runCrm(db(), broken, { linkedin: null });
     expect(stages.map((r) => r.stage)).toEqual(["verify"]);
     expect(stages[0]?.stats.aborted).toMatch(/prober down/);
-    expect((await crmStatus(db())).due).toEqual(["verify", "lookup", "signals", "score"]);
+    expect((await crmStatus(db())).due).toEqual(["verify", "lookup", "signals", "events", "score"]);
   });
 
   it("lookup errors leave people due for the next run", async () => {
@@ -188,14 +190,14 @@ describe("crm run", () => {
     const stages = await runCrm(db(), deps(true), { linkedin: null });
     // A failed metered read (Exa) stops the run there; later stages wait for the next run.
     expect(stages[1]?.stats).toMatchObject({ aborted: expect.stringMatching(/web failed a read/) });
-    expect((await crmStatus(db())).due).toEqual(["lookup", "signals", "score"]);
+    expect((await crmStatus(db())).due).toEqual(["lookup", "signals", "events", "score"]);
   });
 
   it("no LLM: briefs stop the run and say why; the rest is done", async () => {
     await importCsv();
     const stages = await runCrm(db(), { ...deps(), llm: null }, { linkedin: null });
     expect(stages.map((r) => r.stage)).toEqual(ALL);
-    expect(stages[4]?.stats.aborted).toMatch(/briefs need an LLM/);
+    expect(stages[5]?.stats.aborted).toMatch(/briefs need an LLM/);
     expect((await crmStatus(db())).due).toEqual(["brief"]);
   });
 });

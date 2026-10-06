@@ -26,6 +26,7 @@ beforeAll(async () => {
 afterAll(() => pg.stop());
 beforeEach(async () => {
   await truncate(pg.db, [
+    "company_event_checks",
     "briefs",
     "contact_scores",
     "company_checks",
@@ -358,6 +359,8 @@ describe("status", () => {
     await finding({ kind: "still_there", person: jane, value: {} });
     for (const p of ["Jane", "Bob", "Carl"]) await lookedUp(await personId(p));
     await checkCrmCompanies(db(), { fetcher: fetcher({}), sites: sites({}) }, { linkedin: null });
+    await db().execute(sql`insert into company_event_checks (company_id, state, tried)
+      select distinct company_id, 'none', '[]'::jsonb from crm_contacts`);
     await scoreCrmContacts(db());
     await writeCrmBriefs(db(), new FakeLlm({ default: "sorry, no" }));
 

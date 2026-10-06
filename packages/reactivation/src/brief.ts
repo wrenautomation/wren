@@ -18,7 +18,7 @@ import { sql } from "drizzle-orm";
 import { z } from "zod";
 import { briefLine, failedLine } from "./feed.js";
 import { type BriefState, briefs } from "./schema.js";
-import { hiringFinding, LATEST_CRM_ROW, startedIn, whereFinding } from "./score.js";
+import { hiringFinding, LATEST_CRM_ROW, newsFinding, startedIn, whereFinding } from "./score.js";
 
 export const BRIEF_VERSION = "v6";
 export const STAGE_NAME = "reactivation_brief";
@@ -314,7 +314,8 @@ function briefSubjectsSql(opts: { limit?: number; count?: boolean }) {
             -- A mover's old firm hiring is not "open roles at their company".
             or (f.id = p.hiring_id and not exists (select 1 from findings w
               where w.id = p.where_id and w.kind in ('job_change', 'left')))
-            or (f.person_id = p.person_id and f.kind in ('post', 'news'))) facts,
+            or (f.person_id = p.person_id and f.kind in ('post', 'news'))
+            or f.id = ${newsFinding(sql`p.company_id`, sql`p.where_id`)}) facts,
         (select coalesce(jsonb_agg(jsonb_build_object('id', c.id, 'owner', c.owner,
             'status', c.status, 'contacted', c.last_contacted_on::text,
             'placed', c.last_placement_on::text, 'added', c.added_on::text) order by c.id), '[]')

@@ -8,6 +8,7 @@ import { sql } from "drizzle-orm";
 import { briefsDue } from "./brief.js";
 import { composeDue } from "./compose.js";
 import { type CrmHealth, crmHealth } from "./crm/health.js";
+import { EVENT_FIRMS, eventsDue } from "./events.js";
 import { dueForLookup } from "./lookup.js";
 import { moversDue } from "./movers.js";
 import type { ClientProfile } from "./schema.js";
@@ -21,6 +22,7 @@ export const CRM_STAGES = [
   "lookup",
   "signals",
   "movers",
+  "events",
   "score",
   "brief",
   "compose",
@@ -47,6 +49,8 @@ export interface CrmStatus {
     due: number;
     waitingUntil: string | null;
   };
+  /** Firms searched for dated news (acquisition, merger, funding, new leader). */
+  events: { found: number; none: number; due: number };
   /** People scored, people to rescore (everyone, when anything changed), and the best so far. */
   score: { scored: number; due: number; top: { score: number; count: number }[] };
   briefs: { written: number; empty: number; failed: number; due: number };
@@ -118,6 +122,12 @@ export async function crmStatus(db: Queryable, opts: CrmStatusOptions = {}): Pro
       min(k.retry_at) filter (where k.state = 'capped' and k.retry_at > now())::text waiting_until
     from (select distinct company_id from crm_contacts) c
     left join company_checks k on k.company_id = c.company_id`);
+  const [ev] = await db.execute<{ found: number; none: number; due: number }>(sql`
+    select count(*) filter (where k.state = 'found')::int found,
+      count(*) filter (where k.state = 'none')::int none,
+      count(*) filter (where ${eventsDue(sql`f.company_id`)})::int due
+    from (${EVENT_FIRMS}) f left join company_event_checks k on k.company_id = f.company_id`);
+  const events = { found: ev?.found ?? 0, none: ev?.none ?? 0, due: ev?.due ?? 0 };
   const signals = {
     hiring: k?.hiring ?? 0,
     noOpenings: k?.no_openings ?? 0,
@@ -177,6 +187,7 @@ export async function crmStatus(db: Queryable, opts: CrmStatusOptions = {}): Pro
     lookup: lookup.due,
     signals: signals.due,
     movers: await moversDue(db),
+    events: events.due,
     score: score.due,
     brief: briefs.due,
     compose: emails.due,
@@ -186,6 +197,7 @@ export async function crmStatus(db: Queryable, opts: CrmStatusOptions = {}): Pro
     lookup: `look up ${count.lookup} people`,
     signals: `check ${count.signals} companies for open roles`,
     movers: `find ${count.movers} movers' addresses at their new firms`,
+    events: `search ${count.events} firms for dated news`,
     score: `score ${count.score} people`,
     brief: `write ${count.brief} briefs`,
     compose: `write ${count.compose} emails`,
@@ -205,7 +217,7 @@ export async function crmStatus(db: Queryable, opts: CrmStatusOptions = {}): Pro
           : briefs.failed
             ? `wait: ${briefs.failed} failed briefs retry a day after they failed`
             : "nothing due: everyone is verified, looked up, scored and briefed";
-  return { health, lookup, signals, score, briefs, emails, due, next };
+  return { health, lookup, signals, events, score, briefs, emails, due, next };
 }
 
 export function formatCrmStatus(s: CrmStatus): string[] {

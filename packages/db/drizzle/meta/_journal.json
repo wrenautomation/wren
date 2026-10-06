@@ -708,6 +708,13 @@
       "when": 1791250238552,
       "tag": "0100_checks",
       "breakpoints": true
+    },
+    {
+      "idx": 101,
+      "version": "7",
+      "when": 1791251006683,
+      "tag": "0101_company_event_checks",
+      "breakpoints": true
     }
   ]
 }

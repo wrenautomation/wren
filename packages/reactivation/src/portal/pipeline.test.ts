@@ -46,6 +46,7 @@ function status(o: Over = {}): CrmStatus {
       waitingUntil: null,
       ...o.signals,
     },
+    events: { found: 0, none: 0, due: 0 },
     score: { scored: 0, due: 0, top: [], ...o.score },
     briefs: { written: 0, empty: 0, failed: 0, due: 0, ...o.briefs },
     emails: {

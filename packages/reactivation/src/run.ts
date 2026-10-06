@@ -16,6 +16,7 @@ import type { Fetcher } from "@wren/research/fetch";
 import { type CrmBriefStats, writeCrmBriefs } from "./brief.js";
 import { type CrmComposeStats, composeCrmEmails } from "./compose.js";
 import { type CrmVerifyStats, checkCrmEmails } from "./crm/verify.js";
+import { type CrmEventsStats, checkCrmEvents, NO_EVENTS } from "./events.js";
 import { familyJudge } from "./family.js";
 import { STAGE_STARTS, stageDone } from "./feed.js";
 import { type CrmLookupStats, lookUpCrmPeople } from "./lookup.js";
@@ -54,6 +55,8 @@ export interface CrmRunOptions {
   only?: readonly CrmStage[];
   /** Where the run says what it is doing; nobody watching when left out. */
   feed?: Feed;
+  /** The zone Google's day and hours are kept in (WREN_SEND_TIMEZONE). */
+  timezone?: string;
 }
 
 export type CrmStageResult =
@@ -61,6 +64,7 @@ export type CrmStageResult =
   | { stage: "lookup"; stats: CrmLookupStats }
   | { stage: "signals"; stats: CrmSignalsStats }
   | { stage: "movers"; stats: CrmMoverStats }
+  | { stage: "events"; stats: CrmEventsStats }
   | { stage: "score"; stats: CrmScoreStats }
   | { stage: "brief"; stats: CrmBriefStats }
   | { stage: "compose"; stats: CrmComposeStats };
@@ -135,6 +139,17 @@ export async function runCrm(
             limit,
           ),
         };
+      case "events":
+        if (!deps.sites) return { stage, stats: { ...NO_EVENTS, aborted: NO_SITES } };
+        return {
+          stage,
+          stats: await checkCrmEvents(db, keepingAnswers(deps.sites, db), {
+            runId: opts.runId ?? null,
+            ...(opts.timezone ? { timezone: opts.timezone } : {}),
+            ...watched,
+            ...limit,
+          }),
+        };
       case "score":
         return { stage, stats: await scoreCrmContacts(db) };
       case "brief":
@@ -199,7 +214,7 @@ const NO_MOVERS: CrmMoverStats = {
   aborted: null,
 };
 
-const NO_SITES = "lookup and signals need the sites service: run them with `crm run`";
+const NO_SITES = "lookup, signals and news need the sites service: run them with `crm run`";
 
 const NO_LOOKUPS: CrmLookupStats = {
   selected: 0,

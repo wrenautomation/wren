@@ -16,6 +16,7 @@ export const STAGE_STARTS: Record<CrmStage, string> = {
   lookup: "Finding where each person is now",
   signals: "Checking which companies are hiring",
   movers: "Finding movers' emails at their new firms",
+  events: "Searching each firm's news",
   score: "Ranking who to call first",
   brief: "Writing a brief on each person, with sources",
   compose: "Drafting emails for your OK",
@@ -180,6 +181,8 @@ export const STAGE_DONE = {
     `Checked ${plural(n, "company", "companies")}: ${hiring} hiring`,
   movers: (n: number, found: number) =>
     `Looked for ${plural(n, "mover")} at their new firms: ${found} found`,
+  events: (n: number, found: number) =>
+    `Searched ${plural(n, "firm")}' news: ${found} with an acquisition, merger, funding or new leader`,
   score: () => "Ranked everyone by who to call first",
   brief: (n: number) => `Wrote ${plural(n, "brief")}`,
   compose: (n: number) => `Drafted ${plural(n, "email")}`,
@@ -216,6 +219,10 @@ export function stageDone(r: CrmStageResult): FeedEvent {
       case "movers": {
         const n = r.stats.selected - r.stats.held - r.stats.errors;
         return [STAGE_DONE.movers(n, r.stats.found), n];
+      }
+      case "events": {
+        const n = r.stats.selected - r.stats.capped;
+        return [STAGE_DONE.events(n, r.stats.found), n];
       }
       case "score":
         return [STAGE_DONE.score(), null];
