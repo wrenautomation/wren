@@ -9,13 +9,14 @@ import { type Media, PLATFORMS, type Platform } from "@wren/core/content";
 import { baseColumns, nonNegative, oneOf } from "@wren/db/columns";
 import { sql } from "drizzle-orm";
 import {
-  type AnyPgColumn,
   boolean,
+  foreignKey,
   index,
   integer,
   jsonb,
   pgTable,
   pgView,
+  primaryKey,
   text,
   timestamp,
   uuid,
@@ -48,6 +49,7 @@ export const contentIdeas = pgTable(
     status: varchar("status", { length: 16, enum: IDEA_STATUSES }).notNull().default("open"),
   },
   (t) => [
+    primaryKey({ columns: [t.id], name: "pk_content_ideas" }),
     index("ix_content_ideas_status_created_at").on(t.status, t.createdAt),
     oneOf("ck_content_ideas_source", t.source, IDEA_SOURCES),
     oneOf("ck_content_ideas_status", t.status, IDEA_STATUSES),
@@ -70,6 +72,7 @@ export const contentPlaybooks = pgTable(
     text: text("text").notNull(),
   },
   (t) => [
+    primaryKey({ columns: [t.id], name: "pk_content_playbooks" }),
     index("ix_content_playbooks_platform_created_at").on(t.platform, t.createdAt),
     oneOf("ck_content_playbooks_platform", t.platform, PLATFORMS),
   ],
@@ -79,9 +82,7 @@ export const contentDrafts = pgTable(
   "content_drafts",
   {
     ...baseColumns,
-    ideaId: uuid("idea_id")
-      .notNull()
-      .references(() => contentIdeas.id, { onDelete: "cascade" }),
+    ideaId: uuid("idea_id").notNull(),
     platform: varchar("platform", { length: 16 }).$type<Platform>().notNull(),
     /** The body: a post, a caption, a video description. */
     text: text("text").notNull(),
@@ -102,17 +103,31 @@ export const contentDrafts = pgTable(
     /** The last publish error; cleared when re-approved. */
     error: text("error"),
     /** The draft this one rewrote, and the person's note that asked for it ("shorter, keep the discord line"). */
-    redraftOf: uuid("redraft_of").references((): AnyPgColumn => contentDrafts.id, {
-      onDelete: "set null",
-    }),
+    redraftOf: uuid("redraft_of"),
     note: text("note"),
     promptVersion: varchar("prompt_version", { length: 16 }).notNull(),
     /** The playbook the prompt carried; null when the platform had none. */
-    playbookId: uuid("playbook_id").references(() => contentPlaybooks.id, { onDelete: "set null" }),
+    playbookId: uuid("playbook_id"),
     /** The LLM stage's audit envelope (raw text, usage, model), or null for a hand-written draft. */
     llm: jsonb("llm").$type<Record<string, unknown>>(),
   },
   (t) => [
+    primaryKey({ columns: [t.id], name: "pk_content_drafts" }),
+    foreignKey({
+      columns: [t.ideaId],
+      foreignColumns: [contentIdeas.id],
+      name: "fk_content_drafts_idea_id_content_ideas",
+    }).onDelete("cascade"),
+    foreignKey({
+      columns: [t.redraftOf],
+      foreignColumns: [t.id],
+      name: "fk_content_drafts_redraft_of_content_drafts",
+    }).onDelete("set null"),
+    foreignKey({
+      columns: [t.playbookId],
+      foreignColumns: [contentPlaybooks.id],
+      name: "fk_content_drafts_playbook_id_content_playbooks",
+    }).onDelete("set null"),
     index("ix_content_drafts_idea_id").on(t.ideaId),
     index("ix_content_drafts_status_scheduled_for").on(t.status, t.scheduledFor),
     index("ix_content_drafts_platform_created_at").on(t.platform, t.createdAt),
@@ -131,9 +146,7 @@ export const contentMetrics = pgTable(
   "content_metrics",
   {
     ...baseColumns,
-    draftId: uuid("draft_id")
-      .notNull()
-      .references(() => contentDrafts.id, { onDelete: "cascade" }),
+    draftId: uuid("draft_id").notNull(),
     /** The platform's own clock for the numbers. */
     asOf: timestamp("as_of", { withTimezone: true }).notNull(),
     views: integer("views").notNull(),
@@ -143,6 +156,12 @@ export const contentMetrics = pgTable(
     fetchedWith: varchar("fetched_with", { length: 16 }).notNull(),
   },
   (t) => [
+    primaryKey({ columns: [t.id], name: "pk_content_metrics" }),
+    foreignKey({
+      columns: [t.draftId],
+      foreignColumns: [contentDrafts.id],
+      name: "fk_content_metrics_draft_id_content_drafts",
+    }).onDelete("cascade"),
     index("ix_content_metrics_draft_id_created_at").on(t.draftId, t.createdAt),
     ...nonNegative("content_metrics", {
       views: t.views,

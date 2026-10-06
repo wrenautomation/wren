@@ -36,7 +36,7 @@ const ERA_FUNCTION = `CREATE OR REPLACE FUNCTION audit_era() RETURNS integer
 /** Made once, when `audit_events` is missing. The typed mirror is ./schema.ts. */
 export const AUDIT_TABLE_STATEMENTS = [
   `CREATE TABLE audit_eras (
-    era integer PRIMARY KEY GENERATED ALWAYS AS IDENTITY,
+    era integer CONSTRAINT pk_audit_eras PRIMARY KEY GENERATED ALWAYS AS IDENTITY,
     cluster bigint NOT NULL,
     follows integer NOT NULL,
     began_at timestamptz NOT NULL DEFAULT now(),
@@ -44,7 +44,7 @@ export const AUDIT_TABLE_STATEMENTS = [
   )`,
   ERA_FUNCTION,
   `CREATE TABLE audit_events (
-    id bigint PRIMARY KEY GENERATED ALWAYS AS IDENTITY,
+    id bigint CONSTRAINT pk_audit_events PRIMARY KEY GENERATED ALWAYS AS IDENTITY,
     at timestamptz NOT NULL DEFAULT now(),
     era integer NOT NULL DEFAULT audit_era(),
     tx bigint NOT NULL DEFAULT (pg_current_xact_id())::text::bigint,
@@ -60,7 +60,7 @@ export const AUDIT_TABLE_STATEMENTS = [
   "CREATE INDEX ix_audit_events_era_tx ON audit_events (era, tx, id)",
   "CREATE INDEX ix_audit_events_table_at ON audit_events (table_name, at)",
   `CREATE TABLE audit_seals (
-    id integer PRIMARY KEY GENERATED ALWAYS AS IDENTITY,
+    id integer CONSTRAINT pk_audit_seals PRIMARY KEY GENERATED ALWAYS AS IDENTITY,
     sealed_at timestamptz NOT NULL DEFAULT now(),
     from_era integer NOT NULL,
     from_tx bigint NOT NULL,

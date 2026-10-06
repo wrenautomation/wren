@@ -3,7 +3,7 @@ import { check, timestamp, uuid } from "drizzle-orm/pg-core";
 
 /** Columns every table has. Spread first so `id` and `created_at` lead the DDL. */
 export const baseColumns = {
-  id: uuid("id").primaryKey().defaultRandom(),
+  id: uuid("id").defaultRandom().notNull(),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
 };
 

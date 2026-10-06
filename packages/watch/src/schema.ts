@@ -8,10 +8,12 @@ import { oneOf } from "@wren/db/columns";
 import { sql } from "drizzle-orm";
 import {
   check,
+  foreignKey,
   index,
   integer,
   jsonb,
   pgSchema,
+  primaryKey,
   serial,
   smallint,
   text,
@@ -29,7 +31,7 @@ export type Verdict = (typeof VERDICTS)[number];
 export const rules = watch.table(
   "rules",
   {
-    id: serial("id").primaryKey(),
+    id: serial("id"),
     /** The rule in plain words; the model reads every rule's. */
     words: text("words").notNull(),
     /** An address, or a domain (and its subdomains). With a verdict, code settles it for $0. */
@@ -40,13 +42,16 @@ export const rules = watch.table(
     by: varchar("by", { length: 320 }),
     createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   },
-  (t) => [oneOf("ck_watch_rules_verdict", t.verdict, VERDICTS)],
+  (t) => [
+    primaryKey({ columns: [t.id], name: "pk_rules" }),
+    oneOf("ck_watch_rules_verdict", t.verdict, VERDICTS),
+  ],
 );
 
 export const mail = watch.table(
   "mail",
   {
-    id: serial("id").primaryKey(),
+    id: serial("id"),
     /** The inbox it came to. */
     mailbox: varchar("mailbox", { length: 320 }).notNull(),
     messageId: varchar("message_id", { length: 64 }).notNull(),
@@ -62,12 +67,18 @@ export const mail = watch.table(
     why: text("why"),
     /** One line from the model; null when a rule settled it. */
     summary: text("summary"),
-    ruleId: integer("rule_id").references(() => rules.id, { onDelete: "set null" }),
+    ruleId: integer("rule_id"),
     /** William dealt with it. */
     doneAt: timestamp("done_at", { withTimezone: true }),
     createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   },
   (t) => [
+    primaryKey({ columns: [t.id], name: "pk_mail" }),
+    foreignKey({
+      columns: [t.ruleId],
+      foreignColumns: [rules.id],
+      name: "fk_mail_rule_id_rules",
+    }).onDelete("set null"),
     unique("uq_watch_mail_message").on(t.mailbox, t.messageId),
     index("ix_watch_mail_from").on(t.fromAddress),
     index("ix_watch_mail_at").on(t.at),
@@ -131,7 +142,7 @@ export const ruleRecords = watch
 export const feeds = watch.table(
   "feeds",
   {
-    id: serial("id").primaryKey(),
+    id: serial("id"),
     url: text("url").notNull(),
     name: text("name").notNull(),
     /** The last read that worked. */
@@ -143,7 +154,10 @@ export const feeds = watch.table(
     by: varchar("by", { length: 320 }),
     createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   },
-  (t) => [unique("uq_watch_feeds_url").on(t.url)],
+  (t) => [
+    primaryKey({ columns: [t.id], name: "pk_feeds" }),
+    unique("uq_watch_feeds_url").on(t.url),
+  ],
 );
 
 /**
@@ -153,10 +167,8 @@ export const feeds = watch.table(
 export const items = watch.table(
   "items",
   {
-    id: serial("id").primaryKey(),
-    feedId: integer("feed_id")
-      .notNull()
-      .references(() => feeds.id),
+    id: serial("id"),
+    feedId: integer("feed_id").notNull(),
     url: text("url").notNull(),
     title: text("title").notNull(),
     text: text("text").notNull(),
@@ -175,6 +187,12 @@ export const items = watch.table(
     createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   },
   (t) => [
+    primaryKey({ columns: [t.id], name: "pk_items" }),
+    foreignKey({
+      columns: [t.feedId],
+      foreignColumns: [feeds.id],
+      name: "fk_items_feed_id_feeds",
+    }),
     unique("uq_watch_items_url").on(t.url),
     index("ix_watch_items_feed").on(t.feedId),
     index("ix_watch_items_created").on(t.createdAt),

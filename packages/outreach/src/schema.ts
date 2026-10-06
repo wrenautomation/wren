@@ -27,6 +27,7 @@ import {
   integer,
   jsonb,
   pgTable,
+  primaryKey,
   serial,
   smallint,
   text,
@@ -98,6 +99,7 @@ export const reachAccounts = pgTable(
     retiredAt: timestamp("retired_at", { withTimezone: true }),
   },
   (t) => [
+    primaryKey({ columns: [t.id], name: "pk_reach_accounts" }),
     unique("uq_reach_accounts_platform_account").on(t.platform, t.account),
     oneOf("ck_reach_accounts_platform", t.platform, PLATFORMS),
     oneOf("ck_reach_accounts_state", t.state, ACCOUNT_STATES),
@@ -111,7 +113,7 @@ export const reachAccounts = pgTable(
 export const reachContacts = pgTable(
   "reach_contacts",
   {
-    id: serial("id").primaryKey(),
+    id: serial("id"),
     platform: varchar("platform", { length: 16, enum: PLATFORMS }).notNull(),
     handle: varchar("handle", { length: 120 }).notNull(),
     url: text("url").notNull(),
@@ -139,6 +141,7 @@ export const reachContacts = pgTable(
     createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   },
   (t) => [
+    primaryKey({ columns: [t.id], name: "pk_reach_contacts" }),
     unique("uq_reach_contacts_platform_handle").on(t.platform, t.handle),
     index("ix_reach_contacts_state").on(t.state),
     index("ix_reach_contacts_company_id").on(t.companyId),
@@ -167,7 +170,7 @@ export const reachContacts = pgTable(
 export const reachMessages = pgTable(
   "reach_messages",
   {
-    id: serial("id").primaryKey(),
+    id: serial("id"),
     contactId: integer("contact_id").notNull(),
     accountId: uuid("account_id"),
     direction: varchar("direction", { length: 4, enum: DIRECTIONS }).notNull(),
@@ -189,6 +192,7 @@ export const reachMessages = pgTable(
     createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   },
   (t) => [
+    primaryKey({ columns: [t.id], name: "pk_reach_messages" }),
     index("ix_reach_messages_contact_id").on(t.contactId),
     index("ix_reach_messages_due").on(t.state, t.dueAt),
     index("ix_reach_messages_account_id").on(t.accountId),
@@ -218,14 +222,18 @@ export const reachMessages = pgTable(
   ],
 );
 
-export const reachTemplates = pgTable("reach_templates", {
-  /** A slot key: `<platform>:<sequence>#<step>` or `linkedin:connect-note`. */
-  key: varchar("key", { length: 120 }).primaryKey(),
-  body: text("body").notNull(),
-  updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
-  /** Who saved it: an operator's email, or `cli`. */
-  updatedBy: varchar("updated_by", { length: 200 }).notNull(),
-});
+export const reachTemplates = pgTable(
+  "reach_templates",
+  {
+    /** A slot key: `<platform>:<sequence>#<step>` or `linkedin:connect-note`. */
+    key: varchar("key", { length: 120 }).notNull(),
+    body: text("body").notNull(),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+    /** Who saved it: an operator's email, or `cli`. */
+    updatedBy: varchar("updated_by", { length: 200 }).notNull(),
+  },
+  (t) => [primaryKey({ columns: [t.key], name: "pk_reach_templates" })],
+);
 
 /** What Reddit's inbox calls the message: a reply to our post, to our comment, or a mention of us. */
 export const COMMENT_KINDS = ["post_reply", "comment_reply", "username_mention"] as const;
@@ -246,7 +254,7 @@ export type CommentState = (typeof COMMENT_STATES)[number];
 export const comments = pgTable(
   "comments",
   {
-    id: serial("id").primaryKey(),
+    id: serial("id"),
     platform: varchar("platform", { length: 16, enum: PLATFORMS }).notNull(),
     /** Whose inbox listed it: the account that answers it. */
     accountId: uuid("account_id").notNull(),
@@ -274,6 +282,7 @@ export const comments = pgTable(
     createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   },
   (t) => [
+    primaryKey({ columns: [t.id], name: "pk_comments" }),
     unique("uq_comments_platform_ref").on(t.platform, t.ref),
     index("ix_comments_state").on(t.state),
     index("ix_comments_account_id").on(t.accountId),

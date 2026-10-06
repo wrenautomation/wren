@@ -6,6 +6,7 @@ import {
   integer,
   jsonb,
   pgTable,
+  primaryKey,
   text,
   timestamp,
   unique,
@@ -26,7 +27,7 @@ const bytea = customType<{ data: Buffer; driverData: Buffer }>({ dataType: () =>
 export const auditEvents = pgTable(
   "audit_events",
   {
-    id: bigint("id", { mode: "number" }).primaryKey().generatedAlwaysAsIdentity(),
+    id: bigint("id", { mode: "number" }).generatedAlwaysAsIdentity(),
     at: timestamp("at", { withTimezone: true }).defaultNow().notNull(),
     /** The server's era (`audit_eras`): (era, tx) orders the chain across a restore. */
     era: integer("era").default(sql`audit_era()`).notNull(),
@@ -48,6 +49,7 @@ export const auditEvents = pgTable(
     actor: text("actor").default(sql`NULLIF(current_setting('wren.actor', true), '')`),
   },
   (t) => [
+    primaryKey({ columns: [t.id], name: "pk_audit_events" }),
     index("ix_audit_events_era_tx").on(t.era, t.tx, t.id),
     index("ix_audit_events_table_at").on(t.tableName, t.at),
     index("ix_audit_events_at").on(t.at),
@@ -60,17 +62,21 @@ export const auditEvents = pgTable(
  * sha256(prev_hash || sha256(event)...) in (era, tx, id) order;
  * `audit_verify()` recomputes it.
  */
-export const auditSeals = pgTable("audit_seals", {
-  id: integer("id").primaryKey().generatedAlwaysAsIdentity(),
-  sealedAt: timestamp("sealed_at", { withTimezone: true }).defaultNow().notNull(),
-  fromEra: integer("from_era").notNull(),
-  fromTx: bigint("from_tx", { mode: "number" }).notNull(),
-  throughEra: integer("through_era").notNull(),
-  throughTx: bigint("through_tx", { mode: "number" }).notNull(),
-  events: bigint("events", { mode: "number" }).notNull(),
-  prevHash: bytea("prev_hash"),
-  hash: bytea("hash").notNull(),
-});
+export const auditSeals = pgTable(
+  "audit_seals",
+  {
+    id: integer("id").generatedAlwaysAsIdentity(),
+    sealedAt: timestamp("sealed_at", { withTimezone: true }).defaultNow().notNull(),
+    fromEra: integer("from_era").notNull(),
+    fromTx: bigint("from_tx", { mode: "number" }).notNull(),
+    throughEra: integer("through_era").notNull(),
+    throughTx: bigint("through_tx", { mode: "number" }).notNull(),
+    events: bigint("events", { mode: "number" }).notNull(),
+    prevHash: bytea("prev_hash"),
+    hash: bytea("hash").notNull(),
+  },
+  (t) => [primaryKey({ columns: [t.id], name: "pk_audit_seals" })],
+);
 
 /**
  * Each server the database has lived on, in order: Postgres's `system_identifier`
@@ -79,12 +85,15 @@ export const auditSeals = pgTable("audit_seals", {
 export const auditEras = pgTable(
   "audit_eras",
   {
-    era: integer("era").primaryKey().generatedAlwaysAsIdentity(),
+    era: integer("era").generatedAlwaysAsIdentity(),
     cluster: bigint("cluster", { mode: "bigint" }).notNull(),
     follows: integer("follows").notNull(),
     beganAt: timestamp("began_at", { withTimezone: true }).defaultNow().notNull(),
   },
-  (t) => [unique().on(t.cluster, t.follows)],
+  (t) => [
+    primaryKey({ columns: [t.era], name: "pk_audit_eras" }),
+    unique().on(t.cluster, t.follows),
+  ],
 );
 
 export type AuditEvent = typeof auditEvents.$inferSelect;

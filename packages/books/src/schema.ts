@@ -682,13 +682,14 @@ export type AlertKind = (typeof ALERT_KINDS)[number];
 export const alerts = books.table(
   "alerts",
   {
-    key: text("key").primaryKey(),
+    key: text("key").notNull(),
     kind: varchar("kind", { length: 32, enum: ALERT_KINDS }).notNull(),
     message: text("message").notNull(),
     raisedAt: timestamp("raised_at", { withTimezone: true }).defaultNow().notNull(),
     clearedAt: timestamp("cleared_at", { withTimezone: true }),
   },
   (t) => [
+    primaryKey({ columns: [t.key], name: "pk_alerts" }),
     oneOf("ck_alerts_kind", t.kind, ALERT_KINDS),
     index("ix_alerts_open").on(t.kind).where(sql`${t.clearedAt} IS NULL`),
   ],

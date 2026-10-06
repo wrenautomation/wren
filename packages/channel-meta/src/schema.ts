@@ -43,6 +43,7 @@ export const adLaunches = pgTable(
     stopReason: varchar("stop_reason", { length: 300 }),
   },
   (t) => [
+    primaryKey({ columns: [t.id], name: "pk_ad_launches" }),
     index("ix_ad_launches_status").on(t.status),
     index("ix_ad_launches_campaign_id").on(t.campaignId),
     oneOf("ck_ad_launches_status", t.status, LAUNCH_STATUSES),

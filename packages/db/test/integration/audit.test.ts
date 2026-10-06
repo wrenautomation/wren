@@ -123,6 +123,17 @@ describe("which tables", () => {
     expect(await eventsOf("audit_probe")).toEqual([]);
   });
 
+  it("renames a log key left on Postgres's default name", async () => {
+    await pg.db.execute(
+      sql`alter table audit_seals rename constraint pk_audit_seals to audit_seals_pkey`,
+    );
+    await installAudit(pg.db);
+    const [row] = await pg.db.execute<{ n: string }>(
+      sql`select conname n from pg_constraint where conrelid = 'audit_seals'::regclass and contype = 'p'`,
+    );
+    expect(row?.n).toBe("pk_audit_seals");
+  });
+
   it("changes nothing when installed again", async () => {
     expect(await installAudit(pg.db)).toEqual({ added: 0, removed: 0 });
   });

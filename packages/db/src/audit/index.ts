@@ -106,6 +106,14 @@ export async function installAudit(db: Db): Promise<{ added: number; removed: nu
       sql`select to_regclass('public.audit_events')::text as t`,
     );
     if (!found[0]?.t) for (const s of AUDIT_TABLE_STATEMENTS) await tx.execute(sql.raw(s));
+    // Logs made before the keys were named carry Postgres's default name.
+    for (const t of ["audit_eras", "audit_events", "audit_seals"])
+      await tx.execute(
+        sql.raw(`DO $$ BEGIN
+          IF EXISTS (SELECT 1 FROM pg_constraint WHERE conrelid = '${t}'::regclass AND conname = '${t}_pkey')
+          THEN ALTER TABLE ${t} RENAME CONSTRAINT ${t}_pkey TO pk_${t}; END IF;
+        END $$`),
+      );
     for (const s of AUDIT_FUNCTION_STATEMENTS) await tx.execute(sql.raw(s));
     for (const table of AUDIT_TABLES) {
       const [guard] = await tx.execute<{ enabled: string }>(

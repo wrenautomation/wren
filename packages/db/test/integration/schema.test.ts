@@ -46,4 +46,18 @@ describe("schema", () => {
           and (a.indkey::int2[])[0:a.indnkeyatts - 1] = (b.indkey::int2[])[0:a.indnkeyatts - 1]`),
     ).toEqual([]);
   });
+
+  // Drizzle's defaults (`t_pkey`, `t_col_parent_id_fk`) say nothing a name should; auth is
+  // better-auth's own and drizzle holds its migration log.
+  it("names every primary and foreign key pk_ or fk_", async () => {
+    expect(
+      await offenders(sql`
+        select c.conrelid::regclass || ' ' || c.conname o
+        from pg_constraint c
+        join pg_namespace n on n.oid = c.connamespace
+        where n.nspname not in ('pg_catalog', 'information_schema', 'auth', 'drizzle')
+          and ((c.contype = 'p' and c.conname not like 'pk\\_%')
+            or (c.contype = 'f' and c.conname not like 'fk\\_%'))`),
+    ).toEqual([]);
+  });
 });

@@ -31,6 +31,7 @@ import {
   jsonb,
   pgTable,
   pgView,
+  primaryKey,
   serial,
   smallint,
   text,
@@ -146,6 +147,7 @@ export const smsNumbers = pgTable(
     registeredAt: timestamp("registered_at", { withTimezone: true }),
   },
   (t) => [
+    primaryKey({ columns: [t.id], name: "pk_sms_numbers" }),
     unique("uq_sms_numbers_e164").on(t.e164),
     oneOf("ck_sms_numbers_numberstate", t.state, NUMBER_STATES),
     oneOf("ck_sms_numbers_country", t.country, PHONE_COUNTRIES),
@@ -159,7 +161,7 @@ export const smsNumbers = pgTable(
 export const smsContacts = pgTable(
   "sms_contacts",
   {
-    id: serial("id").primaryKey(),
+    id: serial("id"),
     e164: varchar("e164", { length: 16 }).notNull(),
     /** Null only for a stranger who texted one of our numbers first. */
     companyId: integer("company_id"),
@@ -192,6 +194,7 @@ export const smsContacts = pgTable(
     createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   },
   (t) => [
+    primaryKey({ columns: [t.id], name: "pk_sms_contacts" }),
     index("ix_sms_contacts_person_id").on(t.personId),
     index("ix_sms_contacts_number_id").on(t.numberId),
     index("ix_sms_contacts_source_document_id").on(t.sourceDocumentId),
@@ -238,7 +241,7 @@ export const smsContacts = pgTable(
 export const smsMessages = pgTable(
   "sms_messages",
   {
-    id: serial("id").primaryKey(),
+    id: serial("id"),
     contactId: integer("contact_id").notNull(),
     direction: varchar("direction", { length: 4, enum: DIRECTIONS }).notNull(),
     kind: varchar("kind", { length: 16, enum: MESSAGE_KINDS }).notNull(),
@@ -271,6 +274,7 @@ export const smsMessages = pgTable(
     createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   },
   (t) => [
+    primaryKey({ columns: [t.id], name: "pk_sms_messages" }),
     index("ix_sms_messages_run_id").on(t.runId),
     index("ix_sms_messages_contact_id").on(t.contactId),
     index("ix_sms_messages_state_due").on(t.state, t.dueAt),
@@ -324,7 +328,7 @@ export const smsMessages = pgTable(
 export const smsEvents = pgTable(
   "sms_events",
   {
-    id: serial("id").primaryKey(),
+    id: serial("id"),
     provider: varchar("provider", { length: 16 }).notNull(),
     providerEventId: varchar("provider_event_id", { length: 64 }).notNull(),
     type: varchar("type", { length: 64 }).notNull(),
@@ -333,17 +337,24 @@ export const smsEvents = pgTable(
     /** What applying it did (`delivered #12`, `stop: suppressed`, `ignored: unknown message`). */
     outcome: text("outcome"),
   },
-  (t) => [unique("uq_sms_events_provider_event").on(t.provider, t.providerEventId)],
+  (t) => [
+    primaryKey({ columns: [t.id], name: "pk_sms_events" }),
+    unique("uq_sms_events_provider_event").on(t.provider, t.providerEventId),
+  ],
 );
 
-export const smsTemplates = pgTable("sms_templates", {
-  /** A slot key: `<sequence>#<step>` or `keyword.<help|start|stop>`. */
-  key: varchar("key", { length: 120 }).primaryKey(),
-  body: text("body").notNull(),
-  updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
-  /** Who saved it: an operator's email, or `cli`. */
-  updatedBy: varchar("updated_by", { length: 200 }).notNull(),
-});
+export const smsTemplates = pgTable(
+  "sms_templates",
+  {
+    /** A slot key: `<sequence>#<step>` or `keyword.<help|start|stop>`. */
+    key: varchar("key", { length: 120 }).notNull(),
+    body: text("body").notNull(),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+    /** Who saved it: an operator's email, or `cli`. */
+    updatedBy: varchar("updated_by", { length: 200 }).notNull(),
+  },
+  (t) => [primaryKey({ columns: [t.key], name: "pk_sms_templates" })],
+);
 
 /** A device that gets a notification when a text comes in (web push from the phone app). */
 export const smsPushSubscriptions = pgTable(
@@ -359,6 +370,7 @@ export const smsPushSubscriptions = pgTable(
     lastPushedAt: timestamp("last_pushed_at", { withTimezone: true }),
   },
   (t) => [
+    primaryKey({ columns: [t.id], name: "pk_sms_push_subscriptions" }),
     index("ix_sms_push_subscriptions_operator").on(t.operator),
     foreignKey({
       columns: [t.operator],
