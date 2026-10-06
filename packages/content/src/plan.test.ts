@@ -48,7 +48,7 @@ describe("daily plan", () => {
   it("the ping says what it drafted, else the shortfall", () => {
     const plan = {
       day: "2026-10-07",
-      platforms: [{ platform: "linkedin" as const, slots: 1, filled: 0, waiting: 1 }],
+      platforms: [{ platform: "linkedin" as const, slots: 2, filled: 0, waiting: 1 }],
       openIdeas: 0,
     };
     const d = (platform: "linkedin" | "reddit") => ({
@@ -72,7 +72,8 @@ describe("daily plan", () => {
       ],
       openIdeas: 3,
     };
-    expect(shortfallOf(plan)).toBe(1);
+    expect(shortfallOf(plan)).toBe(0);
+    expect(shortfallOf({ ...plan, platforms: [{ ...plan.platforms[1]!, filled: 0 }] })).toBe(1);
     expect(formatPlan(plan)).toEqual([
       "linkedin: 0 of 1 slots filled, 2 drafts wait for review",
       "reddit: 1 of 1 slots filled",

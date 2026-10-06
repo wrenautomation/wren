@@ -73,9 +73,9 @@ export async function planFor(
   return { day: day.day, platforms: out, openIdeas: ideas?.n ?? 0 };
 }
 
-/** Empty slots across the plan. */
+/** Slots neither an approved post nor a waiting draft can fill. */
 export const shortfallOf = (p: DayPlan): number =>
-  p.platforms.reduce((n, x) => n + Math.max(x.slots - x.filled, 0), 0);
+  p.platforms.reduce((n, x) => n + Math.max(x.slots - x.filled - x.waiting, 0), 0);
 
 /** Slot instants no draft holds yet, capped so a draft scheduled off-slot (`--at`) still counts as one. */
 export function freeSlots(instants: readonly Date[], taken: readonly Date[]): Date[] {
