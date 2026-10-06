@@ -120,7 +120,7 @@ import { makeAuditSealer } from "@wren/core/audit";
 import { CalcomCalendar, type Calendar } from "@wren/core/calendar";
 import { clientRecord, settingsFor } from "@wren/core/clients";
 import { makeConsolePortal, restateAdmin, restateAdminGet } from "@wren/core/console";
-import type { SiteClient } from "@wren/core/content";
+import { asAccount, type SiteClient } from "@wren/core/content";
 import { sitesHost } from "@wren/core/content/box";
 import { ingressSites } from "@wren/core/content/ingress";
 import { makeTokenRenewal } from "@wren/core/content/renewal";
@@ -1144,7 +1144,10 @@ function contentFor(settings: Settings, log: Logger): ChannelsFor | null {
   return (ctx) => {
     const sites = restateSites(ctx, { caller: "wren:content", ...sitesAt });
     return {
-      ...(on.includes("linkedin") ? { linkedin: linkedinContent(sites) } : {}),
+      // Wren's own login (William, 10-06): bare `linkedin` is his personal account, never used here.
+      ...(on.includes("linkedin")
+        ? { linkedin: linkedinContent(asAccount(sites, "linkedin@wren")) }
+        : {}),
       ...(reddit
         ? {
             reddit: redditContent(
