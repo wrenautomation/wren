@@ -1,250 +1,69 @@
 /**
- * A FlowMap on React Flow: `flow.ts` places the columns and draws the lines, each box is a link.
- * With `edit`, a box shows handles to drag a line from and onto, and a line can be clicked. Always left to right, each start just before what uses it; narrower than its columns, it scrolls sideways in its own box.
- * Labeled lines widen the gaps so the labels sit between the columns.
+ * A FlowMap on the graph kit: each box a node, each `after` a wire carrying its label. Accounts
+ * and a workflow's own ends are dashed, a workflow inside is a stack, each box is a link. With
+ * `edit`, a box shows handles to drag a line from and onto, and a line can be clicked.
  */
-import {
-  type Edge,
-  EdgeLabelRenderer,
-  type EdgeProps,
-  Handle,
-  type Node,
-  type NodeProps,
-  Position,
-  ReactFlow,
-} from "@xyflow/react";
-import "@xyflow/react/dist/base.css";
-import { useLayoutEffect, useMemo, useRef, useState } from "react";
-import { edgePath, flowOf, LABEL_INSET, labelAt, layoutOf } from "./flow.js";
+
 import type { FlowEdit, MapBox } from "./flow-map.js";
-import { cx } from "./format.js";
+import GraphCanvas from "./graph/canvas.js";
+import type { GraphEdge, GraphNode } from "./graph/model.js";
 
-/** A column's width, at least and at most: past the most, a short map leaves room on the right. */
-const COLUMN = { min: 110, max: 200 };
-const HEIGHT = 58;
-const GAP_X = 40;
-const LABELED_GAP_X = 160;
-/** A box's padding and rows (px), and about how wide a character of each is. */
-const PAD = { x: 24, y: 18 };
-const ROW = { label: 16.25, small: 15.6 };
-const CHAR = { label: 7.4, small: 6.6 };
+const END = /^(in|out)\./;
 
-/** Tall enough for the label (two rows at most), the note and the number (three each). */
-function heightOf(b: MapBox, w: number): number {
-  const rows = (s: string | undefined, char: number, most = 2) =>
-    s ? Math.min(most, Math.ceil((s.length * char) / (w - PAD.x))) : 0;
-  const small = rows(b.note, CHAR.small, 3) + rows(b.count, CHAR.small, 3);
-  return Math.max(HEIGHT, PAD.y + ROW.label * rows(b.label, CHAR.label) + ROW.small * small);
-}
+/** The words a box's note says it is in, as a filter. */
+const stateOf = (b: MapBox) =>
+  b.input ? "Account" : b.dim ? "Not here" : b.note?.split(". ")[0] || "Ready";
 
-type BoxData = { box: MapBox; height: number; ends?: { from: boolean; to: boolean } | undefined };
-const HANDLE =
-  "size-3! rounded-full! border! border-(--ui-ink-3)! bg-(--ui-paper)! hover:bg-(--ui-accent)!";
-
-function BoxNode({ data }: NodeProps<Node<BoxData>>) {
-  const b = data.box;
-  const Tag = b.href ? "a" : "div";
-  return (
-    <>
-      <Handle
-        type="target"
-        position={Position.Left}
-        className={data.ends?.to ? HANDLE : "invisible"}
-        isConnectable={!!data.ends?.to}
-      />
-      <Tag
-        href={b.href}
-        title={[b.label, b.note, b.count].filter(Boolean).join(". ")}
-        className={cx(
-          "grid h-full content-center gap-0.5 rounded-(--ui-radius) px-3 text-(--ui-ink) no-underline",
-          b.input
-            ? "border border-dashed border-(--ui-ink-3)"
-            : b.stacked
-              ? "bg-(--ui-paper) shadow-[inset_0_0_0_1px_var(--ui-hair),4px_4px_0_-1px_var(--ui-paper),4px_4px_0_0_var(--ui-hair)] hover:shadow-[inset_0_0_0_1px_var(--ui-ink-3),4px_4px_0_-1px_var(--ui-paper),4px_4px_0_0_var(--ui-ink-3)]"
-              : "bg-(--ui-paper) shadow-[inset_0_0_0_1px_var(--ui-hair)] hover:shadow-[inset_0_0_0_1px_var(--ui-ink-3)]",
-          b.dim && "opacity-45",
-        )}
-        style={{ height: data.height }}
-      >
-        <span className="line-clamp-2 text-[13px] leading-[1.25] font-semibold">{b.label}</span>
-        {b.note ? (
-          <span className="line-clamp-3 text-[12px] leading-[1.3] text-(--ui-ink-2)">{b.note}</span>
-        ) : null}
-        {b.count ? (
-          <span className="line-clamp-3 text-[12px] leading-[1.3] text-(--ui-ink) tabular-nums">
-            {b.count}
-          </span>
-        ) : null}
-      </Tag>
-      <Handle
-        type="source"
-        position={Position.Right}
-        className={data.ends?.from ? HANDLE : "invisible"}
-        isConnectable={!!data.ends?.from}
-      />
-    </>
+export function nodesOf(boxes: readonly MapBox[]): { nodes: GraphNode[]; edges: GraphEdge[] } {
+  const ids = new Set(boxes.map((b) => b.id));
+  const nodes = boxes.map(
+    (b): GraphNode => ({
+      id: b.id,
+      // A workflow's own ends are `in.x` and `out.x`; any other input is an account it uses.
+      kind: !b.input ? (b.stacked ? "workflow" : "part") : END.test(b.id) ? "record" : "account",
+      dashed: b.input,
+      label: b.label,
+      note: b.note,
+      lines: b.count ? [{ text: b.count }] : undefined,
+      href: b.href,
+      dim: b.dim,
+      stacked: b.stacked,
+      facets: {
+        Kind: b.input ? (END.test(b.id) ? "End" : "Account") : b.stacked ? "Workflow" : "Part",
+        State: stateOf(b),
+      },
+    }),
   );
-}
-
-type LineData = {
-  d: string;
-  /** Clickable: a wide clear stroke over the line. */
-  wide?: boolean;
-  label?: { text: string; x: number; y: number; anchor: "start" | "end"; max: number } | undefined;
-};
-
-function Line({ data }: EdgeProps<Edge<LineData>>) {
-  if (!data) return null;
-  const l = data.label;
-  return (
-    <>
-      <path
-        d={data.d}
-        className="fill-none stroke-(--ui-ink-3) stroke-[1.5] [stroke-linecap:round]"
-      />
-      {data.wide ? (
-        <path d={data.d} className="cursor-pointer fill-none stroke-transparent stroke-[14]" />
-      ) : null}
-      {l ? (
-        // Above every line, its bottom row resting on the spot; long ones wrap upward in the gap.
-        <EdgeLabelRenderer>
-          <div
-            className="pointer-events-none absolute bg-(--ui-paper) px-0.5 text-[11px] leading-[1.25] whitespace-pre-line text-(--ui-ink-2)"
-            style={{
-              maxWidth: l.max,
-              textAlign: l.anchor === "end" ? "right" : "left",
-              transform: `translate(${l.anchor === "end" ? "-100%" : "0"}, -100%) translate(${l.x}px, ${l.y}px)`,
-            }}
-          >
-            {l.text}
-          </div>
-        </EdgeLabelRenderer>
-      ) : null}
-    </>
+  const edges = boxes.flatMap((b) =>
+    b.after
+      .filter((a) => ids.has(a))
+      .map((a): GraphEdge => {
+        const [label, ...notes] = (b.labels?.[a] ?? "").split("\n").filter(Boolean);
+        return { from: a, to: b.id, label, notes };
+      }),
   );
+  return { nodes, edges };
 }
-
-const NODE_TYPES = { box: BoxNode };
-const EDGE_TYPES = { line: Line };
 
 export default function FlowMapGraph({
   boxes,
   label,
   edit,
+  tools,
 }: {
   boxes: readonly MapBox[];
   label: string;
   edit?: FlowEdit | undefined;
+  tools?: boolean | undefined;
 }) {
-  const ref = useRef<HTMLDivElement>(null);
-  const [room, setRoom] = useState(0);
-  useLayoutEffect(() => {
-    const el = ref.current;
-    if (!el) return;
-    const measure = () => setRoom(el.clientWidth);
-    measure();
-    if (typeof ResizeObserver === "undefined") return;
-    const watch = new ResizeObserver(measure);
-    watch.observe(el);
-    return () => watch.disconnect();
-  }, []);
-
-  const graph = useMemo(() => flowOf(boxes, () => true, undefined, true), [boxes]);
-  const labeled = boxes.some((b) => b.labels && Object.keys(b.labels).length);
-  const gapX = labeled ? LABELED_GAP_X : GAP_X;
-  const across = (w: number) => graph.cols * w + (graph.cols - 1) * gapX;
-  const width = Math.max(across(COLUMN.min), Math.min(room, across(COLUMN.max)));
-  const drawn = useMemo(() => {
-    const byId = new Map(boxes.map((b) => [b.id, b]));
-    const column = (width - (graph.cols - 1) * gapX) / graph.cols;
-    // Every box as tall as the tallest, so the lines between boxes stay straight.
-    const height = Math.max(HEIGHT, ...boxes.map((b) => heightOf(b, column)));
-    const heights = Object.fromEntries(boxes.map((b) => [b.id, height]));
-    const laid = layoutOf(graph, "across", width, heights, gapX);
-    const at = (id: string) => laid.boxes[id] ?? { x: 0, y: 0, w: 0, h: 0 };
-    return {
-      height: laid.height,
-      nodes: graph.nodes.map(
-        (n): Node<BoxData> => ({
-          id: n.id,
-          type: "box",
-          position: { x: at(n.id).x, y: at(n.id).y },
-          width: at(n.id).w,
-          height: at(n.id).h,
-          // Nothing selects or drags, so React Flow would let clicks through to the pane.
-          style: { pointerEvents: "all" },
-          data: {
-            box: byId.get(n.id) ?? { id: n.id, label: n.id, after: [] },
-            height: at(n.id).h,
-            ends: edit?.ends(n.id),
-          },
-        }),
-      ),
-      edges: graph.edges.map((e): Edge<LineData> => {
-        const text = byId.get(e.to)?.labels?.[e.from];
-        const end = graph.edges.filter((x) => x.from === e.from).length === 1 ? "from" : "to";
-        return {
-          id: `${e.from}>${e.to}`,
-          source: e.from,
-          target: e.to,
-          type: "line",
-          data: {
-            wide: !!edit,
-            // The turn sits at the end away from the label, so the label has the long side.
-            d: edgePath(
-              at(e.from),
-              at(e.to),
-              e.span,
-              "across",
-              6,
-              labeled ? (end === "from" ? "to" : "from") : undefined,
-            ),
-            label: text
-              ? { text, max: gapX - 2 * LABEL_INSET, ...labelAt(at(e.from), at(e.to), e.span, end) }
-              : undefined,
-          },
-        };
-      }),
-    };
-  }, [boxes, graph, width, gapX, labeled, edit]);
-  const { nodes, edges } = drawn;
-
+  const { nodes, edges } = nodesOf(boxes);
   return (
-    <div ref={ref} className="w-full max-w-full overflow-x-auto">
-      <div style={{ width, height: drawn.height + 2 }}>
-        <ReactFlow
-          aria-label={label}
-          nodes={nodes}
-          edges={edges}
-          nodeTypes={NODE_TYPES}
-          edgeTypes={EDGE_TYPES}
-          defaultViewport={{ x: 0, y: 1, zoom: 1 }}
-          nodesDraggable={false}
-          nodesConnectable={!!edit}
-          onConnect={(c) => edit?.connect(c.source, c.target)}
-          isValidConnection={(c) => !!edit?.fits(c.source, c.target)}
-          {...(edit ? { onEdgeClick: (_, e) => edit.pick(e.source, e.target) } : {})}
-          connectionLineStyle={{ stroke: "var(--ui-ink-3)", strokeWidth: 1.5 }}
-          // The map never pans: a line dragged near its edge would slide the boxes away.
-          autoPanOnConnect={false}
-          nodesFocusable={false}
-          edgesFocusable={false}
-          elementsSelectable={false}
-          panOnDrag={false}
-          panOnScroll={false}
-          zoomOnScroll={false}
-          zoomOnPinch={false}
-          zoomOnDoubleClick={false}
-          preventScrolling={false}
-          deleteKeyCode={null}
-          selectionKeyCode={null}
-          multiSelectionKeyCode={null}
-          zoomActivationKeyCode={null}
-          panActivationKeyCode={null}
-          disableKeyboardA11y
-          proOptions={{ hideAttribution: true }}
-        />
-      </div>
-    </div>
+    <GraphCanvas
+      nodes={nodes}
+      edges={edges}
+      label={label}
+      edit={edit}
+      tools={tools ?? boxes.length > 6}
+    />
   );
 }

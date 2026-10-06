@@ -5,6 +5,7 @@
  */
 export { type Access, can, type Viewer } from "./access.js";
 export { type Action, type Call, type FormField, Toasts } from "./action.js";
+export { BarsChart, type BarsRow, Sparkline, TrendChart } from "./charts/index.js";
 export { Input } from "./components/ui/input.js";
 export { Textarea } from "./components/ui/textarea.js";
 export { Button, ButtonLink, type ButtonTone, Tag, type TagTone } from "./controls.js";
@@ -39,6 +40,20 @@ export {
 export { type FlowEdit, FlowMap, type MapBox } from "./flow-map.js";
 export { RecordForm } from "./form.js";
 export { ago, cx, hostOf, initials, money, month, num, soon } from "./format.js";
+export {
+  edgeId,
+  Graph,
+  type GraphDot,
+  type GraphEdge,
+  type GraphEdit,
+  type GraphKind,
+  type GraphNode,
+  type GraphNumber,
+  type GraphProps,
+  type GraphTone,
+  percent,
+  wireLines,
+} from "./graph/index.js";
 export { type HandlerCall, HandlerForm } from "./handler.js";
 export { Icon, type IconName } from "./icons.js";
 export { AppCard, AppGlance, AppGrid, type GlanceFigure } from "./launcher.js";
@@ -69,6 +84,7 @@ export { type MessageKind, MessagePreview, shapeOf } from "./preview.js";
 export { RecordQueue } from "./queue.js";
 export { RAIL_STATES, Rail, type RailGroup, type RailState, type RailStep } from "./rail.js";
 export {
+  Panel as RecordPanel,
   type Place,
   type RecordAct,
   type RecordActs,
@@ -79,6 +95,7 @@ export {
   type RecordsApi,
   type RecordTemplateProps,
   useLoad,
+  useTypes,
 } from "./records.js";
 export { type LocalRecords, localRecords } from "./records-local.js";
 export {

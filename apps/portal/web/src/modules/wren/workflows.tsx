@@ -5,25 +5,43 @@
  * onto an input, set a wire's condition or wait, add a custom step, save it for Wren or for the
  * client in `?client=`.
  */
-import type { RecordAnswer, RecordsStat } from "@wren/core/records/serve";
+import type { RecordAnswer, RecordsPage, RecordsStat } from "@wren/core/records/serve";
 import type { Wire } from "@wren/core/workflows";
 import {
   Alert,
+  BarsChart,
   Button,
-  type FlowEdit,
-  FlowMap,
+  Graph,
+  type GraphDot,
+  type GraphEdit,
   Input,
   Loading,
   PageHeader,
+  type Place,
+  RecordPanel,
+  type RecordsApi,
   Section,
   Tag,
+  useTypes,
 } from "@wren/ui";
-import { type FormEvent, useMemo, useState } from "react";
+import { type FormEvent, useEffect, useMemo, useRef, useState } from "react";
 import { call } from "../../api.js";
 import { useCall } from "../../load.js";
 import type { PageProps } from "../../module.js";
-import { type CountRef, countKey, countsIn, type Drawn, flowBoxes } from "../marketplace/boxes.js";
+import { href, navigate } from "../../route.js";
+import { type CountRef, countKey, countsIn, type Drawn } from "../marketplace/boxes.js";
 import { dayLabel, ERROR, FIELD, FORM, LIST, QUIET, SELECT, SPLIT } from "../work/bits.js";
+import {
+  type Count,
+  dotsOf,
+  type EventRow,
+  funnelOf,
+  graphOf,
+  type PortRef,
+  portKey,
+  portsIn,
+  type Where,
+} from "./canvas.js";
 import { WREN_APPS } from "./index.js";
 import {
   allEnds,
@@ -43,6 +61,10 @@ const ROOT = "wren";
 const DAYS = 30;
 const ZONE = Intl.DateTimeFormat().resolvedOptions().timeZone;
 const WAIT = /^\d+ (minute|hour|day|week)s?$/;
+const PAGE = "/workflows/canvas";
+/** How often the canvas asks the spine for new events, and the most dots in flight. */
+const POLL_MS = 8000;
+const MOST_DOTS = 24;
 
 type Detail = { workflow?: Drawn; saved?: Saved | null; broken?: string[] };
 
@@ -74,23 +96,47 @@ export function Workflows({ params, team }: PageProps) {
   );
   const d = trail.data?.at(-1) ?? null;
   const w = d?.workflow ?? null;
-  const refs = w ? countsIn(w) : [];
+  // A workflow card with no number of its own shows its inside's: read those drawings too.
+  const opens = w?.nodes.filter((n) => n.opens && !n.count).map((n) => n.opens as string) ?? [];
+  const inner = useCall(`workflow-inner:${client ?? ""}:${opens.join(",")}`, async () => {
+    const got = await Promise.all(
+      opens.map((id) =>
+        call<RecordAnswer>("console/recordsGet", {
+          record: "console.component",
+          id,
+          ...(client ? { client } : {}),
+        }).then(
+          (a) => (a.detail as Detail | null)?.workflow ?? null,
+          () => null,
+        ),
+      ),
+    );
+    return new Map(got.flatMap((x) => (x ? [[x.id, x] as const] : [])));
+  });
+  const all = w ? [w, ...(inner.data?.values() ?? [])] : [];
+  const refs = [...new Map(all.flatMap(countsIn).map((r) => [countKey(r), r])).values()];
+  // The spine is Wren's own: a client's copy counts its views only.
+  const ports = client ? [] : all.flatMap(portsIn);
   // A number that fails stays off its card; the drawing never waits on one.
   const counts = useCall(
-    `workflow-counts:${refs.map(countKey).join(",")}`,
-    async () =>
-      new Map(
-        (
-          await Promise.all(
-            refs.map((r) =>
-              call<RecordsStat>("console/recordsStats", { ...r, period: DAYS, zone: ZONE }).then(
-                (s) => [countKey(r), s.value ?? 0] as const,
-                () => null,
-              ),
-            ),
-          )
-        ).filter((x) => x !== null),
-      ),
+    `workflow-counts:${refs.map(countKey).join(",")}:${ports.map(portKey).join(",")}`,
+    async () => {
+      const stat = (key: string, ask: Record<string, unknown>) =>
+        call<RecordsStat>("console/recordsStats", { ...ask, period: DAYS, zone: ZONE }).then(
+          (s): [string, Count] => [
+            key,
+            { value: s.value ?? 0, today: s.series.at(-1)?.value ?? 0 },
+          ],
+          () => null,
+        );
+      const got = await Promise.all([
+        ...refs.map((r) => stat(countKey(r), { ...r })),
+        ...ports.map((p: PortRef) =>
+          stat(portKey(p), { record: "console.event", view: "all", where: { ...p } }),
+        ),
+      ]);
+      return new Map(got.filter((x) => x !== null));
+    },
   );
   if (trail.error && !trail.data) return <Alert onRetry={trail.retry}>{trail.error.message}</Alert>;
   if (!trail.data) return <Loading lines={6} />;
@@ -118,9 +164,12 @@ export function Workflows({ params, team }: PageProps) {
         w={w}
         d={d}
         counts={counts.data ?? undefined}
-        at={(n) =>
-          n.opens ? canvasAt([...path, n.opens]) : n.count ? recordsAt(n.count) : undefined
-        }
+        inner={inner.data ?? undefined}
+        where={{
+          canvas: (n) => (n.opens ? canvasAt([...path, n.opens]) : undefined),
+          rows: recordsAt,
+        }}
+        params={params}
         client={client}
         team={team}
         onSaved={() => setNonce((n) => n + 1)}
@@ -135,19 +184,79 @@ const boxOf = (ref: string) => {
   return head === "in" || head === "out" ? ref : head;
 };
 
+/** The console's records, for the part a click opens beside the canvas. */
+const APIS = new Map<string, RecordsApi>();
+const consoleApi = (client: string | null): RecordsApi => {
+  const key = client ?? "";
+  let api = APIS.get(key);
+  if (!api) {
+    const ask = <T,>(h: string, body: object) =>
+      call<T>(`console/${h}`, client ? { client, ...body } : { ...body });
+    api = {
+      types: () => ask("recordsTypes", {}),
+      list: (a) => ask("recordsList", a),
+      get: (a) => ask("recordsGet", a),
+      export: (a) => ask("recordsExport", a),
+      stats: (a) => ask("recordsStats", a),
+    };
+    APIS.set(key, api);
+  }
+  return api;
+};
+
+/**
+ * Real events as they land: the spine's newest rows, asked every few seconds while the page
+ * shows. The first answer only marks where "new" starts; nothing old replays.
+ */
+function useEvents(w: Drawn, on: boolean): GraphDot[] {
+  const [dots, setDots] = useState<GraphDot[]>([]);
+  const since = useRef<string | null>(null);
+  useEffect(() => {
+    if (!on) return;
+    let live = true;
+    const ask = async () => {
+      if (document.hidden) return;
+      const page = await call<RecordsPage>("console/recordsList", {
+        record: "console.event",
+        view: "all",
+        limit: 25,
+      }).catch(() => null);
+      if (!live || !page) return;
+      const rows = page.rows as unknown as EventRow[];
+      const newest = rows[0]?.at ?? since.current;
+      if (since.current !== null) {
+        const fresh = rows.filter((r) => r.at > (since.current as string)).reverse();
+        if (fresh.length) setDots((ds) => [...ds, ...dotsOf(fresh, w)].slice(-MOST_DOTS));
+      }
+      since.current = newest ?? "";
+    };
+    void ask();
+    const timer = setInterval(() => void ask(), POLL_MS);
+    return () => {
+      live = false;
+      clearInterval(timer);
+    };
+  }, [w, on]);
+  return dots;
+}
+
 function Canvas({
   w,
   d,
   counts,
-  at,
+  inner,
+  where,
+  params,
   client,
   team,
   onSaved,
 }: {
   w: Drawn;
   d: Detail;
-  counts: ReadonlyMap<string, number> | undefined;
-  at: (n: Drawn["nodes"][number]) => string | undefined;
+  counts: ReadonlyMap<string, Count> | undefined;
+  inner: ReadonlyMap<string, Drawn> | undefined;
+  where: Where;
+  params: URLSearchParams;
   client: string | null;
   team: boolean;
   onSaved: () => void;
@@ -160,8 +269,22 @@ function Canvas({
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const shown = useMemo(() => (draft ? drawnWith(w, first, draft) : w), [w, first, draft]);
+  const graph = useMemo(
+    () =>
+      graphOf(shown, {
+        counts: counts ?? new Map(),
+        inner: inner ?? new Map(),
+        where,
+        team,
+        allOut: !!draft,
+      }),
+    [shown, counts, inner, where, team, draft],
+  );
+  const dots = useEvents(w, !client);
+  const funnel = useMemo(() => funnelOf(w, counts ?? new Map()), [w, counts]);
+  const open = params.get("component");
 
-  const edit = useMemo((): FlowEdit | undefined => {
+  const edit = useMemo((): GraphEdit | undefined => {
     if (!draft) return undefined;
     return {
       ends: (id) => ({
@@ -199,11 +322,25 @@ function Canvas({
 
   return (
     <>
-      <FlowMap
-        boxes={flowBoxes(shown, at, counts, !!draft)}
+      <Graph
+        {...graph}
         label={`What runs in ${w.name}`}
+        name={w.id}
         edit={edit}
+        dots={draft ? [] : dots}
+        onOpen={(id) => {
+          const uses = shown.nodes.find((n) => n.id === id)?.uses;
+          if (uses) navigate(href(PAGE, { component: uses, tab: null }, params));
+        }}
       />
+      {funnel.length && !draft ? (
+        <Section title="Funnel" className="mt-8">
+          <BarsChart rows={funnel} label={`${w.name} stages`} />
+        </Section>
+      ) : null}
+      {open ? (
+        <PartPanel id={open} params={params} client={client} team={team} where={where} />
+      ) : null}
       {broken.length ? (
         <Alert className="mt-4">
           The saved wiring no longer fits, so the built-in one runs: {broken.join("; ")}
@@ -505,5 +642,66 @@ function Editor({
         ) : null}
       </div>
     </div>
+  );
+}
+
+/** The part a card stands for, beside the canvas: the list's own panel, a sheet on a phone. */
+function PartPanel({
+  id,
+  params,
+  client,
+  team,
+  where,
+}: {
+  id: string;
+  params: URLSearchParams;
+  client: string | null;
+  team: boolean;
+  where: Where;
+}) {
+  const api = consoleApi(client);
+  const types = useTypes(api);
+  const meta = types.data?.find((t) => t.id === "console.component");
+  if (!meta || !types.data) return null;
+  const place: Place = {
+    params,
+    link: (change) => href(PAGE, change, params),
+    page: (rid) => href(PAGE, { component: String(rid) }, params),
+    list: href(PAGE, { component: null, tab: null }, params),
+    go: navigate,
+  };
+  return (
+    <RecordPanel
+      meta={meta}
+      types={types.data}
+      id={id}
+      api={api}
+      place={place}
+      extras={(detail) => {
+        const inside = (detail as Detail | null)?.workflow;
+        if (!inside) return {};
+        const g = graphOf(inside, { counts: new Map(), where, team });
+        return {
+          sections: [
+            [
+              "Inside",
+              <Graph
+                key="inside"
+                {...g}
+                label={`What runs inside ${inside.name}`}
+                tools={false}
+                maxHeight={420}
+              />,
+            ],
+          ],
+        };
+      }}
+      acts={undefined}
+      index={-1}
+      count={0}
+      step={() => undefined}
+      rev={0}
+      onActed={() => undefined}
+    />
   );
 }

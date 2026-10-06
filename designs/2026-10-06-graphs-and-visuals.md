@@ -71,3 +71,10 @@ records.
 
 - 2026-10-06: written from his note and the live portal: four React Flow graphs with pan and zoom
   off, no charts. Building.
+- 2026-10-06: steps 1 to 3 built. One kit in `packages/ui/src/graph/` (React Flow, elk loaded on
+  first draw) draws the Workflows canvas, the Marketplace map and lineage. The run graph keeps
+  `flow.ts` placement inside the kit's frame: its rows and loops are already laid out, and elk
+  would reshuffle them on every run. The node panel is the records Panel; Ask Claude and History
+  come with the records layer. Charts are shadcn's on Recharts, with series colors as inline
+  CSS variables because the CSP refuses a style tag. Step 4: the workflow funnel is built; lead
+  journey, sequence diagram and infra map wait.

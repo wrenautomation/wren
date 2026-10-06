@@ -1,4 +1,4 @@
-/** What feeds what, left to right: parts and what each builds on. React Flow loads only when one shows. */
+/** What feeds what, left to right: parts and what each builds on, on the graph kit. React Flow loads only when one shows. */
 import { lazy, Suspense } from "react";
 
 export interface MapBox {
@@ -37,15 +37,18 @@ export function FlowMap({
   boxes,
   label,
   edit,
+  tools,
 }: {
   boxes: readonly MapBox[];
   label: string;
   edit?: FlowEdit | undefined;
+  /** Search, filters and export above it; on past six boxes when left out. */
+  tools?: boolean | undefined;
 }) {
   if (!boxes.length) return <p className="text-[14px] text-(--ui-ink-2)">Nothing to draw.</p>;
   return (
     <Suspense fallback={<div className="min-h-40" />}>
-      <FlowMapGraph boxes={boxes} label={label} edit={edit} />
+      <FlowMapGraph boxes={boxes} label={label} edit={edit} tools={tools} />
     </Suspense>
   );
 }

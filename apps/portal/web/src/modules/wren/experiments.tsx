@@ -5,6 +5,7 @@
 import { FITNESS_NAMES, SEEDING_NAMES, SELECTION_NAMES } from "@wren/experiments/names";
 import {
   type Action,
+  BarsChart,
   type FormField,
   HandlerForm,
   Lineage,
@@ -215,17 +216,30 @@ export const candidateExtras: NonNullable<ListPage["extras"]> = (detail, { row }
       [
         "Live at this point",
         winners.length ? (
-          <ul key="winners" className="grid gap-3 text-[14px]">
-            {winners.map((w) => (
-              <li key={w.text} className="grid gap-0.5">
-                <span>{w.text}</span>
-                <span className="text-[13px] text-(--ui-ink-2)">
-                  {pct(w.share)} of sends · {pct(w.p_best)} chance it's best · {w.interested}{" "}
-                  interested of {w.exposures}
-                </span>
-              </li>
-            ))}
-          </ul>
+          <div key="winners" className="grid gap-4">
+            {/* Each live line's interested per send, side by side. */}
+            <BarsChart
+              label="Interested"
+              format={(n) => `${Math.round(n * 1000) / 10}%`}
+              rows={winners.map((w, i) => ({
+                label: w.text.length > 22 ? `${w.text.slice(0, 21)}…` : w.text,
+                value: w.exposures ? w.interested / w.exposures : 0,
+                note: `${w.interested} of ${w.exposures}`,
+                tone: `chart-${(i % 5) + 1}`,
+              }))}
+            />
+            <ul className="grid gap-3 text-[14px]">
+              {winners.map((w) => (
+                <li key={w.text} className="grid gap-0.5">
+                  <span>{w.text}</span>
+                  <span className="text-[13px] text-(--ui-ink-2)">
+                    {pct(w.share)} of sends · {pct(w.p_best)} chance it's best · {w.interested}{" "}
+                    interested of {w.exposures}
+                  </span>
+                </li>
+              ))}
+            </ul>
+          </div>
         ) : (
           "Nothing live here yet."
         ),

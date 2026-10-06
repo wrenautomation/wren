@@ -3,10 +3,13 @@
  * behind it, then its top records. A tile with a period counts or adds up a view's rows by date,
  * against the same stretch of the period before, with a bar per day (`recordsStats`). A tile
  * without one counts the rows there now: a state keeps no history, so it has no change to show.
+ * Under the tiles, the period tiles' days as one chart, a tab each.
  */
 import type { RecordMeta } from "@wren/core/records";
 import type { Period, RecordsStat, Row } from "@wren/core/records/serve";
 import { cn } from "cn";
+import { useEffect, useState } from "react";
+import { Sparkline, TrendChart } from "./charts/index.js";
 import { Alert } from "./feedback.js";
 import { FieldCell } from "./fields.js";
 import { money, month, num } from "./format.js";
@@ -116,9 +119,13 @@ const SPAN = ["", "lg:col-span-12", "lg:col-span-6", "lg:col-span-4", "lg:col-sp
 
 export function RecordOverview({ title, api, tiles, top = [] }: OverviewProps) {
   const types = useTypes(api);
+  // Each period tile's answer, for the chart under them: asked once, by the tile.
+  const [stats, setStats] = useState<Readonly<Record<string, Shown>>>({});
   if (types.error && !types.data) return <Alert onRetry={types.retry}>{types.error.message}</Alert>;
   const metaOf = (id: string) => types.data?.find((t) => t.id === id);
   const spans = perRow(tiles.length).flatMap((k) => Array<string>(k).fill(SPAN[k] ?? ""));
+  const told = (label: string, shown: Shown) =>
+    setStats((s) => (s[label]?.stat === shown.stat ? s : { ...s, [label]: shown }));
   return (
     <div className={cn(ROOT, "mx-auto grid w-full max-w-[1200px] grid-cols-[minmax(0,1fr)] gap-8")}>
       <h1 className="text-[20px] leading-7 font-semibold tracking-[-0.01em]">{title}</h1>
@@ -129,11 +136,12 @@ export function RecordOverview({ title, api, tiles, top = [] }: OverviewProps) {
           const wide = i === tiles.length - 1 && tiles.length % 2 === 1;
           return (
             <div key={t.label} className={cn("grid", spans[i], wide && "max-lg:col-span-2")}>
-              {meta ? <Tile tile={t} meta={meta} api={api} /> : <TileGhost />}
+              {meta ? <Tile tile={t} meta={meta} api={api} onStat={told} /> : <TileGhost />}
             </div>
           );
         })}
       </div>
+      <Trends tiles={tiles} stats={stats} />
       {top.length ? (
         <div className="grid grid-cols-[minmax(0,1fr)] gap-8 lg:grid-cols-2">
           {top.map((t) => {
@@ -158,7 +166,23 @@ function TileGhost() {
   );
 }
 
-function Tile({ tile, meta, api }: { tile: OverviewTile; meta: RecordMeta; api: RecordsApi }) {
+/** A period tile's answer and how its numbers read, for the chart under the tiles. */
+interface Shown {
+  stat: RecordsStat;
+  format: (n: number) => string;
+}
+
+function Tile({
+  tile,
+  meta,
+  api,
+  onStat,
+}: {
+  tile: OverviewTile;
+  meta: RecordMeta;
+  api: RecordsApi;
+  onStat: (label: string, shown: Shown) => void;
+}) {
   const ask = askFor(meta, tile.href);
   const { period, pick } = tile;
   const load = useLoad(
@@ -190,7 +214,6 @@ function Tile({ tile, meta, api }: { tile: OverviewTile; meta: RecordMeta; api: 
     },
     api,
   );
-  if (!load.data && !load.error) return <TileGhost />;
   const s = load.data;
   const kind = pick ? meta.fields.find((f) => f.key === pick)?.kind : undefined;
   const fmt = (n: number) =>
@@ -202,6 +225,11 @@ function Tile({ tile, meta, api }: { tile: OverviewTile; meta: RecordMeta; api: 
           ? n.toLocaleString("en-US", { maximumFractionDigits: 1 })
           : num(n);
   const delta = s?.value != null && s.prior != null ? s.value - s.prior : null;
+  // biome-ignore lint/correctness/useExhaustiveDependencies: the answer is the cue; `fmt` reads it.
+  useEffect(() => {
+    if (s && period && !pick && s.series.length > 1) onStat(tile.label, { stat: s, format: fmt });
+  }, [s]);
+  if (!load.data && !load.error) return <TileGhost />;
   // A pick names its row's month and compares with the row before.
   const newest = pick ? month(s?.series.at(-1)?.at ?? null) : "";
   const before = pick ? month(s?.series.at(-2)?.at ?? null) : period ? priorName(period) : "";
@@ -234,9 +262,17 @@ function Tile({ tile, meta, api }: { tile: OverviewTile; meta: RecordMeta; api: 
                     ? `Same as ${before}`
                     : `${delta > 0 ? "+" : "−"}${fmt(Math.abs(delta))} vs ${before}`}
               </span>
-              <Bars
+              <Sparkline
                 series={s.series}
                 slots={period === "month" ? daysIn(new Date()) : s.series.length}
+                label={tile.label}
+                format={fmt}
+                fallback={
+                  <Bars
+                    series={s.series}
+                    slots={period === "month" ? daysIn(new Date()) : s.series.length}
+                  />
+                }
               />
             </>
           ) : null}
@@ -245,6 +281,50 @@ function Tile({ tile, meta, api }: { tile: OverviewTile; meta: RecordMeta; api: 
         <span className="text-[13px] text-(--ui-bad)">{load.error?.message}</span>
       )}
     </a>
+  );
+}
+
+/**
+ * The period tiles by day, one chart with a tab each: what moved when. Shows once one has days.
+ */
+function Trends({
+  tiles,
+  stats,
+}: {
+  tiles: readonly OverviewTile[];
+  stats: Readonly<Record<string, Shown>>;
+}) {
+  const shown = tiles.filter((t) => stats[t.label]);
+  const [pick, setPick] = useState<string | null>(null);
+  const on = shown.find((t) => t.label === pick) ?? shown[0];
+  const got = on ? stats[on.label] : undefined;
+  if (!on || !got) return null;
+  return (
+    <section className="grid grid-cols-[minmax(0,1fr)] gap-3" aria-label="By day">
+      <div className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-2">
+        <h2 className="text-[14px] font-semibold">By day</h2>
+        <div role="tablist" aria-label="Which number" className="flex flex-wrap gap-1">
+          {shown.map((t) => (
+            <button
+              key={t.label}
+              type="button"
+              role="tab"
+              aria-selected={t === on}
+              onClick={() => setPick(t.label)}
+              className={cn(
+                "h-7 cursor-pointer border-0 px-2.5 text-[13px]",
+                t === on
+                  ? "bg-(--ui-ink) text-(--ui-paper)"
+                  : "bg-transparent text-(--ui-ink-2) shadow-[inset_0_0_0_1px_var(--ui-hair)] hover:text-(--ui-ink)",
+              )}
+            >
+              {t.label}
+            </button>
+          ))}
+        </div>
+      </div>
+      <TrendChart series={got.stat.series} label={on.label} format={got.format} />
+    </section>
   );
 }
 

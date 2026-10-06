@@ -1,7 +1,8 @@
 /**
- * A run's steps drawn on React Flow, read-only: `flow.ts` places them, React Flow draws the
- * nodes, the lines between them and the sparks riding in. Its own chunk, loaded when a run shows.
- * Editing a flow later turns on dragging and connecting here.
+ * A run's steps drawn on React Flow, read-only, in the graph kit's frame (pan, zoom, fit, keys):
+ * `flow.ts` places them, since each step measures its own height and the replay's timing rides
+ * on those places. React Flow draws the nodes, the lines between them and the sparks riding in.
+ * Its own chunk, loaded when a run shows.
  */
 import {
   type Edge,
@@ -11,10 +12,8 @@ import {
   type NodeChange,
   type NodeProps,
   Position,
-  ReactFlow,
   type Node as RFNode,
 } from "@xyflow/react";
-import "@xyflow/react/dist/base.css";
 import { createContext, use, useCallback, useLayoutEffect, useMemo, useRef, useState } from "react";
 import {
   edgePath,
@@ -26,6 +25,7 @@ import {
   OUTPUT,
 } from "./flow.js";
 import { cx, num } from "./format.js";
+import { GraphFrame } from "./graph/frame.js";
 import { Icon } from "./icons.js";
 import {
   mixOf,
@@ -42,6 +42,8 @@ import {
 const MIN_COLUMN = 150;
 /** Room around the graph for the name hung under a step and the lift of a working one. */
 const PAD = 12;
+/** At rest: laid out to the width at full size; zoom and pan from there. */
+const REST = { x: PAD, y: PAD, zoom: 1 };
 const IDLE: RunStepView = { state: "idle", handled: 0, found: 0, failed: 0, waiting: 0 };
 
 export interface RunGraphProps {
@@ -450,32 +452,17 @@ export default function RunGraph(props: RunGraphProps) {
         style={{ height: height + 2 * PAD, margin: -PAD, visibility: ready ? undefined : "hidden" }}
       >
         <Graph value={{ ...props, ...drawn, axis }}>
-          <ReactFlow
-            aria-label="Steps"
+          <GraphFrame
+            label="Steps"
             nodes={nodes}
             edges={edges}
             nodeTypes={NODE_TYPES}
             edgeTypes={EDGE_TYPES}
-            onNodesChange={onNodesChange}
-            defaultViewport={{ x: PAD, y: PAD, zoom: 1 }}
-            nodesDraggable={false}
-            nodesConnectable={false}
-            nodesFocusable={false}
-            edgesFocusable={false}
-            elementsSelectable={false}
-            panOnDrag={false}
-            panOnScroll={false}
-            zoomOnScroll={false}
-            zoomOnPinch={false}
-            zoomOnDoubleClick={false}
-            preventScrolling={false}
-            panActivationKeyCode={null}
-            deleteKeyCode={null}
-            selectionKeyCode={null}
-            multiSelectionKeyCode={null}
-            zoomActivationKeyCode={null}
-            disableKeyboardA11y
-            proOptions={{ hideAttribution: true }}
+            height={height + 2 * PAD}
+            rest={REST}
+            fits
+            bare
+            flow={{ onNodesChange }}
           />
         </Graph>
       </div>
