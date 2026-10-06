@@ -167,3 +167,4 @@ export const postRecord = defineRecord({
 
 export const CONTENT_RECORDS = [draftRecord, postRecord];
 export * from "./social/records.js";
+export { type VideoSigner, videoRecord } from "./video.js";

@@ -1,11 +1,12 @@
 /**
- * `wren video add|list|show|set|cuts|keep|knobs|cut|studio|look|find`: the video editor
+ * `wren video add|list|show|set|approve|cuts|keep|knobs|cut|studio|look|find`: the video editor
  * (designs/2026-10-06-video-editor.md). Claude Code edits through `show` and `set`; every write
  * leaves a runs row. Runs on William's Mac: whisper.cpp, ffmpeg (VideoToolbox), Remotion.
  */
 import { stat } from "node:fs/promises";
 import { join, resolve } from "node:path";
 import type { Settings } from "@wren/config";
+import { approveVideo } from "@wren/content";
 import { recordedRun } from "@wren/core";
 import type { Db } from "@wren/db";
 import { fleetKeys, loadLlmEnv } from "@wren/llm";
@@ -156,6 +157,26 @@ export function registerStudio(
       const r = await withDb((db) => setEdit(db, id(v), JSON.parse(text), { by: "cli" }));
       console.log(`video ${r.edit.id}: set (run ${r.run})`);
     });
+
+  video
+    .command("approve <id>")
+    .description(
+      "his yes: a private YouTube draft of the rendered file, uploaded by the desk on the next pass",
+    )
+    .option("--short <n>", "a Short instead of the long video, 1 for the first", (n) => id(n))
+    .action((v: string, o: { short?: number }) =>
+      withDb(async (db) => {
+        const d = await approveVideo(db, id(v), {
+          source: "cli",
+          ...(o.short ? { short: o.short } : {}),
+        });
+        console.log(
+          d.again
+            ? `video ${v}: already approved as draft ${d.id}`
+            : `video ${v}: draft ${d.id} approved; it uploads, private, on the next pass`,
+        );
+      }),
+    );
 
   video
     .command("cuts <id>")

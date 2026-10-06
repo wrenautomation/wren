@@ -1,0 +1,284 @@
+/**
+ * Marketing → Videos (designs/2026-10-06-video-editor.md, Where it shows, Upload): each
+ * `video_edits` row as a record, and Approve. Approve is William's yes: it writes a YouTube draft
+ * whose media is the rendered file on the Mac, approved to go at once, private. The desk (the Mac)
+ * reads the file from its own disk, so nothing uploads without his click.
+ */
+import { date, defineRecord, link, number, type State, status, text } from "@wren/core/records";
+import { atomic, type Queryable } from "@wren/db";
+import { type Cut, type VideoEdit, videoEdits, type Word } from "@wren/studio/schema";
+import { desc, eq, like, sql } from "drizzle-orm";
+import { contentDrafts, contentIdeas, type DraftStatus, type IdeaSource } from "./schema.js";
+
+/** The idea's ref: one draft per video and per Short, ever. */
+export const videoRef = (id: number, short?: number) =>
+  short ? `video:${id}/short:${short}` : `video:${id}`;
+
+/**
+ * Outputs named `<prefix><n>` (`short1`, `short-2`, `thumb_3`), in order of their number. Step 2
+ * names them; whether it counts from 0 or 1, the first is [0] here.
+ */
+export function numbered(rec: Record<string, string>, prefix: "short" | "thumb"): string[] {
+  const re = prefix === "short" ? /^shorts?[-_]?(\d+)$/i : /^thumb(?:nail)?s?[-_]?(\d+)$/i;
+  return Object.entries(rec)
+    .flatMap(([k, v]) => {
+      const m = re.exec(k);
+      return m ? [[Number(m[1]), v] as const] : [];
+    })
+    .sort((a, b) => a[0] - b[0])
+    .map(([, v]) => v);
+}
+
+/** The rendered long video: `long`, else `preview` (S3 keys). */
+export const longOf = (rec: Record<string, string>): string | null =>
+  rec.long ?? rec.preview ?? null;
+
+/** Seconds the applied cuts take out. */
+export const cutSeconds = (cuts: readonly Cut[]) =>
+  cuts.filter((c) => c.state === "cut").reduce((s, c) => s + (c.to - c.from), 0);
+
+export const clock = (s: number) => {
+  const r = Math.max(0, Math.round(s));
+  return `${Math.floor(r / 60)}:${String(r % 60).padStart(2, "0")}`;
+};
+
+/** Each word with the cut over its middle: applied, proposed (yellow), or none. */
+export function markWords(words: readonly Word[], cuts: readonly Cut[]) {
+  const live = cuts.filter((c) => c.state !== "kept");
+  return words.map((w) => {
+    const mid = (w.s + w.e) / 2;
+    const c = live.find((x) => mid >= x.from && mid < x.to);
+    return { w: w.w, s: w.s, cut: c ? c.state : null };
+  });
+}
+
+export interface ApproveVideo {
+  short?: number;
+  source: IdeaSource;
+  now?: Date;
+}
+
+/**
+ * His yes on the long video or Short `short` (1-based): a YouTube draft, approved to go on the
+ * next pass, private. Approving the same one again answers its draft, never a second upload.
+ */
+export async function approveVideo(
+  db: Queryable,
+  id: number,
+  o: ApproveVideo,
+): Promise<{ id: string; again: boolean }> {
+  return atomic(db, async (tx) => {
+    const [e] = await tx.select().from(videoEdits).where(eq(videoEdits.id, id)).for("update");
+    if (!e) throw new Error(`no video ${id}`);
+    const ref = videoRef(id, o.short);
+    const [had] = await tx
+      .select({ id: contentDrafts.id })
+      .from(contentDrafts)
+      .innerJoin(contentIdeas, eq(contentIdeas.id, contentDrafts.ideaId))
+      .where(eq(contentIdeas.ref, ref))
+      .limit(1);
+    if (had) return { id: had.id, again: true };
+    if (!["rendered", "approved", "uploaded"].includes(e.state))
+      throw new Error(`video ${id} is ${e.state}: render it first (wren video render ${id})`);
+    const { file, title, thumbnail } = target(e, o.short);
+    const now = o.now ?? new Date();
+    const [idea] = await tx
+      .insert(contentIdeas)
+      .values({
+        text: `${title}\n\n${e.description}`,
+        source: o.source,
+        ref,
+        status: "drafted",
+        media: { kind: "video", source: file, title },
+      })
+      .returning();
+    if (!idea) throw new Error("insert returned no idea");
+    const [d] = await tx
+      .insert(contentDrafts)
+      .values({
+        ideaId: idea.id,
+        platform: "youtube",
+        text: e.description,
+        title,
+        media: { kind: "video", source: file, title },
+        extra: {
+          privacyStatus: "private",
+          ...(e.tags.length ? { tags: e.tags } : {}),
+          ...(thumbnail ? { thumbnail } : {}),
+        },
+        status: "approved",
+        approvedAt: now,
+        // Null: the next publish pass. Private, so he publishes or schedules it on YouTube.
+        scheduledFor: null,
+        promptVersion: "video",
+      })
+      .returning({ id: contentDrafts.id });
+    if (!d) throw new Error("insert returned no draft");
+    if (e.state === "rendered")
+      await tx
+        .update(videoEdits)
+        .set({ state: "approved", updatedAt: now })
+        .where(eq(videoEdits.id, id));
+    return { id: d.id, again: false };
+  });
+}
+
+/** What Approve uploads: the file, its title and (the long video only) its thumbnail. */
+function target(e: VideoEdit, short?: number) {
+  if (!short) {
+    const file = longOf(e.files);
+    if (!file) throw new Error(`video ${e.id} has no rendered long file`);
+    if (!e.title.trim()) throw new Error(`video ${e.id} has no title (wren video set)`);
+    const thumbnail = e.files.thumbnailPick ?? numbered(e.files, "thumb")[0] ?? null;
+    return { file, title: e.title.trim().slice(0, 100), thumbnail };
+  }
+  const file = numbered(e.files, "short")[short - 1];
+  const s = e.shorts[short - 1];
+  if (!file || !s) throw new Error(`video ${e.id} has no rendered Short ${short}`);
+  // Custom thumbnails don't apply to Shorts: YouTube picks a frame.
+  return { file, title: (s.title || e.title).trim().slice(0, 100), thumbnail: null };
+}
+
+/** His pick of the rendered thumbnails (1-based); the long video's upload sets it. */
+export async function pickThumbnail(db: Queryable, id: number, n: number): Promise<string> {
+  return atomic(db, async (tx) => {
+    const [e] = await tx.select().from(videoEdits).where(eq(videoEdits.id, id)).for("update");
+    if (!e) throw new Error(`no video ${id}`);
+    const file = numbered(e.files, "thumb")[n - 1];
+    if (!file) throw new Error(`video ${id} has no rendered thumbnail ${n}`);
+    await tx
+      .update(videoEdits)
+      .set({ files: { ...e.files, thumbnailPick: file }, updatedAt: new Date() })
+      .where(eq(videoEdits.id, id));
+    return file;
+  });
+}
+
+const neutral = (label: string): State => ({ label, tone: "neutral" });
+export const VIDEO_STATES: Record<string, State> = {
+  added: neutral("Added"),
+  edited: neutral("Editing"),
+  rendered: { label: "Waiting on you", tone: "warn" },
+  approved: { label: "Approved", tone: "good" },
+  uploaded: { label: "On YouTube", tone: "good" },
+  failed: { label: "Upload failed", tone: "bad" },
+};
+
+/** The long video's draft, by its ref: uploading, on YouTube, or failed. */
+const UPLOAD: Partial<Record<DraftStatus, string>> = {
+  published: "uploaded",
+  failed: "failed",
+};
+
+/** Where previews and stills are: a key in the media bucket, or an `s3://` object. */
+export interface VideoSigner {
+  bucket: string;
+  /** A GET for an `s3://bucket/key` (the media host). */
+  host: { host(source: string): Promise<string> };
+}
+
+export const videoRecord = (signer?: VideoSigner) => {
+  const sign = (key: string | null | undefined) =>
+    !key || !signer
+      ? Promise.resolve(null)
+      : signer.host.host(key.startsWith("s3://") ? key : `s3://${signer.bucket}/${key}`);
+  return defineRecord({
+    id: "marketing.video",
+    name: { one: "video", many: "videos" },
+    rows: async (db) => {
+      const rows = await db
+        .select({
+          id: videoEdits.id,
+          title: videoEdits.title,
+          state: videoEdits.state,
+          tracks: videoEdits.tracks,
+          cuts: videoEdits.cuts,
+          shorts: videoEdits.shorts,
+          updated: videoEdits.updatedAt,
+          upload: contentDrafts.status,
+          url: contentDrafts.url,
+        })
+        .from(videoEdits)
+        .leftJoin(contentIdeas, eq(contentIdeas.ref, sql`'video:' || ${videoEdits.id}`))
+        .leftJoin(contentDrafts, eq(contentDrafts.ideaId, contentIdeas.id))
+        .orderBy(desc(videoEdits.updatedAt));
+      return rows.map((r) => {
+        const raw = r.tracks.main.durationS;
+        return {
+          id: r.id,
+          title: r.title || `Video ${r.id}`,
+          state: (r.upload && UPLOAD[r.upload]) ?? r.state,
+          raw: clock(raw),
+          cut: clock(raw - cutSeconds(r.cuts)),
+          shorts: r.shorts.length,
+          url: r.url,
+          updated: r.updated,
+        };
+      });
+    },
+    key: "id",
+    title: "title",
+    subtitle: "state",
+    fields: {
+      title: text("Title"),
+      state: status(VIDEO_STATES),
+      raw: text("Raw"),
+      cut: text("Cut"),
+      shorts: number("Shorts"),
+      url: link("On YouTube"),
+      updated: date("Changed"),
+    },
+    views: [
+      {
+        id: "waiting",
+        label: "Waiting on you",
+        where: { state: "rendered" },
+        sort: "-updated",
+        at: "updated",
+      },
+      { id: "all", label: "All", sort: "-updated", at: "updated" },
+    ],
+    actions: ["marketing.videoApprove", "marketing.videoApproveShort", "marketing.videoThumbnail"],
+    /** The player, the transcript with its cuts, the Shorts, the stills, the words that go up. */
+    load: async (db, id) => {
+      const [e] = await db
+        .select()
+        .from(videoEdits)
+        .where(eq(videoEdits.id, Number(id)))
+        .limit(1);
+      if (!e) return null;
+      const shortKeys = numbered(e.keys, "short");
+      const thumbFiles = numbered(e.files, "thumb");
+      const thumbKeys = numbered(e.keys, "thumb");
+      const picked = e.files.thumbnailPick ?? thumbFiles[0];
+      const drafts = await db
+        .select({ ref: contentIdeas.ref, status: contentDrafts.status, url: contentDrafts.url })
+        .from(contentIdeas)
+        .innerJoin(contentDrafts, eq(contentDrafts.ideaId, contentIdeas.id))
+        .where(like(contentIdeas.ref, `video:${e.id}/%`));
+      return {
+        video: {
+          title: e.title,
+          description: e.description,
+          preview: await sign(longOf(e.keys)),
+          words: markWords(e.words, e.cuts),
+          shorts: await Promise.all(
+            e.shorts.map(async (s, i) => ({
+              title: s.title,
+              from: s.from,
+              to: s.to,
+              preview: await sign(shortKeys[i]),
+              upload: drafts.find((d) => d.ref === videoRef(e.id, i + 1)) ?? null,
+            })),
+          ),
+          thumbnails: await Promise.all(
+            thumbKeys.map(async (k, i) => ({
+              url: await sign(k),
+              picked: !!picked && picked === thumbFiles[i],
+            })),
+          ),
+        },
+      };
+    },
+  });
+};

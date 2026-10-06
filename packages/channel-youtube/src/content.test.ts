@@ -105,6 +105,30 @@ describe("youtube content channel", () => {
     await ch.reply?.("c1", "thanks");
   });
 
+  it("sets the thumbnail after the upload; a refused one never fails the post", async () => {
+    for (const refuse of [false, true]) {
+      const { sites, calls } = fakeSites({
+        "POST /upload/youtube/v3/videos": () => ({ id: "v2" }),
+        "POST /upload/youtube/v3/thumbnails/set": () => {
+          if (refuse) throw new Error("403 custom thumbnails need a verified channel");
+          return {};
+        },
+      });
+      const p = await youtubeContent(sites).publish({
+        text: "d",
+        media: { kind: "video", source: "/mac/long.mp4", title: "T" },
+        extra: { thumbnail: "/mac/thumb1.png" },
+      });
+      expect(p.id).toBe("v2");
+      expect(calls[0]?.[2]).not.toHaveProperty("thumbnail");
+      expect(calls[1]).toEqual([
+        "POST",
+        "/upload/youtube/v3/thumbnails/set",
+        { videoId: "v2", file: "/mac/thumb1.png", contentType: "image/png" },
+      ]);
+    }
+  });
+
   it("a post without a video or a title is refused before any call", async () => {
     const { sites, calls } = fakeSites({});
     const ch = youtubeContent(sites);

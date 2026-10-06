@@ -145,6 +145,11 @@ const ONE: Record<string, (id: string, input: Input) => [string, Input]> = {
   "marketing/approveDraft": (id) => desk("approve", { ids: [bare(id)] }),
   "marketing/rejectDraft": (id) => desk("reject", { ids: [bare(id)] }),
   "marketing/redraft": (id, { note }) => desk("redraft", { draftId: bare(id), note }),
+  // A video's yes, from its page or the Inbox (`video:3`).
+  "marketing/videoApprove": (id) => desk("approveVideo", { id: num(id) }),
+  "marketing/videoApproveShort": (id, { short }) =>
+    desk("approveVideo", { id: num(id), short: Number(short) }),
+  "marketing/videoThumbnail": (id, { n }) => desk("pickThumbnail", { id: num(id), n: Number(n) }),
   // A reply sends: the console asks for the handler's name. An untouched draft is the desk's.
   "marketing/dmReply": (id, { body }) =>
     handlerCall("ReachDesk", "reply", { contactId: num(id), ...words(body) }, { confirm: "reply" }),

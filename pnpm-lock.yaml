@@ -733,6 +733,9 @@ importers:
       '@wren/outreach':
         specifier: workspace:*
         version: link:../outreach
+      '@wren/studio':
+        specifier: workspace:*
+        version: link:../studio
       drizzle-orm:
         specifier: 0.45.2
         version: 0.45.2(@cloudflare/workers-types@5.20260927.1)(kysely@0.29.6)(postgres@3.4.9)

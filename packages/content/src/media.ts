@@ -3,9 +3,11 @@
  * CLI, on the laptop) puts a file under its content hash and answers
  * `s3://bucket/key`, which a draft carries; `s3MediaHost` (the worker)
  * signs that, or uploads a path of its own, into a GET URL good for a day
- * that Graph, TikTok and the autobrowse box fetch right away.
+ * that Graph, TikTok and the autobrowse box fetch right away. A path not on this machine is the
+ * desk's own (a rendered video on the Mac): it stays a path, and the desk reads its disk.
  */
 import { createHash } from "node:crypto";
+import { existsSync } from "node:fs";
 import { readFile } from "node:fs/promises";
 import { extname } from "node:path";
 import { GetObjectCommand, PutObjectCommand, S3Client } from "@aws-sdk/client-s3";
@@ -68,6 +70,7 @@ export function s3MediaHost(o: MediaStoreOptions & { expiresSeconds?: number }):
         if (!at) throw new Error(`not a stored object: ${source}`);
         return sign(at.bucket, at.key);
       }
+      if (!existsSync(source)) return source;
       const stored = parseStored(await uploadMedia(source, { ...o, client: s3 }));
       if (!stored) throw new Error("upload answered no object");
       return sign(stored.bucket, stored.key);
