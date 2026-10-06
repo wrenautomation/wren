@@ -9,103 +9,54 @@
  * means everything is allowed, but a server that ANSWERED 5xx is saying
  * "unavailable", which means full disallow.
  *
- * Matching mirrors Python's urllib.robotparser (what the legacy crawler honored):
- * the first group whose agent token is a substring of our product token applies,
- * else the `*` group; within a group the first rule whose path prefix matches wins.
+ * Matching is robots-parser's RFC 9309 reading: the group for our product token
+ * (groups naming it merged), else `*`; the longest matching rule wins, Allow on a
+ * tie; `*` and `$` in paths.
  */
+import parseRobots from "robots-parser";
 import { FetchError, type Fetcher } from "./fetcher.js";
 
-interface Rule {
-  path: string;
-  allow: boolean;
+/** robots-parser checks a URL's origin against the file's; ours are read per origin, so one stand-in. */
+const ORIGIN = "https://robots.invalid";
+
+interface Robot {
+  isAllowed(url: string, ua?: string): boolean | undefined;
 }
-interface Group {
-  agents: string[];
-  rules: Rule[];
-}
+// A CommonJS module: at runtime the default import is the function its typings
+// declare, which NodeNext resolution types as a namespace instead.
+const robotsParser = parseRobots as unknown as (url: string, text: string) => Robot;
 
 export class RobotsPolicy {
   private constructor(
-    private readonly groups: readonly Group[],
+    private readonly robot: Robot | null,
     private readonly disallowAll: boolean,
   ) {}
 
   static allowAll(): RobotsPolicy {
-    return new RobotsPolicy([], false);
+    return new RobotsPolicy(null, false);
   }
   static disallowAll(): RobotsPolicy {
-    return new RobotsPolicy([], true);
+    return new RobotsPolicy(null, true);
   }
 
   static parse(text: string): RobotsPolicy {
-    const groups: Group[] = [];
-    let current: Group | null = null;
-    let sawRule = false;
-    for (const rawLine of text.split(/\r?\n/)) {
-      const hash = rawLine.indexOf("#");
-      const line = (hash >= 0 ? rawLine.slice(0, hash) : rawLine).trim();
-      if (!line) {
-        if (current && sawRule) {
-          groups.push(current);
-          current = null;
-          sawRule = false;
-        }
-        continue;
-      }
-      const colon = line.indexOf(":");
-      if (colon < 0) continue;
-      const key = line.slice(0, colon).trim().toLowerCase();
-      const value = line.slice(colon + 1).trim();
-      if (key === "user-agent") {
-        if (current && sawRule) {
-          groups.push(current);
-          current = null;
-          sawRule = false;
-        }
-        current = current ?? { agents: [], rules: [] };
-        current.agents.push(value.toLowerCase());
-      } else if (key === "allow" || key === "disallow") {
-        if (!current) continue;
-        sawRule = true;
-        const allow = key === "allow" || value === "";
-        current.rules.push({ path: normalizePath(value), allow });
-      }
-    }
-    if (current) groups.push(current);
-    return new RobotsPolicy(groups, false);
+    return new RobotsPolicy(robotsParser(`${ORIGIN}/robots.txt`, text), false);
   }
 
   canFetch(userAgent: string, url: string): boolean {
     if (this.disallowAll) return false;
-    const token = (userAgent.split("/")[0] ?? "").toLowerCase();
-    const group =
-      this.groups.find((g) => g.agents.some((a) => a !== "*" && token.includes(a))) ??
-      this.groups.find((g) => g.agents.includes("*"));
-    if (!group) return true;
-    const target = targetPath(url);
-    for (const rule of group.rules) {
-      if (rule.path === "*" || target.startsWith(rule.path)) return rule.allow;
-    }
-    return true;
+    if (!this.robot) return true;
+    return this.robot.isAllowed(onOrigin(url), userAgent) ?? true;
   }
 }
 
-function normalizePath(value: string): string {
-  if (value === "*") return "*";
-  try {
-    return encodeURI(decodeURI(value));
-  } catch {
-    return value;
-  }
-}
-
-function targetPath(url: string): string {
+/** The url's path and query on the stand-in origin; an unparseable url reads as `/`. */
+function onOrigin(url: string): string {
   try {
     const u = new URL(url);
-    const path = `${u.pathname}${u.search}`;
-    return encodeURI(decodeURI(path)) || "/";
+    return `${ORIGIN}${u.pathname}${u.search}`;
   } catch {
-    return "/";
+    return `${ORIGIN}/`;
   }
 }
 

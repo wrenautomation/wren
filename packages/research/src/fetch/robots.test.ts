@@ -15,14 +15,31 @@ class Canned implements Fetcher {
 }
 
 describe("RobotsPolicy", () => {
-  it("first matching rule wins, star group is the fallback", () => {
+  it("longest matching rule wins (RFC 9309), star group is the fallback", () => {
     const p = RobotsPolicy.parse(
       "User-agent: *\nDisallow: /private\nAllow: /private/ok\n\nUser-agent: wren\nDisallow: /wren-only\n",
     );
     expect(p.canFetch("wren/0.1 (x)", "https://h/wren-only/x")).toBe(false);
     expect(p.canFetch("wren/0.1 (x)", "https://h/private")).toBe(true);
-    expect(p.canFetch("other/1", "https://h/private/ok")).toBe(false); // first rule wins (Disallow before Allow)
+    expect(p.canFetch("other/1", "https://h/private/ok")).toBe(true);
+    expect(p.canFetch("other/1", "https://h/private/no")).toBe(false);
     expect(p.canFetch("other/1", "https://h/public")).toBe(true);
+  });
+
+  it("reads * and $ in paths", () => {
+    const p = RobotsPolicy.parse("User-agent: *\nDisallow: /*.pdf$\nDisallow: /*?sort=\n");
+    expect(p.canFetch("wren/0.1", "https://h/files/a.pdf")).toBe(false);
+    expect(p.canFetch("wren/0.1", "https://h/files/a.pdf.html")).toBe(true);
+    expect(p.canFetch("wren/0.1", "https://h/list?sort=asc")).toBe(false);
+    expect(p.canFetch("wren/0.1", "https://h/list")).toBe(true);
+  });
+
+  it("merges groups that name the same agent", () => {
+    const p = RobotsPolicy.parse(
+      "User-agent: wren\nDisallow: /a\n\nUser-agent: wren\nDisallow: /b\n",
+    );
+    expect(p.canFetch("wren/0.1", "https://h/a")).toBe(false);
+    expect(p.canFetch("wren/0.1", "https://h/b")).toBe(false);
   });
 
   it("empty Disallow allows everything; comments ignored", () => {
