@@ -1,4 +1,4 @@
-# Reddit discovery and enrichment (2026-10-06, proposed)
+# Reddit discovery and enrichment (2026-10-06)
 
 William, 10-06: "also might need reddit enrichment as well. and well thought out things for
 locating relevant subreddits threads, and posts for the comments. that requires reasoning and
@@ -24,8 +24,10 @@ through a logged-out profile, never through our two accounts.
 
 ## Places
 
-- **Seeds:** topics from the client's niche config, plus subreddits William names. For Wren
-  today: agency owners, recruiters, small-business operators.
+- **Audience, a setting per client:** a description of who we talk to, the topics it implies,
+  and subreddits William names. The model proposes topics from the description once; he edits
+  them. Wren's today: "medium-sized businesses that charge a lot per client" (agencies,
+  consultancies, recruiters, B2B services, clinics and firms like them).
 - **Candidates (free):**
   - Reddit's `/subreddits/search?q=<topic>` (new autobrowse route).
   - Search pages: Google by browser, Exa within its free credits, `site:reddit.com <topic>`;
@@ -42,8 +44,11 @@ through a logged-out profile, never through our two accounts.
 - **Stored:** `reddit_places`, unique on subreddit. It holds the raw about, rules and sample,
   plus stats, fit, why, the rules summary, `state` (found, watching, skipped), `account`, and
   `read_at`. Re-read monthly, with rule changes diffed and flagged.
-- **William picks** in Marketing → Places: Watch or Skip, and the account. Nothing is watched
-  until he picks.
+- **William picks** in Marketing → Places: Watch or Skip. Nothing is watched until he picks.
+- **Accounts:** a small pool whose job is building karma. Each watched place gets one account,
+  so two of ours never meet in one subreddit. Watch picks the pool account with the fewest
+  places whose rung the place's karma minimum allows; he can move it. A new account joins the
+  pool when he adds one to reach.
 
 ## Threads
 
@@ -124,29 +129,23 @@ The sources show beside the draft.
 $0. About 30 model calls a day, batched, on the `claude-code` login or Cohere credits. About 300
 Restate steps a day, roughly 9k actions a month of the free 100k.
 
-## Decisions for William
+## Posts
 
-1. **Read identity:** a logged-out profile (recommended), or reads under `reddit@alt`.
-2. **Who we talk to:** agency owners, recruiters and small-business operators. Add or cut.
-3. **Drafts:** a draft in your voice that you edit (recommended), or the angle only and you
-   write the comment.
-4. **Accounts:** one account per subreddit (recommended, so they never meet and the alt warms
-   where the brand doesn't), or both anywhere, with only the thread guard.
-5. **People reads:** also read the OPs of queued threads (recommended, about 60 reads a day),
-   or only people who talk to us.
+William writes the posts. Places gives him what he needs for each: whether posts are allowed,
+flair, karma or age minimums, the place's pace and its top posts of the week. A post goes out
+through the content channel (`channel-reddit`) from the place's account, on his click.
 
 ## Not built
 
 - Auto-commenting.
-- Posting into subreddits (his call, per the content design).
+- Writing posts for him.
 - Sweeps of a subreddit's users.
 - Paid tools (GummySearch and the like). Pushshift is gone.
 
 ## Overlap: radar
 
-The radar session reads feeds, Reddit RSS among them, and scores items against our SOPs, so
-Wren learns. This doc reads Reddit JSON to find places to talk. Nothing is shared now. If radar's
-feed parser lands, Threads may read `/new` as RSS.
+The radar (feeds scored against our SOPs, in the Watch) is ours too. It reads to learn; this
+reads to find places to talk. Nothing is shared.
 
 ## Build order (after his answers)
 
@@ -160,3 +159,8 @@ feed parser lands, Threads may read `/new` as RSS.
 ## Decision log
 
 - 2026-10-06: Proposed. Waiting on decisions 1 to 5.
+- 2026-10-06: William's answers. (1) Logged out. (2) The audience is a setting per client;
+  Wren's is medium-sized businesses that charge a lot per client. (3) Drafts in his voice that
+  he edits. (4) One account per place, but the point is a few accounts building karma; my call,
+  so Watch spreads places across a small pool. (5) Yes, read OPs. He also writes the posts
+  himself, so Places shows what a post needs and posts go through `channel-reddit`.
