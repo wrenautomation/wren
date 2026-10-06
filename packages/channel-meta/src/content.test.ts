@@ -99,6 +99,70 @@ describe("instagram content channel", () => {
       }),
     ).rejects.toThrow(/public URL/);
   });
+
+  it("activity reads tags newest first from one IG user read, since filters; audience shares that read", async () => {
+    const igUser = {
+      followers_count: 120,
+      tags: {
+        data: [
+          {
+            id: "m1",
+            caption: "Old tag\nmore",
+            permalink: "https://www.instagram.com/p/m1/",
+            timestamp: "2026-09-01T00:00:00+0000",
+            username: "test_user_a",
+          },
+          {
+            id: "m2",
+            caption: "Fresh tag line\nsecond line",
+            permalink: "https://www.instagram.com/p/m2/",
+            timestamp: "2026-09-20T00:00:00+0000",
+            username: "test_user_b",
+          },
+          { id: "m3" },
+        ],
+      },
+    };
+    const { sites, calls } = fakeSites({
+      "GET /me/accounts": pages,
+      "GET /ig9": (i) => {
+        expect(i).toEqual({
+          fields: "followers_count,tags.limit(25){id,caption,permalink,timestamp,username}",
+        });
+        return igUser;
+      },
+    });
+    const ig = instagramContent(sites, { now });
+    expect(await ig.activity?.({ since: "2026-09-10T00:00:00Z" })).toEqual([
+      {
+        id: "m2",
+        kind: "mention",
+        actor: "test_user_b",
+        actorUrl: "https://www.instagram.com/test_user_b/",
+        text: "Fresh tag line",
+        url: "https://www.instagram.com/p/m2/",
+        at: "2026-09-20T00:00:00+0000",
+        raw: igUser.tags.data[1],
+      },
+      {
+        id: "m3",
+        kind: "mention",
+        actor: null,
+        actorUrl: null,
+        text: "",
+        url: null,
+        at: null,
+        raw: { id: "m3" },
+      },
+    ]);
+    expect((await ig.activity?.({ limit: 1 }))?.map((a) => a.id)).toEqual(["m2"]);
+    expect(await ig.audience?.()).toEqual({
+      followers: 120,
+      asOf: "2026-09-22T10:00:00.000Z",
+      raw: igUser,
+    });
+    expect(calls.filter(([, p]) => p === "/me/accounts")).toHaveLength(1);
+  });
 });
 
 describe("facebook content channel", () => {

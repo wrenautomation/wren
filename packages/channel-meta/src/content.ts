@@ -4,9 +4,14 @@
  * Instagram publishes the Page's professional account in two Graph calls
  * (a container from a public URL, then publish); Facebook posts text, a
  * photo or a video to the Page. A local media file is hosted first
- * (`MediaHost`) because the Graph API only takes URLs.
+ * (`MediaHost`) because the Graph API only takes URLs. Instagram's
+ * activity (media we're tagged in) and audience come from one read of the
+ * IG user.
  */
 import {
+  type ActivityQuery,
+  type ActivityRow,
+  type Audience,
   type CommentRow,
   type ContentChannel,
   type FetchedWith,
@@ -61,6 +66,19 @@ function pageOf_(sites: SiteClient, o: MetaContentOptions) {
 }
 
 const IG_FIELDS = "id,caption,media_type,permalink,timestamp,like_count,comments_count";
+/** The tags edge comes as a field expansion on the IG user, so no route beyond `/{objectId}`. */
+const IG_INBOX_FIELDS = "followers_count,tags.limit(25){id,caption,permalink,timestamp,username}";
+
+interface IgInbox {
+  followers_count?: number;
+  tags?: Edge<{
+    id: string;
+    caption?: string;
+    permalink?: string;
+    timestamp?: string;
+    username?: string;
+  }>;
+}
 
 export function instagramContent(sites: SiteClient, o: MetaContentOptions = {}): ContentChannel {
   const now = o.now ?? (() => new Date());
@@ -74,6 +92,8 @@ export function instagramContent(sites: SiteClient, o: MetaContentOptions = {}):
   };
   const via = (method: "GET" | "POST", path: string): Promise<FetchedWith> =>
     sites.via("meta", method, path).then((v) => (v === "browser" ? "browser" : "api"));
+  const inbox = async () =>
+    sites.call<IgInbox>("meta", "GET", `/${await igUser()}`, { fields: IG_INBOX_FIELDS });
   return {
     platform: "instagram",
     async publish(post: Post): Promise<Published> {
@@ -155,6 +175,28 @@ export function instagramContent(sites: SiteClient, o: MetaContentOptions = {}):
     },
     async reply(commentId: string, text: string): Promise<void> {
       await sites.call("meta", "POST", `/${commentId}/replies`, { message: text });
+    },
+    async activity(q: ActivityQuery = {}): Promise<ActivityRow[]> {
+      const r = await inbox();
+      const rows = (r.tags?.data ?? []).map((m) => ({
+        id: m.id,
+        kind: "mention" as const,
+        actor: m.username ?? null,
+        actorUrl: m.username ? `https://www.instagram.com/${m.username}/` : null,
+        text: (m.caption ?? "").split("\n")[0] ?? "",
+        url: m.permalink ?? null,
+        at: m.timestamp ?? null,
+        raw: m,
+      }));
+      const { since } = q;
+      return rows
+        .filter((a) => !since || a.at === null || a.at >= since)
+        .sort((a, b) => (b.at ?? "").localeCompare(a.at ?? ""))
+        .slice(0, q.limit ?? rows.length);
+    },
+    async audience(): Promise<Audience> {
+      const r = await inbox();
+      return { followers: r.followers_count ?? 0, asOf: now().toISOString(), raw: r };
     },
   };
 }
