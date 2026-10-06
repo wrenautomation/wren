@@ -26,6 +26,9 @@
  * - `/marketing/<handler>`: the lander's signup form and preference center, forwarded to the
  *   `Marketing` service. No sign-in: a signup carries the lander's signature and a
  *   preference change its signed link, both checked by the service.
+ * - `/calendar/<handler>`: our booking calendar (designs/2026-10-06-calendar.md), forwarded to
+ *   the `Calendar` service. No sign-in: a booking carries the lander's signature, a move or a
+ *   cancel its signed link, both checked by the service.
  * - everything else: the static app in public/.
  *
  * The Worker holds no data but a credential link's ciphertext: the inbox is Postgres, read through Restate.
@@ -57,6 +60,14 @@ export const MARKETING_HANDLERS: ReadonlySet<string> = new Set([
   "confirm",
   "prefs",
   "set",
+]);
+
+export const CALENDAR_HANDLERS: ReadonlySet<string> = new Set([
+  "slots",
+  "book",
+  "booking",
+  "reschedule",
+  "cancel",
 ]);
 
 const MAX_BODY = 64 * 1024;
@@ -285,9 +296,15 @@ async function desk(req: Request, env: Env, handler: string): Promise<Response> 
   });
 }
 
-/** The lander's marketing calls, passed through as they are; the service checks each one. */
-async function marketing(req: Request, env: Env, handler: string): Promise<Response> {
-  if (!MARKETING_HANDLERS.has(handler)) return json({ error: "not found" }, 404);
+/** The lander's marketing and calendar calls, passed through as they are; the service checks each one. */
+async function lander(
+  req: Request,
+  env: Env,
+  service: string,
+  open: ReadonlySet<string>,
+  handler: string,
+): Promise<Response> {
+  if (!open.has(handler)) return json({ error: "not found" }, 404);
   if (!(req.headers.get("content-type") ?? "").startsWith("application/json")) {
     return json({ error: "json only" }, 415);
   }
@@ -295,7 +312,7 @@ async function marketing(req: Request, env: Env, handler: string): Promise<Respo
   if (body.length > MAX_BODY) return json({ error: "too large" }, 413);
   let res: Response;
   try {
-    res = await fetch(ingress(env, `Marketing/${handler}`), {
+    res = await fetch(ingress(env, `${service}/${handler}`), {
       method: "POST",
       headers: restateHeaders(env),
       body: body || "{}",
@@ -442,7 +459,11 @@ export default {
     }
     if (pathname.startsWith("/marketing/")) {
       if (req.method !== "POST") return json({ error: "POST only" }, 405);
-      return marketing(req, env, pathname.slice("/marketing/".length));
+      return lander(req, env, "Marketing", MARKETING_HANDLERS, pathname.slice(11));
+    }
+    if (pathname.startsWith("/calendar/")) {
+      if (req.method !== "POST") return json({ error: "POST only" }, 405);
+      return lander(req, env, "Calendar", CALENDAR_HANDLERS, pathname.slice(10));
     }
     if (pathname.startsWith("/api/")) {
       if (req.method !== "POST") return json({ error: "POST only" }, 405);

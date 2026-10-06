@@ -11,6 +11,16 @@ import { awsCostExplorer, BOOKS_CONSOLE_VIEWS, bankOfCanada, dirStore, s3Store }
 import { BOOKS_RECORDS } from "@wren/books/records";
 import { makeBooks, makeBooksConsole } from "@wren/books/restate";
 import {
+  AllBookings,
+  CALENDAR,
+  CALENDAR_SCOPE,
+  CalendarBookings,
+  GoogleHost,
+} from "@wren/calendar";
+import { makeCalendarConsole } from "@wren/calendar/console";
+import { CALENDAR_RECORDS } from "@wren/calendar/records";
+import { type CalendarDeps, makeCalendar } from "@wren/calendar/restate";
+import {
   activeSenders,
   Broadcast,
   ConsoleTransport,
@@ -487,6 +497,27 @@ export async function buildServices(
     });
     return youtubeToken();
   });
+  // Our own booking calendar: Google as the account the settings name, by delegation on the
+  // calendar scope, minted on first use; mail from portal@.
+  const calendarKey = () => loadServiceAccountKey(keyPath);
+  const calendarDeps: CalendarDeps = {
+    db,
+    calendar: "wren",
+    settings: async () => (await settingsFor(db, null))[CALENDAR] ?? {},
+    host: new GoogleHost((account) =>
+      serviceAccountToken(calendarKey(), { scopes: [CALENDAR_SCOPE], subject: account }),
+    ),
+    shared: settings.siteExportToken ?? null,
+    site: settings.siteBaseUrl.replace(/\/+$/, ""),
+    send:
+      settings.portalFrom && settings.portalMailbox
+        ? plainMailer(gmail, {
+            mailbox: settings.portalMailbox,
+            from: settings.portalFrom,
+            name: "Wren",
+          })
+        : null,
+  };
   const services: AnyService[] = [
     // A dead firm site at 30s × 3 tries held one shard ~90s a page; a live one answers in seconds.
     makeEnrichment({
@@ -634,6 +665,9 @@ export async function buildServices(
             })
           : null,
     }),
+    // Our booking calendar, through the phone Worker's /calendar door; its portal buttons.
+    makeCalendar(calendarDeps),
+    makeCalendarConsole(calendarDeps),
   ];
   // The queue-keeper is bound only when asked to hold a queue; 0 means every enrollment is by hand.
   if (settings.composeDaysAhead > 0) {
@@ -857,7 +891,11 @@ export async function buildServices(
     site: settings.siteExportToken
       ? { baseUrl: settings.siteBaseUrl, exportToken: settings.siteExportToken }
       : null,
-    bookings: settings.calcomApiKey ? new CalcomBookings(settings.calcomApiKey) : null,
+    // Calls on our calendar and, while it still takes them, cal.com.
+    bookings: new AllBookings([
+      new CalendarBookings(db),
+      ...(settings.calcomApiKey ? [new CalcomBookings(settings.calcomApiKey)] : []),
+    ]),
     pusher: pusherFrom(settings),
     llm: classify ? llm : null,
     ...smsNotify,
@@ -1022,6 +1060,7 @@ export async function buildServices(
         ...emailRecords(roster, policy),
         ...BOOKS_RECORDS,
         ...WATCH_RECORDS,
+        ...CALENDAR_RECORDS,
         ...RESEARCH_RECORDS,
         ...MARKETING_NUMBERS,
         // Replays: read live from the lander, chunks signed from the files bucket.

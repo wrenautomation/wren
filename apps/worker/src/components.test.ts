@@ -4,10 +4,12 @@
  * A new service or record with no component fails here. Portal apps are checked
  * beside the modules (`apps/portal/web/src/modules/components.test.ts`).
  */
+
 import { mkdtempSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { BOOKS_RECORDS } from "@wren/books/records";
+import { CALENDAR_RECORDS } from "@wren/calendar/records";
 import { emailRecords } from "@wren/channel-email/records";
 import type { SendPolicy } from "@wren/channel-email/send/policy";
 import { sessionRecord } from "@wren/channel-search/records";
@@ -84,6 +86,7 @@ const RECORD_TYPES = [
   ...emailRecords([], {} as SendPolicy),
   ...BOOKS_RECORDS,
   ...WATCH_RECORDS,
+  ...CALENDAR_RECORDS,
   ...MARKETING_NUMBERS,
   sessionRecord({ site: { baseUrl: "", exportToken: "" }, signGet: async () => "" }),
   videoRecord(),

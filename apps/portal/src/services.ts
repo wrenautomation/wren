@@ -5,6 +5,7 @@
  * the handlers the service serves.
  */
 import { BOOKS_CONSOLE_ROUTES, BOOKS_CONSOLE_WRITES } from "@wren/books/console-routes";
+import { CALENDAR_CONSOLE_ROUTES, CALENDAR_CONSOLE_WRITES } from "@wren/calendar/console-routes";
 import { EMAIL_CONSOLE_ROUTES, EMAIL_CONSOLE_WRITES } from "@wren/channel-email/console-routes";
 import { SMS_CONSOLE_ROUTES, SMS_CONSOLE_WRITES } from "@wren/channel-sms/console-routes";
 import { type Need, needOf, type Permission } from "@wren/core/access";
@@ -39,6 +40,8 @@ export const SERVICES: Readonly<Record<string, Service>> = {
   books: service("BooksConsole", BOOKS_CONSOLE_ROUTES, BOOKS_CONSOLE_WRITES),
   // The Watch: William's mail and its rules.
   watch: service("WatchConsole", WATCH_CONSOLE_ROUTES, WATCH_CONSOLE_WRITES),
+  // Our booking calendar: how a call went, and cancel.
+  calendar: service("CalendarConsole", CALENDAR_CONSOLE_ROUTES, CALENDAR_CONSOLE_WRITES),
 };
 
 /**

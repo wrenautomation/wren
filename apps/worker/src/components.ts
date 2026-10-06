@@ -3,6 +3,7 @@
  * gating. `components.test.ts` checks every service, record and app is in one.
  */
 import { BOOKS_COMPONENTS } from "@wren/books/components";
+import { CALENDAR_COMPONENTS } from "@wren/calendar/components";
 import { EMAIL_COMPONENTS } from "@wren/channel-email/components";
 import { META_COMPONENTS } from "@wren/channel-meta/components";
 import { SEARCH_COMPONENTS } from "@wren/channel-search/components";
@@ -27,6 +28,7 @@ export const COMPONENTS: readonly Component[] = [
   ...SEARCH_COMPONENTS,
   ...OUTREACH_COMPONENTS,
   ...BOOKS_COMPONENTS,
+  ...CALENDAR_COMPONENTS,
   ...WATCH_COMPONENTS,
   ...PLANNED_COMPONENTS,
 ];

@@ -13,6 +13,7 @@
   },
   "dependencies": {
     "@wren/auth": "workspace:*",
+    "@wren/calendar": "workspace:*",
     "@wren/delivery": "workspace:*",
     "@wren/reactivation": "workspace:*",
     "@wren/ui": "workspace:*",

@@ -360,6 +360,17 @@ describe("the lander's marketing calls", () => {
   });
 });
 
+describe("the lander's calendar calls", () => {
+  it("pass to the Calendar service as they are, its five handlers only", async () => {
+    const res = await post("/calendar/book", { offer: "intro" });
+    expect(res.status).toBe(200);
+    expect(restateCalls[0]?.url).toBe("https://restate.test/Calendar/book");
+    expect((await post("/calendar/remind", {})).status).toBe(404);
+    expect((await call("/calendar/slots")).status).toBe(405);
+    expect(restateCalls).toHaveLength(1);
+  });
+});
+
 describe("the door", () => {
   const TOKEN = "a".repeat(43);
 
