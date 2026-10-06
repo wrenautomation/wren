@@ -167,9 +167,9 @@ reads to find places to talk. Nothing is shared.
 - Candidates come from `/subreddits/search`, named subreddits, where read people post, and Exa:
   autobrowse `web GET /search` (Exa only, `site:reddit.com <topic>`), subreddit names taken from
   the result URLs. `exaSearches` (default 3, 0 = off) caps the searches a find pass, so about 3 a
-  month from the Exa keys' shared credit; a miss (spent, capped) ends them for the pass. That
-  route carries no `exa` meter in autobrowse and no `includeDomains`, so the `site:` is a hint and
-  code keeps only reddit.com URLs. Google stays out: its 200 a day are shared and already split.
+  month from the Exa keys' shared credit, inside autobrowse's daily `exa` cap (its backends meter
+  through `leg.spent`); a miss (spent, capped) ends them for the pass. The route has no
+  `includeDomains`, so the `site:` is a hint and code keeps only reddit.com URLs. Google stays out: its 200 a day are shared and already split.
 - Threads read `/new` only. 50 posts every 2 hours covers a place up to 600 posts a day, so the
   per-topic search for big subreddits waits for one past that.
 - People are read for OPs of queued threads, commenters on our posts and Reddit DM contacts (5 a
