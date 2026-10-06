@@ -2,7 +2,7 @@
 import { adDayRecord } from "@wren/channel-meta/records";
 import { SEARCH_RECORDS } from "@wren/channel-search/records";
 import { textContactRecord } from "@wren/channel-sms/records";
-import { CONTENT_RECORDS } from "@wren/content/records";
+import { CONTENT_RECORDS, SOCIAL_RECORDS } from "@wren/content/records";
 import {
   commentRecord,
   dmRecord,
@@ -21,4 +21,5 @@ export const MARKETING_NUMBERS = [
   placeRecord,
   threadRecord,
   inviteRecord,
+  ...SOCIAL_RECORDS,
 ];

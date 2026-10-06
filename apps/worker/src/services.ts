@@ -107,12 +107,14 @@ import { tiktokContent } from "@wren/channel-tiktok";
 import { xContent } from "@wren/channel-x";
 import { youtubeContent } from "@wren/channel-youtube";
 import { ingressOf, type Settings } from "@wren/config";
-import { DEFAULT_VOICE, s3MediaHost } from "@wren/content";
+import { commentGuide, DEFAULT_VOICE, s3MediaHost } from "@wren/content";
 import {
   makeContentDesk,
   makeContentMetrics,
   makeContentPlanner,
   makeContentScheduler,
+  makeSocialDesk,
+  makeSocialWatch,
 } from "@wren/content/restate";
 import { contentDrafts, contentPlaybooks } from "@wren/content/schema";
 import { askRecord, makeAsk } from "@wren/core/ask";
@@ -120,7 +122,7 @@ import { makeAuditSealer } from "@wren/core/audit";
 import { CalcomCalendar, type Calendar } from "@wren/core/calendar";
 import { clientRecord, settingsFor } from "@wren/core/clients";
 import { makeConsolePortal, restateAdmin, restateAdminGet } from "@wren/core/console";
-import { asAccount, type SiteClient } from "@wren/core/content";
+import { asAccount, type Platform, type SiteClient } from "@wren/core/content";
 import { sitesHost } from "@wren/core/content/box";
 import { ingressSites } from "@wren/core/content/ingress";
 import { makeTokenRenewal } from "@wren/core/content/renewal";
@@ -221,7 +223,9 @@ export const POOL_CHAIN = ["PoolScheduler", "Discovery", "Enrichment", "Resoluti
  * Everything the box serves: the chain; the page archive, which moves rows out of
  * its own disk; and the books' day, which waits on the model and the Mac's desk.
  */
-export const BOX_SERVICES = [...POOL_CHAIN, "PageArchive", "Books", "Watch"];
+export const BOX_SERVICES = [...POOL_CHAIN, "PageArchive", "Books", "Watch", "SocialWatch"];
+/** SocialWatch's clock: 07:00-23:00 New York (designs/2026-10-06-social-inbox.md). */
+const SOCIAL_ZONE = "America/New_York";
 
 export function servicesFor(
   all: AnyService[],
@@ -313,14 +317,15 @@ export async function buildServices(
     log.warn("WREN_SMS_PROVIDER=fake pretends to send: local dry runs only");
   else if (!settings.smsLive)
     log.info("WREN_SMS_LIVE off: the sms sender queues but sends nothing");
-  // Warm replies wait on William, so their pings also text his phone (Discord stays the log).
-  const replyNotifier =
+  // A text to William's phone, once the registered campaign is live.
+  const operatorText =
     settings.operatorPhone && settings.smsLive && smsProvider.name === "telnyx"
-      ? new Broadcast([
-          laneNotifier(settings.discordEmailWebhookUrl),
-          new SmsNotifier(db, smsProvider, settings.operatorPhone),
-        ])
-      : laneNotifier(settings.discordEmailWebhookUrl);
+      ? new SmsNotifier(db, smsProvider, settings.operatorPhone)
+      : null;
+  // Warm replies wait on William, so their pings also text his phone (Discord stays the log).
+  const replyNotifier = operatorText
+    ? new Broadcast([laneNotifier(settings.discordEmailWebhookUrl), operatorText])
+    : laneNotifier(settings.discordEmailWebhookUrl);
 
   // The send loop: console prints until cutover flips WREN_SEND_TRANSPORT=gmail.
   // The roster names the live fleet; without one nothing may send, so a missing
@@ -774,6 +779,15 @@ export async function buildServices(
     makeContentMetrics({ db, ...contentNotify }),
     // Tomorrow's slots vs scheduled drafts, said once a day; off until `wren content planner start`.
     makeContentPlanner({ db, zone: settings.sendTimezone, ...contentNotify }),
+    // Comments, activity and followers on our own accounts. Reads only; off until `wren social start`.
+    makeSocialWatch({
+      db,
+      platforms: settings.contentChannels,
+      zone: SOCIAL_ZONE,
+      ...contentNotify,
+      ...(operatorText && settings.notify !== "none" ? { texter: operatorText } : {}),
+    }),
+    makeSocialDesk({ db }),
   );
   // autobrowse's tokens made again before they lapse (LinkedIn's 60 days, npm's 90).
   services.push(
@@ -978,7 +992,7 @@ export async function buildServices(
         "watch.triage": triageStep(db, watchLlm),
         "watch.score": scoreStep(db, watchLlm, () => practicesOf(db)),
         // The Watch's model: both read a few lines and answer in one.
-        "comments.sort": sortStep(db, watchLlm),
+        "comments.sort": sortStep(db, watchLlm, (p) => commentGuide(db, p as Platform)),
       },
       rule: async (when: string, e: SpineEvent) => {
         const r = await llm.complete(

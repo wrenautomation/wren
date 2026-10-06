@@ -84,8 +84,9 @@ export async function lastTouches(db: Queryable): Promise<Record<string, string>
     select account_id, max(at) at from (
       select account_id, coalesce(sent_at, created_at) at from reach_messages
         where account_id is not null and (sent_at is not null or direction = 'in')
-      union all select account_id, at from comments
-      union all select account_id, answered_at from comments where answered_at is not null
+      union all select account_id, at from comments where account_id is not null
+      union all select account_id, answered_at from comments
+        where account_id is not null and answered_at is not null
     ) t group by account_id`)) as unknown as Array<{ account_id: string; at: Date | string }>;
   return Object.fromEntries(rows.map((r) => [r.account_id, new Date(r.at).toISOString()]));
 }

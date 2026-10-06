@@ -61,6 +61,8 @@ export interface ListPage extends PageBase {
   legacy?: (params: URLSearchParams) => Record<string, string | null> | null;
   /** Beside the list's title, such as a form that adds one; `reload` reads the list again. */
   head?: (meta: RecordMeta, reload: () => void) => ReactNode;
+  /** What waits here, counted on its tab in the nav (Wren's workspace): a `where` on the record. */
+  count?: Readonly<Record<string, readonly string[]>>;
 }
 
 /** An app's numbers first, each a link to its rows, then its top records. */

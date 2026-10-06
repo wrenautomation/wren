@@ -49,6 +49,12 @@ const FIRST_HOUR = 7;
 const LAST_HOUR = 23;
 /** Object state: each post's last comment read, ms, by `platform:id`. */
 const READS = "reads";
+/** Object state: each platform's last activity read, ms. */
+const ACTIVITY_READS = "activityReads";
+/** Platforms whose activity is read less often than every pass: LinkedIn's 12 reads a day. */
+export const ACTIVITY_EVERY_MS: Partial<Record<Platform, number>> = {
+  linkedin: 2 * 60 * 60 * 1000,
+};
 
 /** The `Content` service's read handlers as the worker serves them. */
 type ContentReads = {
@@ -143,28 +149,38 @@ export function makeSocialWatch(deps: SocialWatchDeps) {
       });
 
     const day = dayOf(now, deps.zone);
+    const lastActivity = (await ctx.get<Record<string, number>>(ACTIVITY_READS)) ?? {};
     for (const platform of deps.platforms) {
-      try {
-        const since = await ctx.run(`since ${platform}`, () => newestActivityAt(deps.db, platform));
-        const rows = await content.activity({ platform, ...(since ? { q: { since } } : {}) });
-        if (rows?.length)
-          happened.push(
-            ...(await ctx.run(`activity ${platform}`, () =>
-              keepActivity(deps.db, platform, rows, now),
-            )),
+      const every = ACTIVITY_EVERY_MS[platform] ?? 0;
+      const due = now.getTime() - (lastActivity[platform] ?? 0) >= every;
+      if (due) lastActivity[platform] = now.getTime();
+      // Rows with no time (YouTube's subscribers) pass any `since`; the unique ref keeps them once.
+      if (due)
+        try {
+          const since = await ctx.run(`since ${platform}`, () =>
+            newestActivityAt(deps.db, platform),
           );
-      } catch (err) {
-        stats.errors.push(`${platform} activity: ${errorText(err)}`);
-      }
+          const rows = await content.activity({ platform, ...(since ? { q: { since } } : {}) });
+          if (rows?.length)
+            happened.push(
+              ...(await ctx.run(`activity ${platform}`, () =>
+                keepActivity(deps.db, platform, rows, now),
+              )),
+            );
+        } catch (err) {
+          stats.errors.push(`${platform} activity: ${errorText(err)}`);
+        }
+      // A count that fails is no reading this pass, never a failed pass: the next pass asks again.
       try {
         if (await ctx.run(`day ${platform}`, () => hasDay(deps.db, platform, day))) continue;
         const a = await content.audience({ platform });
         if (a && (await ctx.run(`keep day ${platform}`, () => keepDay(deps.db, platform, day, a))))
           stats.audience.push(platform);
       } catch (err) {
-        stats.errors.push(`${platform} audience: ${errorText(err)}`);
+        ctx.console.warn(`SocialWatch: ${platform} audience: ${errorText(err)}`);
       }
     }
+    ctx.set(ACTIVITY_READS, lastActivity);
 
     stats.comments = kept.length;
     stats.asked = kept.filter((c) => c.asked).length;

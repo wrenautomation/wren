@@ -132,7 +132,7 @@ const COMMENT_ACTIONS: Action[] = [
     handler: "marketing/commentDm",
     ask: { field: "body", label: "Your DM" },
     key: "m",
-    when: { state: ["new", "waiting", "answered"] },
+    when: { state: ["new", "waiting", "answered"], channel: ["reach"] },
     done: said("Queued. It leaves on the next tick."),
   },
   {
@@ -144,6 +144,43 @@ const COMMENT_ACTIONS: Action[] = [
     when: { state: ["new", "waiting"] },
     done: said("Dropped"),
   },
+];
+
+const ACTIVITY_ACTIONS: Action[] = [
+  {
+    id: "marketing.activitySeen",
+    label: "Mark seen",
+    handler: "marketing/activitySeen",
+    bulk: true,
+    key: "e",
+    when: { state: ["new"] },
+    done: said("Marked seen"),
+  },
+  {
+    id: "marketing.activityAllSeen",
+    label: "Mark all seen",
+    handler: "marketing/activityAllSeen",
+    form: [],
+    done: said("Every new activity marked seen"),
+  },
+];
+
+/** The reply box's preview for an Inbox DM: its id is `dm:<contact>`. */
+const inboxDmPreview = (id: string | number) => dmPreview(String(id).replace(/^dm:/, ""));
+
+/** Each action on the rows of its own type; DM them only from a reach account's inbox. */
+const only = (type: string, a: Action, when: Action["when"] = a.when): Action => ({
+  ...a,
+  when: { ...when, type: [type] },
+});
+const INBOX_ACTIONS: Action[] = [
+  ...COMMENT_ACTIONS.map((a) => only("comment", a)),
+  ...DM_ACTIONS.map((a) =>
+    a.ask?.preview
+      ? only("dm", { ...a, ask: { ...a.ask, preview: inboxDmPreview } })
+      : only("dm", a, { state: ["waiting"] }),
+  ),
+  ...ACTIVITY_ACTIONS.map((a) => (a.form ? a : only("activity", a))),
 ];
 
 const PLACE_ACTIONS: Action[] = [
@@ -354,8 +391,21 @@ export const marketing: Module = {
           href: "/marketing/comments?view=waiting",
           needs: true,
         },
+        {
+          label: "New activity",
+          record: "marketing.activity",
+          href: "/marketing/inbox?view=activity",
+          needs: true,
+        },
       ],
       top: [
+        {
+          label: "Followers",
+          record: "marketing.audience",
+          href: "/marketing/followers",
+          fields: ["followers", "week"],
+          empty: "No follower count yet. SocialWatch reads one a day.",
+        },
         {
           label: "Top posts",
           record: "marketing.post",
@@ -372,6 +422,24 @@ export const marketing: Module = {
         },
       ],
       below: WeeklyBookings,
+    },
+    {
+      id: "inbox",
+      label: "Inbox",
+      template: "list",
+      record: "marketing.inbox",
+      empty: {
+        comments: "Comments on our posts show here.",
+        dms: "Threads show here once reach messages someone.",
+        activity: "Follows, mentions and notices show here.",
+        all: "Comments, DMs and activity from every platform show here.",
+      },
+      actions: INBOX_ACTIONS,
+      extras: (detail, at) =>
+        (detail as { messages?: unknown } | null)?.messages
+          ? dmExtras(detail, at)
+          : { sections: [] },
+      count: { state: ["new", "waiting"] },
     },
     {
       id: "content",
@@ -472,6 +540,13 @@ export const marketing: Module = {
       },
       actions: DM_ACTIONS,
       extras: dmExtras,
+    },
+    {
+      id: "followers",
+      label: "Followers",
+      template: "list",
+      record: "marketing.audience",
+      empty: "No follower count yet. SocialWatch reads one a day.",
     },
     {
       id: "comments",

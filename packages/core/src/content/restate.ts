@@ -272,12 +272,17 @@ export function makeContent(channelsFor: ChannelsFor) {
           return ch.activity ? refusalsFinal(ch.activity(req.q ?? {})) : null;
         },
       ),
-      /** Null when the channel reads no follower count. */
+      /** Null when the channel reads no follower count. Any failure is final: the caller asks again later. */
       audience: serviceHandler(
         { input: z.looseObject({ platform: PLATFORM }) },
         async (ctx: restate.Context, req: { platform: Platform }): Promise<Audience | null> => {
           const ch = pick(ctx, req.platform);
-          return ch.audience ? refusalsFinal(ch.audience()) : null;
+          if (!ch.audience) return null;
+          try {
+            return await ch.audience();
+          } catch (err) {
+            throw new restate.TerminalError(err instanceof Error ? err.message : String(err));
+          }
         },
       ),
     },

@@ -52,6 +52,37 @@ const CommandPalette = lazy(() =>
 );
 
 /** Open (true), shut (false), or never asked for (null): ⌘K or Ctrl+K toggles it. */
+/** Each open page's waiting count, for its tab: pages with a `count`, in Wren's workspace. */
+function useNavCounts(
+  module: Module | undefined,
+  page: string | undefined,
+  on: boolean,
+): Record<string, number> {
+  const [counts, setCounts] = useState<Record<string, number>>({});
+  // biome-ignore lint/correctness/useExhaustiveDependencies: a tab change reads the counts again.
+  useEffect(() => {
+    const pages = on ? (module?.pages ?? []).filter((p) => "count" in p && p.count) : [];
+    if (!pages.length) return void setCounts({});
+    let live = true;
+    void Promise.all(
+      pages.map((p) =>
+        call<{ total: number }>("console/recordsList", {
+          record: (p as { record: string }).record,
+          where: (p as { count: unknown }).count,
+          limit: 1,
+        }).then(
+          (r) => [p.id, r.total] as const,
+          () => [p.id, 0] as const,
+        ),
+      ),
+    ).then((all) => live && setCounts(Object.fromEntries(all)));
+    return () => {
+      live = false;
+    };
+  }, [module, page, on]);
+  return counts;
+}
+
 function usePaletteKey() {
   const [open, setOpen] = useState<boolean | null>(null);
   useEffect(() => {
@@ -255,6 +286,11 @@ export function App() {
   }, [named]);
 
   const theme = useLook(route.params, clients.find((c) => c.id === current?.id)?.look);
+  const counts = useNavCounts(
+    at.kind === "page" ? at.module : undefined,
+    at.kind === "page" ? at.page.id : undefined,
+    wren,
+  );
   const label = at.kind === "page" ? at.page.label : at.kind === "launcher" ? "Apps" : null;
   useEffect(() => {
     if (label && current) document.title = `${label} · ${current.name} · Wren Client Portal`;
@@ -333,6 +369,7 @@ export function App() {
                     id: p.id,
                     label: p.label,
                     href: pathOf(open.module, p),
+                    ...(counts[p.id] ? { count: counts[p.id] } : {}),
                   })),
                 current: open.page.id,
                 action:

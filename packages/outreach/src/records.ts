@@ -36,6 +36,12 @@ const SLOT = "WRENSLOT";
 
 const neutral = (label: string) => ({ label, tone: "neutral" as const });
 
+const COMMENT_KIND_LABELS = {
+  post_reply: neutral("On our post"),
+  comment_reply: neutral("Under our comment"),
+  username_mention: neutral("Mention"),
+};
+
 export const dmRecord = defineRecord({
   id: "marketing.dm",
   name: { one: "DM thread", many: "DM threads" },
@@ -123,17 +129,31 @@ export const dmRecord = defineRecord({
   },
 });
 
-/** Comments on our posts and under our comments, newest first, with the account that read them. */
+/** Every platform's names, for a comment from any of them. */
+export const PLATFORM_LABELS = {
+  reddit: neutral("Reddit"),
+  linkedin: neutral("LinkedIn"),
+  youtube: neutral("YouTube"),
+  x: neutral("X"),
+  instagram: neutral("Instagram"),
+  facebook: neutral("Facebook"),
+  tiktok: neutral("TikTok"),
+};
+
+/**
+ * Comments on our posts and under our comments, every platform, newest first: a reach account's
+ * inbox (the account that read it) or our own post (`content`, answered by `Content.reply`).
+ */
 export const commentRecord = defineRecord({
   id: "marketing.comment",
   name: { one: "comment", many: "comments" },
   rows: async (db) =>
     (
       (await db.execute(sql`
-      select c.id, c.author who, c.place, c.post_title, c.body, c.sort, c.why, c.draft, c.state,
-        c.answer, c.at, c.url, a.handle account, c.contact_id, p.read p_read, p.fit p_fit,
-        p.site p_site
-      from comments c join reach_accounts a on a.id = c.account_id
+      select c.id, c.author who, c.platform, c.channel, c.kind, c.place, c.post_title, c.body,
+        c.sort, c.why, c.draft, c.state, c.answer, c.at, c.url, coalesce(a.handle, 'Wren') account,
+        c.contact_id, p.read p_read, p.fit p_fit, p.site p_site
+      from comments c left join reach_accounts a on a.id = c.account_id
       left join reddit_people p on c.platform = 'reddit' and p.handle = lower(c.author)
       order by c.at desc limit ${THREAD_ROWS}`)) as unknown as Array<Record<string, unknown>>
     ).map(({ p_read, p_fit, p_site, ...r }) => ({
@@ -150,7 +170,10 @@ export const commentRecord = defineRecord({
   fields: {
     who: name("Who"),
     about: text("Who they are"),
-    place: text("Subreddit"),
+    platform: status(PLATFORM_LABELS, "Site"),
+    channel: status({ reach: neutral("Reach account"), content: neutral("Our post") }, "Where"),
+    kind: status(COMMENT_KIND_LABELS, "Kind"),
+    place: text("Place"),
     postTitle: text("Post"),
     body: prose("Their words"),
     sort: status(
@@ -174,7 +197,7 @@ export const commentRecord = defineRecord({
     answer: prose("Our answer"),
     account: text("On"),
     at: date("When"),
-    url: link("On Reddit"),
+    url: link("Open"),
   },
   views: [
     {
@@ -310,7 +333,7 @@ export const placeRecord = defineRecord({
     avgScore: number("Avg score"),
     foundBy: text("Found by"),
     readAt: date("Read"),
-    url: link("On Reddit"),
+    url: link("Open"),
   },
   views: [
     { id: "found", label: "To pick", where: { state: "found" }, sort: "-fit" },
@@ -387,7 +410,7 @@ export const threadRecord = defineRecord({
     comments: number("Comments"),
     account: text("From"),
     postedAt: date("Posted"),
-    url: link("On Reddit"),
+    url: link("Open"),
   },
   views: [
     { id: "queued", label: "To answer", where: { state: "queued" }, sort: "-fit", at: "postedAt" },

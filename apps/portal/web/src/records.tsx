@@ -151,19 +151,20 @@ const ONE: Record<string, (id: string, input: Input) => [string, Input]> = {
   "marketing/redraft": (id, { note }) => desk("redraft", { draftId: id, note }),
   // A reply sends: the console asks for the handler's name.
   "marketing/dmReply": (id, { body }) =>
-    handlerCall("ReachDesk", "reply", { contactId: Number(id), body }, { confirm: "reply" }),
-  "marketing/dmRead": (id) => handlerCall("ReachDesk", "markRead", { contactId: Number(id) }),
+    handlerCall("ReachDesk", "reply", { contactId: num(id), body }, { confirm: "reply" }),
+  "marketing/dmRead": (id) => handlerCall("ReachDesk", "markRead", { contactId: num(id) }),
   // An untouched draft isn't sent: the desk answers with the draft it holds.
   "marketing/commentAnswer": (id, { body }) =>
     handlerCall(
       "ReachDesk",
       "answerComment",
-      { id: Number(id), ...(typeof body === "string" ? { body } : {}) },
+      { id: num(id), ...(typeof body === "string" ? { body } : {}) },
       { confirm: "answerComment" },
     ),
   "marketing/commentDm": (id, { body }) =>
-    handlerCall("ReachDesk", "dmComment", { id: Number(id), body }, { confirm: "dmComment" }),
-  "marketing/commentDrop": (id) => handlerCall("ReachDesk", "dropComment", { id: Number(id) }),
+    handlerCall("ReachDesk", "dmComment", { id: num(id), body }, { confirm: "dmComment" }),
+  "marketing/commentDrop": (id) => handlerCall("ReachDesk", "dropComment", { id: num(id) }),
+  "marketing/activitySeen": (id) => handlerCall("SocialDesk", "markSeen", { ids: [num(id)] }),
   // Withdrawing can't be undone: the console asks first.
   "marketing/inviteWithdraw": (id) =>
     handlerCall(
@@ -204,11 +205,14 @@ const handlerCall = (
 ): [string, Input] => ["console/call", { service, handler, input, ...more }];
 const desk = (handler: string, input: Input) =>
   handlerCall("ContentDesk", handler, input, { key: "default" });
+/** An Inbox id carries its type ("comment:12"); the number after the colon is the row. */
+const num = (id: string) => Number(id.slice(id.indexOf(":") + 1));
 /** "idea/platform/draft": a post's idea and platform. "campaign/adset/day": an ad day's campaign. */
 const head = (id: string, n: number) => id.split("/").slice(0, n);
 /** Head actions that are another handler with something added. */
 const AS: Record<string, [string, Input]> = {
   "delivery/note": ["delivery/post", { internal: true }],
+  "marketing/activityAllSeen": handlerCall("SocialDesk", "markAllSeen", {}),
 };
 
 /** A form's files go up first; the handler gets each one's key. */
