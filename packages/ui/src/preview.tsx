@@ -93,9 +93,12 @@ const snippetOf = (body: string) => body.replace(/\s+/g, " ").trim();
 export function MessagePreview({
   message: kind,
   body: text,
+  stats = true,
 }: {
   message: MessageKind;
   body: string;
+  /** The skim's numbers over it; a reader who doesn't write it (a client's recap) goes without. */
+  stats?: boolean;
 }) {
   const [opened, setOpened] = useState<"laptop" | "phone">("phone");
   const whole = "fill" in kind ? kind.fill?.(text) : undefined;
@@ -121,7 +124,7 @@ export function MessagePreview({
   );
   return (
     <section aria-label="How it looks" className="grid min-w-0 gap-3 text-[13px]">
-      <p className="text-(--ui-ink-2)">{shape.join(" · ")}</p>
+      {stats ? <p className="text-(--ui-ink-2)">{shape.join(" · ")}</p> : null}
       {message.kind === "dm" ? (
         <>
           <Frame label={`Messages, laptop (${message.site})`} width={DM_LIST}>

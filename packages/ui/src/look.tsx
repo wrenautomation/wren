@@ -270,17 +270,22 @@ export function LookEditor({
                   onChange={(scheme) => setBrand({ scheme })}
                 />
               </div>
-              <label className={LABEL}>
+              <div className={LABEL}>
                 From a logo
-                <Input
-                  type="file"
-                  accept="image/*"
-                  onChange={(e) => void fromImage(e.target.files?.[0])}
-                />
+                {/* The browser's own file box says "No file chosen"; a button says what it does. */}
+                <label className="inline-flex h-8 w-fit cursor-pointer items-center px-3 text-[13px] font-medium text-(--ui-ink) shadow-[inset_0_0_0_1px_var(--ui-hair)] hover:bg-(--ui-hover) has-focus-visible:outline-2 has-focus-visible:outline-(--ui-accent) has-focus-visible:outline-offset-2">
+                  Pick an image
+                  <input
+                    type="file"
+                    accept="image/*"
+                    className="sr-only"
+                    onChange={(e) => void fromImage(e.target.files?.[0])}
+                  />
+                </label>
                 <span className="text-[12.5px]">
                   Read here in your browser. Nothing is uploaded.
                 </span>
-              </label>
+              </div>
               {picks === null ? null : picks.length ? (
                 <fieldset className={`${ROW} border-0`} aria-label="Colors from the logo">
                   {picks.map((c) => (

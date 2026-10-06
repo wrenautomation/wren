@@ -38,6 +38,16 @@ function Answer({ text }: { text: string }): ReactNode {
   });
 }
 
+/** Where a question was asked, as a person says it: "/marketing/drafts" is "Marketing, drafts". */
+function placeOf(page: string): string | null {
+  const [app, sub] = page.split(/[?#]/)[0]?.split("/").filter(Boolean) ?? [];
+  if (app === "ask") return null;
+  if (!app) return "Home";
+  const name = (s: string) => decodeURIComponent(s).replaceAll("-", " ");
+  const head = name(app);
+  return `${head.charAt(0).toUpperCase()}${head.slice(1)}${sub ? `, ${name(sub)}` : ""}`;
+}
+
 /** Ask Claude Code `question`, as asked from `page`, then show the thread. */
 export async function askClaude(question: string, page: string) {
   await call("console/question", { question, page });
@@ -115,9 +125,9 @@ export function Ask() {
                     {s.label}
                   </Tag>
                   <span>{String(r.by)}</span>
-                  {r.page ? (
+                  {r.page && placeOf(String(r.page)) ? (
                     <a href={String(r.page)} className="hover:text-(--ui-ink)">
-                      from {String(r.page)}
+                      from {placeOf(String(r.page))}
                     </a>
                   ) : null}
                   {typeof r.asked === "string" ? (
