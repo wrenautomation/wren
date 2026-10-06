@@ -369,6 +369,7 @@ export function App() {
                     id: p.id,
                     label: p.label,
                     href: pathOf(open.module, p),
+                    ...(p.group ? { group: p.group } : {}),
                     ...(counts[p.id] ? { count: counts[p.id] } : {}),
                   })),
                 current: open.page.id,

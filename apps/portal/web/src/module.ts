@@ -26,6 +26,8 @@ interface PageBase {
   /** The second path segment. */
   id: string;
   label: string;
+  /** The sidebar heading it sits under. An app's pages of one group stay next to each other. */
+  group?: string;
   /** Reached by link only, never a tab. */
   hidden?: true;
   /** Who sees it: `{ audience: "client" }` is a signed-in client's own, never on the demo. */

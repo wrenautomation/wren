@@ -17,6 +17,8 @@ export interface NavItem {
   label: string;
   href: string;
   count?: number | undefined;
+  /** Its heading in the sidebar; on a phone the groups are the first row of tabs. */
+  group?: string | undefined;
 }
 
 /** The app on screen. */
@@ -174,6 +176,24 @@ const APPMARK =
   "grid size-[30px] flex-none place-items-center rounded-(--ui-radius) bg-(--ui-accent-wash) text-(--ui-accent)";
 /** The count after a tab's name. */
 const COUNT = "ml-auto text-[12.5px] text-(--ui-ink-2)";
+const GROUP =
+  "px-2.5 pt-3 pb-1 text-[11.5px] font-medium tracking-[0.04em] text-(--ui-ink-3) uppercase";
+
+/** Tabs in runs of one group; a tab with none is a run of its own. */
+function runs(tabs: NavItem[]): { group: string | undefined; tabs: NavItem[] }[] {
+  const out: { group: string | undefined; tabs: NavItem[] }[] = [];
+  for (const t of tabs) {
+    const last = out.at(-1);
+    if (t.group && last?.group === t.group) last.tabs.push(t);
+    else out.push({ group: t.group, tabs: [t] });
+  }
+  return out;
+}
+
+const total = (tabs: NavItem[]) =>
+  tabs.some((t) => t.count !== undefined)
+    ? tabs.reduce((n, t) => n + (t.count ?? 0), 0)
+    : undefined;
 
 /** The open app beside the window: back to all apps, its name, its pages, its one button. */
 function AppSide({ app, launcher }: { app: OpenApp; launcher: string | undefined }) {
@@ -193,21 +213,30 @@ function AppSide({ app, launcher }: { app: OpenApp; launcher: string | undefined
       </a>
       <nav aria-label={`${app.name} pages`}>
         <ul className="flex list-none flex-col gap-0.5">
-          {app.tabs.map((t) => (
-            <li key={t.id}>
-              <a
-                className={cx(
-                  HOVER,
-                  "flex h-[38px] items-center gap-[11px] rounded-(--ui-radius) px-2.5 text-[14.5px] font-medium text-(--ui-ink-2) no-underline transition-[background-color,color,box-shadow] hover:text-(--ui-ink) aria-[current=page]:bg-(--ui-paper) aria-[current=page]:text-(--ui-ink) aria-[current=page]:shadow-[inset_0_0_0_1px_var(--ui-hair)]",
-                )}
-                href={t.href}
-                aria-current={t.id === app.current ? "page" : undefined}
-              >
-                {t.label}
-                {t.count !== undefined ? <span className={COUNT}>{num(t.count)}</span> : null}
-              </a>
-            </li>
-          ))}
+          {runs(app.tabs).flatMap((r) => [
+            ...(r.group && r.tabs.length > 1
+              ? [
+                  <li key={`g:${r.group}`} className={GROUP} aria-hidden="true">
+                    {r.group}
+                  </li>,
+                ]
+              : []),
+            ...r.tabs.map((t) => (
+              <li key={t.id}>
+                <a
+                  className={cx(
+                    HOVER,
+                    "flex h-[38px] items-center gap-[11px] rounded-(--ui-radius) px-2.5 text-[14.5px] font-medium text-(--ui-ink-2) no-underline transition-[background-color,color,box-shadow] hover:text-(--ui-ink) aria-[current=page]:bg-(--ui-paper) aria-[current=page]:text-(--ui-ink) aria-[current=page]:shadow-[inset_0_0_0_1px_var(--ui-hair)]",
+                  )}
+                  href={t.href}
+                  aria-current={t.id === app.current ? "page" : undefined}
+                >
+                  {t.label}
+                  {t.count !== undefined ? <span className={COUNT}>{num(t.count)}</span> : null}
+                </a>
+              </li>
+            )),
+          ])}
         </ul>
       </nav>
       {app.action ? <div className="px-2.5">{app.action}</div> : null}
@@ -215,8 +244,43 @@ function AppSide({ app, launcher }: { app: OpenApp; launcher: string | undefined
   );
 }
 
-/** The same on a phone, as the window's head: pages as tabs that wrap, so none is cut off. */
+/** A row of tabs that wrap, so none is cut off. */
+function PhoneTabs({
+  label,
+  tabs,
+  current,
+}: {
+  label: string;
+  tabs: NavItem[];
+  current: string | undefined;
+}) {
+  return (
+    <nav className="px-4" aria-label={label}>
+      <ul className="-mb-px flex list-none flex-wrap gap-x-5">
+        {tabs.map((t) => (
+          <li key={t.id}>
+            <a
+              className="inline-flex items-center gap-2 border-b-2 border-transparent pt-[9px] pb-2 text-[14px] font-medium whitespace-nowrap text-(--ui-ink-2) no-underline transition-colors duration-200 ease-(--ui-ease) hover:text-(--ui-ink) focus-visible:-outline-offset-2 aria-[current=page]:border-(--ui-accent) aria-[current=page]:text-(--ui-ink)"
+              href={t.href}
+              aria-current={t.id === current ? "page" : undefined}
+            >
+              {t.label}
+              {t.count !== undefined ? <span className={COUNT}>{num(t.count)}</span> : null}
+            </a>
+          </li>
+        ))}
+      </ul>
+    </nav>
+  );
+}
+
+/**
+ * The same on a phone, as the window's head: pages as tabs that wrap, so none is cut off. With
+ * groups, the first row is the groups and the second the pages of the one on screen.
+ */
 function AppHead({ app, launcher }: { app: OpenApp; launcher: string | undefined }) {
+  const groups = runs(app.tabs);
+  const here = groups.find((r) => r.tabs.some((t) => t.id === app.current));
   return (
     <header className="sticky top-0 z-5 hidden border-b border-(--ui-hair) bg-(--ui-glass) backdrop-blur-[12px] backdrop-saturate-[1.4] max-[900px]:block">
       <div className="mx-auto flex min-h-[52px] items-center gap-1.5 px-4 pt-1.5">
@@ -238,22 +302,19 @@ function AppHead({ app, launcher }: { app: OpenApp; launcher: string | undefined
         </a>
         {app.action ? <div className="ml-auto flex items-center gap-2">{app.action}</div> : null}
       </div>
-      <nav className="px-4" aria-label={`${app.name} pages`}>
-        <ul className="-mb-px flex list-none flex-wrap gap-x-5">
-          {app.tabs.map((t) => (
-            <li key={t.id}>
-              <a
-                className="inline-flex items-center gap-2 border-b-2 border-transparent pt-[9px] pb-2 text-[14px] font-medium whitespace-nowrap text-(--ui-ink-2) no-underline transition-colors duration-200 ease-(--ui-ease) hover:text-(--ui-ink) focus-visible:-outline-offset-2 aria-[current=page]:border-(--ui-accent) aria-[current=page]:text-(--ui-ink)"
-                href={t.href}
-                aria-current={t.id === app.current ? "page" : undefined}
-              >
-                {t.label}
-                {t.count !== undefined ? <span className={COUNT}>{num(t.count)}</span> : null}
-              </a>
-            </li>
-          ))}
-        </ul>
-      </nav>
+      <PhoneTabs
+        label={`${app.name} pages`}
+        tabs={groups.map((r) => ({
+          id: r.tabs[0]?.id ?? "",
+          label: r.group ?? r.tabs[0]?.label ?? "",
+          href: r.tabs[0]?.href ?? "",
+          count: total(r.tabs),
+        }))}
+        current={here?.tabs[0]?.id}
+      />
+      {here && here.tabs.length > 1 ? (
+        <PhoneTabs label={here.group ?? ""} tabs={here.tabs} current={app.current} />
+      ) : null}
     </header>
   );
 }
