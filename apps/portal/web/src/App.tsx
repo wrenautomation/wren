@@ -59,10 +59,12 @@ function useNavCounts(
   on: boolean,
 ): Record<string, number> {
   const [counts, setCounts] = useState<Record<string, number>>({});
+  // `module` is rebuilt every render, so its id keys the read: depending on the object looped
+  // forever (React #185) wherever a page draws a map.
   // biome-ignore lint/correctness/useExhaustiveDependencies: a tab change reads the counts again.
   useEffect(() => {
     const pages = on ? (module?.pages ?? []).filter((p) => "count" in p && p.count) : [];
-    if (!pages.length) return void setCounts({});
+    if (!pages.length) return void setCounts((c) => (Object.keys(c).length ? {} : c));
     let live = true;
     void Promise.all(
       pages.map((p) =>
@@ -79,7 +81,7 @@ function useNavCounts(
     return () => {
       live = false;
     };
-  }, [module, page, on]);
+  }, [module?.id, page, on]);
   return counts;
 }
 
