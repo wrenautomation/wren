@@ -17,7 +17,7 @@ Comments work like a webhook (William, 2026-10-05): the reader is a source, reac
 
 ## Shape
 
-- `comments` (`schema.ts:242`): unique (platform, ref); `platform` any content platform; `channel` reach|content, a reach row needs `account_id` (null for content); `sort` asked/question/chat/hostile/ours; `state` new/waiting/answered/dropped; `draft`, `answer`, `contact_id` once DMed (migration 0118)
+- `comments` (`schema.ts:242`): unique (platform, ref); `platform` any content platform; `channel` reach|content, a reach row needs `account_id` (null for content); `sort` asked/question/chat/hostile/ours; `state` new/waiting/answered/dropped; `draft`, `answer`, `contact_id` once DMed (migration 0119)
 - Readers: `redditOutreach().comments` (`packages/channel-reddit/src/outreach.ts`), shared inbox read with `replies`; `Content.comments` on posts of the last 14 days (`packages/content/src/social/store.ts` `keepPostComments`, ours kept as dropped)
 - Drafts: `sortStep` takes a guide per platform, the worker passes `commentGuide` (`packages/content/src/playbook.ts`: the post playbook plus the `comments` SOP); none keeps the old prompt
 - Answer: a content comment goes through `Content.reply` (`ReachDesk/answerComment`); reach's DM path refuses it (no account)
