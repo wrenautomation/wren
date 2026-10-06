@@ -9,8 +9,8 @@
 import type { Queryable } from "@wren/db";
 import type { AlleleCounts } from "@wren/experiments";
 import { sql } from "drizzle-orm";
-import { parseTemplate } from "../outreach/authoring.js";
-import { alleleKey, variantPoints } from "../outreach/templates.js";
+import { parseTemplate } from "@wren/core/slots";
+import { alleleKey, variantPoints } from "@wren/core/slots";
 
 type Counts = { -readonly [K in keyof AlleleCounts]: AlleleCounts[K] };
 /** locus → allele → counts. */

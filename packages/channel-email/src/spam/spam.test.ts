@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { field, template, text, variants } from "../outreach/templates.js";
+import { field, template, text, variants } from "@wren/core/slots";
 import { coveringRenders } from "./coverage.js";
 import { parseReport } from "./spamassassin.js";
 

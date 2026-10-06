@@ -43,7 +43,7 @@ import {
   sql,
 } from "drizzle-orm";
 import { activeSuppressions, type SharedSuppressions } from "../guards.js";
-import { pyReprStr } from "../outreach/pyrepr.js";
+import { pyReprStr } from "@wren/core/slots";
 import {
   type Enrollment,
   enrollments,

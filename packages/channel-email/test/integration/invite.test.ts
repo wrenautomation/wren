@@ -13,7 +13,7 @@ import { eq } from "drizzle-orm";
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 import { approveInvite, dropInvite, runInvites } from "../../src/inbox/invite.js";
 import type { ReplyCopy } from "../../src/inbox/reply.js";
-import { parseTemplate } from "../../src/outreach/authoring.js";
+import { parseTemplate } from "@wren/core/slots";
 import { sequence, sequenceStep } from "../../src/outreach/sequences.js";
 import {
   callInvites,

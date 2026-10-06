@@ -21,8 +21,8 @@ import {
   tickExperiment,
 } from "../../src/evolve/experiments.js";
 import { alleleStats } from "../../src/evolve/stats.js";
-import { parseTemplate, toSource } from "../../src/outreach/authoring.js";
-import { alleleKey, render, type Template, variantPoints } from "../../src/outreach/templates.js";
+import { parseTemplate, toSource } from "@wren/core/slots";
+import { alleleKey, render, type Template, variantPoints } from "@wren/core/slots";
 import { tickAll } from "../../src/restate/evolution.js";
 import {
   enrollments,

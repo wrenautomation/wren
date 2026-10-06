@@ -6,8 +6,8 @@
  */
 import type { Queryable } from "@wren/db";
 import { sql } from "drizzle-orm";
-import { parseTemplate } from "../outreach/authoring.js";
-import { optionText, variantPoints } from "../outreach/templates.js";
+import { parseTemplate } from "@wren/core/slots";
+import { optionText, variantPoints } from "@wren/core/slots";
 
 export interface VariantOutcome {
   readonly niche: string;

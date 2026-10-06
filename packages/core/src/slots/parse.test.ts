@@ -4,7 +4,7 @@ import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
-import { AuthoringError, loadTemplates, parseTemplate, toSource } from "./authoring.js";
+import { AuthoringError, loadTemplates, parseTemplate, toSource } from "./parse.js";
 import { enumerateRenders, fieldKeys, placeholderFacts, variantCounts } from "./preview.js";
 import {
   alleleKey,
@@ -14,7 +14,7 @@ import {
   render,
   text,
   variantPoints,
-} from "./templates.js";
+} from "./tree.js";
 
 const FACTS = { first_name: "Jane", company_name: "Acme", "company.segment": "retirement" };
 const bodies = (t: ReturnType<typeof parseTemplate>, n = 20) =>

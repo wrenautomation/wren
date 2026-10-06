@@ -6,7 +6,7 @@
  * A/B is read over — is a directory of templates: `pilot/opener` belongs to the pilot arm,
  * a root-level `followup` is shared by every arm. A sequence's arm is where its opener lives.
  */
-import { pyReprStr } from "./pyrepr.js";
+import { pyReprStr } from "@wren/core/slots";
 
 /** The arm a template belongs to (`pilot/opener` → "pilot") or null for a shared template. */
 export function armOf(templateName: string): string | null {

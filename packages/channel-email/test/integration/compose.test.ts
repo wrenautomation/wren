@@ -4,11 +4,11 @@ import { companies, leads, runs, suppressions } from "@wren/core";
 import { startTestPostgres, type TestPostgres, truncate } from "@wren/db/testing";
 import { asc, eq, sql } from "drizzle-orm";
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
-import { parseTemplate, toSource } from "../../src/outreach/authoring.js";
+import { parseTemplate, toSource } from "@wren/core/slots";
 import { compose, nextToEnroll } from "../../src/outreach/compose.js";
 import { halfOf } from "../../src/outreach/facts.js";
 import { sequence, sequenceStep, twoEmailSequence } from "../../src/outreach/sequences.js";
-import { field, template } from "../../src/outreach/templates.js";
+import { field, template } from "@wren/core/slots";
 import { templateVersions } from "../../src/schema.js";
 import {
   addVerifiedAddress,

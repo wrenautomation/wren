@@ -11,7 +11,7 @@ import { type Db, type Queryable, serializable } from "@wren/db";
 import { FITNESS, parseSettings, type Settings } from "@wren/experiments";
 import type { CallRecord, LlmClient } from "@wren/llm";
 import { and, desc, eq, inArray, sql } from "drizzle-orm";
-import { toSource } from "../outreach/authoring.js";
+import { toSource } from "@wren/core/slots";
 import {
   alleleKey,
   factKeys,
@@ -19,7 +19,7 @@ import {
   optionText,
   type Template,
   variants,
-} from "../outreach/templates.js";
+} from "@wren/core/slots";
 import {
   type Experiment,
   experimentAlleles,

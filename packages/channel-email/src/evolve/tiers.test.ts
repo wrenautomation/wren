@@ -1,6 +1,6 @@
 import { FakeLlm } from "@wren/llm";
 import { describe, expect, it } from "vitest";
-import { alleleKey } from "../outreach/templates.js";
+import { alleleKey } from "@wren/core/slots";
 import {
   checkCandidate,
   fallbackPlan,

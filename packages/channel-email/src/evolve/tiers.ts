@@ -5,8 +5,8 @@
  */
 import { type CallRecord, completeAndParse, type LlmClient } from "@wren/llm";
 import { z } from "zod";
-import { AuthoringError, parseTemplate } from "../outreach/authoring.js";
-import { alleleKey, type Option, optionText } from "../outreach/templates.js";
+import { AuthoringError, parseTemplate } from "@wren/core/slots";
+import { alleleKey, type Option, optionText } from "@wren/core/slots";
 
 export const MODES = ["explore", "exploit", "diversify", "fix"] as const;
 export const WRITER_MUTATIONS = ["rewrite_loser", "new_angle", "crossover"] as const;

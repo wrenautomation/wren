@@ -17,7 +17,7 @@ import { linkFacts, mintLinkCode, signed } from "../outreach/compose.js";
 import { factsFor, factsForCompany } from "../outreach/facts.js";
 import type { Filler } from "../outreach/fills.js";
 import type { Sequence } from "../outreach/sequences.js";
-import { MissingFactError, render, type Template } from "../outreach/templates.js";
+import { MissingFactError, render, type Template } from "@wren/core/slots";
 import { type Enrollment, type Message, messages, type ThreadEvent } from "../schema.js";
 import type { Fleet } from "../send/tick.js";
 import {

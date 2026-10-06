@@ -38,10 +38,10 @@ import {
 } from "../schema.js";
 import { CALL_TIMES } from "../send/call-times.js";
 import { transitionMessage } from "../state.js";
-import { toSource } from "./authoring.js";
+import { toSource } from "@wren/core/slots";
 import { type FactRow, type Facts, factsFor, factsForCompany } from "./facts.js";
 import type { Filler } from "./fills.js";
-import type { FactValues } from "./pickers.js";
+import type { FactValues } from "@wren/core/slots";
 import {
   type AddressRecord,
   peopleWithAddress,
@@ -55,7 +55,7 @@ import {
   type Rendered,
   render,
   type Template,
-} from "./templates.js";
+} from "@wren/core/slots";
 
 export type ComposeKind = "person" | "role_inbox" | "all";
 

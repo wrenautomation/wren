@@ -36,11 +36,13 @@
     "./records": "./src/records.ts",
     "./records/serve": "./src/records-serve.ts",
     "./schema": "./src/schema.ts",
+    "./slots": "./src/slots/index.ts",
     "./stats": "./src/stats.ts",
     "./time": "./src/time.ts",
     "./spine": "./src/spine.ts",
     "./warm": "./src/warm.ts",
-    "./workflows": "./src/workflows.ts"
+    "./workflows": "./src/workflows.ts",
+    "./html": "./src/html.ts"
   },
   "scripts": {
     "test:integration": "vitest run test/integration",
@@ -54,6 +56,7 @@
     "@wren/db": "workspace:*",
     "csv-parse": "7.0.2",
     "drizzle-orm": "0.45.2",
+    "entities": "8.1.0",
     "tldts": "7.4.16",
     "zod": "4.6.5"
   },

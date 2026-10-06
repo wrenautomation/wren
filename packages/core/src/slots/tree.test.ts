@@ -10,7 +10,7 @@ import {
   render,
   text,
   variants,
-} from "./templates.js";
+} from "./tree.js";
 
 const FACTS = { first_name: "Jane", "agency.services": "PPC, SEO" };
 const template = (body: Block[], subject: Block[] | null = null, name = "opener") =>

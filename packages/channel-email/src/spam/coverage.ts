@@ -4,8 +4,8 @@
  * when a point has fewer). Rules fire on words, so every word gets scored without the
  * full product of combinations.
  */
-import type { FactValues } from "../outreach/pickers.js";
-import { type Rendered, render, type Template, variantPoints } from "../outreach/templates.js";
+import type { FactValues } from "@wren/core/slots";
+import { type Rendered, render, type Template, variantPoints } from "@wren/core/slots";
 
 export function coveringRenders(tpl: Template, facts: FactValues): Rendered[] {
   const points = [...variantPoints(tpl.subject ?? []), ...variantPoints(tpl.body)];

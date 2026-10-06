@@ -25,7 +25,7 @@ import type { Filler } from "../outreach/fills.js";
 import { type EnrollmentRule, ruleCovers } from "../outreach/plan.js";
 import { type RefreshStats, refreshQueue } from "../outreach/refresh.js";
 import type { Sequence } from "../outreach/sequences.js";
-import type { Template } from "../outreach/templates.js";
+import type { Template } from "@wren/core/slots";
 import { AUDIENCES, type Audience, type RecontactPolicy } from "../recontact.js";
 import { campaignPolicy } from "../send/campaign-controls.js";
 import type { RampMap } from "../send/deliver.js";

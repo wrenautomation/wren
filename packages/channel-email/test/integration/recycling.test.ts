@@ -11,7 +11,7 @@ import { asc, eq, sql } from "drizzle-orm";
 import { LocalChecker } from "mailifier";
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 import { sequence, sequenceStep } from "../../src/outreach/sequences.js";
-import { field, template, text } from "../../src/outreach/templates.js";
+import { field, template, text } from "@wren/core/slots";
 import { DEFAULT_RECONTACT, recontactPolicy } from "../../src/recontact.js";
 import { type Campaign, topUp } from "../../src/restate/compose-scheduler.js";
 import {

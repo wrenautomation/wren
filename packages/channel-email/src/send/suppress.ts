@@ -19,7 +19,7 @@ import {
 import type { Queryable } from "@wren/db";
 import { and, eq } from "drizzle-orm";
 import type { SharedSuppressions } from "../guards.js";
-import { pyReprStr as pyRepr } from "../outreach/pyrepr.js";
+import { pyReprStr as pyRepr } from "@wren/core/slots";
 import type { StopReason } from "../schema.js";
 
 // A stop is a do-not-contact PROMISE only for these three reasons — reply and

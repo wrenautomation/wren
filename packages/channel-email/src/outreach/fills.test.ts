@@ -1,6 +1,6 @@
 /** What a model's answer must be before an email may carry it, and how a slot reads in a template. */
 import { describe, expect, it } from "vitest";
-import { parseTemplate, toSource } from "./authoring.js";
+import { parseTemplate, toSource } from "@wren/core/slots";
 import {
   checkCompanyName,
   checkFirstName,
@@ -9,7 +9,7 @@ import {
   requestsFor,
   resolvePrompt,
 } from "./fills.js";
-import { MissingFactError, render, slotKey, slots } from "./templates.js";
+import { MissingFactError, render, slotKey, slots } from "@wren/core/slots";
 
 describe("checkCompanyName: the model may only cut and recase", () => {
   it.each([

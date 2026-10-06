@@ -16,11 +16,11 @@ import type { Queryable } from "@wren/db";
 import { and, eq, inArray, isNotNull, or } from "drizzle-orm";
 import { enrollments, messages, templateVersions } from "../schema.js";
 import { CALL_TIMES } from "../send/call-times.js";
-import { toSource } from "./authoring.js";
+import { toSource } from "@wren/core/slots";
 import { linkFacts, mintLinkCode, mintOpenToken, signed } from "./compose.js";
 import { type Facts, factsFor, factsForCompany } from "./facts.js";
 import type { Filler } from "./fills.js";
-import { type Allocation, MissingFactError, render, type Template } from "./templates.js";
+import { type Allocation, MissingFactError, render, type Template } from "@wren/core/slots";
 
 export interface RefreshOptions {
   readonly niche: string;

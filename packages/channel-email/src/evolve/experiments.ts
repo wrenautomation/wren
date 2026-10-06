@@ -24,7 +24,7 @@ import {
   type Template,
   type VariantsBlock,
   variants,
-} from "../outreach/templates.js";
+} from "@wren/core/slots";
 import { type Experiment, experimentAlleles, experimentSnapshots, experiments } from "../schema.js";
 import {
   asGenome,

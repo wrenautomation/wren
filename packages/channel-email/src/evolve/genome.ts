@@ -5,7 +5,7 @@
 import type { Queryable } from "@wren/db";
 import type { AlleleCounts } from "@wren/experiments";
 import { and, eq, sql } from "drizzle-orm";
-import { parseTemplate, toSource } from "../outreach/authoring.js";
+import { parseTemplate, toSource } from "@wren/core/slots";
 import {
   type Block,
   group,
@@ -13,7 +13,7 @@ import {
   template,
   type VariantsBlock,
   variantPoints,
-} from "../outreach/templates.js";
+} from "@wren/core/slots";
 import { experimentJournal, experimentSnapshots, templateVersions } from "../schema.js";
 
 export const ZERO: AlleleCounts = {

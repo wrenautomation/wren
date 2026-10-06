@@ -6,7 +6,7 @@ import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 import { compose, eligibleRoleInboxes } from "../../src/outreach/compose.js";
 import { factsForCompany, halfOf } from "../../src/outreach/facts.js";
 import { sequence, sequenceStep } from "../../src/outreach/sequences.js";
-import { field, template, text } from "../../src/outreach/templates.js";
+import { field, template, text } from "@wren/core/slots";
 import { contactCandidates, verifications } from "../../src/schema.js";
 import {
   allEnrollments,
