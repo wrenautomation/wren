@@ -4,6 +4,7 @@ import { defineComponent } from "./components.js";
 import {
   type Arrival,
   hookEvent,
+  passOn,
   resume,
   retry,
   type SpineEvent,
@@ -245,6 +246,17 @@ describe("walk", () => {
     expect(waitMs("2 minutes")).toBe(120_000);
     expect(waitMs("1 week")).toBe(604_800_000);
     expect(() => waitMs("until reply")).toThrow("isn't built yet");
+  });
+});
+
+describe("passOn", () => {
+  it("passes another channel's lead on as sent, and leaves a touch its own", () => {
+    const email: SpineEvent = { subject: "lead:email:7", kind: "lead", data: { enrollmentId: 7 } };
+    expect(passOn(email, "sms")).toEqual([{ port: "sent", event: email }]);
+    // A DM contact's id is no text contact's: same data key, other channel.
+    const dm: SpineEvent = { subject: "lead:reach:7", kind: "lead", data: { contactId: 7 } };
+    expect(passOn(dm, "sms")).toEqual([{ port: "sent", event: dm }]);
+    expect(passOn(email, "email")).toBeNull();
   });
 });
 

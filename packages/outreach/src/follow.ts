@@ -3,7 +3,7 @@
  * of `reach.touch` nodes. Enroll queues the opener, or the invite, whose send queues step 1. When
  * the tick sends a step it leaves that node as `sent`; the next touch queues the next DM due now.
  */
-import type { SpineEvent, Step } from "@wren/core/spine";
+import { passOn, type SpineEvent, type Step } from "@wren/core/spine";
 import { cadenceWorkflow, type Workflow } from "@wren/core/workflows";
 import type { Queryable } from "@wren/db";
 import type { ReachSequence } from "./sequences.js";
@@ -35,6 +35,8 @@ export function reachCadence(seq: ReachSequence): Workflow {
 export const touchStep =
   (db: Queryable, o: Pick<TickOptions, "sequences" | "sender">): Step =>
   async (_port, e, at) => {
+    const other = passOn(e, "reach");
+    if (other) return other;
     const contactId = Number(e.data.contactId);
     if (!Number.isInteger(contactId)) throw new Error(`${e.subject} is no DM contact`);
     const got = await touch(db, contactId, Number(at.with.step), { ...o, now: new Date() });

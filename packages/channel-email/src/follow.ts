@@ -4,7 +4,7 @@
  * follow-up held. When the tick sends a step it leaves that step's node as `sent`, and the next
  * touch releases the next step at once: the tick's business-day math still picks its day.
  */
-import type { SpineEvent, Step } from "@wren/core/spine";
+import { passOn, type SpineEvent, type Step } from "@wren/core/spine";
 import { cadenceId, cadenceWorkflow, type Workflow } from "@wren/core/workflows";
 import type { Db, Queryable } from "@wren/db";
 import { and, eq, inArray, sql } from "drizzle-orm";
@@ -120,6 +120,8 @@ export async function release(
 export const emailTouchStep =
   (dbFor: (client: string | null) => Db): Step =>
   async (_port, e, at) => {
+    const other = passOn(e, "email");
+    if (other) return other;
     const enrollmentId = Number(e.data.enrollmentId);
     if (!Number.isInteger(enrollmentId)) throw new Error(`${e.subject} is no email thread`);
     const got = await release(dbFor(at.client), enrollmentId, Number(at.with.step), new Date());

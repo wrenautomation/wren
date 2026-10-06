@@ -38,6 +38,14 @@ export type Step = (
   at: StepAt,
 ) => Promise<Array<{ port: string; event: SpineEvent }>>;
 
+/**
+ * A touch given another channel's lead (a mixed cadence: a text between two emails) sends nothing
+ * and passes the lead on as `sent`, so the cadence goes on. Reaching that lead on this channel
+ * would need an enroll there, and who may be enrolled is a consent call. Null for its own lead.
+ */
+export const passOn = (e: SpineEvent, channel: "email" | "sms" | "reach") =>
+  e.subject.startsWith(`lead:${channel}:`) ? null : [{ port: "sent", event: e }];
+
 /** An event at a node's input: `node` is the dotted path from `workflow` down. */
 export interface Arrival {
   workflow: string;

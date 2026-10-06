@@ -4,7 +4,7 @@
  * leaves that step's node as `sent` and waits on the wire for the next touch, which queues the
  * next text due now, so the tick still meters every send. A reply answers `replied` instead.
  */
-import type { SpineEvent, Step } from "@wren/core/spine";
+import { passOn, type SpineEvent, type Step } from "@wren/core/spine";
 import { cadenceWorkflow, type Workflow } from "@wren/core/workflows";
 import type { Db } from "@wren/db";
 import { eq } from "drizzle-orm";
@@ -85,6 +85,8 @@ export async function touch(
 export const touchStep =
   (dbFor: (client: string | null) => Db, opts: Omit<TouchOptions, "now">): Step =>
   async (_port, e, at) => {
+    const other = passOn(e, "sms");
+    if (other) return other;
     const contactId = Number(e.data.contactId);
     if (!Number.isInteger(contactId)) throw new Error(`${e.subject} is no text contact`);
     const got = await touch(dbFor(at.client), contactId, Number(at.with.step), {
