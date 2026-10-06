@@ -202,3 +202,5 @@ loads a day on the Mac. Restate runs on the box now, so passes cost nothing extr
   no reading that pass, not a failed pass. Undated activity (YouTube subscribers) is kept once by
   (platform, ref) at its first-seen time. Answers to content comments go through `Content.reply`.
   `SocialDesk` marks activity seen. The Inbox waiting count shows in Wren's workspace only.
+- 2026-10-06: Built O1 to O4: YouTube (ad6e180), Instagram (9d2b504), LinkedIn (a0880cc), Reddit
+  (bfbc526). `SocialWatch/wren` reads them once started: `wren social start`.
