@@ -194,6 +194,30 @@ const VIDEO_ACTIONS: Action[] = [
     when: { state: ["rendered", "approved"] },
     done: said("Picked. It goes up with the video."),
   },
+  {
+    id: "marketing.videoRender",
+    label: "Render",
+    handler: "marketing/videoRender",
+    key: "r",
+    confirm:
+      "Cut and render it on the Mac? It takes a few minutes, and waits while the Mac is off.",
+    when: { state: ["added", "edited", "rendered"] },
+    done: said("Queued. The Mac renders it; it waits while the Mac is off."),
+  },
+  // The page's editor runs these from inside the detail (videos.tsx), never from the head.
+  ...(
+    [
+      ["videoSet", "Save"],
+      ["videoCut", "Cut"],
+      ["videoAsk", "Ask Claude"],
+      ["videoUndo", "Undo"],
+    ] as const
+  ).map(([id, label]) => ({
+    id: `marketing.${id}`,
+    label,
+    handler: `marketing/${id}`,
+    inline: true as const,
+  })),
 ];
 
 /** One read on his click; the loops behind these pages stay as they are. */
@@ -528,7 +552,7 @@ export const marketing: Module = {
       record: "marketing.video",
       empty: {
         waiting: "No rendered video waits on you.",
-        all: "Videos show here once a recording is added on the Mac.",
+        all: "Videos show here a minute after OBS or Cap stops recording on the Mac.",
       },
       actions: VIDEO_ACTIONS,
       extras: videoExtras,

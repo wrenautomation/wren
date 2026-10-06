@@ -117,6 +117,7 @@ import {
   makeDraftAsk,
   makeSocialDesk,
   makeSocialWatch,
+  makeVideoDesk,
 } from "@wren/content/restate";
 import { contentDrafts, contentPlaybooks } from "@wren/content/schema";
 import { askRecord, makeAsk } from "@wren/core/ask";
@@ -795,6 +796,7 @@ export async function buildServices(
     makeSocialDesk({ db, zone: SOCIAL_ZONE }),
     // Ask Claude on any draft: the desk's Claude Code rewrites, Wren writes. Nothing sends.
     makeDraftAsk(db),
+    makeVideoDesk(db),
   );
   // autobrowse's tokens made again before they lapse (LinkedIn's 60 days, npm's 90).
   services.push(

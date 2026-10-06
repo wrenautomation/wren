@@ -6,10 +6,11 @@
  */
 import { date, defineRecord, link, number, type State, status, text } from "@wren/core/records";
 import { atomic, type Queryable } from "@wren/db";
-import { keepSegments, onCut } from "@wren/studio/cuts";
+import { keepSegments, onCut, reviewCuts } from "@wren/studio/cuts";
 import { type Cut, type VideoEdit, videoEdits, type Word } from "@wren/studio/schema";
 import { desc, eq, like, sql } from "drizzle-orm";
 import { contentDrafts, contentIdeas, type DraftStatus, type IdeaSource } from "./schema.js";
+import { videoTurns } from "./video-ask.js";
 
 /** The idea's ref: one draft per video and per Short, ever. */
 export const videoRef = (id: number, short?: number) =>
@@ -64,7 +65,7 @@ export function markWords(words: readonly Word[], cuts: readonly Cut[]) {
   return words.map((w) => {
     const mid = (w.s + w.e) / 2;
     const c = live.find((x) => mid >= x.from && mid < x.to);
-    return { w: w.w, s: w.s, cut: c ? c.state : null };
+    return { w: w.w, s: w.s, e: w.e, cut: c ? c.state : null };
   });
 }
 
@@ -185,6 +186,29 @@ export const VIDEO_STATES: Record<string, State> = {
   failed: { label: "Upload failed", tone: "bad" },
 };
 
+/** A render asked for from the page, on its way; none once done. */
+export const RENDER_STATES: Record<string, State> = {
+  waiting: neutral("Waiting for the Mac"),
+  rendering: neutral("Rendering"),
+  failed: { label: "Render failed", tone: "bad" },
+};
+
+/** Each cut with the words it strikes and the ones either side, for the page's Keep or Cut. */
+export const cutRows = (e: Pick<VideoEdit, "cuts" | "words">) =>
+  reviewCuts(e.cuts, e.words).map((r) => ({
+    from: r.cut.from,
+    to: r.cut.to,
+    why: r.cut.why,
+    state: r.cut.state,
+    lengthS: r.lengthS,
+    words: e.words
+      .filter((w) => (w.s + w.e) / 2 >= r.cut.from && (w.s + w.e) / 2 < r.cut.to)
+      .map((w) => w.w)
+      .join(" "),
+    before: r.before,
+    after: r.after,
+  }));
+
 /** The long video's draft, by its ref: uploading, on YouTube, or failed. */
 const UPLOAD: Partial<Record<DraftStatus, string>> = {
   published: "uploaded",
@@ -215,6 +239,7 @@ export const videoRecord = (signer?: VideoSigner) => {
           tracks: videoEdits.tracks,
           cuts: videoEdits.cuts,
           shorts: videoEdits.shorts,
+          render: videoEdits.render,
           updated: videoEdits.updatedAt,
           upload: contentDrafts.status,
           url: contentDrafts.url,
@@ -229,6 +254,7 @@ export const videoRecord = (signer?: VideoSigner) => {
           id: r.id,
           title: r.title || `Video ${r.id}`,
           state: (r.upload && UPLOAD[r.upload]) ?? r.state,
+          render: r.render?.state ?? null,
           raw: clock(raw),
           cut: clock(raw - cutSeconds(r.cuts)),
           shorts: r.shorts.length,
@@ -243,6 +269,7 @@ export const videoRecord = (signer?: VideoSigner) => {
     fields: {
       title: text("Title"),
       state: status(VIDEO_STATES),
+      render: status(RENDER_STATES, "Render"),
       raw: text("Raw"),
       cut: text("Cut"),
       shorts: number("Shorts"),
@@ -259,7 +286,17 @@ export const videoRecord = (signer?: VideoSigner) => {
       },
       { id: "all", label: "All", sort: "-updated", at: "updated" },
     ],
-    actions: ["marketing.videoApprove", "marketing.videoApproveShort", "marketing.videoThumbnail"],
+    actions: [
+      "marketing.videoRender",
+      "marketing.videoApprove",
+      "marketing.videoApproveShort",
+      "marketing.videoThumbnail",
+      // The page's own editor: fields, cuts, Ask Claude, Undo.
+      "marketing.videoSet",
+      "marketing.videoCut",
+      "marketing.videoAsk",
+      "marketing.videoUndo",
+    ],
     /** The player, the transcript with its cuts, the Shorts, the stills, the words that go up. */
     load: async (db, id) => {
       const [e] = await db
@@ -283,6 +320,18 @@ export const videoRecord = (signer?: VideoSigner) => {
           description: e.description,
           preview: await sign(longOf(e.keys)),
           words: markWords(e.words, e.cuts),
+          edit: {
+            title: e.title,
+            description: e.description,
+            tags: e.tags,
+            chapters: e.chapters,
+            shorts: e.shorts,
+            thumbnail: e.thumbnail,
+          },
+          cuts: cutRows(e),
+          render: e.render,
+          state: e.state,
+          turns: await videoTurns(db, e.id),
           shorts: await Promise.all(
             e.shorts.map(async (s, i) => ({
               title: s.title,

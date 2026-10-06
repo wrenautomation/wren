@@ -9,6 +9,7 @@ import {
   type LocalRecords,
   localRecords,
   type Place,
+  type RecordAct,
   RecordForm,
   RecordList,
   RecordOverview,
@@ -150,6 +151,13 @@ const ONE: Record<string, (id: string, input: Input) => [string, Input]> = {
   "marketing/videoApproveShort": (id, { short }) =>
     desk("approveVideo", { id: num(id), short: Number(short) }),
   "marketing/videoThumbnail": (id, { n }) => desk("pickThumbnail", { id: num(id), n: Number(n) }),
+  "marketing/videoSet": (id, { patch }) => handlerCall("VideoDesk", "set", { id: num(id), patch }),
+  "marketing/videoCut": (id, { from, to, state }) =>
+    handlerCall("VideoDesk", "cut", { id: num(id), from, to, state }),
+  "marketing/videoAsk": (id, { message }) =>
+    handlerCall("VideoDesk", "ask", { id: num(id), message }),
+  "marketing/videoUndo": (id) => handlerCall("VideoDesk", "undo", { id: num(id) }),
+  "marketing/videoRender": (id) => handlerCall("VideoDesk", "render", { id: num(id) }),
   // A reply sends: the console asks for the handler's name. An untouched draft is the desk's.
   "marketing/dmReply": (id, { body }) =>
     handlerCall("ReachDesk", "reply", { contactId: num(id), ...words(body) }, { confirm: "reply" }),
@@ -359,7 +367,9 @@ export function TemplatePage({
     empty: page.empty,
     example: props.demo ? page.example : undefined,
     columns: page.columns,
-    extras: extras && ((detail: unknown, row: Row) => extras(detail, { ...props, row })),
+    extras:
+      extras &&
+      ((detail: unknown, row: Row, act: RecordAct) => extras(detail, { ...props, row, act })),
     head: page.head,
   };
   if (id) return <RecordPage {...shared} id={id} />;

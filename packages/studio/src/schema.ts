@@ -71,6 +71,17 @@ export interface Look {
   media?: { id: string; asset: string; cut: string; minutes: number };
 }
 
+/**
+ * A render asked for from the page (step 4), on its way: waiting for the Mac, rendering there, or
+ * failed and why. Null once it is done, or when none was asked.
+ */
+export interface RenderState {
+  state: "waiting" | "rendering" | "failed";
+  at: string;
+  by?: string;
+  why?: string;
+}
+
 export const videoEdits = pgTable(
   "video_edits",
   {
@@ -101,6 +112,7 @@ export const videoEdits = pgTable(
     files: jsonb("files").$type<Record<string, string>>().notNull().default({}),
     /** S3 keys of previews and stills (step 2). */
     keys: jsonb("keys").$type<Record<string, string>>().notNull().default({}),
+    render: jsonb("render").$type<RenderState>(),
     createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
     updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
   },

@@ -3,8 +3,9 @@
  * editor (designs/2026-10-06-video-editor.md). Claude Code edits through `show` and `set`; every
  * write leaves a runs row. Runs on William's Mac: whisper.cpp, ffmpeg (VideoToolbox), Remotion.
  */
-import { stat } from "node:fs/promises";
-import { join, resolve } from "node:path";
+import { mkdir, readFile, stat, writeFile } from "node:fs/promises";
+import { homedir } from "node:os";
+import { dirname, join, resolve } from "node:path";
 import type { Settings } from "@wren/config";
 import { approveVideo, uploadMedia } from "@wren/content";
 import { recordedRun } from "@wren/core";
@@ -16,14 +17,19 @@ import {
   cutTracks,
   cutTranscript,
   FPS,
+  findCapProjects,
+  findRecordings,
   fromCutTime,
   geminiLooker,
   getEdit,
+  isCap,
+  isOpen,
   keepCut,
   keepSegments,
   LOOK_PROVIDERS,
   type Looker,
   longProps,
+  obsRecordingDir,
   openStudio,
   preview,
   proxy360,
@@ -36,6 +42,7 @@ import {
   setEdit,
   setFiles,
   setLook,
+  setRender,
   setRendered,
   shortProps,
   thumbnailProps,
@@ -47,7 +54,7 @@ import {
   videoEdits,
 } from "@wren/studio";
 import type { Command } from "commander";
-import { desc } from "drizzle-orm";
+import { desc, sql } from "drizzle-orm";
 import { readText } from "./content.js";
 import { autobrowseDrive } from "./sop.js";
 
@@ -57,7 +64,8 @@ const OBS_NOTE = `
 Input: an OBS recording. One file (OBS scene, cam already placed; give --cam once per scene so
 Shorts can crop it), or a folder with the recording and the camera file. For the camera file:
 OBS > Tools > Source Record on the camera source, same folder as the main recording. The two are
-lined up by their audio. Needs: brew install whisper-cpp, and the model in ~/.cache/wren/whisper.`;
+lined up by their audio. Or a Cap project (<name>.cap): its screen, mic and camera files, lined
+up by Cap's start times. Needs: brew install whisper-cpp, and the model in ~/.cache/wren/whisper.`;
 
 const id = (v: string) => {
   const n = Number.parseInt(v, 10);
@@ -84,7 +92,9 @@ export function registerStudio(
 
   video
     .command("add <input>")
-    .description("ingest an OBS recording (file or folder): sync, transcribe, silence cuts")
+    .description(
+      "ingest an OBS recording (file or folder) or a Cap project: sync, transcribe, silence cuts",
+    )
     .option("--script <url>", "the Google Doc read along (needs --account)")
     .option("--account <address>", "the Google account that can read --script")
     .option("--cam <x,y,w,h>", "one-file recordings: the cam box in pixels")
@@ -237,25 +247,30 @@ export function registerStudio(
       }),
     );
 
+  /** The cut pass: both tracks cut to the edit's cuts, the files on the row. */
+  async function cutPass(db: Db, e: VideoEdit) {
+    const keep = keepSegments(e.cuts, e.tracks.main.durationS, FPS);
+    const started = Date.now();
+    const { stats } = await recordedRun(
+      db,
+      { command: "video cut", argv: { id: e.id, segments: keep.length } },
+      async () => {
+        const files = await cutTracks(e.tracks, keep, e.dir, settings.ffmpeg);
+        await setFiles(db, e.id, files);
+        return { files, seconds: Math.round((Date.now() - started) / 1000) };
+      },
+    );
+    for (const f of Object.values(stats.files)) console.log(f);
+    console.log(`${keep.length} segments in ${stats.seconds}s`);
+  }
+
   video
     .command("cut <id>")
     .description("apply the cuts to both tracks: 1080p, 30 fps, VideoToolbox, 10 ms fades")
     .action((v: string) =>
       withDb(async (db) => {
-        const e = await getEdit(db, id(v));
-        const keep = keepSegments(e.cuts, e.tracks.main.durationS, FPS);
-        const started = Date.now();
-        const { stats } = await recordedRun(
-          db,
-          { command: "video cut", argv: { id: e.id, segments: keep.length } },
-          async () => {
-            const files = await cutTracks(e.tracks, keep, e.dir, settings.ffmpeg);
-            await setFiles(db, e.id, files);
-            return { files, seconds: Math.round((Date.now() - started) / 1000) };
-          },
-        );
-        for (const f of Object.values(stats.files)) console.log(f);
-        console.log(`${keep.length} segments in ${stats.seconds}s; wren video studio ${e.id}`);
+        await cutPass(db, await getEdit(db, id(v)));
+        console.log(`next: wren video studio ${v}`);
       }),
     );
 
@@ -277,58 +292,118 @@ export function registerStudio(
     )
     .option("--short <n>", "only Short n", id)
     .option("--only <part>", "long, shorts or thumbs")
-    .action((v: string, o: { short?: number; only?: string }) =>
+    .option("--cut", "run the cut pass first (the page's Render does)")
+    .action((v: string, o: { short?: number; only?: string; cut?: boolean }) =>
       withDb(async (db) => {
-        const e = await getEdit(db, id(v));
-        if (o.only && !["long", "shorts", "thumbs"].includes(o.only))
-          throw new Error("--only is long, shorts or thumbs");
-        const part = o.short ? "shorts" : o.only;
-        const want = (p: string) => !part || part === p;
-        const numbers = o.short ? [o.short] : e.shorts.map((_, i) => i + 1);
-        const thumbs = want("thumbs") ? thumbnailProps(e) : null;
-        if (want("thumbs") && !thumbs)
-          console.log(`no thumbnail set; skipped (wren video set ${e.id} with "thumbnail")`);
-        const job: RenderJob = {
-          ...(want("long") ? { long: longProps(e) } : {}),
-          ...(want("shorts") ? { shorts: new Map(numbers.map((n) => [n, shortProps(e, n)])) } : {}),
-          ...(thumbs ? { thumbnails: thumbs } : {}),
-        };
-        const started = Date.now();
-        const { stats } = await recordedRun(
-          db,
-          {
-            command: "video render",
-            argv: { id: e.id, short: o.short ?? null, only: part ?? null },
-          },
-          async () => {
-            const { files, seconds } = await renderAll(studioDir, e.dir, job, (l) =>
-              console.log(l),
-            );
-            // Previews (540p) and stills to the private media bucket, keyed by content hash.
-            const keys: Record<string, string> = {};
-            if (settings.mediaBucket)
-              for (const [name, file] of Object.entries(files)) {
-                const up = file.endsWith(".mp4")
-                  ? await preview(file, join(e.dir, "out", `${name}-540.mp4`), settings.ffmpeg)
-                  : file;
-                keys[name] = await uploadMedia(up, { bucket: settings.mediaBucket });
-              }
-            else console.log("WREN_MEDIA_BUCKET unset: previews not uploaded");
-            await setRendered(db, e.id, files, keys);
-            return {
-              files,
-              seconds,
-              keys: Object.keys(keys),
-              total: (Date.now() - started) / 1000,
-            };
-          },
-        );
-        for (const f of Object.values(stats.files)) console.log(f);
-        console.log(
-          `video ${e.id}: rendered in ${stats.total.toFixed(1)}s; ${stats.keys.length} previews/stills in S3`,
-        );
+        // Its state on the row for the page: rendering, then done (setRendered) or failed and why.
+        const at = () => new Date().toISOString();
+        await setRender(db, id(v), { state: "rendering", at: at() });
+        try {
+          await renderOne(db, v, o);
+        } catch (err) {
+          const why = (err instanceof Error ? err.message : String(err)).slice(-500);
+          await setRender(db, id(v), { state: "failed", at: at(), why });
+          throw err;
+        }
       }),
     );
+
+  async function renderOne(db: Db, v: string, o: { short?: number; only?: string; cut?: boolean }) {
+    if (o.cut) await cutPass(db, await getEdit(db, id(v)));
+    const e = await getEdit(db, id(v));
+    if (o.only && !["long", "shorts", "thumbs"].includes(o.only))
+      throw new Error("--only is long, shorts or thumbs");
+    const part = o.short ? "shorts" : o.only;
+    const want = (p: string) => !part || part === p;
+    const numbers = o.short ? [o.short] : e.shorts.map((_, i) => i + 1);
+    const thumbs = want("thumbs") ? thumbnailProps(e) : null;
+    if (want("thumbs") && !thumbs)
+      console.log(`no thumbnail set; skipped (wren video set ${e.id} with "thumbnail")`);
+    const job: RenderJob = {
+      ...(want("long") ? { long: longProps(e) } : {}),
+      ...(want("shorts") ? { shorts: new Map(numbers.map((n) => [n, shortProps(e, n)])) } : {}),
+      ...(thumbs ? { thumbnails: thumbs } : {}),
+    };
+    const started = Date.now();
+    const { stats } = await recordedRun(
+      db,
+      {
+        command: "video render",
+        argv: { id: e.id, short: o.short ?? null, only: part ?? null },
+      },
+      async () => {
+        const { files, seconds } = await renderAll(studioDir, e.dir, job, (l) => console.log(l));
+        // Previews (540p) and stills to the private media bucket, keyed by content hash.
+        const keys: Record<string, string> = {};
+        if (settings.mediaBucket)
+          for (const [name, file] of Object.entries(files)) {
+            const up = file.endsWith(".mp4")
+              ? await preview(file, join(e.dir, "out", `${name}-540.mp4`), settings.ffmpeg)
+              : file;
+            keys[name] = await uploadMedia(up, { bucket: settings.mediaBucket });
+          }
+        else console.log("WREN_MEDIA_BUCKET unset: previews not uploaded");
+        await setRendered(db, e.id, files, keys);
+        return {
+          files,
+          seconds,
+          keys: Object.keys(keys),
+          total: (Date.now() - started) / 1000,
+        };
+      },
+    );
+    for (const f of Object.values(stats.files)) console.log(f);
+    console.log(
+      `video ${e.id}: rendered in ${stats.total.toFixed(1)}s; ${stats.keys.length} previews/stills in S3`,
+    );
+  }
+
+  video
+    .command("watch")
+    .description(
+      "add each new finished OBS or Cap recording once (the desk runs this every minute)",
+    )
+    .option(
+      "--quiet <s>",
+      "seconds an OBS file stays untouched before it counts as finished",
+      Number,
+      60,
+    )
+    .action(async (o: { quiet: number }) => {
+      const obs = await obsRecordingDir();
+      // OBS files are finished once quiet and closed; a Cap project once its meta says Complete.
+      const found = [
+        ...(obs ? await findRecordings(obs, o.quiet) : []),
+        ...(await findCapProjects()),
+      ];
+      // Seen ones live here, so a minute with nothing new never opens the database.
+      const ledger = join(homedir(), ".cache/wren/recordings-seen.json");
+      const seen: string[] = JSON.parse((await readFile(ledger, "utf8").catch(() => "[]")) || "[]");
+      for (const input of found.filter((f) => !seen.includes(f))) {
+        if (!isCap(input) && (await isOpen(input))) continue;
+        // Once each, whatever comes of it: a failed add is retried by hand (wren video add).
+        seen.push(input);
+        await mkdir(dirname(ledger), { recursive: true });
+        await writeFile(ledger, JSON.stringify(seen));
+        await withDb(async (db) => {
+          // A Cap project's tracks are files inside it.
+          const had = await db
+            .select({ id: videoEdits.id })
+            .from(videoEdits)
+            .where(
+              sql`${videoEdits.tracks}->'main'->>'path' = ${input} OR starts_with(${videoEdits.tracks}->'main'->>'path', ${`${input}/`})`,
+            );
+          if (had.length) return console.log(`${input}: already video ${had[0]?.id}`);
+          const e = await addVideo(db, input, {
+            ffmpeg: settings.ffmpeg,
+            log: (l) => console.log(l),
+          });
+          console.log(`${input}: added as video ${e.id}`);
+        }).catch((err: unknown) =>
+          console.error(`${input}: ${err instanceof Error ? err.message : err}`),
+        );
+      }
+    });
 
   video
     .command("look <id>")

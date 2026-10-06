@@ -239,3 +239,25 @@ Answered 10-06: agreed; OBS; captions on the long video and Shorts.
   The autobrowse upload streams from disk with one attempt and a 2 hour PUT timeout (autobrowse
   cd3db46). Checked: Wren's channel is not phone-verified
   (`longUploadsStatus: eligible`), so custom thumbnails are refused until he verifies it.
+- 2026-10-06: William (relayed by a peer session): Cap (desktop 0.6) is allowed as a second recorder
+  beside OBS. Its server is not self-hosted; Wren reads only the project folder Cap writes.
+- 2026-10-06: step 4 built. The Videos detail edits in place: title, description, tags, chapters
+  ("m:ss Title" lines), Shorts titles and thumbnail text save on blur through `VideoDesk.set`
+  (`setEdit`, one run each, holding what it replaced). Cuts show the words they strike with Keep
+  or Cut; words picked in the transcript become a `manual` cut (`VideoDesk.cut`). Undo puts back
+  the newest page change from its `before`. Ask Claude follows DraftAsk: a `video-ask` run, the
+  desk's read-only `claude` with the edit and one allowed read (`video show <id>`, since the words
+  outgrow the prompt), an answer `{reply, patch}`; Wren merges cut changes by their ends, checks
+  the patch with `editPatchSchema` and `checkPatch`, and writes it. Render sets `render` waiting
+  and calls the desk's `studio.render` (autobrowse), which runs `wren video render <id> --cut` on
+  the Mac; the CLI marks it rendering, then rendered or failed with the last lines of the error.
+  The call waits in Restate while the Mac is off; a waiting row refuses a second Render for 3 h.
+  Auto-ingest: the desk runs `wren video watch` every minute. OBS's folder comes from its profile
+  (simple or advanced output); a file counts once it has been quiet 60 s and no process holds it.
+  Cap's `recordings/*.cap` count once `recording-meta.json` says Complete; each segment's screen
+  is laid with its mic and the segments joined (ffmpeg concat, video copied), the camera likewise,
+  offset by Cap's start times. A seen-file ledger plus a `tracks.main.path` check keep it once per
+  recording. Not handled: OBS Source Record's second file is skipped, not paired (`wren video add`
+  on the folder pairs it); a Cap project whose segments lack the camera in some loses the camera.
+  Checked with synthetic rows and a synthetic Cap project; OBS isn't installed and Cap has no
+  recordings yet, so the watcher's first real pickup waits for his first take.

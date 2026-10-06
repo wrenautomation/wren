@@ -17,7 +17,14 @@ export const CONTENT_COMPONENTS = [
     ready: false,
     missing: [FOR_WREN],
     provides: {
-      services: ["Content", "ContentDesk", "ContentScheduler", "ContentMetrics", "DraftAsk"],
+      services: [
+        "Content",
+        "ContentDesk",
+        "ContentScheduler",
+        "ContentMetrics",
+        "DraftAsk",
+        "VideoDesk",
+      ],
       loops: ["ContentScheduler", "ContentMetrics"],
     },
     effects: ["posts"],

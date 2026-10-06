@@ -3,6 +3,8 @@
  * trusted silence cuts, ffmpeg cut pass, Remotion composition. Only the CLI imports this; the
  * worker never does (Remotion must stay out of what it bundles).
  */
+
+export { CAP_RECORDINGS, capNotReady, capTracks, findCapProjects, isCap } from "./cap.js";
 export {
   CUT_DEFAULTS,
   type CutKnobs,
@@ -20,10 +22,12 @@ export {
   getEdit,
   keepCut,
   redoSilence,
+  setCut,
   setCutKnobs,
   setEdit,
   setFiles,
   setLook,
+  setRender,
   setRendered,
   twelvelabsMinutes,
 } from "./edit.js";
@@ -39,6 +43,7 @@ export {
   twelvelabsLooker,
 } from "./look.js";
 export { cutTracks, FPS, preview, proxy360 } from "./media.js";
+export { findRecordings, isOpen, obsRecordingDir } from "./obs.js";
 export {
   type LongProps,
   longProps,

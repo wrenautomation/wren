@@ -70,6 +70,7 @@ export { RecordQueue } from "./queue.js";
 export { RAIL_STATES, Rail, type RailGroup, type RailState, type RailStep } from "./rail.js";
 export {
   type Place,
+  type RecordAct,
   type RecordActs,
   type RecordExtras,
   RecordList,

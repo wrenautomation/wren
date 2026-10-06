@@ -9,6 +9,7 @@ import { settingsFor, setWrenSettings } from "@wren/core/clients";
 import { atomic, type Queryable } from "@wren/db";
 import { eq } from "drizzle-orm";
 import { z } from "zod";
+import { capMeta, capTracks, isCap } from "./cap.js";
 import {
   CUT_DEFAULTS,
   type CutKnobs,
@@ -25,6 +26,7 @@ import {
   CUT_WHYS,
   type Cut,
   LAYOUTS,
+  type RenderState,
   type Tracks,
   type VideoEdit,
   videoEdits,
@@ -56,8 +58,8 @@ export async function setCutKnobs(
   });
 }
 
-const VIDEO = /\.(mp4|mkv|mov|m4v|webm)$/i;
-const CAM = /cam|camera|webcam|face/i;
+export const VIDEO = /\.(mp4|mkv|mov|m4v|webm)$/i;
+export const CAM = /cam|camera|webcam|face/i;
 
 /**
  * The recording's tracks: a file, or a folder holding OBS's recording and Source Record's camera
@@ -90,7 +92,10 @@ export interface AddOptions {
 /** Probe, sync, transcribe, run the silence pass and propose fillers; one new row. */
 export async function addVideo(db: Queryable, input: string, o: AddOptions): Promise<VideoEdit> {
   const log = o.log ?? (() => {});
-  const found = await findTracks(input);
+  // A Cap project carries its camera offset and name; OBS's files don't.
+  const cap = isCap(input) ? await capTracks(resolve(input), o.ffmpeg) : null;
+  const found = cap ?? (await findTracks(input));
+  const title = cap ? (await capMeta(resolve(input)))?.pretty_name : undefined;
   let [main, cam] = await Promise.all([
     probe(found.main, o.ffmpeg),
     found.cam ? probe(found.cam, o.ffmpeg) : undefined,
@@ -104,7 +109,7 @@ export async function addVideo(db: Queryable, input: string, o: AddOptions): Pro
   const { audio: _a, ...mainTrack } = main;
   const tracks: Tracks = { main: mainTrack };
   if (cam) {
-    let offsetS = o.offsetS;
+    let offsetS = o.offsetS ?? cap?.offsetS;
     if (offsetS === undefined) {
       if (!cam.audio)
         throw new Error(`${cam.path}: no audio to sync by; pass --offset <camera minus main s>`);
@@ -142,7 +147,7 @@ export async function addVideo(db: Queryable, input: string, o: AddOptions): Pro
         const [row] = await db
           .insert(videoEdits)
           .values({
-            title: basename(main.path, extname(main.path)),
+            title: (title || basename(main.path, extname(main.path))).slice(0, 100),
             dir,
             tracks,
             script: o.script ?? null,
@@ -220,12 +225,15 @@ export function checkPatch(
   return bad;
 }
 
-/** Write fields of the edit, checked, with a `runs` row holding what they were. */
+/**
+ * Write fields of the edit, checked, with a `runs` row holding what they were: `run` when one is
+ * open (an Ask on the page), else a new one.
+ */
 export async function setEdit(
   db: Queryable,
   id: number,
   input: unknown,
-  o: { by: string; command?: string },
+  o: { by: string; command?: string; run?: string; stats?: object },
 ): Promise<{ run: string; edit: VideoEdit }> {
   const parsed = editPatchSchema.safeParse(input);
   if (!parsed.success)
@@ -246,12 +254,16 @@ export async function setEdit(
       .set({ ...patch, state: now.state === "added" ? "edited" : now.state, updatedAt: new Date() })
       .where(eq(videoEdits.id, id))
       .returning();
-    const run = await openRun(tx, {
-      command: o.command ?? "video set",
-      argv: { id, fields: Object.keys(patch), by: o.by },
-    });
-    await finishRun(tx, run.id, { before });
-    return { run: run.id, edit: edit as VideoEdit };
+    const run =
+      o.run ??
+      (
+        await openRun(tx, {
+          command: o.command ?? "video set",
+          argv: { id, fields: Object.keys(patch), by: o.by },
+        })
+      ).id;
+    await finishRun(tx, run, { ...o.stats, fields: Object.keys(patch), before });
+    return { run, edit: edit as VideoEdit };
   });
 }
 
@@ -261,6 +273,33 @@ export async function keepCut(db: Queryable, id: number, n: number, by: string) 
   if (!cuts[n - 1]) throw new Error(`video ${id} has ${cuts.length} cuts; no ${n}`);
   const next = cuts.map((c, i) => (i === n - 1 ? { ...c, state: "kept" as const } : c));
   return setEdit(db, id, { cuts: next }, { by, command: "video keep" });
+}
+
+/**
+ * Cut or keep [from, to]: the cut with those ends (to the ms), else a new manual cut, as the page
+ * sends a span of words picked in the transcript.
+ */
+export async function setCut(
+  db: Queryable,
+  id: number,
+  span: { from: number; to: number },
+  state: "cut" | "kept",
+  by: string,
+) {
+  const { cuts } = await getEdit(db, id);
+  const same = (a: number, b: number) => Math.abs(a - b) < 0.001;
+  const i = cuts.findIndex((c) => same(c.from, span.from) && same(c.to, span.to));
+  if (i < 0 && state === "kept") throw new Error("no cut there to keep");
+  const next =
+    i < 0
+      ? [...cuts, { from: span.from, to: span.to, why: "manual" as const, state }]
+      : cuts.map((c, j) => (j === i ? { ...c, state } : c));
+  return setEdit(db, id, { cuts: next }, { by, command: i < 0 ? "video cut-words" : "video keep" });
+}
+
+/** A render's way through: waiting, rendering, failed and why; null when done. */
+export async function setRender(db: Queryable, id: number, render: RenderState | null) {
+  await db.update(videoEdits).set({ render, updatedAt: new Date() }).where(eq(videoEdits.id, id));
 }
 
 /** Rerun the silence pass with today's knobs; other cuts stay as they are. */
@@ -290,6 +329,7 @@ export async function setRendered(
       files: { ...e.files, ...files },
       keys: { ...e.keys, ...keys },
       state: e.state === "added" || e.state === "edited" ? "rendered" : e.state,
+      render: null,
       updatedAt: new Date(),
     })
     .where(eq(videoEdits.id, id));

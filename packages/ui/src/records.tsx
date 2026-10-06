@@ -100,6 +100,12 @@ export interface RecordExtras {
   draft?: RecordDraft;
 }
 
+/**
+ * Run one of the record's `inline` actions from its extras (a video's editor): its handler on
+ * this record with `input`, then the record read again. It throws what the handler refused.
+ */
+export type RecordAct = (action: string, input?: Record<string, unknown>) => Promise<unknown>;
+
 /** Actions a record's head may show, by the ids its type lists. */
 export interface RecordActs {
   actions: readonly Action[];
@@ -119,7 +125,7 @@ export interface RecordTemplateProps {
   example?: ReactNode;
   /** The columns shown until the viewer picks others; every one when left out. */
   columns?: string[] | undefined;
-  extras?: ((detail: unknown, row: Row) => RecordExtras) | undefined;
+  extras?: ((detail: unknown, row: Row, act: RecordAct) => RecordExtras) | undefined;
   acts?: RecordActs | undefined;
   /** What the page adds beside a list's title, such as a form that adds one; `reload` reads again. */
   head?: ((meta: RecordMeta, reload: () => void) => ReactNode) | undefined;
@@ -1337,8 +1343,16 @@ export function RecordBody({
   const [lit, pickMark] = useSourcePick();
   const tab = place.params.get("tab") ?? "details";
   const [want, setWant] = useState<string | null>(null);
+  const act: RecordAct = async (action, input = {}) => {
+    const a = actsOf(meta, acts, true).find((x) => x.id === action);
+    if (!a || !acts || !got.data) throw new Error("You can't do that here.");
+    const rowId = got.data.row.id as string | number;
+    const out = await acts.call(a.handler, { ids: [rowId], ...input });
+    acted([rowId]);
+    return out;
+  };
   // A type with no `load` still gets its extras, with no detail.
-  const more = got.data && extras ? extras(got.data.detail, got.data.row) : {};
+  const more = got.data && extras ? extras(got.data.detail, got.data.row, act) : {};
   // biome-ignore lint/correctness/useExhaustiveDependencies: each new read sets the next one.
   useEffect(() => {
     if (!more.poll) return;

@@ -51,12 +51,13 @@ export interface DraftHandle {
   flush: () => Promise<boolean>;
 }
 
+// "draft-ask", "video-ask"; "draft-undo", "video undo"; the rest are edits.
 const said = (t: DraftTurnLine) =>
-  t.command === "draft-ask"
+  t.command.endsWith("ask")
     ? `${t.by ?? "Someone"} asked`
-    : t.command === "draft-set"
-      ? `Edited by ${t.by ?? "a terminal"}`
-      : `Undone by ${t.by ?? "someone"}`;
+    : t.command.endsWith("undo")
+      ? `Undone by ${t.by ?? "someone"}`
+      : `Edited by ${t.by ?? "a terminal"}`;
 
 const when = (at: string) =>
   new Date(at).toLocaleString(undefined, {

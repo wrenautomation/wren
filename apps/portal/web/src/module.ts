@@ -3,7 +3,15 @@
 import type { Permission } from "@wren/core/access";
 import type { RecordMeta } from "@wren/core/records";
 import type { Row } from "@wren/core/records/serve";
-import type { Access, Action, IconName, OverviewTile, OverviewTop, RecordExtras } from "@wren/ui";
+import type {
+  Access,
+  Action,
+  IconName,
+  OverviewTile,
+  OverviewTop,
+  RecordAct,
+  RecordExtras,
+} from "@wren/ui";
 import type { ComponentType, ReactNode } from "react";
 
 /** Wren's own workspace: an operator's home, its apps on Wren's records (never a client's). */
@@ -58,7 +66,7 @@ export interface ListPage extends PageBase {
   /** The columns shown until the viewer picks others; every one when left out. A Shop's chips. */
   columns?: string[];
   /** Lines and sources a record's detail adds under its fields. */
-  extras?: (detail: unknown, at: PageProps & { row: Row }) => RecordExtras;
+  extras?: (detail: unknown, at: PageProps & { row: Row; act: RecordAct }) => RecordExtras;
   /** Old params rewritten on arrival, so old links still land: the changes, or null. */
   legacy?: (params: URLSearchParams) => Record<string, string | null> | null;
   /** Beside the list's title, such as a form that adds one; `reload` reads the list again. */
