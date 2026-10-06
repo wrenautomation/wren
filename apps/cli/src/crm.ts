@@ -298,11 +298,14 @@ export function registerCrm(
     .command("settle")
     .description("Make each kept move to the same employer under another name a stay (Disney, CBS)")
     .action(async () => {
-      const judge =
-        settings.llm === "fake"
-          ? null
-          : (loadLlmEnv(settings.llmEnvPath, rootDir),
-            familyJudge(makeLlm(settings.llm, process.env, { anthropicModel: settings.llmModel })));
+      // The fake model knows no companies: by name only.
+      let judge: ReturnType<typeof familyJudge> | null = null;
+      if (settings.llm !== "fake") {
+        loadLlmEnv(settings.llmEnvPath, rootDir);
+        judge = familyJudge(
+          makeLlm(settings.llm, process.env, { anthropicModel: settings.llmModel }),
+        );
+      }
       const n = await withClientDb((db) => settleMoves(db, judge));
       console.log(`settled ${n} moves${judge ? "" : " by name only (the model is fake)"}`);
     });
