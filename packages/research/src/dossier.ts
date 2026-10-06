@@ -244,6 +244,57 @@ export async function nicheCompanyIds(
   return rows.map((r) => r.id);
 }
 
+/** One public post the firm made, whatever the network: what a brief or a person reads. */
+export interface RecentPost {
+  site: string;
+  /** `video`, `photo`, `carousel`, … */
+  kind: string;
+  /** A video's title, else the caption; whole. */
+  text: string;
+  url: string | null;
+  publishedAt: Date | null;
+  likes: number | null;
+  comments: number | null;
+}
+
+/** What a dossier shows of each network's posts. */
+export const POSTS_PER_SITE = 5;
+
+const postOf = (f: Fact): RecentPost | null => {
+  if (f.what !== "post" || !f.value || typeof f.value !== "object") return null;
+  const v = f.value as Record<string, unknown>;
+  const str = (k: string) => (typeof v[k] === "string" ? (v[k] as string) : null);
+  const num = (k: string) => (typeof v[k] === "number" ? (v[k] as number) : null);
+  const at = str("published_at");
+  const ms = at ? Date.parse(at) : Number.NaN;
+  return {
+    site: str("site") ?? f.via,
+    kind: str("kind") ?? "post",
+    text: str("title") ?? str("caption") ?? "",
+    url: f.source,
+    publishedAt: Number.isNaN(ms) ? null : new Date(ms),
+    likes: num("likes"),
+    comments: num("comments"),
+  };
+};
+
+/**
+ * The firm's newest public posts (YouTube, Instagram, any `post` finding), newest first by when
+ * they went up, at most `perSite` per network. Posts with no date go last.
+ */
+export function recentPosts(d: Dossier, perSite = POSTS_PER_SITE): RecentPost[] {
+  const all = d.facts
+    .map(postOf)
+    .filter((p): p is RecentPost => p !== null)
+    .sort((a, b) => (b.publishedAt?.getTime() ?? 0) - (a.publishedAt?.getTime() ?? 0));
+  const seen = new Map<string, number>();
+  return all.filter((p) => {
+    const n = seen.get(p.site) ?? 0;
+    seen.set(p.site, n + 1);
+    return n < perSite;
+  });
+}
+
 const short = (v: unknown, max = 160): string => {
   const s = typeof v === "string" ? v : JSON.stringify(v);
   return s.length > max ? `${s.slice(0, max - 1)}…` : s;
@@ -263,7 +314,20 @@ export function dossierText(d: Dossier): string {
   const c = d.company;
   const head = [c.name ?? "(no name)", c.domain, c.niche, c.country].filter(Boolean).join(" · ");
   const out = [`#${c.id} ${head}`];
-  for (const f of d.facts) out.push(`  ${factLine(f)}`);
+  // Posts read as one block, newest first, not a line of raw JSON each.
+  const rest = d.facts.filter((f) => f.what !== "post");
+  for (const f of rest) out.push(`  ${factLine(f)}`);
+  const posts = recentPosts(d);
+  if (posts.length) out.push("  recent posts:");
+  for (const p of posts)
+    out.push(
+      [
+        `    ${p.publishedAt?.toISOString().slice(0, 10) ?? "undated"} ${p.site} ${p.kind}: `,
+        short(p.text.replace(/\s+/g, " ").trim() || "(no text)", 120),
+        p.likes === null ? "" : ` · ${p.likes} likes`,
+        p.url ? ` ${p.url}` : "",
+      ].join(""),
+    );
   if (!d.facts.length) out.push("  no company facts yet");
   for (const p of d.people) {
     out.push(`  ${p.name}${p.title ? `, ${p.title}` : ""} [${p.origin}]`);
