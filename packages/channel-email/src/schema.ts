@@ -168,8 +168,8 @@ export const verifications = pgTable(
     primaryKey({ columns: [t.id], name: "pk_verifications" }),
     index("ix_verifications_contact_candidate_id").on(t.contactCandidateId),
     index("ix_verifications_lead_id").on(t.leadId),
-    // The send walk's newest-verdict read, per address.
-    index("ix_verifications_email_checked_at").on(t.email, t.checkedAt),
+    // The newest verdict per address (`latest_verifications`): one index-ordered DISTINCT ON.
+    index("ix_verifications_email_checked_at_id").on(t.email, t.checkedAt.desc(), t.id.desc()),
     // Matches the resolution walk's per-domain reads (resolution/service.ts, verification/retry.ts).
     index("ix_verifications_email_domain").on(sql`split_part(${t.email}, '@', 2)`),
     foreignKey({

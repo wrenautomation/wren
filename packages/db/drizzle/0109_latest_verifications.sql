@@ -1,0 +1,3 @@
+DROP INDEX "ix_verifications_email_checked_at";--> statement-breakpoint
+CREATE INDEX "ix_verifications_email_checked_at_id" ON "verifications" USING btree ("email","checked_at" DESC NULLS LAST,"id" DESC NULLS LAST);--> statement-breakpoint
+CREATE VIEW "public"."latest_verifications" AS (SELECT DISTINCT ON (email) id, email, result, verifier, raw, checked_at, lead_id, contact_candidate_id FROM verifications ORDER BY email, checked_at DESC NULLS LAST, id DESC NULLS LAST);

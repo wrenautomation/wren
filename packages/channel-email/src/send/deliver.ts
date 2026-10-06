@@ -52,9 +52,9 @@ import {
   messages,
   type StopReason,
   senderPauses,
-  verifications,
 } from "../schema.js";
 import { transitionEnrollment, transitionMessage } from "../state.js";
+import { latestVerifications } from "../views.js";
 import { CALL_TIMES, fillCallTimes, LOOKAHEAD_MS } from "./call-times.js";
 import { addBusinessDays, PlainDate } from "./dates.js";
 import type { Ramp, SendPolicy } from "./policy.js";
@@ -526,14 +526,12 @@ async function invalidNow(db: Queryable, emails: string[]): Promise<Set<string>>
   const wanted = [...new Set(emails.map((e) => e.toLowerCase()))];
   if (wanted.length === 0) return new Set();
   const rows = await db
-    .selectDistinctOn([verifications.email], {
-      email: verifications.email,
-      result: verifications.result,
-    })
-    .from(verifications)
-    .where(inArray(verifications.email, wanted))
-    .orderBy(verifications.email, desc(verifications.checkedAt), desc(verifications.id));
-  return new Set(rows.filter((r) => r.result === "invalid").map((r) => r.email as string));
+    .select({ email: latestVerifications.email })
+    .from(latestVerifications)
+    .where(
+      and(inArray(latestVerifications.email, wanted), eq(latestVerifications.result, "invalid")),
+    );
+  return new Set(rows.map((r) => r.email as string));
 }
 
 /**

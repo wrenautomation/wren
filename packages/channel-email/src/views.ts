@@ -5,6 +5,7 @@ import {
   boolean,
   date,
   integer,
+  jsonb,
   numeric,
   pgView,
   text,
@@ -12,6 +13,24 @@ import {
   uuid,
   varchar,
 } from "drizzle-orm/pg-core";
+
+/**
+ * The newest verdict on each address, whichever lead or candidate it was bought for. The send
+ * walk and the lead re-check read "what do we know about this address now" from here. NULLS LAST
+ * spells out the index's order so the planner reads it straight (the columns are never null).
+ */
+export const latestVerifications = pgView("latest_verifications", {
+  id: integer("id"),
+  email: varchar("email", { length: 320 }),
+  result: varchar("result", { length: 32 }),
+  verifier: varchar("verifier", { length: 64 }),
+  raw: jsonb("raw"),
+  checkedAt: timestamp("checked_at", { withTimezone: true }),
+  leadId: integer("lead_id"),
+  contactCandidateId: integer("contact_candidate_id"),
+}).as(
+  sql`SELECT DISTINCT ON (email) id, email, result, verifier, raw, checked_at, lead_id, contact_candidate_id FROM verifications ORDER BY email, checked_at DESC NULLS LAST, id DESC NULLS LAST`,
+);
 
 export const emailLlmCalls = pgView("email_llm_calls", {
   enrichmentId: integer("enrichment_id"),

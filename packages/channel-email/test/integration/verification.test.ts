@@ -13,6 +13,7 @@ import type { LocalCheckerLike } from "../../src/verification/local.js";
 import { RemoteProbeError } from "../../src/verification/mailifier.js";
 import { latestValidCheckedAt, runVerification } from "../../src/verification/service.js";
 import { type EmailVerifier, FakeVerifier, type Verdict } from "../../src/verification/verifier.js";
+import { latestVerifications } from "../../src/views.js";
 
 let pg: TestPostgres;
 beforeAll(async () => {
@@ -475,5 +476,35 @@ describe("runVerification", () => {
       .from(leads)
       .where(eq(leads.id, lead?.id as number));
     expect(row?.newestValid).toBeNull();
+  });
+});
+
+describe("latest_verifications", () => {
+  it("keeps the newest verdict per address, the higher id on a tie", async () => {
+    const at = (day: number) => new Date(Date.UTC(2026, 0, day));
+    const row = (email: string, result: "valid" | "invalid", checkedAt: Date) => ({
+      email,
+      verifier: "fake",
+      result,
+      raw: {},
+      checkedAt,
+    });
+    await db()
+      .insert(verifications)
+      .values([
+        row("a@verifyco.example", "valid", at(1)),
+        row("a@verifyco.example", "invalid", at(3)),
+        row("a@verifyco.example", "valid", at(2)),
+        row("b@verifyco.example", "valid", at(5)),
+        row("b@verifyco.example", "invalid", at(5)),
+      ]);
+    const rows = await db()
+      .select({ email: latestVerifications.email, result: latestVerifications.result })
+      .from(latestVerifications)
+      .orderBy(latestVerifications.email);
+    expect(rows).toEqual([
+      { email: "a@verifyco.example", result: "invalid" },
+      { email: "b@verifyco.example", result: "invalid" },
+    ]);
   });
 });

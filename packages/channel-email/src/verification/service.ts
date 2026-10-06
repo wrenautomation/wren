@@ -28,6 +28,7 @@ import { eachConcurrently } from "../concurrent.js";
 import { audienceGate, type RecontactPolicy } from "../recontact.js";
 import { settledBy } from "../resolution/listed.js";
 import { contactCandidates, type VerificationResult, verifications } from "../schema.js";
+import { latestVerifications } from "../views.js";
 import type { LocalCheckerLike } from "./local.js";
 import { defaultLocalChecker } from "./mailifier.js";
 import { riskyWait, SERVER_HOLD_REASONS, waitingDomains } from "./retry.js";
@@ -88,8 +89,11 @@ export async function runVerification(
         ),
       );
   const eligible = [unchecked];
-  // Age is measured on the newest verification, on the DB clock.
-  const lastChecked = sql`(select max(${verifications.checkedAt}) from ${verifications} where ${verifications.leadId} = ${leads.id})`;
+  // The newest verdict on the lead's address (`latest_verifications`), one indexed lookup.
+  const newest = (col: SQL) =>
+    sql`(select ${col} from ${latestVerifications} where ${latestVerifications.email} = lower(${leads.email}))`;
+  // Age is measured on that verdict, on the DB clock.
+  const lastChecked = newest(sql`${latestVerifications.checkedAt}`);
   if (opts.recheckOlderThanMs !== undefined) {
     eligible.push(
       and(
@@ -99,23 +103,21 @@ export async function runVerification(
     );
   }
   if (opts.retryRiskyOlderThanMs !== undefined) {
-    const newest = (col: SQL) =>
-      sql`(select ${col} from ${verifications} where ${verifications.leadId} = ${leads.id} order by ${verifications.checkedAt} desc, ${verifications.id} desc limit 1)`;
     const wait = riskyWait(
-      newest(sql`${verifications.raw}`),
+      newest(sql`${latestVerifications.raw}`),
       sql`make_interval(secs => ${opts.retryRiskyOlderThanMs / 1000})`,
     );
     eligible.push(
       and(
         eq(leads.status, "imported"),
-        eq(newest(sql`${verifications.result}`), "risky"),
+        eq(newest(sql`${latestVerifications.result}`), "risky"),
         lt(lastChecked, sql`now() - ${wait}`),
       ),
     );
   }
   if (opts.recheckReturning !== undefined) {
     const { policy, olderThanMs } = opts.recheckReturning;
-    const newestResult = sql`(select ${verifications.result} from ${verifications} where ${verifications.leadId} = ${leads.id} order by ${verifications.checkedAt} desc, ${verifications.id} desc limit 1)`;
+    const newestResult = newest(sql`${latestVerifications.result}`);
     eligible.push(
       and(
         or(
