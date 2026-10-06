@@ -88,6 +88,8 @@ export interface SocialStats {
   activity: number;
   /** Platforms whose follower count was kept this pass. */
   audience: Platform[];
+  /** Follower counts that failed this pass, said here, not a failed pass: the next pass asks again. */
+  missed: string[];
   errors: string[];
 }
 
@@ -115,6 +117,7 @@ export function makeSocialWatch(deps: SocialWatchDeps) {
       asked: 0,
       activity: 0,
       audience: [],
+      missed: [],
       errors: [],
     };
     const kept: KeptComment[] = [];
@@ -177,7 +180,7 @@ export function makeSocialWatch(deps: SocialWatchDeps) {
         if (a && (await ctx.run(`keep day ${platform}`, () => keepDay(deps.db, platform, day, a))))
           stats.audience.push(platform);
       } catch (err) {
-        ctx.console.warn(`SocialWatch: ${platform} audience: ${errorText(err)}`);
+        stats.missed.push(`${platform} audience: ${errorText(err)}`);
       }
     }
     ctx.set(ACTIVITY_READS, lastActivity);
