@@ -1,5 +1,6 @@
 /** Meta ads: launch, watch and pull leads from lead forms. */
 import { defineComponent } from "@wren/core/components";
+import { auditSettingsSchema } from "./audit.js";
 
 export const META_COMPONENTS = [
   defineComponent({
@@ -12,6 +13,7 @@ export const META_COMPONENTS = [
     for: "client",
     ready: false,
     missing: ["Runs on Wren's ad account, not per client"],
+    settings: auditSettingsSchema,
     requires: { accounts: ["meta"] },
     provides: { services: ["Ads", "AdsWatch"], loops: ["AdsWatch"] },
     effects: ["spends", "posts"],
@@ -22,6 +24,11 @@ export const META_COMPONENTS = [
         { is: "change", says: "The ad account, per client.", built: null },
         { is: "change", says: "The lead form's questions, per offer.", built: null },
         { is: "fixed", says: "Every launch is logged with what it spent." },
+        {
+          is: "change",
+          says: "The audit's thresholds: pixel staleness, ads per ad set, budget use, conversion lag.",
+          built: "settings.minAdsPerAdset",
+        },
       ],
     },
   }),

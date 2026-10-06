@@ -1,4 +1,5 @@
 export * from "./ads.js";
+export * from "./audit.js";
 export * from "./bridge.js";
 export * from "./content.js";
 export * from "./content-web.js";

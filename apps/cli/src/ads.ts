@@ -160,6 +160,33 @@ export function registerAds(program: Command, withDb: WithDb, settings: Settings
     });
 
   cmd
+    .command("audit")
+    .description("Read-only account audit: cold start, scored controls, draft fixes")
+    .option("--json", "the whole audit as JSON")
+    .action(async (o: { json?: boolean }) => {
+      const a = await ads().audit();
+      if (o.json) return console.log(JSON.stringify(a, null, 2));
+      const pct = (n: number | null) => (n === null ? "-" : `${Math.round(n)}`);
+      const c = a.coldStart;
+      console.log(
+        `account ${a.accountId ?? "?"}  health ${pct(a.health)}  coverage ${Math.round(a.coverage * 100)}%  ${a.grade}  (${a.scope})`,
+      );
+      console.log(
+        `cold start: account ${c.account} (${c.why.account}) · pixel ${c.pixel} (${c.why.pixel}) · conversions ${c.conversion} (${c.why.conversion})`,
+      );
+      for (const [cat, v] of Object.entries(a.categories))
+        console.log(
+          `  ${cat.padEnd(12)} health ${pct(v.health)}  coverage ${Math.round(v.coverage * 100)}%`,
+        );
+      for (const x of a.controls)
+        console.log(`  ${x.state.padEnd(14)} ${x.severity.padEnd(8)} ${x.id}\t${x.detail}`);
+      if (a.gaps.length) console.log(`unknown critical: ${a.gaps.join(", ")}`);
+      for (const [part, err] of Object.entries(a.errors)) console.log(`not read: ${part}: ${err}`);
+      if (a.drafts.length) console.log("drafts (nothing applied):");
+      for (const d of a.drafts) console.log(`  - ${d.text}`);
+    });
+
+  cmd
     .command("lead-form <name> <privacyUrl>")
     .description("An instant form on the Page (email + full name); put its id in creative.leadForm")
     .option("--thanks <url>", "where the thank-you button goes")

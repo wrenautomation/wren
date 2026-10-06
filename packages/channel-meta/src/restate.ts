@@ -7,6 +7,7 @@
  * spend gate still asks the person for every ACTIVE write.
  */
 import * as restate from "@restatedev/restate-sdk";
+import { settingsFor } from "@wren/core/clients";
 import type { MediaHost, SiteClient } from "@wren/core/content";
 import { NO_INPUT, serviceHandler } from "@wren/core/restate";
 import type { Db } from "@wren/db";
@@ -19,6 +20,7 @@ import {
   metaAds,
   type Tree,
 } from "./ads.js";
+import { type AuditSettings, audit, auditSettingsSchema, gatherEvidence } from "./audit.js";
 import { consentFromLeads, type LeadConsent } from "./consent.js";
 import { launchesByCampaign, markStarted, markStopped, recordLaunch } from "./launches.js";
 
@@ -198,6 +200,22 @@ export function makeAds(deps: AdsDeps) {
         async (ctx: restate.Context, req: { q: string; limit?: number }) =>
           ads(ctx).interests(req.q, req.limit),
       ),
+      /**
+       * Read-only audit of the ad account: cold start per dimension, scored controls, draft
+       * fixes. Thresholds are the `ads.meta` settings; nothing is written to Meta.
+       */
+      audit: serviceHandler({ input: NO_INPUT }, async (ctx: restate.Context) => {
+        const s: AuditSettings = db
+          ? await ctx.run("settings", async () => {
+              const p = auditSettingsSchema.safeParse(
+                (await settingsFor(db, null))["ads.meta"] ?? {},
+              );
+              return p.success ? p.data : auditSettingsSchema.parse({});
+            })
+          : auditSettingsSchema.parse({});
+        const now = new Date(await ctx.date.now());
+        return audit(await gatherEvidence(ads(ctx), now, s), s);
+      }),
       insights: serviceHandler(
         { input: INSIGHTS },
         async (

@@ -119,11 +119,40 @@ export interface AdAccount {
   name?: string;
   account_status?: number;
   currency?: string;
+  /** Lifetime spend, minor units as a string. */
+  amount_spent?: string;
+  created_time?: string;
+}
+export interface AdSetRow {
+  id: string;
+  name?: string;
+  campaign_id?: string;
+  effective_status?: string;
+  optimization_goal?: string;
+  promoted_object?: { pixel_id?: string; custom_event_type?: string; page_id?: string };
+  /** Minor units as a string. */
+  daily_budget?: string;
+  learning_stage_info?: { status?: string };
+}
+export interface AdRow {
+  id: string;
+  name?: string;
+  adset_id?: string;
+  effective_status?: string;
+  creative?: { id: string; object_type?: string; url_tags?: string };
+}
+export interface PixelRow {
+  id: string;
+  name?: string;
+  creation_time?: string;
+  last_fired_time?: string;
+  is_unavailable?: boolean;
 }
 export interface CampaignRow {
   id: string;
   name: string;
   status: string;
+  effective_status?: string;
   objective?: string;
   daily_budget?: string;
 }
@@ -233,9 +262,23 @@ export function metaAds(sites: SiteClient, o: MetaAdsOptions = {}) {
 
   return {
     accounts: () => call<Edge<AdAccount>>("GET", "/me/adaccounts", {}).then((r) => r.data ?? []),
+    /** The account in use, with lifetime spend and age. */
+    account: async (): Promise<AdAccount> =>
+      call<AdAccount>("GET", `/act_${await adAccountId()}`, {
+        fields: "id,name,account_status,amount_spent,currency,created_time",
+      }),
+    /** Ad sets, ads and pixels: one page of up to 200 each, plenty at Wren's size. */
+    adsets: async (): Promise<AdSetRow[]> =>
+      (await call<Edge<AdSetRow>>("GET", `/act_${await adAccountId()}/adsets`, { limit: 200 }))
+        .data ?? [],
+    ads: async (): Promise<AdRow[]> =>
+      (await call<Edge<AdRow>>("GET", `/act_${await adAccountId()}/ads`, { limit: 200 })).data ??
+      [],
+    pixels: async (): Promise<PixelRow[]> =>
+      (await call<Edge<PixelRow>>("GET", `/act_${await adAccountId()}/adspixels`, {})).data ?? [],
     async campaigns(): Promise<CampaignRow[]> {
       const r = await call<Edge<CampaignRow>>("GET", `/act_${await adAccountId()}/campaigns`, {
-        fields: "id,name,status,objective,daily_budget",
+        fields: "id,name,status,effective_status,objective,daily_budget",
       });
       return r.data ?? [];
     },
@@ -398,10 +441,16 @@ export function metaAds(sites: SiteClient, o: MetaAdsOptions = {}) {
     },
     /**
      * Results by `level` for a Graph `date_preset` (today, yesterday, last_7d, last_30d, maximum …).
-     * `daily` splits each row per day (`time_increment=1`), paged through `next`.
+     * `daily` splits each row per day (`time_increment=1`), paged through `next`. A `range`
+     * (YYYY-MM-DD, inclusive) replaces the preset.
      */
     async insights(
-      q: { preset?: string; level?: "account" | "campaign" | "adset" | "ad"; daily?: boolean } = {},
+      q: {
+        preset?: string;
+        range?: { since: string; until: string };
+        level?: "account" | "campaign" | "adset" | "ad";
+        daily?: boolean;
+      } = {},
     ): Promise<InsightRow[]> {
       const level = q.level ?? "campaign";
       const out: InsightRow[] = [];
@@ -411,7 +460,9 @@ export function metaAds(sites: SiteClient, o: MetaAdsOptions = {}) {
           Edge<InsightRow> & { paging?: { next?: string; cursors?: { after?: string } } }
         >("GET", `/act_${await adAccountId()}/insights`, {
           level,
-          date_preset: q.preset ?? "last_7d",
+          ...(q.range
+            ? { time_range: JSON.stringify(q.range) }
+            : { date_preset: q.preset ?? "last_7d" }),
           fields: INSIGHT_FIELDS[level],
           ...(q.daily ? { time_increment: 1, limit: 500 } : {}),
           ...(after ? { after } : {}),
