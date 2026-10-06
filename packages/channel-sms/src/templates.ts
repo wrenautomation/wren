@@ -82,14 +82,24 @@ export const KEYWORD_SLOTS: readonly TemplateSlot[] = [
   { key: "keyword.stop", purpose: "Auto reply to STOP and the other opt-out words" },
 ].map((s) => ({ ...s, fields: [], mustSayStop: false, minLength: 20 }));
 
-/** The day before a call booked on cal.com, to someone who ticked the texts box when they applied. */
+/** The day before a booked call, to someone who ticked the texts box when they applied. */
 export const DAY_BEFORE = "reminder.day-before";
+/** About an hour before it, the same people. Empty until William writes it: no texts. */
+export const HOUR_BEFORE = "reminder.hour-before";
 
 export const REMINDER_SLOTS: readonly TemplateSlot[] = [
   {
     key: DAY_BEFORE,
     purpose: "Reminder the day before a booked call",
     goes: "The day before, in texting hours on their clock, to people who ticked the texts box",
+    fields: ["first_name", "time", "sender"],
+    mustSayStop: false,
+    minLength: 1,
+  },
+  {
+    key: HOUR_BEFORE,
+    purpose: "Reminder about an hour before a booked call",
+    goes: "30 to 90 minutes before, in texting hours on their clock, to people who ticked the texts box",
     fields: ["first_name", "time", "sender"],
     mustSayStop: false,
     minLength: 1,

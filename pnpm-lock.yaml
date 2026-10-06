@@ -200,6 +200,9 @@ importers:
       '@wren/auth':
         specifier: workspace:*
         version: link:../../packages/auth
+      '@wren/calendar':
+        specifier: workspace:*
+        version: link:../../packages/calendar
       '@wren/delivery':
         specifier: workspace:*
         version: link:../../packages/delivery
@@ -297,6 +300,9 @@ importers:
       '@wren/books':
         specifier: workspace:*
         version: link:../../packages/books
+      '@wren/calendar':
+        specifier: workspace:*
+        version: link:../../packages/calendar
       '@wren/channel-email':
         specifier: workspace:*
         version: link:../../packages/channel-email

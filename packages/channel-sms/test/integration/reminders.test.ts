@@ -12,7 +12,7 @@ import { tick } from "../../src/deliver.js";
 import { FakeProvider } from "../../src/provider.js";
 import { remindBookings } from "../../src/reminders.js";
 import { smsContacts, smsMessages, smsTemplates } from "../../src/schema.js";
-import { DAY_BEFORE } from "../../src/templates.js";
+import { DAY_BEFORE, HOUR_BEFORE } from "../../src/templates.js";
 import { fillTemplates, numbers, OPEN, POLICY, SEQUENCES, TABLES } from "./fixtures.js";
 
 let pg: TestPostgres;
@@ -187,5 +187,25 @@ describe("day-before reminders", () => {
     await db().delete(smsTemplates);
     expect(await send(new Date(OPEN.getTime() + 60_000))).toMatchObject({ sent: 0, skipped: 1 });
     expect(provider.sent).toEqual([]);
+  });
+
+  it("texts the hour before when a pass finds the call 30 to 90 minutes out, once, with its own words", async () => {
+    await applicant();
+    // OPEN is 14:00 ET; this call is 15:00 ET the same day, booked Sunday.
+    const soon = call({ uid: "h1", start: new Date("2026-09-29T19:00:00Z") });
+    expect(await remind([soon])).toMatchObject({ due: 1, empty: 1, queued: 0 });
+    await fillTemplates(db(), { [HOUR_BEFORE]: "see you at {time}, {first_name}" });
+    expect(await remind([soon])).toMatchObject({ queued: 1 });
+    expect(await remind([soon])).toMatchObject({ queued: 0, already: 1 });
+    const [m] = await messages();
+    expect(m).toMatchObject({ template: HOUR_BEFORE, ref: "h1", body: "see you at 3:00 PM, Dana" });
+    // Booked two hours before it: they remember. Twenty minutes out: too close for a pass.
+    const fresh = call({
+      uid: "h2",
+      start: new Date("2026-09-29T19:00:00Z"),
+      createdAt: new Date("2026-09-29T17:00:00Z"),
+    });
+    const close = call({ uid: "h3", start: new Date("2026-09-29T18:20:00Z") });
+    expect(await remind([fresh, close])).toMatchObject({ due: 1, bookedToday: 1, queued: 0 });
   });
 });

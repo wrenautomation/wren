@@ -1,8 +1,11 @@
 /**
- * Day-before reminders for calls booked on cal.com. Each SmsWatch pass lists
- * the calls in the next two days. A call gets one text, `reminder.day-before`
- * in William's words, on the day before it on the person's own clock, inside
- * the window's hours on any day of the week (it answers something they booked).
+ * Reminders for booked calls (cal.com's and our own calendar's). Each SmsWatch
+ * pass lists the calls in the next two days. A call gets one text,
+ * `reminder.day-before` in William's words, on the day before it on the
+ * person's own clock, and one `reminder.hour-before` when a pass finds it 30
+ * to 90 minutes out; both inside the window's hours on any day of the week (it
+ * answers something they booked). The hour text skips calls booked in the
+ * last three hours before them.
  *
  * Only someone who said yes to texts gets one: the booking's application (the
  * lander's link carries its id) or its email must match a contact whose basis
@@ -24,22 +27,27 @@ import { daysBetween, FLEET_ZONE, inWindow, LATEST_MINUTE, type SmsPolicy } from
 import { cannotReach, pickNumber } from "./pool.js";
 import { type SmsContact, type SmsNumber, smsContacts, smsMessages, smsNumbers } from "./schema.js";
 import { fieldsFor, templateBodies } from "./template-store.js";
-import { DAY_BEFORE, firstName, render } from "./templates.js";
+import { DAY_BEFORE, firstName, HOUR_BEFORE, render } from "./templates.js";
 
 /** Past tomorrow on any clock. */
 const LOOK_AHEAD_MS = 48 * 3_600_000;
+/** An SmsWatch pass every 30 minutes finds each call once in this stretch before it. */
+const HOUR_FROM_MS = 30 * 60_000;
+const HOUR_TO_MS = 90 * 60_000;
+/** Booked this close to the call: no hour text. */
+const HOUR_FRESH_MS = 3 * 3_600_000;
 const EVERY_DAY = [1, 2, 3, 4, 5, 6, 7];
 const ENDED: readonly SmsContact["state"][] = ["opted_out", "unreachable", "stopped"];
 
 export interface ReminderStats {
   /** Accepted calls in the next two days. */
   calls: number;
-  /** Calls whose reminder day is today. */
+  /** Calls with a reminder due: tomorrow's, or one 30 to 90 minutes out. */
   due: number;
   queued: number;
   /** Queued by an earlier pass. */
   already: number;
-  /** Booked today: no reminder. */
+  /** Booked today (or, for the hour text, within three hours of the call): no reminder. */
   bookedToday: number;
   /** Outside the hours on their clock: a later pass today. */
   outOfHours: number;
@@ -129,14 +137,21 @@ export async function remindBookings(db: Queryable, opts: ReminderOptions): Prom
     days: EVERY_DAY,
     windowEndMinute: Math.min(policy.windowEndMinute, LATEST_MINUTE) - REMINDER_FRESH_MS / 60_000,
   };
-  const words = (await templateBodies(db, [DAY_BEFORE])).get(DAY_BEFORE);
+  const bodies = await templateBodies(db, [DAY_BEFORE, HOUR_BEFORE]);
   const calls = await opts.bookings.upcoming(now, new Date(now.getTime() + LOOK_AHEAD_MS));
   stats.calls = calls.length;
   for (const call of calls) {
     const known = call.timeZone ? canonicalZone(call.timeZone) : null;
     const zone = known ?? FLEET_ZONE;
     const today = dayIn(zone, now);
-    if (daysBetween(today, dayIn(zone, call.start)) !== 1) continue;
+    const ahead = call.start.getTime() - now.getTime();
+    const template =
+      ahead > HOUR_FROM_MS && ahead <= HOUR_TO_MS
+        ? HOUR_BEFORE
+        : daysBetween(today, dayIn(zone, call.start)) === 1
+          ? DAY_BEFORE
+          : null;
+    if (!template) continue;
     stats.due += 1;
     const [sent] = await db
       .select({ id: smsMessages.id })
@@ -144,7 +159,7 @@ export async function remindBookings(db: Queryable, opts: ReminderOptions): Prom
       .where(
         and(
           eq(smsMessages.kind, "reminder"),
-          eq(smsMessages.template, DAY_BEFORE),
+          eq(smsMessages.template, template),
           eq(smsMessages.ref, call.uid),
         ),
       );
@@ -152,10 +167,15 @@ export async function remindBookings(db: Queryable, opts: ReminderOptions): Prom
       stats.already += 1;
       continue;
     }
-    if (dayIn(zone, call.createdAt) >= today) {
+    if (
+      template === DAY_BEFORE
+        ? dayIn(zone, call.createdAt) >= today
+        : call.start.getTime() - call.createdAt.getTime() < HOUR_FRESH_MS
+    ) {
       stats.bookedToday += 1;
       continue;
     }
+    const words = bodies.get(template);
     // Unknown zone: inside the hours on both US coasts, like any text with no clock.
     if (!inWindow(known, now, hours)) {
       stats.outOfHours += 1;
@@ -211,7 +231,7 @@ export async function remindBookings(db: Queryable, opts: ReminderOptions): Prom
         contactId: contact.id,
         direction: "out",
         kind: "reminder",
-        template: DAY_BEFORE,
+        template,
         ref: call.uid,
         numberId: number.id,
         toE164: contact.e164,

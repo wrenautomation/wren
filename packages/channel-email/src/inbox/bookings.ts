@@ -192,7 +192,7 @@ export async function applyBooking(
         stopped = await stopCompany(tx, {
           companyId: enrollment.companyId,
           reason: "booked",
-          detail: `call booked on cal.com (${row.uid})`,
+          detail: `call booked (${row.uid})`,
           now: opts.now,
         });
       }
