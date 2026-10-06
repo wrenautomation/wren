@@ -141,4 +141,68 @@ describe("reddit content channel", () => {
       ch.publish({ text: "x", extra: { subreddit: "banned", title: "t" } }),
     ).rejects.toThrow(/SUBREDDIT_NOTALLOWED/);
   });
+
+  it("activity picks username mentions from the inbox newest first, since filters; audience is profile followers", async () => {
+    const mention = (id: string, utc: number) => ({
+      id,
+      name: `t1_${id}`,
+      type: "username_mention",
+      author: "test_user",
+      body: `hey u/wren_test ${id}\nsecond line`,
+      context: `/r/testsub/comments/p1/title/${id}/?context=3`,
+      created_utc: utc,
+    });
+    const inbox = listing("t1", [
+      mention("m1", 1758000000),
+      {
+        id: "r1",
+        type: "comment_reply",
+        author: "other",
+        body: "a reply",
+        created_utc: 1759000000,
+      },
+      { id: "pm1", author: "other", body: "a private message", created_utc: 1759000000 },
+      mention("m2", 1759000000),
+    ]);
+    const { sites, calls } = fakeSites({
+      "GET /api/v1/me": () => ({ name: "wren_test" }),
+      "GET /message/inbox": (i) => {
+        expect(i).toEqual({ limit: 100 });
+        return inbox;
+      },
+      "GET /user/wren_test/about": () => ({ kind: "t2", data: { subreddit: { subscribers: 7 } } }),
+    });
+    const ch = redditContent(sites, { now });
+    expect(await ch.activity?.()).toEqual([
+      {
+        id: "m2",
+        kind: "mention",
+        actor: "test_user",
+        actorUrl: "https://www.reddit.com/user/test_user/",
+        text: "hey u/wren_test m2",
+        url: "https://www.reddit.com/r/testsub/comments/p1/title/m2/?context=3",
+        at: "2025-09-27T19:06:40.000Z",
+        raw: mention("m2", 1759000000),
+      },
+      expect.objectContaining({ id: "m1", at: "2025-09-16T05:20:00.000Z" }),
+    ]);
+    expect((await ch.activity?.({ since: "2025-09-20T00:00:00Z" }))?.map((a) => a.id)).toEqual([
+      "m2",
+    ]);
+    expect((await ch.activity?.({ limit: 1 }))?.map((a) => a.id)).toEqual(["m2"]);
+    expect(await ch.audience?.()).toEqual({
+      followers: 7,
+      asOf: "2026-09-26T10:00:00.000Z",
+      raw: { kind: "t2", data: { subreddit: { subscribers: 7 } } },
+    });
+    expect(calls.filter(([, p]) => p === "/api/v1/me")).toHaveLength(1);
+  });
+
+  it("audience refuses an account with no profile rather than report zero", async () => {
+    const { sites } = fakeSites({
+      "GET /api/v1/me": () => ({ name: "wren_test" }),
+      "GET /user/wren_test/about": () => ({ kind: "t2", data: {} }),
+    });
+    await expect(redditContent(sites, { now }).audience?.()).rejects.toThrow(/no profile/);
+  });
 });

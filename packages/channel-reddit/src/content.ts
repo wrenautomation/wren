@@ -4,9 +4,13 @@
  * draft's `extra.subreddit`: a text post, or a link post when `extra.url` is
  * set. list = the account's own submissions; metrics = score and comment
  * count from `/api/info` (Reddit shows no views to the API); comments = the
- * post's top-level thread; reply = `POST /api/comment`.
+ * post's top-level thread; reply = `POST /api/comment`; activity = the
+ * username mentions in the inbox; audience = the profile's followers.
  */
 import {
+  type ActivityQuery,
+  type ActivityRow,
+  type Audience,
   type CommentRow,
   type ContentChannel,
   type FetchedWith,
@@ -46,6 +50,14 @@ export interface Listing {
   kind?: string;
   data?: { children?: Array<{ kind: string; data: Thing }> };
 }
+/** An inbox item: a `t1` mention carries `type` and the comment's `context` link. */
+interface InboxThing extends Thing {
+  type?: string;
+  context?: string;
+}
+/** Post and comment replies already reach `comments`; only mentions are activity. */
+const MENTION = "username_mention";
+
 /** Reddit's `api_type=json` envelope: errors are `[code, message, field]` triples. */
 interface JsonAnswer<T> {
   json?: { errors?: Array<[string, string, string?]>; data?: T };
@@ -181,6 +193,37 @@ export function redditContent(sites: SiteClient, o: RedditContentOptions = {}): 
           },
         ),
       );
+    },
+    // autobrowse's `/message/{where}` takes inbox|unread|sent, so mentions are picked from the inbox.
+    async activity(q: ActivityQuery = {}): Promise<ActivityRow[]> {
+      const r = await call<Listing>("GET", "/message/inbox", { limit: 100 });
+      const { since } = q;
+      return (children(r) as InboxThing[])
+        .filter((t) => t.type === MENTION)
+        .map((t) => ({
+          id: t.id,
+          kind: "mention" as const,
+          actor: t.author ?? null,
+          actorUrl: t.author ? `https://www.reddit.com/user/${t.author}/` : null,
+          text: (t.body ?? "").split("\n")[0] ?? "",
+          url: t.context ? redditUrl(t.context) : null,
+          at: t.created_utc ? at(t.created_utc, now) : null,
+          raw: t,
+        }))
+        .filter((a) => !since || a.at === null || a.at >= since)
+        .sort((a, b) => (b.at ?? "").localeCompare(a.at ?? ""))
+        .slice(0, q.limit ?? 25);
+    },
+    async audience(): Promise<Audience> {
+      const name = await whoami();
+      const r = await call<{ data?: { subreddit?: { subscribers?: number } } }>(
+        "GET",
+        `/user/${name}/about`,
+      );
+      const followers = r.data?.subreddit?.subscribers;
+      if (typeof followers !== "number")
+        throw new Error(`reddit: u/${name} has no profile, so no follower count`);
+      return { followers, asOf: now().toISOString(), raw: r };
     },
   };
 }
