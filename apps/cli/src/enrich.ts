@@ -189,7 +189,7 @@ export function registerEnrich(
   enrich
     .command("profiles")
     .description(
-      "Read LinkedIn pages (Exa's cache, Google, the WREN_POOL_LINKEDIN alt) for the people compose reaches next, in its order",
+      "Read LinkedIn pages (Exa's cache, Google, the WREN_POOL_LINKEDIN account) for the people compose reaches next, in its order",
     )
     .requiredOption("--niche <name>", `one of ${[...NICHE_NAMES].sort().join(", ")}`)
     .option("--limit <n>", "people this run", "25")

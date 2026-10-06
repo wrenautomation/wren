@@ -130,8 +130,11 @@ describe("linkedin activity collector", () => {
     expect(empty).toMatchObject({ state: "none", signals: [] });
   });
 
-  it("never reads as William's, Wren's or no account: unresolved with no call", async () => {
-    for (const account of ["linkedin", "linkedin@wren", null]) {
+  it("never reads as Wren's or no account: unresolved with no call; his main reads as itself", async () => {
+    const main = sites(() => ({ activity: [item()] }));
+    await linkedin.collect(deps({ sites: main, linkedin: "linkedin" }), "p9", s);
+    expect(main.calls).toEqual(['linkedin GET /in/test-person-1/activity {"max":20} as linkedin']);
+    for (const account of ["linkedin@wren", null]) {
       const site = sites(() => ({ activity: [item()] }));
       const r = await linkedin.collect(deps({ sites: site, linkedin: account }), "p9", s);
       expect(site.calls).toEqual([]);

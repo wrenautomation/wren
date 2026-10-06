@@ -444,3 +444,8 @@ All on main, from `git log --oneline -- packages/research/src/signals`.
   `linkedin@alt`, so the name check dropped it. `readAccount` now maps any set pool account to
   the alt by name, except William's or Wren's names. `wren enrich signals` now passes the
   configured model, so demand can read posts from the CLI.
+- 2026-10-06: LinkedIn restricted the alt (it asks for a government ID). William: "just use my
+  main ... Unless alt still works thats last resort." `readAccount("linkedin")` now reads as his
+  main (renamed "Will Jin", nothing on it names Wren); `linkedin@wren` still never reads. Prod's
+  `WREN_POOL_LINKEDIN` is `linkedin`. autobrowse runs the main's reads in the `google` profile,
+  where its session lives, at the alt's caps (activity 10, company 10, profile 20, search 5).

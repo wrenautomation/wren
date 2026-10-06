@@ -64,11 +64,11 @@ describe("subjects and accounts", () => {
     expect(subjectOf("reddit:t3_abc")).toBeNull();
   });
 
-  it("reads LinkedIn only as the alt", () => {
+  it("reads LinkedIn as his main or the alt, never as Wren's outreach account", () => {
     expect(readAccount("linkedin@alt")).toBe("linkedin@alt");
     // The pool account as the alt's address reads as the alt, by its name.
     expect(readAccount("someone@example.com")).toBe("linkedin@alt");
-    expect(readAccount("linkedin")).toBeNull();
+    expect(readAccount("linkedin")).toBe("linkedin");
     expect(readAccount("linkedin@wren")).toBeNull();
     expect(readAccount("  ")).toBeNull();
     expect(readAccount(null)).toBeNull();

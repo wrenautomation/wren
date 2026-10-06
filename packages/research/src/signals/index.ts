@@ -220,14 +220,15 @@ export async function passOf(
 }
 
 /**
- * The account a collector reads LinkedIn as. Only `linkedin@alt`, by its credential name
- * (autobrowse resolves it to its address), and only for a client whose pool account
- * (`WREN_POOL_LINKEDIN`: the alt's name or its address) is set and is not William's own or
- * Wren's outreach account by name.
+ * The account a collector reads LinkedIn as, by credential name (autobrowse resolves it to its
+ * address), from the pool account (`WREN_POOL_LINKEDIN`). `linkedin` is William's main: research
+ * reads since 2026-10-06, when the alt was restricted. Any other value (the alt's name or its
+ * address) is `linkedin@alt`. Never `linkedin@wren`, Wren's outreach account.
  */
 export const readAccount = (pool: string | null | undefined): string | null => {
   const p = pool?.trim();
-  return p && p !== "linkedin" && p !== "linkedin@wren" ? "linkedin@alt" : null;
+  if (!p || p === "linkedin@wren") return null;
+  return p === "linkedin" ? "linkedin" : "linkedin@alt";
 };
 
 /**

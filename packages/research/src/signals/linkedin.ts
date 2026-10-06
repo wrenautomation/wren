@@ -1,7 +1,7 @@
 /**
  * LinkedIn activity (S5): a person's posts, reposts and comments, from their activity page read as
- * `linkedin@alt` (autobrowse `GET /in/{vanity}/activity`, 10 a day on that account). Any other
- * account means off: no call. Each item is a `post` finding on the person, dated by the page's age
+ * the pool account, William's main or the alt (`readAccount`; autobrowse `GET /in/{vanity}/activity`,
+ * 10 a day on that account). Unset or Wren's outreach account means off: no call. Each item is a `post` finding on the person, dated by the page's age
  * label as autobrowse read it (`approx`), its JSON as the raw. Old items are kept; readers filter.
  * A cap parks the person and stops the pass; a failed read throws, which stops it too.
  */
@@ -71,7 +71,11 @@ export const linkedin = defineCollector({
         state: "unresolved",
         signals: [],
         tried: [
-          { step: "account", what: deps.linkedin ?? "-", outcome: "reads only as linkedin@alt" },
+          {
+            step: "account",
+            what: deps.linkedin ?? "-",
+            outcome: "reads only as linkedin or linkedin@alt",
+          },
         ],
       };
     const key = subjectOf(subject);

@@ -103,10 +103,12 @@ describe("hiring collector", () => {
     expect(r.signals[0]).toMatchObject({ dated: "seen", signalAt: NOW });
   });
 
-  it("never reads as William's or Wren's LinkedIn, or when the setting is off", async () => {
+  it("never reads as Wren's LinkedIn, or when the setting is off; his main reads as itself", async () => {
     const row = firmRow({ linkedin_url: "https://www.linkedin.com/company/acme-staffing/" });
+    const main = sites(LINKEDIN_JOBS);
+    await hiring.collect(deps({ row, sites: main, linkedin: "linkedin" }), "c7", on);
+    expect(main.calls).toEqual(["linkedin /company/acme-staffing/jobs as linkedin"]);
     for (const [account, s] of [
-      ["linkedin", on],
       ["linkedin@wren", on],
       ["linkedin@alt", { linkedin: false }],
     ] as const) {

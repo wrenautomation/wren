@@ -1,7 +1,8 @@
 /**
  * Job postings (S1): the pool's adapter over the built `checkHiring`. The firm's careers page and
- * its board's public API first; LinkedIn jobs only as `linkedin@alt`, and only when the board
- * step found nothing. The key is the built one, so `crm run` and the pool write the same finding.
+ * its board's public API first; LinkedIn jobs only as the pool account (`readAccount`), and only
+ * when the board step found nothing. The key is the built one, so `crm run` and the pool write the
+ * same finding.
  */
 import type { SiteClient } from "@wren/core/content";
 import { z } from "zod";
@@ -29,7 +30,7 @@ export const hiring = defineCollector({
   subject: "company",
   built: true,
   settings: z.object({
-    /** Read LinkedIn jobs (as linkedin@alt) when the firm's site names no board. */
+    /** Read LinkedIn jobs (as the pool account, `readAccount`) when the firm's site names no board. */
     linkedin: z.boolean().default(true),
   }),
   bucket: { perDay: 150, burst: 20 },
