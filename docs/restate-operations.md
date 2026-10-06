@@ -7,9 +7,9 @@ Checked 2026-10-03. Companion to `restate-durability.md` (why it survives crashe
 
 | Host | What runs there | Shipped by | Runbook |
 |---|---|---|---|
-| Restate Cloud, env `wren-automation` (`env_201m2vp6sq3x11xdaatsmjej302`), region `us` | every loop's journal, timers, object state; the ingress | always on, free tier (100k actions/mo; past it, throttled, never billed). `restate-lag` posts to Discord when timers run late: then the box takes over, `designs/2026-10-05-restate-self-host.md` "Switch day" | this file |
+| Restate server on `wren-prod-pg` (`restate:1.7` in Docker, since 2026-10-06) | every loop's journal, timers, object state; the ingress `https://restate.wrenautomation.com` (Caddy checks the bearer; admin under `/admin`) | `deploy/scripts/box-restate.sh`; nightly backup to S3 08:30 | this file, `designs/2026-10-05-restate-self-host.md` |
 | Lambda `wren-prod-worker` (us-east-1, Node 22 arm64, 1 GB, 15 min max) | every service except the box's; one version per push | CI `deploy.yml` | `deploy/README.md` |
-| EC2 `wren-prod-pg` (`t4g.small`) | Postgres 17, PgBouncer (6432, transaction mode) and browserless Chromium in Docker; the **box worker**: `BOX_SERVICES` (PoolScheduler, Discovery, Enrichment, Resolution, PageArchive, Books, Watch) over Restate's tunnel (`WREN_POOL_CHAIN_HOST=box`) | CI over SSM (`deploy/scripts/box-worker.sh`) | `deploy/README.md`, `apps/worker/src/box.ts` |
+| EC2 `wren-prod-pg` (`t4g.medium`) | Postgres 17, PgBouncer (6432, transaction mode), browserless Chromium and the Restate server in Docker; the **box worker**: `BOX_SERVICES` (PoolScheduler, Discovery, Enrichment, Resolution, PageArchive, Books, Watch) on 127.0.0.1:9080 (`WREN_POOL_CHAIN_HOST=box`) | CI over SSM (`deploy/scripts/box-worker.sh`) | `deploy/README.md`, `apps/worker/src/box.ts` |
 | RackNerd VPS (192.255.226.241, Buffalo) | mailifier SMTP prober behind Caddy (`probe.wrenautomation.com`) | `deploy/scripts/deploy-prober.sh` | "Verifying addresses" below |
 | RackNerd VPS (198.44.104.204, Los Angeles) | second prober (`probe2.wrenautomation.com`); in `WREN_SMTP_PROBE_URL`, probes once its PTR resolves | `PROBE_HOST=probe2.wrenautomation.com deploy/scripts/deploy-prober.sh` | "Verifying addresses" below |
 | William's Mac | autobrowse desk worker under launchd: every `sites` call (browser, logins, Chrome profiles, home IP) | `../autobrowse/deploy/desk/install.sh` | `../autobrowse/deploy/README.md` |
@@ -31,9 +31,9 @@ restate invocations list --service Enrichment --key recruiting   # stuck work; c
 ```
 
 ```
-you / CLI / curl ──ingress :8080, API key──▶ Restate Cloud (journal, timers, object state)
-Restate Cloud ──assume wren-prod-restate-invoker──▶ Lambda wren-prod-worker
-Restate Cloud ──tunnel──▶ box worker (EC2) and desk worker (Mac)
+you / CLI / curl ──HTTPS, bearer──▶ Caddy ──▶ Restate on the box (journal, timers, object state)
+Restate (box) ──box instance role──▶ Lambda wren-prod-worker
+Restate (box) ──127.0.0.1:9080──▶ box worker; ──cloudflared hop 127.0.0.1:9082──▶ desk worker (Mac)
 Lambda, box ──TLS 6432──▶ PgBouncer ──▶ Postgres on EC2
 CLI, migrations ──TLS 5432──▶ Postgres on EC2
 Lambda, box ──CDP :3000──▶ browserless
@@ -42,7 +42,7 @@ Lambda ──Gmail API (domain-wide delegation)──▶ Gmail
 GitHub Actions (main) ──OIDC role──▶ Lambda versions, box worker, Cloudflare Workers
 ```
 
-Restate Cloud is the only always-on piece. It holds every loop's timer and
+Restate on the box is the only always-on piece. It holds every loop's timer and
 state. Lambda runs only when Restate invokes it, so a loop asleep for 14 hours
 costs nothing and has no process to crash.
 
@@ -50,7 +50,7 @@ costs nothing and has no process to crash.
 
 | Resource | Job | ≈ cost/mo |
 |---|---|---|
-| EC2 `t4g.small` (AL2023 ARM) | Postgres + browserless in Docker | $12 |
+| EC2 `t4g.medium` (AL2023 ARM) | Postgres, browserless and Restate in Docker | $24 |
 | EBS gp3 20 GB | DB data, survives instance rebuild | $2 |
 | Elastic IP | fixed DB address | $0 while attached |
 | Security group | 5432 (TLS Postgres), 6432 (TLS PgBouncer) and 3000 (browser, token) only | $0 |
@@ -59,17 +59,17 @@ costs nothing and has no process to crash.
 | SSM params `/wren/prod/{pg_password,browser_token,env}` | secrets | $0 |
 | IAM: instance role, Lambda role, `wren-prod-restate-invoker`, `wren-prod-ci` + GitHub OIDC provider | who may do what | $0 |
 
-Total ≈ $15/month. Restate Cloud is on the free tier.
+Total ≈ $27/month. Restate Cloud is no longer used (switched 2026-10-06, +$12/mo for the bigger box).
 
 ## Operating
 
-### Ingress (any HTTP client; API key from Developers → API keys)
+### Ingress (any HTTP client; the box token is `RESTATE_AUTH_TOKEN`)
 
 No input: send no body and no content type. A body: `content-type: application/json`. A handler with an input schema refuses an empty body typed as JSON; `ingressOf` and `scripts/ingress.mjs` already send nothing for no input.
 
 ```sh
 H="Authorization: Bearer $RESTATE_AUTH_TOKEN"     # in wren/.env
-U=https://201m2vp6sq3x11xdaatsmjej302.env.us.restate.cloud:8080
+U=https://restate.wrenautomation.com
 
 curl -X POST -H "$H" $U/SendScheduler/alice@example.com/status
 curl -X POST -H "$H" $U/SendScheduler/alice@example.com/start
@@ -99,8 +99,8 @@ restate services status SendScheduler # per-key state
 restate deployments list
 ```
 
-The Cloud UI (Overview → service → Playground) calls any handler from a form;
-Invocations shows every sleeping loop and when it wakes.
+Admin queries go to `$U/admin/query` with the same bearer (SQL over `sys_invocation`,
+`state`); the full admin API answers on 127.0.0.1:9070 on the box only (SSM).
 
 ### Logs
 
@@ -428,10 +428,9 @@ Lander leads always @mention him (`DISCORD_PING_USER_ID` Pages secret).
   `WREN_DATABASE_URL` in `prod.env`, `push-secrets.sh`, new cold start.
 - **Backups are dumps, not point-in-time.** 08:00 UTC daily. A bad write at
   14:00 loses up to a day of ledger.
-- **Restate invoker trust policy** came from `@restatedev/restate-cdk`
-  (account `654654156625`, role `RestateCloud`, external id = env id) because
-  the Cloud UI showed none. If Restate rotates that principal, registration
-  breaks with an AssumeRole error; re-check the CDK package or UI.
+- **Restate invoker.** The box's instance role invokes the Lambda. The Cloud invoker role
+  `wren-prod-restate-invoker` was destroyed on 2026-10-06 so a revived Cloud env can't replay
+  loops into the Lambda. Back to Cloud: restore its trust policy in `terraform.tfvars`.
 - **AWS account.** IAM user + MFA + budget done. Use the IAM user for the CLI
   (`aws login` as that user, or an access key + `aws configure`), keep root
   for billing only.
