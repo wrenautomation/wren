@@ -87,11 +87,8 @@ const ONE: Record<string, (id: string, input: Input) => [string, Input]> = {
   "console/stopLoop": (id) => loop(id, false),
   "console/retryEvent": (id) => ["console/retryEvent", { id }],
   "console/releaseHold": (id) => ["console/releaseHold", { id }],
-  "email/approve": (id, { body }) => [
-    "email/approve",
-    { id: Number(id), ...(body ? { body } : {}) },
-  ],
-  "email/drop": (id) => ["email/drop", { id: Number(id) }],
+  "email/approve": (id, { body }) => ["email/approve", { id: num(id), ...(body ? { body } : {}) }],
+  "email/drop": (id) => ["email/drop", { id: num(id) }],
   "sms/reply": (id, { body }) => ["sms/reply", { id: Number(id), body }],
   "email/pause": (id, { reason }) => ["email/pause", { target: id, reason }],
   "email/resume": (id) => ["email/resume", { target: id }],

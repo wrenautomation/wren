@@ -4,6 +4,8 @@
  */
 import type { Action } from "@wren/ui";
 import type { ListPage, Module } from "../../module.js";
+import { threadExtras } from "../texts/index.js";
+import { REPLY_ACTIONS, REPLY_WAITING } from "../wren/replies.js";
 import { askActions, withAsk } from "./ask.js";
 import { WeeklyBookings } from "./chart.js";
 import { copyExtras, copyPreview, dmExtras, dmPreview } from "./dms.js";
@@ -310,6 +312,8 @@ const INBOX_ACTIONS: Action[] = [
   ),
   // SMS copy is William's: Mark read only, no Ask Claude.
   ...TEXT_ACTIONS.map((a) => only("text", a, WAITS)),
+  // A reply's call invite, as its replies page answers it; a reply with none has no actions.
+  ...REPLY_ACTIONS.map((a) => only("email", a, { answer: REPLY_WAITING.state })),
   ...ACTIVITY_ACTIONS.map((a) => (a.form ? a : only("activity", a))),
   ...askActions("inbox", {
     type: ["comment", "draft", "thread", "dm", "invite"],
@@ -339,7 +343,11 @@ export const INBOX_PAGE: Omit<ListPage, "id"> = {
   },
   actions: INBOX_ACTIONS,
   extras: withAsk((detail, at) =>
-    (detail as { messages?: unknown } | null)?.messages ? dmExtras(detail, at) : { sections: [] },
+    at.row.type === "text"
+      ? threadExtras(detail, at)
+      : (detail as { messages?: unknown } | null)?.messages
+        ? dmExtras(detail, at)
+        : { sections: [] },
   ),
   count: { state: ["new", "waiting"] },
 };

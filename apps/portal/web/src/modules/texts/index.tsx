@@ -21,7 +21,7 @@ const THREAD_ACTIONS: Action[] = [
 type Message = { id: number; at: string; direction: "in" | "out"; body: string; state: string };
 
 /** The thread's texts, oldest first: theirs plain, ours marked. */
-const threadExtras: NonNullable<ListPage["extras"]> = (detail) => {
+export const threadExtras: NonNullable<ListPage["extras"]> = (detail) => {
   const messages = (detail as { messages?: Message[] } | null)?.messages ?? [];
   return {
     sections: [

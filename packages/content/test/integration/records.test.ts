@@ -131,9 +131,13 @@ describe("marketing.inbox: email replies and texts", () => {
         returning id`);
     const open = await reply("Tell me more", "interested");
     const booked = await reply("Tuesday works", "interested");
-    const invite = await one(sql`
-      insert into call_invites (thread_event_id, enrollment_id, state, email)
-      values (${booked}, ${enrollment}, 'sent', 'ann@inbox.example') returning id`);
+    const asked = await reply("Can we talk Friday?", "interested");
+    const invited = (thread: number, state: string) =>
+      one(sql`
+        insert into call_invites (thread_event_id, enrollment_id, state, email)
+        values (${thread}, ${enrollment}, ${state}, 'ann@inbox.example') returning id`);
+    const invite = await invited(booked, "sent");
+    const toAnswer = await invited(asked, "needs_you");
 
     const contact = (e164: string) =>
       one(sql`
@@ -160,13 +164,21 @@ describe("marketing.inbox: email replies and texts", () => {
     expect(waiting).toEqual(
       expect.arrayContaining([
         expect.objectContaining({
-          id: `email:${open}`,
+          id: `reply:${open}`,
           type: "email",
           state: "waiting",
           who: "Ann Example",
           company: "Inbox Firm",
           body: "Tell me more",
           url: null,
+        }),
+        // An invite's id, so the replies page's Send and Don't answer act on it here.
+        expect.objectContaining({
+          id: `email:${toAnswer}`,
+          type: "email",
+          state: "waiting",
+          answer: "needs_you",
+          url: `/inbox/replies/${toAnswer}`,
         }),
         expect.objectContaining({
           id: `text:${unread}`,
@@ -177,15 +189,19 @@ describe("marketing.inbox: email replies and texts", () => {
       ]),
     );
     const ids = waiting.map((r) => r.id);
-    expect(ids).not.toContain(`email:${booked}`);
+    expect(ids).not.toContain(`email:${invite}`);
     expect(ids).not.toContain(`text:${answered}`);
     const email = (await api.list({ record: inboxRecord.id, view: "email", limit: 50 })).rows;
-    expect(email.find((r) => r.id === `email:${booked}`)).toMatchObject({
+    expect(email.find((r) => r.id === `email:${invite}`)).toMatchObject({
       state: "answered",
+      answer: "sent",
       url: `/inbox/replies/${invite}`,
     });
     const texts = (await api.list({ record: inboxRecord.id, view: "texts", limit: 50 })).rows;
     expect(texts.find((r) => r.id === `text:${answered}`)).toMatchObject({ state: "answered" });
-    expect(await inboxRecord.load?.(pg.db, `text:${unread}`)).toBeNull();
+    // A text row's detail is its thread, as the Texts app shows it.
+    expect(await inboxRecord.load?.(pg.db, `text:${unread}`)).toMatchObject({
+      messages: [expect.objectContaining({ direction: "in", body: "Is this still open?" })],
+    });
   });
 });

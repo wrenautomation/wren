@@ -5,6 +5,8 @@
  * email replies, text threads and activity. Activity alone (`marketing.activity`), and
  * followers per platform (`marketing.audience`).
  */
+
+import { threadRecord as textThreadRecord } from "@wren/channel-sms/records";
 import { draftTurns } from "@wren/core/ask";
 import { date, defineRecord, link, name, number, prose, status, text } from "@wren/core/records";
 import type { Queryable } from "@wren/db";
@@ -85,18 +87,19 @@ const DISPOSITION: Record<string, string> = {
 const emailRows = (db: Queryable) =>
   rowsOf(
     db,
-    sql`select te.id, ci.id invite, ci.state invite_state, te.disposition,
+    sql`select te.id, ci.id invite, ci.state invite_state, te.disposition, m.body draft,
         coalesce(nullif(concat_ws(' ', p.first_name, p.last_name), ''), p.full_name,
           te.from_address) who,
         co.name company, coalesce(te.received_at, te.created_at) at,
         coalesce(te.body_text, te.snippet) words
       from thread_events te
       left join call_invites ci on ci.thread_event_id = te.id
+      left join messages m on m.id = ci.reply_message_id
       left join enrollments e on e.id = te.enrollment_id
       left join people p on p.id = e.person_id
       left join companies co on co.id = e.company_id
       where te.kind = 'reply'
-      order by 7 desc limit ${ACTIVITY_ROWS}`,
+      order by at desc limit ${ACTIVITY_ROWS}`,
   );
 
 /** Text threads they wrote in: their last word, and whether ours came after or it's unread. */
@@ -137,8 +140,8 @@ const acceptedRows = (db: Queryable) =>
 
 /**
  * Everything waiting on William as one list. Ids carry their type (`draft:3`, `comment:12`,
- * `dm:5`, `thread:abc`, `invite:7`, `email:4`, `text:8`, `activity:9`); each action reads the id
- * after the colon. `due` orders "Waiting on you": a draft's slot, else when it came.
+ * `dm:5`, `thread:abc`, `invite:7`, `email:4` (a call invite), `reply:6` (a reply with none),
+ * `text:8`, `activity:9`); each action reads the id after the colon. `due` orders "Waiting on you": a draft's slot, else when it came.
  */
 export const inboxRecord = defineRecord({
   id: "marketing.inbox",
@@ -233,10 +236,10 @@ export const inboxRecord = defineRecord({
         due: i.at,
         url: i.url,
       })),
-      // ponytail: answered on the replies page (its actions take the invite id); a reply with no
-      // invite has no page to answer from and shows unlinked.
+      // A reply with a call invite is answered here or on its replies page, by the invite's id;
+      // one with no invite has nothing to answer with and shows unlinked.
       ...es.map((e) => ({
-        id: `email:${e.id}`,
+        id: e.invite ? `email:${e.invite}` : `reply:${e.id}`,
         type: "email",
         who: e.who,
         company: e.company,
@@ -246,9 +249,10 @@ export const inboxRecord = defineRecord({
         state: e.invite
           ? (INVITE[String(e.invite_state)] ?? "left")
           : (DISPOSITION[String(e.disposition)] ?? "waiting"),
+        answer: e.invite_state,
         body: e.words,
         post_title: null,
-        draft: null,
+        draft: e.draft,
         account: null,
         at: e.at,
         due: e.at,
@@ -334,6 +338,18 @@ export const inboxRecord = defineRecord({
       left: neutral("Left"),
     }),
     company: text("Company"),
+    answer: status(
+      {
+        needs_you: { label: "Needs you", tone: "bad" },
+        proposed: { label: "Draft ready", tone: "warn" },
+        booking: neutral("Booking"),
+        booked: { label: "Booked", tone: "good" },
+        already_booked: { label: "Already booked", tone: "good" },
+        sent: { label: "Answered", tone: "good" },
+        dropped: neutral("Dropped"),
+      },
+      "Call invite",
+    ),
     body: prose("Their words"),
     postTitle: text("Post"),
     draft: prose("Draft reply"),
@@ -369,16 +385,20 @@ export const inboxRecord = defineRecord({
     "marketing.inviteMessage",
     "marketing.inviteRead",
     "marketing.markRead",
+    "email.approve",
+    "email.drop",
     "marketing.activitySeen",
     "marketing.activityAllSeen",
     "marketing.draftAsk",
     "marketing.draftUndo",
   ],
-  /** A DM thread's or an accepted invite's messages; a draft's Ask Claude thread; nothing for activity, email or texts. */
+  /** A DM thread's, an accepted invite's or a text thread's messages; a draft's Ask Claude thread. */
   load: async (db, id) => {
     const at = id.indexOf(":");
     const [type, rest] = [id.slice(0, at), id.slice(at + 1)];
-    if (type === "activity" || type === "email" || type === "text") return null;
+    if (type === "text") return (await textThreadRecord.load?.(db, rest)) ?? null;
+    // An email's words and our drafted answer are the row's own.
+    if (type === "activity" || type === "email" || type === "reply") return null;
     const ask = { ask: await draftTurns(db, type, rest) };
     return type === "dm" || type === "invite"
       ? { ...(await dmRecord.load?.(db, rest)), ...ask }
