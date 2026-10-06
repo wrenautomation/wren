@@ -11,6 +11,7 @@ import {
   pgTable,
   pgView,
   primaryKey,
+  real,
   serial,
   text,
   timestamp,
@@ -115,6 +116,95 @@ export const runEvents = pgTable(
   ],
 );
 export type RunEvent = typeof runEvents.$inferSelect;
+
+/**
+ * Units held out of a stage (designs/2026-10-05-checks.md, src/checks.ts): one row per stage and
+ * subject. A hold lasts 7 days, the unit is tried once more, and a second failure holds it until
+ * a person releases it. `source:<name>` subjects are sources paused on that stage.
+ */
+export const unitHolds = pgTable(
+  "unit_holds",
+  {
+    id: serial("id").notNull(),
+    stage: varchar("stage", { length: 64 }).notNull(),
+    subject: varchar("subject", { length: 200 }).notNull(),
+    /** The latest reason, in words. */
+    reason: text("reason").notNull(),
+    heldAt: timestamp("held_at", { withTimezone: true }).defaultNow().notNull(),
+    /** 'infinity' once its one retry is spent: a person releases it. */
+    until: timestamp("until", { withTimezone: true }).notNull(),
+    tries: integer("tries").default(1).notNull(),
+    releasedAt: timestamp("released_at", { withTimezone: true }),
+    /** An email, or `checks` when a later read settled it. */
+    releasedBy: varchar("released_by", { length: 320 }),
+  },
+  (t) => [
+    primaryKey({ columns: [t.id], name: "pk_unit_holds" }),
+    unique("uq_unit_holds_stage_subject").on(t.stage, t.subject),
+  ],
+);
+export type UnitHold = typeof unitHolds.$inferSelect;
+
+/**
+ * Every check's outcome: pass rates per stage and source, and the window that pauses a source.
+ * ponytail: never pruned; ~60 bytes a row, prune past 90 days if it ever matters.
+ */
+export const checkOutcomes = pgTable(
+  "check_outcomes",
+  {
+    id: serial("id").notNull(),
+    stage: varchar("stage", { length: 64 }).notNull(),
+    source: varchar("source", { length: 64 }).notNull(),
+    check: varchar("check", { length: 120 }).notNull(),
+    subject: varchar("subject", { length: 200 }),
+    ok: boolean("ok").notNull(),
+    reason: text("reason"),
+    at: timestamp("at", { withTimezone: true }).defaultNow().notNull(),
+  },
+  (t) => [
+    primaryKey({ columns: [t.id], name: "pk_check_outcomes" }),
+    index("ix_check_outcomes_stage_source").on(t.stage, t.source, t.id),
+  ],
+);
+
+/** Holds as the console lists them (`console.hold`): held, retry due, needs a person, paused. */
+export const unitHoldsNow = pgView("unit_holds_now", {
+  id: integer("id"),
+  stage: text("stage"),
+  subject: text("subject"),
+  reason: text("reason"),
+  state: text("state"),
+  heldAt: timestamp("held_at", { withTimezone: true }),
+  until: timestamp("until", { withTimezone: true }),
+  tries: integer("tries"),
+  releasedAt: timestamp("released_at", { withTimezone: true }),
+  releasedBy: text("released_by"),
+}).as(sql`
+  select id, stage, subject, reason,
+    case when released_at is not null then 'released' when subject like 'source:%' then 'paused'
+      when until = 'infinity' then 'stuck' when until > now() then 'held' else 'due' end state,
+    held_at, nullif(until, 'infinity') until, tries, released_at, released_by
+  from unit_holds`);
+
+/** Each check's pass rate over 30 days, per stage and source (`console.check`). */
+export const checkRates = pgView("check_rates", {
+  id: text("id"),
+  stage: text("stage"),
+  source: text("source"),
+  check: text("check"),
+  total: integer("total"),
+  passed: integer("passed"),
+  rate: real("rate"),
+  lastAt: timestamp("last_at", { withTimezone: true }),
+  state: text("state"),
+}).as(sql`
+  select o.stage || ' ' || o.source || ' ' || o."check" id, o.stage, o.source, o."check",
+    count(*)::int total, count(*) filter (where o.ok)::int passed,
+    avg(o.ok::int)::real rate, max(o.at) last_at,
+    case when exists (select 1 from unit_holds h where h.stage = o.stage
+      and h.subject = 'source:' || o.source and h.released_at is null) then 'paused' else 'on' end state
+  from check_outcomes o where o.at > now() - interval '30 days'
+  group by o.stage, o.source, o."check"`);
 
 /**
  * The spine's log (designs/2026-10-05-workflows.md, src/spine.ts): one row per event arriving at

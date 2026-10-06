@@ -164,7 +164,15 @@ import type { Fetcher } from "../fetch/fetcher.js";
 import type { RobotsCache } from "../fetch/robots.js";
 import { keepingAnswers } from "../findings.js";
 import type { PageStore } from "../pages.js";
-import { UNITS_PER_RUN, unitBatches } from "./units.js";
+import {
+  holdFailed,
+  landed,
+  notHeld,
+  type StageHolds,
+  stageHolds,
+  UNITS_PER_RUN,
+  unitBatches,
+} from "./units.js";
 
 export interface EnrichmentDeps {
   db: Db;
@@ -375,6 +383,26 @@ const parseShard = (text: string | undefined): Shard | null => {
 
 /** Bounded retries per unit; when exhausted the run records the abort and stops. */
 const UNIT_RETRY = { maxRetryAttempts: 3 } as const;
+/**
+ * Each loop's stage in `unit_holds`: a unit out of retries is held there 7 days, then tried once
+ * more, so one bad row never stops a stage (designs/2026-10-05-checks.md).
+ */
+const HELD = {
+  crawl: "research.crawl",
+  render: "research.render",
+  scan: "research.scan",
+  contacts: "research.contacts",
+  extract: "research.extract",
+  pick: "research.pick",
+  opener: "research.opener",
+  profiles: "research.profiles",
+  team: "research.team",
+  youtube: "research.youtube",
+  instagram: "research.instagram",
+  ads: "research.ads",
+  exa: "research.exa-search",
+  groups: "research.fb-groups",
+} as const;
 
 export function makeEnrichment(deps: EnrichmentDeps) {
   const tracer = deps.tracer ?? NULL_TRACER;
@@ -415,13 +443,27 @@ export function makeEnrichment(deps: EnrichmentDeps) {
     });
   const close = (ctx: restate.ObjectContext, runId: string, stats: object) =>
     ctx.run("finish run", () => finishRun(scope(ctx).db, runId, stats));
-  /** A unit that exhausted its retries aborts the run with its reason instead of failing the handler. */
-  const unit = async <T>(ctx: restate.ObjectContext, name: string, fn: () => Promise<T>) => {
+  /**
+   * A unit that exhausted its retries aborts the run with its reason instead of failing the
+   * handler, and is held so the next run goes past it.
+   */
+  const unit = async <T>(
+    ctx: restate.ObjectContext,
+    name: string,
+    fn: () => Promise<T>,
+    at: { holds: StageHolds; id: unknown },
+  ) => {
     try {
-      return { ok: true as const, value: await ctx.run(name, fn, UNIT_RETRY) };
+      const run = async () => {
+        const value = await fn();
+        await landed(at.holds, at.id);
+        return value;
+      };
+      return { ok: true as const, value: await ctx.run(name, run, UNIT_RETRY) };
     } catch (err) {
-      if (err instanceof restate.TerminalError) return { ok: false as const, reason: err.message };
-      throw err;
+      if (!(err instanceof restate.TerminalError)) throw err;
+      await holdFailed(ctx, at.holds, at.id, err.message);
+      return { ok: false as const, reason: err.message };
     }
   };
 
@@ -440,10 +482,11 @@ export function makeEnrichment(deps: EnrichmentDeps) {
             ),
           );
           let stats = emptyCrawlStats();
+          const holds = await stageHolds(ctx, db, HELD.crawl);
           const units = unitBatches(
             ctx,
             "crawl company",
-            ids,
+            notHeld(holds, ids),
             async (id) => {
               const company = await companyRef(db, id);
               return atomic(db, (tx) =>
@@ -454,7 +497,7 @@ export function makeEnrichment(deps: EnrichmentDeps) {
                 }),
               );
             },
-            { retry: UNIT_RETRY },
+            { retry: UNIT_RETRY, holds },
           );
           for await (const r of units) {
             if (!r.ok) break;
@@ -484,10 +527,11 @@ export function makeEnrichment(deps: EnrichmentDeps) {
           );
           let stats = emptyRenderStats();
           const robots: RobotsCache = new Map();
+          const holds = await stageHolds(ctx, db, HELD.render);
           const units = unitBatches(
             ctx,
             "render company",
-            ids,
+            notHeld(holds, ids),
             async (id) => {
               const company = await companyRef(db, id);
               return withBrowser((browser) =>
@@ -501,7 +545,7 @@ export function makeEnrichment(deps: EnrichmentDeps) {
                 ),
               );
             },
-            { retry: UNIT_RETRY },
+            { retry: UNIT_RETRY, holds },
           );
           for await (const r of units) {
             if (!r.ok) break;
@@ -531,14 +575,20 @@ export function makeEnrichment(deps: EnrichmentDeps) {
             signals: 0,
             pages_with_signals: 0,
           };
-          const units = unitBatches(ctx, "scan document", ids, async (id) => {
-            const doc = await loadScanTarget(db, id);
-            if (!doc) return 0;
-            return (await atomic(db, (tx) => scanDocument(tx, doc, runId, deps.pages ?? null)))
-              .length;
-          });
+          const holds = await stageHolds(ctx, db, HELD.scan);
+          const units = unitBatches(
+            ctx,
+            "scan document",
+            notHeld(holds, ids),
+            async (id) => {
+              const doc = await loadScanTarget(db, id);
+              if (!doc) return 0;
+              return (await atomic(db, (tx) => scanDocument(tx, doc, runId, deps.pages ?? null)))
+                .length;
+            },
+            { retry: UNIT_RETRY, holds },
+          );
           for await (const r of units) {
-            // No retry cap here: a unit retries until it lands, so every result is ok.
             const signals = r.ok ? r.value : 0;
             stats.scanned += 1;
             stats.signals += signals;
@@ -564,12 +614,19 @@ export function makeEnrichment(deps: EnrichmentDeps) {
             points: 0,
             pages_with_points: 0,
           };
-          const units = unitBatches(ctx, "read contacts", ids, async (id) => {
-            const doc = await loadContactTarget(db, id);
-            if (!doc) return 0;
-            return (await atomic(db, (tx) => scanContacts(tx, doc, runId, deps.pages ?? null)))
-              .length;
-          });
+          const holds = await stageHolds(ctx, db, HELD.contacts);
+          const units = unitBatches(
+            ctx,
+            "read contacts",
+            notHeld(holds, ids),
+            async (id) => {
+              const doc = await loadContactTarget(db, id);
+              if (!doc) return 0;
+              return (await atomic(db, (tx) => scanContacts(tx, doc, runId, deps.pages ?? null)))
+                .length;
+            },
+            { retry: UNIT_RETRY, holds },
+          );
           for await (const r of units) {
             const points = r.ok ? r.value : 0;
             stats.scanned += 1;
@@ -606,14 +663,20 @@ export function makeEnrichment(deps: EnrichmentDeps) {
             skipped_older_version: selected.skippedOlderVersion,
             aborted: null,
           };
-          for (const id of selected.ids) {
-            const r = await unit(ctx, `extract document ${id}`, async () => {
-              const doc = await loadExtractionTarget(db, id);
-              if (!doc) return null;
-              return atomic(db, (tx) =>
-                extractDocument(tx, deps.llm, doc, { runId, tracer, spec }),
-              );
-            });
+          const holds = await stageHolds(ctx, db, HELD.extract);
+          for (const id of notHeld(holds, selected.ids)) {
+            const r = await unit(
+              ctx,
+              `extract document ${id}`,
+              async () => {
+                const doc = await loadExtractionTarget(db, id);
+                if (!doc) return null;
+                return atomic(db, (tx) =>
+                  extractDocument(tx, deps.llm, doc, { runId, tracer, spec }),
+                );
+              },
+              { holds, id },
+            );
             if (!r.ok) {
               stats.aborted = r.reason;
               break;
@@ -672,17 +735,18 @@ export function makeEnrichment(deps: EnrichmentDeps) {
             ungrounded_names: 0,
             aborted: null,
           };
+          const holds = await stageHolds(ctx, db, HELD.pick);
           const units = unitBatches(
             ctx,
             "pick company",
-            ids,
+            notHeld(holds, ids),
             async (id) => {
               const [company] = await db.select().from(companies).where(eq(companies.id, id));
               if (!company) return null;
               return atomic(db, (tx) => pickCompany(tx, llm, company, { runId, tracer }));
             },
             // A model pick is bought once: one unit per step. Rules picks are free and batch.
-            { retry: UNIT_RETRY, perRun: llm ? 1 : UNITS_PER_RUN },
+            { retry: UNIT_RETRY, perRun: llm ? 1 : UNITS_PER_RUN, holds },
           );
           for await (const r of units) {
             if (!r.ok) {
@@ -721,9 +785,13 @@ export function makeEnrichment(deps: EnrichmentDeps) {
             selectOpenerTargets(db, deps.llm, { limit: input.limit, niche, shard }),
           );
           const stats = emptyOpenerStats(ids.length);
-          for (const id of ids) {
-            const r = await unit(ctx, `opener company ${id}`, () =>
-              atomic(db, (tx) => writeOpener(tx, deps.llm, id, { runId, tracer })),
+          const holds = await stageHolds(ctx, db, HELD.opener);
+          for (const id of notHeld(holds, ids)) {
+            const r = await unit(
+              ctx,
+              `opener company ${id}`,
+              () => atomic(db, (tx) => writeOpener(tx, deps.llm, id, { runId, tracer })),
+              { holds, id },
             );
             if (!r.ok) {
               stats.aborted = r.reason;
@@ -773,15 +841,22 @@ export function makeEnrichment(deps: EnrichmentDeps) {
           let left = plan.google;
           let linkedinUntil = plan.linkedin;
           const streak = { errors: 0 };
+          const holds = await stageHolds(ctx, db, HELD.profiles);
           for (const w of plan.work) {
+            const id = w.person.personId;
+            if (holds.held.has(String(id))) continue;
             // profileUnit returns site errors as data: a metered read is never retried.
-            const r = await unit(ctx, `profile person ${w.person.personId}`, () =>
-              profileUnit(db, sites, w, {
-                googleLeft: left,
-                linkedin: deps.linkedin ?? null,
-                linkedinCappedUntil: linkedinUntil ? new Date(linkedinUntil) : null,
-                runId,
-              }),
+            const r = await unit(
+              ctx,
+              `profile person ${id}`,
+              () =>
+                profileUnit(db, sites, w, {
+                  googleLeft: left,
+                  linkedin: deps.linkedin ?? null,
+                  linkedinCappedUntil: linkedinUntil ? new Date(linkedinUntil) : null,
+                  runId,
+                }),
+              { holds, id },
             );
             if (!r.ok) {
               stats.stopped = r.reason;
@@ -833,11 +908,15 @@ export function makeEnrichment(deps: EnrichmentDeps) {
           stats.selected = plan.work.length;
           stats.stopped = plan.why;
           const streak = { errors: 0 };
+          const holds = await stageHolds(ctx, db, HELD.team);
           for (const w of plan.work) {
+            const id = w.companyId;
+            if (holds.held.has(String(id))) continue;
             // teamUnit returns site errors as data: a metered search is never retried.
-            const r = await unit(ctx, `team firm ${w.companyId}`, () =>
-              teamUnit(db, sites, w, { runId }),
-            );
+            const r = await unit(ctx, `team firm ${id}`, () => teamUnit(db, sites, w, { runId }), {
+              holds,
+              id,
+            });
             if (!r.ok) {
               stats.stopped = r.reason;
               break;
@@ -882,12 +961,13 @@ export function makeEnrichment(deps: EnrichmentDeps) {
           const streak = { errors: 0 };
           // Free reads, so they batch: a crash re-reads at most one batch. A unit that throws
           // the same way every time counts as an error after its retries, never blocks the pool.
+          const holds = await stageHolds(ctx, db, HELD.youtube);
           for await (const r of unitBatches(
             ctx,
             "youtube",
-            [...byId.keys()],
+            notHeld(holds, [...byId.keys()]),
             (id) => youtubeUnit(db, get, byId.get(id) as (typeof plan.work)[number]),
-            { retry: UNIT_RETRY },
+            { retry: UNIT_RETRY, holds },
           )) {
             const u = r.ok
               ? r.value
@@ -931,12 +1011,13 @@ export function makeEnrichment(deps: EnrichmentDeps) {
           const streak = { errors: 0 };
           // A read is spent whether it worked or not, so a unit never throws (it answers an error
           // as data); a crash re-reads at most one batch.
+          const holds = await stageHolds(ctx, db, HELD.instagram);
           for await (const r of unitBatches(
             ctx,
             "instagram",
-            [...byId.keys()],
+            notHeld(holds, [...byId.keys()]),
             (id) => instagramUnit(db, sites, byId.get(id) as (typeof plan.work)[number]),
-            { retry: UNIT_RETRY },
+            { retry: UNIT_RETRY, holds },
           )) {
             const u = r.ok
               ? r.value
@@ -976,9 +1057,13 @@ export function makeEnrichment(deps: EnrichmentDeps) {
           const stats = emptyAdLibraryStats();
           stats.selected = plan.work.length;
           stats.stopped = plan.why;
-          for (const q of plan.work) {
-            const r = await unit(ctx, `ads ${q}`, () =>
-              adLibraryUnit(db, desk, { q, niche, platforms: ads?.platforms ?? [] }),
+          const holds = await stageHolds(ctx, db, HELD.ads);
+          for (const q of notHeld(holds, plan.work)) {
+            const r = await unit(
+              ctx,
+              `ads ${q}`,
+              () => adLibraryUnit(db, desk, { q, niche, platforms: ads?.platforms ?? [] }),
+              { holds, id: q },
             );
             if (!r.ok) {
               stats.stopped = r.reason;
@@ -1028,9 +1113,13 @@ export function makeEnrichment(deps: EnrichmentDeps) {
           const stats = emptyExaSearchStats();
           stats.selected = plan.work.length;
           stats.stopped = plan.why;
-          for (const q of plan.work) {
-            const r = await unit(ctx, `exa ${q}`, () =>
-              exaSearchUnit(db, sites, { q, niche, platforms: exa?.platforms ?? [] }),
+          const holds = await stageHolds(ctx, db, HELD.exa);
+          for (const q of notHeld(holds, plan.work)) {
+            const r = await unit(
+              ctx,
+              `exa ${q}`,
+              () => exaSearchUnit(db, sites, { q, niche, platforms: exa?.platforms ?? [] }),
+              { holds, id: q },
             );
             if (!r.ok) {
               stats.stopped = r.reason;
@@ -1071,9 +1160,13 @@ export function makeEnrichment(deps: EnrichmentDeps) {
             return groupKeywordsDue(db, niche, keywords, { now, limit: Math.min(limit, room) });
           });
           stats.selected = searches.length;
-          for (const q of searches) {
-            const r = await unit(ctx, `group search ${q}`, () =>
-              groupSearchUnit(db, desk, { q, niche }),
+          const holds = await stageHolds(ctx, db, HELD.groups);
+          for (const q of searches.filter((x) => !holds.held.has(`search ${x}`))) {
+            const r = await unit(
+              ctx,
+              `group search ${q}`,
+              () => groupSearchUnit(db, desk, { q, niche }),
+              { holds, id: `search ${q}` },
             );
             if (!r.ok) {
               stats.stopped = r.reason;
@@ -1098,11 +1191,14 @@ export function makeEnrichment(deps: EnrichmentDeps) {
             stats.stopped = plan.why;
             stats.selected += plan.work.length;
             for (const w of plan.work) {
+              const id = w.kind === "about" ? `about ${w.group}` : `post ${w.post}`;
+              if (holds.held.has(id)) continue;
               const r = await unit(
                 ctx,
-                w.kind === "about" ? `group about ${w.group}` : `group post ${w.post}`,
+                `group ${id}`,
                 () =>
                   w.kind === "about" ? groupAboutUnit(db, desk, w) : groupPostUnit(db, desk, w),
+                { holds, id },
               );
               if (!r.ok) {
                 stats.stopped = r.reason;

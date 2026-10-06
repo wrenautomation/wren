@@ -14,10 +14,12 @@
  * for the rest of the day once one was stopped (a CAPTCHA). An Exa cap parks
  * the stage until it lifts; a failed Exa read stops the run.
  */
+import { pausedSources } from "@wren/core/checks";
 import type { SiteClient } from "@wren/core/content";
 import type { Queryable } from "@wren/db";
 import { type SQL, sql } from "drizzle-orm";
 import {
+  COMPANY_PAGE_STAGE,
   linkedinCompany,
   lookUpCompany,
   type ProfileSubject,
@@ -360,7 +362,11 @@ export async function profileUnit(
     const company = await lookUpCompany(
       sites,
       { ...work.company, personCompanyUrl: companyUrl ?? null },
-      { google: !unit.googleStopped && opts.googleLeft - unit.google > 0, ...timing },
+      {
+        google: !unit.googleStopped && opts.googleLeft - unit.google > 0,
+        paused: await pausedSources(db, COMPANY_PAGE_STAGE),
+        ...timing,
+      },
     );
     await recordCompanyLookup(db, work.company.companyId, company, runId);
     unit.company = company.state;

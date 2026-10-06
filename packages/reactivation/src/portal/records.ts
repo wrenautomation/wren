@@ -33,6 +33,7 @@ const NOW = {
   hiring: { label: "Hiring", tone: "good" },
   there: { label: "Still there", tone: "neutral" },
   left: { label: "Left", tone: "warn" },
+  conflict: { label: "Sources disagree", tone: "warn" },
   unknown: { label: "Not found yet", tone: "neutral" },
 } as const;
 
@@ -70,13 +71,14 @@ export const person = defineRecord({
     { id: "call", label: "Call first", where: { now: ["moved", "hiring"] }, sort: "-score" },
     { id: "all", label: "Everyone", sort: "-score" },
     { id: "warm", label: "Keep warm", where: { nextStep: ["keep_warm"] }, sort: "-score" },
+    { id: "doubt", label: "Sources disagree", where: { now: ["conflict"] }, sort: "-score" },
   ],
   related: [
     { record: "reactivation.email", by: "person" },
     { record: "reactivation.finding", by: "person" },
   ],
   activity: { view: "reactivation_person_activity", by: "person" },
-  actions: ["reactivation.called"],
+  actions: ["reactivation.called", "reactivation.settle"],
   async load(db, id) {
     const view = await portalPerson(db, Number(id));
     if (!view) return null;

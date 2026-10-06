@@ -36,6 +36,7 @@ import { approveDrafts, type ReviewResult, skipDrafts, unapproveDrafts } from ".
 import { feedDelivery } from "../delivery.js";
 import { HandoffRefusal, markMeetingBooked } from "../handoff.js";
 import { readClientProfile, setClientProfile } from "../profile.js";
+import { scoreCrmContacts, WHERE_STAGE, whereConflict } from "../score.js";
 import { reactivationSettingsOf } from "../settings.js";
 import { makeMask } from "./mask.js";
 import { type EmailFilter, type EmailsPage, portalEmails } from "./outbox.js";
@@ -316,6 +317,25 @@ export function portalApi(deps: PortalDeps) {
         ),
       );
     },
+    /**
+     * Their sources disagree on where they work: go with the surest reading. Holds no more, and
+     * the score says so now.
+     */
+    settle: (req: PortalRequest & { ids: number[] }): Promise<Done> => {
+      const ids = idsOf(req.ids, "person");
+      return write(deps, req, async (db, _, viewer) => {
+        const rows = await db.execute<{ person_id: number }>(sql`
+          insert into unit_holds (stage, subject, reason, until, released_at, released_by)
+          select ${WHERE_STAGE}, 'person:' || p.id, 'Settled by hand', now(), now(),
+            lower(${viewer.email})
+          from people p where p.id in (${listOf(ids)}) and ${whereConflict(sql`p.id`)} is not null
+          on conflict (stage, subject) do update
+            set released_at = now(), released_by = excluded.released_by
+          returning split_part(subject, ':', 2)::int person_id`);
+        if (rows.length > 0) await scoreCrmContacts(db);
+        return doneOf(ids, rows);
+      });
+    },
     /** Reword one of the profile lines the drafts are written from. */
     change: (req: PortalRequest & { ids: string[]; value?: string }): Promise<Done> =>
       write(deps, req, async (db) => {
@@ -410,6 +430,7 @@ export function makeReactivationPortal(deps: PortalDeps) {
       change: (_: restate.Context, req: Req<"change">) => answer(() => api.change(req)),
       called: (_: restate.Context, req: Req<"called">) => answer(() => api.called(req)),
       uncalled: (_: restate.Context, req: Req<"uncalled">) => answer(() => api.uncalled(req)),
+      settle: (_: restate.Context, req: Req<"settle">) => answer(() => api.settle(req)),
     },
   });
 }

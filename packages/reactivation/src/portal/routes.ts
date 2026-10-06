@@ -17,6 +17,7 @@ export const PORTAL_ROUTES = {
   change: "act",
   called: "act",
   uncalled: "act",
+  settle: "act",
   run: "read",
   work: "read",
   recordsTypes: "read",
@@ -36,4 +37,5 @@ export const PORTAL_WRITES: readonly PortalRoute[] = [
   "change",
   "called",
   "uncalled",
+  "settle",
 ];

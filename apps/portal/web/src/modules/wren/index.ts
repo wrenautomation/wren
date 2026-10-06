@@ -974,6 +974,17 @@ const EVENT_ACTIONS: Action[] = [
   },
 ];
 
+/** A hold let go: the unit runs again on the stage's next pass, or the source resumes. */
+const HOLD_ACTIONS: Action[] = [
+  {
+    id: "console.releaseHold",
+    label: "Release",
+    handler: "console/releaseHold",
+    when: { state: ["held", "due", "stuck", "paused"] },
+    done: () => "Released. It runs on the next pass",
+  },
+];
+
 /** Wren's business as its workflows, read only, with live numbers. */
 export const workflows: Module = {
   id: "workflows",
@@ -994,6 +1005,21 @@ export const workflows: Module = {
         all: "Nothing has entered a workflow yet.",
       },
       actions: EVENT_ACTIONS,
+    },
+    {
+      id: "holds",
+      label: "Holds",
+      template: "list",
+      record: "console.hold",
+      empty: { open: "Nothing is held.", all: "Nothing was ever held." },
+      actions: HOLD_ACTIONS,
+    },
+    {
+      id: "checks",
+      label: "Checks",
+      template: "list",
+      record: "console.check",
+      empty: { all: "No check has run in 30 days." },
     },
   ],
 };

@@ -14,6 +14,7 @@ import { briefSubjects, briefsDue, writeCrmBriefs } from "../../src/brief.js";
 import { CRM_FORMATS } from "../../src/crm/formats.js";
 import { runCrmImport } from "../../src/crm/import.js";
 import { CrmCsvSource } from "../../src/crm/source.js";
+import { crmLookupSubjects } from "../../src/lookup.js";
 import { rankedContacts } from "../../src/ranked.js";
 import { POINTS, scoreCrmContacts, scoreDue } from "../../src/score.js";
 import { checkCrmCompanies, crmSignalSubjects } from "../../src/signals.js";
@@ -25,6 +26,7 @@ beforeAll(async () => {
 afterAll(() => pg.stop());
 beforeEach(async () => {
   await truncate(pg.db, [
+    "unit_holds",
     "briefs",
     "contact_scores",
     "company_checks",
@@ -210,6 +212,62 @@ describe("score", () => {
     expect(await scoreOf("Jane")).toBe(POINTS.stillThere + POINTS.hiringThere);
     expect(await scoreOf("Bob")).toBe(0);
     expect(await scoreOf("Carl")).toBe(POINTS.unknown + POINTS.contactedRecently);
+  });
+
+  it("sources that disagree hold the person until a third source or a person settles it", async () => {
+    const [jane, bob] = [await personId("Jane"), await personId("Bob")];
+    const doubt = async (person: number) => {
+      await finding({ kind: "still_there", person, value: {}, confidence: 0.8, via: "search" });
+      await finding({
+        kind: "left",
+        person,
+        value: { reason: "the mailbox rejects mail" },
+        confidence: 0.6,
+        via: "email",
+      });
+    };
+    await doubt(jane);
+    await doubt(bob);
+    await hiringAt(await companyId("Acme Staffing"));
+    const stats = await scoreCrmContacts(db());
+    expect(stats).toMatchObject({ conflicted: 2, hiringThere: 0 });
+    const scored = (person: number) =>
+      one<{ next_step: string; reasons: { reason: string }[] }>(
+        sql`select next_step, reasons from contact_scores where person_id = ${person}`,
+      );
+    expect(await scored(jane)).toMatchObject({ next_step: "keep_warm" });
+    expect((await scored(jane)).reasons.map((r) => r.reason)).toContain(
+      "Sources disagree: a profile search has them at Acme Staffing; their mailbox rejects mail",
+    );
+    const holdOf = (person: number) =>
+      one<{ state: string; released_by: string | null }>(
+        sql`select state, released_by from unit_holds_now where subject = ${`person:${person}`}`,
+      );
+    expect(await holdOf(jane)).toEqual({ state: "held", released_by: null });
+
+    // Its hold ran out: Jane is due one more lookup, though she was looked up.
+    await lookedUp(jane);
+    expect((await crmLookupSubjects(db())).find((x) => x.personId === jane)).toBeUndefined();
+    await db().execute(sql`update unit_holds set until = now() - interval '1 second'`);
+    expect((await crmLookupSubjects(db())).find((x) => x.personId === jane)).toMatchObject({
+      retry: true,
+    });
+
+    // A third source agrees with search: settled, and her firm's roles are a reason to call.
+    await finding({
+      kind: "still_there",
+      person: jane,
+      value: {},
+      confidence: 0.8,
+      via: "exa-cache",
+    });
+    // A person goes with Bob's surest reading.
+    await db().execute(sql`update unit_holds set released_at = now(), released_by = 'op@example.com'
+      where subject = ${`person:${bob}`}`);
+    expect(await scoreCrmContacts(db())).toMatchObject({ conflicted: 0, hiringThere: 2 });
+    expect(await holdOf(jane)).toEqual({ state: "released", released_by: "checks" });
+    expect(await holdOf(bob)).toEqual({ state: "released", released_by: "op@example.com" });
+    expect(await scored(bob)).toMatchObject({ next_step: "reach_out" });
   });
 
   it("a hiring reading over a month old doesn't count", async () => {

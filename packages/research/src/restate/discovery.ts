@@ -38,7 +38,7 @@ import {
 } from "../discovery/service.js";
 import type { Fetcher } from "../fetch/fetcher.js";
 import { keyScope } from "./enrichment.js";
-import { unitBatches } from "./units.js";
+import { notHeld, stageHolds, unitBatches } from "./units.js";
 
 export const DEFAULT_DISCOVERY_LIMIT = 10;
 /** Bounded retries per company; when exhausted the unit is skipped, not the pass. */
@@ -120,10 +120,12 @@ export function makeDiscovery(deps: DiscoveryDeps) {
     );
     let stats = shape.empty();
     const rowOf = new Map(ids.map((id, i) => [id, i + 1]));
+    // A unit out of retries is held, so the next pass goes past it (designs/2026-10-05-checks.md).
+    const holds = await stageHolds(ctx, db, `research.${shape.sourceType}`);
     const units = unitBatches(
       ctx,
       `${shape.command} company`,
-      ids,
+      notHeld(holds, ids),
       async (id) =>
         shape.unit(db, await companyById(db, id), {
           batchId: opened.batchId,
@@ -132,7 +134,7 @@ export function makeDiscovery(deps: DiscoveryDeps) {
           fetchHomepage: homepage,
           ...(deps.resolves ? { resolves: deps.resolves } : {}),
         }),
-      { retry: UNIT_RETRY },
+      { retry: UNIT_RETRY, holds },
     );
     // A unit out of retries is skipped: the pass still closes with what it has.
     for await (const r of units) if (r.ok) stats = shape.add(stats, r.value);

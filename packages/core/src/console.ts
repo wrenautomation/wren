@@ -31,6 +31,7 @@ import { eq, sql } from "drizzle-orm";
 import { z } from "zod";
 import { TEAM_ROLES, type TeamRole, WREN } from "./access.js";
 import { ask, type QuestionRequest } from "./ask.js";
+import { release } from "./checks.js";
 import {
   addClient,
   type Client,
@@ -70,6 +71,7 @@ import {
   defineRecord,
   metaOf,
   number,
+  percent,
   type RecordMeta,
   type RecordType,
   status,
@@ -405,6 +407,67 @@ export const eventRecord = defineRecord({
     { id: "all", label: "All", sort: "-at", at: "at" },
   ],
   actions: ["console.retryEvent"],
+});
+
+/**
+ * Units held out of a stage and sources paused on one (`./checks.ts`): why, and until when.
+ * Release runs a unit again or resumes a source. ponytail: main only, as `console.event`.
+ */
+export const holdRecord = defineRecord({
+  id: "console.hold",
+  name: { one: "hold", many: "holds" },
+  view: "unit_holds_now",
+  key: "id",
+  title: "subject",
+  subtitle: "stage",
+  fields: {
+    subject: text("What"),
+    stage: text("Stage"),
+    state: status({
+      held: { label: "Held 7 days", tone: "warn" },
+      due: { label: "Retry due", tone: "neutral" },
+      stuck: { label: "Needs a person", tone: "bad" },
+      paused: { label: "Source paused", tone: "bad" },
+      released: { label: "Released", tone: "good" },
+    }),
+    reason: text("Why"),
+    tries: number("Tries"),
+    heldAt: date("Held"),
+    until: date("Until"),
+    releasedBy: text("Released by"),
+  },
+  views: [
+    {
+      id: "open",
+      label: "Open",
+      where: { state: ["held", "due", "stuck", "paused"] },
+      sort: "-heldAt",
+      at: "heldAt",
+    },
+    { id: "all", label: "All", sort: "-heldAt", at: "heldAt" },
+  ],
+  actions: ["console.releaseHold"],
+});
+
+/** Each check's pass rate per stage and source over 30 days; under 70% of 50 pauses a source. */
+export const checkRecord = defineRecord({
+  id: "console.check",
+  name: { one: "check", many: "checks" },
+  view: "check_rates",
+  key: "id",
+  title: "check",
+  subtitle: "source",
+  fields: {
+    check: text("Check"),
+    stage: text("Stage"),
+    source: text("Source"),
+    rate: percent("Passed"),
+    passed: number("Passes"),
+    total: number("Outcomes"),
+    state: status({ paused: { label: "Paused", tone: "bad" }, on: { label: "On", tone: "good" } }),
+    lastAt: date("Last"),
+  },
+  views: [{ id: "all", label: "All", sort: "rate" }],
 });
 
 /** One handler as `/services` tells it. */
@@ -932,6 +995,8 @@ export function consoleApi({
     teamRecord,
     changeRecord,
     eventRecord,
+    holdRecord,
+    checkRecord,
   ];
   const team = (req: PortalRequest) => {
     if (!seesInternal(req)) throw new PortalRefusal("that's for Wren's team", 403);
@@ -1253,6 +1318,21 @@ export function consoleApi({
       return id;
     },
 
+    /** Let a hold go: the unit runs again, or the source resumes. */
+    async releaseHold(req: PortalRequest & { id?: unknown }): Promise<{ done: number[] }> {
+      team(req);
+      if (!teamCan(req, "run", WREN)) throw new PortalRefusal("your role can't run that", 403);
+      if (isDemo(req.viewer)) throw new PortalRefusal("the demo is read-only", 403);
+      const id = Number(req.id);
+      if (!Number.isInteger(id) || id <= 0) throw new PortalRefusal("no such hold", 404);
+      const rows = await serializable(main, async (tx) => {
+        await setAuditActor(tx, (req.viewer as SignedViewer).email);
+        return release(tx, [id], (req.viewer as SignedViewer).email);
+      });
+      if (rows.length === 0) throw new PortalRefusal("it isn't held now", 409);
+      return { done: rows.map((r) => r.id) };
+    },
+
     /** A client's person asks for a component; installing it stays Wren's call. */
     async ask(req: ComponentRequest): Promise<{ component: string }> {
       if (seesInternal(req)) throw new PortalRefusal("the team installs it instead", 403);
@@ -1419,6 +1499,8 @@ export function makeConsolePortal(deps: Parameters<typeof consoleApi>[0]) {
           if (!got) throw new PortalRefusal("it isn't failed now", 409);
           return { done: [id], ...got };
         }),
+      releaseHold: (_: restate.Context, req: PortalRequest & { id?: unknown }) =>
+        answer(() => api.releaseHold(req)),
       question: (ctx: restate.Context, req: QuestionRequest) =>
         answer(() => ask(ctx, deps.main, req)),
       addClient: (ctx: restate.Context, req: AddClientRequest) =>

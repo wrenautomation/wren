@@ -8,6 +8,7 @@
  * with a firm to write to, or open roles) is a reason to reach out; the rest
  * are kept warm.
  */
+import { hold, SETTLED, settle } from "@wren/core/checks";
 import type { Queryable } from "@wren/db";
 import { type SQL, sql } from "drizzle-orm";
 import { contactScores, type NextStep } from "./schema.js";
@@ -32,14 +33,49 @@ const CHUNK = 500;
 export const WHERE_KINDS = ["still_there", "job_change", "left"] as const;
 type WhereKind = (typeof WHERE_KINDS)[number];
 
+/** Holds on where someone works: their sources disagree (designs/2026-10-05-checks.md). */
+export const WHERE_STAGE = "reactivation.where";
+export const personSubject = (personId: number) => `person:${personId}`;
+const subjectOf = (personId: SQL) => sql`'person:' || ${personId}`;
+
+/** Each source's surest reading of where this person works, the latest on a tie. */
+const readings = (personId: SQL) =>
+  sql`select distinct on (f.via) f.id, f.via, f.kind, f.value, f.confidence, f.observed_at
+    from findings f where f.person_id = ${personId}
+      and f.kind in ('still_there', 'job_change', 'left')
+    order by f.via, f.confidence desc, f.observed_at desc, f.id desc`;
+
+/** A person released the hold: the surest reading stands. */
+const settledByHand = (personId: SQL) =>
+  sql`exists (select 1 from unit_holds h where h.stage = ${WHERE_STAGE}
+    and h.subject = ${subjectOf(personId)} and h.released_at is not null
+    and h.released_by <> ${SETTLED})`;
+
 /**
- * The one finding that says where this person works now: the surest reading,
- * the latest on a tie. Scores and briefs stand on the same one.
+ * The one finding that says where this person works now. Each source counts once, by its surest
+ * reading; the side more sources take (still there, or gone) wins, and its surest reading, the
+ * latest on a tie, is the one. A tie is a conflict: no finding until a later read or a person
+ * settles it. Scores, briefs and drafts stand on the same one.
  */
 export const whereFinding = (personId: SQL) =>
-  sql`(select f.id from findings f where f.person_id = ${personId}
-    and f.kind in ('still_there', 'job_change', 'left')
-    order by f.confidence desc, f.observed_at desc, f.id desc limit 1)`;
+  sql`(with r as (${readings(personId)}),
+    n as (select count(*) filter (where kind = 'still_there') there,
+      count(*) filter (where kind <> 'still_there') gone from r)
+    select r.id from r, n
+    where case when n.there > n.gone then r.kind = 'still_there'
+      when n.gone > n.there then r.kind <> 'still_there'
+      else ${settledByHand(personId)} end
+    order by r.confidence desc, r.observed_at desc, r.id desc limit 1)`;
+
+/** The readings that disagree, as jsonb `[{id, via, kind, value}]`; null when they don't. */
+export const whereConflict = (personId: SQL) =>
+  sql`(with r as (${readings(personId)})
+    select jsonb_agg(jsonb_build_object('id', r.id, 'via', r.via, 'kind', r.kind, 'value', r.value)
+      order by r.kind = 'still_there' desc, r.id)
+    from r
+    having count(*) > 0
+      and count(*) filter (where kind = 'still_there') = count(*) filter (where kind <> 'still_there')
+      and not ${settledByHand(personId)})`;
 
 /**
  * The company's open roles, while its last real check still says so and the
@@ -53,9 +89,18 @@ export const hiringFinding = (companyId: SQL) =>
 export const LATEST_CRM_ROW = sql`select distinct on (c.person_id) c.person_id, c.company_id
   from crm_contacts c order by c.person_id, c.id desc`;
 
+export interface Reading {
+  id: number;
+  via: string;
+  kind: WhereKind;
+  value: Record<string, unknown>;
+}
+
 export interface ScoreInput {
   firm: string;
   where: { id: number; kind: WhereKind; value: Record<string, unknown> } | null;
+  /** Sources that disagree on where they work (`whereConflict`); null when none do. */
+  conflict?: Reading[] | null;
   hiring: { id: number; count: number } | null;
   /** YYYY-MM-DD and the CRM row that says so. */
   placed: { on: string; crmId: number } | null;
@@ -126,10 +171,48 @@ function underName(v: Record<string, unknown>): string {
   return "";
 }
 
+/** One source's reading in a recruiter's words: "a profile search has them at Acme". */
+function said(r: Reading, firm: string): string {
+  const why = text(r.value.reason);
+  if (r.via === "email") return why ? why.replace(/^the /, "their ") : "their mailbox is gone";
+  const who =
+    r.via === "search"
+      ? "a profile search"
+      : r.via === "exa-cache"
+        ? "their LinkedIn profile"
+        : r.via;
+  if (r.kind === "still_there") return `${who} has them at ${firm}`;
+  if (r.kind === "job_change") return `${who} has them at ${text(r.value.to) ?? "another firm"}`;
+  return `${who} shows ${why ?? "no current role"}`;
+}
+
+/** Why a conflict is held: "Sources disagree: a profile search has them at Acme; their mailbox rejects mail". */
+export const disagreement = (readings: readonly Reading[], firm: string) =>
+  `Sources disagree: ${readings.map((r) => said(r, firm)).join("; ")}`;
+
 export function scoreContact(s: ScoreInput, today = new Date()): Scored {
   const reasons: Reason[] = [];
   const w = s.where;
   const f = (id: number) => `f${id}`;
+  // Held until a later read or a person settles it: nothing goes out on a reading in doubt.
+  if (s.conflict?.length) {
+    reasons.push({
+      reason: disagreement(s.conflict, s.firm),
+      points: POINTS.unknown,
+      cites: s.conflict.map((r) => f(r.id)),
+    });
+    if (s.hiring)
+      reasons.push({
+        reason: `${s.firm} has ${roles(s.hiring.count)}`,
+        points: POINTS.hiringUnknown,
+        cites: [f(s.hiring.id)],
+      });
+    return {
+      score: reasons.reduce((n, r) => n + r.points, 0),
+      reasons: reasons.sort((a, b) => b.points - a.points),
+      nextStep: "keep_warm",
+    };
+  }
   const to = w?.kind === "job_change" ? text(w.value.to) : null;
   // Gone, and nobody knows where: nothing to write to.
   if (w?.kind === "left" || (w?.kind === "job_change" && !to)) {
@@ -198,6 +281,8 @@ export interface CrmScoreStats {
   stillThere: number;
   unknown: number;
   left: number;
+  /** Sources disagree: held, kept warm until settled. */
+  conflicted: number;
   /** No signal: no draft, kept warm. */
   keepWarm: number;
   aborted: string | null;
@@ -209,6 +294,7 @@ interface Row extends Record<string, unknown> {
   where_id: number | null;
   where_kind: WhereKind | null;
   where_value: Record<string, unknown> | null;
+  conflict: Reading[] | null;
   hiring_id: number | null;
   hiring_count: number | null;
   placed_on: string | null;
@@ -233,10 +319,11 @@ export async function loadScoreInputs(
     picked as (
       select l.person_id, coalesce(co.name, co.domain, 'their firm') firm,
         ${whereFinding(sql`l.person_id`)} where_id,
+        ${whereConflict(sql`l.person_id`)} conflict,
         ${hiringFinding(sql`l.company_id`)} hiring_id
       from latest l join companies co on co.id = l.company_id
     )
-    select p.person_id, p.firm, p.where_id, w.kind where_kind, w.value where_value,
+    select p.person_id, p.firm, p.where_id, w.kind where_kind, w.value where_value, p.conflict,
       p.hiring_id, (h.value->>'count')::int hiring_count,
       crm.placed_on, crm.placed_row, crm.contacted_on, crm.contacted_row
     from picked p
@@ -252,6 +339,7 @@ export async function loadScoreInputs(
         r.where_id !== null && r.where_kind
           ? { id: r.where_id, kind: r.where_kind, value: r.where_value ?? {} }
           : null,
+      conflict: r.conflict,
       hiring: r.hiring_id !== null ? { id: r.hiring_id, count: r.hiring_count ?? 0 } : null,
       placed:
         r.placed_on && r.placed_row !== null ? { on: r.placed_on, crmId: r.placed_row } : null,
@@ -273,13 +361,21 @@ export async function scoreCrmContacts(db: Queryable, today = new Date()): Promi
     stillThere: 0,
     unknown: 0,
     left: 0,
+    conflicted: 0,
     keepWarm: 0,
     aborted: null,
   };
+  const held: { subject: string; reason: string }[] = [];
   const rows = inputs.map(({ personId, input }) => {
     const s = scoreContact(input, today);
     const kind = input.where?.kind;
-    if (s.nextStep === "none") stats.left += 1;
+    if (input.conflict?.length) {
+      stats.conflicted += 1;
+      held.push({
+        subject: personSubject(personId),
+        reason: disagreement(input.conflict, input.firm),
+      });
+    } else if (s.nextStep === "none") stats.left += 1;
     else if (kind === "job_change") stats.moved += 1;
     else if (kind === "still_there") stats[input.hiring ? "hiringThere" : "stillThere"] += 1;
     else stats.unknown += 1;
@@ -300,6 +396,16 @@ export async function scoreCrmContacts(db: Queryable, today = new Date()): Promi
         },
       });
   }
+  // A conflict holds the person; a hold whose sources now agree is settled.
+  for (const h of held) await hold(db, { stage: WHERE_STAGE, ...h });
+  const open = await db.execute<{ subject: string }>(sql`
+    select subject from unit_holds where stage = ${WHERE_STAGE} and released_at is null`);
+  const still = new Set(held.map((h) => h.subject));
+  await settle(
+    db,
+    WHERE_STAGE,
+    open.map((o) => o.subject).filter((x) => !still.has(x)),
+  );
   return stats;
 }
 

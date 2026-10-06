@@ -1,6 +1,7 @@
 import * as restate from "@restatedev/restate-sdk";
+import type { Queryable } from "@wren/db";
 import { describe, expect, it } from "vitest";
-import { unitBatches } from "./units.js";
+import { notHeld, type StageHolds, unitBatches } from "./units.js";
 
 /** A ctx whose `run` just runs: a lone unit throwing a TerminalError fails at once, as Restate would. */
 function fakeCtx() {
@@ -68,5 +69,37 @@ describe("unitBatches", () => {
     const { ctx, steps } = fakeCtx();
     await collect(unitBatches(ctx, "pick company", [7, 8], async (id) => id, { perRun: 1 }));
     expect(steps).toEqual(["pick company 7", "pick company 8"]);
+  });
+
+  it("holds a unit out of retries, skips held ones, and settles a due one that lands", async () => {
+    const { ctx, steps } = fakeCtx();
+    const sql: string[] = [];
+    const db = {
+      execute: async (q: { queryChunks: unknown[] }) => {
+        sql.push(
+          JSON.stringify(q.queryChunks).includes("insert into unit_holds") ? "hold" : "settle",
+        );
+        return [];
+      },
+    } as unknown as Queryable;
+    const holds: StageHolds = { db, stage: "s", held: new Set(["1"]), due: new Set(["2"]) };
+    const out = await collect(
+      unitBatches(
+        ctx,
+        "u",
+        notHeld(holds, [1, 2, 3]),
+        async (id) => {
+          if (id === 3) throw new restate.TerminalError("poison");
+          return id;
+        },
+        { holds },
+      ),
+    );
+    expect(out).toEqual([
+      { id: 2, ok: true, value: 2 },
+      { id: 3, ok: false, reason: "poison" },
+    ]);
+    expect(steps).toContain("hold s 3");
+    expect(sql).toEqual(["settle", "hold"]);
   });
 });

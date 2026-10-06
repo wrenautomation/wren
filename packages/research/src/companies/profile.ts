@@ -13,6 +13,7 @@
  * trail; `recordCompanyLookup` writes.
  */
 import { extractDomain, registrableDomain } from "@wren/core";
+import { type Check, counted } from "@wren/core/checks";
 import type { SiteClient } from "@wren/core/content";
 import { companies } from "@wren/core/schema";
 import type { Queryable } from "@wren/db";
@@ -42,6 +43,8 @@ export interface ProfileSubject {
 export interface ProfileOptions {
   /** Search Google for the page. The caller keeps its daily budget and hours. */
   google?: boolean;
+  /** Sources paused on this stage (`pausedSources`): skipped. */
+  paused?: ReadonlySet<string>;
   now?: () => Date;
   sleep?: (ms: number) => Promise<void>;
 }
@@ -63,7 +66,32 @@ export interface ProfileResult {
   retryAt: Date | null;
   cappedBy: string | null;
   googleStopped: Stopped | null;
+  /** `FIRM_PAGE` on every page read, by the source that offered it. */
+  checks: PageCheck[];
 }
+
+export interface PageCheck {
+  source: PageSource;
+  url: string;
+  /** Why it isn't the firm's; null when it is. */
+  wrong: string | null;
+}
+
+/**
+ * Where a candidate page came from, cheapest first; each is counted and paused on its own.
+ * `held` is the page we hold, `people` their people's current role, `page` the firm's own pages.
+ */
+export type PageSource = "held" | "people" | "page" | "google" | "companies";
+const FROM: Record<PageSource, string> = {
+  held: "held",
+  people: "their people's profiles",
+  page: "the firm's page",
+  google: "google",
+  companies: "company search",
+};
+
+/** The stage's name in `unit_holds` and `check_outcomes`. */
+export const COMPANY_PAGE_STAGE = "research.company-page";
 
 /** A company page as the cache returns it; optional fields are absent, never null. */
 export interface CompanyPage {
@@ -121,6 +149,15 @@ export function firmSite(website: string | null | undefined, domain: string | nu
   const own = extractDomain(domain);
   return !!site && !!own && registrableDomain(site) === registrableDomain(own);
 }
+
+/** Exa merges look-alike firms: a page is the firm's only when its website is the firm's own. */
+export const FIRM_PAGE: Check<{ domain: string }, CompanyPage> = {
+  name: "page is the firm's",
+  after: (firm, page) =>
+    firmSite(page.website, firm.domain)
+      ? null
+      : `website ${page.website ?? "none"}: not the firm's`,
+};
 
 /** A page's facts as one finding, its full text as the source. */
 function profileFinding(s: ProfileSubject, page: CompanyPage, url: string): CompanyFindingDraft {
@@ -182,6 +219,8 @@ export async function lookUpCompany(
   const call = paced(sites, clock, opts.sleep ?? realSleep);
   const tried: ProfileTried[] = [];
   const pages: DocumentDraft[] = [];
+  const checks: PageCheck[] = [];
+  const paused = opts.paused ?? new Set<string>();
   let googleStopped: Stopped | null = null;
   const done = (
     state: LookupState,
@@ -196,6 +235,7 @@ export async function lookUpCompany(
     retryAt: capped?.retryAt ?? null,
     cappedBy: capped?.site ?? null,
     googleStopped,
+    checks,
   });
 
   const { name, domain } = s.firm;
@@ -206,9 +246,18 @@ export async function lookUpCompany(
 
   const read = new Set<string>();
   /** Read one candidate; the hit when its website is the firm's. */
-  const check = async (link: string, from: string) => {
+  const check = async (link: string, source: PageSource) => {
+    const from = FROM[source];
     const handle = linkedinCompany(link);
     if (!handle || read.has(handle.toLowerCase()) || read.size >= MAX_PAGE_READS) return null;
+    if (paused.has(source)) {
+      tried.push({
+        step: "page",
+        what: `${link} (${from})`,
+        outcome: "source paused: too many wrong pages",
+      });
+      return null;
+    }
     read.add(handle.toLowerCase());
     const url = companyPageUrl(handle);
     const trail: { what: string; outcome: string }[] = [];
@@ -217,29 +266,28 @@ export async function lookUpCompany(
       tried.push({ step: "page", what: `${t.what} (${from})`, outcome: t.outcome });
     if (!page) return null;
     pages.push(pageDocument(page, url));
-    const ours = firmSite(page.website, domain);
+    const wrong = FIRM_PAGE.after({ domain }, page);
+    checks.push({ source, url, wrong });
     tried.push({
       step: "page",
       what: `${url} (${from})`,
-      outcome: ours
-        ? `website ${page.website}: the firm's`
-        : `website ${page.website ?? "none"}: not the firm's`,
+      outcome: wrong ?? `website ${page.website}: the firm's`,
     });
-    return ours ? { url, finding: profileFinding(s, page, url) } : null;
+    return wrong ? null : { url, finding: profileFinding(s, page, url) };
   };
 
   try {
-    const held: [string | null | undefined, string][] = [
+    const held: [string | null | undefined, PageSource][] = [
       [s.linkedinUrl, "held"],
-      [s.personCompanyUrl, "their people's profiles"],
-      ...(s.pageLinks ?? []).map((u): [string, string] => [u, "the firm's page"]),
+      [s.personCompanyUrl, "people"],
+      ...(s.pageLinks ?? []).map((u): [string, PageSource] => [u, "page"]),
     ];
     for (const [link, from] of held) {
       const hit = link ? await check(link, from) : null;
       if (hit) return done("matched", hit);
     }
 
-    if (opts.google && name) {
+    if (opts.google && name && !paused.has("google")) {
       const q = `site:linkedin.com/company "${bareCompanyName(name)}"`;
       let res: Serp | null = null;
       try {
@@ -273,6 +321,14 @@ export async function lookUpCompany(
       }
     }
 
+    if (paused.has("companies")) {
+      tried.push({
+        step: "companies",
+        what: domain,
+        outcome: "source paused: too many wrong pages",
+      });
+      return done("unresolved");
+    }
     let found: Companies;
     try {
       found = await call<Companies>("web", "GET", "/companies", { domain, n: COMPANY_SEARCH });
@@ -289,7 +345,7 @@ export async function lookUpCompany(
       outcome: `${found.companies?.length ?? 0} companies, ${matching.length} with the firm's homepage`,
     });
     for (const c of matching) {
-      const hit = await check(c.linkedin as string, "company search");
+      const hit = await check(c.linkedin as string, "companies");
       if (hit) return done("matched", hit);
     }
     return done("unresolved");
@@ -312,6 +368,15 @@ export async function recordCompanyLookup(
   runId: string | null = null,
 ): Promise<void> {
   for (const page of r.pages) await keepDocument(db, page);
+  for (const c of r.checks)
+    await counted(db, {
+      stage: COMPANY_PAGE_STAGE,
+      source: c.source,
+      check: FIRM_PAGE.name,
+      ok: c.wrong === null,
+      subject: c.url,
+      reason: c.wrong,
+    });
   if (r.finding) await keepFinding(db, r.finding);
   if (r.url)
     await db.update(companies).set({ linkedinUrl: r.url }).where(eq(companies.id, companyId));

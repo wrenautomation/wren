@@ -280,6 +280,7 @@ describe("stageDone", () => {
           stillThere: 0,
           unknown: 0,
           left: 0,
+          conflicted: 0,
           keepWarm: 0,
           aborted: null,
         },

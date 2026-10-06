@@ -201,6 +201,8 @@ describe("ConsolePortal records", () => {
       "console.team",
       "console.change",
       "console.event",
+      "console.hold",
+      "console.check",
       "console.component",
     ]);
   });

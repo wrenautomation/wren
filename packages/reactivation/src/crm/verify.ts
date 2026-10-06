@@ -18,8 +18,10 @@ import {
   verifications,
   waitingDomains,
 } from "@wren/channel-email";
+import { retryDue } from "@wren/core/checks";
 import type { Queryable } from "@wren/db";
 import { and, eq, inArray, notExists, or, sql } from "drizzle-orm";
+import { WHERE_STAGE } from "../score.js";
 
 export interface CrmVerifyStats {
   /** Candidates picked; the verdict counts below are per address. */
@@ -47,22 +49,31 @@ export async function checkCrmEmails(
     .where(
       and(
         eq(contactCandidates.evidence, "crm"),
-        eq(contactCandidates.state, "candidate"),
         // A server that blocked or greylisted any address waits out that verdict first.
         sql`${contactCandidates.domain} not in ${waitingDomains()}`,
-        notExists(
-          db
-            .select({ one: sql`1` })
-            .from(verifications)
-            .where(
-              and(
-                eq(verifications.contactCandidateId, contactCandidates.id),
-                or(
-                  inArray(verifications.verifier, ["local", verifier.name]),
-                  sql`(${verifications.raw}->>'authoritative')::boolean`,
+        or(
+          and(
+            eq(contactCandidates.state, "candidate"),
+            notExists(
+              db
+                .select({ one: sql`1` })
+                .from(verifications)
+                .where(
+                  and(
+                    eq(verifications.contactCandidateId, contactCandidates.id),
+                    or(
+                      inArray(verifications.verifier, ["local", verifier.name]),
+                      sql`(${verifications.raw}->>'authoritative')::boolean`,
+                    ),
+                  ),
                 ),
-              ),
             ),
+          ),
+          // Its sources disagreed and the hold ran out: the mailbox is asked once more.
+          sql`${retryDue(WHERE_STAGE, sql`'person:' || ${contactCandidates.personId}`)}
+            and not exists (select 1 from verifications v join unit_holds h
+              on h.stage = ${WHERE_STAGE} and h.subject = 'person:' || ${contactCandidates.personId}
+              where v.contact_candidate_id = ${contactCandidates.id} and v.checked_at > h.until)`,
         ),
       ),
     )

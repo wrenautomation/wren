@@ -122,6 +122,33 @@ describe("lookUpCompany", () => {
     expect(r.pages).toHaveLength(1);
   });
 
+  it("each page read is checked by its source; a paused source is skipped", async () => {
+    const { sites, keys } = fakeSites({
+      "web GET /linkedin/company": cache(
+        page("acme-held", "https://acmestaffing.example"),
+        page("acme-people", "https://acmestaffing.example.evil.test"),
+      ),
+      "web GET /companies": noCompanies,
+    });
+    const r = await lookUpCompany(
+      sites,
+      subject({
+        linkedinUrl: "https://www.linkedin.com/company/acme-held",
+        personCompanyUrl: "https://www.linkedin.com/company/acme-people",
+      }),
+      { ...opts, paused: new Set(["held", "companies"]) },
+    );
+    expect(r.state).toBe("unresolved");
+    expect(r.checks).toEqual([
+      {
+        source: "people",
+        url: "https://www.linkedin.com/company/acme-people/",
+        wrong: "website https://acmestaffing.example.evil.test: not the firm's",
+      },
+    ]);
+    expect(keys()).toEqual(["web GET /linkedin/company"]);
+  });
+
   it("a page with no website is never the firm's", async () => {
     const { sites } = fakeSites({
       "web GET /linkedin/company": cache(page("acme-staffing")),

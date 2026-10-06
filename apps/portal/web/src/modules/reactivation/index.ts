@@ -46,6 +46,17 @@ const PERSON_ACTIONS: Action[] = [
       return n ? (n === 1 ? "Marked called" : `${n} marked called`) : "Nothing marked";
     },
   },
+  {
+    id: "reactivation.settle",
+    label: "Go with the surest reading",
+    handler: "reactivation/settle",
+    when: { now: ["conflict"] },
+    bulk: true,
+    done: (answer) => {
+      const n = (answer as { done?: unknown[] }).done?.length ?? 0;
+      return n ? "Settled. The score uses the surest reading now" : "Nothing to settle";
+    },
+  },
 ];
 
 export const reactivation: Module = {

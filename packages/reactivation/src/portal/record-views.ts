@@ -5,14 +5,14 @@
  */
 import { sql } from "drizzle-orm";
 import { integer, pgView, real, text, timestamp } from "drizzle-orm/pg-core";
-import { hiringFinding, whereFinding } from "../score.js";
+import { hiringFinding, whereConflict, whereFinding } from "../score.js";
 
 const NAME = (p: string) =>
   sql.raw(`nullif(concat_ws(' ', nullif(${p}.first_name, ''), nullif(${p}.last_name, '')), '')`);
 
 /**
- * Each CRM person with their latest row. `now` is the first that holds: moved, left, their firm
- * hiring, still there, unknown. Last contact is the CRM's or a call marked here, the later one.
+ * Each CRM person with their latest row. `now` is the first that holds: sources disagree, moved,
+ * left, their firm hiring, still there, unknown. Last contact is the CRM's or a call marked here, the later one.
  */
 export const reactivationPeople = pgView("reactivation_people", {
   id: integer("id"),
@@ -36,13 +36,14 @@ export const reactivationPeople = pgView("reactivation_people", {
       c.last_contacted_on, c.last_placement_on
     from crm_contacts c order by c.person_id, c.id desc),
   subjects as (
-    select l.*, ${whereFinding(sql`l.person_id`)} where_id, ${hiringFinding(sql`l.company_id`)} hiring_id
+    select l.*, ${whereFinding(sql`l.person_id`)} where_id, ${hiringFinding(sql`l.company_id`)} hiring_id,
+      ${whereConflict(sql`l.person_id`)} is not null conflicted
     from latest l)
   select s.person_id id,
     coalesce(${NAME("p")}, p.full_name, '(no name)') "name",
     p.title, coalesce(co.name, co.domain, '?') company, co.domain,
-    case when w.kind = 'job_change' then 'moved' when w.kind = 'left' then 'left'
-      when s.hiring_id is not null then 'hiring' when w.kind = 'still_there' then 'there'
+    case when s.conflicted then 'conflict' when w.kind = 'job_change' then 'moved'
+      when w.kind = 'left' then 'left' when s.hiring_id is not null then 'hiring' when w.kind = 'still_there' then 'there'
       else 'unknown' end "now",
     sc.score, sc.next_step,
     greatest(s.last_contacted_on::timestamptz,

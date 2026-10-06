@@ -8,6 +8,7 @@
  * Which firms come first is the caller's call; this stage takes company ids in
  * that order and keeps the ones still due.
  */
+import { counted } from "@wren/core/checks";
 import type { SiteClient } from "@wren/core/content";
 import { people } from "@wren/core/schema";
 import type { Queryable } from "@wren/db";
@@ -27,6 +28,11 @@ export const TEAM_COMMAND = "enrich team";
 export const TEAM_BUCKET: Bucket = { perDay: 100, burst: 10 };
 /** Errors in a row that stop the run: something is down, not one odd firm. */
 const ERROR_STREAK = 5;
+/**
+ * Counted, never paused: a search with no one at the firm is a firm with no public team, not a
+ * source handing wrong people (77% of searches found someone over 14 days, 2026-10-06).
+ */
+const TEAM_CHECK = { stage: "research.team", source: "exa-people", check: "people at the firm" };
 /** `people.source_key` is varchar(64). */
 const MAX_KEY = 64;
 
@@ -262,6 +268,15 @@ export async function teamUnit(
       retryAt: null,
       runId,
     });
+    if (found.profiles.length > 0)
+      await counted(db, {
+        ...TEAM_CHECK,
+        ok: found.members.length > 0,
+        subject: `company:${work.companyId}`,
+        reason:
+          found.members.length > 0 ? null : `${found.profiles.length} profiles, none at the firm`,
+        pauses: false,
+      });
   } catch (err) {
     if (err instanceof Capped) {
       unit.state = "capped";

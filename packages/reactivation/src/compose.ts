@@ -31,7 +31,7 @@ import { briefLines, MARKS, madeUp } from "./brief.js";
 import { crmHealth } from "./crm/health.js";
 import { composeLine, failedLine, fullName } from "./feed.js";
 import { type ClientProfile, compositions, type Recruiter } from "./schema.js";
-import { LATEST_CRM_ROW, whereFinding } from "./score.js";
+import { LATEST_CRM_ROW, whereConflict, whereFinding } from "./score.js";
 import type { ReactivationSettings, Sender } from "./settings.js";
 
 export const COMPOSE_VERSION = "v5";
@@ -389,6 +389,8 @@ function subjectsSql(opts: { limit?: number; count?: boolean; catchAll: boolean 
       left join owner o on o.person_id = l.person_id
       -- A score older than the news that they left must not write to them.
       where coalesce(n.where_kind, '') <> 'left'
+        -- Sources that disagree on where they work hold the draft until it's settled.
+        and ${whereConflict(sql`l.person_id`)} is null
         and not exists (select 1 from enrollments e where e.person_id = l.person_id)
         and not exists (select 1 from enrollments e
           where e.state = 'active'

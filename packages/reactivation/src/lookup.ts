@@ -6,6 +6,7 @@
  */
 import { eachConcurrently } from "@wren/channel-email";
 import { type Feed, NO_FEED } from "@wren/core";
+import { hold, retryDue } from "@wren/core/checks";
 import type { SiteClient } from "@wren/core/content";
 import type { Queryable } from "@wren/db";
 import type { FindingKind } from "@wren/research";
@@ -19,6 +20,7 @@ import {
 import { type SQL, sql } from "drizzle-orm";
 import { type Judge, settleDrafts } from "./family.js";
 import { failedLine, fullName, headline, lookupLine } from "./feed.js";
+import { personSubject, WHERE_STAGE } from "./score.js";
 
 /** Errors in a row that stop the run: something is down, not one odd person. */
 const ERROR_STREAK = 5;
@@ -60,7 +62,11 @@ interface Row extends Record<string, unknown> {
   email: string | null;
   result: string | null;
   verifier: string | null;
+  retry: boolean;
 }
+
+/** A person whose sources disagreed and whose hold ran out: read once more. */
+const rereadDue = (personId: SQL) => retryDue(WHERE_STAGE, sql`'person:' || ${personId}`);
 
 /**
  * Is this person due a lookup: never looked up, or parked by a cap that has
@@ -78,15 +84,16 @@ export const dueForLookup = (personId: SQL) =>
 export async function crmLookupSubjects(
   db: Queryable,
   opts: { limit?: number; again?: boolean } = {},
-): Promise<LookupSubject[]> {
-  const due = opts.again ? sql`true` : dueForLookup(sql`p.id`);
+): Promise<(LookupSubject & { retry: boolean })[]> {
+  const due = opts.again ? sql`true` : sql`(${dueForLookup(sql`p.id`)} or ${rereadDue(sql`p.id`)})`;
   const rows = await db.execute<Row>(sql`
     with latest as (
       select distinct on (c.person_id) c.person_id, c.company_id
       from crm_contacts c order by c.person_id, c.id desc
     )
     select p.id person_id, p.first_name, p.last_name, p.linkedin_url,
-      co.name firm_name, co.domain firm_domain, vd.email, vd.result, vd.verifier
+      co.name firm_name, co.domain firm_domain, vd.email, vd.result, vd.verifier,
+      ${rereadDue(sql`p.id`)} retry
     from latest
     join people p on p.id = latest.person_id
     join companies co on co.id = latest.company_id
@@ -113,6 +120,7 @@ export async function crmLookupSubjects(
       r.email && r.result && r.verifier
         ? { address: r.email, result: r.result, verifier: r.verifier }
         : null,
+    retry: r.retry,
   }));
 }
 
@@ -146,6 +154,14 @@ export async function lookUpCrmPeople(
         const read = await lookUpPerson(sites, s, lookup);
         r = { ...read, findings: await settleDrafts(read.findings, s.firm, opts.judge ?? null) };
         await recordLookup(db, s.personId, r, opts.runId ?? null);
+        // Its one retry is spent: still in doubt after scoring, a person settles it.
+        if (s.retry)
+          await hold(db, {
+            stage: WHERE_STAGE,
+            subject: personSubject(s.personId),
+            reason: "Read again after the hold",
+            spent: true,
+          });
       } catch (err) {
         await feed.emit(failedLine("lookup", name, err));
         stats.errors += 1;
