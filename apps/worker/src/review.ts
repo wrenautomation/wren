@@ -82,6 +82,19 @@ async function crawlBlocks(db: Queryable): Promise<Check> {
   };
 }
 
+/** The audit log's size (the planner's count: cheap and close enough). 10M rows is when to partition it by month. */
+async function auditSize(db: Queryable): Promise<Check> {
+  const r = await one<{ n: string | null }>(
+    db,
+    sql`SELECT reltuples::bigint AS n FROM pg_class WHERE oid = 'audit_events'::regclass`,
+  );
+  const n = Math.max(0, Number(r?.n ?? 0));
+  return {
+    now: `${n.toLocaleString("en-US")} audit rows`,
+    state: n >= 10_000_000 ? "fired" : n >= 5_000_000 ? "watch" : "quiet",
+  };
+}
+
 export const PARKED: readonly Parked[] = [
   {
     id: "digitalocean",
@@ -107,6 +120,13 @@ export const PARKED: readonly Parked[] = [
     idea: "Rotating proxies, gateway",
     unpark: "Crawl or autobrowse logs show IP blocks at a rate worth paying for",
     check: crawlBlocks,
+  },
+  {
+    id: "audit-partition",
+    idea: "Partition audit_events by month",
+    unpark:
+      "The log reaches 10M rows: partition on `at`, export old months to S3, then detach and drop (designs/2026-10-06-db-design.md)",
+    check: auditSize,
   },
   {
     id: "remotion",

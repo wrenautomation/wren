@@ -27,12 +27,14 @@ describe("Friday review", () => {
         "books.usage": { usd: "0.31" },
         to_regclass: { on: false },
         documents: { tried: "80", blocked: "12" },
+        audit_events: { n: "10400000" },
       }),
     ).toEqual({
       digitalocean: "fired",
       airbyte: "manual",
       redis: "manual",
       proxies: "fired",
+      "audit-partition": "fired",
       remotion: "manual",
       scrums: "manual",
     });
@@ -44,7 +46,13 @@ describe("Friday review", () => {
       to_regclass: { on: true },
       pg_stat_statements: { calls: "40", mean: "900", q: "select 1" },
       documents: { tried: "80", blocked: "1" },
+      audit_events: { n: "536083" },
     });
-    expect([s.digitalocean, s.redis, s.proxies]).toEqual(["quiet", "quiet", "quiet"]);
+    expect([s.digitalocean, s.redis, s.proxies, s["audit-partition"]]).toEqual([
+      "quiet",
+      "quiet",
+      "quiet",
+      "quiet",
+    ]);
   });
 });

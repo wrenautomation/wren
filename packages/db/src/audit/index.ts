@@ -37,6 +37,15 @@ export const AUDIT_SKIPPED: Readonly<Record<string, string>> = {
   search_pages: "index states pulled from Search Console",
   search_answers: "what the answer engines said, with its own date",
   open_events: "pixel hits, append-only",
+  contact_points: "page facts the crawler rewrites on every pass",
+  lead_checks: "verifier-style checks with their own results and times",
+  findings: "research facts with their own observed times",
+  candidate_mints: "a mint marker per person, written by the pipeline",
+  check_outcomes: "check results with their own times",
+  run_events: "a run's own event log",
+  fills: "AI-filled text, cached and remade",
+  site_days: "visit counts pulled from the pixel, one row a day",
+  ad_days: "numbers pulled from Meta",
   "watch.mail": "William's own mail, read by machine: previews never go in a permanent log",
 };
 
