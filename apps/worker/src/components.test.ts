@@ -15,7 +15,7 @@ import { loadSettings } from "@wren/config";
 import { askRecord } from "@wren/core/ask";
 import { type Client, changeRecord, clientRecord, teamRecord } from "@wren/core/clients";
 import { ACCOUNT_SITES } from "@wren/core/components";
-import { componentRecord, handlerRecord, loopRecord } from "@wren/core/console";
+import { componentRecord, eventRecord, handlerRecord, loopRecord } from "@wren/core/console";
 import { MARKETING_RECORDS } from "@wren/core/marketing/records";
 import { checkWorkflows } from "@wren/core/workflows";
 import type { Queryable } from "@wren/db";
@@ -90,6 +90,7 @@ const RECORD_TYPES = [
   teamRecord,
   changeRecord,
   loopRecord(async () => []),
+  eventRecord,
   handlerRecord(async () => ({})),
   componentRecord([], null, false),
   ...deliveryRecords({} as Queryable, "synthetic", true),

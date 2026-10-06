@@ -92,7 +92,7 @@ import {
 import type { PassOutcome } from "./restate/loop.js";
 import { finishRun, openRun } from "./runs.js";
 import { workflowSaves } from "./schema.js";
-import { editsOf, type SavedWorkflow, savedWorkflows } from "./spine.js";
+import { editsOf, type SavedWorkflow, SPINE, type SpineService, savedWorkflows } from "./spine.js";
 import { flowsWith, partsIn, type Workflow, type WorkflowEdits } from "./workflows.js";
 
 export { toCsv };
@@ -371,6 +371,41 @@ export const loopRecord = (admin: RestateAdmin): RecordType =>
     ],
     actions: ["console.startLoop", "console.stopLoop"],
   });
+
+/**
+ * Wren's spine arrivals (`spine_events`): a failed step says why, and Retry runs it again once
+ * the cause is fixed. ponytail: main only; a client's events stay in its database until a
+ * client's workflow fails for real.
+ */
+export const eventRecord = defineRecord({
+  id: "console.event",
+  name: { one: "event", many: "events" },
+  view: "spine_events",
+  key: "id",
+  title: "subject",
+  subtitle: "node",
+  fields: {
+    subject: text("About"),
+    workflow: text("Workflow"),
+    node: text("Node"),
+    port: text("Port"),
+    kind: text("Kind"),
+    state: status({
+      failed: { label: "Failed", tone: "bad" },
+      waiting: { label: "Waiting", tone: "neutral" },
+      passed: { label: "Passed on", tone: "good" },
+    }),
+    at: date("Arrived"),
+    due: date("Due"),
+    error: text("Why it failed"),
+  },
+  views: [
+    { id: "failed", label: "Failed", where: { state: "failed" }, sort: "-at", at: "at" },
+    { id: "waiting", label: "Waiting", where: { state: "waiting" }, sort: "due", at: "at" },
+    { id: "all", label: "All", sort: "-at", at: "at" },
+  ],
+  actions: ["console.retryEvent"],
+});
 
 /** One handler as `/services` tells it. */
 export interface HandlerRow {
@@ -896,6 +931,7 @@ export function consoleApi({
     ...(adminGet ? [handlerRecord(adminGet)] : []),
     teamRecord,
     changeRecord,
+    eventRecord,
   ];
   const team = (req: PortalRequest) => {
     if (!seesInternal(req)) throw new PortalRefusal("that's for Wren's team", 403);
@@ -1207,6 +1243,16 @@ export function consoleApi({
       return { id: row?.id ?? 0 };
     },
 
+    /** The failed event Retry names, checked before any step runs. */
+    eventToRetry(req: PortalRequest & { id?: unknown }): string {
+      team(req);
+      if (!teamCan(req, "effect", WREN)) throw new PortalRefusal("your role can't run that", 403);
+      if (isDemo(req.viewer)) throw new PortalRefusal("the demo is read-only", 403);
+      const id = typeof req.id === "string" ? req.id : "";
+      if (!/^[0-9a-f-]{36}$/.test(id)) throw new PortalRefusal("no such event", 404);
+      return id;
+    },
+
     /** A client's person asks for a component; installing it stays Wren's call. */
     async ask(req: ComponentRequest): Promise<{ component: string }> {
       if (seesInternal(req)) throw new PortalRefusal("the team installs it instead", 403);
@@ -1365,6 +1411,14 @@ export function makeConsolePortal(deps: Parameters<typeof consoleApi>[0]) {
       ask: (_: restate.Context, req: ComponentRequest) => answer(() => api.ask(req)),
       workflowSave: (_: restate.Context, req: WorkflowSaveRequest) =>
         answer(() => api.workflowSave(req)),
+      /** A failed spine step, again, waited on so the button says how it went. */
+      retryEvent: (ctx: restate.Context, req: PortalRequest & { id?: unknown }) =>
+        answer(async () => {
+          const id = api.eventToRetry(req);
+          const got = await ctx.serviceClient<SpineService>(SPINE).retry({ client: null, id });
+          if (!got) throw new PortalRefusal("it isn't failed now", 409);
+          return { done: [id], ...got };
+        }),
       question: (ctx: restate.Context, req: QuestionRequest) =>
         answer(() => ask(ctx, deps.main, req)),
       addClient: (ctx: restate.Context, req: AddClientRequest) =>

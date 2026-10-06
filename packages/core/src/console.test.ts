@@ -197,7 +197,12 @@ describe("ConsolePortal records", () => {
     const [loop] = await recs.recordsTypes({ viewer: operator });
     expect(loop).toMatchObject({ id: record, actions: ["console.startLoop", "console.stopLoop"] });
     const bare = await consoleApi({ main, views: [] }).recordsTypes({ viewer: operator });
-    expect(bare.map((t) => t.id)).toEqual(["console.team", "console.change", "console.component"]);
+    expect(bare.map((t) => t.id)).toEqual([
+      "console.team",
+      "console.change",
+      "console.event",
+      "console.component",
+    ]);
   });
 });
 

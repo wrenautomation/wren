@@ -21,6 +21,7 @@ import { eq, sql } from "drizzle-orm";
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 import { release, spineTouches } from "../../src/follow.js";
 import { activeSuppression } from "../../src/guards.js";
+import { type Sequence, sequence, sequenceStep } from "../../src/outreach/sequences.js";
 import {
   type Enrollment,
   enrollments,
@@ -60,6 +61,12 @@ import {
 const SENDER_A = "ada@wren-automation.test";
 const SENDER_B = "bo@wren-automation.test";
 const SENDER_C = "cy@wren-automation.test";
+const SENDER_D = "di@wren-automation.test";
+const THREE = sequence("three-seq", [
+  sequenceStep("opener", 0),
+  sequenceStep("followup", 3),
+  sequenceStep("followup", 6),
+]);
 
 const MIN = 60_000;
 const HOUR = 60 * MIN;
@@ -135,11 +142,14 @@ async function tick(transport: Transport, opts: Partial<SendDueOptions> = {}) {
 async function enrollOne(
   domain: string,
   email: string,
-  opts: { sender?: string; autoApprove?: boolean } = {},
+  opts: { sender?: string; autoApprove?: boolean; sequence?: Sequence } = {},
 ): Promise<Enrollment> {
   const company = await makeCompany(db(), { domain });
   await makePerson(db(), company, { email });
-  await runCompose(db(), { autoApprove: opts.autoApprove ?? true });
+  await runCompose(db(), {
+    autoApprove: opts.autoApprove ?? true,
+    ...(opts.sequence ? { sequence: opts.sequence } : {}),
+  });
   const [row] = await db()
     .update(enrollments)
     .set({ sender: opts.sender ?? SENDER_A })
@@ -1339,6 +1349,14 @@ describe("email on the spine", () => {
         const day = start.addDays(d);
         for (const [domain, sender] of cast[day.toString()] ?? [])
           await enrollOne(domain, `jo@${domain}`, { sender });
+        if (d === 0) {
+          // Three steps, the middle one rejected in review: the last still goes on its day.
+          const skip = await enrollOne("skip.example", "jo@skip.example", {
+            sender: SENDER_D,
+            sequence: THREE,
+          });
+          await patchMessage((await step(skip, 1)).id, { state: "rejected" });
+        }
         if (d === 0)
           await freshEnrollmentAwaitingItsOpener(
             await makeCompany(db(), { domain: "cool-new.example" }),
@@ -1387,6 +1405,9 @@ describe("email on the spine", () => {
       "cool-old.example 0 sent 2026-12-07",
       "early.example 0 sent 2026-12-17",
       "early.example 1 sent 2026-12-22",
+      "skip.example 0 sent 2026-12-17",
+      "skip.example 1 rejected -",
+      "skip.example 2 sent 2027-01-05",
       "twin.example 0 sent 2026-12-17",
       "twin.example 1 sent 2026-12-22",
     ]);

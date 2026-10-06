@@ -243,9 +243,16 @@ describe("email records", () => {
     expect(page.rows).toMatchObject([{ campaign: "Sec ria", step: "Opener", sent: 1 }]);
   });
 
-  it("stalls: one row per campaign", async () => {
+  it("stalls: one row per campaign, with threads whose follow-up waits on its touch", async () => {
     const page = await serve().list({ record: "email.stall", view: "all" });
-    expect(page.rows).toMatchObject([{ campaign: "Sec ria" }]);
+    // The opener went just now: its touch has the hour to land.
+    expect(page.rows).toMatchObject([{ campaign: "Sec ria", waitingOnTouch: 0 }]);
+    await pg.db.execute(sql`
+      update messages set sent_at = sent_at - interval '2 hours' where state = 'sent' and step = 0`);
+    const late = await serve().list({ record: "email.stall", view: "all" });
+    await pg.db.execute(sql`
+      update messages set sent_at = sent_at + interval '2 hours' where state = 'sent' and step = 0`);
+    expect(late.rows).toMatchObject([{ campaign: "Sec ria", waitingOnTouch: 1 }]);
   });
 
   it("stats: replies waiting, this week", async () => {

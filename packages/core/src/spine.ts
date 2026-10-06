@@ -56,6 +56,8 @@ export interface SpineStore {
   release(id: string, by: string): Promise<Arrival | null>;
   /** Its step failed past its retries: the event stops here, with why. */
   fail(a: Arrival, error: string): Promise<void>;
+  /** Take a failed arrival for `by` to run again, its error cleared; null when it isn't failed. */
+  retry(id: string, by: string): Promise<Arrival | null>;
 }
 
 export interface Walk {
@@ -243,8 +245,19 @@ export const walk = (w: Walk, workflow: string, from: string, batch: SpineEvent[
   );
 
 /** A waiting arrival whose time came: it arrives now. */
-export async function resume(w: Walk, id: string): Promise<Tally | null> {
-  const a = await w.run("release", () => w.store.release(id, w.by));
+export const resume = (w: Walk, id: string) =>
+  arriveAgain(w, "release", () => w.store.release(id, w.by));
+
+/** A failed arrival, run again at its node: an operator's retry once the cause is fixed. */
+export const retry = (w: Walk, id: string) =>
+  arriveAgain(w, "retry", () => w.store.retry(id, w.by));
+
+async function arriveAgain(
+  w: Walk,
+  label: string,
+  take: () => Promise<Arrival | null>,
+): Promise<Tally | null> {
+  const a = await w.run(label, take);
   if (!a) return null;
   const path = a.node.split(".");
   const last = path.pop() as string;
@@ -294,6 +307,21 @@ export function pgSpineStore(db: Db): SpineStore {
         UPDATE events SET error = ${pgSafe(error)}
         WHERE workflow = ${a.workflow} AND node = ${a.node} AND port = ${a.port}
           AND subject = ${a.event.subject}`);
+    },
+    async retry(id, by) {
+      const rows = (await db.execute(sql`
+        UPDATE events SET error = NULL, by = ${by}
+        WHERE id = ${id}::uuid AND (error IS NOT NULL OR by = ${by})
+        RETURNING workflow, node, port, subject, kind, data`)) as unknown as Row[];
+      const r = rows[0];
+      return r
+        ? {
+            workflow: r.workflow,
+            node: r.node,
+            port: r.port,
+            event: { subject: r.subject, kind: r.kind, data: r.data },
+          }
+        : null;
     },
   };
 }
@@ -373,12 +401,13 @@ interface Target {
   /** Whose database; null is Wren's. */
   client: string | null;
 }
-type SpineService = {
+export type SpineService = {
   emit: (
     ctx: restate.Context,
     req: Target & { workflow: string; from: string; events: SpineEvent[] },
   ) => Promise<Tally>;
   release: (ctx: restate.Context, req: Target & { id: string }) => Promise<Tally | null>;
+  retry: (ctx: restate.Context, req: Target & { id: string }) => Promise<Tally | null>;
 };
 
 /** Events leaving `from` in a workflow, sent by a part's own code: a sender that sent a step. */
@@ -439,6 +468,12 @@ export function makeSpine(d: SpineDeps) {
         { ingressPrivate: true },
         (ctx: restate.Context, req: Target & { id: string }) =>
           walkFor(ctx, req).then((w) => resume(w, req.id)),
+      ),
+      /** A failed step, again: the console's Retry sends it once its cause is fixed. */
+      retry: restate.handlers.handler(
+        { ingressPrivate: true },
+        (ctx: restate.Context, req: Target & { id: string }) =>
+          walkFor(ctx, req).then((w) => retry(w, req.id)),
       ),
       /**
        * The door: the phone Worker's `POST /hooks/<token>`. Answers a status for the sender; the

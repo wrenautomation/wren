@@ -85,6 +85,7 @@ const loop = (id: string, run: boolean): [string, Input] => {
 const ONE: Record<string, (id: string, input: Input) => [string, Input]> = {
   "console/startLoop": (id) => loop(id, true),
   "console/stopLoop": (id) => loop(id, false),
+  "console/retryEvent": (id) => ["console/retryEvent", { id }],
   "email/approve": (id, { body }) => [
     "email/approve",
     { id: Number(id), ...(body ? { body } : {}) },

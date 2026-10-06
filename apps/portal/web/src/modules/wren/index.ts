@@ -963,6 +963,17 @@ export const review: Module = {
   ],
 };
 
+/** A failed step, again: the answer is the spine's tally for that one event. */
+const EVENT_ACTIONS: Action[] = [
+  {
+    id: "console.retryEvent",
+    label: "Retry",
+    handler: "console/retryEvent",
+    when: { state: ["failed"] },
+    done: (a) => ((a as { failed?: number }).failed ? "Failed again" : "Ran again"),
+  },
+];
+
 /** Wren's business as its workflows, read only, with live numbers. */
 export const workflows: Module = {
   id: "workflows",
@@ -970,7 +981,21 @@ export const workflows: Module = {
   icon: "board",
   blurb: "How Wren wins clients and runs, drawn with live numbers.",
   requires: TEAM,
-  pages: [{ id: "canvas", label: "Canvas", Page: Workflows }],
+  pages: [
+    { id: "canvas", label: "Canvas", Page: Workflows },
+    {
+      id: "events",
+      label: "Events",
+      template: "list",
+      record: "console.event",
+      empty: {
+        failed: "No step has failed.",
+        waiting: "Nothing is waiting on a wire.",
+        all: "Nothing has entered a workflow yet.",
+      },
+      actions: EVENT_ACTIONS,
+    },
+  ],
 };
 
 export const ask: Module = {

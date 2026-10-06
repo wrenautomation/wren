@@ -413,15 +413,33 @@ export const variantRecord = defineRecord({
   load: variantEmail,
 });
 
-/** Per campaign, the named people and firms stuck before a send: `pipeline_leaks`. */
+/**
+ * Per campaign, the named people and firms stuck before a send (`pipeline_leaks`), and threads
+ * stuck between sends: a follow-up still held an hour after the step before it went (its touch
+ * on the spine failed or never came; the spine's failed events say why).
+ */
 export const stallRecord = defineRecord({
   id: "email.stall",
   name: { one: "stall", many: "stalls" },
-  rows: async (db) =>
-    (await db.execute<Record<string, unknown>>(sql`select * from pipeline_leaks`)).map((r) => ({
-      ...r,
-      campaign: campaignName(String(r.niche)),
-    })),
+  rows: async (db) => {
+    const touchless = new Map(
+      (
+        await db.execute<{ niche: string; n: number }>(sql`
+          select e.niche, count(*)::int n from enrollments e
+          join messages h on h.enrollment_id = e.id and h.held
+          join messages p on p.enrollment_id = e.id and p.step = h.step - 1 and p.state = 'sent'
+          where e.state = 'active' and p.sent_at < now() - interval '1 hour'
+          group by e.niche`)
+      ).map((r) => [r.niche, r.n]),
+    );
+    return (await db.execute<Record<string, unknown>>(sql`select * from pipeline_leaks`)).map(
+      (r) => ({
+        ...r,
+        campaign: campaignName(String(r.niche)),
+        waiting_on_touch: touchless.get(String(r.niche)) ?? 0,
+      }),
+    );
+  },
   key: "niche",
   title: "campaign",
   fields: {
@@ -430,6 +448,7 @@ export const stallRecord = defineRecord({
     riskyLeads: number("Risky leads"),
     queuedFirms: number("Firms in the resolution queue"),
     crawledNoPersonFirms: number("Crawled, no person"),
+    waitingOnTouch: number("Follow-ups waiting on their touch"),
   },
   views: [{ id: "all", label: "All", sort: "-queuedFirms" }],
 });

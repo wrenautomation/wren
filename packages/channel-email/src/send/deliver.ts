@@ -600,9 +600,9 @@ async function nextDue(
       return null;
     }
     const anchor = lastSent(msgs);
-    if (nxt.held && anchor !== null) {
-      // Its cadence's touch hasn't let it go yet (follow.ts). With nothing sent there is no
-      // touch to wait for, so it falls through like any first step.
+    if (nxt.held && anchor !== null && anchor.step === nxt.step - 1) {
+      // Its cadence's touch hasn't let it go yet (follow.ts). The touch comes from the step right
+      // before it sending: with that one rejected or skipped, none will, so it goes as it would have.
       stats.waiting_touch += 1;
       return null;
     }

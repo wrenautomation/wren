@@ -5,6 +5,7 @@ import {
   type Arrival,
   hookEvent,
   resume,
+  retry,
   type SpineEvent,
   type SpineStore,
   type Step,
@@ -108,6 +109,13 @@ function memStore() {
       const r = rows.get(key(a));
       if (r) r.error = error;
     },
+    async retry(id, by) {
+      const r = [...rows.values()].find((x) => x.id === id);
+      if (!r || !(r.error !== undefined || r.by === by)) return null;
+      delete r.error;
+      r.by = by;
+      return r.a;
+    },
   };
   return { store, rows };
 }
@@ -119,8 +127,9 @@ const touch: Step = async (_port, e, at) => {
   return e.data.replied ? [{ port: "replied", event: { ...e, kind: "reply" } }] : [];
 };
 const lead = (n: string): SpineEvent => ({ subject: `lead:${n}`, kind: "lead", data: { n } });
+let modelDown = true;
 const answer: Step = async (_port, e) => {
-  if (e.subject === "lead:bad") throw new Error("the model is down");
+  if (e.subject === "lead:bad" && modelDown) throw new Error("the model is down");
   return [{ port: "replied", event: { ...e, kind: "reply" } }];
 };
 
@@ -198,9 +207,16 @@ describe("walk", () => {
       failed: 1,
       waiting: 1,
     });
-    expect([...rows.values()].find((r) => r.a.event.subject === "lead:bad")?.error).toBe(
-      "the model is down",
-    );
+    const bad = [...rows.values()].find((r) => r.a.event.subject === "lead:bad");
+    expect(bad?.error).toBe("the model is down");
+
+    // The model's back: Retry runs that step again, once, for the call that took it.
+    modelDown = false;
+    const again = walkWith(store, "inv2").w;
+    expect(await retry(again, bad?.id as string)).toMatchObject({ arrived: 1, failed: 0 });
+    expect(bad?.error).toBeUndefined();
+    expect(await retry(walkWith(store, "inv3").w, bad?.id as string)).toBeNull();
+    modelDown = true;
   });
 
   it("runs a cadence: each touch gets its node, the next waits on the sender's sent", async () => {

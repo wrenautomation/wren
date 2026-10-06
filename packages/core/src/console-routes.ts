@@ -25,6 +25,8 @@ export const CONSOLE_ROUTES = {
   ask: "manage",
   // A workflow's wiring, saved for Wren or a client from the canvas: the team's.
   workflowSave: "wren:manage",
+  // A failed spine step, run again: it may send, so it needs what an effect does.
+  retryEvent: "wren:effect",
   // Ask: a question to Claude Code on William's Mac, read only (`ask.ts`).
   question: "wren:run",
   // The Team page: an admin's.
@@ -43,6 +45,7 @@ export const CONSOLE_WRITES: readonly ConsoleRoute[] = [
   "uninstall",
   "ask",
   "workflowSave",
+  "retryEvent",
   "question",
   "teamSet",
   "teamRemove",

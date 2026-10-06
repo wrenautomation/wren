@@ -9,6 +9,7 @@ import {
   integer,
   jsonb,
   pgTable,
+  pgView,
   primaryKey,
   serial,
   text,
@@ -149,6 +150,24 @@ export const events = pgTable(
   ],
 );
 export type SpineRow = typeof events.$inferSelect;
+
+/** The spine's arrivals as the console lists them (`console.event`): failed, waiting, or passed on. */
+export const spineEvents = pgView("spine_events", {
+  id: text("id"),
+  workflow: text("workflow"),
+  node: text("node"),
+  port: text("port"),
+  subject: text("subject"),
+  kind: text("kind"),
+  state: text("state"),
+  at: timestamp("at", { withTimezone: true }),
+  due: timestamp("due", { withTimezone: true }),
+  error: text("error"),
+}).as(sql`
+  select id::text id, workflow, node, port, subject, kind,
+    case when error is not null then 'failed' when due is not null then 'waiting' else 'passed' end state,
+    at, due, error
+  from events`);
 
 /**
  * The door's hooks: `POST /hooks/<token>` on the phone Worker enters `workflow` at its input

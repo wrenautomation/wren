@@ -1,6 +1,6 @@
 /** The spine's store on Postgres: an arrival is kept once, owned by its call; waits release once. */
 import { startTestPostgres, type TestPostgres } from "@wren/db/testing";
-import { eq } from "drizzle-orm";
+import { eq, sql } from "drizzle-orm";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { defineComponent } from "../../src/components.js";
 import { consoleApi } from "../../src/console.js";
@@ -35,6 +35,20 @@ describe("pgSpineStore", () => {
       .from(events)
       .where(eq(events.id, id as string));
     expect(row).toMatchObject({ by: "inv1", error: "the model is down", data: { cut: "half " } });
+    const listed = () =>
+      pg.db.execute<{ state: string }>(sql`select state from spine_events where id = ${id}`);
+    expect(await listed()).toEqual([{ state: "failed" }]);
+
+    // Retry: one call takes it, its error cleared; nobody else, and only while it's failed.
+    expect(await store.retry(id as string, "inv2")).toMatchObject({ node: "x.a", port: "leads" });
+    expect(await store.retry(id as string, "inv2")).not.toBeNull();
+    expect(await store.retry(id as string, "inv3")).toBeNull();
+    const [after] = await pg.db
+      .select()
+      .from(events)
+      .where(eq(events.id, id as string));
+    expect(after).toMatchObject({ by: "inv2", error: null });
+    expect(await listed()).toEqual([{ state: "passed" }]);
   });
 
   it("releases a waiting arrival to one call, and again to that call only", async () => {
