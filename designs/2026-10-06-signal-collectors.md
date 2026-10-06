@@ -404,6 +404,21 @@ Each phase runs the research package tests once before its commit.
 3. Clients. Default: the new collectors run on Wren's niches only. Clients' pools and `crm run`
    get them when a client asks.
 
+## Built
+
+All on main, from `git log --oneline -- packages/research/src/signals`.
+
+- S0 `5a9da5a`: store, registry with eight stubs, pool stage, CLI, console list. Registry test `30acbb3`.
+- S1 `4e595e6`: job postings over `checkHiring`, LinkedIn only as `linkedin@alt`.
+- S2 `5308111`: company news, Google News RSS first, 9 kinds.
+- S3 `986a5a7`: funding from SEC EDGAR Form D.
+- S4 `6c60f0b`: tech stack from stored pages and DNS.
+- S5 `2232bb9`: LinkedIn activity, 10 people a day as `linkedin@alt`. autobrowse `bdd92f7` (route, meter, flow) and `d380803` (flow registered).
+- S6 `d6f6e25`: podcasts and talks, iTunes first, YouTube 20 a Pacific day.
+- S7 `ac1e617`: website changes, Wayback CDX first, then monthly diffs.
+- S8 `a2ec8a1`: demand posts, 10 stored posts per model call.
+- S9: the map cards and this section.
+
 ## Decision log
 
 - 2026-10-06: Drafted from William's ask. Signals are findings with a date column, with no new
@@ -413,3 +428,13 @@ Each phase runs the research package tests once before its commit.
 - 2026-10-06: Built S0. Migration 0120, `signals/` registry with eight stubs
   (off until built), `Enrichment.signals`, pool stage `signals`, `wren enrich signals`, console
   Outbound Signals. The view adds `age` (fresh within 30 days) for the Fresh tab.
+- 2026-10-06: Built S1 to S8 and closed out (S9).
+  - S1: a LinkedIn cap parks that firm only. The pass goes on, since later firms' boards still
+    count.
+  - S6: the Google setting was dropped. Talks read iTunes, then YouTube.
+  - S7: a version already reported is never reported again, so a page that reverts to an older
+    version is no new signal.
+  - S8: stored posts go to the model 10 per call. About 19 calls a day with defaults, 28 with a
+    backlog, 100 at most.
+  - S5: the read is a new flow file, `linkedin-activity.ts`, not an edit to `linkedin-reach.ts`.
+    It is unproven until its first live read as `linkedin@alt`.
