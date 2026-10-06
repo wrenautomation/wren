@@ -1,0 +1,1 @@
+CREATE INDEX "ix_comments_contact_id" ON "comments" USING btree ("contact_id");

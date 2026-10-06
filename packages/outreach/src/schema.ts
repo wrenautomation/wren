@@ -275,6 +275,7 @@ export const comments = pgTable(
     index("ix_comments_state").on(t.state),
     index("ix_comments_account_id").on(t.accountId),
     index("ix_comments_post").on(t.post),
+    index("ix_comments_contact_id").on(t.contactId),
     oneOf("ck_comments_platform", t.platform, PLATFORMS),
     oneOf("ck_comments_sort", t.sort, COMMENT_SORTS),
     oneOf("ck_comments_state", t.state, COMMENT_STATES),
