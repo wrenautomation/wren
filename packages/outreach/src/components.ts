@@ -14,7 +14,7 @@ export const OUTREACH_COMPONENTS = [
     icon: "people",
     for: "client",
     ready: false,
-    missing: ["Held: no targeting yet, and it runs on Wren's accounts only"],
+    missing: ["Sends from Wren's own accounts; a client's would need theirs"],
     provides: {
       services: ["ReachSender", "ReachWatch", "ReachDesk"],
       loops: ["ReachSender", "ReachWatch"],
@@ -43,7 +43,7 @@ export const OUTREACH_COMPONENTS = [
     icon: "people",
     for: "client",
     ready: false,
-    missing: ["Held with Social outreach"],
+    missing: ["DMs from Wren's own accounts, as Social outreach"],
     requires: { components: ["reach.outreach"] },
     effects: ["sends"],
     in: [{ id: "lead", label: "lead", kind: "lead" }],

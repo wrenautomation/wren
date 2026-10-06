@@ -1,6 +1,8 @@
 /** Organic content: posting to each channel, and the plan of what to post. */
 import { defineComponent } from "@wren/core/components";
 import { defineWorkflow } from "@wren/core/workflows";
+import { cutKnobsSchema } from "@wren/studio/cuts";
+import { z } from "zod";
 
 const FOR_WREN = "Posts to Wren's own channels, not per client";
 
@@ -17,14 +19,7 @@ export const CONTENT_COMPONENTS = [
     ready: false,
     missing: [FOR_WREN],
     provides: {
-      services: [
-        "Content",
-        "ContentDesk",
-        "ContentScheduler",
-        "ContentMetrics",
-        "DraftAsk",
-        "VideoDesk",
-      ],
+      services: ["Content", "ContentDesk", "ContentScheduler", "ContentMetrics", "DraftAsk"],
       loops: ["ContentScheduler", "ContentMetrics"],
     },
     effects: ["posts"],
@@ -122,7 +117,6 @@ export const CONTENT_COMPONENTS = [
         "marketing.site_day",
         "marketing.funnel",
         "marketing.session",
-        "marketing.video",
       ],
       apps: ["marketing"],
     },
@@ -131,6 +125,48 @@ export const CONTENT_COMPONENTS = [
       guesses: [
         { is: "change", says: "Which channels a client has.", built: null },
         { is: "fixed", says: "Every channel lands in one funnel, counted the same way." },
+      ],
+    },
+  }),
+  /** `packages/studio`: the editor runs on William's Mac; the page and its desk run here. */
+  defineComponent({
+    // `wren_settings.studio`, read by `cutKnobs` in @wren/studio/edit.
+    id: "studio",
+    stage: "content",
+    channels: ["social"],
+    name: "Video editor",
+    blurb:
+      "Cuts silences from a recording, adds captions, Shorts and a thumbnail, and uploads to YouTube once approved.",
+    icon: "play",
+    for: "wren",
+    ready: false,
+    missing: ["Edits William's own recordings on his Mac; never a client's"],
+    settings: z.object({ cuts: cutKnobsSchema.default(cutKnobsSchema.parse({})) }),
+    requires: { components: ["content.posting"] },
+    provides: { services: ["VideoDesk"], records: ["marketing.video"] },
+    effects: ["posts"],
+    out: [
+      {
+        id: "videos",
+        label: "videos",
+        kind: "post",
+        count: { record: "marketing.video", view: "all" },
+      },
+    ],
+    hypothesis: {
+      from: "designs/2026-10-06-video-editor.md",
+      guesses: [
+        {
+          is: "change",
+          says: "How tight the silence cuts are, per voice and room.",
+          built: "settings.cuts",
+        },
+        {
+          is: "change",
+          says: "Where a cut goes: YouTube now, Shorts and Reels next.",
+          built: null,
+        },
+        { is: "fixed", says: "Every upload waits on a yes and goes up private." },
       ],
     },
   }),

@@ -281,8 +281,10 @@ export const RESEARCH_COMPONENTS = [
     icon: "search",
     for: "client",
     ready: false,
-    missing: ["Runs on Wren's niches only; collectors are built one by one (S1 to S8)"],
+    missing: ["Runs on Wren's niches only, not per client"],
     settings: signalsSettingsSchema,
+    // The collectors read Wren's block: saved in Wren's workspace.
+    wrenSettings: true,
     requires: { components: ["research.crawl"] },
     in: [{ id: "firms", label: "firms in the queue", kind: "firm" }],
     out: [{ id: "signals", label: "firms with a fresh signal", kind: "firm" }],

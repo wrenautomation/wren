@@ -9,7 +9,7 @@ entity: packages/studio/src/schema.ts:85
 
 # video edit
 
-One of William's OBS or Cap recordings being edited into a YouTube video: a `video_edits` row holding the words, the cuts and the edit. Package `@wren/studio`; the commands are `wren video add|show|set|approve|cuts|keep|knobs|cut|studio|render|look|find|watch`. Marketing → Videos shows it (`marketing.video`) and edits it in place (`VideoDesk`).
+One of William's OBS or Cap recordings being edited into a YouTube video: a `video_edits` row holding the words, the cuts and the edit. Package `@wren/studio`; the commands are `wren video add|show|set|approve|cuts|keep|knobs|cut|studio|render|look|find|watch`. Marketing → Videos shows it (`marketing.video`) and edits it in place (`VideoDesk`). Shop part `studio` ("Video editor", `packages/content/src/components.ts`) owns `VideoDesk`, the record and the cut knobs.
 
 ## Why this shape
 
