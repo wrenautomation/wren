@@ -106,3 +106,10 @@ desk page loads on the Mac.
 
 - 2026-10-06: William asked for the queue, DM drafts with Claude and on-demand gap fixes. Built as
   above. The Inbox becomes the landing page; the other pages stay for depth.
+- 2026-10-06: Built 3 and 4 (branch content-desk-ask). `DraftAsk{ask,undo}` + private `answer`
+  (`packages/content/src/restate/draft-ask.ts`) over one kind per draft (`draft-ask.ts`: post,
+  comment, thread); turns are `runs` rows (`draft-ask`/`draft-set`/`draft-undo`) read by
+  `draftTurns` (`packages/core/src/ask.ts`). Ask Claude and Undo on Drafts, Comments, Threads and
+  the Inbox; the detail polls while Claude works (`RecordExtras.poll`). `wren drafts list|show|set`.
+  Wren writes only over the text Claude read. DM and invite kinds wait on `reach_contacts.draft`
+  (content-desk-queue).

@@ -3,7 +3,7 @@ type: object
 cluster: content
 universe: live
 status: verified
-verified: 2026-10-06 @ f25d7ac
+verified: 2026-10-06 @ f25d7ac (Ask Claude rows: content-desk-ask)
 entity: packages/content/src/schema.ts:76
 ---
 
@@ -39,6 +39,7 @@ Citations: `packages/content/src/schema.ts:76`
 | `ContentDesk.draft/redraft` | writes |
 | `wren content approve/reject/edit`, `ContentDesk.approve/reject/edit` (the console) | writes |
 | `marketing.draft` (`marketing_draft_records`, every status but published), `marketing.post` | read; their `load` adds the preview's text, cap and feed cut (`PLATFORM_SPECS.feed`) |
+| `DraftAsk/ask` (Claude's rewrite), `DraftAsk/undo`, `wren drafts set draft:<id>` | write `text` through `editDraft`, one `runs` row each (`draft-ask`/`draft-set`/`draft-undo`, keeps the text replaced); `marketing.draft`'s `load` adds the thread (`draftTurns`, `packages/core/src/ask.ts`). Kinds: `packages/content/src/draft-ask.ts` |
 | `ContentScheduler/default` | moves to published/failed |
 | `ContentPlanner` | reads slots; with `draft` on, gives each new draft its slot |
 | `ContentMetrics` | reads |

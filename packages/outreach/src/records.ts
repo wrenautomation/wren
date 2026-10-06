@@ -3,6 +3,8 @@
  * template slot William writes (`marketing.dm_copy`), with what the preview needs to draw them,
  * each comment on our posts (`marketing.comment`), and each LinkedIn invite (`marketing.invite`).
  */
+
+import { draftTurns } from "@wren/core/ask";
 import {
   date,
   defineRecord,
@@ -210,7 +212,15 @@ export const commentRecord = defineRecord({
     { id: "answered", label: "Answered", where: { state: "answered" }, sort: "-at", at: "at" },
     { id: "all", label: "All", sort: "-at", at: "at" },
   ],
-  actions: ["marketing.commentAnswer", "marketing.commentDm", "marketing.commentDrop"],
+  actions: [
+    "marketing.commentAnswer",
+    "marketing.commentDm",
+    "marketing.commentDrop",
+    "marketing.draftAsk",
+    "marketing.draftUndo",
+  ],
+  /** Ask Claude's thread on the draft answer. */
+  load: async (db, id) => ({ ask: await draftTurns(db, "comment", id) }),
 });
 
 /** The slots and their words; the preview fills `{fields}` with `sender` and sample facts. */
@@ -423,7 +433,14 @@ export const threadRecord = defineRecord({
     },
     { id: "all", label: "All", sort: "-postedAt", at: "postedAt" },
   ],
-  actions: ["marketing.threadComment", "marketing.threadSkip"],
+  actions: [
+    "marketing.threadComment",
+    "marketing.threadSkip",
+    "marketing.draftAsk",
+    "marketing.draftUndo",
+  ],
+  /** Ask Claude's thread on the draft comment. */
+  load: async (db, id) => ({ ask: await draftTurns(db, "thread", id) }),
 });
 
 /** LinkedIn invites, one per contact: queued, pending, accepted, withdrawn (`reach_invites`). */
