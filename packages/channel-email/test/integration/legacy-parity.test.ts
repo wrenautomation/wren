@@ -29,10 +29,7 @@ const WIDENED: Record<string, string[]> = {
   ck_enrollments_stopreason: ["undeliverable", "booked"],
   ck_sender_pauses_pausesource: ["placement"],
 };
-/** Checks given one more way to pass (2026-10-04: a shared verdict names only its address). */
-const LOOSENED: Record<string, string> = {
-  ck_verifications_attributed: " OR (email IS NOT NULL)",
-};
+const LOOSENED: Record<string, string> = {};
 const unwiden = (c: Catalog["constraints"][number]) => ({
   ...c,
   def: (WIDENED[c.name] ?? []).reduce(
@@ -61,10 +58,28 @@ const ADDED = {
     // 2026-10-05: email on the spine, follow-ups held for their touch.
     "messages.held",
     "messages.released_at",
+    // 2026-10-06 db design: enrollments and leads point at their lead, candidate and person.
+    "enrollments.lead_id",
+    "enrollments.candidate_id",
+    "leads.person_id",
   ]),
-  constraints: new Set(["uq_messages_link_code", "fk_template_versions_experiment_id_experiments"]),
+  constraints: new Set([
+    "uq_messages_link_code",
+    "fk_template_versions_experiment_id_experiments",
+    // 2026-10-06 db design.
+    "fk_enrollments_lead_id_leads",
+    "fk_enrollments_candidate_id_contact_candidates",
+    "fk_leads_person_id_people",
+    "ck_verifications_email_lowercase",
+  ]),
   indexes: new Set([
     "ix_enrollments_offer",
+    // 2026-10-06 db design.
+    "ix_companies_unassigned",
+    "ix_enrollments_candidate_id",
+    "ix_enrollments_lead_id",
+    "ix_leads_person_id",
+    "ix_verifications_email_checked_at_id",
     "uq_messages_link_code",
     "ix_verifications_email_checked_at",
     // 2026-10-03 database audit: every foreign key indexed, the domain lookup indexed.
@@ -180,9 +195,15 @@ describe("legacy parity", () => {
       .map(grown)
       .sort((x, y) => x.name.localeCompare(y.name));
     const wrenViews = b.views.filter((v) => legacyViews.some((l) => l.name === v.name)).map(grown);
-    expect(b.columns.filter((c) => !ADDED.columns.has(`${c.tbl}.${c.col}`))).toEqual(a.columns);
+    // verifications.email is NOT NULL now (2026-10-06); legacy allowed null.
+    const looseEmail = (c: Catalog["columns"][number]) =>
+      c.tbl === "verifications" && c.col === "email" ? { ...c, notnull: false } : c;
+    expect(
+      b.columns.filter((c) => !ADDED.columns.has(`${c.tbl}.${c.col}`)).map(looseEmail),
+    ).toEqual(a.columns);
+    // ck_verifications_attributed is gone: email is NOT NULL, so it could never fail.
     expect(b.constraints.filter((c) => !ADDED.constraints.has(c.name)).map(unwiden)).toEqual(
-      a.constraints,
+      a.constraints.filter((c) => c.name !== "ck_verifications_attributed"),
     );
     expect(b.indexes.filter((i) => !ADDED.indexes.has(i.name))).toEqual(
       a.indexes.filter((i) => !DROPPED_INDEXES.has(i.name)),
