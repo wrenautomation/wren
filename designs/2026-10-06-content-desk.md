@@ -117,3 +117,10 @@ desk page loads on the Mac.
   the Inbox; the detail polls while Claude works (`RecordExtras.poll`). `wren drafts list|show|set`.
   Wren writes only over the text Claude read. DM and invite kinds wait on `reach_contacts.draft`
   (content-desk-queue).
+- 2026-10-06: Built 1, 2 and 5 (branch `content-desk-queue`, migration 0121). No People record
+  existed, so `marketing.person` is new (LinkedIn people with a page, Reddit people read). An
+  untouched draft is left out by the console; the desk sends the one it holds.
+- 2026-10-06: Merged main into content-desk-queue. Ask Claude now has `dm` and `invite` kinds on
+  `reach_contacts.draft` (`draft-ask.ts`); a write stamps `draft_at` and answers their newest word
+  (`draft_for`), so the watch doesn't write over it. Ask on the Inbox, DMs and Invites; People has
+  Draft and Message, no Ask (its ids aren't contacts).

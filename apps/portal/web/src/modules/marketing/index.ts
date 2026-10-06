@@ -103,7 +103,7 @@ const DM_ACTIONS: Action[] = [
     id: "marketing.dmReply",
     label: "Reply",
     handler: "marketing/dmReply",
-    ask: { field: "body", label: "Your reply", preview: dmPreview },
+    ask: { field: "body", label: "Your reply", from: "draft", preview: dmPreview },
     key: "r",
     done: said("Queued. It leaves on the next tick."),
   },
@@ -169,26 +169,6 @@ const ACTIVITY_ACTIONS: Action[] = [
   },
 ];
 
-/** The reply box's preview for an Inbox DM: its id is `dm:<contact>`. */
-const inboxDmPreview = (id: string | number) => dmPreview(String(id).replace(/^dm:/, ""));
-
-/** Each action on the rows of its own type; DM them only from a reach account's inbox. */
-const only = (type: string, a: Action, when: Action["when"] = a.when): Action => ({
-  ...a,
-  when: { ...when, type: [type] },
-});
-const INBOX_ACTIONS: Action[] = [
-  ...COMMENT_ACTIONS.map((a) => only("comment", a)),
-  ...DM_ACTIONS.map((a) =>
-    a.ask?.preview
-      ? only("dm", { ...a, ask: { ...a.ask, preview: inboxDmPreview } })
-      : only("dm", a, { state: ["waiting"] }),
-  ),
-  ...ACTIVITY_ACTIONS.map((a) => (a.form ? a : only("activity", a))),
-  // TODO(content-desk-queue): dm and invite once their drafts land (packages/content/src/draft-ask.ts).
-  ...askActions("inbox", { type: ["comment", "draft", "thread"], state: ["new", "waiting"] }),
-];
-
 /** One read on his click; the loops behind these pages stay as they are. */
 const readNow = (id: string, handler: string, done: (answer: unknown) => string): Action => ({
   id,
@@ -252,7 +232,7 @@ const INVITE_ACTIONS: Action[] = [
     id: "marketing.inviteMessage",
     label: "Message",
     handler: "marketing/dmReply",
-    ask: { field: "body", label: "Your message", preview: dmPreview },
+    ask: { field: "body", label: "Your message", from: "draft", preview: dmPreview },
     key: "r",
     when: { status: ["accepted"] },
     done: said("Queued. It leaves on the next tick."),
@@ -299,6 +279,71 @@ const THREAD_ACTIONS: Action[] = [
   DISCOVERY_READ,
 ];
 
+/** An Inbox id carries its type (`dm:5`); a preview reads the row's own id after the colon. */
+const bare = (id: string | number) => String(id).slice(String(id).indexOf(":") + 1);
+
+/** Each action on the rows of its own type, its preview on the row's own id. */
+const only = (type: string, a: Action, when: Action["when"] = a.when): Action => {
+  const preview = a.ask?.preview;
+  return {
+    ...a,
+    ...(a.ask && typeof preview === "function"
+      ? { ask: { ...a.ask, preview: (id: string | number) => preview(bare(id)) } }
+      : {}),
+    when: { ...when, type: [type] },
+  };
+};
+/** Every Inbox row but activity reads as waiting or not; each page's states are mapped to it. */
+const WAITS = { state: ["waiting"] };
+/** A page's own Ask Claude and its Read now stay there; the Inbox has one of each kind. */
+const own = (a: Action) => !a.form && !["marketing.draftAsk", "marketing.draftUndo"].includes(a.id);
+const INBOX_ACTIONS: Action[] = [
+  // A post's words are the row's body here.
+  ...DRAFT_ACTIONS.filter(own).map((a) =>
+    only("draft", a.ask?.from ? { ...a, ask: { ...a.ask, from: "body" } } : a, WAITS),
+  ),
+  ...COMMENT_ACTIONS.map((a) => only("comment", a)),
+  ...DM_ACTIONS.filter(own).map((a) => only("dm", a, a.ask ? a.when : WAITS)),
+  ...THREAD_ACTIONS.filter(own).map((a) => only("thread", a, WAITS)),
+  ...INVITE_ACTIONS.filter((a) => own(a) && a.id !== "marketing.inviteWithdraw").map((a) =>
+    only("invite", a, a.ask ? { state: ["waiting", "read"] } : WAITS),
+  ),
+  ...ACTIVITY_ACTIONS.map((a) => (a.form ? a : only("activity", a))),
+  ...askActions("inbox", {
+    type: ["comment", "draft", "thread", "dm", "invite"],
+    state: ["new", "waiting", "read"],
+  }),
+];
+
+const PERSON_ACTIONS: Action[] = [
+  {
+    id: "marketing.personDraft",
+    label: "Draft",
+    handler: "marketing/personDraft",
+    key: "d",
+    when: { can: ["message"] },
+    done: said("Drafted. Message opens with it."),
+  },
+  {
+    id: "marketing.personMessage",
+    label: "Message",
+    handler: "marketing/personMessage",
+    ask: { field: "body", label: "Your message", from: "draft" },
+    key: "r",
+    when: { can: ["message"] },
+    done: said("Queued. It leaves on the next tick."),
+  },
+  {
+    id: "marketing.personInvite",
+    label: "Invite",
+    handler: "marketing/personInvite",
+    confirm: "Send them a LinkedIn invite?",
+    key: "i",
+    when: { can: ["invite"] },
+    done: said("Queued. It leaves under the day's invite cap."),
+  },
+];
+
 const TEXT_COPY_ACTIONS: Action[] = [
   {
     id: "marketing.textCopy",
@@ -329,6 +374,29 @@ export const marketing: Module = {
   blurb: "What content, ads, search and texts bring to the site, and what they cost.",
   requires: { audience: "team" },
   pages: [
+    {
+      id: "inbox",
+      label: "Inbox",
+      template: "list",
+      record: "marketing.inbox",
+      empty: {
+        waiting: "Nothing waits on you.",
+        posts: "No post draft waits on you.",
+        comments: "Comments on our posts show here.",
+        dms: "Threads show here once reach messages someone.",
+        threads: "No thread to answer.",
+        invites: "No accepted invite waits on a first message.",
+        activity: "Follows, mentions and notices show here.",
+        all: "Drafts, comments, DMs, threads, invites and activity show here.",
+      },
+      actions: INBOX_ACTIONS,
+      extras: withAsk((detail, at) =>
+        (detail as { messages?: unknown } | null)?.messages
+          ? dmExtras(detail, at)
+          : { sections: [] },
+      ),
+      count: { state: ["new", "waiting"] },
+    },
     {
       id: "overview",
       label: "Overview",
@@ -454,25 +522,6 @@ export const marketing: Module = {
       below: WeeklyBookings,
     },
     {
-      id: "inbox",
-      label: "Inbox",
-      template: "list",
-      record: "marketing.inbox",
-      empty: {
-        comments: "Comments on our posts show here.",
-        dms: "Threads show here once reach messages someone.",
-        activity: "Follows, mentions and notices show here.",
-        all: "Comments, DMs and activity from every platform show here.",
-      },
-      actions: INBOX_ACTIONS,
-      extras: withAsk((detail, at) =>
-        (detail as { messages?: unknown } | null)?.messages
-          ? dmExtras(detail, at)
-          : { sections: [] },
-      ),
-      count: { state: ["new", "waiting"] },
-    },
-    {
       id: "content",
       label: "Content",
       template: "list",
@@ -569,8 +618,11 @@ export const marketing: Module = {
         replied: "No one replied yet.",
         all: "Threads show here once reach messages someone.",
       },
-      actions: DM_ACTIONS,
-      extras: dmExtras,
+      actions: [
+        ...DM_ACTIONS,
+        ...askActions("dm", { state: ["new", "enrolled", "connected", "replied", "finished"] }),
+      ],
+      extras: withAsk(dmExtras),
     },
     {
       id: "followers",
@@ -618,7 +670,20 @@ export const marketing: Module = {
         withdrawn: "Nothing withdrawn yet.",
         all: "LinkedIn invites show here.",
       },
-      actions: INVITE_ACTIONS,
+      actions: [...INVITE_ACTIONS, ...askActions("invite", { status: ["accepted"] })],
+      extras: withAsk(),
+    },
+    {
+      id: "people",
+      label: "People",
+      template: "list",
+      record: "marketing.person",
+      empty: {
+        message: "No one to message yet. Accepted invites and Reddit people show here.",
+        invite: "No one to invite. People with a LinkedIn page show here.",
+        all: "People with a LinkedIn page or a Reddit read show here.",
+      },
+      actions: PERSON_ACTIONS,
     },
     {
       id: "places",

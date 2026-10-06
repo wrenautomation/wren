@@ -26,7 +26,7 @@ const WITHDRAWS_PER_SWEEP = 5;
 /** Titles that decide, invited first. */
 const SENIOR =
   "(founder|owner|ceo|chief|president|partner|principal|director|head of|vp|vice president)";
-const VANITY = sql`lower(substring(p.linkedin_url from 'linkedin\\.com/in/([^/?#]+)'))`;
+export const VANITY = sql`lower(substring(p.linkedin_url from 'linkedin\\.com/in/([^/?#]+)'))`;
 
 export const invitesSettingsSchema = z
   .object({

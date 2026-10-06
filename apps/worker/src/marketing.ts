@@ -7,6 +7,7 @@ import {
   commentRecord,
   dmRecord,
   inviteRecord,
+  personRecord,
   placeRecord,
   threadRecord,
 } from "@wren/outreach/records";
@@ -21,5 +22,6 @@ export const MARKETING_NUMBERS = [
   placeRecord,
   threadRecord,
   inviteRecord,
+  personRecord,
   ...SOCIAL_RECORDS,
 ];

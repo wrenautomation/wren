@@ -2,7 +2,8 @@
  * Ask Claude on a draft against Postgres and a Restate test environment, over a fake desk
  * `claude`: an ask rewrites a post and keeps what it replaced, a question writes nothing, Undo
  * puts the text back, a hand edit meanwhile is never overwritten, a closed comment is refused.
- * Then `wren drafts`' reads and writes: the waiting list, the cap, the Inbox's thread.
+ * Then `wren drafts`' reads and writes: the waiting list, the cap, the Inbox's thread; a DM
+ * reply and an accepted invite's first message on `reach_contacts.draft`.
  */
 import * as restate from "@restatedev/restate-sdk";
 import * as clients from "@restatedev/restate-sdk-clients";
@@ -11,7 +12,15 @@ import { ingressOf } from "@wren/config";
 import { draftTurns } from "@wren/core/ask";
 import { startTestRestate } from "@wren/core/testing";
 import { startTestPostgres, type TestPostgres, truncate } from "@wren/db/testing";
-import { comments } from "@wren/outreach";
+import {
+  addAccount,
+  addProspects,
+  comments,
+  contactByHandle,
+  reachContacts,
+  reachMessages,
+  receive,
+} from "@wren/outreach";
 import { eq } from "drizzle-orm";
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 import {
@@ -49,7 +58,15 @@ afterAll(async () => {
   await pg?.stop();
 });
 beforeEach(async () => {
-  await truncate(pg.db, ["content_ideas", "content_drafts", "comments", "runs"]);
+  await truncate(pg.db, [
+    "content_ideas",
+    "content_drafts",
+    "comments",
+    "runs",
+    "reach_messages",
+    "reach_contacts",
+    "reach_accounts",
+  ]);
   answers.length = 0;
   asked.length = 0;
 });
@@ -197,5 +214,74 @@ describe("drafts from a terminal", () => {
         draft: "Start with the daily task.",
       }),
     ]);
+  });
+});
+
+describe("DM drafts", () => {
+  it("asks on a DM reply, answers their newest word, lists DMs and invites apart", async () => {
+    const now = new Date();
+    const a = await addAccount(pg.db, { platform: "reddit", account: "reddit@test", now });
+    await receive(
+      pg.db,
+      "reddit",
+      a.id,
+      {
+        ref: "m1",
+        handle: "jo_test",
+        name: null,
+        text: "What do you use for invoices?",
+        at: now.toISOString(),
+        threadUrl: null,
+      },
+      now,
+    );
+    const jo = await contactByHandle(pg.db, "reddit", "jo_test");
+    await pg.db
+      .update(reachContacts)
+      .set({ draft: "A sheet, mostly." })
+      .where(eq(reachContacts.id, jo.id));
+
+    const l = await addAccount(pg.db, { platform: "linkedin", account: "linkedin@test", now });
+    await addProspects(pg.db, "linkedin", [
+      { handle: "ana-test", url: "", name: "Ana Test", headline: "Founder", foundIn: "people" },
+    ]);
+    const ana = await contactByHandle(pg.db, "linkedin", "ana-test");
+    await pg.db
+      .update(reachContacts)
+      .set({ accountId: l.id, connectedAt: now, draft: "Thanks for connecting." })
+      .where(eq(reachContacts.id, ana.id));
+    await pg.db.insert(reachMessages).values({
+      contactId: ana.id,
+      accountId: l.id,
+      direction: "out",
+      kind: "connect",
+      body: "",
+      state: "sent",
+      sentAt: now,
+    });
+    expect((await listWaiting(pg.db, { type: "dm" })).map((w) => w.item)).toEqual([`dm:${jo.id}`]);
+    expect((await listWaiting(pg.db, { type: "invite" })).map((w) => w.item)).toEqual([
+      `invite:${ana.id}`,
+    ]);
+
+    answers.push('{"reply": "Warmer.", "draft": "Mostly a sheet. What do you use?"}');
+    await desk().ask({ record: "dm", id: String(jo.id), message: "warmer" });
+    expect((await settled("dm", String(jo.id)))[0]).toMatchObject({
+      draft: "Mostly a sheet. What do you use?",
+    });
+    expect(asked[0]?.question).toContain("Them: What do you use for invoices?");
+    const [m1] = await pg.db.select().from(reachMessages).where(eq(reachMessages.ref, "m1"));
+    const [row] = await pg.db.select().from(reachContacts).where(eq(reachContacts.id, jo.id));
+    expect(row).toMatchObject({ draft: "Mostly a sheet. What do you use?", draftFor: m1?.id });
+    expect(row?.draftAt).not.toBeNull();
+
+    const detail = (await inboxRecord.load?.(pg.db, `dm:${jo.id}`)) as {
+      messages: unknown[];
+      ask: unknown[];
+    };
+    expect(detail.messages).toHaveLength(1);
+    expect(detail.ask).toHaveLength(1);
+    await desk().undo({ record: "dm", id: String(jo.id) });
+    expect((await readDraft(pg.db, `dm:${jo.id}`)).draft).toBe("A sheet, mostly.");
   });
 });

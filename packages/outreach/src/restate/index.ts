@@ -12,7 +12,8 @@
  *   account's health (the warmup ladder runs on it). A send, an answer or a
  *   post wakes it, so the first check comes at once. Every 6 hours the
  *   LinkedIn invites account (Shop → LinkedIn invites) is swept for accepts
- *   and stale invites, then topped up (invites.ts).
+ *   and stale invites, then topped up (invites.ts). Last, DM drafts for threads
+ *   waiting on William and accepted invites (drafts.ts), at most 30 a day.
  * - `ReachDesk`: the operator's reads and writes (accounts, finds, enrich,
  *   enroll, templates, threads), each one journaled.
  */
@@ -46,6 +47,8 @@ import { spineEmit } from "@wren/core/spine";
 import { COLD_EVERY_MS, warmEveryMs } from "@wren/core/warm";
 import { cadenceId } from "@wren/core/workflows";
 import type { Db } from "@wren/db";
+import type { LlmClient } from "@wren/llm";
+import { eq } from "drizzle-orm";
 import { z } from "zod";
 import {
   type AccountView,
@@ -78,10 +81,20 @@ import {
   enrichContact,
   listContacts,
 } from "../contacts.js";
+import {
+  contactsToDraft,
+  type DmGuide,
+  DRAFTS_PER_DAY,
+  draftDm,
+  draftsToday,
+  queueDraft,
+} from "../drafts.js";
 import { type EnrollStats, enroll } from "../enroll.js";
 import { reachLead } from "../follow.js";
+import { messageAccount, personContact } from "../from-people.js";
 import {
   applyWithdraw,
+  INVITE_SEQUENCE,
   type InviteSettings,
   inviteSettings,
   type SweepStats,
@@ -100,6 +113,7 @@ import {
   type Platform,
   type ReachAccount,
   type ReachContact,
+  reachContacts,
 } from "../schema.js";
 import { type ReachSequence, slotsOf } from "../sequences.js";
 import { listTemplates, type SetTemplate, type SlotView, setTemplate } from "../store.js";
@@ -113,7 +127,7 @@ import {
   type ThreadFilter,
   type ThreadSummary,
 } from "../threads.js";
-import { queueManual, type TickStats, tick } from "../tick.js";
+import { type TickStats, tick } from "../tick.js";
 import { discoveryHandlers } from "./discovery.js";
 
 export const SENDER_KEY = "fleet";
@@ -144,6 +158,8 @@ export interface ReachDeps {
   clock?: () => Date;
   /** When Wren last posted on `platform` (content's channel): a post warms that site's accounts. */
   postedAt?: (platform: Platform) => Promise<string | null>;
+  /** DM drafts: the model and the platform's `dm` SOP. No model, no drafts. */
+  drafts?: { llm: LlmClient | null; guide?: DmGuide };
 }
 
 /** Wake the watch so a touch's first check comes now, not after a cold sleep. */
@@ -251,6 +267,7 @@ export interface WatchStats {
   comments: { kept: number; errors: string[] };
   health: HealthStats;
   invites: InvitesPass | null;
+  drafts: { written: number; errors: string[] };
 }
 
 /** The invites account (settings) when it's an active LinkedIn row, else null. */
@@ -285,6 +302,38 @@ async function invitesPass(
     }),
   );
   return { account: a.account, sweep, topUp: top };
+}
+
+/** Draft each contact whose next message is ours, one model call each, under the day's cap. */
+async function draftsPass(
+  deps: ReachDeps,
+  ctx: restate.Context,
+  now: Date,
+): Promise<WatchStats["drafts"]> {
+  const out: WatchStats["drafts"] = { written: 0, errors: [] };
+  const llm = deps.drafts?.llm;
+  if (!llm) return out;
+  const due = await ctx.run("drafts due", async () =>
+    contactsToDraft(deps.db, DRAFTS_PER_DAY - (await draftsToday(deps.db, now))),
+  );
+  for (const id of due) {
+    // A failed call is kept as its words, not thrown: the next pass asks again.
+    const r = await ctx.run(`draft ${id}`, async () => {
+      try {
+        const draft = await draftDm(deps.db, llm, id, {
+          sender: deps.senderName,
+          ...(deps.drafts?.guide ? { guide: deps.drafts.guide } : {}),
+          now,
+        });
+        return { written: draft ? 1 : 0, error: null };
+      } catch (err) {
+        return { written: 0, error: `draft ${id}: ${errorText(err)}` };
+      }
+    });
+    out.written += r.written;
+    if (r.error) out.errors.push(r.error);
+  }
+  return out;
 }
 
 export function makeReachWatch(deps: ReachDeps) {
@@ -379,9 +428,10 @@ export function makeReachWatch(deps: ReachDeps) {
         }
       }
     }
+    const drafts = await draftsPass(deps, ctx, now);
     ctx.set(READS, reads);
     ctx.set(HEALTH, checked);
-    const stats: WatchStats = { replies, comments: kept, health, invites };
+    const stats: WatchStats = { replies, comments: kept, health, invites, drafts };
     const next = live.map((a) => (reads[a.id] ?? 0) + (everyOf.get(a.id) ?? 0) - now.getTime());
     const outcome: PassOutcome<WatchStats> = {
       stats,
@@ -410,6 +460,7 @@ export function makeReachWatch(deps: ReachDeps) {
             ...replies.errors,
             ...kept.errors,
             ...health.errors,
+            ...drafts.errors,
           ]
             .filter(Boolean)
             .join("\n"),
@@ -479,7 +530,7 @@ const THREADS = z
   })
   .nullish();
 const REPLY = CONTACT.extend({
-  body: z.string(),
+  body: z.string().nullish().describe("The words; the console leaves an untouched draft out"),
   subject: z.string().nullish().describe("Reddit only"),
 });
 const STATS = z.looseObject({ platform: PLATFORM.nullish(), days: z.number().nullish() }).nullish();
@@ -488,6 +539,12 @@ const ANSWER = COMMENT.extend({
   body: z.string().nullish().describe("The words; the console leaves an untouched draft out"),
 });
 const DM = COMMENT.extend({ body: z.string() });
+const PERSON = z.looseObject({
+  id: z.string().describe("A People id: li:<people.id> or reddit:<handle>"),
+});
+const PERSON_MESSAGE = PERSON.extend({
+  body: z.string().nullish().describe("The words; the console leaves an untouched draft out"),
+});
 
 export function makeReachDesk(deps: ReachDeps) {
   const terminal = async <T>(fn: () => Promise<T>): Promise<T> => {
@@ -727,19 +784,14 @@ export function makeReachDesk(deps: ReachDeps) {
         { input: REPLY, effect: "sends" },
         async (
           ctx: restate.Context,
-          req: { contactId: number; body: string; subject?: string | null },
+          req: { contactId: number; body?: string | null; subject?: string | null },
         ): Promise<{ messageId: number }> => {
           const now = await nowOf(ctx);
           const msg = await ctx.run("queue", () =>
             terminal(async () => {
               const contact = await contactById(deps.db, req.contactId);
               if (contact.state === "opted_out") throw new ReachRefusal("they asked to stop");
-              return queueManual(deps.db, {
-                contact,
-                body: req.body,
-                subject: req.subject ?? null,
-                now,
-              });
+              return queueDraft(deps.db, contact, req.body, req.subject ?? null, now);
             }),
           );
           await ctx.run("mark read", () => markRead(deps.db, req.contactId, now));
@@ -843,6 +895,98 @@ export function makeReachDesk(deps: ReachDeps) {
                 : "no account set in Shop → LinkedIn invites",
             };
           return invitesPass(deps, ctx, a, settings, now);
+        },
+      ),
+      /** A person from People: their contact, added when new, with a model draft to edit. */
+      draftPerson: serviceHandler(
+        { input: PERSON },
+        async (
+          ctx: restate.Context,
+          req: { id: string },
+        ): Promise<{ contactId: number; draft: string | null }> => {
+          const llm = deps.drafts?.llm;
+          if (!llm) throw new restate.TerminalError("no model is set for DM drafts");
+          const now = await nowOf(ctx);
+          const contact = await ctx.run("contact", () =>
+            terminal(async () => {
+              const c = await personContact(deps.db, req.id);
+              await messageAccount(deps.db, c, now);
+              return c;
+            }),
+          );
+          // He is waiting on the box: a failed call says so once, not a retry loop.
+          const draft = await ctx.run("draft", async () => {
+            try {
+              return await draftDm(deps.db, llm, contact.id, {
+                sender: deps.senderName,
+                ...(deps.drafts?.guide ? { guide: deps.drafts.guide } : {}),
+                now,
+              });
+            } catch (err) {
+              throw new restate.TerminalError(`the draft failed: ${errorText(err)}`);
+            }
+          });
+          return { contactId: contact.id, draft };
+        },
+      ),
+      /** Message a person from People, queued like a reply (its window and caps). */
+      messagePerson: serviceHandler(
+        { input: PERSON_MESSAGE, effect: "sends" },
+        async (
+          ctx: restate.Context,
+          req: { id: string; body?: string | null },
+        ): Promise<{ contactId: number; messageId: number }> => {
+          const now = await nowOf(ctx);
+          const r = await ctx.run("queue", () =>
+            terminal(async () => {
+              const c = await personContact(deps.db, req.id);
+              const a = await messageAccount(deps.db, c, now);
+              if (!c.accountId)
+                await deps.db
+                  .update(reachContacts)
+                  .set({ accountId: a.id })
+                  .where(eq(reachContacts.id, c.id));
+              const msg = await queueDraft(deps.db, { ...c, accountId: a.id }, req.body, null, now);
+              return { contactId: c.id, messageId: msg.id };
+            }),
+          );
+          nudge(ctx);
+          return r;
+        },
+      ),
+      /** Invite a person from People on LinkedIn now: `linkedin-invite`, under the ramp. */
+      invitePerson: serviceHandler(
+        { input: PERSON, effect: "sends" },
+        async (ctx: restate.Context, req: { id: string }): Promise<{ contactId: number }> => {
+          const seq = deps.sequences.get(INVITE_SEQUENCE);
+          if (!seq) throw new restate.TerminalError(`no sequence ${INVITE_SEQUENCE}`);
+          const now = await nowOf(ctx);
+          const contactId = await ctx.run("enroll", () =>
+            terminal(async () => {
+              const settings = await inviteSettings(deps.db);
+              const a = invitesAccount(await listAccounts(deps.db), settings);
+              if (!a) throw new ReachRefusal("no active account set in Shop → LinkedIn invites");
+              const c = await personContact(deps.db, req.id);
+              if (c.platform !== "linkedin") throw new ReachRefusal("invites are LinkedIn only");
+              if (c.connectedAt) throw new ReachRefusal("already connected: message them");
+              if (c.state !== "new") throw new ReachRefusal(`already ${c.state}`);
+              const e = await enroll(deps.db, {
+                sequence: seq,
+                sender: deps.senderName,
+                contactIds: [c.id],
+                limit: 1,
+                account: a.account,
+                now,
+              });
+              if (!e.enrolled)
+                throw new ReachRefusal(
+                  (await contactById(deps.db, c.id)).stateReason ?? "not enrolled",
+                );
+              return c.id;
+            }),
+          );
+          nudge(ctx);
+          return { contactId };
         },
       ),
       ...discoveryHandlers(deps),

@@ -6,6 +6,7 @@ export * from "./discovery/people.js";
 export * from "./discovery/places.js";
 export * from "./discovery/reads.js";
 export * from "./discovery/threads.js";
+export * from "./drafts.js";
 export * from "./enroll.js";
 export * from "./follow.js";
 export * from "./invites.js";

@@ -25,6 +25,8 @@ import {
   COMMENTS_SOP,
   commentGuide,
   contentDrafts,
+  DM_SOP,
+  dmGuide,
   playbookFor,
   pushPlaybook,
   socialActivity,
@@ -234,6 +236,11 @@ describe("SocialWatch", () => {
     yt.happen(follow("f9", 1000));
     yt.happen(follow("f10", 2000));
     await sync();
+    const idea = await addIdea(pg.db, "idea waiting", "cli");
+    const [d] = await pg.db
+      .insert(contentDrafts)
+      .values({ ideaId: idea.id, platform: "linkedin", text: "A draft", promptVersion: "test" })
+      .returning();
     const inbox = (await inboxRecord.rows?.(pg.db)) ?? [];
     expect(inbox.map((r) => r.id).sort()).toEqual(
       expect.arrayContaining([
@@ -241,6 +248,12 @@ describe("SocialWatch", () => {
         expect.stringMatching(/^activity:\d+$/),
       ]),
     );
+    // A post draft waits on a yes, its id the draft's own after the colon.
+    expect(inbox.find((r) => r.id === `draft:${d?.id}`)).toMatchObject({
+      type: "draft",
+      state: "waiting",
+      body: "A draft",
+    });
     expect(inbox.find((r) => r.type === "comment")).toMatchObject({
       platform: "linkedin",
       channel: "content",
@@ -283,7 +296,10 @@ describe("comment guide", () => {
       text: "Short lines.",
     });
     await pushPlaybook(pg.db, { platform: "linkedin", sop: COMMENTS_SOP, text: "Answer in kind." });
+    await pushPlaybook(pg.db, { platform: "linkedin", sop: DM_SOP, text: "Two lines." });
     expect((await playbookFor(pg.db, "linkedin"))?.sop).toBe("linkedin-posts");
+    expect(await dmGuide(pg.db, "linkedin")).toBe("Two lines.");
+    expect(await dmGuide(pg.db, "reddit")).toBe("");
     const guide = await commentGuide(pg.db, "linkedin");
     expect(guide).toContain("Short lines.");
     expect(guide).toContain("Answer in kind.");

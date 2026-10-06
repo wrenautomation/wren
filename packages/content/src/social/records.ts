@@ -1,12 +1,13 @@
 /**
- * Marketing → Inbox (designs/2026-10-06-social-inbox.md): comments, DMs and activity from every
- * platform in one list (`marketing.inbox`), activity alone (`marketing.activity`), and followers
- * per platform (`marketing.audience`).
+ * Marketing → Inbox (designs/2026-10-06-social-inbox.md, 2026-10-06-content-desk.md): everything
+ * waiting on William's click in one list (`marketing.inbox`): post drafts, comments, DMs, Reddit
+ * threads to answer, accepted invites and activity. Activity alone (`marketing.activity`), and
+ * followers per platform (`marketing.audience`).
  */
 import { draftTurns } from "@wren/core/ask";
 import { date, defineRecord, link, name, number, prose, status, text } from "@wren/core/records";
 import type { Queryable } from "@wren/db";
-import { commentRecord, dmRecord, PLATFORM_LABELS } from "@wren/outreach/records";
+import { commentRecord, dmRecord, PLATFORM_LABELS, threadRecord } from "@wren/outreach/records";
 import { sql } from "drizzle-orm";
 import { PLATFORM_NAMES } from "./store.js";
 
@@ -58,18 +59,59 @@ export const activityRecord = defineRecord({
 /** What waits on William in the Inbox: unread, unsorted or waiting. */
 export const INBOX_WAITING = { state: ["new", "waiting"] } as const;
 
+/** Post drafts waiting on a yes, with the slot each holds. */
+const draftRows = (db: Queryable) =>
+  rowsOf(
+    db,
+    sql`select id, platform, title, text, scheduled, created from marketing_draft_records
+      where state = 'draft' order by created desc limit ${ACTIVITY_ROWS}`,
+  );
+
+/** Accepted invites nobody wrote to yet: no message either way past the invite. */
+const acceptedRows = (db: Queryable) =>
+  rowsOf(
+    db,
+    sql`select c.id, coalesce(c.name, c.handle) who, c.headline, c.connected_at at, c.draft, c.url,
+        a.handle account, (c.read_at is null or c.read_at < c.connected_at) unread
+      from reach_contacts c left join reach_accounts a on a.id = c.account_id
+      where c.connected_at is not null and c.state not in ('opted_out', 'blocked')
+        and not exists (select 1 from reach_messages m where m.contact_id = c.id
+          and (m.direction = 'in' or m.kind <> 'connect'))
+      order by c.connected_at desc limit ${ACTIVITY_ROWS}`,
+  );
+
 /**
- * Comments, DM threads and activity as one list, newest first. Ids carry their type
- * (`comment:12`, `dm:5`, `activity:9`); each action reads the number after the colon.
+ * Everything waiting on William as one list. Ids carry their type (`draft:3`, `comment:12`,
+ * `dm:5`, `thread:abc`, `invite:7`, `activity:9`); each action reads the id after the colon.
+ * `due` orders "Waiting on you": a draft's slot, else when it came.
  */
 export const inboxRecord = defineRecord({
   id: "marketing.inbox",
   name: { one: "inbox item", many: "inbox items" },
   rows: async (db) => {
+    const ps = await draftRows(db);
     const cs = (await commentRecord.rows?.(db)) ?? [];
     const ds = (await dmRecord.rows?.(db)) ?? [];
+    const ts = ((await threadRecord.rows?.(db)) ?? []).filter((t) => t.state === "queued");
+    const is = await acceptedRows(db);
     const as = (await activityRecord.rows?.(db)) ?? [];
     return [
+      ...ps.map((p) => ({
+        id: `draft:${p.id}`,
+        type: "draft",
+        who: p.title,
+        platform: p.platform,
+        kind: "post",
+        channel: "content",
+        state: "waiting",
+        body: p.text,
+        post_title: null,
+        draft: null,
+        account: null,
+        at: p.created,
+        due: p.scheduled ?? p.created,
+        url: null,
+      })),
       ...cs.map((c) => ({
         id: `comment:${c.id}`,
         type: "comment",
@@ -83,6 +125,7 @@ export const inboxRecord = defineRecord({
         draft: c.draft,
         account: c.account,
         at: c.at,
+        due: c.at,
         url: c.url,
       })),
       ...ds.map((d) => ({
@@ -95,10 +138,43 @@ export const inboxRecord = defineRecord({
         state: d.waiting === "waiting" ? "waiting" : "read",
         body: d.last_body,
         post_title: null,
-        draft: null,
+        draft: d.draft,
         account: d.account,
         at: d.last_at,
+        due: d.last_at,
         url: null,
+      })),
+      ...ts.map((t) => ({
+        id: `thread:${t.id}`,
+        type: "thread",
+        who: t.author,
+        platform: "reddit",
+        kind: "thread",
+        channel: "reach",
+        state: "waiting",
+        body: t.body || t.title,
+        post_title: t.title,
+        draft: t.draft,
+        account: t.account,
+        at: t.posted_at,
+        due: t.posted_at,
+        url: t.url,
+      })),
+      ...is.map((i) => ({
+        id: `invite:${i.id}`,
+        type: "invite",
+        who: i.who,
+        platform: "linkedin",
+        kind: "invite",
+        channel: "reach",
+        state: i.unread ? "waiting" : "read",
+        body: i.headline,
+        post_title: null,
+        draft: i.draft,
+        account: i.account,
+        at: i.at,
+        due: i.at,
+        url: i.url,
       })),
       ...as.map((a) => ({
         id: `activity:${a.id}`,
@@ -113,6 +189,7 @@ export const inboxRecord = defineRecord({
         draft: null,
         account: null,
         at: a.at,
+        due: a.at,
         url: a.url,
       })),
     ];
@@ -123,7 +200,14 @@ export const inboxRecord = defineRecord({
   fields: {
     who: name("Who"),
     type: status(
-      { comment: neutral("Comment"), dm: neutral("DM"), activity: neutral("Activity") },
+      {
+        draft: neutral("Post"),
+        comment: neutral("Comment"),
+        dm: neutral("DM"),
+        thread: neutral("Thread"),
+        invite: neutral("Invite"),
+        activity: neutral("Activity"),
+      },
       "Type",
     ),
     platform: status(PLATFORM_LABELS, "Site"),
@@ -133,6 +217,9 @@ export const inboxRecord = defineRecord({
         comment_reply: neutral("Under our comment"),
         username_mention: neutral("Mention"),
         dm: neutral("DM"),
+        post: neutral("Post draft"),
+        thread: neutral("Thread to answer"),
+        invite: neutral("Accepted your invite"),
         ...KIND_LABELS,
       },
       "Kind",
@@ -148,34 +235,50 @@ export const inboxRecord = defineRecord({
     }),
     body: prose("Their words"),
     postTitle: text("Post"),
-    draft: prose("Draft answer"),
+    draft: prose("Draft reply"),
     account: text("On"),
     at: date("When"),
+    due: date("Due"),
     url: link("Open"),
   },
   views: [
+    { id: "waiting", label: "Waiting on you", where: INBOX_WAITING, sort: "due", at: "due" },
+    { id: "posts", label: "Posts", where: { type: "draft" }, sort: "due", at: "due" },
     { id: "comments", label: "Comments", where: { type: "comment" }, sort: "-at", at: "at" },
     { id: "dms", label: "DMs", where: { type: "dm" }, sort: "-at", at: "at" },
+    { id: "threads", label: "Threads", where: { type: "thread" }, sort: "-at", at: "at" },
+    { id: "invites", label: "Invites", where: { type: "invite" }, sort: "-at", at: "at" },
     { id: "activity", label: "Activity", where: { type: "activity" }, sort: "-at", at: "at" },
     { id: "all", label: "All", sort: "-at", at: "at" },
   ],
   actions: [
+    "marketing.approveDraft",
+    "marketing.editDraft",
+    "marketing.redraft",
+    "marketing.rejectDraft",
     "marketing.commentAnswer",
     "marketing.commentDm",
     "marketing.commentDrop",
     "marketing.dmReply",
     "marketing.dmRead",
+    "marketing.threadComment",
+    "marketing.threadSkip",
+    "marketing.inviteMessage",
+    "marketing.inviteRead",
     "marketing.activitySeen",
     "marketing.activityAllSeen",
     "marketing.draftAsk",
     "marketing.draftUndo",
   ],
-  /** A DM thread's messages; a draft's Ask Claude thread; nothing past the row for the rest. */
+  /** A DM thread's or an accepted invite's messages; a draft's Ask Claude thread; nothing for activity. */
   load: async (db, id) => {
     const at = id.indexOf(":");
     const [type, rest] = [id.slice(0, at), id.slice(at + 1)];
-    if (type === "dm") return (await dmRecord.load?.(db, rest)) ?? null;
-    return type === "activity" ? null : { ask: await draftTurns(db, type, rest) };
+    if (type === "activity") return null;
+    const ask = { ask: await draftTurns(db, type, rest) };
+    return type === "dm" || type === "invite"
+      ? { ...(await dmRecord.load?.(db, rest)), ...ask }
+      : ask;
   },
 });
 

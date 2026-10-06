@@ -145,6 +145,11 @@ export const reachContacts = pgTable(
     endedAt: timestamp("ended_at", { withTimezone: true }),
     /** Last time the operator opened this thread; inbound after it is unread. */
     readAt: timestamp("read_at", { withTimezone: true }),
+    /** Our next message, written for William to edit and send (drafts.ts); null = none waiting. */
+    draft: text("draft"),
+    draftAt: timestamp("draft_at", { withTimezone: true }),
+    /** The inbound message the draft answers; a newer one makes it stale. Null = a first message. */
+    draftFor: integer("draft_for"),
     createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   },
   (t) => [

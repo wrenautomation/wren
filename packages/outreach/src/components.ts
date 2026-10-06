@@ -18,6 +18,7 @@ export const OUTREACH_COMPONENTS = [
     provides: {
       services: ["ReachSender", "ReachWatch", "ReachDesk"],
       loops: ["ReachSender", "ReachWatch"],
+      records: ["marketing.person"],
     },
     effects: ["sends"],
     in: [{ id: "people", label: "people", kind: "person" }],

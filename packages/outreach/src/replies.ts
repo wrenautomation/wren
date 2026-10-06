@@ -78,8 +78,11 @@ export async function receive(
     .returning({ id: reachMessages.id });
   if (inserted.length === 0) return { received: 0, optedOut: 0 };
   const optOut = isOptOut(r.text);
-  if (!contact.accountId)
-    await db.update(reachContacts).set({ accountId }).where(eq(reachContacts.id, contact.id));
+  // A draft answered their older word: stale now, the watch drafts again (drafts.ts).
+  await db
+    .update(reachContacts)
+    .set({ draft: null, ...(contact.accountId ? {} : { accountId }) })
+    .where(eq(reachContacts.id, contact.id));
   if (optOut) await setContactState(db, contact.id, "opted_out", { reason: "asked to stop", now });
   else if (["new", "enrolled", "connected"].includes(contact.state))
     await setContactState(db, contact.id, "replied", { now });

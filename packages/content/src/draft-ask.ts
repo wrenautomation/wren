@@ -11,10 +11,10 @@ import { finishRun, openRun } from "@wren/core";
 import { type DraftCommand, draftTurns } from "@wren/core/ask";
 import type { Platform } from "@wren/core/content";
 import { atomic, type Queryable } from "@wren/db";
-import { comments, redditThreads } from "@wren/outreach";
-import { and, desc, eq, inArray, isNotNull } from "drizzle-orm";
+import { comments, DRAFT_MAX, dmContext, reachContacts, redditThreads } from "@wren/outreach";
+import { and, desc, eq, inArray, isNotNull, notInArray, sql } from "drizzle-orm";
 import { PLATFORM_SPECS } from "./platforms.js";
-import { commentGuide, playbookFor } from "./playbook.js";
+import { commentGuide, dmGuide, playbookFor } from "./playbook.js";
 import { editDraft } from "./review.js";
 import { contentDrafts, contentIdeas } from "./schema.js";
 
@@ -232,12 +232,80 @@ const thread: DraftKind = {
     })),
 };
 
+/** A contact who asked us to stop gets no draft. */
+const STOPPED: ("opted_out" | "blocked")[] = ["opted_out", "blocked"];
+/** An accepted invite nobody wrote to yet: no message either way past the invite. */
+const FIRST = sql`${reachContacts.connectedAt} is not null and not exists (select 1 from
+  reach_messages m where m.contact_id = ${reachContacts.id} and (m.direction = 'in' or m.kind <> 'connect'))`;
+
 /**
- * Each kind by its Inbox prefix.
- * TODO(content-desk-queue): `dm` (a reply, per waiting thread) and `invite` (a first message, per
- * accepted invite) read and write `reach_contacts.draft` once that branch adds the column.
+ * Our next DM to a reach contact (`reach_contacts.draft`): a reply on a thread (`dm`) or a first
+ * message to an accepted invite (`invite`). Ids are the contact's. A write answers their newest
+ * word (`draft_for`), so the watch's model doesn't write over it until they write again.
  */
-export const DRAFT_KINDS: Record<string, DraftKind> = { draft: post, comment, thread };
+const reach = (type: "dm" | "invite"): DraftKind => ({
+  type,
+  read: async (db, id) => {
+    if (!/^\d+$/.test(id)) return null;
+    const [c] = await db
+      .select()
+      .from(reachContacts)
+      .where(eq(reachContacts.id, Number(id)));
+    if (!c) return null;
+    return {
+      what: `${siteOf(c.platform)} ${type === "dm" ? "direct message" : "first message after they accepted my invite"}`,
+      title: c.name ?? c.handle,
+      draft: c.draft,
+      max: DRAFT_MAX,
+      open: !(STOPPED as string[]).includes(c.state),
+      context: (await dmContext(db, c.id)).prompt,
+      guide: await dmGuide(db, c.platform),
+    };
+  },
+  write: async (db, id, text) => {
+    const done = await db
+      .update(reachContacts)
+      .set({
+        draft: text,
+        draftAt: new Date(),
+        draftFor: sql`(select id from reach_messages where contact_id = ${Number(id)}
+          and direction = 'in' order by coalesce(sent_at, created_at) desc, id desc limit 1)`,
+      })
+      .where(and(eq(reachContacts.id, Number(id)), notInArray(reachContacts.state, STOPPED)))
+      .returning({ id: reachContacts.id });
+    if (!done.length) throw new Error(`contact ${id} asked us to stop`);
+  },
+  waiting: async (db, limit) =>
+    (
+      await db
+        .select()
+        .from(reachContacts)
+        .where(
+          and(
+            isNotNull(reachContacts.draft),
+            notInArray(reachContacts.state, STOPPED),
+            type === "invite" ? FIRST : sql`not (${FIRST})`,
+          ),
+        )
+        .orderBy(desc(reachContacts.draftAt))
+        .limit(limit)
+    ).map((c) => ({
+      item: `${type}:${c.id}`,
+      type,
+      title: `${siteOf(c.platform)}: ${c.name ?? c.handle}`,
+      draft: c.draft,
+      at: c.draftAt ?? c.createdAt,
+    })),
+});
+
+/** Each kind by its Inbox prefix. */
+export const DRAFT_KINDS: Record<string, DraftKind> = {
+  draft: post,
+  comment,
+  thread,
+  dm: reach("dm"),
+  invite: reach("invite"),
+};
 
 /** "comment:12" as its kind and id; throws on one no kind holds. */
 export function itemOf(item: string): { record: string; id: string; kind: DraftKind } {
