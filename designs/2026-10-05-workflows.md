@@ -122,6 +122,8 @@ Texts, DMs and email each run their own sequence today, with the same step shape
   - A person is in at most one active sequence across channels. A cadence that mixes channels counts as one.
   - A firm gets at most one first touch a day across channels.
   - A refused enroll keeps its reason as data, like any other stop.
+- **Built 2026-10-05** (`packages/core/src/leads.ts`). Each channel already guards itself, so the guard checks only the other two. Texts and DMs check both rules at enroll (their opener queues then) and keep a refusal in `state_reason`, staying `new`. Email checks the active-sequence rule at compose (`skipped_lead_busy`). Email drafts days ahead, so its first-touch rule sits in the send gate: an opener waits while a text or DM touched the firm in the last day (`first_touch_waiting`). Form applicants skip the guard, since speed to lead wins.
+- **Person links not built.** Checked on prod 2026-10-05: 0 text or DM contacts have a name or email at a known firm, so a fill would link nothing. It waits for the first source that writes them.
 
 ### Email on the spine (#48)
 

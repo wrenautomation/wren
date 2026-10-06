@@ -24,6 +24,7 @@
 import { randomUUID } from "node:crypto";
 import { companies, type Suppression } from "@wren/core";
 import type { Calendar } from "@wren/core/calendar";
+import { firstTouchElsewhere } from "@wren/core/leads";
 import { atomic, type Db, type Queryable } from "@wren/db";
 import {
   and,
@@ -106,6 +107,7 @@ export const STAT_KEYS = [
   "senders_capped",
   "gap_waiting",
   "openers_capped",
+  "first_touch_waiting",
   "raced",
   "sender_errors",
   "reconciled_sent",
@@ -341,6 +343,11 @@ export async function sendDue(db: Db, opts: SendDueOptions): Promise<SendStats> 
         (nicheCap !== null && (nicheOpeners.get(enrollment.niche) ?? 0) >= nicheCap))
     ) {
       stats.openers_capped += 1;
+      continue;
+    }
+    // One first touch a firm a day across channels: a text or DM there today holds the opener.
+    if (opening && (await firstTouchElsewhere(db, enrollment.companyId, "email", now)) !== null) {
+      stats.first_touch_waiting += 1;
       continue;
     }
     const conflict = await cooldownConflict(db, enrollment, policy, now);

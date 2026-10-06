@@ -5,11 +5,13 @@
  * Who is skipped, and why it is written down: a basis the campaign does not
  * cover (left `new`), a landline or toll-free (`unreachable`), an opted-out
  * number (`opted_out`), a company that already has a running thread (left
- * `new`; one thread per company). Nothing here sends. A sequence with any
+ * `new`; one thread per company), a lead another channel holds or a firm another channel touched
+ * today (left `new`, the reason in `state_reason`; `@wren/core/leads`). Nothing here sends. A sequence with any
  * step still empty (template-store.ts) enrolls no one. A form applicant is
  * enrolled only by name, by the form follow-up (form.ts), never by a cold run.
  */
 import { activeSuppressionsOf } from "@wren/core";
+import { leadRefusal } from "@wren/core/leads";
 import { atomic, type Db } from "@wren/db";
 import { and, asc, eq, inArray, isNull, ne, notInArray, or, sql } from "drizzle-orm";
 import { countryOf } from "./phone.js";
@@ -45,6 +47,8 @@ export interface EnrollStats {
   notTextable: number;
   suppressed: number;
   companyBusy: number;
+  /** Another channel holds the lead, or touched its firm today: left `new`, reason kept. */
+  leadBusy: number;
   /** Some contact had no active pool number in its country: left `new`. */
   noNumber: boolean;
   lookupErrors: string[];
@@ -81,6 +85,7 @@ export async function enroll(db: Db, opts: EnrollOptions): Promise<EnrollStats> 
     notTextable: 0,
     suppressed: 0,
     companyBusy: 0,
+    leadBusy: 0,
     noNumber: false,
     lookupErrors: [],
   };
@@ -124,6 +129,13 @@ export async function enroll(db: Db, opts: EnrollOptions): Promise<EnrollStats> 
     }
     if (await companyBusy(db, c.companyId, c.id)) {
       stats.companyBusy += 1;
+      continue;
+    }
+    // An applicant who just filled the form is answered now, whatever else runs at the firm.
+    const busy = c.sourceKind === "form" ? null : await leadRefusal(db, c, "text", opts.now);
+    if (busy) {
+      await db.update(smsContacts).set({ stateReason: busy }).where(eq(smsContacts.id, c.id));
+      stats.leadBusy += 1;
       continue;
     }
     // A number first: a lookup for a phone no pool number can text is money for nothing.

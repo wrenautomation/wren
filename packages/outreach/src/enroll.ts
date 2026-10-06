@@ -3,8 +3,11 @@
  * account, and queue the first thing to go: the invite (LinkedIn) or step 1
  * (Reddit). Nothing here sends. A sequence with any step still empty
  * (store.ts) enrolls no one. A contact with no page read yet is enrolled
- * anyway; the template's fallbacks cover the blanks.
+ * anyway; the template's fallbacks cover the blanks. A lead another channel
+ * holds, or a firm another channel touched today, is left `new` with the
+ * reason (`@wren/core/leads`).
  */
+import { leadRefusal } from "@wren/core/leads";
 import type { Queryable } from "@wren/db";
 import { and, asc, eq, inArray, isNotNull } from "drizzle-orm";
 import { activeAccounts } from "./accounts.js";
@@ -31,6 +34,8 @@ export interface EnrollStats {
   enrolled: number;
   /** No active account on the platform: nobody enrolled. */
   noAccount: boolean;
+  /** Another channel holds the lead, or touched its firm today: left `new`, reason kept. */
+  leadBusy: number;
 }
 
 /** The bodies a sequence needs, or a refusal naming the empty slot. */
@@ -54,7 +59,7 @@ export async function enroll(db: Queryable, o: EnrollOptions): Promise<EnrollSta
   const seq = o.sequence;
   const bodies = await sequenceBodies(db, seq);
   const accounts = await activeAccounts(db, seq.platform);
-  if (accounts.length === 0) return { considered: 0, enrolled: 0, noAccount: true };
+  if (accounts.length === 0) return { considered: 0, enrolled: 0, noAccount: true, leadBusy: 0 };
   const load = await loadByAccount(db, seq.platform);
   const lightest = () =>
     [...accounts].sort(
@@ -76,7 +81,14 @@ export async function enroll(db: Queryable, o: EnrollOptions): Promise<EnrollSta
     .limit(Math.max(o.limit, 0));
 
   let enrolled = 0;
+  let leadBusy = 0;
   for (const c of candidates) {
+    const busy = await leadRefusal(db, c, "dm", o.now);
+    if (busy) {
+      await db.update(reachContacts).set({ stateReason: busy }).where(eq(reachContacts.id, c.id));
+      leadBusy++;
+      continue;
+    }
     const account = lightest();
     const fields = fieldsFor(c, o.sender);
     const first = seq.steps[0];
@@ -134,5 +146,5 @@ export async function enroll(db: Queryable, o: EnrollOptions): Promise<EnrollSta
     load.set(account.id, (load.get(account.id) ?? 0) + 1);
     enrolled++;
   }
-  return { considered: candidates.length, enrolled, noAccount: false };
+  return { considered: candidates.length, enrolled, noAccount: false, leadBusy };
 }

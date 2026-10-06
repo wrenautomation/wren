@@ -13,7 +13,7 @@ One phone number we may text, with the basis for texting it, its carrier lookup,
 
 ## Why this shape
 
-Consent basis is a column, not a comment: `published` (the business put the number on its own site, with the document as evidence; read from [[research/contact-point]]) or `opt_in` (they wrote first, were added by hand with a reason, or ticked the texts box on the site's form) (`lift.ts:1`, `events.ts:1`, `form.ts:1`). One thread per company; a landline or toll-free lands `unreachable`; a STOP lands `opted_out` and a phone suppression, forever (`enroll.ts:1`).
+Consent basis is a column, not a comment: `published` (the business put the number on its own site, with the document as evidence; read from [[research/contact-point]]) or `opt_in` (they wrote first, were added by hand with a reason, or ticked the texts box on the site's form) (`lift.ts:1`, `events.ts:1`, `form.ts:1`). One thread per company, and none while an email or DM sequence holds the same lead or touched the firm in the last day (left `new`, the reason in `state_reason`; form applicants exempt; `packages/core/src/leads.ts`); a landline or toll-free lands `unreachable`; a STOP lands `opted_out` and a phone suppression, forever (`enroll.ts:1`).
 
 ## Shape
 

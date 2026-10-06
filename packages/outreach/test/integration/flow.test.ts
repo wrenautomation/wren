@@ -162,7 +162,7 @@ describe("reddit sequence", () => {
     });
     expect(c.handle).toBe("dana_dev");
     const e = await enroll(db(), { sequence: REDDIT, sender: "William", limit: 10, now: OPEN });
-    expect(e).toEqual({ considered: 1, enrolled: 1, noAccount: false });
+    expect(e).toEqual({ considered: 1, enrolled: 1, noAccount: false, leadBusy: 0 });
     const [first] = await messagesOf(c.id);
     expect(first?.body).toBe("Hi Dana, saw you in the thread. William");
     expect(first?.subject).toBe("quick one from reddit");

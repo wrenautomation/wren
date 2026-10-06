@@ -1159,6 +1159,29 @@ describe("the lead's window", () => {
   });
 });
 
+// --- one first touch a firm a day, across channels -------------------------
+
+describe("a firm texted today", () => {
+  it("holds the email opener a day after the text went out", async () => {
+    const e = await enrollOne("texted.example", "a@texted.example");
+    const textedAt = plus(NOW, -2 * HOUR);
+    await db().execute(sql`
+      INSERT INTO sms_contacts (e164, source_kind, basis, company_id, state, enrolled_at, sequence)
+      VALUES ('+15550001234', 'page', 'published', ${e.companyId}, 'enrolled',
+        ${textedAt.toISOString()}, 'cold')`);
+    try {
+      const held = await tick(console_());
+      expect(held.sent).toBe(0);
+      expect(held.first_touch_waiting).toBe(1);
+      expect((await step(e, 0)).state).toBe("approved");
+      const next = await tick(console_(), { now: plus(textedAt, 25 * HOUR) });
+      expect(next.sent).toBe(1);
+    } finally {
+      await db().execute(sql`DELETE FROM sms_contacts`);
+    }
+  });
+});
+
 describe("call times", () => {
   // NOW is Wednesday noon UTC; the lead's firm has no zone, so they hear ET.
   // Two weekdays out is Friday; Thursday and mornings are never offered.

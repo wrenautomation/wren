@@ -18,6 +18,7 @@
  * one), so a lost race on the partial unique indexes costs one company, not the run.
  */
 import { randomBytes } from "node:crypto";
+import { activeElsewhere } from "@wren/core/leads";
 import { atomic, type Queryable } from "@wren/db";
 import { type SQL, sql } from "drizzle-orm";
 import { activeSuppression, activeSuppressions, type SharedSuppressions } from "../guards.js";
@@ -116,6 +117,8 @@ export interface ComposeStats {
   skipped_address_done: number;
   /** Lost the race for a company/address/person against another compose run. */
   skipped_already_enrolled: number;
+  /** A text or DM sequence holds the lead (the person, or the firm's line for a role inbox). */
+  skipped_lead_busy: number;
   flagged_possible_duplicate: number;
 }
 
@@ -132,6 +135,7 @@ const newStats = (): ComposeStats => ({
   skipped_where: 0,
   skipped_address_done: 0,
   skipped_already_enrolled: 0,
+  skipped_lead_busy: 0,
   flagged_possible_duplicate: 0,
 });
 
@@ -550,6 +554,12 @@ async function personPass(
         stats.skipped_suppressed++;
         continue;
       }
+      if (
+        await activeElsewhere(db, { personId: row.person_id, companyId: row.company_id }, "email")
+      ) {
+        stats.skipped_lead_busy++;
+        continue;
+      }
       const filed = await factsFor(db, row.person_id, shared.factsView);
       if (!passesWhere(filed.values, shared.where)) {
         stats.skipped_where++;
@@ -600,6 +610,10 @@ async function roleInboxPass(db: Queryable, shared: Shared, limit: number | null
     }
     if (suppressed(row.email) !== null) {
       stats.skipped_suppressed++;
+      continue;
+    }
+    if (await activeElsewhere(db, { personId: null, companyId: row.company_id }, "email")) {
+      stats.skipped_lead_busy++;
       continue;
     }
     const filed = await factsForCompany(db, row.company_id, shared.factsView);
