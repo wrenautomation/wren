@@ -478,14 +478,21 @@ export const inviteRecord = defineRecord({
       left join reach_accounts a on a.id = i.account_id
       order by coalesce(i.connected_at, i.withdrawn_at, i.sent_at, i.queued_at) desc
       limit ${THREAD_ROWS}`)) as unknown as Array<Record<string, unknown>>
-    ).map((r) => ({ ...r, days: r.sent_at ? r.days : null })),
+    ).map((r) => ({
+      ...r,
+      days: r.sent_at ? r.days : null,
+      // The campaign as the views name it (0072): "recruiting" is "Recruiting".
+      niche: r.niche
+        ? String(r.niche).charAt(0).toUpperCase() + String(r.niche).slice(1).replaceAll("_", " ")
+        : null,
+    })),
   key: "id",
   title: "who",
   subtitle: "headline",
   fields: {
     who: name("Who"),
     headline: text(),
-    niche: text("Niche"),
+    niche: text("Campaign"),
     status: status({
       queued: neutral("To send"),
       pending: { label: "Pending", tone: "warn" },

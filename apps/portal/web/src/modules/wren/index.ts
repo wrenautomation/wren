@@ -744,6 +744,7 @@ export const money: Module = {
       template: "list",
       record: "books.account",
       empty: { expenses: "No expense accounts yet.", all: "No accounts yet." },
+      columns: ["type", "bucket", "channel"],
       actions: ACCOUNT_ACTIONS,
     },
   ],
