@@ -178,7 +178,9 @@ describe("suppressions", () => {
     const event = await unsubscribeEverything(pg.db, { ...email, evidence: { page: "prefs" } });
     expect(await may(t0)).toMatchObject({ why: "suppressed" });
     expect(await undoUnsubscribeEverything(pg.db, { ...email, event: event + 1 })).toBe(false);
-    expect(await undoUnsubscribeEverything(pg.db, { ...email, event, now: at(2) })).toBe(false);
+    // The event is stamped by the database's clock, so "too late" is two days past real now.
+    const late = new Date(Date.now() + 2 * DAY);
+    expect(await undoUnsubscribeEverything(pg.db, { ...email, event, now: late })).toBe(false);
     expect(await undoUnsubscribeEverything(pg.db, { ...email, event })).toBe(true);
     expect(await may(t0)).toMatchObject({ send: true });
     expect(await undoUnsubscribeEverything(pg.db, { ...email, event })).toBe(false);

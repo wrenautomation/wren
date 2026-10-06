@@ -71,7 +71,7 @@ export const OUTREACH_COMPONENTS = [
     channels: ["dm"],
     name: "Comment reader",
     blurb:
-      "Reads each account's inbox every 30 minutes: comments on our posts and under our comments.",
+      "Reads each account's inbox every 2 minutes after a touch, easing to 30: comments on our posts and under our comments.",
     icon: "people",
     for: "wren",
     ready: false,
@@ -89,6 +89,11 @@ export const OUTREACH_COMPONENTS = [
           built: "the reach_accounts rows",
         },
         { is: "change", says: "LinkedIn, X and IG comments, as another reader.", built: null },
+        {
+          is: "change",
+          says: "How fast it checks: 2 min for 15 min after a touch, then 5, 15, 30.",
+          built: "WARM_TIERS in @wren/core/warm",
+        },
         {
           is: "fixed",
           says: "One inbox read per account serves DMs and comments; nothing is marked read.",
