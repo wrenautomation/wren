@@ -1,8 +1,8 @@
 ---
 type: process
 status: verified
-verified: 2026-09-28 @ 83459e9
-consumes: ["[[content/idea]]", "[[content/platform]]", "[[content/media]]", "[[content/playbook]]", "[[platform/llm-client]]"]
+verified: 2026-10-06 @ f25d7ac
+consumes: ["[[content/idea]]", "[[content/comment]]", "[[content/platform]]", "[[content/media]]", "[[content/playbook]]", "[[platform/llm-client]]"]
 produces: ["[[content/draft]]", "[[content/content-metric]]", "[[content/idea]]"]
 ---
 
@@ -12,11 +12,11 @@ An idea in William's words becomes one draft per platform, a person approves, th
 
 ## Input → Movement → Output
 
-An idea (CLI, or minted by AdsWatch). `ContentDesk.draft` pays once per platform, journaled; the review seat approves, rejects or edits (rows, straight to Postgres); `ContentScheduler` claims due drafts and publishes through the `Content` service, which speaks each platform's API through autobrowse's `sites` (Reddit direct); `ContentMetrics` snapshots young posts daily and says what worked on Mondays; `ContentPlanner` says tomorrow's shortfall.
+An idea (CLI, or minted by AdsWatch). `ContentDesk.draft` pays once per platform, journaled; the review seat approves, rejects or edits (rows, straight to Postgres); `ContentScheduler` claims due drafts and publishes through the `Content` service, which speaks each platform's API through autobrowse's `sites` (Reddit direct); `ContentMetrics` snapshots young posts daily and says what worked on Mondays; `ContentPlanner` says tomorrow's shortfall and, with `draft` on, fills each open slot first: ideas from `nextIdea` (undrafted ideas, the day's build log, a reader's question), drafted through `ContentDesk.draft`, each new row given its slot (O5).
 
 ## Why this shape
 
-Drafting costs money and approving is publishing, so both stay a person's call; the loops only move approved rows. A draft edited after approval goes back to `draft`. A crash between the two row moves leaves a visible `publishing` row and never posts twice.
+Approving is publishing, so it stays a person's call; the loops only move approved rows. Drafting runs on the worker's LLM (Cohere, $0), so the planner may draft, but its drafts wait as `draft` like any other. A draft edited after approval goes back to `draft`. A crash between the two row moves leaves a visible `publishing` row and never posts twice.
 
 ## Steps
 
@@ -25,6 +25,7 @@ Drafting costs money and approving is publishing, so both stay a person's call; 
 3. Review (`review.ts:70`, `:165`, `:170`); slots (`slots.ts`).
 4. Publish (`restate/scheduler.ts`; `queue.ts:37`; `packages/core/src/content/restate.ts:65`; adapters `packages/channel-*/src/content.ts`).
 5. Metrics and plan (`metrics.ts:50`, `:97`; `restate/metrics.ts`; `plan.ts`; `restate/planner.ts`).
+6. Daily drafts: open slots (`plan.ts:89`), next idea (`plan.ts:128`; `ideas/build-log.ts`, GitHub's public commits API, no token; `ideas/questions.ts`), fill (`restate/planner.ts:148`). Settings: `platforms`, `draft`, `slots`.
 
 ## If you change this
 
@@ -36,6 +37,7 @@ Drafting costs money and approving is publishing, so both stay a person's call; 
 | Surface | Role |
 |---|---|
 | `wren content add/draft/approve/reject/edit/results/costs` | drives |
+| `wren content planner start --draft [--slots <json>]` | turns daily drafts on |
 | `ContentDesk`, `ContentScheduler`, `ContentMetrics`, `ContentPlanner`, `Content` | run |
 | `TokenRenewal/box` | keeps platform tokens valid |
 

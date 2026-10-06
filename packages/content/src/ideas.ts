@@ -17,6 +17,30 @@ export async function addIdea(
   return row;
 }
 
+/** The planner's idea, made once per `ref`; null when that ref already has one. */
+export async function addIdeaOnce(
+  db: Queryable,
+  text: string,
+  source: IdeaSource,
+  ref: string,
+): Promise<ContentIdea | null> {
+  const [row] = await db
+    .insert(contentIdeas)
+    .values({ text: text.trim(), source, ref })
+    .onConflictDoNothing({ target: contentIdeas.ref })
+    .returning();
+  return row ?? null;
+}
+
+export async function hasIdeaRef(db: Queryable, ref: string): Promise<boolean> {
+  const [row] = await db
+    .select({ id: contentIdeas.id })
+    .from(contentIdeas)
+    .where(eq(contentIdeas.ref, ref))
+    .limit(1);
+  return row !== undefined;
+}
+
 export function listIdeas(db: Queryable, status: IdeaStatus, limit = 50): Promise<ContentIdea[]> {
   return db
     .select()

@@ -97,7 +97,12 @@ export async function approveDrafts(
       slots = await heldSlots(db, draft.platform, o.now);
       held.set(draft.platform, slots);
     }
-    const at = nextSlot(draft.platform, o.now, zone, undefined, slots);
+    // The planner's draft holds its slot: approving schedules it there while it is ahead and free.
+    const own = draft.scheduledFor;
+    const at =
+      own && own > o.now && !slots.some((t) => t.getTime() === own.getTime())
+        ? own
+        : nextSlot(draft.platform, o.now, zone, undefined, slots);
     const moved = await moveAll(db, [id], APPROVABLE, { ...base, scheduledFor: at }, "approve");
     for (const m of moved) if (m.scheduledFor) slots.push(m.scheduledFor);
     rows.push(...moved);
@@ -166,7 +171,10 @@ export function rejectDrafts(db: Queryable, ids: readonly string[]): Promise<Con
   return moveAll(db, ids, REJECTABLE, { status: "rejected", scheduledFor: null }, "reject");
 }
 
-/** Replace the text (and title); the draft goes back to `draft` for a fresh approval. */
+/**
+ * Replace the text (and title); the draft goes back to `draft` for a fresh approval. It keeps
+ * its `scheduled_for`: on a `draft` row that is only the slot it holds, used again on approve.
+ */
 export async function editDraft(
   db: Queryable,
   id: string,
@@ -188,7 +196,7 @@ export async function editDraft(
   }
   const [row] = await db
     .update(contentDrafts)
-    .set({ text, title, edited: true, status: "draft", scheduledFor: null, error: null })
+    .set({ text, title, edited: true, status: "draft", error: null })
     .where(eq(contentDrafts.id, id))
     .returning();
   if (!row) throw new Error(`no draft ${id}`);

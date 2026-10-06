@@ -191,3 +191,9 @@ loads a day on the Mac. Restate runs on the box now, so passes cost nothing extr
 - 2026-10-06: Written from William's ask. Reuses `comments`, the content channels' comment
   reads and replies, the reach sort, and Marketing's records. New: `social_activity`,
   `social_days`, `SocialWatch/wren` and Marketing → Inbox.
+- 2026-10-06: Built O5. `ContentPlanner` with `draft` on fills tomorrow's open slots through
+  `ContentDesk.draft` (the worker's LLM). Ideas: undrafted, then `build_log` (GitHub's public
+  commits API, no token), then `question`; `content_ideas.ref` makes each once (migration 0118).
+  A `draft` row's `scheduled_for` is its slot; approve, edit and redraft keep it. Slots are the
+  planner's `slots` setting over the defaults (LinkedIn and Reddit stay weekdays). Off until
+  `wren content planner start --draft`.

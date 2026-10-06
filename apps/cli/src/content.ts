@@ -317,23 +317,37 @@ export function registerContent(program: Command, withDb: WithDb, settings: Sett
 
   const pl = content
     .command("planner")
-    .description("the daily plan on Discord at 17:00 (ContentPlanner); off until started");
+    .description(
+      "the daily plan on Discord at 17:00, and with --draft tomorrow's drafts (ContentPlanner); off until started",
+    );
   pl.command("status").action(async () =>
     console.log(JSON.stringify(await planner().status(), null, 2)),
   );
   pl.command("start")
+    .description("Settings replace the stored ones when any flag is given")
     .option("--platforms <list>", "comma-separated (default linkedin,reddit)")
-    .action(async (o: { platforms?: string }) => {
+    .option("--draft", "fill tomorrow's open slots with drafts (Cohere); approving stays yours")
+    .option("--slots <json>", 'per-platform slots, e.g. {"linkedin":[{"hour":8,"minute":30}]}')
+    .action(async (o: { platforms?: string; draft?: boolean; slots?: string }) => {
       const platforms = platformsOf(o.platforms);
+      const body = {
+        ...(platforms ? { platforms } : {}),
+        ...(o.draft ? { draft: true } : {}),
+        ...(o.slots ? { slots: JSON.parse(o.slots) as Record<string, unknown> } : {}),
+      };
       console.log(
-        JSON.stringify(await planner().start(platforms ? { platforms } : undefined), null, 2),
+        JSON.stringify(
+          await planner().start(Object.keys(body).length > 0 ? body : undefined),
+          null,
+          2,
+        ),
       );
     });
   pl.command("stop").action(async () =>
     console.log(JSON.stringify(await planner().stop(), null, 2)),
   );
   pl.command("sync")
-    .description("Send tomorrow's plan now")
+    .description("Plan (and draft, if on) now")
     .action(async () => console.log(JSON.stringify(await planner().sync(), null, 2)));
 
   content

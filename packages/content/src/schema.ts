@@ -19,13 +19,15 @@ import {
   primaryKey,
   text,
   timestamp,
+  unique,
   uuid,
   varchar,
 } from "drizzle-orm/pg-core";
 
 export const IDEA_STATUSES = ["open", "drafted", "archived"] as const;
 export type IdeaStatus = (typeof IDEA_STATUSES)[number];
-export const IDEA_SOURCES = ["cli", "api", "ads"] as const;
+/** Who wrote it: a person, the API, `AdsWatch`, or the planner (a day's commits, a reader's question). */
+export const IDEA_SOURCES = ["cli", "api", "ads", "build_log", "question"] as const;
 export type IdeaSource = (typeof IDEA_SOURCES)[number];
 
 export const DRAFT_STATUSES = [
@@ -47,10 +49,13 @@ export const contentIdeas = pgTable(
     media: jsonb("media").$type<Media>(),
     source: varchar("source", { length: 16, enum: IDEA_SOURCES }).notNull(),
     status: varchar("status", { length: 16, enum: IDEA_STATUSES }).notNull().default("open"),
+    /** What the planner made it from (`build_log:<day>`, `comment:<id>`), so it is made once; null for a person's. */
+    ref: varchar("ref", { length: 200 }),
   },
   (t) => [
     primaryKey({ columns: [t.id], name: "pk_content_ideas" }),
     index("ix_content_ideas_status_created_at").on(t.status, t.createdAt),
+    unique("uq_content_ideas_ref").on(t.ref),
     oneOf("ck_content_ideas_source", t.source, IDEA_SOURCES),
     oneOf("ck_content_ideas_status", t.status, IDEA_STATUSES),
   ],

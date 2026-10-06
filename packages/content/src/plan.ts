@@ -2,13 +2,15 @@
  * Tomorrow's content plan: each platform's slots against the drafts that
  * hold them, and what is waiting upstream (drafts to review, ideas to draft).
  * The shortfall is the ask: "LinkedIn 1 of 2, 3 drafts wait for you".
- * Read-only; the planner loop sends it once a day.
+ * The planner loop sends it once a day and, when told to, fills the open slots from `nextIdea`.
  */
 import type { Platform } from "@wren/core/content";
 import { wallClock, zonedInstant } from "@wren/core/time";
 import type { Queryable } from "@wren/db";
-import { and, count, eq, gte, inArray, lt } from "drizzle-orm";
-import { contentDrafts, contentIdeas } from "./schema.js";
+import { and, asc, count, eq, gte, inArray, lt, notInArray } from "drizzle-orm";
+import { buildLogIdea, type Fetch } from "./ideas/build-log.js";
+import { questionIdea } from "./ideas/questions.js";
+import { type ContentIdea, contentDrafts, contentIdeas } from "./schema.js";
 import { DEFAULT_SLOTS, type Slots, slotInstants } from "./slots.js";
 
 export interface PlatformPlan {
@@ -74,6 +76,87 @@ export async function planFor(
 /** Empty slots across the plan. */
 export const shortfallOf = (p: DayPlan): number =>
   p.platforms.reduce((n, x) => n + Math.max(x.slots - x.filled, 0), 0);
+
+/** Slot instants no draft holds yet, capped so a draft scheduled off-slot (`--at`) still counts as one. */
+export function freeSlots(instants: readonly Date[], taken: readonly Date[]): Date[] {
+  const held = new Set(taken.map((t) => t.getTime()));
+  return instants
+    .filter((at) => !held.has(at.getTime()))
+    .slice(0, Math.max(instants.length - taken.length, 0));
+}
+
+/** Per platform, the day's slots a draft (waiting, approved or out) does not hold yet. */
+export async function openSlots(
+  db: Queryable,
+  platforms: readonly Platform[],
+  day: { from: Date; to: Date },
+  zone: string,
+  slots: Slots = DEFAULT_SLOTS,
+): Promise<Partial<Record<Platform, Date[]>>> {
+  const out: Partial<Record<Platform, Date[]>> = {};
+  for (const platform of platforms) {
+    const rows = await db
+      .select({ at: contentDrafts.scheduledFor })
+      .from(contentDrafts)
+      .where(
+        and(
+          eq(contentDrafts.platform, platform),
+          inArray(contentDrafts.status, ["draft", "approved", "publishing", "published"]),
+          gte(contentDrafts.scheduledFor, day.from),
+          lt(contentDrafts.scheduledFor, day.to),
+        ),
+      );
+    out[platform] = freeSlots(
+      slotInstants(platform, day.from, zone, 1, slots),
+      rows.flatMap((r) => (r.at ? [r.at] : [])),
+    );
+  }
+  return out;
+}
+
+export interface NextIdea {
+  idea: Pick<ContentIdea, "id" | "source" | "text"> | null;
+  /** Repos the build log could not read. */
+  errors: string[];
+}
+
+/**
+ * The next idea to draft, in order: the oldest undrafted idea, then today's build log, then a
+ * reader's question. `exclude` holds ideas already tried this pass, so one that fails to draft
+ * is not picked again.
+ */
+export async function nextIdea(
+  db: Queryable,
+  o: {
+    now: Date;
+    day: string;
+    exclude?: readonly string[];
+    repos?: readonly string[];
+    fetch?: Fetch;
+  },
+): Promise<NextIdea> {
+  const pick = ({ id, source, text }: ContentIdea) => ({ id, source, text });
+  const exclude = o.exclude ?? [];
+  const [open] = await db
+    .select()
+    .from(contentIdeas)
+    .where(
+      and(
+        eq(contentIdeas.status, "open"),
+        exclude.length > 0 ? notInArray(contentIdeas.id, [...exclude]) : undefined,
+      ),
+    )
+    .orderBy(asc(contentIdeas.createdAt))
+    .limit(1);
+  if (open) return { idea: pick(open), errors: [] };
+  const log = await buildLogIdea(db, o.now, o.day, {
+    ...(o.repos ? { repos: o.repos } : {}),
+    ...(o.fetch ? { fetch: o.fetch } : {}),
+  });
+  if (log.idea) return { idea: pick(log.idea), errors: log.errors };
+  const q = await questionIdea(db, o.now);
+  return { idea: q ? pick(q) : null, errors: log.errors };
+}
 
 export function formatPlan(p: DayPlan): string[] {
   return [

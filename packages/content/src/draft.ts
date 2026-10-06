@@ -8,7 +8,7 @@
 import type { Platform } from "@wren/core/content";
 import type { Queryable } from "@wren/db";
 import { completeAndParse, type LlmClient, type Tracer } from "@wren/llm";
-import { and, eq, inArray } from "drizzle-orm";
+import { and, count, eq, gte, inArray, isNotNull } from "drizzle-orm";
 import { z } from "zod";
 import { type Lessons, lessonsBlock, lessonsFor, NO_LESSONS } from "./lessons.js";
 import { PLATFORM_SPECS, type PlatformSpec, unfitReason } from "./platforms.js";
@@ -135,6 +135,29 @@ async function livePlatforms(db: Queryable, ideaId: string): Promise<Set<Platfor
   return new Set(rows.map((r) => r.platform));
 }
 
+/** Redrafts one slot takes in a day (O5: Cohere is free, his review time is not). */
+export const MAX_SLOT_REDRAFTS = 2;
+
+/** Redrafts made in the last 24 hours for the slot `d` holds on its platform, superseded ones too. */
+async function slotRedrafts(
+  db: Queryable,
+  d: Pick<ContentDraft, "platform" | "scheduledFor">,
+): Promise<number> {
+  if (!d.scheduledFor) return 0;
+  const [row] = await db
+    .select({ n: count() })
+    .from(contentDrafts)
+    .where(
+      and(
+        eq(contentDrafts.platform, d.platform),
+        eq(contentDrafts.scheduledFor, d.scheduledFor),
+        isNotNull(contentDrafts.redraftOf),
+        gte(contentDrafts.createdAt, new Date(Date.now() - 24 * 60 * 60 * 1000)),
+      ),
+    );
+  return row?.n ?? 0;
+}
+
 /**
  * One more paid step for one draft: the previous text plus the person's
  * note → a new row (the old one is rejected as superseded). Same gate.
@@ -152,6 +175,14 @@ export async function redraft(
   if (note.trim() === "") return { platform, ok: false, reason: "empty note" };
   if (!["draft", "approved", "failed"].includes(previous.status))
     return { platform, ok: false, reason: `cannot redraft a ${previous.status} draft` };
+  // A row read through a journaled step arrives with its dates as strings.
+  const slot = previous.scheduledFor ? new Date(previous.scheduledFor) : null;
+  if (slot && (await slotRedrafts(db, { platform, scheduledFor: slot })) >= MAX_SLOT_REDRAFTS)
+    return {
+      platform,
+      ok: false,
+      reason: `${MAX_SLOT_REDRAFTS} redrafts for this slot today; edit it by hand`,
+    };
   const playbook = await playbookFor(db, platform);
   const prompt = redraftPrompt(idea, spec, { text: previous.text, title: previous.title }, note, {
     voice: o.voice ?? DEFAULT_VOICE,
@@ -188,6 +219,8 @@ export async function redraft(
       title: spec.title ? (outcome.parsed.title?.trim() ?? null) : null,
       media: previous.media,
       extra: previous.extra,
+      // The slot the old row held (a planner draft's); inert until approved.
+      scheduledFor: slot,
       redraftOf: previous.id,
       note: note.trim(),
       promptVersion: DRAFT_PROMPT_VERSION,
@@ -196,9 +229,10 @@ export async function redraft(
     })
     .returning();
   if (!draft) throw new Error("insert returned no row");
+  // Superseded, it keeps the slot it held so the slot's redrafts stay countable; a rejected row holds nothing.
   await db
     .update(contentDrafts)
-    .set({ status: "rejected", scheduledFor: null })
+    .set({ status: "rejected" })
     .where(eq(contentDrafts.id, previous.id));
   return { platform, ok: true, draft };
 }

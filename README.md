@@ -33,6 +33,7 @@ wren content approve <draftId> --at 2026-09-23T14:00:00Z
 wren content approve <draftId> --now  # on the queue's next pass
 wren content queue start            # ContentScheduler/default: posts approved drafts as they come due
 wren content metrics start          # ContentMetrics/default: one look per young post per day; Monday = what-worked to the channel
+wren content planner start --draft  # ContentPlanner/default, 17:00: drafts tomorrow's open slots (ideas, build log, a reader's question); approve keeps the slot
 wren content results --days 7       # published posts, engagement per 100 views, best first
 wren content costs --days 30        # drafting calls and tokens by platform and model
 ```

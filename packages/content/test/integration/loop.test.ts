@@ -14,7 +14,7 @@ import type { PassOutcome } from "@wren/core/restate";
 import { startTestRestate } from "@wren/core/testing";
 import { startTestPostgres, type TestPostgres, truncate } from "@wren/db/testing";
 import { FakeLlm } from "@wren/llm";
-import { eq } from "drizzle-orm";
+import { eq, sql } from "drizzle-orm";
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 import {
   addIdea,
@@ -29,10 +29,12 @@ import {
   listDrafts,
   playbookFor,
   pushPlaybook,
+  tomorrowOf,
   whatWorked,
 } from "../../src/index.js";
 import { DESK_KEY, makeContentDesk, SCHEDULER_KEY } from "../../src/restate/index.js";
 import { METRICS_KEY, type MetricsStats, makeContentMetrics } from "../../src/restate/metrics.js";
+import { makeContentPlanner, PLANNER_KEY, type PlannerStats } from "../../src/restate/planner.js";
 import { makeContentScheduler, type PublishStats } from "../../src/restate/scheduler.js";
 
 const posted: { platform: Platform; post: Post }[] = [];
@@ -80,8 +82,12 @@ const llm = new FakeLlm({
   respond: async (prompt) => {
     calls += 1;
     prompts.push(prompt);
+    const reddit = prompt.includes("a Reddit text post");
     if (prompt.includes("The author read it and says"))
-      return '{"text": "shorter. the gate asks first."}';
+      return reddit
+        ? '{"title": "Shorter", "text": "shorter. the gate asks first."}'
+        : '{"text": "shorter. the gate asks first."}';
+    if (reddit) return '{"title": "Spend gate", "text": "Shipped the spend gate."}';
     if (prompt.includes("one post on X"))
       return '{"text": "the spend gate is live. every buy asks first."}';
     if (prompt.includes("YouTube title")) return '{"title": "Spend gate", "text": "what it does"}';
@@ -89,6 +95,13 @@ const llm = new FakeLlm({
   },
 });
 
+const notifier = {
+  name: "test",
+  notify: async (title: string) => {
+    notes.push(title);
+    return true;
+  },
+};
 let pg: TestPostgres;
 let env: RestateTestEnvironment;
 beforeAll(async () => {
@@ -98,15 +111,14 @@ beforeAll(async () => {
       fakeContent,
       makeContentDesk({ db: pg.db, llm, platforms: ["linkedin", "x", "youtube"], zone: "UTC" }),
       makeContentScheduler({ db: pg.db, idleMs: 60_000 }),
-      makeContentMetrics({
+      makeContentMetrics({ db: pg.db, notifier }),
+      makeContentPlanner({
         db: pg.db,
-        notifier: {
-          name: "test",
-          notify: async (title) => {
-            notes.push(title);
-            return true;
-          },
-        },
+        zone: "UTC",
+        notifier,
+        repos: ["wrenautomation/wren"],
+        fetch: async () =>
+          new Response(JSON.stringify([{ commit: { message: "planner drafts tomorrow" } }])),
       }),
     ],
     alwaysReplay: true,
@@ -123,6 +135,7 @@ beforeEach(async () => {
     "content_metrics",
     "content_playbooks",
     "runs",
+    "reach_accounts",
   ]);
   posted.length = 0;
   notes.length = 0;
@@ -388,5 +401,89 @@ describe("content loop", () => {
     expect(r.tokensThisMonth.calls).toBe(2);
     const open = await pg.db.select().from(contentIdeas).where(eq(contentIdeas.status, "open"));
     expect(r.openIdeas).toBe(open.length);
+  });
+});
+
+describe("daily drafts (ContentPlanner with draft on)", () => {
+  type Plan = ReturnType<typeof makeContentPlanner>;
+  const planner = () =>
+    clients
+      .connect(ingressOf({ restateIngressUrl: env.baseUrl() }))
+      .objectClient<Plan>({ name: "ContentPlanner" }, PLANNER_KEY);
+  const settings = {
+    platforms: ["linkedin", "reddit"],
+    draft: true,
+    slots: {
+      linkedin: [{ hour: 8, minute: 30 }],
+      reddit: [
+        { hour: 9, minute: 30 },
+        { hour: 15, minute: 0 },
+      ],
+    },
+  };
+  const at = (h: number, m: number) =>
+    new Date(tomorrowOf(new Date(), "UTC").from.getTime() + (h * 60 + m) * 60_000).toISOString();
+  const slotOf = (d: { scheduledFor: Date | null }) => d.scheduledFor?.toISOString();
+
+  it("fills tomorrow's slots from ideas, the build log, then a question; approve keeps the slot", async () => {
+    await addIdea(pg.db, "first idea", "cli");
+    await planner().start(settings);
+    await planner().stop(); // queued behind the pass the start sent
+    const last = (await planner().status()).last as PassOutcome<PlannerStats> | null;
+    expect(last?.stats?.drafted.map((d) => [d.platform, d.slot, d.source]).sort()).toEqual([
+      ["linkedin", at(8, 30), "cli"],
+      ["reddit", at(9, 30), "cli"],
+      ["reddit", at(15, 0), "build_log"],
+    ]);
+    expect(notes.at(-1)).toMatch(/drafted 3 for tomorrow: LinkedIn, Reddit$/);
+    expect(prompts.some((p) => p.includes("- wren: planner drafts tomorrow"))).toBe(true);
+    const rows = await listDrafts(pg.db, { status: "draft" });
+    expect(rows.every((r) => r.scheduledFor !== null)).toBe(true);
+
+    // A second pass finds every slot held and makes no idea.
+    const again = (await planner().sync()) as PassOutcome<PlannerStats>;
+    expect(again.stats?.drafted).toEqual([]);
+    expect(await pg.db.select().from(contentIdeas)).toHaveLength(2);
+
+    // Approving schedules into the slot the draft holds.
+    const li = rows.find((r) => r.platform === "linkedin");
+    if (!li) throw new Error("no linkedin draft");
+    const [approved] = await approveDrafts(pg.db, [li.id], { now: new Date(), zone: "UTC" });
+    expect(approved && slotOf(approved)).toBe(at(8, 30));
+
+    // Two redrafts a slot a day, then it is his to edit.
+    let latest = rows.find((r) => r.platform === "reddit" && slotOf(r) === at(15, 0));
+    for (const note of ["shorter", "warmer"]) {
+      if (!latest) throw new Error("no reddit draft");
+      const r = (await desk().redraft({ draftId: latest.id, note })).results[0];
+      if (!r?.ok) throw new Error("redraft refused");
+      expect(slotOf({ scheduledFor: r.draft.scheduledFor && new Date(r.draft.scheduledFor) })).toBe(
+        at(15, 0),
+      );
+      latest = r.draft;
+    }
+    if (!latest) throw new Error("no reddit draft");
+    const third = await desk().redraft({ draftId: latest.id, note: "again" });
+    expect(third.results[0]).toMatchObject({
+      ok: false,
+      reason: expect.stringMatching(/^2 redrafts/),
+    });
+
+    // A rejected draft frees its slot; a reader's question fills it.
+    const morning = rows.find((r) => r.platform === "reddit" && slotOf(r) === at(9, 30));
+    if (!morning) throw new Error("no morning draft");
+    await desk().reject({ ids: [morning.id] });
+    await pg.db.execute(sql`
+      with a as (insert into reach_accounts (platform, account, started_on)
+        values ('reddit', 'reddit@test', current_date) returning id)
+      insert into comments (platform, account_id, ref, post, parent, kind, author, body, url, at, raw, sort)
+      select 'reddit', a.id, 't1_q', 't3_p', 't3_p', 'post_reply', 'quiet_fox', 'how do you pick leads?',
+        'https://reddit.test/c', now(), '{}', 'question' from a`);
+    const asked = (await planner().sync()) as PassOutcome<PlannerStats>;
+    expect(asked.stats?.drafted.map((d) => [d.platform, d.slot, d.source])).toEqual([
+      ["reddit", at(9, 30), "question"],
+    ]);
+    expect(prompts.at(-1)).toContain('"how do you pick leads?"');
+    expect(prompts.at(-1)).not.toContain("quiet_fox");
   });
 });

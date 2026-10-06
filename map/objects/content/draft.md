@@ -3,7 +3,7 @@ type: object
 cluster: content
 universe: live
 status: verified
-verified: 2026-09-28 @ 83459e9
+verified: 2026-10-06 @ f25d7ac
 entity: packages/content/src/schema.ts:76
 ---
 
@@ -13,7 +13,7 @@ One idea rendered for one platform, waiting for a person, then a slot, then the 
 
 ## Why this shape
 
-The model proposes, the code disposes: a draft over the platform's length, missing a required title, or unparseable is never stored (`draft.ts:1`). An edit puts an approved draft back to `draft`, so what goes out is always something a person approved as written (`review.ts:1`). `claim` moves `approved → publishing` in the selecting statement, so nothing posts twice (`queue.ts:37`). `llm` keeps the call record for costs.
+The model proposes, the code disposes: a draft over the platform's length, missing a required title, or unparseable is never stored (`draft.ts:1`). An edit puts an approved draft back to `draft`, so what goes out is always something a person approved as written (`review.ts:1`). `claim` moves `approved → publishing` in the selecting statement, so nothing posts twice (`queue.ts:37`). `llm` keeps the call record for costs. On a `draft` row `scheduled_for` is the slot the planner gave it: inert until approved, kept by an edit and a redraft, and approve schedules into it while it is ahead and free (`review.ts:100`). A slot takes at most 2 redrafts a day (`draft.ts:139`); a superseded row keeps its slot so they count.
 
 ## Shape
 
@@ -40,7 +40,8 @@ Citations: `packages/content/src/schema.ts:76`
 | `wren content approve/reject/edit`, `ContentDesk.approve/reject/edit` (the console) | writes |
 | `marketing.draft` (`marketing_draft_records`, every status but published), `marketing.post` | read; their `load` adds the preview's text, cap and feed cut (`PLATFORM_SPECS.feed`) |
 | `ContentScheduler/default` | moves to published/failed |
-| `ContentPlanner`, `ContentMetrics` | read |
+| `ContentPlanner` | reads slots; with `draft` on, gives each new draft its slot |
+| `ContentMetrics` | reads |
 | `wren status` (`packages/content/src/status.ts`) | reads counts, oldest draft, this month's tokens |
 
 ## See

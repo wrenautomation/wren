@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
-import { formatPlan, shortfallOf, tomorrowOf } from "./plan.js";
-import { nextRunAt } from "./restate/planner.js";
+import { formatPlan, freeSlots, shortfallOf, tomorrowOf } from "./plan.js";
+import { nextRunAt, plannerTitle, slotsOf } from "./restate/planner.js";
+import { DEFAULT_SLOTS } from "./slots.js";
 
 const ET = "America/New_York";
 
@@ -22,6 +23,44 @@ describe("daily plan", () => {
     expect(nextRunAt(new Date("2026-09-26T21:00:00Z"), ET, 17).toISOString()).toBe(
       "2026-09-27T21:00:00.000Z",
     );
+  });
+
+  it("a slot is open until a draft holds it; an off-slot draft still takes one", () => {
+    const a = new Date("2026-10-07T12:30:00Z");
+    const b = new Date("2026-10-07T16:00:00Z");
+    expect(freeSlots([a, b], [])).toEqual([a, b]);
+    expect(freeSlots([a, b], [a])).toEqual([b]);
+    expect(freeSlots([a, b], [new Date("2026-10-07T14:00:00Z")])).toEqual([a]);
+    expect(freeSlots([a], [a, b])).toEqual([]);
+  });
+
+  it("settings replace a platform's slots and drop a malformed one", () => {
+    const s = slotsOf({
+      linkedin: [
+        { hour: 8, minute: 30 },
+        { hour: 25, minute: 0 },
+      ],
+    });
+    expect(s.linkedin).toEqual([{ hour: 8, minute: 30 }]);
+    expect(s.reddit).toEqual(DEFAULT_SLOTS.reddit);
+  });
+
+  it("the ping says what it drafted, else the shortfall", () => {
+    const plan = {
+      day: "2026-10-07",
+      platforms: [{ platform: "linkedin" as const, slots: 1, filled: 0, waiting: 1 }],
+      openIdeas: 0,
+    };
+    const d = (platform: "linkedin" | "reddit") => ({
+      platform,
+      draftId: "d",
+      slot: "",
+      source: "cli",
+    });
+    expect(plannerTitle(plan, [d("linkedin"), d("reddit")])).toBe(
+      "content 2026-10-07: drafted 2 for tomorrow: LinkedIn, Reddit",
+    );
+    expect(plannerTitle(plan, [])).toBe("content 2026-10-07: 1 empty slots");
   });
 
   it("says the shortfall", () => {

@@ -8,6 +8,8 @@ import type { ContentDraft } from "./schema.js";
 
 export interface PlatformSpec {
   readonly platform: Platform;
+  /** How a person writes it: "LinkedIn". */
+  readonly name: string;
   /** Hard cap on `text`; a draft over it is refused before it is stored. */
   readonly maxChars: number;
   /** A title beside the text (YouTube). */
@@ -38,6 +40,7 @@ export const PLATFORM_SPECS: Readonly<Record<Platform, PlatformSpec>> = {
     maxChars: 3000,
     shape:
       "a LinkedIn post: a one-line hook, short paragraphs with blank lines between them, no hashtags, no emoji, ends with one plain question or take, under 1300 characters",
+    name: "LinkedIn",
     goCode: "li",
     linkInText: true,
     feed: { laptop: 3, phone: 3 },
@@ -49,6 +52,7 @@ export const PLATFORM_SPECS: Readonly<Record<Platform, PlatformSpec>> = {
     needsExtra: ["subreddit"],
     shape:
       "a Reddit text post: a plain title that states the point or the question (under 120 characters), then a body written like a practitioner sharing what they did and learned, specifics and numbers, no pitch, no links, no emoji, no hashtags, under 2000 characters",
+    name: "Reddit",
     goCode: "rd",
     feed: { laptop: 3, phone: 3 },
   },
@@ -56,6 +60,7 @@ export const PLATFORM_SPECS: Readonly<Record<Platform, PlatformSpec>> = {
     platform: "x",
     maxChars: 280,
     shape: "one post on X: a single sharp point in plain words, no hashtags, under 240 characters",
+    name: "X",
     goCode: "x",
     feed: { laptop: null, phone: null },
   },
@@ -66,6 +71,7 @@ export const PLATFORM_SPECS: Readonly<Record<Platform, PlatformSpec>> = {
     needsMedia: "video",
     shape:
       "a YouTube title (under 70 characters, plain, says what the viewer gets) and a description: two short paragraphs of what the video shows and why it matters, no hashtags, no timestamps",
+    name: "YouTube",
     goCode: "yt",
     linkInText: true,
     feed: { laptop: 3, phone: 0 },
@@ -76,6 +82,7 @@ export const PLATFORM_SPECS: Readonly<Record<Platform, PlatformSpec>> = {
     needsMedia: "video",
     shape:
       "an Instagram Reel caption: a first line that stands alone, two or three short lines after it, then up to five relevant hashtags on the last line",
+    name: "Instagram",
     goCode: "ig",
     feed: { laptop: 2, phone: 2 },
   },
@@ -84,6 +91,7 @@ export const PLATFORM_SPECS: Readonly<Record<Platform, PlatformSpec>> = {
     maxChars: 2200,
     needsMedia: "video",
     shape: "a TikTok caption: one or two short lines in plain words, then up to four hashtags",
+    name: "TikTok",
     goCode: "tt",
     feed: { laptop: 2, phone: 1 },
   },
@@ -92,6 +100,7 @@ export const PLATFORM_SPECS: Readonly<Record<Platform, PlatformSpec>> = {
     maxChars: 5000,
     shape:
       "a Facebook Page post: two or three short paragraphs in plain words, no hashtags, one question at the end",
+    name: "Facebook",
     goCode: "fb",
     linkInText: true,
     feed: { laptop: 5, phone: 3 },
