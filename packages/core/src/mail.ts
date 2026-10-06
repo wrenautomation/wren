@@ -9,13 +9,16 @@
  *
  * The bytes are carried as a latin1 string so structure (boundaries, header
  * folds) is found on text while every byte survives to be transfer- and
- * charset-decoded at the leaf.
+ * charset-decoded at the leaf. Encoded words and address lists are postal-mime's.
  */
+import { addressParser, decodeWords } from "postal-mime";
 
 export interface MimeHeader {
   readonly name: string;
   /** Unfolded (line breaks removed, continuation whitespace kept), encoded-words decoded. */
   readonly value: string;
+  /** Unfolded, encoded words left as sent: what an address list must be split on. */
+  readonly raw: string;
 }
 
 export interface ContentType {
@@ -29,9 +32,8 @@ const DEFAULT_CONTENT_TYPE: ContentType = { type: "text/plain", params: {} };
 // --------------------------------------------------------------------------
 // Headers
 
-const ENCODED_WORD = /=\?([^?]+)\?([bBqQ])\?([^?]*)\?=/g;
-// Adjacent encoded words are one token: the whitespace between them is not text.
-const BETWEEN_ENCODED_WORDS = /(\?=)[ \t\r\n]+(=\?)/g;
+/** Past this many nested parts the rest is one leaf: hostile mail never overflows the stack. */
+const MAX_DEPTH = 64;
 
 function decodeCharset(bytes: Uint8Array, label: string | null): string {
   const name = (label ?? "utf-8").trim().toLowerCase().replace(/^"|"$/g, "") || "utf-8";
@@ -42,15 +44,13 @@ function decodeCharset(bytes: Uint8Array, label: string | null): string {
   }
 }
 
-function decodeQ(text: string, header: boolean): Uint8Array {
+function decodeQ(text: string): Uint8Array {
   const out: number[] = [];
   for (let i = 0; i < text.length; i++) {
     const ch = text[i] as string;
     if (ch === "=" && i + 2 < text.length && /^[0-9A-Fa-f]{2}$/.test(text.slice(i + 1, i + 3))) {
       out.push(Number.parseInt(text.slice(i + 1, i + 3), 16));
       i += 2;
-    } else if (header && ch === "_") {
-      out.push(0x20);
     } else {
       out.push(ch.charCodeAt(0) & 0xff);
     }
@@ -58,22 +58,26 @@ function decodeQ(text: string, header: boolean): Uint8Array {
   return Uint8Array.from(out);
 }
 
-/** RFC 2047 encoded words (`=?utf-8?B?...?=`) decoded in place; anything unreadable is left as written. */
+/** RFC 2047 encoded words (`=?utf-8?B?...?=`) decoded, a character split across words joined. */
 export function decodeEncodedWords(value: string): string {
   if (!value.includes("=?")) return value;
-  return value
-    .replace(BETWEEN_ENCODED_WORDS, "$1$2")
-    .replace(ENCODED_WORD, (whole, charset: string, encoding: string, text: string) => {
-      try {
-        const bytes =
-          encoding.toLowerCase() === "b"
-            ? Uint8Array.from(Buffer.from(text, "base64"))
-            : decodeQ(text, true);
-        return decodeCharset(bytes, charset.split("*")[0] ?? charset);
-      } catch {
-        return whole;
-      }
-    });
+  try {
+    return decodeWords(value);
+  } catch {
+    return value;
+  }
+}
+
+const UTF8 = new TextDecoder("utf-8", { fatal: true });
+
+/** Raw 8-bit header bytes (carried as latin1) read as UTF-8 when they are UTF-8 (RFC 6532). */
+function utf8Header(value: string): string {
+  if (!/[\x80-\xff]/.test(value) || /[^\x00-\xff]/.test(value)) return value;
+  try {
+    return UTF8.decode(latin1Bytes(value));
+  } catch {
+    return value;
+  }
 }
 
 /** The header block of a message (or a delivery-status group) as (name, value) pairs. */
@@ -82,7 +86,10 @@ export function parseHeaders(block: string): MimeHeader[] {
   let name: string | null = null;
   let value = "";
   const flush = () => {
-    if (name !== null) headers.push({ name, value: decodeEncodedWords(value) });
+    if (name !== null) {
+      const raw = utf8Header(value);
+      headers.push({ name, value: decodeEncodedWords(raw), raw });
+    }
     name = null;
     value = "";
   };
@@ -112,32 +119,58 @@ export function parseContentType(value: string | null): ContentType | null {
   return { type, params: parseParams(rest.join(";")) };
 }
 
-/** `a=b; c="d e"` after a header's first token; names lowercased, the first of a name wins. */
+/**
+ * `a=b; c="d e"` after a header's first token; names lowercased, the first of a name wins.
+ * RFC 2231 continuations (`filename*0*=UTF-8''a; filename*1*=b`) are joined and decoded
+ * under the bare name.
+ */
 function parseParams(tail: string): Record<string, string> {
   const params: Record<string, string> = {};
+  const pieces = new Map<string, Array<{ n: number; value: string; extended: boolean }>>();
   const param = /\s*([^=;\s]+)\s*=\s*("((?:[^"\\]|\\.)*)"|[^;]*)\s*(?:;|$)/g;
   for (const m of tail.matchAll(param)) {
     const key = (m[1] ?? "").toLowerCase();
     const quoted = m[3];
     const raw = quoted !== undefined ? quoted.replace(/\\(.)/g, "$1") : (m[2] ?? "").trim();
-    if (key && !(key in params)) params[key] = raw;
+    const piece = /^(.+)\*(\d+)(\*?)$/.exec(key);
+    if (piece) {
+      const list = pieces.get(piece[1] as string) ?? [];
+      list.push({ n: Number(piece[2]), value: raw, extended: piece[3] === "*" });
+      pieces.set(piece[1] as string, list);
+    } else if (key && !(key in params)) params[key] = raw;
+  }
+  for (const [name, list] of pieces) {
+    if (name in params || `${name}*` in params) continue;
+    list.sort((a, b) => a.n - b.n);
+    const first = list[0];
+    const charset = first?.extended ? /^([\w-]*)'[\w-]*'/.exec(first.value) : null;
+    const bytes: number[] = [];
+    for (const [i, { value, extended }] of list.entries()) {
+      const text = i === 0 && charset ? value.slice(charset[0].length) : value;
+      pushBytes(bytes, text, extended);
+    }
+    params[name] = decodeCharset(Uint8Array.from(bytes), charset?.[1] || "utf-8");
   }
   return params;
+}
+
+/** `text` as bytes; `%XX` escapes decoded when it is an RFC 2231 extended value. */
+function pushBytes(out: number[], text: string, extended: boolean): void {
+  for (let i = 0; i < text.length; i++) {
+    const hex = text.slice(i + 1, i + 3);
+    if (extended && text[i] === "%" && /^[0-9a-f]{2}$/i.test(hex)) {
+      out.push(Number.parseInt(hex, 16));
+      i += 2;
+    } else out.push(text.charCodeAt(i) & 0xff);
+  }
 }
 
 /** An RFC 2231 extended value (`UTF-8''Invoice%20123.pdf`) decoded; a plain value unchanged. */
 function decodeExtended(value: string): string {
   const m = /^([\w-]*)'[\w-]*'(.*)$/.exec(value);
   if (!m) return value;
-  const text = m[2] ?? "";
   const bytes: number[] = [];
-  for (let i = 0; i < text.length; i++) {
-    const hex = text.slice(i + 1, i + 3);
-    if (text[i] === "%" && /^[0-9a-f]{2}$/i.test(hex)) {
-      bytes.push(Number.parseInt(hex, 16));
-      i += 2;
-    } else bytes.push(text.charCodeAt(i) & 0xff);
-  }
+  pushBytes(bytes, m[2] ?? "", true);
   return decodeCharset(Uint8Array.from(bytes), m[1] || "utf-8");
 }
 
@@ -147,7 +180,7 @@ function decodeExtended(value: string): string {
 function decodeQuotedPrintable(text: string): Uint8Array {
   // Soft breaks join lines; trailing whitespace before a hard break is transport noise.
   const joined = text.replace(/=\r?\n/g, "").replace(/[ \t]+(\r?\n)/g, "$1");
-  return decodeQ(joined, false);
+  return decodeQ(joined);
 }
 
 function latin1Bytes(text: string): Uint8Array {
@@ -208,6 +241,17 @@ export class MimePart {
   getAll(name: string): string[] {
     const wanted = name.toLowerCase();
     return this.headers.filter((h) => h.name.toLowerCase() === wanted).map((h) => h.value);
+  }
+
+  /** The first header of this name with its encoded words as sent: feed address headers from here. */
+  getRaw(name: string): string | null {
+    const wanted = name.toLowerCase();
+    return this.headers.find((h) => h.name.toLowerCase() === wanted)?.raw ?? null;
+  }
+
+  getAllRaw(name: string): string[] {
+    const wanted = name.toLowerCase();
+    return this.headers.filter((h) => h.name.toLowerCase() === wanted).map((h) => h.raw);
   }
 
   has(name: string): boolean {
@@ -277,10 +321,11 @@ export class MimePart {
   }
 }
 
-function buildPart(raw: string): MimePart {
+function buildPart(raw: string, depth = 0): MimePart {
   const [head, body] = splitHeadBody(raw);
   const headers = parseHeaders(head);
   const scratch = new MimePart(headers, body, []);
+  if (depth >= MAX_DEPTH) return scratch;
   const type = scratch.type;
   if (scratch.maintype === "multipart") {
     const boundary = scratch.param("boundary");
@@ -288,10 +333,10 @@ function buildPart(raw: string): MimePart {
     return new MimePart(
       headers,
       body,
-      splitMultipart(body, boundary).map((piece) => buildPart(piece)),
+      splitMultipart(body, boundary).map((piece) => buildPart(piece, depth + 1)),
     );
   }
-  if (type === "message/rfc822") return new MimePart(headers, body, [buildPart(body)]);
+  if (type === "message/rfc822") return new MimePart(headers, body, [buildPart(body, depth + 1)]);
   if (type === "message/delivery-status" || type === "message/disposition-notification") {
     return new MimePart(
       headers,
@@ -310,37 +355,6 @@ export function parseMessage(raw: Uint8Array | string): MimePart {
 
 // --------------------------------------------------------------------------
 // Addresses
-
-/** Split a header value on commas outside quotes, comments and angle brackets. */
-function splitMailboxes(value: string): string[] {
-  const out: string[] = [];
-  let depth = 0;
-  let quoted = false;
-  let angle = false;
-  let current = "";
-  for (let i = 0; i < value.length; i++) {
-    const ch = value[i] as string;
-    if (quoted) {
-      current += ch;
-      if (ch === "\\" && i + 1 < value.length) current += value[++i];
-      else if (ch === '"') quoted = false;
-      continue;
-    }
-    if (ch === '"') quoted = true;
-    else if (ch === "(") depth++;
-    else if (ch === ")" && depth > 0) depth--;
-    else if (ch === "<") angle = true;
-    else if (ch === ">") angle = false;
-    else if (ch === "," && depth === 0 && !angle) {
-      out.push(current);
-      current = "";
-      continue;
-    }
-    current += ch;
-  }
-  out.push(current);
-  return out;
-}
 
 function stripComments(text: string): string {
   let out = "";
@@ -364,43 +378,35 @@ function stripComments(text: string): string {
   return out;
 }
 
-function unquote(text: string): string {
-  const trimmed = text.trim();
-  if (trimmed.length >= 2 && trimmed.startsWith('"') && trimmed.endsWith('"')) {
-    return trimmed.slice(1, -1).replace(/\\(.)/g, "$1");
+/** Every mailbox in a list, group members flattened; a bare token reads as the address, as the stdlib has it. */
+function mailboxes(value: string): Array<[string, string]> {
+  let parsed: ReturnType<typeof addressParser>;
+  try {
+    parsed = addressParser(value.replace(/\r?\n/g, " "));
+  } catch {
+    return [];
   }
-  return trimmed;
-}
-
-/** One mailbox as (display name, addr-spec) — `parseaddr`. Malformed input yields empty strings. */
-export function parseAddr(value: string): [string, string] {
-  const mailbox = stripComments(value.replace(/\r?\n/g, " ")).trim();
-  if (!mailbox) return ["", ""];
-  const open = mailbox.indexOf("<");
-  const close = mailbox.lastIndexOf(">");
-  if (open >= 0 && close > open) {
-    return [unquote(mailbox.slice(0, open)), mailbox.slice(open + 1, close).trim()];
-  }
-  if (open >= 0 || close >= 0) return ["", ""]; // an unbalanced angle bracket
-  return ["", mailbox.replace(/^<|>$/g, "").trim()];
-}
-
-/** Every mailbox in the given header values — `getaddresses`. Group syntax is read as its members. */
-export function getAddresses(values: readonly string[]): Array<[string, string]> {
   const out: Array<[string, string]> = [];
-  for (const value of values) {
-    const ungrouped = stripComments(value.replace(/\r?\n/g, " ")).replace(
-      /(^|,)\s*[^,:"<]*:\s*/g,
-      "$1",
-    );
-    for (const mailbox of splitMailboxes(ungrouped)) {
-      const cleaned = mailbox.replace(/;\s*$/, "").trim();
-      if (!cleaned) continue;
-      const pair = parseAddr(cleaned);
-      if (pair[0] || pair[1]) out.push(pair);
-    }
+  for (const entry of parsed.flatMap((a) => ("group" in a && a.group ? a.group : [a]))) {
+    const name = (entry.name ?? "").trim();
+    const address = ("address" in entry ? (entry.address ?? "") : "").trim();
+    if (address) out.push([name, address]);
+    else if (name && !/\s/.test(name)) out.push(["", name]);
   }
   return out;
+}
+
+/**
+ * One mailbox as (display name, addr-spec) — `parseaddr`. Pass the raw header
+ * (encoded words as sent); malformed input yields empty strings.
+ */
+export function parseAddr(value: string): [string, string] {
+  return mailboxes(value)[0] ?? ["", ""];
+}
+
+/** Every mailbox in the given raw header values — `getaddresses`. Group syntax is read as its members. */
+export function getAddresses(values: readonly string[]): Array<[string, string]> {
+  return values.flatMap(mailboxes);
 }
 
 // --------------------------------------------------------------------------

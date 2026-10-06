@@ -5,6 +5,7 @@
  * through it; the Watch reads the rest.
  */
 import type { SiteClient } from "./content/index.js";
+import { decodeHtml } from "./html.js";
 import { decodeEncodedWords, parseAddr } from "./mail.js";
 
 /** One message's headers and Gmail's preview line; never its body. */
@@ -40,14 +41,6 @@ export interface DelegatedGmail {
   getMetadata(sender: string, messageId: string, headers: readonly string[]): Promise<unknown>;
 }
 
-const ENTITIES: Record<string, string> = {
-  amp: "&",
-  lt: "<",
-  gt: ">",
-  quot: '"',
-  "#39": "'",
-};
-
 /** Gmail's message object (format=metadata) as `MailMeta`. */
 export function metaOf(raw: unknown): MailMeta {
   const m = raw as {
@@ -58,18 +51,15 @@ export function metaOf(raw: unknown): MailMeta {
     payload?: { headers?: Array<{ name: string; value: string }> };
   };
   const header = (name: string) =>
-    decodeEncodedWords(m.payload?.headers?.find((h) => h.name.toLowerCase() === name)?.value ?? "");
+    m.payload?.headers?.find((h) => h.name.toLowerCase() === name)?.value ?? "";
   const [fromName, fromAddress] = parseAddr(header("from"));
   return {
     id: m.id,
     threadId: m.threadId,
     fromName,
     fromAddress: fromAddress.toLowerCase(),
-    subject: header("subject"),
-    snippet: (m.snippet ?? "").replace(
-      /&(amp|lt|gt|quot|#39);/g,
-      (_, e: string) => ENTITIES[e] ?? "",
-    ),
+    subject: decodeEncodedWords(header("subject")),
+    snippet: decodeHtml(m.snippet ?? ""),
     at: new Date(Number(m.internalDate ?? 0)),
   };
 }

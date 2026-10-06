@@ -455,7 +455,7 @@ Content-Transfer-Encoding: base64
   it("reads address lists and dates the way the stdlib does", () => {
     expect(getAddresses(['"Doe, Jane" <jane@example.com>, bob@example.org (Bob)'])).toEqual([
       ["Doe, Jane", "jane@example.com"],
-      ["", "bob@example.org"],
+      ["Bob", "bob@example.org"],
     ]);
     expect(parseAddr("dana@example.com")).toEqual(["", "dana@example.com"]);
     expect(parseDate("Mon, 07 Sep 2026 09:14:02 -0700 (PDT)")?.toISOString()).toBe(

@@ -1,10 +1,4 @@
-import {
-  decodeEncodedWords,
-  type MimePart,
-  parseAddr,
-  parseDate,
-  parseMessage,
-} from "@wren/core/mail";
+import { type MimePart, parseAddr, parseDate, parseMessage } from "@wren/core/mail";
 import { type Db, serializable } from "@wren/db";
 import { and, eq, inArray } from "drizzle-orm";
 import { VENDORS, type VendorSpec } from "./chart.js";
@@ -100,8 +94,8 @@ interface Keep {
 /** Store one raw email and its PDFs, then record them in one transaction. */
 async function keepEmail(db: Db, store: DocumentStore, raw: Uint8Array, keep: Keep) {
   const message = parseMessage(raw);
-  const [name, address] = parseAddr(message.get("From") ?? "");
-  const subject = withoutNul(decodeEncodedWords(message.get("Subject") ?? "")).trim();
+  const [name, address] = parseAddr(message.getRaw("From") ?? "");
+  const subject = withoutNul(message.get("Subject") ?? "").trim();
   const vendorId = keep.vendorOf(address, subject);
   const hash = sha256(raw);
   const key = storeKey(hash, "message/rfc822");
@@ -132,7 +126,7 @@ async function keepEmail(db: Db, store: DocumentStore, raw: Uint8Array, keep: Ke
         mailboxKey: keep.mailboxKey,
         messageId: message.get("Message-ID")?.trim() ?? null,
         fromAddress: address.toLowerCase() || null,
-        fromName: withoutNul(decodeEncodedWords(name)) || null,
+        fromName: withoutNul(name) || null,
         subject: subject || null,
         sentAt: parseDate(message.get("Date")),
         vendorId,

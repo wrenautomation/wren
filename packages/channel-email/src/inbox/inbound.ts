@@ -114,7 +114,7 @@ function header(msg: MimePart, name: string): string | null {
 /** Every addr-spec in the named headers, lowercased. */
 function addressesIn(msg: MimePart, ...names: string[]): Set<string> {
   const values: string[] = [];
-  for (const name of names) values.push(...msg.getAll(name));
+  for (const name of names) values.push(...msg.getAllRaw(name));
   return new Set(
     getAddresses(values)
       .map(([, addr]) => addr.toLowerCase())
@@ -478,7 +478,7 @@ export function classify(
 ): Inbound {
   const msg = parseMessage(raw);
 
-  const [rawName, rawAddress] = parseAddr(header(msg, "From") ?? "");
+  const [rawName, rawAddress] = parseAddr(msg.getRaw("From") ?? "");
   const fromAddress = rawAddress.toLowerCase() || null;
   const fromName = rawName.trim() || null;
   const subject = header(msg, "Subject");
