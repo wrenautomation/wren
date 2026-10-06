@@ -41,7 +41,7 @@
 1. **Exa niche search as a source:** people and companies by niche, title and city, on the shared Exa bucket.
 2. **Meta Ad Library, logged out,** as a source: firms running ads in a niche now. The Ad Library API only covers political ads outside the EU, so it's a browser read. Built 2026-10-05 as autobrowse walk `fb-public/ad-library` (records op, `designs/2026-10-05-records-and-ai-steps.md` there): Library ID, advertiser, start date, ad text and call to action, 25 to 30 ads a keyword in about 9s with no model. Built 2026-10-05 as the `adLibrary` pool stage, below.
 3. **Instagram `business_discovery`:** bio, site and recent captions of business accounts, officially. It needs our Instagram business account and app permissions.
-4. **YouTube channel search** as a source, on the reserved units.
+4. **YouTube channel search** as a source, on the reserved units. Built 2026-10-06 as the `youtubeSearch` pool stage: a niche's `youtubeQueries` (default its `adKeywords`), one `search.list` for 50 channels and one `channels.list` on them, 101 units, 10 searches a day. A firm is the first non-platform site its about text links, else `yt:<channel id>`. A channel's uploads are read once the firm's own site links it (the `youtube` stage).
 5. **Facebook groups**, below.
 
 ## Ad Library as a source
@@ -117,6 +117,7 @@ Checked 2026-10-05: `business_discovery` works on the `meta` site's Facebook Log
 
 ## Decision log
 
+- **2026-10-06** YouTube channel search budget: 10 searches a day (1,010 units). The `youtube` stage keeps at most 6,000 a day and talks 2,000, so this leaves about 1,000 spare. A channel's own uploads wait for its site to link it; a `yt:` firm with no site isn't read for uploads yet.
 - 2026-10-05: YouTube first, enrichment before source. Service account over an API key: no new secret, own quota. Findings over a new table: the facts are what downstream reads.
 - 2026-10-05: Store everything (William, via the lead-list session). YouTube asks for every part and keeps the raw resources. Uploads go 50 deep with videos.list stats, and old reads backfill on their own. That's 3 units a firm, so the bucket dropped to 2,000 firms a day. Every autobrowse answer that wren reads is kept whole as a document.
 - 2026-10-05: Facebook groups (William: "make sure to add facebook group scraping too"). Meta removed the Groups API from all versions on 2024-04-22, so groups are logged-out browser reads for now. A logged-in reading account is William's call because of the ban risk above.

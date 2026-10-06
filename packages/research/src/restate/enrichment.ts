@@ -160,6 +160,15 @@ import {
   youtubeUnit,
   youtubeWork,
 } from "../enrichment/youtube.js";
+import {
+  countYouTubeSearchUnit,
+  emptyYouTubeSearchStats,
+  YOUTUBE_SEARCH_COMMAND,
+  type YouTubeSearchStats,
+  youtubeSearchesDue,
+  youtubeSearchRoom,
+  youtubeSearchUnit,
+} from "../enrichment/youtube-search.js";
 import type { Fetcher } from "../fetch/fetcher.js";
 import type { RobotsCache } from "../fetch/robots.js";
 import { keepingAnswers } from "../findings.js";
@@ -243,6 +252,12 @@ export interface EnrichmentDeps {
   exaFor?: (niche: string) => {
     queries: readonly string[];
     cities: readonly string[];
+    platforms: Iterable<string>;
+    screen: CompanyScreen | null;
+  } | null;
+  /** A niche's YouTube channel searches, its platform hosts and its screen; read with `youtube`. */
+  youtubeSearchFor?: (niche: string) => {
+    queries: readonly string[];
     platforms: Iterable<string>;
     screen: CompanyScreen | null;
   } | null;
@@ -436,6 +451,7 @@ const HELD = {
   instagram: "research.instagram",
   ads: "research.ads",
   exa: "research.exa-search",
+  youtubeSearch: "research.youtube-search",
   groups: "research.fb-groups",
 } as const;
 
@@ -1229,6 +1245,63 @@ export function makeEnrichment(deps: EnrichmentDeps) {
           }
           // New firms get the niche's screen (chains, foreign, its own rule) before any stage reads them.
           const screen = exa?.screen;
+          if (stats.created > 0 && screen)
+            await ctx.run("screen", async () => {
+              await runScreen(db, niche, screen);
+            });
+          await close(ctx, runId, stats);
+          return stats;
+        },
+      ),
+      youtubeSearch: exclusiveHandler(
+        { input: LIMIT },
+        async (ctx: restate.ObjectContext, input: LimitInput = {}): Promise<YouTubeSearchStats> => {
+          // The firms land on main: Wren's niches only.
+          if (clientOfKey(ctx.key.split("@")[0] as string))
+            throw new restate.TerminalError("YouTube searches run on Wren's niches only");
+          const get = deps.youtube;
+          if (!get) throw new restate.TerminalError("no YouTube reader for channel search");
+          const { db, niche } = scope(ctx);
+          if (niche === null) throw new restate.TerminalError("YouTube searches need a niche key");
+          const yt = deps.youtubeSearchFor?.(niche) ?? null;
+          const limit = input?.limit ?? 2;
+          const runId = await open(ctx, YOUTUBE_SEARCH_COMMAND, { limit, niche });
+          const plan = await ctx.run("select", async () => {
+            const now = new Date();
+            const { room, nextInMs } = await youtubeSearchRoom(db, now);
+            if (room === 0)
+              return {
+                why: `bucket empty: next search in ${Math.ceil(nextInMs / 1000)}s`,
+                work: [],
+              };
+            return {
+              why: null,
+              work: await youtubeSearchesDue(db, yt?.queries ?? [], {
+                now,
+                limit: Math.min(limit, room),
+              }),
+            };
+          });
+          const stats = emptyYouTubeSearchStats();
+          stats.selected = plan.work.length;
+          stats.stopped = plan.why;
+          const holds = await stageHolds(ctx, db, HELD.youtubeSearch);
+          for (const q of notHeld(holds, plan.work)) {
+            const r = await unit(
+              ctx,
+              `youtube search ${q}`,
+              () => youtubeSearchUnit(db, get, { q, niche, platforms: yt?.platforms ?? [] }),
+              { holds, id: q },
+            );
+            if (!r.ok) {
+              stats.stopped = r.reason;
+              break;
+            }
+            stats.stopped = countYouTubeSearchUnit(stats, r.value);
+            if (stats.stopped) break;
+          }
+          // New firms get the niche's screen (chains, foreign, its own rule) before any stage reads them.
+          const screen = yt?.screen;
           if (stats.created > 0 && screen)
             await ctx.run("screen", async () => {
               await runScreen(db, niche, screen);

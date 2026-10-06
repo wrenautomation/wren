@@ -152,6 +152,7 @@ import {
   LANDERS_BY_NICHE,
   NICHES,
   SMS_SEQUENCES,
+  youtubeSearchFor,
 } from "@wren/niches";
 import {
   discoverySettingsSchema,
@@ -526,6 +527,7 @@ export async function buildServices(
         timeoutMs: BOOKS_DESK_TIMEOUT_MS,
       }),
       exaFor: exaSearchFor,
+      youtubeSearchFor,
     }),
     // Discovery probes guessed hosts, most of them parked or dead: a short timeout and
     // one try per URL, or a single company's guesses can eat a Lambda invocation.
@@ -689,6 +691,7 @@ export async function buildServices(
       adLibrary: true,
       fbGroups: true,
       exaSearch: true,
+      youtubeSearch: true,
       recheck: {
         horizonDays: settings.verificationHorizonDays,
         policy: (niche) => campaigns.get(niche)?.recontact,

@@ -34,7 +34,7 @@ export const READ_EVERY_DAYS = 30;
 export const UPLOADS = 50;
 const PAGE = 50;
 const ERROR_STREAK = 5;
-const CHANNEL_PARTS =
+export const CHANNEL_PARTS =
   "snippet,contentDetails,statistics,brandingSettings,topicDetails,status,localizations";
 const VIDEO_PARTS = "snippet,statistics,contentDetails,topicDetails,status,liveStreamingDetails";
 

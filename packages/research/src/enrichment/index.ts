@@ -21,3 +21,4 @@ export * from "./team.js";
 export * from "./testimonials.js";
 export * from "./urls.js";
 export * from "./youtube.js";
+export * from "./youtube-search.js";

@@ -74,6 +74,8 @@ export interface Niche {
   readonly exaQueries: readonly string[];
   /** The cities `exaQueries` run in. */
   readonly exaCities: readonly string[];
+  /** YouTube channel searches whose channels become this niche's firms (the `youtubeSearch` stage). */
+  readonly youtubeQueries: readonly string[];
 }
 
 /** The 25 largest US metro areas, by principal city, as a search names them. */
@@ -136,6 +138,8 @@ export interface NicheSpec {
   readonly adKeywords?: readonly string[];
   readonly groupKeywords?: readonly string[];
   readonly exaQueries?: readonly string[];
+  /** Default: `adKeywords`; the words that find a niche's advertisers find its channels. */
+  readonly youtubeQueries?: readonly string[];
   readonly exaCities?: readonly string[];
 }
 
@@ -276,6 +280,7 @@ export function defineNiche(spec: NicheSpec): Niche {
     adKeywords: spec.adKeywords ?? [],
     groupKeywords: spec.groupKeywords ?? [],
     exaQueries: spec.exaQueries ?? [],
+    youtubeQueries: spec.youtubeQueries ?? spec.adKeywords ?? [],
     exaCities: spec.exaCities ?? [],
   };
 }

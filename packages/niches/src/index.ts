@@ -68,6 +68,12 @@ export function exaSearchFor(niche: string) {
   };
 }
 
+/** What the `youtubeSearch` stage needs from a niche: its searches, its platform hosts, its screen. */
+export function youtubeSearchFor(niche: string) {
+  const n = nicheFor(niche);
+  return { queries: n.youtubeQueries, platforms: n.platformDomains, screen: n.screen };
+}
+
 /** One niche's discovery vocabulary, or the union when unscoped. */
 export function discoveryWordsFor(niche: string | null): ReadonlySet<string> {
   requireNiche(niche);

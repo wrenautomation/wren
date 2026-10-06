@@ -26,6 +26,7 @@ describe("stageEnabled", () => {
           s !== "instagram" &&
           s !== "fbGroups" &&
           s !== "exaSearch" &&
+          s !== "youtubeSearch" &&
           s !== "signals",
       ),
     );
