@@ -165,6 +165,21 @@ import type { RobotsCache } from "../fetch/robots.js";
 import { keepingAnswers } from "../findings.js";
 import type { PageStore } from "../pages.js";
 import {
+  type BaseDeps,
+  COLLECTORS,
+  countSignalUnit,
+  emptySignalsStats,
+  passOf,
+  planStats,
+  readAccount,
+  SIGNALS_COMMAND,
+  SIGNALS_HELD,
+  type SignalsStats,
+  signalPlan,
+  signalSettings,
+  signalUnit,
+} from "../signals/collectors.js";
+import {
   holdFailed,
   landed,
   notHeld,
@@ -365,6 +380,26 @@ const PROFILES = z.looseObject({
   personIds: z.array(z.number()).describe("People in send order; the due ones are looked up"),
   limit: z.number().nullish().describe("People this call"),
   timezone: z.string().describe("The zone Google's day and hours are kept in"),
+});
+
+export interface SignalsInput {
+  /** People in send order; their firms follow. */
+  personIds: number[];
+  /** More firms to read. */
+  companyIds?: number[];
+  /** Subjects per collector this call. */
+  limit?: number;
+  /** The zone Google's day and hours are kept in. */
+  timezone: string;
+  /** Only this collector. */
+  collector?: string;
+}
+const SIGNALS = z.looseObject({
+  personIds: z.array(z.number()).describe("People in send order; their firms follow"),
+  companyIds: z.array(z.number()).nullish().describe("More firms to read"),
+  limit: z.number().nullish().describe("Subjects per collector this call"),
+  timezone: z.string().describe("The zone Google's day and hours are kept in"),
+  collector: z.string().nullish().describe("Only this collector"),
 });
 
 const TEAM = z.looseObject({
@@ -923,6 +958,70 @@ export function makeEnrichment(deps: EnrichmentDeps) {
             }
             stats.stopped = countTeamUnit(stats, r.value, streak);
             if (stats.stopped) break;
+          }
+          await close(ctx, runId, stats);
+          return stats;
+        },
+      ),
+
+      signals: exclusiveHandler(
+        { input: SIGNALS },
+        async (ctx: restate.ObjectContext, input: SignalsInput): Promise<SignalsStats> => {
+          // The findings land on main: Wren's niches only.
+          if (clientOfKey(ctx.key.split("@")[0] as string))
+            throw new restate.TerminalError("signals run on Wren's niches only");
+          const { db, niche } = scope(ctx);
+          const { personIds, companyIds, ...rest } = input;
+          const runId = await open(ctx, SIGNALS_COMMAND, {
+            ...rest,
+            people: personIds.length,
+            niche,
+          });
+          const now = new Date(await ctx.date.now());
+          const plan = await ctx.run("select", async () =>
+            signalPlan(
+              db,
+              COLLECTORS,
+              await signalSettings(db),
+              await passOf(db, niche, personIds, companyIds ?? []),
+              { now, limit: input.limit ?? undefined, only: input.collector ?? null },
+            ),
+          );
+          const base: BaseDeps = {
+            db,
+            sites: deps.sites ? keepingAnswers(deps.sites, db) : null,
+            desk: deps.desk ? keepingAnswers(deps.desk, db) : null,
+            fetcher: deps.fetcher,
+            pages: deps.pages ?? null,
+            youtube: deps.youtube ?? null,
+            llm: deps.llm,
+            linkedin: readAccount(deps.linkedin),
+          };
+          const stats = emptySignalsStats();
+          // A unit's hold subject is `<collector>:<subject>`.
+          const holds = await stageHolds(ctx, db, SIGNALS_HELD);
+          for (const p of plan) {
+            const line = planStats(stats, p);
+            const c = COLLECTORS.find((x) => x.name === p.name);
+            if (!c) continue;
+            const ids = notHeld(
+              holds,
+              p.subjects.map((s) => `${c.name}:${s}`),
+            );
+            // Free reads batch; a metered one is its own step, never bought twice.
+            for await (const r of unitBatches(
+              ctx,
+              `signals ${c.name}`,
+              ids,
+              (id) =>
+                signalUnit(c, id.slice(c.name.length + 1), p.settings, base, {
+                  timezone: input.timezone,
+                  runId,
+                }),
+              { retry: UNIT_RETRY, holds, perRun: c.metered ? 1 : UNITS_PER_RUN },
+            )) {
+              if (countSignalUnit(stats, line, r.ok ? r.value : r)) break;
+            }
           }
           await close(ctx, runId, stats);
           return stats;

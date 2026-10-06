@@ -257,6 +257,13 @@ export const outbound: Module = {
       actions: INBOX_ACTIONS,
     },
     {
+      id: "signals",
+      label: "Signals",
+      template: "list",
+      record: "research.signal",
+      empty: { fresh: "No signal in the last 30 days.", all: "No signals yet." },
+    },
+    {
       id: "variants",
       label: "Variants",
       template: "list",

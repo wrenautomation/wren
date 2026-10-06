@@ -25,11 +25,14 @@ describe("stageEnabled", () => {
           s !== "adLibrary" &&
           s !== "instagram" &&
           s !== "fbGroups" &&
-          s !== "exaSearch",
+          s !== "exaSearch" &&
+          s !== "signals",
       ),
     );
     const wired = (w: Wired) => STAGES.filter((s) => stageEnabled(s, "none", false, w));
     expect(wired({ youtube: true })).toContain("youtube");
+    // Signals go last, on their own switch.
+    expect(wired({ signals: true }).at(-1)).toBe("signals");
     // Instagram is its own switch, right after youtube.
     const ig = wired({ youtube: true, instagram: true });
     expect(ig[ig.indexOf("youtube") + 1]).toBe("instagram");

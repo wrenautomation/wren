@@ -38,6 +38,7 @@ Verified against commit `83459e9` on 2026-09-28. The repo is a TypeScript monore
 | line | `books.lines` (one side of a journal entry) vs `books.bill_lines` (a bill's printed items). |
 | sites | autobrowse's Restate service, not in this repo. Every platform and Meta call goes through it (`packages/core/src/content/restate.ts:21`). Reddit does not. |
 | worker | `apps/worker` (Node/Lambda Restate endpoint); `apps/phone` (Cloudflare Worker, SMS inbox + webhooks); `deploy/pixel` (Cloudflare Worker, open pixel). |
+| signals | [[research/signal]]: dated findings from the collectors (`packages/research/src/signals/`); the lander's Signals: visitor events, funnel and replay (designs/2026-10-06-signals.md); `crm run`'s `signals` stage: CRM firms hiring (`packages/reactivation/src/signals.ts`). |
 | box | autobrowse's EC2 machine, woken by `packages/core/src/content/box.ts`. |
 
 ## What the map is not

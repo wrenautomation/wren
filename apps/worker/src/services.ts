@@ -181,6 +181,7 @@ import {
 } from "@wren/research";
 import { YOUTUBE_READ_SCOPE, youtubeApi } from "@wren/research/enrichment";
 import { s3PageStore } from "@wren/research/pages";
+import { RESEARCH_RECORDS } from "@wren/research/records";
 import { makeDiscovery, makeEnrichment, makePageArchive } from "@wren/research/restate";
 import { type Practice, practiceOf, scoreStep, triageStep } from "@wren/watch";
 import { WATCH_RECORDS } from "@wren/watch/records";
@@ -663,6 +664,19 @@ export async function buildServices(
     makeEvolution({ db, campaigns, policy, trackOpens: settings.openTracking, llmFor }),
   );
   // The pool-feeder walks the research chain per niche; what may spend is a setting.
+  // A week of the niche's sends ahead of compose: the queue `profiles` and `signals` read.
+  const queueAhead = {
+    ahead: async (niche: string, now: Date) =>
+      7 *
+      dailyOpenerCapacity(
+        await campaignPolicy(db, policy),
+        niche,
+        campaigns.get(niche)?.senders ?? [],
+        now,
+        fleet.ramps,
+      ),
+    horizonDays: settings.verificationHorizonDays,
+  };
   services.push(
     makePoolScheduler({
       db,
@@ -679,23 +693,10 @@ export async function buildServices(
         horizonDays: settings.verificationHorizonDays,
         policy: (niche) => campaigns.get(niche)?.recontact,
       },
-      // A week of the niche's sends ahead of compose; off unless WREN_POOL_PROFILES.
-      ...(settings.poolProfiles
-        ? {
-            profiles: {
-              ahead: async (niche: string, now: Date) =>
-                7 *
-                dailyOpenerCapacity(
-                  await campaignPolicy(db, policy),
-                  niche,
-                  campaigns.get(niche)?.senders ?? [],
-                  now,
-                  fleet.ramps,
-                ),
-              horizonDays: settings.verificationHorizonDays,
-            },
-          }
-        : {}),
+      // Metered: off unless WREN_POOL_PROFILES.
+      ...(settings.poolProfiles ? { profiles: queueAhead } : {}),
+      // Free; idle until a collector is built, then each one's `on` setting.
+      signals: queueAhead,
     }),
   );
   const mailDomains = mailDomainTargets(roster, mailboxes, settings.siteBaseUrl);
@@ -1011,6 +1012,7 @@ export async function buildServices(
         ...emailRecords(roster, policy),
         ...BOOKS_RECORDS,
         ...WATCH_RECORDS,
+        ...RESEARCH_RECORDS,
         ...MARKETING_NUMBERS,
         // Replays: read live from the lander, chunks signed from the files bucket.
         ...(settings.siteExportToken && settings.filesBucket

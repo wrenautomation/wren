@@ -3,6 +3,7 @@ import { defineComponent, type Port } from "@wren/core/components";
 import { clientKey } from "@wren/core/restate";
 import { defineWorkflow } from "@wren/core/workflows";
 import { z } from "zod";
+import { SIGNALS_COMPONENT, signalsSettingsSchema } from "./signals/collectors.js";
 
 const word = z.string().trim().toLowerCase().min(1);
 const perPass = z.number().int().min(0).max(1000).optional();
@@ -268,6 +269,37 @@ export const RESEARCH_COMPONENTS = [
         },
         { is: "fixed", says: "Public posts only, by official API or logged out. Never posted to." },
         { is: "fixed", says: "A hook quotes a real post, or there is no hook." },
+      ],
+    },
+  }),
+  defineComponent({
+    id: SIGNALS_COMPONENT,
+    stage: "find",
+    name: "Signals",
+    blurb:
+      "Reads dated, linked facts about each firm and person (news, hiring, posts, talks), so a message can say why now.",
+    icon: "search",
+    for: "client",
+    ready: false,
+    missing: ["Runs on Wren's niches only; collectors are built one by one (S1 to S8)"],
+    settings: signalsSettingsSchema,
+    requires: { components: ["research.crawl"] },
+    in: [{ id: "firms", label: "firms in the queue", kind: "firm" }],
+    out: [{ id: "signals", label: "firms with a fresh signal", kind: "firm" }],
+    hypothesis: {
+      from: "designs/2026-10-06-signal-collectors.md, 2026-10",
+      guesses: [
+        {
+          is: "change",
+          says: "Which collectors run.",
+          built: "settings: each collector's on",
+        },
+        {
+          is: "change",
+          says: "Each collector's own knobs.",
+          built: "settings: each collector's block",
+        },
+        { is: "fixed", says: "Free sources only; every signal has a date, a link and its raw." },
       ],
     },
   }),

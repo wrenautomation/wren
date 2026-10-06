@@ -181,8 +181,30 @@ export const FINDING_KINDS = [
   "post",
   "news",
   "profile",
+  "stack",
+  "site_change",
+  "talk",
+  "demand",
 ] as const;
 export type FindingKind = (typeof FINDING_KINDS)[number];
+/**
+ * Kinds that may carry a signal date (designs/2026-10-06-signal-collectors.md): a specific, timely,
+ * citable fact. `profile`, `still_there` and `left` never do.
+ */
+export const SIGNAL_KINDS = [
+  "news",
+  "post",
+  "hiring",
+  "job_change",
+  "stack",
+  "site_change",
+  "talk",
+  "demand",
+] as const satisfies readonly FindingKind[];
+export type SignalKind = (typeof SIGNAL_KINDS)[number];
+/** `published`: the source prints the date. `approx`: a relative label ("2w"). `seen`: our read. */
+export const SIGNAL_DATED = ["published", "approx", "seen"] as const;
+export type SignalDated = (typeof SIGNAL_DATED)[number];
 
 export const findings = pgTable(
   "findings",
@@ -202,9 +224,13 @@ export const findings = pgTable(
     /** Last time a read showed it; the first time is `created_at`. */
     observedAt: timestamp("observed_at", { withTimezone: true }).defaultNow().notNull(),
     createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+    /** A signal's own date: when it happened, or when we first saw it. Null = not a signal. */
+    signalAt: timestamp("signal_at", { withTimezone: true }),
+    signalDated: varchar("signal_dated", { length: 8, enum: SIGNAL_DATED }),
   },
   (t) => [
     primaryKey({ columns: [t.id], name: "pk_findings" }),
+    index("ix_findings_signal_at").on(t.signalAt).where(sql`signal_at IS NOT NULL`),
     index("ix_findings_document_id").on(t.documentId),
     unique("uq_findings_fact_key").on(t.factKey),
     index("ix_findings_person_id").on(t.personId),
@@ -227,9 +253,54 @@ export const findings = pgTable(
     oneOf("ck_findings_findingkind", t.kind, FINDING_KINDS),
     check("ck_findings_one_subject", sql`(person_id IS NULL) <> (company_id IS NULL)`),
     check("ck_findings_confidence", sql`confidence >= 0 AND confidence <= 1`),
+    oneOf("ck_findings_signal_dated", t.signalDated, SIGNAL_DATED),
+    check("ck_findings_signal_both", sql`(signal_at IS NULL) = (signal_dated IS NULL)`),
+    // A dated signal with no link is refused here, whoever writes it.
+    check("ck_findings_signal_link", sql`signal_at IS NULL OR source_url IS NOT NULL`),
+    check(
+      "ck_findings_signal_kind",
+      sql.raw(`signal_at IS NULL OR kind IN (${SIGNAL_KINDS.map((k) => `'${k}'`).join(", ")})`),
+    ),
   ],
 );
 export type Finding = typeof findings.$inferSelect;
+
+/**
+ * Every dated finding, one row per signal. A person's signal carries their firm's `company_id`,
+ * so a firm's list holds its people's too. `age` is `fresh` for the last 30 days.
+ */
+export const researchSignals = pgView("research_signals", {
+  id: integer("id").notNull(),
+  kind: varchar("kind", { length: 32, enum: FINDING_KINDS }).notNull(),
+  topic: text("topic"),
+  companyId: integer("company_id"),
+  personId: integer("person_id"),
+  subject: text("subject"),
+  title: text("title"),
+  url: text("url").notNull(),
+  at: timestamp("at", { withTimezone: true }).notNull(),
+  dated: varchar("dated", { length: 8, enum: SIGNAL_DATED }).notNull(),
+  via: varchar("via", { length: 64 }).notNull(),
+  confidence: real("confidence").notNull(),
+  documentId: integer("document_id"),
+  firstSeen: timestamp("first_seen", { withTimezone: true }).notNull(),
+  seen: timestamp("seen", { withTimezone: true }).notNull(),
+  age: text("age").notNull(),
+}).as(sql`
+  select f.id, f.kind,
+    coalesce(f.value ->> 'topic', f.value ->> 'event', f.value ->> 'site', replace(f.kind, '_', ' ')) topic,
+    coalesce(f.company_id, p.company_id) company_id, f.person_id,
+    coalesce(p.full_name, co.name, co.domain) subject,
+    coalesce(f.value ->> 'title', left(coalesce(f.value ->> 'caption', f.value ->> 'text'), 200),
+      case f.kind when 'hiring' then (f.value ->> 'count') || ' open roles'
+        when 'job_change' then concat_ws(' at ', f.value ->> 'title', f.value ->> 'to') end) title,
+    f.source_url url, f.signal_at "at", f.signal_dated dated, f.via, f.confidence, f.document_id,
+    f.created_at first_seen, f.observed_at seen,
+    case when f.signal_at > now() - interval '30 days' then 'fresh' else 'older' end age
+  from findings f
+  left join people p on p.id = f.person_id
+  left join companies co on co.id = coalesce(f.company_id, p.company_id)
+  where f.signal_at is not null`);
 
 /**
  * Every way to reach a firm or one of its people that its own pages published:
@@ -516,6 +587,43 @@ export const companyEventChecks = pgTable(
     oneOf("ck_company_event_checks_state", t.state, EVENT_CHECK_STATES),
   ],
 );
+
+/**
+ * Where one signal collector stands on one subject (`signals/`): `c<id>`, `p<id>`, or a post key
+ * (`reddit:t3_…`). `found`: dated signals kept (`found` counts them). `none`: read, nothing.
+ * `unresolved`: nothing to read, asked again in 30 days. `capped`: a cap, until `retry_at`.
+ * `tried` keeps every read and every refused draft; Google's daily budget counts its `google`
+ * steps. `answer` is a read's summary with no subject (an unmapped demand post's score).
+ */
+export const SIGNAL_CHECK_STATES = ["found", "none", "unresolved", "capped"] as const;
+export type SignalCheckState = (typeof SIGNAL_CHECK_STATES)[number];
+
+export const signalChecks = pgTable(
+  "signal_checks",
+  {
+    collector: varchar("collector", { length: 32 }).notNull(),
+    subject: varchar("subject", { length: 160 }).notNull(),
+    state: varchar("state", { length: 16, enum: SIGNAL_CHECK_STATES }).notNull(),
+    found: integer("found").default(0).notNull(),
+    tried: jsonb("tried").notNull(),
+    answer: jsonb("answer"),
+    retryAt: timestamp("retry_at", { withTimezone: true }),
+    runId: uuid("run_id"),
+    checkedAt: timestamp("checked_at", { withTimezone: true }).defaultNow().notNull(),
+  },
+  (t) => [
+    primaryKey({ columns: [t.collector, t.subject], name: "pk_signal_checks" }),
+    index("ix_signal_checks_run_id").on(t.runId),
+    index("ix_signal_checks_checked_at").on(t.checkedAt),
+    foreignKey({
+      columns: [t.runId],
+      foreignColumns: [runs.id],
+      name: "fk_signal_checks_run_id_runs",
+    }),
+    oneOf("ck_signal_checks_state", t.state, SIGNAL_CHECK_STATES),
+  ],
+);
+export type SignalCheck = typeof signalChecks.$inferSelect;
 
 /**
  * A study: one question researched from the open web into a cited report.

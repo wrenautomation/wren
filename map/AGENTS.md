@@ -21,7 +21,7 @@ Twins `AGENTS.md` and `routing.md` are generated from this file by `_meta/build.
 |---|---|
 | `leads/` | who we reach: companies, people, leads, sightings, suppressions |
 | `ledger/` | what ran and what it cost: runs, imports |
-| `research/` | what we learned about a company: documents, enrichments, discovery, candidates, verifications |
+| `research/` | what we learned about a company: documents, enrichments, discovery, candidates, verifications, signals |
 | `email/` | the cold-email machine: enrollments, messages, templates, sequences, roster, policy, health, inbox |
 | `content/` | the content loop: ideas, drafts, metrics, platforms, media |
 | `ads/` | Meta ads: launches |
@@ -39,6 +39,7 @@ Twins `AGENTS.md` and `routing.md` are generated from this file by `_meta/build.
 - **draft**: a `messages.state` and a `content_drafts` row.
 - **campaign**: a niche's email operation (`Campaign` in the worker), a Meta campaign object, an SMS 10DLC registration.
 - **sync**: the loop handler `sync` (one pass now) vs the mailbox read `syncInbox` vs the `inbox_syncs` cursor.
+- **signals**: dated findings from the collectors ([[research/signal]]) vs the lander's visitor events and replay vs `crm run`'s hiring stage.
 - **worker**: `apps/worker` (Restate endpoint on Lambda) vs `apps/phone` and `deploy/pixel` (Cloudflare Workers).
 
 ## Route by task

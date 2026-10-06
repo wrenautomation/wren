@@ -30,6 +30,8 @@
  * public posts, free, on its own two buckets; a post that names a firm becomes a finding on it.
  * `instagram` (on when `instagram` is given: autobrowse's `meta` site) reads the Instagram
  * account each firm links and its newest posts, free, on its own bucket, right after `youtube`.
+ * `signals` (on when `signals` is given and a collector is built) runs the signal collectors over
+ * the same queue as `profiles`, last (designs/2026-10-06-signal-collectors.md).
  *
  * `start({stages: [...]})` narrows one niche's loop to those stages (e.g. only the
  * two mailbox stages while the crawl stays off); `start({})` goes back to all.
@@ -66,6 +68,7 @@ import {
   youtubeRoom,
 } from "@wren/research/enrichment";
 import type { Discovery, Enrichment } from "@wren/research/restate";
+import { anyCollectorBuilt, SIGNALS_LIMIT } from "@wren/research/signals";
 import { and, count, gt, ne, sql } from "drizzle-orm";
 import { nextToEnroll } from "../outreach/compose.js";
 import type { RecontactPolicy } from "../recontact.js";
@@ -95,10 +98,19 @@ export const STAGES = [
   "youtube",
   "instagram",
   "profiles",
+  "signals",
 ] as const;
 export type Stage = (typeof STAGES)[number];
 /** Stages that run only once their client is wired (Wren's niches); `profiles` also turns on `team`. */
-const WIRED = ["adLibrary", "exaSearch", "fbGroups", "youtube", "instagram", "profiles"] as const;
+const WIRED = [
+  "adLibrary",
+  "exaSearch",
+  "fbGroups",
+  "youtube",
+  "instagram",
+  "profiles",
+  "signals",
+] as const;
 type WiredStage = (typeof WIRED)[number];
 export type Wired = Partial<Record<WiredStage, boolean>>;
 
@@ -130,6 +142,8 @@ export interface StageLimits {
   instagram: number;
   /** People whose LinkedIn pages are read this pass; each is several site calls. */
   profiles: number;
+  /** Subjects each signal collector reads this pass; each is paced by its own bucket. */
+  signals: number;
 }
 export const DEFAULT_LIMITS: StageLimits = {
   adLibrary: 3,
@@ -151,6 +165,7 @@ export const DEFAULT_LIMITS: StageLimits = {
   youtube: 200,
   instagram: 30,
   profiles: 5,
+  signals: SIGNALS_LIMIT,
 };
 
 /**
@@ -231,6 +246,8 @@ export interface PoolSchedulerDeps {
   recheck?: { horizonDays: number; policy: (niche: string) => RecontactPolicy | undefined };
   limits?: Partial<StageLimits>;
   profiles?: ProfilesStage;
+  /** The same queue for `signals` (Enrichment's `signals`); absent = off. Runs once a collector is built. */
+  signals?: ProfilesStage;
   /** The YouTube reader is wired (Enrichment's `youtube`): the stage runs on Wren's niches. */
   youtube?: boolean;
   /** autobrowse's `meta` site is wired (Enrichment's `instagram`): the stage runs on Wren's niches. */
@@ -336,6 +353,8 @@ export const progressOf: Record<Stage, (s: Record<string, number>) => number> = 
   exaSearch: (s) => s.read ?? 0,
   // A person written to person_lookups leaves the selection; an error or a cap does not.
   profiles: (s) => (s.people_matched ?? 0) + (s.people_unresolved ?? 0),
+  // A subject with a written answer leaves the selection for the collector's `everyDays`; a cap does not.
+  signals: (s) => s.checked ?? 0,
 };
 
 const definedOnly = <T extends object>(o: T): { [K in keyof T]?: Exclude<T[K], undefined> } =>
@@ -412,6 +431,7 @@ export function makePoolScheduler(deps: PoolSchedulerDeps) {
       adLibrary: wren && (deps.adLibrary ?? false),
       fbGroups: wren && (deps.fbGroups ?? false),
       exaSearch: wren && (deps.exaSearch ?? false),
+      signals: wren && deps.signals !== undefined && anyCollectorBuilt(),
     });
     if (limits.resolveMailboxes === 0) runnable.delete("resolveMailboxes");
     if (limits.verifyMailboxes === 0) runnable.delete("verifyMailboxes");
@@ -492,6 +512,22 @@ export function makePoolScheduler(deps: PoolSchedulerDeps) {
           timezone: deps.policy.timezone,
         });
       },
+      signals: async () => {
+        const p = deps.signals;
+        if (!p || niche === null) throw new restate.TerminalError("signals stage is off");
+        const personIds = await ctx.run("signal queue", async () =>
+          nextToEnroll(deps.db, {
+            niche,
+            verificationHorizonDays: p.horizonDays,
+            companies: await p.ahead(niche, now),
+          }),
+        );
+        return enrichment.signals({
+          personIds,
+          limit: limits.signals,
+          timezone: deps.policy.timezone,
+        });
+      },
     };
 
     const runId = await ctx.run("open run", async () => {
@@ -509,6 +545,7 @@ export function makePoolScheduler(deps: PoolSchedulerDeps) {
           ad_library: deps.adLibrary ?? false,
           fb_groups: deps.fbGroups ?? false,
           exa_search: deps.exaSearch ?? false,
+          signals: deps.signals !== undefined,
           stages: [...runnable],
           limits,
         },

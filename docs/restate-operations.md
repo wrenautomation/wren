@@ -182,6 +182,8 @@ Google at most 200/day, 8–20 local), then recomputes the firm's lead checks.
 `WREN_POOL_LINKEDIN=<address>` adds the logged-in LinkedIn step on that research alt
 (never William's own account; autobrowse caps it per day). Its cap skips the step until
 it lifts; the stage keeps going. `wren enrich profiles --niche <n>` runs it by hand; `wren enrich checks --niche <n>` recomputes the checks alone (free, no calls).
+`signals` runs last on Wren's niches once a collector is built (free sources; each collector
+on or off in the `research.signals` component). `wren enrich signals --niche <n> --dry` previews it.
 
 ```sh
 curl -X POST -H "$H" $U/PoolScheduler/sec_ria/start    # /status shows per-stage progress and errors

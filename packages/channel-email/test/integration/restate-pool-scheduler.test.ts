@@ -166,6 +166,7 @@ describe("PoolScheduler", () => {
       ["youtube", true],
       ["instagram", true],
       ["profiles", false],
+      ["signals", true],
     ]);
     expect(out.stats?.progress).toBe(0);
     // Sleeps to the policy's next local midnight after `now` (whatever day the test runs).

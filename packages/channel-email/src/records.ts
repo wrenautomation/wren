@@ -326,6 +326,7 @@ export const firmRecord = defineRecord({
     },
     { id: "declined", label: "Declined", where: { stage: "declined" }, sort: "-added" },
   ],
+  related: [{ record: "research.signal", by: "company_id" }],
 });
 
 export const modelRecord = defineRecord({

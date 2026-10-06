@@ -11,6 +11,7 @@ import type { Settings } from "@wren/config";
 import { recordedRun } from "@wren/core";
 import { atomic, type Db } from "@wren/db";
 import { crawlHintsFor, NICHE_NAMES, requireNiche } from "@wren/niches";
+import { keepingAnswers } from "@wren/research";
 import {
   addCrawlStats,
   crawlCompany,
@@ -25,6 +26,17 @@ import {
   selectCrawlTargets,
 } from "@wren/research/enrichment";
 import { PoliteFetcher, userAgent } from "@wren/research/fetch";
+import {
+  type BaseDeps,
+  COLLECTORS,
+  collectorNamed,
+  passOf,
+  readAccount,
+  runSignals,
+  SIGNALS_COMMAND,
+  SIGNALS_LIMIT,
+  signalSettings,
+} from "@wren/research/signals";
 import type { Command } from "commander";
 import { ingressSites } from "./sites.js";
 
@@ -203,6 +215,86 @@ export function registerEnrich(program: Command, withDb: WithDb, settings: Setti
         console.log(`profiles: ${JSON.stringify({ queued: personIds.length, ...stats })}`);
       });
     });
+
+  enrich
+    .command("signals")
+    .description(
+      "Run the signal collectors over the firms and people compose reaches next, or one of them",
+    )
+    .requiredOption("--niche <name>", `one of ${[...NICHE_NAMES].sort().join(", ")}`)
+    .option("--collector <name>", `only one of ${COLLECTORS.map((c) => c.name).join(", ")}`)
+    .option("--company <id>", "only this firm")
+    .option("--person <id>", "only this person (and their firm)")
+    .option("--limit <n>", "subjects per collector", String(SIGNALS_LIMIT))
+    .option("--dry", "print the drafts; write nothing")
+    .action(
+      async (opts: {
+        niche: string;
+        collector?: string;
+        company?: string;
+        person?: string;
+        limit: string;
+        dry?: boolean;
+      }) => {
+        const niche = requireNiche(opts.niche);
+        if (niche === null) throw new Error(`unknown niche ${opts.niche}`);
+        if (opts.collector && !collectorNamed(opts.collector))
+          throw new Error(`unknown collector ${opts.collector}`);
+        await withDb(async (db) => {
+          const one = opts.company !== undefined || opts.person !== undefined;
+          const personIds = opts.person
+            ? [Number(opts.person)]
+            : one
+              ? []
+              : await nextToEnroll(db, {
+                  niche,
+                  verificationHorizonDays: settings.verificationHorizonDays,
+                });
+          const pass = await passOf(
+            db,
+            niche,
+            personIds,
+            opts.company ? [Number(opts.company)] : [],
+          );
+          const sites = ingressSites(settings, "wren:signals");
+          const base: BaseDeps = {
+            db,
+            sites: opts.dry ? sites : keepingAnswers(sites, db),
+            desk: null,
+            fetcher: settings.fetchContact
+              ? new PoliteFetcher(userAgent(settings.fetchContact))
+              : null,
+            pages: null,
+            youtube: null,
+            llm: null,
+            linkedin: readAccount(settings.poolLinkedin),
+          };
+          const argv = { ...opts, niche };
+          const signalsOn = await signalSettings(db);
+          const run = (runId: string | null) =>
+            runSignals(COLLECTORS, signalsOn, base, {
+              pass,
+              timezone: settings.sendTimezone,
+              limit: Number(opts.limit),
+              only: opts.collector ?? null,
+              dry: opts.dry ?? false,
+              runId,
+              onUnit: (u) =>
+                console.log(
+                  "error" in u
+                    ? `${u.collector} ${u.subject}: ${u.error}`
+                    : `${u.collector} ${u.subject}: ${u.state}, ${u.kept} kept${u.drafts ? `\n${JSON.stringify(u.drafts, null, 2)}` : ""}`,
+                ),
+            });
+          // Each unit is written as it finishes: Ctrl-C is a pause, a rerun resumes.
+          const stats = opts.dry
+            ? await run(null)
+            : (await recordedRun(db, { command: SIGNALS_COMMAND, argv, niche }, (r) => run(r.id)))
+                .stats;
+          console.log(`signals: ${JSON.stringify(stats)}`);
+        });
+      },
+    );
 
   enrich
     .command("checks")

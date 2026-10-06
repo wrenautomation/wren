@@ -410,3 +410,6 @@ Each phase runs the research package tests once before its commit.
   table. One pool stage with a collector registry and one stub per collector, so S1 to S8 build in
   parallel after S0. Free sources only. Personalization stays case by case: nothing enters a
   template by rule.
+- 2026-10-06: Built S0. Migration 0119 (renumber at merge), `signals/` registry with eight stubs
+  (off until built), `Enrichment.signals`, pool stage `signals`, `wren enrich signals`, console
+  Outbound Signals. The view adds `age` (fresh within 30 days) for the Fresh tab.
