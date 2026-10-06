@@ -861,7 +861,8 @@ export const clients: Module = {
       ...overview,
       tiles: [
         { label: "Clients", record: "console.client", href: "/clients/all?view=clients" },
-        { label: "Added", record: "console.client", href: "/clients/all?view=all", period: 30 },
+        // Demos are accounts, not clients: both tiles count clients only.
+        { label: "Added", record: "console.client", href: "/clients/all?view=clients", period: 30 },
       ],
       top: [
         {

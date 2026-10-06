@@ -4,7 +4,17 @@
  * from any page and lands here; while one is thinking the list checks again every few seconds.
  */
 import type { RecordsPage } from "@wren/core/records/serve";
-import { Alert, Button, Empty, Loading, PageHeader, Tag, Textarea } from "@wren/ui";
+import {
+  Alert,
+  Button,
+  Empty,
+  exact,
+  Loading,
+  PageHeader,
+  relative,
+  Tag,
+  Textarea,
+} from "@wren/ui";
 import { type FormEvent, type ReactNode, useEffect, useState } from "react";
 import { call } from "../../api.js";
 import { useCall } from "../../load.js";
@@ -131,7 +141,9 @@ export function Ask() {
                     </a>
                   ) : null}
                   {typeof r.asked === "string" ? (
-                    <time dateTime={r.asked}>{new Date(r.asked).toLocaleString()}</time>
+                    <time dateTime={r.asked} title={exact(new Date(r.asked))}>
+                      {relative(new Date(r.asked))}
+                    </time>
                   ) : null}
                   {r.took !== null ? <span>{String(r.took)}s</span> : null}
                 </p>
