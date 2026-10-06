@@ -13,6 +13,7 @@ import type { SendPolicy } from "@wren/channel-email/send/policy";
 import { sessionRecord } from "@wren/channel-search/records";
 import { textCopyRecord } from "@wren/channel-sms/records";
 import { loadSettings } from "@wren/config";
+import { videoRecord } from "@wren/content/records";
 import { askRecord } from "@wren/core/ask";
 import { type Client, changeRecord, clientRecord, teamRecord } from "@wren/core/clients";
 import { ACCOUNT_SITES } from "@wren/core/components";
@@ -85,6 +86,7 @@ const RECORD_TYPES = [
   ...WATCH_RECORDS,
   ...MARKETING_NUMBERS,
   sessionRecord({ site: { baseUrl: "", exportToken: "" }, signGet: async () => "" }),
+  videoRecord(),
   dmCopyRecord("x"),
   textCopyRecord([], "x"),
   clientRecord,

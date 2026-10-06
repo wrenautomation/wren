@@ -108,6 +108,19 @@ export function youtubeContent(sites: SiteClient, o: YouTubeContentOptions = {})
         },
         file: await mediaFileOf(post.media.source, o.host, "youtube"),
       });
+      // The video is up: a thumbnail that fails (an unverified channel refuses custom ones) must
+      // not fail the post, or a retry would upload the video twice.
+      const thumb = post.extra?.thumbnail;
+      if (typeof thumb === "string" && thumb)
+        await sites
+          .call("youtube", "POST", "/upload/youtube/v3/thumbnails/set", {
+            videoId: v.id,
+            file: await mediaFileOf(thumb, o.host, "youtube"),
+            ...(/\.png$/i.test(thumb) ? { contentType: "image/png" } : {}),
+          })
+          .catch((err: Error) =>
+            console.warn(`youtube ${v.id}: thumbnail not set: ${err.message}`),
+          );
       return {
         id: v.id,
         url: videoUrl(v.id),

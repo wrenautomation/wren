@@ -12,6 +12,7 @@ import { copyExtras, copyPreview, dmExtras, dmLooks } from "./dms.js";
 import { postExtras, postLooks } from "./posts.js";
 import { sessionExtras } from "./sessions.js";
 import { textCopyExtras, textCopyPreview } from "./texts.js";
+import { videoExtras } from "./videos.js";
 
 const said = (line: string) => () => line;
 
@@ -163,6 +164,38 @@ const ACTIVITY_ACTIONS: Action[] = [
   },
 ];
 
+/** Approve is his yes: the file uploads to YouTube, private, on the next pass. */
+const VIDEO_APPROVE: Action = {
+  id: "marketing.videoApprove",
+  label: "Approve",
+  handler: "marketing/videoApprove",
+  confirm: "Upload the long video to YouTube, private?",
+  key: "a",
+  when: { state: ["rendered"] },
+  done: said("Approved. It uploads, private, on the next pass."),
+};
+const VIDEO_ACTIONS: Action[] = [
+  VIDEO_APPROVE,
+  {
+    id: "marketing.videoApproveShort",
+    label: "Approve a Short",
+    handler: "marketing/videoApproveShort",
+    each: true,
+    form: [{ field: "short", label: "Short", type: "number", hint: "1 is the first Short." }],
+    when: { state: ["rendered", "approved", "uploaded"] },
+    done: said("Approved. The Short uploads, private, on the next pass."),
+  },
+  {
+    id: "marketing.videoThumbnail",
+    label: "Pick thumbnail",
+    handler: "marketing/videoThumbnail",
+    each: true,
+    form: [{ field: "n", label: "Thumbnail", type: "select", options: ["1", "2", "3"] }],
+    when: { state: ["rendered", "approved"] },
+    done: said("Picked. It goes up with the video."),
+  },
+];
+
 /** One read on his click; the loops behind these pages stay as they are. */
 const readNow = (id: string, handler: string, done: (answer: unknown) => string): Action => ({
   id,
@@ -309,6 +342,8 @@ const INBOX_ACTIONS: Action[] = [
   // A reply's call invite, as its replies page answers it; a reply with none has no actions.
   ...REPLY_ACTIONS.map((a) => only("email", a, { answer: REPLY_WAITING.state })),
   ...ACTIVITY_ACTIONS.map((a) => (a.form ? a : only("activity", a))),
+  // The long video's yes; Shorts and thumbnails are picked on its Videos page.
+  only("video", VIDEO_APPROVE, WAITS),
   ...draftActions("inbox", {
     type: ["comment", "draft", "thread", "dm", "invite"],
     state: ["new", "waiting", "read"],
@@ -370,6 +405,7 @@ export const INBOX_PAGE: Omit<ListPage, "id"> = {
     invites: "No accepted invite waits on a first message.",
     email: "Email replies from leads show here.",
     texts: "Text threads show here once someone texts back.",
+    videos: "No rendered video waits on your Approve.",
     activity: "Follows, mentions and notices show here.",
     all: "Drafts, comments, DMs, threads, invites, replies, texts and activity show here.",
   },
@@ -483,6 +519,19 @@ export const marketing: Module = {
       },
       actions: [...COMMENT_ACTIONS, ...COMMENT_ASK],
       extras: withDraft(COMMENT_DRAFT),
+    },
+    {
+      id: "videos",
+      label: "Videos",
+      group: "Content",
+      template: "list",
+      record: "marketing.video",
+      empty: {
+        waiting: "No rendered video waits on you.",
+        all: "Videos show here once a recording is added on the Mac.",
+      },
+      actions: VIDEO_ACTIONS,
+      extras: videoExtras,
     },
     {
       id: "topics",

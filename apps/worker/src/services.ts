@@ -108,6 +108,7 @@ import { xContent } from "@wren/channel-x";
 import { youtubeContent } from "@wren/channel-youtube";
 import { ingressOf, type Settings } from "@wren/config";
 import { commentGuide, DEFAULT_VOICE, dmGuide, s3MediaHost } from "@wren/content";
+import { videoRecord } from "@wren/content/records";
 import {
   makeContentDesk,
   makeContentMetrics,
@@ -1030,6 +1031,12 @@ export async function buildServices(
               }),
             ]
           : []),
+        // Videos: previews and stills signed from the media bucket (step 2 puts them there).
+        videoRecord(
+          settings.mediaBucket
+            ? { bucket: settings.mediaBucket, host: s3MediaHost({ bucket: settings.mediaBucket }) }
+            : undefined,
+        ),
         dmCopyRecord(settings.smsSenderName),
         textCopyRecord(SMS_SEQUENCES.values(), settings.smsSenderName),
         ...MARKETING_RECORDS,

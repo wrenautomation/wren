@@ -3,7 +3,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import type { S3Client } from "@aws-sdk/client-s3";
 import { describe, expect, it } from "vitest";
-import { parseStored, uploadMedia } from "./media.js";
+import { parseStored, s3MediaHost, uploadMedia } from "./media.js";
 
 /** Records puts. */
 function fakeS3() {
@@ -24,6 +24,12 @@ describe("media store", () => {
     expect(parseStored("s3://b/media/abc.mp4")).toEqual({ bucket: "b", key: "media/abc.mp4" });
     expect(parseStored("https://x/y")).toBeNull();
     expect(parseStored("s3://b")).toBeNull();
+  });
+  it("a path not on this machine stays a path: the desk (the Mac) reads its own disk", async () => {
+    const { client, puts } = fakeS3();
+    const host = s3MediaHost({ bucket: "wren-media", client });
+    expect(await host.host("/not/on/this/machine/long.mp4")).toBe("/not/on/this/machine/long.mp4");
+    expect(puts).toEqual([]);
   });
   it("uploads under the content hash with the file's type", async () => {
     const dir = await mkdtemp(join(tmpdir(), "media-"));

@@ -17,6 +17,7 @@ import { DRAFT_STAGE, type DraftOptions, type DraftResult, draftIdea, redraft } 
 import { addIdea, getIdea } from "../ideas.js";
 import { approveDrafts, editDraft, getDraft, rejectDrafts } from "../review.js";
 import { type ContentIdea, IDEA_SOURCES, type IdeaSource } from "../schema.js";
+import { approveVideo, pickThumbnail } from "../video.js";
 import type { Brand } from "../voice.js";
 
 export const DESK_KEY = "default";
@@ -64,6 +65,20 @@ const DRAFT = z.looseObject({
 const REDRAFT = z.looseObject({
   draftId: z.string(),
   note: z.string().describe("What to change"),
+});
+
+const VIDEO = z.looseObject({
+  id: z.number().int().positive().describe("The video (wren video list)"),
+  short: z
+    .number()
+    .int()
+    .positive()
+    .nullish()
+    .describe("A Short, 1 for the first; none: the long video"),
+});
+const THUMBNAIL = z.looseObject({
+  id: z.number().int().positive(),
+  n: z.number().int().positive().describe("Which rendered thumbnail, 1 for the first"),
 });
 
 const IDS = z.looseObject({ ids: z.array(z.string()).describe("Draft ids") });
@@ -158,6 +173,29 @@ export function makeContentDesk(deps: ContentDeskDeps) {
         (ctx: restate.ObjectContext, req: { ids: string[] }) =>
           ctx.run("approve", () =>
             verdict(() => approveDrafts(deps.db, req.ids, { now: new Date(), zone: deps.zone })),
+          ),
+      ),
+      /** His yes on a rendered video or one Short: a private YouTube draft, posted on the next pass. */
+      approveVideo: exclusiveHandler(
+        { input: VIDEO },
+        (ctx: restate.ObjectContext, req: { id: number; short?: number | null }) =>
+          ctx.run("approve video", () =>
+            verdict(async () => [
+              await approveVideo(deps.db, req.id, {
+                source: "api",
+                ...(req.short ? { short: req.short } : {}),
+              }),
+            ]),
+          ),
+      ),
+      pickThumbnail: exclusiveHandler(
+        { input: THUMBNAIL },
+        (ctx: restate.ObjectContext, req: { id: number; n: number }) =>
+          ctx.run("pick thumbnail", () =>
+            verdict(async () => {
+              await pickThumbnail(deps.db, req.id, req.n);
+              return [{ id: String(req.id) }];
+            }),
           ),
       ),
       reject: exclusiveHandler(

@@ -125,6 +125,14 @@ const draftRows = (db: Queryable) =>
       where state = 'draft' order by created desc limit ${ACTIVITY_ROWS}`,
   );
 
+/** Rendered videos waiting on his Approve (Marketing → Videos). */
+const videoRows = (db: Queryable) =>
+  rowsOf(
+    db,
+    sql`select id, title, description, updated_at at from video_edits
+      where state = 'rendered' order by updated_at desc limit ${ACTIVITY_ROWS}`,
+  );
+
 /** Accepted invites nobody wrote to yet: no message either way past the invite. */
 const acceptedRows = (db: Queryable) =>
   rowsOf(
@@ -141,7 +149,7 @@ const acceptedRows = (db: Queryable) =>
 /**
  * Everything waiting on William as one list. Ids carry their type (`draft:3`, `comment:12`,
  * `dm:5`, `thread:abc`, `invite:7`, `email:4` (a call invite), `reply:6` (a reply with none),
- * `text:8`, `activity:9`); each action reads the id after the colon. `due` orders "Waiting on you": a draft's slot, else when it came.
+ * `text:8`, `video:2` (rendered, waiting on Approve), `activity:9`); each action reads the id after the colon. `due` orders "Waiting on you": a draft's slot, else when it came.
  */
 export const inboxRecord = defineRecord({
   id: "marketing.inbox",
@@ -155,6 +163,7 @@ export const inboxRecord = defineRecord({
     const es = await emailRows(db);
     const xs = await textRows(db);
     const as = (await activityRecord.rows?.(db)) ?? [];
+    const vs = await videoRows(db);
     return [
       ...ps.map((p) => ({
         id: `draft:${p.id}`,
@@ -275,6 +284,22 @@ export const inboxRecord = defineRecord({
         due: x.at,
         url: null,
       })),
+      ...vs.map((v) => ({
+        id: `video:${v.id}`,
+        type: "video",
+        who: v.title || `Video ${v.id}`,
+        platform: "youtube",
+        kind: "video",
+        channel: "content",
+        state: "waiting",
+        body: v.description,
+        post_title: null,
+        draft: null,
+        account: null,
+        at: v.at,
+        due: v.at,
+        url: `/marketing/videos/${v.id}`,
+      })),
       ...as.map((a) => ({
         id: `activity:${a.id}`,
         type: "activity",
@@ -307,6 +332,7 @@ export const inboxRecord = defineRecord({
         invite: neutral("Invite"),
         email: neutral("Email"),
         text: neutral("Text"),
+        video: neutral("Video"),
         activity: neutral("Activity"),
       },
       "Type",
@@ -323,6 +349,7 @@ export const inboxRecord = defineRecord({
         invite: neutral("Accepted your invite"),
         email: neutral("Email reply"),
         text: neutral("Text"),
+        video: neutral("Video to approve"),
         ...KIND_LABELS,
       },
       "Kind",
@@ -367,6 +394,7 @@ export const inboxRecord = defineRecord({
     { id: "invites", label: "Invites", where: { type: "invite" }, sort: "-at", at: "at" },
     { id: "email", label: "Email", where: { type: "email" }, sort: "-at", at: "at" },
     { id: "texts", label: "Texts", where: { type: "text" }, sort: "-at", at: "at" },
+    { id: "videos", label: "Videos", where: { type: "video" }, sort: "-at", at: "at" },
     { id: "activity", label: "Activity", where: { type: "activity" }, sort: "-at", at: "at" },
     { id: "all", label: "All", sort: "-at", at: "at" },
   ],
@@ -388,6 +416,7 @@ export const inboxRecord = defineRecord({
     "email.drop",
     "marketing.activitySeen",
     "marketing.activityAllSeen",
+    "marketing.videoApprove",
     "marketing.draftSet",
     "marketing.draftAsk",
     "marketing.draftUndo",
@@ -398,7 +427,7 @@ export const inboxRecord = defineRecord({
     const [type, rest] = [id.slice(0, at), id.slice(at + 1)];
     if (type === "text") return (await textThreadRecord.load?.(db, rest)) ?? null;
     // An email's words and our drafted answer are the row's own.
-    if (type === "activity" || type === "email" || type === "reply") return null;
+    if (["activity", "email", "reply", "video"].includes(type)) return null;
     const ask = { ask: await draftTurns(db, type, rest) };
     return type === "dm" || type === "invite"
       ? { ...(await dmRecord.load?.(db, rest)), ...ask }

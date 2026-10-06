@@ -37,6 +37,7 @@ Citations: `packages/content/src/schema.ts:76`
 | Surface | Role |
 |---|---|
 | `ContentDesk.draft/redraft` | writes |
+| `ContentDesk.approveVideo`, `wren video approve` ([[content/video-edit]]) | write an approved, private YouTube draft of a rendered video |
 | `wren content approve/reject/edit`, `ContentDesk.approve/reject/edit` (the console) | writes |
 | `marketing.draft` (`marketing_draft_records`, every status but published), `marketing.post` | read; their `load` adds the preview's text, cap and feed cut (`PLATFORM_SPECS.feed`) |
 | the detail's draft box (`DraftAsk/set`, who = the signed-in person), `DraftAsk/ask` (Claude's rewrite), `DraftAsk/undo`, `wren drafts set draft:<id>` | write `text` through `editDraft`, one `runs` row each (`draft-ask`/`draft-set`/`draft-undo`, keeps the text replaced); `marketing.draft`'s `load` adds the thread (`draftTurns`, `packages/core/src/ask.ts`). The `draft-set` rows are his edits: `draftEdits`/`editsFor` feed the last 5 per kind to every drafting call and the Ask Claude prompt, `wren drafts edits` prints them. Kinds: `packages/content/src/draft-ask.ts` |

@@ -217,3 +217,12 @@ Answered 10-06: agreed; OBS; captions on the long video and Shorts.
   and its server refuses a linked file but serves a linked folder. Smoke on a 118 s synthetic
   clip (106 s cut), with the Mac at load 15-20 from other sessions: Long 234 s, a 27 s Short
   66 s, a thumbnail about 1.5 s, all on VideoToolbox. Real timing waits for his first video.
+- 2026-10-06: step 3 built. Marketing → Videos (`marketing.video`); a rendered video is also
+  `video:<id>` in the Inbox's "Waiting on you". Approve (`wren video approve <id> [--short n]` or the
+  page) writes one YouTube draft per video or Short, approved with no slot, private, with the file's
+  path on the Mac; a second Approve answers the same draft. The worker's media host leaves a path it
+  doesn't have as a path, so the desk reads it from disk. The picked thumbnail goes up after the
+  video; a refused one doesn't fail the post. Chapters are not written into the description yet.
+  The autobrowse upload streams from disk with one attempt and a 2 hour PUT timeout (autobrowse
+  cd3db46). Checked: Wren's channel is not phone-verified
+  (`longUploadsStatus: eligible`), so custom thumbnails are refused until he verifies it.
