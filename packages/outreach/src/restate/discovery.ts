@@ -141,6 +141,14 @@ export function makeRedditReads(deps: ReachDeps & { discovery: DiscoveryDeps }) 
           for (const p of await r.searchPlaces(t))
             found.push({ name: p.name, foundBy: `topic: ${t}`, subscribers: p.subscribers });
         });
+      // Exa: a few searches a pass from the shared credit; a miss (spent, capped) ends them.
+      for (const t of topics.slice(0, audience.exaSearches))
+        try {
+          for (const n of await r.exaPlaces(t)) found.push({ name: n, foundBy: `exa: ${t}` });
+        } catch (err) {
+          s.errors.push(`exa ${t}: ${errorText(err)}`);
+          break;
+        }
       for (const n of await step("people places", () => placesOfPeople(db)))
         found.push({ name: n, foundBy: "people" });
       s.found = await step("add places", () => addPlaces(db, found));

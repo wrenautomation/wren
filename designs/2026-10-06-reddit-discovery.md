@@ -164,13 +164,18 @@ reads to find places to talk. Nothing is shared.
   `RedditReads/wren` loop. Marketing → Places and Threads. Settings: component
   `reddit.discovery` (about, topics, subreddits), saved from the Shop into `wren_settings`; each
   pass reads them. Cards: `map/objects/content/reddit-thread.md`.
-- Candidates come from `/subreddits/search`, named subreddits, and where read people post.
-  Google and Exa search pages are not wired yet.
+- Candidates come from `/subreddits/search`, named subreddits, where read people post, and Exa:
+  autobrowse `web GET /search` (Exa only, `site:reddit.com <topic>`), subreddit names taken from
+  the result URLs. `exaSearches` (default 3, 0 = off) caps the searches a find pass, so about 3 a
+  month from the Exa keys' shared credit; a miss (spent, capped) ends them for the pass. That
+  route carries no `exa` meter in autobrowse and no `includeDomains`, so the `site:` is a hint and
+  code keeps only reddit.com URLs. Google stays out: its 200 a day are shared and already split.
 - Threads read `/new` only. 50 posts every 2 hours covers a place up to 600 posts a day, so the
   per-topic search for big subreddits waits for one past that.
 - People are read for OPs of queued threads, commenters on our posts and Reddit DM contacts (5 a
-  pass). Comments show who they are; Replies shows their business. DM drafts don't read People
-  yet.
+  pass). Comments show who they are; Replies shows their business. No DM is drafted by a model
+  yet (DMs are templates or typed by William; `reach.dm` was never built), so no DM draft reads
+  People. DM threads show the People line in place of a headline.
 - Scores are read after 2 days and shown per place (average). Fit doesn't learn from them yet.
 - Exa research per draft is not built (off by default anyway).
 
@@ -183,3 +188,6 @@ reads to find places to talk. Nothing is shared.
   so Watch spreads places across a small pool. (5) Yes, read OPs. He also writes the posts
   himself, so Places shows what a post needs and posts go through `channel-reddit`.
 - 2026-10-06: Built (see Built). Off until `wren reach discovery start`; reading posts nothing.
+- 2026-10-06: Exa added as a place candidate source (`exaSearches`, 3 a pass). Google left out:
+  its daily budget is shared and already split. DM drafts reading People: nothing to wire, no
+  model drafts DMs.

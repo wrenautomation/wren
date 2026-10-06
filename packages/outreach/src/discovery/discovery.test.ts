@@ -3,7 +3,7 @@ import { FakeLlm } from "@wren/llm";
 import { describe, expect, it } from "vitest";
 import { personFacts, readWords } from "./people.js";
 import { judgePlace, paceOf, WREN_AUDIENCE } from "./places.js";
-import { signedOut } from "./reads.js";
+import { reader, signedOut, subredditsIn } from "./reads.js";
 import { dropReason, factsFor } from "./threads.js";
 
 const NOW = new Date("2026-10-06T18:00:00Z");
@@ -46,6 +46,31 @@ describe("reddit discovery", () => {
     await out.call("reddit", "GET", "/r/x/new", {});
     await out.call("linkedin", "GET", "/x", {});
     expect(calls).toEqual(["reddit-public", "linkedin"]);
+  });
+
+  it("Exa candidates: subreddit names from reddit.com result URLs, once each", async () => {
+    expect(
+      subredditsIn([
+        "https://www.reddit.com/r/Agency/comments/abc/how_do_you_price/",
+        "https://old.reddit.com/r/agency/comments/def/x/",
+        "https://reddit.com/r/smallbusiness",
+        "https://www.reddit.com/user/someone/",
+        "https://example.test/r/notreddit/",
+      ]),
+    ).toEqual(["agency", "smallbusiness"]);
+    const asked: unknown[] = [];
+    const sites = {
+      call: async (site: string, _m: string, path: string, input: unknown) => {
+        asked.push([site, path, input]);
+        return { hits: [{ url: "https://www.reddit.com/r/consulting/comments/x/y/" }] } as never;
+      },
+      via: async () => ({}) as never,
+    };
+    expect(await reader(sites).exaPlaces("client onboarding")).toEqual(["consulting"]);
+    expect(asked).toEqual([
+      ["web", "/search", { q: "site:reddit.com client onboarding", n: 10, via: "exa" }],
+    ]);
+    expect(WREN_AUDIENCE.exaSearches).toBe(3);
   });
 
   it("code drops what a comment can't help, $0", () => {

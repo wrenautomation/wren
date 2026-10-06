@@ -1,7 +1,7 @@
 /**
  * Places: subreddits where our buyers ask questions (designs/2026-10-06-reddit-discovery.md,
- * Places). Found by topic search, by name, and where the people we read post; each read once a
- * month and judged by a model (fit, rules in plain words). Pace is counted in code. Nothing is
+ * Places). Found by topic search (Reddit's and Exa's), by name, and where the people we read
+ * post; each read once a month and judged by a model (fit, rules in plain words). Pace is counted in code. Nothing is
  * watched until William picks it; Watch gives it the pool account with the fewest places whose
  * rung its minimums allow.
  */
@@ -35,6 +35,8 @@ export const discoverySettingsSchema = z
     /** Below either floor a place reads as fit 0 with no model call. */
     minMembers: z.number().int().min(0).default(1000),
     minPostsADay: z.number().min(0).default(0.2),
+    /** Exa searches (reddit.com results) per place-finding pass, from the shared Exa credit; 0 = off. */
+    exaSearches: z.number().int().min(0).max(10).default(3),
   })
   .strict();
 export type Audience = z.infer<typeof discoverySettingsSchema>;

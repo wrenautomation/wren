@@ -58,6 +58,8 @@ export interface Reader {
   person(handle: string): Promise<Profile>;
   /** Subreddit names for a topic, most subscribed first. */
   searchPlaces(topic: string): Promise<{ name: string; subscribers: number }[]>;
+  /** Subreddit names in the reddit.com results of an Exa search for a topic. */
+  exaPlaces(topic: string): Promise<string[]>;
   place(sub: string): Promise<PlaceRead>;
   latest(sub: string): Promise<Post[]>;
   /** The post and every comment under it, flattened, top-level first. */
@@ -65,6 +67,13 @@ export interface Reader {
   /** Things by fullname (our comments, for their score). */
   info(ids: string[]): Promise<Thing[]>;
 }
+
+const SUB_URL = /^https?:\/\/(?:[a-z]+\.)?reddit\.com\/r\/([A-Za-z0-9_]{2,21})(?:[/?#]|$)/i;
+
+/** Subreddit names in result URLs (reddit.com/r/<name>/...), lowercase, once each. */
+export const subredditsIn = (urls: readonly string[]): string[] => [
+  ...new Set(urls.flatMap((u) => SUB_URL.exec(u)?.[1]?.toLowerCase() ?? [])),
+];
 
 export function reader(sites: SiteClient): Reader {
   const out = signedOut(sites);
@@ -80,6 +89,16 @@ export function reader(sites: SiteClient): Reader {
           ? [{ name: s.display_name, subscribers: s.subscribers ?? 0 }]
           : [],
       );
+    },
+    // autobrowse's `web /search` with Exa only: its key ring, a spent ring answers 402.
+    // ponytail: Exa gets no includeDomains here, so `site:` is a hint and the URLs are filtered.
+    async exaPlaces(topic) {
+      const r = await out.call<{ hits?: { url: string }[] }>("web", "GET", "/search", {
+        q: `site:reddit.com ${topic}`,
+        n: 10,
+        via: "exa",
+      });
+      return subredditsIn((r.hits ?? []).map((h) => h.url));
     },
     async place(sub) {
       const about = dataOf(await call<{ data?: SubredditAbout }>(`/r/${sub}/about`));
