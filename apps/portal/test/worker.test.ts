@@ -72,7 +72,8 @@ beforeEach(() => {
     if (url === `${AUTH}/api/auth/jwks`) {
       certFetches++;
       const jwk = await crypto.subtle.exportKey("jwk", keys.publicKey);
-      return Response.json({ keys: [{ ...jwk, kid: "k1" }] });
+      // As Better Auth publishes it: alg EdDSA (WebCrypto exports Ed25519).
+      return Response.json({ keys: [{ ...jwk, alg: "EdDSA", kid: "k1" }] });
     }
     restate.push({ url, body: JSON.parse(String(init?.body)) });
     return Response.json({ ok: true, route: url.split("/").at(-1) }, { status: restateStatus });

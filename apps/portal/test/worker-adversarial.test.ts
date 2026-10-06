@@ -78,7 +78,7 @@ beforeEach(() => {
     if (url === `${AUTH}/api/auth/jwks`) {
       const out = [];
       for (const p of published)
-        out.push({ ...(await crypto.subtle.exportKey("jwk", p.key)), kid: p.kid });
+        out.push({ ...(await crypto.subtle.exportKey("jwk", p.key)), alg: "EdDSA", kid: p.kid });
       return Response.json({ keys: out });
     }
     restate.push({ url, body: JSON.parse(String(init?.body)) });

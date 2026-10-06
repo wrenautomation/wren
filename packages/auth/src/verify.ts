@@ -1,8 +1,11 @@
 /**
  * Who signed in, for an app: the short-lived token our sign-in signs (A6),
  * checked against its published keys. EdDSA (Ed25519) plus iss, aud, exp and
- * nbf. WebCrypto only, so it runs in a Worker; nothing here imports Better Auth.
+ * nbf, checked by jose (open source; runs in a Worker and in Node). Nothing here
+ * imports Better Auth.
  */
+
+import { createRemoteJWKSet, customFetch, errors, type JWTPayload, jwtVerify } from "jose";
 
 /** Who the token is for: every Wren app checks this. */
 export const AUDIENCE = "wren";
@@ -24,62 +27,26 @@ export interface Signed {
   sub: string;
 }
 
-/** The parts of a published key we read; the same shape in a Worker and in Node. */
-interface Jwk {
-  kid?: string;
-  kty?: string;
-  crv?: string;
-  x?: string;
-}
-type Key = Awaited<ReturnType<typeof crypto.subtle.importKey>>;
-
-type Keys = { at: number; keys: Map<string, Key> };
+type Jwks = ReturnType<typeof createRemoteJWKSet>;
+/** Keys are fetched again after an hour, or sooner when a token names a key id we lack. */
 const KEYS_TTL_MS = 60 * 60 * 1000;
 /** An unknown key id refetches at most this often, so made-up ids can't hammer the sign-in. */
 const REFETCH_MS = 60 * 1000;
-const cache = new Map<string, Keys>();
+/** Clocks drift: a token may say it starts this far ahead of ours. Expiry is exact. */
+const SKEW_SECONDS = 60;
+const sets = new Map<string, Jwks>();
 
-const b64url = (s: string): Uint8Array => {
-  const b = atob(
-    s
-      .replace(/-/g, "+")
-      .replace(/_/g, "/")
-      .padEnd(Math.ceil(s.length / 4) * 4, "="),
-  );
-  return Uint8Array.from(b, (c) => c.charCodeAt(0));
-};
-const jsonPart = (s: string): Record<string, unknown> | null => {
-  try {
-    const v: unknown = JSON.parse(new TextDecoder().decode(b64url(s)));
-    return v && typeof v === "object" ? (v as Record<string, unknown>) : null;
-  } catch {
-    return null;
-  }
-};
-
-async function issuerKeys(
-  issuer: string,
-  fetcher: typeof fetch,
-  now: number,
-  fresh = false,
-): Promise<Map<string, Key>> {
-  const hit = cache.get(issuer);
-  if (hit && now - hit.at < (fresh ? REFETCH_MS : KEYS_TTL_MS)) return hit.keys;
-  const res = await fetcher(`${issuer}/api/auth/jwks`);
-  if (!res.ok) throw new Error(`jwks ${res.status}`);
-  const { keys = [] } = (await res.json()) as { keys?: Jwk[] };
-  const out = new Map<string, Key>();
-  for (const jwk of keys) {
-    if (!jwk.kid || jwk.kty !== "OKP" || jwk.crv !== "Ed25519" || typeof jwk.x !== "string")
-      continue;
-    const key = { kty: "OKP", crv: "Ed25519", x: jwk.x };
-    out.set(
-      jwk.kid,
-      await crypto.subtle.importKey("jwk", key, { name: "Ed25519" }, false, ["verify"]),
-    );
-  }
-  cache.set(issuer, { at: now, keys: out });
-  return out;
+/** The issuer's published keys, cached and rotated by jose. */
+function keysOf(issuer: string, fetcher?: typeof fetch): Jwks {
+  const hit = fetcher ? undefined : sets.get(issuer);
+  if (hit) return hit;
+  const set = createRemoteJWKSet(new URL(`${issuer}/api/auth/jwks`), {
+    cacheMaxAge: KEYS_TTL_MS,
+    cooldownDuration: REFETCH_MS,
+    ...(fetcher ? { [customFetch]: fetcher } : {}),
+  });
+  if (!fetcher) sets.set(issuer, set);
+  return set;
 }
 
 /** The signed-in person, or null for anything short of a valid token. */
@@ -89,32 +56,23 @@ export async function verifyToken(
   opts: { fetcher?: typeof fetch; now?: number } = {},
 ): Promise<Signed | null> {
   if (!token) return null;
-  const parts = token.split(".");
-  if (parts.length !== 3) return null;
-  const [h, p, s] = parts as [string, string, string];
-  const header = jsonPart(h);
-  const claims = jsonPart(p);
-  if (!header || !claims || header.alg !== "EdDSA" || typeof header.kid !== "string") return null;
   const now = opts.now ?? Date.now();
-  const fetcher = opts.fetcher ?? fetch;
-  let keys = await issuerKeys(check.issuer, fetcher, now);
-  // A key rotated in since the last fetch: fetch once more.
-  if (!keys.has(header.kid)) keys = await issuerKeys(check.issuer, fetcher, now, true);
-  const key = keys.get(header.kid);
-  if (!key) return null;
-  let sig: Uint8Array;
+  let claims: JWTPayload;
   try {
-    sig = b64url(s);
-  } catch {
+    ({ payload: claims } = await jwtVerify(token, keysOf(check.issuer, opts.fetcher), {
+      algorithms: ["EdDSA", "Ed25519"],
+      issuer: check.issuer,
+      audience: check.audience,
+      requiredClaims: ["exp", "sub"],
+      currentDate: new Date(now),
+      clockTolerance: SKEW_SECONDS,
+    }));
+  } catch (err) {
+    // The sign-in unreachable is an outage, not a bad token: the caller says so.
+    if (err instanceof errors.JWKSTimeout || isFetchFailure(err)) throw err;
     return null;
   }
-  const ok = await crypto.subtle.verify("Ed25519", key, sig, new TextEncoder().encode(`${h}.${p}`));
-  if (!ok) return null;
-  const aud = Array.isArray(claims.aud) ? claims.aud : [claims.aud];
-  if (!aud.includes(check.audience)) return null;
-  if (claims.iss !== check.issuer) return null;
   if (typeof claims.exp !== "number" || claims.exp * 1000 <= now) return null;
-  if (typeof claims.nbf === "number" && claims.nbf * 1000 > now + 60_000) return null;
   const email = typeof claims.email === "string" ? claims.email.trim().toLowerCase() : "";
   if (!email || typeof claims.sub !== "string") return null;
   return {
@@ -125,9 +83,15 @@ export async function verifyToken(
   };
 }
 
+/** jose's error when the key set couldn't be fetched (a non-200, or the network). */
+const isFetchFailure = (err: unknown): boolean =>
+  err instanceof errors.JOSEError
+    ? err.code === "ERR_JOSE_GENERIC" && /fetch|response/i.test(err.message)
+    : err instanceof TypeError;
+
 /** The bearer token on a request, or null. */
 export const bearer = (req: Request): string | null =>
   /^Bearer (\S+)$/.exec(req.headers.get("authorization") ?? "")?.[1] ?? null;
 
 /** For tests: forget fetched keys. */
-export const forgetKeys = () => cache.clear();
+export const forgetKeys = () => sets.clear();

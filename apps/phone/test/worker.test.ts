@@ -77,7 +77,8 @@ beforeEach(async () => {
   vi.stubGlobal("fetch", async (url: string, init: RequestInit) => {
     if (url === `${AUTH}/api/auth/jwks`) {
       const jwk = await crypto.subtle.exportKey("jwk", keys.publicKey);
-      return Response.json({ keys: [{ ...jwk, kid: "k1" }] });
+      // As Better Auth publishes it: alg EdDSA (WebCrypto exports Ed25519).
+      return Response.json({ keys: [{ ...jwk, alg: "EdDSA", kid: "k1" }] });
     }
     restateCalls.push({ url, headers: new Headers(init.headers), body: String(init.body) });
     return new Response(JSON.stringify({ ok: true }), { status: restateStatus });
