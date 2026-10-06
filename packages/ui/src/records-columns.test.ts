@@ -1,7 +1,10 @@
 import type { FieldMeta, RecordMeta } from "@wren/core/records";
+import { createElement } from "react";
+import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it } from "vitest";
+import type { Action } from "./action.js";
 import { totalSays, widthOf } from "./fields.js";
-import { fitOf, shownColumns } from "./records.js";
+import { fitOf, KeyHints, shownColumns } from "./records.js";
 
 const field = (key: string, kind: FieldMeta["kind"] = "text"): FieldMeta => ({
   key,
@@ -78,5 +81,29 @@ describe("totalSays", () => {
     expect(totalSays(field("cost", "money"), { sum: 10, currency: "USD" })).toBe(true);
     expect(totalSays(field("reply", "rate"), { n: 1, of: 9 })).toBe(true);
     expect(totalSays(note, { n: 3, of: 5 })).toBe(true);
+  });
+});
+
+describe("KeyHints", () => {
+  const send: Action = {
+    id: "send",
+    label: "Send",
+    handler: "x/send",
+    key: "a",
+    when: { type: ["email"] },
+  };
+  const dm: Action = {
+    id: "dm",
+    label: "DM them",
+    handler: "x/dm",
+    key: "m",
+    when: { type: ["comment"] },
+  };
+  const hints = (rows: { id: number; type: string }[]) =>
+    renderToStaticMarkup(createElement(KeyHints, { actions: [send, dm], row: undefined, rows }));
+  it("with no row picked, names only keys that work on a row shown", () => {
+    const posts = hints([{ id: 1, type: "email" }]);
+    expect(posts).toContain("send");
+    expect(posts).not.toContain("dm them");
   });
 });

@@ -292,10 +292,20 @@ export function keyed(e: KeyboardEvent, actions: readonly Action[], row: Row | u
  * ", R reply, E edit": each key once, as it runs on `row`. With no row, only keys that do the
  * same on every row.
  */
-export function KeyHints({ actions, row }: { actions: readonly Action[]; row: Row | undefined }) {
+export function KeyHints({
+  actions,
+  row,
+  rows = [],
+}: {
+  actions: readonly Action[];
+  row: Row | undefined;
+  /** With no row picked, a key shows only when it works on one of these. */
+  rows?: readonly Row[];
+}) {
   const by = new Map<string, Action | null>();
   for (const a of actions) {
-    if (!a.key || (row && !applies(a, row))) continue;
+    if (!a.key) continue;
+    if (row ? !applies(a, row) : rows.length && !rows.some((r) => applies(a, r))) continue;
     const had = by.get(a.key);
     // With a row the first wins, as `keyed` runs it; with none, two labels on one key say nothing.
     if (had === undefined) by.set(a.key, a);
@@ -1238,7 +1248,11 @@ function List({
         {rows.length ? (
           <span className="max-sm:hidden">
             <Kbd>J</Kbd> <Kbd>K</Kbd> to move, <Kbd>Enter</Kbd> to open
-            <KeyHints actions={actions} row={rows[openIndex >= 0 ? openIndex : cursor]} />
+            <KeyHints
+              actions={actions}
+              row={rows[openIndex >= 0 ? openIndex : cursor]}
+              rows={rows}
+            />
           </span>
         ) : null}
         <span className="ml-auto flex gap-2">
