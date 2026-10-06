@@ -55,7 +55,8 @@ const APPLICATION: Application = {
       kind: "one",
       required: true,
       choices: [
-        { id: "v0_1m", label: "Under $1M" },
+        { id: "v0_500k", label: "Under $500K" },
+        { id: "v500k_1m", label: "$500K to $1M" },
         { id: "v1_5m", label: "$1M to $5M" },
         { id: "v5_20m", label: "$5M to $20M" },
         { id: "v20m_plus", label: "$20M or more" },
