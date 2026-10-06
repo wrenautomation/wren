@@ -715,6 +715,13 @@
       "when": 1791251006683,
       "tag": "0101_company_event_checks",
       "breakpoints": true
+    },
+    {
+      "idx": 102,
+      "version": "7",
+      "when": 1791252126613,
+      "tag": "0102_comments",
+      "breakpoints": true
     }
   ]
 }

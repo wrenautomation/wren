@@ -153,6 +153,17 @@ const ONE: Record<string, (id: string, input: Input) => [string, Input]> = {
   "marketing/dmReply": (id, { body }) =>
     handlerCall("ReachDesk", "reply", { contactId: Number(id), body }, { confirm: "reply" }),
   "marketing/dmRead": (id) => handlerCall("ReachDesk", "markRead", { contactId: Number(id) }),
+  // An untouched draft isn't sent: the desk answers with the draft it holds.
+  "marketing/commentAnswer": (id, { body }) =>
+    handlerCall(
+      "ReachDesk",
+      "answerComment",
+      { id: Number(id), ...(typeof body === "string" ? { body } : {}) },
+      { confirm: "answerComment" },
+    ),
+  "marketing/commentDm": (id, { body }) =>
+    handlerCall("ReachDesk", "dmComment", { id: Number(id), body }, { confirm: "dmComment" }),
+  "marketing/commentDrop": (id) => handlerCall("ReachDesk", "dropComment", { id: Number(id) }),
   "marketing/dmCopy": (id, input) =>
     handlerCall("ReachDesk", "setTemplate", { key: id, body: changed(input) }),
   "marketing/textCopy": (id, input) =>

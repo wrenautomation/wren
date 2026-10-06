@@ -63,6 +63,25 @@ export interface Reply {
   threadUrl: string | null;
 }
 
+/** A comment on our post, or an answer to our comment, as the account's inbox lists it. */
+export interface CommentIn {
+  /** The platform's id (`t1_…`): the dedupe key. */
+  ref: string;
+  /** The post it sits under (`t3_…`) and what it answers (`t1_…` or the post). */
+  post: string;
+  parent: string;
+  /** `post_reply`, `comment_reply`, `username_mention`. */
+  kind: string;
+  /** Where it is: a subreddit; null where the platform has none. */
+  place: string | null;
+  postTitle: string | null;
+  handle: string;
+  text: string;
+  url: string;
+  at: string;
+  raw: Record<string, unknown>;
+}
+
 /** The account itself: what the warmup protocol reads before it lets a step through. */
 export interface AccountHealth {
   handle: string;
@@ -104,6 +123,12 @@ export interface OutreachChannel {
   message(handle: string, text: string, subject?: string | null): Promise<Sent>;
   /** Replies to this account newer than `since`; the caller dedupes by `ref`. */
   replies(since: Date | null): Promise<Reply[]>;
+  /** Comments on our posts and answers to our comments; the caller dedupes by `ref`. */
+  comments?(): Promise<CommentIn[]>;
+  /** Irreversible. An answer under `parent` (a comment or a post). */
+  comment?(parent: string, text: string): Promise<Sent>;
+  /** Every handle that wrote in the post's thread, the post's own author first. */
+  threadAuthors?(post: string): Promise<string[]>;
   health(): Promise<AccountHealth>;
 }
 
@@ -140,15 +165,24 @@ export function fakeOutreachChannel(
     connects?: boolean;
   } = {},
 ): OutreachChannel & {
-  sent: Array<{ kind: "connect" | "message"; handle: string; text: string | null }>;
+  sent: Array<{ kind: "connect" | "message" | "comment"; handle: string; text: string | null }>;
   relationships: Map<string, Relationship>;
   receive(r: Reply): void;
+  /** Comments the inbox lists, and each thread's authors. */
+  inbox: CommentIn[];
+  threads: Map<string, string[]>;
   setHealth(h: Partial<AccountHealth>): void;
 } {
   const now = o.now ?? (() => new Date());
   const prospects = o.prospects ?? [];
-  const sent: Array<{ kind: "connect" | "message"; handle: string; text: string | null }> = [];
+  const sent: Array<{
+    kind: "connect" | "message" | "comment";
+    handle: string;
+    text: string | null;
+  }> = [];
   const replies: Reply[] = [];
+  const inbox: CommentIn[] = [];
+  const threads = new Map<string, string[]>();
   const relationships = new Map<string, Relationship>();
   let health: AccountHealth = {
     handle: "fake",
@@ -200,6 +234,16 @@ export function fakeOutreachChannel(
     async replies(since) {
       return replies.filter((r) => !since || r.at > since.toISOString());
     },
+    async comments() {
+      return inbox;
+    },
+    async comment(parent, text) {
+      sent.push({ kind: "comment", handle: parent, text });
+      return sentNow();
+    },
+    async threadAuthors(post) {
+      return threads.get(post) ?? [];
+    },
     async health() {
       return { ...health, asOf: now().toISOString() };
     },
@@ -221,6 +265,8 @@ export function fakeOutreachChannel(
     ...withConnect,
     sent,
     relationships,
+    inbox,
+    threads,
     receive: (r) => {
       replies.push(r);
     },

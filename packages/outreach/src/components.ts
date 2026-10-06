@@ -1,5 +1,6 @@
-/** Cold outreach on social sites: a person's warmed account, paced. */
+/** Cold outreach on social sites: a person's warmed account, paced. Comments on our posts. */
 import { defineComponent } from "@wren/core/components";
+import { defineWorkflow } from "@wren/core/workflows";
 
 export const OUTREACH_COMPONENTS = [
   defineComponent({
@@ -63,5 +64,96 @@ export const OUTREACH_COMPONENTS = [
         { is: "fixed", says: "The sender still paces every DM and waits on LinkedIn's accept." },
       ],
     },
+  }),
+  defineComponent({
+    id: "comments.read",
+    stage: "follow",
+    channels: ["dm"],
+    name: "Comment reader",
+    blurb:
+      "Reads each account's inbox every 30 minutes: comments on our posts and under our comments.",
+    icon: "people",
+    for: "wren",
+    ready: false,
+    missing: ["Reads Wren's own Reddit accounts; never a client's"],
+    // ReachWatch is Social outreach's loop; this part is its inbox read.
+    requires: { components: ["reach.outreach"] },
+    provides: { records: ["marketing.comment"] },
+    out: [{ id: "comment", label: "new comments", kind: "comment" }],
+    hypothesis: {
+      from: "Wren's Reddit posts, 2026-10",
+      guesses: [
+        {
+          is: "change",
+          says: "Which accounts: every reach account's inbox.",
+          built: "the reach_accounts rows",
+        },
+        { is: "change", says: "LinkedIn, X and IG comments, as another reader.", built: null },
+        {
+          is: "fixed",
+          says: "One inbox read per account serves DMs and comments; nothing is marked read.",
+        },
+      ],
+    },
+  }),
+  defineComponent({
+    id: "comments.sort",
+    stage: "follow",
+    channels: ["dm"],
+    name: "Comment sort",
+    blurb:
+      "Reads each comment as asked, question, chat or hostile, and drafts an answer to the first two.",
+    icon: "people",
+    for: "wren",
+    ready: false,
+    missing: ["Reads Wren's own Reddit accounts; never a client's"],
+    requires: { components: ["comments.read"] },
+    effects: ["spends"],
+    in: [{ id: "comment", label: "comment", kind: "comment" }],
+    out: [
+      { id: "asked", label: "asked", kind: "comment" },
+      { id: "question", label: "question", kind: "comment" },
+      { id: "chat", label: "chat", kind: "comment" },
+      { id: "hostile", label: "hostile", kind: "comment" },
+    ],
+    hypothesis: {
+      from: "Wren's Reddit posts, 2026-10",
+      guesses: [
+        {
+          is: "needs",
+          says: "A model for what words can't settle; Cohere by default.",
+          built: "env WREN_WATCH_LLM",
+        },
+        { is: "change", says: "The words that mean they asked.", built: null },
+        { is: "fixed", says: "Every answer and DM waits on William's click." },
+        { is: "fixed", says: "Our two accounts never write in one thread." },
+      ],
+    },
+  }),
+];
+
+export const OUTREACH_WORKFLOWS = [
+  defineWorkflow({
+    id: "reach.comments",
+    stage: "follow",
+    name: "Comments",
+    blurb: "Every comment on our posts lands in Replies, sorted, with a draft when they asked.",
+    icon: "people",
+    for: "wren",
+    out: [
+      { id: "needs_you", label: "needs you", kind: "comment" },
+      { id: "chat", label: "chat", kind: "comment" },
+    ],
+    nodes: [
+      { id: "read", uses: "comments.read" },
+      { id: "sort", uses: "comments.sort" },
+    ],
+    wires: [
+      { from: "read.comment", to: "sort.comment", via: "events" },
+      { from: "sort.asked", to: "out.needs_you", via: "events" },
+      { from: "sort.question", to: "out.needs_you", via: "events" },
+      { from: "sort.chat", to: "out.chat", via: "events" },
+      { from: "sort.hostile", to: "out.chat", via: "events" },
+    ],
   }),
 ];

@@ -7,11 +7,13 @@
  * with no words); bare words read site-wide search. Prospects are the posts'
  * authors, one row each, `foundIn` = the subreddit. enrich: the user's card
  * plus their last posts and comments. message: a private message
- * (`/api/compose`, not chat). replies: unread inbox messages, marked read.
- * Reddit has no connect step, so `relationship`/`connect` are absent.
+ * (`/api/compose`, not chat). replies and comments: one read of the inbox per adapter, nothing
+ * marked read; DMs are replies, comment answers and post replies are comments. comment: an answer
+ * under a comment or a post. Reddit has no connect step, so `relationship`/`connect` are absent.
  */
 import {
   type AccountHealth,
+  type CommentIn,
   type FindQuery,
   type Found,
   HANDLE_RE,
@@ -44,11 +46,15 @@ interface Me extends UserAbout {
   has_verified_email?: boolean;
 }
 
-/** A `t4` (private message) as the inbox lists it. */
+/** A `t4` (private message) or, with `was_comment`, a `t1` as the inbox lists it. */
 interface Message {
   id: string;
   name: string;
   author?: string;
+  type?: string;
+  parent_id?: string;
+  subreddit?: string;
+  link_title?: string;
   dest?: string;
   subject?: string;
   body?: string;
@@ -60,6 +66,15 @@ interface Message {
 }
 
 const AUTHOR_SKIP = new Set(["[deleted]", "AutoModerator"]);
+/** Reddit's own notices land in the inbox as DMs from u/reddit; never a person. */
+const INBOX_SKIP = new Set([...AUTHOR_SKIP, "reddit"]);
+const INBOX_PAGE = 100;
+
+/** `/r/x/comments/abc/title/def/?context=3` → `t3_abc`. */
+export const postOf = (context: string | undefined) => {
+  const m = /\/comments\/([a-z0-9]+)/i.exec(context ?? "");
+  return m ? `t3_${m[1]}` : null;
+};
 const RECENT = 10;
 
 /** `r/startups hiring` → { sr: "startups", words: "hiring" }; `hiring` → { sr: null, words: "hiring" }. */
@@ -95,6 +110,17 @@ export function redditOutreach(
       throw err;
     });
     return me;
+  };
+  let inbox: Promise<Message[]> | null = null;
+  const readInbox = () => {
+    inbox ??= call<Listing>("GET", "/message/inbox", { limit: INBOX_PAGE, raw_json: 1 }).then(
+      (l) => items<Message>(l).filter((m) => m.author && !INBOX_SKIP.has(m.author)),
+      (err) => {
+        inbox = null;
+        throw err;
+      },
+    );
+    return inbox;
   };
   const user = (handle: string) => {
     const h = handleOf("reddit", handle);
@@ -201,14 +227,9 @@ export function redditOutreach(
 
     async replies(since): Promise<Reply[]> {
       const self = (await whoami()).name ?? null;
-      const l = await call<Listing>("GET", "/message/unread", {
-        limit: 100,
-        mark: true,
-        raw_json: 1,
-      });
       const floor = since?.toISOString() ?? "";
-      return items<Message>(l)
-        .filter((m) => !m.was_comment && m.author && m.author !== self)
+      return (await readInbox())
+        .filter((m) => !m.was_comment && m.author !== self)
         .map((m) => ({
           ref: m.name,
           handle: m.author as string,
@@ -218,6 +239,60 @@ export function redditOutreach(
           threadUrl: `https://www.reddit.com/message/messages/${m.first_message_name ? m.first_message_name.replace(/^t4_/, "") : m.id}`,
         }))
         .filter((r) => r.at > floor);
+    },
+
+    async comments(): Promise<CommentIn[]> {
+      return (await readInbox()).flatMap((m) => {
+        const post = postOf(m.context);
+        if (!m.was_comment || !post) return [];
+        return [
+          {
+            ref: m.name,
+            post,
+            parent: m.parent_id ?? post,
+            kind: m.type ?? "comment_reply",
+            place: m.subreddit ?? null,
+            postTitle: m.link_title ?? null,
+            handle: m.author as string,
+            text: m.body ?? "",
+            url: redditUrl(m.context ?? `/comments/${post.slice(3)}`),
+            at: iso(m.created_utc, now),
+            raw: m as unknown as Record<string, unknown>,
+          },
+        ];
+      });
+    },
+
+    async comment(parent, text): Promise<Sent> {
+      const made = answerOf<{ things?: Array<{ data?: { name?: string } }> }>(
+        "/api/comment",
+        await call("POST", "/api/comment", { api_type: "json", thing_id: parent, text }),
+      );
+      return {
+        ref: made.things?.[0]?.data?.name ?? null,
+        at: now().toISOString(),
+        fetchedWith: await via("POST", "/api/comment"),
+      };
+    },
+
+    async threadAuthors(post): Promise<string[]> {
+      const [head, tree] = await call<[Listing, Listing]>(
+        "GET",
+        `/comments/${post.replace(/^t3_/, "")}`,
+        {
+          raw_json: 1,
+          limit: 500,
+        },
+      );
+      const out = items<Thing>(head).map((t) => t.author ?? "");
+      const walk = (l: Listing | undefined) => {
+        for (const c of items<Thing & { replies?: Listing | "" }>(l)) {
+          if (c.author) out.push(c.author);
+          if (c.replies) walk(c.replies);
+        }
+      };
+      walk(tree);
+      return [...new Set(out.filter(Boolean))];
     },
 
     async health(): Promise<AccountHealth> {

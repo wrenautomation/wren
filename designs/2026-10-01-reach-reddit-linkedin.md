@@ -116,6 +116,33 @@ don't settle.
 3. Does the second account (u/Ok_Crow5098) post at all, or only comment until it's 30
    days old with 150 karma (about 11-01)?
 
+### As built (2026-10-06)
+
+William's answers: inbox every 30 minutes, DMs in Replies, the second account only comments
+until about 11-01.
+
+- **One read.** `ReachWatch/daily` reads each account's `/message/inbox` once a pass (no
+  `mark`): DMs go to `reach_messages` as before, comments to `comments`. Unread DMs are no
+  longer marked read on Reddit.
+- **Rows and events.** `comments`, unique on (platform, ref). Ours are kept and closed. Each
+  new one leaves as a `comment` event on workflow `reach.comments` (read → sort).
+- **Sort.** `comments.sort` on Lambda: "dm me", "send it", "interested" and the like settle
+  `asked` in code; the Watch's model (`WREN_WATCH_LLM`, Cohere) reads the rest and drafts an
+  answer for asked and question. No model, or an answer that doesn't read: it waits unsorted.
+- **Ping.** The pass that keeps a comment or a DM sends one `action` notice ("reach: 2 new
+  comments, 1 new DM").
+- **Answer.** Replies → Every channel lists them; Marketing → Comments answers. Answer posts
+  under the comment from the account that read it, right away (the click is his yes), after
+  reading the thread's authors: our other account there refuses it. The rung's comment cap
+  counts answers per UTC day.
+- **DM.** "DM them" queues one manual DM from that account. Refused before the rung allows
+  messages (30 days and 150 karma), and when we already DMed them; after that only their
+  reply opens the thread. Manual rows now leave with `WREN_REACH_LIVE` off and from a
+  `warming` account: each is his own yes, still in the window and under the rung's caps.
+  Sequence rows stay held by both.
+- **Second account.** Nothing in reach posts. Posts are content drafts from `reddit@wren`; the
+  alt only comments, by hand, until about 11-01. A post path for the alt would check the date.
+
 ## Decisions
 
 - **D1 One alt per platform, not a fleet.** Twenty-five Reddit accounts on one Mac and one
@@ -187,3 +214,7 @@ don't settle.
   his yes. The warmup stays organic (D3). Comments work like a webhook. Same two accounts,
   never in one thread, never voting for each other. $0. The design under Comments is
   proposed and is waiting on his three answers before code.
+- 2026-10-06, William: inbox every 30 minutes; DMs in Replies; the second account only
+  comments until about 11-01. Built as above: `comments` table (migration 0102), one inbox read
+  for DMs and comments, `comments.sort` on the spine, answer/DM/drop from the console, manual
+  DMs past the live gate. `reddit@wren` joins reach as a warming account so its inbox is read.

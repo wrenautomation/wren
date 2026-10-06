@@ -956,6 +956,9 @@ importers:
       '@wren/db':
         specifier: workspace:*
         version: link:../db
+      '@wren/llm':
+        specifier: workspace:*
+        version: link:../llm
       drizzle-orm:
         specifier: 0.45.2
         version: 0.45.2(@cloudflare/workers-types@5.20260927.1)(kysely@0.29.6)(postgres@3.4.9)

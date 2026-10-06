@@ -1,6 +1,7 @@
 /**
  * Replies: every lead's answer, on any channel, in one queue in the Inbox app. Every human
- * email reply, text threads and DM threads whose lead wrote back, in the same states. Each row links to its
+ * email reply, text threads and DM threads whose lead wrote back, and comments on our posts, in the
+ * same states. Each row links to its
  * channel's page, where it's answered; every answer still waits on William's yes.
  */
 import { date, defineRecord, link, name, status, text } from "@wren/core/records";
@@ -31,6 +32,14 @@ const DISPOSITION: Record<string, string> = {
   wrong_person: "left",
 };
 
+/** A comment's state, in the queue's words. */
+const COMMENT: Record<string, string> = {
+  new: "needs_you",
+  waiting: "needs_you",
+  answered: "answered",
+  dropped: "left",
+};
+
 type Got = Record<string, unknown>;
 const rowsOf = async (db: Queryable, q: ReturnType<typeof sql>) =>
   (await db.execute(q)) as unknown as Got[];
@@ -41,7 +50,7 @@ export const replyQueueRecord = defineRecord({
   id: "inbox.reply",
   name: { one: "reply", many: "replies" },
   rows: async (db) => {
-    const [email, texts, dms] = await Promise.all([
+    const [email, texts, dms, said] = await Promise.all([
       rowsOf(
         db,
         sql`SELECT te.id, ci.id invite, ci.state invite_state, te.disposition,
@@ -81,6 +90,12 @@ export const replyQueueRecord = defineRecord({
               ORDER BY coalesce(sent_at, created_at) DESC LIMIT 1) i ON true
             ORDER BY i.at DESC LIMIT ${ROWS}`,
       ),
+      rowsOf(
+        db,
+        sql`SELECT id, author who, place company, body words, at, state, draft
+            FROM comments WHERE sort IS DISTINCT FROM 'ours'
+            ORDER BY at DESC LIMIT ${ROWS}`,
+      ),
     ]);
     return [
       // ponytail: a reply with no invite has no page to answer from; it shows, unlinked.
@@ -108,6 +123,14 @@ export const replyQueueRecord = defineRecord({
         state: stateOf(r),
         open: `/marketing/dms/${r.id}`,
       })),
+      ...said.map(({ state, draft, ...r }) => ({
+        ...r,
+        id: `comment-${r.id}`,
+        channel: "comment",
+        company: r.company ? `r/${r.company}` : null,
+        state: COMMENT[String(state)] === "needs_you" && draft ? "draft" : COMMENT[String(state)],
+        open: `/marketing/comments/${r.id}`,
+      })),
     ];
   },
   key: "id",
@@ -119,6 +142,7 @@ export const replyQueueRecord = defineRecord({
         email: { label: "Email", tone: "neutral" },
         text: { label: "Text", tone: "neutral" },
         dm: { label: "DM", tone: "neutral" },
+        comment: { label: "Comment", tone: "neutral" },
       },
       "Channel",
     ),

@@ -17,7 +17,8 @@
  * `unreachable`. An accepted invite's send queues step 1. A sent step is listed
  * in `stepped`: the sender hands it to the spine, whose wire waits `afterDays`
  * and queues the next (`touch`). After the last, the contact is `finished`.
- * The live gate off holds every due row.
+ * The live gate off holds every sequence row; a manual row is William's own yes and goes, from an
+ * active or a warming account (its rung's caps still apply).
  * A 429 from the worker (its caps) holds the row an hour; any other 4xx fails
  * it and ends the contact as `unreachable`; anything else leaves `unknown`.
  */
@@ -25,7 +26,7 @@ import { SiteCallError } from "@wren/core/content";
 import type { OutreachChannel, Relationship, Sent } from "@wren/core/outreach";
 import type { Queryable } from "@wren/db";
 import { and, asc, eq, gte, inArray, isNull, lt, lte, or, sql } from "drizzle-orm";
-import { activeAccounts, healthOf } from "./accounts.js";
+import { healthOf } from "./accounts.js";
 import { contactsById, fieldsFor, setContactState } from "./contacts.js";
 import { FLEET_ZONE, fleetDay, inWindow, type ReachPolicy, standingOf } from "./policy.js";
 import { ReachRefusal } from "./refusal.js";
@@ -33,6 +34,7 @@ import {
   type ReachAccount,
   type ReachContact,
   type ReachMessage,
+  reachAccounts,
   reachContacts,
   reachMessages,
 } from "./schema.js";
@@ -58,7 +60,7 @@ export interface TickOptions {
 export interface TickStats {
   sent: number;
   connected: number;
-  /** Due rows held: `window`, `gated` (live off), `cap`, `frozen`, `pending` (invite not accepted), `retry`. */
+  /** Due rows held: `window`, `gated` (live off), `warming` (a sequence row on a warming account), `cap`, `frozen`, `pending` (invite not accepted), `retry`. */
   held: Record<string, number>;
   failed: number;
   reconciled: number;
@@ -154,10 +156,13 @@ export async function planTick(
   const stats = emptyStats();
   const candidates: Candidate[] = [];
   stats.reconciled = await reconcile(db, o.now);
-  const accounts = await activeAccounts(db);
+  const accounts = await db
+    .select()
+    .from(reachAccounts)
+    .where(inArray(reachAccounts.state, ["active", "warming"]));
   if (accounts.length === 0) return { stats, candidates };
   const byAccount = new Map(accounts.map((a) => [a.id, a]));
-  const due: ReachMessage[] = await db
+  const scanned: ReachMessage[] = await db
     .select()
     .from(reachMessages)
     .where(
@@ -170,15 +175,18 @@ export async function planTick(
     )
     .orderBy(asc(reachMessages.dueAt), asc(reachMessages.id))
     .limit(SCAN);
-  if (due.length === 0) return { stats, candidates };
+  if (scanned.length === 0) return { stats, candidates };
   if (!inWindow(o.now, o.policy)) {
-    for (const _ of due) hold(stats, "window");
+    for (const _ of scanned) hold(stats, "window");
     return { stats, candidates };
   }
-  if (!o.live) {
-    for (const _ of due) hold(stats, "gated");
-    return { stats, candidates };
-  }
+  const due = scanned.filter((r) => {
+    if (r.kind === "manual") return true;
+    if (o.live && byAccount.get(r.accountId ?? "")?.state === "active") return true;
+    hold(stats, o.live ? "warming" : "gated");
+    return false;
+  });
+  if (due.length === 0) return { stats, candidates };
   const today = await sentToday(db, [...byAccount.keys()], o.now);
   const contacts = await contactsById(
     db,

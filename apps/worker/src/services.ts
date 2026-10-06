@@ -153,6 +153,7 @@ import {
   REACH_SEQUENCES,
   policyFrom as reachPolicyFrom,
   touchStep as reachTouchStep,
+  sortStep,
 } from "@wren/outreach";
 import { dmCopyRecord } from "@wren/outreach/records";
 import { makeReachDesk, makeReachSender, makeReachWatch } from "@wren/outreach/restate";
@@ -929,6 +930,8 @@ export async function buildServices(
         [EMAIL_TOUCH]: emailTouchStep((client) => (client ? clientDb(client) : db)),
         "reach.touch": reachTouchStep(db, { sequences: reach.sequences, sender: reach.senderName }),
         "watch.triage": triageStep(db, watchLlm),
+        // The Watch's model: both read a few lines and answer in one.
+        "comments.sort": sortStep(db, watchLlm),
       },
       rule: async (when: string, e: SpineEvent) => {
         const r = await llm.complete(

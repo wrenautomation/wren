@@ -5,8 +5,10 @@
  *   the journal: database steps in `ctx.run`, platform calls as journaled
  *   calls to the Mac's desk. Next pass after the gap when it sent, five
  *   minutes when nothing could go. Off until `wren reach queue start`.
- * - `ReachWatch/daily`: every 30 minutes, pulls replies from every account
- *   and reads each account's health (the warmup ladder runs on it).
+ * - `ReachWatch/daily`: every 30 minutes, reads each account's inbox once:
+ *   DMs become replies, comments on our posts and under our comments become
+ *   `comments` rows and events on the `reach.comments` workflow. Then each
+ *   account's health (the warmup ladder runs on it).
  * - `ReachDesk`: the operator's reads and writes (accounts, finds, enrich,
  *   enroll, templates, threads), each one journaled.
  */
@@ -42,6 +44,17 @@ import {
   setAccountState,
   viewOf,
 } from "../accounts.js";
+import {
+  COMMENTS_FLOW,
+  COMMENTS_FROM,
+  checkThread,
+  commentEvent,
+  dmCommenter,
+  dropComment,
+  keepComments,
+  markAnswered,
+  planAnswer,
+} from "../comments.js";
 import {
   type AddStats,
   addContact,
@@ -184,6 +197,7 @@ export function makeReachSender(deps: ReachDeps) {
 
 export interface WatchStats {
   replies: RepliesStats;
+  comments: { kept: number; errors: string[] };
   health: HealthStats;
 }
 
@@ -196,6 +210,8 @@ export function makeReachWatch(deps: ReachDeps) {
     // Platform reads happen inside these helpers; each account's result is applied in its own step.
     const replies: RepliesStats = { checked: 0, received: 0, optedOut: 0, errors: [] };
     const health: HealthStats = { checked: 0, frozen: [], errors: [] };
+    const kept: WatchStats["comments"] = { kept: 0, errors: [] };
+    const ours = accounts.flatMap((a) => (a.handle ? [a.handle] : []));
     for (const a of live) {
       const ch = channelFor(a);
       if (!ch) continue;
@@ -210,6 +226,24 @@ export function makeReachWatch(deps: ReachDeps) {
       } catch (err) {
         replies.errors.push(`${a.account}: ${errorText(err)}`);
       }
+      // The same inbox read: the adapter asks the platform once for both.
+      if (ch.comments)
+        try {
+          const got = await ch.comments();
+          const rows = await ctx.run(`comments ${a.account}`, () =>
+            keepComments(deps.db, a, got, ours),
+          );
+          kept.kept += rows.length;
+          if (rows.length)
+            spineEmit(ctx, {
+              client: null,
+              workflow: COMMENTS_FLOW,
+              from: COMMENTS_FROM,
+              events: rows.map(commentEvent),
+            });
+        } catch (err) {
+          kept.errors.push(`${a.account}: ${errorText(err)}`);
+        }
       try {
         const h = await ch.health();
         const r = await ctx.run(`health ${a.account}`, () =>
@@ -221,7 +255,7 @@ export function makeReachWatch(deps: ReachDeps) {
         health.errors.push(`${a.account}: ${errorText(err)}`);
       }
     }
-    const stats: WatchStats = { replies, health };
+    const stats: WatchStats = { replies, comments: kept, health };
     const outcome: PassOutcome<WatchStats> = {
       stats,
       error: null,
@@ -231,12 +265,23 @@ export function makeReachWatch(deps: ReachDeps) {
     };
     await setLastPass(ctx, outcome);
     const notifier = deps.notifier;
-    if (notifier && (replies.received > 0 || health.frozen.length > 0)) {
+    if (notifier && (replies.received > 0 || kept.kept > 0 || health.frozen.length > 0)) {
+      const news = [
+        replies.received ? `${replies.received} new DMs` : null,
+        kept.kept ? `${kept.kept} new comments` : null,
+      ].filter(Boolean);
       await ctx.run("notify", () =>
         notifier.notify(
-          `reach: ${replies.received} new replies${health.frozen.length ? `, paused ${health.frozen.join(", ")}` : ""}`,
-          [...replies.errors, ...health.errors].join("\n"),
-          health.frozen.length ? "warning" : replies.received > 0 ? "action" : "info",
+          `reach: ${news.join(", ") || "no news"}${health.frozen.length ? `, paused ${health.frozen.join(", ")}` : ""}`,
+          [
+            news.length ? "Inbox → Every channel" : null,
+            ...replies.errors,
+            ...kept.errors,
+            ...health.errors,
+          ]
+            .filter(Boolean)
+            .join("\n"),
+          health.frozen.length ? "warning" : news.length ? "action" : "info",
         ),
       );
     }
@@ -306,6 +351,11 @@ const REPLY = CONTACT.extend({
   subject: z.string().nullish().describe("Reddit only"),
 });
 const STATS = z.looseObject({ platform: PLATFORM.nullish(), days: z.number().nullish() }).nullish();
+const COMMENT = z.looseObject({ id: z.number() });
+const ANSWER = COMMENT.extend({
+  body: z.string().nullish().describe("The words; the console leaves an untouched draft out"),
+});
+const DM = COMMENT.extend({ body: z.string() });
 
 export function makeReachDesk(deps: ReachDeps) {
   const terminal = async <T>(fn: () => Promise<T>): Promise<T> => {
@@ -563,6 +613,51 @@ export function makeReachDesk(deps: ReachDeps) {
           await ctx.run("mark read", () => markRead(deps.db, req.contactId, now));
           nudge(ctx);
           return { messageId: msg.id };
+        },
+      ),
+      /** Answer a comment in its thread, as the account that read it. Sent now: the click is the yes. */
+      answerComment: serviceHandler(
+        { input: ANSWER, effect: "sends" },
+        async (
+          ctx: restate.Context,
+          req: { id: number; body?: string | null },
+        ): Promise<{ ref: string | null }> => {
+          const now = await nowOf(ctx);
+          const plan = await ctx.run("plan", () =>
+            terminal(() => planAnswer(deps.db, req.id, now)),
+          );
+          const body = (req.body ?? plan.comment.draft ?? "").trim();
+          if (!body) throw new restate.TerminalError("the answer is empty");
+          const ch = channelsFor(deps, ctx)(plan.account);
+          if (!ch?.comment) throw new restate.TerminalError("this site can't answer comments");
+          const authors = (await ch.threadAuthors?.(plan.comment.post)) ?? [];
+          await terminal(async () => checkThread(authors, plan.others));
+          const sent = await ch.comment(plan.comment.ref, body);
+          await ctx.run("answered", () =>
+            markAnswered(deps.db, req.id, { body, ref: sent.ref, now }),
+          );
+          return { ref: sent.ref };
+        },
+      ),
+      /** One DM to the comment's author, queued for the sender (its window and caps). */
+      dmComment: serviceHandler(
+        { input: DM, effect: "sends" },
+        async (
+          ctx: restate.Context,
+          req: { id: number; body: string },
+        ): Promise<{ contactId: number; messageId: number }> => {
+          const now = await nowOf(ctx);
+          const r = await ctx.run("queue", () =>
+            terminal(() => dmCommenter(deps.db, { id: req.id, body: req.body, now })),
+          );
+          nudge(ctx);
+          return r;
+        },
+      ),
+      dropComment: serviceHandler(
+        { input: COMMENT },
+        async (ctx: restate.Context, req: { id: number }): Promise<void> => {
+          await ctx.run("drop", () => dropComment(deps.db, req.id));
         },
       ),
       stats: serviceHandler(

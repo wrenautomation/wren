@@ -1,9 +1,10 @@
 /**
- * DMs as console records for the Marketing app: each person's thread (`marketing.dm`) and each
- * template slot William writes (`marketing.dm_copy`), with what the preview needs to draw them.
+ * DMs as console records for the Marketing app: each person's thread (`marketing.dm`), each
+ * template slot William writes (`marketing.dm_copy`), with what the preview needs to draw them,
+ * and each comment on our posts (`marketing.comment`).
  */
-import { date, defineRecord, name, number, prose, status, text } from "@wren/core/records";
-import type { Queryable } from "@wren/db";
+import { date, defineRecord, link, name, number, prose, status, text } from "@wren/core/records";
+import { sql } from "drizzle-orm";
 import { accountById, listAccounts } from "./accounts.js";
 import type { Platform } from "./schema.js";
 import {
@@ -97,6 +98,61 @@ export const dmRecord = defineRecord({
       dm: { site: SITES[t.contact.platform], from, max: MESSAGE_MAX },
     };
   },
+});
+
+/** Comments on our posts and under our comments, newest first, with the account that read them. */
+export const commentRecord = defineRecord({
+  id: "marketing.comment",
+  name: { one: "comment", many: "comments" },
+  rows: async (db) =>
+    (await db.execute(sql`
+      select c.id, c.author who, c.place, c.post_title, c.body, c.sort, c.why, c.draft, c.state,
+        c.answer, c.at, c.url, a.handle account, c.contact_id
+      from comments c join reach_accounts a on a.id = c.account_id
+      order by c.at desc limit ${THREAD_ROWS}`)) as unknown as Array<Record<string, unknown>>,
+  key: "id",
+  title: "who",
+  subtitle: "body",
+  fields: {
+    who: name("Who"),
+    place: text("Subreddit"),
+    postTitle: text("Post"),
+    body: prose("Their words"),
+    sort: status(
+      {
+        asked: { label: "Asked", tone: "good" },
+        question: { label: "Question", tone: "warn" },
+        chat: neutral("Chat"),
+        hostile: { label: "Hostile", tone: "bad" },
+        ours: neutral("Ours"),
+      },
+      "Read as",
+    ),
+    why: text("Why"),
+    draft: prose("Draft answer"),
+    state: status({
+      new: neutral("Unread"),
+      waiting: { label: "Waiting on you", tone: "warn" },
+      answered: { label: "Answered", tone: "good" },
+      dropped: neutral("Dropped"),
+    }),
+    answer: prose("Our answer"),
+    account: text("On"),
+    at: date("When"),
+    url: link("On Reddit"),
+  },
+  views: [
+    {
+      id: "waiting",
+      label: "Waiting on you",
+      where: { state: ["new", "waiting"] },
+      sort: "-at",
+      at: "at",
+    },
+    { id: "answered", label: "Answered", where: { state: "answered" }, sort: "-at", at: "at" },
+    { id: "all", label: "All", sort: "-at", at: "at" },
+  ],
+  actions: ["marketing.commentAnswer", "marketing.commentDm", "marketing.commentDrop"],
 });
 
 /** The slots and their words; the preview fills `{fields}` with `sender` and sample facts. */

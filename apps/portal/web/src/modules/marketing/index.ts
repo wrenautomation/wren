@@ -115,6 +115,36 @@ const DM_ACTIONS: Action[] = [
   },
 ];
 
+const COMMENT_ACTIONS: Action[] = [
+  {
+    id: "marketing.commentAnswer",
+    label: "Answer",
+    handler: "marketing/commentAnswer",
+    ask: { field: "body", label: "Your answer, posted under their comment", from: "draft" },
+    key: "r",
+    when: { state: ["new", "waiting"] },
+    done: said("Answered in the thread"),
+  },
+  {
+    id: "marketing.commentDm",
+    label: "DM them",
+    handler: "marketing/commentDm",
+    ask: { field: "body", label: "Your DM" },
+    key: "m",
+    when: { state: ["new", "waiting", "answered"] },
+    done: said("Queued. It leaves on the next tick."),
+  },
+  {
+    id: "marketing.commentDrop",
+    label: "Drop",
+    handler: "marketing/commentDrop",
+    bulk: true,
+    key: "e",
+    when: { state: ["new", "waiting"] },
+    done: said("Dropped"),
+  },
+];
+
 const TEXT_COPY_ACTIONS: Action[] = [
   {
     id: "marketing.textCopy",
@@ -217,6 +247,12 @@ export const marketing: Module = {
           href: "/marketing/dms?view=waiting",
           needs: true,
         },
+        {
+          label: "Comments waiting",
+          record: "marketing.comment",
+          href: "/marketing/comments?view=waiting",
+          needs: true,
+        },
       ],
       top: [
         {
@@ -317,6 +353,18 @@ export const marketing: Module = {
       },
       actions: DM_ACTIONS,
       extras: dmExtras,
+    },
+    {
+      id: "comments",
+      label: "Comments",
+      template: "list",
+      record: "marketing.comment",
+      empty: {
+        waiting: "No comment waits on you.",
+        answered: "Nothing answered yet.",
+        all: "Comments on our posts and under our comments show here.",
+      },
+      actions: COMMENT_ACTIONS,
     },
     {
       id: "dm-copy",

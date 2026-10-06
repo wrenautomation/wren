@@ -227,6 +227,71 @@ export const reachTemplates = pgTable("reach_templates", {
   updatedBy: varchar("updated_by", { length: 200 }).notNull(),
 });
 
+/** What the sort read a comment as; `ours` = written by one of our accounts. */
+export const COMMENT_SORTS = ["asked", "question", "chat", "hostile", "ours"] as const;
+export type CommentSort = (typeof COMMENT_SORTS)[number];
+/** `new` until sorted; `waiting` on William; `answered` in the thread; `dropped` by him or the sort. */
+export const COMMENT_STATES = ["new", "waiting", "answered", "dropped"] as const;
+export type CommentState = (typeof COMMENT_STATES)[number];
+
+/**
+ * Every comment on our posts and every answer to our comments, as the account's inbox listed it
+ * (designs/2026-10-01-reach-reddit-linkedin.md, Comments). One row per platform id; nothing is
+ * dropped, ours and removed ones included. Each new row leaves as a `comment` event on the spine.
+ */
+export const comments = pgTable(
+  "comments",
+  {
+    id: serial("id").primaryKey(),
+    platform: varchar("platform", { length: 16, enum: PLATFORMS }).notNull(),
+    /** Whose inbox listed it: the account that answers it. */
+    accountId: uuid("account_id").notNull(),
+    ref: varchar("ref", { length: 200 }).notNull(),
+    post: varchar("post", { length: 200 }).notNull(),
+    parent: varchar("parent", { length: 200 }).notNull(),
+    /** `post_reply`, `comment_reply`, `username_mention`. */
+    kind: varchar("kind", { length: 32 }).notNull(),
+    place: varchar("place", { length: 200 }),
+    postTitle: text("post_title"),
+    author: varchar("author", { length: 120 }).notNull(),
+    body: text("body").notNull(),
+    url: text("url").notNull(),
+    at: timestamp("at", { withTimezone: true }).notNull(),
+    raw: jsonb("raw").notNull(),
+    sort: varchar("sort", { length: 16, enum: COMMENT_SORTS }),
+    why: text("why"),
+    /** An answer for the thread, William's to edit and send. */
+    draft: text("draft"),
+    state: varchar("state", { length: 16, enum: COMMENT_STATES }).notNull().default("new"),
+    answer: text("answer"),
+    answerRef: varchar("answer_ref", { length: 200 }),
+    answeredAt: timestamp("answered_at", { withTimezone: true }),
+    /** Their DM thread, once William wrote to them. */
+    contactId: integer("contact_id"),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [
+    unique("uq_comments_platform_ref").on(t.platform, t.ref),
+    index("ix_comments_state").on(t.state),
+    index("ix_comments_account_id").on(t.accountId),
+    index("ix_comments_post").on(t.post),
+    oneOf("ck_comments_platform", t.platform, PLATFORMS),
+    oneOf("ck_comments_sort", t.sort, COMMENT_SORTS),
+    oneOf("ck_comments_state", t.state, COMMENT_STATES),
+    foreignKey({
+      columns: [t.accountId],
+      foreignColumns: [reachAccounts.id],
+      name: "fk_comments_account_id_reach_accounts",
+    }).onDelete("cascade"),
+    foreignKey({
+      columns: [t.contactId],
+      foreignColumns: [reachContacts.id],
+      name: "fk_comments_contact_id_reach_contacts",
+    }).onDelete("set null"),
+  ],
+);
+
 export type ReachAccount = typeof reachAccounts.$inferSelect;
 export type ReachContact = typeof reachContacts.$inferSelect;
 export type ReachMessage = typeof reachMessages.$inferSelect;
+export type Comment = typeof comments.$inferSelect;

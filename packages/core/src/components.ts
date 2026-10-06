@@ -29,6 +29,7 @@ export const EVENT_KINDS = {
   client: "a signed client",
   invoice: "an invoice",
   mail: "an email in an inbox Wren reads",
+  comment: "a comment on our post, or under our comment",
 } as const;
 export type EventKind = keyof typeof EVENT_KINDS;
 
