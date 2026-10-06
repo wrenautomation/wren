@@ -72,7 +72,8 @@ const UTF8 = new TextDecoder("utf-8", { fatal: true });
 
 /** Raw 8-bit header bytes (carried as latin1) read as UTF-8 when they are UTF-8 (RFC 6532). */
 function utf8Header(value: string): string {
-  if (!/[\x80-\xff]/.test(value) || /[^\x00-\xff]/.test(value)) return value;
+  const codes = [...value].map((c) => c.codePointAt(0) ?? 0);
+  if (!codes.some((c) => c >= 0x80) || codes.some((c) => c > 0xff)) return value;
   try {
     return UTF8.decode(latin1Bytes(value));
   } catch {
