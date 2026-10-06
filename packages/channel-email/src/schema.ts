@@ -1,4 +1,5 @@
 import { companies, leads, people, runs } from "@wren/core/schema";
+
 import { oneOf } from "@wren/db/columns";
 import { sql } from "drizzle-orm";
 import {
@@ -21,6 +22,9 @@ import {
   uuid,
   varchar,
 } from "drizzle-orm/pg-core";
+
+// Moved to core with every channel's templates; drizzle-kit counts a table exported twice once.
+export { type NewTemplateVersion, type TemplateVersion, templateVersions } from "@wren/core/schema";
 
 /** `crm`: the address a client's own CRM holds for the person. */
 export const CANDIDATE_EVIDENCE = ["scraped", "derived_pattern", "guessed_pattern", "crm"] as const;
@@ -220,33 +224,6 @@ export const experiments = pgTable(
       .where(sql`(state)::text <> 'stopped'::text`),
     oneOf("ck_experiments_state", t.state, EXPERIMENT_STATES),
     oneOf("ck_experiments_stop_reason", t.stopReason, EXPERIMENT_STOP_REASONS),
-  ],
-);
-
-export const templateVersions = pgTable(
-  "template_versions",
-  {
-    id: serial("id").notNull(),
-    niche: varchar("niche", { length: 32 }).notNull(),
-    template: varchar("template", { length: 64 }).notNull(),
-    version: varchar("version", { length: 12 }).notNull(),
-    source: text("source").notNull(),
-    /** The genome this one was made from; null for a file's version. */
-    parentVersion: varchar("parent_version", { length: 12 }),
-    experimentId: integer("experiment_id"),
-    createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
-  },
-  (t) => [
-    primaryKey({ columns: [t.id], name: "pk_template_versions" }),
-    unique("uq_template_versions_niche").on(t.niche, t.template, t.version),
-    foreignKey({
-      columns: [t.experimentId],
-      foreignColumns: [experiments.id],
-      name: "fk_template_versions_experiment_id_experiments",
-    }),
-    index("ix_template_versions_experiment_id")
-      .using("btree", t.experimentId.asc().nullsLast().op("int4_ops"))
-      .where(sql`(experiment_id IS NOT NULL)`),
   ],
 );
 
@@ -857,8 +834,6 @@ export type ContactCandidate = typeof contactCandidates.$inferSelect;
 export type NewContactCandidate = typeof contactCandidates.$inferInsert;
 export type Verification = typeof verifications.$inferSelect;
 export type NewVerification = typeof verifications.$inferInsert;
-export type TemplateVersion = typeof templateVersions.$inferSelect;
-export type NewTemplateVersion = typeof templateVersions.$inferInsert;
 export type Enrollment = typeof enrollments.$inferSelect;
 export type NewEnrollment = typeof enrollments.$inferInsert;
 export type Message = typeof messages.$inferSelect;

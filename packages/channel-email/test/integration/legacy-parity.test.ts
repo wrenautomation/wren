@@ -62,6 +62,11 @@ const ADDED = {
     "enrollments.lead_id",
     "enrollments.candidate_id",
     "leads.person_id",
+    // 2026-10-06 templates: every channel's versions, who saved and who published each.
+    "template_versions.template_id",
+    "template_versions.created_by",
+    "template_versions.published_at",
+    "template_versions.published_by",
   ]),
   constraints: new Set([
     "uq_messages_link_code",
@@ -71,6 +76,7 @@ const ADDED = {
     "fk_enrollments_candidate_id_contact_candidates",
     "fk_leads_person_id_people",
     "ck_verifications_email_lowercase",
+    "fk_template_versions_template_id_templates",
   ]),
   indexes: new Set([
     "ix_enrollments_offer",
@@ -101,6 +107,7 @@ const ADDED = {
     "ix_leads_company_verified",
     "ix_people_company_created",
     "ix_template_versions_experiment_id",
+    "ix_template_versions_template_id",
   ]),
   /** Legacy views wren grew (lead recycling, recruiting ranks): still present, bodies free to differ. */
   views: new Set(["campaign_funnel", "enrollment_outcomes", "person_facts"]),

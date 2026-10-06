@@ -13,6 +13,7 @@ import {
   type VariantsBlock,
   variantPoints,
 } from "@wren/core/slots";
+import { emailRef, recordVersion as recordTemplateVersion } from "@wren/core/templates";
 import type { Queryable } from "@wren/db";
 import type { AlleleCounts } from "@wren/experiments";
 import { and, eq, sql } from "drizzle-orm";
@@ -53,17 +54,12 @@ export async function recordVersion(
   tpl: Template,
   lineage: { parent: string | null; experimentId: number | null },
 ): Promise<void> {
-  await db
-    .insert(templateVersions)
-    .values({
-      niche,
-      template: tpl.name,
-      version: tpl.version,
-      source: toSource(tpl),
-      parentVersion: lineage.parent,
-      experimentId: lineage.experimentId,
-    })
-    .onConflictDoNothing();
+  await recordTemplateVersion(db, emailRef(niche, tpl.name), tpl.version, {
+    source: toSource(tpl),
+    by: lineage.experimentId === null ? "pipeline:evolve" : `experiment:${lineage.experimentId}`,
+    parent: lineage.parent,
+    experimentId: lineage.experimentId,
+  });
 }
 
 // Parsed once per version: sources never change under a version.

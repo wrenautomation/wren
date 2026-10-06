@@ -20,9 +20,10 @@ import {
   type Template,
   toSource,
 } from "@wren/core/slots";
+import { emailRef, recordVersion } from "@wren/core/templates";
 import type { Queryable } from "@wren/db";
 import { and, eq, inArray, isNotNull, or } from "drizzle-orm";
-import { enrollments, messages, templateVersions } from "../schema.js";
+import { enrollments, messages } from "../schema.js";
 import { CALL_TIMES } from "../send/call-times.js";
 import { linkFacts, mintLinkCode, mintOpenToken, signed } from "./compose.js";
 import { type Facts, factsFor, factsForCompany } from "./facts.js";
@@ -189,15 +190,10 @@ export async function refreshQueue(db: Queryable, opts: RefreshOptions): Promise
           const key = `${tpl.name}\x00${tpl.version}`;
           if (!recorded.has(key)) {
             recorded.add(key);
-            await db
-              .insert(templateVersions)
-              .values({
-                niche: opts.niche,
-                template: tpl.name,
-                version: tpl.version,
-                source: toSource(tpl),
-              })
-              .onConflictDoNothing();
+            await recordVersion(db, emailRef(opts.niche, tpl.name), tpl.version, {
+              source: toSource(tpl),
+              by: "pipeline:refresh",
+            });
           }
           Object.assign(update, {
             subject: rendered.subject,

@@ -8,6 +8,7 @@ import {
   index,
   integer,
   jsonb,
+  type PgTableExtraConfigValue,
   pgTable,
   pgView,
   primaryKey,
@@ -691,6 +692,91 @@ export const consentEvents = pgTable(
     oneOf("ck_consent_events_kind", t.kind, CONSENT_EVENTS),
   ],
 );
+
+// ---- Templates (designs/2026-10-06-edits-claude-templates.md, 3) ----
+
+/** What a template is: kept here as well as in `slots/kinds.ts`, which the schema can't import. */
+export const TEMPLATE_KIND_VALUES = ["email", "sms", "dm", "prompt"] as const;
+
+/**
+ * Copy for one step on one channel, or a model's prompt: who and when live elsewhere. Its words
+ * are its versions; `live_version_id` is the one that goes out, `draft_version_id` the newest save
+ * nobody published. Both null: an empty slot, which sends nothing.
+ */
+export const templates = pgTable(
+  "templates",
+  {
+    id: serial("id").notNull(),
+    kind: varchar("kind", { length: 16, enum: TEMPLATE_KIND_VALUES }).notNull(),
+    /** Whose copy: a niche for email, `texts`, `reach`, or the package that asks a prompt. */
+    system: varchar("system", { length: 32 }).notNull(),
+    /** Its key in that system: `book-first/opener`, `recruiting-sms#1`, `reactivation/compose`. */
+    name: varchar("name", { length: 64 }).notNull(),
+    liveVersionId: integer("live_version_id"),
+    draftVersionId: integer("draft_version_id"),
+    createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
+  },
+  (t): PgTableExtraConfigValue[] => [
+    primaryKey({ columns: [t.id], name: "pk_templates" }),
+    unique("uq_templates_kind_system_name").on(t.kind, t.system, t.name),
+    oneOf("ck_templates_kind", t.kind, TEMPLATE_KIND_VALUES),
+    foreignKey({
+      columns: [t.liveVersionId],
+      foreignColumns: [templateVersions.id],
+      name: "fk_templates_live_version_id_template_versions",
+    }),
+    foreignKey({
+      columns: [t.draftVersionId],
+      foreignColumns: [templateVersions.id],
+      name: "fk_templates_draft_version_id_template_versions",
+    }),
+  ],
+);
+
+/**
+ * Every save of a template, keyed by the hash of its words, so a send's `template_version` names
+ * exactly what it said. Never updated but for `published_*`; never deleted. `niche` and `template`
+ * repeat the template's system and name: email's experiments read by them.
+ */
+export const templateVersions = pgTable(
+  "template_versions",
+  {
+    id: serial("id").notNull(),
+    templateId: integer("template_id").notNull(),
+    niche: varchar("niche", { length: 32 }).notNull(),
+    template: varchar("template", { length: 64 }).notNull(),
+    version: varchar("version", { length: 12 }).notNull(),
+    source: text("source").notNull(),
+    /** The genome this one was made from; null for a file's version. */
+    parentVersion: varchar("parent_version", { length: 12 }),
+    /** The email experiment that made it (`experiments.id`). */
+    experimentId: integer("experiment_id"),
+    /** An operator's address, or a machine as `<what>:<which>` (`import:files`, `pipeline:compose`). */
+    createdBy: varchar("created_by", { length: 200 }),
+    createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+    /** When it last went live, and who did it. */
+    publishedAt: timestamp("published_at", { withTimezone: true }),
+    publishedBy: varchar("published_by", { length: 200 }),
+  },
+  (t): PgTableExtraConfigValue[] => [
+    primaryKey({ columns: [t.id], name: "pk_template_versions" }),
+    unique("uq_template_versions_niche").on(t.niche, t.template, t.version),
+    index("ix_template_versions_template_id").on(t.templateId),
+    foreignKey({
+      columns: [t.templateId],
+      foreignColumns: [templates.id],
+      name: "fk_template_versions_template_id_templates",
+    }),
+    index("ix_template_versions_experiment_id")
+      .using("btree", t.experimentId.asc().nullsLast().op("int4_ops"))
+      .where(sql`(experiment_id IS NOT NULL)`),
+  ],
+);
+
+export type TemplateRow = typeof templates.$inferSelect;
+export type TemplateVersion = typeof templateVersions.$inferSelect;
+export type NewTemplateVersion = typeof templateVersions.$inferInsert;
 
 export type Topic = typeof topics.$inferSelect;
 export type Consent = typeof consents.$inferSelect;

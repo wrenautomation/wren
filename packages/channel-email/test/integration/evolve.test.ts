@@ -9,6 +9,7 @@ import {
   toSource,
   variantPoints,
 } from "@wren/core/slots";
+import { emailRef, recordVersion } from "@wren/core/templates";
 import type { Db } from "@wren/db";
 import { startTestPostgres, type TestPostgres, truncate } from "@wren/db/testing";
 import { FakeLlm } from "@wren/llm";
@@ -217,9 +218,7 @@ describe("alleleStats", () => {
     await replies([opened as number], at(5));
     // Answered before the send: no credit.
     await replies([late[0] as number], at(1));
-    await db()
-      .insert(templateVersions)
-      .values({ niche: NICHE, template: "opener", version: FILE.version, source: toSource(FILE) });
+    await recordVersion(db(), emailRef(NICHE, "opener"), FILE.version, { source: toSource(FILE) });
     const stats = await alleleStats(db(), NICHE, "opener");
     const [quick, question] = keysAt(FILE, "v1");
     const [hi, hey] = keysAt(FILE, "v2");

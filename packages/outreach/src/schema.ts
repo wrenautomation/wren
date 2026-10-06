@@ -191,6 +191,10 @@ export const reachMessages = pgTable(
     step: smallint("step"),
     /** The slot key the body was rendered from. */
     template: varchar("template", { length: 120 }),
+    /** The `template_versions` hash of the body's words; null before 2026-10-06. */
+    templateVersion: varchar("template_version", { length: 12 }),
+    /** The variant picks behind this body (`{version, seed, picks}`), as email keeps them. */
+    provenance: jsonb("provenance"),
     subject: text("subject"),
     body: text("body").notNull(),
     state: varchar("state", { length: 16, enum: MESSAGE_STATES }).notNull(),

@@ -28,6 +28,7 @@ import {
   type Template,
   toSource,
 } from "@wren/core/slots";
+import { emailRef, recordVersion } from "@wren/core/templates";
 import { atomic, type Queryable } from "@wren/db";
 import { type SQL, sql } from "drizzle-orm";
 import { activeSuppression, activeSuppressions, type SharedSuppressions } from "../guards.js";
@@ -38,13 +39,7 @@ import {
   doneAddresses,
   type RecontactPolicy,
 } from "../recontact.js";
-import {
-  type ApprovalSource,
-  type EnrollmentKind,
-  enrollments,
-  messages,
-  templateVersions,
-} from "../schema.js";
+import { type ApprovalSource, type EnrollmentKind, enrollments, messages } from "../schema.js";
 import { CALL_TIMES } from "../send/call-times.js";
 import { transitionMessage } from "../state.js";
 import { type FactRow, type Facts, factsFor, factsForCompany } from "./facts.js";
@@ -914,15 +909,8 @@ async function recordTemplateVersion(db: Queryable, shared: Shared, tpl: Templat
   const key = `${shared.niche}\x00${tpl.name}\x00${tpl.version}`;
   if (shared.recordedVersions.has(key)) return;
   shared.recordedVersions.add(key);
-  await db
-    .insert(templateVersions)
-    .values({
-      niche: shared.niche,
-      template: tpl.name,
-      version: tpl.version,
-      source: toSource(tpl),
-    })
-    .onConflictDoNothing({
-      target: [templateVersions.niche, templateVersions.template, templateVersions.version],
-    });
+  await recordVersion(db, emailRef(shared.niche, tpl.name), tpl.version, {
+    source: toSource(tpl),
+    by: "pipeline:compose",
+  });
 }

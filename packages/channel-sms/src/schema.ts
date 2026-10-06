@@ -248,6 +248,10 @@ export const smsMessages = pgTable(
     /** Sequence step, 1-based; null for manual and inbound. */
     step: smallint("step"),
     template: varchar("template", { length: 64 }),
+    /** The `template_versions` hash of the words it was rendered from; null before 2026-10-06. */
+    templateVersion: varchar("template_version", { length: 12 }),
+    /** The variant picks behind this body (`{version, seed, picks}`), as email keeps them. */
+    provenance: jsonb("provenance"),
     /** What a reminder is about: the cal.com booking uid. One reminder per template and ref. */
     ref: varchar("ref", { length: 64 }),
     /** Our number (the pool row) on either direction. */
