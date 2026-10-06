@@ -70,9 +70,12 @@ const split = (href: string) => {
   const [path = "", query = ""] = href.split("?");
   return { path, params: new URLSearchParams(query) };
 };
-/** The list ask `href` makes, minus its sort and page. */
-const askFor = (meta: RecordMeta, href: string) => {
-  const { sort: _, cursor: __, ...ask } = askOf(meta, split(href).params);
+/** The list ask `href` makes, minus its sort and page. A link to another record's page keeps no view. */
+export const askFor = (meta: RecordMeta, href: string) => {
+  const { params } = split(href);
+  const view = params.get("view");
+  if (view && !meta.views.some((v) => v.id === view)) params.delete("view");
+  const { sort: _, cursor: __, ...ask } = askOf(meta, params);
   return ask;
 };
 const day = (d: Date) =>
