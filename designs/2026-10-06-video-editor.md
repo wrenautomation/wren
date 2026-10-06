@@ -135,8 +135,7 @@ the preview player (a presigned S3 link), the transcript with cut words struck t
 the three thumbnails, title and description. Actions: Approve (long or one Short), pick a
 thumbnail. A video waiting on his Approve also shows in the Inbox's "Waiting on you".
 
-v1 edits happen in Claude Code. Later, Ask Claude from the page (the DraftAsk pattern) can rewrite
-the edit, plus a render job on the desk so the page can render without the terminal.
+v1 edits happened in Claude Code only; step 4 brings editing, Ask, render and ingest to the page.
 
 ## Remotion vs our ffmpeg timeline
 
@@ -191,6 +190,19 @@ deleted.
    with corner cam and captions, Studio. This step replaces Descript for the long video.
 2. Shorts, thumbnails, `render`, S3 previews.
 3. Marketing → Videos, Approve → YouTube, upload streams from disk.
+4. Editing from the page, no terminal (William 10-06: "human intervention editing and claude code
+   guided by human editing [should] be first class"; he felt features were missing):
+   - In place: title, description, tags, chapters, Shorts titles, thumbnail text, through
+     `setEdit` (checked by `editPatchSchema`, a `runs` row per change), like draft edits.
+   - Cuts on the page: each proposed cut with the words it strikes, Keep or Cut (`keepCut`), and
+     a manual cut by selecting words in the transcript.
+   - Ask Claude on a video, the DraftAsk pattern: the question and the edit go to the desk's
+     `claude` service; it answers with a patch, which wren checks and applies. Claude stays read
+     only.
+   - Render from the page: a job the Mac runs (`wren video render`), with its state on the row
+     (rendering, rendered, failed and why). It waits while the Mac is off.
+   - New OBS recordings appear by themselves: the Mac ingests a finished file from OBS's
+     recording folder (read from OBS's profile) as an Added video.
 
 ## For William
 
