@@ -236,7 +236,7 @@ export const settingsSchema = z.object({
   portalFrom: z.string().email().optional(),
   /** A mailbox the service account may impersonate that can send as `portalFrom`. */
   portalMailbox: z.string().email().optional(),
-  /** The S3 bucket per-lead demo videos are published to (`v/<id>.*`); unset = `wren video render` refuses. */
+  /** The S3 bucket per-lead demo videos are published to (`v/<id>.*`); unset = `wren video demo render` refuses. */
   videosBucket: z.string().min(1).optional(),
   /** Where the CDN serves that bucket, no trailing slash ("https://d123.cloudfront.net"). */
   videosOrigin: z.string().url().optional(),

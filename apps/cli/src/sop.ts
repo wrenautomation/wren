@@ -35,7 +35,7 @@ type WithDb = <T>(fn: (db: Db) => Promise<T>) => Promise<T>;
 const YOUTUBE = /^https?:\/\/(www\.|m\.)?(youtube\.com|youtu\.be)\//;
 
 /** autobrowse's CLI in its checkout: the Drive token lives in its .env, not ours. */
-function autobrowseDrive(dir: string, account: string): DriveGet {
+export function autobrowseDrive(dir: string, account: string): DriveGet {
   return async (path, body) => {
     const args = ["-s", "autobrowse", "site", "call", "drive", "GET", path, "--account", account];
     args.push("--body", JSON.stringify(body));

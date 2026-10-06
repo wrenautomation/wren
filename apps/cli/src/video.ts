@@ -1,5 +1,6 @@
 /**
- * `wren video …`: per-lead demo videos. `try` records one for a firm name into
+ * `wren video …`: the video editor (./studio.ts), and under `wren video demo …` per-lead demo
+ * videos. `try` records one for a firm name into
  * a local file (nothing stored). `render` records, publishes and keeps one per
  * firm as a `video` enrichment; Ctrl-C and run again to resume, a firm that has
  * this walk's video is skipped. `show` prints what a firm has. Always the main
@@ -16,6 +17,7 @@ import { findCompanyIds, nicheCompanyIds } from "@wren/research/dossier";
 import { enrichments } from "@wren/research/schema";
 import type { Command } from "commander";
 import { and, desc, eq, inArray } from "drizzle-orm";
+import { registerStudio } from "./studio.js";
 
 type WithDb = <T>(fn: (db: Db) => Promise<T>) => Promise<T>;
 
@@ -29,9 +31,13 @@ export function registerVideo(
 ): void {
   const video = program
     .command("video")
+    .description("the video editor (add, cut, studio, look) and per-lead demo videos (demo)");
+  registerStudio(video, withDb, settings, rootDir);
+  const demo = video
+    .command("demo")
     .description("per-lead demo videos: the reactivation demo, made for one firm");
 
-  video
+  demo
     .command("try <firm>")
     .description("record the walk for a firm name into a local mp4 (and .jpg); stores nothing")
     .option("--out <file>", "where the mp4 goes", "video.mp4")
@@ -53,7 +59,7 @@ export function registerVideo(
       }
     });
 
-  video
+  demo
     .command("render [company]")
     .description("record, publish and keep a firm's video: one by id, domain or name, or --niche")
     .option("--niche <niche>", "every firm in a niche, in id order (needs --limit)")
@@ -95,7 +101,7 @@ export function registerVideo(
       }),
     );
 
-  video
+  demo
     .command("show <company>")
     .description("a firm's videos, newest first")
     .action((query: string) =>

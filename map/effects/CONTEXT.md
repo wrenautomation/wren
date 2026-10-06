@@ -28,6 +28,7 @@ A catalog, not a waterfall. Each row names the cards whose **If you change this*
 | drafting, voice, slots | [[content/draft]] | [[content/idea]], [[content/content-metric]], [[content/playbook]], [[processes/content-loop]] |
 | comments, activity or followers on our own posts (Marketing → Inbox) | [[content/comment]], [[content/platform]] | `packages/content/src/social/`, `packages/content/src/restate/social.ts`, [[platform/records]], [[platform/loop-object]] |
 | media hosting | [[content/media]] | [[content/platform]], `deploy/terraform` |
+| video editing: cuts, captions, looks (`wren video …`) | [[content/video-edit]] | `packages/studio/`, [[platform/settings]] (`studio.cuts`), `packages/research/src/sops/index.ts` (`askGemini`) |
 | Meta ads | [[ads/ad-launch]] | [[processes/ads-launch-watch]], [[content/idea]] |
 | what a firm's site publishes (phones, LinkedIn, socials) | [[research/contact-point]] | [[research/document]], [[sms/sms-contact]], `lead_sheet` |
 | a firm's public team (one people search per firm) | [[research/team-search]] | [[leads/person]], [[processes/pool-feed]] |

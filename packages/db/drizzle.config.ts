@@ -26,6 +26,7 @@ export default defineConfig({
     "../delivery/src/schema.ts",
     "../outreach/src/schema.ts",
     "../watch/src/schema.ts",
+    "../studio/src/schema.ts",
   ],
   out: "./drizzle",
   casing: "snake_case",

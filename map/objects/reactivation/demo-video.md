@@ -28,7 +28,7 @@ Citations: `packages/reactivation/src/video/lead.ts:32`, `packages/research/src/
 - **owned-by:** [[leads/company]], [[ledger/run]]
 - **owns:** the S3 objects under `v/<id>`
 - **joins:** `recruiting_facts` (lateral, newest `video` row with a url)
-- **looks-like-but-is-not:** a content video ([[content/platform]] posts to channels; this is per lead, unlisted)
+- **looks-like-but-is-not:** a content video ([[content/platform]] posts to channels) or a [[content/video-edit]] (his own recordings); this is per lead, unlisted
 
 ## If you change this
 
@@ -39,9 +39,9 @@ Citations: `packages/reactivation/src/video/lead.ts:32`, `packages/research/src/
 
 | Surface | Role |
 |---|---|
-| `wren video render <company> \| --niche <n> --limit <k>` | write (records, publishes, stores) |
-| `wren video try <firm>` | local mp4 only |
-| `wren video show <company>` | read |
+| `wren video demo render <company> \| --niche <n> --limit <k>` | write (records, publishes, stores) |
+| `wren video demo try <firm>` | local mp4 only |
+| `wren video demo show <company>` | read |
 | lander `/v/<id>` | read (CDN JSON) |
 
 ## See

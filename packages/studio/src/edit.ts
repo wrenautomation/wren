@@ -1,0 +1,280 @@
+/**
+ * The edit row: add (ingest), read, write (checked, a `runs` row each, like `wren drafts set`), and
+ * the cut knobs in `wren_settings` under component `studio` (`{ cuts: {...} }`).
+ */
+import { mkdir, readdir } from "node:fs/promises";
+import { basename, dirname, extname, join, resolve } from "node:path";
+import { finishRun, openRun, recordedRun } from "@wren/core";
+import { settingsFor, setWrenSettings } from "@wren/core/clients";
+import { atomic, type Queryable } from "@wren/db";
+import { eq } from "drizzle-orm";
+import { z } from "zod";
+import {
+  CUT_DEFAULTS,
+  type CutKnobs,
+  cutKnobsSchema,
+  fillerProposals,
+  withSilence,
+} from "./cuts.js";
+import { pcm, probe, silencePass, syncOffset, wav16k } from "./media.js";
+import {
+  CUT_STATES,
+  CUT_WHYS,
+  LAYOUTS,
+  type Tracks,
+  type VideoEdit,
+  videoEdits,
+} from "./schema.js";
+import { transcribe } from "./whisper.js";
+
+export const STUDIO_COMPONENT = "studio";
+
+/** The cut knobs; a bad block reads as the defaults. */
+export async function cutKnobs(db: Queryable): Promise<CutKnobs> {
+  const block = (await settingsFor(db, null))[STUDIO_COMPONENT] as { cuts?: unknown } | undefined;
+  const p = cutKnobsSchema.safeParse(block?.cuts ?? {});
+  return p.success ? p.data : CUT_DEFAULTS;
+}
+
+export async function setCutKnobs(
+  db: Queryable,
+  patch: Partial<CutKnobs>,
+  by: string,
+): Promise<CutKnobs> {
+  return atomic(db, async (tx) => {
+    const block = ((await settingsFor(tx, null))[STUDIO_COMPONENT] ?? {}) as Record<
+      string,
+      unknown
+    >;
+    const cuts = cutKnobsSchema.parse({ ...(await cutKnobs(tx)), ...patch });
+    await setWrenSettings(tx, STUDIO_COMPONENT, { ...block, cuts }, by);
+    return cuts;
+  });
+}
+
+const VIDEO = /\.(mp4|mkv|mov|m4v|webm)$/i;
+const CAM = /cam|camera|webcam|face/i;
+
+/**
+ * The recording's tracks: a file, or a folder holding OBS's recording and Source Record's camera
+ * file (named cam/camera/webcam/face, else the smaller picture).
+ */
+export async function findTracks(input: string): Promise<{ main: string; cam?: string }> {
+  const at = resolve(input);
+  if (VIDEO.test(at)) return { main: at };
+  const files = (await readdir(at)).filter((f) => VIDEO.test(f) && !f.startsWith("cut-")).sort();
+  if (files.length === 1) return { main: join(at, files[0] as string) };
+  if (files.length !== 2)
+    throw new Error(`${at}: ${files.length} videos; want one file, or the recording + camera`);
+  const [a, b] = files as [string, string];
+  // No camera name: addVideo takes the bigger picture as the screen.
+  return CAM.test(a)
+    ? { main: join(at, b), cam: join(at, a) }
+    : { main: join(at, a), cam: join(at, b) };
+}
+
+export interface AddOptions {
+  ffmpeg: string;
+  script?: { url: string; text: string };
+  camBox?: [number, number, number, number];
+  /** Camera minus main seconds, when the camera file has no audio to sync by. */
+  offsetS?: number;
+  model?: string;
+  log?: (line: string) => void;
+}
+
+/** Probe, sync, transcribe, run the silence pass and propose fillers; one new row. */
+export async function addVideo(db: Queryable, input: string, o: AddOptions): Promise<VideoEdit> {
+  const log = o.log ?? (() => {});
+  const found = await findTracks(input);
+  let [main, cam] = await Promise.all([
+    probe(found.main, o.ffmpeg),
+    found.cam ? probe(found.cam, o.ffmpeg) : undefined,
+  ]);
+  // No camera name to go by: the bigger picture is the screen.
+  if (cam && !CAM.test(basename(cam.path)) && cam.width * cam.height > main.width * main.height)
+    [main, cam] = [cam, main];
+  if (!main.audio) throw new Error(`${main.path}: no audio; the cuts are heard on the recording`);
+  const dir = join(dirname(main.path), `wren-${basename(main.path, extname(main.path))}`);
+  await mkdir(dir, { recursive: true });
+  const { audio: _a, ...mainTrack } = main;
+  const tracks: Tracks = { main: mainTrack };
+  if (cam) {
+    let offsetS = o.offsetS;
+    if (offsetS === undefined) {
+      if (!cam.audio)
+        throw new Error(`${cam.path}: no audio to sync by; pass --offset <camera minus main s>`);
+      log("syncing camera to recording by audio");
+      const [a, b] = await Promise.all([
+        pcm(main.path, o.ffmpeg, 16000, 120),
+        pcm(cam.path, o.ffmpeg, 16000, 120),
+      ]);
+      offsetS = syncOffset(a, b);
+    }
+    const { audio: _c, ...camTrack } = cam;
+    tracks.cam = { ...camTrack, offsetS };
+  }
+  if (o.camBox) tracks.camBox = o.camBox;
+
+  const knobs = await cutKnobs(db);
+  return (
+    await recordedRun(
+      db,
+      { command: "video add", argv: { input, main: main.path, cam: cam?.path ?? null } },
+      async () => {
+        log("transcribing (whisper.cpp)");
+        const wav = join(dir, "audio-16k.wav");
+        await wav16k(main.path, wav, o.ffmpeg);
+        const started = Date.now();
+        const heard = await transcribe(wav, o.model ? { model: o.model } : {});
+        log(`${heard.length} words in ${((Date.now() - started) / 1000).toFixed(1)}s`);
+        const { words, cuts } = await silencePass(
+          main.path,
+          heard,
+          main.durationS,
+          o.ffmpeg,
+          knobs,
+        );
+        const [row] = await db
+          .insert(videoEdits)
+          .values({
+            title: basename(main.path, extname(main.path)),
+            dir,
+            tracks,
+            script: o.script ?? null,
+            words,
+            cuts: withSilence(fillerProposals(words), cuts),
+          })
+          .returning();
+        return row as VideoEdit;
+      },
+    )
+  ).stats;
+}
+
+export async function getEdit(db: Queryable, id: number): Promise<VideoEdit> {
+  const [row] = await db.select().from(videoEdits).where(eq(videoEdits.id, id));
+  if (!row) throw new Error(`no video ${id}`);
+  return row;
+}
+
+const sec = z.number().min(0);
+const span = { from: sec, to: sec };
+
+/** What `wren video set` takes: any of these fields, replaced whole. Words and tracks are ingest's. */
+export const editPatchSchema = z
+  .object({
+    title: z.string().max(100),
+    description: z.string().max(5000),
+    tags: z.array(z.string().min(1).max(100)).max(30),
+    chapters: z.array(z.object({ at: sec, title: z.string().min(1).max(100) }).strict()),
+    cuts: z.array(z.object({ ...span, why: z.enum(CUT_WHYS), state: z.enum(CUT_STATES) }).strict()),
+    layout: z.array(z.object({ ...span, show: z.enum(LAYOUTS) }).strict()),
+    captions: z.object({ on: z.boolean(), style: z.string().min(1).max(32) }).strict(),
+    shorts: z.array(z.object({ ...span, title: z.string().max(100) }).strict()).max(10),
+    thumbnail: z
+      .object({ at: sec, text: z.string().max(60) })
+      .strict()
+      .nullable(),
+  })
+  .partial()
+  .strict();
+export type EditPatch = z.infer<typeof editPatchSchema>;
+
+/** Refuse a range backwards or past the end, and overlapping applied cuts. */
+export function checkPatch(patch: EditPatch, durationS: number): string[] {
+  const bad: string[] = [];
+  const ranges = (name: string, xs: readonly { from: number; to: number }[] | undefined) =>
+    xs?.forEach((r, i) => {
+      if (!(r.to > r.from)) bad.push(`${name}[${i}]: to must be after from`);
+      if (r.to > durationS + 0.001) bad.push(`${name}[${i}]: past the end (${durationS}s)`);
+    });
+  ranges("cuts", patch.cuts);
+  ranges("layout", patch.layout);
+  ranges("shorts", patch.shorts);
+  for (const [name, at] of [
+    ...(patch.chapters ?? []).map((c, i) => [`chapters[${i}]`, c.at] as const),
+    ...(patch.thumbnail ? [["thumbnail", patch.thumbnail.at] as const] : []),
+  ])
+    if (at > durationS) bad.push(`${name}: past the end (${durationS}s)`);
+  return bad;
+}
+
+/** Write fields of the edit, checked, with a `runs` row holding what they were. */
+export async function setEdit(
+  db: Queryable,
+  id: number,
+  input: unknown,
+  o: { by: string; command?: string },
+): Promise<{ run: string; edit: VideoEdit }> {
+  const parsed = editPatchSchema.safeParse(input);
+  if (!parsed.success)
+    throw new Error(
+      `not set: ${parsed.error.issues.map((i) => `${i.path.join(".")}: ${i.message}`).join("; ")}`,
+    );
+  const patch = { ...parsed.data };
+  if (patch.cuts) patch.cuts = [...patch.cuts].sort((a, b) => a.from - b.from || a.to - b.to);
+  return atomic(db, async (tx) => {
+    const now = await getEdit(tx, id);
+    const bad = checkPatch(patch, now.tracks.main.durationS);
+    if (bad.length) throw new Error(`not set: ${bad.join("; ")}`);
+    const before = Object.fromEntries(
+      Object.keys(patch).map((k) => [k, now[k as keyof EditPatch]]),
+    );
+    const [edit] = await tx
+      .update(videoEdits)
+      .set({ ...patch, state: now.state === "added" ? "edited" : now.state, updatedAt: new Date() })
+      .where(eq(videoEdits.id, id))
+      .returning();
+    const run = await openRun(tx, {
+      command: o.command ?? "video set",
+      argv: { id, fields: Object.keys(patch), by: o.by },
+    });
+    await finishRun(tx, run.id, { before });
+    return { run: run.id, edit: edit as VideoEdit };
+  });
+}
+
+/** Undo cut `n` (1-based, as `wren video cuts` numbers them). */
+export async function keepCut(db: Queryable, id: number, n: number, by: string) {
+  const { cuts } = await getEdit(db, id);
+  if (!cuts[n - 1]) throw new Error(`video ${id} has ${cuts.length} cuts; no ${n}`);
+  const next = cuts.map((c, i) => (i === n - 1 ? { ...c, state: "kept" as const } : c));
+  return setEdit(db, id, { cuts: next }, { by, command: "video keep" });
+}
+
+/** Rerun the silence pass with today's knobs; other cuts stay as they are. */
+export async function redoSilence(db: Queryable, id: number, ffmpeg: string, by: string) {
+  const e = await getEdit(db, id);
+  const { cuts: fresh } = await silencePass(
+    e.tracks.main.path,
+    e.words,
+    e.tracks.main.durationS,
+    ffmpeg,
+    await cutKnobs(db),
+  );
+  return setEdit(db, id, { cuts: withSilence(e.cuts, fresh) }, { by, command: "video cuts" });
+}
+
+/** Local files the cut pass or a render wrote. */
+export async function setFiles(db: Queryable, id: number, files: Record<string, string>) {
+  const e = await getEdit(db, id);
+  await db
+    .update(videoEdits)
+    .set({ files: { ...e.files, ...files }, updatedAt: new Date() })
+    .where(eq(videoEdits.id, id));
+}
+
+export async function setLook(db: Queryable, id: number, provider: string, look: unknown) {
+  const e = await getEdit(db, id);
+  await db
+    .update(videoEdits)
+    .set({ looks: { ...e.looks, [provider]: look } as VideoEdit["looks"], updatedAt: new Date() })
+    .where(eq(videoEdits.id, id));
+}
+
+/** TwelveLabs minutes spent by every edit's looks: what the free-plan stop counts. */
+export async function twelvelabsMinutes(db: Queryable): Promise<number> {
+  const rows = await db.select({ looks: videoEdits.looks }).from(videoEdits);
+  return rows.reduce((n, r) => n + (r.looks.twelvelabs?.media?.minutes ?? 0), 0);
+}
