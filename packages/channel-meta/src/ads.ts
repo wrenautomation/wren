@@ -269,10 +269,10 @@ export function metaAds(sites: SiteClient, o: MetaAdsOptions = {}) {
       }),
     /** Ad sets, ads and pixels: one page of up to 200 each, plenty at Wren's size. */
     adsets: async (): Promise<AdSetRow[]> =>
-      (await call<Edge<AdSetRow>>("GET", `/act_${await adAccountId()}/adsets`, { limit: 200 }))
+      (await call<Edge<AdSetRow>>("GET", `/act_${await adAccountId()}/adsets`, { limit: 100 }))
         .data ?? [],
     ads: async (): Promise<AdRow[]> =>
-      (await call<Edge<AdRow>>("GET", `/act_${await adAccountId()}/ads`, { limit: 200 })).data ??
+      (await call<Edge<AdRow>>("GET", `/act_${await adAccountId()}/ads`, { limit: 100 })).data ??
       [],
     pixels: async (): Promise<PixelRow[]> =>
       (await call<Edge<PixelRow>>("GET", `/act_${await adAccountId()}/adspixels`, {})).data ?? [],
