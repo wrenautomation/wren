@@ -101,13 +101,22 @@ let held: { token: string; until: number } | null = null;
 async function token(): Promise<string | null> {
   if (!AUTH_ORIGIN) return null;
   if (held && held.until > Date.now()) return held.token;
-  let res: Response;
-  try {
-    res = await fetch(`${AUTH_ORIGIN}/api/auth/token`, { credentials: "include" });
-  } catch {
-    throw new ApiError("You're offline, or sign-in is.", 0);
+  const ask = async () => {
+    try {
+      return await fetch(`${AUTH_ORIGIN}/api/auth/token`, { credentials: "include" });
+    } catch {
+      throw new ApiError("You're offline, or sign-in is.", 0);
+    }
+  };
+  let res = await ask();
+  // Too many checks at once (tabs opening together): wait as asked, at most 5 s, and ask once more.
+  if (res.status === 429) {
+    const wait = Math.min(5, Number(res.headers.get("retry-after")) || 2);
+    await new Promise((r) => setTimeout(r, wait * 1000));
+    res = await ask();
   }
   if (res.status === 401) return signIn();
+  if (res.status === 429) throw new ApiError("Sign-in is busy. Try again in a minute.", 429);
   if (!res.ok) throw new ApiError(`Couldn't check your sign-in (${res.status}).`, res.status);
   const { token: t } = (await res.json()) as { token: string };
   const exp = JSON.parse(atob(t.split(".")[1]?.replace(/-/g, "+").replace(/_/g, "/") ?? "")).exp;

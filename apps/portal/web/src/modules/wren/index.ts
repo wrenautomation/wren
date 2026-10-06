@@ -1024,7 +1024,7 @@ const HOLD_ACTIONS: Action[] = [
 export const workflows: Module = {
   id: "workflows",
   name: "Workflows",
-  icon: "board",
+  icon: "link",
   blurb: "How Wren wins clients and runs, drawn with live numbers.",
   requires: TEAM,
   pages: [

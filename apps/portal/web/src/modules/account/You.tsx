@@ -69,7 +69,7 @@ export function You(props: PageProps) {
             <MessagePreview
               message={{ kind: "email", from: "Wren", subject: recap.data.recap.subject }}
               body={recap.data.recap.text}
-              stats={false}
+              reader
             />
           </>
         )}

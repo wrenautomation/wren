@@ -758,9 +758,28 @@ function useNarrow() {
 const blank = (c: Cell | undefined) =>
   c === null || c === undefined || c === "" || (Array.isArray(c) && !c.length);
 
+/** How many characters a cell takes on screen: a state by its label, a date as "10 minutes ago". */
+function charsOf(f: FieldMeta, c: Cell | undefined): number {
+  if (blank(c)) return 0;
+  if (f.kind === "date") return 14;
+  if (f.kind === "status") return (f.states?.[String(c)]?.label ?? String(c)).length + 2;
+  if (Array.isArray(c)) return c.join(", ").length;
+  return typeof c === "object" ? 0 : String(c).length + (f.column?.align === "end" ? 3 : 0);
+}
+
+/**
+ * A column's width for the rows shown: what its head and its widest cell need, never more than
+ * its preset. A column of "Post" stays narrow, so the title has the room.
+ */
+export function fitOf(f: FieldMeta, rows: Row[]): number {
+  if (!rows.length) return widthOf(f);
+  const chars = Math.max(f.label.length + 3, ...rows.map((r) => charsOf(f, r[f.key])));
+  return Math.min(widthOf(f), Math.max(64, Math.ceil(chars * 7.2) + 24));
+}
+
 /**
  * The columns a list draws: what's picked, less those blank on every row shown (unless picked
- * by hand), and on a phone only the title and the first state.
+ * by hand), and on a phone only the title and the first state that tells the rows apart.
  */
 export function shownColumns(
   meta: RecordMeta,
@@ -773,7 +792,9 @@ export function shownColumns(
       ? cols
       : cols.filter((f) => f.key === meta.title || rows.some((r) => !blank(r[f.key])));
   if (!narrow) return filled;
-  const state = filled.find((f) => f.key !== meta.title && f.kind === "status");
+  const states = filled.filter((f) => f.key !== meta.title && f.kind === "status");
+  const state =
+    states.find((f) => new Set(rows.map((r) => String(r[f.key] ?? ""))).size > 1) ?? states[0];
   return filled.filter((f) => f.key === meta.title || f === state);
 }
 
@@ -1031,18 +1052,29 @@ function List({
           )}
         >
           <table
-            className="w-full table-fixed border-collapse text-[13px]"
+            // An empty view shows what fills it, not a row of column heads over nothing.
+            className={cn(
+              "w-full table-fixed border-collapse text-[13px]",
+              page.data && !rows.length && "hidden",
+            )}
             style={{
               minWidth: narrow
                 ? undefined
-                : 72 + cols.reduce((n, f) => n + widthOf(f, f.key === meta.title), 0),
+                : 72 +
+                  cols.reduce(
+                    (n, f) => n + (f.key === meta.title ? widthOf(f, true) : fitOf(f, rows)),
+                    0,
+                  ),
             }}
           >
             <colgroup>
               <col style={{ width: 36 }} />
               {cols.map((f) => (
                 // The title takes what the others leave; the table's min width keeps its share.
-                <col key={f.key} style={f.key === meta.title ? undefined : { width: widthOf(f) }} />
+                <col
+                  key={f.key}
+                  style={f.key === meta.title ? undefined : { width: fitOf(f, rows) }}
+                />
               ))}
               <col style={{ width: 36 }} />
             </colgroup>
@@ -1122,7 +1154,9 @@ function List({
                           <td
                             key={f.key}
                             className={cn(
-                              "truncate px-3",
+                              "px-3",
+                              // On a phone the title takes two lines before it cuts.
+                              narrow && f.key === meta.title ? "py-2" : "truncate",
                               f.column?.align === "end" ? "text-right" : "text-left",
                               f.key !== meta.title && "text-(--ui-ink-2)",
                             )}
@@ -1130,7 +1164,10 @@ function List({
                             {f.key === meta.title ? (
                               <a
                                 href={place.link({ [meta.name.one]: id, tab: null })}
-                                className="font-medium text-(--ui-ink) no-underline"
+                                className={cn(
+                                  "font-medium text-(--ui-ink) no-underline",
+                                  narrow && "line-clamp-2",
+                                )}
                               >
                                 {titleOf(meta, r)}
                               </a>

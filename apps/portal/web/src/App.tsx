@@ -392,9 +392,12 @@ export function App() {
         actions={
           <>
             {operator && !wren ? (
-              // A phone's top bar keeps room for the workspace's name.
-              <Button tone="quiet" size="sm" className="max-sm:hidden" onClick={flip}>
-                {team ? "View as client" : "Back to team view"}
+              <Button tone="quiet" size="sm" onClick={flip}>
+                {/* A phone's top bar keeps room for the workspace's name. */}
+                <span className="sm:hidden">{team ? "As client" : "Team view"}</span>
+                <span className="max-sm:hidden">
+                  {team ? "View as client" : "Back to team view"}
+                </span>
               </Button>
             ) : null}
             {account ? (

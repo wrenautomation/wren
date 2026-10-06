@@ -178,15 +178,14 @@ function Actor({ value }: { value: string }) {
 }
 
 /**
- * Whether a column's footer has news: a sum, a rate, a share that isn't everyone, or rows that
- * are missing it. "All filled", "100% empty", "Running 100%" and the newest date say nothing the
- * rows above don't, so the footer leaves them out.
+ * Whether a column's footer has news: a sum, a rate, or rows that are missing it. "All filled",
+ * "100% empty", the most common state and the newest date say nothing the rows above and the
+ * view's counts don't, so the footer leaves them out.
  */
 export function totalSays(f: FieldMeta, t: Total | undefined): boolean {
   if (!t) return false;
   if ("sum" in t) return true;
-  if ("newest" in t) return false;
-  if ("most" in t) return t.n < t.of;
+  if ("newest" in t || "most" in t) return false;
   if (f.kind === "rate" || f.kind === "verdict") return t.of > 0;
   const empty = t.of - t.n;
   return empty > 0 && empty < t.of;

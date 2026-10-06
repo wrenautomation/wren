@@ -93,12 +93,15 @@ const snippetOf = (body: string) => body.replace(/\s+/g, " ").trim();
 export function MessagePreview({
   message: kind,
   body: text,
-  stats = true,
+  reader = false,
 }: {
   message: MessageKind;
   body: string;
-  /** The skim's numbers over it; a reader who doesn't write it (a client's recap) goes without. */
-  stats?: boolean;
+  /**
+   * For someone who reads it and doesn't write it (a client's recap): the opened message at the
+   * page's width, without the device frames and the skim's numbers.
+   */
+  reader?: boolean;
 }) {
   const [opened, setOpened] = useState<"laptop" | "phone">("phone");
   const whole = "fill" in kind ? kind.fill?.(text) : undefined;
@@ -106,6 +109,15 @@ export function MessagePreview({
   const body = whole ? whole.body : text;
   const from = message.from || "You";
   const shape = shapeOf(message, body);
+  if (reader && message.kind === "email")
+    return (
+      <section
+        aria-label="The message"
+        className="min-w-0 overflow-hidden border border-(--ui-hair) bg-white font-[system-ui] text-black"
+      >
+        <Opened from={from} subject={message.subject} body={body} size={15} pad={16} />
+      </section>
+    );
   const openedOn = (
     <div className="flex items-center gap-3">
       <span className="text-(--ui-ink-2)">Opened on</span>
@@ -124,7 +136,7 @@ export function MessagePreview({
   );
   return (
     <section aria-label="How it looks" className="grid min-w-0 gap-3 text-[13px]">
-      {stats ? <p className="text-(--ui-ink-2)">{shape.join(" · ")}</p> : null}
+      <p className="text-(--ui-ink-2)">{shape.join(" · ")}</p>
       {message.kind === "dm" ? (
         <>
           <Frame label={`Messages, laptop (${message.site})`} width={DM_LIST}>
@@ -325,9 +337,11 @@ function Opened({
 }) {
   return (
     <div style={{ padding: pad, fontSize: size }} className="grid gap-3 leading-[1.45]">
-      {subject ? <p className="text-[1.3em] font-semibold leading-[1.25]">{subject}</p> : null}
+      {subject ? (
+        <p className="text-[1.3em] font-semibold leading-[1.25] break-words">{subject}</p>
+      ) : null}
       <p className="font-semibold">{from}</p>
-      <div className="break-words whitespace-pre-wrap">{body.trim()}</div>
+      <div className="min-w-0 whitespace-pre-wrap [overflow-wrap:anywhere]">{body.trim()}</div>
     </div>
   );
 }

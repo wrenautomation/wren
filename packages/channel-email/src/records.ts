@@ -386,13 +386,15 @@ export const variantRecord = defineRecord({
   rows: async (db) =>
     (
       await db.execute<Record<string, unknown>>(sql`
-        select r.*, v.source copy from reply_by_arm_step r
+        select r.*, v.source copy, v.created_at written from reply_by_arm_step r
         left join template_versions v on v.niche = r.niche and v.template = r.template
           and v.version = r.template_version
         where r.sent > 0`)
     ).map((r) => ({
       ...r,
       id: `${r.template}@${r.template_version}`,
+      // "book-first" reads "Book first"; the version is told apart by when it was written.
+      arm: r.arm ? campaignName(String(r.arm).replaceAll("-", " ")) : r.arm,
       campaign: campaignName(String(r.niche)),
       step: Number(r.step) === 0 ? "Opener" : `Follow-up ${r.step}`,
     })),
@@ -403,7 +405,7 @@ export const variantRecord = defineRecord({
     arm: text("Variant"),
     campaign: text("Campaign"),
     step: text(),
-    templateVersion: text("Copy version"),
+    written: date("Copy written"),
     sent: number("Sent"),
     replyRate: rate("sent", "Reply rate", { from: "replies" }),
     interested: number(),
