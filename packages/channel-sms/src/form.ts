@@ -16,6 +16,7 @@
  * stays `new` past its first in-window pass, except on a lookup or
  * booking-check error, which the next pass retries.
  */
+import { linkPeople } from "@wren/core/leads";
 import type { Db, Queryable } from "@wren/db";
 import { and, eq, sql } from "drizzle-orm";
 import type { Bookings } from "./bookings.js";
@@ -167,7 +168,12 @@ async function formContact(
     })
     .onConflictDoNothing()
     .returning();
-  if (made) return { contact: made, created: true };
+  if (made) {
+    // An applicant who's a lead already gets their person, for the copy and the other channels.
+    if (!(await linkPeople(db, "sms_contacts", [made.id]))) return { contact: made, created: true };
+    const [linked] = await db.select().from(smsContacts).where(eq(smsContacts.id, made.id));
+    return { contact: linked as SmsContact, created: true };
+  }
   const [have] = await db
     .select()
     .from(smsContacts)

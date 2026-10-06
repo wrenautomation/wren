@@ -2,7 +2,7 @@
 import { startTestPostgres, type TestPostgres } from "@wren/db/testing";
 import { sql } from "drizzle-orm";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
-import { activeElsewhere, firstTouchElsewhere, leadRefusal } from "../../src/leads.js";
+import { activeElsewhere, firstTouchElsewhere, leadRefusal, linkPeople } from "../../src/leads.js";
 
 let pg: TestPostgres;
 beforeAll(async () => {
@@ -108,5 +108,54 @@ describe("leadRefusal", () => {
     const f = await firm();
     expect(await leadRefusal(pg.db, { personId: null, companyId: f }, "text", now)).toBeNull();
     expect(await leadRefusal(pg.db, { personId: null, companyId: null }, "dm", now)).toBeNull();
+  });
+});
+
+describe("linkPeople", () => {
+  const one = async <T>(q: ReturnType<typeof sql>) =>
+    ((await pg.db.execute(q)) as unknown as T[])[0] as T;
+  const named = (companyId: number, name: string, linkedin: string | null = null) =>
+    one<{ id: number }>(sql`
+      INSERT INTO people (company_id, full_name, is_compliance, origin, origin_ref, raw, linkedin_url)
+      VALUES (${companyId}, ${name}, false, 'manual', 'test', '{}', ${linkedin}) RETURNING id`);
+  const sms = (v: { company?: number | null; name?: string; email?: string }) => {
+    n += 1;
+    return one<{ id: number }>(sql`
+      INSERT INTO sms_contacts (e164, source_kind, basis, company_id, name, email)
+      VALUES (${`+1555100${String(n).padStart(4, "0")}`}, 'form', 'opt_in', ${v.company ?? null},
+        ${v.name ?? null}, ${v.email ?? null}) RETURNING id`);
+  };
+  const linked = (table: string, id: number) =>
+    one<{ person_id: number | null; company_id: number | null }>(
+      sql`SELECT person_id, company_id FROM ${sql.identifier(table)} WHERE id = ${id}`,
+    );
+
+  it("links by email, by one name at the firm, and by LinkedIn handle; never a guess", async () => {
+    const f = await firm();
+    const ann = await named(f, "Ann Example", "https://www.linkedin.com/in/Ann-Example/");
+    await one(sql`INSERT INTO contact_candidates (person_id, email, domain, evidence, rank, state, source_ref)
+      VALUES (${ann.id}, 'ann@firm.example', 'firm.example', 'scraped', 1, 'verified', 'test')`);
+    await named(f, "Bo Twin");
+    await named(f, "Bo Twin");
+
+    const byEmail = await sms({ email: "ANN@firm.example" });
+    const byName = await sms({ company: f, name: " ann example " });
+    const twins = await sms({ company: f, name: "Bo Twin" });
+    const mainLine = await sms({ company: f });
+    const elsewhere = await sms({ company: await firm(), email: "ann@firm.example" });
+    expect(await linkPeople(pg.db, "sms_contacts", [byName.id])).toBe(1);
+    expect(await linkPeople(pg.db, "sms_contacts")).toBe(1);
+    expect(await linked("sms_contacts", byEmail.id)).toEqual({ person_id: ann.id, company_id: f });
+    expect(await linked("sms_contacts", byName.id)).toEqual({ person_id: ann.id, company_id: f });
+    for (const c of [twins, mainLine])
+      expect(await linked("sms_contacts", c.id)).toMatchObject({ person_id: null, company_id: f });
+    expect((await linked("sms_contacts", elsewhere.id)).person_id).toBeNull();
+
+    const dm = await one<{ id: number }>(sql`
+      INSERT INTO reach_contacts (platform, handle, url, found_in)
+      VALUES ('linkedin', 'ann-example', 'https://www.linkedin.com/in/ann-example/', 'test') RETURNING id`);
+    expect(await linkPeople(pg.db, "reach_contacts", [dm.id])).toBe(1);
+    expect(await linked("reach_contacts", dm.id)).toEqual({ person_id: ann.id, company_id: f });
+    expect(await linkPeople(pg.db, "reach_contacts")).toBe(0);
   });
 });

@@ -11,6 +11,7 @@ import { collectStatus, formatStatusLines, weekSlipped } from "@wren/content";
 import { type AuditSealer, SEALER_KEY } from "@wren/core/audit";
 import { type Client, clientUrl, getClient } from "@wren/core/clients";
 import { RENEWAL_KEY, type TokenRenewal } from "@wren/core/content/renewal";
+import { linkPeople } from "@wren/core/leads";
 import {
   type AuditCheck,
   clientDatabases,
@@ -134,6 +135,14 @@ db.command("check")
       return rows[0]?.n ?? 0;
     });
     console.log(`migrations applied: ${n}`);
+  });
+db.command("link-people")
+  .description("Fill the person on text and DM contacts by email, name at the firm, or LinkedIn")
+  .action(async () => {
+    const [texts, dms] = await withDb(async (d) =>
+      Promise.all([linkPeople(d, "sms_contacts"), linkPeople(d, "reach_contacts")]),
+    );
+    console.log(`linked: ${texts} text contacts, ${dms} DM contacts`);
   });
 
 const audit = program

@@ -3,6 +3,8 @@
  * handle, never a duplicate); `enrichContact` reads their page once and
  * stores it; `fieldsFor` is what a template fills in for them.
  */
+
+import { linkPeople } from "@wren/core/leads";
 import {
   HANDLE_RE,
   handleOf,
@@ -46,6 +48,11 @@ export async function addProspects(
     )
     .onConflictDoNothing({ target: [reachContacts.platform, reachContacts.handle] })
     .returning({ id: reachContacts.id });
+  await linkPeople(
+    db,
+    "reach_contacts",
+    inserted.map((r) => r.id),
+  );
   return { added: inserted.length, known: rows.length - inserted.length };
 }
 

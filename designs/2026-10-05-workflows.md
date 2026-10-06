@@ -123,7 +123,7 @@ Texts, DMs and email each run their own sequence today, with the same step shape
   - A firm gets at most one first touch a day across channels.
   - A refused enroll keeps its reason as data, like any other stop.
 - **Built 2026-10-05** (`packages/core/src/leads.ts`). Each channel already guards itself, so the guard checks only the other two. Texts and DMs check both rules at enroll (their opener queues then) and keep a refusal in `state_reason`, staying `new`. Email checks the active-sequence rule at compose (`skipped_lead_busy`). Email drafts days ahead, so its first-touch rule sits in the send gate: an opener waits while a text or DM touched the firm in the last day (`first_touch_waiting`). Form applicants skip the guard, since speed to lead wins.
-- **Person links not built.** Checked on prod 2026-10-05: 0 text or DM contacts have a name or email at a known firm, so a fill would link nothing. It waits for the first source that writes them.
+- **Person links built 2026-10-06** (`linkPeople`, `@wren/core/leads`). One set-based fill: a text contact's email matching a person's address (`contact_candidates`), a contact's full name matching exactly one person at its firm, or a LinkedIn DM contact's handle matching a person's `linkedin_url`. It fills the firm too when the contact had none, and skips any contact whose firm disagrees. Form applicants and new DM prospects run it on write; `wren db link-people` is the backfill. Firm main lines and inbound texts carry no name or email, so they stay firm-level.
 
 ### Email on the spine (#48)
 
