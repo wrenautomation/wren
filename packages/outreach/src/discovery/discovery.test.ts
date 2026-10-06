@@ -2,7 +2,7 @@ import type { Profile } from "@wren/core/outreach";
 import { FakeLlm } from "@wren/llm";
 import { describe, expect, it } from "vitest";
 import { personFacts, readWords } from "./people.js";
-import { paceOf, WREN_AUDIENCE } from "./places.js";
+import { judgePlace, paceOf, WREN_AUDIENCE } from "./places.js";
 import { signedOut } from "./reads.js";
 import { dropReason, factsFor } from "./threads.js";
 
@@ -106,7 +106,7 @@ describe("reddit discovery", () => {
     expect(r?.fit).toBe(8);
   });
 
-  it("pace from the newest posts; facts are the SOPs sharing the most words", () => {
+  it("pace from the newest posts; small places skip the model; facts are the SOPs sharing the most words", async () => {
     const posts = [0, 6, 12, 24].map((h, i) => ({
       id: `${i}`,
       name: `t3_${i}`,
@@ -114,6 +114,27 @@ describe("reddit discovery", () => {
       num_comments: [1, 5, 9, 3][i] as number,
     }));
     expect(paceOf(posts)).toEqual({ postsADay: 3, medianComments: 5 });
+    const llm = new FakeLlm({
+      respond: () => {
+        throw new Error("no model call under the floors");
+      },
+    });
+    const place = (subscribers: number, latest: typeof posts) => ({
+      about: { display_name: "Tiny", subscribers },
+      rules: {},
+      top: [],
+      latest,
+    });
+    expect(await judgePlace(llm, "tiny", place(75, posts), WREN_AUDIENCE)).toMatchObject({
+      fit: 0,
+      why: "Too small: 75 members.",
+    });
+    expect(
+      await judgePlace(llm, "tiny", place(5000, posts.slice(0, 1)), WREN_AUDIENCE),
+    ).toMatchObject({
+      fit: 0,
+      why: "Too small: 0 posts a day.",
+    });
     const facts = [
       { label: "cold-email", text: "warmup inboxes deliverability bounce rates domains" },
       { label: "reddit", text: "karma subreddit comments warmup accounts ladder" },

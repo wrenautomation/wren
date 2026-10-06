@@ -32,6 +32,9 @@ export const discoverySettingsSchema = z
     topics: z.array(z.string().trim().min(1)).default([]),
     /** Subreddits William names, without r/. */
     subreddits: z.array(z.string().trim().min(1)).default([]),
+    /** Below either floor a place reads as fit 0 with no model call. */
+    minMembers: z.number().int().min(0).default(1000),
+    minPostsADay: z.number().min(0).default(0.2),
   })
   .strict();
 export type Audience = z.infer<typeof discoverySettingsSchema>;
@@ -160,6 +163,25 @@ export async function judgePlace(
   audience: Audience,
 ): Promise<PlaceJudged | null> {
   const a = read.about;
+  const pace = paceOf(read.latest);
+  const small =
+    (a.subscribers ?? 0) < audience.minMembers
+      ? `${a.subscribers ?? 0} members`
+      : pace.postsADay < audience.minPostsADay
+        ? `${pace.postsADay} posts a day`
+        : null;
+  if (small)
+    return {
+      fit: 0,
+      why: `Too small: ${small}.`,
+      rules: "",
+      mayComment: false,
+      mayPost: false,
+      linkOnly: false,
+      karmaMin: null,
+      ageMinDays: null,
+      ...pace,
+    };
   const out = await completeAndParse(
     llm,
     `Audience: ${audience.about}\n\nr/${a.display_name ?? sub}: ${a.title ?? ""}\n${(a.public_description ?? "").slice(0, 500)}\nSubscribers: ${a.subscribers ?? "?"}. Posts: ${a.submission_type ?? "any"}.\n\nRules:\n${rulesText(read.rules) || "(none listed)"}\n\nTop this week:\n${titles(read.top)}\n\nNewest:\n${titles(read.latest)}`,
@@ -173,7 +195,7 @@ export async function judgePlace(
     fit: Math.round(j.fit),
     why: j.why.replace(/\s+/g, " ").trim().slice(0, 300),
     rules: j.rules.replace(/\s+/g, " ").trim().slice(0, 400),
-    ...paceOf(read.latest),
+    ...pace,
   };
 }
 

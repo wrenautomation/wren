@@ -35,6 +35,8 @@ through a logged-out profile, never through our two accounts.
   - Co-occurrence: subreddits where the people we read (People) also post.
 - **Read per candidate:** `/r/{sub}/about` (new route: subscribers, active, description,
   type), `/about/rules`, 25 top posts of the week and 25 new.
+- **Floors first:** under `minMembers` (1000) or `minPostsADay` (0.2) a place is fit 0, "Too small",
+  with no model call. Both are settings.
 - **The model judges** (one call per subreddit):
   - fit 0-10: do people like our buyers ask questions here that our work answers;
   - rules in plain words: comments, posts, links, flair, karma or age minimums, and three flags
