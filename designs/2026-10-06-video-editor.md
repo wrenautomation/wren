@@ -210,3 +210,10 @@ Answered 10-06: agreed; OBS; captions on the long video and Shorts.
   `wren-videos` holds Marengo only (the API allows no Pegasus in an index); Pegasus 1.6 reads the
   uploaded asset. No usage endpoint, so the 600 free minutes are counted from our looks (indexing
   and analysis each count the cut's minutes); a re-look of the same cut reuses the index.
+- 2026-10-06: step 2 built: `Short`, `Thumbnail` (3 variants), `wren video render`, previews. Shorts
+  are checked on their cut length (none, or 2 to 4 of 20 to 60 s). Previews (540p) and stills go
+  to the private media bucket through `uploadMedia`, as `s3://` URIs in `keys`. A render bundles
+  once and links the edit folder in as `public`: Remotion copies the public dir into every bundle,
+  and its server refuses a linked file but serves a linked folder. Smoke on a 118 s synthetic
+  clip (106 s cut), with the Mac at load 15-20 from other sessions: Long 234 s, a 27 s Short
+  66 s, a thumbnail about 1.5 s, all on VideoToolbox. Real timing waits for his first video.
