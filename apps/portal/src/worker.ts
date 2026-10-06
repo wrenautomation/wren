@@ -163,10 +163,30 @@ async function api(req: Request, env: Env, path: string, ctx?: ExecutionContext)
   return answer(text);
 }
 
+/**
+ * The session player (`web/replay.html`): rrweb rebuilds a lander page with inline styles and
+ * the lander's images and fonts, so this page alone allows them. Still no outside scripts, and
+ * only the app may frame it.
+ */
+async function replayPage(req: Request, env: Env): Promise<Response> {
+  const res = await env.ASSETS.fetch(req);
+  const site = (env.AUTH_ORIGIN ?? "https://auth.wrenautomation.com").replace("//auth.", "//");
+  const out = new Response(res.body, res);
+  out.headers.set(
+    "Content-Security-Policy",
+    `default-src 'self'; img-src 'self' data: ${site}; style-src 'self' 'unsafe-inline'; ` +
+      `font-src data: ${site}; script-src 'self'; ` +
+      "connect-src 'self' https://*.s3.us-east-1.amazonaws.com; frame-ancestors 'self'; " +
+      "base-uri 'none'; form-action 'none'",
+  );
+  return out;
+}
+
 export default {
   async fetch(req: Request, env: Env, ctx?: ExecutionContext): Promise<Response> {
     const { pathname } = new URL(req.url);
     if (pathname.startsWith("/api/")) return api(req, env, pathname.slice("/api/".length), ctx);
+    if (pathname === "/replay") return replayPage(req, env);
     // A record page whose id holds a slash (/handlers/all/Ads%2Fstart): the asset server would
     // 307 it to the decoded path, a different page. The app reads the id from the address.
     if (/%2f/i.test(pathname)) return env.ASSETS.fetch(new Request(new URL("/", req.url), req));

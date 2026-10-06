@@ -17,9 +17,18 @@ const sonnerStyles: Plugin = {
   },
 };
 
-// Built into ../dist, which the Worker serves as its assets.
+// Built into ../dist, which the Worker serves as its assets. `replay.html` is the session player.
 export default defineConfig({
   root: import.meta.dirname,
   plugins: [react(), tailwindcss(), sonnerStyles],
-  build: { outDir: "../dist", emptyOutDir: true },
+  build: {
+    outDir: "../dist",
+    emptyOutDir: true,
+    rollupOptions: {
+      input: {
+        main: `${import.meta.dirname}/index.html`,
+        replay: `${import.meta.dirname}/replay.html`,
+      },
+    },
+  },
 });

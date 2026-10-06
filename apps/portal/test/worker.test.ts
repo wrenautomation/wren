@@ -126,6 +126,16 @@ describe("routes", () => {
     );
     expect(asked).toEqual(["https://app.test/"]);
   });
+
+  it("the replay page alone allows inline styles and the lander's images, framed only by the app", async () => {
+    const csp = (await worker.fetch(new Request("https://app.test/replay"), env())).headers.get(
+      "content-security-policy",
+    );
+    expect(csp).toContain("style-src 'self' 'unsafe-inline'");
+    expect(csp).toContain("img-src 'self' data: https://test");
+    expect(csp).toContain("frame-ancestors 'self'");
+    expect(csp).toContain("script-src 'self';");
+  });
 });
 
 describe("the demo host", () => {
