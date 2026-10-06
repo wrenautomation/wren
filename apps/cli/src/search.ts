@@ -17,6 +17,7 @@ import {
   applyProposals,
   ask,
   brief,
+  citability,
   discoverKeywords,
   dueKeywords,
   ENGINES,
@@ -208,6 +209,31 @@ export function registerSearch(
           }
         }
       });
+    });
+
+  search
+    .command("citability")
+    .description("score each /llms.txt passage for how likely answer engines are to quote it")
+    .option("--all", "every passage, not just the weakest 8")
+    .option("--json", "the whole result as JSON")
+    .action(async (o: { all?: boolean; json?: boolean }) => {
+      const { origin } = need();
+      const res = await fetch(new URL("/llms.txt", origin).href);
+      if (!res.ok) throw new Error(`/llms.txt answered ${res.status}`);
+      const c = citability(await res.text());
+      if (o.json) return console.log(JSON.stringify(c, null, 2));
+      console.log(
+        `${c.passages.length} passages, average ${c.average}, ${c.inBand} in the 134-167 word band`,
+      );
+      const rows = [...c.passages].sort((a, b) => a.score - b.score);
+      for (const p of o.all ? rows : rows.slice(0, 8))
+        console.log(
+          `${p.grade} ${String(p.score).padStart(3)}  ${String(p.words).padStart(4)}w  ${p.heading}\t${Object.entries(
+            p.parts,
+          )
+            .map(([k, v]) => `${k} ${v}`)
+            .join(" · ")}`,
+        );
     });
 
   search

@@ -12,6 +12,7 @@ Run everything from the wren repo root. `node scripts/prod-wren.mjs <args>` is `
 ## Steps
 
 1. **Brief.** `node scripts/prod-wren.mjs search brief`. Keywords with impressions, clicks, average position and engine citations; then each page's index state and traffic. Note which keywords are weak (no impressions, low position, not cited) and which page should answer each.
+   Then `node scripts/prod-wren.mjs search citability`: the weakest `/llms.txt` passages (0-100; answers engines lift are self-contained, about 134-167 words, open with the answer, carry a sourced figure). A weak passage on a weak keyword's page is where a swap helps most. A passage that needs to grow is a note, not an edit.
 2. **Read the source.** The lander is at `../lander`. `wren search pr` edits only `src/content/`:
    - `/` → `src/content/hub/home.yaml`
    - `/recruiting/lead-reactivation` → `src/content/pitches/recruiting.yaml`
