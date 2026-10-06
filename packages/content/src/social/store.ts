@@ -178,10 +178,9 @@ export async function keepDay(
 ): Promise<boolean> {
   const row = { followers: Math.max(0, Math.round(a.followers)), raw: a.raw ?? a };
   const insert = db.insert(socialDays).values({ platform, day, ...row });
-  const kept = await (
-    latest
-      ? insert.onConflictDoUpdate({ target: [socialDays.platform, socialDays.day], set: row })
-      : insert.onConflictDoNothing()
+  const kept = await (latest
+    ? insert.onConflictDoUpdate({ target: [socialDays.platform, socialDays.day], set: row })
+    : insert.onConflictDoNothing()
   ).returning({ day: socialDays.day });
   return kept.length > 0;
 }
