@@ -5,5 +5,5 @@
 set -euo pipefail
 cd "$(dirname "$0")/../.."
 URL=$(cd deploy/terraform && tofu output -raw database_url)
-INGRESS=${WREN_PROD_INGRESS_URL:-https://201m2vp6sq3x11xdaatsmjej302.env.us.restate.cloud:8080}
+INGRESS=${WREN_PROD_INGRESS_URL:-https://restate.wrenautomation.com}
 WREN_DATABASE_URL="$URL" WREN_RESTATE_INGRESS_URL="$INGRESS" exec pnpm -s wren "$@"

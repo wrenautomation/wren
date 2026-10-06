@@ -7,9 +7,7 @@ import { fileURLToPath } from "node:url";
 
 const root = join(dirname(fileURLToPath(import.meta.url)), "..");
 process.loadEnvFile(join(root, ".env"));
-const ingress =
-  process.env.WREN_PROD_INGRESS_URL ??
-  "https://201m2vp6sq3x11xdaatsmjej302.env.us.restate.cloud:8080";
+const ingress = process.env.WREN_PROD_INGRESS_URL ?? "https://restate.wrenautomation.com";
 const [path, body] = process.argv.slice(2);
 if (!path) {
   console.error("usage: node scripts/ingress.mjs <Service/key/handler> [json]");

@@ -33,8 +33,7 @@ const env = {
   ...process.env,
   ...Object.fromEntries(KEYS.map((k) => [k, prod[k]])),
   WREN_RESTATE_INGRESS_URL:
-    process.env.WREN_PROD_INGRESS_URL ??
-    "https://201m2vp6sq3x11xdaatsmjej302.env.us.restate.cloud:8080",
+    process.env.WREN_PROD_INGRESS_URL ?? "https://restate.wrenautomation.com",
 };
 const r = spawnSync(join(root, "bin/wren"), process.argv.slice(2), { env, stdio: "inherit" });
 process.exit(r.status ?? 1);

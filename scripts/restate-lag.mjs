@@ -7,7 +7,7 @@
 // CI runs it hourly (.github/workflows/restate-lag.yml). Env: RESTATE_HOST (default prod's, as
 // scripts/ingress.mjs), RESTATE_AUTH_TOKEN, WREN_DISCORD_WEBHOOK_URL (unset: print only),
 // LAG_MINUTES (default 15).
-const host = process.env.RESTATE_HOST ?? "201m2vp6sq3x11xdaatsmjej302.env.us.restate.cloud";
+const host = process.env.RESTATE_HOST ?? "restate.wrenautomation.com";
 // Cloud's admin API is public on :9070; the box's Caddy serves its query under /admin.
 const admin = host.endsWith(".restate.cloud") ? `https://${host}:9070` : `https://${host}/admin`;
 const slackMs = Number(process.env.LAG_MINUTES ?? 15) * 60_000;

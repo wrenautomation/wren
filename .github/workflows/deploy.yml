@@ -104,8 +104,10 @@ jobs:
               npx -y @restatedev/restate deployments register -y "$ARN" --assume-role-arn "$INVOKE_ROLE" ;;
             *)
               # The box's own role invokes the Lambda; its admin API answers on loopback only.
+              # Discovery invokes the new version: wait until it is active, and retry while it warms.
+              aws lambda wait published-version-active --function-name "${ARN%:*}" --qualifier "${ARN##*:}"
               body="$(jq -nc --arg arn "$ARN" '{arn: $arn}')"
-              jq -n --arg b "$body" '{commands: ["curl -sf -X POST http://127.0.0.1:9070/deployments -H content-type:application/json -d \($b | @sh)"]}' \
+              jq -n --arg b "$body" '{commands: ["for i in 1 2 3 4 5; do curl -sS --fail-with-body -X POST http://127.0.0.1:9070/deployments -H content-type:application/json -d \($b | @sh) -o /tmp/register.out && exit 0; head -c 400 /tmp/register.out; sleep 10; done; exit 1"]}' \
                 > "$RUNNER_TEMP/register.json"
               id="$(aws ssm send-command --instance-ids "$BOX_INSTANCE_ID" --document-name AWS-RunShellScript \
                 --comment "register $GITHUB_SHA" --parameters "file://$RUNNER_TEMP/register.json" \
