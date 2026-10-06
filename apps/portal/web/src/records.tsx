@@ -164,6 +164,19 @@ const ONE: Record<string, (id: string, input: Input) => [string, Input]> = {
   "marketing/commentDm": (id, { body }) =>
     handlerCall("ReachDesk", "dmComment", { id: Number(id), body }, { confirm: "dmComment" }),
   "marketing/commentDrop": (id) => handlerCall("ReachDesk", "dropComment", { id: Number(id) }),
+  "marketing/placeWatch": (id) => handlerCall("ReachDesk", "watchPlace", { subreddit: id }),
+  "marketing/placeSkip": (id) => handlerCall("ReachDesk", "skipPlace", { subreddit: id }),
+  "marketing/placeMove": (id, { account }) =>
+    handlerCall("ReachDesk", "movePlace", { subreddit: id, account }),
+  // Like an answer: an untouched draft isn't sent, the desk comments with the draft it holds.
+  "marketing/threadComment": (id, { body }) =>
+    handlerCall(
+      "ReachDesk",
+      "commentThread",
+      { id, ...(typeof body === "string" ? { body } : {}) },
+      { confirm: "commentThread" },
+    ),
+  "marketing/threadSkip": (id) => handlerCall("ReachDesk", "skipThread", { id }),
   "marketing/dmCopy": (id, input) =>
     handlerCall("ReachDesk", "setTemplate", { key: id, body: changed(input) }),
   "marketing/textCopy": (id, input) =>

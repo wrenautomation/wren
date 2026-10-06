@@ -26,9 +26,11 @@ import {
   warmupOf,
 } from "@wren/outreach";
 import {
+  READS_KEY,
   type ReachDeskService,
   type ReachSender,
   type ReachWatchObject,
+  type RedditReadsObject,
   SENDER_KEY,
   WATCH_KEY,
 } from "@wren/outreach/restate";
@@ -256,13 +258,28 @@ export function registerReach(program: Command, withDb: WithDb, settings: Settin
 
   const w = cmd
     .command("watch")
-    .description("ReachWatch: replies in + account health every 30 min");
+    .description(
+      "ReachWatch: replies and comments on the warm cadence, account health every 30 min",
+    );
   w.command("status").action(async () => json(await watch().status()));
   w.command("start").action(async () => json(await watch().start()));
   w.command("stop").action(async () => json(await watch().stop()));
   w.command("sync")
     .description("One pass now")
     .action(async () => json(await watch().sync()));
+
+  const reads = () => ingress().objectClient<RedditReadsObject>({ name: "RedditReads" }, READS_KEY);
+  const d = cmd
+    .command("discovery")
+    .description(
+      "RedditReads: places monthly, watched places' threads every 2 h, drafts; reads signed out",
+    );
+  d.command("status").action(async () => json(await reads().status()));
+  d.command("start").action(async () => json(await reads().start()));
+  d.command("stop").action(async () => json(await reads().stop()));
+  d.command("sync")
+    .description("One pass now")
+    .action(async () => json(await reads().sync()));
 
   cmd
     .command("threads")

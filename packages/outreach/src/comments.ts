@@ -11,9 +11,10 @@ import type { CommentIn, OutreachChannel } from "@wren/core/outreach";
 import type { SpineEvent, Step } from "@wren/core/spine";
 import type { Db, Queryable } from "@wren/db";
 import { completeAndParse, type LlmClient } from "@wren/llm";
-import { and, eq, gte, inArray, ne, sql } from "drizzle-orm";
+import { and, eq, inArray, ne } from "drizzle-orm";
 import { z } from "zod";
 import { addProspects, contactByHandle } from "./contacts.js";
+import { commentsToday } from "./discovery/threads.js";
 import { ReachRefusal } from "./refusal.js";
 import {
   COMMENT_KINDS,
@@ -184,16 +185,6 @@ async function othersOf(db: Queryable, a: ReachAccount): Promise<string[]> {
   return rows.flatMap((r) => (r.handle ? [r.handle] : []));
 }
 
-/** Answers this account sent today (UTC day), against its rung's comment cap. */
-async function answeredToday(db: Queryable, accountId: string, now: Date): Promise<number> {
-  const day = new Date(now.toISOString().slice(0, 10));
-  const [r] = await db
-    .select({ n: sql<number>`count(*)::int` })
-    .from(comments)
-    .where(and(eq(comments.accountId, accountId), gte(comments.answeredAt, day)));
-  return r?.n ?? 0;
-}
-
 export interface AnswerPlan {
   comment: Comment;
   account: ReachAccount;
@@ -211,7 +202,7 @@ export async function planAnswer(db: Queryable, id: number, now: Date): Promise<
   if (account.platform === "reddit" && account.health) {
     const w = warmupOf(account.health as Parameters<typeof warmupOf>[0], now);
     if (w.frozen) throw new ReachRefusal(`${account.account}: ${w.frozen}`);
-    if ((await answeredToday(db, account.id, now)) >= w.caps.comments)
+    if ((await commentsToday(db, account.id, now)) >= w.caps.comments)
       throw new ReachRefusal(
         `${account.account} is at ${w.stage}: ${w.caps.comments} comments a day${w.next ? ` (${w.next})` : ""}`,
       );

@@ -94,6 +94,7 @@ import {
   type ThreadSummary,
 } from "../threads.js";
 import { queueManual, type TickStats, tick } from "../tick.js";
+import { discoveryHandlers } from "./discovery.js";
 
 export const SENDER_KEY = "fleet";
 export const WATCH_KEY = "daily";
@@ -709,6 +710,7 @@ export function makeReachDesk(deps: ReachDeps) {
           await ctx.run("drop", () => dropComment(deps.db, req.id));
         },
       ),
+      ...discoveryHandlers(deps),
       stats: serviceHandler(
         { input: STATS },
         async (
@@ -732,4 +734,11 @@ export function makeReachDesk(deps: ReachDeps) {
 export type ReachSender = ReturnType<typeof makeReachSender>;
 export type ReachWatchObject = ReturnType<typeof makeReachWatch>;
 export type ReachDeskService = ReturnType<typeof makeReachDesk>;
+
+export {
+  type DiscoveryDeps,
+  makeRedditReads,
+  READS_KEY,
+  type RedditReadsObject,
+} from "./discovery.js";
 export type { Platform };

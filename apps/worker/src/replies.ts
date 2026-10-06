@@ -92,9 +92,12 @@ export const replyQueueRecord = defineRecord({
       ),
       rowsOf(
         db,
-        sql`SELECT id, author who, place company, body words, at, state, draft
-            FROM comments WHERE sort IS DISTINCT FROM 'ours'
-            ORDER BY at DESC LIMIT ${ROWS}`,
+        sql`SELECT c.id, c.author who, c.place company, c.body words, c.at, c.state, c.draft,
+              p.read #>> '{business,value}' business
+            FROM comments c
+            LEFT JOIN reddit_people p ON c.platform = 'reddit' AND p.handle = lower(c.author)
+            WHERE c.sort IS DISTINCT FROM 'ours'
+            ORDER BY c.at DESC LIMIT ${ROWS}`,
       ),
     ]);
     return [
@@ -123,11 +126,12 @@ export const replyQueueRecord = defineRecord({
         state: stateOf(r),
         open: `/marketing/dms/${r.id}`,
       })),
-      ...said.map(({ state, draft, ...r }) => ({
+      ...said.map(({ state, draft, business, ...r }) => ({
         ...r,
         id: `comment-${r.id}`,
         channel: "comment",
-        company: r.company ? `r/${r.company}` : null,
+        company:
+          [business, r.company ? `r/${r.company}` : null].filter(Boolean).join(" · ") || null,
         state: COMMENT[String(state)] === "needs_you" && draft ? "draft" : COMMENT[String(state)],
         open: `/marketing/comments/${r.id}`,
       })),

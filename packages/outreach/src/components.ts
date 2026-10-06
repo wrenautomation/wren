@@ -1,6 +1,7 @@
 /** Cold outreach on social sites: a person's warmed account, paced. Comments on our posts. */
 import { defineComponent } from "@wren/core/components";
 import { defineWorkflow } from "@wren/core/workflows";
+import { discoverySettingsSchema } from "./discovery/places.js";
 
 export const OUTREACH_COMPONENTS = [
   defineComponent({
@@ -132,6 +133,52 @@ export const OUTREACH_COMPONENTS = [
         { is: "change", says: "The words that mean they asked.", built: null },
         { is: "fixed", says: "Every answer and DM waits on William's click." },
         { is: "fixed", says: "Our two accounts never write in one thread." },
+      ],
+    },
+  }),
+  defineComponent({
+    id: "reddit.discovery",
+    stage: "reach",
+    channels: ["social"],
+    name: "Reddit discovery",
+    blurb:
+      "Finds subreddits where buyers ask questions, picks the day's best new threads, and drafts a comment in your voice for each.",
+    icon: "search",
+    for: "wren",
+    ready: false,
+    missing: ["Comments from Wren's own Reddit accounts; a client's would need theirs"],
+    settings: discoverySettingsSchema,
+    provides: {
+      services: ["RedditReads"],
+      loops: ["RedditReads"],
+      records: ["marketing.place", "marketing.thread"],
+    },
+    effects: ["sends", "spends"],
+    out: [
+      {
+        id: "queued",
+        label: "threads to answer",
+        kind: "post",
+        count: { record: "marketing.thread", view: "queued" },
+      },
+    ],
+    hypothesis: {
+      from: "Wren's Reddit, 2026-10",
+      guesses: [
+        { is: "change", says: "Who the buyers are, in words.", built: "settings.about" },
+        { is: "change", says: "The search words and named subreddits.", built: "settings.topics" },
+        {
+          is: "change",
+          says: "How many comments a day: the account's rung.",
+          built: "warmupOf in @wren/channel-reddit",
+        },
+        {
+          is: "needs",
+          says: "A few karma-building accounts, one per place.",
+          built: "the reach_accounts rows",
+        },
+        { is: "fixed", says: "Every read is signed out; our accounts only comment." },
+        { is: "fixed", says: "Every comment waits on William's click; two of ours never meet." },
       ],
     },
   }),

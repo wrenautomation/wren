@@ -3,10 +3,21 @@
  * template slot William writes (`marketing.dm_copy`), with what the preview needs to draw them,
  * and each comment on our posts (`marketing.comment`).
  */
-import { date, defineRecord, link, name, number, prose, status, text } from "@wren/core/records";
-import { sql } from "drizzle-orm";
+import {
+  date,
+  defineRecord,
+  link,
+  name,
+  number,
+  prose,
+  score,
+  status,
+  text,
+} from "@wren/core/records";
+import { inArray, sql } from "drizzle-orm";
 import { accountById, listAccounts } from "./accounts.js";
-import type { Platform } from "./schema.js";
+import { personLine } from "./discovery/people.js";
+import { type PlaceJudged, type Platform, type RedditPerson, redditPeople } from "./schema.js";
 import {
   MESSAGE_MAX,
   REACH_SEQUENCES,
@@ -28,11 +39,22 @@ const neutral = (label: string) => ({ label, tone: "neutral" as const });
 export const dmRecord = defineRecord({
   id: "marketing.dm",
   name: { one: "DM thread", many: "DM threads" },
-  rows: async (db) =>
-    (await listThreads(db, { limit: THREAD_ROWS })).map((t) => ({
+  rows: async (db) => {
+    const threads = await listThreads(db, { limit: THREAD_ROWS });
+    const reddit = threads.flatMap((t) =>
+      t.contact.platform === "reddit" ? [t.contact.handle.toLowerCase()] : [],
+    );
+    // A Reddit contact has no headline; who they are comes from their read profile.
+    const about = new Map(
+      (reddit.length
+        ? await db.select().from(redditPeople).where(inArray(redditPeople.handle, reddit))
+        : []
+      ).map((p) => [p.handle, personLine(p)]),
+    );
+    return threads.map((t) => ({
       id: t.contact.id,
       who: t.contact.name ?? t.contact.handle,
-      headline: t.contact.headline,
+      headline: t.contact.headline ?? about.get(t.contact.handle.toLowerCase()) ?? null,
       platform: t.contact.platform,
       account: t.account,
       state: t.contact.state,
@@ -40,7 +62,8 @@ export const dmRecord = defineRecord({
       last_at: t.last?.sentAt ?? t.last?.createdAt ?? null,
       direction: t.last?.direction ?? null,
       waiting: t.unread ? "waiting" : "read",
-    })),
+    }));
+  },
   key: "id",
   title: "who",
   subtitle: "headline",
@@ -105,16 +128,28 @@ export const commentRecord = defineRecord({
   id: "marketing.comment",
   name: { one: "comment", many: "comments" },
   rows: async (db) =>
-    (await db.execute(sql`
+    (
+      (await db.execute(sql`
       select c.id, c.author who, c.place, c.post_title, c.body, c.sort, c.why, c.draft, c.state,
-        c.answer, c.at, c.url, a.handle account, c.contact_id
+        c.answer, c.at, c.url, a.handle account, c.contact_id, p.read p_read, p.fit p_fit,
+        p.site p_site
       from comments c join reach_accounts a on a.id = c.account_id
-      order by c.at desc limit ${THREAD_ROWS}`)) as unknown as Array<Record<string, unknown>>,
+      left join reddit_people p on c.platform = 'reddit' and p.handle = lower(c.author)
+      order by c.at desc limit ${THREAD_ROWS}`)) as unknown as Array<Record<string, unknown>>
+    ).map(({ p_read, p_fit, p_site, ...r }) => ({
+      ...r,
+      about: personLine({
+        read: p_read as RedditPerson["read"],
+        fit: p_fit as number | null,
+        site: p_site as string | null,
+      }),
+    })),
   key: "id",
   title: "who",
   subtitle: "body",
   fields: {
     who: name("Who"),
+    about: text("Who they are"),
     place: text("Subreddit"),
     postTitle: text("Post"),
     body: prose("Their words"),
@@ -221,3 +256,149 @@ export function dmCopyRecord(sender: string) {
     },
   });
 }
+
+const yesNo = (b: unknown) => (b === true ? "yes" : b === false ? "no" : "?");
+
+/** Subreddits found for Reddit discovery, as judged, with what a post needs there. */
+export const placeRecord = defineRecord({
+  id: "marketing.place",
+  name: { one: "place", many: "places" },
+  rows: async (db) =>
+    (
+      (await db.execute(sql`
+      select p.subreddit id, 'r/' || p.name place, p.fit, p.judged, p.subscribers, p.found_by,
+        p.state, a.handle account, p.read_at, p.raw->>'error' error,
+        count(t.*) filter (where t.state = 'commented') commented,
+        round(avg(t.score) filter (where t.score is not null), 1) avg_score
+      from reddit_places p
+      left join reach_accounts a on a.id = p.account_id
+      left join reddit_threads t on t.subreddit = p.subreddit
+      group by p.subreddit, a.handle
+      order by p.fit desc nulls last, p.subscribers desc nulls last
+      limit ${THREAD_ROWS}`)) as unknown as Array<Record<string, unknown>>
+    ).map(({ judged, ...r }) => {
+      const j = judged as Partial<PlaceJudged> | null;
+      return {
+        ...r,
+        why: j?.why ?? r.error ?? null,
+        rules: j?.rules ?? null,
+        allows: j
+          ? `Comments ${yesNo(j.mayComment)} · posts ${yesNo(j.mayPost)}${j.linkOnly ? " · links in profile only" : ""}${j.karmaMin ? ` · ${j.karmaMin} karma` : ""}${j.ageMinDays ? ` · ${j.ageMinDays}-day-old account` : ""}`
+          : null,
+        pace: j ? `${j.postsADay} posts a day, ${j.medianComments} comments each` : null,
+        url: `https://www.reddit.com/${String(r.place)}/`,
+      };
+    }),
+  key: "id",
+  title: "place",
+  subtitle: "why",
+  fields: {
+    place: text("Subreddit"),
+    fit: score("Fit", { max: 10 }),
+    why: text("Why"),
+    allows: text("Allows"),
+    rules: prose("Rules"),
+    pace: text("Pace"),
+    subscribers: number("Members"),
+    state: status({
+      found: { label: "Found", tone: "warn" },
+      watching: { label: "Watching", tone: "good" },
+      skipped: neutral("Skipped"),
+    }),
+    account: text("Account"),
+    commented: number("Our comments"),
+    avgScore: number("Avg score"),
+    foundBy: text("Found by"),
+    readAt: date("Read"),
+    url: link("On Reddit"),
+  },
+  views: [
+    { id: "found", label: "To pick", where: { state: "found" }, sort: "-fit" },
+    { id: "watching", label: "Watching", where: { state: "watching" }, sort: "-fit" },
+    { id: "all", label: "All", sort: "-fit" },
+  ],
+  actions: ["marketing.placeWatch", "marketing.placeSkip", "marketing.placeMove"],
+});
+
+/** New posts in watched places: ranked, the day's best queued with a draft. */
+export const threadRecord = defineRecord({
+  id: "marketing.thread",
+  name: { one: "thread", many: "threads" },
+  rows: async (db) =>
+    (
+      (await db.execute(sql`
+      select t.id, 'r/' || t.subreddit place, t.title, t.body, t.author, t.kind, t.fit, t.angle,
+        t.target_text, t.draft, t.sources, t.state, t.dropped, t.answer, t.score, t.comments,
+        t.posted_at, t.url, a.handle account, p.read op_read, p.fit op_fit, p.site op_site
+      from reddit_threads t
+      left join reach_accounts a on a.id = t.account_id
+      left join reddit_people p on p.handle = lower(t.author)
+      where t.state <> 'dropped' or t.created_at > now() - interval '2 days'
+      order by t.posted_at desc limit ${THREAD_ROWS}`)) as unknown as Array<Record<string, unknown>>
+    ).map(({ op_read, op_fit, op_site, sources, ...r }) => ({
+      ...r,
+      op: personLine({
+        read: op_read as RedditPerson["read"],
+        fit: op_fit as number | null,
+        site: op_site as string | null,
+      }),
+      sources: Array.isArray(sources)
+        ? (sources as { label: string; text: string }[])
+            .map((s) => `${s.label}: ${s.text}`)
+            .join("\n\n")
+        : null,
+    })),
+  key: "id",
+  title: "title",
+  subtitle: "angle",
+  fields: {
+    place: text("Subreddit"),
+    title: text("Post"),
+    body: prose("Their words"),
+    author: name("OP"),
+    op: text("Who they are"),
+    kind: status(
+      {
+        help: { label: "Asks for help", tone: "good" },
+        tools: { label: "Asks for tools", tone: "good" },
+        story: neutral("Story"),
+        venting: neutral("Venting"),
+        hiring: neutral("Hiring"),
+        other: neutral("Other"),
+      },
+      "Kind",
+    ),
+    fit: score("Fit", { max: 10 }),
+    angle: text("Angle"),
+    targetText: prose("Answering"),
+    draft: prose("Draft"),
+    sources: prose("Read for the draft"),
+    state: status({
+      new: neutral("New"),
+      ranked: neutral("Ranked"),
+      queued: { label: "To answer", tone: "warn" },
+      commented: { label: "Commented", tone: "good" },
+      skipped: neutral("Skipped"),
+      dropped: neutral("Dropped"),
+    }),
+    dropped: text("Dropped because"),
+    answer: prose("Our comment"),
+    score: number("Score"),
+    comments: number("Comments"),
+    account: text("From"),
+    postedAt: date("Posted"),
+    url: link("On Reddit"),
+  },
+  views: [
+    { id: "queued", label: "To answer", where: { state: "queued" }, sort: "-fit", at: "postedAt" },
+    {
+      id: "commented",
+      label: "Commented",
+      where: { state: "commented" },
+      sort: "-postedAt",
+      at: "postedAt",
+    },
+    { id: "all", label: "All", sort: "-postedAt", at: "postedAt" },
+  ],
+  actions: ["marketing.threadComment", "marketing.threadSkip"],
+});

@@ -146,6 +146,63 @@ const COMMENT_ACTIONS: Action[] = [
   },
 ];
 
+const PLACE_ACTIONS: Action[] = [
+  {
+    id: "marketing.placeWatch",
+    label: "Watch",
+    handler: "marketing/placeWatch",
+    bulk: true,
+    key: "w",
+    when: { state: ["found", "skipped"] },
+    done: said("Watching. Its threads are read every 2 hours."),
+  },
+  {
+    id: "marketing.placeSkip",
+    label: "Skip",
+    handler: "marketing/placeSkip",
+    bulk: true,
+    key: "e",
+    when: { state: ["found", "watching"] },
+    done: said("Skipped"),
+  },
+  {
+    id: "marketing.placeMove",
+    label: "Move account",
+    handler: "marketing/placeMove",
+    each: true,
+    form: [
+      {
+        field: "account",
+        label: "Account",
+        hint: "One of ours in Reach: reddit@alt or its handle.",
+      },
+    ],
+    when: { state: ["watching"] },
+    done: said("Moved"),
+  },
+];
+
+const THREAD_ACTIONS: Action[] = [
+  {
+    id: "marketing.threadComment",
+    label: "Comment",
+    handler: "marketing/threadComment",
+    ask: { field: "body", label: "Your comment, posted in the thread", from: "draft" },
+    key: "r",
+    when: { state: ["queued"] },
+    done: said("Commented"),
+  },
+  {
+    id: "marketing.threadSkip",
+    label: "Skip",
+    handler: "marketing/threadSkip",
+    bulk: true,
+    key: "e",
+    when: { state: ["new", "ranked", "queued"] },
+    done: said("Skipped"),
+  },
+];
+
 const TEXT_COPY_ACTIONS: Action[] = [
   {
     id: "marketing.textCopy",
@@ -398,6 +455,30 @@ export const marketing: Module = {
         all: "Comments on our posts and under our comments show here.",
       },
       actions: COMMENT_ACTIONS,
+    },
+    {
+      id: "threads",
+      label: "Threads",
+      template: "list",
+      record: "marketing.thread",
+      empty: {
+        queued: "No thread to answer. Watch a place to read its new posts.",
+        commented: "No comment yet.",
+        all: "New posts in watched places show here.",
+      },
+      actions: THREAD_ACTIONS,
+    },
+    {
+      id: "places",
+      label: "Places",
+      template: "list",
+      record: "marketing.place",
+      empty: {
+        found: "Nothing to pick. Places are found once a month from the audience.",
+        watching: "No place watched yet. Pick one under To pick.",
+        all: "Subreddits found for the audience show here.",
+      },
+      actions: PLACE_ACTIONS,
     },
     {
       id: "dm-copy",

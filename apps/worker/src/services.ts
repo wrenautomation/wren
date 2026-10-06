@@ -107,7 +107,7 @@ import { tiktokContent } from "@wren/channel-tiktok";
 import { xContent } from "@wren/channel-x";
 import { youtubeContent } from "@wren/channel-youtube";
 import { ingressOf, type Settings } from "@wren/config";
-import { s3MediaHost } from "@wren/content";
+import { DEFAULT_VOICE, s3MediaHost } from "@wren/content";
 import {
   makeContentDesk,
   makeContentMetrics,
@@ -118,7 +118,7 @@ import { contentDrafts, contentPlaybooks } from "@wren/content/schema";
 import { askRecord, makeAsk } from "@wren/core/ask";
 import { makeAuditSealer } from "@wren/core/audit";
 import { CalcomCalendar, type Calendar } from "@wren/core/calendar";
-import { clientRecord } from "@wren/core/clients";
+import { clientRecord, settingsFor } from "@wren/core/clients";
 import { makeConsolePortal, restateAdmin, restateAdminGet } from "@wren/core/console";
 import type { SiteClient } from "@wren/core/content";
 import { sitesHost } from "@wren/core/content/box";
@@ -152,13 +152,21 @@ import {
   SMS_SEQUENCES,
 } from "@wren/niches";
 import {
+  discoverySettingsSchema,
   REACH_SEQUENCES,
   policyFrom as reachPolicyFrom,
   touchStep as reachTouchStep,
   sortStep,
+  WREN_AUDIENCE,
 } from "@wren/outreach";
 import { dmCopyRecord } from "@wren/outreach/records";
-import { makeReachDesk, makeReachSender, makeReachWatch, wakeWatch } from "@wren/outreach/restate";
+import {
+  makeReachDesk,
+  makeReachSender,
+  makeReachWatch,
+  makeRedditReads,
+  wakeWatch,
+} from "@wren/outreach/restate";
 import { clientSendScope } from "@wren/reactivation";
 import { DEMO_NAME, makeReactivation, makeReactivationPortal } from "@wren/reactivation/restate";
 import {
@@ -880,7 +888,27 @@ export async function buildServices(
     },
     ...reachNotify,
   };
-  services.push(makeReachSender(reach), makeReachWatch(reach), makeReachDesk(reach));
+  services.push(
+    makeReachSender(reach),
+    makeReachWatch(reach),
+    makeReachDesk(reach),
+    // Reddit discovery reads signed out; drafts in the content voice, researched against the SOPs.
+    makeRedditReads({
+      ...reach,
+      discovery: {
+        llm: watchLlm,
+        voice: voice ?? DEFAULT_VOICE,
+        facts: () => playbooksOf(db),
+        // Wren's saved block (Shop → Reddit discovery); a bad one reads as the default.
+        audience: async () => {
+          const got = discoverySettingsSchema.safeParse(
+            (await settingsFor(db, null))["reddit.discovery"] ?? {},
+          );
+          return got.success ? got.data : WREN_AUDIENCE;
+        },
+      },
+    }),
+  );
   // Search: Search Console daily, the answer engines and edit proposals weekly (on the Mac's desk).
   // Bound only with a property named; off until `wren search watch start`.
   if (settings.searchSite && settings.searchOrigin) {
@@ -1061,8 +1089,8 @@ export async function buildServices(
  * when WREN_REDDIT_* is set, else the Mac's desk worker (Reddit refused Wren
  * an API client on 2026-09-29; its browser legs need a home IP). Null when off.
  */
-/** The radar scores against each pushed SOP's newest text. */
-async function practicesOf(db: Db): Promise<Practice[]> {
+/** Each pushed SOP's newest text. */
+async function playbooksOf(db: Db): Promise<{ label: string; text: string }[]> {
   const rows = await db
     .selectDistinctOn([contentPlaybooks.sop], {
       sop: contentPlaybooks.sop,
@@ -1070,8 +1098,12 @@ async function practicesOf(db: Db): Promise<Practice[]> {
     })
     .from(contentPlaybooks)
     .orderBy(contentPlaybooks.sop, desc(contentPlaybooks.createdAt));
-  return rows.map((r) => practiceOf(r.sop, r.text));
+  return rows.map((r) => ({ label: r.sop, text: r.text }));
 }
+
+/** The radar scores against each pushed SOP's newest text. */
+const practicesOf = async (db: Db): Promise<Practice[]> =>
+  (await playbooksOf(db)).map((r) => practiceOf(r.label, r.text));
 
 function redditFrom(
   settings: Settings,

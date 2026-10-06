@@ -110,8 +110,9 @@ The sources show beside the draft.
 
 ## Read identity and pace
 
-- **Logged out:** every read goes through a logged-out desk profile, `reddit@public` (like
-  `fb-public`). Our accounts only post, comment and read their own inbox. Read volume on a
+- **Logged out:** every read goes through autobrowse's signed-out site `reddit-public` (like
+  `fb-public`): every GET route of `reddit` but the account's own, in a profile of its own,
+  capped at 400 reads a day, one every 6 to 9 seconds. Our accounts only post, comment and read their own inbox. Read volume on a
   logged-in account is what Reddit flags. Logged out, the only cost is the rate limit.
 - **Pace:** 1 read every 6 seconds, at most 400 reads a day.
 - **Estimate:**
@@ -121,8 +122,7 @@ The sources show beside the draft.
   - people: 60 a day.
 
   That comes to about 260 reads a day.
-- **Unproven:** old.reddit.com logged out from the Mac's IP. It is proven before anything is
-  built on it.
+- **Proven:** www.reddit.com's JSON reads signed out from the Mac (2026-10-06).
 
 ## Cost
 
@@ -149,12 +149,28 @@ reads to find places to talk. Nothing is shared.
 
 ## Build order (after his answers)
 
-1. autobrowse: `/subreddits/search`, `/r/{sub}/about`, and the `reddit@public` profile, with a
-   logged-out read proven first.
+1. autobrowse: `/subreddits/search`, `/r/{sub}/about`, rules, and the `reddit-public` site
+   (built 2026-10-06).
 2. People (the smallest piece; today's comment sort uses it).
 3. Places, with Marketing → Places.
 4. Threads, with Marketing → Threads and drafts.
 5. Research per draft.
+
+## Built (2026-10-06)
+
+- Places, Threads, People and research per draft, in `packages/outreach/src/discovery/` and the
+  `RedditReads/wren` loop. Marketing → Places and Threads. Settings: component
+  `reddit.discovery` (about, topics, subreddits), saved from the Shop into `wren_settings`; each
+  pass reads them. Cards: `map/objects/content/reddit-thread.md`.
+- Candidates come from `/subreddits/search`, named subreddits, and where read people post.
+  Google and Exa search pages are not wired yet.
+- Threads read `/new` only. 50 posts every 2 hours covers a place up to 600 posts a day, so the
+  per-topic search for big subreddits waits for one past that.
+- People are read for OPs of queued threads, commenters on our posts and Reddit DM contacts (5 a
+  pass). Comments show who they are; Replies shows their business. DM drafts don't read People
+  yet.
+- Scores are read after 2 days and shown per place (average). Fit doesn't learn from them yet.
+- Exa research per draft is not built (off by default anyway).
 
 ## Decision log
 
@@ -164,3 +180,4 @@ reads to find places to talk. Nothing is shared.
   he edits. (4) One account per place, but the point is a few accounts building karma; my call,
   so Watch spreads places across a small pool. (5) Yes, read OPs. He also writes the posts
   himself, so Places shows what a post needs and posts go through `channel-reddit`.
+- 2026-10-06: Built (see Built). Off until `wren reach discovery start`; reading posts nothing.

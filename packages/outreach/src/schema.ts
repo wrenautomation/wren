@@ -309,3 +309,178 @@ export type ReachAccount = typeof reachAccounts.$inferSelect;
 export type ReachContact = typeof reachContacts.$inferSelect;
 export type ReachMessage = typeof reachMessages.$inferSelect;
 export type Comment = typeof comments.$inferSelect;
+
+/**
+ * Reddit discovery (designs/2026-10-06-reddit-discovery.md): people, places and threads, all read
+ * signed out through autobrowse's `reddit-public`. Raw reads are kept whole; the model's reading
+ * sits beside them, each fact with the words it came from.
+ */
+export const PLACE_STATES = ["found", "watching", "skipped"] as const;
+export const THREAD_STATES = [
+  "new",
+  "dropped",
+  "ranked",
+  "queued",
+  "commented",
+  "skipped",
+] as const;
+export const THREAD_KINDS = ["help", "tools", "story", "venting", "hiring", "other"] as const;
+
+/** One fact the model read off their own words. */
+export interface Quoted {
+  value: string;
+  quote: string;
+}
+
+/** What code reads off a profile, $0. */
+export interface PersonFacts {
+  ageDays: number | null;
+  karma: number | null;
+  /** Where they post most, by count. */
+  places: { place: string; n: number }[];
+  /** Domains they linked, by count. */
+  domains: { domain: string; n: number }[];
+  /** The UTC hour they post most, and a guessed offset from it. */
+  peakHourUtc: number | null;
+}
+
+/** What the model reads off a profile: each fact quotes them. */
+export interface PersonRead {
+  role: Quoted | null;
+  business: Quoted | null;
+  size: Quoted | null;
+  location: Quoted | null;
+  website: Quoted | null;
+  struggles: Quoted[];
+  why: string;
+}
+
+export const redditPeople = pgTable(
+  "reddit_people",
+  {
+    /** Lowercase: Reddit names ignore case. */
+    handle: varchar("handle", { length: 64 }).notNull(),
+    name: varchar("name", { length: 64 }).notNull(),
+    /** The three reads: about, last 100 posts, last 100 comments. */
+    raw: jsonb("raw").notNull(),
+    facts: jsonb("facts").$type<PersonFacts>().notNull(),
+    read: jsonb("read").$type<PersonRead>(),
+    fit: smallint("fit"),
+    /** A domain they call their own, from their words; never guessed. */
+    site: varchar("site", { length: 253 }),
+    readAt: timestamp("read_at", { withTimezone: true }).notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [
+    primaryKey({ columns: [t.handle], name: "pk_reddit_people" }),
+    index("ix_reddit_people_read_at").on(t.readAt),
+    check("ck_reddit_people_fit", sql`${t.fit} between 0 and 10`),
+  ],
+);
+
+/** A subreddit's rules and pace in plain words, as the model read them. */
+export interface PlaceJudged {
+  fit: number;
+  why: string;
+  rules: string;
+  mayComment: boolean;
+  mayPost: boolean;
+  linkOnly: boolean;
+  karmaMin: number | null;
+  ageMinDays: number | null;
+  postsADay: number;
+  medianComments: number;
+}
+
+export const redditPlaces = pgTable(
+  "reddit_places",
+  {
+    /** Lowercase, without r/. */
+    subreddit: varchar("subreddit", { length: 64 }).notNull(),
+    name: varchar("name", { length: 64 }).notNull(),
+    /** "topic: <words>", "named" or "people": how it was found. */
+    foundBy: text("found_by").notNull(),
+    /** about, rules, top of the week and new, as read. */
+    raw: jsonb("raw"),
+    judged: jsonb("judged").$type<PlaceJudged>(),
+    fit: smallint("fit"),
+    subscribers: integer("subscribers"),
+    state: varchar("state", { length: 16, enum: PLACE_STATES }).notNull().default("found"),
+    /** The pool account that works it: one per place, so two of ours never meet. */
+    accountId: uuid("account_id"),
+    readAt: timestamp("read_at", { withTimezone: true }),
+    threadsAt: timestamp("threads_at", { withTimezone: true }),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [
+    primaryKey({ columns: [t.subreddit], name: "pk_reddit_places" }),
+    index("ix_reddit_places_state").on(t.state),
+    index("ix_reddit_places_account_id").on(t.accountId),
+    oneOf("ck_reddit_places_state", t.state, PLACE_STATES),
+    check("ck_reddit_places_fit", sql`${t.fit} between 0 and 10`),
+    foreignKey({
+      columns: [t.accountId],
+      foreignColumns: [reachAccounts.id],
+      name: "fk_reddit_places_account_id_reach_accounts",
+    }).onDelete("set null"),
+  ],
+);
+
+export const redditThreads = pgTable(
+  "reddit_threads",
+  {
+    /** The post's fullname, t3_…. */
+    id: varchar("id", { length: 20 }).notNull(),
+    subreddit: varchar("subreddit", { length: 64 }).notNull(),
+    title: text("title").notNull(),
+    body: text("body").notNull(),
+    author: varchar("author", { length: 64 }).notNull(),
+    url: text("url").notNull(),
+    postedAt: timestamp("posted_at", { withTimezone: true }).notNull(),
+    comments: integer("comments").notNull(),
+    raw: jsonb("raw").notNull(),
+    /** Code's reason to drop it, $0; null when it passed. */
+    dropped: text("dropped"),
+    kind: varchar("kind", { length: 16, enum: THREAD_KINDS }),
+    fit: smallint("fit"),
+    angle: text("angle"),
+    /** What to answer: the post (t3_…) or a comment in it that asks (t1_…). */
+    target: varchar("target", { length: 20 }),
+    targetText: text("target_text"),
+    draft: text("draft"),
+    /** What the draft read: the thread, the OP, our own facts. */
+    sources: jsonb("sources").$type<{ label: string; text: string }[]>(),
+    state: varchar("state", { length: 16, enum: THREAD_STATES }).notNull().default("new"),
+    accountId: uuid("account_id"),
+    answer: text("answer"),
+    answerRef: varchar("answer_ref", { length: 20 }),
+    answeredAt: timestamp("answered_at", { withTimezone: true }),
+    /** Our comment's score two days on: the place's hit rate. */
+    score: integer("score"),
+    scoredAt: timestamp("scored_at", { withTimezone: true }),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [
+    primaryKey({ columns: [t.id], name: "pk_reddit_threads" }),
+    index("ix_reddit_threads_subreddit").on(t.subreddit),
+    index("ix_reddit_threads_state").on(t.state),
+    index("ix_reddit_threads_account_id").on(t.accountId),
+    oneOf("ck_reddit_threads_state", t.state, THREAD_STATES),
+    oneOf("ck_reddit_threads_kind", t.kind, THREAD_KINDS),
+    check("ck_reddit_threads_fit", sql`${t.fit} between 0 and 10`),
+    foreignKey({
+      columns: [t.subreddit],
+      foreignColumns: [redditPlaces.subreddit],
+      name: "fk_reddit_threads_subreddit_reddit_places",
+    }).onDelete("cascade"),
+    foreignKey({
+      columns: [t.accountId],
+      foreignColumns: [reachAccounts.id],
+      name: "fk_reddit_threads_account_id_reach_accounts",
+    }).onDelete("set null"),
+  ],
+);
+
+export type RedditPerson = typeof redditPeople.$inferSelect;
+export type RedditPlace = typeof redditPlaces.$inferSelect;
+export type RedditThread = typeof redditThreads.$inferSelect;
