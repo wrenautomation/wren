@@ -97,17 +97,38 @@ export const commentEvent = (c: Pick<Comment, "id" | "platform" | "author" | "po
     data: { commentId: c.id, platform: c.platform, author: c.author, post: c.post },
   }) satisfies SpineEvent;
 
-const SYSTEM = `You read a comment someone left on our Reddit post or under our comment. We are \
+const NAMES: Record<string, string> = {
+  linkedin: "LinkedIn",
+  reddit: "Reddit",
+  youtube: "YouTube",
+  x: "X",
+  instagram: "Instagram",
+  facebook: "Facebook",
+  tiktok: "TikTok",
+};
+
+/** The sort's instructions; `guide` (the platform's playbook and comments SOP) goes after them. */
+export const systemFor = (platform: string, guide = "") =>
+  `You read a comment someone left on our ${NAMES[platform] ?? platform} post or under our comment. We are \
 Wren Automation; our posts give something useful and never pitch. Sort it: "asked" = they asked \
 for what the post offered, or to be messaged; "question" = they asked us something; "chat" = \
 anything else friendly or neutral; "hostile" = an attack, spam or a troll. For asked and question \
 only, write the answer we'd post under it: casual and plain, at most 2 short sentences, no links, \
 no pitch, no emojis; for asked, say you'll DM them. Otherwise answer "". Answer JSON only: \
-{"sort": "asked" | "question" | "chat" | "hostile", "why": "<one short line>", "answer": "<text>"}`;
+{"sort": "asked" | "question" | "chat" | "hostile", "why": "<one short line>", "answer": "<text>"}${
+    guide.trim() ? `\n\nHow we write here; answers follow it:\n${guide.trim()}` : ""
+  }`;
 
-export const promptFor = (c: Comment) =>
-  `Post: ${c.postTitle ?? "(untitled)"}${c.place ? ` in r/${c.place}` : ""}\n` +
-  `${c.kind === "comment_reply" ? "Under our comment" : "On our post"}, u/${c.author} wrote:\n${c.body}`;
+export const promptFor = (c: Comment) => {
+  const reddit = c.platform === "reddit";
+  return (
+    `Post: ${c.postTitle ?? "(untitled)"}${c.place ? (reddit ? ` in r/${c.place}` : ` in ${c.place}`) : ""}\n` +
+    `${c.kind === "comment_reply" ? "Under our comment" : "On our post"}, ${reddit ? "u/" : ""}${c.author} wrote:\n${c.body}`
+  );
+};
+
+/** The platform's playbook and comments SOP, read fresh per comment; "" = none. */
+export type CommentGuide = (platform: string) => Promise<string>;
 
 const ANSWER = z.object({
   sort: z.enum(["asked", "question", "chat", "hostile"]),
@@ -126,6 +147,7 @@ export async function sortComment(
   db: Db,
   llm: LlmClient | null,
   id: number,
+  guide?: CommentGuide,
 ): Promise<CommentSort | null> {
   const [c] = await db.select().from(comments).where(eq(comments.id, id));
   if (!c) return null;
@@ -136,7 +158,7 @@ export async function sortComment(
   if (llm) {
     const out = await completeAndParse(llm, promptFor(c), ANSWER, {
       maxTokens: 300,
-      system: SYSTEM,
+      system: systemFor(c.platform, guide ? await guide(c.platform) : ""),
       name: "comments.sort",
     });
     if (out.parsed) {
@@ -156,11 +178,11 @@ export async function sortComment(
 
 /** `comments.sort` on the spine: the comment leaves by its sort's port; unsorted, by `chat`. */
 export const sortStep =
-  (db: Db, llm: LlmClient | null): Step =>
+  (db: Db, llm: LlmClient | null, guide?: CommentGuide): Step =>
   async (_port, e) => {
     const id = Number(e.data.commentId);
     if (!Number.isInteger(id)) throw new Error(`${e.subject} is no kept comment`);
-    const sort = await sortComment(db, llm, id);
+    const sort = await sortComment(db, llm, id, guide);
     return sort === "ours" ? [] : [{ port: sort ?? "chat", event: e }];
   };
 
@@ -171,6 +193,8 @@ export async function commentById(db: Queryable, id: number): Promise<Comment> {
 }
 
 async function accountOf(db: Queryable, c: Comment): Promise<ReachAccount> {
+  if (!c.accountId)
+    throw new ReachRefusal(`comment ${c.id} is on our ${c.platform} post, not a reach inbox`);
   const [a] = await db.select().from(reachAccounts).where(eq(reachAccounts.id, c.accountId));
   if (!a) throw new ReachRefusal(`comment ${c.id}: its account is gone`);
   return a;
@@ -185,9 +209,10 @@ async function othersOf(db: Queryable, a: ReachAccount): Promise<string[]> {
   return rows.flatMap((r) => (r.handle ? [r.handle] : []));
 }
 
+/** `account` null = a content comment: answered through `Content.reply`, no reach caps. */
 export interface AnswerPlan {
   comment: Comment;
-  account: ReachAccount;
+  account: ReachAccount | null;
   others: string[];
 }
 
@@ -196,6 +221,7 @@ export async function planAnswer(db: Queryable, id: number, now: Date): Promise<
   const comment = await commentById(db, id);
   if (comment.state === "answered") throw new ReachRefusal("already answered");
   if (comment.sort === "ours") throw new ReachRefusal("that one is ours");
+  if (comment.channel === "content") return { comment, account: null, others: [] };
   const account = await accountOf(db, comment);
   if (account.state === "paused" || account.state === "retired")
     throw new ReachRefusal(`${account.account} is ${account.state}`);
@@ -236,6 +262,7 @@ export async function answerComment(
   const body = req.body.trim();
   if (!body) throw new ReachRefusal("the answer is empty");
   const plan = await planAnswer(db, req.id, req.now);
+  if (!plan.account) throw new ReachRefusal("a content comment is answered through Content.reply");
   if (!ch.comment) throw new ReachRefusal(`${plan.account.platform} can't answer comments`);
   checkThread((await ch.threadAuthors?.(plan.comment.post)) ?? [], plan.others);
   const sent = await ch.comment(plan.comment.ref, body);
@@ -262,7 +289,7 @@ export async function dmCommenter(
     if (w.caps.messages === 0)
       throw new ReachRefusal(`${account.account} can't DM yet: ${w.next || w.stage}`);
   }
-  await addProspects(db, c.platform, [
+  await addProspects(db, account.platform, [
     {
       handle: c.author,
       url: `https://www.reddit.com/user/${c.author}`,
@@ -271,7 +298,7 @@ export async function dmCommenter(
       foundIn: c.place ? `r/${c.place}` : "comment",
     },
   ]);
-  const contact = await contactByHandle(db, c.platform, c.author);
+  const contact = await contactByHandle(db, account.platform, c.author);
   if (["opted_out", "blocked"].includes(contact.state))
     throw new ReachRefusal(`u/${c.author} asked us to stop`);
   const [prior] = await db

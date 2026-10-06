@@ -20,9 +20,18 @@ import * as restate from "@restatedev/restate-sdk";
 import { linkedinOutreach } from "@wren/channel-linkedin";
 import { redditOutreach } from "@wren/channel-reddit";
 import { finishRun, openRun } from "@wren/core";
-import type { SiteClient } from "@wren/core/content";
+import type { Platform as ContentPlatform, SiteClient } from "@wren/core/content";
 import type { Notifier } from "@wren/core/notify";
 import type { Found, OutreachChannel, Profile } from "@wren/core/outreach";
+
+/** The `Content` service's reply handler as the worker serves it. */
+type ContentReply = {
+  reply: (
+    ctx: restate.Context,
+    req: { platform: ContentPlatform; commentId: string; text: string },
+  ) => Promise<void>;
+};
+
 import {
   errorText,
   lastPass,
@@ -738,7 +747,10 @@ export function makeReachDesk(deps: ReachDeps) {
           return { messageId: msg.id };
         },
       ),
-      /** Answer a comment in its thread, as the account that read it. Sent now: the click is the yes. */
+      /**
+       * Answer a comment in its thread, as the account that read it, or through `Content.reply` on
+       * our own post. Sent now: the click is the yes.
+       */
       answerComment: serviceHandler(
         { input: ANSWER, effect: "sends" },
         async (
@@ -751,6 +763,16 @@ export function makeReachDesk(deps: ReachDeps) {
           );
           const body = (req.body ?? plan.comment.draft ?? "").trim();
           if (!body) throw new restate.TerminalError("the answer is empty");
+          if (!plan.account) {
+            // On our own post: the content channel answers (designs/2026-10-06-social-inbox.md).
+            await ctx
+              .serviceClient<ContentReply>({ name: "Content" })
+              .reply({ platform: plan.comment.platform, commentId: plan.comment.ref, text: body });
+            await ctx.run("answered", () =>
+              markAnswered(deps.db, req.id, { body, ref: null, now }),
+            );
+            return { ref: null };
+          }
           const ch = channelsFor(deps, ctx)(plan.account);
           if (!ch?.comment) throw new restate.TerminalError("this site can't answer comments");
           const authors = (await ch.threadAuthors?.(plan.comment.post)) ?? [];

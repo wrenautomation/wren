@@ -16,7 +16,15 @@ import {
   type SiteStatus,
   viaOf,
 } from "./autobrowse.js";
-import type { ContentChannel, ListQuery, Platform, Post } from "./index.js";
+import type {
+  ActivityQuery,
+  ActivityRow,
+  Audience,
+  ContentChannel,
+  ListQuery,
+  Platform,
+  Post,
+} from "./index.js";
 import { PLATFORMS } from "./index.js";
 
 export type Channels = Partial<Record<Platform, ContentChannel>>;
@@ -193,6 +201,12 @@ const PUBLISH = z.looseObject({
       .describe("Platform extras: YouTube title and tags, LinkedIn visibility, subreddit"),
   }),
 });
+const ACTIVITY_QUERY = z
+  .looseObject({
+    since: z.string().nullish().describe("ISO time: only rows at or after it"),
+    limit: z.number().nullish(),
+  })
+  .nullish();
 const ONE_POST = z.looseObject({ platform: PLATFORM, id: z.string() });
 const REPLY = z.looseObject({ platform: PLATFORM, commentId: z.string(), text: z.string() });
 
@@ -245,6 +259,25 @@ export function makeContent(channelsFor: ChannelsFor) {
               errorCode: 501,
             });
           await refusalsFinal(ch.reply(req.commentId, req.text));
+        },
+      ),
+      /** Null when the channel reads no activity, so a caller skips it without an error. */
+      activity: serviceHandler(
+        { input: z.looseObject({ platform: PLATFORM, q: ACTIVITY_QUERY }) },
+        async (
+          ctx: restate.Context,
+          req: { platform: Platform; q?: ActivityQuery | null },
+        ): Promise<ActivityRow[] | null> => {
+          const ch = pick(ctx, req.platform);
+          return ch.activity ? refusalsFinal(ch.activity(req.q ?? {})) : null;
+        },
+      ),
+      /** Null when the channel reads no follower count. */
+      audience: serviceHandler(
+        { input: z.looseObject({ platform: PLATFORM }) },
+        async (ctx: restate.Context, req: { platform: Platform }): Promise<Audience | null> => {
+          const ch = pick(ctx, req.platform);
+          return ch.audience ? refusalsFinal(ch.audience()) : null;
         },
       ),
     },

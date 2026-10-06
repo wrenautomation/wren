@@ -5,11 +5,18 @@
  * stays on the draft row beside the audit envelope.
  * Design: designs/2026-09-22-content-loop.md.
  */
-import { type Media, PLATFORMS, type Platform } from "@wren/core/content";
+import {
+  ACTIVITY_KINDS,
+  type ActivityKind,
+  type Media,
+  PLATFORMS,
+  type Platform,
+} from "@wren/core/content";
 import { baseColumns, nonNegative, oneOf } from "@wren/db/columns";
 import { sql } from "drizzle-orm";
 import {
   boolean,
+  date,
   foreignKey,
   index,
   integer,
@@ -17,6 +24,7 @@ import {
   pgTable,
   pgView,
   primaryKey,
+  serial,
   text,
   timestamp,
   unique,
@@ -177,6 +185,59 @@ export const contentMetrics = pgTable(
   ],
 );
 
+/** `new` until William opened or cleared it. */
+export const ACTIVITY_STATES = ["new", "seen"] as const;
+export type ActivityState = (typeof ACTIVITY_STATES)[number];
+
+/**
+ * Follows, subscribes, mentions, reactions and notices on our accounts, as SocialWatch read them
+ * (designs/2026-10-06-social-inbox.md). One row per platform id. A row with no time takes the read time.
+ */
+export const socialActivity = pgTable(
+  "social_activity",
+  {
+    id: serial("id"),
+    platform: varchar("platform", { length: 16 }).$type<Platform>().notNull(),
+    kind: varchar("kind", { length: 16 }).$type<ActivityKind>().notNull(),
+    ref: varchar("ref", { length: 200 }).notNull(),
+    actor: text("actor"),
+    actorUrl: text("actor_url"),
+    text: text("text").notNull(),
+    url: text("url"),
+    at: timestamp("at", { withTimezone: true }).notNull(),
+    raw: jsonb("raw").notNull(),
+    state: varchar("state", { length: 8, enum: ACTIVITY_STATES }).notNull().default("new"),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [
+    primaryKey({ columns: [t.id], name: "pk_social_activity" }),
+    unique("uq_social_activity_platform_ref").on(t.platform, t.ref),
+    index("ix_social_activity_state").on(t.state),
+    index("ix_social_activity_platform_at").on(t.platform, t.at),
+    oneOf("ck_social_activity_platform", t.platform, PLATFORMS),
+    oneOf("ck_social_activity_kind", t.kind, ACTIVITY_KINDS),
+    oneOf("ck_social_activity_state", t.state, ACTIVITY_STATES),
+  ],
+);
+
+/** Our follower count per platform per day: the first read of the day is kept. */
+export const socialDays = pgTable(
+  "social_days",
+  {
+    platform: varchar("platform", { length: 16 }).$type<Platform>().notNull(),
+    day: date("day", { mode: "string" }).notNull(),
+    followers: integer("followers").notNull(),
+    raw: jsonb("raw").notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [
+    primaryKey({ columns: [t.platform, t.day], name: "pk_social_days" }),
+    oneOf("ck_social_days_platform", t.platform, PLATFORMS),
+    ...nonNegative("social_days", { followers: t.followers }),
+  ],
+);
+
+export type SocialActivity = typeof socialActivity.$inferSelect;
 export type ContentIdea = typeof contentIdeas.$inferSelect;
 export type NewContentIdea = typeof contentIdeas.$inferInsert;
 export type ContentDraft = typeof contentDrafts.$inferSelect;

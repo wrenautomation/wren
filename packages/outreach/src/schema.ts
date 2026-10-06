@@ -16,6 +16,10 @@
  * Opt-outs ("stop messaging me") are `suppressions` rows of kind `handle`
  * (core), the same table every channel reads.
  */
+import {
+  PLATFORMS as CONTENT_PLATFORMS,
+  type Platform as ContentPlatform,
+} from "@wren/core/content";
 import { companies, people, runs } from "@wren/core/schema";
 import { baseColumns, oneOf } from "@wren/db/columns";
 import { sql } from "drizzle-orm";
@@ -248,19 +252,24 @@ export type CommentSort = (typeof COMMENT_SORTS)[number];
 /** `new` until sorted; `waiting` on William; `answered` in the thread; `dropped` by him or the sort. */
 export const COMMENT_STATES = ["new", "waiting", "answered", "dropped"] as const;
 export type CommentState = (typeof COMMENT_STATES)[number];
+/** `reach` = an outreach account's inbox (answered as that account); `content` = our own posts. */
+export const COMMENT_CHANNELS = ["reach", "content"] as const;
+export type CommentChannel = (typeof COMMENT_CHANNELS)[number];
 
 /**
- * Every comment on our posts and every answer to our comments, as the account's inbox listed it
- * (designs/2026-10-01-reach-reddit-linkedin.md, Comments). One row per platform id; nothing is
- * dropped, ours and removed ones included. Each new row leaves as a `comment` event on the spine.
+ * Every comment on our posts and every answer to our comments (designs/2026-10-01-reach-reddit-linkedin.md,
+ * Comments; designs/2026-10-06-social-inbox.md). Reach rows come from an account's inbox; content rows
+ * from SocialWatch reading our published posts. One row per platform id; nothing is dropped, ours and
+ * removed ones included. Each new row leaves as a `comment` event on the spine.
  */
 export const comments = pgTable(
   "comments",
   {
     id: serial("id"),
-    platform: varchar("platform", { length: 16, enum: PLATFORMS }).notNull(),
-    /** Whose inbox listed it: the account that answers it. */
-    accountId: uuid("account_id").notNull(),
+    platform: varchar("platform", { length: 16 }).$type<ContentPlatform>().notNull(),
+    /** Whose inbox listed it: the account that answers it. Null on a content comment. */
+    accountId: uuid("account_id"),
+    channel: varchar("channel", { length: 16, enum: COMMENT_CHANNELS }).notNull().default("reach"),
     ref: varchar("ref", { length: 200 }).notNull(),
     post: varchar("post", { length: 200 }).notNull(),
     parent: varchar("parent", { length: 200 }).notNull(),
@@ -291,7 +300,12 @@ export const comments = pgTable(
     index("ix_comments_account_id").on(t.accountId),
     index("ix_comments_post").on(t.post),
     index("ix_comments_contact_id").on(t.contactId),
-    oneOf("ck_comments_platform", t.platform, PLATFORMS),
+    oneOf("ck_comments_platform", t.platform, CONTENT_PLATFORMS),
+    oneOf("ck_comments_channel", t.channel, COMMENT_CHANNELS),
+    check(
+      "ck_comments_reach_has_account",
+      sql`((channel)::text <> 'reach'::text) OR (account_id IS NOT NULL)`,
+    ),
     oneOf("ck_comments_kind", t.kind, COMMENT_KINDS),
     oneOf("ck_comments_sort", t.sort, COMMENT_SORTS),
     oneOf("ck_comments_state", t.state, COMMENT_STATES),

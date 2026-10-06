@@ -298,6 +298,36 @@ describe("Content service", () => {
     expect(rows.map((r) => r.id)).toEqual([pub.id]);
   });
 
+  it("activity and audience: the channel's rows, or null when it reads none", async () => {
+    linkedin.happen({
+      id: "a1",
+      kind: "follow",
+      actor: "Ana",
+      actorUrl: null,
+      text: "Ana followed you",
+      url: null,
+      at: "2026-10-06T10:00:00Z",
+      raw: {},
+    });
+    linkedin.follow(42);
+    const rows = (await h.activity?.(ctx, { platform: "linkedin", q: { since: null } })) as {
+      id: string;
+    }[];
+    expect(rows.map((r) => r.id)).toEqual(["a1"]);
+    expect(await h.activity?.(ctx, { platform: "linkedin", q: { since: "2026-10-07" } })).toEqual(
+      [],
+    );
+    expect(await h.audience?.(ctx, { platform: "linkedin" })).toMatchObject({ followers: 42 });
+    const { activity: _a, audience: _b, ...bare } = fakeContentChannel("x");
+    const hx = (
+      makeContent(() => ({ x: bare })) as unknown as {
+        service: Record<string, (ctx: unknown, req?: unknown) => Promise<unknown>>;
+      }
+    ).service;
+    expect(await hx.activity?.(ctx, { platform: "x" })).toBeNull();
+    expect(await hx.audience?.(ctx, { platform: "x" })).toBeNull();
+  });
+
   it("an unconfigured platform is a terminal 404, not a retry", async () => {
     await expect(h.metrics?.(ctx, { platform: "youtube", id: "v" })).rejects.toMatchObject({
       name: "TerminalError",

@@ -11,5 +11,6 @@ export * from "./queue.js";
 export * from "./review.js";
 export * from "./schema.js";
 export * from "./slots.js";
+export * from "./social/store.js";
 export * from "./status.js";
 export * from "./voice.js";

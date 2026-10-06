@@ -5,12 +5,16 @@
  */
 import type { Platform } from "@wren/core/content";
 import type { Queryable } from "@wren/db";
-import { desc, eq } from "drizzle-orm";
+import { and, desc, eq, ne } from "drizzle-orm";
 import { type ContentPlaybook, contentPlaybooks } from "./schema.js";
 
 /** About 2,000 words: an SOP past this is too long to steer a 1,300-character post. */
 export const MAX_PLAYBOOK_CHARS = 16_000;
 
+/** The SOP pushed as `comments` steers answers to comments, never post drafts. */
+export const COMMENTS_SOP = "comments";
+
+/** The platform's post playbook: its newest row that isn't the comments SOP. */
 export async function playbookFor(
   db: Queryable,
   platform: Platform,
@@ -18,10 +22,41 @@ export async function playbookFor(
   const [row] = await db
     .select()
     .from(contentPlaybooks)
-    .where(eq(contentPlaybooks.platform, platform))
+    .where(and(eq(contentPlaybooks.platform, platform), ne(contentPlaybooks.sop, COMMENTS_SOP)))
     .orderBy(desc(contentPlaybooks.createdAt))
     .limit(1);
   return row ?? null;
+}
+
+/** The newest `comments` SOP pushed for the platform. */
+export async function commentsSopFor(
+  db: Queryable,
+  platform: Platform,
+): Promise<ContentPlaybook | null> {
+  const [row] = await db
+    .select()
+    .from(contentPlaybooks)
+    .where(and(eq(contentPlaybooks.platform, platform), eq(contentPlaybooks.sop, COMMENTS_SOP)))
+    .orderBy(desc(contentPlaybooks.createdAt))
+    .limit(1);
+  return row ?? null;
+}
+
+/**
+ * What `comments.sort` drafts an answer against: the platform's playbook, then its comments SOP.
+ * "" = neither, and the sort keeps its plain prompt.
+ */
+export async function commentGuide(db: Queryable, platform: Platform): Promise<string> {
+  const [playbook, sop] = await Promise.all([
+    playbookFor(db, platform),
+    commentsSopFor(db, platform),
+  ]);
+  return [
+    playbook ? `The ${platform} playbook:\n"""\n${playbook.text}\n"""` : "",
+    sop ? `How we answer comments:\n"""\n${sop.text}\n"""` : "",
+  ]
+    .filter(Boolean)
+    .join("\n\n");
 }
 
 export async function pushPlaybook(
@@ -34,7 +69,7 @@ export async function pushPlaybook(
     throw new Error(
       `${p.sop}: ${text.length} chars, over ${MAX_PLAYBOOK_CHARS}; cut the SOP first`,
     );
-  const live = await playbookFor(db, p.platform);
+  const live = await (p.sop === COMMENTS_SOP ? commentsSopFor : playbookFor)(db, p.platform);
   if (live && live.sop === p.sop && live.text === text) return { playbook: live, changed: false };
   const [row] = await db
     .insert(contentPlaybooks)
