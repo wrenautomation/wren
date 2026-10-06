@@ -321,6 +321,10 @@ describe("score", () => {
   });
 
   it("the news stage searches each firm once a month, and the mover's new firm too", async () => {
+    // 03:00 UTC, outside Google's hours, so Exa answers whatever the real clock says.
+    const at = new Date();
+    at.setUTCHours(3, 0, 0, 0);
+    const now = () => at;
     const searched: string[] = [];
     const sites: SiteClient = {
       async call(_site, _method, path, input) {
@@ -331,7 +335,7 @@ describe("score", () => {
               title: "Acme Staffing acquired by Globex",
               url: "https://news.example/acme",
               snippet: null,
-              raw: { publishedDate: new Date().toISOString() },
+              raw: { publishedDate: new Date(at.getTime() - 86_400_000).toISOString() },
             },
           ],
         } as never;
@@ -340,14 +344,13 @@ describe("score", () => {
         return "api";
       },
     };
-    // Outside Google's hours or not, Exa answers: the test doesn't depend on the clock.
-    const stats = await checkCrmEvents(db(), sites, { timezone: "UTC" });
+    const stats = await checkCrmEvents(db(), sites, { timezone: "UTC", now });
     expect(stats).toMatchObject({ selected: 2, found: 1, none: 1, errors: 0 });
     const kept = await one<{ n: number }>(
       sql`select count(*)::int n from findings where kind = 'news'`,
     );
     expect(kept.n).toBe(1);
-    expect((await checkCrmEvents(db(), sites, { timezone: "UTC" })).selected).toBe(0);
+    expect((await checkCrmEvents(db(), sites, { timezone: "UTC", now })).selected).toBe(0);
     expect(searched).toHaveLength(2);
   });
 
