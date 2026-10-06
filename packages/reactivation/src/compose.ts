@@ -737,6 +737,8 @@ async function enroll(
           companyId: s.companyId,
           kind: "person",
           toEmail: s.email,
+          candidateId: s.candidateId,
+          leadId: sql`(select lead_id from contact_candidates where id = ${s.candidateId})`,
           sender: picked.sender.address,
           niche: REACTIVATION,
           sequenceName: SEQUENCE.name,
@@ -826,7 +828,7 @@ export async function redraftAwaiting(
       coalesce(m.provenance->'moved'->>'from', co.name, co.domain, 'their firm') firm,
       pe.first_name, pe.last_name,
       b.text brief, b.inputs_hash brief_hash, b.citations,
-      (m.provenance->'address'->>'candidate_id')::int candidate_id, e.to_email email,
+      e.candidate_id, e.to_email email,
       coalesce(m.provenance->'address'->>'evidence', 'crm') evidence,
       m.provenance->'moved'->>'to' moved_to,
       m.provenance->>'owner' owner, m.provenance->>'recruiter' recruiter, e.sender

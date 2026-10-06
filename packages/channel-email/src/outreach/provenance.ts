@@ -187,7 +187,7 @@ export async function personAddress(
     .select({ lead: leads, candidate: contactCandidates })
     .from(leads)
     .innerJoin(contactCandidates, eq(contactCandidates.leadId, leads.id))
-    .where(and(eq(contactCandidates.personId, personId), sendable(horizonDays)))
+    .where(and(eq(leads.personId, personId), sendable(horizonDays)))
     .orderBy(asc(contactCandidates.id));
   const records: AddressRecord[] = [];
   const seen = new Set<string>();
@@ -240,7 +240,7 @@ export async function peopleWithAddress(
     .selectDistinct({ personId: contactCandidates.personId })
     .from(leads)
     .innerJoin(contactCandidates, eq(contactCandidates.leadId, leads.id))
-    .where(and(inArray(contactCandidates.personId, [...personIds]), sendable(horizonDays)));
+    .where(and(inArray(leads.personId, [...personIds]), sendable(horizonDays)));
   return new Set(rows.map((r) => r.personId));
 }
 

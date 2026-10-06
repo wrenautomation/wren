@@ -844,6 +844,8 @@ async function enroll(
       companyId: input.companyId,
       kind: input.kind,
       toEmail: input.address.email,
+      leadId: input.address.lead_id,
+      candidateId: input.address.candidate_id,
       sender: input.sender,
       niche: shared.niche,
       sequenceName: shared.sequence.name,

@@ -362,6 +362,10 @@ export const enrollments = pgTable(
     toEmail: varchar("to_email", { length: 320 }).notNull(),
     sender: varchar("sender", { length: 320 }).notNull(),
     runId: uuid("run_id"),
+    /** The lead (address) this was composed for; also in step 0's `provenance.address`. */
+    leadId: integer("lead_id"),
+    /** The candidate behind that address. The prune of dead guesses never reaches an enrolled one; SET NULL anyway. */
+    candidateId: integer("candidate_id"),
     /** The company's Nth cold sequence: 1 = first contact, 2+ = it came back (lead recycling). */
     contactRound: integer("contact_round").default(1).notNull(),
     /** Their out-of-office said they're away through this day: the next step waits for the sending day after. */
@@ -372,6 +376,8 @@ export const enrollments = pgTable(
     index("ix_enrollments_company_id").on(t.companyId),
     index("ix_enrollments_person_id").on(t.personId),
     index("ix_enrollments_run_id").on(t.runId),
+    index("ix_enrollments_lead_id").on(t.leadId),
+    index("ix_enrollments_candidate_id").on(t.candidateId),
     index("ix_enrollments_offer").on(t.offer),
     uniqueIndex("uq_enrollments_active_address")
       .on(sql`lower((to_email)::text)`)
@@ -397,6 +403,16 @@ export const enrollments = pgTable(
       foreignColumns: [runs.id],
       name: "fk_enrollments_run_id_runs",
     }),
+    foreignKey({
+      columns: [t.leadId],
+      foreignColumns: [leads.id],
+      name: "fk_enrollments_lead_id_leads",
+    }),
+    foreignKey({
+      columns: [t.candidateId],
+      foreignColumns: [contactCandidates.id],
+      name: "fk_enrollments_candidate_id_contact_candidates",
+    }).onDelete("set null"),
     oneOf("ck_enrollments_enrollmentkind", t.kind, ENROLLMENT_KINDS),
     oneOf("ck_enrollments_enrollmentstate", t.state, ENROLLMENT_STATES),
     check(

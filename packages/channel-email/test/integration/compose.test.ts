@@ -375,6 +375,13 @@ describe("compose", () => {
     expect(enrollment.sender).toBe(SENDER);
     expect(enrollment.runId).toBe(runId);
     const msgs = await messagesOf(db(), enrollment);
+    // The address's ids are columns too, not only the jsonb.
+    const { address } = (msgs[0] as { provenance: unknown }).provenance as {
+      address: { lead_id: number; candidate_id: number };
+    };
+    expect(enrollment.leadId).toBe(address.lead_id);
+    expect(enrollment.candidateId).toBe(address.candidate_id);
+    expect(enrollment.leadId).not.toBeNull();
     expect(new Set(msgs.map((m) => m.runId))).toEqual(new Set([runId]));
     for (const m of msgs) {
       expect((m.provenance as { address_alternates: string[] }).address_alternates).toEqual([]);

@@ -474,6 +474,7 @@ describe("stranded promotion repair", () => {
       .where(eq(leads.id, after?.leadId as number));
     expect(lead?.email).toBe(strandedEmail);
     expect(lead?.status).toBe("verified");
+    expect(lead?.personId).toBe(jane.id);
     const [row] = await db()
       .select()
       .from(verifications)

@@ -98,6 +98,8 @@ describe("runListedContacts", () => {
     ]);
     const pat = (await db().select().from(people).where(eq(people.fullName, "Pat Doe")))[0];
     expect(pat).toMatchObject({ origin: "registry", title: "Owner" });
+    const [patLead] = await db().select().from(leads).where(eq(leads.email, "pat.owner@gmail.com"));
+    expect(patLead?.personId).toBe(pat?.id);
     // Untitled registry people still rank; the recruiting branch ranks owners first.
     expect(await ranks()).toEqual([
       ["Pat Doe", 1],

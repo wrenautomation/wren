@@ -739,6 +739,7 @@ export async function promoteCandidates(db: Queryable, refs: PromotionRef[]): Pr
       .update(contactCandidates)
       .set({ leadId: lead.id })
       .where(eq(contactCandidates.id, candidate.id));
+    await db.update(leads).set({ personId: candidate.personId }).where(eq(leads.id, lead.id));
     await db
       .update(verifications)
       .set({ leadId: lead.id })

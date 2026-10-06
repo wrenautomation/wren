@@ -92,6 +92,7 @@ export async function addVerifiedAddress(
       raw: {},
       importId: await makeBatch(db),
       companyId: company.id,
+      personId: person.id,
     })
     .returning();
   const [candidate] = await db

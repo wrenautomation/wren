@@ -146,6 +146,7 @@ export async function runListedContacts(
         .onConflictDoNothing()
         .returning({ id: contactCandidates.id });
       stats.candidates += added.length;
+      await db.update(leads).set({ personId: person.id }).where(eq(leads.id, lead.id));
       if (settled && added.length) stats.settled += 1;
     },
   });

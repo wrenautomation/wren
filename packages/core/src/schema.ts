@@ -512,9 +512,12 @@ export const leads = pgTable(
     country: varchar("country", { length: 2 }),
     suppressionId: integer("suppression_id"),
     socialUrl: varchar("social_url", { length: 512 }),
+    /** The person this address belongs to, set where a candidate is linked to the lead. */
+    personId: integer("person_id"),
   },
   (t) => [
     primaryKey({ columns: [t.id], name: "pk_leads" }),
+    index("ix_leads_person_id").on(t.personId),
     index("ix_leads_suppression_id").on(t.suppressionId),
     index("ix_leads_import_id").on(t.importId),
     index("ix_leads_company_id").on(t.companyId),
@@ -530,6 +533,11 @@ export const leads = pgTable(
       columns: [t.importId],
       foreignColumns: [imports.id],
       name: "fk_leads_import_id_imports",
+    }),
+    foreignKey({
+      columns: [t.personId],
+      foreignColumns: [people.id],
+      name: "fk_leads_person_id_people",
     }),
     foreignKey({
       columns: [t.suppressionId],
