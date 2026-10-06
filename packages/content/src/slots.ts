@@ -1,8 +1,9 @@
 /**
  * When a platform's posts go out when nobody said: the platform's default
- * slots on the fleet's clock. A platform may have several a day; the
- * defaults keep LinkedIn and Reddit at one, because a second same-day post
- * splits reach on LinkedIn and reads as spam on Reddit. A draft takes the
+ * slots on the fleet's clock. A platform may have several a day; LinkedIn
+ * and Reddit, the organic channels, get two on weekdays (William, 09-27:
+ * "multiple posts a day"), hours apart so the second doesn't split the
+ * first's reach. ContentPlanner's `slots` setting overrides. A draft takes the
  * first free slot after its approval, so a batch approved at once spreads
  * over the days instead of piling onto one hour. `--at` still wins, and
  * `--now` posts on the next pass.
@@ -22,8 +23,14 @@ const WEEKDAYS = [1, 2, 3, 4, 5] as const;
 export type Slots = Readonly<Record<Platform, readonly Slot[]>>;
 
 export const DEFAULT_SLOTS: Slots = {
-  linkedin: [{ hour: 8, minute: 30, days: WEEKDAYS }],
-  reddit: [{ hour: 9, minute: 30, days: WEEKDAYS }],
+  linkedin: [
+    { hour: 8, minute: 30, days: WEEKDAYS },
+    { hour: 12, minute: 30, days: WEEKDAYS },
+  ],
+  reddit: [
+    { hour: 9, minute: 30, days: WEEKDAYS },
+    { hour: 17, minute: 0, days: WEEKDAYS },
+  ],
   x: [{ hour: 12, minute: 0, days: WEEKDAYS }],
   facebook: [{ hour: 13, minute: 0 }],
   instagram: [{ hour: 18, minute: 0 }],

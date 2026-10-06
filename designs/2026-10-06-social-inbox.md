@@ -94,8 +94,8 @@ tomorrow's open slots per platform with drafts, using that platform's playbook:
   answered as a post. A new idea source value per kind.
 - Each draft lands in Marketing → Drafts as `draft`, with the slot it fills. He edits, approves
   or rejects. Approving schedules it into the slot; `ContentScheduler` publishes it.
-- Slots per platform stay settings (default one a day on LinkedIn and Reddit, per the 09-26
-  plan); he raises them in the console.
+- Slots per platform stay settings. Default two a weekday on LinkedIn (08:30, 12:30) and Reddit
+  (09:30, 17:00), per 09-27 "multiple posts a day"; he changes them in the console.
 - At most 2 redrafts per slot per day. Cohere only; no paid model.
 - The planner ping says what it drafted ("drafted 2 for tomorrow: LinkedIn, Reddit").
 - Every answer, post and DM still waits on his click. The draft is a starting point he edits in
@@ -191,6 +191,8 @@ loads a day on the Mac. Restate runs on the box now, so passes cost nothing extr
 - 2026-10-06: Written from William's ask. Reuses `comments`, the content channels' comment
   reads and replies, the reach sort, and Marketing's records. New: `social_activity`,
   `social_days`, `SocialWatch/wren` and Marketing → Inbox.
+- 2026-10-06: LinkedIn and Reddit default to two slots a weekday, not one. His 09-27 "multiple
+  posts a day" came after the 09-26 one-a-day plan. Hours apart so posts don't split reach.
 - 2026-10-06: Built O5. `ContentPlanner` with `draft` on fills tomorrow's open slots through
   `ContentDesk.draft` (the worker's LLM). Ideas: undrafted, then `build_log` (GitHub's public
   commits API, no token), then `question`; `content_ideas.ref` makes each once (migration 0118).

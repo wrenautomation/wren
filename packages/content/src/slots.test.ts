@@ -10,6 +10,9 @@ describe("nextSlot", () => {
       "2026-09-22T12:30:00.000Z",
     );
     expect(nextSlot("linkedin", new Date("2026-09-22T12:30:00Z"), ET).toISOString()).toBe(
+      "2026-09-22T16:30:00.000Z",
+    );
+    expect(nextSlot("linkedin", new Date("2026-09-22T16:30:00Z"), ET).toISOString()).toBe(
       "2026-09-23T12:30:00.000Z",
     );
   });
@@ -40,12 +43,13 @@ describe("taken slots", () => {
       { hour: 12, minute: 30 },
     ],
   };
+  const once = { ...DEFAULT_SLOTS, linkedin: [{ hour: 8, minute: 30 }] };
 
   it("a taken slot is skipped, so a batch spreads over slots and days", () => {
     const tue7am = new Date("2026-09-22T11:00:00Z");
     const first = nextSlot("linkedin", tue7am, ET);
     expect(first.toISOString()).toBe("2026-09-22T12:30:00.000Z");
-    expect(nextSlot("linkedin", tue7am, ET, undefined, [first]).toISOString()).toBe(
+    expect(nextSlot("linkedin", tue7am, ET, once, [first]).toISOString()).toBe(
       "2026-09-23T12:30:00.000Z",
     );
     const second = nextSlot("linkedin", tue7am, ET, twice, [first]);

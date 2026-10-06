@@ -28,7 +28,7 @@ wren content drafts                 # one row per platform, status draft
 wren content show <draftId>
 wren content redraft <draftId> "shorter, keep the discord line"   # the model rewrites from your note
 wren content edit <draftId> fixed.md
-wren content approve <draftId>...   # each posts at its platform's next slot (LinkedIn 08:30 weekdays, X noon, IG 18:00 … on WREN_SEND_TIMEZONE)
+wren content approve <draftId>...   # each posts at its platform's next slot (LinkedIn 08:30 + 12:30 weekdays, X noon, IG 18:00 … on WREN_SEND_TIMEZONE)
 wren content approve <draftId> --at 2026-09-23T14:00:00Z
 wren content approve <draftId> --now  # on the queue's next pass
 wren content queue start            # ContentScheduler/default: posts approved drafts as they come due
