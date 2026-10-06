@@ -1201,7 +1201,7 @@ describe("a firm texted today", () => {
     const textedAt = plus(NOW, -2 * HOUR);
     await db().execute(sql`
       INSERT INTO sms_contacts (e164, source_kind, basis, company_id, state, enrolled_at, sequence)
-      VALUES ('+15550001234', 'page', 'published', ${e.companyId}, 'enrolled',
+      VALUES ('+15550001234', 'page_text', 'published', ${e.companyId}, 'enrolled',
         ${textedAt.toISOString()}, 'cold')`);
     try {
       const held = await tick(console_());

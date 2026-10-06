@@ -5,6 +5,7 @@
  * stays a button in the console. The bearer never appears in an error.
  */
 import { type FetchLike, type ServiceAccountKey, serviceAccountToken } from "@wren/channel-email";
+import { INSPECTION_VERDICTS, type InspectionVerdict } from "./schema.js";
 
 export const SEARCH_CONSOLE_SCOPE = "https://www.googleapis.com/auth/webmasters.readonly";
 const API = "https://searchconsole.googleapis.com";
@@ -44,7 +45,7 @@ export interface AnalyticsRow {
 }
 
 export interface Inspection {
-  verdict: string;
+  verdict: InspectionVerdict;
   coverageState?: string;
   indexingState?: string;
   lastCrawlTime?: string;
@@ -122,7 +123,10 @@ export async function inspectUrl(
     siteUrl: site,
   });
   const r = (out.inspectionResult as Json | undefined)?.indexStatusResult as Inspection | undefined;
-  return r ?? { verdict: "VERDICT_UNSPECIFIED" };
+  // A verdict Google adds later reads as unspecified; the stored `raw` keeps what it said.
+  if (!r || !(INSPECTION_VERDICTS as readonly string[]).includes(r.verdict))
+    return { ...r, verdict: "VERDICT_UNSPECIFIED" };
+  return r;
 }
 
 /** The URLs a sitemap lists (`<loc>`), read from the live site. */

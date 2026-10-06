@@ -20,6 +20,7 @@ import {
   varchar,
 } from "drizzle-orm/pg-core";
 import { clients } from "./clients/schema.js";
+import { EVENT_KINDS, type EventKind } from "./components.js";
 import type { WorkflowEdits } from "./workflows.js";
 
 // ---- Ported from emails_gen (exact DDL; integer ids kept for data continuity) ----
@@ -224,7 +225,7 @@ export const events = pgTable(
     port: varchar("port", { length: 64 }).notNull(),
     /** Who or what it is about, unique per thing: "lead:42", "mail:<message id>". */
     subject: varchar("subject", { length: 200 }).notNull(),
-    kind: varchar("kind", { length: 16 }).notNull(),
+    kind: varchar("kind", { length: 16 }).$type<EventKind>().notNull(),
     data: jsonb("data").notNull(),
     at: timestamp("at", { withTimezone: true }).defaultNow().notNull(),
     /** Waiting on a wire until this time; null once it passed on. */
@@ -238,6 +239,7 @@ export const events = pgTable(
     primaryKey({ columns: [t.id], name: "pk_events" }),
     unique("uq_events_entry").on(t.workflow, t.node, t.port, t.subject),
     index("ix_events_subject").on(t.subject),
+    oneOf("ck_events_kind", t.kind, Object.keys(EVENT_KINDS)),
   ],
 );
 export type SpineRow = typeof events.$inferSelect;

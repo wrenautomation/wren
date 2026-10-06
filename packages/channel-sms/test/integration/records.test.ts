@@ -21,7 +21,7 @@ describe("marketing.text_contact", () => {
   it("counts texts and replies, and a reply waits until read", async () => {
     const contact = (e164: string, state: "replied" | "enrolled" | "new") => ({
       e164,
-      sourceKind: "test",
+      sourceKind: "manual" as const,
       basis: "published" as const,
       state,
       name: `Synthetic ${e164.slice(-2)}`,

@@ -16,7 +16,9 @@ import { z } from "zod";
 import { addProspects, contactByHandle } from "./contacts.js";
 import { ReachRefusal } from "./refusal.js";
 import {
+  COMMENT_KINDS,
   type Comment,
+  type CommentKind,
   type CommentSort,
   comments,
   type ReachAccount,
@@ -59,7 +61,10 @@ export async function keepComments(
         ref: c.ref.slice(0, 200),
         post: c.post.slice(0, 200),
         parent: c.parent.slice(0, 200),
-        kind: c.kind.slice(0, 32),
+        // A type Reddit adds later is filed as a reply; the message itself stays in `raw`.
+        kind: (COMMENT_KINDS as readonly string[]).includes(c.kind)
+          ? (c.kind as CommentKind)
+          : ("comment_reply" as const),
         place: c.place?.slice(0, 200) ?? null,
         postTitle: c.postTitle,
         author: c.handle.slice(0, 120),

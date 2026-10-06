@@ -227,6 +227,10 @@ export const reachTemplates = pgTable("reach_templates", {
   updatedBy: varchar("updated_by", { length: 200 }).notNull(),
 });
 
+/** What Reddit's inbox calls the message: a reply to our post, to our comment, or a mention of us. */
+export const COMMENT_KINDS = ["post_reply", "comment_reply", "username_mention"] as const;
+export type CommentKind = (typeof COMMENT_KINDS)[number];
+
 /** What the sort read a comment as; `ours` = written by one of our accounts. */
 export const COMMENT_SORTS = ["asked", "question", "chat", "hostile", "ours"] as const;
 export type CommentSort = (typeof COMMENT_SORTS)[number];
@@ -249,8 +253,7 @@ export const comments = pgTable(
     ref: varchar("ref", { length: 200 }).notNull(),
     post: varchar("post", { length: 200 }).notNull(),
     parent: varchar("parent", { length: 200 }).notNull(),
-    /** `post_reply`, `comment_reply`, `username_mention`. */
-    kind: varchar("kind", { length: 32 }).notNull(),
+    kind: varchar("kind", { length: 32, enum: COMMENT_KINDS }).notNull(),
     place: varchar("place", { length: 200 }),
     postTitle: text("post_title"),
     author: varchar("author", { length: 120 }).notNull(),
@@ -277,6 +280,7 @@ export const comments = pgTable(
     index("ix_comments_post").on(t.post),
     index("ix_comments_contact_id").on(t.contactId),
     oneOf("ck_comments_platform", t.platform, PLATFORMS),
+    oneOf("ck_comments_kind", t.kind, COMMENT_KINDS),
     oneOf("ck_comments_sort", t.sort, COMMENT_SORTS),
     oneOf("ck_comments_state", t.state, COMMENT_STATES),
     foreignKey({

@@ -848,6 +848,7 @@ export const reports = pgTable(
       name: "fk_reports_run_id_runs",
     }),
     primaryKey({ columns: [t.id], name: "pk_reports" }),
+    oneOf("ck_reports_kind", t.kind, REPORT_KINDS),
   ],
 );
 

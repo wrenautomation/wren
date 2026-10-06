@@ -49,7 +49,7 @@ async function text(companyId: number, state: string, enrolledAt: Date | null) {
   n += 1;
   await pg.db.execute(sql`
     INSERT INTO sms_contacts (e164, source_kind, basis, company_id, state, enrolled_at, sequence)
-    VALUES (${`+1555000${String(n).padStart(4, "0")}`}, 'page', 'published', ${companyId},
+    VALUES (${`+1555000${String(n).padStart(4, "0")}`}, 'page_text', 'published', ${companyId},
       ${state}, ${enrolledAt?.toISOString() ?? null}, ${enrolledAt ? "cold" : null})`);
 }
 

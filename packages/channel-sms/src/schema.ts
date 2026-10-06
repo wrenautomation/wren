@@ -79,6 +79,10 @@ export type ContactState = (typeof CONTACT_STATES)[number];
 export const CONTACT_BASES = ["published", "opt_in"] as const;
 export type ContactBasis = (typeof CONTACT_BASES)[number];
 
+/** How a contact was found: a `tel_link` or `page_text` number from a crawled page, a `manual` add, an `inbound` stranger, a lander `form`. */
+export const SOURCE_KINDS = ["tel_link", "page_text", "manual", "inbound", "form"] as const;
+export type SourceKind = (typeof SOURCE_KINDS)[number];
+
 export const DIRECTIONS = ["out", "in"] as const;
 export type Direction = (typeof DIRECTIONS)[number];
 
@@ -163,8 +167,7 @@ export const smsContacts = pgTable(
     /** The crawled page the number was published on (documents.id), and its URL: the evidence. */
     sourceDocumentId: integer("source_document_id"),
     sourceUrl: text("source_url"),
-    /** How it was found: `tel_link`, `page_text`, `manual`, `inbound`, `form`. */
-    sourceKind: varchar("source_kind", { length: 16 }).notNull(),
+    sourceKind: varchar("source_kind", { length: 16, enum: SOURCE_KINDS }).notNull(),
     /** The source's own id for it, when it has one (`form`: the lander's application id). */
     sourceRef: varchar("source_ref", { length: 64 }),
     /** What they called themselves, when no person row names them (a form applicant). */
@@ -220,6 +223,7 @@ export const smsContacts = pgTable(
       foreignColumns: [documents.id],
       name: "fk_sms_contacts_source_document_id_documents",
     }).onDelete("set null"),
+    oneOf("ck_sms_contacts_source_kind", t.sourceKind, SOURCE_KINDS),
     oneOf("ck_sms_contacts_contactbasis", t.basis, CONTACT_BASES),
     oneOf("ck_sms_contacts_linetype", t.lineType, LINE_TYPES),
     oneOf("ck_sms_contacts_contactstate", t.state, CONTACT_STATES),

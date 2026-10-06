@@ -54,14 +54,25 @@ export const searchDays = pgTable(
 );
 export type SearchDay = typeof searchDays.$inferSelect;
 
+/** What Search Console's URL inspection can say about a page (its `verdict` enum). */
+export const INSPECTION_VERDICTS = [
+  "PASS",
+  "PARTIAL",
+  "FAIL",
+  "NEUTRAL",
+  "VERDICT_UNSPECIFIED",
+] as const;
+
+export type InspectionVerdict = (typeof INSPECTION_VERDICTS)[number];
+
 /** Search Console's URL inspection, one row per page per day checked. */
 export const searchPages = pgTable(
   "search_pages",
   {
     url: text("url").notNull(),
     checkedOn: date("checked_on").notNull(),
-    /** PASS, NEUTRAL, FAIL or VERDICT_UNSPECIFIED, as Google says it. */
-    verdict: varchar("verdict", { length: 32 }).notNull(),
+    /** As Google says it. */
+    verdict: varchar("verdict", { length: 32, enum: INSPECTION_VERDICTS }).notNull(),
     /** "Submitted and indexed", "Discovered - currently not indexed", ... */
     coverage: text("coverage"),
     lastCrawl: timestamp("last_crawl", { withTimezone: true }),
@@ -72,6 +83,7 @@ export const searchPages = pgTable(
   (t) => [
     primaryKey({ columns: [t.url, t.checkedOn], name: "pk_search_pages" }),
     index("ix_search_pages_run_id").on(t.runId),
+    oneOf("ck_search_pages_verdict", t.verdict, INSPECTION_VERDICTS),
     foreignKey({
       columns: [t.runId],
       foreignColumns: [runs.id],
