@@ -708,7 +708,7 @@ function SortHead({
   const on = sort === field.key || sort === `-${field.key}`;
   const desc = sort === `-${field.key}`;
   const end = field.column?.align === "end";
-  if (!field.sortable) return <span>{field.label}</span>;
+  if (!field.sortable) return <span className="line-clamp-2">{field.label}</span>;
   // Numbers and dates start high; words and states start at the top of their order.
   const first = end ? `-${field.key}` : field.key;
   const next = on ? (desc ? field.key : `-${field.key}`) : first;
@@ -722,8 +722,8 @@ function SortHead({
         on ? "text-(--ui-ink)" : "text-inherit",
       )}
     >
-      {field.label}
-      {on ? <Arrow className="size-3" /> : null}
+      <span className="line-clamp-2">{field.label}</span>
+      {on ? <Arrow className="size-3 shrink-0" /> : null}
     </a>
   );
 }
@@ -783,8 +783,35 @@ function charsOf(f: FieldMeta, c: Cell | undefined): number {
  */
 export function fitOf(f: FieldMeta, rows: Row[]): number {
   if (!rows.length) return widthOf(f);
-  const chars = Math.max(f.label.length + 3, ...rows.map((r) => charsOf(f, r[f.key])));
+  // The head may take two lines: its longest word, or half of it, and room for the sort arrow.
+  const words = f.label.split(/\s+/);
+  const head = Math.max(...words.map((w) => w.length), Math.ceil(f.label.length / 2)) + 3;
+  const chars = Math.max(head, ...rows.map((r) => charsOf(f, r[f.key])));
   return Math.min(widthOf(f), Math.max(64, Math.ceil(chars * 7.2) + 24));
+}
+
+/**
+ * Each column's width; none takes what the rest leave. That is the title, unless its words are
+ * short and a text column is cut: then the title fits its words and the cut columns share the
+ * room, so "Redis or Valkey" doesn't sit in half the table while its reason reads "Costliest...".
+ */
+export function widthsOf(meta: RecordMeta, cols: FieldMeta[], rows: Row[]) {
+  const widths: Record<string, number | undefined> = {};
+  for (const f of cols) widths[f.key] = f.key === meta.title ? undefined : fitOf(f, rows);
+  const title = cols.find((f) => f.key === meta.title);
+  if (!title || !rows.length) return widths;
+  const cut = cols.filter(
+    (f) =>
+      f !== title &&
+      f.kind === "text" &&
+      rows.some((r) => Math.ceil(charsOf(f, r[f.key]) * 7.2) + 24 > widthOf(f)),
+  );
+  const words = Math.max(title.label.length, ...rows.map((r) => titleOf(meta, r).length));
+  const needs = Math.ceil(words * 7.6) + 24;
+  if (!cut.length || needs > 360) return widths;
+  widths[title.key] = Math.max(needs, widthOf(title));
+  for (const f of cut) widths[f.key] = undefined;
+  return widths;
 }
 
 /**
@@ -855,6 +882,7 @@ function List({
   });
   const totals = page.data?.totals;
   const footed = !!rows.length && !!totals && cols.some((f) => totalSays(f, totals[f.key]));
+  const widths = widthsOf(meta, cols, rows);
   const filters = meta.fields.filter(
     (f) =>
       filterShape(f) && !(filterShape(f) === "words" && f.searchable) && filterShape(f) !== "set",
@@ -1071,19 +1099,16 @@ function List({
               minWidth: narrow
                 ? undefined
                 : 72 +
-                  cols.reduce(
-                    (n, f) => n + (f.key === meta.title ? widthOf(f, true) : fitOf(f, rows)),
-                    0,
-                  ),
+                  cols.reduce((n, f) => n + (widths[f.key] ?? widthOf(f, f.key === meta.title)), 0),
             }}
           >
             <colgroup>
               <col style={{ width: 36 }} />
               {cols.map((f) => (
-                // The title takes what the others leave; the table's min width keeps its share.
+                // A column with no width takes what the others leave; the min width keeps its share.
                 <col
                   key={f.key}
-                  style={f.key === meta.title ? undefined : { width: fitOf(f, rows) }}
+                  style={widths[f.key] === undefined ? undefined : { width: widths[f.key] }}
                 />
               ))}
               <col style={{ width: 36 }} />
@@ -1105,8 +1130,10 @@ function List({
                   <th
                     key={f.key}
                     scope="col"
+                    title={f.label}
                     className={cn(
-                      "sticky top-0 z-10 h-9 truncate border-b border-(--ui-hair) bg-(--ui-paper) px-3 font-medium",
+                      // A long head takes two lines, so its column fits its numbers.
+                      "sticky top-0 z-10 h-9 border-b border-(--ui-hair) bg-(--ui-paper) px-3 py-1 font-medium leading-tight",
                       f.column?.align === "end" ? "text-right" : "text-left",
                     )}
                   >

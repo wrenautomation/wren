@@ -4,7 +4,7 @@ import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it } from "vitest";
 import type { Action } from "./action.js";
 import { totalSays, widthOf } from "./fields.js";
-import { fitOf, KeyHints, shownColumns } from "./records.js";
+import { fitOf, KeyHints, shownColumns, widthsOf } from "./records.js";
 
 const field = (key: string, kind: FieldMeta["kind"] = "text"): FieldMeta => ({
   key,
@@ -105,5 +105,18 @@ describe("KeyHints", () => {
     const posts = hints([{ id: 1, type: "email" }]);
     expect(posts).toContain("send");
     expect(posts).not.toContain("dm them");
+  });
+});
+
+describe("widthsOf", () => {
+  it("lets the title take the room, unless it is short and a text column is cut", () => {
+    const long = [{ id: 1, name: "Alpha", note: "x".repeat(80), city: "Springfield" }];
+    const short = widthsOf(meta, [name, note, city], long);
+    expect(short.name).toBeGreaterThan(0);
+    expect(short.note).toBeUndefined();
+    const wide = [{ id: 1, name: "y".repeat(120), note: "x".repeat(80), city: "Springfield" }];
+    const titled = widthsOf(meta, [name, note, city], wide);
+    expect(titled.name).toBeUndefined();
+    expect(titled.note).toBe(widthOf(note));
   });
 });
