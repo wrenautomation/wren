@@ -13,7 +13,7 @@
  */
 import { companies, inPlay, people } from "@wren/core";
 import { atomic, type Queryable } from "@wren/db";
-import { and, asc, eq, inArray, isNotNull, notInArray, or, sql } from "drizzle-orm";
+import { and, asc, eq, inArray, isNotNull, notExists, or, sql } from "drizzle-orm";
 import { companyPageUrl, linkedinCompany } from "../companies/profile.js";
 import { htmlOf, type PageStore, telHrefs } from "../pages.js";
 import { linkedinProfile } from "../people/profile-link.js";
@@ -233,17 +233,21 @@ export type ContactsTarget = Pick<
   "id" | "companyId" | "url" | "text" | "html" | "htmlKey" | "telHrefs"
 >;
 
-const readDocumentIds = (db: Queryable) =>
-  db
-    .select({ id: enrichments.documentId })
-    .from(enrichments)
-    .where(
-      and(
-        eq(enrichments.kind, "contact_scan"),
-        eq(enrichments.model, CONTACTS_MODEL),
-        eq(enrichments.promptVersion, CONTACTS_VERSION),
+/** NOT EXISTS, not NOT IN: the planner anti-joins it, and a null document_id can't empty it. */
+const unread = (db: Queryable) =>
+  notExists(
+    db
+      .select({ one: sql`1` })
+      .from(enrichments)
+      .where(
+        and(
+          eq(enrichments.documentId, documents.id),
+          eq(enrichments.kind, "contact_scan"),
+          eq(enrichments.model, CONTACTS_MODEL),
+          eq(enrichments.promptVersion, CONTACTS_VERSION),
+        ),
       ),
-    );
+  );
 
 const TARGET = {
   id: documents.id,
@@ -261,7 +265,7 @@ export async function selectContactTargets(
   opts: { limit?: number | undefined; niche?: string | null | undefined } = {},
 ): Promise<number[]> {
   const conditions = [
-    notInArray(documents.id, readDocumentIds(db)),
+    unread(db),
     isNotNull(documents.companyId),
     inArray(documents.kind, ["webpage", "pdf"]),
     or(isNotNull(documents.html), isNotNull(documents.htmlKey), sql`${documents.text} <> ''`),

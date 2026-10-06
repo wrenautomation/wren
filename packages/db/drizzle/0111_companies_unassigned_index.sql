@@ -1,0 +1,1 @@
+CREATE INDEX "ix_companies_unassigned" ON "companies" USING btree ("id") WHERE niche IS NULL;

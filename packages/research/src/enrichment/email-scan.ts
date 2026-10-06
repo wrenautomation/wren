@@ -11,7 +11,7 @@
 import { companies, emailDomain, emailSyntaxError, inPlay, normalizeEmail } from "@wren/core";
 import { atomic, type Queryable } from "@wren/db";
 import { wellFormed } from "@wren/llm";
-import { and, asc, eq, ne, notInArray } from "drizzle-orm";
+import { and, asc, eq, ne, notExists, sql } from "drizzle-orm";
 import { readPage } from "../fetch/htmltext.js";
 import { htmlOf, type PageStore } from "../pages.js";
 import { type Document, documents, enrichments } from "../schema.js";
@@ -191,29 +191,28 @@ export interface ScanSelectOptions {
 
 export type ScanTarget = Document & { companyDomain: string | null };
 
-const scannedDocumentIds = (db: Queryable) =>
-  db
-    .select({ id: enrichments.documentId })
-    .from(enrichments)
-    .where(
-      and(
-        eq(enrichments.kind, "email_scan"),
-        eq(enrichments.model, SCAN_MODEL),
-        eq(enrichments.promptVersion, SCAN_VERSION),
+/** NOT EXISTS, not NOT IN: the planner anti-joins it, and a null document_id can't empty it. */
+const unscanned = (db: Queryable) =>
+  notExists(
+    db
+      .select({ one: sql`1` })
+      .from(enrichments)
+      .where(
+        and(
+          eq(enrichments.documentId, documents.id),
+          eq(enrichments.kind, "email_scan"),
+          eq(enrichments.model, SCAN_MODEL),
+          eq(enrichments.promptVersion, SCAN_VERSION),
+        ),
       ),
-    );
+  );
 
 /** Documents without an email_scan row: shells carry no words worth scanning; tombstones nothing at all. */
 export async function selectScanTargets(
   db: Queryable,
   opts: ScanSelectOptions = {},
 ): Promise<ScanTarget[]> {
-  const conditions = [
-    notInArray(documents.id, scannedDocumentIds(db)),
-    ne(documents.text, ""),
-    eq(documents.isShell, false),
-    inPlay,
-  ];
+  const conditions = [unscanned(db), ne(documents.text, ""), eq(documents.isShell, false), inPlay];
   if (opts.niche != null) conditions.push(eq(companies.niche, opts.niche));
   const q = db
     .select({ document: documents, companyDomain: companies.domain })

@@ -24,7 +24,20 @@ import {
 } from "@wren/core";
 import { atomic, type Queryable } from "@wren/db";
 import { completeAndParse, type LlmClient, LlmError, parseModel, type Tracer } from "@wren/llm";
-import { and, asc, count, eq, inArray, isNotNull, isNull, ne, notInArray, sql } from "drizzle-orm";
+import {
+  and,
+  asc,
+  count,
+  eq,
+  exists,
+  inArray,
+  isNotNull,
+  isNull,
+  ne,
+  notExists,
+  type SQL,
+  sql,
+} from "drizzle-orm";
 import { z } from "zod";
 import { type Document, documents, type Enrichment, enrichments } from "../schema.js";
 import type { Shard } from "./shard.js";
@@ -201,32 +214,27 @@ export async function selectExtractionTargets(
     eq(enrichments.model, llm.name),
     sql`${enrichments.output}->>'parse_error' IS NULL`,
   );
-  const cached = db
-    .select({ id: enrichments.documentId })
-    .from(enrichments)
-    .where(and(successful, eq(enrichments.promptVersion, version)));
-  const olderVersion = db
-    .select({ id: enrichments.documentId })
-    .from(enrichments)
-    .where(and(successful, ne(enrichments.promptVersion, version)));
-  const scoped = [
-    notInArray(documents.id, cached),
-    ne(documents.text, ""),
-    eq(documents.isShell, false),
-    inPlay,
-  ];
+  // Correlated NOT EXISTS, not NOT IN: the planner anti-joins it (a big IN list scanned per row).
+  const doneAs = (promptVersion: SQL) =>
+    db
+      .select({ one: sql`1` })
+      .from(enrichments)
+      .where(and(eq(enrichments.documentId, documents.id), successful, promptVersion));
+  const cached = doneAs(eq(enrichments.promptVersion, version));
+  const olderVersion = doneAs(ne(enrichments.promptVersion, version));
+  const scoped = [notExists(cached), ne(documents.text, ""), eq(documents.isShell, false), inPlay];
   if (opts.niche != null) scoped.push(eq(companies.niche, opts.niche));
   if (opts.shard) scoped.push(opts.shard.where(documents.id));
 
   let skippedOlderVersion = 0;
   const conditions = [...scoped];
   if (!opts.reextract) {
-    conditions.push(notInArray(documents.id, olderVersion));
+    conditions.push(notExists(olderVersion));
     const [r] = await db
       .select({ n: count() })
       .from(documents)
       .leftJoin(companies, eq(documents.companyId, companies.id))
-      .where(and(...scoped, inArray(documents.id, olderVersion)));
+      .where(and(...scoped, exists(olderVersion)));
     skippedOlderVersion = r?.n ?? 0;
   }
   const q = db

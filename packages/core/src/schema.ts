@@ -405,6 +405,8 @@ export const companies = pgTable(
     primaryKey({ columns: [t.id], name: "pk_companies" }),
     index("ix_companies_import_id").on(t.importId),
     // Covers `email_firm_records`: the console's firm counts read this, not the wide heap.
+    // Firms no niche has claimed: the assignment and render selectors read only these.
+    index("ix_companies_unassigned").on(t.id).where(sql`niche IS NULL`),
     index("ix_companies_firm_records")
       .on(t.id, t.niche, t.declineReason, t.domain, t.createdAt, t.name)
       .where(sql`niche is not null`),
