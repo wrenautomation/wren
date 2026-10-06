@@ -3,7 +3,7 @@ type: object
 cluster: content
 universe: live
 status: verified
-verified: 2026-10-06 @ 2cbd7d3
+verified: 2026-10-06 @ b620325
 entity: packages/studio/src/schema.ts:74
 ---
 
