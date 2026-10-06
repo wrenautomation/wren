@@ -251,5 +251,11 @@ describe("report", () => {
       `1. Staffing survey, <${PAGE.url}>: "38% of placements came from repeat clients"`,
     );
     expect(md).toContain("1 section still to run");
+
+    const held = { by: "tester", at: "2026-10-06T00:00:00Z", published: "2025-01-02", hash: "x" };
+    const marked = studyReport({ ...view, manual: new Map([[PAGE.url, held]]) });
+    expect(marked).toContain(
+      `<${PAGE.url}> (added by hand by tester on 2026-10-06, published 2025-01-02): "38%`,
+    );
   });
 });

@@ -7,7 +7,7 @@ import type { StudyView } from "./run.js";
 const plural = (n: number, one: string, many = `${one}s`) => `${n} ${n === 1 ? one : many}`;
 
 export function studyReport(view: StudyView): string {
-  const { study, angles, drafts, titles, counts } = view;
+  const { study, angles, drafts, titles, manual, counts } = view;
   const claims = angles.flatMap((a) => a.claims);
   const dropped = angles.reduce((n, a) => n + a.dropped.length, 0);
   const open = angles.filter((a) => !a.done).length + drafts.filter((d) => !d.done).length;
@@ -49,7 +49,11 @@ export function studyReport(view: StudyView): string {
     out.push("", "## Sources", "");
     for (const c of claims) {
       const title = titles.get(c.source_url);
-      out.push(`${c.n}. ${title ? `${title}, ` : ""}<${c.source_url}>: "${c.quote}"`);
+      const m = manual?.get(c.source_url);
+      const held = m
+        ? ` (added by hand by ${m.by} on ${m.at.slice(0, 10)}${m.published ? `, published ${m.published}` : ""})`
+        : "";
+      out.push(`${c.n}. ${title ? `${title}, ` : ""}<${c.source_url}>${held}: "${c.quote}"`);
     }
   }
   return `${out

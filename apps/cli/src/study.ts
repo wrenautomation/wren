@@ -2,16 +2,20 @@
  * `wren study …`: research a question from the open web into a report where
  * every line cites a quote on a page we read. `study new` saves the question,
  * `study run` does whatever is left (Ctrl-C and run again to resume),
- * `study report` prints it. Always the main database.
+ * `study report` prints it. `study add-page` adds a page we hold (a PDF, a
+ * paywalled page saved to disk). Always the main database.
  */
 import { readFileSync, writeFileSync } from "node:fs";
-import { resolve } from "node:path";
+import { userInfo } from "node:os";
+import { basename, resolve } from "node:path";
+import { htmlText, pdfText } from "@wren/books";
 import type { Settings } from "@wren/config";
 import { recordedRun } from "@wren/core";
 import type { Db } from "@wren/db";
 import { loadLlmEnv, makeLlm } from "@wren/llm";
 import { STUDY_STEPS, type StudyStep, studies } from "@wren/research/schema";
 import {
+  addStudyPage,
   openStudy,
   questionStudy,
   runStudy,
@@ -26,6 +30,17 @@ import { ingressSites } from "./sites.js";
 type WithDb = <T>(fn: (db: Db) => Promise<T>) => Promise<T>;
 
 const collect = (v: string, prev: string[] = []) => [...prev, v];
+
+/** A held file's text: a PDF read with unpdf, HTML stripped to text, anything else as is. */
+export async function heldPageText(bytes: Uint8Array, name: string): Promise<string> {
+  if (new TextDecoder().decode(bytes.subarray(0, 5)) === "%PDF-") {
+    const text = await pdfText(bytes);
+    if (!text) throw new Error(`${name}: no text in this PDF (scanned or encrypted?)`);
+    return text;
+  }
+  const raw = new TextDecoder().decode(bytes);
+  return /\.html?$/i.test(name) || /<html[\s>]/i.test(raw) ? htmlText(raw) : raw;
+}
 
 export function registerStudy(
   program: Command,
@@ -118,6 +133,41 @@ export function registerStudy(
       else if (stats.failed || stats.waiting) console.log(`not done: wren study run ${slug}`);
       else console.log(`done: wren study report ${slug}`);
     });
+
+  study
+    .command("add-page <slug> <file-or-url>")
+    .description(
+      "add a page you hold (PDF, saved HTML, text) to a study; the next run redoes claims with it",
+    )
+    .option("--title <text>", "the page's title (default: the file name)")
+    .option("--source-url <url>", "where it lives, cited in the report (default: the URL given)")
+    .option("--published <date>", "when it was published, YYYY-MM-DD")
+    .action(
+      async (
+        slug: string,
+        from: string,
+        opts: { title?: string; sourceUrl?: string; published?: string },
+      ) => {
+        const isUrl = /^https?:\/\//i.test(from);
+        let bytes: Uint8Array;
+        if (isUrl) {
+          const res = await fetch(from);
+          if (!res.ok) throw new Error(`${from}: HTTP ${res.status}`);
+          bytes = new Uint8Array(await res.arrayBuffer());
+        } else bytes = readFileSync(resolve(from));
+        const page = {
+          text: await heldPageText(bytes, from),
+          title: opts.title ?? basename(from).replace(/\.\w+$/, ""),
+          sourceUrl: opts.sourceUrl ?? (isUrl ? from : null),
+          published: opts.published ?? null,
+          by: userInfo().username,
+        };
+        const { key, added } = await withDb((db) => addStudyPage(db, slug, page));
+        if (!added) return void console.log(`already in ${slug} as ${key}`);
+        console.log(`added ${key} (${page.text.length} chars); claims and drafts will be redone`);
+        console.log(`next: wren study run ${slug}`);
+      },
+    );
 
   study
     .command("report <slug>")

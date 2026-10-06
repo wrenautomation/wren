@@ -8,10 +8,11 @@
  * until every angle has its claims: a report is never drawn from half the
  * evidence and then frozen.
  */
+import { createHash } from "node:crypto";
 import type { SiteClient } from "@wren/core/content";
 import type { Queryable } from "@wren/db";
 import { completeAndParse, type LlmClient, LlmError, type Tracer } from "@wren/llm";
-import { and, asc, eq, gte, inArray } from "drizzle-orm";
+import { and, asc, eq, gte, inArray, sql } from "drizzle-orm";
 import type { ZodType } from "zod";
 import { keepDocument, keepingAnswers } from "../findings.js";
 import type { EvidencePage } from "../grounding.js";
@@ -46,7 +47,7 @@ import {
   gateDrafts,
   type NumberedClaim,
 } from "./drafts.js";
-import { angleEvidence, type Hit, pickReads, terms } from "./evidence.js";
+import { angleEvidence, type Hit, pageKey, pickReads, terms } from "./evidence.js";
 import type { StudyInput } from "./recipes.js";
 
 export const READS_PER_ANGLE = 6;
@@ -140,6 +141,88 @@ export const pageTitle = (title: string | null | undefined): string | null => {
   return t && !/^about:/i.test(t) ? t : null;
 };
 
+/** On a `read` a person added by hand (`study add-page`); a fetched read has none. */
+export interface ManualPage {
+  by: string;
+  at: string;
+  /** YYYY-MM-DD, when given. */
+  published: string | null;
+  /** sha256 of the text: the same text twice is one page. */
+  hash: string;
+}
+export const manualOf = (r: StudyStepRow): ManualPage | null =>
+  (r.detail as { manual?: ManualPage }).manual ?? null;
+
+export interface HeldPage {
+  text: string;
+  title: string | null;
+  /** Where it lives, cited in the report; null keys it `manual:<hash>`. */
+  sourceUrl: string | null;
+  published: string | null;
+  by: string;
+}
+
+/**
+ * Add a page a person holds (a PDF, a saved paywalled page) as a `read`: the
+ * next run claims from it in every angle, like a page it fetched. The same
+ * text again is a no-op. A new page throws away the claims and drafts so the
+ * next run redoes them with it.
+ */
+export async function addStudyPage(
+  db: Queryable,
+  slug: string,
+  page: HeldPage,
+  now = new Date(),
+): Promise<{ key: string; added: boolean }> {
+  const study = await studyBySlug(db, slug);
+  const text = page.text.trim();
+  if (text.length < MIN_PAGE_CHARS)
+    throw new Error(`only ${text.length} chars of text; a page needs ${MIN_PAGE_CHARS}`);
+  if (page.published && !/^\d{4}-\d{2}-\d{2}$/.test(page.published))
+    throw new Error(`published '${page.published}': use YYYY-MM-DD`);
+  const hash = createHash("sha256").update(text).digest("hex");
+  const reads = await db
+    .select()
+    .from(studySteps)
+    .where(and(eq(studySteps.studyId, study.id), eq(studySteps.step, "read")));
+  const had = reads.find((r) => manualOf(r)?.hash === hash);
+  if (had) return { key: had.key, added: false };
+
+  const key = page.sourceUrl ? pageKey(page.sourceUrl) : `manual:${hash.slice(0, 16)}`;
+  const title = pageTitle(page.title);
+  const documentId = await keepDocument(db, {
+    url: key,
+    kind: "webpage",
+    title,
+    text,
+    fetchTier: "manual",
+  });
+  await db
+    .delete(studySteps)
+    .where(and(eq(studySteps.studyId, study.id), inArray(studySteps.step, ["claims", "draft"])));
+  const manual: ManualPage = {
+    by: page.by,
+    at: now.toISOString(),
+    published: page.published,
+    hash,
+  };
+  const values = {
+    outcome: "ok" as const,
+    detail: { title, via: "manual", cut: 0, chars: text.length, manual },
+    documentId,
+    runId: null,
+    createdAt: now,
+  };
+  await db
+    .insert(studySteps)
+    .values({ studyId: study.id, step: "read", key, ...values })
+    .onConflictDoUpdate({
+      target: [studySteps.studyId, studySteps.step, studySteps.key],
+      set: values,
+    });
+  return { key, added: true };
+}
+
 /** Stop the run: a provider failure, or the sites failing in a row. */
 class Abort extends Error {}
 
@@ -198,9 +281,16 @@ export async function runStudy(
 
   if (opts.redo) {
     const later = STUDY_STEPS.slice(STUDY_STEPS.indexOf(opts.redo));
+    // A page added by hand can't be fetched again; it stays.
     await db
       .delete(studySteps)
-      .where(and(eq(studySteps.studyId, study.id), inArray(studySteps.step, later)));
+      .where(
+        and(
+          eq(studySteps.studyId, study.id),
+          inArray(studySteps.step, later),
+          sql`${studySteps.detail}->'manual' is null`,
+        ),
+      );
   }
   const rows = new Map<Unit, StudyStepRow>();
   for (const r of await db.select().from(studySteps).where(eq(studySteps.studyId, study.id))) {
@@ -281,8 +371,14 @@ export async function runStudy(
     (done("search", query)?.detail as SearchDetail | undefined)?.hits ?? [];
   const sourcesOf = (angle: string): Hit[] =>
     (done("ask", angle)?.detail as AskDetail | undefined)?.sources ?? [];
-  const readsOf = (angle: string): string[] =>
-    pickReads([...queriesOf(angle).map(hitsOf), sourcesOf(angle)], readsPerAngle);
+  // Pages added by hand go first in every angle: someone chose them.
+  const held = [...rows.values()].filter((r) => r.step === "read" && manualOf(r)).map((r) => r.key);
+  const readsOf = (angle: string): string[] => [
+    ...new Set([
+      ...held,
+      ...pickReads([...queriesOf(angle).map(hitsOf), sourcesOf(angle)], readsPerAngle),
+    ]),
+  ];
 
   try {
     for (const angle of study.angles) {
@@ -524,6 +620,8 @@ export interface StudyView {
   drafts: { spec: StudyDraftSpec; kept: DraftItem[]; dropped: DroppedDraft[]; done: boolean }[];
   /** Page titles by URL, for the sources list. */
   titles: Map<string, string>;
+  /** Pages added by hand, by URL: the report says who and when. */
+  manual?: Map<string, ManualPage>;
   counts: { queries: number; pages: number; unread: number };
 }
 
@@ -552,15 +650,19 @@ export async function studyView(db: Queryable, slug: string, since?: Date): Prom
     return { spec, kept: d.kept ?? [], dropped: d.dropped ?? [], done: row !== null };
   });
   const titles = new Map<string, string>();
+  const manual = new Map<string, ManualPage>();
   for (const r of rows) {
     const title = pageTitle((r.detail as { title?: string | null }).title);
     if (r.step === "read" && r.outcome === "ok" && title) titles.set(r.key, title);
+    const m = r.step === "read" ? manualOf(r) : null;
+    if (m) manual.set(r.key, m);
   }
   return {
     study,
     angles,
     drafts,
     titles,
+    manual,
     counts: {
       queries: rows.filter((r) => r.step === "search" && r.outcome !== "failed").length,
       pages: rows.filter((r) => r.step === "read" && r.outcome === "ok").length,

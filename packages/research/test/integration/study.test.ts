@@ -11,7 +11,7 @@ import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 import { documents, studySteps } from "../../src/schema.js";
 import { questionStudy } from "../../src/studies/recipes.js";
 import { studyReport } from "../../src/studies/report.js";
-import { openStudy, runStudy, studyView } from "../../src/studies/run.js";
+import { addStudyPage, openStudy, runStudy, studyView } from "../../src/studies/run.js";
 
 let pg: TestPostgres;
 beforeAll(async () => {
@@ -198,6 +198,36 @@ describe("runStudy", () => {
     const stats = await runStudy(db(), { sites, llm, sleep: noSleep }, "down");
     expect(stats.aborted).toContain("provider down");
     expect(await rows("plan")).toHaveLength(1);
+  });
+
+  it("a page added by hand is read once, redoes claims, survives redo, and is marked", async () => {
+    await openStudy(db(), "held", input());
+    const { sites, calls } = fakeSites();
+    const { llm, prompts } = fakeModel();
+    await runStudy(db(), { sites, llm, sleep: noSleep }, "held");
+    const page = {
+      text: pageText("held report"),
+      title: "Held report",
+      sourceUrl: null,
+      published: "2025-03-01",
+      by: "tester",
+    };
+    const first = await addStudyPage(db(), "held", page);
+    expect(first.added).toBe(true);
+    expect(first.key).toMatch(/^manual:[0-9a-f]{16}$/);
+    await expect(addStudyPage(db(), "held", page)).resolves.toEqual({ ...first, added: false });
+
+    const siteCalls = calls.length;
+    const stats = await runStudy(db(), { sites, llm, sleep: noSleep }, "held");
+    expect(calls.length).toBe(siteCalls);
+    expect(stats).toMatchObject({ read: 0, claimed: 2, drafted: 1 });
+    const claimsPrompt = prompts.filter((p) => p.startsWith("You pull facts")).at(-1) ?? "";
+    expect(/=== (\S+)/.exec(claimsPrompt)?.[1]).toBe(first.key);
+    const md = studyReport(await studyView(db(), "held"));
+    expect(md).toContain(`<${first.key}> (added by hand by tester on `);
+
+    await runStudy(db(), { sites, llm, sleep: noSleep }, "held", { redo: "read" });
+    expect((await rows("read")).some((r) => r.key === first.key)).toBe(true);
   });
 
   it("refuses a second study under a slug that asks something else", async () => {

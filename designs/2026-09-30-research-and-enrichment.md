@@ -157,7 +157,7 @@ Green light given (2026-10-01). Nothing in research needs autobrowse changes now
 2. **Region drift.** A UK roundtable passed in a US and Canada study. Nothing checks a claim's country.
 3. **Strong model is laptop only.** `claude-code` needs the login; the box has none. A study on the box runs Cohere.
 4. **Made-up sentences without numbers** pass. Only a person reading catches them.
-5. **No manual page.** A paywalled report or a PDF we hold cannot be added to a study. Wanted: `study add-page`.
+5. **No manual page.** A paywalled report or a PDF we hold cannot be added to a study. Wanted: `study add-page`. Built 2026-10-06: `wren study add-page <study> <file-or-url>` (PDF via unpdf, HTML, text) stores a `read` marked `manual` (who, when, published), same text twice is one page, claims and drafts redo on the next run, `--redo` keeps it, the report marks it. No migration.
 6. **Claude Code calls cost $0** in the cost ledger. Subscription limits are invisible until a call fails.
 7. **Two runners do one job** (PoolScheduler, `crm run`). Unify them before adding another. Studies stay a CLI run.
 8. **Dossier is as thin as the runners.** No findings locally. A dossier for a firm no runner touched is a name and a domain.
