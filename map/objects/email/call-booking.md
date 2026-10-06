@@ -9,7 +9,7 @@ entity: packages/channel-email/src/schema.ts:638
 
 # call-booking
 
-A call booked on Wren's cal.com, from its webhook or the catch-up list. Table `call_bookings`, one row per booking uid.
+A call booked on Wren's cal.com, from its webhook or the catch-up list, or on our own calendar, mirrored as uid `wren-<id>` ([[calendar/booking]]). Table `call_bookings`, one row per booking uid.
 
 ## Why this shape
 
@@ -28,6 +28,7 @@ Citations: `packages/channel-email/src/schema.ts:638`, `packages/channel-email/s
 
 - **owned-by:** [[email/enrollment]], [[email/message]] (by `link_code`)
 - **joins:** [[platform/phone-worker]]
+- **joins:** [[calendar/booking]] (writes here through `applyBooking`, `packages/calendar/src/book.ts:206`)
 - **looks-like-but-is-not:** `call_invites` (a reply's proposed slot, booked through the API on William's approve)
 
 ## If you change this

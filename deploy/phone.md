@@ -87,6 +87,12 @@ A client's cal.com: webhook `https://phone.wrenautomation.com/webhooks/calcom/<c
 triggers, signed with its own secret in `CALCOM_WEBHOOK_SECRETS`. Each booking goes to
 `CallBookings/ingestFor`, into its database (designs/2026-10-04-outbound-per-client.md).
 
+## Calendar
+
+`/calendar/<handler>` (`slots`, `book`, `booking`, `reschedule`, `cancel`, POST only) is the lander's
+door to our own booking calendar (designs/2026-10-06-calendar.md). No sign-in: `Calendar` checks the
+lander's signature (`EXPORT_TOKEN`) or the call's signed link. No secret of its own here.
+
 ## Gmail push
 
 Made 2026-10-04 in the service account's project (`wrenautomation`) with gcloud as
@@ -109,6 +115,7 @@ Rotate: the same two steps, `subscriptions update ... --push-endpoint`. Each
     curl -s -X POST https://phone.wrenautomation.com/api/threads   # {"error":"sign in"}
     curl -s -X POST https://phone.wrenautomation.com/webhooks/telnyx -d '{}'   # 401 once the key is set
     curl -s -X POST https://phone.wrenautomation.com/links -d '{}'             # 401: unsigned
+    curl -s -X POST https://phone.wrenautomation.com/calendar/slots -d '{}'    # open times
 
 Local: `npx wrangler dev` with `.dev.vars` (RESTATE_INGRESS_URL). The app only
 signs in on a `phone.` host, so locally every call is 401. Tests: `pnpm --filter @wren/phone test:unit`.
