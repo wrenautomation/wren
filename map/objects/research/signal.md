@@ -24,7 +24,7 @@ Findings already dedupe on `fact_key`, keep the raw in `documents`, and feed bri
 
 ## Collectors
 
-A collector is one file: `name`, `subject` (company, person or post), its own zod `settings`, a `bucket` (per day, burst), `everyDays`, `metered`, an optional `subjects`, and `collect`, which only reads; the runner writes (`index.ts:100`, `defineCollector` `:117`). The registry `COLLECTORS` lists all eight once (`collectors.ts:20`). Their settings join the component `research.signals` under each name, plus `on` (default: built). LinkedIn reads only as an account in `READ_ACCOUNTS`, today `linkedin@alt` (`index.ts:34`). Free collectors batch 20 units a step; metered ones run one a step.
+A collector is one file: `name`, `subject` (company, person or post), its own zod `settings`, a `bucket` (per day, burst), `everyDays`, `metered`, an optional `subjects`, and `collect`, which only reads; the runner writes (`index.ts:100`, `defineCollector` `:117`). The registry `COLLECTORS` lists all eight once (`collectors.ts:20`). Their settings join the component `research.signals` under each name, plus `on` (default: built). LinkedIn reads only as `linkedin@alt`, by name, for a client whose `WREN_POOL_LINKEDIN` is set and is not `linkedin` or `linkedin@wren` (`readAccount`, `index.ts`). Free collectors batch 20 units a step; metered ones run one a step.
 
 | Collector | Kind | Subject | Source, in order | Every | Bucket a day (burst) | Cost | Settings |
 |---|---|---|---|---|---|---|---|

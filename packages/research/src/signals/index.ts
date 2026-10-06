@@ -30,8 +30,6 @@ export const SIGNALS_COMMAND = "enrich signals";
 export const SIGNALS_COMPONENT = "research.signals";
 /** `unit_holds.stage` for a unit out of retries; its subject is `<collector>:<subject>`. */
 export const SIGNALS_HELD = "research.signals";
-/** The only LinkedIn accounts a collector may read as. Never William's, never Wren's page admin. */
-export const READ_ACCOUNTS: readonly string[] = ["linkedin@alt"];
 /** Google searches the collectors may spend a local day, of the 200 shared with profiles. */
 export const SIGNALS_GOOGLE_PER_DAY = 50;
 /** An unresolved subject is asked again after this long. */
@@ -79,7 +77,7 @@ export interface SignalDeps {
   pages: PageStore | null;
   youtube: YouTubeGet | null;
   llm: LlmClient | null;
-  /** The LinkedIn account to read as: one of `READ_ACCOUNTS`, else null. */
+  /** The LinkedIn account to read as: `readAccount`'s answer, else null. */
   linkedin: string | null;
   /** Google searches this unit may still spend. */
   googleLeft: number;
@@ -221,9 +219,16 @@ export async function passOf(
   return { niche, personIds: [...new Set(personIds)], companyIds: [...new Set(firms)] };
 }
 
-/** The account a collector may read LinkedIn as: `account` if allowed, else none. */
-export const readAccount = (account: string | null | undefined): string | null =>
-  account && READ_ACCOUNTS.includes(account) ? account : null;
+/**
+ * The account a collector reads LinkedIn as. Only `linkedin@alt`, by its credential name
+ * (autobrowse resolves it to its address), and only for a client whose pool account
+ * (`WREN_POOL_LINKEDIN`: the alt's name or its address) is set and is not William's own or
+ * Wren's outreach account by name.
+ */
+export const readAccount = (pool: string | null | undefined): string | null => {
+  const p = pool?.trim();
+  return p && p !== "linkedin" && p !== "linkedin@wren" ? "linkedin@alt" : null;
+};
 
 /**
  * The due ones of `subjects`, in order: never checked, a found or none answer older than

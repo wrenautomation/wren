@@ -66,8 +66,11 @@ describe("subjects and accounts", () => {
 
   it("reads LinkedIn only as the alt", () => {
     expect(readAccount("linkedin@alt")).toBe("linkedin@alt");
+    // The pool account as the alt's address reads as the alt, by its name.
+    expect(readAccount("someone@example.com")).toBe("linkedin@alt");
     expect(readAccount("linkedin")).toBeNull();
     expect(readAccount("linkedin@wren")).toBeNull();
+    expect(readAccount("  ")).toBeNull();
     expect(readAccount(null)).toBeNull();
   });
 });

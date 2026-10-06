@@ -10,6 +10,7 @@ import { nextToEnroll } from "@wren/channel-email/outreach";
 import type { Settings } from "@wren/config";
 import { recordedRun } from "@wren/core";
 import { atomic, type Db } from "@wren/db";
+import { loadLlmEnv, makeLlm } from "@wren/llm";
 import { crawlHintsFor, NICHE_NAMES, requireNiche } from "@wren/niches";
 import { keepingAnswers } from "@wren/research";
 import {
@@ -42,7 +43,12 @@ import { ingressSites } from "./sites.js";
 
 type WithDb = <T>(fn: (db: Db) => Promise<T>) => Promise<T>;
 
-export function registerEnrich(program: Command, withDb: WithDb, settings: Settings): Command {
+export function registerEnrich(
+  program: Command,
+  withDb: WithDb,
+  settings: Settings,
+  rootDir: string,
+): Command {
   const enrich = program.command("enrich").description("research stages, run wide from here");
 
   enrich
@@ -257,6 +263,12 @@ export function registerEnrich(program: Command, withDb: WithDb, settings: Setti
             opts.company ? [Number(opts.company)] : [],
           );
           const sites = ingressSites(settings, "wren:signals");
+          // demand reads posts with the model; a dry run spends its calls too.
+          loadLlmEnv(settings.llmEnvPath, rootDir);
+          const llm =
+            settings.llm === "fake"
+              ? null
+              : makeLlm(settings.llm, process.env, { anthropicModel: settings.llmModel });
           const base: BaseDeps = {
             db,
             sites: opts.dry ? sites : keepingAnswers(sites, db),
@@ -266,7 +278,7 @@ export function registerEnrich(program: Command, withDb: WithDb, settings: Setti
               : null,
             pages: null,
             youtube: null,
-            llm: null,
+            llm,
             linkedin: readAccount(settings.poolLinkedin),
           };
           const argv = { ...opts, niche };

@@ -220,7 +220,7 @@ registerCrm(program, withClientDb, settings, rootDir);
 registerReview(registerEmail(program, withDb, settings, rootDir), withDb);
 registerFetch(program, settings);
 registerHooks(program, withMainDb);
-registerEnrich(program, withMainDb, settings);
+registerEnrich(program, withMainDb, settings, rootDir);
 registerEvolve(program, withMainDb, settings, rootDir);
 registerPages(program, withMainDb, settings);
 registerContent(program, withMainDb, settings);

@@ -83,8 +83,9 @@ second table would split every reader.
   pool doesn't spend Restate steps on one unit a minute.
 - Google: `googleLeft` (`enrichment/profiles.ts:135`) also counts `signal_checks.tried`. Signals
   get at most 50 of the 200 searches a day.
-- LinkedIn: `READ_ACCOUNTS = ["linkedin@alt"]`. The runner hands a collector the LinkedIn account
-  only if it is on that list. Never William's `linkedin`, never `linkedin@wren`.
+- LinkedIn: collectors read only as `linkedin@alt`, by name. `readAccount` turns the client's
+  `WREN_POOL_LINKEDIN` (the alt's name or its address) into that name. Unset, `linkedin` or
+  `linkedin@wren` means no reads. Never William's `linkedin`, never `linkedin@wren`.
 
 ### The collector contract
 
@@ -438,3 +439,8 @@ All on main, from `git log --oneline -- packages/research/src/signals`.
     backlog, 100 at most.
   - S5: the read is a new flow file, `linkedin-activity.ts`, not an edit to `linkedin-reach.ts`.
     It is unproven until its first live read as `linkedin@alt`.
+- 2026-10-06: First prod run (aid session, recruiting, 5 a collector). Kept stack 5, site 3,
+  talks 1. Hiring read no LinkedIn: prod's `WREN_POOL_LINKEDIN` holds the alt's address, not
+  `linkedin@alt`, so the name check dropped it. `readAccount` now maps any set pool account to
+  the alt by name, except William's or Wren's names. `wren enrich signals` now passes the
+  configured model, so demand can read posts from the CLI.
