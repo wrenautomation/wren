@@ -6,7 +6,8 @@
   "exports": {
     ".": "./src/index.ts",
     "./schema": "./src/schema.ts",
-    "./verify": "./src/verify.ts"
+    "./verify": "./src/verify.ts",
+    "./handoff": "./src/handoff.ts"
   },
   "scripts": {
     "test:integration": "vitest run test/integration",
@@ -17,7 +18,8 @@
     "@wren/db": "workspace:*",
     "better-auth": "1.7.7",
     "drizzle-orm": "0.45.2",
-    "jose": "6.2.12"
+    "jose": "6.2.12",
+    "zod": "4.6.5"
   },
   "devDependencies": {
     "typescript": "5.9.3",

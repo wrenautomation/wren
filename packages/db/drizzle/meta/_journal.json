@@ -883,6 +883,13 @@
       "when": 1791328496156,
       "tag": "0125_templates",
       "breakpoints": true
+    },
+    {
+      "idx": 126,
+      "version": "7",
+      "when": 1791329348353,
+      "tag": "0126_client_domains",
+      "breakpoints": true
     }
   ]
 }

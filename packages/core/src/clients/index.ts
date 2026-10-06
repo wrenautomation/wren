@@ -26,6 +26,7 @@ import {
   wrenSettings,
 } from "./schema.js";
 
+export * from "./domains.js";
 export * from "./schema.js";
 export * from "./touch.js";
 

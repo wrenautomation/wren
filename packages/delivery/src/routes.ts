@@ -41,6 +41,10 @@ export const DELIVERY_ROUTES = {
   interest: "act",
   // A login's own mail settings: anyone who may read.
   mail: "read",
+  // The portal on the client's own host (designs/2026-10-06-custom-domains.md).
+  domains: "read",
+  addDomain: "manage",
+  removeDomain: "manage",
 } as const satisfies Record<string, Need>;
 export type DeliveryRoute = keyof typeof DELIVERY_ROUTES;
 /** The ones that change something: never cached, never on the demo. */
@@ -65,6 +69,8 @@ export const DELIVERY_WRITES: readonly DeliveryRoute[] = [
   "review",
   "interest",
   "mail",
+  "addDomain",
+  "removeDomain",
 ];
 
 /** Client files (D11): at most this big, and only these types. The web checks first; the service decides. */

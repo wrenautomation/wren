@@ -10,7 +10,7 @@ import { makeAuth } from "@wren/auth";
 import { GmailClient, plainMailer } from "@wren/channel-email/send/gmail";
 import { GMAIL_SEND_SCOPE, loadServiceAccountKey } from "@wren/channel-email/send/google-auth";
 import { loadSsmEnv } from "@wren/config/ssm";
-import { isOperator, mayHaveAccount } from "@wren/core/clients";
+import { isOperator, mayHandOff, mayHaveAccount } from "@wren/core/clients";
 import { cachedDb } from "@wren/db";
 import { IP_HEADER } from "../src/headers.js";
 import { fromEdge, toRequest, toResult, type UrlEvent, type UrlResult } from "./http.js";
@@ -52,6 +52,9 @@ const auth = makeAuth({
   claims: async (email) => ({ operator: await isOperator(db, email) }),
   send: plainMailer(gmail, { mailbox: MAILBOX, from: FROM, name: "Wren" }),
   ipHeader: IP_HEADER,
+  // Sign-in carried to a client's own host (designs/2026-10-06-custom-domains.md).
+  handoff: (host, email) => mayHandOff(db, host, email),
+  portal: process.env.WREN_PORTAL_ORIGIN ?? "https://app.wrenautomation.com",
 });
 
 export async function handler(

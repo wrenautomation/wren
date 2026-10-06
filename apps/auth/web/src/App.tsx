@@ -52,6 +52,9 @@ async function ceremony<T>(fn: () => Promise<T>): Promise<T> {
   try {
     return await fn();
   } catch (err) {
+    // Adding one this device already holds isn't a cancel.
+    if (err instanceof Error && err.name === "InvalidStateError")
+      throw new Error("This device already has a passkey for Wren.");
     if (err instanceof Error && err.name !== "Error") throw new Error(PASSKEY_STOPPED);
     throw err;
   }

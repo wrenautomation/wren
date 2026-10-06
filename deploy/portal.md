@@ -44,7 +44,8 @@ role. Secrets:
 |---|---|---|
 | SSM `/wren/prod/env` | `WREN_AUTH_SECRET`, `WREN_AUTH_EDGE_SECRET`, `WREN_AUTH_GOOGLE_CLIENT_ID/_SECRET`, `WREN_AUTH_MICROSOFT_CLIENT_ID/_SECRET` | `deploy/prod.env` via `push-secrets.sh` |
 | auth Worker | `LAMBDA_URL`, `EDGE_SECRET` | GitHub `AUTH_LAMBDA_URL`, `AUTH_EDGE_SECRET` |
-| portal Worker | `RESTATE_INGRESS_URL`, `RESTATE_AUTH_TOKEN` | `https://$RESTATE_HOST:8080/`, `RESTATE_AUTH_TOKEN` |
+| portal Worker | `RESTATE_INGRESS_URL`, `RESTATE_AUTH_TOKEN`, `LAMBDA_URL`, `EDGE_SECRET` | `https://$RESTATE_HOST:8080/`, `RESTATE_AUTH_TOKEN`, `AUTH_LAMBDA_URL`, `AUTH_EDGE_SECRET` |
+| SSM `/wren/prod/env` | `WREN_CLOUDFLARE_SAAS_TOKEN` (SSL and Certificates: Edit), `WREN_CLOUDFLARE_ZONE_ID`, `WREN_CUSTOM_DOMAIN_TARGET` | `deploy/prod.env` via `push-secrets.sh`; the zone side once: `deploy/scripts/custom-domains.sh` |
 
 `EDGE_SECRET` and `WREN_AUTH_EDGE_SECRET` must match. To rotate: new value in
 prod.env, `push-secrets.sh`, `gh secret set AUTH_EDGE_SECRET --env production`,

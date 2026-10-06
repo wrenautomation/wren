@@ -1,21 +1,25 @@
 # Deploy: see deploy/portal.md. Nothing secret lives here: RESTATE_INGRESS_URL,
-# RESTATE_AUTH_TOKEN are secrets (deploy.yml); the account id comes from
+# RESTATE_AUTH_TOKEN, LAMBDA_URL, EDGE_SECRET are secrets (deploy.yml); the account id comes from
 # CLOUDFLARE_ACCOUNT_ID.
 name = "wren-portal"
 main = "src/worker.ts"
 compatibility_date = "2026-09-27"
-# Only the two hosts below.
+# Only the hosts below.
 workers_dev = false
 
-# app. is the clients' portal (sign-in at auth.), demo. the public demo.
+# app. is the clients' portal (sign-in at auth.), demo. the public demo. `*/*` takes each
+# client's own host (Cloudflare for SaaS): designs/2026-10-06-custom-domains.md. Our other
+# proxied hosts stay off it by their own routes (deploy/scripts/custom-domains.sh).
 routes = [
   { pattern = "app.wrenautomation.com", custom_domain = true },
   { pattern = "demo.wrenautomation.com", custom_domain = true },
+  { pattern = "*/*", zone_name = "wrenautomation.com" },
 ]
 
 [vars]
 DEMO_HOST = "demo.wrenautomation.com"
 AUTH_ORIGIN = "https://auth.wrenautomation.com"
+APP_HOST = "app.wrenautomation.com"
 
 # The Worker decides first: /api is code, the rest is the built app.
 [assets]

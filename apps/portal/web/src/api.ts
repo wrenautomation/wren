@@ -74,6 +74,13 @@ export const AUTH_ORIGIN = location.hostname.startsWith("app.")
   ? `${location.protocol}//auth.${location.hostname.slice("app.".length)}`
   : null;
 
+/**
+ * A client's own host (portal.theirfirm.com): sign-in runs through this host's `/__auth/*`, and
+ * the session stays in its own cookie (designs/2026-10-06-custom-domains.md).
+ */
+const ON_CLIENT_HOST =
+  !AUTH_ORIGIN && !/^(demo\.|localhost$|127\.0\.0\.1$|\[::1\]$)/.test(location.hostname);
+
 const SENT_AT = "wren.signInSentAt";
 
 /**
@@ -81,7 +88,7 @@ const SENT_AT = "wren.signInSentAt";
  * there under 30s ago and still refused: stop, so a token we reject can't loop.
  */
 export function signIn(): Promise<never> {
-  if (!AUTH_ORIGIN) return new Promise(() => {});
+  if (!AUTH_ORIGIN && !ON_CLIENT_HOST) return new Promise(() => {});
   try {
     if (Date.now() - Number(sessionStorage.getItem(SENT_AT) ?? 0) < 30_000)
       throw new ApiError("Sign-in isn't sticking. Try again in a minute.", 401);
@@ -89,21 +96,44 @@ export function signIn(): Promise<never> {
   } catch (err) {
     if (err instanceof ApiError) return Promise.reject(err);
   }
-  location.assign(`${AUTH_ORIGIN}/?next=${encodeURIComponent(location.href)}`);
+  location.assign(
+    AUTH_ORIGIN
+      ? `${AUTH_ORIGIN}/?next=${encodeURIComponent(location.href)}`
+      : `/__auth/in?next=${encodeURIComponent(location.pathname + location.search)}`,
+  );
   return new Promise(() => {});
 }
 
-export const signOutUrl = AUTH_ORIGIN ? `${AUTH_ORIGIN}/?out=1` : null;
+export const signOutUrl = AUTH_ORIGIN
+  ? `${AUTH_ORIGIN}/?out=1`
+  : ON_CLIENT_HOST
+    ? "/__auth/out"
+    : null;
+
+const TOKEN_URL = AUTH_ORIGIN
+  ? `${AUTH_ORIGIN}/api/auth/token`
+  : ON_CLIENT_HOST
+    ? "/__auth/token"
+    : null;
 
 let held: { token: string; until: number } | null = null;
+/** One ask at a time: calls made together share it. */
+let asking: Promise<string | null> | null = null;
 
 /** The current token, fetched again a minute before it runs out. */
-async function token(): Promise<string | null> {
-  if (!AUTH_ORIGIN) return null;
-  if (held && held.until > Date.now()) return held.token;
+function token(): Promise<string | null> {
+  if (!TOKEN_URL) return Promise.resolve(null);
+  if (held && held.until > Date.now()) return Promise.resolve(held.token);
+  asking ??= fresh(TOKEN_URL).finally(() => {
+    asking = null;
+  });
+  return asking;
+}
+
+async function fresh(url: string): Promise<string | null> {
   const ask = async () => {
     try {
-      return await fetch(`${AUTH_ORIGIN}/api/auth/token`, { credentials: "include" });
+      return await fetch(url, { credentials: "include" });
     } catch {
       throw new ApiError("You're offline, or sign-in is.", 0);
     }
@@ -144,7 +174,7 @@ export async function call<T>(
     throw new ApiError("You're offline, or the portal is.", 0);
   }
   // A token the Worker refused (keys rotated, clock skew): one fresh one, then sign in.
-  if (res.status === 401 && AUTH_ORIGIN) {
+  if (res.status === 401 && TOKEN_URL) {
     held = null;
     return retried ? signIn() : call<T>(path, body, true);
   }

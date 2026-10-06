@@ -133,7 +133,7 @@ import { contentDrafts, contentPlaybooks } from "@wren/content/schema";
 import { askRecord, makeAsk } from "@wren/core/ask";
 import { makeAuditSealer } from "@wren/core/audit";
 import { CalcomCalendar, type Calendar } from "@wren/core/calendar";
-import { clientRecord, settingsFor } from "@wren/core/clients";
+import { CustomHostnames, clientRecord, settingsFor } from "@wren/core/clients";
 import { makeConsolePortal, restateAdmin, restateAdminGet } from "@wren/core/console";
 import { asAccount, type Platform, type SiteClient } from "@wren/core/content";
 import { sitesHost } from "@wren/core/content/box";
@@ -154,7 +154,7 @@ import { makeSpine, type SpineEvent } from "@wren/core/spine";
 import { cachedDb, clientDatabaseName, clientDatabaseUrl, createDb, type Db } from "@wren/db";
 import { engagementOf, postUpdate } from "@wren/delivery";
 import { s3Files } from "@wren/delivery/files";
-import { makeDeliveryPortal, makeDeliveryWatch } from "@wren/delivery/restate";
+import { makeDeliveryPortal, makeDeliveryWatch, makeDomainsResolver } from "@wren/delivery/restate";
 import { loadLlmEnv, makeLlm, makeTracer } from "@wren/llm";
 import {
   adLibraryFor,
@@ -264,6 +264,20 @@ function pooled({ databaseUrl, databasePoolPort }: Settings): string {
   const url = new URL(databaseUrl);
   url.port = String(databasePoolPort);
   return url.toString();
+}
+
+/**
+ * Client portals on their own hosts (designs/2026-10-06-custom-domains.md): Cloudflare for SaaS
+ * on our zone, with a token that only edits custom hostnames. Unset: adding one says not yet.
+ */
+function customDomains() {
+  const token = process.env.WREN_CLOUDFLARE_SAAS_TOKEN;
+  const zone = process.env.WREN_CLOUDFLARE_ZONE_ID;
+  const target = process.env.WREN_CUSTOM_DOMAIN_TARGET;
+  return {
+    ...(target ? { target } : {}),
+    ...(token && zone ? { cloudflare: new CustomHostnames({ token, zone }) } : {}),
+  };
 }
 
 export async function buildServices(
@@ -1025,7 +1039,9 @@ export async function buildServices(
       watched: portal !== null,
       zone: settings.sendTimezone,
       app: portal ?? undefined,
+      domains: customDomains(),
     }),
+    makeDomainsResolver({ main: db }),
     makeReactivationPortal({ main: db, open: openClient }),
     makeAsk(db),
     makeSpine({

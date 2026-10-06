@@ -8,4 +8,9 @@ export interface Env {
   RESTATE_AUTH_TOKEN?: string;
   /** Our sign-in, e.g. https://auth.wrenautomation.com: it signs the tokens and publishes the keys. Unset = no sign-in yet. */
   AUTH_ORIGIN?: string;
+  /** Our app's host, e.g. app.wrenautomation.com. Set: any other host is a client's own (./hosts.ts). */
+  APP_HOST?: string;
+  /** The sign-in Lambda and the auth Worker's edge secret: a client's host redeems sign-ins there. */
+  LAMBDA_URL?: string;
+  EDGE_SECRET?: string;
 }

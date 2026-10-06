@@ -9,6 +9,8 @@
  * - `/api/<service>/<route>`: forwarded to that portal service (`./services.ts`)
  *   with the viewer set here, never by the browser. Writes are refused on the
  *   demo. The service's guard decides who may call each route.
+ * - a client's own host (APP_HOST set, ./hosts.ts): the app for that one client, signed in
+ *   through `/__auth/*`; the Worker pins the client, never the browser.
  * - everything else: the built app in dist/.
  *
  * The Worker holds no data: each client's list is its own Postgres database,
@@ -18,6 +20,7 @@
 import { AUDIENCE, bearer, verifyToken } from "@wren/auth/verify";
 import { readBody } from "@wren/core/http";
 import type { Env } from "./env.js";
+import { authRoute, type Site, siteOf, unknownHost } from "./hosts.js";
 import { SERVICES } from "./services.js";
 
 const MAX_BODY = 16 * 1024;
@@ -81,7 +84,7 @@ async function forward(env: Env, path: string, body: string): Promise<Response> 
   });
 }
 
-async function api(req: Request, env: Env, path: string, ctx?: ExecutionContext) {
+async function api(req: Request, env: Env, path: string, site: Site, ctx?: ExecutionContext) {
   const [name = "", route = "", ...rest] = path.split("/");
   const svc = Object.hasOwn(SERVICES, name) ? SERVICES[name] : undefined;
   if (!svc || rest.length || !svc.routes.has(route)) return json({ error: "not found" }, 404);
@@ -105,7 +108,9 @@ async function api(req: Request, env: Env, path: string, ctx?: ExecutionContext)
   if (!("demo" in viewer)) {
     // Where a signed-in request came from, set here like the viewer: a contract signature records it.
     const from = { ip: req.headers.get("cf-connecting-ip"), agent: req.headers.get("user-agent") };
-    return forward(env, target, JSON.stringify({ ...(input as object), viewer, from }));
+    // A client's host shows that client only, as the client sees it.
+    const pin = site.kind === "client" ? { client: site.client, asClient: true } : {};
+    return forward(env, target, JSON.stringify({ ...(input as object), ...pin, viewer, from }));
   }
   const body = JSON.stringify({ ...(input as Record<string, unknown>), viewer });
   // The service refuses too; this keeps a demo write out of the cache and off the wire.
@@ -159,7 +164,16 @@ async function replayPage(req: Request, env: Env): Promise<Response> {
 export default {
   async fetch(req: Request, env: Env, ctx?: ExecutionContext): Promise<Response> {
     const { pathname } = new URL(req.url);
-    if (pathname.startsWith("/api/")) return api(req, env, pathname.slice("/api/".length), ctx);
+    const site = await siteOf(req, env, ctx);
+    // Our other hosts on the zone (`*/*` routes every host here): straight to their origin.
+    if (site.kind === "ours") return fetch(req);
+    if (site.kind === "unknown") return unknownHost();
+    if (site.kind === "client") {
+      const auth = await authRoute(req, env);
+      if (auth) return auth;
+    }
+    if (pathname.startsWith("/api/"))
+      return api(req, env, pathname.slice("/api/".length), site, ctx);
     if (pathname === "/replay") return replayPage(req, env);
     // A record page whose id holds a slash (/handlers/all/Ads%2Fstart): the asset server would
     // 307 it to the decoded path, a different page. The app reads the id from the address.

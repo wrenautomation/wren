@@ -8,6 +8,7 @@ import type * as restate from "@restatedev/restate-sdk";
 import {
   addMember,
   type Client,
+  type DomainsDeps,
   endSessions,
   isOwner,
   listMembers,
@@ -46,6 +47,7 @@ import {
   serveRecords,
 } from "@wren/core/records/serve";
 import { type Db, type Queryable, serializable, setAuditActor } from "@wren/db";
+import { domainsApi } from "./domains.js";
 import { type FileStore, newFileKey } from "./files.js";
 import {
   addAsk,
@@ -96,6 +98,8 @@ export interface DeliveryDeps {
   zone?: string;
   /** The portal (`https://app.<domain>`), for the links in a recap's preview; none without it. */
   app?: string | undefined;
+  /** Custom hosts (`./domains.ts`): the fallback origin, and Cloudflare when it's set up. */
+  domains?: Partial<Omit<DomainsDeps, "main">>;
 }
 
 /** A browser can send anything: these turn it into what the domain takes, or refuse. */
@@ -690,9 +694,14 @@ export {
   type WatchStats,
 } from "./watch.js";
 
+/** Where client hosts CNAME to: an originless record on our zone. */
+export const DEFAULT_TARGET = "customers.wrenautomation.com";
+export { type DomainView, makeDomainsResolver } from "./domains.js";
+
 /** No journal, like every portal service: pages stay out of Restate's storage. */
 export function makeDeliveryPortal(deps: DeliveryDeps) {
   const api = deliveryApi(deps);
+  const hosts = domainsApi({ target: DEFAULT_TARGET, ...deps.domains, main: deps.main });
   type Req<K extends keyof DeliveryApi> = Parameters<DeliveryApi[K]>[0];
   return portalService({
     name: "DeliveryPortal",
@@ -751,6 +760,11 @@ export function makeDeliveryPortal(deps: DeliveryDeps) {
         if (deps.watched) ctx.objectSendClient<DeliveryWatch>({ name: WATCH }, WATCH_KEY).sync();
         return out;
       },
+      domains: (_: restate.Context, req: PortalRequest) => answer(() => hosts.domains(req)),
+      addDomain: (_: restate.Context, req: PortalRequest & { hostname: string }) =>
+        answer(() => hosts.addDomain(req)),
+      removeDomain: (_: restate.Context, req: PortalRequest & { hostname: string }) =>
+        answer(() => hosts.removeDomain(req)),
       interest: async (ctx: restate.Context, req: Req<"interest">) => {
         const out = await answer(() => api.interest(req));
         if (deps.watched) ctx.objectSendClient<DeliveryWatch>({ name: WATCH }, WATCH_KEY).sync();

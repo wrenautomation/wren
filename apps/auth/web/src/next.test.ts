@@ -22,4 +22,15 @@ describe("nextOf", () => {
       expect(nextOf(`?next=${encodeURIComponent(next)}`, BASE)).toBe(PORTAL);
     expect(nextOf("", BASE)).toBe(PORTAL);
   });
+  it("sends a client host's landing page through the handoff, nothing else of theirs", () => {
+    const back = "https://portal.acme.example/__auth/back?next=%2Fhome";
+    expect(nextOf(`?next=${encodeURIComponent(back)}`, BASE)).toBe(
+      `https://auth.wrenautomation.com/api/auth/handoff?to=${encodeURIComponent(back)}`,
+    );
+    for (const next of [
+      "https://portal.acme.example/home",
+      "http://portal.acme.example/__auth/back",
+    ])
+      expect(nextOf(`?next=${encodeURIComponent(next)}`, BASE)).toBe(PORTAL);
+  });
 });

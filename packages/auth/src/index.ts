@@ -11,10 +11,12 @@ import type { Db } from "@wren/db";
 import { betterAuth } from "better-auth";
 import { drizzleAdapter } from "better-auth/adapters/drizzle";
 import { APIError } from "better-auth/api";
-import { emailOTP, haveIBeenPwned, jwt } from "better-auth/plugins";
+import { emailOTP, haveIBeenPwned, jwt, oneTimeToken } from "better-auth/plugins";
+import { handoff } from "./handoff.js";
 import * as schema from "./schema.js";
 import { AUDIENCE } from "./verify.js";
 
+export { BACK_PATH, handoffTarget } from "./handoff.js";
 export { AUDIENCE, schema };
 
 export interface AuthMail {
@@ -40,6 +42,13 @@ export interface AuthOptions {
   send(mail: AuthMail): Promise<void>;
   /** The header the edge writes the caller's address to; anything else is ignored. */
   ipHeader?: string;
+  /**
+   * May sign-in be carried to this client host for this email (designs/2026-10-06-custom-domains.md)?
+   * Unset: no handoffs.
+   */
+  handoff?(host: string, email: string): Promise<boolean>;
+  /** Where a refused handoff goes, e.g. https://app.wrenautomation.com. */
+  portal?: string;
 }
 
 export const NOT_INVITED =
@@ -88,9 +97,16 @@ export function passwordMail(email: string, url: string): AuthMail {
  */
 export const rpIdOf = (baseURL: string) => new URL(baseURL).hostname.replace(/^auth\./, "");
 
+/** How long a handoff's one-time token lasts: the hop is a redirect. */
+export const HANDOFF_MINUTES = 1;
+
 export function makeAuth(o: AuthOptions) {
   const gate = async (email: string) => o.allowed(email.trim().toLowerCase());
-  return betterAuth({
+  // The handoff mints through Better Auth's own endpoint, on the instance made below.
+  let mint = async (_: Headers): Promise<string> => {
+    throw new Error("auth is not made yet");
+  };
+  const auth = betterAuth({
     appName: "Wren",
     baseURL: o.baseURL,
     secret: o.secret,
@@ -165,8 +181,21 @@ export function makeAuth(o: AuthOptions) {
           },
         },
       }),
+      // Only the handoff mints one (a server call); the browser may only redeem, via a Worker.
+      oneTimeToken({
+        expiresIn: HANDOFF_MINUTES,
+        storeToken: "hashed",
+        disableClientRequest: true,
+      }),
+      handoff({
+        allowed: (host, email) => o.handoff?.(host, email) ?? Promise.resolve(false),
+        mint: (headers) => mint(headers),
+        home: o.portal ?? o.baseURL,
+      }),
     ],
   });
+  mint = async (headers) => (await auth.api.generateOneTimeToken({ headers })).token;
+  return auth;
 }
 
 export type Auth = ReturnType<typeof makeAuth>;

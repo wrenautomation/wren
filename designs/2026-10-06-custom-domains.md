@@ -8,7 +8,7 @@ Living doc. Started 2026-10-06. William: "go on everything". On custom domains: 
 - The portal Worker serves the custom host. It looks up which client the host belongs to and pins every request to that client. The existing access guard still checks the login is a member there.
 - Sign-in stays on `auth.wrenautomation.com`. The client's host never relies on a third-party cookie. A one-time code carries the session over, and the Worker keeps it in a first-party cookie on the client's host.
 - Account > Domain shows the CNAME and TXT records to set and the live status from Cloudflare's API.
-- $0: the first 100 hostnames are free. If turning it on asks for a card or a charge, we stop and ask William.
+- Cost: the first 100 hostnames are free, then $0.10 each a month. No cap in code (William).
 
 ## Sign-in on a client's host
 
@@ -17,7 +17,7 @@ Every piece is Better Auth's (open source). We add one endpoint, which checks th
 1. The app on `portal.client.com` asks its own Worker for a token: `GET /__auth/token`. No session cookie means a 401, and the app sends the browser to `auth.wrenautomation.com/?next=https://portal.client.com/__auth/back?next=<path>`.
 2. Signed in there (first-party), the sign-in page sends any `next` that isn't one of our hosts to `/api/auth/handoff?to=<next>`. The handoff endpoint (our plugin) needs a session and checks that `to` is `https://<host>/__auth/back` on an active client domain. It then issues a one-time token (Better Auth `one-time-token`: single use, 1 minute, stored hashed) and redirects to `to&ott=<token>`. Anything else redirects to the portal.
 3. `/__auth/back` on the client's host: the Worker redeems the code server to server (`one-time-token/verify`, no cookie set there) and gets the session token back. The Worker stores it in `__Host-wren_session` (HttpOnly, Secure, SameSite=Lax, 30 days), then redirects to `next`, same-origin paths only.
-4. `/__auth/token`: the Worker asks the sign-in Lambda for the 15-minute JWT with the session as a bearer (Better Auth `bearer`), sending the edge secret and the visitor's IP like the auth Worker does. The cookie's age is refreshed each time. A 401 clears the cookie.
+4. `/__auth/token`: the Worker asks the sign-in Lambda for the 15-minute JWT with the session cookie, sending the edge secret and the visitor's IP like the auth Worker does. The cookie's age is refreshed each time. A 401 clears the cookie.
 5. `/__auth/out`: the Worker signs the session out at the Lambda, clears the cookie, and sends the browser to `auth.wrenautomation.com/?out=1`.
 
 The session is the renewal credential. Better Auth handles expiry (30 days, sliding daily) and revocation. A password reset revokes it. JavaScript never sees it. The JWT is checked by jose against the published keys, as on `app.`.
@@ -51,3 +51,6 @@ The session is the renewal credential. Better Auth handles expiry (30 days, slid
 - 2026-10-06: William approved, relayed by the wren UI session. Built without a second yes.
 - 2026-10-06: A handoff instead of CORS with credentials. On a client's host the sign-in cookie is third-party, and Safari and Firefox block it. A one-time code to a first-party cookie works in every browser, and Better Auth ships the parts.
 - 2026-10-06: `*/*` plus exclusions and pass-through, since wrangler wipes routes it doesn't list. A separate SaaS zone would isolate it better, but it would need a second domain on the main brand.
+- 2026-10-06: Activating SaaS asks to authorize card charges for usage past the free 100. We stopped and asked. William, relayed by the wren UI session: "tbh this cost is kind of negligible esp since we are high ticket. if its the elegant solution do that." He first asked for a cap of 90 in code, then, told the rate past 100: "thats completely fine. dont even cap it." No cap.
+- 2026-10-06: No Better Auth `bearer` plugin. Its after-hook copies the raw session token into a `set-auth-token` header on every sign-in, readable by script on `auth.`. The client host's Worker keeps the signed cookie from the one-time-token redeem instead, and sends it as a cookie.
+- 2026-10-06: Handoffs go only to members of the host's client, never Wren's team, and never from a link on another site (`Sec-Fetch-Site`). The client controls its DNS: pointed elsewhere, the host would get the one-time token, which is a full session.

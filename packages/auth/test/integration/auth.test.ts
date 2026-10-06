@@ -10,6 +10,7 @@ import { verifyToken } from "../../src/verify.js";
 const ORIGIN = "https://auth.test";
 const MEMBER = "member@acme.example";
 const STRANGER = "stranger@evil.example";
+const CLIENT_HOST = "portal.acme.example";
 
 let pg: TestPostgres;
 let auth: Auth;
@@ -58,6 +59,8 @@ beforeAll(async () => {
     claims: async (email) => ({ operator: operators.has(email) }),
     send: async (m) => void mail.push(m),
     ipHeader: "x-wren-ip",
+    handoff: async (host, email) => host === CLIENT_HOST && email === MEMBER,
+    portal: "https://app.test",
   });
 }, 120_000);
 afterAll(() => pg.stop());
@@ -151,5 +154,75 @@ describe("passkeys", () => {
     expect(list).toMatchObject([{ id: "pk1", credentialID: "cred1", backedUp: true }]);
     expect((await call("passkey/delete-passkey", { id: "pk1" }, cookie)).status).toBe(200);
     expect(await (await call("passkey/list-user-passkeys", undefined, cookie)).json()).toEqual([]);
+  });
+});
+
+describe("handing sign-in to a client's host", () => {
+  let cookie = "";
+  beforeAll(async () => {
+    await pg.db.execute("delete from auth.rate_limit");
+    cookie = cookieOf(await signIn(MEMBER));
+  });
+  const back = `https://${CLIENT_HOST}/__auth/back?next=%2Fhome`;
+  const handoff = (to: string, headers: Record<string, string> = {}) =>
+    auth.handler(
+      new Request(`${ORIGIN}/api/auth/handoff?to=${encodeURIComponent(to)}`, {
+        headers: { cookie, "x-wren-ip": "1.2.3.4", "sec-fetch-site": "same-origin", ...headers },
+      }),
+    );
+  const ottOf = (res: Response) =>
+    new URL(res.headers.get("location") ?? "").searchParams.get("ott");
+
+  it("sends a one-time token to the member's client host; it redeems once, server to server", async () => {
+    const res = await handoff(back);
+    expect(res.status).toBe(302);
+    const to = new URL(res.headers.get("location") ?? "");
+    expect(`${to.origin}${to.pathname}`).toBe(`https://${CLIENT_HOST}/__auth/back`);
+    expect(to.searchParams.get("next")).toBe("/home");
+    const ott = ottOf(res) ?? "";
+    expect(ott.length).toBeGreaterThan(20);
+
+    const redeem = () =>
+      auth.handler(
+        new Request(`${ORIGIN}/api/auth/one-time-token/verify`, {
+          method: "POST",
+          headers: { "content-type": "application/json", "x-wren-ip": "1.2.3.4" },
+          body: JSON.stringify({ token: ott }),
+        }),
+      );
+    const first = await redeem();
+    expect(first.status).toBe(200);
+    const carried = cookieOf(first);
+    expect(carried).toContain("session_token");
+    // The carried cookie is a session the token endpoint honours.
+    const token = await call("token", undefined, carried);
+    expect(token.status).toBe(200);
+    expect((await redeem()).ok).toBe(false);
+  });
+
+  it("refuses other hosts, other paths, links from other sites, and no session", async () => {
+    for (const to of [
+      "https://portal.other.example/__auth/back",
+      `https://${CLIENT_HOST}/elsewhere`,
+      `http://${CLIENT_HOST}/__auth/back`,
+      `https://${CLIENT_HOST}:8443/__auth/back`,
+      `https://${CLIENT_HOST}/__auth/back?ott=planted`,
+      "not a url",
+    ]) {
+      const res = await handoff(to);
+      expect(res.headers.get("location"), to).toBe("https://app.test");
+    }
+    const cross = await handoff(back, { "sec-fetch-site": "cross-site" });
+    expect(cross.headers.get("location")).toBe("https://app.test");
+    const anon = await auth.handler(
+      new Request(`${ORIGIN}/api/auth/handoff?to=${encodeURIComponent(back)}`, {
+        headers: { "x-wren-ip": "1.2.3.4" },
+      }),
+    );
+    expect(anon.status).toBe(401);
+  });
+
+  it("the browser can't mint one itself", async () => {
+    expect((await call("one-time-token/generate", undefined, cookie)).ok).toBe(false);
   });
 });

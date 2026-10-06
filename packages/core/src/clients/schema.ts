@@ -102,6 +102,49 @@ export const clientMembers = pgTable(
 
 export type ClientMember = typeof clientMembers.$inferSelect;
 
+/** A custom hostname's state at Cloudflare for SaaS, as its API reports it. */
+export interface DomainRecords {
+  /** What the client sets: a CNAME to our fallback origin. */
+  cname: { name: string; target: string };
+  /** Optional: proves ownership before the CNAME moves (Cloudflare's pre-validation). */
+  txt: { name: string; value: string } | null;
+}
+
+/**
+ * A client's own host for its portal (designs/2026-10-06-custom-domains.md): Cloudflare issues
+ * the cert, the portal Worker pins every request on the host to `client_id`.
+ */
+export const clientDomains = pgTable(
+  "client_domains",
+  {
+    hostname: text("hostname").notNull(),
+    clientId: varchar("client_id", { length: 40 }).notNull(),
+    /** Cloudflare's custom hostname id. */
+    cfId: text("cf_id").notNull(),
+    /** Cloudflare's hostname status: pending until the CNAME is seen, then active. */
+    status: text("status").notNull(),
+    /** Cloudflare's certificate status. */
+    sslStatus: text("ssl_status").notNull(),
+    records: jsonb("records").$type<DomainRecords>().notNull(),
+    /** Cloudflare's last word on why it isn't live yet. */
+    problem: text("problem"),
+    addedBy: text("added_by").notNull(),
+    checkedAt: timestamp("checked_at", { withTimezone: true }).defaultNow().notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+  },
+  (t) => [
+    primaryKey({ columns: [t.hostname], name: "pk_client_domains" }),
+    foreignKey({
+      columns: [t.clientId],
+      foreignColumns: [clients.id],
+      name: "fk_client_domains_client",
+    }).onDelete("cascade"),
+    index("ix_client_domains_client").on(t.clientId),
+  ],
+);
+
+export type ClientDomain = typeof clientDomains.$inferSelect;
+
 /**
  * Wren's own people (`@wren/core/access`): an admin does everything, an operator works its
  * clients, a viewer reads them. `clients` null is every client; `wren` in it is Wren's own apps.

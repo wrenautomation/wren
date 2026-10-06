@@ -1,5 +1,6 @@
 /** The client's account, reached from their name at top left: the company, its people, each person's own settings, billing. */
 import type { Module } from "../../module.js";
+import { Domain } from "./Domain.js";
 import { Look } from "./Look.js";
 import { Overview } from "./Overview.js";
 import { People } from "./People.js";
@@ -19,6 +20,7 @@ export const account: Module = {
     { id: "people", label: "People", Page: People },
     { id: "you", label: "Your settings", Page: You },
     { id: "look", label: "Look", Page: Look, requires: { needs: "manage" } },
+    { id: "domain", label: "Domain", Page: Domain },
     {
       id: "billing",
       label: "Billing",
