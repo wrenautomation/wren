@@ -791,7 +791,7 @@ export async function buildServices(
       ...contentNotify,
       ...(operatorText && settings.notify !== "none" ? { texter: operatorText } : {}),
     }),
-    makeSocialDesk({ db }),
+    makeSocialDesk({ db, zone: SOCIAL_ZONE }),
   );
   // autobrowse's tokens made again before they lapse (LinkedIn's 60 days, npm's 90).
   services.push(

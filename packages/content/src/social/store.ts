@@ -168,18 +168,21 @@ export async function hasDay(db: Queryable, platform: Platform, day: string): Pr
   return !!row;
 }
 
-/** The day's follower count; the first read of the day stays. */
+/** The day's follower count; the first read of the day stays, unless `latest` (a read on demand). */
 export async function keepDay(
   db: Queryable,
   platform: Platform,
   day: string,
   a: Audience,
+  latest = false,
 ): Promise<boolean> {
-  const kept = await db
-    .insert(socialDays)
-    .values({ platform, day, followers: Math.max(0, Math.round(a.followers)), raw: a.raw ?? a })
-    .onConflictDoNothing()
-    .returning({ day: socialDays.day });
+  const row = { followers: Math.max(0, Math.round(a.followers)), raw: a.raw ?? a };
+  const insert = db.insert(socialDays).values({ platform, day, ...row });
+  const kept = await (
+    latest
+      ? insert.onConflictDoUpdate({ target: [socialDays.platform, socialDays.day], set: row })
+      : insert.onConflictDoNothing()
+  ).returning({ day: socialDays.day });
   return kept.length > 0;
 }
 

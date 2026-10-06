@@ -105,6 +105,7 @@ reading, 4 to 6 holds. Follow a feed from Inbox → Feeds.
 `wren social start|stop|status|sync`: `SocialWatch/wren` on the box, every 30 minutes 07:00-23:00
 New York. It reads comments on our posts of the last 14 days (older than 3 days every 2 hours),
 activity since the newest kept row (LinkedIn every 2 hours), and the follower count once a day.
+LinkedIn's count only on demand: `wren social audience linkedin` or Followers → Read now.
 New comments go on the `reach.comments` spine. One Discord ping per pass that kept something; a text
 only when a comment asks. Work them in Marketing → Inbox; answers go out only on William's click.
 

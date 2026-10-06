@@ -2,12 +2,14 @@
  * LinkedIn as a `ContentChannel`, over autobrowse's site API in LinkedIn's
  * own shape (Posts API, Social Actions). Whether a call is answered by the
  * API or a browser flow is the worker's business; rows say which.
- * Activity reads the notifications page (a browser read, capped per day).
+ * Activity reads the notifications page (a browser read, capped per day). Audience reads Wren's
+ * own profile and Page (4 a day), on demand only: SocialWatch never asks for it.
  */
 import {
   type ActivityKind,
   type ActivityQuery,
   type ActivityRow,
+  type Audience,
   type CommentRow,
   type ContentChannel,
   type FetchedWith,
@@ -21,6 +23,9 @@ import {
   SiteCallError,
   type SiteClient,
 } from "@wren/core/content";
+
+/** Our audience is Wren's account, never William's (`linkedin`) or the research alt. */
+export const AUDIENCE_ACCOUNT = "linkedin@wren";
 
 export interface LinkedInContentOptions {
   /** The member's URN (`urn:li:person:…`); resolved from `/v2/userinfo` when absent. */
@@ -163,7 +168,16 @@ export function linkedinContent(sites: SiteClient, o: LinkedInContentOptions = {
         },
       );
     },
-    // No audience: no cheap follower route yet.
+    async audience(): Promise<Audience> {
+      const out = await sites.call<{ followers: number }>(
+        "linkedin",
+        "GET",
+        "/audience",
+        {},
+        AUDIENCE_ACCOUNT,
+      );
+      return { followers: out.followers, asOf: now().toISOString(), raw: out };
+    },
     async activity(q: ActivityQuery = {}): Promise<ActivityRow[]> {
       let out: { notifications?: LiNotification[] };
       try {

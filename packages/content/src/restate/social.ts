@@ -5,16 +5,18 @@
  * spine (`reach.comments`) like reach's; one ping per pass that kept something. It reads only:
  * every answer waits on William's click.
  *
- * `SocialDesk` is Marketing → Inbox's activity actions: mark seen, mark all seen.
+ * `SocialDesk` is Marketing → Inbox's activity actions (mark seen, mark all seen) and Followers'
+ * "Read now": a follower count read once, for a platform the loop never reads one on (LinkedIn).
  */
 import * as restate from "@restatedev/restate-sdk";
-import type {
-  ActivityQuery,
-  ActivityRow,
-  Audience,
-  CommentRow,
-  ListQuery,
-  Platform,
+import {
+  type ActivityQuery,
+  type ActivityRow,
+  type Audience,
+  type CommentRow,
+  type ListQuery,
+  PLATFORMS,
+  type Platform,
 } from "@wren/core/content";
 import { Broadcast, type Notifier } from "@wren/core/notify";
 import {
@@ -55,6 +57,9 @@ const ACTIVITY_READS = "activityReads";
 export const ACTIVITY_EVERY_MS: Partial<Record<Platform, number>> = {
   linkedin: 2 * 60 * 60 * 1000,
 };
+
+/** Follower counts read only on his click (`SocialDesk.readAudience`): LinkedIn's is a desk read. */
+export const AUDIENCE_ON_DEMAND: readonly Platform[] = ["linkedin"];
 
 /** The `Content` service's read handlers as the worker serves them. */
 type ContentReads = {
@@ -174,6 +179,7 @@ export function makeSocialWatch(deps: SocialWatchDeps) {
           stats.errors.push(`${platform} activity: ${errorText(err)}`);
         }
       // A count that fails is no reading this pass, never a failed pass: the next pass asks again.
+      if (AUDIENCE_ON_DEMAND.includes(platform)) continue;
       try {
         if (await ctx.run(`day ${platform}`, () => hasDay(deps.db, platform, day))) continue;
         const a = await content.audience({ platform });
@@ -213,9 +219,12 @@ export function makeSocialWatch(deps: SocialWatchDeps) {
 export type SocialWatch = ReturnType<typeof makeSocialWatch>;
 
 const IDS = z.looseObject({ ids: z.array(z.number().int()).describe("Activity row ids") });
+const PLATFORM = z.looseObject({
+  platform: z.enum(PLATFORMS as [Platform, ...Platform[]]).describe("linkedin"),
+});
 
-/** Marketing → Inbox's activity actions. Database writes only. */
-export function makeSocialDesk(deps: { db: Db }) {
+/** Marketing → Inbox's activity actions, and Followers' "Read now". */
+export function makeSocialDesk(deps: { db: Db; zone: string }) {
   return restate.service({
     name: "SocialDesk",
     handlers: {
@@ -230,6 +239,19 @@ export function makeSocialDesk(deps: { db: Db }) {
         async (ctx: restate.Context): Promise<{ seen: number }> => ({
           seen: await ctx.run("seen", () => markSeen(deps.db, null)),
         }),
+      ),
+      /** One follower count now, kept as today's (it replaces one read earlier today). */
+      readAudience: serviceHandler(
+        { input: PLATFORM },
+        async (ctx: restate.Context, req: { platform: Platform }) => {
+          const day = dayOf(new Date(await ctx.date.now()), deps.zone);
+          const a = await ctx
+            .serviceClient<ContentReads>({ name: "Content" })
+            .audience({ platform: req.platform });
+          if (!a) throw new restate.TerminalError(`${req.platform} reads no follower count`);
+          await ctx.run("keep day", () => keepDay(deps.db, req.platform, day, a, true));
+          return { platform: req.platform, day, followers: a.followers };
+        },
       ),
     },
   });
