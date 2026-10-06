@@ -96,6 +96,9 @@ importers:
       '@wren/books':
         specifier: workspace:*
         version: link:../../packages/books
+      '@wren/calendar':
+        specifier: workspace:*
+        version: link:../../packages/calendar
       '@wren/channel-email':
         specifier: workspace:*
         version: link:../../packages/channel-email
