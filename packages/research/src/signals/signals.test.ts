@@ -2,7 +2,6 @@ import { describe, expect, it } from "vitest";
 import { signalDate, signalRefusal } from "../findings.js";
 import { SIGNAL_KINDS } from "../schema.js";
 import {
-  anyCollectorBuilt,
   COLLECTORS,
   firmKey,
   personKey,
@@ -25,7 +24,9 @@ const draft = (over: Record<string, unknown> = {}) => ({
 });
 
 describe("the registry", () => {
-  it("lists the eight collectors once each, all stubs, off by default", () => {
+  const stubs = COLLECTORS.filter((c) => !c.built);
+
+  it("lists the eight collectors once each; on by default only once built", () => {
     expect(COLLECTORS.map((c) => c.name)).toEqual([
       "hiring",
       "news",
@@ -36,14 +37,14 @@ describe("the registry", () => {
       "site",
       "demand",
     ]);
-    expect(anyCollectorBuilt()).toBe(false);
     const s = signalsSettingsSchema.parse({});
-    for (const c of COLLECTORS) expect(s[c.name]).toEqual({ on: false });
+    for (const c of COLLECTORS) expect(s[c.name]?.on).toBe(c.built);
+    for (const c of stubs) expect(s[c.name]).toEqual({ on: false });
     for (const c of COLLECTORS) expect(c.bucket.burst).toBeLessThanOrEqual(c.bucket.perDay);
   });
 
   it("a stub answers unresolved and keeps nothing", async () => {
-    for (const c of COLLECTORS)
+    for (const c of stubs)
       expect(await c.collect({} as never, "c1", {})).toEqual({
         state: "unresolved",
         signals: [],
