@@ -125,6 +125,32 @@ tomorrow's open slots per platform with drafts, using that platform's playbook:
 X and Facebook come for free through the generic comment read. TikTok's channel has no comment
 read.
 
+#### Readers brief (O1-O4)
+
+Contract: `activity?(q?: ActivityQuery)` and `audience?()` on `ContentChannel`
+(`@wren/core/content`, f3b499d). Each reader: newest first, `since` filters (an `at` of null
+passes), `raw` whole, `id` the platform's own. Synthetic fixtures only. Every read uses an
+autobrowse route that already exists, so autobrowse doesn't change.
+
+- **YouTube** (`channel-youtube/src/content.ts`): `GET /youtube/v3/subscriptions`
+  `{part: "subscriberSnippet", myRecentSubscribers: true, maxResults: 50}` → kind `subscribe`,
+  actor = `subscriberSnippet.title`, actorUrl = `https://www.youtube.com/channel/<channelId>`,
+  at = null (the API gives none). Only subscribers who keep their subscriptions public show up.
+  Audience: `GET /youtube/v3/channels {part: "statistics", mine: true}` →
+  `statistics.subscriberCount`.
+- **Instagram** (`channel-meta/src/content.ts`, IG only): one `GET /{objectId}` on the IG user
+  with `fields=followers_count,tags.limit(25){id,caption,permalink,timestamp,username}`. The tags
+  edge comes as a field expansion, so no new route is needed. Tags → kind `mention`, actor =
+  `username`, text = caption's first line, url = permalink. The same read gives audience.
+- **LinkedIn** (`channel-linkedin/src/content.ts`): `GET /notifications {max: 40}` (autobrowse
+  d103268; the channel already runs as `linkedin@wren`). Kinds: follow → `follow`, reaction →
+  `reaction`, mention → `mention`, anything else → `notification`. Drop `view` and `other`;
+  they're LinkedIn's suggestions and news. A call over the cap (429) returns `[]`, not a throw.
+  No audience yet: no cheap follower route.
+- **Reddit** (`channel-reddit/src/content.ts`): `GET /message/mentions {limit: 25}` → kind
+  `mention` (post and comment replies already reach `comments`). Audience: `GET
+  /user/{me}/about` → `data.subreddit.subscribers` (profile followers), else absent.
+
 ## Phases
 
 - **O0 (serial, first):** the store, the contract, the loop with the generic comment read, the
