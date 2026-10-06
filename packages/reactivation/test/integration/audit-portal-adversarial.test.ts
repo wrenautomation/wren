@@ -190,7 +190,6 @@ describe("the demo reset", () => {
       "companies",
       "contact_scores",
       "crm_contacts",
-      "findings",
       "imports",
       "people",
     ])
@@ -198,6 +197,7 @@ describe("the demo reset", () => {
     // None of the skipped tables in the reset list did.
     for (const skipped of [
       "documents",
+      "findings",
       "sightings",
       "contact_candidates",
       "verifications",
