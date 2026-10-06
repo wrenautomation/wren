@@ -87,11 +87,8 @@ const ONE: Record<string, (id: string, input: Input) => [string, Input]> = {
   "console/stopLoop": (id) => loop(id, false),
   "console/retryEvent": (id) => ["console/retryEvent", { id }],
   "console/releaseHold": (id) => ["console/releaseHold", { id }],
-  "email/approve": (id, { body }) => [
-    "email/approve",
-    { id: Number(id), ...(body ? { body } : {}) },
-  ],
-  "email/drop": (id) => ["email/drop", { id: Number(id) }],
+  "email/approve": (id, { body }) => ["email/approve", { id: num(id), ...(body ? { body } : {}) }],
+  "email/drop": (id) => ["email/drop", { id: num(id) }],
   "sms/reply": (id, { body }) => ["sms/reply", { id: Number(id), body }],
   "email/pause": (id, { reason }) => ["email/pause", { target: id, reason }],
   "email/resume": (id) => ["email/resume", { target: id }],
@@ -143,7 +140,7 @@ const ONE: Record<string, (id: string, input: Input) => [string, Input]> = {
   // It spends: the console asks for the handler's name, the action's confirm is the human's.
   "marketing/resume": (id) =>
     handlerCall("Ads", "resume", { campaignId: head(id, 1)[0] }, { confirm: "resume" }),
-  "marketing/markRead": (id) => handlerCall("SmsDesk", "markRead", { contactId: Number(id) }),
+  "marketing/markRead": (id) => handlerCall("SmsDesk", "markRead", { contactId: num(id) }),
   // A draft's review: ContentDesk's one key, as the CLI's verdicts are one table.
   "marketing/approveDraft": (id) => desk("approve", { ids: [bare(id)] }),
   "marketing/rejectDraft": (id) => desk("reject", { ids: [bare(id)] }),

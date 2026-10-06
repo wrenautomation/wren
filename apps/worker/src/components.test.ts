@@ -29,7 +29,6 @@ import type { Logger } from "pino";
 import { afterAll, describe, expect, it } from "vitest";
 import { COMPONENTS, PLATFORM } from "./components.js";
 import { MARKETING_NUMBERS } from "./marketing.js";
-import { replyQueueRecord } from "./replies.js";
 import { reviewRecord } from "./review.js";
 import { buildServices } from "./services.js";
 import { WORKFLOWS } from "./workflows.js";
@@ -100,7 +99,6 @@ const RECORD_TYPES = [
   ...MARKETING_RECORDS,
   settingOf({} as Client),
   reviewRecord(),
-  replyQueueRecord,
   askRecord,
 ];
 const RECORDS = RECORD_TYPES.map((t) => t.id);

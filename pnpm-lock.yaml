@@ -715,6 +715,9 @@ importers:
       '@restatedev/restate-sdk':
         specifier: 1.17.1
         version: 1.17.1
+      '@wren/channel-sms':
+        specifier: workspace:*
+        version: link:../channel-sms
       '@wren/core':
         specifier: workspace:*
         version: link:../core

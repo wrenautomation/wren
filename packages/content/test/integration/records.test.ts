@@ -1,12 +1,15 @@
 /**
  * `marketing.post` against Postgres: a published post with its newest numbers, never an older
- * count or an unpublished draft, and engagement pooled in the footer. Synthetic rows only.
+ * count or an unpublished draft, and engagement pooled in the footer. `marketing.inbox`'s email
+ * replies and text threads in their states. Synthetic rows only.
  */
 import { serveRecords } from "@wren/core/records/serve";
 import { startTestPostgres, type TestPostgres } from "@wren/db/testing";
+import { sql } from "drizzle-orm";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { draftRecord, postRecord } from "../../src/records.js";
 import { contentDrafts, contentIdeas, contentMetrics } from "../../src/schema.js";
+import { inboxRecord } from "../../src/social/records.js";
 
 let pg: TestPostgres;
 beforeAll(async () => {
@@ -100,6 +103,105 @@ describe("marketing.draft", () => {
         feed: { laptop: null, phone: null },
       },
       ask: [],
+    });
+  });
+});
+
+describe("marketing.inbox: email replies and texts", () => {
+  it("waits on an unanswered reply and an unread text; answered ones leave the view", async () => {
+    const one = async (q: ReturnType<typeof sql>) =>
+      ((await pg.db.execute(q)) as unknown as { id: number }[])[0]?.id as number;
+    const co = await one(
+      sql`insert into companies (domain, name) values ('inbox.example', 'Inbox Firm') returning id`,
+    );
+    const person = await one(sql`
+      insert into people (company_id, full_name, is_compliance, origin, origin_ref, raw)
+      values (${co}, 'Ann Example', false, 'manual', 'test', '{}') returning id`);
+    const enrollment = await one(sql`
+      insert into enrollments (niche, sequence_name, sequence_snapshot, offer, state, company_id,
+        person_id, kind, to_email, sender)
+      values ('test', 's', '{}', 'o', 'active', ${co}, ${person}, 'person', 'ann@inbox.example',
+        'me@wren.example') returning id`);
+    const reply = (words: string, disposition: string) =>
+      one(sql`
+        insert into thread_events (enrollment_id, kind, disposition, disposition_source,
+          from_address, body_text, received_at)
+        values (${enrollment}, 'reply', ${disposition}, 'rule', 'ann@inbox.example', ${words},
+          now())
+        returning id`);
+    const open = await reply("Tell me more", "interested");
+    const booked = await reply("Tuesday works", "interested");
+    const asked = await reply("Can we talk Friday?", "interested");
+    const invited = (thread: number, state: string) =>
+      one(sql`
+        insert into call_invites (thread_event_id, enrollment_id, state, email)
+        values (${thread}, ${enrollment}, ${state}, 'ann@inbox.example') returning id`);
+    const invite = await invited(booked, "sent");
+    const toAnswer = await invited(asked, "needs_you");
+
+    const contact = (e164: string) =>
+      one(sql`
+        insert into sms_contacts (e164, name, source_kind, basis)
+        values (${e164}, ${`Texter ${e164.slice(-1)}`}, 'inbound', 'opt_in') returning id`);
+    const text = (id: number, direction: "in" | "out", body: string, ago: number) =>
+      pg.db.execute(sql`
+        insert into sms_messages (contact_id, direction, kind, to_e164, body, state, received_at,
+          created_at)
+        values (${id}, ${direction}, ${direction === "in" ? "inbound" : "manual"}, '+15550000000',
+          ${body}, ${direction === "in" ? "received" : "queued"},
+          ${direction === "in" ? sql`now() - ${`${ago} minutes`}::interval` : null},
+          now() - ${`${ago} minutes`}::interval)`);
+    const unread = await contact("+15550000001");
+    await text(unread, "in", "Is this still open?", 5);
+    const answered = await contact("+15550000002");
+    await text(answered, "in", "Who is this?", 10);
+    await text(answered, "out", "Wren, about your note", 2);
+
+    const api = serveRecords([inboxRecord], pg.db);
+    for (const v of inboxRecord.views)
+      await api.list({ record: inboxRecord.id, view: v.id, limit: 50 });
+    const waiting = (await api.list({ record: inboxRecord.id, view: "waiting", limit: 50 })).rows;
+    expect(waiting).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          id: `reply:${open}`,
+          type: "email",
+          state: "waiting",
+          who: "Ann Example",
+          company: "Inbox Firm",
+          body: "Tell me more",
+          url: null,
+        }),
+        // An invite's id, so the replies page's Send and Don't answer act on it here.
+        expect.objectContaining({
+          id: `email:${toAnswer}`,
+          type: "email",
+          state: "waiting",
+          answer: "needs_you",
+          url: `/inbox/replies/${toAnswer}`,
+        }),
+        expect.objectContaining({
+          id: `text:${unread}`,
+          type: "text",
+          state: "waiting",
+          body: "Is this still open?",
+        }),
+      ]),
+    );
+    const ids = waiting.map((r) => r.id);
+    expect(ids).not.toContain(`email:${invite}`);
+    expect(ids).not.toContain(`text:${answered}`);
+    const email = (await api.list({ record: inboxRecord.id, view: "email", limit: 50 })).rows;
+    expect(email.find((r) => r.id === `email:${invite}`)).toMatchObject({
+      state: "answered",
+      answer: "sent",
+      url: `/inbox/replies/${invite}`,
+    });
+    const texts = (await api.list({ record: inboxRecord.id, view: "texts", limit: 50 })).rows;
+    expect(texts.find((r) => r.id === `text:${answered}`)).toMatchObject({ state: "answered" });
+    // A text row's detail is its thread, as the Texts app shows it.
+    expect(await inboxRecord.load?.(pg.db, `text:${unread}`)).toMatchObject({
+      messages: [expect.objectContaining({ direction: "in", body: "Is this still open?" })],
     });
   });
 });

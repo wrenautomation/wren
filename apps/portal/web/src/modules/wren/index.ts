@@ -2,11 +2,11 @@
  * Wren's own apps, in Wren's workspace only (team view): each an Overview of its numbers, then
  * its records on the templates. The console serves every record here.
  */
-import type { Action, MessageKind } from "@wren/ui";
+import type { Action } from "@wren/ui";
 import { createElement } from "react";
-import { call } from "../../api.js";
 import type { Module } from "../../module.js";
 import { ClientLook } from "../account/Look.js";
+import { INBOX_PAGE } from "../marketing/index.js";
 import { ClientComponents } from "../marketplace/Installed.js";
 import { Ask } from "./ask.js";
 import {
@@ -18,6 +18,7 @@ import {
 } from "./experiments.js";
 import { handlers } from "./handlers.js";
 import { AI_SPEND, AiSpend, idOf } from "./heads.js";
+import { REPLY_ACTIONS } from "./replies.js";
 import { Workflows } from "./workflows.js";
 
 const TEAM = { audience: "team" } as const;
@@ -82,40 +83,6 @@ const INBOX_ACTIONS: Action[] = [
     bulk: true,
     when: { state: ["paused"] },
     done: said("Sending again"),
-  },
-];
-
-const WAITING = { state: ["needs_you", "proposed"] };
-/** Our answer rides their thread: the subject they replied under, as "Re: ...". */
-const replyPreview = (id: string | number) =>
-  call<{ row?: { subject?: string | null } }>("console/recordsGet", {
-    record: "email.reply",
-    id: String(id),
-  }).then((r): MessageKind => {
-    const subject = r.row?.subject?.trim();
-    return {
-      kind: "email",
-      subject: subject ? (/^re:/i.test(subject) ? subject : `Re: ${subject}`) : "Re:",
-    };
-  });
-const REPLY_ACTIONS: Action[] = [
-  {
-    id: "email.approve",
-    label: "Send",
-    handler: "email/approve",
-    ask: { field: "body", label: "Your reply", from: "draft", preview: replyPreview },
-    key: "a",
-    when: WAITING,
-    done: said("Sent"),
-  },
-  {
-    id: "email.drop",
-    label: "Don't answer",
-    handler: "email/drop",
-    confirm: "Leave this reply unanswered?",
-    key: "s",
-    when: WAITING,
-    done: said("Left unanswered"),
   },
 ];
 
@@ -445,7 +412,7 @@ export const inbox: Module = {
       tiles: [
         {
           label: "Waiting on you",
-          record: "inbox.reply",
+          record: "marketing.inbox",
           href: "/inbox/waiting?view=waiting",
           needs: true,
         },
@@ -467,9 +434,9 @@ export const inbox: Module = {
       top: [
         {
           label: "Waiting on you",
-          record: "inbox.reply",
+          record: "marketing.inbox",
           href: "/inbox/waiting?view=waiting",
-          fields: ["channel", "at"],
+          fields: ["type", "at"],
           empty: "Nothing is waiting on you.",
         },
         {
@@ -481,16 +448,8 @@ export const inbox: Module = {
         },
       ],
     },
-    {
-      id: "waiting",
-      label: "Every channel",
-      template: "list",
-      record: "inbox.reply",
-      empty: {
-        waiting: "Answers from leads wait here, by email, text or DM.",
-        all: "Every lead's answer shows here.",
-      },
-    },
+    // The one queue, Marketing → Inbox's page; "waiting" keeps old links landing.
+    { ...INBOX_PAGE, id: "waiting", label: "Waiting on you" },
     {
       id: "replies",
       label: "Email replies",

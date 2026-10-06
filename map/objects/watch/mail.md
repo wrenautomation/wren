@@ -29,7 +29,7 @@ Citations: `packages/watch/src/schema.ts:25`, `:42`, `:78`; `packages/watch/src/
 
 - **owns:** its rules
 - **joins:** [[platform/spine]] (workflow `watch`: `read.mail` → `triage.mail` → `out.needs_you` / `out.held`)
-- **looks-like-but-is-not:** [[books/document]] (the books keep whole billing emails; the Watch keeps headers); `inbox.reply` (leads' answers, not William's mail)
+- **looks-like-but-is-not:** [[books/document]] (the books keep whole billing emails; the Watch keeps headers); `marketing.inbox` (leads' answers, not William's mail)
 
 ## If you change this
 
