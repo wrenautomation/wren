@@ -1,0 +1,348 @@
+/**
+ * Every draft William finishes, by kind (designs/2026-10-06-content-desk.md, 3 and 4): a post
+ * (`content_drafts.text`), a comment's answer (`comments.draft`), a Reddit thread's comment
+ * (`reddit_threads.draft`). Each kind reads its draft with what Claude needs beside it and writes
+ * the same field the console edits. Ids are the Inbox's: `draft:12`, `comment:3`, `thread:t3_x`.
+ *
+ * Every write is a `runs` row (`draft-ask`, `draft-set`, `draft-undo`) keeping the text it
+ * replaced, so the item's thread shows it and Undo puts it back.
+ */
+import { finishRun, openRun } from "@wren/core";
+import { type DraftCommand, draftTurns } from "@wren/core/ask";
+import type { Platform } from "@wren/core/content";
+import { atomic, type Queryable } from "@wren/db";
+import { comments, redditThreads } from "@wren/outreach";
+import { and, desc, eq, inArray, isNotNull } from "drizzle-orm";
+import { PLATFORM_SPECS } from "./platforms.js";
+import { commentGuide, playbookFor } from "./playbook.js";
+import { editDraft } from "./review.js";
+import { contentDrafts, contentIdeas } from "./schema.js";
+
+/** What `wren drafts list --type` names: a post is an Inbox `draft:`. */
+export const DRAFT_TYPES = ["post", "comment", "thread", "dm", "invite"] as const;
+export type DraftType = (typeof DRAFT_TYPES)[number];
+
+export interface DraftItem {
+  /** What it is, for the prompt: "LinkedIn post", "Reddit comment answer". */
+  what: string;
+  /** One line for a list: the post's title, who commented. */
+  title: string;
+  draft: string | null;
+  /** Its platform's cap on the draft. */
+  max: number;
+  /** Whether the draft can still change: waiting on William, not sent. */
+  open: boolean;
+  /** What Claude reads beside it: the post, the comment, the thread. */
+  context: string;
+  /** The platform's playbook and comments SOP; "" = none. */
+  guide: string;
+}
+
+export interface Waiting {
+  item: string;
+  type: DraftType;
+  title: string;
+  draft: string | null;
+  at: Date;
+}
+
+interface DraftKind {
+  type: DraftType;
+  read: (db: Queryable, id: string) => Promise<DraftItem | null>;
+  /** The same field the console edits; throws when it can't (sent, over the cap). */
+  write: (db: Queryable, id: string, text: string | null) => Promise<void>;
+  /** Drafts waiting on William, newest first. */
+  waiting: (db: Queryable, limit: number) => Promise<Waiting[]>;
+}
+
+/** A comment's cap where the platform has one under Reddit's and YouTube's 10,000. */
+const COMMENT_MAX: Record<string, number> = { linkedin: 1250, x: 280, instagram: 2200 };
+const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+const SITE: Record<string, string> = {
+  linkedin: "LinkedIn",
+  reddit: "Reddit",
+  youtube: "YouTube",
+  x: "X",
+  instagram: "Instagram",
+  facebook: "Facebook",
+  tiktok: "TikTok",
+};
+const siteOf = (p: string) => SITE[p] ?? p;
+
+/** "Label: value" blocks, the empty ones left out. */
+const facts = (pairs: [string, unknown][]) =>
+  pairs
+    .filter(([, v]) => v !== null && v !== undefined && v !== "")
+    .map(([k, v]) => `${k}:\n${String(v)}`)
+    .join("\n\n");
+
+const POST_OPEN = ["draft", "failed", "approved"];
+const COMMENT_OPEN = ["new", "waiting"] as const;
+const THREAD_OPEN = ["new", "ranked", "queued"] as const;
+
+const post: DraftKind = {
+  type: "post",
+  read: async (db, id) => {
+    if (!UUID.test(id)) return null;
+    const [d] = await db
+      .select({
+        platform: contentDrafts.platform,
+        text: contentDrafts.text,
+        title: contentDrafts.title,
+        status: contentDrafts.status,
+        idea: contentIdeas.text,
+      })
+      .from(contentDrafts)
+      .innerJoin(contentIdeas, eq(contentIdeas.id, contentDrafts.ideaId))
+      .where(eq(contentDrafts.id, id));
+    if (!d) return null;
+    const spec = PLATFORM_SPECS[d.platform];
+    return {
+      what: `${siteOf(d.platform)} post`,
+      title: d.title ?? d.idea.slice(0, 80),
+      draft: d.text,
+      max: spec.maxChars,
+      open: POST_OPEN.includes(d.status),
+      context: facts([
+        ["The idea it was drafted from", d.idea],
+        ["Its title (unchanged by a rewrite)", d.title],
+      ]),
+      guide: (await playbookFor(db, d.platform))?.text ?? "",
+    };
+  },
+  write: async (db, id, text) => {
+    if (text === null) throw new Error("a post can't be empty");
+    await editDraft(db, id, { text });
+  },
+  waiting: async (db, limit) =>
+    (
+      await db
+        .select({
+          id: contentDrafts.id,
+          platform: contentDrafts.platform,
+          title: contentDrafts.title,
+          text: contentDrafts.text,
+          at: contentDrafts.createdAt,
+        })
+        .from(contentDrafts)
+        .where(inArray(contentDrafts.status, ["draft", "failed"]))
+        .orderBy(desc(contentDrafts.createdAt))
+        .limit(limit)
+    ).map((d) => ({
+      item: `draft:${d.id}`,
+      type: "post" as const,
+      title: `${siteOf(d.platform)}: ${d.title ?? d.text.slice(0, 60)}`,
+      draft: d.text,
+      at: d.at,
+    })),
+};
+
+const comment: DraftKind = {
+  type: "comment",
+  read: async (db, id) => {
+    if (!/^\d+$/.test(id)) return null;
+    const [c] = await db
+      .select()
+      .from(comments)
+      .where(eq(comments.id, Number(id)));
+    if (!c) return null;
+    return {
+      what: `${siteOf(c.platform)} comment answer`,
+      title: c.author,
+      draft: c.draft,
+      max: COMMENT_MAX[c.platform] ?? 10_000,
+      open: (COMMENT_OPEN as readonly string[]).includes(c.state),
+      context: facts([
+        ["Where", c.place],
+        ["Our post", c.postTitle],
+        [`${c.author} wrote`, c.body],
+        ["Read as", c.why ? `${c.sort}: ${c.why}` : c.sort],
+      ]),
+      guide: await commentGuide(db, c.platform as Platform),
+    };
+  },
+  write: async (db, id, text) => {
+    const done = await db
+      .update(comments)
+      .set({ draft: text })
+      .where(and(eq(comments.id, Number(id)), inArray(comments.state, COMMENT_OPEN)))
+      .returning({ id: comments.id });
+    if (!done.length) throw new Error(`comment ${id} is answered or dropped`);
+  },
+  waiting: async (db, limit) =>
+    (
+      await db
+        .select()
+        .from(comments)
+        .where(and(inArray(comments.state, COMMENT_OPEN), isNotNull(comments.draft)))
+        .orderBy(desc(comments.at))
+        .limit(limit)
+    ).map((c) => ({
+      item: `comment:${c.id}`,
+      type: "comment" as const,
+      title: `${siteOf(c.platform)}: ${c.author} on ${c.postTitle ?? c.place ?? "a post"}`,
+      draft: c.draft,
+      at: c.at,
+    })),
+};
+
+const thread: DraftKind = {
+  type: "thread",
+  read: async (db, id) => {
+    const [t] = await db.select().from(redditThreads).where(eq(redditThreads.id, id));
+    if (!t) return null;
+    return {
+      what: "Reddit comment in a thread",
+      title: `r/${t.subreddit}: ${t.title}`,
+      draft: t.draft,
+      max: 10_000,
+      open: (THREAD_OPEN as readonly string[]).includes(t.state),
+      context: facts([
+        ["Subreddit", `r/${t.subreddit}`],
+        [`Post by ${t.author}`, `${t.title}\n\n${t.body}`],
+        ["Answering", t.targetText],
+        ["Angle", t.angle],
+        ["Read for the draft", t.sources?.map((s) => `${s.label}: ${s.text}`).join("\n\n")],
+      ]),
+      guide: await commentGuide(db, "reddit"),
+    };
+  },
+  write: async (db, id, text) => {
+    const done = await db
+      .update(redditThreads)
+      .set({ draft: text })
+      .where(and(eq(redditThreads.id, id), inArray(redditThreads.state, THREAD_OPEN)))
+      .returning({ id: redditThreads.id });
+    if (!done.length) throw new Error(`thread ${id} is commented, skipped or dropped`);
+  },
+  waiting: async (db, limit) =>
+    (
+      await db
+        .select()
+        .from(redditThreads)
+        .where(and(eq(redditThreads.state, "queued"), isNotNull(redditThreads.draft)))
+        .orderBy(desc(redditThreads.postedAt))
+        .limit(limit)
+    ).map((t) => ({
+      item: `thread:${t.id}`,
+      type: "thread" as const,
+      title: `r/${t.subreddit}: ${t.title}`,
+      draft: t.draft,
+      at: t.postedAt,
+    })),
+};
+
+/**
+ * Each kind by its Inbox prefix.
+ * TODO(content-desk-queue): `dm` (a reply, per waiting thread) and `invite` (a first message, per
+ * accepted invite) read and write `reach_contacts.draft` once that branch adds the column.
+ */
+export const DRAFT_KINDS: Record<string, DraftKind> = { draft: post, comment, thread };
+
+/** "comment:12" as its kind and id; throws on one no kind holds. */
+export function itemOf(item: string): { record: string; id: string; kind: DraftKind } {
+  const at = item.indexOf(":");
+  const record = item.slice(0, at);
+  const kind = DRAFT_KINDS[record];
+  if (at < 1 || !kind || at === item.length - 1)
+    throw new Error(`say a draft as ${Object.keys(DRAFT_KINDS).join(":<id>, ")}:<id>`);
+  return { record, id: item.slice(at + 1), kind };
+}
+
+/** The draft and what it needs, or a throw that says why not. */
+export async function readDraft(db: Queryable, item: string) {
+  const { kind, id, record } = itemOf(item);
+  const got = await kind.read(db, id);
+  if (!got) throw new Error(`no ${record} ${id}`);
+  return got;
+}
+
+/** Drafts waiting on William, every kind or one, newest first. */
+export async function listWaiting(db: Queryable, o: { type?: DraftType; limit?: number } = {}) {
+  const limit = Math.min(Math.max(o.limit ?? 50, 1), 500);
+  const kinds = Object.values(DRAFT_KINDS).filter((k) => !o.type || k.type === o.type);
+  const all = (await Promise.all(kinds.map((k) => k.waiting(db, limit)))).flat();
+  return all.sort((a, b) => b.at.getTime() - a.at.getTime()).slice(0, limit);
+}
+
+/**
+ * Write `text` over the draft as one `runs` row that keeps what it replaced: `run` when one is
+ * open (an ask), else a new one. `expect`: write only over this text, so a hand edit made
+ * meanwhile is never lost.
+ */
+export async function writeDraft(
+  db: Queryable,
+  item: string,
+  text: string | null,
+  o: {
+    command: DraftCommand;
+    by: string;
+    expect?: string | null;
+    argv?: object;
+    run?: string;
+    stats?: object;
+  },
+) {
+  const { kind, record, id } = itemOf(item);
+  return atomic(db, async (tx) => {
+    const now = await kind.read(tx, id);
+    if (!now) throw new Error(`no ${record} ${id}`);
+    if (o.expect !== undefined && now.draft !== o.expect)
+      throw new Error("the draft changed since; nothing written");
+    if (text && text.length > now.max)
+      throw new Error(`${text.length} characters, over ${now.max} for a ${now.what}`);
+    await kind.write(tx, id, text);
+    const run =
+      o.run ??
+      (await openRun(tx, { command: o.command, argv: { ...o.argv, record, id, by: o.by } })).id;
+    await finishRun(tx, run, { ...o.stats, draft: text, before: now.draft });
+    return { run, before: now.draft };
+  });
+}
+
+/**
+ * Put back the text the newest change replaced, when the draft is still what that change wrote.
+ * Undo twice and the change is back.
+ */
+export async function undoDraft(db: Queryable, item: string, by: string) {
+  const { record, id } = itemOf(item);
+  const last = (await draftTurns(db, record, id)).findLast(
+    (t) => t.state === "done" && t.draft !== null,
+  );
+  if (!last) throw new Error("nothing to undo");
+  return writeDraft(db, item, last.before, {
+    command: "draft-undo",
+    by,
+    expect: last.draft,
+    argv: { of: last.id },
+  });
+}
+
+/** The longest draft Ask Claude takes: the desk's system prompt holds 8,000 characters. */
+const ASK_DRAFT_MAX = 5000;
+const QUESTION_MAX = 4000;
+const SYSTEM_MAX = 8000;
+export const ASK_MESSAGE_MAX = 2000;
+
+const SYSTEM = `You help William finish one draft before he sends it himself: a post, an answer to a comment, a comment in a thread or a message. You are read only: you can't change, send or post anything, so never say you did. Wren writes the draft you give.
+Answer with one JSON object and nothing else: {"reply": "...", "draft": "..."}.
+- reply: what you changed, or your answer to his question. A sentence or two, plain text.
+- draft: the whole new draft, ready to send as is. null when he only asked something or nothing should change.
+Write as William: "I", casual, short paragraphs, plain words, no em dashes. Keep under the cap.`;
+
+/** The desk's question and system prompt for one ask, or why it can't go. */
+export function askPrompt(
+  d: DraftItem,
+  ask: { by: string; message: string },
+): { question: string; system: string } | { error: string } {
+  if ((d.draft?.length ?? 0) > ASK_DRAFT_MAX)
+    return { error: `the draft is over ${ASK_DRAFT_MAX} characters; use wren drafts set` };
+  const head = `${SYSTEM}\n\nIt is a ${d.what}, at most ${d.max} characters.\n\nThe draft now:\n${
+    d.draft ? `"""\n${d.draft}\n"""` : "(none yet)"
+  }`;
+  const guide = d.guide ? `\n\nHow we write here:\n${d.guide}` : "";
+  return {
+    question: `${ask.by} asks: ${ask.message}\n\n${d.context}`.slice(0, QUESTION_MAX),
+    system: (head + guide).slice(0, SYSTEM_MAX),
+  };
+}

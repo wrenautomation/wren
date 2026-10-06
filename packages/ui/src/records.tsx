@@ -93,6 +93,8 @@ export interface RecordExtras {
   /** Titled blocks after the fields, such as how the research went. */
   sections?: [string, ReactNode][];
   sources?: RecordSource[];
+  /** Read the record again in this many ms: something still works on it (Claude on a draft). */
+  poll?: number;
 }
 
 /** Actions a record's head may show, by the ids its type lists. */
@@ -1323,6 +1325,14 @@ export function RecordBody({
   const [lit, pickMark] = useSourcePick();
   const tab = place.params.get("tab") ?? "details";
   const [want, setWant] = useState<string | null>(null);
+  // A type with no `load` still gets its extras, with no detail.
+  const more = got.data && extras ? extras(got.data.detail, got.data.row) : {};
+  // biome-ignore lint/correctness/useExhaustiveDependencies: each new read sets the next one.
+  useEffect(() => {
+    if (!more.poll) return;
+    const t = setTimeout(got.retry, more.poll);
+    return () => clearTimeout(t);
+  }, [got.data]);
   // A chip on another tab opens the sources, then lights its card once it's drawn.
   useEffect(() => {
     if (want && tab === "sources") {
@@ -1340,9 +1350,7 @@ export function RecordBody({
         <div className="mt-4 h-24 w-full animate-pulse bg-(--ui-wash)" />
       </div>
     );
-  const { row, related, activity, detail } = got.data;
-  // A type with no `load` still gets its extras, with no detail.
-  const more = extras ? extras(detail, row) : {};
+  const { row, related, activity } = got.data;
   const sources = more.sources ?? [];
   const cite: CiteTo = {
     order: sources.map((s) => s.mark.toLowerCase()),

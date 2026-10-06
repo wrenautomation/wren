@@ -3,6 +3,7 @@
  * platform in one list (`marketing.inbox`), activity alone (`marketing.activity`), and followers
  * per platform (`marketing.audience`).
  */
+import { draftTurns } from "@wren/core/ask";
 import { date, defineRecord, link, name, number, prose, status, text } from "@wren/core/records";
 import type { Queryable } from "@wren/db";
 import { commentRecord, dmRecord, PLATFORM_LABELS } from "@wren/outreach/records";
@@ -166,10 +167,16 @@ export const inboxRecord = defineRecord({
     "marketing.dmRead",
     "marketing.activitySeen",
     "marketing.activityAllSeen",
+    "marketing.draftAsk",
+    "marketing.draftUndo",
   ],
-  /** A DM thread's messages; nothing past the row for the rest. */
-  load: async (db, id) =>
-    id.startsWith("dm:") ? ((await dmRecord.load?.(db, id.slice(3))) ?? null) : null,
+  /** A DM thread's messages; a draft's Ask Claude thread; nothing past the row for the rest. */
+  load: async (db, id) => {
+    const at = id.indexOf(":");
+    const [type, rest] = [id.slice(0, at), id.slice(at + 1)];
+    if (type === "dm") return (await dmRecord.load?.(db, rest)) ?? null;
+    return type === "activity" ? null : { ask: await draftTurns(db, type, rest) };
+  },
 });
 
 /** Followers per platform: the newest day kept, and the change from a week before it. */

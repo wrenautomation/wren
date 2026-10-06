@@ -186,11 +186,30 @@ const ONE: Record<string, (id: string, input: Input) => [string, Input]> = {
       { confirm: "commentThread" },
     ),
   "marketing/threadSkip": (id) => handlerCall("ReachDesk", "skipThread", { id }),
+  ...drafting("inbox", null),
+  ...drafting("post", "draft"),
+  ...drafting("comment", "comment"),
+  ...drafting("thread", "thread"),
   "marketing/dmCopy": (id, input) =>
     handlerCall("ReachDesk", "setTemplate", { key: id, body: changed(input) }),
   "marketing/textCopy": (id, input) =>
     handlerCall("SmsDesk", "setTemplate", { key: id, body: changed(input) }),
 };
+/**
+ * Ask Claude on a draft, and Undo (`DraftAsk`): `record` is the draft's kind. An Inbox id carries
+ * it ("comment:12"); a page's own id doesn't, so the page says it.
+ */
+function drafting(page: string, record: string | null) {
+  const item = (id: string) =>
+    record
+      ? { record, id }
+      : { record: id.slice(0, id.indexOf(":")), id: id.slice(id.indexOf(":") + 1) };
+  return {
+    [`marketing/${page}Ask`]: (id: string, { message }: Input) =>
+      handlerCall("DraftAsk", "ask", { ...item(id), message }),
+    [`marketing/${page}Undo`]: (id: string) => handlerCall("DraftAsk", "undo", item(id)),
+  };
+}
 /** A template's new words. The box leaves out unchanged text, and an empty body clears it. */
 const changed = ({ body }: Input) => {
   if (typeof body !== "string") throw new Error("Nothing changed.");

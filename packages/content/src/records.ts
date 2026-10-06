@@ -2,6 +2,7 @@
  * Posts as console records for the Marketing app: drafts waiting on a person
  * (`marketing_draft_records`) and published ones (`marketing_post_records`).
  */
+import { draftTurns } from "@wren/core/ask";
 import type { Platform } from "@wren/core/content";
 import {
   date,
@@ -115,8 +116,11 @@ export const draftRecord = defineRecord({
     "marketing.editDraft",
     "marketing.redraft",
     "marketing.rejectDraft",
+    "marketing.draftAsk",
+    "marketing.draftUndo",
   ],
-  load: async (db, id) => ({ post: await postOf(db, id) }),
+  /** The preview, and Ask Claude's thread on it. */
+  load: async (db, id) => ({ post: await postOf(db, id), ask: await draftTurns(db, "draft", id) }),
 });
 
 export const postRecord = defineRecord({

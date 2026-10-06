@@ -4,6 +4,7 @@
  */
 import type { Action } from "@wren/ui";
 import type { Module } from "../../module.js";
+import { askActions, withAsk } from "./ask.js";
 import { WeeklyBookings } from "./chart.js";
 import { copyExtras, copyPreview, dmExtras, dmPreview } from "./dms.js";
 import { draftPreview, postExtras } from "./posts.js";
@@ -62,6 +63,7 @@ const DRAFT_ACTIONS: Action[] = [
     when: OPEN,
     done: said("Rejected"),
   },
+  ...askActions("post", OPEN),
 ];
 
 const AD_ACTIONS: Action[] = [
@@ -145,6 +147,8 @@ const COMMENT_ACTIONS: Action[] = [
     done: said("Dropped"),
   },
 ];
+/** Comments waiting on him: Ask Claude on the draft answer. */
+const COMMENT_ASK = askActions("comment", { state: ["new", "waiting"] });
 
 const ACTIVITY_ACTIONS: Action[] = [
   {
@@ -181,6 +185,8 @@ const INBOX_ACTIONS: Action[] = [
       : only("dm", a, { state: ["waiting"] }),
   ),
   ...ACTIVITY_ACTIONS.map((a) => (a.form ? a : only("activity", a))),
+  // TODO(content-desk-queue): dm and invite once their drafts land (packages/content/src/draft-ask.ts).
+  ...askActions("inbox", { type: ["comment", "draft", "thread"], state: ["new", "waiting"] }),
 ];
 
 /** One read on his click; the loops behind these pages stay as they are. */
@@ -289,6 +295,7 @@ const THREAD_ACTIONS: Action[] = [
     when: { state: ["new", "ranked", "queued"] },
     done: said("Skipped"),
   },
+  ...askActions("thread", { state: ["new", "ranked", "queued"] }),
   DISCOVERY_READ,
 ];
 
@@ -458,10 +465,11 @@ export const marketing: Module = {
         all: "Comments, DMs and activity from every platform show here.",
       },
       actions: INBOX_ACTIONS,
-      extras: (detail, at) =>
+      extras: withAsk((detail, at) =>
         (detail as { messages?: unknown } | null)?.messages
           ? dmExtras(detail, at)
           : { sections: [] },
+      ),
       count: { state: ["new", "waiting"] },
     },
     {
@@ -484,7 +492,7 @@ export const marketing: Module = {
         rejected: "Nothing was turned down.",
       },
       actions: DRAFT_ACTIONS,
-      extras: postExtras,
+      extras: withAsk(postExtras),
     },
     {
       id: "ads",
@@ -582,7 +590,8 @@ export const marketing: Module = {
         answered: "Nothing answered yet.",
         all: "Comments on our posts and under our comments show here.",
       },
-      actions: COMMENT_ACTIONS,
+      actions: [...COMMENT_ACTIONS, ...COMMENT_ASK],
+      extras: withAsk(),
     },
     {
       id: "threads",
@@ -595,6 +604,7 @@ export const marketing: Module = {
         all: "New posts in watched places show here.",
       },
       actions: THREAD_ACTIONS,
+      extras: withAsk(),
     },
     {
       id: "invites",

@@ -115,7 +115,7 @@ function printReport(r: DraftReport) {
   }
 }
 
-async function readText(file: string | undefined): Promise<string> {
+export async function readText(file: string | undefined): Promise<string> {
   if (file && file !== "-") return readFile(file, "utf8");
   const chunks: Buffer[] = [];
   for await (const c of process.stdin) chunks.push(c as Buffer);

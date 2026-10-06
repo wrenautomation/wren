@@ -99,6 +99,7 @@ describe("marketing.draft", () => {
         max: 280,
         feed: { laptop: null, phone: null },
       },
+      ask: [],
     });
   });
 });

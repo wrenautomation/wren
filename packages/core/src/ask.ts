@@ -4,17 +4,22 @@
  * hands it to the desk's `claude` service (autobrowse `src/claude/service.ts`), Claude Code on
  * William's Mac under his plan, read only, and writes the answer back on the row. `console.ask`
  * lists them. While the Mac is off a question waits in Restate.
+ *
+ * Ask Claude on a draft (designs/2026-10-06-content-desk.md, 3) is the same row and the same
+ * desk call, per draft: `draftTurns` reads one draft's turns; `@wren/content`'s `DraftAsk`
+ * writes them.
  */
 import * as restate from "@restatedev/restate-sdk";
-import type { Db } from "@wren/db";
+import type { Db, Queryable } from "@wren/db";
 import { and, eq, sql } from "drizzle-orm";
+import { z } from "zod";
 import { PortalRefusal, type PortalRequest, type SignedViewer } from "./portal.js";
 import { actor, date, defineRecord, number, status, text } from "./records.js";
 import { finishRun, openRun } from "./runs.js";
 import { runs } from "./schema.js";
 
 export const ASK = { name: "Ask" } as const;
-const CLAUDE = { name: "claude" } as const;
+export const CLAUDE = { name: "claude" } as const;
 const COMMAND = "ask";
 const MAX = 4000;
 
@@ -25,7 +30,7 @@ Prod Postgres: node scripts/prod-sql.mjs "<one SQL statement>" (read only).
 Answer in plain text: lead with the answer, short paragraphs and "- " lists, no headings, tables or bold. Cite files as path:line. Show the $ cost beside any usage figure. Never print secrets, tokens or env values.`;
 
 /** The desk's `claude` handlers as autobrowse serves them; no import from that repo. */
-type ClaudeService = {
+export type ClaudeService = {
   ask: (
     ctx: restate.Context,
     req: {
@@ -132,3 +137,54 @@ export const askRecord = defineRecord({
   },
   views: [{ id: "all", label: "All", sort: "-asked", at: "asked" }],
 });
+
+/** A draft's turns: Claude asked (`draft-ask`), a terminal set it, an undo put one back. */
+export type DraftCommand = "draft-ask" | "draft-set" | "draft-undo";
+
+/** One turn on a draft, oldest first. `draft` is what it wrote (null: nothing), `before` what that replaced. */
+export interface DraftTurn {
+  id: string;
+  command: DraftCommand;
+  by: string | null;
+  message: string | null;
+  at: string;
+  state: "thinking" | "done" | "failed";
+  reply: string | null;
+  draft: string | null;
+  before: string | null;
+  error: string | null;
+}
+
+/**
+ * Every turn on one draft (`record` is its kind, as the Inbox ids say it: "comment"), oldest first.
+ * ponytail: runs has no index past its key; a scan by command, as `console.ask` reads it.
+ */
+export const draftTurns = async (db: Queryable, record: string, id: string) =>
+  (await db.execute(sql`
+    SELECT id::text, command, argv->>'by' AS by, argv->>'message' AS message, started_at AS at,
+      CASE WHEN finished_at IS NULL THEN 'thinking' WHEN stats ? 'error' THEN 'failed'
+        ELSE 'done' END AS state,
+      stats->>'reply' AS reply, stats->>'draft' AS draft,
+      stats->>'before' AS before, stats->>'error' AS error
+    FROM runs WHERE command IN ('draft-ask', 'draft-set', 'draft-undo')
+      AND argv->>'record' = ${record} AND argv->>'id' = ${id}
+    ORDER BY started_at, id`)) as unknown as DraftTurn[];
+
+const DRAFT_ANSWER = z.object({ reply: z.string(), draft: z.string().nullable() });
+
+/**
+ * Claude's answer as `{reply, draft}`: the first JSON object in it, fenced or not. An answer that
+ * isn't one is all reply and writes nothing.
+ */
+export function draftAnswerOf(text: string): z.infer<typeof DRAFT_ANSWER> {
+  const from = text.indexOf("{");
+  const to = text.lastIndexOf("}");
+  try {
+    const got = DRAFT_ANSWER.safeParse(JSON.parse(text.slice(from, to + 1)));
+    if (from >= 0 && got.success)
+      return { reply: got.data.reply.trim(), draft: got.data.draft?.trim() || null };
+  } catch {
+    // Not JSON: said in words.
+  }
+  return { reply: text.trim(), draft: null };
+}
