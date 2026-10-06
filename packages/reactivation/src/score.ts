@@ -116,6 +116,16 @@ export function startedAgo(dates: unknown, today: Date): string {
 
 const roles = (n: number) => `${n} open role${n === 1 ? "" : "s"}`;
 
+/** A stay whose profile names the firm another way (`family.ts`): ", part of Paramount". */
+function underName(v: Record<string, unknown>): string {
+  const company = text(v.company);
+  if (!company) return "";
+  if (v.relation === "parent") return `, part of ${company}`;
+  if (v.relation === "renamed") return `, now ${company}`;
+  if (v.relation === "unit") return `, at ${company}`;
+  return "";
+}
+
 export function scoreContact(s: ScoreInput, today = new Date()): Scored {
   const reasons: Reason[] = [];
   const w = s.where;
@@ -144,7 +154,11 @@ export function scoreContact(s: ScoreInput, today = new Date()): Scored {
     const quiet = s.hiring ? "" : ", nothing new";
     reasons.push(
       there
-        ? { reason: `Still at ${s.firm}${quiet}`, points: POINTS.stillThere, cites: [f(w.id)] }
+        ? {
+            reason: `Still at ${s.firm}${underName(w.value)}${quiet}`,
+            points: POINTS.stillThere,
+            cites: [f(w.id)],
+          }
         : { reason: `Not found yet${quiet}`, points: POINTS.unknown, cites: [] },
     );
     if (s.hiring) {

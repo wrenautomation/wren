@@ -17,6 +17,7 @@ import {
   recordLookup,
 } from "@wren/research/people";
 import { type SQL, sql } from "drizzle-orm";
+import { type Judge, settleDrafts } from "./family.js";
 import { failedLine, fullName, headline, lookupLine } from "./feed.js";
 
 /** Errors in a row that stop the run: something is down, not one odd person. */
@@ -45,6 +46,8 @@ export interface CrmLookupOptions {
   runId?: string | null;
   now?: () => Date;
   feed?: Feed;
+  /** Says whether a move's new employer is the old one under another name (`family.ts`). */
+  judge?: Judge | null;
 }
 
 interface Row extends Record<string, unknown> {
@@ -140,7 +143,8 @@ export async function lookUpCrmPeople(
       let r: Awaited<ReturnType<typeof lookUpPerson>>;
       const name = fullName(s.firstName, s.lastName);
       try {
-        r = await lookUpPerson(sites, s, lookup);
+        const read = await lookUpPerson(sites, s, lookup);
+        r = { ...read, findings: await settleDrafts(read.findings, s.firm, opts.judge ?? null) };
         await recordLookup(db, s.personId, r, opts.runId ?? null);
       } catch (err) {
         await feed.emit(failedLine("lookup", name, err));

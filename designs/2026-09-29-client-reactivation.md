@@ -177,6 +177,11 @@ A lint rule guards this. biome `noRestrictedImports` on `packages/**` fails the 
   - Each client has its own `Reactivation` loop (R4), so 50 clients are 50 small loops, not one walk.
   - This replaced `clients.caps`, which nothing read.
 - **R22. The lander embeds the VSL; no `/demo` link.** (William, 2026-10-01.) The lander gets the video, not a link to the portal. The demo stays live at demo.wrenautomation.com.
+- **R23. A move to the same employer is a stay.** (William, 2026-10-06: "disney to walt disney isn't actually a move"; a rename or a same name is no signal, a merger or acquisition with a business event attached is.) The demo had 6 moves, and 2 weren't: Disney to The Walt Disney Company (a spelling), and CBS to Paramount (CBS's owner since the merger).
+  - `sameCompany` now also matches a firm name as the other's last words ("Disney" in "The Walt Disney Company").
+  - Otherwise the model is asked once per pair whether the new name is the same company, its owner (`parent`), a division or brand (`unit`), its new name (`renamed`), or `different`. Not sure, or the provider down, means `different`, so the move stands.
+  - Lookup settles each move before keeping it (`family.ts`); `wren crm settle` does the same to moves kept before. A stay keeps the new name as `company`, the old as `formerly` and `relation`. The score line says "Still at CBS, part of Paramount" and scores as a stay.
+  - Proposed, not built: a company-events check. Search news (Exa) about each client account and mover's new firm for an acquisition, merger, funding round or new leader in the last 6 months, kept as a dated `news` finding with its source, and scored as a reason to call. The rename itself never scores.
 
 ## Data added (one migration, every database)
 

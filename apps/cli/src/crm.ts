@@ -27,6 +27,7 @@ import {
   crmStatus,
   EMAIL_FILTERS,
   type EmailFilter,
+  familyJudge,
   formatCrmHealth,
   formatCrmStatus,
   formatRanked,
@@ -41,6 +42,7 @@ import {
   runCrmImport,
   seedDemo,
   setClientProfile,
+  settleMoves,
   skipDrafts,
 } from "@wren/reactivation";
 import type { Reactivation } from "@wren/reactivation/restate";
@@ -290,6 +292,19 @@ export function registerCrm(
       if (opts.json) console.log(JSON.stringify(list, null, 2));
       else if (!list.length) console.log("no scores yet: `wren --client <id> crm run`");
       else for (const line of formatRanked(list)) console.log(line);
+    });
+
+  crm
+    .command("settle")
+    .description("Make each kept move to the same employer under another name a stay (Disney, CBS)")
+    .action(async () => {
+      const judge =
+        settings.llm === "fake"
+          ? null
+          : (loadLlmEnv(settings.llmEnvPath, rootDir),
+            familyJudge(makeLlm(settings.llm, process.env, { anthropicModel: settings.llmModel })));
+      const n = await withClientDb((db) => settleMoves(db, judge));
+      console.log(`settled ${n} moves${judge ? "" : " by name only (the model is fake)"}`);
     });
 
   crm

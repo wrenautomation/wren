@@ -13,6 +13,7 @@ import { CRM_FORMATS } from "../../src/crm/formats.js";
 import { runCrmImport } from "../../src/crm/import.js";
 import { CrmCsvSource } from "../../src/crm/source.js";
 import { checkCrmEmails } from "../../src/crm/verify.js";
+import { type Judge, settleMoves } from "../../src/family.js";
 import { crmLookupSubjects, lookUpCrmPeople } from "../../src/lookup.js";
 
 let pg: TestPostgres;
@@ -138,6 +139,46 @@ describe("crm lookup", () => {
     expect(refresh.selected).toBe(3);
     // Seen again is the same fact, not a new row.
     expect((await db().select().from(findings)).length).toBe(3);
+  });
+
+  const asked: string[] = [];
+  const owner: Judge = async (from, to) => {
+    asked.push(`${from} > ${to}`);
+    return "parent";
+  };
+  const stay = [
+    "still_there",
+    {
+      company: "Globex",
+      title: "Account Manager",
+      dates: null,
+      companyUrl: null,
+      formerly: "Acme Staffing",
+      relation: "parent",
+    },
+  ];
+  const jane = async () =>
+    (
+      await db()
+        .select()
+        .from(findings)
+        .where(eq(findings.personId, await personId("Jane Doe")))
+    )
+      .filter((f) => f.via === "search")
+      .map((f) => [f.kind, f.value]);
+
+  it("a move to the same employer under another name is a stay", async () => {
+    await lookUpCrmPeople(db(), sites().client, { linkedin: null, judge: owner });
+    expect(asked).toEqual(["Acme Staffing > Globex"]);
+    expect(await jane()).toEqual([stay]);
+  });
+
+  it("`crm settle` makes a kept move to the same employer a stay; another employer stays a move", async () => {
+    await lookUpCrmPeople(db(), sites().client, { linkedin: null });
+    expect(await settleMoves(db(), async () => "different")).toBe(0);
+    expect((await jane())[0]?.[0]).toBe("job_change");
+    expect(await settleMoves(db(), owner)).toBe(1);
+    expect(await jane()).toEqual([stay]);
   });
 
   it("a LinkedIn cap parks people until it lifts, asking LinkedIn once", async () => {

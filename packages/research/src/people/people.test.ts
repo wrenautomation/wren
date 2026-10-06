@@ -32,6 +32,8 @@ describe("firms", () => {
     expect(sameCompany("HireRight", "Hire Right LLC")).toBe(true);
     expect(sameCompany("Acme", "Acme Staffing Group")).toBe(true);
     expect(sameCompany("Acme Staffing", "Acme Health")).toBe(false);
+    expect(sameCompany("Disney", "The Walt Disney Company")).toBe(true);
+    expect(sameCompany("CBS", "Paramount")).toBe(false);
     expect(sameCompany("Inc.", "Inc.")).toBe(false);
   });
   it("mentionsFirm and isFirm", () => {

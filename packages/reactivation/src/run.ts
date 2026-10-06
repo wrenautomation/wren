@@ -16,6 +16,7 @@ import type { Fetcher } from "@wren/research/fetch";
 import { type CrmBriefStats, writeCrmBriefs } from "./brief.js";
 import { type CrmComposeStats, composeCrmEmails } from "./compose.js";
 import { type CrmVerifyStats, checkCrmEmails } from "./crm/verify.js";
+import { familyJudge } from "./family.js";
 import { STAGE_STARTS, stageDone } from "./feed.js";
 import { type CrmLookupStats, lookUpCrmPeople } from "./lookup.js";
 import { type CrmMoverStats, findMoverAddresses } from "./movers.js";
@@ -105,6 +106,7 @@ export async function runCrm(
           stats: await lookUpCrmPeople(db, keepingAnswers(deps.sites, db), {
             linkedin: opts.linkedin,
             runId: opts.runId ?? null,
+            judge: deps.llm ? familyJudge(deps.llm, opts.runId ?? null) : null,
             ...watched,
             ...limit,
           }),

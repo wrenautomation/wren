@@ -105,8 +105,9 @@ export const domainLabel = (domain: string): string => {
 
 /**
  * One firm under two spellings: equal after legal words go, equal with the
- * spaces gone ("HireRight", "Hire Right"), or one a word-prefix of the other
- * ("Acme" at "Acme Staffing Group") when the shorter has a word of 4+ letters.
+ * spaces gone ("HireRight", "Hire Right"), or one the other's first or last
+ * words ("Acme" at "Acme Staffing Group", "Disney" at "The Walt Disney
+ * Company") when the shorter has a word of 4+ letters.
  */
 export function sameCompany(a: string, b: string): boolean {
   const pa = companyPhrase(a);
@@ -114,7 +115,10 @@ export function sameCompany(a: string, b: string): boolean {
   if (!pa || !pb) return false;
   if (pa === pb || pa.replace(/ /g, "") === pb.replace(/ /g, "")) return true;
   const [short, long] = pa.length <= pb.length ? [pa, pb] : [pb, pa];
-  return long.startsWith(`${short} `) && short.split(" ").some((w) => w.length >= 4);
+  return (
+    (long.startsWith(`${short} `) || long.endsWith(` ${short}`)) &&
+    short.split(" ").some((w) => w.length >= 4)
+  );
 }
 
 export interface Firm {

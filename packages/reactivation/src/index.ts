@@ -9,6 +9,7 @@ export * from "./crm/source.js";
 export * from "./crm/verify.js";
 export * from "./delivery.js";
 export * from "./demo/seed.js";
+export * from "./family.js";
 export * from "./forward.js";
 export * from "./handoff.js";
 export * from "./lookup.js";

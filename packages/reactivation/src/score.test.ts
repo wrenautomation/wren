@@ -23,6 +23,17 @@ describe("scoreContact", () => {
     expect(still.score).toBeGreaterThan(unknown.score);
   });
 
+  it("a stay under its owner's name says so, and scores as a stay", () => {
+    const parent = where("still_there", { company: "Paramount", relation: "parent" });
+    const s = scoreContact({ ...base, firm: "CBS", where: parent }, today);
+    expect(s.reasons[0]?.reason).toBe("Still at CBS, part of Paramount, nothing new");
+    expect(s.score).toBe(POINTS.stillThere);
+    const same = where("still_there", { company: "The Walt Disney Company", relation: "same" });
+    expect(scoreContact({ ...base, firm: "Disney", where: same }, today).reasons[0]?.reason).toBe(
+      "Still at Disney, nothing new",
+    );
+  });
+
   it("someone who left scores nothing, whatever else is true", () => {
     const s = scoreContact(
       {
