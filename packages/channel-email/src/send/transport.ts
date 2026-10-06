@@ -13,8 +13,9 @@
  * `ConsoleTransport` implements the same contract over an in-memory mailbox:
  * the permanent dry run, and the fixture every outbox test sends through.
  */
-import { decodeHtml } from "@wren/core/html";
+
 import { randomUUID } from "node:crypto";
+import { decodeHtml } from "@wren/core/html";
 
 /** One message, fully addressed, ready for the wire. */
 export interface OutgoingEmail {

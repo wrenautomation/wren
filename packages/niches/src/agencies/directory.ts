@@ -24,7 +24,6 @@
 import { createHash } from "node:crypto";
 import { readdirSync, readFileSync, statSync } from "node:fs";
 import { basename, extname, join } from "node:path";
-import { decodeHtml } from "@wren/core/html";
 import {
   canonicalize,
   decodeCsvBytes,
@@ -36,6 +35,7 @@ import {
   type RawRow,
   rowsFromRecords,
 } from "@wren/core";
+import { decodeHtml } from "@wren/core/html";
 import { HEADER_MAP } from "./facts.js";
 
 /**
