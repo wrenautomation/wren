@@ -937,7 +937,8 @@ const TEAM_ACTIONS = TEAM_ACTS.map((a): Action => ({ ...a, requires: { needs: "t
 export const team: Module = {
   id: "team",
   name: "Team",
-  icon: "people",
+  // Roles and access; Clients has the people.
+  icon: "shield",
   blurb: "Who on Wren's team signs in, their role, which clients they see, and who changed what.",
   requires: { ...TEAM, needs: "team" },
   pages: [
