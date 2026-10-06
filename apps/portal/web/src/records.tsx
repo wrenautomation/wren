@@ -215,7 +215,8 @@ const AS: Record<string, [string, Input]> = {
   "marketing/activityAllSeen": handlerCall("SocialDesk", "markAllSeen", {}),
   "marketing/audienceRead": handlerCall("SocialDesk", "readAudience", { platform: "linkedin" }),
   // One RedditReads pass; the loop is never started from here.
-  "marketing/discoveryRead": handlerCall("RedditReads", "sync", {}, { key: "wren" }),
+  // A pass takes minutes: started, not awaited.
+  "marketing/discoveryRead": handlerCall("RedditReads", "sync", {}, { key: "wren", send: true }),
 };
 
 /** A form's files go up first; the handler gets each one's key. */

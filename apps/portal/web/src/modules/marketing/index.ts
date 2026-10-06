@@ -198,12 +198,11 @@ const AUDIENCE_ACTIONS: Action[] = [
     (a) => `LinkedIn: ${(a as { followers?: number } | null)?.followers ?? "no"} followers`,
   ),
 ];
-const DISCOVERY_READ = readNow("marketing.discoveryRead", "marketing/discoveryRead", (a) => {
-  const s = (a as { stats?: { kept?: number; queued?: number; drafted?: number } } | null)?.stats;
-  return s
-    ? `Read. ${s.kept ?? 0} places kept, ${s.queued ?? 0} threads queued, ${s.drafted ?? 0} drafted.`
-    : "Read";
-});
+const DISCOVERY_READ = readNow(
+  "marketing.discoveryRead",
+  "marketing/discoveryRead",
+  () => "Reading. Places and Threads fill in over a few minutes.",
+);
 
 const PLACE_ACTIONS: Action[] = [
   {
