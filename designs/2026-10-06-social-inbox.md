@@ -79,8 +79,25 @@ What's missing:
 
 - `comments.sort` reads the platform's playbook (`playbookFor`) and, when present, a
   `comments` SOP, and drafts in that voice. No playbook: the current prompt.
-- Post drafts already use the playbook. The daily job (`ContentPlanner`) keeps the day's drafts
-  topped up; nothing publishes without his approve.
+- Post drafts already use the playbook. Today `ContentPlanner` only reports tomorrow's shortfall
+  on Discord, because drafting once cost money. Drafts run on Cohere credits now ($0), so the
+  planner drafts the shortfall itself (O5). Nothing publishes without his approve.
+
+### Daily drafts (O5)
+
+09-27: "multiple posts a day, start daily job." At `hour` (17:00 New York) the planner fills
+tomorrow's open slots per platform with drafts, using that platform's playbook:
+
+- Ideas, in order: undrafted `content_ideas`; then a build log idea from the last day's commits
+  in the public repos (wren, autobrowse, lander), for honest build posts (10-05: "posts give
+  value with a small ask, plus honest build posts"); then a `question` comment from the inbox,
+  answered as a post. A new idea source value per kind.
+- Each draft lands in Marketing → Drafts as `draft`, with the slot it fills. He edits, approves
+  or rejects. Approving schedules it into the slot; `ContentScheduler` publishes it.
+- Slots per platform stay settings (default one a day on LinkedIn and Reddit, per the 09-26
+  plan); he raises them in the console.
+- At most 2 redrafts per slot per day. Cohere only; no paid model.
+- The planner ping says what it drafted ("drafted 2 for tomorrow: LinkedIn, Reddit").
 - Every answer, post and DM still waits on his click. The draft is a starting point he edits in
   the dialog with a live preview.
 
@@ -122,6 +139,10 @@ read.
   test), then `activity` in `packages/channel-linkedin/src/content.ts`. The autobrowse half
   starts now: it touches no wren file.
 - **O4 Reddit:** `activity` in `packages/channel-reddit/src/content.ts` from the inbox read.
+
+- **O5 Daily drafts:** `packages/content/src/restate/planner.ts`, `plan.ts`, a new
+  `packages/content/src/ideas/` (build log, inbox questions), the idea source enum, and tests.
+  Runs beside O0: it touches no O0 file except the content schema enum.
 
 O1 to O4 each touch only their channel package and its test, so they run side by side once O0
 lands.
