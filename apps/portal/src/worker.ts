@@ -16,6 +16,7 @@
  */
 
 import { AUDIENCE, bearer, verifyToken } from "@wren/auth/verify";
+import { readBody } from "@wren/core/http";
 import type { Env } from "./env.js";
 import { SERVICES } from "./services.js";
 
@@ -80,33 +81,6 @@ async function forward(env: Env, path: string, body: string): Promise<Response> 
   });
 }
 
-/** The body as text, or null past MAX_BODY bytes; a bigger stream is cut off, not buffered. */
-async function bodyOf(req: Request): Promise<string | null> {
-  const declared = Number(req.headers.get("content-length") ?? 0);
-  if (declared > MAX_BODY) return null;
-  if (!req.body) return "";
-  const reader = req.body.getReader();
-  const chunks: Uint8Array[] = [];
-  let size = 0;
-  for (;;) {
-    const { done, value } = await reader.read();
-    if (done) break;
-    size += value.byteLength;
-    if (size > MAX_BODY) {
-      await reader.cancel();
-      return null;
-    }
-    chunks.push(value);
-  }
-  const all = new Uint8Array(size);
-  let at = 0;
-  for (const c of chunks) {
-    all.set(c, at);
-    at += c.byteLength;
-  }
-  return new TextDecoder().decode(all);
-}
-
 async function api(req: Request, env: Env, path: string, ctx?: ExecutionContext) {
   const [name = "", route = "", ...rest] = path.split("/");
   const svc = Object.hasOwn(SERVICES, name) ? SERVICES[name] : undefined;
@@ -116,7 +90,7 @@ async function api(req: Request, env: Env, path: string, ctx?: ExecutionContext)
   // A JSON content type forces a CORS preflight, so another site can't post here.
   if (!(req.headers.get("content-type") ?? "").startsWith("application/json"))
     return json({ error: "json only" }, 415);
-  const raw = await bodyOf(req);
+  const raw = await readBody(req, MAX_BODY);
   if (raw === null) return json({ error: "too large" }, 413);
   let input: unknown;
   try {

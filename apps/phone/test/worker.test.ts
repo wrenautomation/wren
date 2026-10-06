@@ -481,3 +481,44 @@ describe("credential links", () => {
     expect(restateCalls).toHaveLength(0);
   });
 });
+
+describe("body cap", () => {
+  /** A body streamed 1 KB at a time, counting what the Worker pulled. */
+  function stream(total: number) {
+    const chunk = new Uint8Array(1024).fill(0x61);
+    const seen = { pulled: 0 };
+    const body = new ReadableStream<Uint8Array>({
+      pull(c) {
+        if (seen.pulled >= total) return c.close();
+        seen.pulled += chunk.byteLength;
+        c.enqueue(chunk);
+      },
+    });
+    return { body, seen };
+  }
+
+  it("cuts an unsigned stream off at the cap instead of buffering it", async () => {
+    const { body, seen } = stream(8 * 1024 * 1024);
+    const res = await call("/webhooks/telnyx", {
+      method: "POST",
+      body,
+      duplex: "half",
+    } as RequestInit);
+    expect(res.status).toBe(413);
+    expect(seen.pulled).toBeLessThan(256 * 1024);
+  });
+
+  it("counts bytes, not characters", async () => {
+    const res = await call("/webhooks/telnyx", { method: "POST", body: "€".repeat(30_000) });
+    expect(res.status).toBe(413);
+  });
+
+  it("refuses a declared length past the cap unread", async () => {
+    const res = await call("/links", {
+      method: "POST",
+      headers: { "content-length": String(1024 * 1024) },
+      body: "{}",
+    });
+    expect(res.status).toBe(413);
+  });
+});

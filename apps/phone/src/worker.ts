@@ -35,6 +35,7 @@
  */
 import { AUDIENCE, bearer, type Signed, verifyToken } from "@wren/auth/verify";
 import { SIGNATURE_HEADER, TIMESTAMP_HEADER, verifyTelnyx } from "@wren/channel-sms/webhook";
+import { readBody } from "@wren/core/http";
 import type { Env } from "./env.js";
 
 export const DESK_HANDLERS: ReadonlySet<string> = new Set([
@@ -103,8 +104,8 @@ const forwarded = (raw: string, client: string | null) =>
 
 async function telnyxWebhook(req: Request, env: Env, client: string | null): Promise<Response> {
   if (!env.TELNYX_PUBLIC_KEY) return json({ error: "webhooks off: no TELNYX_PUBLIC_KEY" }, 503);
-  const raw = await req.text();
-  if (raw.length > MAX_BODY) return json({ error: "too large" }, 413);
+  const raw = await readBody(req, MAX_BODY);
+  if (raw === null) return json({ error: "too large" }, 413);
   const verdict = await verifyTelnyx({
     publicKey: env.TELNYX_PUBLIC_KEY,
     signature: req.headers.get(SIGNATURE_HEADER),
@@ -168,8 +169,8 @@ async function calcomWebhook(req: Request, env: Env, client: string | null): Pro
     secret = own;
   }
   if (!secret) return json({ error: "webhooks off: no CALCOM_WEBHOOK_SECRET" }, 503);
-  const raw = await req.text();
-  if (raw.length > MAX_BODY) return json({ error: "too large" }, 413);
+  const raw = await readBody(req, MAX_BODY);
+  if (raw === null) return json({ error: "too large" }, 413);
   if (!(await hmacSigned(secret, raw, req.headers.get("x-cal-signature-256")))) {
     return json({ error: "bad signature" }, 401);
   }
@@ -215,8 +216,8 @@ async function gmailWebhook(req: Request, env: Env): Promise<Response> {
   if (!env.GMAIL_PUSH_TOKEN) return json({ error: "webhooks off: no GMAIL_PUSH_TOKEN" }, 503);
   const token = new URL(req.url).searchParams.get("token") ?? "";
   if (!(await sameSecret(token, env.GMAIL_PUSH_TOKEN))) return json({ error: "bad token" }, 401);
-  const raw = await req.text();
-  if (raw.length > MAX_BODY) return json({ error: "too large" }, 413);
+  const raw = await readBody(req, MAX_BODY);
+  if (raw === null) return json({ error: "too large" }, 413);
   let id: unknown;
   let address: unknown;
   try {
@@ -266,8 +267,9 @@ async function desk(req: Request, env: Env, handler: string): Promise<Response> 
   if (!(req.headers.get("content-type") ?? "").startsWith("application/json")) {
     return json({ error: "json only" }, 415);
   }
-  let body = await req.text();
-  if (body.length > MAX_BODY) return json({ error: "too large" }, 413);
+  const raw = await readBody(req, MAX_BODY);
+  if (raw === null) return json({ error: "too large" }, 413);
+  let body = raw;
   // Who saved a template or turned on alerts is the signed-in operator, never what the page says.
   if (handler === "setTemplate" || handler === "subscribe") {
     try {
@@ -308,8 +310,8 @@ async function lander(
   if (!(req.headers.get("content-type") ?? "").startsWith("application/json")) {
     return json({ error: "json only" }, 415);
   }
-  const body = await req.text();
-  if (body.length > MAX_BODY) return json({ error: "too large" }, 413);
+  const body = await readBody(req, MAX_BODY);
+  if (body === null) return json({ error: "too large" }, 413);
   let res: Response;
   try {
     res = await fetch(ingress(env, `${service}/${handler}`), {
@@ -343,8 +345,8 @@ export const LINK_SIGNATURE = "x-wren-signature-256";
  */
 async function mintLink(req: Request, env: Env): Promise<Response> {
   if (!env.CRED_LINK_SECRET) return json({ error: "links off: no CRED_LINK_SECRET" }, 503);
-  const raw = await req.text();
-  if (raw.length > 16 * 1024) return json({ error: "too large" }, 413);
+  const raw = await readBody(req, 16 * 1024);
+  if (raw === null) return json({ error: "too large" }, 413);
   if (!(await hmacSigned(env.CRED_LINK_SECRET, raw, req.headers.get(LINK_SIGNATURE)))) {
     return json({ error: "bad signature" }, 401);
   }
@@ -404,8 +406,8 @@ async function link(req: Request, env: Env, rest: string): Promise<Response> {
  */
 async function door(req: Request, env: Env, token: string): Promise<Response> {
   if (!/^[A-Za-z0-9_-]{43}$/.test(token)) return json({ error: "no such hook" }, 404);
-  const raw = await req.text();
-  if (raw.length > MAX_BODY) return json({ error: "too large" }, 413);
+  const raw = await readBody(req, MAX_BODY);
+  if (raw === null) return json({ error: "too large" }, 413);
   let payload: unknown;
   try {
     payload = (req.headers.get("content-type") ?? "").startsWith(

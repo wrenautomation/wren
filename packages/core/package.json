@@ -42,7 +42,8 @@
     "./spine": "./src/spine.ts",
     "./warm": "./src/warm.ts",
     "./workflows": "./src/workflows.ts",
-    "./html": "./src/html.ts"
+    "./html": "./src/html.ts",
+    "./http": "./src/http.ts"
   },
   "scripts": {
     "test:integration": "vitest run test/integration",

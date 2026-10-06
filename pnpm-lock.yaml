@@ -184,6 +184,9 @@ importers:
       '@wren/channel-sms':
         specifier: workspace:*
         version: link:../../packages/channel-sms
+      '@wren/core':
+        specifier: workspace:*
+        version: link:../../packages/core
     devDependencies:
       '@cloudflare/workers-types':
         specifier: 5.20260927.1
