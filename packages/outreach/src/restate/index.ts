@@ -21,6 +21,7 @@ import * as restate from "@restatedev/restate-sdk";
 import { linkedinOutreach } from "@wren/channel-linkedin";
 import { redditOutreach } from "@wren/channel-reddit";
 import { finishRun, openRun } from "@wren/core";
+import { byOf, keepSentEdit } from "@wren/core/ask";
 import type { Platform as ContentPlatform, SiteClient } from "@wren/core/content";
 import type { Notifier } from "@wren/core/notify";
 import type { Found, OutreachChannel, Profile } from "@wren/core/outreach";
@@ -158,7 +159,7 @@ export interface ReachDeps {
   clock?: () => Date;
   /** When Wren last posted on `platform` (content's channel): a post warms that site's accounts. */
   postedAt?: (platform: Platform) => Promise<string | null>;
-  /** DM drafts: the model and the platform's `dm` SOP. No model, no drafts. */
+  /** DM drafts: the model and the `outbound-copy` SOP. No model, no drafts. */
   drafts?: { llm: LlmClient | null; guide?: DmGuide };
 }
 
@@ -791,7 +792,7 @@ export function makeReachDesk(deps: ReachDeps) {
             terminal(async () => {
               const contact = await contactById(deps.db, req.contactId);
               if (contact.state === "opted_out") throw new ReachRefusal("they asked to stop");
-              return queueDraft(deps.db, contact, req.body, req.subject ?? null, now);
+              return queueDraft(deps.db, contact, req.body, req.subject ?? null, now, byOf(req));
             }),
           );
           await ctx.run("mark read", () => markRead(deps.db, req.contactId, now));
@@ -815,14 +816,24 @@ export function makeReachDesk(deps: ReachDeps) {
           );
           const body = (req.body ?? plan.comment.draft ?? "").trim();
           if (!body) throw new restate.TerminalError("the answer is empty");
+          // Answered, and words that differ from the draft kept as his edit.
+          const answered = (ref: string | null) =>
+            ctx.run("answered", async () => {
+              await markAnswered(deps.db, req.id, { body, ref, now });
+              await keepSentEdit(deps.db, {
+                record: "comment",
+                id: String(req.id),
+                by: byOf(req),
+                before: plan.comment.draft,
+                after: body,
+              });
+            });
           if (!plan.account) {
             // On our own post: the content channel answers (designs/2026-10-06-social-inbox.md).
             await ctx
               .serviceClient<ContentReply>({ name: "Content" })
               .reply({ platform: plan.comment.platform, commentId: plan.comment.ref, text: body });
-            await ctx.run("answered", () =>
-              markAnswered(deps.db, req.id, { body, ref: null, now }),
-            );
+            await answered(null);
             return { ref: null };
           }
           const ch = channelsFor(deps, ctx)(plan.account);
@@ -830,9 +841,7 @@ export function makeReachDesk(deps: ReachDeps) {
           const authors = (await ch.threadAuthors?.(plan.comment.post)) ?? [];
           await terminal(async () => checkThread(authors, plan.others));
           const sent = await ch.comment(plan.comment.ref, body);
-          await ctx.run("answered", () =>
-            markAnswered(deps.db, req.id, { body, ref: sent.ref, now }),
-          );
+          await answered(sent.ref);
           wakeWatch(ctx);
           return { ref: sent.ref };
         },
@@ -946,7 +955,14 @@ export function makeReachDesk(deps: ReachDeps) {
                   .update(reachContacts)
                   .set({ accountId: a.id })
                   .where(eq(reachContacts.id, c.id));
-              const msg = await queueDraft(deps.db, { ...c, accountId: a.id }, req.body, null, now);
+              const msg = await queueDraft(
+                deps.db,
+                { ...c, accountId: a.id },
+                req.body,
+                null,
+                now,
+                byOf(req),
+              );
               return { contactId: c.id, messageId: msg.id };
             }),
           );

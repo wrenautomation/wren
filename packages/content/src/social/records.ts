@@ -372,7 +372,6 @@ export const inboxRecord = defineRecord({
   ],
   actions: [
     "marketing.approveDraft",
-    "marketing.editDraft",
     "marketing.redraft",
     "marketing.rejectDraft",
     "marketing.commentAnswer",
@@ -389,6 +388,7 @@ export const inboxRecord = defineRecord({
     "email.drop",
     "marketing.activitySeen",
     "marketing.activityAllSeen",
+    "marketing.draftSet",
     "marketing.draftAsk",
     "marketing.draftUndo",
   ],

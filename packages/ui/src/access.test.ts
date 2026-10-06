@@ -1,5 +1,7 @@
+import type { RecordMeta } from "@wren/core/records";
 import { describe, expect, it } from "vitest";
 import { can, type Viewer } from "./access.js";
+import { actsOf } from "./records.js";
 
 const team: Viewer = { team: true, demo: false };
 const client: Viewer = { team: false, demo: false, role: "member", features: ["export"] };
@@ -45,5 +47,24 @@ describe("can", () => {
     expect(can({ ...client, can: ["read", "act"] }, { needs: "money" })).toBe(false);
     // Unknown (the demo, a preview): not checked.
     expect(can(demo, { needs: "act" })).toBe(true);
+  });
+});
+
+describe("actsOf", () => {
+  const act = (id: string, inline?: true) => ({
+    id,
+    label: id,
+    handler: id,
+    ...(inline ? { inline } : {}),
+  });
+  const meta = { actions: ["send", "save", "other"] } as unknown as RecordMeta;
+  const acts = {
+    actions: [act("send"), act("save", true), act("hidden")],
+    viewer: team,
+    call: async () => null,
+  };
+  it("keeps a draft box's inline actions off the buttons, keys and palette", () => {
+    expect(actsOf(meta, acts).map((a) => a.id)).toEqual(["send"]);
+    expect(actsOf(meta, acts, true).map((a) => a.id)).toEqual(["save"]);
   });
 });

@@ -3,13 +3,14 @@
  * `claude`: an ask rewrites a post and keeps what it replaced, a question writes nothing, Undo
  * puts the text back, a hand edit meanwhile is never overwritten, a closed comment is refused.
  * Then `wren drafts`' reads and writes: the waiting list, the cap, the Inbox's thread; a DM
- * reply and an accepted invite's first message on `reach_contacts.draft`.
+ * reply and an accepted invite's first message on `reach_contacts.draft`. His edits: the box's
+ * save and a changed send kept as before and after, read back per kind into the next ask.
  */
 import * as restate from "@restatedev/restate-sdk";
 import * as clients from "@restatedev/restate-sdk-clients";
 import type { RestateTestEnvironment } from "@restatedev/restate-sdk-testcontainers";
 import { ingressOf } from "@wren/config";
-import { draftTurns } from "@wren/core/ask";
+import { draftTurns, editsFor, keepSentEdit } from "@wren/core/ask";
 import { startTestRestate } from "@wren/core/testing";
 import { startTestPostgres, type TestPostgres, truncate } from "@wren/db/testing";
 import {
@@ -27,6 +28,7 @@ import {
   addIdea,
   contentDrafts,
   editDraft,
+  listEdits,
   listWaiting,
   readDraft,
   writeDraft,
@@ -214,6 +216,65 @@ describe("drafts from a terminal", () => {
         draft: "Start with the daily task.",
       }),
     ]);
+  });
+});
+
+describe("his edits", () => {
+  it("keeps every hand change as before and after, and the next ask on that kind reads them", async () => {
+    const c = await comment("waiting", "Start with the task you do every day.");
+    // The box's save: only over the text it started from.
+    await desk().set({
+      record: "comment",
+      id: c,
+      text: "Start with the daily one.",
+      expect: "Start with the task you do every day.",
+    });
+    await expect(
+      desk().set({ record: "comment", id: c, text: "x", expect: "Something else." }),
+    ).rejects.toThrow(/changed since/);
+    // A send whose words differ from the draft; an unchanged one keeps nothing.
+    await keepSentEdit(pg.db, {
+      record: "dm",
+      id: "7",
+      by: "console",
+      before: "Model words.",
+      after: "His words.",
+    });
+    await keepSentEdit(pg.db, {
+      record: "dm",
+      id: "8",
+      by: "console",
+      before: "Same.",
+      after: "Same.",
+    });
+    await keepSentEdit(pg.db, {
+      record: "invite",
+      id: "9",
+      by: "console",
+      before: null,
+      after: "Hi.",
+    });
+
+    expect(await listEdits(pg.db, { type: "comment" })).toEqual([
+      expect.objectContaining({
+        record: "comment",
+        by: "console",
+        before: "Start with the task you do every day.",
+        after: "Start with the daily one.",
+      }),
+    ]);
+    expect((await listEdits(pg.db, { type: "invite" })).map((e) => e.after)).toEqual([
+      "His words.",
+    ]);
+    expect(await listEdits(pg.db)).toHaveLength(2);
+    expect(await editsFor(pg.db, ["thread"])).toBe("");
+
+    answers.push('{"reply": "Fine.", "draft": null}');
+    await desk().ask({ record: "comment", id: c, message: "ok?" });
+    await settled("comment", c);
+    expect(asked[0]?.system).toContain("How he edited earlier drafts");
+    expect(asked[0]?.system).toContain("Start with the task you do every day.");
+    expect(asked[0]?.system).not.toContain("His words.");
   });
 });
 

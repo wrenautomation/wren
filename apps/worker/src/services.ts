@@ -906,7 +906,7 @@ export async function buildServices(
         .where(eq(contentDrafts.platform, p));
       return r?.at ? r.at.toISOString() : null;
     },
-    // DM drafts in the watch's model, steered by the platform's `dm` SOP.
+    // DM drafts in the watch's model, steered by the `outbound-copy` SOP and his DM edits.
     drafts: { llm: watchLlm, guide: (p: "reddit" | "linkedin") => dmGuide(db, p) },
     ...reachNotify,
   };

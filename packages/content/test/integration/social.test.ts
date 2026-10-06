@@ -298,8 +298,13 @@ describe("comment guide", () => {
     await pushPlaybook(pg.db, { platform: "linkedin", sop: COMMENTS_SOP, text: "Answer in kind." });
     await pushPlaybook(pg.db, { platform: "linkedin", sop: DM_SOP, text: "Two lines." });
     expect((await playbookFor(pg.db, "linkedin"))?.sop).toBe("linkedin-posts");
+    expect(DM_SOP).toBe("outbound-copy");
     expect(await dmGuide(pg.db, "linkedin")).toBe("Two lines.");
-    expect(await dmGuide(pg.db, "reddit")).toBe("");
+    // One set of rules: a platform with none pushed reads another's.
+    expect(await dmGuide(pg.db, "reddit")).toBe("Two lines.");
+    await pushPlaybook(pg.db, { platform: "reddit", sop: DM_SOP, text: "Reddit lines." });
+    expect(await dmGuide(pg.db, "reddit")).toBe("Reddit lines.");
+    expect(await dmGuide(pg.db, "linkedin")).toBe("Two lines.");
     const guide = await commentGuide(pg.db, "linkedin");
     expect(guide).toContain("Short lines.");
     expect(guide).toContain("Answer in kind.");

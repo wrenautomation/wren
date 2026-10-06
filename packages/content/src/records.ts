@@ -113,9 +113,9 @@ export const draftRecord = defineRecord({
   ],
   actions: [
     "marketing.approveDraft",
-    "marketing.editDraft",
     "marketing.redraft",
     "marketing.rejectDraft",
+    "marketing.draftSet",
     "marketing.draftAsk",
     "marketing.draftUndo",
   ],

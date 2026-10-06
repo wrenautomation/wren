@@ -2,9 +2,17 @@
  * `wren drafts …`: every draft waiting on William, from a terminal (designs/2026-10-06-content-desk.md,
  * 4), so a Claude Code session reads and rewrites the drafts the console shows. Ids are the
  * Inbox's: draft:<id>, comment:3, thread:t3_x. `set` writes the field the console edits and
- * leaves a runs row, so the item's Ask Claude thread shows it. Nothing sends.
+ * leaves a runs row, so the item's Ask Claude thread shows it. `edits` prints how William changed
+ * drafts (before and after), the same examples every drafting call reads. Nothing sends.
  */
-import { DRAFT_TYPES, type DraftType, listWaiting, readDraft, writeDraft } from "@wren/content";
+import {
+  DRAFT_TYPES,
+  type DraftType,
+  listEdits,
+  listWaiting,
+  readDraft,
+  writeDraft,
+} from "@wren/content";
 import { draftTurns } from "@wren/core/ask";
 import type { Db } from "@wren/db";
 import type { Command } from "commander";
@@ -58,6 +66,29 @@ export function registerDrafts(program: Command, withDb: WithDb): void {
         if (t.message) console.log(`  asked: ${t.message}`);
         if (t.reply) console.log(`  Claude: ${t.reply}`);
         if (t.error) console.log(`  error: ${t.error}`);
+      }
+    });
+
+  drafts
+    .command("edits")
+    .description(
+      "How you edited drafts: before and after, newest first. Read these before writing one",
+    )
+    .option("--type <type>", `one of ${DRAFT_TYPES.join(", ")} (dm takes in invites)`)
+    .option("--limit <n>", "how many", "5")
+    .action(async (o: { type?: string; limit: string }) => {
+      if (o.type && !(DRAFT_TYPES as readonly string[]).includes(o.type))
+        throw new Error(`--type must be one of ${DRAFT_TYPES.join(", ")}`);
+      const rows = await withDb((db) =>
+        listEdits(db, {
+          ...(o.type ? { type: o.type as DraftType } : {}),
+          limit: Number(o.limit),
+        }),
+      );
+      if (!rows.length) console.log("No edits kept yet.");
+      for (const e of rows) {
+        console.log(`\n${e.record}:${e.id}  ${new Date(e.at).toISOString()}  ${e.by ?? ""}`);
+        console.log(`Before:\n${e.before}\nAfter:\n${e.after}`);
       }
     });
 

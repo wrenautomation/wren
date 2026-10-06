@@ -7,6 +7,7 @@
  * A 429 (the desk's daily cap) ends the pass's reads until the next one.
  */
 import * as restate from "@restatedev/restate-sdk";
+import { byOf, keepSentEdit } from "@wren/core/ask";
 import { SiteCallError } from "@wren/core/content";
 import {
   errorText,
@@ -348,9 +349,22 @@ export function discoveryHandlers(deps: ReachDeps) {
         );
         if (met) throw new restate.TerminalError(`u/${met} already wrote in this thread`);
         const sent = await ch.comment(plan.thread.target ?? plan.thread.id, body);
-        await ctx.run("commented", () =>
-          markCommented(deps.db, req.id, { body, ref: sent.ref, accountId: plan.account.id, now }),
-        );
+        await ctx.run("commented", async () => {
+          await markCommented(deps.db, req.id, {
+            body,
+            ref: sent.ref,
+            accountId: plan.account.id,
+            now,
+          });
+          // Words that differ from the draft are his edit.
+          await keepSentEdit(deps.db, {
+            record: "thread",
+            id: req.id,
+            by: byOf(req),
+            before: plan.thread.draft,
+            after: body,
+          });
+        });
         wakeWatch(ctx);
         return { ref: sent.ref };
       },

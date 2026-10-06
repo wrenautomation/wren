@@ -113,7 +113,13 @@ export const dmRecord = defineRecord({
     { id: "replied", label: "Replied", where: { state: "replied" }, sort: "-lastAt", at: "lastAt" },
     { id: "all", label: "All", sort: "-lastAt", at: "lastAt" },
   ],
-  actions: ["marketing.dmReply", "marketing.dmRead", "marketing.draftAsk", "marketing.draftUndo"],
+  actions: [
+    "marketing.dmReply",
+    "marketing.dmRead",
+    "marketing.draftSet",
+    "marketing.draftAsk",
+    "marketing.draftUndo",
+  ],
   /** The thread oldest first, and the preview's app, sender and cap for a reply. */
   load: async (db, id) => {
     const t = await getThread(db, Number(id));
@@ -221,6 +227,7 @@ export const commentRecord = defineRecord({
     "marketing.commentAnswer",
     "marketing.commentDm",
     "marketing.commentDrop",
+    "marketing.draftSet",
     "marketing.draftAsk",
     "marketing.draftUndo",
   ],
@@ -446,6 +453,7 @@ export const threadRecord = defineRecord({
   actions: [
     "marketing.threadComment",
     "marketing.threadSkip",
+    "marketing.draftSet",
     "marketing.draftAsk",
     "marketing.draftUndo",
     "marketing.discoveryRead",
@@ -521,6 +529,7 @@ export const inviteRecord = defineRecord({
     "marketing.inviteMessage",
     "marketing.inviteRead",
     "marketing.inviteWithdraw",
+    "marketing.draftSet",
     "marketing.draftAsk",
     "marketing.draftUndo",
   ],

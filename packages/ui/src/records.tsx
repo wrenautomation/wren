@@ -32,6 +32,7 @@ import { can, type Viewer } from "./access.js";
 import { type Action, applies, type Call, useRun } from "./action.js";
 import { Popover, PopoverContent, PopoverTrigger } from "./components/ui/popover.js";
 import { Button } from "./controls.js";
+import { DraftBox, type DraftHandle, type RecordDraft } from "./draft.js";
 import { Alert } from "./feedback.js";
 import {
   type CiteTo,
@@ -95,6 +96,8 @@ export interface RecordExtras {
   sources?: RecordSource[];
   /** Read the record again in this many ms: something still works on it (Claude on a draft). */
   poll?: number;
+  /** The draft it holds, edited in place first in the details (`DraftBox`). */
+  draft?: RecordDraft;
 }
 
 /** Actions a record's head may show, by the ids its type lists. */
@@ -240,11 +243,21 @@ export const emptyOf = (
   many: string,
 ) => (typeof empty === "string" ? empty : empty?.[view ?? ""]) ?? `${cap(many)} show here.`;
 
-/** The actions this record type lists that this viewer may run: `act` unless one says otherwise. */
-export const actsOf = (meta: RecordMeta, acts: RecordActs | undefined): readonly Action[] =>
+/**
+ * The actions this record type lists that this viewer may run: `act` unless one says otherwise.
+ * `inline` ones (a draft box's) only when asked for, and only those.
+ */
+export const actsOf = (
+  meta: RecordMeta,
+  acts: RecordActs | undefined,
+  inline = false,
+): readonly Action[] =>
   acts
     ? acts.actions.filter(
-        (a) => meta.actions.includes(a.id) && can(acts.viewer, { needs: "act", ...a.requires }),
+        (a) =>
+          !!a.inline === inline &&
+          meta.actions.includes(a.id) &&
+          can(acts.viewer, { needs: "act", ...a.requires }),
       )
     : [];
 
@@ -1313,15 +1326,14 @@ export function RecordBody({
   const got = useLoad(`${meta.id}:${id}:${rev}`, () => api.get({ record: meta.id, id }), api);
   /** An action changed this record: its states wash once they are read again. */
   const [changed, setChanged] = useState(false);
-  const { run, busy, running, dialog } = useRun(
-    acts?.call ?? NO_CALL,
-    (ids) => {
-      got.retry();
-      setChanged(ids.length > 0);
-      onActed?.(ids);
-    },
-    meta.name,
-  );
+  const acted = (ids: (string | number)[]) => {
+    got.retry();
+    setChanged(ids.length > 0);
+    onActed?.(ids);
+  };
+  const { run, busy, running, dialog } = useRun(acts?.call ?? NO_CALL, acted, meta.name);
+  /** The draft box, when the record holds one: what's typed is saved before any head action. */
+  const draftBox = useRef<DraftHandle | null>(null);
   const [lit, pickMark] = useSourcePick();
   const tab = place.params.get("tab") ?? "details";
   const [want, setWant] = useState<string | null>(null);
@@ -1373,8 +1385,12 @@ export function RecordBody({
         row[f.key] != null,
     )
     .slice(0, 4);
+  // A draft the record holds is its box, not a field.
+  const box = more.draft;
   // Long text reads as its own section, above the facts.
-  const cited = meta.fields.filter((f) => (f.kind === "cited" || f.kind === "prose") && row[f.key]);
+  const cited = meta.fields.filter(
+    (f) => (f.kind === "cited" || f.kind === "prose") && row[f.key] && f.key !== box?.field,
+  );
   /**
    * An empty field says nothing ("Why it stopped" on a draft), so it isn't drawn. A fact named
    * like a field says it better (an address beside its verdict) and takes its place.
@@ -1385,6 +1401,7 @@ export function RecordBody({
       f.kind !== "cited" &&
       f.kind !== "prose" &&
       f.key !== meta.title &&
+      f.key !== box?.field &&
       row[f.key] != null &&
       row[f.key] !== "" &&
       !told.has(f.label),
@@ -1401,6 +1418,13 @@ export function RecordBody({
       </Line>
     ));
   const shown = actsOf(meta, acts).filter((a) => applies(a, row));
+  const inline = box ? actsOf(meta, acts, true).filter((a) => applies(a, row)) : [];
+  const sendAction = box?.send ? shown.find((a) => a.id === box.send) : undefined;
+  /** A head action runs on the saved draft: what's typed in the box goes first. */
+  const runHead = (a: Action) =>
+    void (draftBox.current?.flush() ?? Promise.resolve(true)).then(
+      (ok) => ok && run(a, [row.id], startOf(a, row)),
+    );
   const tabs: { id: string; label: string; count?: number }[] = [
     { id: "details", label: "Details" },
     ...related.flatMap((r) => {
@@ -1435,7 +1459,7 @@ export function RecordBody({
                   size="dense"
                   busy={running?.action === a.id}
                   disabled={busy}
-                  onClick={() => run(a, [row.id], startOf(a, row))}
+                  onClick={() => runHead(a)}
                 >
                   {a.label}
                 </Button>
@@ -1529,6 +1553,18 @@ export function RecordBody({
         <Related meta={relatedType} of={{ record: meta.id, id }} api={api} one={meta.name.one} />
       ) : (
         <div className="grid gap-6">
+          {box ? (
+            <DraftBox
+              key={String(row.id)}
+              draft={box}
+              id={row.id}
+              actions={inline}
+              call={acts?.call ?? NO_CALL}
+              changed={acted}
+              send={sendAction ? () => runHead(sendAction) : undefined}
+              handle={draftBox}
+            />
+          ) : null}
           {more.lead}
           {cited.map((f) => (
             <section key={f.key} className="grid gap-1.5">

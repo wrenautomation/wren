@@ -8,8 +8,7 @@
  */
 import * as restate from "@restatedev/restate-sdk";
 import { finishRun, openRun } from "@wren/core";
-import { CLAUDE, type ClaudeService, draftAnswerOf } from "@wren/core/ask";
-import type { SignedViewer } from "@wren/core/portal";
+import { byOf, CLAUDE, type ClaudeService, draftAnswerOf } from "@wren/core/ask";
 import { PORTAL_FIELDS, serviceHandler } from "@wren/core/restate";
 import { runs } from "@wren/core/schema";
 import type { Db } from "@wren/db";
@@ -30,11 +29,17 @@ const ASK_INPUT = z.looseObject({
   message: z.string().describe("What to change, or ask"),
 });
 
+const SET_INPUT = z.looseObject({
+  ...ITEM,
+  text: z.string().describe("The whole draft; empty clears it"),
+  expect: z.string().nullish().describe("The draft his box started from; null = none"),
+});
+
 type Item = { record: string; id: string; viewer?: unknown };
 type Asked = { record: string; id: string; by: string; message: string };
 type DraftAskService = { answer: (ctx: restate.Context, req: { id: string }) => Promise<void> };
 
-const whoOf = (req: Item) => (req.viewer as SignedViewer | undefined)?.email ?? "console";
+const whoOf = byOf;
 /** A refusal is the person's to fix: it fails the call instead of retrying. */
 const refuse = (err: unknown, code = 409) =>
   new restate.TerminalError((err as Error).message, { errorCode: code });
@@ -64,6 +69,29 @@ export function makeDraftAsk(db: Db) {
           });
           ctx.serviceSendClient<DraftAskService>(DRAFT_ASK).answer({ id });
           return { id };
+        },
+      ),
+
+      /**
+       * His words over the draft, typed in place (content desk, 6): a `draft-set` turn that keeps
+       * the before, so his edits teach later drafts. `expect` is the text his box started from;
+       * a change made meanwhile (Claude's) is never written over.
+       */
+      set: serviceHandler(
+        { input: SET_INPUT },
+        async (ctx: restate.Context, req: Item & { text: string; expect?: string | null }) => {
+          const text = typeof req.text === "string" ? req.text.trim() : "";
+          return ctx.run("set", () =>
+            writeDraft(db, `${req.record}:${req.id}`, text || null, {
+              command: "draft-set",
+              by: whoOf(req),
+              ...(req.expect !== undefined ? { expect: req.expect } : {}),
+            })
+              .then(({ run }) => ({ run }))
+              .catch((err) => {
+                throw refuse(err);
+              }),
+          );
         },
       ),
 
