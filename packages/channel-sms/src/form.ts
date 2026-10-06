@@ -34,8 +34,8 @@ export const FIRST_TEXT_WITHIN_MS = 4 * 86_400_000;
 const PAGE = 500;
 const MAX_PAGES = 20;
 
-const FIRST_GOES = (who: string) =>
-  `about half an hour after ${who} applies on the site with the texts box ticked (none if they booked a call by then)`;
+const FIRST_GOES =
+  "Half an hour after they apply on the site with the texts box ticked; none if they booked a call by then";
 
 export const FORM_FIT = "form-fit";
 export const FORM_NOT_FIT = "form-not-fit";
@@ -44,14 +44,16 @@ export const FORM_NOT_FIT = "form-not-fit";
 export const FORM_SEQUENCES: readonly SmsSequence[] = [
   {
     name: FORM_FIT,
+    label: "Applicant who fits",
     steps: [{ step: 1, afterDays: 0 }],
-    firstGoes: FIRST_GOES("someone who fits"),
+    firstGoes: FIRST_GOES,
     fields: ["first_name", "sender"],
   },
   {
     name: FORM_NOT_FIT,
+    label: "Applicant who doesn't fit",
     steps: [{ step: 1, afterDays: 0 }],
-    firstGoes: FIRST_GOES("someone who does not fit"),
+    firstGoes: FIRST_GOES,
     fields: ["first_name", "sender"],
   },
 ];

@@ -217,11 +217,7 @@ export function useTypes(api: RecordsApi): Load<RecordMeta[]> {
 
 export const cap = (s: string) => s.charAt(0).toUpperCase() + s.slice(1);
 const words = (s: string) => cap(s.replace(/_/g, " "));
-export const titleOf = (meta: RecordMeta, row: Row) => {
-  const c = row[meta.title];
-  return c && typeof c === "object" && "name" in c ? c.name : String(c ?? "");
-};
-/** Plain text of a cell, for a subtitle. */
+/** Plain text of a cell. */
 export const textOf = (c: Cell | undefined) =>
   c === null || c === undefined
     ? ""
@@ -230,6 +226,14 @@ export const textOf = (c: Cell | undefined) =>
         ? c.name
         : ""
       : String(c);
+/** A field's cell as words: a state's label ("Reddit", not "reddit"), else its text. */
+const wordsOf = (meta: RecordMeta, row: Row, key: string) => {
+  const t = textOf(row[key]);
+  return meta.fields.find((f) => f.key === key)?.states?.[t]?.label ?? t;
+};
+export const titleOf = (meta: RecordMeta, row: Row) => wordsOf(meta, row, meta.title);
+export const subtitleOf = (meta: RecordMeta, row: Row) =>
+  meta.subtitle ? wordsOf(meta, row, meta.subtitle) : "";
 
 /** Where an action that asks starts its text: the record's own value of that field (an edit). */
 export const startOf = (a: Action, row: Row) =>
@@ -269,15 +273,43 @@ export const actsOf = (
 
 const NO_CALL: Call = () => Promise.reject(new Error("Nothing to run this."));
 
-/** The key that runs one of `actions` on `row`, if it applies. */
+/**
+ * The key that runs one of `actions` on `row`: the first that applies to it, so a mixed list
+ * (the Inbox) gives R to a draft's Reject and a DM's Reply alike.
+ */
 export function keyed(e: KeyboardEvent, actions: readonly Action[], row: Row | undefined) {
+  if (!row) return undefined;
   const k = e.key.toLowerCase();
+  const mine = actions.filter((x) => applies(x, row));
   // E edits: the action that asks for text, unless one has E for its own key.
-  const edit = k === "e" && !actions.some((x) => x.key === "e");
-  const a = actions.find(
-    (x) => (x.key && x.key === k) || (edit && x.ask && row && applies(x, row)),
+  const edit = k === "e" && !mine.some((x) => x.key === "e");
+  return mine.find((x) => x.key === k || (edit && x.ask));
+}
+
+/**
+ * ", R reply, E edit": each key once, as it runs on `row`. With no row, only keys that do the
+ * same on every row.
+ */
+export function KeyHints({ actions, row }: { actions: readonly Action[]; row: Row | undefined }) {
+  const by = new Map<string, Action | null>();
+  for (const a of actions) {
+    if (!a.key || (row && !applies(a, row))) continue;
+    const had = by.get(a.key);
+    // With a row the first wins, as `keyed` runs it; with none, two labels on one key say nothing.
+    if (had === undefined) by.set(a.key, a);
+    else if (!row && had && had.label !== a.label) by.set(a.key, null);
+  }
+  return (
+    <>
+      {[...by].map(([k, a]) =>
+        a ? (
+          <span key={k}>
+            , <Kbd>{k.toUpperCase()}</Kbd> {a.label.toLowerCase()}
+          </span>
+        ) : null,
+      )}
+    </>
   );
-  return a && row && applies(a, row) ? a : undefined;
 }
 
 /** "3 selected", what each bulk action would do to them, and a way out. */
@@ -1118,13 +1150,7 @@ function List({
         {rows.length ? (
           <span className="max-sm:hidden">
             <Kbd>J</Kbd> <Kbd>K</Kbd> to move, <Kbd>Enter</Kbd> to open
-            {actions.map((a) =>
-              a.key ? (
-                <span key={a.id}>
-                  , <Kbd>{a.key.toUpperCase()}</Kbd> {a.label.toLowerCase()}
-                </span>
-              ) : null,
-            )}
+            <KeyHints actions={actions} row={rows[openIndex >= 0 ? openIndex : cursor]} />
           </span>
         ) : null}
         <span className="ml-auto flex gap-2">
@@ -1388,19 +1414,24 @@ export function RecordBody({
     },
   };
   const states = meta.fields.filter((f) => f.kind === "status" && row[f.key] != null);
+  // A draft the record holds is its box, not a field.
+  const box = more.draft;
+  // Long text and states have their own places below; the key facts are the short rest.
+  const long = (f: FieldMeta | undefined) =>
+    !!f &&
+    (f.kind === "status" || f.kind === "prose" || f.kind === "cited" || f.key === box?.field);
   const keys = meta.fields
     .filter(
       (f) =>
         f.column &&
         f.key !== meta.title &&
         f.key !== meta.subtitle &&
-        f.kind !== "status" &&
+        !long(f) &&
         f.group !== SYSTEM &&
         row[f.key] != null,
     )
     .slice(0, 4);
-  // A draft the record holds is its box, not a field.
-  const box = more.draft;
+  const sub = meta.fields.find((f) => f.key === meta.subtitle);
   // Long text reads as its own section, above the facts.
   const cited = meta.fields.filter(
     (f) => (f.kind === "cited" || f.kind === "prose") && row[f.key] && f.key !== box?.field,
@@ -1455,17 +1486,19 @@ export function RecordBody({
   return (
     <article className="grid gap-5">
       <header className="grid gap-3">
-        <div className="flex items-start justify-between gap-3">
+        <div className="flex items-start justify-between gap-3 max-sm:flex-col">
           <div className="min-w-0">
             <h2 className="text-[20px] leading-7 font-semibold tracking-[-0.01em]">
               {titleOf(meta, row)}
             </h2>
-            {meta.subtitle && row[meta.subtitle] ? (
-              <p className="mt-0.5 text-[14px] text-(--ui-ink-2)">{textOf(row[meta.subtitle])}</p>
+            {sub && !long(sub) && row[sub.key] ? (
+              <p className="mt-0.5 line-clamp-2 text-[14px] text-(--ui-ink-2)">
+                {subtitleOf(meta, row)}
+              </p>
             ) : null}
           </div>
           {shown.length ? (
-            <div className="flex shrink-0 gap-2">
+            <div className="flex shrink-0 flex-wrap gap-2">
               {shown.map((a, i) => (
                 <Button
                   key={a.id}
@@ -1567,6 +1600,16 @@ export function RecordBody({
         <Related meta={relatedType} of={{ record: meta.id, id }} api={api} one={meta.name.one} />
       ) : (
         <div className="grid gap-6">
+          {/* What a draft answers (their words, the thread so far) reads before it. */}
+          {more.lead}
+          {cited.map((f) => (
+            <section key={f.key} className="grid gap-1.5">
+              <h3 className="text-[13px] font-medium text-(--ui-ink-2)">{f.label}</h3>
+              <p className="text-[14px] leading-[1.65] text-pretty whitespace-pre-line">
+                <FieldLine field={f} cell={row[f.key]} cite={cite} />
+              </p>
+            </section>
+          ))}
           {box ? (
             <DraftBox
               key={String(row.id)}
@@ -1579,15 +1622,6 @@ export function RecordBody({
               handle={draftBox}
             />
           ) : null}
-          {more.lead}
-          {cited.map((f) => (
-            <section key={f.key} className="grid gap-1.5">
-              <h3 className="text-[13px] font-medium text-(--ui-ink-2)">{f.label}</h3>
-              <p className="text-[14px] leading-[1.65] text-pretty whitespace-pre-line">
-                <FieldLine field={f} cell={row[f.key]} cite={cite} />
-              </p>
-            </section>
-          ))}
           <dl className={DL}>
             {lines(rest.filter((f) => !f.group))}
             {(more.facts ?? []).map(([label, value]) => (

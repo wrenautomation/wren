@@ -24,6 +24,13 @@ describe("slotsOf", () => {
     expect(keys.filter((k) => k === CONNECT_NOTE)).toHaveLength(1);
     expect(new Set(keys).size).toBe(keys.length);
   });
+  it("names each slot in words, never by its sequence's slug", () => {
+    const purposes = slotsOf(REACH_SEQUENCES.values()).map((s) => s.purpose);
+    expect(purposes).toContain("LinkedIn DM: first message, 1 day after they accept");
+    expect(purposes).toContain("Reddit DM: message 2, 5 days after the last");
+    for (const name of REACH_SEQUENCES.keys())
+      expect(purposes.filter((p) => p.includes(name))).toEqual([]);
+  });
 });
 
 describe("checkBody", () => {

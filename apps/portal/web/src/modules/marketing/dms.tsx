@@ -1,6 +1,6 @@
 /** DMs as the person meets them on a laptop and a phone: a thread's replies, and William's copy. */
 import { type RenderFields, render } from "@wren/outreach/sequences";
-import { type MessageKind, MessagePreview, type RecordExtras } from "@wren/ui";
+import { exact, type MessageKind, MessagePreview, type RecordExtras } from "@wren/ui";
 import { call } from "../../api.js";
 import type { ListPage } from "../../module.js";
 
@@ -14,10 +14,24 @@ type Message = {
   id: number;
   at: string;
   direction: "in" | "out";
+  kind: string;
   subject: string | null;
   body: string;
   state: string;
 };
+
+/** What became of one of ours short of sent. */
+const UNSENT: Record<string, string> = {
+  queued: "queued",
+  sending: "sending",
+  failed: "didn't send",
+  unknown: "may not have sent",
+  skipped: "skipped",
+};
+const whose = (m: Message) =>
+  m.direction === "in"
+    ? "They wrote"
+    : `${m.kind === "connect" ? "Our invite" : "Ours"}${UNSENT[m.state] ? `, ${UNSENT[m.state]}` : ""}`;
 
 type DmKind = Extract<MessageKind, { kind: "dm" }>;
 const kindOf = (dm: Dm): DmKind => ({
@@ -50,33 +64,38 @@ function copyKind(d: CopyDetail): MessageKind | null {
 const get = <T,>(record: string, id: string | number) =>
   call<{ detail?: T }>("console/recordsGet", { record, id: String(id) }).then((r) => r.detail);
 
-/** The thread oldest first, then our last message as they saw it. */
+/** The thread oldest first, above the reply box; then our last message as they saw it. */
 export const dmExtras: NonNullable<ListPage["extras"]> = (detail) => {
   const d = detail as { messages?: Message[]; dm?: Dm } | null;
   const messages = d?.messages ?? [];
   const last = messages.findLast((m) => m.direction === "out");
   return {
-    sections: [
-      [
-        "Messages",
-        messages.length ? (
-          <ul key="messages" className="grid gap-3 text-[14px]">
+    lead: (
+      <section className="grid gap-1.5">
+        <h3 className="text-[13px] font-medium text-(--ui-ink-2)">Messages</h3>
+        {messages.length ? (
+          <ul className="grid gap-3 text-[14px]">
             {messages.map((m) => (
               <li key={m.id} className="grid gap-0.5">
                 <span className="text-[13px] text-(--ui-ink-2)">
-                  {m.direction === "in" ? "They wrote" : `We sent (${m.state})`} ·{" "}
-                  {m.at.slice(0, 16).replace("T", " ")}
+                  {whose(m)} · {exact(new Date(m.at))}
                 </span>
                 {m.subject ? <b>{m.subject}</b> : null}
-                <span className="whitespace-pre-wrap">{m.body}</span>
+                {m.body ? (
+                  <span className="whitespace-pre-wrap">{m.body}</span>
+                ) : (
+                  <span className="text-(--ui-ink-3)">No note.</span>
+                )}
               </li>
             ))}
           </ul>
         ) : (
-          "No messages yet."
-        ),
-      ],
-      ...(last && d?.dm
+          <p className="text-[14px] text-(--ui-ink-2)">No messages yet.</p>
+        )}
+      </section>
+    ),
+    sections: [
+      ...(last?.body && d?.dm
         ? [
             [
               "How our last one looked",

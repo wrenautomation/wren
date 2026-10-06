@@ -538,7 +538,7 @@ export const marketing: Module = {
       record: "marketing.comment",
       empty: {
         waiting: "No comment waits on you.",
-        answered: "Nothing answered yet.",
+        answered: "Comments you answered show here.",
         all: "Comments on our posts and under our comments show here.",
       },
       actions: [...COMMENT_ACTIONS, ...COMMENT_ASK],
@@ -563,7 +563,7 @@ export const marketing: Module = {
       group: "Content",
       template: "list",
       record: "marketing.topic",
-      empty: "No topic yet.",
+      empty: "Email topics people can sign up for show here.",
     },
     {
       id: "people",
@@ -586,7 +586,7 @@ export const marketing: Module = {
       record: "marketing.dm",
       empty: {
         waiting: "No DM waits on you.",
-        replied: "No one replied yet.",
+        replied: "Threads where they wrote back show here.",
         all: "Threads show here once reach messages someone.",
       },
       actions: [
@@ -604,12 +604,13 @@ export const marketing: Module = {
       empty: {
         queued: "Nothing to send. Invites queue once an account is set in Shop → LinkedIn invites.",
         pending: "No invite waits on an answer.",
-        accepted: "No one accepted yet.",
-        withdrawn: "Nothing withdrawn yet.",
+        accepted: "Accepted invites show here, ready for a first message.",
+        withdrawn: "Withdrawn and ended invites show here.",
         all: "LinkedIn invites show here.",
       },
       actions: [...INVITE_ACTIONS, ...draftActions("invite", { status: ["accepted"] })],
-      extras: withDraft(INVITE_DRAFT),
+      // Only an accepted invite takes a message.
+      extras: withDraft((row) => (row.status === "accepted" ? INVITE_DRAFT : null)),
     },
     {
       id: "followers",
@@ -629,6 +630,8 @@ export const marketing: Module = {
       empty: {
         confirmed: "No one has confirmed yet.",
         pending: "No signup waits on a confirm.",
+        withdrawn: "No one has left.",
+        paused: "No one has paused.",
         all: "Signups show here from the site, forms and texts.",
       },
     },
@@ -650,7 +653,7 @@ export const marketing: Module = {
       record: "marketing.thread",
       empty: {
         queued: "No thread to answer. Watch a place to read its new posts.",
-        commented: "No comment yet.",
+        commented: "Threads we commented in show here.",
         all: "New posts in watched places show here.",
       },
       actions: THREAD_ACTIONS,
@@ -675,7 +678,12 @@ export const marketing: Module = {
       group: "Texts",
       template: "list",
       record: "marketing.text_contact",
-      empty: { waiting: "No reply waits on you.", texted: "No one texted yet." },
+      empty: {
+        waiting: "No reply waits on you.",
+        texted: "No one texted yet.",
+        replied: "People who texted back show here.",
+        opted_out: "No one has opted out.",
+      },
       actions: TEXT_ACTIONS,
     },
     {
@@ -882,7 +890,11 @@ export const marketing: Module = {
       group: "Search",
       template: "list",
       record: "marketing.answer",
-      empty: "AI answers show here once one is asked.",
+      empty: {
+        latest: "AI answers show here once a keyword is asked.",
+        cited: "No AI answer names Wren yet.",
+        all: "AI answers show here once a keyword is asked.",
+      },
     },
   ],
 };

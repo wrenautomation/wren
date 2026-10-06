@@ -20,13 +20,14 @@ import {
   cap,
   emptyOf,
   Kbd,
+  KeyHints,
   keyed,
   ListSkeleton,
   RecordBody,
   type RecordTemplateProps,
   ROOT,
   startOf,
-  textOf,
+  subtitleOf,
   titleOf,
   typing,
   useLoad,
@@ -216,9 +217,7 @@ function Queue({
                         ) : null}
                       </span>
                       {meta.subtitle && r[meta.subtitle] ? (
-                        <span className="truncate text-(--ui-ink-2)">
-                          {textOf(r[meta.subtitle])}
-                        </span>
+                        <span className="truncate text-(--ui-ink-2)">{subtitleOf(meta, r)}</span>
                       ) : null}
                     </a>
                   </li>
@@ -227,13 +226,7 @@ function Queue({
             </ul>
             <p className="text-[12px] text-(--ui-ink-3) max-sm:hidden">
               <Kbd>J</Kbd> <Kbd>K</Kbd> to move
-              {actions.map((a) =>
-                a.key ? (
-                  <span key={a.id}>
-                    , <Kbd>{a.key.toUpperCase()}</Kbd> {a.label.toLowerCase()}
-                  </span>
-                ) : null,
-              )}
+              <KeyHints actions={actions} row={row} />
             </p>
           </div>
 

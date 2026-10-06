@@ -199,9 +199,10 @@ describe("form opt-ins", () => {
 
   it("its slots say when they go and take no company", () => {
     const [fit] = sequenceSlots(FORM_SEQUENCES[0] as (typeof FORM_SEQUENCES)[number]);
-    expect(fit?.purpose).toMatch(
-      /^form-fit: first text, about half an hour after someone who fits/,
-    );
+    expect(fit).toMatchObject({
+      purpose: "Applicant who fits: first text",
+      goes: expect.stringMatching(/^Half an hour after they apply/),
+    });
     expect(() => checkBody(fit as NonNullable<typeof fit>, "hi from {company}. STOP")).toThrow(
       /unknown field \{company\}/,
     );

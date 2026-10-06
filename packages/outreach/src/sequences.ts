@@ -21,6 +21,8 @@ export interface ReachStep {
 
 export interface ReachSequence {
   name: string;
+  /** What William reads for it ("Reddit DM"). */
+  label: string;
   platform: Platform;
   steps: readonly ReachStep[];
   /** LinkedIn: send an invite first, message once connected. */
@@ -79,6 +81,7 @@ export const REACH_SEQUENCES: ReadonlyMap<string, ReachSequence> = new Map(
     [
       {
         name: "reddit-dm",
+        label: "Reddit DM",
         platform: "reddit",
         connectFirst: false,
         connectWaitDays: 0,
@@ -90,6 +93,7 @@ export const REACH_SEQUENCES: ReadonlyMap<string, ReachSequence> = new Map(
       // Invite only: an accept lands in Replies and every message after it is William's click.
       {
         name: "linkedin-invite",
+        label: "LinkedIn invite",
         platform: "linkedin",
         connectFirst: true,
         connectWaitDays: 21,
@@ -97,6 +101,7 @@ export const REACH_SEQUENCES: ReadonlyMap<string, ReachSequence> = new Map(
       },
       {
         name: "linkedin-connect",
+        label: "LinkedIn DM",
         platform: "linkedin",
         connectFirst: true,
         connectWaitDays: 21,
@@ -112,17 +117,20 @@ export const REACH_SEQUENCES: ReadonlyMap<string, ReachSequence> = new Map(
 export const stepKey = (seq: ReachSequence, step: number) => `${seq.platform}:${seq.name}#${step}`;
 export const subjectKey = (seq: ReachSequence, step: number) => `${stepKey(seq, step)}.subject`;
 
+const days = (n: number) => `${n} ${n === 1 ? "day" : "days"}`;
+
 export function sequenceSlots(seq: ReachSequence): TemplateSlot[] {
   return seq.steps.flatMap((st) => {
+    const which = st.step === 1 ? "the opener" : `message ${st.step}`;
     const body: TemplateSlot = {
       key: stepKey(seq, st.step),
       platform: seq.platform,
       purpose:
         st.step === 1
           ? seq.connectFirst
-            ? `${seq.name}: first message, ${st.afterDays} day(s) after they accept`
-            : `${seq.name}: the opener`
-          : `${seq.name}: step ${st.step}, ${st.afterDays} days after step ${st.step - 1}`,
+            ? `${seq.label}: first message, ${days(st.afterDays)} after they accept`
+            : `${seq.label}: the opener`
+          : `${seq.label}: ${which}, ${days(st.afterDays)} after the last`,
       fields: ALL_FIELDS,
       maxLength: MESSAGE_MAX,
     };
@@ -131,7 +139,7 @@ export function sequenceSlots(seq: ReachSequence): TemplateSlot[] {
           {
             key: subjectKey(seq, st.step),
             platform: seq.platform,
-            purpose: `${seq.name}: step ${st.step}'s subject line`,
+            purpose: `${seq.label}: ${which}'s subject line`,
             fields: ALL_FIELDS,
             maxLength: SUBJECT_MAX,
           },
@@ -144,7 +152,7 @@ export function sequenceSlots(seq: ReachSequence): TemplateSlot[] {
 export const CONNECT_SLOT: TemplateSlot = {
   key: CONNECT_NOTE,
   platform: "linkedin",
-  purpose: "The note on a LinkedIn invite (optional; empty = invite with no note)",
+  purpose: "LinkedIn invite: the note, optional (empty sends the invite with none)",
   fields: ALL_FIELDS,
   maxLength: NOTE_MAX,
 };

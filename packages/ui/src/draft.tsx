@@ -279,7 +279,7 @@ export function DraftBox({
           {server || "No draft."}
         </p>
       )}
-      {draft.preview ? <MessagePreview message={draft.preview} body={text} /> : null}
+      {draft.preview && text.trim() ? <MessagePreview message={draft.preview} body={text} /> : null}
       {turns.length ? <DraftTurns turns={turns} /> : null}
       {ask || (undo && (last || dirty)) ? (
         <div className="flex min-w-0 items-center gap-2">

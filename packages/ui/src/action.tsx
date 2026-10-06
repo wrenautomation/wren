@@ -432,7 +432,7 @@ export function useRun(
                 onChange={(e) => setText(e.target.value)}
                 rows={6}
               />
-              {shown ? <MessagePreview message={shown} body={text} /> : null}
+              {shown && text.trim() ? <MessagePreview message={shown} body={text} /> : null}
             </div>
           ) : null}
           {form?.map((f, i) => (

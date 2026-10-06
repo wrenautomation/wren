@@ -74,6 +74,7 @@ export const recruiting = defineNiche({
   smsSequences: [
     {
       name: "recruiting-sms",
+      label: "Recruiting texts",
       steps: [
         { step: 1, afterDays: 0 },
         { step: 2, afterDays: 3 },

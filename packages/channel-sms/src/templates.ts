@@ -20,8 +20,10 @@ export interface SmsStep {
 
 export interface SmsSequence {
   name: string;
+  /** What William reads for it ("Applicant who fits"). Unset = its name. */
+  label?: string;
   steps: readonly SmsStep[];
-  /** When the first text goes, shown above its empty box. Unset = a cold first text. */
+  /** When the first text goes, shown beside it. Unset = a cold first text. */
   firstGoes?: string;
   /** The fields its texts may use. Unset = all of them. */
   fields?: readonly RenderField[];
@@ -45,8 +47,10 @@ export function sampleFields(sender: string): RenderFields {
 /** One text William fills. The key is what `sms_messages.template` records. */
 export interface TemplateSlot {
   key: string;
-  /** What the text is for, shown above its empty box. */
+  /** What the text is for, its title. */
   purpose: string;
+  /** When it goes, shown beside it. */
+  goes?: string;
   fields: readonly RenderField[];
   /** Must contain the word STOP (the first text a stranger gets). */
   mustSayStop: boolean;
@@ -84,8 +88,8 @@ export const DAY_BEFORE = "reminder.day-before";
 export const REMINDER_SLOTS: readonly TemplateSlot[] = [
   {
     key: DAY_BEFORE,
-    purpose:
-      "Reminder the day before a booked call, to people who ticked the texts box. Goes during texting hours on their clock.",
+    purpose: "Reminder the day before a booked call",
+    goes: "The day before, in texting hours on their clock, to people who ticked the texts box",
     fields: ["first_name", "time", "sender"],
     mustSayStop: false,
     minLength: 1,
@@ -104,10 +108,11 @@ export function stepKey(sequence: string, step: number): string {
 export function sequenceSlots(seq: SmsSequence): TemplateSlot[] {
   return seq.steps.map((s) => ({
     key: stepKey(seq.name, s.step),
-    purpose:
+    purpose: `${seq.label ?? seq.name}: ${s.step === 1 ? "first text" : `text ${s.step}`}`,
+    goes:
       s.step === 1
-        ? `${seq.name}: first text, ${seq.firstGoes ?? "to someone who has not texted us"}`
-        : `${seq.name}: text ${s.step}, ${s.afterDays} days after the last one`,
+        ? (seq.firstGoes ?? "First, to someone who has not texted us")
+        : `${s.afterDays} ${s.afterDays === 1 ? "day" : "days"} after the last one`,
     fields: seq.fields ?? SEQUENCE_FIELDS,
     mustSayStop: s.step === 1,
     minLength: 1,

@@ -158,13 +158,14 @@ export function textCopyRecord(sequences: Iterable<SmsSequence>, sender: string)
       (await listTemplates(db, slots, sender)).map((v) => ({
         id: v.key,
         purpose: v.purpose,
+        goes: v.goes ?? null,
         body: v.body,
         filled: v.body ? "filled" : "empty",
         parts: v.segments?.parts ?? null,
         fields: [
           ...v.fields.map((f) => `{${f}}`),
           ...(v.mustSayStop ? ["must say STOP"] : []),
-          ...(v.minLength ? [`at least ${v.minLength} characters`] : []),
+          ...(v.minLength > 1 ? [`at least ${v.minLength} characters`] : []),
         ].join(", "),
         updated_at: v.updatedAt,
         updated_by: v.updatedBy,
@@ -174,6 +175,7 @@ export function textCopyRecord(sequences: Iterable<SmsSequence>, sender: string)
     subtitle: "body",
     fields: {
       purpose: text("Text"),
+      goes: text("Goes"),
       body: prose("Your words"),
       filled: status(
         { filled: { label: "Written", tone: "good" }, empty: neutral("Empty: never goes") },
