@@ -18,7 +18,7 @@ Restate owns the timer, so a worker dying or a laptop closing loses nothing; the
 ## Shape
 
 - `makeLoopObject(name, pass)` (`loop.ts:179`); `failuresInARow` (`:34`); state keys for `last` and the `start` input (`:20`, `:22`)
-- keys: `SendScheduler/{sender}`, `InboxScheduler/{sender}`, `ComposeScheduler/{niche}`, `PoolScheduler/{niche}`, `DigestScheduler/fleet`, `ReportScheduler/fleet`, `PostmasterScheduler/fleet`, `Evolution/fleet`, `OpensScheduler/fleet`, `PlacementScheduler/fleet`, `ContentScheduler/default`, `ContentPlanner/default`, `ContentMetrics/default`, `AdsWatch/default`, `TokenRenewal/box`, `SmsSender/fleet`, `SmsWatch/daily`, `SearchWatch/default`
+- keys: `SendScheduler/{sender}`, `InboxScheduler/{sender}`, `ComposeScheduler/{niche}`, `PoolScheduler/{niche}`, `DigestScheduler/fleet`, `ReportScheduler/fleet`, `PostmasterScheduler/fleet`, `Evolution/fleet`, `OpensScheduler/fleet`, `PlacementScheduler/fleet`, `ContentScheduler/default`, `ContentPlanner/default`, `ContentMetrics/default`, `AdsWatch/default`, `TokenRenewal/box`, `SmsSender/fleet`, `SmsWatch/daily`, `SearchWatch/default`, `SocialWatch/wren`
 
 Citations: `packages/core/src/restate/loop.ts:179`
 
@@ -36,7 +36,7 @@ Citations: `packages/core/src/restate/loop.ts:179`
 
 | Surface | Role |
 |---|---|
-| `wren content|ads|sms ... start/stop/status` (CLI over ingress); email loops by ingress only (`docs/restate-operations.md`) | drives |
+| `wren content|ads|sms|social ... start/stop/status` (CLI over ingress); email loops by ingress only (`docs/restate-operations.md`) | drives |
 | Restate (box) | schedules |
 | `ConsolePortal/loops` (admin SQL over `state` + `sys_invocation`; needs `WREN_RESTATE_ADMIN_URL`), `/setLoop` (`stop`, or `start` with no body so stored settings stay) | reads, drives |
 | `console.loop` record (`packages/core/src/console.ts:209`): the same rows as records, id `Service/key`, views all/failing/stopped, actions `console.startLoop`/`console.stopLoop` → `setLoop` | reads, drives |

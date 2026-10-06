@@ -9,7 +9,7 @@ entity: packages/core/src/content/index.ts:12
 
 # platform
 
-One of seven places a post can go, and the adapter that speaks its API: `Platform` union, `ContentChannel` contract, `PLATFORM_SPECS` limits.
+One of seven places a post can go, and the adapter that speaks its API: `Platform` union, `ContentChannel` contract, `PLATFORM_SPECS` limits. Optional reads: `activity(q?)` (follows, mentions, notices, newest first; `at` may be null) and `audience()` (follower count).
 
 ## Why this shape
 
@@ -39,7 +39,8 @@ Citations: `packages/core/src/content/index.ts:12`, `:122`
 
 | Surface | Role |
 |---|---|
-| `Content` service (publish, list, metrics, comments, reply) | calls |
+| `Content` service (publish, list, metrics, comments, reply, activity, audience; the last two null when the adapter lacks them, an `audience` failure terminal) | calls |
+| `SocialWatch/wren` (`packages/content/src/restate/social.ts`) | reads comments, activity, audience into `comments`, `social_activity`, `social_days` |
 | `TokenRenewal/box` | keeps their tokens alive |
 
 ## See

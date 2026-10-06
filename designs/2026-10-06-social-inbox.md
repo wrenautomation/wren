@@ -197,3 +197,8 @@ loads a day on the Mac. Restate runs on the box now, so passes cost nothing extr
   A `draft` row's `scheduled_for` is its slot; approve, edit and redraft keep it. Slots are the
   planner's `slots` setting over the defaults (LinkedIn and Reddit stay weekdays). Off until
   `wren content planner start --draft`.
+- 2026-10-06: Built O0. Migration 0119. `SocialWatch/wren` runs on the box, not started.
+  LinkedIn activity is read every 2 hours to keep its 12 reads a day. A failed follower count is
+  no reading that pass, not a failed pass. Undated activity (YouTube subscribers) is kept once by
+  (platform, ref) at its first-seen time. Answers to content comments go through `Content.reply`.
+  `SocialDesk` marks activity seen. The Inbox waiting count shows in Wren's workspace only.

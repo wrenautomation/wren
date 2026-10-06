@@ -26,6 +26,7 @@ A catalog, not a waterfall. Each row names the cards whose **If you change this*
 | the wire (Gmail) | [[email/transport]] | [[processes/send-tick]], [[email/report]] |
 | a platform's API shape or limits | [[content/platform]] | [[content/draft]], [[processes/content-loop]], `apps/worker/src/services.ts` |
 | drafting, voice, slots | [[content/draft]] | [[content/idea]], [[content/content-metric]], [[content/playbook]], [[processes/content-loop]] |
+| comments, activity or followers on our own posts (Marketing → Inbox) | [[content/comment]], [[content/platform]] | `packages/content/src/social/`, `packages/content/src/restate/social.ts`, [[platform/records]], [[platform/loop-object]] |
 | media hosting | [[content/media]] | [[content/platform]], `deploy/terraform` |
 | Meta ads | [[ads/ad-launch]] | [[processes/ads-launch-watch]], [[content/idea]] |
 | what a firm's site publishes (phones, LinkedIn, socials) | [[research/contact-point]] | [[research/document]], [[sms/sms-contact]], `lead_sheet` |
@@ -65,6 +66,7 @@ Nothing in this repo references these; they break silently.
 | `../autobrowse/walkthrough/03-meta-app.md` | `walkthrough/02-meta-ads.md` (link) | [[ads/ad-launch]] |
 | autobrowse's `sites` service (same Restate, on the box) | called by name from `packages/core/src/content/restate.ts:21`; Meta, LinkedIn, YouTube, X, TikTok, Instagram go through it | [[content/platform]] |
 | autobrowse's `gmail` site, each seed's Gmail consent | `PlacementScheduler` reads `/gmail/v1/users/me/messages` as the seed (`restate/placement-scheduler.ts:72`) | [[email/placement-check]] |
+| the channel readers `activity`/`audience` (O1-O4, each `channel-*` over autobrowse `sites`/`desk`) | `ContentChannel.activity?`/`audience?` in `packages/core/src/content/index.ts`; `SocialWatch` reads them | [[content/platform]] |
 | Restate registrations | every service and handler name in `apps/worker/src/services.ts` | [[platform/restate-services]] |
 | SSM `/wren/prod/env`, `/wren/prod/senders_config` | `deploy/prod.env`, `senders_config.toml` via `deploy/scripts/push-secrets.sh` | [[platform/settings]], [[email/roster]] |
 | GitHub `production` environment | `deploy.yml` secrets (AWS, Restate, Cloudflare token) | [[processes/deploy]] |

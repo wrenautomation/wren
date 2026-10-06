@@ -100,6 +100,14 @@ re-triages what's waiting under today's rules. No bodies are kept. The same pass
 follows (hourly) and scores new items 0-10 against the pushed SOPs: 7 and up shows under Worth
 reading, 4 to 6 holds. Follow a feed from Inbox → Feeds.
 
+## Social inbox
+
+`wren social start|stop|status|sync`: `SocialWatch/wren` on the box, every 30 minutes 07:00-23:00
+New York. It reads comments on our posts of the last 14 days (older than 3 days every 2 hours),
+activity since the newest kept row (LinkedIn every 2 hours), and the follower count once a day.
+New comments go on the `reach.comments` spine. One Discord ping per pass that kept something; a text
+only when a comment asks. Work them in Marketing → Inbox; answers go out only on William's click.
+
 ## Chores through autobrowse
 
 `restateDo(ctx, wake)({ goal: "upload this to youtube", inputs: { file } })` from a
