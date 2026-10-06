@@ -108,6 +108,7 @@ export const STAT_KEYS = [
   "gap_waiting",
   "openers_capped",
   "first_touch_waiting",
+  "waiting_touch",
   "raced",
   "sender_errors",
   "reconciled_sent",
@@ -159,6 +160,8 @@ export interface SendDueOptions {
   reconcileFirst?: boolean;
   /** A client's database: main's suppressions gate too, and its stops land there. */
   shared?: SharedSuppressions | null;
+  /** Told each step that went out, reconciled ones included: the tick's touches for the spine. */
+  onSent?: (enrollmentId: number, step: number) => void;
 }
 
 interface Candidate {
@@ -217,7 +220,12 @@ export async function sendDue(db: Db, opts: SendDueOptions): Promise<SendStats> 
   const stats = emptySendStats();
 
   if (opts.reconcileFirst ?? true) {
-    const counts = await reconcile(db, { transport, policy, now });
+    const counts = await reconcile(db, {
+      transport,
+      policy,
+      now,
+      ...(opts.onSent ? { onSent: opts.onSent } : {}),
+    });
     stats.reconciled_sent = counts.reconciled_sent;
     stats.reconciled_failed = counts.reconciled_failed;
     stats.reconcile_pending = counts.pending;
@@ -372,6 +380,7 @@ export async function sendDue(db: Db, opts: SendDueOptions): Promise<SendStats> 
       sidelined,
     });
     if (outcome.delivered) {
+      opts.onSent?.(enrollment.id, message.step);
       sentToday.set(sender, (sentToday.get(sender) ?? 0) + 1);
       lastSentPerSender.set(sender, now);
       if (opening) {
@@ -591,6 +600,12 @@ async function nextDue(
       return null;
     }
     const anchor = lastSent(msgs);
+    if (nxt.held && anchor !== null) {
+      // Its cadence's touch hasn't let it go yet (follow.ts). With nothing sent there is no
+      // touch to wait for, so it falls through like any first step.
+      stats.waiting_touch += 1;
+      return null;
+    }
     let due: PlainDate;
     if (anchor === null) {
       if (nxt.subject === null) {

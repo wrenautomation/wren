@@ -41,7 +41,12 @@ function appendDetail(detail: string | null, note: string): string {
  */
 export async function reconcile(
   db: Db,
-  opts: { transport: Transport; policy: SendPolicy; now: Date },
+  opts: {
+    transport: Transport;
+    policy: SendPolicy;
+    now: Date;
+    onSent?: (enrollmentId: number, step: number) => void;
+  },
 ): Promise<ReconcileStats> {
   const { transport, policy, now } = opts;
   const stats: ReconcileStats = {
@@ -103,6 +108,7 @@ export async function reconcile(
       .update(messages)
       .set(patch)
       .where(and(eq(messages.id, message.id), inArray(messages.state, [...IN_FLIGHT])));
+    if (receipt !== null) opts.onSent?.(message.enrollmentId, message.step);
   }
   return stats;
 }

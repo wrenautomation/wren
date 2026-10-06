@@ -5,6 +5,7 @@
 
 import type { Calendar } from "@wren/core/calendar";
 import type { Db } from "@wren/db";
+import { spineTouches, type Touch } from "../follow.js";
 import type { SharedSuppressions } from "../guards.js";
 import { evaluateKillSwitches } from "../inbox/health.js";
 import type { SenderPause } from "../schema.js";
@@ -86,6 +87,8 @@ export interface TickResult {
   newPauses: SenderPause[];
   /** When the gap next lets one of these inboxes send; null if none has sent. */
   nextSendAt: Date | null;
+  /** What this tick's sends leave on the spine, for the caller to emit. */
+  touches: Touch[];
 }
 
 /**
@@ -100,6 +103,7 @@ export async function sendTick(db: Db, opts: TickOptions): Promise<TickResult> {
     senders: opts.fleet.domainFleet,
     runId: opts.runId,
   });
+  const sent: [number, number][] = [];
   const stats = await sendDue(db, {
     transport: opts.transport,
     policy: opts.policy,
@@ -116,7 +120,8 @@ export async function sendTick(db: Db, opts: TickOptions): Promise<TickResult> {
     ramps: opts.fleet.ramps ?? null,
     reconcileFirst: opts.reconcileFirst ?? true,
     shared: opts.shared ?? null,
+    onSent: (enrollmentId, step) => sent.push([enrollmentId, step]),
   });
   const nextAt = await nextSendAt(db, opts.policy, opts.fleet.senders, opts.now, opts.fleet.ramps);
-  return { stats, newPauses, nextSendAt: nextAt };
+  return { stats, newPauses, nextSendAt: nextAt, touches: await spineTouches(db, sent) };
 }

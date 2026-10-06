@@ -58,6 +58,9 @@ const ADDED = {
     // 2026-10-04: copy experiments; a genome's lineage.
     "template_versions.parent_version",
     "template_versions.experiment_id",
+    // 2026-10-05: email on the spine, follow-ups held for their touch.
+    "messages.held",
+    "messages.released_at",
   ]),
   constraints: new Set(["uq_messages_link_code", "fk_template_versions_experiment_id_experiments"]),
   indexes: new Set([

@@ -3,7 +3,7 @@ import * as clients from "@restatedev/restate-sdk-clients";
 import type { RestateTestEnvironment } from "@restatedev/restate-sdk-testcontainers";
 import { ingressOf, loadSettings } from "@wren/config";
 import { runs } from "@wren/core";
-import { startTestRestate } from "@wren/core/testing";
+import { spineRecorder, startTestRestate } from "@wren/core/testing";
 import { startTestPostgres, type TestPostgres, truncate } from "@wren/db/testing";
 import { eq } from "drizzle-orm";
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
@@ -46,10 +46,12 @@ const FLEET: Fleet = {
 let pg: TestPostgres;
 let env: RestateTestEnvironment;
 const transport = new ConsoleTransport({ write: () => {} });
+const spine = spineRecorder();
 beforeAll(async () => {
   pg = await startTestPostgres();
   env = await startTestRestate({
     services: [
+      spine.service,
       makeSendScheduler({
         transport,
         scopeOf: oneScope({ db: pg.db, policy: OPEN, fleet: FLEET }),
@@ -109,6 +111,24 @@ describe("SendScheduler", () => {
     expect(status.running).toBe(false);
     expect(status.onRoster).toBe(true);
     expect(status.last?.stats.sent).toBe(1);
+
+    // The opener left its node on the spine; its cadence's next touch lets the follow-up go.
+    for (let i = 0; i < 50 && spine.emitted.length === 0; i++)
+      await new Promise((r) => setTimeout(r, 100));
+    expect(spine.emitted).toEqual([
+      {
+        client: null,
+        workflow: "follow_up.email_sec_ria_test-seq",
+        from: "s1.sent",
+        events: [
+          {
+            subject: `lead:email:${mine.id}`,
+            kind: "lead",
+            data: { enrollmentId: mine.id, personId: mine.personId, companyId: mine.companyId },
+          },
+        ],
+      },
+    ]);
   });
 
   it("start loops until stop, and the loop keeps ticking", async () => {

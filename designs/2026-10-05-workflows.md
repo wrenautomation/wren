@@ -133,6 +133,7 @@ Texts, DMs and email each run their own sequence today, with the same step shape
 - **The test run.** An integration test runs the tick over a fixture of enrollments (business days, a holiday, an out-of-office, a cooldown) twice, once plain and once held and released at each send. The sent days must match exactly.
 - **What it opens.** A text or DM node can sit between two email steps: the email's held step waits for the touch after it. The first mixed cadence is William's to write.
 - **Cost.** About 3 Restate actions per email step (emit, walk, release). At 50 sends a day that's about 4,500 a month, inside the free 100k, so $0.
+- **Built 2026-10-05.** Migration 0098 adds `messages.held` and `released_at`. Compose holds every step after the opener. The tick counts a held step `waiting_touch` once something in the thread was sent; with nothing sent, it falls through like any first step, as before. Every send reports itself (`onSent`, reconciled sends too), and `spineTouches` keeps only threads composed onto the spine, so the 213 old ones emit nothing. The send scheduler emits each touch under the key's client. `email.touch` (`follow.ts`) lets the step go, says `replied` for a reply or a booking, and lets nothing go on any other end. 10 cadences, one per niche sequence, serve Wren and every client on the niche. The same-mail test (`outbox.test.ts`, "email on the spine") ticks a month across the year-end break, an out-of-office and a cooldown, plain and held; the sends match to the day.
 
 ## Replies
 

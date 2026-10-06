@@ -23,6 +23,7 @@ import { finishRun, openRun } from "@wren/core";
 import type { Calendar } from "@wren/core/calendar";
 import { type Notifier, plural } from "@wren/core/notify";
 import {
+  clientOfKey,
   exclusiveHandler,
   lastPass,
   loopState,
@@ -32,6 +33,7 @@ import {
   unitOfKey,
   writeLoop,
 } from "@wren/core/restate";
+import { spineEmit } from "@wren/core/spine";
 import type { Db } from "@wren/db";
 import type { SharedSuppressions } from "../guards.js";
 import type { SendStats } from "../send/deliver.js";
@@ -110,7 +112,7 @@ export function makeSendScheduler(deps: SendSchedulerDeps) {
         command: "send tick",
         argv: { sender: unitOfKey(key) },
       });
-      const { stats, newPauses, nextSendAt } = await sendTick(scope.db, {
+      const { stats, newPauses, nextSendAt, touches } = await sendTick(scope.db, {
         policy: scope.policy,
         transport: deps.transport,
         now,
@@ -128,10 +130,15 @@ export function makeSendScheduler(deps: SendSchedulerDeps) {
         newPauses: newPauses.length,
         paused: newPauses.map((p) => `${p.sender} — ${p.reason}`),
         delayMs: nextDelay(scope.policy, stats, now, nextSendAt, tickMs),
+        touches,
       };
     });
     if (!result) return null;
-    const { paused, ...rest } = result;
+    const { paused, touches, ...rest } = result;
+    // Each sent step leaves its node; the cadence's next touch lets the next step go (follow.ts).
+    const client = clientOfKey(key)?.client ?? null;
+    for (const t of touches)
+      spineEmit(ctx, { client, workflow: t.workflow, from: t.from, events: [t.event] });
     const outcome: TickOutcome = { ...rest, now: now.toISOString() };
     await setLastPass(ctx, outcome);
     const notifier = deps.notifier;

@@ -4,6 +4,7 @@ export * from "./dossier.js";
 export * from "./evolve/candidates.js";
 export * from "./evolve/experiments.js";
 export * from "./evolve/stats.js";
+export * from "./follow.js";
 export * from "./guards.js";
 export * from "./inbox/index.js";
 export * from "./outreach/index.js";

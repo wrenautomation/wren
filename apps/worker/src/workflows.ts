@@ -3,11 +3,12 @@
  * cross packages. Shared blocks first, then what's sold, then Wren's own business on top.
  * `components.test.ts` checks them against the catalog.
  */
+import { emailCadence } from "@wren/channel-email";
 import { textCadence } from "@wren/channel-sms";
 import { CONTENT_WORKFLOWS } from "@wren/content/components";
 import { defineWorkflow, type Workflow } from "@wren/core/workflows";
 import { DELIVERY_WORKFLOWS } from "@wren/delivery/components";
-import { SMS_SEQUENCES } from "@wren/niches";
+import { NICHES, SMS_SEQUENCES } from "@wren/niches";
 import { REACH_SEQUENCES, reachCadence } from "@wren/outreach";
 import { RESEARCH_WORKFLOWS } from "@wren/research/components";
 import { WATCH_WORKFLOWS } from "@wren/watch/components";
@@ -208,7 +209,8 @@ export const WORKFLOWS: readonly Workflow[] = [
   ...DELIVERY_WORKFLOWS,
   ...CONTENT_WORKFLOWS,
   ...WATCH_WORKFLOWS,
-  // Follow-ups on the spine: each text sequence is its cadence.
+  // Follow-ups on the spine: each email and text sequence is its cadence.
+  ...NICHES.flatMap((n) => [...n.sequences.values()].map((s) => emailCadence(n.name, s))),
   ...[...SMS_SEQUENCES.values()].map(textCadence),
   ...[...REACH_SEQUENCES.values()].map(reachCadence),
   ...BLOCKS,

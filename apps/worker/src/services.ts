@@ -17,6 +17,7 @@ import {
   campaignPolicy,
   clientReplies,
   defaultLocalChecker,
+  emailTouchStep,
   expandHome,
   GmailClient,
   GmailTransport,
@@ -48,6 +49,7 @@ import {
   sharedFor,
   type Transport,
 } from "@wren/channel-email";
+import { EMAIL_TOUCH } from "@wren/channel-email/components";
 import { emailRecords } from "@wren/channel-email/records";
 import {
   type Campaign,
@@ -924,6 +926,7 @@ export async function buildServices(
       // Parts register here as they move onto the spine; the rest keep arrivals and stop.
       steps: {
         [TOUCH]: touchStep((client) => (client ? clientDb(client) : db), sms),
+        [EMAIL_TOUCH]: emailTouchStep((client) => (client ? clientDb(client) : db)),
         "reach.touch": reachTouchStep(db, { sequences: reach.sequences, sender: reach.senderName }),
         "watch.triage": triageStep(db, watchLlm),
       },

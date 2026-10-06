@@ -9,6 +9,9 @@ import {
   sequencesSettingsSchema,
 } from "./sequences-settings.js";
 
+/** One email step of a follow-up cadence on the spine (follow.ts). */
+export const EMAIL_TOUCH = "email.touch";
+
 const FOR_WREN = "Runs on Wren's niches and inboxes in the main database, not per client";
 
 /**
@@ -94,6 +97,42 @@ export const EMAIL_COMPONENTS = [
           built: "settings.niche",
         },
         { is: "fixed", says: "Every send passes one gate: suppression, caps, the kill switch." },
+      ],
+    },
+  }),
+  defineComponent({
+    id: EMAIL_TOUCH,
+    stage: "follow",
+    channels: ["email"],
+    name: "Email step",
+    blurb: "Lets one follow-up email go once the step before it sent, unless they answered.",
+    icon: "mail",
+    for: "client",
+    ready: true,
+    requires: { components: [SEQUENCES] },
+    effects: ["sends"],
+    in: [{ id: "lead", label: "lead", kind: "lead" }],
+    out: [
+      { id: "sent", label: "sent", kind: "lead" },
+      { id: "replied", label: "answered", kind: "reply" },
+    ],
+    hypothesis: {
+      from: "Wren's email sequences, moved onto the spine 2026-10-05",
+      guesses: [
+        {
+          is: "change",
+          says: "Which step of the thread it lets go: the node's step.",
+          built: null,
+        },
+        {
+          is: "change",
+          says: "A text or DM between two emails: the email waits for the touch after it.",
+          built: null,
+        },
+        {
+          is: "fixed",
+          says: "The tick still picks the day (business days, holidays, out-of-office, caps); a touch only lets the step go.",
+        },
       ],
     },
   }),
