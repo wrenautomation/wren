@@ -178,6 +178,21 @@ function Actor({ value }: { value: string }) {
 }
 
 /**
+ * Whether a column's footer has news: a sum, a rate, a share that isn't everyone, or rows that
+ * are missing it. "All filled", "100% empty", "Running 100%" and the newest date say nothing the
+ * rows above don't, so the footer leaves them out.
+ */
+export function totalSays(f: FieldMeta, t: Total | undefined): boolean {
+  if (!t) return false;
+  if ("sum" in t) return true;
+  if ("newest" in t) return false;
+  if ("most" in t) return t.n < t.of;
+  if (f.kind === "rate" || f.kind === "verdict") return t.of > 0;
+  const empty = t.of - t.n;
+  return empty > 0 && empty < t.of;
+}
+
+/**
  * A column's footer figure (`Total` from the server), linked to the rows it counts when this
  * viewer may filter or sort that way. `to` builds the list's address with these params changed.
  */
@@ -190,7 +205,7 @@ export function FieldTotal({
   total: Total | undefined;
   to: (change: Record<string, string | null>) => string;
 }) {
-  if (!t) return null;
+  if (!t || !totalSays(f, t)) return null;
   const link = (text: ReactNode, change: Record<string, string> | null, title?: string) =>
     change ? (
       <a

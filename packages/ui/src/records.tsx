@@ -18,6 +18,7 @@ import type {
 import { cn } from "cn";
 import {
   ArrowDown,
+  ArrowRight,
   ArrowUp,
   ChevronDown,
   ChevronUp,
@@ -27,7 +28,7 @@ import {
   Search,
   X,
 } from "lucide-react";
-import { type ReactNode, useEffect, useRef, useState } from "react";
+import { type ReactNode, useEffect, useRef, useState, useSyncExternalStore } from "react";
 import { can, type Viewer } from "./access.js";
 import { type Action, applies, type Call, useRun } from "./action.js";
 import { Popover, PopoverContent, PopoverTrigger } from "./components/ui/popover.js";
@@ -46,6 +47,7 @@ import {
   filterShape,
   readFilter,
   relative,
+  totalSays,
   widthOf,
 } from "./fields.js";
 import { num } from "./format.js";
@@ -739,6 +741,42 @@ export function RecordList(props: RecordTemplateProps) {
   );
 }
 
+/** A phone's width (Tailwind's `sm`): a list there shows its title and state, not every column. */
+const NARROW = "(max-width: 639px)";
+function useNarrow() {
+  return useSyncExternalStore(
+    (on) => {
+      const m = matchMedia(NARROW);
+      m.addEventListener("change", on);
+      return () => m.removeEventListener("change", on);
+    },
+    () => matchMedia(NARROW).matches,
+    () => false,
+  );
+}
+
+const blank = (c: Cell | undefined) =>
+  c === null || c === undefined || c === "" || (Array.isArray(c) && !c.length);
+
+/**
+ * The columns a list draws: what's picked, less those blank on every row shown (unless picked
+ * by hand), and on a phone only the title and the first state.
+ */
+export function shownColumns(
+  meta: RecordMeta,
+  cols: FieldMeta[],
+  rows: Row[],
+  { byHand, narrow }: { byHand: boolean; narrow: boolean },
+): FieldMeta[] {
+  const filled =
+    byHand || !rows.length
+      ? cols
+      : cols.filter((f) => f.key === meta.title || rows.some((r) => !blank(r[f.key])));
+  if (!narrow) return filled;
+  const state = filled.find((f) => f.key !== meta.title && f.kind === "status");
+  return filled.filter((f) => f.key === meta.title || f === state);
+}
+
 export function ListSkeleton() {
   return (
     <div className={cn(ROOT, "grid gap-3")} role="status" aria-busy="true" aria-label="Loading">
@@ -779,7 +817,13 @@ function List({
   const ask = askOf(meta, params);
   const page = useLoad(JSON.stringify(ask), () => api.list(ask), api);
   const rows = page.data?.rows ?? [];
-  const cols = columnsOf(meta, params, columns);
+  const narrow = useNarrow();
+  const cols = shownColumns(meta, columnsOf(meta, params, columns), rows, {
+    byHand: params.has("cols"),
+    narrow,
+  });
+  const totals = page.data?.totals;
+  const footed = !!rows.length && !!totals && cols.some((f) => totalSays(f, totals[f.key]));
   const filters = meta.fields.filter(
     (f) =>
       filterShape(f) && !(filterShape(f) === "words" && f.searchable) && filterShape(f) !== "set",
@@ -989,13 +1033,16 @@ function List({
           <table
             className="w-full table-fixed border-collapse text-[13px]"
             style={{
-              minWidth: 72 + cols.reduce((n, f) => n + widthOf(f, f.key === meta.title), 0),
+              minWidth: narrow
+                ? undefined
+                : 72 + cols.reduce((n, f) => n + widthOf(f, f.key === meta.title), 0),
             }}
           >
             <colgroup>
               <col style={{ width: 36 }} />
               {cols.map((f) => (
-                <col key={f.key} style={{ width: widthOf(f, f.key === meta.title) }} />
+                // The title takes what the others leave; the table's min width keeps its share.
+                <col key={f.key} style={f.key === meta.title ? undefined : { width: widthOf(f) }} />
               ))}
               <col style={{ width: 36 }} />
             </colgroup>
@@ -1107,7 +1154,7 @@ function List({
                     );
                   })}
             </tbody>
-            {rows.length && page.data?.totals ? (
+            {footed ? (
               <tfoot>
                 <tr className="text-[12px] text-(--ui-ink-2)">
                   <td className="sticky bottom-0 h-9 border-t border-(--ui-hair) bg-(--ui-paper)" />
@@ -1119,7 +1166,7 @@ function List({
                         f.column?.align === "end" ? "text-right" : "text-left",
                       )}
                     >
-                      <FieldTotal field={f} total={page.data?.totals[f.key]} to={place.link} />
+                      <FieldTotal field={f} total={totals?.[f.key]} to={place.link} />
                     </td>
                   ))}
                   <td className="sticky bottom-0 border-t border-(--ui-hair) bg-(--ui-paper)" />
@@ -1130,6 +1177,9 @@ function List({
           {page.data && !rows.length ? (
             <div className="grid justify-items-start gap-2 px-3 py-10 text-[14px] text-(--ui-ink-2)">
               {narrowed ? `No ${many} match these filters.` : emptyOf(empty, ask.view, many)}
+              {!narrowed ? (
+                <ElseWhere meta={meta} current={ask.view} counts={page.data.counts} place={place} />
+              ) : null}
               {narrowed ? (
                 <a
                   href={place.link({
@@ -1194,6 +1244,32 @@ function List({
       ) : null}
       {dialog}
     </div>
+  );
+}
+
+/** An empty view points at the first view that has rows: "No DM waits on you." then "All 12". */
+function ElseWhere({
+  meta,
+  current,
+  counts,
+  place,
+}: {
+  meta: RecordMeta;
+  current: string | undefined;
+  counts: Record<string, number> | undefined;
+  place: Place;
+}) {
+  const i = meta.views.findIndex((v) => v.id !== current && (counts?.[v.id] ?? 0) > 0);
+  const v = meta.views[i];
+  if (!v || !counts) return null;
+  return (
+    <a
+      href={place.link({ view: i === 0 ? null : v.id, after: null, sort: null })}
+      className="inline-flex items-center gap-1 text-[13px] text-(--ui-ink) underline decoration-(--ui-hair) underline-offset-2 hover:decoration-current"
+    >
+      {v.label} <span className="text-(--ui-ink-2)">{num(counts[v.id] ?? 0)}</span>
+      <ArrowRight className="size-3.5" aria-hidden />
+    </a>
   );
 }
 

@@ -392,7 +392,8 @@ export function App() {
         actions={
           <>
             {operator && !wren ? (
-              <Button tone="quiet" size="sm" onClick={flip}>
+              // A phone's top bar keeps room for the workspace's name.
+              <Button tone="quiet" size="sm" className="max-sm:hidden" onClick={flip}>
                 {team ? "View as client" : "Back to team view"}
               </Button>
             ) : null}
@@ -538,6 +539,10 @@ class Contained extends Component<{ quiet?: boolean; children: ReactNode }, { fa
   override state = { failed: false };
   static getDerivedStateFromError() {
     return { failed: true };
+  }
+  // The console keeps what broke, so a report can name it.
+  override componentDidCatch(error: unknown) {
+    console.error(error);
   }
   override render() {
     if (!this.state.failed) return this.props.children;
