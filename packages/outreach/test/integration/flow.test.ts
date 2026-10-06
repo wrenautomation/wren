@@ -319,14 +319,14 @@ describe("linkedin sequence", () => {
     expect((await contactById(db(), c.id)).state).toBe("unreachable");
   });
 
-  it("ramps invites by the week", async () => {
+  it("ramps invites from one on the first send day", async () => {
     await account("linkedin", "linkedin@alt", OPEN);
     for (let i = 0; i < 7; i++)
       await addContact(db(), { platform: "linkedin", handle: `person-${i}` });
     await enroll(db(), { sequence: LINKEDIN, sender: "William", limit: 10, now: OPEN });
     let sent = 0;
     for (let i = 0; i < 8; i++) sent += (await tickAt(OPEN)).sent;
-    expect(sent).toBe(5);
+    expect(sent).toBe(1);
   });
 });
 

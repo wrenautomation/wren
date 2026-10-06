@@ -14,7 +14,7 @@ export function policyFrom(s: Settings): ReachPolicy {
     linkedin: {
       connectsStart: s.reachLinkedinConnectsStart,
       connectsStep: DEFAULT_POLICY.linkedin.connectsStep,
-      rampEveryDays: DEFAULT_POLICY.linkedin.rampEveryDays,
+      rampEverySendDays: DEFAULT_POLICY.linkedin.rampEverySendDays,
       connectsCap: s.reachLinkedinConnectsCap,
       messagesPerDay: s.reachLinkedinMessagesPerDay,
       notesPerMonth: DEFAULT_POLICY.linkedin.notesPerMonth,

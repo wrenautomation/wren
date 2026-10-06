@@ -389,7 +389,7 @@ export const settingsSchema = z.object({
   /** Reddit DMs a day at the top of the warmup ladder (the site caps at 5). */
   reachRedditMessagesPerDay: z.coerce.number().int().nonnegative().max(5).default(5),
   /** LinkedIn invites a day on day one, and the cap the weekly ramp grows to. */
-  reachLinkedinConnectsStart: z.coerce.number().int().nonnegative().default(5),
+  reachLinkedinConnectsStart: z.coerce.number().int().nonnegative().default(1),
   reachLinkedinConnectsCap: z.coerce.number().int().nonnegative().default(20),
   reachLinkedinMessagesPerDay: z.coerce.number().int().nonnegative().default(20),
   /** Niches the outreach channel never enrolls (William's holds). */

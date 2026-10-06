@@ -22,6 +22,7 @@ William, 2026-10-06 (relayed): 20 a day, a plan then the build. The sender is `l
 - Sequence `linkedin-invite` (`sequences.ts`): `connectFirst`, no steps, 21 days
 - Code `packages/outreach/src/invites.ts`: `invitesSettingsSchema` (`:31`), `peopleForInvites` (`:72`, senior titles first, held niches and declined firms out), `topUp` (`:119`, tomorrow's ramp cap minus queued), `markAccepted` (`:200`), `staleInvites` (`:228`), `applyWithdraw` (`:246`), `sweepInvites` (`:289`, 5 withdraws a pass)
 - Notes cap: `notesThisMonth` in `tick.ts`, policy `linkedin.notesPerMonth` (5)
+- Ramp: `standingOf` in `policy.ts`, 1 on the first send day then +3 a send day to 20 (`sendDaysBetween`; weekends don't count). William 10-06.
 - Loop: ReachWatch every 6 h (`restate/index.ts:121`, `invitesPass` `:256`); desk handlers `withdrawInvite` (`:788`), `invites` (`:823`)
 - autobrowse: `GET /connections`, `POST /in/{vanity}/withdraw` (`src/sites/linkedin.ts`), via `packages/channel-linkedin/src/outreach.ts`
 - Console: component `linkedin.invites` (settings in `wren_settings`), record `marketing.invite` (Marketing → Invites), Replies item "Accepted your invite" (`apps/worker/src/replies.ts`); CLI `wren reach invites status|sweep`

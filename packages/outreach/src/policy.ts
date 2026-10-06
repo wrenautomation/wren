@@ -30,10 +30,11 @@ export interface ReachPolicy {
     messagesPerDay: number;
   };
   linkedin: {
-    /** Invites a day on day one, added every `rampEveryDays`, up to `connectsCap`. */
+    /** Invites on the first send day, `connectsStep` more every `rampEverySendDays`, up to `connectsCap`. */
     connectsStart: number;
     connectsStep: number;
-    rampEveryDays: number;
+    /** Counted in the policy's `days` only: a weekend doesn't move the ramp. */
+    rampEverySendDays: number;
     connectsCap: number;
     messagesPerDay: number;
     /** Invites with a note a month (a free account gets 5); past it an invite goes bare. */
@@ -48,9 +49,10 @@ export const DEFAULT_POLICY: ReachPolicy = {
   gapSeconds: 120,
   reddit: { messagesPerDay: 5 },
   linkedin: {
-    connectsStart: 5,
-    connectsStep: 5,
-    rampEveryDays: 7,
+    // William 10-06: "do 1, then 4, then 7 all the way until we get to 20".
+    connectsStart: 1,
+    connectsStep: 3,
+    rampEverySendDays: 1,
     connectsCap: 20,
     messagesPerDay: 20,
     notesPerMonth: 5,
@@ -73,9 +75,13 @@ export function fleetDay(at: Date): string {
   return `${w.year}-${String(w.month).padStart(2, "0")}-${String(w.day).padStart(2, "0")}`;
 }
 
-/** Whole days from `from` to `to`, both "YYYY-MM-DD". */
-export function daysBetween(from: string, to: string): number {
-  return Math.round((Date.parse(`${to}T00:00:00Z`) - Date.parse(`${from}T00:00:00Z`)) / 86_400_000);
+/** Days from `from` up to, not counting, `to` ("YYYY-MM-DD") whose ISO weekday is in `days`. */
+export function sendDaysBetween(from: string, to: string, days: readonly number[]): number {
+  let n = 0;
+  const end = Date.parse(`${to}T00:00:00Z`);
+  for (let t = Date.parse(`${from}T00:00:00Z`); t < end; t += 86_400_000)
+    if (days.includes(((new Date(t).getUTCDay() + 6) % 7) + 1)) n++;
+  return n;
 }
 
 export function inWindow(at: Date, policy: ReachPolicy): boolean {
@@ -115,14 +121,14 @@ export function standingOf(
     };
   }
   const li = policy.linkedin;
-  const day = Math.max(0, daysBetween(a.startedOn, fleetDay(now)));
+  const day = sendDaysBetween(a.startedOn, fleetDay(now), policy.days);
   const connects = Math.min(
     li.connectsCap,
-    li.connectsStart + li.connectsStep * Math.floor(day / li.rampEveryDays),
+    li.connectsStart + li.connectsStep * Math.floor(day / li.rampEverySendDays),
   );
   return {
     caps: { connects, messages: li.messagesPerDay },
     frozen: a.health?.suspended ? "suspended" : null,
-    stage: `ramp day ${day}: ${connects} invites a day${connects < li.connectsCap ? ` (cap ${li.connectsCap})` : ""}`,
+    stage: `ramp send day ${day}: ${connects} invites a day${connects < li.connectsCap ? ` (cap ${li.connectsCap})` : ""}`,
   };
 }

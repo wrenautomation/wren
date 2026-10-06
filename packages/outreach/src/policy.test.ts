@@ -1,10 +1,10 @@
 import { describe, expect, it } from "vitest";
 import {
   DEFAULT_POLICY,
-  daysBetween,
   fleetDay,
   inWindow,
   parseClock,
+  sendDaysBetween,
   standingOf,
 } from "./policy.js";
 
@@ -39,7 +39,8 @@ describe("inWindow", () => {
 describe("fleetDay", () => {
   it("counts in New York, not UTC", () => {
     expect(fleetDay(new Date("2026-10-02T03:00:00Z"))).toBe("2026-10-01");
-    expect(daysBetween("2026-09-01", "2026-10-01")).toBe(30);
+    // Thu 10-01 to Mon 10-05: Thu and Fri count, the weekend doesn't.
+    expect(sendDaysBetween("2026-10-01", "2026-10-05", DEFAULT_POLICY.days)).toBe(2);
   });
 });
 
@@ -74,25 +75,16 @@ describe("standingOf", () => {
     expect(s.frozen).toBeNull();
     expect(s.caps.messages).toBe(2);
   });
-  it("linkedin ramps weekly to the cap", () => {
-    const day0 = standingOf(
-      { platform: "linkedin", startedOn: "2026-10-01", health: null },
-      DEFAULT_POLICY,
-      THU_2PM,
-    );
-    expect(day0.caps).toEqual({ connects: 5, messages: 20 });
-    const week3 = standingOf(
-      { platform: "linkedin", startedOn: "2026-09-10", health: null },
-      DEFAULT_POLICY,
-      THU_2PM,
-    );
-    expect(week3.caps.connects).toBe(20);
-    const year = standingOf(
-      { platform: "linkedin", startedOn: "2025-10-01", health: null },
-      DEFAULT_POLICY,
-      THU_2PM,
-    );
-    expect(year.caps.connects).toBe(20);
+  it("linkedin ramps 1, 4, 7 … 20 over send days", () => {
+    const capsOn = (startedOn: string) =>
+      standingOf({ platform: "linkedin", startedOn, health: null }, DEFAULT_POLICY, THU_2PM).caps;
+    expect(capsOn("2026-10-01")).toEqual({ connects: 1, messages: 20 });
+    expect(capsOn("2026-09-30").connects).toBe(4);
+    expect(capsOn("2026-09-29").connects).toBe(7);
+    // Fri 09-25 → Thu 10-01: Fri, Mon, Tue, Wed are 4 send days.
+    expect(capsOn("2026-09-25").connects).toBe(13);
+    expect(capsOn("2026-09-21").connects).toBe(20);
+    expect(capsOn("2025-10-01").connects).toBe(20);
   });
   it("a suspended linkedin account is frozen", () => {
     const s = standingOf(
