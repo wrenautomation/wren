@@ -91,7 +91,7 @@ export function Ask() {
           aria-label="Your question"
         />
         <div className="flex items-center gap-3">
-          <Button type="submit" busy={busy} disabled={!q.trim()}>
+          <Button size="dense" type="submit" busy={busy} disabled={!q.trim()}>
             Ask
           </Button>
           {error ? <span className="text-[13px] text-(--ui-bad)">{error}</span> : null}
@@ -102,7 +102,7 @@ export function Ask() {
       ) : !list.data ? (
         <Loading lines={4} />
       ) : !list.data.rows.length ? (
-        <Empty>Nothing asked yet.</Empty>
+        <Empty>Your questions and their answers show here.</Empty>
       ) : (
         <ol className="flex list-none flex-col gap-4 p-0">
           {list.data.rows.map((r) => {

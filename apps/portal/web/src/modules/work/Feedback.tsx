@@ -124,7 +124,7 @@ function Pulse({
         {[5, 4, 3, 2, 1].map((n) => (
           <Button
             key={n}
-            size="sm"
+            size="dense"
             tone={mine === n ? "primary" : "secondary"}
             aria-pressed={mine === n}
             disabled={act.busy}
@@ -180,7 +180,7 @@ function Review({
         {[5, 4, 3, 2, 1].map((n) => (
           <Button
             key={n}
-            size="sm"
+            size="dense"
             tone={score === n ? "primary" : "secondary"}
             aria-pressed={score === n}
             disabled={act.busy}
@@ -299,7 +299,7 @@ function Next({
               <Tag>We'll be in touch</Tag>
             ) : (
               <Button
-                size="sm"
+                size="dense"
                 tone="secondary"
                 disabled={act.busy}
                 onClick={() => void act.run("interest", { engagementId: e.id, offerId: o.id })}
@@ -332,7 +332,7 @@ function Thanks({ score, words }: { score: number; words: string }) {
       </p>
       <div className={TOOLS}>
         <Button
-          size="sm"
+          size="dense"
           onClick={() => {
             if (words) void navigator.clipboard?.writeText(words).catch(() => undefined);
             window.open(url, "_blank", "noopener");

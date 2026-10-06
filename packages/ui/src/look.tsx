@@ -319,7 +319,7 @@ export function LookEditor({
 
           <div className={ROW}>
             <Button
-              size="sm"
+              size="dense"
               busy={busy === "save"}
               disabled={!!busy || !changed}
               onClick={() => void save(draft)}
@@ -327,7 +327,7 @@ export function LookEditor({
               Save
             </Button>
             <Button
-              size="sm"
+              size="dense"
               tone="secondary"
               busy={busy === "reset"}
               disabled={!!busy || saved === null}

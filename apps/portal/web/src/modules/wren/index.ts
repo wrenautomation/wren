@@ -868,7 +868,7 @@ export const clients: Module = {
           record: "console.client",
           href: "/clients/all?view=all&sort=-lastSeen",
           fields: ["members", "lastSeen"],
-          empty: "No clients yet.",
+          empty: "Clients show here once you add one.",
         },
       ],
     },
@@ -944,7 +944,7 @@ export const team: Module = {
       label: "Team",
       template: "list",
       record: "console.team",
-      empty: "Nobody yet.",
+      empty: "Your team shows here once someone is invited.",
       actions: TEAM_ACTIONS,
     },
     {

@@ -122,7 +122,7 @@ export function Form({
     <form className={FORM} aria-label={label} onSubmit={sent}>
       {children}
       <div className={FOOT}>
-        <Button type="submit" size="sm" busy={act.busy}>
+        <Button type="submit" size="dense" busy={act.busy}>
           {submit}
         </Button>
         {act.error ? (
@@ -224,7 +224,7 @@ export function OpenFile({
   };
   return (
     <span className="inline-flex flex-wrap items-center gap-2">
-      <Button size="sm" tone="secondary" icon="download" disabled={busy} onClick={open}>
+      <Button size="dense" tone="secondary" icon="download" disabled={busy} onClick={open}>
         Download
       </Button>
       {error ? <span className={ERROR}>{error}</span> : null}

@@ -492,10 +492,10 @@ function Editor({
 
       {error ? <Alert>{error}</Alert> : null}
       <div className="flex flex-wrap items-center gap-3">
-        <Button busy={busy} onClick={save}>
+        <Button size="dense" busy={busy} onClick={save}>
           Save wiring
         </Button>
-        <Button tone="secondary" onClick={discard} disabled={busy}>
+        <Button size="dense" tone="secondary" onClick={discard} disabled={busy}>
           Discard
         </Button>
         {reset ? (

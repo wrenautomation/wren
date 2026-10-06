@@ -263,7 +263,7 @@ export function Run({ client, team, demo }: PageProps) {
               <p>
                 <b>A run is going now.</b> It started at {timeOf(live.startedAt)}.
               </p>
-              <Button size="sm" icon="play" onClick={() => setWatch(live.run)}>
+              <Button size="dense" icon="play" onClick={() => setWatch(live.run)}>
                 Watch it live
               </Button>
             </div>
@@ -334,7 +334,7 @@ function Results() {
         <ButtonLink href={at("people")} tone="quiet">
           Who to call first
         </ButtonLink>
-        <ButtonLink href={at("emails")} tone="primary" arrow>
+        <ButtonLink size="dense" href={at("emails")} tone="primary" arrow>
           Read the drafts
         </ButtonLink>
       </span>

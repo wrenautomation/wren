@@ -311,7 +311,7 @@ export function App() {
           This login isn't linked to a client list. Reply to your onboarding email and we'll add it.
         </p>
         {signOutUrl ? (
-          <ButtonLink href={signOutUrl} tone="secondary">
+          <ButtonLink size="dense" href={signOutUrl} tone="secondary">
             Use another email
           </ButtonLink>
         ) : null}
@@ -418,7 +418,7 @@ export function App() {
         ) : open && missing ? (
           <Empty
             action={
-              <ButtonLink href={`/marketplace/catalog/${encodeURIComponent(missing)}`}>
+              <ButtonLink size="dense" href={`/marketplace/catalog/${encodeURIComponent(missing)}`}>
                 Open in Marketplace
               </ButtonLink>
             }

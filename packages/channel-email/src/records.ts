@@ -447,7 +447,7 @@ export const stallRecord = defineRecord({
     campaign: text("Campaign"),
     catchAllLeads: number("Catch-all leads"),
     riskyLeads: number("Risky leads"),
-    queuedFirms: number("Firms in the resolution queue"),
+    queuedFirms: number("Firms queued"),
     crawledNoPersonFirms: number("Crawled, no person"),
     waitingOnTouch: number("Follow-ups waiting on their touch"),
   },

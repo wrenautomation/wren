@@ -35,7 +35,7 @@ export function People(props: PageProps) {
         ) : !people.data ? (
           <Loading lines={3} />
         ) : people.data.people.length === 0 ? (
-          <Empty>Nobody yet.</Empty>
+          <Empty>Invite someone below and they show here.</Empty>
         ) : (
           <ul className={LIST}>
             {people.data.people.map((m) => (

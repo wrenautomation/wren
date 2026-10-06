@@ -341,6 +341,8 @@ function Top({ top, meta, api }: { top: OverviewTop; meta: RecordMeta; api: Reco
                     title={f.label}
                   >
                     <FieldCell field={f} cell={r[f.key]} />
+                    {/* A bare count says nothing: "3" reads "3 members". */}
+                    {f.kind === "number" ? ` ${f.label.toLowerCase()}` : null}
                   </span>
                 ))}
               </a>

@@ -48,6 +48,19 @@ async function search(): Promise<Mod[]> {
   );
 }
 
+/** A mod made for a laptop's own test pages, which no client's browser can reach. */
+const LOCAL = /^(localhost|127\.|0\.0\.0\.0|\[::1\])/;
+const local = (m: Mod) => m.domains.length > 0 && m.domains.every((d) => LOCAL.test(d));
+
+/** "@wren/autobrowse-mod-lead-notes" reads "Lead notes". */
+const nameOf = (pkg: string) => {
+  const s = pkg
+    .replace(/^@[^/]+\//, "")
+    .replace(/^autobrowse-mod-/, "")
+    .replaceAll("-", " ");
+  return s.charAt(0).toUpperCase() + s.slice(1);
+};
+
 const line = (label: string, items: string[]) =>
   items.length ? (
     <span className={`${QUIET} ${BLOCK}`}>
@@ -56,26 +69,25 @@ const line = (label: string, items: string[]) =>
   ) : null;
 
 export function Mods() {
-  const mods = useCall("mods", search);
+  const mods = useCall("mods", async () => (await search()).filter((m) => !local(m)));
   return (
     <>
-      <PageHeader
-        title="Browser mods"
-        lede="Autobrowse mods on npm, with what each may touch. A mod goes on from the desk."
-      />
+      <PageHeader title="Browser mods" lede="What each mod can touch. Wren turns one on for you." />
       {mods.error && !mods.data ? (
         <Alert onRetry={mods.retry}>{mods.error.message}</Alert>
       ) : !mods.data ? (
         <Loading lines={4} />
       ) : !mods.data.length ? (
-        <Empty>No mod is on npm yet.</Empty>
+        <Empty>Mods published to npm show here.</Empty>
       ) : (
         <ul className={LIST}>
           {mods.data.map((m) => (
             <li key={m.name}>
               <span className="flex flex-wrap items-center gap-2">
-                <b className="[overflow-wrap:anywhere]">{m.name}</b>
-                <span className={QUIET}>{m.version}</span>
+                <b className="[overflow-wrap:anywhere]" title={m.name}>
+                  {nameOf(m.name)}
+                </b>
+                <span className={QUIET}>v{m.version}</span>
                 {m.code ? <Tag tone="accent">Runs code</Tag> : <Tag>Data only</Tag>}
               </span>
               {m.description ? <span className={BLOCK}>{m.description}</span> : null}

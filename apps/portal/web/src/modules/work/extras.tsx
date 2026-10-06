@@ -38,7 +38,7 @@ export const deliverableExtras: Extras = (detail, props) => {
         target="_blank"
         rel="noopener"
         tone="secondary"
-        size="sm"
+        size="dense"
         arrow
         className={START}
       >
@@ -66,13 +66,13 @@ export const paperExtras: Extras = (_, { row, team }) => {
         href={at("contract", { e: id.slice(1) })}
         tone={open && !team ? "primary" : "secondary"}
         className={START}
-        size="sm"
+        size="dense"
         arrow
       >
         {open && !team ? "Read and sign" : "Read it"}
       </ButtonLink>
     ) : id.startsWith("f") ? (
-      <ButtonLink href="/account/billing" tone="secondary" size="sm" arrow className={START}>
+      <ButtonLink href="/account/billing" tone="secondary" size="dense" arrow className={START}>
         Billing
       </ButtonLink>
     ) : null,

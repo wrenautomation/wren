@@ -38,7 +38,7 @@ export function You(props: PageProps) {
               {MAIL.map(([level, label]) => (
                 <Button
                   key={level}
-                  size="sm"
+                  size="dense"
                   aria-pressed={mail === level}
                   tone={mail === level ? "primary" : "secondary"}
                   disabled={act.busy}
@@ -84,7 +84,7 @@ export function You(props: PageProps) {
           <div className={TOOLS}>
             <ButtonLink
               href={`${AUTH_ORIGIN}/passkeys?next=${encodeURIComponent(location.href)}`}
-              size="sm"
+              size="dense"
               tone="secondary"
             >
               Passkeys

@@ -86,10 +86,10 @@ export function AddOn({
         <p className="text-[14px] text-(--ui-ink-2)">{done}</p>
       ) : (
         <div className="flex gap-2">
-          <Button busy={busy} disabled={!on} onClick={() => void install()}>
+          <Button size="dense" busy={busy} disabled={!on} onClick={() => void install()}>
             {on ? "Install 1 app" : "Install 0 apps"}
           </Button>
-          <Button tone="secondary" onClick={skip}>
+          <Button size="dense" tone="secondary" onClick={skip}>
             Skip
           </Button>
         </div>

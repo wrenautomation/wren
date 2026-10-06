@@ -26,7 +26,7 @@ export const account: Module = {
       template: "list",
       record: "delivery.invoice",
       empty: {
-        all: "No invoices yet. Each one also comes by email, with a link to pay in Wise.",
+        all: "Invoices show here when Wren sends one. Each also comes by email with a link to pay in Wise.",
         open: "Nothing to pay.",
       },
       columns: ["status", "amount", "due", "description", "link"],
