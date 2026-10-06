@@ -170,7 +170,7 @@ describe("reddit content channel", () => {
         expect(i).toEqual({ limit: 100 });
         return inbox;
       },
-      "GET /user/wren_test/about": () => ({ kind: "t2", data: { subreddit: { subscribers: 7 } } }),
+      "GET /user/wren_test/about": () => ({ name: "wren_test", followers: 7 }),
     });
     const ch = redditContent(sites, { now });
     expect(await ch.activity?.()).toEqual([
@@ -193,7 +193,7 @@ describe("reddit content channel", () => {
     expect(await ch.audience?.()).toEqual({
       followers: 7,
       asOf: "2026-09-26T10:00:00.000Z",
-      raw: { kind: "t2", data: { subreddit: { subscribers: 7 } } },
+      raw: { name: "wren_test", followers: 7 },
     });
     expect(calls.filter(([, p]) => p === "/api/v1/me")).toHaveLength(1);
   });

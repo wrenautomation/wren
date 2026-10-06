@@ -216,11 +216,9 @@ export function redditContent(sites: SiteClient, o: RedditContentOptions = {}): 
     },
     async audience(): Promise<Audience> {
       const name = await whoami();
-      const r = await call<{ data?: { subreddit?: { subscribers?: number } } }>(
-        "GET",
-        `/user/${name}/about`,
-      );
-      const followers = r.data?.subreddit?.subscribers;
+      // autobrowse's card: flat, with `followers` from the profile's subscriber count.
+      const r = await call<{ followers?: number }>("GET", `/user/${name}/about`);
+      const followers = r.followers;
       if (typeof followers !== "number")
         throw new Error(`reddit: u/${name} has no profile, so no follower count`);
       return { followers, asOf: now().toISOString(), raw: r };

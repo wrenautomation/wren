@@ -27,9 +27,17 @@ const OPTIONAL = [
   "WREN_FETCH_CONTACT",
   "WREN_CALCOM_API_KEY",
   "WREN_PLACEMENT_SEEDS",
+  // The worker's model and its keys, and its LinkedIn pool account: demand and hiring read with them.
+  "WREN_LLM",
+  "WREN_POOL_LINKEDIN",
 ];
+const isOptional = (k) => OPTIONAL.includes(k) || /^(NUM_COHERE|COHERE_)/.test(k);
 const env = {
-  ...Object.fromEntries(OPTIONAL.filter((k) => prod[k]).map((k) => [k, prod[k]])),
+  ...Object.fromEntries(
+    Object.keys(prod)
+      .filter((k) => isOptional(k) && prod[k])
+      .map((k) => [k, prod[k]]),
+  ),
   ...process.env,
   ...Object.fromEntries(KEYS.map((k) => [k, prod[k]])),
   WREN_RESTATE_INGRESS_URL:
