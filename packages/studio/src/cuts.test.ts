@@ -2,7 +2,7 @@ import { execFileSync } from "node:child_process";
 import { mkdtempSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { afterAll, describe, expect, it } from "vitest";
+import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { CUT_DEFAULTS, keepSegments, reviewCuts, toCutTime } from "./cuts.js";
 import { silencePass } from "./media.js";
 import type { Word } from "./schema.js";
@@ -39,11 +39,14 @@ describe.skipIf(!hasFfmpeg)("silence cuts on a synthetic track", () => {
   const dir = mkdtempSync(join(tmpdir(), "studio-cuts-"));
   const wav = join(dir, "fixture.wav");
   const on = TONES.map(([a, b]) => `between(t,${a},${b})`).join("+");
-  execFileSync("ffmpeg", [
-    ...["-v", "error", "-y", "-f", "lavfi", "-i"],
-    `aevalsrc='0.5*sin(2*PI*440*t)*(${on})+0.002*sin(2*PI*97*t)':s=16000:d=${DURATION}`,
-    wav,
-  ]);
+  // In a hook: a skipped describe's body still runs, and CI has no ffmpeg.
+  beforeAll(() => {
+    execFileSync("ffmpeg", [
+      ...["-v", "error", "-y", "-f", "lavfi", "-i"],
+      `aevalsrc='0.5*sin(2*PI*440*t)*(${on})+0.002*sin(2*PI*97*t)':s=16000:d=${DURATION}`,
+      wav,
+    ]);
+  });
   afterAll(() => rmSync(dir, { recursive: true, force: true }));
 
   it("cuts the long gaps only, the same way twice, never inside a word", async () => {
