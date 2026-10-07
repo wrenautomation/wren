@@ -365,7 +365,7 @@ export const spineExecutions = pgView("spine_executions", {
       when subject ~ '^mail:[0-9]{1,9}$' then (select coalesce(nullif(m.from_name, ''),
         m.from_address) || ': ' || coalesce(nullif(m.subject, ''), 'Email')
         from watch.mail m where m.id = split_part(x.subject, ':', 2)::int)
-      when subject ~ '^item:[0-9]{1,9}$' then (select i.title from watch.items i
+      when subject ~ '^item:[0-9]{1,9}$' then (select i.title from learn.items i
         where i.id = split_part(x.subject, ':', 2)::int)
       when subject ~ '^(lead|reply):sms:[0-9]{1,9}$' then (select coalesce(nullif(s.name, ''),
         c.name, 'Lead') || case when x.subject like 'lead:%' then ': Text lead' else ': Text reply' end
@@ -384,7 +384,7 @@ export const spineExecutions = pgView("spine_executions", {
         where c.id = split_part(x.subject, ':', 2)::int)
       when subject ~ '^account:[0-9]{1,9}:' then (select initcap(a.site) || ': ' || a.ref
         from client_accounts a where a.id = split_part(x.subject, ':', 2)::int)
-    end, case split_part(subject, ':', 1) when 'mail' then 'Email' when 'item' then 'Feed item'
+    end, case split_part(subject, ':', 1) when 'mail' then 'Email' when 'item' then 'Learn item'
       when 'company' then 'Company' when 'account' then 'Account'
       when 'lead' then case split_part(subject, ':', 2) when 'reach' then 'DM lead'
         when 'email' then 'Email lead' else 'Text lead' end

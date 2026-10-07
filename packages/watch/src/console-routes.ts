@@ -12,10 +12,6 @@ export const WATCH_CONSOLE_ROUTES = {
   sort: "wren:team",
   addRule: "wren:team",
   removeRule: "wren:team",
-  itemDone: "wren:team",
-  itemUndone: "wren:team",
-  follow: "wren:team",
-  unfollow: "wren:team",
 } as const satisfies Record<string, Need>;
 /** Where each route works (`RouteAt`): the Inbox. */
 export const WATCH_CONSOLE_APPS = { "*": "inbox" } as const satisfies RouteApps<
@@ -29,8 +25,4 @@ export const WATCH_CONSOLE_WRITES: readonly (keyof typeof WATCH_CONSOLE_ROUTES)[
   "sort",
   "addRule",
   "removeRule",
-  "itemDone",
-  "itemUndone",
-  "follow",
-  "unfollow",
 ];

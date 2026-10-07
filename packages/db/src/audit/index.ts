@@ -51,6 +51,9 @@ export const AUDIT_SKIPPED: Readonly<Record<string, string>> = {
   "delivery.health_days": "a client's daily score, rewritten by every watch pass, kept by day",
   "delivery.flag_digests": "when the flags digest went, one row a day",
   "watch.mail": "William's own mail, read by machine: previews never go in a permanent log",
+  "learn.items":
+    "public pages and their transcripts, read and scored by machine with their own times",
+  "learn.digests": "when the Learn digest went, one row a day",
 };
 
 /** Schemas left out besides Postgres's own (`pg_*`, `information_schema`); a new schema is audited. */

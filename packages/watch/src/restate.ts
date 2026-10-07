@@ -1,15 +1,20 @@
 /**
- * `Watch/all`: every 15 minutes, read new mail in each inbox and each feed due a read, and send
- * both along the `watch` workflow, where triage settles mail and scoring settles feed items. Served on the Postgres box, like the books: the personal
- * inbox is read through the Mac's desk, and waiting there costs nothing. No notices: what needs
- * William shows in the Inbox app, and an inbox it couldn't read shows on the loop.
+ * `Watch/all`: every 15 minutes, read new mail in each inbox and each Learn source due a read.
+ * Mail goes along the `watch` workflow, where triage settles it; new feed items along `learn`,
+ * where they're read and scored. Then Learn's alerts and its 09:00 digest go out. Served on the
+ * Postgres box, like the books: the personal inbox is read through the Mac's desk, and waiting
+ * there costs nothing. Mail sends no notices: what needs William shows in the Inbox app, and an
+ * inbox it couldn't read shows on the loop.
  */
 import type * as restate from "@restatedev/restate-sdk";
 import type { Mailbox } from "@wren/core/mailbox";
+import type { Notifier } from "@wren/core/notify";
 import { makeLoopObject, type PassOutcome, runPass } from "@wren/core/restate";
 import { spineEmit } from "@wren/core/spine";
+import { wallClock } from "@wren/core/time";
 import type { Db } from "@wren/db";
-import { type FetchFn, itemEvent, type PullStats, pullFeeds } from "./feeds.js";
+import { type FetchFn, itemEvent, type PullStats, pullFeeds, tellLearn } from "@wren/learn";
+import { LEARN_FEEDS_FROM, LEARN_FLOW } from "@wren/learn/console";
 import { type ReadStats, readMail } from "./read.js";
 import { mailEvent } from "./triage.js";
 
@@ -23,12 +28,17 @@ const DAY_MS = 86_400_000;
 /** The workflow, and the node the reader is in it. */
 export const WATCH_FLOW = "watch";
 export const WATCH_FROM = "read.mail";
-export const WATCH_FEEDS_FROM = "read.items";
 
 export interface WatchDeps {
   db: Db;
   mailboxes: readonly Mailbox[];
   fetch?: FetchFn;
+  /** Where Learn's alerts and digest go; absent, they wait. */
+  notifier?: Notifier;
+  /** William's wall clock, for the 09:00 digest. */
+  zone?: string;
+  /** The portal's address, linked from an alert. */
+  portal?: string | null;
   /**
    * Renew an inbox's Gmail watch; when it lapses (ms), or null for one with no push
    * (designs/2026-10-06-mail-push.md). Absent: no push, the 15-minute poll.
@@ -108,10 +118,25 @@ export function makeWatch(deps: WatchDeps) {
     if (added.length)
       spineEmit(ctx, {
         client: null,
-        workflow: WATCH_FLOW,
-        from: WATCH_FEEDS_FROM,
+        workflow: LEARN_FLOW,
+        from: LEARN_FEEDS_FROM,
         events: added.map(itemEvent),
       });
+    const notifier = deps.notifier;
+    if (notifier) {
+      const w = wallClock(deps.zone ?? "America/Chicago", now);
+      const pad = (n: number) => String(n).padStart(2, "0");
+      const today = `${w.year}-${pad(w.month)}-${pad(w.day)}`;
+      // A failed send is tried next pass; it never fails this one.
+      await ctx.run("tell learn", () =>
+        tellLearn(deps.db, notifier, {
+          today,
+          hour: w.hour,
+          now,
+          portal: deps.portal ?? null,
+        }).catch((e: unknown) => ({ error: e instanceof Error ? e.message : String(e) })),
+      );
+    }
     return outcome;
   });
 }

@@ -30,6 +30,7 @@ export default defineConfig({
     "../delivery/src/health/views.ts",
     "../outreach/src/schema.ts",
     "../watch/src/schema.ts",
+    "../learn/src/schema.ts",
     "../studio/src/schema.ts",
     "../calendar/src/schema.ts",
     "../voice/src/schema.ts",

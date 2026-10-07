@@ -1,15 +1,15 @@
 {
-  "name": "@wren/watch",
+  "name": "@wren/learn",
   "version": "0.0.0",
   "private": true,
   "type": "module",
   "exports": {
     ".": "./src/index.ts",
     "./components": "./src/components.ts",
+    "./console": "./src/console.ts",
     "./console-routes": "./src/console-routes.ts",
-    "./schema": "./src/schema.ts",
     "./records": "./src/records.ts",
-    "./restate": "./src/restate.ts"
+    "./schema": "./src/schema.ts"
   },
   "scripts": {
     "test:integration": "vitest run test/integration",
@@ -20,7 +20,6 @@
     "@restatedev/restate-sdk": "1.17.1",
     "@wren/core": "workspace:*",
     "@wren/db": "workspace:*",
-    "@wren/learn": "workspace:*",
     "@wren/llm": "workspace:*",
     "drizzle-orm": "0.45.2",
     "zod": "4.6.5"
