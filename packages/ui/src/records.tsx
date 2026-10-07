@@ -25,12 +25,10 @@ import {
   ChevronDown,
   ChevronUp,
   Columns3,
-  ListFilter,
   Maximize2,
-  Search,
   X,
 } from "lucide-react";
-import { type ReactNode, useEffect, useRef, useState, useSyncExternalStore } from "react";
+import { type ReactNode, useEffect, useRef, useState } from "react";
 import { can, type Viewer } from "./access.js";
 import { type Action, applies, type Call, useRun } from "./action.js";
 import { Popover, PopoverContent, PopoverTrigger } from "./components/ui/popover.js";
@@ -51,10 +49,8 @@ import {
   dateOf,
   exact,
   FieldCell,
-  FieldFilter,
   FieldLine,
   FieldTotal,
-  filterLabel,
   filterShape,
   readFilter,
   relative,
@@ -62,6 +58,16 @@ import {
   widthOf,
 } from "./fields.js";
 import { num } from "./format.js";
+import {
+  CHIP,
+  filtersOf,
+  type KeepApi,
+  ListBar,
+  useLastUsed,
+  useNarrow,
+  useSaved,
+  ViewTabs,
+} from "./list-bar.js";
 import { useOpenRecord, useScope } from "./palette-scope.js";
 import { SourceCard, SourceList, stripMarks, useSourcePick } from "./sources.js";
 
@@ -77,7 +83,11 @@ export interface RecordsApi {
   edit?(ask: EditAsk): Promise<Edited>;
   undo?(ask: UndoAsk): Promise<Edited>;
   ask?(ask: RecordAskAsk): Promise<{ id: string }>;
+  /** Saved views and prefs (`./list-bar.tsx`), where the workspace keeps them. */
+  keep?: KeepApi;
 }
+
+export { SearchBox, ViewTabs } from "./list-bar.js";
 
 /** Where a template sits. */
 export interface Place {
@@ -393,234 +403,6 @@ export function Bulk({
 export const ROOT =
   "[--ui-button-case:none] [--ui-button-tracking:0] [--ui-button-weight:500] text-[14px] text-(--ui-ink) [font-variant-numeric:tabular-nums]";
 
-/** A saved view's tabs, with how many rows each holds under the current filters. */
-export function ViewTabs({
-  meta,
-  current,
-  counts,
-  place,
-}: {
-  meta: RecordMeta;
-  current: string | undefined;
-  counts: Record<string, number> | undefined;
-  place: Place;
-}) {
-  if (!meta.views.length) return null;
-  return (
-    <nav className="flex gap-6 overflow-x-auto border-b border-(--ui-hair)" aria-label="Views">
-      {meta.views.map((v, i) => {
-        const on = v.id === current;
-        return (
-          <a
-            key={v.id}
-            href={place.link({ view: i === 0 ? null : v.id, after: null, sort: null })}
-            aria-current={on ? "page" : undefined}
-            className={cn(
-              "-mb-px flex shrink-0 items-center gap-1.5 border-b-2 py-2.5 text-[13px] font-medium no-underline",
-              on
-                ? "border-(--ui-ink) text-(--ui-ink)"
-                : "border-transparent text-(--ui-ink-2) hover:text-(--ui-ink)",
-            )}
-          >
-            {v.label}
-            <span className="text-(--ui-ink-3)">{counts ? num(counts[v.id] ?? 0) : ""}</span>
-          </a>
-        );
-      })}
-    </nav>
-  );
-}
-
-const CHIP =
-  "inline-flex h-8 items-center gap-1.5 border border-(--ui-hair) bg-(--ui-paper) px-2.5 text-[13px] text-(--ui-ink-2) hover:bg-(--ui-hover) hover:text-(--ui-ink)";
-
-/** A field's filter as a chip: its label, what it's set to, and its control in a popover. */
-function FilterChip({ field, place }: { field: FieldMeta; place: Place }) {
-  const value = place.params.get(field.key);
-  const set = (next: string | null) =>
-    place.go(place.link({ [field.key]: next, after: null }), true);
-  return (
-    <span className="inline-flex">
-      <Popover>
-        <PopoverTrigger
-          className={cn(
-            CHIP,
-            value && "border-(--ui-ink-3) text-(--ui-ink)",
-            value && "border-r-0",
-          )}
-        >
-          {field.label}
-          {value ? (
-            <span className="max-w-[180px] truncate font-medium">
-              : {filterLabel(field, value)}
-            </span>
-          ) : (
-            <ChevronDown className="size-3.5 text-(--ui-ink-3)" />
-          )}
-        </PopoverTrigger>
-        <PopoverContent align="start" className="w-64 rounded-none p-2 ring-(--ui-hair) shadow-lg">
-          <FieldFilter field={field} value={value} onChange={set} />
-        </PopoverContent>
-      </Popover>
-      {value ? (
-        <button
-          type="button"
-          aria-label={`Clear ${field.label}`}
-          onClick={() => set(null)}
-          className={cn(CHIP, "border-(--ui-ink-3) px-1.5")}
-        >
-          <X className="size-3.5" />
-        </button>
-      ) : null}
-    </span>
-  );
-}
-
-/**
- * "Filter": pick a field, then its control. Typing narrows the fields; the ones on screen come
- * first, then the hidden ones, then a search for the typed text.
- */
-function FilterPicker({
-  filters,
-  shown,
-  place,
-  many,
-}: {
-  filters: FieldMeta[];
-  shown: Set<string>;
-  place: Place;
-  /** The list's plural, when it searches. */
-  many: string | null;
-}) {
-  const [open, setOpen] = useState(false);
-  const [text, setText] = useState("");
-  const [field, setField] = useState<FieldMeta | null>(null);
-  const shut = (o: boolean) => {
-    setOpen(o);
-    if (!o) {
-      setText("");
-      setField(null);
-    }
-  };
-  const t = text.trim().toLowerCase();
-  const match = filters.filter((f) => f.label.toLowerCase().includes(t));
-  const groups: [string, FieldMeta[]][] = [
-    ["On screen", match.filter((f) => shown.has(f.key))],
-    ["Hidden", match.filter((f) => !shown.has(f.key))],
-  ];
-  const ITEM =
-    "flex h-8 w-full items-center px-1.5 text-left text-[13px] text-(--ui-ink) hover:bg-(--ui-hover)";
-  return (
-    <Popover open={open} onOpenChange={shut}>
-      <PopoverTrigger className={CHIP}>
-        <ListFilter className="size-3.5" />
-        Filter
-      </PopoverTrigger>
-      <PopoverContent
-        align="start"
-        className="w-64 gap-0 rounded-none p-1.5 ring-(--ui-hair) shadow-lg"
-      >
-        {field ? (
-          <div className="grid gap-2">
-            <button
-              type="button"
-              onClick={() => setField(null)}
-              className="flex items-center gap-1 px-1 text-left text-[12px] text-(--ui-ink-2) hover:text-(--ui-ink)"
-            >
-              <ChevronDown className="size-3.5 rotate-90" />
-              {field.label}
-            </button>
-            <FieldFilter
-              field={field}
-              value={place.params.get(field.key)}
-              onChange={(next) => {
-                place.go(place.link({ [field.key]: next, after: null }), true);
-                shut(false);
-              }}
-            />
-          </div>
-        ) : (
-          <div className="grid">
-            <input
-              // biome-ignore lint/a11y/noAutofocus: the popover opened to type in this.
-              autoFocus
-              value={text}
-              onChange={(e) => setText(e.target.value)}
-              onKeyDown={(e) => {
-                const [first] = match;
-                if (e.key === "Enter" && first) setField(first);
-              }}
-              placeholder="Filter by…"
-              aria-label="Filter by"
-              className="mb-1 h-8 border border-(--ui-hair) bg-(--ui-paper) px-2 text-[13px] outline-none placeholder:text-(--ui-ink-3) focus:border-(--ui-ink-2)"
-            />
-            {groups.map(([label, fields]) =>
-              fields.length ? (
-                <div key={label} className="grid">
-                  <span className="px-1.5 pt-1.5 pb-0.5 text-[11px] text-(--ui-ink-3)">
-                    {label}
-                  </span>
-                  {fields.map((f) => (
-                    <button key={f.key} type="button" onClick={() => setField(f)} className={ITEM}>
-                      {f.label}
-                    </button>
-                  ))}
-                </div>
-              ) : null,
-            )}
-            {many && t ? (
-              <button
-                type="button"
-                onClick={() => {
-                  place.go(place.link({ q: text.trim(), after: null }), true);
-                  shut(false);
-                }}
-                className={cn(ITEM, "mt-1 border-t border-(--ui-hair) text-(--ui-ink-2)")}
-              >
-                <Search className="mr-2 size-3.5" />
-                <span className="truncate">
-                  Search {many} for “{text.trim()}”
-                </span>
-              </button>
-            ) : !match.length ? (
-              <span className="px-1.5 py-2 text-[13px] text-(--ui-ink-2)">
-                No field by that name.
-              </span>
-            ) : null}
-          </div>
-        )}
-      </PopoverContent>
-    </Popover>
-  );
-}
-
-/** The search box: it asks once typing stops. */
-export function SearchBox({ place, label }: { place: Place; label: string }) {
-  const [text, setText] = useState(place.params.get("q") ?? "");
-  const asked = place.params.get("q") ?? "";
-  useEffect(() => {
-    if (text.trim() === asked) return;
-    const t = setTimeout(
-      () => place.go(place.link({ q: text.trim() || null, after: null }), true),
-      250,
-    );
-    return () => clearTimeout(t);
-  }, [text, asked, place]);
-  return (
-    <label className="relative flex h-8 w-full items-center sm:w-64">
-      <Search className="pointer-events-none absolute left-2.5 size-3.5 text-(--ui-ink-3)" />
-      <input
-        type="search"
-        value={text}
-        onChange={(e) => setText(e.target.value)}
-        placeholder={`Search ${label}`}
-        aria-label={`Search ${label}`}
-        className="h-8 w-full border border-(--ui-hair) bg-(--ui-paper) pr-2 pl-8 text-[13px] text-(--ui-ink) outline-none placeholder:text-(--ui-ink-3) focus:border-(--ui-ink-2)"
-      />
-    </label>
-  );
-}
-
 /** Which columns show: the address's `cols`, else the page's, else every field that has one. */
 function columnsOf(meta: RecordMeta, params: URLSearchParams, columns?: string[]): FieldMeta[] {
   const all = meta.fields.filter((f) => f.column);
@@ -766,20 +548,6 @@ export function RecordList(props: RecordTemplateProps) {
   );
 }
 
-/** A phone's width (Tailwind's `sm`): a list there shows its title and state, not every column. */
-const NARROW = "(max-width: 639px)";
-function useNarrow() {
-  return useSyncExternalStore(
-    (on) => {
-      const m = matchMedia(NARROW);
-      m.addEventListener("change", on);
-      return () => m.removeEventListener("change", on);
-    },
-    () => matchMedia(NARROW).matches,
-    () => false,
-  );
-}
-
 const blank = (c: Cell | undefined) =>
   c === null || c === undefined || c === "" || (Array.isArray(c) && !c.length);
 
@@ -898,10 +666,8 @@ function List({
   const totals = page.data?.totals;
   const footed = !!rows.length && !!totals && cols.some((f) => totalSays(f, totals[f.key]));
   const widths = widthsOf(meta, cols, rows);
-  const filters = meta.fields.filter(
-    (f) =>
-      filterShape(f) && !(filterShape(f) === "words" && f.searchable) && filterShape(f) !== "set",
-  );
+  const saved = useSaved(api.keep, meta.id);
+  useLastUsed(api.keep, meta, place, saved);
   const searchable = meta.fields.some((f) => f.searchable);
   const narrowed = !!ask.q || !!ask.where;
   const sort = ask.sort ?? meta.views.find((v) => v.id === ask.view)?.sort;
@@ -1046,36 +812,22 @@ function List({
       </div>
 
       <div className="grid gap-3">
-        <ViewTabs meta={meta} current={ask.view} counts={page.data?.counts} place={place} />
-        <div className="flex flex-wrap items-center gap-2">
-          {searchable ? <SearchBox place={place} label={many} /> : null}
-          {filters.length ? (
-            <FilterPicker
-              filters={filters}
-              shown={new Set(cols.map((f) => f.key))}
-              place={place}
-              many={searchable ? many : null}
-            />
-          ) : null}
-          {filters
-            .filter((f) => params.get(f.key))
-            .map((f) => (
-              <FilterChip key={f.key} field={f} place={place} />
-            ))}
-          {narrowed ? (
-            <a
-              href={place.link({
-                q: null,
-                after: null,
-                ...Object.fromEntries(filters.map((f) => [f.key, null])),
-              })}
-              className="px-1 text-[13px] text-(--ui-ink-2) no-underline hover:text-(--ui-ink)"
-            >
-              Clear
-            </a>
-          ) : null}
-          <span className="ml-auto text-[13px] text-(--ui-ink-2)">
-            {picked.size ? (
+        <ViewTabs
+          meta={meta}
+          current={ask.view}
+          counts={page.data?.counts}
+          place={place}
+          saved={saved}
+          keep={api.keep}
+        />
+        <ListBar
+          meta={meta}
+          place={place}
+          shown={new Set(cols.map((f) => f.key))}
+          keep={api.keep}
+          saved={saved}
+          end={
+            picked.size ? (
               <Bulk
                 actions={actions}
                 rows={rows}
@@ -1090,9 +842,9 @@ function List({
               (page.data
                 ? `${num(page.data.total)} ${page.data.total === 1 ? meta.name.one : many}`
                 : ""))
-            )}
-          </span>
-        </div>
+            )
+          }
+        />
       </div>
 
       {page.error && !page.data ? (
@@ -1274,7 +1026,7 @@ function List({
                 <a
                   href={place.link({
                     q: null,
-                    ...Object.fromEntries(filters.map((f) => [f.key, null])),
+                    ...Object.fromEntries(filtersOf(meta).map((f) => [f.key, null])),
                   })}
                   className="text-[13px] text-(--ui-ink) underline decoration-(--ui-hair) underline-offset-2"
                 >

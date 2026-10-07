@@ -36,6 +36,7 @@
     "./checks": "./src/checks.ts",
     "./records": "./src/records.ts",
     "./records/serve": "./src/records-serve.ts",
+    "./saved-views": "./src/saved-views.ts",
     "./schema": "./src/schema.ts",
     "./slots": "./src/slots/index.ts",
     "./templates": "./src/templates.ts",

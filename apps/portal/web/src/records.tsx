@@ -6,6 +6,7 @@
  */
 import type { Row } from "@wren/core/records/serve";
 import {
+  type KeepApi,
   type LocalRecords,
   localRecords,
   type Place,
@@ -43,6 +44,7 @@ function apiOf(product: string, client: string | null, scope: Scope): RecordsApi
       get: (a) => ask("recordsGet", { ...a }),
       export: (a) => ask("recordsExport", { ...a }),
       stats: (a) => ask("recordsStats", { ...a }),
+      keep: keepOf(client, scope),
       // Edits are Wren's records' for now (`@wren/core/edits`): the console serves them.
       ...(product === "console"
         ? {
@@ -55,6 +57,30 @@ function apiOf(product: string, client: string | null, scope: Scope): RecordsApi
     APIS.set(key, api);
   }
   return api;
+}
+
+const KEEPS = new Map<string, KeepApi>();
+/**
+ * What the viewer keeps in this workspace (saved views, prefs), served by the console for any
+ * product: Wren's own apps with no client, else that client.
+ */
+export function keepOf(client: string | null, scope: Scope): KeepApi {
+  const key = `${client}:${scope.asClient}`;
+  let keep = KEEPS.get(key);
+  if (!keep) {
+    const ask = <T,>(handler: string, body: Record<string, unknown>) =>
+      call<T>(`console/${handler}`, client ? { client, asClient: scope.asClient, ...body } : body);
+    keep = {
+      views: (record) => ask("savedViews", { record }),
+      save: (v) => ask("saveView", { ...v }),
+      remove: (id) => ask("removeView", { id }),
+      move: (record, ids) => ask("moveViews", { record, ids }),
+      prefs: (keys) => ask("prefs", keys ? { keys } : {}),
+      setPref: (key, value) => ask("setPref", { key, value }),
+    };
+    KEEPS.set(key, keep);
+  }
+  return keep;
 }
 
 const LOCAL = new Map<string, LocalRecords>();

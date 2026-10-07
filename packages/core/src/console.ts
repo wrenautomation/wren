@@ -29,7 +29,7 @@ import {
 } from "@wren/db";
 import { and, eq, sql } from "drizzle-orm";
 import { z } from "zod";
-import { TEAM_ROLES, type TeamRole, WREN } from "./access.js";
+import { can, TEAM_ROLES, type TeamRole, WREN } from "./access.js";
 import { ASK, type AskService, ask, type QuestionRequest } from "./ask.js";
 import { release } from "./checks.js";
 import {
@@ -77,6 +77,7 @@ import {
   type SignedViewer,
   seesInternal,
   teamCan,
+  whoIs,
 } from "./portal.js";
 import {
   date,
@@ -106,6 +107,7 @@ import {
 } from "./records-serve.js";
 import type { PassOutcome } from "./restate/loop.js";
 import { finishRun, openRun } from "./runs.js";
+import { moveViews, prefsOf, removeView, savedViewsOf, saveView, setPref } from "./saved-views.js";
 import { runs, workflowSaves } from "./schema.js";
 import { editsOf, type SavedWorkflow, SPINE, type SpineService, savedWorkflows } from "./spine.js";
 import { flowsWith, partsIn, type Workflow, type WorkflowEdits } from "./workflows.js";
@@ -258,6 +260,18 @@ export interface AskRequest extends RecordRequest {
   message?: unknown;
 }
 
+/** Saved views and prefs (`./saved-views.ts`): what each handler reads of it, checked there. */
+export interface KeepRequest extends PortalRequest {
+  record?: unknown;
+  id?: unknown;
+  name?: unknown;
+  params?: unknown;
+  shared?: unknown;
+  ids?: unknown[];
+  key?: unknown;
+  keys?: unknown[];
+  value?: unknown;
+}
 export interface CallRequest extends PortalRequest {
   service: string;
   handler: string;
@@ -1264,6 +1278,30 @@ export function consoleApi({
     const all = await typesFor(req);
     return snapshot(main, (tx) => use(serveRecords(all, tx)));
   };
+  /**
+   * Whose saved views and prefs: the viewer's, in Wren's own apps or at the client asked for. The
+   * demo keeps nothing; sharing needs `manage` in that workspace.
+   */
+  const keeper = async (req: KeepRequest, writes = false) => {
+    if (isDemo(req.viewer)) {
+      if (writes) throw new PortalRefusal("the demo is read-only", 403);
+      return { scope: { workspace: "demo", viewer: "demo" }, share: false };
+    }
+    const atWren = seesInternal(req) && (!req.client || req.client === WREN);
+    const workspace = atWren ? WREN : (await pickClient(main, req)).id;
+    const viewer = normalEmail((req.viewer as SignedViewer).email);
+    const share = can(
+      await whoIs(main, req.viewer, atWren ? undefined : workspace),
+      "manage",
+      workspace,
+    );
+    return { scope: { workspace, viewer }, share };
+  };
+  const recordOf = (req: KeepRequest) => {
+    if (typeof req.record !== "string" || !req.record || req.record.length > 64)
+      throw new PortalRefusal("say which list", 400);
+    return req.record;
+  };
   /** One of Wren's records that declares edits, for a teammate who may run things at Wren. */
   const editable = async (req: PortalRequest & { record?: unknown; id?: unknown }) => {
     team(req);
@@ -1509,6 +1547,49 @@ export function consoleApi({
         system: prompt.system,
       };
       return (await openRun(main, { command: ASK_COMMAND, argv, model: "claude-code:sonnet" })).id;
+    },
+
+    /** A viewer's saved views of one list: his own and the shared ones. */
+    savedViews: async (req: KeepRequest) =>
+      savedViewsOf(main, (await keeper(req)).scope, recordOf(req)),
+    /** Make or change one; sharing needs `manage` where it's shared. */
+    saveView: async (req: KeepRequest) => {
+      const { scope, share } = await keeper(req, true);
+      return saveView(
+        main,
+        scope,
+        {
+          id: Number.isSafeInteger(req.id) ? (req.id as number) : undefined,
+          record: recordOf(req),
+          name: typeof req.name === "string" ? req.name : undefined,
+          params: typeof req.params === "string" ? req.params : undefined,
+          shared: typeof req.shared === "boolean" ? req.shared : undefined,
+        },
+        share,
+      );
+    },
+    removeView: async (req: KeepRequest) => {
+      const { scope, share } = await keeper(req, true);
+      if (!Number.isSafeInteger(req.id)) throw new PortalRefusal("say which view", 400);
+      await removeView(main, scope, req.id as number, share);
+      return { removed: req.id };
+    },
+    moveViews: async (req: KeepRequest) => {
+      const { scope } = await keeper(req, true);
+      const ids = Array.isArray(req.ids) ? req.ids.filter(Number.isSafeInteger) : [];
+      return moveViews(main, scope, recordOf(req), ids as number[]);
+    },
+    /** What the viewer arranged, by key (`./saved-views.ts`). */
+    prefs: async (req: KeepRequest) => {
+      const { scope } = await keeper(req);
+      const keys = Array.isArray(req.keys) ? req.keys.filter((k) => typeof k === "string") : [];
+      return prefsOf(main, scope, keys.length ? (keys as string[]) : undefined);
+    },
+    setPref: async (req: KeepRequest) => {
+      const { scope } = await keeper(req, true);
+      if (typeof req.key !== "string") throw new PortalRefusal("say which setting", 400);
+      await setPref(main, scope, req.key, req.value ?? null);
+      return { key: req.key };
     },
 
     /** A new client from `req`, checked before any step runs: team only, a plain id, a name. */
@@ -1789,6 +1870,16 @@ export function makeConsolePortal(deps: Parameters<typeof consoleApi>[0]) {
           ctx.serviceSendClient<AskService>(ASK).edit({ id });
           return { id };
         }),
+      savedViews: (_: restate.Context, req: KeepRequest) => answer(() => api.savedViews(req)),
+      saveView: (ctx: restate.Context, req: KeepRequest) =>
+        answer(() => ctx.run("save view", () => answer(() => api.saveView(req)))),
+      removeView: (ctx: restate.Context, req: KeepRequest) =>
+        answer(() => ctx.run("remove view", () => answer(() => api.removeView(req)))),
+      moveViews: (ctx: restate.Context, req: KeepRequest) =>
+        answer(() => ctx.run("move views", () => answer(() => api.moveViews(req)))),
+      prefs: (_: restate.Context, req: KeepRequest) => answer(() => api.prefs(req)),
+      setPref: (ctx: restate.Context, req: KeepRequest) =>
+        answer(() => ctx.run("set pref", () => answer(() => api.setPref(req)))),
       setLoop: (ctx: restate.Context, req: SetLoopRequest) =>
         answer(async () => {
           api.adminFor(req);

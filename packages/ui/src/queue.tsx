@@ -13,6 +13,7 @@ import { Button } from "./controls.js";
 import { Alert } from "./feedback.js";
 import { relative } from "./fields.js";
 import { num } from "./format.js";
+import { ListBar, useLastUsed, useSaved, ViewTabs } from "./list-bar.js";
 import {
   actsOf,
   askOf,
@@ -32,7 +33,6 @@ import {
   typing,
   useLoad,
   useTypes,
-  ViewTabs,
 } from "./records.js";
 
 const NAV =
@@ -73,6 +73,8 @@ function Queue({
   const actions = actsOf(meta, acts);
   const dated = meta.fields.find((f) => f.kind === "date");
   const list = useRef<HTMLUListElement>(null);
+  const saved = useSaved(api.keep, meta.id);
+  useLastUsed(api.keep, meta, place, saved);
 
   const open = (i: number) => {
     const r = rows[i];
@@ -145,16 +147,34 @@ function Queue({
           ) : null,
         )}
       </div>
-      <ViewTabs meta={meta} current={ask.view} counts={page.data?.counts} place={place} />
+      <div className="grid gap-3">
+        <ViewTabs
+          meta={meta}
+          current={ask.view}
+          counts={page.data?.counts}
+          place={place}
+          saved={saved}
+          keep={api.keep}
+        />
+        <ListBar
+          meta={meta}
+          place={place}
+          shown={new Set(meta.fields.filter((f) => f.column).map((f) => f.key))}
+          keep={api.keep}
+          saved={saved}
+        />
+      </div>
 
       {page.error && !page.data ? (
         <Alert onRetry={page.retry}>{page.error.message}</Alert>
       ) : !page.data ? (
         <ListSkeleton />
       ) : !rows.length ? (
-        (example ?? (
+        ((ask.q || ask.where ? null : example) ?? (
           <p className="py-10 text-center text-[13px] text-(--ui-ink-2)">
-            {emptyOf(empty, ask.view, meta.name.many)}
+            {ask.q || ask.where
+              ? `No ${meta.name.many} match these filters.`
+              : emptyOf(empty, ask.view, meta.name.many)}
           </p>
         ))
       ) : (

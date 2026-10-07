@@ -62,6 +62,7 @@ export { Icon, type IconName } from "./icons.js";
 export { AppCard, AppGlance, AppGrid, type GlanceFigure } from "./launcher.js";
 export { PageHeader, Section } from "./layout.js";
 export { Lineage, type LineageVersion } from "./lineage.js";
+export type { KeepApi, SavedViewLine } from "./list-bar.js";
 export { type Look, LookEditor, lookOf } from "./look.js";
 export {
   type OverviewProps,
