@@ -385,7 +385,10 @@ export function accountsApi(deps: AccountsDeps) {
           asOf: v.asOf,
           own: v.own,
           free: isFree(v),
-          offered: owner.id === null || settings.managedForClients.includes(v.id),
+          offered:
+            owner.id === null || (!v.managedDev && settings.managedForClients.includes(v.id)),
+          /** "Managed by Wren" isn't built for it: the page says In development. */
+          managedDev: !!v.managedDev,
           mode: owner.id === null ? ("managed" as const) : (m?.mode ?? null),
           keySet: !!m?.keyName,
           perDay: m?.perDay ?? 0,

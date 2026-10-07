@@ -26,6 +26,7 @@ export const ACCOUNT_SITES = [
   "reddit",
   "postmaster",
   "google_business",
+  "stripe",
 ] as const;
 export type AccountSite = (typeof ACCOUNT_SITES)[number];
 
@@ -137,6 +138,12 @@ export const ACCOUNTS: Record<AccountSite, AccountHow> = {
     label: "Google Postmaster",
     holds: "the sending domains, comma separated",
     how: "Add the TXT record Postmaster gives you to each sending domain.",
+    waits: null,
+  },
+  stripe: {
+    label: "Stripe",
+    holds: "the Stripe account's name",
+    how: "Make a restricted key in Stripe and paste it on the Payments page.",
     waits: null,
   },
 };

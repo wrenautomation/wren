@@ -14,6 +14,7 @@ export const WEBHOOK_EVENTS = {
   "booking.made": "A call was booked or moved",
   "booking.cancelled": "A call was cancelled",
   "deal.won": "A call was marked won",
+  "payment.received": "A pay link was paid",
 } as const;
 export type WebhookEvent = keyof typeof WEBHOOK_EVENTS;
 /** A test send's event: no subscription hears it, every test delivery says it. */
@@ -27,6 +28,7 @@ export function webhookEventOfFired(f: TriggerFacts): WebhookEvent | null {
   if (f.trigger === "trigger.reply") return "reply.received";
   if (f.trigger === "trigger.booking")
     return f.change === "booked" ? "booking.made" : "booking.cancelled";
+  if (f.trigger === "trigger.payment") return "payment.received";
   return null;
 }
 

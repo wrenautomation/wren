@@ -38,6 +38,7 @@ export default defineConfig({
     "../notes/src/schema.ts",
     "../sites/src/schema.ts",
     "../sites/src/views.ts",
+    "../payments/src/schema.ts",
   ],
   out: "./drizzle",
   casing: "snake_case",

@@ -26,6 +26,7 @@
     "@wren/llm": "workspace:*",
     "@wren/notes": "workspace:*",
     "@wren/outreach": "workspace:*",
+    "@wren/payments": "workspace:*",
     "@wren/research": "workspace:*",
     "@wren/sites": "workspace:*",
     "@wren/studio": "workspace:*",

@@ -459,12 +459,18 @@ export function makeSmsDesk(deps: SmsDeps) {
           await ctx.run("mark read", () => markRead(d.db, req.contactId, now));
         },
       ),
-      /** Queue a text on a thread; the sender loop is nudged so it leaves within seconds. */
+      /**
+       * Queue a text on a thread; the sender loop is nudged so it leaves within seconds. `pay` is
+       * a pay link (`@wren/payments`): it waits for the window and leaves the thread unread.
+       */
       reply: serviceHandler(
-        { input: CONTACT.extend({ body: z.string() }), effect: "sends" },
+        {
+          input: CONTACT.extend({ body: z.string(), kind: z.enum(["manual", "pay"]).optional() }),
+          effect: "sends",
+        },
         async (
           ctx: restate.Context,
-          req: { contactId: number; body: string } & ForClient,
+          req: { contactId: number; body: string; kind?: "manual" | "pay" } & ForClient,
         ): Promise<{ messageId: number }> => {
           const d = await deskDeps(ctx, deps, req.client);
           const now = await nowOf(ctx);
@@ -475,10 +481,12 @@ export function makeSmsDesk(deps: SmsDeps) {
                 body: req.body,
                 now,
                 policy: d.policy,
+                ...(req.kind ? { kind: req.kind } : {}),
               }),
             ),
           );
-          await ctx.run("mark read", () => markRead(d.db, req.contactId, now));
+          if (req.kind !== "pay")
+            await ctx.run("mark read", () => markRead(d.db, req.contactId, now));
           ctx
             .objectSendClient<{ sync: (c: restate.ObjectContext) => Promise<unknown> }>(
               { name: "SmsSender" },

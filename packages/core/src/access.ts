@@ -108,6 +108,7 @@ export const APPS: Readonly<Record<string, string>> = {
   notes: "Notes",
   learn: "Learn",
   sites: "Sites",
+  payments: "Payments",
   calendar: "Calendar",
   calls: "Calls",
   voice: "Voice",

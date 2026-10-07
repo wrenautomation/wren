@@ -287,6 +287,9 @@ importers:
       '@wren/notes':
         specifier: workspace:*
         version: link:../../packages/notes
+      '@wren/payments':
+        specifier: workspace:*
+        version: link:../../packages/payments
       '@wren/reactivation':
         specifier: workspace:*
         version: link:../../packages/reactivation
@@ -462,6 +465,9 @@ importers:
       '@wren/outreach':
         specifier: workspace:*
         version: link:../../packages/outreach
+      '@wren/payments':
+        specifier: workspace:*
+        version: link:../../packages/payments
       '@wren/reactivation':
         specifier: workspace:*
         version: link:../../packages/reactivation
@@ -914,6 +920,9 @@ importers:
       '@wren/outreach':
         specifier: workspace:*
         version: link:../outreach
+      '@wren/payments':
+        specifier: workspace:*
+        version: link:../payments
       '@wren/research':
         specifier: workspace:*
         version: link:../research
@@ -1266,6 +1275,37 @@ importers:
       '@restatedev/restate-sdk-testcontainers':
         specifier: 1.17.1
         version: 1.17.1
+      typescript:
+        specifier: 5.9.3
+        version: 5.9.3
+      vitest:
+        specifier: 5.0.1
+        version: 5.0.1(@types/node@26.6.4)(vite@8.3.0(@types/node@26.6.4)(esbuild@0.28.2)(jiti@2.7.0)(terser@5.51.2)(tsx@4.23.13)(yaml@2.9.1))
+
+  packages/payments:
+    dependencies:
+      '@restatedev/restate-sdk':
+        specifier: 1.17.1
+        version: 1.17.1
+      '@wren/channel-sms':
+        specifier: workspace:*
+        version: link:../channel-sms
+      '@wren/core':
+        specifier: workspace:*
+        version: link:../core
+      '@wren/db':
+        specifier: workspace:*
+        version: link:../db
+      drizzle-orm:
+        specifier: 0.45.2
+        version: 0.45.2(@cloudflare/workers-types@5.20260927.1)(kysely@0.29.6)(postgres@3.4.9)
+      zod:
+        specifier: 4.6.5
+        version: 4.6.5
+    devDependencies:
+      '@testcontainers/postgresql':
+        specifier: 12.1.0
+        version: 12.1.0
       typescript:
         specifier: 5.9.3
         version: 5.9.3

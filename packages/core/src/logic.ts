@@ -174,7 +174,8 @@ export function nextSlot(w: Readonly<Record<string, string | number>>, after: Da
 export type TriggerFacts =
   | { trigger: "trigger.reply"; channel: "email" | "sms" | "dm" }
   | { trigger: "trigger.booking"; change: "booked" | "cancelled" }
-  | { trigger: "trigger.flag"; change: "raised" | "cleared"; side: "risk" | "opportunity" };
+  | { trigger: "trigger.flag"; change: "raised" | "cleared"; side: "risk" | "opportunity" }
+  | { trigger: "trigger.payment"; change: "paid" };
 
 /** A Reply or Booking node hears this event by its settings. */
 export function triggerHears(n: WorkflowNode, f: TriggerFacts): boolean {
@@ -184,6 +185,7 @@ export function triggerHears(n: WorkflowNode, f: TriggerFacts): boolean {
     const on = text(w.channel) || "any";
     return on === "any" || on === f.channel;
   }
+  if (f.trigger === "trigger.payment") return true;
   if (f.trigger === "trigger.flag") {
     const on = text(w.on) || "raised";
     const side = text(w.side) || "any";
@@ -229,7 +231,7 @@ const untilSet = (w: Readonly<Record<string, string | number>>): Until | null =>
 export const untilOfFacts = (f: TriggerFacts): Until | null =>
   f.trigger === "trigger.reply"
     ? "reply"
-    : f.trigger === "trigger.flag"
+    : f.trigger === "trigger.flag" || f.trigger === "trigger.payment"
       ? null
       : f.change === "booked"
         ? "booking"
@@ -529,6 +531,15 @@ export const LOGIC: readonly LogicPart[] = [
         : text(w.on) === "any"
           ? "A call booked or cancelled"
           : "A call booked",
+  ),
+  trigger(
+    "payment",
+    "Payment",
+    "Starts when someone pays a pay link sent by text or email.",
+    "money",
+    "invoice",
+    [],
+    () => "A pay link paid",
   ),
   trigger(
     "flag",

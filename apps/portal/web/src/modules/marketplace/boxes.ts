@@ -20,6 +20,7 @@ const ACCOUNTS: Record<string, string> = {
   instagram: "Instagram account",
   reddit: "Reddit logins",
   postmaster: "Google Postmaster",
+  stripe: "Stripe",
 };
 
 /**

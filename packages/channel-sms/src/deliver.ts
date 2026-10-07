@@ -463,6 +463,8 @@ export async function queueManual(
     body: string;
     now: Date;
     policy: Pick<SmsPolicy, "monthlyPerContact">;
+    /** `pay`: a pay link; it never skips quiet hours, as a reply to someone who just wrote may. */
+    kind?: "manual" | "pay";
   },
 ): Promise<SmsMessage> {
   const body = input.body.trim();
@@ -493,7 +495,7 @@ export async function queueManual(
     .values({
       contactId: contact.id,
       direction: "out",
-      kind: "manual",
+      kind: input.kind ?? "manual",
       numberId: contact.numberId,
       toE164: contact.e164,
       body,

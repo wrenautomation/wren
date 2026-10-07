@@ -27,6 +27,8 @@ export interface Vendor {
   own: "key" | "login" | null;
   /** The key's name in SSM under the owner's path, as Wren's env names it. */
   keyName: string | null;
+  /** "Managed by Wren" isn't built for it yet: clients bring their own, and it says so. */
+  managedDev?: true;
 }
 
 const AS_OF = "2026-10-07";
@@ -135,6 +137,20 @@ export const VENDORS: readonly Vendor[] = [
     own: "key",
     keyName: "TELNYX_API_KEY",
   },
+  {
+    // Pay links (designs/2026-10-07-forms-and-pay.md). Stripe takes its fee from each payment, on
+    // the client's own account; Wren pays nothing per link.
+    id: "stripe",
+    name: "Stripe payments",
+    unit: "pay link",
+    micros: 0,
+    url: "https://stripe.com/pricing",
+    asOf: AS_OF,
+    quota: null,
+    own: "key",
+    keyName: "STRIPE_SECRET_KEY",
+    managedDev: true,
+  },
 ];
 
 export const vendorOf = (id: string): Vendor => {
@@ -164,10 +180,13 @@ export const vendorSettingsSchema = z.object({
   markupPct: z.number().min(0).max(500).default(0),
   /** The share of each managed quota clients may never take. */
   reservePct: z.number().min(0).max(100).default(50),
-  /** Vendors a client may use on Wren's key. LinkedIn reads would read as William's own. */
+  /**
+   * Vendors a client may use on Wren's key. LinkedIn reads would read as William's own; Stripe
+   * on Wren's account (Connect) isn't built.
+   */
   managedForClients: z
     .array(z.string())
-    .default(VENDORS.filter((v) => v.id !== "linkedin").map((v) => v.id)),
+    .default(VENDORS.filter((v) => v.id !== "linkedin" && !v.managedDev).map((v) => v.id)),
 });
 export type VendorSettings = z.infer<typeof vendorSettingsSchema>;
 
@@ -275,7 +294,8 @@ export async function setManaged(
 ): Promise<void> {
   const v = vendorOf(o.vendor);
   const s = await vendorSettings(main);
-  if (!s.managedForClients.includes(v.id)) throw new Error(`${v.name} isn't offered managed`);
+  if (v.managedDev || !s.managedForClients.includes(v.id))
+    throw new Error(`${v.name} isn't offered managed`);
   if (!Number.isInteger(o.perDay) || o.perDay < 0)
     throw new Error("share: a whole number, 0 or more");
   if (!Number.isInteger(o.capCents) || o.capCents < 0)
@@ -449,7 +469,7 @@ async function admit(
   }
 
   const s = await vendorSettings(main);
-  if (!s.managedForClients.includes(v.id))
+  if (v.managedDev || !s.managedForClients.includes(v.id))
     return { ok: false, why: `${v.name} isn't offered managed`, mode: "managed" };
   if (cap && !isFree(v)) {
     const cost = units * (v.micros ?? 0);
