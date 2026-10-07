@@ -516,7 +516,7 @@ export function deliveryApi(deps: DeliveryDeps) {
         name: string;
         title?: string;
         agreed: boolean;
-        from?: { ip?: string | null; agent?: string | null };
+        origin?: { ip?: string | null; agent?: string | null };
       },
     ) =>
       write(deps, req, "owner", async (db, c, v) => {
@@ -527,8 +527,8 @@ export function deliveryApi(deps: DeliveryDeps) {
           title: textOf(req.title),
           email: normalEmail(v.email),
           agreed: req.agreed === true,
-          ip: textOf(req.from?.ip),
-          agent: textOf(req.from?.agent),
+          ip: textOf(req.origin?.ip),
+          agent: textOf(req.origin?.agent),
         });
         return { signedAt: a.signedAt?.toISOString() ?? null };
       }),

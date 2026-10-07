@@ -197,7 +197,7 @@ describe("the app host", () => {
       post(
         "app.test",
         "reactivation/overview",
-        { client: "acme", viewer: { demo: true }, from: { ip: "1.2.3.4", agent: "forged" } },
+        { client: "acme", viewer: { demo: true }, origin: { ip: "1.2.3.4", agent: "forged" } },
         {
           authorization: `Bearer ${t}`,
         },
@@ -209,7 +209,7 @@ describe("the app host", () => {
     expect(restate[0]?.body).toEqual({
       client: "acme",
       viewer: { email: "owner@client.example" },
-      from: { ip: null, agent: null },
+      origin: { ip: null, agent: null },
     });
   });
 

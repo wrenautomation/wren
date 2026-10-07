@@ -107,10 +107,11 @@ async function api(req: Request, env: Env, path: string, site: Site, ctx?: Execu
   if (viewer instanceof Response) return viewer;
   if (!("demo" in viewer)) {
     // Where a signed-in request came from, set here like the viewer: a contract signature records it.
-    const from = { ip: req.headers.get("cf-connecting-ip"), agent: req.headers.get("user-agent") };
+    // `origin`, never a name a handler might take as input (a range's `from` once lost to it).
+    const origin = { ip: req.headers.get("cf-connecting-ip"), agent: req.headers.get("user-agent") };
     // A client's host shows that client only, as the client sees it.
     const pin = site.kind === "client" ? { client: site.client, asClient: true } : {};
-    return forward(env, target, JSON.stringify({ ...(input as object), ...pin, viewer, from }));
+    return forward(env, target, JSON.stringify({ ...(input as object), ...pin, viewer, origin }));
   }
   const body = JSON.stringify({ ...(input as Record<string, unknown>), viewer });
   // The service refuses too; this keeps a demo write out of the cache and off the wire.
