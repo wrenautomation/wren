@@ -202,10 +202,12 @@ import {
 } from "../signals/collectors.js";
 import {
   holdFailed,
+  isStopReason,
   landed,
   notHeld,
   type StageHolds,
   stageHolds,
+  stopsAtOnce,
   UNITS_PER_RUN,
   unitBatches,
 } from "./units.js";
@@ -219,6 +221,11 @@ export interface EnrichmentDeps {
   /** null when WREN_FETCH_CONTACT is unset: crawl and render then refuse instead of the worker refusing to start. */
   fetcher: Fetcher | null;
   llm: LlmClient;
+  /**
+   * A client's model for one stage: its own models key, or Wren's gateway gated and metered on
+   * its share (`meteredModel`). Unset: client keys run on `llm`, unmetered.
+   */
+  clientLlm?: ((client: string, part: string, runId: string | null) => LlmClient) | null;
   /** Lazily launched per render run and closed after it (Playwright). */
   renderer?: (() => Promise<BrowserRenderer>) | null;
   tracer?: Tracer;
@@ -513,6 +520,11 @@ export function makeEnrichment(deps: EnrichmentDeps) {
       part,
       runId,
     });
+  /** The model a stage runs on: a client key's own (metered), else Wren's. */
+  const llmOf = (ctx: restate.ObjectContext, part: string, runId: string | null): LlmClient => {
+    const owner = clientOfKey(ctx.key.split("@")[0] as string);
+    return owner && deps.clientLlm ? deps.clientLlm(owner.client, part, runId) : deps.llm;
+  };
   const tracer = deps.tracer ?? NULL_TRACER;
   const robotsMode = deps.robotsMode ?? "warn";
   const spec = deps.extractionSpec ?? DEFAULT_EXTRACTION_SPEC;
@@ -563,14 +575,14 @@ export function makeEnrichment(deps: EnrichmentDeps) {
   ) => {
     try {
       const run = async () => {
-        const value = await fn();
+        const value = await stopsAtOnce(fn);
         await landed(at.holds, at.id);
         return value;
       };
       return { ok: true as const, value: await ctx.run(name, run, UNIT_RETRY) };
     } catch (err) {
       if (!(err instanceof restate.TerminalError)) throw err;
-      await holdFailed(ctx, at.holds, at.id, err.message);
+      if (!isStopReason(err.message)) await holdFailed(ctx, at.holds, at.id, err.message);
       return { ok: false as const, reason: err.message };
     }
   };
@@ -752,6 +764,7 @@ export function makeEnrichment(deps: EnrichmentDeps) {
           const { db, niche } = scope(ctx);
           const shard = parseShard(input.shard ?? keyShard(ctx));
           const runId = await open(ctx, "enrich extract", { ...input, niche }, deps.llm.name);
+          const llm = llmOf(ctx, HELD.extract, runId);
           const selected = await ctx.run("select", async () => {
             const { targets, skippedOlderVersion } = await selectExtractionTargets(db, deps.llm, {
               limit: input.limit,
@@ -779,9 +792,7 @@ export function makeEnrichment(deps: EnrichmentDeps) {
               async () => {
                 const doc = await loadExtractionTarget(db, id);
                 if (!doc) return null;
-                return atomic(db, (tx) =>
-                  extractDocument(tx, deps.llm, doc, { runId, tracer, spec }),
-                );
+                return atomic(db, (tx) => extractDocument(tx, llm, doc, { runId, tracer, spec }));
               },
               { holds, id },
             );
@@ -818,13 +829,13 @@ export function makeEnrichment(deps: EnrichmentDeps) {
         async (ctx: restate.ObjectContext, input: EmailPickInput = {}): Promise<EmailPickStats> => {
           const { db, niche } = scope(ctx);
           const shard = parseShard(input.shard ?? keyShard(ctx));
-          const llm = input.rules ? null : deps.llm;
           const runId = await open(
             ctx,
             "enrich pick",
             { ...input, niche, version: PICK_VERSION },
-            llm?.name ?? RULES_PICKER,
+            input.rules ? RULES_PICKER : deps.llm.name,
           );
+          const llm = input.rules ? null : llmOf(ctx, HELD.pick, runId);
           const ids = await ctx.run("select", async () =>
             (await selectPickTargets(db, llm, { limit: input.limit, niche, shard })).map(
               (c) => c.id,
@@ -889,8 +900,9 @@ export function makeEnrichment(deps: EnrichmentDeps) {
             { ...input, niche, version: OPENER_VERSION },
             deps.llm.name,
           );
+          const llm = llmOf(ctx, HELD.opener, runId);
           const ids = await ctx.run("select", () =>
-            selectOpenerTargets(db, deps.llm, { limit: input.limit, niche, shard }),
+            selectOpenerTargets(db, llm, { limit: input.limit, niche, shard }),
           );
           const stats = emptyOpenerStats(ids.length);
           const holds = await stageHolds(ctx, db, HELD.opener);
@@ -898,7 +910,7 @@ export function makeEnrichment(deps: EnrichmentDeps) {
             const r = await unit(
               ctx,
               `opener company ${id}`,
-              () => atomic(db, (tx) => writeOpener(tx, deps.llm, id, { runId, tracer })),
+              () => atomic(db, (tx) => writeOpener(tx, llm, id, { runId, tracer })),
               { holds, id },
             );
             if (!r.ok) {
@@ -1113,7 +1125,7 @@ export function makeEnrichment(deps: EnrichmentDeps) {
               deps.youtube && owner
                 ? youtubeFor(owner, deps.youtube, "signals.talks", runId)
                 : (deps.youtube ?? null),
-            llm: deps.llm,
+            llm: llmOf(ctx, "signals", runId),
             linkedin: own ? null : readAccount(deps.linkedin),
             ...(linkedinReads === undefined ? {} : { linkedinReads }),
             // The account's 20 a day across kinds, asked before each fallback read.

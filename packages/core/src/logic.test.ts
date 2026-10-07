@@ -158,6 +158,17 @@ describe("logic steps", () => {
     );
   });
 
+  it("If asks the rule as the node's client, whose model share answers it", async () => {
+    const asked: (string | null | undefined)[] = [];
+    const mine = logicSteps(async (_when, _e, client) => {
+      asked.push(client);
+      return true;
+    });
+    await mine["logic.if"]?.("in", ev("a"), { ...at("n", { when: "w" }), client: "acme" });
+    await mine["logic.if"]?.("in", ev("a"), at("n", { when: "w" }));
+    expect(asked).toEqual(["acme", null]);
+  });
+
   it("Split sends a subject the same way every time, near its share", async () => {
     expect(bucketOf("lead:1", "ab")).toBe(bucketOf("lead:1", "ab"));
     let a = 0;

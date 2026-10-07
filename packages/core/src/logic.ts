@@ -703,10 +703,13 @@ export function bucketOf(subject: string, node: string): number {
 }
 
 /** Each logic node's step. If asks `rule`, the same model a wire's `when` asks. */
-export function logicSteps(rule: (when: string, e: SpineEvent) => Promise<boolean>) {
+export function logicSteps(
+  rule: (when: string, e: SpineEvent, client?: string | null) => Promise<boolean>,
+) {
   const pass = (port: string, e: SpineEvent) => [{ port, event: e }];
   const steps: Record<string, Step> = {
-    "logic.if": async (_p, e, at) => pass((await rule(text(at.with.when), e)) ? "yes" : "no", e),
+    "logic.if": async (_p, e, at) =>
+      pass((await rule(text(at.with.when), e, at.client)) ? "yes" : "no", e),
     "logic.switch": async (_p, e, at) => {
       const v = text(dig(e, String(at.with.field ?? ""))).toLowerCase();
       const hit = casesOf(at.with.cases).find((c) => c.label.toLowerCase() === v || c.id === v);

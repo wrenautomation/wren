@@ -213,7 +213,7 @@ import { siteEdge } from "@wren/core/flag-store";
 import { type KeyStore, keyStoreFromEnv } from "@wren/core/keys";
 import { delegatedMailbox, type Mailbox, siteMailbox } from "@wren/core/mailbox";
 import { MARKETING_RECORDS } from "@wren/core/marketing/records";
-import { meteredModel, meteredSites } from "@wren/core/metered";
+import { isVendorStop, meteredModel, meteredSites } from "@wren/core/metered";
 import { namedFor } from "@wren/core/notify";
 import { clientKey, clientOfKey, ingressSend } from "@wren/core/restate";
 import { dnsChecks, SETUP_STEP, setupStep } from "@wren/core/setup";
@@ -704,6 +704,18 @@ export async function buildServices(
       clientDb,
       fetcher: ua ? new PoliteFetcher(ua, { timeout: 10, retries: 2 }) : null,
       llm,
+      // A client niche's model stages on its own key or Wren's, metered on its share.
+      clientLlm: (client, part, runId) =>
+        meteredModel(llm, {
+          main: db,
+          client,
+          part,
+          now: () => new Date(),
+          store: keys,
+          own: llmForKey,
+          unset: "managed",
+          runId,
+        }),
       renderer,
       tracer,
       robotsMode: settings.robotsMode,
@@ -1380,6 +1392,17 @@ export async function buildServices(
     settingsFor: async (client: string | null) =>
       briefSettingsOf((await settingsFor(db, client))[CALL_BRIEF]),
     llm,
+    // A client's brief questions on its own model key or Wren's, metered on its share.
+    llmFor: (client: string) =>
+      meteredModel(llm, {
+        main: db,
+        client,
+        part: "calls.brief",
+        now: () => new Date(),
+        store: keys,
+        own: llmForKey,
+        unset: "managed",
+      }),
   };
   if (portal)
     services.push(
@@ -1697,12 +1720,31 @@ export async function buildServices(
       },
       // What a client's own URLs hear: deliveries signed and tried on Webhooks' ladder.
       publish: webhooksPublish,
-      rule: async (when: string, e: SpineEvent) => {
-        const r = await llm.complete(
-          `Rule: ${when}\n\nEvent (${e.kind}, ${e.subject}):\n${JSON.stringify(e.data).slice(0, 4000)}`,
-          { system: "Does the event pass the rule? Answer yes or no.", maxTokens: 5 },
-        );
-        return /^\s*yes/i.test(r.text);
+      // A client's rule on its own model key or Wren's, metered on its share. A stop (a cap, no
+      // key) answers no: the event waits on no model it can't pay for.
+      rule: async (when: string, e: SpineEvent, client?: string | null) => {
+        const model = client
+          ? meteredModel(llm, {
+              main: db,
+              client,
+              part: "spine.rule",
+              now: () => new Date(),
+              store: keys,
+              own: llmForKey,
+              unset: "managed",
+            })
+          : llm;
+        try {
+          const r = await model.complete(
+            `Rule: ${when}\n\nEvent (${e.kind}, ${e.subject}):\n${JSON.stringify(e.data).slice(0, 4000)}`,
+            { system: "Does the event pass the rule? Answer yes or no.", maxTokens: 5 },
+          );
+          return /^\s*yes/i.test(r.text);
+        } catch (err) {
+          if (!isVendorStop(err)) throw err;
+          console.warn(`spine rule for ${client}: no (${err.why})`);
+          return false;
+        }
       },
     }),
     // Each Schedule node's clock: started by publish and approve, a tick at each slot.

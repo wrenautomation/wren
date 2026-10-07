@@ -8,6 +8,7 @@
  */
 import * as restate from "@restatedev/restate-sdk";
 import { hold, holdsOn, settle } from "@wren/core/checks";
+import { isVendorStop } from "@wren/core/vendor-stop";
 import type { Queryable } from "@wren/db";
 
 /** Units per journaled step for free work. */
@@ -49,6 +50,24 @@ export function holdFailed(ctx: RunCtx, h: StageHolds, id: unknown, reason: stri
   );
 }
 
+const STOP = "vendor stop: ";
+
+/**
+ * A vendor stop (a cap, no key saved, no share) ends the pass at once: no retries, and the unit
+ * isn't held, since the unit did nothing wrong.
+ */
+export async function stopsAtOnce<T>(fn: () => Promise<T>): Promise<T> {
+  try {
+    return await fn();
+  } catch (err) {
+    if (isVendorStop(err)) throw new restate.TerminalError(`${STOP}${err.why}`);
+    throw err;
+  }
+}
+
+/** A unit's failure that was a vendor stop, not the unit's fault: never held. */
+export const isStopReason = (reason: string) => reason.startsWith(STOP);
+
 export async function* unitBatches<I, T>(
   ctx: RunCtx,
   name: string,
@@ -59,7 +78,7 @@ export async function* unitBatches<I, T>(
   const perRun = Math.max(1, opts.perRun ?? UNITS_PER_RUN);
   const h = opts.holds;
   const unit = async (id: I) => {
-    const value = await fn(id);
+    const value = await stopsAtOnce(() => fn(id));
     await landed(h, id);
     return value;
   };
@@ -88,7 +107,7 @@ export async function* unitBatches<I, T>(
       yield { id, ok: true, value };
     } catch (err) {
       if (!(err instanceof restate.TerminalError)) throw err;
-      if (h) await holdFailed(ctx, h, id, err.message);
+      if (h && !isStopReason(err.message)) await holdFailed(ctx, h, id, err.message);
       yield { id, ok: false, reason: err.message };
     }
   }

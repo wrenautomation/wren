@@ -929,7 +929,8 @@ export interface SpineDeps {
   workflows: readonly Workflow[];
   components: readonly Component[];
   steps: Readonly<Record<string, Step>>;
-  rule(when: string, e: SpineEvent): Promise<boolean>;
+  /** Does `e` pass `when`? `client` (null: Wren) is whose model share answers it. */
+  rule(when: string, e: SpineEvent, client?: string | null): Promise<boolean>;
   /** An event a client's webhooks may hear (`./webhooks.ts`): sent on, journaled. */
   publish?(
     ctx: restate.Context,
@@ -983,7 +984,7 @@ export function makeSpine(d: SpineDeps) {
         ctx
           .serviceSendClient<SpineService>(SPINE)
           .release({ client: t.client, id }, restate.rpc.sendOpts({ delay: ms })),
-      rule: d.rule,
+      rule: (when, e) => d.rule(when, e, t.client),
       // Auto-retry: the next rung of the ladder, counted in the call, until the workflow's tries.
       failed: (id, workflow) => {
         const n = t.auto ?? 0;

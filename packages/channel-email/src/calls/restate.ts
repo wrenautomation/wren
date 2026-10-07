@@ -105,7 +105,13 @@ export interface BriefDeps {
   settingsFor(client: string | null): Promise<BriefSettings>;
   /** The worker's model, through the gateway; null for code alone. */
   llm: LlmClient | null;
+  /** A client's model: its own key or Wren's, metered on its share. Unset: `llm`. */
+  llmFor?: ((client: string) => LlmClient) | null;
 }
+
+/** The model a brief's questions run on: the client's own, else Wren's; null when off. */
+const modelOf = (deps: BriefDeps, client: string | null, on: boolean) =>
+  !on || !deps.llm ? null : client && deps.llmFor ? deps.llmFor(client) : deps.llm;
 
 export interface SendAsk {
   client: string | null;
@@ -131,7 +137,10 @@ export const briefStep =
     const db = deps.dbFor(at.client);
     const settings = await deps.settingsFor(at.client);
     const now = deps.now?.() ?? new Date();
-    const brief = await buildBrief(db, id, { now, llm: settings.questions ? deps.llm : null });
+    const brief = await buildBrief(db, id, {
+      now,
+      llm: modelOf(deps, at.client, settings.questions),
+    });
     if (!brief) return [];
     await saveBrief(db, brief);
     const start = brief.call.start;
@@ -177,7 +186,10 @@ export function makeCallBriefs(deps: CallBriefsDeps) {
     const built = await ctx.run(
       "brief",
       async () => {
-        const b = await buildBrief(db, id, { now, llm: settings.questions ? deps.llm : null });
+        const b = await buildBrief(db, id, {
+          now,
+          llm: modelOf(deps, client, settings.questions),
+        });
         if (b) await saveBrief(db, b);
         return b ? { lines: b.facts.length + b.signals.length + b.thread.length } : null;
       },

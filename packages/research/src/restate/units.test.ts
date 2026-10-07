@@ -1,7 +1,8 @@
 import * as restate from "@restatedev/restate-sdk";
+import { VendorStop } from "@wren/core/vendor-stop";
 import type { Queryable } from "@wren/db";
 import { describe, expect, it } from "vitest";
-import { notHeld, type StageHolds, unitBatches } from "./units.js";
+import { isStopReason, notHeld, type StageHolds, unitBatches } from "./units.js";
 
 /** A ctx whose `run` just runs: a lone unit throwing a TerminalError fails at once, as Restate would. */
 function fakeCtx() {
@@ -101,5 +102,34 @@ describe("unitBatches", () => {
     ]);
     expect(steps).toContain("hold s 3");
     expect(sql).toEqual(["settle", "hold"]);
+  });
+
+  it("a vendor stop ends at once and holds nothing: the unit did nothing wrong", async () => {
+    const { ctx, steps } = fakeCtx();
+    const db = { execute: async () => [] } as unknown as Queryable;
+    const holds: StageHolds = { db, stage: "s", held: new Set(), due: new Set() };
+    let calls = 0;
+    const out = await collect(
+      unitBatches(
+        ctx,
+        "u",
+        [1],
+        async () => {
+          calls++;
+          throw new VendorStop(
+            "model",
+            "POST",
+            "/complete",
+            "models",
+            "Monthly cap of $5.00 reached",
+          );
+        },
+        { holds },
+      ),
+    );
+    expect(calls).toBe(1);
+    expect(out[0]).toMatchObject({ ok: false });
+    expect(isStopReason((out[0] as { reason: string }).reason)).toBe(true);
+    expect(steps.some((s) => s.startsWith("hold"))).toBe(false);
   });
 });
