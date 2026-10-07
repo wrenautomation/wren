@@ -6,6 +6,7 @@
  */
 
 import type { Permission } from "@wren/core/access";
+import { inHouseOfApp, insteadLine } from "@wren/core/in-house";
 import {
   Alert,
   AppCard,
@@ -525,9 +526,22 @@ export function App() {
   );
 }
 
+/** The quiet line under an app's name: the SaaS it stands in for, when it's live. */
+const noteOf = (m: Module) => {
+  const t = inHouseOfApp(m.id);
+  return t ? insteadLine(t) : null;
+};
+
 /** `off`: the team sees an app whose component this client hasn't installed, marked. */
 const card = (m: Module, props?: PageProps, off = false) => (
-  <AppCard key={m.id} name={m.name} icon={m.icon} href={firstOf(m)} blurb={m.blurb}>
+  <AppCard
+    key={m.id}
+    name={m.name}
+    icon={m.icon}
+    href={firstOf(m)}
+    blurb={m.blurb}
+    note={noteOf(m)}
+  >
     {off ? (
       <Tag>Not installed</Tag>
     ) : m.Glance && props ? (

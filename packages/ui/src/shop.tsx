@@ -248,6 +248,10 @@ function Card({
   href: string;
 }) {
   const icon = textOf(row.icon);
+  // A text column reads as one quiet line under the name ("In place of Calendly"); the rest
+  // are chips at the foot.
+  const lines = chips.filter((f) => f.kind === "text" && textOf(row[f.key]));
+  const tags = chips.filter((f) => !lines.includes(f));
   return (
     <li>
       <a
@@ -271,14 +275,19 @@ function Card({
             {titleOf(meta, row)}
           </span>
         </span>
+        {lines.map((f) => (
+          <span key={f.key} className="-mt-1 text-[12px] text-(--ui-ink-3)">
+            {f.label} {textOf(row[f.key])}
+          </span>
+        ))}
         {meta.subtitle ? (
           <span className="line-clamp-3 text-[13px]/[1.45] text-pretty text-(--ui-ink-2)">
             {textOf(row[meta.subtitle])}
           </span>
         ) : null}
-        {chips.length ? (
+        {tags.length ? (
           <span className="mt-auto flex flex-wrap gap-x-3 gap-y-1 pt-1 text-[12px] text-(--ui-ink-2)">
-            {chips.map((f) =>
+            {tags.map((f) =>
               row[f.key] === null || row[f.key] === undefined ? null : (
                 <FieldCell key={f.key} field={f} cell={row[f.key]} />
               ),

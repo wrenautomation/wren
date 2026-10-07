@@ -23,7 +23,7 @@ export const marketplace: Module = {
       template: "shop",
       record: "console.component",
       empty: { installed: "Nothing installed yet." },
-      columns: ["type", "ready", "installed"],
+      columns: ["instead", "type", "ready", "installed"],
       extras: catalogExtras,
     },
     { id: "map", label: "Map", Page: ComponentMap },

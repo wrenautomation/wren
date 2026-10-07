@@ -29,6 +29,7 @@ export function AppCard({
   icon,
   href,
   blurb,
+  note,
   children,
 }: {
   name: string;
@@ -36,6 +37,8 @@ export function AppCard({
   href: string;
   /** One sentence on what it does for the client. */
   blurb: string;
+  /** One quiet line under the name, such as "In place of Calendly". */
+  note?: string | null | undefined;
   /** Where it stands now: an `AppGlance`. */
   children?: ReactNode;
 }) {
@@ -60,6 +63,7 @@ export function AppCard({
         <span className="font-(family-name:--ui-font-display) text-[20px]/[1.2] font-(--ui-display-weight) tracking-[-0.015em]">
           {name}
         </span>
+        {note ? <span className="-mt-1.5 text-[12.5px] text-(--ui-ink-3)">{note}</span> : null}
         <span className="text-[14px]/[1.5] text-pretty text-(--ui-ink-2)">{blurb}</span>
         {children ? <span className="mt-auto pt-3.5">{children}</span> : null}
       </a>

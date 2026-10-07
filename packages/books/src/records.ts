@@ -2,7 +2,8 @@
  * The books as console records (`@wren/core/records`): spend lines, subscriptions, unit economics
  * (months, channels, cohorts) and the chart of accounts. Team only; amounts in dollars.
  */
-import { date, defineRecord, money, number, percent, status, text } from "@wren/core/records";
+import { IN_HOUSE, monthlyOf } from "@wren/core/in-house";
+import { date, defineRecord, link, money, number, percent, status, text } from "@wren/core/records";
 import { UNKNOWN_CHANNEL } from "./economics.js";
 
 export const spendRecord = defineRecord({
@@ -218,6 +219,58 @@ export const accountRecord = defineRecord({
   ],
 });
 
+/**
+ * The tools we built in place of a SaaS (`@wren/core/in-house`): what each replaces and what that
+ * would cost us a month bought, in USD at the vendor's public price. Money we didn't spend, not
+ * revenue: it never enters the ledger.
+ */
+export const inHouseRecord = defineRecord({
+  id: "books.in_house",
+  needs: "money",
+  name: { one: "in-house tool", many: "in-house tools" },
+  rows: async () =>
+    IN_HOUSE.map((t) => {
+      const first = t.instead[0];
+      return {
+        id: t.id,
+        name: t.name,
+        instead: t.instead.map((i) => i.vendor).join(" or "),
+        plan: first
+          ? `${first.plan}, ${first.price === null ? first.unit : `$${first.price} ${first.unit}`}`
+          : null,
+        monthly: monthlyOf(t),
+        costs: t.costsUs,
+        currency: "USD",
+        why: t.why,
+        state: t.state,
+        source: first?.url ?? null,
+        as_of: first?.asOf ?? null,
+      };
+    }),
+  key: "id",
+  title: "name",
+  subtitle: "instead",
+  fields: {
+    name: text("Ours"),
+    instead: text("Instead of"),
+    plan: text("Their plan"),
+    monthly: money("A month bought (USD)"),
+    costs: money("Costs us (USD)"),
+    why: text("Why"),
+    state: status({
+      live: { label: "Live", tone: "good" },
+      building: { label: "Building", tone: "neutral" },
+      "in development": { label: "In development", tone: "neutral" },
+    }),
+    source: link("Their pricing"),
+    asOf: date("As of"),
+  },
+  views: [
+    { id: "live", label: "Live", where: { state: "live" }, sort: "-monthly" },
+    { id: "all", label: "All", sort: "name" },
+  ],
+});
+
 export const BOOKS_RECORDS = [
   spendRecord,
   subscriptionRecord,
@@ -225,4 +278,5 @@ export const BOOKS_RECORDS = [
   channelRecord,
   cohortRecord,
   accountRecord,
+  inHouseRecord,
 ];

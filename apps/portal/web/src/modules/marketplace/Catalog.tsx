@@ -2,10 +2,12 @@
  * A component's record, below its fields (what's missing is one): what it takes and gives, what
  * runs inside it, how we expect it to generalize, where it's used, what it needs and provides,
  * and what the viewer may do. Wren's team installs, configures and uninstalls; a client asks.
- * No prices: the server leaves priced settings out of the form. A workflow shows its drawing
+ * No prices of ours: the server leaves priced settings out of the form. A part we built in place
+ * of a SaaS names it, with its public price and the day we read it. A workflow shows its drawing
  * and where it's used; it installs part by part until templates.
  */
 import type { Guess, Hypothesis, Port } from "@wren/core/components";
+import { inHouseOfPart } from "@wren/core/in-house";
 import {
   Alert,
   Button,
@@ -185,6 +187,24 @@ export function catalogExtras(
       />,
     ],
   ];
+  const tool = inHouseOfPart(id);
+  if (tool)
+    sections.push([
+      "Instead of",
+      <Facts
+        key="instead"
+        items={tool.instead.map((i) => [
+          i.vendor,
+          <span key={i.vendor}>
+            {i.plan}, {i.price === null ? i.unit : `$${i.price} ${i.unit}`}.{" "}
+            <a href={i.url} target="_blank" rel="noreferrer">
+              Their pricing
+            </a>
+            , as of {i.asOf}.
+          </span>,
+        ])}
+      />,
+    ]);
   if (d.inside) sections.push(["Inside", drawing(d.inside)]);
   if (d.hypothesis) sections.push(["How it generalizes", <Guesses key="h" h={d.hypothesis} />]);
   if (d.usedIn.length) sections.push(usedIn(d.usedIn));

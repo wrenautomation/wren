@@ -1,6 +1,8 @@
 /** The client's account, reached from their name at top left: the company, its people, each person's own settings, billing. */
+import { createElement } from "react";
 import type { Module } from "../../module.js";
 import { Domain } from "./Domain.js";
+import { Included } from "./Included.js";
 import { Look } from "./Look.js";
 import { Overview } from "./Overview.js";
 import { People } from "./People.js";
@@ -32,6 +34,7 @@ export const account: Module = {
         open: "Nothing to pay.",
       },
       columns: ["status", "amount", "due", "description", "link"],
+      head: (_meta, _reload, { client }) => createElement(Included, { client }),
     },
     {
       id: "changes",

@@ -66,6 +66,7 @@ import {
   undoChange,
   wordsPatch,
 } from "./edits.js";
+import { inHouseOfPart } from "./in-house.js";
 import {
   answer,
   isDemo,
@@ -1058,6 +1059,8 @@ export const componentRecord = (
           // Wren's own parts are never on a client: no "not installed" for them.
           installed: client && c.for === "client" ? (has(client, c.id) ? "yes" : "no") : null,
           effects: c.effects.join(",") || null,
+          // The SaaS it stands in for, quietly: its closest vendor's name only.
+          instead: inHouseOfPart(c.id)?.instead[0]?.vendor ?? null,
           needs: [...c.requires.components, ...c.requires.accounts].join(", ") || null,
           missing:
             [
@@ -1086,6 +1089,7 @@ export const componentRecord = (
               ready: flowReady(parts),
               installed: null,
               effects: union(parts.map((c) => c.effects)).join(",") || null,
+              instead: null,
               needs: null,
               missing: behind.length
                 ? `${behind.map((c) => c.name).join(", ")} ${behind.length > 1 ? "aren't" : "isn't"} ready`
@@ -1100,6 +1104,7 @@ export const componentRecord = (
     fields: {
       name: text("Name"),
       blurb: text("What it does"),
+      instead: text("In place of"),
       type: status(neutral({ part: "Part", workflow: "Workflow" }), "Type"),
       stage: status(neutral(STAGES), "Stage"),
       channels: tags(neutral(CHANNELS), "Channels"),

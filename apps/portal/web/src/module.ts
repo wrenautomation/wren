@@ -70,7 +70,7 @@ export interface ListPage extends PageBase {
   /** Old params rewritten on arrival, so old links still land: the changes, or null. */
   legacy?: (params: URLSearchParams) => Record<string, string | null> | null;
   /** Beside the list's title, such as a form that adds one; `reload` reads the list again. */
-  head?: (meta: RecordMeta, reload: () => void) => ReactNode;
+  head?: (meta: RecordMeta, reload: () => void, at: PageProps) => ReactNode;
   /** What waits here, counted on its tab in the nav (Wren's workspace): a `where` on the record. */
   count?: Readonly<Record<string, readonly string[]>>;
 }

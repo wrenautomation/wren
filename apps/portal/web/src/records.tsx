@@ -25,6 +25,8 @@ import { call, uploadFile } from "./api.js";
 import { type ListPage, type OverviewPage, type PageProps, WREN } from "./module.js";
 import { href, navigate } from "./route.js";
 
+type HeadMeta = Parameters<NonNullable<ListPage["head"]>>[0];
+
 type Scope = { app: string; asClient: boolean };
 const APIS = new Map<string, RecordsApi>();
 /**
@@ -373,7 +375,7 @@ export function TemplatePage({
     list: path,
     go: navigate,
   };
-  const { extras } = page;
+  const { extras, head } = page;
   // Each action needs what its route needs, unless it says otherwise: a button the login can't
   // press is hidden.
   const actions = (page.actions ?? []).map((a) => {
@@ -405,7 +407,8 @@ export function TemplatePage({
     extras:
       extras &&
       ((detail: unknown, row: Row, act: RecordAct) => extras(detail, { ...props, row, act })),
-    head: page.head,
+    // The page's head sees whose page it is, as its extras do.
+    head: head && ((meta: HeadMeta, reload: () => void) => head(meta, reload, props)),
   };
   if (id) return <RecordPage {...shared} id={id} />;
   if (page.template === "form") return <RecordForm {...shared} />;

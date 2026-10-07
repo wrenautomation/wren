@@ -21,6 +21,7 @@ export const BOOKS_COMPONENTS = [
         "books.channel",
         "books.cohort",
         "books.account",
+        "books.in_house",
       ],
       apps: ["money"],
     },

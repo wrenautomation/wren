@@ -2,6 +2,7 @@
  * Wren's own apps, in Wren's workspace only (team view): each an Overview of its numbers, then
  * its records on the templates. The console serves every record here.
  */
+import { IN_HOUSE, totalOf } from "@wren/core/in-house";
 import type { Action } from "@wren/ui";
 import { createElement } from "react";
 import type { Module } from "../../module.js";
@@ -699,6 +700,25 @@ export const money: Module = {
       template: "list",
       record: "books.subscription",
       empty: "Subscriptions show here once the books find them.",
+    },
+    {
+      id: "in-house",
+      label: "In-house",
+      template: "list",
+      record: "books.in_house",
+      empty: {
+        live: "No tool we built is live yet.",
+        all: "Tools we built in place of a SaaS show here.",
+      },
+      // Money we didn't spend, not revenue: it never enters the ledger.
+      head: () => {
+        const { tools, monthly } = totalOf(IN_HOUSE);
+        return createElement(
+          "p",
+          { className: "text-[13px] text-(--ui-ink-2)" },
+          `${tools.length} live tools would cost about $${Math.round(monthly).toLocaleString("en-US")} a month bought. Not revenue; never in the ledger.`,
+        );
+      },
     },
     {
       id: "economics",

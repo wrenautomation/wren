@@ -26,6 +26,7 @@
     "./outreach": "./src/outreach/index.ts",
     "./restate": "./src/restate/index.ts",
     "./ingest": "./src/ingest/index.ts",
+    "./in-house": "./src/in-house.ts",
     "./leads": "./src/leads.ts",
     "./mail": "./src/mail.ts",
     "./mailbox": "./src/mailbox.ts",
