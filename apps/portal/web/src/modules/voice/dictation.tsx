@@ -32,8 +32,8 @@ export function DictationLatency() {
       <div>
         <h2 className="text-[17px] font-medium">Voice dictation</h2>
         <p className={SMALL}>
-          From the mic press to words in the box, per way of dictating. Your team's dictations only;
-          the words are never kept.
+          How fast words reach the box, per way of dictating. Your team's dictations only; the words
+          are never kept.
         </p>
       </div>
       {got.error && !got.data ? (
