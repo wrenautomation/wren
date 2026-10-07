@@ -91,7 +91,8 @@ async function heat(data: HeatData): Promise<{ height: number; missing: number }
   style.textContent = "*{animation:none!important;transition:none!important}";
   doc.head?.append(style);
   for (const el of doc.querySelectorAll<HTMLElement>("[style*='opacity']"))
-    if (Number(el.style.opacity) < 0.05) Object.assign(el.style, { opacity: "1", transform: "none" });
+    if (Number(el.style.opacity) < 0.05)
+      Object.assign(el.style, { opacity: "1", transform: "none" });
   const w = data.snapshot.w;
   iframe.style.width = `${w}px`;
   iframe.width = String(w);
@@ -113,7 +114,11 @@ async function heat(data: HeatData): Promise<{ height: number; missing: number }
   const box = target.querySelector<HTMLElement>(".rr-player__frame");
   for (const el of [outer, box])
     if (el)
-      Object.assign(el.style, { width: `${width}px`, height: `${full * scale}px`, boxShadow: "none" });
+      Object.assign(el.style, {
+        width: `${width}px`,
+        height: `${full * scale}px`,
+        boxShadow: "none",
+      });
   Object.assign(replayer.wrapper.style, {
     position: "absolute",
     left: `${Math.max(0, (width - w * scale) / 2)}px`,
