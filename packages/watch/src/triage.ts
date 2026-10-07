@@ -48,6 +48,19 @@ published notices are hold, unless a step is still his to take. An order confirm
 shipped, delayed or cancelled is a status change. Answer JSON only: {"verdict": "show" | "hold" | "drop", "why": "<one short line>", \
 "summary": "<one short line on what it says>"}`;
 
+/**
+ * A client's mailbox (designs/2026-10-07-mail-access.md): the same verdicts, said for a business.
+ * Its rules are its own, in its own database.
+ */
+export const clientSystem = (business: string) =>
+  `You sort email that came to ${business.replace(/\s+/g, " ").slice(0, 80)}, a business. Answer \
+"show" when a person needs an answer: a lead, a customer, a partner, a question, a complaint, money \
+owed or at risk, an account or security problem, a deadline. "hold" when it's worth keeping but not \
+now: receipts, paid invoices, notices, newsletters they chose. "drop" when it's noise. Their rules \
+come first; follow them. A rule that names a sender covers only that sender's mail. Answer JSON \
+only: {"verdict": "show" | "hold" | "drop", "why": "<one short line>", "summary": "<one short line \
+on what it says>"}`;
+
 export function promptFor(all: readonly Rule[], m: Mail): string {
   const said = all.map((r) => `- ${r.words}`).join("\n") || "None yet.";
   return `Rules:\n${said}\n\nEmail:\nFrom: ${m.fromName} <${m.fromAddress}>\nSubject: ${m.subject}\nPreview: ${m.snippet ?? ""}`;
@@ -65,7 +78,12 @@ const line = (s: string) => s.replace(/\s+/g, " ").trim().slice(0, 300);
  * Settle one kept email and forget its preview. Null when there's no such row. A second call
  * answers the first's verdict. A provider failure throws, so the step tries again.
  */
-export async function triage(db: Db, llm: LlmClient | null, id: number): Promise<Verdict | null> {
+export async function triage(
+  db: Db,
+  llm: LlmClient | null,
+  id: number,
+  system: string = SYSTEM,
+): Promise<Verdict | null> {
   const [m] = await db.select().from(mail).where(eq(mail.id, id));
   if (!m) return null;
   if (m.verdict) return m.verdict;
@@ -79,8 +97,8 @@ export async function triage(db: Db, llm: LlmClient | null, id: number): Promise
   else {
     const out = await completeAndParse(llm, promptFor(all, m), ANSWER, {
       maxTokens: 200,
-      system: SYSTEM,
-      name: "watch.triage",
+      system,
+      name: system === SYSTEM ? "watch.triage" : "mail.triage",
     });
     got = out.parsed
       ? {
@@ -124,6 +142,21 @@ export async function sortAgain(
   }
   return tally;
 }
+
+/**
+ * `mail.triage` on the spine: a client's email, in its own database, by its own rules. `of` says
+ * the client's database, its name, and the model when its gate is open (null: rules, else it shows).
+ */
+export const clientTriageStep =
+  (of: (client: string) => Promise<{ db: Db; name: string; llm: LlmClient | null }>): Step =>
+  async (_port, e, at) => {
+    if (!at.client) return [];
+    const id = Number(e.data.mailId);
+    if (!Number.isInteger(id)) throw new Error(`${e.subject} is no kept email`);
+    const c = await of(at.client);
+    const verdict = await triage(c.db, c.llm, id, clientSystem(c.name));
+    return verdict ? [{ port: verdict, event: e }] : [];
+  };
 
 /** `watch.triage` on the spine: the email leaves by its verdict's port. Wren's own, in main. */
 export const triageStep =

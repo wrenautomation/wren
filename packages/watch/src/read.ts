@@ -7,7 +7,7 @@ import type { Mailbox } from "@wren/core/mailbox";
 import type { Db } from "@wren/db";
 import { pgSafe } from "@wren/db/columns";
 import { and, eq, inArray, max } from "drizzle-orm";
-import { mail } from "./schema.js";
+import { mail, type Reader } from "./schema.js";
 
 /** How far back the first run looks. */
 export const FIRST_LOOK_MS = 2 * 86_400_000;
@@ -22,7 +22,13 @@ export interface ReadStats {
   failed: Array<{ mailbox: string; error: string }>;
 }
 
-export async function readMail(db: Db, boxes: readonly Mailbox[], now: Date): Promise<ReadStats> {
+/** `reader`: the Monitor's (William's inboxes), or `mail` for a client's connected mailboxes. */
+export async function readMail(
+  db: Db,
+  boxes: readonly Mailbox[],
+  now: Date,
+  reader: Reader = "monitor",
+): Promise<ReadStats> {
   const stats: ReadStats = { kept: [], failed: [] };
   for (const box of boxes) {
     try {
@@ -57,6 +63,8 @@ export async function readMail(db: Db, boxes: readonly Mailbox[], now: Date): Pr
               snippet: m.snippet,
             }),
             at: m.at,
+            link: m.link ?? null,
+            reader,
           })
           .onConflictDoNothing()
           .returning({ id: mail.id });

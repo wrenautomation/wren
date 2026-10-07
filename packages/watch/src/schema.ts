@@ -24,6 +24,9 @@ export const watch = pgSchema("watch");
 export const VERDICTS = ["show", "hold", "drop"] as const;
 export type Verdict = (typeof VERDICTS)[number];
 
+export const READERS = ["monitor", "mail"] as const;
+export type Reader = (typeof READERS)[number];
+
 export const rules = watch.table(
   "rules",
   {
@@ -50,8 +53,9 @@ export const mail = watch.table(
     id: serial("id"),
     /** The inbox it came to. */
     mailbox: varchar("mailbox", { length: 320 }).notNull(),
-    messageId: varchar("message_id", { length: 64 }).notNull(),
-    threadId: varchar("thread_id", { length: 64 }).notNull(),
+    /** Gmail's ids are 16 hex; Microsoft Graph's run to about 150 characters. */
+    messageId: varchar("message_id", { length: 255 }).notNull(),
+    threadId: varchar("thread_id", { length: 255 }).notNull(),
     fromName: text("from_name").notNull(),
     fromAddress: varchar("from_address", { length: 320 }).notNull(),
     subject: text("subject").notNull(),
@@ -64,6 +68,13 @@ export const mail = watch.table(
     /** One line from the model; null when a rule settled it. */
     summary: text("summary"),
     ruleId: integer("rule_id"),
+    /** Where a person opens it, when the provider names it (Outlook); null: Gmail's thread URL. */
+    link: text("link"),
+    /**
+     * Who read it in: `monitor` (William's inboxes, the Inbox app's "Your mail"), or `mail` (a
+     * client's mailbox connected on Account → Mail, into Marketing → Inbox).
+     */
+    reader: varchar("reader", { length: 8, enum: READERS }).default("monitor").notNull(),
     /** William dealt with it. */
     doneAt: timestamp("done_at", { withTimezone: true }),
     createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
@@ -80,6 +91,7 @@ export const mail = watch.table(
     index("ix_watch_mail_at").on(t.at),
     index("ix_watch_mail_rule").on(t.ruleId),
     oneOf("ck_watch_mail_verdict", t.verdict, VERDICTS),
+    oneOf("ck_watch_mail_reader", t.reader, READERS),
   ],
 );
 
@@ -109,7 +121,7 @@ export const mailRecords = watch
       case when m.done_at is not null then 'done'
         when m.verdict is null or m.verdict = 'show' then 'needs_you'
         when m.verdict = 'hold' then 'held' else 'dropped' end queue,
-      m.at, 'https://mail.google.com/mail/u/' || m.mailbox || '/#all/' || m.thread_id open,
+      m.at, coalesce(m.link, 'https://mail.google.com/mail/u/' || m.mailbox || '/#all/' || m.thread_id) open,
       h.n::int held,
       case when h.n > 0 then '/inbox/mail?view=held&fromAddress=~' || m.from_address end others
     from watch.mail m

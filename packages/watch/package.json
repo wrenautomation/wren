@@ -9,7 +9,9 @@
     "./console-routes": "./src/console-routes.ts",
     "./schema": "./src/schema.ts",
     "./records": "./src/records.ts",
-    "./restate": "./src/restate.ts"
+    "./restate": "./src/restate.ts",
+    "./clients": "./src/clients.ts",
+    "./triage": "./src/triage.ts"
   },
   "scripts": {
     "test:integration": "vitest run test/integration",

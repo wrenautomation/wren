@@ -108,11 +108,15 @@ export async function clientDatabases(main: Db): Promise<string[]> {
  * - Inside: read and write every table, draw from every sequence (never reset
  *   one), in `public` and in the schemas a client's parts keep (`CLIENT_SCHEMAS`);
  *   the audit tables are read-only and their sequences closed; the migrations
- *   table is readable (`wren db check`). Wren's own schemas (auth, books, watch)
- *   stay closed.
+ *   table is readable (`wren db check`). Wren's own schemas (auth, books) stay
+ *   closed.
  */
-/** Schemas past `public` a client's parts keep rows in: its booking calendar's. */
-export const CLIENT_SCHEMAS = ["calendar"] as const;
+/**
+ * Schemas past `public` a client's parts keep rows in: its booking calendar's, and `watch` for
+ * the mail its connected mailboxes bring in (designs/2026-10-07-mail-access.md). In a client's
+ * database `watch` holds only that client's mail and rules; William's is in main, out of reach.
+ */
+export const CLIENT_SCHEMAS = ["calendar", "watch"] as const;
 
 export async function grantClientAccess(admin: Db, mainUrl: string, database: string) {
   const role = checkedDatabase(database);

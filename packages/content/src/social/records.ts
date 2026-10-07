@@ -145,6 +145,31 @@ const textRows = (db: Queryable) =>
       order by i.at desc limit ${ACTIVITY_ROWS}`,
   );
 
+/**
+ * Mail a client's connected mailboxes brought in (designs/2026-10-07-mail-access.md), as triage
+ * left it. Only the `mail` reader's: William's own mail is the Inbox app's "Your mail".
+ */
+const mailRows = async (db: Queryable) => {
+  // Before a deploy grants the client's login the `watch` schema, there's none to read.
+  const [can] = await rowsOf(
+    db,
+    sql`select has_table_privilege(current_user, 'watch.mail', 'SELECT') ok`,
+  );
+  if (!can?.ok) return [];
+  return rowsOf(
+    db,
+    sql`select m.id, coalesce(nullif(m.from_name, ''), m.from_address) who, m.mailbox,
+        m.subject, coalesce(m.summary, m.subject) words, m.verdict, m.done_at, m.at, r.open
+      from watch.mail m join watch.mail_records r on r.id = m.id
+      where m.reader = 'mail'
+      order by m.at desc limit ${ACTIVITY_ROWS}`,
+  );
+};
+
+/** A client's email by its verdict: shown and not done waits on them. */
+const mailState = (m: Record<string, unknown>) =>
+  m.done_at ? "read" : m.verdict === "drop" ? "dropped" : m.verdict === "hold" ? "seen" : "waiting";
+
 /** Post drafts waiting on a yes, with the slot each holds. */
 const draftRows = (db: Queryable) =>
   rowsOf(
@@ -230,6 +255,7 @@ export const inboxRecord = defineRecord({
     const es = await emailRows(db);
     const xs = await textRows(db);
     const as = (await activityRecord.rows?.(db)) ?? [];
+    const ms = await mailRows(db);
     const kept = await threadStates(db);
     const now = new Date();
     // The team's state on each: who has it, open, waiting, closed or snoozed.
@@ -314,6 +340,23 @@ export const inboxRecord = defineRecord({
         due: x.at,
         url: null,
       })),
+      // Mail to the client's own mailboxes: opened in Gmail or Outlook, Done when dealt with.
+      ...ms.map((m) => ({
+        id: `mail:${m.id}`,
+        type: "mail",
+        who: m.who,
+        platform: null,
+        kind: "mail",
+        channel: null,
+        state: mailState(m),
+        body: m.words,
+        post_title: m.subject,
+        draft: null,
+        account: m.mailbox,
+        at: m.at,
+        due: m.at,
+        url: m.open,
+      })),
       ...as.map((a) => ({
         id: `activity:${a.id}`,
         type: "activity",
@@ -354,6 +397,7 @@ export const inboxRecord = defineRecord({
         comment: neutral("Comment"),
         dm: neutral("DM"),
         email: neutral("Email"),
+        mail: neutral("Mail"),
         text: neutral("Text"),
         activity: neutral("Activity"),
       }),
@@ -367,6 +411,7 @@ export const inboxRecord = defineRecord({
         username_mention: neutral("Mention"),
         dm: neutral("DM"),
         email: neutral("Email reply"),
+        mail: neutral("To your mailbox"),
         text: neutral("Text"),
         ...KIND_LABELS,
       }),
@@ -419,6 +464,7 @@ export const inboxRecord = defineRecord({
     { id: "comments", label: "Comments", where: { type: "comment" }, sort: "-at", at: "at" },
     { id: "dms", label: "DMs", where: { type: "dm" }, sort: "-at", at: "at" },
     { id: "email", label: "Email", where: { type: "email" }, sort: "-at", at: "at" },
+    { id: "mail", label: "Mail", where: { type: "mail" }, sort: "-at", at: "at" },
     { id: "texts", label: "Texts", where: { type: "text" }, sort: "-at", at: "at" },
     { id: "activity", label: "Activity", where: { type: "activity" }, sort: "-at", at: "at" },
     { id: "all", label: "All", sort: "-at", at: "at" },
@@ -434,6 +480,7 @@ export const inboxRecord = defineRecord({
     "marketing.markRead",
     "email.approve",
     "email.drop",
+    "mail.done",
     "marketing.activitySeen",
     "marketing.activityAllSeen",
     "marketing.draftSet",
@@ -467,7 +514,7 @@ export const inboxRecord = defineRecord({
     if (type === "text")
       return { ...((await textThreadRecord.load?.(db, rest)) ?? {}), conversation };
     // An email's words and our drafted answer are the row's own.
-    if (["activity", "email", "reply"].includes(type)) return { conversation };
+    if (["activity", "email", "reply", "mail"].includes(type)) return { conversation };
     const ask = {
       ask: await draftTurns(db, type, rest),
       record: await recordOfPage(db, type, rest),

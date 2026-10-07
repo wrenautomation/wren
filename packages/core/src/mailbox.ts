@@ -18,6 +18,8 @@ export interface MailMeta {
   /** Gmail's preview of the body, entities decoded. */
   snippet: string;
   at: Date;
+  /** Where a person opens it, when the provider names it (Outlook's `webLink`); else Gmail's. */
+  link?: string | null;
 }
 
 export interface Mailbox {

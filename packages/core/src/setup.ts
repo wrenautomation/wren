@@ -27,8 +27,20 @@ import {
 import { type SpineEvent, type Step, waitMs } from "./spine.js";
 import { defineWorkflow, type Wire, type Workflow } from "./workflows.js";
 
-/** Sites an account in the registry can be on: the Shop's, plus a domain, an inbox, a number. */
-export const REGISTRY_SITES = [...ACCOUNT_SITES, "domain", "inbox", "number"] as const;
+/**
+ * Sites an account in the registry can be on: the Shop's, plus a domain, an inbox, a number, and
+ * mail access (designs/2026-10-07-mail-access.md): a Workspace or Microsoft 365 org by its domain,
+ * and one mailbox by its address.
+ */
+export const REGISTRY_SITES = [
+  ...ACCOUNT_SITES,
+  "domain",
+  "inbox",
+  "number",
+  "google_workspace",
+  "microsoft_365",
+  "mailbox",
+] as const;
 export type RegistrySite = (typeof REGISTRY_SITES)[number];
 
 /** A registry site as a person says it: the Shop's label, or the registry's own three. */
@@ -37,6 +49,9 @@ export function siteLabel(site: string): string {
     domain: "Sending domain",
     inbox: "Sending inbox",
     number: "Phone number",
+    google_workspace: "Google Workspace",
+    microsoft_365: "Microsoft 365",
+    mailbox: "Mailbox",
     // The Shop's "Phone number" is the texting setup as a whole; here it's the Telnyx account.
     telnyx: "Telnyx account",
   };

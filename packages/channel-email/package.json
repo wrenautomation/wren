@@ -18,7 +18,8 @@
     "./send": "./src/send/index.ts",
     "./send/*": "./src/send/*.ts",
     "./inbox": "./src/inbox/index.ts",
-    "./spam": "./src/spam/index.ts"
+    "./spam": "./src/spam/index.ts",
+    "./access/*": "./src/access/*.ts"
   },
   "scripts": {
     "test:integration": "vitest run test/integration",
