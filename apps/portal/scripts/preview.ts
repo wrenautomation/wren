@@ -57,6 +57,12 @@ import { googleDrive } from "@wren/notes/drive";
 import { NOTES_RECORDS } from "@wren/notes/records";
 import { LIVE_PREFIX, Room, RoomRefusal, type SyncAnswer } from "@wren/notes/room";
 import { DEMO_NAME, PORTAL_ROUTES, portalApi } from "@wren/reactivation/restate";
+import { sitesApi } from "@wren/sites/console";
+import { SITES_CONSOLE_APPS, SITES_CONSOLE_ROUTES } from "@wren/sites/console-routes";
+import { FORM_PATH, KIT_JS, KIT_PATH, TRACK_PATH } from "@wren/sites/kit";
+import { SITES_RECORDS } from "@wren/sites/records";
+import { PAGE_CSP } from "@wren/sites/render";
+import { sitesPublicApi } from "@wren/sites/service";
 import { dictationApi } from "@wren/voice/console";
 import { VOICE_CONSOLE_APPS, VOICE_CONSOLE_ROUTES } from "@wren/voice/console-routes";
 import { VOICE_RECORDS } from "@wren/voice/records";
@@ -161,6 +167,7 @@ const SERVICES: Record<
         // Learn, with the SOP library read from the local folders.
         ...LEARN_RECORDS,
         sopRecordFor(resolve(rootDir, settings.sopsDir)),
+        ...SITES_RECORDS,
       ],
     }),
   },
@@ -230,6 +237,12 @@ const SERVICES: Record<
     routes: Object.keys(LEARN_CONSOLE_ROUTES),
     guard: { needs: LEARN_CONSOLE_ROUTES, apps: LEARN_CONSOLE_APPS, unnamed: "wren" },
     api: learnConsoleApi(main),
+  },
+  // Sites, in Wren's own database. No model here: a new page takes the offer's own words.
+  sites: {
+    routes: Object.keys(SITES_CONSOLE_ROUTES),
+    guard: { needs: SITES_CONSOLE_ROUTES, apps: SITES_CONSOLE_APPS, unnamed: "wren" },
+    api: sitesApi({ db: main, write: null }),
   },
   // Dictation's timings only; a test call's save is Restate's.
   voice: {
@@ -371,6 +384,44 @@ const server = createServer(async (req, res) => {
       console.error(err);
       return out(502, { error: "Booking is down for a moment. Try again soon." });
     }
+  }
+  // Sites' public paths, as the Worker serves them (src/sites.ts): Wren's pages at /o/<slug>, a
+  // draft behind its token, the kit, the tracker, the form. A form enters no door here.
+  if (path.startsWith("/o/")) {
+    const pub = sitesPublicApi(main);
+    if (path === KIT_PATH)
+      return res.writeHead(200, { "content-type": "text/javascript" }).end(KIT_JS);
+    if ((path === TRACK_PATH || path === FORM_PATH) && req.method === "POST") {
+      let raw = "";
+      for await (const chunk of req) raw += chunk;
+      const body = (() => {
+        try {
+          return JSON.parse(raw) as Record<string, unknown>;
+        } catch {
+          return {};
+        }
+      })();
+      if (path === TRACK_PATH) {
+        await pub.track(body);
+        return res.writeHead(204).end();
+      }
+      const out = await pub.form({ ...body, host: "localhost" }, async () => ({
+        status: 503,
+        error: "the preview runs no spine",
+      }));
+      return res
+        .writeHead(out.status, { "content-type": "application/json" })
+        .end(JSON.stringify(out.status < 300 ? { ok: true } : { error: out.error }));
+    }
+    const u = new URL(req.url ?? "/", "http://x");
+    const pv = /^\/o\/__preview\/([0-9a-f-]{36})$/.exec(path);
+    const slug = /^\/o\/([a-z0-9-]{1,80})\/?$/.exec(path);
+    const got = pv
+      ? await pub.serve({ preview: { id: pv[1] ?? "", token: u.searchParams.get("t") ?? "" } })
+      : await pub.serve({ client: null, slug: slug?.[1] ?? "" });
+    return res
+      .writeHead(got.status, { "content-type": "text/html", "content-security-policy": PAGE_CSP })
+      .end(got.html);
   }
   if (BOOK_PAGE.test(path)) {
     res.writeHead(200, { "content-type": "text/html" });

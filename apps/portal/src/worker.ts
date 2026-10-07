@@ -13,6 +13,7 @@
  *   demo. The service's guard decides who may call each route.
  * - a client's own host (APP_HOST set, ./hosts.ts): the app for that one client, signed in
  *   through `/__auth/*`; the Worker pins the client, never the browser.
+ * - `/o/*`: Sites' pages, preview, tracker and forms (./sites.ts), public.
  * - a client's booking page (./book.ts): `/book` on its host, `/c/<client>/book` on the app
  *   host, public, with its own API at `__book/<handler>`.
  * - everything else: the built app in dist/.
@@ -31,6 +32,7 @@ import type { Env } from "./env.js";
 import { authRoute, type Site, siteOf, unknownHost } from "./hosts.js";
 import { liveRoute, NoteRoom } from "./live.js";
 import { SERVICES } from "./services.js";
+import { sitesRoute } from "./sites.js";
 
 /** The live note rooms' Durable Object (./live.ts): wrangler finds it on the main module. */
 export { NoteRoom };
@@ -151,6 +153,11 @@ export default {
   async fetch(req: Request, env: Env, ctx?: ExecutionContext): Promise<Response> {
     const { pathname } = new URL(req.url);
     const site = await siteOf(req, env, ctx);
+    // Sites' pages, tracker and forms: on the apex, a client's host, or the app host (./sites.ts).
+    if (pathname.startsWith("/o/")) {
+      const page = await sitesRoute(req, env, site, ctx);
+      if (page) return page;
+    }
     // Our other hosts on the zone (`*/*` routes every host here): straight to their origin.
     if (site.kind === "ours") return fetch(req);
     if (site.kind === "unknown") return unknownHost();

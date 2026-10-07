@@ -63,7 +63,8 @@ export const pageRecord: RecordType = defineRecord({
   subtitle: "url",
   fields: {
     title: text("Page"),
-    url: link("URL"),
+    address: text("Address"),
+    url: link("URL", { listed: false }),
     kind: status(KINDS, "Kind"),
     source: status(
       {

@@ -59,6 +59,11 @@ import {
 } from "@wren/notes/console-routes";
 import { PORTAL_APPS, PORTAL_ROUTES, PORTAL_WRITES } from "@wren/reactivation/portal-routes";
 import {
+  SITES_CONSOLE_APPS,
+  SITES_CONSOLE_ROUTES,
+  SITES_CONSOLE_WRITES,
+} from "@wren/sites/console-routes";
+import {
   VOICE_CONSOLE_APPS,
   VOICE_CONSOLE_ROUTES,
   VOICE_CONSOLE_WRITES,
@@ -149,6 +154,8 @@ export const SERVICES: Readonly<Record<string, Service>> = {
     NOTES_CONSOLE_WRITES,
     5_600_000,
   ),
+  // Sites: every page we run; new pages from an offer, copy, publish via To approve, retire.
+  sites: service("SitesConsole", SITES_CONSOLE_ROUTES, SITES_CONSOLE_APPS, SITES_CONSOLE_WRITES),
   // A client's accounts with their setups, and its vendors: modes, room, the month's usage.
   accounts: service(
     "AccountsConsole",

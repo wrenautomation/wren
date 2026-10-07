@@ -541,6 +541,24 @@ const WORKFLOW_ACTIONS: Action[] = [
     done: said("Declined. It stays installed as a draft."),
   },
 ];
+/** A page's copy asked to go live (Sites): a yes puts that version at its URL. */
+const PAGE_ACTIONS: Action[] = [
+  {
+    id: "sites.approve",
+    label: "Approve",
+    handler: "sites/approve",
+    confirm: "Make this version live? Its URL shows it within a minute.",
+    key: "a",
+    done: said("Live. Its URL shows it within a minute."),
+  },
+  {
+    id: "sites.decline",
+    label: "Decline",
+    handler: "sites/decline",
+    key: "x",
+    done: said("Declined. The version stays in its history."),
+  },
+];
 /** To approve: what we'd send, each with its own page's yes and edit. */
 const APPROVAL_ACTIONS: Action[] = [
   // A post's words are the row's body here.
@@ -551,6 +569,7 @@ const APPROVAL_ACTIONS: Action[] = [
   only("video", VIDEO_APPROVE, WAITS),
   ...TEMPLATE_ACTIONS.map((a) => only("template", a, WAITS)),
   ...WORKFLOW_ACTIONS.map((a) => only("workflow", a, WAITS)),
+  ...PAGE_ACTIONS.map((a) => only("page", a, WAITS)),
   ...THREAD_ACTIONS.filter(own).map((a) => only("thread", a, WAITS)),
   ...INVITE_ACTIONS.filter((a) => own(a) && a.id !== "marketing.inviteWithdraw").map((a) =>
     only("invite", a, a.id === "marketing.inviteMessage" ? { state: ["waiting", "read"] } : WAITS),

@@ -1,0 +1,180 @@
+/**
+ * Sites' public paths (designs/2026-10-07-sites.md, "Serving"), no sign-in:
+ *
+ * - `/o/<slug>`: a live data page, Wren's on the apex, a client's on its own host. Rendered by the
+ *   `Sites` service and cached here for a minute, so a new page needs no deploy.
+ * - `/o/__preview/<id>?t=<token>`: a draft, on the app host only, for the portal's preview frame.
+ * - `/o/__kit.js`, `/o/__t`, `/o/__form`: the tracker and the form, for data pages and for code
+ *   pages on any host (CORS open: they carry no cookie and change nothing but counts and a lead).
+ *
+ * Bodies come as text/plain JSON (no preflight) or, for a form without JS, urlencoded.
+ */
+import { readBody } from "@wren/core/http";
+import { FORM_PATH, KIT_JS, KIT_PATH, PREVIEW_PATH, TRACK_PATH } from "@wren/sites/kit";
+import { goneHtml, PAGE_CSP } from "@wren/sites/render";
+import type { Env } from "./env.js";
+import type { Site } from "./hosts.js";
+
+const MAX_BODY = 8 * 1024;
+const PAGE_CACHE_SECONDS = 60;
+const SLUG = /^\/o\/([a-z0-9](?:[a-z0-9-]{0,78}[a-z0-9])?)\/?$/;
+const PREVIEW = /^\/o\/__preview\/([0-9a-f-]{36})$/;
+const OPEN = {
+  "access-control-allow-origin": "*",
+  "access-control-allow-methods": "GET, POST, OPTIONS",
+  "access-control-allow-headers": "content-type",
+  "access-control-max-age": "86400",
+};
+
+const ingress = (env: Env, path: string, body: unknown) =>
+  fetch(`${env.RESTATE_INGRESS_URL.replace(/\/+$/, "")}/${path}`, {
+    method: "POST",
+    headers: {
+      "content-type": "application/json",
+      ...(env.RESTATE_AUTH_TOKEN ? { authorization: `Bearer ${env.RESTATE_AUTH_TOKEN}` } : {}),
+    },
+    body: JSON.stringify(body),
+  });
+
+const html = (body: string, status: number, cache: string, extra: Record<string, string> = {}) =>
+  new Response(body, {
+    status,
+    headers: {
+      "content-type": "text/html; charset=utf-8",
+      "content-security-policy": PAGE_CSP,
+      "x-content-type-options": "nosniff",
+      "referrer-policy": "strict-origin-when-cross-origin",
+      "cache-control": cache,
+      ...extra,
+    },
+  });
+
+const answer = (body: unknown, status: number) =>
+  new Response(JSON.stringify(body), {
+    status,
+    headers: { "content-type": "application/json", "cache-control": "no-store", ...OPEN },
+  });
+
+/** Whose pages this host serves: Wren's on the apex, a client's on its host; else none. */
+function ownerOf(req: Request, env: Env, site: Site): { client: string | null } | null {
+  if (site.kind === "client") return { client: site.client };
+  const host = new URL(req.url).hostname.toLowerCase();
+  if (site.kind === "ours") {
+    const app = env.APP_HOST ?? "";
+    return host === app.slice(app.indexOf(".") + 1) ? { client: null } : null;
+  }
+  // Local dev has no APP_HOST: the app host stands in for the apex.
+  if (site.kind === "app" && !env.APP_HOST) return { client: null };
+  return null;
+}
+
+async function served(env: Env, body: unknown): Promise<{ status: number; html: string }> {
+  try {
+    const res = await ingress(env, "Sites/serve", body);
+    if (res.ok) return (await res.json()) as { status: number; html: string };
+  } catch {}
+  return { status: 503, html: goneHtml(404) };
+}
+
+/** A form without JS: urlencoded fields, the page named in a hidden field. */
+function formOf(raw: string, type: string): Record<string, unknown> | null {
+  if (type.startsWith("application/x-www-form-urlencoded")) {
+    const fields = Object.fromEntries(new URLSearchParams(raw));
+    return { page: fields.page, fields, plain: true };
+  }
+  try {
+    const v = JSON.parse(raw) as unknown;
+    return v && typeof v === "object" && !Array.isArray(v) ? (v as Record<string, unknown>) : null;
+  } catch {
+    return null;
+  }
+}
+
+const THANKS = `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Thanks</title><style>body{font:18px/1.5 system-ui,sans-serif;max-width:560px;margin:15vh auto;padding:0 16px}</style></head><body><h1>Thanks. We got it.</h1><p>We'll be in touch soon.</p></body></html>`;
+
+/** The answer for a Sites path, or null when the path isn't one. */
+export async function sitesRoute(
+  req: Request,
+  env: Env,
+  site: Site,
+  ctx?: ExecutionContext,
+): Promise<Response | null> {
+  const url = new URL(req.url);
+  const path = url.pathname;
+  if (!path.startsWith("/o/")) return null;
+  const owner = ownerOf(req, env, site);
+  const tools = path === KIT_PATH || path === TRACK_PATH || path === FORM_PATH;
+  // Where we serve nothing: the tools on any of our hosts; pages where an owner is known.
+  if (!owner && !tools && !(site.kind === "app" && PREVIEW.test(path))) return null;
+  if (req.method === "OPTIONS" && tools) return new Response(null, { status: 204, headers: OPEN });
+
+  if (path === KIT_PATH)
+    return new Response(KIT_JS, {
+      headers: {
+        "content-type": "text/javascript; charset=utf-8",
+        "cache-control": "public, max-age=3600",
+        "x-content-type-options": "nosniff",
+        ...OPEN,
+      },
+    });
+
+  if (path === TRACK_PATH || path === FORM_PATH) {
+    if (req.method !== "POST") return answer({ error: "POST only" }, 405);
+    const raw = await readBody(req, MAX_BODY);
+    if (raw === null) return answer({ error: "too large" }, 413);
+    const body = formOf(raw, req.headers.get("content-type") ?? "");
+    if (!body) return answer({ error: "not json" }, 400);
+    if (path === TRACK_PATH) {
+      // Counted after the answer: a visitor never waits on a view.
+      const sent = ingress(env, "Sites/track", body).catch(() => null);
+      if (ctx) ctx.waitUntil(sent);
+      else await sent;
+      return new Response(null, { status: 204, headers: OPEN });
+    }
+    let res: Response;
+    try {
+      res = await ingress(env, "Sites/form", { ...body, host: url.hostname, plain: undefined });
+    } catch {
+      return answer({ error: "That didn't send. Try again." }, 502);
+    }
+    const out = (await res.json().catch(() => ({}))) as { status?: number; error?: string };
+    const status = res.ok ? (out.status ?? 202) : 502;
+    if (body.plain)
+      return html(status < 300 ? THANKS : goneHtml(404), status < 300 ? 200 : status, "no-store");
+    return answer(
+      status < 300 ? { ok: true } : { error: out.error ?? "That didn't send. Try again." },
+      status,
+    );
+  }
+
+  if (req.method !== "GET" && req.method !== "HEAD") return null;
+  const preview = PREVIEW.exec(path);
+  if (preview) {
+    const got = await served(env, {
+      preview: { id: preview[1], token: url.searchParams.get("t") ?? "" },
+    });
+    return html(got.html, got.status, "no-store", {
+      "x-robots-tag": "noindex",
+      // Only the portal frames a preview.
+      "content-security-policy": PAGE_CSP,
+    });
+  }
+  const slug = SLUG.exec(path);
+  if (!slug || !owner) return null;
+  const cache = (globalThis as { caches?: { default?: Cache } }).caches?.default;
+  const key = new Request(`${url.origin}/o/${slug[1]}`);
+  const hit = await cache?.match(key);
+  if (hit) return hit;
+  const got = await served(env, { client: owner.client, slug: slug[1] });
+  const out = html(
+    got.html,
+    got.status,
+    got.status === 200 ? `public, max-age=${PAGE_CACHE_SECONDS}` : "no-store",
+  );
+  if (cache && got.status === 200) {
+    const put = cache.put(key, out.clone());
+    if (ctx) ctx.waitUntil(put);
+    else await put;
+  }
+  return out;
+}

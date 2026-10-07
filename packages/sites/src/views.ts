@@ -55,6 +55,8 @@ export const sitePageRecords = pgView("site_page_records", {
   changed: timestamp("changed", { withTimezone: true }),
   changedBy: text("changed_by"),
   currency: text("currency"),
+  /** The URL as people read it in a list: host and path, no scheme. */
+  address: text("address"),
 }).as(sql`
   with ev as (
     select page, count(*) filter (where name = 'view')::int views,
@@ -63,6 +65,7 @@ export const sitePageRecords = pgView("site_page_records", {
       count(*) filter (where name = 'book')::int books
     from site_events group by page),
   ads as (${ADS})
+  select u.*, regexp_replace(u.url, '^https?://(www[.])?', '') address from (
   select p.id::text id, p.title::text, ${DATA_URL} url, p.kind::text, p.source::text,
     coalesce(p.client, 'wren')::text owner, p.status::text, p.waiting_version waiting,
     p.offer::text, p.angle::text, p.audience::text, p.stage::text, p.template::text,
@@ -92,7 +95,7 @@ export const sitePageRecords = pgView("site_page_records", {
     'booking', 'derived', d.client_id, case when d.status = 'active' then 'live' else 'draft' end,
     null, null, null, null, 'convert', null, null, null, null, null, null, null, null, null, null,
     null, d.checked_at, d.added_by, null
-  from client_domains d`);
+  from client_domains d) u`);
 
 export const siteFunnelRecords = pgView("site_funnel_records", {
   id: text("id"),

@@ -29,7 +29,11 @@ export const SITES_COMPONENTS = [
           says: "Templates: a lander and a listicle.",
           built: "code, one file per template",
         },
-        { is: "change", says: "Copy per offer and angle, drafted by Claude against the facts." },
+        {
+          is: "change",
+          says: "Copy per offer and angle, drafted by Claude against the facts.",
+          built: null,
+        },
         { is: "fixed", says: "Nothing goes live without a person's yes." },
       ],
     },
