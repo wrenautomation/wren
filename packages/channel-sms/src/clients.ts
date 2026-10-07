@@ -17,6 +17,8 @@ export const textsSettingsSchema = z
     senderName: z.string().trim().min(1).nullable().default(null),
     /** The client's 10DLC campaign its US numbers attach to; null = none to watch. */
     campaignId: z.string().trim().min(1).nullable().default(null),
+    /** Where its leads book, quoted as `{booking_link}` (speed to lead); null = none set. */
+    bookingLink: z.url().nullable().default(null),
   })
   .strict();
 
@@ -33,6 +35,7 @@ export type ClientSms =
       profile: string;
       senderName: string | null;
       campaignId: string | null;
+      bookingLink: string | null;
       /** The autobrowse cal.com login reminders read; null = no reminders. */
       calcom: string | null;
     };
@@ -53,6 +56,7 @@ export async function clientSms(main: Db, id: string): Promise<ClientSms> {
     profile,
     senderName: texts.data.senderName,
     campaignId: texts.data.campaignId,
+    bookingLink: texts.data.bookingLink,
     calcom:
       products[REMINDERS] !== undefined && client.accounts.calcom ? client.accounts.calcom : null,
   };

@@ -337,6 +337,19 @@ export const settingsSchema = z.object({
     .default("1,2,3,4,5")
     .transform((s) => s.split(",").map((x) => Number(x.trim())))
     .pipe(z.array(z.number().int().min(1).max(7)).min(1)),
+  /** A form lead's window (they asked to hear from us), lead-local; still clamped to 08:00-20:00. */
+  smsFormWindow: z
+    .string()
+    .regex(/^\d{1,2}:\d{2}-\d{1,2}:\d{2}$/)
+    .default("08:00-21:00"),
+  /** ISO weekdays a form lead's texts may land on. */
+  smsFormDays: z
+    .string()
+    .default("1,2,3,4,5,6,7")
+    .transform((s) => s.split(",").map((x) => Number(x.trim())))
+    .pipe(z.array(z.number().int().min(1).max(7)).min(1)),
+  /** The booking link Wren's texts quote as `{booking_link}`; a client's is its texts setting. */
+  smsBookingLink: z.string().url().optional(),
   /** Least seconds between two texts from one number. */
   smsGapSeconds: z.coerce.number().int().positive().default(20),
   /** Who a text says it is from: `{sender}` in the copy. */
@@ -579,6 +592,9 @@ export const ENV_KEYS = {
   smsWindow: "WREN_SMS_WINDOW",
   smsDays: "WREN_SMS_DAYS",
   smsGapSeconds: "WREN_SMS_GAP_SECONDS",
+  smsFormWindow: "WREN_SMS_FORM_WINDOW",
+  smsFormDays: "WREN_SMS_FORM_DAYS",
+  smsBookingLink: "WREN_SMS_BOOKING_LINK",
   smsSenderName: "WREN_SMS_SENDER_NAME",
   calcomApiKey: "WREN_CALCOM_API_KEY",
   smsPushPublicKey: "WREN_SMS_PUSH_PUBLIC_KEY",

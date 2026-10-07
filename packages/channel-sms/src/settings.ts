@@ -8,7 +8,13 @@ import { TelnyxProvider } from "./telnyx.js";
 
 export function policyFrom(s: Settings): SmsPolicy {
   const [start, end] = s.smsWindow.split("-") as [string, string];
+  const [askedStart, askedEnd] = s.smsFormWindow.split("-") as [string, string];
   return {
+    asked: {
+      windowStartMinute: parseClock(askedStart),
+      windowEndMinute: parseClock(askedEnd),
+      days: s.smsFormDays,
+    },
     windowStartMinute: parseClock(start),
     windowEndMinute: parseClock(end),
     days: s.smsDays,

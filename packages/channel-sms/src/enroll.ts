@@ -8,15 +8,16 @@
  * `new`; one thread per company), a lead another channel holds or a firm another channel touched
  * today (left `new`, the reason in `state_reason`; `@wren/core/leads`). Nothing here sends. A sequence with any
  * step still empty (template-store.ts) enrolls no one. A form applicant is
- * enrolled only by name, by the form follow-up (form.ts), never by a cold run.
+ * enrolled only by name, by the form follow-up (form.ts) or speed to lead (speed.ts), never by
+ * a cold run.
  */
 import { activeSuppressionsOf } from "@wren/core";
 import { leadRefusal } from "@wren/core/leads";
 import type { Template } from "@wren/core/slots";
 import { atomic, type Db } from "@wren/db";
-import { and, asc, eq, inArray, isNull, ne, notInArray, or, sql } from "drizzle-orm";
+import { and, asc, eq, inArray, isNull, notInArray, or, sql } from "drizzle-orm";
 import { countryOf } from "./phone.js";
-import type { SmsPolicy } from "./policy.js";
+import { ASKED, type SmsPolicy } from "./policy.js";
 import { pickNumber } from "./pool.js";
 import type { SmsProvider } from "./provider.js";
 import { SmsRefusal } from "./refusal.js";
@@ -34,8 +35,10 @@ export interface EnrollOptions {
   senderName: string;
   niche?: string | null;
   heldNiches: readonly string[];
-  /** Only these contacts (the form follow-up). Unset = any cold `new` contact. */
+  /** Only these contacts (the form follow-up, speed to lead). Unset = any cold `new` contact. */
   contactIds?: readonly number[];
+  /** `{booking_link}` in the copy; null = none set. */
+  bookingLink?: string | null;
   limit: number;
   now: Date;
   runId?: string | null;
@@ -101,7 +104,7 @@ export async function enroll(db: Db, opts: EnrollOptions): Promise<EnrollStats> 
   const where = [eq(smsContacts.state, "new"), inArray(smsContacts.basis, [...opts.policy.bases])];
   if (opts.niche) where.push(eq(smsContacts.niche, opts.niche));
   if (opts.contactIds) where.push(inArray(smsContacts.id, [...opts.contactIds]));
-  else where.push(ne(smsContacts.sourceKind, "form"));
+  else where.push(notInArray(smsContacts.sourceKind, [...ASKED]));
   if (opts.heldNiches.length > 0) {
     where.push(
       or(isNull(smsContacts.niche), notInArray(smsContacts.niche, [...opts.heldNiches])) as never,
@@ -133,7 +136,7 @@ export async function enroll(db: Db, opts: EnrollOptions): Promise<EnrollStats> 
       continue;
     }
     // An applicant who just filled the form is answered now, whatever else runs at the firm.
-    const busy = c.sourceKind === "form" ? null : await leadRefusal(db, c, "text", opts.now);
+    const busy = ASKED.has(c.sourceKind) ? null : await leadRefusal(db, c, "text", opts.now);
     if (busy) {
       await db.update(smsContacts).set({ stateReason: busy }).where(eq(smsContacts.id, c.id));
       stats.leadBusy += 1;
@@ -173,7 +176,11 @@ export async function enroll(db: Db, opts: EnrollOptions): Promise<EnrollStats> 
       stats.notTextable += 1;
       continue;
     }
-    const text = render(opener, await fieldsFor(db, c, opts.senderName), textSeed(c.id));
+    const text = render(
+      opener,
+      await fieldsFor(db, c, opts.senderName, opts.bookingLink ?? null),
+      textSeed(c.id),
+    );
     try {
       await atomic(db, async (tx) => {
         await tx

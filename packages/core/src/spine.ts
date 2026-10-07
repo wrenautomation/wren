@@ -12,6 +12,7 @@ import type { Db } from "@wren/db";
 import { pgSafe } from "@wren/db/columns";
 import { desc, eq, isNull, sql } from "drizzle-orm";
 import type { Component, EventKind } from "./components.js";
+import { type FieldMap, leadOf } from "./door.js";
 import { dig, holdOf, logicOf, logicSteps } from "./logic.js";
 import { hooks, type SentEvent, workflowSaves } from "./schema.js";
 import { flowsWith, type Workflow, type WorkflowEdits, type WorkflowNode } from "./workflows.js";
@@ -377,7 +378,14 @@ const hashOf = (token: string) => createHash("sha256").update(token).digest("hex
 /** A new hook; its token is returned once and kept only as a hash. */
 export async function addHook(
   main: Db,
-  h: { name: string; client: string | null; workflow: string; input: string; subject: string },
+  h: {
+    name: string;
+    client: string | null;
+    workflow: string;
+    input: string;
+    subject: string;
+    fields?: FieldMap;
+  },
 ): Promise<string> {
   const token = randomBytes(32).toString("base64url");
   await main.insert(hooks).values({ ...h, tokenHash: hashOf(token) });
@@ -543,12 +551,15 @@ export function makeSpine(d: SpineDeps) {
               workflow: hooks.workflow,
               input: hooks.input,
               subject: hooks.subject,
+              fields: hooks.fields,
             });
           return row ?? null;
         });
         if (!h) return { status: 404, error: "no such hook" };
         const got = hookEvent(h, await flowsFor(ctx, h.client), req.payload);
         if ("error" in got) return got;
+        // The lead's facts by this hook's field map, for every lead step after (./door.ts).
+        got.event.data = { ...got.event.data, lead: leadOf(req.payload, h.fields) };
         ctx.serviceSendClient<SpineService>(SPINE).emit({
           client: h.client,
           workflow: h.workflow,

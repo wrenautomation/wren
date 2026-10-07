@@ -17,6 +17,7 @@ const fields: RenderFields = {
   company: "Acme Studio",
   sender: "William",
   time: null,
+  booking_link: null,
 };
 
 const text = (body: string, f = fields) => render(parseBody("t", body), f, "sms:1").body;

@@ -20,6 +20,7 @@ export * from "./registration.js";
 export * from "./reminders.js";
 export * from "./schema.js";
 export * from "./settings.js";
+export * from "./speed.js";
 export * from "./stats.js";
 export * from "./telnyx.js";
 export * from "./template-store.js";

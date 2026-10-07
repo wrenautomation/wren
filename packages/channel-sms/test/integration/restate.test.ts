@@ -82,7 +82,7 @@ beforeAll(async () => {
         clientDb: () => pg.db,
         workflows: [textCadence(SEQ)],
         components: SMS_COMPONENTS,
-        steps: { [TOUCH]: touchStep(() => pg.db, deps) },
+        steps: { [TOUCH]: touchStep(() => ({ ...deps, db: pg.db })) },
         rule: async () => false,
       }),
     ],

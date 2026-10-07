@@ -100,7 +100,10 @@ export const SMS_COMPONENTS = [
     requires: { components: ["sms.texts"] },
     effects: ["sends"],
     in: [{ id: "forms", label: "forms", kind: "form" }],
-    out: [{ id: "texted", label: "applicants texted", kind: "lead" }],
+    out: [
+      { id: "texted", label: "leads texted", kind: "lead" },
+      { id: "untexted", label: "not texted", kind: "lead" },
+    ],
     hypothesis: {
       from: "Wren's site applicants, 2026-10",
       guesses: [

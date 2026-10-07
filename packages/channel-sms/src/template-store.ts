@@ -68,6 +68,7 @@ export async function fieldsFor(
   db: Queryable,
   contact: Pick<SmsContact, "companyId" | "personId" | "name">,
   sender: string,
+  bookingLink: string | null = null,
 ): Promise<RenderFields> {
   const [company] = contact.companyId
     ? await db
@@ -83,6 +84,7 @@ export async function fieldsFor(
     company: company?.name ?? null,
     sender,
     time: null,
+    booking_link: bookingLink,
   };
 }
 

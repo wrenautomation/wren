@@ -9,7 +9,7 @@
  * strictest state rules), and weekends are off unless listed.
  */
 import { canonicalZone, wallClock } from "@wren/core/time";
-import type { ContactBasis } from "./schema.js";
+import type { ContactBasis, SourceKind } from "./schema.js";
 
 export const FLEET_ZONE = "America/New_York";
 const UNKNOWN_ZONE_CHECKS = ["America/New_York", "America/Los_Angeles"] as const;
@@ -38,6 +38,30 @@ export interface SmsPolicy {
   maxNumbers: number;
   /** Which contact bases the sender may text; must match the registered campaign. */
   bases: readonly ContactBasis[];
+  /** The window for someone who just asked to hear from us (a form); unset = ASKED_WINDOW. */
+  asked?: AskedWindow;
+}
+
+/** When a lead who filled a form may get a text: wider than cold, every day, still clamped. */
+export interface AskedWindow {
+  windowStartMinute: number;
+  windowEndMinute: number;
+  days: readonly number[];
+}
+
+/** 8:00 to 21:00 every day (designs/2026-10-07-speed-to-lead.md); the clamp still ends it at 20:00. */
+export const ASKED_WINDOW: AskedWindow = {
+  windowStartMinute: 8 * 60,
+  windowEndMinute: 21 * 60,
+  days: [1, 2, 3, 4, 5, 6, 7],
+};
+
+/** Contacts who asked to be texted: a lander form, a client's door. */
+export const ASKED: ReadonlySet<SourceKind> = new Set(["form", "hook"]);
+
+/** The policy a contact's texts are timed by: the asked window for those who asked. */
+export function policyFor(source: SourceKind, policy: SmsPolicy): SmsPolicy {
+  return ASKED.has(source) ? { ...policy, ...(policy.asked ?? ASKED_WINDOW) } : policy;
 }
 
 export const DEFAULT_POLICY: SmsPolicy = {

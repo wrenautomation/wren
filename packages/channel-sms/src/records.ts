@@ -171,6 +171,7 @@ export function textCopyRecord(sequences: Iterable<SmsSequence>, sender: string)
         fields: [
           ...v.fields.map((f) => `{${f}}`),
           ...(v.mustSayStop ? ["must say STOP"] : []),
+          ...(v.mustUse ?? []).map((f) => `must say {${f}}`),
           ...(v.minLength > 1 ? [`at least ${v.minLength} characters`] : []),
         ].join(", "),
         updated_at: v.updatedAt,

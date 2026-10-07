@@ -81,3 +81,5 @@ only Wren's team texts back.
 `WREN_SMS_MAX_FAIL_RATE` (0.15), `WREN_SMS_MAX_OPT_OUT_RATE` (0.03),
 `WREN_SMS_LOW_BALANCE_USD` (5), `WREN_SMS_HELD_NICHES` (sec_ria),
 `WREN_SMS_MONTHLY_PER_CONTACT` (4 in any 31 days, never more).
+Form leads (speed to lead): `WREN_SMS_FORM_WINDOW` (08:00-21:00, held to 20:00),
+`WREN_SMS_FORM_DAYS` (1-7), `WREN_SMS_BOOKING_LINK` (Wren's `{booking_link}`).

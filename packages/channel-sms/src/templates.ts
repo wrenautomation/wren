@@ -36,6 +36,8 @@ export interface SmsSequence {
   firstGoes?: string;
   /** The fields its texts may use. Unset = all of them. */
   fields?: readonly RenderField[];
+  /** Its first text must say `{sender}`: a lead who filled someone's form hears whose it was. */
+  namesSender?: boolean;
 }
 
 export interface RenderFields {
@@ -44,13 +46,21 @@ export interface RenderFields {
   sender: string;
   /** A reminder's call time on the person's own clock ("2:30 PM"); null in a sequence. */
   time: string | null;
+  /** Where they book: the client's texts setting, or `WREN_SMS_BOOKING_LINK`; null = none set. */
+  booking_link: string | null;
 }
 
 export type RenderField = keyof RenderFields;
 
 /** What a preview fills in, so a segment count is a real text's, not the braces'. */
 export function sampleFields(sender: string): RenderFields {
-  return { first_name: "Dana", company: "Northwind", sender, time: "2:30 PM" };
+  return {
+    first_name: "Dana",
+    company: "Northwind",
+    sender,
+    time: "2:30 PM",
+    booking_link: "https://cal.example.test/book",
+  };
 }
 
 /** One text William fills. The key is what `sms_messages.template` records. */
@@ -63,6 +73,8 @@ export interface TemplateSlot {
   fields: readonly RenderField[];
   /** Must contain the word STOP (the first text a stranger gets). */
   mustSayStop: boolean;
+  /** Fields it must quote (a speed-to-lead first text names the sender). */
+  mustUse?: readonly RenderField[];
   /** Fewest characters (Telnyx refuses a keyword reply under 20). */
   minLength: number;
 }
@@ -133,6 +145,7 @@ export function sequenceSlots(seq: SmsSequence): TemplateSlot[] {
         : `${s.afterDays} ${s.afterDays === 1 ? "day" : "days"} after the last one`,
     fields: seq.fields ?? SEQUENCE_FIELDS,
     mustSayStop: s.step === 1,
+    ...(s.step === 1 && seq.namesSender ? { mustUse: ["sender" as const] } : {}),
     minLength: 1,
   }));
 }

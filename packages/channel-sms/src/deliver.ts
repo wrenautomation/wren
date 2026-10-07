@@ -22,7 +22,7 @@ import { activeSuppressionOf, addSuppression, companies } from "@wren/core";
 import type { Db, Queryable } from "@wren/db";
 import { and, asc, desc, eq, gte, inArray, lt, lte, sql } from "drizzle-orm";
 import { countryOf } from "./phone.js";
-import { inWindow, type SmsPolicy } from "./policy.js";
+import { ASKED, inWindow, policyFor, type SmsPolicy } from "./policy.js";
 import { cannotReach, numberReady, poolToday } from "./pool.js";
 import type { SmsProvider } from "./provider.js";
 import { SmsRefusal } from "./refusal.js";
@@ -33,6 +33,7 @@ import {
   smsContacts,
   smsMessages,
   smsNumbers,
+  speedRuns,
 } from "./schema.js";
 import { fieldsFor, liveTexts } from "./template-store.js";
 import { render, type SmsSequence, segments, textSeed } from "./templates.js";
@@ -51,6 +52,8 @@ export interface TickOptions {
   live: boolean;
   sequences: ReadonlyMap<string, SmsSequence>;
   senderName: string;
+  /** `{booking_link}` in the copy; null = none set. */
+  bookingLink?: string | null;
   now: Date;
   runId?: string | null;
 }
@@ -134,6 +137,12 @@ async function stepped(
 ) {
   if (msg.kind !== "sequence" || msg.step === null || !contact.sequence) return;
   const step = msg.step;
+  // A door lead's first text left: its speed run's first touch, the metric (speed.ts).
+  if (step === 1 && contact.sourceKind === "hook")
+    await db
+      .update(speedRuns)
+      .set({ firstTouch: "sent", firstTouchAt: opts.now })
+      .where(and(eq(speedRuns.smsContactId, contact.id), eq(speedRuns.firstTouch, "queued")));
   stats.stepped.push({ contactId: contact.id, sequence: contact.sequence, step });
   if (opts.sequences.get(contact.sequence)?.steps.some((s) => s.step > step)) return;
   await db
@@ -237,7 +246,7 @@ export async function tick(db: Db, opts: TickOptions): Promise<TickStats> {
     .select({
       msg: smsMessages,
       contact: smsContacts,
-      zone: companies.timezone,
+      zone: sql<string | null>`coalesce(${smsContacts.zone}, ${companies.timezone})`,
       number: smsNumbers,
     })
     .from(smsMessages)
@@ -302,11 +311,11 @@ export async function tick(db: Db, opts: TickOptions): Promise<TickStats> {
       stats.unreachable += 1;
       continue;
     }
-    // Quiet hours hold for every cold step. An operator's reply to someone who
-    // texted us in the last day is a conversation, not a solicitation: it goes now.
+    // Quiet hours hold for every cold step; someone who asked has a wider window. An operator's
+    // reply to someone who texted us in the last day is a conversation, not a solicitation: it goes now.
     if (
       msg.kind !== "reminder" &&
-      !inWindow(zone, now, policy) &&
+      !inWindow(zone, now, policyFor(contact.sourceKind, policy)) &&
       !(msg.kind === "manual" && (await wroteRecently(db, contact.id, now)))
     ) {
       stats.outOfWindow += 1;
@@ -318,9 +327,11 @@ export async function tick(db: Db, opts: TickOptions): Promise<TickStats> {
       stats.capped += 1;
       continue;
     }
-    // A manual reply or a reminder answers the person, not cold volume: it does not wait on the ramp.
+    // A manual reply, a reminder, or a text someone asked for answers the person, not cold
+    // volume: it does not wait on the ramp.
+    const cold = msg.kind === "sequence" && !ASKED.has(contact.sourceKind);
     const n = msg.numberId ? ready.get(msg.numberId) : undefined;
-    if (msg.kind === "sequence" && (!n || remaining <= 0)) {
+    if (cold && (!n || remaining <= 0)) {
       stats.noCapacity += 1;
       continue;
     }
@@ -337,7 +348,7 @@ export async function tick(db: Db, opts: TickOptions): Promise<TickStats> {
       }
       const text = render(
         words,
-        await fieldsFor(db, contact, opts.senderName),
+        await fieldsFor(db, contact, opts.senderName, opts.bookingLink ?? null),
         textSeed(contact.id),
       );
       body = text.body;
@@ -354,7 +365,7 @@ export async function tick(db: Db, opts: TickOptions): Promise<TickStats> {
       .returning({ id: smsMessages.id });
     if (claimed.length === 0) continue;
     if (msg.numberId) ready.delete(msg.numberId);
-    if (msg.kind === "sequence") remaining -= 1;
+    if (cold) remaining -= 1;
     let result: Awaited<ReturnType<SmsProvider["send"]>>;
     try {
       result = await opts.provider.send({ from, to: contact.e164, text: body });

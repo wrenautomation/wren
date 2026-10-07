@@ -1,5 +1,5 @@
 /**
- * The SMS channel's tables. Five, each one fact:
+ * The SMS channel's tables, each one fact:
  *
  * - `sms_numbers`: the pool we send from (PH-D10). Fixed size, each paused on
  *   its own health, never replaced automatically.
@@ -12,6 +12,9 @@
  *   dedupe and the audit trail in one.
  * - `sms_templates`: William's words for each slot code declares
  *   (templates.ts). No row = empty = that text is never sent.
+ * - `speed_runs`: each lead through speed to lead (speed.ts): the door's facts,
+ *   when its first text left, the call step, a booking. The follow-up's state is
+ *   its contact's.
  *
  * Opt-outs are `suppressions` rows of kind `phone` (core), the same table every
  * channel reads.
@@ -22,6 +25,7 @@ import { baseColumns, oneOf } from "@wren/db/columns";
 import { documents } from "@wren/research/schema";
 import { sql } from "drizzle-orm";
 import {
+  boolean,
   check,
   date,
   doublePrecision,
@@ -80,8 +84,11 @@ export type ContactState = (typeof CONTACT_STATES)[number];
 export const CONTACT_BASES = ["published", "opt_in"] as const;
 export type ContactBasis = (typeof CONTACT_BASES)[number];
 
-/** How a contact was found: a `tel_link` or `page_text` number from a crawled page, a `manual` add, an `inbound` stranger, a lander `form`. */
-export const SOURCE_KINDS = ["tel_link", "page_text", "manual", "inbound", "form"] as const;
+/**
+ * How a contact was found: a `tel_link` or `page_text` number from a crawled page, a `manual` add,
+ * an `inbound` stranger, a lander `form`, a lead through a client's door (`hook`, speed to lead).
+ */
+export const SOURCE_KINDS = ["tel_link", "page_text", "manual", "inbound", "form", "hook"] as const;
 export type SourceKind = (typeof SOURCE_KINDS)[number];
 
 export const DIRECTIONS = ["out", "in"] as const;
@@ -170,11 +177,13 @@ export const smsContacts = pgTable(
     sourceDocumentId: integer("source_document_id"),
     sourceUrl: text("source_url"),
     sourceKind: varchar("source_kind", { length: 16, enum: SOURCE_KINDS }).notNull(),
-    /** The source's own id for it, when it has one (`form`: the lander's application id). */
+    /** The source's own id for it (`form`: the lander's application id; `hook`: the speed run's). */
     sourceRef: varchar("source_ref", { length: 64 }),
     /** What they called themselves, when no person row names them (a form applicant). */
     name: text("name"),
     email: text("email"),
+    /** Their own time zone, when the form said it; else the company's, else both US coasts. */
+    zone: varchar("zone", { length: 64 }),
     basis: varchar("basis", { length: 16, enum: CONTACT_BASES }).notNull(),
     basisDetail: text("basis_detail"),
     lineType: varchar("line_type", { length: 16, enum: LINE_TYPES }).notNull().default("unknown"),
@@ -435,3 +444,68 @@ export const marketingTextContactRecords = pgView("marketing_text_contact_record
     select disposition from sms_messages
     where contact_id = c.id and direction = 'in' and disposition is not null
     order by received_at desc limit 1) r on true`);
+
+/** How a speed-to-lead run's first text went (speed.ts). Only `sent` and `would_send` are a touch. */
+export const FIRST_TOUCHES = [
+  "queued",
+  "sent",
+  "would_send",
+  "no_consent",
+  "no_phone",
+  "refused",
+] as const;
+export type FirstTouch = (typeof FIRST_TOUCHES)[number];
+
+/** The call step: `alerted` = "Call now" for the rep; `dialed` = voice placed it; `skipped` = booked first. */
+export const SPEED_CALLS = ["alerted", "dialed", "skipped"] as const;
+export type SpeedCall = (typeof SPEED_CALLS)[number];
+
+/**
+ * One lead through speed to lead (designs/2026-10-07-speed-to-lead.md): what the door said, its
+ * first text and when it left, the call step, a booking. The follow-up's state is its text
+ * contact's. `first_touch_at - lead_at` is the metric. One row per lead per workflow.
+ */
+export const speedRuns = pgTable(
+  "speed_runs",
+  {
+    id: serial("id"),
+    workflow: varchar("workflow", { length: 64 }).notNull(),
+    subject: varchar("subject", { length: 200 }).notNull(),
+    /** When the lead came through the door. */
+    leadAt: timestamp("lead_at", { withTimezone: true }).notNull(),
+    name: text("name"),
+    /** As the form wrote it; `e164` once it reads as a US or Canadian number. */
+    phone: varchar("phone", { length: 64 }),
+    e164: varchar("e164", { length: 16 }),
+    email: text("email"),
+    source: text("source"),
+    consent: boolean("consent").notNull(),
+    consentDetail: text("consent_detail"),
+    zone: varchar("zone", { length: 64 }),
+    smsContactId: integer("sms_contact_id"),
+    firstTouch: varchar("first_touch", { length: 16, enum: FIRST_TOUCHES }).notNull(),
+    /** The text left, or "would send" was recorded with texts off. */
+    firstTouchAt: timestamp("first_touch_at", { withTimezone: true }),
+    firstTouchDetail: text("first_touch_detail"),
+    call: varchar("call", { length: 16, enum: SPEED_CALLS }),
+    callAt: timestamp("call_at", { withTimezone: true }),
+    callDetail: text("call_detail"),
+    /** A booking under their email was seen: the run ends (the follow-up stops, no Call now). */
+    bookedAt: timestamp("booked_at", { withTimezone: true }),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [
+    primaryKey({ columns: [t.id], name: "pk_speed_runs" }),
+    unique("uq_speed_runs_workflow_subject").on(t.workflow, t.subject),
+    index("ix_speed_runs_sms_contact_id").on(t.smsContactId),
+    index("ix_speed_runs_lead_at").on(t.leadAt),
+    foreignKey({
+      columns: [t.smsContactId],
+      foreignColumns: [smsContacts.id],
+      name: "fk_speed_runs_sms_contact_id_sms_contacts",
+    }).onDelete("set null"),
+    oneOf("ck_speed_runs_first_touch", t.firstTouch, FIRST_TOUCHES),
+    oneOf("ck_speed_runs_call", t.call, SPEED_CALLS),
+  ],
+);
+export type SpeedRun = typeof speedRuns.$inferSelect;

@@ -213,7 +213,12 @@ describe("offers", () => {
 
 describe("sms sequences", () => {
   it("recruiting firms and site applicants text; names are fleet-wide; code holds the shape, never the words", () => {
-    expect([...SMS_SEQUENCES.keys()]).toEqual(["form-fit", "form-not-fit", "recruiting-sms"]);
+    expect([...SMS_SEQUENCES.keys()]).toEqual([
+      "form-fit",
+      "form-not-fit",
+      "speed-to-lead",
+      "recruiting-sms",
+    ]);
     expect(secRia.smsSequences.size).toBe(0);
     expect(agencies.smsSequences.size).toBe(0);
     const seq = SMS_SEQUENCES.get("recruiting-sms");

@@ -109,6 +109,8 @@ export interface SmsDeps {
   campaignId: string | null;
   sequences: ReadonlyMap<string, SmsSequence>;
   senderName: string;
+  /** `{booking_link}` in the copy: the client's texts setting, or `WREN_SMS_BOOKING_LINK`. */
+  bookingLink?: string | null;
   heldNiches: readonly string[];
   /** The lander's export, read for form opt-ins. Null = no form follow-up. */
   site?: SiteSource | null;
@@ -199,6 +201,7 @@ export function makeSmsSender(wren: SmsDeps) {
           live: deps.live,
           sequences: deps.sequences,
           senderName: deps.senderName,
+          bookingLink: deps.bookingLink ?? null,
           now,
           runId,
         }),
@@ -759,6 +762,7 @@ export function makeSmsDesk(deps: SmsDeps) {
                     policy: d.policy,
                     provider: d.provider,
                     senderName: d.senderName,
+                    bookingLink: d.bookingLink ?? null,
                     niche: req.niche ?? null,
                     heldNiches: d.heldNiches,
                     limit: req.limit,

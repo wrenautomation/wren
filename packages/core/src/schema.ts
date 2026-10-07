@@ -22,6 +22,7 @@ import {
 } from "drizzle-orm/pg-core";
 import { clients } from "./clients/schema.js";
 import { EVENT_KINDS, type EventKind } from "./components.js";
+import type { FieldMap } from "./door.js";
 import {
   EXPERIMENT_GOALS,
   EXPERIMENT_STATES,
@@ -333,6 +334,8 @@ export const hooks = pgTable(
     input: varchar("input", { length: 64 }).notNull(),
     /** The payload field that says who it is about, dotted ("data.email"). */
     subject: varchar("subject", { length: 200 }).notNull(),
+    /** Where a lead's facts sit in the payload (`FieldMap`, ./door.ts); `{}` reads common names. */
+    fields: jsonb("fields").$type<FieldMap>().default({}).notNull(),
     createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
     lastAt: timestamp("last_at", { withTimezone: true }),
     calls: integer("calls").default(0).notNull(),

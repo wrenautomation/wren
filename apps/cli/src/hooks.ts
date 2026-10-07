@@ -4,6 +4,7 @@
  * live on main, since the door finds the client from the token.
  */
 import { getClient } from "@wren/core/clients";
+import { fieldMapOf } from "@wren/core/door";
 import { hooks } from "@wren/core/schema";
 import { addHook } from "@wren/core/spine";
 import type { Db } from "@wren/db";
@@ -22,23 +23,37 @@ export function registerHooks(program: Command, withMainDb: WithDb) {
     .description("Make a hook into the workflow's input; prints its URL once")
     .requiredOption("--subject <field>", "the payload field that says who it is about (data.email)")
     .option("--name <words>", "what sends it")
-    .action(async (workflow: string, input: string, o: { subject: string; name?: string }) => {
-      const token = await withMainDb(async (db) => {
-        const id = client();
-        if (id) await getClient(db, id);
-        return addHook(db, {
-          name: o.name ?? `${workflow} ${input}`,
-          client: id,
-          workflow,
-          input,
-          subject: o.subject,
+    .option(
+      "--field <fact=path>",
+      "where a lead fact sits (name, phone, email, consent, source, zone), like phone=contact.tel; repeat it",
+      (v: string, all: string[]) => [...all, v],
+      [] as string[],
+    )
+    .action(
+      async (
+        workflow: string,
+        input: string,
+        o: { subject: string; name?: string; field: string[] },
+      ) => {
+        const fields = fieldMapOf(o.field);
+        const token = await withMainDb(async (db) => {
+          const id = client();
+          if (id) await getClient(db, id);
+          return addHook(db, {
+            name: o.name ?? `${workflow} ${input}`,
+            client: id,
+            workflow,
+            input,
+            subject: o.subject,
+            fields,
+          });
         });
-      });
-      console.log(`${DOOR}${token}`);
-      console.log(
-        "Shown once. POST JSON or a form to it; an unknown workflow or input answers 410.",
-      );
-    });
+        console.log(`${DOOR}${token}`);
+        console.log(
+          "Shown once. POST JSON or a form to it; an unknown workflow or input answers 410.",
+        );
+      },
+    );
 
   cmd
     .command("list")
@@ -48,6 +63,7 @@ export function registerHooks(program: Command, withMainDb: WithDb) {
       for (const h of rows)
         console.log(
           `${h.name}: ${h.client ?? "wren"} ${h.workflow} in.${h.input}, about ${h.subject}; ` +
+            (Object.keys(h.fields).length ? `fields ${JSON.stringify(h.fields)}; ` : "") +
             `${h.calls} calls, last ${h.lastAt?.toISOString() ?? "never"}`,
         );
       if (!rows.length) console.log("no hooks");

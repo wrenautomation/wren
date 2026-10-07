@@ -53,6 +53,8 @@ export interface SlotRules {
   readonly fields?: readonly string[];
   /** Must say how to stop (the first text a stranger gets). */
   readonly mustSayStop?: boolean;
+  /** Facts it must quote: a first text names who it's from (`sender`). */
+  readonly mustUse?: readonly string[];
   /** Fewest characters (Telnyx refuses a keyword reply under 20). */
   readonly minLength?: number;
   readonly maxLength?: number;
@@ -85,6 +87,9 @@ export function checkSource(
       );
     }
   }
+  const used = factKeys(tpl);
+  for (const k of rules.mustUse ?? [])
+    if (!used.has(k)) throw new AuthoringError(`${key} must say {${k}}`);
   if (rules.mustSayStop && !/\bstop\b/i.test(saved))
     throw new AuthoringError(`${key} is a first text: it must say how to stop (the word STOP)`);
   if (rules.minLength !== undefined && saved.length < rules.minLength)

@@ -102,6 +102,8 @@ import { makeSearchWatch, makeSearchWeek } from "@wren/channel-search/restate";
 import {
   CalcomBookings,
   type ClientSms,
+  clientSms,
+  firstTextStep,
   healthFrom,
   NoProvider,
   policyFrom,
@@ -118,6 +120,7 @@ import {
   makeSmsEvents,
   makeSmsSender,
   makeSmsWatch,
+  SENDER_KEY,
 } from "@wren/channel-sms/restate";
 import { tiktokContent } from "@wren/channel-tiktok";
 import { xContent } from "@wren/channel-x";
@@ -954,6 +957,7 @@ export async function buildServices(
     campaignId: settings.telnyxCampaignId ?? null,
     sequences: SMS_SEQUENCES,
     senderName: settings.smsSenderName,
+    bookingLink: settings.smsBookingLink ?? null,
     heldNiches: settings.smsHeldNiches,
     site: settings.siteExportToken
       ? { baseUrl: settings.siteBaseUrl, exportToken: settings.siteExportToken }
@@ -981,11 +985,20 @@ export async function buildServices(
           : smsProvider,
       campaignId: plan.campaignId,
       senderName: plan.senderName ?? sms.senderName,
+      bookingLink: plan.bookingLink,
       site: null,
       bookings: plan.calcom ? clientBookings(plan.calcom) : null,
       pusher: null,
       ...(sms.notifier ? { notifier: namedFor(sms.notifier, plan.client.id) } : {}),
     }),
+  };
+  /** Whose texts a spine step runs on: Wren's, a client's with texts on, or why they're off. */
+  const textsOf = async (client: string | null) => {
+    if (!client) return { deps: sms, off: null };
+    const plan = await clientSms(db, client);
+    return plan.kind === "work"
+      ? { deps: clientTexts.forClient(plan), off: null }
+      : { deps: { ...sms, db: clientDb(client), bookings: null }, off: plan.why };
   };
   services.push(
     makeSmsSender(clientTexts),
@@ -1105,7 +1118,37 @@ export async function buildServices(
       components: COMPONENTS,
       // Parts register here as they move onto the spine; the rest keep arrivals and stop.
       steps: {
-        [TOUCH]: touchStep((client) => (client ? clientDb(client) : db), sms),
+        [TOUCH]: touchStep(async (client) => (await textsOf(client)).deps),
+        // Speed to lead's first text: live only with WREN_SMS_LIVE and the client's texts on.
+        "sms.forms": firstTextStep(async (client) => {
+          const { deps: d, off } = await textsOf(client);
+          const why = !settings.smsLive
+            ? "WREN_SMS_LIVE is off"
+            : off
+              ? `texts are off: ${off}`
+              : d.provider.name === "none"
+                ? "no SMS provider (WREN_SMS_PROVIDER)"
+                : null;
+          return {
+            db: d.db,
+            live: why === null,
+            why,
+            policy: d.policy,
+            provider: d.provider,
+            senderName: d.senderName,
+            bookingLink: d.bookingLink ?? null,
+            nudge: (key) =>
+              ingressSend(
+                ingressOf(settings),
+                {
+                  service: "SmsSender",
+                  key: client ? clientKey(client, SENDER_KEY) : SENDER_KEY,
+                  handler: "sync",
+                },
+                key,
+              ),
+          };
+        }),
         [EMAIL_TOUCH]: emailTouchStep((client) => (client ? clientDb(client) : db)),
         "reach.touch": reachTouchStep(db, { sequences: reach.sequences, sender: reach.senderName }),
         "watch.triage": triageStep(db, watchLlm),
