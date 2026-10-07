@@ -14,6 +14,7 @@ import type { Component, EventKind, LoopKey } from "./components.js";
 import { type FieldMap, leadOf } from "./door.js";
 import { hashToken, newToken } from "./doors.js";
 import {
+  aboutOf,
   dig,
   doorOf,
   holdOf,
@@ -22,6 +23,9 @@ import {
   nextSlot,
   type TriggerFacts,
   triggerHears,
+  type Until,
+  untilOf,
+  untilOfFacts,
 } from "./logic.js";
 import { hooks, type SentEvent, workflowInstalls, workflowSaves } from "./schema.js";
 import { flowsWith, type Workflow, type WorkflowEdits, type WorkflowNode } from "./workflows.js";
@@ -65,12 +69,15 @@ export interface Arrival {
   event: SpineEvent;
   /** The wiring its subject entered on (`events.version`): a save's id, 0 the code's. */
   version?: number | null;
+  /** Held at a Wait until this event (`events.until`); it leaves by `out` or `timeout`. */
+  until?: Until | null;
 }
 
 export interface SpineStore {
   /**
    * Keep an arrival, owned by `by`. Its id when new, or when `by` already owns it (a retry);
-   * null when another call kept it first. With `due`, it waits on its wire until then.
+   * null when another call kept it first. With `due`, it waits on its wire until then; with
+   * `a.until` too, it waits at its Wait node for that event about its subject, `due` its most.
    */
   claim(a: Arrival, by: string, due?: Date): Promise<string | null>;
   /**
@@ -138,7 +145,7 @@ interface Move {
 
 const UNIT_MS = { minute: 60_000, hour: 3_600_000, day: 86_400_000, week: 604_800_000 };
 
-/** A wire's wait in ms. "until <kind>" isn't built: nothing uses it yet. */
+/** A wire's wait in ms. A wire waits a time; a Wait node waits until an event (`untilOf`). */
 export function waitMs(wait: string): number {
   const m = /^(\d+) (minute|hour|day|week)s?$/.exec(wait);
   if (!m) throw new restate.TerminalError(`wait "${wait}" isn't built yet`);
@@ -255,6 +262,20 @@ async function walkMoves(w: Walk, workflow: string, queue: Move[]): Promise<Tall
 
     const node = flow.nodes.find((n) => n.id === id);
     if (!node) throw new restate.TerminalError(`${flow.id}: no node ${id}`);
+    // A Wait until an event holds the subject here: that event, or its most, sends it on.
+    const until = untilOf(node);
+    if (until) {
+      const ms = waitMs(until.most);
+      const a = { ...entry(flow, m), until: until.until };
+      const held = await w.run(`until ${a.node} ${m.e.subject}`, () =>
+        w.store.claim(a, w.by, new Date(Date.now() + ms)),
+      );
+      if (held) {
+        w.later(held, ms);
+        tally.waiting++;
+      } else tally.seen++;
+      continue;
+    }
     const real = stepOf(w, node);
     const inner = real ? undefined : innerOf(w, node);
     if (inner) {
@@ -335,20 +356,40 @@ export async function walk(w: Walk, workflow: string, from: string, batch: Spine
   return tally;
 }
 
-/** A waiting arrival whose time came: it arrives now. */
-export const resume = (w: Walk, id: string) =>
-  arriveAgain(w, "release", () => w.store.release(id, w.by));
+/**
+ * A waiting arrival whose time came: it arrives now. One held at a Wait until an event leaves it
+ * instead: by `out` when `happened` is that event, by `timeout` when its time ran out. Whichever
+ * takes it first wins; the other finds it gone and does nothing.
+ */
+export async function resume(w: Walk, id: string, happened?: SpineEvent): Promise<Tally | null> {
+  const a = await w.run("release", () => w.store.release(id, w.by));
+  if (!a) return null;
+  const path = a.node.split(".");
+  const last = path.pop() as string;
+  const pin = await pinned(w, a.workflow, a.version);
+  if (!a.until)
+    return walkMoves(pin, a.workflow, [
+      { arrive: true, at: path, ref: `${last}.${a.port}`, e: a.event },
+    ]);
+  const port = happened ? "out" : "timeout";
+  const e: SpineEvent = happened
+    ? {
+        ...a.event,
+        data: {
+          ...a.event.data,
+          happened: { subject: happened.subject, kind: happened.kind, data: happened.data },
+        },
+      }
+    : a.event;
+  await w.run(`left ${a.node} ${port}`, async () => {
+    await w.store.sent?.(id, [{ port, event: e }]);
+  });
+  return walkMoves(pin, a.workflow, [{ arrive: false, at: path, ref: `${last}.${port}`, e }]);
+}
 
 /** A failed arrival, run again at its node: an operator's retry once the cause is fixed. */
-export const retry = (w: Walk, id: string) =>
-  arriveAgain(w, "retry", () => w.store.retry(id, w.by));
-
-async function arriveAgain(
-  w: Walk,
-  label: string,
-  take: () => Promise<Arrival | null>,
-): Promise<Tally | null> {
-  const a = await w.run(label, take);
+export async function retry(w: Walk, id: string): Promise<Tally | null> {
+  const a = await w.run("retry", () => w.store.retry(id, w.by));
   if (!a) return null;
   const path = a.node.split(".");
   const last = path.pop() as string;
@@ -381,6 +422,7 @@ export function pgSpineStore(db: Db): SpineStore {
     kind: EventKind;
     data: Record<string, unknown>;
     version: number | null;
+    until: Until | null;
   };
   const arrivalOf = (r: Row | undefined): Arrival | null =>
     r
@@ -390,17 +432,20 @@ export function pgSpineStore(db: Db): SpineStore {
           port: r.port,
           event: { subject: r.subject, kind: r.kind, data: r.data },
           version: r.version,
+          until: r.until,
         }
       : null;
   return {
     async claim(a, by, due) {
       const e = pgSafe(a.event);
       const rows = (await db.execute(sql`
-        INSERT INTO events (workflow, node, port, subject, kind, data, due, by, version)
+        INSERT INTO events (workflow, node, port, subject, kind, data, due, by, version, until, about)
         VALUES (${a.workflow}, ${a.node}, ${a.port}, ${e.subject}, ${e.kind},
           ${JSON.stringify(e.data)}::jsonb, ${due?.toISOString() ?? null}::timestamptz, ${by},
-          ${a.version ?? null}::int)
-        ON CONFLICT ON CONSTRAINT uq_events_entry DO UPDATE SET by = excluded.by
+          ${a.version ?? null}::int, ${a.until ?? null}, ${a.until ? aboutOf(e.subject) : null})
+        ON CONFLICT ON CONSTRAINT uq_events_entry DO UPDATE SET by = excluded.by,
+          due = coalesce(excluded.due, events.due), until = coalesce(excluded.until, events.until),
+          about = coalesce(excluded.about, events.about)
           WHERE events.by = excluded.by
         RETURNING id::text`)) as unknown as Array<{ id: string }>;
       return rows[0]?.id ?? null;
@@ -415,9 +460,10 @@ export function pgSpineStore(db: Db): SpineStore {
       const rows = (await db.execute(sql`
         UPDATE events SET due = NULL, by = ${by}
         WHERE id = ${id}::uuid AND (due IS NOT NULL OR by = ${by})
-        RETURNING workflow, node, port, subject, kind, data, version`)) as unknown as Row[];
+        RETURNING workflow, node, port, subject, kind, data, version, until`)) as unknown as Row[];
       return arrivalOf(rows[0]);
     },
+
     async fail(a, error) {
       await db.execute(sql`
         UPDATE events SET error = ${pgSafe(error)}
@@ -433,10 +479,27 @@ export function pgSpineStore(db: Db): SpineStore {
       const rows = (await db.execute(sql`
         UPDATE events SET error = NULL, by = ${by}
         WHERE id = ${id}::uuid AND (error IS NOT NULL OR by = ${by})
-        RETURNING workflow, node, port, subject, kind, data, version`)) as unknown as Row[];
+        RETURNING workflow, node, port, subject, kind, data, version, until`)) as unknown as Row[];
       return arrivalOf(rows[0]);
     },
   };
+}
+
+/** Arrivals held at a Wait until `until`, about one of `about` (`aboutOf`): their ids. */
+export async function waitingFor(
+  db: Queryable,
+  until: Until,
+  about: readonly string[],
+): Promise<string[]> {
+  if (!about.length) return [];
+  const rows = (await db.execute(sql`
+    SELECT id::text FROM events WHERE until = ${until} AND due IS NOT NULL
+      AND about IN (${sql.join(
+        about.map((x) => sql`${x}`),
+        sql`, `,
+      )})
+    ORDER BY at LIMIT 500`)) as unknown as Array<{ id: string }>;
+  return rows.map((r) => r.id);
 }
 
 // ---- The door: webhooks into a workflow's input ----
@@ -612,13 +675,25 @@ export type SpineService = {
     ctx: restate.Context,
     req: Target & { workflow: string; from: string; events: SpineEvent[] },
   ) => Promise<Tally>;
-  release: (ctx: restate.Context, req: Target & { id: string }) => Promise<Tally | null>;
+  release: (
+    ctx: restate.Context,
+    req: Target & { id: string; happened?: SpineEvent },
+  ) => Promise<Tally | null>;
   retry: (ctx: restate.Context, req: Target & { id: string }) => Promise<Tally | null>;
-  fire: (ctx: restate.Context, req: Fired) => Promise<{ entered: number }>;
+  fire: (ctx: restate.Context, req: Fired) => Promise<{ entered: number; resolved: number }>;
 };
 
-/** Something happened that a Reply or Booking trigger may hear: the event it enters with. */
-export type Fired = Target & { facts: TriggerFacts; event: SpineEvent };
+/**
+ * Something happened that a Reply or Booking trigger may hear: the event it enters with. It is
+ * about its subject (`aboutOf`) and anything in `about` (a booking's email thread, its email), so
+ * a Wait until it, holding the same subject, lets it go.
+ */
+export type Fired = Target & { facts: TriggerFacts; event: SpineEvent; about?: string[] };
+
+/** Every thing a fired event is about, as a Wait's hold keeps it (`aboutOf`). */
+export const aboutsOf = (f: Pick<Fired, "event" | "about">): string[] => [
+  ...new Set([aboutOf(f.event.subject), ...(f.about ?? []).map((x) => x.toLowerCase())]),
+];
 
 /**
  * A reply or a booking, told to every live workflow of `client` with a trigger node that hears it
@@ -769,11 +844,14 @@ export function makeSpine(d: SpineDeps) {
           req: Target & { workflow: string; from: string; events: SpineEvent[] },
         ) => walkFor(ctx, req).then((w) => walk(w, req.workflow, req.from, req.events)),
       ),
-      /** A wire's wait is over. Only the spine sends it, delayed. */
+      /**
+       * A wait is over. Only the spine sends it: delayed, when its time is up; from `fire`, with
+       * the event `happened`, when a Wait until it holds the same subject.
+       */
       release: restate.handlers.handler(
         { ingressPrivate: true },
-        (ctx: restate.Context, req: Target & { id: string }) =>
-          walkFor(ctx, req).then((w) => resume(w, req.id)),
+        (ctx: restate.Context, req: Target & { id: string; happened?: SpineEvent }) =>
+          walkFor(ctx, req).then((w) => resume(w, req.id, req.happened)),
       ),
       /** A failed step, again: the console's Retry sends it once its cause is fixed. */
       retry: restate.handlers.handler(
@@ -781,7 +859,10 @@ export function makeSpine(d: SpineDeps) {
         (ctx: restate.Context, req: Target & { id: string }) =>
           walkFor(ctx, req).then((w) => retry(w, req.id)),
       ),
-      /** A reply or booking: each live trigger node that hears it gets it at its output. */
+      /**
+       * A reply or booking: each live trigger node that hears it gets it at its output, and each
+       * subject held at a Wait until it, about the same thing, leaves that Wait by `out`.
+       */
       fire: restate.handlers.handler(
         { ingressPrivate: true },
         async (ctx: restate.Context, req: Fired) => {
@@ -798,7 +879,15 @@ export function makeSpine(d: SpineDeps) {
             ctx
               .serviceSendClient<SpineService>(SPINE)
               .emit({ client: req.client, ...h, events: [req.event] });
-          return { entered: at.length };
+          const db = client ? d.clientDb(client) : d.main;
+          const held = await ctx.run("held", () =>
+            waitingFor(db, untilOfFacts(req.facts), aboutsOf(req)),
+          );
+          for (const id of held)
+            ctx
+              .serviceSendClient<SpineService>(SPINE)
+              .release({ client: req.client, id, happened: req.event });
+          return { entered: at.length, resolved: held.length };
         },
       ),
       /**

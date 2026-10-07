@@ -90,6 +90,42 @@ describe("dryWalk", () => {
     expect(r.tally).toMatchObject({ out: 1, waiting: 0 });
   });
 
+  it("times a Wait until an event out, unless the store heard it", async () => {
+    const until = defineWorkflow({
+      ...flow,
+      id: "u",
+      out: [lead("done"), lead("quiet")],
+      nodes: [
+        {
+          id: "hold",
+          uses: "logic.wait",
+          with: { mode: "until", until: "reply", most: "3 days", kind: "lead" },
+        },
+      ],
+      wires: [
+        { from: "in.leads", to: "hold.in", via: "events" },
+        { from: "hold.out", to: "out.done", via: "events" },
+        { from: "hold.timeout", to: "out.quiet", via: "events" },
+      ],
+    });
+    const o = { ...at, flows: new Map([[until.id, until]]), workflow: "u", from: "in.leads" };
+    const quiet = await dryWalk({ ...o, events: [one] });
+    expect(quiet.steps.map((s) => [s.node, s.port, s.at, s.until ?? null])).toEqual([
+      ["hold", "in", 3 * 86_400_000, "reply"],
+      ["out", "quiet", 3 * 86_400_000, null],
+    ]);
+    expect(quiet.steps[0]?.out.map((x) => x.port)).toEqual(["timeout"]);
+    // A booking isn't what it waits for; a reply is, and it comes at once.
+    const booked = await dryWalk({ ...o, events: [one], heard: ["booking"] });
+    expect(booked.steps.at(-1)?.port).toBe("quiet");
+    const heard = await dryWalk({ ...o, events: [one], heard: ["reply"] });
+    expect(heard.steps.map((s) => [s.node, s.port, s.at, s.waited])).toEqual([
+      ["hold", "in", 0, 0],
+      ["out", "done", 0, undefined],
+    ]);
+    expect(heard.tally).toMatchObject({ out: 1, waiting: 0 });
+  });
+
   it("plays a part's code wires, and enters at a node's output", async () => {
     const coded = defineWorkflow({
       ...flow,

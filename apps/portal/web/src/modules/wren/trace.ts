@@ -3,6 +3,7 @@
  * out data of each step. The spine keeps a step's node as a dotted path from the top workflow,
  * so a step inside a stacked card lights that card. Pure, so it's tested without a browser.
  */
+import { isUntil, UNTIL_WORDS } from "@wren/core/logic";
 import type { GraphNode, GraphTone } from "@wren/ui";
 import type { Drawn } from "../marketplace/boxes.js";
 import { boxOf } from "./canvas.js";
@@ -16,6 +17,8 @@ export interface TraceStep {
   data: Record<string, unknown>;
   at: string;
   due: string | null;
+  /** Held at a Wait until this event ("reply"); null for a timed hold or any other step. */
+  until: string | null;
   error: string | null;
   sent: { port: string; subject: string; kind: string; data: Record<string, unknown> }[] | null;
   sentAt: string | null;
@@ -34,9 +37,15 @@ export interface ExecutionRow {
   entered: string;
   lastAt: string;
   due: string | null;
+  /** What it waits for at that node ("reply"), when a Wait holds it until an event. */
+  until: string | null;
   error: string | null;
   steps: number;
 }
+
+/** " for a reply": what a held subject waits for, else nothing; read before "until <when>". */
+export const forText = (until: string | null | undefined): string =>
+  isUntil(until) ? ` for ${UNTIL_WORDS[until]}` : "";
 
 /** The card a step sits on: its node path's first id, or the workflow's own output. */
 export const cardOf = (s: Pick<TraceStep, "node" | "port">) => {
@@ -97,7 +106,9 @@ export function litNodes(
       number: undefined,
       more: undefined,
       note: last.due
-        ? `Waits until ${when(last.due)}`
+        ? isUntil(last.until)
+          ? `Until ${UNTIL_WORDS[last.until]} or ${when(last.due)}`
+          : `Waits until ${when(last.due)}`
         : `${ss.length > 1 ? `${ss.length} steps, last ` : ""}${when(last.sentAt ?? last.at)}`,
     };
   });

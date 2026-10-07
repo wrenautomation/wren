@@ -4,7 +4,7 @@
  * step that sends, spends or posts says what it would do and does nothing. Nothing is claimed.
  */
 import type { Port } from "@wren/core/components";
-import { DOOR_TRIGGERS } from "@wren/core/logic";
+import { DOOR_TRIGGERS, UNTIL_WORDS, type Until, untilOf } from "@wren/core/logic";
 import { Button, cx, Tag, Textarea } from "@wren/ui";
 import { useId, useMemo, useState } from "react";
 import { call } from "../../api.js";
@@ -46,11 +46,22 @@ type DryDone = {
   entered?: { subject: string; data: Record<string, unknown> };
 } & DryResult;
 
-/** What he tests with: an input, its data as JSON, and what every rule answers. */
+/** What the canvas's Waits wait until, each once: a test says whether it comes. */
+const untilsOf = (w: Drawn): Until[] => [
+  ...new Set(
+    w.nodes.flatMap((n) => {
+      const u = untilOf(n);
+      return u ? [u.until] : [];
+    }),
+  ),
+];
+
+/** What he tests with: an input, its data as JSON, what every rule answers, what a Wait hears. */
 function useTestForm(ports: readonly Port[]) {
   const [port, setPort] = useState(ports[0]?.id ?? "");
   const [text, setText] = useState(sampleText(ports[0]?.kind));
   const [rules, setRules] = useState(true);
+  const [heard, setHeard] = useState(false);
   const kind = ports.find((p) => p.id === port)?.kind;
   const parsed = (() => {
     try {
@@ -62,18 +73,21 @@ function useTestForm(ports: readonly Port[]) {
       return null;
     }
   })();
-  return { port, setPort, text, setText, rules, setRules, kind, parsed };
+  return { port, setPort, text, setText, rules, setRules, heard, setHeard, kind, parsed };
 }
 
 function TestFields({
   ports,
   f,
   label,
+  untils,
 }: {
   ports: readonly Port[];
   f: ReturnType<typeof useTestForm>;
   label: string;
+  untils: readonly Until[];
 }) {
+  const waits = untils.map((u) => UNTIL_WORDS[u]).join(" or ");
   const base = useId();
   return (
     <div className="grid min-w-0 grid-cols-[minmax(0,1fr)] gap-2.5">
@@ -118,13 +132,35 @@ function TestFields({
           <option value="no">No</option>
         </select>
       </label>
+      {untils.length ? (
+        <label htmlFor={`${base}-heard`} className={cx(FIELD, "min-w-0")}>
+          <span>When a Wait waits for {waits}</span>
+          <select
+            id={`${base}-heard`}
+            className={cx(SELECT, "w-full min-w-0")}
+            value={f.heard ? "yes" : "no"}
+            onChange={(e) => f.setHeard(e.target.value === "yes")}
+          >
+            <option value="no">Time runs out</option>
+            <option value="yes">{untils.length > 1 ? "It comes" : `${cap(waits)} comes`}</option>
+          </select>
+        </label>
+      ) : null}
     </div>
   );
 }
 
+const cap = (s: string) => s.charAt(0).toUpperCase() + s.slice(1);
+
 /** An output's label on a card of this canvas; its id deeper in. */
 const outLabel = (w: Drawn, node: string, port: string) =>
   w.nodes.find((n) => n.id === node)?.out?.find((p) => p.id === port)?.label ?? port;
+
+/** How a Wait until an event let the test's event go: it came, or time ran out. */
+const untilDone = (until: Until, port: string | undefined, waited: number) =>
+  port === "timeout"
+    ? `No ${UNTIL_WORDS[until].replace(/^an? /, "")} came. Time ran out ${afterText(waited)}, so it went on.`
+    : `${cap(UNTIL_WORDS[until])} came, so it went on.`;
 
 /** One step of a test: where, when on the test's clock, what it would do, and its data. */
 function DryRow({ w, s, i }: { w: Drawn; s: DryStep; i: number }) {
@@ -138,13 +174,15 @@ function DryRow({ w, s, i }: { w: Drawn; s: DryStep; i: number }) {
       </span>
       {s.error ? <span className="text-[13px] text-(--ui-bad)">It failed: {s.error}</span> : null}
       <span className={cx("text-[12.5px]", QUIET)}>
-        {s.out.length
-          ? `Sent on by ${s.out.map((o) => outLabel(w, s.node, o.port)).join(", ")}.`
-          : s.error
-            ? ""
-            : s.waited
-              ? `Waited ${afterText(s.waited).replace("after ", "")} on its wire, then went in.`
-              : "Nothing sent on."}
+        {s.until && s.out.length
+          ? untilDone(s.until, s.out[0]?.port, s.waited ?? 0)
+          : s.out.length
+            ? `Sent on by ${s.out.map((o) => outLabel(w, s.node, o.port)).join(", ")}.`
+            : s.error
+              ? ""
+              : s.waited
+                ? `Waited ${afterText(s.waited).replace("after ", "")} on its wire, then went in.`
+                : "Nothing sent on."}
       </span>
       <details>
         <summary className={cx("cursor-pointer text-[12.5px]", QUIET)}>Data</summary>
@@ -264,6 +302,7 @@ export function TestStep({
         kind: f.kind,
         data: f.parsed,
         rules: f.rules,
+        heard: f.heard ? untilsOf(w) : [],
       });
       setRun({ state: "done", ...got });
     } catch (err) {
@@ -272,7 +311,7 @@ export function TestStep({
   };
   return (
     <div className="grid gap-3">
-      <TestFields ports={ports} f={f} label="On input" />
+      <TestFields ports={ports} f={f} label="On input" untils={untilsOf(w)} />
       <span className="flex flex-wrap items-center gap-2">
         <Button size="dense" onClick={go} disabled={!f.parsed} busy={run.state === "busy"}>
           Test step
@@ -421,6 +460,7 @@ export function TestPanel({
         from: f.port,
         data: f.parsed,
         rules: f.rules,
+        heard: f.heard ? untilsOf(w) : [],
       });
       setRun({ state: "done", ...got });
       onResult({ steps: got.steps, from: f.port });
@@ -433,7 +473,7 @@ export function TestPanel({
       <PanelHead title="Test workflow" kind="Dry: nothing is sent" onClose={onClose} />
       {entries.length ? (
         <Block title="Event">
-          <TestFields ports={entries} f={f} label="Enters at" />
+          <TestFields ports={entries} f={f} label="Enters at" untils={untilsOf(w)} />
           <span>
             <Button size="dense" onClick={go} disabled={!f.parsed} busy={run.state === "busy"}>
               Run test

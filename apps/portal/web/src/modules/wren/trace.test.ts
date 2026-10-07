@@ -1,7 +1,7 @@
 // One execution on its canvas: the cards it reached, how each went, and the data of each step.
 import { describe, expect, it } from "vitest";
 import type { Drawn } from "../marketplace/boxes.js";
-import { age, cardOf, dataText, litNodes, type TraceStep, traceOf } from "./trace.js";
+import { age, cardOf, dataText, forText, litNodes, type TraceStep, traceOf } from "./trace.js";
 
 const w: Drawn = {
   id: "flow",
@@ -27,6 +27,7 @@ const step = (node: string, more: Partial<TraceStep> = {}): TraceStep => ({
   data: {},
   at: "2026-10-06T10:00:00.000Z",
   due: null,
+  until: null,
   error: null,
   sent: null,
   sentAt: null,
@@ -46,6 +47,12 @@ describe("traceOf", () => {
     const t = traceOf(w, [step("a"), step("out", { port: "won", due: "2026-10-07T10:00:00Z" })]);
     expect(cardOf({ node: "out", port: "won" })).toBe("out.won");
     expect(t.states.get("out.won")).toEqual({ label: "Waiting", tone: "warn" });
+  });
+
+  it("says what a Wait holds it for", () => {
+    expect(forText("reply")).toBe(" for a reply");
+    expect(forText("booking")).toBe(" for a booking");
+    expect(forText(null)).toBe("");
   });
 });
 

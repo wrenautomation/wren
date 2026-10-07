@@ -32,6 +32,7 @@ import {
   SURFACES,
   type Surface,
 } from "./flags.js";
+import type { Until } from "./logic.js";
 import {
   SURVEY_KINDS,
   SURVEY_STATES,
@@ -295,11 +296,19 @@ export const events = pgTable(
      * done, while new ones take the live one.
      */
     version: integer("version"),
+    /**
+     * Held at a Wait until this event ("reply", "booking", "cancelled"; `UNTILS`), `due` its most.
+     * That event about the same thing (`about`) sends it on by `out`, else time does by `timeout`.
+     */
+    until: varchar("until", { length: 16 }).$type<Until>(),
+    /** What its subject is about, as a fired event finds it (`aboutOf`): "sms:42". */
+    about: varchar("about", { length: 200 }),
   },
   (t) => [
     primaryKey({ columns: [t.id], name: "pk_events" }),
     unique("uq_events_entry").on(t.workflow, t.node, t.port, t.subject),
     index("ix_events_subject").on(t.subject),
+    index("ix_events_until").on(t.until, t.about).where(sql`due is not null and until is not null`),
     oneOf("ck_events_kind", t.kind, Object.keys(EVENT_KINDS)),
   ],
 );
@@ -323,11 +332,12 @@ export const spineEvents = pgView("spine_events", {
   state: text("state"),
   at: timestamp("at", { withTimezone: true }),
   due: timestamp("due", { withTimezone: true }),
+  until: text("until"),
   error: text("error"),
 }).as(sql`
   select id::text id, workflow, node, port, subject, kind,
     case when error is not null then 'failed' when due is not null then 'waiting' else 'passed' end state,
-    at, due, error
+    at, due, case when due is not null then until end until, error
   from events`);
 
 /**
@@ -345,6 +355,7 @@ export const spineExecutions = pgView("spine_executions", {
   entered: timestamp("entered", { withTimezone: true }),
   lastAt: timestamp("last_at", { withTimezone: true }),
   due: timestamp("due", { withTimezone: true }),
+  until: text("until"),
   error: text("error"),
   steps: integer("steps"),
   title: text("title"),
@@ -370,8 +381,9 @@ export const spineExecutions = pgView("spine_executions", {
     case when bool_or(error is not null) then 'failed'
       when bool_or(due is not null) then 'waiting' else 'done' end state,
     (array_agg(node order by (error is not null) desc, (due is not null) desc, at desc))[1] node,
-    min(at) entered, max(coalesce(sent_at, at)) last_at, min(due) due, max(error) error,
-    count(*)::int steps
+    min(at) entered, max(coalesce(sent_at, at)) last_at, min(due) due,
+    (array_agg(until order by due nulls last) filter (where due is not null))[1] until,
+    max(error) error, count(*)::int steps
   from events group by workflow, subject) x`);
 
 /**

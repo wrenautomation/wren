@@ -6,6 +6,7 @@
  */
 import * as restate from "@restatedev/restate-sdk";
 import type { MeetingOutcome } from "@wren/core/calls";
+import { aboutOf } from "@wren/core/logic";
 import type { Notifier } from "@wren/core/notify";
 import { serviceHandler } from "@wren/core/restate";
 import { type Fired, type SpineEvent, type Step, spineEmit } from "@wren/core/spine";
@@ -36,11 +37,12 @@ export const bookingEmit = (o: { id: number; state: string; start: Date | string
 
 /**
  * A booking as a Booking trigger hears it: a booked or moved call as `close` takes it, a cancel
- * as its own arrival. Who booked rides along, for the steps after.
+ * as its own arrival. Who booked rides along, for the steps after. It is about the call, the
+ * email thread it came from and who booked, so a Wait until a booking holding any of them ends.
  */
 export const bookingFired = (
   client: string | null,
-  o: { id: number; state: "booked" | "cancelled" },
+  o: { id: number; state: "booked" | "cancelled"; enrollmentId?: number | null },
   b: {
     start: Date | string | null;
     email: string | null;
@@ -50,9 +52,15 @@ export const bookingFired = (
 ): Fired => {
   const call = bookedCall(o.id, b.start);
   const who = { email: b.email, name: b.name, offer: b.offer };
+  const about = [
+    aboutOf(call.subject),
+    ...(o.enrollmentId != null ? [`email:${o.enrollmentId}`] : []),
+    ...(b.email ? [b.email] : []),
+  ];
   return {
     client,
     facts: { trigger: "trigger.booking", change: o.state },
+    about,
     event:
       o.state === "booked"
         ? { ...call, data: { ...call.data, ...who, change: "booked" } }

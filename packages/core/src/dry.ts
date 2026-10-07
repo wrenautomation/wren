@@ -7,7 +7,7 @@
  */
 import * as restate from "@restatedev/restate-sdk";
 import type { Component, Effect, Port } from "./components.js";
-import { logicOf, logicSteps } from "./logic.js";
+import { logicOf, logicSteps, type Until } from "./logic.js";
 import {
   type Arrival,
   resume,
@@ -28,8 +28,10 @@ export interface DryStep {
   subject: string;
   /** Ms after the test began, on its own clock. */
   at: number;
-  /** How long it waited on its wire first, in ms. */
+  /** How long it waited on its wire first, in ms; at a Wait until an event, how long it held. */
   waited?: number;
+  /** Held at a Wait until this event: it left by `out` when it came, else by `timeout`. */
+  until?: Until;
   in: Record<string, unknown>;
   out: Array<{ port: string; data: Record<string, unknown> }>;
   /** What the step would have done outside: "Would send", "Would post to …". */
@@ -86,19 +88,21 @@ export async function dryWalk(o: {
   events: SpineEvent[];
   client: string | null;
   rules?: boolean;
+  /** What the test's store has heard: a Wait until one of these lets its subject go at once. */
+  heard?: readonly Until[];
   most?: number;
 }): Promise<DryResult> {
   const most = o.most ?? MOST;
   const steps: DryStep[] = [];
   const rows = new Map<
     string,
-    { id: string; by: string; due: number | null; a: Arrival; step: DryStep }
+    { id: string; by: string; due: number | null; from: number; a: Arrival; step: DryStep }
   >();
   const byId = new Map<string, string>();
   const would = new Map<string, string>();
   const key = (a: Arrival) => [a.workflow, a.node, a.port, a.event.subject].join("|");
   let clock = 0;
-  const waits: Array<{ id: string; at: number }> = [];
+  const waits: Array<{ id: string; at: number; until?: Until }> = [];
 
   // The Postgres store's rules, in memory: a row per arrival, owned by the call that kept it.
   const store: SpineStore = {
@@ -117,16 +121,19 @@ export async function dryWalk(o: {
         in: a.event.data,
         out: [],
         ...(due ? { waited: ms } : {}),
+        ...(a.until ? { until: a.until } : {}),
       };
       steps.push(step);
-      rows.set(key(a), { id, by, due: due ? clock + ms : null, a, step });
+      rows.set(key(a), { id, by, due: due ? clock + ms : null, from: clock, a, step });
       byId.set(id, key(a));
       return id;
     },
     async release(id, by) {
       const r = rows.get(byId.get(id) ?? "");
       if (!r || !(r.due !== null || r.by === by)) return null;
-      r.step.at = r.due ?? clock;
+      // A wait ends now on the test's clock: at its due, or sooner when what it waits for came.
+      r.step.at = clock;
+      if (r.step.waited !== undefined) r.step.waited = clock - r.from;
       r.due = null;
       r.by = by;
       return r.a;
@@ -182,7 +189,12 @@ export async function dryWalk(o: {
         throw err;
       }
     },
-    later: (id, ms) => waits.push({ id, at: clock + ms }),
+    later: (id, ms) => {
+      // A Wait until an event the store heard: it comes at once, so the subject leaves by `out`.
+      const until = rows.get(byId.get(id) ?? "")?.a.until;
+      const now = !!until && !!o.heard?.includes(until);
+      waits.push({ id, at: now ? clock : clock + ms, ...(now && until ? { until } : {}) });
+    },
     rule,
     dry,
   });
@@ -197,10 +209,10 @@ export async function dryWalk(o: {
     // Each wait passes on the test's clock, soonest first.
     for (let i = 0; i < MOST_WAITS && waits.length; i++) {
       waits.sort((a, b) => a.at - b.at);
-      const next = waits.shift() as { id: string; at: number };
+      const next = waits.shift() as (typeof waits)[number];
       clock = next.at;
       tally.waiting--;
-      add(await resume(walkOf(), next.id));
+      add(await resume(walkOf(), next.id, next.until ? heardEvent(next.until) : undefined));
     }
   } catch (err) {
     if (!(err instanceof Capped)) throw err;
@@ -222,6 +234,7 @@ export async function dryStep(o: {
   event: SpineEvent;
   client: string | null;
   rules?: boolean;
+  heard?: readonly Until[];
 }): Promise<DryResult> {
   const flow = o.flows.get(o.workflow);
   const n = flow?.nodes.find((x) => x.id === o.node);
@@ -243,6 +256,12 @@ export async function dryStep(o: {
     events: [o.event],
   });
 }
+
+/** What a test's store heard, as the event a Wait until it gets: synthetic. */
+const heardEvent = (until: Until): SpineEvent =>
+  until === "reply"
+    ? { subject: "reply:test", kind: "reply", data: { test: true } }
+    : { subject: "call:test", kind: "call", data: { test: true, change: until } };
 
 /** A sample event of `kind` for a test: synthetic, about no one real. */
 export const sampleEvent = (

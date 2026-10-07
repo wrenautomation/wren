@@ -4,7 +4,7 @@
  * with its settings, test, copy, last output, numbers and wires; a wire panel with its rule and
  * wait; and the bar that counts the draft's changes and what won't run. Desktop only.
  */
-import { DOOR_TRIGGERS } from "@wren/core/logic";
+import { DOOR_TRIGGERS, UNTIL_WORDS, untilOf } from "@wren/core/logic";
 import type { RecordAnswer, RecordsPage } from "@wren/core/records/serve";
 import type { Wire } from "@wren/core/workflows";
 import { Button, cx, GRAPH_DROP, type GraphNode, Icon, Input, StateMark, Tag } from "@wren/ui";
@@ -382,7 +382,14 @@ const TRIGGER_NOTE: Readonly<Record<string, string>> = {
     "Fires on each cal.com booking, move or cancel, by the booking webhook. Who booked rides along.",
 };
 
-/** A logic node's settings as a form; read only when the node is the code's. */
+/** What a Wait until an event does with a late one, said once in its panel. */
+function untilNote(n: { uses?: string | null; with?: With | undefined }): string | null {
+  const u = untilOf(n);
+  if (!u) return null;
+  return `Each event leaves once: when ${UNTIL_WORDS[u.until]} about it comes, or after ${u.most}. Anything later does nothing.`;
+}
+
+/** A logic node's settings as a form, only those its mode uses; read only when it's the code's. */
 function LogicForm({
   logic,
   values,
@@ -393,10 +400,15 @@ function LogicForm({
   set: ((field: string, v: string | number) => void) | null;
 }) {
   const base = useId();
+  const now = (field: string) =>
+    values[field] ?? logic.settings.find((s) => s.field === field)?.start ?? "";
   return (
     <div className="grid gap-2.5">
       {logic.settings.map((s) => {
-        const v = values[s.field] ?? "";
+        if (s.shows && Object.entries(s.shows).some(([f, want]) => String(now(f)) !== want)) {
+          return null;
+        }
+        const v = s.shows ? now(s.field) : (values[s.field] ?? "");
         const at = `${base}-${s.field}`;
         return (
           <label key={s.field} htmlFor={at} className={FIELD}>
@@ -610,8 +622,8 @@ export function NodePanel({
         )}
       </Block>
 
-      {TRIGGER_NOTE[n.uses ?? ""] ? (
-        <p className={cx("text-[13px]", QUIET)}>{TRIGGER_NOTE[n.uses ?? ""]}</p>
+      {TRIGGER_NOTE[n.uses ?? ""] || untilNote(n) ? (
+        <p className={cx("text-[13px]", QUIET)}>{TRIGGER_NOTE[n.uses ?? ""] ?? untilNote(n)}</p>
       ) : null}
 
       {DOOR_TRIGGERS.has(n.uses ?? "") ? (

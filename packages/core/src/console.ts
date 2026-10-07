@@ -110,7 +110,7 @@ import {
   snippetTags,
   workflowRecord,
 } from "./library.js";
-import { doorOf, LOGIC, logicOf, startWith } from "./logic.js";
+import { doorOf, LOGIC, logicOf, startWith, UNTIL_LABELS, UNTILS } from "./logic.js";
 import {
   accessOf,
   answer,
@@ -127,6 +127,7 @@ import {
   whoIs,
 } from "./portal.js";
 import {
+  choice,
   date,
   defineRecord,
   metaOf,
@@ -350,6 +351,8 @@ export interface WorkflowTestRequest extends PortalRequest {
   event?: unknown;
   /** What every rule answers; yes when left out. */
   rules?: unknown;
+  /** What the test's store heard (`UNTILS`): a Wait until one of them lets go at once. */
+  heard?: unknown;
 }
 
 /**
@@ -640,6 +643,7 @@ export const eventRecord = defineRecord({
     }),
     at: date("Arrived"),
     due: date("Due"),
+    until: choice(() => UNTIL_LABELS, "Waiting for"),
     error: text("Why it failed", { words: "reason" }),
   },
   views: [
@@ -674,6 +678,8 @@ export interface ExecutionStep {
   data: Record<string, unknown>;
   at: string;
   due: string | null;
+  /** Held at a Wait until this event ("reply"); null for any other step. */
+  until: string | null;
   error: string | null;
   sent: SentEvent[] | null;
   sentAt: string | null;
@@ -687,7 +693,7 @@ export async function executionSteps(db: Queryable, id: string): Promise<Executi
   const at = id.indexOf("/");
   if (at < 1) return [];
   const rows = (await db.execute(sql`
-    select id::text id, node, port, kind, data, at, due, error, sent, sent_at "sentAt"
+    select id::text id, node, port, kind, data, at, due, until, error, sent, sent_at "sentAt"
     from events where workflow = ${id.slice(0, at)} and subject = ${id.slice(at + 1)}
     order by at, id limit 500`)) as unknown as Array<
     Omit<ExecutionStep, "at" | "due" | "sentAt"> & {
@@ -732,6 +738,7 @@ export const executionRecord = defineRecord({
     node: named("Now at"),
     entered: date("Entered"),
     lastAt: date("Last step"),
+    until: choice(() => UNTIL_LABELS, "Waiting for"),
     due: date("Waiting until"),
     error: text("Why it failed", { words: "reason" }),
     steps: number("Steps"),
@@ -2992,6 +2999,9 @@ export function consoleApi({
         workflow: w.id,
         client: null,
         rules: req.rules !== false,
+        heard: Array.isArray(req.heard)
+          ? UNTILS.filter((u) => (req.heard as unknown[]).includes(u))
+          : [],
       };
       if (node) return dryStep({ ...base, node, port, event });
       const walked = await dryWalk({ ...base, from: from as string, events: [event] });

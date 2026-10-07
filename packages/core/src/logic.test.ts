@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { EVENT_KINDS } from "./components.js";
 import {
+  aboutOf,
   bucketOf,
   casesOf,
   doorOf,
@@ -14,6 +15,9 @@ import {
   shareOf,
   startWith,
   triggerHears,
+  untilOf,
+  untilOfFacts,
+  untilText,
 } from "./logic.js";
 import type { SpineEvent, StepAt } from "./spine.js";
 
@@ -79,6 +83,46 @@ describe("logic parts", () => {
     expect(n("x.part")).toEqual([]);
     expect(holdOf({ id: "w", uses: "logic.wait", with: {} })).toBe("1 day");
     expect(holdOf({ id: "w", uses: "logic.if" })).toBeUndefined();
+  });
+
+  it("waits a time, or until an event with a most", () => {
+    const wait = logicOf("logic.wait");
+    const until = { mode: "until", until: "reply", most: "3 days", kind: "lead" };
+    expect(wait?.says({ for: "2 days" })).toBe("Wait 2 days");
+    expect(wait?.says(until)).toBe("Until a reply or 3 days");
+    expect(wait?.says({ ...until, until: "booking" })).toBe("Until a booking or 3 days");
+    expect(wait?.ports(until).out.map((p) => [p.id, p.label])).toEqual([
+      ["out", "replied"],
+      ["timeout", "time ran out"],
+    ]);
+    expect(wait?.ports({}).out.map((p) => p.id)).toEqual(["out"]);
+    const n = (w: Record<string, string | number>) => ({ id: "w", uses: "logic.wait", with: w });
+    expect(holdOf(n(until))).toBeUndefined();
+    expect(untilOf(n(until))).toEqual({ until: "reply", most: "3 days" });
+    expect(untilOf(n({ for: "2 days" }))).toBeUndefined();
+    expect(logicProblems("f.w", n(until))).toEqual([]);
+    expect(logicProblems("f.w", n({ ...until, until: "rain", most: "soon" }))).toEqual([
+      "f.w: a Wait can't wait until rain",
+      'f.w: at most reads like "3 days"',
+    ]);
+    expect(logicProblems("f.w", n({ mode: "later" }))).toEqual([
+      "f.w: a Wait waits a time or until something happens",
+    ]);
+    // Only what the mode uses shows in the panel.
+    expect(
+      wait?.settings.filter((s) => !s.shows || s.shows.mode === "until").map((s) => s.field),
+    ).toEqual(["mode", "until", "most", "kind"]);
+    expect(untilText("booking")).toBe("Waits for a booking");
+    expect(untilText(null)).toBeNull();
+  });
+
+  it("finds what a subject is about, as a fired event says it", () => {
+    expect(aboutOf("lead:sms:42")).toBe("sms:42");
+    expect(aboutOf("reply:sms:42")).toBe("sms:42");
+    expect(aboutOf("lead:Sam@Example.com")).toBe("sam@example.com");
+    expect(untilOfFacts({ trigger: "trigger.reply", channel: "dm" })).toBe("reply");
+    expect(untilOfFacts({ trigger: "trigger.booking", change: "booked" })).toBe("booking");
+    expect(untilOfFacts({ trigger: "trigger.booking", change: "cancelled" })).toBe("cancelled");
   });
 });
 

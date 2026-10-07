@@ -1,7 +1,8 @@
 /**
  * Triggers on a real Restate (designs/2026-10-06-workflow-editor.md, step 5): a reply and a
  * booking fired at the Spine enter each live node that hears them, never an uninstalled template's;
- * a Schedule node's clock ticks its slot in once, and a stale tick does nothing.
+ * a Schedule node's clock ticks its slot in once, and a stale tick does nothing. A reply lets a
+ * subject held at a Wait until a reply go by `out`; its most sends it by `timeout`, once.
  */
 import * as restate from "@restatedev/restate-sdk";
 import * as clients from "@restatedev/restate-sdk-clients";
@@ -19,6 +20,8 @@ import {
   makeSpineClock,
   replyFired,
   type SpineClock,
+  type SpineService,
+  spineEmit,
   spineFire,
 } from "../../src/spine.js";
 import { startTestRestate } from "../../src/testing.js";
@@ -31,7 +34,7 @@ const FLOW = defineWorkflow({
   icon: "clock",
   for: "wren",
   stage: "follow",
-  in: [],
+  in: [{ id: "leads", label: "leads", kind: "lead" }],
   out: [],
   nodes: [],
   wires: [],
@@ -46,8 +49,14 @@ const EDITS: WorkflowEdits = {
     merge("r", "reply"),
     merge("c", "call"),
     merge("t", "item"),
+    { id: "hold", uses: "logic.wait", with: { mode: "until", until: "reply", most: "3 days" } },
+    merge("h", "lead"),
+    merge("q", "lead"),
   ],
   wires: [
+    { from: "in.leads", to: "hold.in", via: "events" },
+    { from: "hold.out", to: "h.a", via: "events" },
+    { from: "hold.timeout", to: "q.a", via: "events" },
     { from: "texts.out", to: "r.a", via: "events" },
     { from: "booked.out", to: "c.a", via: "events" },
     { from: "hourly.out", to: "t.a", via: "events" },
@@ -59,6 +68,16 @@ const probe = restate.service({
   name: "Probe",
   handlers: {
     fire: async (ctx: restate.Context, req: Fired) => spineFire(ctx, req),
+    emit: async (ctx: restate.Context, req: { subjects: string[] }) =>
+      spineEmit(ctx, {
+        client: null,
+        workflow: "trig",
+        from: "in.leads",
+        events: req.subjects.map((subject) => ({ subject, kind: "lead" as const, data: {} })),
+      }),
+    /** A wait's most, now: the delayed release the Spine sent itself. */
+    release: async (ctx: restate.Context, req: { id: string }) =>
+      ctx.serviceClient<SpineService>({ name: "Spine" }).release({ client: null, id: req.id }),
     tick: async (ctx: restate.Context, req: { key: string; slot?: string }) => {
       const clock = ctx.objectClient<SpineClock>({ name: "SpineClock" }, req.key);
       const { next } = await clock.start();
@@ -95,11 +114,12 @@ beforeEach(async () => {
     .values({ client: null, workflow: FLOW.id, edits: EDITS, live: true, by: "op@example.test" });
 });
 
-/** Who entered which node, once the walks land. */
-async function arrivals(want: number): Promise<string[]> {
+/** Who entered which node, once the walks land; a Wait's holds aside unless asked. */
+async function arrivals(want: number, holds = false): Promise<string[]> {
   for (let i = 0; i < 100; i++) {
     const rows = (await pg.db.execute<{ at: string }>(
-      sql`SELECT node || ' ' || subject AS at FROM events WHERE workflow = 'trig' ORDER BY 1`,
+      sql`SELECT node || ' ' || subject AS at FROM events WHERE workflow = 'trig'
+        AND (${holds} OR node <> 'hold') ORDER BY 1`,
     )) as unknown as { at: string }[];
     if (rows.length >= want) return rows.map((r) => r.at);
     await new Promise((r) => setTimeout(r, 100));
@@ -165,5 +185,38 @@ describe("triggers on the spine", () => {
     await call().tick({ key, slot: "2020-01-01T00:00:00.000Z" });
     await new Promise((r) => setTimeout(r, 1000));
     expect(await arrivals(1)).toHaveLength(1);
+  }, 60_000);
+
+  it("let a subject held until a reply go by out, else by timeout, once", async () => {
+    await call().emit({ subjects: ["lead:sms:5", "lead:sms:6"] });
+    expect(await arrivals(2, true)).toEqual(["hold lead:sms:5", "hold lead:sms:6"]);
+    const held = (await pg.db.execute(sql`SELECT id::text, subject, until, about, due IS NOT NULL
+      AS waiting FROM events WHERE node = 'hold' ORDER BY subject`)) as unknown as Array<{
+      id: string;
+      until: string;
+      about: string;
+      waiting: boolean;
+    }>;
+    expect(held.map((r) => [r.until, r.about, r.waiting])).toEqual([
+      ["reply", "sms:5", true],
+      ["reply", "sms:6", true],
+    ]);
+    // Lead 5 replies: it leaves the Wait by out (and the Reply trigger hears it too).
+    await call().fire(replyFired(null, "sms", 5));
+    expect(await arrivals(2)).toEqual(["h lead:sms:5", "r reply:sms:5"]);
+    // Lead 6's most comes: it leaves by timeout. Its reply after that, and lead 5's most, do nothing.
+    await call().release({ id: held[1]?.id as string });
+    await call().release({ id: held[0]?.id as string });
+    await call().fire(replyFired(null, "sms", 6));
+    await new Promise((r) => setTimeout(r, 1500));
+    expect(await arrivals(4)).toEqual([
+      "h lead:sms:5",
+      "q lead:sms:6",
+      "r reply:sms:5",
+      "r reply:sms:6",
+    ]);
+    const sent = (await pg.db.execute(sql`SELECT subject, sent->0->>'port' AS port FROM events
+      WHERE node = 'hold' ORDER BY subject`)) as unknown as Array<{ port: string }>;
+    expect(sent.map((r) => r.port)).toEqual(["out", "timeout"]);
   }, 60_000);
 });

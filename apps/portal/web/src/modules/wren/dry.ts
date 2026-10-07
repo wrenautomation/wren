@@ -16,6 +16,8 @@ export interface DryStep {
   /** Ms after the test began. */
   at: number;
   waited?: number;
+  /** Held at a Wait until this event ("reply"): left by `out` when it came, else `timeout`. */
+  until?: "reply" | "booking" | "cancelled";
   in: Record<string, unknown>;
   out: Array<{ port: string; data: Record<string, unknown> }>;
   would?: string;
@@ -56,6 +58,7 @@ export function dryTrace(w: Drawn, steps: readonly DryStep[]) {
     data: s.in,
     at: String(s.at),
     due: null,
+    until: null,
     error: s.error ?? null,
     sent: s.out.map((o) => ({ port: o.port, subject: s.subject, kind: "", data: o.data })),
     sentAt: null,

@@ -4,6 +4,7 @@ import { defineComponent } from "./components.js";
 import { logicSteps } from "./logic.js";
 import {
   type Arrival,
+  aboutsOf,
   clockKey,
   clockOfKey,
   clocksOf,
@@ -313,7 +314,7 @@ describe("walk", () => {
     expect(asked).toEqual([1, 1]);
   });
 
-  it("knows timed waits and refuses until waits", () => {
+  it("knows timed waits; a wire never waits until an event", () => {
     expect(waitMs("2 minutes")).toBe(120_000);
     expect(waitMs("1 week")).toBe(604_800_000);
     expect(() => waitMs("until reply")).toThrow("isn't built yet");
@@ -420,6 +421,77 @@ describe("logic nodes", () => {
     expect(
       hookEvent({ workflow: "logic", input: "vip", subject: "email" }, flows, { email: "a@b.co" }),
     ).toMatchObject({ status: 410 });
+  });
+});
+
+describe("a Wait until an event", () => {
+  const out = (id: string) => ({ id, label: id, kind: "lead" as const });
+  const flow = defineWorkflow({
+    ...base,
+    id: "until",
+    name: "until",
+    out: [out("heard"), out("quiet")],
+    nodes: [
+      { id: "hold", uses: "logic.wait", with: { mode: "until", until: "reply", most: "3 days" } },
+    ],
+    wires: [
+      { from: "in.leads", to: "hold.in", via: "events" },
+      { from: "hold.out", to: "out.heard", via: "events" },
+      { from: "hold.timeout", to: "out.quiet", via: "events" },
+    ],
+  });
+  const untilWalk = (store: SpineStore, by: string) => {
+    const got = walkWith(store, by);
+    got.w = { ...got.w, flows: new Map([[flow.id, flow]]) };
+    return got;
+  };
+  const textLead = (n: number): SpineEvent => ({
+    subject: `lead:sms:${n}`,
+    kind: "lead",
+    data: { contactId: n },
+  });
+
+  it("holds a subject at the node until its event, else its most, and lets it go once", async () => {
+    const { store, rows } = memStore();
+    const first = untilWalk(store, "inv1");
+    expect(await walk(first.w, "until", "in.leads", [textLead(1), textLead(2)])).toMatchObject({
+      waiting: 2,
+    });
+    expect(first.later.map((l) => l.ms)).toEqual([259_200_000, 259_200_000]);
+    const [one, two] = [...rows.values()];
+    expect(one?.a).toMatchObject({ node: "hold", port: "in", until: "reply" });
+
+    // A reply about lead 1's thread: it leaves by `out`, carrying what happened.
+    const reply = replyFired(null, "sms", 1);
+    expect(aboutsOf(reply)).toEqual(["sms:1"]);
+    expect(await resume(untilWalk(store, "inv2").w, one?.id as string, reply.event)).toMatchObject({
+      out: 1,
+    });
+    expect(one?.sent?.[0]).toMatchObject({
+      port: "out",
+      event: { subject: "lead:sms:1", data: { happened: { subject: "reply:sms:1" } } },
+    });
+    // Its most comes later and finds it gone.
+    expect(await resume(untilWalk(store, "inv3").w, one?.id as string)).toBeNull();
+
+    // Lead 2 hears nothing: time runs out, it leaves by `timeout`, and a late reply does nothing.
+    expect(await resume(untilWalk(store, "inv4").w, two?.id as string)).toMatchObject({ out: 1 });
+    expect(two?.sent?.[0]?.port).toBe("timeout");
+    const late = replyFired(null, "sms", 2).event;
+    expect(await resume(untilWalk(store, "inv5").w, two?.id as string, late)).toBeNull();
+    expect([...rows.values()].filter((r) => r.a.node === "out").map((r) => r.a.port)).toEqual([
+      "heard",
+      "quiet",
+    ]);
+  });
+
+  it("finds a booking by the call, its email thread and who booked", () => {
+    expect(
+      aboutsOf({
+        event: { subject: "call:5:2026-10-09T15:00:00.000Z", kind: "call", data: {} },
+        about: ["email:12", "Sam@Example.com"],
+      }),
+    ).toEqual(["5:2026-10-09t15:00:00.000z", "email:12", "sam@example.com"]);
   });
 });
 

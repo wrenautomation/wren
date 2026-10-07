@@ -40,6 +40,8 @@ export interface LogicSetting {
   hint?: string;
   /** What a new node starts with. */
   start?: string | number;
+  /** Shown only while these settings hold: "until" only when the mode is until. */
+  shows?: Readonly<Record<string, string>>;
 }
 
 export interface LogicPart {
@@ -174,6 +176,44 @@ export function triggerHears(n: WorkflowNode, f: TriggerFacts): boolean {
   return on === "any" || on === f.change;
 }
 
+/** What a Wait may wait until: an event fired at the spine about the same subject. */
+export const UNTILS = ["reply", "booking", "cancelled"] as const;
+export type Until = (typeof UNTILS)[number];
+/** What a Wait may wait until, as its panel offers it. */
+export const UNTIL_LABELS: Record<Until, string> = {
+  reply: "A reply",
+  booking: "A booking",
+  cancelled: "A cancelled call",
+};
+/** "a reply": what a Wait waits until, in a sentence. */
+export const UNTIL_WORDS: Record<Until, string> = {
+  reply: "a reply",
+  booking: "a booking",
+  cancelled: "a cancelled call",
+};
+const UNTIL_PORT: Record<Until, string> = {
+  reply: "replied",
+  booking: "booked",
+  cancelled: "cancelled",
+};
+export const isUntil = (v: unknown): v is Until =>
+  (UNTILS as readonly string[]).includes(String(v));
+/** A Wait's until, when its mode is until; null for a timed one. */
+const untilSet = (w: Readonly<Record<string, string | number>>): Until | null =>
+  text(w.mode) === "until" ? (isUntil(w.until) ? w.until : "reply") : null;
+
+/** What a fired event is, as a Wait waits until it. */
+export const untilOfFacts = (f: TriggerFacts): Until =>
+  f.trigger === "trigger.reply" ? "reply" : f.change === "booked" ? "booking" : "cancelled";
+
+/**
+ * What a subject is about, so an event about the same thing finds it: the subject past its kind,
+ * lower case. A text lead `lead:sms:42` and its reply `reply:sms:42` are both `sms:42`, as
+ * `replyFired` and the channels' touch steps say them.
+ */
+export const aboutOf = (subject: string): string =>
+  subject.slice(subject.indexOf(":") + 1).toLowerCase();
+
 const CHANNEL_WORDS: Record<string, string> = {
   any: "any channel",
   email: "email",
@@ -223,13 +263,62 @@ export const LOGIC: readonly LogicPart[] = [
   {
     id: "logic.wait",
     name: "Wait",
-    blurb: "Holds each event, then sends it on.",
+    blurb: "Holds each event for a time, or until a reply or a booking, then sends it on.",
     icon: "clock",
     group: "logic",
     ready: true,
-    settings: [{ field: "for", label: "Wait", type: "text", hint: "2 days", start: "1 day" }, KIND],
-    ports: (w) => ({ in: [one("in", "in", kindOf(w))], out: [one("out", "after", kindOf(w))] }),
-    says: (w) => `Wait ${text(w.for) || "1 day"}`,
+    settings: [
+      {
+        field: "mode",
+        label: "Wait for",
+        type: "choice",
+        options: ["time", "until"],
+        labels: { time: "A time", until: "Until something happens" },
+        start: "time",
+      },
+      {
+        field: "for",
+        label: "How long",
+        type: "text",
+        hint: "2 days",
+        start: "1 day",
+        shows: { mode: "time" },
+      },
+      {
+        field: "until",
+        label: "Until",
+        type: "choice",
+        options: UNTILS,
+        labels: UNTIL_LABELS,
+        start: "reply",
+        shows: { mode: "until" },
+      },
+      {
+        field: "most",
+        label: "At most",
+        type: "text",
+        hint: "3 days",
+        start: "3 days",
+        shows: { mode: "until" },
+      },
+      KIND,
+    ],
+    ports: (w) => {
+      const kind = kindOf(w);
+      const until = untilSet(w);
+      return until
+        ? {
+            in: [one("in", "in", kind)],
+            out: [one("out", UNTIL_PORT[until], kind), one("timeout", "time ran out", kind)],
+          }
+        : { in: [one("in", "in", kind)], out: [one("out", "after", kind)] };
+    },
+    says: (w) => {
+      const until = untilSet(w);
+      return until
+        ? `Until ${UNTIL_WORDS[until]} or ${text(w.most) || "3 days"}`
+        : `Wait ${text(w.for) || "1 day"}`;
+    },
   },
   {
     id: "logic.split",
@@ -395,9 +484,14 @@ export function logicProblems(at: string, n: WorkflowNode): string[] {
     if (!casesOf(w.cases).length) out.push(`${at}: Switch needs a case`);
   }
   if (l.id === "logic.wait") {
-    const f = text(w.for) || "1 day";
-    if (f.startsWith("until ")) out.push(`${at}: waits until an event are in development`);
-    else if (!WAIT_FOR.test(f)) out.push(`${at}: a wait reads like "2 days"`);
+    if (w.mode !== undefined && text(w.mode) !== "time" && text(w.mode) !== "until")
+      out.push(`${at}: a Wait waits a time or until something happens`);
+    if (text(w.mode) === "until") {
+      if (w.until !== undefined && !isUntil(w.until))
+        out.push(`${at}: a Wait can't wait until ${text(w.until)}`);
+      if (!WAIT_FOR.test(text(w.most) || "3 days")) out.push(`${at}: at most reads like "3 days"`);
+    } else if (!WAIT_FOR.test(text(w.for) || "1 day"))
+      out.push(`${at}: a wait reads like "2 days"`);
   }
   if (l.id === "logic.split" && w.a !== undefined && shareOf(w.a) !== Number(w.a))
     out.push(`${at}: Split's share is 1 to 99`);
@@ -441,9 +535,25 @@ export function doorOf(n: WorkflowNode): { subject: string; fields: FieldMap } |
   return null;
 }
 
-/** A Wait node's hold on what leaves it; undefined for any other node. */
+/** A timed Wait node's hold on what leaves it; undefined for any other node. */
 export const holdOf = (n: WorkflowNode | undefined): string | undefined =>
-  n?.uses === "logic.wait" ? text(n.with?.for) || "1 day" : undefined;
+  n?.uses === "logic.wait" && !untilSet(n.with ?? {}) ? text(n.with?.for) || "1 day" : undefined;
+
+/**
+ * A Wait until an event: what it waits for and its most, as words ("3 days"). The walker holds
+ * the subject at the node; that event about it sends it out by `out`, else time does by
+ * `timeout`. Undefined for any other node.
+ */
+export function untilOf(
+  n: { uses?: string | null; with?: WorkflowNode["with"] | undefined } | undefined,
+): { until: Until; most: string } | undefined {
+  const until = n?.uses === "logic.wait" ? untilSet(n.with ?? {}) : null;
+  return until ? { until, most: text(n?.with?.most) || "3 days" } : undefined;
+}
+
+/** "Waits for a reply": what a hold row waits for, in words; null for a timed hold. */
+export const untilText = (until: string | null | undefined): string | null =>
+  isUntil(until) ? `Waits for ${UNTIL_WORDS[until]}` : null;
 
 /** A payload's value at a dotted path. */
 export function dig(v: unknown, path: string): unknown {

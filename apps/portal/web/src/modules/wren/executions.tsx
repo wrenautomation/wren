@@ -20,6 +20,7 @@ import {
   cardOf,
   dataText,
   type ExecutionRow,
+  forText,
   litNodes,
   type TraceStep,
   traceOf,
@@ -150,7 +151,7 @@ export function Executions({
                   <span className={cx("flex justify-between gap-2 text-[12px]", QUIET)}>
                     <span className="truncate">
                       {r.state === "waiting" && r.due
-                        ? `At ${nameAt(w, r.node)} until ${when(r.due)}`
+                        ? `At ${nameAt(w, r.node)}${r.until ? "," : ""}${forText(r.until)} until ${when(r.due)}`
                         : r.state === "failed"
                           ? `Failed at ${nameAt(w, r.node)}`
                           : `Last at ${nameAt(w, r.node)}`}
@@ -347,7 +348,9 @@ function StepData({
               It failed here: {wordsOf("reason", s.error)}
             </p>
           ) : s.due ? (
-            <p className="m-0 text-[13px]">Waits here until {when(s.due)}.</p>
+            <p className="m-0 text-[13px]">
+              Waits here{forText(s.until)} until {when(s.due)}.
+            </p>
           ) : s.sent === null ? (
             <p className={cx("m-0 text-[13px]", QUIET)}>Not kept for this step.</p>
           ) : s.sent.length === 0 ? (
