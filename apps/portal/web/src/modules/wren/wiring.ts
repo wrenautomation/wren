@@ -31,7 +31,7 @@ export interface PaletteLogic {
   name: string;
   blurb: string;
   icon: string;
-  group: "logic" | "trigger";
+  group: "logic" | "trigger" | "action";
   ready: boolean;
   settings: readonly LogicSetting[];
   start: With;
@@ -48,6 +48,8 @@ export interface Draft {
   steps: Step[];
   /** A built-in logic node's settings, changed (a Wait's "at most"), by node id. */
   settings?: Record<string, With>;
+  /** Auto-retry: a failed step tries again on its own, 0 (off) to 5 times. */
+  retry?: number;
 }
 /** A workflow's newest save, as the catalog's detail carries it. */
 export interface Saved {
@@ -123,6 +125,7 @@ export function draftOf(w: Drawn, saved: Saved | null, broken: boolean): Draft {
       })),
     steps: broken ? [] : (saved?.edits?.steps ?? []),
     ...(!broken && saved?.edits?.settings ? { settings: saved.edits.settings } : {}),
+    ...(!broken && saved?.edits?.retry ? { retry: saved.edits.retry } : {}),
   };
 }
 
@@ -300,7 +303,7 @@ export function diffOf(base: Draft, next: Draft) {
 /** "Draft: 3 changes": how many nodes and wires differ from what's live. */
 export const changesOf = (base: Draft, next: Draft) => {
   const d = diffOf(base, next);
-  return d.nodes.size + d.wires.size;
+  return d.nodes.size + d.wires.size + ((base.retry ?? 0) === (next.retry ?? 0) ? 0 : 1);
 };
 
 /**

@@ -53,6 +53,7 @@ import {
   AskGraph,
   EditBar,
   HistoryMenu,
+  RetryPick,
   NodePanel,
   PaletteDrawer,
   Proposal,
@@ -520,6 +521,7 @@ function Canvas({
     wires: x.wires,
     steps: x.steps,
     ...(x.settings ? { settings: x.settings } : {}),
+    ...(x.retry ? { retry: x.retry } : {}),
   });
   const failed = (err: unknown) => {
     const m = err instanceof Error ? err.message : String(err);
@@ -694,6 +696,11 @@ function Canvas({
           >
             {testing ? "Close test" : "Test workflow"}
           </Button>
+          <RetryPick
+            value={draft.retry ?? 0}
+            onChange={(retry) => setDraft({ ...draft, retry })}
+            disabled={busy}
+          />
           <HistoryMenu
             versions={d.versions ?? []}
             onOpen={(v) => {

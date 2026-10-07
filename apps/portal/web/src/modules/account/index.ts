@@ -10,6 +10,7 @@ import { nowCount } from "./Now.js";
 import { Overview } from "./Overview.js";
 import { People } from "./People.js";
 import { Vendors } from "./Vendors.js";
+import { Webhooks } from "./Webhooks.js";
 import { You } from "./You.js";
 
 /** Pages under one sidebar heading; with `id`, only that one. */
@@ -21,7 +22,7 @@ export const account: Module = {
   name: "Account",
   icon: "sliders",
   blurb:
-    "Your company's details, who can see your projects, your email settings, your look, the accounts and vendors Wren works in, invoices and who changed what.",
+    "Your company's details, who can see your projects, your email settings, your look, the accounts and vendors Wren works in, webhooks, invoices and who changed what.",
   menu: true,
   // The demo is nobody's account.
   requires: { audience: "client" },
@@ -36,6 +37,7 @@ export const account: Module = {
     { id: "domain", label: "Domain", Page: Domain, group: "Setup" },
     { id: "accounts", label: "Accounts", Page: Accounts, group: "Setup", badge: nowCount },
     { id: "vendors", label: "Vendors", Page: Vendors, group: "Setup" },
+    { id: "webhooks", label: "Webhooks", Page: Webhooks, group: "Setup" },
     {
       id: "billing",
       label: "Billing",

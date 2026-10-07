@@ -124,6 +124,12 @@ export function Executions({
           aria-label="Find by name or subject"
           className="h-8 text-[13px]"
         />
+        {view === "failed" && rows.length && mayRetry(can) ? (
+          <ReplayAll
+            ids={rows.map((r) => r.id)}
+            onDone={() => setNonce((n) => n + 1)}
+          />
+        ) : null}
         {list.error && !list.data ? (
           <Alert onRetry={list.retry}>{list.error.message}</Alert>
         ) : !list.data ? (
@@ -181,6 +187,35 @@ export function Executions({
       ) : (
         <p className={cx("text-[14px]", QUIET)}>Open one to see its path.</p>
       )}
+    </div>
+  );
+}
+
+/** Every failed run in the list, again at once. Each failed step behind them runs again. */
+function ReplayAll({ ids, onDone }: { ids: readonly string[]; onDone: () => void }) {
+  const [busy, setBusy] = useState(false);
+  const [said, setSaid] = useState<string | null>(null);
+  const go = async () => {
+    if (!confirm(`Run ${ids.length} failed run${ids.length === 1 ? "" : "s"} again? They may send.`))
+      return;
+    setBusy(true);
+    setSaid(null);
+    try {
+      const got = await call<{ replayed: number }>("console/replay", { ids });
+      setSaid(`Replaying ${got.replayed} step${got.replayed === 1 ? "" : "s"}.`);
+      onDone();
+    } catch (err) {
+      setSaid(err instanceof Error ? err.message : String(err));
+    } finally {
+      setBusy(false);
+    }
+  };
+  return (
+    <div className="flex flex-wrap items-center gap-3">
+      <Button size="dense" tone="secondary" busy={busy} onClick={() => void go()}>
+        Replay all {ids.length}
+      </Button>
+      {said ? <span className={cx("text-[12.5px]", QUIET)}>{said}</span> : null}
     </div>
   );
 }

@@ -1112,6 +1112,20 @@ export const review: Module = {
   ],
 };
 
+/** Many failed runs again at once, up to 200: each failed step behind them runs again. */
+const REPLAY: Action = {
+  id: "console.replay",
+  label: "Replay",
+  handler: "console/replay",
+  bulk: true,
+  when: { state: ["failed"] },
+  confirm: "Run the failed steps again? They may send.",
+  done: (a) => {
+    const n = (a as { replayed?: number }).replayed ?? 0;
+    return `Replaying ${n} step${n === 1 ? "" : "s"}`;
+  },
+};
+
 /** A failed step, again: the answer is the spine's tally for that one event. */
 const EVENT_ACTIONS: Action[] = [
   {
@@ -1121,6 +1135,7 @@ const EVENT_ACTIONS: Action[] = [
     when: { state: ["failed"] },
     done: (a) => ((a as { failed?: number }).failed ? "Failed again" : "Ran again"),
   },
+  REPLAY,
 ];
 
 /** A hold let go: the unit runs again on the stage's next pass, or the source resumes. */
@@ -1156,6 +1171,7 @@ export const workflows: Module = {
         done: "Nothing has finished yet.",
       },
       extras: executionExtras,
+      actions: [REPLAY],
     },
     {
       id: "events",

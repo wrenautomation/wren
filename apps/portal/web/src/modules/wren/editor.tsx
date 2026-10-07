@@ -17,6 +17,7 @@ import {
   Input,
   StateMark,
   Tag,
+  Textarea,
 } from "@wren/ui";
 import { type ReactNode, useEffect, useId, useMemo, useRef, useState } from "react";
 import { call } from "../../api.js";
@@ -154,6 +155,7 @@ export function PaletteDrawer({
       [
         ["Triggers", palette.logic.filter((l) => l.group === "trigger").map(fromLogic)],
         ["Logic", palette.logic.filter((l) => l.group === "logic").map(fromLogic)],
+        ["Actions", palette.logic.filter((l) => l.group === "action").map(fromLogic)],
         ["Parts", palette.parts.map(fromItem)],
         ["Workflows", palette.workflows.map(fromItem)],
       ] as const
@@ -444,6 +446,16 @@ function LogicForm({
                   </option>
                 ))}
               </select>
+            ) : s.type === "long" ? (
+              <Textarea
+                id={at}
+                rows={4}
+                className="font-mono text-[12px]"
+                value={String(v)}
+                readOnly={!set}
+                placeholder={s.hint}
+                onChange={(e) => set?.(s.field, e.target.value)}
+              />
             ) : (
               <Input
                 id={at}
@@ -552,7 +564,9 @@ const KIND_OF = (n: Drawn["nodes"][number], logic: PaletteLogic | undefined) =>
   logic
     ? logic.group === "trigger"
       ? "Trigger"
-      : "Logic"
+      : logic.group === "action"
+        ? "Action"
+        : "Logic"
     : !n.uses
       ? "Custom step"
       : n.opens === n.uses
@@ -1006,7 +1020,43 @@ function SaveTemplate({
   );
 }
 
-/** History: each live version, newest first; one opens as the draft to publish again. */
+/**
+ * Auto-retry: a step that fails past its own tries goes again on its own, after 5 min, 30 min,
+ * 1 h, 3 h and 6 h, up to this many times. Saved with the draft; live once published.
+ */
+export function RetryPick({
+  value,
+  onChange,
+  disabled,
+}: {
+  value: number;
+  onChange: (tries: number) => void;
+  disabled?: boolean;
+}) {
+  const id = useId();
+  return (
+    <label htmlFor={id} className="flex items-center gap-1.5 text-[13px] text-(--ui-ink-2)">
+      Auto-retry
+      <select
+        id={id}
+        className={SELECT}
+        value={String(value)}
+        disabled={disabled}
+        onChange={(e) => onChange(Number(e.target.value))}
+        title="A failed step tries again after 5 min, 30 min, 1 h, 3 h, then 6 h"
+      >
+        <option value="0">Off</option>
+        {[1, 2, 3, 4, 5].map((n) => (
+          <option key={n} value={String(n)}>
+            {n === 1 ? "1 try" : `${n} tries`}
+          </option>
+        ))}
+      </select>
+    </label>
+  );
+}
+
+/** History: each live version, newest first; Restore opens one as the draft to publish again. */
 export function HistoryMenu({
   versions,
   onOpen,
@@ -1042,8 +1092,13 @@ export function HistoryMenu({
                 </span>
               </span>
               {i === 0 ? null : (
-                <Button tone="quiet" size="dense" onClick={() => onOpen(v)}>
-                  Open
+                <Button
+                  tone="quiet"
+                  size="dense"
+                  onClick={() => onOpen(v)}
+                  title="Opens it as the draft. Publish makes it live again."
+                >
+                  Restore
                 </Button>
               )}
             </div>
