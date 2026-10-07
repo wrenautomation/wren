@@ -215,6 +215,7 @@ import {
 } from "@wren/niches";
 import { makeNotesConsole, notesContext } from "@wren/notes/console";
 import { DRIVE_READ_SCOPE, googleDrive } from "@wren/notes/drive";
+import { NOTES_RECORDS } from "@wren/notes/records";
 import {
   discoverySettingsSchema,
   REACH_SEQUENCES,
@@ -1514,6 +1515,8 @@ export async function buildServices(
         clientRecord,
         // Each client's health and the flags about it (Clients).
         ...HEALTH_RECORDS,
+        // Where you were @ed in Wren's notes: yours only (the Inbox's Mentions).
+        ...NOTES_RECORDS,
         reviewRecord(),
         askRecord,
       ],

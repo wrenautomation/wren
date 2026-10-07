@@ -31,6 +31,7 @@ import {
   fenceFor,
   type GetAsk,
   type ListAsk,
+  meOf,
   opens,
   type RecordsApi,
   type StatsAsk,
@@ -146,7 +147,7 @@ export function calendarRecordsApi(
   const read = async <T>(req: PortalRequest, use: (api: RecordsApi) => Promise<T>) => {
     const client = await installed(req);
     return snapshot(open(client), (tx) =>
-      use(serveRecords(CALENDAR_RECORDS, tx, undefined, fenceFor(req, client.id))),
+      use(serveRecords(CALENDAR_RECORDS, tx, undefined, fenceFor(req, client.id), meOf(req))),
     );
   };
   return {

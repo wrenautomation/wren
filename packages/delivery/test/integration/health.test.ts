@@ -336,6 +336,18 @@ describe("the console", () => {
     const flags = await api.list({ record: "console.flag", view: "open" });
     expect(flags.rows.every((r) => r.state !== "cleared")).toBe(true);
     expect(JSON.stringify(flags.rows)).not.toContain("how");
+    // Mine: each teammate's own open flags, counted for them only.
+    const first = flags.rows[0];
+    await ownFlag(pg.db, Number(first?.id), OPS);
+    const as = (email: string) =>
+      serveRecords(HEALTH_RECORDS, pg.db, undefined, undefined, { email, team: true });
+    const mine = await as(OPS.toLowerCase()).list({ record: "console.flag", view: "mine" });
+    expect(mine.rows.map((r) => r.id)).toContain(first?.id);
+    expect(mine.rows.every((r) => r.owner === OPS.toLowerCase())).toBe(true);
+    expect(mine.counts.mine).toBe(mine.total);
+    expect(
+      (await as("nobody@wren.example").list({ record: "console.flag", view: "mine" })).total,
+    ).toBe(0);
   });
 
   it("rates, overrides and works flags as the signed-in teammate", async () => {

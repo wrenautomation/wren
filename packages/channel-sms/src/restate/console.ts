@@ -23,6 +23,7 @@ import {
   fenceFor,
   type GetAsk,
   type ListAsk,
+  meOf,
   opens,
   type RecordsApi,
   type StatsAsk,
@@ -82,7 +83,7 @@ export function smsConsoleApi({ db, open }: SmsConsoleDeps) {
   const read = async <T>(req: PortalRequest, use: (api: RecordsApi) => Promise<T>) => {
     const client = await texting(req);
     return snapshot(open(client), (tx) =>
-      use(serveRecords(SMS_RECORDS, tx, undefined, fenceFor(req, client.id))),
+      use(serveRecords(SMS_RECORDS, tx, undefined, fenceFor(req, client.id), meOf(req))),
     );
   };
   return {

@@ -26,6 +26,7 @@ Yjs is the source of truth (`notes.y_state`), so offline edits and two people's 
 - comments: anchored by Yjs relative positions (`note_comments.anchor`); highlights are decorations
 - suggestions: `suggestAdd`/`suggestDel` marks; a commenter's sync is taken only when it just suggests (`onlySuggests`, `packages/notes/src/suggest.ts`)
 - mentions: `person:<email>`, `note:<id>`, `console.client:<id>`, kept in `note_links` for backlinks; a person `@`ed in the body or a comment gets a `note_mentions` row, shown under Notes → Mentions only when they can open the note
+- Inbox → Mentions: `notes.mention` (`packages/notes/src/records.ts`, a `mine` record type over `mentionsOf`) lists the signed-in person's mentions in Wren's notes; the Inbox tile counts the unread ones. Open note links to `/notes/doc/<id>?comment=<id>` and marks it read; Mark read is `notes/mentionsRead`, its undo `notes/mentionsUnread` (`readMentions`, `store.ts`)
 - images: S3 under `notes/<client>/<id>/`, referenced as `wren-file:` and signed on read
 - Dump: each person's capture note; Quick note (N, ⌘K "Note: …") appends a timestamped block
 - out: Markdown, print to PDF, Word (`toDocx`, `packages/notes/src/docx.ts`; open suggestions become tracked changes; images fetched by the browser)
@@ -52,7 +53,7 @@ Yjs is the source of truth (`notes.y_state`), so offline edits and two people's 
 
 | Surface | Role |
 |---|---|
-| `NotesConsole` (`packages/notes/src/console.ts`, routes `notes/*`) | home, open, sync, versions, compare, share, capture, backlinks, upload, append, drive, training, comments, mentions |
+| `NotesConsole` (`packages/notes/src/console.ts`, routes `notes/*`) | home, open, sync, versions, compare, share, capture, backlinks, upload, append, drive, training, comments, mentions, mentionsRead, mentionsUnread |
 | `/api/notes/live/<id>` (`apps/portal/src/live.ts`) | the live room's WebSocket |
 | Notes app (`apps/portal/web/src/modules/notes/`) | home (views, search), Mentions, doc (editor, live cursors, outline, comments and suggestions, history, share), Quick note |
 | `wren notes add\|ls\|show\|search\|append\|export` (`apps/cli/src/notes.ts`) | agents write as `agent:<name>`; `--as` reads as a person; `export` writes `.docx` or `.md` |
@@ -60,7 +61,7 @@ Yjs is the source of truth (`notes.y_state`), so offline edits and two people's 
 
 ## In development
 
-Turn into a task, draft or SOP. Not built: a Mentions tile in Wren's Inbox (Inbox tiles count record views; a per-person view needs core work) and email for a mention.
+Turn into a task, draft or SOP. Not built: email for a mention.
 
 ## See
 

@@ -212,6 +212,15 @@ export const flagRecord = defineRecord({
       sort: "-raised",
       at: "raised",
     },
+    // Each teammate's own: the open flags they took or were given.
+    {
+      id: "mine",
+      label: "Mine",
+      where: { state: ["open", "addressed"] },
+      mine: "owner",
+      sort: "-raised",
+      at: "raised",
+    },
     {
       id: "risks",
       label: "Risks",

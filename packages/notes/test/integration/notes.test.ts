@@ -5,6 +5,7 @@
  */
 import { addMember, addOperator, clients, operators } from "@wren/core/clients";
 import type { PortalRefusal } from "@wren/core/portal";
+import { serveRecords } from "@wren/core/records/serve";
 import { createDb, type DbHandle, migrate } from "@wren/db";
 import { startTestPostgres, type TestPostgres, truncate } from "@wren/db/testing";
 import { eq } from "drizzle-orm";
@@ -22,6 +23,7 @@ import {
   writeTitle,
 } from "../../src/doc.js";
 import { googleDrive } from "../../src/drive.js";
+import { mentionRecord } from "../../src/records.js";
 import { trainingNotes } from "../../src/store.js";
 import { SUGGEST_ADD } from "../../src/types.js";
 
@@ -380,6 +382,43 @@ describe("comments, suggestions and mentions", () => {
     expect((await api().mentions({ viewer: OZ })).unseen).toBe(0);
     await api().share({ viewer: ADA, id, who: "oz@example.test", role: "view" });
     expect((await api().mentions({ viewer: OZ })).unseen).toBe(1);
+  });
+
+  it("the Inbox's Mentions: yours only, Mark read and its undo", async () => {
+    const { id } = await api().create({ viewer: ADA, title: "Plan" });
+    await api().share({ viewer: ADA, id, who: "team", role: "comment" });
+    await api().comment({ viewer: ADA, id, body: "@oz@example.test look", anchor: ANCHOR });
+    await api().comment({ viewer: OZ, id, body: "@ada@example.test done", anchor: ANCHOR });
+    const OZ_ME = { email: "oz@example.test", team: true };
+    const list = (me: typeof OZ_ME | null) =>
+      serveRecords([mentionRecord], pg.db, undefined, undefined, me).list({
+        record: mentionRecord.id,
+        view: "unread",
+      });
+    const mine = await list(OZ_ME);
+    expect(mine.rows).toHaveLength(1);
+    expect(mine.rows[0]).toMatchObject({
+      note: "Plan",
+      words: "@oz@example.test look",
+      place: "comment",
+      by: "ada@example.test",
+      noteId: id,
+    });
+    expect((await list(null)).total).toBe(0);
+
+    const mention = String(mine.rows[0]?.id);
+    const ada = await list({ email: "ada@example.test", team: true });
+    // Someone else's mention is skipped.
+    expect(await api().mentionsRead({ viewer: OZ, ids: [String(ada.rows[0]?.id)] })).toEqual({
+      done: [],
+      skipped: [String(ada.rows[0]?.id)],
+    });
+    await refused(api().mentionsRead({ viewer: OZ, ids: ["not-a-uuid"] }), 400);
+    expect((await api().mentionsRead({ viewer: OZ, ids: [mention] })).done).toEqual([mention]);
+    expect((await list(OZ_ME)).total).toBe(0);
+    expect((await api().mentions({ viewer: OZ })).unseen).toBe(0);
+    expect((await api().mentionsUnread({ viewer: OZ, ids: [mention] })).done).toEqual([mention]);
+    expect((await list(OZ_ME)).total).toBe(1);
   });
 
   it("a commenter's change goes in only as their own suggestion", async () => {

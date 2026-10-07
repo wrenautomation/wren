@@ -462,7 +462,24 @@ export interface SavedView {
   sort?: string;
   /** The date field its stats count by (`recordsStats`): "received". */
   at?: string;
+  /**
+   * Kept to the signed-in person: the text or actor field holding their address ("owner"). The
+   * view's rows, counts and stats are theirs only; with nobody signed in, it has none.
+   */
+  mine?: string;
 }
+
+/**
+ * Who reads a list, for what is theirs: a view's `mine`, a type's `mine`, a type's `rows`. Their
+ * address, lowercased, and whether they're on Wren's team. Null for the demo, View as, the CLI.
+ */
+export interface Me {
+  email: string;
+  team: boolean;
+}
+
+/** The kinds a `mine` field may be: they hold an address as text. */
+const MINE_KINDS: ReadonlySet<Kind> = new Set<Kind>(["text", "actor"]);
 
 /** A patch or a record's editable values, by field key. */
 export type Values = Record<string, unknown>;
@@ -519,7 +536,12 @@ export interface RecordDecl<F extends Record<string, Draft>> {
    * view's. They are read once per request and queried as a table, so every filter, sort, page
    * and count is the same SQL. For a few hundred rows, not thousands.
    */
-  rows?: (db: Queryable) => Promise<Record<string, unknown>[]>;
+  rows?: (db: Queryable, me?: Me | null) => Promise<Record<string, unknown>[]>;
+  /**
+   * Every row is one person's: the text or actor field holding their address ("who"). Each read
+   * keeps the signed-in person's rows only, as a fence does: lists, counts, stats and get.
+   */
+  mine?: string;
   /** The view's unique column. */
   key: string;
   title: keyof F & string;
@@ -694,7 +716,15 @@ export function defineRecord<F extends Record<string, Draft>>(decl: RecordDecl<F
   if (!decl.views.length) throw new Error(`${decl.id}: needs a view`);
   if (new Set(decl.views.map((v) => v.id)).size !== decl.views.length)
     throw new Error(`${decl.id}: view ids repeat`);
+  const mineOk = (key: string | undefined, what: string) => {
+    if (key === undefined) return;
+    const f = Object.hasOwn(fields, key) ? fields[key] : undefined;
+    if (!f || !MINE_KINDS.has(f.kind))
+      throw new Error(`${decl.id}: ${what} is mine by ${key}, not a text or actor field`);
+  };
+  mineOk(decl.mine, "it");
   for (const v of decl.views) {
+    mineOk(v.mine, v.id);
     clausesOf(type, v.where);
     if (v.sort) sortOf(type, v.sort);
     if (v.at !== undefined && fields[v.at]?.kind !== "date")

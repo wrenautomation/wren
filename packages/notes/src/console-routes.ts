@@ -20,6 +20,9 @@ export const NOTES_CONSOLE_ROUTES = {
   settings: "read",
   comments: "read",
   mentions: "read",
+  // Your own mentions, read without opening them: a write about you only, as a star is.
+  mentionsRead: "read",
+  mentionsUnread: "read",
   star: "read",
   comment: "comment",
   commentEdit: "comment",
@@ -48,6 +51,8 @@ export const NOTES_CONSOLE_APPS = { "*": "notes" } as const satisfies RouteApps<
 
 /** Refused on the demo and under View as. */
 export const NOTES_CONSOLE_WRITES: readonly (keyof typeof NOTES_CONSOLE_ROUTES)[] = [
+  "mentionsRead",
+  "mentionsUnread",
   "star",
   "comment",
   "commentEdit",

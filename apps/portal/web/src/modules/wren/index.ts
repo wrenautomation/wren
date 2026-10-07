@@ -29,6 +29,7 @@ import { handlers } from "./handlers.js";
 import { AI_SPEND, AiSpend, idOf } from "./heads.js";
 import { CLIENT_FLAG_ACTIONS, ClientHealth, HEALTH_ACTIONS, healthExtras } from "./health.js";
 import { Infra } from "./infra.js";
+import { MENTION_ACTIONS, mentionExtras } from "./mentions.js";
 import { REPLY_ACTIONS } from "./replies.js";
 import { Workflows } from "./workflows.js";
 
@@ -441,6 +442,13 @@ export const inbox: Module = {
           href: "/inbox/mail?view=needs_you",
           needs: true,
         },
+        // Yours only: the console reads the signed-in person's mentions (`mine`).
+        {
+          label: "Mentions",
+          record: "notes.mention",
+          href: "/inbox/mentions?view=unread",
+          needs: true,
+        },
         {
           label: "Issues for you",
           record: "access.issue",
@@ -481,6 +489,20 @@ export const inbox: Module = {
     // waits in Marketing → To approve.
     { ...INBOX_PAGE, id: "waiting", label: "Waiting on you" },
     ...inboxPages(),
+    {
+      id: "mentions",
+      label: "Mentions",
+      template: "list",
+      record: "notes.mention",
+      empty: {
+        unread: "Nothing new. When someone tags you with @ in a note, it shows here.",
+        all: "When someone tags you with @ in a note or a comment, it shows here.",
+      },
+      columns: ["note", "words", "place", "by", "at"],
+      actions: MENTION_ACTIONS,
+      extras: mentionExtras,
+      count: { state: ["unread"] },
+    },
     {
       id: "replies",
       label: "Email replies",
@@ -927,6 +949,13 @@ export const clients: Module = {
         { label: "At risk", record: "console.health", href: "/clients/health?view=risk" },
         { label: "Watch", record: "console.health", href: "/clients/health?view=watch" },
         { label: "Open risks", record: "console.flag", href: "/clients/flags?view=risks" },
+        // Yours only: open flags you own (`mine` on the view).
+        {
+          label: "Flags I own",
+          record: "console.flag",
+          href: "/clients/flags?view=mine",
+          needs: true,
+        },
         {
           label: "Opportunities",
           record: "console.flag",
@@ -1001,6 +1030,7 @@ export const clients: Module = {
       record: "console.flag",
       empty: {
         open: "Nothing flagged.",
+        mine: "No open flag is yours. Take one to own it.",
         risks: "No open risks.",
         opportunities: "No open opportunities.",
         cleared: "Cleared flags show here.",

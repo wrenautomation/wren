@@ -896,6 +896,31 @@ export function mentionsOf(db: Queryable, r: Omit<Reader, "cap">, limit = 50) {
     .limit(Math.min(Math.max(limit, 1), 200));
 }
 
+/**
+ * Mark these mentions of this person read (or unread again), without opening their notes: the
+ * Inbox's Mark read and its Undo. Someone else's mention is left alone. The ids it changed.
+ */
+export async function readMentions(
+  db: Queryable,
+  ids: readonly string[],
+  email: string,
+  read = true,
+): Promise<string[]> {
+  if (!ids.length || !email) return [];
+  const done = await db
+    .update(noteMentions)
+    .set({ seenAt: read ? new Date() : null })
+    .where(
+      and(
+        inArray(noteMentions.id, [...ids]),
+        eq(noteMentions.who, email.toLowerCase()),
+        read ? isNull(noteMentions.seenAt) : isNotNull(noteMentions.seenAt),
+      ),
+    )
+    .returning({ id: noteMentions.id });
+  return done.map((d) => d.id);
+}
+
 /** How many of this person's mentions they haven't opened. */
 export async function unseenMentions(db: Queryable, r: Omit<Reader, "cap">): Promise<number> {
   const [row] = await db

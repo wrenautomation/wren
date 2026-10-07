@@ -147,6 +147,7 @@ import {
   type Fence,
   type GetAsk,
   type ListAsk,
+  meOf,
   opens,
   type RecordAnswer,
   type RecordsApi,
@@ -2172,7 +2173,7 @@ export function consoleApi({
   ): Promise<T> => {
     if (req.record !== COMPONENT && !isAccess(req.record)) team(req);
     const all = await typesFor(req);
-    return snapshot(main, (tx) => use(serveRecords(all, tx, undefined, fenceOf(req))));
+    return snapshot(main, (tx) => use(serveRecords(all, tx, undefined, fenceOf(req), meOf(req))));
   };
   /**
    * Whose saved views and prefs: the viewer's, in Wren's own apps or at the client asked for. The

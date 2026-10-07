@@ -15,7 +15,7 @@ import type { Queryable } from "@wren/db";
 import { type SQL, sql } from "drizzle-orm";
 import { type Reach, reach } from "./access.js";
 import { type EditState, editState } from "./edits.js";
-import { isDemo, PortalRefusal, type PortalRequest } from "./portal.js";
+import { isDemo, isOperator, PortalRefusal, type PortalRequest } from "./portal.js";
 import {
   allowed,
   BadAsk,
@@ -25,9 +25,11 @@ import {
   csvRow,
   type Field,
   KINDS,
+  type Me,
   metaOf,
   type RecordMeta,
   type RecordType,
+  type SavedView,
   sortOf,
 } from "./records.js";
 import { canonicalZone, wallClock, zonedInstant } from "./time.js";
@@ -471,6 +473,23 @@ export function fenceFor(req: PortalRequest, client: string): Fence | undefined 
   return (t) => reach(who, "read", { client, app: t.app, type: t.id, channel: t.channel });
 }
 
+/**
+ * Who is signed in, for what is theirs (`mine`): the viewer's address. Nobody for the demo and
+ * under View as, which reads what the workspace shares, never one person's own.
+ */
+export function meOf(req: PortalRequest): Me | null {
+  const v = req.viewer;
+  if (isDemo(v) || (typeof req.viewAs === "string" && req.viewAs !== "")) return null;
+  return { email: v.email.trim().toLowerCase(), team: isOperator(v) };
+}
+
+/** Rows whose `field` holds this person's address; none when nobody is signed in. */
+function mineSql(t: RecordType, field: string, me: Me | null): SQL {
+  if (!me?.email) return sql`false`;
+  const col = t.fields[field]?.from ?? field;
+  return sql`lower((${ref(col)})::text) = ${me.email}`;
+}
+
 const oneOf = (vs: readonly string[]) =>
   sql.join(
     vs.map((v) => sql`${v}::text`),
@@ -482,6 +501,8 @@ export function serveRecords(
   db: Queryable,
   mask?: Mask,
   fence?: Fence,
+  /** The signed-in person (`meOf`): a `mine` type or view reads their rows, `rows` gets them. */
+  me: Me | null = null,
 ) {
   const types = fence ? given.filter((t) => opens(t, fence(t))) : given;
   const demo = !!mask;
@@ -515,7 +536,9 @@ export function serveRecords(
   const loaded = new Map<string, Promise<Raw[]>>();
   /** What a type's rows are read from, as `r`: its view, or its own rows as a table. */
   async function source(t: RecordType): Promise<SQL> {
-    const all = await unfenced(t);
+    const all = t.mine
+      ? sql`(select r.* from ${await unfenced(t)} where ${mineSql(t, t.mine, me)}) r`
+      : await unfenced(t);
     const r = fence?.(t);
     if (!r) return all;
     const by: SQL[] = [];
@@ -529,7 +552,7 @@ export function serveRecords(
   }
   async function unfenced(t: RecordType): Promise<SQL> {
     if (t.view) return sql`${viewSql(t.view)} r`;
-    const rows = loaded.get(t.id) ?? t.rows?.(db) ?? Promise.resolve([]);
+    const rows = loaded.get(t.id) ?? t.rows?.(db, me) ?? Promise.resolve([]);
     loaded.set(t.id, rows);
     const pointedBy = types.flatMap((x) =>
       (x.related ?? []).filter((r) => r.record === t.id).map((r) => r.by),
@@ -540,6 +563,13 @@ export function serveRecords(
       sql`, `,
     )})`;
   }
+
+  /** A saved view's rows: its filters, and the signed-in person's own when it's `mine`. */
+  const savedSql = (t: RecordType, v: SavedView): SQL =>
+    and([
+      ...clausesOf(t, v.where).map((c) => clauseSql(t, c)),
+      ...(v.mine ? [mineSql(t, v.mine, me)] : []),
+    ]);
 
   /** Everything a list or export asks, checked, as SQL. */
   function plan(ask: ExportAsk) {
@@ -590,7 +620,7 @@ export function serveRecords(
     const order = by
       ? sql`(${by.expr}) is null, ${by.expr} ${by.desc ? sql`desc` : sql`asc`}, ${keyText(t)}`
       : keyText(t);
-    const inView = and(view ? clausesOf(t, view.where).map((c) => clauseSql(t, c)) : []);
+    const inView = view ? savedSql(t, view) : sql`true`;
     /** Every filter but one field's: what that field's facet counts under. */
     const but = (field: string | null) =>
       and(parts.filter((x) => field === null || x.field !== field).map((x) => x.sql));
@@ -678,7 +708,7 @@ export function serveRecords(
             ${sql.join(
               views.map(
                 (v, i) =>
-                  sql`count(*) filter (where ${and(clausesOf(p.t, v.where).map((c) => clauseSql(p.t, c)))})::int ${sql.identifier(`c${i}`)}`,
+                  sql`count(*) filter (where ${savedSql(p.t, v)})::int ${sql.identifier(`c${i}`)}`,
               ),
               sql`, `,
             )}

@@ -42,6 +42,7 @@ import {
   fenceFor,
   type GetAsk,
   type ListAsk,
+  meOf,
   type RecordAnswer,
   type RecordsApi,
   type RecordsFile,
@@ -152,7 +153,15 @@ const recordsOf = (main: Db, c: Client, operator: boolean, req: RecordsReq) =>
   );
 const records = <T>(deps: DeliveryDeps, req: RecordsReq, use: (api: RecordsApi) => Promise<T>) =>
   read(deps, req, (db, c, operator) =>
-    use(serveRecords(recordsOf(deps.main, c, operator, req), db, undefined, fenceFor(req, c.id))),
+    use(
+      serveRecords(
+        recordsOf(deps.main, c, operator, req),
+        db,
+        undefined,
+        fenceFor(req, c.id),
+        meOf(req),
+      ),
+    ),
   );
 
 /**

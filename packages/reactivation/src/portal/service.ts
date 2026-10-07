@@ -26,6 +26,7 @@ import {
   fenceFor,
   type GetAsk,
   type ListAsk,
+  meOf,
   type RecordAnswer,
   type RecordsApi,
   type RecordsFile,
@@ -106,7 +107,7 @@ async function records<T>(
   const client = await pickClient(deps.main, req);
   return snapshot(deps.open(client), async (tx) => {
     const mask = masked(client, req) ? await demoMask(tx, client) : undefined;
-    return use(serveRecords(typesOf(client), tx, mask, fenceFor(req, client.id)));
+    return use(serveRecords(typesOf(client), tx, mask, fenceFor(req, client.id), meOf(req)));
   });
 }
 

@@ -51,6 +51,7 @@ import { DELIVERY_APPS } from "@wren/delivery/routes";
 import { notesApi } from "@wren/notes/console";
 import { NOTES_CONSOLE_APPS, NOTES_CONSOLE_ROUTES } from "@wren/notes/console-routes";
 import { googleDrive } from "@wren/notes/drive";
+import { NOTES_RECORDS } from "@wren/notes/records";
 import { LIVE_PREFIX, Room, RoomRefusal, type SyncAnswer } from "@wren/notes/room";
 import { DEMO_NAME, PORTAL_ROUTES, portalApi } from "@wren/reactivation/restate";
 import { dictationApi } from "@wren/voice/console";
@@ -152,6 +153,8 @@ const SERVICES: Record<
         ...VOICE_RECORDS,
         // Clients' health and flags.
         ...HEALTH_RECORDS,
+        // The Inbox's Mentions: the signed-in person's own.
+        ...NOTES_RECORDS,
       ],
     }),
   },

@@ -31,6 +31,7 @@ import {
   fenceFor,
   type GetAsk,
   type ListAsk,
+  meOf,
   opens,
   type RecordsApi,
   type StatsAsk,
@@ -217,7 +218,7 @@ export function emailConsoleApi({
   /** The client's records, read-only: the rows this login may read. */
   const sheet = async <T>(req: PortalRequest, use: (api: RecordsApi) => Promise<T>) => {
     const { db, fence, types } = await sheetOf(req);
-    return snapshot(db, (tx) => use(serveRecords(types, tx, undefined, fence)));
+    return snapshot(db, (tx) => use(serveRecords(types, tx, undefined, fence, meOf(req))));
   };
 
   /** With `client` set, that client (Wren's team, `component` installed); else null = Wren's. */

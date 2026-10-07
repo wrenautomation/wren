@@ -58,6 +58,7 @@ import {
   type NoteRow,
   nameVersion,
   noteById,
+  readMentions,
   renameNote,
   resolveComment,
   restoreVersion,
@@ -199,6 +200,19 @@ export function notesApi(deps: NotesDeps) {
       client: place.client?.id ?? null,
       cap,
     };
+  };
+
+  /** Mark the signed-in person's own mentions read or unread: `{done, skipped}` as actions answer. */
+  const markMentions = async (req: PortalRequest & { ids?: unknown }, read: boolean) => {
+    const by = byOf(req);
+    const ids = z.array(z.uuid()).max(200).safeParse(req.ids);
+    if (!ids.success) throw new PortalRefusal("say which mentions", 400);
+    const place = await placeOf(req);
+    const done = await readMentions(place.db, ids.data, by, read);
+    // A client's people are also `@`ed in Wren's notes shared to their client.
+    if (place.ws !== WREN && !isOperator(req.viewer))
+      done.push(...(await readMentions(main, ids.data, by, read)));
+    return { done, skipped: ids.data.filter((id) => !done.includes(id)) };
   };
 
   /** The person a change is by: never the demo, never under View as. */
@@ -572,6 +586,14 @@ export function notesApi(deps: NotesDeps) {
       }
       return { mentions: mentions.slice(0, limit), unseen };
     },
+
+    /**
+     * Mark these mentions of the signed-in person read, here and, for a client's people, in
+     * Wren's notes shared to them. Only their own: anyone else's id is skipped.
+     */
+    mentionsRead: (req: Req<{ ids?: unknown }>) => markMentions(req, true),
+    /** Mark them unread again: Mark read's Undo. */
+    mentionsUnread: (req: Req<{ ids?: unknown }>) => markMentions(req, false),
 
     /**
      * A new thread on a range, or a reply in one. `@email` in the words tells that person, if
@@ -954,6 +976,8 @@ const INPUTS = {
   settings: {},
   comments: { id: ID },
   mentions: { limit: z.number().int().optional() },
+  mentionsRead: { ids: z.array(z.string().max(64)).max(200).describe("Mention ids") },
+  mentionsUnread: { ids: z.array(z.string().max(64)).max(200).describe("Mention ids") },
   star: { id: ID, on: ON },
   comment: {
     id: ID,
@@ -1033,6 +1057,8 @@ export function makeNotesConsole(deps: NotesDeps) {
       settings: read("settings"),
       comments: read("comments"),
       mentions: read("mentions"),
+      mentionsRead: write("mentionsRead", "read mentions"),
+      mentionsUnread: write("mentionsUnread", "unread mentions"),
       star: write("star", "star"),
       comment: write("comment", "comment"),
       commentEdit: write("commentEdit", "edit comment"),
