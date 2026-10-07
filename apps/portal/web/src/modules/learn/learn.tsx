@@ -64,13 +64,17 @@ export function SaveBox({ reload }: { reload?: () => void }) {
     }
   };
   return (
-    <form onSubmit={submit} className="flex w-full max-w-xl flex-col gap-1.5">
-      <div className="flex gap-2">
+    <form
+      onSubmit={submit}
+      className="flex w-full min-w-0 flex-1 basis-full flex-col gap-1.5 sm:max-w-xl"
+    >
+      <div className="flex min-w-0 gap-2">
         <Input
           type="url"
           value={url}
           onChange={(e) => setUrl(e.target.value)}
-          placeholder="Paste a link: a reel, a video, a post"
+          className="min-w-0 flex-1"
+          placeholder="Paste a link"
           aria-label="Save a link"
         />
         <Button size="dense" type="submit" busy={busy} disabled={!url.trim()}>
