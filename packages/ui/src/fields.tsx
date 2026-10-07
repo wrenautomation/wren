@@ -7,7 +7,7 @@ import type { Cell, FieldMeta, Filter, Op, State, Tone } from "@wren/core/record
 import type { Total } from "@wren/core/records/serve";
 import { cn } from "cn";
 import type { ReactNode } from "react";
-import { hostOf, money, num } from "./format.js";
+import { duration, hostOf, money, num } from "./format.js";
 import { Cited, type PickSource, stripMarks } from "./sources.js";
 
 const TONE: Record<Tone, string> = {
@@ -91,12 +91,18 @@ const pct = (x: number) => `${Math.round(x * 100)}%`;
 const quiet = (s: ReactNode) => <span className="text-(--ui-ink-3)">{s}</span>;
 
 /** A link that opens apart from the row it sits in. The demo's hidden profiles show unlinked. */
-const linkLabel = (href: string) => (href.startsWith("/") ? "Open" : (hostOf(href) ?? href));
+const linkLabel = (href: string) =>
+  href.startsWith("/")
+    ? "Open"
+    : href.startsWith("tel:")
+      ? `Call ${href.slice(4)}`
+      : (hostOf(href) ?? href);
 
 function Out({ href, children }: { href: string; children: ReactNode }) {
   if (href.includes("•••")) return <span>{children}</span>;
-  // A page of this app ("/inbox/replies/12") opens in place; anything else in a new tab.
-  const away = !href.startsWith("/");
+  // A page of this app ("/inbox/replies/12") opens in place, a phone number dials; anything else
+  // in a new tab.
+  const away = !href.startsWith("/") && !href.startsWith("tel:");
   return (
     <a
       href={href}
@@ -141,6 +147,8 @@ export function FieldCell({ field: f, cell: c }: { field: FieldMeta; cell: Cell 
       return <span>{num(Number(c))}</span>;
     case "percent":
       return <span>{pct(Number(c))}</span>;
+    case "duration":
+      return <span>{duration(Number(c))}</span>;
     case "score":
       return <Score value={Number(c)} max={f.max} />;
     case "date": {
@@ -329,7 +337,15 @@ export function FieldLine({
   }
   if (f.kind === "score" && f.max) return <Score value={Number(c)} max={f.max} />;
   if (f.kind === "link")
-    return <Out href={String(c)}>{String(c).startsWith("/") ? "Open" : String(c)}</Out>;
+    return (
+      <Out href={String(c)}>
+        {String(c).startsWith("/")
+          ? "Open"
+          : String(c).startsWith("tel:")
+            ? linkLabel(String(c))
+            : String(c)}
+      </Out>
+    );
   if (f.kind === "cited")
     return cite ? (
       <Cited text={String(c)} order={cite.order} lit={cite.lit} onPick={cite.pick} />

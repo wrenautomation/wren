@@ -13,7 +13,7 @@ import { Sparkline, TrendChart } from "./charts/index.js";
 import { arrangeTiles, TilesMenu, type TilesPref, usePref } from "./customize.js";
 import { Alert } from "./feedback.js";
 import { FieldCell } from "./fields.js";
-import { money, month, num } from "./format.js";
+import { duration, money, month, num } from "./format.js";
 import {
   askOf,
   cap,
@@ -36,6 +36,11 @@ export interface OverviewTile {
   at?: string;
   /** A number or money field to add up; rows are counted when left out. */
   sum?: string;
+  /**
+   * A number or duration field's median over the period, with the newest row's beside it: how
+   * long a lead waits for the first text. Takes a period.
+   */
+  median?: string;
   /** Rows waiting on someone: the number shows amber while above zero. */
   needs?: true;
   /**
@@ -215,6 +220,7 @@ function Tile({
           zone: ZONE,
           ...(tile.at ? { at: tile.at } : {}),
           ...(tile.sum ? { sum: tile.sum } : {}),
+          ...(tile.median ? { median: tile.median } : {}),
         });
       }
       const page = await api.list({ ...ask, limit: 1 });
@@ -230,15 +236,18 @@ function Tile({
     api,
   );
   const s = load.data;
-  const kind = pick ? meta.fields.find((f) => f.key === pick)?.kind : undefined;
+  const read = pick ?? tile.median;
+  const kind = read ? meta.fields.find((f) => f.key === read)?.kind : undefined;
   const fmt = (n: number) =>
     s?.currency
       ? money(n, s.currency, true)
-      : kind === "percent"
-        ? `${Math.round(n * 1000) / 10}%`
-        : pick
-          ? n.toLocaleString("en-US", { maximumFractionDigits: 1 })
-          : num(n);
+      : kind === "duration"
+        ? duration(n)
+        : kind === "percent"
+          ? `${Math.round(n * 1000) / 10}%`
+          : pick
+            ? n.toLocaleString("en-US", { maximumFractionDigits: 1 })
+            : num(n);
   const delta = s?.value != null && s.prior != null ? s.value - s.prior : null;
   // biome-ignore lint/correctness/useExhaustiveDependencies: the answer is the cue; `fmt` reads it.
   useEffect(() => {
@@ -262,7 +271,15 @@ function Tile({
     >
       <span className="flex flex-wrap items-baseline justify-between gap-x-2 text-[13px] text-(--ui-ink-2)">
         <span className="font-medium text-(--ui-ink)">{tile.label}</span>
-        <span>{pick ? newest : period ? periodName(period) : "Now"}</span>
+        <span>
+          {pick
+            ? newest
+            : period
+              ? tile.median
+                ? `Median, ${periodName(period).toLowerCase()}`
+                : periodName(period)
+              : "Now"}
+        </span>
       </span>
       {s ? (
         <>
@@ -278,11 +295,16 @@ function Tile({
           {period || pick ? (
             <>
               <span className="text-[13px] text-(--ui-ink-2)">
-                {delta === null || !before
-                  ? ""
-                  : delta === 0
-                    ? `Same as ${before}`
-                    : `${delta > 0 ? "+" : "−"}${fmt(Math.abs(delta))} vs ${before}`}
+                {[
+                  s.latest != null ? `Newest ${fmt(s.latest)}` : "",
+                  delta === null || !before
+                    ? ""
+                    : delta === 0
+                      ? `Same as ${before}`
+                      : `${delta > 0 ? "+" : "−"}${fmt(Math.abs(delta))} vs ${before}`,
+                ]
+                  .filter(Boolean)
+                  .join(" · ")}
               </span>
               <Sparkline
                 series={s.series}

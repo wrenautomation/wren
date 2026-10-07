@@ -6,6 +6,7 @@
 import * as clients from "@restatedev/restate-sdk-clients";
 import type { RestateTestEnvironment } from "@restatedev/restate-sdk-testcontainers";
 import { ingressOf } from "@wren/config";
+import { serveRecords } from "@wren/core/records/serve";
 import { addHook, makeSpine, SPINE } from "@wren/core/spine";
 import { startTestRestate } from "@wren/core/testing";
 import { defineWorkflow } from "@wren/core/workflows";
@@ -17,6 +18,7 @@ import { SMS_COMPONENTS } from "../../src/components.js";
 import { tick } from "../../src/deliver.js";
 import { touch } from "../../src/follow.js";
 import { FakeProvider } from "../../src/provider.js";
+import { SMS_RECORDS } from "../../src/records.js";
 import { smsContacts, smsMessages, speedRuns } from "../../src/schema.js";
 import { firstText, firstTextStep, SPEED, SPEED_SEQUENCES } from "../../src/speed.js";
 import { fillTemplates, numbers, POLICY, TABLES } from "./fixtures.js";
@@ -310,5 +312,52 @@ describe("the follow-up", () => {
     };
     expect(await touch(pg.db, id, 2, opts)).toBe("queued");
     expect(await pg.db.select().from(smsMessages)).toHaveLength(2);
+  });
+});
+
+describe("the speed-to-lead page", () => {
+  it("lists each lead with each step's state and the time to the first text", async () => {
+    const at = new Date("2026-03-10T15:00:00Z");
+    const lead = {
+      name: "Eve Test",
+      phone: "(212) 555-0103",
+      email: "eve@example.test",
+      consent: true,
+      consentDetail: "ticked the box",
+      source: "site",
+      zone: null,
+    };
+    const one = await firstText(
+      pg.db,
+      { workflow: "w", subject: "form:eve", lead, leadAt: at },
+      { ...texts(), live: false, why: "WREN_SMS_LIVE is off" },
+      new Date(at.getTime() + 38_000),
+    );
+    await pg.db
+      .update(speedRuns)
+      .set({ call: "alerted", callAt: at, callDetail: "voice not set up" })
+      .where(eq(speedRuns.id, one.run.id));
+    const serve = serveRecords(SMS_RECORDS, pg.db);
+    const page = await serve.list({ record: "sms.speed", view: "call" });
+    expect(page.rows).toMatchObject([
+      {
+        id: String(one.run.id),
+        who: "Eve Test",
+        tel: "tel:+12125550103",
+        firstTouch: "would_send",
+        firstTouchIn: 38,
+        call: "alerted",
+      },
+    ]);
+    const got = await serve.get({ record: "sms.speed", id: String(one.run.id) });
+    expect(got.detail).toMatchObject({
+      steps: [
+        { step: "Came in", said: "texts allowed" },
+        { step: "First text", said: "would_send", why: "WREN_SMS_LIVE is off" },
+        { step: "Call", said: "alerted", why: "voice not set up" },
+        { step: "Follow-up", said: null },
+        { step: "Booked", said: null },
+      ],
+    });
   });
 });

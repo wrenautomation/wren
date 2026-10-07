@@ -7,7 +7,16 @@ import { startTestPostgres, type TestPostgres } from "@wren/db/testing";
 import { sql } from "drizzle-orm";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { PortalRefusal } from "../../src/portal.js";
-import { date, defineRecord, money, name, number, status, text } from "../../src/records.js";
+import {
+  date,
+  defineRecord,
+  duration,
+  money,
+  name,
+  number,
+  status,
+  text,
+} from "../../src/records.js";
 import { type Mask, type RecordsApi, serveRecords } from "../../src/records-serve.js";
 
 const NOW = new Date("2026-03-10T15:00:00Z");
@@ -197,6 +206,37 @@ describe("recordsStats", () => {
     expect(s.series[0]?.at).toBe("2025-04-01T04:00:00.000Z");
     await refused(serve.stats({ ...one, pick: "k" }, NOW));
     await refused(serve.stats(one, NOW)); // no period and no pick
+  });
+
+  it("a median of durations, by day, with the newest row's beside it", async () => {
+    const leads = defineRecord({
+      id: "test.lead",
+      app: "work",
+      channel: null,
+      name: { one: "lead", many: "leads" },
+      rows: async () => [
+        { k: "a", at: "2026-03-05T10:00:00Z", took: 30 },
+        { k: "b", at: "2026-03-08T10:00:00Z", took: 100 },
+        { k: "c", at: "2026-03-10T10:00:00Z", took: 40 },
+        { k: "d", at: "2026-03-10T12:00:00Z", took: 20 },
+        { k: "e", at: "2026-03-10T14:00:00Z", took: null }, // not texted yet
+        { k: "f", at: "2026-03-01T10:00:00Z", took: 60 },
+        { k: "g", at: "2026-03-02T10:00:00Z", took: 90 },
+      ],
+      key: "k",
+      title: "k",
+      fields: { k: text(), at: date(), took: duration("Took") },
+      views: [{ id: "all", label: "All", at: "at" }],
+    });
+    const serve = serveRecords([leads], pg.db);
+    const one = { record: "test.lead", view: "all", period: 7 } as const;
+    const s = await serve.stats({ ...one, median: "took" }, NOW);
+    expect([s.value, s.prior, s.latest]).toEqual([35, 75, 20]);
+    expect(s.series.map((d) => d.value)).toEqual([null, 30, null, null, 100, null, 30]);
+    await refused(serve.stats({ ...one, median: "k" }, NOW));
+    await refused(serve.stats({ ...one, median: "took", sum: "took" }, NOW));
+    const none = await serve.stats({ ...one, median: "took", period: 1, where: { k: "e" } }, NOW);
+    expect([none.value, none.latest]).toEqual([null, null]);
   });
 
   it("refuses what it can't answer", async () => {

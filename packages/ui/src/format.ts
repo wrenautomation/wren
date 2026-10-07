@@ -17,6 +17,17 @@ export function money(amount: number, currency: string, whole = false): string {
   }
 }
 
+/** Seconds as people say them: "38s", "2m 5s", "1h 4m", "3d 2h". */
+export function duration(seconds: number): string {
+  const s = Math.max(0, Math.round(seconds));
+  if (s < 60) return `${s}s`;
+  const two = (big: number, bu: string, small: number, su: string) =>
+    small ? `${big}${bu} ${small}${su}` : `${big}${bu}`;
+  if (s < 3600) return two(Math.floor(s / 60), "m", s % 60, "s");
+  if (s < 86_400) return two(Math.floor(s / 3600), "h", Math.floor((s % 3600) / 60), "m");
+  return two(Math.floor(s / 86_400), "d", Math.floor((s % 86_400) / 3600), "h");
+}
+
 const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
 
 /**

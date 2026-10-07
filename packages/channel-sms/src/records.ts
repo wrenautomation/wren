@@ -1,8 +1,23 @@
 /**
- * The console's SMS records: a client's texting threads (O4), read from its own database, and
- * for the Marketing app texted contacts (`marketing_text_contact_records`) and William's words.
+ * The console's SMS records: a client's texting threads (O4) and its speed-to-lead runs, read
+ * from its own database, and for the Marketing app texted contacts
+ * (`marketing_text_contact_records`) and William's words.
  */
-import { date, defineRecord, name, number, prose, rate, status, text } from "@wren/core/records";
+import {
+  date,
+  defineRecord,
+  duration,
+  link,
+  name,
+  number,
+  prose,
+  rate,
+  status,
+  text,
+} from "@wren/core/records";
+import type { Queryable } from "@wren/db";
+import { desc, eq } from "drizzle-orm";
+import { smsContacts, speedRuns } from "./schema.js";
 import { listTemplates, slotsOf } from "./template-store.js";
 import { type SmsSequence, sampleFields } from "./templates.js";
 import { getThread, listThreads } from "./threads.js";
@@ -86,7 +101,128 @@ export const threadRecord = defineRecord({
   },
 });
 
-export const SMS_RECORDS = [threadRecord];
+/** ponytail: rows, as threads: the newest few hundred leads; a view past that. */
+const SPEED_ROWS = 500;
+
+const runs = (db: Queryable, id?: number) =>
+  db
+    .select({ run: speedRuns, follow: smsContacts.state, followWhy: smsContacts.stateReason })
+    .from(speedRuns)
+    .leftJoin(smsContacts, eq(smsContacts.id, speedRuns.smsContactId))
+    .where(id === undefined ? undefined : eq(speedRuns.id, id))
+    .orderBy(desc(speedRuns.leadAt))
+    .limit(SPEED_ROWS);
+
+/**
+ * Speed to lead (designs/2026-10-07-speed-to-lead.md): each lead from the door, with each step's
+ * state: the first text and how long it took, the call (or "Call now" for the rep), the
+ * follow-up, a booking. "Call now" waits on someone until voice is set up.
+ */
+export const speedRecord = defineRecord({
+  id: "sms.speed",
+  app: "texts",
+  channel: "sms",
+  name: { one: "lead", many: "leads" },
+  rows: async (db) =>
+    (await runs(db)).map(({ run: r, follow }) => ({
+      id: r.id,
+      who: r.name ?? r.email ?? r.phone ?? r.subject,
+      phone: r.e164 ?? r.phone,
+      tel: r.e164 ? `tel:${r.e164}` : null,
+      email: r.email,
+      source: r.source,
+      lead_at: r.leadAt,
+      first_touch: r.firstTouch,
+      first_touch_at: r.firstTouchAt,
+      first_touch_in: r.firstTouchAt
+        ? Math.max(0, Math.round((r.firstTouchAt.getTime() - r.leadAt.getTime()) / 1000))
+        : null,
+      call: r.call,
+      call_at: r.callAt,
+      follow: r.bookedAt ? "booked" : (follow ?? null),
+      booked_at: r.bookedAt,
+    })),
+  key: "id",
+  title: "who",
+  subtitle: "phone",
+  fields: {
+    who: name("Lead"),
+    phone: text("Phone"),
+    tel: link("Call"),
+    email: text("Email"),
+    source: text("Source"),
+    leadAt: date("Came in"),
+    firstTouch: status(
+      {
+        queued: { label: "Queued", tone: "neutral" },
+        sent: { label: "Sent", tone: "good" },
+        would_send: { label: "Would send", tone: "neutral" },
+        no_consent: { label: "No consent", tone: "warn" },
+        no_phone: { label: "No phone", tone: "warn" },
+        refused: { label: "Not sent", tone: "bad" },
+      },
+      "First text",
+    ),
+    firstTouchIn: duration("Took"),
+    firstTouchAt: date("Texted"),
+    call: status(
+      {
+        alerted: { label: "Call now", tone: "warn" },
+        dialed: { label: "Dialed", tone: "good" },
+        skipped: { label: "Skipped", tone: "neutral" },
+      },
+      "Call",
+    ),
+    callAt: date("Call at"),
+    follow: status(
+      {
+        enrolled: { label: "Texting", tone: "neutral" },
+        replied: { label: "Replied", tone: "good" },
+        booked: { label: "Booked", tone: "good" },
+        finished: { label: "Finished", tone: "neutral" },
+        stopped: { label: "Stopped", tone: "neutral" },
+        opted_out: { label: "Opted out", tone: "bad" },
+        unreachable: { label: "Unreachable", tone: "bad" },
+        new: { label: "Not started", tone: "neutral" },
+      },
+      "Follow-up",
+    ),
+    bookedAt: date("Booked"),
+  },
+  views: [
+    {
+      id: "call",
+      label: "Call now",
+      where: { call: "alerted", bookedAt: { empty: true } },
+      sort: "-leadAt",
+      at: "leadAt",
+    },
+    { id: "all", label: "All", sort: "-leadAt", at: "leadAt" },
+    { id: "booked", label: "Booked", where: { bookedAt: { empty: false } }, sort: "-bookedAt" },
+  ],
+  /** Each step's state and why, for the record's page. */
+  load: async (db, id) => {
+    const [got] = await runs(db, Number(id));
+    if (!got) return null;
+    const { run: r, follow, followWhy } = got;
+    return {
+      steps: [
+        {
+          step: "Came in",
+          at: r.leadAt,
+          said: r.consent ? "texts allowed" : "no texting consent",
+          why: r.consentDetail,
+        },
+        { step: "First text", at: r.firstTouchAt, said: r.firstTouch, why: r.firstTouchDetail },
+        { step: "Call", at: r.callAt, said: r.call, why: r.callDetail },
+        { step: "Follow-up", at: null, said: follow, why: followWhy },
+        { step: "Booked", at: r.bookedAt, said: r.bookedAt ? "booked" : null, why: null },
+      ],
+    };
+  },
+});
+
+export const SMS_RECORDS = [threadRecord, speedRecord];
 
 const neutral = (label: string) => ({ label, tone: "neutral" as const });
 

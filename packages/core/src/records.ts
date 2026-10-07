@@ -124,6 +124,16 @@ export const KINDS = {
     column: right,
     csv: (c) => (c && typeof c === "object" && "n" in c ? `${c.n} of ${c.of}` : null),
   },
+  /** Seconds: how long something took ("38s", "2m 5s" on screen); a CSV cell keeps the seconds. */
+  duration: {
+    sql: "numeric",
+    ops: NUMBERS,
+    sortable: true,
+    searchable: false,
+    masked: false,
+    column: right,
+    csv: plain,
+  },
   /** ISO; a CSV cell keeps the exact time. */
   date: {
     sql: "timestamptz",
@@ -261,6 +271,7 @@ export const money = (label?: string, opts: Opts = {}) =>
   kind("money")(label, { currency: "currency", ...opts });
 export const percent = kind("percent");
 export const date = kind("date");
+export const duration = kind("duration");
 export const link = kind("link");
 export const cited = kind("cited");
 export const prose = kind("prose");

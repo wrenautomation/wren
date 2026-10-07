@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { ago, cx, hostOf, initials, money, month, num, soon } from "./format.js";
+import { ago, cx, duration, hostOf, initials, money, month, num, soon } from "./format.js";
 
 describe("money", () => {
   it("shows cents in a list and whole units in a tile", () => {
@@ -9,6 +9,21 @@ describe("money", () => {
   });
   it("falls back to the code for a currency it can't read", () => {
     expect(money(1250, "nope")).toBe("nope 1,250.00");
+  });
+});
+
+describe("duration", () => {
+  it("says seconds the way people do", () => {
+    expect([0, 38, 60, 125, 3600, 3840, 86_400, 266_400].map(duration)).toEqual([
+      "0s",
+      "38s",
+      "1m",
+      "2m 5s",
+      "1h",
+      "1h 4m",
+      "1d",
+      "3d 2h",
+    ]);
   });
 });
 

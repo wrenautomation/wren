@@ -114,6 +114,8 @@ export interface StatsAsk extends ExportAsk {
   period?: Period;
   /** A number or money field to add up; absent, rows are counted. */
   sum?: string;
+  /** A number or duration field's median over the period's rows, in place of a count or sum. */
+  median?: string;
   /**
    * A number, money or percent field read off the newest row up to now, by `at`, for a type with
    * a row per month: its value, the row before's, and the newest 12. Takes no period.
@@ -133,6 +135,8 @@ export interface RecordsStat {
   series: { at: string; value: number | null }[];
   /** A money sum's currency; null otherwise or with no rows. */
   currency: string | null;
+  /** A median's newest row's value, by `at`; absent for counts, sums and picks. */
+  latest?: number | null;
 }
 
 type CsvCell = string | number | boolean | null;
@@ -725,6 +729,15 @@ export function serveRecords(
         const sumField = ask.sum === undefined ? null : fieldOf(ask.sum);
         if (sumField !== null && sumField?.kind !== "number" && sumField?.kind !== "money")
           throw new BadAsk(`${p.t.name.many} can't add that up`);
+        const medianField = ask.median === undefined ? null : fieldOf(ask.median);
+        if (
+          medianField !== null &&
+          medianField?.kind !== "number" &&
+          medianField?.kind !== "duration"
+        )
+          throw new BadAsk(`${p.t.name.many} have no median there`);
+        if (medianField && (sumField || ask.pick !== undefined))
+          throw new BadAsk("a median takes no sum or pick");
         const zone =
           typeof ask.zone === "string" ? canonicalZone(ask.zone) : ask.zone ? null : "UTC";
         if (!zone) throw new BadAsk("no such time zone");
@@ -784,9 +797,11 @@ export function serveRecords(
         const w = statWindows(period as Period, zone, now);
         const within = (a: Date, b: Date) => sql`(${at} >= ${ts(a)} and ${at} < ${ts(b)})`;
         const agg = (when: SQL) =>
-          sumField
-            ? sql`coalesce(sum(${valueSql(sumField)}) filter (where ${when}), 0)`
-            : sql`count(*) filter (where ${when})`;
+          medianField
+            ? sql`percentile_cont(0.5) within group (order by ${valueSql(medianField)}) filter (where ${when})`
+            : sumField
+              ? sql`coalesce(sum(${valueSql(sumField)}) filter (where ${when}), 0)`
+              : sql`count(*) filter (where ${when})`;
         const both = sql`(${within(w.from, now)} or ${within(w.priorFrom, w.priorTo)})`;
         const currency =
           sumField?.kind === "money" ? ref(sumField.currency ?? "") : sql`null::text`;
@@ -802,12 +817,25 @@ export function serveRecords(
             ${agg(sql`true`)}::numeric "value"
           from ${from} where ${p.base} and ${p.inView} and ${within(w.from, now)}
           group by 1`);
-        const series = w.days.map((d) => ({ at: d.toISOString(), value: 0 }));
+        // A median's day without rows has none; a count's or a sum's is 0.
+        const series: RecordsStat["series"] = w.days.map((d) => ({
+          at: d.toISOString(),
+          value: medianField ? null : 0,
+        }));
         for (const d of days) {
           const point = series[Number(d.day) - 1];
-          if (point) point.value = Number(d.value);
+          if (point) point.value = d.value === null ? null : Number(d.value);
         }
-        return stat(n?.value ?? 0, n?.prior ?? 0, series, n?.currency);
+        if (!medianField) return stat(n?.value ?? 0, n?.prior ?? 0, series, n?.currency);
+        const v = valueSql(medianField);
+        const [last] = await db.execute<Raw>(sql`
+          select ${v}::numeric "value" from ${from}
+          where ${p.base} and ${p.inView} and ${within(w.from, now)} and ${v} is not null
+          order by ${at} desc limit 1`);
+        return {
+          ...stat(n?.value ?? null, n?.prior ?? null, series, null),
+          latest: last?.value == null ? null : Number(last.value),
+        };
       }),
   };
 }

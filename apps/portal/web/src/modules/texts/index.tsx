@@ -1,10 +1,15 @@
-/** Texts: a client's texting threads (O4), from its own database; Wren's team replies. */
+/**
+ * Texts: a client's texting threads (O4), from its own database; Wren's team replies. Speed to
+ * lead's runs sit beside them: each lead's first text, call and follow-up, and "Call now".
+ */
 import { segments } from "@wren/channel-sms/templates";
 import type { Action, RecordExtras } from "@wren/ui";
 import type { ListPage, Module } from "../../module.js";
 
 const THREAD = "sms.thread";
 const threads = (view: string) => `/texts/threads?view=${view}`;
+const SPEED = "sms.speed";
+const speed = (view: string) => `/texts/speed?view=${view}`;
 
 const THREAD_ACTIONS: Action[] = [
   {
@@ -19,6 +24,49 @@ const THREAD_ACTIONS: Action[] = [
 ];
 
 type Message = { id: number; at: string; direction: "in" | "out"; body: string; state: string };
+
+type Step = { step: string; at: string | null; said: string | null; why: string | null };
+
+const SAID: Record<string, string> = {
+  queued: "queued",
+  sent: "sent",
+  would_send: "would send (texts are off)",
+  no_consent: "not texted: no consent",
+  no_phone: "not texted: no phone",
+  refused: "not sent",
+  alerted: "Call now",
+  dialed: "dialed",
+  skipped: "skipped",
+  enrolled: "texting",
+  new: "not started",
+  opted_out: "opted out",
+};
+
+/** A speed-to-lead run's steps in order, each with its state, when, and why. */
+export const speedExtras: NonNullable<ListPage["extras"]> = (detail) => {
+  const steps = (detail as { steps?: Step[] } | null)?.steps ?? [];
+  return {
+    sections: [
+      [
+        "Steps",
+        <ol key="steps" className="grid gap-3 text-[14px]">
+          {steps.map((s) => (
+            <li key={s.step} className="grid gap-0.5">
+              <span>
+                {s.step}: {s.said ? (SAID[s.said] ?? s.said) : "not yet"}
+              </span>
+              {s.at || s.why ? (
+                <span className="text-[13px] text-(--ui-ink-2)">
+                  {[s.at?.slice(0, 16).replace("T", " "), s.why].filter(Boolean).join(" · ")}
+                </span>
+              ) : null}
+            </li>
+          ))}
+        </ol>,
+      ],
+    ],
+  } satisfies RecordExtras;
+};
 
 /** The thread's texts, oldest first: theirs plain, ours marked. */
 export const threadExtras: NonNullable<ListPage["extras"]> = (detail) => {
@@ -62,6 +110,15 @@ export const texts: Module = {
         { label: "Their turn", record: THREAD, href: threads("waiting"), needs: true },
         { label: "New", record: THREAD, href: threads("unread") },
         { label: "Threads", record: THREAD, href: threads("all"), period: 30 },
+        { label: "Call now", record: SPEED, href: speed("call"), needs: true },
+        {
+          label: "Time to first text",
+          record: SPEED,
+          href: speed("all"),
+          median: "firstTouchIn",
+          none: "No leads yet",
+          period: 30,
+        },
       ],
       top: [
         {
@@ -85,6 +142,18 @@ export const texts: Module = {
       },
       actions: THREAD_ACTIONS,
       extras: threadExtras,
+    },
+    {
+      id: "speed",
+      label: "Speed to lead",
+      template: "list",
+      record: SPEED,
+      empty: {
+        call: "Leads to call show here until voice is set up.",
+        all: "Leads from your forms show here.",
+        booked: "Leads who book show here.",
+      },
+      extras: speedExtras,
     },
   ],
 };
