@@ -10,7 +10,7 @@ import type { Wire } from "@wren/core/workflows";
 import {
   Button,
   cx,
-  Dictate,
+  DictateField,
   GRAPH_DROP,
   type GraphNode,
   Icon,
@@ -807,17 +807,18 @@ export function AskGraph({
         }
       }}
     >
-      <Input
-        ref={askBox}
-        value={message}
-        onChange={(e) => setMessage(e.target.value)}
-        maxLength={2000}
-        disabled={!!run}
-        placeholder="Ask Claude: add a text 2 days after the second email if no reply"
-        aria-label="Ask Claude to change the workflow"
-        className="h-8 flex-1 text-[13px]"
-      />
-      <Dictate target={askBox} label="Dictate to Claude" />
+      <DictateField target={askBox} line label="Dictate to Claude" className="flex-1">
+        <Input
+          ref={askBox}
+          value={message}
+          onChange={(e) => setMessage(e.target.value)}
+          maxLength={2000}
+          disabled={!!run}
+          placeholder="Ask Claude: add a text 2 days after the second email if no reply"
+          aria-label="Ask Claude to change the workflow"
+          className="h-8 text-[13px]"
+        />
+      </DictateField>
       <Button type="submit" tone="secondary" size="dense" busy={!!run}>
         {run ? "Thinking" : "Ask"}
       </Button>

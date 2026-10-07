@@ -15,7 +15,7 @@ import { UNDO_MS } from "./action.js";
 import { Input } from "./components/ui/input.js";
 import { Textarea } from "./components/ui/textarea.js";
 import { Button, Tag } from "./controls.js";
-import { Dictate } from "./dictate.js";
+import { DictateField } from "./dictate.js";
 import { InsertSnippet } from "./snippets.js";
 
 /** What a record's page does with its edits; each throws what the server refused. */
@@ -146,16 +146,18 @@ export function EditField({
   return (
     <div className="grid min-w-0 gap-2">
       {long ? (
-        <Textarea
-          ref={area}
-          id={id}
-          value={typed}
-          onChange={(e) => setTyped(e.target.value)}
-          onKeyDown={keys}
-          rows={6}
-          aria-label={field.label}
-          className="min-h-28 text-[14px] leading-[1.6]"
-        />
+        <DictateField target={area}>
+          <Textarea
+            ref={area}
+            id={id}
+            value={typed}
+            onChange={(e) => setTyped(e.target.value)}
+            onKeyDown={keys}
+            rows={6}
+            aria-label={field.label}
+            className="min-h-28 text-[14px] leading-[1.6]"
+          />
+        </DictateField>
       ) : field.kind === "status" ? (
         <select
           id={id}
@@ -198,7 +200,6 @@ export function EditField({
           Cancel
         </Button>
         {long ? <InsertSnippet box={area} value={typed} onChange={setTyped} /> : null}
-        {long ? <Dictate target={area} /> : null}
         <span className="text-[12px] text-(--ui-ink-3) max-sm:hidden">
           {long ? "⌘S saves · Esc cancels" : "Enter saves · Esc cancels"}
         </span>
@@ -563,7 +564,7 @@ export function AskClaude({
           ))}
         </ol>
       ) : null}
-      <div className="flex min-w-0 items-center gap-2">
+      <DictateField target={box} line label="Dictate to Claude">
         <Input
           ref={box}
           value={message}
@@ -578,10 +579,8 @@ export function AskClaude({
           placeholder="What should change? Or ask a question"
           aria-label="Ask Claude"
           maxLength={2000}
-          className="min-w-0 flex-1"
         />
-        <Dictate target={box} label="Dictate to Claude" />
-      </div>
+      </DictateField>
     </section>
   );
 }

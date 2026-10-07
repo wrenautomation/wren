@@ -70,12 +70,14 @@ Moonshine base, because:
   up a first word. `TranscriberEars` pads every run.
 
 The weights load from Hugging Face at a pinned revision (MIT licence). onnxruntime's WebGPU
-wasm is 26.9 MB, over the 25 MiB a Workers asset may be, so it loads from jsDelivr at a pinned
-version. The build leaves it out of `dist` (a Vite plugin) and the model's worker keeps it in
-Cache Storage beside the weights. Its loader is inside onnxruntime's WebGPU bundle, which ships
-with the app, so no blob script is needed. CSP: `script-src` gains `'wasm-unsafe-eval'`,
-`connect-src` gains `https://huggingface.co https://*.hf.co` and the one jsDelivr path. Moving
-both to our own R2 later is one constant each.
+wasm is ours: 26.9 MB raw is over the 25 MiB a Workers asset may be, so the build copies it from
+`node_modules` gzipped (6.6 MB) to `/ort/<version>/`, and the model's worker unzips it with
+`DecompressionStream`. The version comes from the installed package, so the wasm always matches
+its loader, which is inside onnxruntime's WebGPU bundle and ships with the app. Both the wasm and
+the weights stay in Cache Storage. CSP: `script-src` gains `'wasm-unsafe-eval'`, `connect-src`
+gains `https://huggingface.co https://*.hf.co`. The weights stay on Hugging Face: 158 MB is over
+the asset limit too, and R2 needs a bucket, a public host and a prod write. Moving them is one
+constant.
 
 ## The Dictate part
 
@@ -89,8 +91,11 @@ both to our own R2 later is one constant each.
 - **Text:** final words go in at the cursor with `insertText`, so the browser's own undo history
   survives, and spacing and a capital follow what's before the cursor. ⌘Z right after takes the
   whole dictation out at once. "New line" and "period" become a line break and a full stop.
-- **Motion:** a red dot while the mic is open and a level bar that moves with the voice. Nothing
-  else moves.
+- **Placement:** inside the box, as a chat composer has it (`DictateField`): bottom right of a
+  textarea, the right end of a one-line input. The box keeps padding for it, more while it hears.
+- **While it hears:** a red dot, a level bar that moves with the voice, "Listening" and the time
+  (0:04); a phone drops the word. Partial words show greyed at the cursor and become the final
+  words in place. Nothing else moves.
 - **Errors in words:** "The browser blocked the mic. Allow it for this site, then try again.",
   "Loading the speech model, 40%", "Couldn't turn that into words. Try again."
 - **Phone:** the same button. Without WebGPU it uses the server, or hides.
@@ -104,6 +109,8 @@ synthetic WAV as the mic (`--use-file-for-fake-audio-capture`), 2026-10-07:
 - Later presses: 80 to 100 ms from press to listening.
 - Release to the last words in the box: 370 to 510 ms.
 - One ⌘Z took the whole dictation out. No CSP errors from dictation.
+- In the portal preview too (a Drafts record and its Ask Claude, the wasm from our origin): 7.9
+  to 9.4 s first press, 105 to 110 ms warm, 200 to 440 ms release to last words.
 
 ## Measuring
 
@@ -144,5 +151,6 @@ Not built, not configured.
 - 2026-10-07: Timings in the run ledger (`dictate`), not a new table: no migration, pruned at 30
   days.
 - 2026-10-07: The adapter choice is per device in local storage, not a server pref.
-- 2026-10-07: onnxruntime's wasm from jsDelivr: too big for a Workers asset, and R2 is a prod
-  write.
+- 2026-10-07: onnxruntime's wasm on our own origin, gzipped to fit a Workers asset (it was on
+  jsDelivr first). The weights stay on Hugging Face: R2 is a bucket and a prod write.
+- 2026-10-07: The mic sits inside the box, not on a row under it.

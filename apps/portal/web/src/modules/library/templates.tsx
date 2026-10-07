@@ -15,7 +15,7 @@ import {
   Browser,
   BrowserRow,
   Button,
-  Dictate,
+  DictateField,
   Diff,
   Empty,
   Input,
@@ -742,12 +742,12 @@ function Editor({
           app that sends it.
         </p>
       ) : null}
-      <div className="relative min-w-0">
-        <label className="grid min-w-0 gap-1.5">
-          <span className={`text-[13px] ${QUIET}`}>
-            {opened ? `Version ${opened.number}` : "No words yet"}
-            {dirty ? ", changed" : ""}
-          </span>
+      <label className="grid min-w-0 gap-1.5">
+        <span className={`text-[13px] ${QUIET}`}>
+          {opened ? `Version ${opened.number}` : "No words yet"}
+          {dirty ? ", changed" : ""}
+        </span>
+        <DictateField target={wordsBox} off={!mayWrite}>
           <Textarea
             ref={wordsBox}
             value={words}
@@ -756,9 +756,8 @@ function Editor({
             spellCheck
             className="max-h-[28rem] min-h-56 overflow-auto rounded-none font-mono text-[13px]/[1.55] md:text-[13px]"
           />
-        </label>
-        {mayWrite ? <Dictate target={wordsBox} className="absolute -top-2 right-0" /> : null}
-      </div>
+        </DictateField>
+      </label>
       {mayWrite ? (
         <form
           className="flex flex-wrap items-end gap-2"

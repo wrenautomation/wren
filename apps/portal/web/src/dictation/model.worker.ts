@@ -1,7 +1,7 @@
 /**
  * The browser's speech model (designs/2026-10-07-dictation.md), off the page's thread: Moonshine
  * base on WebGPU through transformers.js. Weights come from Hugging Face at a pinned revision and
- * stay in Cache Storage; onnxruntime's wasm comes from jsDelivr (too big for a Workers asset) and
+ * stay in Cache Storage; onnxruntime's wasm comes gzipped from our own origin (vite.config.ts) and
  * is kept there too. Its loader is in this bundle, so no blob script is needed.
  */
 import { env, pipeline } from "@huggingface/transformers";
@@ -15,26 +15,35 @@ const ctx = self as unknown as {
 env.allowLocalModels = false;
 env.useWasmCache = false;
 const ort = env.backends.onnx;
-const WASM = `https://cdn.jsdelivr.net/npm/onnxruntime-web@${ort.versions?.web}/dist/ort-wasm-simd-threaded.asyncify.wasm`;
+const WASM = `/ort/${ort.versions?.web}/ort-wasm-simd-threaded.asyncify.wasm.gz`;
 // The bundled loader, not one fetched from the CDN.
 if (ort.wasm) ort.wasm.wasmPaths = undefined as never;
 
-/** A file kept in Cache Storage after the first fetch. */
+/** The wasm, unzipped unless something on the way already did. */
+async function unzip(res: Response): Promise<ArrayBuffer> {
+  const raw = await res.arrayBuffer();
+  const head = new Uint8Array(raw, 0, 2);
+  if (head[0] !== 0x1f || head[1] !== 0x8b) return raw;
+  const out = new Blob([raw]).stream().pipeThrough(new DecompressionStream("gzip"));
+  return new Response(out).arrayBuffer();
+}
+
+/** A file kept in Cache Storage after the first fetch, as it came (gzipped). */
 async function kept(url: string): Promise<ArrayBuffer> {
   try {
     const box = await caches.open("wren-dictate");
     const hit = await box.match(url);
-    if (hit) return await hit.arrayBuffer();
+    if (hit) return await unzip(hit);
     const res = await fetch(url);
     if (!res.ok) throw new Error(`${res.status} for ${url}`);
     await box.put(url, res.clone());
-    return await res.arrayBuffer();
+    return await unzip(res);
   } catch (err) {
     if (err instanceof Error && /^\d{3} for /.test(err.message)) throw err;
     // No Cache Storage (a private window): fetch it plain.
     const res = await fetch(url);
     if (!res.ok) throw new Error(`${res.status} for ${url}`);
-    return await res.arrayBuffer();
+    return await unzip(res);
   }
 }
 

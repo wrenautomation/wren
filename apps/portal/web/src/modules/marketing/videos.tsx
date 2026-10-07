@@ -6,7 +6,7 @@
  * Render is the head action; its state shows on the record.
  */
 import type { DraftTurnLine, RecordAct, RecordExtras } from "@wren/ui";
-import { Button, Dictate, DraftTurns, Empty, Input, Tag, Textarea } from "@wren/ui";
+import { Button, DictateField, DraftTurns, Empty, Input, Tag, Textarea } from "@wren/ui";
 import { type ReactNode, useEffect, useRef, useState } from "react";
 import type { ListPage } from "../../module.js";
 
@@ -441,23 +441,23 @@ function Ask({ turns, act }: { turns: Turn[]; act: RecordAct }) {
     <div className="grid min-w-0 gap-3">
       {lines.length ? <DraftTurns turns={lines} /> : null}
       <div className="flex min-w-0 items-center gap-2">
-        <Input
-          ref={askBox}
-          value={message}
-          onChange={(e) => setMessage(e.target.value)}
-          onKeyDown={(e) => {
-            if (e.key === "Enter" && !e.nativeEvent.isComposing) {
-              e.preventDefault();
-              void run("ask");
-            }
-          }}
-          disabled={asking}
-          placeholder="Ask Claude: a better title, chapters, what to cut"
-          aria-label="Ask Claude"
-          maxLength={2000}
-          className="min-w-0 flex-1"
-        />
-        <Dictate target={askBox} label="Dictate to Claude" />
+        <DictateField target={askBox} line label="Dictate to Claude" className="flex-1">
+          <Input
+            ref={askBox}
+            value={message}
+            onChange={(e) => setMessage(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === "Enter" && !e.nativeEvent.isComposing) {
+                e.preventDefault();
+                void run("ask");
+              }
+            }}
+            disabled={asking}
+            placeholder="Ask Claude: a better title, chapters, what to cut"
+            aria-label="Ask Claude"
+            maxLength={2000}
+          />
+        </DictateField>
         {changed ? (
           <Button tone="quiet" size="dense" busy={undoing} onClick={() => void run("undo")}>
             Undo

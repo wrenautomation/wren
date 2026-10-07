@@ -10,7 +10,7 @@ import type { Action, Call } from "./action.js";
 import { Input } from "./components/ui/input.js";
 import { Textarea } from "./components/ui/textarea.js";
 import { Button } from "./controls.js";
-import { Dictate } from "./dictate.js";
+import { DictateField } from "./dictate.js";
 import { type MessageKind, MessagePreview } from "./preview.js";
 import { InsertSnippet } from "./snippets.js";
 
@@ -265,20 +265,22 @@ export function DraftBox({
         ) : null}
       </div>
       {save ? (
-        <Textarea
-          ref={box}
-          id={boxId}
-          value={text}
-          onChange={(e) => {
-            setText(e.target.value);
-            if (saved !== "saving") setSaved("idle");
-          }}
-          onBlur={() => void flush()}
-          onKeyDown={keys}
-          rows={5}
-          placeholder="Write it here."
-          className="min-h-28 text-[14px] leading-[1.6]"
-        />
+        <DictateField target={box}>
+          <Textarea
+            ref={box}
+            id={boxId}
+            value={text}
+            onChange={(e) => {
+              setText(e.target.value);
+              if (saved !== "saving") setSaved("idle");
+            }}
+            onBlur={() => void flush()}
+            onKeyDown={keys}
+            rows={5}
+            placeholder="Write it here."
+            className="min-h-28 text-[14px] leading-[1.6]"
+          />
+        </DictateField>
       ) : (
         <p id={boxId} className="text-[14px] leading-[1.65] whitespace-pre-wrap break-words">
           {server || "No draft."}
@@ -295,7 +297,6 @@ export function DraftBox({
             }}
             channel={draft.preview?.kind}
           />
-          <Dictate target={box} className="ml-auto" />
         </div>
       ) : null}
       {draft.preview && text.trim() ? <MessagePreview message={draft.preview} body={text} /> : null}
@@ -303,24 +304,24 @@ export function DraftBox({
       {ask || (undo && (last || dirty)) ? (
         <div className="flex min-w-0 items-center gap-2">
           {ask ? (
-            <Input
-              ref={askBox}
-              value={message}
-              onChange={(e) => setMessage(e.target.value)}
-              onKeyDown={(e) => {
-                if (e.key === "Enter" && !e.nativeEvent.isComposing) {
-                  e.preventDefault();
-                  void askNow();
-                }
-              }}
-              disabled={asking}
-              placeholder="Ask Claude: what to change, or a question"
-              aria-label="Ask Claude"
-              maxLength={2000}
-              className="min-w-0 flex-1"
-            />
+            <DictateField target={askBox} line label="Dictate to Claude" className="flex-1">
+              <Input
+                ref={askBox}
+                value={message}
+                onChange={(e) => setMessage(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter" && !e.nativeEvent.isComposing) {
+                    e.preventDefault();
+                    void askNow();
+                  }
+                }}
+                disabled={asking}
+                placeholder="Ask Claude: what to change, or a question"
+                aria-label="Ask Claude"
+                maxLength={2000}
+              />
+            </DictateField>
           ) : null}
-          {ask ? <Dictate target={askBox} label="Dictate to Claude" /> : null}
           {undo && (last || dirty) ? (
             <Button tone="quiet" size="dense" busy={undoing} onClick={() => void undoNow()}>
               Undo

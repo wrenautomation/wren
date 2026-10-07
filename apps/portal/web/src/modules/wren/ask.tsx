@@ -7,7 +7,7 @@ import type { RecordsPage } from "@wren/core/records/serve";
 import {
   Alert,
   Button,
-  Dictate,
+  DictateField,
   Empty,
   exact,
   Loading,
@@ -102,22 +102,23 @@ export function Ask() {
         lede="Answers from the code, the designs and prod. Read only. ⌘K asks from any page."
       />
       <form onSubmit={submit} className="mb-6 flex flex-col gap-2">
-        <Textarea
-          ref={box}
-          value={q}
-          onChange={(e) => setQ(e.target.value)}
-          onKeyDown={(e) => {
-            if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) void submit(e);
-          }}
-          placeholder="How many replies came in this week, and from which campaign?"
-          rows={3}
-          aria-label="Your question"
-        />
+        <DictateField target={box} label="Dictate your question">
+          <Textarea
+            ref={box}
+            value={q}
+            onChange={(e) => setQ(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) void submit(e);
+            }}
+            placeholder="How many replies came in this week, and from which campaign?"
+            rows={3}
+            aria-label="Your question"
+          />
+        </DictateField>
         <div className="flex items-center gap-3">
           <Button size="dense" type="submit" busy={busy} disabled={!q.trim()}>
             Ask
           </Button>
-          <Dictate target={box} label="Dictate your question" />
           {error ? <span className="text-[13px] text-(--ui-bad)">{error}</span> : null}
         </div>
       </form>

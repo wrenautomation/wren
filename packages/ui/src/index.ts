@@ -30,6 +30,7 @@ export {
   DICTATE_KEYS,
   Dictate,
   type DictateEvents,
+  DictateField,
   type DictateHandle,
   type DictatePhase,
   type DictateStatus,

@@ -1,8 +1,10 @@
 /**
- * Dictate (designs/2026-10-07-dictation.md): a mic button for a text box. Hold it, or Alt+Space
- * in the box, to talk; a short press toggles. Partial words show greyed at the cursor, final
- * words go in at the cursor, and one ⌘Z right after takes the whole dictation out. The engine
- * (which model, the mic) is the app's, through `DictationProvider`; without one the button hides.
+ * Dictate (designs/2026-10-07-dictation.md): a mic button for a text box, inside it through
+ * `DictateField` (bottom right of a textarea, the right end of a one-line input). Hold it, or
+ * Alt+Space in the box, to talk; a short press toggles. While it hears, it shows a red dot, the
+ * mic's level, "Listening" and the time. Partial words show greyed at the cursor, final words go
+ * in at the cursor, and one ⌘Z right after takes the whole dictation out. The engine (which
+ * model, the mic) is the app's, through `DictationProvider`; without one the button hides.
  */
 import { cn } from "cn";
 import {
@@ -111,20 +113,81 @@ function edit(el: Field, from: number, to: number, text: string) {
   }
 }
 
+/** 0:04, 1:12. */
+const clock = (ms: number) => {
+  const s = Math.floor(ms / 1000);
+  return `${Math.floor(s / 60)}:${String(s % 60).padStart(2, "0")}`;
+};
+
+/**
+ * A text box with its mic inside, as a chat composer has it: bottom right of a textarea, the
+ * right end of a one-line input. The box keeps room for it, more while it hears.
+ */
+export function DictateField({
+  target,
+  line = false,
+  off = false,
+  label,
+  className,
+  children,
+}: {
+  target: RefObject<Field | null>;
+  /** No mic, the box only: one he can't write in. */
+  off?: boolean | undefined;
+  /** A one-line input: the mic sits in its right end. */
+  line?: boolean | undefined;
+  label?: string | undefined;
+  className?: string | undefined;
+  children: ReactNode;
+}) {
+  const status = useDictateStatus();
+  const [hearing, setHearing] = useState(false);
+  const engine = useContext(Engine);
+  const shows = !off && engine !== null && status.state !== "off";
+  return (
+    <div
+      className={cn(
+        "relative min-w-0",
+        shows && (line ? "[&_input]:pr-9" : "[&_textarea]:pb-10"),
+        shows && hearing && line && "[&_input]:pr-40 max-sm:[&_input]:pr-24",
+        className,
+      )}
+    >
+      {children}
+      {off ? null : (
+        <Dictate
+          target={target}
+          label={label}
+          onHearing={setHearing}
+          className={cn(
+            "absolute",
+            line ? "top-1 right-1 h-6 min-w-6 px-1.5" : "right-1.5 bottom-1.5 h-7 min-w-7",
+          )}
+        />
+      )}
+    </div>
+  );
+}
+
 export function Dictate({
   target,
   className,
   label = "Dictate",
+  onHearing,
 }: {
   /** The box the words go into. */
   target: RefObject<Field | null>;
   className?: string | undefined;
   label?: string | undefined;
+  /** Told when it starts and stops hearing, so a box can make room. */
+  onHearing?: ((on: boolean) => void) | undefined;
 }) {
   const engine = useContext(Engine);
   const status = useDictateStatus();
   const [state, setState] = useState<State>({ kind: "idle" });
   const [level, setLevel] = useState(0);
+  const [since, setSince] = useState<number | null>(null);
+  const [now, setNow] = useState(0);
   const [partial, setPartial] = useState("");
   const [shown, setShown] = useState<string | null>(null);
   const button = useRef<HTMLButtonElement>(null);
@@ -142,6 +205,7 @@ export function Dictate({
   const tip = useId();
   const active =
     state.kind === "loading" || state.kind === "listening" || state.kind === "finishing";
+  const hearing = state.kind === "listening" || state.kind === "finishing";
 
   const begin = () => {
     const el = target.current;
@@ -162,7 +226,15 @@ export function Dictate({
       setLevel(0);
     };
     const handle = engine.start({
-      phase: (p) => !mine.over && setState(p),
+      phase: (p) => {
+        if (mine.over) return;
+        if (p.kind === "listening") {
+          const t = performance.now();
+          setSince(t);
+          setNow(t);
+        }
+        setState(p);
+      },
       level: (n) => !mine.over && setLevel(n),
       partial: (t) => !mine.over && setPartial(t),
       final: (t) => {
@@ -248,6 +320,15 @@ export function Dictate({
     };
   });
 
+  // The time it has heard, by the second.
+  useEffect(() => {
+    if (state.kind !== "listening") return;
+    const t = setInterval(() => setNow(performance.now()), 250);
+    return () => clearInterval(t);
+  }, [state.kind]);
+
+  useEffect(() => onHearing?.(hearing), [hearing, onHearing]);
+
   // Gone mid-dictation: drop it.
   useEffect(
     () => () => {
@@ -313,14 +394,29 @@ export function Dictate({
         }}
         onContextMenu={(e) => e.preventDefault()}
       >
-        {state.kind === "listening" || state.kind === "finishing" ? (
+        {hearing ? (
           <>
-            <span aria-hidden className="size-2 rounded-full bg-(--ui-bad)" />
-            <span aria-hidden className="h-1.5 w-6 overflow-hidden rounded-full bg-(--ui-tile)">
+            <span
+              aria-hidden
+              className={cn(
+                "size-2 shrink-0 rounded-full bg-(--ui-bad)",
+                state.kind === "finishing" && "bg-(--ui-ink-3)",
+              )}
+            />
+            <span
+              aria-hidden
+              className="h-1.5 w-6 shrink-0 overflow-hidden rounded-full bg-(--ui-tile)"
+            >
               <span
                 className="block h-full origin-left rounded-full bg-(--ui-ink-2)"
                 style={{ transform: `scaleX(${Math.min(1, level * 4).toFixed(3)})` }}
               />
+            </span>
+            <span className="text-[12.5px] text-(--ui-ink) max-sm:hidden">
+              {state.kind === "finishing" ? "Finishing" : "Listening"}
+            </span>
+            <span className="text-[12.5px] text-(--ui-ink-2) tabular-nums">
+              {clock(since === null ? 0 : now - since)}
             </span>
           </>
         ) : (
@@ -393,7 +489,10 @@ function Ghost({ field, text }: { field: Field; text: string }) {
   const at = field.selectionEnd ?? field.value.length;
   const p = caretPoint(field, at);
   const box = field.getBoundingClientRect();
-  const width = Math.max(80, box.right - p.left - 8);
+  const css = getComputedStyle(field);
+  // Up to the box's padding, so a mic inside it stays clear.
+  const right = box.right - parseFloat(css.paddingRight) - parseFloat(css.borderRightWidth);
+  const width = Math.max(40, right - p.left);
   const shown = text.length > 80 ? `…${text.slice(-79)}` : text;
   return createPortal(
     <span
@@ -407,7 +506,7 @@ function Ghost({ field, text }: { field: Field; text: string }) {
         // An empty box shows its placeholder: cover it.
         minWidth: field.value ? undefined : width,
         lineHeight: `${p.height}px`,
-        font: getComputedStyle(field).font,
+        font: css.font,
       }}
     >
       {shown}
