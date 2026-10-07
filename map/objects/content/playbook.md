@@ -25,6 +25,7 @@ Citations: `packages/content/src/schema.ts:61`, `packages/content/src/playbook.t
 
 - **owned-by:** [[content/platform]]
 - **joins:** [[content/draft]] (`playbook_id`), [[processes/sop-build]] (`wren sop push`)
+- **joins:** [[content/funnel]] (written posts: one idea, an adapter per platform)
 
 ## If you change this
 

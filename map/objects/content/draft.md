@@ -29,6 +29,7 @@ Citations: `packages/content/src/schema.ts:76`
 - **owns:** [[content/content-metric]]
 - **recorded in:** [[content/draft-event]] (every step, who, the words)
 - **joins:** [[content/media]] (a stored object as `s3://`), the `Content` service (publish)
+- **joins:** [[content/funnel]] (every draft's stage, target and link; promo drafts)
 
 ## If you change this
 

@@ -26,6 +26,7 @@ Citations: `packages/content/src/schema.ts:43`, `packages/content/src/ideas.ts:7
 - **owns:** [[content/draft]] (`idea_id`, cascade)
 - **reads:** [[content/comment]] (`sort = question`, by SQL: content does not depend on outreach)
 - **looks-like-but-is-not:** `content_drafts.note` (a redraft instruction on a draft)
+- **joins:** [[content/funnel]] (a promo's idea, ref `promo:<draft>`)
 
 ## If you change this
 

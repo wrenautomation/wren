@@ -30,6 +30,7 @@ Citations: `packages/core/src/content/index.ts:12`, `:122`
 - **owns:** the `platform` column on [[content/draft]]
 - **joins:** [[content/media]] (URL-only platforms host first), [[platform/settings]] (`WREN_CONTENT_CHANNELS`)
 - **looks-like-but-is-not:** the Meta ads adapter (`channel-meta/src/ads.ts`, same site, different job)
+- **joins:** [[content/funnel]] (which platforms carry a link, per platform)
 
 ## If you change this
 

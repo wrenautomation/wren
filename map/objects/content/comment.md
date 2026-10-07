@@ -31,3 +31,4 @@ Comments work like a webhook (William, 2026-10-05): the reader is a source, reac
 - **joins:** reach accounts and contacts (a DM makes a `reach_contacts` row and a manual `reach_messages` row the sender sends with the live gate off)
 - **joins:** [[content/draft]] (the posts these comments sit under are content drafts)
 - **looks-like-but-is-not:** `content_metrics.comments` (a count per post, no bodies)
+- **joins:** [[content/funnel]] (his approved and rejected answers become examples for the next drafts)

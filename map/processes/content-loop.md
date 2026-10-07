@@ -44,5 +44,5 @@ Approving is publishing, so it stays a person's call; the loops only move approv
 
 ## See
 
-- Objects: [[content/draft]], [[content/platform]]
+- Objects: [[content/draft]], [[content/platform]], [[content/funnel]] (the bias: video → site → booking)
 - Source: `packages/content/src/restate/scheduler.ts`

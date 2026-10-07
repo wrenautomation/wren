@@ -31,3 +31,4 @@ William, 2026-10-06: reads logged out; the audience is a setting per client (Wre
 - **joins:** reach accounts (the pool; `warmupOf` sets each one's comments a day)
 - **joins:** [[content/playbook]] (the SOP texts a draft reads, matched by shared words)
 - **looks-like-but-is-not:** the radar's feeds (`packages/watch`): those read to learn, these read to find places to talk
+- **joins:** [[content/funnel]] (places pick a promo's subreddit; thread decisions become comment examples)

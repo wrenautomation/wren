@@ -38,6 +38,7 @@ Citations: `packages/studio/src/schema.ts:85`, `packages/db/drizzle/0122_video_e
 - **produces:** [[content/draft]] (Approve: platform youtube, private; a Short's Instagram Reel, waiting), [[content/idea]] (`ref` `video:<id>`)
 - **joins:** [[platform/settings]] (`wren_settings` components `studio` and `youtube`), [[platform/llm-client]] (Gemini keys from `llm.env`)
 - **looks-like-but-is-not:** [[reactivation/demo-video]] (`wren video demo …`, per lead, recorded by a browser); [[content/media]] (files a post carries)
+- **joins:** [[content/funnel]] (the long upload is the funnel's top; promos point at it)
 
 ## If you change this
 
