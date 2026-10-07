@@ -69,23 +69,25 @@ Invite from People stays one click: that click is the yes.
 - `decisionMakers` (default on): titles with founder, owner, CEO/CFO/COO/CTO/CMO/chief,
   president, VP, head of, director, partner.
 - `niches`, `titles` as before.
-- `engaged` (default on): people who reacted, commented, mentioned or followed us on LinkedIn
-  (`social_activity`, `comments`). They skip the title and size filters and rank first.
+- `engaged` (default on): people who reacted, mentioned or followed us on LinkedIn
+  (`social_activity`). They skip the title and size filters and rank first. LinkedIn comment
+  authors come back as URNs, not profile links, so commenters can't be matched yet.
 
 **Rank.** Engaged first, then title tier (founder/owner/C-level/partner, then VP/head/director),
 then company size, largest first, unknown last.
 
-**Company size.** From what we hold: `agency_facts`, `firm_facts` (SEC ADV), `recruiting_facts`
-(PPP), then the LinkedIn company page read by Exa's cache (`findings` kind `profile`,
+**Company size.** From what we hold: the agency listing's team size, the SEC ADV's employees
+(5A), PPP jobs reported, then the LinkedIn company page read by Exa's cache (`findings` kind `profile`,
 `employees`, a range like "11-50" compares by its top). Missing size: the next source is Exa's
 company page read (`wren research profile`, free credits) or the autobrowse `/in/{v}?company=true`
 read; nothing is bought here.
 
-**Why.** Each proposal keeps one line on the contact (`reach_contacts.why`): "Founder at Acme,
-51-200 people. Reacted to our post." Shown in To approve with title, company and size.
+**Why.** Each proposal keeps its fit on the contact (`reach_contacts.fit`: why, title, company,
+size, engaged). The why reads "Founder at Acme, 51-200 people. Reacted to our post." Shown in To
+approve with the company.
 
-**Where.** To approve type `connect` ("Invite to send"): Approve and Skip, one or many. Marketing
-→ Invites gains a Proposed tab with the same actions. CLI: `wren reach invites proposed|approve
+**Where.** To approve type `connect` ("Invite to send", id `connect:<contact>`): Send invite and
+Skip, one or many. Marketing → Invites gains a To approve tab with the same actions. CLI: `wren reach invites proposed|approve
 <ids...>|skip <ids...>`, and `set --min-employees --decision-makers --engaged --known-size-only`.
 
 ## 4. LinkedIn comments on others' posts
@@ -135,3 +137,5 @@ loads on the Mac: about 6 searches a day plus the comments and invites. S3: a Re
   his "or content based". A size range compares by its top so "big" isn't missed on a range.
 - 2026-10-07: LinkedIn comments read by search, not the people activity flow: that page's cards
   carry no post urn on the current layout, and the comment route needs one.
+- 2026-10-07: built item 3. Size reads the raw columns, not the `*_facts` views (too slow per
+  person). "Vice President" is tier 2, not tier 1. Prod had no LinkedIn engagers yet.

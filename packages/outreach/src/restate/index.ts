@@ -109,11 +109,15 @@ import { reachLead } from "../follow.js";
 import { messageAccount, personContact } from "../from-people.js";
 import {
   applyWithdraw,
+  approveInvites,
   INVITE_SEQUENCE,
   type InviteSettings,
   inviteSettings,
   invitesSettingsSchema,
+  type ProposedInvite,
+  proposedInvites,
   type SweepStats,
+  skipInvites,
   sweepInvites,
   type TopUpStats,
   topUp,
@@ -718,6 +722,9 @@ export const terminalWhy = (req: { reason?: unknown; note?: unknown }) => {
     throw new restate.TerminalError((err as Error).message, { errorCode: 400 });
   }
 };
+const INVITE_IDS = z.looseObject({
+  ids: z.array(z.number().int()).min(1).max(100).describe("contacts with a proposed invite"),
+});
 const ANSWER = COMMENT.extend({
   body: z.string().nullish().describe("The words; the console leaves an untouched draft out"),
 });
@@ -1082,7 +1089,7 @@ export function makeReachDesk(deps: ReachDeps) {
           return { outcome };
         },
       ),
-      /** The invites pass now: accepts, stale withdrawn, tomorrow's queued. */
+      /** The invites pass now: accepts, stale withdrawn, tomorrow's proposed for his yes. */
       invites: serviceHandler(
         { input: NO_INPUT, effect: "sends" },
         async (ctx: restate.Context): Promise<InvitesPass | { off: string }> => {
@@ -1097,6 +1104,34 @@ export function makeReachDesk(deps: ReachDeps) {
                 : "no account set in Shop → LinkedIn invites",
             };
           return invitesPass(deps, ctx, a, settings, now);
+        },
+      ),
+      /** Invites the sweep proposed, waiting on his yes. */
+      proposedInvites: serviceHandler(
+        { input: NO_INPUT },
+        async (ctx: restate.Context): Promise<ProposedInvite[]> =>
+          ctx.run("proposed", () => proposedInvites(deps.db)),
+      ),
+      /** His yes on proposed invites: queued, sent by the tick under the day's cap and ramp. */
+      approveInvites: serviceHandler(
+        { input: INVITE_IDS, effect: "sends" },
+        async (ctx: restate.Context, req: { ids: number[] }): Promise<{ approved: number[] }> => {
+          const now = await nowOf(ctx);
+          const approved = await ctx.run("approve", () => approveInvites(deps.db, req.ids, now));
+          if (approved.length === 0)
+            throw new restate.TerminalError("no proposed invite among these: already answered?", {
+              errorCode: 409,
+            });
+          nudge(ctx);
+          return { approved };
+        },
+      ),
+      /** His no: skipped, and the person is never proposed again. */
+      skipInvites: serviceHandler(
+        { input: INVITE_IDS },
+        async (ctx: restate.Context, req: { ids: number[] }): Promise<{ skipped: number[] }> => {
+          const now = await nowOf(ctx);
+          return { skipped: await ctx.run("skip", () => skipInvites(deps.db, req.ids, now)) };
         },
       ),
       /** A person from People: their contact, added when new, with a model draft to edit. */

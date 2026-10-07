@@ -75,8 +75,13 @@ export type Direction = (typeof DIRECTIONS)[number];
 export const MESSAGE_KINDS = ["connect", "sequence", "manual", "inbound", "follow_up"] as const;
 export type MessageKind = (typeof MESSAGE_KINDS)[number];
 
-/** Outbound: queued → sending → sent | failed. `unknown` = the platform call's fate is lost; never resent. */
+/**
+ * Outbound: queued → sending → sent | failed. `unknown` = the platform call's fate is lost; never
+ * resent. `proposed` = an invite the sweep picked, waiting on William's yes in To approve; only
+ * `queued` sends.
+ */
 export const MESSAGE_STATES = [
+  "proposed",
   "queued",
   "sending",
   "sent",
@@ -117,6 +122,20 @@ export const reachAccounts = pgTable(
   ],
 );
 
+/** Why an invite was proposed: the person, their firm's size and how they found us. */
+export interface InviteFit {
+  /** One line: "Founder at Acme, 51-200 people. Reacted to our post." */
+  why: string;
+  title: string | null;
+  company: string | null;
+  /** Employees, the top of a range ("11-50" = 50); null = not known. */
+  employees: number | null;
+  /** The size as its source said it ("11-50", "10 - 49", "12"). */
+  size: string | null;
+  /** How they engaged with us on LinkedIn (`reaction`, `mention`, `follow`); null = not seen. */
+  engaged: string | null;
+}
+
 export const reachContacts = pgTable(
   "reach_contacts",
   {
@@ -152,6 +171,8 @@ export const reachContacts = pgTable(
     draftAt: timestamp("draft_at", { withTimezone: true }),
     /** The inbound message the draft answers; a newer one makes it stale. Null = a first message. */
     draftFor: integer("draft_for"),
+    /** LinkedIn invites: why the sweep picked them, as To approve shows it. */
+    fit: jsonb("fit").$type<InviteFit>(),
     createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   },
   (t) => [
@@ -329,7 +350,8 @@ export type ReachAccount = typeof reachAccounts.$inferSelect;
  * One row per LinkedIn invite: the connect row and its contact, with where it stands. Accepted
  * and withdrawn come from the contact (`connected_at`, `withdrawn_at`); pending is a sent invite
  * whose contact still waits; ended is one whose contact moved on (declined, opted out); queued is
- * one not yet sent; else the row's own state (failed, unknown, skipped). Marketing → Invites.
+ * one not yet sent; proposed waits on his yes; else the row's own state (failed, unknown, skipped).
+ * Marketing → Invites.
  */
 export const reachInvites = pgView("reach_invites", {
   id: integer("id"),
@@ -343,6 +365,7 @@ export const reachInvites = pgView("reach_invites", {
   personId: integer("person_id"),
   companyId: integer("company_id"),
   foundIn: varchar("found_in", { length: 200 }),
+  fit: jsonb("fit").$type<InviteFit>(),
   note: text("note"),
   status: varchar("status", { length: 16 }),
   stateReason: text("state_reason"),
@@ -351,7 +374,7 @@ export const reachInvites = pgView("reach_invites", {
   connectedAt: timestamp("connected_at", { withTimezone: true }),
   withdrawnAt: timestamp("withdrawn_at", { withTimezone: true }),
 }).as(
-  sql`SELECT m.id, m.contact_id, m.account_id, c.handle, c.url, c.name, c.headline, c.niche, c.person_id, c.company_id, c.found_in, NULLIF(m.body, '') AS note, CASE WHEN c.connected_at IS NOT NULL THEN 'accepted' WHEN c.withdrawn_at IS NOT NULL THEN 'withdrawn' WHEN m.state = 'sent' AND c.state = 'enrolled' THEN 'pending' WHEN m.state = 'sent' THEN 'ended' WHEN m.state IN ('queued', 'sending') THEN 'queued' ELSE m.state END AS status, coalesce(m.state_reason, c.state_reason) AS state_reason, m.created_at AS queued_at, m.sent_at, c.connected_at, c.withdrawn_at FROM reach_messages m JOIN reach_contacts c ON c.id = m.contact_id WHERE m.kind = 'connect' AND m.direction = 'out'`,
+  sql`SELECT m.id, m.contact_id, m.account_id, c.handle, c.url, c.name, c.headline, c.niche, c.person_id, c.company_id, c.found_in, c.fit, NULLIF(m.body, '') AS note, CASE WHEN c.connected_at IS NOT NULL THEN 'accepted' WHEN c.withdrawn_at IS NOT NULL THEN 'withdrawn' WHEN m.state = 'sent' AND c.state = 'enrolled' THEN 'pending' WHEN m.state = 'sent' THEN 'ended' WHEN m.state IN ('queued', 'sending') THEN 'queued' ELSE m.state END AS status, coalesce(m.state_reason, c.state_reason) AS state_reason, m.created_at AS queued_at, m.sent_at, c.connected_at, c.withdrawn_at FROM reach_messages m JOIN reach_contacts c ON c.id = m.contact_id WHERE m.kind = 'connect' AND m.direction = 'out'`,
 );
 
 export type ReachContact = typeof reachContacts.$inferSelect;

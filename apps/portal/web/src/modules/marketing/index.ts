@@ -328,6 +328,29 @@ const INVITE_ACTIONS: Action[] = [
   },
 ];
 
+/** An invite the sweep proposed: only his yes sends it, under the day's cap. */
+const CONNECT_ACTIONS: Action[] = [
+  {
+    id: "marketing.connectApprove",
+    label: "Send invite",
+    handler: "marketing/connectApprove",
+    confirm: "Send these invites? They go out under the day's cap.",
+    bulk: true,
+    key: "a",
+    when: { status: ["proposed"] },
+    done: said("Approved. They go out on the next ticks."),
+  },
+  {
+    id: "marketing.connectSkip",
+    label: "Skip",
+    handler: "marketing/connectSkip",
+    bulk: true,
+    key: "e",
+    when: { status: ["proposed"] },
+    done: said("Skipped. They won't be proposed again."),
+  },
+];
+
 const THREAD_ACTIONS: Action[] = [
   {
     id: "marketing.threadComment",
@@ -431,6 +454,7 @@ const APPROVAL_ACTIONS: Action[] = [
   ...INVITE_ACTIONS.filter((a) => own(a) && a.id !== "marketing.inviteWithdraw").map((a) =>
     only("invite", a, a.id === "marketing.inviteMessage" ? { state: ["waiting", "read"] } : WAITS),
   ),
+  ...CONNECT_ACTIONS.map((a) => only("connect", a, WAITS)),
   // The typed-id box, as the Inbox's: `draft:3` is a post, `invite:7` an invite.
   ...draftActions("inbox", {
     type: ["draft", "thread", "invite"],
@@ -769,13 +793,18 @@ export const marketing: Module = {
       template: "list",
       record: "marketing.invite",
       empty: {
-        queued: "Nothing to send. Invites queue once an account is set in Shop → LinkedIn invites.",
+        proposed: "No invite waits on you. The sweep proposes the day's every 6 hours.",
+        queued: "Nothing to send. Invites queue once you approve them.",
         pending: "No invite waits on an answer.",
         accepted: "Accepted invites show here, ready for a first message.",
         withdrawn: "Withdrawn and ended invites show here.",
         all: "LinkedIn invites show here.",
       },
-      actions: [...INVITE_ACTIONS, ...draftActions("invite", { status: ["accepted"] })],
+      actions: [
+        ...CONNECT_ACTIONS,
+        ...INVITE_ACTIONS,
+        ...draftActions("invite", { status: ["accepted"] }),
+      ],
       // Only an accepted invite takes a message.
       extras: withDraft((row) => (row.status === "accepted" ? INVITE_DRAFT : null)),
     },

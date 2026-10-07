@@ -162,6 +162,18 @@ const acceptedRows = (db: Queryable) =>
       order by c.connected_at desc limit ${ACTIVITY_ROWS}`,
   );
 
+/** LinkedIn invites the sweep proposed, waiting on his yes: who, and why they were picked. */
+const connectRows = (db: Queryable) =>
+  rowsOf(
+    db,
+    sql`select c.id, coalesce(c.name, c.handle) who, c.headline, c.fit->>'why' why,
+        c.fit->>'company' company, c.url, a.handle account, m.created_at at
+      from reach_messages m join reach_contacts c on c.id = m.contact_id
+      left join reach_accounts a on a.id = m.account_id
+      where m.kind = 'connect' and m.direction = 'out' and m.state = 'proposed'
+      order by m.id limit ${ACTIVITY_ROWS}`,
+  );
+
 /** A row's state, as both lists say it. */
 const STATES = status({
   new: { label: "New", tone: "warn" },
@@ -376,8 +388,9 @@ export const inboxRecord = defineRecord({
 
 /**
  * What we'd send, waiting on William's yes, as one list. Ids carry their type (`draft:3`,
- * `video:2` (rendered, waiting on Approve), `thread:abc`, `invite:7`, `template:4:3` (version 3
- * asked to go live)); each action reads the id after the colon. `due` orders "Waiting on you": a
+ * `video:2` (rendered, waiting on Approve), `thread:abc`, `invite:7` (accepted), `connect:7` (a
+ * proposed invite, by contact), `template:4:3` (version 3 asked to go live)); each action reads the
+ * id after the colon. `due` orders "Waiting on you": a
  * draft's slot, else when it came.
  */
 export const approvalRecord = defineRecord({
@@ -390,6 +403,7 @@ export const approvalRecord = defineRecord({
     const vs = await videoRows(db);
     const ts = ((await threadRecord.rows?.(db)) ?? []).filter((t) => t.state === "queued");
     const is = await acceptedRows(db);
+    const cs = await connectRows(db);
     const asks = await waitingAsks(db);
     const ws = await waitingInstalls(db);
     return [
@@ -453,6 +467,21 @@ export const approvalRecord = defineRecord({
         due: i.at,
         url: i.url,
       })),
+      ...cs.map((c) => ({
+        id: `connect:${c.id}`,
+        type: "connect",
+        who: c.who,
+        platform: "linkedin",
+        kind: "connect",
+        state: "waiting",
+        body: c.why ?? c.headline,
+        post_title: c.company,
+        draft: null,
+        account: c.account,
+        at: c.at,
+        due: c.at,
+        url: c.url,
+      })),
       ...asks.map((a) => ({
         id: approvalId(a.id, a.number),
         type: "template",
@@ -497,6 +526,7 @@ export const approvalRecord = defineRecord({
         video: neutral("Video"),
         thread: neutral("Thread"),
         invite: neutral("Invite"),
+        connect: neutral("Invite"),
         template: neutral("Template"),
         workflow: neutral("Workflow"),
       }),
@@ -512,6 +542,7 @@ export const approvalRecord = defineRecord({
         video: neutral("Video to approve"),
         thread: neutral("Thread to answer"),
         invite: neutral("Accepted your invite"),
+        connect: neutral("Invite to send"),
         template: neutral("Copy to make live"),
         workflow: neutral("Workflow to make live"),
       }),
@@ -531,7 +562,13 @@ export const approvalRecord = defineRecord({
     { id: "posts", label: "Posts", where: { type: "draft" }, sort: "due", at: "due" },
     { id: "videos", label: "Videos", where: { type: "video" }, sort: "-at", at: "at" },
     { id: "threads", label: "Threads", where: { type: "thread" }, sort: "-at", at: "at" },
-    { id: "invites", label: "Invites", where: { type: "invite" }, sort: "-at", at: "at" },
+    {
+      id: "invites",
+      label: "Invites",
+      where: { type: ["invite", "connect"] },
+      sort: "-at",
+      at: "at",
+    },
     { id: "templates", label: "Templates", where: { type: "template" }, sort: "-at", at: "at" },
     { id: "workflows", label: "Workflows", where: { type: "workflow" }, sort: "-at", at: "at" },
     { id: "all", label: "All", sort: "-at", at: "at" },
@@ -545,6 +582,8 @@ export const approvalRecord = defineRecord({
     "marketing.threadSkip",
     "marketing.inviteMessage",
     "marketing.inviteRead",
+    "marketing.connectApprove",
+    "marketing.connectSkip",
     "marketing.draftSet",
     "marketing.draftAsk",
     "marketing.draftUndo",

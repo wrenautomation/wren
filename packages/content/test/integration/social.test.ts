@@ -18,7 +18,7 @@ import type { SpineEvent } from "@wren/core/spine";
 import { askPublish, saveDraft } from "@wren/core/templates";
 import { startTestRestate } from "@wren/core/testing";
 import { startTestPostgres, type TestPostgres, truncate } from "@wren/db/testing";
-import { answerComment, comments, planAnswer } from "@wren/outreach";
+import { answerComment, comments, planAnswer, reachContacts, reachMessages } from "@wren/outreach";
 import { eq } from "drizzle-orm";
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 import {
@@ -99,6 +99,8 @@ beforeEach(async () => {
     "comments",
     "social_activity",
     "social_days",
+    "reach_messages",
+    "reach_contacts",
   ]);
   emitted.length = 0;
   pings.length = 0;
@@ -260,7 +262,39 @@ describe("SocialWatch", () => {
     const opener = { kind: "email" as const, system: "demo", name: "opener" };
     await saveDraft(pg.db, opener, "Subject: Hi\n\nHello {first_name}.", { by: "cli" });
     const asked = await askPublish(pg.db, opener, { by: "cli" });
+    // An invite the sweep proposed waits by its contact, with the why.
+    const [c] = await pg.db
+      .insert(reachContacts)
+      .values({
+        platform: "linkedin",
+        handle: "ana-b",
+        url: "https://www.linkedin.com/in/ana-b/",
+        foundIn: "people",
+        name: "Ana B",
+        fit: {
+          why: "Founder at Acme, 50-249 people.",
+          title: "Founder",
+          company: "Acme",
+          employees: 249,
+          size: "50 - 249",
+          engaged: null,
+        },
+      })
+      .returning();
+    if (!c) throw new Error("contact");
+    await pg.db
+      .insert(reachMessages)
+      .values({ contactId: c.id, direction: "out", kind: "connect", body: "", state: "proposed" });
     const approvals = (await approvalRecord.rows?.(pg.db)) ?? [];
+    expect(approvals.find((r) => r.id === `connect:${c.id}`)).toMatchObject({
+      type: "connect",
+      who: "Ana B",
+      platform: "linkedin",
+      state: "waiting",
+      body: "Founder at Acme, 50-249 people.",
+      post_title: "Acme",
+    });
+    expect(inbox.find((r) => String(r.id).startsWith("connect:"))).toBeUndefined();
     expect(approvals.find((r) => r.id === `draft:${d?.id}`)).toMatchObject({
       type: "draft",
       state: "waiting",

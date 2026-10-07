@@ -476,7 +476,10 @@ export const threadRecord = defineRecord({
   load: async (db, id) => ({ ask: await draftTurns(db, "thread", id) }),
 });
 
-/** LinkedIn invites, one per contact: queued, pending, accepted, withdrawn (`reach_invites`). */
+/**
+ * LinkedIn invites, one per contact: proposed (waiting on his yes), queued, pending, accepted,
+ * withdrawn (`reach_invites`).
+ */
 export const inviteRecord = defineRecord({
   id: "marketing.invite",
   app: "marketing",
@@ -488,7 +491,7 @@ export const inviteRecord = defineRecord({
       select i.contact_id id, coalesce(i.name, i.handle) who, i.headline, i.niche, i.status,
         i.state_reason, i.note, a.account, i.queued_at, i.sent_at, i.connected_at, i.withdrawn_at,
         i.url, extract(day from coalesce(i.connected_at, i.withdrawn_at, now()) - i.sent_at)::int days,
-        c.draft
+        c.draft, i.fit->>'why' why, i.fit->>'company' company, i.fit->>'size' size
       from reach_invites i
       join reach_contacts c on c.id = i.contact_id
       left join reach_accounts a on a.id = i.account_id
@@ -510,6 +513,7 @@ export const inviteRecord = defineRecord({
     headline: text(),
     niche: text("Campaign"),
     status: status({
+      proposed: { label: "To approve", tone: "warn" },
       queued: neutral("To send"),
       pending: { label: "Pending", tone: "warn" },
       accepted: { label: "Accepted", tone: "good" },
@@ -519,6 +523,9 @@ export const inviteRecord = defineRecord({
       unknown: { label: "Unknown", tone: "bad" },
       skipped: neutral("Skipped"),
     }),
+    why: text("Picked for"),
+    company: text("Company"),
+    size: text("People"),
     stateReason: text("Why"),
     note: prose("Note"),
     account: text("From"),
@@ -531,6 +538,7 @@ export const inviteRecord = defineRecord({
     draft: prose("Draft message"),
   },
   views: [
+    { id: "proposed", label: "To approve", where: { status: "proposed" }, sort: "queuedAt" },
     { id: "queued", label: "To send", where: { status: "queued" }, sort: "queuedAt" },
     { id: "pending", label: "Pending", where: { status: "pending" }, sort: "sentAt", at: "sentAt" },
     {
@@ -549,6 +557,8 @@ export const inviteRecord = defineRecord({
     { id: "all", label: "All", sort: "-queuedAt", at: "queuedAt" },
   ],
   actions: [
+    "marketing.connectApprove",
+    "marketing.connectSkip",
     "marketing.inviteMessage",
     "marketing.inviteRead",
     "marketing.inviteWithdraw",

@@ -1,7 +1,7 @@
 /**
  * Enroll: pick `new` contacts on a platform, give each the lightest active
  * account, and queue the first thing to go: the invite (LinkedIn) or step 1
- * (Reddit). Nothing here sends. A sequence with any step still empty
+ * (Reddit), or propose the invite for his yes (`first: "proposed"`). Nothing here sends. A sequence with any step still empty
  * (store.ts) enrolls no one. A contact with no page read yet is enrolled
  * anyway; the template's fallbacks cover the blanks. A lead another channel
  * holds, or a firm another channel touched today, is left `new` with the
@@ -30,6 +30,13 @@ export interface EnrollOptions {
   sender: string;
   /** Only these contacts. Unset = any `new` contact on the platform. */
   contactIds?: readonly number[];
+  /** Try `contactIds` in the order given (a ranking), not oldest first. */
+  ordered?: boolean;
+  /**
+   * The first row's state: `queued` (default) sends on the tick; `proposed` waits in To approve
+   * for his yes (the invites sweep).
+   */
+  first?: "queued" | "proposed";
   /** Only contacts whose page was read (richer first lines). */
   enrichedOnly?: boolean;
   limit: number;
@@ -93,6 +100,10 @@ export async function enroll(db: Queryable, o: EnrollOptions): Promise<EnrollSta
     )
     .orderBy(asc(reachContacts.createdAt))
     .limit(Math.max(o.limit, 0));
+  if (o.ordered && o.contactIds) {
+    const rank = new Map(o.contactIds.map((id, i) => [id, i]));
+    candidates.sort((a, b) => (rank.get(a.id) ?? 0) - (rank.get(b.id) ?? 0));
+  }
 
   let enrolled = 0;
   let leadBusy = 0;
@@ -125,7 +136,7 @@ export async function enroll(db: Queryable, o: EnrollOptions): Promise<EnrollSta
           templateVersion: text ? text.provenance.version : null,
           provenance: text ? text.provenance : null,
           body: text ? text.body : "",
-          state: "queued",
+          state: o.first ?? "queued",
           dueAt: o.now,
           runId: o.runId ?? null,
         };

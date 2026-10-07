@@ -23,6 +23,7 @@ import {
   PLATFORMS,
   platformOf,
   policyFrom,
+  proposedInvites,
   REACH_SEQUENCES,
   reachStats,
   slotsOf,
@@ -321,6 +322,13 @@ export function registerReach(program: Command, withDb: WithDb, settings: Settin
     .option("--per-day <n>", "invites a day at most (the ramp may allow fewer)")
     .option("--niches <list>", "comma separated; empty = every niche not held")
     .option("--titles <list>", "comma separated words a title must hold; empty = any")
+    .option(
+      "--decision-makers <on|off>",
+      "only founders, owners, C-level, partners, VPs, heads, directors",
+    )
+    .option("--min-employees <n>", "firms with at least this many people; 0 = any size")
+    .option("--known-size-only <on|off>", "leave out firms whose size we don't know")
+    .option("--engaged <on|off>", "people who engaged with us on LinkedIn first, past the filters")
     .option("--withdraw-after-days <n>")
     .action(
       async (o: {
@@ -328,8 +336,16 @@ export function registerReach(program: Command, withDb: WithDb, settings: Settin
         perDay?: string;
         niches?: string;
         titles?: string;
+        decisionMakers?: string;
+        minEmployees?: string;
+        knownSizeOnly?: string;
+        engaged?: string;
         withdrawAfterDays?: string;
       }) => {
+        const flag = (v: string) => {
+          if (!["on", "off", "true", "false"].includes(v)) throw new Error(`on or off, not ${v}`);
+          return v === "on" || v === "true";
+        };
         const list = (v: string) =>
           v
             .split(",")
@@ -340,6 +356,10 @@ export function registerReach(program: Command, withDb: WithDb, settings: Settin
           ...(o.perDay !== undefined && { perDay: Number(o.perDay) }),
           ...(o.niches !== undefined && { niches: list(o.niches) }),
           ...(o.titles !== undefined && { titles: list(o.titles) }),
+          ...(o.decisionMakers !== undefined && { decisionMakers: flag(o.decisionMakers) }),
+          ...(o.minEmployees !== undefined && { minEmployees: Number(o.minEmployees) }),
+          ...(o.knownSizeOnly !== undefined && { knownSizeOnly: flag(o.knownSizeOnly) }),
+          ...(o.engaged !== undefined && { engaged: flag(o.engaged) }),
           ...(o.withdrawAfterDays !== undefined && {
             withdrawAfterDays: Number(o.withdrawAfterDays),
           }),
@@ -358,8 +378,26 @@ export function registerReach(program: Command, withDb: WithDb, settings: Settin
     );
   inv
     .command("sweep")
-    .description("Accepts, stale invites withdrawn, tomorrow's queued: now")
+    .description("Accepts, stale invites withdrawn, tomorrow's proposed for your yes: now")
     .action(async () => json(await desk().invites()));
+  inv
+    .command("proposed")
+    .description("Invites waiting on your yes (To approve), with why each was picked")
+    .action(() =>
+      withDb(async (db) => {
+        const rows = await proposedInvites(db);
+        for (const r of rows) console.log(`${r.id}\t${r.name ?? r.handle}\t${r.fit?.why ?? ""}`);
+        if (rows.length === 0) console.log("none waiting");
+      }),
+    );
+  inv
+    .command("approve <ids...>")
+    .description("Your yes: they send on the next ticks, under the day's cap and ramp")
+    .action(async (ids: string[]) => json(await desk().approveInvites({ ids: ids.map(Number) })));
+  inv
+    .command("skip <ids...>")
+    .description("Your no: skipped, never proposed again")
+    .action(async (ids: string[]) => json(await desk().skipInvites({ ids: ids.map(Number) })));
 
   const reads = () => ingress().objectClient<RedditReadsObject>({ name: "RedditReads" }, READS_KEY);
   const d = cmd

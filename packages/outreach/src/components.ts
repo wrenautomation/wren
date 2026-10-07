@@ -208,7 +208,7 @@ export const OUTREACH_COMPONENTS = [
     channels: ["dm"],
     name: "LinkedIn invites",
     blurb:
-      "Invites people from your lists on LinkedIn, up to 20 a weekday. Accepts land in Replies; every message after is your click.",
+      "Proposes the day's best people on LinkedIn, up to 20 a weekday: decision-makers at big firms, and people who engaged with you first. Each invite waits on your yes.",
     icon: "people",
     for: "client",
     ready: true,
@@ -241,6 +241,16 @@ export const OUTREACH_COMPONENTS = [
         { is: "change", says: "Who: niches and title words.", built: "settings.niches, titles" },
         {
           is: "change",
+          says: "Decision-makers only, and a firm size floor.",
+          built: "settings.decisionMakers, minEmployees, knownSizeOnly",
+        },
+        {
+          is: "change",
+          says: "People who engaged with you go first, past the filters.",
+          built: "settings.engaged",
+        },
+        {
+          is: "change",
           says: "How many a day, under the account's ramp.",
           built: "settings.perDay, policy.linkedin",
         },
@@ -250,6 +260,7 @@ export const OUTREACH_COMPONENTS = [
           built: "settings.withdrawAfterDays",
         },
         { is: "needs", says: "People with a LinkedIn page in the lists.", built: null },
+        { is: "fixed", says: "No invite sends without your yes in To approve." },
         { is: "fixed", says: "No message goes after an accept without a click." },
       ],
     },
