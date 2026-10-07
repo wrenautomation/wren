@@ -1,0 +1,2 @@
+CREATE INDEX "ix_templates_live_version_id" ON "templates" USING btree ("live_version_id");--> statement-breakpoint
+CREATE INDEX "ix_templates_draft_version_id" ON "templates" USING btree ("draft_version_id");

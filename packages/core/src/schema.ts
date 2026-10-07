@@ -721,6 +721,8 @@ export const templates = pgTable(
     primaryKey({ columns: [t.id], name: "pk_templates" }),
     unique("uq_templates_kind_system_name").on(t.kind, t.system, t.name),
     oneOf("ck_templates_kind", t.kind, TEMPLATE_KIND_VALUES),
+    index("ix_templates_live_version_id").on(t.liveVersionId),
+    index("ix_templates_draft_version_id").on(t.draftVersionId),
     foreignKey({
       columns: [t.liveVersionId],
       foreignColumns: [templateVersions.id],

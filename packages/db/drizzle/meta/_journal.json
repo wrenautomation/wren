@@ -890,6 +890,13 @@
       "when": 1791329348353,
       "tag": "0126_client_domains",
       "breakpoints": true
+    },
+    {
+      "idx": 127,
+      "version": "7",
+      "when": 1791332507444,
+      "tag": "0127_template_fk_indexes",
+      "breakpoints": true
     }
   ]
 }
