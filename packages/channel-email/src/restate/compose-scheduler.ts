@@ -16,7 +16,6 @@ import * as restate from "@restatedev/restate-sdk";
 import type { Company } from "@wren/core";
 import { type Notifier, plural } from "@wren/core/notify";
 import { clientOfKey, makeLoopObject, runPass, stoppedPass } from "@wren/core/restate";
-import type { Template } from "@wren/core/slots";
 import type { Db } from "@wren/db";
 import { sql } from "drizzle-orm";
 import { experimentTemplates } from "../evolve/experiments.js";
