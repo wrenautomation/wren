@@ -415,8 +415,38 @@ const piecesOf = (what: unknown) =>
     : [typeof what === "string" && what ? what : "posts"];
 /** "idea/platform/draft": a post's idea and platform. "campaign/adset/day": an ad day's campaign. */
 const head = (id: string, n: number) => id.split("/").slice(0, n);
-/** A client's draft verdicts: its own Marketing service, which checks its approver. */
+/**
+ * A client's draft verdicts: its own Marketing service, which checks its approver. Its Inbox:
+ * the thread's id, on the client's own database.
+ */
 const CLIENT_ONE: Record<string, (id: string, input: Input) => [string, Input]> = {
+  "marketing/inboxReply": (id, { channel, target, body }) => [
+    "marketing/inboxReply",
+    { thread: id, channel, target, body },
+  ],
+  "marketing/inboxAsk": (id, { channel, target, body }) => [
+    "marketing/inboxAsk",
+    { thread: id, channel, target, body },
+  ],
+  "marketing/inboxSuggest": (id, { channel, target }) => [
+    "marketing/inboxSuggest",
+    { thread: id, channel, target },
+  ],
+  "marketing/inboxNote": (id, { body }) => ["marketing/inboxNote", { thread: id, body }],
+  "marketing/inboxAssign": (id, { assignee }) => [
+    "marketing/inboxAssign",
+    { thread: id, assignee: assignee || null },
+  ],
+  "marketing/inboxTake": (id) => ["marketing/inboxTake", { thread: id }],
+  "marketing/inboxClose": (id) => ["marketing/inboxStatus", { thread: id, status: "closed" }],
+  "marketing/inboxOpen": (id) => ["marketing/inboxStatus", { thread: id, status: "open" }],
+  "marketing/inboxSnooze": (id, { until }) => [
+    "marketing/inboxSnooze",
+    { thread: id, until: snoozeUntil(until) },
+  ],
+  "marketing/inboxWake": (id) => ["marketing/inboxSnooze", { thread: id, until: null }],
+  "marketing/inboxReplyApprove": (id) => ["marketing/inboxApprove", { id: num(id) }],
+  "marketing/inboxReplyDrop": (id) => ["marketing/inboxDrop", { id: num(id) }],
   "marketing/approveDraft": (id) => ["marketing/approveDraft", { ids: [bare(id)] }],
   "marketing/rejectDraft": (id, { reason, note }) => [
     "marketing/rejectDraft",

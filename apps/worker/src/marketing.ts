@@ -7,7 +7,13 @@ import {
   searchPageRecord,
 } from "@wren/channel-search/records";
 import { textContactRecord } from "@wren/channel-sms/records";
-import { contentRecords, socialRecords, type VideoSigner } from "@wren/content/records";
+import {
+  askedReplyRecord,
+  contentRecords,
+  inboxRecord,
+  socialRecords,
+  type VideoSigner,
+} from "@wren/content/records";
 import { factsRecord } from "@wren/core/facts";
 import {
   commentRecord,
@@ -38,7 +44,8 @@ export const MARKETING_NUMBERS = marketingNumbers();
 
 /**
  * A client's Marketing (`MarketingConsole`): what its posting, ads and search loops write into
- * its own database. Its ad days stay empty until its Meta ads are built.
+ * its own database, and its Inbox with the replies there that wait on a yes. Its ad days stay
+ * empty until its Meta ads are built.
  */
 export const clientMarketing = (signer?: VideoSigner) => [
   ...contentRecords(signer),
@@ -46,5 +53,7 @@ export const clientMarketing = (signer?: VideoSigner) => [
   searchPageRecord,
   keywordRecord,
   searchDayRecord,
+  inboxRecord,
+  askedReplyRecord,
 ];
 export const CLIENT_MARKETING = clientMarketing();

@@ -118,7 +118,6 @@ export const CONTENT_COMPONENTS = [
       records: [
         "marketing.inbox",
         "marketing.approval",
-        "marketing.asked_reply",
         "marketing.activity",
         "marketing.audience",
       ],

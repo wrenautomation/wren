@@ -1,6 +1,7 @@
 /**
- * Mentions: where someone `@`ed you, in a note's body or a comment, newest first. Only notes you
- * can open: tagging someone never shares a note with them. Opening the note marks it seen.
+ * Mentions: where someone `@`ed you, in a note's body, a comment or a client's Inbox note, newest
+ * first. Only notes you can open: tagging someone never shares a note with them. Opening the note
+ * marks it seen.
  */
 import { Alert, Empty, Icon, Loading, PageHeader, relative } from "@wren/ui";
 import { useCall } from "../../load.js";
@@ -11,8 +12,13 @@ import { docPath, type NoteMention, notes } from "./api.js";
 export const unseenMentions = (client: string) =>
   notes(client, "mentions", { limit: 1 }).then((r) => r.unseen);
 
+/** A note, its comment, or a client's Inbox thread (Marketing -> Inbox). */
 const linkOf = (m: NoteMention) =>
-  m.commentId ? `${docPath(m.noteId)}?comment=${m.commentId}` : docPath(m.noteId);
+  m.thread
+    ? `/marketing/inbox/${encodeURIComponent(m.thread)}`
+    : m.commentId
+      ? `${docPath(m.noteId ?? "")}?comment=${m.commentId}`
+      : docPath(m.noteId ?? "");
 
 export function NoteMentions({ client }: PageProps) {
   const got = useCall(`notes:mentions:${client}`, () => notes(client, "mentions", {}));
@@ -44,7 +50,11 @@ export function NoteMentions({ client }: PageProps) {
                   <span className="min-w-0 flex-1">
                     <span className="block text-[14px]">
                       <span className={m.seen ? undefined : "font-semibold"}>{m.by}</span>{" "}
-                      {m.commentId ? "tagged you in a comment on" : "tagged you in"}{" "}
+                      {m.commentId
+                        ? "tagged you in a comment on"
+                        : m.thread
+                          ? "tagged you in a note on"
+                          : "tagged you in"}{" "}
                       <span className="font-medium">{m.name}</span>
                     </span>
                     {m.comment ? (

@@ -1397,8 +1397,37 @@ const asClient = (id: string, more: Partial<ListPage> = {}): ListPage => {
 };
 
 /**
- * A client's Marketing, once `marketing.stats` is installed: its drafts, posts, ads and search
- * (`MarketingConsole`, its own database). Drafts take its approver's verdict, a YouTube post its
+ * A client's own Inbox action: the same as Wren's, on `MarketingConsole`'s `inbox*` routes, which
+ * run InboxDesk on the client's database (`inbox/take` -> `marketing/inboxTake`). Each needs
+ * `act`; a send also needs `effect` and the approver, which the desk checks.
+ */
+const clientInbox = (a: Action): Action => {
+  const verb = a.handler.slice(a.handler.indexOf("/") + 1);
+  return {
+    ...a,
+    handler: `marketing/inbox${verb.charAt(0).toUpperCase()}${verb.slice(1)}`,
+    requires: { ...a.requires, needs: "act" },
+  };
+};
+
+/** A client's To approve: Inbox replies waiting on a yes, from whoever its approver setting names. */
+const CLIENT_APPROVE: ListPage = {
+  id: "approve",
+  label: "To approve",
+  template: "list",
+  record: "marketing.asked_reply",
+  columns: ["who", "kind", "why", "account", "at"],
+  empty: {
+    waiting: "No Inbox reply waits on a yes.",
+    all: "Replies asked from the Inbox show here.",
+  },
+  actions: ASKED_REPLY_ACTIONS.map(clientInbox),
+  extras: askedReplyExtras,
+};
+
+/**
+ * A client's Marketing, once `marketing.stats` is installed: its Inbox, the replies there that
+ * wait on a yes, its drafts, posts, ads and search (`MarketingConsole`, its own database). Drafts take its approver's verdict, a YouTube post its
  * approver's Promote (drafts on its own logins); the rest read only.
  * Same address as Wren's; the workspace picks which.
  */
@@ -1409,6 +1438,12 @@ export const clientMarketing: Module = {
   icon: marketing.icon,
   blurb: "Your posts, drafts, ads and search in one place.",
   pages: [
+    // Its own threads: reply, Suggest, notes, assign, close and snooze.
+    asClient("inbox", {
+      actions: INBOX_THREAD_ACTIONS.map(clientInbox),
+      extras: conversationExtras,
+    }),
+    CLIENT_APPROVE,
     asClient("drafts", { actions: DRAFT_ACTIONS.filter((a) => VERDICTS.has(a.id)) }),
     asClient("content", { actions: POST_ACTIONS.filter((a) => a.id === "marketing.postPromote") }),
     asClient("ads", { empty: "In development: ads show here once your ad account is connected." }),
