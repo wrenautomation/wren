@@ -59,6 +59,7 @@ describe("pgSpineStore", () => {
     expect(await store.release(id, "inv2")).toEqual({
       ...w,
       event: { ...w.event, data: { cut: "half " } },
+      until: null,
     });
     expect(await store.release(id, "inv2")).not.toBeNull();
     expect(await store.release(id, "inv3")).toBeNull();
