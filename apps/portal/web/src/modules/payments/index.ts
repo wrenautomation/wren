@@ -39,7 +39,7 @@ export const PAY_ACTIONS: Action[] = [
 
 /** The amount, what it's for and how many: a new link's and a thread's form alike. */
 const MONEY = [
-  { field: "amount", label: "Amount", hint: "In dollars, as 49.00" },
+  { field: "amount", label: "Amount", hint: "In dollars, like 49.00" },
   { field: "description", label: "What it's for", hint: "The payer sees this" },
   { field: "quantity", label: "How many", type: "number", optional: true },
 ] as const;
@@ -48,7 +48,7 @@ const sentLine = (a: unknown) => {
   const links = (a as { links?: { status: string }[] } | null)?.links ?? [];
   if (!links.length) return "Nothing made.";
   return links.every((l) => l.status === "waiting")
-    ? "Made. It waits in To approve."
+    ? "Made. It's waiting in To approve."
     : "Made. It's on its way.";
 };
 
@@ -98,7 +98,7 @@ export const payments: Module = {
       columns: ["who", "description", "amount", "status", "channel", "paid", "createdAt", "paidAt"],
       empty: {
         all: "No pay links yet. Make one with New pay link, or from a texting thread.",
-        waiting: "Nothing waits for a yes.",
+        waiting: "Nothing to approve.",
         sent: "No link is out yet.",
         paid: "No link is paid yet.",
       },

@@ -5,7 +5,7 @@ Product audit items 5 and 7 (`designs/2026-10-07-product-audit.md`). William: "s
 ## Answer first
 
 - **Forms are data.** A form is a row: fields (text, email, phone, select, multi, date, consent,
-  hidden UTM), required and pattern rules, a thank-you line or a redirect, and an optional
+  hidden UTM), required and simple rules (digits, letters, ZIP, web address), a thank-you line or a redirect, and an optional
   booking step. No code change or deploy for a new form.
 - **Hosted at `/o/f/<slug>`** on the owner's host: `wrenautomation.com` for Wren, the client's
   custom domain for a client. The same `/o/*` route Sites already uses, so nothing changes in DNS
@@ -59,8 +59,9 @@ All in the main database with a `client` column, like `site_pages` (one read at 
 }
 ```
 
-Rules per field: `required`, `min`/`max` length, `pattern` (a short regex, checked on the server
-and in the browser). An email needs an `@` and a dot; a phone needs 10 to 15 digits. Every form
+Rules per field: `required`, `min`/`max` length, and one `rule` from a fixed list: `digits`,
+`letters`, `zip`, `url`. No free regex: a client's typo can't lock a form, and no pattern runs
+unchecked on the server. An email needs an `@` and a dot; a phone needs 10 to 15 digits. Every form
 needs an email or a phone field. Hidden fields fill from the URL's query on load (`utm_*` by
 default).
 
@@ -80,8 +81,8 @@ words' SHA-256. A submission keeps the words and version it was shown. Only a ti
   Turnstile (`cf-turnstile-response` in the fields) when `TURNSTILE_SECRET` is set and refuses
   without a pass, reads the `wv` cookie, and calls `Sites/form`.
 - The kit loads Turnstile into every `form[data-wren-form]` when the Worker has a site key, so
-  data pages, hosted forms and code pages get the same check. Page CSP gains
-  `challenges.cloudflare.com`.
+  data pages, hosted forms and code pages get the same check. Every page's CSP (`PAGE_CSP`, code
+  pages too) allows `challenges.cloudflare.com` for script and frame.
 - After a submit the form shows its thanks, or goes to its redirect. A booking step shows "Pick a
   time" with name and email carried in the query.
 
@@ -108,7 +109,8 @@ Sites → Forms (Sites is where every public page lives) and Sites → Submissio
 - **Forms**: list with views, starts, submits, conversion. New form. Detail: the builder (fields
   in order, each with kind, label, required, rules, options), after-submit, booking step, consent
   words, a live preview, embed snippets, numbers per source. Publish and retire are direct: the
-  words a person sees are the client's own, and a form asks, it never sends.
+  words a person sees are the client's own, and a form asks, it never sends. Routes:
+  `formCreate`, `formSave`, `formPublish`, `formUnpublish`, `formRetire`, `formDetail`.
 - **Submissions**: every field, the source, consent words and version, visitor, door result.
   Export to CSV from the list.
 
@@ -128,8 +130,9 @@ Main database, `client` column, so To approve and the webhook read one place.
 - `pay_events`: each Stripe event once, by its id, with what applying it did. Kept trimmed: ids,
   amounts, status, email. No card data ever reaches us; Stripe Checkout holds it.
 - `sms_contacts` gains `paid_cents` and `paid_at`.
-- `sms_messages.kind` gains `pay`: it keeps quiet hours strictly (a manual reply to someone who
-  wrote recently skips them; a pay link never does).
+- `sms_messages.kind` gains `pay` (with `text_back` and `review`, all in `ANSWER_KINDS`): it waits
+  for the asked window (8:00 to 20:00, clamped to the legal 20:00 cutoff) and skips opted-out,
+  unreachable and stopped threads.
 
 ### Flow
 
@@ -138,13 +141,15 @@ Main database, `client` column, so To approve and the webhook read one place.
 2. **Approve:** if `mayApprove(who, client, approver)`, it goes on at once. Otherwise it waits in
    To approve (`pay:<id>`) and on the Payments page.
 3. **Send:** a Price and a Payment Link on the client's key (idempotency key = our id, one
-   completed checkout allowed, metadata `wren_link`). Then the text through `queueManual` as kind
-   `pay`, due at the next open window, or the email through the client's mailer when its sends
+   completed checkout allowed, metadata `wren_link`). Then the text through `SmsDesk.reply` as
+   kind `pay`, held for the window, or the email through the client's mailer when its sends
    flag `payments` is on.
 4. **Paid:** Stripe posts to `https://app.wrenautomation.com/__pay/stripe/<client>`. The Worker
    passes the raw body and `Stripe-Signature` to `Payments/stripe`, which checks the HMAC with the
    client's signing secret (5 minute tolerance), keeps the event once, and on
-   `payment_status: paid` marks the link, the contact and fires `payment.received`.
+   `payment_status: paid` marks the link, the contact and fires `payment.received`. Webhooks out
+   maps the `trigger.payment` fire to `payment.received` too. A retried event answers `seen` and
+   changes nothing; another client's link never matches from this client's endpoint.
 
 ### Setup and vendors
 
@@ -153,12 +158,15 @@ Main database, `client` column, so To approve and the webhook read one place.
   it to Wren), step 2 the webhook (Wren registers it through the API with that key; if the key
   can't, the client adds the endpoint and pastes its signing secret). Checks `stripe.key` and
   `stripe.webhook` read our rows, no network.
-- The worker has no key store yet (its role can't write SSM, William's call), so in prod
-  Connect says so. Tests and the preview use the memory store.
+- The worker has no key store yet (its role can't write SSM, William's call): it binds
+  `keys: null`, so in prod Connect answers "in development", as Accounts' own-key save does.
+  Tests use the memory store; the preview has none.
+- The key arrives in `connect`'s input, which Restate journals. Same as `Accounts/setVendor`
+  today. When the worker gets a key store, the key should go straight from the Worker to it.
 
 ### Portal
 
-- **Payments** app: links with status, amount, paid, who and when. Views: All, Waiting, Sent,
+- **Payments** app: links with status, amount, paid, who and when. Views: All, To approve, Sent,
   Paid. New link. Approve and decline. Connect Stripe. Clients see their own.
 - **Texts → thread**: "Send pay link"; the detail shows what they paid.
 - **To approve**: pay links waiting, type "Payment".
@@ -167,6 +175,19 @@ Main database, `client` column, so To approve and the webhook read one place.
 
 - Stripe Connect (managed by Wren). Refunds and invoices. Conditional logic and multi-step forms.
   A drag editor. Per-form A/B. Forms on a client's own Sites list (Sites is team-only today).
+
+## Shipped
+
+- Migrations `0179_forms` (form defs, `site_forms`/`site_events` columns, records views) and
+  `0180_payments` (`pay_links`, `pay_accounts`, `pay_events`, contact paid columns, message kinds).
+- `@wren/sites`: `forms.ts`, `form-store.ts`, kit embed and Turnstile, `/o/f/<slug>` serving.
+- `@wren/payments`: `stripe.ts` (signature, form body, API on an injected fetch), `store.ts`,
+  `service.ts` (`Payments/send`, `Payments/stripe`), `console.ts`, `records.ts`, `setups.ts`.
+- Portal: `src/pay.ts` (`/__pay/stripe/<client>`, POST, app host, 256 KB), Sites → Forms and
+  Submissions, Payments app, "Send pay link" on threads, pay links in To approve, "Managed by Wren
+  (in development)" on Vendors.
+- Tests: forms and Stripe unit tests; sites and payments integration on a real Postgres with a
+  fake Stripe (no network, no charge).
 
 ## Build
 

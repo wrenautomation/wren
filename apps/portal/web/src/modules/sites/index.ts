@@ -28,7 +28,7 @@ export const sites: Module = {
       empty: {
         pages: "No pages yet. Make one from an offer with New page.",
         live: "No page is live. A draft goes live with a yes in To approve.",
-        waiting: "Nothing waits for a yes.",
+        waiting: "Nothing to approve.",
         ads: "No ad links to a page yet.",
         retired: "No page is retired.",
       },

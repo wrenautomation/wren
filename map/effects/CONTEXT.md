@@ -62,6 +62,8 @@ A catalog, not a waterfall. Each row names the cards whose **If you change this*
 | a table (any) | [[platform/db-schema]] | [[processes/migrate]], the table's card |
 | the worker or its build | [[platform/worker]] | [[processes/deploy]] |
 | CLI commands | [[platform/cli]] | `README.md`, `walkthrough/` |
+| a hosted form's spec, consent words, serving or door payload | [[platform/hosted-form]] | [[platform/spine]] (`HOOK_PRESETS.site`), [[platform/webhook-subscription]] (`form.submitted`), embeds on client sites, `apps/portal/src/sites.ts` |
+| pay links, Stripe's webhook or the `pay` text | [[platform/pay-link]] | [[sms/sms-message]], [[sms/sms-contact]], [[platform/vendors]], To approve in `packages/content/src/social/records.ts`, `apps/portal/src/pay.ts` |
 
 ## Outside the tree (what points in)
 
@@ -92,3 +94,5 @@ Nothing in this repo references these; they break silently.
 | `~/.local/bin/wren` on William's Mac | `bin/wren` | [[platform/cli]] |
 | `walkthrough/demos/prod.sh` | CLI commands by name against prod | [[platform/cli]] |
 | S3 `legacy/` and `wrenautomation/legacy-private` | the Python era's data; `scripts/import-legacy.sh` | [[ledger/import]] |
+| each client's Stripe account (webhook endpoint for `checkout.session.completed`) | `https://app.wrenautomation.com/__pay/stripe/<client>`, signed with that client's secret (`STRIPE_WEBHOOK_SECRET` beside its key) | [[platform/pay-link]] |
+| client sites embedding a form | `/o/f/<slug>?embed=1` and `/o/__kit.js` with `data-embed` | [[platform/hosted-form]] |

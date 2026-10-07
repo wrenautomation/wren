@@ -174,7 +174,7 @@ function FieldRow({
             Required
           </label>
         ) : (
-          <span className={HINT}>Filled from the link it was opened with.</span>
+          <span className={HINT}>Filled from the link the visitor opened.</span>
         )}
         <span className="ml-auto flex gap-1">
           <Button size="sm" tone="quiet" disabled={i === 0} onClick={() => move(-1)}>
@@ -283,7 +283,7 @@ function Preview({ spec }: { spec: FormSpec }) {
           </Button>
         </div>
       </div>
-      <DeviceFrame width={phone ? 390 : 720} label={phone ? "Phone, 390 wide" : "Laptop"}>
+      <DeviceFrame width={phone ? 390 : 720} label={phone ? "Phone width" : "Laptop"}>
         <FormPreview spec={spec} />
       </DeviceFrame>
     </div>
@@ -330,9 +330,9 @@ function Builder({ id, d, act }: { id: string; d: FormDetail; act: RecordAct }) 
       >
         <p className={`text-[13.5px] ${QUIET}`}>
           {d.status === "live"
-            ? "Live. A save shows on the next load."
+            ? "Live. Saved changes show on the next visit."
             : d.status === "retired"
-              ? "Retired. Its link answers gone."
+              ? "Retired. Its link no longer works."
               : "A draft. Nobody can open it until you publish."}
         </p>
         <div className="grid gap-3 sm:grid-cols-2">
