@@ -36,6 +36,8 @@ import { askRecord } from "@wren/core/ask";
 import { clientRecord, clientUrl } from "@wren/core/clients";
 import { consoleApi } from "@wren/core/console";
 import { CONSOLE_APPS, CONSOLE_ROUTES } from "@wren/core/console-routes";
+import { KEY_STAGE_PATH, REF_ROUTES, rawKeyAt } from "@wren/core/key-refs";
+import { intakeKey, pgKeyStore, throwawayRing } from "@wren/core/keys";
 import {
   MARKETING_CONSOLE_APPS,
   MARKETING_CONSOLE_ROUTES,
@@ -92,6 +94,9 @@ const port = Number(process.env.PORT ?? 8788);
 const rootDir = loadEnvFile(process.cwd(), process.env.WREN_ROOT);
 const settings = loadSettings(process.env, { rootDir });
 const main = createDb(settings.databaseUrl, { max: 2 }).db;
+/** The key store with a key pair made at start: keys saved in an earlier run won't open. */
+const ring = throwawayRing("dev");
+const keys = pgKeyStore(main, ring);
 /** Client files in memory, PUT and GET at /files/<key>: the bucket's part, minus the signing. */
 const stored = new Map<string, { type: string; bytes: Buffer }>();
 const files: FileStore = {
@@ -190,7 +195,6 @@ const SERVICES: Record<
     }),
   },
   // Accounts and vendors. Steps move on the spine, which isn't here: a write saves, nothing runs.
-  // No key store: an own key is refused, as in prod until the IAM grant.
   accounts: {
     routes: Object.keys(ACCOUNTS_CONSOLE_ROUTES),
     guard: { needs: ACCOUNTS_CONSOLE_ROUTES, apps: ACCOUNTS_CONSOLE_APPS, unnamed: "first" },
@@ -198,14 +202,13 @@ const SERVICES: Record<
       db: main,
       setups: SETUPS,
       checks: LIVE_CHECKS,
-      keys: null,
-      env: "dev",
+      keys,
       agent: process.env.WREN_SETUP_AGENT === "true",
       parts: COMPONENTS.filter((c) => c.requires.facts.length > 0),
     }),
   },
-  // Account → Mail. No key store and no network: Connect is refused here, as in prod until the
-  // IAM grant. Wren's apps from WREN_MAIL_* when set.
+  // Account → Mail. No network: Connect can't reach Google or Microsoft here. Wren's apps from
+  // WREN_MAIL_* when set.
   mail: {
     routes: Object.keys(MAIL_ACCESS_ROUTES),
     guard: { needs: MAIL_ACCESS_ROUTES, apps: MAIL_ACCESS_APPS, unnamed: "first" },
@@ -220,11 +223,9 @@ const SERVICES: Record<
             microsoftId: settings.mailMicrosoftClientId,
             microsoftSecret: settings.mailMicrosoftClientSecret,
           },
-          null,
-          "dev",
+          keys,
         ),
-        keys: null,
-        env: "dev",
+        keys,
         origin: `http://localhost:${port}`,
         fetch: async () => {
           throw new Error("no network in the preview");
@@ -300,8 +301,8 @@ const SERVICES: Record<
     guard: { needs: SMS_CONSOLE_ROUTES, apps: SMS_CONSOLE_APPS, unnamed: "first" },
     api: smsConsoleApi({ db: main, open: (c) => cachedDb(clientUrl(settings.databaseUrl, c)) }),
   },
-  // Payments: links and Stripe's status. No key store and no Stripe here: a link stays where it
-  // is, and connecting says "in development".
+  // Payments: links and Stripe's status. No Stripe here: a key saves, and connecting stops at
+  // Stripe's check.
   payments: {
     routes: Object.keys(PAYMENTS_CONSOLE_ROUTES),
     guard: { needs: PAYMENTS_CONSOLE_ROUTES, apps: PAYMENTS_CONSOLE_APPS, unnamed: "first" },
@@ -309,8 +310,7 @@ const SERVICES: Record<
       const api = paymentsConsoleApi({
         main,
         open: (c) => cachedDb(clientUrl(settings.databaseUrl, c)),
-        keys: null,
-        env: "dev",
+        keys,
         fetch: async () => new Response("{}", { status: 503 }),
         portal: `http://localhost:${port}`,
       });
@@ -566,15 +566,30 @@ const server = createServer(async (req, res) => {
   const route = path.startsWith("/api/") ? path.slice(5) : null;
   if (route !== null) {
     const send = (status: number, body: unknown) => {
-      res.writeHead(status, { "content-type": "application/json" });
+      res.writeHead(status, { "content-type": "application/json", "cache-control": "no-store" });
       res.end(JSON.stringify(body));
     };
+    let raw = "";
+    for await (const chunk of req) raw += chunk;
+    const body = raw ? JSON.parse(raw) : {};
+    // A pasted key: sealed here, as the sign-in Lambda does in prod. The stand-in seat may save.
+    if (path === KEY_STAGE_PATH) {
+      if (req.method !== "POST" || "demo" in viewer) return send(403, { error: "Sign in first" });
+      const out = await intakeKey(
+        main,
+        ring,
+        viewer.email,
+        body,
+        guarded ? undefined : async () => true,
+      );
+      return send(out.status, out.body);
+    }
     const [name = "", call = ""] = route.split("/");
     const svc = SERVICES[name];
     if (!svc?.routes.includes(call)) return send(404, { error: "not found" });
-    let raw = "";
-    for await (const chunk of req) raw += chunk;
-    const out = await callApi(name, call, { ...(raw ? JSON.parse(raw) : {}), viewer });
+    if (REF_ROUTES.includes(`${name}/${call}`) && rawKeyAt(body))
+      return send(400, { error: "Send a saved key's reference, never the key" });
+    const out = await callApi(name, call, { ...body, viewer });
     return send(out.status, out.body);
   }
   const file = normalize(join(dist, path === "/" ? "index.html" : path));

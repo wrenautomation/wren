@@ -8,6 +8,7 @@ import { eq, sql } from "drizzle-orm";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { clientMembers, clients, operators } from "../../src/clients/schema.js";
 import {
+  intakeKey,
   keyRing,
   keySealer,
   maySaveKeys,
@@ -81,10 +82,7 @@ describe("key store", () => {
 
   it("a second key for the same name becomes the next version under the first ref", async () => {
     const s = store();
-    const [live] = await pg.db
-      .select()
-      .from(clientSecrets)
-      .where(eq(clientSecrets.client, "acme"));
+    const [live] = await pg.db.select().from(clientSecrets).where(eq(clientSecrets.client, "acme"));
     if (!live) throw new Error("no live key");
     const { ref } = await s.stage({
       client: "acme",
@@ -138,9 +136,19 @@ describe("key store", () => {
   it("put makes a key live at once; delete removes it", async () => {
     const s = store();
     const secret = "whsec_synthetic00000000";
-    const put = await s.put({ client: "beta", name: "STRIPE_WEBHOOK_SECRET", value: secret, by: "op" });
+    const put = await s.put({
+      client: "beta",
+      name: "STRIPE_WEBHOOK_SECRET",
+      value: secret,
+      by: "op",
+    });
     expect(await s.get({ ref: put.ref, client: "beta", by: "t", why: "t" })).toBe(secret);
-    const again = await s.put({ client: "beta", name: "STRIPE_WEBHOOK_SECRET", value: secret, by: "op" });
+    const again = await s.put({
+      client: "beta",
+      name: "STRIPE_WEBHOOK_SECRET",
+      value: secret,
+      by: "op",
+    });
     expect(again).toMatchObject({ ref: put.ref, version: 2 });
     await expect(
       s.put({ client: "beta", name: "STRIPE_WEBHOOK_SECRET", value: "nope", by: "op" }),
@@ -168,9 +176,9 @@ describe("key store", () => {
           where table_name in ('client_secrets', 'client_secret_events')`,
     );
     expect(tables.some((r) => r.table_name === "client_secrets")).toBe(false);
-    expect(tables.filter((r) => r.table_name === "client_secret_events").map((r) => r.actor)).toEqual(
-      expect.arrayContaining(["ada@example.test", "wren:payments", "wren:keystore"]),
-    );
+    expect(
+      tables.filter((r) => r.table_name === "client_secret_events").map((r) => r.actor),
+    ).toEqual(expect.arrayContaining(["ada@example.test", "wren:payments", "wren:keystore"]));
     const dump = await pg.db.execute(sql`select * from audit_events`);
     expect(JSON.stringify(dump)).not.toContain("synthetic");
   });
@@ -190,5 +198,64 @@ describe("key store", () => {
     expect(await maySaveKeys(pg.db, "owner@example.test", "acme")).toBe(true);
     expect(await maySaveKeys(pg.db, "owner@example.test", "beta")).toBe(false);
     expect(await maySaveKeys(pg.db, "demo@example.test", "demo")).toBe(false);
+  });
+
+  it("intake: a member's key comes back as a ref; others and wrong shapes are refused", async () => {
+    const sealer = keySealer(PAIR.publicSpec);
+    const body = { client: "acme", name: "STRIPE_SECRET_KEY", value: NEXT };
+    const ok = await intakeKey(pg.db, sealer, "owner@example.test", body);
+    expect(ok.status).toBe(200);
+    expect(ok.body).toMatchObject({ ref: expect.stringMatching(/^ks_/), last4: "1111" });
+    expect(
+      (await intakeKey(pg.db, sealer, "owner@example.test", { ...body, client: "beta" })).status,
+    ).toBe(403);
+    const wrong = await intakeKey(pg.db, sealer, "owner@example.test", {
+      ...body,
+      value: "pk_test_synthetic0000000000",
+    });
+    expect(wrong).toEqual({
+      status: 400,
+      body: { error: "That isn't a Stripe secret key (sk_ or rk_)" },
+    });
+    // A mailbox token is Wren's to keep, never pasted.
+    const token = await intakeKey(pg.db, sealer, "owner@example.test", {
+      client: "acme",
+      name: "MAIL_GOOGLE_0123456789ABCDEF",
+      value: '{"refresh":"synthetic-refresh"}',
+    });
+    expect(token.status).toBe(400);
+  });
+
+  it("named reads Wren's own keys by name; a sealer-only store can't read", async () => {
+    await pg.db.insert(clients).values({ id: "wren", name: "Wren", database: "wren_client_wren" });
+    const s = store();
+    await s.put({
+      client: "wren",
+      name: "MAIL_GOOGLE_CLIENT_SECRET",
+      value: "synthetic-app-secret",
+      by: "cli",
+    });
+    expect(
+      await s.named({
+        client: "wren",
+        name: "MAIL_GOOGLE_CLIENT_SECRET",
+        by: "wren:mail",
+        why: "t",
+      }),
+    ).toBe("synthetic-app-secret");
+    expect(
+      await s.named({ client: "wren", name: "MAIL_GOOGLE_CLIENT_ID", by: "t", why: "t" }),
+    ).toBeNull();
+    const sealOnly = pgKeyStore(pg.db, keySealer(PAIR.publicSpec), clock);
+    const put = await sealOnly.put({
+      client: "wren",
+      name: "MAIL_GOOGLE_CLIENT_ID",
+      value: "synthetic-app-id",
+      by: "cli",
+    });
+    expect(put.last4).toBe("p-id");
+    await expect(
+      sealOnly.named({ client: "wren", name: "MAIL_GOOGLE_CLIENT_ID", by: "t", why: "t" }),
+    ).rejects.toThrow("only seals");
   });
 });

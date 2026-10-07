@@ -6,10 +6,10 @@
  */
 import { smsContacts } from "@wren/channel-sms/schema";
 import { addClient, addOperator, clients } from "@wren/core/clients";
-import { clientAccounts } from "@wren/core/setup-schema";
-import { vendorModes } from "@wren/core/vendor-schema";
 import { pgKeyStore, throwawayRing } from "@wren/core/keys";
 import { clientSecretEvents } from "@wren/core/keys-schema";
+import { clientAccounts } from "@wren/core/setup-schema";
+import { vendorModes } from "@wren/core/vendor-schema";
 import { cachedDb, clientDatabaseUrl, type Db } from "@wren/db";
 import { startTestPostgres, type TestPostgres } from "@wren/db/testing";
 import { eq } from "drizzle-orm";
@@ -46,7 +46,7 @@ const api = () =>
 let contact = 0;
 /** What the portal does first: the key to the store, a ref back. */
 const staged = async (client: string, name: string, value: string) =>
-  (await keys.stage({ client, name, value, by: ADA.viewer.email })).ref;
+  (await keys.stage({ client, name, value, by: "ada@example.test" })).ref;
 
 beforeAll(async () => {
   pg = await startTestPostgres();
@@ -83,9 +83,9 @@ describe("connecting Stripe", () => {
     );
     const acct = await payAccountOf(pg.db, "acme");
     if (!acct?.secretName) throw new Error("no secret kept");
-    expect(
-      await keys.get({ ref: acct.secretName, client: "acme", by: "test", why: "check" }),
-    ).toBe(SECRET);
+    expect(await keys.get({ ref: acct.secretName, client: "acme", by: "test", why: "check" })).toBe(
+      SECRET,
+    );
     expect(acct).toMatchObject({ endpoint: "we_test_1", how: "api", live: false });
     const [m] = await pg.db.select().from(vendorModes).where(eq(vendorModes.client, "acme"));
     expect(m).toMatchObject({ vendor: "stripe", mode: "own", keyName: keyRef });

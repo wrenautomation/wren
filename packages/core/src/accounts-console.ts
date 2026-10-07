@@ -12,6 +12,8 @@ import { z } from "zod";
 import { WREN } from "./access.js";
 import { ACCOUNTS_CONSOLE_APPS, ACCOUNTS_CONSOLE_ROUTES } from "./accounts-console-routes.js";
 import { clients, SETUP_MODES, type SetupMode } from "./clients/schema.js";
+import { keyRef, noRawKeys } from "./key-refs.js";
+import type { KeyStore } from "./keys.js";
 import {
   answer,
   canAt,
@@ -51,8 +53,6 @@ import {
 import type { SetupRunRow } from "./setup-schema.js";
 import { spineEmit, waitMs } from "./spine.js";
 import { vendorUsage } from "./vendor-schema.js";
-import { keyRef, noRawKeys } from "./key-refs.js";
-import type { KeyStore } from "./keys.js";
 import {
   clearMode,
   gate,
@@ -383,6 +383,8 @@ export function accountsApi(deps: AccountsDeps) {
           url: v.url,
           asOf: v.asOf,
           own: v.own,
+          /** What a pasted key is saved as (`/api/keys/stage`); null when it takes none. */
+          keyName: v.keyName,
           free: isFree(v),
           offered:
             owner.id === null || (!v.managedDev && settings.managedForClients.includes(v.id)),

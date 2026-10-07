@@ -58,9 +58,7 @@ export const clientSecrets = pgTable(
   },
   (t) => [
     primaryKey({ columns: [t.id], name: "pk_client_secrets" }),
-    uniqueIndex("uq_client_secrets_live")
-      .on(t.client, t.name)
-      .where(sql`${t.state} = 'live'`),
+    uniqueIndex("uq_client_secrets_live").on(t.client, t.name).where(sql`${t.state} = 'live'`),
     foreignKey({
       columns: [t.client],
       foreignColumns: [clients.id],

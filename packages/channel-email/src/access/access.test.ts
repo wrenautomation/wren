@@ -1,4 +1,6 @@
 // Each mailbox's state, what blocks it and the next step: pure, from accounts and connections.
+
+import { keyProblem, MAIL_TOKEN_NAME } from "@wren/core/key-refs";
 import type { AccountView } from "@wren/core/setup";
 import { describe, expect, it } from "vitest";
 import { FACTS, mailboxStates, tokenName } from "./access.js";
@@ -86,11 +88,14 @@ describe("mailboxStates", () => {
 });
 
 describe("tokenName", () => {
-  it("is the owner's key path, the address hashed", () => {
-    const k = tokenName("prod", "acme", "google", "Ann@Acme.example");
-    expect(k).toMatch(/^\/wren\/prod\/owners\/acme\/keys\/MAIL_GOOGLE_[0-9A-F]{16}$/);
-    expect(k).toBe(tokenName("prod", "acme", "google", "ann@acme.example"));
-    expect(k).not.toContain("ann");
-    expect(() => tokenName("prod", "../x", "google", "a@b.c")).toThrow();
+  it("is a key store name, the address hashed", () => {
+    const k = tokenName("google", "Ann@Acme.example");
+    expect(k).toMatch(MAIL_TOKEN_NAME);
+    expect(k).toBe(tokenName("google", "ann@acme.example"));
+    expect(k).not.toContain("ANN");
+    expect(keyProblem(k, JSON.stringify({ refresh: "synthetic-refresh" }), "wren")).toBeNull();
+    expect(keyProblem(k, JSON.stringify({ refresh: "synthetic-refresh" }))).toContain(
+      "by that name",
+    );
   });
 });

@@ -20,9 +20,29 @@ export const KEY_SHAPES: Readonly<Record<string, RegExp>> = {
   TELNYX_API_KEY: /^\S{8,4096}$/,
 };
 
-/** Why `value` can't be kept as `name`, or null when it can. Never says the value. */
-export function keyProblem(name: string, value: string): string | null {
-  const shape = KEY_SHAPES[name];
+/** A mailbox's refresh token (designs/2026-10-07-mail-access.md): the address hashed. */
+export const MAIL_TOKEN_NAME = /^MAIL_(GOOGLE|MICROSOFT)_[0-9A-F]{16}$/;
+
+/**
+ * Names only Wren keeps, never pasted on a page: a mailbox's token as JSON, and Wren's own mail
+ * apps (kept under the client `wren`).
+ */
+function wrenShape(name: string): RegExp | undefined {
+  if (MAIL_TOKEN_NAME.test(name)) return /^\{[\s\S]{8,4000}\}$/;
+  if (/^MAIL_(GOOGLE|MICROSOFT)_CLIENT_(ID|SECRET)$/.test(name)) return /^\S{8,4096}$/;
+  return undefined;
+}
+
+/**
+ * Why `value` can't be kept as `name`, or null when it can. Never says the value. A person
+ * pastes only `KEY_SHAPES` names; the worker and the CLI may also keep Wren's own.
+ */
+export function keyProblem(
+  name: string,
+  value: string,
+  from: "person" | "wren" = "person",
+): string | null {
+  const shape = KEY_SHAPES[name] ?? (from === "wren" ? wrenShape(name) : undefined);
   if (!shape) return "Wren doesn't keep a key by that name";
   if (!shape.test(value)) {
     if (name === "STRIPE_SECRET_KEY") return "That isn't a Stripe secret key (sk_ or rk_)";

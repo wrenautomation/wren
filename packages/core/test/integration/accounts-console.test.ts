@@ -9,11 +9,11 @@ import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { WREN } from "../../src/access.js";
 import { accountsApi } from "../../src/accounts-console.js";
 import { clientMembers, clients } from "../../src/clients/schema.js";
+import { pgKeyStore, throwawayRing } from "../../src/keys.js";
 import { PortalRefusal, type Viewer } from "../../src/portal.js";
 import { defineSetup } from "../../src/setup.js";
 import { setupAlert } from "../../src/setup-alerts.js";
 import { clientAccounts } from "../../src/setup-schema.js";
-import { pgKeyStore, throwawayRing } from "../../src/keys.js";
 import { meter } from "../../src/vendors.js";
 
 let pg: TestPostgres;
@@ -324,13 +324,13 @@ describe("vendors", () => {
 
   it("usage across clients is the team's; totals count Wren's key only", async () => {
     await refused(api().usage({ viewer: AMY }), 403);
-    await api().setVendor({
-      viewer: OP,
+    const { ref } = await keys.stage({
       client: "acme",
-      vendor: "x",
-      mode: "own",
-      key: "synthetic-key-1234",
+      name: "X_BEARER_TOKEN",
+      value: "synthetic-key-1234",
+      by: OP.email,
     });
+    await api().setVendor({ viewer: OP, client: "acme", vendor: "x", mode: "own", keyRef: ref });
     await meter(pg.db, { client: "acme", vendor: "x", units: 100, at: T });
     const u = await api().usage({ viewer: ADMIN });
     expect(u.rows).toEqual([

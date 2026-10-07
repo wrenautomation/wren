@@ -1,12 +1,14 @@
 /**
  * Vendors (designs/2026-10-07-setup-and-vendors.md): each vendor a client's parts read through,
  * on Wren's key (managed) or its own, today's room and the month's use. Wren's team sets the
- * mode, the key, the share and the cap; a client reads the same.
+ * mode, the key, the share and the cap; a client reads the same. A key is saved alone first
+ * (`saveKey`) and setVendor gets its ref; the page shows only its last 4.
  */
 import type { VendorsView } from "@wren/core/accounts/console";
 import { Alert, Button, Callout, Input, Loading, PageHeader, Section, Tag } from "@wren/ui";
 import { useState } from "react";
 import { call } from "../../api.js";
+import { saveKey } from "../../keys.js";
 import { useCall } from "../../load.js";
 import type { PageProps } from "../../module.js";
 import { dayLabel, ERROR, FIELD, field, QUIET, SELECT } from "../work/bits.js";
@@ -47,7 +49,11 @@ function Facts({ v, wren }: { v: VendorRow; wren: boolean }) {
         v.capped && v.capCents ? v.capped : v.capCents ? dollars(v.capCents * 10_000) : UNSET,
       ]);
   }
-  if (v.mode === "own" && v.own === "key") rows.push(["Key", v.keySet ? "Saved" : "Not saved"]);
+  if (v.mode === "own" && v.own === "key")
+    rows.push([
+      "Key",
+      v.keySet ? (v.keyLast4 ? `Saved, ending ${v.keyLast4}` : "Saved") : "Not saved",
+    ]);
   return (
     <dl className={DL}>
       {rows.map(([k, val]) => (
@@ -62,20 +68,31 @@ function Facts({ v, wren }: { v: VendorRow; wren: boolean }) {
 
 function SetMode({
   v,
+  client,
   mayMoney,
   keyStore,
   act,
 }: {
   v: VendorRow;
+  client: string;
   mayMoney: boolean;
   keyStore: boolean;
   act: Act;
 }) {
   const [mode, setMode] = useState<Mode>(v.mode ?? "none");
+  const [keyError, setKeyError] = useState<string | null>(null);
   const managed = v.offered && mayMoney;
   const save = async (f: FormData) => {
     const body: Record<string, unknown> = { vendor: v.id, mode };
-    if (mode === "own" && v.own === "key") body.key = field(f, "key") ?? "";
+    if (mode === "own" && v.own === "key" && v.keyName) {
+      setKeyError(null);
+      try {
+        body.keyRef = (await saveKey(client, v.keyName, field(f, "key") ?? "")).ref;
+      } catch (err) {
+        setKeyError(err instanceof Error ? err.message : String(err));
+        return false;
+      }
+    }
     if (mode === "managed") {
       body.perDay = Number(field(f, "perDay") ?? 0);
       // A free vendor has no cap: keep what's stored.
@@ -119,10 +136,10 @@ function SetMode({
         keyStore ? (
           <label className={`${FIELD} grow basis-[220px]`}>
             <span>{v.keySet ? "Replace their key" : "Their key"}</span>
-            <Input name="key" type="password" autoComplete="off" required maxLength={500} />
+            <Input name="key" type="password" autoComplete="off" required maxLength={4096} />
           </label>
         ) : (
-          <p className={`${QUIET} basis-full`}>Saving their key here is in development.</p>
+          <p className={`${QUIET} basis-full`}>Saving their key isn't turned on yet.</p>
         )
       ) : null}
       {mode === "managed" && managed ? (
@@ -155,6 +172,7 @@ function SetMode({
       >
         Save
       </Button>
+      {keyError ? <p className={`${ERROR} basis-full`}>{keyError}</p> : null}
     </form>
   );
 }
@@ -179,7 +197,13 @@ function Vendor({ v, d, act }: { v: VendorRow; d: VendorsView; act: Act }) {
         <p className={`${QUIET} mt-3`}>Not offered on Wren's key to clients any more.</p>
       ) : null}
       {d.team && !wren ? (
-        <SetMode v={v} mayMoney={d.mayMoney} keyStore={d.keyStore} act={act} />
+        <SetMode
+          v={v}
+          client={d.owner.id ?? ""}
+          mayMoney={d.mayMoney}
+          keyStore={d.keyStore}
+          act={act}
+        />
       ) : null}
     </Section>
   );

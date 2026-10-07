@@ -1,14 +1,15 @@
 /**
  * Mail access (designs/2026-10-07-mail-access.md): a client's mailboxes, connected one sign-in
  * each, after its Workspace admin trusts Wren's app or its Microsoft 365 admin consents. Refresh
- * tokens live in the key store under the client's owner path; access tokens live in memory for
- * their hour. Nothing here returns or logs a token.
+ * tokens live in the key store (designs/2026-10-07-key-store.md), sealed under the client;
+ * access tokens live in memory for their hour. Nothing here returns or logs a token.
  */
 import { createHash } from "node:crypto";
+import { WREN } from "@wren/core/access";
+import type { KeyStore } from "@wren/core/keys";
 import type { Mailbox } from "@wren/core/mailbox";
 import { type AccountView, accountsOf, addAccount } from "@wren/core/setup";
 import { type AccountRow, clientAccounts } from "@wren/core/setup-schema";
-import type { KeyStore } from "@wren/core/vendors";
 import type { Db, Queryable } from "@wren/db";
 import { and, eq, gt, inArray, isNotNull, isNull, sql } from "drizzle-orm";
 import type { FetchLike } from "../fetch-like.js";
@@ -44,8 +45,6 @@ export interface MailDeps {
   apps: () => Promise<MailApps>;
   /** Where refresh tokens go; null: connecting says the key store isn't set up here. */
   keys: KeyStore | null;
-  /** The env in a key's SSM path: `prod`. */
-  env: string;
   /** The portal's origin the callbacks land on (`https://app.wrenautomation.com`). */
   origin: string | null;
   fetch: FetchLike;
@@ -82,12 +81,13 @@ export class MailRefusal extends Error {
 
 export const domainOf = (address: string) => address.split("@")[1]?.toLowerCase() ?? "";
 
-/** The key store's name for a mailbox's refresh token: the owner's path, the address hashed. */
-export function tokenName(env: string, client: string, provider: MailProvider, address: string) {
-  if (!/^[a-z0-9_-]+$/.test(env) || !/^[a-z0-9_-]+$/.test(client))
-    throw new Error("key path: env and client are lowercase ids");
+/** Who reads and writes mailbox tokens in the key store's log. */
+export const MAIL_KEYS = "wren:mail";
+
+/** The key store's name for a mailbox's refresh token, under its client: the address hashed. */
+export function tokenName(provider: MailProvider, address: string) {
   const h = createHash("sha256").update(address.toLowerCase()).digest("hex").slice(0, 16);
-  return `/wren/${env}/owners/${client}/keys/MAIL_${provider.toUpperCase()}_${h.toUpperCase()}`;
+  return `MAIL_${provider.toUpperCase()}_${h.toUpperCase()}`;
 }
 
 /** The org account's site for a provider. */
@@ -325,7 +325,14 @@ export function mailAccess(deps: MailDeps) {
     const at = now().getTime();
     if (hit && hit.until > at + 60_000) return hit.token;
     if (!deps.keys) throw new MailRefusal("The key store isn't set up here");
-    const stored = await deps.keys.get(c.tokenName);
+    const client = (await account(c.accountId))?.client;
+    if (!client) throw new MailRefusal("This mailbox has no client");
+    const stored = await deps.keys.get({
+      ref: c.tokenName,
+      client,
+      by: MAIL_KEYS,
+      why: `refresh mailbox ${c.accountId}`,
+    });
     if (!stored) {
       await broke(c.accountId, "Its token is gone. Connect it again.");
       throw new MailRefusal("Its token is gone. Connect it again.");
@@ -345,8 +352,14 @@ export function mailAccess(deps: MailDeps) {
       }
       throw err;
     }
+    // Microsoft's rotates: the new one under the same ref.
     if (t.refresh && t.refresh !== saved.refresh)
-      await deps.keys.put(c.tokenName, JSON.stringify({ ...saved, refresh: t.refresh }));
+      await deps.keys.rotate({
+        ref: c.tokenName,
+        client,
+        value: JSON.stringify({ ...saved, refresh: t.refresh }),
+        by: MAIL_KEYS,
+      });
     cache.set(c.accountId, { token: t.access, until: at + t.expiresIn * 1000 });
     return t.access;
   };
@@ -598,8 +611,12 @@ export function mailAccess(deps: MailDeps) {
           client,
           check: [],
         };
-      const name = tokenName(deps.env, client, g.provider, a.ref);
-      await deps.keys.put(name, JSON.stringify({ refresh: t.refresh, address: a.ref }));
+      const { ref } = await deps.keys.put({
+        client,
+        name: tokenName(g.provider, a.ref),
+        value: JSON.stringify({ refresh: t.refresh, address: a.ref }),
+        by: g.by,
+      });
       cache.set(a.id, { token: t.access, until: at.getTime() + t.expiresIn * 1000 });
       const row = {
         provider: g.provider,
@@ -607,7 +624,7 @@ export function mailAccess(deps: MailDeps) {
         org: t.org,
         scopes: t.scopes.join(" ").slice(0, 2000),
         access,
-        tokenName: name,
+        tokenName: ref,
         state: "connected" as const,
         why: null,
         connectedAt: at,
@@ -712,8 +729,8 @@ export async function sweepGrants(main: Queryable, at: Date): Promise<void> {
 
 /**
  * Wren's apps from config: the worker's settings first, else the key store under Wren's own
- * owner path (`/wren/<env>/owners/wren/keys/MAIL_GOOGLE_CLIENT_ID`), which keeps them out of the
- * SSM env parameter, near its size cap.
+ * client (`wren keys put --client wren MAIL_GOOGLE_CLIENT_ID`), which keeps them out of the SSM
+ * env parameter, near its size cap.
  */
 export function mailAppsFrom(
   set: {
@@ -723,28 +740,30 @@ export function mailAppsFrom(
     microsoftSecret?: string | undefined;
   },
   keys: KeyStore | null,
-  env: string,
 ): () => Promise<MailApps> {
-  let memo: { at: number; apps: MailApps } | null = null;
-  const key = (n: string) => `/wren/${env}/owners/wren/keys/${n}`;
+  let memo: { at: number; ttl: number; apps: MailApps } | null = null;
+  const stored = (name: string) =>
+    keys
+      ? keys.named({ client: WREN, name, by: MAIL_KEYS, why: "Wren's mail app" }).catch(() => null)
+      : null;
   const one = async (
     id: string | undefined,
     secret: string | undefined,
     prefix: string,
   ): Promise<MailApp | null> => {
-    const i = id ?? (keys ? await keys.get(key(`${prefix}_CLIENT_ID`)).catch(() => null) : null);
-    const s =
-      secret ?? (keys ? await keys.get(key(`${prefix}_CLIENT_SECRET`)).catch(() => null) : null);
+    const i = id ?? (await stored(`${prefix}_CLIENT_ID`));
+    const s = secret ?? (await stored(`${prefix}_CLIENT_SECRET`));
     return i && s ? { id: i, secret: s } : null;
   };
   return async () => {
-    // Read again every 10 minutes: an app William adds shows without a deploy.
-    if (memo && Date.now() - memo.at < 600_000) return memo.apps;
+    // Both found: kept an hour. One missing: asked again in 10 minutes, so an app William adds
+    // shows without a deploy. Each read is a logged read.
+    if (memo && Date.now() - memo.at < memo.ttl) return memo.apps;
     const apps = {
       google: await one(set.googleId, set.googleSecret, "MAIL_GOOGLE"),
       microsoft: await one(set.microsoftId, set.microsoftSecret, "MAIL_MICROSOFT"),
     };
-    memo = { at: Date.now(), apps };
+    memo = { at: Date.now(), ttl: apps.google && apps.microsoft ? 3_600_000 : 600_000, apps };
     return apps;
   };
 }

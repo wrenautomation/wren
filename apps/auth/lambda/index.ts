@@ -3,7 +3,8 @@
  * The auth Worker forwards `/api/auth/*` here with the edge secret; anything
  * else is refused before it reaches the database. Cold start: secrets from
  * SSM, then Better Auth over the main database. Mail goes out through Gmail
- * as portal@ (a send-as alias on the operator mailbox).
+ * as portal@ (a send-as alias on the operator mailbox). It also seals a pasted key
+ * (`./keys.ts`) with the key store's public key; it can't open one.
  */
 import { makeAuth } from "@wren/auth";
 // The narrow modules: the send index pulls in the whole outbox tick and Restate.
@@ -11,9 +12,11 @@ import { GmailClient, plainMailer } from "@wren/channel-email/send/gmail";
 import { GMAIL_SEND_SCOPE, loadServiceAccountKey } from "@wren/channel-email/send/google-auth";
 import { loadSsmEnv } from "@wren/config/ssm";
 import { isOperator, mayHandOff, mayHaveAccount } from "@wren/core/clients";
+import { sealerFromEnv } from "@wren/core/keys";
 import { cachedDb } from "@wren/db";
 import { IP_HEADER } from "../src/headers.js";
 import { fromEdge, toRequest, toResult, type UrlEvent, type UrlResult } from "./http.js";
+import { type KeyResult, keyIntake } from "./keys.js";
 
 await loadSsmEnv(process.env.WREN_SSM_ENV_PARAM);
 
@@ -38,6 +41,8 @@ const gmail = new GmailClient({
   key: loadServiceAccountKey(need("WREN_GOOGLE_SERVICE_ACCOUNT")),
   scopes: [GMAIL_SEND_SCOPE],
 });
+// Unset: saving a key answers 503 and sign-in works as before.
+const sealer = sealerFromEnv();
 const google = pair("WREN_AUTH_GOOGLE");
 const microsoft = pair("WREN_AUTH_MICROSOFT");
 
@@ -59,7 +64,9 @@ const auth = makeAuth({
 
 export async function handler(
   event: UrlEvent,
-): Promise<UrlResult | { statusCode: 403; body: string }> {
+): Promise<UrlResult | KeyResult | { statusCode: 403; body: string }> {
   if (!fromEdge(event, EDGE)) return { statusCode: 403, body: "forbidden" };
+  const key = await keyIntake(event, db, sealer);
+  if (key) return key;
   return toResult(await auth.handler(toRequest(event, ORIGIN)));
 }

@@ -81,7 +81,7 @@ export const mailConnections = pgTable(
     /** The scopes granted, space-separated, as the provider said them. */
     scopes: text("scopes").notNull(),
     access: varchar("access", { length: 8, enum: MAIL_ACCESS }).$type<MailAccess>().notNull(),
-    /** The key store's name for its refresh token; the value is never here. */
+    /** The key store's ref (`ks_…`) for its refresh token; the value is never here. */
     tokenName: varchar("token_name", { length: 255 }).notNull(),
     state: varchar("state", { length: 12, enum: CONNECTION_STATES })
       .$type<ConnectionState>()

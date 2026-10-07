@@ -315,18 +315,13 @@ export const settingsSchema = z.object({
     .transform((v) => v === "true" || v === "1"),
   /**
    * Wren's "Wren mail" OAuth apps (designs/2026-10-07-mail-access.md). Unset: read from the key
-   * store at `/wren/<env>/owners/wren/keys/MAIL_*`, else Account → Mail says "Needs setup".
+   * store under the client `wren` (`wren keys put`), else Account → Mail says "Needs setup".
    * The secrets are secrets: never logged, never in argv.
    */
   mailGoogleClientId: z.string().min(1).optional(),
   mailGoogleClientSecret: z.string().min(1).optional(),
   mailMicrosoftClientId: z.string().min(1).optional(),
   mailMicrosoftClientSecret: z.string().min(1).optional(),
-  /**
-   * Where per-owner keys live: `ssm` (each owner's `keys/` path under `/wren/<env>/owners`, needs the IAM grant) or
-   * `none` (an own key is refused; mailboxes can't connect).
-   */
-  keyStore: z.enum(["none", "ssm"]).default("none"),
   /** Hand done-for-you setup steps to autobrowse `do` in the account owner's autobrowse. Off: they wait on Wren's team. */
   setupAgent: z
     .enum(["true", "false", "1", "0"])
@@ -603,7 +598,6 @@ export const ENV_KEYS = {
   mailGoogleClientSecret: "WREN_MAIL_GOOGLE_CLIENT_SECRET",
   mailMicrosoftClientId: "WREN_MAIL_MICROSOFT_CLIENT_ID",
   mailMicrosoftClientSecret: "WREN_MAIL_MICROSOFT_CLIENT_SECRET",
-  keyStore: "WREN_KEY_STORE",
   smsDailyCap: "WREN_SMS_DAILY_CAP",
   smsMonthlyPerContact: "WREN_SMS_MONTHLY_PER_CONTACT",
   smsNumberCap: "WREN_SMS_NUMBER_CAP",

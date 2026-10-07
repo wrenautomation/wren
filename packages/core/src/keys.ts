@@ -20,7 +20,12 @@ import { atomic, type Db, type Queryable, serializable, setAuditActor, type Tx }
 import { and, eq, lt, ne, sql } from "drizzle-orm";
 import { clientMembers, clients, operators } from "./clients/schema.js";
 import { KEY_MAX, KEY_REF, keyProblem, last4 } from "./key-refs.js";
-import { type ClientSecretRow, clientSecretEvents, clientSecrets, type SecretOp } from "./keys-schema.js";
+import {
+  type ClientSecretRow,
+  clientSecretEvents,
+  clientSecrets,
+  type SecretOp,
+} from "./keys-schema.js";
 
 // ---- keys and sealing ----
 
@@ -34,7 +39,11 @@ const unb64 = (s: string) => Buffer.from(s, "base64url");
 
 function privateOf(raw: Buffer): KeyObject {
   if (raw.length !== 32) throw new Error("key store: a private key is 32 bytes");
-  return createPrivateKey({ key: Buffer.concat([PKCS8_X25519, raw]), format: "der", type: "pkcs8" });
+  return createPrivateKey({
+    key: Buffer.concat([PKCS8_X25519, raw]),
+    format: "der",
+    type: "pkcs8",
+  });
 }
 function publicOf(raw: Buffer): KeyObject {
   if (raw.length !== 32) throw new Error("key store: a public key is 32 bytes");
@@ -93,7 +102,11 @@ function kekOf(shared: Buffer, eph: Buffer, to: Buffer): Buffer {
 function wrapFor(kid: string, to: KeyObject, dek: Buffer, aad: string): Uint8Array {
   const eph = generateKeyPairSync("x25519");
   const ephRaw = rawPublic(eph.publicKey);
-  const kek = kekOf(diffieHellman({ privateKey: eph.privateKey, publicKey: to }), ephRaw, rawPublic(to));
+  const kek = kekOf(
+    diffieHellman({ privateKey: eph.privateKey, publicKey: to }),
+    ephRaw,
+    rawPublic(to),
+  );
   return Buffer.concat([ephRaw, gcm(kek, dek, `${aad}|${kid}`)]);
 }
 
@@ -215,7 +228,12 @@ async function expireStaged(tx: Tx, now: Date) {
     )
     .returning({ id: clientSecrets.id, client: clientSecrets.client, name: clientSecrets.name });
   for (const g of gone)
-    await logged(tx, "wren:keystore", { secret: g.id, client: g.client, name: g.name, op: "expire" });
+    await logged(tx, "wren:keystore", {
+      secret: g.id,
+      client: g.client,
+      name: g.name,
+      op: "expire",
+    });
 }
 
 /**
@@ -254,7 +272,11 @@ export async function stageKey(
  * May this email stage a key for `client`? A team seat that reaches it, or a member of it (not a
  * demo client). The handler that binds it checks the real permission.
  */
-export async function maySaveKeys(main: Queryable, email: string, client: string): Promise<boolean> {
+export async function maySaveKeys(
+  main: Queryable,
+  email: string,
+  client: string,
+): Promise<boolean> {
   const e = email.trim().toLowerCase();
   const [row] = await main.execute<{ ok: boolean }>(sql`
     select exists (
@@ -271,13 +293,14 @@ export async function maySaveKeys(main: Queryable, email: string, client: string
 /**
  * One key from the browser, staged: the sign-in Lambda's `/api/keys/stage` and the preview's.
  * `email` is who the edge says is signed in. Answers the ref and last 4, or why not; never the
- * value.
+ * value. `may` is who may save for a client (the preview's stand-in seat passes its own).
  */
 export async function intakeKey(
   main: Db,
   sealer: Sealer | null,
   email: string | null,
   body: unknown,
+  may: (main: Queryable, email: string, client: string) => Promise<boolean> = maySaveKeys,
 ): Promise<{ status: number; body: { ref: string; last4: string } | { error: string } }> {
   const no = (status: number, error: string) => ({ status, body: { error } });
   if (!sealer) return no(503, "Saving keys isn't set up here yet");
@@ -288,7 +311,7 @@ export async function intakeKey(
   const value = typeof b.value === "string" ? b.value : "";
   if (!/^[a-z0-9_-]{1,40}$/.test(client)) return no(400, "Which client?");
   if (!value.trim() || value.length > KEY_MAX) return no(400, "Paste the key");
-  if (!(await maySaveKeys(main, email, client))) return no(403, "Not one of your clients");
+  if (!(await may(main, email, client))) return no(403, "Not one of your clients");
   try {
     return { status: 200, body: await stageKey(main, sealer, { client, name, value, by: email }) };
   } catch (err) {
@@ -314,6 +337,8 @@ export interface KeyStore {
   rotate(o: { ref: string; client: string; value: string; by: string }): Promise<KeyInfo>;
   /** The value, with a `read` event saying who and why. Null: no such live key. */
   get(o: { ref: string; client: string; by: string; why: string }): Promise<string | null>;
+  /** The same by name, for keys Wren keeps by a known name (its own mail apps). */
+  named(o: { client: string; name: string; by: string; why: string }): Promise<string | null>;
   delete(o: { ref: string; client: string; by: string }): Promise<boolean>;
   /** What a page shows: name, last 4, version. No value, no event. */
   info(o: { ref: string; client: string }): Promise<KeyInfo | null>;
@@ -325,13 +350,34 @@ async function liveRow(db: Queryable, ref: string, client: string) {
     .select()
     .from(clientSecrets)
     .where(
-      and(eq(clientSecrets.id, ref), eq(clientSecrets.client, client), eq(clientSecrets.state, "live")),
+      and(
+        eq(clientSecrets.id, ref),
+        eq(clientSecrets.client, client),
+        eq(clientSecrets.state, "live"),
+      ),
     );
   return r ?? null;
 }
 
-/** The store on main, opening with `ring`. */
-export function pgKeyStore(main: Db, ring: KeyRing, clock: () => Date = () => new Date()): KeyStore {
+/**
+ * The store on main, opening with `ring`. Given only a sealer (the CLI, with the public key), it
+ * writes and binds but every read says it can't.
+ */
+export function pgKeyStore(
+  main: Db,
+  ring: KeyRing | Sealer,
+  clock: () => Date = () => new Date(),
+): KeyStore {
+  const opener = (): KeyRing => {
+    if (!("open" in ring)) throw new KeyRefusal("This copy of the key store only seals", 503);
+    return ring;
+  };
+  const read = async (tx: Tx, row: ClientSecretRow | null, by: string, why: string) => {
+    if (!row) return null;
+    const value = opener().open(aadOf(row.client, row.name), row);
+    await logged(tx, by, { secret: row.id, client: row.client, name: row.name, op: "read", why });
+    return value;
+  };
   const reseal = async (
     tx: Tx,
     row: ClientSecretRow,
@@ -393,7 +439,10 @@ export function pgKeyStore(main: Db, ring: KeyRing, clock: () => Date = () => ne
               ),
             );
           if (done) return infoOf(done);
-          throw new KeyRefusal("That key wasn't saved, or waited over an hour. Paste it again.", 404);
+          throw new KeyRefusal(
+            "That key wasn't saved, or waited over an hour. Paste it again.",
+            404,
+          );
         }
         if (staged.client !== o.client || staged.name !== o.name)
           throw new KeyRefusal("That key was saved for something else", 409);
@@ -419,7 +468,13 @@ export function pgKeyStore(main: Db, ring: KeyRing, clock: () => Date = () => ne
             .where(eq(clientSecrets.id, live.id))
             .returning();
           await tx.delete(clientSecrets).where(eq(clientSecrets.id, o.ref));
-          await logged(tx, o.by, { secret: live.id, client: o.client, name: o.name, op: "rotate", why: `from ${o.ref}` });
+          await logged(tx, o.by, {
+            secret: live.id,
+            client: o.client,
+            name: o.name,
+            op: "rotate",
+            why: `from ${o.ref}`,
+          });
           return infoOf(r as ClientSecretRow);
         }
         const [r] = await tx
@@ -434,7 +489,7 @@ export function pgKeyStore(main: Db, ring: KeyRing, clock: () => Date = () => ne
     put: (o) =>
       serializable(main, async (tx) => {
         const value = o.value.trim();
-        const problem = keyProblem(o.name, value);
+        const problem = keyProblem(o.name, value, "wren");
         if (problem) throw new KeyRefusal(problem);
         const live = await liveByName(tx, o.client, o.name);
         if (live) return reseal(tx, live, value, o.by, "rotate");
@@ -463,26 +518,28 @@ export function pgKeyStore(main: Db, ring: KeyRing, clock: () => Date = () => ne
         const row = await liveRow(tx, o.ref, o.client);
         if (!row) throw new KeyRefusal("No such key", 404);
         const value = o.value.trim();
-        const problem = keyProblem(row.name, value);
+        const problem = keyProblem(row.name, value, "wren");
         if (problem) throw new KeyRefusal(problem);
         return reseal(tx, row, value, o.by, "rotate");
       }),
 
     get: (o) =>
-      atomic(main, async (tx) => {
-        const row = await liveRow(tx, o.ref, o.client);
-        if (!row) return null;
-        const value = ring.open(aadOf(row.client, row.name), row);
-        await logged(tx, o.by, { secret: row.id, client: row.client, name: row.name, op: "read", why: o.why });
-        return value;
-      }),
+      atomic(main, async (tx) => read(tx, await liveRow(tx, o.ref, o.client), o.by, o.why)),
+
+    named: (o) =>
+      atomic(main, async (tx) => read(tx, await liveByName(tx, o.client, o.name), o.by, o.why)),
 
     delete: (o) =>
       atomic(main, async (tx) => {
         const row = await liveRow(tx, o.ref, o.client);
         if (!row) return false;
         await tx.delete(clientSecrets).where(eq(clientSecrets.id, row.id));
-        await logged(tx, o.by, { secret: row.id, client: row.client, name: row.name, op: "delete" });
+        await logged(tx, o.by, {
+          secret: row.id,
+          client: row.client,
+          name: row.name,
+          op: "delete",
+        });
         return true;
       }),
 
@@ -505,14 +562,32 @@ export async function rewrapAll(main: Db, ring: KeyRing): Promise<number> {
   let n = 0;
   for (const { id } of rows)
     await atomic(main, async (tx) => {
-      const [row] = await tx.select().from(clientSecrets).where(eq(clientSecrets.id, id)).for("update");
+      const [row] = await tx
+        .select()
+        .from(clientSecrets)
+        .where(eq(clientSecrets.id, id))
+        .for("update");
       if (!row || row.kid === ring.kid) return;
       const wrapped = ring.rewrap(aadOf(row.client, row.name), row);
-      await tx.update(clientSecrets).set({ kid: ring.kid, wrapped }).where(eq(clientSecrets.id, id));
-      await logged(tx, "wren:keystore", { secret: id, client: row.client, name: row.name, op: "rewrap" });
+      await tx
+        .update(clientSecrets)
+        .set({ kid: ring.kid, wrapped })
+        .where(eq(clientSecrets.id, id));
+      await logged(tx, "wren:keystore", {
+        secret: id,
+        client: row.client,
+        name: row.name,
+        op: "rewrap",
+      });
       n++;
     });
   return n;
+}
+
+/** The sign-in Lambda's sealer: null when `WREN_KEYSTORE_PUBLIC` isn't set. */
+export function sealerFromEnv(env: NodeJS.ProcessEnv = process.env): Sealer | null {
+  const spec = env.WREN_KEYSTORE_PUBLIC;
+  return spec ? keySealer(spec) : null;
 }
 
 /** The store from the worker's env: null when `WREN_KEYSTORE_KEY` isn't set. */

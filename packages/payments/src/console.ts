@@ -18,6 +18,8 @@ import { toPhoneE164 } from "@wren/channel-sms";
 import { smsContacts } from "@wren/channel-sms/schema";
 import { mayApprove } from "@wren/core/access";
 import { type Client, findClient } from "@wren/core/clients";
+import { keyRef, noRawKeys } from "@wren/core/key-refs";
+import { KeyRefusal } from "@wren/core/keys";
 import {
   accessOf,
   answer,
@@ -43,8 +45,6 @@ import {
   type StatsAsk,
   serveRecords,
 } from "@wren/core/records/serve";
-import { keyRef, noRawKeys } from "@wren/core/key-refs";
-import { KeyRefusal } from "@wren/core/keys";
 import { PORTAL_FIELDS, serviceHandler } from "@wren/core/restate";
 import { addAccount } from "@wren/core/setup";
 import { vendorModes } from "@wren/core/vendor-schema";
@@ -302,7 +302,8 @@ export function paymentsConsoleApi(deps: PaymentsConsoleDeps) {
       const ref = (v: unknown) => (typeof v === "string" ? v.trim() : "");
       const keyAt = ref(req.keyRef);
       const secretAt = ref(req.secretRef);
-      if (!keyAt && !secretAt) throw new PortalRefusal("paste a Stripe key or a signing secret", 400);
+      if (!keyAt && !secretAt)
+        throw new PortalRefusal("paste a Stripe key or a signing secret", 400);
       if (secretAt) {
         const s = await keys
           .bind({ ref: secretAt, client: client.id, name: WEBHOOK_SECRET, by: viewer.email })

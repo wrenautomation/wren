@@ -160,7 +160,6 @@ import { tiktokContent } from "@wren/channel-tiktok";
 import { xContent } from "@wren/channel-x";
 import { youtubeContent } from "@wren/channel-youtube";
 import { ingressOf, type Settings } from "@wren/config";
-import { ssmKeyStore } from "@wren/config/ssm";
 import {
   clientContent,
   commentGuide,
@@ -210,6 +209,7 @@ import {
 } from "@wren/core/content/restate";
 import { wrenFacts } from "@wren/core/facts";
 import { siteEdge } from "@wren/core/flag-store";
+import { keyStoreFromEnv } from "@wren/core/keys";
 import { delegatedMailbox, type Mailbox, siteMailbox } from "@wren/core/mailbox";
 import { MARKETING_RECORDS } from "@wren/core/marketing/records";
 import { meteredModel, meteredSites } from "@wren/core/metered";
@@ -227,7 +227,6 @@ import {
 } from "@wren/core/spine";
 import { makeTemplatesConsole } from "@wren/core/templates/console";
 import { templateRecords } from "@wren/core/templates/records";
-import { keyStoreFromEnv } from "@wren/core/keys";
 import { gate } from "@wren/core/vendors";
 import { makeWebhooks, webhookStep, webhooksPublish } from "@wren/core/webhooks";
 import { cachedDb, clientDatabaseName, clientDatabaseUrl, createDb, type Db } from "@wren/db";
@@ -1362,8 +1361,6 @@ export async function buildServices(
     return client ? namedFor(lane, client) : lane;
   };
   const setupParts = COMPONENTS.filter((c) => c.requires.facts.length > 0);
-  // Per-owner keys (`/wren/prod/owners/*/keys/*`): SSM once William grants the role, else none.
-  const ownerKeys = settings.keyStore === "ssm" ? ssmKeyStore() : null;
   // Client mail (designs/2026-10-07-mail-access.md): Wren's mail apps from settings or the key
   // store; each mailbox's refresh token in the key store, never printed.
   const mailApps = mailAppsFrom(
@@ -1373,14 +1370,12 @@ export async function buildServices(
       microsoftId: settings.mailMicrosoftClientId,
       microsoftSecret: settings.mailMicrosoftClientSecret,
     },
-    ownerKeys,
-    "prod",
+    keys,
   );
   const clientMail = mailAccess({
     main: db,
     apps: mailApps,
-    keys: ownerKeys,
-    env: "prod",
+    keys,
     origin: settings.portalOrigin ?? null,
     fetch,
   });

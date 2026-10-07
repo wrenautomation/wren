@@ -1,11 +1,13 @@
 /**
  * The Payments head: is the client's Stripe connected, test or live, and does Stripe tell us
  * when a link is paid. An approver connects it here with a key; Wren adds the webhook with it,
- * or the page asks for the endpoint's signing secret. A key is never shown again.
+ * or the page asks for the endpoint's signing secret. Each is saved alone first (`saveKey`) and
+ * the connect call gets its ref. A key is never shown again, only its last 4.
  */
 import { Button, Input, Tag } from "@wren/ui";
 import { type FormEvent, useCallback, useEffect, useState } from "react";
 import { call } from "../../api.js";
+import { saveKey } from "../../keys.js";
 
 interface Status {
   connected: boolean;
@@ -13,6 +15,7 @@ interface Status {
   webhook: "api" | "pasted" | null;
   url: string;
   keyStore: boolean;
+  last4: string | null;
   managed: string;
   approves: boolean;
 }
@@ -49,11 +52,11 @@ export function StripePanel({ client, reload }: { client: string; reload: () => 
     setBusy(true);
     setSaid(null);
     try {
-      const r = await call<Connected>("payments/connect", {
-        client,
-        key: key.trim() || null,
-        secret: secret.trim() || null,
-      });
+      const keyRef = key.trim() ? (await saveKey(client, "STRIPE_SECRET_KEY", key)).ref : null;
+      const secretRef = secret.trim()
+        ? (await saveKey(client, "STRIPE_WEBHOOK_SECRET", secret)).ref
+        : null;
+      const r = await call<Connected>("payments/connect", { client, keyRef, secretRef });
       setKey("");
       setSecret("");
       setSaid(
@@ -80,7 +83,9 @@ export function StripePanel({ client, reload }: { client: string; reload: () => 
     <div className="flex w-full min-w-0 basis-full flex-col gap-2">
       <div className="flex flex-wrap items-center gap-2 text-[14px]">
         <Tag tone={s.connected && s.webhook ? "green" : "warn"} dot>
-          {s.connected ? `Stripe connected${mode ? `, ${mode}` : ""}` : "Stripe not connected"}
+          {s.connected
+            ? `Stripe connected${mode ? `, ${mode}` : ""}${s.last4 ? `, key ending ${s.last4}` : ""}`
+            : "Stripe not connected"}
         </Tag>
         {s.connected ? (
           <span className={LINE}>
@@ -98,7 +103,7 @@ export function StripePanel({ client, reload }: { client: string; reload: () => 
       </div>
       {!s.keyStore && s.approves ? (
         <span className={LINE}>
-          Saving a Stripe key here is in development. Wren's team sets it up for you.
+          Saving a Stripe key isn't turned on yet. Wren's team can do it.
         </span>
       ) : null}
       {open ? (

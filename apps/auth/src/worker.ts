@@ -3,7 +3,7 @@
  * the sign-in Lambda with the edge secret and the caller's address (A5). The
  * apps (app.) may read a token cross-origin; nothing else may.
  */
-import { EDGE_HEADER, IP_HEADER } from "./headers.js";
+import { EDGE_HEADER, IP_HEADER, VIEWER_HEADER } from "./headers.js";
 
 export interface Env {
   ASSETS: Fetcher;
@@ -45,6 +45,8 @@ export default {
 
     const headers = new Headers(req.headers);
     headers.delete("host");
+    // Only the portal Worker says who is signed in to the Lambda; a browser can't.
+    headers.delete(VIEWER_HEADER);
     headers.set(EDGE_HEADER, env.EDGE_SECRET);
     headers.set(IP_HEADER, req.headers.get("cf-connecting-ip") ?? "");
     const hasBody = req.method !== "GET" && req.method !== "HEAD";

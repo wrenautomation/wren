@@ -6,10 +6,11 @@
  */
 
 import { clientMembers, clients } from "@wren/core/clients";
+import { pgKeyStore, throwawayRing } from "@wren/core/keys";
+import { clientSecretEvents, clientSecrets } from "@wren/core/keys-schema";
 import { PortalRefusal, type Viewer } from "@wren/core/portal";
 import { accountsOf } from "@wren/core/setup";
 import { accountFacts } from "@wren/core/setup-schema";
-import { memoryKeyStore } from "@wren/core/vendors";
 import { startTestPostgres, type TestPostgres } from "@wren/db/testing";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { FACTS, mailAccess } from "../../src/access/access.js";
@@ -20,6 +21,7 @@ import { mailChecks } from "../../src/access/setups.js";
 let pg: TestPostgres;
 beforeAll(async () => {
   pg = await startTestPostgres();
+  keys = pgKeyStore(pg.db, throwawayRing());
   await pg.db.insert(clients).values([
     { id: "acme", name: "Acme Dental", database: "wren_client_acme" },
     { id: "beta", name: "Beta Roofing", database: "wren_client_beta" },
@@ -85,7 +87,7 @@ const fetch = async (url: string, init?: RequestInit): Promise<Response> => {
 };
 
 let at = new Date("2026-10-07T12:00:00Z");
-const keys = memoryKeyStore();
+let keys: ReturnType<typeof pgKeyStore>;
 const apps = async () => ({
   google: { id: "g-id", secret: "g-secret" },
   microsoft: { id: "m-id", secret: "m-secret" },
@@ -95,7 +97,6 @@ const access = () =>
     main: pg.db,
     apps,
     keys,
-    env: "test",
     origin: "https://app.test",
     fetch,
     now: () => at,
@@ -192,12 +193,18 @@ describe("Google Workspace", () => {
     const out = await acc.land({ provider: "google", state: stateOf(again.url), code: "c2" });
     expect(out).toMatchObject({ ok: true, client: "acme" });
     expect(out.said).toBe("ann@acme.example is connected to read and send.");
-    const [name, saved] = [...keys.keys.entries()][0] ?? [];
-    expect(name).toMatch(/^\/wren\/test\/owners\/acme\/keys\/MAIL_GOOGLE_/);
+    const [row] = await pg.db.select().from(clientSecrets);
+    expect(row).toMatchObject({ client: "acme", state: "live" });
+    expect(row?.name).toMatch(/^MAIL_GOOGLE_[0-9A-F]{16}$/);
+    expect(Buffer.from(row?.sealed ?? []).includes(Buffer.from("rt-new"))).toBe(false);
+    const saved = await keys.get({ ref: row?.id ?? "", client: "acme", by: "test", why: "test" });
     expect(JSON.parse(saved ?? "{}").refresh).toBe("rt-new");
     const c = await acc.connectionOf(ann.id);
-    expect(c).toMatchObject({ access: "read", state: "connected", tokenName: name });
+    expect(c).toMatchObject({ access: "read", state: "connected", tokenName: row?.id });
     expect(JSON.stringify(c)).not.toContain("rt-new");
+    const events = await pg.db.select().from(clientSecretEvents);
+    expect(events.map((e) => e.op)).toEqual(["put", "read"]);
+    expect(JSON.stringify(events)).not.toContain("rt-new");
   });
 
   it("the checks: trust by a test read, the token by a read", async () => {

@@ -14,10 +14,10 @@
 import * as restate from "@restatedev/restate-sdk";
 import type { SmsDeskService } from "@wren/channel-sms/restate";
 import { type Client, findClient, sendsOn } from "@wren/core/clients";
+import type { KeyStore } from "@wren/core/keys";
 import { serviceHandler } from "@wren/core/restate";
 import type { Fired, FireTriggers } from "@wren/core/spine";
 import { vendorModes } from "@wren/core/vendor-schema";
-import type { KeyStore } from "@wren/core/keys";
 import type { Db } from "@wren/db";
 import { and, eq } from "drizzle-orm";
 import { z } from "zod";

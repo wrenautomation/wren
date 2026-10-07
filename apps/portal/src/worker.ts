@@ -27,12 +27,14 @@
 
 import { AUDIENCE, bearer, verifyToken } from "@wren/auth/verify";
 import { readBody } from "@wren/core/http";
+import { KEY_STAGE_PATH } from "@wren/core/key-refs";
 import { LIVE_PREFIX } from "@wren/notes/room";
 import { bookRoute } from "./book.js";
 import { dictate } from "./dictate.js";
 import { forward, json } from "./edge.js";
 import type { Env } from "./env.js";
 import { authRoute, type Site, siteOf, unknownHost } from "./hosts.js";
+import { keyStage, rawKeyRefusal } from "./keys.js";
 import { liveRoute, NoteRoom } from "./live.js";
 import { mailOAuthRoute } from "./mail-oauth.js";
 import {
@@ -96,6 +98,9 @@ async function api(req: Request, env: Env, path: string, site: Site, ctx?: Execu
   }
   if (!input || typeof input !== "object" || Array.isArray(input))
     return json({ error: "an object only" }, 400);
+  // A key goes to /api/keys/stage; a route that takes its ref never gets the key itself.
+  const rawKey = rawKeyRefusal(`${name}/${route}`, input);
+  if (rawKey) return rawKey;
   // View as reads only; the guard checks who may (`viewAsOf`).
   const viewAs = (input as { viewAs?: unknown }).viewAs;
   if (viewAs !== undefined && viewAs !== null && viewAs !== "" && svc.writes.has(route))
@@ -254,6 +259,7 @@ export default {
       });
     if (pathname.startsWith(LIVE_PREFIX)) return liveRoute(req, env, site, (r) => viewerOf(r, env));
     if (pathname === MEDIA_GRANT_PATH) return mediaGrant(req, env, site);
+    if (pathname === KEY_STAGE_PATH) return keyStage(req, env, site, (r) => viewerOf(r, env));
     if (pathname === MEDIA_PATH) {
       const key = site.kind === "demo" ? null : await keyOf(env);
       return key ? mediaProxy(req, key) : new Response(null, { status: 404 });
