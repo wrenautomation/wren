@@ -1,0 +1,43 @@
+---
+type: object
+cluster: platform
+universe: live
+status: verified
+verified: 2026-10-07 @ 85f81a2
+entity: packages/core/src/vendors.ts:1
+---
+
+# vendors (modes, buckets, metering, usage lines)
+
+Metered services (Exa, YouTube, X, LinkedIn reads, models, Reddit, Telnyx) with a public price and a quota per key. Per client: `own` (the client's key in SSM, their bill) or `managed` (Wren's key, a daily share, a monthly cap, billed through Books). No mode is "Needs setup". Wren is client zero: null client, always managed.
+
+## Why this shape
+
+A read limit belongs to a key, so a bucket is (vendor, key): `<vendor>:own:<client>` or `<vendor>:managed`. A managed client gets the smallest of its share, the clients' pool (quota less Wren's reserve) and the whole quota, so clients never take Wren's half. Keys never sit in Postgres: SSM SecureStrings at credvault's owner path, the row keeps the name.
+
+## Shape
+
+- `vendor_modes` (`packages/core/src/vendor-schema.ts:28`): unique client+vendor; mode, key_name, per_day, cap_cents (both default 0: nothing runs)
+- `vendor_usage` (`:62`): one row per metered call; bucket, units, est. micros; no FK (a ledger)
+- `books.usage_lines` (`packages/books/src/schema.ts`): one owner's month of one managed vendor; draft or on_invoice; `writeUsageLines` (`packages/books/src/usage-lines.ts:36`), run by the Books day for this month and last
+- Code (`vendors.ts`): `VENDORS` (`:34`), `vendorSettings` (`:159`, `wren_settings` block `vendors`: markupPct 0, reservePct 50, managedForClients all but linkedin), `setOwnKey` (`:280`), `setManaged` (`:257`), `gate` (`:380`), `meter` (`:449`), `usageSince` (`:492`)
+- `KeyStore`: `ssmKeyStore` in `packages/config/src/ssm.ts`; the worker has no `ssm:PutParameter` yet
+- GCRA: `packages/core/src/buckets.ts` (research re-exports it)
+
+## Connected to
+
+- **joins:** [[books/bill]] (usage lines sit next to bills); [[books/vendor]] is a vendor Wren pays, not a metered one; research collectors (step f puts their client units behind `gate`)
+- **looks-like-but-is-not:** `books.usage` (AWS spend from Cost Explorer), research's per-source buckets (still count their own tables for Wren)
+
+## If you change this
+
+- **Hits:** client caps and shares, draft lines, prices on the Vendors page
+- **Does not hit:** invoices (lines are drafts; a person puts them on Wise)
+
+## Surfaces
+
+| Surface | Role |
+|---|---|
+| Vendors page (Wren's team) | writes modes and keys |
+| Billing (client) | reads usage and cap |
+| Books day | writes usage lines |

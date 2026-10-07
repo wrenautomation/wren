@@ -584,6 +584,43 @@ export const usage = books.table(
   ],
 );
 
+/** A usage line is a draft until a person puts it on the client's invoice. */
+export const USAGE_LINE_STATES = ["draft", "on_invoice"] as const;
+export type UsageLineState = (typeof USAGE_LINE_STATES)[number];
+
+/**
+ * One owner's month of one vendor on Wren's key (designs/2026-10-07-setup-and-vendors.md): units,
+ * cost at the public price, the markup and the amount. Drafts only: a line never sends an invoice
+ * or charges a card. No client is Wren's own, cost only. Re-running a month rewrites its drafts.
+ */
+export const usageLines = books.table(
+  "usage_lines",
+  {
+    id: serial("id").notNull(),
+    client: varchar("client", { length: 40 }),
+    vendor: varchar("vendor", { length: 32 }).notNull(),
+    /** The month's first day. */
+    month: date("month").notNull(),
+    units: bigint("units", { mode: "number" }).notNull(),
+    costCents: bigint("cost_cents", { mode: "number" }).notNull(),
+    markupPct: integer("markup_pct").notNull(),
+    amountCents: bigint("amount_cents", { mode: "number" }).notNull(),
+    currency: char("currency", { length: 3 }).default("USD").notNull(),
+    state: varchar("state", { length: 12, enum: USAGE_LINE_STATES })
+      .$type<UsageLineState>()
+      .default("draft")
+      .notNull(),
+    computedAt: timestamp("computed_at", { withTimezone: true }).defaultNow().notNull(),
+  },
+  (t) => [
+    primaryKey({ columns: [t.id], name: "pk_usage_lines" }),
+    unique("uq_usage_lines_month").on(t.client, t.vendor, t.month).nullsNotDistinct(),
+    index("ix_usage_lines_month").on(t.month),
+    oneOf("ck_usage_lines_state", t.state, USAGE_LINE_STATES),
+  ],
+);
+export type UsageLine = typeof usageLines.$inferSelect;
+
 /** Metered spend per month and service: `usage` summed, for the console. */
 export const usageByMonth = books
   .view("usage_by_month", {

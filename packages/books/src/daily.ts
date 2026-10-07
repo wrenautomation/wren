@@ -18,6 +18,7 @@ import { type ReadReport, readDocuments } from "./read.js";
 import type { AlertKind } from "./schema.js";
 import type { DocumentStore } from "./store.js";
 import { ingestUsage, type UsageFeed, type UsageIngest, usageSpikes } from "./usage.js";
+import { monthOf, writeUsageLines } from "./usage-lines.js";
 
 export interface BooksDayDeps {
   db: Db;
@@ -39,6 +40,8 @@ export interface BooksDay {
   read: ReadReport;
   posted: Posted;
   aws: UsageIngest | null;
+  /** Managed usage's draft lines for this month and last, rewritten. */
+  usageLines: { month: string; lines: number; amountCents: number }[];
   /** Newly raised alerts' messages, for the one notice a pass sends. */
   raised: string[];
 }
@@ -88,8 +91,23 @@ export async function booksDay(
         message: `AWS ${s.service} on ${s.on}: ${s.amount.toFixed(2)} ${s.currency}, usually ${s.usual.toFixed(2)} a day`,
       });
   }
+  // Last month's drafts keep updating until a person puts them on an invoice.
+  const lastMonth = monthOf(new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth() - 1, 1)));
+  const usageLines = [];
+  for (const month of [lastMonth, monthOf(now)]) {
+    const r = await writeUsageLines(db, month);
+    usageLines.push({ month, lines: r.lines, amountCents: r.amountCents });
+  }
   const raised = await settleAlerts(db, kinds, open);
-  return { captured, unreachable, read, posted, aws, raised: raised.map((c) => c.message) };
+  return {
+    captured,
+    unreachable,
+    read,
+    posted,
+    aws,
+    usageLines,
+    raised: raised.map((c) => c.message),
+  };
 }
 
 const opt = (log: ((line: string) => void) | undefined) => (log ? { log } : {});
