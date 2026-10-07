@@ -627,4 +627,3 @@ export function totalOf(ts: readonly InHouse[]): { tools: InHouse[]; monthly: nu
 /** A client's: live tools with a part it has installed. */
 export const includedIn = (installed: ReadonlySet<string>) =>
   totalOf(IN_HOUSE.filter((t) => t.parts.some((p) => installed.has(p))));
-
