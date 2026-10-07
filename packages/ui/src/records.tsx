@@ -29,7 +29,7 @@ import {
   Maximize2,
   X,
 } from "lucide-react";
-import { type ReactNode, useEffect, useRef, useState } from "react";
+import { type ReactNode, useCallback, useEffect, useRef, useState } from "react";
 import { can, canAt, type Viewer } from "./access.js";
 import { type Action, applies, type Call, useRun } from "./action.js";
 import { Popover, PopoverContent, PopoverTrigger } from "./components/ui/popover.js";
@@ -55,6 +55,7 @@ import {
   filterShape,
   readFilter,
   relative,
+  shownOf,
   totalSays,
   widthOf,
 } from "./fields.js";
@@ -279,7 +280,8 @@ export const textOf = (c: Cell | undefined) =>
 /** A field's cell as words: a state's label ("Reddit", not "reddit"), else its text. */
 const wordsOf = (meta: RecordMeta, row: Row, key: string) => {
   const t = textOf(row[key]);
-  return meta.fields.find((f) => f.key === key)?.states?.[t]?.label ?? t;
+  const f = meta.fields.find((f) => f.key === key);
+  return f && t ? shownOf(f, t) : t;
 };
 export const titleOf = (meta: RecordMeta, row: Row) => wordsOf(meta, row, meta.title);
 export const subtitleOf = (meta: RecordMeta, row: Row) =>
@@ -591,10 +593,10 @@ const blank = (c: Cell | undefined) =>
 function charsOf(f: FieldMeta, c: Cell | undefined): number {
   if (blank(c)) return 0;
   if (f.kind === "date") return 14;
-  // A state's dot and its gap take about two characters.
+  // A state's dot and its gaps take about four characters (measured: "Changed" needs 101px).
   if (f.kind === "status" || f.kind === "verdict")
-    return (f.states?.[String(c)]?.label ?? String(c)).length + 2;
-  if (f.kind === "choice") return (f.states?.[String(c)]?.label ?? String(c)).length;
+    return (f.states?.[String(c)]?.label ?? String(c)).length + 4;
+  if (f.kind === "choice" || f.words) return shownOf(f, String(c)).length;
   if (Array.isArray(c)) return c.join(", ").length;
   if (c && typeof c === "object") {
     if ("name" in c) return c.name.length;
@@ -630,7 +632,71 @@ export function fitOf(f: FieldMeta, rows: Row[]): number {
  * share the room, so "Redis or Valkey" doesn't sit in half the table while its reason reads
  * "Costliest...".
  */
-export function widthsOf(meta: RecordMeta, cols: FieldMeta[], rows: Row[]) {
+export function widthsOf(meta: RecordMeta, cols: FieldMeta[], rows: Row[], room?: number) {
+  const widths = sharedOf(meta, cols, rows);
+  return room ? fitRoom(meta, cols, widths, room) : widths;
+}
+
+/** An element's width as it changes: a list fits its columns to it. */
+function useRoom(): [(el: HTMLDivElement | null) => void, number | undefined] {
+  const [room, setRoom] = useState<number>();
+  const watch = useRef<ResizeObserver | null>(null);
+  const ref = useCallback((el: HTMLDivElement | null) => {
+    watch.current?.disconnect();
+    if (!el || typeof ResizeObserver === "undefined") return;
+    watch.current = new ResizeObserver(() => setRoom(el.clientWidth));
+    watch.current.observe(el);
+  }, []);
+  return [ref, room];
+}
+
+/** The kinds whose words may cut to fit the room: free text, never a state, number or date. */
+const YIELDS: ReadonlySet<FieldMeta["kind"]> = new Set([
+  "text",
+  "name",
+  "company",
+  "actor",
+  "link",
+  "tags",
+  "choice",
+]);
+/** The least a list's title keeps, so what the row is stays readable. */
+const TITLE_MIN = 220;
+
+/**
+ * Widths that fit `room` px: when the columns past the title leave it less than its least, the
+ * word columns give up room in proportion, down to their head, so no column is pushed past the
+ * right edge. Only when every one is at its least does the list scroll sideways.
+ */
+export function fitRoom(
+  meta: RecordMeta,
+  cols: FieldMeta[],
+  widths: Record<string, number | undefined>,
+  room: number,
+) {
+  // The checkbox and open columns, 36 each.
+  const fixed = cols.reduce((n, f) => n + (widths[f.key] ?? 0), 72);
+  const free = cols.filter((f) => widths[f.key] === undefined);
+  const want = free.reduce((n, f) => n + (f.key === meta.title ? TITLE_MIN : widthOf(f)), 0);
+  let over = fixed + want - room;
+  if (over <= 0) return widths;
+  const yields = cols.filter((f) => widths[f.key] !== undefined && YIELDS.has(f.kind));
+  const floor = (f: FieldMeta) => Math.min(widths[f.key] ?? 0, Math.max(96, pxOf(f.label.length)));
+  const spare = yields.reduce((n, f) => n + (widths[f.key] ?? 0) - floor(f), 0);
+  if (spare <= 0) return widths;
+  const share = Math.min(1, over / spare);
+  const out = { ...widths };
+  for (const f of yields) {
+    const w = widths[f.key] ?? 0;
+    const cut = Math.floor((w - floor(f)) * share);
+    out[f.key] = w - cut;
+    over -= cut;
+  }
+  return out;
+}
+
+/** Each column's width for the rows alone, before the room is known. */
+function sharedOf(meta: RecordMeta, cols: FieldMeta[], rows: Row[]) {
   const widths: Record<string, number | undefined> = {};
   for (const f of cols) widths[f.key] = f.key === meta.title ? undefined : fitOf(f, rows);
   const title = cols.find((f) => f.key === meta.title);
@@ -714,7 +780,8 @@ function List({
   });
   const totals = page.data?.totals;
   const footed = !!rows.length && !!totals && cols.some((f) => totalSays(f, totals[f.key]));
-  const widths = widthsOf(meta, cols, rows);
+  const [scroller, room] = useRoom();
+  const widths = widthsOf(meta, cols, rows, narrow ? undefined : room);
   const saved = useSaved(api.keep, meta.id);
   useLastUsed(api.keep, meta, place, saved);
   const searchable = meta.fields.some((f) => f.searchable);
@@ -900,6 +967,7 @@ function List({
         <Alert onRetry={page.retry}>{page.error.message}</Alert>
       ) : (
         <div
+          ref={scroller}
           className={cn(
             "max-h-[calc(100dvh-280px)] overflow-auto border-t border-(--ui-hair) transition-opacity",
             page.loading && page.data && "opacity-60",

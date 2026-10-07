@@ -33,6 +33,7 @@ describe("choice fields", () => {
       { field: "region", op: "in", value: ["south_east", "west"] },
     ]);
     expect(csvRow(type, { id: 1, region: "north", note: null })).toEqual([1, "North", null]);
-    expect(csvRow(type, { id: 2, region: "west", note: null })).toEqual([2, "west", null]);
+    // A key with no label of its own reads as words.
+    expect(csvRow(type, { id: 2, region: "west", note: null })).toEqual([2, "West", null]);
   });
 });

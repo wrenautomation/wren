@@ -4,7 +4,7 @@ import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it } from "vitest";
 import type { Action } from "./action.js";
 import { totalSays, widthOf } from "./fields.js";
-import { fitOf, KeyHints, shownColumns, widthsOf } from "./records.js";
+import { fitOf, fitRoom, KeyHints, shownColumns, widthsOf } from "./records.js";
 
 const field = (key: string, kind: FieldMeta["kind"] = "text"): FieldMeta => ({
   key,
@@ -165,5 +165,32 @@ describe("widthsOf", () => {
     const titled = widthsOf(meta, [name, note, city], wide);
     expect(titled.name).toBeUndefined();
     expect(titled.note).toBe(280);
+  });
+});
+
+describe("fitRoom", () => {
+  const long = Array.from({ length: 3 }, (_, i) => ({
+    id: i,
+    name: "Status update for the campaign that went out on the first",
+    state: "open",
+    note: "x".repeat(60),
+    city: "y".repeat(60),
+  }));
+  it("leaves widths alone when they fit", () => {
+    const widths = widthsOf(meta, cols, long);
+    expect(fitRoom(meta, cols, widths, 4000)).toEqual(widths);
+  });
+  it("cuts word columns, never a state, so the last column stays on screen", () => {
+    const widths = widthsOf(meta, cols, long);
+    const fit = widthsOf(meta, cols, long, 900);
+    expect(fit.state).toBe(widths.state);
+    expect(fit.note).toBeLessThan(widths.note ?? 0);
+    expect(fit.city).toBeLessThan(widths.city ?? 0);
+    const used = cols.reduce((n, f) => n + (fit[f.key] ?? 220), 72);
+    expect(used).toBeLessThanOrEqual(900);
+  });
+  it("stops at each column's head", () => {
+    const fit = widthsOf(meta, cols, long, 200);
+    expect(fit.note).toBe(96);
   });
 });

@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { promptLabel } from "./slots/preview.js";
-import { folderLabel, labelOf, namedParts, nameLabel, nameParts } from "./template-labels.js";
+import { codeLabel, folderLabel, sequenceLabel, labelOf, namedParts, nameLabel, nameParts } from "./template-labels.js";
 
 describe("template labels", () => {
   it("reads path parts as names, a part with its own label as that label", () => {
@@ -13,6 +13,17 @@ describe("template labels", () => {
     expect(labelOf("final_followup")).toBe("Final follow-up");
     expect(labelOf("recruiting")).toBe("Recruiting");
     expect(nameLabel("book-first/opener")).toBe("Opener");
+  });
+
+  it("reads names from code as words", () => {
+    expect(codeLabel("AdsWatch")).toBe("Ads watch");
+    expect(codeLabel("ComposeScheduler")).toBe("Compose scheduler");
+    expect(codeLabel("research.exa-search")).toBe("Research: Exa search");
+    expect(codeLabel("research.fb-groups")).toBe("Research: FB groups");
+    expect(codeLabel("book-first/opener")).toBe("Book first: Opener");
+    expect(codeLabel("people_extraction")).toBe("People extraction");
+    expect(sequenceLabel("build-days-0-3-7")).toBe("Build, days 0, 3, 7");
+    expect(sequenceLabel("linkedin-connect")).toBe("LinkedIn connect");
   });
 
   it("leaves out the folder already shown", () => {

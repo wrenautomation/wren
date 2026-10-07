@@ -204,6 +204,11 @@
   a:hover {
     text-decoration-color: currentColor;
   }
+  /* A list is a layout until it says otherwise (`list-disc pl-5`). */
+  ul,
+  ol {
+    list-style: none;
+  }
   button,
   input,
   select,

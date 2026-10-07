@@ -9,6 +9,7 @@
 import type { Queryable } from "@wren/db";
 import type { ZodType } from "zod";
 import { APPS, isChannel, type Permission } from "./access.js";
+import { codeLabel } from "./template-labels.js";
 
 /** good green, warn amber, bad red, neutral gray. */
 export type Tone = "good" | "warn" | "bad" | "neutral";
@@ -69,7 +70,7 @@ export const KINDS = {
     searchable: true,
     masked: false,
     column: left,
-    csv: plain,
+    csv: (c, f) => (f.words && typeof c === "string" ? codeLabel(c) : plain(c)),
   },
   name: {
     sql: "text",
@@ -119,7 +120,8 @@ export const KINDS = {
   },
   /**
    * One of a set that can grow (a niche): the cell keeps its key ("sec_ria"), so filters and
-   * sorts compare keys, and shows its label ("SEC RIA") from the field's `choices`.
+   * sorts compare keys, and shows its label ("SEC RIA") from the field's `choices`, else the
+   * key as words ("ComposeScheduler" reads "Compose scheduler").
    */
   choice: {
     sql: "text",
@@ -128,7 +130,7 @@ export const KINDS = {
     searchable: false,
     masked: false,
     column: left,
-    csv: (c, f) => (typeof c === "string" ? (f.choices?.()[c] ?? c) : null),
+    csv: (c, f) => (typeof c === "string" ? (f.choices?.()[c] ?? codeLabel(c)) : null),
   },
   /** A share from 0 to 1. */
   percent: {
@@ -283,6 +285,10 @@ export interface Field {
   max?: number;
   /** false: no footer total, for a column too costly to compute over every row. */
   total?: false;
+  /** text: a name from code, read as words on screen and in a CSV (`named`). */
+  words?: true;
+  /** date: a month's row reads "Oct 2026", not "6 days ago". */
+  grain?: "month";
   /**
    * Its heading on a record's page; ungrouped fields come first. An actor and the created and
    * updated dates default to "System", drawn last and folded.
@@ -317,6 +323,11 @@ export const choice = (
   label?: string,
   opts: Opts = {},
 ) => kind("choice")(label, { choices, ...opts });
+/**
+ * Text that names something in code (a service, a stage, a niche key): shown and exported as
+ * words ("ComposeScheduler" reads "Compose scheduler"), searched and filtered as stored.
+ */
+export const named = (label?: string, opts: Opts = {}) => text(label, { words: true, ...opts });
 export const tags = (states: Record<string, State>, label?: string, opts: Opts = {}) =>
   kind("tags")(label, { states, ...opts });
 export const verdict = (label?: string, opts: Opts = {}) =>
@@ -618,6 +629,8 @@ export interface FieldMeta {
   label: string;
   states?: Readonly<Record<string, State>>;
   max?: number;
+  words?: true;
+  grain?: "month";
   ops: readonly Op[];
   sortable: boolean;
   searchable: boolean;
@@ -682,6 +695,8 @@ export function metaOf(type: RecordType, demo: boolean): RecordMeta {
         label: f.label,
         ...(states ? { states } : {}),
         ...(f.max !== undefined ? { max: f.max } : {}),
+        ...(f.words ? { words: true as const } : {}),
+        ...(f.grain ? { grain: f.grain } : {}),
         ...may,
         column: KINDS[f.kind].column,
         ...(f.group ? { group: f.group } : {}),

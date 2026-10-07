@@ -57,7 +57,7 @@ export interface Workspace {
   /** Null while it loads. */
   current: WorkspaceOption | null;
   options: WorkspaceOption[];
-  /** A chip after the name that links somewhere ("Sample firm", to what's real in it). */
+  /** A chip after the name that links somewhere ("Sample company", to what's real in it). */
   chip?: { label: string; href: string } | undefined;
   /** With one option, the name links here (the client's account). */
   href?: string | undefined;

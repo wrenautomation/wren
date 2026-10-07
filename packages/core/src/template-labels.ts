@@ -22,11 +22,14 @@ export const namedParts = (): Record<string, string> => Object.fromEntries(NAMED
 /** Parts said letter by letter. */
 const UPPER: ReadonlySet<string> = new Set([
   "ai",
+  "cli",
   "cpa",
   "crm",
   "cta",
   "dm",
+  "dns",
   "faq",
+  "fb",
   "ps",
   "seo",
   "sms",
@@ -55,6 +58,24 @@ export function labelOf(part: string): string {
   if (first === undefined) return part;
   return [first.charAt(0).toUpperCase() + first.slice(1), ...rest].join(" ");
 }
+
+/**
+ * A name from code as words: a service ("AdsWatch" to "Ads watch"), a stage
+ * ("research.exa-search" to "Research: Exa search") or a key ("sec_ria" to "SEC RIA").
+ * Its parts read as `labelOf` reads them.
+ */
+export function codeLabel(name: string): string {
+  const [head = "", ...rest] = name
+    .split(/[./]/)
+    .map((p) => p.replace(/([a-z0-9])([A-Z])/g, "$1 $2").trim())
+    .filter(Boolean);
+  const first = labelOf(head);
+  return rest.length ? `${first}: ${rest.map(labelOf).join(" ")}` : first;
+}
+
+/** A sequence's name as words: "build-days-0-3-7" to "Build, days 0, 3, 7". */
+export const sequenceLabel = (name: string): string =>
+  labelOf(name).replace(/ days ((?:\d+ )*\d+)$/, (_, d: string) => `, days ${d.split(" ").join(", ")}`);
 
 /** A template's own label: the last part of its name ("book-first/opener" to "Opener"). */
 export const nameLabel = (name: string): string => labelOf(name.slice(name.lastIndexOf("/") + 1));

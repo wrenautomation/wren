@@ -76,6 +76,7 @@ export interface OverviewProps {
 
 const ZONE = Intl.DateTimeFormat().resolvedOptions().timeZone;
 const TOP = 5;
+const blank = (c: unknown) => c === null || c === undefined || c === "";
 
 const split = (href: string) => {
   const [path = "", query = ""] = href.split("?");
@@ -163,7 +164,13 @@ export function RecordOverview({ title, api, tiles: all, top = [], keepAs }: Ove
       </div>
       <Trends tiles={tiles} stats={stats} />
       {top.length ? (
-        <div className="grid grid-cols-[minmax(0,1fr)] gap-8 lg:grid-cols-2">
+        <div
+          className={cn(
+            "grid grid-cols-[minmax(0,1fr)] gap-8",
+            /* One list takes the full width; two sit side by side. */
+            top.length > 1 && "lg:grid-cols-2",
+          )}
+        >
           {top.map((t) => {
             const meta = metaOf(t.record);
             return meta ? <Top key={t.label} top={t} meta={meta} api={api} /> : null;
@@ -464,7 +471,13 @@ function Top({ top, meta, api }: { top: OverviewTop; meta: RecordMeta; api: Reco
                     className="max-w-[40%] shrink-0 truncate text-(--ui-ink-2)"
                     title={f.label}
                   >
-                    <FieldCell field={f} cell={r[f.key]} />
+                    {/* A bare amount says nothing: it reads "Per reply: CA$12", or "none". */}
+                    {f.kind === "money" ? `${f.label}: ` : null}
+                    {f.kind === "money" && blank(r[f.key]) ? (
+                      "none"
+                    ) : (
+                      <FieldCell field={f} cell={r[f.key]} />
+                    )}
                     {/* A bare count says nothing: "3" reads "3 members". */}
                     {f.kind === "number" ? ` ${f.label.toLowerCase()}` : null}
                   </span>

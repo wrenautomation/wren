@@ -5,6 +5,7 @@
  */
 import type { Cell, FieldMeta, Filter, Op, State, Tone } from "@wren/core/records";
 import type { Total } from "@wren/core/records/serve";
+import { codeLabel } from "@wren/core/templates/labels";
 import { cn } from "cn";
 import type { ReactNode } from "react";
 import { duration, hostOf, money, num } from "./format.js";
@@ -39,7 +40,23 @@ export function widthOf(f: FieldMeta, title = false): number {
   return Math.max(preset, Math.ceil(chars * 7.2) + 24);
 }
 
-const stateOf = (f: FieldMeta, c: string): State => f.states?.[c] ?? { label: c, tone: "neutral" };
+const stateOf = (f: FieldMeta, c: string): State =>
+  f.states?.[c] ?? { label: f.kind === "choice" ? codeLabel(c) : c, tone: "neutral" };
+
+/** A month as it reads: "Oct 2026". */
+const monthOf = (d: Date) => d.toLocaleDateString("en-US", { month: "short", year: "numeric" });
+
+/** A cell as the words it shows: a state's or choice's label, a name from code as words. */
+export function shownOf(f: FieldMeta, c: string): string {
+  if (f.states || f.kind === "choice") return stateOf(f, c).label;
+  // A page read as words: its host and path, no scheme ("wrenautomation.com/recruiting").
+  if (f.kind === "link") return c.replace(/^https?:\/\/(www\.)?/, "").replace(/\/$/, "") || c;
+  if (f.kind === "date" && f.grain === "month") {
+    const d = dateOf(c);
+    return d ? monthOf(d) : c;
+  }
+  return f.words ? codeLabel(c) : c;
+}
 
 /**
  * Postgres and ISO times alike: "2026-09-30 17:08:41.1+00" reads as a date. A bare day
@@ -153,7 +170,7 @@ export function FieldCell({ field: f, cell: c }: { field: FieldMeta; cell: Cell 
       const d = dateOf(String(c));
       return d ? (
         <time dateTime={d.toISOString()} title={exact(d)}>
-          {relative(d)}
+          {f.grain === "month" ? monthOf(d) : relative(d)}
         </time>
       ) : null;
     }
@@ -164,7 +181,7 @@ export function FieldCell({ field: f, cell: c }: { field: FieldMeta; cell: Cell 
     case "actor":
       return <Actor value={String(c)} />;
     default:
-      return <span>{c}</span>;
+      return <span>{f.words ? codeLabel(String(c)) : c}</span>;
   }
 }
 
@@ -178,7 +195,7 @@ function Actor({ value }: { value: string }) {
   return (
     <span>
       {quiet(`${value.charAt(0).toUpperCase()}${value.slice(1, at)} · `)}
-      {value.slice(at + 1)}
+      {/^[\w-]+$/.test(value.slice(at + 1)) ? codeLabel(value.slice(at + 1)) : value.slice(at + 1)}
     </span>
   );
 }
@@ -327,6 +344,7 @@ export function FieldLine({
     );
   if (f.kind === "date") {
     const d = dateOf(String(c));
+    if (d && f.grain === "month") return <time dateTime={d.toISOString()}>{monthOf(d)}</time>;
     return d ? (
       <time dateTime={d.toISOString()}>
         {exact(d)} {quiet(`· ${relative(d)}`)}
