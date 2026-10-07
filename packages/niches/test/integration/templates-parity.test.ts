@@ -18,7 +18,9 @@ afterAll(() => pg.stop());
 /** Every fact the template reads, filled; `drop` leaves every nth one empty for the fallbacks. */
 function facts(tpl: Template, drop: number): Record<string, string | null> {
   return Object.fromEntries(
-    [...factKeys(tpl)].sort().map((k, i) => [k, drop && i % drop === 0 ? null : `Sample ${k} ${i}`]),
+    [...factKeys(tpl)]
+      .sort()
+      .map((k, i) => [k, drop && i % drop === 0 ? null : `Sample ${k} ${i}`]),
   );
 }
 
