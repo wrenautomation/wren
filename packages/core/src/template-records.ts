@@ -24,13 +24,44 @@ const KIND: Record<string, State> = {
   email: { label: "Email", tone: "neutral" },
   sms: { label: "Text", tone: "neutral" },
   dm: { label: "DM", tone: "neutral" },
+  post: { label: "Post", tone: "neutral" },
   prompt: { label: "Prompt", tone: "neutral" },
+};
+/** `TemplateStatus`: waiting on a yes, Wren's default, a newer default unused, its own, nothing. */
+const STATUS: Record<string, State> = {
+  waiting: { label: "Waiting approval", tone: "warn" },
+  default: { label: "Default", tone: "neutral" },
+  updated: { label: "Default updated", tone: "warn" },
+  edited: { label: "Edited", tone: "good" },
+  empty: { label: "Empty", tone: "neutral" },
 };
 const STATE: Record<string, State> = {
   live: { label: "Live", tone: "good" },
+  waiting: { label: "Waiting", tone: "warn" },
   draft: { label: "Draft", tone: "warn" },
-  empty: { label: "Empty", tone: "neutral" },
+  kept: { label: "Kept", tone: "neutral" },
 };
+
+const ORIGIN: Record<string, State> = {
+  default: { label: "Default", tone: "neutral" },
+  edit: { label: "Edit", tone: "neutral" },
+  restore: { label: "Restore", tone: "neutral" },
+  ai: { label: "AI", tone: "neutral" },
+  import: { label: "Import", tone: "neutral" },
+};
+
+/** The version that goes out for template `t`: its own live one, else the newest default it follows. */
+export const LIVE_ID = sql.raw(`coalesce(t.live_version_id, CASE WHEN t.follows_default THEN (
+  SELECT d.id FROM template_versions d WHERE d.template_id = t.id AND d.origin = 'default'
+  ORDER BY d.number DESC LIMIT 1) END)`);
+
+/** A template's status as SQL, the same rules as `statusOf`. */
+const STATUS_SQL = sql.raw(`CASE WHEN t.waiting_version_id IS NOT NULL THEN 'waiting'
+  WHEN t.follows_default THEN CASE WHEN lv.id IS NULL THEN 'empty' ELSE 'default' END
+  WHEN lv.id IS NULL THEN 'empty'
+  WHEN (SELECT max(d.number) FROM template_versions d
+    WHERE d.template_id = t.id AND d.origin = 'default') > lv.number THEN 'updated'
+  ELSE 'edited' END`);
 
 const rowsOf = async (db: Queryable, q: ReturnType<typeof sql>) =>
   (await db.execute(q)) as unknown as Record<string, unknown>[];
@@ -51,19 +82,17 @@ export const templateRecord = defineRecord({
       db,
       sql`
       WITH totals AS (${TOTALS})
-      SELECT t.id::text id, t.kind, t.system, t.name,
-        CASE WHEN t.draft_version_id IS NOT NULL THEN 'draft'
-          WHEN t.live_version_id IS NOT NULL THEN 'live' ELSE 'empty' END state,
-        lv.version live_version, dv.version draft_version,
+      SELECT t.id::text id, t.kind, t.system, t.name, t.folder, ${STATUS_SQL} status,
+        lv.number live, dv.number draft, t.waiting_by, t.why,
         coalesce(dv.source, lv.source, '') words,
         (SELECT count(*)::int FROM template_versions v WHERE v.template_id = t.id) versions,
         coalesce(s.sends, 0) sends, coalesce(s.replies, 0) replies, s.booked, s.last_sent,
         t.updated_at
       FROM templates t
-      LEFT JOIN template_versions lv ON lv.id = t.live_version_id
+      LEFT JOIN template_versions lv ON lv.id = ${LIVE_ID}
       LEFT JOIN template_versions dv ON dv.id = t.draft_version_id
       LEFT JOIN totals s ON s.kind = t.kind AND s.system = t.system AND s.template = t.name
-      ORDER BY t.kind, t.system, t.name`,
+      ORDER BY t.folder, t.name`,
     ),
   key: "id",
   title: "name",
@@ -72,9 +101,12 @@ export const templateRecord = defineRecord({
     name: text("Template"),
     kind: status(KIND, "Channel"),
     system: text("Whose"),
-    state: status(STATE),
-    liveVersion: text("Live"),
-    draftVersion: text("Draft"),
+    folder: text("Folder"),
+    status: status(STATUS),
+    live: number("Live"),
+    draft: number("Draft"),
+    waitingBy: actor("Asked by"),
+    why: text("Why"),
     versions: number(),
     sends: number(),
     replies: number(),
@@ -86,7 +118,8 @@ export const templateRecord = defineRecord({
   },
   views: [
     { id: "all", label: "All", sort: "name" },
-    { id: "drafts", label: "Drafts", where: { state: "draft" }, sort: "-updatedAt" },
+    { id: "waiting", label: "Waiting approval", where: { status: "waiting" }, sort: "-updatedAt" },
+    { id: "updated", label: "Default updated", where: { status: "updated" }, sort: "name" },
     { id: "prompts", label: "Prompts", where: { kind: "prompt" }, sort: "name" },
   ],
   related: [
@@ -96,9 +129,8 @@ export const templateRecord = defineRecord({
   ],
   // The Library's page: words with a sample, slots, variants, versions and campaigns.
   load: templateDetail,
-  // Save keeps a draft; Publish is the same edit setting the live version (`template-edits.ts`).
+  // Save keeps a draft (`template-edits.ts`); publishing is the templates service's.
   edits: TEMPLATE_EDITS,
-  actions: ["templates.publish"],
 });
 
 export const versionRecord = defineRecord({
@@ -111,22 +143,25 @@ export const versionRecord = defineRecord({
       db,
       sql`
       SELECT v.id::text id, v.template_id::text template_id, t.kind, t.system, t.name,
-        v.version, v.source,
-        CASE WHEN t.live_version_id = v.id THEN 'live' WHEN t.draft_version_id = v.id THEN 'draft'
-          ELSE 'kept' END state,
+        v.number, v.version, v.source, v.origin, v.why,
+        CASE WHEN v.id = ${LIVE_ID} THEN 'live' WHEN t.waiting_version_id = v.id THEN 'waiting'
+          WHEN t.draft_version_id = v.id THEN 'draft' ELSE 'kept' END state,
         v.created_by, v.created_at, v.published_by, v.published_at
       FROM template_versions v JOIN templates t ON t.id = v.template_id
       ORDER BY v.id DESC`,
     ),
   key: "id",
-  title: "version",
+  title: "number",
   subtitle: "name",
   fields: {
-    version: text(),
+    number: number("Version"),
     name: text("Template"),
     kind: status(KIND, "Channel"),
     system: text("Whose"),
-    state: status({ ...STATE, kept: { label: "Kept", tone: "neutral" } }),
+    state: status(STATE),
+    origin: status(ORIGIN, "From"),
+    why: text("Why"),
+    version: text("Hash"),
     source: prose("Words"),
     publishedAt: date("Published"),
     publishedBy: actor("Published by"),
@@ -154,7 +189,9 @@ export const variantRecord = defineRecord({
         s.version, coalesce(s.picks::text, '{}') picks, s.sends::int sends, s.replies::int replies,
         s.booked::int booked, s.last_sent
       FROM template_stats s
-      LEFT JOIN template_versions v ON v.template_id = s.template_id AND v.version = s.version
+      LEFT JOIN LATERAL (SELECT x.id FROM template_versions x
+        WHERE x.template_id = s.template_id AND x.version = s.version
+        ORDER BY x.number DESC LIMIT 1) v ON true
       ORDER BY s.last_sent DESC NULLS LAST`,
     ),
   key: "id",
@@ -191,10 +228,10 @@ async function templateIds(db: Queryable) {
     db,
     sql`
     WITH totals AS (${TOTALS})
-    SELECT t.id::text id, t.kind, t.system, t.name, lv.version live_version,
+    SELECT t.id::text id, t.kind, t.system, t.name, lv.number live_version, lv.version live_hash,
       coalesce(s.sends, 0) sends, coalesce(s.replies, 0) replies, s.booked
     FROM templates t
-    LEFT JOIN template_versions lv ON lv.id = t.live_version_id
+    LEFT JOIN template_versions lv ON lv.id = ${LIVE_ID}
     LEFT JOIN totals s ON s.kind = t.kind AND s.system = t.system AND s.template = t.name`,
   );
   return new Map(rows.map((r) => [`${r.kind}\0${r.system}\0${r.name}`, r]));
@@ -248,7 +285,7 @@ export function sequenceRecords(workflows: readonly Workflow[]): RecordType[] {
             sql`
             SELECT s.template_id, s.picks, s.sends::int sends, s.replies::int replies
             FROM template_stats s JOIN templates t ON t.id = s.template_id
-            JOIN template_versions v ON v.id = t.live_version_id AND v.version = s.version
+            JOIN template_versions v ON v.id = ${LIVE_ID} AND v.version = s.version
             WHERE s.template_id IN (${sql.join(
               known.map((k) => sql`${k}`),
               sql`, `,
@@ -266,7 +303,7 @@ export function sequenceRecords(workflows: readonly Workflow[]): RecordType[] {
           system: s.ref.system,
           template: s.ref.name,
           templateId: t ? String(t.id) : null,
-          liveVersion: (t?.live_version as string | null) ?? null,
+          liveVersion: t?.live_version == null ? null : Number(t.live_version),
           sends: Number(t?.sends ?? 0),
           replies: Number(t?.replies ?? 0),
           booked: t?.booked === null || t?.booked === undefined ? null : Number(t.booked),
@@ -321,7 +358,7 @@ export function sequenceRecords(workflows: readonly Workflow[]): RecordType[] {
       kind: status(KIND, "Channel"),
       system: text("Whose"),
       touch: text("Sent by"),
-      liveVersion: text("Live"),
+      liveVersion: number("Live"),
       sends: number(),
       replies: number(),
       replyRate: rate("sends", "Replied", { from: "replies" }),

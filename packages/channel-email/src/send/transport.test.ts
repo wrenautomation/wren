@@ -75,6 +75,8 @@ describe("ConsoleTransport", () => {
     ["Quick question, Jane", null, "Quick question, Jane"],
     [null, "Quick question, Jane", "Re: Quick question, Jane"],
     [null, null, "Re:"],
+    ["Hi Dana\r\nBcc: x@example.com", null, "Hi Dana Bcc: x@example.com"],
+    [null, "Old\nthread", "Re: Old thread"],
   ])(
     "subject rendering is one rule for every transport (%s, %s)",
     (subject, replySubject, expected) => {
@@ -206,6 +208,11 @@ describe("toHtml", () => {
     const html = toHtml("We looked at acme.com and liked it.\n\n--\nWilliam Jin\nwren.com");
     expect(html).not.toContain('<a href="https://acme.com"');
     expect(html).toContain('<a href="https://wren.com"');
+  });
+  it("a template's markup is escaped like any other words", () => {
+    const html = toHtml('Hi <img src=x onerror="alert(1)"> {first_name}\n\n<script>x()</script>');
+    expect(html).not.toMatch(/<img|<script/);
+    expect(html).toContain("&lt;img src=x onerror=&quot;alert(1)&quot;&gt;");
   });
   it("html in the body is escaped, never emitted", () => {
     const html = toHtml('Costs <$1,000 & "worth it"\n\n--\nWilliam Jin');

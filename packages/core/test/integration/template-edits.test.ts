@@ -1,7 +1,7 @@
 /**
  * The Library's template edits on a real Postgres (`../../src/template-edits.ts`): a save keeps a
- * draft, Publish is an edit that sets the live version, Undo puts the old live back, and texts
- * refuse. The detail renders the words with the made-up lead. Synthetic copy throughout.
+ * numbered draft, Undo puts the words back, and texts refuse. Publishing is the templates
+ * service's, not an edit. The detail renders the words with the made-up lead. Synthetic copy throughout.
  */
 import { startTestPostgres, type TestPostgres, truncate } from "@wren/db/testing";
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
@@ -42,32 +42,29 @@ const [template, , , sequence] = templateRecords([FLOW]) as [
 const by = "op@example.com";
 
 describe("template edits", () => {
-  it("saves a draft, publishes it as an edit, and undoes the publish", async () => {
+  it("saves a numbered draft as an edit, and undoes it", async () => {
     await importVersion(pg.db, OPENER, V1, { by: "import:test" });
     const id = String(await ensureTemplate(pg.db, OPENER));
     const saved = await editRecord(pg.db, template, id, { patch: { words: V2 }, by });
     expect(saved.values).toMatchObject({ words: V2 });
-    const draft = (await templateState(pg.db, OPENER))?.draft?.version;
-    expect(draft).toBeTruthy();
-
-    const live = await editRecord(pg.db, template, id, { patch: { liveVersion: draft }, by });
     expect(await templateState(pg.db, OPENER)).toMatchObject({
-      live: { version: draft },
-      draft: null,
+      live: { number: 1, origin: "import" },
+      draft: { number: 2, origin: "edit", by },
     });
-    await undoChange(pg.db, template, id, live.change as number, by);
+    await undoChange(pg.db, template, id, saved.change as number, by);
     const back = await templateState(pg.db, OPENER);
+    expect(back?.draft).toBeNull();
     expect(back?.live?.source).toBe(V1);
   });
 
-  it("refuses bad marks, unknown versions and texts", async () => {
+  it("refuses bad marks, publishing as an edit, and texts", async () => {
     await importVersion(pg.db, OPENER, V1, { by: "import:test" });
     await importVersion(pg.db, TEXT, "Hi {first_name}. Reply STOP to stop.", { by: "import:test" });
     const id = String(await ensureTemplate(pg.db, OPENER));
     const text = String(await ensureTemplate(pg.db, TEXT));
     const refused = (p: Promise<unknown>) => expect(p).rejects.toBeInstanceOf(PortalRefusal);
     await refused(editRecord(pg.db, template, id, { patch: { words: "Hi [[#a one" }, by }));
-    await refused(editRecord(pg.db, template, id, { patch: { liveVersion: "nope" }, by }));
+    await refused(editRecord(pg.db, template, id, { patch: { liveVersion: 1 }, by }));
     await refused(editRecord(pg.db, template, text, { patch: { words: "Hey. STOP" }, by }));
   });
 
@@ -83,7 +80,11 @@ describe("template edits", () => {
     expect(d?.draft?.version).toBeTruthy();
     expect(d?.slots).toEqual(["first_name", "company"]);
     expect(d?.variants.map((v) => v.name)).toEqual(["s"]);
-    expect(d?.versions.map((v) => v.state)).toEqual(["draft", "live"]);
+    expect(d?.versions.map((v) => [v.number, v.state, v.origin])).toEqual([
+      [2, "draft", "edit"],
+      [1, "live", "import"],
+    ]);
+    expect(d?.status).toBe("edited");
     expect(await sequence.load?.(pg.db, "follow_up.demo")).toMatchObject({
       steps: [{ step: 1, template: "plain/opener", templateId: id, sends: 0 }],
     });

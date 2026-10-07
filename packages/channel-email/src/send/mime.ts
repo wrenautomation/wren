@@ -6,7 +6,7 @@
  */
 import { randomBytes } from "node:crypto";
 import libmime from "libmime";
-import { type OutgoingEmail, renderedSubject, toHtml } from "./transport.js";
+import { type OutgoingEmail, oneLine, renderedSubject, toHtml } from "./transport.js";
 
 const CRLF = "\r\n";
 const ATOM_SAFE = /^[A-Za-z0-9!#$%&'*+\-/=?^_`{|}~ ]+$/;
@@ -26,7 +26,8 @@ export function encodeHeaderText(text: string): string {
 }
 
 /** `Name <addr>` with the name quoted or encoded as RFC 5322/2047 require. */
-export function formatAddress(name: string | null, address: string): string {
+export function formatAddress(rawName: string | null, address: string): string {
+  const name = rawName === null ? null : oneLine(rawName);
   if (!name) return address;
   if (hasNonAscii(name)) return `${encodeHeaderText(name)} <${address}>`;
   if (ATOM_SAFE.test(name)) return `${name} <${address}>`;

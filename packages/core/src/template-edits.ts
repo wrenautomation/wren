@@ -2,7 +2,7 @@
  * What the Library shows and changes on a template (designs/2026-10-06-edits-claude-templates.md,
  * 4): its live and draft words with a sample render, its slots and variants with their numbers,
  * each version's numbers, the campaigns that sent it; and its edits. A save keeps the words as
- * the draft; Publish is an edit too, setting the live version, so History and Undo cover both.
+ * the draft as a new numbered version; making one live goes through the templates service.
  * Publishing sends nothing. Email and prompts only: a text or DM saves on its copy page, which
  * holds its slot's rules.
  */
@@ -10,6 +10,7 @@ import type { Queryable } from "@wren/db";
 import { sql } from "drizzle-orm";
 import { z } from "zod";
 import type { RecordEdits, Values } from "./records.js";
+import type { TemplateOrigin } from "./schema.js";
 import {
   AuthoringError,
   checkSource,
@@ -22,7 +23,7 @@ import {
   type TemplateKind,
   variantPoints,
 } from "./slots/index.js";
-import { publish, saveDraft, type TemplateRef } from "./templates.js";
+import { saveDraft, statusOf, type TemplateRef } from "./templates.js";
 
 /** The made-up lead every sample render uses; the portal's Play walks the same one. */
 export const SAMPLE_LEAD: Readonly<Record<string, string>> = {
@@ -50,35 +51,63 @@ export const WORDS_MAX = 60_000;
 const rowsOf = async (db: Queryable, q: ReturnType<typeof sql>) =>
   (await db.execute(q)) as unknown as Record<string, unknown>[];
 
-interface Head extends TemplateRef {
-  id: number;
-  live: { version: string; source: string } | null;
-  draft: { version: string; source: string } | null;
+interface Words {
+  number: number;
+  version: string;
+  source: string;
 }
 
-/** A template by its row id, with its live and draft words. */
+interface Head extends TemplateRef {
+  id: number;
+  folder: string;
+  followsDefault: boolean;
+  live: Words | null;
+  draft: Words | null;
+  waiting: (Words & { by: string | null }) | null;
+  newestDefault: number | null;
+}
+
+/** A template by its row id, with its live, draft and waiting words. */
 async function headOf(db: Queryable, id: string): Promise<Head | null> {
   if (!/^\d{1,12}$/.test(id)) return null;
   const [r] = await rowsOf(
     db,
     sql`
-    SELECT t.id, t.kind, t.system, t.name, lv.version live_version, lv.source live_source,
-      dv.version draft_version, dv.source draft_source
+    SELECT t.id, t.kind, t.system, t.name, t.folder, t.follows_default, t.waiting_by,
+      lv.number live_number, lv.version live_version, lv.source live_source,
+      dv.number draft_number, dv.version draft_version, dv.source draft_source,
+      wv.number waiting_number, wv.version waiting_version, wv.source waiting_source,
+      (SELECT max(d.number) FROM template_versions d
+        WHERE d.template_id = t.id AND d.origin = 'default') newest_default
     FROM templates t
-    LEFT JOIN template_versions lv ON lv.id = t.live_version_id
+    LEFT JOIN template_versions lv ON lv.id = coalesce(t.live_version_id, CASE WHEN t.follows_default
+      THEN (SELECT d.id FROM template_versions d WHERE d.template_id = t.id AND d.origin = 'default'
+        ORDER BY d.number DESC LIMIT 1) END)
     LEFT JOIN template_versions dv ON dv.id = t.draft_version_id
+    LEFT JOIN template_versions wv ON wv.id = t.waiting_version_id
     WHERE t.id = ${Number(id)}`,
   );
   if (!r) return null;
-  const words = (v: unknown, s: unknown) =>
-    v ? { version: String(v), source: String(s ?? "") } : null;
+  const words = (k: string): Words | null =>
+    r[`${k}_version`]
+      ? {
+          number: Number(r[`${k}_number`]),
+          version: String(r[`${k}_version`]),
+          source: String(r[`${k}_source`] ?? ""),
+        }
+      : null;
+  const waiting = words("waiting");
   return {
     id: Number(r.id),
     kind: r.kind as TemplateKind,
     system: String(r.system),
     name: String(r.name),
-    live: words(r.live_version, r.live_source),
-    draft: words(r.draft_version, r.draft_source),
+    folder: String(r.folder ?? ""),
+    followsDefault: Boolean(r.follows_default),
+    live: words("live"),
+    draft: words("draft"),
+    waiting: waiting ? { ...waiting, by: (r.waiting_by as string | null) ?? null } : null,
+    newestDefault: r.newest_default == null ? null : Number(r.newest_default),
   };
 }
 
@@ -97,7 +126,7 @@ export function sampleOf(kind: TemplateKind, name: string, source: string) {
 const factsFor = (tpl: Template) => ({ ...placeholderFacts(tpl), ...SAMPLE_LEAD });
 
 /** A version's words as the detail shows them. */
-const viewOf = (h: Head, v: { version: string; source: string } | null) =>
+const viewOf = (h: Head, v: Words | null) =>
   v ? { ...v, ...sampleOf(h.kind, h.name, v.source) } : null;
 
 /** One `[[#name a | b]]` point: its options' words and their numbers on the live version. */
@@ -159,11 +188,10 @@ export async function templateDetail(db: Queryable, id: string) {
     await rowsOf(
       db,
       sql`
-      SELECT v.version, v.created_by, v.created_at, v.published_by, v.published_at,
-        CASE WHEN t.live_version_id = v.id THEN 'live' WHEN t.draft_version_id = v.id THEN 'draft'
-          ELSE 'kept' END state
-      FROM template_versions v JOIN templates t ON t.id = v.template_id
-      WHERE v.template_id = ${h.id} ORDER BY v.id DESC`,
+      SELECT v.id, v.number, v.version, v.origin, v.why, v.created_by, v.created_at,
+        v.published_by, v.published_at, o.number opened_from
+      FROM template_versions v LEFT JOIN template_versions o ON o.id = v.opened_from
+      WHERE v.template_id = ${h.id} ORDER BY v.number DESC`,
     )
   ).map((v) => {
     const own = stats.filter((s) => s.version === v.version);
@@ -171,9 +199,20 @@ export async function templateDetail(db: Queryable, id: string) {
     const booked = own.some((s) => s.booked !== null)
       ? own.reduce((t, s) => t + (s.booked ?? 0), 0)
       : null;
+    const number = Number(v.number);
     return {
+      number,
       version: String(v.version),
-      state: String(v.state) as "live" | "draft" | "kept",
+      state: (h.live?.number === number
+        ? "live"
+        : h.waiting?.number === number
+          ? "waiting"
+          : h.draft?.number === number
+            ? "draft"
+            : "kept") as "live" | "waiting" | "draft" | "kept",
+      origin: String(v.origin) as TemplateOrigin,
+      why: (v.why as string | null) ?? null,
+      openedFrom: v.opened_from == null ? null : Number(v.opened_from),
       by: (v.created_by as string | null) ?? null,
       at: v.created_at ? new Date(v.created_at as string).toISOString() : null,
       publishedBy: (v.published_by as string | null) ?? null,
@@ -219,9 +258,19 @@ export async function templateDetail(db: Queryable, id: string) {
     kind: h.kind,
     system: h.system,
     name: h.name,
+    folder: h.folder,
+    status: statusOf({
+      followsDefault: h.followsDefault,
+      live: h.live,
+      waiting: h.waiting,
+      newestDefault: h.newestDefault === null ? null : { number: h.newestDefault },
+    }),
+    followsDefault: h.followsDefault,
+    newestDefault: h.newestDefault,
     editable: LIBRARY_EDITS.has(h.kind),
     live: viewOf(h, h.live),
     draft: viewOf(h, h.draft),
+    waiting: h.waiting ? { ...viewOf(h, h.waiting), by: h.waiting.by } : null,
     slots,
     variants,
     versions,
@@ -232,16 +281,14 @@ export async function templateDetail(db: Queryable, id: string) {
 export type TemplateDetail = NonNullable<Awaited<ReturnType<typeof templateDetail>>>;
 
 const PATCH = z
-  .object({
-    words: z.string().max(WORDS_MAX),
-    liveVersion: z.string().max(64).nullable(),
-  })
+  .object({ words: z.string().max(WORDS_MAX) })
   .partial()
   .strict();
 
 /**
- * The words save as the draft; `liveVersion` publishes that version (the draft's, or an older
- * one: a rollback). Null makes nothing live, which only an Undo of a first publish asks for.
+ * The words save as the draft, a new numbered version; History and Undo cover them. Making a
+ * version live is not an edit: it goes through the templates service, which checks who may
+ * and, for copy that sends, waits on a person's yes.
  */
 export const TEMPLATE_EDITS: RecordEdits = {
   fields: ["words"],
@@ -253,7 +300,7 @@ export const TEMPLATE_EDITS: RecordEdits = {
   read: async (db, id) => {
     const h = await headOf(db, id);
     if (!h) return null;
-    return { words: (h.draft ?? h.live)?.source ?? "", liveVersion: h.live?.version ?? null };
+    return { words: (h.draft ?? h.live)?.source ?? "" };
   },
   check: async (patch, _now, db, id) => {
     const h = await headOf(db, id);
@@ -269,14 +316,6 @@ export const TEMPLATE_EDITS: RecordEdits = {
         throw err;
       }
     }
-    if (typeof patch.liveVersion === "string") {
-      const [v] = await rowsOf(
-        db,
-        sql`SELECT 1 FROM template_versions WHERE template_id = ${h.id}
-          AND version = ${patch.liveVersion}`,
-      );
-      if (!v) return `${h.name} has no version ${patch.liveVersion}`;
-    }
     return null;
   },
   write: async (db, id, patch: Values, by) => {
@@ -285,12 +324,6 @@ export const TEMPLATE_EDITS: RecordEdits = {
     // Only the three keys: the store makes the row from what it's given.
     const ref: TemplateRef = { kind: h.kind, system: h.system, name: h.name };
     if (typeof patch.words === "string") await saveDraft(db, ref, patch.words, { by });
-    if (typeof patch.liveVersion === "string")
-      await publish(db, ref, { by, version: patch.liveVersion });
-    else if (patch.liveVersion === null)
-      await db.execute(
-        sql`UPDATE templates SET live_version_id = NULL, updated_at = now() WHERE id = ${h.id}`,
-      );
   },
   context: async (db, id) => {
     const d = await templateDetail(db, id);
@@ -303,7 +336,7 @@ export const TEMPLATE_EDITS: RecordEdits = {
         .slice(0, 5)
         .map(
           (v) =>
-            `Version ${v.version} (${v.state}): ${v.sends} sent, ${v.replies} replied` +
+            `Version ${v.number} (${v.state}): ${v.sends} sent, ${v.replies} replied` +
             (v.booked !== null ? `, ${v.booked} booked` : "") +
             ".",
         ),

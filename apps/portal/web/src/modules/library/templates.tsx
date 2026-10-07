@@ -1,39 +1,24 @@
 /**
  * A template's page in the Library: its draft and live words, each rendered for a made-up lead,
- * Publish for the draft, then its slots, its variants with their numbers, each version's
+ * then its slots, its variants with their numbers, each version's
  * numbers and the campaigns that sent it. The words edit in place above (the record's `edits`),
  * with History, Undo and Ask Claude. Publishing sends nothing.
  */
 import type { TemplateDetail } from "@wren/core/templates/edits";
 import {
-  type Action,
   BarsChart,
   type BarsRow,
-  Button,
   type MessageKind,
   MessagePreview,
-  type RecordAct,
   type RecordExtras,
   Tag,
 } from "@wren/ui";
-import { type ReactNode, useState } from "react";
+import type { ReactNode } from "react";
 import type { ListPage } from "../../module.js";
 import { QUIET } from "../work/bits.js";
 import { CHANNEL, replyRate } from "./sequence.js";
 
 export const RECORD = "templates.template";
-
-/** Publish: the same edit as a save, setting the live version, so History and Undo cover it. */
-export const TEMPLATE_ACTIONS: Action[] = [
-  {
-    id: "templates.publish",
-    label: "Publish",
-    handler: "console/recordsEdit",
-    inline: true,
-    when: { state: ["draft"] },
-    done: () => "Published. Nothing was sent.",
-  },
-];
 
 type Words = NonNullable<TemplateDetail["live"]>;
 
@@ -53,39 +38,6 @@ function Rendered({ kind, words }: { kind: string; words: Words }) {
   return <MessagePreview message={message} body={words.sample.body} />;
 }
 
-function Publish({ act, id, version }: { act: RecordAct; id: string; version: string }) {
-  const [busy, setBusy] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  return (
-    <span className="flex flex-wrap items-center gap-3">
-      <Button
-        disabled={busy}
-        onClick={async () => {
-          setBusy(true);
-          setError(null);
-          try {
-            await act("templates.publish", {
-              record: RECORD,
-              id,
-              patch: { liveVersion: version },
-            });
-          } catch (err) {
-            setError(err instanceof Error ? err.message : String(err));
-          } finally {
-            setBusy(false);
-          }
-        }}
-      >
-        {busy ? "Publishing" : "Publish"}
-      </Button>
-      <span className={`text-[13px] ${QUIET}`}>
-        Sends nothing. The next email or ask uses it. Undo is in History.
-      </span>
-      {error ? <span className="text-[13px] text-(--ui-bad)">{error}</span> : null}
-    </span>
-  );
-}
-
 const when = (at: string | null) => (at ? new Date(at).toLocaleDateString("en-CA") : "");
 
 function Versions({ d }: { d: TemplateDetail }) {
@@ -103,12 +55,12 @@ function Versions({ d }: { d: TemplateDetail }) {
         </thead>
         <tbody>
           {d.versions.map((v) => (
-            <tr key={v.version} className="border-b border-(--ui-hair) align-top">
+            <tr key={v.number} className="border-b border-(--ui-hair) align-top">
               <td className="py-1.5 pr-3">
-                <span className="font-mono text-[12.5px]">{v.version.slice(0, 8)}</span>{" "}
+                <span className="tabular-nums">v{v.number}</span>{" "}
                 {v.state === "kept" ? null : (
                   <Tag tone={v.state === "live" ? "green" : "accent"}>
-                    {v.state === "live" ? "Live" : "Draft"}
+                    {v.state === "live" ? "Live" : v.state === "waiting" ? "Waiting" : "Draft"}
                   </Tag>
                 )}
               </td>
@@ -156,17 +108,15 @@ function Variants({ d }: { d: TemplateDetail }) {
   );
 }
 
-export const templateExtras: NonNullable<ListPage["extras"]> = (detail, { row, act }) => {
+export const templateExtras: NonNullable<ListPage["extras"]> = (detail) => {
   const d = detail as TemplateDetail | null;
   if (!d) return {};
-  const id = String(row.id);
   const sections: [string, ReactNode][] = [];
   if (d.draft)
     sections.push([
       "Draft",
       <div key="draft" className="grid gap-4">
         <Rendered kind={d.kind} words={d.draft} />
-        {d.editable ? <Publish act={act} id={id} version={d.draft.version} /> : null}
       </div>,
     ]);
   sections.push([

@@ -116,10 +116,13 @@ export class RoutedTransport implements Transport {
   }
 }
 
+/** A header value on one line: each run of CR or LF becomes one space. */
+export const oneLine = (value: string): string => value.replace(/[\r\n]+/g, " ");
+
 /** The Subject header as it goes on the wire; a riding step with no opener subject still gets "Re:". */
 export function renderedSubject(email: OutgoingEmail): string {
-  if (email.subject !== null) return email.subject;
-  return email.replySubject ? `Re: ${email.replySubject}` : "Re:";
+  if (email.subject !== null) return oneLine(email.subject);
+  return email.replySubject ? `Re: ${oneLine(email.replySubject)}` : "Re:";
 }
 
 // --- the HTML twin (N-D5 amended) ------------------------------------------

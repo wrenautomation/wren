@@ -15,7 +15,7 @@
  * - a variants option needing a missing fact is ineligible; no eligible option = missing fact
  */
 import { createHash } from "node:crypto";
-import { type FactValues, factText, HASH_PICK, type Picker, pickOption } from "./pickers.js";
+import { type FactValues, fact, factText, HASH_PICK, type Picker, pickOption } from "./pickers.js";
 import { type PyValue, pyRepr, pyReprStr } from "./pyrepr.js";
 
 /** A required fact (or an entire variant point) has no value: the draft is refused. */
@@ -273,7 +273,8 @@ export function render(
   if (!body) throw new MissingFactError(`template ${pyReprStr(tpl.name)}: the body rendered empty`);
   let subject: string | null = null;
   if (tpl.subject !== null) {
-    subject = finish(renderBlocks(tpl.subject, facts, pickSeed, state).replaceAll("\n", " "));
+    // A subject is one header line: no fact may break it (CR or LF), whatever the kind's finish.
+    subject = finish(renderBlocks(tpl.subject, facts, pickSeed, state).replace(/[\r\n]+/g, " "));
     if (!subject) {
       throw new MissingFactError(`template ${pyReprStr(tpl.name)}: the subject rendered empty`);
     }
@@ -307,7 +308,7 @@ function renderBlock(block: Block, facts: FactValues, pickSeed: Draw, state: Sta
     case "text":
       return block.text;
     case "field": {
-      const value = pickSeed.text(facts[block.key]);
+      const value = pickSeed.text(fact(facts, block.key));
       if (value !== null) {
         state.fields.add(block.key);
         return value;
@@ -362,7 +363,7 @@ export function isEligible(
   text: (value: unknown) => string | null = factText,
 ): boolean {
   return option.every(
-    (b) => b.kind !== "field" || b.fallback !== null || text(facts[b.key]) !== null,
+    (b) => b.kind !== "field" || b.fallback !== null || text(fact(facts, b.key)) !== null,
   );
 }
 

@@ -12,6 +12,13 @@ import { pyReprStr } from "./pyrepr.js";
 /** The facts row as the renderer sees it: any value, absence is null/undefined. */
 export type FactValues = Readonly<Record<string, unknown>>;
 
+/**
+ * One fact by its key, from the facts' own properties only: `{constructor}` or `{__proto__}` is
+ * a fact nobody gave, never something inherited.
+ */
+export const fact = (facts: FactValues, key: string): unknown =>
+  Object.hasOwn(facts, key) ? facts[key] : undefined;
+
 /** Deterministic spread: one recipient always gets the same option. */
 export interface HashPick {
   readonly kind: "hash";
@@ -110,7 +117,7 @@ export function pickOption(
       return spread();
     case "rule": {
       for (const r of picker.rules) {
-        const value = factText(facts[r.fact]);
+        const value = factText(fact(facts, r.fact));
         if (value === null) continue;
         if (eligible.includes(r.option) && new RegExp(r.pattern, "i").test(value)) {
           return r.option;

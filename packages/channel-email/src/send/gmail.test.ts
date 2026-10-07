@@ -251,6 +251,7 @@ describe("what goes on the wire", () => {
   it("names with specials or non-ascii are quoted or encoded", () => {
     expect(formatAddress("Jin, Will", "a@b.com")).toBe('"Jin, Will" <a@b.com>');
     expect(formatAddress("Zoë", "a@b.com")).toBe("=?UTF-8?B?Wm/Dqw==?= <a@b.com>");
+    expect(formatAddress("Will\r\nBcc: x@example.com", "a@b.com")).not.toMatch(/[\r\n]/);
     expect(() => buildMime(mail({ to: "x@y.com\r\nBcc: z@w.com" }))).toThrow("line break");
   });
 

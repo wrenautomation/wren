@@ -82,6 +82,9 @@ describe("checkSlot", () => {
     ["nurses!", /exclamation/],
     ["line one\nline two", /one line/],
     [Array(30).fill("word").join(" "), /over 25 words/],
+    [Array(20).fill("extraordinarily").join(" "), /over 200 characters/],
+    ["nurses {first_name}", /brackets/],
+    ["nurses [[a|b]]", /brackets/],
   ])("%s refuses", (out, why) => {
     expect(checkSlot(prompt, out)).toMatch(why);
   });

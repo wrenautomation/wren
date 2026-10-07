@@ -11,7 +11,7 @@ const step = (n: number, more: Partial<SeqStep> = {}): SeqStep => ({
   system: "demo",
   template: `plain/step-${n}`,
   templateId: String(n),
-  liveVersion: "abcdef0123",
+  liveVersion: 3,
   sends: 40,
   replies: 3,
   booked: 1,

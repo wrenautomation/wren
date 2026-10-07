@@ -16,7 +16,7 @@ export interface SeqStep {
   system: string;
   template: string;
   templateId: string | null;
-  liveVersion: string | null;
+  liveVersion: number | null;
   sends: number;
   replies: number;
   booked: number | null;
@@ -27,6 +27,7 @@ export const CHANNEL: Record<string, string> = {
   email: "Email",
   sms: "Text",
   dm: "DM",
+  post: "Post",
   prompt: "Prompt",
 };
 

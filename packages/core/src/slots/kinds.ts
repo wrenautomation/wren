@@ -17,16 +17,23 @@ import {
   tidy,
 } from "./tree.js";
 
-export const TEMPLATE_KINDS = ["email", "sms", "dm", "prompt"] as const;
+export const TEMPLATE_KINDS = ["email", "sms", "dm", "post", "prompt"] as const;
 export type TemplateKind = (typeof TEMPLATE_KINDS)[number];
+
+/** Control characters but tab and newline: a fact can't smuggle a carriage return or an escape in. */
+export const stripControls = (s: string): string =>
+  // biome-ignore lint/suspicious/noControlCharactersInRegex: matching them is the point
+  s.replace(/[\u0000-\u0008\u000B-\u001F\u007F]/g, "");
 
 /** A text or a DM: runs of spaces become one, the ends trimmed. What both channels always sent. */
 export const squeeze = (assembled: string): string => assembled.replace(/[ \t]+/g, " ").trim();
 
 const STYLE: Record<TemplateKind, RenderStyle> = {
   email: { finish: tidy },
-  sms: { finish: squeeze },
-  dm: { finish: squeeze },
+  sms: { finish: (s) => stripControls(squeeze(s)) },
+  dm: { finish: (s) => stripControls(squeeze(s)) },
+  // A post keeps its paragraphs: an email's seam repair, without control characters.
+  post: { finish: (s) => tidy(stripControls(s)) },
   // A prompt goes to the model exactly as written, its facts exactly as given.
   prompt: { finish: (assembled) => assembled, exact: true },
 };

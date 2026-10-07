@@ -67,6 +67,12 @@ const ADDED = {
     "template_versions.created_by",
     "template_versions.published_at",
     "template_versions.published_by",
+    // 2026-10-07 templates live copy: numbered versions, where each came from and why.
+    "template_versions.number",
+    "template_versions.origin",
+    "template_versions.why",
+    "template_versions.opened_from",
+    "template_versions.default_hash",
   ]),
   constraints: new Set([
     "uq_messages_link_code",
@@ -77,6 +83,10 @@ const ADDED = {
     "fk_leads_person_id_people",
     "ck_verifications_email_lowercase",
     "fk_template_versions_template_id_templates",
+    // 2026-10-07 templates live copy.
+    "uq_template_versions_template_id_number",
+    "ck_template_versions_origin",
+    "fk_template_versions_opened_from_template_versions",
   ]),
   indexes: new Set([
     "ix_enrollments_offer",
@@ -108,6 +118,9 @@ const ADDED = {
     "ix_people_company_created",
     "ix_template_versions_experiment_id",
     "ix_template_versions_template_id",
+    // 2026-10-07: a restore repeats a hash, so (niche, template, version) is an index, not unique.
+    "ix_template_versions_niche",
+    "uq_template_versions_template_id_number",
   ]),
   /** Legacy views wren grew (lead recycling, recruiting ranks): still present, bodies free to differ. */
   views: new Set(["campaign_funnel", "enrollment_outcomes", "person_facts"]),
@@ -121,6 +134,16 @@ const DROPPED_INDEXES = new Set([
   "ix_enrichments_company_id",
   "ix_enrichments_document_id",
   "ix_messages_enrollment_id",
+  // 2026-10-07: replaced by ix_template_versions_niche (a restore repeats a hash).
+  "uq_template_versions_niche",
+]);
+
+/** Legacy constraints wren dropped. */
+const DROPPED_CONSTRAINTS = new Set([
+  // ck_verifications_attributed is gone: email is NOT NULL, so it could never fail.
+  "ck_verifications_attributed",
+  // 2026-10-07: a restore repeats a hash; versions are unique by template and number.
+  "uq_template_versions_niche",
 ]);
 
 interface Catalog {
@@ -208,9 +231,8 @@ describe("legacy parity", () => {
     expect(
       b.columns.filter((c) => !ADDED.columns.has(`${c.tbl}.${c.col}`)).map(looseEmail),
     ).toEqual(a.columns);
-    // ck_verifications_attributed is gone: email is NOT NULL, so it could never fail.
     expect(b.constraints.filter((c) => !ADDED.constraints.has(c.name)).map(unwiden)).toEqual(
-      a.constraints.filter((c) => c.name !== "ck_verifications_attributed"),
+      a.constraints.filter((c) => !DROPPED_CONSTRAINTS.has(c.name)),
     );
     expect(b.indexes.filter((i) => !ADDED.indexes.has(i.name))).toEqual(
       a.indexes.filter((i) => !DROPPED_INDEXES.has(i.name)),

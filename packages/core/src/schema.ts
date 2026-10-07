@@ -1037,15 +1037,20 @@ export const consentEvents = pgTable(
   ],
 );
 
-// ---- Templates (designs/2026-10-06-edits-claude-templates.md, 3) ----
+// ---- Templates (designs/2026-10-06-edits-claude-templates.md, 3; 2026-10-07-templates-live-copy.md) ----
 
 /** What a template is: kept here as well as in `slots/kinds.ts`, which the schema can't import. */
-export const TEMPLATE_KIND_VALUES = ["email", "sms", "dm", "prompt"] as const;
+export const TEMPLATE_KIND_VALUES = ["email", "sms", "dm", "post", "prompt"] as const;
+
+/** Where a version came from: a default file, a person's edit, a restore, a model, an import. */
+export const TEMPLATE_ORIGINS = ["default", "edit", "restore", "ai", "import"] as const;
+export type TemplateOrigin = (typeof TEMPLATE_ORIGINS)[number];
 
 /**
  * Copy for one step on one channel, or a model's prompt: who and when live elsewhere. Its words
  * are its versions; `live_version_id` is the one that goes out, `draft_version_id` the newest save
- * nobody published. Both null: an empty slot, which sends nothing.
+ * nobody published, `waiting_version_id` one asked to go live that waits on a person's yes. Live
+ * null: it follows the newest default, or sends nothing when there is none.
  */
 export const templates = pgTable(
   "templates",
@@ -1058,6 +1063,15 @@ export const templates = pgTable(
     name: varchar("name", { length: 64 }).notNull(),
     liveVersionId: integer("live_version_id"),
     draftVersionId: integer("draft_version_id"),
+    /** Asked to go live (a send's copy): an item in To approve until a person says yes or no. */
+    waitingVersionId: integer("waiting_version_id"),
+    waitingBy: varchar("waiting_by", { length: 200 }),
+    /** Where it shows in the browser (`a/b`); display only, so moving it never breaks a ref. */
+    folder: text("folder").default("").notNull(),
+    /** True: live is the newest default version, and a synced default goes live at once. */
+    followsDefault: boolean("follows_default").default(false).notNull(),
+    /** Why its live version last changed: a publish, an approval or a reset. */
+    why: text("why"),
     createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
     updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
   },
@@ -1067,6 +1081,12 @@ export const templates = pgTable(
     oneOf("ck_templates_kind", t.kind, TEMPLATE_KIND_VALUES),
     index("ix_templates_live_version_id").on(t.liveVersionId),
     index("ix_templates_draft_version_id").on(t.draftVersionId),
+    index("ix_templates_waiting_version_id").on(t.waitingVersionId),
+    foreignKey({
+      columns: [t.waitingVersionId],
+      foreignColumns: [templateVersions.id],
+      name: "fk_templates_waiting_version_id_template_versions",
+    }),
     foreignKey({
       columns: [t.liveVersionId],
       foreignColumns: [templateVersions.id],
@@ -1081,9 +1101,10 @@ export const templates = pgTable(
 );
 
 /**
- * Every save of a template, keyed by the hash of its words, so a send's `template_version` names
- * exactly what it said. Never updated but for `published_*`; never deleted. `niche` and `template`
- * repeat the template's system and name: email's experiments read by them.
+ * Every save of a template, numbered 1, 2, 3 per template. `version` is the hash of its words, so
+ * a send's `template_version` names exactly what it said; a restore repeats an old hash under a
+ * new number. Never updated but for `published_*`; never deleted. `niche` and `template` repeat
+ * the template's system and name: email's experiments read by them.
  */
 export const templateVersions = pgTable(
   "template_versions",
@@ -1093,7 +1114,16 @@ export const templateVersions = pgTable(
     niche: varchar("niche", { length: 32 }).notNull(),
     template: varchar("template", { length: 64 }).notNull(),
     version: varchar("version", { length: 12 }).notNull(),
+    /** 1, 2, 3 within its template: what a person reads and passes back (`--expect`). */
+    number: integer("number").notNull(),
     source: text("source").notNull(),
+    origin: varchar("origin", { length: 16, enum: TEMPLATE_ORIGINS }).default("edit").notNull(),
+    /** Why it was written, in one line. */
+    why: text("why"),
+    /** The version the editor had open when this one was saved. */
+    openedFrom: integer("opened_from"),
+    /** A default's file hash (sha256 of its bytes): sync writes a new one only when it moved. */
+    defaultHash: varchar("default_hash", { length: 64 }),
     /** The genome this one was made from; null for a file's version. */
     parentVersion: varchar("parent_version", { length: 12 }),
     /** The email experiment that made it (`experiments.id`). */
@@ -1107,8 +1137,15 @@ export const templateVersions = pgTable(
   },
   (t): PgTableExtraConfigValue[] => [
     primaryKey({ columns: [t.id], name: "pk_template_versions" }),
-    unique("uq_template_versions_niche").on(t.niche, t.template, t.version),
+    index("ix_template_versions_niche").on(t.niche, t.template, t.version),
     index("ix_template_versions_template_id").on(t.templateId),
+    unique("uq_template_versions_template_id_number").on(t.templateId, t.number),
+    oneOf("ck_template_versions_origin", t.origin, TEMPLATE_ORIGINS),
+    foreignKey({
+      columns: [t.openedFrom],
+      foreignColumns: [t.id],
+      name: "fk_template_versions_opened_from_template_versions",
+    }),
     foreignKey({
       columns: [t.templateId],
       foreignColumns: [templates.id],

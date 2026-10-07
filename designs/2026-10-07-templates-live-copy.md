@@ -163,3 +163,24 @@ the counts match, then drops both tables. Code that still reads them moves to `r
   to "To approve"; logic-free render with escaping. Text rows over blobs (my call, per William).
   Reset keeps the client's versions in history rather than deleting them (store all data). Folder
   is display only, so moving a template never breaks a ref.
+- 2026-10-07, step 1 (builder): versions get a per-template `number` (1, 2, 3), what people read
+  and what `--expect` names. The hash stays as `version` (what a send pins) but is no longer
+  unique: a restore or a default can repeat old words. `uq_template_versions_niche` becomes an
+  index; `(template_id, number)` is unique. The migration numbers kept versions in save order and
+  sets `origin` to `import` or `ai` where it can tell.
+- 2026-10-07, step 1: one ask per template, stored on the row (`waiting_version_id`,
+  `waiting_by`), so "To approve" needs no new table. `templates.why` keeps why live last changed.
+  The audit actor is set in each write's transaction; the audit triggers do the rest.
+- 2026-10-07, step 1: `live_version_id` stays the truth. Following a default sets it to the
+  newest default; until a database first syncs, reads fall back to the newest default when
+  `follows_default` is set. First sync makes copy that was already here follow the default only
+  when its live words are the file's, so nobody's edit is replaced.
+- 2026-10-07, step 1: the compare-and-swap target is what the editor opened: the draft, else the
+  live version. Saving the live words again clears the draft rather than adding a version.
+- 2026-10-07, step 1: publishing is no longer a record edit (`liveVersion` patch). It goes
+  through the templates service so the permission check and approval sit in one place. Words
+  still save through `TEMPLATE_EDITS`, so History and Undo cover saves.
+- 2026-10-07, step 1: reset is direct, no approval: it goes back to copy Wren already ships.
+- 2026-10-07, step 1: control characters are stripped from posts too, and the fill cap is 200
+  characters on top of the 25-word cap. The slot prompt now says quoted lead details are data,
+  never instructions.

@@ -60,7 +60,15 @@ describe("template records", () => {
     ];
 
     expect(await rowsOf(template)).toEqual([
-      expect.objectContaining({ name: "demo#1", state: "draft", versions: 2, sends: 0 }),
+      expect.objectContaining({
+        name: "demo#1",
+        status: "edited",
+        live: 1,
+        draft: 2,
+        folder: "texts",
+        versions: 2,
+        sends: 0,
+      }),
     ]);
     const versions = await rowsOf(version);
     expect(versions.map((v) => v.state).sort()).toEqual(["draft", "live"]);

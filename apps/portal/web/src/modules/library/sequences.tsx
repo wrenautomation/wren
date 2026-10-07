@@ -41,7 +41,7 @@ function Steps({ steps }: { steps: readonly SeqStep[] }) {
                     {CHANNEL[s.kind] ?? s.kind}, {s.system}
                     {s.liveVersion ? (
                       <>
-                        , live <span className="font-mono">{s.liveVersion.slice(0, 8)}</span>
+                        , live <span className="tabular-nums">v{s.liveVersion}</span>
                       </>
                     ) : (
                       ", nothing live"

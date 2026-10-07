@@ -1,7 +1,7 @@
 /**
  * The Library: the words Wren sends and the sequences that send them (Wren's workspace).
- * Templates edit in place through the records layer: a save keeps a draft, Publish makes it
- * live, History and Undo cover both, and nothing sends from here. Snippets are inserted from
+ * Templates edit in place through the records layer: a save keeps a numbered draft, History
+ * and Undo cover it, and nothing sends from here. Snippets are inserted from
  * any draft or reply box; Media, SOPs and Workflows read only, a workflow opening on the canvas.
  */
 import type { Module } from "../../module.js";
@@ -9,7 +9,7 @@ import { workflowExtras } from "./flows.js";
 import { mediaExtras } from "./media.js";
 import { sequenceExtras } from "./sequences.js";
 import { SNIPPET, SNIPPET_ACTIONS, snippetExtras } from "./snippets.js";
-import { RECORD, TEMPLATE_ACTIONS, templateExtras } from "./templates.js";
+import { RECORD, templateExtras } from "./templates.js";
 
 export const library: Module = {
   id: "library",
@@ -25,13 +25,13 @@ export const library: Module = {
       record: RECORD,
       empty: {
         all: "No template is stored yet.",
-        drafts: "No draft waits to be published.",
+        waiting: "Nothing waits on approval.",
+        updated: "Every template is on the newest default or its own copy.",
         prompts: "No prompt is stored yet.",
       },
-      actions: TEMPLATE_ACTIONS,
-      columns: ["name", "kind", "system", "state", "liveVersion", "sends", "replyRate"],
+      columns: ["name", "kind", "folder", "status", "live", "sends", "replyRate"],
       extras: templateExtras,
-      count: { state: ["draft"] },
+      count: { status: ["waiting"] },
     },
     {
       id: "sequences",
