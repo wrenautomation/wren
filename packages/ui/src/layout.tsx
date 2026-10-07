@@ -110,7 +110,7 @@ export function Section({
       </section>
     );
   return (
-    <section className={cx("min-w-0 [section+&]:mt-6", FRAME, className)}>
+    <section className={cx("min-w-0 [:is(section,[data-empty])+&]:mt-6", FRAME, className)}>
       {head}
       <div className={FRAME_BODY}>{children}</div>
     </section>

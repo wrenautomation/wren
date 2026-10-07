@@ -79,6 +79,7 @@ export function Empty({
 }) {
   return (
     <div
+      data-empty=""
       className={cx(
         // A dashed frame: a place that fills, apart from the solid frames of parts that have.
         "flex flex-col items-center gap-4 rounded-(--ui-radius) border border-dashed border-(--ui-edge) bg-(--ui-wash) px-6 py-12 text-center text-[14px] text-(--ui-ink-2)",
