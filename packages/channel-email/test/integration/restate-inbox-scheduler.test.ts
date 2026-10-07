@@ -83,9 +83,10 @@ const LISTENED = "listened@example.com";
 const listener = restate.object({
   name: "Listener",
   handlers: {
+    // Awaited, so a push right after join finds the listener (a send raced the first notify).
     join: async (ctx: restate.ObjectContext, until: number) => {
-      ctx
-        .objectSendClient<InboxPush>({ name: "InboxPush" }, LISTENED)
+      await ctx
+        .objectClient<InboxPush>({ name: "InboxPush" }, LISTENED)
         .listen({ service: "Listener", key: ctx.key, until });
     },
     wake: async (ctx: restate.ObjectContext) => {
