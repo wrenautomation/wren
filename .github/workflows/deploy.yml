@@ -1,12 +1,12 @@
 # Deploy main to production: migrate the database, restart the pool chain's worker on
 # the Postgres box (it registers itself), ship the worker and the sign-in to Lambda,
 # register the worker's new version with Restate (Cloud or the box), ship
-# the phone, sign-in and portal Workers to Cloudflare. Runs after `ci` is green.
+# the phone, sign-in, portal and LLM gateway Workers to Cloudflare. Runs after `ci` is green.
 # Secrets (production environment): AWS_DEPLOY_ROLE_ARN, AWS_INVOKE_ROLE_ARN,
 # LAMBDA_NAME, WREN_DATABASE_URL, RESTATE_HOST, RESTATE_AUTH_TOKEN,
 # CLOUDFLARE_API_TOKEN, CLOUDFLARE_ACCOUNT_ID, AUTH_LAMBDA_URL, AUTH_EDGE_SECRET,
 # BOX_BUCKET, BOX_INSTANCE_ID.
-# See deploy/README.md, deploy/phone.md, deploy/portal.md.
+# See deploy/README.md, deploy/phone.md, deploy/portal.md, designs/2026-10-06-llm-gateway.md.
 name: deploy
 on:
   workflow_run:
@@ -139,6 +139,13 @@ jobs:
           aws lambda wait function-updated --function-name wren-prod-auth
       - name: deploy the phone worker
         working-directory: apps/phone
+        run: npx wrangler deploy
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+      # Its keys are Worker secrets, set by scripts/llm-gateway-keys.mjs; a deploy keeps them.
+      - name: deploy the llm gateway worker
+        working-directory: apps/llm-gateway
         run: npx wrangler deploy
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}

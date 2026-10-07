@@ -14,6 +14,7 @@ Checked 2026-10-03. Companion to `restate-durability.md` (why it survives crashe
 | RackNerd VPS (198.44.104.204, Los Angeles) | second prober (`probe2.wrenautomation.com`); in `WREN_SMTP_PROBE_URL`, probes once its PTR resolves | `PROBE_HOST=probe2.wrenautomation.com deploy/scripts/deploy-prober.sh` | "Verifying addresses" below |
 | William's Mac | autobrowse desk worker under launchd: every `sites` call (browser, logins, Chrome profiles, home IP) | `../autobrowse/deploy/desk/install.sh` | `../autobrowse/deploy/README.md` |
 | Lambda `wren-prod-auth` + Cloudflare Workers | sign-in (`apps/auth`), phone (`apps/phone`), portal (`apps/portal`) | CI `deploy.yml` | `deploy/phone.md`, `deploy/portal.md` |
+| Cloudflare Worker + Durable Object | LLM gateway `llm.wrenautomation.com` (`apps/llm-gateway`): every free Gemini, OpenRouter, Cohere key behind one endpoint | CI `deploy.yml`; keys by `scripts/llm-gateway-keys.mjs` | `designs/2026-10-06-llm-gateway.md` |
 | Cloudflare Worker + D1 | open pixel `t.wrenautomation.com` (tracking off) | by hand, `wrangler deploy` | `deploy/pixel/README.md` |
 | Cloudflare Pages | the lander (`../lander`) | push to lander `main` | `../lander/README.md` |
 

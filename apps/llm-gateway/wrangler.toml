@@ -1,0 +1,17 @@
+# Deploy: see deploy/llm-gateway.md. Nothing secret lives here: GATEWAY_TOKEN, GEMINI_KEYS,
+# OPENROUTER_KEYS and COHERE_KEYS are `wrangler secret put` (scripts/llm-gateway-keys.mjs),
+# and the account id comes from CLOUDFLARE_ACCOUNT_ID in the environment.
+name = "wren-llm-gateway"
+main = "src/worker.ts"
+compatibility_date = "2026-09-27"
+
+routes = [{ pattern = "llm.wrenautomation.com", custom_domain = true }]
+
+[[durable_objects.bindings]]
+name = "LEDGER"
+class_name = "KeyLedger"
+
+# SQLite-backed: on the Workers free plan.
+[[migrations]]
+tag = "v1"
+new_sqlite_classes = ["KeyLedger"]

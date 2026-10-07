@@ -148,6 +148,15 @@ describe("makeLlm", () => {
     expect(fleetKeys(env, "groq")).toEqual(["a", "c"]);
     expect(makeLlm("groq", env)).toBeInstanceOf(RotatingLlm);
     expect(fleetKeys({ GROQ_API_KEY: "solo" }, "groq")).toEqual(["solo"]);
+    expect(fleetKeys({ NUM_GROQ: "1", GROQ_API_KEY_1: "a #an account" }, "groq")).toEqual(["a"]);
+  });
+  it("gateway takes an alias or provider/model and needs its URL and token", () => {
+    const env = { WREN_LLM_GATEWAY_URL: "https://gw.example/v1", WREN_LLM_GATEWAY_TOKEN: "t" };
+    expect(makeLlm("gateway", env).name).toBe("gateway:free");
+    expect(makeLlm("gateway:openrouter/google/gemma-4-31b-it:free", env).name).toBe(
+      "gateway:openrouter/google/gemma-4-31b-it:free",
+    );
+    expect(() => makeLlm("gateway", {})).toThrow(/WREN_LLM_GATEWAY_URL/);
   });
   it("anthropic uses WREN_LLM_MODEL then the default", () => {
     expect(makeLlm("anthropic", { WREN_ANTHROPIC_API_KEY: "k" }).name).toBe(

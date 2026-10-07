@@ -219,10 +219,11 @@ export function fleetKeys(env: EnvMap, provider: string): string[] {
   const count = Number.parseInt(env[`NUM_${upper}`] ?? "0", 10);
   const keys: string[] = [];
   for (let n = 1; n <= count; n++) {
-    const key = env[`${upper}_API_KEY_${n}`];
+    // A line may carry an inline `# account` note after the key.
+    const key = env[`${upper}_API_KEY_${n}`]?.trim().split(/\s/)[0];
     if (key) keys.push(key);
   }
-  const single = env[`${upper}_API_KEY`];
+  const single = env[`${upper}_API_KEY`]?.trim().split(/\s/)[0];
   if (!keys.length && single) keys.push(single);
   return keys;
 }
@@ -232,10 +233,16 @@ export interface MakeLlmOptions {
   anthropicModel?: string | null;
 }
 
+/** The gateway's default: its best free chain (see apps/llm-gateway). */
+export const DEFAULT_GATEWAY_MODEL = "free";
+
 /**
- * "fake" | "claude-code[:model]" | "anthropic[:model-id]" | "<provider>[:model-id]" for
- * provider in COMPATIBLE_PROVIDERS. The optional :model suffix picks a specific model
- * per run without touching config. claude-code needs no key: the Claude Code login pays.
+ * "fake" | "claude-code[:model]" | "anthropic[:model-id]" | "gateway[:model]" |
+ * "<provider>[:model-id]" for provider in COMPATIBLE_PROVIDERS. The optional :model suffix
+ * picks a specific model per run without touching config. claude-code needs no key: the
+ * Claude Code login pays. gateway is llm.wrenautomation.com, which holds every free key and
+ * shares one ledger across processes; its model is an alias ("free", "free-bulk") or
+ * "<provider>/<model>".
  */
 export function makeLlm(
   name: string,
@@ -253,13 +260,29 @@ export function makeLlm(
       (opts.anthropicModel ?? env.WREN_LLM_MODEL ?? DEFAULT_ANTHROPIC_MODEL);
     return new AiSdkLlm("anthropic", modelId, createAnthropic({ apiKey })(modelId));
   }
+  if (name === "gateway" || name.startsWith("gateway:")) {
+    const baseURL = env.WREN_LLM_GATEWAY_URL;
+    const apiKey = env.WREN_LLM_GATEWAY_TOKEN;
+    if (!baseURL || !apiKey)
+      throw new Error(
+        "gateway needs WREN_LLM_GATEWAY_URL and WREN_LLM_GATEWAY_TOKEN in the environment",
+      );
+    const modelId = name.slice("gateway:".length) || DEFAULT_GATEWAY_MODEL;
+    return new AiSdkLlm(
+      "gateway",
+      modelId,
+      createOpenAICompatible({ name: "gateway", baseURL, apiKey })(modelId),
+    );
+  }
   const [provider, ...rest] = name.split(":");
   const spec = COMPATIBLE_PROVIDERS[provider as CompatibleProvider];
   if (!provider || !spec) {
     const expected = Object.keys(COMPATIBLE_PROVIDERS)
       .map((p) => `${p}[:model]`)
       .join(", ");
-    throw new Error(`unknown llm '${name}'; expected 'fake', 'anthropic', or one of: ${expected}`);
+    throw new Error(
+      `unknown llm '${name}'; expected 'fake', 'anthropic', 'gateway', or one of: ${expected}`,
+    );
   }
   const modelId = rest.join(":") || spec.defaultModel;
   const keys = fleetKeys(env, provider);
