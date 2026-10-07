@@ -143,6 +143,7 @@ import {
 } from "@wren/content/restate";
 import { contentDrafts, contentPlaybooks } from "@wren/content/schema";
 import { resolve as dohResolve } from "@wren/core";
+import { makeAccountsConsole } from "@wren/core/accounts/console";
 import { askRecord, makeAsk } from "@wren/core/ask";
 import { makeAuditSealer } from "@wren/core/audit";
 import { CalcomCalendar, type Calendar } from "@wren/core/calendar";
@@ -1252,6 +1253,14 @@ export async function buildServices(
     }),
     // Rechecks done setups on their repeat; off until started by hand.
     makeSetupWatch({ main: db, setups: SETUPS, checks: setupChecks, ...notify }),
+    // A client's accounts and vendors. No key store: the role can't write SSM yet (William's).
+    makeAccountsConsole({
+      db,
+      setups: SETUPS,
+      checks: new Set(Object.keys(setupChecks)),
+      keys: null,
+      env: "prod",
+    }),
     makeConsolePortal({
       main: db,
       mainUrl: databaseUrl,

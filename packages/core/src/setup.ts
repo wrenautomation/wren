@@ -9,7 +9,7 @@ import { atomic, type Db, type Queryable } from "@wren/db";
 import { pgSafe } from "@wren/db/columns";
 import { and, asc, eq, inArray, isNull, lte, sql } from "drizzle-orm";
 import { clients, type SetupMode } from "./clients/schema.js";
-import { ACCOUNT_SITES, type Component, type Port } from "./components.js";
+import { ACCOUNT_SITES, ACCOUNTS, type Component, type Port } from "./components.js";
 import type { Do } from "./content/do.js";
 import type { DnsType, Resolver } from "./doh.js";
 import {
@@ -28,6 +28,18 @@ import { defineWorkflow, type Wire, type Workflow } from "./workflows.js";
 /** Sites an account in the registry can be on: the Shop's, plus a domain, an inbox, a number. */
 export const REGISTRY_SITES = [...ACCOUNT_SITES, "domain", "inbox", "number"] as const;
 export type RegistrySite = (typeof REGISTRY_SITES)[number];
+
+/** A registry site as a person says it: the Shop's label, or the registry's own three. */
+export function siteLabel(site: string): string {
+  const own: Record<string, string> = {
+    domain: "Sending domain",
+    inbox: "Sending inbox",
+    number: "Phone number",
+    // The Shop's "Phone number" is the texting setup as a whole; here it's the Telnyx account.
+    telnyx: "Telnyx account",
+  };
+  return own[site] ?? ACCOUNTS[site as keyof typeof ACCOUNTS]?.label ?? site;
+}
 
 /** Who acts on a step: the client, Wren's team (or its agent), or nobody (a check waits). */
 export type StepWho = "client" | "wren" | "auto";
@@ -415,6 +427,29 @@ export async function markStep(
     workflow: s.id,
     from: i === 0 ? "in.accounts" : `${s.steps[i - 1]?.id}.done`,
     events: [accountEvent(`${setupSubject(acct.id, run.gen)}#m${now.getTime()}`, acct.id)],
+  };
+}
+
+/**
+ * Check a waiting step now, not at its next round: a fresh round into the step it's on. Null when
+ * the run isn't on a step (done, or never started).
+ */
+export async function checkNow(
+  main: Queryable,
+  s: Setup,
+  o: { accountId: number; now?: Date },
+): Promise<SetupEmit | null> {
+  const now = o.now ?? new Date();
+  const acct = await account(main, o.accountId);
+  if (!acct) throw new Error("no such account");
+  const run = await runOf(main, acct.id, s.id);
+  const i = run?.step ? s.steps.findIndex((x) => x.id === run.step) : -1;
+  if (!run || i < 0) return null;
+  return {
+    client: acct.client,
+    workflow: s.id,
+    from: i === 0 ? "in.accounts" : `${s.steps[i - 1]?.id}.done`,
+    events: [accountEvent(`${setupSubject(acct.id, run.gen)}#c${now.getTime()}`, acct.id)],
   };
 }
 

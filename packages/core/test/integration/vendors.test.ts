@@ -109,7 +109,7 @@ describe("managed", () => {
     await setManaged(pg.db, { client: "beta", vendor: "exa", perDay: 0, capCents: 0, by: "op" });
     expect(await gate(pg.db, "beta", "exa", 1, NOW)).toMatchObject({
       ok: false,
-      why: "Monthly cap of $0.00 reached",
+      why: "No monthly cap set",
     });
     await setManaged(pg.db, { client: "beta", vendor: "exa", perDay: 0, capCents: 5, by: "op" });
     // 5 cents is 7 searches at $0.007.

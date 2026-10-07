@@ -26,6 +26,7 @@ import { consoleApi } from "../../src/console.js";
 import { clientsFor, portalMe, type Viewer, whoIs } from "../../src/portal.js";
 import { serveRecords } from "../../src/records-serve.js";
 import { runs } from "../../src/schema.js";
+import { accountsOf, addAccount, defineSetup, markStep, setupWorkflow } from "../../src/setup.js";
 
 let pg: TestPostgres;
 beforeAll(async () => {
@@ -556,6 +557,8 @@ describe("install, configure, uninstall", () => {
     ).rejects.toMatchObject({ status: 404 });
     await api().connect({ viewer: ops, client: "acme", site: "x", account: " @acme " });
     expect((await findClient(pg.db, "acme"))?.accounts).toMatchObject({ x: "@acme" });
+    // The registry has it too, for Accounts and its setups.
+    expect((await accountsOf(pg.db, "acme")).map((a) => [a.site, a.ref])).toEqual([["x", "@acme"]]);
     expect(await row(ops, "posts")).toMatchObject({ ready: "ready" });
     await go("posts");
     // An installed part still needs it.
@@ -566,6 +569,65 @@ describe("install, configure, uninstall", () => {
     await api().connect({ viewer: ops, client: "acme", site: "x", account: "" });
     expect((await findClient(pg.db, "acme"))?.accounts).not.toHaveProperty("x");
     expect((await pg.db.select().from(runs)).map((r) => r.command)).toContain("console connect x");
+  });
+
+  it("a fact a setup makes reads as an account until it holds; setups stay out of the Shop", async () => {
+    const setup = defineSetup({
+      id: "setup.t_watch",
+      name: "Watch access",
+      blurb: "Wren reads it.",
+      site: "search_console",
+      steps: [
+        {
+          id: "sa",
+          fact: "t.sa",
+          label: "Service account added",
+          who: "client",
+          how: "Add it.",
+          forYou: "Wren adds it.",
+        },
+      ],
+    });
+    const watch = defineComponent({
+      ...base,
+      id: "watch",
+      name: "Watch",
+      effects: [],
+      requires: { facts: ["t.sa"] },
+    });
+    const shop = () =>
+      consoleApi({
+        main: pg.db,
+        views: [],
+        components: [watch],
+        workflows: [setupWorkflow(setup)],
+        setups: [setup],
+      });
+    const rows = async () =>
+      (await shop().recordsList({ viewer: ops, client: "acme", record: "console.component" })).rows;
+    expect((await rows()).map((r) => [r.id, r.ready])).toEqual([["watch", "account"]]);
+    const got = await shop().recordsGet({
+      viewer: ops,
+      client: "acme",
+      record: "console.component",
+      id: "watch",
+    });
+    expect((got.detail as { accounts: unknown[] }).accounts).toEqual([
+      expect.objectContaining({
+        site: "t.sa",
+        label: "Service account added",
+        has: false,
+        setup: { id: setup.id, name: "Watch access" },
+      }),
+    ]);
+    const a = await addAccount(pg.db, {
+      client: "acme",
+      site: "search_console",
+      ref: "sc-domain:acme.example",
+      by: "t",
+    });
+    await markStep(pg.db, setup, { accountId: a.id, step: "sa", by: "t" });
+    expect((await rows()).map((r) => [r.id, r.ready])).toEqual([["watch", "ready"]]);
   });
 
   it("settingsFor reads a client's products or Wren's blocks, and no one's for an unknown client", async () => {

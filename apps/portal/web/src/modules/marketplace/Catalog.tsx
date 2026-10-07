@@ -39,7 +39,12 @@ interface Account {
   has: boolean | null;
   /** Its value: the team's, in a client's workspace. */
   account?: string | null;
+  /** A fact a setup makes ("search_console.service_account_added"): set up on Accounts. */
+  setup?: { id: string; name: string } | null;
 }
+
+/** A fact, not an account: its site names it ("number.10dlc_registered"). */
+const isFact = (a: Pick<Account, "site">) => a.site.includes(".");
 
 interface Part {
   needs: { label: string; has: boolean | null }[];
@@ -192,12 +197,23 @@ function AccountList({ list, client, edit }: { list: Account[]; client: string; 
           <span className={SPLIT}>
             <span className="font-medium">{a.label}</span>
             {a.has === null ? null : (
-              <Tag tone={a.has ? "green" : "neutral"}>{a.has ? "Connected" : "Not yet"}</Tag>
+              <Tag tone={a.has ? "green" : "neutral"}>
+                {a.has ? (isFact(a) ? "Set up" : "Connected") : "Not yet"}
+              </Tag>
             )}
           </span>
           <span className={QUIET}>{a.how}</span>
           {a.waits ? <span className={QUIET}>Waits on Wren: {a.waits}.</span> : null}
-          {edit ? (
+          {isFact(a) ? (
+            a.has === false ? (
+              <a
+                className="text-[14px] underline underline-offset-2"
+                href={`/account/accounts?client=${encodeURIComponent(client)}`}
+              >
+                {a.setup ? `${a.setup.name} on Accounts` : "Set it up on Accounts"}
+              </a>
+            ) : null
+          ) : edit ? (
             <HandlerForm
               key={`${client}/${a.site}/${a.account ?? ""}`}
               id={`connect:${client}/${a.site}`}

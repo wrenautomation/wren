@@ -241,14 +241,17 @@ export function workflowRecord(
     app: "library",
     channel: null,
     name: { one: "workflow", many: "workflows" },
+    // A setup runs from a client's Accounts page, not the Library.
     rows: async () =>
-      workflows.map((w) => ({
-        id: w.id,
-        name: w.name,
-        blurb: w.blurb,
-        for: w.for,
-        steps: w.nodes.length,
-      })),
+      workflows
+        .filter((w) => w.kind !== "setup")
+        .map((w) => ({
+          id: w.id,
+          name: w.name,
+          blurb: w.blurb,
+          for: w.for,
+          steps: w.nodes.length,
+        })),
     key: "id",
     title: "name",
     subtitle: "blurb",

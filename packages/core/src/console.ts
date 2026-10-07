@@ -161,7 +161,7 @@ import {
   workflowInstalls,
   workflowSaves,
 } from "./schema.js";
-import { factsHeld, type Setup, setupOf } from "./setup.js";
+import { addAccount, factsHeld, factsLacking, type Setup, setupOf } from "./setup.js";
 import {
   editsOf,
   type SavedWorkflow,
@@ -1318,7 +1318,28 @@ export const componentRecord = (
     setups?: readonly Setup[];
   } = { list: [], installs: [] },
 ): RecordType => {
-  const flows = workflows.filter((w) => team || w.for === "client");
+  // A setup is an account's, run from Accounts: never a card in the Shop.
+  const flows = workflows.filter((w) => w.kind !== "setup" && (team || w.for === "client"));
+  /** The facts a part needs that this client's accounts don't hold; none with no client. */
+  const lacksFacts = (c: Component) => !!sold.facts && factsLacking(c, sold.facts).length > 0;
+  /**
+   * Each fact a part needs, said as an account ("Needs your account"), with the setup that makes
+   * it true: its page links there.
+   */
+  const factAccounts = (c: Component) =>
+    c.requires.facts.map((fact) => {
+      const at = setupOf(fact, sold.setups ?? []);
+      return {
+        site: fact,
+        label: at?.step.label ?? fact,
+        holds: fact,
+        how: at ? `${at.setup.name}: ${at.step.how}` : "Wren's team sets it up.",
+        waits: at && at.step.who !== "client" ? at.step.forYou : null,
+        any: false,
+        has: sold.facts ? sold.facts.has(fact) : null,
+        setup: at ? { id: at.setup.id, name: at.setup.name } : null,
+      };
+    });
   /** A template stands in for the part or workflow it is: one card, never two. */
   const soldAs = new Set(sold.list.flatMap((t) => [t.id, t.workflow.id]));
   const installOf = (t: Template) => sold.installs.find((r) => r.template === t.id) ?? null;
@@ -1484,13 +1505,13 @@ export const componentRecord = (
         readyOf(c) === "coming" &&
         c.provides.loops.length > 0 &&
         !c.provides.loops.some((l) => on.has(l));
-      // Built for clients, but this client hasn't connected an account it needs.
+      // Built for clients, but this client hasn't connected an account it needs, or a setup
+      // hasn't made a fact it needs true (a lost fact moves an installed part back here too).
       const unconnected = (c: Component) =>
         !!client &&
         c.for === "client" &&
         readyOf(c) === "ready" &&
-        !has(client, c.id) &&
-        accountsLacking(c, client).length > 0;
+        ((!has(client, c.id) && accountsLacking(c, client).length > 0) || lacksFacts(c));
       return [
         ...sold.list.map((t) => {
           const parts = t.parts.map((p) => p.part);
@@ -1501,7 +1522,7 @@ export const componentRecord = (
           const waits =
             !!client &&
             flowReady(parts) === "ready" &&
-            parts.some((c) => accountsLacking(c, client).length > 0);
+            parts.some((c) => accountsLacking(c, client).length > 0 || lacksFacts(c));
           return {
             id: t.id,
             type: "template",
@@ -1660,20 +1681,7 @@ export const componentRecord = (
                   has: client ? !!client.accounts[site] : null,
                 }))
                 // Facts a setup leaves on an account, read as accounts: "Needs your account".
-                .concat(
-                  c.requires.facts.map((fact) => {
-                    const at = setupOf(fact, sold.setups ?? []);
-                    return {
-                      site: fact,
-                      label: at?.step.label ?? fact,
-                      holds: fact,
-                      how: at ? `${at.setup.name}: ${at.step.how}` : "Wren's team sets it up.",
-                      waits: at && at.step.who !== "client" ? at.step.forYou : null,
-                      any: false,
-                      has: sold.facts ? sold.facts.has(fact) : null,
-                    };
-                  }),
-                ),
+                .concat(factAccounts(c)),
             })),
             copy: copyRefs(t.copy, defaultsOnce()).map(({ ref, file }) => ({
               ref,
@@ -1720,14 +1728,16 @@ export const componentRecord = (
         accounts: [
           ...c.requires.accounts.map((site) => ({ site, any: false })),
           ...c.requires.anyAccount.map((site) => ({ site, any: true })),
-        ].map(({ site, any }) => ({
-          site,
-          ...ACCOUNTS[site],
-          // One of the any is enough: the part needs a channel, not every one.
-          any,
-          has: client ? !!client.accounts[site] : null,
-          ...(team && client ? { account: client.accounts[site] ?? null } : {}),
-        })),
+        ]
+          .map(({ site, any }) => ({
+            site: site as string,
+            ...ACCOUNTS[site],
+            // One of the any is enough: the part needs a channel, not every one.
+            any,
+            has: client ? !!client.accounts[site] : null,
+            ...(team && client ? { account: client.accounts[site] ?? null } : {}),
+          }))
+          .concat(factAccounts(c)),
         effects: c.effects,
         installed,
         in: c.in,
@@ -2634,6 +2644,8 @@ export function consoleApi({
           await setAuditActor(tx, by);
           await updateClient(tx, client.id, { accounts: { [site]: account } });
         });
+        // The registry keeps it too, so Accounts lists it and a setup can start on it.
+        if (account) await addAccount(main, { client: client.id, site, ref: account, by });
       } catch (err) {
         await finishRun(main, run.id, { error: String(err).slice(0, 500) });
         throw err;

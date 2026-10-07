@@ -195,6 +195,8 @@ Form leads' window defaults to 08:00 to 20:00 (`WREN_SMS_FORM_WINDOW`), so the s
 - **Shop and part pages**: "Needs your account" names the missing fact and links to the setup.
 - Anything not built says "In development".
 
+Built (step d): `AccountsConsole` (`@wren/core/accounts/console`) serves both pages: `accounts`, `vendors`, `start`, `mark`, `checkNow`, `addAccount`, `setVendor`, and `usage` for the Clients app. Account → Accounts shows each account with a rail of its setup's steps, the step it's on with how-to, why and next check, and Mark done, Check now, Start, Switch and Start over. A client starts self-serve and marks its own steps; done for you, restarts and adding accounts are the team's. A check the worker doesn't run says "Its check is in development" and waits on Mark done. Account → Vendors is a card per vendor: mode, price, today's room, the month's use and est. $, share and cap. A client reads it there, not under Billing (Billing needs money). The team sets the mode; managed needs money (an admin). The worker has no key store yet, so saving an own key says "Saving their key here is in development". The Shop drops `kind: "setup"` workflows. A part that requires a fact reads "Needs your account" (the team reads the step) until the fact holds, and its page links to the setup on Accounts. Connecting an account on a part also adds it to the registry. Clients → Vendor usage lists this month's metered use per client. A client's record has an Accounts section. A zero cap now says "No monthly cap set".
+
 ## Build
 
 Each step is committed with tests on synthetic data.
@@ -228,6 +230,8 @@ Each step is committed with tests on synthetic data.
 - The IAM grant for writing client keys to SSM.
 - Each client's approver. Clients that existed before step e are `either`, so nothing changes for them; new clients start `wren`.
 - Whether `client` means any of the client's people who can act (built) or only its owner role.
+- Starting `SetupWatch` (rechecks done setups). Off until started by hand.
+- Search Console clients already reading: Wren's team marks "Wren's service account added" done on each, since that check is in development. Until then Search watch reads "Needs your account" for them in the Shop.
 
 ## Decision log
 
@@ -247,3 +251,5 @@ Each step is committed with tests on synthetic data.
 - 2026-10-07 (step b): A managed share above the clients' pool is held to the pool. A free vendor still needs a cap above $0 to run managed, so nothing runs until William sets one.
 - 2026-10-07 (step e): "The client's owner" reads as the client's side: any of its people the guard lets act (owner and member roles). A login that may only read never approves. Existing clients were set to `either` by the migration, so their approve keeps working; the default for new ones is `wren`.
 - 2026-10-07 (step f): A metered read meters after its write, not before: losing a usage row costs less than buying a read twice. Hiring's LinkedIn jobs read stays Wren's only; the client's login is for the metered `linkedin` collector alone.
+- 2026-10-07 (step d): An own key reaches the worker in the Restate call's input on its way to SSM. Restate keeps invocation inputs for its retention window. Accepted for now; a direct write from the portal edge is the swap if that matters.
+- 2026-10-07 (step d): A client reads Vendors on its Account app, not under Billing: Billing is money only, and the page is a read.

@@ -27,7 +27,8 @@ export const SEARCH_COMPONENTS = [
     ready: true,
     missing: [],
     settings: searchSettingsSchema,
-    requires: { accounts: ["search_console"] },
+    // The property, and Wren's service account on it (`setup.search_console`).
+    requires: { accounts: ["search_console"], facts: ["search_console.service_account_added"] },
     provides: { services: ["SearchWatch", "SearchWeek"], loops: ["SearchWatch"] },
     // One daily read per client, into its own database (`SearchWatch/<client>/daily`).
     clientLoops: (client) => [{ service: "SearchWatch", key: clientKey(client, "daily") }],

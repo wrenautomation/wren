@@ -62,6 +62,8 @@
     "./templates/records": "./src/template-records.ts",
     "./templates/edits": "./src/template-edits.ts",
     "./templates/defaults": "./src/template-defaults.ts",
+    "./accounts/console": "./src/accounts-console.ts",
+    "./accounts/console-routes": "./src/accounts-console-routes.ts",
     "./templates/console": "./src/templates-console.ts",
     "./templates/console-routes": "./src/templates-console-routes.ts",
     "./templates/labels": "./src/template-labels.ts",

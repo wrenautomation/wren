@@ -407,7 +407,8 @@ export async function gate(
     return { ok: false, why: `${v.name} isn't offered managed`, mode: "managed" };
   const cost = units * (v.micros ?? 0);
   const spent = await monthSpend(main, client, v.id, now);
-  if (m.capCents === 0 || spent + cost > m.capCents * 10_000)
+  if (m.capCents === 0) return { ok: false, why: "No monthly cap set", mode: "managed" };
+  if (spent + cost > m.capCents * 10_000)
     return { ok: false, why: `Monthly cap of ${dollars(m.capCents)} reached`, mode: "managed" };
   if (!v.quota) return { ok: true, mode: "managed", bucket: managed, room: null };
   if (m.perDay === 0) return { ok: false, why: "No daily share set", mode: "managed" };

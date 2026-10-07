@@ -16,6 +16,8 @@ import { callRecord } from "@wren/channel-email/records";
 import { EMAIL_CONSOLE_VIEWS } from "@wren/channel-email/views";
 import { loadEnvFile, loadSettings } from "@wren/config";
 import { type Need, type RouteApps, routeAt } from "@wren/core/access";
+import { accountsApi } from "@wren/core/accounts/console";
+import { ACCOUNTS_CONSOLE_APPS, ACCOUNTS_CONSOLE_ROUTES } from "@wren/core/accounts/console-routes";
 import { askRecord } from "@wren/core/ask";
 import { clientRecord, clientUrl } from "@wren/core/clients";
 import { consoleApi } from "@wren/core/console";
@@ -35,6 +37,7 @@ import { mediaRecord, sopRecord } from "../../../packages/content/src/library.js
 import { PORTAL_APPS } from "../../../packages/reactivation/src/portal/routes.js";
 import { COMPONENTS } from "../../worker/src/components.js";
 import { copyRecords } from "../../worker/src/record-edits.js";
+import { SETUPS } from "../../worker/src/setups.js";
 import { WORKFLOWS } from "../../worker/src/workflows.js";
 
 const demo = process.argv.includes("--demo");
@@ -49,6 +52,16 @@ const files: FileStore = {
   getUrl: async (key) => `http://localhost:${port}/files/${key}`,
   put: async (key, bytes, type) => void stored.set(key, { type, bytes: Buffer.from(bytes) }),
 };
+/** The checks the Worker runs (services.ts `setupChecks`): the rest say "in development". */
+const LIVE_CHECKS = new Set([
+  "dns.answers",
+  "dns.mail_records",
+  "dns.postmaster_txt",
+  "telnyx.campaign",
+  "telnyx.number",
+  "inbox.warmup",
+  "inbox.placement",
+]);
 /** The same services as the Worker's `/api/<service>/<route>`, called in-process. */
 const SERVICES: Record<
   string,
@@ -76,8 +89,11 @@ const SERVICES: Record<
       views: EMAIL_CONSOLE_VIEWS,
       components: COMPONENTS,
       workflows: WORKFLOWS,
+      setups: SETUPS,
       records: [
         askRecord,
+        // The Clients app's list, with each client's Templates, Components and Accounts.
+        clientRecord,
         // The copy pages edit in place: History, Undo, Ask Claude (whose answer nothing writes here).
         ...copyRecords(settings.smsSenderName),
         // The Library's Media (no bucket here: listed, not played) and SOPs.
@@ -88,6 +104,13 @@ const SERVICES: Record<
         clientRecord,
       ],
     }),
+  },
+  // Accounts and vendors. Steps move on the spine, which isn't here: a write saves, nothing runs.
+  // No key store: an own key is refused, as in prod until the IAM grant.
+  accounts: {
+    routes: Object.keys(ACCOUNTS_CONSOLE_ROUTES),
+    guard: { needs: ACCOUNTS_CONSOLE_ROUTES, apps: ACCOUNTS_CONSOLE_APPS, unnamed: "first" },
+    api: accountsApi({ db: main, setups: SETUPS, checks: LIVE_CHECKS, keys: null, env: "dev" }),
   },
   // The Library's templates, in Wren's own database.
   templates: {

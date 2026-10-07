@@ -23,6 +23,7 @@ A read limit belongs to a key, so a bucket is (vendor, key): `<vendor>:own:<clie
 - Code (`vendors.ts`): `VENDORS` (`:34`), `vendorSettings` (`:159`, `wren_settings` block `vendors`: markupPct 0, reservePct 50, managedForClients all but linkedin), `setOwnKey` (`:280`), `setManaged` (`:257`), `gate` (`:380`), `meter` (`:449`), `usageSince` (`:492`)
 - `KeyStore`: `ssmKeyStore` in `packages/config/src/ssm.ts`; the worker has no `ssm:PutParameter` yet
 - GCRA: `packages/core/src/buckets.ts` (research re-exports it)
+- `AccountsConsole` `vendors`, `setVendor`, `usage` (`packages/core/src/accounts-console.ts`): managed needs money (an admin); no key store in the worker, so an own key is refused. Web: `apps/portal/web/src/modules/account/Vendors.tsx`, `summary.tsx` (Vendor usage)
 
 ## Connected to
 
@@ -38,6 +39,7 @@ A read limit belongs to a key, so a bucket is (vendor, key): `<vendor>:own:<clie
 
 | Surface | Role |
 |---|---|
-| Vendors page (Wren's team) | writes modes and keys |
-| Billing (client) | reads usage and cap |
+| Account → Vendors (Wren's team) | writes modes, shares, caps |
+| Account → Vendors (client) | reads mode, room, usage, cap |
+| Clients → Vendor usage | reads this month across clients |
 | Books day | writes usage lines |

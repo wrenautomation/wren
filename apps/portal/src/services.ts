@@ -25,6 +25,11 @@ import {
   SMS_CONSOLE_WRITES,
 } from "@wren/channel-sms/console-routes";
 import { type Need, needOf, type Permission, type RouteApps } from "@wren/core/access";
+import {
+  ACCOUNTS_CONSOLE_APPS,
+  ACCOUNTS_CONSOLE_ROUTES,
+  ACCOUNTS_CONSOLE_WRITES,
+} from "@wren/core/accounts/console-routes";
 import { CONSOLE_APPS, CONSOLE_ROUTES, CONSOLE_WRITES } from "@wren/core/console-routes";
 import {
   TEMPLATES_CONSOLE_APPS,
@@ -94,6 +99,13 @@ export const SERVICES: Readonly<Record<string, Service>> = {
     TEMPLATES_CONSOLE_ROUTES,
     TEMPLATES_CONSOLE_APPS,
     TEMPLATES_CONSOLE_WRITES,
+  ),
+  // A client's accounts with their setups, and its vendors: modes, room, the month's usage.
+  accounts: service(
+    "AccountsConsole",
+    ACCOUNTS_CONSOLE_ROUTES,
+    ACCOUNTS_CONSOLE_APPS,
+    ACCOUNTS_CONSOLE_WRITES,
   ),
 };
 

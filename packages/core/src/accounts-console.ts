@@ -1,0 +1,504 @@
+/**
+ * AccountsConsole (designs/2026-10-07-setup-and-vendors.md, Pages): a client's accounts, each
+ * with its facts and setup runs, and its vendors with mode, room and the month's usage. A
+ * client's people read both and act on their own steps; Wren's team adds accounts, starts and
+ * switches setups, and sets vendor modes. A key is never read back. Moves on a setup go onto the
+ * spine (`spineEmit`) once the write is journaled.
+ */
+import type * as restate from "@restatedev/restate-sdk";
+import type { Db } from "@wren/db";
+import { eq, gte, sql } from "drizzle-orm";
+import { z } from "zod";
+import { WREN } from "./access.js";
+import { ACCOUNTS_CONSOLE_APPS, ACCOUNTS_CONSOLE_ROUTES } from "./accounts-console-routes.js";
+import { clients, SETUP_MODES, type SetupMode } from "./clients/schema.js";
+import {
+  answer,
+  canAt,
+  isDemo,
+  PortalRefusal,
+  type PortalRequest,
+  pickClient,
+  portalService,
+  type SignedViewer,
+  teamCan,
+} from "./portal.js";
+import { PORTAL_FIELDS, serviceHandler } from "./restate/form.js";
+import {
+  type AccountView,
+  accountsOf,
+  addAccount,
+  checkNow,
+  markStep,
+  REGISTRY_SITES,
+  type RegistrySite,
+  type Setup,
+  type SetupEmit,
+  setupOf,
+  siteLabel,
+  startSetup,
+} from "./setup.js";
+import type { SetupRunRow } from "./setup-schema.js";
+import { spineEmit, waitMs } from "./spine.js";
+import { vendorUsage } from "./vendor-schema.js";
+import {
+  clearMode,
+  gate,
+  type KeyStore,
+  modesOf,
+  monthStart,
+  priceText,
+  setManaged,
+  setOwnKey,
+  setOwnLogin,
+  unitsOf,
+  usageSince,
+  VENDORS,
+  vendorSettings,
+} from "./vendors.js";
+
+export interface AccountsDeps {
+  db: Db;
+  /** Every setup the worker runs (`SETUPS`). */
+  setups: readonly Setup[];
+  /** The checks the worker registered, by name: any other says "Check in development". */
+  checks: ReadonlySet<string>;
+  /** Where own keys go; null: saving one says the key store isn't set up here. */
+  keys: KeyStore | null;
+  /** The env in an own key's SSM path. */
+  env: string;
+  now?: () => Date;
+}
+
+const by = (req: PortalRequest) => (req.viewer as SignedViewer).email ?? "unknown";
+
+/** Whose: a client the viewer may open, or Wren's own (`wren`) for the team. */
+async function ownerOf(db: Db, req: PortalRequest): Promise<{ id: string | null; name: string }> {
+  if (req.client === WREN) {
+    if (!teamCan(req, "read", WREN)) throw new PortalRefusal("no access", 403);
+    return { id: null, name: "Wren" };
+  }
+  const c = await pickClient(db, req);
+  return { id: c.id, name: c.name };
+}
+
+/** The team at this owner with `p`; a client's people never. */
+const teamAt = (req: PortalRequest, id: string | null, p: "act" | "money") =>
+  teamCan(req, p, id ?? WREN);
+
+const iso = (d: Date | null | undefined) => (d ? d.toISOString() : null);
+
+/** A step's place on its run: done, the one it's on (as the run's state), or later. */
+type StepState = "done" | "later" | SetupRunRow["state"];
+
+function runView(
+  a: AccountView,
+  s: Setup,
+  run: SetupRunRow,
+  o: { team: boolean; checks: ReadonlySet<string>; now: Date },
+) {
+  const held = new Map(a.facts.map((f) => [f.fact, f]));
+  const at = run.step ? s.steps.findIndex((x) => x.id === run.step) : s.steps.length;
+  const current = s.steps[at];
+  // Past its step's `within`: the page says so; telling the team on its own is in development.
+  const late =
+    !!current?.within &&
+    run.state !== "done" &&
+    o.now.getTime() - run.stepSince.getTime() > waitMs(current.within);
+  return {
+    setup: s.id,
+    name: s.name,
+    blurb: s.blurb,
+    gen: run.gen,
+    mode: run.mode,
+    state: late && run.state !== "lost" ? ("stuck" as const) : run.state,
+    step: run.step,
+    why: run.why,
+    rounds: run.rounds,
+    startedAt: iso(run.startedAt),
+    stepSince: iso(run.stepSince),
+    doneAt: iso(run.doneAt),
+    nextCheckAt: iso(run.nextCheckAt),
+    steps: s.steps.map((st, i) => {
+      const f = held.get(st.fact);
+      const state: StepState =
+        f?.state === "ok" ? "done" : i === at ? run.state : i < at ? "done" : "later";
+      return {
+        id: st.id,
+        label: st.label,
+        fact: st.fact,
+        who: st.who,
+        how: st.how,
+        forYou: st.forYou,
+        buys: !!st.buys,
+        every: st.every ?? null,
+        within: st.within ?? null,
+        // A check the worker hasn't got waits on a person to mark the step done.
+        check: st.check ? (o.checks.has(st.check) ? "live" : "development") : null,
+        state,
+        why: f?.state === "ok" ? null : (f?.why ?? (i === at ? run.why : null)),
+        mayMark: state !== "done" && (o.team || st.who === "client"),
+      };
+    }),
+  };
+}
+
+function accountView(
+  a: AccountView,
+  setups: readonly Setup[],
+  o: { team: boolean; checks: ReadonlySet<string>; now: Date },
+) {
+  const mine = setups.filter((s) => s.site === a.site);
+  return {
+    id: a.id,
+    site: a.site,
+    siteLabel: siteLabel(a.site),
+    ref: a.ref,
+    role: a.role,
+    mode: a.mode,
+    // Which credvault login Wren signs in with: the team's to know, never the value.
+    ...(o.team ? { login: a.login } : {}),
+    facts: a.facts.map((f) => ({
+      fact: f.fact,
+      label: setupOf(f.fact, setups)?.step.label ?? f.fact,
+      state: f.state,
+      why: f.why,
+      checkedAt: iso(f.checkedAt),
+      okAt: iso(f.okAt),
+    })),
+    runs: a.runs.flatMap((r) => {
+      const s = mine.find((x) => x.id === r.setup);
+      return s ? [runView(a, s, r, o)] : [];
+    }),
+    /** Setups for this account's site not started on it. */
+    setups: mine
+      .filter((s) => !a.runs.some((r) => r.setup === s.id))
+      .map((s) => ({ id: s.id, name: s.name, blurb: s.blurb })),
+  };
+}
+
+export type AccountsView = Awaited<ReturnType<ReturnType<typeof accountsApi>["accounts"]>>;
+export type VendorsView = Awaited<ReturnType<ReturnType<typeof accountsApi>["vendors"]>>;
+export type UsageView = Awaited<ReturnType<ReturnType<typeof accountsApi>["usage"]>>;
+
+export interface AccountRequest extends PortalRequest {
+  account: number;
+  setup: string;
+}
+
+/**
+ * The handlers as plain calls, each checking its own access and throwing `PortalRefusal`. Moves
+ * on a setup answer the events to emit; the Restate service emits them, a preview drops them.
+ */
+export function accountsApi(deps: AccountsDeps) {
+  const { db } = deps;
+  const now = () => deps.now?.() ?? new Date();
+  const setupBy = (id: string) => {
+    const s = deps.setups.find((x) => x.id === id);
+    if (!s) throw new PortalRefusal("no such setup", 404);
+    return s;
+  };
+  /** The account, once it's this owner's. */
+  const accountOf = async (req: PortalRequest & { account: number }, owner: string | null) => {
+    const all = await accountsOf(db, owner);
+    const a = all.find((x) => x.id === Number(req.account));
+    if (!a) throw new PortalRefusal("no such account", 404);
+    return a;
+  };
+  /** A write's owner: never the demo, never by a client's people where `team` says Wren's. */
+  const writer = async (req: PortalRequest, need: "team" | "act") => {
+    if (isDemo(req.viewer)) throw new PortalRefusal("the demo is read-only", 403);
+    const owner = await ownerOf(db, req);
+    const team = teamAt(req, owner.id, "act");
+    if (need === "team" && !team) throw new PortalRefusal("Wren's team does this", 403);
+    if (!team && !(await canAt(db, req, "act", { client: owner.id ?? WREN, app: "account" })))
+      throw new PortalRefusal("your role can't do that", 403);
+    return { owner, team };
+  };
+  const fail = (err: unknown): never => {
+    if (err instanceof PortalRefusal) throw err;
+    throw new PortalRefusal(err instanceof Error ? err.message : String(err), 409);
+  };
+
+  return {
+    /** The owner's accounts, each with its facts, runs and the setups it could start. */
+    async accounts(req: PortalRequest) {
+      const owner = await ownerOf(db, req);
+      const team = teamAt(req, owner.id, "act");
+      const o = { team, checks: deps.checks, now: now() };
+      const list = await accountsOf(db, owner.id);
+      return {
+        owner,
+        team,
+        mayAct: team || (await canAt(db, req, "act", { client: owner.id ?? WREN, app: "account" })),
+        accounts: list.map((a) => accountView(a, deps.setups, o)),
+        // What the team may add: each site with the setups that run on it.
+        sites: team
+          ? REGISTRY_SITES.map((site) => ({
+              site,
+              label: siteLabel(site),
+              setups: deps.setups.filter((s) => s.site === site).map((s) => s.name),
+            }))
+          : [],
+      };
+    },
+
+    /** Each vendor: its mode here, key set or not, today's room, the month's units and est. $. */
+    async vendors(req: PortalRequest) {
+      const owner = await ownerOf(db, req);
+      const at = now();
+      const settings = await vendorSettings(db);
+      const modes = owner.id ? await modesOf(db, owner.id) : [];
+      const used = await usageSince(db, owner.id, monthStart(at));
+      const rows = [];
+      for (const v of VENDORS) {
+        const m = modes.find((x) => x.vendor === v.id);
+        const g = await gate(db, owner.id, v.id, 1, at);
+        const mine = used.filter((u) => u.vendor === v.id);
+        rows.push({
+          id: v.id,
+          name: v.name,
+          units: unitsOf(v),
+          price: priceText(v),
+          url: v.url,
+          asOf: v.asOf,
+          own: v.own,
+          offered: owner.id === null || settings.managedForClients.includes(v.id),
+          mode: owner.id === null ? ("managed" as const) : (m?.mode ?? null),
+          keySet: !!m?.keyName,
+          perDay: m?.perDay ?? 0,
+          capCents: m?.capCents ?? 0,
+          quota: v.quota?.perDay ?? null,
+          room: g.ok ? g.room : null,
+          why: g.ok ? null : g.why,
+          month: {
+            units: mine.reduce((n, u) => n + u.units, 0),
+            micros: mine.reduce((n, u) => n + u.micros, 0),
+          },
+        });
+      }
+      return {
+        owner,
+        team: teamAt(req, owner.id, "act"),
+        mayMoney: owner.id !== null && teamAt(req, owner.id, "money"),
+        keyStore: deps.keys !== null,
+        reservePct: settings.reservePct,
+        vendors: rows,
+      };
+    },
+
+    /** Start a setup on an account (the team picks done for you), or start it over. */
+    async start(req: AccountRequest & { mode?: SetupMode | null }) {
+      const { owner, team } = await writer(req, "act");
+      const s = setupBy(String(req.setup));
+      const a = await accountOf(req, owner.id);
+      if (req.mode && !(SETUP_MODES as readonly string[]).includes(req.mode))
+        throw new PortalRefusal("mode: self or for_you", 400);
+      // Done for you, or a switch of mode on a run: Wren's team.
+      if (!team && (req.mode === "for_you" || a.runs.some((r) => r.setup === s.id)))
+        throw new PortalRefusal("Wren's team does this", 403);
+      const emit = await startSetup(db, s, {
+        accountId: a.id,
+        ...(req.mode ? { mode: req.mode } : {}),
+        by: by(req),
+        now: now(),
+      }).catch(fail);
+      return { emits: [emit] };
+    },
+
+    /** A person says a step is done. A client's people mark only the steps that are theirs. */
+    async mark(req: AccountRequest & { step: string }) {
+      const { owner, team } = await writer(req, "act");
+      const s = setupBy(String(req.setup));
+      const step = s.steps.find((x) => x.id === req.step);
+      if (!step) throw new PortalRefusal("no such step", 404);
+      if (!team && step.who !== "client")
+        throw new PortalRefusal("Wren's team does this step", 403);
+      const a = await accountOf(req, owner.id);
+      const emit = await markStep(db, s, {
+        accountId: a.id,
+        step: step.id,
+        by: by(req),
+        now: now(),
+      }).catch(fail);
+      return { emits: emit ? [emit] : [] };
+    },
+
+    /** Check the step a run waits on now, not at its next round. */
+    async checkNow(req: AccountRequest) {
+      const { owner } = await writer(req, "act");
+      const s = setupBy(String(req.setup));
+      const a = await accountOf(req, owner.id);
+      const emit = await checkNow(db, s, { accountId: a.id, now: now() }).catch(fail);
+      if (!emit) throw new PortalRefusal("It isn't waiting on a step", 409);
+      return { emits: [emit] };
+    },
+
+    /** Add an account to the registry: a domain, an inbox, a number, a property. Wren's team. */
+    async addAccount(
+      req: PortalRequest & { site: string; ref: string; role?: string | null; mode?: SetupMode },
+    ) {
+      const { owner } = await writer(req, "team");
+      if (!(REGISTRY_SITES as readonly string[]).includes(req.site))
+        throw new PortalRefusal("no such site", 400);
+      const row = await addAccount(db, {
+        client: owner.id,
+        site: req.site as RegistrySite,
+        ref: String(req.ref ?? ""),
+        role: req.role?.trim() || "main",
+        mode: req.mode === "for_you" ? "for_you" : "self",
+        by: by(req),
+      }).catch(fail);
+      return { id: row.id };
+    },
+
+    /**
+     * A client's mode on a vendor: managed on Wren's key with a daily share and a monthly cap
+     * (money, so an admin), the client's own key or login, or none. A key is never read back.
+     */
+    async setVendor(
+      req: PortalRequest & {
+        vendor: string;
+        mode: "managed" | "own" | "none";
+        key?: string | null;
+        perDay?: number | null;
+        capCents?: number | null;
+      },
+    ) {
+      const { owner } = await writer(req, "team");
+      if (owner.id === null) throw new PortalRefusal("Wren is managed on every vendor", 409);
+      const v = VENDORS.find((x) => x.id === req.vendor);
+      if (!v) throw new PortalRefusal("no such vendor", 404);
+      const client = owner.id;
+      if (req.mode === "managed") {
+        if (!teamAt(req, client, "money"))
+          throw new PortalRefusal("Shares and caps are money: an admin sets them", 403);
+        await setManaged(db, {
+          client,
+          vendor: v.id,
+          perDay: Number(req.perDay ?? 0),
+          capCents: Number(req.capCents ?? 0),
+          by: by(req),
+        }).catch(fail);
+      } else if (req.mode === "own") {
+        if (v.own === "login") await setOwnLogin(db, { client, vendor: v.id, by: by(req) });
+        else if (v.own === "key")
+          await setOwnKey(db, deps.keys, {
+            client,
+            vendor: v.id,
+            value: String(req.key ?? ""),
+            env: deps.env,
+            by: by(req),
+          }).catch(fail);
+        else throw new PortalRefusal(`${v.name} runs on Wren's only`, 409);
+      } else if (req.mode === "none") await clearMode(db, client, v.id);
+      else throw new PortalRefusal("mode: managed, own or none", 400);
+      return { ok: true };
+    },
+
+    /** This month's managed usage across clients, per client and vendor: Wren's team. */
+    async usage(req: PortalRequest) {
+      if (!teamCan(req, "read", WREN)) throw new PortalRefusal("no access", 403);
+      const from = monthStart(now());
+      const rows = await db
+        .select({
+          client: vendorUsage.client,
+          name: clients.name,
+          vendor: vendorUsage.vendor,
+          mode: vendorUsage.mode,
+          units: sql<string>`sum(${vendorUsage.units})`,
+          micros: sql<string>`sum(${vendorUsage.micros})`,
+        })
+        .from(vendorUsage)
+        .leftJoin(clients, eq(clients.id, vendorUsage.client))
+        .where(gte(vendorUsage.at, from))
+        .groupBy(vendorUsage.client, clients.name, vendorUsage.vendor, vendorUsage.mode)
+        .orderBy(sql`sum(${vendorUsage.micros}) desc`);
+      const of = (id: string) => VENDORS.find((v) => v.id === id);
+      return {
+        from: from.toISOString(),
+        rows: rows.map((r) => ({
+          client: r.client,
+          clientName: r.client === null ? "Wren" : (r.name ?? r.client),
+          vendor: r.vendor,
+          vendorName: of(r.vendor)?.name ?? r.vendor,
+          mode: r.mode,
+          units: Number(r.units),
+          unit: unitsOf(of(r.vendor) ?? { unit: "unit" }),
+          micros: Number(r.micros),
+        })),
+      };
+    },
+  };
+}
+export type AccountsApi = ReturnType<typeof accountsApi>;
+
+const ACCOUNT = z.number().int().positive().describe("The account's id");
+const SETUP = z.string().max(64).describe("The setup's id: setup.texting");
+
+export function makeAccountsConsole(deps: AccountsDeps) {
+  const api = accountsApi(deps);
+  const read =
+    <R extends PortalRequest, T>(fn: (req: R) => Promise<T>) =>
+    (_: restate.Context, req: R) =>
+      answer(() => fn(req));
+  /** A write, journaled once; its events go onto the spine after it. */
+  const move =
+    <R extends PortalRequest>(name: string, fn: (req: R) => Promise<{ emits: SetupEmit[] }>) =>
+    async (ctx: restate.Context, req: R) => {
+      const { emits } = await answer(() => ctx.run(name, () => answer(() => fn(req))));
+      for (const e of emits) spineEmit(ctx, e);
+      return { ok: true, moved: emits.length };
+    };
+  const write =
+    <R extends PortalRequest, T>(name: string, fn: (req: R) => Promise<T>) =>
+    (ctx: restate.Context, req: R) =>
+      answer(() => ctx.run(name, () => answer(() => fn(req))));
+  const on = { ...PORTAL_FIELDS, account: ACCOUNT, setup: SETUP };
+  return portalService({
+    name: "AccountsConsole",
+    main: deps.db,
+    routes: ACCOUNTS_CONSOLE_ROUTES,
+    apps: ACCOUNTS_CONSOLE_APPS,
+    unnamed: "first",
+    handlers: {
+      accounts: serviceHandler({ input: z.looseObject(PORTAL_FIELDS) }, read(api.accounts)),
+      vendors: serviceHandler({ input: z.looseObject(PORTAL_FIELDS) }, read(api.vendors)),
+      usage: serviceHandler({ input: z.looseObject(PORTAL_FIELDS) }, read(api.usage)),
+      start: serviceHandler(
+        { input: z.looseObject({ ...on, mode: z.enum(SETUP_MODES).nullish() }) },
+        move("start", api.start),
+      ),
+      mark: serviceHandler(
+        { input: z.looseObject({ ...on, step: z.string().max(40) }) },
+        move("mark", api.mark),
+      ),
+      checkNow: serviceHandler({ input: z.looseObject(on) }, move("check", api.checkNow)),
+      addAccount: serviceHandler(
+        {
+          input: z.looseObject({
+            ...PORTAL_FIELDS,
+            site: z.enum(REGISTRY_SITES),
+            ref: z.string().max(200).describe("What it is there: example.com, +15550100"),
+            role: z.string().max(32).nullish(),
+            mode: z.enum(SETUP_MODES).optional(),
+          }),
+        },
+        write("add", api.addAccount),
+      ),
+      setVendor: serviceHandler(
+        {
+          input: z.looseObject({
+            ...PORTAL_FIELDS,
+            vendor: z.string().max(32),
+            mode: z.enum(["managed", "own", "none"]),
+            key: z.string().max(4096).nullish().describe("Own key: saved to SSM, never shown"),
+            perDay: z.number().int().min(0).nullish(),
+            capCents: z.number().int().min(0).nullish(),
+          }),
+        },
+        write("vendor", api.setVendor),
+      ),
+    },
+  });
+}

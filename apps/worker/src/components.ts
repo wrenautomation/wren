@@ -45,6 +45,7 @@ export const PLATFORM = {
     TokenRenewal: "renews every site's tokens, for content and ads alike",
     TemplatesConsole: "the Library's templates: save, publish, approve, restore, reset",
     SetupWatch: "checks every set-up account again on its repeat, and starts a lost one over",
+    AccountsConsole: "a client's accounts, setups and vendor modes",
   },
   apps: {
     account: "every client's account: people, look, billing",

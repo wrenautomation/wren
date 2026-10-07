@@ -10,6 +10,7 @@ import type { Module } from "../../module.js";
 import { inboxPages, managePages } from "../access/index.js";
 import { PersonAccess } from "../access/PersonAccess.js";
 import { ClientLook } from "../account/Look.js";
+import { ClientAccounts, VendorUsage } from "../account/summary.js";
 import { callsPage } from "../calls/index.js";
 import { INBOX_PAGE } from "../marketing/index.js";
 import { ClientComponents, ClientTemplates } from "../marketplace/Installed.js";
@@ -945,10 +946,12 @@ export const clients: Module = {
         sections: [
           ["Templates", createElement(ClientTemplates, { client: String(row.id) })],
           ["Components", createElement(ClientComponents, { client: String(row.id) })],
+          ["Accounts", createElement(ClientAccounts, { client: String(row.id) })],
           ["Look", createElement(ClientLook, { client: String(row.id) })],
         ],
       }),
     },
+    { id: "usage", label: "Vendor usage", Page: VendorUsage },
   ],
 };
 

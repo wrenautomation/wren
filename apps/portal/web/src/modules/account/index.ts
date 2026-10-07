@@ -2,11 +2,13 @@
 import { createElement } from "react";
 import type { Module } from "../../module.js";
 import { inboxPages, managePages } from "../access/index.js";
+import { Accounts } from "./Accounts.js";
 import { Domain } from "./Domain.js";
 import { Included } from "./Included.js";
 import { Look } from "./Look.js";
 import { Overview } from "./Overview.js";
 import { People } from "./People.js";
+import { Vendors } from "./Vendors.js";
 import { You } from "./You.js";
 
 export const account: Module = {
@@ -14,7 +16,7 @@ export const account: Module = {
   name: "Account",
   icon: "sliders",
   blurb:
-    "Your company's details, who can see your projects, your email settings, your look, invoices and who changed what.",
+    "Your company's details, who can see your projects, your email settings, your look, the accounts and vendors Wren works in, invoices and who changed what.",
   menu: true,
   // The demo is nobody's account.
   requires: { audience: "client" },
@@ -24,6 +26,8 @@ export const account: Module = {
     { id: "you", label: "Your settings", Page: You },
     { id: "look", label: "Look", Page: Look, requires: { needs: "manage" } },
     { id: "domain", label: "Domain", Page: Domain },
+    { id: "accounts", label: "Accounts", Page: Accounts },
+    { id: "vendors", label: "Vendors", Page: Vendors },
     {
       id: "billing",
       label: "Billing",
