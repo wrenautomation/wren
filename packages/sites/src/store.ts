@@ -5,7 +5,7 @@
 import { randomBytes } from "node:crypto";
 import { HOOK_PRESETS } from "@wren/core/door";
 import { hooks } from "@wren/core/schema";
-import type { Db, Queryable } from "@wren/db";
+import { type Db, type Queryable, serializable } from "@wren/db";
 import { and, asc, desc, eq, inArray, isNull, sql } from "drizzle-orm";
 import {
   type Channel,
@@ -127,7 +127,7 @@ export async function createDataPage(db: Db, p: NewDataPage): Promise<SitePage> 
   const content = checked(p.template, p.content);
   const title = p.title.trim();
   if (!title) throw new SitesRefusal("name the page", 400);
-  return db.transaction(async (tx) => {
+  return serializable(db, async (tx) => {
     const slug = await freeSlug(tx, p.client, p.slug?.trim() || title);
     const [page] = await tx
       .insert(sitePages)
@@ -186,7 +186,7 @@ export async function saveVersion(
     expect?: number | null;
   },
 ): Promise<SitePage> {
-  return db.transaction(async (tx) => {
+  return serializable(db, async (tx) => {
     const [page] = await tx.select().from(sitePages).where(eq(sitePages.id, id)).for("update");
     if (!page) throw new SitesRefusal("no such page", 404);
     if (page.source !== "data") throw new SitesRefusal("a code page changes in code", 409);
