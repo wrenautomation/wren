@@ -9,7 +9,7 @@ import { keyStage, rawKeyRefusal } from "../src/keys.js";
 import worker from "../src/worker.js";
 
 const KEY = "sk_live_synthetic0000000000";
-const env = (over: Partial<Env> = {}): Env =>
+const env = (over: { [K in keyof Env]?: Env[K] | undefined } = {}): Env =>
   ({
     ASSETS: { fetch: async () => new Response("app") } as unknown as Fetcher,
     DEMO_HOST: "demo.test",
