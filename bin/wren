@@ -8,9 +8,15 @@ BUNDLE="$ROOT/apps/cli/dist/app/wren.mjs"
 
 stale() {
   [ ! -f "$BUNDLE" ] || [ -n "$(find "$ROOT"/packages/*/src "$ROOT"/packages/templates/defaults "$ROOT"/packages/db/drizzle \
-    "$ROOT"/apps/cli/src "$ROOT"/apps/cli/scripts "$ROOT"/pnpm-lock.yaml \
+    "$ROOT"/apps/cli/src "$ROOT"/apps/cli/scripts "$ROOT"/apps/worker/src "$ROOT"/pnpm-lock.yaml \
     -type f -newer "$BUNDLE" -print -quit)" ]
 }
+
+# A pull that adds a workspace dependency leaves node_modules behind the lockfile.
+if [ "$ROOT/pnpm-lock.yaml" -nt "$ROOT/node_modules/.modules.yaml" ]; then
+  echo "wren: lockfile changed, installing" >&2
+  (cd "$ROOT" && pnpm install --frozen-lockfile --silent) >&2
+fi
 
 if stale; then
   echo "wren: source changed, rebuilding" >&2
