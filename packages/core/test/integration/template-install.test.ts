@@ -10,7 +10,9 @@ import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 import { z } from "zod";
 import { clients } from "../../src/clients/schema.js";
 import { defineComponent } from "../../src/components.js";
+import { consoleApi } from "../../src/console.js";
 import { workflowRecord } from "../../src/library.js";
+import type { PortalRequest } from "../../src/portal.js";
 import { hooks, workflowInstalls, workflowSaves } from "../../src/schema.js";
 import {
   approveInstall,
@@ -349,5 +351,31 @@ describe("saved templates", () => {
     const after = await saved();
     expect(after.version).not.toBe(before.version);
     expect((await readPlan(pg.db, pg.db, after, "demo", FILES)).kind).toBe("update");
+  });
+
+  it("opens a template that is its own workflow on the canvas with History and Save", async () => {
+    const own = defineWorkflow({ ...flowOf(5), id: "own", name: "Own", template: { parts: {} } });
+    const api = consoleApi({
+      main: pg.db,
+      views: [],
+      components: COMPONENTS,
+      workflows: [...WORKFLOWS, own],
+    });
+    await pg.db
+      .insert(workflowSaves)
+      .values({ client: "demo", workflow: "own", edits: slow, live: true, by: "test" });
+    const operator = { viewer: { email: "op@example.test", operator: true } } as PortalRequest;
+    const got = await api.recordsGet({
+      ...operator,
+      record: "console.component",
+      id: "own",
+      client: "demo",
+    } as never);
+    expect(got.detail).toMatchObject({
+      template: { id: "own" },
+      forClients: true,
+      versions: [{ by: "test" }],
+      templates: [],
+    });
   });
 });

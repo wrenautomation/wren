@@ -8,6 +8,7 @@ import { and, asc, eq, sql } from "drizzle-orm";
 import { z } from "zod";
 import { WREN } from "./access.js";
 import type { Component } from "./components.js";
+import { logicOf } from "./logic.js";
 import { PortalRefusal } from "./portal.js";
 import {
   actor,
@@ -294,7 +295,10 @@ export function workflowRecord(
       const w = saved?.flow ?? workflows.find((x) => x.id === id);
       if (!w) return null;
       const named = (uses: string | undefined) =>
-        parts.find((c) => c.id === uses)?.name ?? workflows.find((x) => x.id === uses)?.name;
+        parts.find((c) => c.id === uses)?.name ??
+        workflows.find((x) => x.id === uses)?.name ??
+        // A trigger or logic node: its kind's name, "Booking", not its id.
+        logicOf(uses)?.name;
       const as = parts.find((c) => c.inside === w.id)?.id ?? w.id;
       return {
         open: saved

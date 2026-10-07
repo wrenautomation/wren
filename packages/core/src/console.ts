@@ -1764,6 +1764,8 @@ export const componentRecord = (
           },
           workflow: drawn(w),
           usedIn: usedIn(t.id),
+          // A code template shares its workflow's id: the canvas edits it, so it gets History too.
+          ...(team && mine && mine.id === id ? await editing(db, mine) : {}),
           install: row
             ? {
                 id: row.id,
