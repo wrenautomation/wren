@@ -21,8 +21,9 @@ dashboards". No new Analytics page: each number sits where he already looks.
   last touch (`link_days`, rolled up from the lander's export by the pass that already reads it).
 - **Where it shows:** Marketing → Posts (columns, a Leaderboard view, and each post's page with
   sparklines, the retention curve, traffic sources, search terms, its site funnel and its
-  conversation), Marketing → Overview (tiles, the Reach → Trust → Convert strip, cadence against
-  goals, what worked, gaps), Marketing → Followers (account health), and the Inbox overview
+  conversation), Marketing → Overview (a site visitors tile, cadence against goals, what
+  worked, top and site posts, conversation, numbers not read yet, formats by engagement),
+  Marketing → Followers (account health), and the Inbox overview
   (conversation rates).
 - **Iteration:** a weekly "what worked" digest, kept in `content_digests`, read into every
   draft's prompt beside the winners, shown on Overview. Nothing sends.
@@ -187,19 +188,20 @@ a test keeps this table and the catalog in step.
 | Number | Where |
 |---|---|
 | A post's numbers, every platform | Marketing → Posts: columns (stage, format, views, engagement, CTR, % viewed, site clicks, post to site, forms, calls, revenue); the platform switch filters |
-| Leaderboard | Marketing → Posts → Leaderboard view, sorted by score; filter by format, stage, date, platform |
-| Per day sparklines, retention curve, traffic sources, search terms | a post's page, "How it did" |
-| Post → site → form → booking → won, revenue first and last touch | a post's page, "What it brought"; Posts columns |
+| Leaderboard | Marketing → Posts → Leaderboard view, sorted by score; filter by format, stage, date, platform. Overview "Top posts" opens it |
+| Formats against each other | Marketing → Overview, "By format, last 30 days": median engagement per 100 views per format, each a link to its posts |
+| Per day sparklines, engagement per view and per follower, retention curve, traffic sources, search terms | a post's page, "How it did", first in its details |
+| Post → site → form → booking → won, revenue first and last touch | a post's page, "What it brought"; Posts columns and the "Brought visits" view; Overview "Posts that brought visitors" and the "Site visitors from posts" tile |
 | Its comments: reply rate, time to reply, turned into DMs | a post's page, "Its conversation" |
-| Needs scope, Needs William, No API | inline where the number would sit on a post's page, and Overview's "Analytics gaps" list with the step |
-| Reach → Trust → Convert strip | Marketing → Overview, under the tiles |
+| Needs scope, Needs William, Not built, No API | inline where the number would sit on a post's page, with the step; Overview "Numbers not read yet" |
 | Cadence against goals | Marketing → Overview, "This week against goals" |
-| What worked | Marketing → Overview, "What worked"; the Monday Discord note; every draft's prompt |
-| Comment reply rate, time to reply, comment → DM, DMs answered, DM → booking | Inbox → Overview "Conversation" and its median reply time tile; Marketing → Overview "Conversation" |
+| What worked | Marketing → Overview, "What worked last week"; every draft's prompt |
+| Comment reply rate, time to reply, comment → DM, DMs answered, DM → booking | Inbox → Overview and Marketing → Overview, "Conversation, last 30 days" |
 | Followers gained and lost, profile visits, link-in-bio clicks | Marketing → Followers columns |
 
-Rows behind a top list (cadence, digest, conversation, gaps) open on hidden list pages under
-Numbers, the way Search days does, so every number clicks through.
+Rows behind a top list (links, conversation, cadence, digest, metrics) open on hidden list pages
+under Numbers, the way Search days does, so every number clicks through. A post's numbers link to
+its Activity tab, its link rows and its comments. Conversation and link rows are Wren's only.
 
 ## Shape
 

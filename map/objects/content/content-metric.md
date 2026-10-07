@@ -25,6 +25,7 @@ Citations: `packages/content/src/schema.ts:127`
 
 - **owned-by:** [[content/draft]]
 - **reads through:** the `Content.metrics` handler and each platform adapter
+- **looks-like-but-is-not:** [[content/post-metric-day]], every other number the platform answers, per day
 
 ## If you change this
 
