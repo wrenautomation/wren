@@ -48,6 +48,7 @@ import { healthConsoleApi } from "@wren/delivery/health/console";
 import { HEALTH_CONSOLE_APPS, HEALTH_CONSOLE_ROUTES } from "@wren/delivery/health/console-routes";
 import { DELIVERY_ROUTES, deliveryApi } from "@wren/delivery/restate";
 import { DELIVERY_APPS } from "@wren/delivery/routes";
+import { webhooksApi } from "@wren/delivery/webhooks";
 import { learnConsoleApi } from "@wren/learn/console";
 import { LEARN_CONSOLE_APPS, LEARN_CONSOLE_ROUTES } from "@wren/learn/console-routes";
 import { LEARN_RECORDS, sopRecordFor } from "@wren/learn/records";
@@ -125,7 +126,11 @@ const SERVICES: Record<
   delivery: {
     routes: Object.keys(DELIVERY_ROUTES),
     guard: { needs: DELIVERY_ROUTES, apps: DELIVERY_APPS, unnamed: "first" },
-    api: deliveryApi({ main, demoName: DEMO_NAME, files, app: `http://localhost:${port}` }),
+    api: {
+      ...deliveryApi({ main, demoName: DEMO_NAME, files, app: `http://localhost:${port}` }),
+      // Redeliver answers the id here; the worker's handler is what sends it.
+      ...webhooksApi({ main }),
+    },
   },
   reactivation: {
     routes: Object.keys(PORTAL_ROUTES),

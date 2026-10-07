@@ -10,6 +10,7 @@
     "./schema": "./src/schema.ts",
     "./restate": "./src/service.ts",
     "./routes": "./src/routes.ts",
+    "./webhooks": "./src/webhooks.ts",
     "./files": "./src/files.ts",
     "./sample": "./src/sample.ts",
     "./health": "./src/health/index.ts",

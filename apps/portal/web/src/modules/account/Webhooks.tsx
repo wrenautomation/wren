@@ -4,7 +4,7 @@
  * finished delivery goes again on Redeliver.
  */
 import { Alert, Button, cx, Empty, Input, Loading, PageHeader, Section, Tag } from "@wren/ui";
-import { type FormEvent, useState } from "react";
+import { type FormEvent, useEffect, useRef, useState } from "react";
 import { ApiError, call } from "../../api.js";
 import { useCall } from "../../load.js";
 import type { PageProps } from "../../module.js";
@@ -92,8 +92,15 @@ function useRun(props: PageProps, reload: () => void) {
 
 function Secret({ secret, onClose }: { secret: string; onClose: () => void }) {
   const [copied, setCopied] = useState(false);
+  const box = useRef<HTMLDivElement>(null);
+  // It shows once: bring it into view from wherever Add or New secret was pressed.
+  useEffect(() => box.current?.scrollIntoView({ block: "center" }), []);
   return (
-    <div className="grid gap-2 border border-(--ui-accent) bg-(--ui-tile) p-3" role="status">
+    <div
+      ref={box}
+      className="mb-4 grid gap-2 border border-(--ui-accent) bg-(--ui-tile) p-3"
+      role="status"
+    >
       <p className="m-0 font-medium">Copy this secret now. It won't show again.</p>
       <code className="break-all text-[13px]">{secret}</code>
       <div className={TOOLS}>
@@ -154,7 +161,7 @@ export function Webhooks(props: PageProps) {
         title="Webhooks"
         lede="Send events to your own tools as they happen. Each request is signed, so your tool can check it came from us."
       />
-      {secret ? <Secret secret={secret} onClose={() => setSecret(null)} /> : null}
+      {secret ? <Secret key={secret} secret={secret} onClose={() => setSecret(null)} /> : null}
       <Section>
         {load.error && !data ? (
           <Alert onRetry={load.retry}>{load.error.message}</Alert>
@@ -172,7 +179,13 @@ export function Webhooks(props: PageProps) {
                 </p>
                 <code className="break-all text-[13px]">{h.url}</code>
                 <p className={cx("m-0 text-[13px]", QUIET)}>
-                  Hears {h.events.map(says).join(", ")}
+                  Hears{" "}
+                  {h.events.map((e, i) => (
+                    <span key={e} title={says(e)}>
+                      {i ? ", " : ""}
+                      <code className="text-[12px]">{e}</code>
+                    </span>
+                  ))}
                   {h.prevUntil ? `. The old secret also signs until ${at(h.prevUntil)}` : ""}
                 </p>
                 {tested[h.id] ? <p className="m-0 text-[13px]">{tested[h.id]}</p> : null}
@@ -281,7 +294,7 @@ export function Webhooks(props: PageProps) {
                     type="button"
                     aria-expanded={open === d.id}
                     onClick={() => setOpen(open === d.id ? null : d.id)}
-                    className="grid w-full cursor-pointer gap-0.5 bg-transparent px-1 py-2 text-left text-[13.5px] text-(--ui-ink) hover:bg-(--ui-hover)"
+                    className="grid w-full cursor-pointer gap-0.5 border-0 bg-transparent px-1 py-2 text-left text-[13.5px] text-(--ui-ink) hover:bg-(--ui-hover)"
                   >
                     <span className="flex flex-wrap items-center justify-between gap-2">
                       <span className="font-medium">{d.event}</span>
