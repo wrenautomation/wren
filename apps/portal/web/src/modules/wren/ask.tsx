@@ -97,7 +97,7 @@ export function Ask() {
     <>
       <PageHeader
         title="Ask"
-        lede="Claude Code on William's Mac answers from the code, the designs and prod, read only. ⌘K asks from any page."
+        lede="Answers from the code, the designs and prod. Read only. ⌘K asks from any page."
       />
       <form onSubmit={submit} className="mb-6 flex flex-col gap-2">
         <Textarea

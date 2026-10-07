@@ -768,7 +768,7 @@ export const money: Module = {
         createElement(
           "p",
           { className: "mt-6 text-[13px] text-(--ui-ink-2)" },
-          "William's own time isn't a cost here.",
+          "Your own time isn't a cost here.",
         ),
     },
     {
@@ -813,57 +813,57 @@ const sheetPages = (base: string): Module["pages"] => [
     ...overview,
     tiles: [
       {
-        label: "Firms found",
+        label: "Companies found",
         record: "email.firm",
-        href: `${base}/firms?view=in_play`,
+        href: `${base}/companies?view=in_play`,
         period: 30,
       },
       {
         label: "With a domain",
         record: "email.firm",
-        href: `${base}/firms?view=with_domain`,
+        href: `${base}/companies?view=with_domain`,
         period: 30,
       },
       {
         label: "Crawled",
         record: "email.firm",
-        href: `${base}/firms?view=crawled`,
+        href: `${base}/companies?view=crawled`,
         period: 30,
       },
       {
         label: "Named a person",
         record: "email.firm",
-        href: `${base}/firms?view=named`,
+        href: `${base}/companies?view=named`,
         period: 30,
       },
       {
         label: "Verified leads",
         record: "email.firm",
-        href: `${base}/firms?view=lead`,
+        href: `${base}/companies?view=lead`,
         period: 30,
       },
       {
         label: "Crawled, no person",
         record: "email.firm",
-        href: `${base}/firms?view=crawled&named=-`,
+        href: `${base}/companies?view=crawled&named=-`,
         needs: true,
       },
       {
         label: "No domain yet",
         record: "email.firm",
-        href: `${base}/firms?view=in_play&domain=-`,
+        href: `${base}/companies?view=in_play&domain=-`,
       },
     ],
     top: [
       {
         label: "Newest verified leads",
         record: "email.firm",
-        href: `${base}/firms?view=lead&sort=-lead`,
+        href: `${base}/companies?view=lead&sort=-lead`,
         fields: ["campaign", "lead"],
         empty: "No verified leads yet.",
       },
       {
-        label: "Where firms stall",
+        label: "Where companies stall",
         record: "email.stall",
         href: `${base}/stalls`,
         fields: ["queuedFirms", "catchAllLeads", "riskyLeads"],
@@ -872,11 +872,11 @@ const sheetPages = (base: string): Module["pages"] => [
     ],
   },
   {
-    id: "firms",
-    label: "Firms",
+    id: "companies",
+    label: "Companies",
     template: "list",
     record: "email.firm",
-    empty: "Firms show here once a source finds them.",
+    empty: "Companies show here once a source finds them.",
     extras: (_, { client, row }) => ({
       sections: [["Dossier", createElement(FirmDossier, { client, id: String(row.id) })]],
     }),
@@ -895,7 +895,7 @@ export const pipeline: Module = {
   name: "Pipeline",
   component: "research.lead_sheet",
   icon: "pulse",
-  blurb: "Firms from found to verified lead, and where they stall.",
+  blurb: "Companies from found to verified lead, and where they stall.",
   requires: TEAM,
   pages: sheetPages("/pipeline"),
 };
@@ -906,7 +906,7 @@ export const leads: Module = {
   name: "Lead sheet",
   component: "research.lead_sheet",
   icon: "pulse",
-  blurb: "Firms from found to verified lead, and where they stall.",
+  blurb: "Companies from found to verified lead, and where they stall.",
   pages: sheetPages("/leads"),
 };
 

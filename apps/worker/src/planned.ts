@@ -135,7 +135,7 @@ export const PLANNED_COMPONENTS = [
     stage: "find",
     channels: ["web"],
     name: "Visitor ID",
-    blurb: "Names the firm behind a site visit and finds the right person to write to.",
+    blurb: "Names the company behind a site visit and finds the right person to write to.",
     icon: "search",
     for: "client",
     out: [{ id: "leads", label: "visitors named", kind: "lead" }],

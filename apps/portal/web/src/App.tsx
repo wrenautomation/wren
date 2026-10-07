@@ -417,7 +417,7 @@ export function App() {
         workspace={{
           current,
           options: operator ? [WREN, ...clients] : clients,
-          chip: demo ? { label: "Sample firm", href: `/${REACTIVATION}/real` } : undefined,
+          chip: demo ? { label: "Sample company", href: `/${REACTIVATION}/real` } : undefined,
           href: account ? firstOf(account) : undefined,
           label: operator ? "Workspace" : clients.length > 1 ? "Client" : "Account",
           onPick: pick,
@@ -431,8 +431,11 @@ export function App() {
                 name: open.module.name,
                 icon: open.module.icon,
                 href: firstOf(open.module),
+                // The app's action opens its page: one way in, not a tab as well.
                 tabs: open.module.pages
-                  .filter((p) => !p.hidden || p.id === open.page.id)
+                  .filter(
+                    (p) => (!p.hidden && p.id !== action?.page) || p.id === open.page.id,
+                  )
                   .map((p) => ({
                     id: p.id,
                     label: p.label,

@@ -146,7 +146,7 @@ function Pulse({
 const QUOTE_CHOICES = [
   ["private", "Just for Wren"],
   ["anonymous", "Quote me without my name"],
-  ["named", "Quote me with my name and firm"],
+  ["named", "Quote me with my name and company"],
 ] as const;
 
 /**
@@ -203,7 +203,7 @@ function Review({
         ) : null}
       </div>
       {score === null ? (
-        <p className={QUIET}>One tap. It reaches William.</p>
+        <p className={QUIET}>One tap. It reaches us.</p>
       ) : (
         <Form
           label="Say more"
@@ -321,13 +321,13 @@ function Next({
 function Thanks({ score, words }: { score: number; words: string }) {
   if (!GOOGLE_REVIEW_URL || score < 4)
     return (
-      <Callout>Thanks. William reads every review{score < 4 ? " and will follow up" : ""}.</Callout>
+      <Callout>Thanks. We read every review{score < 4 ? " and will follow up" : ""}.</Callout>
     );
   const url = GOOGLE_REVIEW_URL;
   return (
     <Section title="Thank you. Would you post it on Google?">
       <p>
-        It helps other firms find us.{" "}
+        It helps other companies find us.{" "}
         {words ? "Tap below and your words are copied, ready to paste." : ""}
       </p>
       <div className={TOOLS}>

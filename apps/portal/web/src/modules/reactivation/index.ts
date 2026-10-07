@@ -114,7 +114,7 @@ export const reactivation: Module = {
           href: people("view=call"),
           fields: ["company", "score"],
           line: "reason",
-          empty: "People who moved or whose firm is hiring show here once research finds them.",
+          empty: "People who moved or whose company is hiring show here once research finds them.",
         },
         {
           label: "Drafts to approve",
@@ -168,7 +168,7 @@ export const reactivation: Module = {
       columns: ["value"],
       actions: SETTING_ACTIONS,
     },
-    // The demo's own, from the top bar's "Sample firm" chip.
+    // The demo's own, from the top bar's "Sample company" chip.
     { id: "real", label: "What's real", Page: Real, hidden: true, requires: { audience: "demo" } },
     // The client's plan and paperwork, here and not in an app of their own.
     ...ENGAGEMENT_PAGES,

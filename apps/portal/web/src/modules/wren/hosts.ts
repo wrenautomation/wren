@@ -84,7 +84,7 @@ const HOSTS: Host[] = [
   {
     id: "desk",
     label: "Desk",
-    note: "William's Mac, launchd",
+    note: "Office Mac",
     lines: ["browser, logins, home IP"],
   },
   {

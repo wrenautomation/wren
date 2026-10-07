@@ -55,13 +55,13 @@ export const DOSSIER = "research.dossier";
 
 const LEADS: Port = {
   id: "leads",
-  label: "firms with a verified lead",
+  label: "companies with a verified lead",
   kind: "lead",
   count: { record: "email.firm", view: "lead" },
 };
 const PEOPLE: Port = {
   id: "people",
-  label: "firms with a person named",
+  label: "companies with a person named",
   kind: "person",
   count: { record: "email.firm", view: "named" },
 };
@@ -70,8 +70,8 @@ export const RESEARCH_COMPONENTS = [
   defineComponent({
     id: "research.discovery",
     stage: "find",
-    name: "Firm discovery",
-    blurb: "Finds the firms in a niche from public lists and search.",
+    name: "Company discovery",
+    blurb: "Finds the companies in a niche from public lists and search.",
     icon: "search",
     for: "client",
     ready: true,
@@ -81,7 +81,7 @@ export const RESEARCH_COMPONENTS = [
     out: [
       {
         id: "firms",
-        label: "firms found",
+        label: "companies found",
         kind: "firm",
         count: { record: "email.firm", view: "in_play" },
       },
@@ -108,17 +108,17 @@ export const RESEARCH_COMPONENTS = [
     id: "research.crawl",
     stage: "find",
     name: "Site crawl",
-    blurb: "Fetches each firm's site and keeps the pages it read.",
+    blurb: "Fetches each company's site and keeps the pages it read.",
     icon: "download",
     for: "client",
     ready: true,
     missing: [],
     provides: { services: ["PageArchive"], loops: ["PageArchive"] },
-    in: [{ id: "firms", label: "firms", kind: "firm" }],
+    in: [{ id: "firms", label: "companies", kind: "firm" }],
     out: [
       {
         id: "crawled",
-        label: "firms crawled",
+        label: "companies crawled",
         kind: "firm",
         count: { record: "email.firm", view: "crawled" },
       },
@@ -147,7 +147,7 @@ export const RESEARCH_COMPONENTS = [
     id: "research.people",
     stage: "find",
     name: "People finder",
-    blurb: "Reads each firm's pages for the people and roles worth writing to.",
+    blurb: "Reads each company's pages for the people and roles worth writing to.",
     icon: "people",
     for: "client",
     ready: true,
@@ -155,7 +155,7 @@ export const RESEARCH_COMPONENTS = [
     requires: { components: ["research.crawl"] },
     provides: { services: ["Enrichment"] },
     effects: ["spends"],
-    in: [{ id: "firms", label: "crawled firms", kind: "firm" }],
+    in: [{ id: "firms", label: "crawled companies", kind: "firm" }],
     out: [PEOPLE],
     hypothesis: {
       from: "Wren's niches, 2026-09",
@@ -211,7 +211,7 @@ export const RESEARCH_COMPONENTS = [
     id: LEAD_SHEET,
     stage: "find",
     name: "Lead sheet",
-    blurb: "Keeps a niche's list of checked leads full, firm by firm, with who to write to.",
+    blurb: "Keeps a niche's list of checked leads full, company by company, with who to write to.",
     icon: "board",
     for: "client",
     ready: true,
@@ -260,8 +260,8 @@ export const RESEARCH_COMPONENTS = [
     // Rides the lead sheet's pool (`PoolScheduler/<client>/all`), which reads this block each
     // pass: no loop of its own, so uninstalling never stops the pool.
     requires: { components: [LEAD_SHEET] },
-    in: [{ id: "firms", label: "firms with a channel link", kind: "firm" }],
-    out: [{ id: "posts", label: "firms with recent posts", kind: "firm" }],
+    in: [{ id: "firms", label: "companies with a channel link", kind: "firm" }],
+    out: [{ id: "posts", label: "companies with recent posts", kind: "firm" }],
     hypothesis: {
       from: "Wren's recruiting firms on YouTube, 2026-10",
       guesses: [
@@ -301,8 +301,8 @@ export const RESEARCH_COMPONENTS = [
     // collectors (they spend) stay Wren's. Rides the pool, as social reads do.
     wrenSettings: true,
     requires: { components: [LEAD_SHEET] },
-    in: [{ id: "firms", label: "firms in the queue", kind: "firm" }],
-    out: [{ id: "signals", label: "firms with a fresh signal", kind: "firm" }],
+    in: [{ id: "firms", label: "companies in the queue", kind: "firm" }],
+    out: [{ id: "signals", label: "companies with a fresh signal", kind: "firm" }],
     hypothesis: {
       from: "designs/2026-10-06-signal-collectors.md, 2026-10",
       guesses: [
@@ -331,7 +331,7 @@ export const RESEARCH_COMPONENTS = [
     missing: [],
     // Read only: the firm page shows what the sheet already holds, with sources.
     requires: { components: [LEAD_SHEET] },
-    in: [{ id: "firms", label: "firms", kind: "firm" }],
+    in: [{ id: "firms", label: "companies", kind: "firm" }],
     hypothesis: {
       from: "Wren's briefs before calls, 2026-10",
       guesses: [
@@ -357,7 +357,7 @@ export const RESEARCH_WORKFLOWS = [
     id: "research.leads",
     stage: "find",
     name: "Find leads",
-    blurb: "Finds firms, reads their sites, names the people and checks each address.",
+    blurb: "Finds companies, reads their sites, names the people and checks each address.",
     icon: "search",
     for: "client",
     out: [LEADS, PEOPLE],

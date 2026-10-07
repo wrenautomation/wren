@@ -1,4 +1,4 @@
-/** The demo's own page, opened from the top bar's "Sample firm" chip: what in it is real. */
+/** The demo's own page, opened from the top bar's "Sample company" chip: what in it is real. */
 import { PageHeader, Section } from "@wren/ui";
 import { BODY, LIST } from "../work/bits.js";
 import { at } from "./nav.js";
@@ -8,7 +8,7 @@ export function Real() {
     <>
       <PageHeader
         title="What's real"
-        lede="This sample firm is built from a real agency's public client list. Its research is real. Its CRM is made up, since we don't have the agency's."
+        lede="This sample company is built from a real agency's public client list. Its research is real. Its CRM is made up, since we don't have the agency's."
       />
       <Section title="Real">
         <ul className={`${LIST} list-none`}>

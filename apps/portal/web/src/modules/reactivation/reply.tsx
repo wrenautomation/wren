@@ -33,7 +33,7 @@ export const REPLY_EXAMPLE = (
     <Tag>Example</Tag>
     <h2 className="mt-3 text-[15px] font-semibold">When someone replies</h2>
     <p className="text-(--ui-ink-2)">
-      Nobody replies to a sample firm. Here's what happens when someone replies to yours.
+      Nobody replies to a sample company. Here's what happens when someone replies to yours.
     </p>
     <ol className="mt-3 list-decimal space-y-2 pl-5">
       <li>
