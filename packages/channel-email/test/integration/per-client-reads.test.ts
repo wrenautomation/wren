@@ -187,10 +187,12 @@ describe("shared buckets", () => {
     const metered = COLLECTORS.filter((c) => c.metered && c.built).map((c) => c.name);
     expect(metered.length).toBeGreaterThan(0);
     const before = await plan();
-    for (const name of metered)
+    // LinkedIn reads go by search first (free, no quota): they need no setup. The rest do.
+    expect(before.get("linkedin")?.why).toBeNull();
+    for (const name of metered.filter((n) => n !== "linkedin"))
       expect(before.get(name)).toMatchObject({ subjects: [], why: "Needs setup" });
 
-    // On its own LinkedIn login, LinkedIn reads pass the gate; the rest still need setup.
+    // On its own LinkedIn login too; the rest still need setup.
     await setOwnLogin(pg.db, { client: "gamma", vendor: "linkedin", by: "test" });
     const after = await plan();
     expect(after.get("linkedin")?.why).toBeNull();

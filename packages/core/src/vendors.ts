@@ -435,6 +435,9 @@ async function admit(
     if (r && r.room < units) return { ok: false, why: noRoom(r.nextInMs), mode: "managed" };
     return { ok: true, mode: "managed", bucket: managed, room: r?.room ?? null };
   }
+  // Free, no quota and nothing of the client's to hold (LinkedIn reads by search): nothing to set up.
+  if (!v.own && !v.quota && isFree(v))
+    return { ok: true, mode: "managed", bucket: managed, room: null };
   const m = await modeOf(main, client, v.id);
   if (!m) return { ok: false, why: "Needs setup", mode: null };
   if (m.mode === "own") {
