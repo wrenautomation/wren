@@ -51,3 +51,9 @@ next visit unless he bookmarks it. Nothing on the portal is his to arrange.
 
 - 2026-10-06: written from his ask; building on his "go on everything".
 - 2026-10-06: Copy became Templates and Sequences, from `2026-10-06-edits-claude-templates.md`.
+- 2026-10-06: steps 1 and 2 built (c7bc1bb, 60d4dea). A saved view is the list's address as a
+  query string. Tab order is a pref per viewer, so moving a shared view moves it only for him.
+  Saved views and prefs ride on the console for every workspace (`keepOf`), scoped to Wren's
+  apps or the client asked for. Filter now offers every filterable field, searchable text
+  too, so no list goes without it. The Library shell and its Templates and Sequences tabs went
+  to the graph builder; Snippets, Media, SOPs and Workflows stay here.

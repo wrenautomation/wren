@@ -28,6 +28,7 @@ A catalog, not a waterfall. Each row names the cards whose **If you change this*
 | drafting, voice, slots | [[content/draft]] | [[content/idea]], [[content/content-metric]], [[content/playbook]], [[processes/content-loop]] |
 | comments, activity or followers on our own posts (Marketing → Inbox) | [[content/comment]], [[content/platform]] | `packages/content/src/social/`, `packages/content/src/restate/social.ts`, [[platform/records]], [[platform/loop-object]] |
 | what a record lets a person or Claude edit (`edits`, `changes`, History, Undo, Ask Claude) | [[platform/edits]] | [[platform/records]], [[ledger/run]], `packages/ui/src/edits.tsx` |
+| what a viewer keeps of a list (saved views, last view, columns) and his prefs | [[platform/saved-views]] | [[platform/records]], `packages/ui/src/list-bar.tsx` |
 | media hosting | [[content/media]] | [[content/platform]], `deploy/terraform` |
 | video editing: cuts, captions, looks (`wren video …`) | [[content/video-edit]] | `packages/studio/`, [[platform/settings]] (`studio.cuts`), `packages/research/src/sops/index.ts` (`askGemini`) |
 | Meta ads | [[ads/ad-launch]] | [[processes/ads-launch-watch]], [[content/idea]] |

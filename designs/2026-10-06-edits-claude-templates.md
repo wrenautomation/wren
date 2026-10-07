@@ -125,3 +125,7 @@ parallel, then meet in 4.
   `.email` file and all three prompts byte for byte against the old code. `review` and
   `deliverability` still read the files; they author, they don't send. `sms_templates` and
   `reach_templates` stay until a later migration drops them.
+- 2026-10-06: Wren's own settings moved onto edits (8a349a6): `console.setting`, one row per
+  setting, on Loops > Settings; `needs: "manage"` on the declaration. The Shop shows the values
+  and links there. Drafts (DraftAsk) and the video edit stay on their own path for now: the
+  templates builder is changing those files.
