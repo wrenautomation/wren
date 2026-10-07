@@ -178,8 +178,8 @@ Main database, `client` column, so To approve and the webhook read one place.
 
 ## Shipped
 
-- Migrations `0181_forms` (form defs, `site_forms`/`site_events` columns, records views) and
-  `0182_payments` (`pay_links`, `pay_accounts`, `pay_events`, contact paid columns, message kinds).
+- Migrations `0182_forms` (form defs, `site_forms`/`site_events` columns, records views) and
+  `0183_payments` (`pay_links`, `pay_accounts`, `pay_events`, contact paid columns, message kinds).
 - `@wren/sites`: `forms.ts`, `form-store.ts`, kit embed and Turnstile, `/o/f/<slug>` serving.
 - `@wren/payments`: `stripe.ts` (signature, form body, API on an injected fetch), `store.ts`,
   `service.ts` (`Payments/send`, `Payments/stripe`), `console.ts`, `records.ts`, `setups.ts`.
