@@ -75,6 +75,9 @@ import {
   type Transport,
   withImap,
 } from "@wren/channel-email";
+import { mailAccess, mailAppsFrom, sweepGrants } from "@wren/channel-email/access/access";
+import { makeMailAccess, makeMailCallback } from "@wren/channel-email/access/console";
+import { mailChecks } from "@wren/channel-email/access/setups";
 import { briefSettingsOf, briefStep, CALL_BRIEF, makeCallBriefs } from "@wren/channel-email/calls";
 import { EMAIL_TOUCH } from "@wren/channel-email/components";
 import { emailRecords } from "@wren/channel-email/records";
@@ -157,6 +160,7 @@ import { tiktokContent } from "@wren/channel-tiktok";
 import { xContent } from "@wren/channel-x";
 import { youtubeContent } from "@wren/channel-youtube";
 import { ingressOf, type Settings } from "@wren/config";
+import { ssmKeyStore } from "@wren/config/ssm";
 import {
   clientContent,
   commentGuide,
@@ -287,7 +291,8 @@ import { makeSites } from "@wren/sites/service";
 import { makeVoiceConsole } from "@wren/voice/console";
 import { CALL_NOW, callNowStep } from "@wren/voice/node";
 import { VOICE_RECORDS } from "@wren/voice/records";
-import { triageStep, mail as watchMail } from "@wren/watch";
+import { clientTriageStep, triageStep, mail as watchMail } from "@wren/watch";
+import { makeMailReader } from "@wren/watch/clients";
 import { WATCH_RECORDS } from "@wren/watch/records";
 import { makeWatch, makeWatchConsole } from "@wren/watch/restate";
 import { desc, eq, max } from "drizzle-orm";
@@ -1353,7 +1358,31 @@ export async function buildServices(
     return client ? namedFor(lane, client) : lane;
   };
   const setupParts = COMPONENTS.filter((c) => c.requires.facts.length > 0);
+  // Per-owner keys (`/wren/prod/owners/*/keys/*`): SSM once William grants the role, else none.
+  const ownerKeys = settings.keyStore === "ssm" ? ssmKeyStore() : null;
+  // Client mail (designs/2026-10-07-mail-access.md): Wren's mail apps from settings or the key
+  // store; each mailbox's refresh token in the key store, never printed.
+  const mailApps = mailAppsFrom(
+    {
+      googleId: settings.mailGoogleClientId,
+      googleSecret: settings.mailGoogleClientSecret,
+      microsoftId: settings.mailMicrosoftClientId,
+      microsoftSecret: settings.mailMicrosoftClientSecret,
+    },
+    ownerKeys,
+    "prod",
+  );
+  const clientMail = mailAccess({
+    main: db,
+    apps: mailApps,
+    keys: ownerKeys,
+    env: "prod",
+    origin: settings.portalOrigin ?? null,
+    fetch,
+  });
   const setupChecks = {
+    // Wren's mail apps, a Workspace domain's test read, a tenant's consent, each mailbox's token.
+    ...mailChecks({ main: db, apps: mailApps, access: clientMail, fetch }),
     ...dnsChecks(dohResolve),
     ...stripeChecks(db),
     ...searchConsoleChecks(() => searchConsoleClient(loadServiceAccountKey(keyPath))),
@@ -1533,6 +1562,25 @@ export async function buildServices(
           { off: () => (settings.reachLive ? null : "WREN_REACH_LIVE is off") },
         ),
         "watch.triage": triageStep(db, watchLlm),
+        // A client's mail, by its own name: the model only with the part installed and its
+        // `models` gate open, metered. Else the rules alone, and what they can't settle shows.
+        "mail.triage": clientTriageStep(async (client) => {
+          const c = await findClient(db, client);
+          const ok = !!c && "mail.triage" in c.products && (await gate(db, client, "models", 1)).ok;
+          return {
+            db: clientDb(client),
+            name: c?.name ?? client,
+            llm:
+              ok && watchLlm
+                ? meteredModel(watchLlm, {
+                    main: db,
+                    client,
+                    part: "mail.triage",
+                    now: () => new Date(),
+                  })
+                : null,
+          };
+        }),
         // Learn: an article read here, a video marked for the Mac; then scored like the radar was.
         "learn.read": learnRead(db, fetch),
         "learn.score": scoreStep(db, watchLlm, () => practicesOf(db)),
@@ -1612,15 +1660,26 @@ export async function buildServices(
       parts: setupParts,
       wake: sitesHost(settings.autobrowseInstanceId).wake,
     }),
-    // A client's accounts and vendors. No key store: the role can't write SSM yet (William's).
+    // A client's accounts and vendors. Keys in SSM with WREN_KEY_STORE=ssm, once the role may
+    // write `/wren/prod/owners/*/keys/*` (William's); else an own key is refused.
     makeAccountsConsole({
       db,
       setups: SETUPS,
       agent: settings.setupAgent,
       checks: new Set(Object.keys(setupChecks)),
-      keys: null,
+      keys: ownerKeys,
       env: "prod",
       parts: setupParts,
+    }),
+    // Account → Mail, the OAuth callbacks, and the reader over every client's connected mailboxes.
+    makeMailAccess({ main: db, access: clientMail, clientDb, setups: SETUPS }),
+    makeMailCallback({ main: db, access: clientMail, clientDb, setups: SETUPS }),
+    makeMailReader({
+      db,
+      clientDb,
+      clients: () => clientMail.readingClients(),
+      boxesOf: (client) => clientMail.boxesOf(client),
+      sweep: (at) => sweepGrants(db, at),
     }),
     makeConsolePortal({
       main: db,

@@ -20,7 +20,7 @@ import { REACTIVATION_COMPONENTS } from "@wren/reactivation/components";
 import { RESEARCH_COMPONENTS } from "@wren/research/components";
 import { SITES_COMPONENTS } from "@wren/sites/components";
 import { VOICE_COMPONENTS } from "@wren/voice/components";
-import { WATCH_COMPONENTS } from "@wren/watch/components";
+import { MAIL_COMPONENTS, WATCH_COMPONENTS } from "@wren/watch/components";
 import { PLANNED_COMPONENTS } from "./planned.js";
 
 export const COMPONENTS: readonly Component[] = [
@@ -36,6 +36,7 @@ export const COMPONENTS: readonly Component[] = [
   ...BOOKS_COMPONENTS,
   ...CALENDAR_COMPONENTS,
   ...WATCH_COMPONENTS,
+  ...MAIL_COMPONENTS,
   ...LEARN_COMPONENTS,
   ...VOICE_COMPONENTS,
   ...FOLLOW_COMPONENTS,
@@ -58,6 +59,8 @@ export const PLATFORM = {
     SetupWatch: "checks every set-up account again on its repeat, and starts a lost one over",
     SetupAgent: "a done-for-you setup step, run by autobrowse do in the account owner's autobrowse",
     AccountsConsole: "a client's accounts, setups and vendor modes",
+    MailAccess: "Account → Mail: a client's mailboxes, its admin's step, each mailbox's sign-in",
+    MailCallback: "where Google and Microsoft send a mailbox's sign-in and an admin's consent back",
     NotesConsole: "notes: docs with versions, sharing and links, in every workspace",
     HealthConsole: "each client's health and the flags about it: rate, override, raise, clear",
     Webhooks:
