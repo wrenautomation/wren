@@ -74,6 +74,15 @@ const fmt = (d: Date, o: Intl.DateTimeFormatOptions) =>
   new Intl.DateTimeFormat("en-US", o).format(d);
 const clock = (d: Date) => fmt(d, { hour: "numeric", minute: "2-digit" });
 const span = (c: Call) => `${clock(c.start)} to ${clock(c.end)}`;
+/** "9 AM", "9:30 AM": a clock with no ":00". */
+const brief = (d: Date) => clock(d).replace(":00", "");
+/** "9 to 9:30 AM", or "11:30 AM to 12 PM" across noon: a block's time, short. */
+function short(c: Call): string {
+  const a = brief(c.start);
+  const b = brief(c.end);
+  const same = c.start.getHours() < 12 === c.end.getHours() < 12;
+  return `${same ? a.replace(/ [AP]M$/, "") : a} to ${b}`;
+}
 
 function title(view: View, days: Date[], anchor: Date): string {
   const first = days[0] as Date;
@@ -368,14 +377,23 @@ function IconButton({
   );
 }
 
+/**
+ * A call's fill, as a calendar colors it: upcoming solid in the accent, past a lighter accent,
+ * a no-show the bad tone, cancelled faint and struck through.
+ */
 const tone = (c: Call, now: Date) =>
   c.state === "cancelled"
-    ? "border-(--ui-hair) bg-(--ui-paper) text-(--ui-ink-3) line-through"
+    ? "bg-(--ui-wash) text-(--ui-ink-2) line-through shadow-[inset_0_0_0_1px_var(--ui-hair)]"
     : c.outcome === "no_show"
-      ? "border-(--ui-bad) bg-(--ui-bad-tint) text-(--ui-ink)"
+      ? "bg-[color-mix(in_srgb,var(--ui-bad)_14%,var(--ui-paper))] text-(--ui-ink)"
       : c.end < now
-        ? "border-(--ui-hair) bg-(--ui-wash) text-(--ui-ink-2)"
-        : "border-(--ui-accent) bg-(--ui-accent-tint) text-(--ui-ink)";
+        ? "bg-[color-mix(in_srgb,var(--ui-accent)_26%,var(--ui-paper))] text-(--ui-ink)"
+        : "bg-(--ui-accent) text-(--ui-on-accent)";
+/** Words a fill can't say: a no-show. */
+const flag = (c: Call) =>
+  c.state === "booked" && c.outcome === "no_show" ? CALL_OUTCOME_LABELS.no_show.label : null;
+const BLOCK =
+  "rounded-[var(--ui-radius)] border-0 text-left transition-shadow hover:z-20 hover:shadow-md focus-visible:z-20 aria-pressed:z-20 aria-pressed:ring-2 aria-pressed:ring-(--ui-ink) aria-pressed:ring-offset-1 aria-pressed:ring-offset-(--ui-paper)";
 
 /** Week or Day: hours down the side, a column per day. */
 function Grid({
@@ -404,7 +422,8 @@ function Grid({
   const key = days.map(dayKey).join();
   // biome-ignore lint/correctness/useExhaustiveDependencies: scroll once per range, not per poll.
   useEffect(() => {
-    scroller.current?.scrollTo({ top: first * PX });
+    // A little above the first hour, so its label shows whole.
+    scroller.current?.scrollTo({ top: Math.max(0, first * PX - 10) });
   }, [key]);
   const today = dayKey(now);
   const cols = `3.5rem repeat(${days.length}, minmax(0, 1fr))`;
@@ -461,24 +480,40 @@ function Grid({
                 })}
                 {lanes(mine).map(({ item: c, lane, of }) => {
                   const at = placeIn(d, c) as { top: number; height: number };
-                  const tall = at.height * PX >= 36;
+                  const height = Math.max(at.height * PX - 1, 18);
+                  // Lines that fit at 16px each, inside 2px of padding top and bottom.
+                  const lines = Math.floor((height - 4) / 16);
+                  const note = flag(c);
+                  const time = note ? `${note}, ${short(c)}` : short(c);
                   return (
                     <button
                       key={c.id}
                       type="button"
                       onClick={() => pick(c.id)}
-                      title={`${c.name}, ${span(c)}${c.offer ? `, ${c.offer}` : ""}`}
+                      title={`${c.name}, ${span(c)}${c.offer ? `, ${c.offer}` : ""}${note ? `, ${note}` : ""}`}
                       aria-pressed={openId === String(c.id)}
-                      className={`absolute overflow-hidden border-l-[3px] px-1.5 py-0.5 text-left text-[12px] leading-tight shadow-sm hover:brightness-95 aria-pressed:ring-2 aria-pressed:ring-(--ui-accent) ${tone(c, now)}`}
+                      className={`absolute overflow-hidden px-1.5 py-0.5 text-[12px] leading-4 ${BLOCK} ${tone(c, now)}`}
                       style={{
-                        top: at.top * PX + 1,
-                        height: Math.max(at.height * PX - 2, 18),
-                        left: `calc(${(lane / of) * 100}% + 2px)`,
-                        width: `calc(${100 / of}% - 4px)`,
+                        top: at.top * PX,
+                        height,
+                        left: `calc(${(lane / of) * 100}% + 1px)`,
+                        width: `calc(${100 / of}% - 3px)`,
                       }}
                     >
-                      <span className="block truncate font-medium">{c.name}</span>
-                      {tall ? <span className="block truncate opacity-80">{span(c)}</span> : null}
+                      {lines < 2 ? (
+                        <span className="block truncate">
+                          <span className="font-semibold">{c.name}</span>
+                          <span className="opacity-85">, {time}</span>
+                        </span>
+                      ) : (
+                        <>
+                          <span className="block truncate font-semibold">{c.name}</span>
+                          <span className="block truncate opacity-85">{time}</span>
+                          {lines >= 3 && c.offer ? (
+                            <span className="block truncate opacity-85">{c.offer}</span>
+                          ) : null}
+                        </>
+                      )}
                     </button>
                   );
                 })}
@@ -558,10 +593,11 @@ function Month({
                 key={c.id}
                 type="button"
                 onClick={() => pick(c.id)}
-                title={`${c.name}, ${span(c)}`}
-                className={`truncate border-0 border-l-2 px-1 text-left text-[11.5px] ${tone(c, now)}`}
+                title={`${c.name}, ${span(c)}${flag(c) ? `, ${flag(c)}` : ""}`}
+                className={`truncate px-1.5 py-px text-[11.5px] leading-4 ${BLOCK} ${tone(c, now)}`}
               >
-                {clock(c.start)} {c.name}
+                <span className="opacity-85">{brief(c.start)}</span>{" "}
+                <span className="font-semibold">{c.name}</span>
               </button>
             ))}
             {mine.length > 3 ? (
@@ -617,13 +653,19 @@ function Agenda({
             >
               <span className="text-(--ui-ink-2) max-sm:hidden">{span(c)}</span>
               <span
-                className={
+                className={`flex min-w-0 items-baseline gap-2 ${
                   c.state === "cancelled" ? "text-(--ui-ink-3) line-through" : "text-(--ui-ink)"
-                }
+                }`}
               >
-                <span className="sm:hidden text-(--ui-ink-2)">{clock(c.start)} </span>
-                {c.name}
-                {c.offer ? <span className="text-(--ui-ink-3)"> · {c.offer}</span> : null}
+                <span
+                  aria-hidden
+                  className={`size-2.5 shrink-0 self-center rounded-[var(--ui-radius)] ${tone(c, now)}`}
+                />
+                <span className="min-w-0">
+                  <span className="sm:hidden text-(--ui-ink-2)">{clock(c.start)} </span>
+                  {c.name}
+                  {c.offer ? <span className="text-(--ui-ink-3)"> · {c.offer}</span> : null}
+                </span>
               </span>
               <span className="text-[12px] text-(--ui-ink-3)">{said(c, now)}</span>
             </button>
