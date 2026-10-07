@@ -1,9 +1,11 @@
 /**
  * The email side of a dossier: each person's addresses with their newest
  * verdict, and the company's own inboxes (leads no person owns, such as
- * info@). Facts in the research dossier's shape, merged by `withFacts`.
+ * info@), and each person's social touches (`touch`, designs/2026-10-07-touches.md). Facts in
+ * the research dossier's shape, merged by `withFacts`.
  */
 import { leads } from "@wren/core/schema";
+import { platformLabel, touchesForPeople, touchText } from "@wren/core/touches";
 import type { Queryable } from "@wren/db";
 import type { Fact, MoreFacts } from "@wren/research/dossier";
 import { desc, inArray } from "drizzle-orm";
@@ -79,5 +81,16 @@ export async function emailFacts(
       seenAt: l.createdAt,
     });
   }
+  const now = new Date();
+  for (const [personId, list] of await touchesForPeople(db, personIds))
+    for (const t of list)
+      add(byPerson, personId, {
+        what: "touch",
+        value: `${platformLabel(t.platform)}: ${touchText(t, now)}`,
+        confidence: null,
+        source: t.url,
+        via: t.account ?? t.platform,
+        seenAt: t.at,
+      });
   return { byCompany, byPerson };
 }

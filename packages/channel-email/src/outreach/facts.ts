@@ -6,8 +6,12 @@
  * person facts. `half` is the company's side of a 50/50 test (`halfOf`). `factsFor` is the
  * merge, in exactly one place; compose and preview both call it, so what you preview IS what
  * composes. `post.*` is the firm's newest public post (`postFacts`), for every niche.
+ * `touch.*` is our earlier social touches with the person (`touchFacts`,
+ * designs/2026-10-07-touches.md): `{touch.line}` names the best one to cite, `{touch.context}`
+ * feeds a `<<prompt>>` slot. No touches, no keys, so a `(( ))` group naming one drops.
  */
 import { createHash } from "node:crypto";
+import { touchFactsFor } from "@wren/core/touches";
 import type { Queryable } from "@wren/db";
 import { sql } from "drizzle-orm";
 import {
@@ -163,7 +167,8 @@ export async function factsFor(
   const companyId = Number(facts.company_id);
   const company = await companyFacts(db, factsView, companyId);
   const post = await postFacts(db, companyId);
-  return sentenceReady({ ...facts, ...company, ...post, half: halfOf(facts.company_id) });
+  const touch = await touchFactsFor(db, personId);
+  return sentenceReady({ ...facts, ...company, ...post, ...touch, half: halfOf(facts.company_id) });
 }
 
 /**

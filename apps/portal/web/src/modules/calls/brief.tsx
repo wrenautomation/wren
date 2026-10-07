@@ -2,8 +2,9 @@
  * A booked call's page (designs/2026-10-07-close-brief-outcome.md): the header says who, the
  * company and when, with the outcome buttons; under it the three lines worth reading first, and
  * how it went once it's marked. The Details lead with the rest of the brief: what to ask, how they
- * came in, their words, what we know. Every line ends with its source and date in quiet type.
- * The same view serves Inbox > Calls, Calendar > Calls, the Schedule's panel and a client's Calls.
+ * came in, their words, earlier social touches, what we know. Every line ends with its source
+ * and date in quiet type. The same view serves Inbox > Calls, Calendar > Calls, the Schedule's
+ * panel and a client's Calls.
  */
 import type { CallBrief, Cited, StoredBrief } from "@wren/channel-email/calls";
 import { CALL_OUTCOME_LABELS, type CallOutcome } from "@wren/core/calls";
@@ -180,6 +181,11 @@ export function BriefBody({
           <Part title="Their words">
             <Lines lines={b.thread} quote none="No reply or text from them yet." />
           </Part>
+          {b.touches?.length ? (
+            <Part title="Earlier touches">
+              <Lines lines={b.touches} none="" />
+            </Part>
+          ) : null}
         </div>
         <div className="grid content-start gap-6">
           <Part title="What we know">

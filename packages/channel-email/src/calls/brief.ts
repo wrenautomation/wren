@@ -5,6 +5,7 @@
  * is left out. The model only adds questions, and code checks each one.
  */
 
+import { platformLabel, touchesFor, touchText } from "@wren/core/touches";
 import type { Queryable } from "@wren/db";
 import type { LlmClient } from "@wren/llm";
 import { dossiers, type Fact, recentPosts } from "@wren/research/dossier";
@@ -46,6 +47,8 @@ export interface CallBrief {
   facts: Cited[];
   posts: Cited[];
   signals: Cited[];
+  /** Our social touches with them, newest first (designs/2026-10-07-touches.md); absent on older briefs. */
+  touches?: Cited[];
   questions: Question[];
   built: string;
   /** The model that wrote questions; null when code alone did. */
@@ -53,7 +56,14 @@ export interface CallBrief {
 }
 
 /** How much of each part a brief keeps: one screen. */
-export const BRIEF_LIMITS = { thread: 3, facts: 6, posts: 3, signals: 5, questions: 3 } as const;
+export const BRIEF_LIMITS = {
+  thread: 3,
+  facts: 6,
+  posts: 3,
+  signals: 5,
+  touches: 5,
+  questions: 3,
+} as const;
 const EXCERPT = 280;
 const SIGNAL_DAYS = 90;
 
@@ -242,8 +252,10 @@ async function gather(db: Queryable, id: number) {
               and "at" > now() - make_interval(days => ${SIGNAL_DAYS})
             order by "at" desc limit ${BRIEF_LIMITS.signals}`,
         );
+  const touched = personId === null ? [] : await touchesFor(db, { personId }, BRIEF_LIMITS.touches);
   return {
     call,
+    touched,
     first: first[0],
     linked: linked[0],
     texted: texted[0],
@@ -343,6 +355,7 @@ export const factsText = (b: Omit<CallBrief, "questions" | "built" | "model" | "
     ...b.facts.map((c) => `Fact: ${c.text} (${c.at})`),
     ...b.posts.map((c) => `Post: ${c.text} (${c.at})`),
     ...b.signals.map((c) => `Signal: ${c.text} (${c.at})`),
+    ...(b.touches ?? []).map((c) => `Earlier touch on ${c.source}: ${c.text} (${c.at})`),
   ].join("\n");
 
 /**
@@ -462,6 +475,11 @@ export async function buildBrief(
     facts,
     posts,
     signals,
+    touches: kept(
+      g.touched.map((t) =>
+        cited(sentence(touchText(t, o.now)), platformLabel(t.platform), t.url, t.at),
+      ),
+    ),
   };
   const code = gapQuestions(base);
   const text = factsText(base);

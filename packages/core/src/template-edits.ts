@@ -46,6 +46,12 @@ export const SAMPLE_LEAD: Readonly<Record<string, string>> = {
   "post.site": "YouTube",
   "post.url": "https://www.youtube.com/watch?v=example",
   "post.days": "12",
+  // An earlier social touch with them (`touchFacts`), so an option that cites one renders.
+  "touch.line": "your comment on our LinkedIn post",
+  "touch.platform": "LinkedIn",
+  "touch.when": "last week",
+  "touch.days": "9",
+  "touch.count": "2",
   // An offer's terms (`offerFacts`) and the links and times a send fills in.
   "offer.name": "Pilot",
   "offer.days": "30",
