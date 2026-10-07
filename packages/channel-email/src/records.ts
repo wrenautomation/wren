@@ -451,11 +451,14 @@ export const variantRecord = defineRecord({
         where r.sent > 0`)
     ).map((r) => {
       const step = Number(r.step) === 0 ? "Opener" : `Follow-up ${r.step}`;
+      // A version is a hash: it reads as the day its copy was written, "Book first: Opener, Sep 16".
+      const day = r.written
+        ? `, ${new Date(String(r.written)).toLocaleDateString("en-US", { month: "short", day: "numeric", timeZone: "UTC" })}`
+        : "";
       return {
         ...r,
         id: `${r.template}@${r.template_version}`,
-        // "book-first" step 0 reads "Book first: Opener, v2", so no two rows read the same.
-        arm: `${r.arm ? labelOf(String(r.arm)) : "Copy"}: ${step}, v${r.template_version}`,
+        arm: `${r.arm ? labelOf(String(r.arm)) : "Copy"}: ${step}${day}`,
         step,
       };
     }),
