@@ -9,6 +9,7 @@
  */
 import { activeElsewhere } from "@wren/core/leads";
 import { passOn, type SpineEvent, type Step } from "@wren/core/spine";
+import { sequenceLabel } from "@wren/core/templates/labels";
 import { cadenceWorkflow, type Workflow } from "@wren/core/workflows";
 import type { Db } from "@wren/db";
 import { and, eq, isNull } from "drizzle-orm";
@@ -31,8 +32,8 @@ export const textLead = (contactId: number): SpineEvent => ({
 export function textCadence(seq: SmsSequence): Workflow {
   return cadenceWorkflow({
     name: seq.name,
-    label: `Texts: ${seq.name}`,
-    blurb: `${seq.steps.length} texts, stopping when they answer.`,
+    label: `Texts: ${sequenceLabel(seq.name)}`,
+    blurb: `${seq.steps.length} ${seq.steps.length === 1 ? "text" : "texts"}, stopping when they answer.`,
     for: "wren",
     steps: seq.steps.map((s) => ({
       touch: TOUCH,

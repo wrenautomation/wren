@@ -6,6 +6,7 @@
  */
 import { passOn, type SpineEvent, type Step } from "@wren/core/spine";
 import { emailRef } from "@wren/core/templates";
+import { labelOf, sequenceLabel } from "@wren/core/templates/labels";
 import { cadenceId, cadenceWorkflow, type Workflow } from "@wren/core/workflows";
 import type { Db, Queryable } from "@wren/db";
 import { and, eq, inArray, sql } from "drizzle-orm";
@@ -20,7 +21,7 @@ export const emailCadenceName = (niche: string, sequence: string) => `email_${ni
 export function emailCadence(niche: string, seq: Sequence): Workflow {
   return cadenceWorkflow({
     name: emailCadenceName(niche, seq.name),
-    label: `Email: ${niche} ${seq.name}`,
+    label: `Email: ${labelOf(niche)} · ${sequenceLabel(seq.name)}`,
     blurb: `${seq.steps.length} emails on business days ${seq.steps.map((s) => s.day).join(", ")}, stopping when they answer.`,
     for: "client",
     steps: seq.steps.map((s, i) => ({

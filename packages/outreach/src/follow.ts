@@ -4,6 +4,7 @@
  * the tick sends a step it leaves that node as `sent`; the next touch queues the next DM due now.
  */
 import { passOn, type SpineEvent, type Step } from "@wren/core/spine";
+import { labelOf, sequenceLabel } from "@wren/core/templates/labels";
 import { cadenceWorkflow, type Workflow } from "@wren/core/workflows";
 import type { Queryable } from "@wren/db";
 import { type ReachSequence, stepKey } from "./sequences.js";
@@ -21,8 +22,8 @@ export const reachLead = (contactId: number): SpineEvent => ({
 export function reachCadence(seq: ReachSequence): Workflow {
   return cadenceWorkflow({
     name: seq.name,
-    label: `DMs: ${seq.name}`,
-    blurb: `${seq.steps.length} ${seq.platform} messages${seq.connectFirst ? " after an accepted invite" : ""}, stopping when they answer.`,
+    label: `DMs: ${sequenceLabel(seq.name)}`,
+    blurb: `${seq.steps.length} ${labelOf(seq.platform)} ${seq.steps.length === 1 ? "message" : "messages"}${seq.connectFirst ? " after an accepted invite" : ""}, stopping when they answer.`,
     for: "wren",
     steps: seq.steps.map((s) => ({
       touch: "reach.touch",

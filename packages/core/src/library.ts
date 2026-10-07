@@ -224,8 +224,8 @@ export async function snippetTags(db: Queryable): Promise<string[]> {
 }
 
 const FOR: Record<Workflow["for"], State> = {
-  wren: { label: "Wren's", tone: "neutral" },
-  client: { label: "Clients'", tone: "neutral" },
+  wren: { label: "Wren", tone: "neutral" },
+  client: { label: "Clients", tone: "neutral" },
 };
 
 /**
@@ -258,7 +258,7 @@ export function workflowRecord(
     fields: {
       name: text("Name"),
       blurb: text("What it does"),
-      for: status(FOR, "For"),
+      for: status(FOR, "Runs for"),
       steps: number("Steps"),
     },
     views: [{ id: "all", label: "All", sort: "name" }],

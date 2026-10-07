@@ -127,6 +127,7 @@ import {
   date,
   defineRecord,
   metaOf,
+  named,
   number,
   percent,
   type RecordMeta,
@@ -575,8 +576,8 @@ export const loopRecord = (admin: RestateAdmin): RecordType =>
     title: "service",
     subtitle: "key",
     fields: {
-      service: text("Loop"),
-      key: text("Key"),
+      service: named("Loop"),
+      key: named("For"),
       state: status({
         running: { label: "Running", tone: "good" },
         stopped: { label: "Stopped", tone: "neutral" },
@@ -614,10 +615,10 @@ export const eventRecord = defineRecord({
   subtitle: "node",
   fields: {
     subject: text("About"),
-    workflow: text("Workflow"),
-    node: text("Node"),
-    port: text("Port"),
-    kind: text("Kind"),
+    workflow: named("Workflow"),
+    node: named("Node"),
+    port: named("Port"),
+    kind: named("Kind"),
     state: status({
       failed: { label: "Failed", tone: "bad" },
       waiting: { label: "Waiting", tone: "neutral" },
@@ -706,14 +707,14 @@ export const executionRecord = defineRecord({
   subtitle: "workflow",
   fields: {
     subject: text("About"),
-    workflow: text("Workflow"),
-    kind: text("Kind"),
+    workflow: named("Workflow"),
+    kind: named("Kind"),
     state: status({
       failed: { label: "Failed", tone: "bad" },
       waiting: { label: "Waiting", tone: "neutral" },
       done: { label: "Done", tone: "good" },
     }),
-    node: text("Now at"),
+    node: named("Now at"),
     entered: date("Entered"),
     lastAt: date("Last step"),
     due: date("Waiting until"),
@@ -745,7 +746,7 @@ export const holdRecord = defineRecord({
   subtitle: "stage",
   fields: {
     subject: text("What"),
-    stage: text("Stage"),
+    stage: named("Stage"),
     state: status({
       held: { label: "Held 7 days", tone: "warn" },
       due: { label: "Retry due", tone: "neutral" },
@@ -784,8 +785,8 @@ export const checkRecord = defineRecord({
   subtitle: "source",
   fields: {
     check: text("Check"),
-    stage: text("Stage"),
-    source: text("Source"),
+    stage: named("Stage"),
+    source: named("Source"),
     rate: percent("Passed"),
     passed: number("Passes"),
     total: number("Outcomes"),
@@ -914,6 +915,17 @@ const nonNull = (s: Schema): Schema => {
   return s;
 };
 
+/** A day's key as its name: an hours block reads "Hours: Friday". */
+const DAYS: Readonly<Record<string, string>> = {
+  mon: "Monday",
+  tue: "Tuesday",
+  wed: "Wednesday",
+  thu: "Thursday",
+  fri: "Friday",
+  sat: "Saturday",
+  sun: "Sunday",
+};
+
 /**
  * A handler's input schema as form boxes, per the doc's table; null when it declares no
  * fields (the JSON box). Anything the table doesn't name is a JSON box for that field.
@@ -928,9 +940,10 @@ export function formOf(input: unknown): HandlerField[] | null {
       if (!path && name === "viewer") continue;
       const s = nonNull(raw);
       const field = path ? `${path}.${name}` : name;
-      const own = s.title ?? words(name);
-      // A nested box reads "Stages: research", never "Stages.Research".
-      const at = label ? `${label}: ${own.charAt(0).toLowerCase()}${own.slice(1)}` : own;
+      const day = DAYS[name];
+      const own = s.title ?? day ?? words(name);
+      // A nested box reads "Stages: research", never "Stages.Research"; a day keeps its capital.
+      const at = !label ? own : day ? `${label}: ${day}` : `${label}: ${own.charAt(0).toLowerCase()}${own.slice(1)}`;
       const optional = parentOptional || !obj.required?.includes(name) || s !== raw;
       if (s.type === "object" && s.properties && Object.keys(s.properties).length) {
         walk(s, field, at, optional);

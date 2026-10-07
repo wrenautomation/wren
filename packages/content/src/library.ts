@@ -7,6 +7,7 @@ import {
   date,
   defineRecord,
   link,
+  named,
   number,
   prose,
   type State,
@@ -193,7 +194,7 @@ export const sopRecord = defineRecord({
   title: "sop",
   subtitle: "platform",
   fields: {
-    sop: text("SOP"),
+    sop: named("SOP"),
     platform: status(PLATFORM, "Platform"),
     text: prose("Words"),
     versions: number("Versions"),
