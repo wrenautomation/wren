@@ -40,6 +40,7 @@ Citations: `packages/reactivation/src/schema.ts:29`, `packages/reactivation/src/
 |---|---|
 | `wren --client <id> crm import` | writes |
 | `Reactivation/{client}`, portal | reads |
+| Reactivation app, Keep (`reactivation_keep`, `packages/reactivation/src/portal/record-views.ts:187`; record `reactivation.keep`, `records.ts:336`) | reads: accounts placed with in 24 months, ranked by risk (champion left, past the usual reorder, hiring again) |
 
 ## See
 
