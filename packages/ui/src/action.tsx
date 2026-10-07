@@ -17,6 +17,7 @@ import { Toaster } from "./components/ui/sonner.js";
 import { Textarea } from "./components/ui/textarea.js";
 import { Button } from "./controls.js";
 import { type MessageKind, MessagePreview } from "./preview.js";
+import { InsertSnippet } from "./snippets.js";
 
 /** A box a form action asks for, required unless `optional`. */
 export interface FormField {
@@ -329,6 +330,7 @@ export function useRun(
   const opened = useRef(0);
   const busy = running !== null;
   const textId = useId();
+  const textBox = useRef<HTMLTextAreaElement>(null);
 
   // A form stays open until it works, so a refusal doesn't lose what was typed.
   const go = async (action: Action, ids: (string | number)[], input: Record<string, unknown>) => {
@@ -425,8 +427,17 @@ export function useRun(
           ) : null}
           {ask ? (
             <div className="flex flex-col gap-1.5 text-sm">
-              <label htmlFor={textId}>{ask.label}</label>
+              <div className="flex items-center justify-between gap-2">
+                <label htmlFor={textId}>{ask.label}</label>
+                <InsertSnippet
+                  box={textBox}
+                  value={text}
+                  onChange={setText}
+                  channel={shown?.kind}
+                />
+              </div>
               <Textarea
+                ref={textBox}
                 id={textId}
                 value={text}
                 onChange={(e) => setText(e.target.value)}

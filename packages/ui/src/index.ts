@@ -142,6 +142,15 @@ export {
 } from "./shell.js";
 export { RecordShop } from "./shop.js";
 export {
+  FavoriteStar,
+  InsertSnippet,
+  type SnippetLine,
+  SnippetsProvider,
+  type SnippetsSource,
+  useFavorites,
+  useSnippets,
+} from "./snippets.js";
+export {
   Cite,
   Cited,
   MARKS,

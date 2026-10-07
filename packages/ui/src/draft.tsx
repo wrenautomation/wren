@@ -11,6 +11,7 @@ import { Input } from "./components/ui/input.js";
 import { Textarea } from "./components/ui/textarea.js";
 import { Button } from "./controls.js";
 import { type MessageKind, MessagePreview } from "./preview.js";
+import { InsertSnippet } from "./snippets.js";
 
 /** One turn on a draft, oldest first (`@wren/core/ask` DraftTurn). */
 export interface DraftTurnLine {
@@ -136,6 +137,7 @@ export function DraftBox({
   const [undoing, setUndoing] = useState(false);
   const pending = useRef<Promise<boolean> | null>(null);
   const boxId = useId();
+  const box = useRef<HTMLTextAreaElement>(null);
   const dirty = text.trim() !== base.trim();
 
   // A new read (Claude wrote, an undo, a save) shows in the box unless he is mid-edit.
@@ -262,6 +264,7 @@ export function DraftBox({
       </div>
       {save ? (
         <Textarea
+          ref={box}
           id={boxId}
           value={text}
           onChange={(e) => {
@@ -279,6 +282,19 @@ export function DraftBox({
           {server || "No draft."}
         </p>
       )}
+      {save ? (
+        <div className="-mt-1.5 flex">
+          <InsertSnippet
+            box={box}
+            value={text}
+            onChange={(next) => {
+              setText(next);
+              if (saved !== "saving") setSaved("idle");
+            }}
+            channel={draft.preview?.kind}
+          />
+        </div>
+      ) : null}
       {draft.preview && text.trim() ? <MessagePreview message={draft.preview} body={text} /> : null}
       {turns.length ? <DraftTurns turns={turns} /> : null}
       {ask || (undo && (last || dirty)) ? (

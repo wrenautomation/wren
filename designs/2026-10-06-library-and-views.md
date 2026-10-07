@@ -67,3 +67,11 @@ next visit unless he bookmarks it. Nothing on the portal is his to arrange.
   and publishes email and prompts only. A sequence shows a row per step with its numbers and a
   read-only drawing on the graph kit, a step toward the workflow editor. Workflows' Play reads
   each step's own live template and opens into the steps when the top has none (279ad50).
+- 2026-10-06: Snippets, Media, SOPs and Workflows tabs built on the graph builder's shell.
+  Insert sits in an edited long field, the action ask box and the DraftBox, team only. It puts
+  the snippet at the cursor once he has placed it, else at the end as a new paragraph, and
+  shows the box's channel and "anywhere" first after favorites. Favorites are a pref at Wren
+  (one list wherever he drafts), starred in the picker or the snippet's panel. Snippet tags
+  are free text, so each one in use becomes a facet when types are read. Media and SOPs are
+  read only. A workflow's page lists its steps and links onto the canvas, which stays the
+  graph builder's.

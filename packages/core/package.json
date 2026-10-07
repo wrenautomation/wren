@@ -28,6 +28,7 @@
     "./ingest": "./src/ingest/index.ts",
     "./in-house": "./src/in-house.ts",
     "./leads": "./src/leads.ts",
+    "./library": "./src/library.ts",
     "./mail": "./src/mail.ts",
     "./mailbox": "./src/mailbox.ts",
     "./marketing": "./src/marketing.ts",

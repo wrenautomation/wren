@@ -20,6 +20,7 @@ import { cachedDb, createDb } from "@wren/db";
 import { type FileStore, fileNameOf } from "@wren/delivery/files";
 import { DELIVERY_ROUTES, deliveryApi } from "@wren/delivery/restate";
 import { DEMO_NAME, PORTAL_ROUTES, portalApi } from "@wren/reactivation/restate";
+import { mediaRecord, sopRecord } from "../../../packages/content/src/library.js";
 import { COMPONENTS } from "../../worker/src/components.js";
 import { copyRecords } from "../../worker/src/record-edits.js";
 import { WORKFLOWS } from "../../worker/src/workflows.js";
@@ -57,6 +58,9 @@ const SERVICES: Record<string, { routes: readonly string[]; api: object }> = {
         askRecord,
         // The copy pages edit in place: History, Undo, Ask Claude (whose answer nothing writes here).
         ...copyRecords(settings.smsSenderName),
+        // The Library's Media (no bucket here: listed, not played) and SOPs.
+        mediaRecord(),
+        sopRecord,
       ],
     }),
   },

@@ -15,6 +15,7 @@ import { UNDO_MS } from "./action.js";
 import { Input } from "./components/ui/input.js";
 import { Textarea } from "./components/ui/textarea.js";
 import { Button, Tag } from "./controls.js";
+import { InsertSnippet } from "./snippets.js";
 
 /** What a record's page does with its edits; each throws what the server refused. */
 export interface Editing {
@@ -84,6 +85,7 @@ export function EditField({
   const [typed, setTyped] = useState(() => inputOf(field, value));
   const [busy, setBusy] = useState(false);
   const id = useId();
+  const area = useRef<HTMLTextAreaElement>(null);
   const long = field.kind === "prose";
   const begin = () => {
     setTyped(inputOf(field, value));
@@ -144,6 +146,7 @@ export function EditField({
     <div className="grid min-w-0 gap-2">
       {long ? (
         <Textarea
+          ref={area}
           id={id}
           value={typed}
           onChange={(e) => setTyped(e.target.value)}
@@ -193,6 +196,7 @@ export function EditField({
         <Button size="dense" tone="quiet" disabled={busy} onClick={() => setOpen(false)}>
           Cancel
         </Button>
+        {long ? <InsertSnippet box={area} value={typed} onChange={setTyped} /> : null}
         <span className="text-[12px] text-(--ui-ink-3) max-sm:hidden">
           {long ? "⌘S saves · Esc cancels" : "Enter saves · Esc cancels"}
         </span>

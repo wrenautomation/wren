@@ -27,6 +27,8 @@ import {
   type RailPins,
   type RailPref,
   readTheme,
+  SnippetsProvider,
+  type SnippetsSource,
   Tag,
   type Theme,
   Toasts,
@@ -300,6 +302,11 @@ export function App() {
   const keeper =
     current && !sample ? keepOf(wren ? null : current.id, { app: "", asClient: !team }) : undefined;
   const rail = usePref<RailPref>(keeper, RAIL_PREF);
+  // The team's snippets, inserted in any draft it writes: Wren's, wherever it drafts.
+  const snippets = useMemo(
+    () => (team && onDemo === false ? snippetsFor(wren ? null : (current?.id ?? null)) : null),
+    [team, onDemo, wren, current?.id],
+  );
   const pinned = rail.value?.pins ?? [];
   const pins = pinLines(pinned, apps);
   const onPage = at.kind === "page" ? pathOf(at.module, at.page) : undefined;
@@ -391,7 +398,7 @@ export function App() {
   const action = open?.module.action;
 
   return (
-    <>
+    <SnippetsProvider source={snippets}>
       <AppShell
         brand={{ name: "Wren", href: home, stamp: STAMP }}
         workspace={{
@@ -522,8 +529,29 @@ export function App() {
           />
         </Suspense>
       )}
-    </>
+    </SnippetsProvider>
   );
+}
+
+const FAVORITES = "favorites:library.snippet";
+const SNIPPETS = new Map<string, SnippetsSource>();
+/** Wren's snippets, read in the workspace on screen; favorites are kept at Wren, one list. */
+function snippetsFor(client: string | null): SnippetsSource {
+  const key = client ?? WREN.id;
+  let source = SNIPPETS.get(key);
+  if (!source) {
+    const wren = keepOf(null, { app: "", asClient: false });
+    source = {
+      list: () => call("console/snippets", client ? { client } : {}),
+      favorites: async () => {
+        const got = (await wren.prefs([FAVORITES]))[FAVORITES];
+        return Array.isArray(got) ? got.filter(Number.isSafeInteger) : [];
+      },
+      setFavorites: (ids) => wren.setPref(FAVORITES, ids.length ? ids : null),
+    };
+    SNIPPETS.set(key, source);
+  }
+  return source;
 }
 
 /** The quiet line under an app's name: the SaaS it stands in for, when it's live. */

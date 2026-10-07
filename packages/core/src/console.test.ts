@@ -201,6 +201,8 @@ describe("ConsolePortal records", () => {
       "console.team",
       "console.change",
       "console.setting",
+      "library.snippet",
+      "library.workflow",
       "console.event",
       "console.hold",
       "console.check",

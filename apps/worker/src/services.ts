@@ -124,7 +124,7 @@ import { xContent } from "@wren/channel-x";
 import { youtubeContent } from "@wren/channel-youtube";
 import { ingressOf, type Settings } from "@wren/config";
 import { commentGuide, DEFAULT_VOICE, dmGuide, s3MediaHost } from "@wren/content";
-import { videoRecord } from "@wren/content/records";
+import { mediaRecord, sopRecord, videoRecord } from "@wren/content/records";
 import {
   makeContentDesk,
   makeContentMetrics,
@@ -1154,6 +1154,13 @@ export async function buildServices(
             ? { bucket: settings.mediaBucket, host: s3MediaHost({ bucket: settings.mediaBucket }) }
             : undefined,
         ),
+        // The Library's Media (the same files, one row each) and SOPs.
+        mediaRecord(
+          settings.mediaBucket
+            ? { bucket: settings.mediaBucket, host: s3MediaHost({ bucket: settings.mediaBucket }) }
+            : undefined,
+        ),
+        sopRecord,
         ...copyRecords(settings.smsSenderName),
         ...MARKETING_RECORDS,
         ...templateRecords(WORKFLOWS),

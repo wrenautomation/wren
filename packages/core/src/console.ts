@@ -68,6 +68,16 @@ import {
 } from "./edits.js";
 import { inHouseOfPart } from "./in-house.js";
 import {
+  addSnippet,
+  removeSnippet,
+  SNIPPET,
+  type SnippetInput,
+  snippetRecord,
+  snippetsOf,
+  snippetTags,
+  workflowRecord,
+} from "./library.js";
+import {
   answer,
   isDemo,
   PortalRefusal,
@@ -1240,12 +1250,21 @@ export function consoleApi({
     teamRecord,
     changeRecord,
     settingRecord(components),
+    snippetRecord(),
+    workflowRecord(workflows, components),
     eventRecord,
     holdRecord,
     checkRecord,
   ];
   const team = (req: PortalRequest) => {
     if (!seesInternal(req)) throw new PortalRefusal("that's for Wren's team", 403);
+  };
+  /** A change by the team at Wren: `run` there, never the demo. Who made it. */
+  const teamWriter = (req: PortalRequest): string => {
+    team(req);
+    if (!teamCan(req, "run", WREN)) throw new PortalRefusal("your role can't change that", 403);
+    if (isDemo(req.viewer)) throw new PortalRefusal("the demo is read-only", 403);
+    return (req.viewer as SignedViewer).email;
   };
   /**
    * The team's types and the catalog, or the catalog alone for anyone else: what a client can
@@ -1257,7 +1276,15 @@ export function consoleApi({
       (req.client && req.client !== WREN) || !internal ? await pickClient(main, req) : null;
     const shown = internal ? components : components.filter((c) => c.for === "client");
     // Wren's own records, each for whoever holds what it needs at Wren (Money: `money`).
-    const mine = internal ? types.filter((t) => teamCan(req, t.needs ?? "read", WREN)) : [];
+    const allowed = internal ? types.filter((t) => teamCan(req, t.needs ?? "read", WREN)) : [];
+    // Snippets' tags are free text: each one in use is a facet, read when they're asked for.
+    const asked = (req as { record?: unknown }).record;
+    const tagged =
+      internal && (asked === SNIPPET || asked === undefined)
+        ? // Facets are a nicety: a failed read lists the type with plain-word tags.
+          snippetRecord(await snippetTags(main).catch(() => []))
+        : null;
+    const mine = tagged ? allowed.map((t) => (t.id === SNIPPET ? tagged : t)) : allowed;
     // The client's own wiring, as the spine runs it: only one catalog item draws a workflow.
     const one = (req as { record?: unknown; id?: unknown }).record === COMPONENT && "id" in req;
     const saved = one ? await savedWorkflows(main, client?.id ?? null) : {};
@@ -1597,6 +1624,25 @@ export function consoleApi({
       return { key: req.key };
     },
 
+    /** Wren's snippets for the Insert picker: the team's, in any workspace it drafts in. */
+    snippets: async (req: PortalRequest) => {
+      team(req);
+      return snippetsOf(main);
+    },
+    snippetAdd: async (req: PortalRequest & SnippetInput) => {
+      const by = teamWriter(req);
+      const { title, body, tags, channel } = req;
+      return addSnippet(main, { title, body, tags, channel }, by);
+    },
+    /** A record action: `{ids}`, each removed. */
+    snippetRemove: async (req: PortalRequest & { ids?: unknown }) => {
+      teamWriter(req);
+      const ids = Array.isArray(req.ids) ? req.ids.map(Number).filter(Number.isSafeInteger) : [];
+      if (!ids.length) throw new PortalRefusal("say which snippet", 400);
+      for (const id of ids) await removeSnippet(main, id);
+      return { done: ids };
+    },
+
     /** A new client from `req`, checked before any step runs: team only, a plain id, a name. */
     newClient(req: AddClientRequest): { id: string; name: string; by: string } {
       team(req);
@@ -1883,6 +1929,11 @@ export function makeConsolePortal(deps: Parameters<typeof consoleApi>[0]) {
       moveViews: (ctx: restate.Context, req: KeepRequest) =>
         answer(() => ctx.run("move views", () => answer(() => api.moveViews(req)))),
       prefs: (_: restate.Context, req: KeepRequest) => answer(() => api.prefs(req)),
+      snippets: (_: restate.Context, req: PortalRequest) => answer(() => api.snippets(req)),
+      snippetAdd: (ctx: restate.Context, req: PortalRequest & SnippetInput) =>
+        answer(() => ctx.run("add snippet", () => answer(() => api.snippetAdd(req)))),
+      snippetRemove: (ctx: restate.Context, req: PortalRequest & { ids?: unknown }) =>
+        answer(() => ctx.run("remove snippet", () => answer(() => api.snippetRemove(req)))),
       setPref: (ctx: restate.Context, req: KeepRequest) =>
         answer(() => ctx.run("set pref", () => answer(() => api.setPref(req)))),
       setLoop: (ctx: restate.Context, req: SetLoopRequest) =>

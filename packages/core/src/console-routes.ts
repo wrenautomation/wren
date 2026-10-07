@@ -26,6 +26,10 @@ export const CONSOLE_ROUTES = {
   moveViews: "read",
   prefs: "read",
   setPref: "read",
+  // The Library's snippets: the team reads them anywhere it drafts, changes them at Wren.
+  snippets: "read",
+  snippetAdd: "wren:run",
+  snippetRemove: "wren:run",
   addClient: "wren:manage",
   // A handler with an effect needs `effect` too, checked once the handler is known.
   call: "wren:run",
@@ -57,6 +61,8 @@ export const CONSOLE_WRITES: readonly ConsoleRoute[] = [
   "removeView",
   "moveViews",
   "setPref",
+  "snippetAdd",
+  "snippetRemove",
   "addClient",
   "call",
   "setLook",
