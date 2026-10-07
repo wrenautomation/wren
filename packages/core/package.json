@@ -73,6 +73,8 @@
     "./schema": "./src/schema.ts",
     "./slots": "./src/slots/index.ts",
     "./templates": "./src/templates.ts",
+    "./touches": "./src/touches.ts",
+    "./touches-schema": "./src/touches-schema.ts",
     "./templates/records": "./src/template-records.ts",
     "./templates/edits": "./src/template-edits.ts",
     "./templates/defaults": "./src/template-defaults.ts",

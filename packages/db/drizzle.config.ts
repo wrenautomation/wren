@@ -11,6 +11,7 @@ export default defineConfig({
     "../core/src/clients/schema.ts",
     "../core/src/setup-schema.ts",
     "../core/src/vendor-schema.ts",
+    "../core/src/touches-schema.ts",
     "../research/src/schema.ts",
     "../research/src/social-schema.ts",
     "../channel-email/src/schema.ts",
