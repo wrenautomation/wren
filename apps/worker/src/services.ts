@@ -161,6 +161,7 @@ import { MARKETING_RECORDS } from "@wren/core/marketing/records";
 import { namedFor } from "@wren/core/notify";
 import { clientKey, clientOfKey, ingressSend } from "@wren/core/restate";
 import { makeSpine, type SpineEvent } from "@wren/core/spine";
+import { makeTemplatesConsole } from "@wren/core/templates/console";
 import { templateRecords } from "@wren/core/templates/records";
 import { cachedDb, clientDatabaseName, clientDatabaseUrl, createDb, type Db } from "@wren/db";
 import { engagementOf, postUpdate } from "@wren/delivery";
@@ -709,6 +710,8 @@ export async function buildServices(
     makeCalendarConsole(calendarDeps),
     // The voice agent's portal writes: test calls saved (designs/2026-10-06-voice-agent.md).
     makeVoiceConsole({ db }),
+    // The Library's templates: save, publish (copy that sends waits in To approve), approve.
+    makeTemplatesConsole({ db }),
   ];
   // The queue-keeper is bound only when asked to hold a queue; 0 means every enrollment is by hand.
   if (settings.composeDaysAhead > 0) {

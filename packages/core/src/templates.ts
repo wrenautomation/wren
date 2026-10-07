@@ -785,6 +785,34 @@ export async function listTemplates(db: Queryable, opts: ListOpts = {}): Promise
   return opts.status ? out.filter((r) => r.status === opts.status) : out;
 }
 
+/** An ask waiting on a person's yes: the template and the version that would go live. */
+export interface WaitingAsk extends TemplateRef {
+  id: number;
+  number: number;
+  source: string;
+  /** Who asked, and when. */
+  by: string | null;
+  at: Date;
+}
+
+/** Every template waiting on approval, oldest ask first: To approve's template rows. */
+export async function waitingAsks(db: Queryable): Promise<WaitingAsk[]> {
+  const rows = (await db.execute(sql`
+    SELECT t.id, t.kind, t.system, t.name, t.waiting_by, w.number, w.source, t.updated_at
+    FROM templates t JOIN template_versions w ON w.id = t.waiting_version_id
+    ORDER BY t.updated_at`)) as unknown as Record<string, unknown>[];
+  return rows.map((r) => ({
+    id: Number(r.id),
+    kind: r.kind as TemplateKind,
+    system: String(r.system),
+    name: String(r.name),
+    number: Number(r.number),
+    source: String(r.source),
+    by: (r.waiting_by as string | null) ?? null,
+    at: new Date(r.updated_at as string),
+  }));
+}
+
 /** One version in a template's history. */
 export interface VersionRow extends VersionHead {
   why: string | null;

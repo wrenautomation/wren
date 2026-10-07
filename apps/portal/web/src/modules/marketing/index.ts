@@ -364,6 +364,24 @@ const INBOX_ACTIONS: Action[] = [
   ...ACTIVITY_ACTIONS.map((a) => (a.form ? a : only("activity", a))),
   ...draftActions("inbox", { type: ["comment", "dm"], state: ["new", "waiting", "read"] }),
 ];
+/** A template version asked to go live (`templates/publish`): only a person's yes makes it live. */
+const TEMPLATE_ACTIONS: Action[] = [
+  {
+    id: "templates.approve",
+    label: "Approve",
+    handler: "templates/approve",
+    confirm: "Make this version live? The next message composed uses it.",
+    key: "a",
+    done: said("Live. The next message composed uses it."),
+  },
+  {
+    id: "templates.decline",
+    label: "Decline",
+    handler: "templates/decline",
+    key: "x",
+    done: said("Declined. The version stays in its history."),
+  },
+];
 /** To approve: what we'd send, each with its own page's yes and edit. */
 const APPROVAL_ACTIONS: Action[] = [
   // A post's words are the row's body here.
@@ -372,6 +390,7 @@ const APPROVAL_ACTIONS: Action[] = [
   ),
   // The long video's yes; Shorts and thumbnails are picked on its Videos page.
   only("video", VIDEO_APPROVE, WAITS),
+  ...TEMPLATE_ACTIONS.map((a) => only("template", a, WAITS)),
   ...THREAD_ACTIONS.filter(own).map((a) => only("thread", a, WAITS)),
   ...INVITE_ACTIONS.filter((a) => own(a) && a.id !== "marketing.inviteWithdraw").map((a) =>
     only("invite", a, a.id === "marketing.inviteMessage" ? { state: ["waiting", "read"] } : WAITS),
@@ -466,7 +485,8 @@ const APPROVAL_PAGE: ListPage = {
     videos: "No rendered video waits on your Approve.",
     threads: "No thread comment waits on you.",
     invites: "No accepted invite waits on a first message.",
-    all: "Post drafts, videos, thread comments and first messages show here.",
+    templates: "No template version waits on a yes.",
+    all: "Post drafts, videos, thread comments, first messages and template versions show here.",
   },
   actions: APPROVAL_ACTIONS,
   extras: withDraft(

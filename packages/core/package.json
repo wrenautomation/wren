@@ -54,6 +54,8 @@
     "./templates/records": "./src/template-records.ts",
     "./templates/edits": "./src/template-edits.ts",
     "./templates/defaults": "./src/template-defaults.ts",
+    "./templates/console": "./src/templates-console.ts",
+    "./templates/console-routes": "./src/templates-console-routes.ts",
     "./stats": "./src/stats.ts",
     "./time": "./src/time.ts",
     "./spine": "./src/spine.ts",

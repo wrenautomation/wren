@@ -9,6 +9,8 @@
 import { threadRecord as textThreadRecord } from "@wren/channel-sms/records";
 import { draftTurns } from "@wren/core/ask";
 import { date, defineRecord, link, name, number, prose, status, text } from "@wren/core/records";
+import { refText, waitingAsks } from "@wren/core/templates";
+import { approvalId, templateAt } from "@wren/core/templates/console";
 import type { Queryable } from "@wren/db";
 import { commentRecord, dmRecord, PLATFORM_LABELS, threadRecord } from "@wren/outreach/records";
 import { sql } from "drizzle-orm";
@@ -360,8 +362,9 @@ export const inboxRecord = defineRecord({
 
 /**
  * What we'd send, waiting on William's yes, as one list. Ids carry their type (`draft:3`,
- * `video:2` (rendered, waiting on Approve), `thread:abc`, `invite:7`); each action reads the id
- * after the colon. `due` orders "Waiting on you": a draft's slot, else when it came.
+ * `video:2` (rendered, waiting on Approve), `thread:abc`, `invite:7`, `template:4:3` (version 3
+ * asked to go live)); each action reads the id after the colon. `due` orders "Waiting on you": a
+ * draft's slot, else when it came.
  */
 export const approvalRecord = defineRecord({
   id: "marketing.approval",
@@ -373,6 +376,7 @@ export const approvalRecord = defineRecord({
     const vs = await videoRows(db);
     const ts = ((await threadRecord.rows?.(db)) ?? []).filter((t) => t.state === "queued");
     const is = await acceptedRows(db);
+    const asks = await waitingAsks(db);
     return [
       ...ps.map((p) => ({
         id: `draft:${p.id}`,
@@ -434,6 +438,21 @@ export const approvalRecord = defineRecord({
         due: i.at,
         url: i.url,
       })),
+      ...asks.map((a) => ({
+        id: approvalId(a.id, a.number),
+        type: "template",
+        who: refText(a),
+        platform: templateAt(a).channel ?? null,
+        kind: "template",
+        state: "waiting",
+        body: a.source,
+        post_title: null,
+        draft: null,
+        account: null,
+        at: a.at,
+        due: a.at,
+        url: null,
+      })),
     ];
   },
   key: "id",
@@ -447,16 +466,21 @@ export const approvalRecord = defineRecord({
         video: neutral("Video"),
         thread: neutral("Thread"),
         invite: neutral("Invite"),
+        template: neutral("Template"),
       },
       "Type",
     ),
-    platform: status(PLATFORM_LABELS, "Site"),
+    platform: status(
+      { ...PLATFORM_LABELS, email: neutral("Email"), sms: neutral("Texts") },
+      "Site",
+    ),
     kind: status(
       {
         post: neutral("Post draft"),
         video: neutral("Video to approve"),
         thread: neutral("Thread to answer"),
         invite: neutral("Accepted your invite"),
+        template: neutral("Copy to make live"),
       },
       "Kind",
     ),
@@ -475,6 +499,7 @@ export const approvalRecord = defineRecord({
     { id: "videos", label: "Videos", where: { type: "video" }, sort: "-at", at: "at" },
     { id: "threads", label: "Threads", where: { type: "thread" }, sort: "-at", at: "at" },
     { id: "invites", label: "Invites", where: { type: "invite" }, sort: "-at", at: "at" },
+    { id: "templates", label: "Templates", where: { type: "template" }, sort: "-at", at: "at" },
     { id: "all", label: "All", sort: "-at", at: "at" },
   ],
   actions: [
@@ -489,13 +514,15 @@ export const approvalRecord = defineRecord({
     "marketing.draftSet",
     "marketing.draftAsk",
     "marketing.draftUndo",
+    "templates.approve",
+    "templates.decline",
   ],
   // Drafts and videos waiting on a yes: their own handlers, on a row its login may act on.
   calls: { ...DRAFT_CALLS, "ContentDesk/approveVideo": "id" },
   /** An accepted invite's messages; a draft's Ask Claude thread. */
   load: async (db, id) => {
     const [type, rest] = typed(id);
-    if (type === "video") return null;
+    if (type === "video" || type === "template") return null;
     const ask = { ask: await draftTurns(db, type, rest) };
     return type === "invite" ? { ...(await dmRecord.load?.(db, rest)), ...ask } : ask;
   },

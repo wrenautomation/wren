@@ -194,6 +194,9 @@ const ONE: Record<string, (id: string, input: Input) => [string, Input]> = {
   "console/issueResolve": (id) => ["console/issueResolve", { id: Number(id) }],
   "console/askApprove": (id) => ["console/askDecide", { id: Number(id), approve: true }],
   "console/askDecline": (id) => ["console/askDecide", { id: Number(id), approve: false }],
+  // A template's ask in To approve (`template:4:3`, version 3); the id names the version seen.
+  "templates/approve": (id) => ["templates/approve", { ids: [id] }],
+  "templates/decline": (id) => ["templates/decline", { ids: [id] }],
   "delivery/grant": access("granted"),
   "delivery/revoke": access("revoked"),
   "delivery/decline": access("declined"),

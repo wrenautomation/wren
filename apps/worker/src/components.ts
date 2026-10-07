@@ -43,6 +43,7 @@ export const PLATFORM = {
     Spine: "events along every workflow's routed wires, and the door's webhooks",
     AuditSealer: "seals the audit log every write lands in",
     TokenRenewal: "renews every site's tokens, for content and ads alike",
+    TemplatesConsole: "the Library's templates: save, publish, approve, restore, reset",
   },
   apps: {
     account: "every client's account: people, look, billing",

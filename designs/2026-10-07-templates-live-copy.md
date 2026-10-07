@@ -212,3 +212,16 @@ the counts match, then drops both tables. Code that still reads them moves to `r
   publish command. CLI writes are by `cli`, which can ask but never approve.
 - 2026-10-07, step 3: `diff` versions are a number or `live`, `draft`, `waiting`, `default`. The
   line diff lives in core (`@wren/core/line-diff`), so the CLI and the Library show the same one.
+- 2026-10-07, step 4: the Library writes through `TemplatesConsole` (`@wren/core/templates/console`)
+  in Wren's own database; client copy goes through the CLI's `--client`. Each handler checks the
+  template's place (`templateAt`): email at Outbound's email, texts at Texts' sms, DMs at
+  Marketing's LinkedIn, posts at Marketing (Content lives there), a prompt at the app that asks it
+  (`reactivation`, `content` → Marketing), else the Library. So `act` on Outbound's email edits
+  email copy without the rest of the Library. Folders (`move`, `renameFolder`) check the Library.
+- 2026-10-07, step 4: the Library, like the CLI, writes emails and prompts only. Texts and DMs keep
+  their copy pages' save: that Save is the person's yes, and those pages hold the slot rules and
+  the provider hand-off. So an agent or the CLI never writes a text or DM.
+- 2026-10-07, step 4: an ask shows in Marketing's To approve as `template:<id>:<n>`, the version
+  seen. Approve refuses when a newer version waits ("Open it again"), so no one makes live words
+  they didn't read. Approve and decline refuse a demo login or a caller with no email; an agent
+  or the CLI (`by` = `cli`) only asks.

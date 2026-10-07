@@ -15,6 +15,7 @@ import type { Notifier } from "@wren/core/notify";
 import { fakeOutreachChannel } from "@wren/core/outreach";
 import type { PassOutcome } from "@wren/core/restate";
 import type { SpineEvent } from "@wren/core/spine";
+import { askPublish, saveDraft } from "@wren/core/templates";
 import { startTestRestate } from "@wren/core/testing";
 import { startTestPostgres, type TestPostgres, truncate } from "@wren/db/testing";
 import { answerComment, comments, planAnswer } from "@wren/outreach";
@@ -255,11 +256,22 @@ describe("SocialWatch", () => {
     );
     // A post draft waits on a yes in To approve, its id the draft's own after the colon.
     expect(inbox.find((r) => r.id === `draft:${d?.id}`)).toBeUndefined();
+    // A template version asked to go live waits there too, by its template and version.
+    const opener = { kind: "email" as const, system: "demo", name: "opener" };
+    await saveDraft(pg.db, opener, "Subject: Hi\n\nHello {first_name}.", { by: "cli" });
+    const asked = await askPublish(pg.db, opener, { by: "cli" });
     const approvals = (await approvalRecord.rows?.(pg.db)) ?? [];
     expect(approvals.find((r) => r.id === `draft:${d?.id}`)).toMatchObject({
       type: "draft",
       state: "waiting",
       body: "A draft",
+    });
+    expect(approvals.find((r) => r.id === `template:${asked.id}:1`)).toMatchObject({
+      type: "template",
+      who: "email:demo/opener",
+      platform: "email",
+      state: "waiting",
+      body: "Subject: Hi\n\nHello {first_name}.",
     });
     expect(inbox.find((r) => r.type === "comment")).toMatchObject({
       platform: "linkedin",

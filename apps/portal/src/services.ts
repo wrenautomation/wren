@@ -26,6 +26,11 @@ import {
 } from "@wren/channel-sms/console-routes";
 import { type Need, needOf, type Permission, type RouteApps } from "@wren/core/access";
 import { CONSOLE_APPS, CONSOLE_ROUTES, CONSOLE_WRITES } from "@wren/core/console-routes";
+import {
+  TEMPLATES_CONSOLE_APPS,
+  TEMPLATES_CONSOLE_ROUTES,
+  TEMPLATES_CONSOLE_WRITES,
+} from "@wren/core/templates/console-routes";
 import { DELIVERY_APPS, DELIVERY_ROUTES, DELIVERY_WRITES } from "@wren/delivery/routes";
 import { PORTAL_APPS, PORTAL_ROUTES, PORTAL_WRITES } from "@wren/reactivation/portal-routes";
 import {
@@ -83,6 +88,13 @@ export const SERVICES: Readonly<Record<string, Service>> = {
   ),
   // The voice agent: test calls saved with their turns' timings.
   voice: service("VoiceConsole", VOICE_CONSOLE_ROUTES, VOICE_CONSOLE_APPS, VOICE_CONSOLE_WRITES),
+  // The Library's templates: copy that sends waits in To approve for a person's yes.
+  templates: service(
+    "TemplatesConsole",
+    TEMPLATES_CONSOLE_ROUTES,
+    TEMPLATES_CONSOLE_APPS,
+    TEMPLATES_CONSOLE_WRITES,
+  ),
 };
 
 /**
