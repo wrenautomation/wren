@@ -11,10 +11,16 @@ import { ingressOf, loadSettings } from "@wren/config";
 import { addClient } from "@wren/core/clients";
 import type { PassOutcome } from "@wren/core/restate";
 import { startTestRestate } from "@wren/core/testing";
-import { clearMode, gate, setOwnLogin } from "@wren/core/vendors";
+import { vendorModes, vendorUsage } from "@wren/core/vendor-schema";
+import { clearMode, gate, ownBucket, setOwnLogin, vendorOf } from "@wren/core/vendors";
 import { cachedDb, clientDatabaseUrl, type Db } from "@wren/db";
 import { startTestPostgres, type TestPostgres } from "@wren/db/testing";
-import { youtubeRoom } from "@wren/research/enrichment";
+import {
+  READ_UNITS,
+  YOUTUBE_BUCKET,
+  youtubeReadRoom,
+  youtubeRoom,
+} from "@wren/research/enrichment";
 import { findings } from "@wren/research/schema";
 import {
   COLLECTORS,
@@ -163,6 +169,51 @@ describe("shared buckets", () => {
     expect((await youtubeRoom(gamma, now, bucket, pg.db)).room).toBe(1);
     const news = { name: "news", bucket };
     expect((await collectorRoom(gamma, news, now, pg.db)).room).toBe(3);
+  });
+
+  it("a client on its own YouTube key reads on its key's quota, not Wren's bucket", async () => {
+    const now = new Date("2026-10-06T12:00:00Z");
+    const delta = open({ database: "wren_client_delta" });
+    // Wren's bucket is spent: main and the client's shared room are both empty.
+    const spent = Array.from({ length: YOUTUBE_BUCKET.burst + 5 }, (_, i) => ({
+      kind: "profile" as const,
+      factKey: `wren-spent:youtube:${i}`,
+      value: { raw: {} },
+      confidence: 1,
+      via: "youtube",
+      observedAt: new Date(now.getTime() - 1000 - i),
+    }));
+    const firm = await makeCompany(pg.db, { domain: "spent-firm.example" });
+    await pg.db.insert(findings).values(spent.map((f) => ({ ...f, companyId: firm.id })));
+    expect((await youtubeReadRoom(delta, pg.db, "delta", now)).room).toBe(0);
+    // Its own key: the key's whole day, in reads of 3 units.
+    await pg.db.insert(vendorModes).values({
+      client: "delta",
+      vendor: "youtube",
+      mode: "own",
+      keyName: "YOUTUBE_API_KEY",
+      updatedBy: "test",
+    });
+    const quota = vendorOf("youtube").quota as { burst: number };
+    expect((await youtubeReadRoom(delta, pg.db, "delta", now)).room).toBe(
+      Math.floor(quota.burst / READ_UNITS),
+    );
+    // Its own reads spend its own bucket only.
+    await pg.db.insert(vendorUsage).values({
+      client: "delta",
+      vendor: "youtube",
+      mode: "own",
+      bucket: ownBucket("youtube", "delta"),
+      units: 30,
+      micros: 0,
+      at: new Date(now.getTime() - 1000),
+    });
+    expect((await youtubeReadRoom(delta, pg.db, "delta", now)).room).toBe(
+      Math.floor((quota.burst - 30) / READ_UNITS),
+    );
+    expect((await youtubeReadRoom(gamma, pg.db, "gamma", now)).room).toBe(0);
+    await clearMode(pg.db, "delta", "youtube");
+    expect((await youtubeReadRoom(delta, pg.db, "delta", now)).room).toBe(0);
   });
 
   it("queues a client's firms with a lead, least recently checked first", async () => {

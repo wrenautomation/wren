@@ -164,7 +164,7 @@ import {
   type YouTubeGet,
   type YouTubeStats,
   youtubeKeyApi,
-  youtubeRoom,
+  youtubeReadRoom,
   youtubeUnit,
   youtubeWork,
 } from "../enrichment/youtube.js";
@@ -1176,12 +1176,7 @@ export function makeEnrichment(deps: EnrichmentDeps) {
           const runId = await open(ctx, YOUTUBE_COMMAND, { limit, niche });
           const yt = client === null ? get : youtubeFor(client, get, "research.youtube", runId);
           const plan = await ctx.run("select", async () => {
-            const { room, nextInMs } = await youtubeRoom(
-              db,
-              new Date(),
-              undefined,
-              client === null ? null : deps.db,
-            );
+            const { room, nextInMs } = await youtubeReadRoom(db, deps.db, client, new Date());
             if (room < Math.min(limit, YOUTUBE_MIN_BATCH))
               return {
                 why: `bucket low (${room} reads): next in ${Math.ceil(nextInMs / 1000)}s`,

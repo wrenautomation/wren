@@ -14,6 +14,7 @@
 
 import type { VendorKeys } from "@wren/core/vendor-keys";
 import { isVendorStop } from "@wren/core/vendor-stop";
+import { ownRoom } from "@wren/core/vendors";
 import type { Queryable } from "@wren/db";
 import { type SQL, sql } from "drizzle-orm";
 import { type CompanyFindingDraft, keepFinding } from "../findings.js";
@@ -407,6 +408,26 @@ export async function youtubeRoom(
     ).map((r) => new Date(r.at).getTime());
   const at = [...(await reads(db)), ...(also ? await reads(also) : [])].sort((a, b) => a - b);
   return bucketRoom(at, now.getTime(), bucket);
+}
+
+/** Data API units one firm's read costs: channel, a page of uploads, their videos. */
+export const READ_UNITS = 3;
+
+/**
+ * Reads `client` (null: Wren) may make now. A client on its own key has its key's daily quota
+ * to itself; Wren and clients on Wren's key share Wren's bucket (`youtubeRoom`, counting main's
+ * reads too).
+ */
+export async function youtubeReadRoom(
+  db: Queryable,
+  main: Queryable,
+  client: string | null,
+  now: Date,
+): Promise<{ room: number; nextInMs: number }> {
+  if (client === null) return youtubeRoom(db, now);
+  const own = await ownRoom(main, client, "youtube", now);
+  if (own) return { room: Math.floor(own.room / READ_UNITS), nextInMs: own.nextInMs };
+  return youtubeRoom(db, now, undefined, main);
 }
 
 export type YouTubeOutcome = "read" | "missing" | "quota" | "error";

@@ -71,7 +71,7 @@ import {
   instagramRoom,
   teamDue,
   YOUTUBE_MIN_BATCH,
-  youtubeRoom,
+  youtubeReadRoom,
 } from "@wren/research/enrichment";
 import type { Discovery, Enrichment } from "@wren/research/restate";
 import {
@@ -530,7 +530,10 @@ export function makePoolScheduler(deps: PoolSchedulerDeps) {
         // A busy loop passes every minute and the bucket refills a firm at a time: one step
         // here instead of a whole Enrichment call while it does.
         const n = limits.youtube;
-        const { room } = await ctx.run("youtube room", () => youtubeRoom(db, now, undefined, also));
+        // A client on its own key has its key's quota; everyone else shares Wren's bucket.
+        const { room } = await ctx.run("youtube room", () =>
+          youtubeReadRoom(db, deps.db, client, now),
+        );
         if (room < Math.min(n, YOUTUBE_MIN_BATCH)) return { read: 0, missing: 0, room };
         return enrichment.youtube({ limit: n });
       },

@@ -374,6 +374,25 @@ export async function monthSpend(
   return Number(r?.micros ?? 0);
 }
 
+/**
+ * Units left today in `client`'s own-key bucket and when the next comes; null when it isn't on
+ * its own key or the vendor has no quota. An own key's quota is its own: Wren's reads never
+ * take from it, and its reads never wait on Wren's.
+ */
+export async function ownRoom(
+  main: Queryable,
+  client: string,
+  vendor: string,
+  now: Date = new Date(),
+): Promise<{ room: number; nextInMs: number } | null> {
+  const v = vendorOf(vendor);
+  if (!v.quota) return null;
+  const m = await modeOf(main, client, v.id);
+  if (m?.mode !== "own") return null;
+  const spent = await spends(main, eq(vendorUsage.bucket, ownBucket(v.id, client)), now);
+  return bucketRoom(spent, now.getTime(), v.quota);
+}
+
 export type Gate =
   | { ok: true; mode: VendorMode; bucket: string; room: number | null }
   | { ok: false; why: string; mode: VendorMode | null };
