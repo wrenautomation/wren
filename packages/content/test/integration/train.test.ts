@@ -253,7 +253,7 @@ describe("the export", () => {
     await approveDrafts(pg.db, [draft.id], { now: new Date(), at: new Date(), by: "cli" });
     await markPublished(pg.db, draft.id, {
       id: `urn:li:share:${draft.id}`,
-      url: null,
+      url: `https://www.linkedin.com/feed/update/urn:li:share:${draft.id}`,
       publishedAt: new Date().toISOString(),
       fetchedWith: "api",
       notes: ["Reshares not set: refused"],
