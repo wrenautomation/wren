@@ -63,3 +63,44 @@ describe("meta.ad_account", () => {
     expect(calls).toEqual([]);
   });
 });
+
+describe("meta.page", () => {
+  it("passes when the ad account has a Page Wren may run ads for, in the same one read", async () => {
+    const { s, calls } = sites(() => ({
+      id: "act_123",
+      promote_pages: { data: [{ id: "55", name: "Acme Roofing" }] },
+    }));
+    expect(await metaChecks(s)["meta.page"]?.({ account: adAccount("act_123"), now })).toEqual({
+      ok: true,
+      why: "Wren can run ads for Acme Roofing",
+      seen: [{ id: "55", name: "Acme Roofing" }],
+    });
+    expect(calls).toEqual([
+      { method: "GET", path: "/act_123", input: { fields: "id,promote_pages.limit(10){id,name}" } },
+    ]);
+    const two = sites(() => ({ id: "act_1", promote_pages: { data: [{ id: "1" }, { id: "2" }] } }));
+    expect(await metaChecks(two.s)["meta.page"]?.({ account: adAccount("1"), now })).toMatchObject({
+      ok: true,
+      why: "Wren can run ads for 2 Pages",
+    });
+  });
+
+  it("waits with no Page shared, when Meta refuses, and on a ref that isn't an id", async () => {
+    const none = sites(() => ({ id: "act_123" }));
+    expect(await metaChecks(none.s)["meta.page"]?.({ account: adAccount("act_123"), now })).toEqual(
+      { ok: false, why: "No Page on this ad account Wren can run ads for yet" },
+    );
+    const refused = sites(() => {
+      throw new SiteCallError("meta", "GET", "/act_9", 403, "no permission");
+    });
+    expect(
+      await metaChecks(refused.s)["meta.page"]?.({ account: adAccount("act_9"), now }),
+    ).toEqual({ ok: false, why: "Wren can't read this ad account yet" });
+    const { s, calls } = sites(() => ({}));
+    expect(await metaChecks(s)["meta.page"]?.({ account: adAccount("Acme ads"), now })).toEqual({
+      ok: false,
+      why: "The ad account id should look like act_123",
+    });
+    expect(calls).toEqual([]);
+  });
+});

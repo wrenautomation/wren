@@ -170,6 +170,47 @@ export type SetupCheck = (c: { account: AccountRow; now: Date }) => Promise<Chec
 
 const TXT = (rs: string[]) => rs.map((r) => r.replace(/^"|"$/g, "").replace(/" "/g, ""));
 
+/**
+ * Where DKIM keys sit: Google Workspace's selector, Microsoft 365's two, then common defaults.
+ * A domain names its selector nowhere, so the check looks in each, its mail host's first.
+ */
+export const DKIM_SELECTORS = [
+  "google",
+  "selector1",
+  "selector2",
+  "default",
+  "s1",
+  "s2",
+  "k1",
+  "mail",
+  "dkim",
+];
+
+/** The first selector holding a DKIM key (`p=` with a key in it), or null. */
+async function dkimOf(
+  domain: string,
+  mx: readonly string[],
+  ask: (name: string, t: DnsType) => Promise<string[]>,
+): Promise<string | null> {
+  const host = mx.join(" ").toLowerCase();
+  const first = host.includes("google")
+    ? ["google"]
+    : host.includes("outlook") || host.includes("microsoft")
+      ? ["selector1", "selector2"]
+      : [];
+  const order = [...first, ...DKIM_SELECTORS.filter((s) => !first.includes(s))];
+  const found = await Promise.all(
+    order.map(async (sel) =>
+      (await ask(`${sel}._domainkey.${domain}`, "TXT")).some((r) =>
+        /(^|;)\s*p=[A-Za-z0-9+/]/.test(r),
+      )
+        ? sel
+        : null,
+    ),
+  );
+  return found.find(Boolean) ?? null;
+}
+
 /** The free checks that read DNS (over HTTPS): a domain's mail records and Postmaster's TXT. */
 export function dnsChecks(resolve: Resolver): Record<string, SetupCheck> {
   const ask = async (name: string, t: DnsType) => TXT(await resolve(name, t));
@@ -185,14 +226,17 @@ export function dnsChecks(resolve: Resolver): Record<string, SetupCheck> {
       const mx = await ask(d, "MX");
       const spf = (await ask(d, "TXT")).filter((r) => r.startsWith("v=spf1"));
       const dmarc = (await ask(`_dmarc.${d}`, "TXT")).filter((r) => r.startsWith("v=DMARC1"));
+      const dkim = await dkimOf(d, mx, ask);
       const missing = [
         ...(mx.length ? [] : ["MX"]),
         ...(spf.length === 1 ? [] : [spf.length ? "one SPF record (there are two)" : "SPF"]),
+        ...(dkim ? [] : ["DKIM"]),
         ...(dmarc.length ? [] : ["DMARC"]),
       ];
+      const seen = { mx, spf, dkim, dmarc };
       return missing.length
-        ? { ok: false, why: `Missing ${missing.join(", ")}`, seen: { mx, spf, dmarc } }
-        : { ok: true, why: "MX, SPF and DMARC are set", seen: { mx, spf, dmarc } };
+        ? { ok: false, why: `Missing ${missing.join(", ")}`, seen }
+        : { ok: true, why: "MX, SPF, DKIM and DMARC are set", seen };
     },
     "dns.postmaster_txt": async ({ account }) => {
       const v = (await ask(account.ref, "TXT")).filter((r) =>

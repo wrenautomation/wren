@@ -68,6 +68,18 @@ export const META_SETUP = defineSetup({
       every: "1 hour",
       within: "14 days",
     },
+    {
+      id: "page",
+      fact: "meta.page_shared",
+      label: "Page shared with Wren",
+      who: "client",
+      how: "In Meta Business Settings, open Partners and share your Facebook Page with Wren's business too.",
+      forYou: "Wren's team shares your Facebook Page with Wren's business.",
+      goal: "share this business's Facebook Page with Wren's business as a partner",
+      check: "meta.page",
+      every: "1 hour",
+      within: "14 days",
+    },
   ],
 });
 

@@ -40,6 +40,17 @@ describe("google_calendar.access", () => {
     expect(
       await refused["google_calendar.access"]?.({ account: calendar("ops@acme.test"), now }),
     ).toEqual({ ok: false, why: "Wren's service account isn't allowed on this calendar yet" });
+    // An address Google doesn't know under the delegation: the same wait.
+    const unknown = calendarChecks(
+      host(async () => {
+        throw new Error(
+          "token exchange refused (HTTP 400): invalid_grant: Invalid email or User ID",
+        );
+      }),
+    );
+    expect(
+      await unknown["google_calendar.access"]?.({ account: calendar("ops@acme.test"), now }),
+    ).toEqual({ ok: false, why: "Wren's service account isn't allowed on this calendar yet" });
     const down = calendarChecks(
       host(async () => {
         throw new Error("fetch failed");

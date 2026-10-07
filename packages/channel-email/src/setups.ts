@@ -111,15 +111,41 @@ export interface Warmup {
 
 const DAY_MS = 86_400_000;
 
+/** How an inbox signed in: Gmail as its address, or its own login over IMAP. */
+export type SignedIn = "gmail" | "imap";
+
+/** A refused login, said apart from a host that didn't answer. */
+const REFUSED =
+  /authenticationfailed|auth(entication)? failed|invalid (credentials|grant)|invalid_grant|unauthorized_client|access_denied|\b40[13]\b/i;
+
 /**
- * The inbox checks that read what Wren already keeps: warmup from the roster, placement from
- * the owner's placement tests. `dbOf` is the database holding the owner's tests.
+ * The inbox checks: sign-in through Wren's own readers, warmup from the roster, placement from
+ * the owner's placement tests. `dbOf` is the database holding the owner's tests. `signIn` signs
+ * the inbox in and out and reads nothing; null when Wren's roster doesn't have it.
  */
 export function emailChecks(o: {
   dbOf: (client: string | null) => Promise<Queryable>;
   warmupOf: (address: string) => Promise<Warmup | null>;
+  signIn: (address: string) => Promise<SignedIn | null>;
 }): Record<string, SetupCheck> {
   return {
+    "inbox.auth": async ({ account }) => {
+      let via: SignedIn | null;
+      try {
+        via = await o.signIn(account.ref.trim().toLowerCase());
+      } catch (err) {
+        const e = err as Error & { authenticationFailed?: boolean };
+        return e.authenticationFailed || REFUSED.test(e.message)
+          ? { ok: false, why: "It won't sign in" }
+          : { ok: false, why: `Couldn't reach the inbox: ${e.message.slice(0, 200)}` };
+      }
+      if (!via) return { ok: false, why: "Not on Wren's sending roster yet" };
+      return {
+        ok: true,
+        why: via === "imap" ? "It signs in over IMAP" : "Gmail reads it",
+        seen: { via },
+      };
+    },
     "inbox.warmup": async ({ account, now }) => {
       const w = await o.warmupOf(account.ref.toLowerCase());
       if (!w) return { ok: false, why: "Warmup hasn't started" };

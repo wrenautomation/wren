@@ -48,6 +48,7 @@ import {
   gmailPushTopic,
   ImapReader,
   type InboxReader,
+  imapClient,
   loadMailboxes,
   loadRoster,
   loadServiceAccountKey,
@@ -72,6 +73,7 @@ import {
   serviceAccountToken,
   sharedFor,
   type Transport,
+  withImap,
 } from "@wren/channel-email";
 import { briefSettingsOf, briefStep, CALL_BRIEF, makeCallBriefs } from "@wren/channel-email/calls";
 import { EMAIL_TOUCH } from "@wren/channel-email/components";
@@ -1243,6 +1245,17 @@ export async function buildServices(
               limit: policy.warmupLimit,
             }
           : null;
+      },
+      // Signs in and out, reading nothing: IMAP for an inbox on its own login, else one Gmail list.
+      signIn: async (address) => {
+        if (!roster.some((x) => x.address === address)) return null;
+        const m = imap.has(address) ? mailboxes.get(address) : undefined;
+        if (m) {
+          await withImap(imapClient(m.imap), async () => {});
+          return "imap";
+        }
+        await gmail.listMessages(address, "in:inbox", { maxResults: 1 });
+        return "gmail";
       },
     }),
   };

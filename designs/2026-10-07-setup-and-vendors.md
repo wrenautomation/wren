@@ -99,7 +99,7 @@ Repeats every 7 days: a suspended campaign or an unassigned number turns texts b
 | domain | Domain bought | `domain.owned` | wren (buys) | DNS answers for it | 1 hour |
 | domain | SPF, DKIM, DMARC records | `domain.dns` | client or wren | `dns.mail_records` (DNS over HTTPS, `doh.ts`) | 15 minutes, within 2 days |
 | domain | Postmaster verified | `postmaster.verified` | client or wren | `dns.postmaster_txt` | 1 hour |
-| inbox | Inbox exists and signs in | `inbox.signs_in` | wren | `inbox.auth` (the roster's sign-in) | 1 hour |
+| inbox | Inbox exists and signs in | `inbox.signs_in` | wren | `inbox.auth` (on the roster, then signs in and out: IMAP for its own login, else one Gmail list) | 1 hour |
 | inbox | Warmup reached its ramp | `inbox.warmed` | auto | `inbox.warmup` (the roster's warmup day vs today) | 1 day, within 30 days |
 | inbox | Lands in the inbox | `inbox.placement` | auto | `inbox.placement` (the newest placement test) | 7 days |
 
@@ -107,9 +107,9 @@ Domain and inbox setups repeat every 7 days, so a broken DNS record or a bad pla
 
 **Google.** Search Console: one step, `search_console.service_account_added`, who `client`, check `search_console.access` (one Search Console read as Wren's service account), every 1 hour, repeat 7 days. Calendar: `google_calendar.delegated`, the client's Workspace admin allows Wren's service account, check `google_calendar.access` (a freebusy read).
 
-**Meta.** `meta.partner_added`: the client adds Wren's business as a partner on its ad account. Check `meta.ad_account` (one read of the ad account). Repeat 7 days.
+**Meta.** `meta.partner_added`: the client adds Wren's business as a partner on its ad account. Check `meta.ad_account` (one read of the ad account). Then `meta.page_shared`: a Page on that ad account Wren may run ads for. Check `meta.page` (the same read, its `promote_pages` by field expansion, so autobrowse needs no new route). Repeat 7 days.
 
-Each check that reads a vendor is registered by name, with a fake in tests. The worker registers DNS (DNS over HTTPS, free), the 10DLC reads (the Telnyx provider it already has), email's, `search_console.access` (the sites list as Wren's service account), `google_calendar.access` (a freebusy read of the next hour) and `meta.ad_account` (`GET /act_<id>` through autobrowse `sites`; it never wakes the box). A check the worker doesn't register says "Its check is in development" and waits for a person to mark it done.
+Each check that reads a vendor is registered by name, with a fake in tests. The worker registers DNS (DNS over HTTPS, free), the 10DLC reads (the Telnyx provider it already has), email's, `search_console.access` (the sites list as Wren's service account), `google_calendar.access` (a freebusy read of the next hour), `meta.ad_account` and `meta.page` (`GET /act_<id>` through autobrowse `sites`; it never wakes the box) and `inbox.auth`. `dns.mail_records` finds DKIM at the mail host's selector first (`google`, Microsoft's `selector1` and `selector2`), then common ones; a key with an empty `p=` is revoked and doesn't count. Every check is registered now. A check the worker doesn't register says "Its check is in development" and waits for a person to mark it done.
 
 ### Parts name their facts
 
@@ -292,3 +292,4 @@ Each step is committed with tests on synthetic data.
 - 2026-10-07 (alerts): A stuck vendor review keeps checking. Carrier review is stuck after 10 days, not 30, and still moves on its own when carriers answer.
 - 2026-10-07 (alerts): An alert is marked told before the ping, so a lane that's down never replays a backlog. The daily digest repeats what's still lost or stuck.
 - 2026-10-07 (alerts): Client mail rides DeliveryWatch's `toldThrough` at level "all" and checks Account access per person. A client without the portal gets Now only.
+- 2026-10-07 (checks): Every step's check is live, so nothing reads "Its check is in development". DKIM joins the domain's mail records. `inbox.auth` signs in and out and reads nothing. Meta's Page is its own step, read through the ad account. Search Console and Calendar ran once against Wren's own property and calendar, read only, and passed. Google's `invalid_grant` (an address it doesn't know under the delegation) reads as a refusal, not an outage.

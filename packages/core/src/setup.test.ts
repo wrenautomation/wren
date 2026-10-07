@@ -60,7 +60,13 @@ describe("dnsChecks", () => {
       '"google-site-verification=abc"',
     ],
     "TXT _dmarc.example.test": ['"v=DMARC1; p=none"'],
+    "TXT google._domainkey.example.test": ['"v=DKIM1; k=rsa; p=MIIBIjANBgkq" "hkiG9w0BAQEF"'],
     "A example.test": ["192.0.2.1"],
+    "MX ms.test": ["0 ms-test.mail.protection.outlook.com."],
+    "TXT ms.test": ['"v=spf1 include:spf.protection.outlook.com -all"'],
+    "TXT _dmarc.ms.test": ['"v=DMARC1; p=quarantine"'],
+    "TXT selector2._domainkey.ms.test": ['"v=DKIM1; p=MIGfMA0GCSqG"'],
+    "TXT selector1._domainkey.ms.test": ['"v=DKIM1; p="'],
   };
   const checks = dnsChecks(async (name, t) => zone[`${t} ${name}`] ?? []);
   const account = (ref: string) =>
@@ -85,13 +91,23 @@ describe("dnsChecks", () => {
     });
   });
 
+  it("finds DKIM at the mail host's selector; a revoked key (empty p=) isn't one", async () => {
+    expect(
+      await checks["dns.mail_records"]?.({ account: account("example.test"), now }),
+    ).toMatchObject({ ok: true, why: "MX, SPF, DKIM and DMARC are set", seen: { dkim: "google" } });
+    expect(await checks["dns.mail_records"]?.({ account: account("ms.test"), now })).toMatchObject({
+      ok: true,
+      seen: { dkim: "selector2" },
+    });
+  });
+
   it("names what's missing, and two SPF records", async () => {
     zone["TXT other.test"] = ['"v=spf1 a ~all"', '"v=spf1 mx ~all"'];
     expect(
       await checks["dns.mail_records"]?.({ account: account("other.test"), now }),
     ).toMatchObject({
       ok: false,
-      why: "Missing MX, one SPF record (there are two), DMARC",
+      why: "Missing MX, one SPF record (there are two), DKIM, DMARC",
     });
     expect(await checks["dns.answers"]?.({ account: account("none.test"), now })).toMatchObject({
       ok: false,
