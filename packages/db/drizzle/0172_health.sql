@@ -87,6 +87,8 @@ ALTER TABLE "delivery"."health_overrides" ADD CONSTRAINT "fk_health_overrides_cl
 ALTER TABLE "delivery"."health_ratings" ADD CONSTRAINT "fk_health_ratings_client" FOREIGN KEY ("client_id") REFERENCES "public"."clients"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
 CREATE UNIQUE INDEX "uq_flags_open" ON "delivery"."flags" USING btree ("client_id",coalesce(engagement_id, 0),"cause") WHERE cleared_at is null;--> statement-breakpoint
 CREATE INDEX "ix_flags_raised" ON "delivery"."flags" USING btree ("raised_at");--> statement-breakpoint
+CREATE INDEX "ix_flags_client" ON "delivery"."flags" USING btree ("client_id","raised_at");--> statement-breakpoint
+CREATE INDEX "ix_flags_engagement" ON "delivery"."flags" USING btree ("engagement_id");--> statement-breakpoint
 CREATE UNIQUE INDEX "uq_health_overrides_open" ON "delivery"."health_overrides" USING btree ("client_id") WHERE cleared_at is null;--> statement-breakpoint
 CREATE INDEX "ix_health_ratings_client" ON "delivery"."health_ratings" USING btree ("client_id","at");--> statement-breakpoint
 CREATE VIEW "public"."reactivation_keep" AS (
