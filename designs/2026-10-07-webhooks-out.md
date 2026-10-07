@@ -42,6 +42,7 @@ An event's id is the Restate call plus the event name and subject, so a retried 
 - Slots: `{{data.lead.email}}`. A string that is a single slot keeps the value's type; a slot inside text becomes text. In the URL a slot is URL-encoded. An empty body sends the whole event.
 - Out: `answered` for 2xx, `refused` for any other 4xx. A network error or 5xx throws, so the spine's 3 tries, the failed row and auto-retry all apply. The run keeps `data.webhook = {status, ms, body (4 KB), ...kept}`.
 - The test says "Would post to <host>" and sends nothing. The same SSRF guard applies.
+- It counts as sending (`effects: ["sends"]`), since it posts data out of Wren. The Effects column shows it, and publishing or installing a workflow with one needs an admin and its id typed back.
 - Headers live in the workflow's save, which the team can read. Put a client's API key there knowing that.
 
 ## Replay

@@ -122,7 +122,7 @@ function Item({
 }
 
 type Entry = { id: string; name: string; blurb: string; ready: boolean; effects: string[] };
-const fromLogic = (l: PaletteLogic): Entry => ({ ...l, effects: [] });
+const fromLogic = (l: PaletteLogic): Entry => ({ ...l, effects: [...l.effects] });
 const fromItem = (p: PaletteItem): Entry => ({
   id: p.id,
   name: p.name,
@@ -623,9 +623,9 @@ export function NodePanel({
       {logic?.blurb || item?.blurb || n.note ? (
         <p className={QUIET}>{logic?.blurb ?? item?.blurb ?? n.note}</p>
       ) : null}
-      {item?.effects.length ? (
+      {(logic ?? item)?.effects.length ? (
         <p className="text-[13px]">
-          It {item.effects.join(" and ")}. Making it live is an admin's yes.
+          It {(logic ?? item)?.effects.join(" and ")}. Making it live is an admin's yes.
         </p>
       ) : null}
 

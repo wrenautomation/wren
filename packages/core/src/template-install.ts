@@ -40,8 +40,8 @@ import { covers, type DefaultFile, installDefaults, loadDefaults } from "./templ
 import { nameLabel } from "./template-labels.js";
 import { refText } from "./templates.js";
 import {
+  effectsIn,
   flowsWith,
-  partsIn,
   type TemplateSpec,
   templateIdOf,
   type Workflow,
@@ -102,7 +102,12 @@ export function templatesOf(
         spec,
         parts,
         copy,
-        effects: [...new Set(parts.flatMap((p) => p.part.effects))],
+        effects: [
+          ...new Set([
+            ...parts.flatMap((p) => p.part.effects),
+            ...effectsIn(w.id, workflows, components),
+          ]),
+        ],
         version: hash({ parts: spec.parts, copy, door: spec.door ?? null, w: [w.nodes, w.wires] }),
       },
     ];
@@ -137,7 +142,7 @@ export function savedTemplatesOf(
     const effects = [
       ...new Set([
         ...parts.flatMap((p) => p.part.effects),
-        ...partsIn(base.id, next.flows, components).flatMap((c) => c.effects),
+        ...effectsIn(base.id, next.flows, components),
       ]),
     ];
     return [

@@ -33,6 +33,8 @@ export interface PaletteLogic {
   icon: string;
   group: "logic" | "trigger" | "action";
   ready: boolean;
+  /** Send webhook sends: publishing one is an admin's yes. */
+  effects: readonly string[];
   settings: readonly LogicSetting[];
   start: With;
 }

@@ -1,6 +1,13 @@
 import { describe, expect, it } from "vitest";
 import { defineComponent } from "./components.js";
-import { checkWorkflows, defineWorkflow, flowsWith, partsIn, type Wire } from "./workflows.js";
+import {
+  checkWorkflows,
+  defineWorkflow,
+  effectsIn,
+  flowsWith,
+  partsIn,
+  type Wire,
+} from "./workflows.js";
 
 const hypothesis = { from: "a test", guesses: [{ is: "fixed" as const, says: "x" }] };
 const part = (id: string, inside: string | null = null) =>
@@ -75,6 +82,21 @@ describe("checkWorkflows", () => {
       (c) => c.id,
     );
     expect(ids.sort()).toEqual(["a", "b"]);
+  });
+
+  it("counts a Send webhook node as sending, nested too", () => {
+    const hook = defineWorkflow({
+      ...flow("hook", []),
+      nodes: [
+        { id: "n", uses: "a" },
+        { id: "post", uses: "logic.webhook", with: { url: "https://api.example.com/x" } },
+      ],
+    });
+    const outer = defineWorkflow({ ...flow("outer", []), nodes: [{ id: "h", uses: "hook" }] });
+    const flows = [flow("quiet", ok), hook, outer];
+    expect(effectsIn("quiet", flows, [part("a")])).toEqual([]);
+    expect(effectsIn("hook", flows, [part("a")])).toEqual(["sends"]);
+    expect(effectsIn("outer", flows, [part("a")])).toEqual(["sends"]);
   });
 });
 

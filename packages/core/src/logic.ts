@@ -5,7 +5,7 @@
  * Wait holds what leaves it; Split sends a fixed share each way by subject; Merge joins two
  * wires. A hook trigger is the door into a node. Pure, so the web reads it too.
  */
-import type { EventKind, Port } from "./components.js";
+import type { Effect, EventKind, Port } from "./components.js";
 import { type FieldMap, fieldMapOfWith, fieldMapProblems, HOOK_PRESETS } from "./door.js";
 import type { SpineEvent, Step } from "./spine.js";
 import { canonicalZone, wallClock, zonedInstant } from "./time.js";
@@ -62,6 +62,8 @@ export interface LogicPart {
   group: "logic" | "trigger" | "action";
   /** Runs on the spine. Not yet: drawn faded, "In development", and publishing refuses it. */
   ready: boolean;
+  /** What it does outside Wren, as a part's effects: publishing one is William's yes. */
+  effects?: readonly Effect[];
   settings: readonly LogicSetting[];
   ports(w: Readonly<Record<string, string | number>>): { in: Port[]; out: Port[] };
   /** What a node of it says on the canvas, from its settings. */
@@ -385,6 +387,8 @@ export const LOGIC: readonly LogicPart[] = [
     icon: "external",
     group: "action",
     ready: true,
+    // It posts the event's data out of Wren.
+    effects: ["sends"],
     settings: [
       { field: "url", label: "URL", type: "text", hint: "https://api.example.com/leads" },
       {

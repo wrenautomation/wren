@@ -218,6 +218,7 @@ import { codeLabel } from "./template-labels.js";
 import { patchOf, WORKFLOW_ASK, workflowAskPrompt } from "./workflow-ask.js";
 import { deleteWorkflowTemplate, saveWorkflowTemplate } from "./workflow-templates.js";
 import {
+  effectsIn,
   flowsWith,
   partsIn,
   portsOf,
@@ -367,15 +368,15 @@ export interface WorkflowTestRequest extends PortalRequest {
 }
 
 /**
- * What a workflow does outside Wren once live: every effect of every part in it, nested ones
- * too. Publishing one with any is William's yes (designs/2026-10-06-workflow-editor.md).
+ * What a workflow does outside Wren once live: every effect of its parts and logic nodes, nested
+ * ones too. Publishing one with any is William's yes (designs/2026-10-06-workflow-editor.md).
  */
 export function workflowEffects(
   id: string,
   flows: readonly Workflow[],
   components: readonly Component[],
 ): string[] {
-  return union(partsIn(id, flows, components).map((c) => c.effects));
+  return effectsIn(id, flows, components);
 }
 
 const NAME = z
@@ -1521,6 +1522,7 @@ export const componentRecord = (
       icon: l.icon,
       group: l.group,
       ready: l.ready,
+      effects: l.effects ?? [],
       settings: l.settings,
       start: startWith(l),
     })),
@@ -1547,7 +1549,7 @@ export const componentRecord = (
         stage: x.stage,
         in: x.in,
         out: x.out,
-        effects: union(partsIn(x.id, flows, all).map((c) => c.effects)),
+        effects: effectsIn(x.id, flows, all),
         ready: flowReady(partsIn(x.id, flows, all)),
       })),
   });
@@ -1752,7 +1754,7 @@ export const componentRecord = (
               ready: shown(flowReady(parts)),
               installed: null,
               state: null,
-              effects: union(parts.map((c) => c.effects)).join(",") || null,
+              effects: effectsIn(w.id, flows, all).join(",") || null,
               instead: null,
               provides: null,
               needs: null,

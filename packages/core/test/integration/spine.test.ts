@@ -4,7 +4,7 @@ import { startTestPostgres, type TestPostgres } from "@wren/db/testing";
 import { eq, sql } from "drizzle-orm";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { defineComponent } from "../../src/components.js";
-import { consoleApi, executionSteps } from "../../src/console.js";
+import { consoleApi, executionSteps, workflowEffects } from "../../src/console.js";
 import type { PortalRequest } from "../../src/portal.js";
 import { events, hooks, workflowSaves } from "../../src/schema.js";
 import { addHook, pgSpineStore, savedWorkflows } from "../../src/spine.js";
@@ -213,6 +213,32 @@ describe("workflow saves", () => {
     );
     await expect(
       api.workflowPublish({ ...operator, workflow: "loud", confirm: "loud" }),
+    ).resolves.toMatchObject({ id: expect.any(Number) });
+  });
+
+  it("asks it too when a Send webhook node is the only thing that sends", async () => {
+    const quiet = defineWorkflow({ ...flow, id: "posts" });
+    const api = consoleApi({ main: pg.db, views: [], components: [part], workflows: [quiet] });
+    expect(workflowEffects("posts", [quiet], [part])).toEqual([]);
+    const post = {
+      id: "post",
+      uses: "logic.webhook",
+      with: { url: "https://api.example.com/x", kind: "reply" },
+    };
+    await api.workflowSave({
+      ...operator,
+      workflow: "posts",
+      wires: [
+        { from: "n.replied", to: "post.in", via: "events" },
+        { from: "post.answered", to: "out.replied", via: "events" },
+      ],
+      steps: [post],
+    });
+    await expect(api.workflowPublish({ ...operator, workflow: "posts" })).rejects.toThrow(
+      "it sends: type posts to confirm",
+    );
+    await expect(
+      api.workflowPublish({ ...operator, workflow: "posts", confirm: "posts" }),
     ).resolves.toMatchObject({ id: expect.any(Number) });
   });
 

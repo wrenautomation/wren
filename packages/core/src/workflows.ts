@@ -3,7 +3,7 @@
  * another workflow as a node (designs/2026-10-05-workflows.md). This module knows the shape and
  * the check, never a workflow; the worker collects Wren's.
  */
-import { type Component, EVENT_KINDS, type Port, type Stage } from "./components.js";
+import { type Component, type Effect, EVENT_KINDS, type Port, type Stage } from "./components.js";
 import { logicOf, logicProblems } from "./logic.js";
 import type { TemplateRef } from "./templates.js";
 
@@ -421,6 +421,31 @@ export function partsIn(
   };
   walk(flows.get(id));
   return [...out.values()];
+}
+
+/**
+ * What a workflow does outside Wren once live: every effect of every part in it and of its
+ * logic nodes (Send webhook sends), nested workflows too. Every gate on sends and spends reads
+ * this, so a webhook can't publish without the yes a part that sends needs.
+ */
+export function effectsIn(
+  id: string,
+  workflows: readonly Workflow[],
+  components: readonly Component[],
+): Effect[] {
+  const flows = new Map(workflows.map((w) => [w.id, w]));
+  const out = new Set<Effect>(partsIn(id, workflows, components).flatMap((c) => c.effects));
+  const seen = new Set<string>();
+  const walk = (w: Workflow | undefined) => {
+    if (!w || seen.has(w.id)) return;
+    seen.add(w.id);
+    for (const n of w.nodes) {
+      for (const e of logicOf(n.uses)?.effects ?? []) out.add(e);
+      if (n.uses) walk(flows.get(n.uses));
+    }
+  };
+  walk(flows.get(id));
+  return [...out];
 }
 
 const key = (ps: readonly Port[]) =>
