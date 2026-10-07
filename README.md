@@ -88,6 +88,8 @@ database, once `sms.texts` is installed. Steps: `walkthrough/05-sms.md`. Design:
 `https://phone.wrenautomation.com/hooks/<token>` URL once. Anything that POSTs JSON or a form to
 it enters that workflow's input, about the payload's `<field>`. `wren hooks list` shows each
 hook's calls. Design: `designs/2026-10-05-workflows.md` (The spine).
+`wren hooks preset site` makes the lander's hook into Wren's speed to lead and says where the URL
+goes (the lander's `WREN_DOOR_URL` Pages secret).
 
 ## The Watch
 

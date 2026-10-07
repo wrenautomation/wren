@@ -6,7 +6,9 @@
 import * as clients from "@restatedev/restate-sdk-clients";
 import type { RestateTestEnvironment } from "@restatedev/restate-sdk-testcontainers";
 import { ingressOf } from "@wren/config";
+import { HOOK_PRESETS } from "@wren/core/door";
 import { serveRecords } from "@wren/core/records/serve";
+import { events } from "@wren/core/schema";
 import { addHook, makeSpine, SPINE } from "@wren/core/spine";
 import { startTestRestate } from "@wren/core/testing";
 import { defineWorkflow } from "@wren/core/workflows";
@@ -194,6 +196,77 @@ describe("speed to lead, first text", () => {
   });
 });
 
+describe("the lander's door (site preset)", () => {
+  const site = HOOK_PRESETS.site as NonNullable<(typeof HOOK_PRESETS)["site"]>;
+  // What lander/functions/_shared/door.ts posts for a stored row. Synthetic.
+  const ROW = {
+    id: "site:applications:41",
+    source: "site",
+    form: "apply",
+    name: "Eve Test",
+    email: "eve@example.test",
+    phone: "(212) 555-0191",
+    sms_consent: true,
+    note: "need more placements",
+    niche: "recruiting",
+    page: "/recruiting/lead-reactivation",
+    visitor: "v-test-1",
+    first_touch: { source: "email", page: "/recruiting/lead-reactivation" },
+    last_touch: { source: "direct", page: "/" },
+  };
+  const door = async () => {
+    const token = await addHook(pg.db, {
+      name: "site",
+      client: null,
+      workflow: FLOW.id,
+      input: site.input,
+      subject: site.subject,
+      fields: site.fields,
+    });
+    return (payload: unknown) => ingress().serviceClient<Door>(SPINE).hook({ token, payload });
+  };
+  const entered = () => pg.db.select().from(events).where(eq(events.node, "text"));
+
+  it("one row is one lead: mapped, attributed, and a retry enters nothing more", async () => {
+    const post = await door();
+    expect(await post(ROW)).toMatchObject({ status: 202, subject: "form:site:applications:41" });
+    await until(async () => (await pg.db.select().from(smsMessages))[0]);
+    expect(await post(ROW)).toMatchObject({ status: 202, subject: "form:site:applications:41" });
+    await new Promise((r) => setTimeout(r, 1500));
+
+    const ins = await entered();
+    expect(ins).toHaveLength(1);
+    expect(ins[0]?.data).toMatchObject({
+      visitor: "v-test-1",
+      first_touch: ROW.first_touch,
+      last_touch: ROW.last_touch,
+      lead: { name: "Eve Test", email: "eve@example.test", source: "site", niche: "recruiting" },
+    });
+    const runs = await pg.db.select().from(speedRuns);
+    expect(runs).toHaveLength(1);
+    expect(runs[0]).toMatchObject({ source: "site", consent: true, firstTouch: "queued" });
+    expect(await pg.db.select().from(smsMessages)).toHaveLength(1);
+  });
+
+  it("no consent box ticked: no text", async () => {
+    const { sms_consent: _, ...row } = { ...ROW, id: "site:leads:9" };
+    expect(await (await door())(row)).toMatchObject({ status: 202 });
+    const run = await until(async () => (await pg.db.select().from(speedRuns))[0]);
+    expect(run).toMatchObject({ consent: false, firstTouch: "no_consent" });
+    expect(await pg.db.select().from(smsContacts)).toEqual([]);
+    expect(await pg.db.select().from(smsMessages)).toEqual([]);
+  });
+
+  it("live texts off: would send, nothing queued", async () => {
+    live = false;
+    expect(await (await door())({ ...ROW, id: "site:leads:10" })).toMatchObject({ status: 202 });
+    const run = await until(async () => (await pg.db.select().from(speedRuns))[0]);
+    expect(run).toMatchObject({ firstTouch: "would_send", source: "site" });
+    expect(await pg.db.select().from(smsMessages)).toEqual([]);
+    expect(nudged).toEqual([]);
+  });
+});
+
 describe("firstText", () => {
   const r = (lead: Partial<Parameters<typeof firstText>[1]["lead"]>, subject = "s1") => ({
     workflow: "w",
@@ -207,6 +280,7 @@ describe("firstText", () => {
       consentDetail: "ticked the box",
       source: "site",
       zone: null,
+      niche: null,
       ...lead,
     },
   });
@@ -260,6 +334,7 @@ describe("the follow-up", () => {
     consentDetail: "ticked the box",
     source: "site",
     zone: null,
+    niche: null,
   };
   const start = async () => {
     const got = await firstText(
@@ -326,6 +401,7 @@ describe("the speed-to-lead page", () => {
       consentDetail: "ticked the box",
       source: "site",
       zone: null,
+      niche: null,
     };
     const one = await firstText(
       pg.db,

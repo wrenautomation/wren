@@ -1,11 +1,19 @@
 /**
  * A lead at the door (designs/2026-10-07-speed-to-lead.md): whatever a form or CRM posts to a
- * hook, read as the five facts every lead step needs. A hook's field map names where each sits
+ * hook, read as the facts every lead step needs. A hook's field map names where each sits
  * in the payload ("contact.phone"); a fact the map leaves out is looked for under its common names.
  * Consent is only ever a yes the form sent: a checked box, "yes", true. Anything else is no.
  */
 
-export const LEAD_FIELDS = ["name", "phone", "email", "consent", "source", "zone"] as const;
+export const LEAD_FIELDS = [
+  "name",
+  "phone",
+  "email",
+  "consent",
+  "source",
+  "zone",
+  "niche",
+] as const;
 export type LeadField = (typeof LEAD_FIELDS)[number];
 
 /** Where each fact sits in a hook's payload, dotted. */
@@ -22,6 +30,8 @@ export interface DoorLead {
   source: string | null;
   /** The lead's IANA time zone, when the form sent one. */
   zone: string | null;
+  /** The market the form was for ("agencies"), when it said. */
+  niche: string | null;
 }
 
 /** The names each fact goes by when the map doesn't say, most specific first. */
@@ -31,6 +41,7 @@ const COMMON: Record<Exclude<LeadField, "name">, readonly string[]> = {
   consent: ["sms_consent", "smsConsent", "text_consent", "consent", "opt_in", "optIn"],
   source: ["source", "utm_source", "form", "form_name"],
   zone: ["zone", "timezone", "time_zone", "tz"],
+  niche: ["niche", "industry", "vertical"],
 };
 const NAMES = ["name", "full_name", "fullName"] as const;
 
@@ -85,6 +96,7 @@ export function leadOf(payload: unknown, map: FieldMap = {}): DoorLead {
         : null,
     source: words(first(payload, map, "source").v),
     zone,
+    niche: words(first(payload, map, "niche").v)?.toLowerCase() ?? null,
   };
 }
 
@@ -100,3 +112,35 @@ export function fieldMapOf(pairs: readonly string[]): FieldMap {
   }
   return map;
 }
+
+/**
+ * A known sender's hook: the payload field that names one lead (`subject`), its field map, and
+ * where the hook's URL goes once made. `site` is our own lander (wrenautomation.com): each stored
+ * lead or application posts `{id: "site:<table>:<row id>", source: "site", ...}`, so a retry of
+ * the same row is the same subject and enters once.
+ */
+export interface HookPreset {
+  workflow: string;
+  input: string;
+  subject: string;
+  fields: FieldMap;
+  /** Where the printed URL goes. */
+  goes: string;
+}
+
+export const HOOK_PRESETS: Readonly<Record<string, HookPreset>> = {
+  site: {
+    workflow: "speed_to_lead.steps",
+    input: "forms",
+    subject: "id",
+    fields: {
+      name: "name",
+      phone: "phone",
+      email: "email",
+      consent: "sms_consent",
+      source: "source",
+      niche: "niche",
+    },
+    goes: "the lander's Pages secret WREN_DOOR_URL: `cd lander && npx wrangler pages secret put WREN_DOOR_URL --project-name wren-lander`, paste it, then push or `npm run deploy`",
+  },
+};

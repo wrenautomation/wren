@@ -67,6 +67,7 @@ Nothing in this repo references these; they break silently.
 |---|---|---|
 | `../lander` (`README.md:11`, `src/data/offers.json`, `PRODUCT.md`) | `packages/offers` via `pnpm offers:export`; `scripts/gates.sh:13` checks the snapshot | [[platform/offer]] |
 | `../lander/functions/api/subscribe.ts`, `../lander/functions/prefs/` (`WREN_MARKETING_URL` in `wrangler.toml`, `EXPORT_TOKEN`) | `phone.wrenautomation.com/marketing/<handler>` → `Marketing`; the signup signature and the link key both derive from `WREN_SITE_EXPORT_TOKEN` | [[leads/consent]], [[platform/phone-worker]] |
+| `../lander/functions/_shared/door.ts` (from `api/lead.ts`, `api/apply.ts`; Pages secret `WREN_DOOR_URL`) | `phone.wrenautomation.com/hooks/<token>` → `Spine/hook`; the payload is what `HOOK_PRESETS.site` reads (`packages/core/src/door.ts`), id `site:<table>:<row id>` | [[platform/spine]], [[sms/speed-run]] |
 | `../lander/functions/v/[id].ts` (`VIDEOS_ORIGIN` in `wrangler.toml`) | `<VIDEOS_ORIGIN>/v/<id>.json` as `packages/video/src/publish.ts` writes it; the CloudFront domain from `deploy/terraform/videos.tf` | [[reactivation/demo-video]] |
 | `../autobrowse/walkthrough/03-meta-app.md` | `walkthrough/02-meta-ads.md` (link) | [[ads/ad-launch]] |
 | autobrowse's `sites` service (same Restate, on the box) | called by name from `packages/core/src/content/restate.ts:21`; Meta, LinkedIn, YouTube, X, TikTok, Instagram go through it | [[content/platform]] |

@@ -4,7 +4,7 @@
  * live on main, since the door finds the client from the token.
  */
 import { getClient } from "@wren/core/clients";
-import { fieldMapOf } from "@wren/core/door";
+import { fieldMapOf, HOOK_PRESETS, LEAD_FIELDS } from "@wren/core/door";
 import { hooks } from "@wren/core/schema";
 import { addHook } from "@wren/core/spine";
 import type { Db } from "@wren/db";
@@ -18,6 +18,16 @@ export function registerHooks(program: Command, withMainDb: WithDb) {
   const client = () => program.opts<{ client?: string }>().client ?? null;
   const cmd = program.command("hooks").description("webhooks into a workflow's input (the door)");
 
+  const make = async (h: Omit<Parameters<typeof addHook>[1], "client">) => {
+    const token = await withMainDb(async (db) => {
+      const id = client();
+      if (id) await getClient(db, id);
+      return addHook(db, { ...h, client: id });
+    });
+    console.log(`${DOOR}${token}`);
+    return token;
+  };
+
   cmd
     .command("add <workflow> <input>")
     .description("Make a hook into the workflow's input; prints its URL once")
@@ -25,7 +35,7 @@ export function registerHooks(program: Command, withMainDb: WithDb) {
     .option("--name <words>", "what sends it")
     .option(
       "--field <fact=path>",
-      "where a lead fact sits (name, phone, email, consent, source, zone), like phone=contact.tel; repeat it",
+      `where a lead fact sits (${LEAD_FIELDS.join(", ")}), like phone=contact.tel; repeat it`,
       (v: string, all: string[]) => [...all, v],
       [] as string[],
     )
@@ -35,25 +45,36 @@ export function registerHooks(program: Command, withMainDb: WithDb) {
         input: string,
         o: { subject: string; name?: string; field: string[] },
       ) => {
-        const fields = fieldMapOf(o.field);
-        const token = await withMainDb(async (db) => {
-          const id = client();
-          if (id) await getClient(db, id);
-          return addHook(db, {
-            name: o.name ?? `${workflow} ${input}`,
-            client: id,
-            workflow,
-            input,
-            subject: o.subject,
-            fields,
-          });
+        await make({
+          name: o.name ?? `${workflow} ${input}`,
+          workflow,
+          input,
+          subject: o.subject,
+          fields: fieldMapOf(o.field),
         });
-        console.log(`${DOOR}${token}`);
         console.log(
           "Shown once. POST JSON or a form to it; an unknown workflow or input answers 410.",
         );
       },
     );
+
+  cmd
+    .command("preset <name>")
+    .description(
+      `Make a known sender's hook (${Object.keys(HOOK_PRESETS).join(", ")}); prints its URL once and where it goes`,
+    )
+    .action(async (name: string) => {
+      const p = HOOK_PRESETS[name];
+      if (!p) throw new Error(`no preset ${name} (${Object.keys(HOOK_PRESETS).join(", ")})`);
+      await make({
+        name,
+        workflow: p.workflow,
+        input: p.input,
+        subject: p.subject,
+        fields: p.fields,
+      });
+      console.log(`Shown once. It goes in ${p.goes}.`);
+    });
 
   cmd
     .command("list")

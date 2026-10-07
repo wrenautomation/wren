@@ -62,8 +62,8 @@ This makes them run.
 
 - Installing it as a template on a client: the next build, with the template install for all
   funnels.
-- Pushing lander and Meta lead forms into the door. The lander posts to a hook later (lander
-  repo); Meta lead forms need a webhook subscription on the app, which is William's call.
+- Pushing Meta lead forms into the door: they need a webhook subscription on the app, which is
+  William's call.
 - A per-client calendar: the booking link is a setting until calendars are per client.
 - Live texts and calls: William turns them on per client.
 
@@ -115,3 +115,17 @@ This makes them run.
 - 2026-10-07: William: the form window ends at 20:00 by default (`WREN_SMS_FORM_WINDOW` default
   `08:00-20:00`, `ASKED_WINDOW`), so the setting and the legal clamp agree. Recorded from
   `2026-10-07-setup-and-vendors.md`.
+- 2026-10-07: the lander's forms enter Wren's door, so Wren (client zero) runs speed to lead on
+  its own leads. Texts stay off.
+  - Lander (`functions/_shared/door.ts`): after a `leads` or `applications` row is stored, it
+    posts the row to `WREN_DOOR_URL` (a Pages secret; unset, nothing is sent) in `waitUntil`,
+    5 s timeout, failures swallowed. Name, email, phone, note, niche, page, offer and fit,
+    visitor, first and last touch, utm. `source` is "site"; `id` is `site:<table>:<row id>`.
+    The niche form has no text-consent box, so it sends none (no consent). Applications send
+    their `sms_consent` box. Niche: the form's, else the page's first path segment, else general.
+  - Wren: a `niche` fact on the door (`LEAD_FIELDS`), and `HOOK_PRESETS.site` (subject `id`,
+    the map for that payload) into `speed_to_lead.steps` at `forms`, Wren's own (client null).
+    The id as subject makes a resent row the same entry: it enters once and keeps one run.
+    `wren hooks preset site` makes the hook and says where the URL goes.
+  - Arming it (hook on prod, the Pages secret) is the main session's, after review.
+  - Map: `platform/spine`, `sms/speed-run`, effects "outside the tree".

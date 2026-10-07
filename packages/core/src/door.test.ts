@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { fieldMapOf, leadOf } from "./door.js";
+import { fieldMapOf, HOOK_PRESETS, leadOf } from "./door.js";
 
 describe("leadOf", () => {
   it("reads the common names when the map is empty", () => {
@@ -20,6 +20,7 @@ describe("leadOf", () => {
       consentDetail: 'sms_consent="on"',
       source: "site",
       zone: null,
+      niche: null,
     });
   });
 
@@ -39,6 +40,43 @@ describe("leadOf", () => {
 
   it("drops an email that isn't one", () => {
     expect(leadOf({ email: "nope" }).email).toBeNull();
+  });
+});
+
+describe("the site preset", () => {
+  // What the lander posts for a stored application (lander/functions/_shared/door.ts).
+  const SITE = {
+    id: "site:applications:7",
+    source: "site",
+    form: "apply",
+    name: "Bo Test",
+    email: "bo@example.test",
+    phone: "(312) 555-0144",
+    sms_consent: true,
+    niche: "Recruiting",
+    utm_source: "email",
+    first_touch: { source: "email", page: "/recruiting/lead-reactivation" },
+  };
+
+  it("reads a lander row as the lead, source site and its niche", () => {
+    expect(leadOf(SITE, HOOK_PRESETS.site?.fields)).toEqual({
+      name: "Bo Test",
+      phone: "(312) 555-0144",
+      email: "bo@example.test",
+      consent: true,
+      consentDetail: "sms_consent=true",
+      source: "site",
+      zone: null,
+      niche: "recruiting",
+    });
+  });
+
+  it("a form with no consent box is no consent", () => {
+    const { sms_consent: _, ...lead } = SITE;
+    expect(leadOf(lead, HOOK_PRESETS.site?.fields)).toMatchObject({
+      consent: false,
+      consentDetail: null,
+    });
   });
 });
 

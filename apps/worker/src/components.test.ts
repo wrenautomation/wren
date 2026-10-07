@@ -26,6 +26,7 @@ import {
   handlerRecord,
   loopRecord,
 } from "@wren/core/console";
+import { HOOK_PRESETS } from "@wren/core/door";
 import { MARKETING_RECORDS } from "@wren/core/marketing/records";
 import { templatesOf } from "@wren/core/templates/install";
 import { checkWorkflows } from "@wren/core/workflows";
@@ -227,6 +228,13 @@ describe("workflows and hypotheses", () => {
                   : ids.has(g.built);
         expect(found, `${c.id}: ${g.built}`).toBe(true);
       }
+    }
+  });
+
+  it("every hook preset enters a real workflow input", () => {
+    for (const [name, p] of Object.entries(HOOK_PRESETS)) {
+      const f = WORKFLOWS.find((w) => w.id === p.workflow);
+      expect(f?.in.map((i) => i.id) ?? [], name).toContain(p.input);
     }
   });
 
