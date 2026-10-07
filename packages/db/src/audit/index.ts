@@ -46,6 +46,7 @@ export const AUDIT_SKIPPED: Readonly<Record<string, string>> = {
   fills: "AI-filled text, cached and remade",
   site_days: "visit counts pulled from the pixel, one row a day",
   ad_days: "numbers pulled from Meta",
+  voice_turns: "a call's per-stage timings, written once",
   "watch.mail": "William's own mail, read by machine: previews never go in a permanent log",
 };
 
