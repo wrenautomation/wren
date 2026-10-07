@@ -45,6 +45,7 @@ describe("apps and components", () => {
       "leads",
       "texts",
       "calls",
+      "payments",
       "marketplace",
       "marketing",
       "notes",

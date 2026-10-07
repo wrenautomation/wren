@@ -20,7 +20,7 @@ Links live in main with a `client` column, so To approve and the webhook read on
 - `pay_links`: `client`, `contact`, `email`, `name`, `channel` sms|email, `description`, `amount_cents`, `quantity`, `currency`, `status` waiting|sending|sent|paid|declined|failed, `why`, `stripe_link`, `url`, `message`, `paid_cents`, `paid_at`, `session`, `live`, `created_*`, `approved_*`.
 - `pay_accounts`: per client, the webhook endpoint id, the signing secret's key-store name (never the secret), `how` api|pasted, `live`.
 - `pay_events`: one row per Stripe event id, trimmed (ids, amount, status, email).
-- `sms_contacts.paid_cents`, `paid_at`; `sms_messages.kind` `pay` (in `ANSWER_KINDS`, `packages/channel-sms/src/schema.ts:127`: held for the asked window, 20:00 cutoff). Migration `0180_payments`.
+- `sms_contacts.paid_cents`, `paid_at`; `sms_messages.kind` `pay` (in `ANSWER_KINDS`, `packages/channel-sms/src/schema.ts:127`: held for the asked window, 20:00 cutoff). Migration `0181_payments`.
 - Webhook: `POST app.<host>/__pay/stripe/<client>` (`apps/portal/src/pay.ts:22`) → `Payments/stripe` → `takeWebhook` (`packages/payments/src/service.ts:145`), HMAC by `verifySignature` (`packages/payments/src/stripe.ts:147`, 5 min tolerance). Paid fires `trigger.payment`; webhooks out sends `payment.received`.
 - Setup `setup.stripe` (`packages/payments/src/setups.ts:12`): key, then webhook (registered by API when the key allows, else pasted secret). The worker binds `keys: null`: Connect answers "in development" in prod.
 
