@@ -21,7 +21,7 @@ import {
   spineFire,
 } from "../../src/spine.js";
 import { startTestRestate } from "../../src/testing.js";
-import { defineWorkflow } from "../../src/workflows.js";
+import { defineWorkflow, type WorkflowEdits } from "../../src/workflows.js";
 
 const FLOW = defineWorkflow({
   id: "trig",
@@ -37,7 +37,7 @@ const FLOW = defineWorkflow({
 });
 
 const merge = (id: string, kind: string) => ({ id, uses: "logic.merge", with: { kind } });
-const EDITS = {
+const EDITS: WorkflowEdits = {
   steps: [
     { id: "texts", uses: "trigger.reply", with: { channel: "sms" } },
     { id: "booked", uses: "trigger.booking", with: { on: "booked" } },
