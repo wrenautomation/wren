@@ -28,6 +28,21 @@ The Workflows canvas, on the graph kit, shows:
 The spine keeps every arrival: node, port, event and data, waiting, failed with its error,
 and retry.
 
+## 0. Look like nodes
+
+William, 10-06, on the live canvas: "maybe look more node based". Today's canvas draws cards
+with stacked shadows, right-angle wires and no ports. Every graph in the kit changes to:
+
+- A dot-grid background.
+- Compact nodes: an icon tile colored by what the part does (trigger, channel, logic, AI,
+  data, deliver), its name and one line under it, the main number, and a status dot.
+- Ports drawn on the node: inputs left, outputs right, each a labeled handle colored by event
+  kind. A node with several outputs (replied, no reply, booked) shows each one.
+- Curved wires with an arrow, colored by kind, and a pill at the midpoint with the count and
+  the condition or wait.
+- A nested workflow is a node with a stacked edge and an open icon, not a big card.
+- Selection gets a ring, hover lifts the node, and a running or failed node gets a status ring.
+
 ## 1. Executions
 
 - A workflow's Executions tab lists subjects ("lead:42") with when they entered, where they
