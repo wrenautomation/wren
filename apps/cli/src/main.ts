@@ -46,6 +46,7 @@ import { registerPages } from "./pages.js";
 import { registerReach } from "./reach.js";
 import { registerReview } from "./review.js";
 import { registerSearch } from "./search.js";
+import { registerSitePages } from "./site-pages.js";
 import { registerSms } from "./sms.js";
 import { registerSocial } from "./social.js";
 import { registerSop } from "./sop.js";
@@ -112,6 +113,7 @@ const CLIENT_SCOPED = new Set([
   "sms",
   "hooks",
   "notes",
+  "sites",
   "templates",
   "workflows",
 ]);
@@ -267,6 +269,13 @@ registerSop(program, withMainDb, settings, rootDir);
 registerDossier(program, withMainDb, rootDir);
 registerVideo(program, withMainDb, settings, rootDir);
 registerSearch(program, withMainDb, settings, rootDir);
+registerSitePages(
+  program,
+  withMainDb,
+  settings,
+  rootDir,
+  () => program.opts<{ client?: string }>().client,
+);
 registerTemplates(program, {
   withDb,
   withMainDb,

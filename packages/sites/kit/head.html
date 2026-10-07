@@ -1,0 +1,27 @@
+<!--
+  The kit for a code page (packages/sites/kit/README.md). Copy the parts you need.
+  Replace PAGE_ID with the id `wren sites add` prints.
+-->
+
+<!-- 1. In <head>: counts views, button clicks and forms. -->
+<script src="https://wrenautomation.com/o/__kit.js" data-page="PAGE_ID" defer></script>
+
+<!-- 2. Buttons: data-cta for a click toward the form, data-book for a booking link. -->
+<a class="btn" href="#form" data-cta>See if it fits</a>
+<a class="btn" href="https://wrenautomation.com/book" data-book>Book a call</a>
+
+<!-- 3. The form: it enters the page owner's door. Keep every field name as is. -->
+<section id="form">
+  <form method="post" action="https://wrenautomation.com/o/__form" data-wren-form data-thanks="Thanks. We'll be in touch today.">
+    <input type="hidden" name="page" value="PAGE_ID">
+    <label>Name<input name="name" autocomplete="name" required maxlength="120"></label>
+    <label>Email<input name="email" type="email" autocomplete="email" required maxlength="200"></label>
+    <label>Phone<input name="phone" type="tel" autocomplete="tel" maxlength="40"></label>
+    <label>Anything we should know<textarea name="note" rows="3" maxlength="1000"></textarea></label>
+    <label><input type="checkbox" name="sms_consent" value="yes"> Text me about this. Reply STOP to stop.</label>
+    <!-- No person fills this; a bot does, and the server drops the form. Keep it off screen. -->
+    <label style="position:absolute;left:-9999px" aria-hidden="true">Leave empty<input name="website" tabindex="-1" autocomplete="off"></label>
+    <button type="submit">Send</button>
+    <p class="sent" role="status" hidden></p>
+  </form>
+</section>
