@@ -715,6 +715,111 @@ export async function resolveTemplate(
   return (await liveTemplates(db, ref.kind, ref.system, [ref.name])).get(ref.name) ?? null;
 }
 
+/** One template as `ls` and the browser list it. Numbers are version numbers. */
+export interface TemplateRow extends TemplateRef {
+  id: number;
+  folder: string;
+  status: TemplateStatus;
+  live: number | null;
+  draft: number | null;
+  waiting: number | null;
+  newestDefault: number | null;
+  /** Who wrote its newest version, and when. */
+  by: string | null;
+  at: Date | null;
+}
+
+export interface ListOpts {
+  /** This folder and every folder under it. */
+  folder?: string;
+  kind?: TemplateKind;
+  status?: TemplateStatus;
+}
+
+/** Every template, by folder then name, with where each stands. */
+export async function listTemplates(db: Queryable, opts: ListOpts = {}): Promise<TemplateRow[]> {
+  const folder = opts.folder?.replace(/^\/+|\/+$/g, "");
+  const rows = (await db.execute(sql`
+    SELECT t.id, t.kind, t.system, t.name, t.folder, t.follows_default,
+      coalesce(lv.number, CASE WHEN t.follows_default THEN nd.number END) live,
+      dv.number draft, wv.number waiting, nd.number newest_default, top.created_by, top.created_at
+    FROM templates t
+    LEFT JOIN template_versions lv ON lv.id = t.live_version_id
+    LEFT JOIN template_versions dv ON dv.id = t.draft_version_id
+    LEFT JOIN template_versions wv ON wv.id = t.waiting_version_id
+    LEFT JOIN LATERAL (SELECT d.number FROM template_versions d
+      WHERE d.template_id = t.id AND d.origin = 'default' ORDER BY d.number DESC LIMIT 1) nd ON true
+    LEFT JOIN LATERAL (SELECT v.created_by, v.created_at FROM template_versions v
+      WHERE v.template_id = t.id ORDER BY v.number DESC LIMIT 1) top ON true
+    WHERE true
+      ${opts.kind ? sql`AND t.kind = ${opts.kind}` : sql``}
+      ${
+        folder
+          ? sql`AND (t.folder = ${folder} OR t.folder LIKE ${`${folder.replaceAll("%", "\\%").replaceAll("_", "\\_")}/%`})`
+          : sql``
+      }
+    ORDER BY t.folder, t.name, t.kind`)) as unknown as Record<string, unknown>[];
+  const num = (v: unknown) => (v === null || v === undefined ? null : Number(v));
+  const out = rows.map((r) => {
+    const row = {
+      id: Number(r.id),
+      kind: r.kind as TemplateKind,
+      system: String(r.system),
+      name: String(r.name),
+      folder: String(r.folder),
+      live: num(r.live),
+      draft: num(r.draft),
+      waiting: num(r.waiting),
+      newestDefault: num(r.newest_default),
+      by: (r.created_by as string | null) ?? null,
+      at: r.created_at ? new Date(r.created_at as string) : null,
+    };
+    const status = statusOf({
+      followsDefault: Boolean(r.follows_default),
+      live: row.live === null ? null : { number: row.live },
+      waiting: row.waiting,
+      newestDefault: row.newestDefault === null ? null : { number: row.newestDefault },
+    });
+    return { ...row, status };
+  });
+  return opts.status ? out.filter((r) => r.status === opts.status) : out;
+}
+
+/** One version in a template's history. */
+export interface VersionRow extends VersionHead {
+  why: string | null;
+  /** The number of the version it was opened from. */
+  openedFrom: number | null;
+  publishedAt: Date | null;
+  publishedBy: string | null;
+}
+
+/** A template's versions, newest first; empty when there is no such template. */
+export async function versionsOf(db: Queryable, ref: TemplateRef): Promise<VersionRow[]> {
+  const rows = (await db.execute(sql`
+    SELECT v.id, v.number, v.version, v.source, v.origin, v.why, v.created_by, v.created_at,
+      v.published_at, v.published_by, o.number opened_from
+    FROM templates t
+    JOIN template_versions v ON v.template_id = t.id
+    LEFT JOIN template_versions o ON o.id = v.opened_from
+    WHERE t.kind = ${ref.kind} AND t.system = ${ref.system} AND t.name = ${ref.name}
+    ORDER BY v.number DESC`)) as unknown as Record<string, unknown>[];
+  return rows.map((r) => ({
+    id: Number(r.id),
+    number: Number(r.number),
+    version: String(r.version),
+    source: String(r.source),
+    origin: r.origin as TemplateOrigin,
+    why: (r.why as string | null) ?? null,
+    openedFrom:
+      r.opened_from === null || r.opened_from === undefined ? null : Number(r.opened_from),
+    by: (r.created_by as string | null) ?? null,
+    at: new Date(r.created_at as string),
+    publishedAt: r.published_at ? new Date(r.published_at as string) : null,
+    publishedBy: (r.published_by as string | null) ?? null,
+  }));
+}
+
 /**
  * One default's words into this database: a new `default` version when the file moved (by its
  * hash), live at once when the template follows the default. A template made here follows it; one

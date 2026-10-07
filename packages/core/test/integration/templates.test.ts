@@ -14,6 +14,7 @@ import {
   clearTemplate,
   decline,
   importVersion,
+  listTemplates,
   liveTemplates,
   moveTemplate,
   parseRef,
@@ -31,6 +32,7 @@ import {
   type TemplateRef,
   TemplateRefusal,
   templateState,
+  versionsOf,
   writeDefault,
 } from "../../src/templates.js";
 
@@ -301,5 +303,34 @@ describe("folders", () => {
     expect(await renameFolder(pg.db, "outreach", "cold", "ann")).toBe(1);
     expect((await templateState(pg.db, EMAIL))?.folder).toBe("cold/first");
     expect((await resolveTemplate(pg.db, EMAIL))?.source).toBe(W1);
+  });
+});
+
+describe("listing and history", () => {
+  it("lists by folder, kind and status, and keeps every version with who and why", async () => {
+    await writeDefault(pg.db, EMAIL, W1, { hash: hash(1) });
+    await saveDraft(pg.db, EMAIL, W2, { by: "ann", why: "shorter" });
+    await saveLive(pg.db, TEXT, "Hi {first_name}, reply STOP to opt out.", {
+      by: "op@example.com",
+      rules: RULES,
+    });
+    await askPublish(pg.db, EMAIL, { by: "cli" });
+
+    const all = await listTemplates(pg.db);
+    expect(all.map((r) => [refText(r), r.status])).toEqual([
+      [refText(EMAIL), "waiting"],
+      [refText(TEXT), "edited"],
+    ]);
+    expect(all[0]).toMatchObject({ live: 1, draft: 2, waiting: 2, newestDefault: 1, by: "ann" });
+    expect(await listTemplates(pg.db, { kind: "sms" })).toHaveLength(1);
+    expect(await listTemplates(pg.db, { folder: EMAIL.system })).toHaveLength(1);
+    expect(await listTemplates(pg.db, { status: "edited" })).toHaveLength(1);
+
+    const versions = await versionsOf(pg.db, EMAIL);
+    expect(versions.map((v) => [v.number, v.origin, v.by, v.why, v.openedFrom])).toEqual([
+      [2, "edit", "ann", "shorter", 1],
+      [1, "default", "sync:defaults", null, null],
+    ]);
+    expect(await versionsOf(pg.db, { ...EMAIL, name: "nope" })).toEqual([]);
   });
 });

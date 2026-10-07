@@ -204,3 +204,11 @@ the counts match, then drops both tables. Code that still reads them moves to `r
 - 2026-10-07, step 2: the legacy drop copies in SQL, so a copied row's `version` is the sha256
   of its words, not the parsed template's hash. Prod's main had all three keyword rows in the
   store already; the copy covers client databases. `importVersion` stays for tests and fixtures.
+- 2026-10-07, step 3: the CLI reads every kind but writes emails and prompts only (`set`,
+  `restore`, `reset`). Texts and DMs save on their copy pages, which hold each slot's rules (STOP,
+  length, fields) and hand keyword replies to the provider; the CLI has neither. `get` prints the
+  words on stdout and the number for `--expect` on stderr, so `get > file` round-trips. `--expect
+  none` saves into an empty template. `restore` takes `--publish` too, since there is no separate
+  publish command. CLI writes are by `cli`, which can ask but never approve.
+- 2026-10-07, step 3: `diff` versions are a number or `live`, `draft`, `waiting`, `default`. The
+  line diff lives in core (`@wren/core/line-diff`), so the CLI and the Library show the same one.

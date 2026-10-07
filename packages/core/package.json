@@ -36,6 +36,7 @@
     "./in-house": "./src/in-house.ts",
     "./leads": "./src/leads.ts",
     "./library": "./src/library.ts",
+    "./line-diff": "./src/line-diff.ts",
     "./logic": "./src/logic.ts",
     "./mail": "./src/mail.ts",
     "./mailbox": "./src/mailbox.ts",

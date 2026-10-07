@@ -34,7 +34,7 @@ Citations: `packages/channel-email/src/outreach/templates.ts:47`, `authoring.ts:
 
 ## If you change this
 
-- **Hits:** publishing a version changes every future draft; adding a `{key}` needs the facts view to supply it or drafts are refused. Editing a `.email` file changes nothing sent; only `review` and `deliverability` read the files
+- **Hits:** publishing a version changes every future draft; adding a `{key}` needs the facts view to supply it or drafts are refused. Editing a `.email` file changes the default: the next deploy's sync makes it live wherever the template follows its default
 - **Also hits:** queued, untouched, unstarted messages: deploy calls `QueueRefresh/all`, which re-renders them (`packages/channel-email/src/restate/queue-refresh.ts:1`)
 - **Also hits:** a template under a running [[email/experiment]]: the next tick imports the edit (new options live, dropped ones retired)
 - **Does not hit:** sent, hand-edited or person-approved messages; a sequence once a step went out
@@ -43,7 +43,7 @@ Citations: `packages/channel-email/src/outreach/templates.ts:47`, `authoring.ts:
 
 | Surface | Role |
 |---|---|
-| `wren templates save\|publish` | writes |
+| `wren templates get\|set\|diff\|history` | reads and writes; `set --publish` waits in To approve |
 | `wren email preview` | renders one |
 | `ComposeScheduler` | renders all |
 
