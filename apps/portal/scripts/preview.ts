@@ -4,23 +4,29 @@
  *
  *   pnpm --filter @wren/portal preview          # as an operator: every client
  *   pnpm --filter @wren/portal preview --demo   # as a demo visitor: masked
- *   pnpm --filter @wren/portal preview --as amy@acme.example   # as a client's person
+ *   pnpm --filter @wren/portal preview --as amy@acme.example   # as that person, guarded
+ *
+ * With `--as`, each call runs the access guard first, as the edge's services do, so a custom
+ * role, extra grants and View as answer here as they would live.
  */
 import { createReadStream, existsSync } from "node:fs";
 import { createServer } from "node:http";
 import { extname, join, normalize } from "node:path";
 import { EMAIL_CONSOLE_VIEWS } from "@wren/channel-email/views";
 import { loadEnvFile, loadSettings } from "@wren/config";
+import { type Need, type RouteApps, routeAt } from "@wren/core/access";
 import { askRecord } from "@wren/core/ask";
 import { clientUrl } from "@wren/core/clients";
 import { consoleApi } from "@wren/core/console";
-import { CONSOLE_ROUTES } from "@wren/core/console-routes";
-import { PortalRefusal, type Viewer } from "@wren/core/portal";
+import { CONSOLE_APPS, CONSOLE_ROUTES } from "@wren/core/console-routes";
+import { guard, PortalRefusal, teamSeat, type Unnamed, type Viewer } from "@wren/core/portal";
 import { cachedDb, createDb } from "@wren/db";
 import { type FileStore, fileNameOf } from "@wren/delivery/files";
 import { DELIVERY_ROUTES, deliveryApi } from "@wren/delivery/restate";
+import { DELIVERY_APPS } from "@wren/delivery/routes";
 import { DEMO_NAME, PORTAL_ROUTES, portalApi } from "@wren/reactivation/restate";
 import { mediaRecord, sopRecord } from "../../../packages/content/src/library.js";
+import { PORTAL_APPS } from "../../../packages/reactivation/src/portal/routes.js";
 import { COMPONENTS } from "../../worker/src/components.js";
 import { copyRecords } from "../../worker/src/record-edits.js";
 import { WORKFLOWS } from "../../worker/src/workflows.js";
@@ -38,17 +44,27 @@ const files: FileStore = {
   put: async (key, bytes, type) => void stored.set(key, { type, bytes: Buffer.from(bytes) }),
 };
 /** The same services as the Worker's `/api/<service>/<route>`, called in-process. */
-const SERVICES: Record<string, { routes: readonly string[]; api: object }> = {
+const SERVICES: Record<
+  string,
+  {
+    routes: readonly string[];
+    api: object;
+    guard: { needs: object; apps: RouteApps<object>; unnamed: Unnamed };
+  }
+> = {
   delivery: {
     routes: Object.keys(DELIVERY_ROUTES),
+    guard: { needs: DELIVERY_ROUTES, apps: DELIVERY_APPS, unnamed: "first" },
     api: deliveryApi({ main, demoName: DEMO_NAME, files }),
   },
   reactivation: {
     routes: Object.keys(PORTAL_ROUTES),
+    guard: { needs: PORTAL_ROUTES, apps: PORTAL_APPS, unnamed: "first" },
     api: portalApi({ main, open: (c) => cachedDb(clientUrl(settings.databaseUrl, c)) }),
   },
   console: {
     routes: Object.keys(CONSOLE_ROUTES),
+    guard: { needs: CONSOLE_ROUTES, apps: CONSOLE_APPS, unnamed: "wren" },
     api: consoleApi({
       main,
       views: EMAIL_CONSOLE_VIEWS,
@@ -70,10 +86,11 @@ const local = SERVICES.console?.api as Record<string, (i: unknown) => Promise<un
 local.recordsAsk = async (i) => ({ id: await local.recordsAskOpen?.(i) });
 local.workflowAsk = async (i) => ({ id: await local.workflowAskOpen?.(i) });
 const as = process.argv[process.argv.indexOf("--as") + 1];
+const guarded = !demo && process.argv.includes("--as") && !!as;
 const viewer: Viewer = demo
   ? { demo: true }
-  : process.argv.includes("--as") && as
-    ? { email: as }
+  : guarded
+    ? { email: as, ...((await teamSeat(main, as)) ? { operator: true } : {}) }
     : { email: "preview@localhost", operator: true };
 const dist = join(import.meta.dirname, "..", "dist");
 const TYPES: Record<string, string> = {
@@ -117,7 +134,13 @@ createServer(async (req, res) => {
       const input = { ...(raw ? JSON.parse(raw) : {}), viewer };
       const handler = (svc.api as Record<string, (i: unknown) => Promise<unknown>>)[call];
       if (!handler) return send(404, { error: "not found" });
-      return send(200, await handler(input));
+      if (!guarded) return send(200, await handler(input));
+      const g = svc.guard;
+      const need = (g.needs as Record<string, Need>)[call] as Need;
+      return send(
+        200,
+        await handler(await guard(main, need, input, g.unnamed, routeAt(g.apps, call))),
+      );
     } catch (err) {
       if (err instanceof PortalRefusal) return send(err.status, { message: err.message });
       console.error(err);

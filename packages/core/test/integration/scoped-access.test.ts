@@ -353,3 +353,82 @@ describe("issues and asks through the console", () => {
     await refused(api().roleCopy({ ...(await as(EDITOR)), id: "viewer" }), 403);
   });
 });
+
+describe("access review", () => {
+  it("says who can do what per app and channel, and which grants end this week", async () => {
+    const admin = await whoIs(pg.db, { email: ADMIN });
+    await addGrant(pg.db, admin, ADMIN, {
+      email: LI,
+      client: WREN,
+      verbs: ["read"],
+      apps: ["outbound"],
+      until: new Date(Date.now() + 2 * 864e5).toISOString(),
+      reason: "a short cover",
+    });
+    const req = await as(ADMIN);
+    const page = await api().recordsList({ ...req, record: "access.review" });
+    const row = (email: string) => page.rows.find((r) => r.id === email);
+    expect(String(row(EDITOR)?.can).split("\n")).toEqual([
+      "Marketing: Act on YouTube; raise issues on and see everything",
+      "Outbound: Raise issues on and see everything",
+    ]);
+    expect(row(ADMIN)?.can).toBe("Every app: Run, act on, raise issues on and see everything");
+    expect(row(LI)?.soon).toBe("yes");
+    expect(String(row(LI)?.ending)).toContain("Can see everything in Outbound until");
+    const ending = await api().recordsList({ ...req, record: "access.review", view: "ending" });
+    expect(ids(ending.rows)).toEqual([LI]);
+    // Only whoever manages access sees it.
+    await refused(api().recordsList({ ...(await as(EDITOR)), record: "access.review" }), 404);
+  });
+});
+
+describe("view as", () => {
+  const MEMBER = "mia@acme.test";
+  const TWO = "two@both.test";
+  beforeAll(async () => {
+    await addClient(pg.db, pg.url, { id: "other", name: "Other" });
+    await addMember(pg.db, "acme", MEMBER, { role: "viewer" });
+    await addMember(pg.db, "acme", TWO, { role: "viewer" });
+    await addMember(pg.db, "other", TWO, { role: "viewer" });
+  });
+  const lookAs = (email: string, viewAs: string, need = "wren:read", client?: string) =>
+    guard(
+      pg.db,
+      need as never,
+      { viewer: { email }, viewAs, ...(client ? { client } : {}) } as PortalRequest,
+      need.startsWith("wren:") ? "wren" : "first",
+    );
+
+  it("an admin sees what a teammate sees", async () => {
+    const req = await lookAs(ADMIN, LI);
+    expect((req.viewer as { email: string }).email).toBe(LI);
+    const page = await api().recordsList({ ...req, record: "test.post" });
+    expect(ids(page.rows)).toEqual(["l1"]);
+  });
+
+  it("an owner sees what one of their people sees", async () => {
+    const req = await lookAs(OWNER, MEMBER, "read", "acme");
+    expect(req.viewer).toMatchObject({ email: MEMBER });
+    expect((req.viewer as { team?: unknown }).team).toBeUndefined();
+  });
+
+  it("is read only", async () => {
+    await refused(lookAs(ADMIN, LI, "wren:act"), 403, "read-only");
+    // Routes that check on what they name refuse a change too.
+    const req = await lookAs(ADMIN, EDITOR);
+    await refused(
+      api().issueRaise({ ...req, record: "test.post", id: "y1", body: "Not mine to say." }),
+      403,
+      "read-only",
+    );
+  });
+
+  it("is refused past your own people", async () => {
+    await refused(lookAs(OWNER, EDITOR, "read", "acme"), 403, "admin");
+    await refused(lookAs(LI, EDITOR), 403, "admin");
+    await refused(lookAs(MEMBER, OWNER, "read", "acme"), 403, "your own people");
+    // In two workspaces, one of them not the owner's: no.
+    await refused(lookAs(OWNER, TWO, "read", "acme"), 403, "your own people");
+    await refused(lookAs(ADMIN, "nobody@example.test"), 404);
+  });
+});

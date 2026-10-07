@@ -212,6 +212,7 @@ describe("ConsolePortal records", () => {
       "console.check",
       "access.role",
       "access.grant",
+      "access.review",
       "access.issue",
       "access.ask",
       "console.component",

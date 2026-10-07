@@ -26,6 +26,8 @@ export interface IssueLine {
 export interface AccessApi {
   /** The workspace: a client id, or `wren`. */
   client: string;
+  /** View as: issues show, but nothing is raised, resolved or asked. */
+  readOnly?: boolean;
   issues(a: { record: string; id: string }): Promise<IssueLine[]>;
   raise(a: {
     record: string;
@@ -88,8 +90,8 @@ export function RecordIssues({
   reload(): void;
 }) {
   const at = rowTarget(meta, row, access.client);
-  const mayRaise = canAt(viewer, "comment", at);
-  const mayResolve = canAt(viewer, "act", at);
+  const mayRaise = !access.readOnly && canAt(viewer, "comment", at);
+  const mayResolve = !access.readOnly && canAt(viewer, "act", at);
   const [body, setBody] = useState("");
   const [busy, setBusy] = useState<string | null>(null);
   const id = useId();
@@ -223,7 +225,7 @@ export function AskAccess({
   const [reason, setReason] = useState("");
   const [busy, setBusy] = useState(false);
   const id = useId();
-  if (!canAt(viewer, "read", at) || canAt(viewer, "act", at)) return null;
+  if (access.readOnly || !canAt(viewer, "read", at) || canAt(viewer, "act", at)) return null;
   const channel = typeof at.channel === "string" ? at.channel : null;
   const send = async () => {
     if (!reason.trim() || busy) return;
@@ -251,7 +253,7 @@ export function AskAccess({
     return (
       <button
         type="button"
-        className="justify-self-start text-[13px] text-(--ui-ink-3) underline-offset-2 hover:text-(--ui-ink) hover:underline"
+        className="cursor-pointer justify-self-start border-0 bg-transparent p-0 text-[13px] text-(--ui-ink-3) underline-offset-2 hover:text-(--ui-ink) hover:underline"
         onClick={() => setOpen(true)}
       >
         Ask for access

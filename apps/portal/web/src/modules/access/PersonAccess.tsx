@@ -7,7 +7,7 @@ import { ACCESS_CHANNELS, APPS, CHANNEL_NAMES, type Permission } from "@wren/cor
 import type { RecordsPage } from "@wren/core/records/serve";
 import { Alert, Button, Input, Loading } from "@wren/ui";
 import { type FormEvent, useState } from "react";
-import { call } from "../../api.js";
+import { call, viewAs, viewingAs } from "../../api.js";
 import { useCall } from "../../load.js";
 import { WREN } from "../../module.js";
 import { ERROR, FIELD, FORM, LIST, QUIET, SELECT, SPLIT } from "../work/bits.js";
@@ -111,11 +111,18 @@ export function PersonAccess({
   return (
     <div className="grid gap-4 text-[14px]">
       <section className="grid gap-1">
-        <h4 className="text-[13px] font-medium text-(--ui-ink-2)">
-          Role: {String(theirs?.name ?? role)}
-        </h4>
+        <div className={SPLIT}>
+          <h4 className="text-[13px] font-medium text-(--ui-ink-2)">
+            Role: {String(theirs?.name ?? role)}
+          </h4>
+          {viewingAs ? null : (
+            <Button size="sm" tone="quiet" onClick={() => viewAs(email)}>
+              View as
+            </Button>
+          )}
+        </div>
         {lines.length ? (
-          lines.map((l) => <p key={l}>{l}.</p>)
+          lines.map((l) => <p key={l}>{l}</p>)
         ) : (
           <p className={QUIET}>A built-in role.</p>
         )}
@@ -127,21 +134,23 @@ export function PersonAccess({
             {live.map((g) => (
               <li key={String(g.id)} className={SPLIT}>
                 <span>
-                  {String(g.what)}.
+                  {String(g.what)}
                   {g.reason ? (
                     <span className={`${QUIET} block text-[13px]`}>{String(g.reason)}</span>
                   ) : null}
                 </span>
-                <Button
-                  size="sm"
-                  tone="quiet"
-                  disabled={busy}
-                  onClick={() => {
-                    if (confirm("End this grant now?")) void run("grantEnd", { id: g.id });
-                  }}
-                >
-                  End now
-                </Button>
+                {viewingAs ? null : (
+                  <Button
+                    size="sm"
+                    tone="quiet"
+                    disabled={busy}
+                    onClick={() => {
+                      if (confirm("End this grant now?")) void run("grantEnd", { id: g.id });
+                    }}
+                  >
+                    End now
+                  </Button>
+                )}
               </li>
             ))}
           </ul>
@@ -149,7 +158,7 @@ export function PersonAccess({
           <p className={QUIET}>None.</p>
         )}
         {error ? <p className={ERROR}>{error}</p> : null}
-        {adding ? (
+        {viewingAs ? null : adding ? (
           <form className={FORM} onSubmit={(e) => void add(e)} aria-label="Add a grant">
             <fieldset className={`${FIELD} basis-full`}>
               <legend className="mb-1.5">They can</legend>
@@ -223,7 +232,7 @@ export function PersonAccess({
         <section className="grid gap-2">
           <button
             type="button"
-            className="justify-self-start text-[13px] font-medium text-(--ui-ink-2) hover:text-(--ui-ink)"
+            className="cursor-pointer justify-self-start border-0 bg-transparent p-0 text-[13px] font-medium text-(--ui-ink-2) hover:text-(--ui-ink)"
             aria-expanded={history}
             onClick={() => setHistory((h) => !h)}
           >
@@ -233,7 +242,7 @@ export function PersonAccess({
             <ul className={LIST}>
               {ended.map((g) => (
                 <li key={String(g.id)} className={QUIET}>
-                  {String(g.what)}. {g.state === "used" ? "Used up." : "Ended."} Given by{" "}
+                  {String(g.what)} {g.state === "used" ? "Used up." : "Ended."} Given by{" "}
                   {String(g.by)}.
                 </li>
               ))}

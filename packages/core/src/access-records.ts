@@ -7,10 +7,14 @@
 import type { Queryable } from "@wren/db";
 import { desc, eq, sql } from "drizzle-orm";
 import {
+  ACCESS_CHANNELS,
   APPS,
+  CHANNEL_NAMES,
   can,
   type Grant,
   live,
+  type Permission,
+  type RoleId,
   refusal,
   type Scope,
   sentence,
@@ -18,15 +22,16 @@ import {
   WREN,
 } from "./access.js";
 import { normalEmail } from "./clients/index.js";
-import { accessAsks, grants, issues } from "./clients/schema.js";
-import { rolesIn } from "./grants.js";
+import { accessAsks, clientMembers, grants, issues, operators } from "./clients/schema.js";
+import { grantsFor, rolesIn } from "./grants.js";
 import { actor, date, defineRecord, number, type RecordType, status, text } from "./records.js";
 
 export const ROLE = "access.role";
 export const GRANT = "access.grant";
 export const ISSUE = "access.issue";
 export const ASK = "access.ask";
-export const ACCESS_TYPES = [ROLE, GRANT, ISSUE, ASK] as const;
+export const REVIEW = "access.review";
+export const ACCESS_TYPES = [ROLE, GRANT, ISSUE, ASK, REVIEW] as const;
 
 /** Where access is managed: Team at Wren, Account at a client. */
 export const accessApp = (client: string) => (client === WREN ? "team" : "account");
@@ -65,6 +70,122 @@ export interface AccessReader {
   client: string;
   /** The reader's time zone, for "until Fri, 5 PM". */
   zone?: string;
+}
+
+/** Strongest first: what a review line says a person can do. */
+const REVIEW_VERBS: [Permission, string][] = [
+  ["run", "run"],
+  ["act", "act on"],
+  ["comment", "raise issues on"],
+  ["read", "see"],
+];
+/** Every place a record can sit in one app: no channel, then each channel. */
+const SPOTS: (string | null)[] = [null, ...ACCESS_CHANNELS];
+const and = (xs: readonly string[]) =>
+  xs.length < 2 ? (xs[0] ?? "") : `${xs.slice(0, -1).join(", ")} and ${xs.at(-1)}`;
+
+/** One app, for one person: "Act on YouTube; raise issues on and see everything", or "". */
+export function reachIn(who: Who, client: string, app: string): string {
+  const by = new Map<string, string[]>();
+  for (const [verb, words] of REVIEW_VERBS) {
+    const on = SPOTS.filter((channel) => can(who, verb, { client, app, channel }));
+    if (!on.length) continue;
+    const named = on.filter((c): c is string => c !== null);
+    const where =
+      on.length === SPOTS.length
+        ? "everything"
+        : named.length
+          ? and(named.map((c) => CHANNEL_NAMES[c as keyof typeof CHANNEL_NAMES] ?? c))
+          : "what has no channel";
+    by.set(where, [...(by.get(where) ?? []), words]);
+  }
+  const s = [...by].map(([where, words]) => `${and(words)} ${where}`).join("; ");
+  return s ? s[0]?.toUpperCase() + s.slice(1) : "";
+}
+
+/** Each app's line, apps that read the same grouped; the biggest group is "every other app". */
+export function reachLines(who: Who, client: string): string[] {
+  const groups = new Map<string, string[]>();
+  for (const [app, name] of Object.entries(APPS)) {
+    const line = reachIn(who, client, app);
+    groups.set(line, [...(groups.get(line) ?? []), name]);
+  }
+  const all = [...groups].sort((a, b) => b[1].length - a[1].length);
+  const [rest, ...named] = all;
+  const lines = named.filter(([line]) => line).map(([line, apps]) => `${and(apps)}: ${line}`);
+  if (rest?.[0]) lines.push(`${named.length ? "Every other app" : "Every app"}: ${rest[0]}`);
+  return lines.length ? lines : ["Nothing"];
+}
+
+/** Everyone who signs in to the workspace, with their role and where it sits. */
+async function people(db: Queryable, client: string) {
+  if (client === WREN)
+    return (
+      await db
+        .select({ email: operators.email, role: operators.role, clients: operators.clients })
+        .from(operators)
+    ).map((r) => ({ ...r, role: r.role as RoleId }));
+  return (
+    await db
+      .select({ email: clientMembers.email, role: clientMembers.role })
+      .from(clientMembers)
+      .where(eq(clientMembers.clientId, client))
+  ).map((r) => ({ email: r.email, role: r.role as RoleId, clients: null }));
+}
+
+/** Who can do what, per app and channel, and which grants end this week: one row a person. */
+function reviewType(o: AccessReader): RecordType {
+  return defineRecord({
+    id: REVIEW,
+    app: accessApp(o.client),
+    channel: null,
+    name: { one: "person", many: "people" },
+    rows: async (db) => {
+      const now = new Date();
+      const [all, roles] = await Promise.all([people(db, o.client), rolesIn(db, o.client)]);
+      const names = new Map(roles.map((r) => [r.id, r.name]));
+      const out = [];
+      for (const p of all.sort((a, b) => a.email.localeCompare(b.email))) {
+        const atWren = o.client === WREN;
+        const held = await grantsFor(db, p.email, p.role, atWren ? undefined : o.client);
+        const who: Who = atWren
+          ? { team: p.role, clients: p.clients, grants: held }
+          : { member: p.role, client: o.client, grants: held };
+        const extras = held.filter((g) => g.id != null);
+        const ending = extras.filter(
+          (g) => g.until && new Date(g.until).getTime() - now.getTime() < 7 * day,
+        );
+        out.push({
+          id: p.email,
+          email: p.email,
+          role: names.get(p.role) ?? p.role,
+          can: reachLines(who, o.client).join("\n"),
+          extras: extras.length,
+          ending: ending.map((g) => sentence(g, now, o.zone)).join("\n"),
+          soon: ending.length ? "yes" : "no",
+        });
+      }
+      return out;
+    },
+    key: "id",
+    title: "email",
+    subtitle: "role",
+    fields: {
+      email: text("Person"),
+      role: text("Role"),
+      can: text("Can"),
+      extras: number("Extra grants"),
+      ending: text("Ends this week"),
+      soon: status(
+        { yes: { label: "Ends this week", tone: "warn" }, no: { label: "No", tone: "neutral" } },
+        "Grant ending",
+      ),
+    },
+    views: [
+      { id: "all", label: "Everyone" },
+      { id: "ending", label: "Ending this week", where: { soon: "yes" } },
+    ],
+  });
 }
 
 /** Roles and grants, for whoever manages the workspace. */
@@ -184,7 +305,7 @@ function managed(o: AccessReader): RecordType[] {
     ],
     actions: ["access.grantAdd", "access.grantEnd"],
   });
-  return [role, grant];
+  return [role, grant, reviewType(o)];
 }
 
 /** Issues the reader can see, marked "yours" where they can act on the record. */

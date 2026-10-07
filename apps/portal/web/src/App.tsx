@@ -38,7 +38,7 @@ import {
 } from "@wren/ui";
 import { Component, lazy, type ReactNode, Suspense, useEffect, useMemo, useState } from "react";
 import { whoAt } from "./access.js";
-import { call, ME_CHANGED, type Me, signOutUrl } from "./api.js";
+import { call, ME_CHANGED, type Me, signOutUrl, viewAs, viewingAs } from "./api.js";
 import { useShareFlags } from "./flags.js";
 import { useCall } from "./load.js";
 import { type Module, type ModulePage, type PageProps, WREN } from "./module.js";
@@ -423,6 +423,7 @@ export function App() {
           onPick: pick,
         }}
         launcher={launcher}
+        bar={viewingAs ? <ViewingAs email={viewingAs} /> : undefined}
         pins={railPins}
         app={
           open
@@ -549,6 +550,27 @@ export function App() {
   );
 }
 
+/** The strip on top under View as: who, that it reads only, and the way back. */
+function ViewingAs({ email }: { email: string }) {
+  return (
+    <div
+      role="status"
+      className="flex min-h-10 flex-none flex-wrap items-center justify-center gap-x-3 gap-y-1 bg-(--ui-ink) px-4 py-1.5 text-[14px] text-(--ui-on-ink)"
+    >
+      <span className="min-w-0 break-all">
+        Viewing as <strong className="font-medium">{email}</strong>. Read only.
+      </span>
+      <button
+        type="button"
+        className="cursor-pointer rounded-(--ui-radius) border border-solid border-current/40 bg-transparent px-2.5 py-0.5 text-[13px] text-inherit hover:bg-white/10"
+        onClick={() => viewAs(null)}
+      >
+        Stop
+      </button>
+    </div>
+  );
+}
+
 const FAVORITES = "favorites:library.snippet";
 const SNIPPETS = new Map<string, SnippetsSource>();
 /** Wren's snippets, read in the workspace on screen; favorites are kept at Wren, one list. */
@@ -625,7 +647,8 @@ function Launcher({
     <>
       <PageHeader title="Apps" lede={`Everything Wren runs for ${name}.`} />
       <PinnedRow pins={pins} />
-      {props.team || props.demo ? null : (
+      {/* Installing needs `manage`: a viewer or member never sees the offer. */}
+      {props.team || props.demo || !props.can?.includes("manage") ? null : (
         <AddOn
           offered={(account.data?.bought ?? []).map((b) => b.addOn)}
           installed={installed}

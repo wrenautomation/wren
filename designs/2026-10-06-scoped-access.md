@@ -152,3 +152,14 @@ LinkedIn this week, and may publish one post once.
   Inbox. The web gets the same `Who` from `portalMe`, and a record page checks its head
   actions at that row, so the YouTube editor sees Approve on YouTube posts only. Raise issue
   replaces the head actions only when there are none; otherwise it lives in the Issues tab.
+- 2026-10-06: Phase 4 built. View as is a `viewAs` email on any request. The Worker refuses it
+  on every write route, the guard swaps the viewer only when the route needs `read`
+  (`viewAsOf`), and access writes refuse it again because their routes need only `read`. An
+  admin may view as a teammate; an admin or owner may view as a client's person only when they
+  manage every client that person is in. `me` under View as doesn't mark the person as seen.
+  The web keeps the email in session storage, sends it on every call, hides actions, edits,
+  Raise issue and Ask for access, and shows a bar with Stop. Access review is the
+  `access.review` type (Team and Account, `manage` only): one row per person, each app's line
+  read off `can` across every channel, apps with the same line grouped, the biggest group as
+  "Every other app", plus their grants ending this week. Its tab counts those. The local preview
+  runs the guard per call with `--as`, so custom roles answer there as they do live.

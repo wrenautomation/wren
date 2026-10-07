@@ -50,6 +50,8 @@ export interface PortalRequest {
   client?: string;
   /** An operator looking as the client would: no internal notes, no team tools. */
   asClient?: boolean;
+  /** View as: an admin or owner reads as one of their people, read only (`viewAsOf`). */
+  viewAs?: string;
 }
 
 /** A refusal the Worker passes on with its status. */
@@ -129,8 +131,12 @@ export async function guard<R extends PortalRequest>(
 ): Promise<R> {
   const { permission, wren } = needOf(need);
   const named = typeof req.client === "string" ? req.client : undefined;
-  const viewer = req.viewer;
-  if (!viewer || typeof viewer !== "object") throw new PortalRefusal("sign in", 403);
+  if (!req.viewer || typeof req.viewer !== "object") throw new PortalRefusal("sign in", 403);
+  const asked = (req as PortalRequest).viewAs;
+  const viewer =
+    asked === undefined || asked === null || asked === ""
+      ? req.viewer
+      : await viewAsOf(main, req.viewer, asked, permission);
   const who = await whoIs(main, viewer, wren ? undefined : named);
   // `wren` is for the team: a client's people naming no client stay on their own.
   const team = who !== null && "team" in who;
@@ -167,6 +173,37 @@ export async function guard<R extends PortalRequest>(
         }
       : { email: viewer.email, ...(who ? { access: who } : {}) };
   return { ...req, viewer: fresh };
+}
+
+/**
+ * View as (designs/2026-10-06-scoped-access.md): the person `as`, for a route that only reads.
+ * An admin may view as a teammate; an admin or owner as a client's person, when they manage
+ * every client that person is in, so nothing beyond their own workspaces shows.
+ */
+export async function viewAsOf(
+  main: Db,
+  real: Viewer,
+  as: unknown,
+  permission: Permission,
+): Promise<SignedViewer> {
+  if (isDemo(real)) throw new PortalRefusal("the demo is read-only", 403);
+  if (typeof as !== "string" || as.length > 254) throw new PortalRefusal("view as: say who", 400);
+  if (permission !== "read") throw new PortalRefusal("view as is read-only", 403);
+  const email = normalEmail(as);
+  if (await teamSeat(main, email)) {
+    if (!can(await whoIs(main, real), "team", WREN))
+      throw new PortalRefusal("only an admin views as a teammate", 403);
+    return { email, operator: true };
+  }
+  const where = await main
+    .select({ client: clientMembers.clientId })
+    .from(clientMembers)
+    .where(eq(clientMembers.email, email));
+  if (!where.length) throw new PortalRefusal("no such person", 404);
+  for (const { client } of where)
+    if (!can(await whoIs(main, real, client), "manage", { client }))
+      throw new PortalRefusal("you can view as your own people only", 403);
+  return { email };
 }
 
 /** A portal handler as Restate calls it; `never` takes any request type. */
@@ -326,9 +363,15 @@ export interface Me {
 }
 
 /** Who you are to the portal. The demo host sees its client as `demoName`, never its real name. */
-export async function portalMe(main: Db, viewer: Viewer, demoName: string): Promise<Me> {
+export async function portalMe(
+  main: Db,
+  viewer: Viewer,
+  demoName: string,
+  /** False under View as: looking as someone isn't them signing in. */
+  touch = true,
+): Promise<Me> {
   const mine = await clientsFor(main, viewer);
-  if (!isDemo(viewer)) await touchMember(main, viewer.email);
+  if (!isDemo(viewer) && touch) await touchMember(main, viewer.email);
   const team = isDemo(viewer) ? undefined : viewer.team;
   const seat = isOperator(viewer)
     ? {

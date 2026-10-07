@@ -152,7 +152,7 @@ export const ASK_ACTIONS: Action[] = [
   },
 ];
 
-/** Roles and Grants: for whoever manages the workspace. */
+/** Roles, Grants and Access review: for whoever manages the workspace. */
 export function managePages(wren: boolean): ListPage[] {
   return [
     {
@@ -178,6 +178,19 @@ export function managePages(wren: boolean): ListPage[] {
       },
       columns: ["email", "what", "state", "until", "by"],
       actions: GRANT_ACTIONS,
+    },
+    {
+      id: "review",
+      label: "Access review",
+      requires: { needs: "manage" },
+      template: "list",
+      record: "access.review",
+      empty: {
+        all: "People show here once they join.",
+        ending: "No grant ends this week.",
+      },
+      columns: ["email", "role", "can", "ending"],
+      count: { soon: ["yes"] },
     },
   ];
 }

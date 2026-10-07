@@ -93,6 +93,7 @@ export function accessApi({ main, typesFor, rowAt }: AccessDeps) {
     req: PortalRequest,
     fn: (tx: Queryable, at: { client: string; by: string; who: Who }) => Promise<T>,
   ): Promise<T> => {
+    if (req.viewAs) throw new PortalRefusal("view as is read-only", 403);
     const at = await placeOf(main, req);
     return serializable(main, async (tx) => {
       await setAuditActor(tx, at.by);

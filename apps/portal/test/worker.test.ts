@@ -224,6 +224,23 @@ describe("the app host", () => {
     });
   });
 
+  it("view as passes reads on and refuses every write", async () => {
+    const t = await token({ email: "ops@wren.example", operator: true });
+    const auth = { authorization: `Bearer ${t}` };
+    const read = await worker.fetch(
+      post("app.test", "delivery/me", { viewAs: "a@b.test" }, auth),
+      env(),
+    );
+    expect(read.status).toBe(200);
+    expect(restate[0]?.body).toMatchObject({ viewAs: "a@b.test" });
+    const write = await worker.fetch(
+      post("app.test", "delivery/invite", { viewAs: "a@b.test", email: "c@d.test" }, auth),
+      env(),
+    );
+    expect(write.status).toBe(403);
+    expect(restate).toHaveLength(1);
+  });
+
   it("refuses a token with the wrong audience, issuer, expiry, key or signature", async () => {
     const other = (await crypto.subtle.generateKey({ name: "Ed25519" }, true, [
       "sign",

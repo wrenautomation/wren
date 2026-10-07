@@ -255,7 +255,8 @@ const engagementFor = (db: Queryable, client: Client, req: EngagementReq): Promi
 /** The handlers as plain functions: the service wraps them, tests call them. */
 export function deliveryApi(deps: DeliveryDeps) {
   return {
-    me: (req: PortalRequest): Promise<Me> => portalMe(deps.main, req.viewer, deps.demoName),
+    me: (req: PortalRequest): Promise<Me> =>
+      portalMe(deps.main, req.viewer, deps.demoName, !req.viewAs),
     /** Wren's ops board: every client, at risk first. */
     board: async (req: PortalRequest): Promise<BoardRow[]> => {
       if (!isOperator(req.viewer)) throw new PortalRefusal("that's for Wren's team", 403);

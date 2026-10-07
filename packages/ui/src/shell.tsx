@@ -80,6 +80,7 @@ export function AppShell({
   app,
   pins,
   actions,
+  bar,
   page,
   theme,
   wide = false,
@@ -96,6 +97,8 @@ export function AppShell({
   pins?: RailPins | undefined;
   /** The viewer's own buttons, top right. */
   actions?: ReactNode;
+  /** A strip above everything, such as "Viewing as". */
+  bar?: ReactNode;
   /** Changes when the page does, which scrolls back to the top. */
   page: string;
   /** The client's look; without one it's Wren's. */
@@ -122,6 +125,7 @@ export function AppShell({
       >
         Skip to content
       </a>
+      {bar}
 
       <header className="flex h-[54px] min-w-0 flex-none items-center gap-1.5 px-[calc(var(--ui-frame)+8px)] max-[900px]:h-[52px] max-[900px]:bg-(--ui-canvas) max-[900px]:px-2">
         <a

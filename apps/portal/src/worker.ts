@@ -103,6 +103,10 @@ async function api(req: Request, env: Env, path: string, site: Site, ctx?: Execu
   }
   if (!input || typeof input !== "object" || Array.isArray(input))
     return json({ error: "an object only" }, 400);
+  // View as reads only; the guard checks who may (`viewAsOf`).
+  const viewAs = (input as { viewAs?: unknown }).viewAs;
+  if (viewAs !== undefined && viewAs !== null && viewAs !== "" && svc.writes.has(route))
+    return json({ error: "View as is read-only." }, 403);
   const viewer = await viewerOf(req, env);
   if (viewer instanceof Response) return viewer;
   if (!("demo" in viewer)) {

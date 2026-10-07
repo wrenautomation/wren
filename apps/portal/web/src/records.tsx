@@ -23,7 +23,7 @@ import {
 } from "@wren/ui";
 import { useEffect } from "react";
 import { permissionOf } from "../../src/services.js";
-import { call, uploadFile } from "./api.js";
+import { call, uploadFile, viewingAs } from "./api.js";
 import { type ListPage, type OverviewPage, type PageProps, WREN } from "./module.js";
 import { href, navigate } from "./route.js";
 
@@ -50,7 +50,8 @@ function apiOf(product: string, client: string | null, scope: Scope): RecordsApi
       stats: (a) => ask("recordsStats", { ...a }),
       keep: keepOf(client, scope),
       // Edits are Wren's records' for now (`@wren/core/edits`): the console serves them.
-      ...(product === "console"
+      // View as reads only: no edits.
+      ...(product === "console" && !viewingAs
         ? {
             edit: (a) => ask("recordsEdit", { ...a }),
             undo: (a) => ask("recordsUndo", { ...a }),
@@ -78,6 +79,7 @@ function accessOf(client: string | null, scope: Scope): AccessApi {
       raise: (a) => ask("issueRaise", { ...a }),
       resolve: (id) => ask("issueResolve", { id }),
       ask: (a) => ask("accessAsk", { ...a }),
+      ...(viewingAs ? { readOnly: true } : {}),
     };
     ACCESS.set(key, access);
   }
@@ -415,7 +417,8 @@ export function TemplatePage({
   const { extras, head } = page;
   // Each action needs what its route needs, unless it says otherwise: a button the login can't
   // press is hidden.
-  const actions = (page.actions ?? []).map((a) => {
+  // View as reads only: no actions.
+  const actions = (viewingAs ? [] : (page.actions ?? [])).map((a) => {
     const needs = a.requires?.needs ?? permissionOf(AS[a.handler]?.[0] ?? a.handler);
     return needs ? { ...a, requires: { ...a.requires, needs } } : a;
   });

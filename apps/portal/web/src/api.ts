@@ -154,6 +154,28 @@ async function fresh(url: string): Promise<string | null> {
   return t;
 }
 
+const VIEW_AS = "wren.viewAs";
+
+/** View as: the person this tab looks as, read only. Every call carries it; the server checks. */
+export const viewingAs: string | null = (() => {
+  try {
+    return sessionStorage.getItem(VIEW_AS) || null;
+  } catch {
+    return null;
+  }
+})();
+
+/** Start or stop View as. The app opens again from the top, as that person or as you. */
+export function viewAs(email: string | null) {
+  try {
+    if (email) sessionStorage.setItem(VIEW_AS, email);
+    else sessionStorage.removeItem(VIEW_AS);
+  } catch {
+    // No session storage: nothing to look as.
+  }
+  location.assign("/");
+}
+
 export async function call<T>(
   path: string,
   body: Record<string, unknown> = {},
@@ -168,7 +190,7 @@ export async function call<T>(
         "content-type": "application/json",
         ...(t ? { authorization: `Bearer ${t}` } : {}),
       },
-      body: JSON.stringify(body),
+      body: JSON.stringify(viewingAs ? { ...body, viewAs: viewingAs } : body),
     });
   } catch {
     throw new ApiError("You're offline, or the portal is.", 0);

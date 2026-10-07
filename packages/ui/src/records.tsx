@@ -1535,7 +1535,11 @@ export function RecordBody({
               ))}
               {dialog}
             </div>
-          ) : access && acts && issues.data && canAt(acts.viewer, "comment", here) ? (
+          ) : access &&
+            !access.readOnly &&
+            acts &&
+            issues.data &&
+            canAt(acts.viewer, "comment", here) ? (
             // Nothing here they may do: raising an issue takes the actions' place.
             <Button
               tone="secondary"
