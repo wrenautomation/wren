@@ -157,6 +157,8 @@ export interface ApproveVideo {
   vertical?: boolean;
   /** Private unless he says otherwise: then he publishes or schedules it on YouTube. */
   privacy?: VideoPrivacy;
+  /** The long video, already uploaded: upload the current render as a new video. The old draft keeps its URL. */
+  replace?: boolean;
   source: IdeaSource;
   now?: Date;
 }
@@ -201,9 +203,17 @@ export async function approveVideo(
       .from(contentDrafts)
       .innerJoin(contentIdeas, eq(contentIdeas.id, contentDrafts.ideaId))
       .where(eq(contentIdeas.ref, ref));
-    const yt = had.find((d) => d.platform === "youtube");
+    const uploaded = had.find((d) => d.platform === "youtube");
+    const replace = Boolean(o.replace && uploaded && !reels);
+    const yt = replace ? undefined : uploaded;
     const now = o.now ?? new Date();
     if (yt && !reels) return { id: yt.id, again: true };
+    // The ref is unique: the old idea steps aside so the new upload takes it (promos find the new one).
+    if (replace && uploaded)
+      await tx
+        .update(contentIdeas)
+        .set({ ref: `${ref}~${uploaded.id.slice(0, 8)}` })
+        .where(eq(contentIdeas.id, uploaded.ideaId));
     if (!yt && !["rendered", "approved", "uploaded"].includes(e.state))
       throw new Error(`video ${id} is ${e.state}: render it first (wren video render ${id})`);
     const { file, title, thumbnail } = target(e, reels);

@@ -347,4 +347,36 @@ describe("marketing.video", () => {
       .returning();
     await expect(approveVideo(pg.db, v!.id, { source: "cli" })).rejects.toThrow(/render it first/);
   });
+
+  it("replace uploads a re-render as a new video; the old draft keeps its row", async () => {
+    const [v] = await pg.db
+      .insert(videoEdits)
+      .values({
+        title: "Re-cut",
+        state: "uploaded",
+        dir: "/rec",
+        tracks: { main: track },
+        files: { long: "/rec/out/long.mp4", captions: "/rec/out/long.en.srt" },
+      })
+      .returning();
+    const first = await approveVideo(pg.db, v!.id, { source: "cli", privacy: "public" });
+    const fresh = await approveVideo(pg.db, v!.id, {
+      source: "cli",
+      privacy: "public",
+      replace: true,
+    });
+    expect(fresh.again).toBe(false);
+    expect(fresh.id).not.toBe(first.id);
+    const rows = await pg.db.select().from(contentDrafts);
+    expect(rows.find((d) => d.id === first.id)).toBeDefined();
+    expect(rows.find((d) => d.id === fresh.id)).toMatchObject({
+      status: "approved",
+      extra: { privacyStatus: "public", captions: "/rec/out/long.en.srt" },
+    });
+    // The new upload holds the video's ref: approving again answers it.
+    expect(await approveVideo(pg.db, v!.id, { source: "cli" })).toEqual({
+      id: fresh.id,
+      again: true,
+    });
+  });
 });

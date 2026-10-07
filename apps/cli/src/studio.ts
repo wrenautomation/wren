@@ -337,28 +337,37 @@ export function registerStudio(
     .option("--short <n>", "a Short instead of the long video, 1 for the first", (n) => id(n))
     .option("--vertical", "the vertical cut (YouTube, plus an Instagram Reel draft)")
     .option("--privacy <p>", `who sees it: ${VIDEO_PRIVACY.join(", ")}`, "private")
-    .action((v: string, o: { short?: number; vertical?: boolean; privacy: string }) =>
-      withDb(async (db) => {
-        const privacy = VIDEO_PRIVACY.find((p) => p === o.privacy);
-        if (!privacy) throw new Error(`--privacy ${o.privacy}: one of ${VIDEO_PRIVACY.join(", ")}`);
-        if (o.short && o.vertical) throw new Error("--short or --vertical, not both");
-        const d = await approveVideo(db, id(v), {
-          source: "cli",
-          privacy,
-          ...(o.short ? { short: o.short } : {}),
-          ...(o.vertical ? { vertical: true } : {}),
-        });
-        console.log(
-          d.again
-            ? `video ${v}: already approved as draft ${d.id}`
-            : `video ${v}: draft ${d.id} approved; it uploads, ${privacy}, on the next pass`,
-        );
-        if (d.reel && "missing" in d.reel) console.log(d.reel.missing);
-        else if (d.reel && !d.reel.again)
+    .option(
+      "--replace",
+      "the long video was uploaded already: upload this render as a new video (the old one stays until you hide it)",
+    )
+    .action(
+      (v: string, o: { short?: number; vertical?: boolean; privacy: string; replace?: boolean }) =>
+        withDb(async (db) => {
+          const privacy = VIDEO_PRIVACY.find((p) => p === o.privacy);
+          if (!privacy)
+            throw new Error(`--privacy ${o.privacy}: one of ${VIDEO_PRIVACY.join(", ")}`);
+          if (o.short && o.vertical) throw new Error("--short or --vertical, not both");
+          if (o.replace && (o.short || o.vertical))
+            throw new Error("--replace is for the long video");
+          const d = await approveVideo(db, id(v), {
+            source: "cli",
+            privacy,
+            ...(o.replace ? { replace: true } : {}),
+            ...(o.short ? { short: o.short } : {}),
+            ...(o.vertical ? { vertical: true } : {}),
+          });
           console.log(
-            `Reel draft ${d.reel.id} waits in To approve (wren content approve ${d.reel.id})`,
+            d.again
+              ? `video ${v}: already approved as draft ${d.id}`
+              : `video ${v}: draft ${d.id} approved; it uploads, ${privacy}, on the next pass`,
           );
-      }),
+          if (d.reel && "missing" in d.reel) console.log(d.reel.missing);
+          else if (d.reel && !d.reel.again)
+            console.log(
+              `Reel draft ${d.reel.id} waits in To approve (wren content approve ${d.reel.id})`,
+            );
+        }),
     );
 
   video
