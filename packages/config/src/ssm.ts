@@ -6,7 +6,12 @@
  */
 
 import { writeFile } from "node:fs/promises";
-import { GetParameterCommand, SSMClient } from "@aws-sdk/client-ssm";
+import {
+  GetParameterCommand,
+  ParameterNotFound,
+  PutParameterCommand,
+  SSMClient,
+} from "@aws-sdk/client-ssm";
 
 export function applyEnv(json: string, env: NodeJS.ProcessEnv = process.env): string[] {
   const parsed: unknown = JSON.parse(json);
@@ -47,4 +52,35 @@ export async function loadSsmFile(name: string | undefined, path: string): Promi
   if (!name) return null;
   await writeFile(path, await readParameter(name), { mode: 0o600 });
   return path;
+}
+
+/**
+ * Clients' own vendor keys (designs/2026-10-07-setup-and-vendors.md): SecureStrings at credvault's
+ * owner path layout. Postgres keeps the name. Writing needs `ssm:PutParameter` on the owners path,
+ * which the worker's role does not have yet: until then a save fails and says so.
+ */
+export function ssmKeyStore(client: SSMClient = new SSMClient({})) {
+  return {
+    async put(name: string, value: string): Promise<void> {
+      await client.send(
+        new PutParameterCommand({
+          Name: name,
+          Value: value,
+          Type: "SecureString",
+          Overwrite: true,
+        }),
+      );
+    },
+    async get(name: string): Promise<string | null> {
+      try {
+        const out = await client.send(
+          new GetParameterCommand({ Name: name, WithDecryption: true }),
+        );
+        return out.Parameter?.Value ?? null;
+      } catch (err) {
+        if (err instanceof ParameterNotFound) return null;
+        throw err;
+      }
+    },
+  };
 }

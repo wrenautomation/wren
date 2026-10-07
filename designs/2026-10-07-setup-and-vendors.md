@@ -237,3 +237,5 @@ Each step is committed with tests on synthetic data.
 - 2026-10-07 (step a): A setup's steps are `own` custom steps running `setup.step`, so they stay out of the Shop's catalog. One step reads its setup and step from the node's `with`.
 - 2026-10-07 (step a): The agent tries a step once (its first round), never on later rounds, so a buy is never repeated by a check. Wren's own buys wait on the team too: spend is William's call.
 - 2026-10-07 (step a): Telling the team when a run goes stuck is In development; the Accounts page shows it.
+- 2026-10-07 (step b): `vendor_usage` has no foreign key to clients: it's a ledger, and a client's usage outlives the client. The GCRA moved to `@wren/core/buckets`; research re-exports it.
+- 2026-10-07 (step b): A managed share above the clients' pool is held to the pool. A free vendor still needs a cap above $0 to run managed, so nothing runs until William sets one.
