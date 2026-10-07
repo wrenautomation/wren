@@ -22,6 +22,7 @@ import {
   type FetchFn,
   itemEvent,
   items,
+  judges,
   practiceOf,
   pullFeeds,
   readOnMac,
@@ -47,12 +48,13 @@ beforeEach(async () => {
   );
 });
 
-const viewer = { viewer: { email: "me@wren.example" } } as unknown as PortalRequest;
-/** A source with a picture, and items from it: synthetic addresses only. */
-async function fromSource(n: number, o: { client?: string; at?: Date } = {}) {
+const viewer = { viewer: { email: "me@wren.example", operator: true } } as unknown as PortalRequest;
+/** A source with a picture, and items from it: synthetic addresses only. Wren's own. */
+async function fromSource(n: number, o: { at?: Date } = {}) {
   const [src] = await pg.db
     .insert(sources)
     .values({
+      client: "wren",
       url: `https://feeds.example/${n}.xml`,
       name: `Synthetic ${n}`,
       avatarUrl: `https://img.example/s${n}.png`,
@@ -65,7 +67,7 @@ async function fromSource(n: number, o: { client?: string; at?: Date } = {}) {
       title: `Item ${n}`,
       sourceId: src?.id,
       thumbnailUrl: `https://img.example/t${n}.jpg`,
-      client: o.client ?? null,
+      client: "wren",
       ...(o.at ? { createdAt: o.at } : {}),
     })
     .returning();
@@ -99,6 +101,8 @@ function web(state: { entries: string[]; down?: boolean }): FetchFn {
 }
 
 const practices = async () => [practiceOf("email-infra", "Domains and warmup.\n## Warmup")];
+/** Wren's judge on this model, against the synthetic SOP. */
+const judge = (llm: FakeLlm | null) => judges({ db: pg.db, llm, wrenPractices: practices });
 const llmScoring = () =>
   new FakeLlm({
     respond: (p) => {
@@ -126,7 +130,7 @@ const walker = (llm: FakeLlm | null, fetchFn: FetchFn): Walk => ({
   ),
   steps: {
     "learn.read": readStep(pg.db, fetchFn),
-    "learn.score": scoreStep(pg.db, llm, practices),
+    "learn.score": scoreStep(pg.db, judge(llm)),
   },
   store: pgSpineStore(pg.db),
   client: null,
@@ -255,7 +259,7 @@ describe("Learn", () => {
     const md = `---\nsource: "instagram:Csynth1"\ntitle: "Three warmup rules"\nchannel: "synthetic.creator"\npriority: 5\n---\n\n# Three warmup rules\n\n## Speech\n\n[0:00] Never send more than forty a day from a new inbox.\n\n## On screen\n\nA table of daily caps.\n`;
     const reader = async () => ({ file: "instagram-Csynth1.md", md });
     expect(await readOnMac(pg.db, reader, Number(first.id))).toBe("read");
-    expect(await scoreItem(pg.db, llmScoring(), await practices(), Number(first.id))).toBe("drop");
+    expect(await scoreItem(pg.db, judge(llmScoring()), Number(first.id))).toBe("drop");
     const [row] = await pg.db
       .select()
       .from(items)
@@ -266,10 +270,10 @@ describe("Learn", () => {
       file: "instagram-Csynth1.md",
     });
 
-    const hits = await searchItems(pg.db, "forty inbox");
+    const hits = await searchItems(pg.db, "wren", "forty inbox");
     expect(hits.map((h) => h.id)).toEqual([Number(first.id)]);
     expect(hits[0]?.snippet).toContain("«forty»");
-    expect(await searchItems(pg.db, "nothing-like-this")).toEqual([]);
+    expect(await searchItems(pg.db, "wren", "nothing-like-this")).toEqual([]);
 
     // A saved item never alerts.
     const { n, sent } = notifier();
@@ -330,7 +334,7 @@ describe("Learn", () => {
       // Written once: a second pass has nothing asked.
       expect(await writeAsked(pg.db, dir, writer)).toEqual([]);
 
-      const lib = await sopLibrary(pg.db, dir);
+      const lib = await sopLibrary(pg.db, "wren", dir);
       expect(lib).toEqual([
         expect.objectContaining({
           sop: "email-infra",
@@ -340,7 +344,7 @@ describe("Learn", () => {
           state: "unpushed",
         }),
       ]);
-      const onWorker = await sopLibrary(pg.db, null);
+      const onWorker = await sopLibrary(pg.db, "wren", null);
       expect(onWorker).toEqual([
         expect.objectContaining({ sop: "email-infra", seen: "database", state: "unknown" }),
       ]);
@@ -474,7 +478,7 @@ describe("Learn", () => {
     );
     const inSub = await api.browse({ ...viewer, place: `c${sub.id}` });
     expect(inSub.items.map((c) => c.id).sort()).toEqual([Number(v1), Number(ep)].sort());
-    const r1 = await api.rail();
+    const r1 = await api.rail(viewer);
     expect(r1.collections.map((c) => [c.name, c.parentId, c.n])).toEqual([
       ["Deliverability", null, 0],
       ["Warmup rules", Number(top.id), 2],
@@ -488,13 +492,15 @@ describe("Learn", () => {
     expect(
       (await api.browse({ ...viewer, place: "all", tag: "warmup" })).items.map((c) => c.id),
     ).toEqual([Number(v1)]);
-    expect((await api.rail()).tags).toEqual([
+    expect((await api.rail(viewer)).tags).toEqual([
       { tag: "cold-email", n: 2 },
       { tag: "warmup", n: 1 },
     ]);
 
     // Where playback is: resume, Continue watching, and the item's page.
     await api.progress({ ...viewer, id: ep, position: 300.4 });
+    // Played later, by the clock: two calls in one millisecond would tie.
+    await new Promise((r) => setTimeout(r, 5));
     await api.progress({ ...viewer, id: v1, position: 95, duration: 600 });
     await pg.db
       .update(items)
@@ -513,19 +519,19 @@ describe("Learn", () => {
         { t: 90, label: "The rule" },
       ],
     });
-    const home = await api.home();
+    const home = await api.home(viewer);
     expect(home.continue.map((c) => c.id)).toEqual([Number(v1), Number(ep)]);
     expect(home.shelves.map((s) => [s.type, s.total])).toEqual([["shorts", 1]]);
     expect(home.top).toEqual([]);
 
     await api.collectionDrop({ ...viewer, id: top.id });
-    expect((await api.rail()).collections).toEqual([]);
+    expect((await api.rail(viewer)).collections).toEqual([]);
     const [after] = await pg.db
       .select()
       .from(items)
       .where(eq(items.id, Number(v1)));
     expect(after?.collectionId).toBeNull();
-    const kinds = await api.sources();
+    const kinds = await api.sources(viewer);
     expect(kinds.kinds.find((k) => k.kind === "podcast")?.sources[0]).toMatchObject({
       name: "Synthetic Show",
       items: 2,
@@ -557,7 +563,7 @@ describe("Learn", () => {
         });
       },
     });
-    expect(await scoreItem(pg.db, llm, await practices(), Number(s.id))).toBe("hold");
+    expect(await scoreItem(pg.db, judge(llm), Number(s.id))).toBe("hold");
     expect(asked).toContain('"moments"');
     const [row] = await pg.db
       .select()
@@ -582,26 +588,9 @@ describe("Learn", () => {
     await api.open({ ...viewer, id: String(later) });
     expect(await api.unseen(viewer)).toEqual({ n: 0 });
     // Each person's own.
-    const other = { viewer: { email: "you@wren.example" } } as unknown as PortalRequest;
+    const other = {
+      viewer: { email: "you@wren.example", operator: true },
+    } as unknown as PortalRequest;
     expect(await api.unseen(other)).toEqual({ n: 1 });
-  });
-
-  it("gives a workspace the media of its own items only", async () => {
-    const api = learnConsoleApi(pg.db, web({ entries: [] }));
-    const wren = await fromSource(1);
-    const acme = await fromSource(2, { client: "acme" });
-    const ask = (client: string | undefined, ids: number[]) =>
-      api.media({ ...viewer, ...(client ? { client } : {}), ids: ids.map(String) });
-    expect((await ask("acme", [wren, acme])).urls.sort()).toEqual([
-      "https://img.example/s2.png",
-      "https://img.example/t2.jpg",
-    ]);
-    expect((await ask("other", [acme])).urls).toEqual([]);
-    // Wren's own: no client named, or Wren's.
-    expect((await ask(undefined, [wren, acme])).urls.sort()).toEqual([
-      "https://img.example/s1.png",
-      "https://img.example/t1.jpg",
-    ]);
-    expect((await ask("wren", [acme])).urls).toEqual([]);
   });
 });

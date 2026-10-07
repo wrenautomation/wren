@@ -1,12 +1,14 @@
 /**
  * What Learn draws for a type: its name, its mark, its length, and a picture through the app's
  * own `/media` (apps/portal/src/media.ts), so the CSP stays at 'self' for every thumbnail host.
+ * Wren's team holds one grant for the day; a client's workspace gets one per address, for its
+ * own items only, asked as its items load.
  */
 import { cx, PlatformMark } from "@wren/ui";
 import { FileText, Link, type LucideIcon, Newspaper, Podcast, Rocket } from "@wren/ui/lib/lucide";
 import { useEffect, useState } from "react";
 import { call } from "../../api.js";
-import type { Card, ItemType, SourceKind } from "./api.js";
+import { type Card, clientOf, type ItemType, onItems, type SourceKind } from "./api.js";
 
 interface TypeLook {
   label: string;
@@ -185,7 +187,7 @@ export function ScoreBadge({ score, className }: { score: number | null; classNa
         : "bg-(--ui-tile) text-(--ui-ink-2)";
   return (
     <span
-      title={`Scored ${score} of 10 against Wren's SOPs`}
+      title={`Scored ${score} of 10 against your SOPs`}
       className={cx(
         "inline-flex h-5 min-w-5 items-center justify-center px-1.5 font-semibold text-[11.5px] tabular-nums",
         tone,
@@ -212,18 +214,58 @@ function askGrant(): Promise<string | null> {
   return grantAsk;
 }
 
-/** The grant for `/media`, once it's here; undefined while it's asked, null when refused. */
-export function useGrant(): string | null | undefined {
+/* A client's grants, one per address, and the items already asked for. */
+const urlGrants = new Map<string, string>();
+const askedItems = new Set<string>();
+const heard = new Set<() => void>();
+/** Most items one ask names (the edge's cap). */
+const ASK_MAX = 200;
+
+/** Ask for the pictures and audio of a client's items not asked for yet. */
+function askItems(ids: number[]) {
+  const client = clientOf();
+  if (!client) return;
+  const fresh = [...new Set(ids.map(String))].filter((id) => !askedItems.has(`${client}:${id}`));
+  for (const id of fresh) askedItems.add(`${client}:${id}`);
+  for (let i = 0; i < fresh.length; i += ASK_MAX)
+    call<{ grants: Record<string, string> }>("media/grant", {
+      client,
+      items: fresh.slice(i, i + ASK_MAX),
+    })
+      .then((g) => {
+        for (const [u, grant] of Object.entries(g.grants)) urlGrants.set(u, grant);
+        for (const fn of heard) fn();
+      })
+      .catch(() => undefined);
+}
+onItems(askItems);
+
+/**
+ * The grant for `/media` to load `url`, once it's here; undefined while it's asked, null when
+ * refused. Wren's team: the day's grant. A client: this address's own, once its item loaded.
+ */
+export function useGrant(url: string | null): string | null | undefined {
+  const client = clientOf();
   const [g, setG] = useState(grantNow);
+  const [, tick] = useState(0);
   useEffect(() => {
-    if (g !== undefined) return;
+    if (client || g !== undefined) return;
     let live = true;
     askGrant().then((x) => live && setG(x));
     return () => {
       live = false;
     };
-  }, [g]);
-  return g;
+  }, [g, client]);
+  useEffect(() => {
+    if (!client) return;
+    const fn = () => tick((n) => n + 1);
+    heard.add(fn);
+    return () => {
+      heard.delete(fn);
+    };
+  }, [client]);
+  if (!client) return g;
+  return url ? (urlGrants.get(url) ?? undefined) : null;
 }
 
 /** An outside picture or audio file through our origin, or null without a grant. */
@@ -242,7 +284,7 @@ export function Picture({
   className?: string;
   fallback: React.ReactNode;
 }) {
-  const grant = useGrant();
+  const grant = useGrant(url);
   const [broken, setBroken] = useState(false);
   const src = mediaSrc(url, grant);
   if (!src || broken) return <>{fallback}</>;

@@ -32,7 +32,7 @@ import {
 } from "react";
 import { useCall } from "../../load.js";
 import { navigate } from "../../route.js";
-import { type Collection, learn, onChanged, type Rail } from "./api.js";
+import { type Collection, keyOf, learn, onChanged, type Rail } from "./api.js";
 import { Avatar, KIND_LABELS, KIND_TYPE, TypeMark } from "./kinds.js";
 import { act, CollectionMenu, markItems, NameDialog, treeOf } from "./menus.js";
 
@@ -457,7 +457,7 @@ function RailBody({ here }: { here: string }) {
 
 /** The rail beside a page. `here` names the row that's lit: a place, `c<id>`, `s<id>`, `home`. */
 export function LearnFrame({ here, children }: { here: string; children: ReactNode }) {
-  const load = useCall("learn.rail", learn.rail);
+  const load = useCall(keyOf("learn.rail"), learn.rail);
   const { retry } = load;
   useEffect(() => onChanged(retry), [retry]);
   useEffect(() => {

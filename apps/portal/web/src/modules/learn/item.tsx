@@ -24,7 +24,7 @@ import {
 import { type ReactNode, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useCall } from "../../load.js";
 import { navigate } from "../../route.js";
-import { changed, type ItemPage, learn, type Moment, onChanged } from "./api.js";
+import { changed, type ItemPage, keyOf, learn, type Moment, onChanged } from "./api.js";
 import { useRail } from "./frame.js";
 import {
   Avatar,
@@ -78,13 +78,13 @@ export function linesOf(md: string): Line[] {
 }
 
 const VERDICTS = {
-  show: "Worth changing how Wren works",
+  show: "Worth changing how you work",
   hold: "Worth knowing",
-  drop: "Low value for Wren",
+  drop: "Low value for you",
 } as const;
 
 const SOP_STATES = {
-  asked: { label: "Waits for the Mac", tone: "warn" },
+  asked: { label: "Waiting", tone: "warn" },
   added: { label: "Added", tone: "good" },
   failed: { label: "Failed", tone: "bad" },
 } as const;
@@ -242,7 +242,7 @@ function Episode({
   onTime: (t: number, duration: number | null, playing: boolean) => void;
   playerRef: React.MutableRefObject<Player | null>;
 }) {
-  const grant = useGrant();
+  const grant = useGrant(item.mediaUrl);
   const audio = useRef<HTMLAudioElement>(null);
   const src = mediaSrc(item.mediaUrl, grant);
   useEffect(() => {
@@ -302,7 +302,7 @@ function Episode({
         ) : (
           <p className="m-0 text-[13px] text-(--ui-ink-2)">
             {item.mediaUrl
-              ? "This episode plays for Wren's team only."
+              ? "This episode can't play here."
               : "This episode has no audio file in its feed."}{" "}
             <a href={item.url} target="_blank" rel="noreferrer">
               Open the episode
@@ -645,7 +645,7 @@ function Side({ item }: { item: ItemPage }) {
 
 /** One item's page. `back` is the place it was opened from. */
 export function ItemView({ id, back }: { id: string; back: string }) {
-  const load = useCall(`learn.item:${id}`, () => learn.item(id));
+  const load = useCall(keyOf(`learn.item:${id}`), () => learn.item(id));
   const { retry } = load;
   useEffect(() => onChanged(retry), [retry]);
   const { rail } = useRail();
@@ -889,12 +889,12 @@ export function ItemView({ id, back }: { id: string; back: string }) {
         </div>
       ) : item.state === "mac" ? (
         <p className="mb-5 border-(--ui-warn) border-l-2 bg-(--ui-wash) px-3 py-2 text-[13.5px] text-(--ui-ink-2)">
-          Waits for the Mac to transcribe it. The summary and score follow.
+          Waits to be transcribed. The summary and score follow.
         </p>
       ) : item.state === "reading" || item.state === "scoring" ? (
         <p className="mb-5 border-(--ui-accent) border-l-2 bg-(--ui-wash) px-3 py-2 text-[13.5px] text-(--ui-ink-2)">
-          {item.state === "reading" ? "Reading it now." : "Scoring it against Wren's SOPs."} This
-          page fills in when it's done.
+          {item.state === "reading" ? "Reading it now." : "Scoring it against your SOPs."} This page
+          fills in when it's done.
         </p>
       ) : null}
 

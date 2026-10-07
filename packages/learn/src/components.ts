@@ -2,7 +2,7 @@
 import { defineComponent } from "@wren/core/components";
 import { defineWorkflow } from "@wren/core/workflows";
 
-const OWN = "Learns for Wren, against Wren's own SOPs; a client's would need theirs";
+const OWN = "A client's Learn has no alerts outside the portal: no push or digest yet";
 const from = "William's ask, 2026-10-07";
 
 export const LEARN_COMPONENTS = [
@@ -82,6 +82,10 @@ export const LEARN_COMPONENTS = [
         },
         { is: "needs", says: "A model; Cohere by default.", built: "env WREN_WATCH_LLM" },
         { is: "fixed", says: "7 and up shows, 4 to 6 holds, the rest drops." },
+        {
+          is: "fixed",
+          says: "A client's items score on its own models allowance, against its own SOPs.",
+        },
         { is: "fixed", says: "Following a source scores what comes next, not its back catalog." },
       ],
     },

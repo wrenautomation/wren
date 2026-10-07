@@ -2,6 +2,7 @@
  * Learn as console records, in the Learn app: every item (feed or saved), what William saved,
  * the sources it follows, and the SOP library. Wren's team only.
  */
+import { WREN } from "@wren/core/access";
 import { date, defineRecord, link, name, number, score, status, text } from "@wren/core/records";
 import { itemOf } from "./items.js";
 import { sopLibrary } from "./sops.js";
@@ -86,7 +87,7 @@ const ITEM_FIELDS = {
 };
 
 /** The item whole for its page: the transcript and its SOP asks. */
-const load = (db: Parameters<typeof itemOf>[0], id: string) => itemOf(db, Number(id));
+const load = (db: Parameters<typeof itemOf>[0], id: string) => itemOf(db, WREN, Number(id));
 
 const WAITING = { state: ["reading", "mac", "scoring", "failed"] };
 
@@ -204,7 +205,8 @@ export const sopRecordFor = (sopsDir: string | null) =>
     needs: "team",
     name: { one: "SOP", many: "SOPs" },
     // A few dozen SOPs: read as rows, queried as a table.
-    rows: async (db) => (await sopLibrary(db, sopsDir)) as unknown as Record<string, unknown>[],
+    rows: async (db) =>
+      (await sopLibrary(db, WREN, sopsDir)) as unknown as Record<string, unknown>[],
     key: "id",
     title: "sop",
     subtitle: "state",

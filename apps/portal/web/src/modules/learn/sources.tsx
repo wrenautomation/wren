@@ -13,7 +13,7 @@ import {
 import { type FormEvent, useEffect, useState } from "react";
 import { useCall } from "../../load.js";
 import type { PageProps } from "../../module.js";
-import { learn, onChanged, type SourceRow } from "./api.js";
+import { inWorkspace, keyOf, learn, onChanged, type SourceRow } from "./api.js";
 import { LearnFrame } from "./frame.js";
 import { Avatar, KIND_LABELS, KIND_TYPE, TypeMark } from "./kinds.js";
 import { act } from "./menus.js";
@@ -32,7 +32,8 @@ const hostOf = (url: string) => {
   }
 };
 
-export function SourcesPage(_: PageProps) {
+export function SourcesPage({ client }: PageProps) {
+  inWorkspace(client);
   return (
     <LearnFrame here="sources">
       <SourcesBody />
@@ -41,7 +42,7 @@ export function SourcesPage(_: PageProps) {
 }
 
 function SourcesBody() {
-  const load = useCall("learn.sources", learn.sources);
+  const load = useCall(keyOf("learn.sources"), learn.sources);
   const { retry } = load;
   useEffect(() => onChanged(retry), [retry]);
   const kinds = load.data?.kinds.filter((k) => k.sources.length) ?? [];

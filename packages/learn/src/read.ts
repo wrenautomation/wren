@@ -2,9 +2,12 @@
  * Reading: an item's words, kept as its transcript. An article is read on the worker, from its
  * feed text when that's the whole post, else from its page. A video or reel needs yt-dlp, a home
  * IP and the Gemini key fleet, so it waits for the Mac's reader (`wren learn read`), which reads
- * it with the `sop add` readers and scores it there.
+ * it with the `sop add` readers and scores it there. A client's video is read on that client's
+ * own `models` allowance: gated before, metered after.
  */
+import { WREN } from "@wren/core/access";
 import type { Step } from "@wren/core/spine";
+import { gate, meter } from "@wren/core/vendors";
 import type { Db } from "@wren/db";
 import { pgSafe } from "@wren/db/columns";
 import { and, asc, desc, eq, isNotNull, isNull, sql } from "drizzle-orm";
@@ -176,13 +179,26 @@ export const readStep =
 /** The Mac's video reader: a transcript as markdown and its SOP source file name. */
 export type VideoReader = (url: string, kind: ItemKind) => Promise<{ file: string; md: string }>;
 
-/** Items waiting for the Mac, saved ones first, newest first. `retry` takes failed ones too. */
-export async function waitingForMac(db: Db, opts: { limit?: number; retry?: boolean } = {}) {
+/**
+ * Items waiting for the Mac, saved ones first, newest first, in every workspace or `client`'s
+ * alone. `retry` takes failed ones too.
+ */
+export async function waitingForMac(
+  db: Db,
+  opts: { limit?: number; retry?: boolean; client?: string | null } = {},
+) {
   return db
-    .select({ id: items.id, url: items.url, kind: items.kind, title: items.title })
+    .select({
+      id: items.id,
+      client: items.client,
+      url: items.url,
+      kind: items.kind,
+      title: items.title,
+    })
     .from(items)
     .where(
       and(
+        opts.client ? eq(items.client, opts.client) : undefined,
         isNull(items.readAt),
         isNotNull(items.needsMac),
         isNull(items.archivedAt),
@@ -193,11 +209,31 @@ export async function waitingForMac(db: Db, opts: { limit?: number; retry?: bool
     .limit(opts.limit ?? 20);
 }
 
-/** Read one waiting item with the Mac's reader; its failure is kept on the row. */
-export async function readOnMac(db: Db, reader: VideoReader, id: number): Promise<ReadResult> {
+/**
+ * Read one waiting item with the Mac's reader; its failure is kept on the row. A client's item
+ * reads only while its `models` gate is open ("waits", and why on the row, when shut), and each
+ * read is metered to it.
+ */
+export async function readOnMac(
+  db: Db,
+  reader: VideoReader,
+  id: number,
+  now = new Date(),
+): Promise<ReadResult | "waits"> {
   const [item] = await db.select().from(items).where(eq(items.id, id));
   if (!item) return null;
   if (item.readAt) return "read";
+  const client = item.client === WREN ? null : item.client;
+  if (client) {
+    const g = await gate(db, client, "models", 1, now);
+    if (!g.ok) {
+      await db
+        .update(items)
+        .set({ readFailure: `Waits for models: ${g.why}`.slice(0, 500) })
+        .where(eq(items.id, id));
+      return "waits";
+    }
+  }
   try {
     const { file, md } = await reader(item.url, item.kind);
     const title = frontField(md, "title");
@@ -222,6 +258,8 @@ export async function readOnMac(db: Db, reader: VideoReader, id: number): Promis
         readFailure: null,
       })
       .where(eq(items.id, id));
+    if (client)
+      await meter(db, { client, vendor: "models", units: 1, part: "learn.read", at: now });
     return "read";
   } catch (err) {
     const error = (err instanceof Error ? err.message : String(err)).slice(0, 500);

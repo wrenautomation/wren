@@ -1,9 +1,9 @@
 /**
- * Learn (designs/2026-10-07-learn.md): what William saves from his phone or the portal and what
- * the sources he follows publish, read, scored against Wren's SOPs, and kept like a drive: a
- * home of shelves, items as cards, a list or a compact list, collections that nest, tags, a
- * Watch later queue, and each item played or read in place. Wren's own; its alerts go out on the
- * main notifier, never into the Inbox.
+ * Learn (designs/2026-10-07-learn.md): what a workspace saves from a phone or the portal and what
+ * the sources it follows publish, read, scored against its SOPs, and kept like a drive: a home of
+ * shelves, items as cards, a list or a compact list, collections that nest, tags, a Watch later
+ * queue, and each item played or read in place. One address, two apps, as Notes: Wren's team's
+ * (its alerts go out on the main notifier, never into the Inbox) and a client's people's.
  */
 import { createElement, useEffect } from "react";
 import type { Module, PageProps } from "../../module.js";
@@ -26,6 +26,18 @@ function SavedPage(_: PageProps) {
   return createElement("div");
 }
 
+const pages: Module["pages"] = [
+  { id: "overview", label: "Home", Page: HomePage, wide: true },
+  // What the sources brought since you last looked at Items.
+  { id: "items", label: "Items", Page: ItemsPage, wide: true, badge: unseenCount },
+  { id: "sources", label: "Sources", Page: SourcesPage, wide: true },
+  { id: "search", label: "Search", Page: SearchPage, wide: true },
+];
+const hidden: Module["pages"] = [
+  { id: "saved", label: "Saved", hidden: true, Page: SavedPage },
+  { id: "add", label: "Save a link", hidden: true, Page: AddPage },
+];
+
 export const learn: Module = {
   id: "learn",
   name: "Learn",
@@ -36,11 +48,7 @@ export const learn: Module = {
   requires: TEAM,
   action: { page: "add", label: "Save a link", icon: "pin" },
   pages: [
-    { id: "overview", label: "Home", Page: HomePage, wide: true },
-    // What his sources brought since he last looked at Items.
-    { id: "items", label: "Items", Page: ItemsPage, wide: true, badge: unseenCount },
-    { id: "sources", label: "Sources", Page: SourcesPage, wide: true },
-    { id: "search", label: "Search", Page: SearchPage, wide: true },
+    ...pages,
     {
       id: "sops",
       label: "SOPs",
@@ -48,7 +56,17 @@ export const learn: Module = {
       record: "learn.sop",
       empty: "SOPs show here once one is pushed or an item is added to one.",
     },
-    { id: "saved", label: "Saved", hidden: true, Page: SavedPage },
-    { id: "add", label: "Save a link", hidden: true, Page: AddPage },
+    ...hidden,
   ],
+};
+
+/** A client's own Learn: its sources and items, scored against its SOPs, which live in its Notes. */
+export const clientLearn: Module = {
+  id: "learn",
+  name: "Learn",
+  icon: "note",
+  blurb: "Links you save and sources you follow, read, scored and kept like a drive.",
+  requires: { audience: "client", needs: "read", at: { app: "learn" } },
+  action: { page: "add", label: "Save a link", icon: "pin" },
+  pages: [...pages, ...hidden],
 };

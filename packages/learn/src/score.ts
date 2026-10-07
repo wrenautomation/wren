@@ -1,15 +1,21 @@
 /**
- * Scoring: each read item judged 0-10 against how Wren works today (its pushed SOPs). The score
- * sets the verdict: 7 and up shows, 4 to 6 holds, the rest drops. It reads the transcript when
- * there is one, so a reel is judged on what was said and shown, not its caption.
+ * Scoring: each read item judged 0-10 against how its workspace works today. Wren's own items
+ * against Wren's pushed SOPs, by Wren's model. A client's against its own SOPs alone, signed with
+ * its name, on its own `models` allowance (gated and metered): nothing of Wren's is in its prompt.
+ * The score sets the verdict: 7 and up shows, 4 to 6 holds, the rest drops. It reads the
+ * transcript when there is one, so a reel is judged on what was said and shown, not its caption.
  */
+import { WREN } from "@wren/core/access";
+import { findClient } from "@wren/core/clients";
+import { isVendorStop, meteredModel } from "@wren/core/metered";
 import type { Step } from "@wren/core/spine";
-import type { Db } from "@wren/db";
+import { gate } from "@wren/core/vendors";
+import type { Db, Queryable } from "@wren/db";
 import { completeAndParse, type LlmClient } from "@wren/llm";
-import { and, eq, isNull } from "drizzle-orm";
+import { and, asc, eq, isNull, ne } from "drizzle-orm";
 import { z } from "zod";
 import { secondsOf } from "./feeds.js";
-import { items, type Moment, sources, type Verdict } from "./schema.js";
+import { items, type Moment, sopSources, sources, type Verdict } from "./schema.js";
 
 /** Text the model sees per item. */
 const PROMPT_TEXT = 6_000;
@@ -71,34 +77,96 @@ export const verdictOf = (score: number): Verdict =>
 
 const SYSTEM = `You read the news for Wren, a small AI automation agency. Wren finds leads, writes cold email and DMs, builds landing pages, posts content and runs it all on browser automation and AI models. You judge one item at a time against how Wren works today. Most items change nothing; say so. Answer with JSON only.`;
 
+/** What a client's items are scored against: the SOP names its own items fed. */
+export async function clientPractices(db: Queryable, client: string): Promise<Practice[]> {
+  const rows = await db
+    .selectDistinct({ sop: sopSources.sop })
+    .from(sopSources)
+    .innerJoin(items, eq(items.id, sopSources.itemId))
+    .where(and(eq(items.client, client), ne(sopSources.state, "failed")))
+    .orderBy(asc(sopSources.sop));
+  return rows.map((r) => practiceOf(r.sop, ""));
+}
+
+/** A client's: its name only, nothing of Wren's. */
+const clientSystem = (name: string) =>
+  `You read the news for ${name}. You judge one item at a time against how ${name} works today. Most items change nothing; say so. Answer with JSON only.`;
+
+/**
+ * Who an item is scored for: Wren's own, or a client by its name, with that workspace's model and
+ * SOPs. `wait` says why it can't be scored now (the client's models gate): it waits, unscored.
+ */
+export interface Judge {
+  name: string;
+  wren: boolean;
+  llm: LlmClient | null;
+  practices: readonly Practice[];
+  wait?: string | null;
+}
+export type JudgeFor = (client: string) => Promise<Judge>;
+
+/**
+ * The judge for each workspace: Wren's model and pushed SOPs for Wren; for a client, its name,
+ * its own SOPs, and the same model gated and metered on its `models` allowance.
+ */
+export function judges(o: {
+  db: Db;
+  llm: LlmClient | null;
+  wrenPractices: () => Promise<Practice[]>;
+  now?: () => Date;
+}): JudgeFor {
+  const now = o.now ?? (() => new Date());
+  return async (client) => {
+    if (client === WREN)
+      return { name: "Wren", wren: true, llm: o.llm, practices: await o.wrenPractices() };
+    const row = await findClient(o.db, client);
+    const name = row?.name ?? client;
+    const practices = await clientPractices(o.db, client);
+    const base = { name, wren: false, practices };
+    if (!row) return { ...base, llm: null, wait: "no such client" };
+    if (!o.llm) return { ...base, llm: null };
+    const g = await gate(o.db, client, "models", 1, now());
+    if (!g.ok) return { ...base, llm: null, wait: `models: ${g.why}` };
+    return {
+      ...base,
+      llm: meteredModel(o.llm, { main: o.db, client, part: "learn.score", now }),
+    };
+  };
+}
+
 export interface ScoredItem {
   title: string;
   url: string;
   text: string;
   publishedAt: Date | null;
-  /** Its source's name, or "saved" for one William shared in. */
+  /** Its source's name, or "saved" for one shared in by hand. */
   from: string;
   /** The text carries [m:ss] marks, so it asks for moments. */
   timed?: boolean;
 }
 
-export function scorePrompt(item: ScoredItem, practices: readonly Practice[]): string {
+/** The prompt, for `name` (Wren, or a client): its SOPs one a line, then the item. */
+export function scorePrompt(
+  item: ScoredItem,
+  practices: readonly Practice[],
+  name = "Wren",
+): string {
   const sops = practices
     .map(
       (p) =>
-        `- ${p.name}: ${p.about}${p.headings.length ? ` Covers: ${p.headings.join("; ")}.` : ""}`,
+        `- ${p.name}${p.about ? `: ${p.about}` : ""}${p.headings.length ? ` Covers: ${p.headings.join("; ")}.` : ""}`,
     )
     .join("\n");
-  return `How Wren works today, one SOP a line:
-${sops || "- (no SOPs pushed yet)"}
+  return `How ${name} works today, one SOP a line:
+${sops || "- (no SOPs yet)"}
 
-Score how much this item should change what Wren does, 0 to 10:
-0-3: nothing Wren can use, or news with no action in it.
+Score how much this item should change what ${name} does, 0 to 10:
+0-3: nothing ${name} can use, or news with no action in it.
 4-6: worth knowing; no SOP changes.
 7-8: a concrete better way to do a step an SOP covers, or a tool that replaces one.
-9-10: urgent: a platform rule, ban, price or deliverability change that breaks what Wren runs now.
+9-10: urgent: a platform rule, ban, price or deliverability change that breaks what ${name} runs now.
 
-Answer {"score": n, "summary": "two plain sentences on what the item says", "changes": ["the SOP names it would change, from the list above"], "why": "one sentence: what Wren would do differently, or why nothing"${item.timed ? ', "moments": [{"at": "m:ss from the [m:ss] marks", "label": "what happens there, under 8 words"}] (up to 6, only the ones worth jumping to)' : ""}}.
+Answer {"score": n, "summary": "two plain sentences on what the item says", "changes": ["the SOP names it would change, from the list above"], "why": "one sentence: what ${name} would do differently, or why nothing"${item.timed ? ', "moments": [{"at": "m:ss from the [m:ss] marks", "label": "what happens there, under 8 words"}] (up to 6, only the ones worth jumping to)' : ""}}.
 
 Item from ${item.from}${item.publishedAt ? `, ${item.publishedAt.toISOString().slice(0, 10)}` : ""}:
 Title: ${item.title}
@@ -107,15 +175,11 @@ ${item.text.slice(0, PROMPT_TEXT)}`;
 }
 
 /**
- * Score one read item. Null when there's no such row, it isn't read yet, or the model's answer
- * didn't read three times (it waits, unscored). A provider failure throws, so the step retries.
+ * Score one read item through its workspace's judge. Null when there's no such row, it isn't read
+ * yet, the client's models gate is shut, or the model's answer didn't read three times (it waits,
+ * unscored). A provider failure throws, so the step retries.
  */
-export async function scoreItem(
-  db: Db,
-  llm: LlmClient | null,
-  practices: readonly Practice[],
-  id: number,
-): Promise<Verdict | null> {
+export async function scoreItem(db: Db, judgeFor: JudgeFor, id: number): Promise<Verdict | null> {
   const [row] = await db
     .select({ item: items, from: sources.name })
     .from(items)
@@ -125,6 +189,17 @@ export async function scoreItem(
   const { item } = row;
   if (item.verdict) return item.verdict;
   if (!item.readAt || item.tries >= MAX_TRIES) return null;
+  const judge = await judgeFor(item.client);
+  const { llm, practices } = judge;
+  const waits = (why: string) =>
+    db
+      .update(items)
+      .set({ why: `Waits for ${why}` })
+      .where(and(eq(items.id, id), isNull(items.verdict)));
+  if (judge.wait) {
+    await waits(judge.wait);
+    return null;
+  }
   if (!llm) {
     await db
       .update(items)
@@ -138,14 +213,20 @@ export async function scoreItem(
     url: item.url,
     text,
     publishedAt: item.publishedAt,
-    from: row.from ?? "saved by William",
+    from: row.from ?? (judge.wren ? "saved by William" : "saved"),
     timed: timed(text),
   };
-  const out = await completeAndParse(llm, scorePrompt(scored, practices), scoreSchema, {
+  const out = await completeAndParse(llm, scorePrompt(scored, practices, judge.name), scoreSchema, {
     maxTokens: 900,
-    system: SYSTEM,
+    system: judge.wren ? SYSTEM : clientSystem(judge.name),
     name: "learn.score",
+  }).catch(async (err: unknown) => {
+    // The client's allowance ran out between the gate and the call: it waits, as a shut gate.
+    if (!isVendorStop(err)) throw err;
+    await waits(`models: ${err.why}`);
+    return null;
   });
+  if (!out) return null;
   const v = out.parsed;
   if (!v) {
     await db
@@ -179,10 +260,15 @@ export function itemIdOf(e: { subject: string; data: Record<string, unknown> }):
   return id;
 }
 
-/** `learn.score` on the spine: the item leaves by its verdict's port. Wren's own, in main. */
+/**
+ * `learn.score` on the spine: the item leaves by its verdict's port. Every workspace's items live
+ * in main; each is judged by its own. `after` runs on a scored item (a client's asked SOP notes).
+ */
 export const scoreStep =
-  (db: Db, llm: LlmClient | null, practices: () => Promise<Practice[]>): Step =>
+  (db: Db, judgeFor: JudgeFor, after?: (itemId: number) => Promise<unknown>): Step =>
   async (_port, e) => {
-    const verdict = await scoreItem(db, llm, await practices(), itemIdOf(e));
+    const id = itemIdOf(e);
+    const verdict = await scoreItem(db, judgeFor, id);
+    if (verdict && after) await after(id);
     return verdict ? [{ port: verdict, event: e }] : [];
   };

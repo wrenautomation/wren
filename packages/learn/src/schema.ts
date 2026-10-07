@@ -1,7 +1,8 @@
 /**
- * Learn's tables (designs/2026-10-07-learn.md): the sources Wren follows, every item they bring or
- * William saves, and the items asked into an SOP. Items are public pages and videos, so their
- * text and transcripts are kept whole: the repo holds no content, the database does.
+ * Learn's tables (designs/2026-10-07-learn.md): the sources followed, every item they bring or
+ * someone saves, and the items asked into an SOP. Each row is one workspace's (`client`: a
+ * client's id, or `wren` for Wren's own). Items are public pages and videos, so their text and
+ * transcripts are kept whole: the repo holds no content, the database does.
  */
 import { oneOf } from "@wren/db/columns";
 import { type SQL, sql } from "drizzle-orm";
@@ -93,6 +94,8 @@ export const sources = learn.table(
   "sources",
   {
     id: serial("id"),
+    /** Whose: Wren's own (`wren`) or a client's id. Every read and write is scoped to it. */
+    client: varchar("client", { length: 40 }).notNull(),
     url: text("url").notNull(),
     /** The page it was found from (a channel, a blog), when that isn't the feed itself. */
     page: text("page"),
@@ -112,7 +115,7 @@ export const sources = learn.table(
   },
   (t) => [
     primaryKey({ columns: [t.id], name: "pk_sources" }),
-    unique("uq_learn_sources_url").on(t.url),
+    unique("uq_learn_sources_client_url").on(t.client, t.url),
     oneOf("ck_learn_sources_kind", t.kind, SOURCE_KINDS),
     oneOf("ck_learn_sources_tell", t.tell, TELLS),
   ],
@@ -123,6 +126,8 @@ export const collections = learn.table(
   "collections",
   {
     id: serial("id"),
+    /** Whose: Wren's own (`wren`) or a client's id. */
+    client: varchar("client", { length: 40 }).notNull(),
     name: varchar("name", { length: 80 }).notNull(),
     /** The collection it sits in; none at the top. */
     parentId: integer("parent_id"),
@@ -137,6 +142,7 @@ export const collections = learn.table(
       name: "fk_collections_parent_id_collections",
     }).onDelete("cascade"),
     index("ix_learn_collections_parent").on(t.parentId),
+    index("ix_learn_collections_client").on(t.client),
   ],
 );
 
@@ -208,8 +214,8 @@ export const items = learn.table(
     pinnedAt: timestamp("pinned_at", { withTimezone: true }),
     /** The collection it sits in, like a file in a folder. */
     collectionId: integer("collection_id"),
-    /** The client it was learned for; none is Wren's own. Its pictures and audio load for them. */
-    client: varchar("client", { length: 40 }),
+    /** Whose: Wren's own (`wren`) or a client's id. Its pictures and audio load for them alone. */
+    client: varchar("client", { length: 40 }).notNull(),
     search: tsvector("search").generatedAlwaysAs(
       (): SQL =>
         sql`setweight(to_tsvector('english'::regconfig, title), 'A'::"char") || setweight(to_tsvector('english'::regconfig, coalesce(summary, ''::text)), 'B'::"char") || setweight(to_tsvector('english'::regconfig, coalesce(transcript, text)), 'C'::"char")`,
@@ -230,7 +236,7 @@ export const items = learn.table(
     }).onDelete("set null"),
     index("ix_learn_items_collection").on(t.collectionId),
     index("ix_learn_items_type").on(t.type),
-    unique("uq_learn_items_url").on(t.url),
+    unique("uq_learn_items_client_url").on(t.client, t.url),
     index("ix_learn_items_source").on(t.sourceId),
     index("ix_learn_items_created").on(t.createdAt),
     index("ix_learn_items_saved").on(t.savedAt),
@@ -243,14 +249,15 @@ export const items = learn.table(
   ],
 );
 
-/** When each person last looked at what their sources brought: Learn's badge counts past it. */
+/** When each person last looked at what a workspace's sources brought: its badge counts past it. */
 export const seen = learn.table(
   "seen",
   {
+    client: varchar("client", { length: 40 }).notNull(),
     email: varchar("email", { length: 320 }).notNull(),
     at: timestamp("at", { withTimezone: true }).notNull().defaultNow(),
   },
-  (t) => [primaryKey({ columns: [t.email], name: "pk_seen" })],
+  (t) => [primaryKey({ columns: [t.client, t.email], name: "pk_seen" })],
 );
 
 /** An item asked into an SOP's folder; the Mac writes it there and marks it added. */
@@ -345,7 +352,8 @@ const ITEM_SELECT = sql`
       i.created_at, i.url open,
       length(coalesce(i.transcript, i.text))::int chars
     from learn.items i left join learn.sources s on s.id = i.source_id
-      left join learn.collections col on col.id = i.collection_id`;
+      left join learn.collections col on col.id = i.collection_id
+    where i.client = 'wren'`;
 
 const ITEM_COLUMNS = {
   id: integer("id"),
@@ -410,4 +418,5 @@ export const sourceRecords = learn
       count(i.id)::int items, (count(i.id) filter (where i.verdict = 'show'))::int shown,
       s.fetched_at, s.failure, s.by::text by, s.created_at
     from learn.sources s left join learn.items i on i.source_id = s.id
+    where s.client = 'wren'
     group by s.id`);

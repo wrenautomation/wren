@@ -46,6 +46,8 @@ import {
   type Browsed,
   type Card,
   type ItemType,
+  inWorkspace,
+  keyOf,
   learn,
   type Mark,
   markSeen,
@@ -101,7 +103,8 @@ const listOf = (v: string | null) => (v ? v.split(",").filter(Boolean) : []);
 const itemHref = (id: number, keep: URLSearchParams) => href(`/learn/items/${id}`, {}, keep);
 
 /** The Items page: a place, or one item. */
-export function ItemsPage(_: PageProps) {
+export function ItemsPage({ client }: PageProps) {
+  inWorkspace(client);
   const route = useRoute();
   const id = route.path[2];
   const p = route.params;
@@ -122,7 +125,7 @@ const EMPTIES: Record<string, ReactNode> = {
   later: "Press L on any item, or drag it onto Watch later in the rail, to queue it here.",
   starred: "Press S on an item to star it. Stars stay when you archive.",
   saved: "Links you save show here. Share one from your phone, or paste it above.",
-  all: "Everything you save or follow shows here, read and scored against Wren's SOPs.",
+  all: "Everything you save or follow shows here, read and scored against your SOPs.",
   archived: "Press E on an item to archive it. It stays searchable, and E here brings it back.",
 };
 
@@ -137,7 +140,7 @@ function Browse({ params }: { params: URLSearchParams }) {
   const filters = JSON.stringify({ place, types, srcs, tag, q, sort });
   const [lim, setLim] = useState({ k: filters, n: PAGE });
   const limit = lim.k === filters ? lim.n : PAGE;
-  const load = useCall(`learn.browse:${filters}:${limit}`, () =>
+  const load = useCall(keyOf(`learn.browse:${filters}:${limit}`), () =>
     learn.browse({ place, types, sources: srcs, tag, q, sort, limit }),
   );
   const { retry } = load;
@@ -772,8 +775,8 @@ const sourceName = (c: Card) => c.source?.name ?? c.creator ?? (c.saved ? "Saved
 /** What a card says under its title when it has no summary yet. */
 const STATE_LINES: Record<Card["state"], string> = {
   reading: "Reading now. Its summary shows here when it's scored.",
-  scoring: "Scoring against Wren's SOPs.",
-  mac: "Waits for the Mac to transcribe it.",
+  scoring: "Scoring against your SOPs.",
+  mac: "Waits to be transcribed.",
   failed: "Couldn't read this one. Read again from its menu.",
   ready: "",
 };

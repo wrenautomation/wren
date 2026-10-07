@@ -8,6 +8,7 @@ import * as clients from "@restatedev/restate-sdk-clients";
 import { ConsoleTransport, runWeeklyReport } from "@wren/channel-email";
 import { ingressOf, loadEnvFile, loadSettings } from "@wren/config";
 import { collectStatus, formatStatusLines, weekSlipped } from "@wren/content";
+import { WREN } from "@wren/core/access";
 import { type AuditSealer, SEALER_KEY } from "@wren/core/audit";
 import { type Client, clientUrl, getClient } from "@wren/core/clients";
 import { RENEWAL_KEY, type TokenRenewal } from "@wren/core/content/renewal";
@@ -115,6 +116,7 @@ const CLIENT_SCOPED = new Set([
   "delivery",
   "sms",
   "hooks",
+  "learn",
   "notes",
   "sites",
   "templates",
@@ -266,7 +268,24 @@ registerSms(program, withDb, settings);
 registerReach(program, withMainDb, settings);
 registerBooks(program, withMainDb, settings, rootDir);
 registerWatch(program, withMainDb, settings, rootDir);
-registerLearn(program, withMainDb, settings, rootDir);
+registerLearn(
+  program,
+  {
+    withMainDb,
+    withClientDb: async (id, fn) => {
+      const client = await withMainDb((db) => getClient(db, id));
+      return open(clientUrl(settings.databaseUrl, client), fn);
+    },
+    workspace: async () => {
+      const id = program.opts<{ client?: string }>().client;
+      if (!id || id === WREN) return WREN;
+      return (await withMainDb((db) => getClient(db, id))).id;
+    },
+    named: () => program.opts<{ client?: string }>().client,
+  },
+  settings,
+  rootDir,
+);
 registerCalendar(program, withMainDb);
 registerSocial(program, settings);
 registerStudy(program, withMainDb, settings, rootDir);

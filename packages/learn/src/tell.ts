@@ -2,8 +2,10 @@
  * Telling William: per source, "Tell me" is every item, 8 and up, or the digest only. The
  * Monitor's pass sends what's due in one alert, the way urgent flags go out, and once a day after
  * 09:00 one digest names the rest worth reading. Saved items never alert: he saved them. Nothing
- * here lands in the Inbox; that's for what waits on a reply.
+ * here lands in the Inbox; that's for what waits on a reply. Wren's own items only: a client's
+ * show as its portal's new count, and never reach William's phone.
  */
+import { WREN } from "@wren/core/access";
 import type { Notifier } from "@wren/core/notify";
 import type { Db } from "@wren/db";
 import { and, desc, eq, gte, inArray, isNotNull, isNull, or, sql } from "drizzle-orm";
@@ -54,6 +56,7 @@ export async function tellLearn(
 ): Promise<{ alerts: number; digest: number }> {
   const told = { alerts: 0, digest: 0 };
   const fresh = and(
+    eq(items.client, WREN),
     isNull(items.toldAt),
     isNull(items.savedAt),
     isNull(items.archivedAt),

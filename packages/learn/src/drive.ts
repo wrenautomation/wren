@@ -1,7 +1,9 @@
 /**
  * The drive: every item as something to watch, hear or read, organized like files. Places
  * (Inbox, Watch later, Starred, Saved, Archive, a collection, a source), filters by type and
- * source, sorts, collections that nest like folders, tags, and where you left off.
+ * source, sorts, collections that nest like folders, tags, and where you left off. Every read and
+ * write is one workspace's: `client` is Wren's own (`wren`) or a client's id, and rows of any other
+ * never show or change.
  */
 import type { Queryable } from "@wren/db";
 import { pgSafe } from "@wren/db/columns";
@@ -205,7 +207,7 @@ export interface Browse {
  * A page of cards in a place, filtered and sorted, pinned first. Counts are by type and by source
  * in the place before those filters, so a chip shows what picking it would leave.
  */
-export async function browse(db: Queryable, b: Browse) {
+export async function browse(db: Queryable, client: string, b: Browse) {
   const place = b.place || "inbox";
   const where = placeWhere(place);
   if (where === null) throw new Error(`no such place: ${place}`);
@@ -216,6 +218,7 @@ export async function browse(db: Queryable, b: Browse) {
   const q = b.q?.trim();
   const tag = b.tag?.trim();
   const base = and(
+    eq(items.client, client),
     where,
     q ? sql`${items.search} @@ websearch_to_tsquery('english', ${q})` : undefined,
     tag
@@ -276,13 +279,14 @@ export async function browse(db: Queryable, b: Browse) {
  * Learn's badge: what this person's sources brought since they last looked, still new (not
  * opened, archived or dropped). Never looked: everything new from a source.
  */
-export async function unseen(db: Queryable, email: string): Promise<number> {
+export async function unseen(db: Queryable, client: string, email: string): Promise<number> {
   const [row] = await db
     .select({ n: sql<number>`count(*)::int` })
     .from(items)
-    .leftJoin(seen, eq(seen.email, email.toLowerCase()))
+    .leftJoin(seen, and(eq(seen.client, client), eq(seen.email, email.toLowerCase())))
     .where(
       and(
+        eq(items.client, client),
         isNotNull(items.sourceId),
         fresh,
         sql`(${seen.at} is null or ${items.createdAt} > ${seen.at})`,
@@ -292,40 +296,40 @@ export async function unseen(db: Queryable, email: string): Promise<number> {
 }
 
 /** They looked: the badge counts from now. */
-export async function markSeen(db: Queryable, email: string, at = new Date()): Promise<void> {
+export async function markSeen(
+  db: Queryable,
+  client: string,
+  email: string,
+  at = new Date(),
+): Promise<void> {
   await db
     .insert(seen)
-    .values({ email: email.toLowerCase(), at })
-    .onConflictDoUpdate({ target: seen.email, set: { at } });
+    .values({ client, email: email.toLowerCase(), at })
+    .onConflictDoUpdate({ target: [seen.client, seen.email], set: { at } });
 }
 
 /**
  * The pictures and audio of these items that a viewer of `client` may load: the item's own
- * client must be that one (none is Wren's own). Thumbnails, episode audio, source avatars.
+ * client must be that one. Thumbnails, episode audio, source avatars.
  */
 export async function mediaOf(
   db: Queryable,
   ids: readonly number[],
-  client: string | null,
+  client: string,
 ): Promise<string[]> {
   if (!ids.length) return [];
   const rows = await db
     .select({ thumb: items.thumbnailUrl, media: items.mediaUrl, avatar: sources.avatarUrl })
     .from(items)
     .leftJoin(sources, eq(sources.id, items.sourceId))
-    .where(
-      and(
-        inArray(items.id, [...ids]),
-        client === null ? isNull(items.client) : eq(items.client, client),
-      ),
-    );
+    .where(and(inArray(items.id, [...ids]), eq(items.client, client)));
   return [
     ...new Set(rows.flatMap((r) => [r.thumb, r.media, r.avatar]).filter((u): u is string => !!u)),
   ];
 }
 
 /** The rail: counts per place, the collections tree, sources by kind, tags. */
-export async function rail(db: Queryable) {
+export async function rail(db: Queryable, client: string) {
   const count = (w: SQL | undefined) => sql<number>`(count(*) filter (where ${w}))::int`;
   const [[places], folders, srcs, tags] = await Promise.all([
     db
@@ -337,7 +341,8 @@ export async function rail(db: Queryable) {
         saved: count(and(isNull(items.archivedAt), isNotNull(items.savedAt))),
         archived: count(isNotNull(items.archivedAt)),
       })
-      .from(items),
+      .from(items)
+      .where(eq(items.client, client)),
     db
       .select({
         id: collections.id,
@@ -346,6 +351,7 @@ export async function rail(db: Queryable) {
         n: sql<number>`(select count(*) from learn.items i where i.collection_id = "collections"."id" and i.archived_at is null)::int`,
       })
       .from(collections)
+      .where(eq(collections.client, client))
       .orderBy(asc(sql`lower(${collections.name})`)),
     db
       .select({
@@ -358,10 +364,13 @@ export async function rail(db: Queryable) {
         fresh: sql<number>`(select count(*) from learn.items i where i.source_id = "sources"."id" and i.archived_at is null and i.opened_at is null and (i.verdict is null or i.verdict <> 'drop'))::int`,
       })
       .from(sources)
+      .where(eq(sources.client, client))
       .orderBy(asc(sql`lower(${sources.name})`)),
     db
       .select({ tag: itemTags.tag, n: sql<number>`count(*)::int` })
       .from(itemTags)
+      .innerJoin(items, eq(items.id, itemTags.itemId))
+      .where(eq(items.client, client))
       .groupBy(itemTags.tag)
       .orderBy(asc(itemTags.tag)),
   ]);
@@ -383,16 +392,18 @@ const SHELF = 10;
  * The home page: new from your sources, one shelf per type; what you were watching; this
  * week's best; and what went into SOPs lately.
  */
-export async function home(db: Queryable, now = new Date()) {
+export async function home(db: Queryable, client: string, now = new Date()) {
+  const mine = eq(items.client, client);
   const [counts, going, top, sops] = await Promise.all([
     db
       .select({ type: items.type, n: sql<number>`count(*)::int` })
       .from(items)
-      .where(fresh)
+      .where(and(mine, fresh))
       .groupBy(items.type),
     cards(db)
       .where(
         and(
+          mine,
           isNull(items.archivedAt),
           sql`${items.position} > 0`,
           sql`(${items.duration} is null or ${items.position} < ${items.duration} - ${DONE_TAIL})`,
@@ -403,6 +414,7 @@ export async function home(db: Queryable, now = new Date()) {
     cards(db)
       .where(
         and(
+          mine,
           isNull(items.archivedAt),
           isNotNull(items.score),
           sql`coalesce(${items.publishedAt}, ${items.createdAt}) > ${new Date(now.getTime() - WEEK_MS).toISOString()}`,
@@ -423,6 +435,7 @@ export async function home(db: Queryable, now = new Date()) {
       })
       .from(sopSources)
       .innerJoin(items, eq(items.id, sopSources.itemId))
+      .where(mine)
       .orderBy(sql`coalesce(${sopSources.doneAt}, ${sopSources.askedAt}) desc`)
       .limit(8),
   ]);
@@ -433,7 +446,7 @@ export async function home(db: Queryable, now = new Date()) {
       total: Number(counts.find((c) => c.type === type)?.n ?? 0),
       items: (
         await cards(db)
-          .where(and(fresh, eq(items.type, type)))
+          .where(and(mine, fresh, eq(items.type, type)))
           .orderBy(sql`coalesce(${items.publishedAt}, ${items.createdAt}) desc`, desc(items.id))
           .limit(SHELF)
       ).map(cardOf),
@@ -448,8 +461,8 @@ export async function home(db: Queryable, now = new Date()) {
 }
 
 /** One item whole, for its page: the card, its text, moments, SOPs and neighbors. */
-export async function itemPage(db: Queryable, id: number) {
-  const [row] = await cards(db).where(eq(items.id, id));
+export async function itemPage(db: Queryable, client: string, id: number) {
+  const [row] = await cards(db).where(and(eq(items.id, id), eq(items.client, client)));
   if (!row) return null;
   const [[whole], sops, folder] = await Promise.all([
     db
@@ -474,7 +487,7 @@ export async function itemPage(db: Queryable, id: number) {
       ? db
           .select({ id: collections.id, name: collections.name })
           .from(collections)
-          .where(eq(collections.id, row.collectionId))
+          .where(and(eq(collections.id, row.collectionId), eq(collections.client, client)))
       : Promise.resolve([]),
   ]);
   const moments: Moment[] = whole?.moments?.length
@@ -498,7 +511,12 @@ export async function itemPage(db: Queryable, id: number) {
 }
 
 /** Set a mark on items; the ids it changed. */
-export async function mark(db: Queryable, ids: number[], m: Mark): Promise<number[]> {
+export async function mark(
+  db: Queryable,
+  client: string,
+  ids: number[],
+  m: Mark,
+): Promise<number[]> {
   const now = new Date();
   const set: Partial<typeof items.$inferInsert> = {
     star: { starredAt: now },
@@ -523,22 +541,23 @@ export async function mark(db: Queryable, ids: number[], m: Mark): Promise<numbe
   const rows = await db
     .update(items)
     .set(set)
-    .where(and(inArray(items.id, ids), unset[m]))
+    .where(and(inArray(items.id, ids), eq(items.client, client), unset[m]))
     .returning({ id: items.id });
   return rows.map((r) => r.id);
 }
 
 /** Opened: no longer new. */
-export async function opened(db: Queryable, id: number): Promise<void> {
+export async function opened(db: Queryable, client: string, id: number): Promise<void> {
   await db
     .update(items)
     .set({ openedAt: new Date() })
-    .where(and(eq(items.id, id), isNull(items.openedAt)));
+    .where(and(eq(items.id, id), eq(items.client, client), isNull(items.openedAt)));
 }
 
 /** Where playback is, to resume; learns the length when the item didn't say. */
 export async function progress(
   db: Queryable,
+  client: string,
   p: { id: number; position: number; duration?: number | null | undefined },
 ): Promise<void> {
   const position = Math.max(0, Math.round(p.position));
@@ -551,26 +570,22 @@ export async function progress(
       openedAt: sql`coalesce(${items.openedAt}, now())`,
       ...(duration ? { duration: sql`coalesce(${items.duration}, ${duration})` } : {}),
     })
-    .where(eq(items.id, p.id));
+    .where(and(eq(items.id, p.id), eq(items.client, client)));
 }
 
 /** Move items into a collection, or out of every one (null); the ids moved. */
 export async function moveItems(
   db: Queryable,
+  client: string,
   ids: number[],
   collectionId: number | null,
 ): Promise<number[]> {
-  if (collectionId !== null) {
-    const [c] = await db
-      .select({ id: collections.id })
-      .from(collections)
-      .where(eq(collections.id, collectionId));
-    if (!c) throw new Error("no such collection");
-  }
+  if (collectionId !== null && !(await ownCollection(db, client, collectionId)))
+    throw new Error("no such collection");
   const rows = await db
     .update(items)
     .set({ collectionId })
-    .where(inArray(items.id, ids))
+    .where(and(inArray(items.id, ids), eq(items.client, client)))
     .returning({ id: items.id });
   return rows.map((r) => r.id);
 }
@@ -586,12 +601,34 @@ export function tagOf(raw: string): string {
     .slice(0, 40);
 }
 
-/** Add and remove tags on items. */
+/** This workspace's items among `ids`. */
+async function ownItems(db: Queryable, client: string, ids: readonly number[]): Promise<number[]> {
+  if (!ids.length) return [];
+  const rows = await db
+    .select({ id: items.id })
+    .from(items)
+    .where(and(inArray(items.id, [...ids]), eq(items.client, client)));
+  return rows.map((r) => r.id);
+}
+
+/** This workspace's collection, or null. */
+async function ownCollection(db: Queryable, client: string, id: number) {
+  const [c] = await db
+    .select({ id: collections.id })
+    .from(collections)
+    .where(and(eq(collections.id, id), eq(collections.client, client)));
+  return c ?? null;
+}
+
+/** Add and remove tags on this workspace's items; the ids it touched. */
 export async function tagItems(
   db: Queryable,
-  ids: number[],
+  client: string,
+  picked: number[],
   p: { add?: string[]; remove?: string[] },
-): Promise<void> {
+): Promise<number[]> {
+  const ids = await ownItems(db, client, picked);
+  if (!ids.length) return [];
   const add = [...new Set((p.add ?? []).map(tagOf).filter(Boolean))];
   const remove = [...new Set((p.remove ?? []).map(tagOf).filter(Boolean))];
   if (add.length)
@@ -603,6 +640,7 @@ export async function tagItems(
     await db
       .delete(itemTags)
       .where(and(inArray(itemTags.itemId, ids), inArray(itemTags.tag, remove)));
+  return ids;
 }
 
 const nameOf = (raw: string | null | undefined): string => {
@@ -614,11 +652,15 @@ const nameOf = (raw: string | null | undefined): string => {
 /** A new collection, at the top or inside another. */
 export async function addCollection(
   db: Queryable,
+  client: string,
   p: { name: string; parentId?: number | null; by?: string | null },
 ) {
+  const name = nameOf(p.name);
+  if (p.parentId && !(await ownCollection(db, client, p.parentId)))
+    throw new Error("no such collection");
   const [row] = await db
     .insert(collections)
-    .values({ name: nameOf(p.name), parentId: p.parentId ?? null, by: p.by ?? null })
+    .values({ client, name, parentId: p.parentId ?? null, by: p.by ?? null })
     .returning();
   if (!row) throw new Error("no row");
   return row;
@@ -627,12 +669,15 @@ export async function addCollection(
 /** Rename a collection or move it under another; never under itself or its own children. */
 export async function editCollection(
   db: Queryable,
+  client: string,
   p: { id: number; name?: string | null | undefined; parentId?: number | null },
 ) {
+  if (!(await ownCollection(db, client, p.id))) throw new Error("no such collection");
   const set: Partial<typeof collections.$inferInsert> = {};
   if (p.name !== undefined && p.name !== null) set.name = nameOf(p.name);
   if (p.parentId !== undefined) {
     if (p.parentId !== null) {
+      if (!(await ownCollection(db, client, p.parentId))) throw new Error("no such collection");
       const chain = await db.execute<{ id: number }>(sql`
         with recursive up as (
           select id, parent_id from learn.collections where id = ${p.parentId}
@@ -645,22 +690,26 @@ export async function editCollection(
     }
     set.parentId = p.parentId;
   }
-  const [row] = await db.update(collections).set(set).where(eq(collections.id, p.id)).returning();
+  const [row] = await db
+    .update(collections)
+    .set(set)
+    .where(and(eq(collections.id, p.id), eq(collections.client, client)))
+    .returning();
   if (!row) throw new Error("no such collection");
   return row;
 }
 
 /** Delete a collection and the ones inside it; their items stay, out of any collection. */
-export async function dropCollection(db: Queryable, id: number): Promise<boolean> {
+export async function dropCollection(db: Queryable, client: string, id: number): Promise<boolean> {
   const rows = await db
     .delete(collections)
-    .where(eq(collections.id, id))
+    .where(and(eq(collections.id, id), eq(collections.client, client)))
     .returning({ id: collections.id });
   return rows.length > 0;
 }
 
 /** Every source, grouped by kind, with what each brought and when. */
-export async function sourcesByKind(db: Queryable) {
+export async function sourcesByKind(db: Queryable, client: string) {
   const rows = await db
     .select({
       id: sources.id,
@@ -683,6 +732,7 @@ export async function sourcesByKind(db: Queryable) {
       >`(select max(coalesce(i.published_at, i.created_at)) from learn.items i where i.source_id = "sources"."id")`,
     })
     .from(sources)
+    .where(eq(sources.client, client))
     .orderBy(asc(sql`lower(${sources.name})`));
   return SOURCE_KINDS.map((kind) => ({
     kind,

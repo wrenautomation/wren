@@ -235,7 +235,14 @@ import { s3Files } from "@wren/delivery/files";
 import { HEALTH_RECORDS } from "@wren/delivery/health";
 import { makeHealthConsole } from "@wren/delivery/health/console";
 import { makeDeliveryPortal, makeDeliveryWatch, makeDomainsResolver } from "@wren/delivery/restate";
-import { readStep as learnRead, type Practice, practiceOf, scoreStep } from "@wren/learn";
+import {
+  clientAskedOnRead,
+  judges as learnJudges,
+  readStep as learnRead,
+  type Practice,
+  practiceOf,
+  scoreStep,
+} from "@wren/learn";
 import { makeLearnConsole } from "@wren/learn/console";
 import { LEARN_RECORDS, sopRecordFor } from "@wren/learn/records";
 import { loadLlmEnv, makeLlm, makeTracer } from "@wren/llm";
@@ -1135,7 +1142,7 @@ export async function buildServices(
     }),
   );
   services.push(makeWatchConsole(db, watchLlm));
-  services.push(makeLearnConsole(db));
+  services.push(makeLearnConsole(db, fetch, clientDb));
   // Health and flags: Wren's rating, an override, a flag taken, addressed or cleared.
   services.push(makeHealthConsole(db));
   // Cold SMS. Always bound: the sender is off until `wren sms queue start`.
@@ -1582,7 +1589,13 @@ export async function buildServices(
         }),
         // Learn: an article read here, a video marked for the Mac; then scored like the radar was.
         "learn.read": learnRead(db, fetch),
-        "learn.score": scoreStep(db, watchLlm, () => practicesOf(db)),
+        // Each item by its own workspace: a client's on its models allowance, against its own SOPs,
+        // and an SOP it asked for written into its Notes once read.
+        "learn.score": scoreStep(
+          db,
+          learnJudges({ db, llm: watchLlm, wrenPractices: () => practicesOf(db) }),
+          clientAskedOnRead(db, clientDb),
+        ),
         // A bill in the Monitor's mail runs the books now; the books' pass is the box's.
         "books.bills": billsStep({
           mailOf: async (id) =>

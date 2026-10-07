@@ -7,9 +7,9 @@
  */
 import { decodeHtml } from "@wren/core/html";
 import type { SpineEvent } from "@wren/core/spine";
-import type { Db } from "@wren/db";
+import type { Db, Queryable } from "@wren/db";
 import { pgSafe } from "@wren/db/columns";
-import { and, asc, eq, isNull, lt, or } from "drizzle-orm";
+import { and, asc, eq, inArray, isNull, lt, or } from "drizzle-orm";
 import { cleanUrl, creatorSite, kindOf, typeOf, youtubeThumb } from "./links.js";
 import { items, type SourceKind, sources, type Tell } from "./schema.js";
 
@@ -278,9 +278,10 @@ export function ogImageOf(html: string): string | null {
 }
 
 /** A new item's row: the kind and type its link says, its feed's text and picture kept. */
-const rowOf = (sourceId: number, sourceKind: SourceKind, i: FeedItem) => {
+const rowOf = (client: string, sourceId: number, sourceKind: SourceKind, i: FeedItem) => {
   const kind = kindOf(i.url, i.enclosure);
   return {
+    client,
     sourceId,
     url: i.url,
     kind,
@@ -298,11 +299,18 @@ const rowOf = (sourceId: number, sourceKind: SourceKind, i: FeedItem) => {
 /**
  * Follow a source: read it once, so a bad address fails here, not an hour later. Its current
  * items are kept as seen (done, never read): following scores what comes next, not the past.
+ * A source is one workspace's (`client`): two workspaces following one feed each get their own.
  */
 export async function follow(
   db: Db,
   fetchFn: FetchFn,
-  p: { url: string; name?: string | null; tell?: Tell | null; by?: string | null },
+  p: {
+    client: string;
+    url: string;
+    name?: string | null;
+    tell?: Tell | null;
+    by?: string | null;
+  },
 ): Promise<{ id: number; name: string; kind: SourceKind; items: number }> {
   const { feedUrl, page, feed, pageImage } = await findFeed(fetchFn, p.url.trim());
   const name = p.name?.trim() || feed.title || new URL(feedUrl).hostname;
@@ -312,6 +320,7 @@ export async function follow(
   const [row] = await db
     .insert(sources)
     .values({
+      client: p.client,
       url: feedUrl,
       page,
       name,
@@ -322,7 +331,7 @@ export async function follow(
       fetchedAt: new Date(),
     })
     .onConflictDoUpdate({
-      target: sources.url,
+      target: [sources.client, sources.url],
       set: { name, kind, avatarUrl, tell, stoppedAt: null, failure: null },
     })
     .returning({ id: sources.id });
@@ -332,13 +341,42 @@ export async function follow(
       .insert(items)
       .values(
         feed.items.map((i) => ({
-          ...rowOf(row.id, kind, i),
+          ...rowOf(p.client, row.id, kind, i),
           why: "In the feed before you followed it.",
           archivedAt: new Date(),
         })),
       )
-      .onConflictDoNothing({ target: items.url });
+      .onConflictDoNothing({ target: [items.client, items.url] });
   return { id: row.id, name, kind, items: feed.items.length };
+}
+
+/** When this workspace's sources tell: the ids it changed. */
+export async function tellSources(
+  db: Queryable,
+  client: string,
+  ids: number[],
+  tell: Tell,
+): Promise<number[]> {
+  const rows = await db
+    .update(sources)
+    .set({ tell })
+    .where(and(inArray(sources.id, ids), eq(sources.client, client)))
+    .returning({ id: sources.id });
+  return rows.map((r) => r.id);
+}
+
+/** Stop reading this workspace's sources; their items stay. The ids it stopped. */
+export async function unfollowSources(
+  db: Queryable,
+  client: string,
+  ids: number[],
+): Promise<number[]> {
+  const rows = await db
+    .update(sources)
+    .set({ stoppedAt: new Date() })
+    .where(and(inArray(sources.id, ids), eq(sources.client, client), isNull(sources.stoppedAt)))
+    .returning({ id: sources.id });
+  return rows.map((r) => r.id);
 }
 
 export interface PullStats {
@@ -347,7 +385,10 @@ export interface PullStats {
   failed: Array<{ source: string; error: string }>;
 }
 
-/** Each followed source due a read, its new items stored unread. A failing one keeps its error. */
+/**
+ * Each followed source due a read, in every workspace, its new items stored unread in the
+ * source's own. A failing one keeps its error.
+ */
 export async function pullFeeds(db: Db, fetchFn: FetchFn, now: Date): Promise<PullStats> {
   const due = await db
     .select()
@@ -369,8 +410,8 @@ export async function pullFeeds(db: Db, fetchFn: FetchFn, now: Date): Promise<Pu
       if (feed.items.length) {
         const rows = await db
           .insert(items)
-          .values(feed.items.map((i) => rowOf(s.id, s.kind, i)))
-          .onConflictDoNothing({ target: items.url })
+          .values(feed.items.map((i) => rowOf(s.client, s.id, s.kind, i)))
+          .onConflictDoNothing({ target: [items.client, items.url] })
           .returning({ id: items.id });
         stats.added.push(...rows.map((r) => r.id));
       }

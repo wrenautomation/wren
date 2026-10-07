@@ -4,9 +4,9 @@
  */
 import { Alert, Button, Empty, Input, Loading, PageHeader, relative, Tag } from "@wren/ui";
 import { type FormEvent, type ReactNode, useEffect, useRef, useState } from "react";
-import { call } from "../../api.js";
 import { useCall } from "../../load.js";
 import type { PageProps } from "../../module.js";
+import { call, inWorkspace, keyOf } from "./api.js";
 import { LearnFrame } from "./frame.js";
 
 interface Saved {
@@ -28,7 +28,7 @@ const savedLine = (s: Saved) =>
   `${s.fresh ? "Saved" : "Already saved"}. ${KINDS[s.kind] ?? "Item"}${
     s.unread
       ? s.kind === "video" || s.kind === "reel"
-        ? ", read on the Mac next."
+        ? ", read soon."
         : ", reading now."
       : ", already read."
   }`;
@@ -82,7 +82,8 @@ export function SaveBox({ reload }: { reload?: () => void }) {
 }
 
 /** The phone's share target: the Shortcut opens /learn/add?url=…, this saves it once. */
-export function AddPage({ params }: PageProps) {
+export function AddPage({ params, client }: PageProps) {
+  inWorkspace(client);
   const url = params.get("url") ?? params.get("text") ?? "";
   const [state, setState] = useState<{ saved?: Saved; error?: string } | null>(null);
   const sent = useRef(false);
@@ -144,7 +145,8 @@ function Snippet({ text }: { text: string }): ReactNode {
 }
 
 /** Search across every transcript, summary and title, beside the rail like every Learn page. */
-export function SearchPage({ params }: PageProps) {
+export function SearchPage({ params, client }: PageProps) {
+  inWorkspace(client);
   return (
     <LearnFrame here="search">
       <SearchBody params={params} />
@@ -155,7 +157,7 @@ export function SearchPage({ params }: PageProps) {
 function SearchBody({ params }: { params: URLSearchParams }) {
   const [q, setQ] = useState(params.get("q") ?? "");
   const [asked, setAsked] = useState(params.get("q") ?? "");
-  const hits = useCall(`learn.search:${asked}`, () =>
+  const hits = useCall(keyOf(`learn.search:${asked}`), () =>
     asked.trim()
       ? call<{ hits: Hit[] }>("learn/search", { q: asked })
       : Promise.resolve({ hits: [] }),

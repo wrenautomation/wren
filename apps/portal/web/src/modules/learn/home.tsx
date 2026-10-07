@@ -7,17 +7,18 @@ import { ChevronLeft, ChevronRight, Link, Rss, Smartphone } from "@wren/ui/lib/l
 import { type ReactNode, useEffect, useRef } from "react";
 import { useCall } from "../../load.js";
 import type { PageProps } from "../../module.js";
-import { type Card, type Home, learn, onChanged } from "./api.js";
+import { type Card, type Home, inWorkspace, keyOf, learn, onChanged } from "./api.js";
 import { LearnFrame, useRail } from "./frame.js";
 import { Avatar, lengthOf, ScoreBadge, Thumb, TYPES, TypeMark } from "./kinds.js";
 
 const SOP_STATES = {
-  asked: { label: "Waits for the Mac", tone: "warn" },
+  asked: { label: "Waiting", tone: "warn" },
   added: { label: "Added", tone: "good" },
   failed: { label: "Failed", tone: "bad" },
 } as const;
 
-export function HomePage(_: PageProps) {
+export function HomePage({ client }: PageProps) {
+  inWorkspace(client);
   return (
     <LearnFrame here="home">
       <HomeBody />
@@ -26,7 +27,7 @@ export function HomePage(_: PageProps) {
 }
 
 function HomeBody() {
-  const load = useCall("learn.home", learn.home);
+  const load = useCall(keyOf("learn.home"), learn.home);
   const { retry } = load;
   useEffect(() => onChanged(retry), [retry]);
   const { rail } = useRail();
@@ -74,7 +75,7 @@ function Shelves({ home }: { home: Home }) {
       {home.top.length ? (
         <Shelf
           title="Top this week"
-          lede="Scored highest against Wren's SOPs"
+          lede="Scored highest against your SOPs"
           items={home.top}
           more={{ href: "/learn/items?in=all&sort=score", label: "All by score" }}
         />
@@ -257,7 +258,7 @@ function Welcome() {
     {
       Icon: Rss,
       title: "Follow a source",
-      body: "A YouTube channel, podcast, newsletter or blog. Each new post is read, summed up and scored against Wren's SOPs.",
+      body: "A YouTube channel, podcast, newsletter or blog. Each new post is read, summed up and scored against your SOPs.",
       href: "/learn/sources",
       cta: "Follow one",
     },

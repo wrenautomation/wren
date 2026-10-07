@@ -1,6 +1,7 @@
 /**
  * Items by hand: saving a link (the portal box, the phone's Shortcut, the CLI), search across
- * every transcript, and one item whole for its page.
+ * every transcript, and one item whole for its page. Each in one workspace (`client`): Wren's own
+ * (`wren`) or a client's.
  */
 import type { Db, Queryable } from "@wren/db";
 import { pgSafe } from "@wren/db/columns";
@@ -19,12 +20,12 @@ export interface Saved {
 }
 
 /**
- * Save a link. The same link twice is one item: a second save only marks it saved again. One the
- * feed already brought keeps its read and score, and comes back from done.
+ * Save a link. The same link twice in a workspace is one item: a second save only marks it saved
+ * again. One the feed already brought keeps its read and score, and comes back from done.
  */
 export async function saveLink(
   db: Db,
-  p: { url: string; by: string | null; via: Via; title?: string | null },
+  p: { client: string; url: string; by: string | null; via: Via; title?: string | null },
 ): Promise<Saved> {
   const url = cleanUrl(p.url);
   const kind = kindOf(url);
@@ -32,6 +33,7 @@ export async function saveLink(
   const [row] = await db
     .insert(items)
     .values({
+      client: p.client,
       url,
       kind,
       type: typeOf(url, kind),
@@ -43,7 +45,7 @@ export async function saveLink(
       ...(needsMac(kind) ? { needsMac: now } : {}),
     })
     .onConflictDoUpdate({
-      target: items.url,
+      target: [items.client, items.url],
       set: {
         savedAt: sql`coalesce(${items.savedAt}, ${now.toISOString()}::timestamptz)`,
         savedBy: sql`coalesce(${items.savedBy}, ${p.by})`,
@@ -76,7 +78,12 @@ export interface Hit {
 }
 
 /** Every item's transcript searched, best match first. Words, "a phrase", -not and or. */
-export async function searchItems(db: Queryable, q: string, limit = 40): Promise<Hit[]> {
+export async function searchItems(
+  db: Queryable,
+  client: string,
+  q: string,
+  limit = 40,
+): Promise<Hit[]> {
   const words = q.trim();
   if (!words) return [];
   const tsq = sql`websearch_to_tsquery('english', ${words})`;
@@ -96,19 +103,19 @@ export async function searchItems(db: Queryable, q: string, limit = 40): Promise
     })
     .from(items)
     .leftJoin(sources, eq(sources.id, items.sourceId))
-    .where(sql`${items.search} @@ ${tsq}`)
+    .where(and(eq(items.client, client), sql`${items.search} @@ ${tsq}`))
     .orderBy(sql`${rank} desc`, desc(items.id))
     .limit(Math.min(Math.max(limit, 1), 200));
   return rows.map((r) => ({ ...r, rank: Number(r.rank), at: new Date(r.at) }));
 }
 
 /** One item whole: its transcript, the SOPs it was asked into. Null for none. */
-export async function itemOf(db: Queryable, id: number) {
+export async function itemOf(db: Queryable, client: string, id: number) {
   const [row] = await db
     .select({ item: items, source: sources.name })
     .from(items)
     .leftJoin(sources, eq(sources.id, items.sourceId))
-    .where(eq(items.id, id));
+    .where(and(eq(items.id, id), eq(items.client, client)));
   if (!row) return null;
   const sops = await db
     .select()
@@ -121,6 +128,7 @@ export async function itemOf(db: Queryable, id: number) {
 /** Items for the CLI: newest first, saved only or waiting only on ask. */
 export async function listItems(
   db: Queryable,
+  client: string,
   o: { saved?: boolean; waiting?: boolean; limit?: number } = {},
 ) {
   return db
@@ -140,6 +148,7 @@ export async function listItems(
     .leftJoin(sources, eq(sources.id, items.sourceId))
     .where(
       and(
+        eq(items.client, client),
         o.saved ? sql`${items.savedAt} is not null` : undefined,
         o.waiting ? sql`${items.readAt} is null and ${items.archivedAt} is null` : undefined,
       ),

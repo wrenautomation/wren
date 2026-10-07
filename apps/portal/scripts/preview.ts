@@ -286,7 +286,9 @@ const SERVICES: Record<
   learn: {
     routes: Object.keys(LEARN_CONSOLE_ROUTES),
     guard: { needs: LEARN_CONSOLE_ROUTES, apps: LEARN_CONSOLE_APPS, unnamed: "wren" },
-    api: learnConsoleApi(main),
+    api: learnConsoleApi(main, fetch, (c) =>
+      cachedDb(clientUrl(settings.databaseUrl, { database: clientDatabaseName(c) })),
+    ),
   },
   // Sites, in Wren's own database. No model here: a new page takes the offer's own words.
   sites: {

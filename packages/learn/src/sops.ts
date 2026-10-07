@@ -1,24 +1,36 @@
 /**
- * Items into SOPs. "Add to SOP" asks; the Mac, where `../sops` lives, writes the item's stored
- * transcript into that SOP's `sources/` and extracts its points. Build and push stay William's
- * (`wren sop build`, `wren sop push`). The SOP library reads the folders where they exist and
- * the database everywhere: which items fed which SOP, and what was pushed when.
+ * Items into SOPs. "Add to SOP" asks. For Wren's own items the Mac, where `../sops` lives, writes
+ * the item's stored transcript into that SOP's `sources/` and extracts its points; build and push
+ * stay William's (`wren sop build`, `wren sop push`). A client's item goes into that client's own
+ * Notes instead, under a note named for the SOP, in its own database: never Wren's folder.
+ * The SOP library reads the folders where they exist and the database everywhere: which items fed
+ * which SOP, and what was pushed when. A client's library is its own links alone.
  */
 import { readdir, readFile, stat } from "node:fs/promises";
 import { join } from "node:path";
+import { WREN } from "@wren/core/access";
 import type { Db, Queryable } from "@wren/db";
-import { and, asc, eq, isNotNull, sql } from "drizzle-orm";
+import { createNote } from "@wren/notes";
+import { fromMarkdown } from "@wren/notes/doc";
+import { notes } from "@wren/notes/schema";
+import { and, asc, eq, isNotNull, isNull, sql } from "drizzle-orm";
 import { fileOf } from "./read.js";
 import { items, sopSources } from "./schema.js";
 
 /** An SOP folder's name, as `wren sop add` makes one. */
 export const SOP_NAME = /^[a-z0-9][a-z0-9-]{0,63}$/;
 
-/** Ask for an item in an SOP; a failed ask asks again. */
-export async function askSop(db: Db, p: { itemId: number; sop: string; by: string | null }) {
+/** Ask for this workspace's item in an SOP; a failed ask asks again. */
+export async function askSop(
+  db: Db,
+  p: { client: string; itemId: number; sop: string; by: string | null },
+) {
   const sop = p.sop.trim().toLowerCase();
   if (!SOP_NAME.test(sop)) throw new Error("An SOP name is lowercase letters, digits and dashes");
-  const [item] = await db.select({ id: items.id }).from(items).where(eq(items.id, p.itemId));
+  const [item] = await db
+    .select({ id: items.id })
+    .from(items)
+    .where(and(eq(items.id, p.itemId), eq(items.client, p.client)));
   if (!item) throw new Error(`No item ${p.itemId}`);
   const [row] = await db
     .insert(sopSources)
@@ -42,8 +54,8 @@ export interface SopWriter {
 }
 
 /**
- * Write each asked item that's read into its SOP's folder, then extract its points. One that
- * fails keeps why; the rest go on. Unread items wait.
+ * Write each of Wren's asked items that's read into its SOP's folder, then extract its points.
+ * One that fails keeps why; the rest go on. Unread items wait. Clients' asks go to their Notes.
  */
 export async function writeAsked(
   db: Db,
@@ -57,6 +69,7 @@ export async function writeAsked(
     .innerJoin(items, eq(items.id, sopSources.itemId))
     .where(
       and(
+        eq(items.client, WREN),
         eq(sopSources.state, "asked"),
         isNotNull(items.transcript),
         only?.itemId ? eq(sopSources.itemId, only.itemId) : undefined,
@@ -115,20 +128,29 @@ interface Pushed {
 }
 
 /**
- * Every SOP: from its folder under `sopsDir` when that's readable here, else from the database
- * alone (pushes and the items asked into it). `sopsDir` null reads the database only.
+ * Every SOP of a workspace. Wren's: from its folder under `sopsDir` when that's readable here,
+ * else from the database alone (pushes and the items asked into it); `sopsDir` null reads the
+ * database only. A client's: the SOP names its own items were asked into, nothing of Wren's.
  */
-export async function sopLibrary(db: Queryable, sopsDir: string | null): Promise<SopRow[]> {
-  const pushes = (await db.execute(sql`
+export async function sopLibrary(
+  db: Queryable,
+  client: string,
+  sopsDir: string | null,
+): Promise<SopRow[]> {
+  const wren = client === WREN;
+  const pushes = wren
+    ? ((await db.execute(sql`
     select distinct on (sop) sop, created_at at, text from content_playbooks
-    order by sop, created_at desc`)) as unknown as Pushed[];
+    order by sop, created_at desc`)) as unknown as Pushed[])
+    : [];
   const pushed = new Map(pushes.map((p) => [p.sop, { ...p, at: new Date(p.at) }]));
   const links = await db
     .select({ sop: sopSources.sop, state: sopSources.state, title: items.title })
     .from(sopSources)
     .innerJoin(items, eq(items.id, sopSources.itemId))
+    .where(eq(items.client, client))
     .orderBy(asc(sopSources.sop), asc(sopSources.id));
-  const folders = sopsDir ? await readFolders(sopsDir) : null;
+  const folders = wren && sopsDir ? await readFolders(sopsDir) : null;
   const names = new Set([...(folders?.keys() ?? []), ...pushed.keys(), ...links.map((l) => l.sop)]);
   return [...names].sort().map((sop): SopRow => {
     const f = folders?.get(sop) ?? null;
@@ -185,7 +207,113 @@ async function readFolders(
   return out;
 }
 
-/** The SOPs an item may go into: every known name, for the "Add to SOP" picker. */
-export async function sopNames(db: Queryable, sopsDir: string | null): Promise<string[]> {
-  return (await sopLibrary(db, sopsDir)).map((r) => r.sop);
+/** The SOPs a workspace's item may go into: every known name, for the "Add to SOP" picker. */
+export async function sopNames(
+  db: Queryable,
+  client: string,
+  sopsDir: string | null,
+): Promise<string[]> {
+  return (await sopLibrary(db, client, sopsDir)).map((r) => r.sop);
+}
+
+/** Who writes a client's SOP notes. */
+const LEARN_AGENT = "agent:learn";
+
+/** A note body for an item: its link, summary and transcript. */
+export function noteMarkdown(item: {
+  url: string;
+  summary: string | null;
+  transcript: string | null;
+  text: string;
+}): string {
+  const parts = [`Source: ${item.url}`];
+  if (item.summary) parts.push(item.summary);
+  parts.push(item.transcript ?? item.text);
+  return parts.filter(Boolean).join("\n\n");
+}
+
+/**
+ * Write a client's asked items that are read into its own Notes: one note per item, under a
+ * top-level note named for the SOP that everyone in the workspace sees. `notesDb` is that
+ * client's own database; Wren's items never come here. Unread items wait.
+ */
+export async function writeClientAsked(
+  db: Db,
+  client: string,
+  notesDb: Db,
+  only?: { itemId?: number },
+): Promise<Array<{ sop: string; note: string | null; error: string | null }>> {
+  if (client === WREN) throw new Error("Wren's SOPs are folders: wren learn to-sop");
+  const asked = await db
+    .select({ ask: sopSources, item: items })
+    .from(sopSources)
+    .innerJoin(items, eq(items.id, sopSources.itemId))
+    .where(
+      and(
+        eq(items.client, client),
+        eq(sopSources.state, "asked"),
+        isNotNull(items.readAt),
+        only?.itemId ? eq(sopSources.itemId, only.itemId) : undefined,
+      ),
+    )
+    .orderBy(asc(sopSources.id));
+  const out: Array<{ sop: string; note: string | null; error: string | null }> = [];
+  for (const { ask, item } of asked) {
+    try {
+      const parent = await sopNote(notesDb, ask.sop);
+      const note = await createNote(notesDb, {
+        owner: LEARN_AGENT,
+        by: ask.by ?? LEARN_AGENT,
+        via: "agent",
+        title: item.title.slice(0, 300),
+        body: fromMarkdown(noteMarkdown(item)),
+        parentId: parent,
+      });
+      await db
+        .update(sopSources)
+        .set({ state: "added", file: `note:${note.id}`, error: null, doneAt: new Date() })
+        .where(eq(sopSources.id, ask.id));
+      out.push({ sop: ask.sop, note: note.id, error: null });
+    } catch (err) {
+      const error = (err instanceof Error ? err.message : String(err)).slice(0, 500);
+      await db.update(sopSources).set({ error, state: "failed" }).where(eq(sopSources.id, ask.id));
+      out.push({ sop: ask.sop, note: null, error });
+    }
+  }
+  return out;
+}
+
+/** After an item is read and scored: if it's a client's, its asked SOPs go into its Notes. */
+export const clientAskedOnRead =
+  (db: Db, clientDb: (client: string) => Db) =>
+  async (itemId: number): Promise<void> => {
+    const [row] = await db.select({ client: items.client }).from(items).where(eq(items.id, itemId));
+    if (row && row.client !== WREN)
+      await writeClientAsked(db, row.client, clientDb(row.client), { itemId });
+  };
+
+/** The SOP's top-level note in a client's Notes, made the first time. */
+async function sopNote(notesDb: Db, sop: string): Promise<string> {
+  const [found] = await notesDb
+    .select({ id: notes.id })
+    .from(notes)
+    .where(
+      and(
+        isNull(notes.parentId),
+        isNull(notes.archivedAt),
+        eq(notes.owner, LEARN_AGENT),
+        eq(notes.title, sop),
+      ),
+    )
+    .limit(1);
+  if (found) return found.id;
+  const made = await createNote(notesDb, {
+    owner: LEARN_AGENT,
+    by: LEARN_AGENT,
+    via: "agent",
+    title: sop,
+    general: "workspace",
+    generalRole: "edit",
+  });
+  return made.id;
 }

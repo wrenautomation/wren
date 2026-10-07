@@ -6,7 +6,7 @@ import type { Module } from "../module.js";
 import { account } from "./account/index.js";
 import { calendar, clientCalendar } from "./calendar/index.js";
 import { calls } from "./calls/index.js";
-import { learn } from "./learn/index.js";
+import { clientLearn, learn } from "./learn/index.js";
 import { library } from "./library/index.js";
 import { clientMarketing, marketing } from "./marketing/index.js";
 import { marketplace } from "./marketplace/index.js";
@@ -31,6 +31,8 @@ export const MODULES: Module[] = [
   clientMarketing,
   marketing,
   ...WREN_APPS,
+  // One address, two apps, as Marketing.
+  clientLearn,
   learn,
   sites,
   library,

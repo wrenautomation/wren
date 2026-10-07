@@ -1,22 +1,31 @@
 /**
  * LearnConsole: the Learn app's hands. Save a link (the box, the phone's Shortcut), follow a
- * source and pick when it tells William, browse items like a drive (places, filters, sorts,
+ * source and pick when it tells you, browse items like a drive (places, filters, sorts,
  * collections, tags, marks), keep where playback is, read one again, ask for items in an SOP,
  * and search every transcript. A save that still has to be read goes onto the spine.
+ *
+ * Every call works in one workspace, picked here as in the Inbox: Wren's own for its team naming
+ * no client, else the client the guard opened, checked again (its Learn grant, read or act).
+ * Every row read or changed is that workspace's; another's is "no such item".
  */
 import type * as restate from "@restatedev/restate-sdk";
 import { WREN } from "@wren/core/access";
 import {
   answer,
+  canAt,
+  isOperator,
   PortalRefusal,
   type PortalRequest,
+  pickClient,
+  pickForWrite,
   portalService,
   type SignedViewer,
+  teamCan,
 } from "@wren/core/portal";
 import { PORTAL_FIELDS, serviceHandler } from "@wren/core/restate";
 import { spineEmit } from "@wren/core/spine";
 import { atomic, type Db, setAuditActor, type Tx } from "@wren/db";
-import { and, inArray, isNull } from "drizzle-orm";
+import { and, eq, inArray, isNull, or } from "drizzle-orm";
 import { z } from "zod";
 import { LEARN_CONSOLE_APPS, LEARN_CONSOLE_ROUTES } from "./console-routes.js";
 import {
@@ -41,11 +50,11 @@ import {
   tagItems,
   unseen,
 } from "./drive.js";
-import { type FetchFn, follow, itemEvent } from "./feeds.js";
+import { type FetchFn, follow, itemEvent, tellSources, unfollowSources } from "./feeds.js";
 import { saveLink, searchItems } from "./items.js";
 import { cleanUrl } from "./links.js";
-import { items, sources, TELLS, type Tell, TYPES, VIAS, type Via } from "./schema.js";
-import { askSop } from "./sops.js";
+import { items, TELLS, type Tell, TYPES, VIAS, type Via } from "./schema.js";
+import { askSop, writeClientAsked } from "./sops.js";
 
 /** The workflow Learn's items walk, and where a save and a feed item enter it. */
 export const LEARN_FLOW = "learn";
@@ -150,18 +159,48 @@ export function checkUrl(raw: string | null | undefined): string {
   }
 }
 
+/** A client's own database, where its Notes live: an SOP from its items goes there. */
+export type ClientDbOf = (client: string) => Db;
+
+/**
+ * The workspace a call works in. Wren's team naming no client: Wren's own, for those who hold
+ * Wren's team. Anyone else: the client the guard opened (the login's own when none is named),
+ * checked again here for `need` in its Learn app. A write never lands on the demo.
+ */
+export async function learnPlace(
+  main: Db,
+  req: PortalRequest,
+  need: "read" | "act",
+): Promise<string> {
+  const named = typeof req.client === "string" && req.client !== "" && req.client !== WREN;
+  if (!named && isOperator(req.viewer)) {
+    if (!teamCan(req, "team", WREN)) throw new PortalRefusal("no access", 403);
+    return WREN;
+  }
+  const c = need === "act" ? (await pickForWrite(main, req)).client : await pickClient(main, req);
+  if (!(await canAt(main, req, need, { client: c.id, app: "learn" })))
+    throw new PortalRefusal(need === "act" ? "your role can't do that" : "no access", 403);
+  return c.id;
+}
+
 /** The handlers as plain functions: the service wraps them, tests call them. */
-export function learnConsoleApi(db: Db, fetchFn: FetchFn = fetch) {
-  const write = <T>(req: PortalRequest, fn: (tx: Tx) => Promise<T>) =>
-    atomic(db, async (tx) => {
+export function learnConsoleApi(db: Db, fetchFn: FetchFn = fetch, clientDb?: ClientDbOf) {
+  const reads = (req: PortalRequest) => learnPlace(db, req, "read");
+  const acts = (req: PortalRequest) => learnPlace(db, req, "act");
+  const write = async <T>(req: PortalRequest, fn: (tx: Tx, client: string) => Promise<T>) => {
+    const client = await acts(req);
+    return atomic(db, async (tx) => {
       await setAuditActor(tx, by(req));
-      return fn(tx);
+      return fn(tx, client);
     });
-  const done = (rows: { id: number }[]) => ({ done: rows.map((r) => String(r.id)) });
+  };
+  const done = (ids: number[]) => ({ done: ids.map(String) });
   return {
     save: async (req: SaveRequest) => {
       checkUrl(req.url);
+      const client = await acts(req);
       const s = await saveLink(db, {
+        client,
         url: req.url,
         by: by(req),
         via: viaOf(req.via),
@@ -173,8 +212,15 @@ export function learnConsoleApi(db: Db, fetchFn: FetchFn = fetch) {
       const url = req.url?.trim();
       if (!url || !/^https?:\/\//.test(url)) throw new PortalRefusal("an https address", 400);
       const tell = tellOf(req.tell);
+      const client = await acts(req);
       try {
-        const got = await follow(db, fetchFn, { url, name: req.name ?? null, tell, by: by(req) });
+        const got = await follow(db, fetchFn, {
+          client,
+          url,
+          name: req.name ?? null,
+          tell,
+          by: by(req),
+        });
         return { id: String(got.id), name: got.name, kind: got.kind, items: got.items };
       } catch (err) {
         throw new PortalRefusal(err instanceof Error ? err.message : String(err), 400);
@@ -183,29 +229,17 @@ export function learnConsoleApi(db: Db, fetchFn: FetchFn = fetch) {
     tell: (req: TellRequest) => {
       const tell = tellOf(req.tell);
       if (!tell) throw new PortalRefusal("pick when to tell you", 400);
-      return write(req, async (tx) =>
-        done(
-          await tx
-            .update(sources)
-            .set({ tell })
-            .where(inArray(sources.id, idsOf(req)))
-            .returning({ id: sources.id }),
-        ),
-      );
+      const ids = idsOf(req);
+      return write(req, async (tx, client) => done(await tellSources(tx, client, ids, tell)));
     },
-    unfollow: (req: IdsRequest) =>
-      write(req, async (tx) =>
-        done(
-          await tx
-            .update(sources)
-            .set({ stoppedAt: new Date() })
-            .where(and(inArray(sources.id, idsOf(req)), isNull(sources.stoppedAt)))
-            .returning({ id: sources.id }),
-        ),
-      ),
-    browse: (req: BrowseRequest) =>
-      refuse(() =>
-        browse(db, {
+    unfollow: (req: IdsRequest) => {
+      const ids = idsOf(req);
+      return write(req, async (tx, client) => done(await unfollowSources(tx, client, ids)));
+    },
+    browse: async (req: BrowseRequest) => {
+      const client = await reads(req);
+      return refuse(() =>
+        browse(db, client, {
           place: req.place,
           types: req.types,
           sources: req.sources,
@@ -215,57 +249,60 @@ export function learnConsoleApi(db: Db, fetchFn: FetchFn = fetch) {
           offset: req.offset,
           limit: req.limit,
         }),
-      ),
-    rail: () => rail(db),
-    /** Learn's badge: new from sources since this viewer last looked. */
-    unseen: async (req: PortalRequest) => ({ n: await unseen(db, by(req)) }),
-    seen: (req: PortalRequest) =>
-      write(req, async (tx) => {
-        await markSeen(tx, by(req));
-        return { ok: true };
-      }),
-    /** The media these items may load for the workspace asked: Wren's own, or a client's. */
-    media: async (req: IdsRequest) => {
-      const named = typeof req.client === "string" && req.client !== WREN ? req.client : null;
-      return { urls: await mediaOf(db, idsOf(req), named) };
+      );
     },
-    home: () => home(db),
-    sources: async () => ({ kinds: await sourcesByKind(db) }),
+    rail: async (req: PortalRequest) => rail(db, await reads(req)),
+    /** Learn's badge: new from sources since this viewer last looked. */
+    unseen: async (req: PortalRequest) => ({ n: await unseen(db, await reads(req), by(req)) }),
+    // Your own "last looked": a read, as a star is.
+    seen: async (req: PortalRequest) => {
+      const client = await reads(req);
+      await markSeen(db, client, by(req));
+      return { ok: true };
+    },
+    /** The media these items may load in this workspace: its own items' only. */
+    media: async (req: IdsRequest) => ({
+      urls: await mediaOf(db, idsOf(req), await reads(req)),
+    }),
+    home: async (req: PortalRequest) => home(db, await reads(req)),
+    sources: async (req: PortalRequest) => ({ kinds: await sourcesByKind(db, await reads(req)) }),
     mark: async (req: MarkRequest) => {
       if (!(MARKS as readonly string[]).includes(req.mark))
         throw new PortalRefusal(`mark is one of ${MARKS.join(", ")}`, 400);
       const ids = idsOf(req);
-      return write(req, async (tx) => ({
-        done: (await mark(tx, ids, req.mark as Mark)).map(String),
-      }));
+      return write(req, async (tx, client) => done(await mark(tx, client, ids, req.mark as Mark)));
     },
+    // Where you are in an item: kept on a read, as `seen` is.
     open: async (req: ItemRequest) => {
-      await opened(db, idOf(req.id));
+      await opened(db, await reads(req), idOf(req.id));
       return { ok: true };
     },
     progress: async (req: ProgressRequest) => {
       if (!Number.isFinite(req.position)) throw new PortalRefusal("a position in seconds", 400);
-      await progress(db, { id: idOf(req.id), position: req.position, duration: req.duration });
+      await progress(db, await reads(req), {
+        id: idOf(req.id),
+        position: req.position,
+        duration: req.duration,
+      });
       return { ok: true };
     },
     move: async (req: MoveRequest) => {
       const ids = idsOf(req);
       const to = maybeId(req.collection);
       return refuse(() =>
-        write(req, async (tx) => ({ done: (await moveItems(tx, ids, to)).map(String) })),
+        write(req, async (tx, client) => done(await moveItems(tx, client, ids, to))),
       );
     },
     tag: async (req: TagRequest) => {
       const ids = idsOf(req);
-      return write(req, async (tx) => {
-        await tagItems(tx, ids, { add: req.add ?? [], remove: req.remove ?? [] });
-        return { done: ids.map(String) };
-      });
+      return write(req, async (tx, client) =>
+        done(await tagItems(tx, client, ids, { add: req.add ?? [], remove: req.remove ?? [] })),
+      );
     },
     collectionAdd: (req: CollectionRequest) =>
       refuse(() =>
-        write(req, async (tx) => {
-          const c = await addCollection(tx, {
+        write(req, async (tx, client) => {
+          const c = await addCollection(tx, client, {
             name: req.name ?? "",
             parentId: maybeId(req.parent),
             by: by(req),
@@ -275,8 +312,8 @@ export function learnConsoleApi(db: Db, fetchFn: FetchFn = fetch) {
       ),
     collectionEdit: (req: CollectionRequest) =>
       refuse(() =>
-        write(req, async (tx) => {
-          const c = await editCollection(tx, {
+        write(req, async (tx, client) => {
+          const c = await editCollection(tx, client, {
             id: idOf(req.id),
             name: req.name,
             ...(req.parent !== undefined ? { parentId: maybeId(req.parent) } : {}),
@@ -285,38 +322,62 @@ export function learnConsoleApi(db: Db, fetchFn: FetchFn = fetch) {
         }),
       ),
     collectionDrop: (req: CollectionRequest) =>
-      write(req, async (tx) => {
-        if (!(await dropCollection(tx, idOf(req.id))))
+      write(req, async (tx, client) => {
+        if (!(await dropCollection(tx, client, idOf(req.id))))
           throw new PortalRefusal("no such collection", 404);
         return { done: [String(req.id)] };
       }),
-    /** Clear a failed read so the reader takes it again; returns those to put back on the spine. */
-    readAgain: (req: IdsRequest) =>
-      write(req, async (tx) =>
+    /**
+     * Clear a failed read, or a score that waited (a client's models allowance), so it's taken
+     * again; returns those to put back on the spine.
+     */
+    readAgain: (req: IdsRequest) => {
+      const ids = idsOf(req);
+      return write(req, async (tx, client) =>
         done(
-          await tx
-            .update(items)
-            .set({ readFailure: null, tries: 0 })
-            .where(and(inArray(items.id, idsOf(req)), isNull(items.readAt)))
-            .returning({ id: items.id }),
+          (
+            await tx
+              .update(items)
+              .set({ readFailure: null, tries: 0 })
+              .where(
+                and(
+                  inArray(items.id, ids),
+                  eq(items.client, client),
+                  or(isNull(items.readAt), isNull(items.verdict)),
+                ),
+              )
+              .returning({ id: items.id })
+          ).map((r) => r.id),
         ),
-      ),
+      );
+    },
+    /**
+     * Ask for items in an SOP. Wren's go to its folders on the Mac; a client's read items go into
+     * its own Notes now, and the rest once read.
+     */
     toSop: async (req: SopRequest) => {
       const ids = idsOf(req);
+      const client = await acts(req);
       const out: string[] = [];
       for (const itemId of ids) {
         try {
-          const row = await askSop(db, { itemId, sop: req.sop ?? "", by: by(req) });
+          const row = await askSop(db, { client, itemId, sop: req.sop ?? "", by: by(req) });
           out.push(String(row.itemId));
         } catch (err) {
           throw new PortalRefusal(err instanceof Error ? err.message : String(err), 400);
         }
       }
+      if (client !== WREN && clientDb) {
+        const notesDb = clientDb(client);
+        for (const itemId of ids) await writeClientAsked(db, client, notesDb, { itemId });
+      }
       return { done: out };
     },
-    search: async (req: SearchRequest) => ({ hits: await searchItems(db, req.q ?? "") }),
+    search: async (req: SearchRequest) => ({
+      hits: await searchItems(db, await reads(req), req.q ?? ""),
+    }),
     item: async (req: ItemRequest) => {
-      const got = await itemPage(db, idOf(req.id));
+      const got = await itemPage(db, await reads(req), idOf(req.id));
       if (!got) throw new PortalRefusal("no such item", 404);
       return got;
     },
@@ -329,8 +390,8 @@ const TELL = z
   .nullish()
   .describe(`${TELLS.join(", ")}: every item, score 8 and up, or the daily digest`);
 
-export function makeLearnConsole(db: Db, fetchFn: FetchFn = fetch) {
-  const api = learnConsoleApi(db, fetchFn);
+export function makeLearnConsole(db: Db, fetchFn: FetchFn = fetch, clientDb?: ClientDbOf) {
+  const api = learnConsoleApi(db, fetchFn, clientDb);
   const read = (ctx: restate.Context, ids: string[]) => {
     if (ids.length)
       spineEmit(ctx, {
@@ -407,14 +468,17 @@ export function makeLearnConsole(db: Db, fetchFn: FetchFn = fetch) {
         },
         (_: restate.Context, req: BrowseRequest) => answer(() => api.browse(req)),
       ),
-      rail: serviceHandler({ input: z.looseObject(PORTAL_FIELDS) }, (_: restate.Context) =>
-        answer(() => api.rail()),
+      rail: serviceHandler(
+        { input: z.looseObject(PORTAL_FIELDS) },
+        (_: restate.Context, req: PortalRequest) => answer(() => api.rail(req)),
       ),
-      home: serviceHandler({ input: z.looseObject(PORTAL_FIELDS) }, (_: restate.Context) =>
-        answer(() => api.home()),
+      home: serviceHandler(
+        { input: z.looseObject(PORTAL_FIELDS) },
+        (_: restate.Context, req: PortalRequest) => answer(() => api.home(req)),
       ),
-      sources: serviceHandler({ input: z.looseObject(PORTAL_FIELDS) }, (_: restate.Context) =>
-        answer(() => api.sources()),
+      sources: serviceHandler(
+        { input: z.looseObject(PORTAL_FIELDS) },
+        (_: restate.Context, req: PortalRequest) => answer(() => api.sources(req)),
       ),
       mark: serviceHandler(
         { input: z.looseObject({ ...IDS, mark: z.string().describe(MARKS.join(", ")) }) },
@@ -499,9 +563,10 @@ export function makeLearnConsole(db: Db, fetchFn: FetchFn = fetch) {
         {
           input: z.looseObject({
             ...IDS,
-            sop: z.string().describe("The SOP's folder name, as wren sop ls prints it"),
+            sop: z.string().describe("The SOP's name: lowercase letters, digits and dashes"),
           }),
         },
+        // Not in a run: an ask is an upsert, and a client's note is made once (state `added`).
         (_: restate.Context, req: SopRequest) => answer(() => api.toSop(req)),
       ),
       search: serviceHandler(

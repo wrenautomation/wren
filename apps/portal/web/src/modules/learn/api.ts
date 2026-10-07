@@ -1,8 +1,37 @@
 /**
  * Learn's calls and shapes, as LearnConsole answers them (packages/learn/src/drive.ts). A write
- * says so on the window, so every list, rail and shelf on screen loads again.
+ * says so on the window, so every list, rail and shelf on screen loads again. Every call is in
+ * the workspace on screen: Wren's names no client, a client's names its own.
  */
-import { call } from "../../api.js";
+import { call as post } from "../../api.js";
+import { WREN } from "../../module.js";
+
+/** The workspace on screen: each page sets it from its props before it loads anything. */
+let workspace: string = WREN.id;
+export const inWorkspace = (client: string) => {
+  workspace = client;
+};
+/** A client's workspace, or null for Wren's own. */
+export const clientOf = (): string | null => (workspace === WREN.id ? null : workspace);
+/** A cache key in this workspace. */
+export const keyOf = (k: string) => `${workspace}:${k}`;
+/** Seen once per item: a client's pictures each need their own grant (./kinds.tsx). */
+let mediaFor: (ids: number[]) => void = () => {};
+export const onItems = (fn: (ids: number[]) => void) => {
+  mediaFor = fn;
+};
+/** A call in the workspace on screen. */
+export const call = <T>(route: string, body: Record<string, unknown>): Promise<T> => {
+  const client = clientOf();
+  return post<T>(route, client ? { client, ...body } : body);
+};
+/** Ask for the pictures of what came back, then hand it on. */
+const withMedia =
+  <T>(ids: (v: T) => number[]) =>
+  (v: T) => {
+    mediaFor(ids(v));
+    return v;
+  };
 
 export type ItemType =
   | "youtube"
@@ -179,15 +208,15 @@ const write = async <T>(route: string, body: Record<string, unknown>): Promise<T
 /** The last "I looked" sent: the badge's count waits for it, so it never counts what was just seen. */
 let seeing: Promise<unknown> = Promise.resolve();
 
-/** He looked at Items: the badge counts from now. */
+/** You looked at Items: the badge counts from now. */
 export function markSeen() {
   seeing = call("learn/seen", {}).catch(() => undefined);
 }
 
-/** Learn's badge: new from sources since he last looked at Items. */
-export async function unseenCount(): Promise<number> {
+/** Learn's badge: new from sources since you last looked at Items, in `client`'s workspace. */
+export async function unseenCount(client: string): Promise<number> {
   await seeing;
-  return (await call<{ n: number }>("learn/unseen", {})).n;
+  return (await post<{ n: number }>("learn/unseen", client === WREN.id ? {} : { client })).n;
 }
 
 export const learn = {
@@ -200,10 +229,17 @@ export const learn = {
       q: a.q || null,
       sort: a.sort,
       limit: a.limit,
-    }),
+    }).then(withMedia((b) => b.items.map((c) => c.id))),
   rail: () => call<Rail>("learn/rail", {}),
-  home: () => call<Home>("learn/home", {}),
-  item: (id: string) => call<ItemPage>("learn/item", { id }),
+  home: () =>
+    call<Home>("learn/home", {}).then(
+      withMedia((h) => [
+        ...h.shelves.flatMap((s) => s.items.map((c) => c.id)),
+        ...h.continue.map((c) => c.id),
+        ...h.top.map((c) => c.id),
+      ]),
+    ),
+  item: (id: string) => call<ItemPage>("learn/item", { id }).then(withMedia((i) => [i.id])),
   sources: () => call<{ kinds: { kind: SourceKind; sources: SourceRow[] }[] }>("learn/sources", {}),
   mark: (ids: number[], mark: Mark) =>
     write<{ done: string[] }>("mark", { ids: ids.map(String), mark }),

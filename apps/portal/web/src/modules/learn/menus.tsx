@@ -24,7 +24,7 @@ import {
 import { toast } from "@wren/ui/lib/toast";
 import { type FormEvent, type ReactNode, useMemo, useState } from "react";
 import { navigate } from "../../route.js";
-import { type Collection, learn, type Mark } from "./api.js";
+import { type Collection, clientOf, learn, type Mark } from "./api.js";
 
 /** One line for how many: "this item", "3 items". */
 export const many = (n: number) => (n === 1 ? "1 item" : `${n} items`);
@@ -326,8 +326,12 @@ export function TagDialog({
   );
 }
 
-/** Ask the Mac to add items to an SOP's sources. */
+/**
+ * Add items to an SOP. Wren's: the Mac writes them into the SOP's folder. A client's: each goes
+ * into its own Notes, under a note named for the SOP.
+ */
 export function SopDialog({ ids, onClose }: { ids: number[]; onClose: (done?: boolean) => void }) {
+  const notes = clientOf() !== null;
   const [sop, setSop] = useState("");
   const [busy, setBusy] = useState(false);
   const ok = /^[a-z0-9][a-z0-9-]*$/.test(sop.trim());
@@ -337,7 +341,9 @@ export function SopDialog({ ids, onClose }: { ids: number[]; onClose: (done?: bo
     setBusy(true);
     const done = await act(
       learn.toSop(ids, sop.trim()),
-      "Asked. The Mac adds it on its next read.",
+      notes
+        ? "Added. It shows in Notes once it's read."
+        : "Asked. The Mac adds it on its next read.",
     );
     setBusy(false);
     if (done) onClose(true);
@@ -348,7 +354,9 @@ export function SopDialog({ ids, onClose }: { ids: number[]; onClose: (done?: bo
         <DialogHeader>
           <DialogTitle>Add {many(ids.length)} to an SOP</DialogTitle>
           <DialogDescription>
-            The SOP's folder name, such as email-infra. The Mac writes it in on its next read.
+            {notes
+              ? "The SOP's name, such as onboarding. Each item goes into your Notes under it."
+              : "The SOP's folder name, such as email-infra. The Mac writes it in on its next read."}
           </DialogDescription>
         </DialogHeader>
         <form onSubmit={save} className="flex flex-col gap-3">
@@ -356,8 +364,8 @@ export function SopDialog({ ids, onClose }: { ids: number[]; onClose: (done?: bo
             autoFocus
             value={sop}
             onChange={(e) => setSop(e.target.value.toLowerCase())}
-            placeholder="email-infra"
-            aria-label="SOP folder name"
+            placeholder={notes ? "onboarding" : "email-infra"}
+            aria-label="SOP name"
           />
           <div className="flex justify-end gap-2">
             <Button size="dense" tone="secondary" onClick={() => onClose()}>
