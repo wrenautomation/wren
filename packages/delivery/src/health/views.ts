@@ -22,6 +22,12 @@ const STALE_PARTS = sql.raw(
   `(select string_agg(initcap(x), ', ') from jsonb_array_elements_text(l.stale) x)`,
 );
 
+/** The lowest part under healthy, and why: "Results: 4 of 12.1 expected by now". */
+const WEAKEST = sql.raw(`(select initcap(v.p) || ': ' || coalesce(l.why->>v.p, '')
+    from (values ('results', l.results), ('engagement', l.engagement),
+      ('sentiment', l.sentiment), ('money', l.money)) v(p, s)
+    where v.s < 70 order by v.s, v.p limit 1)`);
+
 /** Each client's latest day, its standing override and rating, and its open flags. */
 export const consoleHealth = delivery
   .view("console_health", {
@@ -32,6 +38,7 @@ export const consoleHealth = delivery
     override: integer("override"),
     reason: text("reason"),
     overrideBy: text("override_by"),
+    hand: text("hand"),
     band: text("band"),
     results: integer("results"),
     engagement: integer("engagement"),
@@ -42,6 +49,7 @@ export const consoleHealth = delivery
     sentimentWhy: text("sentiment_why"),
     moneyWhy: text("money_why"),
     weights: text("weights"),
+    weakest: text("weakest"),
     stale: integer("stale"),
     staleParts: text("stale_parts"),
     risks: integer("risks"),
@@ -62,12 +70,13 @@ export const consoleHealth = delivery
       from delivery.flags where cleared_at is null group by client_id)
     select c.id::text id, c.name::text "name", coalesce(o.score, l.score)::int score,
       l.score::int model, o.score::int override, o.reason, o.by override_by,
+      case when o.score is null then 'no' else 'yes' end hand,
       ${BAND("coalesce(o.score, l.score)")} band,
       l.results::int results, l.engagement::int engagement, l.sentiment::int sentiment,
       l.money::int money,
       l.why->>'results' results_why, l.why->>'engagement' engagement_why,
       l.why->>'sentiment' sentiment_why, l.why->>'money' money_why,
-      ${WEIGHTS} weights, jsonb_array_length(l.stale)::int stale, ${STALE_PARTS} stale_parts,
+      ${WEIGHTS} weights, ${WEAKEST} weakest, jsonb_array_length(l.stale)::int stale, ${STALE_PARTS} stale_parts,
       coalesce(f.risks, 0) risks, coalesce(f.opportunities, 0) opportunities,
       r.score::int rating, r.at rated, l.at updated
     from latest l

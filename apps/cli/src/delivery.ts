@@ -64,7 +64,7 @@ const idOf = (v: string) => {
 };
 
 /** Who it's from: `--by` (an operator), else the only operator there is. */
-async function authorOf(db: Db, by: string | undefined): Promise<string> {
+export async function authorOf(db: Db, by: string | undefined): Promise<string> {
   const ops = await listOperators(db);
   if (by) {
     if (!ops.includes(normalEmail(by))) throw new Error(`${by} isn't an operator (wren team ls)`);
@@ -596,7 +596,7 @@ export function registerDelivery(program: Command, withMainDb: WithDb, settings:
   const print = (v: unknown) => console.log(JSON.stringify(v, null, 2));
   const w = cmd
     .command("watch")
-    .description("DeliveryWatch: client mail and operator pings, hourly; off until started");
+    .description("DeliveryWatch: client mail, health and flags, hourly; off until started");
   w.command("status").action(async () => print(await watch().status()));
   w.command("start").action(async () => print(await watch().start()));
   w.command("stop").action(async () => print(await watch().stop()));

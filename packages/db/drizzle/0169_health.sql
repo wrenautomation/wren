@@ -191,6 +191,7 @@ CREATE VIEW "delivery"."console_health" AS (
       from delivery.flags where cleared_at is null group by client_id)
     select c.id::text id, c.name::text "name", coalesce(o.score, l.score)::int score,
       l.score::int model, o.score::int override, o.reason, o.by override_by,
+      case when o.score is null then 'no' else 'yes' end hand,
       case when coalesce(o.score, l.score) is null then 'none' when coalesce(o.score, l.score) >= 70 then 'healthy'
     when coalesce(o.score, l.score) >= 40 then 'watch' else 'risk' end band,
       l.results::int results, l.engagement::int engagement, l.sentiment::int sentiment,
@@ -201,7 +202,10 @@ CREATE VIEW "delivery"."console_health" AS (
     case when (l.weights->>'results')::int > 0 then 'Results ' || (l.weights->>'results') || '%' end,
     case when (l.weights->>'engagement')::int > 0 then 'Engagement ' || (l.weights->>'engagement') || '%' end,
     case when (l.weights->>'sentiment')::int > 0 then 'Sentiment ' || (l.weights->>'sentiment') || '%' end,
-    case when (l.weights->>'money')::int > 0 then 'Money ' || (l.weights->>'money') || '%' end) weights, jsonb_array_length(l.stale)::int stale, (select string_agg(initcap(x), ', ') from jsonb_array_elements_text(l.stale) x) stale_parts,
+    case when (l.weights->>'money')::int > 0 then 'Money ' || (l.weights->>'money') || '%' end) weights, (select initcap(v.p) || ': ' || coalesce(l.why->>v.p, '')
+    from (values ('results', l.results), ('engagement', l.engagement),
+      ('sentiment', l.sentiment), ('money', l.money)) v(p, s)
+    where v.s < 70 order by v.s, v.p limit 1) weakest, jsonb_array_length(l.stale)::int stale, (select string_agg(initcap(x), ', ') from jsonb_array_elements_text(l.stale) x) stale_parts,
       coalesce(f.risks, 0) risks, coalesce(f.opportunities, 0) opportunities,
       r.score::int rating, r.at rated, l.at updated
     from latest l

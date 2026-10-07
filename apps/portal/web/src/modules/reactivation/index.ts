@@ -1,9 +1,11 @@
 /** Reactivation: past clients checked for a reason to call, with a brief and an email for each. */
 import type { Action } from "@wren/ui";
+import { createElement } from "react";
 import type { Module } from "../../module.js";
 import { ENGAGEMENT_PAGES, Feedback } from "../work/index.js";
 import { EMAIL_ACTIONS, EMAIL_EMPTY, emailExtras, emailLegacy } from "./email.js";
 import { Glance } from "./Glance.js";
+import { KeepHead, keepExtras } from "./keep.js";
 import { REACTIVATION } from "./nav.js";
 import { personExtras, personLegacy } from "./person.js";
 import { Real } from "./Real.js";
@@ -158,6 +160,20 @@ export const reactivation: Module = {
       example: REPLY_EXAMPLE,
       actions: REPLY_ACTIONS,
       extras: replyExtras,
+    },
+    {
+      id: "keep",
+      label: "Keep",
+      template: "list",
+      record: "reactivation.keep",
+      empty: {
+        risk: "No account looks like going quiet.",
+        call: "No account is hiring or in the news.",
+        all: "Accounts placed with in the last two years show here once your list loads.",
+      },
+      columns: ["company", "signal", "risk", "why", "champion", "lastPlacement"],
+      head: () => createElement(KeepHead),
+      extras: keepExtras,
     },
     {
       id: "setup",

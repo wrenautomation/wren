@@ -27,6 +27,7 @@ import {
 import { FLAG_ACTIONS } from "./flags.js";
 import { handlers } from "./handlers.js";
 import { AI_SPEND, AiSpend, idOf } from "./heads.js";
+import { CLIENT_FLAG_ACTIONS, ClientHealth, HEALTH_ACTIONS, healthExtras } from "./health.js";
 import { Infra } from "./infra.js";
 import { REPLY_ACTIONS } from "./replies.js";
 import { Workflows } from "./workflows.js";
@@ -914,7 +915,7 @@ export const clients: Module = {
   id: "clients",
   name: "Clients",
   icon: "people",
-  blurb: "Every client and when its team last looked.",
+  blurb: "Every client, how each is doing, and what needs a look.",
   requires: TEAM,
   pages: [
     {
@@ -923,8 +924,33 @@ export const clients: Module = {
         { label: "Clients", record: "console.client", href: "/clients/all?view=clients" },
         // Demos are accounts, not clients: both tiles count clients only.
         { label: "Added", record: "console.client", href: "/clients/all?view=clients", period: 30 },
+        { label: "At risk", record: "console.health", href: "/clients/health?view=risk" },
+        { label: "Watch", record: "console.health", href: "/clients/health?view=watch" },
+        { label: "Open risks", record: "console.flag", href: "/clients/flags?view=risks" },
+        {
+          label: "Opportunities",
+          record: "console.flag",
+          href: "/clients/flags?view=opportunities",
+        },
+        { label: "Stale scores", record: "console.health", href: "/clients/health?view=stale" },
       ],
       top: [
+        {
+          label: "Lowest health",
+          record: "console.health",
+          href: "/clients/health?view=all&sort=score",
+          fields: ["score", "risks"],
+          line: "weakest",
+          empty: "Scores show here after the first nightly pass.",
+        },
+        {
+          label: "Newest flags",
+          record: "console.flag",
+          href: "/clients/flags?view=open&sort=-raised",
+          fields: ["side", "owner"],
+          line: "name",
+          empty: "Nothing flagged.",
+        },
         {
           label: "Last seen",
           record: "console.client",
@@ -944,12 +970,59 @@ export const clients: Module = {
       // Its portal look: the demo's too, so the demo can show one.
       extras: (_, { row }) => ({
         sections: [
+          ["Health", createElement(ClientHealth, { client: String(row.id) })],
           ["Templates", createElement(ClientTemplates, { client: String(row.id) })],
           ["Components", createElement(ClientComponents, { client: String(row.id) })],
           ["Accounts", createElement(ClientAccounts, { client: String(row.id) })],
           ["Look", createElement(ClientLook, { client: String(row.id) })],
         ],
       }),
+    },
+    {
+      id: "health",
+      label: "Health",
+      template: "list",
+      record: "console.health",
+      empty: {
+        all: "Scores show here after the first nightly pass.",
+        risk: "No client is at risk.",
+        watch: "No client to watch.",
+        stale: "Every score is fresh.",
+        hand: "No score is set by hand.",
+      },
+      actions: HEALTH_ACTIONS,
+      columns: ["name", "score", "band", "results", "engagement", "sentiment", "money", "risks"],
+      extras: healthExtras,
+    },
+    {
+      id: "flags",
+      label: "Flags",
+      template: "list",
+      record: "console.flag",
+      empty: {
+        open: "Nothing flagged.",
+        risks: "No open risks.",
+        opportunities: "No open opportunities.",
+        cleared: "Cleared flags show here.",
+        all: "Flags show here once one is raised.",
+      },
+      actions: CLIENT_FLAG_ACTIONS,
+      columns: ["what", "name", "side", "state", "owner", "raised"],
+      count: { state: ["open"], side: ["risk"] },
+    },
+    {
+      id: "days",
+      label: "Health by day",
+      template: "list",
+      record: "console.health_day",
+      hidden: true,
+    },
+    {
+      id: "inputs",
+      label: "Health inputs",
+      template: "list",
+      record: "console.health_input",
+      hidden: true,
     },
     { id: "usage", label: "Vendor usage", Page: VendorUsage },
   ],

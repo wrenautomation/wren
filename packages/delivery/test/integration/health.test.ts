@@ -318,7 +318,10 @@ describe("the console", () => {
       weights: "Results 40% · Engagement 20% · Sentiment 25% · Money 15%",
       resultsWhy: "3 of 4.7 expected by now",
       rating: 2,
+      hand: "no",
     });
+    // The lowest part under 70, with its why.
+    expect(got.row.weakest).toMatch(/^(Results|Engagement|Sentiment|Money): \S/);
     const inputs = await api.list({
       record: "console.health_input",
       view: "all",
@@ -340,6 +343,11 @@ describe("the console", () => {
     await api.rate({ viewer: ops, ids: ["acme"], score: "4", note: "Better call" });
     await expect(api.rate({ viewer: ops, ids: ["acme"], score: "7" })).rejects.toThrow(/1 to 5/);
     await api.override({ viewer: ops, ids: ["acme"], score: 55, reason: "New champion" });
+    const set = await serveRecords(HEALTH_RECORDS, pg.db).list({
+      record: "console.health",
+      view: "hand",
+    });
+    expect(set.rows).toEqual([expect.objectContaining({ id: "acme", score: 55, hand: "yes" })]);
     const raised = await api.flagRaise({
       viewer: ops,
       ids: ["acme"],

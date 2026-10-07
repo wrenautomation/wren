@@ -38,6 +38,7 @@ import { registerEmail } from "./email.js";
 import { registerEnrich } from "./enrich.js";
 import { registerEvolve } from "./evolve.js";
 import { registerFetch } from "./fetch.js";
+import { registerHealth } from "./health.js";
 import { registerHooks } from "./hooks.js";
 import { registerNotes } from "./notes.js";
 import { registerPages } from "./pages.js";
@@ -233,6 +234,7 @@ sealing
 
 registerClients(program, withMainDb, settings);
 registerDelivery(program, withMainDb, settings);
+registerHealth(program, withMainDb, settings);
 registerCrm(program, withClientDb, settings, rootDir);
 registerReview(registerEmail(program, withDb, settings, rootDir), withDb);
 registerFetch(program, settings);

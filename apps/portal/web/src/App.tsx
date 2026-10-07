@@ -50,6 +50,7 @@ import { AddOn } from "./modules/marketplace/AddOn.js";
 import { capture, QuickNote, useQuickNoteKey } from "./modules/notes/capture.js";
 import { REACTIVATION } from "./modules/reactivation/nav.js";
 import { askClaude } from "./modules/wren/ask.js";
+import { HealthNow } from "./modules/wren/health.js";
 import { keepOf, TemplatePage } from "./records.js";
 import { href, navigate, useRoute } from "./route.js";
 import { SurveyCard } from "./survey.js";
@@ -554,6 +555,7 @@ export function App() {
           <>
             <PageHeader title="Wren" lede="Wren's own outreach, replies, loops and money." />
             {team ? <SetupNow client={WREN.id} team /> : null}
+            {team ? <HealthNow /> : null}
             <PinnedRow pins={pins} />
             <AppGrid>{cards.map((m) => card(m))}</AppGrid>
           </>
