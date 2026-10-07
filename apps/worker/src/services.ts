@@ -827,7 +827,14 @@ export async function buildServices(
   // Bound only when configured: an object with nothing to pull is better absent than failing every pass.
   if (postmaster) {
     services.push(
-      makePostmasterScheduler({ db, client: postmaster, domains: sendingDomains, policy }),
+      // A client's `PostmasterScheduler/<client>/daily` reads its verified domains into its database.
+      makePostmasterScheduler({
+        db,
+        client: postmaster,
+        domains: sendingDomains,
+        policy,
+        clientDb,
+      }),
     );
   }
   // Tracking off: only mail sent while it was on can still open, so hourly is enough.

@@ -15,6 +15,10 @@ import {
   sequencesSettingsSchema,
 } from "./sequences-settings.js";
 
+export const INBOX_HEALTH = "email.inbox_health";
+/** A client's Postmaster pull is `PostmasterScheduler/<client>/daily`. */
+export const CLIENT_POSTMASTER_UNIT = "daily";
+
 /** One email step of a follow-up cadence on the spine (follow.ts). */
 export const EMAIL_TOUCH = "email.touch";
 
@@ -184,21 +188,29 @@ export const EMAIL_COMPONENTS = [
     },
   }),
   defineComponent({
-    id: "email.inbox_health",
+    id: INBOX_HEALTH,
     stage: "reach",
     channels: ["email"],
     name: "Inbox health",
     blurb: "Watches each inbox's placement and reputation, and says when one slips.",
     icon: "pulse",
     for: "client",
-    ready: false,
-    missing: ["Not built per client yet: reads Wren's own sending domains only"],
-    requires: { components: ["email.sequences"], accounts: ["postmaster"] },
+    ready: true,
+    requires: {
+      components: ["email.sequences"],
+      accounts: ["postmaster"],
+      facts: ["postmaster.verified"],
+    },
     provides: {
       services: ["PlacementScheduler", "PostmasterScheduler", "DigestScheduler"],
       loops: ["PlacementScheduler", "PostmasterScheduler", "DigestScheduler"],
       records: ["email.inbox"],
     },
+    // Per client: Google's daily numbers for its verified sending domains, into its database.
+    // Placement seeds and the digest are Wren's own until seed inboxes exist per client.
+    clientLoops: (client) => [
+      { service: "PostmasterScheduler", key: clientKey(client, CLIENT_POSTMASTER_UNIT) },
+    ],
     effects: ["sends"],
     hypothesis: {
       from: "Wren's sending inboxes, 2026-09",

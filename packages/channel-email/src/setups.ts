@@ -45,7 +45,7 @@ export const DOMAIN_SETUP = defineSetup({
       fact: "postmaster.verified",
       label: "Postmaster verified",
       who: "client",
-      how: "Add the domain in Google Postmaster Tools and put its TXT record at your DNS host.",
+      how: "Add the domain in Google Postmaster Tools, put its TXT record at your DNS host, and add Wren as a user on it.",
       forYou: "Wren's team adds the domain to Postmaster Tools and puts its TXT record in DNS.",
       goal: "verify this domain in Google Postmaster Tools",
       check: "dns.postmaster_txt",

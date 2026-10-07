@@ -21,6 +21,8 @@ The complaint rate is the one number that can end a domain and the only one we c
 
 Citations: `packages/channel-email/src/schema.ts:442`, `packages/channel-email/src/inbox/postmaster.ts:364`
 
+Per client (Inbox health installed): `PostmasterScheduler/<c>/daily` reads its `accounts.postmaster` domains into its own database, only those whose `domain` account holds `postmaster.verified` (`clientPostmaster`, `restate/postmaster-scheduler.ts`); the rest are `not_verified` on the pass. Wren's Postmaster login reads them.
+
 ## Connected to
 
 - **joins:** [[email/roster]] domains; the digest (`restate/digest-scheduler.ts`)
@@ -35,6 +37,7 @@ Citations: `packages/channel-email/src/schema.ts:442`, `packages/channel-email/s
 | Surface | Role |
 |---|---|
 | `PostmasterScheduler` (when `WREN_POSTMASTER_USER` set) | writes |
+| `PostmasterScheduler/<c>/daily` | writes the client's database |
 | `DigestScheduler`, weekly report | read |
 
 ## See

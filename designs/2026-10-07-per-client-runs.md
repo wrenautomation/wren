@@ -64,6 +64,8 @@ Planned parts (speed to lead, voice, nurture and the rest) are not in this table
 6. Reads on the client's own gate: `meteredSites` and `meteredModel` (`@wren/core/metered`) gate and meter every read (Reddit, Exa, LinkedIn profile reads, models) on the client's vendor modes.
 7. B runs on the client's Reddit logins: `ReachWatch/<c>/daily` (comment reader), comment sort in the client's database, `RedditReads/<c>/daily` (discovery). Data in the client's database.
 
+8. Inbox health per client: `PostmasterScheduler/<c>/daily` on its verified sending domains into its database. Placement seeds and the digest stay Wren's.
+
 ## Open (William's call)
 
 - Spend: Meta launches for a client, the X API tier, Exa and model calls a client's runs make.
@@ -85,3 +87,4 @@ Planned parts (speed to lead, voice, nurture and the rest) are not in this table
 - 2026-10-07: A client's reads go one at a time through `meteredSites`: gate, call, meter, each journaled. A gate saying no ends the pass's reads (`stopped`); the next pass asks again. The model is gated once a pass: a call costs no units, so only a mode or a cap changes the answer.
 - 2026-10-07: `comments.read` no longer needs `reach.outreach`: reading comments sends nothing. A loop two parts share (`ReachWatch`) stops with the last of them.
 - 2026-10-07: Discovery for a client needs its own About. Wren's default never reads for a client. Drafts use a plain voice until a client's voice is a setting.
+- 2026-10-07: Inbox health per client reads a domain only once its setup holds `postmaster.verified` on that domain (not any domain the client owns). Wren's Postmaster login reads it, so the domain is added to it. Placement seeds send mail and stay Wren's.
