@@ -12,10 +12,12 @@
  * journaled; a retry re-asks nothing. With the Mac asleep the week waits for
  * its desk, then carries on.
  */
+
 import * as restate from "@restatedev/restate-sdk";
 import { type FetchLike, siteExport } from "@wren/channel-email";
 import { recordedRun } from "@wren/core";
 import { SiteCallError, type SiteClient } from "@wren/core/content";
+import { type EdgePush, pushEdge } from "@wren/core/flag-store";
 import type { Notifier } from "@wren/core/notify";
 import { errorText, makeLoopObject, runPass, serviceHandler } from "@wren/core/restate";
 import type { Db } from "@wren/db";
@@ -54,6 +56,8 @@ export interface SearchDeps {
   notifier?: Notifier;
   /** The lander's `/api/export`, rolled into `site_days` each pass; unset = no site days. */
   siteExport?: { baseUrl: string; exportToken: string };
+  /** The lander's edge: site flags resent each pass, the net under the push on every change. */
+  edge?: EdgePush;
 }
 
 export interface SearchWeekDeps extends SearchDeps {
@@ -131,6 +135,8 @@ export function makeSearchWatch(deps: SearchDeps) {
       if (outcome.stats)
         outcome.stats.heat = "error" in heat ? { error: heat.error } : { rows: heat.rows };
     }
+    const edge = deps.edge;
+    if (edge) await ctx.run("edge flags", () => pushEdge(deps.db, edge));
     const changes = outcome.stats?.changes ?? [];
     if (deps.notifier && changes.length) {
       const notifier = deps.notifier;

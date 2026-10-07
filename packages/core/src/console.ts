@@ -66,6 +66,7 @@ import {
   undoChange,
   wordsPatch,
 } from "./edits.js";
+import { addFlag, type EdgePush, type FlagInput, flagRecord, removeFlags } from "./flag-store.js";
 import { inHouseOfPart } from "./in-house.js";
 import {
   addSnippet,
@@ -119,7 +120,7 @@ import {
 import type { PassOutcome } from "./restate/loop.js";
 import { finishRun, openRun } from "./runs.js";
 import { moveViews, prefsOf, removeView, savedViewsOf, saveView, setPref } from "./saved-views.js";
-import { runs, workflowSaves } from "./schema.js";
+import { runs, type SentEvent, workflowSaves } from "./schema.js";
 import { editsOf, type SavedWorkflow, SPINE, type SpineService, savedWorkflows } from "./spine.js";
 import { flowsWith, partsIn, type Workflow, type WorkflowEdits } from "./workflows.js";
 
@@ -474,6 +475,84 @@ export const eventRecord = defineRecord({
     { id: "all", label: "All", sort: "-at", at: "at" },
   ],
   actions: ["console.retryEvent"],
+});
+
+/** One step of an execution: what arrived at a node's input, and what its step sent on. */
+export interface ExecutionStep {
+  id: string;
+  node: string;
+  port: string;
+  kind: string;
+  data: Record<string, unknown>;
+  at: string;
+  due: string | null;
+  error: string | null;
+  sent: SentEvent[] | null;
+  sentAt: string | null;
+}
+
+/** An execution's id: its workflow and subject, as `spine_executions` keys it. */
+export const executionId = (workflow: string, subject: string) => `${workflow}/${subject}`;
+
+/** Every step one subject took through one workflow, in the order it took them. */
+export async function executionSteps(db: Queryable, id: string): Promise<ExecutionStep[]> {
+  const at = id.indexOf("/");
+  if (at < 1) return [];
+  const rows = (await db.execute(sql`
+    select id::text id, node, port, kind, data, at, due, error, sent, sent_at "sentAt"
+    from events where workflow = ${id.slice(0, at)} and subject = ${id.slice(at + 1)}
+    order by at, id limit 500`)) as unknown as Array<
+    Omit<ExecutionStep, "at" | "due" | "sentAt"> & {
+      at: Date | string;
+      due: Date | string | null;
+      sentAt: Date | string | null;
+    }
+  >;
+  const iso = (d: Date | string | null) => (d === null ? null : new Date(d).toISOString());
+  return [...rows].map((r) => ({
+    ...r,
+    at: iso(r.at) as string,
+    due: iso(r.due),
+    sentAt: iso(r.sentAt),
+  }));
+}
+
+/**
+ * Wren's executions (`spine_executions`): each subject's walk through a workflow, where it is now
+ * and how long since it entered. Its page lights the path and shows each step's data. ponytail:
+ * main only, as `console.event`.
+ */
+export const executionRecord = defineRecord({
+  id: "console.execution",
+  name: { one: "execution", many: "executions" },
+  view: "spine_executions",
+  key: "id",
+  title: "subject",
+  subtitle: "workflow",
+  fields: {
+    subject: text("About"),
+    workflow: text("Workflow"),
+    kind: text("Kind"),
+    state: status({
+      failed: { label: "Failed", tone: "bad" },
+      waiting: { label: "Waiting", tone: "neutral" },
+      done: { label: "Done", tone: "good" },
+    }),
+    node: text("Now at"),
+    entered: date("Entered"),
+    lastAt: date("Last step"),
+    due: date("Waiting until"),
+    error: text("Why it failed"),
+    steps: number("Steps"),
+  },
+  views: [
+    { id: "all", label: "All", sort: "-lastAt", at: "entered" },
+    { id: "waiting", label: "Waiting", where: { state: "waiting" }, sort: "due", at: "entered" },
+    { id: "failed", label: "Failed", where: { state: "failed" }, sort: "-lastAt", at: "entered" },
+    { id: "done", label: "Done", where: { state: "done" }, sort: "-lastAt", at: "entered" },
+  ],
+  // Retry is on its failed step, by that event's id.
+  load: async (db, id) => ({ steps: await executionSteps(db, id) }),
 });
 
 /**
@@ -1219,6 +1298,7 @@ export function consoleApi({
   workflows = [],
   asked,
   bound = () => true,
+  edge,
 }: {
   main: Db;
   /** The main database's URL, which `addClient` needs to reach the new one; absent, it refuses. */
@@ -1240,6 +1320,8 @@ export function consoleApi({
   asked?: ((client: Client, by: string, c: Component) => Promise<void>) | undefined;
   /** Whether this worker binds `service`: a component's loop on one it doesn't is skipped. */
   bound?: ((service: string) => boolean) | undefined;
+  /** Sends the lander its flags on every change; absent, site flags wait for the next pass. */
+  edge?: EdgePush | undefined;
 }) {
   const allowed = new Set([...views, ...moneyViews]);
   const money = new Set(moneyViews);
@@ -1251,8 +1333,10 @@ export function consoleApi({
     changeRecord,
     settingRecord(components),
     snippetRecord(),
+    flagRecord(edge),
     workflowRecord(workflows, components),
     eventRecord,
+    executionRecord,
     holdRecord,
     checkRecord,
   ];
@@ -1634,6 +1718,20 @@ export function consoleApi({
       const { title, body, tags, channel } = req;
       return addSnippet(main, { title, body, tags, channel }, by);
     },
+    /** Flags are a release decision: `manage` at Wren. */
+    flagAdd: async (req: PortalRequest & FlagInput) => {
+      const by = teamWriter(req);
+      if (!teamCan(req, "manage", WREN)) throw new PortalRefusal("your role can't do that", 403);
+      const { key, about, surface, variants } = req;
+      return addFlag(main, { key, about, surface, variants }, by, edge);
+    },
+    flagRemove: async (req: PortalRequest & { ids?: unknown }) => {
+      teamWriter(req);
+      if (!teamCan(req, "manage", WREN)) throw new PortalRefusal("your role can't do that", 403);
+      const ids = Array.isArray(req.ids) ? req.ids.filter((x) => typeof x === "string") : [];
+      if (!ids.length) throw new PortalRefusal("say which flag", 400);
+      return { done: await removeFlags(main, ids, edge) };
+    },
     /** A record action: `{ids}`, each removed. */
     snippetRemove: async (req: PortalRequest & { ids?: unknown }) => {
       teamWriter(req);
@@ -1934,6 +2032,10 @@ export function makeConsolePortal(deps: Parameters<typeof consoleApi>[0]) {
         answer(() => ctx.run("add snippet", () => answer(() => api.snippetAdd(req)))),
       snippetRemove: (ctx: restate.Context, req: PortalRequest & { ids?: unknown }) =>
         answer(() => ctx.run("remove snippet", () => answer(() => api.snippetRemove(req)))),
+      flagAdd: (ctx: restate.Context, req: PortalRequest & FlagInput) =>
+        answer(() => ctx.run("add flag", () => answer(() => api.flagAdd(req)))),
+      flagRemove: (ctx: restate.Context, req: PortalRequest & { ids?: unknown }) =>
+        answer(() => ctx.run("remove flag", () => answer(() => api.flagRemove(req)))),
       setPref: (ctx: restate.Context, req: KeepRequest) =>
         answer(() => ctx.run("set pref", () => answer(() => api.setPref(req)))),
       setLoop: (ctx: restate.Context, req: SetLoopRequest) =>

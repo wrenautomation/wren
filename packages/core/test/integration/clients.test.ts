@@ -204,6 +204,7 @@ describe("setLook", () => {
         installed: ["other", "reactivation"],
         role: "owner",
         can: ["read", "act", "money", "manage"],
+        flags: {},
       },
     ]);
     await api().setLook({ viewer, client: "acme", look: null });

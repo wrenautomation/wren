@@ -30,6 +30,9 @@ export const CONSOLE_ROUTES = {
   snippets: "read",
   snippetAdd: "wren:run",
   snippetRemove: "wren:run",
+  // Flags: the team at Wren, a release decision (the handler checks `manage`).
+  flagAdd: "wren:run",
+  flagRemove: "wren:run",
   addClient: "wren:manage",
   // A handler with an effect needs `effect` too, checked once the handler is known.
   call: "wren:run",
@@ -63,6 +66,8 @@ export const CONSOLE_WRITES: readonly ConsoleRoute[] = [
   "setPref",
   "snippetAdd",
   "snippetRemove",
+  "flagAdd",
+  "flagRemove",
   "addClient",
   "call",
   "setLook",

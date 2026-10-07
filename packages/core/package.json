@@ -22,6 +22,8 @@
     "./edits": "./src/edits.ts",
     "./emails": "./src/emails.ts",
     "./feed": "./src/feed.ts",
+    "./flags": "./src/flags.ts",
+    "./flag-store": "./src/flag-store.ts",
     "./notify": "./src/notify.ts",
     "./outreach": "./src/outreach/index.ts",
     "./restate": "./src/restate/index.ts",

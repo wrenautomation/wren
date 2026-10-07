@@ -2,6 +2,7 @@
  * Wren's own apps, in Wren's workspace only (team view): each an Overview of its numbers, then
  * its records on the templates. The console serves every record here.
  */
+
 import { IN_HOUSE, totalOf } from "@wren/core/in-house";
 import type { Action } from "@wren/ui";
 import { createElement } from "react";
@@ -17,6 +18,7 @@ import {
   experimentExtras,
   variantExtras,
 } from "./experiments.js";
+import { FLAG_ACTIONS } from "./flags.js";
 import { handlers } from "./handlers.js";
 import { AI_SPEND, AiSpend, idOf } from "./heads.js";
 import { Infra } from "./infra.js";
@@ -568,6 +570,15 @@ export const loops: Module = {
       template: "list",
       record: "console.setting",
       empty: { all: "No part that runs for Wren has settings." },
+    },
+    {
+      // Rules, fallback and the kill switch edit in place, with History and Undo.
+      id: "flags",
+      label: "Flags",
+      template: "list",
+      record: "loops.flag",
+      empty: { all: "No flags yet. New flag adds one; code reads it with useFlag." },
+      actions: FLAG_ACTIONS,
     },
     { id: "infra", label: "Infra", Page: Infra },
   ],

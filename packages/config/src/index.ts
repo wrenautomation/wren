@@ -180,6 +180,8 @@ export const settingsSchema = z.object({
   siteBaseUrl: z.string().url().default("https://wrenautomation.com"),
   /** The lander's /api/export bearer (its EXPORT_TOKEN secret). A secret: never logged, never in argv. */
   siteExportToken: z.string().min(1).optional(),
+  /** The lander's /api/edge bearer (its EDGE_TOKEN secret): flags pushed there. A secret. */
+  siteEdgeToken: z.string().min(1).optional(),
   /**
    * The Workspace user Postmaster answers for — the account that registered
    * the domains at postmaster.google.com. Unset = no daily pull.
@@ -521,6 +523,7 @@ export const ENV_KEYS = {
   pixelExportToken: "WREN_PIXEL_EXPORT_TOKEN",
   siteBaseUrl: "WREN_SITE_BASE_URL",
   siteExportToken: "WREN_SITE_EXPORT_TOKEN",
+  siteEdgeToken: "WREN_SITE_EDGE_TOKEN",
   postmasterUser: "WREN_POSTMASTER_USER",
   searchSite: "WREN_SEARCH_SITE",
   searchOrigin: "WREN_SEARCH_ORIGIN",

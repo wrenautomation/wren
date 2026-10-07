@@ -128,3 +128,17 @@ William, 10-06, on the four PostHog features that signals (`2026-10-06-signals.m
     in its own document over the scaled page: nothing appended inside the rebuilt page paints.
     Shrunk to fit, never enlarged. Clicks on paths the page no longer has are counted and
     named under the map.
+- 2026-10-06, flags built:
+  - Rules are words, one per line: `variant: condition; condition`, with roles, clients,
+    people, `n%` or everyone. First match wins. History, Undo and Ask Claude read the same text.
+  - A percent uses one bucket per flag (FNV-1a of `key:id`), so `b: 20%` then `c: 50%` gives c
+    30%. The lander keeps a copy of the hash and the evaluation.
+  - Changing a flag needs `manage` at Wren. The team passes an `Access.flag` gate only when its
+    variant isn't `off`.
+  - `me` carries each login's portal variants per client and for the team. The demo gets none.
+    The web reads them from a module store (`useFlag`), not a context provider, to keep App.tsx
+    unwrapped.
+  - Site flags go to the lander whole on every site change (`POST /api/edge`, bearer
+    `WREN_SITE_EDGE_TOKEN`) and again on each SearchWatch pass. The push runs inside the edit's
+    transaction: on a rare rollback the edge is one change ahead until the next pass. A failed
+    push is logged and never fails the change. No token, no push.

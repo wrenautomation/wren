@@ -38,6 +38,7 @@ import {
 } from "@wren/ui";
 import { Component, lazy, type ReactNode, Suspense, useEffect, useMemo, useState } from "react";
 import { call, ME_CHANGED, type Me, signOutUrl } from "./api.js";
+import { useShareFlags } from "./flags.js";
 import { useCall } from "./load.js";
 import { type Module, type ModulePage, type PageProps, WREN } from "./module.js";
 import { useAccount } from "./modules/account/load.js";
@@ -278,7 +279,15 @@ export function App() {
         ? me.data?.team?.wren
         : clients.find((c) => c.id === id)?.can;
   const held = canAt(current?.id);
-  const apps = appsIn(shown({ team, demo: onDemo !== false, ...withCan(held) }), {
+  // Its flags here, as the server evaluated them; none on the demo.
+  const flags =
+    (onDemo === false &&
+      (current?.id === WREN.id
+        ? me.data?.team?.flags
+        : clients.find((c) => c.id === current?.id)?.flags)) ||
+    {};
+  useShareFlags(flags);
+  const apps = appsIn(shown({ team, demo: onDemo !== false, flags, ...withCan(held) }), {
     wren,
     team,
     installed,

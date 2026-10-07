@@ -152,6 +152,7 @@ import {
   makeContent,
   restateSites,
 } from "@wren/core/content/restate";
+import { siteEdge } from "@wren/core/flag-store";
 import { delegatedMailbox, type Mailbox, siteMailbox } from "@wren/core/mailbox";
 import { MARKETING_RECORDS } from "@wren/core/marketing/records";
 import { namedFor } from "@wren/core/notify";
@@ -540,6 +541,10 @@ export async function buildServices(
           })
         : null,
   };
+  // Site flags, pushed to the lander's edge on every change and each search pass.
+  const edge = settings.siteEdgeToken
+    ? siteEdge(settings.siteBaseUrl, settings.siteEdgeToken)
+    : undefined;
   // The lander's recorded views: the export lists them, the files bucket signs their chunks.
   const sessions =
     settings.siteExportToken && settings.filesBucket
@@ -1047,6 +1052,7 @@ export async function buildServices(
       ...(settings.siteExportToken
         ? { siteExport: { baseUrl: settings.siteBaseUrl, exportToken: settings.siteExportToken } }
         : {}),
+      ...(edge ? { edge } : {}),
     };
     services.push(
       makeSearchWatch(search),
@@ -1134,6 +1140,7 @@ export async function buildServices(
     makeConsolePortal({
       main: db,
       mainUrl: databaseUrl,
+      edge,
       views: EMAIL_CONSOLE_VIEWS,
       moneyViews: [...EMAIL_COST_VIEWS, ...BOOKS_CONSOLE_VIEWS],
       records: [

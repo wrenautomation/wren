@@ -19,7 +19,9 @@ import {
 } from "./access.js";
 import { normalEmail, touchMember } from "./clients/index.js";
 import { type Client, clientMembers, clients, operators } from "./clients/schema.js";
+import { evaluateFlags, subjectOf } from "./flags.js";
 import { handlerForm, serviceHandler } from "./restate/form.js";
+import { flags } from "./schema.js";
 
 /** A team login's row, read fresh: its role and its clients (null = every client). */
 export interface TeamSeat {
@@ -246,12 +248,14 @@ export interface Me {
     installed: string[];
     can: Permission[];
     role?: MemberRole;
+    /** Each portal flag's variant for this login there (`./flags.ts`); none on the demo. */
+    flags: Record<string, string>;
   }[];
   demo: boolean;
   /** Wren's team: every client, and the tools to post to them. */
   operator: boolean;
   /** A team login's role, and what it may do in Wren's own apps. */
-  team?: { role: TeamRole; wren: Permission[] };
+  team?: { role: TeamRole; wren: Permission[]; flags: Record<string, string> };
 }
 
 /** Who you are to the portal. The demo host sees its client as `demoName`, never its real name. */
@@ -278,6 +282,12 @@ export async function portalMe(main: Db, viewer: Viewer, demoName: string): Prom
     const role = roles.get(id);
     return role ? { member: role, client: id } : null;
   };
+  // Portal flags, each login's own: the demo gets none, so it shows released things alone.
+  const defs = isDemo(viewer)
+    ? []
+    : (await main.select().from(flags)).filter((f) => f.surface !== "site");
+  const flagsAt = (id: string) =>
+    evaluateFlags(defs, subjectOf(whoAt(id), isDemo(viewer) ? null : viewer.email, id));
   return {
     clients: mine.map((c) => {
       const role = roles.get(c.id);
@@ -289,11 +299,12 @@ export async function portalMe(main: Db, viewer: Viewer, demoName: string): Prom
         installed: Object.keys(c.products),
         can: granted(whoAt(c.id), c.id),
         ...(role ? { role } : {}),
+        flags: flagsAt(c.id),
       };
     }),
     demo: isDemo(viewer),
     operator: isOperator(viewer),
-    ...(seat ? { team: { role: seat.team, wren: granted(seat, WREN) } } : {}),
+    ...(seat ? { team: { role: seat.team, wren: granted(seat, WREN), flags: flagsAt(WREN) } } : {}),
   };
 }
 

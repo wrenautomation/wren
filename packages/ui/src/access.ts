@@ -8,6 +8,7 @@
  * - feature: the client's offers grant it. Wren's team passes every role and feature.
  * - needs: a permission (`@wren/core/access`) this login holds in this workspace, as `delivery/me`
  *   says. What a login can't do is hidden, not greyed out.
+ * - flag: a feature flag (`@wren/core/flags`) that's on for this login here. The team passes.
  */
 import type { Permission } from "@wren/core/access";
 
@@ -16,6 +17,7 @@ export interface Access {
   role?: "owner";
   feature?: string;
   needs?: Permission;
+  flag?: string;
 }
 
 export interface Viewer {
@@ -27,6 +29,8 @@ export interface Viewer {
   features?: readonly string[];
   /** What this login may do here; left out (the demo, a preview), `needs` isn't checked. */
   can?: readonly string[];
+  /** Each flag's variant here, as `delivery/me` evaluated it. */
+  flags?: Readonly<Record<string, string>>;
 }
 
 export function can(viewer: Viewer, access: Access | undefined): boolean {
@@ -38,5 +42,6 @@ export function can(viewer: Viewer, access: Access | undefined): boolean {
   if (viewer.team) return true;
   if (access.role === "owner" && viewer.role !== "owner") return false;
   if (access.feature !== undefined && !viewer.features?.includes(access.feature)) return false;
+  if (access.flag !== undefined && (viewer.flags?.[access.flag] ?? "off") === "off") return false;
   return true;
 }
