@@ -1,4 +1,5 @@
 export * from "./alerts.js";
+export * from "./bills.js";
 export * from "./capture.js";
 export * from "./chart.js";
 export * from "./daily.js";

@@ -29,6 +29,7 @@ import {
   unitOfKey,
 } from "@wren/core/restate";
 import type { Db } from "@wren/db";
+import { z } from "zod";
 import type { SharedSuppressions } from "../guards.js";
 import { DAY_MS, type InboxReader, type SyncStats, syncInbox } from "../inbox/sync.js";
 import type { Disposition } from "./disposition.js";
@@ -130,9 +131,25 @@ async function keepWatch(
   return true;
 }
 
+/** Another loop on the same mailbox's push: its object, key, and when its watch lapses (ms). */
+export interface PushListener {
+  service: string;
+  key: string;
+  until: number;
+}
+
+const LISTENERS = "listeners";
+const JSON_SERDE = restate.serde.json as unknown as restate.Serde<null>;
+const LISTENER = z.object({
+  service: z.string().min(1),
+  key: z.string().min(1),
+  until: z.number(),
+});
+
 /**
  * Gmail's push by address: Pub/Sub names the mailbox only, so its state holds the
- * `InboxScheduler` key that watches it (a client's is `<client>/<address>`).
+ * `InboxScheduler` key that watches it (a client's is `<client>/<address>`), and any other
+ * loop that listens (the Watch). Each is woken; a listener whose watch lapsed is skipped.
  */
 export const inboxPush = restate.object({
   name: "InboxPush",
@@ -144,12 +161,37 @@ export const inboxPush = restate.object({
         ctx.set(LOOP_KEY, key);
       },
     ),
-    /** The mailbox changed: one pass now. Before any claim, the address is the key. */
+    /** Another loop object's `wake` on this mailbox's push, until its watch lapses. */
+    listen: exclusiveHandler(
+      { ingressPrivate: true, input: LISTENER },
+      async (ctx: restate.ObjectContext, l: PushListener): Promise<void> => {
+        const all = (await ctx.get<PushListener[]>(LISTENERS)) ?? [];
+        const now = await ctx.date.now();
+        ctx.set(LISTENERS, [
+          ...all.filter((o) => o.until > now && !(o.service === l.service && o.key === l.key)),
+          l,
+        ]);
+      },
+    ),
+    /** The mailbox changed: one pass now for each. Before any claim, the address is the key. */
     notify: sharedHandler(
       { input: NO_INPUT },
       async (ctx: restate.ObjectSharedContext): Promise<void> => {
-        const key = (await ctx.get<string>(LOOP_KEY)) ?? ctx.key;
-        ctx.objectSendClient<InboxScheduler>({ name: "InboxScheduler" }, key).sync();
+        const loop = await ctx.get<string>(LOOP_KEY);
+        const now = await ctx.date.now();
+        const live = ((await ctx.get<PushListener[]>(LISTENERS)) ?? []).filter(
+          (l) => l.until > now,
+        );
+        if (loop || !live.length)
+          ctx.objectSendClient<InboxScheduler>({ name: "InboxScheduler" }, loop ?? ctx.key).sync();
+        for (const l of live)
+          ctx.genericSend({
+            service: l.service,
+            method: "wake",
+            key: l.key,
+            parameter: null,
+            inputSerde: JSON_SERDE,
+          });
       },
     ),
   },

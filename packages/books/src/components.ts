@@ -32,4 +32,27 @@ export const BOOKS_COMPONENTS = [
       ],
     },
   }),
+  defineComponent({
+    id: "books.bills",
+    stage: "run",
+    channels: ["email"],
+    name: "Bills from the Watch",
+    blurb: "Mail from a known vendor runs the books now, not at tomorrow's pass.",
+    icon: "money",
+    for: "wren",
+    ready: false,
+    missing: ["Wren's own books; never a client's"],
+    requires: { components: ["books", "watch.read"] },
+    in: [{ id: "mail", label: "mail", kind: "mail" }],
+    hypothesis: {
+      from: "Wren's own books, 2026-10",
+      guesses: [
+        {
+          is: "fixed",
+          says: "Bills are told apart by the same vendor rules the daily search uses.",
+        },
+        { is: "fixed", says: "AWS spend is still taken in once a day: it costs per ask." },
+      ],
+    },
+  }),
 ];

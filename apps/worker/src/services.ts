@@ -7,9 +7,16 @@
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
 import type { Context, ServiceDefinition, VirtualObjectDefinition } from "@restatedev/restate-sdk";
-import { awsCostExplorer, BOOKS_CONSOLE_VIEWS, bankOfCanada, dirStore, s3Store } from "@wren/books";
+import {
+  awsCostExplorer,
+  BOOKS_CONSOLE_VIEWS,
+  bankOfCanada,
+  billsStep,
+  dirStore,
+  s3Store,
+} from "@wren/books";
 import { BOOKS_RECORDS } from "@wren/books/records";
-import { makeBooks, makeBooksConsole } from "@wren/books/restate";
+import { BOOKS_KEY, makeBooks, makeBooksConsole } from "@wren/books/restate";
 import {
   AllBookings,
   CALENDAR,
@@ -149,7 +156,7 @@ import {
 import { delegatedMailbox, type Mailbox, siteMailbox } from "@wren/core/mailbox";
 import { MARKETING_RECORDS } from "@wren/core/marketing/records";
 import { namedFor } from "@wren/core/notify";
-import { clientKey, clientOfKey } from "@wren/core/restate";
+import { clientKey, clientOfKey, ingressSend } from "@wren/core/restate";
 import { makeSpine, type SpineEvent } from "@wren/core/spine";
 import { cachedDb, clientDatabaseName, clientDatabaseUrl, createDb, type Db } from "@wren/db";
 import { engagementOf, postUpdate } from "@wren/delivery";
@@ -197,7 +204,7 @@ import { YOUTUBE_READ_SCOPE, youtubeApi } from "@wren/research/enrichment";
 import { s3PageStore } from "@wren/research/pages";
 import { RESEARCH_RECORDS } from "@wren/research/records";
 import { makeDiscovery, makeEnrichment, makePageArchive } from "@wren/research/restate";
-import { type Practice, practiceOf, scoreStep, triageStep } from "@wren/watch";
+import { type Practice, practiceOf, scoreStep, triageStep, mail as watchMail } from "@wren/watch";
 import { WATCH_RECORDS } from "@wren/watch/records";
 import { makeWatch, makeWatchConsole } from "@wren/watch/restate";
 import { desc, eq, max } from "drizzle-orm";
@@ -889,7 +896,37 @@ export async function buildServices(
     ? settings.watchMailboxes
     : settings.booksMailboxes;
   const watchLlm = settings.watchLlm === "none" ? null : makeLlm(settings.watchLlm, process.env);
-  services.push(makeWatch({ db, mailboxes: watchBoxes.map(mailboxOf("wren:watch")) }));
+  // Gmail push wakes the Watch (designs/2026-10-06-mail-push.md); prod only, as the inboxes' watches.
+  const watchVia = new Map(watchBoxes.map((m) => [m.address.toLowerCase(), m.via]));
+  const watchSites = ingressSites(ingressOf(settings), {
+    caller: "wren:watch",
+    service: DESK,
+    timeoutMs: BOOKS_DESK_TIMEOUT_MS,
+  });
+  const watchPush =
+    settings.sendTransport === "gmail"
+      ? async (address: string): Promise<number | null> => {
+          const via = watchVia.get(address.toLowerCase());
+          if (via === "delegated")
+            return gmail.watch(address, gmailPushTopic(loadServiceAccountKey(keyPath).clientEmail));
+          if (!settings.watchSiteTopic) return null;
+          const r = await watchSites.call<{ expiration: string }>(
+            "gmail",
+            "POST",
+            "/gmail/v1/users/me/watch",
+            { topicName: settings.watchSiteTopic, labelIds: ["INBOX"] },
+            address,
+          );
+          return Number(r.expiration);
+        }
+      : undefined;
+  services.push(
+    makeWatch({
+      db,
+      mailboxes: watchBoxes.map(mailboxOf("wren:watch")),
+      ...(watchPush ? { watch: watchPush } : {}),
+    }),
+  );
   services.push(makeWatchConsole(db, watchLlm));
   // Cold SMS. Always bound: the sender is off until `wren sms queue start`.
   const sms = {
@@ -1056,6 +1093,22 @@ export async function buildServices(
         "reach.touch": reachTouchStep(db, { sequences: reach.sequences, sender: reach.senderName }),
         "watch.triage": triageStep(db, watchLlm),
         "watch.score": scoreStep(db, watchLlm, () => practicesOf(db)),
+        // A bill in the Watch's mail runs the books now; the books' pass is the box's.
+        "books.bills": billsStep({
+          mailOf: async (id) =>
+            (
+              await db
+                .select({ fromAddress: watchMail.fromAddress, subject: watchMail.subject })
+                .from(watchMail)
+                .where(eq(watchMail.id, id))
+            )[0] ?? null,
+          runBooks: (key) =>
+            ingressSend(
+              ingressOf(settings),
+              { service: "Books", key: BOOKS_KEY, handler: "sync" },
+              key,
+            ),
+        }),
         // The Watch's model: both read a few lines and answer in one.
         "comments.sort": sortStep(db, watchLlm, (p) => commentGuide(db, p as Platform)),
       },

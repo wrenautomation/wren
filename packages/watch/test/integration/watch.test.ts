@@ -120,7 +120,8 @@ describe("triage on the spine", () => {
     const { kept } = await readMail(pg.db, [box], NOW);
 
     const tally = await walk(walker(llm), "watch", "read.mail", kept.map(mailEvent));
-    expect(tally).toMatchObject({ arrived: 2, out: 2, failed: 0 });
+    // Each mail reaches triage and the books' bills (no step here, so it waits there).
+    expect(tally).toMatchObject({ arrived: 4, out: 2, failed: 0 });
     expect(prompts).toHaveLength(1);
     expect(prompts[0]).toContain("- Inbox Insiders: hold invoices");
     expect(prompts[0]).toContain("Preview: preview of b");
@@ -135,12 +136,12 @@ describe("triage on the spine", () => {
       { node: "out", port: "held" },
       { node: "out", port: "needs_you" },
     ]);
-    // Again, from another call: each email entered once.
+    // Again, from another call: each email entered each node once.
     expect(
       await walk(walker(llm, "inv2"), "watch", "read.mail", kept.map(mailEvent)),
     ).toMatchObject({
       arrived: 0,
-      seen: 2,
+      seen: 4,
     });
   });
 

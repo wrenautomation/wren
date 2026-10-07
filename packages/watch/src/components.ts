@@ -132,9 +132,11 @@ export const WATCH_WORKFLOWS = [
       { id: "read", uses: "watch.read" },
       { id: "triage", uses: "watch.triage" },
       { id: "score", uses: "watch.score" },
+      { id: "bills", uses: "books.bills" },
     ],
     wires: [
       { from: "read.mail", to: "triage.mail", via: "events" },
+      { from: "read.mail", to: "bills.mail", via: "events" },
       { from: "triage.show", to: "out.needs_you", via: "events" },
       { from: "triage.hold", to: "out.held", via: "events" },
       { from: "read.items", to: "score.item", via: "events" },

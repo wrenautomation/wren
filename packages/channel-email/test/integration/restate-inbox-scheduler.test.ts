@@ -1,4 +1,5 @@
 /** The E7 virtual objects: inbox sync per sender, disposition on demand, the daily Postmaster pull, the opens pull, the placement checks. */
+import * as restate from "@restatedev/restate-sdk";
 import * as clients from "@restatedev/restate-sdk-clients";
 import type { RestateTestEnvironment } from "@restatedev/restate-sdk-testcontainers";
 import { ingressOf, loadSettings } from "@wren/config";
@@ -77,6 +78,25 @@ const watch = async (sender: string) => {
   return sender === WATCHED ? Date.now() + 7 * 86_400_000 : null;
 };
 
+/** Another loop on a mailbox's push (the Watch): joins `InboxPush`, counts its wakes. */
+const LISTENED = "listened@example.com";
+const listener = restate.object({
+  name: "Listener",
+  handlers: {
+    join: async (ctx: restate.ObjectContext, until: number) => {
+      ctx
+        .objectSendClient<InboxPush>({ name: "InboxPush" }, LISTENED)
+        .listen({ service: "Listener", key: ctx.key, until });
+    },
+    wake: async (ctx: restate.ObjectContext) => {
+      ctx.set("woken", ((await ctx.get<number>("woken")) ?? 0) + 1);
+    },
+    woken: restate.handlers.object.shared(
+      async (ctx: restate.ObjectSharedContext) => (await ctx.get<number>("woken")) ?? 0,
+    ),
+  },
+});
+
 const reader = new FakeReader();
 const llm = new FakeLlm({
   respond: () =>
@@ -140,6 +160,7 @@ beforeAll(async () => {
         netMs: NET_MS,
       }),
       inboxPush,
+      listener,
       makeDisposition({ dbOf: () => pg.db, llm }),
       makePostmasterScheduler({
         db: pg.db,
@@ -287,6 +308,23 @@ describe("InboxScheduler", () => {
       (now) => now !== before,
     );
     expect((await inbox(key).status()).last?.now).not.toBe(before);
+  });
+
+  it("a push wakes each live listener and no inbox loop; a lapsed one is skipped", async () => {
+    const listening = (key: string) =>
+      ingress().objectClient<typeof listener>({ name: "Listener" }, key);
+    await listening("live").join(Date.now() + 86_400_000);
+    await listening("lapsed").join(Date.now() - 1);
+    await waitFor(
+      async () => {
+        await ingress().objectClient<InboxPush>({ name: "InboxPush" }, LISTENED).notify();
+        return listening("live").woken();
+      },
+      (n) => n > 0,
+    );
+    expect(await listening("lapsed").woken()).toBe(0);
+    // Listened to, never claimed: no inbox loop took the address as its key.
+    expect((await inbox(LISTENED).status()).last).toBeFalsy();
   });
 
   it("a refused watch keeps the usual poll and asks again next pass", async () => {
