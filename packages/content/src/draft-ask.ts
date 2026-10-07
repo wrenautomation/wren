@@ -11,7 +11,8 @@ import { finishRun, openRun } from "@wren/core";
 import { type DraftCommand, draftEdits, draftTurns, editsFor } from "@wren/core/ask";
 import type { Platform } from "@wren/core/content";
 import { parseKind } from "@wren/core/slots";
-import { type LiveTemplate, literalPrompt, renderPrompt } from "@wren/core/templates";
+import { type LiveTemplate, promptRef, renderPrompt } from "@wren/core/templates";
+import { defaultSource } from "@wren/core/templates/defaults";
 import { atomic, type Queryable } from "@wren/db";
 import { comments, DRAFT_MAX, dmContext, reachContacts, redditThreads } from "@wren/outreach";
 import { and, desc, eq, inArray, isNotNull, notInArray, sql } from "drizzle-orm";
@@ -408,36 +409,25 @@ const QUESTION_MAX = 4000;
 const SYSTEM_MAX = 8000;
 export const ASK_MESSAGE_MAX = 2000;
 
-const SYSTEM = `You help William finish one draft before he sends it himself: a post, an answer to a comment, a comment in a thread or a message. You are read only: you can't change, send or post anything, so never say you did. Wren writes the draft you give.
-Answer with one JSON object and nothing else: {"reply": "...", "draft": "..."}.
-- reply: what you changed, or your answer to his question. A sentence or two, plain text.
-- draft: the whole new draft, ready to send as is. null when he only asked something or nothing should change.
-Write as William: "I", casual, short paragraphs, plain words, no em dashes. Keep under the cap.`;
-
 /**
- * The system prompt's words, as the template store first takes them (kind prompt, system
- * `content`, name `draft-ask`). His edits come before the SOP: the cut takes the end, and his
- * edits say the most.
+ * The system prompt (kind prompt, system `content`, name `draft-ask`); its words ship as
+ * `packages/templates/defaults/prompt/content/draft-ask.prompt`. His edits come before the SOP:
+ * the cut takes the end, and his edits say the most.
  */
-export const DRAFT_ASK_PROMPT = `${literalPrompt(SYSTEM)}
-
-It is a {what}, at most {max} characters.
-
-The draft now:
-{draft}((
-
-{edits}))((
-
-How we write here:
-{guide}))`;
 export const DRAFT_ASK_REF = { system: "content", name: "draft-ask" } as const;
-const SEED_PROMPT = parseKind("prompt", DRAFT_ASK_REF.name, DRAFT_ASK_PROMPT);
+/** The shipped words, parsed. */
+export const draftAskDefault = () =>
+  parseKind(
+    "prompt",
+    DRAFT_ASK_REF.name,
+    defaultSource(promptRef(DRAFT_ASK_REF.system, DRAFT_ASK_REF.name)),
+  );
 
 /** The desk's question and system prompt for one ask, or why it can't go. `prompt`: the store's. */
 export function askPrompt(
   d: DraftItem,
   ask: { by: string; message: string },
-  prompt: Pick<LiveTemplate, "template"> = { template: SEED_PROMPT },
+  prompt: Pick<LiveTemplate, "template"> = { template: draftAskDefault() },
 ): { question: string; system: string } | { error: string } {
   if ((d.draft?.length ?? 0) > ASK_DRAFT_MAX)
     return { error: `the draft is over ${ASK_DRAFT_MAX} characters; use wren drafts set` };

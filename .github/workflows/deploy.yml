@@ -32,6 +32,10 @@ jobs:
       - name: migrate
         run: pnpm db:migrate
         env: { WREN_DATABASE_URL: "${{ secrets.WREN_DATABASE_URL }}" }
+      - name: template defaults
+        # Each changed file in packages/templates/defaults as a default version, in every database.
+        run: pnpm -s wren templates sync
+        env: { WREN_DATABASE_URL: "${{ secrets.WREN_DATABASE_URL }}" }
       - name: bundle
         run: |
           pnpm --filter @wren/worker build:lambda

@@ -1,36 +1,66 @@
 /**
  * `wren [--client <id>] templates …`: every channel's copy and every prompt in one store
- * (designs/2026-10-06-edits-claude-templates.md, 3). `import` moves the copy that lived
- * elsewhere (the `.email` files, `sms_templates`, `reach_templates`) in as versions, live
- * where nothing is; it never sends and never overrides a publish.
+ * (designs/2026-10-07-templates-live-copy.md). Wren's built-in copy is the defaults tree
+ * (`packages/templates/defaults`): `sync` writes each changed file into every database, `install`
+ * gives a client the templates its parts need.
  */
 import { readFileSync } from "node:fs";
-import { importLegacyTexts } from "@wren/channel-sms";
+import { getClient } from "@wren/core/clients";
 import { templates, templateVersions } from "@wren/core/schema";
 import { TEMPLATE_KINDS, type TemplateKind } from "@wren/core/slots";
 import { publish, saveDraft } from "@wren/core/templates";
-import type { Db } from "@wren/db";
-import { importEmailFiles, NICHES } from "@wren/niches";
-import { importLegacyDms } from "@wren/outreach";
+import { installDefaults, loadDefaults, syncDefaults } from "@wren/core/templates/defaults";
+import { clientDatabases, type Db } from "@wren/db";
+import { COMPONENTS } from "@wren/worker/components";
 import type { Command } from "commander";
 import { and, asc, eq, sql } from "drizzle-orm";
 
 type WithDb = <T>(fn: (db: Db) => Promise<T>) => Promise<T>;
 
-export function registerTemplates(program: Command, withDb: WithDb) {
+export interface TemplateDbs {
+  /** The command's database: `--client`'s, else main. */
+  withDb: WithDb;
+  withMainDb: WithDb;
+  /** A client database by name, as main's login (sync runs on deploy). */
+  onDatabase: <T>(database: string, fn: (db: Db) => Promise<T>) => Promise<T>;
+  /** `--client`, when given. */
+  client: () => string | undefined;
+}
+
+export function registerTemplates(program: Command, dbs: TemplateDbs) {
+  const { withDb, withMainDb, onDatabase } = dbs;
   const cmd = program
     .command("templates")
     .description("every channel's copy and every prompt: versions, live and draft");
 
   cmd
-    .command("import")
-    .description("Move the .email files and the old text and DM tables in; again changes nothing")
+    .command("sync")
+    .description(
+      "Each changed default file as a default version: main takes every file, each client the templates it has. Runs on deploy; again changes nothing",
+    )
     .action(async () => {
-      const out = await withDb(async (db) => ({
-        email: await importEmailFiles(db, NICHES),
-        sms: await importLegacyTexts(db),
-        dm: await importLegacyDms(db),
-      }));
+      const files = loadDefaults();
+      const out: Record<string, unknown> = {
+        main: await withMainDb((db) => syncDefaults(db, { only: "all", files })),
+      };
+      for (const database of await withMainDb(clientDatabases))
+        out[database] = await onDatabase(database, (db) =>
+          syncDefaults(db, { only: "present", files }),
+        );
+      console.log(JSON.stringify(out, null, 2));
+    });
+
+  cmd
+    .command("install")
+    .description("Give --client the templates its parts need, following the defaults")
+    .action(async () => {
+      const id = dbs.client();
+      if (!id) throw new Error("install needs --client <id>");
+      const client = await withMainDb((db) => getClient(db, id));
+      const patterns = COMPONENTS.filter((c) => c.id in client.products).flatMap(
+        (c) => c.provides.templates,
+      );
+      const out = await withDb((db) => installDefaults(db, patterns, { by: "cli" }));
       console.log(JSON.stringify(out, null, 2));
     });
 

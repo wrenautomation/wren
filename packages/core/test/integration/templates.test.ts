@@ -14,7 +14,6 @@ import {
   clearTemplate,
   decline,
   importVersion,
-  livePrompt,
   liveTemplates,
   moveTemplate,
   parseRef,
@@ -23,7 +22,6 @@ import {
   recordVersion,
   refText,
   renameFolder,
-  renderPrompt,
   reset,
   resolveTemplate,
   restore,
@@ -303,21 +301,5 @@ describe("folders", () => {
     expect(await renameFolder(pg.db, "outreach", "cold", "ann")).toBe(1);
     expect((await templateState(pg.db, EMAIL))?.folder).toBe("cold/first");
     expect((await resolveTemplate(pg.db, EMAIL))?.source).toBe(W1);
-  });
-});
-
-describe("livePrompt", () => {
-  const REF = { system: "example", name: "ask" };
-  it("seeds the default's words once, then the store's words win", async () => {
-    const seed = "  Ask {who} about {{x}.\n";
-    const first = await livePrompt(pg.db, REF, seed);
-    expect(renderPrompt(first, { who: "Dana" })).toBe("  Ask Dana about {x}.\n");
-    expect((await livePrompt(pg.db, REF, seed)).version).toBe(first.version);
-
-    await saveDraft(pg.db, promptRef(REF.system, REF.name), "Ask {who} briefly.", { by: "op" });
-    expect((await livePrompt(pg.db, REF, seed)).version).toBe(first.version);
-    await publish(pg.db, promptRef(REF.system, REF.name), { by: "op" });
-    const edited = await livePrompt(pg.db, REF, "changed code words {who}");
-    expect(renderPrompt(edited, { who: "Dana" })).toBe("Ask Dana briefly.");
   });
 });

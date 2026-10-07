@@ -52,6 +52,7 @@
     "./templates": "./src/templates.ts",
     "./templates/records": "./src/template-records.ts",
     "./templates/edits": "./src/template-edits.ts",
+    "./templates/defaults": "./src/template-defaults.ts",
     "./stats": "./src/stats.ts",
     "./time": "./src/time.ts",
     "./spine": "./src/spine.ts",

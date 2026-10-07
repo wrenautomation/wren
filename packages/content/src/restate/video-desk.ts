@@ -11,7 +11,7 @@ import { finishRun, openRun } from "@wren/core";
 import { byOf, CLAUDE, type ClaudeService } from "@wren/core/ask";
 import { PORTAL_FIELDS, serviceHandler } from "@wren/core/restate";
 import { runs } from "@wren/core/schema";
-import { livePrompt } from "@wren/core/templates";
+import { livePrompt } from "@wren/core/templates/defaults";
 import type { Db } from "@wren/db";
 import { getEdit, setCut, setEdit, setRender } from "@wren/studio/edit";
 import { and, eq } from "drizzle-orm";
@@ -21,7 +21,6 @@ import {
   undoVideo,
   VIDEO_ASK,
   VIDEO_ASK_MAX,
-  VIDEO_ASK_PROMPT,
   VIDEO_ASK_REF,
   videoAnswerOf,
   videoPrompt,
@@ -180,7 +179,7 @@ export function makeVideoDesk(db: Db) {
             if (!row || row.finishedAt) return null;
             const a = row.argv as Asked;
             const e = await getEdit(db, a.id).catch(() => null);
-            const live = await livePrompt(db, VIDEO_ASK_REF, VIDEO_ASK_PROMPT);
+            const live = await livePrompt(db, VIDEO_ASK_REF);
             return { ...a, prompt: e ? videoPrompt(e, a, live) : null, version: live.version };
           });
           if (!asked) return;

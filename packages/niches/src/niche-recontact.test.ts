@@ -9,7 +9,7 @@ const spec = {
   lander: "/agencies",
   crawlHints: [],
   discoveryGenericWords: [],
-  templatesDir: templatesDir(import.meta.url, "agencies"),
+  templatesDir: templatesDir("agencies"),
   sequences: [threeEmailSequence("build/opener", "build/followup", "final_followup")],
   plan: [{ sequence: "build-days-0-3-7" }],
   mailsRoleInboxes: true,

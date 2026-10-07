@@ -188,3 +188,19 @@ the counts match, then drops both tables. Code that still reads them moves to `r
 - 2026-10-07, step 1 fix: CR/LF leave a subject at the slot render, not in `renderedSubject`.
   Stripping there let a raw `a\r\nBcc:` subject build and send; the transport refusing it is the
   last guard and stays.
+- 2026-10-07, step 2: `packages/templates/defaults` is a folder, not a workspace package; the
+  loader is `@wren/core/templates/defaults`. A package would only add a lockfile entry. Bundles
+  copy the tree to `defaults/` beside them (Lambda and CLI), and `defaultsDir()` finds it there,
+  else in the repo (`WREN_TEMPLATE_DEFAULTS` overrides). A file's hash is sha256 of its bytes;
+  its words drop one trailing newline, so a prompt keeps its exact text.
+- 2026-10-07, step 2: SMS, DM and post trees start empty. The store's only texts today are the
+  keyword replies, which name Wren and must reach the provider at save, so they are not
+  defaults. William writes every text (`channel-sms/src/templates.ts`).
+- 2026-10-07, step 2: a part names the defaults it reads (`provides.templates`, a ref or a
+  prefix ending in `/`). The console's install puts them in the client's database;
+  `wren templates install --client` does it again for parts installed before. `sync` writes
+  every file to main and, in a client's database, only templates already there. The CLI now
+  depends on `@wren/worker` for the part registry.
+- 2026-10-07, step 2: the legacy drop copies in SQL, so a copied row's `version` is the sha256
+  of its words, not the parsed template's hash. Prod's main had all three keyword rows in the
+  store already; the copy covers client databases. `importVersion` stays for tests and fixtures.

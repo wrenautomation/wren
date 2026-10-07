@@ -25,6 +25,7 @@ export const REACTIVATION_COMPONENTS = [
         "reactivation.setting",
       ],
       apps: ["reactivation"],
+      templates: ["prompt:reactivation/compose"],
     },
     effects: ["sends", "spends"],
     in: [{ id: "contacts", label: "old leads", kind: "person" }],

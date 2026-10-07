@@ -42,7 +42,7 @@ export const secRia = defineNiche({
     "funds",
     "global",
   ],
-  templatesDir: templatesDir(import.meta.url, "sec_ria"),
+  templatesDir: templatesDir("sec_ria"),
   sequences: [
     threeEmailSequence("documents/opener", "documents/followup", "final_followup"),
     threeEmailSequence("operations/opener", "operations/followup", "final_followup"),

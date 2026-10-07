@@ -5,7 +5,7 @@
  * in core, research or channel-email branches on a niche name.
  */
 
-import { fileURLToPath } from "node:url";
+import { join } from "node:path";
 import {
   type EnrollmentRule,
   enrollmentPlan,
@@ -20,6 +20,7 @@ import {
 } from "@wren/channel-email";
 import { checkSequence, type SmsSequence } from "@wren/channel-sms";
 import type { Company, CompanyScreen, PersonSourceFormat, SourceFormat } from "@wren/core";
+import { defaultsDir } from "@wren/core/templates/defaults";
 import { OFFER_PAGES, offerFacts, offerFor } from "@wren/offers";
 import type { Dataset } from "@wren/research/fetch";
 
@@ -113,7 +114,7 @@ export interface NicheSpec {
   readonly lander: string;
   readonly crawlHints: readonly string[];
   readonly discoveryGenericWords: readonly string[];
-  /** Directory holding the *.email files. */
+  /** Directory holding the *.email files (`templatesDir`). */
   readonly templatesDir: string;
   readonly sequences: readonly Sequence[];
   /** Text sequences (plain data, checked at load: steps in order, STOP in the opener). */
@@ -154,9 +155,9 @@ export function leadFormat(
   return { name, help, build, niche, columnMapped: false, directory: opts.directory ?? false };
 }
 
-/** The templates directory beside a niche module: `templatesDir(import.meta.url, "agencies")`. */
-export function templatesDir(moduleUrl: string, niche: string): string {
-  return fileURLToPath(new URL(`../templates/${niche}`, moduleUrl));
+/** A niche's `.email` defaults: `<defaults>/email/<niche>` (`@wren/core/templates/defaults`). */
+export function templatesDir(niche: string): string {
+  return join(defaultsDir(), "email", niche);
 }
 
 /** Build and validate one niche: every sequence step registered, every opener with a subject. */

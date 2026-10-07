@@ -21,6 +21,7 @@ export const CONTENT_COMPONENTS = [
     provides: {
       services: ["Content", "ContentDesk", "ContentScheduler", "ContentMetrics", "DraftAsk"],
       loops: ["ContentScheduler", "ContentMetrics"],
+      templates: ["prompt:content/draft-ask"],
     },
     effects: ["posts"],
     in: [{ id: "drafts", label: "drafts", kind: "post" }],
@@ -150,7 +151,11 @@ export const CONTENT_COMPONENTS = [
     missing: ["Edits William's own recordings on his Mac; never a client's"],
     settings: z.object({ cuts: cutKnobsSchema.default(cutKnobsSchema.parse({})) }),
     requires: { components: ["content.posting"] },
-    provides: { services: ["VideoDesk"], records: ["marketing.video"] },
+    provides: {
+      services: ["VideoDesk"],
+      records: ["marketing.video"],
+      templates: ["prompt:content/video-ask"],
+    },
     effects: ["posts"],
     out: [
       {

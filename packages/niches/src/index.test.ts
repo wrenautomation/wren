@@ -157,7 +157,7 @@ describe("offers", () => {
     lander: "/agencies",
     crawlHints: [],
     discoveryGenericWords: [],
-    templatesDir: templatesDir(import.meta.url, "agencies"),
+    templatesDir: templatesDir("agencies"),
     sequences: [threeEmailSequence("build/opener", "build/followup", "final_followup")],
     plan: [{ sequence: "build-days-0-3-7" }],
     mailsRoleInboxes: true,
@@ -201,7 +201,7 @@ describe("offers", () => {
     expect(() =>
       defineNiche({
         ...spec,
-        templatesDir: templatesDir(import.meta.url, "recruiting"),
+        templatesDir: templatesDir("recruiting"),
         sequences: [twoEmailSequence("book-first/opener", "book-first/followup")],
         plan: [{ sequence: "book-first-days-0-5" }],
         mailsRoleInboxes: true,

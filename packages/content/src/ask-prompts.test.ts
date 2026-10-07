@@ -2,11 +2,10 @@
  * The two Ask Claude prompts moved into the template store must reach Claude byte for byte as the
  * code built them. The legacy builders are that code, kept here verbatim. Synthetic drafts only.
  */
-import { parseKind } from "@wren/core/slots";
 import type { VideoEdit } from "@wren/studio/schema";
 import { describe, expect, it } from "vitest";
-import { askPrompt, DRAFT_ASK_PROMPT, type DraftItem } from "./draft-ask.js";
-import { VIDEO_ASK_PROMPT, videoPrompt } from "./video-ask.js";
+import { askPrompt, type DraftItem, draftAskDefault } from "./draft-ask.js";
+import { videoAskDefault, videoPrompt } from "./video-ask.js";
 
 const ASK_DRAFT_MAX = 5000;
 const QUESTION_MAX = 4000;
@@ -89,7 +88,7 @@ describe("Ask Claude prompts as templates", () => {
       { ...item, draft: "y".repeat(5001) },
     ];
     for (const d of items) expect(askPrompt(d, ask)).toEqual(legacyAsk(d, ask));
-    expect(parseKind("prompt", "draft-ask", DRAFT_ASK_PROMPT).version).toMatch(/^[0-9a-f]{12}$/);
+    expect(draftAskDefault().version).toMatch(/^[0-9a-f]{12}$/);
   });
   it("the video prompt renders what the code built", () => {
     const edit = {
@@ -107,6 +106,6 @@ describe("Ask Claude prompts as templates", () => {
       tracks: { main: { durationS: 61.5 } },
     } as unknown as VideoEdit;
     expect(videoPrompt(edit, ask)).toEqual(legacyVideo(edit, ask));
-    expect(parseKind("prompt", "video-ask", VIDEO_ASK_PROMPT).version).toMatch(/^[0-9a-f]{12}$/);
+    expect(videoAskDefault().version).toMatch(/^[0-9a-f]{12}$/);
   });
 });

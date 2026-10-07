@@ -60,7 +60,8 @@ await build({
 for (const app of ["lambda", "box"])
   execFileSync("node", ["--check", resolve(out, `app/${app}.mjs`)], { stdio: "inherit" });
 
-cpSync(resolve(repo, "packages/niches/templates"), resolve(out, "templates"), { recursive: true });
+// Template defaults beside the bundle: `defaultsDir()` finds them at out/defaults.
+cpSync(resolve(repo, "packages/templates/defaults"), resolve(out, "defaults"), { recursive: true });
 // drizzle's migrator reads meta/_journal.json and each entry's <tag>.sql, nothing else.
 const migrations = resolve(repo, "packages/db/drizzle");
 const drizzle = resolve(out, "drizzle");

@@ -109,7 +109,7 @@ const CLIENT_SCOPED = new Set([
   "templates",
 ]);
 /** Under a client-scoped command, the parts that cover every database or only Wren's. */
-const NOT_PER_CLIENT = new Set(["audit sealer", "sms numbers", "sms forms"]);
+const NOT_PER_CLIENT = new Set(["audit sealer", "sms numbers", "sms forms", "templates sync"]);
 
 const program = new Command("wren")
   .description("Wren automation ops")
@@ -249,7 +249,12 @@ registerSop(program, withMainDb, settings, rootDir);
 registerDossier(program, withMainDb, rootDir);
 registerVideo(program, withMainDb, settings, rootDir);
 registerSearch(program, withMainDb, settings, rootDir);
-registerTemplates(program, withDb);
+registerTemplates(program, {
+  withDb,
+  withMainDb,
+  onDatabase: (database, fn) => open(clientDatabaseUrl(settings.databaseUrl, database), fn),
+  client: () => program.opts<{ client?: string }>().client,
+});
 
 const renewal = () =>
   clients

@@ -60,7 +60,7 @@ export const recruiting = defineNiche({
     "executive search firm in {city}",
   ],
   exaCities: US_METROS,
-  templatesDir: templatesDir(import.meta.url, "recruiting"),
+  templatesDir: templatesDir("recruiting"),
   // Every firm gets book-first for now (William, 10-02). The demo arm stays defined so
   // switching it back on is one plan line. Each arm's `reply` copy is drafted for
   // William's approval when a warm reply lands; it is in no sequence.

@@ -9,7 +9,7 @@ entity: packages/channel-email/src/outreach/templates.ts:47
 
 # template
 
-An email's words, live in the [[platform/template-store]] (kind email, system the niche), parsed into a `Template` tree. The `.email` files under `packages/niches/templates/` were imported once (`wren templates import`) and no longer feed a send; compose reads `liveEmails` (`packages/channel-email/src/outreach/live.ts:1`).
+An email's words, live in the [[platform/template-store]] (kind email, system the niche), parsed into a `Template` tree. The `.email` files under `packages/templates/defaults/email/<niche>/` are defaults: `wren templates sync` writes each change in as a `default` version, live where the template follows its default; compose reads `liveEmails` (`packages/channel-email/src/outreach/live.ts:1`).
 
 ## Why this shape
 

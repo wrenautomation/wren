@@ -6,16 +6,9 @@
  * has one meaning.
  */
 import { AuthoringError, type Template } from "@wren/core/slots";
-import {
-  clearTemplate,
-  importVersion,
-  liveTemplates,
-  saveLive,
-  type TemplateRef,
-} from "@wren/core/templates";
+import { clearTemplate, liveTemplates, saveLive, type TemplateRef } from "@wren/core/templates";
 import type { Queryable } from "@wren/db";
 import { ReachRefusal } from "./refusal.js";
-import { reachTemplates } from "./schema.js";
 import { checkBody, render, sampleFields, type TemplateSlot } from "./sequences.js";
 
 /** Whose messages these are in the template store. */
@@ -102,18 +95,4 @@ export async function setTemplate(
   }
   const [view] = await listTemplates(db, [slot], opts.sender);
   return view as SlotView;
-}
-
-/**
- * The words `reach_templates` held before the template store, each kept as a version with
- * who saved it and when, and live where nothing is. Runs once per database; again is a no-op.
- */
-export async function importLegacyDms(db: Queryable): Promise<{ rows: number; live: number }> {
-  const rows = await db.select().from(reachTemplates);
-  let live = 0;
-  for (const r of rows) {
-    const out = await importVersion(db, dmRef(r.key), r.body, { by: r.updatedBy, at: r.updatedAt });
-    if (out.live) live++;
-  }
-  return { rows: rows.length, live };
 }

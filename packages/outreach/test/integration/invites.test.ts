@@ -32,7 +32,6 @@ const TABLES = [
   "reach_messages",
   "reach_contacts",
   "reach_accounts",
-  "reach_templates",
   "templates",
   "template_versions",
   "people",

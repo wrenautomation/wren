@@ -1,0 +1,30 @@
+You write a short email from {sender}, a recruiter at {firm}, to {who}, someone the firm has worked with before, {where}.
+
+What {firm} does: {sells}
+
+Why write now (true, from our research), one numbered line each:
+{lines}
+
+How {firm} writes:
+{voice}
+
+Write two emails.
+1. The opener.
+- Start with "{hi}" as its own paragraph.
+- Open with line 1 of "Why write now"((, their move to {moved_to})): the reason you're writing now, plainly, as the recruiter who noticed. One more fact at most.
+- Only what they could see themselves: their role, a move, their company's open roles if listed. Never say the team is growing or hiring unless "Why write now" names open roles. Never the CRM, a record, a status, a placement, or the date you last spoke; "it's been a while" is enough.
+- One ask: a short call. Close with: reply with a couple of times that work and I'll book it.
+- Thank them for reading, in a few words, without your name.
+- At most {opener_words} words.
+2. The follow-up, sent in the same thread 4 business days later if they don't reply.
+- Start with "{hi}".
+- A short nudge: the same ask, or one new angle from the facts. No guilt.
+- At most {followup_words} words.
+
+Both: plain text. No links, no prices, no guarantees, no dashes, no brackets, no sign-off or signature (it is added). Use only the facts given; copy names and numbers exactly, and add no numbers of your own (not even "10 minutes"). Invent nothing about {firm} or {first_name|them}.
+
+Subject: lowercase, 2 to {subject_words} words, no numbers, no names, no facts. Like "quick question" or "a thought".
+
+Return ONLY a JSON object. Each email is its paragraphs in order, the greeting first. "from" is the numbers of the "Why write now" lines a paragraph uses, [] when none:
+{{"subject": "...", "opener": [{{"text": "{hi}", "from": []}, {{"text": "...", "from": [1]}], "followup": [{{"text": "...", "from": []}]}
+

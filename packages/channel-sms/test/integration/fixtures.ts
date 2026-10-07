@@ -20,7 +20,6 @@ export const TABLES = [
   "topics",
   "sms_push_subscriptions",
   "operators",
-  "sms_templates",
   "templates",
   "template_versions",
   "sms_events",

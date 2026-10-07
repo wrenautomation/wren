@@ -11,14 +11,13 @@ import { finishRun, openRun } from "@wren/core";
 import { byOf, CLAUDE, type ClaudeService, draftAnswerOf } from "@wren/core/ask";
 import { PORTAL_FIELDS, serviceHandler } from "@wren/core/restate";
 import { runs } from "@wren/core/schema";
-import { livePrompt } from "@wren/core/templates";
+import { livePrompt } from "@wren/core/templates/defaults";
 import type { Db } from "@wren/db";
 import { and, eq } from "drizzle-orm";
 import { z } from "zod";
 import {
   ASK_MESSAGE_MAX,
   askPrompt,
-  DRAFT_ASK_PROMPT,
   DRAFT_ASK_REF,
   readDraft,
   undoDraft,
@@ -128,7 +127,7 @@ export function makeDraftAsk(db: Db) {
             const a = row.argv as Asked;
             const item = `${a.record}:${a.id}`;
             const d = await readDraft(db, item).catch(() => null);
-            const live = await livePrompt(db, DRAFT_ASK_REF, DRAFT_ASK_PROMPT);
+            const live = await livePrompt(db, DRAFT_ASK_REF);
             const prompt = d ? askPrompt(d, a, live) : { error: "the draft is gone" };
             return { item, by: a.by, before: d?.draft ?? null, prompt, version: live.version };
           });

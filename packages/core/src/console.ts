@@ -22,6 +22,7 @@ import * as restate from "@restatedev/restate-sdk";
 import {
   atomic,
   CLIENT_ID,
+  createDb,
   type Db,
   type Queryable,
   serializable,
@@ -49,6 +50,7 @@ import {
   type Client,
   changeRecord,
   clients,
+  clientUrl,
   isOwner,
   LastAdmin,
   normalEmail,
@@ -168,6 +170,7 @@ import {
   surveyRecord,
   surveysDue,
 } from "./survey-store.js";
+import { installDefaults } from "./template-defaults.js";
 import { patchOf, WORKFLOW_ASK, workflowAskPrompt } from "./workflow-ask.js";
 import {
   flowsWith,
@@ -1857,6 +1860,15 @@ export function consoleApi({
         await setAuditActor(tx, by);
         await updateClient(tx, client.id, { products: { [c.id]: block } });
       });
+      // The default templates it reads go into the client's database, following the default.
+      if (verb === "install" && c.provides.templates.length && mainUrl) {
+        const handle = createDb(clientUrl(mainUrl, client), { max: 1, app: "wren-console" });
+        try {
+          await installDefaults(handle.db, c.provides.templates, { by });
+        } finally {
+          await handle.close();
+        }
+      }
     } catch (err) {
       await finishRun(main, run.id, { error: String(err).slice(0, 500) });
       throw err;

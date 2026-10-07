@@ -153,6 +153,9 @@ importers:
       '@wren/watch':
         specifier: workspace:*
         version: link:../../packages/watch
+      '@wren/worker':
+        specifier: workspace:*
+        version: link:../worker
       commander:
         specifier: 15.0.0
         version: 15.0.0

@@ -2,9 +2,8 @@
  * The reactivation prompt moved from code into the template store must reach the model byte for
  * byte as the code built it. `legacyPrompt` is that code, kept here verbatim. Synthetic people.
  */
-import { parseKind } from "@wren/core/slots";
 import { describe, expect, it } from "vitest";
-import { buildComposePrompt, COMPOSE_PROMPT, type ComposeSubject, stripMarks } from "./compose.js";
+import { buildComposePrompt, type ComposeSubject, composeDefault, stripMarks } from "./compose.js";
 import type { ClientProfile } from "./schema.js";
 import type { Sender } from "./settings.js";
 
@@ -91,7 +90,7 @@ describe("the compose prompt as a template", () => {
     expect(n).toBe(subjects.length * profiles.length * 2);
   });
   it("parses as a prompt and keeps its trailing newline", () => {
-    expect(parseKind("prompt", "compose", COMPOSE_PROMPT).version).toMatch(/^[0-9a-f]{12}$/);
+    expect(composeDefault().version).toMatch(/^[0-9a-f]{12}$/);
     expect(buildComposePrompt(base, profiles[0] as ClientProfile, { name: "Ann Lee" })).toMatch(
       /\}\n$/,
     );

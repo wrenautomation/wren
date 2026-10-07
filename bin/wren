@@ -7,7 +7,7 @@ ROOT="$(cd "$(dirname "$(readlink -f "${BASH_SOURCE[0]}")")/.." && pwd)"
 BUNDLE="$ROOT/apps/cli/dist/app/wren.mjs"
 
 stale() {
-  [ ! -f "$BUNDLE" ] || [ -n "$(find "$ROOT"/packages/*/src "$ROOT"/packages/niches/templates "$ROOT"/packages/db/drizzle \
+  [ ! -f "$BUNDLE" ] || [ -n "$(find "$ROOT"/packages/*/src "$ROOT"/packages/templates/defaults "$ROOT"/packages/db/drizzle \
     "$ROOT"/apps/cli/src "$ROOT"/apps/cli/scripts "$ROOT"/pnpm-lock.yaml \
     -type f -newer "$BUNDLE" -print -quit)" ]
 }

@@ -10,14 +10,13 @@
  *   (`sending`) before the provider is called, so a crash never double-sends.
  * - `sms_events`: every webhook, raw, keyed by the provider's event id. The
  *   dedupe and the audit trail in one.
- * - `sms_templates`: William's words for each slot code declares
- *   (templates.ts). No row = empty = that text is never sent.
  * - `speed_runs`: each lead through speed to lead (speed.ts): the door's facts,
  *   when its first text left, the call step, a booking. The follow-up's state is
  *   its contact's.
  *
- * Opt-outs are `suppressions` rows of kind `phone` (core), the same table every
- * channel reads.
+ * The words for each text are `sms` templates in the template store
+ * (template-store.ts). Opt-outs are `suppressions` rows of kind `phone` (core), the same table
+ * every channel reads.
  */
 import { operators } from "@wren/core/clients";
 import { companies, people, runs } from "@wren/core/schema";
@@ -356,19 +355,6 @@ export const smsEvents = pgTable(
   ],
 );
 
-export const smsTemplates = pgTable(
-  "sms_templates",
-  {
-    /** A slot key: `<sequence>#<step>` or `keyword.<help|start|stop>`. */
-    key: varchar("key", { length: 120 }).notNull(),
-    body: text("body").notNull(),
-    updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
-    /** Who saved it: an operator's email, or `cli`. */
-    updatedBy: varchar("updated_by", { length: 200 }).notNull(),
-  },
-  (t) => [primaryKey({ columns: [t.key], name: "pk_sms_templates" })],
-);
-
 /** A device that gets a notification when a text comes in (web push from the phone app). */
 export const smsPushSubscriptions = pgTable(
   "sms_push_subscriptions",
@@ -398,7 +384,6 @@ export type SmsContact = typeof smsContacts.$inferSelect;
 export type NewSmsContact = typeof smsContacts.$inferInsert;
 export type SmsMessage = typeof smsMessages.$inferSelect;
 export type SmsEventRow = typeof smsEvents.$inferSelect;
-export type SmsTemplateRow = typeof smsTemplates.$inferSelect;
 export type SmsPushSubscription = typeof smsPushSubscriptions.$inferSelect;
 
 /**

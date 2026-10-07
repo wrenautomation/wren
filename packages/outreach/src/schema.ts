@@ -1,5 +1,6 @@
 /**
- * Cold outreach on Reddit and LinkedIn: four tables, each one fact.
+ * Cold outreach on Reddit and LinkedIn: three tables, each one fact. The words for each step
+ * are `dm` templates in the template store (store.ts).
  *
  * - `reach_accounts`: the accounts we speak as, one row per autobrowse
  *   credential (`reddit@alt`, `linkedin@wren`), with the last health read
@@ -10,8 +11,6 @@
  * - `reach_messages`: every connect, message and reply, both ways. Outbound
  *   rows are written as intent (`sending`) before the platform is called, so
  *   a crash never sends twice.
- * - `reach_templates`: William's words for each slot code declares
- *   (sequences.ts). No row = empty = that step never goes.
  *
  * Opt-outs ("stop messaging me") are `suppressions` rows of kind `handle`
  * (core), the same table every channel reads.
@@ -236,19 +235,6 @@ export const reachMessages = pgTable(
       name: "fk_reach_messages_run_id_runs",
     }).onDelete("set null"),
   ],
-);
-
-export const reachTemplates = pgTable(
-  "reach_templates",
-  {
-    /** A slot key: `<platform>:<sequence>#<step>` or `linkedin:connect-note`. */
-    key: varchar("key", { length: 120 }).notNull(),
-    body: text("body").notNull(),
-    updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
-    /** Who saved it: an operator's email, or `cli`. */
-    updatedBy: varchar("updated_by", { length: 200 }).notNull(),
-  },
-  (t) => [primaryKey({ columns: [t.key], name: "pk_reach_templates" })],
 );
 
 /** What Reddit's inbox calls the message: a reply to our post, to our comment, or a mention of us. */

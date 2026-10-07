@@ -53,7 +53,7 @@ export const agencies = defineNiche({
     "group",
     "partners",
   ],
-  templatesDir: templatesDir(import.meta.url, "agencies"),
+  templatesDir: templatesDir("agencies"),
   sequences: ARMS.flatMap((arm) => [
     threeEmailSequence(`${arm}/opener`, `${arm}/followup`, "final_followup"),
     twoEmailSequence(`${arm}/opener`, `${arm}/followup`),

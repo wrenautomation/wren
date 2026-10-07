@@ -18,7 +18,7 @@ Core is niche-agnostic; everything market-specific is data behind one contract, 
 ## Shape
 
 - `Niche` (`niche.ts:26`): `name`, `factsView`, `lander`, `crawlHints`, `discoveryGenericWords`, `templates`, `sequences`, `smsSequences`, `offers`, `offerFacts`, `plan`, `companyLocation`, `leadSourceFormats`, `personSourceFormats`, `platformDomains`, `datasets`, `recontact` (rest days per outcome and yearly cap for lead recycling, `:47`; defaults `packages/channel-email/src/recontact.ts:45`)
-- `NicheSpec` (`:67`), `defineNiche` (`:111`); definitions `sec-ria.ts`, `agencies.ts`, `recruiting.ts`; templates `packages/niches/templates/<niche>/`
+- `NicheSpec` (`:67`), `defineNiche` (`:111`); definitions `sec-ria.ts`, `agencies.ts`, `recruiting.ts`; templates `packages/templates/defaults/email/<niche>/` (`templatesDir`)
 - registries: `NICHES`, `FACTS_VIEWS`, `LANDERS_BY_NICHE`, `SMS_SEQUENCES`, `LEAD_SOURCE_FORMATS`, `PERSON_SOURCE_FORMATS` (`index.ts:24`–`104`)
 
 Citations: `packages/niches/src/niche.ts:26`, `packages/niches/src/index.ts:24`

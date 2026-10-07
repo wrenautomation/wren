@@ -1,13 +1,14 @@
 /**
- * The parity proof for moving copy into the template store: every `.email` file, imported, renders
- * byte for byte what the file rendered, for the same facts and the same recipient; and an import
- * run twice changes nothing. Facts are synthetic.
+ * The parity proof for the defaults tree: every niche's `.email` file, synced into the store,
+ * renders byte for byte what the file renders, for the same facts and the same recipient; and a
+ * sync run twice changes nothing. Facts are synthetic.
  */
 import { factKeys, render, type Template } from "@wren/core/slots";
 import { liveTemplates } from "@wren/core/templates";
+import { loadDefaults, syncDefaults } from "@wren/core/templates/defaults";
 import { startTestPostgres, type TestPostgres } from "@wren/db/testing";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
-import { importEmailFiles, NICHES } from "../../src/index.js";
+import { NICHES } from "../../src/index.js";
 
 let pg: TestPostgres;
 beforeAll(async () => {
@@ -32,11 +33,14 @@ const outcome = (tpl: Template, f: Record<string, string | null>, seed: string) 
   }
 };
 
-describe("email files into the store", () => {
+describe("email defaults into the store", () => {
   it("renders every template identically, for every niche, seed and fact set", async () => {
-    const first = await importEmailFiles(pg.db, NICHES);
+    const files = loadDefaults().filter(
+      (f) => f.ref.kind === "email" && NICHES.some((n) => n.name === f.ref.system),
+    );
+    const first = await syncDefaults(pg.db, { only: "all", files });
     const total = NICHES.reduce((n, niche) => n + niche.templates.size, 0);
-    expect(first).toEqual({ files: total, live: total });
+    expect(first).toEqual({ files: total, written: total, live: total });
     expect(total).toBeGreaterThan(0);
     let compared = 0;
     for (const niche of NICHES) {
@@ -54,6 +58,10 @@ describe("email files into the store", () => {
       }
     }
     expect(compared).toBe(total * 12);
-    expect(await importEmailFiles(pg.db, NICHES)).toEqual({ files: total, live: total });
+    expect(await syncDefaults(pg.db, { only: "all", files })).toEqual({
+      files: total,
+      written: 0,
+      live: 0,
+    });
   });
 });

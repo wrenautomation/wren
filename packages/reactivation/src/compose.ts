@@ -24,7 +24,8 @@ import {
 } from "@wren/channel-email";
 import { type Feed, NO_FEED } from "@wren/core";
 import { parseKind } from "@wren/core/slots";
-import { type LiveTemplate, livePrompt, renderPrompt } from "@wren/core/templates";
+import { type LiveTemplate, promptRef, renderPrompt } from "@wren/core/templates";
+import { defaultSource, livePrompt } from "@wren/core/templates/defaults";
 import { atomic, type Queryable, serializable } from "@wren/db";
 import { completeAndParse, type LlmClient, LlmError } from "@wren/llm";
 import { and, eq, sql } from "drizzle-orm";
@@ -292,42 +293,18 @@ export interface ComposeSubject {
 }
 
 /**
- * The prompt's words, as the template store first takes them (kind prompt, system
- * `reactivation`, name `compose`): `{fact}` is filled from the subject and the client's profile,
- * `((...))` drops when its fact is missing, `{{` is a literal `{`.
+ * The prompt (kind prompt, system `reactivation`, name `compose`); its words ship as
+ * `packages/templates/defaults/prompt/reactivation/compose.prompt`. `{fact}` is filled from the
+ * subject and the client's profile, `((...))` drops when its fact is missing, `{{` is a literal `{`.
  */
-export const COMPOSE_PROMPT = `You write a short email from {sender}, a recruiter at {firm}, to {who}, someone the firm has worked with before, {where}.
-
-What {firm} does: {sells}
-
-Why write now (true, from our research), one numbered line each:
-{lines}
-
-How {firm} writes:
-{voice}
-
-Write two emails.
-1. The opener.
-- Start with "{hi}" as its own paragraph.
-- Open with line 1 of "Why write now"((, their move to {moved_to})): the reason you're writing now, plainly, as the recruiter who noticed. One more fact at most.
-- Only what they could see themselves: their role, a move, their company's open roles if listed. Never say the team is growing or hiring unless "Why write now" names open roles. Never the CRM, a record, a status, a placement, or the date you last spoke; "it's been a while" is enough.
-- One ask: a short call. Close with: reply with a couple of times that work and I'll book it.
-- Thank them for reading, in a few words, without your name.
-- At most {opener_words} words.
-2. The follow-up, sent in the same thread 4 business days later if they don't reply.
-- Start with "{hi}".
-- A short nudge: the same ask, or one new angle from the facts. No guilt.
-- At most {followup_words} words.
-
-Both: plain text. No links, no prices, no guarantees, no dashes, no brackets, no sign-off or signature (it is added). Use only the facts given; copy names and numbers exactly, and add no numbers of your own (not even "10 minutes"). Invent nothing about {firm} or {first_name|them}.
-
-Subject: lowercase, 2 to {subject_words} words, no numbers, no names, no facts. Like "quick question" or "a thought".
-
-Return ONLY a JSON object. Each email is its paragraphs in order, the greeting first. "from" is the numbers of the "Why write now" lines a paragraph uses, [] when none:
-{{"subject": "...", "opener": [{{"text": "{hi}", "from": []}, {{"text": "...", "from": [1]}], "followup": [{{"text": "...", "from": []}]}
-`;
 export const COMPOSE_PROMPT_REF = { system: REACTIVATION, name: "compose" } as const;
-const SEED_PROMPT = parseKind("prompt", COMPOSE_PROMPT_REF.name, COMPOSE_PROMPT);
+/** The shipped words, parsed: what the store first takes, and what a test renders. */
+export const composeDefault = () =>
+  parseKind(
+    "prompt",
+    COMPOSE_PROMPT_REF.name,
+    defaultSource(promptRef(COMPOSE_PROMPT_REF.system, COMPOSE_PROMPT_REF.name)),
+  );
 
 /** What the prompt fills in for one subject. */
 export function composeFacts(
@@ -354,12 +331,12 @@ export function composeFacts(
   };
 }
 
-/** The prompt for one subject: the store's live words (`livePrompt`), or the code's. */
+/** The prompt for one subject: the store's live words (`livePrompt`), or the shipped default. */
 export function buildComposePrompt(
   s: ComposeSubject,
   profile: Pick<ClientProfile, "firm" | "sells" | "voice">,
   sender: Pick<Sender, "name">,
-  prompt: Pick<LiveTemplate, "template"> = { template: SEED_PROMPT },
+  prompt: Pick<LiveTemplate, "template"> = { template: composeDefault() },
 ): string {
   return renderPrompt(prompt, composeFacts(s, profile, sender));
 }
@@ -602,7 +579,7 @@ export async function composeCrmEmails(
   );
   const autoApprove = settings.approval === "first" && (await firstBatchApproved(db));
   // The store's words in this database, read once for the pass.
-  const prompt = await livePrompt(db, COMPOSE_PROMPT_REF, COMPOSE_PROMPT);
+  const prompt = await livePrompt(db, COMPOSE_PROMPT_REF);
   const feed = opts.feed ?? NO_FEED;
   let streak = 0;
   for (const s of subjects) {
@@ -893,7 +870,7 @@ export async function redraftAwaiting(
       }
     order by e.id`);
   stats.selected = rows.length;
-  const prompt = rows.length ? await livePrompt(db, COMPOSE_PROMPT_REF, COMPOSE_PROMPT) : null;
+  const prompt = rows.length ? await livePrompt(db, COMPOSE_PROMPT_REF) : null;
   for (const r of rows) {
     const sender = opts.senders.find((x) => x.address === r.sender && !x.suspended);
     if (!sender) {

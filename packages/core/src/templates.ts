@@ -1,7 +1,7 @@
 /**
  * The template store (designs/2026-10-06-edits-claude-templates.md, 3;
  * 2026-10-07-templates-live-copy.md): every channel's copy and every model prompt in `templates`
- * and `template_versions`. Wren's built-in words are files (`@wren/templates`), synced in as
+ * and `template_versions`. Wren's built-in words are files (`template-defaults.ts`), synced in as
  * `default` versions; the database holds the live copy. A template follows the newest default or
  * has its own live version. Every save is a numbered version with who, when and why, kept and
  * never changed; a save names the version it was opened from and is refused when that moved.
@@ -59,9 +59,6 @@ export function parseRef(text: string): TemplateRef {
 /** Where a template shows when nobody moved it: its system, then its name's folders. */
 export const defaultFolder = (ref: TemplateRef): string =>
   [ref.system, ...ref.name.split("/").slice(0, -1)].join("/");
-
-/** Plain words as prompt source: each `{` doubled, so a quoted JSON shape stays words. */
-export const literalPrompt = (words: string): string => words.replaceAll("{", "{{");
 
 /** One version as a template's head names it. */
 export interface VersionHead {
@@ -768,29 +765,6 @@ export async function writeDefault(
     }
     return { written: true, live: follows };
   });
-}
-
-/**
- * A prompt the code ships, as the store has it live. The words come from its default file; a
- * database that never synced takes them as its first default version, following it. From then on
- * the store's live words are the prompt, so an edit there wins.
- */
-export async function livePrompt(
-  db: Queryable,
-  ref: { system: string; name: string },
-  words: string,
-): Promise<LiveTemplate> {
-  const r = promptRef(ref.system, ref.name);
-  const live = await resolveTemplate(db, r);
-  if (live) return live;
-  const { createHash } = await import("node:crypto");
-  await writeDefault(db, r, words, {
-    hash: createHash("sha256").update(words).digest("hex"),
-    by: "seed:code",
-  });
-  const seeded = await resolveTemplate(db, r);
-  if (!seeded) throw new Error(`prompt ${ref.system}/${ref.name} did not seed`);
-  return seeded;
 }
 
 /** A prompt's words with its facts, byte for byte as written and given. */

@@ -136,7 +136,17 @@ export interface Component {
   /** Top-level settings that hold prices: kept, never shown on a page. */
   priced: string[];
   requires: { components: string[]; accounts: AccountSite[] };
-  provides: { services: string[]; loops: string[]; records: string[]; apps: string[] };
+  provides: {
+    services: string[];
+    loops: string[];
+    records: string[];
+    apps: string[];
+    /**
+     * The default templates it reads (`<kind>:<system>/<name>`, or a prefix ending in `/`):
+     * installing it puts them in the client's database, following the default.
+     */
+    templates: string[];
+  };
   effects: Effect[];
   /** What it takes in and hands on; a workflow wires these. */
   in: Port[];
@@ -173,7 +183,7 @@ export const defineComponent = (c: Input): Component => ({
   wrenSettings: c.for === "wren" || (c.wrenSettings ?? false),
   priced: c.priced ?? [],
   requires: { components: [], accounts: [], ...c.requires },
-  provides: { services: [], loops: [], records: [], apps: [], ...c.provides },
+  provides: { services: [], loops: [], records: [], apps: [], templates: [], ...c.provides },
   effects: c.effects ?? [],
   in: c.in ?? [],
   out: c.out ?? [],

@@ -8,18 +8,12 @@
  */
 import { companies, people } from "@wren/core";
 import { AuthoringError, type Template } from "@wren/core/slots";
-import {
-  clearTemplate,
-  importVersion,
-  liveTemplates,
-  saveLive,
-  type TemplateRef,
-} from "@wren/core/templates";
+import { clearTemplate, liveTemplates, saveLive, type TemplateRef } from "@wren/core/templates";
 import type { Queryable } from "@wren/db";
 import { eq } from "drizzle-orm";
 import type { SmsProvider } from "./provider.js";
 import { SmsRefusal } from "./refusal.js";
-import { type SmsContact, smsTemplates } from "./schema.js";
+import type { SmsContact } from "./schema.js";
 import {
   checkBody,
   firstName,
@@ -169,21 +163,4 @@ export async function setTemplate(
   }
   const [view] = await listTemplates(db, [slot], opts.sender);
   return view as SlotView;
-}
-
-/**
- * The words `sms_templates` held before the template store, each kept as a version with
- * who saved it and when, and live where nothing is. Runs once per database; again is a no-op.
- */
-export async function importLegacyTexts(db: Queryable): Promise<{ rows: number; live: number }> {
-  const rows = await db.select().from(smsTemplates);
-  let live = 0;
-  for (const r of rows) {
-    const out = await importVersion(db, textRef(r.key), r.body, {
-      by: r.updatedBy,
-      at: r.updatedAt,
-    });
-    if (out.live) live++;
-  }
-  return { rows: rows.length, live };
 }

@@ -4,7 +4,8 @@
  * what it replaced; Claude answers a patch, Wren checks and writes it.
  */
 import { parseKind } from "@wren/core/slots";
-import { type LiveTemplate, literalPrompt, renderPrompt } from "@wren/core/templates";
+import { type LiveTemplate, promptRef, renderPrompt } from "@wren/core/templates";
+import { defaultSource } from "@wren/core/templates/defaults";
 import type { Queryable } from "@wren/db";
 import { setEdit } from "@wren/studio/edit";
 import type { Cut, VideoEdit } from "@wren/studio/schema";
@@ -18,22 +19,18 @@ export const VIDEO_ASK_MAX = 2000;
 const QUESTION_MAX = 4000;
 const SYSTEM_MAX = 8000;
 
-const SYSTEM = `You help William edit one of his videos before it renders. You are read only: you can't change, render or upload anything, so never say you did. Wren applies the patch you give.
-Answer with one JSON object and nothing else: {"reply": "...", "patch": {...}}.
-- reply: what you changed, or your answer to his question. A sentence or two, plain text.
-- patch: only the fields to change; null when he only asked something. Fields: title (100 chars max), description (5000), tags (30 strings), chapters [{"at", "title"}], shorts [{"from", "to", "title"}] (15 to 60 s each), thumbnail {"at", "text"} (text 60 max) or null, and cuts.
-- cuts: only the cuts to change, [{"from", "to", "state"}], state "cut" or "kept". One that matches no cut is a new cut. Every other list you give replaces the whole list.
-- Every time is seconds on the raw recording, as the transcript gives them.
-Write as William: "I", casual, plain words, no em dashes.`;
-
-/** The system prompt's words, as the template store first takes them (kind prompt). */
-export const VIDEO_ASK_PROMPT = `${literalPrompt(SYSTEM)}
-The transcript, each word with its start and end, and every cut: run \`node scripts/prod-wren.mjs video show {id}\`.
-
-The edit now:
-{now}`;
+/**
+ * The system prompt (kind prompt, system `content`, name `video-ask`); its words ship as
+ * `packages/templates/defaults/prompt/content/video-ask.prompt`.
+ */
 export const VIDEO_ASK_REF = { system: "content", name: "video-ask" } as const;
-const SEED_PROMPT = parseKind("prompt", VIDEO_ASK_REF.name, VIDEO_ASK_PROMPT);
+/** The shipped words, parsed. */
+export const videoAskDefault = () =>
+  parseKind(
+    "prompt",
+    VIDEO_ASK_REF.name,
+    defaultSource(promptRef(VIDEO_ASK_REF.system, VIDEO_ASK_REF.name)),
+  );
 
 /**
  * The question and system prompt for one ask: the edit without its words, which Claude reads.
@@ -42,7 +39,7 @@ const SEED_PROMPT = parseKind("prompt", VIDEO_ASK_REF.name, VIDEO_ASK_PROMPT);
 export function videoPrompt(
   e: VideoEdit,
   ask: { by: string; message: string },
-  prompt: Pick<LiveTemplate, "template"> = { template: SEED_PROMPT },
+  prompt: Pick<LiveTemplate, "template"> = { template: videoAskDefault() },
 ) {
   const now = {
     title: e.title,

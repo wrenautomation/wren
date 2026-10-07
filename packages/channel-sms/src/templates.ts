@@ -1,8 +1,8 @@
 /**
  * SMS copy: William writes every word. Code only declares the slots (which
  * texts exist, the fields each may use, the rules each must meet); the words
- * live in `sms_templates`, filled from the phone app or `wren sms templates
- * set`. An empty slot sends nothing: enroll refuses a sequence with an empty
+ * are `sms` templates in the template store, filled from the phone app or `wren
+ * sms templates set`. An empty slot sends nothing: enroll refuses a sequence with an empty
  * step, a keyword with no reply gets Telnyx's default, and an empty reminder
  * means no reminders.
  *
