@@ -196,7 +196,9 @@ const leaks = (v: unknown) => {
 describe("the demo", () => {
   it("is named by DEMO_NAME, never by the agency", async () => {
     expect(await me(demo)).toEqual({
-      clients: [{ id: "demo", name: DEMO_NAME, demo: true, installed: [], can: ["read"] }],
+      clients: [
+        { id: "demo", name: DEMO_NAME, demo: true, installed: [], can: ["read"], flags: {} },
+      ],
       demo: true,
       operator: false,
     });
@@ -319,13 +321,20 @@ describe("logins", () => {
   it("an operator sees every client by its real name, and real names on a real list", async () => {
     expect(await me(operator)).toEqual({
       clients: [
-        { id: "acme", name: "Acme Staffing", installed: [], can: [...PERMISSIONS] },
-        { id: "beta", name: "Beta Search", installed: [], can: [...PERMISSIONS] },
-        { id: "demo", name: "Northside Talent", demo: true, installed: [], can: [...PERMISSIONS] },
+        { id: "acme", name: "Acme Staffing", installed: [], can: [...PERMISSIONS], flags: {} },
+        { id: "beta", name: "Beta Search", installed: [], can: [...PERMISSIONS], flags: {} },
+        {
+          id: "demo",
+          name: "Northside Talent",
+          demo: true,
+          installed: [],
+          can: [...PERMISSIONS],
+          flags: {},
+        },
       ],
       demo: false,
       operator: true,
-      team: { role: "admin", wren: [...PERMISSIONS] },
+      team: { role: "admin", wren: [...PERMISSIONS], flags: {} },
     });
     const acme = await api.recordsList({ ...operator, client: "acme", record: PERSON, q: "Doe" });
     expect(acme.rows.map((r) => r.name)).toEqual(["Jane Doe"]);
@@ -354,7 +363,14 @@ describe("logins", () => {
   it("a client login sees only its own clients, whatever the case of its email", async () => {
     expect(await me(owner)).toEqual({
       clients: [
-        { id: "acme", name: "Acme Staffing", installed: [], role: "member", can: ["read", "act"] },
+        {
+          id: "acme",
+          name: "Acme Staffing",
+          installed: [],
+          role: "member",
+          can: ["read", "act"],
+          flags: {},
+        },
       ],
       demo: false,
       operator: false,
