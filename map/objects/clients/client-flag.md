@@ -17,8 +17,9 @@ One list so nothing is tracked twice. A machine flag is keyed by client, project
 
 ## Shape
 
-- Tables: `flags` (side, source `delivery` | `health` | `person`, cause, what, how, urgent, owner, remind days, raised/addressed/cleared with who), `flag_digests` (`packages/delivery/src/health/schema.ts:131`, `:192`)
+- Tables: `flags` (side, source `delivery` | `health` | `workflows` | `person`, cause, what, how, urgent, owner, remind days, raised/addressed/cleared with who), `flag_digests` (`packages/delivery/src/health/schema.ts:131`, `:192`)
 - `syncFlags` (`packages/delivery/src/health/flags.ts:51`) raises, rewords and clears a source's flags; `raiseFlag`, `ownFlag`, `addressFlag`, `clearFlag` (`:117`, `:153`, `:162`, `:181`)
+- Source `workflows` (migration 0177): DeliveryWatch syncs one risk per client workflow with failed runs (`workflowFlags`, cause `workflow:<id>`, remind daily, the top error in `how`); Wren's own failed runs ride the digest as lines (`failedLines`, the `wren` argument of `tellFlags`), and a day with only those still sends ("Workflows: N failing").
 - `tellFlags` (`:203`): urgent now, digest after `DIGEST_HOUR` (`:25`) once a day, reminders by `remind_days`; `flagsToFire` (`:317`) sends each raise and clear to the spine as an event
 - View `console_flags` (`packages/delivery/src/health/views.ts:149`); record `console.flag` (`packages/delivery/src/health/records.ts:171`). Its Mine view is open and addressed flags whose owner is the signed-in person (`mine: "owner"`, [[platform/records]]); the Clients Overview counts it on the "Flags I own" tile
 
