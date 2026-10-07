@@ -177,9 +177,12 @@ export class FakeHost implements CalendarHost {
   readonly name = "fake";
   readonly events = new Map<string, NewEvent & { account: string }>();
   readonly log: string[] = [];
+  /** Set to make every busy read fail, as Google does with the API off or no delegation. */
+  down = false;
   constructor(public busyTimes: Span[] = []) {}
 
   async busy(_account: string, from: Date, to: Date): Promise<Span[]> {
+    if (this.down) throw new Error("Google Calendar free/busy: 403");
     return this.busyTimes.filter((b) => b.start < to && b.end > from);
   }
 

@@ -135,9 +135,16 @@ export function calendarFlows(deps: CalendarDeps) {
   ): Promise<Span[]> => {
     const host = deps.host;
     if (!host || !account) return [];
-    return spansOf(
-      await ctx.run("busy", async () => spansJson(await host.busy(account, from, to))),
-    );
+    // Capped and fail-closed: a slot offered without the owner's busy times could double-book
+    // him, and an endless retry would hang the page.
+    try {
+      return spansOf(
+        await ctx.run("busy", async () => spansJson(await host.busy(account, from, to)), CAPPED),
+      );
+    } catch (err) {
+      ctx.console.warn(`calendar: busy times failed: ${(err as Error).message}`);
+      throw refuse("calendar unavailable", 503);
+    }
   };
   const manage = (id: number) => manageUrl(deps.site, shared(), id);
 

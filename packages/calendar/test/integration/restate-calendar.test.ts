@@ -64,6 +64,7 @@ afterAll(async () => {
 beforeEach(async () => {
   sent.length = 0;
   host.events.clear();
+  host.down = false;
   leads.day = 24 * 3_600_000;
   leads.hour = 3_600_000;
   await pg.db.execute(sql`truncate calendar.bookings, call_bookings restart identity`);
@@ -192,6 +193,11 @@ describe("CalendarConsole", () => {
       noShow: (ctx: unknown, req: unknown) => Promise<{ changed: number }>;
       cancel: (ctx: unknown, req: unknown) => Promise<{ cancelled: number }>;
     }>({ name: "CalendarConsole" });
+
+  it("refuses, and does not hang, when Google's busy times fail", async () => {
+    host.down = true;
+    await expect(slots()).rejects.toThrow(/calendar unavailable/);
+  });
 
   it("refuses a stranger", async () => {
     await expect(

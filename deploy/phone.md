@@ -25,11 +25,11 @@ the custom domain and the secrets below. Since 2026-10-01 its own passkeys are g
 the KV `wren-phone-creds`, the `SESSION_SECRET` / `SETUP_TOKEN` secrets and their
 `WREN_PHONE_*` lines in `deploy/prod.env` are unused and can be deleted.
 
-By hand, from `apps/phone/`:
+CI writes `RESTATE_INGRESS_URL` and `RESTATE_AUTH_TOKEN` from `RESTATE_HOST` on each deploy
+(since 2026-10-06; before that they were set by hand and still named Restate Cloud). The rest by hand,
+from `apps/phone/`:
 
     export CLOUDFLARE_ACCOUNT_ID="$WREN_CLOUDFLARE_ACCOUNT_ID"
-    printf %s "https://$RESTATE_HOST:8080/" | npx wrangler secret put RESTATE_INGRESS_URL
-    printf %s "$RESTATE_AUTH_TOKEN" | npx wrangler secret put RESTATE_AUTH_TOKEN
     # Telnyx portal → Account → Public Key. Until set, every webhook gets 503.
     printf %s "$TELNYX_PUBLIC_KEY" | npx wrangler secret put TELNYX_PUBLIC_KEY
     # The secret Wren's cal.com webhook signs with. Until set, /webhooks/calcom gets 503.
