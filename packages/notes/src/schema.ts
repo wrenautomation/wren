@@ -273,6 +273,7 @@ export const noteComments = pgTable(
       name: "fk_note_comments_parent",
     }).onDelete("cascade"),
     index("ix_note_comments_note").on(t.noteId, t.at),
+    index("ix_note_comments_parent").on(t.parentId),
   ],
 );
 export type NoteComment = typeof noteComments.$inferSelect;
@@ -304,6 +305,7 @@ export const noteMentions = pgTable(
     }).onDelete("cascade"),
     index("ix_note_mentions_who").on(t.who, t.at),
     index("ix_note_mentions_note").on(t.noteId),
+    index("ix_note_mentions_comment").on(t.commentId),
   ],
 );
 export type NoteMention = typeof noteMentions.$inferSelect;
