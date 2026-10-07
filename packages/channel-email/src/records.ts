@@ -449,13 +449,16 @@ export const variantRecord = defineRecord({
         left join template_versions v on v.niche = r.niche and v.template = r.template
           and v.version = r.template_version
         where r.sent > 0`)
-    ).map((r) => ({
-      ...r,
-      id: `${r.template}@${r.template_version}`,
-      // "book-first" reads "Book first"; the version is told apart by when it was written.
-      arm: r.arm ? labelOf(String(r.arm)) : r.arm,
-      step: Number(r.step) === 0 ? "Opener" : `Follow-up ${r.step}`,
-    })),
+    ).map((r) => {
+      const step = Number(r.step) === 0 ? "Opener" : `Follow-up ${r.step}`;
+      return {
+        ...r,
+        id: `${r.template}@${r.template_version}`,
+        // "book-first" step 0 reads "Book first: Opener, v2", so no two rows read the same.
+        arm: `${r.arm ? labelOf(String(r.arm)) : "Copy"}: ${step}, v${r.template_version}`,
+        step,
+      };
+    }),
   key: "id",
   title: "arm",
   subtitle: "campaign",

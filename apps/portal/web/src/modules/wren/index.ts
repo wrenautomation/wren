@@ -212,7 +212,7 @@ export const outbound: Module = {
           label: "Variants",
           record: "email.variant",
           href: "/outbound/variants",
-          fields: ["step", "replyRate"],
+          fields: ["replyRate"],
           empty: "No variant has sent yet.",
         },
       ],

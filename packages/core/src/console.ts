@@ -203,6 +203,7 @@ import {
   templatesOf,
   uninstallTemplate,
 } from "./template-install.js";
+import { codeLabel } from "./template-labels.js";
 import { patchOf, WORKFLOW_ASK, workflowAskPrompt } from "./workflow-ask.js";
 import {
   flowsWith,
@@ -1149,6 +1150,21 @@ const settingText = (f: HandlerField, v: unknown): string => {
   if (Array.isArray(v) && (f.type === "lines" || f.type === "numbers")) return v.join(", ");
   return typeof v === "object" ? JSON.stringify(v) : String(v);
 };
+/**
+ * A setting as the list shows it: a block of lists reads "Recruiting: a, b; Agencies: c", not
+ * JSON. Editing still starts from `settingText`, so what he types round-trips.
+ */
+export const settingShown = (f: HandlerField, v: unknown): string => {
+  const words = (x: unknown): string =>
+    Array.isArray(x)
+      ? x.map(words).join(", ")
+      : x && typeof x === "object"
+        ? Object.entries(x)
+            .map(([k, y]) => `${codeLabel(k)}: ${words(y)}`)
+            .join("; ")
+        : String(x);
+  return v && typeof v === "object" && f.type !== "switch" ? words(v) : settingText(f, v);
+};
 /** What he typed, as the schema takes it; blank goes back to the default. */
 const settingValue = (f: HandlerField, typed: string): unknown => {
   const t = typed.trim();
@@ -1219,7 +1235,7 @@ export function settingRecord(all: readonly Component[]): RecordType {
           id,
           part: c.name,
           setting: f.label,
-          value: settingText(f, at(shownSettings(c, row?.settings) ?? {}, f.field)),
+          value: settingShown(f, at(shownSettings(c, row?.settings) ?? {}, f.field)),
           hint: f.hint ?? null,
           choices: f.options?.join(", ") ?? null,
           updated_at: row?.updatedAt?.toISOString() ?? null,

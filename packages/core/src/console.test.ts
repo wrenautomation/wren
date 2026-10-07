@@ -17,6 +17,7 @@ import {
   loopsOf,
   makeConsolePortal,
   restateAdminGet,
+  settingShown,
   toCsv,
 } from "./console.js";
 import { PortalRefusal } from "./portal.js";
@@ -556,5 +557,16 @@ describe("builtWords", () => {
     expect(builtWords(part, "SOCIAL_EVERY_MS, SLOW_EVERY_MS", name)).toBeNull();
     expect(builtWords(part, "warmupOf in @wren/channel-reddit", name)).toBeNull();
     expect(builtWords(part, "PoolScheduler limits.youtube", name)).toBeNull();
+  });
+});
+
+describe("settingShown", () => {
+  it("reads a block of lists as words, not JSON", () => {
+    const f = { field: "phrases", label: "Phrases", type: "json" as const };
+    expect(settingShown(f, { recruiting: ["a", "b"], agencies: ["c"] })).toBe(
+      "Recruiting: a, b; Agencies: c",
+    );
+    expect(settingShown({ field: "on", label: "On", type: "switch" }, true)).toBe("on");
+    expect(settingShown({ field: "n", label: "N", type: "number" }, 20)).toBe("20");
   });
 });
