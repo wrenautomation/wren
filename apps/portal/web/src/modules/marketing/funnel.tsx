@@ -40,7 +40,7 @@ const LABEL = "text-[13px] font-medium text-(--ui-ink-2)";
 const HINT = "text-[12px] text-(--ui-ink-3)";
 const GROUP_HEAD =
   "text-[12px] font-semibold tracking-(--ui-label-tracking) text-(--ui-ink-2) [text-transform:var(--ui-label-case)]";
-const GRID = "grid gap-5 @min-[440px]/fields:grid-cols-2";
+const GRID = "grid grid-cols-[minmax(0,1fr)] gap-5 @min-[440px]/fields:grid-cols-2";
 
 const errorOf = (err: unknown) => (err instanceof Error ? err.message : String(err));
 const labelOf = (list: readonly { value: string; label: string }[], v: string) =>
@@ -97,7 +97,7 @@ function Pick({
 }) {
   const { said, bad, run } = useSave(act);
   return (
-    <div className="grid min-w-0 gap-1.5">
+    <div className="grid min-w-0 content-start gap-1.5">
       <div className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1">
         <label htmlFor={id} className={LABEL}>
           {label}
@@ -106,7 +106,7 @@ function Pick({
       </div>
       <select
         id={id}
-        className={SELECT}
+        className={`${SELECT} w-full min-w-0`}
         value={value}
         onChange={(e) => void run({ [field]: e.target.value })}
       >
@@ -224,7 +224,7 @@ export function FunnelFields({
               field="to"
             />
             {funnel.to === "video" ? (
-              <div className="@min-[440px]/fields:col-span-2">
+              <div className="min-w-0 @min-[440px]/fields:col-span-2">
                 <Pick
                   id={`funnel-video-${draftId}`}
                   label="Video"

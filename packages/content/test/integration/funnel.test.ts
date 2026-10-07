@@ -29,7 +29,7 @@ const llm = new FakeLlm({
   respond: async (prompt) => {
     prompts.push(prompt);
     if (prompt.includes("a Reddit text post"))
-      return '{"title": "How I cut a demo to the part that matters", "text": "I cut a demo to the part that matters."}';
+      return '{"title": "How I cut a demo to the part that matters", "text": "I cut a demo to the part that matters.\\n\\nI recorded a walkthrough of it."}';
     if (prompt.includes("one post on X"))
       return '{"text": "Most demos bury the point. Cut to the part that matters."}';
     if (prompt.includes("Instagram Reel caption"))

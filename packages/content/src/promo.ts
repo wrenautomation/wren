@@ -42,6 +42,9 @@ export type PromoPlatform = (typeof PROMO_PLATFORMS)[number];
 /** A video that can be promoted: approved to upload, uploading or up. */
 const PROMOTABLE = ["approved", "publishing", "published"] as const;
 
+/** True of every promo, and the Reddit brief may say it: backs "I recorded a walkthrough". */
+const RECORDED = "I recorded a walkthrough video of this.";
+
 /** The idea's ref: one promo idea per video. */
 export const promoRef = (videoDraft: string) => `promo:${videoDraft}`;
 
@@ -269,7 +272,7 @@ export async function draftPromo(
       ...(o.facts ? { facts: o.facts } : {}),
     },
   );
-  const { outcome, why } = await askGuarded(db, llm, prompt, [base.idea.text], {
+  const { outcome, why } = await askGuarded(db, llm, prompt, [base.idea.text, RECORDED], {
     ...o,
     item: `idea:${base.idea.id}/${platform}`,
     metadata: {
