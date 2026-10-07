@@ -19,7 +19,7 @@ export const FACT_MAX = 300;
 export const DEFAULT_FACTS: readonly string[] = [
   "I'm William, the founder of Wren Automation, a one-person automation agency.",
   "I built Wren's cold email system: it finds leads, checks each address, writes each email, sends from a fleet of inboxes and reads the replies.",
-  "I built autobrowse, an open-source browser automation tool on npm that signs in to sites and runs tasks on them.",
+  "I built autobrowse, a browser automation tool on npm that signs in to sites and runs tasks on them.",
   "I built a lead reactivation product: it researches a business's old CRM contacts and drafts messages to win them back.",
   "I built a content loop: it drafts posts from my notes and my commits, I approve each one, then it posts.",
   "I built a client portal where clients see their drafts and approve them before anything sends.",
