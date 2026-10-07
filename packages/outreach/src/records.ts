@@ -23,7 +23,7 @@ import { inArray, sql } from "drizzle-orm";
 import { accountById, listAccounts } from "./accounts.js";
 import { personLine } from "./discovery/people.js";
 import { VANITY } from "./invites.js";
-import { type PlaceJudged, type Platform, type RedditPerson, redditPeople } from "./schema.js";
+import { type DmPlatform, type PlaceJudged, type RedditPerson, redditPeople } from "./schema.js";
 import {
   MESSAGE_MAX,
   REACH_SEQUENCES,
@@ -36,7 +36,13 @@ import { getThread, listThreads } from "./threads.js";
 
 /** ponytail: rows, not a view: reach holds a few hundred threads at most; a view past that. */
 const THREAD_ROWS = 500;
-const SITES: Record<Platform, string> = { reddit: "Reddit", linkedin: "LinkedIn" };
+const SITES: Record<DmPlatform, string> = {
+  reddit: "Reddit",
+  linkedin: "LinkedIn",
+  facebook: "Facebook",
+  instagram: "Instagram",
+  x: "X",
+};
 /** Where a template's words go in its message. */
 const SLOT = "WRENSLOT";
 
@@ -85,7 +91,16 @@ export const dmRecord = defineRecord({
   fields: {
     who: name("Who"),
     headline: text(),
-    platform: status(cued({ reddit: neutral("Reddit"), linkedin: neutral("LinkedIn") }), "Site"),
+    platform: status(
+      cued({
+        reddit: neutral("Reddit"),
+        linkedin: neutral("LinkedIn"),
+        facebook: neutral("Facebook"),
+        instagram: neutral("Instagram"),
+        x: neutral("X"),
+      }),
+      "Site",
+    ),
     account: text("From"),
     state: status({
       new: neutral("Found"),
@@ -279,7 +294,16 @@ export function dmCopyRecord(sender: string) {
     subtitle: "body",
     fields: {
       purpose: text("Slot"),
-      platform: status(cued({ reddit: neutral("Reddit"), linkedin: neutral("LinkedIn") }), "Site"),
+      platform: status(
+        cued({
+          reddit: neutral("Reddit"),
+          linkedin: neutral("LinkedIn"),
+          facebook: neutral("Facebook"),
+          instagram: neutral("Instagram"),
+          x: neutral("X"),
+        }),
+        "Site",
+      ),
       body: prose("Your words"),
       filled: status(
         { filled: { label: "Written", tone: "good" }, empty: neutral("Empty: never goes") },

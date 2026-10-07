@@ -14,7 +14,13 @@ import { listAccounts } from "./accounts.js";
 import { checkCanDm } from "./comments.js";
 import { addProspects, contactByHandle } from "./contacts.js";
 import { ReachRefusal } from "./refusal.js";
-import { type Platform, type ReachAccount, type ReachContact, reachContacts } from "./schema.js";
+import {
+  isReachPlatform,
+  type Platform,
+  type ReachAccount,
+  type ReachContact,
+  reachContacts,
+} from "./schema.js";
 
 /** Who writes to a person from People, by platform. */
 export const PERSON_ACCOUNTS: Record<Platform, string> = {
@@ -127,17 +133,20 @@ export async function messageAccount(
   now: Date,
 ): Promise<ReachAccount> {
   if (["opted_out", "blocked"].includes(c.state)) throw new ReachRefusal("they asked us to stop");
+  const platform = c.platform;
+  if (!isReachPlatform(platform))
+    throw new ReachRefusal("this DM answers through the client's connected account");
   if (c.platform === "linkedin" && (!c.connectedAt || !c.accountId))
     throw new ReachRefusal("not connected on LinkedIn yet: invite them first");
-  const live = (await listAccounts(db, c.platform)).filter(
+  const live = (await listAccounts(db, platform)).filter(
     (a) => a.state === "active" || a.state === "warming",
   );
   const a = c.accountId
     ? live.find((x) => x.id === c.accountId)
-    : live.find((x) => x.account === PERSON_ACCOUNTS[c.platform]);
+    : live.find((x) => x.account === PERSON_ACCOUNTS[platform]);
   if (!a)
     throw new ReachRefusal(
-      `${c.accountId ? "their account" : PERSON_ACCOUNTS[c.platform]} isn't live in reach`,
+      `${c.accountId ? "their account" : PERSON_ACCOUNTS[platform]} isn't live in reach`,
     );
   checkCanDm(a, now);
   const busy = await leadRefusal(db, c, "dm", now);

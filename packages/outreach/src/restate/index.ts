@@ -147,6 +147,8 @@ import {
   type AccountState,
   CONTACT_STATES,
   type ContactState,
+  type DmPlatform,
+  isReachPlatform,
   type Platform,
   type ReachAccount,
   type ReachContact,
@@ -224,7 +226,7 @@ export interface ReachClients {
   /** Clients' own keys: a client on its own Exa or model key runs on it. */
   keys?: KeyStore | null;
   /** A client's DM guide, from the SOPs in its own database. */
-  dmGuide?: (db: Db, platform: Platform) => Promise<string>;
+  dmGuide?: (db: Db, platform: DmPlatform) => Promise<string>;
   /** A client's facts for Reddit drafts: the SOPs in its own database. */
   facts?: (db: Db) => Promise<{ label: string; text: string }[]>;
 }
@@ -261,7 +263,7 @@ export function clientDeps(
       ? {
           drafts: {
             llm: meteredModel(clients.llm, { ...scope, own: llmForKey }),
-            ...(dmGuide ? { guide: (p: Platform) => dmGuide(db, p) } : {}),
+            ...(dmGuide ? { guide: (p: DmPlatform) => dmGuide(db, p) } : {}),
           },
         }
       : {}),
@@ -988,6 +990,8 @@ export function makeReachDesk(deps: ReachDeps) {
             terminal(async () => {
               if (req.accountId) return accountById(deps.db, req.accountId);
               if (c.accountId) return accountById(deps.db, c.accountId);
+              if (!isReachPlatform(c.platform))
+                throw new ReachRefusal("reads through the client's connected account");
               const [first] = await listAccounts(deps.db, c.platform);
               if (!first) throw new ReachRefusal(`no ${c.platform} account to read with`);
               return first;

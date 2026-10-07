@@ -76,18 +76,25 @@ type ReachDesk = {
   answerComment: Fn<{ id: number; body: string; viewer: Viewer }, unknown>;
 };
 type SmsDesk = { reply: Fn<{ contactId: number; body: string; client?: string }, unknown> };
+/** A client's own connected accounts (`makeSocialInbox`). */
+type SocialInboxDesk = {
+  send: Fn<{ client: string; contactId: number; body: string; by?: string | null }, unknown>;
+  answer: Fn<{ client: string; id: number; body: string; by?: string | null }, unknown>;
+};
 type Outcome = { ok: boolean; reason?: string | null };
 type Disposition = {
   approve: Fn<{ id: number; body: string }, Outcome>;
   reply: Fn<{ threadEventId: number; body: string }, Outcome>;
 };
 
-/** The channels' own desks, called as this viewer. DMs and comments are Wren's only. */
+/**
+ * The channels' own desks, called as this viewer. A client's DMs and comments go through its own
+ * connected accounts (`SocialInbox`); Wren's through reach.
+ */
 function restateChannels(ctx: restate.Context, client: string | null, viewer: Viewer): ReplySender {
-  const wrenOnly = () => {
-    if (client) throw new restate.TerminalError("DMs and comments answer from Wren's Inbox only");
-  };
   const reach = () => ctx.serviceClient<ReachDesk>({ name: "ReachDesk" });
+  const social = () => ctx.serviceClient<SocialInboxDesk>({ name: "SocialInbox" });
+  const by = viewer && !isDemo(viewer) ? (viewer.email ?? null) : null;
   const disposition = () =>
     ctx.objectClient<Disposition>(
       { name: "Disposition" },
@@ -98,12 +105,12 @@ function restateChannels(ctx: restate.Context, client: string | null, viewer: Vi
   };
   return {
     dm: async (contactId, body) => {
-      wrenOnly();
-      await reach().reply({ contactId, body, viewer });
+      if (client) await social().send({ client, contactId, body, by });
+      else await reach().reply({ contactId, body, viewer });
     },
     comment: async (id, body) => {
-      wrenOnly();
-      await reach().answerComment({ id, body, viewer });
+      if (client) await social().answer({ client, id, body, by });
+      else await reach().answerComment({ id, body, viewer });
     },
     text: async (contactId, body) => {
       await ctx

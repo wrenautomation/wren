@@ -1331,6 +1331,13 @@
       "when": 1791415501324,
       "tag": "0189_sites_links_retire",
       "breakpoints": true
+    },
+    {
+      "idx": 190,
+      "version": "7",
+      "when": 1791415644266,
+      "tag": "0190_client_social",
+      "breakpoints": true
     }
   ]
 }

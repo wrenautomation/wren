@@ -6,6 +6,9 @@
   "exports": {
     ".": "./src/index.ts",
     "./components": "./src/components.ts",
+    "./connect": "./src/connect/index.ts",
+    "./connect/routes": "./src/connect/console-routes.ts",
+    "./connect/platforms": "./src/connect/platforms.ts",
     "./inbox": "./src/inbox/index.ts",
     "./records": "./src/records.ts",
     "./restate": "./src/restate/index.ts",

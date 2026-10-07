@@ -84,6 +84,13 @@ type ContentReads = {
     req: { platform: Platform } & ForClient,
   ) => Promise<Audience | null>;
 };
+/** A client's DMs through its connected accounts (`makeSocialInbox`). */
+type SocialInboxRead = {
+  read: (
+    ctx: restate.Context,
+    req: { client: string },
+  ) => Promise<{ messages: number; errors: string[] }>;
+};
 
 export interface SocialWatchDeps {
   db: Db;
@@ -104,6 +111,8 @@ export interface SocialStats {
   comments: number;
   asked: number;
   activity: number;
+  /** New DMs a client's connected accounts brought in. */
+  dms: number;
   /** Platforms whose follower count was kept this pass. */
   audience: Platform[];
   /** Follower counts that failed this pass, said here, not a failed pass: the next pass asks again. */
@@ -132,11 +141,13 @@ export function makeSocialWatch(deps: SocialWatchDeps) {
     const client = clientOfKey(ctx.key)?.client ?? null;
     let db = deps.db;
     let platforms = deps.platforms;
+    let dms = false;
     if (client) {
       if (!deps.clientDb) return stoppedPass<SocialStats>(ctx, now, "no client databases here");
       const plan = await ctx.run("client", () => clientContent(deps.db, client, "content.social"));
       if (plan.kind === "gone") return stoppedPass<SocialStats>(ctx, now, plan.why);
       db = deps.clientDb(client);
+      dms = plan.dms.length > 0;
       // Its logins, on the channels the worker runs (the global gate).
       platforms = plan.platforms.filter((p) => deps.platforms.includes(p));
     }
@@ -146,6 +157,7 @@ export function makeSocialWatch(deps: SocialWatchDeps) {
       comments: 0,
       asked: 0,
       activity: 0,
+      dms: 0,
       audience: [],
       missed: [],
       errors: [],
@@ -217,6 +229,18 @@ export function makeSocialWatch(deps: SocialWatchDeps) {
       }
     }
     ctx.set(ACTIVITY_READS, lastActivity);
+
+    // A client's DMs on its connected Page, Instagram and X, into its Inbox.
+    if (client && dms)
+      try {
+        const r = await ctx
+          .serviceClient<SocialInboxRead>({ name: "SocialInbox" })
+          .read({ client });
+        stats.dms = r.messages;
+        stats.errors.push(...r.errors.map((e) => `dms ${e}`));
+      } catch (err) {
+        stats.errors.push(`dms: ${errorText(err)}`);
+      }
 
     stats.comments = kept.length;
     stats.asked = kept.filter((c) => c.asked).length;

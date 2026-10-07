@@ -20,6 +20,7 @@ export default defineConfig({
     "../channel-email/src/views.ts",
     "../channel-email/src/record-views.ts",
     "../content/src/schema.ts",
+    "../content/src/connect/schema.ts",
     "../channel-meta/src/schema.ts",
     "../channel-sms/src/schema.ts",
     "../reactivation/src/schema.ts",

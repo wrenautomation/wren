@@ -169,6 +169,16 @@ import {
   s3MediaHost,
   slidePainter,
 } from "@wren/content";
+import {
+  connectionIdOf,
+  liveFrom,
+  makeSocialAccess,
+  makeSocialCallback,
+  socialAccess,
+  socialAppsFrom,
+  socialChecks,
+  socialSites,
+} from "@wren/content/connect";
 import { mediaRecord, sopRecord, videoRecord } from "@wren/content/records";
 import {
   makeContentDesk,
@@ -179,6 +189,7 @@ import {
   makeInboxDesk,
   makeMarketingConsole,
   makeSocialDesk,
+  makeSocialInbox,
   makeSocialWatch,
   makeVideoDesk,
 } from "@wren/content/restate";
@@ -263,6 +274,7 @@ import { makeNotesConsole, notesContext } from "@wren/notes/console";
 import { DRIVE_READ_SCOPE, googleDrive } from "@wren/notes/drive";
 import { NOTES_RECORDS } from "@wren/notes/records";
 import {
+  type DmPlatform,
   discoverySettingsSchema,
   REACH_SEQUENCES,
   policyFrom as reachPolicyFrom,
@@ -410,6 +422,22 @@ export async function buildServices(
   // from its own SSM parameter; without it saving a key says the store isn't set up.
   const keys = keyStoreFromEnv(db, process.env);
   if (!keys) log.info("WREN_KEYSTORE_KEY unset: clients' own keys can't be saved or used here");
+  // Client social accounts (designs/2026-10-07-client-social.md): Wren's apps and each account's
+  // token in the key store, never printed; their API calls go straight to each platform.
+  const clientSocial = socialAccess({
+    main: db,
+    apps: socialAppsFrom(keys),
+    keys,
+    origin: settings.portalOrigin ?? null,
+    fetch,
+    live: liveFrom(settings.socialLive),
+  });
+  const socialApi = socialSites({
+    connection: clientSocial.connection,
+    tokenOf: clientSocial.tokenOf,
+    broke: clientSocial.broke,
+    fetch,
+  });
   const verifier = await makeVerifier(settings.verifier, {
     smtpProbeUrl: settings.smtpProbeUrl ?? null,
     smtpProbeToken: settings.smtpProbeToken ?? null,
@@ -1018,7 +1046,8 @@ export async function buildServices(
   if (report) services.push(makeReportScheduler({ db, transport, mail: report, policy }));
   // Content channels (LinkedIn, YouTube) over autobrowse's `sites` service, as the `Content` service.
   const content = contentFor(settings, log);
-  if (content) services.push(makeContent(content, contentClientsFor(settings, db, keys)));
+  if (content)
+    services.push(makeContent(content, contentClientsFor(settings, db, keys, socialApi)));
   // Meta ads over the same `sites` service, as `Ads`. Always bound: a launch on a box without
   // the meta site fails on its own invocation, and nothing spends until `start`.
   services.push(
@@ -1319,8 +1348,8 @@ export async function buildServices(
     // facts (Shop → Facts for drafts).
     drafts: {
       llm: watchLlm,
-      guide: (p: "reddit" | "linkedin") => dmGuide(db, p),
-      commentGuide: (p: "reddit" | "linkedin") => commentGuide(db, p),
+      guide: (p: DmPlatform) => dmGuide(db, p),
+      commentGuide: (p: DmPlatform) => commentGuide(db, p),
       voice: voice ?? DEFAULT_VOICE,
       facts: () => wrenFacts(db),
     },
@@ -1329,7 +1358,7 @@ export async function buildServices(
       clientDb,
       llm: watchLlm,
       keys,
-      dmGuide: (d: Db, p: "reddit" | "linkedin") => dmGuide(d, p),
+      dmGuide: (d: Db, p: DmPlatform) => dmGuide(d, p),
       facts: (d: Db) => playbooksOf(d),
     },
     ...reachNotify,
@@ -1460,6 +1489,8 @@ export async function buildServices(
   const setupChecks = {
     // Wren's mail apps, a Workspace domain's test read, a tenant's consent, each mailbox's token.
     ...mailChecks({ main: db, apps: mailApps, access: clientMail, fetch }),
+    // Each connected social account's token, refreshed and read once an hour.
+    ...socialChecks({ main: db, access: clientSocial }),
     ...dnsChecks(dohResolve),
     ...stripeChecks(db),
     ...searchConsoleChecks(() => searchConsoleClient(loadServiceAccountKey(keyPath))),
@@ -1778,6 +1809,22 @@ export async function buildServices(
     // Account → Mail, the OAuth callbacks, and the reader over every client's connected mailboxes.
     makeMailAccess({ main: db, access: clientMail, clientDb, setups: SETUPS }),
     makeMailCallback({ main: db, access: clientMail, clientDb, setups: SETUPS }),
+    // Account → Social, its callback, and a client's DMs and comment answers on its own accounts.
+    makeSocialAccess({ main: db, access: clientSocial }),
+    makeSocialCallback({ main: db, access: clientSocial }),
+    makeSocialInbox({
+      main: db,
+      clientDb,
+      access: clientSocial,
+      sites: (ctx, client, part) =>
+        meteredSites(journaledSites(ctx, socialApi), {
+          main: db,
+          client,
+          part,
+          now: () => new Date(),
+          step: <T>(name: string, fn: () => Promise<T>) => ctx.run(name, fn),
+        }),
+    }),
     makeMailReader({
       db,
       clientDb,
@@ -2010,9 +2057,16 @@ function contentFor(settings: Settings, log: Logger): ChannelsFor | null {
  * A client's content channels: its own LinkedIn and Reddit logins, only where Wren's are on
  * (WREN_CONTENT_CHANNELS), every read through its vendor gate. Posts wait on its live flag.
  */
-function contentClientsFor(settings: Settings, db: Db, keys: KeyStore | null): ContentClients {
+function contentClientsFor(
+  settings: Settings,
+  db: Db,
+  keys: KeyStore | null,
+  social: SiteClient,
+): ContentClients {
   const on = settings.contentChannels;
   const sitesAt = sitesHost(settings.autobrowseInstanceId);
+  const host = settings.mediaBucket ? s3MediaHost({ bucket: settings.mediaBucket }) : undefined;
+  const hosted = host ? { host } : {};
   return {
     channels: async (ctx, client, part) => {
       const logins = await ctx.run(`${client} logins`, async () => {
@@ -2030,8 +2084,27 @@ function contentClientsFor(settings: Settings, db: Db, keys: KeyStore | null): C
       const metered = (sites: SiteClient, account: string) =>
         asAccount(meteredSites(sites, scope), account);
       const caller = `wren:content:${client}`;
+      // A connected account (`social:<id>`): its platform's API, each call one journaled step.
+      const own = (p: Platform) => {
+        const login = logins[p];
+        return login && connectionIdOf(login) !== null && on.includes(p)
+          ? metered(journaledSites(ctx, social), login)
+          : null;
+      };
+      const yt = own("youtube");
+      const x = own("x");
+      const ig = own("instagram");
+      const fb = own("facebook");
+      const tt = own("tiktok");
+      const li = own("linkedin");
       return {
-        ...(logins.linkedin && on.includes("linkedin")
+        ...(yt ? { youtube: youtubeContent(yt, hosted) } : {}),
+        ...(x ? { x: xContent(x, hosted) } : {}),
+        ...(ig ? { instagram: instagramContent(ig, hosted) } : {}),
+        ...(fb ? { facebook: facebookContent(fb, hosted) } : {}),
+        ...(tt ? { tiktok: tiktokContent(tt, hosted) } : {}),
+        ...(li ? { linkedin: linkedinContent(li) } : {}),
+        ...(!li && logins.linkedin && on.includes("linkedin")
           ? {
               linkedin: linkedinContent(
                 metered(restateSites(ctx, { caller, ...sitesAt }), logins.linkedin),

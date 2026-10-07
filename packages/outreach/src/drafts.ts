@@ -21,6 +21,7 @@ import { personLine } from "./discovery/people.js";
 import { ReachRefusal } from "./refusal.js";
 import {
   comments,
+  type DmPlatform,
   type Platform,
   type ReachContact,
   reachContacts,
@@ -37,12 +38,18 @@ export const DRAFT_MAX = 1000;
 const THREAD_TAIL = 10;
 
 /** The `outbound-copy` SOP (`@wren/content` dmGuide); "" = none, and the draft keeps the brief. */
-export type DmGuide = (platform: Platform) => Promise<string>;
+export type DmGuide = (platform: DmPlatform) => Promise<string>;
 
 /** Ask Claude's kinds a DM edit is kept under: a reply and a first message are one kind here. */
 export const DM_RECORDS = ["dm", "invite"] as const;
 
-const SITES: Record<Platform, string> = { reddit: "Reddit", linkedin: "LinkedIn" };
+const SITES: Record<DmPlatform, string> = {
+  reddit: "Reddit",
+  linkedin: "LinkedIn",
+  facebook: "Facebook",
+  instagram: "Instagram",
+  x: "X",
+};
 
 /** How a DM reads when no `outbound-copy` SOP is pushed. */
 export const BRIEF =
@@ -50,7 +57,7 @@ export const BRIEF =
   "paragraph. No pitch, no links and no offer unless they asked for one. No emojis.";
 
 const systemFor = (
-  platform: Platform,
+  platform: DmPlatform,
   sender: string,
   facts: readonly string[],
   guide = "",

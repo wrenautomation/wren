@@ -322,6 +322,12 @@ export const settingsSchema = z.object({
   mailGoogleClientSecret: z.string().min(1).optional(),
   mailMicrosoftClientId: z.string().min(1).optional(),
   mailMicrosoftClientSecret: z.string().min(1).optional(),
+  /**
+   * Client social platforms whose app review passed (designs/2026-10-07-client-social.md), comma
+   * separated: `facebook,instagram,youtube,tiktok,google_business`. X and LinkedIn need none.
+   * Wren's social apps themselves come from the key store (`SOCIAL_<APP>_CLIENT_ID`).
+   */
+  socialLive: z.string().default(""),
   /** Hand done-for-you setup steps to autobrowse `do` in the account owner's autobrowse. Off: they wait on Wren's team. */
   setupAgent: z
     .enum(["true", "false", "1", "0"])
@@ -598,6 +604,7 @@ export const ENV_KEYS = {
   mailGoogleClientSecret: "WREN_MAIL_GOOGLE_CLIENT_SECRET",
   mailMicrosoftClientId: "WREN_MAIL_MICROSOFT_CLIENT_ID",
   mailMicrosoftClientSecret: "WREN_MAIL_MICROSOFT_CLIENT_SECRET",
+  socialLive: "WREN_SOCIAL_LIVE",
   smsDailyCap: "WREN_SMS_DAILY_CAP",
   smsMonthlyPerContact: "WREN_SMS_MONTHLY_PER_CONTACT",
   smsNumberCap: "WREN_SMS_NUMBER_CAP",

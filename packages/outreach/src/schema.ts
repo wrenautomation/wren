@@ -45,6 +45,16 @@ import {
 export const PLATFORMS = ["reddit", "linkedin"] as const;
 export type Platform = (typeof PLATFORMS)[number];
 
+/**
+ * Where a DM thread can be: Wren's reach logins, plus a client's connected Facebook Page,
+ * Instagram and X (designs/2026-10-07-client-social.md), whose DMs come in through `SocialInbox`.
+ */
+export const DM_PLATFORMS = [...PLATFORMS, "facebook", "instagram", "x"] as const;
+export type DmPlatform = (typeof DM_PLATFORMS)[number];
+/** A contact reach itself writes to: Reddit or LinkedIn, on Wren's logins. */
+export const isReachPlatform = (p: string): p is Platform =>
+  (PLATFORMS as readonly string[]).includes(p);
+
 /** `warming` = reads and organic steps only; `active` = may reach out; `paused` = nothing. */
 export const ACCOUNT_STATES = ["warming", "active", "paused", "retired"] as const;
 export type AccountState = (typeof ACCOUNT_STATES)[number];
@@ -140,7 +150,7 @@ export const reachContacts = pgTable(
   "reach_contacts",
   {
     id: serial("id"),
-    platform: varchar("platform", { length: 16, enum: PLATFORMS }).notNull(),
+    platform: varchar("platform", { length: 16, enum: DM_PLATFORMS }).notNull(),
     handle: varchar("handle", { length: 120 }).notNull(),
     url: text("url").notNull(),
     name: text("name"),
@@ -182,7 +192,7 @@ export const reachContacts = pgTable(
     index("ix_reach_contacts_company_id").on(t.companyId),
     index("ix_reach_contacts_person_id").on(t.personId),
     index("ix_reach_contacts_account_id").on(t.accountId),
-    oneOf("ck_reach_contacts_platform", t.platform, PLATFORMS),
+    oneOf("ck_reach_contacts_platform", t.platform, DM_PLATFORMS),
     oneOf("ck_reach_contacts_state", t.state, CONTACT_STATES),
     foreignKey({
       columns: [t.companyId],

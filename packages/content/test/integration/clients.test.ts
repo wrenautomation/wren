@@ -151,12 +151,12 @@ describe("a client's content plan", () => {
   it("missing: no LinkedIn or Reddit login stops every loop and says why", async () => {
     expect(await clientContent(pg.db, "mu", "content.posting")).toEqual({
       kind: "gone",
-      why: "no LinkedIn or Reddit login connected",
+      why: "no social account connected",
     });
-    expect((await plan("mu")).stopped).toBe("no LinkedIn or Reddit login connected");
-    expect((await post("mu")).stopped).toBe("no LinkedIn or Reddit login connected");
+    expect((await plan("mu")).stopped).toBe("no social account connected");
+    expect((await post("mu")).stopped).toBe("no social account connected");
     expect((await loop<SocialStats>("SocialWatch", "mu/social")).stopped).toBe(
-      "no LinkedIn or Reddit login connected",
+      "no social account connected",
     );
   });
 
