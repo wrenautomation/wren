@@ -97,7 +97,7 @@ import { facebookContent, instagramContent, instagramWebContent } from "@wren/ch
 import { makeAds, makeAdsWatch } from "@wren/channel-meta/restate";
 import { redditApi, redditContent } from "@wren/channel-reddit";
 import { searchConsoleClient } from "@wren/channel-search";
-import { heatRecord, sessionRecord } from "@wren/channel-search/records";
+import { heatRecord, sessionRecord, surveyAnswerRecord } from "@wren/channel-search/records";
 import { makeSearchWatch, makeSearchWeek } from "@wren/channel-search/restate";
 import {
   CalcomBookings,
@@ -1153,7 +1153,7 @@ export async function buildServices(
         ...MARKETING_NUMBERS,
         // Replays: read live from the lander, chunks signed from the files bucket. Heatmaps draw
         // on the newest one; without them, their counts still show.
-        ...(sessions ? [sessionRecord(sessions)] : []),
+        ...(sessions ? [sessionRecord(sessions), surveyAnswerRecord(sessions.site)] : []),
         heatRecord(sessions),
         // Videos: previews and stills signed from the media bucket (step 2 puts them there).
         videoRecord(

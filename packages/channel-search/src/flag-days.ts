@@ -29,7 +29,7 @@ const seenOf = (e: SiteEvent): { flag: string; variant: string } | null => {
 };
 
 /** Each visitor's first-touch channel, from their hits in order (`site_days` counts the same way). */
-function channels(hits: readonly SiteHit[]): Map<string, string> {
+export function firstChannels(hits: readonly SiteHit[]): Map<string, string> {
   const out = new Map<string, string>();
   for (const h of [...hits].sort((a, b) => a.id - b.id)) {
     if (!h.visitor || out.has(h.visitor) || !(h.r || h.utm_source || h.ref)) continue;
@@ -70,7 +70,7 @@ export function rollupFlags(
       : [byEmail.get(c.email?.trim().toLowerCase() ?? "")].filter((v): v is string => !!v);
     for (const v of who) called.set(v, [...(called.get(v) ?? []), c.day]);
   }
-  const touch = channels(hits);
+  const touch = firstChannels(hits);
   const rows = new Map<string, FlagDayRow>();
   for (const s of first.values()) {
     const day = s.ts.slice(0, 10);

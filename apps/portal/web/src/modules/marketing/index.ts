@@ -14,6 +14,7 @@ import { EXPERIMENT_ACTIONS } from "./experiments.js";
 import { heatExtras } from "./heat.js";
 import { postExtras, postLooks } from "./posts.js";
 import { sessionExtras } from "./sessions.js";
+import { SURVEY_ACTIONS } from "./surveys.js";
 import { textCopyExtras, textCopyPreview } from "./texts.js";
 import { videoExtras } from "./videos.js";
 
@@ -907,6 +908,26 @@ export const marketing: Module = {
         running: "Nothing running.",
       },
       actions: EXPERIMENT_ACTIONS,
+    },
+    {
+      id: "surveys",
+      label: "Surveys",
+      group: "Numbers",
+      template: "list",
+      record: "marketing.survey",
+      empty: {
+        all: "No surveys yet. New survey asks site visitors or client logins one question.",
+        live: "Nothing live.",
+      },
+      actions: SURVEY_ACTIONS,
+    },
+    {
+      id: "survey-answers",
+      label: "Survey answers",
+      group: "Numbers",
+      template: "list",
+      record: "marketing.survey_answer",
+      empty: "Site answers show here once a live survey is answered.",
     },
     {
       id: "search-days",

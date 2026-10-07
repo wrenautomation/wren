@@ -162,3 +162,24 @@ William, 10-06, on the four PostHog features that signals (`2026-10-06-signals.m
   - Forms match the exposed visitor's applications after exposure. Calls match by email code or
     application email, on or after the exposure day. Paid stays 0 until a paid join exists.
   - Add, Start, Ship, Stop and Remove need `manage` at Wren.
+- 2026-10-06, surveys built, dark (no surveys, no edge token yet; lander f462877):
+  - Live site surveys ride the same edge push as the flags, as `{flags, surveys}`. Go live,
+    Pause and an edit to a live site survey push. The lander keeps them in the one `edge` row.
+  - The lander's `/api/hit?due=1` (the arrival post) answers which surveys the visitor is due:
+    this page, in the audience, not answered. Channel is the first touch, named as wren's
+    `touchChannel` does. A flag audience uses the edge's `variantOf`. Only with the cookie yes:
+    an answer is kept against the visitor, so no yes means no survey.
+  - `POST /api/answer` keeps the first answer per visitor per survey (unique index in D1). wren
+    rolls site answers into `survey_days` (day, value, channel) in SearchWatch. Text counts
+    as `text` there; the words are read live through `marketing.survey_answer`, like sessions.
+  - Moments: `form` is the form's own script saying it went through (`wren:sent`), since the
+    pitch form submits once per step. `booked` comes from the booking page (`wren:booked`, or
+    a message from its frame). The standalone `/book` page has no hit script, so no survey
+    shows there.
+  - Portal answers live in the main database (`survey_answers`, client FK, one per login per
+    survey), not in tenant databases: a survey is Wren's, asked across clients.
+    `after 30d` counts from the login's `invitedAt`. Team logins and the demo never see one.
+  - When and who are words on the row (`view on /agencies after 20s`, `channels email; flag
+    hero b`, `clients acme`), parsed on edit. Choices lock once a survey leaves draft, so
+    tallies keep their meaning. Delete only when not live; it takes the answers with it.
+  - Add, Go live, Pause and Delete need `manage` at Wren.

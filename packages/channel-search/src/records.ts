@@ -13,6 +13,7 @@ import {
 } from "@wren/core/records";
 import type { Queryable } from "@wren/db";
 import { sql } from "drizzle-orm";
+import { firstChannels } from "./flag-days.js";
 import type { HeatWidth } from "./schema.js";
 
 const neutral = (label: string): State => ({ label, tone: "neutral" });
@@ -294,6 +295,44 @@ export const sessionRecord = (src: SessionSource) =>
       );
       return { replay: { urls } };
     },
+  });
+
+/**
+ * Each answer to a site survey (`marketing.survey_answer`), words and all, read live from the
+ * lander's export and never stored here (the 09-29 rule); `survey_days` keeps the counts.
+ */
+export const surveyAnswerRecord = (site: SessionSource["site"]) =>
+  defineRecord({
+    id: "marketing.survey_answer",
+    app: "marketing",
+    channel: null,
+    name: { one: "answer", many: "survey answers" },
+    rows: async () => {
+      const [answers, hits] = await Promise.all([
+        siteExport("answers", site),
+        siteExport("hits", site),
+      ]);
+      const touch = firstChannels(hits);
+      return answers.map((a) => ({
+        id: String(a.id),
+        survey: a.survey,
+        value: a.value,
+        page: a.page,
+        channel: touch.get(a.visitor) ?? "direct",
+        at: a.ts,
+      }));
+    },
+    key: "id",
+    title: "value",
+    subtitle: "survey",
+    fields: {
+      survey: text("Survey"),
+      value: text("Answer"),
+      page: text(),
+      channel: status(SITE_CHANNEL_STATES, "First touch"),
+      at: date("When"),
+    },
+    views: [{ id: "recent", label: "Newest", sort: "-at", at: "at" }],
   });
 
 /** The lander's width buckets (`src/scripts/hit.ts`), for a replay's recorded width. */

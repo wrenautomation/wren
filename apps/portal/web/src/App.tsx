@@ -49,6 +49,7 @@ import { REACTIVATION } from "./modules/reactivation/nav.js";
 import { askClaude } from "./modules/wren/ask.js";
 import { keepOf, TemplatePage } from "./records.js";
 import { navigate, useRoute } from "./route.js";
+import { SurveyCard } from "./survey.js";
 
 const STAMP = "/wren-icon.png";
 const WORKSPACE_KEY = "wren.portal.workspace";
@@ -526,6 +527,9 @@ export function App() {
         )}
       </AppShell>
       <Toasts />
+      {!operator && onDemo === false && current && current.id !== WREN.id ? (
+        <SurveyCard client={current.id} />
+      ) : null}
       {jump === null ? null : (
         <Suspense fallback={null}>
           <CommandPalette

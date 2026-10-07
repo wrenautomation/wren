@@ -148,6 +148,16 @@ import { finishRun, openRun } from "./runs.js";
 import { moveViews, prefsOf, removeView, savedViewsOf, saveView, setPref } from "./saved-views.js";
 import { runs, type SentEvent, workflowSaves } from "./schema.js";
 import { editsOf, type SavedWorkflow, SPINE, type SpineService, savedWorkflows } from "./spine.js";
+import {
+  addSurvey,
+  answerSurvey,
+  pauseSurveys,
+  removeSurveys,
+  type SurveyInput,
+  startSurveys,
+  surveyRecord,
+  surveysDue,
+} from "./survey-store.js";
 import { flowsWith, partsIn, type Workflow, type WorkflowEdits } from "./workflows.js";
 
 /** One of the access types (`./access-records.ts`), served to anyone signed in there. */
@@ -1490,6 +1500,7 @@ export function consoleApi({
     snippetRecord(),
     flagRecord(edge),
     experimentRecord(),
+    surveyRecord(edge),
     workflowRecord(workflows, components),
     eventRecord,
     executionRecord,
@@ -1979,6 +1990,43 @@ export function consoleApi({
       const [, ids] = experimentIds(req);
       return { done: await removeExperiments(main, ids) };
     },
+    /** Surveys: Go live puts a site survey on the public site, so `manage` (William). */
+    surveyAdd: async (req: PortalRequest & SurveyInput) => {
+      const by = teamWriter(req);
+      if (!teamCan(req, "manage", WREN)) throw new PortalRefusal("your role can't do that", 403);
+      const { key, question, kind, choices, surface } = req;
+      return addSurvey(main, { key, question, kind, choices, surface }, by);
+    },
+    surveyStart: async (req: PortalRequest & { ids?: unknown }) => {
+      const [by, ids] = experimentIds(req);
+      return { done: await startSurveys(main, ids, by, edge) };
+    },
+    surveyPause: async (req: PortalRequest & { ids?: unknown }) => {
+      const [, ids] = experimentIds(req);
+      return { done: await pauseSurveys(main, ids, edge) };
+    },
+    surveyRemove: async (req: PortalRequest & { ids?: unknown }) => {
+      const [, ids] = experimentIds(req);
+      return { done: await removeSurveys(main, ids) };
+    },
+    /** A client login's portal surveys on its client; the team and the demo get none. */
+    surveysDue: async (req: PortalRequest) => {
+      if (isDemo(req.viewer) || seesInternal(req)) return [];
+      const client = await pickClient(main, req);
+      return surveysDue(main, client.id, (req.viewer as SignedViewer).email);
+    },
+    surveyAnswer: async (req: PortalRequest & { survey?: unknown; value?: unknown }) => {
+      if (isDemo(req.viewer)) throw new PortalRefusal("the demo is read-only", 403);
+      if (seesInternal(req)) throw new PortalRefusal("surveys are for client logins", 403);
+      if (typeof req.survey !== "string") throw new PortalRefusal("say which survey", 400);
+      const client = await pickClient(main, req);
+      return answerSurvey(main, {
+        survey: req.survey,
+        client: client.id,
+        person: (req.viewer as SignedViewer).email,
+        value: req.value,
+      });
+    },
     /** A record action: `{ids}`, each removed. */
     snippetRemove: async (req: PortalRequest & { ids?: unknown }) => {
       teamWriter(req);
@@ -2342,6 +2390,19 @@ export function makeConsolePortal(deps: Parameters<typeof consoleApi>[0]) {
         answer(() => ctx.run("stop experiment", () => answer(() => api.experimentStop(req)))),
       experimentRemove: (ctx: restate.Context, req: PortalRequest & { ids?: unknown }) =>
         answer(() => ctx.run("remove experiment", () => answer(() => api.experimentRemove(req)))),
+      surveyAdd: (ctx: restate.Context, req: PortalRequest & SurveyInput) =>
+        answer(() => ctx.run("add survey", () => answer(() => api.surveyAdd(req)))),
+      surveyStart: (ctx: restate.Context, req: PortalRequest & { ids?: unknown }) =>
+        answer(() => ctx.run("start survey", () => answer(() => api.surveyStart(req)))),
+      surveyPause: (ctx: restate.Context, req: PortalRequest & { ids?: unknown }) =>
+        answer(() => ctx.run("pause survey", () => answer(() => api.surveyPause(req)))),
+      surveyRemove: (ctx: restate.Context, req: PortalRequest & { ids?: unknown }) =>
+        answer(() => ctx.run("remove survey", () => answer(() => api.surveyRemove(req)))),
+      surveysDue: (_: restate.Context, req: PortalRequest) => answer(() => api.surveysDue(req)),
+      surveyAnswer: (
+        ctx: restate.Context,
+        req: PortalRequest & { survey?: unknown; value?: unknown },
+      ) => answer(() => ctx.run("answer survey", () => answer(() => api.surveyAnswer(req)))),
       setPref: (ctx: restate.Context, req: KeepRequest) =>
         answer(() => ctx.run("set pref", () => answer(() => api.setPref(req)))),
       setLoop: (ctx: restate.Context, req: SetLoopRequest) =>

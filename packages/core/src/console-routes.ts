@@ -52,6 +52,14 @@ export const CONSOLE_ROUTES = {
   experimentShip: "wren:run",
   experimentStop: "wren:run",
   experimentRemove: "wren:run",
+  // Surveys: a live site survey is on the public site (the handler checks `manage`).
+  surveyAdd: "wren:run",
+  surveyStart: "wren:run",
+  surveyPause: "wren:run",
+  surveyRemove: "wren:run",
+  // A client login's own portal surveys: what it's due, and its answer.
+  surveysDue: "read",
+  surveyAnswer: "read",
   addClient: "wren:manage",
   // Any handler needs `run` over all of Wren, or `act` on the row its record type declares the
   // call for (`callOn`). A handler with an effect needs `effect` too.
@@ -87,6 +95,10 @@ export const CONSOLE_APPS = {
   experimentShip: "marketing",
   experimentStop: "marketing",
   experimentRemove: "marketing",
+  surveyAdd: "marketing",
+  surveyStart: "marketing",
+  surveyPause: "marketing",
+  surveyRemove: "marketing",
   snippetAdd: "library",
   snippetRemove: "library",
   addClient: "clients",
@@ -132,6 +144,11 @@ export const CONSOLE_WRITES: readonly ConsoleRoute[] = [
   "experimentShip",
   "experimentStop",
   "experimentRemove",
+  "surveyAdd",
+  "surveyStart",
+  "surveyPause",
+  "surveyRemove",
+  "surveyAnswer",
   "addClient",
   "call",
   "setLook",

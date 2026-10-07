@@ -130,7 +130,7 @@ describe("flags", () => {
       {
         url: "https://site.example/api/edge",
         auth: "Bearer tok-test",
-        body: { flags: [expect.objectContaining({ key: "hero", fallback: "off" })] },
+        body: { flags: [expect.objectContaining({ key: "hero", fallback: "off" })], surveys: [] },
       },
     ]);
     expect(await pg.db.select({ key: flags.key }).from(flags)).toEqual([{ key: "hero" }]);

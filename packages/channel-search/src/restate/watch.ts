@@ -21,6 +21,7 @@ import { writeFlagDays } from "@wren/core/experiment-store";
 import { type EdgePush, pushEdge } from "@wren/core/flag-store";
 import type { Notifier } from "@wren/core/notify";
 import { errorText, makeLoopObject, runPass, serviceHandler } from "@wren/core/restate";
+import { surveyKinds, writeSurveyDays } from "@wren/core/survey-store";
 import type { Db } from "@wren/db";
 import type { LlmClient } from "@wren/llm";
 import { z } from "zod";
@@ -33,6 +34,7 @@ import { discoverKeywords, fanOut } from "../keywords.js";
 import { ENGINES, type Engine } from "../schema.js";
 import { siteText } from "../site.js";
 import { callsAndPaid, rollupSite, upsertSiteDays } from "../site-days.js";
+import { rollupAnswers } from "../survey-days.js";
 import { formatChanges, type SyncStats, syncSearch } from "../sync.js";
 
 export const SEARCH_KEY = "default";
@@ -78,7 +80,7 @@ type SearchWeekApi = { run: (ctx: restate.Context, req: { today: string }) => Pr
 type Step<T> = T | { error: string };
 type WatchStats = SyncStats & {
   week: string | null;
-  site?: Step<{ days: number; flags: number }>;
+  site?: Step<{ days: number; flags: number; surveys: number }>;
   heat?: Step<{ rows: number }>;
   experiments?: Step<{ moved: number; settled: number }>;
 };
@@ -111,18 +113,23 @@ export function makeSearchWatch(deps: SearchDeps) {
       const got = await ctx.run("site days", async () => {
         try {
           const o = { ...site, fetch: deps.fetch };
-          const [hits, apps, ours, seen] = await Promise.all([
+          const [hits, apps, ours, seen, answers] = await Promise.all([
             siteExport("hits", o),
             siteExport("applications", o),
             callsAndPaid(deps.db),
-            // An older lander has no exposures table: no experiment days, the rest as before.
+            // An older lander has no exposures or answers table: no such days, the rest as before.
             siteExport("exposures", o).catch(() => []),
+            siteExport("answers", o).catch(() => []),
           ]);
           const rows = rollupSite(hits, apps, ours.calls, ours.paid);
           const days = await upsertSiteDays(deps.db, rows);
           return {
             days,
             flags: await writeFlagDays(deps.db, rollupFlags(seen, hits, apps, ours.calls)),
+            surveys: await writeSurveyDays(
+              deps.db,
+              rollupAnswers(answers, hits, await surveyKinds(deps.db)),
+            ),
           };
         } catch (err) {
           // Any error, not just the export's: a throw here retried the pass into a pause (10-06).

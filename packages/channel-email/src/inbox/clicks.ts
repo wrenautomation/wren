@@ -84,6 +84,17 @@ export interface SiteEvent {
   props: string;
 }
 
+/** A visitor's answer to a site survey (`answers`); only with the cookie yes, so always a visitor. */
+export interface SiteAnswer {
+  id: number;
+  ts: string;
+  survey: string;
+  visitor: string;
+  view: string;
+  page: string;
+  value: string;
+}
+
 export interface SiteTables {
   hits: SiteHit;
   applications: SiteApplication;
@@ -91,6 +102,7 @@ export interface SiteTables {
   events: SiteEvent;
   /** `exp.seen` events with a visitor (cookie yes): what experiments count. */
   exposures: SiteEvent;
+  answers: SiteAnswer;
 }
 
 /** Every row of one lander table after id `since` (all of them by default), paged forward by id. */

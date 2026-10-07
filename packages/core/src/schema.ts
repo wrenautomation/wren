@@ -31,6 +31,16 @@ import {
   SURFACES,
   type Surface,
 } from "./flags.js";
+import {
+  SURVEY_KINDS,
+  SURVEY_STATES,
+  SURVEY_SURFACES,
+  type SurveyAudience,
+  type SurveyKind,
+  type SurveyState,
+  type SurveySurface,
+  type SurveyTrigger,
+} from "./surveys.js";
 import type { WorkflowEdits } from "./workflows.js";
 
 // ---- Ported from emails_gen (exact DDL; integer ids kept for data continuity) ----
@@ -570,6 +580,90 @@ export const flagDays = pgTable(
   ],
 );
 export type FlagDay = typeof flagDays.$inferSelect;
+
+/**
+ * One question for site visitors or client logins (`./survey-store.ts`): its kind and choices,
+ * when it shows and who sees it. Live on the site, it rides the edge push with the site flags.
+ */
+export const surveys = pgTable(
+  "surveys",
+  {
+    key: varchar("key", { length: 60 }).notNull(),
+    question: text("question").notNull(),
+    kind: varchar("kind", { length: 8 }).$type<SurveyKind>().notNull(),
+    choices: text("choices").array().default(sql`'{}'::text[]`).notNull(),
+    surface: varchar("surface", { length: 8 }).$type<SurveySurface>().default("site").notNull(),
+    trigger: jsonb("trigger").$type<SurveyTrigger>().default(sql`'{"on":"view"}'::jsonb`).notNull(),
+    audience: jsonb("audience").$type<SurveyAudience>().default(sql`'{}'::jsonb`).notNull(),
+    state: varchar("state", { length: 8 }).$type<SurveyState>().default("draft").notNull(),
+    startedAt: timestamp("started_at", { withTimezone: true }),
+    startedBy: varchar("started_by", { length: 200 }),
+    createdBy: varchar("created_by", { length: 200 }).notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
+  },
+  (t): PgTableExtraConfigValue[] => [
+    primaryKey({ columns: [t.key], name: "pk_surveys" }),
+    oneOf("ck_surveys_kind", t.kind, SURVEY_KINDS),
+    oneOf("ck_surveys_surface", t.surface, SURVEY_SURFACES),
+    oneOf("ck_surveys_state", t.state, SURVEY_STATES),
+  ],
+);
+export type Survey = typeof surveys.$inferSelect;
+
+/**
+ * Site answers per survey, day, value and first-touch channel, rolled up from the lander's
+ * export by SearchWatch (`@wren/channel-search` survey-days), whole. A text answer counts under
+ * the value `text`; the words are read live from the export.
+ */
+export const surveyDays = pgTable(
+  "survey_days",
+  {
+    survey: varchar("survey", { length: 60 }).notNull(),
+    day: date("day").notNull(),
+    value: varchar("value", { length: 80 }).notNull(),
+    channel: varchar("channel", { length: 40 }).notNull(),
+    answers: integer("answers").default(0).notNull(),
+    syncedAt: timestamp("synced_at", { withTimezone: true }).defaultNow().notNull(),
+  },
+  (t): PgTableExtraConfigValue[] => [
+    primaryKey({ columns: [t.survey, t.day, t.value, t.channel], name: "pk_survey_days" }),
+    foreignKey({
+      columns: [t.survey],
+      foreignColumns: [surveys.key],
+      name: "fk_survey_days_survey_surveys",
+    }).onDelete("cascade"),
+  ],
+);
+
+/** A client login's answer to a portal survey: one per survey, client and person. */
+export const surveyAnswers = pgTable(
+  "survey_answers",
+  {
+    id: serial("id").notNull(),
+    survey: varchar("survey", { length: 60 }).notNull(),
+    client: varchar("client", { length: 40 }).notNull(),
+    person: varchar("person", { length: 200 }).notNull(),
+    value: text("value").notNull(),
+    at: timestamp("at", { withTimezone: true }).defaultNow().notNull(),
+  },
+  (t): PgTableExtraConfigValue[] => [
+    primaryKey({ columns: [t.id], name: "pk_survey_answers" }),
+    unique("uq_survey_answers_survey_client_person").on(t.survey, t.client, t.person),
+    index("ix_survey_answers_client").on(t.client),
+    foreignKey({
+      columns: [t.survey],
+      foreignColumns: [surveys.key],
+      name: "fk_survey_answers_survey_surveys",
+    }).onDelete("cascade"),
+    foreignKey({
+      columns: [t.client],
+      foreignColumns: [clients.id],
+      name: "fk_survey_answers_client_clients",
+    }).onDelete("cascade"),
+  ],
+);
+export type SurveyAnswer = typeof surveyAnswers.$inferSelect;
 
 export const imports = pgTable(
   "imports",

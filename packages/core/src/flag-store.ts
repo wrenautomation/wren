@@ -2,10 +2,11 @@
  * Flags in the database (designs/2026-10-06-flags-experiments-surveys-heatmaps.md §2): the
  * `loops.flag` record with edits (History, Undo, Ask Claude), add and remove, evaluation for a
  * login, and the push of site flags to the lander's edge on every change. A running experiment's
- * shares stand in for its flag's rules there (`./experiment-store.ts`).
+ * shares stand in for its flag's rules there (`./experiment-store.ts`), and the live site
+ * surveys ride the same push (`./survey-store.ts`).
  */
 import type { Queryable } from "@wren/db";
-import { asc, eq, inArray } from "drizzle-orm";
+import { and, asc, eq, inArray } from "drizzle-orm";
 import { z } from "zod";
 import {
   evaluateFlags,
@@ -27,12 +28,30 @@ import {
   text,
   type Values,
 } from "./records.js";
-import { flagExperiments, flags } from "./schema.js";
+import { flagExperiments, flags, surveys } from "./schema.js";
+import type { SurveyDef } from "./surveys.js";
 
 export const FLAG = "loops.flag";
 
-/** Sends the lander every flag it reads, the whole set each time (lander `POST /api/edge`). */
-export type EdgePush = (flags: readonly FlagDef[]) => Promise<void>;
+/** Sends the lander every flag it reads and its live surveys, the whole set each time (lander `POST /api/edge`). */
+export type EdgePush = (flags: readonly FlagDef[], surveys: readonly SurveyDef[]) => Promise<void>;
+
+/** The live site surveys, as the lander gets them. */
+export async function siteSurveys(db: Queryable): Promise<SurveyDef[]> {
+  const rows = await db
+    .select()
+    .from(surveys)
+    .where(and(eq(surveys.state, "live"), eq(surveys.surface, "site")))
+    .orderBy(asc(surveys.key));
+  return rows.map((s) => ({
+    key: s.key,
+    question: s.question,
+    kind: s.kind,
+    choices: s.choices,
+    trigger: s.trigger,
+    audience: s.audience,
+  }));
+}
 
 const KEY = /^[a-z][a-z0-9_.-]{0,59}$/;
 const VARIANT = /^[a-z][a-z0-9_-]{0,39}$/;
@@ -92,7 +111,7 @@ export async function pushEdge(db: Queryable, push: EdgePush | undefined): Promi
       return shares ? { ...f, rules: shareRules(f.variants, shares) } : f;
     });
   try {
-    await push(site);
+    await push(site, await siteSurveys(db));
   } catch (err) {
     console.warn(`flags: edge push failed: ${(err as Error).message}`);
   }
@@ -254,11 +273,11 @@ export function flagRecord(push?: EdgePush): RecordType {
 
 /** The lander's `POST /api/edge`, from its base URL and the shared token. */
 export function siteEdge(baseUrl: string, token: string, fetcher: typeof fetch = fetch): EdgePush {
-  return async (all) => {
+  return async (all, live) => {
     const r = await fetcher(`${baseUrl.replace(/\/$/, "")}/api/edge`, {
       method: "POST",
       headers: { authorization: `Bearer ${token}`, "content-type": "application/json" },
-      body: JSON.stringify({ flags: all }),
+      body: JSON.stringify({ flags: all, surveys: live }),
       signal: AbortSignal.timeout(10_000),
     });
     if (!r.ok) throw new Error(`the edge answered ${r.status}`);

@@ -122,6 +122,7 @@ export const CONTENT_COMPONENTS = [
         "marketing.site_day",
         "marketing.funnel",
         "marketing.session",
+        "marketing.survey_answer",
         "marketing.heat",
       ],
       apps: ["marketing"],
