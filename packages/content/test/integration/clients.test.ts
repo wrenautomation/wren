@@ -29,12 +29,12 @@ import { makeContentScheduler, type PublishStats } from "../../src/restate/sched
 import { makeSocialWatch, type SocialStats } from "../../src/restate/social.js";
 
 const prompts: string[] = [];
-/** The clients' model: a Reddit post has a title. Wren's model is never asked for a client. */
+/** The clients' model: a Reddit post has a title; each reply says only what its idea says (the facts guard). Wren's model is never asked for a client. */
 const clientLlm = new FakeLlm({
   respond: async (prompt) => {
     prompts.push(prompt);
     return prompt.includes("a Reddit text post")
-      ? '{"title": "Fewer denials", "text": "We cut claim denials by a third."}'
+      ? '{"title": "Books closed in a day", "text": "A cafe closed its books in a day."}'
       : '{"text": "We cut claim denials by a third."}';
   },
 });
