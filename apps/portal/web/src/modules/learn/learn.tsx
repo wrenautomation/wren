@@ -1,18 +1,8 @@
 /**
- * Learn's hand-drawn parts: the Save a link box, search across every transcript, the phone's
- * share target (/learn/add?url=), and an item's transcript and SOPs on its page.
+ * Learn's Save a link box, search across every transcript, and the phone's share target
+ * (/learn/add?url=).
  */
-import {
-  Alert,
-  Button,
-  Empty,
-  Input,
-  Loading,
-  PageHeader,
-  relative,
-  StateMark,
-  Tag,
-} from "@wren/ui";
+import { Alert, Button, Empty, Input, Loading, PageHeader, relative, Tag } from "@wren/ui";
 import { type FormEvent, type ReactNode, useEffect, useRef, useState } from "react";
 import { call } from "../../api.js";
 import { useCall } from "../../load.js";
@@ -116,10 +106,10 @@ export function AddPage({ params }: PageProps) {
       ) : state.saved ? (
         <div className="flex flex-col gap-3">
           <p className="text-[15px] text-(--ui-ink)">{savedLine(state.saved)}</p>
-          <p className="break-all text-[13px] text-(--ui-ink-3)">{state.saved.url}</p>
+          <p className="break-all text-[13px] text-(--ui-ink-2)">{state.saved.url}</p>
           <div className="flex gap-3 text-[13px]">
-            <a href={`/learn/saved/${state.saved.id}`}>Open it</a>
-            <a href="/learn/saved">All saved</a>
+            <a href={`/learn/items/${state.saved.id}?in=saved`}>Open it</a>
+            <a href="/learn/items?in=saved">All saved</a>
           </div>
         </div>
       ) : null}
@@ -218,84 +208,3 @@ export function SearchPage({ params }: PageProps) {
     </>
   );
 }
-
-interface SopAsk {
-  sop: string;
-  state: "asked" | "added" | "failed";
-  file: string | null;
-  error: string | null;
-  points: string | null;
-}
-interface ItemDetail {
-  transcript: string | null;
-  text: string;
-  readFailure: string | null;
-  sops: SopAsk[];
-}
-
-const SOP_STATES = {
-  asked: { label: "Waits for the Mac", tone: "warn" },
-  added: { label: "Added", tone: "good" },
-  failed: { label: "Failed", tone: "bad" },
-} as const;
-
-/** The transcript without its front matter. */
-const bodyOf = (md: string) => md.replace(/^---\n[\s\S]*?\n---\n+/, "");
-
-function Transcript({ md }: { md: string }) {
-  const [all, setAll] = useState(false);
-  const body = bodyOf(md);
-  const long = body.length > 4000;
-  return (
-    <div className="flex flex-col gap-2">
-      <pre className="max-h-[32rem] overflow-auto whitespace-pre-wrap break-words font-sans text-[13.5px] text-(--ui-ink-2) leading-relaxed">
-        {long && !all ? `${body.slice(0, 4000)}…` : body}
-      </pre>
-      {long ? (
-        <button
-          type="button"
-          className="self-start text-[13px] text-(--ui-accent)"
-          onClick={() => setAll(!all)}
-        >
-          {all ? "Show less" : `Show all ${body.length.toLocaleString("en-US")} characters`}
-        </button>
-      ) : null}
-    </div>
-  );
-}
-
-function Sops({ asks }: { asks: SopAsk[] }) {
-  return (
-    <ul className="flex list-none flex-col gap-2 p-0">
-      {asks.map((a) => (
-        <li key={a.sop} className="flex flex-col gap-0.5">
-          <span className="flex items-center gap-2">
-            <span className="font-medium">{a.sop}</span>
-            <StateMark state={SOP_STATES[a.state]} />
-          </span>
-          {a.file ? <span className="text-[12px] text-(--ui-ink-3)">sources/{a.file}</span> : null}
-          {a.error ? <span className="text-[12px] text-(--ui-bad)">{a.error}</span> : null}
-        </li>
-      ))}
-    </ul>
-  );
-}
-
-/** An item's page: its words whole, and the SOPs it was asked into. */
-export const itemExtras = (detail: unknown) => {
-  const d = detail as ItemDetail | null;
-  const sections: [string, ReactNode][] = [];
-  if (d?.sops?.length) sections.push(["In SOPs", <Sops key="sops" asks={d.sops} />]);
-  const words = d?.transcript ?? d?.text ?? "";
-  sections.push([
-    "Transcript",
-    words ? (
-      <Transcript key="t" md={words} />
-    ) : (
-      <p key="t" className="text-[13px] text-(--ui-ink-3)">
-        {d?.readFailure ? "Not read yet. Read again tries once more." : "Not read yet."}
-      </p>
-    ),
-  ]);
-  return { sections };
-};
