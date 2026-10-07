@@ -280,6 +280,16 @@ const ONE: Record<string, (id: string, input: Input) => [string, Input]> = {
       { confirm: "commentThread" },
     ),
   "marketing/threadSkip": (id) => handlerCall("ReachDesk", "skipThread", { id: bare(id) }),
+  // A comment on someone else's LinkedIn post: `lipost:<id>`, posted from Wren's account.
+  "marketing/lipostComment": (id, { body }) =>
+    handlerCall(
+      "ReachDesk",
+      "commentPost",
+      { id: num(id), ...words(body) },
+      { confirm: "commentPost" },
+    ),
+  "marketing/lipostSkip": (id, { reason, note }) =>
+    handlerCall("ReachDesk", "skipPost", { ids: [num(id)], reason, note }),
   // A person from People: `li:<id>` or `reddit:<handle>`, read by the desk.
   "marketing/personDraft": (id) => handlerCall("ReachDesk", "draftPerson", { id }),
   "marketing/personMessage": (id, { body }) =>

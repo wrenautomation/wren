@@ -116,7 +116,10 @@ box (edit, Ask Claude). Comment calls `ReachDesk.commentPost`: refuses a post al
 then `Content.reply` on LinkedIn with the post urn, Wren's token. Skip drops it.
 
 Settings `linkedin.comments`: `account`, `perDay` (10), `topics`, `companies`, `people` (on),
-`maxAgeHours` (72). CLI `wren reach posts status|run|list`.
+`maxAgeHours` (72). CLI `wren reach posts status|set|run|list|comment <id>|skip <ids...>`.
+
+Guards: one comment per author a week; a pass reads 10 times at most (meter 12), and a 429 ends
+the reads. A draft the model leaves empty or over 1250 characters drops the post with why.
 
 ## 5. Reddit comments
 
@@ -137,5 +140,9 @@ loads on the Mac: about 6 searches a day plus the comments and invites. S3: a Re
   his "or content based". A size range compares by its top so "big" isn't missed on a range.
 - 2026-10-07: LinkedIn comments read by search, not the people activity flow: that page's cards
   carry no post urn on the current layout, and the comment route needs one.
+- 2026-10-07: built item 4. Rank is code, 0 to 100: topic hits, the author's title tier, people
+  we know, engagement, freshness. Key people are searched by name, 3 a day in turn, keeping only
+  their own posts. Item 5 confirmed: `commentThread` (the desk, his click) is the only Reddit
+  comment call; a queued thread shows in To approve (test in `social.test.ts`).
 - 2026-10-07: built item 3. Size reads the raw columns, not the `*_facts` views (too slow per
   person). "Vice President" is tier 2, not tier 1. Prod had no LinkedIn engagers yet.

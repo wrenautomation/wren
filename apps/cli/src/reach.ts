@@ -12,12 +12,16 @@ import { ingressOf, type Settings } from "@wren/config";
 import { setWrenSettings } from "@wren/core/clients";
 import { atomic, type Db, setAuditActor } from "@wren/db";
 import {
+  COMMENTS_COMPONENT,
   CONTACT_STATES,
   type ContactState,
+  commentsSettings,
+  commentsSettingsSchema,
   INVITES_COMPONENT,
   inviteSettings,
   invitesSettingsSchema,
   listAccounts,
+  listPosts,
   listTemplates,
   listThreads,
   PLATFORMS,
@@ -398,6 +402,106 @@ export function registerReach(program: Command, withDb: WithDb, settings: Settin
     .command("skip <ids...>")
     .description("Your no: skipped, never proposed again")
     .action(async (ids: string[]) => json(await desk().skipInvites({ ids: ids.map(Number) })));
+
+  const posts = cmd
+    .command("posts")
+    .description(
+      "Comments on others' LinkedIn posts: read daily by the watch as Shop → LinkedIn comments' account, drafted for your yes in To approve",
+    );
+  posts
+    .command("status", { isDefault: true })
+    .description("The settings, and posts by state")
+    .action(async () =>
+      json(
+        await withDb(async (db) => ({
+          settings: await commentsSettings(db),
+          posts: await db.execute(
+            sql`select state, count(*)::int n from linkedin_posts group by 1 order by 2 desc`,
+          ),
+        })),
+      ),
+    );
+  posts
+    .command("set")
+    .description("Change the settings; a field left out keeps its value")
+    .option("--account <key>", "the autobrowse login that reads (linkedin@wren); empty = off")
+    .option("--per-day <n>", "comments queued for your yes a day at most")
+    .option("--topics <list>", "comma separated search words")
+    .option("--companies <list>", "comma separated company page handles")
+    .option("--people <on|off>", "also read people who accepted our invites or engaged")
+    .option("--max-age-hours <n>", "posts older than this are left")
+    .action(
+      async (o: {
+        account?: string;
+        perDay?: string;
+        topics?: string;
+        companies?: string;
+        people?: string;
+        maxAgeHours?: string;
+      }) => {
+        const list = (v: string) =>
+          v
+            .split(",")
+            .map((x) => x.trim())
+            .filter(Boolean);
+        if (o.people !== undefined && !["on", "off"].includes(o.people))
+          throw new Error(`on or off, not ${o.people}`);
+        const change = {
+          ...(o.account !== undefined && { account: o.account }),
+          ...(o.perDay !== undefined && { perDay: Number(o.perDay) }),
+          ...(o.topics !== undefined && { topics: list(o.topics) }),
+          ...(o.companies !== undefined && { companies: list(o.companies) }),
+          ...(o.people !== undefined && { people: o.people === "on" }),
+          ...(o.maxAgeHours !== undefined && { maxAgeHours: Number(o.maxAgeHours) }),
+        };
+        json(
+          await withDb(async (db) => {
+            const next = commentsSettingsSchema.parse({
+              ...(await commentsSettings(db)),
+              ...change,
+            });
+            await atomic(db, async (tx) => {
+              await setAuditActor(tx, "cli");
+              await setWrenSettings(tx, COMMENTS_COMPONENT, next, "cli");
+            });
+            return next;
+          }),
+        );
+      },
+    );
+  posts
+    .command("run")
+    .description("Read, rank and draft up to the day's cap now; nothing posts")
+    .action(async () => json(await desk().postsNow()));
+  posts
+    .command("list")
+    .description("Posts, newest first")
+    .option("--state <s>", "found | queued | commented | skipped | dropped")
+    .option("--limit <n>")
+    .action((o: { state?: string; limit?: string }) =>
+      withDb(async (db) => {
+        const rows = await listPosts(db, {
+          ...(o.state ? { state: o.state } : {}),
+          ...(o.limit ? { limit: Number(o.limit) } : {}),
+        });
+        for (const r of rows)
+          console.log(
+            `${r.id}\t${r.state}\t${r.fit ?? ""}\t${r.author}\t${r.url}\n\t${r.why ?? ""}${r.draft ? `\n\t> ${r.draft.replace(/\n/g, " ")}` : ""}`,
+          );
+        if (rows.length === 0) console.log("none");
+      }),
+    );
+  posts
+    .command("comment <id>")
+    .description("Your yes: post the draft (or --body) under their post from Wren's account")
+    .option("--body <text>")
+    .action(async (id: string, o: { body?: string }) =>
+      json(await desk().commentPost({ id: Number(id), ...(o.body ? { body: o.body } : {}) })),
+    );
+  posts
+    .command("skip <ids...>")
+    .description("Your no")
+    .action(async (ids: string[]) => json(await desk().skipPost({ ids: ids.map(Number) })));
 
   const reads = () => ingress().objectClient<RedditReadsObject>({ name: "RedditReads" }, READS_KEY);
   const d = cmd

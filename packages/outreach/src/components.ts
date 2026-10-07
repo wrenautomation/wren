@@ -4,6 +4,7 @@ import { clientKey } from "@wren/core/restate";
 import { defineWorkflow } from "@wren/core/workflows";
 import { discoverySettingsSchema } from "./discovery/places.js";
 import { invitesSettingsSchema } from "./invites.js";
+import { commentsSettingsSchema } from "./linkedin-posts.js";
 
 /** A client's loop units: `ReachWatch/<client>/daily`, `ReachSender/<client>/fleet`, `RedditReads/<client>/daily`. */
 export const WATCH_UNIT = "daily";
@@ -262,6 +263,42 @@ export const OUTREACH_COMPONENTS = [
         { is: "needs", says: "People with a LinkedIn page in the lists.", built: null },
         { is: "fixed", says: "No invite sends without your yes in To approve." },
         { is: "fixed", says: "No message goes after an accept without a click." },
+      ],
+    },
+  }),
+  defineComponent({
+    id: "linkedin.comments",
+    stage: "reach",
+    channels: ["social"],
+    name: "LinkedIn comments",
+    blurb:
+      "Finds the day's best posts by others on your topics, companies and people, and drafts a comment in your voice for each. Each waits on your yes.",
+    icon: "reply",
+    for: "wren",
+    ready: true,
+    settings: commentsSettingsSchema,
+    wrenSettings: true,
+    // The watch reads and drafts; ReachDesk comments; To approve shows them.
+    requires: { components: ["reach.outreach", "content.social"], accounts: ["linkedin"] },
+    provides: {},
+    effects: ["sends"],
+    hypothesis: {
+      from: "Wren's LinkedIn, 2026-10",
+      guesses: [
+        { is: "change", says: "Which login reads.", built: "settings.account" },
+        {
+          is: "change",
+          says: "What to read: topics, companies, people we know.",
+          built: "settings.topics, companies, people",
+        },
+        {
+          is: "change",
+          says: "How many a day, and how fresh.",
+          built: "settings.perDay, maxAgeHours",
+        },
+        { is: "needs", says: "autobrowse's post reads on linkedin@wren, 12 a day.", built: null },
+        { is: "fixed", says: "Never his personal login or the research alt." },
+        { is: "fixed", says: "No comment posts without your yes in To approve." },
       ],
     },
   }),

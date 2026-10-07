@@ -23,7 +23,11 @@ import { redditOutreach } from "@wren/channel-reddit";
 import { finishRun, openRun } from "@wren/core";
 import { byOf, keepSentEdit } from "@wren/core/ask";
 import { sendsOn } from "@wren/core/clients";
-import type { Platform as ContentPlatform, SiteClient } from "@wren/core/content";
+import {
+  type Platform as ContentPlatform,
+  SiteCallError,
+  type SiteClient,
+} from "@wren/core/content";
 import { rejectWhy } from "@wren/core/draft-record";
 import { isVendorStop, meteredModel, meteredSites } from "@wren/core/metered";
 import type { Notifier } from "@wren/core/notify";
@@ -122,6 +126,16 @@ import {
   type TopUpStats,
   topUp,
 } from "../invites.js";
+import {
+  commentsSettings,
+  listPosts,
+  markPostCommented,
+  type PostsStats,
+  planPostComment,
+  postReader,
+  postsPass,
+  skipPost,
+} from "../linkedin-posts.js";
 import type { ReachPolicy } from "../policy.js";
 import { ReachRefusal } from "../refusal.js";
 import { pullReplies, type RepliesStats } from "../replies.js";
@@ -162,6 +176,9 @@ const HEALTH = "health";
 /** And for the invites sweep, every 6 hours. */
 const INVITES = "invites";
 const INVITES_EVERY_MS = 6 * 60 * 60 * 1000;
+/** And for others' LinkedIn posts to comment on, once a day. */
+const POSTS = "posts";
+const POSTS_EVERY_MS = 24 * 60 * 60 * 1000;
 
 export interface ReachDeps {
   db: Db;
@@ -180,8 +197,11 @@ export interface ReachDeps {
   clock?: () => Date;
   /** When Wren last posted on `platform` (content's channel): a post warms that site's accounts. */
   postedAt?: (platform: Platform) => Promise<string | null>;
-  /** DM drafts: the model and the `outbound-copy` SOP. No model, no drafts. */
-  drafts?: { llm: LlmClient | null; guide?: DmGuide };
+  /**
+   * DM drafts: the model and the `outbound-copy` SOP. No model, no drafts. Comments on others'
+   * LinkedIn posts: the comments SOP (`commentGuide`) and his voice.
+   */
+  drafts?: { llm: LlmClient | null; guide?: DmGuide; commentGuide?: DmGuide; voice?: string };
   /** Runs per client (`ReachWatch/<client>/daily`): none, and a client's key stops. */
   clients?: ReachClients;
 }
@@ -361,6 +381,8 @@ export interface WatchStats {
   health: HealthStats;
   invites: InvitesPass | null;
   drafts: { written: number; errors: string[] };
+  /** Others' LinkedIn posts read, ranked and drafted for To approve: once a day, Wren's only. */
+  posts: PostsStats | null;
   /** A client's vendor gate said no: why, and the pass read no more. */
   stopped: string | null;
 }
@@ -397,6 +419,26 @@ async function invitesPass(
     }),
   );
   return { account: a.account, sweep, topUp: top };
+}
+
+/** Others' LinkedIn posts: read as the settings' account, ranked, drafted for his yes. */
+function postsFor(
+  deps: ReachDeps,
+  ctx: restate.Context,
+  settings: Awaited<ReturnType<typeof commentsSettings>>,
+  now: Date,
+): Promise<PostsStats> {
+  const guide = deps.drafts?.commentGuide;
+  return postsPass(deps.db, {
+    settings,
+    read: postReader(deps.sitesFor(ctx), settings.account),
+    llm: deps.drafts?.llm ?? null,
+    ...(guide ? { guide: () => guide("linkedin") } : {}),
+    ...(deps.drafts?.voice ? { voice: deps.drafts.voice } : {}),
+    now,
+    step: (name, fn) => ctx.run(name, fn),
+    capped: (err) => err instanceof SiteCallError && err.status === 429,
+  });
 }
 
 /** Draft each contact whose next message is ours, one model call each, under the day's cap. */
@@ -441,6 +483,8 @@ interface WatchScope {
   /** The invites block, or null: no invites this pass. */
   invites: () => Promise<InviteSettings | null>;
   drafts: boolean;
+  /** Comments on others' LinkedIn posts: Wren's only. */
+  posts: boolean;
 }
 
 export function makeReachWatch(deps: ReachDeps) {
@@ -455,6 +499,7 @@ export function makeReachWatch(deps: ReachDeps) {
         comments: true,
         invites: () => inviteSettings(deps.db),
         drafts: true,
+        posts: true,
       });
     if (!deps.clients) return stoppedPass<WatchStats>(ctx, now, "no client databases here");
     const plan = await ctx.run("client", () =>
@@ -489,6 +534,7 @@ export function makeReachWatch(deps: ReachDeps) {
         return { ...got.data, account: got.data.account || (login ?? "") };
       },
       drafts: has("reach.outreach"),
+      posts: false,
     });
   });
 }
@@ -606,9 +652,18 @@ async function watchPass(
     }
   }
   const drafts = scope.drafts ? await draftsPass(deps, ctx, now) : { written: 0, errors: [] };
+  let posts: PostsStats | null = null;
+  const postsAt = (await ctx.get<number>(POSTS)) ?? 0;
+  if (scope.posts && !stopped && now.getTime() - postsAt >= POSTS_EVERY_MS) {
+    const settings = await ctx.run("comment settings", () => commentsSettings(deps.db));
+    if (settings.account) {
+      ctx.set(POSTS, now.getTime());
+      posts = await postsFor(deps, ctx, settings, now);
+    }
+  }
   ctx.set(READS, reads);
   ctx.set(HEALTH, checked);
-  const stats: WatchStats = { replies, comments: kept, health, invites, drafts, stopped };
+  const stats: WatchStats = { replies, comments: kept, health, invites, drafts, posts, stopped };
   const next = live.map((a) => (reads[a.id] ?? 0) + (everyOf.get(a.id) ?? 0) - now.getTime());
   const outcome: PassOutcome<WatchStats> = {
     stats,
@@ -620,21 +675,27 @@ async function watchPass(
   await setLastPass(ctx, outcome);
   const notifier = deps.notifier;
   const accepted = invites?.sweep.accepted.length ?? 0;
+  const toComment = posts?.queued ?? 0;
   if (
     notifier &&
-    (replies.received > 0 || kept.kept > 0 || accepted > 0 || health.frozen.length > 0)
+    (replies.received > 0 ||
+      kept.kept > 0 ||
+      accepted > 0 ||
+      toComment > 0 ||
+      health.frozen.length > 0)
   ) {
     const news = [
       replies.received ? `${replies.received} new DMs` : null,
       kept.kept ? `${kept.kept} new comments` : null,
       accepted ? `${accepted} accepted invites` : null,
+      toComment ? `${toComment} LinkedIn comments to approve` : null,
     ].filter(Boolean);
     await ctx.run("notify", () =>
       notifier.notify(
         `reach: ${news.join(", ") || "no news"}${health.frozen.length ? `, paused ${health.frozen.join(", ")}` : ""}`,
         [
           replies.received || kept.kept ? "Inbox → Waiting on you" : null,
-          accepted ? "Marketing → To approve" : null,
+          accepted || toComment ? "Marketing → To approve" : null,
           ...replies.errors,
           ...kept.errors,
           ...health.errors,
@@ -722,6 +783,14 @@ export const terminalWhy = (req: { reason?: unknown; note?: unknown }) => {
     throw new restate.TerminalError((err as Error).message, { errorCode: 400 });
   }
 };
+const POST = z.looseObject({
+  id: z.number().int(),
+  body: z.string().nullish().describe("The words; the console leaves an untouched draft out"),
+});
+const POST_IDS = z.looseObject({ ids: z.array(z.number().int()).min(1).max(100) });
+const POSTS_LIST = z
+  .looseObject({ state: z.string().nullish(), limit: z.number().nullish() })
+  .nullish();
 const INVITE_IDS = z.looseObject({
   ids: z.array(z.number().int()).min(1).max(100).describe("contacts with a proposed invite"),
 });
@@ -1132,6 +1201,68 @@ export function makeReachDesk(deps: ReachDeps) {
         async (ctx: restate.Context, req: { ids: number[] }): Promise<{ skipped: number[] }> => {
           const now = await nowOf(ctx);
           return { skipped: await ctx.run("skip", () => skipInvites(deps.db, req.ids, now)) };
+        },
+      ),
+      /**
+       * Comment on someone else's LinkedIn post: his words, or the draft he left untouched. Sent
+       * now through the content channel on Wren's token: the click is the yes.
+       */
+      commentPost: serviceHandler(
+        { input: POST, effect: "sends" },
+        async (
+          ctx: restate.Context,
+          req: { id: number; body?: string | null },
+        ): Promise<{ commented: number }> => {
+          const now = await nowOf(ctx);
+          const post = await ctx.run("plan", () =>
+            terminal(() => planPostComment(deps.db, req.id)),
+          );
+          const body = (req.body ?? post.draft ?? "").trim();
+          if (!body) throw new restate.TerminalError("the comment is empty");
+          if (body.length > 1250)
+            throw new restate.TerminalError("LinkedIn takes 1250 characters at most");
+          await ctx
+            .serviceClient<ContentReply>({ name: "Content" })
+            .reply({ platform: "linkedin", commentId: post.urn, text: body });
+          await ctx.run("commented", () =>
+            markPostCommented(deps.db, post, { body, by: byOf(req), now }),
+          );
+          return { commented: post.id };
+        },
+      ),
+      /** His no on posts to comment on. */
+      skipPost: serviceHandler(
+        { input: POST_IDS },
+        async (
+          ctx: restate.Context,
+          req: { ids: number[]; reason?: unknown; note?: unknown },
+        ): Promise<{ skipped: number[] }> => {
+          const why = terminalWhy(req);
+          return {
+            skipped: await ctx.run("skip", () =>
+              skipPost(deps.db, req.ids, { by: byOf(req), ...why }),
+            ),
+          };
+        },
+      ),
+      /** Posts to comment on, newest first; a state narrows them. */
+      posts: serviceHandler(
+        { input: POSTS_LIST },
+        async (ctx: restate.Context, req?: { state?: string | null; limit?: number | null }) =>
+          ctx.run("posts", () =>
+            listPosts(deps.db, {
+              ...(req?.state ? { state: req.state } : {}),
+              ...(req?.limit ? { limit: req.limit } : {}),
+            }),
+          ),
+      ),
+      /** The posts pass now: read, rank, draft up to the day's cap. Off with no account set. */
+      postsNow: serviceHandler(
+        { input: NO_INPUT },
+        async (ctx: restate.Context): Promise<PostsStats> => {
+          const now = await nowOf(ctx);
+          const settings = await ctx.run("settings", () => commentsSettings(deps.db));
+          return postsFor(deps, ctx, settings, now);
         },
       ),
       /** A person from People: their contact, added when new, with a model draft to edit. */

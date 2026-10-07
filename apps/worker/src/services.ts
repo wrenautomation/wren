@@ -1115,7 +1115,13 @@ export async function buildServices(
       return r?.at ? r.at.toISOString() : null;
     },
     // DM drafts in the watch's model, steered by the `outbound-copy` SOP and his DM edits.
-    drafts: { llm: watchLlm, guide: (p: "reddit" | "linkedin") => dmGuide(db, p) },
+    // Comments on others' LinkedIn posts: the comments SOP and his voice.
+    drafts: {
+      llm: watchLlm,
+      guide: (p: "reddit" | "linkedin") => dmGuide(db, p),
+      commentGuide: (p: "reddit" | "linkedin") => commentGuide(db, p),
+      voice: voice ?? DEFAULT_VOICE,
+    },
     // A client's runs: its database, the same model metered on its own gate, its own SOPs.
     clients: {
       clientDb,

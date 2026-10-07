@@ -15,7 +15,15 @@ import { parseKind } from "@wren/core/slots";
 import { type LiveTemplate, promptRef, renderPrompt } from "@wren/core/templates";
 import { defaultSource } from "@wren/core/templates/defaults";
 import { atomic, type Queryable } from "@wren/db";
-import { comments, DRAFT_MAX, dmContext, reachContacts, redditThreads } from "@wren/outreach";
+import {
+  comments,
+  DRAFT_MAX,
+  dmContext,
+  COMMENT_MAX as LINKEDIN_COMMENT_MAX,
+  linkedinPosts,
+  reachContacts,
+  redditThreads,
+} from "@wren/outreach";
 import { and, desc, eq, inArray, isNotNull, notInArray, sql } from "drizzle-orm";
 import { PLATFORM_SPECS } from "./platforms.js";
 import { commentGuide, dmGuide, playbookFor } from "./playbook.js";
@@ -23,7 +31,7 @@ import { editDraft } from "./review.js";
 import { contentDrafts, contentIdeas } from "./schema.js";
 
 /** What `wren drafts list --type` names: a post is an Inbox `draft:`. */
-export const DRAFT_TYPES = ["post", "comment", "thread", "dm", "invite"] as const;
+export const DRAFT_TYPES = ["post", "comment", "thread", "dm", "invite", "lipost"] as const;
 export type DraftType = (typeof DRAFT_TYPES)[number];
 
 export interface DraftItem {
@@ -242,6 +250,57 @@ const thread: DraftKind = {
     })),
 };
 
+/** Our comment on someone else's LinkedIn post (`linkedin_posts.draft`), while it waits. */
+const lipost: DraftKind = {
+  type: "lipost",
+  read: async (db, id) => {
+    if (!/^\d+$/.test(id)) return null;
+    const [p] = await db
+      .select()
+      .from(linkedinPosts)
+      .where(eq(linkedinPosts.id, Number(id)));
+    if (!p) return null;
+    return {
+      what: "LinkedIn comment on someone else's post",
+      platform: "linkedin",
+      title: `LinkedIn: ${p.author}`,
+      draft: p.draft,
+      max: LINKEDIN_COMMENT_MAX,
+      open: p.state === "found" || p.state === "queued",
+      context: facts([
+        [`Post by ${p.author}`, `${p.headline ? `${p.headline}\n\n` : ""}${p.text}`],
+        ["Why it was picked", p.why],
+      ]),
+      guide: await commentGuide(db, "linkedin"),
+    };
+  },
+  write: async (db, id, text) => {
+    const done = await db
+      .update(linkedinPosts)
+      .set({ draft: text })
+      .where(
+        and(eq(linkedinPosts.id, Number(id)), inArray(linkedinPosts.state, ["found", "queued"])),
+      )
+      .returning({ id: linkedinPosts.id });
+    if (!done.length) throw new Error(`post ${id} is commented, skipped or dropped`);
+  },
+  waiting: async (db, limit) =>
+    (
+      await db
+        .select()
+        .from(linkedinPosts)
+        .where(and(eq(linkedinPosts.state, "queued"), isNotNull(linkedinPosts.draft)))
+        .orderBy(desc(linkedinPosts.queuedAt))
+        .limit(limit)
+    ).map((p) => ({
+      item: `lipost:${p.id}`,
+      type: "lipost" as const,
+      title: `LinkedIn: ${p.author}`,
+      draft: p.draft,
+      at: p.queuedAt ?? p.createdAt,
+    })),
+};
+
 /** A contact who asked us to stop gets no draft. */
 const STOPPED: ("opted_out" | "blocked")[] = ["opted_out", "blocked"];
 /** An accepted invite nobody wrote to yet: no message either way past the invite. */
@@ -316,6 +375,7 @@ export const DRAFT_KINDS: Record<string, DraftKind> = {
   thread,
   dm: reach("dm"),
   invite: reach("invite"),
+  lipost,
 };
 
 /** "comment:12" as its kind and id; throws on one no kind holds. */

@@ -18,7 +18,16 @@ import type { SpineEvent } from "@wren/core/spine";
 import { askPublish, saveDraft } from "@wren/core/templates";
 import { startTestRestate } from "@wren/core/testing";
 import { startTestPostgres, type TestPostgres, truncate } from "@wren/db/testing";
-import { answerComment, comments, planAnswer, reachContacts, reachMessages } from "@wren/outreach";
+import {
+  answerComment,
+  comments,
+  linkedinPosts,
+  planAnswer,
+  reachContacts,
+  reachMessages,
+  redditPlaces,
+  redditThreads,
+} from "@wren/outreach";
 import { eq } from "drizzle-orm";
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 import {
@@ -101,6 +110,9 @@ beforeEach(async () => {
     "social_days",
     "reach_messages",
     "reach_contacts",
+    "linkedin_posts",
+    "reddit_threads",
+    "reddit_places",
   ]);
   emitted.length = 0;
   pings.length = 0;
@@ -295,6 +307,60 @@ describe("SocialWatch", () => {
       post_title: "Acme",
     });
     expect(inbox.find((r) => String(r.id).startsWith("connect:"))).toBeUndefined();
+    // A comment drafted on someone else's LinkedIn post: the post, why, and our draft.
+    const [lp] = await pg.db
+      .insert(linkedinPosts)
+      .values({
+        urn: "urn:li:activity:1",
+        author: "Ben C",
+        text: "Hiring is slow this quarter.",
+        url: "https://www.linkedin.com/feed/update/urn:li:activity:1/",
+        foundBy: "topic: hiring",
+        account: "linkedin@wren",
+        why: 'Founder at Acme. On "hiring".',
+        state: "queued",
+        draft: "We cut it to a week by texting.",
+        raw: {},
+      })
+      .returning();
+    const again = (await approvalRecord.rows?.(pg.db)) ?? [];
+    expect(again.find((r) => r.id === `lipost:${lp?.id}`)).toMatchObject({
+      type: "lipost",
+      kind: "lipost",
+      who: "Ben C",
+      platform: "linkedin",
+      state: "waiting",
+      body: "Hiring is slow this quarter.",
+      why: 'Founder at Acme. On "hiring".',
+      draft: "We cut it to a week by texting.",
+    });
+    // Reddit discovery's queued thread: To approve's "Thread to answer", the draft to post.
+    await pg.db
+      .insert(redditPlaces)
+      .values({ subreddit: "agency", name: "agency", foundBy: "test" });
+    await pg.db.insert(redditThreads).values({
+      id: "t3_q1",
+      subreddit: "agency",
+      title: "How do you chase invoices?",
+      body: "We lose a day a week.",
+      author: "cfo_jane",
+      url: "https://www.reddit.com/r/agency/comments/q1/",
+      postedAt: new Date(),
+      comments: 3,
+      raw: {},
+      state: "queued",
+      draft: "We send them from the CRM.",
+    });
+    const third = (await approvalRecord.rows?.(pg.db)) ?? [];
+    expect(third.find((r) => r.id === "thread:t3_q1")).toMatchObject({
+      type: "thread",
+      kind: "thread",
+      state: "waiting",
+      draft: "We send them from the CRM.",
+    });
+    const inboxAfter = (await inboxRecord.rows?.(pg.db)) ?? [];
+    expect(inboxAfter.find((r) => String(r.id).startsWith("thread:"))).toBeUndefined();
+    expect(inboxAfter.find((r) => String(r.id).startsWith("lipost:"))).toBeUndefined();
     expect(approvals.find((r) => r.id === `draft:${d?.id}`)).toMatchObject({
       type: "draft",
       state: "waiting",

@@ -351,6 +351,28 @@ const CONNECT_ACTIONS: Action[] = [
   },
 ];
 
+/** A comment drafted on someone else's LinkedIn post: his click posts it from Wren's account. */
+const LIPOST_ACTIONS: Action[] = [
+  {
+    id: "marketing.lipostComment",
+    label: "Comment",
+    handler: "marketing/lipostComment",
+    confirm: "Post this comment on their LinkedIn post?",
+    key: "r",
+    done: said("Commented"),
+  },
+  {
+    id: "marketing.lipostSkip",
+    label: "Skip",
+    handler: "marketing/lipostSkip",
+    form: REJECT_FORM,
+    each: true,
+    bulk: true,
+    key: "e",
+    done: said("Skipped"),
+  },
+];
+
 const THREAD_ACTIONS: Action[] = [
   {
     id: "marketing.threadComment",
@@ -455,9 +477,10 @@ const APPROVAL_ACTIONS: Action[] = [
     only("invite", a, a.id === "marketing.inviteMessage" ? { state: ["waiting", "read"] } : WAITS),
   ),
   ...CONNECT_ACTIONS.map((a) => only("connect", a, WAITS)),
+  ...LIPOST_ACTIONS.map((a) => only("lipost", a, WAITS)),
   // The typed-id box, as the Inbox's: `draft:3` is a post, `invite:7` an invite.
   ...draftActions("inbox", {
-    type: ["draft", "thread", "invite"],
+    type: ["draft", "thread", "invite", "lipost"],
     state: ["new", "waiting", "read"],
   }),
 ];
@@ -491,6 +514,11 @@ const THREAD_DRAFT: DraftOf = {
   label: "Your comment, posted in the thread",
   send: "marketing.threadComment",
 };
+const LIPOST_DRAFT: DraftOf = {
+  field: "draft",
+  label: "Your comment, posted under their post",
+  send: "marketing.lipostComment",
+};
 /** The Inbox row's type picks its box. */
 const INBOX_DRAFT: Record<string, DraftOf> = {
   comment: COMMENT_DRAFT,
@@ -501,6 +529,7 @@ const APPROVAL_DRAFT: Record<string, DraftOf> = {
   draft: { ...POST_DRAFT, field: "body" },
   invite: INVITE_DRAFT,
   thread: THREAD_DRAFT,
+  lipost: LIPOST_DRAFT,
 };
 
 /**
@@ -546,6 +575,8 @@ const APPROVAL_PAGE: ListPage = {
     posts: "No post draft waits on you.",
     videos: "No rendered video waits on your Approve.",
     threads: "No thread comment waits on you.",
+    comments:
+      "No LinkedIn comment waits on you. The watch drafts the day's once Shop → LinkedIn comments names an account.",
     invites: "No accepted invite waits on a first message.",
     templates: "No template version waits on a yes.",
     workflows: "No client workflow waits on a yes.",

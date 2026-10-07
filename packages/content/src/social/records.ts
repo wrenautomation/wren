@@ -175,6 +175,16 @@ const connectRows = (db: Queryable) =>
       order by m.id limit ${ACTIVITY_ROWS}`,
   );
 
+/** Others' LinkedIn posts with a comment drafted, waiting on his yes. */
+const liPostRows = (db: Queryable) =>
+  rowsOf(
+    db,
+    sql`select id, author, text, why, draft, url, account, coalesce(posted_at, created_at) at,
+        queued_at
+      from linkedin_posts where state = 'queued'
+      order by fit desc nulls last, id limit ${ACTIVITY_ROWS}`,
+  );
+
 /** A row's state, as both lists say it. */
 const STATES = status({
   new: { label: "New", tone: "warn" },
@@ -395,8 +405,8 @@ export const inboxRecord = defineRecord({
 /**
  * What we'd send, waiting on William's yes, as one list. Ids carry their type (`draft:3`,
  * `video:2` (rendered, waiting on Approve), `thread:abc`, `invite:7` (accepted), `connect:7` (a
- * proposed invite, by contact), `template:4:3` (version 3 asked to go live)); each action reads the
- * id after the colon. `due` orders "Waiting on you": a
+ * proposed invite, by contact), `lipost:9` (a comment drafted on someone else's LinkedIn post),
+ * `template:4:3` (version 3 asked to go live)); each action reads the id after the colon. `due` orders "Waiting on you": a
  * draft's slot, else when it came.
  */
 export const approvalRecord = defineRecord({
@@ -410,6 +420,7 @@ export const approvalRecord = defineRecord({
     const ts = ((await threadRecord.rows?.(db)) ?? []).filter((t) => t.state === "queued");
     const is = await acceptedRows(db);
     const cs = await connectRows(db);
+    const ls = await liPostRows(db);
     const asks = await waitingAsks(db);
     const ws = await waitingInstalls(db);
     return [
@@ -473,6 +484,22 @@ export const approvalRecord = defineRecord({
         due: i.at,
         url: i.url,
       })),
+      ...ls.map((l) => ({
+        id: `lipost:${l.id}`,
+        type: "lipost",
+        who: l.author,
+        platform: "linkedin",
+        kind: "lipost",
+        state: "waiting",
+        body: l.text,
+        post_title: null,
+        why: l.why,
+        draft: l.draft,
+        account: l.account,
+        at: l.at,
+        due: l.queued_at ?? l.at,
+        url: l.url,
+      })),
       ...cs.map((c) => ({
         id: `connect:${c.id}`,
         type: "connect",
@@ -482,6 +509,7 @@ export const approvalRecord = defineRecord({
         state: "waiting",
         body: c.why ?? c.headline,
         post_title: c.company,
+        why: c.why,
         draft: null,
         account: c.account,
         at: c.at,
@@ -533,6 +561,7 @@ export const approvalRecord = defineRecord({
         thread: neutral("Thread"),
         invite: neutral("Invite"),
         connect: neutral("Invite"),
+        lipost: neutral("Comment"),
         template: neutral("Template"),
         workflow: neutral("Workflow"),
       }),
@@ -549,6 +578,7 @@ export const approvalRecord = defineRecord({
         thread: neutral("Thread to answer"),
         invite: neutral("Accepted your invite"),
         connect: neutral("Invite to send"),
+        lipost: neutral("Comment to post"),
         template: neutral("Copy to make live"),
         workflow: neutral("Workflow to make live"),
       }),
@@ -557,6 +587,7 @@ export const approvalRecord = defineRecord({
     state: STATES,
     body: prose("Words"),
     postTitle: text("Post"),
+    why: text("Picked for"),
     draft: prose("Our draft"),
     account: text("On"),
     at: date("When"),
@@ -568,6 +599,7 @@ export const approvalRecord = defineRecord({
     { id: "posts", label: "Posts", where: { type: "draft" }, sort: "due", at: "due" },
     { id: "videos", label: "Videos", where: { type: "video" }, sort: "-at", at: "at" },
     { id: "threads", label: "Threads", where: { type: "thread" }, sort: "-at", at: "at" },
+    { id: "comments", label: "Comments", where: { type: "lipost" }, sort: "due", at: "due" },
     {
       id: "invites",
       label: "Invites",
@@ -592,6 +624,8 @@ export const approvalRecord = defineRecord({
     "marketing.inviteRead",
     "marketing.connectApprove",
     "marketing.connectSkip",
+    "marketing.lipostComment",
+    "marketing.lipostSkip",
     "marketing.draftSet",
     "marketing.draftAsk",
     "marketing.draftUndo",

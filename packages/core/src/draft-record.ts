@@ -52,6 +52,8 @@ const PREFIX_KIND: Readonly<Record<string, DraftRecordKind>> = {
   dm: "dm",
   invite: "invite",
   video: "video",
+  // A comment on someone else's LinkedIn post (designs/2026-10-07-posting-flow.md, item 4).
+  lipost: "linkedin_comment",
 };
 export const kindOfItem = (item: string): DraftRecordKind => {
   const k = PREFIX_KIND[item.slice(0, item.indexOf(":"))];

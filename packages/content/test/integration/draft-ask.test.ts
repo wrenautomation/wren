@@ -18,6 +18,7 @@ import {
   addProspects,
   comments,
   contactByHandle,
+  linkedinPosts,
   reachContacts,
   reachMessages,
   receive,
@@ -68,6 +69,7 @@ beforeEach(async () => {
     "reach_messages",
     "reach_contacts",
     "reach_accounts",
+    "linkedin_posts",
   ]);
   answers.length = 0;
   asked.length = 0;
@@ -216,6 +218,51 @@ describe("drafts from a terminal", () => {
         draft: "Start with the daily task.",
       }),
     ]);
+  });
+});
+
+describe("a LinkedIn comment on someone else's post", () => {
+  it("reads with the post, waits, takes his words, and closes once commented", async () => {
+    const [p] = await pg.db
+      .insert(linkedinPosts)
+      .values({
+        urn: "urn:li:activity:9",
+        author: "Ben C",
+        headline: "Founder at Acme",
+        text: "Hiring is slow this quarter.",
+        url: "https://www.linkedin.com/feed/update/urn:li:activity:9/",
+        foundBy: "topic: hiring",
+        account: "linkedin@wren",
+        why: "On hiring.",
+        state: "queued",
+        draft: "Model words.",
+        queuedAt: new Date(),
+        raw: {},
+      })
+      .returning();
+    const item = `lipost:${p?.id}`;
+    const got = await readDraft(pg.db, item);
+    expect(got).toMatchObject({
+      platform: "linkedin",
+      draft: "Model words.",
+      max: 1250,
+      open: true,
+    });
+    expect(got.context).toContain("Hiring is slow this quarter.");
+    expect((await listWaiting(pg.db, { type: "lipost" })).map((w) => w.item)).toEqual([item]);
+    await writeDraft(pg.db, item, "His words.", { command: "draft-set", by: "cli" });
+    const [row] = await pg.db
+      .select()
+      .from(linkedinPosts)
+      .where(eq(linkedinPosts.id, Number(p?.id)));
+    expect(row?.draft).toBe("His words.");
+    await pg.db
+      .update(linkedinPosts)
+      .set({ state: "commented" })
+      .where(eq(linkedinPosts.id, Number(p?.id)));
+    await expect(
+      writeDraft(pg.db, item, "Late.", { command: "draft-set", by: "cli" }),
+    ).rejects.toThrow(/commented/);
   });
 });
 

@@ -11,6 +11,7 @@ export * from "./drafts.js";
 export * from "./enroll.js";
 export * from "./follow.js";
 export * from "./invites.js";
+export * from "./linkedin-posts.js";
 export * from "./policy.js";
 export * from "./refusal.js";
 export * from "./replies.js";
