@@ -5,6 +5,7 @@
  * words: the body pinned at compose, and `toHtml` of that same string.
  */
 import { randomBytes } from "node:crypto";
+import libmime from "libmime";
 import { type OutgoingEmail, renderedSubject, toHtml } from "./transport.js";
 
 const CRLF = "\r\n";
@@ -15,10 +16,13 @@ function hasNonAscii(text: string): boolean {
   return false;
 }
 
-/** RFC 2047 encoded-word when needed, else the text as is. */
+/**
+ * RFC 2047 encoded words when needed, else the text as is: libmime splits them at
+ * character boundaries, each word within 75 characters (52 of payload, as nodemailer).
+ */
 export function encodeHeaderText(text: string): string {
   if (!hasNonAscii(text)) return text;
-  return `=?utf-8?B?${Buffer.from(text, "utf8").toString("base64")}?=`;
+  return libmime.encodeWord(text, "B", 52);
 }
 
 /** `Name <addr>` with the name quoted or encoded as RFC 5322/2047 require. */
@@ -85,7 +89,9 @@ export function buildMime(
   if (email.references?.length) headers.push(["References", email.references.join(" ")]);
   for (const [n, v] of email.headers ?? []) headers.push([n, v]);
   headers.push(["MIME-Version", "1.0"]);
-  const head = (): string => headers.map(([n, v]) => `${n}: ${assertHeaderSafe(n, v)}`).join(CRLF);
+  // Checked for injected breaks first, then folded to 76 (RFC 5322 2.1.1).
+  const head = (): string =>
+    headers.map(([n, v]) => libmime.foldLines(`${n}: ${assertHeaderSafe(n, v)}`, 76)).join(CRLF);
   if (!email.inReplyTo) {
     headers.push(["Content-Type", 'text/plain; charset="utf-8"']);
     headers.push(["Content-Transfer-Encoding", "base64"]);

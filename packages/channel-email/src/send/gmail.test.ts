@@ -105,7 +105,8 @@ function parseMime(text: string): {
 } {
   const [head, ...rest] = text.split("\r\n\r\n");
   const headers: Record<string, string> = {};
-  for (const line of (head ?? "").split("\r\n")) {
+  // Unfold first: a header past 76 characters arrives folded (RFC 5322 2.2.3).
+  for (const line of (head ?? "").replace(/\r\n[ \t]/g, " ").split("\r\n")) {
     const i = line.indexOf(": ");
     if (i > 0) headers[line.slice(0, i)] = line.slice(i + 2);
   }
@@ -249,7 +250,7 @@ describe("what goes on the wire", () => {
 
   it("names with specials or non-ascii are quoted or encoded", () => {
     expect(formatAddress("Jin, Will", "a@b.com")).toBe('"Jin, Will" <a@b.com>');
-    expect(formatAddress("Zoë", "a@b.com")).toBe("=?utf-8?B?Wm/Dqw==?= <a@b.com>");
+    expect(formatAddress("Zoë", "a@b.com")).toBe("=?UTF-8?B?Wm/Dqw==?= <a@b.com>");
     expect(() => buildMime(mail({ to: "x@y.com\r\nBcc: z@w.com" }))).toThrow("line break");
   });
 

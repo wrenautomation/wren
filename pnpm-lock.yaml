@@ -529,6 +529,9 @@ importers:
       imapflow:
         specifier: 2.2.4
         version: 2.2.4
+      libmime:
+        specifier: 5.4.7
+        version: 5.4.7
       mailifier:
         specifier: 0.3.8
         version: 0.3.8
@@ -551,6 +554,9 @@ importers:
       '@testcontainers/postgresql':
         specifier: 12.1.0
         version: 12.1.0
+      '@types/libmime':
+        specifier: 5.3.0
+        version: 5.3.0
       '@types/nodemailer':
         specifier: 8.0.2
         version: 8.0.2
@@ -3737,6 +3743,9 @@ packages:
   '@types/json-schema@7.0.15':
     resolution: {integrity: sha512-5+fP8P8MFNC+AyZCDxrB2pkZFPGzqQWUzpSeuuVLvm8VMcorNYavBqoFcxK8bQz4Qsbn4oUEEem4wDLfcysGHA==}
 
+  '@types/libmime@5.3.0':
+    resolution: {integrity: sha512-B61MJ9j2P1iCtUFD2x8NwjKLGjFyLEc7G00rQ3nBxt9q3XrEQy5/YI7k8m6oM7X1uB1HwQdsZes3qfW1LSVhjg==}
+
   '@types/node@18.19.130':
     resolution: {integrity: sha512-GRaXQx6jGfL8sKfaIDD6OupbIHBr9jv7Jnaml9tB7l4v068PAOXqfcujMMo5PhbIs6ggR1XODELqahT2R8v0fg==}
 
@@ -5308,8 +5317,14 @@ packages:
   libbase64@1.3.1:
     resolution: {integrity: sha512-1b9LXEjEtXj35YKOR9RqNKBootlb37qbIzmqiw4MsP52cjOsfR6i/AYU1Y8qN4kV2TJQmLJ5aiXn45qI6h+Szw==}
 
+  libbase64@1.3.2:
+    resolution: {integrity: sha512-fFCoI0ceXhTu/0QiJ6Uf6BV9k7X/8QW2/D4BR1vw3BPrHcIjLbGLH+U7inQ4SeWrfNCOmpGE09Qt4XjSFfus0g==}
+
   libmime@5.4.6:
     resolution: {integrity: sha512-Cgx1vHd76GTwDaLNsl0K44CjNFfhkX/1bMcoruoWr8Ugcl0/zMw7x/8NpZERIOcpGyzlQo10tOEw9goGsv2Wlg==}
+
+  libmime@5.4.7:
+    resolution: {integrity: sha512-r1ENu4wMVSB52AAORwaW4L/MeQJr9rryzHLRpcjud3zcUPWXh1Xkgn+tAqL8oTnRO/LW7y5xxPBE20ta5amtMA==}
 
   libphonenumber-js@1.13.14:
     resolution: {integrity: sha512-llihgCcx0BFLksecLP+x1J+6JDE1GsXS1RN/LoPF6qcwpeQcnjj0lcvZxY8AzbEpYwyZWPZW/nDuqkqzm3amiw==}
@@ -9238,6 +9253,10 @@ snapshots:
 
   '@types/json-schema@7.0.15': {}
 
+  '@types/libmime@5.3.0':
+    dependencies:
+      '@types/node': 22.20.3
+
   '@types/node@18.19.130':
     dependencies:
       undici-types: 5.26.5
@@ -10728,11 +10747,20 @@ snapshots:
 
   libbase64@1.3.1: {}
 
+  libbase64@1.3.2: {}
+
   libmime@5.4.6:
     dependencies:
       encoding-japanese: 2.4.0
       iconv-lite: 0.7.3
       libbase64: 1.3.1
+      libqp: 2.1.2
+
+  libmime@5.4.7:
+    dependencies:
+      encoding-japanese: 2.4.0
+      iconv-lite: 0.7.3
+      libbase64: 1.3.2
       libqp: 2.1.2
 
   libphonenumber-js@1.13.14: {}
