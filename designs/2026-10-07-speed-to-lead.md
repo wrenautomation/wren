@@ -107,8 +107,8 @@ This makes them run.
   - Shop: Install on `speed_to_lead` only stored a product block. No door hook, no loop, and the
     door doesn't read it. So the part is planned again ("In development", Install hidden, the
     server still refuses it); its steps run as before. The hook stays `wren hooks add` until
-    template install. `sms.forms`, `sms.follow_up` and `voice.call_now` still show Install, which
-    also stores a block only.
+    template install. `sms.forms`, `sms.follow_up` and `voice.call_now` get the same: their Install
+    also stored a block only. So `speed_to_lead.steps` reads "Parts in development".
   - Table: default columns fit 1440 (Lead, First text, Took, Call, Outcome, Dial, Follow-up, Came
     in, Phone); Source, Email and Booked are in Columns.
   - Map: `sms/speed-run`, `sms/sms-contact`, `voice/call`.

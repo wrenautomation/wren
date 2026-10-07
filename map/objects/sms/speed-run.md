@@ -29,7 +29,7 @@ Citations: `packages/channel-sms/src/schema.ts:457`, `packages/channel-sms/src/r
 
 ## Connected to
 
-- **owned-by:** the `speed_to_lead` part (`packages/channel-sms/src/components.ts`), in development in the Shop: Install stores a block only, no door hook
+- **owned-by:** the `speed_to_lead` part (`packages/channel-sms/src/components.ts`), in development in the Shop with its parts `sms.forms`, `sms.follow_up`, `voice.call_now`: Install stores a block only, no door hook
 - **joins:** [[sms/sms-contact]] (`sms_contact_id`), [[platform/spine]] (the door's `data.lead`), [[voice/call]] (Call now), [[calendar/booking]] (booked check)
 - **looks-like-but-is-not:** `voice_calls` (a call made), `events` (every arrival on the spine)
 

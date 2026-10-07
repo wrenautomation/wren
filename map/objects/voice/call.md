@@ -22,7 +22,7 @@ Vendors sit behind five interfaces (`Transport`, `Ears`, `Brain`, `Mouth`, optio
 - `phone_consents`: `e164`, `whose`, `source`, the consent `text` and version, `ai_voice`, `evidence`, `revoked_at` (`schema.ts:112`)
 - views `voice_call_records`, `voice_latency` (`schema.ts:142`); records `voice.call`, `voice.latency` (`records.ts`)
 - the agent: the `voice.agent` part's settings in `wren_settings` (`agent.ts:55`), planned, edited in Loops > Settings
-- Call now (`call-now.ts`, part `voice.call_now`): speed to lead's call step on a [[sms/speed-run]]. A lead who booked is skipped (leaves `booked`); with no dialer (every client today) it marks `alerted` "voice not set up" and the rep sees Call now on Texts > Speed to lead until they press Done or the lead books; with one it goes through `placeCall` and a refusal marks `alerted` with why. Once per run.
+- Call now (`call-now.ts`, part `voice.call_now`, in development in the Shop: its Install sets nothing up): speed to lead's call step on a [[sms/speed-run]]. A lead who booked is skipped (leaves `booked`); with no dialer (every client today) it marks `alerted` "voice not set up" and the rep sees Call now on Texts > Speed to lead until they press Done or the lead books; with one it goes through `placeCall` and a refusal marks `alerted` with why. Once per run.
 - services: `VoiceConsole{saveTest}` (`console.ts:60`); the box server `startVoiceServer` (`box/server.ts:38`) with unit `deploy/voice/wren-voice.service`, not installed
 
 Citations: `packages/voice/src/call.ts:133`, `packages/voice/src/consent.ts:60`, `packages/voice/src/store.ts:14`

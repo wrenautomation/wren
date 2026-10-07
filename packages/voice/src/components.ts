@@ -17,8 +17,10 @@ export const VOICE_COMPONENTS = [
     blurb: 'Puts "Call now" in front of the client\'s rep, or dials once voice is set up.',
     icon: "phone",
     for: "client",
-    ready: true,
-    missing: [],
+    // Its step runs inside speed to lead; an install only stores a block, so not on its own yet.
+    ready: false,
+    planned: true,
+    missing: ["Install doesn't set it up yet"],
     effects: ["sends"],
     in: [{ id: "leads", label: "leads to call", kind: "lead" }],
     out: [{ id: "booked", label: "booked already", kind: "call" }],
