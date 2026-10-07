@@ -1,5 +1,5 @@
 /** Research as console records: signals, under Outbound. A row opens its link and its raw. */
-import { date, defineRecord, link, name, number, status, text } from "@wren/core/records";
+import { date, defineRecord, link, name, named, number, status, text } from "@wren/core/records";
 import { eq } from "drizzle-orm";
 import { documents, findings, SIGNAL_KINDS } from "./schema.js";
 
@@ -42,7 +42,7 @@ export const signalRecord = defineRecord({
       "Dated by",
     ),
     url: link("Source"),
-    via: text("Read by"),
+    via: named("Read by"),
     confidence: number(),
     firstSeen: date("First seen"),
     seen: date("Last read"),
