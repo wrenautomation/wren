@@ -1,0 +1,30 @@
+CREATE TABLE "linkedin_posts" (
+	"id" serial NOT NULL,
+	"urn" varchar(80) NOT NULL,
+	"author" text NOT NULL,
+	"author_url" text,
+	"headline" text,
+	"text" text NOT NULL,
+	"url" text NOT NULL,
+	"posted_at" timestamp with time zone,
+	"reactions" integer DEFAULT 0 NOT NULL,
+	"comments" integer DEFAULT 0 NOT NULL,
+	"found_by" varchar(200) NOT NULL,
+	"account" varchar(80) NOT NULL,
+	"fit" smallint,
+	"why" text,
+	"state" varchar(12) DEFAULT 'found' NOT NULL,
+	"state_reason" text,
+	"draft" text,
+	"queued_at" timestamp with time zone,
+	"comment" text,
+	"commented_at" timestamp with time zone,
+	"commented_by" varchar(120),
+	"raw" jsonb NOT NULL,
+	"created_at" timestamp with time zone DEFAULT now() NOT NULL,
+	CONSTRAINT "pk_linkedin_posts" PRIMARY KEY("id"),
+	CONSTRAINT "uq_linkedin_posts_urn" UNIQUE("urn"),
+	CONSTRAINT "ck_linkedin_posts_state" CHECK (("state")::text = ANY ((ARRAY['found'::character varying, 'queued'::character varying, 'commented'::character varying, 'skipped'::character varying, 'dropped'::character varying])::text[]))
+);
+--> statement-breakpoint
+CREATE INDEX "ix_linkedin_posts_state" ON "linkedin_posts" USING btree ("state");
