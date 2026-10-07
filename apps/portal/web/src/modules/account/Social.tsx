@@ -57,8 +57,7 @@ function AccountLine({ c, mayAct, act }: { c: Connection; mayAct: boolean; act: 
     <div className="grid gap-1">
       <p className="flex flex-wrap items-center gap-2">
         <b className="font-medium break-all">{who}</b>
-        {c.handle && c.name ? <span className={QUIET}>{c.name}</span> : null}
-        {c.state === "broken" ? <Tag tone="warn">Broken</Tag> : null}
+        {c.handle && c.name && c.name !== c.handle ? <span className={QUIET}>{c.name}</span> : null}
       </p>
       {c.state === "broken" && c.why ? <p>{c.why}</p> : null}
       {c.expiring && c.expiresAt ? (

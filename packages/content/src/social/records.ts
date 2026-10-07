@@ -291,7 +291,8 @@ export const inboxRecord = defineRecord({
         who: d.who,
         platform: d.platform,
         kind: "dm",
-        channel: "reach",
+        // Reddit and LinkedIn DMs are reach's; the rest come through a connected account.
+        channel: d.platform === "reddit" || d.platform === "linkedin" ? "reach" : "social",
         state: d.waiting === "waiting" ? "waiting" : "read",
         body: d.last_body,
         post_title: null,
@@ -418,7 +419,11 @@ export const inboxRecord = defineRecord({
       "Kind",
     ),
     channel: status(
-      cued({ reach: neutral("Reach account"), content: neutral("Our post") }),
+      cued({
+        reach: neutral("Reach account"),
+        social: neutral("Connected account"),
+        content: neutral("Our post"),
+      }),
       "Where",
     ),
     state: STATES,
