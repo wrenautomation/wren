@@ -38,6 +38,8 @@ export interface GraphNode {
   dashed?: boolean | undefined;
   /** Opens into more nodes: drawn as a stack. */
   stacked?: boolean | undefined;
+  /** Its row in a `lanes` layout: "Email", "Texts". */
+  lane?: string | undefined;
   /** What the filters read: { State: "Built", Channel: "Email" }. */
   facets?: Readonly<Record<string, string>> | undefined;
 }

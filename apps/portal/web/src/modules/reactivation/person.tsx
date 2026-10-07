@@ -1,6 +1,6 @@
 /** What a person's record adds under its fields: where they are now, why they rank, how we looked. */
 import { VERDICTS } from "@wren/core/records";
-import { month, num, type RecordExtras, StateMark } from "@wren/ui";
+import { Journey, month, num, type RecordExtras, StateMark, type Touch } from "@wren/ui";
 import type { ReactNode } from "react";
 import type { PersonRow, PersonView } from "../../api.js";
 import type { ListPage } from "../../module.js";
@@ -8,7 +8,7 @@ import { cardOf } from "./bits.js";
 import { LineWork } from "./Run.js";
 
 type PersonDetail = Pick<PersonRow, "reasons" | "now" | "hiring" | "email" | "oldEmail"> &
-  Pick<PersonView, "sources" | "crm">;
+  Pick<PersonView, "sources" | "crm"> & { touches?: Touch[] };
 
 const roleAt = (title: string | null, company: string | null) =>
   [title, company].filter(Boolean).join(" at ");
@@ -55,6 +55,15 @@ export const personExtras: NonNullable<ListPage["extras"]> = (detail, { client, 
   return {
     facts,
     sections: [
+      // Every email, what came back, the meeting and each call, a lane per channel.
+      [
+        "Journey",
+        <Journey
+          key="journey"
+          touches={d.touches ?? []}
+          label={name ? `${name}'s journey` : "Journey"}
+        />,
+      ],
       [
         "How we looked",
         <div key="work" className="grid gap-8">

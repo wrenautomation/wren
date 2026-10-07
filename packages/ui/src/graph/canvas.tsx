@@ -38,6 +38,7 @@ import {
 } from "react";
 import { Input } from "../components/ui/input.js";
 import { GraphFrame } from "./frame.js";
+import { lanes } from "./lanes.js";
 import { type Direction, layout } from "./layout.js";
 import {
   edgeId,
@@ -91,15 +92,24 @@ export interface GraphProps {
   name?: string | undefined;
   /** The tallest it draws (px) before it scrolls inside; about 3/4 of the window by default. */
   maxHeight?: number | undefined;
+  /** Lights these nodes and fades the rest, as a search does: Play's step. */
+  focus?: readonly string[] | undefined;
+  /** "layered": elk works out columns from the wires. "lanes": the nodes' order is time, a row per lane. */
+  layout?: "layered" | "lanes" | undefined;
 }
 
 const PAD = 20;
 /** Narrower than this, "auto" runs top to bottom. */
 const NARROW = 640;
-/** Zoomed out past this, words get too small: it pans instead. A phone keeps them bigger. */
-const LEAST = { wide: 0.75, narrow: 0.8 };
+/**
+ * On a wide screen the whole drawing shows at rest, down to this zoom; past it, words get too
+ * small and it pans instead. A phone keeps words readable and pans.
+ */
+const LEAST = { wide: 0.4, narrow: 0.8 };
 /** Room under the drawing for the zoom buttons. */
 const TOOLS_ROOM = 40;
+/** Room under the drawing for the minimap, shown only when the drawing doesn't fit. */
+const MAP_ROOM = 120;
 
 const ICON: Record<GraphKind, LucideIcon> = {
   part: Boxes,
@@ -405,6 +415,8 @@ export default function GraphCanvas({
   tools = true,
   name,
   maxHeight,
+  layout: arrange = "layered",
+  focus,
 }: GraphProps) {
   const box = useRef<HTMLDivElement>(null);
   const [width, setWidth] = useState(0);
@@ -423,7 +435,10 @@ export default function GraphCanvas({
       ? "DOWN"
       : "RIGHT";
 
-  const sized = useMemo(() => nodes.map((n) => ({ id: n.id, ...nodeSize(n) })), [nodes]);
+  const sized = useMemo(
+    () => nodes.map((n) => ({ id: n.id, lane: n.lane, ...nodeSize(n) })),
+    [nodes],
+  );
   const wires = useMemo(
     () =>
       edges.map((e) => {
@@ -432,18 +447,17 @@ export default function GraphCanvas({
       }),
     [edges],
   );
-  const shape = JSON.stringify([sized, wires.map((w) => [w.id, w.size]), dir]);
+  const shape = JSON.stringify([sized, wires.map((w) => [w.id, w.size]), dir, arrange]);
   const [laid, setLaid] = useState<{ shape: string; laid: Laid } | null>(null);
   // biome-ignore lint/correctness/useExhaustiveDependencies: `shape` names everything laid out.
   useEffect(() => {
     if (!width) return;
     let live = true;
     const labeled = wires.some((w) => w.size.width);
-    layout(
-      sized,
-      wires.map((w) => ({ id: w.id, from: w.e.from, to: w.e.to, label: w.size })),
-      dir,
-      labeled ? 40 : 64,
+    const lines = wires.map((w) => ({ id: w.id, from: w.e.from, to: w.e.to, label: w.size }));
+    (arrange === "lanes"
+      ? Promise.resolve(lanes(sized, lines, dir))
+      : layout(sized, lines, dir, labeled ? 40 : 64)
     ).then((l) => live && setLaid({ shape, laid: l }));
     return () => {
       live = false;
@@ -452,7 +466,10 @@ export default function GraphCanvas({
 
   const [q, setQ] = useState("");
   const [picks, setPicks] = useState<Record<string, string>>({});
-  const lit = useMemo(() => litOf(nodes, q, picks), [nodes, q, picks]);
+  const lit = useMemo(
+    () => (focus?.length ? new Set(focus) : litOf(nodes, q, picks)),
+    [nodes, q, picks, focus],
+  );
   const facets = useMemo(() => facetsOf(nodes), [nodes]);
   const [hover, setHover] = useState<{ id: string; x: number; y: number } | null>(null);
   const [gone, setGone] = useState<ReadonlySet<string>>(new Set());
@@ -511,13 +528,29 @@ export default function GraphCanvas({
   const most = maxHeight ?? Math.max(360, Math.round((globalThis.innerHeight || 900) * 0.72));
   const view = useMemo(() => {
     if (!l) return null;
+    const narrow = width < NARROW;
     const room = Math.max(1, width - 2 * PAD);
-    const least = width < NARROW ? LEAST.narrow : LEAST.wide;
-    const zoom = Math.max(least, Math.min(1, room / Math.max(1, l.width)));
-    const height = Math.min(most, Math.ceil(l.height * zoom + 2 * PAD + TOOLS_ROOM));
-    const fits = l.width * zoom <= room + 1 && l.height * zoom + 2 * PAD + TOOLS_ROOM <= height + 1;
+    const tall = Math.max(1, most - 2 * PAD - TOOLS_ROOM);
+    const whole = Math.min(
+      1,
+      room / Math.max(1, l.width),
+      narrow ? 1 : tall / Math.max(1, l.height),
+    );
+    const zoom = Math.max(narrow ? LEAST.narrow : LEAST.wide, whole);
+    const fits = l.width * zoom <= room + 1 && (narrow || l.height * zoom <= tall + 1);
+    // The minimap sits in its own room under the drawing, so it never covers a node at rest.
+    const map = !fits && !narrow;
+    const height = Math.min(
+      most + (map ? MAP_ROOM : 0),
+      Math.ceil(l.height * zoom + 2 * PAD + TOOLS_ROOM + (map ? MAP_ROOM : 0)),
+    );
     const x = dir === "DOWN" ? Math.max(PAD, (width - l.width * zoom) / 2) : PAD;
-    return { rest: { x, y: PAD, zoom }, height, fits };
+    return {
+      rest: { x, y: PAD, zoom },
+      height,
+      fits: fits && l.height * zoom + 2 * PAD + TOOLS_ROOM <= height + 1,
+      map,
+    };
   }, [l, width, most, dir]);
 
   const download = async (kind: "svg" | "png") => {
@@ -602,7 +635,7 @@ export default function GraphCanvas({
               height={view.height}
               rest={view.rest}
               fits={view.fits}
-              minimap={!view.fits || nodes.length > 8}
+              minimap={view.map}
               flow={{
                 nodesConnectable: !!edit,
                 autoPanOnConnect: false,

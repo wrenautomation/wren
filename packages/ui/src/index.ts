@@ -51,7 +51,10 @@ export {
   type GraphNumber,
   type GraphProps,
   type GraphTone,
+  Journey,
+  journeyOf,
   percent,
+  type Touch,
   wireLines,
 } from "./graph/index.js";
 export { type HandlerCall, HandlerForm } from "./handler.js";

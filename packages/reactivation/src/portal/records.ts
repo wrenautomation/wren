@@ -24,6 +24,7 @@ import {
 import type { Queryable } from "@wren/db";
 import { sql } from "drizzle-orm";
 import { POINTS } from "../score.js";
+import { personTouches } from "./journey.js";
 import { portalEmails } from "./outbox.js";
 import { portalSetup } from "./setup.js";
 import { portalPerson } from "./views.js";
@@ -92,6 +93,7 @@ export const person = defineRecord({
       brief: view.brief,
       sources: view.sources,
       crm: view.crm,
+      touches: await personTouches(db, Number(id)),
     };
   },
 });
