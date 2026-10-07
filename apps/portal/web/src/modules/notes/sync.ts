@@ -2,8 +2,9 @@
  * A note's Yjs doc kept in step with the server over `notes/sync` (batch 1: HTTP; batch 2 moves
  * it to a live room). Edits go up a moment after they're made; others' come down on a poll while
  * the tab is open. A copy lives in this browser (IndexedDB), so edits made offline survive a
- * reload and merge when the server is back. What goes up is always what the server lacks, by its
- * own state vector, so nothing is sent twice and nothing is lost.
+ * reload and merge when the server is back. What goes up is what the server lacks, by its own
+ * state vector. Whether anything is unsent is a count of local edits, not the diff's size: a diff
+ * always carries the doc's deletions, so it is never empty once anything was deleted.
  */
 import { fromB64, toB64 } from "@wren/notes/doc";
 import { IndexeddbPersistence } from "y-indexeddb";
@@ -32,6 +33,9 @@ export class NoteSync {
   private stopped = false;
   private lastPoll = 0;
   private touched = Date.now();
+  /** Local edits made, and how many of them the server has. */
+  private edits = 0;
+  private sentEdits = 0;
   state: SyncState = "saved";
 
   constructor(
@@ -49,7 +53,9 @@ export class NoteSync {
     Y.applyUpdate(this.doc, fromB64(state), REMOTE);
     this.serverSv = Y.encodeStateVector(this.doc);
     this.doc.on("update", (_u: Uint8Array, origin: unknown) => {
-      if (origin !== REMOTE && this.canEdit) this.soon(PUSH_AFTER);
+      if (origin === REMOTE) return;
+      this.edits++;
+      if (this.canEdit) this.soon(PUSH_AFTER);
     });
     if (keepLocal) {
       try {
@@ -69,7 +75,7 @@ export class NoteSync {
 
   /** Whether this browser holds edits the server hasn't got. */
   lacking(): boolean {
-    return this.canEdit && Y.encodeStateAsUpdate(this.doc, this.serverSv).length > 2;
+    return this.canEdit && this.edits > this.sentEdits;
   }
 
   /** Sync now: after a restore, on coming back online. */
@@ -116,18 +122,20 @@ export class NoteSync {
     }
     this.busy = true;
     this.lastPoll = Date.now();
-    const update = this.canEdit ? Y.encodeStateAsUpdate(this.doc, this.serverSv) : null;
-    const sending = !!update && update.length > 2;
+    const mark = this.edits;
+    const sending = this.lacking();
+    const update = sending ? Y.encodeStateAsUpdate(this.doc, this.serverSv) : null;
     if (sending) this.set("saving");
     try {
       const out = await notes(this.client, "sync", {
         id: this.id,
-        update: sending ? toB64(update) : "",
+        update: update ? toB64(update) : "",
         sv: toB64(Y.encodeStateVector(this.doc)),
       });
       if (this.stopped) return;
       Y.applyUpdate(this.doc, fromB64(out.update), REMOTE);
       this.serverSv = fromB64(out.sv);
+      if (sending) this.sentEdits = mark;
       this.set(this.lacking() ? "saving" : "saved");
       this.hooks.onSynced(out);
       if (this.lacking()) this.again = true;

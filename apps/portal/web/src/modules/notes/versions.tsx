@@ -278,7 +278,7 @@ function Compare({ client, id, a, b }: { client: string; id: string; a: number; 
   );
 }
 
-/** The panel: its list, kept fresh by the doc page. */
+/** The panel: its list, kept fresh by the doc page. Beside the doc; above it on a phone. */
 export function VersionsPanel({
   list,
   error,
@@ -295,7 +295,7 @@ export function VersionsPanel({
   return (
     <aside
       aria-label="Version history"
-      className="flex min-h-0 w-full flex-col border-(--ui-hair) bg-(--ui-paper) max-lg:border-t lg:w-80 lg:flex-none lg:border-l print:hidden"
+      className="flex min-h-0 w-full flex-col border-(--ui-hair) bg-(--ui-paper) max-lg:order-first max-lg:border-b lg:w-80 lg:flex-none lg:border-l print:hidden"
     >
       <div className="flex h-10 items-center justify-between border-b border-(--ui-hair) pr-1 pl-3">
         <h2 className="m-0 text-[13px] font-semibold">Version history</h2>
@@ -308,7 +308,7 @@ export function VersionsPanel({
           <Icon name="close" />
         </button>
       </div>
-      <div className="min-h-0 overflow-y-auto lg:max-h-[calc(100dvh-180px)]">
+      <div className="min-h-0 overflow-y-auto max-lg:max-h-72 lg:max-h-[calc(100dvh-180px)]">
         {error && !list ? (
           <p className="m-3 text-[13px] text-(--ui-bad)">{error}</p>
         ) : !list ? (

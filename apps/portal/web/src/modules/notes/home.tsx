@@ -33,9 +33,12 @@ const EMPTY: Record<View, string> = {
   archived: "Nothing archived.",
 };
 
-/** Bold the words the search found (`«…»` from the server). */
+/** Bold the words the search found (`«…»` from the server). Checkbox and cell marks read as prose. */
 function Excerpt({ text }: { text: string }) {
-  const parts = text.split(/«|»/);
+  const parts = text
+    .replace(/\[[x ]\] /g, "")
+    .replace(/ \| /g, ", ")
+    .split(/«|»/);
   return (
     <>
       {parts.map((p, i) =>
@@ -222,7 +225,11 @@ export function NotesHome({ client, params, demo }: PageProps) {
           </ul>
         )}
       </div>
-      {data?.canManage ? <Training client={client} on={data.train} onChanged={list.retry} /> : null}
+      {data?.canManage ? (
+        <div className="mt-8">
+          <Training client={client} on={data.train} onChanged={list.retry} />
+        </div>
+      ) : null}
       {quick ? (
         <QuickNote client={client} open={quick} onOpenChange={setQuick} onSaved={list.retry} />
       ) : null}

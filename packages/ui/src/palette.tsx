@@ -63,7 +63,8 @@ export function CommandPalette({
   const lead = /^\s*note:/i.test(q);
   const note =
     capture && noted(q) ? (
-      <CommandGroup heading="Note">
+      // Forced, like its item: cmdk hides a group none of whose items its filter matched.
+      <CommandGroup heading="Note" forceMount>
         <CommandItem
           value={`note ${q}`}
           forceMount
@@ -87,7 +88,7 @@ export function CommandPalette({
           <CommandInput ref={box} placeholder="Do or go to…" value={q} onValueChange={setQ} />
         </DictateField>
         <CommandList>
-          <CommandEmpty>Nothing by that name.</CommandEmpty>
+          {note ? null : <CommandEmpty>Nothing by that name.</CommandEmpty>}
           {scope.search && q.trim() ? (
             <CommandGroup heading="Search">
               <CommandItem
