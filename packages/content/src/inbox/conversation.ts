@@ -210,6 +210,8 @@ export interface Entry {
   state?: string | null;
   /** Teammates `@`ed in a note. */
   mentions?: string[];
+  /** A booking's call time, ISO: the page says it in the viewer's time. */
+  start?: string;
 }
 
 /** How many lines a conversation carries: the newest. */
@@ -352,11 +354,9 @@ export async function timelineOf(db: Queryable, p: Party): Promise<Entry[]> {
       direction: "in",
       platform: null,
       who: str(b.name) ?? p.who,
-      body:
-        b.state === "cancelled"
-          ? "Cancelled the call."
-          : `Booked a call${b.start ? ` for ${iso(b.start)}` : ""}.`,
+      body: b.state === "cancelled" ? "Cancelled the call." : "Booked a call.",
       state: str(b.state),
+      ...(b.start ? { start: iso(b.start) } : {}),
     });
   // Touches the lines above don't already carry: follows, likes, posts of theirs we commented on.
   const seen = new Set(out.map((e) => e.id));

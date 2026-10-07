@@ -35,6 +35,7 @@ export type Entry = {
   subject?: string | null;
   state?: string | null;
   mentions?: string[];
+  start?: string;
 };
 /** `@wren/content/inbox`'s `ReplyOption`: a channel a reply can take. */
 export type ReplyOption = {
@@ -132,7 +133,11 @@ function Line({ e }: { e: Entry }) {
     return (
       <li className="grid gap-0.5 py-1">
         {head}
-        <span className="text-[13px] text-(--ui-ink-2)">{e.body}</span>
+        <span className="text-[13px] text-(--ui-ink-2)">
+          {e.start && e.state !== "cancelled"
+            ? `Booked a call for ${exact(new Date(e.start))}.`
+            : e.body}
+        </span>
       </li>
     );
   const box =
