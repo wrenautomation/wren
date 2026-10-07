@@ -5,6 +5,7 @@
  */
 import { loadSettings } from "@wren/config";
 import { serveRecords } from "@wren/core/records/serve";
+import { nameParts } from "@wren/core/templates/labels";
 import { startTestPostgres, type TestPostgres } from "@wren/db/testing";
 import { eq, sql } from "drizzle-orm";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
@@ -105,7 +106,7 @@ describe("email records", () => {
     expect(page.rows).toMatchObject([
       {
         id: "sec_ria",
-        campaign: "Sec ria",
+        campaign: "sec_ria",
         sent: 1,
         replies: 1,
         replyRate: { n: 1, of: 1 },
@@ -210,8 +211,19 @@ describe("email records", () => {
     const page = await serve().list({ record: "email.reply", view: "waiting" });
     expect(page.counts).toEqual({ waiting: 1, booked: 0, all: 1 });
     expect(page.rows).toMatchObject([
-      { who: "Jane Doe", state: "proposed", campaign: "Sec ria", words: "a reply" },
+      { who: "Jane Doe", state: "proposed", campaign: "sec_ria", words: "a reply" },
     ]);
+    // The campaign is the niche's key: filters match it, the web shows the label.
+    nameParts({ sec_ria: "SEC RIA" });
+    const field = serve()
+      .types()
+      .find((t) => t.id === "email.reply")
+      ?.fields.find((f) => f.key === "campaign");
+    expect(field).toMatchObject({ kind: "choice", states: { sec_ria: { label: "SEC RIA" } } });
+    const picked = await serve().list({ record: "email.reply", where: { campaign: ["sec_ria"] } });
+    expect(picked.rows).toHaveLength(1);
+    const none = await serve().list({ record: "email.reply", where: { campaign: "recruiting" } });
+    expect(none.rows).toHaveLength(0);
     const one = await serve().get({ record: "email.reply", id: String(page.rows[0]?.id) });
     expect(one.activity?.map((a) => a.kind).sort()).toEqual(["bounce", "reply", "sent"]);
   });
@@ -228,7 +240,7 @@ describe("email records", () => {
     });
     const lead = await serve().list({ record: "email.firm", view: "lead" });
     expect(lead.rows).toMatchObject([
-      { stage: "lead", domain: "oak.example", campaign: "Sec ria" },
+      { stage: "lead", domain: "oak.example", campaign: "sec_ria" },
     ]);
   });
 
@@ -240,19 +252,19 @@ describe("email records", () => {
 
   it("variants: the opener sent, with its campaign and step", async () => {
     const page = await serve().list({ record: "email.variant", view: "all" });
-    expect(page.rows).toMatchObject([{ campaign: "Sec ria", step: "Opener", sent: 1 }]);
+    expect(page.rows).toMatchObject([{ campaign: "sec_ria", step: "Opener", sent: 1 }]);
   });
 
   it("stalls: one row per campaign, with threads whose follow-up waits on its touch", async () => {
     const page = await serve().list({ record: "email.stall", view: "all" });
     // The opener went just now: its touch has the hour to land.
-    expect(page.rows).toMatchObject([{ campaign: "Sec ria", waitingOnTouch: 0 }]);
+    expect(page.rows).toMatchObject([{ campaign: "sec_ria", waitingOnTouch: 0 }]);
     await pg.db.execute(sql`
       update messages set sent_at = sent_at - interval '2 hours' where state = 'sent' and step = 0`);
     const late = await serve().list({ record: "email.stall", view: "all" });
     await pg.db.execute(sql`
       update messages set sent_at = sent_at + interval '2 hours' where state = 'sent' and step = 0`);
-    expect(late.rows).toMatchObject([{ campaign: "Sec ria", waitingOnTouch: 1 }]);
+    expect(late.rows).toMatchObject([{ campaign: "sec_ria", waitingOnTouch: 1 }]);
   });
 
   it("stats: replies waiting, this week", async () => {

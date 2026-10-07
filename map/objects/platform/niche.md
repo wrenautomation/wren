@@ -17,7 +17,7 @@ Core is niche-agnostic; everything market-specific is data behind one contract, 
 
 ## Shape
 
-- `Niche` (`niche.ts:26`): `name`, `label` (how people read it, "SEC RIA"; registered with `nameParts` in `packages/core/src/template-labels.ts` so rows and the Library name it), `factsView`, `lander`, `crawlHints`, `discoveryGenericWords`, `templates`, `sequences`, `smsSequences`, `offers`, `offerFacts`, `plan`, `companyLocation`, `leadSourceFormats`, `personSourceFormats`, `platformDomains`, `datasets`, `recontact` (rest days per outcome and yearly cap for lead recycling, `:47`; defaults `packages/channel-email/src/recontact.ts:45`)
+- `Niche` (`niche.ts:26`): `name`, `label` (how people read it, "SEC RIA"; registered with `nameParts` in `packages/core/src/template-labels.ts` so record campaign columns (a `choice` field over the niche key) and the Library name it), `factsView`, `lander`, `crawlHints`, `discoveryGenericWords`, `templates`, `sequences`, `smsSequences`, `offers`, `offerFacts`, `plan`, `companyLocation`, `leadSourceFormats`, `personSourceFormats`, `platformDomains`, `datasets`, `recontact` (rest days per outcome and yearly cap for lead recycling, `:47`; defaults `packages/channel-email/src/recontact.ts:45`)
 - `NicheSpec` (`:67`), `defineNiche` (`:111`); definitions `sec-ria.ts`, `agencies.ts`, `recruiting.ts`; templates `packages/templates/defaults/email/<niche>/` (`templatesDir`)
 - registries: `NICHES`, `FACTS_VIEWS`, `LANDERS_BY_NICHE`, `SMS_SEQUENCES`, `LEAD_SOURCE_FORMATS`, `PERSON_SOURCE_FORMATS` (`index.ts:24`–`104`)
 

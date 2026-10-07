@@ -19,14 +19,11 @@ const AGE = sql.raw(`case when month = date_trunc('month', current_date)::date t
     when month = (date_trunc('month', current_date) - interval '1 month')::date then 'last_month'
     else 'earlier' end`);
 
-/** A campaign's name from its niche key: "recruiting" is "Recruiting", "sec_ria" is "Sec ria". */
-const NAME = (key: string) =>
-  sql.raw(`upper(left(${key}, 1)) || replace(substr(${key}, 2), '_', ' ')`);
+// A campaign is its niche key ("sec_ria"); its records show the niche's label ("SEC RIA").
 
 /** Each campaign (niche): who it enrolled and reached, what went out, who answered. */
 export const emailCampaignRecords = pgView("email_campaign_records", {
   id: text("id"),
-  name: text("name"),
   enrolled: bigint("enrolled", { mode: "number" }),
   reached: bigint("reached", { mode: "number" }),
   sent: bigint("sent", { mode: "number" }),
@@ -35,7 +32,7 @@ export const emailCampaignRecords = pgView("email_campaign_records", {
   bounces: bigint("bounces", { mode: "number" }),
   lastSent: timestamp("last_sent", { withTimezone: true }),
 }).as(sql`
-  select e.niche::text id, ${NAME("e.niche::text")} "name", count(*) enrolled,
+  select e.niche::text id, count(*) enrolled,
     count(*) filter (where s.openers > 0) reached,
     coalesce(sum(s.openers + s.followups), 0)::bigint sent,
     count(*) filter (where i.replies > 0) replies,
@@ -69,7 +66,6 @@ export const emailReplyRecords = pgView("email_reply_records", {
   timeZone: text("time_zone"),
   detail: text("detail"),
   niche: text("niche"),
-  campaign: text("campaign"),
   received: timestamp("received", { withTimezone: true }),
 }).as(sql`
   select ci.id, ci.state::text state,
@@ -77,7 +73,7 @@ export const emailReplyRecords = pgView("email_reply_records", {
       p.full_name, te.from_address, ci.email)::text who,
     co.name::text company, co.domain::text domain, ci.email::text email, te.subject,
     coalesce(te.body_text, te.snippet) words, m.body draft, ci.start, ci.time_zone::text time_zone,
-    ci.detail, e.niche::text niche, ${NAME("e.niche::text")} campaign,
+    ci.detail, e.niche::text niche,
     coalesce(te.received_at, ci.created_at) received
   from call_invites ci
   join thread_events te on te.id = ci.thread_event_id
@@ -112,7 +108,6 @@ export const emailFirmRecords = pgView("email_firm_records", {
   name: text("name"),
   domain: text("domain"),
   niche: text("niche"),
-  campaign: text("campaign"),
   stage: text("stage"),
   declined: text("declined"),
   added: timestamp("added", { withTimezone: true }),
@@ -121,7 +116,7 @@ export const emailFirmRecords = pgView("email_firm_records", {
   lead: timestamp("lead", { withTimezone: true }),
 }).as(sql`
   select c.id, coalesce(c.name, c.domain, '?')::text "name", c.domain::text domain,
-    c.niche::text niche, ${NAME("c.niche::text")} campaign,
+    c.niche::text niche,
     case when c.decline_reason is not null then 'declined' when l.first is not null then 'lead'
       when p.first is not null then 'named' when d.first is not null then 'crawled'
       when c.domain is not null then 'domain' else 'found' end stage,
@@ -165,15 +160,10 @@ export const emailModelRecords = pgView("email_model_records", {
 const NEWEST = sql.raw(`left join lateral (
     select generation, taken_at, stats, shares, p_best from experiment_snapshots
     where experiment_id = e.id order by generation desc limit 1) s on true`);
-/** "Recruiting · book-first/opener". */
-const EXPERIMENT_NAME = sql.raw(
-  `upper(left(e.niche, 1)) || replace(substr(e.niche, 2), '_', ' ') || ' · ' || e.template`,
-);
 
 /** Each copy experiment: where it stands, its newest generation, its alleles by state. */
 export const emailExperimentRecords = pgView("email_experiment_records", {
   id: integer("id"),
-  name: text("name"),
   niche: text("niche"),
   template: text("template"),
   state: text("state"),
@@ -188,7 +178,7 @@ export const emailExperimentRecords = pgView("email_experiment_records", {
   lastTick: timestamp("last_tick", { withTimezone: true }),
   started: timestamp("started", { withTimezone: true }),
 }).as(sql`
-  select e.id, ${EXPERIMENT_NAME} "name", e.niche::text niche, e.template::text template,
+  select e.id, e.niche::text niche, e.template::text template,
     e.state::text state, replace(e.stop_reason::text, '_', ' ') stop_reason,
     e.settings->>'selection' selection, replace(e.settings->>'fitness', '_', ' ') fitness,
     coalesce(s.generation, 0) generation, a.loci, a.live, a.waiting, a.retired,
@@ -209,6 +199,7 @@ export const emailAlleleRecords = pgView("email_allele_records", {
   id: integer("id"),
   experimentId: integer("experiment_id"),
   experiment: text("experiment"),
+  niche: text("niche"),
   locus: text("locus"),
   allele: text("allele"),
   text: text("text"),
@@ -227,7 +218,8 @@ export const emailAlleleRecords = pgView("email_allele_records", {
   decided: timestamp("decided", { withTimezone: true }),
   created: timestamp("created", { withTimezone: true }),
 }).as(sql`
-  select a.id, a.experiment_id, ${EXPERIMENT_NAME} experiment, a.locus::text locus,
+  select a.id, a.experiment_id, e.template::text experiment, e.niche::text niche,
+    a.locus::text locus,
     a.allele::text allele, a.text, a.state::text state, a.origin::text origin,
     a.angle::text angle, a.judge_score, j.detail->>'reason' reason,
     coalesce((s.stats->a.locus->a.allele->>'exposures')::int, 0) exposures,
@@ -247,6 +239,7 @@ export const emailCandidateRecords = pgView("email_candidate_records", {
   id: integer("id"),
   experimentId: integer("experiment_id"),
   experiment: text("experiment"),
+  niche: text("niche"),
   locus: text("locus"),
   text: text("text"),
   state: text("state"),
@@ -258,7 +251,7 @@ export const emailCandidateRecords = pgView("email_candidate_records", {
   decided: timestamp("decided", { withTimezone: true }),
   created: timestamp("created", { withTimezone: true }),
 }).as(sql`
-  select r.id, r.experiment_id, r.experiment, r.locus, r.text, r.state, r.origin, r.angle,
+  select r.id, r.experiment_id, r.experiment, r.niche, r.locus, r.text, r.state, r.origin, r.angle,
     r.judge_score, r.reason, r.decided_by, r.decided, r.created
   from email_allele_records r
   join experiment_alleles a on a.id = r.id

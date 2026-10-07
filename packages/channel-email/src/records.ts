@@ -9,6 +9,7 @@ import { MEETING_OUTCOMES, outcomeStatus } from "@wren/core/calls";
 import { formOf } from "@wren/core/console";
 import {
   actor,
+  choice,
   cited,
   company,
   date,
@@ -24,7 +25,7 @@ import {
   text,
 } from "@wren/core/records";
 // A niche or arm as people read it: "sec_ria" is its niche's label, "SEC RIA".
-import { labelOf } from "@wren/core/templates/labels";
+import { labelOf, namedParts } from "@wren/core/templates/labels";
 import type { Queryable } from "@wren/db";
 import { parseSettings, settingsSchema } from "@wren/experiments";
 import { asc, eq, sql } from "drizzle-orm";
@@ -41,6 +42,12 @@ import { campaignPolicy, loadCampaignControls } from "./send/campaign-controls.j
 import { todaysSends } from "./send/deliver.js";
 import type { SendPolicy } from "./send/policy.js";
 import type { Sender } from "./send/roster.js";
+
+/**
+ * A campaign: the row keeps its niche key, so filters and links match keys, and shows the
+ * niche's label ("SEC RIA") from the labels the niches register (`nameParts`).
+ */
+const campaign = (from = "niche") => choice(namedParts, "Campaign", { from });
 
 const AGES = {
   this_month: { label: "This month", tone: "good" },
@@ -80,8 +87,7 @@ export const campaignRecord = (env: SendPolicy): RecordType =>
     key: "id",
     title: "campaign",
     fields: {
-      // "Agencies" in its list, panel and Overview alike; the id stays the niche's key.
-      campaign: text("Campaign", { from: "name" }),
+      campaign: campaign("id"),
       state: status({
         opening: { label: "Opening", tone: "good" },
         follow_ups: { label: "Follow-ups only", tone: "warn" },
@@ -206,7 +212,7 @@ export const replyRecord = defineRecord({
     received: date(),
     start: date("Proposed time"),
     timeZone: text("Time zone"),
-    campaign: text("Campaign"),
+    campaign: campaign(),
     subject: text(),
     words: cited("Their words"),
     draft: cited("Our draft"),
@@ -254,8 +260,7 @@ export const callRecord = defineRecord({
   channel: "email",
   name: { one: "call", many: "calls" },
   rows: async (db) =>
-    (
-      await db.execute<Record<string, unknown>>(sql`
+    await db.execute<Record<string, unknown>>(sql`
         select cb.id, cb.state::text state, cb.start, cb.booked_at booked, cb.email::text email,
           cb.offer::text offer, e.niche::text niche, co.name::text company, co.domain::text domain,
           case when cb.state = 'cancelled' then 'cancelled'
@@ -267,8 +272,7 @@ export const callRecord = defineRecord({
         from call_bookings cb
         left join enrollments e on e.id = cb.enrollment_id
         left join people p on p.id = e.person_id
-        left join companies co on co.id = e.company_id`)
-    ).map((r) => ({ ...r, campaign: r.niche ? labelOf(String(r.niche)) : null })),
+        left join companies co on co.id = e.company_id`),
   key: "id",
   title: "who",
   subtitle: "company",
@@ -279,7 +283,7 @@ export const callRecord = defineRecord({
     start: date("Call"),
     reason: text("Why"),
     booked: date("Booked"),
-    campaign: text("Campaign"),
+    campaign: campaign(),
     offer: text("Offer"),
     email: text("Email"),
     markedBy: text("Marked by"),
@@ -327,7 +331,7 @@ export const firmRecord = defineRecord({
   subtitle: "campaign",
   fields: {
     name: company("Firm", { domain: "domain" }),
-    campaign: text("Campaign"),
+    campaign: campaign(),
     stage: status({
       lead: { label: "Verified lead", tone: "good" },
       named: { label: "Named person", tone: "neutral" },
@@ -449,7 +453,6 @@ export const variantRecord = defineRecord({
       id: `${r.template}@${r.template_version}`,
       // "book-first" reads "Book first"; the version is told apart by when it was written.
       arm: r.arm ? labelOf(String(r.arm)) : r.arm,
-      campaign: labelOf(String(r.niche)),
       step: Number(r.step) === 0 ? "Opener" : `Follow-up ${r.step}`,
     })),
   key: "id",
@@ -457,7 +460,7 @@ export const variantRecord = defineRecord({
   subtitle: "campaign",
   fields: {
     arm: text("Variant"),
-    campaign: text("Campaign"),
+    campaign: campaign(),
     step: text(),
     written: date("Copy written"),
     sent: number("Sent"),
@@ -494,7 +497,6 @@ export const stallRecord = defineRecord({
     return (await db.execute<Record<string, unknown>>(sql`select * from pipeline_leaks`)).map(
       (r) => ({
         ...r,
-        campaign: labelOf(String(r.niche)),
         waiting_on_touch: touchless.get(String(r.niche)) ?? 0,
       }),
     );
@@ -502,7 +504,7 @@ export const stallRecord = defineRecord({
   key: "niche",
   title: "campaign",
   fields: {
-    campaign: text("Campaign"),
+    campaign: campaign(),
     catchAllLeads: number("Catch-all leads"),
     riskyLeads: number("Risky leads"),
     queuedFirms: number("Firms queued"),
@@ -643,9 +645,11 @@ export const experimentRecord = defineRecord({
   name: { one: "experiment", many: "experiments" },
   view: "email_experiment_records",
   key: "id",
-  title: "name",
+  title: "template",
+  subtitle: "campaign",
   fields: {
-    name: text("Experiment"),
+    template: text("Experiment"),
+    campaign: campaign(),
     state: status(EXPERIMENT_STATES),
     waiting: number("Waiting on you"),
     generation: number(),
@@ -707,6 +711,7 @@ export const alleleRecord = defineRecord({
     judgeScore: score("Judge score", { max: 10 }),
     retiredReason: text("Retired because"),
     experiment: text("Experiment"),
+    campaign: campaign(),
     created: date("Added"),
   },
   views: [
@@ -774,6 +779,7 @@ export const candidateRecord = defineRecord({
   fields: {
     text: text("Copy"),
     experiment: text("Experiment"),
+    campaign: campaign(),
     locus: text("Point"),
     state: status(ALLELE_STATES),
     judgeScore: score("Judge score", { max: 10 }),

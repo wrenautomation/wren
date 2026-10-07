@@ -1058,6 +1058,13 @@
       "when": 1791352152749,
       "tag": "0150_client_approver",
       "breakpoints": true
+    },
+    {
+      "idx": 151,
+      "version": "7",
+      "when": 1791353806524,
+      "tag": "0151_campaign_keys",
+      "breakpoints": true
     }
   ]
 }

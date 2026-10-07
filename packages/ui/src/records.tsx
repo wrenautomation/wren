@@ -594,6 +594,7 @@ function charsOf(f: FieldMeta, c: Cell | undefined): number {
   // A state's dot and its gap take about two characters.
   if (f.kind === "status" || f.kind === "verdict")
     return (f.states?.[String(c)]?.label ?? String(c)).length + 2;
+  if (f.kind === "choice") return (f.states?.[String(c)]?.label ?? String(c)).length;
   if (Array.isArray(c)) return c.join(", ").length;
   if (c && typeof c === "object") {
     if ("name" in c) return c.name.length;

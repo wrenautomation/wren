@@ -130,6 +130,8 @@ export function FieldCell({ field: f, cell: c }: { field: FieldMeta; cell: Cell 
     case "status":
     case "verdict":
       return <StateMark state={stateOf(f, String(c))} />;
+    case "choice":
+      return <span>{stateOf(f, String(c)).label}</span>;
     case "tags":
       return (
         <span>
@@ -459,7 +461,7 @@ export function FieldFilter({
               onChange={() => flip(id)}
               className="size-3.5 accent-(--ui-ink)"
             />
-            <StateMark state={st} />
+            {f.kind === "choice" ? st.label : <StateMark state={st} />}
           </label>
         ))}
         {empty ? <div className="mt-1.5 border-t border-(--ui-hair) pt-2">{setOrNot}</div> : null}

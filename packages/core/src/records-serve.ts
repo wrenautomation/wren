@@ -215,7 +215,7 @@ const sortSql = (f: Field): { expr: SQL; cast: Cast } =>
       ? { expr: sql`${valueSql(f)} collate "natural"`, cast: "text" }
       : { expr: valueSql(f), cast: castOf(f) };
 /** Text kinds whose footer says how many rows have one. */
-const FILLED = new Set(["text", "name", "company", "actor"]);
+const FILLED = new Set(["text", "name", "company", "actor", "choice"]);
 
 /**
  * The footer's aggregates, read in the count query: `in` is the view's filter, the rest of the

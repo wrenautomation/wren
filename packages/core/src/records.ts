@@ -117,6 +117,19 @@ export const KINDS = {
     csv: (c) =>
       c && typeof c === "object" && "amount" in c ? `${c.amount.toFixed(2)} ${c.currency}` : null,
   },
+  /**
+   * One of a set that can grow (a niche): the cell keeps its key ("sec_ria"), so filters and
+   * sorts compare keys, and shows its label ("SEC RIA") from the field's `choices`.
+   */
+  choice: {
+    sql: "text",
+    ops: ["eq", "in", "empty"],
+    sortable: true,
+    searchable: false,
+    masked: false,
+    column: left,
+    csv: (c, f) => (typeof c === "string" ? (f.choices?.()[c] ?? c) : null),
+  },
   /** A share from 0 to 1. */
   percent: {
     sql: "numeric",
@@ -255,6 +268,11 @@ export interface Field {
   from?: string;
   /** status, verdict: each state, in the order they sort. */
   states?: Readonly<Record<string, State>>;
+  /**
+   * choice: each key's label, read when asked, so a set registered after import (the niches,
+   * through `nameParts`) is in it.
+   */
+  choices?: () => Readonly<Record<string, string>>;
   /** company: the column with its domain. */
   domain?: string;
   /** money: the column with each row's currency code. */
@@ -294,6 +312,11 @@ export const score = (label?: string, opts: Opts = {}) =>
   kind("score")(label, { max: 100, ...opts });
 export const status = (states: Record<string, State>, label?: string, opts: Opts = {}) =>
   kind("status")(label, { states, ...opts });
+export const choice = (
+  choices: () => Readonly<Record<string, string>>,
+  label?: string,
+  opts: Opts = {},
+) => kind("choice")(label, { choices, ...opts });
 export const tags = (states: Record<string, State>, label?: string, opts: Opts = {}) =>
   kind("tags")(label, { states, ...opts });
 export const verdict = (label?: string, opts: Opts = {}) =>
@@ -532,6 +555,7 @@ export function defineRecord<F extends Record<string, Draft>>(decl: RecordDecl<F
     if (KINDS[f.kind].sql === "state" && !Object.keys(f.states ?? {}).length)
       throw new Error(`${decl.id}: ${f.label} needs states`);
     if (f.kind === "rate" && !f.of) throw new Error(`${decl.id}: ${f.label} needs of`);
+    if (f.kind === "choice" && !f.choices) throw new Error(`${decl.id}: ${f.label} needs choices`);
   }
   for (const k of [decl.title, decl.subtitle])
     if (k !== undefined && !Object.hasOwn(fields, k)) throw new Error(`${decl.id}: no field ${k}`);
@@ -637,6 +661,12 @@ export function allowed(f: Field, demo: boolean) {
   };
 }
 
+/** A choice's labels as states the web already draws: a picklist, a title's words. */
+const statesOf = (labels: Readonly<Record<string, string>>): Record<string, State> =>
+  Object.fromEntries(
+    Object.entries(labels).map(([k, label]) => [k, { label, tone: "neutral" as const }]),
+  );
+
 export function metaOf(type: RecordType, demo: boolean): RecordMeta {
   return {
     id: type.id,
@@ -645,11 +675,12 @@ export function metaOf(type: RecordType, demo: boolean): RecordMeta {
     subtitle: type.subtitle ?? null,
     fields: Object.entries(type.fields).map(([key, f]) => {
       const may = allowed(f, demo);
+      const states = f.choices ? statesOf(f.choices()) : f.states;
       return {
         key,
         kind: f.kind,
         label: f.label,
-        ...(f.states ? { states: f.states } : {}),
+        ...(states ? { states } : {}),
         ...(f.max !== undefined ? { max: f.max } : {}),
         ...may,
         column: KINDS[f.kind].column,
