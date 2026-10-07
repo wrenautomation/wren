@@ -22,6 +22,7 @@ import {
   CALENDAR,
   CALENDAR_SCOPE,
   CalendarBookings,
+  calendarChecks,
   GoogleHost,
 } from "@wren/calendar";
 import { makeCalendarConsole } from "@wren/calendar/console";
@@ -95,10 +96,15 @@ import {
 } from "@wren/channel-email/restate";
 import { EMAIL_CONSOLE_VIEWS, EMAIL_COST_VIEWS } from "@wren/channel-email/views";
 import { linkedinContent } from "@wren/channel-linkedin";
-import { facebookContent, instagramContent, instagramWebContent } from "@wren/channel-meta";
+import {
+  facebookContent,
+  instagramContent,
+  instagramWebContent,
+  metaChecks,
+} from "@wren/channel-meta";
 import { makeAds, makeAdsWatch } from "@wren/channel-meta/restate";
 import { redditApi, redditContent } from "@wren/channel-reddit";
-import { searchConsoleClient } from "@wren/channel-search";
+import { searchConsoleChecks, searchConsoleClient } from "@wren/channel-search";
 import { heatRecord, sessionRecord, surveyAnswerRecord } from "@wren/channel-search/records";
 import { makeSearchWatch, makeSearchWeek } from "@wren/channel-search/restate";
 import {
@@ -264,6 +270,8 @@ export interface Services {
  */
 /** One desk call from the books' day; past it the mailbox waits for tomorrow's pass. */
 const BOOKS_DESK_TIMEOUT_MS = 120_000;
+/** A setup check's read through autobrowse: gives up, never wakes the box; the next round asks again. */
+const SETUP_READ_TIMEOUT_MS = 30_000;
 
 export const POOL_CHAIN = ["PoolScheduler", "Discovery", "Enrichment", "Resolution"];
 /**
@@ -546,13 +554,14 @@ export async function buildServices(
   // Our own booking calendar: Google as the account the settings name, by delegation on the
   // calendar scope, minted on first use; mail from portal@.
   const calendarKey = () => loadServiceAccountKey(keyPath);
+  const googleCalendar = new GoogleHost((account) =>
+    serviceAccountToken(calendarKey(), { scopes: [CALENDAR_SCOPE], subject: account }),
+  );
   const calendarDeps: CalendarDeps = {
     db,
     calendar: "wren",
     settings: async () => (await settingsFor(db, null))[CALENDAR] ?? {},
-    host: new GoogleHost((account) =>
-      serviceAccountToken(calendarKey(), { scopes: [CALENDAR_SCOPE], subject: account }),
-    ),
+    host: googleCalendar,
     shared: settings.siteExportToken ?? null,
     site: settings.siteBaseUrl.replace(/\/+$/, ""),
     send:
@@ -1154,9 +1163,19 @@ export async function buildServices(
     );
   else log.info("WREN_PORTAL_ORIGIN unset: no DeliveryWatch");
   // What account setups check: DNS over HTTPS, Telnyx's 10DLC status, the roster's warmup and
-  // the placement tests. Free reads, all of them.
+  // the placement tests, Search Console's property list, a calendar's free/busy as its address,
+  // and the client's ad account through autobrowse's `meta`. Free reads, all of them.
   const setupChecks = {
     ...dnsChecks(dohResolve),
+    ...searchConsoleChecks(() => searchConsoleClient(loadServiceAccountKey(keyPath))),
+    ...calendarChecks(googleCalendar),
+    ...metaChecks(
+      ingressSites(ingressOf(settings), {
+        caller: "wren:setup",
+        service: sitesHost(settings.autobrowseInstanceId).service,
+        timeoutMs: SETUP_READ_TIMEOUT_MS,
+      }),
+    ),
     ...(smsProvider.registration
       ? smsChecks(db, smsProvider.registration, settings.telnyxCampaignId ?? null)
       : {}),

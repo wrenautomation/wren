@@ -109,7 +109,7 @@ Domain and inbox setups repeat every 7 days, so a broken DNS record or a bad pla
 
 **Meta.** `meta.partner_added`: the client adds Wren's business as a partner on its ad account. Check `meta.ad_account` (one read of the ad account). Repeat 7 days.
 
-In this build the checks that read a vendor are registered by name with a fake in tests. The worker registers DNS (DNS over HTTPS, free) and the 10DLC reads (the Telnyx provider it already has). The rest say "Check in development" and wait for a person to mark them done.
+Each check that reads a vendor is registered by name, with a fake in tests. The worker registers DNS (DNS over HTTPS, free), the 10DLC reads (the Telnyx provider it already has), email's, `search_console.access` (the sites list as Wren's service account), `google_calendar.access` (a freebusy read of the next hour) and `meta.ad_account` (`GET /act_<id>` through autobrowse `sites`; it never wakes the box). A check the worker doesn't register says "Its check is in development" and waits for a person to mark it done.
 
 ### Parts name their facts
 
@@ -231,7 +231,7 @@ Each step is committed with tests on synthetic data.
 - Each client's approver. Clients that existed before step e are `either`, so nothing changes for them; new clients start `wren`.
 - Whether `client` means any of the client's people who can act (built) or only its owner role.
 - Starting `SetupWatch` (rechecks done setups). Off until started by hand.
-- Search Console clients already reading: Wren's team marks "Wren's service account added" done on each, since that check is in development. Until then Search watch reads "Needs your account" for them in the Shop.
+- Search Console clients already reading: Wren's team starts the setup on each; its check passes on the first round. Until then Search watch reads "Needs your account" for them in the Shop.
 
 ## Decision log
 
@@ -254,4 +254,5 @@ Each step is committed with tests on synthetic data.
 - 2026-10-07 (step d): An own key reaches the worker in the Restate call's input on its way to SSM. Restate keeps invocation inputs for its retention window. Accepted for now; a direct write from the portal edge is the swap if that matters.
 - 2026-10-07 (step d): A client reads Vendors on its Account app, not under Billing: Billing is money only, and the page is a read.
 - 2026-10-07 (review): Vendors' "Today" is the room alone (`roomToday`); the cap is said on its own line, and hides for a free vendor. Vendor usage totals count Wren's key only: what Wren pays and may bill. Own-key use is its own line, billed to the client by the vendor.
+- 2026-10-07 (checks): Search Console, Calendar and Meta checks are live. Search Console matches the property exactly, else by bare domain (`sc-domain:` or URL), and an unverified user is not access. A refusal reads "not yet", any other error "Couldn't read", so a vendor outage never reads as the client's fault. A stuck run hides "Checks again": it has stopped.
 - 2026-10-07 (review): On a part page, an account whose setup isn't done reads "Saved", not "Connected". The team reads "Needs your account" too, the Shop's wording. What a part provides (code names) moved under System.

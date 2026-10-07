@@ -6,3 +6,4 @@ export * from "./content-web.js";
 export * from "./days.js";
 export * from "./launches.js";
 export * from "./schema.js";
+export * from "./setups.js";

@@ -7,6 +7,7 @@ export * from "./heat.js";
 export * from "./keywords.js";
 export * from "./propose.js";
 export * from "./schema.js";
+export * from "./setups.js";
 export * from "./site.js";
 export * from "./site-days.js";
 export * from "./sync.js";

@@ -67,6 +67,9 @@ const LIVE_CHECKS = new Set([
   "telnyx.number",
   "inbox.warmup",
   "inbox.placement",
+  "search_console.access",
+  "google_calendar.access",
+  "meta.ad_account",
 ]);
 /** The same services as the Worker's `/api/<service>/<route>`, called in-process. */
 const SERVICES: Record<

@@ -138,3 +138,15 @@ export async function sitemapUrls(fetch: FetchLike, sitemap: string): Promise<st
     (m) => m[1] as string,
   );
 }
+
+/** A property the service account is on, and how: `siteOwner`, `siteFullUser`, `siteUnverifiedUser`… */
+export interface SiteEntry {
+  siteUrl: string;
+  permissionLevel: string;
+}
+
+/** Every property the service account sees. One free read. */
+export async function listSites(c: SearchConsoleClient): Promise<SiteEntry[]> {
+  const out = await call(c, "GET", `${WEBMASTERS}/sites`);
+  return (out.siteEntry as SiteEntry[] | undefined) ?? [];
+}
