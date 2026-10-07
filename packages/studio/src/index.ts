@@ -5,7 +5,15 @@
  */
 
 export { CAP_RECORDINGS, capNotReady, capTracks, findCapProjects, isCap } from "./cap.js";
-export { type Line, lineAt, REEL, reelLines } from "./captions.js";
+export {
+  bigWordState,
+  CAPTION_STYLES,
+  type CaptionStyle,
+  type Captions,
+  isCaptionStyle,
+  wordState,
+} from "./caption-styles.js";
+export { type Line, lineAt, pages, phrases, REEL, reelLines } from "./captions.js";
 export {
   CUT_DEFAULTS,
   type CutKnobs,
@@ -14,7 +22,9 @@ export {
   fitWords,
   fromCutTime,
   keepSegments,
+  onCut,
   reviewCuts,
+  toCutTime,
 } from "./cuts.js";
 export {
   addVideo,
@@ -31,8 +41,10 @@ export {
   setLook,
   setRender,
   setRendered,
+  setStress,
   setStudioWords,
   setWords,
+  stressOnCut,
   studioWords,
   twelvelabsMinutes,
   type WordsFix,
@@ -57,11 +69,25 @@ export {
   normalizeLoudness,
   parseLoudnorm,
 } from "./loudness.js";
+export {
+  editMattes,
+  ensureModel,
+  MATTE,
+  type MattePlan,
+  type MatteWindow,
+  MODEL,
+  makeMattes,
+  matteFile,
+  type Pick,
+  planMattes,
+} from "./matte.js";
 export { cutSize, cutTracks, FPS, portrait, preview, proxy360, scaleFilter } from "./media.js";
 export { findRecordings, isOpen, obsRecordingDir } from "./obs.js";
 export {
+  type BehindWord,
   type LongProps,
   longProps,
+  type Matte,
   SHORT_COUNT,
   SHORT_S,
   type ShortProps,
@@ -72,6 +98,16 @@ export {
   verticalProps,
   verticalWindow,
 } from "./props.js";
-export { openStudio, type RenderJob, renderAll, renderStill } from "./remotion.js";
+export { openStudio, type RenderJob, renderAll, renderStill, renderStills } from "./remotion.js";
 export * from "./schema.js";
+export {
+  checkStress,
+  parseStress,
+  proposeStress,
+  remapStress,
+  STRESS,
+  spaceStress,
+  stressPrompt,
+  wordAt,
+} from "./stress.js";
 export { fixWordAt, fixWords } from "./words.js";

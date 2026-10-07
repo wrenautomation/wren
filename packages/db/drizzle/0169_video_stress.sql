@@ -1,0 +1,1 @@
+ALTER TABLE "video_edits" ADD COLUMN "stress" jsonb DEFAULT '[]'::jsonb NOT NULL;

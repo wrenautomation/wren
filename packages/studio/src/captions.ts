@@ -35,8 +35,8 @@ const endsSentence = (w: string) => /[.?!…]["')\]]*$/.test(w);
 const endsClause = (w: string) => /[,;:–—]["')\]]*$/.test(w);
 const chars = (ws: readonly Word[]) => ws.reduce((n, w) => n + w.w.length, ws.length - 1);
 
-/** Hard breaks: after a sentence end or before a pause. */
-function phrases(words: readonly Word[], pauseS: number): Word[][] {
+/** Hard breaks: after a sentence end or before a pause. A phrase is one beat. */
+export function phrases(words: readonly Word[], pauseS: number): Word[][] {
   const out: Word[][] = [];
   let cur: Word[] = [];
   words.forEach((w, i) => {
@@ -102,4 +102,24 @@ export function lineAt(lines: readonly Line[], t: number): { line: Line; word: n
   if (!line) return null;
   const word = line.words.findIndex((w, i) => t >= w.s && t < (line.words[i + 1]?.s ?? line.e));
   return { line, word };
+}
+
+/** The long video's caption pages: up to 7 words, broken at a sentence end or a pause over 0.6 s. */
+export function pages<W extends Word>(words: readonly W[]): W[][] {
+  const out: W[][] = [];
+  let page: W[] = [];
+  for (const w of words) {
+    const prev = page.at(-1);
+    if (page.length && (page.length >= 7 || (prev && w.s - prev.e > 0.6))) {
+      out.push(page);
+      page = [];
+    }
+    page.push(w);
+    if (/[.?!]$/.test(w.w)) {
+      out.push(page);
+      page = [];
+    }
+  }
+  if (page.length) out.push(page);
+  return out;
 }

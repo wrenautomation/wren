@@ -19,6 +19,7 @@ const CHANGES = [
   "video keep",
   "video cut-words",
   "video words",
+  "video stress",
   VIDEO_ASK,
   "video undo",
 ];
@@ -155,6 +156,6 @@ export async function undoVideo(db: Queryable, id: number, by: string) {
   if (!last || !Object.keys(last.before).length) throw new Error("nothing to undo");
   // A transcript fix holds the words it replaced; the rest is the edit's fields.
   if ("words" in last.before)
-    return setWords(db, id, { words: last.before.words }, { by, command: "video undo" });
+    return setWords(db, id, last.before as { words: unknown }, { by, command: "video undo" });
   return setEdit(db, id, last.before, { by, command: "video undo" });
 }

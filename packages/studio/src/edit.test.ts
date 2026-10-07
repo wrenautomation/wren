@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { checkPatch, editPatchSchema, formatsFor } from "./edit.js";
-import { shortProps, verticalProps, verticalWindow } from "./props.js";
+import { longProps, shortProps, verticalProps, verticalWindow } from "./props.js";
 import type { Cut, VideoEdit } from "./schema.js";
 
 const short = (from: number, to: number) => ({ from, to, title: "t" });
@@ -136,5 +136,66 @@ describe("verticalProps", () => {
     expect(p.main).toBe("cut-main.mp4");
     expect(p.picture.file).toBe("cut-cam.mp4");
     expect(p.picture.window).toEqual([656, 0, 608, 1080]);
+  });
+});
+
+describe("captions and stress (step 6)", () => {
+  it("takes a style from the list and behind on or off", () => {
+    expect(editPatchSchema.parse({ captions: { on: true, style: "pill", behind: true } })).toEqual({
+      captions: { on: true, style: "pill", behind: true },
+    });
+    expect(editPatchSchema.safeParse({ captions: { on: true, style: "neon" } }).success).toBe(
+      false,
+    );
+    expect(editPatchSchema.safeParse({ stress: [1.5] }).success).toBe(false);
+  });
+
+  /** A word every 0.4 s, a sentence every 5 words. */
+  const words = Array.from({ length: 100 }, (_, i) => ({
+    w: i % 5 === 4 ? `w${i}.` : `w${i}`,
+    s: i * 0.4,
+    e: i * 0.4 + 0.3,
+  }));
+
+  it("refuses a stressed word that's cut, or too close once cut", () => {
+    const check = (stress: number[], cuts: Cut[] = []) =>
+      checkPatch(editPatchSchema.parse({ stress }), 40, cuts, words);
+    expect(check([2, 20])).toEqual([]);
+    const cut = (from: number, to: number) => ({ from, to, why: "silence", state: "cut" }) as Cut;
+    expect(check([2, 20], [cut(0.7, 1.1)])[0]).toMatch(/is cut/);
+    // Cutting 1.6..7.6 brings word 20 (8.0 s) right after word 2 (0.8 s).
+    expect(check([2, 20], [cut(1.6, 7.6)])[0]).toMatch(/under 0.6s.*once cut/);
+    expect(check([2, 500])[0]).toMatch(/no word 500/);
+  });
+
+  it("puts the stressed words behind only where a matte holds them", () => {
+    const edit = {
+      id: 1,
+      title: "v",
+      tracks: { main: { path: "/m.mp4", durationS: 40, width: 1920, height: 1080, fps: 30 } },
+      cuts: [{ from: 0, to: 1, why: "silence", state: "cut" }],
+      words,
+      layout: [],
+      captions: { on: true, style: "stress", behind: true },
+      stress: [5, 20],
+      shorts: [],
+      files: { cutMain: "/d/cut-main.mp4" },
+    } as unknown as VideoEdit;
+    const matte = { n: 1, source: "main" as const, fromFrame: 30, frames: 45, picks: [5] };
+    const p = longProps(edit, [{ ...matte, file: "matte/main-30-45.webm" }]);
+    // Words 0..2 are cut: word 5 is index 2 on the cut, word 20 index 17.
+    expect(p.stress).toEqual([2, 17]);
+    expect(p.behind).toEqual([
+      {
+        w: "w5",
+        s: 1,
+        e: 1.3,
+        to: 2.5,
+        matte: { file: "matte/main-30-45.webm", src: "cut-main.mp4", fromFrame: 30, frames: 45 },
+      },
+    ]);
+    expect(longProps({ ...edit, captions: { on: true, style: "stress" } }, [])).toMatchObject({
+      behind: [],
+    });
   });
 });

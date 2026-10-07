@@ -73,6 +73,48 @@ export async function renderStill(
   return out;
 }
 
+/**
+ * One frame of each format the job names, at `atS` seconds on the cut timeline:
+ * `<dir>/out/still-<format>-<label>.png` (a Short only when that time is inside it). `label`: the
+ * time as he gave it, else `atS`. One bundle.
+ */
+export async function renderStills(
+  pkgDir: string,
+  dir: string,
+  job: Omit<RenderJob, "thumbnails">,
+  atS: number,
+  label = String(Math.round(atS * 10) / 10),
+): Promise<Record<string, string>> {
+  const out = join(dir, "out");
+  await mkdir(out, { recursive: true });
+  const files: Record<string, string> = {};
+  const at = label;
+  await withBundle(pkgDir, dir, async (bundle) => {
+    const still = async (
+      name: string,
+      comp: string,
+      props: { durationInFrames: number },
+      f: number,
+    ) => {
+      const file = join(out, `still-${name}-${at}.png`);
+      const frame = Math.max(0, Math.min(props.durationInFrames - 1, f));
+      await remotion(pkgDir, [
+        ...["still", bundle, comp, file, `--frame=${frame}`],
+        ...["--props", await propsFile(dir, `still-${name}`, props)],
+      ]);
+      files[name] = file;
+    };
+    if (job.long) await still("long", "Long", job.long, Math.round(atS * job.long.fps));
+    if (job.vertical)
+      await still("vertical", "Vertical", job.vertical, Math.round(atS * job.vertical.fps));
+    for (const [n, p] of job.shorts ?? []) {
+      const f = Math.round(atS * p.fps) - p.startFrame;
+      if (f >= 0 && f < p.durationInFrames) await still(`short-${n}`, "Short", p, f);
+    }
+  });
+  return files;
+}
+
 export interface RenderJob {
   long?: LongProps;
   /** The whole cut, 9:16. */

@@ -1339,6 +1339,9 @@ importers:
       drizzle-orm:
         specifier: 0.45.2
         version: 0.45.2(@cloudflare/workers-types@5.20260927.1)(kysely@0.29.6)(postgres@3.4.9)
+      onnxruntime-node:
+        specifier: 1.30.0
+        version: 1.30.0
       react:
         specifier: 19.3.0
         version: 19.3.0

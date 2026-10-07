@@ -3,16 +3,24 @@
  * 4): the preview; the title, description, tags, chapters, Shorts titles and thumbnail text, each
  * saved on blur; the cuts with the words they strike, Keep or Cut; a span of transcript words
  * picked and cut; Ask Claude with Undo. Step 5: the formats it renders as, the vertical cut's
- * preview, and a misheard word fixed in the transcript (one word, or every match). Every change is
+ * preview, and a misheard word fixed in the transcript (one word, or every match). Step 6: the
+ * caption style, stressed words behind the speaker, and stressed words marked and toggled in the
+ * transcript. Every change is
  * `VideoDesk` on the record's inline actions. Render is the head action; its state shows on the
  * record.
  */
 import type { DraftTurnLine, RecordAct, RecordExtras } from "@wren/ui";
-import { Button, DictateField, DraftTurns, Empty, Input, Tag, Textarea } from "@wren/ui";
+import { Button, cx, DictateField, DraftTurns, Empty, Input, Tag, Textarea } from "@wren/ui";
 import { type ReactNode, useEffect, useRef, useState } from "react";
 import type { ListPage } from "../../module.js";
 
-type Word = { w: string; s: number; e: number; cut: "cut" | "proposed" | null };
+type Word = {
+  w: string;
+  s: number;
+  e: number;
+  cut: "cut" | "proposed" | null;
+  stress?: boolean;
+};
 type CutRow = {
   from: number;
   to: number;
@@ -25,7 +33,10 @@ type CutRow = {
 };
 type Short = { from: number; to: number; title: string };
 type Format = "long" | "vertical";
+type Captions = { on: boolean; style: string; behind?: boolean };
 type Edit = {
+  captions?: Captions;
+  stress?: number[];
   title: string;
   description: string;
   tags: string[];
@@ -243,11 +254,80 @@ function Formats({ formats, act }: { formats: Format[]; act: RecordAct }) {
   );
 }
 
+const STYLES: [string, string, string][] = [
+  ["word", "Word", "The word you're saying on your colour."],
+  ["pill", "Pill", "The line on a dark pill. Each word lights up as you say it."],
+  ["sweep", "Sweep", "Your colour sweeps in behind each word."],
+  ["pop", "Pop", "Each word squeezes in as you say it."],
+  ["wipe", "Wipe", "Each word wipes in from the left."],
+  ["stress", "Stress", "Stressed words show bigger, in a heavier face."],
+];
+
+/** The caption style and the stressed words behind him. Saved on each change. */
+function CaptionStyle({ captions, act }: { captions: Captions; act: RecordAct }) {
+  const [said, setSaid] = useState<string | null>(null);
+  const [bad, setBad] = useState(false);
+  const save = async (next: Captions) => {
+    setSaid("Saving…");
+    setBad(false);
+    try {
+      await act(SET, { patch: { captions: next } });
+      setSaid("Saved. Render again to see it.");
+    } catch (err) {
+      setSaid(errorOf(err));
+      setBad(true);
+    }
+  };
+  return (
+    <fieldset className="grid min-w-0 gap-2">
+      <div className="flex items-baseline justify-between gap-3">
+        <legend className="text-[13px] font-medium text-(--ui-ink-2)">Captions</legend>
+        <span
+          aria-live="polite"
+          className={bad ? "text-[12px] text-(--ui-bad)" : "text-[12px] text-(--ui-ink-2)"}
+        >
+          {said ?? ""}
+        </span>
+      </div>
+      {STYLES.map(([style, label, hint]) => (
+        <label key={style} className="flex cursor-pointer items-start gap-3">
+          <input
+            type="radio"
+            name="caption-style"
+            checked={captions.style === style}
+            onChange={() => void save({ ...captions, style })}
+            className="mt-1 size-4 accent-(--ui-accent)"
+          />
+          <span className="grid gap-0.5">
+            <span className="text-[14px]">{label}</span>
+            <span className="text-[13px] text-(--ui-ink-2)">{hint}</span>
+          </span>
+        </label>
+      ))}
+      <label className="mt-1 flex cursor-pointer items-start gap-3">
+        <input
+          type="checkbox"
+          checked={!!captions.behind}
+          onChange={(e) => void save({ ...captions, behind: e.target.checked })}
+          className="mt-1 size-4 accent-(--ui-accent)"
+        />
+        <span className="grid gap-0.5">
+          <span className="text-[14px]">Stressed words behind you</span>
+          <span className="text-[13px] text-(--ui-ink-2)">
+            Each shows big, between the background and you. Mark them in the transcript.
+          </span>
+        </span>
+      </label>
+    </fieldset>
+  );
+}
+
 function Fields({ edit, act }: { edit: Edit; act: RecordAct }) {
   const thumb = edit.thumbnail;
   return (
     <div className="grid gap-4">
       <Formats formats={edit.formats} act={act} />
+      <CaptionStyle captions={edit.captions ?? { on: true, style: "word" }} act={act} />
       <Field label="Title" value={edit.title} max={100} act={act} patch={(title) => ({ title })} />
       <Field
         label="Description"
@@ -399,7 +479,17 @@ function Cuts({ cuts, act }: { cuts: CutRow[]; act: RecordAct }) {
  * The words, cuts struck through (proposals on the accent wash). Pick a span of words and cut it:
  * the bar under it says how many and from when.
  */
-function Transcript({ words, act, edit }: { words: Word[]; act: RecordAct; edit: boolean }) {
+function Transcript({
+  words,
+  act,
+  edit,
+  stress = [],
+}: {
+  words: Word[];
+  act: RecordAct;
+  edit: boolean;
+  stress?: number[];
+}) {
   const box = useRef<HTMLParagraphElement>(null);
   const [span, setSpan] = useState<[number, number] | null>(null);
   const [busy, setBusy] = useState(false);
@@ -438,6 +528,24 @@ function Transcript({ words, act, edit }: { words: Word[]; act: RecordAct; edit:
     }
   };
   const n = span ? span[1] - span[0] + 1 : 0;
+  // One word picked: stress it, or take its stress off.
+  const stressed = !!span && n === 1 && stress.includes(span[0]);
+  const toggleStress = async () => {
+    if (!span || n !== 1) return;
+    setBusy(true);
+    setError(null);
+    try {
+      const i = span[0];
+      const next = stressed ? stress.filter((x) => x !== i) : [...stress, i];
+      await act(SET, { patch: { stress: next } });
+      document.getSelection()?.removeAllRanges();
+      setSpan(null);
+    } catch (err) {
+      setError(errorOf(err));
+    } finally {
+      setBusy(false);
+    }
+  };
   // One word picked: fix it to what he said.
   const [fix, setFix] = useState("");
   const fixOne = async () => {
@@ -459,7 +567,7 @@ function Transcript({ words, act, edit }: { words: Word[]; act: RecordAct; edit:
     <div className="grid gap-2">
       {edit ? (
         <p className="text-[12px] text-(--ui-ink-3)">
-          Select words to cut them, or one word to fix it.
+          Select words to cut them, or one word to fix or stress it. Stressed words are underlined.
         </p>
       ) : null}
       <p ref={box} className="text-[14px] leading-7 break-words">
@@ -468,13 +576,11 @@ function Transcript({ words, act, edit }: { words: Word[]; act: RecordAct; edit:
             key={`${w.s}-${w.e}`}
             data-i={i}
             title={clock(w.s)}
-            className={
-              w.cut === "cut"
-                ? "text-(--ui-ink-3) line-through"
-                : w.cut === "proposed"
-                  ? "bg-(--ui-accent-wash) line-through"
-                  : undefined
-            }
+            className={cx(
+              w.cut === "cut" && "text-(--ui-ink-3) line-through",
+              w.cut === "proposed" && "bg-(--ui-accent-wash) line-through",
+              w.stress && "font-semibold underline decoration-(--ui-accent) decoration-2",
+            )}
           >
             {w.w}{" "}
           </span>
@@ -488,6 +594,11 @@ function Transcript({ words, act, edit }: { words: Word[]; act: RecordAct; edit:
           <Button size="dense" busy={busy} onClick={() => void cut()}>
             Cut {n === 1 ? "it" : "them"}
           </Button>
+          {n === 1 ? (
+            <Button size="dense" tone="quiet" busy={busy} onClick={() => void toggleStress()}>
+              {stressed ? "Unstress" : "Stress"}
+            </Button>
+          ) : null}
           {n === 1 ? (
             <span className="flex min-w-0 items-center gap-2">
               <Input
@@ -721,7 +832,10 @@ export const videoExtras: NonNullable<ListPage["extras"]> = (detail, { act }) =>
         ],
   );
   if (edit) sections.push(["Cuts", <Cuts key="c" cuts={v.cuts} act={act} />]);
-  sections.push(["Transcript", <Transcript key="t" words={v.words} act={act} edit={edit} />]);
+  sections.push([
+    "Transcript",
+    <Transcript key="t" words={v.words} act={act} edit={edit} stress={v.edit.stress ?? []} />,
+  ]);
   if (edit) sections.push(["Ask Claude", <Ask key="a" turns={v.turns} act={act} />]);
   if (v.shorts.length) sections.push(["Shorts", <Shorts key="s" shorts={v.shorts} />]);
   if (v.thumbnails.length)

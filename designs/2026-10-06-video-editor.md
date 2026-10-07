@@ -405,3 +405,33 @@ Answered 10-06: agreed; OBS; captions on the long video and Shorts.
   caption styles and behind-the-speaker words into Remotion. Hyperframes itself isn't a dependency:
   its renderer works the same way as Remotion (no speed gain), it's pre-1.0 with about two releases a
   day, and two renderers would be twice the upkeep. Effect styles, transitions and ducking are left out.
+- 2026-10-07: Step 6 built. Built: `captions.style` (word, pill, sweep, pop, wipe, stress; zod enum)
+  on the frame clock for the lower third and the Reels line (`caption-styles.ts`); `stress` on the
+  edit (migration 0169, indexes into `words`); `wren video stress <id>` (gateway, one `runs` row,
+  `--add/--drop <s>`); `captions.behind` with u2net_human_seg mattes (`matte.ts`); `wren video set
+  --captions-style --behind`, `render --still <s>`; the page's caption styles, behind toggle, and
+  Stress/Unstress on one picked transcript word (stressed words underlined). Credit: a header on
+  `caption-styles.ts`, `stress.ts`, `matte.ts` and `remotion/index.tsx`, plus
+  `packages/studio/NOTICE`. Choices the doc left open: stress is checked on the cut timeline at
+  every write (a cut word or a clash once cut is refused); the 3-a-minute cap binds model picks
+  only, his own adds don't; `--add/--drop` take raw seconds, the word said then (else the nearest
+  within 1 s); the model reads 300 words an ask (the gateway's 20 s upstream limit) and an index
+  whose word doesn't match snaps to the same word within 3; a word fix that merges words moves the
+  stress with it, and Undo puts it back. Mattes live in `<dir>/matte/` (the edit dir is Remotion's
+  public dir) named `<source>-<fromFrame>-<frames>.webm`; `plan.json` keys them on the cut files'
+  size and mtime, so a new cut drops them and a re-render reuses them. Planner: a window is the
+  word's start to 1.2 s after its end, capped at 3 s, windows under 0.5 s apart merge, 40 at most;
+  a pick is skipped under the screen share, under the corner cam (or the cam box), or when the
+  layout changes inside its window. Each format reuses a matte only when its picture is the matted
+  file (main or cam). The model's sha256 was pinned from the first download (md5 matches rembg's
+  registry). Look: the stress face is Georgia bold italic at 1.4x; the big word is 260 px on Long,
+  220 px on Vertical and Shorts, upper middle, punctuation stripped, fit to 90% width; pill is a
+  dark pill with grey unsaid words. Checked: unit tests (styles, parser, spacing, remap, planner,
+  setEdit refusals); a synthetic 10 s clip rendered in each style, Long and Vertical stills looked
+  at; video 3's row copied read-only into a throwaway Postgres, "lock-in." stressed at 55.2 s, a
+  second pick 0.7 s later refused, a 51-frame matte (about 0.5 s a frame on CPU), and the Long still
+  at 55.7 s shows the word behind his head. Nothing written to prod; video 3 on YouTube untouched.
+  Not handled: `wren video stress` with the model never ran end to end (the gateway's free Gemini
+  keys answered 503 or were cooling all session; Cohere is paid, so not tried); one matte run
+  ended with a libc++ mutex abort at exit after a good render, not seen again in four runs;
+  matting is slow (a 1 min video with 3 picks is about 1 min of CPU).

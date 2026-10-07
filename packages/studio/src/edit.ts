@@ -12,6 +12,7 @@ import { atomic, type Queryable } from "@wren/db";
 import { eq } from "drizzle-orm";
 import { z } from "zod";
 import { capMeta, capTracks, isCap } from "./cap.js";
+import { CAPTION_STYLES } from "./caption-styles.js";
 import {
   CUT_DEFAULTS,
   type CutKnobs,
@@ -19,6 +20,7 @@ import {
   fillerProposals,
   keepSegments,
   onCut,
+  toCutTime,
   withSilence,
 } from "./cuts.js";
 import { FPS, pcm, probe, silencePass, syncOffset, wav16k } from "./media.js";
@@ -37,6 +39,7 @@ import {
   videoEdits,
   type Word,
 } from "./schema.js";
+import { checkStress, remapStress } from "./stress.js";
 import { transcribe } from "./whisper.js";
 import { fixWordAt, fixWords } from "./words.js";
 
@@ -220,7 +223,11 @@ export const editPatchSchema = z
     chapters: z.array(z.object({ at: sec, title: z.string().min(1).max(100) }).strict()),
     cuts: z.array(z.object({ ...span, why: z.enum(CUT_WHYS), state: z.enum(CUT_STATES) }).strict()),
     layout: z.array(z.object({ ...span, show: z.enum(LAYOUTS) }).strict()),
-    captions: z.object({ on: z.boolean(), style: z.string().min(1).max(32) }).strict(),
+    captions: z
+      .object({ on: z.boolean(), style: z.enum(CAPTION_STYLES), behind: z.boolean().optional() })
+      .strict(),
+    /** Stressed words, as indexes into `words` (step 6). */
+    stress: z.array(z.number().int().min(0)).max(500),
     shorts: z.array(z.object({ ...span, title: z.string().max(100) }).strict()),
     formats: z
       .array(z.enum(FORMATS))
@@ -236,13 +243,15 @@ export const editPatchSchema = z
 export type EditPatch = z.infer<typeof editPatchSchema>;
 
 /**
- * Refuse a range backwards or past the end, and Shorts off the rules: none, or 2 to 4 of 20 to 60 s
- * each once cut (`cuts`: the edit's, unless the patch sets them too).
+ * Refuse a range backwards or past the end, Shorts off the rules (none, or 2 to 4 of 20 to 60 s
+ * each once cut), and stressed words off the spacing rule once cut (`stressOnCut`). `cuts`: the
+ * edit's, unless the patch sets them too.
  */
 export function checkPatch(
   patch: EditPatch,
   durationS: number,
   cuts: readonly Cut[] = [],
+  words: readonly Word[] = [],
 ): string[] {
   const bad: string[] = [];
   const ranges = (name: string, xs: readonly { from: number; to: number }[] | undefined) =>
@@ -267,7 +276,39 @@ export function checkPatch(
     if (len < SHORT_S.min || len > SHORT_S.max)
       bad.push(`shorts[${i}]: ${len.toFixed(1)}s once cut; want ${SHORT_S.min} to ${SHORT_S.max}`);
   });
+  if (patch.stress) bad.push(...stressOnCut(words, patch.stress, keep));
   return bad;
+}
+
+/**
+ * Stressed words checked as they play: each a word that isn't cut out, then the spacing rule
+ * (`checkStress`) on the cut timeline, where a cut can bring two picks together.
+ */
+export function stressOnCut(
+  words: readonly Word[],
+  stress: readonly number[],
+  keep: ReturnType<typeof keepSegments>,
+): string[] {
+  const at = new Map<number, number>();
+  const cut: Word[] = [];
+  words.forEach((w, i) => {
+    const s = toCutTime(w.s, keep);
+    if (s === null) return;
+    at.set(i, cut.length);
+    cut.push({ w: w.w, s, e: Math.max(s, onCut(w.e, keep)) });
+  });
+  const bad = stress.flatMap((i, n) =>
+    i >= words.length
+      ? [`stress[${n}]: no word ${i} (${words.length} words)`]
+      : at.has(i)
+        ? []
+        : [`stress[${n}]: "${(words[i] as Word).w}" at ${(words[i] as Word).s.toFixed(1)}s is cut`],
+  );
+  if (bad.length) return bad;
+  return checkStress(
+    cut,
+    stress.map((i) => at.get(i) as number),
+  ).map((b) => `stress: ${b} (once cut)`);
 }
 
 /**
@@ -289,7 +330,8 @@ export async function setEdit(
   if (patch.cuts) patch.cuts = [...patch.cuts].sort((a, b) => a.from - b.from || a.to - b.to);
   return atomic(db, async (tx) => {
     const now = await getEdit(tx, id);
-    const bad = checkPatch(patch, now.tracks.main.durationS, now.cuts);
+    if (patch.stress) patch.stress = [...patch.stress].sort((a, b) => a - b);
+    const bad = checkPatch(patch, now.tracks.main.durationS, now.cuts, now.words);
     if (bad.length) throw new Error(`not set: ${bad.join("; ")}`);
     const before = Object.fromEntries(
       Object.keys(patch).map((k) => [k, now[k as keyof EditPatch]]),
@@ -353,6 +395,19 @@ async function keepWords(
   });
 }
 
+/**
+ * The stressed words, whole (`wren video stress`): checked like `set`, a `runs` row of its own so
+ * Undo puts the last list back.
+ */
+export function setStress(
+  db: Queryable,
+  id: number,
+  stress: number[],
+  o: { by: string; stats?: object },
+) {
+  return setEdit(db, id, { stress }, { ...o, command: "video stress" });
+}
+
 /** A transcript fix: every match of `wrong`, or the one word at `at` seconds. */
 export type WordsFix = { wrong: string; right: string } | { at: number; text: string };
 
@@ -365,7 +420,7 @@ const wordSchema = z.object({ w: z.string().min(1), s: sec, e: sec }).strict();
 export async function setWords(
   db: Queryable,
   id: number,
-  change: WordsFix | { words: unknown },
+  change: WordsFix | { words: unknown; stress?: unknown },
   o: { by: string; command?: string },
 ): Promise<{ run: string; n: number; edit: VideoEdit }> {
   return atomic(db, async (tx) => {
@@ -377,17 +432,23 @@ export async function setWords(
           ? fixWords(now.words, change.wrong, change.right)
           : fixWordAt(now.words, change.at, change.text);
     if (!r.n) throw new Error(`no "${"wrong" in change ? change.wrong : ""}" in the transcript`);
+    // A fix that merges or splits words moves the stressed words with them.
+    const stress =
+      "words" in change && change.stress !== undefined
+        ? z.array(z.number().int().min(0)).parse(change.stress)
+        : remapStress(now.words, r.words as Word[], now.stress);
     const [edit] = await tx
       .update(videoEdits)
-      .set({ words: r.words as Word[], updatedAt: new Date() })
+      .set({ words: r.words as Word[], stress, updatedAt: new Date() })
       .where(eq(videoEdits.id, id))
       .returning();
-    const fields = ["words"];
+    const moved = stress.length !== now.stress.length || stress.some((x, k) => x !== now.stress[k]);
+    const fields = moved ? ["words", "stress"] : ["words"];
     const { id: run } = await openRun(tx, {
       command: o.command ?? "video words",
       argv: { id, by: o.by, ...("words" in change ? {} : change) },
     });
-    await finishRun(tx, run, { fields, n: r.n, before: { words: now.words } });
+    await finishRun(tx, run, { fields, n: r.n, before: { words: now.words, stress: now.stress } });
     return { run, n: r.n, edit: edit as VideoEdit };
   });
 }

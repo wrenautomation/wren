@@ -1,5 +1,5 @@
 /**
- * `wren video add|list|show|set|words|approve|cuts|keep|knobs|cut|studio|render|look|find`: the video
+ * `wren video add|list|show|set|words|stress|approve|cuts|keep|knobs|cut|studio|render|look|find`: the video
  * editor (designs/2026-10-06-video-editor.md). Claude Code edits through `show` and `set`; every
  * write leaves a runs row. Runs on William's Mac: whisper.cpp, ffmpeg (VideoToolbox), Remotion.
  */
@@ -18,12 +18,14 @@ import {
 } from "@wren/content";
 import { recordedRun } from "@wren/core";
 import type { Db } from "@wren/db";
-import { fleetKeys, loadLlmEnv } from "@wren/llm";
+import { fleetKeys, loadLlmEnv, makeLlm } from "@wren/llm";
 import {
   addVideo,
+  CAPTION_STYLES,
   cutKnobs,
   cutTracks,
   cutTranscript,
+  editMattes,
   FPS,
   findCapProjects,
   findRecordings,
@@ -37,14 +39,18 @@ import {
   LOOK_PROVIDERS,
   type Looker,
   longProps,
+  type Matte,
   obsRecordingDir,
+  onCut,
   openStudio,
   preview,
+  proposeStress,
   proxy360,
   type RenderJob,
   redoSilence,
   renderAll,
   renderStill,
+  renderStills,
   reviewCuts,
   setCutKnobs,
   setEdit,
@@ -52,11 +58,13 @@ import {
   setLook,
   setRender,
   setRendered,
+  setStress,
   setStudioWords,
   setWords,
   shortProps,
   studioWords,
   thumbnailProps,
+  toCutTime,
   toRaw,
   twelvelabsFind,
   twelvelabsLooker,
@@ -64,6 +72,7 @@ import {
   type VideoEdit,
   verticalProps,
   videoEdits,
+  wordAt,
 } from "@wren/studio";
 import type { Command } from "commander";
 import { desc, sql } from "drizzle-orm";
@@ -96,7 +105,13 @@ function editJson(e: VideoEdit): string {
   return `${head},\n  "words": [\n${words.map((w) => `    ${JSON.stringify(w)}`).join(",\n")}\n  ]\n}`;
 }
 
-type RenderOpts = { short?: number; only?: string; cut?: boolean; upload?: boolean };
+type RenderOpts = {
+  short?: number;
+  only?: string;
+  cut?: boolean;
+  upload?: boolean;
+  still?: number;
+};
 
 /** What the job would render that out/ already holds, by output name (`--upload`). */
 function rendered(out: string, job: RenderJob): Record<string, string> {
@@ -197,12 +212,72 @@ export function registerStudio(
       "write fields of the edit from JSON (file or stdin): title, description, tags, chapters, cuts, layout, captions, shorts, formats, thumbnail",
     )
     .option("--file <f>", "read the JSON from this file; else stdin")
-    .action(async (v: string, o: { file?: string }) => {
-      const text = (await readText(o.file)).trim();
-      if (!text) throw new Error("no JSON: pass --file or pipe it in");
-      const r = await withDb((db) => setEdit(db, id(v), JSON.parse(text), { by: "cli" }));
+    .option("--captions-style <s>", `no JSON: the caption style, ${CAPTION_STYLES.join(", ")}`)
+    .option("--behind <on|off>", "no JSON: stressed words behind the speaker (wren video stress)")
+    .action(async (v: string, o: { file?: string; captionsStyle?: string; behind?: string }) => {
+      if (o.behind !== undefined && o.behind !== "on" && o.behind !== "off")
+        throw new Error("--behind is on or off");
+      const flags = o.captionsStyle !== undefined || o.behind !== undefined;
+      const r = await withDb(async (db) => {
+        if (!flags) {
+          const text = (await readText(o.file)).trim();
+          if (!text) throw new Error("no JSON: pass --file or pipe it in");
+          return setEdit(db, id(v), JSON.parse(text), { by: "cli" });
+        }
+        const { captions } = await getEdit(db, id(v));
+        const next = {
+          ...captions,
+          ...(o.captionsStyle !== undefined ? { style: o.captionsStyle } : {}),
+          ...(o.behind !== undefined ? { behind: o.behind === "on" } : {}),
+        };
+        return setEdit(db, id(v), { captions: next }, { by: "cli" });
+      });
       console.log(`video ${r.edit.id}: set (run ${r.run})`);
     });
+
+  video
+    .command("stress <id>")
+    .description(
+      "the words that carry the point (1-3 a minute), drawn big in the stress style and behind the speaker: a model proposes them; --add/--drop change one",
+    )
+    .option("--add <s>", "stress the word said at this second of the recording", Number)
+    .option("--drop <s>", "unstress the word said at this second of the recording", Number)
+    .option("--llm <spec>", "model for the proposal", "gateway")
+    .action((v: string, o: { add?: number; drop?: number; llm: string }) =>
+      withDb(async (db) => {
+        const e = await getEdit(db, id(v));
+        const show = (list: number[]) =>
+          list.map((i) => `${e.words[i]?.w} @${t(e.words[i]?.s ?? 0)}`).join(", ") || "none";
+        if (o.add !== undefined || o.drop !== undefined) {
+          let next = [...e.stress];
+          if (o.drop !== undefined) {
+            const i = wordAt(e.words, o.drop);
+            if (!next.includes(i)) throw new Error(`"${e.words[i]?.w}" isn't stressed`);
+            next = next.filter((x) => x !== i);
+          }
+          if (o.add !== undefined) next = [...new Set([...next, wordAt(e.words, o.add)])];
+          const r = await setStress(db, e.id, next, { by: "cli" });
+          console.log(`video ${e.id}: stressed ${show(r.edit.stress)} (run ${r.run})`);
+          return;
+        }
+        loadLlmEnv(settings.llmEnvPath, rootDir);
+        const llm = makeLlm(o.llm, process.env);
+        const keep = keepSegments(e.cuts, e.tracks.main.durationS, FPS);
+        const cut = e.words.flatMap((w, i) => {
+          const s = toCutTime(w.s, keep);
+          return s === null ? [] : [{ i, w: { w: w.w, s, e: Math.max(s, onCut(w.e, keep)) } }];
+        });
+        // One runs row: the list it replaced (for Undo), the model and what it offered.
+        const p = await proposeStress(llm, cut);
+        const r = await setStress(db, e.id, p.stress, {
+          by: "cli",
+          stats: { asked: p.asked, offered: p.offered, model: llm.name },
+        });
+        console.log(
+          `video ${e.id}: ${p.stress.length} stressed of ${p.offered} offered: ${show(p.stress)} (run ${r.run})`,
+        );
+      }),
+    );
 
   video
     .command("words <id>")
@@ -367,8 +442,14 @@ export function registerStudio(
     )
     .option("--cut", "run the cut pass first (the page's Render does)")
     .option("--upload", "no render: upload what out/ already holds and mark it rendered")
+    .option(
+      "--still <s>",
+      "no render: one frame per format at this second of the recording, to out/still-<format>-<s>.png",
+      Number,
+    )
     .action((v: string, o: RenderOpts) =>
       withDb(async (db) => {
+        if (o.still !== undefined) return stillsOne(db, v, o.still);
         // Its state on the row for the page: rendering, then done (setRendered) or failed and why.
         const at = () => new Date().toISOString();
         await setRender(db, id(v), { state: "rendering", at: at() });
@@ -381,6 +462,37 @@ export function registerStudio(
         }
       }),
     );
+
+  /** The words behind the speaker need their mattes made first (kept ones reused). */
+  async function mattesFor(e: VideoEdit, at?: number): Promise<Matte[]> {
+    const { mattes, skipped } = await editMattes(studioDir, e, {
+      ffmpeg: settings.ffmpeg,
+      log: (l) => console.log(l),
+      ...(at !== undefined ? { at } : {}),
+    });
+    for (const s of skipped) console.log(`behind: "${e.words[s.i]?.w}" skipped, ${s.why}`);
+    return mattes;
+  }
+
+  async function stillsOne(db: Db, v: string, rawS: number) {
+    const e = await getEdit(db, id(v));
+    if (!e.files.cutMain) throw new Error(`video ${e.id}: not cut yet; wren video cut ${e.id}`);
+    const keep = keepSegments(e.cuts, e.tracks.main.durationS, FPS);
+    const at = onCut(rawS, keep);
+    const mattes = await mattesFor(e, at);
+    const files = await renderStills(
+      studioDir,
+      e.dir,
+      {
+        ...(e.formats.includes("long") ? { long: longProps(e, mattes) } : {}),
+        ...(e.formats.includes("vertical") ? { vertical: verticalProps(e, mattes) } : {}),
+        shorts: new Map(e.shorts.map((_, i) => [i + 1, shortProps(e, i + 1, mattes)])),
+      },
+      at,
+      String(rawS),
+    );
+    for (const f of Object.values(files)) console.log(f);
+  }
 
   async function renderOne(db: Db, v: string, o: RenderOpts) {
     if (o.upload && o.cut) throw new Error("--upload uploads what is rendered; drop --cut");
@@ -398,10 +510,14 @@ export function registerStudio(
     const thumbs = want("thumbs") ? thumbnailProps(e) : null;
     if (want("thumbs") && !thumbs)
       console.log(`no thumbnail set; skipped (wren video set ${e.id} with "thumbnail")`);
+    const videos = want("long") || want("vertical") || want("shorts");
+    const mattes = videos && !o.upload ? await mattesFor(e) : [];
     const job: RenderJob = {
-      ...(want("long") ? { long: longProps(e) } : {}),
-      ...(want("vertical") ? { vertical: verticalProps(e) } : {}),
-      ...(want("shorts") ? { shorts: new Map(numbers.map((n) => [n, shortProps(e, n)])) } : {}),
+      ...(want("long") ? { long: longProps(e, mattes) } : {}),
+      ...(want("vertical") ? { vertical: verticalProps(e, mattes) } : {}),
+      ...(want("shorts")
+        ? { shorts: new Map(numbers.map((n) => [n, shortProps(e, n, mattes)])) }
+        : {}),
       ...(thumbs ? { thumbnails: thumbs } : {}),
     };
     const started = Date.now();

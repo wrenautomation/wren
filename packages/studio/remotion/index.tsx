@@ -1,62 +1,201 @@
 /**
+ * Adapted from heygen-com/hyperframes `registry/components/caption-*` and
+ * `skills/embedded-captions` @5c7f631 (Apache-2.0); changed: the caption styles and the words
+ * behind the speaker drawn as React on Remotion's frame clock from `src/caption-styles.ts` (no
+ * GSAP); the speaker's matte a VP9 alpha WebM per window over the big word
+ * (`OffthreadVideo transparent`). See packages/studio/NOTICE.
+ *
  * Remotion compositions (designs/2026-10-06-video-editor.md, Composition). One file: Remotion's
- * bundler resolves no `.js` specifiers, so the one value import (Wren's look, for Studio's
- * placeholder, the Reels line breaker) names its `.ts` file; the rest is types. Props come from
- * `longProps`, `shortProps`, `verticalProps` and `thumbnailProps` through `--props`; the cut files
- * are served from `<edit dir>/public`.
+ * bundler resolves no `.js` specifiers, so the value imports (Wren's look, for Studio's
+ * placeholder, the line breakers, the caption styles) name their `.ts` files; the rest is types.
+ * Props come from `longProps`, `shortProps`, `verticalProps` and `thumbnailProps` through
+ * `--props`; the cut files are served from the edit's folder.
  */
-import { type CSSProperties, type FC, useMemo } from "react";
+import { type CSSProperties, type FC, type ReactNode, useMemo } from "react";
 import {
   AbsoluteFill,
   Audio,
   Composition,
   OffthreadVideo,
   registerRoot,
+  Sequence,
   staticFile,
   useCurrentFrame,
   useVideoConfig,
 } from "remotion";
 import { DEFAULT_LOOK } from "../../video/src/overlay.ts";
-import { lineAt, REEL, reelLines } from "../src/captions.ts";
-import type { Face, LongProps, ShortProps, ThumbnailProps, VerticalProps } from "../src/props.js";
+import { bigWordState, wordState } from "../src/caption-styles.ts";
+import { lineAt, pages, REEL, reelLines } from "../src/captions.ts";
+import type {
+  BehindWord,
+  Face,
+  LongProps,
+  ShortProps,
+  ThumbnailProps,
+  VerticalProps,
+} from "../src/props.js";
 
 type Word = LongProps["words"][number];
+type Look = LongProps["look"];
 
-/** Caption pages: up to 7 words, broken at a sentence end or a pause over 0.6 s. */
-export function pages(words: readonly Word[]): Word[][] {
-  const out: Word[][] = [];
-  let page: Word[] = [];
-  for (const w of words) {
-    const prev = page.at(-1);
-    if (page.length && (page.length >= 7 || (prev && w.s - prev.e > 0.6))) {
-      out.push(page);
-      page = [];
-    }
-    page.push(w);
-    if (/[.?!]$/.test(w.w)) {
-      out.push(page);
-      page = [];
-    }
+/** The second, heavier face of the `stress` style: a system serif, so renders stay offline. */
+const STRESS_FONT = 'Georgia, "Times New Roman", serif';
+
+/**
+ * One caption word in its style at `t` (`wordState`). `until`: when the next word of its line
+ * starts. `size`: the line's font size, for the `stress` face and the pads.
+ */
+const CaptionWord: FC<{
+  w: Word;
+  t: number;
+  until: number;
+  first: boolean;
+  style: string;
+  stressed: boolean;
+  look: Look;
+  size: number;
+}> = ({ w, t, until, first, style, stressed, look, size }) => {
+  const st = wordState(style, w, t, until, { first });
+  const pad = Math.round(size * 0.15);
+  const base: CSSProperties = {
+    display: "inline-block",
+    position: "relative",
+    padding: `0 ${pad}px`,
+    borderRadius: Math.round(size * 0.16),
+  };
+  switch (style) {
+    case "pill":
+      return (
+        <span style={{ ...base, color: `rgba(255,255,255,${0.42 + 0.58 * st.lit})` }}>{w.w}</span>
+      );
+    case "sweep":
+      return (
+        <span style={base}>
+          <span
+            style={{
+              position: "absolute",
+              inset: 0,
+              borderRadius: base.borderRadius,
+              background: look.accent,
+              opacity: st.fill,
+              transform: `scaleX(${st.fillScaleX})`,
+              transformOrigin: "0% 50%",
+            }}
+          />
+          <span style={{ position: "relative" }}>{w.w}</span>
+        </span>
+      );
+    case "pop":
+      return (
+        <span style={{ ...base, opacity: st.opacity, transform: `scaleX(${st.scaleX})` }}>
+          {w.w}
+        </span>
+      );
+    case "wipe":
+      return (
+        <span
+          style={{ ...base, opacity: st.opacity, clipPath: `inset(-20% ${st.clip * 100}% -20% 0)` }}
+        >
+          {w.w}
+        </span>
+      );
+    case "stress":
+      return (
+        <span
+          style={{
+            ...base,
+            opacity: st.opacity,
+            transform: `scale(${st.scale})`,
+            transformOrigin: "0% 100%",
+            ...(stressed
+              ? {
+                  font: `italic 800 ${Math.round(size * 1.4)}px/1 ${STRESS_FONT}`,
+                  verticalAlign: "baseline",
+                }
+              : {}),
+          }}
+        >
+          {w.w}
+        </span>
+      );
+    default:
+      return (
+        <span style={{ ...base, background: st.fill ? look.accent : "transparent" }}>{w.w}</span>
+      );
   }
-  if (page.length) out.push(page);
-  return out;
-}
+};
 
-/** The long video's lower-third line. */
-const Captions: FC<{ words: Word[]; look: LongProps["look"]; t: number }> = ({
-  words,
-  look,
-  t,
-}) => {
-  const all = pages(words);
-  const page = all.find((p, i) => {
-    const first = p[0] as Word;
-    const next = all[i + 1]?.[0];
+/** A line of caption words; pill wraps it in its dark pill. */
+const CaptionLine: FC<{
+  words: Word[];
+  /** Index of each word in the composition's words, to know which are stressed. */
+  at: number[];
+  end: number;
+  t: number;
+  style: string;
+  stress: ReadonlySet<number>;
+  look: Look;
+  size: number;
+}> = ({ words, at, end, t, style, stress, look, size }) => {
+  const line = words.map((w, i) => (
+    <CaptionWord
+      // biome-ignore lint/suspicious/noArrayIndexKey: words repeat; position is the identity
+      key={i}
+      w={w}
+      t={t}
+      until={words[i + 1]?.s ?? end}
+      first={i === 0}
+      style={style}
+      stressed={stress.has(at[i] as number)}
+      look={look}
+      size={size}
+    />
+  ));
+  if (style !== "pill") return <div>{line}</div>;
+  return (
+    <div
+      style={{
+        display: "inline-block",
+        padding: `${Math.round(size * 0.22)}px ${Math.round(size * 0.5)}px`,
+        borderRadius: Math.round(size * 0.36),
+        background: `${look.foreground}d9`,
+        boxShadow: "0 4px 18px rgba(0,0,0,0.25)",
+        textShadow: "none",
+        WebkitTextStroke: "0",
+      }}
+    >
+      {line}
+    </div>
+  );
+};
+
+/** The long video's lower-third line, in the edit's caption style. */
+const Captions: FC<{
+  words: Word[];
+  look: Look;
+  t: number;
+  style: string;
+  stress: ReadonlySet<number>;
+}> = ({ words, look, t, style, stress }) => {
+  const all = useMemo(() => {
+    let n = 0;
+    return pages(words).map((p) => {
+      const at = p.map((_, i) => n + i);
+      n += p.length;
+      return { words: p, at };
+    });
+  }, [words]);
+  const i = all.findIndex((p, k) => {
+    const first = p.words[0] as Word;
+    const next = all[k + 1]?.words[0];
     return (
-      t >= first.s && t < Math.min(next?.s ?? Number.POSITIVE_INFINITY, (p.at(-1) as Word).e + 0.8)
+      t >= first.s &&
+      t < Math.min(next?.s ?? Number.POSITIVE_INFINITY, (p.words.at(-1) as Word).e + 0.8)
     );
   });
+  const page = all[i];
   if (!page) return null;
+  const last = page.words.at(-1) as Word;
   return (
     <AbsoluteFill style={{ justifyContent: "flex-end", alignItems: "center", paddingBottom: 90 }}>
       <div
@@ -68,24 +207,16 @@ const Captions: FC<{ words: Word[]; look: LongProps["look"]; t: number }> = ({
           textShadow: "0 2px 12px rgba(0,0,0,0.7)",
         }}
       >
-        {page.map((w, i) => {
-          const on = t >= w.s && t < (page[i + 1]?.s ?? w.e + 0.3);
-          return (
-            <span
-              // biome-ignore lint/suspicious/noArrayIndexKey: words repeat; position is the identity
-              key={i}
-              style={{
-                // inline-block: the words carry no spaces, so this is where a line may break.
-                display: "inline-block",
-                padding: "0 8px",
-                borderRadius: 8,
-                background: on ? look.accent : "transparent",
-              }}
-            >
-              {w.w}
-            </span>
-          );
-        })}
+        <CaptionLine
+          words={page.words}
+          at={page.at}
+          end={Math.max(last.e + 0.3, last.e)}
+          t={t}
+          style={style}
+          stress={stress}
+          look={look}
+          size={54}
+        />
       </div>
     </AbsoluteFill>
   );
@@ -96,15 +227,22 @@ const Captions: FC<{ words: Word[]; look: LongProps["look"]; t: number }> = ({
  * outline, the said word on the accent. Kept clear of the Reels/Shorts UI: the bottom 20% and the
  * right 15%; `y` is where the line's middle sits, from the top.
  */
-const ReelCaptions: FC<{ words: Word[]; look: LongProps["look"]; t: number; y: number }> = ({
-  words,
-  look,
-  t,
-  y,
-}) => {
+const ReelCaptions: FC<{
+  words: Word[];
+  look: Look;
+  t: number;
+  y: number;
+  style: string;
+  stress: ReadonlySet<number>;
+}> = ({ words, look, t, y, style, stress }) => {
   const lines = useMemo(() => reelLines(words), [words]);
+  const first = useMemo(() => {
+    const index = new Map(words.map((w, i) => [w, i]));
+    return lines.map((l) => index.get(l.words[0] as Word) ?? 0);
+  }, [lines, words]);
   const at = lineAt(lines, t);
   if (!at) return null;
+  const k = lines.indexOf(at.line);
   const len = at.line.words.reduce((n, w) => n + w.w.length, at.line.words.length - 1);
   // A line past what fits shrinks rather than wrapping.
   const size = Math.round(80 * Math.max(0.6, Math.min(1, REEL.maxChars / len)));
@@ -127,23 +265,68 @@ const ReelCaptions: FC<{ words: Word[]; look: LongProps["look"]; t: number; y: n
         textShadow: "0 4px 18px rgba(0,0,0,0.55)",
       }}
     >
-      <div>
-        {at.line.words.map((w, i) => (
-          <span
-            // biome-ignore lint/suspicious/noArrayIndexKey: words repeat; position is the identity
-            key={i}
-            style={{
-              display: "inline-block",
-              padding: "0 10px",
-              borderRadius: 14,
-              background: i === at.word ? look.accent : "transparent",
-            }}
-          >
-            {w.w}
-          </span>
-        ))}
-      </div>
+      <CaptionLine
+        words={at.line.words}
+        at={at.line.words.map((_, i) => (first[k] as number) + i)}
+        end={at.line.e}
+        t={t}
+        style={style}
+        stress={stress}
+        look={look}
+        size={size}
+      />
     </div>
+  );
+};
+
+/**
+ * The words behind the speaker: the big word from its start to `to`, then the speaker's matte
+ * over it, laid exactly where the picture it was cut from sits (`draw`: the matte's file and the
+ * cut file it came from). Captions go on top, after this.
+ */
+const Behind: FC<{
+  items: BehindWord[];
+  t: number;
+  look: Look;
+  size: number;
+  /** Where the big word's middle sits, from the top. */
+  y: number;
+  width: number;
+  draw: (file: string, src: string) => ReactNode;
+}> = ({ items, t, look, size, y, width, draw }) => {
+  const mattes = [...new Map(items.map((b) => [b.matte.file, b.matte])).values()];
+  const word = items.find((b) => t >= b.s && t < b.to);
+  const text = word?.w.replace(/^[^\p{L}\p{N}$]+|[^\p{L}\p{N}%]+$/gu, "") ?? "";
+  const st = word ? bigWordState(t, word.s, word.to) : null;
+  // A long word shrinks to fit 90% of the width (a bold face runs about 0.62 em a letter).
+  const fit = Math.min(size, Math.round((width * 0.9) / (0.62 * Math.max(1, text.length))));
+  return (
+    <>
+      {word && st ? (
+        <div
+          style={{
+            position: "absolute",
+            left: 0,
+            right: 0,
+            top: y - fit * 0.6,
+            textAlign: "center",
+            font: `800 ${fit}px/1.2 ${look.font}`,
+            letterSpacing: -fit * 0.03,
+            color: "#fff",
+            textShadow: "0 8px 40px rgba(0,0,0,0.35)",
+            opacity: st.opacity,
+            transform: `scale(${st.scale})`,
+          }}
+        >
+          {text}
+        </div>
+      ) : null}
+      {mattes.map((m) => (
+        <Sequence key={m.file} from={m.fromFrame} durationInFrames={m.frames} layout="none">
+          {draw(m.file, m.src)}
+        </Sequence>
+      ))}
+    </>
   );
 };
 
@@ -161,12 +344,22 @@ const CORNER: CSSProperties = {
   boxShadow: "0 8px 30px rgba(0,0,0,0.35)",
 };
 
-export const Long: FC<LongProps> = ({ main, cam, words, layout, captions, look }) => {
+export const Long: FC<LongProps> = ({
+  main,
+  cam,
+  words,
+  layout,
+  captions,
+  stress,
+  behind,
+  look,
+}) => {
   const frame = useCurrentFrame();
   const { fps } = useVideoConfig();
   const t = frame / fps;
   const show = layout.find((r) => t >= r.from && t < r.to)?.show ?? "corner";
   const fill: CSSProperties = { width: "100%", height: "100%", objectFit: "cover" };
+  const stressed = useMemo(() => new Set(stress), [stress]);
   return (
     <AbsoluteFill style={{ background: "#000" }}>
       {/* The recording carries the sound, so it plays under every layout. */}
@@ -176,20 +369,42 @@ export const Long: FC<LongProps> = ({ main, cam, words, layout, captions, look }
           <OffthreadVideo src={staticFile(cam)} muted style={fill} />
         </div>
       ) : null}
-      {captions.on ? <Captions words={words} look={look} t={t} /> : null}
+      <Behind
+        items={behind}
+        t={t}
+        look={look}
+        size={260}
+        y={430}
+        width={1920}
+        draw={(file, src) => (
+          <AbsoluteFill>
+            <OffthreadVideo
+              src={staticFile(file)}
+              transparent
+              muted
+              style={{ ...fill, objectFit: src === main ? "contain" : "cover" }}
+            />
+          </AbsoluteFill>
+        )}
+      />
+      {captions.on ? (
+        <Captions words={words} look={look} t={t} style={captions.style} stress={stressed} />
+      ) : null}
     </AbsoluteFill>
   );
 };
 
 /** His face in a w x h box: the camera file, or the cam box cropped out of the recording. */
-const FaceBox: FC<{ face: Face; main: string; w: number; h: number; from: number }> = ({
-  face,
-  main,
-  w,
-  h,
-  from,
-}) => {
-  const file = face.file ?? main;
+const FaceBox: FC<{
+  face: Face;
+  main: string;
+  w: number;
+  h: number;
+  from: number;
+  /** A matte cut out of the face's file, drawn in its place. */
+  matte?: string;
+}> = ({ face, main, w, h, from, matte }) => {
+  const file = matte ?? face.file ?? main;
   const [fw, fh] = face.size;
   const [bx, by, bw, bh] = face.box ?? [0, 0, fw, fh];
   const k = Math.max(w / bw, h / bh);
@@ -198,6 +413,7 @@ const FaceBox: FC<{ face: Face; main: string; w: number; h: number; from: number
       <OffthreadVideo
         src={staticFile(file)}
         muted
+        transparent={!!matte}
         trimBefore={from}
         style={{
           position: "absolute",
@@ -223,11 +439,14 @@ export const Short: FC<ShortProps> = ({
   words,
   layout,
   captions,
+  stress,
+  behind,
   look,
 }) => {
   const frame = useCurrentFrame();
   const { fps } = useVideoConfig();
   const t = frame / fps;
+  const stressed = useMemo(() => new Set(stress), [stress]);
   const want = layout.find((r) => t >= r.from && t < r.to)?.show ?? "corner";
   const show = face.file || face.box ? want : "screen";
   const half = show === "corner";
@@ -245,9 +464,41 @@ export const Short: FC<ShortProps> = ({
           <FaceBox face={face} main={main} w={1080} h={half ? 960 : 1920} from={startFrame} />
         </div>
       ) : null}
+      {/* A matte lines up with his face full frame, or the whole recording when there's no face. */}
+      <Behind
+        items={behind}
+        t={t}
+        look={look}
+        size={220}
+        y={show === "screen" ? 960 - 300 : 620}
+        width={1080}
+        draw={(file, src) =>
+          show === "cam" && (face.file === src || (face.box && src === main)) ? (
+            <div style={{ position: "absolute", left: 0, top: 0 }}>
+              <FaceBox face={face} main={main} w={1080} h={1920} from={0} matte={file} />
+            </div>
+          ) : show === "screen" && !face.file && !face.box && src === main ? (
+            <AbsoluteFill>
+              <OffthreadVideo
+                src={staticFile(file)}
+                transparent
+                muted
+                style={{ width: "100%", height: "100%", objectFit: "contain" }}
+              />
+            </AbsoluteFill>
+          ) : null
+        }
+      />
       {/* Split: on the seam between face and screen; full frame: two thirds down. */}
       {captions.on ? (
-        <ReelCaptions words={words} look={look} t={t} y={half ? 960 : REEL_Y} />
+        <ReelCaptions
+          words={words}
+          look={look}
+          t={t}
+          y={half ? 960 : REEL_Y}
+          style={captions.style}
+          stress={stressed}
+        />
       ) : null}
     </AbsoluteFill>
   );
@@ -258,29 +509,54 @@ export const Short: FC<ShortProps> = ({
  * it; a landscape one cropped on his face). The recording carries the sound, under the camera file
  * when that is the picture.
  */
-export const Vertical: FC<VerticalProps> = ({ main, picture, words, captions, look }) => {
+export const Vertical: FC<VerticalProps> = ({
+  main,
+  picture,
+  words,
+  captions,
+  stress,
+  behind,
+  look,
+}) => {
   const frame = useCurrentFrame();
   const { fps } = useVideoConfig();
   const t = frame / fps;
+  const stressed = useMemo(() => new Set(stress), [stress]);
   const [x, y, w, h] = picture.window;
   const k = Math.max(1080 / w, 1920 / h);
   const own = picture.file === main;
+  const place: CSSProperties = {
+    position: "absolute",
+    left: (1080 - w * k) / 2 - x * k,
+    top: (1920 - h * k) / 2 - y * k,
+    width: picture.size[0] * k,
+    height: picture.size[1] * k,
+    maxWidth: "none",
+  };
   return (
     <AbsoluteFill style={{ background: "#000" }}>
-      <OffthreadVideo
-        src={staticFile(picture.file)}
-        muted={!own}
-        style={{
-          position: "absolute",
-          left: (1080 - w * k) / 2 - x * k,
-          top: (1920 - h * k) / 2 - y * k,
-          width: picture.size[0] * k,
-          height: picture.size[1] * k,
-          maxWidth: "none",
-        }}
-      />
+      <OffthreadVideo src={staticFile(picture.file)} muted={!own} style={place} />
       {own ? null : <Audio src={staticFile(main)} />}
-      {captions.on ? <ReelCaptions words={words} look={look} t={t} y={REEL_Y} /> : null}
+      {/* verticalProps keeps only mattes cut from the picture, so each lines up with it. */}
+      <Behind
+        items={behind}
+        t={t}
+        look={look}
+        size={220}
+        y={620}
+        width={1080}
+        draw={(file) => <OffthreadVideo src={staticFile(file)} transparent muted style={place} />}
+      />
+      {captions.on ? (
+        <ReelCaptions
+          words={words}
+          look={look}
+          t={t}
+          y={REEL_Y}
+          style={captions.style}
+          stress={stressed}
+        />
+      ) : null}
     </AbsoluteFill>
   );
 };
@@ -358,6 +634,8 @@ const PLACEHOLDER: LongProps = {
   words: [],
   layout: [],
   captions: { on: true, style: "word" },
+  stress: [],
+  behind: [],
   look: DEFAULT_LOOK,
 };
 

@@ -128,13 +128,21 @@ export function chapterLines(e: Pick<VideoEdit, "chapters" | "cuts" | "tracks">)
   return marks.map((c) => `${clock(c.at)} ${c.title}`).join("\n");
 }
 
-/** Each word with the cut over its middle: applied, proposed (yellow), or none. */
-export function markWords(words: readonly Word[], cuts: readonly Cut[]) {
+/**
+ * Each word with the cut over its middle (applied, proposed in yellow, or none) and whether it's
+ * stressed (`wren video stress`).
+ */
+export function markWords(
+  words: readonly Word[],
+  cuts: readonly Cut[],
+  stress: readonly number[] = [],
+) {
   const live = cuts.filter((c) => c.state !== "kept");
-  return words.map((w) => {
+  const stressed = new Set(stress);
+  return words.map((w, i) => {
     const mid = (w.s + w.e) / 2;
     const c = live.find((x) => mid >= x.from && mid < x.to);
-    return { w: w.w, s: w.s, e: w.e, cut: c ? c.state : null };
+    return { w: w.w, s: w.s, e: w.e, cut: c ? c.state : null, stress: stressed.has(i) };
   });
 }
 
@@ -543,8 +551,10 @@ export const videoRecord = (signer?: VideoSigner) => {
           title: e.title,
           description: e.description,
           preview: await sign(longOf(e.keys)),
-          words: markWords(e.words, e.cuts),
+          words: markWords(e.words, e.cuts, e.stress),
           edit: {
+            captions: e.captions,
+            stress: e.stress,
             title: e.title,
             description: e.description,
             tags: e.tags,
