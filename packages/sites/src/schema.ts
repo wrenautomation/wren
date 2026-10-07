@@ -11,6 +11,7 @@
  * - `site_splits` and `site_split_arms`: a page's A/B split at the edge, each arm a live page of
  *   the same owner with its weight. Events and forms that came through a split name it.
  * - `site_hops`: each click on a client's `/go/` link (bots left out), with the utm it carried.
+ * - `site_links`: tracked `/go/` links made in the portal, each to one page, with its utm.
  */
 import { clients } from "@wren/core/clients";
 import { hooks } from "@wren/core/schema";
@@ -79,6 +80,9 @@ export const sitePages = pgTable(
     waitingVersion: integer("waiting_version"),
     waitingBy: text("waiting_by"),
     waitingAt: timestamp("waiting_at", { withTimezone: true }),
+    /** Asked to come down (a stopped split's B to E), waiting in To approve like a version. */
+    retireBy: text("retire_by"),
+    retireAt: timestamp("retire_at", { withTimezone: true }),
     /** Opens the newest draft at `/o/__preview/<id>?t=<it>`; new on every save. */
     previewToken: varchar("preview_token", { length: 43 }).notNull(),
     /** The door its forms enter; null takes the owner's site door. */
@@ -411,3 +415,54 @@ export const siteHops = pgTable(
   ],
 );
 export type SiteHop = typeof siteHops.$inferSelect;
+
+/**
+ * A tracked link made in the portal: `/go/<link>/<campaign>[/<content>]?to=/o/<slug>` on its
+ * owner's host (Wren's: the lander's `/go/`). Its hits are read off `site_hops` and the page's
+ * events with the same utm. One row per owner, page and utm.
+ */
+export const siteLinks = pgTable(
+  "site_links",
+  {
+    id: uuid("id").defaultRandom().notNull(),
+    /** Whose; null is Wren's. Always the page's owner. */
+    client: varchar("client", { length: 40 }),
+    page: uuid("page").notNull(),
+    /** The short name: `ads`, `ig`, `sms`. */
+    link: varchar("link", { length: 80 }).notNull(),
+    /** The utm it lands with: the short name's source and medium, campaign, the post or ad id. */
+    source: varchar("source", { length: 120 }).notNull(),
+    medium: varchar("medium", { length: 120 }).notNull(),
+    channel: varchar("channel", { length: 10 }).notNull(),
+    campaign: varchar("campaign", { length: 80 }).notNull(),
+    content: varchar("content", { length: 80 }),
+    /** What the team calls it: "Spring ad, roof photo". */
+    name: varchar("name", { length: 200 }),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+    createdBy: text("created_by").notNull(),
+  },
+  (t) => [
+    primaryKey({ columns: [t.id], name: "pk_site_links" }),
+    uniqueIndex("uq_site_links_utm").on(
+      sql`coalesce(${t.client}, '')`,
+      t.page,
+      t.link,
+      t.campaign,
+      sql`coalesce(${t.content}, '')`,
+    ),
+    index("ix_site_links_client").on(t.client),
+    index("ix_site_links_page").on(t.page),
+    foreignKey({
+      columns: [t.client],
+      foreignColumns: [clients.id],
+      name: "fk_site_links_client",
+    }).onDelete("cascade"),
+    foreignKey({
+      columns: [t.page],
+      foreignColumns: [sitePages.id],
+      name: "fk_site_links_page",
+    }).onDelete("cascade"),
+    oneOf("ck_site_links_channel", t.channel, CHANNELS),
+  ],
+);
+export type SiteLink = typeof siteLinks.$inferSelect;

@@ -6,9 +6,22 @@
  */
 import type { Row } from "@wren/core/records/serve";
 import type { AdIn, PageDetail, Variant } from "@wren/sites/detail";
-import type { Content, CopyField, ItemValue } from "@wren/sites/templates";
+import { renderPage } from "@wren/sites/render";
+import {
+  type Content,
+  ContentProblem,
+  type CopyField,
+  checkContent,
+  type ItemValue,
+  templateOf,
+} from "@wren/sites/templates";
 import {
   Button,
+  Fieldset,
+  FRAME,
+  FRAME_BODY,
+  FRAME_HEAD,
+  GROUP_LABEL,
   Input,
   money,
   num,
@@ -18,7 +31,7 @@ import {
   Textarea,
   TrendChart,
 } from "@wren/ui";
-import { type ReactNode, useState } from "react";
+import { type ReactNode, useEffect, useMemo, useState, useSyncExternalStore } from "react";
 import type { ListPage } from "../../module.js";
 import { QUIET } from "../work/bits.js";
 import { Split } from "./split.js";
@@ -154,107 +167,238 @@ function FieldBox({
   );
 }
 
-/** The draft's copy: save keeps a new version, Claude rewrites it, the ask sends it to To approve. */
-function CopyForm({ id, d, act }: { id: string; d: PageDetail; act: RecordAct }) {
+/**
+ * The copy as it's typed, per page, shared by the editor and its preview beside it (two parts of
+ * the record's detail that don't share a parent of ours).
+ */
+const typing = new Map<string, Content>();
+const listeners = new Set<() => void>();
+const setTyping = (id: string, c: Content | null) => {
+  if (c) typing.set(id, c);
+  else typing.delete(id);
+  for (const l of listeners) l();
+};
+function useTyping(id: string): Content | undefined {
+  return useSyncExternalStore(
+    (l) => {
+      listeners.add(l);
+      return () => listeners.delete(l);
+    },
+    () => typing.get(id),
+  );
+}
+
+/** The fields in the template's groups: a group starts at a field that names one. */
+function groupsOf(fields: readonly CopyField[]): [string, CopyField[]][] {
+  const out: [string, CopyField[]][] = [];
+  for (const f of fields) {
+    const last = out[out.length - 1];
+    if (f.group || !last) out.push([f.group ?? "Copy", [f]]);
+    else last[1].push(f);
+  }
+  return out;
+}
+
+/** Why the copy can't be saved as it is, or null: the template's own check. */
+function problemOf(templateId: string, content: Content): string | null {
+  try {
+    checkContent(templateOf(templateId), content);
+    return null;
+  } catch (err) {
+    return err instanceof ContentProblem ? err.message : errorOf(err);
+  }
+}
+
+/**
+ * The copy editor: the page's words as its template's fields, grouped, never free HTML. Save keeps
+ * a new version; the ask sends it to a yes (To approve, or the client's, by its approver setting).
+ * Wren's team also gets Claude's draft.
+ */
+function CopyEditor({
+  id,
+  d,
+  act,
+  client,
+}: {
+  id: string;
+  d: PageDetail;
+  act: RecordAct;
+  client: boolean;
+}) {
   const draft = d.draft;
   const [content, setContent] = useState<Content>(() => ({ ...(draft?.content ?? {}) }));
   const [why, setWhy] = useState("");
   const [angle, setAngle] = useState("");
   const { said, busy, run } = useRun(act);
+  useEffect(() => () => setTyping(id, null), [id]);
   if (!d.template || !draft) return null;
+  const template = d.template;
+  const edit = (next: Content) => {
+    setContent(next);
+    setTyping(id, JSON.stringify(next) === JSON.stringify(draft.content) ? null : next);
+  };
   const changed = JSON.stringify(content) !== JSON.stringify(draft.content);
+  const problem = changed ? problemOf(template.id, content) : null;
   const asked = d.waiting === draft.number;
   const live = d.live === draft.number;
+  const closed = d.retiring;
+  const state = closed
+    ? "Waiting to be retired. Copy can't change until then."
+    : live
+      ? "This is what's live."
+      : asked
+        ? client
+          ? "Waiting for a yes."
+          : "Waiting in To approve."
+        : "Saved, not asked yet.";
   return (
     <form
-      className="grid min-w-0 gap-5"
+      className="grid min-w-0 grid-cols-[minmax(0,1fr)] gap-4"
       onSubmit={(e) => {
         e.preventDefault();
         void run(
           "save",
           "sites.save",
           { id, content, why: why.trim() || null, expect: draft.number },
-          "Saved as a new version.",
+          "Saved as a new version. Ask to publish when it's right.",
         );
       }}
     >
-      <p className={`text-[13.5px] ${QUIET}`}>
-        {d.template.name}, version {draft.number}.{" "}
-        {live ? "This is what's live." : asked ? "Waiting in To approve." : "Not asked yet."}
+      <p className="text-[13.5px]">
+        <span className="font-medium">
+          {template.name}, version {draft.number}.
+        </span>{" "}
+        <span className={QUIET}>{state}</span>
       </p>
-      {d.template.fields.map((f) => (
-        <FieldBox
-          key={f.key}
-          id={`copy-${f.key}`}
-          f={f}
-          value={content[f.key]}
-          onChange={(v) => setContent((c) => ({ ...c, [f.key]: v }))}
-        />
+      {groupsOf(template.fields).map(([legend, fields]) => (
+        <Fieldset key={legend} legend={legend}>
+          {fields.map((f) => (
+            <FieldBox
+              key={f.key}
+              id={`copy-${f.key}`}
+              f={f}
+              value={content[f.key]}
+              onChange={(v) => edit({ ...content, [f.key]: v })}
+            />
+          ))}
+        </Fieldset>
       ))}
-      <div className="grid gap-1.5">
-        <label htmlFor="copy-why" className={LABEL}>
-          Why this change <span className={HINT}>(optional)</span>
-        </label>
-        <Input id="copy-why" value={why} maxLength={500} onChange={(e) => setWhy(e.target.value)} />
-      </div>
-      <div className="flex flex-wrap items-center gap-2">
-        <Button type="submit" tone="primary" disabled={!changed} busy={busy === "save"}>
-          Save
-        </Button>
-        <Button
-          disabled={changed || live || asked}
-          busy={busy === "ask"}
-          onClick={() =>
-            void run("ask", "sites.ask", { id }, "Asked. It waits in Marketing, To approve.")
-          }
-        >
-          Ask to publish
-        </Button>
-        <Said said={said} />
-      </div>
-      <div className="grid gap-1.5 border-t border-(--ui-hair) pt-4">
-        <label htmlFor="copy-angle" className={LABEL}>
-          Claude's draft
-        </label>
-        <div className="flex flex-wrap items-center gap-2">
+      <Fieldset
+        legend="Save and publish"
+        note={
+          client
+            ? "Save keeps a new version. Publish waits for a yes: yours or Wren's, as your approver setting says."
+            : "Save keeps a new version. Publish waits for a yes in To approve, or the client's when it approves its own."
+        }
+      >
+        <div className="grid gap-1.5">
+          <label htmlFor="copy-why" className={LABEL}>
+            What changed <span className={HINT}>(optional)</span>
+          </label>
           <Input
-            id="copy-angle"
-            className="max-w-[320px]"
-            placeholder="Angle, or leave empty"
-            value={angle}
-            maxLength={120}
-            onChange={(e) => setAngle(e.target.value)}
+            id="copy-why"
+            value={why}
+            maxLength={500}
+            onChange={(e) => setWhy(e.target.value)}
           />
+        </div>
+        {problem ? <p className="text-[13px] text-(--ui-bad)">{problem}</p> : null}
+        <div className="flex flex-wrap items-center gap-2">
           <Button
-            disabled={changed}
-            busy={busy === "draft"}
+            type="submit"
+            tone="primary"
+            disabled={!changed || !!problem || closed}
+            busy={busy === "save"}
+          >
+            Save
+          </Button>
+          <Button
+            disabled={changed || live || asked || closed}
+            busy={busy === "ask"}
             onClick={() =>
               void run(
-                "draft",
-                "sites.draft",
-                { id, angle: angle.trim() || null },
-                "Claude saved a new version. Read it before you ask.",
+                "ask",
+                "sites.ask",
+                { id },
+                client ? "Asked. It goes live on a yes." : "Asked. It waits in To approve.",
               )
             }
           >
-            Ask Claude
+            Ask to publish
           </Button>
+          {changed ? (
+            <Button
+              tone="quiet"
+              onClick={() => edit({ ...(draft.content ?? {}) })}
+              disabled={busy !== null}
+            >
+              Undo changes
+            </Button>
+          ) : null}
+          <Said said={said} />
         </div>
-        <span className={HINT}>
-          Checked against the offer's facts. Links stay as they are. It lands as a new version.
-        </span>
-      </div>
+      </Fieldset>
+      {client ? null : (
+        <Fieldset
+          legend="Claude's draft"
+          note="Checked against the offer's facts. Links stay as they are. It lands as a new version."
+        >
+          <div className="flex flex-wrap items-center gap-2">
+            <Input
+              id="copy-angle"
+              aria-label="Angle"
+              className="max-w-[320px]"
+              placeholder="Angle, or leave empty"
+              value={angle}
+              maxLength={120}
+              onChange={(e) => setAngle(e.target.value)}
+            />
+            <Button
+              disabled={changed || closed}
+              busy={busy === "draft"}
+              onClick={() =>
+                void run(
+                  "draft",
+                  "sites.draft",
+                  { id, angle: angle.trim() || null },
+                  "Claude saved a new version. Read it before you ask.",
+                )
+              }
+            >
+              Ask Claude
+            </Button>
+          </div>
+        </Fieldset>
+      )}
     </form>
   );
 }
 
-/** The draft as it will look, beside the details: a laptop or a phone. */
-function Preview({ src, slug }: { src: string; slug: string | null }) {
+/**
+ * The page as it will look, beside the editor: drawn here from the copy as it's typed, with no
+ * script and nothing counted. The saved draft opens on our host by its link.
+ */
+function Preview({ id, d, slug }: { id: string; d: PageDetail; slug: string | null }) {
   const [phone, setPhone] = useState(false);
+  const typed = useTyping(id);
+  const content = typed ?? d.draft?.content ?? null;
+  const html = useMemo(() => {
+    if (!d.template || !content) return null;
+    try {
+      return renderPage(templateOf(d.template.id), content, {
+        page: id,
+        base: "",
+        track: false,
+        banner: typed ? "Preview of your changes. Not saved." : "Preview. Not live until approved.",
+      });
+    } catch {
+      return null;
+    }
+  }, [d.template, content, id, typed]);
   return (
-    <div className="grid gap-2">
-      <div className="flex flex-wrap items-center justify-between gap-2">
-        <span className={LABEL}>Draft preview</span>
+    <div className={FRAME}>
+      <div className={FRAME_HEAD}>
+        <span className={GROUP_LABEL}>Preview</span>
         <div className="flex gap-1">
           <Button size="sm" tone={phone ? "quiet" : undefined} onClick={() => setPhone(false)}>
             Laptop
@@ -264,21 +408,30 @@ function Preview({ src, slug }: { src: string; slug: string | null }) {
           </Button>
         </div>
       </div>
-      <div className="overflow-hidden border border-(--ui-hair) bg-(--ui-paper)">
-        <iframe
-          key={src}
-          src={src}
-          title="Draft preview"
-          sandbox=""
-          className={
-            phone ? "mx-auto block h-[640px] w-[390px] max-w-full" : "block h-[640px] w-full"
-          }
-        />
+      <div className="grid gap-2 p-3">
+        <div className="overflow-hidden border border-(--ui-hair) bg-(--ui-paper)">
+          {html ? (
+            <iframe
+              srcDoc={html}
+              title="Page preview"
+              sandbox=""
+              className={
+                phone ? "mx-auto block h-[640px] w-[390px] max-w-full" : "block h-[640px] w-full"
+              }
+            />
+          ) : (
+            <p className={`p-4 text-[13.5px] ${QUIET}`}>Nothing to show yet.</p>
+          )}
+        </div>
+        <div className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1">
+          {d.preview ? (
+            <a className="text-[13px] underline" href={d.preview} target="_blank" rel="noopener">
+              Open the saved draft
+            </a>
+          ) : null}
+          {slug ? <span className={HINT}>Live at /o/{slug} once approved.</span> : null}
+        </div>
       </div>
-      <a className="text-[13px] underline" href={src} target="_blank" rel="noopener">
-        Open the preview
-      </a>
-      {slug ? <span className={HINT}>Live at /o/{slug} once approved.</span> : null}
     </div>
   );
 }
@@ -556,19 +709,18 @@ function Notes({ id, d, act }: { id: string; d: PageDetail; act: RecordAct }) {
   );
 }
 
-const EDITOR = (
-  <p className={`text-[13.5px] ${QUIET}`}>
-    In development. Edit the copy above, or build the page in code with the lander skill.
-  </p>
-);
-
-/** Wren's list: the copy form and preview for a data page, the repo for a code page. */
+/** Wren's list: the copy editor and its preview for a data page, the repo for a code page. */
 export const pageExtras: NonNullable<ListPage["extras"]> = (detail, { row, act }) =>
   extrasOf(detail as PageDetail | null, row, act, false);
 
-/** A client's list: numbers, ads, the split and versions; the copy is edited by Wren. */
+/** A client's list: the same copy editor (no Claude), numbers, ads, the split and versions. */
 export const clientPageExtras: NonNullable<ListPage["extras"]> = (detail, { row, act }) =>
   extrasOf(detail as PageDetail | null, row, act, true);
+
+/** A section's body in a frame, under its label. */
+const framed = (body: ReactNode) => (
+  <div className={`${FRAME} ${FRAME_BODY} min-w-0 overflow-x-auto`}>{body}</div>
+);
 
 function extrasOf(d: PageDetail | null, row: Row, act: RecordAct, client: boolean): RecordExtras {
   if (!d) return {};
@@ -576,28 +728,41 @@ function extrasOf(d: PageDetail | null, row: Row, act: RecordAct, client: boolea
   const url = String(row.url ?? "");
   const slug = /\/o\/([a-z0-9-]+)/.exec(url)?.[1] ?? null;
   const sections: [string, ReactNode][] = [
-    ["Visits, last 30 days", <Numbers key="n" d={d} />],
-    ["Where visits came from", <Sources key="s" d={d} />],
+    ["Visits, last 30 days", framed(<Numbers key="n" d={d} />)],
+    ["Where visits came from", framed(<Sources key="s" d={d} />)],
   ];
-  if (d.ads.length) sections.push(["Ads to this page", <Ads key="a" ads={d.ads} />]);
+  if (d.ads.length) sections.push(["Ads to this page", framed(<Ads key="a" ads={d.ads} />)]);
   if (d.source === "data")
-    sections.push(["A/B split", <Split key="ab" id={id} d={d} row={row} act={act} />]);
+    sections.push(["A/B split", framed(<Split key="ab" id={id} d={d} row={row} act={act} />)]);
   if (d.variants.length)
-    sections.push(["Variants", <Variants key="v" vs={d.variants} here={id} />]);
-  if (d.versions.length) sections.push(["Versions", <Versions key="h" d={d} />]);
-  if (client) {
-    return {
-      ...(d.preview ? { aside: <Preview key={d.preview} src={d.preview} slug={slug} /> } : {}),
-      sections,
-    };
-  }
-  sections.push(["Notes", <Notes key={`notes-${d.notes ?? ""}`} id={id} d={d} act={act} />]);
-  if (d.source === "code") return { top: <InCode d={d} url={url} />, sections };
-  sections.push(["Visual editor", EDITOR]);
+    sections.push(["Variants", framed(<Variants key="v" vs={d.variants} here={id} />)]);
+  if (d.versions.length) sections.push(["Versions", framed(<Versions key="h" d={d} />)]);
+  if (!client)
+    sections.push([
+      "Notes",
+      framed(<Notes key={`notes-${d.notes ?? ""}`} id={id} d={d} act={act} />),
+    ]);
+  if (d.source === "code")
+    return client ? { sections } : { top: <InCode d={d} url={url} />, sections };
+  const retired = row.status === "retired";
   return {
     // Keyed by version: a new one (a save, Claude's) opens fresh.
-    form: <CopyForm key={`${id}:${d.draft?.number ?? 0}`} id={id} d={d} act={act} />,
-    ...(d.preview ? { aside: <Preview key={d.preview} src={d.preview} slug={slug} /> } : {}),
+    ...(retired
+      ? {}
+      : {
+          form: (
+            <CopyEditor
+              key={`${id}:${d.draft?.number ?? 0}`}
+              id={id}
+              d={d}
+              act={act}
+              client={client}
+            />
+          ),
+        }),
+    ...(d.draft
+      ? { aside: <Preview key={`${id}:${d.draft.number}`} id={id} d={d} slug={slug} /> }
+      : {}),
     sections,
   };
 }

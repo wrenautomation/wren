@@ -15,6 +15,11 @@ export const SITES_CONSOLE_ROUTES = {
   approve: "act",
   decline: "act",
   retire: "act",
+  /** A stopped split's B to E page: asked to come down, a yes in To approve. */
+  retireAsk: "act",
+  /** Tracked `/go/` links: the pages one can go to, and a new one. */
+  linkTargets: "read",
+  linkCreate: "act",
   duplicate: "act",
   add: "act",
   notes: "act",
@@ -52,6 +57,8 @@ export const SITES_CONSOLE_WRITES: readonly (keyof typeof SITES_CONSOLE_ROUTES)[
   "approve",
   "decline",
   "retire",
+  "retireAsk",
+  "linkCreate",
   "duplicate",
   "add",
   "notes",

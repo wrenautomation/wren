@@ -11,10 +11,11 @@ export const listicle: Template = {
   name: "Listicle",
   blurb: "Ranked items with pros and cons, a verdict and a form. For readers comparing options.",
   fields: [
-    { key: "title", label: "Title", kind: "text", max: 100 },
+    { key: "title", group: "Top", label: "Title", kind: "text", max: 100 },
     { key: "intro", label: "Intro", kind: "long", max: 600 },
     {
       key: "items",
+      group: "List",
       label: "Items, best first",
       kind: "items",
       max: 10,
@@ -28,9 +29,9 @@ export const listicle: Template = {
         { key: "link_label", label: "Link label", kind: "text", max: 30 },
       ],
     },
-    { key: "verdict", label: "Verdict", kind: "long", max: 600, optional: true },
+    { key: "verdict", group: "Verdict", label: "Verdict", kind: "long", max: 600, optional: true },
     { key: "cta", label: "Button", kind: "text", max: 40, hint: "Goes to the form." },
-    { key: "form_title", label: "Form heading", kind: "text", max: 80 },
+    { key: "form_title", group: "Form", label: "Form heading", kind: "text", max: 80 },
     { key: "form_note", label: "Under the form heading", kind: "long", max: 200, optional: true },
     { key: "form_button", label: "Form button", kind: "text", max: 40 },
     {
@@ -42,7 +43,7 @@ export const listicle: Template = {
       hint: "A form's slug or id from Sites, Forms. Empty: name, email, phone and a note.",
     },
     { key: "thanks", label: "After sending", kind: "text", max: 160 },
-    { key: "footer", label: "Footer", kind: "text", max: 160, optional: true },
+    { key: "footer", group: "Footer", label: "Footer", kind: "text", max: 160, optional: true },
   ],
   fill(offer: Offer, o) {
     const got = offer.youGet.slice(0, 5);

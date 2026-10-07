@@ -88,3 +88,45 @@ export function hopOf(path: string, search: URLSearchParams): Hop | null {
     location: `${to}?${q}`,
   };
 }
+
+/**
+ * The short names Wren's own links may use: the lander's `/go/` knows these
+ * (lander/src/data/links.json). Any other name still lands there, credited as `<name>` / `link`.
+ */
+export const WREN_GO_LINKS = ["yt", "li", "ig", "tt", "x", "rd", "fb", "ads", "sms"] as const;
+
+/** A word for a link's path: lower case, dashes for anything else, at most 80. Empty when none. */
+export function linkWord(raw: string | null | undefined): string {
+  const s = (raw ?? "")
+    .trim()
+    .toLowerCase()
+    .replace(/[^a-z0-9._-]+/g, "-")
+    .replace(/^[^a-z0-9]+/, "")
+    .replace(/-+$/, "")
+    .slice(0, 80);
+  return WORD.test(s) ? s : "";
+}
+
+/**
+ * The utm a link lands with: its short name's source and medium, else the name and `link`. Wren's
+ * links go through the lander's `/go/`, which knows only `WREN_GO_LINKS`.
+ */
+export function linkUtm(link: string, wren = false): { source: string; medium: string } {
+  const known = !wren || (WREN_GO_LINKS as readonly string[]).includes(link);
+  return (known && GO_LINKS[link]) || { source: link, medium: "link" };
+}
+
+/**
+ * A tracked link: `https://<host>/go/<link>/<campaign>[/<content>]?to=/o/<slug>`. The campaign is
+ * always there (the page's slug when none is given), so a post or ad id has its place.
+ */
+export function goLinkOf(l: {
+  host: string;
+  link: string;
+  campaign: string;
+  content?: string | null;
+  slug: string;
+}): string {
+  const parts = [l.link, l.campaign, l.content ?? ""].filter((p) => p).map(encodeURIComponent);
+  return `https://${l.host}/go/${parts.join("/")}?to=/o/${l.slug}`;
+}

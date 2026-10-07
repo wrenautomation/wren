@@ -5,12 +5,40 @@
  * listed here by URL with the same numbers. The Funnel reads each page by where its visits came
  * from, ads with their spend. Forms are hosted forms (designs/2026-10-07-forms-and-pay.md), built
  * as fields and live at /o/f/<slug> or framed anywhere; Submissions holds every form sent, whole,
- * for export.
+ * for export. Links makes tracked `/go/` links with their QR codes and counts what each brought.
  */
-import type { Module } from "../../module.js";
+import type { ListPage, Module } from "../../module.js";
 import { CLIENT_PAGE_ACTIONS, FORM_ACTIONS, PAGE_ACTIONS, SPLIT_ACTIONS } from "./actions.js";
 import { clientPageExtras, pageExtras } from "./detail.js";
 import { formExtras } from "./forms.js";
+import { linkExtras, linkHead } from "./links.js";
+
+/** Tracked `/go/` links: Wren's and each client's, the same page in both workspaces. */
+const LINKS: ListPage = {
+  id: "links",
+  label: "Links",
+  template: "list",
+  record: "sites.link",
+  empty: {
+    all: "No tracked links yet. Make one above: pick a page and where it's posted.",
+    used: "No link has brought a visit yet.",
+    ads: "No ad links yet.",
+  },
+  columns: [
+    "name",
+    "pageTitle",
+    "channel",
+    "content",
+    "clicks",
+    "visits",
+    "forms",
+    "books",
+    "last",
+    "created",
+  ],
+  head: linkHead,
+  extras: linkExtras,
+};
 
 export const sites: Module = {
   id: "sites",
@@ -29,7 +57,7 @@ export const sites: Module = {
       empty: {
         pages: "No pages yet. Make one from an offer with New page.",
         live: "No page is live. A draft goes live with a yes in To approve.",
-        waiting: "Nothing to approve.",
+        waiting: "Nothing waits on a yes.",
         ads: "No ad links to a page yet.",
         retired: "No page is retired.",
         splits: "No A/B split is running. Start one from a live page.",
@@ -49,6 +77,7 @@ export const sites: Module = {
         "books",
         "ads",
         "split",
+        "asked",
       ],
       extras: pageExtras,
     },
@@ -60,6 +89,7 @@ export const sites: Module = {
       empty: "No visits counted yet. Each page's tracker fills this.",
       columns: ["title", "channel", "offer", "views", "forms", "books", "formRate", "spend"],
     },
+    LINKS,
     {
       id: "forms",
       label: "Forms",
@@ -109,15 +139,15 @@ export const sites: Module = {
 
 /**
  * A client's Sites, in its own workspace: its own pages on its own host, at /o/<slug>. Wren
- * builds the copy; the client sees each page's numbers and ads, runs its splits, and gives the
- * yes on a version when its approver setting says the client approves. Its logins see its pages
- * only.
+ * builds the pages; the client edits their copy in the same editor, sees each page's numbers and
+ * ads, runs its splits, makes tracked links, and gives the yes on a version or a retire when its
+ * approver setting says the client approves. Its logins see its pages only.
  */
 export const clientSites: Module = {
   id: "sites",
   name: "Sites",
   icon: "link",
-  blurb: "Your landing pages, with their visits, forms, bookings and ads.",
+  blurb: "Your landing pages, their copy, tracked links, visits, forms, bookings and ads.",
   component: "sites.pages",
   pages: [
     {
@@ -144,11 +174,13 @@ export const clientSites: Module = {
         "spend",
         "costPerForm",
         "split",
+        "asked",
         "address",
         "kind",
         "changed",
       ],
       extras: clientPageExtras,
     },
+    LINKS,
   ],
 };

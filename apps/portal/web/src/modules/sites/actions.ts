@@ -112,6 +112,7 @@ export const PAGE_ACTIONS: Action[] = [
   { id: "sites.draft", label: "Ask Claude", handler: "sites/draft", inline: true, when: DATA },
   { id: "sites.ask", label: "Ask to publish", handler: "sites/ask", inline: true, when: DATA },
   { id: "sites.notes", label: "Save notes", handler: "sites/notes", inline: true },
+  { id: "sites.retireAsk", label: "Retire", handler: "sites/retireAsk", inline: true },
 ];
 
 /**
@@ -126,18 +127,19 @@ export const SPLIT_ACTIONS: Action[] = [
 ];
 
 /**
- * A client's own pages: a yes or no on the version waiting, by the client's approver setting.
- * The row is the page; the yes is on the version waiting on it now.
+ * A client's own pages: a yes or no on what waits (a version, or a retire), by the client's
+ * approver setting. The row is the page; the yes is on what waits on it now.
  */
 export const CLIENT_PAGE_ACTIONS: Action[] = [
   {
     id: "sites.approve",
     label: "Approve",
     handler: "sites/approve",
-    confirm: "Make the waiting version live? Its address shows it within a minute.",
+    confirm: "Say yes to what waits? A version goes live, a retired page answers gone.",
     key: "a",
     bulk: true,
-    done: (out) => `Live: ${(out as { approved?: number }).approved ?? 0}.`,
+    when: { asked: ["publish", "retire"] },
+    done: (out) => `Done: ${(out as { approved?: number }).approved ?? 0}.`,
   },
   {
     id: "sites.decline",
@@ -145,8 +147,13 @@ export const CLIENT_PAGE_ACTIONS: Action[] = [
     handler: "sites/decline",
     key: "x",
     bulk: true,
-    done: () => "Declined. The version stays in its history.",
+    when: { asked: ["publish", "retire"] },
+    done: () => "Declined. Nothing changed on the page.",
   },
+  // From the page's detail: the copy editor and a stopped split's retire ask.
+  { id: "sites.save", label: "Save", handler: "sites/save", inline: true, when: DATA },
+  { id: "sites.ask", label: "Ask to publish", handler: "sites/ask", inline: true, when: DATA },
+  { id: "sites.retireAsk", label: "Retire", handler: "sites/retireAsk", inline: true },
   ...SPLIT_ACTIONS,
 ];
 

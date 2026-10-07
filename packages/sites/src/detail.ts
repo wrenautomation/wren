@@ -70,6 +70,8 @@ export interface PageDetail {
   draft: { number: number; content: Content } | null;
   live: number | null;
   waiting: number | null;
+  /** Asked to come down: waiting on a yes in To approve. */
+  retiring: boolean;
   versions: { number: number; origin: string; why: string | null; by: string; at: string }[];
   /** The draft at our host, by its token: the preview frame. */
   preview: string | null;
@@ -153,7 +155,7 @@ async function splitWithOf(db: Queryable, page: SitePage) {
     select p.id::text id, p.title, p.slug, (p.id = ${root} or p.variant_of = ${root}) variant
     from site_pages p
     where p.id <> ${page.id} and p.source = 'data' and p.status = 'live'
-      and p.live_version is not null
+      and p.live_version is not null and p.retire_at is null
       and ${page.client === null ? sql`p.client is null` : sql`p.client = ${page.client}`}
     order by variant desc, p.updated_at desc limit 40`);
   return [...rows] as unknown as PageDetail["splitWith"];
@@ -168,6 +170,7 @@ export async function pageDetail(db: Queryable, id: string): Promise<PageDetail 
     waiting: page.waitingVersion,
     repoPath: page.repoPath,
     notes: page.notes,
+    retiring: page.retireAt !== null,
     ...numbers,
     ads: await adsIn(db, page),
     variants: await variantsOf(db, page),

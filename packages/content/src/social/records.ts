@@ -27,8 +27,8 @@ import { installApprovalId, waitingInstalls } from "@wren/core/templates/install
 import type { Queryable } from "@wren/db";
 import { commentRecord, dmRecord, PLATFORM_LABELS, threadRecord } from "@wren/outreach/records";
 import { money, payApprovalId, waitingPayLinks } from "@wren/payments/store";
-import { pageApprovalId } from "@wren/sites/console";
-import { waitingPages } from "@wren/sites/store";
+import { pageApprovalId, retireApprovalId } from "@wren/sites/console";
+import { waitingPages, waitingRetires } from "@wren/sites/store";
 import { sql } from "drizzle-orm";
 import { DRAFT_CALLS } from "../draft-calls.js";
 import { conversationOf } from "../inbox/conversation.js";
@@ -548,6 +548,7 @@ export const approvalRecordOf = (signer?: VideoSigner) =>
       const asks = await waitingAsks(db);
       const ws = await waitingInstalls(db);
       const pgs = await waitingPages(db);
+      const outs = await waitingRetires(db);
       const rs = await waitingReplies(db, ACTIVITY_ROWS);
       const pays = await waitingPayLinks(db);
       return [
@@ -708,6 +709,22 @@ export const approvalRecordOf = (signer?: VideoSigner) =>
           due: p.at,
           url: `/sites/pages/${p.id}`,
         })),
+        // A stopped split's page asked to come down (Sites): a yes answers gone at its URL.
+        ...outs.map((p) => ({
+          id: retireApprovalId(p.id),
+          type: "retire",
+          who: p.title,
+          platform: null,
+          kind: "retire",
+          state: "waiting",
+          body: `${p.by ?? "Someone"} asked to take /o/${p.slug} down${p.client ? ` for ${p.client}` : ""}. Its numbers stay.`,
+          post_title: p.offer,
+          draft: null,
+          account: null,
+          at: p.at,
+          due: p.at,
+          url: `/sites/pages/${p.id}`,
+        })),
         // A pay link someone without the yes made (Payments): a yes makes it on Stripe and sends it.
         ...pays.map((p) => ({
           id: payApprovalId(p.id),
@@ -742,6 +759,7 @@ export const approvalRecordOf = (signer?: VideoSigner) =>
           template: neutral("Template"),
           workflow: neutral("Workflow"),
           page: neutral("Page"),
+          retire: neutral("Page"),
           reply: neutral("Reply"),
           pay: neutral("Payment"),
         }),
@@ -762,6 +780,7 @@ export const approvalRecordOf = (signer?: VideoSigner) =>
           template: neutral("Copy to make live"),
           workflow: neutral("Workflow to make live"),
           page: neutral("Page to make live"),
+          retire: neutral("Page to take down"),
           reply: neutral("Reply to send"),
           pay: neutral("Pay link to send"),
         }),
@@ -793,7 +812,13 @@ export const approvalRecordOf = (signer?: VideoSigner) =>
       },
       { id: "templates", label: "Templates", where: { type: "template" }, sort: "-at", at: "at" },
       { id: "workflows", label: "Workflows", where: { type: "workflow" }, sort: "-at", at: "at" },
-      { id: "pages", label: "Pages", where: { type: "page" }, sort: "-at", at: "at" },
+      {
+        id: "pages",
+        label: "Pages",
+        where: { type: ["page", "retire"] },
+        sort: "-at",
+        at: "at",
+      },
       { id: "replies", label: "Replies", where: { type: "reply" }, sort: "-at", at: "at" },
       { id: "payments", label: "Payments", where: { type: "pay" }, sort: "-at", at: "at" },
       { id: "all", label: "All", sort: "-at", at: "at" },
@@ -826,6 +851,8 @@ export const approvalRecordOf = (signer?: VideoSigner) =>
       "workflows.decline",
       "sites.approve",
       "sites.decline",
+      "sites.retireApprove",
+      "sites.retireDecline",
       "inbox.replyApprove",
       "inbox.replyDrop",
       "payments.approve",
@@ -846,6 +873,7 @@ export const approvalRecordOf = (signer?: VideoSigner) =>
         type === "template" ||
         type === "workflow" ||
         type === "page" ||
+        type === "retire" ||
         type === "pay"
       )
         return null;

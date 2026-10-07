@@ -56,6 +56,7 @@ import {
   saveForm,
   setFormStatus,
 } from "./form-store.js";
+import { createLink, linkHost, linkTargets } from "./links.js";
 import {
   PAGE_KINDS,
   PAGE_STAGES,
@@ -64,7 +65,7 @@ import {
   SPLIT_GOALS,
   type SplitGoal,
 } from "./model.js";
-import { pageRecordFor } from "./records.js";
+import { linkRecordFor, pageRecordFor } from "./records.js";
 import { type SitePage, sitePages } from "./schema.js";
 import {
   liveSplitOf,
@@ -77,9 +78,12 @@ import {
 } from "./split.js";
 import {
   approvePage,
+  approveRetire,
   askPublish,
+  askRetire,
   createDataPage,
   declinePage,
+  declineRetire,
   duplicatePage,
   pageById,
   registerCodePage,
@@ -106,6 +110,11 @@ export const pageApprovalId = (id: string, number: number) => `page:${id}:${numb
 export function parsePageApprovalId(id: string): { id: string; number: number } | null {
   const m = /^page:([0-9a-f-]{36}):(\d{1,9})$/i.exec(id);
   return m?.[1] && m[2] ? { id: m[1], number: Number(m[2]) } : null;
+}
+/** The To approve item for a page asked to come down: `retire:<id>`. */
+export const retireApprovalId = (id: string) => `retire:${id}`;
+export function parseRetireApprovalId(id: string): string | null {
+  return /^retire:([0-9a-f-]{36})$/i.exec(id)?.[1] ?? null;
 }
 
 export interface CreateRequest extends PortalRequest {
@@ -157,6 +166,14 @@ export interface SplitWeightsRequest extends IdRequest {
 export interface SplitShipRequest extends IdRequest {
   /** The arm to make the page: "B". */
   label: string;
+}
+export interface LinkRequest extends PortalRequest {
+  page: string;
+  link: string;
+  campaign?: string | null;
+  content?: string | null;
+  name?: string | null;
+  owner?: string | null;
 }
 export interface AddRequest extends PortalRequest {
   url: string;
@@ -221,17 +238,23 @@ export function sitesApi(deps: { db: Db; write?: Write | null }) {
    * May this viewer say yes to a page's ask: Wren's pages, anyone who may act there; a client's,
    * as the client's approver setting says.
    */
-  /** The versions a yes or no is on: named in the id, or the one waiting on a bare page id. */
+  /**
+   * What a yes or no is on: a version named in the id, a page asked to come down, or what waits
+   * on a bare page id (a retire first: it cleared any version).
+   */
   const asksOf = async (req: IdsRequest) => {
-    const out: { id: string; number: number }[] = [];
+    const out: { id: string; number: number | null }[] = [];
     for (const raw of req.ids ?? []) {
       const id = String(raw);
       const named = parsePageApprovalId(id);
+      const retire = parseRetireApprovalId(id);
       if (named) out.push(named);
+      else if (retire) out.push({ id: retire, number: null });
       else if (UUID.test(id)) {
         const p = await pageById(db, id);
-        if (!p?.waitingVersion) throw new PortalRefusal("that page has nothing waiting", 409);
-        out.push({ id, number: p.waitingVersion });
+        if (p?.retireAt) out.push({ id, number: null });
+        else if (p?.waitingVersion) out.push({ id, number: p.waitingVersion });
+        else throw new PortalRefusal("that page has nothing waiting", 409);
       } else throw new PortalRefusal("nothing picked", 404);
     }
     if (!out.length) throw new PortalRefusal("nothing picked", 404);
@@ -265,7 +288,7 @@ export function sitesApi(deps: { db: Db; write?: Write | null }) {
     return snapshot(db, (tx) =>
       use(
         serveRecords(
-          [pageRecordFor(client.id)],
+          [pageRecordFor(client.id), linkRecordFor(client.id)],
           tx,
           undefined,
           fenceFor(req, client.id),
@@ -430,7 +453,9 @@ export function sitesApi(deps: { db: Db; write?: Write | null }) {
       const done: string[] = [];
       for (const a of asks) {
         await mustApprove(req, await pageFor({ ...req, id: a.id }, "act"));
-        const p = await refused(approvePage(db, a.id, a.number, name));
+        const p = await refused(
+          a.number === null ? approveRetire(db, a.id, name) : approvePage(db, a.id, a.number, name),
+        );
         done.push(p.id);
       }
       return { approved: done.length };
@@ -442,7 +467,11 @@ export function sitesApi(deps: { db: Db; write?: Write | null }) {
       let n = 0;
       for (const a of asks) {
         await mustApprove(req, await pageFor({ ...req, id: a.id }, "act"));
-        if (await declinePage(db, a.id, a.number, name)) n++;
+        const no =
+          a.number === null
+            ? await declineRetire(db, a.id, name)
+            : await declinePage(db, a.id, a.number, name);
+        if (no) n++;
       }
       return { declined: n };
     },
@@ -464,6 +493,56 @@ export function sitesApi(deps: { db: Db; write?: Write | null }) {
           ? "Code pages are marked retired here. Take them down in their repo."
           : null,
       };
+    },
+
+    /**
+     * Ask to take a stopped split's B to E page down: it waits in To approve, and the yes is the
+     * owner's approver's, as a publish is.
+     */
+    async retireAsk(req: IdRequest) {
+      const name = who(req);
+      await pageFor(req, "act");
+      const page = await refused(askRetire(db, String(req.id), name));
+      return { id: page.id, asked: !!page.retireAt };
+    },
+
+    /**
+     * The pages a new link can go to, the host it will live on (null: no live host yet), and the
+     * owners with data pages this viewer may read, Wren first.
+     */
+    async linkTargets(req: PortalRequest & { owner?: string | null }) {
+      const owner = ownerOf(req);
+      await may(req, owner, "read");
+      const rows = (await db.execute(sql`
+        select distinct c.id, c.name from site_pages p join clients c on c.id = p.client
+        where p.source = 'data' order by c.name`)) as unknown as { id: string; name: string }[];
+      const owners: { id: string; name: string }[] = [];
+      for (const c of [{ id: WREN, name: "Wren" }, ...rows])
+        if (await canAt(db, req, "read", at(c.id === WREN ? null : c.id))) owners.push(c);
+      return {
+        owners,
+        pages: await linkTargets(db, owner),
+        host: await linkHost(db, owner),
+      };
+    },
+
+    /** A tracked `/go/` link to one page, or the one already made with the same utm. */
+    async linkCreate(req: LinkRequest) {
+      const name = who(req);
+      const owner = ownerOf(req);
+      await may(req, owner, "act");
+      const l = await refused(
+        createLink(db, {
+          client: owner,
+          page: String(req.page ?? ""),
+          link: String(req.link ?? ""),
+          campaign: req.campaign ?? null,
+          content: req.content ?? null,
+          name: req.name ?? null,
+          by: name,
+        }),
+      );
+      return { id: l.id, url: l.url, link: l.link, campaign: l.campaign, content: l.content };
     },
 
     /** A variant of each page: its draft copied to a new draft, a new angle when given. */
@@ -563,7 +642,7 @@ export function sitesApi(deps: { db: Db; write?: Write | null }) {
     recordsTypes: async (req: PortalRequest) => {
       const client = await pickClient(db, req);
       const fence = fenceFor(req, client.id);
-      return [pageRecordFor(client.id)]
+      return [pageRecordFor(client.id), linkRecordFor(client.id)]
         .filter((t) => !fence || opens(t, fence(t)))
         .map((t) => metaOf(t, false));
     },
@@ -728,6 +807,32 @@ export function makeSitesConsole(deps: { db: Db; write?: Write | null }) {
       retire: serviceHandler(
         { input: z.looseObject({ ...P, ids: IDS }) },
         write("retire", api.retire),
+      ),
+      retireAsk: serviceHandler(
+        { input: z.looseObject({ ...P, id: ID }) },
+        write("retireAsk", api.retireAsk),
+      ),
+      linkTargets: serviceHandler(
+        { input: z.looseObject({ ...P, owner: OWNER }) },
+        read(api.linkTargets),
+      ),
+      linkCreate: serviceHandler(
+        {
+          input: z.looseObject({
+            ...P,
+            page: ID,
+            link: z.string().max(80).describe("Where it's posted: ads, ig, sms, or a word"),
+            campaign: z
+              .string()
+              .max(80)
+              .nullish()
+              .describe("The campaign; the page's slug if empty"),
+            content: z.string().max(80).nullish().describe("The post or ad id"),
+            name: z.string().max(200).nullish(),
+            owner: OWNER,
+          }),
+        },
+        write("linkCreate", api.linkCreate),
       ),
       duplicate: serviceHandler(
         {

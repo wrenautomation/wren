@@ -665,6 +665,24 @@ const PAGE_ACTIONS: Action[] = [
     done: said("Declined. The version stays in its history."),
   },
 ];
+/** A stopped split's page asked to come down (Sites): a yes takes it off its URL. */
+const RETIRE_ACTIONS: Action[] = [
+  {
+    id: "sites.retireApprove",
+    label: "Approve",
+    handler: "sites/approve",
+    confirm: "Take this page down? Its URL answers gone. Its numbers stay.",
+    key: "a",
+    done: said("Retired. Its URL answers gone within a minute."),
+  },
+  {
+    id: "sites.retireDecline",
+    label: "Decline",
+    handler: "sites/decline",
+    key: "x",
+    done: said("Declined. The page stays up."),
+  },
+];
 /** A reply typed in the Inbox that waits on a yes: Approve sends it on its channel. */
 const ASKED_REPLY_ACTIONS: Action[] = [
   {
@@ -694,6 +712,7 @@ const APPROVAL_ACTIONS: Action[] = [
   ...TEMPLATE_ACTIONS.map((a) => only("template", a, WAITS)),
   ...WORKFLOW_ACTIONS.map((a) => only("workflow", a, WAITS)),
   ...PAGE_ACTIONS.map((a) => only("page", a, WAITS)),
+  ...RETIRE_ACTIONS.map((a) => only("retire", a, WAITS)),
   ...THREAD_ACTIONS.filter(own).map((a) => only("thread", a, WAITS)),
   ...INVITE_ACTIONS.filter((a) => own(a) && a.id !== "marketing.inviteWithdraw").map((a) =>
     only("invite", a, a.id === "marketing.inviteMessage" ? { state: ["waiting", "read"] } : WAITS),

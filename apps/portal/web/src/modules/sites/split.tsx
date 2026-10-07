@@ -233,6 +233,70 @@ function Start({ id, d, row, act }: { id: string; d: PageDetail; row: Row; act: 
   );
 }
 
+/**
+ * A split that ended: its B to E pages, each with Retire. Retire asks: the page waits in To
+ * approve (or the client's yes), then answers gone at its address and keeps its numbers.
+ */
+function Ended({ s, act }: { s: SplitResult; act: RecordAct }) {
+  const { said, busy, run } = useRun(act);
+  const others = s.split.arms.filter((a) => a.label !== "A");
+  return (
+    <div className="grid gap-3">
+      <p className="text-[13.5px]">
+        Last split: {s.call.words}.{" "}
+        {s.split.state === "shipped"
+          ? `${s.split.winner} became the page on ${day(s.split.endedAt)}.`
+          : `Stopped on ${day(s.split.endedAt)}.`}
+      </p>
+      {others.length ? (
+        <ul className="grid gap-2">
+          {others.map((a) => (
+            <li
+              key={a.label}
+              className="grid grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-x-3 border-b border-(--ui-hair) pb-2 text-[14px]"
+            >
+              <span className="font-medium">{a.label}</span>
+              <span className="grid min-w-0">
+                <a className="truncate underline" href={`/sites/pages/${a.page}`}>
+                  {a.title}
+                </a>
+                <span className={`truncate ${HINT}`}>/o/{a.slug}</span>
+              </span>
+              <span>
+                {a.status === "retired" ? (
+                  <Tag tone="neutral">Retired</Tag>
+                ) : a.retiring ? (
+                  <Tag tone="accent">Waiting to retire</Tag>
+                ) : (
+                  <Button
+                    size="sm"
+                    tone="secondary"
+                    busy={busy === a.page}
+                    onClick={() =>
+                      void run(
+                        a.page,
+                        "sites.retireAsk",
+                        { id: a.page },
+                        `Asked. ${a.label} comes down on a yes in To approve.`,
+                      )
+                    }
+                  >
+                    Retire {a.label}
+                  </Button>
+                )}
+              </span>
+            </li>
+          ))}
+        </ul>
+      ) : null}
+      <span className={HINT}>
+        A retired page answers gone at its address. Its numbers stay here.
+      </span>
+      <Said said={said} />
+    </div>
+  );
+}
+
 export function Split({
   id,
   d,
@@ -248,15 +312,8 @@ export function Split({
   if (s && (s.split.state === "running" || s.split.state === "shipping"))
     return <Running key={`${s.split.id}:${s.split.updatedAt}`} id={id} s={s} act={act} />;
   return (
-    <div className="grid gap-4">
-      {s ? (
-        <p className={`text-[13.5px] ${QUIET}`}>
-          Last split: {s.call.words}.{" "}
-          {s.split.state === "shipped"
-            ? `${s.split.winner} became the page on ${day(s.split.endedAt)}.`
-            : `Stopped on ${day(s.split.endedAt)}.`}
-        </p>
-      ) : null}
+    <div className="grid gap-5">
+      {s ? <Ended key={`${s.split.id}:${s.split.updatedAt}`} s={s} act={act} /> : null}
       <Start id={id} d={d} row={row} act={act} />
     </div>
   );

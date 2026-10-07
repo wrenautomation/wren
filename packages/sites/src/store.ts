@@ -234,6 +234,7 @@ export async function askPublish(
   if (page.source !== "data") throw new SitesRefusal("a code page goes live by its deploy", 409);
   if (page.status === "retired")
     throw new SitesRefusal("this page is retired; copy it instead", 409);
+  if (page.retireAt) throw new SitesRefusal("this page waits to be retired", 409);
   const number = a.number ?? page.draftVersion;
   if (!number || !(await versionOf(db, id, number))) throw new SitesRefusal("no such version", 404);
   if (number === page.liveVersion) throw new SitesRefusal("that version is already live", 409);
@@ -341,12 +342,78 @@ export async function retirePages(db: Db, ids: readonly string[], by: string): P
       waitingVersion: null,
       waitingBy: null,
       waitingAt: null,
+      retireBy: null,
+      retireAt: null,
       updatedAt: sql`now()`,
       updatedBy: by,
     })
     .where(and(inArray(sitePages.id, ok), sql`${sitePages.status} <> 'retired'`))
     .returning({ id: sitePages.id });
   return out.map((r) => r.id);
+}
+
+/**
+ * Ask to take a stopped split's B to E page down: it waits in To approve like a version, and a
+ * version waiting on it goes. A page still in a running split, or one with its own live split,
+ * can't be asked for.
+ */
+export async function askRetire(db: Db, id: string, by: string): Promise<SitePage> {
+  return serializable(db, async (tx) => {
+    const [page] = await tx.select().from(sitePages).where(eq(sitePages.id, id)).for("update");
+    if (!page) throw new SitesRefusal("no such page", 404);
+    if (page.status === "retired") throw new SitesRefusal("this page is already retired", 409);
+    if (page.retireAt) return page;
+    const splits = await tx.execute(sql`
+      select s.state, s.page = ${id} as own, a.label
+      from site_splits s left join site_split_arms a on a.split = s.id and a.page = ${id}
+      where s.page = ${id} or a.page is not null`);
+    const rows = [...splits] as { state: string; own: boolean; label: string | null }[];
+    if (rows.some((r) => r.state === "running" || r.state === "shipping"))
+      throw new SitesRefusal("stop its split first", 409);
+    if (!rows.some((r) => !r.own && r.label && r.label !== "A"))
+      throw new SitesRefusal("only a stopped split's B to E pages are retired here", 409);
+    const [out] = await tx
+      .update(sitePages)
+      .set({
+        retireBy: by,
+        retireAt: sql`now()`,
+        waitingVersion: null,
+        waitingBy: null,
+        waitingAt: null,
+      })
+      .where(eq(sitePages.id, id))
+      .returning();
+    return out as SitePage;
+  });
+}
+
+/** A person's yes on a retire: the page answers 410, its numbers stay. */
+export async function approveRetire(db: Db, id: string, by: string): Promise<SitePage> {
+  return atomic(db, async (tx) => {
+    const [out] = await tx
+      .update(sitePages)
+      .set({
+        status: "retired",
+        retireBy: null,
+        retireAt: null,
+        updatedAt: sql`now()`,
+        updatedBy: by,
+      })
+      .where(and(eq(sitePages.id, id), sql`${sitePages.retireAt} is not null`))
+      .returning();
+    if (!out) throw new SitesRefusal("that page isn't waiting to be retired anymore", 409);
+    return out;
+  });
+}
+
+/** A person's no on a retire: the page stays as it was. Already gone: nothing. */
+export async function declineRetire(db: Db, id: string, by: string): Promise<boolean> {
+  const out = await db
+    .update(sitePages)
+    .set({ retireBy: null, retireAt: null, updatedAt: sql`now()`, updatedBy: by })
+    .where(and(eq(sitePages.id, id), sql`${sitePages.retireAt} is not null`))
+    .returning({ id: sitePages.id });
+  return out.length > 0;
 }
 
 /** A variant: the page's draft copied to a new draft page, pointing back at it. */
@@ -682,6 +749,23 @@ export async function waitingPages(db: Queryable) {
     .from(sitePages)
     .where(sql`${sitePages.waitingVersion} is not null`)
     .orderBy(asc(sitePages.waitingAt));
+}
+
+/** Pages asked to come down, oldest ask first: To approve's retire rows. */
+export async function waitingRetires(db: Queryable) {
+  return db
+    .select({
+      id: sitePages.id,
+      title: sitePages.title,
+      slug: sitePages.slug,
+      client: sitePages.client,
+      by: sitePages.retireBy,
+      at: sitePages.retireAt,
+      offer: sitePages.offer,
+    })
+    .from(sitePages)
+    .where(sql`${sitePages.retireAt} is not null`)
+    .orderBy(asc(sitePages.retireAt));
 }
 
 export interface DayNumbers {

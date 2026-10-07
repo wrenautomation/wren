@@ -31,6 +31,8 @@ export interface SplitArm {
   title: string;
   template: string | null;
   status: string;
+  /** Asked to come down, waiting in To approve. */
+  retiring: boolean;
 }
 export interface SplitWithArms extends SiteSplit {
   arms: SplitArm[];
@@ -46,6 +48,7 @@ async function armsOf(db: Queryable, split: string): Promise<SplitArm[]> {
       title: sitePages.title,
       template: sitePages.template,
       status: sitePages.status,
+      retiring: sql<boolean>`${sitePages.retireAt} is not null`,
     })
     .from(siteSplitArms)
     .innerJoin(sitePages, eq(sitePages.id, siteSplitArms.page))
@@ -133,6 +136,7 @@ export async function startSplit(
       if (p.client !== a.client)
         throw new SitesRefusal("every version must be the same owner's", 400);
       if (!servable(p)) throw new SitesRefusal(`${p.slug} isn't live; publish it first`, 409);
+      if (p.retireAt) throw new SitesRefusal(`${p.slug} waits to be retired`, 409);
     }
     const busy = await tx
       .select({ page: siteSplits.page })

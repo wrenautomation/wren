@@ -23,13 +23,15 @@ Many landers per offer and per client need a fair test with a plain call. The ar
 - `site_hops`: a client host's `/go/` clicks (`link`, `channel`, utm, `to`, `page`). Same migration.
 - Call: `splitCall` (`packages/sites/src/split-call.ts:49`): Beta(1 + goals, 1 + visits - goals) per arm; under 100 visits on any arm it says "Too early"; 95% is "wins".
 - Serve: `armToServe` (`split.ts:241`) behind `Sites/serve` with `arm`, `bot`, `roll`; the Worker's `page` (`apps/portal/src/sites.ts:270`) sets `wab`, keys the cache per arm, bots get A.
+- `site_links` (0188): tracked `/go/` links, one per page and utm, made in Sites → Links (`packages/sites/src/links.ts`); `site_link_records` counts each one's clicks, visits, forms and bookings. QR codes from `packages/sites/src/qr.ts`.
+- Retire an arm: after the split stops, `askRetire` (`store.ts`) sets `site_pages.retire_by`/`retire_at`; the yes (`approveRetire`, To approve id `retire:<id>` or the client's) retires it (410). Refused while a split runs and for A.
 - Ship: `shipSplit` (`split.ts:199`) saves and asks; `settleShip` (`store.ts:249`) ships on the yes, runs again on the no.
 
 Citations: `packages/sites/src/schema.ts:150`, `packages/sites/src/schema.ts:190`, `packages/sites/src/schema.ts:376`, `packages/sites/src/split.ts:104`, `packages/sites/src/split.ts:297`, `packages/sites/src/hops.ts:57`, `packages/sites/src/store.ts:731`, `apps/portal/src/sites.ts:312`
 
 ## Connected to
 
-- **owns:** `site_splits`, `site_split_arms`, `site_hops`
+- **owns:** `site_splits`, `site_split_arms`, `site_hops`, `site_links`
 - **owned-by:** `@wren/sites`
 - **joins:** [[clients/client]] by `client` (approver); [[platform/hosted-form]] (forms counted per arm); `call_bookings` for won deals (Wren's pages only); [[leads/touch]] through the door's utm
 - **looks-like-but-is-not:** `flags` / `flag_experiments` (Wren's lander bandit); Sites variants (copies with no traffic split)
@@ -46,6 +48,8 @@ Citations: `packages/sites/src/schema.ts:150`, `packages/sites/src/schema.ts:190
 | Sites → Pages → a page → A/B split (`apps/portal/web/src/modules/sites/split.tsx`) | start, call, weights, stop, Make B the page |
 | a client's Sites (`clientSites`) | its pages, splits, Approve and Decline by its approver |
 | portal Worker `/o/<slug>`, `/go/*` on client hosts | arm and cookie; counted hop and 302 |
+| Sites → Links (`apps/portal/web/src/modules/sites/links.tsx`) | make a tracked link, copy it and its QR, each link's numbers |
+| Marketing → To approve (`retire:<id>`) | yes or no on taking a split's arm down |
 | `wren sites scan` | live pages missing from the list (read only) |
 
 ## See

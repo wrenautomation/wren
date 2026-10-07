@@ -25,6 +25,7 @@ export const PAGE_RECORD = "sites.page";
 export const FUNNEL_RECORD = "sites.funnel";
 export const FORM_RECORD = "sites.form";
 export const ENTRY_RECORD = "sites.entry";
+export const LINK_RECORD = "sites.link";
 
 const KINDS = {
   lander: { label: "Lander", tone: "neutral" },
@@ -75,6 +76,13 @@ const PAGE_FIELDS = {
   ),
   owner: text("Owner"),
   waiting: number("Waiting version", { listed: false }),
+  asked: status(
+    {
+      publish: { label: "To publish", tone: "warn" },
+      retire: { label: "To retire", tone: "warn" },
+    },
+    "Waiting on a yes",
+  ),
   offer: text("Offer"),
   angle: text("Angle"),
   audience: text("Audience", { listed: false }),
@@ -126,7 +134,7 @@ const PAGE_VIEWS = [
   {
     id: "waiting",
     label: "Waiting",
-    where: { waiting: { empty: false } },
+    where: { asked: ["publish", "retire"] },
     sort: "-changed",
     at: "changed",
   },
@@ -164,6 +172,7 @@ export const pageRecord: RecordType = defineRecord({
     "sites.add",
     "sites.duplicate",
     "sites.retire",
+    "sites.retireAsk",
     // From the page's own detail: its copy form, Claude's draft, the ask, its notes.
     "sites.save",
     "sites.draft",
@@ -198,6 +207,10 @@ export function pageRecordFor(client: string): RecordType {
     actions: [
       "sites.approve",
       "sites.decline",
+      // From the page's detail: the copy editor's save and ask, a stopped split's retire ask.
+      "sites.save",
+      "sites.ask",
+      "sites.retireAsk",
       "sites.splitStart",
       "sites.splitWeights",
       "sites.splitStop",
@@ -358,8 +371,64 @@ export const entryRecord: RecordType = defineRecord({
   ],
 });
 
+const LINK_FIELDS = {
+  name: text("Link"),
+  pageTitle: text("Page"),
+  url: link("URL", { listed: false }),
+  owner: text("Owner"),
+  channel: status(CHANNELS, "Source"),
+  source: text("UTM source"),
+  medium: text("UTM medium", { listed: false }),
+  campaign: text("UTM campaign"),
+  content: text("Post or ad id"),
+  clicks: number("Clicks"),
+  visits: number("Visits"),
+  forms: number("Forms"),
+  books: number("Bookings"),
+  last: date("Last hit"),
+  created: date("Made"),
+  createdBy: actor("Made by"),
+  link: text("Short name", { listed: false, group: "System" }),
+  slug: text("Slug", { listed: false, group: "System" }),
+  page: text("Page id", { listed: false, group: "System" }),
+};
+const LINK_VIEWS = [
+  { id: "all", label: "Links", sort: "-created", at: "created" },
+  { id: "used", label: "With visits", where: { visits: { gte: 1 } }, sort: "-visits", at: "last" },
+  { id: "ads", label: "Ads", where: { channel: "ads" }, sort: "-visits", at: "last" },
+];
+const LINK_BASE = {
+  id: LINK_RECORD,
+  app: "sites",
+  channel: null,
+  name: { one: "link", many: "links" },
+  key: "id",
+  title: "name",
+  subtitle: "url",
+  fields: LINK_FIELDS,
+  views: LINK_VIEWS,
+  actions: [],
+} as const;
+
+/** Tracked `/go/` links, Wren's and each client's, with what each brought. */
+export const linkRecord: RecordType = defineRecord({
+  ...LINK_BASE,
+  view: "site_link_records",
+});
+
+/** A client's own links, on its host. */
+export function linkRecordFor(client: string): RecordType {
+  return defineRecord({
+    ...LINK_BASE,
+    rows: async (db) => [
+      ...(await db.execute(sql`select * from site_link_records where owner = ${client}`)),
+    ],
+  });
+}
+
 export const SITES_RECORDS: readonly RecordType[] = [
   pageRecord,
+  linkRecord,
   funnelRecord,
   formRecord,
   entryRecord,

@@ -16,6 +16,8 @@ export interface CopyField {
   max: number;
   hint?: string;
   optional?: true;
+  /** Starts a group of fields in the copy editor; the fields after it join it. */
+  group?: string;
   /** An `items` field's own fields: text, long or url only. */
   items?: readonly CopyField[];
 }

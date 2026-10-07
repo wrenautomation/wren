@@ -3,7 +3,8 @@
  * live listicle, a code page, 30 days of visits from ads, organic and outreach, and one ad that
  * links to the lander. Then an A/B split on the listicle with numbers on each arm, and a client
  * (Acme Roofing, synthetic) with its own host, its pages, one waiting on a yes, and two ads with
- * spend through its `/go/` link. Never run it on prod: it refuses any database not on this machine.
+ * spend through its `/go/` link. An ended split on the lander (C asked to retire) and tracked links
+ * for Wren and Acme. Never run it on prod: it refuses any database not on this machine.
  *
  *   WREN_DATABASE_URL=postgresql://...@127.0.0.1:5499/wren tsx packages/sites/scripts/seed-preview.ts
  */
@@ -254,6 +255,57 @@ try {
       select 'acme', 'ads', 'ads', 'meta', 'paid', 'storm', ${a.ad}, ${`/o/${roof.slug}`}, ${roof.id}::uuid
       from generate_series(1, ${a.n * 16})`);
   }
+
+  // A split that ended on the lander: B and C lost; C is asked to come down, B can be.
+  const lost: string[] = [];
+  for (const angle of ["Price", "Proof"]) {
+    const { made: m } = await api.duplicate({ viewer: SEED, ids: [lander.id], angle });
+    if (m[0]) lost.push(m[0].id);
+  }
+  const [eb, ec] = lost;
+  for (const id of lost) {
+    await api.ask({ viewer: SEED, id });
+    await api.approve({ viewer: SEED, ids: [pageApprovalId(id, 1)] });
+  }
+  if (eb && ec) {
+    const old = await api.splitStart({ viewer: SEED, id: lander.id, arms: [eb, ec] });
+    await arm(lander.id, 260, 14, 3);
+    for (const id of [eb, ec]) {
+      const s = { page: id, split: old.split };
+      for (let i = 0; i < 240; i++)
+        await pub.track({ ...s, view: `${id.slice(0, 6)}-${i}`, name: "view", touch: null });
+    }
+    await api.splitStop({ viewer: SEED, id: lander.id });
+    await api.retireAsk({ viewer: SEED, id: ec });
+  }
+
+  // Tracked links: Wren's to the lander, Acme's to its roof page (its ads' and a text's).
+  await api.linkCreate({
+    viewer: SEED,
+    page: lander.id,
+    link: "li",
+    campaign: "launch-post",
+    content: "7311200000000000001",
+  });
+  await api.linkCreate({ viewer: SEED, page: lander.id, link: "yt", campaign: "demo-video" });
+  for (const a of ads)
+    await api.linkCreate({
+      viewer: SEED,
+      owner: "acme",
+      page: roof.id,
+      link: "ads",
+      campaign: "storm",
+      content: a.ad,
+      name: a.name,
+    });
+  await api.linkCreate({
+    viewer: SEED,
+    owner: "acme",
+    page: roof.id,
+    link: "sms",
+    campaign: "spring-reminder",
+    name: "Spring text to past customers",
+  });
 
   console.log(
     `seeded: lander /o/${lander.slug}, split listicle /o/${listicle.slug}, acme /o/${roof.slug}`,

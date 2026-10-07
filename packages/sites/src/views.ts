@@ -8,6 +8,9 @@
  *   forms, booking clicks, and for ads the spend.
  * - `site_form_records`: every hosted form with its views, starts, submits and conversion.
  * - `site_entry_records`: every form sent, from a page or a hosted form, whole.
+ * - `site_link_records`: every tracked `/go/` link with its hits: clicks counted at a client's
+ *   edge (Wren's `/go/` is the lander's, which doesn't count them), and the visits, forms and
+ *   booking clicks its page saw with the link's utm, on any arm of a split at its address.
  *
  * An ad links to a page when its creative's link holds the page's address: a data page's
  * `/o/<slug>` (also as a `/go/...?to=/o/<slug>` short link), a code page's URL.
@@ -59,6 +62,8 @@ export const sitePageRecords = pgView("site_page_records", {
   currency: text("currency"),
   /** Its split, when one runs on it: running, or shipping (a winner waits in To approve). */
   split: text("split"),
+  /** What waits on a yes in To approve: a version to publish, or the page to retire. */
+  asked: text("asked"),
   /** The URL as people read it in a list: host and path, no scheme. */
   address: text("address"),
 }).as(sql`
@@ -81,26 +86,29 @@ export const sitePageRecords = pgView("site_page_records", {
     case when coalesce(ev.forms, 0) > 0 and ads.spend > 0 then ads.spend / ev.forms end cost_per_form,
     p.updated_at changed, p.updated_by changed_by, 'USD'::text currency,
     (select s.state::text from site_splits s
-      where s.page = p.id and s.state in ('running', 'shipping')) split
+      where s.page = p.id and s.state in ('running', 'shipping')) split,
+    case when p.retire_at is not null then 'retire'
+      when p.waiting_version is not null then 'publish' end asked
   from site_pages p
   left join ev on ev.page = p.id
   left join ads on ads.page = p.id
   union all
   select 'video:' || (e.output ->> 'id'), coalesce(e.output ->> 'firm', 'Demo video'),
     e.output ->> 'url', 'demo', 'derived', 'wren', 'live', null, null, null, null, 'trust', null,
-    null, null, null, null, null, null, null, null, null, null, e.created_at, null, null, null
+    null, null, null, null, null, null, null, null, null, null, e.created_at, null, null, null,
+    null
   from enrichments e where e.kind = 'video' and e.output ? 'url' and e.output ? 'id'
   union all
   select 'host:' || d.hostname, d.hostname, 'https://' || d.hostname, 'portal', 'derived',
     d.client_id, case when d.status = 'active' then 'live' else 'draft' end, null, null, null,
     null, null, null, null, null, null, null, null, null, null, null, null, null, d.checked_at,
-    d.added_by, null, null
+    d.added_by, null, null, null
   from client_domains d
   union all
   select 'book:' || d.hostname, 'Booking on ' || d.hostname, 'https://' || d.hostname || '/book',
     'booking', 'derived', d.client_id, case when d.status = 'active' then 'live' else 'draft' end,
     null, null, null, null, 'convert', null, null, null, null, null, null, null, null, null, null,
-    null, d.checked_at, d.added_by, null, null
+    null, d.checked_at, d.added_by, null, null, null
   from client_domains d) u`);
 
 export const siteFunnelRecords = pgView("site_funnel_records", {
@@ -211,3 +219,53 @@ export const siteEntryRecords = pgView("site_entry_records", {
   from site_forms e
   left join site_form_defs f on f.id = e.form
   left join site_pages p on p.id = e.page`);
+
+export const siteLinkRecords = pgView("site_link_records", {
+  id: text("id"),
+  owner: text("owner"),
+  name: text("name"),
+  page: text("page"),
+  pageTitle: text("page_title"),
+  slug: text("slug"),
+  link: text("link"),
+  source: text("source"),
+  medium: text("medium"),
+  channel: text("channel"),
+  campaign: text("campaign"),
+  content: text("content"),
+  host: text("host"),
+  url: text("url"),
+  clicks: integer("clicks"),
+  visits: integer("visits"),
+  forms: integer("forms"),
+  books: integer("books"),
+  last: timestamp("last", { withTimezone: true }),
+  created: timestamp("created", { withTimezone: true }),
+  createdBy: text("created_by"),
+}).as(sql`
+  select l.id::text id, coalesce(l.client, 'wren')::text owner,
+    coalesce(l.name, concat_ws(' / ', l.link, l.campaign, l.content))::text name,
+    l.page::text page, p.title::text page_title, p.slug::text, l.link::text, l.source::text,
+    l.medium::text, l.channel::text, l.campaign::text, l.content::text, h.host,
+    'https://' || h.host || '/go/' || l.link || '/' || l.campaign
+      || coalesce('/' || l.content, '') || '?to=/o/' || p.slug url,
+    k.clicks, coalesce(e.visits, 0) visits, coalesce(e.forms, 0) forms, coalesce(e.books, 0) books,
+    greatest(e.last, k.last) last, l.created_at created, l.created_by::text created_by
+  from site_links l
+  join site_pages p on p.id = l.page
+  left join lateral (select case when l.client is null then '${sql.raw(WREN_SITE)}'
+      else (select d.hostname from client_domains d where d.client_id = l.client
+        and d.status = 'active' order by d.created_at limit 1) end::text host) h on true
+  left join lateral (
+    select count(distinct x.view) filter (where x.name = 'view')::int visits,
+      count(*) filter (where x.name = 'form')::int forms,
+      count(distinct x.view) filter (where x.name = 'book')::int books, max(x.at) last
+    from site_events x
+    where (x.page = l.page or x.split in (select s.id from site_splits s where s.page = l.page))
+      and x.source = l.source and x.medium = l.medium and x.campaign = l.campaign
+      and coalesce(x.content, '') = coalesce(l.content, '')) e on true
+  left join lateral (
+    select case when l.client is null then null else count(*)::int end clicks, max(y.at) last
+    from site_hops y
+    where l.client is not null and y.client = l.client and y.page = l.page and y.link = l.link
+      and y.campaign = l.campaign and coalesce(y.content, '') = coalesce(l.content, '')) k on true`);

@@ -37,20 +37,27 @@ export const lander: Template = {
   name: "Lander",
   blurb: "One offer, one ask: hero, what you get, how it works, terms, questions and a form.",
   fields: [
-    { key: "headline", label: "Headline", kind: "text", max: 90 },
+    { key: "headline", group: "Top", label: "Headline", kind: "text", max: 90 },
     { key: "sub", label: "Under the headline", kind: "long", max: 240 },
     { key: "cta", label: "Button", kind: "text", max: 40, hint: "Goes to the form." },
     { key: "book_label", label: "Booking button", kind: "text", max: 40, optional: true },
     { key: "book_url", label: "Booking link", kind: "url", max: 300, optional: true },
     {
       key: "proof",
+      group: "Proof",
       label: "Proof lines",
       kind: "lines",
       max: 5,
       optional: true,
       hint: "Only what's true. One per line.",
     },
-    { key: "get_title", label: "What you get, heading", kind: "text", max: 60 },
+    {
+      key: "get_title",
+      group: "What you get",
+      label: "What you get, heading",
+      kind: "text",
+      max: 60,
+    },
     { key: "get", label: "What you get", kind: "lines", max: 8 },
     { key: "steps_title", label: "How it works, heading", kind: "text", max: 60 },
     { key: "steps", label: "Steps", kind: "lines", max: 6 },
@@ -59,6 +66,7 @@ export const lander: Template = {
     { key: "guarantee", label: "Guarantee", kind: "long", max: 300, optional: true },
     {
       key: "faq",
+      group: "Questions",
       label: "Questions",
       kind: "items",
       max: 8,
@@ -68,7 +76,7 @@ export const lander: Template = {
         { key: "a", label: "Answer", kind: "long", max: 500 },
       ],
     },
-    { key: "form_title", label: "Form heading", kind: "text", max: 80 },
+    { key: "form_title", group: "Form", label: "Form heading", kind: "text", max: 80 },
     { key: "form_note", label: "Under the form heading", kind: "long", max: 200, optional: true },
     { key: "form_button", label: "Form button", kind: "text", max: 40 },
     {
@@ -80,7 +88,7 @@ export const lander: Template = {
       hint: "A form's slug or id from Sites, Forms. Empty: name, email, phone and a note.",
     },
     { key: "thanks", label: "After sending", kind: "text", max: 160 },
-    { key: "footer", label: "Footer", kind: "text", max: 160, optional: true },
+    { key: "footer", group: "Footer", label: "Footer", kind: "text", max: 160, optional: true },
   ],
   fill(offer: Offer, o) {
     const faq = [
