@@ -212,6 +212,10 @@ function runs(tabs: NavItem[]): { group: string | undefined; tabs: NavItem[] }[]
   return out;
 }
 
+/** A run that shows its group as a heading: a group of more than one page. */
+const headed = (r: { group: string | undefined; tabs: NavItem[] } | undefined) =>
+  !!r?.group && r.tabs.length > 1;
+
 const total = (tabs: NavItem[]) =>
   tabs.some((t) => t.count !== undefined)
     ? tabs.reduce((n, t) => n + (t.count ?? 0), 0)
@@ -252,16 +256,20 @@ function AppSide({
       </a>
       <nav aria-label={`${app.name} pages`}>
         <ul className="flex list-none flex-col gap-0.5">
-          {runs(app.tabs).flatMap((r) => [
-            ...(r.group && r.tabs.length > 1
+          {runs(app.tabs).flatMap((r, i, all) => [
+            ...(headed(r)
               ? [
                   <li key={`g:${r.group}`} className={GROUP} aria-hidden="true">
                     {r.group}
                   </li>,
                 ]
               : []),
-            ...r.tabs.map((t) => (
-              <li key={t.id}>
+            ...r.tabs.map((t, j) => (
+              // A page after a group stands apart, so it doesn't read as that group's last.
+              <li
+                key={t.id}
+                className={j === 0 && !headed(r) && headed(all[i - 1]) ? "pt-3" : undefined}
+              >
                 <a
                   className={cx(
                     HOVER,
@@ -288,7 +296,7 @@ function AppSide({
   );
 }
 
-/** A row of tabs that wrap, so none is cut off. */
+/** One row of tabs that scrolls sideways, the one on screen scrolled into view. */
 function PhoneTabs({
   label,
   tabs,
@@ -298,11 +306,22 @@ function PhoneTabs({
   tabs: NavItem[];
   current: string | undefined;
 }) {
+  const row = useRef<HTMLUListElement>(null);
+  // biome-ignore lint/correctness/useExhaustiveDependencies: a new tab on screen scrolls again.
+  useEffect(() => {
+    const ul = row.current;
+    const on = ul?.querySelector<HTMLElement>("[aria-current=page]");
+    if (!ul || !on) return;
+    ul.scrollLeft = on.offsetLeft - (ul.clientWidth - on.offsetWidth) / 2;
+  }, [current]);
   return (
-    <nav className="px-4" aria-label={label}>
-      <ul className="-mb-px flex list-none flex-wrap gap-x-5">
+    <nav aria-label={label}>
+      <ul
+        ref={row}
+        className="relative -mb-px flex list-none gap-x-5 overflow-x-auto px-4 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+      >
         {tabs.map((t) => (
-          <li key={t.id}>
+          <li key={t.id} className="flex-none">
             <a
               className="inline-flex items-center gap-2 border-b-2 border-transparent pt-[9px] pb-2 text-[14px] font-medium whitespace-nowrap text-(--ui-ink-2) no-underline transition-colors duration-200 ease-(--ui-ease) hover:text-(--ui-ink) focus-visible:-outline-offset-2 aria-[current=page]:border-(--ui-accent) aria-[current=page]:text-(--ui-ink)"
               href={t.href}
@@ -319,7 +338,7 @@ function PhoneTabs({
 }
 
 /**
- * The same on a phone, as the window's head: pages as tabs that wrap, so none is cut off. With
+ * The same on a phone, as the window's head: pages as one row of tabs that scrolls sideways. With
  * groups, the first row is the groups and the second the pages of the one on screen.
  */
 function AppHead({
@@ -363,7 +382,8 @@ function AppHead({
         label={`${app.name} pages`}
         tabs={groups.map((r) => ({
           id: r.tabs[0]?.id ?? "",
-          label: r.group ?? r.tabs[0]?.label ?? "",
+          // A group of one page is named by that page.
+          label: (headed(r) ? r.group : r.tabs[0]?.label) ?? "",
           href: r.tabs[0]?.href ?? "",
           count: total(r.tabs),
         }))}

@@ -22,6 +22,10 @@ import { askRecord } from "@wren/core/ask";
 import { clientRecord, clientUrl } from "@wren/core/clients";
 import { consoleApi } from "@wren/core/console";
 import { CONSOLE_APPS, CONSOLE_ROUTES } from "@wren/core/console-routes";
+import {
+  MARKETING_CONSOLE_APPS,
+  MARKETING_CONSOLE_ROUTES,
+} from "@wren/core/marketing/console-routes";
 import { guard, PortalRefusal, teamSeat, type Unnamed, type Viewer } from "@wren/core/portal";
 import { templatesApi } from "@wren/core/templates/console";
 import {
@@ -34,8 +38,10 @@ import { DELIVERY_ROUTES, deliveryApi } from "@wren/delivery/restate";
 import { DELIVERY_APPS } from "@wren/delivery/routes";
 import { DEMO_NAME, PORTAL_ROUTES, portalApi } from "@wren/reactivation/restate";
 import { mediaRecord, sopRecord } from "../../../packages/content/src/library.js";
+import { marketingConsoleApi } from "../../../packages/content/src/restate/marketing-console.js";
 import { PORTAL_APPS } from "../../../packages/reactivation/src/portal/routes.js";
 import { COMPONENTS } from "../../worker/src/components.js";
+import { CLIENT_MARKETING } from "../../worker/src/marketing.js";
 import { copyRecords } from "../../worker/src/record-edits.js";
 import { SETUPS } from "../../worker/src/setups.js";
 import { WORKFLOWS } from "../../worker/src/workflows.js";
@@ -74,7 +80,7 @@ const SERVICES: Record<
   delivery: {
     routes: Object.keys(DELIVERY_ROUTES),
     guard: { needs: DELIVERY_ROUTES, apps: DELIVERY_APPS, unnamed: "first" },
-    api: deliveryApi({ main, demoName: DEMO_NAME, files }),
+    api: deliveryApi({ main, demoName: DEMO_NAME, files, app: `http://localhost:${port}` }),
   },
   reactivation: {
     routes: Object.keys(PORTAL_ROUTES),
@@ -111,6 +117,16 @@ const SERVICES: Record<
     routes: Object.keys(ACCOUNTS_CONSOLE_ROUTES),
     guard: { needs: ACCOUNTS_CONSOLE_ROUTES, apps: ACCOUNTS_CONSOLE_APPS, unnamed: "first" },
     api: accountsApi({ db: main, setups: SETUPS, checks: LIVE_CHECKS, keys: null, env: "dev" }),
+  },
+  // A client's Marketing, from its own database. A verdict goes to its desk on Restate: not here.
+  marketing: {
+    routes: Object.keys(MARKETING_CONSOLE_ROUTES),
+    guard: { needs: MARKETING_CONSOLE_ROUTES, apps: MARKETING_CONSOLE_APPS, unnamed: "first" },
+    api: marketingConsoleApi({
+      db: main,
+      open: (c) => cachedDb(clientUrl(settings.databaseUrl, c)),
+      records: CLIENT_MARKETING,
+    }),
   },
   // The Library's templates, in Wren's own database.
   templates: {

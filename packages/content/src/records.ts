@@ -16,6 +16,7 @@ import {
 } from "@wren/core/records";
 import type { Queryable } from "@wren/db";
 import { eq } from "drizzle-orm";
+import { DRAFT_CALLS } from "./draft-calls.js";
 import { PLATFORM_SPECS } from "./platforms.js";
 import { contentDrafts, type DraftStatus } from "./schema.js";
 
@@ -63,18 +64,7 @@ const DRAFT_STATES: Record<DraftStatus, State> = {
   rejected: { label: "Rejected", tone: "neutral" },
 };
 
-/**
- * A draft's handlers and the input key naming it: what a login limited to a channel may call on
- * a draft it may act on (`calls` in `@wren/core/records`).
- */
-export const DRAFT_CALLS = {
-  "ContentDesk/approve": "ids",
-  "ContentDesk/reject": "ids",
-  "ContentDesk/redraft": "draftId",
-  "DraftAsk/set": "id",
-  "DraftAsk/ask": "id",
-  "DraftAsk/undo": "id",
-} as const;
+export { DRAFT_CALLS };
 
 export const draftRecord = defineRecord({
   id: "marketing.draft",

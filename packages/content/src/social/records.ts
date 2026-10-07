@@ -15,7 +15,7 @@ import { installApprovalId, waitingInstalls } from "@wren/core/templates/install
 import type { Queryable } from "@wren/db";
 import { commentRecord, dmRecord, PLATFORM_LABELS, threadRecord } from "@wren/outreach/records";
 import { sql } from "drizzle-orm";
-import { DRAFT_CALLS } from "../records.js";
+import { DRAFT_CALLS } from "../draft-calls.js";
 import { PLATFORM_NAMES } from "./store.js";
 
 /** ponytail: rows, not a view: a few hundred unseen rows at most; a view past that. */
