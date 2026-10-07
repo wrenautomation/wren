@@ -7,6 +7,9 @@ import { startTestPostgres, type TestPostgres, truncate } from "@wren/db/testing
 import { sql } from "drizzle-orm";
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 import { z } from "zod";
+import { settingsFor, wrenSettings } from "../../src/clients/index.js";
+import { defineComponent } from "../../src/components.js";
+import { settingRecord } from "../../src/console.js";
 import {
   ASK_COMMAND,
   askAnswerOf,
@@ -20,6 +23,7 @@ import {
 } from "../../src/edits.js";
 import { PortalRefusal } from "../../src/portal.js";
 import { defineRecord, number, prose, text, withEdits } from "../../src/records.js";
+import { serveRecords } from "../../src/records-serve.js";
 import { finishRun, openRun } from "../../src/runs.js";
 
 let pg: TestPostgres;
@@ -29,7 +33,7 @@ beforeAll(async () => {
 });
 afterAll(() => pg.stop());
 beforeEach(async () => {
-  await truncate(pg.db, ["changes", "runs", "edit_fixture"]);
+  await truncate(pg.db, ["changes", "runs", "edit_fixture", "wren_settings"]);
   await pg.db.execute(
     sql`insert into edit_fixture values ('a', 'Hi there, reply STOP to stop.', 1)`,
   );
@@ -184,5 +188,45 @@ describe("edits", () => {
     expect(() =>
       withEdits(plain, { ...(edits as NonNullable<typeof edits>), fields: ["nope"] }),
     ).toThrow(/doesn't have/);
+  });
+
+  it("edits one of Wren's settings and keeps the rest of its block, prices too", async () => {
+    const books = defineComponent({
+      id: "books",
+      name: "Books",
+      blurb: "Keeps the books.",
+      icon: "mail",
+      for: "wren",
+      stage: "reach",
+      ready: true,
+      settings: z.object({
+        perDay: z.number().int().default(5),
+        mode: z.enum(["calm", "busy"]).default("calm"),
+        price: z.number().optional(),
+      }),
+      priced: ["price"],
+      effects: [],
+      hypothesis: { from: "a test", guesses: [{ is: "fixed", says: "It keeps books." }] },
+    });
+    await pg.db
+      .insert(wrenSettings)
+      .values({ component: "books", settings: { perDay: 4, price: 2 } });
+    const t = settingRecord([books]);
+    const page = await serveRecords([t], pg.db).list({ record: t.id, view: "all" });
+    expect(page.rows.map((r) => [r.id, r.value])).toEqual([
+      ["books:mode", "calm"],
+      ["books:perDay", "4"],
+    ]);
+    const out = await editRecord(pg.db, t, "books:perDay", { patch: { value: "7" }, by });
+    expect(out.values).toEqual({ value: "7" });
+    expect((await settingsFor(pg.db, null)).books).toEqual({ perDay: 7, price: 2 });
+    await refused(editRecord(pg.db, t, "books:perDay", { patch: { value: "x" }, by }), 400);
+    await refused(editRecord(pg.db, t, "books:mode", { patch: { value: "loud" }, by }), 400);
+    // Blank puts the default back.
+    await editRecord(pg.db, t, "books:perDay", { patch: { value: "" }, by });
+    expect((await settingsFor(pg.db, null)).books).toEqual({ price: 2 });
+    const [last] = await historyOf(pg.db, t, "books:perDay");
+    await undoChange(pg.db, t, "books:perDay", last?.id as number, by);
+    expect((await settingsFor(pg.db, null)).books).toEqual({ perDay: 7, price: 2 });
   });
 });

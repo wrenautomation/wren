@@ -18,7 +18,7 @@ import {
 } from "@wren/ui";
 import { type ReactNode, useState } from "react";
 import { call, ME_CHANGED } from "../../api.js";
-import { type PageProps, WREN } from "../../module.js";
+import type { PageProps } from "../../module.js";
 import { LIST, QUIET, SPLIT } from "../work/bits.js";
 import { type Drawn, flowBoxes } from "./boxes.js";
 
@@ -223,18 +223,20 @@ export function catalogExtras(
     !installable ? (
       d.wrenSettings && d.form?.length ? (
         // Wren's own run reads these from `wren_settings`: no client is sent, so it saves there.
-        <div className="grid gap-3">
-          <p className={QUIET}>Wren's own run uses these settings. A save here changes Wren's.</p>
-          <HandlerForm
-            key={`${WREN.id}/${id}`}
-            id={`component:${WREN.id}/${id}`}
-            name={id}
-            verb="Save"
-            fields={filled(d.form, d.values ?? {})}
-            keyed={false}
-            effect={null}
-            run={(c) => call("console/configure", { component: id, settings: c.input })}
+        // Wren's own settings edit one at a time on Loops > Settings, with History and Undo.
+        <div className="grid gap-2">
+          <p className={QUIET}>Wren's own run uses these settings.</p>
+          <Facts
+            items={d.form.map((f) => {
+              const v = f.field
+                .split(".")
+                .reduce<unknown>((at, k) => (at as Record<string, unknown>)?.[k], d.values ?? {});
+              return [f.label, v === undefined ? "Default" : textOf(f, v) || "None"];
+            })}
           />
+          <p>
+            <a href={`/loops/settings?q=${encodeURIComponent(name)}`}>Change them in Settings</a>
+          </p>
         </div>
       ) : (
         <p className={QUIET}>

@@ -47,6 +47,7 @@ import {
   teamRecord,
   updateClient,
 } from "./clients/index.js";
+import { wrenSettings } from "./clients/schema.js";
 import {
   CHANNELS,
   type Component,
@@ -63,6 +64,7 @@ import {
   type Edited,
   editRecord,
   undoChange,
+  wordsPatch,
 } from "./edits.js";
 import {
   answer,
@@ -87,6 +89,7 @@ import {
   status,
   tags,
   text,
+  type Values,
 } from "./records.js";
 import {
   type ExportAsk,
@@ -771,6 +774,155 @@ export function settingsForm(c: Component): HandlerField[] | null {
   return formOf({ ...schema, properties });
 }
 
+/** A form field's value in a settings block: `a.b` reads nested. */
+const at = (block: Record<string, unknown>, path: string): unknown =>
+  path
+    .split(".")
+    .reduce<unknown>(
+      (v, k) => (v && typeof v === "object" ? (v as Record<string, unknown>)[k] : undefined),
+      block,
+    );
+/** `block` with `path` set, or removed when `value` is undefined; the rest kept as it was. */
+const setAt = (block: Record<string, unknown>, path: string, value: unknown) => {
+  const [head = "", ...rest] = path.split(".");
+  const out = { ...block };
+  if (rest.length) {
+    const inner = out[head] && typeof out[head] === "object" ? out[head] : {};
+    out[head] = setAt(inner as Record<string, unknown>, rest.join("."), value);
+  } else if (value === undefined) delete out[head];
+  else out[head] = value;
+  return out;
+};
+/** A setting as one line he reads and types. */
+const settingText = (f: HandlerField, v: unknown): string => {
+  if (v === undefined || v === null) return "";
+  if (f.type === "switch") return v ? "on" : "off";
+  if (Array.isArray(v) && (f.type === "lines" || f.type === "numbers")) return v.join(", ");
+  return typeof v === "object" ? JSON.stringify(v) : String(v);
+};
+/** What he typed, as the schema takes it; blank goes back to the default. */
+const settingValue = (f: HandlerField, typed: string): unknown => {
+  const t = typed.trim();
+  if (!t) return undefined;
+  if (f.type === "number") return Number(t);
+  if (f.type === "switch")
+    return /^(on|yes|true)$/i.test(t) ? true : /^(off|no|false)$/i.test(t) ? false : t;
+  if (f.type === "lines")
+    return t
+      .split(t.includes("\n") ? /\n/ : /,/)
+      .map((x) => x.trim())
+      .filter(Boolean);
+  if (f.type === "numbers")
+    return t
+      .split(/[\s,]+/)
+      .filter(Boolean)
+      .map(Number);
+  if (f.type === "json") {
+    try {
+      return JSON.parse(t);
+    } catch {
+      return t;
+    }
+  }
+  return typed;
+};
+
+/**
+ * Wren's own settings, one row per setting of each part that runs for Wren (`wren_settings`):
+ * edited in place with History, Undo and Ask Claude (`./edits.ts`). Saving one keeps the rest of
+ * its block, prices included, and needs `manage`, as the Shop's Save does.
+ */
+export function settingRecord(all: readonly Component[]): RecordType {
+  const settings = all
+    .filter((c) => c.wrenSettings)
+    .flatMap((c) => (settingsForm(c) ?? []).map((f) => ({ c, f, id: `${c.id}:${f.field}` })));
+  const one = (id: string) => settings.find((s) => s.id === id);
+  const blockFor = async (db: Queryable, c: Component) => {
+    const block = (await settingsFor(db, null))[c.id];
+    return block && typeof block === "object" ? (block as Record<string, unknown>) : {};
+  };
+  /** The block a patch makes, or why the part's schema won't take it. */
+  const next = async (db: Queryable, id: string, patch: Values) => {
+    const s = one(id);
+    if (!s) throw new PortalRefusal("no such setting", 404);
+    const block = setAt(
+      await blockFor(db, s.c),
+      s.f.field,
+      settingValue(s.f, String(patch.value ?? "")),
+    );
+    const out = s.c.settings.safeParse(block);
+    const problem = out.success
+      ? null
+      : out.error.issues.map((i) => i.message).join("; ") || "the part won't take that";
+    return { s, block, problem };
+  };
+  return defineRecord({
+    id: "console.setting",
+    name: { one: "setting", many: "settings" },
+    rows: async (db) => {
+      const saved = await db.select().from(wrenSettings);
+      const blocks = Object.fromEntries(saved.map((r) => [r.component, r]));
+      return settings.map(({ c, f, id }) => {
+        const row = blocks[c.id];
+        return {
+          id,
+          part: c.name,
+          setting: f.label,
+          value: settingText(f, at(shownSettings(c, row?.settings) ?? {}, f.field)),
+          hint: f.hint ?? null,
+          choices: f.options?.join(", ") ?? null,
+          updated_at: row?.updatedAt?.toISOString() ?? null,
+          updated_by: row?.updatedBy ?? null,
+        };
+      });
+    },
+    key: "id",
+    title: "setting",
+    subtitle: "part",
+    fields: {
+      part: text("Part"),
+      setting: text("Setting"),
+      value: text("Value"),
+      hint: text("What it does"),
+      choices: text("Choices"),
+      updatedAt: date("Saved"),
+      updatedBy: text("By"),
+    },
+    views: [{ id: "all", label: "All" }],
+    edits: {
+      fields: ["value"],
+      patch: wordsPatch({ value: 4000 }),
+      needs: "manage",
+      about: "one of Wren's own settings, typed as text; blank puts the default back",
+      read: async (db, id) => {
+        const s = one(id);
+        if (!s) return null;
+        return {
+          value: settingText(s.f, at(shownSettings(s.c, await blockFor(db, s.c)) ?? {}, s.f.field)),
+        };
+      },
+      check: async (patch, _now, db, id) => (await next(db, id, patch)).problem,
+      write: async (db, id, patch, by) => {
+        const { s, block, problem } = await next(db, id, patch);
+        if (problem) throw new PortalRefusal(problem, 400);
+        await setWrenSettings(db, s.c.id, block, by);
+      },
+      context: async (_db, id) => {
+        const s = one(id);
+        if (!s) return null;
+        return [
+          `${s.c.name}: ${s.c.blurb}`,
+          `Setting "${s.f.label}"${s.f.hint ? `: ${s.f.hint}` : ""}.`,
+          s.f.options ? `One of: ${s.f.options.join(", ")}.` : "",
+          s.f.type ? `Typed as ${s.f.type}.` : "",
+        ]
+          .filter(Boolean)
+          .join("\n");
+      },
+    },
+  });
+}
+
 const COMPONENT = "console.component";
 
 const neutral = (labels: Readonly<Record<string, string>>) =>
@@ -1068,6 +1220,7 @@ export function consoleApi({
     ...(adminGet ? [handlerRecord(adminGet)] : []),
     teamRecord,
     changeRecord,
+    settingRecord(components),
     eventRecord,
     holdRecord,
     checkRecord,
@@ -1114,10 +1267,11 @@ export function consoleApi({
   /** One of Wren's records that declares edits, for a teammate who may run things at Wren. */
   const editable = async (req: PortalRequest & { record?: unknown; id?: unknown }) => {
     team(req);
-    if (!teamCan(req, "run", WREN)) throw new PortalRefusal("changing records needs run", 403);
     const t = (await typesFor(req)).find((x) => x.id === req.record);
     if (!t) throw new PortalRefusal("no such record", 404);
     if (!t.edits) throw new PortalRefusal(`${t.name.many} can't be edited`, 400);
+    const needs = t.edits.needs ?? "run";
+    if (!teamCan(req, needs, WREN)) throw new PortalRefusal(`changing these needs ${needs}`, 403);
     const id = typeof req.id === "string" || typeof req.id === "number" ? String(req.id) : "";
     if (!id || id.length > 200) throw new PortalRefusal("say which one", 400);
     return { t, id, by: (req.viewer as SignedViewer).email };

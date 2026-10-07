@@ -1552,7 +1552,9 @@ export function RecordBody({
   const state = got.data?.edit ?? null;
   // Changing it needs `run` here; the server checks it again.
   const mayEdit =
-    !!state && !!api.edit && (!acts || can(acts.viewer, { audience: "team", needs: "run" }));
+    !!state &&
+    !!api.edit &&
+    (!acts || can(acts.viewer, { audience: "team", needs: meta.editNeeds ?? "run" }));
   const editing: Editing | null =
     mayEdit && state
       ? {

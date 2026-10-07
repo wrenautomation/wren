@@ -525,7 +525,7 @@ export const loops: Module = {
   id: "loops",
   name: "Loops",
   icon: "clock",
-  blurb: "Every scheduled job and which ones fail.",
+  blurb: "Every scheduled job, which ones fail, and Wren's own settings.",
   requires: TEAM,
   pages: [
     {
@@ -552,6 +552,14 @@ export const loops: Module = {
       record: "console.loop",
       empty: { failing: "Nothing is failing.", stopped: "Every loop is running." },
       actions: LOOP_ACTIONS,
+    },
+    {
+      // Each edits in place with History and Undo (`console.setting`); saving needs `manage`.
+      id: "settings",
+      label: "Settings",
+      template: "list",
+      record: "console.setting",
+      empty: { all: "No part that runs for Wren has settings." },
     },
     { id: "infra", label: "Infra", Page: Infra },
   ],

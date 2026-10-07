@@ -321,6 +321,8 @@ export interface RecordEdits {
   context?: (db: Queryable, id: string) => Promise<string | null>;
   /** What Claude is told the record is for, one line: "A cold text's words; it must say STOP." */
   about?: string;
+  /** What editing needs at Wren; `run` when left out. Settings need `manage`. */
+  needs?: "run" | "manage";
 }
 
 /** The kinds a person edits in place: one input each. */
@@ -552,6 +554,8 @@ export interface RecordMeta {
   detail: boolean;
   /** The fields a person edits in place; absent or null when it's read only. Ask Claude comes with it. */
   edits?: readonly string[] | null;
+  /** What editing needs, when it isn't `run`. */
+  editNeeds?: "manage";
 }
 
 /**
@@ -597,6 +601,7 @@ export function metaOf(type: RecordType, demo: boolean): RecordMeta {
     detail: !!type.load,
     // The demo reads only: its edits would land nowhere.
     edits: type.edits && !demo ? type.edits.fields : null,
+    ...(type.edits?.needs === "manage" && !demo ? { editNeeds: "manage" as const } : {}),
   };
 }
 
