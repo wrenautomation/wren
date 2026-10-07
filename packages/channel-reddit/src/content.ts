@@ -14,13 +14,21 @@ import {
   type CommentRow,
   type ContentChannel,
   type FetchedWith,
+  type InsightGap,
+  type Insights,
+  type InsightsQuery,
+  type InsightValue,
+  knownGaps,
   type ListQuery,
+  METRICS as M,
   type Metrics,
+  numberOf,
   type Post,
   type Published,
   type PublishedRow,
   pageOf,
   previewOf,
+  readGroup,
   SiteCallError,
   type SiteClient,
 } from "@wren/core/content";
@@ -46,6 +54,7 @@ export interface Thing {
   num_comments?: number;
   num_crossposts?: number;
   view_count?: number | null;
+  upvote_ratio?: number;
 }
 export interface Listing {
   kind?: string;
@@ -222,6 +231,33 @@ export function redditContent(sites: SiteClient, o: RedditContentOptions = {}): 
       if (typeof followers !== "number")
         throw new Error(`reddit: u/${name} has no profile, so no follower count`);
       return { followers, asOf: now().toISOString(), raw: r };
+    },
+    async insights(q: InsightsQuery): Promise<Insights> {
+      const out: { values: InsightValue[]; gaps: InsightGap[] } = { values: [], gaps: [] };
+      await readGroup(
+        [M.likes, M.comments, M.shares, M.upvoteRatio],
+        async () => {
+          const r = await call<Listing>("GET", "/api/info", {
+            id: `t3_${bareId(q.id)}`,
+            raw_json: 1,
+          });
+          const t = children(r)[0];
+          if (!t) return [];
+          if (typeof t.view_count !== "number")
+            out.gaps.push(
+              ...knownGaps("no_api", "Reddit shows a post's views to its author only", [M.views]),
+            );
+          return [
+            ...numberOf(M.views, t.view_count),
+            ...numberOf(M.likes, t.score),
+            ...numberOf(M.comments, t.num_comments),
+            ...numberOf(M.shares, t.num_crossposts),
+            ...numberOf(M.upvoteRatio, t.upvote_ratio),
+          ];
+        },
+        out,
+      );
+      return { ...out, asOf: now().toISOString() };
     },
   };
 }

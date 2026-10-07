@@ -6,8 +6,11 @@
  * Design: designs/2026-09-21-content-channels.md.
  */
 
+import type { AccountInsights, Insights, InsightsQuery } from "./insights.js";
+
 export * from "./autobrowse.js";
 export * from "./do.js";
+export * from "./insights.js";
 
 export type Platform =
   | "linkedin"
@@ -185,6 +188,10 @@ export interface ContentChannel {
   activity?(q?: ActivityQuery): Promise<ActivityRow[]>;
   /** Our follower count now. Absent = not read. */
   audience?(): Promise<Audience>;
+  /** A post's deeper numbers and the ones its token can't read. Absent = the counts are all. */
+  insights?(q: InsightsQuery): Promise<Insights>;
+  /** The account's numbers per day. Absent = followers (`audience`) are all. */
+  accountInsights?(): Promise<AccountInsights>;
 }
 
 /** One page of rows newest first, from a full newest-first array: the paging rule every adapter follows. */
@@ -212,6 +219,9 @@ export function fakeContentChannel(
   receive(c: Omit<CommentRow, "repliedWith">): void;
   happen(a: ActivityRow): void;
   follow(followers: number): void;
+  /** Set a post's deeper numbers (`insights`) and the account's days (`accountInsights`). */
+  measure(id: string, i: Omit<Insights, "asOf">): void;
+  measureAccount(a: Omit<AccountInsights, "asOf">): void;
 } {
   const now = o.now ?? (() => new Date());
   const urlOf = o.urlOf ?? ((id: string) => `https://${platform}.test/p/${id}`);
@@ -221,9 +231,23 @@ export function fakeContentChannel(
   const activity: ActivityRow[] = [];
   let followers = 0;
   let n = 0;
+  const insights = new Map<string, Omit<Insights, "asOf">>();
+  let account: Omit<AccountInsights, "asOf"> = { days: [], gaps: [] };
   return {
     platform,
     posts,
+    measure(id, i) {
+      insights.set(id, i);
+    },
+    measureAccount(a) {
+      account = a;
+    },
+    async insights(q) {
+      return { values: [], gaps: [], ...insights.get(q.id), asOf: now().toISOString() };
+    },
+    async accountInsights() {
+      return { ...account, asOf: now().toISOString() };
+    },
     happen(a) {
       activity.push({ ...a });
     },

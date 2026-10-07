@@ -22,10 +22,12 @@ import {
   viaOf,
 } from "./autobrowse.js";
 import type {
+  AccountInsights,
   ActivityQuery,
   ActivityRow,
   Audience,
   ContentChannel,
+  Insights,
   ListQuery,
   Platform,
   Post,
@@ -356,6 +358,44 @@ export function makeContent(channelsFor: ChannelsFor, clients?: ContentClients) 
           } catch (err) {
             throw new restate.TerminalError(err instanceof Error ? err.message : String(err));
           }
+        },
+      ),
+      /**
+       * A post's deeper numbers, and a gap for each its token can't read
+       * (designs/2026-10-07-content-analytics.md). Null when the channel reads none.
+       */
+      insights: serviceHandler(
+        {
+          input: ONE_POST.extend({
+            published: z.string().nullish().describe("ISO time it went up"),
+            kind: z.string().nullish().describe("Its shape's kind: short, video, carousel"),
+          }),
+        },
+        async (
+          ctx: restate.Context,
+          req: {
+            platform: Platform;
+            id: string;
+            published?: string | null;
+            kind?: string | null;
+          } & ForClient,
+        ): Promise<Insights | null> => {
+          const ch = await pick(ctx, req.platform, req.client, "content.social");
+          if (!ch.insights) return null;
+          return refusalsFinal(
+            ch.insights({ id: req.id, published: req.published ?? null, kind: req.kind ?? null }),
+          );
+        },
+      ),
+      /** The account's numbers per day. Null when the channel reads none. */
+      accountInsights: serviceHandler(
+        { input: z.looseObject({ platform: PLATFORM, client: CLIENT }) },
+        async (
+          ctx: restate.Context,
+          req: { platform: Platform } & ForClient,
+        ): Promise<AccountInsights | null> => {
+          const ch = await pick(ctx, req.platform, req.client, "content.social");
+          return ch.accountInsights ? refusalsFinal(ch.accountInsights()) : null;
         },
       ),
     },

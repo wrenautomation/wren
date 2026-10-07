@@ -8,7 +8,11 @@ import {
   type CommentRow,
   type ContentChannel,
   type FetchedWith,
+  type Insights,
+  type InsightsQuery,
+  knownGaps,
   type ListQuery,
+  METRICS as M,
   type MediaHost,
   type Metrics,
   type Post,
@@ -118,6 +122,18 @@ export function tiktokContent(sites: SiteClient, o: TikTokContentOptions = {}): 
     },
     async comments(): Promise<CommentRow[]> {
       return [];
+    },
+    // The Display API answers counts only (`metrics`); the rest is the Business API's.
+    async insights(_q: InsightsQuery): Promise<Insights> {
+      return {
+        values: [],
+        gaps: knownGaps(
+          "needs_william",
+          "TikTok gives reach, watch time and saves in its Business API, which needs a TikTok for Business account",
+          [M.reach, M.avgViewSecs, M.retention, M.trafficSource, M.saves, M.profileVisits],
+        ),
+        asOf: now().toISOString(),
+      };
     },
   };
 }

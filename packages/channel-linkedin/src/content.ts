@@ -13,7 +13,11 @@ import {
   type CommentRow,
   type ContentChannel,
   type FetchedWith,
+  type Insights,
+  type InsightsQuery,
+  knownGaps,
   type ListQuery,
+  METRICS as M,
   type Metrics,
   type Post,
   type Published,
@@ -208,6 +212,18 @@ export function linkedinContent(sites: SiteClient, o: LinkedInContentOptions = {
           },
         ];
       });
+    },
+    // Post analytics are the Community Management API's (`r_member_postAnalytics`).
+    async insights(_q: InsightsQuery): Promise<Insights> {
+      return {
+        values: [],
+        gaps: knownGaps(
+          "needs_william",
+          "LinkedIn post impressions and reach need the Community Management API on Wren's app",
+          [M.impressions, M.reach, M.shares, M.profileVisits],
+        ),
+        asOf: now().toISOString(),
+      };
     },
   };
 }

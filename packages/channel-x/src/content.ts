@@ -11,15 +11,23 @@ import {
   type CommentRow,
   type ContentChannel,
   type FetchedWith,
+  type InsightGap,
+  type Insights,
+  type InsightsQuery,
+  type InsightValue,
+  knownGaps,
   type ListQuery,
+  METRICS as M,
   type MediaHost,
   type Metrics,
   mediaFileOf,
+  numberOf,
   type Post,
   type Published,
   type PublishedRow,
   pageOf,
   previewOf,
+  readGroup,
   SiteCallError,
   type SiteClient,
 } from "@wren/core/content";
@@ -43,6 +51,13 @@ interface Tweet {
     reply_count?: number;
     retweet_count?: number;
     quote_count?: number;
+    bookmark_count?: number;
+  };
+  /** The author's own numbers: the API leg's user token only. */
+  non_public_metrics?: {
+    impression_count?: number;
+    url_link_clicks?: number;
+    user_profile_clicks?: number;
   };
 }
 interface Me {
@@ -173,6 +188,36 @@ export function xContent(sites: SiteClient, o: XContentOptions = {}): ContentCha
         text,
         reply: { in_reply_to_tweet_id: commentId },
       });
+    },
+    async insights(q: InsightsQuery): Promise<Insights> {
+      const out: { values: InsightValue[]; gaps: InsightGap[] } = { values: [], gaps: [] };
+      await readGroup(
+        [M.views, M.likes, M.comments, M.shares, M.saves, M.linkClicks, M.profileClicks],
+        async () => {
+          const t = (await sites.call<{ data?: Tweet }>("x", "GET", `/2/tweets/${q.id}`, {})).data;
+          const p = t?.public_metrics ?? {};
+          const own = t?.non_public_metrics;
+          if (!own)
+            out.gaps.push(
+              ...knownGaps(
+                "no_api",
+                "X gives link and profile clicks to the API leg only; this read went by browser",
+                [M.linkClicks, M.profileClicks],
+              ),
+            );
+          return [
+            ...numberOf(M.views, p.impression_count),
+            ...numberOf(M.likes, p.like_count),
+            ...numberOf(M.comments, p.reply_count),
+            ...numberOf(M.shares, (p.retweet_count ?? 0) + (p.quote_count ?? 0)),
+            ...numberOf(M.saves, p.bookmark_count),
+            ...numberOf(M.linkClicks, own?.url_link_clicks),
+            ...numberOf(M.profileClicks, own?.user_profile_clicks),
+          ];
+        },
+        out,
+      );
+      return { ...out, asOf: now().toISOString() };
     },
   };
 }

@@ -4,23 +4,34 @@
  * read (a path on the worker or a URL); list = the channel's uploads
  * playlist (cheap in quota); metrics = `videos?part=statistics`;
  * activity = recent public subscribers; audience = the subscriber count.
+ * insights = YouTube Analytics (`yt-analytics.readonly`) reports: totals, the retention curve,
+ * traffic sources and search terms per video; per day for the channel.
  */
 import {
+  type AccountInsights,
   type ActivityQuery,
   type ActivityRow,
   type Audience,
   type CommentRow,
   type ContentChannel,
   type FetchedWith,
+  type InsightGap,
+  type Insights,
+  type InsightsQuery,
+  type InsightValue,
+  knownGaps,
   type ListQuery,
+  METRICS as M,
   type MediaHost,
   type Metrics,
   mediaFileOf,
+  numberOf,
   type Post,
   type Published,
   type PublishedRow,
   pageOf,
   previewOf,
+  readGroup,
   type SiteClient,
 } from "@wren/core/content";
 import { fieldsOf, languageName } from "@wren/core/content/shapes";
@@ -67,6 +78,64 @@ interface CommentThread {
 interface Subscription {
   id?: string;
   subscriberSnippet?: { title?: string; channelId?: string; description?: string };
+}
+
+/** YouTube Analytics' answer: named columns, then rows. */
+interface Report {
+  columnHeaders?: Array<{ name?: string }>;
+  rows?: unknown[][];
+}
+/** Each row as an object by column name. */
+export const reportRows = (r: Report): Array<Record<string, unknown>> => {
+  const names = (r.columnHeaders ?? []).map((c) => c.name ?? "");
+  return (r.rows ?? []).map((row) => Object.fromEntries(names.map((n, i) => [n, row[i]])));
+};
+
+/** `PT1M5S` → 65. */
+export function isoSeconds(d: string | undefined): number | null {
+  const m = /^P(?:(\d+)D)?T?(?:(\d+)H)?(?:(\d+)M)?(?:(\d+)S)?$/.exec(d ?? "");
+  if (!m) return null;
+  const [, days = "0", h = "0", min = "0", sec = "0"] = m;
+  return Number(days) * 86400 + Number(h) * 3600 + Number(min) * 60 + Number(sec);
+}
+
+/** The video's totals: one report, its columns renamed to ours. */
+const TOTALS: Record<string, string> = {
+  views: M.views,
+  estimatedMinutesWatched: M.watchMinutes,
+  averageViewDuration: M.avgViewSecs,
+  averageViewPercentage: M.avgViewPct,
+  subscribersGained: M.follows,
+  subscribersLost: M.unfollows,
+  likes: M.likes,
+  comments: M.comments,
+  shares: M.shares,
+  videosAddedToPlaylists: M.saves,
+};
+/** The channel's day report. */
+const DAYS: Record<string, string> = {
+  views: M.views,
+  estimatedMinutesWatched: M.watchMinutes,
+  subscribersGained: M.follows,
+  subscribersLost: M.unfollows,
+};
+export const ANALYTICS_PATH = "/youtubeAnalytics/v2/reports";
+const NOT_IN_REPORTS =
+  "YouTube gives thumbnail impressions and CTR in the Reporting API's reach report, not in Analytics queries";
+const STUDIO_ONLY = "YouTube shows viewed vs swiped away in Studio only";
+const day = (iso: string) => iso.slice(0, 10);
+
+/** Share still watching `secs` in: the curve's point at that ratio of the video. */
+export function holdAt(
+  curve: ReadonlyArray<{ ratio: number; watch: number }>,
+  at: number,
+): number | null {
+  if (!curve.length || at < 0) return null;
+  const sorted = [...curve].sort((a, b) => a.ratio - b.ratio);
+  if (at > 1) return null;
+  let best = sorted[0] as { ratio: number; watch: number };
+  for (const p of sorted) if (Math.abs(p.ratio - at) < Math.abs(best.ratio - at)) best = p;
+  return best.watch;
 }
 
 export function youtubeContent(sites: SiteClient, o: YouTubeContentOptions = {}): ContentChannel {
@@ -255,6 +324,151 @@ export function youtubeContent(sites: SiteClient, o: YouTubeContentOptions = {})
       const s = r.items?.[0]?.statistics;
       if (!s) throw new Error("youtube: the token's account has no channel");
       return { followers: Number(s.subscriberCount ?? 0), asOf: now().toISOString(), raw: r };
+    },
+    async insights(q: InsightsQuery): Promise<Insights> {
+      const out: { values: InsightValue[]; gaps: InsightGap[] } = { values: [], gaps: [] };
+      const end = day(now().toISOString());
+      // A report wants dates; a video can't have numbers before it went up.
+      const start = q.published && day(q.published) < end ? day(q.published) : end;
+      const report = (query: Record<string, unknown>) =>
+        sites.call<Report>("youtube", "GET", ANALYTICS_PATH, {
+          ids: "channel==MINE",
+          startDate: start,
+          endDate: end,
+          filters: `video==${q.id}`,
+          ...query,
+        });
+      let duration: number | null = null;
+      await readGroup(
+        [M.durationSecs],
+        async () => {
+          const r = await read<{ items?: Array<{ contentDetails?: { duration?: string } }> }>(
+            "videos",
+            { part: "contentDetails", id: q.id },
+          );
+          duration = isoSeconds(r.items?.[0]?.contentDetails?.duration);
+          return numberOf(M.durationSecs, duration);
+        },
+        out,
+      );
+      const totals = Object.values(TOTALS);
+      const live = await readGroup(
+        totals,
+        async () => {
+          const row = reportRows(await report({ metrics: Object.keys(TOTALS).join(",") }))[0] ?? {};
+          return Object.entries(TOTALS).flatMap(([theirs, ours]) =>
+            numberOf(ours, row[theirs] ?? 0),
+          );
+        },
+        out,
+      );
+      // No route or no scope: every report below answers the same, so ask once.
+      const later = [M.retention, M.relativeRetention, M.hold30, M.trafficSource, M.searchTerm];
+      if (!live) {
+        const first = out.gaps.find((g) => g.metric === totals[0]);
+        if (first) out.gaps.push(...knownGaps(first.state, first.why, later));
+      } else {
+        await readGroup(
+          [M.retention, M.relativeRetention, M.hold30],
+          async () => {
+            const rows = reportRows(
+              await report({
+                dimensions: "elapsedVideoTimeRatio",
+                metrics: "audienceWatchRatio,relativeRetentionPerformance",
+              }),
+            );
+            const curve = rows.map((r) => ({
+              ratio: Number(r.elapsedVideoTimeRatio),
+              watch: Number(r.audienceWatchRatio),
+              relative: Number(r.relativeRetentionPerformance),
+            }));
+            const at = duration ? 30 / duration : -1;
+            return [
+              ...curve.flatMap((p) => numberOf(M.retention, p.watch, p.ratio.toFixed(2))),
+              ...curve.flatMap((p) =>
+                numberOf(M.relativeRetention, p.relative, p.ratio.toFixed(2)),
+              ),
+              ...numberOf(M.hold30, holdAt(curve, at)),
+            ];
+          },
+          out,
+        );
+        await readGroup(
+          [M.trafficSource],
+          async () =>
+            reportRows(
+              await report({
+                dimensions: "insightTrafficSourceType",
+                metrics: "views",
+                sort: "-views",
+              }),
+            ).flatMap((r) =>
+              numberOf(M.trafficSource, r.views, String(r.insightTrafficSourceType)),
+            ),
+          out,
+        );
+        await readGroup(
+          [M.searchTerm],
+          async () =>
+            reportRows(
+              await report({
+                dimensions: "insightTrafficSourceDetail",
+                filters: `video==${q.id};insightTrafficSourceType==YT_SEARCH`,
+                metrics: "views",
+                sort: "-views",
+                maxResults: 25,
+              }),
+            ).flatMap((r) =>
+              numberOf(M.searchTerm, r.views, String(r.insightTrafficSourceDetail).slice(0, 200)),
+            ),
+          out,
+        );
+        if (q.kind === "short")
+          await readGroup(
+            [M.engagedViews],
+            async () => {
+              const row = reportRows(await report({ metrics: "engagedViews" }))[0] ?? {};
+              return numberOf(M.engagedViews, row.engagedViews ?? 0);
+            },
+            out,
+          );
+      }
+      out.gaps.push(...knownGaps("not_built", NOT_IN_REPORTS, [M.impressions, M.ctr]));
+      if (q.kind === "short") out.gaps.push(...knownGaps("no_api", STUDIO_ONLY, [M.skipRate]));
+      return { ...out, asOf: now().toISOString() };
+    },
+    async accountInsights(): Promise<AccountInsights> {
+      const out: { values: InsightValue[]; gaps: InsightGap[] } = { values: [], gaps: [] };
+      const end = now();
+      const start = new Date(end.getTime() - 7 * 86_400_000);
+      const days = new Map<string, InsightValue[]>();
+      await readGroup(
+        Object.values(DAYS),
+        async () => {
+          const rows = reportRows(
+            await sites.call<Report>("youtube", "GET", ANALYTICS_PATH, {
+              ids: "channel==MINE",
+              startDate: day(start.toISOString()),
+              endDate: day(end.toISOString()),
+              dimensions: "day",
+              metrics: Object.keys(DAYS).join(","),
+              sort: "day",
+            }),
+          );
+          for (const r of rows)
+            days.set(
+              String(r.day),
+              Object.entries(DAYS).flatMap(([theirs, ours]) => numberOf(ours, r[theirs] ?? 0)),
+            );
+          return [];
+        },
+        out,
+      );
+      return {
+        days: [...days].map(([d, values]) => ({ day: d, values })),
+        gaps: out.gaps,
+        asOf: end.toISOString(),
+      };
     },
   };
 }

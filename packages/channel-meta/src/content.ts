@@ -9,21 +9,30 @@
  * IG user.
  */
 import {
+  type AccountInsights,
   type ActivityQuery,
   type ActivityRow,
   type Audience,
   type CommentRow,
   type ContentChannel,
   type FetchedWith,
+  type InsightGap,
+  type Insights,
+  type InsightsQuery,
+  type InsightValue,
+  knownGaps,
   type ListQuery,
+  METRICS as M,
   type MediaHost,
   type Metrics,
+  numberOf,
   type Post,
   type Published,
   type PublishedRow,
   pageOf,
   previewOf,
   publicUrlOf,
+  readGroup,
   type SiteClient,
 } from "@wren/core/content";
 import { fieldsOf } from "@wren/core/content/shapes";
@@ -80,6 +89,43 @@ interface IgInbox {
     username?: string;
   }>;
 }
+
+/** One Graph insight: a period's `values` or a `total_value`. */
+interface Insight {
+  name: string;
+  values?: Array<{ value?: unknown }>;
+  total_value?: { value?: unknown };
+}
+const insightValue = (i: Insight | undefined) => i?.total_value?.value ?? i?.values?.[0]?.value;
+
+/** Graph's names to ours, with a scale (watch time comes in milliseconds). */
+const IG_METRICS: Record<string, [string, number]> = {
+  reach: [M.reach, 1],
+  views: [M.views, 1],
+  saved: [M.saves, 1],
+  likes: [M.likes, 1],
+  comments: [M.comments, 1],
+  shares: [M.shares, 1],
+  total_interactions: [M.interactions, 1],
+  follows: [M.follows, 1],
+  profile_visits: [M.profileVisits, 1],
+  ig_reels_avg_watch_time: [M.avgViewSecs, 1 / 1000],
+  ig_reels_video_view_total_time: [M.watchMinutes, 1 / 60_000],
+};
+const COMMON = ["reach", "views", "saved", "likes", "comments", "shares", "total_interactions"];
+/** A Reel answers watch time and refuses follows; a feed post the other way round. */
+export const igMetricsFor = (kind: string | null | undefined): string[] =>
+  kind === "carousel" || kind === "image"
+    ? [...COMMON, "follows", "profile_visits"]
+    : [...COMMON, "ig_reels_avg_watch_time", "ig_reels_video_view_total_time"];
+const IG_APP_ONLY = "Instagram shows this in the app only";
+/** The account's day numbers, as a field expansion on the IG user (no route beyond `/{objectId}`). */
+const IG_ACCOUNT: Record<string, string> = {
+  reach: M.reach,
+  profile_views: M.profileVisits,
+  website_clicks: M.linkClicks,
+  accounts_engaged: M.accountsEngaged,
+};
 
 export function instagramContent(sites: SiteClient, o: MetaContentOptions = {}): ContentChannel {
   const now = o.now ?? (() => new Date());
@@ -219,6 +265,59 @@ export function instagramContent(sites: SiteClient, o: MetaContentOptions = {}):
     async audience(): Promise<Audience> {
       const r = await inbox();
       return { followers: r.followers_count ?? 0, asOf: now().toISOString(), raw: r };
+    },
+    async insights(q: InsightsQuery): Promise<Insights> {
+      const out: { values: InsightValue[]; gaps: InsightGap[] } = { values: [], gaps: [] };
+      const names = igMetricsFor(q.kind);
+      const ask = async (metric: string[]) => {
+        const r = await sites.call<Edge<Insight>>("meta", "GET", `/${q.id}/insights`, {
+          metric: metric.join(","),
+        });
+        return metric.flatMap((n) => {
+          const [ours, scale] = IG_METRICS[n] as [string, number];
+          const v = Number(insightValue(r.data?.find((d) => d.name === n)));
+          return Number.isFinite(v) ? numberOf(ours, v * scale) : [];
+        });
+      };
+      const all = names.map((n) => (IG_METRICS[n] as [string, number])[0]);
+      const got = await readGroup(all, () => ask(names), out);
+      // One metric this media refuses fails the whole call: ask each alone, keep what answers.
+      if (!got && out.gaps.some((g) => g.state === "error")) {
+        out.gaps.length = 0;
+        for (const n of names)
+          await readGroup([(IG_METRICS[n] as [string, number])[0]], () => ask([n]), out);
+      }
+      out.gaps.push(
+        ...knownGaps("no_api", IG_APP_ONLY, [M.retention, M.trafficSource, M.skipRate]),
+      );
+      return { ...out, asOf: now().toISOString() };
+    },
+    async accountInsights(): Promise<AccountInsights> {
+      const out: { values: InsightValue[]; gaps: InsightGap[] } = { values: [], gaps: [] };
+      // Yesterday, whole: today's numbers are still moving.
+      const until = new Date(`${now().toISOString().slice(0, 10)}T00:00:00Z`);
+      const since = new Date(until.getTime() - 86_400_000);
+      const sec = (d: Date) => Math.floor(d.getTime() / 1000);
+      const ig = await igUser();
+      await readGroup(
+        Object.values(IG_ACCOUNT),
+        async () => {
+          const r = await sites.call<{ insights?: Edge<Insight> }>("meta", "GET", `/${ig}`, {
+            fields: `insights.metric(${Object.keys(IG_ACCOUNT).join(",")}).period(day).metric_type(total_value).since(${sec(since)}).until(${sec(until)})`,
+          });
+          return Object.entries(IG_ACCOUNT).flatMap(([theirs, ours]) =>
+            numberOf(ours, insightValue(r.insights?.data?.find((d) => d.name === theirs))),
+          );
+        },
+        out,
+      );
+      return {
+        days: out.values.length
+          ? [{ day: since.toISOString().slice(0, 10), values: out.values }]
+          : [],
+        gaps: out.gaps,
+        asOf: now().toISOString(),
+      };
     },
   };
 }
