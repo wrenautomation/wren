@@ -29,6 +29,8 @@ const OPTIONAL = [
   "WREN_PLACEMENT_SEEDS",
   // The worker's model and its keys, and its LinkedIn pool account: demand and hiring read with them.
   "WREN_LLM",
+  "WREN_LLM_GATEWAY_URL",
+  "WREN_LLM_GATEWAY_TOKEN",
   "WREN_POOL_LINKEDIN",
 ];
 const isOptional = (k) => OPTIONAL.includes(k) || /^(NUM_COHERE|COHERE_)/.test(k);
