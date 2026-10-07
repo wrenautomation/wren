@@ -19,7 +19,9 @@ import {
   passOf,
   runSignals,
   SIGNALS_GOOGLE_PER_DAY,
+  signalPlan,
   signalsFor,
+  signalUnit,
 } from "../../src/signals/collectors.js";
 import { makeCompany } from "./fixtures.js";
 
@@ -230,6 +232,91 @@ describe("the runner", () => {
     const pass = await passOf(db(), "n", [], [firm.id]);
     const s = await runSignals([c], { fake: { on: true } }, base(), { pass, timezone: "UTC" });
     expect(s.collectors.fake).toMatchObject({ none: 1, refused: 1 });
+  });
+});
+
+describe("metered collectors and the vendor gate", () => {
+  const metered = (answer: (subject: string) => Collected) =>
+    defineCollector({
+      name: "paid",
+      subject: "company",
+      built: true,
+      settings: z.object({}),
+      bucket: { perDay: 100, burst: 10 },
+      everyDays: 7,
+      metered: true,
+      vendors: ["exa", "models"],
+      spends: (subject) => (subject.endsWith("1") ? ["exa"] : ["exa", "models"]),
+      async collect(_deps, subject) {
+        return answer(subject);
+      },
+    });
+  const base = (): BaseDeps => ({
+    db: db(),
+    sites: null,
+    desk: null,
+    fetcher: null,
+    pages: null,
+    youtube: null,
+    llm: null,
+    linkedin: null,
+  });
+  const on = { paid: { on: true } };
+
+  it("plans nothing without a yes from each vendor, and no more than the smallest room", async () => {
+    const firms = [];
+    for (const n of [1, 2, 3])
+      firms.push(await makeCompany(db(), { key: `crd:93100${n}`, domain: `paid${n}.example` }));
+    const pass = await passOf(
+      db(),
+      "n",
+      [],
+      firms.map((f) => f.id),
+    );
+    const c = metered(() => ({ state: "none", signals: [], tried: [] }));
+    const plan = (rooms: Record<string, number | null | string>) =>
+      signalPlan(db(), [c], on, pass, {
+        now: new Date(),
+        gate: async (vendor) => {
+          const r = rooms[vendor];
+          return typeof r === "string"
+            ? { ok: false, why: r, mode: null }
+            : { ok: true, mode: "own", bucket: `${vendor}:own:x`, room: r ?? null };
+        },
+      });
+    expect(await plan({ exa: 5, models: "Needs setup" })).toMatchObject([
+      { name: "paid", subjects: [], why: "Needs setup" },
+    ]);
+    expect((await plan({ exa: 2, models: null }))[0]?.subjects).toHaveLength(2);
+    expect((await plan({ exa: null, models: null }))[0]?.subjects).toHaveLength(3);
+  });
+
+  it("meters what a read answered, by the subject's vendors, and never what failed", async () => {
+    const metering: string[][] = [];
+    const meter = async (vendors: readonly string[]) => {
+      metering.push([...vendors]);
+    };
+    const found = metered(() => ({ state: "none", signals: [], tried: [] }));
+    await signalUnit(found, "c1", { on: true }, base(), { timezone: "UTC", meter });
+    await signalUnit(found, "c2", { on: true }, base(), { timezone: "UTC", meter });
+    await signalUnit(found, "c3", { on: true }, base(), { timezone: "UTC", meter, dry: true });
+    const lost = metered(() => ({ state: "unresolved", signals: [], tried: [] }));
+    await signalUnit(lost, "c4", { on: true }, base(), { timezone: "UTC", meter });
+    const broke = metered(() => {
+      throw new Error("site down");
+    });
+    const r = await signalUnit(broke, "c5", { on: true }, base(), { timezone: "UTC", meter });
+    expect(r.state).toBe("error");
+    expect(metering).toEqual([["exa"], ["exa", "models"]]);
+
+    // A meter that fails is logged, not thrown: the read isn't retried and bought twice.
+    const after = await signalUnit(found, "c6", { on: true }, base(), {
+      timezone: "UTC",
+      meter: async () => {
+        throw new Error("main is down");
+      },
+    });
+    expect(after.state).toBe("none");
   });
 });
 

@@ -22,6 +22,7 @@ import {
 import { findClient } from "@wren/core/clients";
 import type { SiteClient } from "@wren/core/content";
 import { clientOfKey, exclusiveHandler } from "@wren/core/restate";
+import { type Gate, gate, meter, modesOf } from "@wren/core/vendors";
 import { atomic, type Db, type Queryable } from "@wren/db";
 import { type LlmClient, NULL_TRACER, type Tracer } from "@wren/llm";
 import { eq } from "drizzle-orm";
@@ -178,6 +179,7 @@ import type { PageStore } from "../pages.js";
 import {
   type BaseDeps,
   COLLECTORS,
+  clientLinkedin,
   countSignalUnit,
   emptySignalsStats,
   passOf,
@@ -332,14 +334,14 @@ export async function clientBlock(
   main: Queryable,
   key: string,
   component: string,
-): Promise<{ client: string; block: unknown } | null> {
+): Promise<{ client: string; block: unknown; accounts: Record<string, string> } | null> {
   const owner = clientOfKey(key.split("@")[0] as string);
   if (!owner) return null;
   const client = await findClient(main, owner.client);
   if (!client || client.demo) throw new restate.TerminalError(`no such client: ${owner.client}`);
   const block = (client.products as Record<string, unknown> | null)?.[component];
   if (block === undefined) throw new restate.TerminalError(`${component} is not installed`);
-  return { client: owner.client, block };
+  return { client: owner.client, block, accounts: client.accounts };
 }
 
 /** A client key's social block says this network is on; Wren's keys always read. */
@@ -1016,12 +1018,22 @@ export function makeEnrichment(deps: EnrichmentDeps) {
         { input: SIGNALS },
         async (ctx: restate.ObjectContext, input: SignalsInput): Promise<SignalsStats> => {
           // A client's key reads its own block and writes its own database; its buckets and
-          // Google's day count main's reads too. Metered collectors and LinkedIn stay Wren's.
+          // Google's day count main's reads too. Metered collectors spend through the vendor
+          // gate (designs/2026-10-07-setup-and-vendors.md): a client's needs a mode, room and cap.
           const own = await ctx.run("client", () =>
             clientBlock(deps.db, ctx.key, SIGNALS_COMPONENT),
           );
           const { db, niche } = scope(ctx);
           const also = own ? deps.db : null;
+          const owner = own?.client ?? null;
+          // LinkedIn on a client's pass: its own login, or Wren's on a managed share.
+          const linkedinReads = own
+            ? await ctx.run("linkedin", async () => {
+                const m = (await modesOf(deps.db, own.client)).find((r) => r.vendor === "linkedin");
+                if (!m) return null;
+                return m.mode === "own" ? clientLinkedin(own.accounts) : readAccount(deps.linkedin);
+              })
+            : undefined;
           const { personIds, companyIds, ...rest } = input;
           const runId = await open(ctx, SIGNALS_COMMAND, {
             ...rest,
@@ -1040,7 +1052,10 @@ export function makeEnrichment(deps: EnrichmentDeps) {
                 limit: input.limit ?? undefined,
                 only: input.collector ?? null,
                 also,
-                free: own !== null,
+                gate: async (vendor, units): Promise<Gate> =>
+                  vendor === "linkedin" && own && !linkedinReads
+                    ? { ok: false, why: "Needs setup", mode: null }
+                    : gate(deps.db, owner, vendor, units, now),
               },
             ),
           );
@@ -1053,6 +1068,7 @@ export function makeEnrichment(deps: EnrichmentDeps) {
             youtube: deps.youtube ?? null,
             llm: deps.llm,
             linkedin: own ? null : readAccount(deps.linkedin),
+            ...(linkedinReads === undefined ? {} : { linkedinReads }),
             also,
           };
           const stats = emptySignalsStats();
@@ -1075,6 +1091,16 @@ export function makeEnrichment(deps: EnrichmentDeps) {
                 signalUnit(c, id.slice(c.name.length + 1), p.settings, base, {
                   timezone: input.timezone,
                   runId,
+                  meter: async (vendors) => {
+                    for (const vendor of vendors)
+                      await meter(deps.db, {
+                        client: owner,
+                        vendor,
+                        units: 1,
+                        part: `signals.${c.name}`,
+                        runId,
+                      });
+                  },
                 }),
               { retry: UNIT_RETRY, holds, perRun: c.metered ? 1 : UNITS_PER_RUN },
             )) {

@@ -52,6 +52,27 @@ async function withProfile(db: Queryable, pass: Pass): Promise<string[]> {
   ].map((r) => personKey(Number(r.id)));
 }
 
+/** Wren's own LinkedIn logins: a client's pass never reads as one of these on its own login. */
+export const WREN_LINKEDIN: ReadonlySet<string> = new Set([
+  "linkedin",
+  "linkedin@wren",
+  "linkedin@alt",
+  "linkedin@research",
+]);
+
+/** A client pass's account as given, but never Wren's outreach login. */
+const clientReads = (a: string | null) =>
+  a?.trim() && a.trim() !== "linkedin@wren" ? a.trim() : null;
+
+/**
+ * A client's own LinkedIn login (`clients.accounts.linkedin`), or null when it has none or it
+ * names one of Wren's.
+ */
+export function clientLinkedin(accounts: Readonly<Record<string, string>> | null): string | null {
+  const a = accounts?.linkedin?.trim();
+  return a && !WREN_LINKEDIN.has(a) ? a : null;
+}
+
 export const linkedin = defineCollector({
   name: "linkedin",
   subject: "person",
@@ -63,9 +84,13 @@ export const linkedin = defineCollector({
   bucket: { perDay: 10, burst: 2 },
   everyDays: 30,
   metered: true,
+  vendors: ["linkedin"],
   subjects: (db, pass) => withProfile(db, pass),
   async collect(deps, subject, s) {
-    const account = readAccount(deps.linkedin);
+    const account =
+      deps.linkedinReads === undefined
+        ? readAccount(deps.linkedin)
+        : clientReads(deps.linkedinReads);
     if (!account || !deps.sites)
       return {
         state: "unresolved",

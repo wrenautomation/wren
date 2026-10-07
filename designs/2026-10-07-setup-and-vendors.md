@@ -182,6 +182,8 @@ Built (step e): `mayApprove(who, client, approver)` in `@wren/core/access`. The 
 | `linkedin` | `linkedin` | the client's LinkedIn login (`clients.accounts.linkedin`) | off unless William allows it |
 | `demand` | `reddit` and `models` | not offered for Reddit | Wren's reads and gateway |
 
+Built (step f): a metered collector names its `vendors` (and which a subject `spends`). `signalPlan` takes a `gate` in place of `free`: it asks each vendor for one unit and plans no more subjects than the smallest room. `signalUnit` meters each answered read (found or none) after its write; a failed meter is logged, so a read is never bought twice. Wren's pass is gated and metered too, as client zero. On a client's pass, `own` LinkedIn reads as `clients.accounts.linkedin` (never one of Wren's logins), and `managed` as Wren's pool account; no login is "Needs setup". The CLI's `wren enrich signals` passes no gate.
+
 ## Texting window
 
 Form leads' window defaults to 08:00 to 20:00 (`WREN_SMS_FORM_WINDOW`), so the setting and the 20:00 clamp agree. Recorded in `2026-10-07-speed-to-lead.md`.
@@ -244,3 +246,4 @@ Each step is committed with tests on synthetic data.
 - 2026-10-07 (step b): `vendor_usage` has no foreign key to clients: it's a ledger, and a client's usage outlives the client. The GCRA moved to `@wren/core/buckets`; research re-exports it.
 - 2026-10-07 (step b): A managed share above the clients' pool is held to the pool. A free vendor still needs a cap above $0 to run managed, so nothing runs until William sets one.
 - 2026-10-07 (step e): "The client's owner" reads as the client's side: any of its people the guard lets act (owner and member roles). A login that may only read never approves. Existing clients were set to `either` by the migration, so their approve keeps working; the default for new ones is `wren`.
+- 2026-10-07 (step f): A metered read meters after its write, not before: losing a usage row costs less than buying a read twice. Hiring's LinkedIn jobs read stays Wren's only; the client's login is for the metered `linkedin` collector alone.

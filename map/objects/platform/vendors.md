@@ -26,7 +26,7 @@ A read limit belongs to a key, so a bucket is (vendor, key): `<vendor>:own:<clie
 
 ## Connected to
 
-- **joins:** [[books/bill]] (usage lines sit next to bills); [[books/vendor]] is a vendor Wren pays, not a metered one; research collectors (step f puts their client units behind `gate`)
+- **joins:** [[books/bill]] (usage lines sit next to bills); [[books/vendor]] is a vendor Wren pays, not a metered one; research collectors: a metered one (`linkedin`, `demand`) names its `vendors`; the Enrichment `signals` handler gates each before a pass and meters each answered unit (`packages/research/src/restate/enrichment.ts`); a client's LinkedIn reads use its own login on `own` (`clientLinkedin`)
 - **looks-like-but-is-not:** `books.usage` (AWS spend from Cost Explorer), research's per-source buckets (still count their own tables for Wren)
 
 ## If you change this

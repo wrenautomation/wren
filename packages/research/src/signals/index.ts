@@ -7,6 +7,7 @@
  * The registry is `collectors.ts`; it re-exports this file, so a collector imports from here.
  */
 import type { SiteClient } from "@wren/core/content";
+import type { Gate } from "@wren/core/vendors";
 import { atomic, type Queryable } from "@wren/db";
 import type { LlmClient } from "@wren/llm";
 import { and, desc, eq, gte, inArray, sql } from "drizzle-orm";
@@ -79,6 +80,11 @@ export interface SignalDeps {
   llm: LlmClient | null;
   /** The LinkedIn account to read as: `readAccount`'s answer, else null. */
   linkedin: string | null;
+  /**
+   * The account the metered `linkedin` collector reads as on a client's pass: its own login, or
+   * Wren's on a managed share; null when it has neither. Left out on Wren's pass (`linkedin`).
+   */
+  linkedinReads?: string | null;
   /** Main's database when `db` is a client's: its reads count against the same budgets. */
   also?: Queryable | null;
   /** Google searches this unit may still spend. */
@@ -108,6 +114,10 @@ export interface Collector<S extends z.ZodObject = z.ZodObject> {
   everyDays: number;
   /** True: each unit is its own journaled step and never retried (Exa, a model, LinkedIn). */
   metered: boolean;
+  /** Metered: the vendors it spends (`@wren/core/vendors`), gated before a pass. */
+  vendors?: readonly string[];
+  /** Which of `vendors` one subject spends, a unit each; all of them when left out. */
+  spends?(subject: string): readonly string[];
   /** Subject keys to consider, in order; default: the pass's firms (`c<id>`) or people (`p<id>`). */
   subjects?(db: Queryable, pass: Pass, s: z.infer<S>): Promise<string[]>;
   /** Read one subject. Reads only. A metered collector returns errors as data. */
@@ -320,8 +330,12 @@ export async function signalPlan(
     only?: string | null | undefined;
     /** Main's database when `db` is a client's (`collectorRoom`). */
     also?: Queryable | null;
-    /** A client's pass: metered collectors (they spend) stay Wren's. */
-    free?: boolean;
+    /**
+     * May this owner spend a unit of `vendor` now (`gate` in `@wren/core/vendors`, bound to the
+     * owner)? A metered collector runs only when each of its vendors says yes, and no more
+     * subjects than the smallest room. Left out (the CLI), the collector's own bucket decides.
+     */
+    gate?: (vendor: string, units: number) => Promise<Gate>;
   },
 ): Promise<CollectorPlan[]> {
   const limit = opts.limit ?? SIGNALS_LIMIT;
@@ -335,9 +349,21 @@ export async function signalPlan(
       plan([], c.built ? "off in settings" : "not built");
       continue;
     }
-    if (opts.free && c.metered) {
-      plan([], "metered: Wren's only");
-      continue;
+    let vendorRoom = Number.POSITIVE_INFINITY;
+    if (c.metered && opts.gate) {
+      let no: string | null = c.vendors?.length ? null : "metered: no vendor named";
+      for (const v of c.vendors ?? []) {
+        const g = await opts.gate(v, 1);
+        if (!g.ok) {
+          no = g.why;
+          break;
+        }
+        if (g.room !== null) vendorRoom = Math.min(vendorRoom, g.room);
+      }
+      if (no) {
+        plan([], no);
+        continue;
+      }
     }
     const { room, nextInMs } = await collectorRoom(db, c, opts.now, opts.also ?? null);
     if (room < Math.min(limit, c.bucket.burst)) {
@@ -352,7 +378,7 @@ export async function signalPlan(
           ? pass.personIds.map(personKey)
           : [];
     const due = await dueSubjects(db, c, candidates, opts.now);
-    plan(due.slice(0, Math.min(limit, room)), null);
+    plan(due.slice(0, Math.min(limit, room, vendorRoom)), null);
   }
   return out;
 }
@@ -383,7 +409,13 @@ export async function signalUnit(
   subject: string,
   s: CollectorSettings,
   base: BaseDeps,
-  opts: { timezone: string; runId?: string | null; dry?: boolean },
+  opts: {
+    timezone: string;
+    runId?: string | null;
+    dry?: boolean;
+    /** Records a metered read's units (`meter` in `@wren/core/vendors`, bound to the owner). */
+    meter?: ((vendors: readonly string[]) => Promise<void>) | null;
+  },
 ): Promise<SignalUnit> {
   const now = new Date();
   const left = await googleLeft(base.db, {
@@ -404,7 +436,10 @@ export async function signalUnit(
   }
   const unit = { collector: c.name, subject, stop: got.stop ?? null };
   if (opts.dry) return { ...unit, state: got.state, kept: 0, refused: 0, drafts: got.signals };
-  return atomic(base.db, async (tx) => {
+  // A read that answered was spent: meter it after the write. A failed meter is logged, never
+  // thrown, so the unit isn't retried and the read bought twice.
+  const spent = c.metered && opts.meter && (got.state === "found" || got.state === "none");
+  const done = await atomic(base.db, async (tx) => {
     const tried = [...got.tried];
     let kept = 0;
     for (const d of got.signals) {
@@ -428,6 +463,11 @@ export async function signalUnit(
       .onConflictDoUpdate({ target: [signalChecks.collector, signalChecks.subject], set: row });
     return { ...unit, state, kept, refused: got.signals.length - kept };
   });
+  if (spent)
+    await opts.meter?.(c.spends?.(subject) ?? c.vendors ?? []).catch((err: unknown) => {
+      console.error(`meter ${c.name} ${subject}:`, err instanceof Error ? err.message : err);
+    });
+  return done;
 }
 
 export interface CollectorStats {

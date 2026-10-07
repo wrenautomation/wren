@@ -11,6 +11,7 @@ import { ingressOf, loadSettings } from "@wren/config";
 import { addClient } from "@wren/core/clients";
 import type { PassOutcome } from "@wren/core/restate";
 import { startTestRestate } from "@wren/core/testing";
+import { clearMode, gate, setOwnLogin } from "@wren/core/vendors";
 import { cachedDb, clientDatabaseUrl, type Db } from "@wren/db";
 import { startTestPostgres, type TestPostgres } from "@wren/db/testing";
 import { youtubeRoom } from "@wren/research/enrichment";
@@ -169,19 +170,32 @@ describe("shared buckets", () => {
     expect(ids.length).toBe(1);
   });
 
-  it("keeps metered collectors (they spend) off a client's pass", async () => {
-    const plan = await signalPlan(
-      gamma,
-      COLLECTORS,
-      signalSettingsOf({}),
-      { niche: null, personIds: [], companyIds: await queuedFirms(gamma, 10) },
-      { now: new Date(), free: true, also: pg.db },
-    );
-    const metered = new Set(COLLECTORS.filter((c) => c.metered && c.built).map((c) => c.name));
-    expect(metered.size).toBeGreaterThan(0);
-    for (const p of plan)
-      if (metered.has(p.name))
-        expect(p).toMatchObject({ subjects: [], why: "metered: Wren's only" });
+  it("gates metered collectors on a client's pass by its vendor modes", async () => {
+    const now = new Date();
+    const plan = async () =>
+      new Map(
+        (
+          await signalPlan(
+            gamma,
+            COLLECTORS,
+            signalSettingsOf({}),
+            { niche: null, personIds: [], companyIds: await queuedFirms(gamma, 10) },
+            { now, also: pg.db, gate: (vendor, units) => gate(pg.db, "gamma", vendor, units, now) },
+          )
+        ).map((p) => [p.name, p]),
+      );
+    const metered = COLLECTORS.filter((c) => c.metered && c.built).map((c) => c.name);
+    expect(metered.length).toBeGreaterThan(0);
+    const before = await plan();
+    for (const name of metered)
+      expect(before.get(name)).toMatchObject({ subjects: [], why: "Needs setup" });
+
+    // On its own LinkedIn login, LinkedIn reads pass the gate; the rest still need setup.
+    await setOwnLogin(pg.db, { client: "gamma", vendor: "linkedin", by: "test" });
+    const after = await plan();
+    expect(after.get("linkedin")?.why).toBeNull();
+    expect(after.get("demand")?.why).toBe("Needs setup");
+    await clearMode(pg.db, "gamma", "linkedin");
   });
 });
 

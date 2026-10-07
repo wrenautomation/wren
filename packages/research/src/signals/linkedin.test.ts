@@ -3,7 +3,7 @@ import { SiteCallError, type SiteClient } from "@wren/core/content";
 import { describe, expect, it } from "vitest";
 import { signalRefusal } from "../findings.js";
 import type { SignalDeps } from "./index.js";
-import { type ActivityItem, linkedin } from "./linkedin.js";
+import { type ActivityItem, clientLinkedin, linkedin } from "./linkedin.js";
 
 const NOW = new Date("2026-10-06T12:00:00Z");
 
@@ -140,6 +140,32 @@ describe("linkedin activity collector", () => {
       expect(site.calls).toEqual([]);
       expect(r.state).toBe("unresolved");
     }
+  });
+
+  it("a client's pass reads as its own login, never Wren's outreach one", async () => {
+    const own = sites(() => ({ activity: [item()] }));
+    await linkedin.collect(
+      deps({ sites: own, linkedin: null, linkedinReads: "linkedin@client-a" }),
+      "p9",
+      s,
+    );
+    expect(own.calls).toEqual([
+      'linkedin GET /in/test-person-1/activity {"max":20} as linkedin@client-a',
+    ]);
+    for (const linkedinReads of ["linkedin@wren", null]) {
+      const site = sites(() => ({ activity: [item()] }));
+      const r = await linkedin.collect(
+        deps({ sites: site, linkedin: "linkedin", linkedinReads }),
+        "p9",
+        s,
+      );
+      expect(site.calls).toEqual([]);
+      expect(r.state).toBe("unresolved");
+    }
+    expect(clientLinkedin({ linkedin: " linkedin@client-a " })).toBe("linkedin@client-a");
+    for (const a of ["linkedin", "linkedin@alt", "linkedin@research", "linkedin@wren", ""])
+      expect(clientLinkedin({ linkedin: a })).toBeNull();
+    expect(clientLinkedin({})).toBeNull();
   });
 
   it("a 429 is capped until the cap resets and stops the pass", async () => {

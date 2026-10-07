@@ -16,6 +16,7 @@ import { stack } from "./stack.js";
 import { talks } from "./talks.js";
 
 export * from "./index.js";
+export { clientLinkedin, WREN_LINKEDIN } from "./linkedin.js";
 
 export const COLLECTORS: readonly Collector[] = [
   hiring,

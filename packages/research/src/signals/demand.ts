@@ -596,6 +596,9 @@ export const demand = defineCollector({
   bucket: { perDay: 100, burst: 10 },
   everyDays: ONCE,
   metered: true,
+  vendors: ["reddit", "models"],
+  /** A search reads Reddit and asks a model; a stored post only asks the model. */
+  spends: (subject) => (SEARCH_KEY.test(subject) ? ["reddit", "models"] : ["models"]),
   /** Today's searches for the niche, then unread Reddit threads, then unread group posts. */
   async subjects(db, pass, s) {
     const now = new Date();
