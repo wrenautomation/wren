@@ -3,7 +3,7 @@ type: object
 cluster: voice
 universe: live
 status: verified
-verified: 2026-10-07 @ 91fcbb77
+verified: 2026-10-07 @ 90c5d53a
 entity: packages/voice/src/dictation/index.ts
 ---
 
@@ -32,7 +32,7 @@ Citations: `packages/voice/src/dictation/ears.ts:27`, `packages/voice/src/dictat
 
 ## If you change this
 
-- **Hits:** every box with a `Dictate` (`draft.tsx`, `edits.tsx`, Ask page, templates, videos and workflow Ask), `App.tsx` (the provider), the CSP when the model or onnxruntime version moves
+- **Hits:** every box with a `Dictate` (`draft.tsx`, `edits.tsx`, Ask page, templates, videos and workflow Ask), `main.tsx` (the provider), the CSP when the model or onnxruntime version moves
 - **Does not hit:** the voice agent's call loop (it never calls `finish`), the database
 
 ## Surfaces
