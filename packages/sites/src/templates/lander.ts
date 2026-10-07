@@ -71,6 +71,14 @@ export const lander: Template = {
     { key: "form_title", label: "Form heading", kind: "text", max: 80 },
     { key: "form_note", label: "Under the form heading", kind: "long", max: 200, optional: true },
     { key: "form_button", label: "Form button", kind: "text", max: 40 },
+    {
+      key: "form",
+      label: "Hosted form",
+      kind: "text",
+      max: 80,
+      optional: true,
+      hint: "A form's slug or id from Sites, Forms. Empty: name, email, phone and a note.",
+    },
     { key: "thanks", label: "After sending", kind: "text", max: 160 },
     { key: "footer", label: "Footer", kind: "text", max: 160, optional: true },
   ],
@@ -97,6 +105,7 @@ export const lander: Template = {
       form_title: "See if it fits",
       form_note: "",
       form_button: "Send",
+      form: "",
       thanks: "Thanks. We'll be in touch soon.",
       footer: offer.name,
     };

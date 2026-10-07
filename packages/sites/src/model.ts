@@ -30,13 +30,17 @@ export type PageStage = (typeof PAGE_STAGES)[number];
 export const VERSION_ORIGINS = ["offer", "edit", "ai", "copy", "restore"] as const;
 export type VersionOrigin = (typeof VERSION_ORIGINS)[number];
 
-/** What the tracker counts. */
-export const EVENT_NAMES = ["view", "cta", "form", "book"] as const;
+/** What the tracker counts. `start`: someone touched a form's first field. */
+export const EVENT_NAMES = ["view", "cta", "form", "book", "start"] as const;
 export type EventName = (typeof EVENT_NAMES)[number];
 
 /** Where a visit came from, read off its utm on arrival (`channelOf`). */
 export const CHANNELS = ["ads", "organic", "outreach", "referral", "direct", "other"] as const;
 export type Channel = (typeof CHANNELS)[number];
+
+/** A hosted form's address on its owner's host: `/o/f/<slug>`. */
+export const FORM_PREFIX = "/o/f/";
+export const formUrl = (host: string, slug: string) => `https://${host}${FORM_PREFIX}${slug}`;
 
 /** Wren's own domain: its pages live at `https://<it>/o/<slug>`. */
 export const WREN_SITE = "wrenautomation.com";

@@ -6,6 +6,8 @@
  * - `site_page_versions`: a data page's copy, one row per save, never overwritten.
  * - `site_events`: what the tracker saw, one row per event. Not audited: high volume.
  * - `site_forms`: every form sent, kept whole, and whether it entered the door.
+ * - `site_form_defs`: hosted forms (designs/2026-10-07-forms-and-pay.md), each a spec of fields
+ *   served at `/o/f/<slug>` and usable as a page's form section.
  */
 import { clients } from "@wren/core/clients";
 import { hooks } from "@wren/core/schema";
@@ -14,6 +16,7 @@ import { sql } from "drizzle-orm";
 import {
   bigserial,
   boolean,
+  check,
   foreignKey,
   index,
   integer,
@@ -35,6 +38,7 @@ import {
   PAGE_STATUSES,
   VERSION_ORIGINS,
 } from "./model.js";
+import type { FormSpec } from "./forms.js";
 import type { Content } from "./templates/types.js";
 
 export const sitePages = pgTable(
@@ -131,11 +135,52 @@ export const sitePageVersions = pgTable(
 );
 export type SitePageVersion = typeof sitePageVersions.$inferSelect;
 
+export const siteFormDefs = pgTable(
+  "site_form_defs",
+  {
+    id: uuid("id").defaultRandom().notNull(),
+    /** Whose form; null is Wren's. */
+    client: varchar("client", { length: 40 }),
+    slug: varchar("slug", { length: 80 }).notNull(),
+    /** Its name in the list: "Quote request". */
+    name: varchar("name", { length: 200 }).notNull(),
+    status: varchar("status", { length: 8 }).notNull().default("draft"),
+    spec: jsonb("spec").$type<FormSpec>().notNull(),
+    /** The door its submits enter; null takes the owner's site door. */
+    hook: uuid("hook"),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+    createdBy: text("created_by").notNull(),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+    updatedBy: text("updated_by").notNull(),
+  },
+  (t) => [
+    primaryKey({ columns: [t.id], name: "pk_site_form_defs" }),
+    uniqueIndex("uq_site_form_defs_slug").on(sql`coalesce(${t.client}, '')`, t.slug),
+    index("ix_site_form_defs_client").on(t.client),
+    index("ix_site_form_defs_hook").on(t.hook),
+    foreignKey({
+      columns: [t.client],
+      foreignColumns: [clients.id],
+      name: "fk_site_form_defs_client",
+    }).onDelete("cascade"),
+    foreignKey({
+      columns: [t.hook],
+      foreignColumns: [hooks.id],
+      name: "fk_site_form_defs_hook",
+    }).onDelete("set null"),
+    oneOf("ck_site_form_defs_status", t.status, PAGE_STATUSES),
+  ],
+);
+export type SiteFormDef = typeof siteFormDefs.$inferSelect;
+
 export const siteEvents = pgTable(
   "site_events",
   {
     id: bigserial("id", { mode: "number" }).notNull(),
-    page: uuid("page").notNull(),
+    /** The page it happened on; null on a hosted form's own page. */
+    page: uuid("page"),
+    /** The hosted form it counts for: its page, or a page's form section. */
+    form: uuid("form"),
     at: timestamp("at", { withTimezone: true }).notNull().defaultNow(),
     /** Random per page load: events of one view share it. */
     view: varchar("view", { length: 36 }).notNull(),
@@ -151,16 +196,29 @@ export const siteEvents = pgTable(
   (t) => [
     primaryKey({ columns: [t.id], name: "pk_site_events" }),
     index("ix_site_events_page_at").on(t.page, t.at),
+    index("ix_site_events_form_at").on(t.form, t.at),
     foreignKey({
       columns: [t.page],
       foreignColumns: [sitePages.id],
       name: "fk_site_events_page",
     }).onDelete("cascade"),
+    foreignKey({
+      columns: [t.form],
+      foreignColumns: [siteFormDefs.id],
+      name: "fk_site_events_form",
+    }).onDelete("cascade"),
+    check("ck_site_events_where", sql`${t.page} is not null or ${t.form} is not null`),
     oneOf("ck_site_events_name", t.name, EVENT_NAMES),
     oneOf("ck_site_events_channel", t.channel, CHANNELS),
   ],
 );
 export type SiteEvent = typeof siteEvents.$inferSelect;
+
+/** The consent a submit ticked: the words it showed and their version (`consentVersion`). */
+export interface FormConsent {
+  text: string;
+  version: string;
+}
 
 /** The touch a form came with: the utm and referrer the visit arrived on. */
 export interface FormTouch {
@@ -175,9 +233,18 @@ export const siteForms = pgTable(
   "site_forms",
   {
     id: uuid("id").defaultRandom().notNull(),
-    page: uuid("page").notNull(),
+    /** The page it was sent from; null from a hosted form's own page. */
+    page: uuid("page"),
+    /** The hosted form it filled; null for a page's default form. */
+    form: uuid("form"),
     at: timestamp("at", { withTimezone: true }).notNull().defaultNow(),
     fields: jsonb("fields").$type<Record<string, string>>().notNull(),
+    /** The text consent it ticked, with the words shown; null when it didn't. */
+    consent: jsonb("consent").$type<FormConsent>(),
+    /** The `wv` visitor cookie, when the browser sent one (Wren's own host). */
+    visitor: varchar("visitor", { length: 64 }),
+    /** Turnstile: `yes` passed, `off` not set up where it came in. */
+    human: varchar("human", { length: 4 }),
     touch: jsonb("touch").$type<FormTouch>().notNull(),
     channel: varchar("channel", { length: 10 }).notNull(),
     /** Sent to the door; false with `why` when it had none or it refused. */
@@ -187,11 +254,19 @@ export const siteForms = pgTable(
   (t) => [
     primaryKey({ columns: [t.id], name: "pk_site_forms" }),
     index("ix_site_forms_page_at").on(t.page, t.at),
+    index("ix_site_forms_form_at").on(t.form, t.at),
     foreignKey({
       columns: [t.page],
       foreignColumns: [sitePages.id],
       name: "fk_site_forms_page",
     }).onDelete("cascade"),
+    foreignKey({
+      columns: [t.form],
+      foreignColumns: [siteFormDefs.id],
+      name: "fk_site_forms_form",
+    }).onDelete("cascade"),
+    check("ck_site_forms_where", sql`${t.page} is not null or ${t.form} is not null`),
+    oneOf("ck_site_forms_human", t.human, ["yes", "off"]),
     oneOf("ck_site_forms_channel", t.channel, CHANNELS),
   ],
 );

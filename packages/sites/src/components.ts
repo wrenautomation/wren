@@ -1,6 +1,6 @@
 /** Sites as a part (designs/2026-10-07-sites.md): landers, listicles and funnel pages, counted. */
 import { defineComponent } from "@wren/core/components";
-import { FUNNEL_RECORD, PAGE_RECORD } from "./records.js";
+import { ENTRY_RECORD, FORM_RECORD, FUNNEL_RECORD, PAGE_RECORD } from "./records.js";
 
 export const SITES_COMPONENTS = [
   defineComponent({
@@ -35,6 +35,31 @@ export const SITES_COMPONENTS = [
           built: null,
         },
         { is: "fixed", says: "Nothing goes live without a person's yes." },
+      ],
+    },
+  }),
+  defineComponent({
+    id: "sites.forms",
+    stage: "reach",
+    channels: ["web"],
+    name: "Hosted forms",
+    blurb:
+      "Forms built as fields, live at their own URL or framed on any site, each submit checked, its text consent kept word for word, and sent into the door.",
+    icon: "list",
+    for: "wren",
+    ready: false,
+    missing: ["No client form has run yet"],
+    provides: { records: [FORM_RECORD, ENTRY_RECORD] },
+    out: [{ id: "forms", label: "filled forms", kind: "form" }],
+    hypothesis: {
+      from: "The product audit, 2026-10-07",
+      guesses: [
+        {
+          is: "change",
+          says: "Field kinds: text, email, phone, choices, date, consent, hidden.",
+          built: "code, FIELD_KINDS in packages/sites/src/forms.ts",
+        },
+        { is: "fixed", says: "Every submit passes Turnstile and keeps the consent words it showed." },
       ],
     },
   }),

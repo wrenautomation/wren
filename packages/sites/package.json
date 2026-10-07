@@ -10,6 +10,8 @@
     "./console-routes": "./src/console-routes.ts",
     "./detail": "./src/detail.ts",
     "./draft": "./src/draft.ts",
+    "./form-store": "./src/form-store.ts",
+    "./forms": "./src/forms.ts",
     "./kit": "./src/kit.ts",
     "./model": "./src/model.ts",
     "./records": "./src/records.ts",

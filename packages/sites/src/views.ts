@@ -6,6 +6,8 @@
  *   its booking page (`client_domains`). Those are read only here.
  * - `site_funnel_records`: one row per page and where its visits came from: views, clicks,
  *   forms, booking clicks, and for ads the spend.
+ * - `site_form_records`: every hosted form with its views, starts, submits and conversion.
+ * - `site_entry_records`: every form sent, from a page or a hosted form, whole.
  *
  * An ad links to a page when its creative's link holds the page's address: a data page's
  * `/o/<slug>` (also as a `/go/...?to=/o/<slug>` short link), a code page's URL.
@@ -133,3 +135,75 @@ export const siteFunnelRecords = pgView("site_funnel_records", {
     case when r.forms > 0 and r.spend > 0 then r.spend / r.forms end cost_per_form, r.last,
     'USD'::text currency
   from joined r join site_pages p on p.id = r.page`);
+
+export const siteFormRecords = pgView("site_form_records", {
+  id: text("id"),
+  name: text("name"),
+  slug: text("slug"),
+  owner: text("owner"),
+  status: text("status"),
+  url: text("url"),
+  address: text("address"),
+  fields: integer("fields"),
+  views: integer("views"),
+  starts: integer("starts"),
+  submits: integer("submits"),
+  conversion: doublePrecision("conversion"),
+  last: timestamp("last", { withTimezone: true }),
+  changed: timestamp("changed", { withTimezone: true }),
+  changedBy: text("changed_by"),
+}).as(sql`
+  with ev as (
+    select form, count(*) filter (where name = 'view')::int views,
+      count(*) filter (where name = 'start')::int starts,
+      count(*) filter (where name = 'form')::int submits,
+      max(at) filter (where name = 'form') last
+    from site_events where form is not null group by form)
+  select u.*, regexp_replace(u.url, '^https?://(www[.])?', '') address from (
+  select f.id::text id, f.name::text, f.slug::text, coalesce(f.client, 'wren')::text owner,
+    f.status::text,
+    case when f.client is null then 'https://${sql.raw(WREN_SITE)}/o/f/' || f.slug
+      else (select 'https://' || d.hostname || '/o/f/' || f.slug from client_domains d
+        where d.client_id = f.client and d.status = 'active' order by d.created_at limit 1) end url,
+    jsonb_array_length(f.spec -> 'fields')::int fields,
+    coalesce(ev.views, 0) views, coalesce(ev.starts, 0) starts, coalesce(ev.submits, 0) submits,
+    case when coalesce(ev.views, 0) > 0 then coalesce(ev.submits, 0)::float8 / ev.views end conversion,
+    ev.last, f.updated_at changed, f.updated_by changed_by
+  from site_form_defs f left join ev on ev.form = f.id) u`);
+
+export const siteEntryRecords = pgView("site_entry_records", {
+  id: text("id"),
+  form: text("form"),
+  formName: text("form_name"),
+  page: text("page"),
+  pageTitle: text("page_title"),
+  owner: text("owner"),
+  at: timestamp("at", { withTimezone: true }),
+  channel: text("channel"),
+  source: text("source"),
+  campaign: text("campaign"),
+  who: text("who"),
+  email: text("email"),
+  phone: text("phone"),
+  consented: text("consented"),
+  consentVersion: text("consent_version"),
+  consentText: text("consent_text"),
+  entered: text("entered"),
+  why: text("why"),
+  visitor: text("visitor"),
+  human: text("human"),
+  answers: text("answers"),
+}).as(sql`
+  select e.id::text id, e.form::text form, f.name::text form_name, e.page::text page,
+    p.title::text page_title, coalesce(f.client, p.client, 'wren')::text owner, e.at,
+    e.channel::text, e.touch ->> 'source' source, e.touch ->> 'campaign' campaign,
+    coalesce(e.fields ->> 'name',
+      nullif(concat_ws(' ', e.fields ->> 'first_name', e.fields ->> 'last_name'), '')) who,
+    e.fields ->> 'email' email, e.fields ->> 'phone' phone, case when e.consent is not null then 'yes' else 'no' end consented,
+    e.consent ->> 'version' consent_version, e.consent ->> 'text' consent_text,
+    case when e.entered then 'in' else 'out' end entered, e.why,
+    e.visitor::text, e.human::text,
+    (select string_agg(k || ': ' || v, '; ' order by k) from jsonb_each_text(e.fields) x(k, v)) answers
+  from site_forms e
+  left join site_form_defs f on f.id = e.form
+  left join site_pages p on p.id = e.page`);

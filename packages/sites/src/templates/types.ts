@@ -3,6 +3,7 @@
  * Claude fills; the layout is code, reviewed in git. A page's content is the fields' values.
  */
 import type { Offer } from "@wren/offers";
+import type { FormSpec } from "../forms.js";
 
 /** A line, a paragraph, one item per line, an address, or a list of small groups. */
 export type FieldKind = "text" | "long" | "lines" | "url" | "items";
@@ -33,6 +34,8 @@ export interface RenderContext {
   track: boolean;
   /** A small note across the top: "Draft preview". */
   banner?: string;
+  /** The hosted form the page's `form` field names, when it's live: its fields replace the default. */
+  form?: { id: string; spec: FormSpec } | null;
 }
 
 export interface Template {

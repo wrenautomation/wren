@@ -15,13 +15,15 @@ import { OFFERS } from "@wren/offers";
 import { sql } from "drizzle-orm";
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 import { pageApprovalId, sitesApi } from "../../src/console.js";
-import { pageRecord } from "../../src/records.js";
+import { consentWords } from "../../src/forms.js";
+import { entryRecord, formRecord, pageRecord } from "../../src/records.js";
 import { sitesPublicApi } from "../../src/service.js";
 
 let pg: TestPostgres;
 const TABLES = [
   "site_events",
   "site_forms",
+  "site_form_defs",
   "site_page_versions",
   "site_pages",
   "hooks",
@@ -171,6 +173,190 @@ describe("tracking and forms", () => {
     expect(d.sources[0]).toMatchObject({ channel: "ads", views: 1, forms: 1 });
     const [f] = await pg.db.execute<{ entered: boolean }>(sql`select entered from site_forms`);
     expect(f?.entered).toBe(true);
+  });
+});
+
+describe("hosted forms", () => {
+  async function siteDoor() {
+    const site = HOOK_PRESETS.site!;
+    const [h] = await pg.db
+      .insert(hooks)
+      .values({
+        name: "Site",
+        client: null,
+        workflow: site.workflow,
+        input: site.input,
+        subject: site.subject,
+        fields: site.fields,
+        tokenHash: randomBytes(32).toString("hex"),
+      })
+      .returning({ id: hooks.id });
+    return h!.id;
+  }
+  const spec = {
+    title: "Get a quote",
+    button: "Send",
+    fields: [
+      { kind: "text", label: "Name", required: true },
+      { kind: "email", label: "Email", required: true },
+      { kind: "phone", label: "Phone" },
+      { kind: "select", label: "Service", options: ["Repair", "Install"], required: true },
+      { kind: "consent", label: consentWords("Wren Automation") },
+      { key: "utm_source", kind: "hidden" },
+    ],
+    after: { kind: "thanks", text: "Thanks." },
+  };
+
+  it("builds, publishes, serves, counts and enters the door as form.submitted", async () => {
+    const hook = await siteDoor();
+    const made = await api().formCreate({ viewer: ADA, name: "Quote request" });
+    expect(made.slug).toBe("quote-request");
+    const again = await api().formCreate({ viewer: ADA, name: "Quote request" });
+    expect(again.slug).toBe("quote-request-2");
+    await refused(api().formCreate({ viewer: VIC, name: "Nope" }), 403);
+    await refused(
+      api().formSave({ viewer: ADA, id: made.id, spec: { title: "x", fields: [] } }),
+      400,
+    );
+    await api().formSave({ viewer: ADA, id: made.id, spec });
+
+    // A draft serves nothing; live serves; retired is gone.
+    expect((await pub().serveForm({ slug: made.slug })).status).toBe(404);
+    await api().formStatus({ viewer: ADA, ids: [made.id], status: "live" });
+    const page = await pub().serveForm({ slug: made.slug, embed: true });
+    expect(page.status).toBe(200);
+    expect(page.html).toContain("data-framed");
+    expect((await pub().serveForm({ client: "acme", slug: made.slug })).status).toBe(404);
+
+    const touch = { source: "google", medium: "cpc", campaign: "spring" };
+    expect((await pub().track({ form: made.id, view: "v1", name: "view", touch })).kept).toBe(true);
+    expect((await pub().track({ form: made.id, view: "v1", name: "start", touch })).kept).toBe(
+      true,
+    );
+    expect((await pub().track({ form: again.id, view: "v2", name: "view" })).kept).toBe(false);
+
+    const entered: { hook: string; payload: Record<string, unknown> }[] = [];
+    const enter = async (h: string, payload: Record<string, unknown>) => {
+      entered.push({ hook: h, payload });
+      return { status: 202 };
+    };
+    const bad = await pub().form(
+      { form: made.id, view: "v1", fields: { name: "Sam", email: "sam@", service: "Paint" } },
+      enter,
+    );
+    expect(bad.status).toBe(400);
+    expect(Object.keys(bad.errors ?? {}).sort()).toEqual(["email", "service"]);
+    expect(entered).toHaveLength(0);
+
+    const ok = await pub().form(
+      {
+        form: made.id,
+        view: "v1",
+        fields: {
+          name: "Sam Lee",
+          email: "sam@example.test",
+          phone: "555 010 0000",
+          service: "Repair",
+          sms_consent: "yes",
+          utm_source: "google",
+          extra: "dropped",
+        },
+        touch,
+        visitor: "v_test1",
+        human: "yes",
+      },
+      enter,
+    );
+    expect(ok.status).toBe(202);
+    expect(entered[0]?.hook).toBe(hook);
+    expect(entered[0]?.payload).toMatchObject({
+      event: "form.submitted",
+      form: "quote-request",
+      form_id: made.id,
+      email: "sam@example.test",
+      service: "Repair",
+      sms_consent: "yes",
+      consent_text: consentWords("Wren Automation"),
+      visitor: "v_test1",
+      utm_source: "google",
+      utm_campaign: "spring",
+      page: "https://wrenautomation.com/o/f/quote-request",
+    });
+    expect(String(entered[0]?.payload.consent_version)).toMatch(/^[0-9a-f]{12}$/);
+    expect(entered[0]?.payload).not.toHaveProperty("extra");
+
+    const d = await api().formDetail({ viewer: ADA, id: made.id });
+    expect(d.embed.script).toContain('data-embed="quote-request"');
+    expect(d.sources[0]).toMatchObject({ channel: "ads", views: 1, starts: 1, submits: 1 });
+    expect(d.recent).toHaveLength(1);
+
+    const forms = await serveRecords([formRecord], pg.db).list({
+      record: formRecord.id,
+      view: "forms",
+    });
+    expect(forms.rows.find((r) => r.id === made.id)).toMatchObject({
+      views: 1,
+      starts: 1,
+      submits: 1,
+      conversion: 1,
+      status: "live",
+    });
+    const entries = await serveRecords([entryRecord], pg.db).list({
+      record: entryRecord.id,
+      view: "all",
+    });
+    expect(entries.rows[0]).toMatchObject({
+      who: "Sam Lee",
+      formName: "Quote request",
+      consented: "yes",
+      entered: "in",
+      human: "yes",
+      visitor: "v_test1",
+    });
+    expect(String(entries.rows[0]?.answers)).toContain("service: Repair");
+
+    await api().formStatus({ viewer: ADA, ids: [made.id], status: "retired" });
+    expect((await pub().serveForm({ slug: made.slug })).status).toBe(410);
+    expect((await pub().form({ form: made.id, fields: { email: "a@example.test" } }, enter)).status).toBe(404);
+  });
+
+  it("renders a live form in a page's form section and counts it for both", async () => {
+    await siteDoor();
+    const f = await api().formCreate({ viewer: ADA, name: "Section form", spec });
+    await api().formStatus({ viewer: ADA, ids: [f.id], status: "live" });
+    const made = await api().create({ viewer: ADA, offer: offer.id, angle: "speed" });
+    const d = await api().detail({ viewer: ADA, id: made.id });
+    await api().save({
+      viewer: ADA,
+      id: made.id,
+      content: { ...(d.draft?.content ?? {}), form: f.slug },
+      expect: d.draft?.number ?? null,
+    });
+    const v = await api().detail({ viewer: ADA, id: made.id });
+    await api().ask({ viewer: ADA, id: made.id });
+    await api().approve({ viewer: ADA, ids: [pageApprovalId(made.id, v.draft?.number ?? 2)] });
+    const html = (await pub().serve({ slug: made.slug })).html;
+    expect(html).toContain('name="service"');
+    expect(html).toContain(`data-form="${f.id}"`);
+
+    const entered: Record<string, unknown>[] = [];
+    await pub().form(
+      {
+        form: f.id,
+        page: made.id,
+        fields: { name: "Ann", email: "ann@example.test", service: "Install" },
+      },
+      async (_h, p) => {
+        entered.push(p);
+        return { status: 202 };
+      },
+    );
+    expect(entered[0]).toMatchObject({ page_id: made.id, offer: offer.id, form_id: f.id });
+    expect(entered[0]).not.toHaveProperty("consent_version");
+    const [row] = await pg.db.execute<{ page: string; form: string }>(
+      sql`select page::text, form::text from site_events where name = 'form'`,
+    );
+    expect(row).toEqual({ page: made.id, form: f.id });
   });
 });
 

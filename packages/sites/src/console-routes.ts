@@ -18,6 +18,12 @@ export const SITES_CONSOLE_ROUTES = {
   duplicate: "act",
   add: "act",
   notes: "act",
+  /** Hosted forms: an owner's list for a page's section, the builder, publish and retire. */
+  forms: "read",
+  formDetail: "read",
+  formCreate: "act",
+  formSave: "act",
+  formStatus: "act",
 } as const satisfies Record<string, Need>;
 
 export const SITES_CONSOLE_APPS = { "*": "sites" } as const satisfies RouteApps<
@@ -36,4 +42,7 @@ export const SITES_CONSOLE_WRITES: readonly (keyof typeof SITES_CONSOLE_ROUTES)[
   "duplicate",
   "add",
   "notes",
+  "formCreate",
+  "formSave",
+  "formStatus",
 ];

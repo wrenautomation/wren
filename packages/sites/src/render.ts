@@ -2,14 +2,22 @@
  * One server template for every data page: the shell, the styles, the kit, and the template's
  * body. Every value is escaped where it's printed; nothing a page holds is run.
  */
+import { type FormSpec, formHtml, formIntro } from "./forms.js";
 import { KIT_PATH } from "./kit.js";
 import { esc } from "./templates/parts.js";
 import type { Content, RenderContext, Template } from "./templates/types.js";
 
+/** Turnstile's script and its challenge frame: the kit adds it to every form when a key is set. */
+const TURNSTILE = "https://challenges.cloudflare.com";
+
 /** The headers a page goes out with: its own scripts and styles only, posts to its own host. */
 export const PAGE_CSP =
-  "default-src 'self'; script-src 'self'; style-src 'unsafe-inline'; img-src 'self' data: https:; " +
-  "connect-src 'self'; form-action 'self'; frame-ancestors 'self'; base-uri 'none'";
+  `default-src 'self'; script-src 'self' ${TURNSTILE}; style-src 'unsafe-inline'; ` +
+  `img-src 'self' data: https:; connect-src 'self'; frame-src ${TURNSTILE}; ` +
+  "form-action 'self'; frame-ancestors 'self'; base-uri 'none'";
+
+/** A hosted form's: a page's, but any site may frame it (the embed). */
+export const FORM_CSP = PAGE_CSP.replace("frame-ancestors 'self'", "frame-ancestors *");
 
 const CSS = `
 :root{--ink:#16181d;--muted:#5b6170;--paper:#fbfaf7;--line:#e4e1d8;--accent:#24594b;--accent-ink:#fff;--card:#fff}
@@ -46,10 +54,22 @@ summary{cursor:pointer;font-weight:600}
 .cons li::marker{content:"-  ";color:var(--muted)}
 .form form{display:grid;gap:14px;max-width:480px}
 label{display:grid;gap:6px;font-size:15px;color:var(--muted)}
-input,textarea{font:inherit;color:var(--ink);background:var(--card);border:1px solid var(--line);border-radius:0;padding:12px}
+input,textarea,select{font:inherit;color:var(--ink);background:var(--card);border:1px solid var(--line);border-radius:0;padding:12px}
 .check{display:flex;gap:10px;align-items:flex-start}
 .check input{margin-top:4px}
 .trap{position:absolute;left:-9999px}
+select{appearance:auto}
+fieldset.multi{border:0;padding:0;margin:0;display:grid;gap:8px}
+fieldset.multi legend{font-size:15px;color:var(--muted);padding:0;margin-bottom:6px}
+label small,fieldset small{font-size:13px;color:var(--muted)}
+.opt{font-size:13px;color:var(--muted)}
+.bad{font-size:13px;color:#b3261e}
+[aria-invalid=true]{border-color:#b3261e}
+.next{margin-top:8px}
+.form-page main{max-width:560px;padding-top:40px}
+.form-page.embed main{padding:16px 16px 24px;max-width:none}
+.form-page section{border-top:0;padding-top:0}
+body.embed{background:transparent}
 .sent{margin:0;font-weight:600}
 .muted{color:var(--muted)}
 footer{padding:32px 0 0;color:var(--muted);font-size:14px;border-top:1px solid var(--line)}
@@ -75,6 +95,32 @@ ${ctx.track ? `<script src="${esc(ctx.base)}${KIT_PATH}" data-page="${esc(ctx.pa
 ${ctx.banner ? `<div class="banner">${esc(ctx.banner)}</div>` : ""}
 <main>
 ${t.body(c, ctx)}
+</main>
+</body></html>`;
+}
+
+/** A hosted form's page at `/o/f/<slug>`: the heading, the form, the kit counting it. */
+export function renderFormPage(
+  spec: FormSpec,
+  ctx: { form: string; base: string; embed?: boolean; track?: boolean; banner?: string },
+): string {
+  const track = ctx.track !== false;
+  return `<!doctype html>
+<html lang="en"><head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>${esc(spec.title)}</title>
+<meta name="robots" content="noindex">
+<style>${CSS}</style>
+${track ? `<script src="${esc(ctx.base)}${KIT_PATH}" data-form="${esc(ctx.form)}"${ctx.embed ? " data-framed" : ""} defer></script>` : ""}
+</head>
+<body class="form-page${ctx.embed ? " embed" : ""}${track ? "" : " preview"}">
+${ctx.banner ? `<div class="banner">${esc(ctx.banner)}</div>` : ""}
+<main>
+<section class="form" id="form">
+${formIntro(spec, ctx.embed ? "h2" : "h1")}
+${formHtml(spec, { form: ctx.form, base: ctx.base })}
+</section>
 </main>
 </body></html>`;
 }

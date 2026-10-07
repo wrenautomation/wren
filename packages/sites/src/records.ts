@@ -1,6 +1,7 @@
 /**
  * Sites as records (designs/2026-10-07-sites.md, "Portal"): every page we run in one list, and
- * each page's numbers by where its visits came from. Served by the console on Wren's database.
+ * each page's numbers by where its visits came from. Hosted forms and every submission
+ * (designs/2026-10-07-forms-and-pay.md). Served by the console on Wren's database.
  */
 import {
   actor,
@@ -16,10 +17,13 @@ import {
 } from "@wren/core/records";
 import type { Queryable } from "@wren/db";
 import { pageDetail } from "./detail.js";
+import { formDetail } from "./form-store.js";
 import { UUID } from "./store.js";
 
 export const PAGE_RECORD = "sites.page";
 export const FUNNEL_RECORD = "sites.funnel";
+export const FORM_RECORD = "sites.form";
+export const ENTRY_RECORD = "sites.entry";
 
 const KINDS = {
   lander: { label: "Lander", tone: "neutral" },
@@ -186,4 +190,100 @@ export const funnelRecord: RecordType = defineRecord({
   ],
 });
 
-export const SITES_RECORDS: readonly RecordType[] = [pageRecord, funnelRecord];
+export const formRecord: RecordType = defineRecord({
+  id: FORM_RECORD,
+  app: "sites",
+  channel: null,
+  name: { one: "form", many: "forms" },
+  view: "site_form_records",
+  key: "id",
+  title: "name",
+  subtitle: "address",
+  fields: {
+    name: text("Form"),
+    address: text("Address"),
+    url: link("URL", { listed: false }),
+    slug: text("Slug", { listed: false }),
+    owner: text("Owner"),
+    status: status(STATUSES, "Status"),
+    fields: number("Fields", { listed: false }),
+    views: number("Views"),
+    starts: number("Starts"),
+    submits: number("Submits"),
+    conversion: percent("Conversion"),
+    last: date("Last submit"),
+    changed: date("Last change", { listed: false }),
+    changedBy: actor("Changed by"),
+  },
+  views: [
+    {
+      id: "forms",
+      label: "Forms",
+      where: { status: ["draft", "live"] },
+      sort: "-changed",
+      at: "changed",
+    },
+    { id: "live", label: "Live", where: { status: "live" }, sort: "-submits", at: "last" },
+    { id: "retired", label: "Retired", where: { status: "retired" }, sort: "-changed", at: "changed" },
+  ],
+  actions: ["sites.formCreate", "sites.formStatus", "sites.formSave"],
+  load: async (db, id) => (UUID.test(id) ? formDetail(db, id) : null),
+});
+
+export const entryRecord: RecordType = defineRecord({
+  id: ENTRY_RECORD,
+  app: "sites",
+  channel: null,
+  name: { one: "submission", many: "submissions" },
+  view: "site_entry_records",
+  key: "id",
+  title: "who",
+  subtitle: "formName",
+  fields: {
+    who: text("Name"),
+    email: text("Email"),
+    phone: text("Phone"),
+    formName: text("Form"),
+    pageTitle: text("Page"),
+    owner: text("Owner"),
+    at: date("Sent"),
+    channel: status(CHANNELS, "Source"),
+    source: text("utm_source"),
+    campaign: text("utm_campaign", { listed: false }),
+    consented: status(
+      {
+        yes: { label: "Opted in", tone: "good" },
+        no: { label: "No", tone: "neutral" },
+      },
+      "Text consent",
+    ),
+    consentVersion: text("Consent version", { listed: false, group: "Consent" }),
+    consentText: text("Consent words", { listed: false, group: "Consent" }),
+    entered: status(
+      {
+        in: { label: "In", tone: "good" },
+        out: { label: "Not in", tone: "warn" },
+      },
+      "Door",
+    ),
+    why: text("Why not", { listed: false }),
+    answers: text("Answers", { listed: false }),
+    visitor: text("Visitor", { listed: false, group: "System" }),
+    human: text("Turnstile", { listed: false, group: "System" }),
+    form: text("Form id", { listed: false, group: "System" }),
+    page: text("Page id", { listed: false, group: "System" }),
+  },
+  views: [
+    { id: "all", label: "All", sort: "-at", at: "at" },
+    { id: "forms", label: "Hosted forms", where: { form: { empty: false } }, sort: "-at", at: "at" },
+    { id: "consent", label: "Opted in", where: { consented: "yes" }, sort: "-at", at: "at" },
+    { id: "out", label: "Not in the door", where: { entered: "out" }, sort: "-at", at: "at" },
+  ],
+});
+
+export const SITES_RECORDS: readonly RecordType[] = [
+  pageRecord,
+  funnelRecord,
+  formRecord,
+  entryRecord,
+];

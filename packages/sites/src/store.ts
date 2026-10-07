@@ -19,6 +19,7 @@ import {
   type VersionOrigin,
 } from "./model.js";
 import {
+  type FormConsent,
   type FormTouch,
   type SitePage,
   type SitePageVersion,
@@ -466,12 +467,24 @@ export function touchOf(raw: unknown): FormTouch & { channel: Channel } {
   return { ...touch, channel: channelOf(touch) };
 }
 
-/** One tracker event on a page that's there and not retired; false when it isn't. */
+/**
+ * One tracker event on a page that's there and not retired, or a hosted form that's live; false
+ * when neither is. A page's form section counts for both.
+ */
 export async function recordEvent(
   db: Queryable,
-  e: { page: string; view: string; name: EventName; touch: unknown; width?: number | null },
+  e: {
+    page?: string | null;
+    form?: string | null;
+    view: string;
+    name: EventName;
+    touch: unknown;
+    width?: number | null;
+  },
 ): Promise<boolean> {
-  if (!UUID.test(e.page)) return false;
+  const page = e.page && UUID.test(e.page) ? e.page : null;
+  const form = e.form && UUID.test(e.form) ? e.form : null;
+  if (!page && !form) return false;
   const t = touchOf(e.touch);
   const view = clip(e.view, 36) ?? "none";
   const width =
@@ -479,9 +492,12 @@ export async function recordEvent(
       ? Math.max(0, Math.min(10_000, Math.round(e.width)))
       : null;
   const rows = await db.execute(sql`
-    insert into site_events (page, view, name, channel, source, medium, campaign, content, ref, width)
-    select p.id, ${view}, ${e.name}, ${t.channel}, ${t.source}, ${t.medium}, ${t.campaign}, ${t.content}, ${t.ref}, ${width}
-    from site_pages p where p.id = ${e.page} and p.status <> 'retired'
+    insert into site_events (page, form, view, name, channel, source, medium, campaign, content, ref, width)
+    select p.id, f.id, ${view}, ${e.name}, ${t.channel}, ${t.source}, ${t.medium}, ${t.campaign}, ${t.content}, ${t.ref}, ${width}
+    from (select 1) one
+    left join site_pages p on p.id = ${page}::uuid and p.status <> 'retired'
+    left join site_form_defs f on f.id = ${form}::uuid and f.status = 'live'
+    where p.id is not null or f.id is not null
     returning id`);
   return rows.length > 0;
 }
@@ -500,19 +516,48 @@ export function formFieldsOf(raw: unknown): Record<string, string> {
   return out;
 }
 
-/** A form kept, its `form` event counted; the door is entered after (`markForm`). */
+/** What a submit came with past its fields: the consent it ticked, the visitor, Turnstile. */
+export interface EntryMeta {
+  consent?: FormConsent | null;
+  visitor?: string | null;
+  human?: "yes" | "off" | null;
+}
+
+/**
+ * A form kept, its `form` event counted, from a page (its default form), a hosted form, or a
+ * hosted form on a page. The door is entered after (`markForm`).
+ */
 export async function keepForm(
   db: Db,
-  f: { page: SitePage; view: string | null; fields: Record<string, string>; touch: unknown },
+  f: {
+    page: SitePage | null;
+    form?: string | null;
+    view: string | null;
+    fields: Record<string, string>;
+    touch: unknown;
+  } & EntryMeta,
 ) {
   const t = touchOf(f.touch);
   const { channel, ...touch } = t;
+  const page = f.page?.id ?? null;
+  const form = f.form ?? null;
+  const visitor = clip(f.visitor, 64);
   const [row] = await db
     .insert(siteForms)
-    .values({ page: f.page.id, fields: f.fields, touch, channel })
+    .values({
+      page,
+      form,
+      fields: f.fields,
+      touch,
+      channel,
+      consent: f.consent ?? null,
+      visitor: visitor && /^[A-Za-z0-9_.-]+$/.test(visitor) ? visitor : null,
+      human: f.human ?? null,
+    })
     .returning();
   await db.insert(siteEvents).values({
-    page: f.page.id,
+    page,
+    form,
     view: clip(f.view, 36) ?? "form",
     name: "form",
     channel,
@@ -534,7 +579,14 @@ export async function markForm(db: Db, id: string, entered: boolean, why: string
  * The door a page's forms enter: its own hook, else its owner's first site-preset hook (Wren's:
  * the one the lander posts to). Null when the owner has none.
  */
-export async function doorOf(db: Queryable, page: SitePage): Promise<string | null> {
+export const doorOf = (db: Queryable, page: Pick<SitePage, "hook" | "client">) =>
+  doorFor(db, page);
+
+/** A page's or a hosted form's door: its own hook, else its owner's first site-preset hook. */
+export async function doorFor(
+  db: Queryable,
+  page: { hook: string | null; client: string | null },
+): Promise<string | null> {
   if (page.hook) return page.hook;
   const site = HOOK_PRESETS.site;
   if (!site) return null;

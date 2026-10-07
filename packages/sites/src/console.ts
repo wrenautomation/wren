@@ -3,6 +3,8 @@
  * an offer and a template (Claude's draft through the facts guard, or the offer's own words),
  * copy saved as versions, publish through To approve, retire in bulk, duplicate as a variant,
  * code pages registered by URL. Every page lives in Wren's database; the owner's access decides.
+ * Hosted forms (designs/2026-10-07-forms-and-pay.md) are made, built and published here too:
+ * publish is direct, a form only collects.
  */
 import type * as restate from "@restatedev/restate-sdk";
 import { WREN } from "@wren/core/access";
@@ -19,10 +21,20 @@ import {
 import { PORTAL_FIELDS, serviceHandler } from "@wren/core/restate";
 import type { Db } from "@wren/db";
 import { OFFER_IDS, OFFERS, offerFor } from "@wren/offers";
+import { clients } from "@wren/core/clients";
 import { eq, sql } from "drizzle-orm";
 import { z } from "zod";
 import { SITES_CONSOLE_APPS, SITES_CONSOLE_ROUTES } from "./console-routes.js";
 import { type PageDetail, pageDetail } from "./detail.js";
+import {
+  createForm,
+  type FormDetail,
+  formById,
+  formDetail,
+  formsOf,
+  saveForm,
+  setFormStatus,
+} from "./form-store.js";
 import { draftCopy, type Write } from "./draft.js";
 import { PAGE_KINDS, PAGE_STAGES, type PageKind, type PageStage } from "./model.js";
 import { sitePages } from "./schema.js";
@@ -88,6 +100,12 @@ export interface DuplicateRequest extends IdsRequest {
   audience?: string | null;
   title?: string | null;
 }
+export interface FormCreate {
+  name?: string;
+  slug?: string | null;
+  spec?: unknown;
+  owner?: string | null;
+}
 export interface AddRequest extends PortalRequest {
   url: string;
   repoPath?: string | null;
@@ -133,6 +151,19 @@ export function sitesApi(deps: { db: Db; write?: Write | null }) {
     return pages;
   };
   const factsFor = (owner: string | null) => (owner === null ? wrenFacts(db) : Promise.resolve([]));
+  const formFor = async (req: IdRequest, p: "read" | "act") => {
+    const form = await formById(db, String(req.id ?? ""));
+    if (!form) throw new PortalRefusal("no such form", 404);
+    await may(req, form.client, p);
+    return form;
+  };
+  /** The name a form's text consent gives: the client's, or Wren's. */
+  const businessOf = async (owner: string | null) => {
+    if (owner === null) return "Wren Automation";
+    const [c] = await db.select({ name: clients.name }).from(clients).where(eq(clients.id, owner));
+    if (!c) throw new PortalRefusal("no such client", 404);
+    return c.name;
+  };
 
   return {
     /** The offers and templates a page starts from, for the New page form. */
@@ -359,6 +390,61 @@ export function sitesApi(deps: { db: Db; write?: Write | null }) {
       return { id: got.page.id, added: got.added };
     },
 
+    /** A new hosted form, a draft: the default fields, or the spec given. */
+    async formCreate(req: PortalRequest & FormCreate) {
+      const name = who(req);
+      const owner = ownerOf(req);
+      await may(req, owner, "act");
+      const form = await refused(
+        createForm(db, {
+          client: owner,
+          name: String(req.name ?? ""),
+          slug: req.slug ?? null,
+          spec: req.spec ?? null,
+          business: await businessOf(owner),
+          by: name,
+        }),
+      );
+      return { id: form.id, slug: form.slug };
+    },
+
+    /** A form's builder: its spec, URL, embed snippets and numbers per day and source. */
+    async formDetail(req: IdRequest): Promise<FormDetail> {
+      await formFor(req, "read");
+      const d = await formDetail(db, String(req.id));
+      if (!d) throw new PortalRefusal("no such form", 404);
+      return d;
+    },
+
+    /** The builder's save: the whole spec, checked. Live forms change on the next load. */
+    async formSave(req: IdRequest & { spec?: unknown; name?: string | null }) {
+      const name = who(req);
+      await formFor(req, "act");
+      const form = await refused(
+        saveForm(db, { id: String(req.id), spec: req.spec, name: req.name ?? null, by: name }),
+      );
+      return { id: form.id, status: form.status };
+    },
+
+    /** Publish, unpublish or retire forms at once. */
+    async formStatus(req: IdsRequest & { status?: string }) {
+      const name = who(req);
+      const status = req.status;
+      if (status !== "live" && status !== "draft" && status !== "retired")
+        throw new PortalRefusal("live, draft or retired", 400);
+      const ids = [...new Set((req.ids ?? []).map(String))];
+      if (!ids.length) throw new PortalRefusal("nothing picked", 404);
+      for (const id of ids) await formFor({ ...req, id }, "act");
+      return { changed: (await setFormStatus(db, ids, status, name)).length };
+    },
+
+    /** An owner's forms, for a page's form section. */
+    async forms(req: PortalRequest & { owner?: string | null }) {
+      const owner = ownerOf(req);
+      await may(req, owner, "read");
+      return { forms: await formsOf(db, owner) };
+    },
+
     /** The page's notes, its stage and angle: what the team keeps about it. */
     async notes(
       req: IdRequest & { notes?: string | null; stage?: string | null; angle?: string | null },
@@ -387,6 +473,7 @@ export function sitesApi(deps: { db: Db; write?: Write | null }) {
 const ID = z.string().max(64).describe("The page's id");
 const WHY = z.string().max(500).nullish().describe("One line: why");
 const IDS = z.array(z.string().max(80)).max(200);
+const FORM_ID = z.string().max(64).describe("The form's id");
 const OWNER = z.string().max(40).nullish().describe("The client it's for; Wren's when left out");
 
 /** The Restate service. */
@@ -486,6 +573,44 @@ export function makeSitesConsole(deps: { db: Db; write?: Write | null }) {
         },
         write("add", api.add),
       ),
+      formCreate: serviceHandler(
+        {
+          input: z.looseObject({
+            ...P,
+            name: z.string().max(200),
+            slug: z.string().max(80).nullish(),
+            spec: z.record(z.string(), z.unknown()).nullish().describe("The fields; default when left out"),
+            owner: OWNER,
+          }),
+        },
+        write("formCreate", api.formCreate),
+      ),
+      formDetail: serviceHandler(
+        { input: z.looseObject({ ...P, id: FORM_ID }) },
+        read(api.formDetail),
+      ),
+      formSave: serviceHandler(
+        {
+          input: z.looseObject({
+            ...P,
+            id: FORM_ID,
+            spec: z.record(z.string(), z.unknown()),
+            name: z.string().max(200).nullish(),
+          }),
+        },
+        write("formSave", api.formSave),
+      ),
+      formStatus: serviceHandler(
+        {
+          input: z.looseObject({
+            ...P,
+            ids: IDS,
+            status: z.enum(["live", "draft", "retired"]),
+          }),
+        },
+        write("formStatus", api.formStatus),
+      ),
+      forms: serviceHandler({ input: z.looseObject({ ...P, owner: OWNER }) }, read(api.forms)),
       notes: serviceHandler(
         {
           input: z.looseObject({

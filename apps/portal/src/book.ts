@@ -13,6 +13,7 @@
 import { readBody } from "@wren/core/http";
 import type { Env } from "./env.js";
 import type { Site } from "./hosts.js";
+import { human } from "./turnstile.js";
 
 const MAX_BODY = 8 * 1024;
 const CLIENT = "[a-z][a-z0-9_]{0,39}";
@@ -40,21 +41,6 @@ function clientOf(site: Site, prefixed: string | undefined): string | null {
   if (site.kind === "client") return prefixed ? null : site.client;
   if (site.kind === "app") return prefixed ?? null;
   return null;
-}
-
-async function human(env: Env, token: unknown, ip: string | null): Promise<boolean> {
-  if (!env.TURNSTILE_SECRET) return true;
-  if (typeof token !== "string" || !token || token.length > 3000) return false;
-  try {
-    const res = await fetch("https://challenges.cloudflare.com/turnstile/v0/siteverify", {
-      method: "POST",
-      headers: { "content-type": "application/json" },
-      body: JSON.stringify({ secret: env.TURNSTILE_SECRET, response: token, remoteip: ip }),
-    });
-    return ((await res.json()) as { success?: boolean }).success === true;
-  } catch {
-    return false;
-  }
 }
 
 async function call(env: Env, route: string, client: string, input: Record<string, unknown>) {

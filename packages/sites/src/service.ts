@@ -1,17 +1,21 @@
 /**
  * `Sites`: what the portal Worker asks for on `/o/*`, no sign-in (designs/2026-10-07-sites.md,
- * "Serving"). `serve` renders a live page or a draft behind its preview token; `track` keeps a
- * tracker event; `form` keeps a form and enters its page's door on the spine.
+ * "Serving"). `serve` renders a live page or a draft behind its preview token; `serveForm` a
+ * hosted form (designs/2026-10-07-forms-and-pay.md); `track` keeps a tracker event; `form` keeps
+ * a submit and enters its page's or form's door on the spine as `form.submitted`.
  */
 import * as restate from "@restatedev/restate-sdk";
 import { serviceHandler } from "@wren/core/restate";
 import { SPINE, type SpineService } from "@wren/core/spine";
 import type { Db } from "@wren/db";
 import { z } from "zod";
-import { EVENT_NAMES, type EventName, pageUrl, WREN_SITE } from "./model.js";
-import { goneHtml, renderPage } from "./render.js";
-import type { SitePage } from "./schema.js";
+import { consentVersion, formById, formOf, formToServe } from "./form-store.js";
+import { checkEntry, consentOf, type FormSpec } from "./forms.js";
+import { EVENT_NAMES, type EventName, formUrl, pageUrl, WREN_SITE } from "./model.js";
+import { goneHtml, renderFormPage, renderPage } from "./render.js";
+import type { SiteFormDef, SitePage } from "./schema.js";
 import {
+  doorFor,
   doorOf,
   draftToPreview,
   formFieldsOf,
@@ -23,6 +27,8 @@ import {
   touchOf,
 } from "./store.js";
 import { templateOf } from "./templates/index.js";
+import { DEFAULT_CONSENT } from "./templates/parts.js";
+import type { Content } from "./templates/types.js";
 
 export interface Served {
   status: 200 | 404 | 410;
@@ -41,8 +47,80 @@ const CLIENT = /^[a-z][a-z0-9_]{0,39}$/;
 /** Where a page is, as a lead's `page` field says it. */
 const addressOf = (page: SitePage, host: string | null) =>
   page.url ?? pageUrl(host && HOST.test(host) ? host : WREN_SITE, page.slug);
+const formAddressOf = (form: SiteFormDef, host: string | null) =>
+  formUrl(host && HOST.test(host) ? host : WREN_SITE, form.slug);
+
+/** The hosted form a page's `form` field names, when its owner has it live. */
+async function sectionForm(
+  main: Db,
+  page: Pick<SitePage, "client">,
+  c: Content,
+): Promise<{ id: string; spec: FormSpec } | null> {
+  const key = typeof c.form === "string" ? c.form.trim() : "";
+  if (!key) return null;
+  const f = await formOf(main, page.client, key);
+  return f && f.status === "live" ? { id: f.id, spec: f.spec } : null;
+}
+
+const humanOf = (h: unknown): "yes" | "off" | null => (h === "yes" || h === "off" ? h : null);
 
 export function sitesPublicApi(main: Db) {
+  /**
+   * A hosted form's submit, checked against its spec: kept with the consent words it showed, the
+   * visitor and Turnstile's answer, then the payload for its door. A page it sits on rides along.
+   */
+  async function keepHosted(req: FormRequest): Promise<Kept | Answer> {
+    const form = await formById(main, String(req.form ?? ""));
+    if (!form || form.status !== "live")
+      return { status: 404, error: "This form isn't taking answers." };
+    const raw = (req.fields && typeof req.fields === "object" ? req.fields : {}) as Record<
+      string,
+      unknown
+    >;
+    if (typeof raw.website === "string" && raw.website.trim()) return { status: 202 };
+    const { values, errors } = checkEntry(form.spec, raw);
+    if (Object.keys(errors).length)
+      return { status: 400, error: "Check the marked fields.", errors };
+    const p = req.page ? await pageById(main, String(req.page)) : null;
+    const page = p && p.status === "live" && p.client === form.client ? p : null;
+    const words = consentOf(form.spec);
+    const consent =
+      words && values.sms_consent === "yes" ? { text: words, version: consentVersion(words) } : null;
+    const kept = await keepForm(main, {
+      page,
+      form: form.id,
+      view: req.view ?? null,
+      fields: values,
+      touch: req.touch,
+      consent,
+      visitor: req.visitor ?? null,
+      human: humanOf(req.human),
+    });
+    const t = touchOf(req.touch);
+    const hook = await doorFor(main, form);
+    return {
+      form: kept.id,
+      hook,
+      payload: {
+        ...values,
+        id: `sites:${kept.id}`,
+        event: "form.submitted",
+        source: "site",
+        form: form.slug,
+        form_id: form.id,
+        page: page ? addressOf(page, req.host ?? null) : formAddressOf(form, req.host ?? null),
+        ...(page ? { page_id: page.id, offer: page.offer, angle: page.angle } : {}),
+        ...(consent ? { consent_text: consent.text, consent_version: consent.version } : {}),
+        visitor: req.visitor ?? null,
+        utm_source: t.source ?? values.utm_source ?? null,
+        utm_medium: t.medium ?? values.utm_medium ?? null,
+        utm_campaign: t.campaign ?? values.utm_campaign ?? null,
+        utm_content: t.content ?? values.utm_content ?? null,
+        ref: t.ref,
+      },
+    };
+  }
+
   return {
     /** A live page on its owner's host, or a draft by its preview token. */
     async serve(req: {
@@ -61,6 +139,7 @@ export function sitesPublicApi(main: Db) {
             base: "",
             track: false,
             banner: `Draft preview, version ${d.number}. Not live.`,
+            form: await sectionForm(main, d.page, d.content),
           }),
         };
       }
@@ -71,17 +150,46 @@ export function sitesPublicApi(main: Db) {
       const t = templateOf(got.page.template);
       return {
         status: 200,
-        html: renderPage(t, got.content, { page: got.page.id, base: "", track: true }),
+        html: renderPage(t, got.content, {
+          page: got.page.id,
+          base: "",
+          track: true,
+          form: await sectionForm(main, got.page, got.content),
+        }),
       };
     },
 
-    /** One event from the kit. Unknown or retired pages are dropped. */
-    async track(req: { page?: string; view?: string; name?: string; touch?: unknown; w?: number }) {
+    /** A live hosted form on its owner's host, by slug or id; `embed` drops the page chrome. */
+    async serveForm(req: {
+      client?: string | null;
+      slug?: string;
+      embed?: boolean | null;
+    }): Promise<Served> {
+      const client = req.client ?? null;
+      if (client !== null && !CLIENT.test(client)) return { status: 404, html: goneHtml(404) };
+      const got = await formToServe(main, client, String(req.slug ?? ""));
+      if ("status" in got) return { status: got.status, html: goneHtml(got.status) };
+      return {
+        status: 200,
+        html: renderFormPage(got.form.spec, { form: got.form.id, base: "", embed: !!req.embed }),
+      };
+    },
+
+    /** One event from the kit. Unknown or retired pages and forms are dropped. */
+    async track(req: {
+      page?: string | null;
+      form?: string | null;
+      view?: string;
+      name?: string;
+      touch?: unknown;
+      w?: number;
+    }) {
       const name = String(req.name ?? "");
       if (!(EVENT_NAMES as readonly string[]).includes(name) || name === "form")
         return { kept: false };
       const kept = await recordEvent(main, {
-        page: String(req.page ?? ""),
+        page: req.page ? String(req.page) : null,
+        form: req.form ? String(req.form) : null,
         view: String(req.view ?? ""),
         name: name as EventName,
         touch: req.touch,
@@ -96,6 +204,7 @@ export function sitesPublicApi(main: Db) {
      * a bot: answered as sent, kept nowhere.
      */
     async keep(req: FormRequest): Promise<Kept | Answer> {
+      if (req.form) return keepHosted(req);
       const page = await pageById(main, String(req.page ?? ""));
       if (!page || page.status !== "live")
         return { status: 404, error: "This page isn't taking forms." };
@@ -107,7 +216,18 @@ export function sitesPublicApi(main: Db) {
       const fields = formFieldsOf(raw);
       if (!fields.email && !fields.phone)
         return { status: 400, error: "Add an email or a phone number." };
-      const kept = await keepForm(main, { page, view: req.view ?? null, fields, touch: req.touch });
+      const kept = await keepForm(main, {
+        page,
+        view: req.view ?? null,
+        fields,
+        touch: req.touch,
+        consent:
+          fields.sms_consent === "yes"
+            ? { text: DEFAULT_CONSENT, version: consentVersion(DEFAULT_CONSENT) }
+            : null,
+        visitor: req.visitor ?? null,
+        human: humanOf(req.human),
+      });
       const hook = await doorOf(main, page);
       const t = touchOf(req.touch);
       return {
@@ -116,12 +236,17 @@ export function sitesPublicApi(main: Db) {
         payload: {
           ...fields,
           id: `sites:${kept.id}`,
+          event: "form.submitted",
           source: "site",
           form: "page",
           page: addressOf(page, req.host ?? null),
           page_id: page.id,
           offer: page.offer,
           angle: page.angle,
+          ...(fields.sms_consent === "yes"
+            ? { consent_text: DEFAULT_CONSENT, consent_version: consentVersion(DEFAULT_CONSENT) }
+            : {}),
+          visitor: req.visitor ?? null,
           utm_source: t.source,
           utm_medium: t.medium,
           utm_campaign: t.campaign,
@@ -155,15 +280,23 @@ export function sitesPublicApi(main: Db) {
 }
 
 export interface FormRequest {
-  page?: string;
+  page?: string | null;
+  /** A hosted form's id: checked against its spec. */
+  form?: string | null;
   view?: string | null;
   fields?: unknown;
   touch?: unknown;
   host?: string | null;
+  /** The `wv` cookie the Worker read, on Wren's own host. */
+  visitor?: string | null;
+  /** The Worker's Turnstile answer: `yes`, or `off` where no secret is set. */
+  human?: string | null;
 }
 export interface Answer {
   status: number;
   error?: string;
+  /** Per field, what's wrong: the kit marks each. */
+  errors?: Record<string, string>;
 }
 interface Kept {
   form: string;
@@ -186,6 +319,7 @@ const TOUCH = z
   .nullish()
   .describe("The utm and referrer the visit arrived on");
 const PAGE = z.string().max(64).describe("The page's id");
+const FORM = z.string().max(64).nullish().describe("A hosted form's id");
 
 export const SITES = { name: "Sites" } as const;
 
@@ -205,10 +339,21 @@ export function makeSites(deps: { main: Db }) {
         },
         (_: restate.Context, req: Parameters<typeof api.serve>[0]) => api.serve(req),
       ),
+      serveForm: serviceHandler(
+        {
+          input: z.looseObject({
+            client: z.string().max(40).nullish().describe("The host's client; null is Wren's"),
+            slug: z.string().max(80),
+            embed: z.boolean().nullish().describe("Drawn in a frame on another site"),
+          }),
+        },
+        (_: restate.Context, req: Parameters<typeof api.serveForm>[0]) => api.serveForm(req),
+      ),
       track: serviceHandler(
         {
           input: z.looseObject({
-            page: PAGE,
+            page: PAGE.nullish(),
+            form: FORM,
             view: z.string().max(64).optional(),
             name: z.string().max(8),
             touch: TOUCH,
@@ -221,11 +366,14 @@ export function makeSites(deps: { main: Db }) {
       form: serviceHandler(
         {
           input: z.looseObject({
-            page: PAGE,
+            page: PAGE.nullish(),
+            form: FORM,
             view: z.string().max(64).nullish(),
             fields: z.record(z.string(), z.unknown()),
             touch: TOUCH,
             host: z.string().max(253).nullish(),
+            visitor: z.string().max(64).nullish().describe("The wv cookie"),
+            human: z.enum(["yes", "off"]).nullish().describe("Turnstile, checked at the edge"),
           }),
         },
         async (ctx: restate.Context, req: FormRequest): Promise<Answer> => {

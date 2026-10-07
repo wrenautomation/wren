@@ -4,21 +4,29 @@
  * - `/o/<slug>`: a live data page, Wren's on the apex, a client's on its own host. Rendered by the
  *   `Sites` service and cached here for a minute, so a new page needs no deploy.
  * - `/o/__preview/<id>?t=<token>`: a draft, on the app host only, for the portal's preview frame.
+ * - `/o/f/<slug>`: a live hosted form (designs/2026-10-07-forms-and-pay.md), framable anywhere
+ *   (`?embed=1` drops the page chrome). Cached a minute like a page.
  * - `/o/__kit.js`, `/o/__t`, `/o/__form`: the tracker and the form, for data pages and for code
  *   pages on any host (CORS open: they carry no cookie and change nothing but counts and a lead).
+ *   Every form submit passes Turnstile first when TURNSTILE_SECRET is set; the `wv` cookie rides
+ *   along where the browser sends it.
  *
  * Bodies come as text/plain JSON (no preflight) or, for a form without JS, urlencoded.
  */
 import { readBody } from "@wren/core/http";
-import { FORM_PATH, KIT_JS, KIT_PATH, PREVIEW_PATH, TRACK_PATH } from "@wren/sites/kit";
-import { goneHtml, PAGE_CSP } from "@wren/sites/render";
+import { FORM_PATH, KIT_PATH, kitJs, TRACK_PATH } from "@wren/sites/kit";
+import { FORM_CSP, goneHtml, PAGE_CSP } from "@wren/sites/render";
 import type { Env } from "./env.js";
 import type { Site } from "./hosts.js";
+import { human } from "./turnstile.js";
 
 const MAX_BODY = 8 * 1024;
 const PAGE_CACHE_SECONDS = 60;
 const SLUG = /^\/o\/([a-z0-9](?:[a-z0-9-]{0,78}[a-z0-9])?)\/?$/;
 const PREVIEW = /^\/o\/__preview\/([0-9a-f-]{36})$/;
+const FORM_PAGE = /^\/o\/f\/([a-z0-9](?:[a-z0-9-]{0,78}[a-z0-9])?|[0-9a-f-]{36})\/?$/;
+const TOKEN = "cf-turnstile-response";
+const VISITOR = /(?:^|;\s*)wv=([A-Za-z0-9_.-]{1,64})(?:;|$)/;
 const OPEN = {
   "access-control-allow-origin": "*",
   "access-control-allow-methods": "GET, POST, OPTIONS",
@@ -68,9 +76,13 @@ function ownerOf(req: Request, env: Env, site: Site): { client: string | null } 
   return null;
 }
 
-async function served(env: Env, body: unknown): Promise<{ status: number; html: string }> {
+async function served(
+  env: Env,
+  body: unknown,
+  handler = "Sites/serve",
+): Promise<{ status: number; html: string }> {
   try {
-    const res = await ingress(env, "Sites/serve", body);
+    const res = await ingress(env, handler, body);
     if (res.ok) return (await res.json()) as { status: number; html: string };
   } catch {}
   return { status: 503, html: goneHtml(404) };
@@ -80,7 +92,7 @@ async function served(env: Env, body: unknown): Promise<{ status: number; html: 
 function formOf(raw: string, type: string): Record<string, unknown> | null {
   if (type.startsWith("application/x-www-form-urlencoded")) {
     const fields = Object.fromEntries(new URLSearchParams(raw));
-    return { page: fields.page, fields, plain: true };
+    return { page: fields.page, form: fields.form, fields, plain: true };
   }
   try {
     const v = JSON.parse(raw) as unknown;
@@ -91,6 +103,11 @@ function formOf(raw: string, type: string): Record<string, unknown> | null {
 }
 
 const THANKS = `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Thanks</title><style>body{font:18px/1.5 system-ui,sans-serif;max-width:560px;margin:15vh auto;padding:0 16px}</style></head><body><h1>Thanks. We got it.</h1><p>We'll be in touch soon.</p></body></html>`;
+
+const NOT_HUMAN = THANKS.replace("<title>Thanks</title>", "<title>Not sent</title>").replace(
+  "<h1>Thanks. We got it.</h1><p>We'll be in touch soon.</p>",
+  "<h1>That didn't send.</h1><p>This form needs JavaScript on to check you're a person. Turn it on and try again.</p>",
+);
 
 /** The answer for a Sites path, or null when the path isn't one. */
 export async function sitesRoute(
@@ -109,7 +126,7 @@ export async function sitesRoute(
   if (req.method === "OPTIONS" && tools) return new Response(null, { status: 204, headers: OPEN });
 
   if (path === KIT_PATH)
-    return new Response(KIT_JS, {
+    return new Response(kitJs(env.TURNSTILE_SITE_KEY), {
       headers: {
         "content-type": "text/javascript; charset=utf-8",
         "cache-control": "public, max-age=3600",
@@ -131,18 +148,44 @@ export async function sitesRoute(
       else await sent;
       return new Response(null, { status: 204, headers: OPEN });
     }
+    const fields = (
+      body.fields && typeof body.fields === "object" ? body.fields : {}
+    ) as Record<string, unknown>;
+    const { [TOKEN]: token, ...kept } = fields;
+    if (!(await human(env, token, req.headers.get("cf-connecting-ip")))) {
+      const error = "Confirm you're a person, then send again.";
+      if (body.plain) return html(NOT_HUMAN, 403, "no-store");
+      return answer({ error }, 403);
+    }
+    const visitor = VISITOR.exec(req.headers.get("cookie") ?? "")?.[1] ?? null;
     let res: Response;
     try {
-      res = await ingress(env, "Sites/form", { ...body, host: url.hostname, plain: undefined });
+      res = await ingress(env, "Sites/form", {
+        ...body,
+        fields: kept,
+        host: url.hostname,
+        visitor,
+        human: env.TURNSTILE_SECRET ? "yes" : "off",
+        plain: undefined,
+      });
     } catch {
       return answer({ error: "That didn't send. Try again." }, 502);
     }
-    const out = (await res.json().catch(() => ({}))) as { status?: number; error?: string };
+    const out = (await res.json().catch(() => ({}))) as {
+      status?: number;
+      error?: string;
+      errors?: Record<string, string>;
+    };
     const status = res.ok ? (out.status ?? 202) : 502;
     if (body.plain)
       return html(status < 300 ? THANKS : goneHtml(404), status < 300 ? 200 : status, "no-store");
     return answer(
-      status < 300 ? { ok: true } : { error: out.error ?? "That didn't send. Try again." },
+      status < 300
+        ? { ok: true }
+        : {
+            error: out.error ?? "That didn't send. Try again.",
+            ...(out.errors ? { errors: out.errors } : {}),
+          },
       status,
     );
   }
@@ -159,9 +202,33 @@ export async function sitesRoute(
       "content-security-policy": PAGE_CSP,
     });
   }
+  const cache = (globalThis as { caches?: { default?: Cache } }).caches?.default;
+  const formPage = FORM_PAGE.exec(path);
+  if (formPage && owner) {
+    const embed = url.searchParams.get("embed") === "1";
+    const key = new Request(`${url.origin}/o/f/${formPage[1]}${embed ? "?embed=1" : ""}`);
+    const hit = await cache?.match(key);
+    if (hit) return hit;
+    const got = await served(
+      env,
+      { client: owner.client, slug: formPage[1], embed },
+      "Sites/serveForm",
+    );
+    const out = html(
+      got.html,
+      got.status,
+      got.status === 200 ? `public, max-age=${PAGE_CACHE_SECONDS}` : "no-store",
+      { "content-security-policy": FORM_CSP },
+    );
+    if (cache && got.status === 200) {
+      const put = cache.put(key, out.clone());
+      if (ctx) ctx.waitUntil(put);
+      else await put;
+    }
+    return out;
+  }
   const slug = SLUG.exec(path);
   if (!slug || !owner) return null;
-  const cache = (globalThis as { caches?: { default?: Cache } }).caches?.default;
   const key = new Request(`${url.origin}/o/${slug[1]}`);
   const hit = await cache?.match(key);
   if (hit) return hit;
