@@ -23,6 +23,8 @@ import {
   signed,
 } from "@wren/channel-email";
 import { type Feed, NO_FEED } from "@wren/core";
+import { parseKind } from "@wren/core/slots";
+import { type LiveTemplate, livePrompt, renderPrompt } from "@wren/core/templates";
 import { atomic, type Queryable, serializable } from "@wren/db";
 import { completeAndParse, type LlmClient, LlmError } from "@wren/llm";
 import { and, eq, sql } from "drizzle-orm";
@@ -289,45 +291,77 @@ export interface ComposeSubject {
   owner: string | null;
 }
 
+/**
+ * The prompt's words, as the template store first takes them (kind prompt, system
+ * `reactivation`, name `compose`): `{fact}` is filled from the subject and the client's profile,
+ * `((...))` drops when its fact is missing, `{{` is a literal `{`.
+ */
+export const COMPOSE_PROMPT = `You write a short email from {sender}, a recruiter at {firm}, to {who}, someone the firm has worked with before, {where}.
+
+What {firm} does: {sells}
+
+Why write now (true, from our research), one numbered line each:
+{lines}
+
+How {firm} writes:
+{voice}
+
+Write two emails.
+1. The opener.
+- Start with "{hi}" as its own paragraph.
+- Open with line 1 of "Why write now"((, their move to {moved_to})): the reason you're writing now, plainly, as the recruiter who noticed. One more fact at most.
+- Only what they could see themselves: their role, a move, their company's open roles if listed. Never say the team is growing or hiring unless "Why write now" names open roles. Never the CRM, a record, a status, a placement, or the date you last spoke; "it's been a while" is enough.
+- One ask: a short call. Close with: reply with a couple of times that work and I'll book it.
+- Thank them for reading, in a few words, without your name.
+- At most {opener_words} words.
+2. The follow-up, sent in the same thread 4 business days later if they don't reply.
+- Start with "{hi}".
+- A short nudge: the same ask, or one new angle from the facts. No guilt.
+- At most {followup_words} words.
+
+Both: plain text. No links, no prices, no guarantees, no dashes, no brackets, no sign-off or signature (it is added). Use only the facts given; copy names and numbers exactly, and add no numbers of your own (not even "10 minutes"). Invent nothing about {firm} or {first_name|them}.
+
+Subject: lowercase, 2 to {subject_words} words, no numbers, no names, no facts. Like "quick question" or "a thought".
+
+Return ONLY a JSON object. Each email is its paragraphs in order, the greeting first. "from" is the numbers of the "Why write now" lines a paragraph uses, [] when none:
+{{"subject": "...", "opener": [{{"text": "{hi}", "from": []}, {{"text": "...", "from": [1]}], "followup": [{{"text": "...", "from": []}]}
+`;
+export const COMPOSE_PROMPT_REF = { system: REACTIVATION, name: "compose" } as const;
+const SEED_PROMPT = parseKind("prompt", COMPOSE_PROMPT_REF.name, COMPOSE_PROMPT);
+
+/** What the prompt fills in for one subject. */
+export function composeFacts(
+  s: ComposeSubject,
+  profile: Pick<ClientProfile, "firm" | "sells" | "voice">,
+  sender: Pick<Sender, "name">,
+): Record<string, string | null> {
+  const lines = s.lines.length ? s.lines.map(stripMarks) : [s.brief];
+  return {
+    sender: sender.name,
+    firm: profile.firm,
+    who: [s.firstName, s.lastName].filter(Boolean).join(" ") || "a past contact",
+    where: s.movedTo ? `who moved from ${s.firm} to ${s.movedTo}` : `last known at ${s.firm}`,
+    sells: profile.sells,
+    lines: lines.map((l, i) => `${i + 1}. ${l}`).join("\n"),
+    voice: profile.voice,
+    hi: s.firstName ? `Hi ${s.firstName},` : "Hi there,",
+    // Said only when there is one, as before: an empty move is none.
+    moved_to: s.movedTo || null,
+    first_name: s.firstName,
+    opener_words: String(OPENER_WORDS),
+    followup_words: String(FOLLOWUP_WORDS),
+    subject_words: String(SUBJECT_WORDS),
+  };
+}
+
+/** The prompt for one subject: the store's live words (`livePrompt`), or the code's. */
 export function buildComposePrompt(
   s: ComposeSubject,
   profile: Pick<ClientProfile, "firm" | "sells" | "voice">,
   sender: Pick<Sender, "name">,
+  prompt: Pick<LiveTemplate, "template"> = { template: SEED_PROMPT },
 ): string {
-  const hi = s.firstName ? `Hi ${s.firstName},` : "Hi there,";
-  const who = [s.firstName, s.lastName].filter(Boolean).join(" ") || "a past contact";
-  const lines = s.lines.length ? s.lines.map(stripMarks) : [s.brief];
-  const where = s.movedTo ? `who moved from ${s.firm} to ${s.movedTo}` : `last known at ${s.firm}`;
-  return `You write a short email from ${sender.name}, a recruiter at ${profile.firm}, to ${who}, someone the firm has worked with before, ${where}.
-
-What ${profile.firm} does: ${profile.sells}
-
-Why write now (true, from our research), one numbered line each:
-${lines.map((l, i) => `${i + 1}. ${l}`).join("\n")}
-
-How ${profile.firm} writes:
-${profile.voice}
-
-Write two emails.
-1. The opener.
-- Start with "${hi}" as its own paragraph.
-- Open with line 1 of "Why write now"${s.movedTo ? `, their move to ${s.movedTo}` : ""}: the reason you're writing now, plainly, as the recruiter who noticed. One more fact at most.
-- Only what they could see themselves: their role, a move, their company's open roles if listed. Never say the team is growing or hiring unless "Why write now" names open roles. Never the CRM, a record, a status, a placement, or the date you last spoke; "it's been a while" is enough.
-- One ask: a short call. Close with: reply with a couple of times that work and I'll book it.
-- Thank them for reading, in a few words, without your name.
-- At most ${OPENER_WORDS} words.
-2. The follow-up, sent in the same thread 4 business days later if they don't reply.
-- Start with "${hi}".
-- A short nudge: the same ask, or one new angle from the facts. No guilt.
-- At most ${FOLLOWUP_WORDS} words.
-
-Both: plain text. No links, no prices, no guarantees, no dashes, no brackets, no sign-off or signature (it is added). Use only the facts given; copy names and numbers exactly, and add no numbers of your own (not even "10 minutes"). Invent nothing about ${profile.firm} or ${s.firstName ?? "them"}.
-
-Subject: lowercase, 2 to ${SUBJECT_WORDS} words, no numbers, no names, no facts. Like "quick question" or "a thought".
-
-Return ONLY a JSON object. Each email is its paragraphs in order, the greeting first. "from" is the numbers of the "Why write now" lines a paragraph uses, [] when none:
-{"subject": "...", "opener": [{"text": "${hi}", "from": []}, {"text": "...", "from": [1]}], "followup": [{"text": "...", "from": []}]}
-`;
+  return renderPrompt(prompt, composeFacts(s, profile, sender));
 }
 
 // ---- who is due ------------------------------------------------------------------
@@ -409,7 +443,8 @@ function subjectsSql(opts: { limit?: number; count?: boolean; catchAll: boolean 
     }`;
 }
 
-const stripMarks = (text: string) =>
+/** A brief line as the model reads it: no citation marks. */
+export const stripMarks = (text: string) =>
   text
     .replace(MARKS, "")
     .replace(/\s+([.,;!?])/g, "$1")
@@ -566,6 +601,8 @@ export async function composeCrmEmails(
     subjects.map((s) => s.email),
   );
   const autoApprove = settings.approval === "first" && (await firstBatchApproved(db));
+  // The store's words in this database, read once for the pass.
+  const prompt = await livePrompt(db, COMPOSE_PROMPT_REF, COMPOSE_PROMPT);
   const feed = opts.feed ?? NO_FEED;
   let streak = 0;
   for (const s of subjects) {
@@ -580,7 +617,7 @@ export async function composeCrmEmails(
     >;
     let w: Written;
     try {
-      w = await writeDraft(llm, s, profile, picked.sender, opts.runId ?? null);
+      w = await writeDraft(llm, s, profile, picked.sender, prompt, opts.runId ?? null);
     } catch (err) {
       if (err instanceof LlmError) {
         stats.aborted = err.message;
@@ -634,6 +671,7 @@ async function writeDraft(
   s: ComposeSubject,
   profile: ClientProfile,
   sender: Sender,
+  prompt: LiveTemplate,
   runId: string | null,
 ): Promise<Written> {
   const inputsHash = createHash("md5")
@@ -650,7 +688,7 @@ async function writeDraft(
     .digest("hex");
   const outcome = await completeAndParse(
     llm,
-    buildComposePrompt(s, profile, sender),
+    buildComposePrompt(s, profile, sender, prompt),
     answerSchema,
     {
       maxTokens: MAX_TOKENS,
@@ -663,7 +701,8 @@ async function writeDraft(
     personId: s.personId,
     inputsHash,
     model: llm.name,
-    promptVersion: COMPOSE_VERSION,
+    // The prompt's words as stored; COMPOSE_VERSION stays the cache key, so an edit redrafts no one.
+    promptVersion: prompt.version,
     llm: outcome.envelope(),
     runId,
   };
@@ -854,6 +893,7 @@ export async function redraftAwaiting(
       }
     order by e.id`);
   stats.selected = rows.length;
+  const prompt = rows.length ? await livePrompt(db, COMPOSE_PROMPT_REF, COMPOSE_PROMPT) : null;
   for (const r of rows) {
     const sender = opts.senders.find((x) => x.address === r.sender && !x.suspended);
     if (!sender) {
@@ -879,7 +919,7 @@ export async function redraftAwaiting(
     const recruiter = profile.recruiters.find((x) => x.email === r.recruiter) ?? null;
     let w: Written;
     try {
-      w = await writeDraft(llm, s, profile, sender, opts.runId ?? null);
+      w = await writeDraft(llm, s, profile, sender, prompt as LiveTemplate, opts.runId ?? null);
     } catch (err) {
       if (err instanceof LlmError) {
         stats.aborted = err.message;

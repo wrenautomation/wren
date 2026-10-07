@@ -11,6 +11,7 @@ import { finishRun, openRun } from "@wren/core";
 import { byOf, CLAUDE, type ClaudeService } from "@wren/core/ask";
 import { PORTAL_FIELDS, serviceHandler } from "@wren/core/restate";
 import { runs } from "@wren/core/schema";
+import { livePrompt } from "@wren/core/templates";
 import type { Db } from "@wren/db";
 import { getEdit, setCut, setEdit, setRender } from "@wren/studio/edit";
 import { and, eq } from "drizzle-orm";
@@ -20,6 +21,8 @@ import {
   undoVideo,
   VIDEO_ASK,
   VIDEO_ASK_MAX,
+  VIDEO_ASK_PROMPT,
+  VIDEO_ASK_REF,
   videoAnswerOf,
   videoPrompt,
 } from "../video-ask.js";
@@ -177,7 +180,8 @@ export function makeVideoDesk(db: Db) {
             if (!row || row.finishedAt) return null;
             const a = row.argv as Asked;
             const e = await getEdit(db, a.id).catch(() => null);
-            return { ...a, prompt: e ? videoPrompt(e, a) : null };
+            const live = await livePrompt(db, VIDEO_ASK_REF, VIDEO_ASK_PROMPT);
+            return { ...a, prompt: e ? videoPrompt(e, a, live) : null, version: live.version };
           });
           if (!asked) return;
           const fail = (error: string) =>
@@ -195,7 +199,7 @@ export function makeVideoDesk(db: Db) {
             return void (await fail(err.message));
           }
           const { reply, patch } = videoAnswerOf(out.answer);
-          const meta = { reply, ms: out.ms, model: out.model };
+          const meta = { reply, ms: out.ms, model: out.model, prompt: asked.version };
           await ctx.run("save", async () => {
             if (!patch) return finishRun(db, req.run, meta);
             // Read again: he may have edited while Claude worked.

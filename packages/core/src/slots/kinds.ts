@@ -10,6 +10,7 @@ import {
   type Allocation,
   factKeys,
   type Rendered,
+  type RenderStyle,
   render,
   slots,
   type Template,
@@ -22,12 +23,12 @@ export type TemplateKind = (typeof TEMPLATE_KINDS)[number];
 /** A text or a DM: runs of spaces become one, the ends trimmed. What both channels always sent. */
 export const squeeze = (assembled: string): string => assembled.replace(/[ \t]+/g, " ").trim();
 
-const FINISH: Record<TemplateKind, (assembled: string) => string> = {
-  email: tidy,
-  sms: squeeze,
-  dm: squeeze,
-  // A prompt goes to the model exactly as written.
-  prompt: (assembled) => assembled,
+const STYLE: Record<TemplateKind, RenderStyle> = {
+  email: { finish: tidy },
+  sms: { finish: squeeze },
+  dm: { finish: squeeze },
+  // A prompt goes to the model exactly as written, its facts exactly as given.
+  prompt: { finish: (assembled) => assembled, exact: true },
 };
 
 /** A template's source as its kind reads it. Throws `AuthoringError` naming the line. */
@@ -43,7 +44,7 @@ export function renderKind(
   seed: string,
   allocation?: Allocation,
 ): Rendered {
-  return render(tpl, facts, seed, allocation, FINISH[kind]);
+  return render(tpl, facts, seed, allocation, STYLE[kind]);
 }
 
 /** What one template may hold, declared by the code that sends it. */
@@ -60,7 +61,7 @@ export interface SlotRules {
 /**
  * The source as saved, parsed, or throws `AuthoringError` saying what is wrong: a mark that
  * doesn't parse, a fact the slot doesn't offer, a prompt slot outside an email, a missing STOP,
- * a length. A text, a DM and a prompt are saved trimmed; "" is no template.
+ * a length. A text and a DM are saved trimmed, an email and a prompt as written; "" is no template.
  */
 export function checkSource(
   kind: TemplateKind,
@@ -68,7 +69,7 @@ export function checkSource(
   source: string,
   rules: SlotRules = {},
 ): { source: string; template: Template } | null {
-  const saved = kind === "email" ? source : source.trim();
+  const saved = kind === "email" || kind === "prompt" ? source : source.trim();
   if (saved.trim() === "") return null;
   const tpl = parseKind(kind, key, saved);
   if (kind !== "email" && kind !== "prompt" && slots(tpl).size > 0)

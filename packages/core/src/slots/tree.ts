@@ -229,7 +229,23 @@ export interface Allocation {
 interface Draw {
   readonly seed: string;
   readonly shares: Allocation["shares"];
+  /** A fact as it goes into the text; null when it counts as missing. */
+  readonly text: (value: unknown) => string | null;
 }
+
+/** How a kind finishes its text: the seam repair, and whether facts go in exactly as given. */
+export interface RenderStyle {
+  /** The assembled text's last pass. Default: email's `tidy`. */
+  readonly finish?: (assembled: string) => string;
+  /** Facts as given, not trimmed, "" a value; only null or absent is missing. A prompt's. */
+  readonly exact?: boolean;
+}
+
+/** A fact given exactly: only null or absent is missing. */
+const exactText = (value: unknown): string | null => {
+  if (value === null || value === undefined) return null;
+  return value instanceof Date ? value.toISOString() : String(value);
+};
 
 /**
  * Assemble one email for one recipient. Pure: the same template, facts, seed and
@@ -241,12 +257,17 @@ export function render(
   facts: FactValues,
   seed: string,
   allocation?: Allocation,
-  finish: (assembled: string) => string = tidy,
+  style: RenderStyle = {},
 ): Rendered {
+  const finish = style.finish ?? tidy;
   if (!seed) throw new Error("render needs a non-empty seed (the recipient identity)");
   // Scoped per template so one recipient's picks across a sequence don't all land on the
   // same option index just because every file's first variant point is auto-named "v1".
-  const pickSeed: Draw = { seed: `${tpl.name}\x00${seed}`, shares: allocation?.shares ?? {} };
+  const pickSeed: Draw = {
+    seed: `${tpl.name}\x00${seed}`,
+    shares: allocation?.shares ?? {},
+    text: style.exact ? exactText : factText,
+  };
   const state = newState();
   const body = finish(renderBlocks(tpl.body, facts, pickSeed, state));
   if (!body) throw new MissingFactError(`template ${pyReprStr(tpl.name)}: the body rendered empty`);
@@ -286,7 +307,7 @@ function renderBlock(block: Block, facts: FactValues, pickSeed: Draw, state: Sta
     case "text":
       return block.text;
     case "field": {
-      const value = factText(facts[block.key]);
+      const value = pickSeed.text(facts[block.key]);
       if (value !== null) {
         state.fields.add(block.key);
         return value;
@@ -298,7 +319,9 @@ function renderBlock(block: Block, facts: FactValues, pickSeed: Draw, state: Sta
       throw new MissingFactError(`no value for required fact ${pyReprStr(block.key)}`);
     }
     case "variants": {
-      const eligible = block.options.flatMap((o, i) => (isEligible(o, facts) ? [i] : []));
+      const eligible = block.options.flatMap((o, i) =>
+        isEligible(o, facts, pickSeed.text) ? [i] : [],
+      );
       if (eligible.length === 0) {
         throw new MissingFactError(
           `variant ${pyReprStr(block.name)}: every option needs a missing fact`,
@@ -333,9 +356,13 @@ function renderBlock(block: Block, facts: FactValues, pickSeed: Draw, state: Sta
   }
 }
 
-export function isEligible(option: Option, facts: FactValues): boolean {
+export function isEligible(
+  option: Option,
+  facts: FactValues,
+  text: (value: unknown) => string | null = factText,
+): boolean {
   return option.every(
-    (b) => b.kind !== "field" || b.fallback !== null || factText(facts[b.key]) !== null,
+    (b) => b.kind !== "field" || b.fallback !== null || text(facts[b.key]) !== null,
   );
 }
 

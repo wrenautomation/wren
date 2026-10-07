@@ -7,8 +7,11 @@ import { AuthoringError } from "../../src/slots/parse.js";
 import {
   clearTemplate,
   importVersion,
+  livePrompt,
   liveTemplates,
+  promptRef,
   publish,
+  renderPrompt,
   saveDraft,
   saveLive,
   type TemplateRef,
@@ -121,5 +124,21 @@ describe("template store", () => {
     expect(email?.template.subject).not.toBeNull();
     const ask = (await liveTemplates(pg.db, "prompt", "demo")).get("ask");
     expect(ask?.source).toBe(prompt);
+  });
+});
+
+describe("livePrompt", () => {
+  const REF = { system: "example", name: "ask" };
+  it("seeds the code's words once, then the store's words win", async () => {
+    const seed = "  Ask {who} about {{x}.\n";
+    const first = await livePrompt(pg.db, REF, seed);
+    expect(renderPrompt(first, { who: "Dana" })).toBe("  Ask Dana about {x}.\n");
+    expect((await livePrompt(pg.db, REF, seed)).version).toBe(first.version);
+
+    await saveDraft(pg.db, promptRef(REF.system, REF.name), "Ask {who} briefly.", { by: "op" });
+    expect((await livePrompt(pg.db, REF, seed)).version).toBe(first.version);
+    await publish(pg.db, promptRef(REF.system, REF.name), { by: "op" });
+    const edited = await livePrompt(pg.db, REF, "changed code words {who}");
+    expect(renderPrompt(edited, { who: "Dana" })).toBe("Ask Dana briefly.");
   });
 });

@@ -74,6 +74,18 @@ describe("prompts", () => {
     const tpl = parseKind("prompt", "p", source);
     expect(renderKind("prompt", tpl, { item: "x" }, "s").body).toBe("  # Heading\n## Sub\n\n- x\n");
   });
+
+  it("take facts exactly: spaces kept, an empty one said, only null missing", () => {
+    const tpl = parseKind("prompt", "p", "[[{a} | {b}]] and {c|them}");
+    expect(renderKind("prompt", tpl, { a: "  x ", b: null, c: "" }, "s").body).toBe("  x  and ");
+    expect(renderKind("prompt", tpl, { a: null, b: "y", c: null }, "s").body).toBe("y and them");
+    // A text still trims a fact and reads "" as missing.
+    expect(renderKind("sms", parseKind("sms", "t", "{c|them}"), { c: " " }, "s").body).toBe("them");
+  });
+
+  it("are saved as written, ends and all", () => {
+    expect(checkSource("prompt", "p", "  Ask {who}.\n")?.source).toBe("  Ask {who}.\n");
+  });
 });
 
 describe("checkSource", () => {

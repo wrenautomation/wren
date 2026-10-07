@@ -10,6 +10,8 @@
 import { finishRun, openRun } from "@wren/core";
 import { type DraftCommand, draftEdits, draftTurns, editsFor } from "@wren/core/ask";
 import type { Platform } from "@wren/core/content";
+import { parseKind } from "@wren/core/slots";
+import { type LiveTemplate, literalPrompt, renderPrompt } from "@wren/core/templates";
 import { atomic, type Queryable } from "@wren/db";
 import { comments, DRAFT_MAX, dmContext, reachContacts, redditThreads } from "@wren/outreach";
 import { and, desc, eq, inArray, isNotNull, notInArray, sql } from "drizzle-orm";
@@ -412,21 +414,42 @@ Answer with one JSON object and nothing else: {"reply": "...", "draft": "..."}.
 - draft: the whole new draft, ready to send as is. null when he only asked something or nothing should change.
 Write as William: "I", casual, short paragraphs, plain words, no em dashes. Keep under the cap.`;
 
-/** The desk's question and system prompt for one ask, or why it can't go. */
+/**
+ * The system prompt's words, as the template store first takes them (kind prompt, system
+ * `content`, name `draft-ask`). His edits come before the SOP: the cut takes the end, and his
+ * edits say the most.
+ */
+export const DRAFT_ASK_PROMPT = `${literalPrompt(SYSTEM)}
+
+It is a {what}, at most {max} characters.
+
+The draft now:
+{draft}((
+
+{edits}))((
+
+How we write here:
+{guide}))`;
+export const DRAFT_ASK_REF = { system: "content", name: "draft-ask" } as const;
+const SEED_PROMPT = parseKind("prompt", DRAFT_ASK_REF.name, DRAFT_ASK_PROMPT);
+
+/** The desk's question and system prompt for one ask, or why it can't go. `prompt`: the store's. */
 export function askPrompt(
   d: DraftItem,
   ask: { by: string; message: string },
+  prompt: Pick<LiveTemplate, "template"> = { template: SEED_PROMPT },
 ): { question: string; system: string } | { error: string } {
   if ((d.draft?.length ?? 0) > ASK_DRAFT_MAX)
     return { error: `the draft is over ${ASK_DRAFT_MAX} characters; use wren drafts set` };
-  const head = `${SYSTEM}\n\nIt is a ${d.what}, at most ${d.max} characters.\n\nThe draft now:\n${
-    d.draft ? `"""\n${d.draft}\n"""` : "(none yet)"
-  }`;
-  // His edits before the SOP: the cut takes the end, and his edits say the most.
-  const edits = d.edits ? `\n\n${d.edits}` : "";
-  const guide = d.guide ? `\n\nHow we write here:\n${d.guide}` : "";
+  const system = renderPrompt(prompt, {
+    what: d.what,
+    max: String(d.max),
+    draft: d.draft ? `"""\n${d.draft}\n"""` : "(none yet)",
+    edits: d.edits || null,
+    guide: d.guide || null,
+  });
   return {
     question: `${ask.by} asks: ${ask.message}\n\n${d.context}`.slice(0, QUESTION_MAX),
-    system: (head + edits + guide).slice(0, SYSTEM_MAX),
+    system: system.slice(0, SYSTEM_MAX),
   };
 }

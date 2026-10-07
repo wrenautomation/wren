@@ -8,7 +8,14 @@
 import { atomic, type Queryable } from "@wren/db";
 import { and, eq, inArray, isNull, sql } from "drizzle-orm";
 import { templates, templateVersions } from "./schema.js";
-import { checkSource, parseKind, type SlotRules, type TemplateKind } from "./slots/kinds.js";
+import {
+  checkSource,
+  parseKind,
+  renderKind,
+  type SlotRules,
+  type TemplateKind,
+} from "./slots/kinds.js";
+import type { FactValues } from "./slots/pickers.js";
 import type { Template } from "./slots/tree.js";
 
 /** Which template: its kind, whose copy it is, and its key there. */
@@ -311,3 +318,37 @@ export async function liveTemplates(
     ]),
   );
 }
+
+/** A prompt in the store: kind prompt, system the package that asks. */
+export const promptRef = (system: string, name: string): TemplateRef => ({
+  kind: "prompt",
+  system,
+  name,
+});
+
+/** Plain words as prompt source: each `{` doubled, so a quoted JSON shape stays words. */
+export const literalPrompt = (words: string): string => words.replaceAll("{", "{{");
+
+/**
+ * A prompt the code ships, as the store has it live. The first ask in a database records the
+ * code's words as version 1, live; from then on the store's words are the prompt, so an edit
+ * there wins and a later change to `seed` is kept as a version, never made live over one.
+ */
+export async function livePrompt(
+  db: Queryable,
+  ref: { system: string; name: string },
+  seed: string,
+): Promise<LiveTemplate> {
+  const read = async () =>
+    (await liveTemplates(db, "prompt", ref.system, [ref.name])).get(ref.name);
+  const live = await read();
+  if (live) return live;
+  await importVersion(db, promptRef(ref.system, ref.name), seed, { by: "import:code" });
+  const seeded = await read();
+  if (!seeded) throw new Error(`prompt ${ref.system}/${ref.name} did not seed`);
+  return seeded;
+}
+
+/** A prompt's words with its facts, byte for byte as written and given. */
+export const renderPrompt = (live: Pick<LiveTemplate, "template">, facts: FactValues = {}) =>
+  renderKind("prompt", live.template, facts, "prompt").body;

@@ -3,6 +3,8 @@
  * and answer, the page's turns, Undo. Every change is studio's `setEdit`, a `runs` row holding
  * what it replaced; Claude answers a patch, Wren checks and writes it.
  */
+import { parseKind } from "@wren/core/slots";
+import { type LiveTemplate, literalPrompt, renderPrompt } from "@wren/core/templates";
 import type { Queryable } from "@wren/db";
 import { setEdit } from "@wren/studio/edit";
 import type { Cut, VideoEdit } from "@wren/studio/schema";
@@ -24,8 +26,24 @@ Answer with one JSON object and nothing else: {"reply": "...", "patch": {...}}.
 - Every time is seconds on the raw recording, as the transcript gives them.
 Write as William: "I", casual, plain words, no em dashes.`;
 
-/** The question and system prompt for one ask: the edit without its words, which Claude reads. */
-export function videoPrompt(e: VideoEdit, ask: { by: string; message: string }) {
+/** The system prompt's words, as the template store first takes them (kind prompt). */
+export const VIDEO_ASK_PROMPT = `${literalPrompt(SYSTEM)}
+The transcript, each word with its start and end, and every cut: run \`node scripts/prod-wren.mjs video show {id}\`.
+
+The edit now:
+{now}`;
+export const VIDEO_ASK_REF = { system: "content", name: "video-ask" } as const;
+const SEED_PROMPT = parseKind("prompt", VIDEO_ASK_REF.name, VIDEO_ASK_PROMPT);
+
+/**
+ * The question and system prompt for one ask: the edit without its words, which Claude reads.
+ * `prompt`: the store's.
+ */
+export function videoPrompt(
+  e: VideoEdit,
+  ask: { by: string; message: string },
+  prompt: Pick<LiveTemplate, "template"> = { template: SEED_PROMPT },
+) {
   const now = {
     title: e.title,
     description: e.description,
@@ -37,10 +55,10 @@ export function videoPrompt(e: VideoEdit, ask: { by: string; message: string }) 
     cuts: e.cuts.filter((c) => c.why !== "silence"),
     rawSeconds: e.tracks.main.durationS,
   };
-  const read = `The transcript, each word with its start and end, and every cut: run \`node scripts/prod-wren.mjs video show ${e.id}\`.`;
+  const system = renderPrompt(prompt, { id: e.id, now: JSON.stringify(now) });
   return {
     question: `${ask.by} asks: ${ask.message}`.slice(0, QUESTION_MAX),
-    system: `${SYSTEM}\n${read}\n\nThe edit now:\n${JSON.stringify(now)}`.slice(0, SYSTEM_MAX),
+    system: system.slice(0, SYSTEM_MAX),
     commands: [`Bash(node scripts/prod-wren.mjs video show ${e.id})`],
   };
 }
