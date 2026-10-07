@@ -1,0 +1,2 @@
+ALTER TABLE "metric_sources" DROP CONSTRAINT "ck_metric_sources_state";--> statement-breakpoint
+ALTER TABLE "metric_sources" ADD CONSTRAINT "ck_metric_sources_state" CHECK (("state")::text = ANY ((ARRAY['live'::character varying, 'needs_scope'::character varying, 'needs_william'::character varying, 'not_built'::character varying, 'no_api'::character varying, 'error'::character varying, 'waiting'::character varying])::text[]));
