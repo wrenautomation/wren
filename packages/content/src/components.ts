@@ -144,9 +144,12 @@ export const CONTENT_COMPONENTS = [
     blurb: "Every post, ad set, search page, text and site visit as one funnel.",
     icon: "chart",
     for: "client",
-    ready: false,
-    missing: ["Not built per client yet: sums Wren's own posts, ads and search only"],
+    ready: true,
+    missing: [],
+    // A client's Meta ads wait on its ad account; its ad days stay empty until then.
+    soon: ["meta"],
     provides: {
+      services: ["MarketingConsole"],
       records: [
         "marketing.draft",
         "marketing.post",
@@ -170,7 +173,11 @@ export const CONTENT_COMPONENTS = [
     hypothesis: {
       from: "Wren's marketing, 2026-09",
       guesses: [
-        { is: "change", says: "Which channels a client has.", built: null },
+        {
+          is: "change",
+          says: "Which channels a client has.",
+          built: "its posts, drafts and search from its own database (MarketingConsole)",
+        },
         { is: "fixed", says: "Every channel lands in one funnel, counted the same way." },
       ],
     },

@@ -32,6 +32,11 @@ import {
 } from "@wren/core/accounts/console-routes";
 import { CONSOLE_APPS, CONSOLE_ROUTES, CONSOLE_WRITES } from "@wren/core/console-routes";
 import {
+  MARKETING_CONSOLE_APPS,
+  MARKETING_CONSOLE_ROUTES,
+  MARKETING_CONSOLE_WRITES,
+} from "@wren/core/marketing/console-routes";
+import {
   TEMPLATES_CONSOLE_APPS,
   TEMPLATES_CONSOLE_ROUTES,
   TEMPLATES_CONSOLE_WRITES,
@@ -80,6 +85,13 @@ export const SERVICES: Readonly<Record<string, Service>> = {
   email: service("EmailConsole", EMAIL_CONSOLE_ROUTES, EMAIL_CONSOLE_APPS, EMAIL_CONSOLE_WRITES),
   // A client's texting threads (O4); replies are Wren's team only.
   sms: service("SmsConsole", SMS_CONSOLE_ROUTES, SMS_CONSOLE_APPS, SMS_CONSOLE_WRITES),
+  // A client's Marketing: its drafts, posts, ads and search; a draft's verdict by its approver.
+  marketing: service(
+    "MarketingConsole",
+    MARKETING_CONSOLE_ROUTES,
+    MARKETING_CONSOLE_APPS,
+    MARKETING_CONSOLE_WRITES,
+  ),
   // Where an account's spend counts.
   books: service("BooksConsole", BOOKS_CONSOLE_ROUTES, BOOKS_CONSOLE_APPS, BOOKS_CONSOLE_WRITES),
   // The Watch: William's mail and its rules.

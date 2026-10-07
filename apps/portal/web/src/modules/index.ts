@@ -7,7 +7,7 @@ import { account } from "./account/index.js";
 import { calendar } from "./calendar/index.js";
 import { calls } from "./calls/index.js";
 import { library } from "./library/index.js";
-import { marketing } from "./marketing/index.js";
+import { clientMarketing, marketing } from "./marketing/index.js";
 import { marketplace } from "./marketplace/index.js";
 import { reactivation } from "./reactivation/index.js";
 import { texts } from "./texts/index.js";
@@ -22,6 +22,8 @@ export const MODULES: Module[] = [
   texts,
   calls,
   marketplace,
+  // One address, two apps: a client's own (its workspace) and Wren's (Wren's).
+  clientMarketing,
   marketing,
   ...WREN_APPS,
   library,

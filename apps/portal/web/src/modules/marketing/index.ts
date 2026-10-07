@@ -1010,3 +1010,31 @@ export const marketing: Module = {
     },
   ],
 };
+
+const VERDICTS = new Set(["marketing.approveDraft", "marketing.redraft", "marketing.rejectDraft"]);
+/** One of Wren's Marketing pages, as a client's: its records from its own database, read only. */
+const asClient = (id: string, more: Partial<ListPage> = {}): ListPage => {
+  const page = marketing.pages.find((p) => p.id === id) as ListPage;
+  const { actions: _a, extras: _e, ...rest } = page;
+  return { ...rest, ...more };
+};
+
+/**
+ * A client's Marketing, once `marketing.stats` is installed: its drafts, posts, ads and search
+ * (`MarketingConsole`, its own database). Drafts take its approver's verdict; the rest read only.
+ * Same address as Wren's; the workspace picks which.
+ */
+export const clientMarketing: Module = {
+  id: marketing.id,
+  name: marketing.name,
+  component: "marketing.stats",
+  icon: marketing.icon,
+  blurb: "Your posts, drafts, ads and search in one place.",
+  pages: [
+    asClient("drafts", { actions: DRAFT_ACTIONS.filter((a) => VERDICTS.has(a.id)) }),
+    asClient("content"),
+    asClient("ads", { empty: "In development: ads show here once your ad account is connected." }),
+    asClient("search"),
+    asClient("keywords"),
+  ],
+};

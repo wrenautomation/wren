@@ -266,9 +266,12 @@ export function App() {
   const [jump, setJump] = usePaletteKey();
   const operator = me.data?.operator ?? false;
   // An address names its app, and the app its workspace; else the last one picked (Wren first).
-  const kind = MODULES.find((m) => m.id === route.path[0]);
-  const wren =
-    operator && (kind ? teamOnly(kind) : !named && (client === null || client === WREN.id));
+  const atWren = !named && (client === null || client === WREN.id);
+  // Marketing is both a client's app and Wren's: the one for the workspace already picked.
+  const kind =
+    MODULES.find((m) => m.id === route.path[0] && teamOnly(m) === atWren) ??
+    MODULES.find((m) => m.id === route.path[0]);
+  const wren = operator && (kind ? teamOnly(kind) : atWren);
   const team = operator && (wren || !asClient);
   const onDemo = me.data ? me.data.demo : null;
   const clients = me.data?.clients ?? [];

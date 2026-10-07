@@ -328,6 +328,12 @@ const num = (id: string) => Number(bare(id));
 const words = (body: unknown) => (typeof body === "string" ? { body } : {});
 /** "idea/platform/draft": a post's idea and platform. "campaign/adset/day": an ad day's campaign. */
 const head = (id: string, n: number) => id.split("/").slice(0, n);
+/** A client's draft verdicts: its own Marketing service, which checks its approver. */
+const CLIENT_ONE: Record<string, (id: string, input: Input) => [string, Input]> = {
+  "marketing/approveDraft": (id) => ["marketing/approveDraft", { ids: [bare(id)] }],
+  "marketing/rejectDraft": (id) => ["marketing/rejectDraft", { ids: [bare(id)] }],
+  "marketing/redraft": (id, { note }) => ["marketing/redraft", { draftId: bare(id), note }],
+};
 /** Head actions that are another handler with something added. */
 const AS: Record<string, [string, Input]> = {
   "delivery/note": ["delivery/post", { internal: true }],
@@ -443,7 +449,7 @@ export function TemplatePage({
         local?.callFor(page.record, actions) ??
         (async (handler: string, input: Input) => {
           const sent = await uploaded(client, input);
-          const one = ONE[handler];
+          const one = (client && CLIENT_ONE[handler]) || ONE[handler];
           if (one) return eachOf(one, sent, client);
           const [to, add] = AS[handler] ?? [handler, {}];
           return call(to, client ? { client, ...add, ...sent } : { ...add, ...sent });

@@ -137,6 +137,7 @@ import {
   makeContentPlanner,
   makeContentScheduler,
   makeDraftAsk,
+  makeMarketingConsole,
   makeSocialDesk,
   makeSocialWatch,
   makeVideoDesk,
@@ -233,7 +234,7 @@ import { makeWatch, makeWatchConsole } from "@wren/watch/restate";
 import { desc, eq, max } from "drizzle-orm";
 import type { Logger } from "pino";
 import { COMPONENTS } from "./components.js";
-import { MARKETING_NUMBERS } from "./marketing.js";
+import { CLIENT_MARKETING, MARKETING_NUMBERS } from "./marketing.js";
 import { copyRecords } from "./record-edits.js";
 import { reviewRecord } from "./review.js";
 import { SETUPS } from "./setups.js";
@@ -879,6 +880,8 @@ export async function buildServices(
       clients: { clientDb, llm: watchLlm },
       ...(voice !== null ? { voice } : {}),
     }),
+    // A client's Marketing in the portal: its drafts, posts, ads and search; verdicts to its desk.
+    makeMarketingConsole({ db, open: openClient, records: CLIENT_MARKETING }),
     makeContentScheduler({
       db,
       linkSite: settings.contentLinkSite ?? null,

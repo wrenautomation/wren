@@ -43,6 +43,7 @@
     "./mailbox": "./src/mailbox.ts",
     "./marketing": "./src/marketing.ts",
     "./marketing/records": "./src/marketing-records.ts",
+    "./marketing/console-routes": "./src/marketing-console-routes.ts",
     "./people": "./src/people/index.ts",
     "./portal": "./src/portal.ts",
     "./buckets": "./src/buckets.ts",
