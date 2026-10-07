@@ -158,7 +158,7 @@ const LISTENER = z.object({
 /**
  * Gmail's push by address: Pub/Sub names the mailbox only, so its state holds the
  * `InboxScheduler` key that watches it (a client's is `<client>/<address>`), and any other
- * loop that listens (the Watch). Each is woken; a listener whose watch lapsed is skipped.
+ * loop that listens (the Monitor). Each is woken; a listener whose watch lapsed is skipped.
  */
 export const inboxPush = restate.object({
   name: "InboxPush",

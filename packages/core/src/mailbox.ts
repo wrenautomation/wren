@@ -2,7 +2,7 @@
  * A Gmail inbox Wren reads, by search: whole messages, or headers alone. Two ways in: a Workspace
  * inbox through the service account's domain-wide delegation, or a Google account autobrowse
  * holds consent for (a personal Gmail), read only through its `gmail` site. The books read bills
- * through it; the Watch reads the rest.
+ * through it; the Monitor reads the rest.
  */
 import type { SiteClient } from "./content/index.js";
 import { decodeHtml } from "./html.js";

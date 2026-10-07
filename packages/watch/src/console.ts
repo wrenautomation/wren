@@ -1,5 +1,5 @@
 /**
- * WatchConsole: the Inbox app's hands on the Watch. Done clears an email. Hide like this writes a
+ * WatchConsole: the Inbox app's hands on the Monitor. Done clears an email. Hide like this writes a
  * rule that holds the sender's mail (subject words narrow it) and clears what's waiting from
  * them; Show like this writes one that shows it. Sort again re-triages what's waiting under today's
  * rules. Rules can also be written or removed by hand. Feeds are followed and unfollowed here, and

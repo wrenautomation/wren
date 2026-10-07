@@ -94,7 +94,7 @@ export const SERVICES: Readonly<Record<string, Service>> = {
   ),
   // Where an account's spend counts.
   books: service("BooksConsole", BOOKS_CONSOLE_ROUTES, BOOKS_CONSOLE_APPS, BOOKS_CONSOLE_WRITES),
-  // The Watch: William's mail and its rules.
+  // The Monitor: William's mail and its rules.
   watch: service("WatchConsole", WATCH_CONSOLE_ROUTES, WATCH_CONSOLE_APPS, WATCH_CONSOLE_WRITES),
   // Booking calendars, Wren's and each client's: the week, the calls, how one went, cancel.
   calendar: service(

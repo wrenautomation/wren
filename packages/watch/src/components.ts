@@ -1,4 +1,4 @@
-/** The Watch: Wren's first routed workflow (designs/2026-10-05-workflows.md, The Watch). */
+/** Monitor (was the Monitor): Wren's first routed workflow (designs/2026-10-05-workflows.md, The Monitor). */
 import { defineComponent } from "@wren/core/components";
 import { defineWorkflow } from "@wren/core/workflows";
 
@@ -118,7 +118,7 @@ export const WATCH_WORKFLOWS = [
   defineWorkflow({
     id: "watch",
     stage: "run",
-    name: "The Watch",
+    name: "Monitor",
     blurb:
       "Reads the inboxes and the feeds Wren follows, and shows only what needs you or should change how Wren works.",
     icon: "mail",

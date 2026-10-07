@@ -1,5 +1,5 @@
 /**
- * The Watch's triage: show, hold or drop, with one line on why. A rule that names the sender (and
+ * The Monitor's triage: show, hold or drop, with one line on why. A rule that names the sender (and
  * subject words, when it has them) and a verdict settles it in code for $0. The model reads the
  * rest with every rule in its prompt. Anything it can't settle shows: a missed email costs more
  * than a glance.

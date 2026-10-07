@@ -1,5 +1,5 @@
 /**
- * The radar, in the Watch (designs/2026-10-05-end-goal.md, #2): the feeds Wren follows, each new
+ * The radar, in the Monitor (designs/2026-10-05-end-goal.md, #2): the feeds Wren follows, each new
  * item scored 0-10 against how Wren works today (its pushed SOPs). The score sets the verdict, so
  * items land in the Inbox app's queue beside mail: 7 and up shows, 4 to 6 holds, the rest drops.
  * RSS and Atom only: Substack, YouTube channels, GitHub releases, Reddit, HN and most blogs publish
@@ -28,7 +28,7 @@ export interface Feed {
 /** Text kept per item; the prompt reads the first `PROMPT_TEXT`. */
 const KEEP_TEXT = 20_000;
 const PROMPT_TEXT = 4_000;
-/** A feed is read at most this often, whatever the Watch's pace. */
+/** A feed is read at most this often, whatever the Monitor's pace. */
 export const FEED_EVERY_MS = 60 * 60_000;
 /** Failed reads of the model's answer before an item is left unscored. */
 const MAX_TRIES = 3;

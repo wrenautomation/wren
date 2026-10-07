@@ -7,13 +7,13 @@ verified: 2026-10-05 @ 65d9c85
 entity: packages/watch/src/schema.ts:42
 ---
 
-# mail (the Watch)
+# mail (the Monitor)
 
-One email the Watch read in William's inboxes, a `watch.mail` row, and the rules (`watch.rules`) that sort it into Needs you, held or dropped.
+One email the Monitor read in William's inboxes, a `watch.mail` row, and the rules (`watch.rules`) that sort it into Needs you, held or dropped.
 
 ## Why this shape
 
-The Watch is Wren's first routed workflow: `Watch/all` reads, the spine carries each row to `watch.triage`, and the verdict picks the port. A row keeps sender, subject, a summary and the verdict, never a body. The snippet stays only until triage reads it. A rule with a sender and a verdict settles in code for $0; the model reads the rest with every rule's words in its prompt. Whatever can't be settled shows: no model, an answer that doesn't parse, or triage still failing.
+The Monitor is Wren's first routed workflow: `Watch/all` reads, the spine carries each row to `watch.triage`, and the verdict picks the port. A row keeps sender, subject, a summary and the verdict, never a body. The snippet stays only until triage reads it. A rule with a sender and a verdict settles in code for $0; the model reads the rest with every rule's words in its prompt. Whatever can't be settled shows: no model, an answer that doesn't parse, or triage still failing.
 
 ## Shape
 
@@ -29,7 +29,7 @@ Citations: `packages/watch/src/schema.ts:25`, `:42`, `:78`; `packages/watch/src/
 
 - **owns:** its rules
 - **joins:** [[platform/spine]] (workflow `watch`: `read.mail` → `triage.mail` → `out.needs_you` / `out.held`)
-- **looks-like-but-is-not:** [[books/document]] (the books keep whole billing emails; the Watch keeps headers); `marketing.inbox` (leads' answers, not William's mail)
+- **looks-like-but-is-not:** [[books/document]] (the books keep whole billing emails; the Monitor keeps headers); `marketing.inbox` (leads' answers, not William's mail)
 
 ## If you change this
 
@@ -40,7 +40,7 @@ Citations: `packages/watch/src/schema.ts:25`, `:42`, `:78`; `packages/watch/src/
 
 | Surface | Role |
 |---|---|
-| `Watch/all` on the box, every 15 min (`wren watch start`) | writes rows, emits to Spine |
+| `Watch/all` on the box, every 15 min (`wren monitor start`) | writes rows, emits to Spine |
 | Spine `watch.triage` (Lambda, `WREN_WATCH_LLM`) | writes verdicts |
 | WatchConsole (Inbox app: Done, Hide like this, Show like this, Sort again, rules) | writes |
 | Inbox app, admins only (`needs: team`) | reads |
@@ -48,4 +48,4 @@ Citations: `packages/watch/src/schema.ts:25`, `:42`, `:78`; `packages/watch/src/
 ## See
 
 - Source: `packages/watch/`
-- Design: `designs/2026-10-05-workflows.md` (The Watch)
+- Design: `designs/2026-10-05-workflows.md` (The Monitor)

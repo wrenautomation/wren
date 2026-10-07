@@ -434,7 +434,7 @@ export const IN_HOUSE: readonly InHouse[] = [
   },
   {
     id: "watch",
-    name: "The Watch: mail triage",
+    name: "Monitor: mail triage",
     parts: ["watch.triage"],
     apps: [],
     instead: [

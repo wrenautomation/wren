@@ -1,4 +1,4 @@
-/** `wren watch`: the Watch's loop on the Postgres box. Its mail and rules live in the Inbox app. */
+/** `wren monitor`: the Monitor's loop on the Postgres box. Its mail and rules live in the Inbox app. */
 import * as clients from "@restatedev/restate-sdk-clients";
 import { ingressOf, type Settings } from "@wren/config";
 import type { Db } from "@wren/db";
@@ -21,9 +21,10 @@ export function registerWatch(
   const loop = () =>
     clients.connect(ingressOf(settings)).objectClient<Watch>({ name: "Watch" }, WATCH_KEY);
   const watch = program
-    .command("watch")
+    .command("monitor")
+    .alias("watch")
     .description(
-      "Watch/all on the Postgres box: new mail every 15 minutes and feeds hourly, sorted on the spine",
+      "Monitor (Watch/all) on the Postgres box: new mail every 15 minutes and feeds hourly, sorted on the spine",
     );
   watch.command("status").action(async () => json(await loop().status()));
   watch

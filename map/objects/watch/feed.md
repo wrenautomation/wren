@@ -9,11 +9,11 @@ entity: packages/watch/src/schema.ts:131
 
 # feed (the radar)
 
-A feed the Watch follows (`watch.feeds`) and each item it brought (`watch.items`), scored 0-10 on how much it should change how Wren works, against the SOPs pushed with `wren sop push`.
+A feed the Monitor follows (`watch.feeds`) and each item it brought (`watch.items`), scored 0-10 on how much it should change how Wren works, against the SOPs pushed with `wren sop push`.
 
 ## Why this shape
 
-The radar is the Watch's second input, so it lands in the same Inbox app, never Discord. The score sets the verdict: 7 and up shows (Worth reading), 4 to 6 holds (Worth knowing), the rest drops. Items are kept before they're scored, so a pass that dies loses no reads. Following a feed marks its current items dropped: it scores what comes next, not the back catalog.
+The radar is the Monitor's second input, so it lands in the same Inbox app, never Discord. The score sets the verdict: 7 and up shows (Worth reading), 4 to 6 holds (Worth knowing), the rest drops. Items are kept before they're scored, so a pass that dies loses no reads. Following a feed marks its current items dropped: it scores what comes next, not the back catalog.
 
 ## Shape
 
@@ -45,4 +45,4 @@ The radar is the Watch's second input, so it lands in the same Inbox app, never 
 ## See
 
 - Source: `packages/watch/src/feeds.ts`
-- Design: `designs/2026-10-05-end-goal.md` (#2 radar), `designs/2026-10-05-workflows.md` (The Watch)
+- Design: `designs/2026-10-05-end-goal.md` (#2 radar), `designs/2026-10-05-workflows.md` (The Monitor)

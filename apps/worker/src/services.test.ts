@@ -215,7 +215,7 @@ describe("servicesFor: which side serves the pool chain", () => {
   })) as never[];
   const names = (s: { name: string }[]) => s.map((x) => x.name);
 
-  it("the box serves the chain, the page archive, the books, the Watch and SocialWatch", () => {
+  it("the box serves the chain, the page archive, the books, the Monitor and SocialWatch", () => {
     expect(names(servicesFor(all, "box"))).toEqual(BOX_SERVICES);
   });
 

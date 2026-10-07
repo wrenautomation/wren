@@ -36,7 +36,7 @@ export interface WatchDeps {
   watch?: (address: string) => Promise<number | null>;
 }
 
-/** `InboxPush` (channel-email) as far as the Watch calls it. */
+/** `InboxPush` (channel-email) as far as the Monitor calls it. */
 type InboxPush = {
   listen: (
     ctx: restate.ObjectContext,

@@ -1,5 +1,5 @@
 /**
- * The Watch as console records, in the Inbox app: the mail it read, by where it shows, and the
+ * The Monitor as console records, in the Inbox app: the mail it read, by where it shows, and the
  * rules it reads by; the feed items it scored, and the feeds. William's own mail: admins only.
  */
 import { date, defineRecord, link, name, number, status, text } from "@wren/core/records";

@@ -78,7 +78,7 @@ const watch = async (sender: string) => {
   return sender === WATCHED ? Date.now() + 7 * 86_400_000 : null;
 };
 
-/** Another loop on a mailbox's push (the Watch): joins `InboxPush`, counts its wakes. */
+/** Another loop on a mailbox's push (the Monitor): joins `InboxPush`, counts its wakes. */
 const LISTENED = "listened@example.com";
 const listener = restate.object({
   name: "Listener",

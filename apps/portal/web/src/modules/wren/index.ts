@@ -277,7 +277,7 @@ export const outbound: Module = {
   ],
 };
 
-// The Watch's hands (WatchConsole); William's own mail, so admins only.
+// The Monitor's hands (WatchConsole); William's own mail, so admins only.
 const MAIL_ACTIONS: Action[] = [
   {
     id: "watch.done",
@@ -500,9 +500,9 @@ export const inbox: Module = {
       record: "watch.mail",
       empty: {
         needs_you: "Nothing in your inboxes needs you.",
-        held: "Mail the Watch holds shows here, searchable.",
+        held: "Mail the Monitor holds shows here, searchable.",
         done: "Mail you mark done shows here.",
-        all: "Mail the Watch reads shows here.",
+        all: "Mail the Monitor reads shows here.",
       },
       actions: MAIL_ACTIONS,
     },

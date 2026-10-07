@@ -1,5 +1,5 @@
 /**
- * The Watch's mail on the spine (designs/2026-10-06-mail-push.md): mail a vendor rule matches runs
+ * The Monitor's mail on the spine (designs/2026-10-06-mail-push.md): mail a vendor rule matches runs
  * the books' pass now, not at tomorrow's. The step only decides; the pass runs on the box.
  */
 import type { Step } from "@wren/core/spine";

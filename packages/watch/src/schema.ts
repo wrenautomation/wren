@@ -1,5 +1,5 @@
 /**
- * The Watch's tables (designs/2026-10-05-workflows.md, The Watch): mail it read and the rules it
+ * The Monitor's tables (designs/2026-10-05-workflows.md, The Monitor): mail it read and the rules it
  * reads mail by, and the feeds it follows with their items (the radar). A mail row keeps sender,
  * subject, a summary and the verdict, never a body: the snippet stays only until triage reads it.
  * A feed item is public, so its text is kept.
@@ -138,7 +138,7 @@ export const ruleRecords = watch
       r.by::text by, r.created_at
     from watch.rules r`);
 
-/** A feed the Watch follows: RSS or Atom (Substack, YouTube channels, GitHub releases, blogs). */
+/** A feed the Monitor follows: RSS or Atom (Substack, YouTube channels, GitHub releases, blogs). */
 export const feeds = watch.table(
   "feeds",
   {

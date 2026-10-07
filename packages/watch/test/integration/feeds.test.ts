@@ -1,5 +1,5 @@
 /**
- * The radar in the Watch: a feed followed (its back catalog seen, not scored), new items pulled,
+ * The radar in the Monitor: a feed followed (its back catalog seen, not scored), new items pulled,
  * scored along the `watch` workflow into the queue, and moved by the Inbox app's hands. The feed
  * and the model are fakes; every address here is made up.
  */

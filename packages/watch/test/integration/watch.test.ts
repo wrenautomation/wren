@@ -1,5 +1,5 @@
 /**
- * The Watch against the migrated schema: mail read once, triaged by rule or model along the
+ * The Monitor against the migrated schema: mail read once, triaged by rule or model along the
  * `watch` workflow, and moved by the Inbox app's hands. Mail and model are fakes; every address
  * here is made up.
  */
@@ -51,7 +51,7 @@ function inbox(messages: MailMeta[], down = { now: false }) {
       queries.push(q);
       return messages.map((m) => m.id);
     },
-    raw: () => Promise.reject(new Error("the Watch reads headers only")),
+    raw: () => Promise.reject(new Error("the Monitor reads headers only")),
     async meta(id) {
       const m = messages.find((x) => x.id === id);
       if (!m) throw new Error(`no ${id}`);

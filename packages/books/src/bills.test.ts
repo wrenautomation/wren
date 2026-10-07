@@ -24,7 +24,7 @@ function step(mail: Record<number, { fromAddress: string; subject: string }>) {
   return { s, ran };
 }
 
-describe("bills from the Watch", () => {
+describe("bills from the Monitor", () => {
   it("a vendor's bill runs the books once per mail; anything else runs nothing", async () => {
     const { s, ran } = step({
       1: { fromAddress: "no-reply@billing.example", subject: "Your invoice" },

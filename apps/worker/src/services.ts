@@ -900,7 +900,7 @@ export async function buildServices(
   // The content loop: ideas → drafts (ContentDesk, paid) → approved drafts posted (ContentScheduler).
   // Always bound: drafting needs no channel; a publish with none configured fails on its row.
   const voice = settings.contentVoicePath ? readFileSync(settings.contentVoicePath, "utf8") : null;
-  // The Watch's model (the gateway on prod): mail triage, reach DMs, a client's drafts.
+  // The Monitor's model (the gateway on prod): mail triage, reach DMs, a client's drafts.
   const watchLlm = settings.watchLlm === "none" ? null : makeLlm(settings.watchLlm, process.env);
   services.push(
     makeContentDesk({
@@ -980,11 +980,11 @@ export async function buildServices(
       ...notify,
     }),
   );
-  // The Watch: new mail every 15 minutes, onto the `watch` workflow; off until `wren watch start`.
+  // The Monitor: new mail every 15 minutes, onto the `watch` workflow; off until `wren watch start`.
   const watchBoxes = settings.watchMailboxes.length
     ? settings.watchMailboxes
     : settings.booksMailboxes;
-  // Gmail push wakes the Watch (designs/2026-10-06-mail-push.md); prod only, as the inboxes' watches.
+  // Gmail push wakes the Monitor (designs/2026-10-06-mail-push.md); prod only, as the inboxes' watches.
   const watchVia = new Map(watchBoxes.map((m) => [m.address.toLowerCase(), m.via]));
   const watchSites = ingressSites(ingressOf(settings), {
     caller: "wren:watch",
@@ -1326,7 +1326,7 @@ export async function buildServices(
         ),
         "watch.triage": triageStep(db, watchLlm),
         "watch.score": scoreStep(db, watchLlm, () => practicesOf(db)),
-        // A bill in the Watch's mail runs the books now; the books' pass is the box's.
+        // A bill in the Monitor's mail runs the books now; the books' pass is the box's.
         "books.bills": billsStep({
           mailOf: async (id) =>
             (
@@ -1342,7 +1342,7 @@ export async function buildServices(
               key,
             ),
         }),
-        // The Watch's model: both read a few lines and answer in one.
+        // The Monitor's model: both read a few lines and answer in one.
         "comments.sort": sortStep(
           db,
           watchLlm,

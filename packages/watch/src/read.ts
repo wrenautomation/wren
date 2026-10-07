@@ -1,5 +1,5 @@
 /**
- * The Watch's reader: new mail in each inbox since the newest kept, headers and Gmail's preview
+ * The Monitor's reader: new mail in each inbox since the newest kept, headers and Gmail's preview
  * only. Promotions and social never come back from the search, so they never reach the model.
  * A row is kept before it's triaged, so a run that dies loses no reads.
  */

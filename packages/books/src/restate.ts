@@ -4,7 +4,7 @@
  * the loop itself. Served on the Postgres box: the reads wait on the model and
  * on the Mac's desk, and waiting there costs nothing.
  *
- * A bill the Watch reads runs `sync` at once (designs/2026-10-06-mail-push.md): the same pass,
+ * A bill the Monitor reads runs `sync` at once (designs/2026-10-06-mail-push.md): the same pass,
  * but AWS Cost Explorer bills per call, so its spend is taken in once a day at most.
  */
 import type * as restate from "@restatedev/restate-sdk";

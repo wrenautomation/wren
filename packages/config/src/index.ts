@@ -256,14 +256,14 @@ export const settingsSchema = z.object({
   booksBucket: z.string().min(1).optional(),
   /** Inboxes the books read bills from. */
   booksMailboxes: mailboxes,
-  /** Inboxes the Watch reads, as `booksMailboxes`; unset, the books' own. */
+  /** Inboxes the Monitor reads, as `booksMailboxes`; unset, the books' own. */
   watchMailboxes: mailboxes,
   /**
    * Gmail push for site-read inboxes: a Pub/Sub topic in autobrowse's OAuth client's project
    * (Gmail publishes nowhere else). Unset, those inboxes are polled (designs/2026-10-06-mail-push.md).
    */
   watchSiteTopic: z.string().min(1).optional(),
-  /** The model for mail the Watch's rules can't settle (`makeLlm`); `none` shows it all. */
+  /** The model for mail the Monitor's rules can't settle (`makeLlm`); `none` shows it all. */
   watchLlm: z.string().min(1).default("none"),
   /** The first day the books cover; imports look no further back. */
   booksSince: z

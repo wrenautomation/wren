@@ -37,7 +37,7 @@ export const BOOKS_COMPONENTS = [
     id: "books.bills",
     stage: "run",
     channels: ["email"],
-    name: "Bills from the Watch",
+    name: "Bills from your mail",
     blurb: "Mail from a known vendor runs the books now, not at tomorrow's pass.",
     icon: "money",
     for: "wren",

@@ -100,13 +100,13 @@ it in To approve; the CLI never approves. `wren [--client <id>] workflows save-t
 does the same); `wren workflows delete-template <id|name>` takes one off, refused while a client
 runs it live. Design: `designs/2026-10-07-template-install.md`.
 
-## The Watch
+## The Monitor
 
-`wren watch start|stop|status|sync`: `Watch/all` on the box reads new mail in William's inboxes
+`wren monitor start|stop|status|sync`: `Watch/all` on the box reads new mail in William's inboxes
 every 15 minutes (`WREN_WATCH_MAILBOXES`, else the books' own), skipping promotions and social.
 Each email goes along the `watch` workflow to triage: a rule with a sender and a verdict settles it
 for $0, the model in `WREN_WATCH_LLM` (Cohere, set in `lambda.tf`) reads the rest. What needs him
-shows in the Inbox app under Your mail; Hide like this writes a rule, Sort again (or `wren watch sort`)
+shows in the Inbox app under Your mail; Hide like this writes a rule, Sort again (or `wren monitor sort`)
 re-triages what's waiting under today's rules. No bodies are kept. The same pass reads each feed Wren
 follows (hourly) and scores new items 0-10 against the pushed SOPs: 7 and up shows under Worth
 reading, 4 to 6 holds. Follow a feed from Inbox → Feeds.
