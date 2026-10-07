@@ -1823,6 +1823,7 @@ export async function buildServices(
           part,
           now: () => new Date(),
           step: <T>(name: string, fn: () => Promise<T>) => ctx.run(name, fn),
+          store: keys,
         }),
     }),
     makeMailReader({

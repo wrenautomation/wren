@@ -158,7 +158,7 @@ describe("landCode", () => {
     });
     const init = asked[0]?.init;
     expect(String(init?.body)).toContain("code_verifier=ver");
-    expect((init?.headers as Record<string, string>).authorization).toMatch(/^Basic /);
+    expect((init?.headers as Record<string, string> | undefined)?.authorization).toMatch(/^Basic /);
   });
 
   it("LinkedIn keeps its 60-day access token with its end", async () => {
@@ -343,7 +343,7 @@ describe("socialSites", () => {
     expect(me.data[0]).toMatchObject({ id: "p2", instagram_business_account: { id: "ig9" } });
     await client.call("meta", "GET", "/ig9/media", { fields: "id" }, "social:7");
     expect(asked[0]?.url).toBe("https://graph.facebook.com/v23.0/ig9/media?fields=id");
-    expect((asked[0]?.init?.headers as Record<string, string>).authorization).toBe(
+    expect((asked[0]?.init?.headers as Record<string, string> | undefined)?.authorization).toBe(
       `Bearer ${SECRET}`,
     );
   });
@@ -374,7 +374,9 @@ describe("socialSites", () => {
       "social:7",
     );
     expect(out.id).toBe("urn:li:share:1");
-    expect((asked[0]?.init?.headers as Record<string, string>)["LinkedIn-Version"]).toBeTruthy();
+    expect(
+      (asked[0]?.init?.headers as Record<string, string> | undefined)?.["LinkedIn-Version"],
+    ).toBeTruthy();
   });
 
   it("refuses a broken or unknown account before any call", async () => {
