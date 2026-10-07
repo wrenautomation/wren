@@ -37,7 +37,7 @@ Citations: `packages/content/src/connect/schema.ts:30`, `:61`; `packages/content
 
 ## If you change this
 
-- **Hits:** Account → Social (`apps/portal/web/src/modules/account/Social.tsx`), `clientContent`, SocialWatch's client pass, InboxDesk's client DM and comment paths, migration 0189
+- **Hits:** Account → Social (`apps/portal/web/src/modules/account/Social.tsx`), `clientContent`, SocialWatch's client pass, InboxDesk's client DM and comment paths, migration 0190
 - **Does not hit:** Wren's own posting, reach
 
 ## Surfaces
