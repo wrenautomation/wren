@@ -148,12 +148,23 @@ export function instagramContent(sites: SiteClient, o: MetaContentOptions = {}):
         { metric: "reach,likes,comments,shares" },
       );
       const val = (name: string) => r.data?.find((m) => m.name === name)?.values?.[0]?.value ?? 0;
+      // Its own call: a Reel refuses `follows`, and that must not cost the rest.
+      const follows = await sites
+        .call<Edge<{ name: string; values?: Array<{ value?: number }> }>>(
+          "meta",
+          "GET",
+          `/${id}/insights`,
+          { metric: "follows" },
+        )
+        .then((f) => f.data?.find((m) => m.name === "follows")?.values?.[0]?.value ?? null)
+        .catch(() => null);
       return {
         id,
         views: val("reach"),
         reactions: val("likes"),
         comments: val("comments"),
         shares: val("shares"),
+        follows,
         asOf: now().toISOString(),
         fetchedWith: await via("GET", "/{mediaId}/insights"),
       };

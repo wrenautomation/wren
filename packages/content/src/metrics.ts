@@ -61,6 +61,7 @@ export async function recordMetrics(
       reactions: m.reactions,
       comments: m.comments,
       shares: m.shares,
+      follows: m.follows ?? null,
       fetchedWith: m.fetchedWith,
     })
     .returning();

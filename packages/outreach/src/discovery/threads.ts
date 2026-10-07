@@ -7,6 +7,7 @@
  */
 import { warmupOf } from "@wren/channel-reddit";
 import { editsFor } from "@wren/core/ask";
+import { llmOf, type RejectReason, recordDraft } from "@wren/core/draft-record";
 import type { AccountHealth } from "@wren/core/outreach";
 import type { Queryable } from "@wren/db";
 import { completeAndParse, type LlmClient } from "@wren/llm";
@@ -338,6 +339,17 @@ export async function draftThread(
       sources,
     })
     .where(eq(redditThreads.id, id));
+  await recordDraft(db, {
+    item: `thread:${id}`,
+    kind: "thread",
+    platform: "reddit",
+    event: "generated",
+    via: "model",
+    by: llm.name,
+    text: out.parsed.comment.trim(),
+    llm: llmOf(out, "reddit.draft", { target: target?.name ?? t.id }),
+    runId: out.call?.run_id ?? null,
+  });
   return "drafted";
 }
 
@@ -384,7 +396,7 @@ export async function planThreadComment(
 export async function markCommented(
   db: Queryable,
   id: string,
-  r: { body: string; ref: string | null; accountId: string; now: Date },
+  r: { body: string; ref: string | null; accountId: string; now: Date; by?: string },
 ): Promise<void> {
   await db
     .update(redditThreads)
@@ -396,15 +408,42 @@ export async function markCommented(
       accountId: r.accountId,
     })
     .where(eq(redditThreads.id, id));
+  await recordDraft(db, {
+    item: `thread:${id}`,
+    kind: "thread",
+    platform: "reddit",
+    event: "sent",
+    via: "person",
+    by: r.by ?? null,
+    text: r.body,
+    externalId: r.ref,
+    ref: `sent:thread:${id}`,
+    at: r.now,
+  });
 }
 
-export async function skipThread(db: Queryable, id: string): Promise<void> {
-  await db
+export async function skipThread(
+  db: Queryable,
+  id: string,
+  o: { by?: string; reason?: RejectReason | null; note?: string | null } = {},
+): Promise<void> {
+  const [t] = await db
     .update(redditThreads)
     .set({ state: "skipped" })
-    .where(
-      and(eq(redditThreads.id, id), inArray(redditThreads.state, ["new", "ranked", "queued"])),
-    );
+    .where(and(eq(redditThreads.id, id), inArray(redditThreads.state, ["new", "ranked", "queued"])))
+    .returning({ draft: redditThreads.draft });
+  if (t?.draft)
+    await recordDraft(db, {
+      item: `thread:${id}`,
+      kind: "thread",
+      platform: "reddit",
+      event: "rejected",
+      via: "person",
+      by: o.by ?? null,
+      text: t.draft,
+      reason: o.reason ?? null,
+      note: o.note ?? null,
+    });
 }
 
 /** Our comments two days old with no score yet. */

@@ -60,7 +60,7 @@ import {
 } from "../discovery/threads.js";
 import { ReachRefusal } from "../refusal.js";
 import { reachAccounts } from "../schema.js";
-import { channelsFor, clientDeps, type ReachDeps, wakeWatch } from "./index.js";
+import { channelsFor, clientDeps, type ReachDeps, terminalWhy, wakeWatch } from "./index.js";
 
 export const READS_KEY = "wren";
 const HOUR = 3_600_000;
@@ -406,12 +406,6 @@ export function discoveryHandlers(deps: ReachDeps) {
         if (met) throw new restate.TerminalError(`u/${met} already wrote in this thread`);
         const sent = await ch.comment(plan.thread.target ?? plan.thread.id, body);
         await ctx.run("commented", async () => {
-          await markCommented(deps.db, req.id, {
-            body,
-            ref: sent.ref,
-            accountId: plan.account.id,
-            now,
-          });
           // Words that differ from the draft are his edit.
           await keepSentEdit(deps.db, {
             record: "thread",
@@ -420,6 +414,13 @@ export function discoveryHandlers(deps: ReachDeps) {
             before: plan.thread.draft,
             after: body,
           });
+          await markCommented(deps.db, req.id, {
+            body,
+            ref: sent.ref,
+            accountId: plan.account.id,
+            now,
+            by: byOf(req),
+          });
         });
         wakeWatch(ctx);
         return { ref: sent.ref };
@@ -427,8 +428,9 @@ export function discoveryHandlers(deps: ReachDeps) {
     ),
     skipThread: serviceHandler(
       { input: THREAD },
-      async (ctx: restate.Context, req: { id: string }): Promise<void> => {
-        await ctx.run("skip", () => skipThread(deps.db, req.id));
+      async (ctx: restate.Context, req: { id: string; reason?: unknown; note?: unknown }) => {
+        const why = terminalWhy(req);
+        await ctx.run("skip", () => skipThread(deps.db, req.id, { by: byOf(req), ...why }));
       },
     ),
   };

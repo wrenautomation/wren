@@ -10,10 +10,12 @@
  */
 import * as restate from "@restatedev/restate-sdk";
 import { finishRun, openRun } from "@wren/core";
+import { byOf } from "@wren/core/ask";
 import type { Media, Platform } from "@wren/core/content";
 import { PLATFORMS } from "@wren/core/content";
+import { REJECT_REASONS, rejectWhy } from "@wren/core/draft-record";
 import { isVendorStop, meteredModel } from "@wren/core/metered";
-import { clientOfKey, exclusiveHandler } from "@wren/core/restate";
+import { clientOfKey, exclusiveHandler, PORTAL_FIELDS } from "@wren/core/restate";
 import { gate } from "@wren/core/vendors";
 import type { Db } from "@wren/db";
 import type { LlmClient, Tracer } from "@wren/llm";
@@ -103,8 +105,18 @@ const THUMBNAIL = z.looseObject({
   n: z.number().int().positive().describe("Which rendered thumbnail, 1 for the first"),
 });
 
-const IDS = z.looseObject({ ids: z.array(z.string()).describe("Draft ids") });
+const IDS = z.looseObject({
+  ids: z.array(z.string()).describe("Draft ids"),
+  viewer: PORTAL_FIELDS.viewer,
+});
+const REJECT = z.looseObject({
+  ids: z.array(z.string()).describe("Draft ids"),
+  reason: z.enum(REJECT_REASONS).nullish().describe("Why, as a quick pick"),
+  note: z.string().nullish().describe("Why, in a few words"),
+  viewer: PORTAL_FIELDS.viewer,
+});
 const EDIT = z.looseObject({
+  viewer: PORTAL_FIELDS.viewer,
   draftId: z.string(),
   text: z.string().describe("The whole post"),
   title: z.string().nullish().describe("Left out: unchanged"),
@@ -239,7 +251,7 @@ export function makeContentDesk(deps: ContentDeskDeps) {
       /** A person's yes from the console: each draft posts at its platform's next slot. */
       approve: exclusiveHandler(
         { input: IDS },
-        async (ctx: restate.ObjectContext, req: { ids: string[] }) => {
+        async (ctx: restate.ObjectContext, req: { ids: string[]; viewer?: unknown }) => {
           const { db } = await scopeOf(ctx);
           // Wren's posts land on the planner's slots; a client's on the defaults.
           const planned = clientOfKey(ctx.key)
@@ -251,7 +263,14 @@ export function makeContentDesk(deps: ContentDeskDeps) {
               ).settings;
           const slots = slotsOf((planned as PlannerSettings | null)?.slots);
           return ctx.run("approve", () =>
-            verdict(() => approveDrafts(db, req.ids, { now: new Date(), zone: deps.zone, slots })),
+            verdict(() =>
+              approveDrafts(db, req.ids, {
+                now: new Date(),
+                zone: deps.zone,
+                slots,
+                by: byOf(req),
+              }),
+            ),
           );
         },
       ),
@@ -282,11 +301,17 @@ export function makeContentDesk(deps: ContentDeskDeps) {
           );
         },
       ),
+      /** No, with an optional quick pick and note: the draft record keeps why. */
       reject: exclusiveHandler(
-        { input: IDS },
-        async (ctx: restate.ObjectContext, req: { ids: string[] }) => {
+        { input: REJECT },
+        async (
+          ctx: restate.ObjectContext,
+          req: { ids: string[]; reason?: string | null; note?: string | null; viewer?: unknown },
+        ) => {
           const { db } = await scopeOf(ctx);
-          return ctx.run("reject", () => verdict(() => rejectDrafts(db, req.ids)));
+          return ctx.run("reject", () =>
+            verdict(() => rejectDrafts(db, req.ids, { by: byOf(req), ...rejectWhy(req) })),
+          );
         },
       ),
       /** The person's own words; the draft waits for a fresh yes. */
@@ -294,15 +319,17 @@ export function makeContentDesk(deps: ContentDeskDeps) {
         { input: EDIT },
         async (
           ctx: restate.ObjectContext,
-          req: { draftId: string; text: string; title?: string | null },
+          req: { draftId: string; text: string; title?: string | null; viewer?: unknown },
         ) => {
           const { db } = await scopeOf(ctx);
           return ctx.run("edit", () =>
             verdict(async () => [
-              await editDraft(db, req.draftId, {
-                text: req.text,
-                ...(req.title !== undefined ? { title: req.title } : {}),
-              }),
+              await editDraft(
+                db,
+                req.draftId,
+                { text: req.text, ...(req.title !== undefined ? { title: req.title } : {}) },
+                { by: byOf(req) },
+              ),
             ]),
           );
         },

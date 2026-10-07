@@ -6,8 +6,9 @@
  * no video) is skipped before any call.
  */
 import type { Platform } from "@wren/core/content";
+import { llmOf, recordDraft } from "@wren/core/draft-record";
 import type { Queryable } from "@wren/db";
-import { completeAndParse, type LlmClient, type Tracer } from "@wren/llm";
+import { completeAndParse, type LlmClient, type Outcome, type Tracer } from "@wren/llm";
 import { and, count, eq, gte, inArray, isNotNull } from "drizzle-orm";
 import { z } from "zod";
 import { type Lessons, lessonsBlock, lessonsFor, NO_LESSONS } from "./lessons.js";
@@ -36,6 +37,8 @@ const proposal = z.object({
 type Proposal = z.infer<typeof proposal>;
 
 export interface DraftOptions {
+  /** Who asked (his email): a redraft's record says whose note it was. */
+  by?: string | null;
   voice?: string;
   brand?: Brand;
   tracer?: Tracer | null;
@@ -105,6 +108,34 @@ ${previous.text}
 The author read it and says: "${note.trim().slice(0, 1000)}"
 Rewrite the draft to do what the author says and keep everything else that worked.
 ${tail}`;
+}
+
+/** A model's post in the draft record: its words and what it was asked (a redraft: at his note). */
+async function keepGenerated(
+  db: Queryable,
+  llm: LlmClient,
+  d: ContentDraft,
+  outcome: Outcome<Proposal>,
+  o: { ask?: string; by: string | null | undefined },
+) {
+  await recordDraft(db, {
+    item: `draft:${d.id}`,
+    kind: "post",
+    platform: d.platform,
+    event: "generated",
+    via: "model",
+    by: llm.name,
+    text: d.text,
+    title: d.title,
+    ask: o.ask ?? null,
+    llm: llmOf(outcome, DRAFT_STAGE, { version: d.promptVersion, asked_by: o.by ?? null }),
+    meta: {
+      idea: d.ideaId,
+      ...(d.redraftOf ? { redraft_of: d.redraftOf } : {}),
+      ...(d.playbookId ? { playbook: d.playbookId } : {}),
+    },
+    runId: outcome.call?.run_id ?? null,
+  });
 }
 
 /** The deterministic gate: why the proposal cannot be stored, or null. */
@@ -234,6 +265,17 @@ export async function redraft(
     .update(contentDrafts)
     .set({ status: "rejected" })
     .where(eq(contentDrafts.id, previous.id));
+  await keepGenerated(db, llm, draft, outcome, { ask: note.trim(), by: o.by });
+  await recordDraft(db, {
+    item: `draft:${previous.id}`,
+    kind: "post",
+    platform,
+    event: "rejected",
+    via: "person",
+    by: o.by ?? null,
+    note: note.trim(),
+    meta: { redrafted_as: draft.id },
+  });
   return { platform, ok: true, draft };
 }
 
@@ -299,6 +341,7 @@ export async function draftIdea(
       })
       .returning();
     if (!draft) throw new Error("insert returned no row");
+    await keepGenerated(db, llm, draft, outcome, { by: null });
     results.push({ platform, ok: true, draft });
   }
   if (results.some((r) => r.ok) && idea.status === "open")

@@ -44,6 +44,7 @@ export const AUDIT_SKIPPED: Readonly<Record<string, string>> = {
   check_outcomes: "check results with their own times",
   run_events: "a run's own event log",
   fills: "AI-filled text, cached and remade",
+  draft_events: "the draft record, already an append-only log with who and when",
   site_days: "visit counts pulled from the pixel, one row a day",
   ad_days: "numbers pulled from Meta",
   voice_turns: "a call's per-stage timings, written once",

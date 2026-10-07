@@ -33,6 +33,7 @@ import {
   type Surface,
 } from "./flags.js";
 import type { Until } from "./logic.js";
+import { REJECT_REASONS } from "./reject-reasons.js";
 import {
   SURVEY_KINDS,
   SURVEY_STATES,
@@ -612,6 +613,84 @@ export const changes = pgTable(
   ],
 );
 export type Change = typeof changes.$inferSelect;
+
+/** What a draft is (designs/2026-10-07-training-record.md); the last two are written on `posting`. */
+export const DRAFT_RECORD_KINDS = [
+  "post",
+  "comment",
+  "thread",
+  "dm",
+  "invite",
+  "video",
+  "invite_note",
+  "linkedin_comment",
+] as const;
+export type DraftRecordKind = (typeof DRAFT_RECORD_KINDS)[number];
+/** One step in a draft's life. `generated` is its first words, whoever wrote them. */
+export const DRAFT_EVENTS = [
+  "generated",
+  "edited",
+  "approved",
+  "rejected",
+  "scheduled",
+  "sent",
+  "failed",
+] as const;
+export type DraftEvent = (typeof DRAFT_EVENTS)[number];
+/** Who took the step: the model, William, Claude at his ask, or Wren itself (a scheduler, an import). */
+export const DRAFT_VIAS = ["model", "person", "claude", "wren"] as const;
+export type DraftVia = (typeof DRAFT_VIAS)[number];
+export { REJECT_REASONS, type RejectReason } from "./reject-reasons.js";
+
+/**
+ * Every draft's record, one row per step, for viewing and training (`./draft-record.ts`).
+ * Append-only: a row is never updated, so a `generated` row's `llm` is the immutable copy of
+ * what the model was asked. `item` is the Inbox id; `round` counts a DM contact's drafts.
+ */
+export const draftEvents = pgTable(
+  "draft_events",
+  {
+    id: serial("id").notNull(),
+    item: varchar("item", { length: 200 }).notNull(),
+    round: integer("round").notNull().default(1),
+    kind: varchar("kind", { length: 16, enum: DRAFT_RECORD_KINDS }).notNull(),
+    platform: varchar("platform", { length: 16 }),
+    event: varchar("event", { length: 16, enum: DRAFT_EVENTS }).notNull(),
+    via: varchar("via", { length: 8, enum: DRAFT_VIAS }).notNull(),
+    /** The model's name, his email, `cli`, `console`, `scheduler`. */
+    by: varchar("by", { length: 200 }),
+    text: text("text"),
+    title: text("title"),
+    /** His words to Claude, or his redraft note. */
+    ask: text("ask"),
+    reason: varchar("reason", { length: 16, enum: REJECT_REASONS }),
+    /** A reject's free text, a failure's error. */
+    note: text("note"),
+    /** On a model's `generated`: stage, model, provider, system, prompt, max_tokens, usage, raw_text. */
+    llm: jsonb("llm").$type<Record<string, unknown>>(),
+    /** Approved or scheduled for this time. */
+    slot: timestamp("slot", { withTimezone: true }),
+    externalId: varchar("external_id", { length: 255 }),
+    url: text("url"),
+    /** Links: idea, redraft_of, redrafted_as, message, playbook, undo. */
+    meta: jsonb("meta").$type<Record<string, unknown>>().notNull().default({}),
+    runId: uuid("run_id"),
+    /** The backfill's key: a second run adds nothing. */
+    ref: varchar("ref", { length: 200 }),
+    at: timestamp("at", { withTimezone: true }).defaultNow().notNull(),
+  },
+  (t): PgTableExtraConfigValue[] => [
+    primaryKey({ columns: [t.id], name: "pk_draft_events" }),
+    index("ix_draft_events_item_id").on(t.item, t.id),
+    index("ix_draft_events_kind_at").on(t.kind, t.at),
+    unique("uq_draft_events_ref").on(t.ref),
+    oneOf("ck_draft_events_kind", t.kind, DRAFT_RECORD_KINDS),
+    oneOf("ck_draft_events_event", t.event, DRAFT_EVENTS),
+    oneOf("ck_draft_events_via", t.via, DRAFT_VIAS),
+    oneOf("ck_draft_events_reason", t.reason, REJECT_REASONS),
+  ],
+);
+export type DraftEventRow = typeof draftEvents.$inferSelect;
 
 /**
  * A list's filters, search, sort and columns kept under a name (`./saved-views.ts`): the viewer's

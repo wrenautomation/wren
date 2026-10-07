@@ -224,7 +224,8 @@ const ONE: Record<string, (id: string, input: Input) => [string, Input]> = {
   "marketing/markRead": (id) => handlerCall("SmsDesk", "markRead", { contactId: num(id) }),
   // A draft's review: ContentDesk's one key, as the CLI's verdicts are one table.
   "marketing/approveDraft": (id) => desk("approve", { ids: [bare(id)] }),
-  "marketing/rejectDraft": (id) => desk("reject", { ids: [bare(id)] }),
+  "marketing/rejectDraft": (id, { reason, note }) =>
+    desk("reject", { ids: [bare(id)], reason, note }),
   "marketing/redraft": (id, { note }) => desk("redraft", { draftId: bare(id), note }),
   // A video's yes, from its page or the Inbox (`video:3`).
   "marketing/videoApprove": (id) => desk("approveVideo", { id: num(id) }),
@@ -334,7 +335,10 @@ const head = (id: string, n: number) => id.split("/").slice(0, n);
 /** A client's draft verdicts: its own Marketing service, which checks its approver. */
 const CLIENT_ONE: Record<string, (id: string, input: Input) => [string, Input]> = {
   "marketing/approveDraft": (id) => ["marketing/approveDraft", { ids: [bare(id)] }],
-  "marketing/rejectDraft": (id) => ["marketing/rejectDraft", { ids: [bare(id)] }],
+  "marketing/rejectDraft": (id, { reason, note }) => [
+    "marketing/rejectDraft",
+    { ids: [bare(id)], reason, note },
+  ],
   "marketing/redraft": (id, { note }) => ["marketing/redraft", { draftId: bare(id), note }],
 };
 /** Head actions that are another handler with something added. */

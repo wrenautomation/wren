@@ -4,6 +4,7 @@
  * whose media is the rendered file on the Mac, approved to go at once, private. The desk (the Mac)
  * reads the file from its own disk, so nothing uploads without his click.
  */
+import { recordDraft } from "@wren/core/draft-record";
 import { date, defineRecord, link, number, type State, status, text } from "@wren/core/records";
 import { atomic, type Queryable } from "@wren/db";
 import { keepSegments, onCut, reviewCuts } from "@wren/studio/cuts";
@@ -155,6 +156,7 @@ export async function approveVideo(
         })
         .returning({ id: contentDrafts.id });
       if (!d) throw new Error("insert returned no draft");
+      await keepUpload(tx, d.id, { video: id, short: o.short, text: body, title, now });
       ideaId = idea.id;
       ytId = d.id;
     }
@@ -190,8 +192,57 @@ export async function approveVideo(
       })
       .returning({ id: contentDrafts.id });
     if (!r) throw new Error("insert returned no draft");
+    await keepUpload(tx, r.id, {
+      video: id,
+      short: o.short,
+      text: caption,
+      title,
+      now,
+      wait: true,
+    });
     return { ...out, reel: { id: r.id, again: false } };
   });
+}
+
+/**
+ * A video's upload draft in the draft record: its words, from the video's own (`video:<id>` keeps
+ * their versions), and his yes unless it waits for one in To approve (a Reel).
+ */
+async function keepUpload(
+  db: Queryable,
+  draftId: string,
+  o: {
+    video: number;
+    short?: number | undefined;
+    text: string;
+    title: string;
+    now: Date;
+    wait?: boolean;
+  },
+) {
+  const meta = { video: o.video, ...(o.short ? { short: o.short } : {}) };
+  const item = `draft:${draftId}`;
+  await recordDraft(db, {
+    item,
+    kind: "video",
+    platform: o.wait ? "instagram" : "youtube",
+    event: "generated",
+    via: "wren",
+    text: o.text,
+    title: o.title,
+    meta,
+    at: o.now,
+  });
+  if (!o.wait)
+    await recordDraft(db, {
+      item,
+      kind: "video",
+      platform: "youtube",
+      event: "approved",
+      via: "person",
+      meta,
+      at: o.now,
+    });
 }
 
 /** The full-size Short in the media bucket, for its Reel: `wren video render` uploads it. */

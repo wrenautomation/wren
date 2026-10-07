@@ -6,6 +6,7 @@
  * Each call reads the `outbound-copy` SOP and his last 5 DM edits (content desk, 6).
  */
 import { editsFor, keepSentEdit } from "@wren/core/ask";
+import { llmOf, recordDraft } from "@wren/core/draft-record";
 import type { Queryable } from "@wren/db";
 import { completeAndParse, type LlmClient } from "@wren/llm";
 import { and, desc, eq, gt, or, sql } from "drizzle-orm";
@@ -135,6 +136,10 @@ export async function dmContext(db: Queryable, contactId: number) {
     .map((m) => `${m.direction === "in" ? "Them" : "Me"}: ${m.body.trim()}`);
   return {
     contact: c,
+    /** The Inbox's kind: a first message to an accepted invite, or a reply on a thread. */
+    record: (c.connectedAt && !thread.some((m) => m.direction === "in" || m.kind !== "connect")
+      ? "invite"
+      : "dm") as "dm" | "invite",
     lastIn: [...thread].reverse().find((m) => m.direction === "in")?.id ?? null,
     prompt: `About them:\n${facts.join("\n")}\n\nThread, oldest first:\n${lines.join("\n") || "(none yet)"}`,
   };
@@ -151,7 +156,7 @@ export async function draftDm(
   contactId: number,
   o: { sender: string; guide?: DmGuide; now: Date },
 ): Promise<string | null> {
-  const { contact, lastIn, prompt } = await dmContext(db, contactId);
+  const { contact, record, lastIn, prompt } = await dmContext(db, contactId);
   const [guide, edits] = await Promise.all([
     o.guide ? o.guide(contact.platform) : "",
     editsFor(db, DM_RECORDS),
@@ -167,6 +172,18 @@ export async function draftDm(
     .update(reachContacts)
     .set({ draft, draftAt: o.now, draftFor: lastIn })
     .where(eq(reachContacts.id, contact.id));
+  if (draft)
+    await recordDraft(db, {
+      item: `${record}:${contact.id}`,
+      platform: contact.platform,
+      event: "generated",
+      via: "model",
+      by: llm.name,
+      text: draft,
+      llm: llmOf(out, "reach.dm_draft", { answering: lastIn }),
+      runId: out.call?.run_id ?? null,
+      at: o.now,
+    });
   return draft;
 }
 
@@ -184,14 +201,26 @@ export async function queueDraft(
 ) {
   const words = (body ?? contact.draft ?? "").trim();
   if (!words) throw new ReachRefusal("the message is empty");
+  const { record } = await dmContext(db, contact.id);
   const msg = await queueManual(db, { contact, body: words, subject, now });
   await keepSentEdit(db, {
-    record: "dm",
+    record,
     id: String(contact.id),
     by,
     before: contact.draft,
     after: words,
   });
   await db.update(reachContacts).set({ draft: null }).where(eq(reachContacts.id, contact.id));
+  // Handed to the sender: the words are final here, the message row says when they left.
+  await recordDraft(db, {
+    item: `${record}:${contact.id}`,
+    platform: contact.platform,
+    event: "sent",
+    via: "person",
+    by,
+    text: words,
+    meta: { message: msg.id },
+    at: now,
+  });
   return msg;
 }

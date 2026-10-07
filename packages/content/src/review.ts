@@ -4,6 +4,7 @@
  * what goes out is always something a person approved as written.
  */
 import type { Platform } from "@wren/core/content";
+import { type DraftVia, type RejectReason, recordDraft } from "@wren/core/draft-record";
 import type { Queryable } from "@wren/db";
 import { and, asc, desc, eq, gte, inArray, type SQL } from "drizzle-orm";
 import { missingExtra, PLATFORM_SPECS } from "./platforms.js";
@@ -69,6 +70,25 @@ async function moveAll(
  * (`slots`), else the defaults.
  */
 export async function approveDrafts(
+  db: Queryable,
+  ids: readonly string[],
+  o: { now: Date; at?: Date | null; zone?: string; asap?: boolean; slots?: Slots; by?: string },
+): Promise<ContentDraft[]> {
+  const rows = await approveAll(db, ids, o);
+  for (const r of rows)
+    await recordDraft(db, {
+      item: `draft:${r.id}`,
+      platform: r.platform,
+      event: "approved",
+      via: "person",
+      by: o.by ?? null,
+      slot: r.scheduledFor,
+      at: o.now,
+    });
+  return rows;
+}
+
+async function approveAll(
   db: Queryable,
   ids: readonly string[],
   o: { now: Date; at?: Date | null; zone?: string; asap?: boolean; slots?: Slots },
@@ -168,8 +188,31 @@ export async function setExtra(
   return row;
 }
 
-export function rejectDrafts(db: Queryable, ids: readonly string[]): Promise<ContentDraft[]> {
-  return moveAll(db, ids, REJECTABLE, { status: "rejected", scheduledFor: null }, "reject");
+/** No, with an optional quick pick and note for the draft record. */
+export async function rejectDrafts(
+  db: Queryable,
+  ids: readonly string[],
+  o: { by?: string; reason?: RejectReason | null; note?: string | null } = {},
+): Promise<ContentDraft[]> {
+  const rows = await moveAll(
+    db,
+    ids,
+    REJECTABLE,
+    { status: "rejected", scheduledFor: null },
+    "reject",
+  );
+  for (const r of rows)
+    await recordDraft(db, {
+      item: `draft:${r.id}`,
+      platform: r.platform,
+      event: "rejected",
+      via: "person",
+      by: o.by ?? null,
+      text: r.text,
+      reason: o.reason ?? null,
+      note: o.note ?? null,
+    });
+  return rows;
 }
 
 /**
@@ -180,6 +223,8 @@ export async function editDraft(
   db: Queryable,
   id: string,
   change: { text: string; title?: string | null },
+  /** Who, for the draft record; left out when the caller keeps the step itself (`writeDraft`). */
+  who?: { by: string; via?: DraftVia },
 ): Promise<ContentDraft> {
   const current = await getDraft(db, id);
   if (!EDITABLE.includes(current.status))
@@ -201,6 +246,16 @@ export async function editDraft(
     .where(eq(contentDrafts.id, id))
     .returning();
   if (!row) throw new Error(`no draft ${id}`);
+  if (who)
+    await recordDraft(db, {
+      item: `draft:${id}`,
+      platform: row.platform,
+      event: "edited",
+      via: who.via ?? "person",
+      by: who.by,
+      text: row.text,
+      title: row.title,
+    });
   return row;
 }
 

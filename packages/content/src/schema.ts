@@ -166,6 +166,8 @@ export const contentMetrics = pgTable(
     reactions: integer("reactions").notNull(),
     comments: integer("comments").notNull(),
     shares: integer("shares").notNull(),
+    /** Follows the post brought, where the platform says (Instagram); null where it can't. */
+    follows: integer("follows"),
     fetchedWith: varchar("fetched_with", { length: 16 }).notNull(),
   },
   (t) => [

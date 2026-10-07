@@ -1,0 +1,151 @@
+/**
+ * The training record (designs/2026-10-07-training-record.md): every draft of every kind keeps one
+ * `draft_events` row per step, written where the draft changes hands. Who (the model, William,
+ * Claude at his ask), the words, the time; a model's first version keeps what it was asked.
+ * Append-only: nothing here updates or deletes a row.
+ */
+import type { Queryable } from "@wren/db";
+import { asc, eq, sql } from "drizzle-orm";
+import { REJECT_NOTE_MAX, REJECT_REASONS, type RejectReason } from "./reject-reasons.js";
+import {
+  DRAFT_RECORD_KINDS,
+  type DraftEvent,
+  type DraftEventRow,
+  type DraftRecordKind,
+  type DraftVia,
+  draftEvents,
+} from "./schema.js";
+
+export {
+  REJECT_LABELS,
+  REJECT_NOTE_MAX,
+  REJECT_REASONS,
+  type RejectReason,
+} from "./reject-reasons.js";
+export {
+  DRAFT_EVENTS,
+  DRAFT_RECORD_KINDS,
+  DRAFT_VIAS,
+  type DraftEvent,
+  type DraftEventRow,
+  type DraftRecordKind,
+  type DraftVia,
+} from "./schema.js";
+
+/** A reject's reason and note from any input: unknown picks refused, the note cut short. */
+export function rejectWhy(input: { reason?: unknown; note?: unknown }): {
+  reason: RejectReason | null;
+  note: string | null;
+} {
+  const r = typeof input.reason === "string" ? input.reason.trim() : "";
+  if (r && !(REJECT_REASONS as readonly string[]).includes(r))
+    throw new Error(`reason must be one of ${REJECT_REASONS.join(", ")}`);
+  const n = typeof input.note === "string" ? input.note.trim().slice(0, REJECT_NOTE_MAX) : "";
+  return { reason: (r || null) as RejectReason | null, note: n || null };
+}
+
+/** Each Inbox prefix's kind: `draft:` is a post. */
+const PREFIX_KIND: Readonly<Record<string, DraftRecordKind>> = {
+  draft: "post",
+  comment: "comment",
+  thread: "thread",
+  dm: "dm",
+  invite: "invite",
+  video: "video",
+};
+export const kindOfItem = (item: string): DraftRecordKind => {
+  const k = PREFIX_KIND[item.slice(0, item.indexOf(":"))];
+  if (!k) throw new Error(`no draft kind for ${item}`);
+  return k;
+};
+/** Kinds whose item holds one draft after another: a DM contact gets one per reply. */
+const ROUNDS: ReadonlySet<DraftRecordKind> = new Set(["dm", "invite"]);
+
+export interface DraftStep {
+  item: string;
+  kind?: DraftRecordKind;
+  platform?: string | null;
+  event: DraftEvent;
+  via: DraftVia;
+  by?: string | null;
+  text?: string | null;
+  title?: string | null;
+  ask?: string | null;
+  reason?: RejectReason | null;
+  note?: string | null;
+  llm?: Record<string, unknown> | null;
+  slot?: Date | null;
+  externalId?: string | null;
+  url?: string | null;
+  meta?: Record<string, unknown>;
+  runId?: string | null;
+  /** The backfill's key; a step already kept under it is skipped. */
+  ref?: string | null;
+  /** Set by the backfill, which knows the rounds; else counted from the item's last step. */
+  round?: number;
+  at?: Date;
+}
+
+/**
+ * Keep one step. The round is the item's last one, or the next for a kind with rounds when this
+ * step opens a new draft: a model's draft, or words written after the last was sent or dropped.
+ */
+export async function recordDraft(db: Queryable, s: DraftStep): Promise<void> {
+  // Left out, an item keeps the kind it started as: a video's upload is a `draft:` too.
+  const kind = s.kind ?? kindOfItem(s.item);
+  const kindSql = s.kind
+    ? sql`${s.kind}`
+    : sql`coalesce((select k.kind from draft_events k where k.item = ${s.item}
+        order by k.id limit 1), ${kind})`;
+  const opens = ROUNDS.has(kind)
+    ? s.event === "generated"
+      ? sql`true`
+      : s.event === "edited"
+        ? sql`l.event in ('sent', 'rejected')`
+        : sql`false`
+    : sql`false`;
+  const round =
+    s.round !== undefined
+      ? sql`${s.round}`
+      : sql`coalesce((select case when ${opens} then l.round + 1 else l.round end
+          from draft_events l where l.item = ${s.item} order by l.at desc, l.id desc limit 1), 1)`;
+  const json = (v: unknown) => (v == null ? null : JSON.stringify(v));
+  await db.execute(sql`
+    insert into draft_events (item, round, kind, platform, event, via, by, text, title, ask,
+      reason, note, llm, slot, external_id, url, meta, run_id, ref, at)
+    select ${s.item}, ${round}, ${kindSql}, ${s.platform ?? null}, ${s.event}, ${s.via},
+      ${s.by ?? null}, ${s.text ?? null}, ${s.title ?? null}, ${s.ask ?? null}, ${s.reason ?? null},
+      ${s.note ?? null}, ${json(s.llm)}::jsonb, ${s.slot ? s.slot.toISOString() : null}::timestamptz,
+      ${s.externalId ?? null}, ${s.url ?? null}, ${json(s.meta ?? {})}::jsonb, ${s.runId ?? null}::uuid,
+      ${s.ref ?? null}, coalesce(${s.at ? s.at.toISOString() : null}::timestamptz, now())
+    on conflict (ref) do nothing`);
+}
+
+/** What a model's draft was written from, as a `generated` step's `llm`. */
+export interface AskedModel {
+  request: { prompt: string; system: string | null; maxTokens: number } | null;
+  call: { model: string; provider: string; usage: unknown } | null;
+  rawText: string | null;
+}
+export const llmOf = (o: AskedModel, stage: string, extra: Record<string, unknown> = {}) => ({
+  stage,
+  model: o.call?.model ?? null,
+  provider: o.call?.provider ?? null,
+  system: o.request?.system ?? null,
+  prompt: o.request?.prompt ?? null,
+  max_tokens: o.request?.maxTokens ?? null,
+  usage: o.call?.usage ?? null,
+  raw_text: o.rawText,
+  ...extra,
+});
+
+/** One item's steps, oldest first. */
+export const draftSteps = (db: Queryable, item: string): Promise<DraftEventRow[]> =>
+  db
+    .select()
+    .from(draftEvents)
+    .where(eq(draftEvents.item, item))
+    .orderBy(asc(draftEvents.at), asc(draftEvents.id));
+
+export const isDraftKind = (k: string): k is DraftRecordKind =>
+  (DRAFT_RECORD_KINDS as readonly string[]).includes(k);

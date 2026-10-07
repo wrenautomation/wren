@@ -23,6 +23,13 @@ export interface Envelope {
   [key: string]: unknown;
 }
 
+/** What the model was asked: kept beside a draft so its record says what it was written from. */
+export interface StageRequest {
+  prompt: string;
+  system: string | null;
+  maxTokens: number;
+}
+
 /** What one completion produced, in the vocabulary the enrichment envelope stores. */
 export class Outcome<T> {
   constructor(
@@ -32,6 +39,8 @@ export class Outcome<T> {
     readonly rawText: string | null,
     readonly api: Record<string, unknown> | null,
     readonly call: CallRecord,
+    /** Not in `envelope()`: enrichments don't keep prompts; a draft's record does. */
+    readonly request: StageRequest | null = null,
   ) {}
   get ok(): boolean {
     return this.parsed !== null;
@@ -67,6 +76,7 @@ export async function completeAndParse<T>(
   opts: StageOptions,
 ): Promise<Outcome<T>> {
   const runId = opts.runId ?? null;
+  const request: StageRequest = { prompt, system: opts.system ?? null, maxTokens: opts.maxTokens };
   const span = bestEffortSpan(opts.tracer ?? NULL_TRACER, opts.name ?? "completion", {
     prompt,
     llm,
@@ -87,6 +97,7 @@ export async function completeAndParse<T>(
         null,
         null,
         recordFor(llm, null, { runId, rejected: true }),
+        request,
       );
       span.end(rejection);
       return rejection;
@@ -103,6 +114,7 @@ export async function completeAndParse<T>(
     response.text,
     response.raw,
     recordFor(llm, response, { runId }),
+    request,
   );
   span.end(outcome);
   return outcome;

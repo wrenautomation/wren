@@ -3,7 +3,7 @@ type: object
 cluster: content
 universe: live
 status: verified
-verified: 2026-09-28 @ 83459e9
+verified: 2026-10-07 @ 3781504 (+ follows)
 entity: packages/content/src/schema.ts:127
 ---
 
@@ -17,7 +17,7 @@ One snapshot per post per day for its first 30 days (`metrics.ts:15`, `:17`), so
 
 ## Shape
 
-- `draft_id` (cascade), `as_of`, `views`, `reactions`, `comments`, `shares`, `fetched_with` (`schema.ts:131`–`140`)
+- `draft_id` (cascade), `as_of`, `views`, `reactions`, `comments`, `shares`, `follows` (null where the platform gives none: Instagram only today), `fetched_with` (`schema.ts:131`–`171`)
 
 Citations: `packages/content/src/schema.ts:127`
 

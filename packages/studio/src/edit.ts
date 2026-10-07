@@ -2,10 +2,12 @@
  * The edit row: add (ingest), read, write (checked, a `runs` row each, like `wren drafts set`), and
  * the cut knobs in `wren_settings` under component `studio` (`{ cuts: {...} }`).
  */
+
 import { mkdir, readdir } from "node:fs/promises";
 import { basename, dirname, extname, join, resolve } from "node:path";
 import { finishRun, openRun, recordedRun } from "@wren/core";
 import { settingsFor, setWrenSettings } from "@wren/core/clients";
+import { recordDraft } from "@wren/core/draft-record";
 import { atomic, type Queryable } from "@wren/db";
 import { eq } from "drizzle-orm";
 import { z } from "zod";
@@ -263,7 +265,48 @@ export async function setEdit(
         })
       ).id;
     await finishRun(tx, run, { ...o.stats, fields: Object.keys(patch), before });
+    if (edit && (edit.title !== now.title || edit.description !== now.description))
+      // An open run with no command is an Ask on the page: Claude's words.
+      await keepWords(tx, now, edit, { ...o, run, asked: !!o.run && !o.command });
     return { run, edit: edit as VideoEdit };
+  });
+}
+
+/**
+ * A title or description change in the draft record (`video:<id>`): the words it started from
+ * once, then each version, Claude's when an Ask wrote it.
+ */
+async function keepWords(
+  db: Queryable,
+  before: VideoEdit,
+  after: VideoEdit,
+  o: { by: string; command?: string; run: string; asked: boolean },
+) {
+  const item = `video:${before.id}`;
+  if (before.title || before.description)
+    await recordDraft(db, {
+      item,
+      kind: "video",
+      platform: "youtube",
+      event: "generated",
+      via: "wren",
+      by: "video add",
+      text: before.description,
+      title: before.title,
+      ref: `${item}:first`,
+      at: before.createdAt,
+    });
+  await recordDraft(db, {
+    item,
+    kind: "video",
+    platform: "youtube",
+    event: "edited",
+    via: o.asked ? "claude" : "person",
+    by: o.by,
+    text: after.description,
+    title: after.title,
+    meta: o.command === "video undo" ? { undo: true } : {},
+    runId: o.run,
   });
 }
 

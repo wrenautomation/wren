@@ -48,6 +48,7 @@ import {
   SCHEDULER_KEY,
 } from "@wren/content/restate";
 import { isStoredMedia, isUrl, type Media, PLATFORMS, type Platform } from "@wren/core/content";
+import { REJECT_NOTE_MAX, REJECT_REASONS, rejectWhy } from "@wren/core/draft-record";
 import type { Db } from "@wren/db";
 import type { Command } from "commander";
 
@@ -265,16 +266,23 @@ export function registerContent(program: Command, withDb: WithDb, settings: Sett
           at,
           slots,
           zone: settings.sendTimezone,
+          by: "cli",
           ...(o.now ? { asap: true } : {}),
         }),
       );
       for (const d of rows) printDraftRow(d);
     });
 
-  content.command("reject <draftIds...>").action(async (ids: string[]) => {
-    const rows = await withDb((db) => rejectDrafts(db, ids));
-    for (const d of rows) printDraftRow(d);
-  });
+  content
+    .command("reject <draftIds...>")
+    .description("Reject drafts; why goes in the draft record")
+    .option("--reason <pick>", `quick pick: ${REJECT_REASONS.join(", ")}`)
+    .option("--note <text>", `why, in a few words (${REJECT_NOTE_MAX} characters)`)
+    .action(async (ids: string[], o: { reason?: string; note?: string }) => {
+      const why = rejectWhy(o);
+      const rows = await withDb((db) => rejectDrafts(db, ids, { by: "cli", ...why }));
+      for (const d of rows) printDraftRow(d);
+    });
 
   content
     .command("edit <draftId> [file]")
@@ -283,7 +291,12 @@ export function registerContent(program: Command, withDb: WithDb, settings: Sett
     .action(async (id: string, file: string | undefined, o: { title?: string }) => {
       const text = await readText(file);
       const row = await withDb((db) =>
-        editDraft(db, id, { text, ...(o.title !== undefined ? { title: o.title } : {}) }),
+        editDraft(
+          db,
+          id,
+          { text, ...(o.title !== undefined ? { title: o.title } : {}) },
+          { by: "cli" },
+        ),
       );
       printDraftRow(row);
     });

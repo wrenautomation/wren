@@ -3,7 +3,8 @@
  * as one funnel, in Wren's workspace. Records and templates only; the console serves them.
  */
 import { KEYWORDS } from "@wren/channel-sms/templates";
-import type { Action } from "@wren/ui";
+import { REJECT_LABELS, REJECT_NOTE_MAX, REJECT_REASONS } from "@wren/core/reject-reasons";
+import type { Action, FormField } from "@wren/ui";
 import type { DayPage, ListPage, Module, PageAcross } from "../../module.js";
 import { threadExtras } from "../texts/index.js";
 import { REPLY_ACTIONS, REPLY_WAITING } from "../wren/replies.js";
@@ -32,6 +33,19 @@ const POST_ACTIONS: Action[] = [
 
 const WAITING = { state: ["draft", "failed"] };
 const OPEN = { state: ["draft", "failed", "approved"] };
+/** A reject's why, both optional: a quick pick and a few words. */
+const REJECT_FORM: readonly FormField[] = [
+  {
+    field: "reason",
+    label: "Why",
+    type: "select",
+    optional: true,
+    options: REJECT_REASONS,
+    labels: REJECT_LABELS,
+  },
+  { field: "note", label: "Note", optional: true, hint: `Up to ${REJECT_NOTE_MAX} characters` },
+];
+
 const DRAFT_ACTIONS: Action[] = [
   {
     id: "marketing.approveDraft",
@@ -56,6 +70,9 @@ const DRAFT_ACTIONS: Action[] = [
     label: "Reject",
     handler: "marketing/rejectDraft",
     confirm: "Turn this draft down?",
+    // Why is optional: it teaches later drafts.
+    form: REJECT_FORM,
+    each: true,
     key: "r",
     bulk: true,
     when: OPEN,

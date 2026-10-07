@@ -8,11 +8,12 @@
 
 import { warmupOf } from "@wren/channel-reddit";
 import { editsFor } from "@wren/core/ask";
+import { llmOf, type RejectReason, recordDraft } from "@wren/core/draft-record";
 import { isVendorStop } from "@wren/core/metered";
 import type { CommentIn, OutreachChannel } from "@wren/core/outreach";
 import type { SpineEvent, Step } from "@wren/core/spine";
 import type { Db, Queryable } from "@wren/db";
-import { completeAndParse, type LlmClient } from "@wren/llm";
+import { completeAndParse, type LlmClient, type Outcome } from "@wren/llm";
 import { and, eq, inArray, ne } from "drizzle-orm";
 import { z } from "zod";
 import { addProspects, contactByHandle } from "./contacts.js";
@@ -157,6 +158,7 @@ export async function sortComment(
   let sort: CommentSort | null = askedInWords(c.body) ? "asked" : null;
   let why = sort ? "Asked in words" : "No model is set, so it waits unsorted.";
   let draft: string | null = null;
+  let out: Outcome<z.infer<typeof ANSWER>> | null = null;
   if (llm) {
     // The SOPs, then his last 5 edits of comment answers (content desk, 6).
     const [sops, edits] = await Promise.all([
@@ -164,7 +166,7 @@ export async function sortComment(
       editsFor(db, ["comment"]),
     ]);
     // A client's model gate saying no leaves it to the words, as with no model.
-    const out = await completeAndParse(llm, promptFor(c), ANSWER, {
+    out = await completeAndParse(llm, promptFor(c), ANSWER, {
       maxTokens: 300,
       system: systemFor(c.platform, [sops.trim(), edits].filter(Boolean).join("\n\n")),
       name: "comments.sort",
@@ -183,10 +185,23 @@ export async function sortComment(
       if (sort === "asked" || sort === "question") draft = out.parsed.answer.trim() || null;
     } else if (!sort) why = "The model's answer didn't read, so it waits unsorted.";
   }
-  await db
+  const [kept] = await db
     .update(comments)
     .set({ sort, why, draft, state: "waiting" })
-    .where(and(eq(comments.id, id), eq(comments.state, "new")));
+    .where(and(eq(comments.id, id), eq(comments.state, "new")))
+    .returning({ id: comments.id });
+  if (kept && draft && out?.parsed && llm)
+    await recordDraft(db, {
+      item: `comment:${id}`,
+      kind: "comment",
+      platform: c.platform,
+      event: "generated",
+      via: "model",
+      by: llm.name,
+      text: draft,
+      llm: llmOf(out, "comments.sort", { sort }),
+      runId: out.call?.run_id ?? null,
+    });
   return sort;
 }
 
@@ -270,12 +285,26 @@ export function checkThread(authors: readonly string[], others: readonly string[
 export async function markAnswered(
   db: Queryable,
   id: number,
-  r: { body: string; ref: string | null; now: Date },
+  r: { body: string; ref: string | null; now: Date; by?: string },
 ) {
-  await db
+  const [c] = await db
     .update(comments)
     .set({ state: "answered", answer: r.body, answerRef: r.ref, answeredAt: r.now })
-    .where(eq(comments.id, id));
+    .where(eq(comments.id, id))
+    .returning({ platform: comments.platform });
+  if (c)
+    await recordDraft(db, {
+      item: `comment:${id}`,
+      kind: "comment",
+      platform: c.platform,
+      event: "sent",
+      via: "person",
+      by: r.by ?? null,
+      text: r.body,
+      externalId: r.ref,
+      ref: `sent:comment:${id}`,
+      at: r.now,
+    });
 }
 
 /** The answer, end to end, for the CLI and tests; the desk journals the same steps one by one. */
@@ -357,9 +386,27 @@ export async function dmCommenter(
   return { contactId: contact.id, messageId: msg.id };
 }
 
-export async function dropComment(db: Queryable, id: number): Promise<void> {
-  await db
+export async function dropComment(
+  db: Queryable,
+  id: number,
+  o: { by?: string; reason?: RejectReason | null; note?: string | null } = {},
+): Promise<void> {
+  const [c] = await db
     .update(comments)
     .set({ state: "dropped" })
-    .where(and(eq(comments.id, id), ne(comments.state, "answered")));
+    .where(and(eq(comments.id, id), ne(comments.state, "answered"), ne(comments.state, "dropped")))
+    .returning({ platform: comments.platform, draft: comments.draft });
+  // Only a drafted answer is a no to words; a plain dismiss teaches nothing.
+  if (c?.draft)
+    await recordDraft(db, {
+      item: `comment:${id}`,
+      kind: "comment",
+      platform: c.platform,
+      event: "rejected",
+      via: "person",
+      by: o.by ?? null,
+      text: c.draft,
+      reason: o.reason ?? null,
+      note: o.note ?? null,
+    });
 }

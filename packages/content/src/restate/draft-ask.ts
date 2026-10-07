@@ -129,12 +129,20 @@ export function makeDraftAsk(db: Db) {
             const d = await readDraft(db, item).catch(() => null);
             const live = await livePrompt(db, DRAFT_ASK_REF);
             const prompt = d ? askPrompt(d, a, live) : { error: "the draft is gone" };
-            return { item, by: a.by, before: d?.draft ?? null, prompt, version: live.version };
+            return {
+              item,
+              by: a.by,
+              message: a.message,
+              before: d?.draft ?? null,
+              prompt,
+              version: live.version,
+            };
           });
           if (!asked) return;
           const fail = (error: string) =>
             ctx.run("save", () => finishRun(db, req.id, { error: error.slice(0, 500) }));
           if ("error" in asked.prompt) return void (await fail(asked.prompt.error));
+          const given = asked.prompt;
           let out: Awaited<ReturnType<ClaudeService["ask"]>>;
           try {
             out = await ctx.serviceClient<ClaudeService>(CLAUDE).ask({
@@ -158,6 +166,14 @@ export function makeDraftAsk(db: Db) {
               expect: asked.before,
               run: req.id,
               stats: meta,
+              ask: asked.message,
+              llm: {
+                stage: COMMAND,
+                model: out.model,
+                system: given.system,
+                prompt: given.question,
+                version: asked.version,
+              },
             }).catch((err: Error) =>
               finishRun(db, req.id, { ...meta, error: `Not written: ${err.message}` }),
             );

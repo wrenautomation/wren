@@ -9,6 +9,7 @@
 import * as restate from "@restatedev/restate-sdk";
 import { mayApprove } from "@wren/core/access";
 import type { Client } from "@wren/core/clients";
+import { REJECT_REASONS, rejectWhy } from "@wren/core/draft-record";
 import {
   MARKETING_CONSOLE_APPS,
   MARKETING_CONSOLE_ROUTES,
@@ -54,6 +55,10 @@ export interface MarketingConsoleDeps {
 export interface DraftsRequest extends PortalRequest {
   /** Draft ids, as the record shows them. */
   ids: string[];
+}
+export interface RejectRequest extends DraftsRequest {
+  reason?: string | null;
+  note?: string | null;
 }
 export interface RedraftRequest extends PortalRequest {
   draftId: string;
@@ -115,6 +120,17 @@ const IDS = {
     ids: z.array(z.union([z.string(), z.number()])).describe("Draft ids"),
   }),
 };
+const REJECT = {
+  input: z.looseObject({
+    ...PORTAL_FIELDS,
+    ids: z.array(z.union([z.string(), z.number()])).describe("Draft ids"),
+    reason: z
+      .string()
+      .nullish()
+      .describe(`Why, as a quick pick: ${REJECT_REASONS.join(", ")}`),
+    note: z.string().nullish().describe("Why, in a few words"),
+  }),
+};
 
 /** The desk's refusals (not waiting, no model, no About) are the viewer's answer. */
 async function desk<T>(go: () => Promise<T>): Promise<T> {
@@ -157,15 +173,21 @@ export function makeMarketingConsole(deps: MarketingConsoleDeps) {
         answer(async () => {
           const ids = idsOf(req.ids);
           const key = await ctx.run("check", () => answer(() => api.deciding(req)));
-          return desk(() => deskOf(ctx, key).approve({ ids }));
+          return desk(() => deskOf(ctx, key).approve({ ids, viewer: req.viewer }));
         }),
       ),
-      /** No on the client's drafts. */
-      rejectDraft: serviceHandler(IDS, (ctx: restate.Context, req: DraftsRequest) =>
+      /** No on the client's drafts, with an optional why for the draft record. */
+      rejectDraft: serviceHandler(REJECT, (ctx: restate.Context, req: RejectRequest) =>
         answer(async () => {
           const ids = idsOf(req.ids);
+          let why: ReturnType<typeof rejectWhy>;
+          try {
+            why = rejectWhy(req);
+          } catch (err) {
+            throw new PortalRefusal((err as Error).message, 400);
+          }
           const key = await ctx.run("check", () => answer(() => api.deciding(req)));
-          return desk(() => deskOf(ctx, key).reject({ ids }));
+          return desk(() => deskOf(ctx, key).reject({ ids, ...why, viewer: req.viewer }));
         }),
       ),
       /** Rewrite one draft from the note, on the client's own model gate. */

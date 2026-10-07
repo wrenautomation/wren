@@ -97,6 +97,8 @@ export interface Metrics {
   reactions: number;
   comments: number;
   shares: number;
+  /** Follows the post brought; absent where the platform doesn't say (all but Instagram). */
+  follows?: number | null;
   asOf: string;
   fetchedWith: FetchedWith;
 }

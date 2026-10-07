@@ -24,6 +24,7 @@ import { finishRun, openRun } from "@wren/core";
 import { byOf, keepSentEdit } from "@wren/core/ask";
 import { sendsOn } from "@wren/core/clients";
 import type { Platform as ContentPlatform, SiteClient } from "@wren/core/content";
+import { rejectWhy } from "@wren/core/draft-record";
 import { isVendorStop, meteredModel, meteredSites } from "@wren/core/metered";
 import type { Notifier } from "@wren/core/notify";
 import type { Found, OutreachChannel, Profile } from "@wren/core/outreach";
@@ -709,6 +710,14 @@ const REPLY = CONTACT.extend({
 });
 const STATS = z.looseObject({ platform: PLATFORM.nullish(), days: z.number().nullish() }).nullish();
 const COMMENT = z.looseObject({ id: z.number() });
+/** A drop's optional why (quick pick, note) for the draft record; a bad pick is the caller's. */
+export const terminalWhy = (req: { reason?: unknown; note?: unknown }) => {
+  try {
+    return rejectWhy(req);
+  } catch (err) {
+    throw new restate.TerminalError((err as Error).message, { errorCode: 400 });
+  }
+};
 const ANSWER = COMMENT.extend({
   body: z.string().nullish().describe("The words; the console leaves an untouched draft out"),
 });
@@ -1002,7 +1011,6 @@ export function makeReachDesk(deps: ReachDeps) {
           // Answered, and words that differ from the draft kept as his edit.
           const answered = (ref: string | null) =>
             ctx.run("answered", async () => {
-              await markAnswered(deps.db, req.id, { body, ref, now });
               await keepSentEdit(deps.db, {
                 record: "comment",
                 id: String(req.id),
@@ -1010,6 +1018,7 @@ export function makeReachDesk(deps: ReachDeps) {
                 before: plan.comment.draft,
                 after: body,
               });
+              await markAnswered(deps.db, req.id, { body, ref, now, by: byOf(req) });
             });
           if (!plan.account) {
             // On our own post: the content channel answers (designs/2026-10-06-social-inbox.md).
@@ -1046,8 +1055,9 @@ export function makeReachDesk(deps: ReachDeps) {
       ),
       dropComment: serviceHandler(
         { input: COMMENT },
-        async (ctx: restate.Context, req: { id: number }): Promise<void> => {
-          await ctx.run("drop", () => dropComment(deps.db, req.id));
+        async (ctx: restate.Context, req: { id: number; reason?: unknown; note?: unknown }) => {
+          const why = terminalWhy(req);
+          await ctx.run("drop", () => dropComment(deps.db, req.id, { by: byOf(req), ...why }));
         },
       ),
       /** Withdraw one pending LinkedIn invite now. It reads the profile first. */

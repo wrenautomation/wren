@@ -51,12 +51,15 @@ describe("instagram content channel", () => {
           },
         ],
       }),
-      "GET /p1/insights": () => ({
-        data: [
-          { name: "reach", values: [{ value: 40 }] },
-          { name: "likes", values: [{ value: 4 }] },
-        ],
-      }),
+      "GET /p1/insights": (i) =>
+        (i as { metric?: string }).metric === "follows"
+          ? { data: [{ name: "follows", values: [{ value: 2 }] }] }
+          : {
+              data: [
+                { name: "reach", values: [{ value: 40 }] },
+                { name: "likes", values: [{ value: 4 }] },
+              ],
+            },
       "GET /p1/comments": () => ({
         data: [{ id: "c9", text: "nice", username: "bob", timestamp: "2026-09-22T11:00:00+0000" }],
       }),
@@ -77,7 +80,12 @@ describe("instagram content channel", () => {
     });
     expect(slept).toEqual([15_000]);
     expect((await ch.list()).map((r) => r.url)).toEqual(["https://www.instagram.com/reel/x/"]);
-    expect(await ch.metrics("p1")).toMatchObject({ views: 40, reactions: 4, comments: 0 });
+    expect(await ch.metrics("p1")).toMatchObject({
+      views: 40,
+      reactions: 4,
+      comments: 0,
+      follows: 2,
+    });
     expect((await ch.comments("p1")).map((c) => c.author)).toEqual(["bob"]);
     await ch.reply?.("c9", "ty");
     expect(calls.filter((c) => c[1] === "/me/accounts")).toHaveLength(1);

@@ -26,7 +26,8 @@ A catalog, not a waterfall. Each row names the cards whose **If you change this*
 | kill switches | [[email/sender-pause]] | [[processes/send-tick]], [[platform/notifier]] |
 | the wire (Gmail) | [[email/transport]] | [[processes/send-tick]], [[email/report]] |
 | a platform's API shape or limits | [[content/platform]] | [[content/draft]], [[processes/content-loop]], `apps/worker/src/services.ts` |
-| drafting, voice, slots | [[content/draft]] | [[content/idea]], [[content/content-metric]], [[content/playbook]], [[processes/content-loop]] |
+| drafting, voice, slots | [[content/draft]] | [[content/idea]], [[content/content-metric]], [[content/playbook]], [[processes/content-loop]], [[content/draft-event]] |
+| a draft's record: who wrote it, reject reasons, training export | [[content/draft-event]] | [[content/draft]], [[content/comment]], [[content/reddit-thread]], `designs/2026-10-07-training-record.md` |
 | comments, activity or followers on our own posts (Marketing → Inbox) | [[content/comment]], [[content/platform]] | `packages/content/src/social/`, `packages/content/src/restate/social.ts`, [[platform/records]], [[platform/loop-object]] |
 | what a record lets a person or Claude edit (`edits`, `changes`, History, Undo, Ask Claude) | [[platform/edits]] | [[platform/records]], [[ledger/run]], `packages/ui/src/edits.tsx` |
 | what a viewer keeps of a list (saved views, last view, columns) and his prefs | [[platform/saved-views]] | [[platform/records]], `packages/ui/src/list-bar.tsx` |

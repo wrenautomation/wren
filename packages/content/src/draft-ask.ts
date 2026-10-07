@@ -10,6 +10,7 @@
 import { finishRun, openRun } from "@wren/core";
 import { type DraftCommand, draftEdits, draftTurns, editsFor } from "@wren/core/ask";
 import type { Platform } from "@wren/core/content";
+import { recordDraft } from "@wren/core/draft-record";
 import { parseKind } from "@wren/core/slots";
 import { type LiveTemplate, promptRef, renderPrompt } from "@wren/core/templates";
 import { defaultSource } from "@wren/core/templates/defaults";
@@ -28,6 +29,7 @@ export type DraftType = (typeof DRAFT_TYPES)[number];
 export interface DraftItem {
   /** What it is, for the prompt: "LinkedIn post", "Reddit comment answer". */
   what: string;
+  platform?: string;
   /** One line for a list: the post's title, who commented. */
   title: string;
   draft: string | null;
@@ -104,6 +106,7 @@ const post: DraftKind = {
     const spec = PLATFORM_SPECS[d.platform];
     return {
       what: `${siteOf(d.platform)} post`,
+      platform: d.platform,
       title: d.title ?? d.idea.slice(0, 80),
       draft: d.text,
       max: spec.maxChars,
@@ -153,6 +156,7 @@ const comment: DraftKind = {
     if (!c) return null;
     return {
       what: `${siteOf(c.platform)} comment answer`,
+      platform: c.platform,
       title: c.author,
       draft: c.draft,
       max: COMMENT_MAX[c.platform] ?? 10_000,
@@ -198,6 +202,7 @@ const thread: DraftKind = {
     if (!t) return null;
     return {
       what: "Reddit comment in a thread",
+      platform: "reddit",
       title: `r/${t.subreddit}: ${t.title}`,
       draft: t.draft,
       max: 10_000,
@@ -259,6 +264,7 @@ const reach = (type: "dm" | "invite"): DraftKind => ({
     if (!c) return null;
     return {
       what: `${siteOf(c.platform)} ${type === "dm" ? "direct message" : "first message after they accepted my invite"}`,
+      platform: c.platform,
       title: c.name ?? c.handle,
       draft: c.draft,
       max: DRAFT_MAX,
@@ -366,6 +372,9 @@ export async function writeDraft(
     argv?: object;
     run?: string;
     stats?: object;
+    /** Claude's write: what he asked, and what Claude was given. */
+    ask?: string;
+    llm?: Record<string, unknown>;
   },
 ) {
   const { kind, record, id } = itemOf(item);
@@ -381,6 +390,20 @@ export async function writeDraft(
       o.run ??
       (await openRun(tx, { command: o.command, argv: { ...o.argv, record, id, by: o.by } })).id;
     await finishRun(tx, run, { ...o.stats, draft: text, before: now.draft });
+    // His box emptied is a no; anything else is a new version.
+    const cleared = text === null && o.command === "draft-set";
+    await recordDraft(tx, {
+      item,
+      platform: now.platform ?? null,
+      event: cleared ? "rejected" : "edited",
+      via: o.command === "draft-ask" ? "claude" : "person",
+      by: o.by,
+      text: cleared ? now.draft : text,
+      ask: o.ask ?? null,
+      llm: o.llm ?? null,
+      meta: o.command === "draft-undo" ? { undo: true } : {},
+      runId: run,
+    });
     return { run, before: now.draft };
   });
 }

@@ -4,6 +4,7 @@
  * passes never publish the same draft; the scheduler is single-writer anyway.
  */
 import type { Published } from "@wren/core/content";
+import { recordDraft } from "@wren/core/draft-record";
 import type { Queryable } from "@wren/db";
 import { and, asc, eq, gt, isNull, lte, or, sql } from "drizzle-orm";
 import { type ContentDraft, contentDrafts } from "./schema.js";
@@ -48,7 +49,7 @@ export async function markPublished(
   id: string,
   published: Published,
 ): Promise<void> {
-  await db
+  const [d] = await db
     .update(contentDrafts)
     .set({
       status: "published",
@@ -57,12 +58,39 @@ export async function markPublished(
       url: published.url,
       error: null,
     })
-    .where(eq(contentDrafts.id, id));
+    .where(eq(contentDrafts.id, id))
+    .returning();
+  // The words as they went out, frozen with the platform's id.
+  if (d)
+    await recordDraft(db, {
+      item: `draft:${id}`,
+      platform: d.platform,
+      event: "sent",
+      via: "wren",
+      by: "scheduler",
+      text: d.text,
+      title: d.title,
+      externalId: published.id,
+      url: published.url,
+      // A journaled step that runs again keeps one.
+      ref: `sent:draft:${id}`,
+      at: new Date(published.publishedAt),
+    });
 }
 
 export async function markFailed(db: Queryable, id: string, error: string): Promise<void> {
-  await db
+  const [d] = await db
     .update(contentDrafts)
     .set({ status: "failed", error: error.slice(0, 1000) })
-    .where(eq(contentDrafts.id, id));
+    .where(eq(contentDrafts.id, id))
+    .returning({ platform: contentDrafts.platform });
+  if (d)
+    await recordDraft(db, {
+      item: `draft:${id}`,
+      platform: d.platform,
+      event: "failed",
+      via: "wren",
+      by: "scheduler",
+      note: error.slice(0, 1000),
+    });
 }

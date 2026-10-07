@@ -13,6 +13,7 @@ import * as restate from "@restatedev/restate-sdk";
 import type { Db, Queryable } from "@wren/db";
 import { and, eq, sql } from "drizzle-orm";
 import { z } from "zod";
+import { recordDraft } from "./draft-record.js";
 import { ASK_COMMAND, askAnswerOf } from "./edits.js";
 import { PortalRefusal, type PortalRequest, type SignedViewer } from "./portal.js";
 import { actor, date, defineRecord, number, status, text } from "./records.js";
@@ -285,6 +286,15 @@ export async function keepSentEdit(
     argv: { record: o.record, id: o.id, by: o.by, sent: true },
   });
   await finishRun(db, run.id, { draft: o.after.trim(), before: o.before });
+  await recordDraft(db, {
+    item: `${o.record}:${o.id}`,
+    event: "edited",
+    via: "person",
+    by: o.by,
+    text: o.after.trim(),
+    meta: { at_send: true },
+    runId: run.id,
+  });
 }
 
 const DRAFT_ANSWER = z.object({ reply: z.string(), draft: z.string().nullable() });

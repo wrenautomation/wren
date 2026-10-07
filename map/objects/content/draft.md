@@ -27,6 +27,7 @@ Citations: `packages/content/src/schema.ts:76`
 
 - **owned-by:** [[content/idea]], [[content/platform]]
 - **owns:** [[content/content-metric]]
+- **recorded in:** [[content/draft-event]] (every step, who, the words)
 - **joins:** [[content/media]] (a stored object as `s3://`), the `Content` service (publish)
 
 ## If you change this
@@ -40,7 +41,7 @@ Citations: `packages/content/src/schema.ts:76`
 |---|---|
 | `ContentDesk.draft/redraft` | writes |
 | `ContentDesk.approveVideo`, `wren video approve` ([[content/video-edit]]) | write an approved, private YouTube draft of a rendered video |
-| `wren content approve/reject/edit`, `ContentDesk.approve/reject/edit` (the console) | writes |
+| `wren content approve/reject/edit`, `ContentDesk.approve/reject/edit` (the console) | writes; reject takes an optional `reason` and `note`, kept in [[content/draft-event]] |
 | `marketing.draft` (`marketing_draft_records`, every status but published), `marketing.post` | read; their `load` adds the preview's text, cap and feed cut (`PLATFORM_SPECS.feed`). Marketing → Content → Today (a Day page, `apps/portal/web/src/modules/marketing/index.ts`) shows scheduled drafts by `scheduled`, posts by `published`, waiting drafts by `created` (carried onto today) with Approve; every Content page has the platform switch |
 | the detail's draft box (`DraftAsk/set`, who = the signed-in person), `DraftAsk/ask` (Claude's rewrite), `DraftAsk/undo`, `wren drafts set draft:<id>` | write `text` through `editDraft`, one `runs` row each (`draft-ask`/`draft-set`/`draft-undo`, keeps the text replaced); `marketing.draft`'s `load` adds the thread (`draftTurns`, `packages/core/src/ask.ts`). The `draft-set` rows are his edits: `draftEdits`/`editsFor` feed the last 5 per kind to every drafting call and the Ask Claude prompt, `wren drafts edits` prints them. Kinds: `packages/content/src/draft-ask.ts` |
 | `ContentScheduler/default`, `ContentScheduler/<c>/posts` | moves to published/failed; a client's waits on its live flag |
