@@ -51,11 +51,12 @@ import {
 import type { SetupRunRow } from "./setup-schema.js";
 import { spineEmit, waitMs } from "./spine.js";
 import { vendorUsage } from "./vendor-schema.js";
+import { keyRef, noRawKeys } from "./key-refs.js";
+import type { KeyStore } from "./keys.js";
 import {
   clearMode,
   gate,
   isFree,
-  type KeyStore,
   modesOf,
   monthStart,
   priceText,
@@ -77,8 +78,6 @@ export interface AccountsDeps {
   checks: ReadonlySet<string>;
   /** Where own keys go; null: saving one says the key store isn't set up here. */
   keys: KeyStore | null;
-  /** The env in an own key's SSM path. */
-  env: string;
   /** The worker hands done-for-you steps to the agent (`WREN_SETUP_AGENT`); off: the team does them. */
   agent?: boolean;
   /** Parts that need facts (the worker's COMPONENTS): paused ones show on the page. */
@@ -391,6 +390,11 @@ export function accountsApi(deps: AccountsDeps) {
           managedDev: !!v.managedDev,
           mode: owner.id === null ? ("managed" as const) : (m?.mode ?? null),
           keySet: !!m?.keyName,
+          /** The saved key's last 4, so a person knows which one it is. */
+          keyLast4:
+            m?.keyName && owner.id && deps.keys
+              ? ((await deps.keys.info({ ref: m.keyName, client: owner.id }))?.last4 ?? null)
+              : null,
           perDay: m?.perDay ?? 0,
           capCents: m?.capCents ?? 0,
           quota: v.quota?.perDay ?? null,
@@ -486,7 +490,8 @@ export function accountsApi(deps: AccountsDeps) {
       req: PortalRequest & {
         vendor: string;
         mode: "managed" | "own" | "none";
-        key?: string | null;
+        /** Own key: the ref `/api/keys/stage` answered with. */
+        keyRef?: string | null;
         perDay?: number | null;
         capCents?: number | null;
       },
@@ -512,8 +517,7 @@ export function accountsApi(deps: AccountsDeps) {
           await setOwnKey(db, deps.keys, {
             client,
             vendor: v.id,
-            value: String(req.key ?? ""),
-            env: deps.env,
+            keyRef: String(req.keyRef ?? ""),
             by: by(req),
           }).catch(fail);
         else throw new PortalRefusal(`${v.name} runs on Wren's only`, 409);
@@ -633,14 +637,17 @@ export function makeAccountsConsole(deps: AccountsDeps) {
       ),
       setVendor: serviceHandler(
         {
-          input: z.looseObject({
-            ...PORTAL_FIELDS,
-            vendor: z.string().max(32),
-            mode: z.enum(["managed", "own", "none"]),
-            key: z.string().max(4096).nullish().describe("Own key: saved to SSM, never shown"),
-            perDay: z.number().int().min(0).nullish(),
-            capCents: z.number().int().min(0).nullish(),
-          }),
+          // The key itself never comes here: the page stages it and sends its ref.
+          input: noRawKeys(
+            z.looseObject({
+              ...PORTAL_FIELDS,
+              vendor: z.string().max(32),
+              mode: z.enum(["managed", "own", "none"]),
+              keyRef: keyRef.nullish().describe("Own key: the ref the key store gave it"),
+              perDay: z.number().int().min(0).nullish(),
+              capCents: z.number().int().min(0).nullish(),
+            }),
+          ),
         },
         write("vendor", api.setVendor),
       ),

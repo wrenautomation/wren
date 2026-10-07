@@ -1,7 +1,7 @@
 /**
  * AccountsConsole on Postgres: a client's people read their own accounts and mark their own
  * steps; Wren's team adds accounts, starts done for you and sets vendors; money needs an admin;
- * a key is saved by name and never read back. Synthetic clients only.
+ * a key is saved by ref and never read back. Synthetic clients only.
  */
 import { startTestPostgres, type TestPostgres } from "@wren/db/testing";
 import { eq, sql } from "drizzle-orm";
@@ -13,11 +13,13 @@ import { PortalRefusal, type Viewer } from "../../src/portal.js";
 import { defineSetup } from "../../src/setup.js";
 import { setupAlert } from "../../src/setup-alerts.js";
 import { clientAccounts } from "../../src/setup-schema.js";
-import { memoryKeyStore, meter } from "../../src/vendors.js";
+import { pgKeyStore, throwawayRing } from "../../src/keys.js";
+import { meter } from "../../src/vendors.js";
 
 let pg: TestPostgres;
 beforeAll(async () => {
   pg = await startTestPostgres();
+  keys = pgKeyStore(pg.db, throwawayRing());
   await pg.db.insert(clients).values([
     { id: "acme", name: "Acme Dental", database: "wren_client_acme" },
     { id: "beta", name: "Beta Roofing", database: "wren_client_beta" },
@@ -61,7 +63,7 @@ const SETUP = defineSetup({
   ],
 });
 
-const keys = memoryKeyStore();
+let keys: ReturnType<typeof pgKeyStore>;
 const T = new Date("2026-03-10T12:00:00Z");
 const api = (store = keys as typeof keys | null) =>
   accountsApi({
@@ -69,7 +71,6 @@ const api = (store = keys as typeof keys | null) =>
     setups: [SETUP],
     checks: new Set(["dns.mail_records"]),
     keys: store,
-    env: "test",
     now: () => T,
   });
 const ADMIN: Viewer = { email: "admin@example.test", operator: true };
@@ -255,29 +256,33 @@ describe("vendors", () => {
     });
   });
 
-  it("an own key saves by name and never comes back; no store refuses", async () => {
+  it("an own key saves by ref and never comes back; no store refuses", async () => {
+    const VALUE = "synthetic-key-1234";
+    const { ref } = await keys.stage({
+      client: "acme",
+      name: "X_BEARER_TOKEN",
+      value: VALUE,
+      by: OP.email,
+    });
     await refused(
-      api(null).setVendor({
-        viewer: OP,
-        client: "acme",
-        vendor: "x",
-        mode: "own",
-        key: "synthetic-key-1234",
-      }),
+      api(null).setVendor({ viewer: OP, client: "acme", vendor: "x", mode: "own", keyRef: ref }),
       409,
       /Key store/,
     );
-    await api().setVendor({
-      viewer: OP,
-      client: "acme",
-      vendor: "x",
-      mode: "own",
-      key: "synthetic-key-1234",
-    });
-    expect(keys.keys.get("/wren/test/owners/acme/keys/X_BEARER_TOKEN")).toBe("synthetic-key-1234");
+    await refused(
+      api().setVendor({ viewer: ADMIN, client: "acme", vendor: "x", mode: "own", keyRef: ref }),
+      403,
+      /Someone else/,
+    );
+    await api().setVendor({ viewer: OP, client: "acme", vendor: "x", mode: "own", keyRef: ref });
+    expect(await keys.get({ ref, client: "acme", by: "test", why: "check" })).toBe(VALUE);
     const v = await api().vendors({ viewer: ADMIN, client: "acme" });
     expect(JSON.stringify(v)).not.toContain("synthetic-key");
-    expect(v.vendors.find((x) => x.id === "x")).toMatchObject({ mode: "own", keySet: true });
+    expect(v.vendors.find((x) => x.id === "x")).toMatchObject({
+      mode: "own",
+      keySet: true,
+      keyLast4: "1234",
+    });
     await refused(
       api().setVendor({ viewer: OP, client: "acme", vendor: "reddit", mode: "own" }),
       409,

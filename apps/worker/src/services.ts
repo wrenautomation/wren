@@ -227,6 +227,7 @@ import {
 } from "@wren/core/spine";
 import { makeTemplatesConsole } from "@wren/core/templates/console";
 import { templateRecords } from "@wren/core/templates/records";
+import { keyStoreFromEnv } from "@wren/core/keys";
 import { gate } from "@wren/core/vendors";
 import { makeWebhooks, webhookStep, webhooksPublish } from "@wren/core/webhooks";
 import { cachedDb, clientDatabaseName, clientDatabaseUrl, createDb, type Db } from "@wren/db";
@@ -397,6 +398,10 @@ export async function buildServices(
   const llm = makeLlm(settings.llm, process.env, { anthropicModel: settings.llmModel });
   const ua = settings.fetchContact ? userAgent(settings.fetchContact) : null;
   if (!ua) log.warn("WREN_FETCH_CONTACT unset: crawl and render will refuse until it is");
+  // Clients' own keys, sealed in main (designs/2026-10-07-key-store.md). The private key comes
+  // from its own SSM parameter; without it saving a key says the store isn't set up.
+  const keys = keyStoreFromEnv(db, process.env);
+  if (!keys) log.info("WREN_KEYSTORE_KEY unset: clients' own keys can't be saved or used here");
   const verifier = await makeVerifier(settings.verifier, {
     smtpProbeUrl: settings.smtpProbeUrl ?? null,
     smtpProbeToken: settings.smtpProbeToken ?? null,
@@ -680,8 +685,7 @@ export async function buildServices(
   const payDeps = {
     main: db,
     open: openClient,
-    keys: null,
-    env: "prod",
+    keys,
     fetch: (url: string, init: RequestInit) => fetch(url, init),
     portal: settings.portalOrigin ?? "https://app.wrenautomation.com",
   };
@@ -1660,15 +1664,13 @@ export async function buildServices(
       parts: setupParts,
       wake: sitesHost(settings.autobrowseInstanceId).wake,
     }),
-    // A client's accounts and vendors. Keys in SSM with WREN_KEY_STORE=ssm, once the role may
-    // write `/wren/prod/owners/*/keys/*` (William's); else an own key is refused.
+    // A client's accounts and vendors; own keys bind by ref from the key store.
     makeAccountsConsole({
       db,
       setups: SETUPS,
       agent: settings.setupAgent,
       checks: new Set(Object.keys(setupChecks)),
-      keys: ownerKeys,
-      env: "prod",
+      keys,
       parts: setupParts,
     }),
     // Account → Mail, the OAuth callbacks, and the reader over every client's connected mailboxes.

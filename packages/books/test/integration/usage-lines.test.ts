@@ -1,6 +1,7 @@
 /** Managed usage as draft lines: per owner and vendor a month, cost plus markup, never charged. */
 import { clients, wrenSettings } from "@wren/core/clients";
-import { memoryKeyStore, meter, setManaged, setOwnKey } from "@wren/core/vendors";
+import { pgKeyStore, throwawayRing } from "@wren/core/keys";
+import { meter, setManaged, setOwnKey } from "@wren/core/vendors";
 import { startTestPostgres, type TestPostgres } from "@wren/db/testing";
 import { eq } from "drizzle-orm";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
@@ -16,13 +17,14 @@ beforeAll(async () => {
   ]);
   await setManaged(pg.db, { client: "acme", vendor: "exa", perDay: 0, capCents: 10_000, by: "op" });
   await setManaged(pg.db, { client: "acme", vendor: "x", perDay: 0, capCents: 10_000, by: "op" });
-  await setOwnKey(pg.db, memoryKeyStore(), {
+  const keys = pgKeyStore(pg.db, throwawayRing());
+  const { ref } = await keys.stage({
     client: "beta",
-    vendor: "exa",
+    name: "EXA_API_KEY",
     value: "test-key-123",
-    env: "test",
     by: "op",
   });
+  await setOwnKey(pg.db, keys, { client: "beta", vendor: "exa", keyRef: ref, by: "op" });
   const at = new Date("2026-03-10T00:00:00Z");
   await meter(pg.db, { client: "acme", vendor: "exa", units: 1000, at }); // $7.00
   await meter(pg.db, { client: "acme", vendor: "exa", units: 3, at }); // $0.021

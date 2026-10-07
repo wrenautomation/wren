@@ -1,17 +1,18 @@
 /**
- * Secrets for Lambda: one SSM SecureString holding a JSON object of env
- * names to values, applied to `process.env` before settings load. Values set
- * on the function itself win, so a single variable can be overridden without
- * rewriting the parameter. `deploy/scripts/push-secrets.sh` writes it.
+ * Secrets for Lambda: SSM SecureStrings each holding a JSON object of env names to values,
+ * applied to `process.env` before settings load. `WREN_SSM_ENV_PARAM` names one, or several
+ * comma-separated (`/wren/prod/env,/wren/prod/env-2`), since one parameter caps at 8192
+ * characters. Values set on the function itself win, then the first parameter that has a name.
+ * `deploy/scripts/push-secrets.sh` writes them.
  */
 
 import { writeFile } from "node:fs/promises";
-import {
-  GetParameterCommand,
-  ParameterNotFound,
-  PutParameterCommand,
-  SSMClient,
-} from "@aws-sdk/client-ssm";
+import { GetParameterCommand, SSMClient } from "@aws-sdk/client-ssm";
+
+/** What reading a parameter needs: an `SSMClient`, or a fake in tests. */
+export interface SsmReader {
+  send(cmd: GetParameterCommand): Promise<{ Parameter?: { Value?: string } }>;
+}
 
 export function applyEnv(json: string, env: NodeJS.ProcessEnv = process.env): string[] {
   const parsed: unknown = JSON.parse(json);
@@ -28,18 +29,47 @@ export function applyEnv(json: string, env: NodeJS.ProcessEnv = process.env): st
   return applied;
 }
 
-async function readParameter(name: string): Promise<string> {
-  const ssm = new SSMClient({});
+async function readParameter(name: string, ssm: SsmReader = new SSMClient({})): Promise<string> {
   const out = await ssm.send(new GetParameterCommand({ Name: name, WithDecryption: true }));
   const value = out.Parameter?.Value;
   if (!value) throw new Error(`SSM parameter ${name} is empty`);
   return value;
 }
 
-/** No parameter named = nothing to load (local runs, tests). */
-export async function loadSsmEnv(name: string | undefined): Promise<string[]> {
-  if (!name) return [];
-  return applyEnv(await readParameter(name));
+/** The parameter names in a `WREN_SSM_ENV_PARAM` list. */
+export const paramNames = (list: string | undefined): string[] =>
+  (list ?? "")
+    .split(",")
+    .map((s) => s.trim())
+    .filter(Boolean);
+
+const notFound = (err: unknown) => (err as { name?: string } | null)?.name === "ParameterNotFound";
+
+/**
+ * Load each named parameter in order. No name = nothing to load (local runs, tests). The first
+ * must exist; a later one may not yet (it's skipped and named in the log), so a list can ship
+ * before its parameter does. Logs names only, never values.
+ */
+export async function loadSsmEnv(
+  list: string | undefined,
+  o: { ssm?: SsmReader; env?: NodeJS.ProcessEnv; log?: (line: string) => void } = {},
+): Promise<string[]> {
+  const names = paramNames(list);
+  if (!names.length) return [];
+  const ssm = o.ssm ?? new SSMClient({});
+  const applied: string[] = [];
+  for (const [i, name] of names.entries()) {
+    let json: string;
+    try {
+      json = await readParameter(name, ssm);
+    } catch (err) {
+      if (i === 0 || !notFound(err)) throw err;
+      (o.log ?? console.warn)(`ssm env: ${name} not found, skipped`);
+      continue;
+    }
+    applied.push(...applyEnv(json, o.env));
+  }
+  return applied;
 }
 
 /**
@@ -52,35 +82,4 @@ export async function loadSsmFile(name: string | undefined, path: string): Promi
   if (!name) return null;
   await writeFile(path, await readParameter(name), { mode: 0o600 });
   return path;
-}
-
-/**
- * Clients' own vendor keys (designs/2026-10-07-setup-and-vendors.md): SecureStrings at credvault's
- * owner path layout. Postgres keeps the name. Writing needs `ssm:PutParameter` on the owners path,
- * which the worker's role does not have yet: until then a save fails and says so.
- */
-export function ssmKeyStore(client: SSMClient = new SSMClient({})) {
-  return {
-    async put(name: string, value: string): Promise<void> {
-      await client.send(
-        new PutParameterCommand({
-          Name: name,
-          Value: value,
-          Type: "SecureString",
-          Overwrite: true,
-        }),
-      );
-    },
-    async get(name: string): Promise<string | null> {
-      try {
-        const out = await client.send(
-          new GetParameterCommand({ Name: name, WithDecryption: true }),
-        );
-        return out.Parameter?.Value ?? null;
-      } catch (err) {
-        if (err instanceof ParameterNotFound) return null;
-        throw err;
-      }
-    },
-  };
 }

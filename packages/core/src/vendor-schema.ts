@@ -33,7 +33,7 @@ export const vendorModes = pgTable(
     /** A `VENDORS` id: `exa`, `youtube`. */
     vendor: varchar("vendor", { length: 32 }).notNull(),
     mode: varchar("mode", { length: 8, enum: VENDOR_MODES }).$type<VendorMode>().notNull(),
-    /** Own key: the SSM parameter's name. The key itself never sits here. */
+    /** Own key: its key store ref (`ks_…`). The key itself never sits here. */
     keyName: varchar("key_name", { length: 200 }),
     /** Managed: the client's share of Wren's quota a day. 0: none, so nothing runs. */
     perDay: integer("per_day").default(0).notNull(),

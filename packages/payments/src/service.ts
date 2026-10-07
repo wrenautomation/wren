@@ -17,7 +17,7 @@ import { type Client, findClient, sendsOn } from "@wren/core/clients";
 import { serviceHandler } from "@wren/core/restate";
 import type { Fired, FireTriggers } from "@wren/core/spine";
 import { vendorModes } from "@wren/core/vendor-schema";
-import { type KeyStore, ownKeyPath, vendorOf } from "@wren/core/vendors";
+import type { KeyStore } from "@wren/core/keys";
 import type { Db } from "@wren/db";
 import { and, eq } from "drizzle-orm";
 import { z } from "zod";
@@ -44,10 +44,8 @@ export interface PaymentsDeps {
   main: Db;
   /** A client's database: its texting threads. */
   open: (client: Pick<Client, "id" | "database">) => Db;
-  /** Where clients' Stripe keys and signing secrets are kept; null: not here (the worker today). */
+  /** Where clients' Stripe keys and signing secrets are kept; null: no key store here. */
   keys: KeyStore | null;
-  /** The key path's env: "prod", "dev". */
-  env: string;
   /** Stripe's HTTP; tests pass fixtures. */
   fetch: Fetch;
   /** The portal's origin: Stripe posts to `<portal>/__pay/stripe/<client>`. */
@@ -61,20 +59,31 @@ export interface PaymentsDeps {
 }
 
 export const PAYMENTS = { name: "Payments" } as const;
-/** The signing secret's name beside the key: `/wren/<env>/owners/<client>/keys/STRIPE_WEBHOOK_SECRET`. */
-export const secretPath = (env: string, client: string) =>
-  ownKeyPath(env, client, { ...vendorOf("stripe"), keyName: "STRIPE_WEBHOOK_SECRET" });
+/** The signing secret's name in the key store, beside the client's `STRIPE_SECRET_KEY`. */
+export const WEBHOOK_SECRET = "STRIPE_WEBHOOK_SECRET";
+/** Who reads a key when Payments does: the event says so. */
+export const PAYMENTS_READER = "wren:payments";
 export const webhookUrl = (portal: string, client: string) =>
   `${portal.replace(/\/+$/, "")}/__pay/stripe/${encodeURIComponent(client)}`;
 
-/** The client's Stripe key, from the store; refused when none is saved or there's no store. */
-export async function stripeKeyOf(d: Pick<PaymentsDeps, "main" | "keys">, client: string) {
-  if (!d.keys) throw new PayRefusal("Saving a Stripe key is in development here", 503);
+/**
+ * The client's Stripe key, from the store, with a read event saying why; refused when none is
+ * saved or there's no store. Call it inside a journaled step and never return it.
+ */
+export async function stripeKeyOf(
+  d: Pick<PaymentsDeps, "main" | "keys">,
+  client: string,
+  why: string,
+) {
+  if (!d.keys) throw new PayRefusal("The key store isn't set up here", 503);
   const [m] = await d.main
     .select({ keyName: vendorModes.keyName, mode: vendorModes.mode })
     .from(vendorModes)
     .where(and(eq(vendorModes.client, client), eq(vendorModes.vendor, "stripe")));
-  const key = m?.mode === "own" && m.keyName ? await d.keys.get(m.keyName) : null;
+  const key =
+    m?.mode === "own" && m.keyName
+      ? await d.keys.get({ ref: m.keyName, client, by: PAYMENTS_READER, why })
+      : null;
   if (!key) throw new PayRefusal("Connect Stripe first", 409);
   return key;
 }
@@ -153,7 +162,12 @@ export async function takeWebhook(
   const acct = await payAccountOf(d.main, client.id);
   if (!acct?.secretName) return no(404, "no webhook set up");
   if (!d.keys) return no(503, "no key store here");
-  const secret = await d.keys.get(acct.secretName);
+  const secret = await d.keys.get({
+    ref: acct.secretName,
+    client: client.id,
+    by: PAYMENTS_READER,
+    why: "check a webhook",
+  });
   if (!secret) return no(503, "signing secret missing");
   const v = verifySignature(req.raw, req.signature, secret, now);
   if (!v.ok) return no(400, v.why);
@@ -188,7 +202,7 @@ export function makePayments(deps: PaymentsDeps) {
           const made: Made = await ctx.run("stripe", async () => {
             if (l.url && l.stripeLink) return { url: l.url, stripeLink: l.stripeLink };
             try {
-              const key = await stripeKeyOf(deps, l.client);
+              const key = await stripeKeyOf(deps, l.client, `make pay link ${l.id}`);
               const api = stripeApi(key, deps.fetch, deps.stripeBase);
               const price = await api.createPrice({
                 id: l.id,

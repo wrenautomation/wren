@@ -6,10 +6,10 @@
 import { startTestPostgres, type TestPostgres } from "@wren/db/testing";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { clients, wrenSettings } from "../../src/clients/schema.js";
+import { pgKeyStore, throwawayRing } from "../../src/keys.js";
 import {
   clearMode,
   gate,
-  memoryKeyStore,
   meter,
   modesOf,
   monthSpend,
@@ -34,31 +34,30 @@ afterAll(() => pg.stop());
 const NOW = new Date("2026-03-10T12:00:00Z");
 
 describe("modes", () => {
-  it("no mode: needs setup; an own key is stored in the key store, the row keeps its name", async () => {
+  it("no mode: needs setup; an own key is stored in the key store, the row keeps its ref", async () => {
     expect(await gate(pg.db, "acme", "exa", 1, NOW)).toEqual({
       ok: false,
       why: "Needs setup",
       mode: null,
     });
-    const store = memoryKeyStore();
-    await expect(
-      setOwnKey(pg.db, null, {
-        client: "acme",
-        vendor: "exa",
-        value: "test-key-123",
-        env: "test",
-        by: "op",
-      }),
-    ).rejects.toThrow("Key store not set up here");
-    const { keyName } = await setOwnKey(pg.db, store, {
+    const store = pgKeyStore(pg.db, throwawayRing());
+    const { ref } = await store.stage({
       client: "acme",
-      vendor: "exa",
+      name: "EXA_API_KEY",
       value: " test-key-123 ",
-      env: "test",
       by: "op",
     });
-    expect(keyName).toBe("/wren/test/owners/acme/keys/EXA_API_KEY");
-    expect(store.keys.get(keyName)).toBe("test-key-123");
+    await expect(
+      setOwnKey(pg.db, null, { client: "acme", vendor: "exa", keyRef: ref, by: "op" }),
+    ).rejects.toThrow("Key store not set up here");
+    const { keyName, last4 } = await setOwnKey(pg.db, store, {
+      client: "acme",
+      vendor: "exa",
+      keyRef: ref,
+      by: "op",
+    });
+    expect([keyName, last4]).toEqual([ref, "-123"]);
+    expect(await store.get({ ref, client: "acme", by: "op", why: "test" })).toBe("test-key-123");
     const [row] = await modesOf(pg.db, "acme");
     expect(row).toMatchObject({ vendor: "exa", mode: "own", keyName });
     expect(JSON.stringify(row)).not.toContain("test-key-123");

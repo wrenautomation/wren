@@ -1,28 +1,29 @@
 /**
  * Text-to-pay on a real Postgres (designs/2026-10-07-forms-and-pay.md): connect Stripe with a
  * fake Stripe, make links (approved or waiting by the client's approver), approve, and take
- * Stripe's signed webhook: the link and the thread marked paid, once. No network, no charge.
- * Synthetic data only.
+ * Stripe's signed webhook: the link and the thread marked paid, once. Keys go through the key
+ * store by ref, as the portal stages them. No network, no charge. Synthetic data only.
  */
 import { smsContacts } from "@wren/channel-sms/schema";
 import { addClient, addOperator, clients } from "@wren/core/clients";
 import { clientAccounts } from "@wren/core/setup-schema";
 import { vendorModes } from "@wren/core/vendor-schema";
-import { memoryKeyStore } from "@wren/core/vendors";
+import { pgKeyStore, throwawayRing } from "@wren/core/keys";
+import { clientSecretEvents } from "@wren/core/keys-schema";
 import { cachedDb, clientDatabaseUrl, type Db } from "@wren/db";
 import { startTestPostgres, type TestPostgres } from "@wren/db/testing";
 import { eq } from "drizzle-orm";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { paymentsConsoleApi } from "../../src/console.js";
 import { payLinks } from "../../src/schema.js";
-import { secretPath, takeWebhook } from "../../src/service.js";
+import { stripeKeyOf, takeWebhook } from "../../src/service.js";
 import { keepStripeLink, payAccountOf, payApprovalId, waitingPayLinks } from "../../src/store.js";
 import { type Fetch, signFor } from "../../src/stripe.js";
 
 let pg: TestPostgres;
 let acme: Db;
 const open = (c: { id: string }) => cachedDb(clientDatabaseUrl(pg.url, `wren_client_${c.id}`));
-const keys = memoryKeyStore();
+let keys: ReturnType<typeof pgKeyStore>;
 // Synthetic Stripe: a made-up key and signing secret.
 const KEY = "rk_test_fixture00000000";
 const SECRET = "whsec_fixture000000000000";
@@ -39,14 +40,17 @@ const api = () =>
     main: pg.db,
     open,
     keys,
-    env: "test",
     fetch: fakeStripe,
     portal: "https://app.wren.test",
   });
 let contact = 0;
+/** What the portal does first: the key to the store, a ref back. */
+const staged = async (client: string, name: string, value: string) =>
+  (await keys.stage({ client, name, value, by: ADA.viewer.email })).ref;
 
 beforeAll(async () => {
   pg = await startTestPostgres();
+  keys = pgKeyStore(pg.db, throwawayRing());
   await addClient(pg.db, pg.url, { id: "acme", name: "Acme Plumbing", products: {} });
   await addClient(pg.db, pg.url, { id: "beta", name: "Beta", products: {} });
   await addOperator(pg.db, "ada@example.test");
@@ -70,42 +74,67 @@ describe("connecting Stripe", () => {
     stripe = [];
     stripeSays = () =>
       Response.json({ id: "we_test_1", secret: SECRET, livemode: false }, { status: 200 });
-    const r = await api().connect({ ...ADA, key: KEY }, NOW);
-    expect(r).toMatchObject({ connected: true, webhook: "api" });
+    const keyRef = await staged("acme", "STRIPE_SECRET_KEY", KEY);
+    const r = await api().connect({ ...ADA, keyRef }, NOW);
+    expect(r).toMatchObject({ connected: true, webhook: "api", last4: KEY.slice(-4) });
     expect(stripe[0]?.url).toBe("https://api.stripe.com/v1/webhook_endpoints");
     expect(decodeURIComponent(stripe[0]?.body ?? "")).toContain(
       "url=https://app.wren.test/__pay/stripe/acme",
     );
-    expect(keys.keys.get(secretPath("test", "acme"))).toBe(SECRET);
     const acct = await payAccountOf(pg.db, "acme");
+    if (!acct?.secretName) throw new Error("no secret kept");
+    expect(
+      await keys.get({ ref: acct.secretName, client: "acme", by: "test", why: "check" }),
+    ).toBe(SECRET);
     expect(acct).toMatchObject({ endpoint: "we_test_1", how: "api", live: false });
     const [m] = await pg.db.select().from(vendorModes).where(eq(vendorModes.client, "acme"));
-    expect(m).toMatchObject({ vendor: "stripe", mode: "own" });
+    expect(m).toMatchObject({ vendor: "stripe", mode: "own", keyName: keyRef });
     const accts = await pg.db
       .select()
       .from(clientAccounts)
       .where(eq(clientAccounts.site, "stripe"));
     expect(accts.map((a) => a.ref)).toEqual(["Stripe (test mode)"]);
     const s = await api().status(ADA);
-    expect(s).toMatchObject({ connected: true, webhook: "api", live: false, approves: true });
+    expect(s).toMatchObject({
+      connected: true,
+      webhook: "api",
+      live: false,
+      approves: true,
+      last4: KEY.slice(-4),
+    });
+    // Payments/send reads it by the row's ref.
+    expect(await stripeKeyOf({ main: pg.db, keys }, "acme", "make a link")).toBe(KEY);
+    // Each read and write logged, never with the value.
+    const log = await pg.db.select().from(clientSecretEvents);
+    expect(log.map((e) => e.op)).toEqual(expect.arrayContaining(["stage", "bind", "read", "put"]));
+    expect(JSON.stringify(log)).not.toContain(KEY);
+    expect(JSON.stringify(log)).not.toContain(SECRET);
   });
 
   it("asks for the signing secret when the key can't add webhooks", async () => {
     stripeSays = () =>
       Response.json({ error: { message: "The provided key lacks permission" } }, { status: 403 });
-    const r = await api().connect({ ...ADA, client: "beta", key: KEY }, NOW);
+    const keyRef = await staged("beta", "STRIPE_SECRET_KEY", KEY);
+    const r = await api().connect({ ...ADA, client: "beta", keyRef }, NOW);
     expect(r).toMatchObject({ connected: true, webhook: null });
     expect(r.why).toContain("paste its signing secret");
-    await expect(
-      api().connect({ ...ADA, client: "beta", secret: "nope" }, NOW),
-    ).rejects.toMatchObject({
-      status: 400,
-    });
-    const ok = await api().connect({ ...ADA, client: "beta", secret: SECRET }, NOW);
+    await expect(staged("beta", "STRIPE_WEBHOOK_SECRET", "nope")).rejects.toThrow("whsec_");
+    const secretRef = await staged("beta", "STRIPE_WEBHOOK_SECRET", SECRET);
+    const ok = await api().connect({ ...ADA, client: "beta", secretRef }, NOW);
     expect(ok).toMatchObject({ webhook: "pasted" });
-    await expect(api().connect({ ...ADA, key: "pk_test_00000000000" }, NOW)).rejects.toMatchObject({
-      status: 400,
+    await expect(staged("acme", "STRIPE_SECRET_KEY", "pk_test_00000000000")).rejects.toThrow(
+      "sk_ or rk_",
+    );
+  });
+
+  it("refuses a ref that isn't this client's, or one already gone", async () => {
+    const keyRef = await staged("acme", "STRIPE_SECRET_KEY", KEY);
+    await expect(api().connect({ ...ADA, client: "beta", keyRef }, NOW)).rejects.toMatchObject({
+      status: 409,
     });
+    await expect(
+      api().connect({ ...ADA, keyRef: `ks_${"0".repeat(32)}` }, NOW),
+    ).rejects.toMatchObject({ status: 404 });
   });
 });
 

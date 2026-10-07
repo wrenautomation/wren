@@ -6,8 +6,9 @@
  * - `create`, `fromThread`: a new link. Whoever may approve for the client sends it now;
  *   anyone else's waits in To approve.
  * - `approve`, `decline`: To approve's yes and no, checked against the client's approver.
- * - `connect`: the client's Stripe key, then Wren's webhook on their account with it. A key
- *   that can't add webhooks leaves a signing secret to paste.
+ * - `connect`: the client's Stripe key, staged at the edge and bound here by its ref, then
+ *   Wren's webhook on their account with it. A key that can't add webhooks leaves a signing
+ *   secret to paste. The key itself never comes through Restate.
  * - `status`: what the page's Stripe panel shows.
  *
  * A key is never read back, and no card ever reaches us.
@@ -42,6 +43,8 @@ import {
   type StatsAsk,
   serveRecords,
 } from "@wren/core/records/serve";
+import { keyRef, noRawKeys } from "@wren/core/key-refs";
+import { KeyRefusal } from "@wren/core/keys";
 import { PORTAL_FIELDS, serviceHandler } from "@wren/core/restate";
 import { addAccount } from "@wren/core/setup";
 import { vendorModes } from "@wren/core/vendor-schema";
@@ -57,7 +60,7 @@ import {
   PAYMENTS,
   type PaymentsDeps,
   type PaymentsService,
-  secretPath,
+  WEBHOOK_SECRET,
   webhookUrl,
 } from "./service.js";
 import {
@@ -71,11 +74,11 @@ import {
   savePayAccount,
   UUID,
 } from "./store.js";
-import { isSigningSecret, keyMode, StripeError, stripeApi } from "./stripe.js";
+import { keyMode, StripeError, stripeApi } from "./stripe.js";
 
 export type PaymentsConsoleDeps = Pick<
   PaymentsDeps,
-  "main" | "open" | "keys" | "env" | "fetch" | "portal" | "stripeBase"
+  "main" | "open" | "keys" | "fetch" | "portal" | "stripeBase"
 >;
 
 export interface CreateRequest extends PortalRequest {
@@ -99,9 +102,10 @@ export interface IdsRequest extends PortalRequest {
   ids: string[];
 }
 export interface ConnectRequest extends PortalRequest {
-  key?: string | null;
-  /** A signing secret from Stripe's dashboard, when the key couldn't add the webhook. */
-  secret?: string | null;
+  /** The Stripe key's ref, as `/api/keys/stage` answered. */
+  keyRef?: string | null;
+  /** A signing secret's ref, when the key couldn't add the webhook. */
+  secretRef?: string | null;
 }
 
 const by = (req: PortalRequest) => (req.viewer as SignedViewer).email;
@@ -110,6 +114,12 @@ const NOT_YOURS = { wren: "Wren's team approves these", client: "the client appr
 function refusal(err: unknown): never {
   if (err instanceof PayRefusal) throw new PortalRefusal(err.message, err.status);
   throw err;
+}
+/** A key store refusal with its status; any other trouble saving a key, a 400. */
+function keyRefusal(err: unknown): never {
+  if (err instanceof PortalRefusal) throw err;
+  if (err instanceof KeyRefusal) throw new PortalRefusal(err.message, err.status);
+  throw new PortalRefusal(err instanceof Error ? err.message : String(err), 400);
 }
 const quantityOf = (q: unknown) => {
   if (q === undefined || q === null || q === "") return 1;
@@ -174,6 +184,11 @@ export function paymentsConsoleApi(deps: PaymentsConsoleDeps) {
         webhook: acct?.secretName ? (acct.how ?? "pasted") : null,
         url: webhookUrl(deps.portal, client.id),
         keyStore: deps.keys !== null,
+        /** The saved key's last 4, so a person knows which one it is. */
+        last4:
+          m?.mode === "own" && m.keyName && deps.keys
+            ? ((await deps.keys.info({ ref: m.keyName, client: client.id }))?.last4 ?? null)
+            : null,
         managed: "In development",
         approves: await approves(req, client),
       };
@@ -274,43 +289,47 @@ export function paymentsConsoleApi(deps: PaymentsConsoleDeps) {
     },
 
     /**
-     * The client's key, saved; then our webhook on their account with it. A pasted secret
-     * stands in for the webhook when the key can't add one. Approvers only: it's their money.
+     * The client's key, bound from its ref; then our webhook on their account with it. A pasted
+     * secret stands in for the webhook when the key can't add one. Approvers only: it's their
+     * money. The key is read once, here, to add the webhook, and never returned.
      */
     connect: async (req: ConnectRequest, now: Date) => {
       const { client, viewer } = await pickForWrite(main, req);
       if (!(await approves(req, client)))
         throw new PortalRefusal(NOT_YOURS[client.approver === "client" ? "client" : "wren"], 403);
-      if (!deps.keys) throw new PortalRefusal("Saving a Stripe key is in development here", 503);
+      if (!deps.keys) throw new PortalRefusal("The key store isn't set up here", 503);
       const keys = deps.keys;
-      const key = typeof req.key === "string" ? req.key.trim() : "";
-      const secret = typeof req.secret === "string" ? req.secret.trim() : "";
-      if (!key && !secret) throw new PortalRefusal("paste a Stripe key or a signing secret", 400);
-      if (secret) {
-        if (!isSigningSecret(secret))
-          throw new PortalRefusal("a signing secret starts with whsec_", 400);
-        const secretName = secretPath(deps.env, client.id);
-        await keys.put(secretName, secret);
+      const ref = (v: unknown) => (typeof v === "string" ? v.trim() : "");
+      const keyAt = ref(req.keyRef);
+      const secretAt = ref(req.secretRef);
+      if (!keyAt && !secretAt) throw new PortalRefusal("paste a Stripe key or a signing secret", 400);
+      if (secretAt) {
+        const s = await keys
+          .bind({ ref: secretAt, client: client.id, name: WEBHOOK_SECRET, by: viewer.email })
+          .catch(keyRefusal);
         await savePayAccount(main, {
           client: client.id,
-          secretName,
+          secretName: s.ref,
           how: "pasted",
           by: viewer.email,
         });
-        if (!key) return { connected: true, webhook: "pasted" as const };
+        if (!keyAt) return { connected: true, webhook: "pasted" as const, last4: null };
       }
-      const mode = keyMode(key);
-      if (!mode)
-        throw new PortalRefusal("a Stripe key starts with sk_ or rk_, then live_ or test_", 400);
-      await setOwnKey(main, keys, {
+      const saved = await setOwnKey(main, keys, {
         client: client.id,
         vendor: "stripe",
-        value: key,
-        env: deps.env,
+        keyRef: keyAt,
         by: viewer.email,
-      }).catch((e: Error) => {
-        throw new PortalRefusal(e.message, 400);
+      }).catch(keyRefusal);
+      const key = await keys.get({
+        ref: saved.keyName,
+        client: client.id,
+        by: viewer.email,
+        why: "connect Stripe: test or live, and the webhook",
       });
+      const mode = key ? keyMode(key) : null;
+      if (!key || !mode)
+        throw new PortalRefusal("a Stripe key starts with sk_ or rk_, then live_ or test_", 400);
       await addAccount(main, {
         client: client.id,
         site: "stripe",
@@ -318,7 +337,8 @@ export function paymentsConsoleApi(deps: PaymentsConsoleDeps) {
         by: viewer.email,
       });
       await savePayAccount(main, { client: client.id, live: mode === "live", by: viewer.email });
-      if (secret) return { connected: true, webhook: "pasted" as const };
+      const last4 = saved.last4;
+      if (secretAt) return { connected: true, webhook: "pasted" as const, last4 };
       const url = webhookUrl(deps.portal, client.id);
       try {
         const hook = await stripeApi(key, deps.fetch, deps.stripeBase).registerWebhook({
@@ -326,23 +346,25 @@ export function paymentsConsoleApi(deps: PaymentsConsoleDeps) {
           url,
           idem: `${client.id}-${now.getTime()}`,
         });
-        const secretName = secretPath(deps.env, client.id);
-        await keys.put(secretName, hook.secret);
+        const s = await keys
+          .put({ client: client.id, name: WEBHOOK_SECRET, value: hook.secret, by: viewer.email })
+          .catch(keyRefusal);
         await savePayAccount(main, {
           client: client.id,
           endpoint: hook.id,
-          secretName,
+          secretName: s.ref,
           how: "api",
           live: hook.livemode,
           by: viewer.email,
         });
-        return { connected: true, webhook: "api" as const };
+        return { connected: true, webhook: "api" as const, last4 };
       } catch (err) {
         if (!(err instanceof StripeError)) throw err;
         return {
           connected: true,
           webhook: null,
           url,
+          last4,
           why: err.denied
             ? "This key can't add webhooks. In Stripe, add an endpoint at this URL for checkout.session.completed, then paste its signing secret."
             : `Stripe: ${err.message}`,
@@ -475,17 +497,19 @@ export function makePaymentsConsole(deps: PaymentsConsoleDeps) {
           return ctx.run("decline", () => answer(() => api.decline(req, at)));
         }),
       ),
-      /** Connect Stripe: a key (we add the webhook), a signing secret, or both. */
+      /**
+       * Connect Stripe: a key (we add the webhook), a signing secret, or both, each by the ref
+       * `/api/keys/stage` gave it. A raw key is refused: it would sit in Restate's journal.
+       */
       connect: serviceHandler(
         {
-          input: z.looseObject({
-            ...PORTAL_FIELDS,
-            key: z
-              .string()
-              .nullish()
-              .describe("A Stripe secret or restricted key; never read back"),
-            secret: z.string().nullish().describe("A webhook signing secret, whsec_"),
-          }),
+          input: noRawKeys(
+            z.looseObject({
+              ...PORTAL_FIELDS,
+              keyRef: keyRef.nullish().describe("The Stripe key's ref; the key is never read back"),
+              secretRef: keyRef.nullish().describe("A webhook signing secret's ref"),
+            }),
+          ),
         },
         (ctx: restate.Context, req: ConnectRequest) =>
           answer(async () => {

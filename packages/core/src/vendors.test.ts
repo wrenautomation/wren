@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { ownKeyPath, priceText, VENDORS, vendorOf, vendorSettingsSchema } from "./vendors.js";
+import { priceText, VENDORS, vendorOf, vendorSettingsSchema } from "./vendors.js";
 
 describe("vendors", () => {
   it("each has a unique id, a dated price and a page for a paid one", () => {
@@ -16,14 +16,6 @@ describe("vendors", () => {
     expect(priceText(vendorOf("x"))).toBe("$5.00 per 1,000 post reads");
     expect(priceText(vendorOf("youtube"))).toBe("free");
     expect(priceText(vendorOf("models"))).toBe("no public price");
-  });
-
-  it("keeps own keys at credvault's owner path", () => {
-    expect(ownKeyPath("prod", "acme", vendorOf("exa"))).toBe(
-      "/wren/prod/owners/acme/keys/EXA_API_KEY",
-    );
-    expect(() => ownKeyPath("prod", "acme", vendorOf("linkedin"))).toThrow(/no key/);
-    expect(() => ownKeyPath("prod", "../x", vendorOf("exa"))).toThrow(/lowercase/);
   });
 
   it("defaults: no markup, half kept for Wren, managed for every vendor but LinkedIn", () => {

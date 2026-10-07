@@ -103,7 +103,7 @@ export const payAccounts = pgTable(
     client: varchar("client", { length: 40 }).notNull(),
     /** Stripe's webhook endpoint id (`we_…`); null until it's registered. */
     endpoint: varchar("endpoint", { length: 80 }),
-    /** Where the endpoint's signing secret is kept in the key store; null until it's saved. */
+    /** The signing secret's key store ref (`ks_…`); null until it's saved. */
     secretName: text("secret_name"),
     /** How the endpoint came: Wren registered it with the key, or the client pasted its secret. */
     how: varchar("how", { length: 8 }),

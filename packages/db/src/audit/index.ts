@@ -55,6 +55,8 @@ export const AUDIT_SKIPPED: Readonly<Record<string, string>> = {
   "learn.items":
     "public pages and their transcripts, read and scored by machine with their own times",
   "learn.digests": "when the Learn digest went, one row a day",
+  client_secrets:
+    "sealed client keys: a sealed value never goes in a permanent log; client_secret_events logs every read and write",
 };
 
 /** Schemas left out besides Postgres's own (`pg_*`, `information_schema`); a new schema is audited. */

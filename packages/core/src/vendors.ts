@@ -9,6 +9,7 @@ import { and, asc, eq, gte, isNull, type SQL, sql } from "drizzle-orm";
 import { z } from "zod";
 import { type Bucket, bucketRoom } from "./buckets.js";
 import { clients, wrenSettings } from "./clients/schema.js";
+import type { KeyStore } from "./keys.js";
 import { type VendorMode, type VendorModeRow, vendorModes, vendorUsage } from "./vendor-schema.js";
 
 export interface Vendor {
@@ -23,9 +24,9 @@ export interface Vendor {
   asOf: string;
   /** A key's read limit; null: none, only money stops it. */
   quota: Bucket | null;
-  /** What "own key" means: a key in SSM, the client's login on that site, or not offered. */
+  /** What "own key" means: a key in the key store, the client's login on that site, or not offered. */
   own: "key" | "login" | null;
-  /** The key's name in SSM under the owner's path, as Wren's env names it. */
+  /** The key's name in the key store, as Wren's env names it. */
   keyName: string | null;
   /** "Managed by Wren" isn't built for it yet: clients bring their own, and it says so. */
   managedDev?: true;
@@ -199,36 +200,6 @@ export async function vendorSettings(main: Queryable): Promise<VendorSettings> {
   return parsed.success ? parsed.data : vendorSettingsSchema.parse({});
 }
 
-// ---- keys ----
-
-/**
- * Where own keys live: SSM SecureStrings at credvault's owner path layout
- * (`/wren/<env>/owners/<client>/keys/<NAME>`). Postgres keeps the name only.
- */
-export interface KeyStore {
-  put(name: string, value: string): Promise<void>;
-  get(name: string): Promise<string | null>;
-}
-
-export const ownKeyPath = (env: string, client: string, v: Vendor) => {
-  if (!v.keyName) throw new Error(`${v.name} takes no key of the client's`);
-  if (!/^[a-z0-9_-]+$/.test(env) || !/^[a-z0-9_-]+$/.test(client))
-    throw new Error("key path: env and client are lowercase ids");
-  return `/wren/${env}/owners/${client}/keys/${v.keyName}`;
-};
-
-/** In memory: tests and local previews. */
-export function memoryKeyStore(): KeyStore & { keys: Map<string, string> } {
-  const keys = new Map<string, string>();
-  return {
-    keys,
-    put: async (n, v) => {
-      keys.set(n, v);
-    },
-    get: async (n) => keys.get(n) ?? null,
-  };
-}
-
 // ---- modes ----
 
 export async function modesOf(main: Queryable, client: string): Promise<VendorModeRow[]> {
@@ -309,25 +280,23 @@ export async function setManaged(
 }
 
 /**
- * Save a client's own key: into the key store first, then the row keeps its name. The key is
- * never read back to a page. A login vendor (LinkedIn) takes the client's account instead.
+ * Use a client's own key: the key staged at the edge (`keyRef`) becomes its live key, and the
+ * row keeps its ref. The key is never read back to a page, only its last 4. A login vendor
+ * (LinkedIn) takes the client's account instead.
  */
 export async function setOwnKey(
   main: Db,
   store: KeyStore | null,
-  o: { client: string; vendor: string; value: string; env: string; by: string },
-): Promise<{ keyName: string }> {
+  o: { client: string; vendor: string; keyRef: string; by: string },
+): Promise<{ keyName: string; last4: string }> {
   const v = vendorOf(o.vendor);
-  if (v.own !== "key") throw new Error(`${v.name} takes no key of the client's`);
+  if (v.own !== "key" || !v.keyName) throw new Error(`${v.name} takes no key of the client's`);
   if (!store) throw new Error("Key store not set up here");
-  const value = o.value.trim();
-  if (value.length < 8 || value.length > 4096) throw new Error("That doesn't look like a key");
   const [c] = await main.select({ id: clients.id }).from(clients).where(eq(clients.id, o.client));
   if (!c) throw new Error("no such client");
-  const keyName = ownKeyPath(o.env, o.client, v);
-  await store.put(keyName, value);
-  await upsertMode(main, o.client, v.id, { mode: "own", keyName, by: o.by });
-  return { keyName };
+  const key = await store.bind({ ref: o.keyRef, client: o.client, name: v.keyName, by: o.by });
+  await upsertMode(main, o.client, v.id, { mode: "own", keyName: key.ref, by: o.by });
+  return { keyName: key.ref, last4: key.last4 };
 }
 
 /** A login vendor on the client's own account: its key is the account it signs in with. */
@@ -340,7 +309,7 @@ export async function setOwnLogin(
   await upsertMode(main, o.client, v.id, { mode: "own", keyName: null, by: o.by });
 }
 
-/** Back to no mode: parts that need it wait with "Needs setup". The key stays in SSM. */
+/** Back to no mode: parts that need it wait with "Needs setup". The key stays in the store. */
 export async function clearMode(main: Db, client: string, vendor: string): Promise<void> {
   await main
     .delete(vendorModes)
