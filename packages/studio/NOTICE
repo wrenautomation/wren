@@ -25,6 +25,13 @@ Adapted files:
     Changed: ffmpeg does the resizing (no sharp); CPU execution provider only;
     model checked by sha256; a window planner on the cut timeline.
 
+  src/safe-zones.ts
+    from skills/embedded-captions/scripts/safe-zones.cjs (the occupancy grid: each
+    cell's alpha maxed over a window's frames, a cell the subject at 30/255) and
+    SKILL.md (the big word must still read).
+    Changed: the word's own box is scored on the grid and moved above the head,
+    beside it, or shrunk until 70% of it is clear; no luma, palette or zones.
+
   remotion/index.tsx
     the caption style and big-word layers, from the components above.
     Changed: React on Remotion's frame clock; the matte is a VP9 alpha WebM laid

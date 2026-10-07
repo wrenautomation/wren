@@ -40,6 +40,7 @@ import {
   type Looker,
   longProps,
   type Matte,
+  type OnSkip,
   obsRecordingDir,
   onCut,
   openStudio,
@@ -474,6 +475,12 @@ export function registerStudio(
     return mattes;
   }
 
+  /** A stressed word with nowhere it reads (70% clear of him) isn't drawn behind in that format. */
+  const unread: OnSkip = (w, format) =>
+    console.log(
+      `behind: "${w.w}" at ${w.s.toFixed(1)}s skipped in ${format}, he covers it everywhere`,
+    );
+
   async function stillsOne(db: Db, v: string, rawS: number) {
     const e = await getEdit(db, id(v));
     if (!e.files.cutMain) throw new Error(`video ${e.id}: not cut yet; wren video cut ${e.id}`);
@@ -484,9 +491,13 @@ export function registerStudio(
       studioDir,
       e.dir,
       {
-        ...(e.formats.includes("long") ? { long: longProps(e, mattes) } : {}),
-        ...(e.formats.includes("vertical") ? { vertical: verticalProps(e, mattes) } : {}),
-        shorts: new Map(e.shorts.map((_, i) => [i + 1, shortProps(e, i + 1, mattes)])),
+        ...(e.formats.includes("long") ? { long: longProps(e, mattes, { skip: unread }) } : {}),
+        ...(e.formats.includes("vertical")
+          ? { vertical: verticalProps(e, mattes, { skip: unread }) }
+          : {}),
+        shorts: new Map(
+          e.shorts.map((_, i) => [i + 1, shortProps(e, i + 1, mattes, { skip: unread })]),
+        ),
       },
       at,
       String(rawS),
@@ -513,10 +524,10 @@ export function registerStudio(
     const videos = want("long") || want("vertical") || want("shorts");
     const mattes = videos && !o.upload ? await mattesFor(e) : [];
     const job: RenderJob = {
-      ...(want("long") ? { long: longProps(e, mattes) } : {}),
-      ...(want("vertical") ? { vertical: verticalProps(e, mattes) } : {}),
+      ...(want("long") ? { long: longProps(e, mattes, { skip: unread }) } : {}),
+      ...(want("vertical") ? { vertical: verticalProps(e, mattes, { skip: unread }) } : {}),
       ...(want("shorts")
-        ? { shorts: new Map(numbers.map((n) => [n, shortProps(e, n, mattes)])) }
+        ? { shorts: new Map(numbers.map((n) => [n, shortProps(e, n, mattes, { skip: unread })])) }
         : {}),
       ...(thumbs ? { thumbnails: thumbs } : {}),
     };

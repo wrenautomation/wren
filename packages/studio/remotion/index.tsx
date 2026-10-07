@@ -34,6 +34,7 @@ import type {
   ThumbnailProps,
   VerticalProps,
 } from "../src/props.js";
+import { verticalRect } from "../src/safe-zones.ts";
 
 type Word = LongProps["words"][number];
 type Look = LongProps["look"];
@@ -288,28 +289,24 @@ const Behind: FC<{
   items: BehindWord[];
   t: number;
   look: Look;
-  size: number;
-  /** Where the big word's middle sits, from the top. */
-  y: number;
-  width: number;
   draw: (file: string, src: string) => ReactNode;
-}> = ({ items, t, look, size, y, width, draw }) => {
+}> = ({ items, t, look, draw }) => {
   const mattes = [...new Map(items.map((b) => [b.matte.file, b.matte])).values()];
   const word = items.find((b) => t >= b.s && t < b.to);
-  const text = word?.w.replace(/^[^\p{L}\p{N}$]+|[^\p{L}\p{N}%]+$/gu, "") ?? "";
   const st = word ? bigWordState(t, word.s, word.to) : null;
-  // A long word shrinks to fit 90% of the width (a bold face runs about 0.62 em a letter).
-  const fit = Math.min(size, Math.round((width * 0.9) / (0.62 * Math.max(1, text.length))));
+  // Placed by `placeWord` (props.ts) where 70% of it stays clear of him.
+  const { text = "", x = 0, y = 0, size: fit = 0 } = word?.place ?? {};
   return (
     <>
       {word && st ? (
         <div
           style={{
             position: "absolute",
-            left: 0,
-            right: 0,
+            left: x - 2000,
+            width: 4000,
             top: y - fit * 0.6,
             textAlign: "center",
+            whiteSpace: "nowrap",
             font: `800 ${fit}px/1.2 ${look.font}`,
             letterSpacing: -fit * 0.03,
             color: "#fff",
@@ -373,9 +370,6 @@ export const Long: FC<LongProps> = ({
         items={behind}
         t={t}
         look={look}
-        size={260}
-        y={430}
-        width={1920}
         draw={(file, src) => (
           <AbsoluteFill>
             <OffthreadVideo
@@ -469,9 +463,6 @@ export const Short: FC<ShortProps> = ({
         items={behind}
         t={t}
         look={look}
-        size={220}
-        y={show === "screen" ? 960 - 300 : 620}
-        width={1080}
         draw={(file, src) =>
           show === "cam" && (face.file === src || (face.box && src === main)) ? (
             <div style={{ position: "absolute", left: 0, top: 0 }}>
@@ -522,17 +513,9 @@ export const Vertical: FC<VerticalProps> = ({
   const { fps } = useVideoConfig();
   const t = frame / fps;
   const stressed = useMemo(() => new Set(stress), [stress]);
-  const [x, y, w, h] = picture.window;
-  const k = Math.max(1080 / w, 1920 / h);
   const own = picture.file === main;
-  const place: CSSProperties = {
-    position: "absolute",
-    left: (1080 - w * k) / 2 - x * k,
-    top: (1920 - h * k) / 2 - y * k,
-    width: picture.size[0] * k,
-    height: picture.size[1] * k,
-    maxWidth: "none",
-  };
+  const [left, top, width, height] = verticalRect(picture);
+  const place: CSSProperties = { position: "absolute", left, top, width, height, maxWidth: "none" };
   return (
     <AbsoluteFill style={{ background: "#000" }}>
       <OffthreadVideo src={staticFile(picture.file)} muted={!own} style={place} />
@@ -542,9 +525,6 @@ export const Vertical: FC<VerticalProps> = ({
         items={behind}
         t={t}
         look={look}
-        size={220}
-        y={620}
-        width={1080}
         draw={(file) => <OffthreadVideo src={staticFile(file)} transparent muted style={place} />}
       />
       {captions.on ? (

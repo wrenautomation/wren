@@ -85,9 +85,13 @@ export { cutSize, cutTracks, FPS, portrait, preview, proxy360, scaleFilter } fro
 export { findRecordings, isOpen, obsRecordingDir } from "./obs.js";
 export {
   type BehindWord,
+  BIG,
+  bigText,
+  faceRect,
   type LongProps,
   longProps,
   type Matte,
+  type OnSkip,
   SHORT_COUNT,
   SHORT_S,
   type ShortProps,
@@ -99,6 +103,21 @@ export {
   verticalWindow,
 } from "./props.js";
 export { openStudio, type RenderJob, renderAll, renderStill, renderStills } from "./remotion.js";
+export {
+  addMask,
+  covered,
+  fitRect,
+  placeWord,
+  type Rect,
+  type Spot,
+  verticalRect,
+  type Where,
+  wordBox,
+  ZONE,
+  type Zone,
+  zoneAcc,
+  zoneOf,
+} from "./safe-zones.js";
 export * from "./schema.js";
 export {
   checkStress,

@@ -435,3 +435,15 @@ Answered 10-06: agreed; OBS; captions on the long video and Shorts.
   keys answered 503 or were cooling all session; Cohere is paid, so not tried); one matte run
   ended with a libc++ mutex abort at exit after a good render, not seen again in four runs;
   matting is slow (a 1 min video with 3 picks is about 1 min of CPU).
+- 2026-10-07: the big word must read (coordinator, from video 3's still: his head hid most of
+  "lock-in"). Ported Hyperframes' safe zones (`safe-zones.ts`): while matting, each frame's mask
+  folds into a 48x48 grid (a cell is him once its mean alpha reaches 30/255 in any frame of the
+  window, so the pocket beside his head stays free, finer than a bounding box), kept per matte in
+  `plan.json` (a matte from before is matted again). `placeWord` scores the word's box: the usual
+  spot first, then above his head (the nearest height that reads), then beside him on the wider
+  side, then the other, at each size from the format's own down to half in steps of 0.8. It needs
+  70% of the box clear and 4% of the frame height free at the edges; nothing reads → the pick isn't
+  drawn behind in that format and the CLI says so. Placement runs in props per format (Long main
+  contained, cam covered; Vertical's window; a Short's face box or contained recording); the
+  composition only draws at `place`. Video 3 at 55.7 s: his head reaches the top, so "lock-in"
+  sits right of him, smaller, fully readable.

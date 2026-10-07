@@ -22,6 +22,7 @@ import type { InferenceSession, Tensor } from "onnxruntime-node";
 import { keepSegments, onCut, toCutTime } from "./cuts.js";
 import { cutSize, FPS } from "./media.js";
 import type { Matte } from "./props.js";
+import { addMask, type Zone, zoneAcc, zoneOf } from "./safe-zones.js";
 import type { LayoutRange, VideoEdit } from "./schema.js";
 import { STRESS } from "./stress.js";
 
@@ -288,7 +289,7 @@ async function matteOne(
   w: MatteWindow,
   src: MatteSource,
   o: { fps: number; ffmpeg: string; out: string },
-): Promise<void> {
+): Promise<Zone> {
   const s = MATTE.size;
   const decErr: string[] = [];
   const encErr: string[] = [];
@@ -306,12 +307,14 @@ async function matteOne(
   const mask = new Uint8Array(s * s);
   const inName = session.inputNames[0] as string;
   const outName = session.outputNames[0] as string;
+  const acc = zoneAcc();
   let n = 0;
   for await (const rgb of frames(dec.stdout, s * s * 3)) {
     const out = await session.run({
       [inName]: new ort.Tensor("float32", toInput(rgb, input), [1, 3, s, s]),
     });
     toMask((out[outName] as Tensor).data as Float32Array, mask);
+    addMask(acc, mask, s);
     if (!enc.stdin.write(Buffer.from(mask))) await new Promise((r) => enc.stdin.once("drain", r));
     n++;
   }
@@ -319,12 +322,13 @@ async function matteOne(
   await Promise.all([decDone, encDone]);
   if (n !== w.frames) throw new Error(`matte ${w.n}: ${n} frames decoded, want ${w.frames}`);
   await rename(part, o.out);
+  return zoneOf(acc);
 }
 
 /** What `matte/plan.json` keeps: the cut files' versions the mattes were made from. */
 interface Kept {
   cut: Record<string, string>;
-  windows: (MatteWindow & { file: string })[];
+  windows: Matte[];
 }
 
 /** A cut file's version: its size and modified time (the cut pass rewrites it). */
@@ -360,9 +364,14 @@ export async function makeMattes(
     : null;
   for (const k of kept?.windows ?? [])
     if (kept?.cut[k.source] !== cut[k.source]) await rm(join(dir, k.file), { force: true });
-  const out = plan.windows.map((w) => ({ ...w, file: matteFile(w) }));
+  // A kept matte brings its zone; one from before zones were kept is matted again.
+  const out: Matte[] = plan.windows.map((w) => {
+    const file = matteFile(w);
+    const k = kept?.windows.find((x) => x.file === file);
+    return { ...w, file, ...(k?.zone ? { zone: k.zone } : {}) };
+  });
   const todo = out.filter(
-    (w) => kept?.cut[w.source] !== cut[w.source] || !existsSync(join(dir, w.file)),
+    (w) => kept?.cut[w.source] !== cut[w.source] || !existsSync(join(dir, w.file)) || !w.zone,
   );
   if (todo.length) {
     const ort = loadOrt(pkgDir);
@@ -374,7 +383,7 @@ export async function makeMattes(
       for (const w of todo) {
         const started = Date.now();
         const src = w.source === "cam" && sources.cam ? sources.cam : sources.main;
-        await matteOne(session, ort, w, src, { ...o, out: join(dir, w.file) });
+        w.zone = await matteOne(session, ort, w, src, { ...o, out: join(dir, w.file) });
         log(`matte ${w.n}: ${w.frames} frames in ${((Date.now() - started) / 1000).toFixed(1)}s`);
       }
     } finally {

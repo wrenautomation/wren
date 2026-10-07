@@ -8,6 +8,7 @@ import type { Captions } from "./caption-styles.js";
 import { keepSegments, onCut, toCutTime } from "./cuts.js";
 import type { MatteWindow } from "./matte.js";
 import { cutSize, FPS, portrait } from "./media.js";
+import { fitRect, placeWord, type Rect, verticalRect, type Zone } from "./safe-zones.js";
 import type { LayoutRange, Short, VideoEdit, Word } from "./schema.js";
 import { STRESS } from "./stress.js";
 
@@ -39,16 +40,94 @@ export type BehindWord = {
   e: number;
   to: number;
   matte: { file: string; src: string; fromFrame: number; frames: number };
+  /** Where it reads (`placeWord`): the drawn text, its middle and size in output px. */
+  place: { text: string; x: number; y: number; size: number };
 };
 
-/** A matte `makeMattes` made: its window and its file in the public dir. */
-export type Matte = MatteWindow & { file: string };
+/** A matte `makeMattes` made: its window, its file in the public dir, and where he is in it. */
+export type Matte = MatteWindow & { file: string; zone?: Zone };
+
+/** A stressed word with its matte, not yet placed for a format. */
+type Unplaced = Omit<BehindWord, "place"> & { zone?: Zone | undefined };
+
+/** Each format's frame, big word size and usual height (its middle, from the top). */
+export const BIG = {
+  long: { frame: [1920, 1080], size: 260, y: 430 },
+  vertical: { frame: [1080, 1920], size: 220, y: 620 },
+  short: { frame: [1080, 1920], size: 220, y: 620 },
+  /** A Short with no face shows the recording; the word sits higher. */
+  shortScreen: { frame: [1080, 1920], size: 220, y: 660 },
+} as const satisfies Record<string, { frame: [number, number]; size: number; y: number }>;
+
+/** The big word's text: the word without its punctuation. */
+export const bigText = (w: string) => w.replace(/^[^\p{L}\p{N}$]+|[^\p{L}\p{N}%]+$/gu, "");
+
+/** Called with each stressed word that can't read in a format and so isn't drawn behind. */
+export type OnSkip = (w: { w: string; s: number }, format: string) => void;
+
+/**
+ * Place each word for one format: where `rect(b)` says its matte's picture sits (null: not drawn
+ * in this format). A word whose matte has no zone keeps the usual spot; one that reads nowhere
+ * is dropped and reported to `skip`.
+ */
+function placeAll(
+  raw: readonly Unplaced[],
+  big: { frame: readonly [number, number]; size: number; y: number },
+  rect: (b: Unplaced) => Rect | null,
+  format: string,
+  skip?: OnSkip,
+): BehindWord[] {
+  const frame: [number, number] = [big.frame[0], big.frame[1]];
+  return raw.flatMap(({ zone, ...b }) => {
+    const r = rect({ ...b, zone });
+    if (!r) return [];
+    const text = bigText(b.w);
+    if (!zone) {
+      const size = Math.round(
+        Math.min(big.size, (frame[0] * 0.9) / (0.62 * Math.max(1, text.length))),
+      );
+      return [{ ...b, place: { text, x: frame[0] / 2, y: big.y, size } }];
+    }
+    const spot = placeWord(zone, r, { frame, text, size: big.size, y: big.y });
+    if (!spot) {
+      skip?.(b, format);
+      return [];
+    }
+    return [
+      { ...b, place: { text, x: Math.round(spot.x), y: Math.round(spot.y), size: spot.size } },
+    ];
+  });
+}
 
 /**
  * The Long props. `mattes`: the windows matted for the words behind the speaker (`makeMattes`);
  * a stressed word with no matte isn't drawn behind.
  */
-export function longProps(edit: VideoEdit, mattes: readonly Matte[] = []): LongProps {
+export function longProps(
+  edit: VideoEdit,
+  mattes: readonly Matte[] = [],
+  o: { skip?: OnSkip } = {},
+): LongProps {
+  const { raw, ...long } = longBase(edit, mattes);
+  const frame = BIG.long.frame;
+  const main = fitRect(cutSize(edit.tracks.main), [...frame], "contain");
+  const cam = edit.tracks.cam ? fitRect(cutSize(edit.tracks.cam), [...frame], "cover") : null;
+  return {
+    ...long,
+    behind: placeAll(
+      raw,
+      BIG.long,
+      (b) => (b.matte.src === long.main ? main : cam),
+      "long",
+      o.skip,
+    ),
+  };
+}
+
+function longBase(
+  edit: VideoEdit,
+  mattes: readonly Matte[],
+): Omit<LongProps, "behind"> & { raw: Unplaced[] } {
   if (!edit.files.cutMain)
     throw new Error(`video ${edit.id}: not cut yet; run wren video cut ${edit.id}`);
   const keep = keepSegments(edit.cuts, edit.tracks.main.durationS, FPS);
@@ -62,14 +141,14 @@ export function longProps(edit: VideoEdit, mattes: readonly Matte[] = []): LongP
   const stressed = new Set(edit.stress ?? []);
   const main = basename(edit.files.cutMain);
   const cam = edit.files.cutCam ? basename(edit.files.cutCam) : null;
-  const behind = edit.captions.behind
-    ? kept.flatMap(({ i, w }): BehindWord[] => {
+  const raw = edit.captions.behind
+    ? kept.flatMap(({ i, w }): Unplaced[] => {
         const m = stressed.has(i) ? mattes.find((x) => x.picks.includes(i)) : undefined;
         if (!m) return [];
         const src = m.source === "cam" && cam ? cam : main;
         const to = r(Math.min(w.e + STRESS.holdS, (m.fromFrame + m.frames) / FPS));
         const { file, fromFrame, frames } = m;
-        return [{ ...w, to, matte: { file, src, fromFrame, frames } }];
+        return [{ ...w, to, matte: { file, src, fromFrame, frames }, zone: m.zone }];
       })
     : [];
   return {
@@ -79,7 +158,7 @@ export function longProps(edit: VideoEdit, mattes: readonly Matte[] = []): LongP
     durationInFrames: Math.max(1, Math.round(total * FPS)),
     words: kept.map(({ w }) => w),
     stress: kept.flatMap(({ i }, j) => (stressed.has(i) ? [j] : [])),
-    behind,
+    raw,
     layout: edit.layout.map((l) => ({
       ...l,
       from: r(onCut(l.from, keep)),
@@ -141,17 +220,41 @@ export function verticalWindow(w: number, h: number, cx = w / 2): [number, numbe
  * 9:16 window on his face: the camera file's centre when there is one, the cam box's centre in a
  * one-file recording, else the frame's centre. The recording always carries the sound.
  */
-export function verticalProps(edit: VideoEdit, mattes: readonly Matte[] = []): VerticalProps {
-  const { cam: _c, layout: _l, ...long } = longProps(edit, mattes);
+export function verticalProps(
+  edit: VideoEdit,
+  mattes: readonly Matte[] = [],
+  o: { skip?: OnSkip } = {},
+): VerticalProps {
+  const { cam: _c, layout: _l, raw, ...long } = longBase(edit, mattes);
   const face = faceOf(edit);
   // A portrait recording is the picture; else the camera file, else the recording.
   const own = portrait(edit.tracks.main) || !face.file || !!face.box;
   const [w, h] = own ? cutSize(edit.tracks.main) : face.size;
   const cx = own && face.box ? face.box[0] + face.box[2] / 2 : w / 2;
   const file = own ? long.main : (face.file as string);
+  const picture: VerticalProps["picture"] = {
+    file,
+    size: [w, h],
+    window: verticalWindow(w, h, cx),
+  };
   // A matte lines up only with the picture it was cut out of.
-  const behind = long.behind.filter((b) => b.matte.src === file);
-  return { ...long, behind, picture: { file, size: [w, h], window: verticalWindow(w, h, cx) } };
+  const rect = verticalRect(picture);
+  const behind = placeAll(
+    raw,
+    BIG.vertical,
+    (b) => (b.matte.src === file ? rect : null),
+    "vertical",
+    o.skip,
+  );
+  return { ...long, behind, picture };
+}
+
+/** Where `face`'s file sits when its face (box, else the whole file) covers a `w` x `h` box. */
+export function faceRect(face: Face, w: number, h: number): Rect {
+  const [fw, fh] = face.size;
+  const [bx, by, bw, bh] = face.box ?? [0, 0, fw, fh];
+  const k = Math.max(w / bw, h / bh);
+  return [(w - bw * k) / 2 - bx * k, (h - bh * k) / 2 - by * k, fw * k, fh * k];
 }
 
 /** Shorts run 20 to 60 s on the cut timeline, 2 to 4 of them (or none). */
@@ -176,10 +279,16 @@ function faceOf(edit: VideoEdit): Face {
 }
 
 /** Short `n` (1-based): the Long props cut down to its span, times from its start. */
-export function shortProps(edit: VideoEdit, n: number, mattes: readonly Matte[] = []): ShortProps {
+export function shortProps(
+  edit: VideoEdit,
+  n: number,
+  mattes: readonly Matte[] = [],
+  o: { skip?: OnSkip } = {},
+): ShortProps {
   const short: Short | undefined = edit.shorts[n - 1];
   if (!short) throw new Error(`video ${edit.id} has ${edit.shorts.length} shorts; no ${n}`);
-  const { cam: _c, ...long } = longProps(edit, mattes);
+  const { cam: _c, raw, ...long } = longBase(edit, mattes);
+  const face = faceOf(edit);
   const keep = keepSegments(edit.cuts, edit.tracks.main.durationS, FPS);
   const start = onCut(short.from, keep);
   const end = onCut(short.to, keep);
@@ -187,7 +296,7 @@ export function shortProps(edit: VideoEdit, n: number, mattes: readonly Matte[] 
   const inside = long.words.flatMap((w, j) => (w.s >= start && w.s < end ? [j] : []));
   return {
     ...long,
-    face: faceOf(edit),
+    face,
     startFrame: Math.round(start * FPS),
     durationInFrames: Math.max(1, Math.round((end - start) * FPS)),
     words: inside.map((j) => {
@@ -195,20 +304,66 @@ export function shortProps(edit: VideoEdit, n: number, mattes: readonly Matte[] 
       return { ...w, s: r(w.s - start), e: r(Math.min(w.e, end) - start) };
     }),
     stress: inside.flatMap((j, k) => (long.stress.includes(j) ? [k] : [])),
-    behind: long.behind
-      .filter((b) => b.s >= start && b.to <= end)
-      .map((b) => ({
-        ...b,
-        s: r(b.s - start),
-        e: r(b.e - start),
-        to: r(b.to - start),
-        matte: { ...b.matte, fromFrame: b.matte.fromFrame - Math.round(start * FPS) },
-      })),
+    behind: shortBehind(
+      raw
+        .filter((b) => b.s >= start && b.to <= end)
+        .map((b) => ({
+          ...b,
+          s: r(b.s - start),
+          e: r(b.e - start),
+          to: r(b.to - start),
+          matte: { ...b.matte, fromFrame: b.matte.fromFrame - Math.round(start * FPS) },
+        })),
+      face,
+      long.main,
+      long.layout
+        .filter((l) => l.to > start && l.from < end)
+        .map((l) => ({ ...l, from: Math.max(0, l.from - start), to: l.to - start })),
+      `short-${n}`,
+      o.skip,
+    ),
     layout: long.layout
       .filter((l) => l.to > start && l.from < end)
       .map((l) => ({ ...l, from: r(Math.max(0, l.from - start)), to: r(l.to - start) })),
     title: short.title,
   };
+}
+
+/**
+ * A Short draws a matte only where it lines up: his face full frame (cam layout) from the face's
+ * file, or the whole recording when there's no face (it then sits higher).
+ */
+function shortBehind(
+  raw: Unplaced[],
+  face: Face,
+  main: string,
+  layout: LayoutRange[],
+  format: string,
+  skip?: OnSkip,
+): BehindWord[] {
+  const noFace = !face.file && !face.box;
+  const full = faceRect(face, 1080, 1920);
+  const screen = fitRect(face.size, [1080, 1920], "contain");
+  const camAt = (t: number) =>
+    (layout.find((l) => t >= l.from && t < l.to)?.show ?? "corner") === "cam";
+  if (noFace)
+    return placeAll(
+      raw,
+      BIG.shortScreen,
+      (b) => (b.matte.src === main ? screen : null),
+      format,
+      skip,
+    );
+  return placeAll(
+    raw,
+    BIG.short,
+    (b) =>
+      camAt(b.s) && (face.file === b.matte.src || (!!face.box && b.matte.src === main))
+        ? full
+        : null,
+    format,
+    skip,
+  );
 }
 
 /** The three thumbnail variants at the chosen frame; null when no thumbnail is set. */

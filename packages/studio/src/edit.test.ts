@@ -192,8 +192,18 @@ describe("captions and stress (step 6)", () => {
         e: 1.3,
         to: 2.5,
         matte: { file: "matte/main-30-45.webm", src: "cut-main.mp4", fromFrame: 30, frames: 45 },
+        // No zone: the usual spot.
+        place: { text: "w5", x: 960, y: 430, size: 260 },
       },
     ]);
+    // He fills the whole frame: nothing reads, so the word is skipped and reported.
+    const skipped: string[] = [];
+    const full = { grid: 4, occ: "1".repeat(16) };
+    const none = longProps(edit, [{ ...matte, file: "matte/main-30-45.webm", zone: full }], {
+      skip: (w, format) => skipped.push(`${w.w}@${w.s} ${format}`),
+    });
+    expect(none.behind).toEqual([]);
+    expect(skipped).toEqual(["w5@1 long"]);
     expect(longProps({ ...edit, captions: { on: true, style: "stress" } }, [])).toMatchObject({
       behind: [],
     });
