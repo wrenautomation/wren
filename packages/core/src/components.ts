@@ -279,6 +279,8 @@ export interface Component {
    * (`clients.sends`, `sendsOn`) as well as the global gate. Off by default; an admin turns it on.
    */
   liveSwitch: boolean;
+  /** Accounts it will take once their run is built: the part page says "In development". */
+  soon: AccountSite[];
   /** What it takes in and hands on; a workflow wires these. */
   in: Port[];
   out: Port[];
@@ -322,6 +324,7 @@ export const defineComponent = (c: Input): Component => ({
   provides: { services: [], loops: [], records: [], apps: [], templates: [], ...c.provides },
   effects: c.effects ?? [],
   liveSwitch: c.liveSwitch ?? false,
+  soon: c.soon ?? [],
   in: c.in ?? [],
   out: c.out ?? [],
   inside: c.inside ?? null,

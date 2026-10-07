@@ -34,15 +34,24 @@ export function reachCadence(seq: ReachSequence): Workflow {
   });
 }
 
-/** `reach.touch` on the spine: the node's `step`. DMs are Wren's only, in main. */
+/**
+ * `reach.touch` on the spine: the node's `step`, queued in the database of whoever's run it is
+ * (Wren's main, or a client's own). The client's sender sends it once its live flag is on.
+ */
 export const touchStep =
-  (db: Queryable, o: Pick<TickOptions, "sequences" | "sender">): Step =>
+  (
+    db: Queryable,
+    o: Pick<TickOptions, "sequences" | "sender">,
+    clientDb?: (client: string) => Queryable,
+  ): Step =>
   async (_port, e, at) => {
     const other = passOn(e, "reach");
     if (other) return other;
     const contactId = Number(e.data.contactId);
     if (!Number.isInteger(contactId)) throw new Error(`${e.subject} is no DM contact`);
-    const got = await touch(db, contactId, Number(at.with.step), { ...o, now: new Date() });
+    if (at.client && !clientDb) throw new Error(`no database for ${at.client}'s DMs here`);
+    const on = at.client && clientDb ? clientDb(at.client) : db;
+    const got = await touch(on, contactId, Number(at.with.step), { ...o, now: new Date() });
     return got === "replied"
       ? [{ port: "replied", event: { ...e, subject: `reply:reach:${contactId}`, kind: "reply" } }]
       : [];

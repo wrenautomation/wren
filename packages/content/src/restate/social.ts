@@ -5,6 +5,10 @@
  * spine (`reach.comments`) like reach's; one ping per pass that kept something. It reads only:
  * every answer waits on William's click.
  *
+ * `SocialWatch/<client>/social`: the same for a client, on its own logins (`Content` with
+ * `client`, reads through its vendor gate) into its own database; its comments go on the spine
+ * with its id. No ping: its Inbox is its own.
+ *
  * `SocialDesk` is Marketing → Inbox's activity actions (mark seen, mark all seen) and Followers'
  * "Read now": a follower count read once, for a platform the loop never reads one on (LinkedIn).
  */
@@ -20,17 +24,20 @@ import {
 } from "@wren/core/content";
 import { Broadcast, type Notifier } from "@wren/core/notify";
 import {
+  clientOfKey,
   makeLoopObject,
   NO_INPUT,
   type PassOutcome,
   serviceHandler,
   setLastPass,
+  stoppedPass,
 } from "@wren/core/restate";
 import { spineEmit } from "@wren/core/spine";
 import { wallClock } from "@wren/core/time";
 import type { Db } from "@wren/db";
 import { COMMENTS_FLOW, COMMENTS_FROM, commentEvent } from "@wren/outreach";
 import { z } from "zod";
+import { clientContent } from "../clients.js";
 import {
   hasDay,
   isDue,
@@ -62,16 +69,20 @@ export const ACTIVITY_EVERY_MS: Partial<Record<Platform, number>> = {
 export const AUDIENCE_ON_DEMAND: readonly Platform[] = ["linkedin"];
 
 /** The `Content` service's read handlers as the worker serves them. */
+type ForClient = { client?: string | null };
 type ContentReads = {
   comments: (
     ctx: restate.Context,
-    req: { platform: Platform; id: string; q?: ListQuery },
+    req: { platform: Platform; id: string; q?: ListQuery } & ForClient,
   ) => Promise<CommentRow[]>;
   activity: (
     ctx: restate.Context,
-    req: { platform: Platform; q?: ActivityQuery },
+    req: { platform: Platform; q?: ActivityQuery } & ForClient,
   ) => Promise<ActivityRow[] | null>;
-  audience: (ctx: restate.Context, req: { platform: Platform }) => Promise<Audience | null>;
+  audience: (
+    ctx: restate.Context,
+    req: { platform: Platform } & ForClient,
+  ) => Promise<Audience | null>;
 };
 
 export interface SocialWatchDeps {
@@ -84,6 +95,8 @@ export interface SocialWatchDeps {
   notifier?: Notifier;
   /** Joins the ping only when a kept comment asks for something (a text). Follows never text. */
   texter?: Notifier;
+  /** A client's database; absent, a client's key stops. */
+  clientDb?: ((client: string) => Db) | null;
 }
 
 export interface SocialStats {
@@ -116,6 +129,18 @@ export function makeSocialWatch(deps: SocialWatchDeps) {
   return makeLoopObject("SocialWatch", async (ctx: restate.ObjectContext) => {
     const now = new Date(await ctx.date.now());
     const content = ctx.serviceClient<ContentReads>({ name: "Content" });
+    const client = clientOfKey(ctx.key)?.client ?? null;
+    let db = deps.db;
+    let platforms = deps.platforms;
+    if (client) {
+      if (!deps.clientDb) return stoppedPass<SocialStats>(ctx, now, "no client databases here");
+      const plan = await ctx.run("client", () => clientContent(deps.db, client, "content.social"));
+      if (plan.kind === "gone") return stoppedPass<SocialStats>(ctx, now, plan.why);
+      db = deps.clientDb(client);
+      // Its logins, on the channels the worker runs (the global gate).
+      platforms = plan.platforms.filter((p) => deps.platforms.includes(p));
+    }
+    const mine = client ? { client } : {};
     const stats: SocialStats = {
       posts: 0,
       comments: 0,
@@ -128,7 +153,7 @@ export function makeSocialWatch(deps: SocialWatchDeps) {
     const kept: KeptComment[] = [];
     const happened: { kind: ActivityRow["kind"] }[] = [];
 
-    const posts = await ctx.run("posts", () => recentPosts(deps.db, deps.platforms, now));
+    const posts = await ctx.run("posts", () => recentPosts(db, platforms, now));
     const before = (await ctx.get<Record<string, number>>(READS)) ?? {};
     const reads: Record<string, number> = {};
     for (const p of posts) {
@@ -139,8 +164,8 @@ export function makeSocialWatch(deps: SocialWatchDeps) {
       reads[key] = now.getTime();
       stats.posts += 1;
       try {
-        const got = await content.comments({ platform: p.platform, id: p.id });
-        const rows = await ctx.run(`comments ${key}`, () => keepPostComments(deps.db, p, got));
+        const got = await content.comments({ platform: p.platform, id: p.id, ...mine });
+        const rows = await ctx.run(`comments ${key}`, () => keepPostComments(db, p, got));
         kept.push(...rows);
       } catch (err) {
         stats.errors.push(`${key}: ${errorText(err)}`);
@@ -150,7 +175,7 @@ export function makeSocialWatch(deps: SocialWatchDeps) {
     ctx.set(READS, reads);
     if (kept.length)
       spineEmit(ctx, {
-        client: null,
+        client,
         workflow: COMMENTS_FLOW,
         from: COMMENTS_FROM,
         events: kept.map(commentEvent),
@@ -158,21 +183,23 @@ export function makeSocialWatch(deps: SocialWatchDeps) {
 
     const day = dayOf(now, deps.zone);
     const lastActivity = (await ctx.get<Record<string, number>>(ACTIVITY_READS)) ?? {};
-    for (const platform of deps.platforms) {
+    for (const platform of platforms) {
       const every = ACTIVITY_EVERY_MS[platform] ?? 0;
       const due = now.getTime() - (lastActivity[platform] ?? 0) >= every;
       if (due) lastActivity[platform] = now.getTime();
       // Rows with no time (YouTube's subscribers) pass any `since`; the unique ref keeps them once.
       if (due)
         try {
-          const since = await ctx.run(`since ${platform}`, () =>
-            newestActivityAt(deps.db, platform),
-          );
-          const rows = await content.activity({ platform, ...(since ? { q: { since } } : {}) });
+          const since = await ctx.run(`since ${platform}`, () => newestActivityAt(db, platform));
+          const rows = await content.activity({
+            platform,
+            ...(since ? { q: { since } } : {}),
+            ...mine,
+          });
           if (rows?.length)
             happened.push(
               ...(await ctx.run(`activity ${platform}`, () =>
-                keepActivity(deps.db, platform, rows, now),
+                keepActivity(db, platform, rows, now),
               )),
             );
         } catch (err) {
@@ -181,9 +208,9 @@ export function makeSocialWatch(deps: SocialWatchDeps) {
       // A count that fails is no reading this pass, never a failed pass: the next pass asks again.
       if (AUDIENCE_ON_DEMAND.includes(platform)) continue;
       try {
-        if (await ctx.run(`day ${platform}`, () => hasDay(deps.db, platform, day))) continue;
-        const a = await content.audience({ platform });
-        if (a && (await ctx.run(`keep day ${platform}`, () => keepDay(deps.db, platform, day, a))))
+        if (await ctx.run(`day ${platform}`, () => hasDay(db, platform, day))) continue;
+        const a = await content.audience({ platform, ...mine });
+        if (a && (await ctx.run(`keep day ${platform}`, () => keepDay(db, platform, day, a))))
           stats.audience.push(platform);
       } catch (err) {
         stats.missed.push(`${platform} audience: ${errorText(err)}`);
@@ -195,7 +222,7 @@ export function makeSocialWatch(deps: SocialWatchDeps) {
     stats.asked = kept.filter((c) => c.asked).length;
     stats.activity = happened.length;
     const line = pingOf(kept, happened);
-    const { notifier, texter } = deps;
+    const { notifier, texter } = client ? {} : deps;
     if (line && notifier) {
       const to = stats.asked && texter ? new Broadcast([notifier, texter]) : notifier;
       const body = stats.asked

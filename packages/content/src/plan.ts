@@ -133,6 +133,8 @@ export async function nextIdea(
     exclude?: readonly string[];
     repos?: readonly string[];
     fetch?: Fetch;
+    /** Off for a client: Wren's build log is Wren's story. */
+    buildLog?: boolean;
   },
 ): Promise<NextIdea> {
   const pick = ({ id, source, text }: ContentIdea) => ({ id, source, text });
@@ -149,6 +151,10 @@ export async function nextIdea(
     .orderBy(asc(contentIdeas.createdAt))
     .limit(1);
   if (open) return { idea: pick(open), errors: [] };
+  if (o.buildLog === false) {
+    const q = await questionIdea(db, o.now);
+    return { idea: q ? pick(q) : null, errors: [] };
+  }
   const log = await buildLogIdea(db, o.now, o.day, {
     ...(o.repos ? { repos: o.repos } : {}),
     ...(o.fetch ? { fetch: o.fetch } : {}),

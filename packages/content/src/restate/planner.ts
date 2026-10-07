@@ -8,14 +8,28 @@
  * and stays a person's click. Off until started;
  * `start {"platforms":["linkedin","reddit"],"draft":true}`.
  * Design: designs/2026-10-06-social-inbox.md (Daily drafts).
+ *
+ * `ContentPlanner/<client>/daily`: the same for a client with Content plan installed, on its own
+ * logins' platforms, into its own database, drafted by `ContentDesk/<client>/desk` as the client.
+ * Its block (`content.planner`) is the settings; its ideas are its own and its readers'
+ * questions, never Wren's build log. Drafts wait in its To approve.
  */
-import type * as restate from "@restatedev/restate-sdk";
+import * as restate from "@restatedev/restate-sdk";
 import { PLATFORMS, type Platform } from "@wren/core/content";
 import type { Notifier } from "@wren/core/notify";
-import { loopSettings, makeLoopObject, type PassOutcome, setLastPass } from "@wren/core/restate";
+import {
+  clientKey,
+  clientOfKey,
+  loopSettings,
+  makeLoopObject,
+  type PassOutcome,
+  setLastPass,
+  stoppedPass,
+} from "@wren/core/restate";
 import { wallClock, zonedInstant } from "@wren/core/time";
 import type { Db } from "@wren/db";
 import { eq } from "drizzle-orm";
+import { clientContent, clientPlan } from "../clients.js";
 import type { Fetch } from "../ideas/build-log.js";
 import {
   type DayPlan,
@@ -29,7 +43,7 @@ import {
 import { PLATFORM_SPECS } from "../platforms.js";
 import { contentDrafts } from "../schema.js";
 import { DEFAULT_SLOTS, type Slot, type Slots } from "../slots.js";
-import { type ContentDesk, DESK_KEY } from "./desk.js";
+import { type ContentDesk, DESK_KEY, DESK_UNIT } from "./desk.js";
 
 export const PLANNER_KEY = "default";
 export const DEFAULT_PLAN_PLATFORMS: readonly Platform[] = ["linkedin", "reddit"];
@@ -47,6 +61,8 @@ export interface ContentPlannerDeps {
   /** For the build log's GitHub read; tests pass a stand-in. */
   fetch?: Fetch;
   repos?: readonly string[];
+  /** A client's database; absent, a client's key stops. */
+  clientDb?: ((client: string) => Db) | null;
 }
 
 export interface PlannerSettings {
@@ -108,18 +124,42 @@ export function makeContentPlanner(deps: ContentPlannerDeps) {
   const hour = deps.hour ?? DEFAULT_HOUR;
   return makeLoopObject("ContentPlanner", async (ctx: restate.ObjectContext) => {
     const now = new Date(await ctx.date.now());
-    const settings = (await loopSettings<PlannerSettings>(ctx)) ?? {};
-    const platforms = (settings.platforms ?? DEFAULT_PLAN_PLATFORMS).filter((p) =>
-      PLATFORMS.includes(p),
-    );
+    const client = clientOfKey(ctx.key)?.client ?? null;
+    let db = deps.db;
+    let settings: PlannerSettings;
+    let platforms: Platform[];
+    if (client) {
+      if (!deps.clientDb) return stoppedPass<PlannerStats>(ctx, now, "no client databases here");
+      const plan = await ctx.run("client", async () => {
+        const c = await clientContent(deps.db, client, "content.planner");
+        if (c.kind === "gone") return c;
+        const p = clientPlan(c.client);
+        if (!p.ok) return { kind: "gone" as const, why: p.why };
+        const wanted = p.settings.platforms ?? c.platforms;
+        return {
+          kind: "work" as const,
+          platforms: c.platforms.filter((x) => wanted.includes(x)) as Platform[],
+          draft: p.settings.draft,
+        };
+      });
+      if (plan.kind === "gone") return stoppedPass<PlannerStats>(ctx, now, plan.why);
+      db = deps.clientDb(client);
+      settings = { draft: plan.draft };
+      platforms = plan.platforms;
+    } else {
+      settings = (await loopSettings<PlannerSettings>(ctx)) ?? {};
+      platforms = (settings.platforms ?? DEFAULT_PLAN_PLATFORMS).filter((p) =>
+        PLATFORMS.includes(p),
+      );
+    }
     const slots = slotsOf(settings.slots);
     const day = tomorrowOf(now, deps.zone);
     const drafted: Drafted[] = [];
     const skipped: string[] = [];
     if (settings.draft) await fill();
-    const plan = await ctx.run("plan", () => planFor(deps.db, platforms, day, deps.zone, slots));
+    const plan = await ctx.run("plan", () => planFor(db, platforms, day, deps.zone, slots));
     const stats: PlannerStats = { ...plan, drafted, skipped };
-    const notifier = deps.notifier;
+    const notifier = client ? undefined : deps.notifier;
     if (notifier)
       await ctx.run("notify", () =>
         notifier.notify(
@@ -147,20 +187,24 @@ export function makeContentPlanner(deps: ContentPlannerDeps) {
 
     async function fill(): Promise<void> {
       const open = await ctx.run("open slots", async () => {
-        const o = await openSlots(deps.db, platforms, day, deps.zone, slots);
+        const o = await openSlots(db, platforms, day, deps.zone, slots);
         return Object.fromEntries(
           Object.entries(o).map(([p, at]) => [p, at.map((d) => d.toISOString())]),
         ) as Partial<Record<Platform, string[]>>;
       });
       const short = () => platforms.filter((p) => (open[p]?.length ?? 0) > 0);
       const tried: string[] = [];
-      const desk = ctx.objectClient<ContentDesk>({ name: "ContentDesk" }, DESK_KEY);
+      const desk = ctx.objectClient<ContentDesk>(
+        { name: "ContentDesk" },
+        client ? clientKey(client, DESK_UNIT) : DESK_KEY,
+      );
       for (let i = 0; i < MAX_IDEAS && short().length > 0; i++) {
         const next = await ctx.run(`idea ${i}`, () =>
-          nextIdea(deps.db, {
+          nextIdea(db, {
             now,
             day: day.day,
             exclude: tried,
+            ...(client ? { buildLog: false } : {}),
             ...(deps.repos ? { repos: deps.repos } : {}),
             ...(deps.fetch ? { fetch: deps.fetch } : {}),
           }),
@@ -169,7 +213,15 @@ export function makeContentPlanner(deps: ContentPlannerDeps) {
         if (!next.idea) break;
         const idea = next.idea;
         tried.push(idea.id);
-        const report = await desk.draft({ ideaId: idea.id, platforms: short() });
+        let report: Awaited<ReturnType<typeof desk.draft>>;
+        try {
+          report = await desk.draft({ ideaId: idea.id, platforms: short() });
+        } catch (err) {
+          // The desk said no for good (a client's About, its model gate): said, and no more ideas.
+          if (!(err instanceof restate.TerminalError)) throw err;
+          skipped.push(`drafting: ${err.message}`);
+          break;
+        }
         for (const r of report.results) {
           const slot = open[r.platform]?.[0];
           if (!r.ok || !slot) {
@@ -178,7 +230,7 @@ export function makeContentPlanner(deps: ContentPlannerDeps) {
           }
           open[r.platform]?.shift();
           await ctx.run(`hold ${r.draft.id}`, () =>
-            deps.db
+            db
               .update(contentDrafts)
               .set({ scheduledFor: new Date(slot) })
               .where(eq(contentDrafts.id, r.draft.id))

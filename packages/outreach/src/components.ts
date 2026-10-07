@@ -19,14 +19,20 @@ export const OUTREACH_COMPONENTS = [
     blurb: "Writes to people on social sites from a warmed account, paced.",
     icon: "people",
     for: "client",
-    ready: false,
-    missing: ["Not built per client yet: sends from Wren's own logins only"],
-    requires: { anyAccount: ["linkedin", "x", "reddit"] },
+    ready: true,
+    requires: { anyAccount: ["linkedin", "reddit"] },
+    soon: ["x"],
     provides: {
       services: ["ReachSender", "ReachWatch", "ReachDesk"],
       loops: ["ReachSender", "ReachWatch"],
       records: ["marketing.person"],
     },
+    clientLoops: (client) => [
+      { service: "ReachSender", key: clientKey(client, SENDER_UNIT) },
+      { service: "ReachWatch", key: clientKey(client, WATCH_UNIT) },
+    ],
+    // DMs are planned and held in its own database; none leaves until an admin turns sends on.
+    liveSwitch: true,
     effects: ["sends"],
     in: [{ id: "people", label: "people", kind: "person" }],
     out: [{ id: "replied", label: "DM replies", kind: "reply" }],
@@ -49,9 +55,9 @@ export const OUTREACH_COMPONENTS = [
     blurb: "One DM of a follow-up, queued when its wait is over, unless they answered.",
     icon: "people",
     for: "client",
-    ready: false,
-    missing: ["Not built per client yet: DMs from Wren's own logins only"],
+    ready: true,
     requires: { components: ["reach.outreach"] },
+    // Its DMs leave through Social outreach's sender, on that part's live flag.
     effects: ["sends"],
     in: [{ id: "lead", label: "lead", kind: "lead" }],
     out: [

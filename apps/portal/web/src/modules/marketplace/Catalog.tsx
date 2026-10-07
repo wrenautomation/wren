@@ -54,6 +54,8 @@ interface Part {
   effects: string[];
   /** The client's live flag for it, read-only; null when it has none. */
   sends?: string | null;
+  /** Channels it will take once their run is built. */
+  soon?: string[];
   installed: boolean;
   in: Port[];
   out: Port[];
@@ -369,6 +371,13 @@ export function catalogExtras(
       "Sends",
       <p key="sends" className={QUIET}>
         {d.sends}
+      </p>,
+    ]);
+  if (d.soon?.length)
+    sections.push([
+      "In development",
+      <p key="soon" className={QUIET}>
+        {d.soon.join(", ")}
       </p>,
     ]);
 

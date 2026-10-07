@@ -3,12 +3,23 @@
  * through the `Content` service and writes a snapshot row. On the first pass
  * of a Monday it sends "what worked" for the week. Cheap and read-only on
  * the platforms, so a miss just waits for the next pass.
+ *
+ * `ContentMetrics/<client>/posts`: the same for a client's posts, read on its own logins into its
+ * own database. No Monday report: that goes to Wren's lane.
  */
 import * as restate from "@restatedev/restate-sdk";
 import type { Metrics, Platform } from "@wren/core/content";
 import type { Notifier } from "@wren/core/notify";
-import { errorText, makeLoopObject, type PassOutcome, setLastPass } from "@wren/core/restate";
+import {
+  clientOfKey,
+  errorText,
+  makeLoopObject,
+  type PassOutcome,
+  setLastPass,
+  stoppedPass,
+} from "@wren/core/restate";
 import type { Db } from "@wren/db";
+import { clientContent } from "../clients.js";
 import { formatWhatWorked, metricsDue, recordMetrics, whatWorked } from "../metrics.js";
 
 export const METRICS_KEY = "default";
@@ -19,7 +30,10 @@ const MONDAY = 1;
 
 /** The `Content` service's metrics handler as the worker serves it. */
 type ContentService = {
-  metrics: (ctx: restate.Context, req: { platform: Platform; id: string }) => Promise<Metrics>;
+  metrics: (
+    ctx: restate.Context,
+    req: { platform: Platform; id: string; client?: string | null },
+  ) => Promise<Metrics>;
 };
 
 export interface ContentMetricsDeps {
@@ -27,6 +41,8 @@ export interface ContentMetricsDeps {
   /** Sleep between passes (default 6 h; each post is still looked at once a day). */
   everyMs?: number;
   notifier?: Notifier;
+  /** A client's database; absent, a client's key stops. */
+  clientDb?: ((client: string) => Db) | null;
 }
 
 export interface MetricsStats {
@@ -48,21 +64,33 @@ export function makeContentMetrics(deps: ContentMetricsDeps) {
   return makeLoopObject("ContentMetrics", async (ctx: restate.ObjectContext) => {
     const now = new Date(await ctx.date.now());
     const content = ctx.serviceClient<ContentService>({ name: "Content" });
-    const due = await ctx.run("metrics due", () => metricsDue(deps.db, now));
+    const owner = clientOfKey(ctx.key);
+    const client = owner?.client ?? null;
+    if (client) {
+      if (!deps.clientDb) return stoppedPass<MetricsStats>(ctx, now, "no client databases here");
+      const plan = await ctx.run("client", () => clientContent(deps.db, client, "content.posting"));
+      if (plan.kind === "gone") return stoppedPass<MetricsStats>(ctx, now, plan.why);
+    }
+    const db = client && deps.clientDb ? deps.clientDb(client) : deps.db;
+    const due = await ctx.run("metrics due", () => metricsDue(db, now));
     const stats: MetricsStats = { looked: [], failed: [], reported: false };
     for (const draft of due) {
       const id = draft.publishedId;
       if (!id) continue;
       try {
-        const m = await content.metrics({ platform: draft.platform, id });
-        await ctx.run(`record ${draft.id}`, () => recordMetrics(deps.db, draft.id, m));
+        const m = await content.metrics({
+          platform: draft.platform,
+          id,
+          ...(client ? { client } : {}),
+        });
+        await ctx.run(`record ${draft.id}`, () => recordMetrics(db, draft.id, m));
         stats.looked.push({ id: draft.id, platform: draft.platform, views: m.views });
       } catch (err) {
         if (!(err instanceof restate.TerminalError)) throw err;
         stats.failed.push({ id: draft.id, platform: draft.platform, error: errorText(err) });
       }
     }
-    const notifier = deps.notifier;
+    const notifier = client ? undefined : deps.notifier;
     const week = weekOf(now);
     if (notifier && now.getUTCDay() === MONDAY && (await ctx.get<string>(REPORTED)) !== week) {
       const lines = await ctx.run("what worked", async () =>

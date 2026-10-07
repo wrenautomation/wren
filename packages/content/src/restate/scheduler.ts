@@ -8,12 +8,25 @@
  * Cadence: after a pass with work, look again in a minute; otherwise sleep
  * until the next scheduled draft, or `idleMs` when nothing is scheduled (a
  * fresh approval with no time also gets picked up then, or on `sync`).
+ *
+ * `ContentScheduler/<client>/posts`: the same over the client's own database, posting on its own
+ * login (`Content` with `client`). Until an admin turns its posting on, approved drafts wait:
+ * nothing is claimed, the pass says how many are held. Posts carry no link to Wren's lander.
  */
 import * as restate from "@restatedev/restate-sdk";
+import { sendsOn } from "@wren/core/clients";
 import type { Platform, Post, Published } from "@wren/core/content";
 import type { Notifier } from "@wren/core/notify";
-import { errorText, makeLoopObject, type PassOutcome, setLastPass } from "@wren/core/restate";
+import {
+  clientOfKey,
+  errorText,
+  makeLoopObject,
+  type PassOutcome,
+  setLastPass,
+  stoppedPass,
+} from "@wren/core/restate";
 import type { Db } from "@wren/db";
+import { clientContent } from "../clients.js";
 import { postLink, postOf } from "../platforms.js";
 import { claim, dueDrafts, markFailed, markPublished, nextDue } from "../queue.js";
 
@@ -24,7 +37,10 @@ const MAX_PER_PASS = 10;
 
 /** The `Content` service's publish handler as the worker serves it. */
 type ContentService = {
-  publish: (ctx: restate.Context, req: { platform: Platform; post: Post }) => Promise<Published>;
+  publish: (
+    ctx: restate.Context,
+    req: { platform: Platform; post: Post; client?: string | null },
+  ) => Promise<Published>;
 };
 
 export interface ContentSchedulerDeps {
@@ -34,8 +50,10 @@ export interface ContentSchedulerDeps {
   notifier?: Notifier;
   /** The lander host posts link to (`/go/<code>/<draft>`); unset = posts carry no link. */
   linkSite?: string | null;
-  /** A post just went out on `platform`: whoever reads its replies starts reading warm. */
-  posted?: (ctx: restate.ObjectContext, platform: Platform) => void;
+  /** A post just went out on `platform` (a client's, or Wren's at null): its replies read warm. */
+  posted?: (ctx: restate.ObjectContext, platform: Platform, client: string | null) => void;
+  /** A client's database; absent, a client's key stops. */
+  clientDb?: ((client: string) => Db) | null;
 }
 
 export interface PublishStats {
@@ -43,38 +61,76 @@ export interface PublishStats {
   failed: { id: string; platform: Platform; error: string }[];
   /** Approved drafts still waiting after this pass (a batch is capped). */
   remaining: number;
+  /** A client's due drafts held because its sends are off. */
+  held?: number;
 }
 
 export function makeContentScheduler(deps: ContentSchedulerDeps) {
   const idleMs = deps.idleMs ?? DEFAULT_IDLE_MS;
   return makeLoopObject("ContentScheduler", async (ctx: restate.ObjectContext) => {
     const now = new Date(await ctx.date.now());
+    const owner = clientOfKey(ctx.key);
+    if (!owner)
+      return publishPass(ctx, now, {
+        db: deps.db,
+        client: null,
+        linkSite: deps.linkSite ?? null,
+        notifier: deps.notifier,
+      });
+    if (!deps.clientDb) return stoppedPass<PublishStats>(ctx, now, "no client databases here");
+    const id = owner.client;
+    const plan = await ctx.run("client", () => clientContent(deps.db, id, "content.posting"));
+    if (plan.kind === "gone") return stoppedPass<PublishStats>(ctx, now, plan.why);
+    const db = deps.clientDb(id);
+    if (!sendsOn(plan.client, "content.posting")) {
+      // Sends off: nothing is claimed; approved drafts keep their slot until an admin says go.
+      const due = await ctx.run("held", async () => (await dueDrafts(db, now, 1000)).length);
+      const outcome: PassOutcome<PublishStats> = {
+        stats: { published: [], failed: [], remaining: 0, held: due },
+        error: null,
+        failures: 0,
+        delayMs: idleMs,
+        now: now.toISOString(),
+      };
+      await setLastPass(ctx, outcome);
+      return outcome;
+    }
+    return publishPass(ctx, now, { db, client: id, linkSite: null });
+  });
+
+  /** One pass: due drafts claimed, posted through `Content`, marked. */
+  async function publishPass(
+    ctx: restate.ObjectContext,
+    now: Date,
+    o: { db: Db; client: string | null; linkSite: string | null; notifier?: Notifier | undefined },
+  ): Promise<PassOutcome<PublishStats>> {
     const content = ctx.serviceClient<ContentService>({ name: "Content" });
     // Rows cross the journal as JSON: their Date columns are strings here; only id/platform/text/title/media/extra are read.
-    const due = await ctx.run("due drafts", () => dueDrafts(deps.db, now, MAX_PER_PASS + 1));
+    const due = await ctx.run("due drafts", () => dueDrafts(o.db, now, MAX_PER_PASS + 1));
     const batch = due.slice(0, MAX_PER_PASS);
     const stats: PublishStats = { published: [], failed: [], remaining: due.length - batch.length };
     for (const draft of batch) {
-      const claimed = await ctx.run(`claim ${draft.id}`, () => claim(deps.db, draft.id));
+      const claimed = await ctx.run(`claim ${draft.id}`, () => claim(o.db, draft.id));
       if (!claimed) continue;
       try {
         const published = await content.publish({
           platform: draft.platform,
-          post: postOf(claimed, postLink(deps.linkSite, claimed)),
+          post: postOf(claimed, postLink(o.linkSite, claimed)),
+          ...(o.client ? { client: o.client } : {}),
         });
-        await ctx.run(`published ${draft.id}`, () => markPublished(deps.db, draft.id, published));
+        await ctx.run(`published ${draft.id}`, () => markPublished(o.db, draft.id, published));
         stats.published.push({ id: draft.id, platform: draft.platform, url: published.url });
-        deps.posted?.(ctx, draft.platform);
+        deps.posted?.(ctx, draft.platform, o.client);
       } catch (err) {
         // A terminal refusal (no channel, the platform said no) is this draft's
         // problem: recorded on the row, the pass moves on. Anything else retries.
         if (!(err instanceof restate.TerminalError)) throw err;
         const error = errorText(err);
-        await ctx.run(`failed ${draft.id}`, () => markFailed(deps.db, draft.id, error));
+        await ctx.run(`failed ${draft.id}`, () => markFailed(o.db, draft.id, error));
         stats.failed.push({ id: draft.id, platform: draft.platform, error });
       }
     }
-    const next = await ctx.run("next due", () => nextDue(deps.db, now));
+    const next = await ctx.run("next due", () => nextDue(o.db, now));
     const delayMs =
       stats.remaining > 0
         ? BUSY_MS
@@ -89,7 +145,7 @@ export function makeContentScheduler(deps: ContentSchedulerDeps) {
       now: now.toISOString(),
     };
     await setLastPass(ctx, outcome);
-    const notifier = deps.notifier;
+    const notifier = o.notifier;
     if (notifier && (stats.published.length > 0 || stats.failed.length > 0)) {
       const lines = [
         ...stats.published.map((p) => `posted on ${p.platform}: ${p.url}`),
@@ -104,7 +160,7 @@ export function makeContentScheduler(deps: ContentSchedulerDeps) {
       );
     }
     return outcome;
-  });
+  }
 }
 
 export type ContentScheduler = ReturnType<typeof makeContentScheduler>;

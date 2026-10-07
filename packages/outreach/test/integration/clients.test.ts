@@ -21,12 +21,25 @@ import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { addAccount } from "../../src/accounts.js";
 import { clientReach, clientSends, loginsOf } from "../../src/clients.js";
 import { sortStep } from "../../src/comments.js";
+import { touchStep } from "../../src/follow.js";
 import { DEFAULT_POLICY } from "../../src/policy.js";
 import type { DiscoveryStats } from "../../src/restate/discovery.js";
 import { makeRedditReads } from "../../src/restate/discovery.js";
-import { makeReachWatch, type ReachDeps, type WatchStats } from "../../src/restate/index.js";
-import { comments, redditPlaces as places, reachAccounts } from "../../src/schema.js";
+import {
+  makeReachSender,
+  makeReachWatch,
+  type ReachDeps,
+  type WatchStats,
+} from "../../src/restate/index.js";
+import {
+  comments,
+  redditPlaces as places,
+  reachAccounts,
+  reachContacts,
+  reachMessages,
+} from "../../src/schema.js";
 import { REACH_SEQUENCES } from "../../src/sequences.js";
+import type { TickStats } from "../../src/tick.js";
 
 const calls: { site: string; path: string; account: string | undefined }[] = [];
 const NOW_S = Math.floor(Date.parse("2026-10-07T15:00:00Z") / 1000);
@@ -87,6 +100,7 @@ beforeAll(async () => {
     name: "Kappa",
     accounts: { reddit: "reddit@kappa" },
     products: {
+      "reach.outreach": {},
       "comments.read": {},
       "comments.sort": {},
       "reddit.discovery": {
@@ -138,6 +152,8 @@ beforeAll(async () => {
     services: [
       spine.service,
       makeReachWatch(deps),
+      // Live globally: only the client's own flag holds its DMs.
+      makeReachSender({ ...deps, live: true, clock: () => new Date(NOW_S * 1000) }),
       makeRedditReads({
         ...deps,
         discovery: {
@@ -279,6 +295,86 @@ describe("Reddit discovery per client", () => {
 
   it("never reads for Wren's buyers: no About, no pass", async () => {
     expect((await reads("lambda/daily")).stopped).toBe("say who its buyers are: set About");
+  });
+});
+
+describe("the DM step per client", () => {
+  it("reads the contact in the client's database, never Wren's", async () => {
+    const [c] = await kappa
+      .insert(reachContacts)
+      .values({
+        platform: "reddit",
+        handle: "kappa_reader",
+        url: "https://reddit.test/u/kappa_reader",
+        foundIn: "r/dentistry",
+        state: "replied",
+      })
+      .returning({ id: reachContacts.id });
+    const step = touchStep(pg.db, { sequences: REACH_SEQUENCES, sender: "Test" }, open);
+    const e = { kind: "lead", subject: `lead:reach:${c?.id}`, data: { contactId: c?.id } };
+    const at = (client: string | null) => ({
+      client,
+      workflow: "dm",
+      node: "s1",
+      with: { step: 1 },
+    });
+    // Kappa's contact answered: the cadence stops on its reply.
+    expect(await step("in", e as never, at("kappa"))).toEqual([
+      { port: "replied", event: expect.objectContaining({ kind: "reply" }) },
+    ]);
+    // The same id in Wren's database is no one.
+    expect(await step("in", e as never, at(null))).toEqual([]);
+    // A client's step with no client databases here fails loud.
+    await expect(
+      touchStep(pg.db, { sequences: REACH_SEQUENCES, sender: "Test" })(
+        "in",
+        e as never,
+        at("kappa"),
+      ),
+    ).rejects.toThrow("no database for kappa's DMs here");
+  });
+});
+
+describe("the DM sender per client", () => {
+  const tick = (key: string) =>
+    ingress()
+      .objectClient<ReturnType<typeof makeReachSender>>({ name: "ReachSender" }, key)
+      .sync() as Promise<PassOutcome<TickStats>>;
+
+  it("missing: a client without Social outreach or a login stops", async () => {
+    expect((await tick("lambda/fleet")).stopped).toBe(
+      "none of reach.outreach, linkedin.invites is installed",
+    );
+    await updateClient(pg.db, "mu", { products: { "comments.read": {}, "reach.outreach": {} } });
+    expect((await tick("mu/fleet")).stopped).toBe("no login connected");
+  });
+
+  it("holds a client's DMs in its own database while its sends are off", async () => {
+    const [account] = await kappa.select().from(reachAccounts);
+    const [c] = await kappa
+      .insert(reachContacts)
+      .values({
+        platform: "reddit",
+        handle: "kappa_lead",
+        url: "https://reddit.test/u/kappa_lead",
+        foundIn: "r/dentistry",
+        state: "enrolled",
+      })
+      .returning({ id: reachContacts.id });
+    await kappa.insert(reachMessages).values({
+      contactId: c?.id ?? 0,
+      accountId: account?.id ?? null,
+      direction: "out",
+      kind: "manual",
+      body: "Hi, saw your post on billing",
+      state: "queued",
+    });
+    calls.length = 0;
+    const out = await tick("kappa/fleet");
+    expect(out.stopped).toBeUndefined();
+    expect(out.stats).toMatchObject({ sent: 0, held: { gated: 1 } });
+    expect(calls.filter((x) => x.path.includes("compose"))).toEqual([]);
+    expect((await kappa.select().from(reachMessages)).map((m) => m.state)).toEqual(["queued"]);
   });
 });
 

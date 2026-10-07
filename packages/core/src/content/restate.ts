@@ -5,9 +5,14 @@
  * queues while the box is down, and a retry of `publish` never posts twice
  * (the worker runs a write once). No port on the box is ever reached from
  * here.
+ *
+ * A request with `client` runs on that client's own logins (`ContentClients.channels`), its reads
+ * through its vendor gate. A post or a reply for a client also waits on its live flag: until an
+ * admin turns its posting on, the service refuses it (designs/2026-10-07-per-client-runs.md).
  */
 import * as restate from "@restatedev/restate-sdk";
 import { z } from "zod";
+import { isVendorStop } from "../metered.js";
 import { NO_INPUT, serviceHandler } from "../restate/form.js";
 import {
   SiteCallError,
@@ -163,18 +168,34 @@ export function journaledSites(ctx: restate.Context, sites: SiteClient): SiteCli
   };
 }
 
-/** A refusal from a channel is final for this request: terminal, so the scheduler marks the draft failed. */
+/**
+ * A refusal from a channel is final for this request: terminal, so the scheduler marks the draft
+ * failed. So is a client's vendor gate saying no: asking again this minute gets the same answer.
+ */
 async function refusalsFinal<T>(work: Promise<T>): Promise<T> {
   try {
     return await work;
   } catch (err) {
-    if (isRefusal(err)) throw new restate.TerminalError(err.message, { errorCode: err.status });
+    if (isRefusal(err) || isVendorStop(err))
+      throw new restate.TerminalError(err.message, { errorCode: err.status });
     throw err;
   }
 }
 
 /** Build the channels for one invocation from its context (the `sites` calls need it). */
 export type ChannelsFor = (ctx: restate.Context) => Channels;
+
+/** What a client's part is doing on its channels: posting, or reading (`content.social`). */
+export type ContentPart = "content.posting" | "content.social";
+
+export interface ContentClients {
+  /** A client's channels on its own logins, reads metered as `part`; none: it has no login. */
+  channels: (ctx: restate.Context, client: string, part: ContentPart) => Promise<Channels>;
+  /** May a post or a reply leave for this client: its live flag and the global gate. */
+  sends: (client: string) => Promise<boolean>;
+}
+
+export const SENDS_OFF = "Sends off. An admin turns them on.";
 
 const PLATFORM = z.enum(PLATFORMS as [Platform, ...Platform[]]);
 const QUERY = z
@@ -207,15 +228,45 @@ const ACTIVITY_QUERY = z
     limit: z.number().nullish(),
   })
   .nullish();
-const ONE_POST = z.looseObject({ platform: PLATFORM, id: z.string() });
-const REPLY = z.looseObject({ platform: PLATFORM, commentId: z.string(), text: z.string() });
+/** A client's id: its own logins, not Wren's. Empty: Wren's. */
+const CLIENT = z.string().nullish().describe("A client's id; empty = Wren's own channels");
+type ForClient = { client?: string | null };
+const ONE_POST = z.looseObject({ platform: PLATFORM, id: z.string(), client: CLIENT });
+const REPLY = z.looseObject({
+  platform: PLATFORM,
+  commentId: z.string(),
+  text: z.string(),
+  client: CLIENT,
+});
 
-export function makeContent(channelsFor: ChannelsFor) {
-  const pick = (ctx: restate.Context, platform: Platform): ContentChannel => {
-    const ch = channelsFor(ctx)[platform];
+export function makeContent(channelsFor: ChannelsFor, clients?: ContentClients) {
+  /** Wren's channel, or a client's on its own login (`client`). */
+  const pick = async (
+    ctx: restate.Context,
+    platform: Platform,
+    client: string | null | undefined,
+    part: ContentPart = "content.posting",
+  ): Promise<ContentChannel> => {
+    if (client && !clients)
+      throw new restate.TerminalError("no client channels here", { errorCode: 404 });
+    const ch =
+      client && clients
+        ? (await clients.channels(ctx, client, part))[platform]
+        : channelsFor(ctx)[platform];
     if (!ch)
-      throw new restate.TerminalError(`no ${platform} channel configured`, { errorCode: 404 });
+      throw new restate.TerminalError(
+        client
+          ? `${client} has no ${platform} login connected`
+          : `no ${platform} channel configured`,
+        { errorCode: 404 },
+      );
     return ch;
+  };
+  /** A client's post or reply: refused while its sends are off. */
+  const sending = async (ctx: restate.Context, client: string | null | undefined) => {
+    if (!client) return;
+    const on = await ctx.run("sends", () => clients?.sends(client) ?? Promise.resolve(false));
+    if (!on) throw new restate.TerminalError(SENDS_OFF, { errorCode: 403 });
   };
   return restate.service({
     name: "Content",
@@ -228,32 +279,44 @@ export function makeContent(channelsFor: ChannelsFor) {
         },
       ),
       publish: serviceHandler(
-        { input: PUBLISH, effect: "posts" },
-        async (ctx: restate.Context, req: { platform: Platform; post: Post }) =>
-          refusalsFinal(pick(ctx, req.platform).publish(req.post)),
+        { input: PUBLISH.extend({ client: CLIENT }), effect: "posts" },
+        async (ctx: restate.Context, req: { platform: Platform; post: Post } & ForClient) => {
+          await sending(ctx, req.client);
+          const ch = await pick(ctx, req.platform, req.client);
+          return refusalsFinal(ch.publish(req.post));
+        },
       ),
       list: serviceHandler(
-        { input: z.looseObject({ platform: PLATFORM, q: QUERY }) },
-        async (ctx: restate.Context, req: { platform: Platform; q?: ListQuery }) =>
-          refusalsFinal(pick(ctx, req.platform).list(req.q ?? {})),
+        { input: z.looseObject({ platform: PLATFORM, q: QUERY, client: CLIENT }) },
+        async (ctx: restate.Context, req: { platform: Platform; q?: ListQuery } & ForClient) =>
+          refusalsFinal((await pick(ctx, req.platform, req.client)).list(req.q ?? {})),
       ),
       metrics: serviceHandler(
         { input: ONE_POST },
-        async (ctx: restate.Context, req: { platform: Platform; id: string }) =>
-          refusalsFinal(pick(ctx, req.platform).metrics(req.id)),
+        async (ctx: restate.Context, req: { platform: Platform; id: string } & ForClient) =>
+          refusalsFinal((await pick(ctx, req.platform, req.client)).metrics(req.id)),
       ),
       comments: serviceHandler(
         { input: ONE_POST.extend({ q: QUERY }) },
-        async (ctx: restate.Context, req: { platform: Platform; id: string; q?: ListQuery }) =>
-          refusalsFinal(pick(ctx, req.platform).comments(req.id, req.q ?? {})),
+        async (
+          ctx: restate.Context,
+          req: { platform: Platform; id: string; q?: ListQuery } & ForClient,
+        ) =>
+          refusalsFinal(
+            (await pick(ctx, req.platform, req.client, "content.social")).comments(
+              req.id,
+              req.q ?? {},
+            ),
+          ),
       ),
       reply: serviceHandler(
         { input: REPLY, effect: "posts" },
         async (
           ctx: restate.Context,
-          req: { platform: Platform; commentId: string; text: string },
+          req: { platform: Platform; commentId: string; text: string } & ForClient,
         ) => {
-          const ch = pick(ctx, req.platform);
+          await sending(ctx, req.client);
+          const ch = await pick(ctx, req.platform, req.client, "content.social");
           if (!ch.reply)
             throw new restate.TerminalError(`${req.platform} cannot reply here`, {
               errorCode: 501,
@@ -263,20 +326,23 @@ export function makeContent(channelsFor: ChannelsFor) {
       ),
       /** Null when the channel reads no activity, so a caller skips it without an error. */
       activity: serviceHandler(
-        { input: z.looseObject({ platform: PLATFORM, q: ACTIVITY_QUERY }) },
+        { input: z.looseObject({ platform: PLATFORM, q: ACTIVITY_QUERY, client: CLIENT }) },
         async (
           ctx: restate.Context,
-          req: { platform: Platform; q?: ActivityQuery | null },
+          req: { platform: Platform; q?: ActivityQuery | null } & ForClient,
         ): Promise<ActivityRow[] | null> => {
-          const ch = pick(ctx, req.platform);
+          const ch = await pick(ctx, req.platform, req.client, "content.social");
           return ch.activity ? refusalsFinal(ch.activity(req.q ?? {})) : null;
         },
       ),
       /** Null when the channel reads no follower count. Any failure is final: the caller asks again later. */
       audience: serviceHandler(
-        { input: z.looseObject({ platform: PLATFORM }) },
-        async (ctx: restate.Context, req: { platform: Platform }): Promise<Audience | null> => {
-          const ch = pick(ctx, req.platform);
+        { input: z.looseObject({ platform: PLATFORM, client: CLIENT }) },
+        async (
+          ctx: restate.Context,
+          req: { platform: Platform } & ForClient,
+        ): Promise<Audience | null> => {
+          const ch = await pick(ctx, req.platform, req.client, "content.social");
           if (!ch.audience) return null;
           try {
             return await ch.audience();

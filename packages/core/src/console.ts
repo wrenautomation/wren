@@ -1773,6 +1773,8 @@ export const componentRecord = (
         effects: c.effects,
         // Read-only: only an admin turns a client's sends on, from the CLI.
         sends: client && c.liveSwitch ? sendsWords(client, c.id) : null,
+        // Channels it will post on once their apps exist.
+        soon: c.soon.map((site) => ACCOUNTS[site].label),
         installed,
         in: c.in,
         out: c.out,

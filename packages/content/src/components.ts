@@ -1,18 +1,37 @@
 /** Organic content: posting to each channel, and the plan of what to post. */
 import { defineComponent } from "@wren/core/components";
+import { clientKey } from "@wren/core/restate";
 import { defineWorkflow } from "@wren/core/workflows";
 import { cutKnobsSchema } from "@wren/studio/cuts";
 import { z } from "zod";
 
-/** Each per-client account posting can use: one is enough (designs/2026-10-07-per-client-runs.md). */
-const CHANNEL_ACCOUNTS = [
-  "youtube",
-  "linkedin_page",
-  "x",
-  "tiktok",
-  "instagram",
-  "reddit",
-] as const;
+/**
+ * The client logins posting runs on now (one is enough), and the channels that wait on their apps
+ * (designs/2026-10-07-per-client-runs.md): those say "In development".
+ */
+const CHANNEL_ACCOUNTS = ["linkedin", "reddit"] as const;
+const SOON_ACCOUNTS = ["youtube", "linkedin_page", "x", "tiktok", "instagram"] as const;
+
+/** A client's posts and reads: `ContentScheduler/<c>/posts`, `ContentMetrics/<c>/posts`, `SocialWatch/<c>/social`. */
+export const POSTS_UNIT = "posts";
+export const PLAN_UNIT = "daily";
+export const SOCIAL_UNIT = "social";
+
+/** A client's content plan block. `about` is who it posts as: no About, no drafts. */
+export const clientPlannerSchema = z.object({
+  about: z
+    .string()
+    .max(500)
+    .optional()
+    .describe("What the client does and for whom, one line: its posts speak as it"),
+  voice: z.string().max(2000).optional().describe("How its posts sound; empty: plain and concise"),
+  platforms: z
+    .array(z.enum(CHANNEL_ACCOUNTS))
+    .optional()
+    .describe("Which of its logins to plan for; empty: every one connected"),
+  draft: z.boolean().default(true).describe("Fill tomorrow's open slots with drafts"),
+});
+export type ClientPlannerSettings = z.infer<typeof clientPlannerSchema>;
 
 export const CONTENT_COMPONENTS = [
   defineComponent({
@@ -24,14 +43,20 @@ export const CONTENT_COMPONENTS = [
       "Posts to YouTube, LinkedIn, Instagram, TikTok, X and Reddit, and reads back the numbers.",
     icon: "play",
     for: "client",
-    ready: false,
-    missing: ["Not built per client yet: posts to Wren's own channels only"],
+    ready: true,
     requires: { anyAccount: [...CHANNEL_ACCOUNTS] },
+    soon: [...SOON_ACCOUNTS],
     provides: {
       services: ["Content", "ContentDesk", "ContentScheduler", "ContentMetrics", "DraftAsk"],
       loops: ["ContentScheduler", "ContentMetrics"],
       templates: ["prompt:content/draft-ask"],
     },
+    // A client's approved drafts post on its own login, once an admin turns its posting on.
+    clientLoops: (client) => [
+      { service: "ContentScheduler", key: clientKey(client, POSTS_UNIT) },
+      { service: "ContentMetrics", key: clientKey(client, POSTS_UNIT) },
+    ],
+    liveSwitch: true,
     effects: ["posts"],
     in: [{ id: "drafts", label: "drafts", kind: "post" }],
     out: [{ id: "posts", label: "posts", kind: "post" }],
@@ -55,10 +80,12 @@ export const CONTENT_COMPONENTS = [
     blurb: "Plans each day's posts per channel.",
     icon: "board",
     for: "client",
-    ready: false,
-    missing: ["Not built per client yet: plans Wren's own posts only"],
-    requires: { components: ["content.posting"] },
+    ready: true,
+    settings: clientPlannerSchema,
+    requires: { components: ["content.posting"], anyAccount: [...CHANNEL_ACCOUNTS] },
     provides: { services: ["ContentPlanner"], loops: ["ContentPlanner"] },
+    // Drafts tomorrow's posts into the client's To approve, as it (its About), on its own models.
+    clientLoops: (client) => [{ service: "ContentPlanner", key: clientKey(client, PLAN_UNIT) }],
     effects: ["spends"],
     out: [{ id: "drafts", label: "drafts", kind: "post" }],
     hypothesis: {
@@ -79,11 +106,12 @@ export const CONTENT_COMPONENTS = [
       "Reads comments on our posts, follows, mentions and follower counts every 30 minutes into Marketing → Inbox.",
     icon: "people",
     for: "client",
-    ready: false,
-    missing: ["Not built per client yet: reads Wren's own channels only"],
-    // Wren's own run reads its block from `wren_settings` until a client's runs.
+    ready: true,
+    // Wren's own run reads its block from `wren_settings`.
     wrenSettings: true,
-    requires: { components: ["content.posting"] },
+    requires: { components: ["content.posting"], anyAccount: [...CHANNEL_ACCOUNTS] },
+    // Comments on its posts, its activity and followers, on its own logins, into its database.
+    clientLoops: (client) => [{ service: "SocialWatch", key: clientKey(client, SOCIAL_UNIT) }],
     provides: {
       services: ["SocialWatch", "SocialDesk"],
       loops: ["SocialWatch"],

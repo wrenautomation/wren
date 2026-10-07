@@ -63,8 +63,8 @@ Planned parts (speed to lead, voice, nurture and the rest) are not in this table
 5. Live flag per client: `clients.sends` lists the parts whose sends are on. `wren clients set <id> --live <part>` (`--live-off`), an admin's, audited. ANDed with the global gate. Read-only on the client record and the part page ("Sends off. An admin turns them on.").
 6. Reads on the client's own gate: `meteredSites` and `meteredModel` (`@wren/core/metered`) gate and meter every read (Reddit, Exa, LinkedIn profile reads, models) on the client's vendor modes.
 7. B runs on the client's Reddit logins: `ReachWatch/<c>/daily` (comment reader), comment sort in the client's database, `RedditReads/<c>/daily` (discovery). Data in the client's database.
-
 8. Inbox health per client: `PostmasterScheduler/<c>/daily` on its verified sending domains into its database. Placement seeds and the digest stay Wren's.
+9. Content and DMs per client on its LinkedIn and Reddit logins: `ContentPlanner/<c>/daily` drafts as the client through `ContentDesk/<c>/desk` into its To approve; `ContentScheduler/<c>/posts` and `ContentMetrics/<c>/posts` post and measure; `SocialWatch/<c>/social` reads comments, activity, followers. `ReachSender/<c>/fleet` and the `reach.touch` step run in its database. Posts and DMs hold until an admin turns its sends on. YouTube, X, TikTok, Instagram and a LinkedIn Page say "In development".
 
 ## Open (William's call)
 
@@ -88,3 +88,6 @@ Planned parts (speed to lead, voice, nurture and the rest) are not in this table
 - 2026-10-07: `comments.read` no longer needs `reach.outreach`: reading comments sends nothing. A loop two parts share (`ReachWatch`) stops with the last of them.
 - 2026-10-07: Discovery for a client needs its own About. Wren's default never reads for a client. Drafts use a plain voice until a client's voice is a setting.
 - 2026-10-07: Inbox health per client reads a domain only once its setup holds `postmaster.verified` on that domain (not any domain the client owns). Wren's Postmaster login reads it, so the domain is added to it. Placement seeds send mail and stay Wren's.
+- 2026-10-07: Content per client rides `WREN_CONTENT_CHANNELS` as its global gate: a client posts only on channels the worker runs. `Content.publish` and `reply` refuse a client's call while its `content.posting` flag is off; the scheduler holds its due drafts (`held`) and claims nothing.
+- 2026-10-07: A client's drafts need its About (`content.planner` settings). They speak as the client, in a plain voice until it sets one, on its own `models` gate, and only for platforms its logins post on. Its ideas are its own and its readers' questions, never Wren's build log.
+- 2026-10-07: Parts list the channels they will take as `soon`; the part page shows them under "In development". `reach.outreach` drops X from `anyAccount` until X DMs run per client.

@@ -129,7 +129,7 @@ import { tiktokContent } from "@wren/channel-tiktok";
 import { xContent } from "@wren/channel-x";
 import { youtubeContent } from "@wren/channel-youtube";
 import { ingressOf, type Settings } from "@wren/config";
-import { commentGuide, DEFAULT_VOICE, dmGuide, s3MediaHost } from "@wren/content";
+import { clientContent, commentGuide, DEFAULT_VOICE, dmGuide, s3MediaHost } from "@wren/content";
 import { mediaRecord, sopRecord, videoRecord } from "@wren/content/records";
 import {
   makeContentDesk,
@@ -147,7 +147,13 @@ import { makeAccountsConsole } from "@wren/core/accounts/console";
 import { askRecord, makeAsk } from "@wren/core/ask";
 import { makeAuditSealer } from "@wren/core/audit";
 import { CalcomCalendar, type Calendar } from "@wren/core/calendar";
-import { CustomHostnames, clientRecord, findClient, settingsFor } from "@wren/core/clients";
+import {
+  CustomHostnames,
+  clientRecord,
+  findClient,
+  sendsOn,
+  settingsFor,
+} from "@wren/core/clients";
 import { makeConsolePortal, restateAdmin, restateAdminGet } from "@wren/core/console";
 import { asAccount, type Platform, type SiteClient } from "@wren/core/content";
 import { sitesHost } from "@wren/core/content/box";
@@ -155,6 +161,7 @@ import { ingressSites } from "@wren/core/content/ingress";
 import { makeTokenRenewal } from "@wren/core/content/renewal";
 import {
   type ChannelsFor,
+  type ContentClients,
   DESK,
   journaledSites,
   makeContent,
@@ -163,7 +170,7 @@ import {
 import { siteEdge } from "@wren/core/flag-store";
 import { delegatedMailbox, type Mailbox, siteMailbox } from "@wren/core/mailbox";
 import { MARKETING_RECORDS } from "@wren/core/marketing/records";
-import { meteredModel } from "@wren/core/metered";
+import { meteredModel, meteredSites } from "@wren/core/metered";
 import { namedFor } from "@wren/core/notify";
 import { clientKey, clientOfKey, ingressSend } from "@wren/core/restate";
 import { dnsChecks, SETUP_STEP, setupStep } from "@wren/core/setup";
@@ -849,7 +856,7 @@ export async function buildServices(
   if (report) services.push(makeReportScheduler({ db, transport, mail: report, policy }));
   // Content channels (LinkedIn, YouTube) over autobrowse's `sites` service, as the `Content` service.
   const content = contentFor(settings, log);
-  if (content) services.push(makeContent(content));
+  if (content) services.push(makeContent(content, contentClientsFor(settings, db)));
   // Meta ads over the same `sites` service, as `Ads`. Always bound: a launch on a box without
   // the meta site fails on its own invocation, and nothing spends until `start`.
   services.push(
@@ -859,6 +866,8 @@ export async function buildServices(
   // The content loop: ideas → drafts (ContentDesk, paid) → approved drafts posted (ContentScheduler).
   // Always bound: drafting needs no channel; a publish with none configured fails on its row.
   const voice = settings.contentVoicePath ? readFileSync(settings.contentVoicePath, "utf8") : null;
+  // The Watch's model (the gateway on prod): mail triage, reach DMs, a client's drafts.
+  const watchLlm = settings.watchLlm === "none" ? null : makeLlm(settings.watchLlm, process.env);
   services.push(
     makeContentDesk({
       db,
@@ -866,23 +875,27 @@ export async function buildServices(
       platforms: settings.contentChannels,
       zone: settings.sendTimezone,
       tracer,
+      // A client's drafts: its database, the watch's model metered on its own gate.
+      clients: { clientDb, llm: watchLlm },
       ...(voice !== null ? { voice } : {}),
     }),
     makeContentScheduler({
       db,
       linkSite: settings.contentLinkSite ?? null,
       // A post's replies come in through reach's watch: it reads warm from now.
-      posted: (ctx, p) => {
-        if (p === "reddit" || p === "linkedin") wakeWatch(ctx);
+      posted: (ctx, p, client) => {
+        if (p === "reddit" || p === "linkedin") wakeWatch(ctx, client);
       },
+      clientDb,
       ...contentNotify,
     }),
-    makeContentMetrics({ db, ...contentNotify }),
+    makeContentMetrics({ db, clientDb, ...contentNotify }),
     // Tomorrow's slots vs scheduled drafts, said once a day; off until `wren content planner start`.
-    makeContentPlanner({ db, zone: settings.sendTimezone, ...contentNotify }),
+    makeContentPlanner({ db, clientDb, zone: settings.sendTimezone, ...contentNotify }),
     // Comments, activity and followers on our own accounts. Reads only; off until `wren social start`.
     makeSocialWatch({
       db,
+      clientDb,
       platforms: settings.contentChannels,
       zone: SOCIAL_ZONE,
       ...contentNotify,
@@ -935,7 +948,6 @@ export async function buildServices(
   const watchBoxes = settings.watchMailboxes.length
     ? settings.watchMailboxes
     : settings.booksMailboxes;
-  const watchLlm = settings.watchLlm === "none" ? null : makeLlm(settings.watchLlm, process.env);
   // Gmail push wakes the Watch (designs/2026-10-06-mail-push.md); prod only, as the inboxes' watches.
   const watchVia = new Map(watchBoxes.map((m) => [m.address.toLowerCase(), m.via]));
   const watchSites = ingressSites(ingressOf(settings), {
@@ -1237,7 +1249,11 @@ export async function buildServices(
               delayMs,
             ),
         }),
-        "reach.touch": reachTouchStep(db, { sequences: reach.sequences, sender: reach.senderName }),
+        "reach.touch": reachTouchStep(
+          db,
+          { sequences: reach.sequences, sender: reach.senderName },
+          clientDb,
+        ),
         "watch.triage": triageStep(db, watchLlm),
         "watch.score": scoreStep(db, watchLlm, () => practicesOf(db)),
         // A bill in the Watch's mail runs the books now; the books' pass is the box's.
@@ -1498,6 +1514,53 @@ function contentFor(settings: Settings, log: Logger): ChannelsFor | null {
       ...(on.includes("facebook") ? { facebook: facebookContent(sites, meta) } : {}),
       ...(on.includes("tiktok") ? { tiktok: tiktokContent(sites, host ? { host } : {}) } : {}),
     };
+  };
+}
+
+/**
+ * A client's content channels: its own LinkedIn and Reddit logins, only where Wren's are on
+ * (WREN_CONTENT_CHANNELS), every read through its vendor gate. Posts wait on its live flag.
+ */
+function contentClientsFor(settings: Settings, db: Db): ContentClients {
+  const on = settings.contentChannels;
+  const sitesAt = sitesHost(settings.autobrowseInstanceId);
+  return {
+    channels: async (ctx, client, part) => {
+      const logins = await ctx.run(`${client} logins`, async () => {
+        const c = await clientContent(db, client, part);
+        return c.kind === "work" ? c.logins : {};
+      });
+      const scope = {
+        main: db,
+        client,
+        part,
+        now: () => new Date(),
+        step: <T>(name: string, fn: () => Promise<T>) => ctx.run(name, fn),
+      };
+      const metered = (sites: SiteClient, account: string) =>
+        asAccount(meteredSites(sites, scope), account);
+      const caller = `wren:content:${client}`;
+      return {
+        ...(logins.linkedin && on.includes("linkedin")
+          ? {
+              linkedin: linkedinContent(
+                metered(restateSites(ctx, { caller, ...sitesAt }), logins.linkedin),
+              ),
+            }
+          : {}),
+        ...(logins.reddit && on.includes("reddit")
+          ? {
+              reddit: redditContent(
+                metered(restateSites(ctx, { caller, service: DESK }), logins.reddit),
+              ),
+            }
+          : {}),
+      };
+    },
+    sends: async (client) => {
+      const c = await findClient(db, client);
+      return !!c && sendsOn(c, "content.posting");
+    },
   };
 }
 

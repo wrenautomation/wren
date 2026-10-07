@@ -4,15 +4,21 @@
  * crash resumes at the next platform instead of paying again. Ideas and
  * review verdicts are plain rows: the CLI writes them straight to Postgres,
  * the console through `approve`, `edit` and `reject` here.
+ *
+ * `ContentDesk/<client>/desk`: the same over a client's own database. Its drafts speak as the
+ * client (its plan's About and voice), on its own `models` vendor; they wait in its To approve.
  */
 import * as restate from "@restatedev/restate-sdk";
 import { finishRun, openRun } from "@wren/core";
 import type { Media, Platform } from "@wren/core/content";
 import { PLATFORMS } from "@wren/core/content";
-import { exclusiveHandler } from "@wren/core/restate";
+import { isVendorStop, meteredModel } from "@wren/core/metered";
+import { clientOfKey, exclusiveHandler } from "@wren/core/restate";
+import { gate } from "@wren/core/vendors";
 import type { Db } from "@wren/db";
 import type { LlmClient, Tracer } from "@wren/llm";
 import { z } from "zod";
+import { clientContent, clientPlan } from "../clients.js";
 import { DRAFT_STAGE, type DraftOptions, type DraftResult, draftIdea, redraft } from "../draft.js";
 import { addIdea, getIdea } from "../ideas.js";
 import { approveDrafts, editDraft, getDraft, rejectDrafts } from "../review.js";
@@ -21,6 +27,8 @@ import { approveVideo, pickThumbnail } from "../video.js";
 import type { Brand } from "../voice.js";
 
 export const DESK_KEY = "default";
+/** A client's desk is `ContentDesk/<client>/desk`. */
+export const DESK_UNIT = "desk";
 
 export interface ContentDeskDeps {
   db: Db;
@@ -32,6 +40,18 @@ export interface ContentDeskDeps {
   voice?: string;
   brand?: Brand;
   tracer?: Tracer | null;
+  /** A client's desk: its database and the model its drafts run on. None: a client's key fails. */
+  clients?: { clientDb: (client: string) => Db; llm: LlmClient | null };
+}
+
+/** One desk call's database, model and words: Wren's, or a client's. */
+interface Scope {
+  db: Db;
+  llm: LlmClient;
+  voice?: string;
+  brand?: Brand;
+  /** A client's: the platforms its logins post on, drafted when a request names none. */
+  platforms?: Platform[];
 }
 
 export interface DraftRequest {
@@ -101,13 +121,56 @@ const verdict = async (f: () => Promise<{ id: string }[]>): Promise<{ done: stri
 };
 
 export function makeContentDesk(deps: ContentDeskDeps) {
-  const options = (runId: string, again: boolean): DraftOptions => ({
+  const options = (s: Scope, runId: string, again: boolean): DraftOptions => ({
     runId,
     again,
-    ...(deps.voice !== undefined ? { voice: deps.voice } : {}),
-    ...(deps.brand ? { brand: deps.brand } : {}),
+    ...(s.voice !== undefined ? { voice: s.voice } : {}),
+    ...(s.brand ? { brand: s.brand } : {}),
     ...(deps.tracer ? { tracer: deps.tracer } : {}),
   });
+  const wren: Scope = {
+    db: deps.db,
+    llm: deps.llm,
+    ...(deps.voice !== undefined ? { voice: deps.voice } : {}),
+    ...(deps.brand ? { brand: deps.brand } : {}),
+  };
+  /**
+   * Who this call is for. A client's drafts need its About and its `models` gate open (asked once
+   * a call); a verdict needs only its database.
+   */
+  const scopeOf = async (ctx: restate.ObjectContext, drafts = false): Promise<Scope> => {
+    const owner = clientOfKey(ctx.key);
+    if (!owner) return wren;
+    const clients = deps.clients;
+    if (!clients) throw new restate.TerminalError("no client databases here", { errorCode: 404 });
+    const id = owner.client;
+    const db = clients.clientDb(id);
+    if (!drafts) return { db, llm: deps.llm };
+    const plan = await ctx.run("client", async () => {
+      const c = await clientContent(deps.db, id, "content.planner");
+      if (c.kind === "gone") return { ok: false as const, why: c.why };
+      const p = clientPlan(c.client);
+      if (!p.ok) return p;
+      const g = await gate(deps.db, id, "models", 1, new Date());
+      return g.ok
+        ? { ...p, platforms: c.platforms as Platform[] }
+        : { ok: false as const, why: `models: ${g.why}` };
+    });
+    if (!plan.ok || !clients.llm)
+      throw new restate.TerminalError(plan.ok ? "no model here" : plan.why, { errorCode: 409 });
+    return {
+      db,
+      llm: meteredModel(clients.llm, {
+        main: deps.db,
+        client: id,
+        part: "content.planner",
+        now: () => new Date(),
+      }),
+      voice: plan.voice,
+      brand: plan.brand,
+      platforms: plan.platforms,
+    };
+  };
   return restate.object({
     name: "ContentDesk",
     handlers: {
@@ -125,8 +188,9 @@ export function makeContentDesk(deps: ContentDeskDeps) {
             source?: IdeaSource;
           },
         ): Promise<{ idea: ContentIdea; drafts: DraftReport | null }> => {
+          const { db } = await scopeOf(ctx);
           const idea = await ctx.run("insert idea", () =>
-            addIdea(deps.db, req.text, req.source ?? "cli", req.media ?? null),
+            addIdea(db, req.text, req.source ?? "cli", req.media ?? null),
           );
           if (req.draft === false) return { idea, drafts: null };
           const drafts = await draft(ctx, {
@@ -148,21 +212,24 @@ export function makeContentDesk(deps: ContentDeskDeps) {
           ctx: restate.ObjectContext,
           req: { draftId: string; note: string },
         ): Promise<DraftReport> => {
-          const previous = await ctx.run("read draft", () => getDraft(deps.db, req.draftId));
-          const idea = await ctx.run("read idea", () => getIdea(deps.db, previous.ideaId));
+          const s = await scopeOf(ctx, true);
+          const previous = await ctx.run("read draft", () => getDraft(s.db, req.draftId));
+          const idea = await ctx.run("read idea", () => getIdea(s.db, previous.ideaId));
           const runId = await ctx.run("open run", async () => {
-            const run = await openRun(deps.db, {
+            const run = await openRun(s.db, {
               command: "content redraft",
               argv: { draft: previous.id, platform: previous.platform },
             });
             return run.id;
           });
-          const { again: _, ...o } = options(runId, false);
+          const { again: _, ...o } = options(s, runId, false);
           const result = await ctx.run(`${DRAFT_STAGE} ${previous.platform} redraft`, () =>
-            redraft(deps.db, deps.llm, previous, idea, req.note, o),
+            stopped([previous.platform], () =>
+              redraft(s.db, s.llm, previous, idea, req.note, o).then((r) => [r]),
+            ).then((r) => r[0] as DraftResult),
           );
           await ctx.run("finish run", () =>
-            finishRun(deps.db, runId, { drafted: result.ok ? 1 : 0, skipped: result.ok ? 0 : 1 }),
+            finishRun(s.db, runId, { drafted: result.ok ? 1 : 0, skipped: result.ok ? 0 : 1 }),
           );
           return { ideaId: idea.id, results: [result], runId };
         },
@@ -170,66 +237,81 @@ export function makeContentDesk(deps: ContentDeskDeps) {
       /** A person's yes from the console: each draft posts at its platform's next slot. */
       approve: exclusiveHandler(
         { input: IDS },
-        (ctx: restate.ObjectContext, req: { ids: string[] }) =>
-          ctx.run("approve", () =>
-            verdict(() => approveDrafts(deps.db, req.ids, { now: new Date(), zone: deps.zone })),
-          ),
+        async (ctx: restate.ObjectContext, req: { ids: string[] }) => {
+          const { db } = await scopeOf(ctx);
+          return ctx.run("approve", () =>
+            verdict(() => approveDrafts(db, req.ids, { now: new Date(), zone: deps.zone })),
+          );
+        },
       ),
       /** His yes on a rendered video or one Short: a private YouTube draft, posted on the next pass. */
       approveVideo: exclusiveHandler(
         { input: VIDEO },
-        (ctx: restate.ObjectContext, req: { id: number; short?: number | null }) =>
-          ctx.run("approve video", () =>
+        async (ctx: restate.ObjectContext, req: { id: number; short?: number | null }) => {
+          const { db } = await scopeOf(ctx);
+          return ctx.run("approve video", () =>
             verdict(async () => [
-              await approveVideo(deps.db, req.id, {
+              await approveVideo(db, req.id, {
                 source: "api",
                 ...(req.short ? { short: req.short } : {}),
               }),
             ]),
-          ),
+          );
+        },
       ),
       pickThumbnail: exclusiveHandler(
         { input: THUMBNAIL },
-        (ctx: restate.ObjectContext, req: { id: number; n: number }) =>
-          ctx.run("pick thumbnail", () =>
+        async (ctx: restate.ObjectContext, req: { id: number; n: number }) => {
+          const { db } = await scopeOf(ctx);
+          return ctx.run("pick thumbnail", () =>
             verdict(async () => {
-              await pickThumbnail(deps.db, req.id, req.n);
+              await pickThumbnail(db, req.id, req.n);
               return [{ id: String(req.id) }];
             }),
-          ),
+          );
+        },
       ),
       reject: exclusiveHandler(
         { input: IDS },
-        (ctx: restate.ObjectContext, req: { ids: string[] }) =>
-          ctx.run("reject", () => verdict(() => rejectDrafts(deps.db, req.ids))),
+        async (ctx: restate.ObjectContext, req: { ids: string[] }) => {
+          const { db } = await scopeOf(ctx);
+          return ctx.run("reject", () => verdict(() => rejectDrafts(db, req.ids)));
+        },
       ),
       /** The person's own words; the draft waits for a fresh yes. */
       edit: exclusiveHandler(
         { input: EDIT },
-        (
+        async (
           ctx: restate.ObjectContext,
           req: { draftId: string; text: string; title?: string | null },
-        ) =>
-          ctx.run("edit", () =>
+        ) => {
+          const { db } = await scopeOf(ctx);
+          return ctx.run("edit", () =>
             verdict(async () => [
-              await editDraft(deps.db, req.draftId, {
+              await editDraft(db, req.draftId, {
                 text: req.text,
                 ...(req.title !== undefined ? { title: req.title } : {}),
               }),
             ]),
-          ),
+          );
+        },
       ),
     },
   });
 
   async function draft(ctx: restate.ObjectContext, req: DraftRequest): Promise<DraftReport> {
-    const platforms = req.platforms ?? deps.platforms;
-    for (const p of platforms)
+    for (const p of req.platforms ?? [])
       if (!PLATFORMS.includes(p))
         throw new restate.TerminalError(`unknown platform ${p}`, { errorCode: 400 });
-    const idea = await ctx.run("read idea", () => getIdea(deps.db, req.ideaId));
+    const s = await scopeOf(ctx, true);
+    // A client's drafts only where its own logins post.
+    const own = s.platforms;
+    const platforms = own
+      ? (req.platforms ?? own).filter((p) => own.includes(p))
+      : (req.platforms ?? deps.platforms);
+    const idea = await ctx.run("read idea", () => getIdea(s.db, req.ideaId));
     const runId = await ctx.run("open run", async () => {
-      const run = await openRun(deps.db, {
+      const run = await openRun(s.db, {
         command: `content draft`,
         argv: { idea: idea.id, platforms, again: req.again ?? false },
       });
@@ -238,7 +320,9 @@ export function makeContentDesk(deps: ContentDeskDeps) {
     const results: DraftResult[] = [];
     for (const platform of platforms) {
       const [r] = await ctx.run(`${DRAFT_STAGE} ${platform}`, () =>
-        draftIdea(deps.db, deps.llm, idea, [platform], options(runId, req.again ?? false)),
+        stopped([platform], () =>
+          draftIdea(s.db, s.llm, idea, [platform], options(s, runId, req.again ?? false)),
+        ),
       );
       if (r) results.push(r);
     }
@@ -246,8 +330,21 @@ export function makeContentDesk(deps: ContentDeskDeps) {
       drafted: results.filter((r) => r.ok).length,
       skipped: results.filter((r) => !r.ok).length,
     };
-    await ctx.run("finish run", () => finishRun(deps.db, runId, stats));
+    await ctx.run("finish run", () => finishRun(s.db, runId, stats));
     return { ideaId: idea.id, results, runId };
+  }
+}
+
+/** A client's vendor gate said no mid-call: those platforms weren't drafted, and say why. */
+async function stopped(
+  platforms: readonly Platform[],
+  work: () => Promise<DraftResult[]>,
+): Promise<DraftResult[]> {
+  try {
+    return await work();
+  } catch (err) {
+    if (!isVendorStop(err)) throw err;
+    return platforms.map((platform) => ({ platform, ok: false, reason: `models: ${err.why}` }));
   }
 }
 
