@@ -2,12 +2,17 @@
  * The Calendar service through Restate, on a synthetic calendar: a fake Google and a mail
  * collector, never real events or real mail. Slots, a signed booking end to end (row, mirror,
  * event with Meet, confirmation, manage link), a refused double booking and a refused unsigned
- * one, a move, a cancel, the hour reminder, and the console's buttons.
+ * one, a move, a cancel, the hour reminder, and the console's buttons. A booking enters a
+ * one-node `close` on the spine, whose brief step builds and keeps the brief and queues its ping.
  */
 import * as clients from "@restatedev/restate-sdk-clients";
 import type { RestateTestEnvironment } from "@restatedev/restate-sdk-testcontainers";
+import { briefSettingsOf, briefStep, type SendAsk } from "@wren/channel-email/calls";
+import { EMAIL_COMPONENTS } from "@wren/channel-email/components";
 import { ingressOf } from "@wren/config";
+import { makeSpine } from "@wren/core/spine";
 import { startTestRestate } from "@wren/core/testing";
+import { defineWorkflow } from "@wren/core/workflows";
 import { startTestPostgres, type TestPostgres } from "@wren/db/testing";
 import { sql } from "drizzle-orm";
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
@@ -24,6 +29,19 @@ const host = new FakeHost();
 const leads = { day: 24 * 3_600_000, hour: 3_600_000 };
 let pg: TestPostgres;
 let env: RestateTestEnvironment;
+/** The brief sends the step queued: what, how far ahead, its key. */
+const queued: { ask: SendAsk; delayMs: number; key: string }[] = [];
+const CLOSE = defineWorkflow({
+  id: "close",
+  stage: "book",
+  name: "Booked call",
+  blurb: "Briefs us.",
+  icon: "check",
+  for: "client",
+  in: [{ id: "calls", label: "booked calls", kind: "call" }],
+  nodes: [{ id: "brief", uses: "calls.brief" }],
+  wires: [{ from: "in.calls", to: "brief.calls", via: "events" }],
+});
 
 beforeAll(async () => {
   pg = await startTestPostgres();
@@ -53,7 +71,27 @@ beforeAll(async () => {
     leads,
   };
   env = await startTestRestate({
-    services: [makeCalendar(deps), makeCalendarConsole(deps)],
+    services: [
+      makeCalendar(deps),
+      makeCalendarConsole(deps),
+      makeSpine({
+        main: pg.db,
+        clientDb: () => pg.db,
+        workflows: [CLOSE],
+        components: EMAIL_COMPONENTS,
+        steps: {
+          "calls.brief": briefStep({
+            dbFor: () => pg.db,
+            settingsFor: async () => briefSettingsOf({}),
+            llm: null,
+            queue: async (ask, delayMs, key) => {
+              queued.push({ ask, delayMs, key });
+            },
+          }),
+        },
+        rule: async () => false,
+      }),
+    ],
     alwaysReplay: true,
   });
 });
@@ -63,11 +101,12 @@ afterAll(async () => {
 });
 beforeEach(async () => {
   sent.length = 0;
+  queued.length = 0;
   host.events.clear();
   host.down = false;
   leads.day = 24 * 3_600_000;
   leads.hour = 3_600_000;
-  await pg.db.execute(sql`truncate calendar.bookings, call_bookings restart identity`);
+  await pg.db.execute(sql`truncate calendar.bookings, call_bookings restart identity cascade`);
 });
 
 const cal = () =>
@@ -131,6 +170,19 @@ describe("Calendar", () => {
     expect(sent[0]?.subject).toMatch(/^Booked: Intro call with Ana Example, /);
     expect(sent[0]?.text).toContain(v.manage);
     expect(sent[0]?.text).toMatch(/E[DS]T/);
+    // The call entered `close`: its brief is kept, and its ping queued an hour before.
+    const until = Date.now() + 15_000;
+    while (!queued.length && Date.now() < until) await new Promise((r) => setTimeout(r, 100));
+    const [brief] = await pg.db.execute<{ who: string; start: Date }>(
+      sql`select brief->'call'->>'who' who, start from call_briefs`,
+    );
+    expect(brief?.who).toBe("Ana Example");
+    expect(new Date(String(brief?.start)).toISOString()).toBe(start);
+    expect(queued).toHaveLength(1);
+    expect(queued[0]?.ask).toMatchObject({ client: null, start });
+    expect(queued[0]?.delayMs).toBeLessThanOrEqual(
+      new Date(start).getTime() - Date.now() - 59 * 60_000,
+    );
     // The slot is gone, for anyone.
     await expect(book(start, "ben@firm.example")).rejects.toThrow(/taken/);
     expect(await slots()).not.toContain(start);
@@ -190,7 +242,7 @@ describe("CalendarConsole", () => {
   const viewer = { email: "admin@wren.example", operator: true };
   const console_ = () =>
     clients.connect(ingressOf({ restateIngressUrl: env.baseUrl() })).serviceClient<{
-      noShow: (ctx: unknown, req: unknown) => Promise<{ changed: number }>;
+      noShow: (ctx: unknown, req: unknown) => Promise<{ changed: number; done: number[] }>;
       cancel: (ctx: unknown, req: unknown) => Promise<{ cancelled: number }>;
       range: (
         ctx: unknown,
@@ -211,6 +263,26 @@ describe("CalendarConsole", () => {
     await expect(
       console_().noShow({ viewer: { email: "stranger@else.example" }, ids: ["1"] }),
     ).rejects.toThrow();
+  });
+
+  it("marks how a call went on its mirror, not one still ahead", async () => {
+    await pg.db.execute(
+      sql`insert into operators (email, role) values (${viewer.email}, 'admin') on conflict do nothing`,
+    );
+    const v = await book(later(await slots(), 3 * 3_600_000));
+    await expect(console_().noShow({ viewer, ids: [String(v.id)] })).rejects.toThrow(/started/);
+    // Over now: an hour ago.
+    await pg.db.execute(
+      sql`update call_bookings set start = now() - interval '1 hour' where uid = ${`wren-${v.id}`}`,
+    );
+    expect(await console_().noShow({ viewer, ids: [String(v.id)] })).toEqual({
+      changed: 1,
+      done: [v.id],
+    });
+    const [row] = await pg.db.execute<{ outcome: string; outcome_by: string }>(
+      sql`select outcome, outcome_by from call_bookings`,
+    );
+    expect(row).toEqual({ outcome: "no_show", outcome_by: viewer.email });
   });
 
   it("an admin's cancel mails the booker and drops the event", async () => {

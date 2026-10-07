@@ -14,7 +14,9 @@
  * Texts go through SmsWatch's reminder pass, which reads these calls next to cal.com's.
  */
 import * as restate from "@restatedev/restate-sdk";
+import { bookingEmit } from "@wren/channel-email/calls";
 import { serviceHandler } from "@wren/core/restate";
+import { spineEmit } from "@wren/core/spine";
 import { canonicalZone } from "@wren/core/time";
 import type { Db } from "@wren/db";
 import { eq } from "drizzle-orm";
@@ -350,10 +352,15 @@ export function makeCalendar(deps: CalendarDeps) {
               throw err;
             }
           });
-          await ctx.run("mirror", async () => {
+          const mirrored = await ctx.run("mirror", async () => {
             const row = await bookingById(db, id);
-            if (row) await mirror(db, row, "created", now);
+            if (!row) return null;
+            const done = await mirror(db, row, "created", now);
+            return { id: done.id, state: done.state, start: row.start.toISOString() };
           });
+          // The call enters `close`: its brief is built now and pinged before it starts.
+          const booked = mirrored && bookingEmit(mirrored);
+          if (booked) spineEmit(ctx, { client: null, ...booked });
           const host = deps.host;
           const account = rules.account;
           if (host && account)
@@ -421,14 +428,21 @@ export function makeCalendar(deps: CalendarDeps) {
             try {
               const { before, after } = await moveBooking(db, { id, rules, start, now, busy });
               const changed = before.start.getTime() !== after.start.getTime();
-              if (changed) await mirror(db, after, "rescheduled", now);
-              return { changed, event: after.googleEventId };
+              const done = changed ? await mirror(db, after, "rescheduled", now) : null;
+              return {
+                changed,
+                event: after.googleEventId,
+                call: done && { id: done.id, state: done.state, start: after.start.toISOString() },
+              };
             } catch (err) {
               if (err instanceof SlotTaken) throw refuse(err.message, 409);
               if (err instanceof Unchangeable) throw refuse(err.message, 409);
               throw err;
             }
           });
+          // A moved call is a new arrival in `close`: its brief is rebuilt for the new time.
+          const again = moved.call && bookingEmit(moved.call);
+          if (again) spineEmit(ctx, { client: null, ...again });
           const host = deps.host;
           if (moved.changed && host && rules.account && moved.event) {
             const [account, event] = [rules.account, moved.event];

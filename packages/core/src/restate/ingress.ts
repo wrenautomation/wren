@@ -12,11 +12,14 @@ export async function ingressSend(
   to: { service: string; key?: string; handler: string },
   idempotencyKey: string,
   body: unknown = null,
+  /** Run it this long from now (Restate's delayed send); none or 0, at once. */
+  delayMs = 0,
 ): Promise<void> {
   const path = [to.service, ...(to.key === undefined ? [] : [to.key]), to.handler]
     .map(encodeURIComponent)
     .join("/");
-  const res = await fetch(`${ingress.url.replace(/\/+$/, "")}/${path}/send`, {
+  const delay = delayMs > 0 ? `?delay=${Math.round(delayMs)}ms` : "";
+  const res = await fetch(`${ingress.url.replace(/\/+$/, "")}/${path}/send${delay}`, {
     method: "POST",
     headers: {
       ...ingress.headers,

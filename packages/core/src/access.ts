@@ -106,6 +106,7 @@ export const APPS: Readonly<Record<string, string>> = {
   ask: "Ask",
   library: "Library",
   calendar: "Calendar",
+  calls: "Calls",
   voice: "Voice",
   account: "Account",
 };

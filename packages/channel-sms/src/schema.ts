@@ -18,6 +18,7 @@
  * (template-store.ts). Opt-outs are `suppressions` rows of kind `phone` (core), the same table
  * every channel reads.
  */
+import { DIAL_OUTCOMES, type DialOutcome } from "@wren/core/calls";
 import { operators } from "@wren/core/clients";
 import { companies, people, runs } from "@wren/core/schema";
 import { baseColumns, oneOf } from "@wren/db/columns";
@@ -445,9 +446,9 @@ export type FirstTouch = (typeof FIRST_TOUCHES)[number];
 export const SPEED_CALLS = ["alerted", "dialed", "skipped"] as const;
 export type SpeedCall = (typeof SPEED_CALLS)[number];
 
-/** How the rep's "Call now" call went, when they mark it done. */
-export const CALL_OUTCOMES = ["reached", "voicemail", "no_answer", "wrong_number"] as const;
-export type CallOutcome = (typeof CALL_OUTCOMES)[number];
+/** How the rep's "Call now" call went, when they mark it done: a dial's (`@wren/core/calls`). */
+export const CALL_OUTCOMES = DIAL_OUTCOMES;
+export type CallOutcome = DialOutcome;
 
 /**
  * One lead through speed to lead (designs/2026-10-07-speed-to-lead.md): what the door said, its

@@ -114,6 +114,8 @@ The same component is used on Inbox > Calls, Calendar > Calls and the Schedule's
 - 2026-10-07: The ping carries a link, not content, to keep the notifier's counts-only rule.
 - 2026-10-07: Code checks the model's questions; no fact comes from the model.
 - 2026-10-07: Won queues onboarding and never sends; no-show has no rebook path yet.
+- 2026-10-07 (built): A dated finding shows once, under Signals, in the dossier's words. A post shows under Recent posts. Facts read as words, never raw JSON.
+- 2026-10-07 (built): Rebuild is on Inbox and client Calls pages. Calendar pages show the brief without it. The reasons list is in settings but not yet offered as picks in the Not yet box.
 
 ## Open (William's call)
 

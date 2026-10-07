@@ -1016,6 +1016,13 @@
       "when": 1791346167450,
       "tag": "0144_templates_indexes",
       "breakpoints": true
+    },
+    {
+      "idx": 145,
+      "version": "7",
+      "when": 1791348714588,
+      "tag": "0145_close_brief_outcome",
+      "breakpoints": true
     }
   ]
 }

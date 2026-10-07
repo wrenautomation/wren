@@ -3,6 +3,8 @@
  * between neighbours, the mirror into `call_bookings` (a booking from an email's link stops its
  * firm and counts), a move and a cancel, and the calls SmsWatch's reminder pass reads.
  */
+
+import { setCallOutcome } from "@wren/channel-email/calls";
 import { startTestPostgres, type TestPostgres, truncate } from "@wren/db/testing";
 import { sql } from "drizzle-orm";
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
@@ -15,10 +17,8 @@ import {
 } from "../../../channel-email/test/integration/compose-fixtures.js";
 import {
   type Booker,
-  bookingById,
   cancelBooking,
   claim,
-  markShowed,
   mirror,
   moveBooking,
   SlotTaken,
@@ -164,14 +164,32 @@ describe("the shared bookings path", () => {
     ).rejects.toThrow(/cancelled/);
   });
 
-  it("says how a call went", async () => {
+  it("says how a call went, on its mirror", async () => {
     const row = await take(AT_10);
-    await markShowed(pg.db, { id: row.id, showed: "no_show", now: NOW });
-    expect((await bookingById(pg.db, row.id))?.showed).toBe("no_show");
-    const [r] = await pg.db.execute<{ status: string }>(
+    const { id } = await mirror(pg.db, row, "created", NOW);
+    // Not before it starts.
+    expect(
+      await setCallOutcome(pg.db, { ids: [id], outcome: "no_show", by: "rep", now: NOW }),
+    ).toEqual([]);
+    const after = new Date(AT_10.getTime() + 3_600_000);
+    const [marked] = await setCallOutcome(pg.db, {
+      ids: [id],
+      outcome: "not_yet",
+      reason: "  Budget  ",
+      by: "rep@wren.example",
+      now: after,
+    });
+    expect(marked).toMatchObject({ id, outcome: "not_yet", reason: "Budget" });
+    const [r] = await pg.db.execute<{ status: string; outcome_reason: string }>(
+      sql`select status, outcome_reason from calendar.booking_records`,
+    );
+    expect(r).toEqual({ status: "not_yet", outcome_reason: "Budget" });
+    // Clear takes it back to "say how it went".
+    await setCallOutcome(pg.db, { ids: [id], outcome: null, by: "rep", now: after });
+    const [back] = await pg.db.execute<{ status: string }>(
       sql`select status from calendar.booking_records`,
     );
-    expect(r?.status).toBe("no_show");
+    expect(back?.status).toBe("past");
   });
 });
 

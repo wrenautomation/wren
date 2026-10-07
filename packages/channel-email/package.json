@@ -5,6 +5,8 @@
   "type": "module",
   "exports": {
     ".": "./src/index.ts",
+    "./calls": "./src/calls/index.ts",
+    "./calls/settings": "./src/calls/settings.ts",
     "./components": "./src/components.ts",
     "./sequences-settings": "./src/sequences-settings.ts",
     "./schema": "./src/schema.ts",

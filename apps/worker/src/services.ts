@@ -66,6 +66,7 @@ import {
   sharedFor,
   type Transport,
 } from "@wren/channel-email";
+import { briefSettingsOf, briefStep, CALL_BRIEF, makeCallBriefs } from "@wren/channel-email/calls";
 import { EMAIL_TOUCH } from "@wren/channel-email/components";
 import { emailRecords } from "@wren/channel-email/records";
 import {
@@ -1086,6 +1087,13 @@ export async function buildServices(
   // own pages, and one reactivation loop per client.
   // DeliveryWatch mails clients from portal@ and pings us when one could feel forgotten.
   const portal = settings.portalOrigin ?? null;
+  // A booked call's brief: Wren's or the client's database, its settings, the worker's model.
+  const callBriefs = {
+    dbFor: (client: string | null) => (client ? clientDb(client) : db),
+    settingsFor: async (client: string | null) =>
+      briefSettingsOf((await settingsFor(db, client))[CALL_BRIEF]),
+    llm,
+  };
   if (portal)
     services.push(
       makeDeliveryWatch({
@@ -1117,6 +1125,16 @@ export async function buildServices(
     makeDomainsResolver({ main: db }),
     makeReactivationPortal({ main: db, open: openClient }),
     makeAsk(db),
+    makeCallBriefs({
+      ...callBriefs,
+      // The email lane: a count and a link, named for the client. None with WREN_NOTIFY=none.
+      notifierFor: (client) => {
+        if (settings.notify === "none") return null;
+        const lane = laneNotifier(settings.discordEmailWebhookUrl);
+        return client ? namedFor(lane, client) : lane;
+      },
+      portal,
+    }),
     makeSpine({
       main: db,
       clientDb,
@@ -1161,6 +1179,18 @@ export async function buildServices(
           return { db: d.db, bookings: d.bookings ?? null, dialer: null };
         }),
         [EMAIL_TOUCH]: emailTouchStep((client) => (client ? clientDb(client) : db)),
+        // A booked call's brief: built now, pinged to the team before the call.
+        [CALL_BRIEF]: briefStep({
+          ...callBriefs,
+          queue: (ask, delayMs, key) =>
+            ingressSend(
+              ingressOf(settings),
+              { service: "CallBriefs", handler: "send" },
+              key,
+              ask,
+              delayMs,
+            ),
+        }),
         "reach.touch": reachTouchStep(db, { sequences: reach.sequences, sender: reach.senderName }),
         "watch.triage": triageStep(db, watchLlm),
         "watch.score": scoreStep(db, watchLlm, () => practicesOf(db)),

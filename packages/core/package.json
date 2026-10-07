@@ -8,6 +8,7 @@
     "./access": "./src/access.ts",
     "./audit": "./src/audit.ts",
     "./calendar": "./src/calendar.ts",
+    "./calls": "./src/calls.ts",
     "./clients": "./src/clients/index.ts",
     "./components": "./src/components.ts",
     "./ask": "./src/ask.ts",

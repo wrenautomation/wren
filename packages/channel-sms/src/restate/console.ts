@@ -6,6 +6,7 @@
  * off the demo (`../console-routes.ts`).
  */
 import * as restate from "@restatedev/restate-sdk";
+import { CALL_OUTCOME_LABELS, outcomeIn } from "@wren/core/calls";
 import type { Client } from "@wren/core/clients";
 import {
   answer,
@@ -58,18 +59,14 @@ export interface CallDoneRequest extends PortalRequest {
 }
 
 /** The outcome as the Done form's select says it. */
-export const OUTCOME_LABELS: Record<CallOutcome, string> = {
-  reached: "Reached",
-  voicemail: "Voicemail",
-  no_answer: "No answer",
-  wrong_number: "Wrong number",
-};
+export const OUTCOME_LABELS = Object.fromEntries(
+  CALL_OUTCOMES.map((o) => [o, CALL_OUTCOME_LABELS[o].label]),
+) as Record<CallOutcome, string>;
 
 const outcomeOf = (said: string | null | undefined): CallOutcome | null => {
-  const s = said?.trim();
-  if (!s) return null;
-  const code = CALL_OUTCOMES.find((o) => o === s || OUTCOME_LABELS[o] === s);
-  if (!code) throw new PortalRefusal(`no such outcome: ${s.slice(0, 40)}`, 400);
+  const code = outcomeIn(CALL_OUTCOMES, said);
+  if (code === undefined)
+    throw new PortalRefusal(`no such outcome: ${String(said).trim().slice(0, 40)}`, 400);
   return code;
 };
 

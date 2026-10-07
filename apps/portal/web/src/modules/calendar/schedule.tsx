@@ -5,6 +5,7 @@
  * back to today, D W M L switch views. A call opens beside it in the records panel, with its
  * buttons. The address is the state: ?v=week&d=2026-10-06&call=12.
  */
+import { CALL_OUTCOME_LABELS, type MeetingOutcome } from "@wren/core/calls";
 import type { RecordMeta } from "@wren/core/records";
 import {
   Alert,
@@ -21,6 +22,7 @@ import { call } from "../../api.js";
 import { useCall } from "../../load.js";
 import { type PageProps, WREN } from "../../module.js";
 import { href, navigate } from "../../route.js";
+import { callExtras } from "../calls/brief.js";
 import { CALL_ACTIONS } from "./actions.js";
 import {
   dayKey,
@@ -49,7 +51,7 @@ interface CallBlock {
   name: string;
   offer: string | null;
   state: "booked" | "cancelled";
-  showed: "held" | "no_show" | null;
+  outcome: MeetingOutcome | null;
   meet: string | null;
 }
 interface Range {
@@ -261,7 +263,7 @@ function Board({ params, team, demo, can }: PageProps) {
             list: "/calendar/calls",
             go: navigate,
           }}
-          extras={undefined}
+          extras={(detail, row) => callExtras(detail, row, { reason: "outcomeReason" })}
           acts={acts}
           index={index}
           count={ordered.length}
@@ -310,7 +312,7 @@ function IconButton({
 const tone = (c: Call, now: Date) =>
   c.state === "cancelled"
     ? "border-(--ui-hair) bg-(--ui-paper) text-(--ui-ink-3) line-through"
-    : c.showed === "no_show"
+    : c.outcome === "no_show"
       ? "border-(--ui-bad) bg-(--ui-bad-tint) text-(--ui-ink)"
       : c.end < now
         ? "border-(--ui-hair) bg-(--ui-wash) text-(--ui-ink-2)"
@@ -576,10 +578,8 @@ function Agenda({
 const said = (c: Call, now: Date) =>
   c.state === "cancelled"
     ? "Cancelled"
-    : c.showed === "held"
-      ? "Held"
-      : c.showed === "no_show"
-        ? "No-show"
-        : c.end < now
-          ? "Say how it went"
-          : "Upcoming";
+    : c.outcome
+      ? CALL_OUTCOME_LABELS[c.outcome].label
+      : c.end < now
+        ? "Say how it went"
+        : "Upcoming";

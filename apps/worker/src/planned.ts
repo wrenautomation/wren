@@ -179,44 +179,4 @@ export const PLANNED_COMPONENTS = [
       ],
     },
   }),
-  defineComponent({
-    ...planned,
-    id: "calls.brief",
-    stage: "book",
-    name: "Pre-call brief",
-    blurb: "A dossier on the firm, their demo video and an agenda, ready before the call.",
-    icon: "board",
-    for: "client",
-    in: [{ id: "calls", label: "booked calls", kind: "call" }],
-    out: [{ id: "ready", label: "briefs ready", kind: "call" }],
-    hypothesis: {
-      from,
-      guesses: [
-        { is: "change", says: "What it holds, per offer.", built: null },
-        { is: "change", says: "How long before the call it's ready.", built: null },
-        { is: "fixed", says: "Every claim cites its source, as the dossier's do." },
-      ],
-    },
-  }),
-  defineComponent({
-    ...planned,
-    id: "calls.outcome",
-    stage: "book",
-    name: "Call outcome",
-    blurb: "Marks how each call went: won, or not yet with the reason.",
-    icon: "check",
-    for: "client",
-    in: [{ id: "calls", label: "calls held", kind: "call" }],
-    out: [
-      { id: "won", label: "clients won", kind: "client" },
-      { id: "later", label: "not yet", kind: "lead" },
-    ],
-    hypothesis: {
-      from,
-      guesses: [
-        { is: "change", says: "The outcomes and reasons, per offer.", built: null },
-        { is: "fixed", says: "A person marks it; nothing guesses." },
-      ],
-    },
-  }),
 ];

@@ -26,10 +26,6 @@ export const calendar = pgSchema("calendar");
 export const BOOKING_STATES = ["booked", "cancelled"] as const;
 export type BookingState = (typeof BOOKING_STATES)[number];
 
-/** How a past call went, set from the portal; null until someone says. */
-export const SHOWED = ["held", "no_show"] as const;
-export type Showed = (typeof SHOWED)[number];
-
 /** Where the booker came from: the link's tags, as the lander read them. */
 export interface BookingSource {
   utm_source?: string;
@@ -65,7 +61,6 @@ export const bookings = calendar.table(
     /** The Google event; null until it is made, or with no Google account set. */
     googleEventId: varchar("google_event_id", { length: 1024 }),
     meetUrl: text("meet_url"),
-    showed: varchar("showed", { length: 16, enum: SHOWED }),
     remindedDayAt: timestamp("reminded_day_at", { withTimezone: true }),
     remindedHourAt: timestamp("reminded_hour_at", { withTimezone: true }),
     cancelledAt: timestamp("cancelled_at", { withTimezone: true }),
@@ -81,7 +76,6 @@ export const bookings = calendar.table(
     index("ix_calendar_bookings_email").on(sql`lower(${t.email})`),
     index("ix_calendar_bookings_start").on(t.start),
     oneOf("ck_calendar_bookings_state", t.state, BOOKING_STATES),
-    oneOf("ck_calendar_bookings_showed", t.showed, SHOWED),
     check("ck_calendar_bookings_span", sql`"end" > start`),
   ],
 );
@@ -90,8 +84,9 @@ export type CalendarBooking = typeof bookings.$inferSelect;
 
 /**
  * `bookings` as console records (`./records.ts`). `status` is where a call shows: upcoming,
- * past (not yet said how it went), held, no-show, or cancelled. `source` is the first tag it
- * carried: utm_source, else ref.
+ * past (not yet said how it went), its outcome, or cancelled. The outcome lives on the call's
+ * mirror in `call_bookings` (uid `wren-<id>`), one for every call (`@wren/core/calls`).
+ * `source` is the first tag it carried: utm_source, else ref.
  */
 export const bookingRecords = calendar
   .view("booking_records", {
@@ -109,13 +104,18 @@ export const bookingRecords = calendar
     booked: timestamp("booked", { withTimezone: true }),
     cancelledAt: timestamp("cancelled_at", { withTimezone: true }),
     reason: text("reason"),
+    outcomeReason: text("outcome_reason"),
+    markedBy: text("marked_by"),
+    marked: timestamp("marked", { withTimezone: true }),
   })
   .as(sql`
     select b.id, b.calendar::text calendar, b.name, b.email::text email,
       case when b.state = 'cancelled' then 'cancelled'
-        when b.showed is not null then b.showed::text
+        when cb.outcome is not null then cb.outcome::text
         when b.start > now() then 'upcoming' else 'past' end status,
       b.start, b.zone::text zone, b.offer::text offer, b.code::text code,
       coalesce(b.source->>'utm_source', b.source->>'ref') source, b.meet_url meet,
-      b.created_at booked, b.cancelled_at, b.reason
-    from calendar.bookings b`);
+      b.created_at booked, b.cancelled_at, b.reason, cb.outcome_reason,
+      cb.outcome_by marked_by, cb.outcome_at marked
+    from calendar.bookings b
+    left join public.call_bookings cb on cb.uid = 'wren-' || b.id`);

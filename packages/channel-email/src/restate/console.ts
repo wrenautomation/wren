@@ -13,6 +13,7 @@
  */
 import type * as restate from "@restatedev/restate-sdk";
 import { WREN } from "@wren/core/access";
+import type { MeetingOutcome } from "@wren/core/calls";
 import type { Client } from "@wren/core/clients";
 import {
   answer,
@@ -42,6 +43,9 @@ import { DOSSIER, LEAD_SHEET } from "@wren/research/components";
 import { dossierBrief, dossiers } from "@wren/research/dossier";
 import { sql } from "drizzle-orm";
 import { z } from "zod";
+import type { CallBriefs } from "../calls/restate.js";
+import { markOutcome } from "../calls/restate.js";
+import { CALL_OUTCOME } from "../calls/settings.js";
 import { EMAIL_CONSOLE_APPS, EMAIL_CONSOLE_ROUTES } from "../console-routes.js";
 import {
   approveCandidate,
@@ -53,7 +57,7 @@ import { moveExperiment, startExperiment, switchSetting } from "../evolve/experi
 import { pause, resolveTarget, resume } from "../inbox/health.js";
 import { openInvites } from "../inbox/invite.js";
 import { liveEmails } from "../outreach/live.js";
-import { firmRecord, stallRecord } from "../records.js";
+import { callRecord, firmRecord, stallRecord } from "../records.js";
 import {
   type CampaignChange,
   campaignPolicy,
@@ -80,8 +84,15 @@ export interface EmailConsoleDeps {
   clients?: { main: Db; open: (client: Pick<Client, "database">) => Db } | null;
 }
 
-/** What a client's Pipeline app reads. */
+/** What a client's Pipeline app reads, with `research.lead_sheet`. */
 const SHEET_RECORDS = [firmRecord, stallRecord];
+/** What a client's Calls app reads, with `calls.outcome`. */
+const CALL_RECORDS = [callRecord];
+/** The record types a client's products open. */
+const recordsFor = (products: Readonly<Record<string, unknown>>) => [
+  ...(LEAD_SHEET in products ? SHEET_RECORDS : []),
+  ...(CALL_OUTCOME in products ? CALL_RECORDS : []),
+];
 export interface InviteRequest extends PortalRequest {
   id: number;
   /** Approve only: the reply as edited; absent, the draft goes as written. */
@@ -109,6 +120,10 @@ type Done = { done: string[]; skipped: string[] };
 /** A record action on experiments or candidates, by their numeric ids. */
 export interface IdsRequest extends PortalRequest {
   ids: (string | number)[];
+}
+/** A call action: the calls, and Not yet's reason. */
+export interface CallsRequest extends IdsRequest {
+  reason?: string | null;
 }
 export interface CandidatesRequest extends IdsRequest {
   /** Approve only: William's words in place of the model's. */
@@ -186,18 +201,23 @@ export function emailConsoleApi({
       return change(tx);
     });
 
-  /** The database of a client this viewer may open, with the lead sheet installed. */
-  const sheetOf = async (req: PortalRequest): Promise<{ db: Db; fence: Fence | undefined }> => {
+  /**
+   * The database of a client this viewer may open, and the record types its products open:
+   * the lead sheet's, the Calls app's. None installed refuses.
+   */
+  const sheetOf = async (
+    req: PortalRequest,
+  ): Promise<{ db: Db; fence: Fence | undefined; types: typeof SHEET_RECORDS }> => {
     if (!clients) throw new PortalRefusal("not found", 404);
     const client = await pickClient(clients.main, req);
-    if (!client.products || !(LEAD_SHEET in client.products))
-      throw new PortalRefusal("the lead sheet is not installed", 404);
-    return { db: clients.open(client), fence: fenceFor(req, client.id) };
+    const types = recordsFor(client.products ?? {});
+    if (!types.length) throw new PortalRefusal("the lead sheet is not installed", 404);
+    return { db: clients.open(client), fence: fenceFor(req, client.id), types };
   };
-  /** The client's sheet, read-only: the rows this login may read. */
+  /** The client's records, read-only: the rows this login may read. */
   const sheet = async <T>(req: PortalRequest, use: (api: RecordsApi) => Promise<T>) => {
-    const { db, fence } = await sheetOf(req);
-    return snapshot(db, (tx) => use(serveRecords(SHEET_RECORDS, tx, undefined, fence)));
+    const { db, fence, types } = await sheetOf(req);
+    return snapshot(db, (tx) => use(serveRecords(types, tx, undefined, fence)));
   };
 
   /** With `client` set, that client (Wren's team, `component` installed); else null = Wren's. */
@@ -254,6 +274,20 @@ export function emailConsoleApi({
   };
 
   return {
+    /**
+     * Where a call's outcome or brief works: Wren's calls, or a client's with `calls.outcome`.
+     * Anyone signed in who may act there; their email is who marked it.
+     */
+    async callsOf(req: CallsRequest) {
+      if ("demo" in req.viewer) throw new PortalRefusal("sign in to mark a call", 403);
+      const client = await clientOf(req, CALL_OUTCOME);
+      return {
+        client: client?.id ?? null,
+        on: client && clients ? clients.open(client) : db,
+        ids: idsOf(req),
+        by: req.viewer.email,
+      };
+    },
     /** Approve or reject copy candidates; an approve with `text` goes live in William's words. */
     async decideCandidates(move: "approve" | "reject", req: CandidatesRequest): Promise<Done> {
       const who = team(req);
@@ -337,10 +371,10 @@ export function emailConsoleApi({
         for (const [key, value] of changes) await switchSetting(db, id, key, value);
       });
     },
-    /** The client's lead-sheet record types. */
+    /** The client's record types: its lead sheet's and its calls'. */
     recordsTypes: async (req: PortalRequest) => {
-      const { fence } = await sheetOf(req);
-      return SHEET_RECORDS.filter((t) => !fence || opens(t, fence(t))).map((t) => metaOf(t, false));
+      const { fence, types } = await sheetOf(req);
+      return types.filter((t) => !fence || opens(t, fence(t))).map((t) => metaOf(t, false));
     },
     recordsList: (req: PortalRequest & ListAsk) => sheet(req, (r) => r.list(req)),
     recordsGet: (req: PortalRequest & GetAsk) => sheet(req, (r) => r.get(req)),
@@ -489,6 +523,20 @@ export function makeEmailConsole(deps: EmailConsoleDeps) {
   // The key first: an object client is a proxy, so it must never be awaited (its `then` is a call).
   const disposition = (ctx: restate.Context, key: string) =>
     ctx.objectClient<Disposition>({ name: "Disposition" }, key);
+  /** Mark calls: Wren's, or the client's; `done` are the ids it changed. */
+  const outcome = (ctx: restate.Context, req: CallsRequest, value: MeetingOutcome | null) =>
+    answer(async () => {
+      const c = await api.callsOf(req);
+      const marked = await markOutcome(ctx, c.on, c.client, {
+        ids: c.ids,
+        outcome: value,
+        reason: value === "not_yet" ? (req.reason ?? null) : null,
+        by: c.by,
+      });
+      if (!marked.changed && value)
+        throw new PortalRefusal("only a booked call that has started can be marked", 409);
+      return { changed: marked.changed, done: marked.done.map(String) };
+    });
   return portalService({
     name: "EmailConsole",
     main: deps.db,
@@ -648,6 +696,40 @@ export function makeEmailConsole(deps: EmailConsoleDeps) {
         { input: CAMPAIGNS },
         (_: restate.Context, req: CampaignsRequest) =>
           answer(() => api.campaignAction("resumeOpeners", req)),
+      ),
+      callWon: serviceHandler({ input: IDS }, (ctx: restate.Context, req: CallsRequest) =>
+        outcome(ctx, req, "won"),
+      ),
+      callNotYet: serviceHandler(
+        { input: IDS.extend({ reason: z.string().max(500).nullish().describe("Why not yet") }) },
+        (ctx: restate.Context, req: CallsRequest) => outcome(ctx, req, "not_yet"),
+      ),
+      callNoShow: serviceHandler({ input: IDS }, (ctx: restate.Context, req: CallsRequest) =>
+        outcome(ctx, req, "no_show"),
+      ),
+      callNotFit: serviceHandler({ input: IDS }, (ctx: restate.Context, req: CallsRequest) =>
+        outcome(ctx, req, "not_fit"),
+      ),
+      /** Takes an outcome back: the undo for all four. */
+      callClear: serviceHandler({ input: IDS }, (ctx: restate.Context, req: CallsRequest) =>
+        outcome(ctx, req, null),
+      ),
+      /** Build a call's brief again now (`CallBriefs/build`). */
+      callBrief: serviceHandler({ input: IDS }, (ctx: restate.Context, req: CallsRequest) =>
+        answer(async () => {
+          const { client, ids } = await ctx.run("calls", async () => {
+            const c = await api.callsOf(req);
+            return { client: c.client, ids: c.ids };
+          });
+          const done: string[] = [];
+          for (const id of ids) {
+            const b = await ctx
+              .serviceClient<CallBriefs>({ name: "CallBriefs" })
+              .build({ client, id });
+            if (b.built) done.push(String(id));
+          }
+          return { done };
+        }),
       ),
     },
   });

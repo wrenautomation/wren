@@ -34,6 +34,13 @@ export const EMAIL_CONSOLE_ROUTES = {
   switchExperiment: "run",
   approveCandidate: "act",
   rejectCandidate: "act",
+  // A booked call: how it went, and its brief rebuilt (Wren's, or a client's with calls.outcome).
+  callWon: "act",
+  callNotYet: "act",
+  callNoShow: "act",
+  callNotFit: "act",
+  callClear: "act",
+  callBrief: "act",
 } as const satisfies Record<string, Need>;
 /** Where each route works (`RouteAt`): Outbound's email; records check each type. */
 export const EMAIL_CONSOLE_APPS = {
@@ -45,6 +52,12 @@ export const EMAIL_CONSOLE_APPS = {
   recordsExport: null,
   recordsStats: null,
   dossier: null,
+  callWon: "calls",
+  callNotYet: "calls",
+  callNoShow: "calls",
+  callNotFit: "calls",
+  callClear: "calls",
+  callBrief: "calls",
 } as const satisfies RouteApps<typeof EMAIL_CONSOLE_ROUTES>;
 export type EmailConsoleRoute = keyof typeof EMAIL_CONSOLE_ROUTES;
 /** The ones that change something: never cached, never on the demo. */

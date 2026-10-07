@@ -3,6 +3,7 @@
  * from its own database, and for the Marketing app texted contacts
  * (`marketing_text_contact_records`) and William's words.
  */
+import { DIAL_OUTCOMES, outcomeStatus } from "@wren/core/calls";
 import {
   date,
   defineRecord,
@@ -175,15 +176,7 @@ export const speedRecord = defineRecord({
       },
       "Call",
     ),
-    outcome: status(
-      {
-        reached: { label: "Reached", tone: "good" },
-        voicemail: { label: "Voicemail", tone: "neutral" },
-        no_answer: { label: "No answer", tone: "neutral" },
-        wrong_number: { label: "Wrong number", tone: "bad" },
-      },
-      "Outcome",
-    ),
+    outcome: status(outcomeStatus(DIAL_OUTCOMES), "Outcome"),
     tel: link("Dial"),
     follow: status(
       {

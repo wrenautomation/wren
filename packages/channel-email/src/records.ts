@@ -5,6 +5,7 @@
  * policy each read is env with the console's campaign overrides on top (`campaign_controls`).
  */
 
+import { MEETING_OUTCOMES, outcomeStatus } from "@wren/core/calls";
 import { formOf } from "@wren/core/console";
 import {
   actor,
@@ -26,6 +27,7 @@ import type { Queryable } from "@wren/db";
 import { parseSettings, settingsSchema } from "@wren/experiments";
 import { asc, eq, sql } from "drizzle-orm";
 import { z } from "zod";
+import { briefOf } from "./calls/brief.js";
 import { mapPoints, points, versionTemplate } from "./evolve/genome.js";
 import { parseOption } from "./evolve/tiers.js";
 import { activePauses, domainHealth, domainOf, wouldTrip } from "./inbox/health.js";
@@ -234,10 +236,23 @@ export const replyRecord = defineRecord({
   actions: ["email.approve", "email.drop"],
 });
 
-/** Calls booked on cal.com, from its webhook (`call_bookings`), matched to an enrollment or not. */
+/** Where a call shows: ahead, over and unmarked, how it went, or cancelled. */
+export const CALL_STATUS = {
+  upcoming: { label: "Upcoming", tone: "warn" },
+  past: { label: "Say how it went", tone: "neutral" },
+  ...outcomeStatus(MEETING_OUTCOMES),
+  cancelled: { label: "Cancelled", tone: "neutral" },
+} as const;
+const MARKED = [...MEETING_OUTCOMES];
+
+/**
+ * Every booked call (`call_bookings`): cal.com's, from its webhook, and our calendar's mirror,
+ * matched to an enrollment or not. Its detail is the pre-call brief (`calls/brief.ts`); its
+ * actions say how it went (`EmailConsole.call*`).
+ */
 export const callRecord = defineRecord({
   id: "email.call",
-  app: "outbound",
+  app: "calls",
   channel: "email",
   name: { one: "call", many: "calls" },
   rows: async (db) =>
@@ -245,6 +260,10 @@ export const callRecord = defineRecord({
       await db.execute<Record<string, unknown>>(sql`
         select cb.id, cb.state::text state, cb.start, cb.booked_at booked, cb.email::text email,
           cb.offer::text offer, e.niche::text niche, co.name::text company, co.domain::text domain,
+          case when cb.state = 'cancelled' then 'cancelled'
+            when cb.outcome is not null then cb.outcome::text
+            when cb.start > now() then 'upcoming' else 'past' end status,
+          cb.outcome_reason reason, cb.outcome_by marked_by, cb.outcome_at marked,
           coalesce(nullif(concat_ws(' ', nullif(p.first_name, ''), nullif(p.last_name, '')), ''),
             p.full_name, cb.name, cb.email)::text who
         from call_bookings cb
@@ -258,21 +277,44 @@ export const callRecord = defineRecord({
   fields: {
     who: name("Who"),
     company: company("Company", { domain: "domain" }),
-    state: status({
-      booked: { label: "Booked", tone: "good" },
-      cancelled: { label: "Cancelled", tone: "neutral" },
-    }),
+    status: status(CALL_STATUS),
     start: date("Call"),
+    reason: text("Why"),
     booked: date("Booked"),
     campaign: text("Campaign"),
     offer: text("Offer"),
     email: text("Email"),
+    markedBy: text("Marked by"),
+    marked: date("Marked"),
   },
   views: [
-    { id: "booked", label: "Booked", where: { state: "booked" }, sort: "-booked", at: "booked" },
-    { id: "cancelled", label: "Cancelled", where: { state: "cancelled" }, sort: "-booked" },
+    {
+      id: "upcoming",
+      label: "Upcoming",
+      where: { status: "upcoming" },
+      sort: "start",
+      at: "booked",
+    },
+    { id: "past", label: "To mark", where: { status: "past" }, sort: "-start", at: "start" },
+    { id: "marked", label: "Marked", where: { status: MARKED }, sort: "-start", at: "start" },
+    {
+      id: "booked",
+      label: "All booked",
+      where: { status: ["upcoming", "past", ...MARKED] },
+      sort: "-booked",
+      at: "booked",
+    },
+    { id: "cancelled", label: "Cancelled", where: { status: "cancelled" }, sort: "-booked" },
     { id: "all", label: "All", sort: "-booked", at: "booked" },
   ],
+  actions: [
+    "email.callWon",
+    "email.callNotYet",
+    "email.callNoShow",
+    "email.callNotFit",
+    "email.callBrief",
+  ],
+  load: (db, id) => briefOf(db, id),
 });
 
 const IN_PLAY = { declined: { empty: true } } as const;

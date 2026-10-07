@@ -6,8 +6,10 @@ import type { Need, RouteApps } from "@wren/core/access";
  */
 export const CALENDAR_CONSOLE_ROUTES = {
   range: "wren:read",
-  held: "wren:act",
+  won: "wren:act",
+  notYet: "wren:act",
   noShow: "wren:act",
+  notFit: "wren:act",
   clear: "wren:act",
   cancel: "wren:effect",
 } as const satisfies Record<string, Need>;
@@ -16,8 +18,10 @@ export const CALENDAR_CONSOLE_APPS = { "*": "calendar" } as const satisfies Rout
   typeof CALENDAR_CONSOLE_ROUTES
 >;
 export const CALENDAR_CONSOLE_WRITES: readonly (keyof typeof CALENDAR_CONSOLE_ROUTES)[] = [
-  "held",
+  "won",
+  "notYet",
   "noShow",
+  "notFit",
   "clear",
   "cancel",
 ];

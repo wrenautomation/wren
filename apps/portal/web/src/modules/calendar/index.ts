@@ -1,18 +1,24 @@
 /**
  * Calendar: calls booked on our own calendar (designs/2026-10-06-calendar.md). Upcoming first,
- * then past calls to mark held or no-show, the no-shows, and cancelled. Open hours live in the
- * Booking calendar part's settings, in the Shop.
+ * then past calls to mark (won, not yet, no-show, not a fit), the no-shows, and cancelled. Each
+ * call's page leads with its pre-call brief. Open hours live in the Booking calendar part's
+ * settings, in the Shop.
  */
-import type { Module } from "../../module.js";
+import type { ListPage, Module } from "../../module.js";
+import { callExtras } from "../calls/brief.js";
 import { CALL_ACTIONS } from "./actions.js";
 import { Schedule } from "./schedule.js";
+
+/** A calendar call's page: its mirror's brief. Rebuild lives on Inbox > Calls. */
+export const bookingExtras: NonNullable<ListPage["extras"]> = (detail, { row }) =>
+  callExtras(detail, row, { reason: "outcomeReason" });
 
 export const calendar: Module = {
   id: "calendar",
   name: "Calendar",
   component: "calendar.booking",
   icon: "clock",
-  blurb: "Calls booked on your page, and whether each one showed.",
+  blurb: "Calls booked on your page, a brief before each, and how each went.",
   requires: { audience: "team" },
   pages: [
     { id: "schedule", label: "Schedule", Page: Schedule },
@@ -61,6 +67,7 @@ export const calendar: Module = {
       template: "list",
       record: "calendar.booking",
       actions: CALL_ACTIONS,
+      extras: bookingExtras,
       columns: ["name", "status", "start", "offer", "source", "meet"],
       count: { status: ["past"] },
       empty: {

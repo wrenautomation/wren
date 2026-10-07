@@ -2,6 +2,12 @@
 import { defineComponent, type LoopKey } from "@wren/core/components";
 import { clientKey } from "@wren/core/restate";
 import {
+  briefSettingsSchema,
+  CALL_BRIEF,
+  CALL_OUTCOME,
+  outcomeSettingsSchema,
+} from "./calls/settings.js";
+import {
   REPLIES,
   repliesSettingsSchema,
   SEQUENCES,
@@ -268,6 +274,66 @@ export const EMAIL_COMPONENTS = [
           built: null,
         },
         { is: "fixed", says: "One rule decides who may get mail, and a signup keeps its proof." },
+      ],
+    },
+  }),
+  defineComponent({
+    id: CALL_BRIEF,
+    stage: "book",
+    name: "Pre-call brief",
+    blurb:
+      "Who booked, how they came in, their words, the dossier and signals, and what to ask, on the call's page.",
+    icon: "board",
+    for: "client",
+    wrenSettings: true,
+    ready: true,
+    missing: [],
+    settings: briefSettingsSchema,
+    provides: { services: ["CallBriefs"] },
+    in: [{ id: "calls", label: "booked calls", kind: "call" }],
+    out: [{ id: "ready", label: "briefs ready", kind: "call" }],
+    hypothesis: {
+      from: "Designed 2026-10-07 from the dossier and the threads",
+      guesses: [
+        { is: "change", says: "What it holds, per offer.", built: null },
+        {
+          is: "change",
+          says: "How long before the call it's rebuilt and pinged.",
+          built: "settings.leadMinutes",
+        },
+        { is: "change", says: "Whether the model adds questions.", built: "settings.questions" },
+        { is: "needs", says: "A ping to the client's own rep, not only Wren's team.", built: null },
+        { is: "fixed", says: "Every line names its source and date; the model adds no facts." },
+      ],
+    },
+  }),
+  defineComponent({
+    id: CALL_OUTCOME,
+    stage: "book",
+    name: "Call outcome",
+    blurb: "Marks how each call went: won, not yet with the reason, no-show, or not a fit.",
+    icon: "check",
+    for: "client",
+    wrenSettings: true,
+    ready: true,
+    missing: [],
+    settings: outcomeSettingsSchema,
+    provides: { apps: ["calls"] },
+    in: [{ id: "calls", label: "calls held", kind: "call" }],
+    out: [
+      { id: "won", label: "clients won", kind: "client" },
+      { id: "later", label: "not yet", kind: "lead" },
+    ],
+    hypothesis: {
+      from: "Designed 2026-10-07 with speed to lead's dial outcomes",
+      guesses: [
+        { is: "change", says: "The not-yet reasons, per offer.", built: "settings.reasons" },
+        {
+          is: "needs",
+          says: "A rebook for a no-show, once William says what it sends.",
+          built: null,
+        },
+        { is: "fixed", says: "A person marks it; nothing guesses." },
       ],
     },
   }),

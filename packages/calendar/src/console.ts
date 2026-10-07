@@ -1,10 +1,14 @@
 /**
- * CalendarConsole: the Calendar app's buttons. Held and No-show say how a past call went (the
- * no-shows view reads it), and Clear takes that back. Cancel cancels an upcoming one the way
- * the booker's link does: Google drops the event, `call_bookings` marks it and the booker gets
- * the cancel mail.
+ * CalendarConsole: the Calendar app's buttons. Won, Not yet, No-show and Not a fit say how a past
+ * call went, on its mirror in `call_bookings` (one outcome for every call, `@wren/core/calls`);
+ * Clear takes that back. Won and Not yet move the call on the spine (`markOutcome`). Cancel
+ * cancels an upcoming one the way the booker's link does: Google drops the event,
+ * `call_bookings` marks it and the booker gets the cancel mail.
  */
 import type * as restate from "@restatedev/restate-sdk";
+import { markOutcome } from "@wren/channel-email/calls";
+import { callBookings } from "@wren/channel-email/schema";
+import type { MeetingOutcome } from "@wren/core/calls";
 import {
   answer,
   PortalRefusal,
@@ -13,12 +17,11 @@ import {
   type SignedViewer,
 } from "@wren/core/portal";
 import { PORTAL_FIELDS, serviceHandler } from "@wren/core/restate";
-import { atomic, setAuditActor } from "@wren/db";
+import { inArray } from "drizzle-orm";
 import { z } from "zod";
-import { callsBetween, markShowed } from "./book.js";
+import { callsBetween, mirrorUid } from "./book.js";
 import { CALENDAR_CONSOLE_APPS, CALENDAR_CONSOLE_ROUTES } from "./console-routes.js";
 import { type CalendarDeps, calendarFlows } from "./restate.js";
-import type { Showed } from "./schema.js";
 import { openHours } from "./slots.js";
 
 export interface IdsRequest extends PortalRequest {
@@ -43,18 +46,28 @@ export interface RangeRequest extends PortalRequest {
 export function makeCalendarConsole(deps: CalendarDeps) {
   const { db } = deps;
   const flows = calendarFlows(deps);
-  const showed = (ctx: restate.Context, req: IdsRequest, value: Showed | null) =>
+  /** Say how calls went: on each one's mirror, then on the spine. `done` are calendar ids. */
+  const outcome = (ctx: restate.Context, req: IdsRequest, value: MeetingOutcome | null) =>
     answer(async () => {
       const ids = idsOf(req);
-      const now = new Date(await ctx.date.now());
-      return ctx.run(`showed ${value ?? "unsaid"}`, () =>
-        atomic(db, async (tx) => {
-          await setAuditActor(tx, by(req));
-          let changed = 0;
-          for (const id of ids) if (await markShowed(tx, { id, showed: value, now })) changed++;
-          return { changed };
-        }),
+      const mirrors = await ctx.run("mirrors", async () =>
+        (
+          await db
+            .select({ id: callBookings.id, uid: callBookings.uid })
+            .from(callBookings)
+            .where(inArray(callBookings.uid, ids.map(mirrorUid)))
+        ).map((r) => [r.id, Number(r.uid.slice("wren-".length))] as const),
       );
+      const ours = new Map(mirrors);
+      const marked = await markOutcome(ctx, db, null, {
+        ids: [...ours.keys()],
+        outcome: value,
+        reason: req.reason ?? null,
+        by: by(req),
+      });
+      if (!marked.changed && value)
+        throw new PortalRefusal("only a booked call that has started can be marked", 409);
+      return { changed: marked.changed, done: marked.done.map((id) => ours.get(id)) };
     });
   return portalService({
     name: "CalendarConsole",
@@ -97,17 +110,30 @@ export function makeCalendarConsole(deps: CalendarDeps) {
             return { zone: rules.zone, length: rules.length, open, calls };
           }),
       ),
-      held: serviceHandler({ input: z.looseObject(IDS) }, (ctx: restate.Context, req: IdsRequest) =>
-        showed(ctx, req, "held"),
+      won: serviceHandler({ input: z.looseObject(IDS) }, (ctx: restate.Context, req: IdsRequest) =>
+        outcome(ctx, req, "won"),
+      ),
+      notYet: serviceHandler(
+        {
+          input: z.looseObject({
+            ...IDS,
+            reason: z.string().max(500).nullish().describe("Why not yet, in your words"),
+          }),
+        },
+        (ctx: restate.Context, req: IdsRequest) => outcome(ctx, req, "not_yet"),
       ),
       noShow: serviceHandler(
         { input: z.looseObject(IDS) },
-        (ctx: restate.Context, req: IdsRequest) => showed(ctx, req, "no_show"),
+        (ctx: restate.Context, req: IdsRequest) => outcome(ctx, req, "no_show"),
       ),
-      /** Takes back Held or No-show: the undo for both. */
+      notFit: serviceHandler(
+        { input: z.looseObject(IDS) },
+        (ctx: restate.Context, req: IdsRequest) => outcome(ctx, req, "not_fit"),
+      ),
+      /** Takes an outcome back: the undo for all four. */
       clear: serviceHandler(
         { input: z.looseObject(IDS) },
-        (ctx: restate.Context, req: IdsRequest) => showed(ctx, req, null),
+        (ctx: restate.Context, req: IdsRequest) => outcome(ctx, req, null),
       ),
       cancel: serviceHandler(
         {

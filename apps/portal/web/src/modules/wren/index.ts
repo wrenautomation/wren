@@ -10,6 +10,7 @@ import type { Module } from "../../module.js";
 import { inboxPages, managePages } from "../access/index.js";
 import { PersonAccess } from "../access/PersonAccess.js";
 import { ClientLook } from "../account/Look.js";
+import { callsPage } from "../calls/index.js";
 import { INBOX_PAGE } from "../marketing/index.js";
 import { ClientComponents } from "../marketplace/Installed.js";
 import { Ask } from "./ask.js";
@@ -490,17 +491,7 @@ export const inbox: Module = {
       },
       actions: REPLY_ACTIONS,
     },
-    {
-      id: "calls",
-      label: "Calls",
-      template: "list",
-      record: "email.call",
-      empty: {
-        booked: "Calls booked on cal.com show here.",
-        cancelled: "No call was cancelled.",
-        all: "Calls booked on cal.com show here.",
-      },
-    },
+    callsPage("Calls booked on cal.com or our calendar show here."),
     {
       id: "mail",
       label: "Your mail",

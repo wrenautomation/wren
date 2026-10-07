@@ -1,3 +1,4 @@
+import { MEETING_OUTCOMES } from "@wren/core/calls";
 import { companies, leads, people, runs } from "@wren/core/schema";
 
 import { oneOf } from "@wren/db/columns";
@@ -653,6 +654,13 @@ export const callBookings = pgTable(
     bookedAt: timestamp("booked_at", { withTimezone: true }).notNull(),
     createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
     updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
+    /** How it went, marked by a person once it's over (`@wren/core/calls`); null until then. */
+    outcome: varchar("outcome", { length: 16, enum: MEETING_OUTCOMES }),
+    /** Why a not yet (or any outcome) went that way, in the rep's words. */
+    outcomeReason: text("outcome_reason"),
+    outcomeAt: timestamp("outcome_at", { withTimezone: true }),
+    /** Who marked it: their email. */
+    outcomeBy: text("outcome_by"),
   },
   (t) => [
     primaryKey({ columns: [t.id], name: "pk_call_bookings" }),
@@ -670,9 +678,40 @@ export const callBookings = pgTable(
       name: "fk_call_bookings_enrollment_id_enrollments",
     }),
     oneOf("ck_call_bookings_callbookingstate", t.state, CALL_BOOKING_STATES),
+    oneOf("ck_call_bookings_outcome", t.outcome, MEETING_OUTCOMES),
   ],
 );
 export type CallBooking = typeof callBookings.$inferSelect;
+
+/**
+ * The pre-call brief of a booked call, one per call (designs/2026-10-07-close-brief-outcome.md):
+ * built when it's booked, rebuilt before it starts. `brief` is `CallBrief` (`calls/brief.ts`),
+ * every item with its source and date. `start` is the call time it was built for, so a moved
+ * call's old send skips.
+ */
+export const callBriefs = pgTable(
+  "call_briefs",
+  {
+    callBookingId: integer("call_booking_id").notNull(),
+    start: timestamp("start", { withTimezone: true }),
+    brief: jsonb("brief").notNull(),
+    /** The model that wrote its questions; null when code alone did. */
+    model: varchar("model", { length: 64 }),
+    builtAt: timestamp("built_at", { withTimezone: true }).notNull(),
+    /** When the rep was pinged with it. */
+    sentAt: timestamp("sent_at", { withTimezone: true }),
+    createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+  },
+  (t) => [
+    primaryKey({ columns: [t.callBookingId], name: "pk_call_briefs" }),
+    foreignKey({
+      columns: [t.callBookingId],
+      foreignColumns: [callBookings.id],
+      name: "fk_call_briefs_call_booking_id_call_bookings",
+    }).onDelete("cascade"),
+  ],
+);
+export type CallBriefRow = typeof callBriefs.$inferSelect;
 
 export const openEvents = pgTable(
   "open_events",

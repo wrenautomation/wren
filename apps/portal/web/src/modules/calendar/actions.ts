@@ -1,29 +1,11 @@
 /** What can be done to a call: the Calls list and the Schedule's side panel share them. */
 import type { Action } from "@wren/ui";
+import { outcomeActions } from "../calls/actions.js";
 
 const said = (line: string) => () => line;
 
 export const CALL_ACTIONS: Action[] = [
-  {
-    id: "calendar.held",
-    label: "Held",
-    handler: "calendar/held",
-    undo: "calendar/clear",
-    bulk: true,
-    key: "h",
-    when: { status: ["past", "no_show"] },
-    done: said("Marked held"),
-  },
-  {
-    id: "calendar.noShow",
-    label: "No-show",
-    handler: "calendar/noShow",
-    undo: "calendar/clear",
-    bulk: true,
-    key: "n",
-    when: { status: ["past", "held"] },
-    done: said("Marked no-show"),
-  },
+  ...outcomeActions("calendar", { prefix: "calendar.", reasonFrom: "outcomeReason" }),
   {
     id: "calendar.cancel",
     label: "Cancel call",

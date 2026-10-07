@@ -39,10 +39,12 @@ describe("apps and components", () => {
       "reactivation",
       "leads",
       "texts",
+      "calls",
       "marketplace",
       "account",
     ]);
     expect(ids(false, ["research.lead_sheet"])).toEqual(["leads", "marketplace", "account"]);
+    expect(ids(false, ["calls.outcome"])).toEqual(["calls", "marketplace", "account"]);
     expect(
       appsIn(MODULES, { wren: true, team: true, installed: new Set() }).map((m) => m.id),
     ).not.toContain("work");

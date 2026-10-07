@@ -7,10 +7,12 @@
  * address, stops the firm's follow-ups and counts the call.
  */
 import { applyBooking, type BookingChange, type BookingOutcome } from "@wren/channel-email/inbox";
+import { callBookings } from "@wren/channel-email/schema";
+import type { MeetingOutcome } from "@wren/core/calls";
 import { type Db, type Queryable, serializable, sqlState } from "@wren/db";
-import { and, asc, eq, gt, lt, ne } from "drizzle-orm";
+import { and, asc, eq, gt, lt, ne, sql } from "drizzle-orm";
 import type { Rules } from "./rules.js";
-import { type BookingSource, bookings, type CalendarBooking, type Showed } from "./schema.js";
+import { type BookingSource, bookings, type CalendarBooking } from "./schema.js";
 import { isOpen, type Span } from "./slots.js";
 
 /** Someone else took the slot, or it was never open. */
@@ -57,7 +59,8 @@ export interface CallBlock {
   name: string;
   offer: string | null;
   state: "booked" | "cancelled";
-  showed: Showed | null;
+  /** How it went (`@wren/core/calls`), from its mirror in `call_bookings`. */
+  outcome: MeetingOutcome | null;
   meet: string | null;
 }
 
@@ -76,10 +79,11 @@ export async function callsBetween(
       name: bookings.name,
       offer: bookings.offer,
       state: bookings.state,
-      showed: bookings.showed,
+      outcome: callBookings.outcome,
       meet: bookings.meetUrl,
     })
     .from(bookings)
+    .leftJoin(callBookings, eq(callBookings.uid, sql`'wren-' || ${bookings.id}`))
     .where(and(eq(bookings.calendar, calendar), lt(bookings.start, to), gt(bookings.end, from)))
     .orderBy(asc(bookings.start));
 }
@@ -207,19 +211,6 @@ export async function cancelBooking(
   const was = await bookingById(db, o.id);
   if (!was) throw new Unchangeable("no such call");
   return { row: was, changed: false };
-}
-
-/** Say how a call went; null takes it back. */
-export async function markShowed(
-  db: Queryable,
-  o: { id: number; showed: Showed | null; now: Date },
-): Promise<CalendarBooking | null> {
-  const [row] = await db
-    .update(bookings)
-    .set({ showed: o.showed, updatedAt: o.now })
-    .where(eq(bookings.id, o.id))
-    .returning();
-  return row ?? null;
 }
 
 /** Note the Google event a booking made. */
