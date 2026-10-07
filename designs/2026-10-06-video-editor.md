@@ -251,6 +251,59 @@ deleted.
      loudnorm filter strings; a render of a synthetic 10 s portrait clip and a 10 s landscape clip
      to `vertical`, stills looked at; a synthetic clip measures -14 ±1 LUFS after leveling.
 
+6. Caption styles and words behind the speaker, ported from HeyGen's Hyperframes (William 10-07:
+   "take a bunch of their code and principles and fold them into our existing video editor").
+   Hyperframes is Apache-2.0 (github.com/heygen-com/hyperframes, pinned at v0.8.140, 5c7f631). We
+   port ideas and logic into Remotion; we don't add it as a dependency or a second renderer.
+   - **Credit.** A file that adapts their code or design says so in its header: "Adapted from
+     heygen-com/hyperframes `<path>` @5c7f631 (Apache-2.0); changed: …". `packages/studio/NOTICE`
+     lists each such file and carries their copyright line and the Apache-2.0 text. Those files
+     stay Apache-2.0; the rest of the repo keeps its license.
+   - **Caption styles.** `captions.style` (already on the edit, today always `word`) picks one of a
+     fixed list, checked by `editPatchSchema`: `word` (today's look, the default), `pill` (from
+     `caption-pill-karaoke`: the line on a dark pill, the said word changes colour), `sweep` (from
+     `caption-highlight`: the accent sweeps in behind each word as it's said, left to right),
+     `pop` (from `caption-emoji-pop`, no emoji: each word squeezes in from 70% width as it starts),
+     `wipe` (from `caption-clip-wipe`: each word wipes in left to right) and `stress` (from
+     `caption-editorial-emphasis`: stressed words in a second, heavier face, about 1.4× the
+     size). All run on the frame clock (`useCurrentFrame`), no GSAP; easing is a pure function of
+     the time since the word started, so any frame renders alone. Each style applies to both the
+     long video's lower third and the Reels line, using the line breakers we have (`pages`,
+     `reelLines`). Neon, glitch, particles and the other effect styles are left out: they don't
+     suit talking-head business video.
+   - **Stressed words.** `stress: number[]` on the edit (indexes into `words`), for `stress` and
+     for picking words to put behind the speaker. `wren video stress <id>` asks the gateway model
+     for the 1-3 words a minute that carry the point (numbers, outcomes, names) and writes them as
+     a `runs` row; `--add <s>` / `--drop <s>` change one by time. Picks are proposals, like cuts:
+     shown on the page's transcript, togglable. Their rule, kept: at most one big word per beat,
+     never two on screen at once, at least 0.6 s between them.
+   - **Words behind the speaker** (from their `embedded-captions` skill and
+     `packages/cli/src/background-removal`). `captions.behind: boolean` (default off). When on,
+     the render cuts the speaker out of the frame for a short window around each pick (from the
+     word's start to 1.2 s after its end) and draws the word large between the background and the
+     speaker. Only those windows are matted, not the whole video: 2 s windows keep it to seconds
+     per pick on the Mac.
+     - Model: `u2net_human_seg` (Apache-2.0), ONNX, through `onnxruntime-node`, with rembg's pre-
+       and post-processing as their `inference.ts` does. It downloads once to
+       `~/.cache/wren/models/` and is checked by sha256.
+     - Per window: ffmpeg pulls the frames from the cut file, the model writes RGBA frames (alpha =
+       the person), and ffmpeg encodes a VP9 WebM with alpha to `<edit dir>/public/matte/<n>.webm`,
+       kept until the cut changes.
+     - Composition: the video, then the big word (the look's font, about 260 px on the long video,
+       its entrance and exit from the same frame-clock easing), then the matte WebM over it
+       (`OffthreadVideo transparent`). The rest of the caption line stays in front, as now.
+     - It works on one person on a steady shot. A pick whose window has the screen share or the
+       corner cam layout is skipped (the long video's corner cam is too small to cut out).
+   - **CLI and page.** `wren video set <id> --captions-style <s> [--behind on|off]`; the page's edit
+     form gets the style list and the toggle, and `wren video render <id> --still <s>` renders one
+     frame at that time per format, so a style can be looked at before a full render.
+   - **Left for later:** their WebGL shader transitions (no use on talking-head jump cuts; worth it
+     when we cut b-roll) and audio ducking (no music track yet).
+   - Checked: unit tests on each style's word state at a time (entering, said, done), the
+     `stress` parser and its spacing rule, and the matte window planner (layout skip, merge,
+     limits); a render of a synthetic 10 s clip in each style, stills looked at; one real 2 s
+     window from video 3's cut file matted, with a still where the word sits behind the head.
+
 ## For William
 
 Answered 10-06: agreed; OBS; captions on the long video and Shorts.
@@ -348,3 +401,7 @@ Answered 10-06: agreed; OBS; captions on the long video and Shorts.
   channel link is left out: a viewer is already on it. Posts are now editable from the CLI and
   the Library like emails and prompts; a publish waits in To approve. The studio part names the
   three footers in `provides.templates`.
+- 2026-10-07: step 6 proposed and approved (William: "your call ... go ahead"): port Hyperframes'
+  caption styles and behind-the-speaker words into Remotion. Hyperframes itself isn't a dependency:
+  its renderer works the same way as Remotion (no speed gain), it's pre-1.0 with about two releases a
+  day, and two renderers would be twice the upkeep. Effect styles, transitions and ducking are left out.
