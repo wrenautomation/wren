@@ -25,7 +25,7 @@ person, reply on any channel, internal comments with @mentions.
   Mentions.
 - **Assign, status, snooze.** `inbox_threads` holds assignee, status (open, waiting, closed) and
   snooze. A newer inbound message reopens a thread. Views: Waiting on you (open), Mine, Unassigned,
-  Snoozed, All. Keys: j/k move, r reply, n note, e close.
+  Snoozed, All. Keys: j/k move, r reply, n note, e close, t take it, a assign, z snooze.
 - **Inbound only stays true.** The Inbox lists what came in. A reply that waits for a yes goes to To
   approve, never back into the Inbox.
 
@@ -38,8 +38,10 @@ person, reply on any channel, internal comments with @mentions.
 | `inbox_notes` (thread or person, body, mentions, by) | `packages/notes/src/schema.ts` |
 | `note_mentions.inbox_note_id`, `note_id` nullable, one of the two set | same |
 | Timeline, channels, status, gate, dispatch | `packages/content/src/inbox/` |
-| `InboxDesk`: reply, ask, approve, drop, suggest, note, assign, status, snooze | `packages/content/src/restate/inbox-desk.ts` |
+| `InboxDesk`: reply, ask, approve, drop, suggest, note, assign, take, status, snooze | `packages/content/src/restate/inbox-desk.ts` |
 | Conversation view, reply box, note box | `apps/portal/web/src/modules/marketing/conversation.tsx` |
+| Row actions (take, assign, close, snooze), To approve's Approve and Drop | `apps/portal/web/src/modules/marketing/index.ts`, `records.tsx` |
+| Synthetic threads: tests and a local preview | `packages/content/test/inbox-seed.ts`, `inbox-preview.ts` |
 
 ## Status
 
@@ -70,9 +72,16 @@ Wren's own threads (no client) skip the sends flag. The viewer's `effect` still 
   from the Inbox.
 - Activity rows (follows, likes) have no reply.
 - A person is the join. Rows with no person still show their own thread, without other channels.
+- The portal replies on Wren's own threads only. `console.call` runs at Wren scope and passes no
+  client, so a client workspace's Inbox shows the conversation without a reply box yet.
+  `InboxDesk` already takes `client`.
+- The local preview has no Restate: the conversation and notes show, but Send, Suggest and the
+  row actions need the worker.
 
 ## Decisions
 
+- The reply box replaces the per-type draft boxes (DM reply, comment answer, email approve) in the
+  Inbox. It starts from the row's held draft. Suggest replaces Ask Claude there.
 - Notes live beside notes, not in the Inbox tables, so mentions stay one table and one list.
 - One handler per verb, not one with a mode: `reply` declares `effect: "sends"` so the console's
   confirm and permission check apply. `ask` has no effect and sends nothing.

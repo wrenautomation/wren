@@ -27,6 +27,7 @@ Citations: `packages/core/src/touches-schema.ts:97`, `packages/core/src/touches.
 
 ## Connected to
 
+- **feeds:** [[content/inbox-thread]] (touches show in the person's Inbox timeline and in Suggest's prompt)
 - **owned-by:** [[leads/person]] (`social_handles.person_id`), [[leads/lead]] (`social_handles.lead_id`)
 - **joins:** [[content/comment]], [[content/linkedin-invite]], [[content/linkedin-post]], [[content/reddit-thread]], `social_activity`
 - **looks-like-but-is-not:** `draft_events` (the training record, keyed per draft, not per person); `lead_channels` (active sequences, not history)

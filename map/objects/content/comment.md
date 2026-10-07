@@ -28,6 +28,7 @@ Comments work like a webhook (William, 2026-10-05): the reader is a source, reac
 
 ## Connected to
 
+- **joins:** [[content/inbox-thread]] (in the Inbox a comment opens as the commenter's whole conversation; the reply box answers it through `ReachDesk/answerComment`, or asks in To approve)
 - **joins:** [[leads/touch]] (each comment is a theirs touch `c:<id>`, our answer an ours reply `ca:<id>`; a reply to our answer marks it replied)
 - **joins:** reach accounts and contacts (a DM makes a `reach_contacts` row and a manual `reach_messages` row the sender sends with the live gate off)
 - **joins:** [[content/draft]] (the posts these comments sit under are content drafts)
