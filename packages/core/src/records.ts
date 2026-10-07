@@ -553,9 +553,10 @@ export interface RecordDecl<F extends Record<string, Draft>> {
   related?: readonly { record: string; by: string }[];
   /**
    * A view of (`by`, at, what) lines about one record, newest first; `seq`, a column that breaks
-   * a tie in `at`, the higher written later.
+   * a tie in `at`, the higher written later. `label` names its tab ("Touches"; else "Activity"),
+   * `empty` says what shows there when nothing has yet.
    */
-  activity?: { view: string; by: string; seq?: string };
+  activity?: { view: string; by: string; seq?: string; label?: string; empty?: string };
   /** Action ids the web offers on it. */
   actions?: readonly string[];
   /** What opening it needs past `read` (`@wren/core/access`): Wren's Money records need `money`. */
@@ -799,6 +800,9 @@ export interface RecordMeta {
   related: readonly { record: string }[];
   actions: readonly string[];
   activity: boolean;
+  /** The activity tab's name and empty words, when the type gives its own. */
+  activityLabel?: string;
+  activityEmpty?: string;
   detail: boolean;
   /** Its rows are drafts: the list offers Export JSONL with their training records. */
   drafts?: boolean;
@@ -866,6 +870,8 @@ export function metaOf(type: RecordType, demo: boolean): RecordMeta {
     related: (type.related ?? []).map((r) => ({ record: r.record })),
     actions: type.actions ?? [],
     activity: !!type.activity,
+    ...(type.activity?.label ? { activityLabel: type.activity.label } : {}),
+    ...(type.activity?.empty ? { activityEmpty: type.activity.empty } : {}),
     ...(type.drafts ? { drafts: true } : {}),
     detail: !!type.load,
     // The demo reads only: its edits would land nowhere.

@@ -1725,7 +1725,9 @@ export function RecordBody({
       const t = types.find((x) => x.id === r.record);
       return t ? [{ id: t.name.many, label: cap(t.name.many), count: r.count }] : [];
     }),
-    ...(activity ? [{ id: "activity", label: "Activity", count: activity.length }] : []),
+    ...(activity
+      ? [{ id: "activity", label: meta.activityLabel ?? "Activity", count: activity.length }]
+      : []),
     ...(state ? [{ id: "history", label: "History", count: state.history.length }] : []),
     ...(access && issues.data
       ? [
@@ -1858,7 +1860,7 @@ export function RecordBody({
       </nav>
 
       {tab === "activity" && activity ? (
-        <Activity lines={activity} one={meta.name.one} />
+        <Activity lines={activity} one={meta.name.one} empty={meta.activityEmpty} />
       ) : tab === "history" && state ? (
         <History meta={meta} lines={state.history} values={state.values} editing={editing} />
       ) : tab === "issues" && access && acts && issues.data ? (
@@ -2037,9 +2039,21 @@ export function Quiet({ children }: { children: ReactNode }) {
 }
 
 /** What happened to a record, newest first. */
-function Activity({ lines, one }: { lines: RecordAnswer["activity"] & object; one: string }) {
+function Activity({
+  lines,
+  one,
+  empty,
+}: {
+  lines: RecordAnswer["activity"] & object;
+  one: string;
+  empty?: string | undefined;
+}) {
   if (!lines.length)
-    return <Quiet>Emails, replies and findings about this {one} show here as they happen.</Quiet>;
+    return (
+      <Quiet>
+        {empty ?? `Emails, replies and findings about this ${one} show here as they happen.`}
+      </Quiet>
+    );
   return (
     <ol className="grid">
       {lines.map((l, i) => {

@@ -592,9 +592,10 @@ export const inviteRecord = defineRecord({
 const PEOPLE_ROWS = 1000;
 
 /**
- * People we can write to without the platform: ours with a LinkedIn page (`li:<people.id>`) and
- * Reddit people we read (`reddit:<handle>`). `can` says what's open: Message once a LinkedIn
- * invite is accepted (any Reddit user), Invite before.
+ * People we can write to without the platform: ours with a LinkedIn page (`li:<people.id>`),
+ * Reddit people we read (`reddit:<handle>`), and anyone else a touch met (`<platform>:<handle>`,
+ * designs/2026-10-07-touches.md). `can` says what's open: Message once a LinkedIn invite is
+ * accepted (any Reddit user), Invite before. Touches lists every touch with them, newest first.
  */
 export const personRecord = defineRecord({
   id: "marketing.person",
@@ -603,24 +604,47 @@ export const personRecord = defineRecord({
   name: { one: "person", many: "people" },
   rows: async (db) =>
     (await db.execute(sql`
+      with tl as (select person, count(*)::int n, max(at) last from person_touch_lines group by person)
       (select 'li:' || p.id id, 'linkedin' platform, p.full_name who, p.title headline,
         co.name company, p.linkedin_url url, rc.state contact, rc.draft, p.created_at at,
         case when rc.state in ('opted_out', 'blocked') then 'stopped'
           when rc.connected_at is not null then 'message'
-          when rc.id is null or rc.state = 'new' then 'invite' else 'invited' end can
+          when rc.id is null or rc.state = 'new' then 'invite' else 'invited' end can,
+        coalesce(tl.n, 0) touches, tl.last touched
       from people p
       join companies co on co.id = p.company_id
       left join reach_contacts rc on rc.platform = 'linkedin' and lower(rc.handle) = ${VANITY}
+      left join tl on tl.person = 'li:' || p.id
       where p.linkedin_url ~* 'linkedin\\.com/in/[^/?#]+'
       order by p.id desc limit ${PEOPLE_ROWS})
       union all
       (select 'reddit:' || rp.handle, 'reddit', rp.name, rp.read #>> '{role,value}',
         rp.read #>> '{business,value}', 'https://www.reddit.com/user/' || rp.handle, rc.state,
         rc.draft, rp.read_at,
-        case when rc.state in ('opted_out', 'blocked') then 'stopped' else 'message' end
+        case when rc.state in ('opted_out', 'blocked') then 'stopped' else 'message' end,
+        coalesce(tl.n, 0), tl.last
       from reddit_people rp
       left join reach_contacts rc on rc.platform = 'reddit' and lower(rc.handle) = rp.handle
-      order by rp.read_at desc limit ${PEOPLE_ROWS})`)) as unknown as Array<
+      left join tl on tl.person = 'reddit:' || rp.handle
+      order by rp.read_at desc limit ${PEOPLE_ROWS})
+      union all
+      (select h.platform || ':' || h.handle, h.platform, coalesce(p.full_name, h.name, h.handle),
+        p.title, co.name, h.url, rc.state, rc.draft, h.created_at,
+        case when rc.state in ('opted_out', 'blocked') then 'stopped'
+          when h.platform = 'reddit' then 'message'
+          when h.platform <> 'linkedin' or h.handle like '%:%' then null
+          when rc.connected_at is not null then 'message'
+          when rc.id is null or rc.state = 'new' then 'invite' else 'invited' end,
+        coalesce(tl.n, 0), tl.last
+      from social_handles h
+      left join people p on p.id = h.person_id
+      left join companies co on co.id = p.company_id
+      left join reach_contacts rc on rc.platform = h.platform and lower(rc.handle) = h.handle
+      left join tl on tl.person = h.platform || ':' || h.handle
+      where not (h.platform = 'reddit'
+          and exists (select 1 from reddit_people rp where rp.handle = h.handle))
+        and not (p.linkedin_url is not null and p.linkedin_url ~* 'linkedin\\.com/in/[^/?#]+')
+      order by h.created_at desc limit ${PEOPLE_ROWS})`)) as unknown as Array<
       Record<string, unknown>
     >,
   key: "id",
@@ -630,7 +654,18 @@ export const personRecord = defineRecord({
     who: name("Who"),
     headline: text(),
     company: text("Company"),
-    platform: status(cued({ reddit: neutral("Reddit"), linkedin: neutral("LinkedIn") }), "Site"),
+    platform: status(
+      cued({
+        reddit: neutral("Reddit"),
+        linkedin: neutral("LinkedIn"),
+        x: neutral("X"),
+        instagram: neutral("Instagram"),
+        youtube: neutral("YouTube"),
+        facebook: neutral("Facebook"),
+        tiktok: neutral("TikTok"),
+      }),
+      "Site",
+    ),
     can: status(
       {
         message: { label: "Can message", tone: "good" },
@@ -642,13 +677,29 @@ export const personRecord = defineRecord({
     ),
     contact: text("In reach"),
     draft: prose("Draft message"),
+    touches: number("Touches"),
+    touched: date("Last touch"),
     at: date("Added"),
     url: link("Their page"),
   },
   views: [
     { id: "message", label: "Can message", where: { can: "message" }, sort: "-at", at: "at" },
     { id: "invite", label: "Can invite", where: { can: "invite" }, sort: "-at", at: "at" },
+    {
+      id: "touched",
+      label: "Touched",
+      where: { touches: { gte: 1 } },
+      sort: "-touched",
+      at: "touched",
+    },
     { id: "all", label: "All", sort: "-at", at: "at" },
   ],
+  activity: {
+    view: "person_touch_lines",
+    by: "person",
+    seq: "seq",
+    label: "Touches",
+    empty: "Follows, invites, comments, replies and DMs with them, on every site, show here.",
+  },
   actions: ["marketing.personDraft", "marketing.personMessage", "marketing.personInvite"],
 });

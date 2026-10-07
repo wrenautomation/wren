@@ -1,8 +1,9 @@
 /**
  * Message and Invite from People (designs/2026-10-06-content-desk.md, "Message from People"): a
- * person we hold (`li:<people.id>` with a LinkedIn page, `reddit:<handle>` read from Reddit) becomes
- * a reach contact (`found_in = people`) on first use. Message goes from `linkedin@wren` once they
- * accepted, or from `reddit@wren` to anyone; Invite queues `linkedin-invite` for them now.
+ * person we hold (`li:<people.id>` with a LinkedIn page, `reddit:<handle>` read from Reddit,
+ * `linkedin:<vanity>` seen only through a touch) becomes a reach contact (`found_in = people`) on
+ * first use. Message goes from `linkedin@wren` once they accepted, or from `reddit@wren` to
+ * anyone; Invite queues `linkedin-invite` for them now.
  */
 import { leadRefusal } from "@wren/core/leads";
 import { handleOf } from "@wren/core/outreach";
@@ -54,6 +55,23 @@ export async function personContact(db: Queryable, id: string): Promise<ReachCon
       },
     ]);
     return contactByHandle(db, "reddit", handle);
+  }
+  if (kind === "linkedin") {
+    // A LinkedIn page seen only through a touch (designs/2026-10-07-touches.md): its vanity.
+    const vanity = /^[^\s/?#:]{1,100}$/.test(ref) ? ref.toLowerCase() : null;
+    if (!vanity) throw new ReachRefusal("that person has no LinkedIn page we can write to");
+    const known = await contactLike(db, "linkedin", vanity);
+    if (known) return known;
+    await addProspects(db, "linkedin", [
+      {
+        handle: vanity,
+        url: `https://www.linkedin.com/in/${vanity}/`,
+        name: null,
+        headline: null,
+        foundIn: "people",
+      },
+    ]);
+    return contactByHandle(db, "linkedin", vanity);
   }
   if (kind !== "li") throw new ReachRefusal(`not a person: ${id}`);
   const [p] = await db
