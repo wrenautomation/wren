@@ -473,7 +473,8 @@ function ColumnPicker({
   };
   return (
     <Popover>
-      <PopoverTrigger className={cn(CHIP, "border-transparent bg-transparent")}>
+      {/* A phone shows the title and one state, whatever is picked: no picker there. */}
+      <PopoverTrigger className={cn(CHIP, "border-transparent bg-transparent max-sm:hidden")}>
         <Columns3 className="size-3.5" />
         Columns
       </PopoverTrigger>
@@ -597,6 +598,8 @@ function charsOf(f: FieldMeta, c: Cell | undefined): number {
   if (f.kind === "status" || f.kind === "verdict")
     return (f.states?.[String(c)]?.label ?? String(c)).length + 4;
   if (f.kind === "choice" || f.words) return shownOf(f, String(c)).length;
+  // A score's bar and its gap take about seven characters.
+  if (f.kind === "score") return String(c).length + (f.max ? 7 : 0);
   if (Array.isArray(c)) return c.join(", ").length;
   if (c && typeof c === "object") {
     if ("name" in c) return c.name.length;

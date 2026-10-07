@@ -80,6 +80,12 @@ describe("fitOf", () => {
     } as FieldMeta;
     expect(fitOf(status, [{ id: 1, status: "upcoming" }])).toBeGreaterThanOrEqual(10 * 7.2 + 24);
   });
+  it("leaves a score room for its bar", () => {
+    const score = { ...field("score", "score"), max: 100 } as FieldMeta;
+    const bare = { ...field("n", "score"), label: "score" };
+    const rows = [{ id: 1, score: 123456789, n: 123456789 }];
+    expect(fitOf(score, rows) - fitOf(bare, rows)).toBeGreaterThanOrEqual(7 * 7.2);
+  });
 });
 
 describe("totalSays", () => {
