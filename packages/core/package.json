@@ -69,6 +69,7 @@
     "./templates/console": "./src/templates-console.ts",
     "./templates/console-routes": "./src/templates-console-routes.ts",
     "./templates/labels": "./src/template-labels.ts",
+    "./models/labels": "./src/model-labels.ts",
     "./templates/install": "./src/template-install.ts",
     "./stats": "./src/stats.ts",
     "./time": "./src/time.ts",

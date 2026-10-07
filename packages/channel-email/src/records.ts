@@ -7,6 +7,7 @@
 
 import { MEETING_OUTCOMES, outcomeStatus } from "@wren/core/calls";
 import { formOf } from "@wren/core/console";
+import { modelLabel } from "@wren/core/models/labels";
 import {
   actor,
   choice,
@@ -14,6 +15,7 @@ import {
   company,
   date,
   defineRecord,
+  modelName,
   name,
   named,
   number,
@@ -395,8 +397,8 @@ export const modelRecord = defineRecord({
   title: "model",
   subtitle: "kind",
   fields: {
-    model: text(),
-    provider: text(),
+    model: modelName(),
+    provider: named("Provider"),
     kind: named("Used for"),
     month: date("Month", { grain: "month" }),
     calls: number(),
@@ -631,9 +633,12 @@ export function settingsForm(raw: unknown) {
     const value = f.field
       .split(".")
       .reduce<unknown>((at, k) => (at as Record<string, unknown> | undefined)?.[k], now);
+    // A model by its label, its id after it: the id is what the box takes.
     const said =
       typeof value === "string"
-        ? value.replaceAll("_", " ")
+        ? f.field.startsWith("models.")
+          ? `${modelLabel(value)} (${value})`
+          : value.replaceAll("_", " ")
         : value && typeof value === "object" && !Object.keys(value).length
           ? "not set"
           : JSON.stringify(value);

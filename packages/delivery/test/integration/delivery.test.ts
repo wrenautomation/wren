@@ -749,7 +749,7 @@ describe("the project as records", () => {
       who: OPS.email,
       madeBy: "person",
       op: "insert",
-      change: "added",
+      change: null,
     });
     const rowsOf = (rs: typeof rows, table: string) =>
       new Set(rs.filter((r) => r.table === table).map((r) => r.row));

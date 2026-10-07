@@ -665,11 +665,14 @@ const YIELDS: ReadonlySet<FieldMeta["kind"]> = new Set([
 ]);
 /** The least a list's title keeps, so what the row is stays readable. */
 const TITLE_MIN = 220;
+/** A column this wide or less holds short values; it keeps them whole while a longer one can give. */
+const SHORT = 168;
 
 /**
  * Widths that fit `room` px: when the columns past the title leave it less than its least, the
- * word columns give up room in proportion, down to their head, so no column is pushed past the
- * right edge. Only when every one is at its least does the list scroll sideways.
+ * word columns give up room in proportion, so no column is pushed past the right edge. Long ones
+ * give first; a column of short values cuts, down to its head, only when they can't. Only when
+ * every one is at its least does the list scroll sideways.
  */
 export function fitRoom(
   meta: RecordMeta,
@@ -684,16 +687,20 @@ export function fitRoom(
   let over = fixed + want - room;
   if (over <= 0) return widths;
   const yields = cols.filter((f) => widths[f.key] !== undefined && YIELDS.has(f.kind));
-  const floor = (f: FieldMeta) => Math.min(widths[f.key] ?? 0, Math.max(96, pxOf(f.label.length)));
-  const spare = yields.reduce((n, f) => n + (widths[f.key] ?? 0) - floor(f), 0);
-  if (spare <= 0) return widths;
-  const share = Math.min(1, over / spare);
+  const head = (f: FieldMeta) => Math.max(96, pxOf(f.label.length));
   const out = { ...widths };
-  for (const f of yields) {
-    const w = widths[f.key] ?? 0;
-    const cut = Math.floor((w - floor(f)) * share);
-    out[f.key] = w - cut;
-    over -= cut;
+  // Long words give first, down to SHORT; a short value ("Companies") cuts only when they can't.
+  for (const least of [(f: FieldMeta) => Math.max(SHORT, head(f)), head]) {
+    const floor = (f: FieldMeta) => Math.min(out[f.key] ?? 0, least(f));
+    const spare = yields.reduce((n, f) => n + (out[f.key] ?? 0) - floor(f), 0);
+    if (over <= 0 || spare <= 0) continue;
+    const share = Math.min(1, over / spare);
+    for (const f of yields) {
+      const w = out[f.key] ?? 0;
+      const cut = Math.floor((w - floor(f)) * share);
+      out[f.key] = w - cut;
+      over -= cut;
+    }
   }
   return out;
 }
@@ -1095,7 +1102,7 @@ function List({
                                   narrow ? "line-clamp-2 wrap-anywhere" : "block truncate",
                                 )}
                               >
-                                {titleOf(meta, r)}
+                                {titleOf(meta, r) || <span className="text-(--ui-ink-3)">-</span>}
                               </a>
                             ) : (
                               <FieldCell field={f} cell={r[f.key]} />

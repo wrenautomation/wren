@@ -1,5 +1,7 @@
+import { PgDialect } from "drizzle-orm/pg-core";
 import { describe, expect, it } from "vitest";
-import { statWindows } from "./records-serve.js";
+import { choice, type Field } from "./records.js";
+import { searchSql, statWindows } from "./records-serve.js";
 
 const iso = (w: ReturnType<typeof statWindows>) => ({
   from: w.from.toISOString(),
@@ -59,5 +61,22 @@ describe("statWindows", () => {
   it("at midnight the period so far is empty, and so is the prior", () => {
     const w = statWindows(1, "UTC", new Date("2026-03-10T00:00:00Z"));
     expect(w.priorTo).toEqual(w.priorFrom);
+  });
+});
+
+describe("searchSql", () => {
+  const field = (draft: object) => ({ ...draft, from: "campaign" }) as Field;
+  const campaign = field(
+    choice(() => ({ sec_ria: "SEC RIA", recruiting: "Recruiting" }), "Campaign"),
+  );
+  const of = (q: string) => new PgDialect().sqlToQuery(searchSql(campaign, q));
+
+  it("a choice matches its key, its key with spaces, and the keys whose label holds the words", () => {
+    const q = of("SEC RIA");
+    expect(q.sql).toContain("translate");
+    expect(q.params).toEqual(["%SEC RIA%", "%SEC RIA%", "sec_ria"]);
+  });
+  it("words no label holds match the key alone", () => {
+    expect(of("book first").params).toEqual(["%book first%", "%book first%"]);
   });
 });

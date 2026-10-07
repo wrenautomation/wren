@@ -246,7 +246,14 @@ export const AUDIT_FUNCTION_STATEMENTS = [
                 '^(\\d{4}-\\d\\d-\\d\\d)T(\\d\\d:\\d\\d).*$', '\\1 \\2 UTC'), 'empty'), 40) END,
           '; ' ORDER BY n.k)
         FROM jsonb_each_text(e.new_values) n(k, v))
-      WHEN 'delete' THEN 'removed' WHEN 'truncate' THEN 'emptied' ELSE 'added' END change,
+      -- Added or removed says only What again: the row's name when it has one, else nothing.
+      WHEN 'insert' THEN (SELECT k || ': ' || left(e.new_values ->> k, 60)
+        FROM unnest(array['name', 'title', 'subject', 'label', 'email']) WITH ORDINALITY u(k, n)
+        WHERE nullif(e.new_values ->> k, '') IS NOT NULL ORDER BY n LIMIT 1)
+      WHEN 'delete' THEN (SELECT k || ': ' || left(e.old_values ->> k, 60)
+        FROM unnest(array['name', 'title', 'subject', 'label', 'email']) WITH ORDINALITY u(k, n)
+        WHERE nullif(e.old_values ->> k, '') IS NOT NULL ORDER BY n LIMIT 1)
+      END change,
     CASE WHEN e.at >= date_trunc('day', now()) THEN 'today' ELSE 'week' END age
   FROM audit_events e
   WHERE e.at > now() - interval '7 days'`,

@@ -118,8 +118,8 @@ export function Executions({
           type="search"
           value={q}
           onChange={(e) => setQ(e.target.value)}
-          placeholder="Find by subject or lead key"
-          aria-label="Find by subject or lead key"
+          placeholder="Find by name or subject"
+          aria-label="Find by name or subject"
           className="h-8 text-[13px]"
         />
         {list.error && !list.data ? (
@@ -139,7 +139,9 @@ export function Executions({
                   )}
                 >
                   <span className="flex items-center justify-between gap-2">
-                    <span className="truncate font-medium">{r.subject}</span>
+                    <span className="truncate font-medium" title={r.subject}>
+                      {r.title}
+                    </span>
                     <span className="text-[12px]">
                       <StateMark state={STATE[r.state]} />
                     </span>
@@ -212,7 +214,9 @@ function OneExecution({
   return (
     <div className="grid min-w-0 gap-3">
       <p className="m-0 flex flex-wrap items-baseline gap-x-3 text-[14px]">
-        <span className="font-semibold">{row.subject}</span>
+        <span className="font-semibold" title={row.subject}>
+          {row.title}
+        </span>
         <span className={QUIET}>
           Entered {when(row.entered)}, {row.steps} step{row.steps === 1 ? "" : "s"}
         </span>

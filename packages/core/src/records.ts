@@ -9,6 +9,7 @@
 import type { Queryable } from "@wren/db";
 import type { ZodType } from "zod";
 import { APPS, isChannel, type Permission } from "./access.js";
+import { type Words, wordsOf } from "./model-labels.js";
 import { codeLabel } from "./template-labels.js";
 
 /** good green, warn amber, bad red, neutral gray. */
@@ -70,7 +71,7 @@ export const KINDS = {
     searchable: true,
     masked: false,
     column: left,
-    csv: (c, f) => (f.words && typeof c === "string" ? codeLabel(c) : plain(c)),
+    csv: (c, f) => (f.words && typeof c === "string" ? wordsOf(f.words, c) : plain(c)),
   },
   name: {
     sql: "text",
@@ -127,7 +128,8 @@ export const KINDS = {
     sql: "text",
     ops: ["eq", "in", "empty"],
     sortable: true,
-    searchable: false,
+    // Search matches its key or its label ("SEC RIA" finds "sec_ria").
+    searchable: true,
     masked: false,
     column: left,
     csv: (c, f) => (typeof c === "string" ? (f.choices?.()[c] ?? codeLabel(c)) : null),
@@ -285,10 +287,17 @@ export interface Field {
   max?: number;
   /** false: no footer total, for a column too costly to compute over every row. */
   total?: false;
-  /** text: a name from code, read as words on screen and in a CSV (`named`). */
-  words?: true;
+  /** text: a name from code, read as words on screen and in a CSV (`named`), or a model's label. */
+  words?: Words;
   /** date: a month's row reads "Oct 2026", not "6 days ago". */
   grain?: "month";
+  /**
+   * text: the `{slot}`s its value may hold, each with the words shown in its place ("{name}" as
+   * "Recruiter's name"). The value itself, and an edit of it, keep the braces.
+   */
+  slots?: Readonly<Record<string, string>>;
+  /** false: no list column, only the record's page and search ("mail:104" behind its title). */
+  listed?: false;
   /**
    * Its heading on a record's page; ungrouped fields come first. An actor and the created and
    * updated dates default to "System", drawn last and folded.
@@ -328,6 +337,9 @@ export const choice = (
  * words ("ComposeScheduler" reads "Compose scheduler"), searched and filtered as stored.
  */
 export const named = (label?: string, opts: Opts = {}) => text(label, { words: true, ...opts });
+/** A model's id ("cohere:command-a-03-2025"), shown as its label ("Command A"), the id on hover. */
+export const modelName = (label?: string, opts: Opts = {}) =>
+  text(label ?? "Model", { words: "model", ...opts });
 export const tags = (states: Record<string, State>, label?: string, opts: Opts = {}) =>
   kind("tags")(label, { states, ...opts });
 export const verdict = (label?: string, opts: Opts = {}) =>
@@ -629,8 +641,9 @@ export interface FieldMeta {
   label: string;
   states?: Readonly<Record<string, State>>;
   max?: number;
-  words?: true;
+  words?: Words;
   grain?: "month";
+  slots?: Readonly<Record<string, string>>;
   ops: readonly Op[];
   sortable: boolean;
   searchable: boolean;
@@ -695,10 +708,11 @@ export function metaOf(type: RecordType, demo: boolean): RecordMeta {
         label: f.label,
         ...(states ? { states } : {}),
         ...(f.max !== undefined ? { max: f.max } : {}),
-        ...(f.words ? { words: true as const } : {}),
+        ...(f.words ? { words: f.words } : {}),
         ...(f.grain ? { grain: f.grain } : {}),
+        ...(f.slots ? { slots: f.slots } : {}),
         ...may,
-        column: KINDS[f.kind].column,
+        column: f.listed === false ? null : KINDS[f.kind].column,
         ...(f.group ? { group: f.group } : {}),
       };
     }),

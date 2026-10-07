@@ -25,6 +25,8 @@ export interface TraceStep {
 export interface ExecutionRow {
   id: string;
   workflow: string;
+  /** Who and what, in words: "Dana Lee: Re: pricing". */
+  title: string;
   subject: string;
   kind: string;
   state: "failed" | "waiting" | "done";

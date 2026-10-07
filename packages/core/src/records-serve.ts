@@ -296,6 +296,26 @@ function totalsOf(t: RecordType, inView: SQL) {
 const like = (s: string) => `%${s.replace(/[\\%_]/g, (m) => `\\${m}`)}%`;
 const and = (parts: SQL[]) => (parts.length ? sql.join(parts, sql` and `) : sql`true`);
 
+/**
+ * `q` against one field: its stored text, and for a choice also the keys whose label holds it
+ * ("SEC RIA" finds "sec_ria") or that read as it with spaces ("sec ria").
+ */
+export function searchSql(f: Field, q: string): SQL {
+  const own = sql`${valueSql(f)} ilike ${like(q)}`;
+  if (f.kind !== "choice") return own;
+  const low = q.toLowerCase();
+  const keys = Object.entries(f.choices?.() ?? {})
+    .filter(([, label]) => label.toLowerCase().includes(low))
+    .map(([k]) => k);
+  const spaced = sql`translate(${valueSql(f)}, '_-./', '    ') ilike ${like(q)}`;
+  return keys.length
+    ? sql`(${own} or ${spaced} or ${valueSql(f)} in (${sql.join(
+        keys.map((k) => sql`${k}`),
+        sql`, `,
+      )}))`
+    : sql`(${own} or ${spaced})`;
+}
+
 /** A view name, each part quoted: "books.spend". */
 const viewSql = (view: string) =>
   sql.join(
@@ -521,7 +541,7 @@ export function serveRecords(
         parts.push({
           field: null,
           sql: sql`(${sql.join(
-            over.map((f) => sql`${valueSql(f)} ilike ${like(q)}`),
+            over.map((f) => searchSql(f, q)),
             sql` or `,
           )})`,
         });

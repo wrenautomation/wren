@@ -19,7 +19,7 @@ A step that throws is retried; a step that returns a wrong answer counts as done
 
 - `unit_holds` (`schema.ts:125`): unique (stage, subject); `until` = infinity when it waits for a person; `released_by` = `checks` when a later run settled it
 - `check_outcomes` (`schema.ts:152`): stage, source, check, subject, ok, reason
-- Views: `unit_holds_now` (`:171`, state held/due/stuck/paused/released), `check_rates` (`:190`, 30 days)
+- Views: `unit_holds_now` (`:171`, state held/due/stuck/paused/released; `title` is the unit and its stage, "Acme Co: Team", from companies, documents, people, social posts or the query; migration 0153), `check_rates` (`:190`, 30 days)
 - Code: `packages/core/src/checks.ts`: `hold` (`:45`), `settle` (`:69`), `release` (`:87`), `holdsOn` (`:99`), `counted` (`:118`), `pausedSources` (`:155`)
 - Restate units: `stageHolds`, `notHeld`, `unitBatches({holds})` in `packages/research/src/restate/units.ts`
 

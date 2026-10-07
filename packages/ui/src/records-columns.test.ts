@@ -195,6 +195,15 @@ describe("fitRoom", () => {
     const used = cols.reduce((n, f) => n + (fit[f.key] ?? 220), 72);
     expect(used).toBeLessThanOrEqual(900);
   });
+  it("keeps a column of short values whole while a long one can give", () => {
+    const table = field("table");
+    const rows = long.map((r) => ({ ...r, table: "Company event checks" }));
+    const all = [name, table, note, city];
+    const widths = widthsOf(meta, all, rows);
+    const fit = widthsOf(meta, all, rows, 900);
+    expect(fit.table).toBe(widths.table);
+    expect(fit.note).toBeLessThan(widths.note ?? 0);
+  });
   it("stops at each column's head", () => {
     const fit = widthsOf(meta, cols, long, 200);
     expect(fit.note).toBe(96);

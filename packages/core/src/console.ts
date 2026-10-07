@@ -705,10 +705,11 @@ export const executionRecord = defineRecord({
   name: { one: "execution", many: "executions" },
   view: "spine_executions",
   key: "id",
-  title: "subject",
+  title: "title",
   subtitle: "workflow",
   fields: {
-    subject: text("About"),
+    title: text("About"),
+    subject: text("Key", { listed: false }),
     workflow: named("Workflow"),
     kind: named("Kind"),
     state: status({
@@ -744,10 +745,11 @@ export const holdRecord = defineRecord({
   name: { one: "hold", many: "holds" },
   view: "unit_holds_now",
   key: "id",
-  title: "subject",
+  title: "title",
   subtitle: "stage",
   fields: {
-    subject: text("What"),
+    title: text("What"),
+    subject: text("Key", { listed: false }),
     stage: named("Stage"),
     state: status({
       held: { label: "Held 7 days", tone: "warn" },

@@ -316,7 +316,8 @@ export const settingOf = (client: Client) =>
     title: "label",
     fields: {
       label: text("Setting"),
-      value: text(),
+      // The signature's "{name}" reads as what fills it; Change edits the braces as typed.
+      value: text(undefined, { slots: { name: "Recruiter's name" } }),
       part: status(PART, "Part"),
     },
     views: [{ id: "all", label: "Setup" }],

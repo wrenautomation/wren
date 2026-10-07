@@ -3,6 +3,8 @@
  * A kind's CSV cell is the server's (`KINDS[kind].csv` in `@wren/core/records`): exports are
  * built there, so there is one copy of it.
  */
+
+import { wordsOf } from "@wren/core/models/labels";
 import type { Cell, FieldMeta, Filter, Op, State, Tone } from "@wren/core/records";
 import type { Total } from "@wren/core/records/serve";
 import { codeLabel } from "@wren/core/templates/labels";
@@ -55,7 +57,7 @@ export function shownOf(f: FieldMeta, c: string): string {
     const d = dateOf(c);
     return d ? monthOf(d) : c;
   }
-  return f.words ? codeLabel(c) : c;
+  return f.words ? wordsOf(f.words, c) : c;
 }
 
 /**
@@ -181,8 +183,46 @@ export function FieldCell({ field: f, cell: c }: { field: FieldMeta; cell: Cell 
     case "actor":
       return <Actor value={String(c)} />;
     default:
-      return <span>{f.words ? codeLabel(String(c)) : c}</span>;
+      return f.words ? (
+        <span title={f.words === "model" ? String(c) : undefined}>
+          {wordsOf(f.words, String(c))}
+        </span>
+      ) : f.slots ? (
+        <Slotted text={String(c)} slots={f.slots} />
+      ) : (
+        <span>{c}</span>
+      );
   }
+}
+
+/** Text with its `{slot}`s as chips that say what goes there; an unknown slot stays as typed. */
+export function Slotted({
+  text,
+  slots,
+}: {
+  text: string;
+  slots: Readonly<Record<string, string>>;
+}) {
+  const parts = text.split(/(\{[a-z_]+\})/i);
+  return (
+    <span>
+      {parts.map((p, i) => {
+        const label = /^\{[a-z_]+\}$/i.test(p) ? slots[p.slice(1, -1)] : undefined;
+        return label ? (
+          <span
+            // biome-ignore lint/suspicious/noArrayIndexKey: parts of one fixed string.
+            key={i}
+            title={`Filled in when it sends: ${p}`}
+            className="mx-px inline-block bg-(--ui-tile) px-1 text-[0.92em] text-(--ui-ink-2) ring-1 ring-(--ui-hair) ring-inset"
+          >
+            {label}
+          </span>
+        ) : (
+          p
+        );
+      })}
+    </span>
+  );
 }
 
 /**
