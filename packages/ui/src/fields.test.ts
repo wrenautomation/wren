@@ -4,8 +4,9 @@ import { describe, expect, it } from "vitest";
 import {
   dateOf,
   exact,
-  filterLabel,
+  filterParts,
   filterShape,
+  presetStart,
   readFilter,
   relative,
   widthOf,
@@ -39,11 +40,22 @@ describe("readFilter", () => {
     expect(readFilter(now, "moved,nope,there")).toEqual(["moved", "there"]);
     expect(readFilter(now, "nope")).toBeUndefined();
   });
-  it("reads open and closed ranges, numbers as numbers and dates as text", () => {
+  it("reads open and closed ranges, numbers as numbers and days as their local bounds", () => {
     expect(readFilter(score, "10..50")).toEqual({ gte: 10, lte: 50 });
     expect(readFilter(score, "..50")).toEqual({ lte: 50 });
     expect(readFilter(score, "x..")).toBeUndefined();
-    expect(readFilter(seen, "2026-09-01..")).toEqual({ gte: "2026-09-01" });
+    expect(readFilter(seen, "2026-09-01..2026-09-02")).toEqual({
+      gte: new Date(2026, 8, 1).toISOString(),
+      lte: new Date(new Date(2026, 8, 3).getTime() - 1).toISOString(),
+    });
+  });
+  it("reads a date preset from the start of its first day", () => {
+    const at = new Date(2026, 9, 7, 15, 30);
+    expect(readFilter(seen, "7d", at)).toEqual({ gte: new Date(2026, 9, 1).toISOString() });
+    expect(presetStart("today", at)).toEqual(new Date(2026, 9, 7));
+    expect(presetStart("30d", at)).toEqual(new Date(2026, 8, 8));
+    expect(presetStart("month", at)).toEqual(new Date(2026, 9, 1));
+    expect(readFilter(score, "7d")).toBeUndefined();
   });
   it("reads words and set-or-empty only where the field allows them", () => {
     expect(readFilter(title, "~acme")).toEqual({ contains: "acme" });
@@ -52,15 +64,38 @@ describe("readFilter", () => {
   });
 });
 
-describe("filterShape and filterLabel", () => {
+describe("filterShape and filterParts", () => {
   it("pick the control from the ops", () => {
     expect([now, score, title].map(filterShape)).toEqual(["states", "range", "words"]);
     expect(filterShape(field({ ops: ["empty"] }))).toBe("set");
   });
-  it("say what's set in words", () => {
-    expect(filterLabel(now, "moved,there")).toBe("Moved, Still there");
-    expect(filterLabel(score, "10..")).toBe("10 or more");
-    expect(filterLabel(title, "-")).toBe("is empty");
+  it("say what's set in words, operator apart", () => {
+    const at = new Date(2026, 9, 7);
+    expect(filterParts(now, "moved")).toEqual({ op: "is", value: "Moved" });
+    expect(filterParts(now, "moved,there")).toEqual({
+      op: "is any of",
+      value: "Moved, Still there",
+    });
+    expect(filterParts(score, "10..")).toEqual({ op: "at least", value: "10" });
+    expect(filterParts(score, "..5000")).toEqual({ op: "at most", value: "5,000" });
+    expect(filterParts(score, "1..2")).toEqual({ op: "between", value: "1 and 2" });
+    expect(filterParts(seen, "2026-10-01..", at)).toEqual({ op: "after", value: "Oct 1" });
+    expect(filterParts(seen, "..2025-12-31", at)).toEqual({ op: "before", value: "Dec 31, 2025" });
+    expect(filterParts(seen, "7d")).toEqual({ op: "in", value: "last 7 days" });
+    expect(filterParts(title, "~acme")).toEqual({ op: "has", value: "“acme”" });
+    expect(filterParts(title, "-")).toEqual({ op: "is", value: "empty" });
+    expect(filterParts(title, "+")).toEqual({ op: "has", value: "a value" });
+  });
+  it("count many picked states when their names run long", () => {
+    const many = field({
+      kind: "choice",
+      ops: ["in"],
+      states: {
+        a: { label: "Registered advisers", tone: "neutral" },
+        b: { label: "Staffing agencies", tone: "neutral" },
+      },
+    });
+    expect(filterParts(many, "a,b")).toEqual({ op: "is any of", value: "2" });
   });
 });
 

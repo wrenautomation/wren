@@ -20,6 +20,7 @@ import {
   Bulk,
   cap,
   emptyOf,
+  facetsOf,
   Kbd,
   KeyHints,
   keyed,
@@ -162,6 +163,7 @@ function Queue({
           shown={new Set(meta.fields.filter((f) => f.column).map((f) => f.key))}
           keep={api.keep}
           saved={saved}
+          facets={facetsOf(api, ask)}
         />
       </div>
 

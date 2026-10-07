@@ -1,14 +1,36 @@
 /**
  * What sits over a list (designs/2026-10-06-library-and-views.md): its views as tabs, the ones
  * the viewer saved after the built-in ones; search; Filter, as a popover or at phone width one
- * sheet; a chip per filter in plain words; and Save view. A list opens on the viewer's last-used
+ * sheet; a pill per filter in plain words ("Campaign is SEC RIA"); and Save view. A list opens on the viewer's last-used
  * view, and the columns he picks stay picked (`list:<record>` in his prefs).
  */
 import type { FieldMeta, RecordMeta } from "@wren/core/records";
 import type { SavedViewLine } from "@wren/core/saved-views";
 import { cn } from "cn";
-import { Bookmark, ChevronDown, ListFilter, MoreHorizontal, Search, X } from "lucide-react";
-import { type ReactNode, useEffect, useRef, useState, useSyncExternalStore } from "react";
+import {
+  Bookmark,
+  Building2,
+  Calendar,
+  ChevronLeft,
+  CircleDot,
+  Hash,
+  ListFilter,
+  MoreHorizontal,
+  Search,
+  ToggleLeft,
+  Type,
+  User,
+  X,
+} from "lucide-react";
+import {
+  type ReactNode,
+  useEffect,
+  useId,
+  useMemo,
+  useRef,
+  useState,
+  useSyncExternalStore,
+} from "react";
 import { Popover, PopoverContent, PopoverTrigger } from "./components/ui/popover.js";
 import {
   Sheet,
@@ -18,7 +40,7 @@ import {
   SheetTitle,
 } from "./components/ui/sheet.js";
 import { Button } from "./controls.js";
-import { FieldFilter, filterLabel, filterShape } from "./fields.js";
+import { FieldFilter, filterParts, filterShape, inSight, useRoving } from "./fields.js";
 import { num } from "./format.js";
 import type { Place } from "./records.js";
 
@@ -479,66 +501,298 @@ function SaveView({
   );
 }
 
-/** At phone width, every filter in one sheet from the bottom. */
-function FilterSheet({ filters, place }: { filters: FieldMeta[]; place: Place }) {
-  const [open, setOpen] = useState(false);
-  const set = filters.filter((f) => place.params.get(f.key)).length;
-  return (
-    <Sheet open={open} onOpenChange={setOpen}>
-      <button type="button" className={CHIP} onClick={() => setOpen(true)}>
-        <ListFilter className="size-3.5" />
-        Filter{set ? ` · ${set}` : ""}
-      </button>
-      <SheetContent
-        // A phone opens it to tap, not type: no keyboard springs up.
-        initialFocus={false}
-        side="bottom"
-        className="max-h-[85dvh] gap-0 rounded-none bg-(--ui-paper) text-(--ui-ink)"
-      >
-        <SheetHeader className="border-b border-(--ui-hair) p-4">
-          <SheetTitle className="text-[15px] font-semibold">Filter</SheetTitle>
-        </SheetHeader>
-        <div className="grid gap-5 overflow-y-auto p-4">
-          {filters.map((f) => (
-            <section key={f.key} className="grid gap-1.5">
-              <h3 className="text-[12px] font-medium text-(--ui-ink-2)">{f.label}</h3>
-              <FieldFilter
-                field={f}
-                value={place.params.get(f.key)}
-                onChange={(next) => place.go(place.link({ [f.key]: next, after: null }), true)}
-              />
-            </section>
-          ))}
-        </div>
-        <SheetFooter className="flex-row justify-between border-t border-(--ui-hair) p-4">
-          <Button
-            tone="secondary"
-            size="dense"
-            disabled={!set}
-            onClick={() =>
-              place.go(
-                place.link({
-                  after: null,
-                  ...Object.fromEntries(filters.map((f) => [f.key, null])),
-                }),
-                true,
-              )
-            }
+/** Rows per state of each field, under every filter but that field's own (a page's `facets`). */
+export type Facets = Record<string, Record<string, number>>;
+
+/** One height, one hairline, one type size for every control in the bar. */
+export const CHIP =
+  "inline-flex h-8 shrink-0 items-center gap-1.5 border border-(--ui-hair) bg-(--ui-paper) px-2.5 text-[13px] text-(--ui-ink-2) hover:bg-(--ui-hover) hover:text-(--ui-ink)";
+const PILL =
+  "inline-flex h-8 max-w-full min-w-0 items-center border border-(--ui-hair) bg-(--ui-paper) text-[13px] hover:bg-(--ui-hover)";
+const POP =
+  "w-72 gap-0 overflow-hidden rounded-none bg-(--ui-paper) p-0 text-(--ui-ink) ring-(--ui-hair) shadow-lg";
+const ROW =
+  "flex h-8 w-full cursor-pointer items-center gap-2 px-2 text-left text-[13px] text-(--ui-ink) select-none";
+
+const NUMBERS = new Set(["number", "money", "percent", "rate", "duration", "score"]);
+/** A field's kind as a small icon: a date, a figure, a choice, a person, a company, set or not, words. */
+function KindIcon({ field: f }: { field: FieldMeta }) {
+  const shape = filterShape(f);
+  const Icon =
+    f.kind === "date"
+      ? Calendar
+      : NUMBERS.has(f.kind)
+        ? Hash
+        : shape === "states"
+          ? CircleDot
+          : f.kind === "actor" || f.kind === "name"
+            ? User
+            : f.kind === "company"
+              ? Building2
+              : shape === "set"
+                ? ToggleLeft
+                : Type;
+  return <Icon aria-hidden className="size-3.5 shrink-0 text-(--ui-ink-3)" />;
+}
+
+/**
+ * What Filter opens: the fields to pick from (typing narrows them; the ones on screen first,
+ * then the hidden ones, then a search for the typed text), then the picked one's control. Arrow
+ * keys and Enter move and pick; Back returns to the fields. Each change applies at once.
+ */
+function FilterPanel({
+  filters,
+  shown,
+  place,
+  many,
+  start,
+  facets,
+  close,
+  phone,
+}: {
+  filters: FieldMeta[];
+  shown: Set<string>;
+  place: Place;
+  /** The list's plural, when it searches. */
+  many: string | null;
+  /** The field to open on: a pill's own. */
+  start: FieldMeta | null;
+  facets: (() => Promise<Facets | undefined>) | undefined;
+  close: () => void;
+  /** In the phone's sheet: no keyboard on open, and the sheet scrolls. */
+  phone?: boolean;
+}) {
+  const [field, setField] = useState<FieldMeta | null>(start);
+  const [text, setText] = useState("");
+  const [counts, setCounts] = useState<{ key: string; of: Facets[string] | undefined }>();
+  const id = useId();
+  const { params } = place;
+  const set = (f: FieldMeta, next: string | null) =>
+    place.go(place.link({ [f.key]: next, after: null }), true);
+
+  useEffect(() => {
+    if (!field || filterShape(field) !== "states" || !facets) return;
+    let live = true;
+    facets().then((all) => live && setCounts({ key: field.key, of: all?.[field.key] }));
+    return () => {
+      live = false;
+    };
+  }, [field, facets]);
+
+  const t = text.trim().toLowerCase();
+  const match = filters.filter((f) => f.label.toLowerCase().includes(t));
+  const groups: [string, FieldMeta[]][] = [
+    ["On screen", match.filter((f) => shown.has(f.key))],
+    ["Hidden", match.filter((f) => !shown.has(f.key))],
+  ];
+  const order = groups.flatMap(([, fs]) => fs);
+  const searching = !!many && !!t;
+  const search = () => {
+    place.go(place.link({ q: text.trim(), after: null }), true);
+    close();
+  };
+  const nav = useRoving(order.length + (searching ? 1 : 0));
+  const pick = (i: number) => {
+    const f = order[i];
+    if (f) setField(f);
+    else if (searching) search();
+  };
+
+  if (field) {
+    const value = params.get(field.key);
+    return (
+      <div className="grid">
+        <div className="flex h-10 items-center gap-1.5 border-b border-(--ui-hair) px-1">
+          <button
+            type="button"
+            aria-label="Back to fields"
+            onClick={() => {
+              setField(null);
+              setText("");
+            }}
+            className="inline-flex size-7 items-center justify-center border-0 bg-transparent p-0 text-(--ui-ink-2) hover:bg-(--ui-hover) hover:text-(--ui-ink)"
           >
-            Clear all
-          </Button>
-          <Button size="dense" onClick={() => setOpen(false)}>
-            Done
-          </Button>
-        </SheetFooter>
-      </SheetContent>
-    </Sheet>
+            <ChevronLeft className="size-4" />
+          </button>
+          <KindIcon field={field} />
+          <span className="min-w-0 flex-1 truncate text-[13px] font-medium">{field.label}</span>
+          {value ? (
+            <button
+              type="button"
+              onClick={() => set(field, null)}
+              className="h-7 border-0 bg-transparent px-2 text-[12px] text-(--ui-ink-2) hover:text-(--ui-ink)"
+            >
+              Clear
+            </button>
+          ) : null}
+        </div>
+        <FieldFilter
+          key={field.key}
+          field={field}
+          value={value}
+          counts={counts?.key === field.key ? counts.of : undefined}
+          onChange={(next) => set(field, next)}
+        />
+      </div>
+    );
+  }
+
+  const option = (i: number) => `${id}-${i}`;
+  return (
+    <div className="grid">
+      <label className="flex h-10 items-center gap-2 border-b border-(--ui-hair) px-3">
+        <Search aria-hidden className="size-3.5 shrink-0 text-(--ui-ink-3)" />
+        <input
+          // biome-ignore lint/a11y/noAutofocus: the popover opened to type in this.
+          autoFocus={!phone}
+          role="combobox"
+          aria-expanded
+          aria-controls={id}
+          aria-activedescendant={nav.at >= 0 ? option(nav.at) : undefined}
+          value={text}
+          onChange={(e) => {
+            setText(e.target.value);
+            nav.setAt(0);
+          }}
+          onKeyDown={(e) => nav.keys(e, pick)}
+          placeholder="Filter by…"
+          aria-label="Filter by"
+          className="h-full min-w-0 flex-1 border-0 bg-transparent text-[13px] text-(--ui-ink) outline-none placeholder:text-(--ui-ink-3)"
+        />
+      </label>
+      <div
+        id={id}
+        role="listbox"
+        aria-label="Fields"
+        className={cn("grid p-1", !phone && "max-h-[min(22rem,60vh)] overflow-y-auto")}
+      >
+        {groups.map(([label, fields]) =>
+          fields.length ? (
+            <div key={label} className="grid">
+              <span className="px-2 pt-2 pb-1 text-[11px] text-(--ui-ink-3)">{label}</span>
+              {fields.map((f) => {
+                const i = order.indexOf(f);
+                const v = params.get(f.key);
+                return (
+                  // biome-ignore lint/a11y/useKeyWithClickEvents: the box's keys pick it.
+                  <div
+                    key={f.key}
+                    id={option(i)}
+                    role="option"
+                    tabIndex={-1}
+                    aria-selected={i === nav.at}
+                    ref={inSight(i === nav.at)}
+                    onMouseMove={() => nav.setAt(i)}
+                    onClick={() => setField(f)}
+                    className={cn(ROW, i === nav.at && "bg-(--ui-hover)")}
+                  >
+                    <KindIcon field={f} />
+                    <span className="min-w-0 flex-1 truncate">{f.label}</span>
+                    {v ? (
+                      <span className="max-w-[45%] truncate text-[12px] text-(--ui-ink-3)">
+                        {filterParts(f, v).value}
+                      </span>
+                    ) : null}
+                  </div>
+                );
+              })}
+            </div>
+          ) : null,
+        )}
+        {searching ? (
+          // biome-ignore lint/a11y/useKeyWithClickEvents: the box's keys pick it.
+          <div
+            id={option(order.length)}
+            role="option"
+            tabIndex={-1}
+            aria-selected={nav.at === order.length}
+            ref={inSight(nav.at === order.length)}
+            onMouseMove={() => nav.setAt(order.length)}
+            onClick={search}
+            className={cn(
+              ROW,
+              order.length && "mt-1 border-t border-(--ui-hair)",
+              nav.at === order.length && "bg-(--ui-hover)",
+            )}
+          >
+            <Search aria-hidden className="size-3.5 shrink-0 text-(--ui-ink-3)" />
+            <span className="truncate text-(--ui-ink-2)">
+              Search {many} for “{text.trim()}”
+            </span>
+          </div>
+        ) : !match.length ? (
+          <span className="px-2 py-2 text-[13px] text-(--ui-ink-2)">No field by that name.</span>
+        ) : null}
+      </div>
+    </div>
+  );
+}
+
+/** A set filter in plain words: "Campaign is SEC RIA". Clicking it opens its editor; × drops it. */
+function FilterPill({
+  field,
+  place,
+  onOpen,
+  panel,
+}: {
+  field: FieldMeta;
+  place: Place;
+  /** At phone width: the sheet opens on this field instead. */
+  onOpen?: (() => void) | undefined;
+  panel: (close: () => void) => ReactNode;
+}) {
+  const [open, setOpen] = useState(false);
+  const { op, value } = filterParts(field, place.params.get(field.key) ?? "");
+  const face = (
+    <>
+      <span className="shrink-0 text-(--ui-ink-2)">{field.label}</span>
+      <span className="shrink-0 text-(--ui-ink-3)">{op}</span>
+      <span className="min-w-0 max-w-[180px] truncate text-(--ui-ink)">{value}</span>
+    </>
+  );
+  const faceClass =
+    "inline-flex h-full min-w-0 items-center gap-1 border-0 bg-transparent py-0 pr-1 pl-2.5 text-[13px]";
+  return (
+    <span className={PILL}>
+      {onOpen ? (
+        <button type="button" onClick={onOpen} className={faceClass}>
+          {face}
+        </button>
+      ) : (
+        <Popover open={open} onOpenChange={setOpen}>
+          <PopoverTrigger className={faceClass}>{face}</PopoverTrigger>
+          <PopoverContent align="start" className={POP}>
+            {panel(() => setOpen(false))}
+          </PopoverContent>
+        </Popover>
+      )}
+      <button
+        type="button"
+        aria-label={`Remove ${field.label} filter`}
+        onClick={() => place.go(place.link({ [field.key]: null, after: null }), true)}
+        className="mr-1 inline-flex size-6 shrink-0 items-center justify-center border-0 bg-transparent p-0 text-(--ui-ink-3) hover:text-(--ui-ink)"
+      >
+        <X className="size-3.5" />
+      </button>
+    </span>
+  );
+}
+
+/** "Filter", with how many are on. */
+function FilterFace({ on }: { on: number }) {
+  return (
+    <>
+      <ListFilter className="size-3.5" />
+      Filter
+      {on ? <span className="text-(--ui-ink) tabular-nums">{on}</span> : null}
+    </>
   );
 }
 
 /**
- * The bar under a list's tabs: search, Filter (a sheet on a phone), a chip per filter, Clear,
- * Save view; `end` sits at the right (the count, or bulk actions).
+ * The bar under a list's tabs: search, Filter, a pill per filter, Clear, Save view; `end` sits at
+ * the right (the count, or bulk actions). At phone width Filter and Save view share a row, the
+ * pills flow under them, and Filter is a sheet from the bottom.
  */
 export function ListBar({
   meta,
@@ -547,6 +801,7 @@ export function ListBar({
   keep,
   saved,
   end,
+  facets,
 }: {
   meta: RecordMeta;
   place: Place;
@@ -555,211 +810,155 @@ export function ListBar({
   keep?: KeepApi | undefined;
   saved?: Saved | undefined;
   end?: ReactNode;
+  /** Rows per state under the other filters, read when a choice opens. */
+  facets?: (() => Promise<Facets | undefined>) | undefined;
 }) {
   const { params } = place;
   const narrow = useNarrow();
   const filters = filtersOf(meta);
   const searchable = meta.fields.some((f) => f.searchable);
   const many = meta.name.many;
-  const narrowed = !!params.get("q") || filters.some((f) => params.get(f.key));
-  return (
-    <div className="flex flex-wrap items-center gap-2">
-      {searchable ? <SearchBox place={place} label={many} /> : null}
-      {filters.length ? (
-        narrow ? (
-          <FilterSheet filters={filters} place={place} />
-        ) : (
-          <FilterPicker
-            filters={filters}
-            shown={shown}
-            place={place}
-            many={searchable ? many : null}
-          />
-        )
-      ) : null}
-      {filters
-        .filter((f) => params.get(f.key))
-        .map((f) => (
-          <FilterChip key={f.key} field={f} place={place} />
-        ))}
-      {narrowed ? (
-        <a
-          href={place.link({
-            q: null,
-            after: null,
-            ...Object.fromEntries(filters.map((f) => [f.key, null])),
-          })}
-          className="px-1 text-[13px] text-(--ui-ink-2) no-underline hover:text-(--ui-ink)"
-        >
-          Clear
-        </a>
-      ) : null}
-      {keep && saved ? <SaveView meta={meta} place={place} keep={keep} saved={saved} /> : null}
-      {end ? <span className="ml-auto text-[13px] text-(--ui-ink-2)">{end}</span> : null}
-    </div>
+  const on = filters.filter((f) => params.get(f.key));
+  const narrowed = !!params.get("q") || on.length > 0;
+  const [picker, setPicker] = useState(false);
+  const [sheet, setSheet] = useState<{ open: boolean; start: FieldMeta | null; n: number }>({
+    open: false,
+    start: null,
+    n: 0,
+  });
+  const openSheet = (start: FieldMeta | null) =>
+    setSheet((s) => ({ open: true, start, n: s.n + 1 }));
+  const shut = () => setSheet((s) => ({ ...s, open: false }));
+
+  // Counts are read once per address, when a choice first asks.
+  const load = useRef(facets);
+  load.current = facets;
+  const key = params.toString();
+  const has = !!facets;
+  // biome-ignore lint/correctness/useExhaustiveDependencies: a new address reads them again.
+  const counts = useMemo(() => {
+    if (!has) return undefined;
+    let got: Promise<Facets | undefined> | null = null;
+    return () => {
+      got ??= (load.current?.() ?? Promise.resolve(undefined)).catch(() => undefined);
+      return got;
+    };
+  }, [key, has]);
+
+  const panel = (start: FieldMeta | null, close: () => void, phone = false) => (
+    <FilterPanel
+      filters={filters}
+      shown={shown}
+      place={place}
+      many={searchable ? many : null}
+      start={start}
+      facets={counts}
+      close={close}
+      phone={phone}
+    />
   );
-}
-
-export const CHIP =
-  "inline-flex h-8 items-center gap-1.5 border border-(--ui-hair) bg-(--ui-paper) px-2.5 text-[13px] text-(--ui-ink-2) hover:bg-(--ui-hover) hover:text-(--ui-ink)";
-
-/** A field's filter as a chip: its label, what it's set to, and its control in a popover. */
-function FilterChip({ field, place }: { field: FieldMeta; place: Place }) {
-  const value = place.params.get(field.key);
-  const set = (next: string | null) =>
-    place.go(place.link({ [field.key]: next, after: null }), true);
-  return (
-    <span className="inline-flex">
-      <Popover>
-        <PopoverTrigger
-          className={cn(
-            CHIP,
-            value && "border-(--ui-ink-3) text-(--ui-ink)",
-            value && "border-r-0",
-          )}
-        >
-          {field.label}
-          {value ? (
-            <span className="max-w-[180px] truncate font-medium">
-              : {filterLabel(field, value)}
-            </span>
-          ) : (
-            <ChevronDown className="size-3.5 text-(--ui-ink-3)" />
-          )}
-        </PopoverTrigger>
-        <PopoverContent align="start" className="w-64 rounded-none p-2 ring-(--ui-hair) shadow-lg">
-          <FieldFilter field={field} value={value} onChange={set} />
-        </PopoverContent>
-      </Popover>
-      {value ? (
-        <button
-          type="button"
-          aria-label={`Clear ${field.label}`}
-          onClick={() => set(null)}
-          className={cn(CHIP, "border-(--ui-ink-3) px-1.5")}
-        >
-          <X className="size-3.5" />
-        </button>
-      ) : null}
-    </span>
-  );
-}
-
-/**
- * "Filter": pick a field, then its control. Typing narrows the fields; the ones on screen come
- * first, then the hidden ones, then a search for the typed text.
- */
-function FilterPicker({
-  filters,
-  shown,
-  place,
-  many,
-}: {
-  filters: FieldMeta[];
-  shown: Set<string>;
-  place: Place;
-  /** The list's plural, when it searches. */
-  many: string | null;
-}) {
-  const [open, setOpen] = useState(false);
-  const [text, setText] = useState("");
-  const [field, setField] = useState<FieldMeta | null>(null);
-  const shut = (o: boolean) => {
-    setOpen(o);
-    if (!o) {
-      setText("");
-      setField(null);
-    }
-  };
-  const t = text.trim().toLowerCase();
-  const match = filters.filter((f) => f.label.toLowerCase().includes(t));
-  const groups: [string, FieldMeta[]][] = [
-    ["On screen", match.filter((f) => shown.has(f.key))],
-    ["Hidden", match.filter((f) => !shown.has(f.key))],
-  ];
-  const ITEM =
-    "flex h-8 w-full items-center px-1.5 text-left text-[13px] text-(--ui-ink) hover:bg-(--ui-hover)";
-  return (
-    <Popover open={open} onOpenChange={shut}>
-      <PopoverTrigger className={CHIP}>
-        <ListFilter className="size-3.5" />
-        Filter
+  const filter = !filters.length ? null : narrow ? (
+    <button
+      type="button"
+      className={cn(CHIP, on.length && "text-(--ui-ink)")}
+      onClick={() => openSheet(null)}
+    >
+      <FilterFace on={on.length} />
+    </button>
+  ) : (
+    <Popover open={picker} onOpenChange={setPicker}>
+      <PopoverTrigger className={cn(CHIP, on.length && "text-(--ui-ink)")}>
+        <FilterFace on={on.length} />
       </PopoverTrigger>
-      <PopoverContent
-        align="start"
-        className="w-64 gap-0 rounded-none p-1.5 ring-(--ui-hair) shadow-lg"
-      >
-        {field ? (
-          <div className="grid gap-2">
-            <button
-              type="button"
-              onClick={() => setField(null)}
-              className="flex items-center gap-1 px-1 text-left text-[12px] text-(--ui-ink-2) hover:text-(--ui-ink)"
-            >
-              <ChevronDown className="size-3.5 rotate-90" />
-              {field.label}
-            </button>
-            <FieldFilter
-              field={field}
-              value={place.params.get(field.key)}
-              onChange={(next) => {
-                place.go(place.link({ [field.key]: next, after: null }), true);
-                shut(false);
-              }}
-            />
-          </div>
-        ) : (
-          <div className="grid">
-            <input
-              // biome-ignore lint/a11y/noAutofocus: the popover opened to type in this.
-              autoFocus
-              value={text}
-              onChange={(e) => setText(e.target.value)}
-              onKeyDown={(e) => {
-                const [first] = match;
-                if (e.key === "Enter" && first) setField(first);
-              }}
-              placeholder="Filter by…"
-              aria-label="Filter by"
-              className="mb-1 h-8 border border-(--ui-hair) bg-(--ui-paper) px-2 text-[13px] outline-none placeholder:text-(--ui-ink-3) focus:border-(--ui-ink-2)"
-            />
-            {groups.map(([label, fields]) =>
-              fields.length ? (
-                <div key={label} className="grid">
-                  <span className="px-1.5 pt-1.5 pb-0.5 text-[11px] text-(--ui-ink-3)">
-                    {label}
-                  </span>
-                  {fields.map((f) => (
-                    <button key={f.key} type="button" onClick={() => setField(f)} className={ITEM}>
-                      {f.label}
-                    </button>
-                  ))}
-                </div>
-              ) : null,
-            )}
-            {many && t ? (
-              <button
-                type="button"
-                onClick={() => {
-                  place.go(place.link({ q: text.trim(), after: null }), true);
-                  shut(false);
-                }}
-                className={cn(ITEM, "mt-1 border-t border-(--ui-hair) text-(--ui-ink-2)")}
-              >
-                <Search className="mr-2 size-3.5" />
-                <span className="truncate">
-                  Search {many} for “{text.trim()}”
-                </span>
-              </button>
-            ) : !match.length ? (
-              <span className="px-1.5 py-2 text-[13px] text-(--ui-ink-2)">
-                No field by that name.
-              </span>
-            ) : null}
-          </div>
-        )}
+      <PopoverContent align="start" className={POP}>
+        {panel(null, () => setPicker(false))}
       </PopoverContent>
     </Popover>
+  );
+  const pills = on.map((f) => (
+    <FilterPill
+      key={f.key}
+      field={f}
+      place={place}
+      onOpen={narrow ? () => openSheet(f) : undefined}
+      panel={(close) => panel(f, close)}
+    />
+  ));
+  const clear = narrowed ? (
+    <a
+      href={place.link({
+        q: null,
+        after: null,
+        ...Object.fromEntries(filters.map((f) => [f.key, null])),
+      })}
+      className="inline-flex h-8 shrink-0 items-center px-2 text-[13px] text-(--ui-ink-2) no-underline hover:text-(--ui-ink)"
+    >
+      Clear
+    </a>
+  ) : null;
+  const save =
+    keep && saved ? <SaveView meta={meta} place={place} keep={keep} saved={saved} /> : null;
+  const tail = end ? <span className="ml-auto text-[13px] text-(--ui-ink-2)">{end}</span> : null;
+  const search = searchable ? <SearchBox place={place} label={many} /> : null;
+
+  if (!narrow)
+    return (
+      <div className="flex flex-wrap items-center gap-2">
+        {search}
+        {filter}
+        {pills}
+        {clear}
+        {save}
+        {tail}
+      </div>
+    );
+  return (
+    <div className="grid gap-2">
+      {search}
+      <div className="flex flex-wrap items-center gap-2">
+        {filter}
+        {save}
+        {clear}
+        {tail}
+      </div>
+      {pills.length ? <div className="flex flex-wrap gap-2">{pills}</div> : null}
+      <Sheet open={sheet.open} onOpenChange={(o) => (o ? null : shut())}>
+        <SheetContent
+          // A phone opens it to tap, not type: no keyboard springs up.
+          initialFocus={false}
+          side="bottom"
+          className="max-h-[85dvh] gap-0 rounded-none bg-(--ui-paper) text-(--ui-ink)"
+        >
+          <SheetHeader className="border-b border-(--ui-hair) p-4">
+            <SheetTitle className="text-[15px] font-semibold">Filter</SheetTitle>
+          </SheetHeader>
+          <div key={sheet.n} className="min-h-0 flex-1 overflow-y-auto">
+            {panel(sheet.start, shut, true)}
+          </div>
+          <SheetFooter className="flex-row justify-between border-t border-(--ui-hair) p-4">
+            <Button
+              tone="secondary"
+              size="dense"
+              disabled={!on.length}
+              onClick={() =>
+                place.go(
+                  place.link({
+                    after: null,
+                    ...Object.fromEntries(filters.map((f) => [f.key, null])),
+                  }),
+                  true,
+                )
+              }
+            >
+              Clear all
+            </Button>
+            <Button size="dense" onClick={shut}>
+              Done
+            </Button>
+          </SheetFooter>
+        </SheetContent>
+      </Sheet>
+    </div>
   );
 }
 

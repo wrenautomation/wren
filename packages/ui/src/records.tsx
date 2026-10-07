@@ -522,6 +522,12 @@ export function askOf(meta: RecordMeta, params: URLSearchParams): ListAsk {
   return ask;
 }
 
+/** Filter's counts: one row's page with the facets of this address, read when a choice opens. */
+export const facetsOf = (api: RecordsApi, ask: ListAsk) => () => {
+  const { cursor: _, ...rest } = ask;
+  return api.list({ ...rest, facets: true, limit: 1 }).then((p) => p.facets);
+};
+
 async function download(api: RecordsApi, ask: ListAsk, name: string) {
   const { cursor: _, limit: __, ...rest } = ask;
   const got = await api.export(rest);
@@ -1034,6 +1040,7 @@ function List({
           shown={new Set(cols.map((f) => f.key))}
           keep={api.keep}
           saved={saved}
+          facets={facetsOf(api, ask)}
           end={
             picked.size ? (
               <Bulk

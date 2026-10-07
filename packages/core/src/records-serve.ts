@@ -48,7 +48,7 @@ export interface ListAsk {
   limit?: number;
   /** Only rows pointing at this record, as its type's `related` says: a person's emails. */
   of?: { record: string; id: string | number };
-  /** Also count each state of every status and tags field: a shop's sidebar. */
+  /** Also count each state of every status, tags, verdict and choice field: Shop, Filter. */
   facets?: boolean;
 }
 export interface RecordsPage {
@@ -62,8 +62,8 @@ export interface RecordsPage {
   /** One figure per field over this view and search, by kind (`totalsOf`); a field with none is left out. */
   totals: Record<string, Total>;
   /**
-   * Asked for: rows in this view per state of each status and tags field, under every filter but
-   * that field's own, so a picked state never zeroes its siblings.
+   * Asked for: rows in this view per state of each status, tags, verdict and choice field, under
+   * every filter but that field's own, so a picked state never zeroes its siblings.
    */
   facets?: Record<string, Record<string, number>>;
 }
@@ -194,6 +194,10 @@ const castOf = (f: Field): Cast => {
   const s = KINDS[f.kind].sql;
   return s === "state" ? "text" : s;
 };
+/** The kinds a facet counts by state, and the most options a choice may have to be counted. */
+const FACETED = new Set<string>(["status", "tags", "verdict", "choice"]);
+const FACET_MAX = 40;
+
 /** The field's value as filters compare it; a rate is n / m. */
 const valueSql = (f: Field): SQL => {
   const c = ref(f.from ?? "");
@@ -581,14 +585,19 @@ export function serveRecords(
     };
   }
 
-  /** One count per state of each status and tags field, each under the other fields' filters. */
+  /**
+   * One count per state of each status, tags, verdict and choice field, each under the other
+   * fields' filters. A choice with more than `FACET_MAX` options is left out.
+   */
   async function facetsOf(p: ReturnType<typeof plan>) {
     const cols: SQL[] = [];
     const reads: [string, string, string][] = [];
     for (const [key, f] of Object.entries(p.t.fields)) {
-      if (f.kind !== "status" && f.kind !== "tags") continue;
+      if (!FACETED.has(f.kind)) continue;
+      const states = Object.keys((f.kind === "choice" && f.choices?.()) || f.states || {});
+      if (states.length > FACET_MAX) continue;
       const v = valueSql(f);
-      for (const s of Object.keys(f.states ?? {})) {
+      for (const s of states) {
         const name = `f${cols.length}`;
         const hit = f.kind === "tags" ? sql`${s} = any(${v})` : sql`${v} = ${s}`;
         cols.push(

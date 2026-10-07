@@ -36,7 +36,7 @@ export {
   FieldFilter,
   FieldLine,
   FieldTotal,
-  filterLabel,
+  filterParts,
   filterShape,
   readFilter,
   relative,
