@@ -150,7 +150,7 @@ import {
   opens,
   type RecordAnswer,
   type RecordsApi,
-  type RecordsCsv,
+  type RecordsFile,
   type RecordsPage,
   type RecordsStat,
   type StatsAsk,
@@ -2382,7 +2382,7 @@ export function consoleApi({
       read(req, (r) => r.list(req)),
     recordsGet: (req: PortalRequest & GetAsk): Promise<RecordAnswer> =>
       read(req, (r) => r.get(req)),
-    recordsExport: (req: PortalRequest & ExportAsk): Promise<RecordsCsv> =>
+    recordsExport: (req: PortalRequest & ExportAsk): Promise<RecordsFile> =>
       read(req, (r) => r.export(req)),
     recordsStats: (req: PortalRequest & StatsAsk): Promise<RecordsStat> =>
       read(req, (r) => r.stats(req)),

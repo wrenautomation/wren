@@ -325,8 +325,8 @@ describe("the demo", () => {
     expect(one.activity?.[0]?.what).toBe("Hello Jane D.");
     const csv = await demo.export({ record: "test.item" });
     expect(csv.rows).toBe(N);
-    expect(leaks(csv.csv)).toBe(false);
-    expect((await api.export({ record: "test.item" })).csv).toContain("Jane Doe");
+    expect(leaks(csv.body)).toBe(false);
+    expect((await api.export({ record: "test.item" })).body).toContain("Jane Doe");
   });
 
   it("never filters, sorts or searches what could name someone", async () => {

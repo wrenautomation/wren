@@ -5,9 +5,11 @@
  * While Claude works the detail reads again every few seconds.
  */
 import type { DraftTurn } from "@wren/core/ask";
+import type { DraftRecordView } from "@wren/core/draft-record";
 import type { Row } from "@wren/core/records/serve";
 import type { Action, MessageKind, RecordExtras } from "@wren/ui";
 import type { ListPage } from "../../module.js";
+import { DraftVersions } from "./versions.js";
 
 const POLL_MS = 4000;
 
@@ -50,9 +52,18 @@ export const withDraft =
     const d = typeof of === "function" ? of(at.row) : of;
     if (!d) return base;
     const turns = (detail as { ask?: DraftTurn[] } | null)?.ask ?? [];
+    const record = (detail as { record?: DraftRecordView | null } | null)?.record;
     const text = at.row[d.field];
     return {
       ...base,
+      ...(record?.versions.length
+        ? {
+            sections: [
+              ...(base.sections ?? []),
+              ["Versions", <DraftVersions key={record.item} record={record} />],
+            ],
+          }
+        : {}),
       draft: {
         field: d.field,
         label: d.label,

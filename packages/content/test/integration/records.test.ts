@@ -104,6 +104,7 @@ describe("marketing.draft", () => {
         feed: { laptop: null, phone: null },
       },
       ask: [],
+      record: null,
     });
   });
 });
@@ -242,6 +243,9 @@ describe("marketing.approval: what we'd send", () => {
     expect(waiting.every((r) => outbound.includes(String(r.type)))).toBe(true);
     const inbox = (await api.list({ record: inboxRecord.id, view: "all", limit: 500 })).rows;
     expect(inbox.some((r) => outbound.includes(String(r.type)))).toBe(false);
-    expect(await approvalRecord.load?.(pg.db, `draft:${d!.id}`)).toEqual({ ask: [] });
+    expect(await approvalRecord.load?.(pg.db, `draft:${d!.id}`)).toEqual({
+      ask: [],
+      record: null,
+    });
   });
 });

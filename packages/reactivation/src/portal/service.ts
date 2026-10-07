@@ -28,7 +28,7 @@ import {
   type ListAsk,
   type RecordAnswer,
   type RecordsApi,
-  type RecordsCsv,
+  type RecordsFile,
   type RecordsPage,
   type RecordsStat,
   type StatsAsk,
@@ -266,7 +266,7 @@ export function portalApi(deps: PortalDeps) {
       records(deps, req, (r) => r.list(req)),
     recordsGet: (req: PortalRequest & GetAsk): Promise<RecordAnswer> =>
       records(deps, req, (r) => r.get(req)),
-    recordsExport: (req: PortalRequest & ExportAsk): Promise<RecordsCsv> =>
+    recordsExport: (req: PortalRequest & ExportAsk): Promise<RecordsFile> =>
       records(deps, req, (r) => r.export(req)),
     /** One number for the Overview: this period, the one before, and a daily series. */
     recordsStats: (req: PortalRequest & StatsAsk): Promise<RecordsStat> =>
@@ -418,7 +418,7 @@ export type {
   GetAsk,
   ListAsk,
   RecordAnswer,
-  RecordsCsv,
+  RecordsFile,
   RecordsPage,
   RecordsStat,
   Row,

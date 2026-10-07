@@ -4,6 +4,7 @@
  */
 import { draftTurns } from "@wren/core/ask";
 import type { Platform } from "@wren/core/content";
+import { recordOfPage } from "@wren/core/draft-record";
 import {
   cued,
   date,
@@ -117,6 +118,8 @@ export const draftRecord = defineRecord({
       at: "created",
     },
   ],
+  activity: { view: "draft_activity", by: "draft" },
+  drafts: (id) => [`draft:${id}`],
   actions: [
     "marketing.approveDraft",
     "marketing.redraft",
@@ -127,7 +130,11 @@ export const draftRecord = defineRecord({
   ],
   calls: DRAFT_CALLS,
   /** The preview, and Ask Claude's thread on it. */
-  load: async (db, id) => ({ post: await postOf(db, id), ask: await draftTurns(db, "draft", id) }),
+  load: async (db, id) => ({
+    post: await postOf(db, id),
+    ask: await draftTurns(db, "draft", id),
+    record: await recordOfPage(db, "draft", id),
+  }),
 });
 
 export const postRecord = defineRecord({
@@ -172,6 +179,8 @@ export const postRecord = defineRecord({
     { id: "top", label: "Top", sort: "-views", at: "published" },
     { id: "platform", label: "By platform", sort: "platform", at: "published" },
   ],
+  activity: { view: "draft_activity", by: "post" },
+  drafts: (id) => [`draft:${id.split("/").at(-1)}`],
   actions: ["marketing.draftAgain"],
   load: async (db, id) => ({ post: await postOf(db, id.split("/")[2] ?? "") }),
 });

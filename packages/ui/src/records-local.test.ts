@@ -35,7 +35,7 @@ const server: RecordsApi = {
     return { rows, counts, total: rows.length, next: null } as never;
   },
   get: async (ask) => ({ row: ROWS.find((r) => String(r.id) === ask.id), related: [] }) as never,
-  export: async () => ({ csv: "", rows: 0, capped: false }) as never,
+  export: async () => ({ body: "", rows: 0, capped: false }) as never,
 };
 
 const APPROVE: Action = {

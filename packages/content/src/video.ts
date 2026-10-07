@@ -156,7 +156,7 @@ export async function approveVideo(
         })
         .returning({ id: contentDrafts.id });
       if (!d) throw new Error("insert returned no draft");
-      await keepUpload(tx, d.id, { video: id, short: o.short, text: body, title, now });
+      await keepUpload(tx, d.id, { video: id, short: o.short, text: body, title });
       ideaId = idea.id;
       ytId = d.id;
     }
@@ -197,7 +197,6 @@ export async function approveVideo(
       short: o.short,
       text: caption,
       title,
-      now,
       wait: true,
     });
     return { ...out, reel: { id: r.id, again: false } };
@@ -216,7 +215,6 @@ async function keepUpload(
     short?: number | undefined;
     text: string;
     title: string;
-    now: Date;
     wait?: boolean;
   },
 ) {
@@ -231,7 +229,6 @@ async function keepUpload(
     text: o.text,
     title: o.title,
     meta,
-    at: o.now,
   });
   if (!o.wait)
     await recordDraft(db, {
@@ -241,7 +238,6 @@ async function keepUpload(
       event: "approved",
       via: "person",
       meta,
-      at: o.now,
     });
 }
 
@@ -391,6 +387,8 @@ export const videoRecord = (signer?: VideoSigner) => {
       },
       { id: "all", label: "All", sort: "-updated", at: "updated" },
     ],
+    activity: { view: "draft_activity", by: "video" },
+    drafts: (id) => [`video:${id}`],
     actions: [
       "marketing.videoRender",
       "marketing.videoApprove",

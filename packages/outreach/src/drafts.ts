@@ -182,7 +182,6 @@ export async function draftDm(
       text: draft,
       llm: llmOf(out, "reach.dm_draft", { answering: lastIn }),
       runId: out.call?.run_id ?? null,
-      at: o.now,
     });
   return draft;
 }
@@ -220,7 +219,6 @@ export async function queueDraft(
     by,
     text: words,
     meta: { message: msg.id },
-    at: now,
   });
   return msg;
 }

@@ -418,7 +418,6 @@ export async function markCommented(
     text: r.body,
     externalId: r.ref,
     ref: `sent:thread:${id}`,
-    at: r.now,
   });
 }
 

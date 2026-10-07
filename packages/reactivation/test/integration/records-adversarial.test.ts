@@ -166,7 +166,7 @@ describe("the demo", () => {
     expect(leaks(one)).toBe(false);
     expect(leaks(await api.recordsGet({ ...demo, record: EMAIL, id: pair }))).toBe(false);
     // The operator's own export is the real list.
-    expect((await api.recordsExport({ ...operator, record: PERSON })).csv).toContain("Jane Doe");
+    expect((await api.recordsExport({ ...operator, record: PERSON })).body).toContain("Jane Doe");
   });
 
   it("can't search, filter or sort by a name", async () => {

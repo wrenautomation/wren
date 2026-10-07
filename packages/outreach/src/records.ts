@@ -6,6 +6,7 @@
  */
 
 import { draftTurns } from "@wren/core/ask";
+import { draftItemsOf, recordOfPage } from "@wren/core/draft-record";
 import {
   cued,
   date,
@@ -116,6 +117,8 @@ export const dmRecord = defineRecord({
     { id: "replied", label: "Replied", where: { state: "replied" }, sort: "-lastAt", at: "lastAt" },
     { id: "all", label: "All", sort: "-lastAt", at: "lastAt" },
   ],
+  activity: { view: "draft_activity", by: "contact" },
+  drafts: (id) => draftItemsOf("dm", id),
   actions: [
     "marketing.dmReply",
     "marketing.dmRead",
@@ -141,6 +144,7 @@ export const dmRecord = defineRecord({
       })),
       dm: { site: SITES[t.contact.platform], from, max: MESSAGE_MAX },
       ask: await draftTurns(db, "dm", id),
+      record: await recordOfPage(db, "dm", id),
     };
   },
 });
@@ -231,6 +235,8 @@ export const commentRecord = defineRecord({
     { id: "answered", label: "Answered", where: { state: "answered" }, sort: "-at", at: "at" },
     { id: "all", label: "All", sort: "-at", at: "at" },
   ],
+  activity: { view: "draft_activity", by: "comment" },
+  drafts: (id) => [`comment:${id}`],
   actions: [
     "marketing.commentAnswer",
     "marketing.commentDm",
@@ -240,7 +246,10 @@ export const commentRecord = defineRecord({
     "marketing.draftUndo",
   ],
   /** Ask Claude's thread on the draft answer. */
-  load: async (db, id) => ({ ask: await draftTurns(db, "comment", id) }),
+  load: async (db, id) => ({
+    ask: await draftTurns(db, "comment", id),
+    record: await recordOfPage(db, "comment", id),
+  }),
 });
 
 /** The slots and their words; the preview fills `{fields}` with `sender` and sample facts. */
@@ -464,6 +473,8 @@ export const threadRecord = defineRecord({
     },
     { id: "all", label: "All", sort: "-postedAt", at: "postedAt" },
   ],
+  activity: { view: "draft_activity", by: "thread" },
+  drafts: (id) => [`thread:${id}`],
   actions: [
     "marketing.threadComment",
     "marketing.threadSkip",
@@ -473,7 +484,10 @@ export const threadRecord = defineRecord({
     "marketing.discoveryRead",
   ],
   /** Ask Claude's thread on the draft comment. */
-  load: async (db, id) => ({ ask: await draftTurns(db, "thread", id) }),
+  load: async (db, id) => ({
+    ask: await draftTurns(db, "thread", id),
+    record: await recordOfPage(db, "thread", id),
+  }),
 });
 
 /**
@@ -556,6 +570,8 @@ export const inviteRecord = defineRecord({
     },
     { id: "all", label: "All", sort: "-queuedAt", at: "queuedAt" },
   ],
+  activity: { view: "draft_activity", by: "contact" },
+  drafts: (id) => draftItemsOf("invite", id),
   actions: [
     "marketing.connectApprove",
     "marketing.connectSkip",
@@ -566,7 +582,10 @@ export const inviteRecord = defineRecord({
     "marketing.draftAsk",
     "marketing.draftUndo",
   ],
-  load: async (db, id) => ({ ask: await draftTurns(db, "invite", id) }),
+  load: async (db, id) => ({
+    ask: await draftTurns(db, "invite", id),
+    record: await recordOfPage(db, "invite", id),
+  }),
 });
 
 /** ponytail: rows, not a view: the newest 1,000 of each; a view with search past that. */

@@ -3,7 +3,7 @@ type: object
 cluster: content
 universe: live
 status: verified
-verified: 2026-10-07 @ 3781504 (+ training record)
+verified: 2026-10-07 @ 979997e3 (+ training record batch 2)
 entity: packages/core/src/schema.ts:650
 ---
 
@@ -19,7 +19,9 @@ Append-only, so the first version and its prompt can't be written over. One narr
 
 - `item`, `round`, `kind`, `platform`, `event`, `via` (model, person, claude, wren), `by`, `text`, `title`, `ask`, `reason` (`REJECT_REASONS`, `packages/core/src/reject-reasons.ts:2`), `note`, `llm` (prompt, system, model, usage, raw answer on a model's `generated`), `slot`, `external_id`, `url`, `meta`, `run_id`, `ref`, `at`
 
-Citations: `packages/core/src/schema.ts:650`, `packages/core/src/draft-record.ts:93`
+Live steps take the database's clock unless the time came from elsewhere (a platform's publish, the backfill), so one draft sorts on one clock.
+
+Citations: `packages/core/src/schema.ts:650`, `packages/core/src/draft-record.ts:93`, `packages/core/src/train.ts`, `packages/content/src/train-backfill.ts`
 
 ## Connected to
 
@@ -28,7 +30,7 @@ Citations: `packages/core/src/schema.ts:650`, `packages/core/src/draft-record.ts
 
 ## If you change this
 
-- **Hits:** every `recordDraft` call: `packages/content/src/{draft,review,queue,draft-ask,video}.ts`, `packages/outreach/src/{comments,drafts}.ts`, `packages/outreach/src/discovery/threads.ts`, `packages/studio/src/edit.ts`, `keepSentEdit` (`packages/core/src/ask.ts`)
+- **Hits:** the export and pairs (`packages/core/src/train.ts`), the backfill (`packages/content/src/train-backfill.ts`, keyed by `bf:` refs), the views `draft_activity`, `draft_outcomes`, `draft_people` (`packages/content/src/schema.ts`), the record page (`draftRecordOf`, `apps/portal/web/src/modules/marketing/versions.tsx`), and every `recordDraft` call: `packages/content/src/{draft,review,queue,draft-ask,video}.ts`, `packages/outreach/src/{comments,drafts}.ts`, `packages/outreach/src/discovery/threads.ts`, `packages/studio/src/edit.ts`, `keepSentEdit` (`packages/core/src/ask.ts`)
 - **Does not hit:** `changes` (the records layer's field edits) or `runs` (still written as before)
 
 ## Surfaces
@@ -39,6 +41,9 @@ Citations: `packages/core/src/schema.ts:650`, `packages/core/src/draft-record.ts
 | the draft box, Ask Claude, Undo, `wren drafts set`, `wren content edit`, a changed send | write `edited` |
 | `ContentDesk.approve/reject`, `MarketingConsole.rejectDraft`, `wren content reject --reason --note`, drop and skip | write decisions |
 | `ContentScheduler`, `markAnswered`, `markCommented`, `queueDraft` | write `sent` / `failed` |
+| every draft page: Versions section (`draftRecordOf` in each `load`) and Activity tab (`draft_activity`) | read |
+| `wren train export`, `wren train pairs`, Export JSONL on draft lists (records `drafts`) | read: `wren.draft/1`, `wren.pair/1`, people out by default |
+| `wren train backfill [--dry-run]` | write history from `content_drafts`, `runs`, `audit_events`, `comments`, `reddit_threads`, `reach_messages`, `video_edits`; skips items with live steps |
 
 ## See
 

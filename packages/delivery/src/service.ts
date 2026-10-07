@@ -44,7 +44,7 @@ import {
   type ListAsk,
   type RecordAnswer,
   type RecordsApi,
-  type RecordsCsv,
+  type RecordsFile,
   type RecordsPage,
   type RecordsStat,
   type StatsAsk,
@@ -284,7 +284,7 @@ export function deliveryApi(deps: DeliveryDeps) {
       records(deps, req, (r) => r.list(req)),
     recordsGet: (req: RecordsReq & GetAsk): Promise<RecordAnswer> =>
       records(deps, req, (r) => r.get(req)),
-    recordsExport: (req: RecordsReq & ExportAsk): Promise<RecordsCsv> =>
+    recordsExport: (req: RecordsReq & ExportAsk): Promise<RecordsFile> =>
       records(deps, req, (r) => r.export(req)),
     recordsStats: (req: RecordsReq & StatsAsk): Promise<RecordsStat> =>
       records(deps, req, (r) => r.stats(req)),

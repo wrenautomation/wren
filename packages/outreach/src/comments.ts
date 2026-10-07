@@ -303,7 +303,6 @@ export async function markAnswered(
       text: r.body,
       externalId: r.ref,
       ref: `sent:comment:${id}`,
-      at: r.now,
     });
 }
 

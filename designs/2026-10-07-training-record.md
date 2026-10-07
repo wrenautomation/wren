@@ -93,60 +93,82 @@ characters.
 ## Export
 
 `wren train export [--kind k,...] [--since date] [--format jsonl] [--include-people] [--out f]`.
-One line per item and round:
+One line per item and round (`packages/core/src/train.ts`, `trainRecords`):
 
 ```json
-{"schema":"wren.draft/1","item":"draft:…","round":1,"kind":"post","platform":"linkedin",
- "input":{"stage":"content_draft","model":"…","system":null,"prompt":"…","max_tokens":4000},
- "versions":[{"n":1,"via":"model","by":"…","ask":null,"text":"…","title":null,"at":"…"},
-             {"n":2,"via":"person","by":"…","text":"…","at":"…"}],
- "decisions":[{"event":"approved","via":"person","slot":"…","at":"…"},
-              {"event":"rejected","reason":"voice","note":"…","at":"…"}],
- "final":{"text":"…","title":null,"external_id":"…","url":"…","at":"…"},
- "outcome":{"metrics":[{"as_of":"…","views":0,"reactions":0,"comments":0,"shares":0,"follows":null}],
-            "replies":[{"author":"[person]","text":"…","at":"…"}],"score":null},
- "context":{"idea":"…","answering":"…"}}
+{"schema":"wren.draft/1","id":"draft:…#1","item":"draft:…","kind":"post","platform":"linkedin",
+ "round":1,"group":"idea:…/linkedin","started":"…",
+ "input":{"stage":"content_draft","model":"…","provider":"…","system":"…","prompt":"…",
+          "max_tokens":4000,"usage":{},"raw_text":"…","ask":null},
+ "context":{"idea":"…","playbook":"…"},
+ "versions":[{"n":1,"event":"generated","via":"model","by":"…","ask":null,"title":null,"text":"…","at":"…","llm":{}},
+             {"n":2,"event":"edited","via":"person","by":"…","ask":null,"title":null,"text":"…","at":"…","llm":null}],
+ "decisions":[{"event":"approved","via":"person","by":"…","reason":null,"note":null,"slot":"…","at":"…"},
+              {"event":"sent","via":"wren","by":"scheduler","reason":null,"note":null,"slot":null,"at":"…"}],
+ "final":{"text":"…","title":null,"at":"…","external_id":"…","url":"…"},
+ "outcome":{"measured":"…","views":0,"reactions":0,"comments":0,"shares":0,"follows":null,
+            "snapshots":3,"replies":[{"author":"[person]","text":"…","at":"…"}]}}
 ```
 
-- `final` is null until sent; `outcome` is null for a kind with none.
-- People: by default the names of commenters, DM contacts and thread authors are replaced with
-  `[person]` everywhere, prompts included. `--include-people` keeps them. His own email stays as
-  `by` (a person's role, not a stranger's name).
+- `input` is the first model version's `llm` plus the redraft note; null when no model wrote it.
+- A `sent` with the same words as the version before is a decision, not a new version.
+- `final` is null until sent; `outcome` is null until sent and for an item with none. Outcomes
+  come from the view `draft_outcomes`: a post's newest metrics snapshot and the replies under it,
+  the replies to an answered comment or thread, a DM contact's messages back (each round gets the
+  ones between its send and the next).
+- People: by default commenters, thread authors, DM contacts (name, each part of it, handle) and
+  repliers read `[person]` everywhere, prompts included, and every email in the words reads
+  `[email]`. Names come from the view `draft_people`. `by` stays: his login or a role.
+  `--include-people` keeps them all.
 
-`wren train pairs [--kind] [--since] [--include-people]`, one JSONL line per pair:
-`{"schema":"wren.pair/1","type":"edit|decision|engagement","kind","platform","prompt","chosen","rejected","items":[a,b]}`.
+`wren train pairs [--kind] [--since] [--include-people] [--out f]`, one line per pair
+(`trainPairs`):
+`{"schema":"wren.pair/1","type","id","kind","platform","input","chosen":{"record","title","text"},"rejected":{…},"why":{…}}`.
 
-- **edit:** the model's first version against the last words he kept (sent, else his last
-  version), when they differ.
-- **decision:** an approved or sent post against a rejected one for the same slot: the redraft
-  chain, or the same platform and slot time.
-- **engagement:** posts of one platform and kind, neighbours in publish time, the higher score
-  (engagements per 100 views, newest snapshot) against the lower, when both have a snapshot and
-  the scores differ.
+- **edit:** the model's first version loses to what he kept (the sent words, else his last
+  version on an approved draft), when they differ. `why` lists his asks and who wrote each step.
+- **decision:** in one `group` (a post's idea and platform, else the item), a draft he turned
+  down and never approved loses to each one he approved or sent. `why` is the reject's reason
+  and note.
+- **engagement:** sent posts on one platform within 30 days of each other. Engaged = reactions +
+  comments + shares + follows on the newest snapshot. The winner has at least 3 and at least
+  twice the loser's. Each post wins at most 3, against the posts nearest in time.
 
-Portal: the list's Export menu gets JSONL beside CSV. A record type that declares `jsonl` (every
-draft kind) puts its full record on each line; any other list exports its fields.
+Portal: a record type that declares `drafts` (every draft list: `marketing.draft`, `.post`,
+`.inbox`, `.approval`, `.comment`, `.thread`, `.dm`, `.invite`, `.video`) shows Export JSONL
+beside Export CSV and in ⌘K. Each line is `{record, id, fields, drafts}`, `drafts` being that
+row's `wren.draft/1` records with people out. The records API takes `format: "jsonl"` on any
+list; others show only CSV.
 
 ## View
 
 - Activity tab on every draft page (`marketing.draft`, `.post`, `.comment`, `.thread`, `.dm`,
-  `.invite`, `.inbox`) from the view `draft_activity`: generated, edited, approved, rejected,
-  sent, then each metrics snapshot and reply.
-- The draft box's detail gets a Versions section: each version with who and when, and the kit's
-  `Diff` between any two (side by side from `md`, unified under it).
+  `.invite`, `.inbox`, `.approval`, `.video`) from the view `draft_activity`: the steps in words
+  ("Rejected by … : Not my voice · note"), then each metrics snapshot and reply on a post. One
+  key column per page, so comment 7 and contact 7 never mix.
+- The draft box gets a Versions section (`apps/portal/web/src/modules/marketing/versions.tsx`):
+  each version with who and when and his ask, the decisions, and the kit's `Diff` between any
+  two, first against latest by default. A DM shows its newest round.
 
 ## Backfill
 
-`wren train backfill [--dry-run]` (prod: `node scripts/prod-wren.mjs train backfill`). Each row
-gets `ref`; a second run inserts nothing.
+`wren train backfill [--dry-run]` (prod: `node scripts/prod-wren.mjs train backfill`,
+`packages/content/src/train-backfill.ts`). Each row gets a `bf:` ref; a second run inserts
+nothing. An item that already has live steps is left alone, so nothing is counted twice; run it
+right after the deploy.
 
-- Posts: `generated` from the model's raw answer (`llm.raw_text`), else the row; edits from the
-  `draft-*` runs, then `audit_events` text changes no run explains; status changes from
-  `audit_events`, else `approved_at` and `published_at`; `sent` from a published row.
-- Comments and threads: the first run's `before`, else the draft, as `generated`; edits from runs;
-  `sent` from `answer`; `rejected` from dropped or skipped with a draft.
-- DMs and invites: edits from runs; `sent` from manual outbound `reach_messages`.
-- Videos: title and description versions from the `video *` runs' `before`.
+- Posts: `generated` from the model's raw answer (`llm.raw_text`), else the first audited text
+  change's old value, else the row; edits from the `draft-*` runs, then `audit_events` text
+  changes no run explains (same words within a minute); `approved` from `approved_at` or the
+  audited status; `rejected` from status or a redraft (with its note); `sent` from a published
+  row; `failed` with the error. Video uploads (`prompt_version` video) are `via wren`.
+- Comments and threads: the first run's `before`, else the draft, as `generated` (no prompt was
+  kept); edits from runs; `sent` from `answer` and `answer_ref`; `rejected` when dropped with a
+  draft.
+- DMs and invites: one round per manual outbound message. When he changed a draft at send, the
+  run's `before` is the model's `generated` and its words his `edited`. An untouched draft is
+  only his `sent`. Invite when it was his first message after the connection.
+- Videos: title and description, walked back from today's through each `video *` run's `before`.
 
 ## Left out
 
@@ -165,3 +187,9 @@ gets `ref`; a second run inserts nothing.
   follows. A step that leaves out `kind` keeps the item's first one, so a video's YouTube upload
   (`draft:<id>`) stays `video`. Drop and skip are a `rejected` step only when a draft was there. A
   DM's `sent` is when his words are queued; the `reach_messages` row says when they left.
+- 2026-10-07, batch 2 built: Versions section, `draft_activity`, `draft_outcomes` and
+  `draft_people` views, `wren train export | pairs | backfill`, Export JSONL on draft lists
+  (`RecordsCsv` became `RecordsFile` with `format` and `body`). Live steps now use the
+  database's clock unless the time came from elsewhere (a platform's publish, the backfill), so
+  one draft's steps sort on one clock. Engagement is the plain sum, not per 100 views: early
+  snapshots often have no views. Decision pairs use the idea and platform, not the slot time.

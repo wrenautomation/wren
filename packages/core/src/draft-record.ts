@@ -83,6 +83,10 @@ export interface DraftStep {
   ref?: string | null;
   /** Set by the backfill, which knows the rounds; else counted from the item's last step. */
   round?: number;
+  /**
+   * Left out, the database's clock, so one draft's steps sort on one clock. Set for a time the
+   * step happened elsewhere: the platform's publish, the backfill's history.
+   */
   at?: Date;
 }
 
@@ -149,3 +153,95 @@ export const draftSteps = (db: Queryable, item: string): Promise<DraftEventRow[]
 
 export const isDraftKind = (k: string): k is DraftRecordKind =>
   (DRAFT_RECORD_KINDS as readonly string[]).includes(k);
+
+/** One version of a draft's words, as the record page lists them. */
+export interface DraftVersion {
+  n: number;
+  event: DraftEvent;
+  via: DraftVia;
+  by: string | null;
+  ask: string | null;
+  text: string;
+  title: string | null;
+  at: string;
+}
+/** A draft's newest round: its versions oldest first, and what was decided on it. */
+export interface DraftRecordView {
+  item: string;
+  round: number;
+  rounds: number;
+  versions: DraftVersion[];
+  decisions: {
+    event: DraftEvent;
+    via: DraftVia;
+    by: string | null;
+    reason: RejectReason | null;
+    note: string | null;
+    slot: string | null;
+    url: string | null;
+    at: string;
+  }[];
+}
+
+const TEXT_EVENTS: ReadonlySet<DraftEvent> = new Set(["generated", "edited", "sent"]);
+
+/**
+ * The record page's view of one draft: of `items` (a DM contact is `dm:` or `invite:`), the one
+ * with the newest step, its newest round. A `sent` with the same words as the version before is
+ * a decision, not a version. Null when nothing is kept yet.
+ */
+export async function draftRecordOf(
+  db: Queryable,
+  items: string | readonly string[],
+): Promise<DraftRecordView | null> {
+  const all = (await Promise.all([items].flat().map((i) => draftSteps(db, i)))).filter(
+    (s) => s.length,
+  );
+  const newest = (s: DraftEventRow[]) => s.at(-1)?.at.getTime() ?? 0;
+  const steps = all.sort((a, b) => newest(b) - newest(a))[0];
+  const last = steps?.at(-1);
+  if (!steps || !last) return null;
+  const round = steps.filter((s) => s.round === last.round);
+  const versions: DraftVersion[] = [];
+  const decisions: DraftRecordView["decisions"] = [];
+  for (const s of round) {
+    const prev = versions.at(-1);
+    const words = TEXT_EVENTS.has(s.event) && s.text !== null;
+    if (words && !(s.event === "sent" && prev?.text === s.text && prev.title === s.title))
+      versions.push({
+        n: versions.length + 1,
+        event: s.event,
+        via: s.via,
+        by: s.by,
+        ask: s.ask,
+        text: s.text ?? "",
+        title: s.title,
+        at: s.at.toISOString(),
+      });
+    if (!["generated", "edited"].includes(s.event))
+      decisions.push({
+        event: s.event,
+        via: s.via,
+        by: s.by,
+        reason: s.reason,
+        note: s.note,
+        slot: s.slot?.toISOString() ?? null,
+        url: s.url,
+        at: s.at.toISOString(),
+      });
+  }
+  return {
+    item: last.item,
+    round: last.round,
+    rounds: Math.max(...steps.map((s) => s.round)),
+    versions,
+    decisions,
+  };
+}
+
+/** The items a page's draft may be kept under: a DM contact's draft is a reply or a first message. */
+export const draftItemsOf = (type: string, id: string): string[] =>
+  type === "dm" || type === "invite" ? [`dm:${id}`, `invite:${id}`] : [`${type}:${id}`];
+/** A record page's draft record, beside its Ask Claude thread. */
+export const recordOfPage = (db: Queryable, type: string, id: string) =>
+  draftRecordOf(db, draftItemsOf(type, id));

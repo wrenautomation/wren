@@ -535,6 +535,11 @@ export interface RecordDecl<F extends Record<string, Draft>> {
   actions?: readonly string[];
   /** What opening it needs past `read` (`@wren/core/access`): Wren's Money records need `money`. */
   needs?: Permission;
+  /**
+   * The draft record items behind a row (`draft:<id>`, designs/2026-10-07-training-record.md): a
+   * JSONL export carries their training records, and the list offers it.
+   */
+  drafts?: (id: string) => readonly string[];
   /** What the detail adds past the row (a brief's sources); null when there's none. */
   load?: (db: Queryable, id: string) => Promise<object | null>;
   /** What a person or Claude may change on it; absent, it's read only. */
@@ -762,6 +767,8 @@ export interface RecordMeta {
   actions: readonly string[];
   activity: boolean;
   detail: boolean;
+  /** Its rows are drafts: the list offers Export JSONL with their training records. */
+  drafts?: boolean;
   /** The fields a person edits in place; absent or null when it's read only. Ask Claude comes with it. */
   edits?: readonly string[] | null;
   /** What editing needs, when it isn't `run`. */
@@ -826,6 +833,7 @@ export function metaOf(type: RecordType, demo: boolean): RecordMeta {
     related: (type.related ?? []).map((r) => ({ record: r.record })),
     actions: type.actions ?? [],
     activity: !!type.activity,
+    ...(type.drafts ? { drafts: true } : {}),
     detail: !!type.load,
     // The demo reads only: its edits would land nowhere.
     edits: type.edits && !demo ? type.edits.fields : null,

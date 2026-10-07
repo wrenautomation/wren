@@ -31,6 +31,7 @@ import {
   sortOf,
 } from "./records.js";
 import { canonicalZone, wallClock, zonedInstant } from "./time.js";
+import { jsonl, type TrainRecord, trainRecords } from "./train.js";
 
 export type Mask = <T>(v: T) => T;
 export type Row = { id: string | number } & Record<string, Cell>;
@@ -96,12 +97,17 @@ export interface RecordAnswer {
   /** Its values, version, history and asks, when it declares edits; never on the demo. */
   edit?: EditState | null;
 }
-export type ExportAsk = Omit<ListAsk, "cursor" | "limit">;
-export interface RecordsCsv {
+export type ExportFormat = "csv" | "jsonl";
+export interface ExportAsk extends Omit<ListAsk, "cursor" | "limit"> {
+  /** Absent, CSV. JSONL is a line per row, with its drafts' training records when it has some. */
+  format?: ExportFormat;
+}
+export interface RecordsFile {
   record: string;
-  csv: string;
+  format: ExportFormat;
+  body: string;
   rows: number;
-  /** More rows matched than a CSV carries. */
+  /** More rows matched than an export carries. */
   capped: boolean;
 }
 
@@ -491,6 +497,21 @@ export function serveRecords(
     for (const [k, f] of Object.entries(t.fields)) row[k] = cellOf(f, raw);
     return masked(row);
   };
+  /** A JSONL export: a line per row with its fields by key, and its drafts' training records. */
+  async function jsonlOf(t: RecordType, rows: Row[]): Promise<string> {
+    const itemsOf = (r: Row) => t.drafts?.(String(r.id)) ?? [];
+    const items = rows.flatMap(itemsOf);
+    const byItem = new Map<string, TrainRecord[]>();
+    for (const x of items.length ? await trainRecords(db, { items }) : [])
+      byItem.set(x.item, [...(byItem.get(x.item) ?? []), x]);
+    return jsonl(
+      rows.map((r) => {
+        const { id, ...fields } = r;
+        const drafts = itemsOf(r).flatMap((i) => byItem.get(i) ?? []);
+        return { record: t.id, id, fields, ...(t.drafts ? { drafts: masked(drafts) } : {}) };
+      }),
+    );
+  }
   const loaded = new Map<string, Promise<Raw[]>>();
   /** What a type's rows are read from, as `r`: its view, or its own rows as a table. */
   async function source(t: RecordType): Promise<SQL> {
@@ -725,22 +746,21 @@ export function serveRecords(
         };
       }),
 
-    export: (ask: ExportAsk): Promise<RecordsCsv> =>
+    export: (ask: ExportAsk): Promise<RecordsFile> =>
       guard(async () => {
-        const p = plan(ask);
+        const { format = "csv", ...list } = ask;
+        if (format !== "csv" && format !== "jsonl") throw new BadAsk(`no ${format} export`);
+        const p = plan(list);
         const raw = await db.execute<Raw>(sql`
           select ${columnsOf(p.t)} from ${await source(p.t)}
           where ${p.base} and ${p.inView}
           order by ${p.order}
           limit ${MAX_EXPORT + 1}`);
-        const rows = raw.slice(0, MAX_EXPORT).map((r) => csvRow(p.t, rowOf(p.t, r)));
+        const kept = raw.slice(0, MAX_EXPORT).map((r) => rowOf(p.t, r));
+        const base = { record: p.t.id, format, rows: kept.length, capped: raw.length > MAX_EXPORT };
+        if (format === "jsonl") return { ...base, body: await jsonlOf(p.t, kept) };
         const columns = ["ID", ...Object.values(p.t.fields).map((f) => f.label)];
-        return {
-          record: p.t.id,
-          csv: toCsv({ columns, rows }),
-          rows: rows.length,
-          capped: raw.length > MAX_EXPORT,
-        };
+        return { ...base, body: toCsv({ columns, rows: kept.map((r) => csvRow(p.t, r)) }) };
       }),
 
     /**

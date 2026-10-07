@@ -9,10 +9,11 @@ import type { EditAsk, Edited, RecordAskAsk, UndoAsk } from "@wren/core/edits";
 import { type Cell, type FieldMeta, type RecordMeta, SYSTEM } from "@wren/core/records";
 import type {
   ExportAsk,
+  ExportFormat,
   GetAsk,
   ListAsk,
   RecordAnswer,
-  RecordsCsv,
+  RecordsFile,
   RecordsPage,
   RecordsStat,
   Row,
@@ -89,7 +90,7 @@ export interface RecordsApi {
   types(): Promise<RecordMeta[]>;
   list(ask: ListAsk): Promise<RecordsPage>;
   get(ask: GetAsk): Promise<RecordAnswer>;
-  export(ask: ExportAsk): Promise<RecordsCsv>;
+  export(ask: ExportAsk): Promise<RecordsFile>;
   /** A number over a period against the one before, by day: the Overview's tiles. */
   stats?(ask: StatsAsk): Promise<RecordsStat>;
   /** A record's edits (`@wren/core/edits`), where the workspace serves them. */
@@ -538,11 +539,16 @@ export const facetsOf = (api: RecordsApi, ask: ListAsk) => () => {
   return api.list({ ...rest, facets: true, limit: 1 }).then((p) => p.facets);
 };
 
-async function download(api: RecordsApi, ask: ListAsk, name: string) {
+const EXPORT_TYPE = { csv: "text/csv", jsonl: "application/jsonl" } as const;
+
+async function download(api: RecordsApi, ask: ListAsk, name: string, format: ExportFormat) {
   const { cursor: _, limit: __, ...rest } = ask;
-  const got = await api.export(rest);
-  const url = URL.createObjectURL(new Blob([got.csv], { type: "text/csv" }));
-  const a = Object.assign(document.createElement("a"), { href: url, download: `${name}.csv` });
+  const got = await api.export({ ...rest, format });
+  const url = URL.createObjectURL(new Blob([got.body], { type: EXPORT_TYPE[format] }));
+  const a = Object.assign(document.createElement("a"), {
+    href: url,
+    download: `${name}.${format}`,
+  });
   a.click();
   URL.revokeObjectURL(url);
   return got;
@@ -948,10 +954,10 @@ function List({
     return () => removeEventListener("keydown", press);
   }, []);
 
-  const exportCsv = async () => {
+  const exportAs = async (format: ExportFormat) => {
     setBusy("Exporting");
     try {
-      const got = await download(api, ask, many);
+      const got = await download(api, ask, many, format);
       setBusy(got.capped ? `First ${num(got.rows)} rows exported` : null);
     } catch (err) {
       setBusy(err instanceof Error ? err.message : String(err));
@@ -982,8 +988,18 @@ function List({
                 label: "Export CSV",
                 group: "This view",
                 icon: "download" as const,
-                run: () => void exportCsv(),
+                run: () => void exportAs("csv"),
               },
+              ...(meta.drafts
+                ? [
+                    {
+                      label: "Export JSONL",
+                      group: "This view",
+                      icon: "download" as const,
+                      run: () => void exportAs("jsonl"),
+                    },
+                  ]
+                : []),
             ]
           : []),
         {
@@ -1028,10 +1044,23 @@ function List({
             size="dense"
             icon="download"
             disabled={!page.data?.total}
-            onClick={() => void exportCsv()}
+            aria-label="Export CSV"
+            onClick={() => void exportAs("csv")}
           >
             <span className="max-sm:hidden">Export CSV</span>
           </Button>
+          {meta.drafts ? (
+            <Button
+              tone="quiet"
+              size="dense"
+              icon="download"
+              disabled={!page.data?.total}
+              aria-label="Export JSONL"
+              onClick={() => void exportAs("jsonl")}
+            >
+              <span className="max-sm:hidden">Export JSONL</span>
+            </Button>
+          ) : null}
         </div>
       </div>
 

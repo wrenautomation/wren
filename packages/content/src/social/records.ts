@@ -8,6 +8,7 @@
 
 import { threadRecord as textThreadRecord } from "@wren/channel-sms/records";
 import { draftTurns } from "@wren/core/ask";
+import { draftItemsOf, recordOfPage } from "@wren/core/draft-record";
 import {
   cued,
   date,
@@ -360,6 +361,8 @@ export const inboxRecord = defineRecord({
     { id: "activity", label: "Activity", where: { type: "activity" }, sort: "-at", at: "at" },
     { id: "all", label: "All", sort: "-at", at: "at" },
   ],
+  activity: { view: "draft_activity", by: "item" },
+  drafts: (id) => draftItemsOf(id.slice(0, id.indexOf(":")), id.slice(id.indexOf(":") + 1)),
   actions: [
     "marketing.commentAnswer",
     "marketing.commentDm",
@@ -381,7 +384,10 @@ export const inboxRecord = defineRecord({
     if (type === "text") return (await textThreadRecord.load?.(db, rest)) ?? null;
     // An email's words and our drafted answer are the row's own.
     if (["activity", "email", "reply"].includes(type)) return null;
-    const ask = { ask: await draftTurns(db, type, rest) };
+    const ask = {
+      ask: await draftTurns(db, type, rest),
+      record: await recordOfPage(db, type, rest),
+    };
     return type === "dm" ? { ...(await dmRecord.load?.(db, rest)), ...ask } : ask;
   },
 });
@@ -573,6 +579,8 @@ export const approvalRecord = defineRecord({
     { id: "workflows", label: "Workflows", where: { type: "workflow" }, sort: "-at", at: "at" },
     { id: "all", label: "All", sort: "-at", at: "at" },
   ],
+  activity: { view: "draft_activity", by: "item" },
+  drafts: (id) => draftItemsOf(id.slice(0, id.indexOf(":")), id.slice(id.indexOf(":") + 1)),
   actions: [
     "marketing.approveDraft",
     "marketing.redraft",
@@ -598,7 +606,10 @@ export const approvalRecord = defineRecord({
   load: async (db, id) => {
     const [type, rest] = typed(id);
     if (type === "video" || type === "template" || type === "workflow") return null;
-    const ask = { ask: await draftTurns(db, type, rest) };
+    const ask = {
+      ask: await draftTurns(db, type, rest),
+      record: await recordOfPage(db, type, rest),
+    };
     return type === "invite" ? { ...(await dmRecord.load?.(db, rest)), ...ask } : ask;
   },
 });

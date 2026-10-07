@@ -83,7 +83,6 @@ export async function approveDrafts(
       via: "person",
       by: o.by ?? null,
       slot: r.scheduledFor,
-      at: o.now,
     });
   return rows;
 }
