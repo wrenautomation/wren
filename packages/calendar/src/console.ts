@@ -15,10 +15,11 @@ import {
 import { PORTAL_FIELDS, serviceHandler } from "@wren/core/restate";
 import { atomic, setAuditActor } from "@wren/db";
 import { z } from "zod";
-import { markShowed } from "./book.js";
+import { callsBetween, markShowed } from "./book.js";
 import { CALENDAR_CONSOLE_ROUTES } from "./console-routes.js";
 import { type CalendarDeps, calendarFlows } from "./restate.js";
 import type { Showed } from "./schema.js";
+import { openHours } from "./slots.js";
 
 export interface IdsRequest extends PortalRequest {
   ids: string[];
@@ -32,6 +33,12 @@ const idsOf = (req: IdsRequest) => {
 };
 const by = (req: PortalRequest) => (req.viewer as SignedViewer).email;
 const IDS = { ...PORTAL_FIELDS, ids: z.array(z.string()) };
+const MAX_RANGE = 62 * 24 * 3_600_000;
+
+export interface RangeRequest extends PortalRequest {
+  from: string;
+  to: string;
+}
 
 export function makeCalendarConsole(deps: CalendarDeps) {
   const { db } = deps;
@@ -55,6 +62,40 @@ export function makeCalendarConsole(deps: CalendarDeps) {
     routes: CALENDAR_CONSOLE_ROUTES,
     unnamed: "wren",
     handlers: {
+      /**
+       * The Calendar app's week, day, month or list: the calls that touch [from, to), and the
+       * open hours there as instants, so the app shades them on the viewer's own clock.
+       */
+      range: serviceHandler(
+        {
+          input: z.looseObject({
+            ...PORTAL_FIELDS,
+            from: z.string().describe("ISO instant"),
+            to: z.string().describe("ISO instant, at most 62 days after from"),
+          }),
+        },
+        (ctx: restate.Context, req: RangeRequest) =>
+          answer(async () => {
+            const from = new Date(req.from);
+            const to = new Date(req.to);
+            const span = to.getTime() - from.getTime();
+            if (!(span > 0 && span <= MAX_RANGE))
+              throw new PortalRefusal("a range up to 62 days", 400);
+            const rules = await flows.rulesNow(ctx);
+            const calls = await ctx.run("calls", async () =>
+              (await callsBetween(db, deps.calendar, from, to)).map((c) => ({
+                ...c,
+                start: c.start.toISOString(),
+                end: c.end.toISOString(),
+              })),
+            );
+            const open = openHours(rules, from, to).map((s) => ({
+              start: s.start.toISOString(),
+              end: s.end.toISOString(),
+            }));
+            return { zone: rules.zone, length: rules.length, open, calls };
+          }),
+      ),
       held: serviceHandler({ input: z.looseObject(IDS) }, (ctx: restate.Context, req: IdsRequest) =>
         showed(ctx, req, "held"),
       ),

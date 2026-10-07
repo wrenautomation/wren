@@ -20,7 +20,7 @@ Two people must never get one slot, so the slot is a partial unique index on `(c
 - `calendar` (default `wren`), `state` (booked | cancelled), `start`, `end`, `name`, `email`, `zone` (the booker's), `offer`, `code` (the email's `r`), `application`, `source` jsonb (utm_*, ref, visitor, page), `google_event_id`, `meet_url`, `showed` (held | no_show), `reminded_day_at`, `reminded_hour_at`, `cancelled_*`, `reason` (`schema.ts:46`)
 - view `calendar.booking_records` (`schema.ts:97`): status upcoming | past | held | no_show | cancelled; console record `calendar.booking` (`records.ts`), portal app `calendar`
 - settings: Wren's `calendar.booking` block in `wren_settings` (`rules.ts`), set from the Shop part's Configure or `wren calendar settings`; owner account william@ by delegation on the full calendar scope (`google.ts:58`)
-- services: `Calendar{slots,book,booking,reschedule,cancel}` + private `remind` (`restate.ts:255`), `CalendarConsole{held,noShow,clear,cancel}` (`console.ts`); bound at `apps/worker/src/services.ts:503`
+- services: `Calendar{slots,book,booking,reschedule,cancel}` + private `remind` (`restate.ts:255`), `CalendarConsole{range,held,noShow,clear,cancel}` (`console.ts`; `range` feeds the portal Schedule); bound at `apps/worker/src/services.ts:503`
 - SMS: `CalendarBookings` (`sms.ts:11`) feeds SmsWatch's reminder pass beside cal.com's (`AllBookings`); the hour-before template is empty until written
 
 Citations: `packages/calendar/src/schema.ts:80`, `packages/calendar/src/book.ts:64`, `packages/calendar/src/restate.ts:255`
@@ -43,7 +43,7 @@ Citations: `packages/calendar/src/schema.ts:80`, `packages/calendar/src/book.ts:
 | lander `/book/<offer>`, `/booking/<token>` | books, moves, cancels |
 | Google Calendar (william@) | busy times in; events with Meet out |
 | booker's inbox | confirmation, moved, cancelled, day and hour reminders from portal@ |
-| portal Calendar app | reads; held, no-show, cancel |
+| portal Calendar app | Schedule (week/day/month/list over `range`), Calls list; held, no-show, cancel |
 
 ## See
 

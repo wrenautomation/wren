@@ -3,42 +3,9 @@
  * then past calls to mark held or no-show, the no-shows, and cancelled. Open hours live in the
  * Booking calendar part's settings, in the Shop.
  */
-import type { Action } from "@wren/ui";
 import type { Module } from "../../module.js";
-
-const said = (line: string) => () => line;
-
-const CALL_ACTIONS: Action[] = [
-  {
-    id: "calendar.held",
-    label: "Held",
-    handler: "calendar/held",
-    undo: "calendar/clear",
-    bulk: true,
-    key: "h",
-    when: { status: ["past", "no_show"] },
-    done: said("Marked held"),
-  },
-  {
-    id: "calendar.noShow",
-    label: "No-show",
-    handler: "calendar/noShow",
-    undo: "calendar/clear",
-    bulk: true,
-    key: "n",
-    when: { status: ["past", "held"] },
-    done: said("Marked no-show"),
-  },
-  {
-    id: "calendar.cancel",
-    label: "Cancel call",
-    handler: "calendar/cancel",
-    ask: { field: "reason", label: "Why? They don't see this." },
-    confirm: "Cancel the call? They get an email and we remove the invite.",
-    when: { status: ["upcoming"] },
-    done: said("Cancelled. They got an email."),
-  },
-];
+import { CALL_ACTIONS } from "./actions.js";
+import { Schedule } from "./schedule.js";
 
 export const calendar: Module = {
   id: "calendar",
@@ -48,6 +15,7 @@ export const calendar: Module = {
   blurb: "Calls booked on your page, and whether each one showed.",
   requires: { audience: "team" },
   pages: [
+    { id: "schedule", label: "Schedule", Page: Schedule },
     {
       id: "overview",
       label: "Overview",

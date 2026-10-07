@@ -71,6 +71,46 @@ export function openSlots(
   return out.sort((a, b) => a.getTime() - b.getTime());
 }
 
+/**
+ * The weekly hours as instants for each of the owner's days that touches [from, to), clipped to
+ * it: what the Calendar app shades as open. A stretch's ends move with DST as its slots do; an
+ * end of 24:00 is the next midnight.
+ */
+export function openHours(rules: Rules, from: Date, to: Date): Span[] {
+  const { zone } = rules;
+  const a = wallClock(zone, from);
+  const b = wallClock(zone, to);
+  const out: Span[] = [];
+  const at = (y: number, m: number, d: number, minutes: number) =>
+    minutes >= 24 * 60
+      ? (() => {
+          const next = new Date(Date.UTC(y, m - 1, d) + DAY);
+          return zonedInstant(
+            zone,
+            next.getUTCFullYear(),
+            next.getUTCMonth() + 1,
+            next.getUTCDate(),
+            0,
+            0,
+          );
+        })()
+      : zonedInstant(zone, y, m, d, Math.floor(minutes / 60), minutes % 60);
+  for (
+    let d = Date.UTC(a.year, a.month - 1, a.day);
+    d <= Date.UTC(b.year, b.month - 1, b.day);
+    d += DAY
+  ) {
+    const day = new Date(d);
+    const [y, m, dd] = [day.getUTCFullYear(), day.getUTCMonth() + 1, day.getUTCDate()];
+    for (const stretch of rules.week[day.getUTCDay()] ?? []) {
+      const start = Math.max(at(y, m, dd, stretch.from).getTime(), from.getTime());
+      const end = Math.min(at(y, m, dd, stretch.to).getTime(), to.getTime());
+      if (start < end) out.push({ start: new Date(start), end: new Date(end) });
+    }
+  }
+  return out;
+}
+
 /** True when `start` is one of the open slots: what booking checks, fresh, before it writes. */
 export function isOpen(
   rules: Rules,

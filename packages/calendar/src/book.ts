@@ -8,7 +8,7 @@
  */
 import { applyBooking, type BookingChange, type BookingOutcome } from "@wren/channel-email/inbox";
 import { type Db, type Queryable, serializable, sqlState } from "@wren/db";
-import { and, eq, gt, lt, ne } from "drizzle-orm";
+import { and, asc, eq, gt, lt, ne } from "drizzle-orm";
 import type { Rules } from "./rules.js";
 import { type BookingSource, bookings, type CalendarBooking, type Showed } from "./schema.js";
 import { isOpen, type Span } from "./slots.js";
@@ -47,6 +47,41 @@ export async function bookedCalls(
         ...(except === undefined ? [] : [ne(bookings.id, except)]),
       ),
     );
+}
+
+/** One call as the Calendar app draws it: booked or cancelled, any that touch the range. */
+export interface CallBlock {
+  id: number;
+  start: Date;
+  end: Date;
+  name: string;
+  offer: string | null;
+  state: "booked" | "cancelled";
+  showed: Showed | null;
+  meet: string | null;
+}
+
+/** Every call on a calendar that touches [from, to), soonest first: the app's week and month. */
+export async function callsBetween(
+  db: Queryable,
+  calendar: string,
+  from: Date,
+  to: Date,
+): Promise<CallBlock[]> {
+  return db
+    .select({
+      id: bookings.id,
+      start: bookings.start,
+      end: bookings.end,
+      name: bookings.name,
+      offer: bookings.offer,
+      state: bookings.state,
+      showed: bookings.showed,
+      meet: bookings.meetUrl,
+    })
+    .from(bookings)
+    .where(and(eq(bookings.calendar, calendar), lt(bookings.start, to), gt(bookings.end, from)))
+    .orderBy(asc(bookings.start));
 }
 
 export interface Booker {

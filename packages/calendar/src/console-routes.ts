@@ -1,10 +1,11 @@
 import type { Need } from "@wren/core/access";
 
 /**
- * CalendarConsole's handlers and what each needs: the edge Worker opens only these. Wren's own
+ * CalendarConsole's handlers and what each needs (`range` reads the week; the rest write): the edge Worker opens only these. Wren's own
  * calendar, so Wren's team; a cancel mails the booker. Type imports only.
  */
 export const CALENDAR_CONSOLE_ROUTES = {
+  range: "wren:read",
   held: "wren:act",
   noShow: "wren:act",
   clear: "wren:act",

@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { calendarSettingsSchema, parseHours, rulesOf } from "./rules.js";
-import { dayOn, isOpen, openSlots } from "./slots.js";
+import { dayOn, isOpen, openHours, openSlots } from "./slots.js";
 
 const iso = (ds: Date[]) => ds.map((d) => d.toISOString());
 const TORONTO = rulesOf({});
@@ -158,5 +158,38 @@ describe("openSlots", () => {
     expect(isOpen(TORONTO, new Date("2026-10-06T15:00:00Z"), { now, ...none })).toBe(true);
     expect(isOpen(TORONTO, new Date("2026-10-06T15:10:00Z"), { now, ...none })).toBe(false);
     expect(isOpen(TORONTO, new Date("2026-10-06T14:00:00Z"), { now, ...none })).toBe(false); // notice
+  });
+});
+
+describe("openHours", () => {
+  const spans = (from: string, to: string, rules = TORONTO) =>
+    openHours(rules, new Date(from), new Date(to)).map(
+      (s) => `${s.start.toISOString()} ${s.end.toISOString()}`,
+    );
+
+  it("gives each weekday's hours as instants, none on the weekend", () => {
+    // Fri 2026-10-09 to Mon 2026-10-12, Toronto days.
+    expect(spans("2026-10-09T04:00:00Z", "2026-10-13T04:00:00Z")).toEqual([
+      "2026-10-09T14:00:00.000Z 2026-10-09T21:00:00.000Z",
+      "2026-10-12T14:00:00.000Z 2026-10-12T21:00:00.000Z",
+    ]);
+  });
+
+  it("keeps 10 to 5 on the owner's clock across fall back", () => {
+    // Fri 2026-10-30 (EDT) and Mon 2026-11-02 (EST).
+    expect(spans("2026-10-30T04:00:00Z", "2026-11-03T05:00:00Z")).toEqual([
+      "2026-10-30T14:00:00.000Z 2026-10-30T21:00:00.000Z",
+      "2026-11-02T15:00:00.000Z 2026-11-02T22:00:00.000Z",
+    ]);
+  });
+
+  it("clips to the range and ends 24:00 at the next midnight", () => {
+    const allDay = rulesOf({ zone: "UTC", hours: { sat: "20:00-24:00" } });
+    expect(spans("2026-10-10T21:00:00Z", "2026-10-11T12:00:00Z", allDay)).toEqual([
+      "2026-10-10T21:00:00.000Z 2026-10-11T00:00:00.000Z",
+    ]);
+    expect(spans("2026-10-09T15:00:00Z", "2026-10-09T16:00:00Z")).toEqual([
+      "2026-10-09T15:00:00.000Z 2026-10-09T16:00:00.000Z",
+    ]);
   });
 });

@@ -192,6 +192,14 @@ describe("CalendarConsole", () => {
     clients.connect(ingressOf({ restateIngressUrl: env.baseUrl() })).serviceClient<{
       noShow: (ctx: unknown, req: unknown) => Promise<{ changed: number }>;
       cancel: (ctx: unknown, req: unknown) => Promise<{ cancelled: number }>;
+      range: (
+        ctx: unknown,
+        req: unknown,
+      ) => Promise<{
+        zone: string;
+        open: { start: string; end: string }[];
+        calls: { id: number; start: string; name: string; state: string }[];
+      }>;
     }>({ name: "CalendarConsole" });
 
   it("refuses, and does not hang, when Google's busy times fail", async () => {
@@ -219,5 +227,29 @@ describe("CalendarConsole", () => {
       sql`select cancelled_by, reason from calendar.bookings`,
     );
     expect(row).toEqual({ cancelled_by: viewer.email, reason: "sick" });
+  });
+
+  it("draws the week: calls and open hours in a range, a long range refused", async () => {
+    await pg.db.execute(
+      sql`insert into operators (email, role) values (${viewer.email}, 'admin') on conflict do nothing`,
+    );
+    const v = await book(later(await slots(), 3 * 3_600_000));
+    const from = new Date(Date.now() - 3_600_000);
+    const to = new Date(Date.now() + 2 * 24 * 3_600_000);
+    const week = await console_().range({ viewer, from: from.toISOString(), to: to.toISOString() });
+    expect(week.zone).toBe("UTC");
+    expect(week.calls.map((c) => [c.id, c.name, c.state])).toEqual([
+      [v.id, "Ana Example", "booked"],
+    ]);
+    // Open all day every day: one stretch per UTC day, clipped to the range.
+    expect(week.open[0]?.start).toBe(from.toISOString());
+    expect(week.open.at(-1)?.end).toBe(to.toISOString());
+    await expect(
+      console_().range({
+        viewer,
+        from: from.toISOString(),
+        to: new Date(from.getTime() + 90 * 24 * 3_600_000).toISOString(),
+      }),
+    ).rejects.toThrow(/62 days/);
   });
 });
