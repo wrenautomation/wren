@@ -45,6 +45,8 @@ import { cachedDb, createDb } from "@wren/db";
 import { type FileStore, fileNameOf } from "@wren/delivery/files";
 import { DELIVERY_ROUTES, deliveryApi } from "@wren/delivery/restate";
 import { DELIVERY_APPS } from "@wren/delivery/routes";
+import { notesApi } from "@wren/notes/console";
+import { NOTES_CONSOLE_APPS, NOTES_CONSOLE_ROUTES } from "@wren/notes/console-routes";
 import { DEMO_NAME, PORTAL_ROUTES, portalApi } from "@wren/reactivation/restate";
 import { dictationApi } from "@wren/voice/console";
 import { VOICE_CONSOLE_APPS, VOICE_CONSOLE_ROUTES } from "@wren/voice/console-routes";
@@ -186,6 +188,17 @@ const SERVICES: Record<
     routes: Object.keys(TEMPLATES_CONSOLE_ROUTES),
     guard: { needs: TEMPLATES_CONSOLE_ROUTES, apps: TEMPLATES_CONSOLE_APPS, unnamed: "wren" },
     api: templatesApi({ db: main }),
+  },
+  // Notes, in each workspace's own database; images in memory like client files.
+  notes: {
+    routes: Object.keys(NOTES_CONSOLE_ROUTES),
+    guard: { needs: NOTES_CONSOLE_ROUTES, apps: NOTES_CONSOLE_APPS, unnamed: "wren" },
+    api: notesApi({
+      main,
+      open: (c) => cachedDb(clientUrl(settings.databaseUrl, c)),
+      files,
+      zone: settings.sendTimezone,
+    }),
   },
   // Dictation's timings only; a test call's save is Restate's.
   voice: {

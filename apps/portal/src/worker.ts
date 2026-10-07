@@ -98,7 +98,7 @@ async function api(req: Request, env: Env, path: string, site: Site, ctx?: Execu
   // A JSON content type forces a CORS preflight, so another site can't post here.
   if (!(req.headers.get("content-type") ?? "").startsWith("application/json"))
     return json({ error: "json only" }, 415);
-  const raw = await readBody(req, MAX_BODY);
+  const raw = await readBody(req, svc.maxBody ?? MAX_BODY);
   if (raw === null) return json({ error: "too large" }, 413);
   let input: unknown;
   try {

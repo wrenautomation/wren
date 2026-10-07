@@ -65,11 +65,25 @@ export function questionOf(req: QuestionRequest) {
   return { by: (req.viewer as SignedViewer).email, question, page };
 }
 
+/** Context for a question, from what the asker may read (their notes): lines, or "". */
+export type AskContext = (req: QuestionRequest, question: string) => Promise<string>;
+type Asked = ReturnType<typeof questionOf> & { notes?: string };
+
 /** Open the question's row and hand it to `Ask/answer`; the console polls `console.ask`. */
-export async function ask(ctx: restate.Context, main: Db, req: QuestionRequest) {
+export async function ask(
+  ctx: restate.Context,
+  main: Db,
+  req: QuestionRequest,
+  context?: AskContext,
+) {
   const q = questionOf(req);
+  // Notes the asker may open that match, read once (designs/2026-10-07-notes.md, Agents).
+  const notes = context
+    ? await ctx.run("notes", () => context(req, q.question).catch(() => ""))
+    : "";
+  const argv: Asked = notes ? { ...q, notes } : q;
   const id = await ctx.run("open run", () =>
-    openRun(main, { command: COMMAND, argv: q, model: "claude-code:sonnet" }).then((r) => r.id),
+    openRun(main, { command: COMMAND, argv, model: "claude-code:sonnet" }).then((r) => r.id),
   );
   ctx.serviceSendClient<AskService>(ASK).answer({ id });
   return { id };
@@ -88,12 +102,16 @@ export function makeAsk(main: Db) {
               .select({ argv: runs.argv, finishedAt: runs.finishedAt })
               .from(runs)
               .where(and(eq(runs.id, req.id), eq(runs.command, COMMAND)));
-            return row && !row.finishedAt ? (row.argv as ReturnType<typeof questionOf>) : null;
+            return row && !row.finishedAt ? (row.argv as Asked) : null;
           });
           if (!q) return;
           try {
             const out = await ctx.serviceClient<ClaudeService>(CLAUDE).ask({
-              question: `${q.by} asks, from the console page ${q.page ?? "home"}:\n\n${q.question}`,
+              question: `${q.by} asks, from the console page ${q.page ?? "home"}:\n\n${q.question}${
+                q.notes
+                  ? `\n\nTheir notes that may bear on it (Notes, /notes/doc/<id>):\n${q.notes}`
+                  : ""
+              }`,
               system: SYSTEM,
               dir: "wren",
               also: ["autobrowse", "lander"],

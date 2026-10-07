@@ -32,8 +32,13 @@ describe("apps and components", () => {
   it("a client sees only the apps of what it installed; the team sees the rest", () => {
     const ids = (team: boolean, installed: string[]) =>
       appsIn(MODULES, { wren: false, team, installed: new Set(installed) }).map((m) => m.id);
-    expect(ids(false, ["reactivation"])).toEqual(["reactivation", "marketplace", "account"]);
-    expect(ids(false, [])).toEqual(["marketplace", "account"]);
+    expect(ids(false, ["reactivation"])).toEqual([
+      "reactivation",
+      "marketplace",
+      "notes",
+      "account",
+    ]);
+    expect(ids(false, [])).toEqual(["marketplace", "notes", "account"]);
     expect(ids(true, [])).toEqual([
       "work",
       "reactivation",
@@ -42,13 +47,14 @@ describe("apps and components", () => {
       "calls",
       "marketplace",
       "marketing",
+      "notes",
       "calendar",
       "account",
     ]);
-    expect(ids(false, ["calendar.booking"])).toEqual(["marketplace", "calendar", "account"]);
-    expect(ids(false, ["research.lead_sheet"])).toEqual(["leads", "marketplace", "account"]);
-    expect(ids(false, ["calls.outcome"])).toEqual(["calls", "marketplace", "account"]);
-    expect(ids(false, ["marketing.stats"])).toEqual(["marketplace", "marketing", "account"]);
+    expect(ids(false, ["calendar.booking"])).toEqual(["marketplace", "notes", "calendar", "account"]);
+    expect(ids(false, ["research.lead_sheet"])).toEqual(["leads", "marketplace", "notes", "account"]);
+    expect(ids(false, ["calls.outcome"])).toEqual(["calls", "marketplace", "notes", "account"]);
+    expect(ids(false, ["marketing.stats"])).toEqual(["marketplace", "marketing", "notes", "account"]);
     // Wren's own Marketing in Wren's workspace, never the client's pages.
     const wrens = appsIn(MODULES, { wren: true, team: true, installed: new Set() });
     expect(wrens.filter((m) => m.id === "marketing").map((m) => m.pages.length > 5)).toEqual([

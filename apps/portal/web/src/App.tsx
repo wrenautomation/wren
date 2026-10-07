@@ -47,6 +47,7 @@ import { useAccount } from "./modules/account/load.js";
 import { SetupNow } from "./modules/account/Now.js";
 import { appsIn, MODULES } from "./modules/index.js";
 import { AddOn } from "./modules/marketplace/AddOn.js";
+import { capture, QuickNote, useQuickNoteKey } from "./modules/notes/capture.js";
 import { REACTIVATION } from "./modules/reactivation/nav.js";
 import { askClaude } from "./modules/wren/ask.js";
 import { keepOf, TemplatePage } from "./records.js";
@@ -346,6 +347,10 @@ export function App() {
   const keeper =
     current && !sample ? keepOf(wren ? null : current.id, { app: "", asClient: !team }) : undefined;
   const rail = usePref<RailPref>(keeper, RAIL_PREF);
+  // Quick capture (N, ⌘K "Note: …") where this login has Notes, never on a sample or under View as.
+  const noteAt =
+    current && !sample && !viewingAs && apps.some((m) => m.id === "notes") ? current.id : null;
+  const [quick, setQuick] = useQuickNoteKey(noteAt !== null);
   // The team's snippets, inserted in any draft it writes: Wren's, wherever it drafts.
   const snippets = useMemo(
     () => (team && onDemo === false ? snippetsFor(wren ? null : (current?.id ?? null)) : null),
@@ -564,6 +569,7 @@ export function App() {
         )}
       </AppShell>
       <Toasts />
+      {noteAt && quick ? <QuickNote client={noteAt} open={quick} onOpenChange={setQuick} /> : null}
       {!operator && onDemo === false && current && current.id !== WREN.id ? (
         <SurveyCard client={current.id} />
       ) : null}
@@ -574,6 +580,7 @@ export function App() {
             onOpenChange={setJump}
             items={jumps(apps, launcher, keys)}
             onPick={(href) => navigate(href)}
+            capture={noteAt ? (words) => void capture(noteAt, words) : undefined}
             ask={
               me.data?.team?.wren.includes("run")
                 ? (q) => void askClaude(q, location.pathname + location.search)

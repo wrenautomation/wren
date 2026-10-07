@@ -9,6 +9,7 @@ import { calls } from "./calls/index.js";
 import { library } from "./library/index.js";
 import { clientMarketing, marketing } from "./marketing/index.js";
 import { marketplace } from "./marketplace/index.js";
+import { clientNotes, notes } from "./notes/index.js";
 import { reactivation } from "./reactivation/index.js";
 import { texts } from "./texts/index.js";
 import { voice } from "./voice/index.js";
@@ -28,6 +29,8 @@ export const MODULES: Module[] = [
   ...WREN_APPS,
   library,
   // One address, two apps, as Marketing.
+  clientNotes,
+  notes,
   clientCalendar,
   calendar,
   voice,

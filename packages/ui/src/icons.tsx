@@ -34,6 +34,7 @@ const PATHS = {
   cycle: "M12.9 6A5 5 0 0 0 3.4 5.2M3 2.75V5.5h2.75M3.1 10a5 5 0 0 0 9.5.8M13 13.25V10.5h-2.75",
   flag: "M3.5 14V2.5M3.5 3h8.5l-2 3 2 3H3.5",
   board: "M2.5 2.5h11v11h-11zM2.5 6.5h11M6.5 6.5v7",
+  note: "M3.5 1.75h6l3 3v9.5h-9zM9.5 1.75v3h3M5.5 8h5M5.5 10.75h5",
 } as const;
 
 export type IconName = keyof typeof PATHS;

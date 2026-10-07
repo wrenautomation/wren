@@ -28,6 +28,7 @@ import { useEffect } from "react";
 import { permissionOf } from "../../src/services.js";
 import { call, uploadFile, viewingAs } from "./api.js";
 import { type DayPage, type ListPage, type OverviewPage, type PageProps, WREN } from "./module.js";
+import { notesSection } from "./modules/notes/backlinks.js";
 import { href, navigate } from "./route.js";
 
 type HeadMeta = Parameters<NonNullable<ListPage["head"]>>[0];
@@ -538,9 +539,12 @@ export function TemplatePage({
     example: props.demo ? page.example : undefined,
     columns: page.columns,
     sections: page.sections,
-    extras:
-      extras &&
-      ((detail: unknown, row: Row, act: RecordAct) => extras(detail, { ...props, row, act })),
+    // Every record lists the notes that @ it, after its own sections.
+    extras: (detail: unknown, row: Row, act: RecordAct) => {
+      const own = extras ? extras(detail, { ...props, row, act }) : {};
+      const notes = notesSection(props, page.record, String(row.id));
+      return notes ? { ...own, sections: [...(own.sections ?? []), notes] } : own;
+    },
     // The page's head sees whose page it is, as its extras do.
     head: head && ((meta: HeadMeta, reload: () => void) => head(meta, reload, props)),
   };

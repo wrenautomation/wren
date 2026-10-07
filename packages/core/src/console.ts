@@ -43,7 +43,7 @@ import {
 } from "./access.js";
 import { accessApi, accessHandlers } from "./access-console.js";
 import { ACCESS_TYPES, accessRecords } from "./access-records.js";
-import { ASK, type AskService, ask, type QuestionRequest } from "./ask.js";
+import { ASK, type AskContext, type AskService, ask, type QuestionRequest } from "./ask.js";
 import { release } from "./checks.js";
 import {
   addClient,
@@ -1992,6 +1992,8 @@ export function consoleApi({
   edge?: EdgePush | undefined;
   /** Account setups (`SETUPS` in the worker): a template's plan says how to make a missing fact. */
   setups?: readonly Setup[];
+  /** Ask's context from the asker's notes (`@wren/notes`'s `notesContext`); none without it. */
+  askContext?: AskContext | undefined;
 }) {
   const allowed = new Set([...views, ...moneyViews]);
   const money = new Set(moneyViews);
@@ -3456,7 +3458,7 @@ export function makeConsolePortal(deps: Parameters<typeof consoleApi>[0]) {
       releaseHold: (_: restate.Context, req: PortalRequest & { id?: unknown }) =>
         answer(() => api.releaseHold(req)),
       question: (ctx: restate.Context, req: QuestionRequest) =>
-        answer(() => ask(ctx, deps.main, req)),
+        answer(() => ask(ctx, deps.main, req, deps.askContext)),
       addClient: (ctx: restate.Context, req: AddClientRequest) =>
         answer(async () => {
           const ask = api.newClient(req);

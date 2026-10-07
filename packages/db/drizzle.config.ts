@@ -31,6 +31,7 @@ export default defineConfig({
     "../studio/src/schema.ts",
     "../calendar/src/schema.ts",
     "../voice/src/schema.ts",
+    "../notes/src/schema.ts",
   ],
   out: "./drizzle",
   casing: "snake_case",

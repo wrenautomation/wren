@@ -29,12 +29,16 @@ export interface PaletteItem {
   hint?: string | undefined;
 }
 
+/** What a "note:" line says, without the prefix; anything else typed counts too. */
+const noted = (q: string) => q.replace(/^\s*note:\s*/i, "").trim();
+
 export function CommandPalette({
   items,
   onPick,
   open,
   onOpenChange,
   ask,
+  capture,
 }: {
   items: PaletteItem[];
   onPick: (href: string) => void;
@@ -42,6 +46,8 @@ export function CommandPalette({
   onOpenChange: (open: boolean) => void;
   /** Wren's team: what's typed can go to Claude Code as a question, from this page. */
   ask?: ((question: string) => void) | undefined;
+  /** What's typed goes into the viewer's notes ("note: call Sam back"). */
+  capture?: ((words: string) => void) | undefined;
 }) {
   const scope = useScoped();
   const record = useOpened();
@@ -53,6 +59,21 @@ export function CommandPalette({
     onOpenChange(false);
     i.run();
   };
+  // "note: …" leads the list; anything else typed can still be kept, last.
+  const lead = /^\s*note:/i.test(q);
+  const note =
+    capture && noted(q) ? (
+      <CommandGroup heading="Note">
+        <CommandItem
+          value={`note ${q}`}
+          forceMount
+          onSelect={run({ run: () => capture(noted(q)) })}
+        >
+          <Icon name="note" />
+          <span>Add to your notes: “{noted(q)}”</span>
+        </CommandItem>
+      </CommandGroup>
+    ) : null;
   return (
     <CommandDialog
       open={open}
@@ -81,6 +102,7 @@ export function CommandPalette({
               </CommandItem>
             </CommandGroup>
           ) : null}
+          {lead ? note : null}
           {ask && q.trim() ? (
             <CommandGroup heading="Ask">
               {record?.ask ? (
@@ -152,6 +174,7 @@ export function CommandPalette({
                 ))}
             </CommandGroup>
           ))}
+          {lead ? null : note}
         </CommandList>
       </Command>
     </CommandDialog>

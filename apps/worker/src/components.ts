@@ -52,6 +52,7 @@ export const PLATFORM = {
     SetupWatch: "checks every set-up account again on its repeat, and starts a lost one over",
     SetupAgent: "a done-for-you setup step, run by autobrowse do in the account owner's autobrowse",
     AccountsConsole: "a client's accounts, setups and vendor modes",
+    NotesConsole: "notes: docs with versions, sharing and links, in every workspace",
   },
   apps: {
     account: "every client's account: people, look, billing",
@@ -64,6 +65,7 @@ export const PLATFORM = {
     ask: "questions to Claude Code about the system, read only",
     review: "the Friday review of parked ideas",
     library: "every template, prompt and sequence, with their numbers",
+    notes: "docs for Wren's team and each client's people, with versions and sharing",
   },
   records: {
     "console.ask": "every question asked of Claude Code",

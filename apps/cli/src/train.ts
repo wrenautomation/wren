@@ -8,10 +8,12 @@ import { writeFileSync } from "node:fs";
 import { backfillTraining } from "@wren/content";
 import { DRAFT_RECORD_KINDS, type DraftRecordKind, isDraftKind } from "@wren/core/draft-record";
 import { jsonl, type TrainAsk, trainPairs, trainRecords } from "@wren/core/train";
-import type { Db } from "@wren/db";
+import { clientDatabases, type Db } from "@wren/db";
+import { type NoteLine, noteLines } from "@wren/notes/train";
 import { type Command, InvalidArgumentError } from "commander";
 
 type WithDb = <T>(fn: (db: Db) => Promise<T>) => Promise<T>;
+type OnDatabase = <T>(database: string, fn: (db: Db) => Promise<T>) => Promise<T>;
 
 interface ExportOpts {
   kind?: DraftRecordKind[];
@@ -19,6 +21,7 @@ interface ExportOpts {
   format?: string;
   includePeople?: boolean;
   out?: string;
+  notes?: boolean;
 }
 
 const kindsOf = (v: string): DraftRecordKind[] =>
@@ -50,7 +53,15 @@ function emit(rows: readonly unknown[], what: string, out?: string) {
   process.stderr.write(`${rows.length} ${what}${out ? ` → ${out}` : ""}\n`);
 }
 
-export function registerTrain(program: Command, withDb: WithDb): void {
+/** Every workspace's training notes: Wren's, then each client's. Only those opted in. */
+async function allNoteLines(withDb: WithDb, onDatabase: OnDatabase, people: boolean) {
+  const out: NoteLine[] = await withDb((db) => noteLines(db, "wren", people));
+  for (const database of await withDb(clientDatabases))
+    out.push(...(await onDatabase(database, (db) => noteLines(db, database, people))));
+  return out;
+}
+
+export function registerTrain(program: Command, withDb: WithDb, onDatabase: OnDatabase): void {
   const train = program
     .command("train")
     .description("The training record as JSONL: every draft, its versions, decisions, outcomes");
@@ -64,9 +75,13 @@ export function registerTrain(program: Command, withDb: WithDb): void {
 
   filters(train.command("export"))
     .description("One wren.draft/1 line per draft (an item's round)")
+    .option("--notes", "also wren.note/1 lines: notes opted in to training (off by default)")
     .action(async (o: ExportOpts) => {
       const ask = askOf(o);
-      emit(await withDb((db) => trainRecords(db, ask)), "drafts", o.out);
+      const drafts = await withDb((db) => trainRecords(db, ask));
+      if (!o.notes) return emit(drafts, "drafts", o.out);
+      const notes = await allNoteLines(withDb, onDatabase, !!o.includePeople);
+      emit([...drafts, ...notes], `lines (${drafts.length} drafts, ${notes.length} notes)`, o.out);
     });
 
   filters(train.command("pairs"))

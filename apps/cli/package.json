@@ -28,6 +28,7 @@
     "@wren/experiments": "workspace:*",
     "@wren/llm": "workspace:*",
     "@wren/niches": "workspace:*",
+    "@wren/notes": "workspace:*",
     "@wren/outreach": "workspace:*",
     "@wren/reactivation": "workspace:*",
     "@wren/research": "workspace:*",

@@ -211,6 +211,7 @@ import {
   SMS_SEQUENCES,
   youtubeSearchFor,
 } from "@wren/niches";
+import { makeNotesConsole, notesContext } from "@wren/notes/console";
 import {
   discoverySettingsSchema,
   REACH_SEQUENCES,
@@ -452,6 +453,12 @@ export async function buildServices(
     cachedDb(clientDatabaseUrl(databaseUrl, client.database), { app: WORKER_APP });
   const clientDb = (id: string) => openClient({ database: clientDatabaseName(id) });
   const clients = { main: db, open: openClient, policy };
+  const notesDeps = {
+    main: db,
+    open: openClient,
+    files: settings.filesBucket ? s3Files({ bucket: settings.filesBucket }) : undefined,
+    zone: settings.sendTimezone,
+  };
   // A client's cal.com is its autobrowse login (`clients.accounts.calcom`), read through the desk.
   const calcomSites = ingressSites(ingressOf(settings), {
     caller: "wren:calcom",
@@ -766,6 +773,8 @@ export async function buildServices(
     makeVoiceConsole({ db }),
     // The Library's templates: save, publish (copy that sends waits in To approve), approve.
     makeTemplatesConsole({ db }),
+    // Notes: docs in every workspace, Yjs in each one's own database (designs/2026-10-07-notes.md).
+    makeNotesConsole(notesDeps),
   ];
   // The queue-keeper is bound only when asked to hold a queue; 0 means every enrollment is by hand.
   if (settings.composeDaysAhead > 0) {
@@ -1508,6 +1517,8 @@ export async function buildServices(
       adminGet: settings.restateAdminUrl
         ? restateAdminGet(settings.restateAdminUrl, settings.restateAuthToken)
         : undefined,
+      // Ask Claude reads the asker's own notes that match.
+      askContext: (req, q) => notesContext(notesDeps, req, q),
     }),
     makeEmailConsole({
       db,

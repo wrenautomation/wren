@@ -42,6 +42,11 @@ import {
   TEMPLATES_CONSOLE_WRITES,
 } from "@wren/core/templates/console-routes";
 import { DELIVERY_APPS, DELIVERY_ROUTES, DELIVERY_WRITES } from "@wren/delivery/routes";
+import {
+  NOTES_CONSOLE_APPS,
+  NOTES_CONSOLE_ROUTES,
+  NOTES_CONSOLE_WRITES,
+} from "@wren/notes/console-routes";
 import { PORTAL_APPS, PORTAL_ROUTES, PORTAL_WRITES } from "@wren/reactivation/portal-routes";
 import {
   VOICE_CONSOLE_APPS,
@@ -62,18 +67,22 @@ export interface Service {
   apps: RouteApps<object>;
   routes: ReadonlySet<string>;
   writes: ReadonlySet<string>;
+  /** The largest request body, in bytes; absent, 16 KB. */
+  maxBody?: number;
 }
 const service = <R extends Readonly<Record<string, Need>>>(
   name: string,
   needs: R,
   apps: RouteApps<R>,
   writes: readonly (keyof R & string)[],
+  maxBody?: number,
 ): Service => ({
   name,
   needs,
   apps,
   routes: new Set(Object.keys(needs)),
   writes: new Set(writes),
+  ...(maxBody ? { maxBody } : {}),
 });
 
 export const SERVICES: Readonly<Record<string, Service>> = {
@@ -111,6 +120,15 @@ export const SERVICES: Readonly<Record<string, Service>> = {
     TEMPLATES_CONSOLE_ROUTES,
     TEMPLATES_CONSOLE_APPS,
     TEMPLATES_CONSOLE_WRITES,
+  ),
+  // Notes: docs with versions and sharing. A sync carries a Yjs update in base64 (up to 4 MB of
+  // bytes), under Lambda's 6 MB request.
+  notes: service(
+    "NotesConsole",
+    NOTES_CONSOLE_ROUTES,
+    NOTES_CONSOLE_APPS,
+    NOTES_CONSOLE_WRITES,
+    5_600_000,
   ),
   // A client's accounts with their setups, and its vendors: modes, room, the month's usage.
   accounts: service(

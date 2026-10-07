@@ -39,6 +39,7 @@ import { registerEnrich } from "./enrich.js";
 import { registerEvolve } from "./evolve.js";
 import { registerFetch } from "./fetch.js";
 import { registerHooks } from "./hooks.js";
+import { registerNotes } from "./notes.js";
 import { registerPages } from "./pages.js";
 import { registerReach } from "./reach.js";
 import { registerReview } from "./review.js";
@@ -108,6 +109,7 @@ const CLIENT_SCOPED = new Set([
   "delivery",
   "sms",
   "hooks",
+  "notes",
   "templates",
   "workflows",
 ]);
@@ -241,7 +243,14 @@ registerEvolve(program, withMainDb, settings, rootDir);
 registerPages(program, withMainDb, settings);
 registerContent(program, withMainDb, settings);
 registerDrafts(program, withMainDb);
-registerTrain(program, withMainDb);
+registerTrain(program, withMainDb, (database, fn) =>
+  open(clientDatabaseUrl(settings.databaseUrl, database), fn),
+);
+registerNotes(program, {
+  withDb,
+  withMainDb,
+  client: () => program.opts<{ client?: string }>().client,
+});
 registerAds(program, withMainDb, settings);
 registerSms(program, withDb, settings);
 registerReach(program, withMainDb, settings);
