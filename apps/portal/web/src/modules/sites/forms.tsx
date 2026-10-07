@@ -226,6 +226,7 @@ function FormPreview({ spec }: { spec: FormSpec }) {
             </fieldset>
           );
         return (
+          // biome-ignore lint/a11y/noLabelWithoutControl: the control is the input below, picked by the field's kind
           <label key={key} className="grid font-medium">
             <span>
               {f.label}
@@ -308,7 +309,9 @@ function Builder({ id, d, act }: { id: string; d: FormDetail; act: RecordAct }) 
     const taken = new Set(spec.fields.map((f) => f.key));
     let n = spec.fields.length + 1;
     while (taken.has(`question_${n}`)) n++;
-    put({ fields: [...spec.fields, { key: `question_${n}`, kind: "text", label: `Question ${n}` }] });
+    put({
+      fields: [...spec.fields, { key: `question_${n}`, kind: "text", label: `Question ${n}` }],
+    });
   };
   /** Keys follow labels for fields a person named; hidden fields keep the key they typed. */
   const toSave = (): FormSpec => ({
@@ -338,7 +341,11 @@ function Builder({ id, d, act }: { id: string; d: FormDetail; act: RecordAct }) 
         <div className="grid gap-3 sm:grid-cols-2">
           <label className="grid gap-1.5 sm:col-span-2">
             <span className={LABEL}>Title</span>
-            <Input value={spec.title} maxLength={200} onChange={(e) => put({ title: e.target.value })} />
+            <Input
+              value={spec.title}
+              maxLength={200}
+              onChange={(e) => put({ title: e.target.value })}
+            />
           </label>
           <label className="grid gap-1.5 sm:col-span-2">
             <span className={LABEL}>
@@ -353,7 +360,11 @@ function Builder({ id, d, act }: { id: string; d: FormDetail; act: RecordAct }) 
           </label>
           <label className="grid gap-1.5">
             <span className={LABEL}>Button</span>
-            <Input value={spec.button} maxLength={60} onChange={(e) => put({ button: e.target.value })} />
+            <Input
+              value={spec.button}
+              maxLength={60}
+              onChange={(e) => put({ button: e.target.value })}
+            />
           </label>
         </div>
         <div className="grid gap-4">
@@ -428,7 +439,10 @@ function Builder({ id, d, act }: { id: string; d: FormDetail; act: RecordAct }) 
               onChange={(e) =>
                 put({
                   booking: e.target.value
-                    ? { url: e.target.value, ...(spec.booking?.label ? { label: spec.booking.label } : {}) }
+                    ? {
+                        url: e.target.value,
+                        ...(spec.booking?.label ? { label: spec.booking.label } : {}),
+                      }
                     : null,
                 })
               }
@@ -442,7 +456,10 @@ function Builder({ id, d, act }: { id: string; d: FormDetail; act: RecordAct }) 
               onChange={(e) =>
                 put({
                   booking: spec.booking
-                    ? { url: spec.booking.url, ...(e.target.value ? { label: e.target.value } : {}) }
+                    ? {
+                        url: spec.booking.url,
+                        ...(e.target.value ? { label: e.target.value } : {}),
+                      }
                     : null,
                 })
               }
@@ -589,7 +606,9 @@ export const formExtras: NonNullable<ListPage["extras"]> = (detail, { row, act }
   ];
   return {
     // Keyed by its last change: a save opens fresh.
-    form: <Builder key={`${id}:${JSON.stringify(d.spec).length}:${d.status}`} id={id} d={d} act={act} />,
+    form: (
+      <Builder key={`${id}:${JSON.stringify(d.spec).length}:${d.status}`} id={id} d={d} act={act} />
+    ),
     sections,
   } satisfies RecordExtras;
 };

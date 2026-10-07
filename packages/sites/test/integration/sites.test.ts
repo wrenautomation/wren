@@ -317,7 +317,9 @@ describe("hosted forms", () => {
 
     await api().formRetire({ viewer: ADA, ids: [made.id] });
     expect((await pub().serveForm({ slug: made.slug })).status).toBe(410);
-    expect((await pub().form({ form: made.id, fields: { email: "a@example.test" } }, enter)).status).toBe(404);
+    expect(
+      (await pub().form({ form: made.id, fields: { email: "a@example.test" } }, enter)).status,
+    ).toBe(404);
   });
 
   it("renders a live form in a page's form section and counts it for both", async () => {

@@ -81,11 +81,7 @@ describe("form specs", () => {
     expect(() =>
       parseSpec({
         ...base,
-        fields: [
-          ...base.fields,
-          { kind: "consent", label: "a" },
-          { kind: "consent", label: "b" },
-        ],
+        fields: [...base.fields, { kind: "consent", label: "a" }, { kind: "consent", label: "b" }],
       }),
     ).toThrow(FormProblem);
     expect(() =>

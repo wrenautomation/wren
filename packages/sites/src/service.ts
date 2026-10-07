@@ -85,7 +85,9 @@ export function sitesPublicApi(main: Db) {
     const page = p && p.status === "live" && p.client === form.client ? p : null;
     const words = consentOf(form.spec);
     const consent =
-      words && values.sms_consent === "yes" ? { text: words, version: consentVersion(words) } : null;
+      words && values.sms_consent === "yes"
+        ? { text: words, version: consentVersion(words) }
+        : null;
     const kept = await keepForm(main, {
       page,
       form: form.id,

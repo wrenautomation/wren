@@ -8,6 +8,7 @@
  */
 import type * as restate from "@restatedev/restate-sdk";
 import { WREN } from "@wren/core/access";
+import { clients } from "@wren/core/clients";
 import { wrenFacts } from "@wren/core/facts";
 import {
   answer,
@@ -21,11 +22,11 @@ import {
 import { PORTAL_FIELDS, serviceHandler } from "@wren/core/restate";
 import type { Db } from "@wren/db";
 import { OFFER_IDS, OFFERS, offerFor } from "@wren/offers";
-import { clients } from "@wren/core/clients";
 import { eq, sql } from "drizzle-orm";
 import { z } from "zod";
 import { SITES_CONSOLE_APPS, SITES_CONSOLE_ROUTES } from "./console-routes.js";
 import { type PageDetail, pageDetail } from "./detail.js";
+import { draftCopy, type Write } from "./draft.js";
 import {
   createForm,
   type FormDetail,
@@ -35,7 +36,6 @@ import {
   saveForm,
   setFormStatus,
 } from "./form-store.js";
-import { draftCopy, type Write } from "./draft.js";
 import { PAGE_KINDS, PAGE_STAGES, type PageKind, type PageStage } from "./model.js";
 import { sitePages } from "./schema.js";
 import {
@@ -582,7 +582,10 @@ export function makeSitesConsole(deps: { db: Db; write?: Write | null }) {
             ...P,
             name: z.string().max(200),
             slug: z.string().max(80).nullish(),
-            spec: z.record(z.string(), z.unknown()).nullish().describe("The fields; default when left out"),
+            spec: z
+              .record(z.string(), z.unknown())
+              .nullish()
+              .describe("The fields; default when left out"),
             owner: OWNER,
           }),
         },

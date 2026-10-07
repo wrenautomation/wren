@@ -579,8 +579,7 @@ export async function markForm(db: Db, id: string, entered: boolean, why: string
  * The door a page's forms enter: its own hook, else its owner's first site-preset hook (Wren's:
  * the one the lander posts to). Null when the owner has none.
  */
-export const doorOf = (db: Queryable, page: Pick<SitePage, "hook" | "client">) =>
-  doorFor(db, page);
+export const doorOf = (db: Queryable, page: Pick<SitePage, "hook" | "client">) => doorFor(db, page);
 
 /** A page's or a hosted form's door: its own hook, else its owner's first site-preset hook. */
 export async function doorFor(

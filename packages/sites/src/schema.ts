@@ -29,6 +29,7 @@ import {
   uuid,
   varchar,
 } from "drizzle-orm/pg-core";
+import type { FormSpec } from "./forms.js";
 import {
   CHANNELS,
   EVENT_NAMES,
@@ -38,7 +39,6 @@ import {
   PAGE_STATUSES,
   VERSION_ORIGINS,
 } from "./model.js";
-import type { FormSpec } from "./forms.js";
 import type { Content } from "./templates/types.js";
 
 export const sitePages = pgTable(

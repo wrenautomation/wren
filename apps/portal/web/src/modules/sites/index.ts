@@ -16,7 +16,8 @@ export const sites: Module = {
   id: "sites",
   name: "Sites",
   icon: "link",
-  blurb: "Every lander, listicle, funnel page and hosted form, with its visits, submits and bookings.",
+  blurb:
+    "Every lander, listicle, funnel page and hosted form, with its visits, submits and bookings.",
   requires: { audience: "team" },
   component: "sites.pages",
   pages: [

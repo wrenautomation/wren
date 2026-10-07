@@ -59,7 +59,10 @@ export const SITES_COMPONENTS = [
           says: "Field kinds: text, email, phone, choices, date, consent, hidden.",
           built: "code, FIELD_KINDS in packages/sites/src/forms.ts",
         },
-        { is: "fixed", says: "Every submit passes Turnstile and keeps the consent words it showed." },
+        {
+          is: "fixed",
+          says: "Every submit passes Turnstile and keeps the consent words it showed.",
+        },
       ],
     },
   }),
