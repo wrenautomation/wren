@@ -244,3 +244,16 @@ the counts match, then drops both tables. Code that still reads them moves to `r
   A refused save shows the banner with theirs against yours; "Reload theirs" drops your words,
   "Save yours on top" saves against their version. Texts and DMs open read only, with a link to
   their copy page.
+- 2026-10-07, step 5 review: names read like names. Folders and templates show labels
+  (`@wren/core/templates/labels`: "sec_ria" is "SEC RIA", "book-first/opener" is "Opener"); the
+  ref shows once, small, under the editor's title with Copy, for Claude Code and the CLI.
+  `packages/niches` has no display names, so the labels come from the path with a short list of
+  acronyms; a niche label field would replace that list. A row's meta names its folder only below
+  the one open, so rows under Recruiting say "Book first", not "recruiting".
+- 2026-10-07, step 5 review: a version Wren ships reads "Wren's default", never its writer
+  (`deploy`); list rows carry the newest version's `origin` for that. The CLI reads "the CLI".
+- 2026-10-07, step 5 review: the made-up lead fills every fact a default names (a fresh YouTube
+  post, offer terms, call times, links, firm facts), and a model fill that can't run in a preview
+  reads «AI: topic of this video» (its prompt's first clause), never its `ai.<hash>` key.
+- 2026-10-07, step 5 review: preview device frames keep the device's width, so lines break where
+  they would, and shrink to fit a narrower column instead of clipping or scrolling sideways.

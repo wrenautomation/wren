@@ -21,15 +21,21 @@ interface Node {
   children: Node[];
 }
 
-/** The folders as a tree: every parent of a path is a folder too, counts summed upward. */
-export function folderTree(folders: readonly BrowserFolder[]): Node[] {
+/**
+ * The folders as a tree: every parent of a path is a folder too, counts summed upward. `nameOf`
+ * turns a path's last part into what people read ("sec_ria" to "SEC RIA"); siblings sort by it.
+ */
+export function folderTree(
+  folders: readonly BrowserFolder[],
+  nameOf: (part: string) => string = (part) => part,
+): Node[] {
   const all = new Map<string, Node>();
   const roots: Node[] = [];
   const nodeOf = (path: string): Node => {
     const had = all.get(path);
     if (had) return had;
     const cut = path.lastIndexOf("/");
-    const node: Node = { path, name: path.slice(cut + 1), count: 0, children: [] };
+    const node: Node = { path, name: nameOf(path.slice(cut + 1)), count: 0, children: [] };
     all.set(path, node);
     if (cut < 0) roots.push(node);
     else nodeOf(path.slice(0, cut)).children.push(node);
@@ -149,12 +155,14 @@ function Breadcrumb({
   rootLabel,
   total,
   onFolder,
+  nameOf,
 }: {
   tree: Node[];
   at: string;
   rootLabel: string;
   total: number;
   onFolder: (path: string) => void;
+  nameOf: (part: string) => string;
 }) {
   const parts = at ? at.split("/") : [];
   let here: Node[] = tree;
@@ -185,11 +193,11 @@ function Breadcrumb({
               </span>
               {i === parts.length - 1 ? (
                 <span className="font-medium" aria-current="true">
-                  {p}
+                  {nameOf(p)}
                 </span>
               ) : (
                 <button type="button" className={crumb} onClick={() => onFolder(path)}>
-                  {p}
+                  {nameOf(p)}
                 </button>
               )}
             </li>
@@ -267,6 +275,7 @@ export function Browser({
   detail,
   placeholder,
   onClose,
+  nameOf = (part) => part,
 }: {
   /** What it browses, for screen readers: "Templates". */
   label: string;
@@ -289,8 +298,10 @@ export function Browser({
   placeholder?: ReactNode;
   /** Back from the open row under 1024px. */
   onClose: () => void;
+  /** What people read for a folder path's part; the path itself by default. */
+  nameOf?: (part: string) => string;
 }) {
-  const tree = useMemo(() => folderTree(folders), [folders]);
+  const tree = useMemo(() => folderTree(folders, nameOf), [folders, nameOf]);
   const total = folders.reduce((t, f) => t + f.count, 0);
   const [shut, setShut] = useState<ReadonlySet<string>>(new Set());
   const toggle = (path: string) =>
@@ -300,7 +311,7 @@ export function Browser({
       return next;
     });
   const [overRoot, setOverRoot] = useState(false);
-  const title = folder ? folder.slice(folder.lastIndexOf("/") + 1) : rootLabel;
+  const title = folder ? nameOf(folder.slice(folder.lastIndexOf("/") + 1)) : rootLabel;
   return (
     <section
       aria-label={label}
@@ -365,6 +376,7 @@ export function Browser({
           rootLabel={rootLabel}
           total={total}
           onFolder={onFolder}
+          nameOf={nameOf}
         />
         <div className="mt-3 hidden h-8 items-center justify-between gap-2 lg:mt-0 lg:flex">
           <h2 className="truncate text-[15px] font-semibold">{title}</h2>

@@ -5,7 +5,7 @@
  * ones are scaled down to fit. A foundation: the channel counts SMS parts, and knows a post's
  * or a DM's cap and where a feed cuts, and passes them in.
  */
-import { type ReactNode, useState } from "react";
+import { type ReactNode, useEffect, useRef, useState } from "react";
 
 export type MessageKind =
   | {
@@ -127,7 +127,7 @@ export function MessagePreview({
           type="button"
           aria-pressed={opened === d}
           onClick={() => setOpened(d)}
-          className="cursor-pointer text-(--ui-ink-2) underline-offset-4 aria-pressed:text-(--ui-ink) aria-pressed:underline"
+          className="cursor-pointer border-0 bg-transparent p-0 text-(--ui-ink-2) underline-offset-4 aria-pressed:text-(--ui-ink) aria-pressed:underline"
         >
           {d}
         </button>
@@ -262,12 +262,25 @@ function Frame({
   zoom?: number;
   children: ReactNode;
 }) {
+  // The device keeps its width, so lines break where they would on it; a column narrower than
+  // the device shows it smaller instead of cutting it off or scrolling sideways.
+  const room = useRef<HTMLDivElement>(null);
+  const [fit, setFit] = useState(zoom);
+  useEffect(() => {
+    const el = room.current;
+    if (!el || typeof ResizeObserver === "undefined") return;
+    const measure = () => setFit(Math.min(zoom, el.clientWidth / width) || zoom);
+    measure();
+    const watch = new ResizeObserver(measure);
+    watch.observe(el);
+    return () => watch.disconnect();
+  }, [width, zoom]);
   return (
     <figure className="m-0 grid min-w-0 gap-1">
       <figcaption className="text-[12px] text-(--ui-ink-3)">{label}</figcaption>
-      <div className="max-w-full overflow-x-auto">
+      <div ref={room} className="max-w-full min-w-0 overflow-hidden">
         <div
-          style={{ width, zoom }}
+          style={{ width, zoom: fit }}
           className="overflow-hidden border border-[#d9d9de] bg-white font-[system-ui] text-black"
         >
           {children}

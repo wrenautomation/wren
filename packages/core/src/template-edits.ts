@@ -40,6 +40,26 @@ export const SAMPLE_LEAD: Readonly<Record<string, string>> = {
   sender: "William",
   sender_name: "William",
   time: "2:30 PM",
+  // The firm's newest post (`postFacts`), so an option that needs one renders.
+  "post.title": "How we place travel nurses in two weeks",
+  "post.kind": "video",
+  "post.site": "YouTube",
+  "post.url": "https://www.youtube.com/watch?v=example",
+  "post.days": "12",
+  // An offer's terms (`offerFacts`) and the links and times a send fills in.
+  "offer.name": "Pilot",
+  "offer.days": "30",
+  "offer.goal": "10",
+  "offer.slots": "3",
+  "offer.page": "https://example.com/offer",
+  "call.times": "Tuesday at 2 PM or Thursday at 10 AM",
+  "call.booked": "Thursday at 10 AM",
+  "link.book": "https://example.com/book",
+  "link.page": "https://example.com",
+  "link.watch": "https://example.com/watch",
+  // Firm facts some niches quote.
+  "company.aum": "$250M",
+  "company.ind_clients": "120",
 };
 
 /** The kinds the Library saves; texts and DMs save where their slot's rules live. */

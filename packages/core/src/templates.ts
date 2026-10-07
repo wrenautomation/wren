@@ -724,8 +724,9 @@ export interface TemplateRow extends TemplateRef {
   draft: number | null;
   waiting: number | null;
   newestDefault: number | null;
-  /** Who wrote its newest version, and when. */
+  /** Who wrote its newest version, how it came (`default` for Wren's), and when. */
   by: string | null;
+  origin: string | null;
   at: Date | null;
   /** The words an editor opens (the draft, else live), for search. */
   words: string;
@@ -744,7 +745,7 @@ export async function listTemplates(db: Queryable, opts: ListOpts = {}): Promise
   const rows = (await db.execute(sql`
     SELECT t.id, t.kind, t.system, t.name, t.folder, t.follows_default,
       coalesce(lv.number, CASE WHEN t.follows_default THEN nd.number END) live,
-      dv.number draft, wv.number waiting, nd.number newest_default, top.created_by, top.created_at,
+      dv.number draft, wv.number waiting, nd.number newest_default, top.created_by, top.origin, top.created_at,
       coalesce(dv.source, lv.source, CASE WHEN t.follows_default THEN nd.source END, '') words
     FROM templates t
     LEFT JOIN template_versions lv ON lv.id = t.live_version_id
@@ -752,7 +753,7 @@ export async function listTemplates(db: Queryable, opts: ListOpts = {}): Promise
     LEFT JOIN template_versions wv ON wv.id = t.waiting_version_id
     LEFT JOIN LATERAL (SELECT d.number, d.source FROM template_versions d
       WHERE d.template_id = t.id AND d.origin = 'default' ORDER BY d.number DESC LIMIT 1) nd ON true
-    LEFT JOIN LATERAL (SELECT v.created_by, v.created_at FROM template_versions v
+    LEFT JOIN LATERAL (SELECT v.created_by, v.origin, v.created_at FROM template_versions v
       WHERE v.template_id = t.id ORDER BY v.number DESC LIMIT 1) top ON true
     WHERE true
       ${opts.kind ? sql`AND t.kind = ${opts.kind}` : sql``}
@@ -775,6 +776,7 @@ export async function listTemplates(db: Queryable, opts: ListOpts = {}): Promise
       waiting: num(r.waiting),
       newestDefault: num(r.newest_default),
       by: (r.created_by as string | null) ?? null,
+      origin: (r.origin as string | null) ?? null,
       at: r.created_at ? new Date(r.created_at as string) : null,
       words: String(r.words ?? ""),
     };

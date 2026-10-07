@@ -55,6 +55,7 @@ Citations: `packages/core/src/templates.ts:1`, `packages/core/src/schema.ts:1063
 | the Library, Templates (`apps/portal/web/src/modules/library/templates.tsx`) | folder browser: search, filters, editor with live preview, history, diff, restore, conflict banner, publish, reset, move |
 | the Library, Sequences (`apps/portal/web/src/modules/library/`) | reads numbers |
 | `Browser`, `Diff` (`packages/ui/src/browser.tsx`, `diff.tsx`) | the kit's tree, list, detail and line diff; niches, SOPs, offers and settings can reuse them |
+| `@wren/core/templates/labels` (`packages/core/src/template-labels.ts`) | folder and template names as people read them; refs stay the paths |
 | Workflows' Play | each step's live template, rendered for the made-up lead |
 
 ## See

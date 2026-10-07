@@ -28,8 +28,28 @@ export function fieldKeys(tpl: Template): string[] {
   return keys;
 }
 
+/**
+ * What a model fill reads as before it runs: its prompt's first clause, without the length rule.
+ * "The topic of this video in 3 to 8 words, written ..." reads "topic of this video".
+ */
+export function promptLabel(prompt: string): string {
+  const clause = (prompt.split(/[.,;:\n(]/)[0] ?? "")
+    .replace(/\s+in\s+\d+(\s*(to|-)\s*\d+)?\s+words?\b.*$/i, "")
+    .replace(/^(write|give|name|say)\s+/i, "")
+    .replace(/^(the|a|an)\s+/i, "")
+    .trim();
+  const words = clause.split(/\s+/).filter(Boolean);
+  const short = words.slice(0, 6).join(" ") + (words.length > 6 ? "…" : "");
+  return short ? short.charAt(0).toLowerCase() + short.slice(1) : "a line";
+}
+
+/** «key» for each fact, and «AI: what it writes» for a model fill, so nothing reads as a hash. */
 export function placeholderFacts(tpl: Template): Record<string, string> {
-  return Object.fromEntries(fieldKeys(tpl).map((key) => [key, `«${key}»`]));
+  const out: Record<string, string> = {};
+  for (const block of walk(tpl))
+    if (block.kind === "field" && !(block.key in out))
+      out[block.key] = block.prompt ? `«AI: ${promptLabel(block.prompt)}»` : `«${block.key}»`;
+  return out;
 }
 
 /** Variant-point name -> option count, in document order. */

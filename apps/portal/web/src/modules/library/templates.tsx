@@ -9,6 +9,7 @@
 import type { RecordAnswer } from "@wren/core/records/serve";
 import type { TemplateListRow, TemplateOpen, TemplateSaved } from "@wren/core/templates/console";
 import type { TemplateDetail } from "@wren/core/templates/edits";
+import { folderLabel, labelOf, nameLabel } from "@wren/core/templates/labels";
 import {
   Alert,
   Browser,
@@ -78,6 +79,9 @@ const PRE =
 
 const ago = (at: string | null) => (at ? relative(new Date(at)) : "");
 const byLine = (by: string | null, at: string | null) => [by, ago(at)].filter(Boolean).join(", ");
+/** Who wrote a version, as a person reads it: Wren's defaults by name, never the deploy. */
+const who = (by: string | null, origin: string | null) =>
+  origin === "default" ? "Wren's default" : by === "cli" ? "the CLI" : by;
 
 export function Templates({ params, demo, can }: PageProps) {
   // Old links name a template in the path (/library/templates/12): open it by the query.
@@ -116,7 +120,7 @@ export function Templates({ params, demo, can }: PageProps) {
   const move = (to: string, ref: string) =>
     call("templates/move", { ref, folder: to })
       .then(() => {
-        say.done(to ? `Moved to ${to}.` : "Moved out of its folder.");
+        say.done(to ? `Moved to ${folderLabel(to)}.` : "Moved out of its folder.");
         reload();
       })
       .catch(say.failed);
@@ -140,6 +144,7 @@ export function Templates({ params, demo, can }: PageProps) {
           folder={folder}
           onFolder={(path) => go(PATH, { folder: path, open: null }, params)}
           rootLabel="All templates"
+          nameOf={labelOf}
           folderActions={
             writes && folder ? (
               <RenameFolder key={folder} folder={folder} onDone={reload} params={params} />
@@ -218,11 +223,15 @@ export function Templates({ params, demo, can }: PageProps) {
                     draggable={writes}
                   >
                     <span className="flex min-w-0 items-center justify-between gap-2">
-                      <span className="truncate text-[14px] font-medium">{r.name}</span>
+                      <span className="truncate text-[14px] font-medium">{nameLabel(r.name)}</span>
                       <Tag tone={STATUS[r.status][1]}>{STATUS[r.status][0]}</Tag>
                     </span>
                     <span className={`truncate text-[12.5px] ${QUIET}`}>
-                      {[CHANNEL[r.kind] ?? r.kind, r.system, byLine(r.by, r.at)]
+                      {[
+                        CHANNEL[r.kind] ?? r.kind,
+                        folderLabel(r.folder, folder) || null,
+                        byLine(who(r.by, r.origin), r.at),
+                      ]
                         .filter(Boolean)
                         .join(" · ")}
                     </span>
@@ -350,14 +359,17 @@ function Open({
     <article className="grid min-w-0 gap-4">
       <header className="grid gap-1.5">
         <div className="flex flex-wrap items-center gap-2">
-          <h2 className="min-w-0 text-[19px]/[1.25] font-semibold break-words">{d.name}</h2>
+          <h2 className="min-w-0 text-[19px]/[1.25] font-semibold break-words">
+            {nameLabel(d.name)}
+          </h2>
           <Tag tone={STATUS[d.status][1]}>{STATUS[d.status][0]}</Tag>
         </div>
         <p className={`text-[13px] ${QUIET}`}>
-          {[CHANNEL[d.kind] ?? d.kind, d.system, APP[row.app] ?? row.app, d.folder || null]
+          {[CHANNEL[d.kind] ?? d.kind, APP[row.app] ?? row.app, folderLabel(d.folder) || null]
             .filter(Boolean)
             .join(" · ")}
         </p>
+        <RefLine refText={d.ref} />
         <Standing d={d} />
       </header>
       {mayWrite ? <Controls d={d} folders={folders} onDone={refresh} onMove={onMove} /> : null}
@@ -396,19 +408,41 @@ function Open({
   );
 }
 
+/** The ref Claude Code and the CLI take, once, small, with a copy button. */
+function RefLine({ refText }: { refText: string }) {
+  const [copied, setCopied] = useState(false);
+  return (
+    <p className="flex min-w-0 items-center gap-2 text-[12px] text-(--ui-ink-3)">
+      <code className="min-w-0 truncate font-mono">{refText}</code>
+      <button
+        type="button"
+        onClick={() =>
+          void navigator.clipboard?.writeText(refText).then(() => {
+            setCopied(true);
+            setTimeout(() => setCopied(false), 1500);
+          })
+        }
+        className="shrink-0 cursor-pointer border-0 bg-transparent p-0 text-(--ui-ink-2) underline decoration-(--ui-ink-3) underline-offset-[0.24em] hover:text-(--ui-ink)"
+      >
+        {copied ? "Copied" : "Copy"}
+      </button>
+    </p>
+  );
+}
+
 /** Live, draft and waiting versions in one line each. */
 function Standing({ d }: { d: TemplateOpen }) {
   const line = (label: string, h: Head | null, by?: string | null) =>
     h ? (
       <li>
         <span className="font-medium">{label}</span> version {h.number}
-        <span className={QUIET}> · {byLine(by ?? h.by, h.at)}</span>
+        <span className={QUIET}> · {byLine(by ?? who(h.by, h.origin), h.at)}</span>
       </li>
     ) : null;
   return (
     <ul className="list-none grid gap-0.5 text-[13.5px]">
       {d.live ? (
-        line(d.followsDefault ? "Live, Wren's default:" : "Live:", d.live)
+        line("Live:", d.live)
       ) : (
         <li className={QUIET}>Nothing is live, so nothing sends.</li>
       )}
@@ -830,7 +864,11 @@ function History({
             <span className="flex flex-wrap gap-1">{tags(v)}</span>
             <span className="min-w-0 flex-1 basis-60">
               <span className={QUIET}>
-                {[ORIGIN[v.origin] ?? v.origin, byLine(v.by, v.at)].filter(Boolean).join(" · ")}
+                {v.origin === "default"
+                  ? byLine("Wren's default", v.at)
+                  : [ORIGIN[v.origin] ?? v.origin, byLine(who(v.by, v.origin), v.at)]
+                      .filter(Boolean)
+                      .join(" · ")}
                 {v.openedFrom ? ` · from version ${v.openedFrom}` : ""}
               </span>
               {v.why ? <span className="block">{v.why}</span> : null}
