@@ -5,8 +5,10 @@
  * The demo (R15) needs no login and every answer goes through the mask.
  */
 import type * as restate from "@restatedev/restate-sdk";
+import { mayApprove } from "@wren/core/access";
 import type { Client } from "@wren/core/clients";
 import {
+  accessOf,
   answer,
   isDemo,
   PortalRefusal,
@@ -16,6 +18,7 @@ import {
   portalService,
   type SignedViewer,
   seesInternal,
+  whoIs,
 } from "@wren/core/portal";
 import { metaOf, type RecordMeta } from "@wren/core/records";
 import {
@@ -124,6 +127,39 @@ async function write<T>(
   });
 }
 
+/** May this viewer say yes or no on the client's To approve: its `approver` (`mayApprove`). */
+async function approves(deps: PortalDeps, req: PortalRequest, client: Client): Promise<boolean> {
+  const v = req.viewer;
+  const who =
+    !isDemo(v) && !v.access && !v.operator ? await whoIs(deps.main, v, client.id) : accessOf(req);
+  return mayApprove(who, client.id, client.approver);
+}
+
+const NOT_YOURS = { wren: "Wren's team approves these", client: "the client approves these" };
+
+/** A decision on To approve: refused, on the server, to whoever the client's approver isn't. */
+async function decide<T>(
+  deps: PortalDeps,
+  req: PortalRequest,
+  change: (db: Queryable, client: Client, viewer: SignedViewer) => Promise<T>,
+): Promise<T> {
+  const { client } = await pickForWrite(deps.main, req);
+  if (!(await approves(deps, req, client)))
+    throw new PortalRefusal(NOT_YOURS[client.approver === "client" ? "client" : "wren"], 403);
+  return write(deps, req, change);
+}
+
+/** The email type's views and actions less To approve, for a login that doesn't approve. */
+const APPROVE_ACTIONS = new Set(["reactivation.approve", "reactivation.skip"]);
+const withoutApprove = (m: RecordMeta): RecordMeta =>
+  m.id === "reactivation.email"
+    ? {
+        ...m,
+        views: m.views.filter((v) => v.id !== "approve"),
+        actions: m.actions.filter((a) => !APPROVE_ACTIONS.has(a)),
+      }
+    : m;
+
 const PLURAL: Record<string, string> = { reply: "replies", person: "people" };
 /** Enrollment ids from a browser: whole positive numbers, at most one page's worth. */
 const idsOf = (v: unknown, what = "email"): number[] => {
@@ -214,11 +250,17 @@ async function booking(
 /** The handlers as plain functions: the service wraps them, tests call them. */
 export function portalApi(deps: PortalDeps) {
   return {
-    overview: (req: PortalRequest): Promise<Overview> => read(deps, req, portalOverview),
+    overview: async (req: PortalRequest): Promise<Overview> => {
+      const client = await pickClient(deps.main, req);
+      // The demo shows the client's turn, as a client would see it.
+      const yes = client.demo || (await approves(deps, req, client));
+      return read(deps, req, (db, client) => portalOverview(db, client, yes));
+    },
     /** What each record type shows and lets this viewer filter, sort and search. */
     recordsTypes: async (req: PortalRequest): Promise<RecordMeta[]> => {
       const client = await pickClient(deps.main, req);
-      return typesOf(client).map((t) => metaOf(t, client.demo));
+      const metas = typesOf(client).map((t) => metaOf(t, client.demo));
+      return client.demo || (await approves(deps, req, client)) ? metas : metas.map(withoutApprove);
     },
     recordsList: (req: PortalRequest & ListAsk): Promise<RecordsPage> =>
       records(deps, req, (r) => r.list(req)),
@@ -271,7 +313,7 @@ export function portalApi(deps: PortalDeps) {
       ),
     /** Send these: approve the drafts of the chosen emails. */
     approve: (req: PortalRequest & { ids: number[] }): Promise<ReviewResult> =>
-      write(deps, req, (db, _, viewer) =>
+      decide(deps, req, (db, _, viewer) =>
         approveDrafts(
           db,
           { enrollmentIds: idsOf(req.ids) },
@@ -280,10 +322,10 @@ export function portalApi(deps: PortalDeps) {
       ),
     /** Undo an approve, while none of the email has started sending. */
     unapprove: (req: PortalRequest & { ids: number[] }): Promise<ReviewResult> =>
-      write(deps, req, (db) => unapproveDrafts(db, idsOf(req.ids))),
+      decide(deps, req, (db) => unapproveDrafts(db, idsOf(req.ids))),
     /** Don't send these: the drafts are struck and that person is left alone. */
     skip: (req: PortalRequest & { ids: number[] }): Promise<ReviewResult> =>
-      write(deps, req, (db, _, viewer) =>
+      decide(deps, req, (db, _, viewer) =>
         skipDrafts(db, { enrollmentIds: idsOf(req.ids) }, viewer.operator ? "operator" : "client"),
       ),
     /** A meeting came of these replies. Answers the ones it marked, so undo takes back only those. */

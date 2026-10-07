@@ -210,6 +210,7 @@ describe("railOf: yours notes", () => {
 
   it("says ready to read even with 0 awaiting", () => {
     expect(noteOf(step("approve", { state: "yours", count: 0 }))).toBe("ready to read");
+    expect(noteOf(step("approve", { state: "waiting", count: 5 }))).toBe("Waiting on Wren's team");
   });
 });
 

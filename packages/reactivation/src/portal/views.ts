@@ -187,7 +187,12 @@ function emailsOf(r: PersonSqlRow): Pick<PersonRow, "email" | "oldEmail"> {
   return { email: found, oldEmail: crm };
 }
 
-export async function portalOverview(db: Queryable, client: Client): Promise<Overview> {
+/** `approves`: this login says yes to the client's emails (`mayApprove`). */
+export async function portalOverview(
+  db: Queryable,
+  client: Client,
+  approves = true,
+): Promise<Overview> {
   const [c] = await db.execute<{
     people: number;
     companies: number;
@@ -223,7 +228,7 @@ export async function portalOverview(db: Queryable, client: Client): Promise<Ove
     atHiring: c?.at_hiring ?? 0,
     briefs: c?.briefs ?? 0,
     top: await rankedContacts(db, { limit: 5 }),
-    pipeline: await portalPipeline(db, client),
+    pipeline: await portalPipeline(db, client, approves),
   };
 }
 

@@ -27,7 +27,8 @@ export type PipelineStepId = (typeof PIPELINE_STEPS)[number];
 
 /**
  * `done`: nothing left to do here. `next`: work is due and runs on the next pass.
- * `waiting`: parked on a daily cap until `resumesAt`. `yours`: waits on the client.
+ * `waiting`: parked on a daily cap until `resumesAt`, or on Wren's team (an approve that isn't
+ * this login's). `yours`: waits on the client.
  * `idle`: nothing has reached it yet.
  */
 export type StepState = "done" | "next" | "waiting" | "yours" | "idle";
@@ -59,7 +60,13 @@ function stateOf(count: number, due: number, parkedUntil: string | null): StepSt
   return count > 0 ? "done" : "idle";
 }
 
-export function pipelineOf(s: CrmStatus, replies: number, sends: boolean): Pipeline {
+/** `approves`: this login says yes to the emails (`mayApprove`); else its approve step waits. */
+export function pipelineOf(
+  s: CrmStatus,
+  replies: number,
+  sends: boolean,
+  approves = true,
+): Pipeline {
   const v = s.health.verification;
   const addresses = v.valid + v.invalid + v.risky + v.catch_all + v.unchecked;
   const people = s.health.people;
@@ -109,7 +116,13 @@ export function pipelineOf(s: CrmStatus, replies: number, sends: boolean): Pipel
         "approve",
         e.awaiting,
         null,
-        e.awaiting > 0 ? "yours" : e.approved + e.sent > 0 ? "done" : "idle",
+        e.awaiting > 0
+          ? approves
+            ? "yours"
+            : "waiting"
+          : e.approved + e.sent > 0
+            ? "done"
+            : "idle",
       ),
       step(
         "sent",
@@ -123,7 +136,11 @@ export function pipelineOf(s: CrmStatus, replies: number, sends: boolean): Pipel
   };
 }
 
-export async function portalPipeline(db: Queryable, client: Client): Promise<Pipeline> {
+export async function portalPipeline(
+  db: Queryable,
+  client: Client,
+  approves = true,
+): Promise<Pipeline> {
   const settings = reactivationSettingsOf(client.products);
   const status = await crmStatus(db, {
     compose: { settings, profile: await readClientProfile(db), demo: client.demo },
@@ -131,5 +148,10 @@ export async function portalPipeline(db: Queryable, client: Client): Promise<Pip
   const [r] = await db.execute<{ n: number }>(sql`
     select count(*)::int n from thread_events t join enrollments e on e.id = t.enrollment_id
     where t.kind = 'reply' and e.niche = ${REACTIVATION}`);
-  return pipelineOf(status, r?.n ?? 0, !client.demo && settings.on && settings.stages.send);
+  return pipelineOf(
+    status,
+    r?.n ?? 0,
+    !client.demo && settings.on && settings.stages.send,
+    approves,
+  );
 }

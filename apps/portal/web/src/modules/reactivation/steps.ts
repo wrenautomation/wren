@@ -54,6 +54,8 @@ function noteOf(s: PipelineStep, sends: boolean, demo: boolean): string {
   const left = s.of !== null ? s.of - s.count : 0;
   switch (s.state) {
     case "waiting": {
+      // Drafts this login doesn't approve: the client's approver is Wren's team.
+      if (s.id === "approve") return "Waiting on Wren's team";
       const when = soon(s.resumesAt);
       return `${num(s.parked)} wait${when ? ` till ${when}` : " for the next pass"}`;
     }

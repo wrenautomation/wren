@@ -4,6 +4,8 @@
  */
 import type { Settings } from "@wren/config";
 import {
+  APPROVERS,
+  type Approver,
   addClient,
   addMember,
   type Client,
@@ -66,6 +68,7 @@ function show(c: Client): string {
     c.database.padEnd(28),
     `accounts: ${accounts}`,
     `products: ${Object.keys(c.products).join(",") || "-"}`,
+    `approver: ${c.approver}`,
     `(${c.name})`,
   ].join("  ");
 }
@@ -118,8 +121,9 @@ export function registerClients(program: Command, withMainDb: WithDb, settings: 
 
   cmd
     .command("set <id>")
-    .description("Change a client's name, accounts or product settings")
+    .description("Change a client's name, accounts, approver or product settings")
     .option("--name <name>")
+    .option("--approver <who>", "who approves its emails: wren, client or either")
     .option("--account <site=account>", "merged in; site= turns it off", collect)
     .option("--set <product.path=value>", "a product setting (JSON or text), repeatable", collect)
     .option("--unset <product.path>", "back to the default, repeatable", collect)
@@ -128,17 +132,22 @@ export function registerClients(program: Command, withMainDb: WithDb, settings: 
         id: string,
         opts: {
           name?: string;
+          approver?: string;
           account?: string[];
           set?: string[];
           unset?: string[];
         },
       ) => {
+        const approver = opts.approver;
+        if (approver !== undefined && !(APPROVERS as readonly string[]).includes(approver))
+          throw new Error(`--approver is one of ${APPROVERS.join(", ")}`);
         const client = await withMainDb(async (db) => {
           const current = await getClient(db, id);
           const products =
             opts.set || opts.unset ? productChange(current.products, opts.set, opts.unset) : null;
           return updateClient(db, id, {
             ...(opts.name ? { name: opts.name } : {}),
+            ...(approver ? { approver: approver as Approver } : {}),
             ...(opts.account ? { accounts: accountPairs(opts.account) } : {}),
             ...(products ? { products } : {}),
           });

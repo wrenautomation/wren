@@ -99,6 +99,7 @@ beforeAll(async () => {
     database: ACME,
     accounts: {},
     products: { reactivation: { on: true } },
+    approver: "either",
   });
   for (const email of ["owner@acme.example", "ops@acme.example"])
     await addMember(pg.db, "acme", email);

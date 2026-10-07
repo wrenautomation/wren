@@ -171,6 +171,8 @@ Who sees it: Wren's team on each client's Vendors page and a cross-client usage 
 
 `approver` on the client: `wren` (default), `client` or `either`. To approve shows a client's items to Wren's team when it's `wren` or `either`, and to the client's owner when it's `client` or `either`. Approve checks the same rule on the server. Wren's own items are always Wren's team's.
 
+Built (step e): `mayApprove(who, client, approver)` in `@wren/core/access`. The reactivation portal refuses approve, undo and skip to the other side, drops the To approve view and its actions from that login's record types, and its rail shows "Waiting on Wren's team". The CLI's `crm approve` and `crm skip` are the team's and refuse a `client` approver. `wren clients set <id> --approver <who>` sets it.
+
 ## Metered collectors and LinkedIn reads for clients
 
 `signalPlan`'s `free` flag (metered stays Wren's) becomes a vendor gate. A client's metered collector runs when its vendor mode is set, the bucket has room and the cap isn't hit. Each unit meters one read.
@@ -222,6 +224,8 @@ Each step is committed with tests on synthetic data.
 - 10DLC fees and domain prices folded into a client's managed billing: which ones and at what markup.
 - Putting usage lines on the Wise invoice: manual today.
 - The IAM grant for writing client keys to SSM.
+- Each client's approver. Clients that existed before step e are `either`, so nothing changes for them; new clients start `wren`.
+- Whether `client` means any of the client's people who can act (built) or only its owner role.
 
 ## Decision log
 
@@ -239,3 +243,4 @@ Each step is committed with tests on synthetic data.
 - 2026-10-07 (step a): Telling the team when a run goes stuck is In development; the Accounts page shows it.
 - 2026-10-07 (step b): `vendor_usage` has no foreign key to clients: it's a ledger, and a client's usage outlives the client. The GCRA moved to `@wren/core/buckets`; research re-exports it.
 - 2026-10-07 (step b): A managed share above the clients' pool is held to the pool. A free vendor still needs a cap above $0 to run managed, so nothing runs until William sets one.
+- 2026-10-07 (step e): "The client's owner" reads as the client's side: any of its people the guard lets act (owner and member roles). A login that may only read never approves. Existing clients were set to `either` by the migration, so their approve keeps working; the default for new ones is `wren`.

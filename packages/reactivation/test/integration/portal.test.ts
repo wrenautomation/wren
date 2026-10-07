@@ -6,11 +6,11 @@
  */
 import { runFeed } from "@wren/core";
 import { PERMISSIONS } from "@wren/core/access";
-import { addMember, clients } from "@wren/core/clients";
+import { type Approver, addMember, clients } from "@wren/core/clients";
 import { portalMe, type Viewer } from "@wren/core/portal";
 import type { Db } from "@wren/db";
 import { startTestPostgres, type TestPostgres } from "@wren/db/testing";
-import { sql } from "drizzle-orm";
+import { eq, sql } from "drizzle-orm";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { seedDemo } from "../../src/demo/seed.js";
 import { EMAIL_FILTERS } from "../../src/portal/outbox.js";
@@ -154,7 +154,7 @@ beforeAll(async () => {
       // Whose login researched the list: never shown, only that LinkedIn was used.
       accounts: { linkedin: "jane-doe-personal" },
     },
-    { id: "acme", name: "Acme Staffing", database: "wren_client_acme" },
+    { id: "acme", name: "Acme Staffing", database: "wren_client_acme", approver: "either" },
     { id: "beta", name: "Beta Search", database: "wren_client_beta" },
   ]);
   for (const email of ["owner@acme.example", "ops@acme.example"])
@@ -405,6 +405,44 @@ describe("writes", () => {
     await expect(api.skip({ ...operator, client: "demo", ids: [enrollmentId] })).rejects.toEqual(
       refusal(403),
     );
+    expect((await api.emails({ ...owner, filter: "awaiting" })).total).toBe(1);
+  });
+
+  it("the approver setting says who decides To approve, on the server too", async () => {
+    const set = (approver: Approver) =>
+      pg.db.update(clients).set({ approver }).where(eq(clients.id, "acme"));
+    const team = { ...operator, client: "acme" };
+    const views = async (r: typeof owner | typeof team) =>
+      (await api.recordsTypes(r))
+        .find((t) => t.id === "reactivation.email")
+        ?.views.map((v) => v.id);
+    const step = async (r: typeof owner | typeof team) =>
+      (await api.overview(r)).pipeline.steps.find((x) => x.id === "approve")?.state;
+    const no = (message: string) =>
+      expect.objectContaining({ constructor: PortalRefusal, status: 403, message });
+
+    await set("wren");
+    await expect(api.approve({ ...owner, ids: [enrollmentId] })).rejects.toEqual(
+      no("Wren's team approves these"),
+    );
+    await expect(api.skip({ ...owner, ids: [enrollmentId] })).rejects.toEqual(
+      no("Wren's team approves these"),
+    );
+    expect(await views(owner)).not.toContain("approve");
+    expect(await views(team)).toContain("approve");
+    expect(await step(owner)).toBe("waiting");
+    expect(await step(team)).toBe("yours");
+
+    await set("client");
+    await expect(api.approve({ ...team, ids: [enrollmentId] })).rejects.toEqual(
+      no("the client approves these"),
+    );
+    expect(await views(team)).not.toContain("approve");
+    expect(await views(owner)).toContain("approve");
+    expect(await step(owner)).toBe("yours");
+
+    await set("either");
+    expect(await views(team)).toContain("approve");
     expect((await api.emails({ ...owner, filter: "awaiting" })).total).toBe(1);
   });
 

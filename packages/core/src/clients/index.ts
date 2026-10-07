@@ -13,7 +13,7 @@ import {
   setAuditActor,
 } from "@wren/db";
 import { and, asc, eq, sql } from "drizzle-orm";
-import type { RoleId } from "../access.js";
+import type { Approver, RoleId } from "../access.js";
 import { actor, date, defineRecord, number, status, text } from "../records.js";
 import {
   type Client,
@@ -96,6 +96,8 @@ export interface ClientChange {
   accounts?: Record<string, string>;
   /** Per product: a block replaces that product's settings, null removes them. The caller validates. */
   products?: Record<string, unknown>;
+  /** Who says yes to its To approve items (`mayApprove`). */
+  approver?: Approver;
 }
 
 export async function updateClient(
@@ -117,6 +119,7 @@ export async function updateClient(
       name: change.name ?? current.name,
       accounts,
       products,
+      approver: change.approver ?? current.approver,
     })
     .where(eq(clients.id, id))
     .returning();

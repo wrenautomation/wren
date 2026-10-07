@@ -16,7 +16,7 @@ import {
   unique,
   varchar,
 } from "drizzle-orm/pg-core";
-import type { Permission, RoleId } from "../access.js";
+import { APPROVERS, type Approver, type Permission, type RoleId } from "../access.js";
 
 /** The channels a client can come in through: an engagement's source, a spend account's. */
 export const CHANNELS = ["email", "sms", "ads", "content", "search", "reach"] as const;
@@ -56,12 +56,18 @@ export const clients = pgTable(
     setupMode: varchar("setup_mode", { length: 8, enum: SETUP_MODES }).default("self").notNull(),
     /** William's yes to create accounts or buy numbers and domains for this client. */
     buysOk: boolean("buys_ok").default(false).notNull(),
+    /** Who says yes to its To approve items: Wren's team, its owner, or either (`mayApprove`). */
+    approver: varchar("approver", { length: 8, enum: APPROVERS })
+      .$type<Approver>()
+      .default("wren")
+      .notNull(),
     createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
   },
   (t) => [
     primaryKey({ columns: [t.id], name: "pk_clients" }),
     unique("uq_clients_database").on(t.database),
     oneOf("ck_clients_setup_mode", t.setupMode, SETUP_MODES),
+    oneOf("ck_clients_approver", t.approver, APPROVERS),
   ],
 );
 
@@ -85,7 +91,14 @@ export const wrenSettings = pgTable(
   (t) => [primaryKey({ columns: [t.component], name: "pk_wren_settings" })],
 );
 
-export { MEMBER_ROLES, type MemberRole, TEAM_ROLES, type TeamRole } from "../access.js";
+export {
+  APPROVERS,
+  type Approver,
+  MEMBER_ROLES,
+  type MemberRole,
+  TEAM_ROLES,
+  type TeamRole,
+} from "../access.js";
 
 /**
  * A named bundle of grants (designs/2026-10-06-scoped-access.md). The built-ins are rows with no

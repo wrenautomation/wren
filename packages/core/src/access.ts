@@ -265,6 +265,28 @@ export function why(who: Who, p: Permission, at?: string | Target, now = new Dat
 export const can = (who: Who, p: Permission, at?: string | Target, now?: Date): boolean =>
   why(who, p, at, now).length > 0;
 
+/**
+ * Who says yes to a client's To approve items (designs/2026-10-07-setup-and-vendors.md): `wren`,
+ * Wren's team; `client`, the client's own people; `either`, both.
+ */
+export const APPROVERS = ["wren", "client", "either"] as const;
+export type Approver = (typeof APPROVERS)[number];
+
+/**
+ * May `who` approve `client`'s items under its `approver` setting? Wren's own items (`client`
+ * null) are always the team's. A client's side still needs `act` there, as the team does: the
+ * guard checks that.
+ */
+export function mayApprove(who: Who, client: string | null, approver: Approver = "wren"): boolean {
+  if (!who || "demo" in who) return false;
+  if ("team" in who)
+    return (
+      client === null ||
+      (approver !== "client" && (who.clients === null || who.clients.includes(client)))
+    );
+  return client !== null && who.client === client && approver !== "wren";
+}
+
 /** Every verb `who` holds at `at`, anywhere inside it: what `portalMe` sends the web. */
 export const granted = (who: Who, at?: string | Target): Permission[] =>
   PERMISSIONS.filter((p) => can(who, p, at));

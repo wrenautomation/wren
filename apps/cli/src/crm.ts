@@ -13,6 +13,7 @@ import { defaultLocalChecker, makeVerifier } from "@wren/channel-email";
 import type { InboxScheduler, SendScheduler } from "@wren/channel-email/restate";
 import { ingressOf, type Settings } from "@wren/config";
 import { recordedRun, runFeed } from "@wren/core";
+import { mayApprove } from "@wren/core/access";
 import type { Client } from "@wren/core/clients";
 import { atomic, type Db } from "@wren/db";
 import { loadLlmEnv, makeLlm } from "@wren/llm";
@@ -71,6 +72,12 @@ const positive = (flag: string) => (v: string) => {
   if (!Number.isInteger(n) || n < 1) throw new Error(`${flag} must be a whole number above 0`);
   return n;
 };
+
+/** The CLI is Wren's team: it decides To approve only where the client's approver lets it. */
+function teamApproves(client: Client) {
+  if (!mayApprove({ team: "admin", clients: null }, client.id, client.approver))
+    throw new Error(`${client.id} approves its own emails; set its approver to either first`);
+}
 
 export function registerCrm(
   program: Command,
@@ -343,11 +350,12 @@ export function registerCrm(
     .option("--all", "every email waiting")
     .action(async (args: string[], opts: { all?: boolean }) => {
       if (!opts.all && !args.length) throw new Error("give ids, or --all");
-      const out = await withClientDb((db) =>
-        atomic(db, (tx) =>
+      const out = await withClientDb((db, client) => {
+        teamApproves(client);
+        return atomic(db, (tx) =>
           approveDrafts(tx, opts.all ? { all: true } : { enrollmentIds: ids(args) }, "operator"),
-        ),
-      );
+        );
+      });
       console.log(
         `approved ${out.done.length}${out.skipped.length ? `; not waiting: ${out.skipped.join(", ")}` : ""}`,
       );
@@ -385,9 +393,10 @@ export function registerCrm(
     .command("skip <ids...>")
     .description("Don't send these emails; the composer won't write to them again")
     .action(async (args: string[]) => {
-      const out = await withClientDb((db) =>
-        skipDrafts(db, { enrollmentIds: ids(args) }, "operator"),
-      );
+      const out = await withClientDb((db, client) => {
+        teamApproves(client);
+        return skipDrafts(db, { enrollmentIds: ids(args) }, "operator");
+      });
       console.log(
         `skipped ${out.done.length}${out.skipped.length ? `; not waiting: ${out.skipped.join(", ")}` : ""}`,
       );

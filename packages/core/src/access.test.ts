@@ -6,6 +6,7 @@ import {
   granted,
   isNeed,
   MEMBER_ROLES,
+  mayApprove,
   needOf,
   PERMISSIONS,
   type Permission,
@@ -304,5 +305,27 @@ describe("sentences", () => {
     expect(sentence({ ...(EXTRAS[0] as Grant), until: "2026-10-01T00:00:00Z" }, NOW)).toBe(
       "Can act on LinkedIn. Ended.",
     );
+  });
+});
+
+describe("mayApprove", () => {
+  const admin = { team: "admin", clients: null } as const;
+  const scoped = { team: "operator", clients: ["acme"] } as const;
+  const member = { member: "member", client: "acme" } as const;
+  it("gives each side what the client's approver names", () => {
+    expect(mayApprove(admin, "acme", "wren")).toBe(true);
+    expect(mayApprove(admin, "acme", "either")).toBe(true);
+    expect(mayApprove(admin, "acme", "client")).toBe(false);
+    expect(mayApprove(member, "acme", "wren")).toBe(false);
+    expect(mayApprove(member, "acme", "client")).toBe(true);
+    expect(mayApprove(member, "acme", "either")).toBe(true);
+  });
+  it("keeps Wren's own items the team's, and each login to its own clients", () => {
+    expect(mayApprove(admin, null)).toBe(true);
+    expect(mayApprove(member, null, "either")).toBe(false);
+    expect(mayApprove(scoped, "beta", "either")).toBe(false);
+    expect(mayApprove(member, "beta", "either")).toBe(false);
+    expect(mayApprove({ demo: true }, "acme", "either")).toBe(false);
+    expect(mayApprove(null, "acme", "either")).toBe(false);
   });
 });

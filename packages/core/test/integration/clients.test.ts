@@ -71,6 +71,12 @@ describe("updateClient: products", () => {
     });
   });
 
+  it("starts a new client on Wren's team approving; a change sets it and keeps it", async () => {
+    expect((await findClient(pg.db, "acme"))?.approver).toBe("wren");
+    expect((await updateClient(pg.db, "acme", { approver: "client" })).approver).toBe("client");
+    expect((await updateClient(pg.db, "acme", { name: "Acme Co" })).approver).toBe("client");
+  });
+
   it("removing every product leaves an empty object, not null", async () => {
     const c = await updateClient(pg.db, "acme", { products: { reactivation: null, other: null } });
     expect(c.products).toEqual({});
