@@ -97,7 +97,7 @@ const WORKFLOWS = [flowOf(5)];
 const [T] = templatesOf(WORKFLOWS, COMPONENTS) as [Template];
 const FILES = [{ ref: parseRef("sms:texts/hello#1"), source: "Hi {first_name}.", hash: "h1" }];
 const deps = { workflows: WORKFLOWS, components: COMPONENTS };
-const ask = { client: "demo", by: "test", confirm: "door", files: FILES };
+const ask = { client: "demo", by: "test", confirm: "DOOR", files: FILES };
 
 const products = async () =>
   (await pg.db.select().from(clients).where(eq(clients.id, "demo")))[0]?.products;
@@ -115,7 +115,7 @@ describe("installTemplate", () => {
     expect(plan.parts.find((p) => p.id === "texts")?.accounts[0]?.site).toBe("telnyx");
 
     await expect(installTemplate(pg.db, pg.db, T, { ...ask, confirm: "x" })).rejects.toThrow(
-      "type door to confirm",
+      "type Door to confirm",
     );
     const out = await installTemplate(pg.db, pg.db, T, ask);
     expect(out.changed).toBe(true);

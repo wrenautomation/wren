@@ -68,7 +68,7 @@ export function planLines(p: Plan): string[] {
       (x) =>
         `  part ${x.name}: ${PART[x.status]}` +
         (x.accounts.length
-          ? `. Needs your account: ${x.accounts.map((a) => `${a.label} (${a.how})`).join("; ")}`
+          ? `. Needs: ${x.accounts.map((a) => `${a.label} (${a.how})`).join("; ")}`
           : ""),
     ),
     ...p.copy.map((c) => `  copy ${copyLabel(c.ref)}: ${COPY[c.status]}`),
@@ -78,7 +78,7 @@ export function planLines(p: Plan): string[] {
           `  door on ${p.door.input}, by ${p.door.subject}: ${p.door.status === "add" ? "made shut" : "there"}`,
         ]
       : []),
-    ...(p.confirm ? [`It ${p.effects.join(" and ")}: pass --confirm ${p.confirm}.`] : []),
+    ...(p.confirm ? [`It ${p.effects.join(" and ")}: pass --confirm ${p.template}.`] : []),
     "Nothing starts until a person approves it in To approve.",
   ];
 }
@@ -128,7 +128,7 @@ export function registerWorkflows(
   cmd
     .command("install <template>")
     .description("Install it on --client: parts, copy, a draft and a shut door. Starts nothing")
-    .option("--confirm <id>", "the template's id, when it sends or spends")
+    .option("--confirm <id>", "the template's id or name, when it sends or spends")
     .option("--update", "apply the plan's changes after the template moved")
     .action(async (template: string, o: { confirm?: string; update?: boolean }) => {
       const t = templateNamed(sold, template);

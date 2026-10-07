@@ -3,7 +3,7 @@
  * installed, each with its settings, prices left out.
  */
 import type { RecordAnswer, RecordsPage } from "@wren/core/records/serve";
-import { Alert, ButtonLink, Empty, Facts, Loading, Tag } from "@wren/ui";
+import { Alert, ButtonLink, Empty, Loading, type SettingField, Settings, Tag } from "@wren/ui";
 import { call } from "../../api.js";
 import { useCall } from "../../load.js";
 import { LIST, QUIET } from "../work/bits.js";
@@ -21,8 +21,6 @@ async function installed(client: string) {
   );
 }
 
-const shown = (v: unknown) => (typeof v === "string" ? v : JSON.stringify(v));
-
 export function ClientComponents({ client }: { client: string }) {
   const got = useCall(`installed:${client}`, () => installed(client));
   const at = (path: string) => `/marketplace/catalog${path}?client=${encodeURIComponent(client)}`;
@@ -33,11 +31,10 @@ export function ClientComponents({ client }: { client: string }) {
       {got.data.length ? (
         <ul className={LIST}>
           {got.data.map(({ row, detail }) => {
-            const values = (detail as { values?: Record<string, unknown> | null }).values;
-            const items = Object.entries(values ?? {}).map(([k, v]): [string, string] => [
-              k,
-              shown(v),
-            ]);
+            const { values, form } = detail as {
+              values?: Record<string, unknown> | null;
+              form?: SettingField[] | null;
+            };
             return (
               <li key={row.id} className="grid gap-2">
                 <a href={at(`/${row.id}`)}>
@@ -45,8 +42,8 @@ export function ClientComponents({ client }: { client: string }) {
                 </a>
                 {values === null ? (
                   <span className={QUIET}>Its settings don't parse: open it to fix them.</span>
-                ) : items.length ? (
-                  <Facts items={items} />
+                ) : Object.keys(values ?? {}).length ? (
+                  <Settings values={values} fields={form} />
                 ) : (
                   <span className={QUIET}>No settings.</span>
                 )}

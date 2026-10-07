@@ -136,6 +136,8 @@ export interface GraphProps {
   /** Nodes it pans to at rest when the drawing is wider than the frame: a diff's changes. Play's
    * `focus` when left out. */
   show?: readonly string[] | undefined;
+  /** Shows the whole drawing at rest, smaller than readable if it must: a preview, not a workspace. */
+  fit?: boolean | undefined;
 }
 
 const PAD = 20;
@@ -146,6 +148,8 @@ const NARROW = 640;
  * (left, or top on a phone) and pans, the minimap under it; "Fit all" shows the whole on demand.
  */
 const READ = 12 / 13;
+/** The least a `fit` drawing zooms at rest: past that it pans, as any other. */
+const FIT_LEAST = 0.4;
 /** The window's height less the page's header and a margin: the tallest a graph draws by default. */
 const CHROME = 96;
 /** Room under the drawing for the zoom buttons. */
@@ -621,6 +625,7 @@ export default function GraphCanvas({
   minHeight,
   fill,
   show,
+  fit,
   inset,
 }: GraphProps) {
   const box = useRef<HTMLDivElement>(null);
@@ -767,7 +772,7 @@ export default function GraphCanvas({
       narrow ? 1 : tall / Math.max(1, l.height),
     );
     // Never under readable: past that, it shows the start and pans.
-    const zoom = Math.max(READ, whole);
+    const zoom = Math.max(fit ? FIT_LEAST : READ, whole);
     const fits = l.width * zoom <= room + 1 && (narrow || l.height * zoom <= tall + 1);
     // The minimap sits in its own room under the drawing, so it never covers a node at rest.
     const map = !fits && !narrow;
@@ -805,7 +810,7 @@ export default function GraphCanvas({
       fits: fits && l.height * zoom + 2 * PAD + TOOLS_ROOM <= height + 1,
       map,
     };
-  }, [l, width, most, least, fill, left, right, dir, show, focus]);
+  }, [l, width, most, least, fill, left, right, dir, show, focus, fit]);
 
   const download = async (kind: "svg" | "png") => {
     if (!l || !box.current) return;

@@ -84,3 +84,8 @@ template.
   the yes, and a no keeps it live.
 - 2026-10-07: the Shop groups by type, Templates first. A part's header facts measure tags by
   their labels, and tags wrap there instead of cutting off.
+- 2026-10-07 (review): install asks for the template's name as shown ("Speed to lead"), case
+  aside; its id passes too, for the CLI. A client reads "Needs your account"; Wren's team reads
+  which ("Needs a phone number"). The part a template is named after reads as its loop. Settings
+  render through the shared `Settings` (labels from the form, On/Off, "Not set", lists as items,
+  never JSON). The template's canvas fits on load. The client row drops its part ids.

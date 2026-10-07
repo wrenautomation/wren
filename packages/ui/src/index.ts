@@ -24,7 +24,7 @@ export {
   togglePin,
   usePref,
 } from "./customize.js";
-export { Facts } from "./data.js";
+export { Facts, Settings } from "./data.js";
 export { Diff, pairsOf } from "./diff.js";
 export { type DraftTurnLine, DraftTurns, type RecordDraft } from "./draft.js";
 export { Alert, Callout, Empty, Loading } from "./feedback.js";
@@ -141,6 +141,13 @@ export {
   RunView,
   stepsAt,
 } from "./run.js";
+export {
+  NOT_SET,
+  type SettingField,
+  type SettingRow,
+  settingRows,
+  settingText,
+} from "./settings.js";
 export {
   AppShell,
   type Brand,

@@ -4,6 +4,7 @@ import { defineComponent } from "./components.js";
 import { installCheck } from "./installs.js";
 import type { WorkflowInstall } from "./schema.js";
 import {
+  confirmed,
   copyLabel,
   copyRefs,
   type Plan,
@@ -114,7 +115,7 @@ describe("templatesOf", () => {
 });
 
 describe("planOf", () => {
-  it("plans a new install: parts, copy, a draft and a shut door, confirm by the template's id", () => {
+  it("plans a new install: parts, copy, a draft and a shut door, confirm by the template's name", () => {
     const p = plan({});
     expect(p.kind).toBe("new");
     expect(statuses(p)).toEqual({ texts: "add", door: "add", soon: "development" });
@@ -126,7 +127,14 @@ describe("planOf", () => {
     ]);
     expect(p.draft).toBe("add");
     expect(p.door).toEqual({ status: "add", input: "forms", subject: "phone" });
-    expect(p.confirm).toBe("door");
+    expect(p.confirm).toBe("Door");
+  });
+
+  it("takes the name or the id as typed, case and spaces aside", () => {
+    expect(confirmed(T, " door ")).toBe(true);
+    expect(confirmed({ id: "speed_to_lead", name: "Speed to lead" }, "speed  TO lead")).toBe(true);
+    expect(confirmed(T, "dor")).toBe(false);
+    expect(confirmed(T, undefined)).toBe(false);
   });
 
   it("finds nothing to do when it's all there as the template has it", () => {

@@ -166,7 +166,7 @@ describe("who is asking, read fresh", () => {
 });
 
 describe("clients as a console record", () => {
-  it("a client with its products and members, the demo apart", async () => {
+  it("a client with its members, the demo apart; its parts are on its page, not the row", async () => {
     await pg.db
       .insert(clients)
       .values({ id: "show", name: "Show", database: "wren_client_show", demo: true });
@@ -175,9 +175,8 @@ describe("clients as a console record", () => {
     const api = serveRecords([clientRecord], pg.db);
     const page = await api.list({ record: "console.client", view: "clients" });
     expect(page.counts).toEqual({ clients: 1, all: 2 });
-    expect(page.rows).toMatchObject([
-      { id: "acme", name: "Acme", kind: "client", products: "other, reactivation", members: 2 },
-    ]);
+    expect(page.rows).toMatchObject([{ id: "acme", name: "Acme", kind: "client", members: 2 }]);
+    expect(page.rows[0]).not.toHaveProperty("products");
     const demo = await api.get({ record: "console.client", id: "show" });
     expect(demo.row).toMatchObject({ kind: "demo", members: 0, lastSeen: null });
   });

@@ -457,14 +457,13 @@ export const clientRecord = defineRecord({
   view: "client_records",
   key: "id",
   title: "name",
-  subtitle: "products",
+  // Its parts are on its page, by name (Templates, Components): ids here would read as code.
   fields: {
     name: text("Client"),
     kind: status({
       client: { label: "Client", tone: "good" },
       demo: { label: "Demo", tone: "neutral" },
     }),
-    products: text(),
     members: number(),
     lastSeen: date("Last sign-in"),
     added: date(),

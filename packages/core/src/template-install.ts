@@ -147,7 +147,8 @@ export interface Plan {
   draft: "add" | "have" | "edited" | "live";
   door: { status: "add" | "have"; input: string; subject: string } | null;
   effects: Effect[];
-  /** What to type to install it: the template's id when it has effects and work to do. */
+  /** What to type to install it: the template's name, when it has effects and work to do. Its id
+   * also passes, and case never matters (`confirmed`). */
   confirm: string | null;
   /** How many things it would change. */
   changes: number;
@@ -280,9 +281,18 @@ export function planOf(
     draft,
     door,
     effects: t.effects,
-    confirm: changes && t.effects.length ? t.id : null,
+    confirm: changes && t.effects.length ? t.name : null,
     changes,
   };
+}
+
+const typedForm = (v: string) => v.trim().replace(/\s+/g, " ").toLowerCase();
+
+/** Whether what a person typed names the template: its name or its id, case aside. */
+export function confirmed(t: Pick<Template, "id" | "name">, typed: unknown): boolean {
+  if (typeof typed !== "string") return false;
+  const at = typedForm(typed);
+  return at === typedForm(t.name) || at === typedForm(t.id);
 }
 
 /** How a template on a client reads, as a status field. */
@@ -416,7 +426,7 @@ export async function installTemplate(
       "it's installed and the template moved: read the plan, then install with update",
       409,
     );
-  if (before.confirm && ask.confirm !== before.confirm)
+  if (before.confirm && !confirmed(t, ask.confirm))
     throw new PortalRefusal(
       `it ${t.effects.join(" and ")}: type ${before.confirm} to confirm`,
       400,
@@ -453,9 +463,10 @@ export async function installTemplate(
       const c = t.parts.find((x) => x.part.id === p.id)?.part as Component;
       const at = { products, accounts: client.accounts };
       if (p.status === "add" || p.status === "back") {
+        // Confirmed above, by name: the part's check takes the template's id.
         const block = installCheck(c, at, {
           settings: p.settings,
-          confirm: ask.confirm,
+          confirm: t.id,
           template: t.id,
         });
         writes[c.id] = block;

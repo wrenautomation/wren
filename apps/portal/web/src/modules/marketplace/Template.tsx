@@ -5,7 +5,7 @@
  * spends until a person approves it in To approve. Wren's team installs; a client reads its state.
  */
 import type { Port } from "@wren/core/components";
-import { Alert, Button, Facts, FlowMap, type RecordExtras, Tag } from "@wren/ui";
+import { Alert, Button, FlowMap, type RecordExtras, Settings, Tag } from "@wren/ui";
 import { type ReactNode, useId, useState } from "react";
 import { call, ME_CHANGED, type Me } from "../../api.js";
 import { useCall } from "../../load.js";
@@ -30,6 +30,7 @@ interface TemplatePart {
 
 /** The plan as the server reads it (`Plan` in @wren/core/templates/install). */
 interface Plan {
+  template: string;
   kind: "new" | "same" | "update" | "back";
   state: State | null;
   parts: {
@@ -111,17 +112,37 @@ const EFFECT: Record<string, string> = {
 const changed = () => dispatchEvent(new Event(ME_CHANGED));
 const said = (err: unknown) => (err instanceof Error ? err.message : String(err));
 
-/** A setting's value in words. */
-function valueText(v: unknown): string {
-  if (v === true) return "On";
-  if (v === false) return "Off";
-  if (v === null || v === undefined || v === "") return "None";
-  if (Array.isArray(v)) return v.length ? v.map(valueText).join(", ") : "None";
-  if (typeof v === "object") {
-    const on = Object.entries(v as Record<string, unknown>);
-    return on.length ? on.map(([k, x]) => `${k} ${valueText(x)}`).join(", ") : "Default";
-  }
-  return String(v);
+/**
+ * The part a template is named after is its loop, the part that ties the steps together: it
+ * reads "Speed to lead loop", never as the template listing itself.
+ */
+const partName = (p: { id: string; name: string }, template: string) =>
+  p.id === template ? `${p.name} loop` : p.name;
+const LOOP = "Ties the steps together and runs them.";
+
+/** Names that keep their capital: "a Meta ad account", never "a meta ad account". */
+const NAMES = /^(Meta|Google|Search|Reddit|Instagram)\b/;
+
+/** An account as a person says it: "Phone number" → "a phone number". */
+const anAccount = (label: string) => {
+  const l = /^[A-Z][a-z]+\b/.test(label) && !NAMES.test(label) ? label.toLowerCase() : label;
+  return `${/^[aeiou]/i.test(l) ? "an" : "a"} ${l}`;
+};
+
+/**
+ * What a part waits on, one wording everywhere: a client reads "Needs your account"; Wren's team
+ * reads which ("Needs a phone number"), a setup's step as it's named.
+ */
+export function needsText(accounts: readonly { site: string; label: string }[], team: boolean) {
+  if (!team) return "Needs your account";
+  const each = accounts.map((a) =>
+    a.site === "any"
+      ? `${a.label.charAt(0).toLowerCase()}${a.label.slice(1)}`
+      : a.site.includes(".")
+        ? a.label
+        : anAccount(a.label),
+  );
+  return `Needs ${each.join(" and ")}`;
 }
 
 /** The accounts a part waits on here: each it needs and lacks, then one of its any if none is set. */
@@ -143,25 +164,32 @@ const lacking = (p: TemplatePart) => {
   ];
 };
 
-function PartRow({ p, at }: { p: TemplatePart; at: (id: string) => string }) {
+function PartRow({
+  p,
+  at,
+  team,
+  template,
+}: {
+  p: TemplatePart;
+  at: (id: string) => string;
+  team: boolean;
+  template: string;
+}) {
   const needs = lacking(p);
   const ready = p.ready === "ready";
-  const items = Object.entries(p.settings ?? {}).map(([k, v]): [string, string] => [
-    p.labels[k] ?? k,
-    valueText(v),
-  ]);
+  const fields = Object.entries(p.labels).map(([field, label]) => ({ field, label }));
   return (
     <li className="grid gap-2">
       <span className={SPLIT}>
         <a href={at(p.id)} className="min-w-0 font-medium">
-          {p.name}
+          {partName(p, template)}
         </a>
         <Tag tone={needs.length ? "accent" : ready ? "green" : "neutral"}>
-          {needs.length ? "Needs your account" : ready ? "Ready" : "In development"}
+          {needs.length ? needsText(needs, team) : ready ? "Ready" : "In development"}
         </Tag>
       </span>
-      <span className={QUIET}>{p.blurb}</span>
-      {items.length ? <Facts items={items} /> : null}
+      <span className={QUIET}>{p.id === template ? LOOP : p.blurb}</span>
+      <Settings values={p.settings} fields={fields} />
       {needs.map((a) => (
         <span key={a.site} className="text-[13.5px] text-(--ui-ink-2)">
           <b className="font-medium text-(--ui-ink)">{a.label}:</b> {a.how}
@@ -217,11 +245,13 @@ function PlanList({ plan, copy }: { plan: Plan; copy: TemplateDetail["template"]
         {plan.parts.map((p) =>
           line(
             p.id,
-            p.name,
+            partName(p, plan.template),
             PART[p.status],
             p.accounts.length && p.status !== "development"
-              ? `Needs your account: ${p.accounts.map((a) => a.label).join(", ")}. It installs and waits.`
-              : undefined,
+              ? `${needsText(p.accounts, true)}. It installs and waits.`
+              : p.id === plan.template
+                ? LOOP
+                : undefined,
           ),
         )}
         {plan.copy.map((c) => line(c.ref, label(c.ref), COPY[c.status]))}
@@ -285,7 +315,9 @@ function InstallBox({ d, name, client }: { d: TemplateDetail; name: string; clie
   if (!plan) return null;
   const on = state !== null && state !== "off";
   const work = plan.kind !== "same";
-  const ok = !plan.confirm || typed.trim() === plan.confirm;
+  // The name as shown, case aside (the server checks the same: `confirmed`).
+  const seen = (v: string) => v.trim().replace(/\s+/g, " ").toLowerCase();
+  const ok = !plan.confirm || seen(typed) === seen(plan.confirm);
   const verb =
     plan.kind === "update" ? "Update" : plan.kind === "back" ? "Install again" : "Install";
   return (
@@ -310,8 +342,10 @@ function InstallBox({ d, name, client }: { d: TemplateDetail; name: string; clie
           <p className={QUIET}>Nothing sends or spends until someone approves it in To approve.</p>
           {plan.confirm ? (
             <label htmlFor={uid} className={FIELD}>
-              It {plan.effects.map((e) => EFFECT[e] ?? e).join(" and ")} once live. Type{" "}
-              {plan.confirm} to {verb.toLowerCase()}.
+              <span>
+                It {plan.effects.map((e) => EFFECT[e] ?? e).join(" and ")} once live. Type{" "}
+                <b className="font-medium">{plan.confirm}</b> to {verb.toLowerCase()}.
+              </span>
               <input
                 id={uid}
                 className={SELECT}
@@ -414,7 +448,7 @@ export function templateExtras(
       "Parts",
       <ul key="parts" className={LIST}>
         {d.template.parts.map((p) => (
-          <PartRow key={p.id} p={p} at={at} />
+          <PartRow key={p.id} p={p} at={at} team={!!team} template={d.template.id} />
         ))}
       </ul>,
     ],
@@ -439,6 +473,7 @@ export function templateExtras(
       key="workflow"
       boxes={flowBoxes(d.workflow, (n) => (n.uses ? at(n.uses) : undefined))}
       label={`How ${name} runs`}
+      fit
     />,
   ]);
   if (d.usedIn.length)

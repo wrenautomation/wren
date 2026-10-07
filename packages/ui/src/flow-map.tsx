@@ -38,17 +38,20 @@ export function FlowMap({
   label,
   edit,
   tools,
+  fit,
 }: {
   boxes: readonly MapBox[];
   label: string;
   edit?: FlowEdit | undefined;
   /** Search, filters and export above it; on past six boxes when left out. */
   tools?: boolean | undefined;
+  /** The whole drawing at rest, smaller if it must be: a preview. */
+  fit?: boolean | undefined;
 }) {
   if (!boxes.length) return <p className="text-[14px] text-(--ui-ink-2)">Nothing to draw.</p>;
   return (
     <Suspense fallback={<div className="min-h-40" />}>
-      <FlowMapGraph boxes={boxes} label={label} edit={edit} tools={tools} />
+      <FlowMapGraph boxes={boxes} label={label} edit={edit} tools={tools} fit={fit} />
     </Suspense>
   );
 }

@@ -50,11 +50,13 @@ export default function FlowMapGraph({
   label,
   edit,
   tools,
+  fit,
 }: {
   boxes: readonly MapBox[];
   label: string;
   edit?: FlowEdit | undefined;
   tools?: boolean | undefined;
+  fit?: boolean | undefined;
 }) {
   const { nodes, edges } = nodesOf(boxes);
   return (
@@ -64,6 +66,7 @@ export default function FlowMapGraph({
       label={label}
       edit={edit}
       tools={tools ?? boxes.length > 6}
+      fit={fit}
     />
   );
 }
